@@ -21,11 +21,13 @@
     <disk type='file' device='disk'>
       <driver name='file'/>
       <source file='/root/foo.img'/>
+      <backingStore/>
       <target dev='hda' bus='ide'/>
     </disk>
     <disk type='file' device='cdrom'>
       <driver name='file'/>
       <source file='/root/boot.iso'/>
+      <backingStore/>
       <target dev='hdc' bus='ide'/>
       <readonly/>
     </disk>
@@ -36,6 +38,7 @@
       <target dev='vif3.0'/>
     </interface>
     <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
     <graphics type='vnc' port='5903' autoport='no' keymap='ja'/>
   </devices>
 </domain>

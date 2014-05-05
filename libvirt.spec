@@ -79,6 +79,7 @@
 %define with_hyperv        0%{!?_without_hyperv:1}
 %define with_xenapi        0%{!?_without_xenapi:1}
 %define with_parallels     0%{!?_without_parallels:1}
+# No test for bhyve, because it does not build on Linux
 
 # Then the secondary host drivers, which run inside libvirtd
 %define with_interface        0%{!?_without_interface:%{server_drivers}}
@@ -98,7 +99,7 @@
 %else
     %define with_storage_sheepdog 0
 %endif
-%if 0%{?fedora} >= 19
+%if 0%{?fedora} >= 19 || 0%{?rhel} >= 6
     %define with_storage_gluster 0%{!?_without_storage_gluster:%{server_drivers}}
 %else
     %define with_storage_gluster 0
@@ -129,6 +130,9 @@
 %define with_numad         0%{!?_without_numad:0}
 %define with_firewalld     0%{!?_without_firewalld:0}
 %define with_libssh2       0%{!?_without_libssh2:0}
+%define with_wireshark     0%{!?_without_wireshark:0}
+%define with_systemd_daemon 0%{!?_without_systemd_daemon:0}
+%define with_pm_utils      1
 
 # Non-server/HV driver defaults which are always enabled
 %define with_sasl          0%{!?_without_sasl:1}
@@ -152,6 +156,13 @@
     %define with_numactl 0
 %endif
 
+# libgfapi is built only on x86_64 on rhel
+%ifnarch x86_64
+    %if 0%{?rhel} >= 6
+        %define with_storage_gluster 0
+    %endif
+%endif
+
 # RHEL doesn't ship OpenVZ, VBox, UML, PowerHypervisor,
 # VMWare, libxenserver (xenapi), libxenlight (Xen 4.1 and newer),
 # or HyperV.
@@ -171,6 +182,8 @@
 # Fedora has systemd, libvirt still used sysvinit there.
 %if 0%{?fedora} >= 17 || 0%{?rhel} >= 7
     %define with_systemd 1
+    %define with_systemd_daemon 1
+    %define with_pm_utils 0
 %endif
 
 # Fedora 18 / RHEL-7 are first where firewalld support is enabled
@@ -267,6 +280,11 @@
 # Enable libssh2 transport for new enough distros
 %if 0%{?fedora} >= 17
     %define with_libssh2 0%{!?_without_libssh2:1}
+%endif
+
+# Enable wireshark plugins for all distros shipping libvirt 1.2.2 or newer
+%if 0%{?fedora} >= 21
+    %define with_wireshark 0%{!?_without_wireshark:1}
 %endif
 
 # Disable some drivers when building without libvirt daemon.
@@ -371,7 +389,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.1
+Version: 1.2.4
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -414,7 +432,9 @@ Requires: libvirt-daemon-driver-vbox = %{version}-%{release}
 Requires: libvirt-daemon-driver-nwfilter = %{version}-%{release}
         %endif
 
+	%if %{with_interface}
 Requires: libvirt-daemon-driver-interface = %{version}-%{release}
+	%endif
 Requires: libvirt-daemon-driver-secret = %{version}-%{release}
 Requires: libvirt-daemon-driver-storage = %{version}-%{release}
 Requires: libvirt-daemon-driver-network = %{version}-%{release}
@@ -435,6 +455,9 @@ BuildRequires: /usr/bin/pod2man
 BuildRequires: python
 %if %{with_systemd}
 BuildRequires: systemd-units
+%endif
+%if %{with_systemd_daemon}
+BuildRequires: systemd-devel
 %endif
 %if %{with_xen} || %{with_libxl}
 BuildRequires: xen-devel
@@ -550,7 +573,7 @@ BuildRequires: parted-devel
 BuildRequires: e2fsprogs-devel
     %endif
 %endif
-%if %{with_storage_mpath}
+%if %{with_storage_mpath} || %{with_storage_disk}
 # For Multipath support
     %if 0%{?rhel} == 5
 # Broken RHEL-5 packaging has header files in main RPM :-(
@@ -558,13 +581,18 @@ BuildRequires: device-mapper
     %else
 BuildRequires: device-mapper-devel
     %endif
-    %if %{with_storage_rbd}
+%endif
+%if %{with_storage_rbd}
 BuildRequires: ceph-devel
-    %endif
 %endif
 %if %{with_storage_gluster}
+    %if 0%{?rhel} >= 6
+BuildRequires: glusterfs-api-devel >= 3.4.0
+BuildRequires: glusterfs-devel >= 3.4.0
+    %else
 BuildRequires: glusterfs-api-devel >= 3.4.1
 BuildRequires: glusterfs-devel >= 3.4.1
+    %endif
 %endif
 %if %{with_numactl}
 # For QEMU/LXC numa info
@@ -629,6 +657,10 @@ BuildRequires: scrub
 
 %if %{with_numad}
 BuildRequires: numad
+%endif
+
+%if %{with_wireshark}
+BuildRequires: wireshark-devel
 %endif
 
 Provides: bundled(gnulib)
@@ -708,6 +740,9 @@ Summary: Default configuration files for the libvirtd daemon
 Group: Development/Libraries
 
 Requires: libvirt-daemon = %{version}-%{release}
+        %if %{with_driver_modules}
+Requires: libvirt-daemon-driver-network = %{version}-%{release}
+        %endif
 
 %description daemon-config-network
 Default configuration files for setting up NAT based networking
@@ -719,6 +754,9 @@ Summary: Network filter configuration files for the libvirtd daemon
 Group: Development/Libraries
 
 Requires: libvirt-daemon = %{version}-%{release}
+        %if %{with_driver_modules}
+Requires: libvirt-daemon-driver-nwfilter = %{version}-%{release}
+        %endif
 
 %description daemon-config-nwfilter
 Network filter configuration files for cleaning guest traffic
@@ -1102,8 +1140,10 @@ Requires: nc
 Requires: gettext
 # Needed by virt-pki-validate script.
 Requires: gnutls-utils
+%if %{with_pm_utils}
 # Needed for probing the power management features of the host.
 Requires: pm-utils
+%endif
 %if %{with_sasl}
 Requires: cyrus-sasl
 # Not technically required, but makes 'out-of-box' config
@@ -1114,6 +1154,17 @@ Requires: cyrus-sasl-md5
 %description client
 Shared libraries and client binaries needed to access to the
 virtualization capabilities of recent versions of Linux (and other OSes).
+
+%if %{with_wireshark}
+%package wireshark
+Summary: Wireshark dissector plugin for libvirt RPC transactions
+Group: Development/Libraries
+Requires: wireshark
+Requires: %{name}-client = %{version}-%{release}
+
+%description wireshark
+Wireshark dissector plugin for better analysis of libvirt RPC traffic.
+%endif
 
 %if %{with_lxc}
 %package login-shell
@@ -1340,6 +1391,18 @@ driver
     %define _with_firewalld --with-firewalld
 %endif
 
+%if ! %{with_wireshark}
+    %define _without_wireshark --without-wireshark-dissector
+%endif
+
+%if ! %{with_systemd_daemon}
+    %define _without_systemd_daemon --without-systemd-daemon
+%endif
+
+%if ! %{with_pm_utils}
+    %define _without_pm_utils --without-pm-utils
+%endif
+
 %define when  %(date +"%%F-%%T")
 %define where %(hostname)
 %define who   %{?packager}%{!?packager:Unknown}
@@ -1366,6 +1429,7 @@ driver
  autoreconf -if
 %endif
 
+rm -f po/stamp-po
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
@@ -1383,6 +1447,7 @@ driver
            %{?_without_hyperv} \
            %{?_without_vmware} \
            %{?_without_parallels} \
+           --without-bhyve \
            %{?_without_interface} \
            %{?_without_network} \
            %{?_with_rhel5_api} \
@@ -1412,6 +1477,9 @@ driver
            %{?_without_dtrace} \
            %{?_without_driver_modules} \
            %{?_with_firewalld} \
+           %{?_without_wireshark} \
+           %{?_without_systemd_daemon} \
+           %{?_without_pm_utils} \
            %{with_packager} \
            %{with_packager_version} \
            --with-qemu-user=%{qemu_user} \
@@ -1430,7 +1498,7 @@ rm -fr %{buildroot}
 # on RHEL 5, thus we need to expand it here.
 make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
 
-for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap
+for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap dommigrate
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -1441,6 +1509,9 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.a
 %if %{with_driver_modules}
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/connection-driver/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/connection-driver/*.a
+%endif
+%if %{with_wireshark}
+rm -f $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/*/libvirt.la
 %endif
 
 %if %{with_network}
@@ -1776,10 +1847,6 @@ exit 0
 
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
-    %if %{with_nwfilter}
-%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
-    %endif
-
     %if %{with_systemd}
 %{_unitdir}/libvirtd.service
 %{_unitdir}/virtlockd.service
@@ -1842,15 +1909,20 @@ exit 0
 %{_mandir}/man8/virtlockd.8*
 
     %if ! %{with_driver_modules}
-        %if %{with_network}
+        %if %{with_network} || %{with_qemu}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
+        %endif
+        %if %{with_network} || %{with_nwfilter}
+%ghost %dir %{_localstatedir}/run/libvirt/network/
+        %endif
+        %if %{with_network}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
-%dir %{_datadir}/libvirt/networks/
-%{_datadir}/libvirt/networks/default.xml
-%ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+        %endif
+        %if %{with_nwfilter}
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
         %endif
         %if %{with_storage_disk}
 %attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
@@ -1897,6 +1969,8 @@ exit 0
     %if %{with_network}
 %files daemon-config-network
 %defattr(-, root, root)
+%dir %{_datadir}/libvirt/networks/
+%{_datadir}/libvirt/networks/default.xml
     %endif
 
     %if %{with_nwfilter}
@@ -1918,8 +1992,6 @@ exit 0
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
-%dir %{_datadir}/libvirt/networks/
-%{_datadir}/libvirt/networks/default.xml
 %ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
@@ -1935,6 +2007,8 @@ exit 0
         %if %{with_nwfilter}
 %files daemon-driver-nwfilter
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
+%ghost %dir %{_localstatedir}/run/libvirt/network/
 %{_libdir}/%{name}/connection-driver/libvirt_driver_nwfilter.so
         %endif
 
@@ -1954,6 +2028,7 @@ exit 0
         %if %{with_qemu}
 %files daemon-driver-qemu
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
 %config(noreplace) %{_sysconfdir}/libvirt/qemu-lockd.conf
@@ -2096,8 +2171,7 @@ exit 0
 %{_datadir}/libvirt/schemas/nodedev.rng
 %{_datadir}/libvirt/schemas/nwfilter.rng
 %{_datadir}/libvirt/schemas/secret.rng
-%{_datadir}/libvirt/schemas/storageencryption.rng
-%{_datadir}/libvirt/schemas/storagefilefeatures.rng
+%{_datadir}/libvirt/schemas/storagecommon.rng
 %{_datadir}/libvirt/schemas/storagepool.rng
 %{_datadir}/libvirt/schemas/storagevol.rng
 
@@ -2115,6 +2189,11 @@ exit 0
 
 %if %{with_sasl}
 %config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
+%endif
+
+%if %{with_wireshark}
+%files wireshark
+%{_libdir}/wireshark/plugins/*/libvirt.so
 %endif
 
 %if %{with_lxc}
@@ -2143,11 +2222,30 @@ exit 0
 %doc examples/object-events
 %doc examples/dominfo
 %doc examples/domsuspend
+%doc examples/dommigrate
 %doc examples/openauth
 %doc examples/xml
 %doc examples/systemtap
 
 %changelog
+* Sun May  4 2014 Daniel Veillard <veillard@redhat.com> - 1.2.4-1
+- various improvements and bug fixes
+- lot of internal code refactoring
+
+* Tue Apr  1 2014 Daniel Veillard <veillard@redhat.com> - 1.2.3-1
+- add new virDomainCoreDumpWithFormat API
+- conf: Introduce virDomainDeviceGetInfo API
+- more features and fixes on bhyve driver
+- lot of cleanups and improvement on the Xen driver
+- a lot of various improvements and bug fixes
+
+* Sun Mar  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.2-1
+- add LXC from native conversion tool
+- vbox: add support for v4.2.20+ and v4.3.4+
+- Introduce Libvirt Wireshark dissector
+- Fix CVE-2013-6456: Avoid unsafe use of /proc/$PID/root in LXC
+- a lot of various improvements and bug fixes
+
 * Thu Jan 16 2014 Daniel Veillard <veillard@redhat.com> - 1.2.1-1
 - Fix s CVE-2014-0028 event: filter global events by domain:getattr ACL
 - Fix CVE-2014-1447 Don't crash if a connection closes early

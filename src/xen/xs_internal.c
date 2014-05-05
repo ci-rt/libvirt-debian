@@ -54,6 +54,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
+VIR_LOG_INIT("xen.xs_internal");
+
 static void xenStoreWatchEvent(int watch, int fd, int events, void *data);
 static void xenStoreWatchListFree(xenStoreWatchListPtr list);
 
@@ -240,7 +242,7 @@ xenStoreNumOfDomains(virConnectPtr conn)
             if (xenHypervisorHasDomain(conn, (int)id))
                 realnum++;
         }
-out:
+ out:
         VIR_FREE(idlist);
         ret = realnum;
     }
@@ -285,7 +287,7 @@ xenStoreDoListDomains(virConnectPtr conn,
             ids[ret++] = (int) id;
     }
 
-out:
+ out:
     VIR_FREE(idlist);
     return ret;
 }
@@ -353,7 +355,7 @@ xenStoreDomainGetVNCPort(virConnectPtr conn, int domid)
  * serial console is attached.
  *
  * Returns the path to the serial console. It is the callers
- * responsibilty to free() the return string. Returns NULL
+ * responsibility to free() the return string. Returns NULL
  * on error
  *
  * The caller must hold the lock on the privateData
@@ -374,7 +376,7 @@ xenStoreDomainGetConsolePath(virConnectPtr conn, int domid)
  * serial console is attached.
  *
  * Returns the path to the serial console. It is the callers
- * responsibilty to free() the return string. Returns NULL
+ * responsibility to free() the return string. Returns NULL
  * on error
  *
  * The caller must hold the lock on the privateData
@@ -616,7 +618,7 @@ static void
 xenStoreWatchListFree(xenStoreWatchListPtr list)
 {
     size_t i;
-    for (i=0; i<list->count; i++) {
+    for (i = 0; i < list->count; i++) {
         VIR_FREE(list->watches[i]->path);
         VIR_FREE(list->watches[i]->token);
         VIR_FREE(list->watches[i]);
@@ -648,7 +650,7 @@ xenStoreAddWatch(virConnectPtr conn,
         return -1;
 
     /* check if we already have this callback on our list */
-    for (n=0; n < list->count; n++) {
+    for (n = 0; n < list->count; n++) {
         if (STREQ(list->watches[n]->path, path) &&
             STREQ(list->watches[n]->token, token)) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -666,17 +668,12 @@ xenStoreAddWatch(virConnectPtr conn,
         VIR_STRDUP(watch->token, token) < 0)
         goto error;
 
-    /* Make space on list */
-    n = list->count;
-    if (VIR_REALLOC_N(list->watches, n + 1) < 0)
+    if (VIR_APPEND_ELEMENT_COPY(list->watches, list->count, watch) < 0)
         goto error;
-
-    list->watches[n] = watch;
-    list->count++;
 
     return xs_watch(priv->xshandle, watch->path, watch->token);
 
-  error:
+ error:
     if (watch) {
         VIR_FREE(watch->path);
         VIR_FREE(watch->token);
@@ -719,17 +716,7 @@ xenStoreRemoveWatch(virConnectPtr conn, const char *path, const char *token)
             VIR_FREE(list->watches[i]->token);
             VIR_FREE(list->watches[i]);
 
-            if (i < (list->count - 1))
-                memmove(list->watches + i,
-                        list->watches + i + 1,
-                        sizeof(*(list->watches)) *
-                                (list->count - (i + 1)));
-
-            if (VIR_REALLOC_N(list->watches,
-                              list->count - 1) < 0) {
-                ; /* Failure to reduce memory allocation isn't fatal */
-            }
-            list->count--;
+            VIR_DELETE_ELEMENT(list->watches, i, list->count);
             return 0;
         }
     }
@@ -786,7 +773,7 @@ xenStoreWatchEvent(int watch ATTRIBUTE_UNUSED,
         sw->cb(conn, path, token, sw->opaque);
     VIR_FREE(event);
 
-cleanup:
+ cleanup:
     xenUnifiedUnlock(priv);
 }
 
@@ -810,7 +797,7 @@ xenStoreDomainIntroduced(virConnectPtr conn,
 
     xenUnifiedPrivatePtr priv = opaque;
 
-retry:
+ retry:
     new_domain_cnt = xenStoreNumOfDomains(conn);
     if (new_domain_cnt < 0)
         return -1;
@@ -825,7 +812,7 @@ retry:
     }
 
     missing = 0;
-    for (i=0; i < new_domain_cnt; i++) {
+    for (i = 0; i < new_domain_cnt; i++) {
         found = 0;
         for (j = 0; j < priv->activeDomainList->count; j++) {
             if (priv->activeDomainList->doms[j]->id == new_domids[i]) {
@@ -893,7 +880,7 @@ xenStoreDomainReleased(virConnectPtr conn,
 
     if (!priv->activeDomainList->count) return 0;
 
-retry:
+ retry:
     new_domain_cnt = xenStoreNumOfDomains(conn);
     if (new_domain_cnt < 0)
         return -1;
@@ -908,9 +895,9 @@ retry:
     }
 
     removed = 0;
-    for (j=0; j < priv->activeDomainList->count; j++) {
+    for (j = 0; j < priv->activeDomainList->count; j++) {
         found = 0;
-        for (i=0; i < new_domain_cnt; i++) {
+        for (i = 0; i < new_domain_cnt; i++) {
             if (priv->activeDomainList->doms[j]->id == new_domids[i]) {
                 found = 1;
                 break;

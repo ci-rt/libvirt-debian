@@ -1,7 +1,7 @@
 /*
  * virutil.c: common, generic utility functions
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
@@ -90,9 +90,12 @@ verify(sizeof(gid_t) <= sizeof(unsigned int) &&
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.util");
+
 #ifndef WIN32
 
-int virSetInherit(int fd, bool inherit) {
+int virSetInherit(int fd, bool inherit)
+{
     int fflags;
     if ((fflags = fcntl(fd, F_GETFD)) < 0)
         return -1;
@@ -118,11 +121,13 @@ int virSetInherit(int fd ATTRIBUTE_UNUSED, bool inherit ATTRIBUTE_UNUSED)
 
 #endif /* WIN32 */
 
-int virSetBlocking(int fd, bool blocking) {
+int virSetBlocking(int fd, bool blocking)
+{
     return set_nonblocking_flag(fd, !blocking);
 }
 
-int virSetNonBlock(int fd) {
+int virSetNonBlock(int fd)
+{
     return virSetBlocking(fd, false);
 }
 
@@ -130,6 +135,29 @@ int virSetCloseExec(int fd)
 {
     return virSetInherit(fd, false);
 }
+
+#ifdef WIN32
+int virSetSockReuseAddr(int fd ATTRIBUTE_UNUSED)
+{
+    /*
+     * SO_REUSEADDR on Windows is actually akin to SO_REUSEPORT
+     * on Linux/BSD. ie it allows 2 apps to listen to the same
+     * port at once which is certainly not what we want here.
+     *
+     * Win32 sockets have Linux/BSD-like SO_REUSEADDR behaviour
+     * by default, so we can be a no-op.
+     *
+     * http://msdn.microsoft.com/en-us/library/windows/desktop/ms740621.aspx
+     */
+    return 0;
+}
+#else
+int virSetSockReuseAddr(int fd)
+{
+    int opt = 1;
+    return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+}
+#endif
 
 int
 virPipeReadUntilEOF(int outfd, int errfd,
@@ -208,7 +236,7 @@ virPipeReadUntilEOF(int outfd, int errfd,
 
     return 0;
 
-error:
+ error:
     VIR_FREE(*outbuf);
     VIR_FREE(*errbuf);
     return -1;
@@ -500,7 +528,8 @@ const char *virEnumToString(const char *const*types,
  * @param name The name of the device
  * @return name's index, or -1 on failure
  */
-int virDiskNameToIndex(const char *name) {
+int virDiskNameToIndex(const char *name)
+{
     const char *ptr = NULL;
     int idx = 0;
     static char const* const drive_prefix[] = {"fd", "hd", "vd", "sd", "xvd", "ubd"};
@@ -643,7 +672,7 @@ char *virGetHostname(void)
 
     freeaddrinfo(info);
 
-cleanup:
+ cleanup:
     return result;
 }
 
@@ -715,7 +744,7 @@ virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(strbuf);
     return ret;
 }
@@ -877,7 +906,7 @@ virGetUserIDByName(const char *name, uid_t *uid)
     *uid = pw->pw_uid;
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(strbuf);
 
     return ret;
@@ -957,7 +986,7 @@ virGetGroupIDByName(const char *name, gid_t *gid)
     *gid = gr->gr_gid;
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(strbuf);
 
     return ret;
@@ -1037,7 +1066,7 @@ virGetGroupList(uid_t uid, gid_t gid, gid_t **list)
         }
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(user);
     return ret;
 }
@@ -1420,7 +1449,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -1463,7 +1492,8 @@ void virFileWaitForDevices(void)
     {}
 }
 #else
-void virFileWaitForDevices(void) {}
+void virFileWaitForDevices(void)
+{}
 #endif
 
 #if HAVE_LIBDEVMAPPER_H
@@ -1487,7 +1517,8 @@ bool virIsDevMapperDevice(const char *dev_name ATTRIBUTE_UNUSED)
 #endif
 
 bool
-virValidateWWN(const char *wwn) {
+virValidateWWN(const char *wwn)
+{
     size_t i;
     const char *p = wwn;
 
@@ -1602,7 +1633,7 @@ virSetDeviceUnprivSGIO(const char *path,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(sysfs_path);
     VIR_FREE(val);
     return ret;
@@ -1640,7 +1671,7 @@ virGetDeviceUnprivSGIO(const char *path,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(sysfs_path);
     VIR_FREE(buf);
     return ret;
@@ -1693,7 +1724,7 @@ virReadFCHost(const char *sysfs_prefix,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(sysfs_path);
     VIR_FREE(buf);
     return ret;
@@ -1744,7 +1775,7 @@ virIsCapableVport(const char *sysfs_prefix,
         virFileExists(scsi_host_path))
         ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(fc_host_path);
     VIR_FREE(scsi_host_path);
     return ret;
@@ -1811,7 +1842,7 @@ virManageVport(const int parent_host,
                                "vport create/delete failed"),
                              vport_name, operation_path);
 
-cleanup:
+ cleanup:
     VIR_FREE(vport_name);
     VIR_FREE(operation_path);
     return ret;
@@ -1820,7 +1851,10 @@ cleanup:
 /* virGetHostNameByWWN:
  *
  * Iterate over the sysfs tree to get FC host name (e.g. host5)
- * by wwnn,wwpn pair.
+ * by the provided "wwnn,wwpn" pair.
+ *
+ * Returns the FC host name which must be freed by the caller,
+ * or NULL on failure.
  */
 char *
 virGetFCHostNameByWWN(const char *sysfs_prefix,
@@ -1856,7 +1890,7 @@ virGetFCHostNameByWWN(const char *sysfs_prefix,
             p = buf;                                  \
     } while (0)
 
-    while ((entry = readdir(dir))) {
+    while (virDirRead(dir, &entry, prefix) > 0) {
         if (entry->d_name[0] == '.')
             continue;
 
@@ -1902,7 +1936,7 @@ virGetFCHostNameByWWN(const char *sysfs_prefix,
         break;
     }
 
-cleanup:
+ cleanup:
 # undef READ_WWN
     closedir(dir);
     VIR_FREE(wwnn_path);
@@ -1938,7 +1972,7 @@ virFindFCHostCapableVport(const char *sysfs_prefix)
         return NULL;
     }
 
-    while ((entry = readdir(dir))) {
+    while (virDirRead(dir, &entry, prefix) > 0) {
         unsigned int host;
         char *p = NULL;
 
@@ -1992,7 +2026,7 @@ virFindFCHostCapableVport(const char *sysfs_prefix)
         VIR_FREE(vports);
     }
 
-cleanup:
+ cleanup:
     closedir(dir);
     VIR_FREE(max_vports);
     VIR_FREE(vports);
@@ -2126,7 +2160,7 @@ virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr)
 
     rc = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(tmp_label);
 
     return rc;
@@ -2169,4 +2203,27 @@ const char *virGetEnvAllowSUID(const char *name)
 bool virIsSUID(void)
 {
     return getuid() != geteuid();
+}
+
+
+static time_t selfLastChanged;
+
+time_t virGetSelfLastChanged(void)
+{
+    return selfLastChanged;
+}
+
+
+void virUpdateSelfLastChanged(const char *path)
+{
+    struct stat sb;
+
+    if (stat(path, &sb) < 0)
+        return;
+
+    if (sb.st_ctime > selfLastChanged) {
+        VIR_DEBUG("Setting self last changed to %lld for '%s'",
+                  (long long)sb.st_ctime, path);
+        selfLastChanged = sb.st_ctime;
+    }
 }

@@ -65,7 +65,7 @@ testCapsInit(void)
 
     return;
 
-  failure:
+ failure:
     virObjectUnref(caps);
     caps = NULL;
 }
@@ -103,7 +103,7 @@ testCompareFiles(const char *vmx, const char *xml)
 
     ret = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(vmxData);
     VIR_FREE(xmlData);
     VIR_FREE(formatted);
@@ -134,7 +134,7 @@ testCompareHelper(const void *data)
 
     ret = testCompareFiles(vmx, xml);
 
-  cleanup:
+ cleanup:
     VIR_FREE(vmx);
     VIR_FREE(xml);
 
@@ -178,7 +178,7 @@ testParseVMXFileName(const char *fileName, void *opaque ATTRIBUTE_UNUSED)
             goto cleanup;
     }
 
-  cleanup:
+ cleanup:
     VIR_FREE(copyOfFileName);
 
     return src;
@@ -226,6 +226,7 @@ mymain(void)
 
     DO_TEST("harddisk-scsi-file", "harddisk-scsi-file");
     DO_TEST("harddisk-ide-file", "harddisk-ide-file");
+    DO_TEST("harddisk-transient", "harddisk-transient");
 
     DO_TEST("cdrom-scsi-file", "cdrom-scsi-file");
     DO_TEST("cdrom-scsi-device", "cdrom-scsi-device");

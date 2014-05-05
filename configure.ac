@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.1], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.4], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -175,6 +175,7 @@ case $host in
   *-*-linux*) with_linux=yes ;;
   *-*-darwin*) with_osx=yes ;;
   *-*-freebsd*) with_freebsd=yes ;;
+  *-*-mingw* | *-*-msvc* ) with_win=yes ;;
 esac
 
 if test $with_linux = no; then
@@ -193,6 +194,11 @@ fi
 
 AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
 AM_CONDITIONAL([WITH_FREEBSD], [test "$with_freebsd" = "yes"])
+
+# We don't support the daemon yet
+if test "$with_win" = "yes" ; then
+  with_libvirtd=no
+fi
 
 # The daemon requires remote support.  Likewise, if we are not using
 # RPC, we don't need several libraries.
@@ -239,6 +245,7 @@ LIBVIRT_CHECK_SANLOCK
 LIBVIRT_CHECK_SASL
 LIBVIRT_CHECK_SELINUX
 LIBVIRT_CHECK_SSH2
+LIBVIRT_CHECK_SYSTEMD_DAEMON
 LIBVIRT_CHECK_UDEV
 LIBVIRT_CHECK_YAJL
 
@@ -270,12 +277,21 @@ AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
   posix_memalign prlimit regexec sched_getaffinity setgroups setns \
   setrlimit symlink sysctlbyname])
 
-dnl Availability of pthread functions (if missing, win32 threading is
-dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
-dnl LIB_PTHREAD and LIBMULTITHREAD were set during gl_INIT by gnulib.
+dnl Availability of pthread functions. Because of $LIB_PTHREAD, we
+dnl cannot use AC_CHECK_FUNCS_ONCE. LIB_PTHREAD and LIBMULTITHREAD
+dnl were set during gl_INIT by gnulib.
 old_LIBS=$LIBS
 LIBS="$LIBS $LIB_PTHREAD $LIBMULTITHREAD"
+
+pthread_found=yes
 AC_CHECK_FUNCS([pthread_mutexattr_init])
+AC_CHECK_HEADER([pthread.h],,[pthread_found=no])
+
+if test "$ac_cv_func_pthread_mutexattr_init:$pthread_found" != "yes:yes"
+then
+  AC_MSG_ERROR([A pthreads impl is required for building libvirt])
+fi
+
 dnl At least mingw64-winpthreads #defines pthread_sigmask to 0,
 dnl which in turn causes compilation to complain about unused variables.
 dnl Expose this broken implementation, so we can work around it.
@@ -285,8 +301,10 @@ AC_CACHE_CHECK([whether pthread_sigmask does anything],
     #include <sys/types.h>
     #include <signal.h>
   ]], [[
-   int (*foo)(int, const sigset_t *, sigset_t *) = &pthread_sigmask;
-   return !foo;
+    #ifdef pthread_sigmask
+    int (*foo)(int, const sigset_t *, sigset_t *) = &pthread_sigmask;
+    return !foo;
+    #endif
   ]])], [lv_cv_pthread_sigmask_works=yes], [lv_cv_pthread_sigmask_works=no])])
 if test "x$lv_cv_pthread_sigmask_works" != xyes; then
   AC_DEFINE([FUNC_PTHREAD_SIGMASK_BROKEN], [1],
@@ -391,6 +409,8 @@ dnl External programs that we can use if they are available.
 dnl We will hard-code paths to these programs unless we cannot
 dnl detect them, in which case we'll search for the program
 dnl along the $PATH at runtime and fail if it's not there.
+AC_PATH_PROG([DMIDECODE], [dmidecode], [dmidecode],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([DNSMASQ], [dnsmasq], [dnsmasq],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([RADVD], [radvd], [radvd],
@@ -403,17 +423,23 @@ AC_PATH_PROG([UDEVSETTLE], [udevsettle], [],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([MODPROBE], [modprobe], [modprobe],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([RMMOD], [rmmod], [rmmod],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([OVSVSCTL], [ovs-vsctl], [ovs-vsctl],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([SCRUB], [scrub], [scrub],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([ADDR2LINE], [addr2line], [addr2line],
+        [/sbin:/usr/bin:/usr/sbin:/usr/local/sbin:$PATH])
 
+AC_DEFINE_UNQUOTED([DMIDECODE],["$DMIDECODE"],
+        [Location or name of the dmidecode program])
 AC_DEFINE_UNQUOTED([DNSMASQ],["$DNSMASQ"],
         [Location or name of the dnsmasq program])
 AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
         [Location or name of the radvd program])
 AC_DEFINE_UNQUOTED([TC],["$TC"],
-        [Location or name of the tc profram (see iproute2)])
+        [Location or name of the tc program (see iproute2)])
 AC_DEFINE_UNQUOTED([OVSVSCTL],["$OVSVSCTL"],
         [Location or name of the ovs-vsctl program])
 
@@ -429,8 +455,14 @@ if test -n "$MODPROBE"; then
   AC_DEFINE_UNQUOTED([MODPROBE],["$MODPROBE"],
         [Location or name of the modprobe program])
 fi
+if test -n "$RMMOD"; then
+  AC_DEFINE_UNQUOTED([RMMOD],["$RMMOD"],
+        [Location or name of the rmmod program])
+fi
 AC_DEFINE_UNQUOTED([SCRUB],["$SCRUB"],
         [Location or name of the scrub program (for wiping algorithms)])
+AC_DEFINE_UNQUOTED([ADDR2LINE],["$ADDR2LINE"],
+        [Location of addr2line program])
 
 dnl Specific dir for HTML output ?
 AC_ARG_WITH([html-dir], [AS_HELP_STRING([--with-html-dir=path],
@@ -537,6 +569,10 @@ AC_ARG_WITH([chrdev-lock-files],
     [location for UUCP style lock files for character devices
      (use auto for default paths on some platforms) @<:@default=auto@:>@])])
 m4_divert_text([DEFAULTS], [with_chrdev_lock_files=auto])
+AC_ARG_WITH([pm-utils],
+  [AS_HELP_STRING([--with-pm-utils],
+    [use pm-utils for power management @<:@default=yes@:>@])])
+m4_divert_text([DEFAULTS], [with_pm_utils=check])
 
 dnl
 dnl in case someone want to build static binaries
@@ -1027,6 +1063,12 @@ fi
 AM_CONDITIONAL([WITH_PARALLELS], [test "$with_parallels" = "yes"])
 
 dnl
+dnl Checks for bhyve driver
+dnl
+
+LIBVIRT_DRIVER_CHECK_BHYVE
+
+dnl
 dnl check for shell that understands <> redirection without truncation,
 dnl needed by src/qemu/qemu_monitor_{text,json}.c.
 dnl
@@ -1369,8 +1411,10 @@ if test "$with_chrdev_lock_files" != "no"; then
     AC_MSG_ERROR([You must specify path for the lock files on this
 platform])
   fi
-  AC_DEFINE_UNQUOTED([VIR_CHRDEV_LOCK_FILE_PATH], "$with_chrdev_lock_files",
-                      [path to directory containing UUCP device lock files])
+  if test "$with_chrdev_lock_files" != "no"; then
+    AC_DEFINE_UNQUOTED([VIR_CHRDEV_LOCK_FILE_PATH], "$with_chrdev_lock_files",
+                       [path to directory containing UUCP device lock files])
+  fi
 fi
 AM_CONDITIONAL([VIR_CHRDEV_LOCK_FILE_PATH], [test "$with_chrdev_lock_files" != "no"])
 
@@ -1586,6 +1630,23 @@ if test "$with_phyp" = "yes"; then
 fi
 
 AM_CONDITIONAL([WITH_PHYP],[test "$with_phyp" = "yes"])
+
+dnl
+dnl Should we build with pm-utils support?
+dnl
+if test "$with_pm_utils" = "check"; then
+    with_pm_utils=yes
+    if test "$with_dbus" = "yes"; then
+        if test "$init_systemd" = "yes"; then
+            with_pm_utils=no
+        fi
+    fi
+fi
+
+if test "$with_pm_utils" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_PM_UTILS], 1, [whether to use pm-utils])
+fi
+AM_CONDITIONAL([WITH_PM_UTILS], [test "$with_pm_utils" = "yes"])
 
 dnl virsh libraries
 VIRSH_LIBS="$VIRSH_LIBS $READLINE_LIBS"
@@ -1818,8 +1879,12 @@ if test "$with_storage_iscsi" = "yes" || test "$with_storage_iscsi" = "check"; t
 
   if test "$with_storage_iscsi" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_STORAGE_ISCSI], 1, [whether iSCSI backend for storage driver is enabled])
-    AC_DEFINE_UNQUOTED([ISCSIADM],["$ISCSIADM"],[Location of iscsiadm program])
   fi
+fi
+if test -z "$ISCIADM" ; then
+    AC_DEFINE_UNQUOTED([ISCSIADM],["iscsiadm"],[Name of iscsiadm program])
+else
+    AC_DEFINE_UNQUOTED([ISCSIADM],["$ISCSIADM"],[Location of iscsiadm program])
 fi
 AM_CONDITIONAL([WITH_STORAGE_ISCSI], [test "$with_storage_iscsi" = "yes"])
 
@@ -1886,7 +1951,6 @@ fi
 AM_CONDITIONAL([WITH_STORAGE_SHEEPDOG],
   [test "$with_storage_sheepdog" = "yes"])
 
-LIBGLUSTER_LIBS=
 if test "$with_storage_gluster" = "check"; then
   with_storage_gluster=$with_glusterfs
 fi
@@ -1899,6 +1963,14 @@ if test "$with_storage_gluster" = "yes"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
 
+if test "$with_storage_fs" = "yes" ||
+   test "$with_storage_gluster" = "yes"; then
+  AC_PATH_PROG([GLUSTER_CLI], [gluster], [], [$PATH:/sbin:/usr/sbin])
+  if test "x$GLUSTER_CLI" != "x"; then
+      AC_DEFINE_UNQUOTED([GLUSTER_CLI], ["$GLUSTER_CLI"],
+        [Location or name of the gluster command line tool])
+  fi
+fi
 
 LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
@@ -2450,6 +2522,8 @@ if test "$with_virtualport" != "no"; then
 fi
 AM_CONDITIONAL([WITH_VIRTUALPORT], [test "$with_virtualport" = "yes"])
 
+dnl GET_VLAN_VID_CMD is required for virNetDevGetVLanID
+AC_CHECK_DECLS([GET_VLAN_VID_CMD], [], [], [[#include <linux/if_vlan.h>]])
 
 dnl netlink library
 
@@ -2502,6 +2576,70 @@ AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
 
+dnl wireshark dissector
+
+AC_ARG_WITH([wireshark-dissector],
+  [AS_HELP_STRING([--with-wireshark-dissector],
+    [enable wireshark dissector plugin support @<:@default=check@:>@])],
+  [ with_wireshark_dissector=$withval ],
+  [ with_wireshark_dissector=check ])
+
+AC_DEFUN([LIBVIRT_WS_HANDLE_ERROR], [
+  if test "$with_wireshark_dissector" = "yes"; then
+    AC_MSG_ERROR([$1])
+  else
+    with_wireshark_dissector=no
+  fi
+])
+if test "$with_wireshark_dissector" != "no"; then
+    dnl Check for XDR headers existence
+    AC_CHECK_HEADERS([rpc/types.h])
+
+    dnl Check for glib-2.0 existence
+    PKG_CHECK_MODULES([GLIB], [glib-2.0], [
+      WS_DISSECTOR_CPPFLAGS="$WS_DISSECTOR_CPPFLAGS `$PKG_CONFIG --cflags glib-2.0`"
+    ], [
+      LIBVIRT_WS_HANDLE_ERROR([pkg-config 'glib-2.0' is required for wireshark-dissector support])
+    ])
+
+    dnl Search for wireshark(or tshark) command
+    AC_PATH_PROG([WIRESHARK], [wireshark])
+    AC_PATH_PROG([WIRESHARK], [tshark])
+    if test -z "$WIRESHARK"; then
+        LIBVIRT_WS_HANDLE_ERROR([command not found wireshark or tshark])
+    else
+        dnl Check for wireshark headers
+        save_CPPFLAGS="$CPPFLAGS"
+        WS_DISSECTOR_CPPFLAGS="$WS_DISSECTOR_CPPFLAGS -I`dirname $WIRESHARK`/../include/wireshark"
+        CPPFLAGS="$CPPFLAGS $WS_DISSECTOR_CPPFLAGS"
+        AC_CHECK_HEADERS([wireshark/config.h],, [
+            LIBVIRT_WS_HANDLE_ERROR([wireshark/config.h is required for wireshark-dissector support])
+        ])
+        AC_CHECK_HEADERS([wireshark/epan/packet.h wireshark/epan/dissectors/packet-tcp.h],, [
+            LIBVIRT_WS_HANDLE_ERROR([wireshark/epan/{packet,packet-tcp}.h are required for wireshark-dissector support])
+        ], [
+          #include <wireshark/config.h>
+        ])
+        CPPFLAGS="$save_CPPFLAGS"
+    fi
+    if test "$with_wireshark_dissector" != "no"; then
+        with_wireshark_dissector=yes
+    fi
+fi
+AC_SUBST([WS_DISSECTOR_CPPFLAGS])
+AM_CONDITIONAL([WITH_WIRESHARK_DISSECTOR], [test "$with_wireshark_dissector" = "yes"])
+
+AC_ARG_WITH([ws-plugindir],
+  [AS_HELP_STRING([--with-ws-plugindir],
+    [wireshark plugins directory for use when installing wireshark plugin])],
+  [ws_plugindir=$withval])
+
+if test "$with_wireshark_dissector" != "no" && test -z "$ws_plugindir"; then
+    ws_version=`$WIRESHARK -v | head -1 | cut -f 2 -d' '`
+    ws_plugindir="$libdir/wireshark/plugins/$ws_version"
+fi
+AC_SUBST([ws_plugindir])
+
 # Check for Linux vs. BSD ifreq members
 AC_CHECK_MEMBERS([struct ifreq.ifr_newname,
                   struct ifreq.ifr_ifindex,
@@ -2534,6 +2672,16 @@ AC_CHECK_DECLS([BRDGSFD, BRDGADD, BRDGDEL],
                 #include <net/if.h>
                 #include <net/ethernet.h>
                 #include <net/if_bridgevar.h>
+               ])
+
+# Check for BSD CPU affinity availability
+AC_CHECK_DECLS([cpuset_getaffinity],
+               [AC_DEFINE([HAVE_BSD_CPU_AFFINITY],
+                          [1],
+                          [whether BSD CPU affinity management is available])],
+               [],
+               [#include <sys/param.h>
+                #include <sys/cpuset.h>
                ])
 
 # Check if we need to look for ifconfig
@@ -2582,10 +2730,13 @@ AC_CONFIG_FILES([\
         examples/object-events/Makefile \
         examples/domsuspend/Makefile \
         examples/dominfo/Makefile \
+        examples/dommigrate/Makefile \
         examples/openauth/Makefile \
         examples/hellolibvirt/Makefile \
         examples/systemtap/Makefile \
-        examples/xml/nwfilter/Makefile])
+        examples/xml/nwfilter/Makefile \
+        tools/wireshark/Makefile \
+        tools/wireshark/src/Makefile])
 AC_OUTPUT
 
 AC_MSG_NOTICE([])
@@ -2607,6 +2758,7 @@ AC_MSG_NOTICE([     PHYP: $with_phyp])
 AC_MSG_NOTICE([      ESX: $with_esx])
 AC_MSG_NOTICE([  Hyper-V: $with_hyperv])
 AC_MSG_NOTICE([Parallels: $with_parallels])
+LIBVIRT_DRIVER_RESULT_BHYVE
 AC_MSG_NOTICE([     Test: $with_test])
 AC_MSG_NOTICE([   Remote: $with_remote])
 AC_MSG_NOTICE([  Network: $with_network])
@@ -2664,6 +2816,7 @@ LIBVIRT_RESULT_SANLOCK
 LIBVIRT_RESULT_SASL
 LIBVIRT_RESULT_SELINUX
 LIBVIRT_RESULT_SSH2
+LIBVIRT_RESULT_SYSTEMD_DAEMON
 LIBVIRT_RESULT_UDEV
 LIBVIRT_RESULT_YAJL
 AC_MSG_NOTICE([  libxml: $LIBXML_CFLAGS $LIBXML_LIBS])
@@ -2728,6 +2881,7 @@ AC_MSG_NOTICE([     rbd: $LIBRBD_LIBS])
 else
 AC_MSG_NOTICE([     rbd: no])
 fi
+AC_MSG_NOTICE([pm-utils: $with_pm_utils])
 
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])
@@ -2745,6 +2899,10 @@ AC_MSG_NOTICE([            numad: $with_numad])
 AC_MSG_NOTICE([      XML Catalog: $XML_CATALOG_FILE])
 AC_MSG_NOTICE([      Init script: $with_init_script])
 AC_MSG_NOTICE([Char device locks: $with_chrdev_lock_files])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Developer Tools])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Wireshark dissector: $with_wireshark_dissector])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Privileges])
 AC_MSG_NOTICE([])

@@ -33,7 +33,7 @@ typedef virCommand *virCommandPtr;
  * call any function that is not async-signal-safe.  */
 typedef int (*virExecHook)(void *data);
 
-int virFork(pid_t *pid) ATTRIBUTE_RETURN_CHECK;
+pid_t virFork(void) ATTRIBUTE_RETURN_CHECK;
 
 int virRun(const char *const*argv, int *status) ATTRIBUTE_RETURN_CHECK;
 
@@ -85,6 +85,8 @@ void virCommandSetAppArmorProfile(virCommandPtr cmd,
 void virCommandDaemonize(virCommandPtr cmd);
 
 void virCommandNonblockingFDs(virCommandPtr cmd);
+
+void virCommandRawStatus(virCommandPtr cmd);
 
 void virCommandAddEnvFormat(virCommandPtr cmd, const char *format, ...)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 3);
@@ -184,4 +186,25 @@ void virCommandAbort(virCommandPtr cmd);
 void virCommandFree(virCommandPtr cmd);
 
 void virCommandDoAsyncIO(virCommandPtr cmd);
+
+typedef int (*virCommandRunRegexFunc)(char **const groups,
+                                      void *data);
+typedef int (*virCommandRunNulFunc)(size_t n_tokens,
+                                    char **const groups,
+                                    void *data);
+
+int virCommandRunRegex(virCommandPtr cmd,
+                       int nregex,
+                       const char **regex,
+                       int *nvars,
+                       virCommandRunRegexFunc func,
+                       void *data,
+                       const char *cmd_to_ignore);
+
+int virCommandRunNul(virCommandPtr cmd,
+                     size_t n_columns,
+                     virCommandRunNulFunc func,
+                     void *data);
+
+
 #endif /* __VIR_COMMAND_H__ */

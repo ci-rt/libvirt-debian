@@ -69,6 +69,9 @@
 #include "viraccessapicheck.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
+
+VIR_LOG_INIT("xen.xen_driver");
+
 #define XEN_SAVE_DIR LOCALSTATEDIR "/lib/libvirt/xen/save"
 
 static int
@@ -161,7 +164,8 @@ static virDomainDefPtr xenGetDomainDefForDom(virDomainPtr dom)
  * until reboot which might be false in future Xen implementations.
  */
 static void
-xenNumaInit(virConnectPtr conn) {
+xenNumaInit(virConnectPtr conn)
+{
     virNodeInfo nodeInfo;
     xenUnifiedPrivatePtr priv;
     int ret;
@@ -244,7 +248,7 @@ xenDomainUsedCpus(virDomainPtr dom, virDomainDefPtr def)
         res = virBitmapFormat(cpulist);
     }
 
-done:
+ done:
     virBitmapFree(cpulist);
     VIR_FREE(cpumap);
     VIR_FREE(cpuinfo);
@@ -308,17 +312,19 @@ xenUnifiedProbe(void)
 }
 
 #ifdef WITH_LIBXL
-static int
+static bool
 xenUnifiedXendProbe(void)
 {
-    virCommandPtr cmd;
-    int status;
-    int ret = 0;
+    bool ret = false;
 
-    cmd = virCommandNewArgList("/usr/sbin/xend", "status", NULL);
-    if (virCommandRun(cmd, &status) == 0 && status == 0)
-        ret = 1;
-    virCommandFree(cmd);
+    if (virFileExists("/usr/sbin/xend")) {
+        virCommandPtr cmd;
+
+        cmd = virCommandNewArgList("/usr/sbin/xend", "status", NULL);
+        if (virCommandRun(cmd, NULL) == 0)
+            ret = true;
+        virCommandFree(cmd);
+    }
 
     return ret;
 }
@@ -520,7 +526,7 @@ xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int f
 
     return VIR_DRV_OPEN_SUCCESS;
 
-error:
+ error:
     VIR_DEBUG("Failed to activate a mandatory sub-driver");
 #if WITH_XEN_INOTIFY
     if (priv->opened[XEN_UNIFIED_INOTIFY_OFFSET])
@@ -761,7 +767,7 @@ xenUnifiedDomainCreateXML(virConnectPtr conn,
     if (ret)
         ret->id = def->id;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -783,7 +789,7 @@ xenUnifiedDomainLookupByID(virConnectPtr conn, int id)
 
     ret->id = def->id;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -806,7 +812,7 @@ xenUnifiedDomainLookupByUUID(virConnectPtr conn,
 
     ret->id = def->id;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -829,7 +835,7 @@ xenUnifiedDomainLookupByName(virConnectPtr conn,
 
     ret->id = def->id;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -846,7 +852,7 @@ xenUnifiedDomainIsActive(virDomainPtr dom)
 
     ret = def->id == -1 ? 0 : 1;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -890,7 +896,7 @@ xenUnifiedDomainIsPersistent(virDomainPtr dom)
         }
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
 
     return ret;
@@ -916,7 +922,7 @@ xenUnifiedDomainSuspend(virDomainPtr dom)
 
     ret = xenDaemonDomainSuspend(dom->conn, def);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -935,7 +941,7 @@ xenUnifiedDomainResume(virDomainPtr dom)
 
     ret = xenDaemonDomainResume(dom->conn, def);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -952,12 +958,12 @@ xenUnifiedDomainShutdownFlags(virDomainPtr dom,
     if (!(def = xenGetDomainDefForDom(dom)))
         goto cleanup;
 
-    if (virDomainShutdownFlagsEnsureACL(dom->conn, def) < 0)
+    if (virDomainShutdownFlagsEnsureACL(dom->conn, def, flags) < 0)
         goto cleanup;
 
     ret = xenDaemonDomainShutdown(dom->conn, def);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -979,12 +985,12 @@ xenUnifiedDomainReboot(virDomainPtr dom, unsigned int flags)
     if (!(def = xenGetDomainDefForDom(dom)))
         goto cleanup;
 
-    if (virDomainRebootEnsureACL(dom->conn, def) < 0)
+    if (virDomainRebootEnsureACL(dom->conn, def, flags) < 0)
         goto cleanup;
 
     ret = xenDaemonDomainReboot(dom->conn, def);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1006,7 +1012,7 @@ xenUnifiedDomainDestroyFlags(virDomainPtr dom,
 
     ret = xenDaemonDomainDestroy(dom->conn, def);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1042,7 +1048,7 @@ xenUnifiedDomainGetOSType(virDomainPtr dom)
         ret = xenHypervisorDomainGetOSType(dom->conn, def);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1070,7 +1076,7 @@ xenUnifiedDomainGetMaxMemory(virDomainPtr dom)
         ret = xenHypervisorGetMaxMemory(dom->conn, def);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1097,7 +1103,7 @@ xenUnifiedDomainSetMaxMemory(virDomainPtr dom, unsigned long memory)
         ret = xenHypervisorSetMaxMemory(dom->conn, def, memory);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1120,7 +1126,7 @@ xenUnifiedDomainSetMemory(virDomainPtr dom, unsigned long memory)
     else
         ret = xenDaemonDomainSetMemory(dom->conn, def, memory);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1147,7 +1153,7 @@ xenUnifiedDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
         ret = xenHypervisorGetDomainInfo(dom->conn, def, info);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1179,7 +1185,7 @@ xenUnifiedDomainGetState(virDomainPtr dom,
         ret = xenHypervisorGetDomainState(dom->conn, def, state, reason);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1207,7 +1213,7 @@ xenUnifiedDomainSaveFlags(virDomainPtr dom, const char *to, const char *dxml,
 
     ret = xenDaemonDomainSave(dom->conn, def, to);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1252,7 +1258,7 @@ xenUnifiedDomainManagedSave(virDomainPtr dom, unsigned int flags)
 
     ret = xenDaemonDomainSave(dom->conn, def, name);
 
-cleanup:
+ cleanup:
     VIR_FREE(name);
     virDomainDefFree(def);
     return ret;
@@ -1279,7 +1285,7 @@ xenUnifiedDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
 
     ret = virFileExists(name);
 
-cleanup:
+ cleanup:
     VIR_FREE(name);
     virDomainDefFree(def);
     return ret;
@@ -1306,7 +1312,7 @@ xenUnifiedDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
 
     ret = unlink(name);
 
-cleanup:
+ cleanup:
     VIR_FREE(name);
     return ret;
 }
@@ -1347,7 +1353,7 @@ xenUnifiedDomainCoreDump(virDomainPtr dom, const char *to, unsigned int flags)
 
     ret = xenDaemonDomainCoreDump(dom->conn, def, to, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1393,7 +1399,7 @@ xenUnifiedDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     else
         ret = xenDaemonDomainSetVcpusFlags(dom->conn, def, nvcpus, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1436,7 +1442,7 @@ xenUnifiedDomainPinVcpu(virDomainPtr dom, unsigned int vcpu,
         ret = xenHypervisorPinVcpu(dom->conn, def, vcpu, cpumap, maplen);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1485,7 +1491,7 @@ xenUnifiedDomainGetVcpus(virDomainPtr dom,
     ret = xenUnifiedDomainGetVcpusInternal(dom, def, info, maxinfo, cpumaps,
                                            maplen);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1526,12 +1532,12 @@ xenUnifiedDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
     if (!(def = xenGetDomainDefForDom(dom)))
         goto cleanup;
 
-    if (virDomainGetVcpusFlagsEnsureACL(dom->conn, def) < 0)
+    if (virDomainGetVcpusFlagsEnsureACL(dom->conn, def, flags) < 0)
         goto cleanup;
 
     ret = xenUnifiedDomainGetVcpusFlagsInternal(dom, def, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1571,7 +1577,7 @@ xenUnifiedDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     if (def)
         ret = virDomainDefFormat(def, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     virDomainDefFree(minidef);
     return ret;
@@ -1625,7 +1631,7 @@ xenUnifiedConnectDomainXMLFromNative(virConnectPtr conn,
 
     ret = virDomainDefFormat(def, 0);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     if (conf)
         virConfFree(conf);
@@ -1658,7 +1664,8 @@ xenUnifiedConnectDomainXMLToNative(virConnectPtr conn,
     }
 
     if (!(def = virDomainDefParseString(xmlData, priv->caps, priv->xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_XEN, 0)))
+                                        1 << VIR_DOMAIN_VIRT_XEN,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
     if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
@@ -1678,7 +1685,7 @@ xenUnifiedConnectDomainXMLToNative(virConnectPtr conn,
         ret = xenFormatSxpr(conn, def, priv->xendConfigVersion);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     if (conf)
         virConfFree(conf);
@@ -1727,7 +1734,7 @@ xenUnifiedDomainMigratePerform(virDomainPtr dom,
                                         cookie, cookielen, uri,
                                         flags, dname, resource);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1770,7 +1777,7 @@ xenUnifiedDomainMigrateFinish(virConnectPtr dconn,
     if (ret)
         ret->id = minidef->id;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     virDomainDefFree(minidef);
     return ret;
@@ -1841,7 +1848,7 @@ xenUnifiedDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
     if (ret >= 0)
         dom->id = def->id;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     VIR_FREE(name);
     return ret;
@@ -1882,7 +1889,7 @@ xenUnifiedDomainDefineXML(virConnectPtr conn, const char *xml)
     if (ret)
         ret->id = -1;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1907,13 +1914,14 @@ xenUnifiedDomainUndefineFlags(virDomainPtr dom, unsigned int flags)
     else
         ret = xenDaemonDomainUndefine(dom->conn, def);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
 
 static int
-xenUnifiedDomainUndefine(virDomainPtr dom) {
+xenUnifiedDomainUndefine(virDomainPtr dom)
+{
     return xenUnifiedDomainUndefineFlags(dom, 0);
 }
 
@@ -1944,7 +1952,7 @@ xenUnifiedDomainAttachDevice(virDomainPtr dom, const char *xml)
     else
         ret = xenDaemonAttachDeviceFlags(dom->conn, def, xml, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -1968,7 +1976,7 @@ xenUnifiedDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
     else
         ret = xenDaemonAttachDeviceFlags(dom->conn, def, xml, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2000,7 +2008,7 @@ xenUnifiedDomainDetachDevice(virDomainPtr dom, const char *xml)
     else
         ret = xenDaemonDetachDeviceFlags(dom->conn, def, xml, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2024,7 +2032,7 @@ xenUnifiedDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
     else
         ret = xenDaemonDetachDeviceFlags(dom->conn, def, xml, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2044,7 +2052,7 @@ xenUnifiedDomainUpdateDeviceFlags(virDomainPtr dom, const char *xml,
 
     ret = xenDaemonUpdateDeviceFlags(dom->conn, def, xml, flags);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2067,7 +2075,7 @@ xenUnifiedDomainGetAutostart(virDomainPtr dom, int *autostart)
     else
         ret = xenDaemonDomainGetAutostart(dom->conn, def, autostart);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2090,7 +2098,7 @@ xenUnifiedDomainSetAutostart(virDomainPtr dom, int autostart)
     else
         ret = xenDaemonDomainSetAutostart(dom->conn, def, autostart);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2119,7 +2127,7 @@ xenUnifiedDomainGetSchedulerType(virDomainPtr dom, int *nparams)
         ret = xenHypervisorGetSchedulerType(dom->conn, nparams);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2153,7 +2161,7 @@ xenUnifiedDomainGetSchedulerParametersFlags(virDomainPtr dom,
         ret = xenHypervisorGetSchedulerParameters(dom->conn, def, params, nparams);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2196,7 +2204,7 @@ xenUnifiedDomainSetSchedulerParametersFlags(virDomainPtr dom,
         ret = xenHypervisorSetSchedulerParameters(dom->conn, def, params, nparams);
     }
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2225,7 +2233,7 @@ xenUnifiedDomainBlockStats(virDomainPtr dom, const char *path,
 
     ret = xenHypervisorDomainBlockStats(dom->conn, def, path, stats);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2245,7 +2253,7 @@ xenUnifiedDomainInterfaceStats(virDomainPtr dom, const char *path,
 
     ret = xenHypervisorDomainInterfaceStats(def, path, stats);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2272,7 +2280,7 @@ xenUnifiedDomainBlockPeek(virDomainPtr dom, const char *path,
     else
         ret = xenDaemonDomainBlockPeek(dom->conn, def, path, offset, size, buffer);
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2323,7 +2331,6 @@ xenUnifiedConnectDomainEventRegister(virConnectPtr conn,
     }
 
     if (virDomainEventStateRegister(conn, priv->domainEvents,
-                                    virConnectDomainEventRegisterCheckACL,
                                     callback, opaque, freefunc) < 0)
         ret = -1;
 
@@ -2383,7 +2390,6 @@ xenUnifiedConnectDomainEventRegisterAny(virConnectPtr conn,
     }
 
     if (virDomainEventStateRegisterID(conn, priv->domainEvents,
-                                      virConnectDomainEventRegisterAnyCheckACL,
                                       dom, eventID,
                                       callback, opaque, freefunc, &ret) < 0)
         ret = -1;
@@ -2421,7 +2427,7 @@ xenUnifiedConnectDomainEventDeregisterAny(virConnectPtr conn,
 
 
 static int
-xenUnifiedNodeDeviceGetPciInfo(virNodeDevicePtr dev,
+xenUnifiedNodeDeviceGetPCIInfo(virNodeDevicePtr dev,
                                unsigned *domain,
                                unsigned *bus,
                                unsigned *slot,
@@ -2460,7 +2466,7 @@ xenUnifiedNodeDeviceGetPciInfo(virNodeDevicePtr dev,
     }
 
     ret = 0;
-out:
+ out:
     virNodeDeviceDefFree(def);
     VIR_FREE(xml);
     return ret;
@@ -2477,7 +2483,7 @@ xenUnifiedNodeDeviceDetachFlags(virNodeDevicePtr dev,
 
     virCheckFlags(0, -1);
 
-    if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
+    if (xenUnifiedNodeDeviceGetPCIInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
 
     pci = virPCIDeviceNew(domain, bus, slot, function);
@@ -2497,7 +2503,7 @@ xenUnifiedNodeDeviceDetachFlags(virNodeDevicePtr dev,
         goto out;
 
     ret = 0;
-out:
+ out:
     virPCIDeviceFree(pci);
     return ret;
 }
@@ -2535,7 +2541,7 @@ xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
     }
 
     /* Get pci bdf */
-    if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
+    if (xenUnifiedNodeDeviceGetPCIInfo(dev, &domain, &bus, &slot, &function) < 0)
         goto out;
 
     if (virAsprintf(&bdf, "%04x:%02x:%02x.%0x",
@@ -2557,7 +2563,7 @@ xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
 
     VIR_FREE(xref);
     VIR_FREE(bdf);
-out:
+ out:
     VIR_FREE(ids);
 
     return ret;
@@ -2571,7 +2577,7 @@ xenUnifiedNodeDeviceReAttach(virNodeDevicePtr dev)
     int ret = -1;
     int domid;
 
-    if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
+    if (xenUnifiedNodeDeviceGetPCIInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
 
     pci = virPCIDeviceNew(domain, bus, slot, function);
@@ -2590,7 +2596,7 @@ xenUnifiedNodeDeviceReAttach(virNodeDevicePtr dev)
         goto out;
 
     ret = 0;
-out:
+ out:
     virPCIDeviceFree(pci);
     return ret;
 }
@@ -2602,7 +2608,7 @@ xenUnifiedNodeDeviceReset(virNodeDevicePtr dev)
     unsigned domain, bus, slot, function;
     int ret = -1;
 
-    if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
+    if (xenUnifiedNodeDeviceGetPCIInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
 
     pci = virPCIDeviceNew(domain, bus, slot, function);
@@ -2613,7 +2619,7 @@ xenUnifiedNodeDeviceReset(virNodeDevicePtr dev)
         goto out;
 
     ret = 0;
-out:
+ out:
     virPCIDeviceFree(pci);
     return ret;
 }
@@ -2670,7 +2676,7 @@ xenUnifiedDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     return ret;
 }
@@ -2841,7 +2847,7 @@ xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr list)
     if (list == NULL)
         return;
 
-    for (i=0; i<list->count; i++) {
+    for (i = 0; i < list->count; i++) {
         VIR_FREE(list->doms[i]->name);
         VIR_FREE(list->doms[i]);
     }
@@ -2865,7 +2871,7 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     int n;
 
     /* check if we already have this callback on our list */
-    for (n=0; n < list->count; n++) {
+    for (n = 0; n < list->count; n++) {
         if (STREQ(list->doms[n]->name, name) &&
             !memcmp(list->doms[n]->uuid, uuid, VIR_UUID_BUFLEN)) {
             VIR_DEBUG("WARNING: dom already tracked");
@@ -2882,15 +2888,11 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     info->id = id;
 
     /* Make space on list */
-    n = list->count;
-    if (VIR_REALLOC_N(list->doms, n + 1) < 0) {
+    if (VIR_APPEND_ELEMENT(list->doms, list->count, info) < 0)
         goto error;
-    }
 
-    list->doms[n] = info;
-    list->count++;
     return 0;
-error:
+ error:
     if (info)
         VIR_FREE(info->name);
     VIR_FREE(info);
@@ -2918,18 +2920,7 @@ xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr list,
             VIR_FREE(list->doms[i]->name);
             VIR_FREE(list->doms[i]);
 
-            if (i < (list->count - 1))
-                memmove(list->doms + i,
-                        list->doms + i + 1,
-                        sizeof(*(list->doms)) *
-                                (list->count - (i + 1)));
-
-            if (VIR_REALLOC_N(list->doms,
-                              list->count - 1) < 0) {
-                ; /* Failure to reduce memory allocation isn't fatal */
-            }
-            list->count--;
-
+            VIR_DELETE_ELEMENT(list->doms, i, list->count);
             return 0;
         }
     }

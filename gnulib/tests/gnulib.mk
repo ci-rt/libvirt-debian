@@ -885,14 +885,6 @@ EXTRA_DIST += test-lstat.h test-lstat.c signature.h macros.h
 
 ## end   gnulib module lstat-tests
 
-## begin gnulib module malloc-gnu-tests
-
-GNULIB_TESTS += test-malloc-gnu
-check_PROGRAMS += test-malloc-gnu
-EXTRA_DIST += test-malloc-gnu.c
-
-## end   gnulib module malloc-gnu-tests
-
 ## begin gnulib module malloca-tests
 
 GNULIB_TESTS += test-malloca

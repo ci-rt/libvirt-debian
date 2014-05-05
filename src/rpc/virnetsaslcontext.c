@@ -33,6 +33,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
+VIR_LOG_INIT("rpc.netsaslcontext");
+
 struct _virNetSASLContext {
     virObjectLockable parent;
 
@@ -157,7 +159,7 @@ int virNetSASLContextCheckIdentity(virNetSASLContextPtr ctxt,
                    _("Client's username is not on the list of allowed clients"));
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(ctxt);
     return ret;
 }
@@ -196,7 +198,7 @@ virNetSASLSessionPtr virNetSASLSessionNewClient(virNetSASLContextPtr ctxt ATTRIB
 
     return sasl;
 
-cleanup:
+ cleanup:
     virObjectUnref(sasl);
     return NULL;
 }
@@ -232,7 +234,7 @@ virNetSASLSessionPtr virNetSASLSessionNewServer(virNetSASLContextPtr ctxt ATTRIB
 
     return sasl;
 
-cleanup:
+ cleanup:
     virObjectUnref(sasl);
     return NULL;
 }
@@ -254,7 +256,7 @@ int virNetSASLSessionExtKeySize(virNetSASLSessionPtr sasl,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -280,7 +282,7 @@ const char *virNetSASLSessionGetIdentity(virNetSASLSessionPtr sasl)
     }
     VIR_DEBUG("SASL client username %s", (const char *)val);
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return (const char*)val;
 }
@@ -303,7 +305,7 @@ int virNetSASLSessionGetKeySize(virNetSASLSessionPtr sasl)
     }
     ssf = *(const int *)val;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ssf;
 }
@@ -339,7 +341,7 @@ int virNetSASLSessionSecProps(virNetSASLSessionPtr sasl,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -390,7 +392,7 @@ char *virNetSASLSessionListMechanisms(virNetSASLSessionPtr sasl)
     }
     ignore_value(VIR_STRDUP(ret, mechlist));
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -439,7 +441,7 @@ int virNetSASLSessionClientStart(virNetSASLSessionPtr sasl,
         break;
     }
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -488,7 +490,7 @@ int virNetSASLSessionClientStep(virNetSASLSessionPtr sasl,
         break;
     }
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -534,7 +536,7 @@ int virNetSASLSessionServerStart(virNetSASLSessionPtr sasl,
         break;
     }
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -579,7 +581,7 @@ int virNetSASLSessionServerStep(virNetSASLSessionPtr sasl,
         break;
     }
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -627,7 +629,7 @@ ssize_t virNetSASLSessionEncode(virNetSASLSessionPtr sasl,
     }
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }
@@ -665,7 +667,7 @@ ssize_t virNetSASLSessionDecode(virNetSASLSessionPtr sasl,
     }
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sasl);
     return ret;
 }

@@ -1,6 +1,7 @@
 /*
  * storagebackendsheepdogtest.c: storage backend for Sheepdog handling
  *
+ * Copyright (C) 2014 Red Hat, Inc.
  * Copyright (C) 2012 Sebastian Wiedenroth
  *
  * This library is free software; you can redistribute it and/or
@@ -74,7 +75,7 @@ test_node_info_parser(collie_test test, char *poolxml)
         pool->allocation == test.expected_allocation)
         ret = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(output);
     VIR_FREE(poolXmlData);
     virStoragePoolDefFree(pool);
@@ -114,11 +115,11 @@ test_vdi_list_parser(collie_test test, char *poolxml, char *volxml)
         goto cleanup;
     }
 
-    if (vol->capacity == test.expected_capacity &&
-        vol->allocation == test.expected_allocation)
+    if (vol->target.capacity == test.expected_capacity &&
+        vol->target.allocation == test.expected_allocation)
         ret = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(output);
     VIR_FREE(poolXmlData);
     VIR_FREE(volXmlData);
@@ -203,7 +204,7 @@ mymain(void)
 
     ret = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(poolxml);
     VIR_FREE(volxml);
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -39,6 +39,7 @@ virNetServerPtr virNetServerNew(size_t min_workers,
                                 size_t max_workers,
                                 size_t priority_workers,
                                 size_t max_clients,
+                                size_t max_anonymous_clients,
                                 int keepaliveInterval,
                                 unsigned int keepaliveCount,
                                 bool keepaliveRequired,
@@ -96,5 +97,8 @@ void virNetServerQuit(virNetServerPtr srv);
 void virNetServerClose(virNetServerPtr srv);
 
 bool virNetServerKeepAliveRequired(virNetServerPtr srv);
+
+size_t virNetServerTrackPendingAuth(virNetServerPtr srv);
+size_t virNetServerTrackCompletedAuth(virNetServerPtr srv);
 
 #endif

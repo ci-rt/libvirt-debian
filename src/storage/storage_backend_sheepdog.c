@@ -1,7 +1,7 @@
 /*
  * storage_backend_sheepdog.c: storage backend for Sheepdog handling
  *
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013-2014 Red Hat, Inc.
  * Copyright (C) 2012 Wido den Hollander
  * Copyright (C) 2012 Frank Spijkerman
  * Copyright (C) 2012 Sebastian Wiedenroth
@@ -32,7 +32,6 @@
 #include "storage_conf.h"
 #include "vircommand.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
@@ -109,22 +108,104 @@ virStorageBackendSheepdogAddHostArg(virCommandPtr cmd,
     virCommandAddArgFormat(cmd, "%d", port);
 }
 
+static int
+virStorageBackendSheepdogAddVolume(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virStoragePoolObjPtr pool, const char *diskInfo)
+{
+    virStorageVolDefPtr vol = NULL;
+
+    if (diskInfo == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing disk info when adding volume"));
+        goto error;
+    }
+
+    if (VIR_ALLOC(vol) < 0 || VIR_STRDUP(vol->name, diskInfo) < 0)
+        goto error;
+
+    vol->type = VIR_STORAGE_VOL_NETWORK;
+
+    if (virStorageBackendSheepdogRefreshVol(conn, pool, vol) < 0)
+        goto error;
+
+    if (VIR_EXPAND_N(pool->volumes.objs, pool->volumes.count, 1) < 0)
+        goto error;
+
+    pool->volumes.objs[pool->volumes.count - 1] = vol;
+
+    return 0;
+
+ error:
+    virStorageVolDefFree(vol);
+    return -1;
+}
+
+static int
+virStorageBackendSheepdogRefreshAllVol(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                       virStoragePoolObjPtr pool)
+{
+    int ret = -1;
+    char *output = NULL;
+    char **lines = NULL;
+    char **cells = NULL;
+    size_t i;
+
+    virCommandPtr cmd = virCommandNewArgList(COLLIE, "vdi", "list", "-r", NULL);
+    virStorageBackendSheepdogAddHostArg(cmd, pool);
+    virCommandSetOutputBuffer(cmd, &output);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    lines = virStringSplit(output, "\n", 0);
+    if (lines == NULL)
+        goto cleanup;
+
+    for (i = 0; lines[i]; i++) {
+        const char *line = lines[i];
+        if (line == NULL)
+            break;
+
+        cells = virStringSplit(line, " ", 0);
+
+        if (cells != NULL && virStringListLength(cells) > 2) {
+            if (virStorageBackendSheepdogAddVolume(conn, pool, cells[1]) < 0)
+                goto cleanup;
+        }
+
+        virStringFreeList(cells);
+        cells = NULL;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virCommandFree(cmd);
+    virStringFreeList(lines);
+    virStringFreeList(cells);
+    VIR_FREE(output);
+    return ret;
+}
+
 
 static int
 virStorageBackendSheepdogRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                      virStoragePoolObjPtr pool)
 {
-    int ret;
+    int ret = -1;
     char *output = NULL;
     virCommandPtr cmd;
 
     cmd = virCommandNewArgList(COLLIE, "node", "info", "-r", NULL);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
     virCommandSetOutputBuffer(cmd, &output);
-    ret = virCommandRun(cmd, NULL);
-    if (ret == 0)
-        ret = virStorageBackendSheepdogParseNodeInfo(pool->def, output);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
+    if (virStorageBackendSheepdogParseNodeInfo(pool->def, output) < 0)
+        goto cleanup;
+
+    ret = virStorageBackendSheepdogRefreshAllVol(conn, pool);
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(output);
     return ret;
@@ -154,17 +235,39 @@ virStorageBackendSheepdogCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
                                    virStoragePoolObjPtr pool,
                                    virStorageVolDefPtr vol)
 {
-
-    int ret = -1;
-
     if (vol->target.encryption != NULL) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Sheepdog does not support encrypted volumes"));
         return -1;
     }
 
+    vol->type = VIR_STORAGE_VOL_NETWORK;
+
+    VIR_FREE(vol->key);
+    if (virAsprintf(&vol->key, "%s/%s",
+                    pool->def->source.name, vol->name) == -1)
+        return -1;
+
+    VIR_FREE(vol->target.path);
+    if (VIR_STRDUP(vol->target.path, vol->name) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int
+virStorageBackendSheepdogBuildVol(virConnectPtr conn,
+                                  virStoragePoolObjPtr pool,
+                                  virStorageVolDefPtr vol,
+                                  unsigned int flags)
+{
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
     virCommandPtr cmd = virCommandNewArgList(COLLIE, "vdi", "create", vol->name, NULL);
-    virCommandAddArgFormat(cmd, "%llu", vol->capacity);
+    virCommandAddArgFormat(cmd, "%llu", vol->target.capacity);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
@@ -173,7 +276,7 @@ virStorageBackendSheepdogCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -195,7 +298,7 @@ virStorageBackendSheepdogParseVdiList(virStorageVolDefPtr vol,
     int id;
     const char *p, *next;
 
-    vol->allocation = vol->capacity = 0;
+    vol->target.allocation = vol->target.capacity = 0;
 
     p = output;
     do {
@@ -226,12 +329,12 @@ virStorageBackendSheepdogParseVdiList(virStorageVolDefPtr vol,
 
         p = end + 1;
 
-        if (virStrToLong_ull(p, &end, 10, &vol->capacity) < 0)
+        if (virStrToLong_ull(p, &end, 10, &vol->target.capacity) < 0)
             return -1;
 
         p = end + 1;
 
-        if (virStrToLong_ull(p, &end, 10, &vol->allocation) < 0)
+        if (virStrToLong_ull(p, &end, 10, &vol->target.allocation) < 0)
             return -1;
 
         return 0;
@@ -268,7 +371,7 @@ virStorageBackendSheepdogRefreshVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     VIR_FREE(vol->target.path);
     ignore_value(VIR_STRDUP(vol->target.path, vol->name));
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -301,6 +404,7 @@ virStorageBackend virStorageBackendSheepdog = {
 
     .refreshPool = virStorageBackendSheepdogRefreshPool,
     .createVol = virStorageBackendSheepdogCreateVol,
+    .buildVol = virStorageBackendSheepdogBuildVol,
     .refreshVol = virStorageBackendSheepdogRefreshVol,
     .deleteVol = virStorageBackendSheepdogDeleteVol,
     .resizeVol = virStorageBackendSheepdogResizeVol,

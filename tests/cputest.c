@@ -40,8 +40,6 @@
 #include "cpu/cpu_map.h"
 #include "virstring.h"
 
-static const char *abs_top_srcdir;
-
 #define VIR_FROM_THIS VIR_FROM_CPU
 
 enum cpuTestBoolWithError {
@@ -96,7 +94,7 @@ cpuTestLoadXML(const char *arch, const char *name)
 
     cpu = virCPUDefParseXML(ctxt->node, ctxt, VIR_CPU_TYPE_AUTO);
 
-cleanup:
+ cleanup:
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(doc);
     VIR_FREE(xml);
@@ -136,14 +134,14 @@ cpuTestLoadMultiXML(const char *arch,
 
     *count = n;
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(nodes);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(doc);
     return cpus;
 
-cleanup_cpus:
+ cleanup_cpus:
     for (i = 0; i < n; i++)
         virCPUDefFree(cpus[i]);
     VIR_FREE(cpus);
@@ -181,7 +179,7 @@ cpuTestCompareXML(const char *arch,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(expected);
     VIR_FREE(actual);
@@ -247,7 +245,7 @@ cpuTestCompare(const void *arg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCPUDefFree(host);
     virCPUDefFree(cpu);
     return ret;
@@ -307,7 +305,7 @@ cpuTestGuestData(const void *arg)
 
     ret = cpuTestCompareXML(data->arch, guest, result, 0);
 
-cleanup:
+ cleanup:
     VIR_FREE(result);
     cpuDataFree(guestData);
     virCPUDefFree(host);
@@ -326,6 +324,7 @@ cpuTestBaseline(const void *arg)
     virCPUDefPtr baseline = NULL;
     unsigned int ncpus = 0;
     char *result = NULL;
+    const char *suffix;
     size_t i;
 
     if (!(cpus = cpuTestLoadMultiXML(data->arch, data->name, &ncpus)))
@@ -345,7 +344,11 @@ cpuTestBaseline(const void *arg)
     if (!baseline)
         goto cleanup;
 
-    if (virAsprintf(&result, "%s-result", data->name) < 0)
+    if (data->flags & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES)
+        suffix = "expanded";
+    else
+        suffix = "result";
+    if (virAsprintf(&result, "%s-%s", data->name, suffix) < 0)
         goto cleanup;
 
     if (cpuTestCompareXML(data->arch, baseline, result, 0) < 0)
@@ -369,7 +372,7 @@ cpuTestBaseline(const void *arg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (cpus) {
         for (i = 0; i < ncpus; i++)
             virCPUDefFree(cpus[i]);
@@ -403,7 +406,7 @@ cpuTestUpdate(const void *arg)
     ret = cpuTestCompareXML(data->arch, cpu, result,
                             VIR_DOMAIN_XML_UPDATE_CPU);
 
-cleanup:
+ cleanup:
     virCPUDefFree(host);
     virCPUDefFree(cpu);
     VIR_FREE(result);
@@ -444,7 +447,7 @@ cpuTestHasFeature(const void *arg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     cpuDataFree(hostData);
     virCPUDefFree(host);
     return ret;
@@ -499,17 +502,6 @@ static int
 mymain(void)
 {
     int ret = 0;
-    char *map = NULL;
-
-    abs_top_srcdir = getenv("abs_top_srcdir");
-    if (!abs_top_srcdir)
-        abs_top_srcdir = abs_srcdir "/..";
-
-    if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
-        cpuMapOverride(map) < 0) {
-        VIR_FREE(map);
-        return EXIT_FAILURE;
-    }
 
 #define DO_TEST(arch, api, name, host, cpu,                             \
                 models, nmodels, preferred, flags, result)              \
@@ -537,8 +529,19 @@ mymain(void)
     } while (0)
 
 #define DO_TEST_BASELINE(arch, name, flags, result)                     \
-    DO_TEST(arch, API_BASELINE, name, NULL, "baseline-" name,           \
-            NULL, 0, NULL, flags, result)
+    do {                                                                \
+        const char *suffix = "";                                        \
+        char *label;                                                    \
+        if ((flags) & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES)         \
+            suffix = " (expanded)";                                     \
+        if (virAsprintf(&label, "%s%s", name, suffix) < 0) {            \
+            ret = -1;                                                   \
+        } else {                                                        \
+            DO_TEST(arch, API_BASELINE, label, NULL, "baseline-" name,  \
+                    NULL, 0, NULL, flags, result);                      \
+        }                                                               \
+        VIR_FREE(label);                                                \
+    } while (0)
 
 #define DO_TEST_HASFEATURE(arch, host, feature, result)                 \
     DO_TEST(arch, API_HAS_FEATURE,                                      \
@@ -603,7 +606,12 @@ mymain(void)
     DO_TEST_BASELINE("x86", "some-vendors", 0, 0);
     DO_TEST_BASELINE("x86", "1", 0, 0);
     DO_TEST_BASELINE("x86", "2", 0, 0);
+    DO_TEST_BASELINE("x86", "3", 0, 0);
     DO_TEST_BASELINE("x86", "3", VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, 0);
+    DO_TEST_BASELINE("x86", "4", 0, 0);
+    DO_TEST_BASELINE("x86", "4", VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, 0);
+    DO_TEST_BASELINE("x86", "5", 0, 0);
+    DO_TEST_BASELINE("x86", "5", VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, 0);
 
     DO_TEST_BASELINE("ppc64", "incompatible-vendors", 0, -1);
     DO_TEST_BASELINE("ppc64", "no-vendor", 0, 0);
@@ -636,7 +644,6 @@ mymain(void)
     DO_TEST_GUESTDATA("ppc64", "host", "guest", ppc_models, NULL, 0);
     DO_TEST_GUESTDATA("ppc64", "host", "guest-nofallback", ppc_models, "POWER7_v2.1", -1);
 
-    VIR_FREE(map);
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 

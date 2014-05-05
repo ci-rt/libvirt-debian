@@ -1,7 +1,7 @@
 /*
  * vircommand.c: Child command execution
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,7 @@
 #include <config.h>
 
 #include <poll.h>
+#include <regex.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -40,7 +41,8 @@
 # include <sys/apparmor.h>
 #endif
 
-#include "vircommand.h"
+#define __VIR_COMMAND_PRIV_H_ALLOW__
+#include "vircommandpriv.h"
 #include "viralloc.h"
 #include "virerror.h"
 #include "virutil.h"
@@ -53,6 +55,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.command");
 
 /* Flags for virExec */
 enum {
@@ -113,6 +117,7 @@ struct _virCommand {
     pid_t pid;
     char *pidfile;
     bool reap;
+    bool rawStatus;
 
     unsigned long long maxMemLock;
     unsigned int maxProcesses;
@@ -128,6 +133,12 @@ struct _virCommand {
     char *appArmorProfile;
 #endif
 };
+
+/* See virCommandSetDryRun for description for this variable */
+static virBufferPtr dryRunBuffer;
+static virCommandDryRunCallback dryRunCallback;
+static void *dryRunOpaque;
+static int dryRunStatus;
 
 /*
  * virCommandFDIsSet:
@@ -193,28 +204,28 @@ virCommandFDSet(virCommandPtr cmd,
 
 /**
  * virFork:
- * @pid - a pointer to a pid_t that will receive the return value from
- *        fork()
  *
- * fork a new process while avoiding various race/deadlock conditions
+ * Wrapper around fork() that avoids various race/deadlock conditions.
  *
- * on return from virFork(), if *pid < 0, the fork failed and there is
- * no new process. Otherwise, just like fork(), if *pid == 0, it is the
- * child process returning, and if *pid > 0, it is the parent.
- *
- * Even if *pid >= 0, if the return value from virFork() is < 0, it
- * indicates a failure that occurred in the parent or child process
- * after the fork. In this case, the child process should call
- * _exit(EXIT_FAILURE) after doing any additional error reporting.
+ * Like fork(), there are several return possibilities:
+ * 1. No child was created: the return is -1, errno is set, and an error
+ * message has been reported.  The semantics of virWaitProcess() recognize
+ * this to avoid clobbering the error message from here.
+ * 2. This is the parent: the return is > 0.  The parent can now attempt
+ * to interact with the child (but be aware that unlike raw fork(), the
+ * child may not return - some failures in the child result in this
+ * function calling _exit(EXIT_CANCELED) if the child cannot be set up
+ * correctly).
+ * 3. This is the child: the return is 0.  If this happens, the parent
+ * is also guaranteed to return.
  */
-int
-virFork(pid_t *pid)
+pid_t
+virFork(void)
 {
     sigset_t oldmask, newmask;
     struct sigaction sig_action;
-    int saved_errno, ret = -1;
-
-    *pid = -1;
+    int saved_errno;
+    pid_t pid;
 
     /*
      * Need to block signals now, so that child process can safely
@@ -222,54 +233,47 @@ virFork(pid_t *pid)
      */
     sigfillset(&newmask);
     if (pthread_sigmask(SIG_SETMASK, &newmask, &oldmask) != 0) {
-        saved_errno = errno;
         virReportSystemError(errno,
                              "%s", _("cannot block signals"));
-        goto cleanup;
+        return -1;
     }
 
     /* Ensure we hold the logging lock, to protect child processes
      * from deadlocking on another thread's inherited mutex state */
     virLogLock();
 
-    *pid = fork();
+    pid = fork();
     saved_errno = errno; /* save for caller */
 
     /* Unlock for both parent and child process */
     virLogUnlock();
 
-    if (*pid < 0) {
+    if (pid < 0) {
         /* attempt to restore signal mask, but ignore failure, to
-           avoid obscuring the fork failure */
+         * avoid obscuring the fork failure */
         ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
         virReportSystemError(saved_errno,
                              "%s", _("cannot fork child process"));
-        goto cleanup;
-    }
+        errno = saved_errno;
 
-    if (*pid) {
-
+    } else if (pid) {
         /* parent process */
 
         /* Restore our original signal mask now that the child is
-           safely running */
-        if (pthread_sigmask(SIG_SETMASK, &oldmask, NULL) != 0) {
-            saved_errno = errno; /* save for caller */
-            virReportSystemError(errno, "%s", _("cannot unblock signals"));
-            goto cleanup;
-        }
-        ret = 0;
+         * safely running. Only documented failures are EFAULT (not
+         * possible, since we are using just-grabbed mask) or EINVAL
+         * (not possible, since we are using correct arguments).  */
+        ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
 
     } else {
-
         /* child process */
 
         int logprio;
         size_t i;
 
-        /* Remove any error callback so errors in child now
-           get sent to stderr where they stand a fighting chance
-           of being seen / logged */
+        /* Remove any error callback so errors in child now get sent
+         * to stderr where they stand a fighting chance of being seen
+         * and logged */
         virSetErrorFunc(NULL, NULL);
         virSetErrorLogPriorityFunc(NULL);
 
@@ -280,36 +284,30 @@ virFork(pid_t *pid)
         virLogSetDefaultPriority(logprio);
 
         /* Clear out all signal handlers from parent so nothing
-           unexpected can happen in our child once we unblock
-           signals */
+         * unexpected can happen in our child once we unblock
+         * signals */
         sig_action.sa_handler = SIG_DFL;
         sig_action.sa_flags = 0;
         sigemptyset(&sig_action.sa_mask);
 
         for (i = 1; i < NSIG; i++) {
-            /* Only possible errors are EFAULT or EINVAL
-               The former wont happen, the latter we
-               expect, so no need to check return value */
-
-            sigaction(i, &sig_action, NULL);
+            /* Only possible errors are EFAULT or EINVAL The former
+             * won't happen, the latter we expect, so no need to check
+             * return value */
+            ignore_value(sigaction(i, &sig_action, NULL));
         }
 
-        /* Unmask all signals in child, since we've no idea
-           what the caller's done with their signal mask
-           and don't want to propagate that to children */
+        /* Unmask all signals in child, since we've no idea what the
+         * caller's done with their signal mask and don't want to
+         * propagate that to children */
         sigemptyset(&newmask);
         if (pthread_sigmask(SIG_SETMASK, &newmask, NULL) != 0) {
-            saved_errno = errno; /* save for caller */
             virReportSystemError(errno, "%s", _("cannot unblock signals"));
-            goto cleanup;
+            virDispatchError(NULL);
+            _exit(EXIT_CANCELED);
         }
-        ret = 0;
     }
-
-cleanup:
-    if (ret < 0)
-        errno = saved_errno;
-    return ret;
+    return pid;
 }
 
 /*
@@ -407,7 +405,7 @@ virExec(virCommandPtr cmd)
     int tmpfd;
     char *binarystr = NULL;
     const char *binary = NULL;
-    int forkRet, ret;
+    int ret;
     struct sigaction waxon, waxoff;
     gid_t *groups = NULL;
     int ngroups;
@@ -484,17 +482,13 @@ virExec(virCommandPtr cmd)
     if ((ngroups = virGetGroupList(cmd->uid, cmd->gid, &groups)) < 0)
         goto cleanup;
 
-    forkRet = virFork(&pid);
+    pid = virFork();
 
     if (pid < 0) {
         goto cleanup;
     }
 
     if (pid) { /* parent */
-        if (forkRet < 0) {
-            goto cleanup;
-        }
-
         VIR_FORCE_CLOSE(null);
         if (cmd->outfdptr && *cmd->outfdptr == -1) {
             VIR_FORCE_CLOSE(pipeout[1]);
@@ -515,13 +509,7 @@ virExec(virCommandPtr cmd)
 
     /* child */
 
-    if (forkRet < 0) {
-        /* The fork was successful, but after that there was an error
-         * in the child (which was already logged).
-        */
-        goto fork_error;
-    }
-
+    ret = EXIT_CANCELED;
     openmax = sysconf(_SC_OPEN_MAX);
     if (openmax < 0) {
         virReportSystemError(errno,  "%s",
@@ -592,15 +580,13 @@ virExec(virCommandPtr cmd)
 
         if (pid > 0) {
             if (cmd->pidfile && (virPidFileWritePath(cmd->pidfile, pid) < 0)) {
-                kill(pid, SIGTERM);
-                usleep(500*1000);
-                kill(pid, SIGTERM);
-                virReportSystemError(errno,
-                                     _("could not write pidfile %s for %d"),
-                                     cmd->pidfile, pid);
+                if (virProcessKillPainfully(pid, true) >= 0)
+                    virReportSystemError(errno,
+                                         _("could not write pidfile %s for %d"),
+                                         cmd->pidfile, pid);
                 goto fork_error;
             }
-            _exit(0);
+            _exit(EXIT_SUCCESS);
         }
     }
 
@@ -700,13 +686,14 @@ virExec(virCommandPtr cmd)
     else
         execv(binary, cmd->args);
 
+    ret = errno == ENOENT ? EXIT_ENOENT : EXIT_CANNOT_INVOKE;
     virReportSystemError(errno,
                          _("cannot execute binary %s"),
                          cmd->args[0]);
 
  fork_error:
     virDispatchError(NULL);
-    _exit(EXIT_FAILURE);
+    _exit(ret);
 
  cleanup:
     /* This is cleanup of parent process only - child
@@ -778,10 +765,9 @@ virExec(virCommandPtr cmd ATTRIBUTE_UNUSED)
     return -1;
 }
 
-int
-virFork(pid_t *pid)
+pid_t
+virFork(void)
 {
-    *pid = -1;
     errno = ENOTSUP;
 
     return -1;
@@ -1112,6 +1098,25 @@ virCommandNonblockingFDs(virCommandPtr cmd)
         return;
 
     cmd->flags |= VIR_EXEC_NONBLOCK;
+}
+
+/**
+ * virCommandRawStatus:
+ * @cmd: the command to modify
+ *
+ * Mark this command as returning raw exit status via virCommandRun() or
+ * virCommandWait() (caller must use WIFEXITED() and friends, and can
+ * detect death from signals) instead of the default of only allowing
+ * normal exit status (caller must not use WEXITSTATUS(), and death from
+ * signals returns -1).
+ */
+void
+virCommandRawStatus(virCommandPtr cmd)
+{
+    if (!cmd || cmd->has_error)
+        return;
+
+    cmd->rawStatus = true;
 }
 
 /* Add an environment variable to the cmd->env list.  'env' is a
@@ -1859,6 +1864,11 @@ virCommandProcessIO(virCommandPtr cmd)
     size_t inoff = 0;
     int ret = 0;
 
+    if (dryRunBuffer || dryRunCallback) {
+        VIR_DEBUG("Dry run requested, skipping I/O processing");
+        return 0;
+    }
+
     /* With an input buffer, feed data to child
      * via pipe */
     if (cmd->inbuf)
@@ -1983,7 +1993,7 @@ virCommandProcessIO(virCommandPtr cmd)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     if (cmd->outbuf && *cmd->outbuf)
         (*cmd->outbuf)[outlen] = '\0';
     if (cmd->errbuf && *cmd->errbuf)
@@ -2039,7 +2049,11 @@ int virCommandExec(virCommandPtr cmd ATTRIBUTE_UNUSED)
  * Returns -1 on any error executing the
  * command. Returns 0 if the command executed,
  * with the exit status set.  If @exitstatus is NULL, then the
- * child must exit with status 0 for this to succeed.
+ * child must exit with status 0 for this to succeed.  By default,
+ * a non-NULL @exitstatus contains the normal exit status of the child
+ * (death from a signal is treated as execution error); but if
+ * virCommandRawStatus() was used, it instead contains the raw exit
+ * status that the caller must then decipher using WIFEXITED() and friends.
  */
 int
 virCommandRun(virCommandPtr cmd, int *exitstatus)
@@ -2199,7 +2213,7 @@ int
 virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
 {
     int ret = -1;
-    char *str;
+    char *str = NULL;
     size_t i;
     bool synchronous = false;
     int infd[2] = {-1, -1};
@@ -2262,9 +2276,30 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
     }
 
     str = virCommandToString(cmd);
-    VIR_DEBUG("About to run %s", str ? str : cmd->args[0]);
-    VIR_FREE(str);
+    if (dryRunBuffer || dryRunCallback) {
+        dryRunStatus = 0;
+        if (!str) {
+            /* error already reported by virCommandToString */
+            goto cleanup;
+        }
 
+        if (dryRunBuffer) {
+            VIR_DEBUG("Dry run requested, appending stringified "
+                      "command to dryRunBuffer=%p", dryRunBuffer);
+            virBufferAdd(dryRunBuffer, str, -1);
+            virBufferAddChar(dryRunBuffer, '\n');
+        }
+        if (dryRunCallback) {
+            dryRunCallback((const char *const*)cmd->args,
+                           (const char *const*)cmd->env,
+                           cmd->inbuf, cmd->outbuf, cmd->errbuf,
+                           &dryRunStatus, dryRunOpaque);
+        }
+        ret = 0;
+        goto cleanup;
+    }
+
+    VIR_DEBUG("About to run %s", str ? str : cmd->args[0]);
     ret = virExec(cmd);
     VIR_DEBUG("Command result %d, with PID %d",
               ret, (int)cmd->pid);
@@ -2298,11 +2333,12 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
         }
     }
 
-cleanup:
+ cleanup:
     if (ret < 0) {
         VIR_FORCE_CLOSE(cmd->infd);
         VIR_FORCE_CLOSE(cmd->inpipe);
     }
+    VIR_FREE(str);
     return ret;
 }
 
@@ -2316,7 +2352,11 @@ cleanup:
  * to complete. Return -1 on any error waiting for
  * completion. Returns 0 if the command
  * finished with the exit status set.  If @exitstatus is NULL, then the
- * child must exit with status 0 for this to succeed.
+ * child must exit with status 0 for this to succeed.  By default,
+ * a non-NULL @exitstatus contains the normal exit status of the child
+ * (death from a signal is treated as execution error); but if
+ * virCommandRawStatus() was used, it instead contains the raw exit
+ * status that the caller must then decipher using WIFEXITED() and friends.
  */
 int
 virCommandWait(virCommandPtr cmd, int *exitstatus)
@@ -2334,6 +2374,14 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
         return -1;
     }
 
+    if (dryRunBuffer || dryRunCallback) {
+        VIR_DEBUG("Dry run requested, returning status %d",
+                  dryRunStatus);
+        if (exitstatus)
+            *exitstatus = dryRunStatus;
+        return 0;
+    }
+
     if (cmd->pid == -1) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("command is not yet running"));
@@ -2346,7 +2394,7 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
      * message is not as detailed as what we can provide.  So, we
      * guarantee that virProcessWait only fails due to failure to wait,
      * and repeat the exitstatus check code ourselves.  */
-    ret = virProcessWait(cmd->pid, exitstatus ? exitstatus : &status);
+    ret = virProcessWait(cmd->pid, &status, true);
     if (cmd->flags & VIR_EXEC_ASYNC_IO) {
         cmd->flags &= ~VIR_EXEC_ASYNC_IO;
         virThreadJoin(cmd->asyncioThread);
@@ -2364,7 +2412,9 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
     if (ret == 0) {
         cmd->pid = -1;
         cmd->reap = false;
-        if (status) {
+        if (exitstatus && (cmd->rawStatus || WIFEXITED(status))) {
+            *exitstatus = cmd->rawStatus ? status : WEXITSTATUS(status);
+        } else if (status) {
             char *str = virCommandToString(cmd);
             char *st = virProcessTranslateStatus(status);
             bool haveErrMsg = cmd->errbuf && *cmd->errbuf && (*cmd->errbuf)[0];
@@ -2669,3 +2719,278 @@ virCommandDoAsyncIO(virCommandPtr cmd)
 
    cmd->flags |= VIR_EXEC_ASYNC_IO | VIR_EXEC_NONBLOCK;
 }
+
+/**
+ * virCommandSetDryRun:
+ * @buf: buffer to store stringified commands
+ * @callback: callback to process input/output/args
+ *
+ * Sometimes it's desired to not actually run given command, but
+ * see its string representation without having to change the
+ * callee. Unit testing serves as a great example. In such cases,
+ * the callee constructs the command and calls it via
+ * virCommandRun* API. The virCommandSetDryRun allows you to
+ * modify this behavior: once called, every call to
+ * virCommandRun* results in command string representation being
+ * appended to @buf instead of being executed. If @callback is
+ * provided, then it is invoked with the argv, env and stdin
+ * data string for the command. It is expected to fill the stdout
+ * and stderr data strings and exit status variables.
+ *
+ * The strings stored in @buf are escaped for a shell and
+ * separated by a newline. For example:
+ *
+ * virBuffer buffer = VIR_BUFFER_INITIALIZER;
+ * virCommandSetDryRun(&buffer);
+ *
+ * virCommandPtr echocmd = virCommandNewArgList("/bin/echo", "Hello world", NULL);
+ * virCommandRun(echocmd, NULL);
+ *
+ * After this, the @buffer should contain:
+ *
+ * /bin/echo 'Hello world'\n
+ *
+ * To cancel this effect pass NULL for @buf and @callback.
+ */
+void
+virCommandSetDryRun(virBufferPtr buf,
+                    virCommandDryRunCallback cb,
+                    void *opaque)
+{
+    dryRunBuffer = buf;
+    dryRunCallback = cb;
+    dryRunOpaque = opaque;
+}
+
+#ifndef WIN32
+/*
+ * Run an external program.
+ *
+ * Read its output and apply a series of regexes to each line
+ * When the entire set of regexes has matched consecutively
+ * then run a callback passing in all the matches
+ */
+int
+virCommandRunRegex(virCommandPtr cmd,
+                   int nregex,
+                   const char **regex,
+                   int *nvars,
+                   virCommandRunRegexFunc func,
+                   void *data,
+                   const char *prefix)
+{
+    int err;
+    regex_t *reg;
+    regmatch_t *vars = NULL;
+    size_t i, j, k;
+    int totgroups = 0, ngroup = 0, maxvars = 0;
+    char **groups;
+    char *outbuf = NULL;
+    char **lines = NULL;
+    int ret = -1;
+
+    /* Compile all regular expressions */
+    if (VIR_ALLOC_N(reg, nregex) < 0)
+        return -1;
+
+    for (i = 0; i < nregex; i++) {
+        err = regcomp(&reg[i], regex[i], REG_EXTENDED);
+        if (err != 0) {
+            char error[100];
+            regerror(err, &reg[i], error, sizeof(error));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to compile regex %s"), error);
+            for (j = 0; j < i; j++)
+                regfree(&reg[j]);
+            VIR_FREE(reg);
+            return -1;
+        }
+
+        totgroups += nvars[i];
+        if (nvars[i] > maxvars)
+            maxvars = nvars[i];
+
+    }
+
+    /* Storage for matched variables */
+    if (VIR_ALLOC_N(groups, totgroups) < 0)
+        goto cleanup;
+    if (VIR_ALLOC_N(vars, maxvars+1) < 0)
+        goto cleanup;
+
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    if (!outbuf) {
+        /* no output */
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (!(lines = virStringSplit(outbuf, "\n", 0)))
+        goto cleanup;
+
+    for (k = 0; lines[k]; k++) {
+        const char *p = NULL;
+
+        /* ignore any command prefix */
+        if (prefix)
+            p = STRSKIP(lines[k], prefix);
+        if (!p)
+            p = lines[k];
+
+        ngroup = 0;
+        for (i = 0; i < nregex; i++) {
+            if (regexec(&reg[i], p, nvars[i]+1, vars, 0) != 0)
+                break;
+
+            /* NB vars[0] is the full pattern, so we offset j by 1 */
+            for (j = 1; j <= nvars[i]; j++) {
+                if (VIR_STRNDUP(groups[ngroup++], p + vars[j].rm_so,
+                                vars[j].rm_eo - vars[j].rm_so) < 0)
+                    goto cleanup;
+            }
+
+        }
+        /* We've matched on the last regex, so callback time */
+        if (i == nregex) {
+            if (((*func)(groups, data)) < 0)
+                goto cleanup;
+        }
+
+        for (j = 0; j < ngroup; j++)
+            VIR_FREE(groups[j]);
+    }
+
+    ret = 0;
+ cleanup:
+    virStringFreeList(lines);
+    VIR_FREE(outbuf);
+    if (groups) {
+        for (j = 0; j < totgroups; j++)
+            VIR_FREE(groups[j]);
+        VIR_FREE(groups);
+    }
+    VIR_FREE(vars);
+
+    for (i = 0; i < nregex; i++)
+        regfree(&reg[i]);
+
+    VIR_FREE(reg);
+    return ret;
+}
+
+/*
+ * Run an external program and read from its standard output
+ * a stream of tokens from IN_STREAM, applying FUNC to
+ * each successive sequence of N_COLUMNS tokens.
+ * If FUNC returns < 0, stop processing input and return -1.
+ * Return -1 if N_COLUMNS == 0.
+ * Return -1 upon memory allocation error.
+ * If the number of input tokens is not a multiple of N_COLUMNS,
+ * then the final FUNC call will specify a number smaller than N_COLUMNS.
+ * If there are no input tokens (empty input), call FUNC with N_COLUMNS == 0.
+ */
+int
+virCommandRunNul(virCommandPtr cmd,
+                 size_t n_columns,
+                 virCommandRunNulFunc func,
+                 void *data)
+{
+    size_t n_tok = 0;
+    int fd = -1;
+    FILE *fp = NULL;
+    char **v;
+    int ret = -1;
+    size_t i;
+
+    if (n_columns == 0)
+        return -1;
+
+    if (VIR_ALLOC_N(v, n_columns) < 0)
+        return -1;
+    for (i = 0; i < n_columns; i++)
+        v[i] = NULL;
+
+    virCommandSetOutputFD(cmd, &fd);
+    if (virCommandRunAsync(cmd, NULL) < 0) {
+        goto cleanup;
+    }
+
+    if ((fp = VIR_FDOPEN(fd, "r")) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("cannot open file using fd"));
+        goto cleanup;
+    }
+
+    while (1) {
+        char *buf = NULL;
+        size_t buf_len = 0;
+        /* Be careful: even when it returns -1,
+           this use of getdelim allocates memory.  */
+        ssize_t tok_len = getdelim(&buf, &buf_len, 0, fp);
+        v[n_tok] = buf;
+        if (tok_len < 0) {
+            /* Maybe EOF, maybe an error.
+               If n_tok > 0, then we know it's an error.  */
+            if (n_tok && func(n_tok, v, data) < 0)
+                goto cleanup;
+            break;
+        }
+        ++n_tok;
+        if (n_tok == n_columns) {
+            if (func(n_tok, v, data) < 0)
+                goto cleanup;
+            n_tok = 0;
+            for (i = 0; i < n_columns; i++) {
+                VIR_FREE(v[i]);
+            }
+        }
+    }
+
+    if (feof(fp) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("read error on pipe"));
+        goto cleanup;
+    }
+
+    ret = virCommandWait(cmd, NULL);
+ cleanup:
+    for (i = 0; i < n_columns; i++)
+        VIR_FREE(v[i]);
+    VIR_FREE(v);
+
+    VIR_FORCE_FCLOSE(fp);
+    VIR_FORCE_CLOSE(fd);
+
+    return ret;
+}
+
+#else /* WIN32 */
+
+int
+virCommandRunRegex(virCommandPtr cmd ATTRIBUTE_UNUSED,
+                   int nregex ATTRIBUTE_UNUSED,
+                   const char **regex ATTRIBUTE_UNUSED,
+                   int *nvars ATTRIBUTE_UNUSED,
+                   virCommandRunRegexFunc func ATTRIBUTE_UNUSED,
+                   void *data ATTRIBUTE_UNUSED,
+                   const char *prefix ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("%s not implemented on Win32"), __FUNCTION__);
+    return -1;
+}
+
+int
+virCommandRunNul(virCommandPtr cmd ATTRIBUTE_UNUSED,
+                 size_t n_columns ATTRIBUTE_UNUSED,
+                 virCommandRunNulFunc func ATTRIBUTE_UNUSED,
+                 void *data ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("%s not implemented on Win32"), __FUNCTION__);
+    return -1;
+}
+#endif /* WIN32 */

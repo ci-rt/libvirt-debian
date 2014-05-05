@@ -23,9 +23,11 @@
     <disk type='block' device='disk'>
       <driver name='phy'/>
       <source dev='/dev/sda8'/>
+      <backingStore/>
       <target dev='hda' bus='ide'/>
     </disk>
     <disk type='file' device='cdrom'>
+      <backingStore/>
       <target dev='hdc' bus='ide'/>
       <readonly/>
     </disk>
@@ -41,6 +43,7 @@
       <target type='serial' port='0'/>
     </console>
     <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
     <graphics type='vnc' port='-1' autoport='yes'/>
   </devices>
 </domain>

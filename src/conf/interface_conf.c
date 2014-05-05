@@ -1,7 +1,7 @@
 /*
  * interface_conf.c: interfaces XML handling
  *
- * Copyright (C) 2006-2010, 2013 Red Hat, Inc.
+ * Copyright (C) 2006-2010, 2013, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -41,11 +41,11 @@ VIR_ENUM_IMPL(virInterface,
 static virInterfaceDefPtr
 virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType);
 static int
-virInterfaceDefDevFormat(virBufferPtr buf,
-                         const virInterfaceDef *def, int level);
+virInterfaceDefDevFormat(virBufferPtr buf, const virInterfaceDef *def);
 
 static
-void virInterfaceIpDefFree(virInterfaceIpDefPtr def) {
+void virInterfaceIpDefFree(virInterfaceIpDefPtr def)
+{
     if (def == NULL)
         return;
     VIR_FREE(def->address);
@@ -53,7 +53,8 @@ void virInterfaceIpDefFree(virInterfaceIpDefPtr def) {
 }
 
 static
-void virInterfaceProtocolDefFree(virInterfaceProtocolDefPtr def) {
+void virInterfaceProtocolDefFree(virInterfaceProtocolDefPtr def)
+{
     size_t i;
 
     if (def == NULL)
@@ -113,7 +114,8 @@ void virInterfaceDefFree(virInterfaceDefPtr def)
 
 static int
 virInterfaceDefParseName(virInterfaceDefPtr def,
-                         xmlXPathContextPtr ctxt) {
+                         xmlXPathContextPtr ctxt)
+{
     char *tmp;
 
     tmp = virXPathString("string(./@name)", ctxt);
@@ -128,7 +130,8 @@ virInterfaceDefParseName(virInterfaceDefPtr def,
 
 static int
 virInterfaceDefParseMtu(virInterfaceDefPtr def,
-                        xmlXPathContextPtr ctxt) {
+                        xmlXPathContextPtr ctxt)
+{
     unsigned long mtu;
     int ret;
 
@@ -145,7 +148,8 @@ virInterfaceDefParseMtu(virInterfaceDefPtr def,
 
 static int
 virInterfaceDefParseStartMode(virInterfaceDefPtr def,
-                              xmlXPathContextPtr ctxt) {
+                              xmlXPathContextPtr ctxt)
+{
     char *tmp;
 
     tmp = virXPathString("string(./start/@mode)", ctxt);
@@ -168,7 +172,8 @@ virInterfaceDefParseStartMode(virInterfaceDefPtr def,
 }
 
 static int
-virInterfaceDefParseBondMode(xmlXPathContextPtr ctxt) {
+virInterfaceDefParseBondMode(xmlXPathContextPtr ctxt)
+{
     char *tmp;
     int ret = 0;
 
@@ -199,7 +204,8 @@ virInterfaceDefParseBondMode(xmlXPathContextPtr ctxt) {
 }
 
 static int
-virInterfaceDefParseBondMiiCarrier(xmlXPathContextPtr ctxt) {
+virInterfaceDefParseBondMiiCarrier(xmlXPathContextPtr ctxt)
+{
     char *tmp;
     int ret = 0;
 
@@ -220,7 +226,8 @@ virInterfaceDefParseBondMiiCarrier(xmlXPathContextPtr ctxt) {
 }
 
 static int
-virInterfaceDefParseBondArpValid(xmlXPathContextPtr ctxt) {
+virInterfaceDefParseBondArpValid(xmlXPathContextPtr ctxt)
+{
     char *tmp;
     int ret = 0;
 
@@ -244,7 +251,8 @@ virInterfaceDefParseBondArpValid(xmlXPathContextPtr ctxt) {
 
 static int
 virInterfaceDefParseDhcp(virInterfaceProtocolDefPtr def,
-                         xmlNodePtr dhcp, xmlXPathContextPtr ctxt) {
+                         xmlNodePtr dhcp, xmlXPathContextPtr ctxt)
+{
     xmlNodePtr save;
     char *tmp;
     int ret = 0;
@@ -274,7 +282,8 @@ virInterfaceDefParseDhcp(virInterfaceProtocolDefPtr def,
 
 static int
 virInterfaceDefParseIp(virInterfaceIpDefPtr def,
-                       xmlXPathContextPtr ctxt) {
+                       xmlXPathContextPtr ctxt)
+{
     int ret = 0;
     char *tmp;
     long l;
@@ -297,7 +306,8 @@ virInterfaceDefParseIp(virInterfaceIpDefPtr def,
 
 static int
 virInterfaceDefParseProtoIPv4(virInterfaceProtocolDefPtr def,
-                              xmlXPathContextPtr ctxt) {
+                              xmlXPathContextPtr ctxt)
+{
     xmlNodePtr dhcp;
     xmlNodePtr *ipNodes = NULL;
     int nIpNodes, ret = -1;
@@ -340,14 +350,15 @@ virInterfaceDefParseProtoIPv4(virInterfaceProtocolDefPtr def,
 
     ret = 0;
 
-error:
+ error:
     VIR_FREE(ipNodes);
     return ret;
 }
 
 static int
 virInterfaceDefParseProtoIPv6(virInterfaceProtocolDefPtr def,
-                              xmlXPathContextPtr ctxt) {
+                              xmlXPathContextPtr ctxt)
+{
     xmlNodePtr dhcp, autoconf;
     xmlNodePtr *ipNodes = NULL;
     int nIpNodes, ret = -1;
@@ -394,14 +405,15 @@ virInterfaceDefParseProtoIPv6(virInterfaceProtocolDefPtr def,
 
     ret = 0;
 
-error:
+ error:
     VIR_FREE(ipNodes);
     return ret;
 }
 
 static int
 virInterfaceDefParseIfAdressing(virInterfaceDefPtr def,
-                                xmlXPathContextPtr ctxt) {
+                                xmlXPathContextPtr ctxt)
+{
     xmlNodePtr save;
     xmlNodePtr *protoNodes = NULL;
     int nProtoNodes, pp, ret = -1;
@@ -461,7 +473,7 @@ virInterfaceDefParseIfAdressing(virInterfaceDefPtr def,
 
     ret = 0;
 
-error:
+ error:
     VIR_FREE(protoNodes);
     ctxt->node = save;
     return ret;
@@ -470,7 +482,8 @@ error:
 
 static int
 virInterfaceDefParseBridge(virInterfaceDefPtr def,
-                           xmlXPathContextPtr ctxt) {
+                           xmlXPathContextPtr ctxt)
+{
     xmlNodePtr *interfaces = NULL;
     xmlNodePtr bridge;
     virInterfaceDefPtr itf;
@@ -503,7 +516,7 @@ virInterfaceDefParseBridge(virInterfaceDefPtr def,
         }
     }
 
-error:
+ error:
     VIR_FREE(interfaces);
     ctxt->node = bridge;
     return ret;
@@ -511,7 +524,8 @@ error:
 
 static int
 virInterfaceDefParseBondItfs(virInterfaceDefPtr def,
-                             xmlXPathContextPtr ctxt) {
+                             xmlXPathContextPtr ctxt)
+{
     xmlNodePtr *interfaces = NULL;
     xmlNodePtr bond = ctxt->node;
     virInterfaceDefPtr itf;
@@ -549,7 +563,7 @@ virInterfaceDefParseBondItfs(virInterfaceDefPtr def,
         def->data.bond.itf[i] = itf;
     }
 
-error:
+ error:
     VIR_FREE(interfaces);
     ctxt->node = bond;
     return ret;
@@ -557,7 +571,8 @@ error:
 
 static int
 virInterfaceDefParseBond(virInterfaceDefPtr def,
-                         xmlXPathContextPtr ctxt) {
+                         xmlXPathContextPtr ctxt)
+{
     int res;
 
     def->data.bond.mode = virInterfaceDefParseBondMode(ctxt);
@@ -628,7 +643,8 @@ virInterfaceDefParseBond(virInterfaceDefPtr def,
 
 static int
 virInterfaceDefParseVlan(virInterfaceDefPtr def,
-                         xmlXPathContextPtr ctxt) {
+                         xmlXPathContextPtr ctxt)
+{
     def->data.vlan.tag = virXPathString("string(./@tag)", ctxt);
     if (def->data.vlan.tag == NULL) {
         virReportError(VIR_ERR_XML_ERROR,
@@ -647,7 +663,8 @@ virInterfaceDefParseVlan(virInterfaceDefPtr def,
 }
 
 static virInterfaceDefPtr
-virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType) {
+virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType)
+{
     virInterfaceDefPtr def;
     int type;
     char *tmp;
@@ -662,7 +679,7 @@ virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType) {
     }
     type = virInterfaceTypeFromString(tmp);
     if (type == -1) {
-        virReportError(VIR_ERR_XML_ERROR,
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unknown interface type %s"), tmp);
         VIR_FREE(tmp);
         return NULL;
@@ -797,7 +814,7 @@ virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType) {
     ctxt->node = cur;
     return def;
 
-error:
+ error:
     ctxt->node = cur;
     virInterfaceDefFree(def);
     return NULL;
@@ -826,7 +843,7 @@ virInterfaceDefPtr virInterfaceDefParseNode(xmlDocPtr xml,
     ctxt->node = root;
     def = virInterfaceDefParseXML(ctxt, VIR_INTERFACE_TYPE_LAST);
 
-cleanup:
+ cleanup:
     xmlXPathFreeContext(ctxt);
     return def;
 }
@@ -857,13 +874,12 @@ virInterfaceDefPtr virInterfaceDefParseFile(const char *filename)
 }
 
 static int
-virInterfaceBridgeDefFormat(virBufferPtr buf,
-                            const virInterfaceDef *def, int level)
+virInterfaceBridgeDefFormat(virBufferPtr buf, const virInterfaceDef *def)
 {
     size_t i;
     int ret = 0;
 
-    virBufferAsprintf(buf, "%*s  <bridge", level*2, "");
+    virBufferAddLit(buf, "<bridge");
     if (def->data.bridge.stp == 1)
         virBufferAddLit(buf, " stp='on'");
     else if (def->data.bridge.stp == 0)
@@ -871,25 +887,25 @@ virInterfaceBridgeDefFormat(virBufferPtr buf,
     if (def->data.bridge.delay != NULL)
         virBufferAsprintf(buf, " delay='%s'", def->data.bridge.delay);
     virBufferAddLit(buf, ">\n");
+    virBufferAdjustIndent(buf, 2);
 
     for (i = 0; i < def->data.bridge.nbItf; i++) {
-        if (virInterfaceDefDevFormat(buf,
-                                     def->data.bridge.itf[i], level+2) < 0)
+        if (virInterfaceDefDevFormat(buf, def->data.bridge.itf[i]) < 0)
             ret = -1;
     }
 
-    virBufferAsprintf(buf, "%*s  </bridge>\n", level*2, "");
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</bridge>\n");
     return ret;
 }
 
 static int
-virInterfaceBondDefFormat(virBufferPtr buf,
-                          const virInterfaceDef *def, int level)
+virInterfaceBondDefFormat(virBufferPtr buf, const virInterfaceDef *def)
 {
     size_t i;
     int ret = 0;
 
-    virBufferAsprintf(buf, "%*s  <bond", level*2, "");
+    virBufferAddLit(buf, "<bond");
     if (def->data.bond.mode == VIR_INTERFACE_BOND_BALRR)
         virBufferAddLit(buf, " mode='balance-rr'");
     else if (def->data.bond.mode == VIR_INTERFACE_BOND_ABACKUP)
@@ -905,10 +921,11 @@ virInterfaceBondDefFormat(virBufferPtr buf,
     else if (def->data.bond.mode == VIR_INTERFACE_BOND_BALALB)
         virBufferAddLit(buf, " mode='balance-alb'");
     virBufferAddLit(buf, ">\n");
+    virBufferAdjustIndent(buf, 2);
 
     if (def->data.bond.monit == VIR_INTERFACE_BOND_MONIT_MII) {
-        virBufferAsprintf(buf, "%*s    <miimon freq='%d'",
-                          level*2, "", def->data.bond.frequency);
+        virBufferAsprintf(buf, "<miimon freq='%d'",
+                          def->data.bond.frequency);
         if (def->data.bond.downdelay > 0)
             virBufferAsprintf(buf, " downdelay='%d'", def->data.bond.downdelay);
         if (def->data.bond.updelay > 0)
@@ -924,8 +941,7 @@ virInterfaceBondDefFormat(virBufferPtr buf,
                            "%s", _("bond arp monitoring has no target"));
             return -1;
         }
-        virBufferAsprintf(buf, "%*s    <arpmon interval='%d' target='%s'",
-                          level*2, "",
+        virBufferAsprintf(buf, "<arpmon interval='%d' target='%s'",
                           def->data.bond.interval, def->data.bond.target);
         if (def->data.bond.validate == VIR_INTERFACE_BOND_ARP_ACTIVE)
             virBufferAddLit(buf, " validate='active'");
@@ -936,17 +952,17 @@ virInterfaceBondDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, "/>\n");
     }
     for (i = 0; i < def->data.bond.nbItf; i++) {
-        if (virInterfaceDefDevFormat(buf, def->data.bond.itf[i], level+2) < 0)
+        if (virInterfaceDefDevFormat(buf, def->data.bond.itf[i]) < 0)
             ret = -1;
     }
 
-    virBufferAsprintf(buf, "%*s  </bond>\n", level*2, "");
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</bond>\n");
     return ret;
 }
 
 static int
-virInterfaceVlanDefFormat(virBufferPtr buf,
-                          const virInterfaceDef *def, int level)
+virInterfaceVlanDefFormat(virBufferPtr buf, const virInterfaceDef *def)
 {
     if (def->data.vlan.tag == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -954,48 +970,45 @@ virInterfaceVlanDefFormat(virBufferPtr buf,
         return -1;
     }
 
-    virBufferAsprintf(buf, "%*s  <vlan tag='%s'",
-                      level*2, "", def->data.vlan.tag);
+    virBufferAsprintf(buf, "<vlan tag='%s'", def->data.vlan.tag);
     if (def->data.vlan.devname != NULL) {
         virBufferAddLit(buf, ">\n");
-        virBufferAsprintf(buf, "%*s    <interface name='%s'/>\n",
-                          level*2, "", def->data.vlan.devname);
-        virBufferAsprintf(buf, "%*s  </vlan>\n", level*2, "");
+        virBufferAdjustIndent(buf, 2);
+        virBufferAsprintf(buf, "<interface name='%s'/>\n",
+                          def->data.vlan.devname);
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</vlan>\n");
     } else
         virBufferAddLit(buf, "/>\n");
     return 0;
 }
 
 static int
-virInterfaceProtocolDefFormat(virBufferPtr buf, const virInterfaceDef *def,
-                              int level)
+virInterfaceProtocolDefFormat(virBufferPtr buf, const virInterfaceDef *def)
 {
     size_t i, j;
 
     for (i = 0; i < def->nprotos; i++) {
 
-        virBufferAsprintf(buf, "%*s  <protocol family='%s'>\n",
-                          level*2, "", def->protos[i]->family);
+        virBufferAsprintf(buf, "<protocol family='%s'>\n",
+                          def->protos[i]->family);
+        virBufferAdjustIndent(buf, 2);
 
-        if (def->protos[i]->autoconf) {
-            virBufferAsprintf(buf, "%*s    <autoconf/>\n", level*2, "");
-        }
-
+        if (def->protos[i]->autoconf)
+            virBufferAddLit(buf, "<autoconf/>\n");
         if (def->protos[i]->dhcp) {
             if (def->protos[i]->peerdns == 0)
-                virBufferAsprintf(buf, "%*s    <dhcp peerdns='no'/>\n",
-                                  level*2, "");
+                virBufferAddLit(buf, "<dhcp peerdns='no'/>\n");
             else if (def->protos[i]->peerdns == 1)
-                virBufferAsprintf(buf, "%*s    <dhcp peerdns='yes'/>\n",
-                                  level*2, "");
+                virBufferAddLit(buf, "<dhcp peerdns='yes'/>\n");
             else
-                virBufferAsprintf(buf, "%*s    <dhcp/>\n", level*2, "");
+                virBufferAddLit(buf, "<dhcp/>\n");
         }
 
         for (j = 0; j < def->protos[i]->nips; j++) {
             if (def->protos[i]->ips[j]->address != NULL) {
 
-                virBufferAsprintf(buf, "%*s    <ip address='%s'", level*2, "",
+                virBufferAsprintf(buf, "<ip address='%s'",
                                   def->protos[i]->ips[j]->address);
                 if (def->protos[i]->ips[j]->prefix != 0) {
                     virBufferAsprintf(buf, " prefix='%d'",
@@ -1005,19 +1018,20 @@ virInterfaceProtocolDefFormat(virBufferPtr buf, const virInterfaceDef *def,
             }
         }
         if (def->protos[i]->gateway != NULL) {
-            virBufferAsprintf(buf, "%*s    <route gateway='%s'/>\n",
-                              level*2, "", def->protos[i]->gateway);
+            virBufferAsprintf(buf, "<route gateway='%s'/>\n",
+                              def->protos[i]->gateway);
         }
 
-        virBufferAsprintf(buf, "%*s  </protocol>\n", level*2, "");
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</protocol>\n");
     }
     return 0;
 }
 
 static int
 virInterfaceStartmodeDefFormat(virBufferPtr buf,
-                               enum virInterfaceStartMode startmode,
-                               int level) {
+                               enum virInterfaceStartMode startmode)
+{
     const char *mode;
     switch (startmode) {
         case VIR_INTERFACE_START_UNSPECIFIED:
@@ -1036,13 +1050,12 @@ virInterfaceStartmodeDefFormat(virBufferPtr buf,
                            "%s", _("virInterfaceDefFormat unknown startmode"));
             return -1;
     }
-    virBufferAsprintf(buf, "%*s  <start mode='%s'/>\n", level*2, "", mode);
+    virBufferAsprintf(buf, "<start mode='%s'/>\n", mode);
     return 0;
 }
 
 static int
-virInterfaceDefDevFormat(virBufferPtr buf,
-                         const virInterfaceDef *def, int level)
+virInterfaceDefDevFormat(virBufferPtr buf, const virInterfaceDef *def)
 {
     const char *type = NULL;
 
@@ -1064,59 +1077,55 @@ virInterfaceDefDevFormat(virBufferPtr buf,
         goto cleanup;
     }
 
-    virBufferAsprintf(buf, "%*s<interface type='%s' ", level*2, "", type);
+    virBufferAsprintf(buf, "<interface type='%s' ", type);
     if (def->name != NULL)
         virBufferEscapeString(buf, "name='%s'", def->name);
     virBufferAddLit(buf, ">\n");
+    virBufferAdjustIndent(buf, 2);
 
     switch (def->type) {
         case VIR_INTERFACE_TYPE_ETHERNET:
-            virInterfaceStartmodeDefFormat(buf, def->startmode, level);
+            virInterfaceStartmodeDefFormat(buf, def->startmode);
             if (def->mac != NULL)
-                virBufferAsprintf(buf, "%*s  <mac address='%s'/>\n",
-                                  level*2, "", def->mac);
+                virBufferAsprintf(buf, "<mac address='%s'/>\n", def->mac);
             if (def->mtu != 0)
-                virBufferAsprintf(buf, "%*s  <mtu size='%d'/>\n",
-                                  level*2, "", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def, level);
+                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
+            virInterfaceProtocolDefFormat(buf, def);
             break;
         case VIR_INTERFACE_TYPE_BRIDGE:
-            virInterfaceStartmodeDefFormat(buf, def->startmode, level);
+            virInterfaceStartmodeDefFormat(buf, def->startmode);
             if (def->mtu != 0)
-                virBufferAsprintf(buf, "%*s  <mtu size='%d'/>\n",
-                                  level*2, "", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def, level);
-            virInterfaceBridgeDefFormat(buf, def, level);
+                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
+            virInterfaceProtocolDefFormat(buf, def);
+            virInterfaceBridgeDefFormat(buf, def);
             break;
         case VIR_INTERFACE_TYPE_BOND:
-            virInterfaceStartmodeDefFormat(buf, def->startmode, level);
+            virInterfaceStartmodeDefFormat(buf, def->startmode);
             if (def->mtu != 0)
-                virBufferAsprintf(buf, "%*s  <mtu size='%d'/>\n",
-                                  level*2, "", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def, level);
-            virInterfaceBondDefFormat(buf, def, level);
+                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
+            virInterfaceProtocolDefFormat(buf, def);
+            virInterfaceBondDefFormat(buf, def);
             break;
         case VIR_INTERFACE_TYPE_VLAN:
-            virInterfaceStartmodeDefFormat(buf, def->startmode, level);
+            virInterfaceStartmodeDefFormat(buf, def->startmode);
             if (def->mac != NULL)
-                virBufferAsprintf(buf, "%*s  <mac address='%s'/>\n",
-                                  level*2, "", def->mac);
+                virBufferAsprintf(buf, "<mac address='%s'/>\n", def->mac);
             if (def->mtu != 0)
-                virBufferAsprintf(buf, "%*s  <mtu size='%d'/>\n",
-                                  level*2, "", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def, level);
-            virInterfaceVlanDefFormat(buf, def, level);
+                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
+            virInterfaceProtocolDefFormat(buf, def);
+            virInterfaceVlanDefFormat(buf, def);
             break;
     }
 
-    virBufferAsprintf(buf, "%*s</interface>\n", level*2, "");
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</interface>\n");
 
     if (virBufferError(buf))
         goto no_memory;
     return 0;
-no_memory:
+ no_memory:
     virReportOOMError();
-cleanup:
+ cleanup:
     return -1;
 }
 
@@ -1124,7 +1133,7 @@ char *virInterfaceDefFormat(const virInterfaceDef *def)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (virInterfaceDefDevFormat(&buf, def, 0) < 0) {
+    if (virInterfaceDefDevFormat(&buf, def) < 0) {
         virBufferFreeAndReset(&buf);
         return NULL;
     }
@@ -1239,7 +1248,7 @@ int virInterfaceObjListClone(virInterfaceObjListPtr src,
     }
 
     ret = cnt;
-cleanup:
+ cleanup:
     if ((ret < 0) && dest)
        virInterfaceObjListFree(dest);
     return ret;
@@ -1266,16 +1275,14 @@ virInterfaceObjPtr virInterfaceAssignDef(virInterfaceObjListPtr interfaces,
         return NULL;
     }
     virInterfaceObjLock(iface);
-    iface->def = def;
 
-    if (VIR_REALLOC_N(interfaces->objs, interfaces->count + 1) < 0) {
-        VIR_FREE(iface);
+    if (VIR_APPEND_ELEMENT_COPY(interfaces->objs,
+                                interfaces->count, iface) < 0) {
+        virInterfaceObjFree(iface);
         return NULL;
     }
 
-    interfaces->objs[interfaces->count] = iface;
-    interfaces->count++;
-
+    iface->def = def;
     return iface;
 
 }
@@ -1292,15 +1299,7 @@ void virInterfaceRemove(virInterfaceObjListPtr interfaces,
             virInterfaceObjUnlock(interfaces->objs[i]);
             virInterfaceObjFree(interfaces->objs[i]);
 
-            if (i < (interfaces->count - 1))
-                memmove(interfaces->objs + i, interfaces->objs + i + 1,
-                        sizeof(*(interfaces->objs)) * (interfaces->count - (i + 1)));
-
-            if (VIR_REALLOC_N(interfaces->objs, interfaces->count - 1) < 0) {
-                ; /* Failure to reduce memory allocation isn't fatal */
-            }
-            interfaces->count--;
-
+            VIR_DELETE_ELEMENT(interfaces->objs, i, interfaces->count);
             break;
         }
         virInterfaceObjUnlock(interfaces->objs[i]);

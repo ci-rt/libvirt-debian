@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -75,7 +75,7 @@ testQemuAgentFSFreeze(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -125,7 +125,7 @@ testQemuAgentFSThaw(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -155,7 +155,7 @@ testQemuAgentFSTrim(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -201,7 +201,7 @@ testQemuAgentSuspend(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -264,7 +264,7 @@ qemuAgentShutdownTestMonitorHandler(qemuMonitorTestPtr test,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virJSONValueFree(val);
     return ret;
 
@@ -349,7 +349,7 @@ testQemuAgentShutdown(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -467,7 +467,7 @@ testQemuAgentCPU(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(cpuinfo);
     qemuMonitorTestFree(test);
     return ret;
@@ -511,7 +511,7 @@ testQemuAgentArbitraryCommand(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(reply);
     qemuMonitorTestFree(test);
     return ret;
@@ -538,8 +538,10 @@ testQemuAgentTimeout(const void *data)
     if (!test)
         return -1;
 
-    if (virTestGetExpensive() == 0)
-        return EXIT_AM_SKIP;
+    if (virTestGetExpensive() == 0) {
+        ret = EXIT_AM_SKIP;
+        goto cleanup;
+    }
 
     if (qemuMonitorTestAddHandler(test, qemuAgentTimeoutTestMonitorHandler,
                                   NULL, NULL) < 0)
@@ -570,7 +572,7 @@ testQemuAgentTimeout(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(reply);
     qemuMonitorTestFree(test);
     return ret;

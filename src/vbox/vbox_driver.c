@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -42,6 +42,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 
+VIR_LOG_INIT("vbox.vbox_driver");
 
 extern virDriver vbox22Driver;
 extern virNetworkDriver vbox22NetworkDriver;
@@ -64,15 +65,22 @@ extern virStorageDriver vbox41StorageDriver;
 extern virDriver vbox42Driver;
 extern virNetworkDriver vbox42NetworkDriver;
 extern virStorageDriver vbox42StorageDriver;
+extern virDriver vbox42_20Driver;
+extern virNetworkDriver vbox42_20NetworkDriver;
+extern virStorageDriver vbox42_20StorageDriver;
 extern virDriver vbox43Driver;
 extern virNetworkDriver vbox43NetworkDriver;
 extern virStorageDriver vbox43StorageDriver;
+extern virDriver vbox43_4Driver;
+extern virNetworkDriver vbox43_4NetworkDriver;
+extern virStorageDriver vbox43_4StorageDriver;
 
 static virDriver vboxDriverDummy;
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 
-int vboxRegister(void) {
+int vboxRegister(void)
+{
     virDriverPtr        driver;
     virNetworkDriverPtr networkDriver;
     virStorageDriverPtr storageDriver;
@@ -130,16 +138,26 @@ int vboxRegister(void) {
             driver        = &vbox41Driver;
             networkDriver = &vbox41NetworkDriver;
             storageDriver = &vbox41StorageDriver;
-        } else if (uVersion >= 4001051 && uVersion < 4002051) {
+        } else if (uVersion >= 4001051 && uVersion < 4002020) {
             VIR_DEBUG("VirtualBox API version: 4.2");
             driver        = &vbox42Driver;
             networkDriver = &vbox42NetworkDriver;
             storageDriver = &vbox42StorageDriver;
-        } else if (uVersion >= 4002051 && uVersion < 4003051) {
+        } else if (uVersion >= 4002020 && uVersion < 4002051) {
+           VIR_DEBUG("VirtualBox API version: 4.2.20 or higher");
+           driver         = &vbox42_20Driver;
+           networkDriver  = &vbox42_20NetworkDriver;
+           storageDriver  = &vbox42_20StorageDriver;
+        } else if (uVersion >= 4002051 && uVersion < 4003004) {
             VIR_DEBUG("VirtualBox API version: 4.3");
             driver        = &vbox43Driver;
             networkDriver = &vbox43NetworkDriver;
             storageDriver = &vbox43StorageDriver;
+        } else if (uVersion >= 4003004 && uVersion < 4003051) {
+            VIR_DEBUG("VirtualBox API version: 4.3.4 or higher");
+            driver        = &vbox43_4Driver;
+            networkDriver = &vbox43_4NetworkDriver;
+            storageDriver = &vbox43_4StorageDriver;
         } else {
             VIR_DEBUG("Unsupported VirtualBox API version: %u", uVersion);
         }

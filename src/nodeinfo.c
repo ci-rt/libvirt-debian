@@ -1,7 +1,7 @@
 /*
  * nodeinfo.c: Helper routines for OS specific node information
  *
- * Copyright (C) 2006-2008, 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2010-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -34,15 +34,16 @@
 #include "conf/domain_conf.h"
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
+# include <sys/time.h>
 # include <sys/types.h>
 # include <sys/sysctl.h>
+# include <sys/resource.h>
 #endif
 
 #include "c-ctype.h"
 #include "viralloc.h"
-#include "nodeinfo.h"
+#include "nodeinfopriv.h"
 #include "physmem.h"
-#include "virlog.h"
 #include "virerror.h"
 #include "count-one-bits.h"
 #include "intprops.h"
@@ -99,7 +100,107 @@ appleFreebsdNodeGetMemorySize(unsigned long *memory)
 #endif /* defined(__FreeBSD__) || defined(__APPLE__) */
 
 #ifdef __FreeBSD__
+# define BSD_CPU_STATS_ALL 4
 # define BSD_MEMORY_STATS_ALL 4
+
+# define TICK_TO_NSEC (1000ull * 1000ull * 1000ull / (stathz ? stathz : hz))
+
+static int
+freebsdNodeGetCPUStats(int cpuNum,
+                       virNodeCPUStatsPtr params,
+                       int *nparams)
+{
+    const char *sysctl_name;
+    long *cpu_times;
+    struct clockinfo clkinfo;
+    size_t i, j, cpu_times_size, clkinfo_size;
+    int cpu_times_num, offset, hz, stathz, ret = -1;
+    struct field_cpu_map {
+        const char *field;
+        int idx[CPUSTATES];
+    } cpu_map[] = {
+        {VIR_NODE_CPU_STATS_KERNEL, {CP_SYS}},
+        {VIR_NODE_CPU_STATS_USER, {CP_USER, CP_NICE}},
+        {VIR_NODE_CPU_STATS_IDLE, {CP_IDLE}},
+        {VIR_NODE_CPU_STATS_INTR, {CP_INTR}},
+        {NULL, {0}}
+    };
+
+    if ((*nparams) == 0) {
+        *nparams = BSD_CPU_STATS_ALL;
+        return 0;
+    }
+
+    if ((*nparams) != BSD_CPU_STATS_ALL) {
+        virReportInvalidArg(*nparams,
+                            _("nparams in %s must be equal to %d"),
+                            __FUNCTION__, BSD_CPU_STATS_ALL);
+        return -1;
+    }
+
+    clkinfo_size = sizeof(clkinfo);
+    if (sysctlbyname("kern.clockrate", &clkinfo, &clkinfo_size, NULL, 0) < 0) {
+        virReportSystemError(errno,
+                             _("sysctl failed for '%s'"),
+                             "kern.clockrate");
+        return -1;
+    }
+
+    stathz = clkinfo.stathz;
+    hz = clkinfo.hz;
+
+    if (cpuNum == VIR_NODE_CPU_STATS_ALL_CPUS) {
+        sysctl_name = "kern.cp_time";
+        cpu_times_num = 1;
+        offset = 0;
+    } else {
+        sysctl_name = "kern.cp_times";
+        cpu_times_num = appleFreebsdNodeGetCPUCount();
+
+        if (cpuNum >= cpu_times_num) {
+            virReportInvalidArg(cpuNum,
+                                _("Invalid cpuNum in %s"),
+                                __FUNCTION__);
+            return -1;
+        }
+
+        offset = cpu_times_num * CPUSTATES;
+    }
+
+    cpu_times_size = sizeof(long) * cpu_times_num * CPUSTATES;
+
+    if (VIR_ALLOC_N(cpu_times, cpu_times_num * CPUSTATES) < 0)
+        goto cleanup;
+
+    if (sysctlbyname(sysctl_name, cpu_times, &cpu_times_size, NULL, 0) < 0) {
+        virReportSystemError(errno,
+                             _("sysctl failed for '%s'"),
+                             sysctl_name);
+        goto cleanup;
+    }
+
+    for (i = 0; cpu_map[i].field != NULL; i++) {
+        virNodeCPUStatsPtr param = &params[i];
+
+        if (virStrcpyStatic(param->field, cpu_map[i].field) == NULL) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Field '%s' too long for destination"),
+                           cpu_map[i].field);
+            goto cleanup;
+        }
+
+        param->value = 0;
+        for (j = 0; j < ARRAY_CARDINALITY(cpu_map[i].idx); j++)
+            param->value += cpu_times[offset + cpu_map[i].idx[j]] * TICK_TO_NSEC;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(cpu_times);
+
+    return ret;
+}
 
 static int
 freebsdNodeGetMemoryStats(virNodeMemoryStatsPtr params,
@@ -189,11 +290,6 @@ freebsdNodeGetMemoryStats(virNodeMemoryStatsPtr params,
 # define LINUX_NB_MEMORY_STATS_ALL 4
 # define LINUX_NB_MEMORY_STATS_CELL 2
 
-/* NB, this is not static as we need to call it from the testsuite */
-int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
-                             const char *sysfs_dir,
-                             virNodeInfoPtr nodeinfo);
-
 /* Return the positive decimal contents of the given
  * DIR/cpu%u/FILE, or -1 on error.  If DEFAULT_VALUE is non-negative
  * and the file could not be found, return that instead of an error;
@@ -233,7 +329,7 @@ virNodeGetCpuValue(const char *dir, unsigned int cpu, const char *file,
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     VIR_FORCE_FCLOSE(pathfp);
     VIR_FREE(path);
 
@@ -282,7 +378,7 @@ virNodeCountThreadSiblings(const char *dir, unsigned int cpu)
         i++;
     }
 
-cleanup:
+ cleanup:
     VIR_FORCE_FCLOSE(pathfp);
     VIR_FREE(path);
 
@@ -344,6 +440,7 @@ virNodeParseNode(const char *node,
     int siblings;
     unsigned int cpu;
     int online;
+    int direrr;
 
     *threads = 0;
     *cores = 0;
@@ -356,8 +453,7 @@ virNodeParseNode(const char *node,
 
     /* enumerate sockets in the node */
     CPU_ZERO(&sock_map);
-    errno = 0;
-    while ((cpudirent = readdir(cpudir))) {
+    while ((direrr = virDirRead(cpudir, &cpudirent, node)) > 0) {
         if (sscanf(cpudirent->d_name, "cpu%u", &cpu) != 1)
             continue;
 
@@ -374,14 +470,10 @@ virNodeParseNode(const char *node,
 
         if (sock > sock_max)
             sock_max = sock;
-
-        errno = 0;
     }
 
-    if (errno) {
-        virReportSystemError(errno, _("problem reading %s"), node);
+    if (direrr < 0)
         goto cleanup;
-    }
 
     sock_max++;
 
@@ -394,8 +486,7 @@ virNodeParseNode(const char *node,
 
     /* iterate over all CPU's in the node */
     rewinddir(cpudir);
-    errno = 0;
-    while ((cpudirent = readdir(cpudir))) {
+    while ((direrr = virDirRead(cpudir, &cpudirent, node)) > 0) {
         if (sscanf(cpudirent->d_name, "cpu%u", &cpu) != 1)
             continue;
 
@@ -434,14 +525,10 @@ virNodeParseNode(const char *node,
 
         if (siblings > *threads)
             *threads = siblings;
-
-        errno = 0;
     }
 
-    if (errno) {
-        virReportSystemError(errno, _("problem reading %s"), node);
+    if (direrr < 0)
         goto cleanup;
-    }
 
     /* finalize the returned data */
     *sockets = CPU_COUNT(&sock_map);
@@ -457,7 +544,7 @@ virNodeParseNode(const char *node,
 
     ret = processors;
 
-cleanup:
+ cleanup:
     /* don't shadow a more serious error */
     if (cpudir && closedir(cpudir) < 0 && ret >= 0) {
         virReportSystemError(errno, _("problem closing %s"), node);
@@ -480,6 +567,7 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
     int ret = -1;
     char *sysfs_nodedir = NULL;
     char *sysfs_cpudir = NULL;
+    int direrr;
 
     /* Start with parsing CPU clock speed from /proc/cpuinfo */
     while (fgets(line, sizeof(line), cpuinfo) != NULL) {
@@ -576,8 +664,7 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
         goto fallback;
     }
 
-    errno = 0;
-    while ((nodedirent = readdir(nodedir))) {
+    while ((direrr = virDirRead(nodedir, &nodedirent, sysfs_nodedir)) > 0) {
         if (sscanf(nodedirent->d_name, "node%u", &node) != 1)
             continue;
 
@@ -603,19 +690,15 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
 
         if (threads > nodeinfo->threads)
             nodeinfo->threads = threads;
-
-        errno = 0;
     }
 
-    if (errno) {
-        virReportSystemError(errno, _("problem reading %s"), sysfs_nodedir);
+    if (direrr < 0)
         goto cleanup;
-    }
 
     if (nodeinfo->cpus && nodeinfo->nodes)
         goto done;
 
-fallback:
+ fallback:
     VIR_FREE(sysfs_cpudir);
 
     if (virAsprintf(&sysfs_cpudir, "%s/cpu", sysfs_dir) < 0)
@@ -631,7 +714,7 @@ fallback:
     nodeinfo->cores = cores;
     nodeinfo->threads = threads;
 
-done:
+ done:
     /* There should always be at least one cpu, socket, node, and thread. */
     if (nodeinfo->cpus == 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("no CPUs found"));
@@ -667,7 +750,7 @@ done:
 
     ret = 0;
 
-cleanup:
+ cleanup:
     /* don't shadow a more serious error */
     if (nodedir && closedir(nodedir) < 0 && ret >= 0) {
         virReportSystemError(errno, _("problem closing %s"), sysfs_nodedir);
@@ -679,9 +762,24 @@ cleanup:
     return ret;
 }
 
+static int
+virNodeCPUStatsAssign(virNodeCPUStatsPtr param,
+                      const char *name,
+                      unsigned long long value)
+{
+    if (virStrcpyStatic(param->field, name) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("kernel cpu time field is too long"
+                               " for the destination"));
+        return -1;
+    }
+    param->value = value;
+    return 0;
+}
+
 # define TICK_TO_NSEC (1000ull * 1000ull * 1000ull / sysconf(_SC_CLK_TCK))
 
-static int
+int
 linuxNodeGetCPUStats(FILE *procstat,
                      int cpuNum,
                      virNodeCPUStatsPtr params,
@@ -691,7 +789,7 @@ linuxNodeGetCPUStats(FILE *procstat,
     char line[1024];
     unsigned long long usr, ni, sys, idle, iowait;
     unsigned long long irq, softirq, steal, guest, guest_nice;
-    char cpu_header[3 + INT_BUFSIZE_BOUND(cpuNum)];
+    char cpu_header[4 + INT_BUFSIZE_BOUND(cpuNum)];
 
     if ((*nparams) == 0) {
         /* Current number of cpu stats supported by linux */
@@ -708,17 +806,15 @@ linuxNodeGetCPUStats(FILE *procstat,
     }
 
     if (cpuNum == VIR_NODE_CPU_STATS_ALL_CPUS) {
-        strcpy(cpu_header, "cpu");
+        strcpy(cpu_header, "cpu ");
     } else {
-        snprintf(cpu_header, sizeof(cpu_header), "cpu%d", cpuNum);
+        snprintf(cpu_header, sizeof(cpu_header), "cpu%d ", cpuNum);
     }
 
     while (fgets(line, sizeof(line), procstat) != NULL) {
         char *buf = line;
 
         if (STRPREFIX(buf, cpu_header)) { /* aka logical CPU time */
-            size_t i;
-
             if (sscanf(buf,
                        "%*s %llu %llu %llu %llu %llu" // user ~ iowait
                        "%llu %llu %llu %llu %llu",    // irq  ~ guest_nice
@@ -727,51 +823,22 @@ linuxNodeGetCPUStats(FILE *procstat,
                 continue;
             }
 
-            for (i = 0; i < *nparams; i++) {
-                virNodeCPUStatsPtr param = &params[i];
+            if (virNodeCPUStatsAssign(&params[0], VIR_NODE_CPU_STATS_KERNEL,
+                                      (sys + irq + softirq) * TICK_TO_NSEC) < 0)
+                goto cleanup;
 
-                switch (i) {
-                case 0: /* fill kernel cpu time here */
-                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_KERNEL) == NULL) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       "%s", _("Field kernel cpu time too long for destination"));
-                        goto cleanup;
-                    }
-                    param->value = (sys + irq + softirq) * TICK_TO_NSEC;
-                    break;
+            if (virNodeCPUStatsAssign(&params[1], VIR_NODE_CPU_STATS_USER,
+                                      (usr + ni) * TICK_TO_NSEC) < 0)
+                goto cleanup;
 
-                case 1: /* fill user cpu time here */
-                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_USER) == NULL) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       "%s", _("Field kernel cpu time too long for destination"));
-                        goto cleanup;
-                    }
-                    param->value = (usr + ni) * TICK_TO_NSEC;
-                    break;
+            if (virNodeCPUStatsAssign(&params[2], VIR_NODE_CPU_STATS_IDLE,
+                                      idle * TICK_TO_NSEC) < 0)
+                goto cleanup;
 
-                case 2: /* fill idle cpu time here */
-                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_IDLE) == NULL) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       "%s", _("Field kernel cpu time too long for destination"));
-                        goto cleanup;
-                    }
-                    param->value = idle * TICK_TO_NSEC;
-                    break;
+            if (virNodeCPUStatsAssign(&params[3], VIR_NODE_CPU_STATS_IOWAIT,
+                                      iowait * TICK_TO_NSEC) < 0)
+                goto cleanup;
 
-                case 3: /* fill iowait cpu time here */
-                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_IOWAIT) == NULL) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       "%s", _("Field kernel cpu time too long for destination"));
-                        goto cleanup;
-                    }
-                    param->value = iowait * TICK_TO_NSEC;
-                    break;
-
-                default:
-                    break;
-                    /* should not hit here */
-                }
-            }
             ret = 0;
             goto cleanup;
         }
@@ -781,7 +848,7 @@ linuxNodeGetCPUStats(FILE *procstat,
                         _("Invalid cpuNum in %s"),
                         __FUNCTION__);
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -887,7 +954,7 @@ linuxNodeGetMemoryStats(FILE *meminfo,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -915,7 +982,7 @@ linuxParseCPUmax(const char *path)
     } while (*tmp++ != '\n');
     ret++;
 
-cleanup:
+ cleanup:
     VIR_FREE(str);
     return ret;
 }
@@ -940,7 +1007,7 @@ linuxParseCPUmap(int max_cpuid, const char *path)
     VIR_FREE(str);
     return map;
 
-error:
+ error:
     VIR_FREE(str);
     virBitmapFree(map);
     return NULL;
@@ -964,7 +1031,7 @@ virNodeGetSiblingsList(const char *dir, int cpu_id)
     if (virBitmapParse(buf, 0, &ret, virNumaGetMaxCPUs()) < 0)
         goto cleanup;
 
-cleanup:
+ cleanup:
     VIR_FREE(buf);
     VIR_FREE(path);
     return ret;
@@ -997,7 +1064,7 @@ int nodeGetInfo(virNodeInfoPtr nodeinfo)
     /* Convert to KB. */
     nodeinfo->memory = physmem_total() / 1024;
 
-cleanup:
+ cleanup:
     VIR_FORCE_FCLOSE(cpuinfo);
     return ret;
     }
@@ -1066,6 +1133,8 @@ int nodeGetCPUStats(int cpuNum ATTRIBUTE_UNUSED,
 
         return ret;
     }
+#elif defined(__FreeBSD__)
+    return freebsdNodeGetCPUStats(cpuNum, params, nparams);
 #else
     virReportError(VIR_ERR_NO_SUPPORT, "%s",
                    _("node CPU stats not implemented on this platform"));
@@ -1237,7 +1306,7 @@ nodeSetMemoryParameterValue(virTypedParameterPtr param)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(path);
     VIR_FREE(strval);
     return ret;
@@ -1360,7 +1429,7 @@ nodeGetMemoryParameterValue(const char *field,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(path);
     VIR_FREE(buf);
     return ret;
@@ -1499,10 +1568,6 @@ nodeGetMemoryParameters(virTypedParameterPtr params ATTRIBUTE_UNUSED,
                 return -1;
 
             break;
-
-        /* coverity[dead_error_begin] */
-        default:
-            break;
         }
     }
 
@@ -1539,7 +1604,7 @@ nodeGetCPUMap(unsigned char **cpumap,
         *online = virBitmapCountBits(cpus);
 
     ret = maxpresent;
-cleanup:
+ cleanup:
     if (ret < 0 && cpumap)
         VIR_FREE(*cpumap);
     virBitmapFree(cpus);
@@ -1621,6 +1686,23 @@ nodeGetCellsFreeMemoryFake(unsigned long long *freeMems,
 static unsigned long long
 nodeGetFreeMemoryFake(void)
 {
+#if defined(__FreeBSD__)
+    unsigned long pagesize = getpagesize();
+    u_int value;
+    size_t value_size = sizeof(value);
+    unsigned long long freemem;
+
+    if (sysctlbyname("vm.stats.vm.v_free_count", &value,
+                     &value_size, NULL, 0) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("sysctl failed for vm.stats.vm.v_free_count"));
+        return 0;
+    }
+
+    freemem = value * (unsigned long long)pagesize;
+
+    return freemem;
+#else
     double avail = physmem_available();
     unsigned long long ret;
 
@@ -1631,6 +1713,7 @@ nodeGetFreeMemoryFake(void)
     }
 
     return ret;
+#endif
 }
 
 /* returns 1 on success, 0 if the detection failed and -1 on hard error */
@@ -1723,7 +1806,7 @@ nodeCapsInitNUMA(virCapsPtr caps)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (topology_failed || ret < 0)
         virCapabilitiesClearHostNUMACellCPUTopology(cpus, ncpus);
 
@@ -1771,7 +1854,7 @@ nodeGetCellsFreeMemory(unsigned long long *freeMems,
     }
     ret = numCells;
 
-cleanup:
+ cleanup:
     return ret;
 }
 

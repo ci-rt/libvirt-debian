@@ -118,6 +118,10 @@
                         <div>
                           <span class="active">Parallels</span>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for bhyve" class="inactive" href="drvbhyve.html">Bhyve</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -139,6 +143,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -186,12 +194,14 @@
     </p>
         <h2>
           <a name="project" shape="rect" id="project">Project Links</a>
+          <a class="headerlink" href="#project" title="Permalink to this headline">¶</a>
         </h2>
         <ul><li>
         The <a href="http://www.parallels.com/products/server/baremetal/sp/" shape="rect">Parallels Cloud Server</a> Virtualization Solution.
       </li></ul>
         <h2>
           <a name="uri" shape="rect" id="uri">Connections to the Parallels Cloud Server driver</a>
+          <a class="headerlink" href="#uri" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         The libvirt Parallels driver is a single-instance privileged driver, with a driver name of 'parallels'. Some example connection URIs for the libvirt driver are:
@@ -205,6 +215,7 @@ parallels+ssh://root@example.com/system (remote access, SSH tunnelled)
 </pre>
         <h2>
           <a name="example" shape="rect" id="example">Example guest domain XML configuration</a>
+          <a class="headerlink" href="#example" title="Permalink to this headline">¶</a>
         </h2>
         <p>
     Parallels driver require at least one hard disk for new domains

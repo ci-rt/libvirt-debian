@@ -1,7 +1,7 @@
 /*
  * snapshot_conf.h: domain snapshot XML processing
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -48,12 +48,11 @@ enum virDomainSnapshotState {
 typedef struct _virDomainSnapshotDiskDef virDomainSnapshotDiskDef;
 typedef virDomainSnapshotDiskDef *virDomainSnapshotDiskDefPtr;
 struct _virDomainSnapshotDiskDef {
-    char *name; /* name matching the <target dev='...' of the domain */
-    int index; /* index within snapshot->dom->disks that matches name */
-    int snapshot; /* enum virDomainSnapshotLocation */
-    int type; /* enum virDomainDiskType */
-    char *file; /* new source file when snapshot is external */
-    int format; /* enum virStorageFileFormat */
+    char *name;     /* name matching the <target dev='...' of the domain */
+    int index;      /* index within snapshot->dom->disks that matches name */
+    int snapshot;   /* enum virDomainSnapshotLocation */
+
+    virStorageSource src; /* new wrapper file when snapshot is external */
 };
 
 /* Stores the complete snapshot metadata */

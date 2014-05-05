@@ -3,11 +3,23 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
+/* Location of addr2line program */
+#undef ADDR2LINE
+
 /* path to apparmor directory */
 #undef APPARMOR_DIR
 
 /* path to kernel profiles */
 #undef APPARMOR_PROFILES_PATH
+
+/* Location of the bhyve tool */
+#undef BHYVE
+
+/* Location of the bhyvectl tool */
+#undef BHYVECTL
+
+/* Location of the bhyveload tool */
+#undef BHYVELOAD
 
 /* Define to the number of bits in type 'ptrdiff_t'. */
 #undef BITSIZEOF_PTRDIFF_T
@@ -63,6 +75,9 @@
 
 /* Define as the word index where to find the sign of 'double'. */
 #undef DBL_SIGNBIT_WORD
+
+/* Location or name of the dmidecode program */
+#undef DMIDECODE
 
 /* Location or name of the dmsetup program */
 #undef DMSETUP
@@ -141,6 +156,9 @@
    declaration of the second argument to gettimeofday. */
 #undef GETTIMEOFDAY_TIMEZONE
 
+/* Location or name of the gluster command line tool */
+#undef GLUSTER_CLI
+
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module canonicalize-lgpl shall be considered present. */
 #undef GNULIB_CANONICALIZE_LGPL
@@ -156,10 +174,6 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module lock shall be considered present. */
 #undef GNULIB_LOCK
-
-/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
-   whether the gnulib module malloc-gnu shall be considered present. */
-#undef GNULIB_MALLOC_GNU
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module mkostemp shall be considered present. */
@@ -592,6 +606,9 @@
 /* whether BSD style bridge management is available */
 #undef HAVE_BSD_BRIDGE_MGMT
 
+/* whether BSD CPU affinity management is available */
+#undef HAVE_BSD_CPU_AFFINITY
+
 /* Define to 1 if you have the 'btowc' function. */
 #undef HAVE_BTOWC
 
@@ -686,6 +703,10 @@
    don't. */
 #undef HAVE_DECL_COPYSIGNL
 
+/* Define to 1 if you have the declaration of `cpuset_getaffinity', and to 0
+   if you don't. */
+#undef HAVE_DECL_CPUSET_GETAFFINITY
+
 /* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
    don't. */
 #undef HAVE_DECL_FDATASYNC
@@ -753,6 +774,10 @@
 /* Define to 1 if you have the declaration of `getpass', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETPASS
+
+/* Define to 1 if you have the declaration of `GET_VLAN_VID_CMD', and to 0 if
+   you don't. */
+#undef HAVE_DECL_GET_VLAN_VID_CMD
 
 /* Define to 1 if you have the declaration of `htole64', and to 0 if you
    don't. */
@@ -1185,10 +1210,6 @@
 /* Define to 1 if you have the <machine/hal_sysinfo.h> header file. */
 #undef HAVE_MACHINE_HAL_SYSINFO_H
 
-/* Define to 1 if your system has a GNU libc compatible 'malloc' function, and
-   to 0 otherwise. */
-#undef HAVE_MALLOC_GNU
-
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
 
@@ -1312,7 +1333,7 @@
 /* Define to 1 if you have the 'posix_openpt' function. */
 #undef HAVE_POSIX_OPENPT
 
-/* Define to 1 if you have the 'posix_spawn' function. */
+/* Define to 1 if you have the `posix_spawn' function. */
 #undef HAVE_POSIX_SPAWN
 
 /* Define to 1 if the system has the type `posix_spawnattr_t'. */
@@ -1402,6 +1423,9 @@
 /* Define to 1 if you have the `revoke' function. */
 #undef HAVE_REVOKE
 
+/* Define to 1 if you have the <rpc/types.h> header file. */
+#undef HAVE_RPC_TYPES_H
+
 /* Define to 1 if 'long double' and 'double' have the same representation. */
 #undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
@@ -1425,6 +1449,9 @@
 
 /* Define to 1 if you have the `sched_setscheduler' function. */
 #undef HAVE_SCHED_SETSCHEDULER
+
+/* Define to 1 if you have the `sd_notify' function. */
+#undef HAVE_SD_NOTIFY
 
 /* Define to 1 if you have the <search.h> header file. */
 #undef HAVE_SEARCH_H
@@ -1621,6 +1648,9 @@
 /* Define to 1 if `st_birthtim.tv_nsec' is a member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_BIRTHTIM_TV_NSEC
 
+/* Define to 1 if `mem_unit' is a member of `struct sysinfo'. */
+#undef HAVE_STRUCT_SYSINFO_MEM_UNIT
+
 /* Define to 1 if the system has the type `struct utsname'. */
 #undef HAVE_STRUCT_UTSNAME
 
@@ -1632,6 +1662,9 @@
 
 /* Define to 1 if you have the 'sysctlbyname' function. */
 #undef HAVE_SYSCTLBYNAME
+
+/* Define to 1 if you have the `sysinfo' function. */
+#undef HAVE_SYSINFO
 
 /* Define to 1 if you have the <syslog.h> header file. */
 #undef HAVE_SYSLOG_H
@@ -1812,6 +1845,16 @@
 
 /* Define if you have the 'wint_t' type. */
 #undef HAVE_WINT_T
+
+/* Define to 1 if you have the <wireshark/config.h> header file. */
+#undef HAVE_WIRESHARK_CONFIG_H
+
+/* Define to 1 if you have the <wireshark/epan/dissectors/packet-tcp.h> header
+   file. */
+#undef HAVE_WIRESHARK_EPAN_DISSECTORS_PACKET_TCP_H
+
+/* Define to 1 if you have the <wireshark/epan/packet.h> header file. */
+#undef HAVE_WIRESHARK_EPAN_PACKET_H
 
 /* Define to 1 if you have the 'wmemchr' function. */
 #undef HAVE_WMEMCHR
@@ -2101,6 +2144,9 @@
 /* Define if vasnprintf exists but is overridden by gnulib. */
 #undef REPLACE_VASNPRINTF
 
+/* Location or name of the rmmod program */
+#undef RMMOD
+
 /* Location or name of the scrub program (for wiping algorithms) */
 #undef SCRUB
 
@@ -2147,7 +2193,7 @@
 /* Define to 1 if strerror_r returns char *. */
 #undef STRERROR_R_CHAR_P
 
-/* Location or name of the tc profram (see iproute2) */
+/* Location or name of the tc program (see iproute2) */
 #undef TC
 
 /* Whether malloc OOM checking is enabled */
@@ -2292,6 +2338,9 @@
 /* whether avahi-client >= 0.6.0 is available */
 #undef WITH_AVAHI
 
+/* whether bhyve driver is enabled */
+#undef WITH_BHYVE
+
 /* whether blkid >= 2.17 is available */
 #undef WITH_BLKID
 
@@ -2379,6 +2428,9 @@
 /* whether IBM HMC / IVM driver is enabled */
 #undef WITH_PHYP
 
+/* whether to use pm-utils */
+#undef WITH_PM_UTILS
+
 /* use PolicyKit for UNIX socket access checks */
 #undef WITH_POLKIT
 
@@ -2456,6 +2508,9 @@
 
 /* whether Sheepdog backend for storage driver is enabled */
 #undef WITH_STORAGE_SHEEPDOG
+
+/* whether libsystemd-daemon >= 0.27.1 is available */
+#undef WITH_SYSTEMD_DAEMON
 
 /* whether Test driver is enabled */
 #undef WITH_TEST

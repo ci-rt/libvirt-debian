@@ -1,5 +1,5 @@
 # Customize Makefile.maint.                           -*- makefile -*-
-# Copyright (C) 2008-2013 Red Hat, Inc.
+# Copyright (C) 2008-2014 Red Hat, Inc.
 # Copyright (C) 2003-2008 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
@@ -421,6 +421,12 @@ sc_prohibit_gethostname:
 	halt='use virGetHostname, not gethostname'			\
 	  $(_sc_search_regexp)
 
+sc_prohibit_readdir:
+	@prohibit='\breaddir *\('					\
+	exclude='exempt from syntax-check'				\
+	halt='use virDirRead, not readdir'				\
+	  $(_sc_search_regexp)
+
 sc_prohibit_gettext_noop:
 	@prohibit='gettext_noop *\('					\
 	halt='use N_, not gettext_noop'					\
@@ -517,6 +523,11 @@ sc_prohibit_virBufferAsprintf_with_string_literal:
 	halt='use virBufferAddLit, not virBufferAsprintf, with a string literal' \
 	  $(_sc_search_regexp)
 
+sc_forbid_manual_xml_indent:
+	@prohibit='virBuffer.*" +<'					      \
+	halt='use virBufferAdjustIndent instead of spaces when indenting xml' \
+	  $(_sc_search_regexp)
+
 # Not only do they fail to deal well with ipv6, but the gethostby*
 # functions are also not thread-safe.
 sc_prohibit_gethostby:
@@ -585,16 +596,6 @@ msg_gen_function += regerror
 msg_gen_function += vah_error
 msg_gen_function += vah_warning
 msg_gen_function += virGenericReportError
-msg_gen_function += virLibConnError
-msg_gen_function += virLibDomainError
-msg_gen_function += virLibDomainSnapshotError
-msg_gen_function += virLibInterfaceError
-msg_gen_function += virLibNetworkError
-msg_gen_function += virLibNodeDeviceError
-msg_gen_function += virLibNWFilterError
-msg_gen_function += virLibSecretError
-msg_gen_function += virLibStoragePoolError
-msg_gen_function += virLibStorageVolError
 msg_gen_function += virRaiseError
 msg_gen_function += virReportError
 msg_gen_function += virReportErrorHelper
@@ -765,16 +766,17 @@ sc_prohibit_gettext_markup:
 # lower-level code must not include higher-level headers.
 cross_dirs=$(patsubst $(srcdir)/src/%.,%,$(wildcard $(srcdir)/src/*/.))
 cross_dirs_re=($(subst / ,/|,$(cross_dirs)))
+mid_dirs=access|conf|cpu|locking|network|node_device|rpc|security|storage
 sc_prohibit_cross_inclusion:
 	@for dir in $(cross_dirs); do					\
 	  case $$dir in							\
 	    util/) safe="util";;					\
-	    locking/)							\
-	      safe="($$dir|util|conf|rpc)";;				\
-	    cpu/ | locking/ | network/ | rpc/ | security/)		\
+	    access/ | conf/) safe="($$dir|conf|util)";;			\
+	    locking/) safe="($$dir|util|conf|rpc)";;			\
+	    cpu/| network/| node_device/| rpc/| security/| storage/)	\
 	      safe="($$dir|util|conf)";;				\
 	    xenapi/ | xenxs/ ) safe="($$dir|util|conf|xen)";;		\
-	    *) safe="($$dir|util|conf|cpu|network|locking|rpc|security)";; \
+	    *) safe="($$dir|$(mid_dirs)|util)";;			\
 	  esac;								\
 	  in_vc_files="^src/$$dir"					\
 	  prohibit='^# *include .$(cross_dirs_re)'			\
@@ -872,6 +874,60 @@ sc_prohibit_atoi:
 	halt='Use virStrToLong* instead of atoi, atol, atof, atoq, atoll' \
 	  $(_sc_search_regexp)
 
+sc_prohibit_wrong_filename_in_comment:
+	@fail=0;                                                       \
+	awk 'BEGIN {                                                   \
+	  fail=0;                                                      \
+	} FNR < 3 {                                                    \
+	  n=match($$0, /[[:space:]][^[:space:]]*[.][ch][[:space:]:]/); \
+	  if (n > 0) {                                                 \
+	    A=substr($$0, RSTART+1, RLENGTH-2);                        \
+	    n=split(FILENAME, arr, "/");                               \
+	    if (A != arr[n]) {                                         \
+	      print "in " FILENAME ": " A " mentioned in comments ";   \
+	      fail=1;                                                  \
+	    }                                                          \
+	  }                                                            \
+	} END {                                                        \
+	  if (fail == 1) {                                             \
+	    exit 1;                                                    \
+	  }                                                            \
+	}' $$($(VC_LIST_EXCEPT) | grep '\.[ch]$$') || fail=1;          \
+	if test $$fail -eq 1; then                                     \
+	  { echo '$(ME): The file name in comments must match the'     \
+	    'actual file name' 1>&2; exit 1; }	                       \
+	fi;
+
+sc_prohibit_virConnectOpen_in_virsh:
+	@prohibit='\bvirConnectOpen[a-zA-Z]* *\('                      \
+	in_vc_files='^tools/virsh-.*\.[ch]$$'                          \
+	halt='Use vshConnect() in virsh instead of virConnectOpen*'    \
+	  $(_sc_search_regexp)
+
+sc_require_space_before_label:
+	@prohibit='^(   ?)?[_a-zA-Z0-9]+:$$'                           \
+	in_vc_files='\.[ch]$$'                                         \
+	halt="Top-level labels should be indented by one space"        \
+	  $(_sc_search_regexp)
+
+sc_curly_braces_style:
+	@files=$$($(VC_LIST_EXCEPT) | grep '\.[ch]$$');                \
+	$(GREP) -nHP                                                   \
+'^\s*(?!([a-zA-Z_]*for_?each[a-zA-Z_]*) ?\()([_a-zA-Z0-9]+( [_a-zA-Z0-9]+)* ?\()?(\*?[_a-zA-Z0-9]+(,? \*?[_a-zA-Z0-9\[\]]+)+|void)\) ?\{' \
+	$$files && { echo '$(ME): Non-K&R style used for curly'        \
+			  'braces around function body, see'           \
+			  'HACKING' 1>&2; exit 1; } || :
+
+sc_prohibit_windows_special_chars_in_filename:
+	@files=$$($(VC_LIST_EXCEPT) | grep '[:*?"<>|]');               \
+	test -n "$$files" && { echo '$(ME): Windows special chars'     \
+	  'in filename not allowed:' 1>&2; echo $$files 1>&2; exit 1; } || :
+
+sc_prohibit_mixed_case_abbreviations:
+	@prohibit='Pci|Usb|Scsi'			\
+	in_vc_files='\.[ch]$$'				\
+	halt='Use PCI, USB, SCSI, not Pci, Usb, Scsi'	\
+	  $(_sc_search_regexp)
 
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
@@ -950,7 +1006,8 @@ exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 exclude_file_name_regexp--sc_copyright_usage = \
   ^COPYING(|\.LESSER)$$
 
-exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$|tests/vir(cgroup|pci)mock\.c$$)
+exclude_file_name_regexp--sc_flags_usage = \
+  ^(docs/|src/util/virnetdevtap\.c$$|tests/vir(cgroup|pci|usb)mock\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^(src/rpc/gendispatch\.pl$$|tests/)
@@ -958,7 +1015,7 @@ exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
 exclude_file_name_regexp--sc_po_check = ^(docs/|src/rpc/gendispatch\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
-  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virerror\.c)$$
+  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virerror\.c|docs/internals/oomtesting\.html\.in)$$
 
 exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/virutil\.c$$
 
@@ -987,10 +1044,10 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
-  ^((po|tests)/|docs/.*(py|html\.in)|run.in$$)
+  ^((po|tests)/|docs/.*(py|html\.in)|run.in$$|tools/wireshark/util/genxdrstub\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
-  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper\.c|tests/vircgroupmock\.c)$$
+  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper\.c|tests/vircgroupmock\.c|tools/wireshark/src/packet-libvirt.c)$$
 
 exclude_file_name_regexp--sc_prohibit_readlink = \
   ^src/(util/virutil|lxc/lxc_container)\.c$$
@@ -998,7 +1055,7 @@ exclude_file_name_regexp--sc_prohibit_readlink = \
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = \
-  ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)$$
+  ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)|(tools/wireshark/util/genxdrstub\.pl)$$
 
 exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
@@ -1031,7 +1088,7 @@ exclude_file_name_regexp--sc_correct_id_types = \
 exclude_file_name_regexp--sc_m4_quote_check = m4/virt-lib.m4
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_quote = \
-  ^src/internal\.h$$
+  ^(src/internal\.h$$|tools/wireshark/src/packet-libvirt.h$$)
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
   ^(tools/|examples/|include/libvirt/(virterror|libvirt-(qemu|lxc))\.h$$)
@@ -1041,3 +1098,9 @@ exclude_file_name_regexp--sc_prohibit_int_ijk = \
 
 exclude_file_name_regexp--sc_prohibit_getenv = \
   ^tests/.*\.[ch]$$
+
+exclude_file_name_regexp--sc_avoid_attribute_unused_in_header = \
+  ^src/util/virlog\.h$$
+
+exclude_file_name_regexp--sc_prohibit_mixed_case_abbreviations = \
+  ^src/(vbox/vbox_CAPI.*.h|esx/esx_vi.(c|h)|esx/esx_storage_backend_iscsi.c)$$

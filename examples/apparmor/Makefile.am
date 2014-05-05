@@ -17,6 +17,7 @@
 EXTRA_DIST=				\
 	TEMPLATE			\
 	libvirt-qemu			\
+	libvirt-lxc 			\
 	usr.lib.libvirt.virt-aa-helper	\
 	usr.sbin.libvirtd
 
@@ -30,9 +31,10 @@ apparmor_DATA = \
 abstractionsdir = $(apparmordir)/abstractions
 abstractions_DATA = \
 	libvirt-qemu \
+	libvirt-lxc \
 	$(NULL)
 
-templatesdir = $(apparmordir)/libvirtd
+templatesdir = $(apparmordir)/libvirt
 templates_DATA = \
 	TEMPLATE \
 	$(NULL)

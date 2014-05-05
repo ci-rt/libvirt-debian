@@ -1052,15 +1052,6 @@ EXTRA_DIST += $(top_srcdir)/maint.mk
 
 ## end   gnulib module maintainer-makefile
 
-## begin gnulib module malloc-gnu
-
-
-EXTRA_DIST += malloc.c
-
-EXTRA_libgnu_la_SOURCES += malloc.c
-
-## end   gnulib module malloc-gnu
-
 ## begin gnulib module malloc-posix
 
 

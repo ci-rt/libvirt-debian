@@ -1,7 +1,7 @@
 /*
  * virsh-domain-monitor.c: Commands to monitor domain status
  *
- * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,21 +40,18 @@
 #include "virxml.h"
 #include "virstring.h"
 
+VIR_ENUM_DECL(vshDomainIOError)
+VIR_ENUM_IMPL(vshDomainIOError,
+              VIR_DOMAIN_DISK_ERROR_LAST,
+              N_("no error"),
+              N_("unspecified error"),
+              N_("no space"))
+
 static const char *
 vshDomainIOErrorToString(int error)
 {
-    switch ((virDomainDiskErrorCode) error) {
-    case VIR_DOMAIN_DISK_ERROR_NONE:
-        return _("no error");
-    case VIR_DOMAIN_DISK_ERROR_UNSPEC:
-        return _("unspecified error");
-    case VIR_DOMAIN_DISK_ERROR_NO_SPACE:
-        return _("no space");
-    case VIR_DOMAIN_DISK_ERROR_LAST:
-        ;
-    }
-
-    return _("unknown error");
+    const char *str = vshDomainIOErrorTypeToString(error);
+    return str ? _(str) : _("unknown error");
 }
 
 /* extract description or title from domain xml */
@@ -108,7 +105,7 @@ vshGetDomainDescription(vshControl *ctl, virDomainPtr dom, bool title,
     if (!desc)
         desc = vshStrdup(ctl, "");
 
-cleanup:
+ cleanup:
     VIR_FREE(domxml);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(doc);
@@ -116,181 +113,142 @@ cleanup:
     return desc;
 }
 
+VIR_ENUM_DECL(vshDomainControlState)
+VIR_ENUM_IMPL(vshDomainControlState,
+              VIR_DOMAIN_CONTROL_LAST,
+              N_("ok"),
+              N_("background job"),
+              N_("occupied"),
+              N_("error"))
+
 static const char *
 vshDomainControlStateToString(int state)
 {
-    switch ((virDomainControlState) state) {
-    case VIR_DOMAIN_CONTROL_OK:
-        return N_("ok");
-    case VIR_DOMAIN_CONTROL_JOB:
-        return N_("background job");
-    case VIR_DOMAIN_CONTROL_OCCUPIED:
-        return N_("occupied");
-    case VIR_DOMAIN_CONTROL_ERROR:
-        return N_("error");
-    default:
-        ;
-    }
-
-    return N_("unknown");
+    const char *str = vshDomainControlStateTypeToString(state);
+    return str ? _(str) : _("unknown");
 }
+
+VIR_ENUM_DECL(vshDomainState)
+VIR_ENUM_IMPL(vshDomainState,
+              VIR_DOMAIN_LAST,
+              N_("no state"),
+              N_("running"),
+              N_("idle"),
+              N_("paused"),
+              N_("in shutdown"),
+              N_("shut off"),
+              N_("crashed"),
+              N_("pmsuspended"))
 
 static const char *
 vshDomainStateToString(int state)
 {
-    /* Can't use virDomainStateTypeToString, because we want to mark
-     * strings for translation.  */
-    switch ((virDomainState) state) {
-    case VIR_DOMAIN_RUNNING:
-        return N_("running");
-    case VIR_DOMAIN_BLOCKED:
-        return N_("idle");
-    case VIR_DOMAIN_PAUSED:
-        return N_("paused");
-    case VIR_DOMAIN_SHUTDOWN:
-        return N_("in shutdown");
-    case VIR_DOMAIN_SHUTOFF:
-        return N_("shut off");
-    case VIR_DOMAIN_CRASHED:
-        return N_("crashed");
-    case VIR_DOMAIN_PMSUSPENDED:
-        return N_("pmsuspended");
-    case VIR_DOMAIN_NOSTATE:
-    case VIR_DOMAIN_LAST:
-        break;
-    }
-    return N_("no state");  /* = dom0 state */
+    const char *str = vshDomainStateTypeToString(state);
+    return str ? _(str) : _("no state");
 }
+
+VIR_ENUM_DECL(vshDomainNostateReason)
+VIR_ENUM_IMPL(vshDomainNostateReason,
+              VIR_DOMAIN_NOSTATE_LAST,
+              N_("unknown"))
+
+VIR_ENUM_DECL(vshDomainRunningReason)
+VIR_ENUM_IMPL(vshDomainRunningReason,
+              VIR_DOMAIN_RUNNING_LAST,
+              N_("unknown"),
+              N_("booted"),
+              N_("migrated"),
+              N_("restored"),
+              N_("from snapshot"),
+              N_("unpaused"),
+              N_("migration canceled"),
+              N_("save canceled"),
+              N_("event wakeup"),
+              N_("crashed"))
+
+VIR_ENUM_DECL(vshDomainBlockedReason)
+VIR_ENUM_IMPL(vshDomainBlockedReason,
+              VIR_DOMAIN_BLOCKED_LAST,
+              N_("unknown"))
+
+VIR_ENUM_DECL(vshDomainPausedReason)
+VIR_ENUM_IMPL(vshDomainPausedReason,
+              VIR_DOMAIN_PAUSED_LAST,
+              N_("unknown"),
+              N_("user"),
+              N_("migrating"),
+              N_("saving"),
+              N_("dumping"),
+              N_("I/O error"),
+              N_("watchdog"),
+              N_("from snapshot"),
+              N_("shutting down"),
+              N_("creating snapshot"),
+              N_("crashed"))
+
+VIR_ENUM_DECL(vshDomainShutdownReason)
+VIR_ENUM_IMPL(vshDomainShutdownReason,
+              VIR_DOMAIN_SHUTDOWN_LAST,
+              N_("unknown"),
+              N_("user"))
+
+VIR_ENUM_DECL(vshDomainShutoffReason)
+VIR_ENUM_IMPL(vshDomainShutoffReason,
+              VIR_DOMAIN_SHUTOFF_LAST,
+              N_("unknown"),
+              N_("shutdown"),
+              N_("destroyed"),
+              N_("crashed"),
+              N_("migrated"),
+              N_("saved"),
+              N_("failed"),
+              N_("from snapshot"))
+
+VIR_ENUM_DECL(vshDomainCrashedReason)
+VIR_ENUM_IMPL(vshDomainCrashedReason,
+              VIR_DOMAIN_CRASHED_LAST,
+              N_("unknown"),
+              N_("panicked"))
+
+VIR_ENUM_DECL(vshDomainPMSuspendedReason)
+VIR_ENUM_IMPL(vshDomainPMSuspendedReason,
+              VIR_DOMAIN_PMSUSPENDED_LAST,
+              N_("unknown"))
 
 static const char *
 vshDomainStateReasonToString(int state, int reason)
 {
+    const char *str = NULL;
     switch ((virDomainState) state) {
     case VIR_DOMAIN_NOSTATE:
-        switch ((virDomainNostateReason) reason) {
-        case VIR_DOMAIN_NOSTATE_UNKNOWN:
-        case VIR_DOMAIN_NOSTATE_LAST:
-            ;
-        }
+        str = vshDomainNostateReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_RUNNING:
-        switch ((virDomainRunningReason) reason) {
-        case VIR_DOMAIN_RUNNING_BOOTED:
-            return N_("booted");
-        case VIR_DOMAIN_RUNNING_MIGRATED:
-            return N_("migrated");
-        case VIR_DOMAIN_RUNNING_RESTORED:
-            return N_("restored");
-        case VIR_DOMAIN_RUNNING_FROM_SNAPSHOT:
-            return N_("from snapshot");
-        case VIR_DOMAIN_RUNNING_UNPAUSED:
-            return N_("unpaused");
-        case VIR_DOMAIN_RUNNING_MIGRATION_CANCELED:
-            return N_("migration canceled");
-        case VIR_DOMAIN_RUNNING_SAVE_CANCELED:
-            return N_("save canceled");
-        case VIR_DOMAIN_RUNNING_WAKEUP:
-            return N_("event wakeup");
-        case VIR_DOMAIN_RUNNING_CRASHED:
-            return N_("crashed");
-        case VIR_DOMAIN_RUNNING_UNKNOWN:
-        case VIR_DOMAIN_RUNNING_LAST:
-            ;
-        }
+        str = vshDomainRunningReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_BLOCKED:
-        switch ((virDomainBlockedReason) reason) {
-        case VIR_DOMAIN_BLOCKED_UNKNOWN:
-        case VIR_DOMAIN_BLOCKED_LAST:
-            ;
-        }
+        str = vshDomainBlockedReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_PAUSED:
-        switch ((virDomainPausedReason) reason) {
-        case VIR_DOMAIN_PAUSED_USER:
-            return N_("user");
-        case VIR_DOMAIN_PAUSED_MIGRATION:
-            return N_("migrating");
-        case VIR_DOMAIN_PAUSED_SAVE:
-            return N_("saving");
-        case VIR_DOMAIN_PAUSED_DUMP:
-            return N_("dumping");
-        case VIR_DOMAIN_PAUSED_IOERROR:
-            return N_("I/O error");
-        case VIR_DOMAIN_PAUSED_WATCHDOG:
-            return N_("watchdog");
-        case VIR_DOMAIN_PAUSED_FROM_SNAPSHOT:
-            return N_("from snapshot");
-        case VIR_DOMAIN_PAUSED_SHUTTING_DOWN:
-            return N_("shutting down");
-        case VIR_DOMAIN_PAUSED_SNAPSHOT:
-            return N_("creating snapshot");
-        case VIR_DOMAIN_PAUSED_CRASHED:
-            return N_("crashed");
-        case VIR_DOMAIN_PAUSED_UNKNOWN:
-        case VIR_DOMAIN_PAUSED_LAST:
-            ;
-        }
+        str = vshDomainPausedReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_SHUTDOWN:
-        switch ((virDomainShutdownReason) reason) {
-        case VIR_DOMAIN_SHUTDOWN_USER:
-            return N_("user");
-        case VIR_DOMAIN_SHUTDOWN_UNKNOWN:
-        case VIR_DOMAIN_SHUTDOWN_LAST:
-            ;
-        }
+        str = vshDomainShutdownReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_SHUTOFF:
-        switch ((virDomainShutoffReason) reason) {
-        case VIR_DOMAIN_SHUTOFF_SHUTDOWN:
-            return N_("shutdown");
-        case VIR_DOMAIN_SHUTOFF_DESTROYED:
-            return N_("destroyed");
-        case VIR_DOMAIN_SHUTOFF_CRASHED:
-            return N_("crashed");
-        case VIR_DOMAIN_SHUTOFF_MIGRATED:
-            return N_("migrated");
-        case VIR_DOMAIN_SHUTOFF_SAVED:
-            return N_("saved");
-        case VIR_DOMAIN_SHUTOFF_FAILED:
-            return N_("failed");
-        case VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT:
-            return N_("from snapshot");
-        case VIR_DOMAIN_SHUTOFF_UNKNOWN:
-        case VIR_DOMAIN_SHUTOFF_LAST:
-            ;
-        }
+        str = vshDomainShutoffReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_CRASHED:
-        switch ((virDomainCrashedReason) reason) {
-        case VIR_DOMAIN_CRASHED_PANICKED:
-            return N_("panicked");
-        case VIR_DOMAIN_CRASHED_UNKNOWN:
-        case VIR_DOMAIN_CRASHED_LAST:
-            ;
-        }
+        str = vshDomainCrashedReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_PMSUSPENDED:
-        switch ((virDomainPMSuspendedReason) reason) {
-        case VIR_DOMAIN_PMSUSPENDED_UNKNOWN:
-        case VIR_DOMAIN_PMSUSPENDED_LAST:
-            ;
-        }
+        str = vshDomainPMSuspendedReasonTypeToString(reason);
         break;
-
     case VIR_DOMAIN_LAST:
         ;
     }
 
-    return N_("unknown");
+    return str ? _(str) : _("unknown");
 }
 
 /*
@@ -412,7 +370,7 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
     }
 
     ret = true;
-cleanup:
+ cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -467,7 +425,7 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 
-cleanup:
+ cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -537,16 +495,16 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
     if (details)
-        vshPrint(ctl, "%-10s %-10s %-10s %s\n", _("Type"),
-                 _("Device"), _("Target"), _("Source"));
+        vshPrintExtra(ctl, "%-10s %-10s %-10s %s\n", _("Type"),
+                      _("Device"), _("Target"), _("Source"));
     else
-        vshPrint(ctl, "%-10s %s\n", _("Target"), _("Source"));
+        vshPrintExtra(ctl, "%-10s %s\n", _("Target"), _("Source"));
 
-    vshPrint(ctl, "------------------------------------------------\n");
+    vshPrintExtra(ctl, "------------------------------------------------\n");
 
     for (i = 0; i < ndisks; i++) {
-        char *type;
-        char *device;
+        char *type = NULL;
+        char *device = NULL;
         char *target;
         char *source;
 
@@ -555,11 +513,19 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
         if (details) {
             type = virXPathString("string(./@type)", ctxt);
             device = virXPathString("string(./@device)", ctxt);
+            if (!type || !device) {
+                vshPrint(ctl, "unable to query block list details");
+                VIR_FREE(type);
+                VIR_FREE(device);
+                goto cleanup;
+            }
         }
 
         target = virXPathString("string(./target/@dev)", ctxt);
         if (!target) {
             vshError(ctl, "unable to query block list");
+            VIR_FREE(type);
+            VIR_FREE(device);
             goto cleanup;
         }
         source = virXPathString("string(./source/@file"
@@ -581,7 +547,7 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(disks);
     virDomainFree(dom);
     VIR_FREE(xml);
@@ -643,9 +609,9 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
     if (ninterfaces < 0)
         goto cleanup;
 
-    vshPrint(ctl, "%-10s %-10s %-10s %-11s %s\n", _("Interface"), _("Type"),
-             _("Source"), _("Model"), _("MAC"));
-    vshPrint(ctl, "-------------------------------------------------------\n");
+    vshPrintExtra(ctl, "%-10s %-10s %-10s %-11s %s\n", _("Interface"),
+                  _("Type"), _("Source"), _("Model"), _("MAC"));
+    vshPrintExtra(ctl, "-------------------------------------------------------\n");
 
     for (i = 0; i < ninterfaces; i++) {
         char *type = NULL;
@@ -682,7 +648,7 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(interfaces);
     virDomainFree(dom);
     VIR_FREE(xml);
@@ -794,7 +760,7 @@ cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(desc);
     VIR_FREE(state);
     VIR_FREE(interfaces);
@@ -846,14 +812,14 @@ cmdDomControl(vshControl *ctl, const vshCmd *cmd)
     if (info.state != VIR_DOMAIN_CONTROL_OK &&
         info.state != VIR_DOMAIN_CONTROL_ERROR) {
         vshPrint(ctl, "%s (%0.3fs)\n",
-                 _(vshDomainControlStateToString(info.state)),
+                 vshDomainControlStateToString(info.state),
                  info.stateTime / 1000.0);
     } else {
         vshPrint(ctl, "%s\n",
-                 _(vshDomainControlStateToString(info.state)));
+                 vshDomainControlStateToString(info.state));
     }
 
-cleanup:
+ cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -880,7 +846,7 @@ static const vshCmdOptDef opts_domblkstat[] = {
     },
     {.name = "device",
      .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
+     .flags = VSH_OFLAG_EMPTY_OK,
      .help = N_("block device")
     },
     {.name = "human",
@@ -946,8 +912,15 @@ cmdDomblkstat(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
+    /* device argument is optional now. if it's missing, supply empty
+       string to denote 'all devices'. A NULL device arg would violate
+       API contract.
+     */
     if (vshCommandOptStringReq(ctl, cmd, "device", &device) < 0)
         goto cleanup;
+
+    if (!device)
+        device = "";
 
     rc = virDomainBlockStatsFlags(dom, device, NULL, &nparams, 0);
 
@@ -984,7 +957,7 @@ cmdDomblkstat(vshControl *ctl, const vshCmd *cmd)
         params = vshCalloc(ctl, nparams, sizeof(*params));
 
         if (virDomainBlockStatsFlags(dom, device, params, &nparams, 0) < 0) {
-            vshError(ctl, _("Failed to get block stats %s %s"), name, device);
+            vshError(ctl, _("Failed to get block stats for domain '%s' device '%s'"), name, device);
             goto cleanup;
         }
 
@@ -1035,7 +1008,7 @@ cmdDomblkstat(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(params);
     virDomainFree(dom);
     return ret;
@@ -1114,7 +1087,7 @@ cmdDomIfstat(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 
-cleanup:
+ cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -1178,7 +1151,7 @@ cmdDomBlkError(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(disks);
     virDomainFree(dom);
     return ret;
@@ -1230,7 +1203,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, "%-15s %d\n", _("Id:"), id);
     vshPrint(ctl, "%-15s %s\n", _("Name:"), virDomainGetName(dom));
 
-    if (virDomainGetUUIDString(dom, &uuid[0])==0)
+    if (virDomainGetUUIDString(dom, &uuid[0]) == 0)
         vshPrint(ctl, "%-15s %s\n", _("UUID:"), uuid);
 
     if ((str = virDomainGetOSType(dom))) {
@@ -1240,7 +1213,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
 
     if (virDomainGetInfo(dom, &info) == 0) {
         vshPrint(ctl, "%-15s %s\n", _("State:"),
-                 _(vshDomainStateToString(info.state)));
+                 vshDomainStateToString(info.state));
 
         vshPrint(ctl, "%-15s %d\n", _("CPU(s):"), info.nrVirtCpu);
 
@@ -1370,14 +1343,14 @@ cmdDomstate(vshControl *ctl, const vshCmd *cmd)
 
     if (showReason) {
         vshPrint(ctl, "%s (%s)\n",
-                 _(vshDomainStateToString(state)),
+                 vshDomainStateToString(state),
                  vshDomainStateReasonToString(state, reason));
     } else {
         vshPrint(ctl, "%s\n",
-                 _(vshDomainStateToString(state)));
+                 vshDomainStateToString(state));
     }
 
-cleanup:
+ cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -1501,7 +1474,7 @@ vshDomainListCollect(vshControl *ctl, unsigned int flags)
     goto cleanup;
 
 
-fallback:
+ fallback:
     /* fall back to old method (0.9.12 and older) */
     vshResetLibvirtError();
 
@@ -1561,7 +1534,7 @@ fallback:
     /* truncate domains that weren't found */
     deleted = (nids + nnames) - list->ndomains;
 
-filter:
+ filter:
     /* filter list the list if the list was acquired by fallback means */
     for (i = 0; i < list->ndomains; i++) {
         dom = list->domains[i];
@@ -1637,14 +1610,14 @@ filter:
         /* the domain matched all filters, it may stay */
         continue;
 
-remove_entry:
+ remove_entry:
         /* the domain has to be removed as it failed one of the filters */
         virDomainFree(list->domains[i]);
         list->domains[i] = NULL;
         deleted++;
     }
 
-finished:
+ finished:
     /* sort the list */
     if (list->domains && list->ndomains)
         qsort(list->domains, list->ndomains, sizeof(*list->domains),
@@ -1656,7 +1629,7 @@ finished:
 
     success = true;
 
-cleanup:
+ cleanup:
     for (i = 0; nnames != -1 && i < nnames; i++)
         VIR_FREE(names[i]);
 
@@ -1745,7 +1718,7 @@ static const vshCmdOptDef opts_list[] = {
     },
     {.name = "title",
      .type = VSH_OT_BOOL,
-     .help = N_("show short domain description")
+     .help = N_("show domain title")
     },
     {.name = NULL}
 };
@@ -1844,14 +1817,14 @@ cmdList(vshControl *ctl, const vshCmd *cmd)
 
                 vshPrint(ctl, " %-5s %-30s %-10s %-20s\n", id_buf,
                          virDomainGetName(dom),
-                         state == -2 ? _("saved") : _(vshDomainStateToString(state)),
+                         state == -2 ? _("saved") : vshDomainStateToString(state),
                          title);
 
                 VIR_FREE(title);
             } else {
                 vshPrint(ctl, " %-5s %-30s %s\n", id_buf,
                          virDomainGetName(dom),
-                         state == -2 ? _("saved") : _(vshDomainStateToString(state)));
+                         state == -2 ? _("saved") : vshDomainStateToString(state));
             }
         } else if (optUUID) {
             if (virDomainGetUUIDString(dom, uuid) < 0) {
@@ -1865,7 +1838,7 @@ cmdList(vshControl *ctl, const vshCmd *cmd)
     }
 
     ret = true;
-cleanup:
+ cleanup:
     vshDomainListFree(list);
     return ret;
 }

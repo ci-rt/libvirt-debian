@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2013 Red Hat, Inc.
+## Copyright (C) 2005-2014 Red Hat, Inc.
 ##
 ## This library is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU Lesser General Public
@@ -16,6 +16,11 @@
 ## License along with this library.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
+# old automake does not provide abs_{src,build}dir variables
+abs_builddir = $(shell pwd)
+abs_topbuilddir = $(shell cd .. && pwd)
+abs_srcdir = $(shell cd $(srcdir) && pwd)
+
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
 # that actually use them. Also keep GETTEXT_CPPFLAGS at the end.
@@ -26,6 +31,7 @@ INCLUDES =	-I../gnulib/lib					\
 		-I$(top_srcdir)/include				\
 		-I$(top_srcdir)/src/util			\
 		-DIN_LIBVIRT					\
+		-Dabs_topbuilddir="\"$(abs_topbuilddir)\""	\
 		$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS =	$(LIBXML_CFLAGS)				\
@@ -91,8 +97,9 @@ UTIL_SOURCES =							\
 		util/virbuffer.c util/virbuffer.h		\
 		util/vircgroup.c util/vircgroup.h util/vircgrouppriv.h	\
 		util/virclosecallbacks.c util/virclosecallbacks.h		\
-		util/vircommand.c util/vircommand.h		\
+		util/vircommand.c util/vircommand.h util/vircommandpriv.h \
 		util/virconf.c util/virconf.h			\
+		util/vircrypto.c util/vircrypto.h		\
 		util/virdbus.c util/virdbus.h util/virdbuspriv.h	\
 		util/virdnsmasq.c util/virdnsmasq.h		\
 		util/virebtables.c util/virebtables.h		\
@@ -101,12 +108,16 @@ UTIL_SOURCES =							\
 		util/virevent.c util/virevent.h			\
 		util/vireventpoll.c util/vireventpoll.h		\
 		util/virfile.c util/virfile.h			\
+		util/virfirewall.c util/virfirewall.h		\
+		util/virfirewallpriv.h				\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h		\
 		util/virhook.c util/virhook.h			\
+		util/virhostdev.c util/virhostdev.h		\
 		util/viridentity.c util/viridentity.h		\
 		util/virinitctl.c util/virinitctl.h		\
 		util/viriptables.c util/viriptables.h		\
+		util/viriscsi.c util/viriscsi.h			\
 		util/virjson.c util/virjson.h			\
 		util/virkeycode.c util/virkeycode.h		\
 		util/virkeyfile.c util/virkeyfile.h		\
@@ -125,24 +136,26 @@ UTIL_SOURCES =							\
 		util/virnetdevvportprofile.h util/virnetdevvportprofile.c \
 		util/virnetlink.c util/virnetlink.h		\
 		util/virnodesuspend.c util/virnodesuspend.h	\
+		util/virkmod.c util/virkmod.h                   \
 		util/virnuma.c util/virnuma.h			\
 		util/virobject.c util/virobject.h		\
 		util/virpci.c util/virpci.h			\
 		util/virpidfile.c util/virpidfile.h		\
 		util/virportallocator.c util/virportallocator.h \
+		util/virprobe.h					\
 		util/virprocess.c util/virprocess.h		\
 		util/virrandom.h util/virrandom.c		\
 		util/virscsi.c util/virscsi.h			\
+		util/virseclabel.c util/virseclabel.h		\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
 		util/virstatslinux.c util/virstatslinux.h	\
+		util/virstorageencryption.c util/virstorageencryption.h \
 		util/virstoragefile.c util/virstoragefile.h	\
 		util/virstring.h util/virstring.c		\
 		util/virsysinfo.c util/virsysinfo.h		\
 		util/virsystemd.c util/virsystemd.h		\
 		util/virthread.c util/virthread.h		\
-		util/virthreadpthread.h				\
-		util/virthreadwin32.h				\
 		util/virthreadpool.c util/virthreadpool.h	\
 		util/virtime.h util/virtime.c			\
 		util/virtpm.h util/virtpm.c			\
@@ -165,10 +178,8 @@ util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/util/virkeycode-mapgen.py \
 	  <$(srcdir)/util/keymaps.csv >$(srcdir)/util/virkeymaps.h
 
-EXTRA_DIST += util/virthreadpthread.c util/virthreadwin32.c
-
 # Internal generic driver infrastructure
-NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c
+NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c nodeinfopriv.h
 DATATYPES_SOURCES = datatypes.h datatypes.c
 DRIVER_SOURCES =							\
 		driver.c driver.h					\
@@ -282,9 +293,6 @@ SECRET_CONF_SOURCES =                                          \
 NODE_DEVICE_CONF_SOURCES =                                     \
 		conf/node_device_conf.c conf/node_device_conf.h
 
-ENCRYPTION_CONF_SOURCES =					\
-		conf/storage_encryption_conf.c conf/storage_encryption_conf.h
-
 CPU_CONF_SOURCES =						\
 		conf/cpu_conf.c conf/cpu_conf.h
 
@@ -306,7 +314,6 @@ CONF_SOURCES =							\
 		$(NWFILTER_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)			\
 		$(STORAGE_CONF_SOURCES)				\
-		$(ENCRYPTION_CONF_SOURCES)			\
 		$(INTERFACE_CONF_SOURCES)			\
 		$(SECRET_CONF_SOURCES)				\
 		$(CPU_CONF_SOURCES)				\
@@ -515,6 +522,7 @@ DRIVER_SOURCE_FILES = \
 	$(NULL)
 
 STATEFUL_DRIVER_SOURCE_FILES = \
+	$(BHYVE_DRIVER_SOURCES) \
 	$(INTERFACE_DRIVER_SOURCES) \
 	$(LIBXL_DRIVER_SOURCES) \
 	$(LXC_DRIVER_SOURCES) \
@@ -622,6 +630,7 @@ LXC_DRIVER_SOURCES =						\
 		lxc/lxc_monitor.c lxc/lxc_monitor.h		\
 		lxc/lxc_process.c lxc/lxc_process.h		\
 		lxc/lxc_fuse.c lxc/lxc_fuse.h			\
+		lxc/lxc_native.c lxc/lxc_native.h		\
 		lxc/lxc_driver.c lxc/lxc_driver.h
 
 LXC_CONTROLLER_SOURCES =					\
@@ -660,7 +669,9 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h			\
 	vbox/vbox_V4_1.c vbox/vbox_CAPI_v4_1.h			\
 	vbox/vbox_V4_2.c vbox/vbox_CAPI_v4_2.h			\
-	vbox/vbox_V4_3.c vbox/vbox_CAPI_v4_3.h
+	vbox/vbox_V4_2_20.c vbox/vbox_CAPI_v4_2_20.h			\
+	vbox/vbox_V4_3.c vbox/vbox_CAPI_v4_3.h			\
+	vbox/vbox_V4_3_4.c vbox/vbox_CAPI_v4_3_4.h
 
 VBOX_DRIVER_EXTRA_DIST =					\
 		vbox/vbox_tmpl.c vbox/README			\
@@ -685,9 +696,7 @@ QEMU_DRIVER_SOURCES =							\
 		qemu/qemu_monitor_text.h				\
 		qemu/qemu_monitor_json.c				\
 		qemu/qemu_monitor_json.h				\
-		qemu/qemu_driver.c qemu/qemu_driver.h			\
-		qemu/qemu_bridge_filter.c				\
-		qemu/qemu_bridge_filter.h
+		qemu/qemu_driver.c qemu/qemu_driver.h
 
 XENAPI_DRIVER_SOURCES =						\
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
@@ -772,6 +781,18 @@ PARALLELS_DRIVER_SOURCES =					\
 		parallels/parallels_storage.c		\
 		parallels/parallels_network.c
 
+BHYVE_DRIVER_SOURCES =						\
+		bhyve/bhyve_capabilities.c			\
+		bhyve/bhyve_capabilities.h			\
+		bhyve/bhyve_command.c				\
+		bhyve/bhyve_command.h				\
+		bhyve/bhyve_driver.h				\
+		bhyve/bhyve_driver.c				\
+		bhyve/bhyve_process.c				\
+		bhyve/bhyve_process.h				\
+		bhyve/bhyve_utils.h				\
+		$(NULL)
+
 NETWORK_DRIVER_SOURCES =					\
 		network/bridge_driver.h network/bridge_driver.c \
 		network/bridge_driver_platform.h 		\
@@ -841,6 +862,7 @@ UTIL_IO_HELPER_SOURCES =					\
 # Network filters
 NWFILTER_DRIVER_SOURCES =						\
 		nwfilter/nwfilter_driver.h nwfilter/nwfilter_driver.c	\
+		nwfilter/nwfilter_tech_driver.h				\
 		nwfilter/nwfilter_gentech_driver.c			\
 		nwfilter/nwfilter_gentech_driver.h			\
 		nwfilter/nwfilter_dhcpsnoop.c				\
@@ -947,11 +969,11 @@ libvirt_util_la_SOURCES =					\
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM) $(NUMACTL_CFLAGS)	\
-		-I$(top_srcdir)/src/conf
+		$(SYSTEMD_DAEMON_CFLAGS) -I$(top_srcdir)/src/conf
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
-		$(SECDRIVER_LIBS) $(NUMACTL_LIBS)
+		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(SYSTEMD_DAEMON_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -965,6 +987,10 @@ libvirt_la_BUILT_LIBADD += libvirt_cpu.la
 libvirt_cpu_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_cpu_la_SOURCES = $(CPU_SOURCES)
+libvirt_cpu_la_DEPENDENCIES = $(abs_builddir)/cpu/cpu_map.xml
+
+$(abs_builddir)/cpu/cpu_map.xml:
+	$(AM_V_GEN)ln -s $(abs_srcdir)/cpu/cpu_map.xml $@
 
 if WITH_VMX
 noinst_LTLIBRARIES += libvirt_vmx.la
@@ -1308,6 +1334,26 @@ libvirt_driver_parallels_la_CFLAGS = \
 libvirt_driver_parallels_la_SOURCES = $(PARALLELS_DRIVER_SOURCES)
 endif WITH_PARALLELS
 
+if WITH_BHYVE
+noinst_LTLIBRARIES += libvirt_driver_bhyve_impl.la
+libvirt_driver_bhyve_la_SOURCES =
+libvirt_driver_bhyve_la_LIBADD = libvirt_driver_bhyve_impl.la
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_bhyve.la
+libvirt_driver_bhyve_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_bhyve_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
+else ! WITH_DRIVER_MODULES
+noinst_LTLIBRARIES += libvirt_driver_bhyve.la
+endif ! WITH_DRIVER_MODULES
+
+libvirt_driver_bhyve_impl_la_CFLAGS = \
+	-I$(top_srcdir)/src/access \
+	-I$(top_srcdir)/src/conf \
+	$(AM_CFLAGS)
+libvirt_driver_bhyve_impl_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_bhyve_impl_la_SOURCES = $(BHYVE_DRIVER_SOURCES)
+endif WITH_BHYVE
+
 if WITH_NETWORK
 noinst_LTLIBRARIES += libvirt_driver_network_impl.la
 libvirt_driver_network_la_SOURCES =
@@ -1492,27 +1538,34 @@ endif WITH_NODE_DEVICES
 
 
 if WITH_NWFILTER
+noinst_LTLIBRARIES += libvirt_driver_nwfilter_impl.la
+libvirt_driver_nwfilter_la_SOURCES =
+libvirt_driver_nwfilter_la_LIBADD = libvirt_driver_nwfilter_impl.la
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_nwfilter.la
+libvirt_driver_nwfilter_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 else ! WITH_DRIVER_MODULES
 noinst_LTLIBRARIES += libvirt_driver_nwfilter.la
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_nwfilter.la
 endif ! WITH_DRIVER_MODULES
-libvirt_driver_nwfilter_la_CFLAGS = \
+libvirt_driver_nwfilter_impl_la_CFLAGS = \
 		$(LIBPCAP_CFLAGS) \
 		$(LIBNL_CFLAGS) \
 		$(DBUS_CFLAGS) \
 		-I$(top_srcdir)/src/access \
 		-I$(top_srcdir)/src/conf \
 		$(AM_CFLAGS)
-libvirt_driver_nwfilter_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS) $(LIBNL_LIBS) $(DBUS_LIBS)
+libvirt_driver_nwfilter_impl_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_nwfilter_impl_la_LIBADD = \
+		$(LIBPCAP_LIBS) \
+		$(LIBNL_LIBS) \
+		$(DBUS_LIBS)
 if WITH_DRIVER_MODULES
-libvirt_driver_nwfilter_la_LIBADD += ../gnulib/lib/libgnu.la
-libvirt_driver_nwfilter_la_LDFLAGS += -module -avoid-version
+libvirt_driver_nwfilter_impl_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_nwfilter_impl_la_LDFLAGS += -module -avoid-version
 endif WITH_DRIVER_MODULES
-libvirt_driver_nwfilter_la_SOURCES = $(NWFILTER_DRIVER_SOURCES)
+libvirt_driver_nwfilter_impl_la_SOURCES = $(NWFILTER_DRIVER_SOURCES)
 endif WITH_NWFILTER
 
 
@@ -1642,6 +1695,7 @@ EXTRA_DIST +=							\
 		$(HYPERV_DRIVER_SOURCES)			\
 		$(HYPERV_DRIVER_EXTRA_DIST)			\
 		$(PARALLELS_DRIVER_SOURCES)			\
+		$(BHYVE_DRIVER_SOURCES)				\
 		$(NETWORK_DRIVER_SOURCES)			\
 		$(INTERFACE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_SOURCES)			\
@@ -1720,18 +1774,26 @@ else ! WITH_SANLOCK
 check-augeas-sanlock:
 endif ! WITH_SANLOCK
 
+if WITH_QEMU
 test_libvirt_lockd.aug: locking/test_libvirt_lockd.aug.in \
 		locking/qemu-lockd.conf $(AUG_GENTEST)
 	$(AM_V_GEN)$(AUG_GENTEST) locking/qemu-lockd.conf $< $@
+else ! WITH_QEMU
+test_libvirt_lockd.aug:
+endif ! WITH_QEMU
 
 test_virtlockd.aug: locking/test_virtlockd.aug.in \
 		locking/virtlockd.conf $(AUG_GENTEST)
 	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/locking/virtlockd.conf $< $@
 
+if WITH_QEMU
 check-augeas-lockd: test_libvirt_lockd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
 	    '$(AUGPARSE)' -I $(srcdir)/locking test_libvirt_lockd.aug; \
 	fi
+else ! WITH_QEMU
+check-augeas-lockd:
+endif ! WITH_QEMU
 
 check-augeas-virtlockd: test_virtlockd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
@@ -2021,7 +2083,6 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/virprocess.c		\
 		util/virrandom.c		\
 		util/virsocketaddr.c		\
-		util/virstoragefile.c		\
 		util/virstring.c		\
 		util/virtime.c			\
 		util/virthread.c		\
@@ -2083,12 +2144,12 @@ lockd_la_LIBADD = ../gnulib/lib/libgnu.la \
 	libvirt-net-rpc-client.la \
 	$(NULL)
 augeas_DATA += locking/libvirt_lockd.aug
-augeastest_DATA += test_libvirt_lockd.aug
-CLEANFILES += test_libvirt_lockd.aug
 if WITH_DTRACE_PROBES
 lockd_la_LIBADD += libvirt_probes.lo
 endif WITH_DTRACE_PROBES
 if WITH_QEMU
+augeastest_DATA += test_libvirt_lockd.aug
+CLEANFILES += test_libvirt_lockd.aug
 nodist_conf_DATA += locking/qemu-lockd.conf
 BUILT_SOURCES += locking/qemu-lockd.conf
 DISTCLEANFILES += locking/qemu-lockd.conf
@@ -2220,7 +2281,7 @@ EXTRA_DIST += \
 if WITH_LIBVIRTD
 if LIBVIRT_INIT_SCRIPT_SYSTEMD
 
-SYSTEMD_UNIT_DIR = /lib/systemd/system
+SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 
 BUILT_SOURCES += virtlockd.service virtlockd.socket
 DISTCLEANFILES += virtlockd.service virtlockd.socket

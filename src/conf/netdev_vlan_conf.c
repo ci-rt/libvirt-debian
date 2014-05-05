@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2013 Red Hat, Inc.
+ * Copyright (C) 2009-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -82,7 +82,7 @@ virNetDevVlanParse(xmlNodePtr node, xmlXPathContextPtr ctxt, virNetDevVlanPtr de
             }
             if ((def->nativeMode
                  = virNativeVlanModeTypeFromString(nativeMode)) <= 0) {
-                virReportError(VIR_ERR_XML_ERROR,
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("Invalid \"nativeMode='%s'\" "
                                  "in vlan <tag> element"),
                                nativeMode);
@@ -129,7 +129,7 @@ virNetDevVlanParse(xmlNodePtr node, xmlXPathContextPtr ctxt, virNetDevVlanPtr de
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     ctxt->node = save;
     VIR_FREE(tagNodes);
     VIR_FREE(trunk);
@@ -144,7 +144,7 @@ virNetDevVlanFormat(const virNetDevVlan *def, virBufferPtr buf)
 {
     size_t i;
 
-    if (def->nTags == 0)
+    if (!(def && def->nTags))
         return 0;
 
     if (!def->tag) {
@@ -154,6 +154,7 @@ virNetDevVlanFormat(const virNetDevVlan *def, virBufferPtr buf)
     }
 
     virBufferAsprintf(buf, "<vlan%s>\n", def->trunk ? " trunk='yes'" : "");
+    virBufferAdjustIndent(buf, 2);
     for (i = 0; i < def->nTags; i++) {
         if (def->nativeMode != VIR_NATIVE_VLAN_MODE_DEFAULT &&
             def->nativeTag == def->tag[i]) {
@@ -163,12 +164,13 @@ virNetDevVlanFormat(const virNetDevVlan *def, virBufferPtr buf)
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("Bad value for nativeMode"));
             }
-            virBufferAsprintf(buf, "  <tag id='%u' nativeMode='%s'/>\n",
+            virBufferAsprintf(buf, "<tag id='%u' nativeMode='%s'/>\n",
                               def->tag[i], mode);
         } else {
-            virBufferAsprintf(buf, "  <tag id='%u'/>\n", def->tag[i]);
+            virBufferAsprintf(buf, "<tag id='%u'/>\n", def->tag[i]);
         }
     }
+    virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</vlan>\n");
     return 0;
 }

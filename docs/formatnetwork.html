@@ -120,6 +120,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -188,6 +192,7 @@
     </p>
         <h2>
           <a name="elements" shape="rect" id="elements">Element and attribute overview</a>
+          <a class="headerlink" href="#elements" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The root element required for all virtual networks is
@@ -202,6 +207,7 @@
     </p>
         <h3>
           <a name="elementsMetadata" shape="rect" id="elementsMetadata">General metadata</a>
+          <a class="headerlink" href="#elementsMetadata" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The first elements provide basic metadata about the virtual
@@ -228,6 +234,7 @@
         <span class="since">Since 1.0.1</span></dd></dl>
         <h3>
           <a name="elementsConnect" shape="rect" id="elementsConnect">Connectivity</a>
+          <a class="headerlink" href="#elementsConnect" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The next set of elements control how a virtual network is
@@ -423,17 +430,22 @@
             definition. <span class="since"> Since 0.10.0</span>
 
             <p>
-              To use VFIO device assignment rather than
-              traditional/legacy KVM device assignment (VFIO is a new
-              method of device assignment that is compatible with UEFI
-              Secure Boot), a &lt;forward type='hostdev'&gt; interface
-              can have an optional <code>driver</code> sub-element
-              with a <code>name</code> attribute set to "vfio". To use
-              legacy KVM device assignment you can
-              set <code>name</code> to "kvm" (or simply omit the
-              &lt;driver&gt; element, since "kvm" is currently the
-              default).
-              <span class="since">Since 1.0.5 (QEMU and KVM only, requires kernel 3.6 or newer)</span>
+              To force use of a particular type of device assignment,
+              a &lt;forward type='hostdev'&gt; interface can have an
+              optional <code>driver</code> sub-element with
+              a <code>name</code> attribute set to either "vfio" (VFIO
+              is a new method of device assignment that is compatible
+              with UEFI Secure Boot) or "kvm" (the legacy device
+              assignment handled directly by the KVM kernel module)
+              <span class="since">Since 1.0.5 (QEMU and KVM only,
+              requires kernel 3.6 or newer)</span>. When specified,
+              device assignment will fail if the requested method of
+              device assignment isn't available on the host. When not
+              specified, the default is "vfio" on systems where the
+              VFIO driver is available and loaded, and "kvm" on older
+              systems, or those where the VFIO driver hasn't been
+              loaded <span class="since">Since 1.1.3</span> (prior to
+              that the default was always "kvm").
             </p>
 
             <p>Note that this "intelligent passthrough" of network
@@ -540,6 +552,7 @@
       </dd></dl>
         <h5>
           <a name="elementQoS" shape="rect" id="elementQoS">Quality of service</a>
+          <a class="headerlink" href="#elementQoS" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
 ...
@@ -550,27 +563,106 @@
   &lt;/bandwidth&gt;</b>
 ...</pre>
         <p>
-        This part of network XML provides setting quality of service. Incoming
-        and outgoing traffic can be shaped independently. The
-        <code>bandwidth</code> element can have at most one <code>inbound</code>
-        and at most one <code>outbound</code> child elements. Leaving any of these
-        children element out result in no QoS applied on that traffic direction.
-        So, when you want to shape only network's incoming traffic, use
-        <code>inbound</code> only, and vice versa. Each of these elements have one
-        mandatory attribute <code>average</code>. It specifies average bit rate on
-        interface being shaped. Then there are two optional attributes:
-        <code>peak</code>, which specifies maximum rate at which bridge can send
-        data, and <code>burst</code>, amount of bytes that can be burst at
-        <code>peak</code> speed. Accepted values for attributes are integer
-        numbers, The units for <code>average</code> and <code>peak</code> attributes
-        are kilobytes per second, and for the <code>burst</code> just kilobytes.
-        The rate is shared equally within domains connected to the network.
-        Moreover, <code>bandwidth</code> element can be included in
-        <code>portgroup</code> element.
-        <span class="since">Since 0.9.4</span>
+        The <code>&lt;bandwidth&gt;</code> element allows setting
+        quality of service for a particular network
+        (<span class="since">since 0.9.4</span>). Setting
+        <code>bandwidth</code> for a network is supported only
+        for networks with a <code>&lt;forward&gt;</code> mode
+        of <code>route</code>, <code>nat</code>, or no mode at all
+        (i.e. an "isolated" network). Setting <code>bandwidth</code>
+        is <b>not</b> supported for forward modes
+        of <code>bridge</code>, <code>passthrough</code>, <code>private</code>,
+        or <code>hostdev</code>. Attempts to do this will lead to
+        a failure to define the network or to create a transient network.
+      </p>
+        <p>
+        The <code>&lt;bandwidth&gt;</code> element can only be a
+        subelement of a domain's <code>&lt;interface&gt;</code>, a
+        subelement of a <code>&lt;network&gt;</code>, or a subelement of
+        a <code>&lt;portgroup&gt;</code> in a <code>&lt;network&gt;</code>.
+      </p>
+        <p>
+        As a subelement of a domain's <code>&lt;interface&gt;</code>,
+        the bandwidth only applies to that one interface of the domain.
+        As a subelement of a <code>&lt;network&gt;</code>, the bandwidth
+        is a total aggregate bandwidth to/from all guest interfaces attached
+        to that network, <b>not</b> to each guest interface individually.
+        If a domain's <code>&lt;interface&gt;</code> has
+        <code>&lt;bandwidth&gt;</code> element values higher
+        than the aggregate for the entire network, then the aggregate
+        bandwidth for the <code>&lt;network&gt;</code> takes precedence.
+        This is because the two choke points are independent of each other
+        where the domain's <code>&lt;interface&gt;</code> bandwidth control
+        is applied on the interface's tap device, while the
+        <code>&lt;network&gt;</code> bandwidth control is applied on the
+        interface part of the bridge device created for that network.
+      </p>
+        <p>
+        As a subelement of a
+        <code>&lt;portgroup&gt;</code> in a <code>&lt;network&gt;</code>,
+        if a domain's <code>&lt;interface&gt;</code> has a
+        <code>portgroup</code> attribute in its
+        <code>&lt;source&gt;</code> element <b>and</b> if the
+        <code>&lt;interface&gt;</code>
+        itself has no <code>&lt;bandwidth&gt;</code> element, then the
+        <code>&lt;bandwidth&gt;</code> element of the portgroup will be
+        applied individually to each guest interface defined to be a
+        member of that portgroup. Any <code>&lt;bandwidth&gt;</code>
+        element in the domain's <code>&lt;interface&gt;</code> definition
+        will override the setting in the portgroup
+        (<span class="since">since 1.0.1</span>).
+      </p>
+        <p>
+        Incoming and outgoing traffic can be shaped independently. The
+        <code>bandwidth</code> element can have at most one
+        <code>inbound</code> and at most one <code>outbound</code>
+        child element. Leaving either of these children elements out
+        results in no QoS applied for that traffic direction.  So,
+        when you want to shape only incoming traffic, use
+        <code>inbound</code> only, and vice versa. Each of these
+        elements have one mandatory attribute - <code>average</code> (or
+        <code>floor</code> as described below). The attributes are as follows,
+        where accepted values for each attribute is an integer number.
+      </p>
+        <dl><dt><code>average</code></dt><dd>
+          Specifies the desired average bit rate for the interface
+          being shaped (in kilobytes/second).
+          </dd><dt><code>peak</code></dt><dd>
+          Optional attribute which specifies the maximum rate at
+          which the bridge can send data (in kilobytes/second).
+          Note the limitation of implementation: this attribute in the
+          <code>outbound</code> element is ignored (as Linux ingress
+          filters don't know it yet).
+          </dd><dt><code>burst</code></dt><dd>
+          Optional attribute which specifies the amount of kilobytes that
+          can be transmitted in a single burst at <code>peak</code> speed.
+          </dd><dt><code>floor</code></dt><dd>
+          Optional attribute available only for the <code>inbound</code>
+          element. This attribute guarantees minimal throughput for
+          shaped interfaces. This, however, requires that all traffic
+          goes through one point where QoS decisions can take place, hence
+          why this attribute works only for virtual networks for now
+          (that is <code>&lt;interface type='network'/&gt;</code> with a
+          forward type of route, nat, or no forward at all). Moreover, the
+          virtual network the interface is connected to is required to have
+          at least inbound QoS set (<code>average</code> at least). If
+          using the <code>floor</code> attribute users don't need to specify
+          <code>average</code>. However, <code>peak</code> and
+          <code>burst</code> attributes still require <code>average</code>.
+          Currently, the Linux kernel doesn't allow ingress qdiscs to have
+          any classes therefore <code>floor</code> can be applied only
+          on <code>inbound</code> and not <code>outbound</code>.
+          </dd></dl>
+        <p>
+        Attributes <code>average</code>, <code>peak</code>, and
+        <code>burst</code> are available
+        <span class="since">since 0.9.4</span>, while the
+        <code>floor</code> attribute is available
+        <span class="since">since 1.0.1</span>.
       </p>
         <h5>
           <a name="elementVlanTag" shape="rect" id="elementVlanTag">Setting VLAN tag (on supported network types only)</a>
+          <a class="headerlink" href="#elementVlanTag" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
 &lt;network&gt;
@@ -632,6 +724,7 @@
     </p>
         <h5>
           <a name="elementsPortgroup" shape="rect" id="elementsPortgroup">Portgroups</a>
+          <a class="headerlink" href="#elementsPortgroup" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
 ...
@@ -672,7 +765,7 @@
       network), and each portgroup has a name, as well as various
       subelements associated with it. The currently supported
       subelements are <code>&lt;bandwidth&gt;</code>
-      (documented <a href="formatdomain.html#elementQoS" shape="rect">here</a>)
+      (described <a href="formatnetwork.html#elementQoS" shape="rect">here</a>)
       and <code>&lt;virtualport&gt;</code>
       (documented <a href="formatdomain.html#elementsNICSDirect" shape="rect">here</a>).
       If a domain interface definition specifies a portgroup (by
@@ -696,6 +789,7 @@
     </p>
         <h5>
           <a name="elementsStaticroute" shape="rect" id="elementsStaticroute">Static Routes</a>
+          <a class="headerlink" href="#elementsStaticroute" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       Static route definitions are used to provide routing information
@@ -750,6 +844,7 @@
     </pre>
         <h3>
           <a name="elementsAddress" shape="rect" id="elementsAddress">Addressing</a>
+          <a class="headerlink" href="#elementsAddress" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The final set of elements define the addresses (IPv4 and/or
@@ -921,9 +1016,11 @@
       </dd></dl>
         <h2>
           <a name="examples" shape="rect" id="examples">Example configuration</a>
+          <a class="headerlink" href="#examples" title="Permalink to this headline">¶</a>
         </h2>
         <h3>
           <a name="examplesNAT" shape="rect" id="examplesNAT">NAT based network</a>
+          <a class="headerlink" href="#examplesNAT" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       This example is the so called "default" virtual network. It is
@@ -968,6 +1065,7 @@
       &lt;/network&gt;</pre>
         <h3>
           <a name="examplesRoute" shape="rect" id="examplesRoute">Routed network config</a>
+          <a class="headerlink" href="#examplesRoute" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       This is a variant on the default network which routes traffic
@@ -1044,6 +1142,7 @@
       &lt;/network&gt;</pre>
         <h3>
           <a name="examplesPrivate" shape="rect" id="examplesPrivate">Isolated network config</a>
+          <a class="headerlink" href="#examplesPrivate" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       This variant provides a completely isolated private network
@@ -1065,6 +1164,7 @@
       &lt;/network&gt;</pre>
         <h3>
           <a name="examplesPrivate6" shape="rect" id="examplesPrivate6">Isolated IPv6 network config</a>
+          <a class="headerlink" href="#examplesPrivate6" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       This variation of an isolated network defines only IPv6.
@@ -1089,6 +1189,7 @@
       &lt;/network&gt;</pre>
         <h3>
           <a name="examplesBridge" shape="rect" id="examplesBridge">Using an existing host bridge</a>
+          <a class="headerlink" href="#examplesBridge" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       <span class="since">Since 0.9.4</span>
@@ -1106,6 +1207,7 @@
       &lt;/network&gt;</pre>
         <h3>
           <a name="examplesDirect" shape="rect" id="examplesDirect">Using a macvtap "direct" connection</a>
+          <a class="headerlink" href="#examplesDirect" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       <span class="since">Since 0.9.4, QEMU and KVM only, requires
@@ -1140,6 +1242,7 @@
       &lt;/network&gt;</pre>
         <h3>
           <a name="examplesNoGateway" shape="rect" id="examplesNoGateway">Network config with no gateway addresses</a>
+          <a class="headerlink" href="#examplesNoGateway" title="Permalink to this headline">¶</a>
         </h3>
         <p>
     A valid network definition can contain no IPv4 or IPv6 addresses.  Such a definition

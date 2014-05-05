@@ -1,4 +1,3 @@
-
 /*
  * esx_interface_driver.c: interface driver functions for managing VMware ESX
  *                         host interfaces
@@ -26,7 +25,6 @@
 
 #include "internal.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "interface_conf.h"
 #include "virsocketaddr.h"
@@ -123,7 +121,7 @@ esxConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 
     success = true;
 
-  cleanup:
+ cleanup:
     if (! success) {
         for (i = 0; i < count; ++i) {
             VIR_FREE(names[i]);
@@ -275,7 +273,7 @@ esxInterfaceGetXMLDesc(virInterfacePtr iface, unsigned int flags)
 
     xml = virInterfaceDefFormat(&def);
 
-  cleanup:
+ cleanup:
     esxVI_PhysicalNic_Free(&physicalNic);
 
     return xml;

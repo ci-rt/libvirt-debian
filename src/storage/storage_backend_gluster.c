@@ -1,7 +1,7 @@
 /*
  * storage_backend_gluster.c: storage backend for Gluster handling
  *
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,8 @@
 #include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
+
+VIR_LOG_INIT("storage.storage_backend_gluster");
 
 struct _virStorageBackendGlusterState {
     glfs_t *vol;
@@ -141,7 +143,7 @@ virStorageBackendGlusterOpen(virStoragePoolObjPtr pool)
 
     return ret;
 
-error:
+ error:
     virStorageBackendGlusterClose(ret);
     return NULL;
 }
@@ -178,6 +180,57 @@ virStorageBackendGlusterReadHeader(glfs_fd_t *fd,
     return nread;
 }
 
+
+static int
+virStorageBackendGlusterSetMetadata(virStorageBackendGlusterStatePtr state,
+                                    virStorageVolDefPtr vol,
+                                    const char *name)
+{
+    int ret = -1;
+    char *path = NULL;
+    char *tmp;
+
+    VIR_FREE(vol->key);
+    VIR_FREE(vol->target.path);
+
+    vol->type = VIR_STORAGE_VOL_NETWORK;
+    vol->target.format = VIR_STORAGE_FILE_RAW;
+
+    if (name) {
+        VIR_FREE(vol->name);
+        if (VIR_STRDUP(vol->name, name) < 0)
+            goto cleanup;
+    }
+
+    if (virAsprintf(&path, "%s%s%s", state->volname, state->dir,
+                    vol->name) < 0)
+        goto cleanup;
+
+    tmp = state->uri->path;
+    if (virAsprintf(&state->uri->path, "/%s", path) < 0) {
+        state->uri->path = tmp;
+        goto cleanup;
+    }
+    if (!(vol->target.path = virURIFormat(state->uri))) {
+        VIR_FREE(state->uri->path);
+        state->uri->path = tmp;
+        goto cleanup;
+    }
+    VIR_FREE(state->uri->path);
+    state->uri->path = tmp;
+
+    /* the path is unique enough to serve as a volume key */
+    if (VIR_STRDUP(vol->key, vol->target.path) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(path);
+    return ret;
+}
+
+
 /* Populate *volptr for the given name and stat information, or leave
  * it NULL if the entry should be skipped (such as ".").  Return 0 on
  * success, -1 on failure. */
@@ -187,11 +240,10 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
                                    struct stat *st,
                                    virStorageVolDefPtr *volptr)
 {
-    char *tmp;
     int ret = -1;
     virStorageVolDefPtr vol = NULL;
     glfs_fd_t *fd = NULL;
-    virStorageFileMetadata *meta = NULL;
+    virStorageSourcePtr meta = NULL;
     char *header = NULL;
     ssize_t len = VIR_STORAGE_MAX_HEADER;
 
@@ -215,29 +267,11 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
     if (VIR_ALLOC(vol) < 0)
         goto cleanup;
 
-    if (virStorageBackendUpdateVolTargetInfoFD(&vol->target, -1, st,
-                                               &vol->allocation,
-                                               &vol->capacity) < 0)
+    if (virStorageBackendUpdateVolTargetInfoFD(&vol->target, -1, st, true) < 0)
         goto cleanup;
 
-    if (VIR_STRDUP(vol->name, name) < 0)
+    if (virStorageBackendGlusterSetMetadata(state, vol, name) < 0)
         goto cleanup;
-    if (virAsprintf(&vol->key, "%s%s%s", state->volname, state->dir,
-                    vol->name) < 0)
-        goto cleanup;
-
-    tmp = state->uri->path;
-    if (virAsprintf(&state->uri->path, "/%s", vol->key) < 0) {
-        state->uri->path = tmp;
-        goto cleanup;
-    }
-    if (!(vol->target.path = virURIFormat(state->uri))) {
-        VIR_FREE(state->uri->path);
-        state->uri->path = tmp;
-        goto cleanup;
-    }
-    VIR_FREE(state->uri->path);
-    state->uri->path = tmp;
 
     if (S_ISDIR(st->st_mode)) {
         vol->type = VIR_STORAGE_VOL_NETDIR;
@@ -248,8 +282,6 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
         goto cleanup;
     }
 
-    vol->type = VIR_STORAGE_VOL_NETWORK;
-    vol->target.format = VIR_STORAGE_FILE_RAW;
     /* No need to worry about O_NONBLOCK - gluster doesn't allow creation
      * of fifos, so there's nothing it would protect us from. */
     if (!(fd = glfs_open(state->vol, name, O_RDONLY | O_NOCTTY))) {
@@ -266,21 +298,19 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
                                                                len)) < 0)
         goto cleanup;
     if (!(meta = virStorageFileGetMetadataFromBuf(name, header, len,
-                                                  vol->target.format)))
+                                                  vol->target.format,
+                                                  &vol->backingStore.path,
+                                                  &vol->backingStore.format)))
         goto cleanup;
 
-    if (meta->backingStore) {
-        vol->backingStore.path = meta->backingStore;
-        meta->backingStore = NULL;
-        vol->backingStore.format = meta->backingStoreFormat;
-        if (vol->backingStore.format < 0)
-            vol->backingStore.format = VIR_STORAGE_FILE_RAW;
-    }
+    if (vol->backingStore.path &&
+        vol->backingStore.format < 0)
+        vol->backingStore.format = VIR_STORAGE_FILE_RAW;
     if (meta->capacity)
-        vol->capacity = meta->capacity;
-    if (meta->encrypted) {
-        if (VIR_ALLOC(vol->target.encryption) < 0)
-            goto cleanup;
+        vol->target.capacity = meta->capacity;
+    if (meta->encryption) {
+        vol->target.encryption = meta->encryption;
+        meta->encryption = NULL;
         if (vol->target.format == VIR_STORAGE_FILE_QCOW ||
             vol->target.format == VIR_STORAGE_FILE_QCOW2)
             vol->target.encryption->format = VIR_STORAGE_ENCRYPTION_FORMAT_QCOW;
@@ -293,8 +323,8 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
     *volptr = vol;
     vol = NULL;
     ret = 0;
-cleanup:
-    virStorageFileFreeMetadata(meta);
+ cleanup:
+    virStorageSourceFree(meta);
     virStorageVolDefFree(vol);
     if (fd)
         glfs_close(fd);
@@ -373,7 +403,7 @@ virStorageBackendGlusterRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     pool->def->allocation = pool->def->capacity - pool->def->available;
 
     ret = 0;
-cleanup:
+ cleanup:
     if (dir)
         glfs_closedir(dir);
     virStorageBackendGlusterClose(state);
@@ -382,8 +412,263 @@ cleanup:
     return ret;
 }
 
+
+static int
+virStorageBackendGlusterVolDelete(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virStoragePoolObjPtr pool,
+                                  virStorageVolDefPtr vol,
+                                  unsigned int flags)
+{
+    virStorageBackendGlusterStatePtr state = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    switch ((virStorageVolType) vol->type) {
+    case VIR_STORAGE_VOL_FILE:
+    case VIR_STORAGE_VOL_DIR:
+    case VIR_STORAGE_VOL_BLOCK:
+    case VIR_STORAGE_VOL_LAST:
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("removing of '%s' volumes is not supported "
+                         "by the gluster backend: %s"),
+                       virStorageVolTypeToString(vol->type),
+                       vol->target.path);
+        goto cleanup;
+        break;
+
+    case VIR_STORAGE_VOL_NETWORK:
+        if (!(state = virStorageBackendGlusterOpen(pool)))
+            goto cleanup;
+
+        if (glfs_unlink(state->vol, vol->name) < 0) {
+            if (errno != ENOENT) {
+                virReportSystemError(errno,
+                                     _("cannot remove gluster volume file '%s'"),
+                                     vol->target.path);
+                goto cleanup;
+            }
+        }
+        break;
+
+    case VIR_STORAGE_VOL_NETDIR:
+        if (!(state = virStorageBackendGlusterOpen(pool)))
+            goto cleanup;
+
+        if (glfs_rmdir(state->vol, vol->target.path) < 0) {
+            if (errno != ENOENT) {
+                virReportSystemError(errno,
+                                     _("cannot remove gluster volume dir '%s'"),
+                                     vol->target.path);
+                goto cleanup;
+            }
+        }
+        break;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virStorageBackendGlusterClose(state);
+    return ret;
+}
+
+
+static char *
+virStorageBackendGlusterFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                        const char *srcSpec,
+                                        unsigned int flags)
+{
+    virStoragePoolSourceList list = { .type = VIR_STORAGE_POOL_GLUSTER,
+                                      .nsources = 0,
+                                      .sources = NULL
+                                    };
+    virStoragePoolSourcePtr source = NULL;
+    char *ret = NULL;
+    size_t i;
+
+    virCheckFlags(0, NULL);
+
+    if (!srcSpec) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("hostname must be specified for gluster sources"));
+        return NULL;
+    }
+
+    if (!(source = virStoragePoolDefParseSourceString(srcSpec,
+                                                      VIR_STORAGE_POOL_GLUSTER)))
+        return NULL;
+
+    if (source->nhost != 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Expected exactly 1 host for the storage pool"));
+        goto cleanup;
+    }
+
+    if (virStorageBackendFindGlusterPoolSources(source->hosts[0].name,
+                                                0, /* currently ignored */
+                                                &list) < 0)
+        goto cleanup;
+
+    if (!(ret = virStoragePoolSourceListFormat(&list)))
+        goto cleanup;
+
+ cleanup:
+    for (i = 0; i < list.nsources; i++)
+        virStoragePoolSourceClear(&list.sources[i]);
+    VIR_FREE(list.sources);
+
+    virStoragePoolSourceFree(source);
+    return ret;
+}
+
+
 virStorageBackend virStorageBackendGluster = {
     .type = VIR_STORAGE_POOL_GLUSTER,
 
     .refreshPool = virStorageBackendGlusterRefreshPool,
+    .findPoolSources = virStorageBackendGlusterFindPoolSources,
+
+    .deleteVol = virStorageBackendGlusterVolDelete,
+};
+
+
+typedef struct _virStorageFileBackendGlusterPriv virStorageFileBackendGlusterPriv;
+typedef virStorageFileBackendGlusterPriv *virStorageFileBackendGlusterPrivPtr;
+
+struct _virStorageFileBackendGlusterPriv {
+    glfs_t *vol;
+    char *volname;
+    char *path;
+};
+
+
+static void
+virStorageFileBackendGlusterDeinit(virStorageSourcePtr src)
+{
+    VIR_DEBUG("deinitializing gluster storage file %p(%s/%s)",
+              src, src->hosts[0].name, src->path);
+    virStorageFileBackendGlusterPrivPtr priv = src->drv->priv;
+
+    if (priv->vol)
+        glfs_fini(priv->vol);
+    VIR_FREE(priv->volname);
+
+    VIR_FREE(priv);
+    src->drv->priv = NULL;
+}
+
+static int
+virStorageFileBackendGlusterInit(virStorageSourcePtr src)
+{
+    virStorageFileBackendGlusterPrivPtr priv = NULL;
+    virStorageNetHostDefPtr host = &(src->hosts[0]);
+    const char *hostname = host->name;
+    int port = 0;
+
+    VIR_DEBUG("initializing gluster storage file %p(%s/%s)",
+              src, hostname, src->path);
+
+    if (VIR_ALLOC(priv) < 0)
+        return -1;
+
+    if (VIR_STRDUP(priv->volname, src->path) < 0)
+        goto error;
+
+    if (!(priv->path = strchr(priv->volname, '/'))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("invalid path of gluster volume: '%s'"),
+                       src->path);
+        goto error;
+    }
+
+    *priv->path = '\0';
+    priv->path++;
+
+    if (host->port &&
+        virStrToLong_i(host->port, NULL, 10, &port) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("failed to parse port number '%s'"),
+                       host->port);
+        goto error;
+    }
+
+    if (host->transport == VIR_STORAGE_NET_HOST_TRANS_UNIX)
+        hostname = host->socket;
+
+    if (!(priv->vol = glfs_new(priv->volname))) {
+        virReportOOMError();
+        goto error;
+    }
+
+    if (glfs_set_volfile_server(priv->vol,
+                                virStorageNetHostTransportTypeToString(host->transport),
+                                hostname, port) < 0) {
+        virReportSystemError(errno,
+                             _("failed to set gluster volfile server '%s'"),
+                             hostname);
+        goto error;
+    }
+
+    if (glfs_init(priv->vol) < 0) {
+        virReportSystemError(errno,
+                             _("failed to initialize gluster connection to "
+                               "server: '%s'"), hostname);
+        goto error;
+    }
+
+    src->drv->priv = priv;
+
+    return 0;
+
+ error:
+    VIR_FREE(priv->volname);
+    if (priv->vol)
+        glfs_fini(priv->vol);
+    VIR_FREE(priv);
+
+    return -1;
+}
+
+
+static int
+virStorageFileBackendGlusterUnlink(virStorageSourcePtr src)
+{
+    virStorageFileBackendGlusterPrivPtr priv = src->drv->priv;
+    int ret;
+
+    ret = glfs_unlink(priv->vol, priv->path);
+    /* preserve errno */
+
+    VIR_DEBUG("removing storage file %p(%s/%s): ret=%d, errno=%d",
+              src, src->hosts[0].name, src->path, ret, errno);
+    return ret;
+}
+
+
+static int
+virStorageFileBackendGlusterStat(virStorageSourcePtr src,
+                                 struct stat *st)
+{
+    virStorageFileBackendGlusterPrivPtr priv = src->drv->priv;
+    int ret;
+
+    ret = glfs_stat(priv->vol, priv->path, st);
+    /* preserve errno */
+
+    VIR_DEBUG("stat of storage file %p(%s/%s): ret=%d, errno=%d",
+              src, src->hosts[0].name, src->path, ret, errno);
+    return ret;
+}
+
+
+virStorageFileBackend virStorageFileBackendGluster = {
+    .type = VIR_STORAGE_TYPE_NETWORK,
+    .protocol = VIR_STORAGE_NET_PROTOCOL_GLUSTER,
+
+    .backendInit = virStorageFileBackendGlusterInit,
+    .backendDeinit = virStorageFileBackendGlusterDeinit,
+
+    .storageFileUnlink = virStorageFileBackendGlusterUnlink,
+    .storageFileStat = virStorageFileBackendGlusterStat,
 };

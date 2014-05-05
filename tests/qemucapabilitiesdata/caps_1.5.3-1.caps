@@ -134,4 +134,6 @@
     <flag name='boot-strict'/>
     <flag name='pvpanic'/>
     <flag name='reboot-timeout'/>
+    <flag name='spiceport'/>
+    <flag name='usb-kbd'/>
   </qemuCaps>

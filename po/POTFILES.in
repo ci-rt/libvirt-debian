@@ -8,6 +8,9 @@ gnulib/lib/gai_strerror.c
 gnulib/lib/regcomp.c
 src/access/viraccessdriverpolkit.c
 src/access/viraccessmanager.c
+src/bhyve/bhyve_command.c
+src/bhyve/bhyve_driver.c
+src/bhyve/bhyve_process.c
 src/conf/capabilities.c
 src/conf/cpu_conf.c
 src/conf/device_conf.c
@@ -25,7 +28,6 @@ src/conf/object_event.c
 src/conf/secret_conf.c
 src/conf/snapshot_conf.c
 src/conf/storage_conf.c
-src/conf/storage_encryption_conf.c
 src/conf/virchrdev.c
 src/cpu/cpu.c
 src/cpu/cpu_generic.c
@@ -62,6 +64,7 @@ src/locking/sanlock_helper.c
 src/lxc/lxc_cgroup.c
 src/lxc/lxc_fuse.c
 src/lxc/lxc_hostdev.c
+src/lxc/lxc_native.c
 src/lxc/lxc_container.c
 src/lxc/lxc_conf.c
 src/lxc/lxc_controller.c
@@ -92,7 +95,6 @@ src/parallels/parallels_utils.h
 src/parallels/parallels_storage.c
 src/phyp/phyp_driver.c
 src/qemu/qemu_agent.c
-src/qemu/qemu_bridge_filter.c
 src/qemu/qemu_capabilities.c
 src/qemu/qemu_cgroup.c
 src/qemu/qemu_command.c
@@ -154,15 +156,19 @@ src/util/vircgroup.c
 src/util/virclosecallbacks.c
 src/util/vircommand.c
 src/util/virconf.c
+src/util/vircrypto.c
 src/util/virdbus.c
 src/util/virdnsmasq.c
 src/util/vireventpoll.c
 src/util/virfile.c
+src/util/virfirewall.c
 src/util/virhash.c
 src/util/virhook.c
+src/util/virhostdev.c
 src/util/viridentity.c
 src/util/virinitctl.c
 src/util/viriptables.c
+src/util/viriscsi.c
 src/util/virjson.c
 src/util/virkeyfile.c
 src/util/virlockspace.c
@@ -187,7 +193,9 @@ src/util/virsexpr.c
 src/util/virscsi.c
 src/util/virsocketaddr.c
 src/util/virstatslinux.c
+src/util/virstorageencryption.c
 src/util/virstoragefile.c
+src/util/virstring.c
 src/util/virsysinfo.c
 src/util/virerror.c
 src/util/virerror.h

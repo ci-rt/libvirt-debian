@@ -116,13 +116,13 @@ vmwareCapsInit(void)
             goto error;
     }
 
-cleanup:
+ cleanup:
     virCPUDefFree(cpu);
     cpuDataFree(data);
 
     return caps;
 
-error:
+ error:
     virObjectUnref(caps);
     goto cleanup;
 }
@@ -194,7 +194,7 @@ vmwareLoadDomains(struct vmware_driver *driver)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(outbuf);
     virDomainDefFree(vmdef);
@@ -259,7 +259,6 @@ vmwareParseVersionStr(int type, const char *verbuf, unsigned long *version)
 int
 vmwareExtractVersion(struct vmware_driver *driver)
 {
-    unsigned long version = 0;
     int ret = -1;
     virCommandPtr cmd = NULL;
     char * outbuf = NULL;
@@ -298,12 +297,12 @@ vmwareExtractVersion(struct vmware_driver *driver)
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    if (vmwareParseVersionStr(driver->type, outbuf, &version) < 0)
+    if (vmwareParseVersionStr(driver->type, outbuf, &driver->version) < 0)
         goto cleanup;
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(outbuf);
     VIR_FREE(bin);
@@ -331,15 +330,15 @@ vmwareDomainConfigDisplay(vmwareDomainPtr pDomain, virDomainDefPtr def)
     }
 }
 
-int
-vmwareParsePath(char *path, char **directory, char **filename)
+static int
+vmwareParsePath(const char *path, char **directory, char **filename)
 {
     char *separator;
 
     separator = strrchr(path, '/');
 
     if (separator != NULL) {
-        *separator++ = '\0';
+        separator++;
 
         if (*separator == '\0') {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -347,7 +346,7 @@ vmwareParsePath(char *path, char **directory, char **filename)
             return -1;
         }
 
-        if (VIR_STRDUP(*directory, path) < 0)
+        if (VIR_STRNDUP(*directory, path, separator - path - 1) < 0)
             goto error;
         if (VIR_STRDUP(*filename, separator) < 0) {
             VIR_FREE(*directory);
@@ -361,7 +360,7 @@ vmwareParsePath(char *path, char **directory, char **filename)
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -388,11 +387,12 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
     char *fileName = NULL;
     int ret = -1;
     size_t i;
+    const char *src;
 
     /*
      * Build VMX URL. Use the source of the first file-based harddisk
      * to deduce the path for the VMX file. Don't just use the
-     * first disk, because it may be CDROM disk and ISO images are normaly not
+     * first disk, because it may be CDROM disk and ISO images are normally not
      * located in the virtual machine's directory. This approach
      * isn't perfect but should work in the majority of cases.
      */
@@ -405,7 +405,7 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
 
     for (i = 0; i < vmdef->ndisks; ++i) {
         if (vmdef->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
-            vmdef->disks[i]->type == VIR_DOMAIN_DISK_TYPE_FILE) {
+            virDomainDiskGetType(vmdef->disks[i]) == VIR_STORAGE_TYPE_FILE) {
             disk = vmdef->disks[i];
             break;
         }
@@ -418,21 +418,22 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
         goto cleanup;
     }
 
-    if (disk->src == NULL) {
+    src = virDomainDiskGetSource(disk);
+    if (!src) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("First file-based harddisk has no source, cannot "
                          "deduce datastore and path for VMX file"));
         goto cleanup;
     }
 
-    if (vmwareParsePath(disk->src, &directoryName, &fileName) < 0) {
+    if (vmwareParsePath(src, &directoryName, &fileName) < 0) {
         goto cleanup;
     }
 
     if (!virFileHasSuffix(fileName, ".vmdk")) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Expecting source '%s' of first file-based harddisk "
-                         "to be a VMDK image"), disk->src);
+                         "to be a VMDK image"), src);
         goto cleanup;
     }
 
@@ -441,7 +442,7 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
 
     ret = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(directoryName);
     VIR_FREE(fileName);
     return ret;
@@ -523,7 +524,7 @@ vmwareExtractPid(const char * vmxPath)
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(vmxDir);
     VIR_FREE(logFilePath);
     VIR_FORCE_FCLOSE(logFile);

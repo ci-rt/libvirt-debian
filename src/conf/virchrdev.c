@@ -41,6 +41,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("conf.chrdev");
+
 /* structure holding information about character devices
  * open in a given domain */
 struct _virChrdevs {
@@ -94,7 +96,7 @@ static char *virChrdevLockFilePath(const char *dev)
 
     sanitizedPath = virFileSanitizePath(path);
 
-cleanup:
+ cleanup:
     VIR_FREE(path);
     VIR_FREE(devCopy);
 
@@ -173,7 +175,7 @@ static int virChrdevLockFileCreate(const char *dev)
     /* we hold the lock */
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(lockfd);
     VIR_FREE(path);
     VIR_FREE(pidStr);
@@ -282,7 +284,7 @@ virChrdevsPtr virChrdevAlloc(void)
         goto error;
 
     return devs;
-error:
+ error:
     virChrdevFree(devs);
     return NULL;
 }
@@ -408,7 +410,7 @@ int virChrdevOpen(virChrdevsPtr devs,
     /* open the character device */
     switch (source->type) {
     case VIR_DOMAIN_CHR_TYPE_PTY:
-        if (virFDStreamOpenFile(st, path, 0, 0, O_RDWR) < 0)
+        if (virFDStreamOpenPTY(st, path, 0, 0, O_RDWR) < 0)
             goto error;
         break;
     case VIR_DOMAIN_CHR_TYPE_UNIX:
@@ -431,7 +433,7 @@ int virChrdevOpen(virChrdevsPtr devs,
     virMutexUnlock(&devs->lock);
     return 0;
 
-error:
+ error:
     savedError = virSaveLastError();
 
     if (added)

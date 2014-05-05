@@ -1,4 +1,3 @@
-
 /*
  * hyperv_interface_driver.c: interface driver functions for managing
  *                            Microsoft Hyper-V host interfaces
@@ -27,7 +26,6 @@
 #include "virerror.h"
 #include "datatypes.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "hyperv_interface_driver.h"
 

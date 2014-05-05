@@ -4,7 +4,7 @@
  * Description: Provides the interfaces of the libvirt library to handle
  *              virtualized domains
  *
- * Copyright (C) 2005-2006, 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2005-2006, 2010-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -692,6 +692,14 @@ typedef enum {
 #define VIR_NODE_CPU_STATS_IOWAIT "iowait"
 
 /**
+ * VIR_NODE_CPU_STATS_INTR:
+ *
+ * The cumulative interrupt CPU time,
+ * since the node booting up (in nanoseconds).
+ */
+#define VIR_NODE_CPU_STATS_INTR "intr"
+
+/**
  * VIR_NODE_CPU_STATS_UTILIZATION:
  *
  * The CPU utilization of a node.
@@ -1172,6 +1180,29 @@ typedef enum {
     VIR_DUMP_MEMORY_ONLY  = (1 << 4), /* use dump-guest-memory */
 } virDomainCoreDumpFlags;
 
+/**
+ * virDomainCoreDumpFormat:
+ *
+ * Values for specifying different formats of domain core dumps.
+ */
+typedef enum {
+    VIR_DOMAIN_CORE_DUMP_FORMAT_RAW,          /* dump guest memory in raw format */
+    VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB,   /* kdump-compressed format, with
+                                               * zlib compression */
+    VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO,    /* kdump-compressed format, with
+                                               * lzo compression */
+    VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY, /* kdump-compressed format, with
+                                               * snappy compression */
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_CORE_DUMP_FORMAT_LAST
+    /*
+     * NB: this enum value will increase over time as new events are
+     * added to the libvirt API. It reflects the last state supported
+     * by this version of the libvirt API.
+     */
+#endif
+} virDomainCoreDumpFormat;
+
 /* Domain migration flags. */
 typedef enum {
     VIR_MIGRATE_LIVE              = (1 << 0), /* live migration */
@@ -1192,6 +1223,7 @@ typedef enum {
     VIR_MIGRATE_OFFLINE           = (1 << 10), /* offline migrate */
     VIR_MIGRATE_COMPRESSED        = (1 << 11), /* compress data during migration */
     VIR_MIGRATE_ABORT_ON_ERROR    = (1 << 12), /* abort migration on I/O errors happened during migration */
+    VIR_MIGRATE_AUTO_CONVERGE     = (1 << 13), /* force convergence */
 } virDomainMigrateFlags;
 
 
@@ -1464,7 +1496,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1002001
+#define LIBVIR_VERSION_NUMBER 1002004
 
 /**
  * LIBVIR_CHECK_VERSION:
@@ -1723,6 +1755,14 @@ int                     virDomainCoreDump       (virDomainPtr domain,
                                                  unsigned int flags);
 
 /*
+ * Domain core dump with format specified
+ */
+int                 virDomainCoreDumpWithFormat (virDomainPtr domain,
+                                                 const char *to,
+                                                 unsigned int dumpformat,
+                                                 unsigned int flags);
+
+/*
  * Screenshot of current domain console
  */
 char *                  virDomainScreenshot     (virDomainPtr domain,
@@ -1805,6 +1845,51 @@ char *                  virDomainGetSchedulerType(virDomainPtr domain,
  */
 
 #define VIR_DOMAIN_BLKIO_DEVICE_WEIGHT "device_weight"
+
+/**
+ * VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS:
+ *
+ * Macro for the blkio tunable throttle.read_iops_device: it represents
+ * the number of reading the block device per second, as a string. The
+ * string is parsed as a series of /path/to/device, read_iops elements,
+ * separated by ','.
+ */
+
+#define VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS "device_read_iops_sec"
+
+
+/**
+ * VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS:
+ *
+ * Macro for the blkio tunable throttle.write_iops_device: it represents
+ * the number of writing the block device per second, as a string. The
+ * string is parsed as a series of /path/to/device, write_iops elements,
+ * separated by ','.
+ */
+#define VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS "device_write_iops_sec"
+
+
+/**
+ * VIR_DOMAIN_BLKIO_DEVICE_READ_BPS:
+ *
+ * Macro for the blkio tunable throttle.read_iops_device: it represents
+ * the bytes of reading the block device per second, as a string. The
+ * string is parsed as a series of /path/to/device, read_bps elements,
+ * separated by ','.
+ */
+#define VIR_DOMAIN_BLKIO_DEVICE_READ_BPS "device_read_bytes_sec"
+
+
+/**
+ * VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS:
+ *
+ * Macro for the blkio tunable throttle.read_iops_device: it represents
+ * the number of reading the block device per second, as a string. The
+ * string is parsed as a series of /path/to/device, write_bps elements,
+ * separated by ','.
+ */
+#define VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS "device_write_bytes_sec"
+
 
 /* Set Blkio tunables for the domain*/
 int     virDomainSetBlkioParameters(virDomainPtr domain,
@@ -2095,7 +2180,8 @@ int                     virDomainBlockResize (virDomainPtr dom,
 
 /** virDomainBlockInfo:
  *
- * This struct provides information about the size of a block device backing store
+ * This struct provides information about the size of a block device
+ * backing store
  *
  * Examples:
  *
@@ -2108,11 +2194,12 @@ int                     virDomainBlockResize (virDomainPtr dom,
  *
  *  - qcow2 file in filesystem
  *       * capacity: logical size from qcow2 header
- *       * allocation, physical: logical size of the file / highest qcow extent (identical)
+ *       * allocation, physical: logical size of the file /
+ *                               highest qcow extent (identical)
  *
  *  - qcow2 file in a block device
  *       * capacity: logical size from qcow2 header
- *       * allocation: highest qcow extent written
+ *       * allocation: highest qcow extent written for an active domain
  *       * physical: size of the block device container
  */
 typedef struct _virDomainBlockInfo virDomainBlockInfo;
@@ -4548,7 +4635,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_WATCHDOG_NONE = 0, /* No action, watchdog ignored */
     VIR_DOMAIN_EVENT_WATCHDOG_PAUSE,    /* Guest CPUs are paused */
     VIR_DOMAIN_EVENT_WATCHDOG_RESET,    /* Guest CPUs are reset */
-    VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF, /* Guest is forcably powered off */
+    VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF, /* Guest is forcibly powered off */
     VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN, /* Guest is requested to gracefully shutdown */
     VIR_DOMAIN_EVENT_WATCHDOG_DEBUG,    /* No action, a debug message logged */
 
@@ -4619,7 +4706,7 @@ typedef void (*virConnectDomainEventIOErrorCallback)(virConnectPtr conn,
  * @opaque: application specified data
  *
  * The callback signature to use when registering for an event of type
- * VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()
+ * VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON with virConnectDomainEventRegisterAny()
  *
  */
 typedef void (*virConnectDomainEventIOErrorReasonCallback)(virConnectPtr conn,

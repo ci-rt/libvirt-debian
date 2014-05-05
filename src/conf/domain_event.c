@@ -24,6 +24,8 @@
 
 #include <config.h>
 
+#include <regex.h>
+
 #include "domain_event.h"
 #include "object_event.h"
 #include "object_event_private.h"
@@ -35,6 +37,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.domain_event");
 
 static virClassPtr virDomainEventClass;
 static virClassPtr virDomainEventLifecycleClass;
@@ -47,6 +50,8 @@ static virClassPtr virDomainEventDiskChangeClass;
 static virClassPtr virDomainEventTrayChangeClass;
 static virClassPtr virDomainEventBalloonChangeClass;
 static virClassPtr virDomainEventDeviceRemovedClass;
+static virClassPtr virDomainEventPMClass;
+static virClassPtr virDomainQemuMonitorEventClass;
 
 
 static void virDomainEventDispose(void *obj);
@@ -60,12 +65,20 @@ static void virDomainEventDiskChangeDispose(void *obj);
 static void virDomainEventTrayChangeDispose(void *obj);
 static void virDomainEventBalloonChangeDispose(void *obj);
 static void virDomainEventDeviceRemovedDispose(void *obj);
+static void virDomainEventPMDispose(void *obj);
+static void virDomainQemuMonitorEventDispose(void *obj);
 
 static void
 virDomainEventDispatchDefaultFunc(virConnectPtr conn,
                                   virObjectEventPtr event,
                                   virConnectObjectEventGenericCallback cb,
                                   void *cbopaque);
+
+static void
+virDomainQemuMonitorEventDispatchFunc(virConnectPtr conn,
+                                      virObjectEventPtr event,
+                                      virConnectObjectEventGenericCallback cb,
+                                      void *cbopaque);
 
 struct _virDomainEvent {
     virObjectEvent parent;
@@ -171,6 +184,25 @@ struct _virDomainEventDeviceRemoved {
 typedef struct _virDomainEventDeviceRemoved virDomainEventDeviceRemoved;
 typedef virDomainEventDeviceRemoved *virDomainEventDeviceRemovedPtr;
 
+struct _virDomainEventPM {
+    virDomainEvent parent;
+
+    int reason;
+};
+typedef struct _virDomainEventPM virDomainEventPM;
+typedef virDomainEventPM *virDomainEventPMPtr;
+
+struct _virDomainQemuMonitorEvent {
+    virObjectEvent parent;
+
+    char *event;
+    long long seconds;
+    unsigned int micros;
+    char *details;
+};
+typedef struct _virDomainQemuMonitorEvent virDomainQemuMonitorEvent;
+typedef virDomainQemuMonitorEvent *virDomainQemuMonitorEventPtr;
+
 
 static int
 virDomainEventsOnceInit(void)
@@ -240,6 +272,18 @@ virDomainEventsOnceInit(void)
                       "virDomainEventDeviceRemoved",
                       sizeof(virDomainEventDeviceRemoved),
                       virDomainEventDeviceRemovedDispose)))
+        return -1;
+    if (!(virDomainEventPMClass =
+          virClassNew(virDomainEventClass,
+                      "virDomainEventPM",
+                      sizeof(virDomainEventPM),
+                      virDomainEventPMDispose)))
+        return -1;
+    if (!(virDomainQemuMonitorEventClass =
+          virClassNew(virClassForObjectEvent(),
+                      "virDomainQemuMonitorEvent",
+                      sizeof(virDomainQemuMonitorEvent),
+                      virDomainQemuMonitorEventDispose)))
         return -1;
     return 0;
 }
@@ -359,28 +403,21 @@ virDomainEventDeviceRemovedDispose(void *obj)
     VIR_FREE(event->devAlias);
 }
 
-
-/**
- * virDomainEventFilter:
- * @conn: pointer to the connection
- * @event: the event to check
- * @opaque: opaque data holding ACL filter to use
- *
- * Internal function to run ACL filtering before dispatching an event
- */
-static bool
-virDomainEventFilter(virConnectPtr conn, virObjectEventPtr event, void *opaque)
+static void
+virDomainEventPMDispose(void *obj)
 {
-    virDomainDef dom;
-    virDomainObjListFilter filter = opaque;
+    virDomainEventPMPtr event = obj;
+    VIR_DEBUG("obj=%p", event);
+}
 
-    /* For now, we just create a virDomainDef with enough contents to
-     * satisfy what viraccessdriverpolkit.c references.  This is a bit
-     * fragile, but I don't know of anything better.  */
-    dom.name = event->meta.name;
-    memcpy(dom.uuid, event->meta.uuid, VIR_UUID_BUFLEN);
+static void
+virDomainQemuMonitorEventDispose(void *obj)
+{
+    virDomainQemuMonitorEventPtr event = obj;
+    VIR_DEBUG("obj=%p", event);
 
-    return (filter)(conn, &dom);
+    VIR_FREE(event->event);
+    VIR_FREE(event->details);
 }
 
 
@@ -849,7 +886,7 @@ virDomainEventDiskChangeNew(int id,
 
     return (virObjectEventPtr)ev;
 
-error:
+ error:
     virObjectUnref(ev);
     return NULL;
 }
@@ -902,7 +939,7 @@ virDomainEventTrayChangeNew(int id,
 
     return (virObjectEventPtr)ev;
 
-error:
+ error:
     virObjectUnref(ev);
     return NULL;
 }
@@ -931,19 +968,21 @@ virDomainEventTrayChangeNewFromDom(virDomainPtr dom,
 static virObjectEventPtr
 virDomainEventPMWakeupNew(int id,
                           const char *name,
-                          unsigned char *uuid)
+                          unsigned char *uuid,
+                          int reason)
 {
-    virObjectEventPtr ev;
+    virDomainEventPMPtr ev;
 
     if (virDomainEventsInitialize() < 0)
         return NULL;
 
-    if (!(ev = virDomainEventNew(virDomainEventClass,
+    if (!(ev = virDomainEventNew(virDomainEventPMClass,
                                  VIR_DOMAIN_EVENT_ID_PMWAKEUP,
                                  id, name, uuid)))
         return NULL;
 
-    return ev;
+    ev->reason = reason;
+    return (virObjectEventPtr)ev;
 }
 
 virObjectEventPtr
@@ -951,31 +990,34 @@ virDomainEventPMWakeupNewFromObj(virDomainObjPtr obj)
 {
     return virDomainEventPMWakeupNew(obj->def->id,
                                      obj->def->name,
-                                     obj->def->uuid);
+                                     obj->def->uuid,
+                                     0);
 }
 
 virObjectEventPtr
-virDomainEventPMWakeupNewFromDom(virDomainPtr dom)
+virDomainEventPMWakeupNewFromDom(virDomainPtr dom, int reason)
 {
-    return virDomainEventPMWakeupNew(dom->id, dom->name, dom->uuid);
+    return virDomainEventPMWakeupNew(dom->id, dom->name, dom->uuid, reason);
 }
 
 static virObjectEventPtr
 virDomainEventPMSuspendNew(int id,
                            const char *name,
-                           unsigned char *uuid)
+                           unsigned char *uuid,
+                           int reason)
 {
-    virObjectEventPtr ev;
+    virDomainEventPMPtr ev;
 
     if (virDomainEventsInitialize() < 0)
         return NULL;
 
-    if (!(ev = virDomainEventNew(virDomainEventClass,
+    if (!(ev = virDomainEventNew(virDomainEventPMClass,
                                  VIR_DOMAIN_EVENT_ID_PMSUSPEND,
                                  id, name, uuid)))
         return NULL;
 
-    return ev;
+    ev->reason = reason;
+    return (virObjectEventPtr)ev;
 }
 
 virObjectEventPtr
@@ -983,30 +1025,34 @@ virDomainEventPMSuspendNewFromObj(virDomainObjPtr obj)
 {
     return virDomainEventPMSuspendNew(obj->def->id,
                                       obj->def->name,
-                                      obj->def->uuid);
+                                      obj->def->uuid,
+                                      0);
 }
 
 virObjectEventPtr
-virDomainEventPMSuspendNewFromDom(virDomainPtr dom)
+virDomainEventPMSuspendNewFromDom(virDomainPtr dom, int reason)
 {
-    return virDomainEventPMSuspendNew(dom->id, dom->name, dom->uuid);
+    return virDomainEventPMSuspendNew(dom->id, dom->name, dom->uuid, reason);
 }
 
 static virObjectEventPtr
 virDomainEventPMSuspendDiskNew(int id,
                                const char *name,
-                               unsigned char *uuid)
+                               unsigned char *uuid,
+                               int reason)
 {
-    virObjectEventPtr ev;
+    virDomainEventPMPtr ev;
 
     if (virDomainEventsInitialize() < 0)
         return NULL;
 
-    if (!(ev = virDomainEventNew(virDomainEventClass,
+    if (!(ev = virDomainEventNew(virDomainEventPMClass,
                                  VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK,
                                  id, name, uuid)))
         return NULL;
-    return ev;
+
+    ev->reason = reason;
+    return (virObjectEventPtr)ev;
 }
 
 virObjectEventPtr
@@ -1014,13 +1060,15 @@ virDomainEventPMSuspendDiskNewFromObj(virDomainObjPtr obj)
 {
     return virDomainEventPMSuspendDiskNew(obj->def->id,
                                           obj->def->name,
-                                          obj->def->uuid);
+                                          obj->def->uuid,
+                                          0);
 }
 
 virObjectEventPtr
-virDomainEventPMSuspendDiskNewFromDom(virDomainPtr dom)
+virDomainEventPMSuspendDiskNewFromDom(virDomainPtr dom, int reason)
 {
-    return virDomainEventPMSuspendDiskNew(dom->id, dom->name, dom->uuid);
+    return virDomainEventPMSuspendDiskNew(dom->id, dom->name, dom->uuid,
+                                          reason);
 }
 
 virObjectEventPtr
@@ -1081,7 +1129,7 @@ virDomainEventDeviceRemovedNew(int id,
 
     return (virObjectEventPtr)ev;
 
-error:
+ error:
     virObjectUnref(ev);
     return NULL;
 }
@@ -1241,12 +1289,24 @@ virDomainEventDispatchDefaultFunc(virConnectPtr conn,
         }
 
     case VIR_DOMAIN_EVENT_ID_PMWAKEUP:
-        ((virConnectDomainEventPMWakeupCallback)cb)(conn, dom, 0, cbopaque);
-        goto cleanup;
+        {
+            virDomainEventPMPtr pmEvent = (virDomainEventPMPtr)event;
+
+            ((virConnectDomainEventPMWakeupCallback)cb)(conn, dom,
+                                                        pmEvent->reason,
+                                                        cbopaque);
+            goto cleanup;
+        }
 
     case VIR_DOMAIN_EVENT_ID_PMSUSPEND:
-        ((virConnectDomainEventPMSuspendCallback)cb)(conn, dom, 0, cbopaque);
-        goto cleanup;
+        {
+            virDomainEventPMPtr pmEvent = (virDomainEventPMPtr)event;
+
+            ((virConnectDomainEventPMSuspendCallback)cb)(conn, dom,
+                                                         pmEvent->reason,
+                                                         cbopaque);
+            goto cleanup;
+        }
 
     case VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE:
         {
@@ -1260,8 +1320,14 @@ virDomainEventDispatchDefaultFunc(virConnectPtr conn,
         }
 
     case VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK:
-        ((virConnectDomainEventPMSuspendDiskCallback)cb)(conn, dom, 0, cbopaque);
-        goto cleanup;
+        {
+            virDomainEventPMPtr pmEvent = (virDomainEventPMPtr)event;
+
+            ((virConnectDomainEventPMSuspendDiskCallback)cb)(conn, dom,
+                                                             pmEvent->reason,
+                                                             cbopaque);
+            goto cleanup;
+        }
 
     case VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED:
         {
@@ -1280,7 +1346,81 @@ virDomainEventDispatchDefaultFunc(virConnectPtr conn,
 
     VIR_WARN("Unexpected event ID %d", event->eventID);
 
-cleanup:
+ cleanup:
+    virDomainFree(dom);
+}
+
+
+virObjectEventPtr
+virDomainQemuMonitorEventNew(int id,
+                             const char *name,
+                             const unsigned char *uuid,
+                             const char *event,
+                             long long seconds,
+                             unsigned int micros,
+                             const char *details)
+{
+    virDomainQemuMonitorEventPtr ev;
+
+    if (virDomainEventsInitialize() < 0)
+        return NULL;
+
+    if (!(ev = virObjectEventNew(virDomainQemuMonitorEventClass,
+                                 virDomainQemuMonitorEventDispatchFunc,
+                                 0, id, name, uuid)))
+        return NULL;
+
+    /* event is mandatory, details are optional */
+    if (VIR_STRDUP(ev->event, event) <= 0)
+        goto error;
+    ev->seconds = seconds;
+    ev->micros = micros;
+    if (VIR_STRDUP(ev->details, details) < 0)
+        goto error;
+
+    return (virObjectEventPtr)ev;
+
+ error:
+    virObjectUnref(ev);
+    return NULL;
+}
+
+
+/* In order to filter by event name, we need to store a copy of the
+ * name to filter on.  By wrapping the caller's freecb, we can
+ * piggyback our cleanup to happen at the same time the caller
+ * deregisters.  */
+struct virDomainQemuMonitorEventData {
+    char *event;
+    regex_t regex;
+    unsigned int flags;
+    void *opaque;
+    virFreeCallback freecb;
+};
+typedef struct virDomainQemuMonitorEventData virDomainQemuMonitorEventData;
+
+
+static void
+virDomainQemuMonitorEventDispatchFunc(virConnectPtr conn,
+                                      virObjectEventPtr event,
+                                      virConnectObjectEventGenericCallback cb,
+                                      void *cbopaque)
+{
+    virDomainPtr dom = virGetDomain(conn, event->meta.name, event->meta.uuid);
+    virDomainQemuMonitorEventPtr qemuMonitorEvent;
+    virDomainQemuMonitorEventData *data = cbopaque;
+
+    if (!dom)
+        return;
+    dom->id = event->meta.id;
+
+    qemuMonitorEvent = (virDomainQemuMonitorEventPtr)event;
+    ((virConnectDomainQemuMonitorEventCallback)cb)(conn, dom,
+                                                   qemuMonitorEvent->event,
+                                                   qemuMonitorEvent->seconds,
+                                                   qemuMonitorEvent->micros,
+                                                   qemuMonitorEvent->details,
+                                                   data->opaque);
     virDomainFree(dom);
 }
 
@@ -1289,7 +1429,6 @@ cleanup:
  * virDomainEventStateRegister:
  * @conn: connection to associate with callback
  * @state: object event state
- * @filter: optional ACL filter to limit which events can be sent
  * @callback: the callback to add
  * @opaque: data blob to pass to @callback
  * @freecb: callback to free @opaque
@@ -1302,20 +1441,21 @@ cleanup:
 int
 virDomainEventStateRegister(virConnectPtr conn,
                             virObjectEventStatePtr state,
-                            virDomainObjListFilter filter,
                             virConnectDomainEventCallback callback,
                             void *opaque,
                             virFreeCallback freecb)
 {
+    int callbackID;
+
     if (virDomainEventsInitialize() < 0)
         return -1;
 
     return virObjectEventStateRegisterID(conn, state, NULL,
-                                         filter ? virDomainEventFilter : NULL,
-                                         filter, virDomainEventClass,
+                                         NULL, NULL, virDomainEventClass,
                                          VIR_DOMAIN_EVENT_ID_LIFECYCLE,
                                          VIR_OBJECT_EVENT_CALLBACK(callback),
-                                         opaque, freecb, NULL, false);
+                                         opaque, freecb,
+                                         true, &callbackID, false);
 }
 
 
@@ -1323,7 +1463,6 @@ virDomainEventStateRegister(virConnectPtr conn,
  * virDomainEventStateRegisterID:
  * @conn: connection to associate with callback
  * @state: object event state
- * @filter: optional ACL filter to limit which events can be sent
  * @dom: optional domain for filtering the event
  * @eventID: ID of the event type to register for
  * @cb: function to invoke when event fires
@@ -1340,7 +1479,6 @@ virDomainEventStateRegister(virConnectPtr conn,
 int
 virDomainEventStateRegisterID(virConnectPtr conn,
                               virObjectEventStatePtr state,
-                              virDomainObjListFilter filter,
                               virDomainPtr dom,
                               int eventID,
                               virConnectDomainEventGenericCallback cb,
@@ -1352,10 +1490,78 @@ virDomainEventStateRegisterID(virConnectPtr conn,
         return -1;
 
     return virObjectEventStateRegisterID(conn, state, dom ? dom->uuid : NULL,
-                                         filter ? virDomainEventFilter : NULL,
-                                         filter, virDomainEventClass, eventID,
+                                         NULL, NULL,
+                                         virDomainEventClass, eventID,
                                          VIR_OBJECT_EVENT_CALLBACK(cb),
-                                         opaque, freecb, callbackID, false);
+                                         opaque, freecb,
+                                         false, callbackID, false);
+}
+
+
+/**
+ * virDomainEventStateRegisterClient:
+ * @conn: connection to associate with callback
+ * @state: object event state
+ * @dom: optional domain for filtering the event
+ * @eventID: ID of the event type to register for
+ * @cb: function to invoke when event fires
+ * @opaque: data blob to pass to @callback
+ * @freecb: callback to free @opaque
+ * @legacy: true if callback is tracked by function instead of callbackID
+ * @callbackID: filled with callback ID
+ * @remoteID: true if server supports filtering
+ *
+ * Register the function @cb with connection @conn, from @state, for
+ * events of type @eventID, and return the registration handle in
+ * @callbackID.  This version is intended for use on the client side
+ * of RPC.
+ *
+ * Returns: the number of callbacks now registered, or -1 on error
+ */
+int
+virDomainEventStateRegisterClient(virConnectPtr conn,
+                                  virObjectEventStatePtr state,
+                                  virDomainPtr dom,
+                                  int eventID,
+                                  virConnectDomainEventGenericCallback cb,
+                                  void *opaque,
+                                  virFreeCallback freecb,
+                                  bool legacy,
+                                  int *callbackID,
+                                  bool remoteID)
+{
+    if (virDomainEventsInitialize() < 0)
+        return -1;
+
+    return virObjectEventStateRegisterID(conn, state, dom ? dom->uuid : NULL,
+                                         NULL, NULL,
+                                         virDomainEventClass, eventID,
+                                         VIR_OBJECT_EVENT_CALLBACK(cb),
+                                         opaque, freecb,
+                                         legacy, callbackID, remoteID);
+}
+
+
+/**
+ * virDomainEventStateCallbackID:
+ * @conn: connection associated with callback
+ * @state: object event state
+ * @cb: function registered as a callback with virDomainEventStateRegister()
+ * @remoteID: associated remote id of the callback
+ *
+ * Returns the callbackID of @cb, or -1 with an error issued if the
+ * function is not currently registered.
+ */
+int
+virDomainEventStateCallbackID(virConnectPtr conn,
+                              virObjectEventStatePtr state,
+                              virConnectDomainEventCallback cb,
+                              int *remoteID)
+{
+    return virObjectEventStateCallbackID(conn, state, virDomainEventClass,
+                                         VIR_DOMAIN_EVENT_ID_LIFECYCLE,
+                                         VIR_OBJECT_EVENT_CALLBACK(cb),
+                                         remoteID);
 }
 
 
@@ -1380,8 +1586,132 @@ virDomainEventStateDeregister(virConnectPtr conn,
     callbackID = virObjectEventStateCallbackID(conn, state,
                                                virDomainEventClass,
                                                VIR_DOMAIN_EVENT_ID_LIFECYCLE,
-                                               VIR_OBJECT_EVENT_CALLBACK(cb));
+                                               VIR_OBJECT_EVENT_CALLBACK(cb),
+                                               NULL);
     if (callbackID < 0)
         return -1;
     return virObjectEventStateDeregisterID(conn, state, callbackID);
+}
+
+
+/**
+ * virDomainQemuMonitorEventFilter:
+ * @conn: the connection pointer
+ * @event: the event about to be dispatched
+ * @opaque: the opaque data registered with the filter
+ *
+ * Callback for filtering based on event names.  Returns true if the
+ * event should be dispatched.
+ */
+static bool
+virDomainQemuMonitorEventFilter(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                virObjectEventPtr event,
+                                void *opaque)
+{
+    virDomainQemuMonitorEventData *data = opaque;
+    virDomainQemuMonitorEventPtr monitorEvent;
+
+    monitorEvent = (virDomainQemuMonitorEventPtr) event;
+
+    if (data->flags == -1)
+        return true;
+    if (data->flags & VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX)
+        return regexec(&data->regex, monitorEvent->event, 0, NULL, 0) == 0;
+    if (data->flags & VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_NOCASE)
+        return STRCASEEQ(monitorEvent->event, data->event);
+    return STREQ(monitorEvent->event, data->event);
+}
+
+
+static void
+virDomainQemuMonitorEventCleanup(void *opaque)
+{
+    virDomainQemuMonitorEventData *data = opaque;
+
+    VIR_FREE(data->event);
+    if (data->flags & VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX)
+        regfree(&data->regex);
+    if (data->freecb)
+        (data->freecb)(data->opaque);
+    VIR_FREE(data);
+}
+
+
+/**
+ * virDomainQemuMonitorEventStateRegisterID:
+ * @conn: connection to associate with callback
+ * @state: object event state
+ * @dom: optional domain where event must occur
+ * @event: optional name of event to register for
+ * @cb: function to invoke when event occurs
+ * @opaque: data blob to pass to callback
+ * @freecb: callback to free @opaque
+ * @flags: -1 for client, valid virConnectDomainQemuMonitorEventRegisterFlags
+ *         for server
+ * @callbackID: filled with callback ID
+ *
+ * Register the function @cb with connection @conn, from @state, for
+ * events of type @eventID.
+ *
+ * Returns: the number of callbacks now registered, or -1 on error
+ */
+int
+virDomainQemuMonitorEventStateRegisterID(virConnectPtr conn,
+                                         virObjectEventStatePtr state,
+                                         virDomainPtr dom,
+                                         const char *event,
+                                         virConnectDomainQemuMonitorEventCallback cb,
+                                         void *opaque,
+                                         virFreeCallback freecb,
+                                         unsigned int flags,
+                                         int *callbackID)
+{
+    virDomainQemuMonitorEventData *data = NULL;
+    virObjectEventCallbackFilter filter = NULL;
+
+    if (virDomainEventsInitialize() < 0)
+        return -1;
+
+    if (flags != -1)
+        virCheckFlags(VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX |
+                      VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_NOCASE,
+                      -1);
+    if (VIR_ALLOC(data) < 0)
+        return -1;
+    data->flags = flags;
+    if (flags != -1) {
+        int rflags = REG_NOSUB;
+
+        if (flags & VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_NOCASE)
+            rflags |= REG_ICASE;
+        if (flags & VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX) {
+            int err = regcomp(&data->regex, event, rflags);
+
+            if (err) {
+                char error[100];
+                regerror(err, &data->regex, error, sizeof(error));
+                virReportError(VIR_ERR_INVALID_ARG,
+                               _("failed to compile regex '%s': %s"),
+                               event, error);
+                regfree(&data->regex);
+                VIR_FREE(data);
+                return -1;
+            }
+        } else if (VIR_STRDUP(data->event, event) < 0) {
+            VIR_FREE(data);
+            return -1;
+        }
+    }
+    data->opaque = opaque;
+    data->freecb = freecb;
+    if (event)
+        filter = virDomainQemuMonitorEventFilter;
+    freecb = virDomainQemuMonitorEventCleanup;
+
+    return virObjectEventStateRegisterID(conn, state, dom ? dom->uuid : NULL,
+                                         filter, data,
+                                         virDomainQemuMonitorEventClass, 0,
+                                         VIR_OBJECT_EVENT_CALLBACK(cb),
+                                         data, freecb,
+                                         false, callbackID, false);
 }

@@ -1,9 +1,8 @@
-
 /*
  * esx_storage_backend_vmfs.c: ESX storage driver backend for
  *                             managing VMFS datastores
  *
- * Copyright (C) 2010-2011, 2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2010-2012 Matthias Bolte <matthias.bolte@googlemail.com>
  * Copyright (C) 2012 Ata E Husain Bohra <ata.husain@hotmail.com>
  *
@@ -45,6 +44,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
+
+VIR_LOG_INIT("esx.esx_storage_backend_vmfs");
 
 /*
  * The UUID of a storage pool is the MD5 sum of it's mount path. Therefore,
@@ -101,7 +102,7 @@ esxLookupVMFSStoragePoolType(esxVI_Context *ctx, const char *poolName,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastore);
     esxVI_DatastoreInfo_Free(&datastoreInfo);
@@ -182,7 +183,7 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names,
 
     success = true;
 
-  cleanup:
+ cleanup:
     if (! success) {
         for (i = 0; i < count; ++i) {
             VIR_FREE(names[i]);
@@ -243,7 +244,7 @@ esxStoragePoolLookupByName(virConnectPtr conn,
 
     pool = virGetStoragePool(conn, name, md5, &esxStorageBackendVMFS, NULL);
 
-  cleanup:
+ cleanup:
     esxVI_ObjectContent_Free(&datastore);
     esxVI_DatastoreHostMount_Free(&hostMount);
 
@@ -311,7 +312,7 @@ esxStoragePoolLookupByUUID(virConnectPtr conn,
 
     pool = virGetStoragePool(conn, name, uuid, &esxStorageBackendVMFS, NULL);
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastoreList);
     esxVI_DatastoreHostMount_Free(&hostMount);
@@ -338,7 +339,7 @@ esxStoragePoolRefresh(virStoragePoolPtr pool, unsigned int flags)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_ObjectContent_Free(&datastore);
 
     return result;
@@ -398,7 +399,7 @@ esxStoragePoolGetInfo(virStoragePoolPtr pool,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastore);
 
@@ -514,7 +515,7 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
 
     xml = virStoragePoolDefFormat(&def);
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastore);
     esxVI_DatastoreHostMount_Free(&hostMount);
@@ -551,7 +552,7 @@ esxStoragePoolNumOfVolumes(virStoragePoolPtr pool)
 
     success = true;
 
-  cleanup:
+ cleanup:
     esxVI_HostDatastoreBrowserSearchResults_Free(&searchResultsList);
 
     return success ? count : -1;
@@ -622,7 +623,7 @@ esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
 
     success = true;
 
-  cleanup:
+ cleanup:
     if (! success) {
         for (i = 0; i < count; ++i) {
             VIR_FREE(names[i]);
@@ -659,7 +660,7 @@ esxStorageVolLookupByName(virStoragePoolPtr pool,
     volume = virGetStorageVol(pool->conn, pool->name, name, key,
                               &esxStorageBackendVMFS, NULL);
 
-  cleanup:
+ cleanup:
     VIR_FREE(datastorePath);
     VIR_FREE(key);
 
@@ -690,7 +691,7 @@ esxStorageVolLookupByPath(virConnectPtr conn, const char *path)
     volume = virGetStorageVol(conn, datastoreName, directoryAndFileName, key,
                               &esxStorageBackendVMFS, NULL);
 
-  cleanup:
+ cleanup:
     VIR_FREE(datastoreName);
     VIR_FREE(directoryAndFileName);
     VIR_FREE(key);
@@ -820,7 +821,7 @@ esxStorageVolLookupByKey(virConnectPtr conn, const char *key)
         }
     }
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastoreList);
     esxVI_HostDatastoreBrowserSearchResults_Free(&searchResultsList);
@@ -953,13 +954,13 @@ esxStorageVolCreateXML(virStoragePoolPtr pool,
         }
 
         /* From the vSphere API documentation about VirtualDiskType ... */
-        if (def->allocation == def->capacity) {
+        if (def->target.allocation == def->target.capacity) {
             /*
              * "A preallocated disk has all space allocated at creation time
              *  and the space is zeroed on demand as the space is used."
              */
             virtualDiskSpec->diskType = (char *)"preallocated";
-        } else if (def->allocation == 0) {
+        } else if (def->target.allocation == 0) {
             /*
              * "Space required for thin-provisioned virtual disk is allocated
              *  and zeroed on demand as the space is used."
@@ -979,7 +980,7 @@ esxStorageVolCreateXML(virStoragePoolPtr pool,
         virtualDiskSpec->adapterType = (char *)"busLogic";
 
         virtualDiskSpec->capacityKb->value =
-          VIR_DIV_UP(def->capacity, 1024); /* Scale from byte to kilobyte */
+          VIR_DIV_UP(def->target.capacity, 1024); /* Scale from byte to kilobyte */
 
         if (esxVI_CreateVirtualDisk_Task
               (priv->primary, datastorePath,
@@ -1029,7 +1030,7 @@ esxStorageVolCreateXML(virStoragePoolPtr pool,
     volume = virGetStorageVol(pool->conn, pool->name, def->name, key,
                               &esxStorageBackendVMFS, NULL);
 
-  cleanup:
+ cleanup:
     if (virtualDiskSpec) {
         virtualDiskSpec->diskType = NULL;
         virtualDiskSpec->adapterType = NULL;
@@ -1221,7 +1222,7 @@ esxStorageVolCreateXMLFrom(virStoragePoolPtr pool,
     volume = virGetStorageVol(pool->conn, pool->name, def->name, key,
                               &esxStorageBackendVMFS, NULL);
 
-  cleanup:
+ cleanup:
     VIR_FREE(sourceDatastorePath);
     virStorageVolDefFree(def);
     VIR_FREE(unescapedDatastorePath);
@@ -1275,7 +1276,7 @@ esxStorageVolDelete(virStorageVolPtr volume, unsigned int flags)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(datastorePath);
     esxVI_ManagedObjectReference_Free(&task);
     VIR_FREE(taskInfoErrorMessage);
@@ -1318,7 +1319,7 @@ esxStorageVolWipe(virStorageVolPtr volume, unsigned int flags)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(datastorePath);
     esxVI_ManagedObjectReference_Free(&task);
     VIR_FREE(taskInfoErrorMessage);
@@ -1364,7 +1365,7 @@ esxStorageVolGetInfo(virStorageVolPtr volume,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(datastorePath);
     esxVI_FileInfo_Free(&fileInfo);
 
@@ -1423,18 +1424,18 @@ esxStorageVolGetXMLDesc(virStorageVolPtr volume,
 
     if (vmDiskFileInfo) {
         /* Scale from kilobyte to byte */
-        def.capacity = vmDiskFileInfo->capacityKb->value * 1024;
-        def.allocation = vmDiskFileInfo->fileSize->value;
+        def.target.capacity = vmDiskFileInfo->capacityKb->value * 1024;
+        def.target.allocation = vmDiskFileInfo->fileSize->value;
 
         def.target.format = VIR_STORAGE_FILE_VMDK;
     } else if (isoImageFileInfo) {
-        def.capacity = fileInfo->fileSize->value;
-        def.allocation = fileInfo->fileSize->value;
+        def.target.capacity = fileInfo->fileSize->value;
+        def.target.allocation = fileInfo->fileSize->value;
 
         def.target.format = VIR_STORAGE_FILE_ISO;
     } else if (floppyImageFileInfo) {
-        def.capacity = fileInfo->fileSize->value;
-        def.allocation = fileInfo->fileSize->value;
+        def.target.capacity = fileInfo->fileSize->value;
+        def.target.allocation = fileInfo->fileSize->value;
 
         def.target.format = VIR_STORAGE_FILE_RAW;
     } else {
@@ -1445,7 +1446,7 @@ esxStorageVolGetXMLDesc(virStorageVolPtr volume,
 
     xml = virStorageVolDefFormat(&pool, &def);
 
-  cleanup:
+ cleanup:
     VIR_FREE(datastorePath);
     esxVI_FileInfo_Free(&fileInfo);
     VIR_FREE(def.key);

@@ -1,4 +1,3 @@
-
 /*
  * esx_storage_driver.c: storage driver functions for managing VMware ESX
  *                       host storage
@@ -138,7 +137,7 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names, int maxnames)
 
     success = true;
 
-  cleanup:
+ cleanup:
     if (! success) {
         for (i = 0; i < count; ++i) {
             VIR_FREE(names[i]);
@@ -387,7 +386,7 @@ esxStorageVolLookupByPath(virConnectPtr conn, const char *path)
     /*
      * FIXME: calling backends blindly may set unwanted error codes
      *
-     * VMFS Datastore path follows cannonical format i.e.:
+     * VMFS Datastore path follows canonical format i.e.:
      * [<datastore_name>] <file_path>
      *          WHEREAS
      * iSCSI LUNs device path follows normal linux path convention

@@ -1,5 +1,7 @@
 /*---------------------------------------------------------------------------*/
-/* Copyright 2010, diateam (www.diateam.net)
+/*
+ * Copyright (C) 2014 Red Hat, Inc.
+ * Copyright 2010, diateam (www.diateam.net)
  * Copyright (c) 2013, Doug Goldstein (cardoe@cardoe.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -46,7 +48,7 @@ struct vmware_driver {
     virDomainXMLOptionPtr xmlopt;
 
     virDomainObjListPtr domains;
-    int version;
+    unsigned long version;
     int type;
     char *vmrun;
 };
@@ -70,8 +72,6 @@ int vmwareExtractVersion(struct vmware_driver *driver);
 int vmwareParseVersionStr(int type, const char *buf, unsigned long *version);
 
 int vmwareDomainConfigDisplay(vmwareDomainPtr domain, virDomainDefPtr vmdef);
-
-int vmwareParsePath(char *path, char **directory, char **filename);
 
 int vmwareConstructVmxPath(char *directoryName, char *name,
                            char **vmxPath);

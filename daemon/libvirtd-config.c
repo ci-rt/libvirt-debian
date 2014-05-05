@@ -1,7 +1,7 @@
 /*
- * libvirtd.c: daemon start of day, guest process & i/o management
+ * libvirtd-config.c: daemon start of day, guest process & i/o management
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2012, 2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -36,6 +36,8 @@
 #include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_CONF
+
+VIR_LOG_INIT("daemon.libvirtd-config");
 
 /* Allocate an array of malloc'd strings from the config file, filename
  * (used only in diagnostics), using handle "conf".  Upon error, return -1
@@ -156,7 +158,12 @@ checkType(virConfValuePtr p, const char *filename,
     } while (0)
 
 
-static int remoteConfigGetAuth(virConfPtr conf, const char *key, int *auth, const char *filename) {
+static int
+remoteConfigGetAuth(virConfPtr conf,
+                    const char *key,
+                    int *auth,
+                    const char *filename)
+{
     virConfValuePtr p;
 
     p = virConfGetValue(conf, key);
@@ -208,7 +215,7 @@ daemonConfigFilePath(bool privileged, char **configfile)
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -258,14 +265,13 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
 
     data->min_workers = 5;
     data->max_workers = 20;
-    data->max_clients = 20;
+    data->max_clients = 5000;
+    data->max_anonymous_clients = 20;
 
     data->prio_workers = 5;
 
     data->max_requests = 20;
     data->max_client_requests = 5;
-
-    data->log_buffer_size = 64;
 
     data->audit_level = 1;
     data->audit_logging = 0;
@@ -295,7 +301,7 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
 
     return data;
 
-error:
+ error:
     daemonConfigFree(data);
     return NULL;
 }
@@ -415,6 +421,7 @@ daemonConfigLoadOptions(struct daemonConfig *data,
     GET_CONF_INT(conf, filename, max_workers);
     GET_CONF_INT(conf, filename, max_clients);
     GET_CONF_INT(conf, filename, max_queued_clients);
+    GET_CONF_INT(conf, filename, max_anonymous_clients);
 
     GET_CONF_INT(conf, filename, prio_workers);
 
@@ -429,7 +436,6 @@ daemonConfigLoadOptions(struct daemonConfig *data,
     GET_CONF_INT(conf, filename, log_level);
     GET_CONF_STR(conf, filename, log_filters);
     GET_CONF_STR(conf, filename, log_outputs);
-    GET_CONF_INT(conf, filename, log_buffer_size);
 
     GET_CONF_INT(conf, filename, keepalive_interval);
     GET_CONF_INT(conf, filename, keepalive_count);
@@ -437,7 +443,7 @@ daemonConfigLoadOptions(struct daemonConfig *data,
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 

@@ -143,8 +143,7 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-isnanl-nolibm$(EXEEXT) test-langinfo$(EXEEXT) \
 	test-ldexp$(EXEEXT) test-listen$(EXEEXT) test-locale$(EXEEXT) \
 	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
-	test-lseek$(EXEEXT) test-lstat$(EXEEXT) \
-	test-malloc-gnu$(EXEEXT) test-malloca$(EXEEXT) \
+	test-lseek$(EXEEXT) test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
 	test-math$(EXEEXT) test-mbrtowc$(EXEEXT) \
 	test-mbrtowc-w32$(EXEEXT) test-mbsinit$(EXEEXT) \
 	test-mbsrtowcs$(EXEEXT) test-memchr$(EXEEXT) \
@@ -344,6 +343,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
@@ -356,6 +356,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-result.m4 \
 	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
 	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-systemd-daemon.m4 \
 	$(top_srcdir)/m4/virt-udev.m4 $(top_srcdir)/m4/virt-yajl.m4 \
 	$(top_srcdir)/m4/vsnprintf.m4 $(top_srcdir)/m4/wait-process.m4 \
 	$(top_srcdir)/m4/waitpid.m4 $(top_srcdir)/m4/warnings.m4 \
@@ -784,11 +785,6 @@ test_lstat_SOURCES = test-lstat.c
 test_lstat_OBJECTS = test-lstat.$(OBJEXT)
 test_lstat_LDADD = $(LDADD)
 test_lstat_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
-	libtests.a $(am__DEPENDENCIES_1)
-test_malloc_gnu_SOURCES = test-malloc-gnu.c
-test_malloc_gnu_OBJECTS = test-malloc-gnu.$(OBJEXT)
-test_malloc_gnu_LDADD = $(LDADD)
-test_malloc_gnu_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_malloca_SOURCES = test-malloca.c
 test_malloca_OBJECTS = test-malloca.$(OBJEXT)
@@ -1347,10 +1343,10 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-isatty.c test-isnand-nolibm.c test-isnanf-nolibm.c \
 	test-isnanl-nolibm.c test-langinfo.c $(test_ldexp_SOURCES) \
 	test-listen.c test-locale.c test-localeconv.c \
-	test-localename.c test-lseek.c test-lstat.c test-malloc-gnu.c \
-	test-malloca.c test-math.c test-mbrtowc.c test-mbrtowc-w32.c \
-	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
-	test-nanosleep.c test-net_if.c test-netdb.c test-netinet_in.c \
+	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
+	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
+	test-mbsrtowcs.c test-md5.c test-memchr.c test-nanosleep.c \
+	test-net_if.c test-netdb.c test-netinet_in.c \
 	test-nl_langinfo.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
 	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
@@ -1407,10 +1403,10 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-isatty.c test-isnand-nolibm.c test-isnanf-nolibm.c \
 	test-isnanl-nolibm.c test-langinfo.c $(test_ldexp_SOURCES) \
 	test-listen.c test-locale.c test-localeconv.c \
-	test-localename.c test-lseek.c test-lstat.c test-malloc-gnu.c \
-	test-malloca.c test-math.c test-mbrtowc.c test-mbrtowc-w32.c \
-	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
-	test-nanosleep.c test-net_if.c test-netdb.c test-netinet_in.c \
+	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
+	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
+	test-mbsrtowcs.c test-md5.c test-memchr.c test-nanosleep.c \
+	test-net_if.c test-netdb.c test-netinet_in.c \
 	test-nl_langinfo.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
 	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
@@ -1702,19 +1698,18 @@ am__EXEEXT_2 = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-isnanl-nolibm$(EXEEXT) test-langinfo$(EXEEXT) \
 	test-ldexp$(EXEEXT) test-listen$(EXEEXT) test-locale$(EXEEXT) \
 	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
-	test-lseek.sh test-lstat$(EXEEXT) test-malloc-gnu$(EXEEXT) \
-	test-malloca$(EXEEXT) test-math$(EXEEXT) test-mbrtowc1.sh \
-	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
-	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
-	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
-	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
-	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
-	test-memchr$(EXEEXT) test-nanosleep$(EXEEXT) \
-	test-net_if$(EXEEXT) test-netdb$(EXEEXT) \
-	test-netinet_in$(EXEEXT) test-nl_langinfo.sh \
-	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
-	test-nonblocking$(EXEEXT) test-open$(EXEEXT) \
-	test-openpty$(EXEEXT) test-passfd$(EXEEXT) \
+	test-lseek.sh test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
+	test-math$(EXEEXT) test-mbrtowc1.sh test-mbrtowc2.sh \
+	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc-w32-1.sh \
+	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
+	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbsinit.sh \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-memchr$(EXEEXT) \
+	test-nanosleep$(EXEEXT) test-net_if$(EXEEXT) \
+	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) \
+	test-nl_langinfo.sh test-nonblocking-pipe.sh \
+	test-nonblocking-socket.sh test-nonblocking$(EXEEXT) \
+	test-open$(EXEEXT) test-openpty$(EXEEXT) test-passfd$(EXEEXT) \
 	test-pathmax$(EXEEXT) test-perror.sh test-perror2$(EXEEXT) \
 	test-pipe$(EXEEXT) test-pipe2$(EXEEXT) test-poll-h$(EXEEXT) \
 	test-poll$(EXEEXT) test-posix_openpt$(EXEEXT) \
@@ -1805,6 +1800,7 @@ am__relativize = \
   reldir="$$dir2"
 pkglibexecdir = @pkglibexecdir@
 ACLOCAL = @ACLOCAL@
+ADDR2LINE = @ADDR2LINE@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
 AMTAR = @AMTAR@
@@ -1827,6 +1823,9 @@ AUTOMAKE = @AUTOMAKE@
 AVAHI_CFLAGS = @AVAHI_CFLAGS@
 AVAHI_LIBS = @AVAHI_LIBS@
 AWK = @AWK@
+BHYVE = @BHYVE@
+BHYVECTL = @BHYVECTL@
+BHYVELOAD = @BHYVELOAD@
 BITSIZEOF_PTRDIFF_T = @BITSIZEOF_PTRDIFF_T@
 BITSIZEOF_SIG_ATOMIC_T = @BITSIZEOF_SIG_ATOMIC_T@
 BITSIZEOF_SIZE_T = @BITSIZEOF_SIZE_T@
@@ -1859,6 +1858,7 @@ DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
+DMIDECODE = @DMIDECODE@
 DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
 DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
@@ -1890,8 +1890,11 @@ GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
 GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
+GLIB_CFLAGS = @GLIB_CFLAGS@
+GLIB_LIBS = @GLIB_LIBS@
 GLUSTERFS_CFLAGS = @GLUSTERFS_CFLAGS@
 GLUSTERFS_LIBS = @GLUSTERFS_LIBS@
+GLUSTER_CLI = @GLUSTER_CLI@
 GMSGFMT = @GMSGFMT@
 GMSGFMT_015 = @GMSGFMT_015@
 GNULIB_ACCEPT = @GNULIB_ACCEPT@
@@ -2713,6 +2716,7 @@ LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
 LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
+LIB_POSIX_SPAWN = @LIB_POSIX_SPAWN@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIB_SELECT = @LIB_SELECT@
@@ -3097,6 +3101,7 @@ REPLACE_WCTOB = @REPLACE_WCTOB@
 REPLACE_WCTOMB = @REPLACE_WCTOMB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
+RMMOD = @RMMOD@
 RPCGEN = @RPCGEN@
 SANLOCK_CFLAGS = @SANLOCK_CFLAGS@
 SANLOCK_LIBS = @SANLOCK_LIBS@
@@ -3122,6 +3127,8 @@ STDBOOL_H = @STDBOOL_H@
 STDDEF_H = @STDDEF_H@
 STDINT_H = @STDINT_H@
 STRIP = @STRIP@
+SYSTEMD_DAEMON_CFLAGS = @SYSTEMD_DAEMON_CFLAGS@
+SYSTEMD_DAEMON_LIBS = @SYSTEMD_DAEMON_LIBS@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
@@ -3154,6 +3161,8 @@ WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
 WINDOWS_64_BIT_ST_SIZE = @WINDOWS_64_BIT_ST_SIZE@
 WINDRES = @WINDRES@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
+WIRESHARK = @WIRESHARK@
+WS_DISSECTOR_CPPFLAGS = @WS_DISSECTOR_CPPFLAGS@
 XDR_CFLAGS = @XDR_CFLAGS@
 XEN_CFLAGS = @XEN_CFLAGS@
 XEN_LIBS = @XEN_LIBS@
@@ -3226,6 +3235,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+ws_plugindir = @ws_plugindir@
 AUTOMAKE_OPTIONS = 1.9.6 foreign subdir-objects
 SUBDIRS = .
 GNULIB_TESTS = test-accept test-alloca-opt test-areadlink \
@@ -3250,9 +3260,9 @@ GNULIB_TESTS = test-accept test-alloca-opt test-areadlink \
 	test-ioctl test-isatty test-isnand-nolibm test-isnanf-nolibm \
 	test-isnanl-nolibm test-langinfo test-ldexp test-listen \
 	test-locale test-localeconv test-localename test-lseek.sh \
-	test-lstat test-malloc-gnu test-malloca test-math \
-	test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
-	test-mbrtowc4.sh test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-lstat test-malloca test-math test-mbrtowc1.sh \
+	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
+	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
 	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
 	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
 	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
@@ -3360,19 +3370,18 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	macros.h test-locale.c test-localeconv.c signature.h macros.h \
 	localename.h test-localename.c macros.h test-lseek.c \
 	test-lseek.sh signature.h macros.h test-lstat.h test-lstat.c \
-	signature.h macros.h test-malloc-gnu.c test-malloca.c \
-	math.in.h test-math.c macros.h test-mbrtowc1.sh \
-	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
-	test-mbrtowc.c test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
-	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
-	test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h \
-	test-mbsinit.sh test-mbsinit.c signature.h macros.h \
-	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
-	test-mbsrtowcs4.sh test-mbsrtowcs.c signature.h macros.h \
-	test-memchr.c zerosize-ptr.h signature.h macros.h nanosleep.c \
-	test-nanosleep.c signature.h macros.h test-net_if.c \
-	signature.h test-netdb.c test-netinet_in.c test-nl_langinfo.sh \
-	test-nl_langinfo.c signature.h macros.h \
+	signature.h macros.h test-malloca.c math.in.h test-math.c \
+	macros.h test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
+	test-mbrtowc4.sh test-mbrtowc.c test-mbrtowc-w32-1.sh \
+	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
+	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbrtowc-w32.c \
+	signature.h macros.h test-mbsinit.sh test-mbsinit.c \
+	signature.h macros.h test-mbsrtowcs1.sh test-mbsrtowcs2.sh \
+	test-mbsrtowcs3.sh test-mbsrtowcs4.sh test-mbsrtowcs.c \
+	signature.h macros.h test-memchr.c zerosize-ptr.h signature.h \
+	macros.h nanosleep.c test-nanosleep.c signature.h macros.h \
+	test-net_if.c signature.h test-netdb.c test-netinet_in.c \
+	test-nl_langinfo.sh test-nl_langinfo.c signature.h macros.h \
 	test-nonblocking-pipe.sh test-nonblocking-pipe-main.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe.h \
 	test-nonblocking-writer.h test-nonblocking-reader.h \
@@ -3968,10 +3977,6 @@ test-lstat$(EXEEXT): $(test_lstat_OBJECTS) $(test_lstat_DEPENDENCIES) $(EXTRA_te
 	@rm -f test-lstat$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_lstat_OBJECTS) $(test_lstat_LDADD) $(LIBS)
 
-test-malloc-gnu$(EXEEXT): $(test_malloc_gnu_OBJECTS) $(test_malloc_gnu_DEPENDENCIES) $(EXTRA_test_malloc_gnu_DEPENDENCIES) 
-	@rm -f test-malloc-gnu$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_malloc_gnu_OBJECTS) $(test_malloc_gnu_LDADD) $(LIBS)
-
 test-malloca$(EXEEXT): $(test_malloca_OBJECTS) $(test_malloca_DEPENDENCIES) $(EXTRA_test_malloca_DEPENDENCIES) 
 	@rm -f test-malloca$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_malloca_OBJECTS) $(test_malloca_LDADD) $(LIBS)
@@ -4529,7 +4534,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-localename.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lseek.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lstat.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-malloc-gnu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-malloca.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-math.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-mbrtowc-w32.Po@am__quote@
@@ -5536,13 +5540,6 @@ test-lseek.sh.log: test-lseek.sh
 test-lstat.log: test-lstat$(EXEEXT)
 	@p='test-lstat$(EXEEXT)'; \
 	b='test-lstat'; \
-	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
-	--log-file $$b.log --trs-file $$b.trs \
-	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
-	"$$tst" $(AM_TESTS_FD_REDIRECT)
-test-malloc-gnu.log: test-malloc-gnu$(EXEEXT)
-	@p='test-malloc-gnu$(EXEEXT)'; \
-	b='test-malloc-gnu'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

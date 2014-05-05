@@ -103,7 +103,7 @@ fakeStoragePoolLookupByName(virConnectPtr conn,
 
     ret = virGetStoragePool(conn, name, fakeUUID, NULL, NULL);
 
-cleanup:
+ cleanup:
     VIR_FREE(xmlpath);
     return ret;
 }
@@ -140,11 +140,11 @@ fakeStorageVolLookupByName(virStoragePoolPtr pool,
     ret = virGetStorageVol(pool->conn, pool->name, volinfo[1], volinfo[0],
                            NULL, NULL);
 
-cleanup:
+ cleanup:
     virStringFreeList(volinfo);
     return ret;
 
-fallback:
+ fallback:
     ret = virGetStorageVol(pool->conn, pool->name, name, "block", NULL, NULL);
     goto cleanup;
 }
@@ -203,7 +203,7 @@ fakeStoragePoolGetXMLDesc(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(xmlpath);
 
     return xmlbuf;
@@ -284,7 +284,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE))) {
-        if (flags & FLAG_EXPECT_PARSE_ERROR)
+        if (!virtTestOOMActive() &&
+            (flags & FLAG_EXPECT_PARSE_ERROR))
             goto ok;
         goto out;
     }
@@ -356,8 +357,9 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      (flags & FLAG_JSON), extraFlags,
                                      migrateFrom, migrateFd, NULL,
                                      VIR_NETDEV_VPORT_PROFILE_OP_NO_OP,
-                                     &testCallbacks))) {
-        if (flags & FLAG_EXPECT_FAILURE) {
+                                     &testCallbacks, false))) {
+        if (!virtTestOOMActive() &&
+            (flags & FLAG_EXPECT_FAILURE)) {
             ret = 0;
             if (virTestGetDebug() > 1)
                 fprintf(stderr, "Got expected error: %s\n",
@@ -371,7 +373,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
         goto out;
     }
 
-    if (!!virGetLastError() != !!(flags & FLAG_EXPECT_ERROR)) {
+    if (!virtTestOOMActive() &&
+        (!!virGetLastError() != !!(flags & FLAG_EXPECT_ERROR))) {
         if (virTestGetDebug() && (log = virtTestLogContentAndReset()))
             fprintf(stderr, "\n%s", log);
         goto out;
@@ -392,14 +395,15 @@ static int testCompareXMLToArgvFiles(const char *xml,
     }
 
  ok:
-    if (flags & FLAG_EXPECT_ERROR) {
+    if (!virtTestOOMActive() &&
+        (flags & FLAG_EXPECT_ERROR)) {
         /* need to suppress the errors */
         virResetLastError();
     }
 
     ret = 0;
 
-out:
+ out:
     VIR_FREE(log);
     VIR_FREE(expectargv);
     VIR_FREE(actualargv);
@@ -440,7 +444,7 @@ testCompareXMLToArgvHelper(const void *data)
                                        info->migrateFrom, info->migrateFd,
                                        flags);
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(args);
     return result;
@@ -479,14 +483,28 @@ static int
 mymain(void)
 {
     int ret = 0;
-    char *map = NULL;
     bool skipLegacyCPUs = false;
 
     abs_top_srcdir = getenv("abs_top_srcdir");
     if (!abs_top_srcdir)
         abs_top_srcdir = abs_srcdir "/..";
 
+    /* Set the timezone because we are mocking the time() function.
+     * If we don't do that, then localtime() may return unpredictable
+     * results. In order to detect things that just work by a blind
+     * chance, we need to set an virtual timezone that no libvirt
+     * developer resides in. */
+    if (setenv("TZ", "VIR00:30", 1) < 0) {
+        perror("setenv");
+        return EXIT_FAILURE;
+    }
+
     driver.config = virQEMUDriverConfigNew(false);
+    if (driver.config == NULL)
+        return EXIT_FAILURE;
+    else
+        driver.config->privileged = true;
+
     VIR_FREE(driver.config->spiceListen);
     VIR_FREE(driver.config->vncListen);
 
@@ -513,11 +531,6 @@ mymain(void)
     driver.config->spiceTLS = 1;
     if (VIR_STRDUP_QUIET(driver.config->spicePassword, "123456") < 0)
         return EXIT_FAILURE;
-    if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
-        cpuMapOverride(map) < 0) {
-        VIR_FREE(map);
-        return EXIT_FAILURE;
-    }
 
 # define DO_TEST_FULL(name, migrateFrom, migrateFd, flags, ...)         \
     do {                                                                \
@@ -618,16 +631,16 @@ mymain(void)
     DO_TEST("bios", QEMU_CAPS_DEVICE, QEMU_CAPS_SGA);
     DO_TEST("clock-utc", NONE);
     DO_TEST("clock-localtime", NONE);
-    /*
-     * Can't be enabled since the absolute timestamp changes every time
+    DO_TEST("clock-localtime-basis-localtime", QEMU_CAPS_RTC);
     DO_TEST("clock-variable", QEMU_CAPS_RTC);
-    */
     DO_TEST("clock-france", QEMU_CAPS_RTC);
     DO_TEST("clock-hpet-off", QEMU_CAPS_RTC, QEMU_CAPS_NO_HPET,
             QEMU_CAPS_NO_KVM_PIT);
+    DO_TEST("clock-catchup", QEMU_CAPS_RTC, QEMU_CAPS_NO_KVM_PIT);
     DO_TEST("cpu-kvmclock", QEMU_CAPS_ENABLE_KVM);
     DO_TEST("cpu-host-kvmclock", QEMU_CAPS_ENABLE_KVM, QEMU_CAPS_CPU_HOST);
     DO_TEST("kvmclock", QEMU_CAPS_KVM);
+    DO_TEST("clock-timer-hyperv-rtc", QEMU_CAPS_KVM);
 
     DO_TEST("cpu-eoi-disabled", QEMU_CAPS_ENABLE_KVM);
     DO_TEST("cpu-eoi-enabled", QEMU_CAPS_ENABLE_KVM);
@@ -722,6 +735,9 @@ mymain(void)
     DO_TEST("disk-drive-cache-unsafe",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2,
             QEMU_CAPS_DRIVE_CACHE_UNSAFE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-copy-on-read",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_COPY_ON_READ, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd-export",
@@ -856,7 +872,8 @@ mymain(void)
     DO_TEST("graphics-spice",
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
-            QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_SPICE_FILE_XFER_DISABLE);
     driver.config->spiceSASL = 1;
     ignore_value(VIR_STRDUP(driver.config->spiceSASLdir, "/root/.sasl2"));
     DO_TEST("graphics-spice-sasl",
@@ -890,6 +907,12 @@ mymain(void)
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_USB_REDIR,
             QEMU_CAPS_CHARDEV_SPICEVMC);
+    DO_TEST("graphics-spice-agent-file-xfer",
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
+            QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_SPICE_FILE_XFER_DISABLE);
 
     DO_TEST("input-usbmouse", NONE);
     DO_TEST("input-usbtablet", NONE);
@@ -932,6 +955,13 @@ mymain(void)
     DO_TEST("serial-udp", NONE);
     DO_TEST("serial-tcp-telnet", NONE);
     DO_TEST("serial-many", NONE);
+    DO_TEST("serial-spiceport",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_QXL, QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEPORT);
+    DO_TEST("serial-spiceport-nospice", QEMU_CAPS_NAME);
+
     DO_TEST("parallel-tcp", NONE);
     DO_TEST("console-compat", NONE);
     DO_TEST("console-compat-auto", NONE);
@@ -1135,6 +1165,7 @@ mymain(void)
     DO_TEST("blkiotune", QEMU_CAPS_NAME);
     DO_TEST("blkiotune-device", QEMU_CAPS_NAME);
     DO_TEST("cputune", QEMU_CAPS_NAME);
+    DO_TEST("cputune-zero-shares", QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", NONE);
     DO_TEST("numatune-auto-nodeset-invalid", NONE);
     DO_TEST("numad", NONE);
@@ -1182,6 +1213,9 @@ mymain(void)
     DO_TEST_ERROR("pseries-vio-address-clash", QEMU_CAPS_DRIVE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-nvram", QEMU_CAPS_DEVICE_NVRAM);
+    DO_TEST("pseries-usb-kbd", QEMU_CAPS_PCI_OHCI,
+            QEMU_CAPS_DEVICE_USB_KBD, QEMU_CAPS_CHARDEV,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST_FAILURE("pseries-cpu-exact", QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-ide-drive-split",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
@@ -1311,6 +1345,9 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
+    DO_TEST("aarch64-virt-default-nic",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_VIRTIO_MMIO);
 
     DO_TEST("kvm-pit-device", QEMU_CAPS_KVM_PIT_TICK_POLICY);
     DO_TEST("kvm-pit-delay", QEMU_CAPS_NO_KVM_PIT);
@@ -1323,12 +1360,11 @@ mymain(void)
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
-    VIR_FREE(map);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/qemuxml2argvmock.so")
 
 #else
 

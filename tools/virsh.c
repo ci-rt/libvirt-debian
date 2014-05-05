@@ -1,7 +1,7 @@
 /*
  * virsh.c: a shell to exercise the libvirt API
  *
- * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,6 +42,7 @@
 #include <sys/stat.h>
 #include <inttypes.h>
 #include <strings.h>
+#include <signal.h>
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -84,6 +85,11 @@
 #include "virsh-secret.h"
 #include "virsh-snapshot.h"
 #include "virsh-volume.h"
+
+/* Gnulib doesn't guarantee SA_SIGINFO support.  */
+#ifndef SA_SIGINFO
+# define SA_SIGINFO 0
+#endif
 
 static char *progname;
 
@@ -285,7 +291,7 @@ vshReportError(vshControl *ctl)
 
     vshError(ctl, "%s", last_error->message);
 
-out:
+ out:
     vshResetLibvirtError();
 }
 
@@ -307,6 +313,46 @@ vshCatchDisconnect(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     if (reason != VIR_CONNECT_CLOSE_REASON_CLIENT)
         disconnected++;
+}
+
+/* Main Function which should be used for connecting.
+ * This function properly handles keepalive settings. */
+virConnectPtr
+vshConnect(vshControl *ctl, const char *uri, bool readonly)
+{
+    virConnectPtr c = NULL;
+    int interval = 5; /* Default */
+    int count = 6;    /* Default */
+    bool keepalive_forced = false;
+
+    if (ctl->keepalive_interval >= 0) {
+        interval = ctl->keepalive_interval;
+        keepalive_forced = true;
+    }
+    if (ctl->keepalive_count >= 0) {
+        count = ctl->keepalive_count;
+        keepalive_forced = true;
+    }
+
+    c = virConnectOpenAuth(uri, virConnectAuthPtrDefault,
+                           readonly ? VIR_CONNECT_RO : 0);
+    if (!c)
+        return NULL;
+
+    if (interval > 0 &&
+        virConnectSetKeepAlive(c, interval, count) != 0) {
+        if (keepalive_forced) {
+            vshError(ctl, "%s",
+                     _("Cannot setup keepalive on connection "
+                       "as requested, disconnecting"));
+            virConnectClose(c);
+            return NULL;
+        }
+        vshDebug(ctl, VSH_ERR_INFO, "%s",
+                 _("Failed to setup keepalive on connection\n"));
+    }
+
+    return c;
 }
 
 /*
@@ -334,9 +380,8 @@ vshReconnect(vshControl *ctl)
                                   "disconnect from the hypervisor"));
     }
 
-    ctl->conn = virConnectOpenAuth(ctl->name,
-                                   virConnectAuthPtrDefault,
-                                   ctl->readonly ? VIR_CONNECT_RO : 0);
+    ctl->conn = vshConnect(ctl, ctl->name, ctl->readonly);
+
     if (!ctl->conn) {
         if (disconnected)
             vshError(ctl, "%s", _("Failed to reconnect to the hypervisor"));
@@ -411,8 +456,7 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
     ctl->useSnapshotOld = false;
     ctl->readonly = ro;
 
-    ctl->conn = virConnectOpenAuth(ctl->name, virConnectAuthPtrDefault,
-                                   ctl->readonly ? VIR_CONNECT_RO : 0);
+    ctl->conn = vshConnect(ctl, ctl->name, ctl->readonly);
 
     if (!ctl->conn) {
         vshError(ctl, "%s", _("Failed to connect to the hypervisor"));
@@ -642,7 +686,7 @@ vshTreePrintInternal(vshControl *ctl,
     if (!root)
         virBufferTrim(indent, NULL, 2);
     ret = 0;
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -755,7 +799,7 @@ vshEditFile(vshControl *ctl, const char *filename)
     }
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -1118,7 +1162,7 @@ vshCmddefGetOption(vshControl *ctl, const vshCmdDef *cmd, const char *name,
         vshError(ctl, _("command '%s' doesn't support option --%s"),
                  cmd->name, name);
     }
-cleanup:
+ cleanup:
     VIR_FREE(alias);
     return ret;
 }
@@ -1721,6 +1765,30 @@ vshCmdHasOption(vshControl *ctl, const vshCmd *cmd, const char *optname)
     return found;
 }
 
+/* Parse an optional --timeout parameter in seconds, but store the
+ * value of the timeout in milliseconds.  Return -1 on error, 0 if
+ * no timeout was requested, and 1 if timeout was set.  */
+int
+vshCommandOptTimeoutToMs(vshControl *ctl, const vshCmd *cmd, int *timeout)
+{
+    int rv = vshCommandOptInt(cmd, "timeout", timeout);
+
+    if (rv < 0 || (rv > 0 && *timeout < 1)) {
+        vshError(ctl, "%s", _("invalid timeout"));
+        return -1;
+    }
+    if (rv > 0) {
+        /* Ensure that we can multiply by 1000 without overflowing. */
+        if (*timeout > INT_MAX / 1000) {
+            vshError(ctl, "%s", _("timeout is too big"));
+            return -1;
+        }
+        *timeout *= 1000;
+    }
+    return rv;
+}
+
+
 static bool
 vshConnectionUsability(vshControl *ctl, virConnectPtr conn)
 {
@@ -1784,7 +1852,8 @@ vshCommandRun(vshControl *ctl, const vshCmd *cmd)
         if (!ret && disconnected != 0)
             vshReconnect(ctl);
 
-        if (STREQ(cmd->def->name, "quit"))        /* hack ... */
+        if (STREQ(cmd->def->name, "quit") ||
+            STREQ(cmd->def->name, "exit"))        /* hack ... */
             return ret;
 
         if (enable_timing) {
@@ -1927,7 +1996,7 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
                 data_only = true;
                 continue;
             } else {
-get_data:
+ get_data:
                 /* Special case 'help' to ignore spurious data */
                 if (!(opt = vshCmddefGetData(cmd, &opts_need_arg,
                                              &opts_seen)) &&
@@ -2411,6 +2480,149 @@ vshEventLoop(void *opaque)
 
 
 /*
+ * Helpers for waiting for a libvirt event.
+ */
+
+/* We want to use SIGINT to cancel a wait; but as signal handlers
+ * don't have an opaque argument, we have to use static storage.  */
+static int vshEventFd = -1;
+static struct sigaction vshEventOldAction;
+
+
+/* Signal handler installed in vshEventStart, removed in vshEventCleanup.  */
+static void
+vshEventInt(int sig ATTRIBUTE_UNUSED,
+            siginfo_t *siginfo ATTRIBUTE_UNUSED,
+            void *context ATTRIBUTE_UNUSED)
+{
+    char reason = VSH_EVENT_INTERRUPT;
+    if (vshEventFd >= 0)
+        ignore_value(safewrite(vshEventFd, &reason, 1));
+}
+
+
+/* Event loop handler used to limit length of waiting for any other event. */
+static void
+vshEventTimeout(int timer ATTRIBUTE_UNUSED,
+                void *opaque)
+{
+    vshControl *ctl = opaque;
+    char reason = VSH_EVENT_TIMEOUT;
+
+    if (ctl->eventPipe[1] >= 0)
+        ignore_value(safewrite(ctl->eventPipe[1], &reason, 1));
+}
+
+
+/**
+ * vshEventStart:
+ * @ctl virsh command struct
+ * @timeout_ms max wait time in milliseconds, or 0 for indefinite
+ *
+ * Set up a wait for a libvirt event.  The wait can be canceled by
+ * SIGINT or by calling vshEventDone() in your event handler.  If
+ * @timeout_ms is positive, the wait will also end if the timeout
+ * expires.  Call vshEventWait() to block the main thread (the event
+ * handler runs in the event loop thread).  When done (including if
+ * there was an error registering for an event), use vshEventCleanup()
+ * to quit waiting.  Returns 0 on success, -1 on failure.  */
+int
+vshEventStart(vshControl *ctl, int timeout_ms)
+{
+    struct sigaction action;
+
+    assert(ctl->eventPipe[0] == -1 && ctl->eventPipe[1] == -1 &&
+           vshEventFd == -1 && ctl->eventTimerId >= 0);
+    if (pipe2(ctl->eventPipe, O_CLOEXEC) < 0) {
+        char ebuf[1024];
+
+        vshError(ctl, _("failed to create pipe: %s"),
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
+        return -1;
+    }
+    vshEventFd = ctl->eventPipe[1];
+
+    action.sa_sigaction = vshEventInt;
+    action.sa_flags = SA_SIGINFO;
+    sigemptyset(&action.sa_mask);
+    sigaction(SIGINT, &action, &vshEventOldAction);
+
+    if (timeout_ms)
+        virEventUpdateTimeout(ctl->eventTimerId, timeout_ms);
+
+    return 0;
+}
+
+
+/**
+ * vshEventDone:
+ * @ctl virsh command struct
+ *
+ * Call this from an event callback to let the main thread quit
+ * blocking on further events.
+ */
+void
+vshEventDone(vshControl *ctl)
+{
+    char reason = VSH_EVENT_DONE;
+
+    if (ctl->eventPipe[1] >= 0)
+        ignore_value(safewrite(ctl->eventPipe[1], &reason, 1));
+}
+
+
+/**
+ * vshEventWait:
+ * @ctl virsh command struct
+ *
+ * Call this in the main thread after calling vshEventStart() then
+ * registering for one or more events.  This call will block until
+ * SIGINT, the timeout registered at the start, or until one of your
+ * event handlers calls vshEventDone().  Returns an enum VSH_EVENT_*
+ * stating how the wait concluded, or -1 on error.
+ */
+int
+vshEventWait(vshControl *ctl)
+{
+    char buf;
+    int rv;
+
+    assert(ctl->eventPipe[0] >= 0);
+    while ((rv = read(ctl->eventPipe[0], &buf, 1)) < 0 && errno == EINTR);
+    if (rv != 1) {
+        char ebuf[1024];
+
+        if (!rv)
+            errno = EPIPE;
+        vshError(ctl, _("failed to determine loop exit status: %s"),
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
+        return -1;
+    }
+    return buf;
+}
+
+
+/**
+ * vshEventCleanup:
+ * @ctl virsh command struct
+ *
+ * Call at the end of any function that has used vshEventStart(), to
+ * tear down any remaining SIGINT or timeout handlers.
+ */
+void
+vshEventCleanup(vshControl *ctl)
+{
+    if (vshEventFd >= 0) {
+        sigaction(SIGINT, &vshEventOldAction, NULL);
+        vshEventFd = -1;
+    }
+    VIR_FORCE_CLOSE(ctl->eventPipe[0]);
+    VIR_FORCE_CLOSE(ctl->eventPipe[1]);
+    virEventUpdateTimeout(ctl->eventTimerId, -1);
+}
+
+
+/*
  * Initialize debug settings.
  */
 static void
@@ -2465,6 +2677,10 @@ vshInit(vshControl *ctl)
     if (virThreadCreate(&ctl->eventLoop, true, vshEventLoop, ctl) < 0)
         return false;
     ctl->eventLoopStarted = true;
+
+    if ((ctl->eventTimerId = virEventAddTimeout(-1, vshEventTimeout, ctl,
+                                                NULL)) < 0)
+        return false;
 
     if (ctl->name) {
         vshReconnect(ctl);
@@ -2599,7 +2815,7 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
     VIR_FREE(str);
     return;
 
-error:
+ error:
     vshCloseLogFile(ctl);
     vshError(ctl, "%s", _("failed to write the log file"));
     virBufferFreeAndReset(&buf);
@@ -2909,6 +3125,9 @@ vshDeinit(vshControl *ctl)
         if (timer != -1)
             virEventRemoveTimeout(timer);
 
+        if (ctl->eventTimerId != -1)
+            virEventRemoveTimeout(ctl->eventTimerId);
+
         ctl->eventLoopStarted = false;
     }
 
@@ -2930,16 +3149,20 @@ vshUsage(void)
                       "\n%s [options]... <command> [args...]\n\n"
                       "  options:\n"
                       "    -c | --connect=URI      hypervisor connection URI\n"
-                      "    -r | --readonly         connect readonly\n"
                       "    -d | --debug=NUM        debug level [0-4]\n"
+                      "    -e | --escape <char>    set escape sequence for console\n"
                       "    -h | --help             this help\n"
-                      "    -q | --quiet            quiet mode\n"
-                      "    -t | --timing           print timing information\n"
+                      "    -k | --keepalive-interval=NUM\n"
+                      "                            keepalive interval in seconds, 0 for disable\n"
+                      "    -K | --keepalive-count=NUM\n"
+                      "                            number of possible missed keepalive messages\n"
                       "    -l | --log=FILE         output logging to file\n"
+                      "    -q | --quiet            quiet mode\n"
+                      "    -r | --readonly         connect readonly\n"
+                      "    -t | --timing           print timing information\n"
                       "    -v                      short version\n"
                       "    -V                      long version\n"
                       "         --version[=TYPE]   version, TYPE is short or long (default short)\n"
-                      "    -e | --escape <char>    set escape sequence for console\n\n"
                       "  commands (non interactive mode):\n\n"), progname, progname);
 
     for (grp = cmdGroups; grp->name; grp++) {
@@ -3122,27 +3345,33 @@ vshAllowedEscapeChar(char c)
 static bool
 vshParseArgv(vshControl *ctl, int argc, char **argv)
 {
-    int arg, len, debug;
+    int arg, len, debug, keepalive;
     size_t i;
     int longindex = -1;
     struct option opt[] = {
+        {"connect", required_argument, NULL, 'c'},
         {"debug", required_argument, NULL, 'd'},
+        {"escape", required_argument, NULL, 'e'},
         {"help", no_argument, NULL, 'h'},
+        {"keepalive-interval", required_argument, NULL, 'k'},
+        {"keepalive-count", required_argument, NULL, 'K'},
+        {"log", required_argument, NULL, 'l'},
         {"quiet", no_argument, NULL, 'q'},
+        {"readonly", no_argument, NULL, 'r'},
         {"timing", no_argument, NULL, 't'},
         {"version", optional_argument, NULL, 'v'},
-        {"connect", required_argument, NULL, 'c'},
-        {"readonly", no_argument, NULL, 'r'},
-        {"log", required_argument, NULL, 'l'},
-        {"escape", required_argument, NULL, 'e'},
         {NULL, 0, NULL, 0}
     };
 
     /* Standard (non-command) options. The leading + ensures that no
      * argument reordering takes place, so that command options are
      * not confused with top-level virsh options. */
-    while ((arg = getopt_long(argc, argv, "+:d:hqtc:vVrl:e:", opt, &longindex)) != -1) {
+    while ((arg = getopt_long(argc, argv, "+:c:d:e:hk:K:l:qrtvV", opt, &longindex)) != -1) {
         switch (arg) {
+        case 'c':
+            VIR_FREE(ctl->name);
+            ctl->name = vshStrdup(ctl, optarg);
+            break;
         case 'd':
             if (virStrToLong_i(optarg, NULL, 10, &debug) < 0) {
                 vshError(ctl, _("option %s takes a numeric argument"),
@@ -3154,37 +3383,6 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
                          debug, VSH_ERR_DEBUG, VSH_ERR_ERROR);
             else
                 ctl->debug = debug;
-            break;
-        case 'h':
-            vshUsage();
-            exit(EXIT_SUCCESS);
-            break;
-        case 'q':
-            ctl->quiet = true;
-            break;
-        case 't':
-            ctl->timing = true;
-            break;
-        case 'c':
-            VIR_FREE(ctl->name);
-            ctl->name = vshStrdup(ctl, optarg);
-            break;
-        case 'v':
-            if (STRNEQ_NULLABLE(optarg, "long")) {
-                puts(VERSION);
-                exit(EXIT_SUCCESS);
-            }
-            /* fall through */
-        case 'V':
-            vshShowVersion(ctl);
-            exit(EXIT_SUCCESS);
-        case 'r':
-            ctl->readonly = true;
-            break;
-        case 'l':
-            vshCloseLogFile(ctl);
-            ctl->logfile = vshStrdup(ctl, optarg);
-            vshOpenLogFile(ctl);
             break;
         case 'e':
             len = strlen(optarg);
@@ -3199,6 +3397,51 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
             break;
+        case 'h':
+            vshUsage();
+            exit(EXIT_SUCCESS);
+            break;
+        case 'k':
+            if (virStrToLong_i(optarg, NULL, 0, &keepalive) < 0 ||
+                keepalive < 0) {
+                vshError(ctl, _("option -%s requires a positive numeric argument"),
+                         longindex == -1 ? "-k" : "--keepalive-interval");
+                exit(EXIT_FAILURE);
+            }
+            ctl->keepalive_interval = keepalive;
+            break;
+        case 'K':
+            if (virStrToLong_i(optarg, NULL, 0, &keepalive) < 0 ||
+                keepalive < 0) {
+                vshError(ctl, _("option -%s requires a positive numeric argument"),
+                         longindex == -1 ? "-K" : "--keepalive-count");
+                exit(EXIT_FAILURE);
+            }
+            ctl->keepalive_count = keepalive;
+            break;
+        case 'l':
+            vshCloseLogFile(ctl);
+            ctl->logfile = vshStrdup(ctl, optarg);
+            vshOpenLogFile(ctl);
+            break;
+        case 'q':
+            ctl->quiet = true;
+            break;
+        case 't':
+            ctl->timing = true;
+            break;
+        case 'r':
+            ctl->readonly = true;
+            break;
+        case 'v':
+            if (STRNEQ_NULLABLE(optarg, "long")) {
+                puts(VERSION);
+                exit(EXIT_SUCCESS);
+            }
+            /* fall through */
+        case 'V':
+            vshShowVersion(ctl);
+            exit(EXIT_SUCCESS);
         case ':':
             for (i = 0; opt[i].name != NULL; i++) {
                 if (opt[i].val == optopt)
@@ -3311,6 +3554,13 @@ main(int argc, char **argv)
     ctl->debug = VSH_DEBUG_DEFAULT;
     ctl->escapeChar = "^]";     /* Same default as telnet */
 
+    /* In order to distinguish default from setting to 0 */
+    ctl->keepalive_interval = -1;
+    ctl->keepalive_count = -1;
+
+    ctl->eventPipe[0] = -1;
+    ctl->eventPipe[1] = -1;
+    ctl->eventTimerId = -1;
 
     if (!setlocale(LC_ALL, "")) {
         perror("setlocale");
@@ -3343,6 +3593,8 @@ main(int argc, char **argv)
         vshError(ctl, "%s", _("Failed to initialize libvirt"));
         return EXIT_FAILURE;
     }
+
+    virFileActivateDirOverride(argv[0]);
 
     if (!(progname = strrchr(argv[0], '/')))
         progname = argv[0];

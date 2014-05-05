@@ -1,5 +1,5 @@
 /*
- * utils.c: test utils
+ * testutils.h: test utils
  *
  * Copyright (C) 2005, 2008-2013 Red Hat, Inc.
  *
@@ -27,6 +27,8 @@
 # include "viralloc.h"
 # include "virfile.h"
 # include "virstring.h"
+# include "capabilities.h"
+# include "domain_conf.h"
 
 # define EXIT_AM_SKIP 77 /* tell Automake we're skipping a test */
 # define EXIT_AM_HARDFAIL 99 /* tell Automake that the framework is broken */
@@ -44,6 +46,8 @@ extern char *progname;
 #  error Fix Makefile.am
 # endif
 
+bool virtTestOOMActive(void);
+
 void virtTestResult(const char *name, int ret, const char *msg, ...)
     ATTRIBUTE_FMT_PRINTF(3,4);
 int virtTestRun(const char *title,
@@ -54,6 +58,8 @@ int virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxle
 
 int virtTestClearLineRegex(const char *pattern,
                            char *string);
+
+void virtTestClearCommandPath(char *cmdset);
 
 int virtTestDifference(FILE *stream,
                        const char *expect,
@@ -101,5 +107,8 @@ int virtTestMain(int argc,
         }                                                               \
         return virtTestMain(argc, argv, func);                          \
     }
+
+virCapsPtr virTestGenericCapsInit(void);
+virDomainXMLOptionPtr virTestGenericDomainXMLConfInit(void);
 
 #endif /* __VIT_TEST_UTILS_H__ */

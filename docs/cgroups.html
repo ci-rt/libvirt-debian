@@ -132,6 +132,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -200,6 +204,7 @@
     </p>
         <h2>
           <a name="requiredControllers" shape="rect" id="requiredControllers">Required controllers</a>
+          <a class="headerlink" href="#requiredControllers" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The control groups filesystem supports multiple "controllers". By default
@@ -219,9 +224,9 @@
     </p>
         <p>
       The LXC driver is capable of using the <code>cpuset</code>,
-      <code>cpu</code>, <code>cpuset</code>, <code>freezer</code>,
+      <code>cpu</code>, <code>cpuacct</code>, <code>freezer</code>,
       <code>memory</code>, <code>blkio</code> and <code>devices</code>
-      controllers. The <code>cpuset</code>, <code>devices</code>
+      controllers. The <code>cpuacct</code>, <code>devices</code>
       and <code>memory</code> controllers are compulsory. Without
       them mounted, no containers can be started. If any of the
       other controllers are not mounted, the resource management APIs
@@ -229,6 +234,7 @@
     </p>
         <h2>
           <a name="currentLayout" shape="rect" id="currentLayout">Current cgroups layout</a>
+          <a class="headerlink" href="#currentLayout" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       As of libvirt 1.0.5 or later, the cgroups layout created by libvirt has been
@@ -249,6 +255,7 @@
     </p>
         <h3>
           <a name="currentLayoutSystemd" shape="rect" id="currentLayoutSystemd">Systemd cgroups integration</a>
+          <a class="headerlink" href="#currentLayoutSystemd" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       On hosts which use systemd, each consumer maps to a systemd scope unit,
@@ -256,6 +263,7 @@
     </p>
         <h4>
           <a name="systemdScope" shape="rect" id="systemdScope">Systemd scope naming</a>
+          <a class="headerlink" href="#systemdScope" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       The systemd convention is for the scope name of virtual machines / containers
@@ -269,6 +277,7 @@
     </p>
         <h4>
           <a name="systemdSlice" shape="rect" id="systemdSlice">Systemd slice naming</a>
+          <a class="headerlink" href="#systemdSlice" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       The systemd convention for slice naming is that a slice should include the
@@ -282,6 +291,7 @@
     </p>
         <h4>
           <a name="systemdLayout" shape="rect" id="systemdLayout">Systemd cgroup layout</a>
+          <a class="headerlink" href="#systemdLayout" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       Given this, a possible systemd cgroups layout involving 3 qemu guests,
@@ -330,6 +340,7 @@ $ROOT
     </pre>
         <h3>
           <a name="currentLayoutGeneric" shape="rect" id="currentLayoutGeneric">Non-systemd cgroups layout</a>
+          <a class="headerlink" href="#currentLayoutGeneric" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       On hosts which do not use systemd, each consumer has a corresponding cgroup
@@ -389,6 +400,7 @@ $ROOT
     </pre>
         <h2>
           <a name="customPartiton" shape="rect" id="customPartiton">Using custom partitions</a>
+          <a class="headerlink" href="#customPartiton" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       If there is a need to apply resource constraints to groups of
@@ -434,6 +446,7 @@ $ROOT
     </p>
         <h3>
           <a name="createSystemd" shape="rect" id="createSystemd">Creating custom partitions (systemd)</a>
+          <a class="headerlink" href="#createSystemd" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Given the XML config above, the admin on a systemd based host would
@@ -450,6 +463,7 @@ EOF
     </pre>
         <h3>
           <a name="createNonSystemd" shape="rect" id="createNonSystemd">Creating custom partitions (non-systemd)</a>
+          <a class="headerlink" href="#createNonSystemd" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Given the XML config above, the admin on a non-systemd based host
@@ -468,6 +482,7 @@ EOF
 </pre>
         <h2>
           <a name="resourceAPIs" shape="rect" id="resourceAPIs">Resource management APIs/commands</a>
+          <a class="headerlink" href="#resourceAPIs" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Since libvirt aims to provide an API which is portable across
@@ -518,6 +533,7 @@ swap_hard_limit: unlimited
     </p>
         <h2>
           <a name="legacyLayout" shape="rect" id="legacyLayout">Legacy cgroups layout</a>
+          <a class="headerlink" href="#legacyLayout" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Prior to libvirt 1.0.5, the cgroups layout created by libvirt was different

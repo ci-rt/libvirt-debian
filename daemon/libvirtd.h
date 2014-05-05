@@ -32,7 +32,6 @@
 # include "remote_protocol.h"
 # include "lxc_protocol.h"
 # include "qemu_protocol.h"
-# include "virlog.h"
 # include "virthread.h"
 # if WITH_SASL
 #  include "virnetsaslcontext.h"
@@ -51,9 +50,12 @@ struct daemonClientPrivate {
     /* Hold while accessing any data except conn */
     virMutex lock;
 
-    int domainEventCallbackID[VIR_DOMAIN_EVENT_ID_LAST];
+    daemonClientEventCallbackPtr *domainEventCallbacks;
+    size_t ndomainEventCallbacks;
     daemonClientEventCallbackPtr *networkEventCallbacks;
     size_t nnetworkEventCallbacks;
+    daemonClientEventCallbackPtr *qemuEventCallbacks;
+    size_t nqemuEventCallbacks;
 
 # if WITH_SASL
     virNetSASLSessionPtr sasl;

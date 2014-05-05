@@ -1,7 +1,7 @@
 /*
  * virclosecallbacks.c: Connection close callbacks routines
  *
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,8 @@
 #include "virobject.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.closecallbacks");
 
 typedef struct _virDriverCloseDef virDriverCloseDef;
 typedef virDriverCloseDef *virDriverCloseDefPtr;
@@ -65,13 +67,6 @@ static int virCloseCallbacksOnceInit(void)
 VIR_ONCE_GLOBAL_INIT(virCloseCallbacks)
 
 
-static void
-virCloseCallbacksFreeData(void *payload,
-                          const void *name ATTRIBUTE_UNUSED)
-{
-    VIR_FREE(payload);
-}
-
 virCloseCallbacksPtr
 virCloseCallbacksNew(void)
 {
@@ -83,7 +78,7 @@ virCloseCallbacksNew(void)
     if (!(closeCallbacks = virObjectLockableNew(virCloseCallbacksClass)))
         return NULL;
 
-    closeCallbacks->list = virHashCreate(5, virCloseCallbacksFreeData);
+    closeCallbacks->list = virHashCreate(5, virHashValueFree);
     if (!closeCallbacks->list) {
         virObjectUnref(closeCallbacks);
         return NULL;
@@ -146,7 +141,7 @@ virCloseCallbacksSet(virCloseCallbacksPtr closeCallbacks,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnlock(closeCallbacks);
     return ret;
 }
@@ -178,7 +173,7 @@ virCloseCallbacksUnset(virCloseCallbacksPtr closeCallbacks,
     }
 
     ret = virHashRemoveEntry(closeCallbacks->list, uuidstr);
-cleanup:
+ cleanup:
     virObjectUnlock(closeCallbacks);
     return ret;
 }

@@ -36,6 +36,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("tests.fdstreamtest");
+
 #define PATTERN_LEN 256
 
 static int testFDStreamReadCommon(const char *scratchdir, bool blocking)
@@ -145,7 +147,7 @@ static int testFDStreamReadCommon(const char *scratchdir, bool blocking)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     if (st)
         virStreamFree(st);
     VIR_FORCE_CLOSE(fd);
@@ -288,7 +290,7 @@ static int testFDStreamWriteCommon(const char *scratchdir, bool blocking)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     if (st)
         virStreamFree(st);
     VIR_FORCE_CLOSE(fd);
@@ -319,9 +321,6 @@ mymain(void)
 {
     char scratchdir[] = SCRATCHDIRTEMPLATE;
     int ret = 0;
-    const char *iohelper = abs_builddir "/../src/libvirt_iohelper";
-
-    virFDStreamSetIOHelper(iohelper);
 
     if (!mkdtemp(scratchdir)) {
         virFilePrintf(stderr, "Cannot create fakesysfsdir");

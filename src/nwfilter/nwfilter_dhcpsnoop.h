@@ -25,12 +25,13 @@
 #ifndef __NWFILTER_DHCPSNOOP_H
 # define __NWFILTER_DHCPSNOOP_H
 
+# include "nwfilter_tech_driver.h"
+
 int virNWFilterDHCPSnoopInit(void);
 void virNWFilterDHCPSnoopShutdown(void);
 int virNWFilterDHCPSnoopReq(virNWFilterTechDriverPtr techdriver,
                             const char *ifname,
                             const char *linkdev,
-                            enum virDomainNetType nettype,
                             const unsigned char *vmuuid,
                             const virMacAddr *macaddr,
                             const char *filtername,

@@ -38,6 +38,8 @@
 
 #ifdef __linux__
 
+VIR_LOG_INIT("node_device.node_device_linux_sysfs");
+
 int
 detect_scsi_host_caps(union _virNodeDevCapData *d)
 {
@@ -113,7 +115,7 @@ detect_scsi_host_caps(union _virNodeDevCapData *d)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     if (ret < 0) {
         /* Clear the two flags in case of producing confusing XML output */
         d->scsi_host.flags &= ~(VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST |

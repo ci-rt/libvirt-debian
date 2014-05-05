@@ -1537,6 +1537,21 @@ xdr_remote_domain_core_dump_args (XDR *xdrs, remote_domain_core_dump_args *objp)
 }
 
 bool_t
+xdr_remote_domain_core_dump_with_format_args (XDR *xdrs, remote_domain_core_dump_with_format_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->to))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->dumpformat))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_screenshot_args (XDR *xdrs, remote_domain_screenshot_args *objp)
 {
 
@@ -3996,6 +4011,17 @@ xdr_remote_domain_event_lifecycle_msg (XDR *xdrs, remote_domain_event_lifecycle_
 }
 
 bool_t
+xdr_remote_domain_event_callback_lifecycle_msg (XDR *xdrs, remote_domain_event_callback_lifecycle_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_lifecycle_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_connect_domain_xml_from_native_args (XDR *xdrs, remote_connect_domain_xml_from_native_args *objp)
 {
 
@@ -4571,10 +4597,50 @@ xdr_remote_connect_domain_event_deregister_any_args (XDR *xdrs, remote_connect_d
 }
 
 bool_t
+xdr_remote_connect_domain_event_callback_register_any_args (XDR *xdrs, remote_connect_domain_event_callback_register_any_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->eventID))
+                 return FALSE;
+         if (!xdr_remote_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_domain_event_callback_register_any_ret (XDR *xdrs, remote_connect_domain_event_callback_register_any_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_domain_event_callback_deregister_any_args (XDR *xdrs, remote_connect_domain_event_callback_deregister_any_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_event_reboot_msg (XDR *xdrs, remote_domain_event_reboot_msg *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_reboot_msg (XDR *xdrs, remote_domain_event_callback_reboot_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_reboot_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }
@@ -4591,12 +4657,34 @@ xdr_remote_domain_event_rtc_change_msg (XDR *xdrs, remote_domain_event_rtc_chang
 }
 
 bool_t
+xdr_remote_domain_event_callback_rtc_change_msg (XDR *xdrs, remote_domain_event_callback_rtc_change_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_rtc_change_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_event_watchdog_msg (XDR *xdrs, remote_domain_event_watchdog_msg *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->action))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_watchdog_msg (XDR *xdrs, remote_domain_event_callback_watchdog_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_watchdog_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }
@@ -4617,6 +4705,17 @@ xdr_remote_domain_event_io_error_msg (XDR *xdrs, remote_domain_event_io_error_ms
 }
 
 bool_t
+xdr_remote_domain_event_callback_io_error_msg (XDR *xdrs, remote_domain_event_callback_io_error_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_io_error_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_event_io_error_reason_msg (XDR *xdrs, remote_domain_event_io_error_reason_msg *objp)
 {
 
@@ -4629,6 +4728,17 @@ xdr_remote_domain_event_io_error_reason_msg (XDR *xdrs, remote_domain_event_io_e
          if (!xdr_int (xdrs, &objp->action))
                  return FALSE;
          if (!xdr_remote_nonnull_string (xdrs, &objp->reason))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_io_error_reason_msg (XDR *xdrs, remote_domain_event_callback_io_error_reason_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_io_error_reason_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }
@@ -4679,6 +4789,17 @@ xdr_remote_domain_event_graphics_msg (XDR *xdrs, remote_domain_event_graphics_ms
 }
 
 bool_t
+xdr_remote_domain_event_callback_graphics_msg (XDR *xdrs, remote_domain_event_callback_graphics_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_graphics_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_event_block_job_msg (XDR *xdrs, remote_domain_event_block_job_msg *objp)
 {
 
@@ -4689,6 +4810,17 @@ xdr_remote_domain_event_block_job_msg (XDR *xdrs, remote_domain_event_block_job_
          if (!xdr_int (xdrs, &objp->type))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->status))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_block_job_msg (XDR *xdrs, remote_domain_event_callback_block_job_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_block_job_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }
@@ -4711,6 +4843,17 @@ xdr_remote_domain_event_disk_change_msg (XDR *xdrs, remote_domain_event_disk_cha
 }
 
 bool_t
+xdr_remote_domain_event_callback_disk_change_msg (XDR *xdrs, remote_domain_event_callback_disk_change_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_disk_change_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_event_tray_change_msg (XDR *xdrs, remote_domain_event_tray_change_msg *objp)
 {
 
@@ -4719,6 +4862,17 @@ xdr_remote_domain_event_tray_change_msg (XDR *xdrs, remote_domain_event_tray_cha
          if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_tray_change_msg (XDR *xdrs, remote_domain_event_callback_tray_change_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_tray_change_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }
@@ -4733,10 +4887,36 @@ xdr_remote_domain_event_pmwakeup_msg (XDR *xdrs, remote_domain_event_pmwakeup_ms
 }
 
 bool_t
+xdr_remote_domain_event_callback_pmwakeup_msg (XDR *xdrs, remote_domain_event_callback_pmwakeup_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+         if (!xdr_remote_domain_event_pmwakeup_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_event_pmsuspend_msg (XDR *xdrs, remote_domain_event_pmsuspend_msg *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_pmsuspend_msg (XDR *xdrs, remote_domain_event_callback_pmsuspend_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+         if (!xdr_remote_domain_event_pmsuspend_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }
@@ -4753,10 +4933,34 @@ xdr_remote_domain_event_balloon_change_msg (XDR *xdrs, remote_domain_event_ballo
 }
 
 bool_t
+xdr_remote_domain_event_callback_balloon_change_msg (XDR *xdrs, remote_domain_event_callback_balloon_change_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_balloon_change_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_event_pmsuspend_disk_msg (XDR *xdrs, remote_domain_event_pmsuspend_disk_msg *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_pmsuspend_disk_msg (XDR *xdrs, remote_domain_event_callback_pmsuspend_disk_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+         if (!xdr_remote_domain_event_pmsuspend_disk_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }
@@ -5388,6 +5592,17 @@ xdr_remote_domain_event_control_error_msg (XDR *xdrs, remote_domain_event_contro
 }
 
 bool_t
+xdr_remote_domain_event_callback_control_error_msg (XDR *xdrs, remote_domain_event_callback_control_error_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_control_error_msg (xdrs, &objp->msg))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_get_control_info_args (XDR *xdrs, remote_domain_get_control_info_args *objp)
 {
 
@@ -5915,6 +6130,17 @@ xdr_remote_domain_event_device_removed_msg (XDR *xdrs, remote_domain_event_devic
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_callback_device_removed_msg (XDR *xdrs, remote_domain_event_callback_device_removed_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_domain_event_device_removed_msg (xdrs, &objp->msg))
                  return FALSE;
         return TRUE;
 }

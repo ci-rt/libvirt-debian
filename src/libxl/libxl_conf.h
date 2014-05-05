@@ -1,7 +1,7 @@
 /*
  * libxl_conf.h: libxl configuration management
  *
- * Copyright (C) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
+ * Copyright (C) 2011-2014 SUSE LINUX Products GmbH, Nuernberg, Germany.
  * Copyright (C) 2011 Univention GmbH.
  *
  * This library is free software; you can redistribute it and/or
@@ -37,8 +37,9 @@
 # include "virportallocator.h"
 # include "virobject.h"
 # include "virchrdev.h"
+# include "virhostdev.h"
 
-
+# define LIBXL_DRIVER_NAME "xenlight"
 # define LIBXL_VNC_PORT_MIN  5900
 # define LIBXL_VNC_PORT_MAX  65535
 
@@ -48,6 +49,7 @@
 # define LIBXL_LOG_DIR LOCALSTATEDIR "/log/libvirt/libxl"
 # define LIBXL_LIB_DIR LOCALSTATEDIR "/lib/libvirt/libxl"
 # define LIBXL_SAVE_DIR LIBXL_LIB_DIR "/save"
+# define LIBXL_DUMP_DIR LIBXL_LIB_DIR "/dump"
 # define LIBXL_BOOTLOADER_PATH BINDIR "/pygrub"
 
 
@@ -82,12 +84,14 @@ struct _libxlDriverConfig {
     char *stateDir;
     char *libDir;
     char *saveDir;
+    char *autoDumpDir;
 };
 
 
 struct _libxlDriverPrivate {
     virMutex lock;
 
+    virHostdevManagerPtr hostdevMgr;
     /* Require lock to get reference on 'config',
      * then lockless thereafter */
     libxlDriverConfigPtr config;
@@ -115,9 +119,6 @@ struct _libxlDriverPrivate {
     virSysinfoDefPtr hostsysinfo;
 };
 
-typedef struct _libxlEventHookInfo libxlEventHookInfo;
-typedef libxlEventHookInfo *libxlEventHookInfoPtr;
-
 # define LIBXL_SAVE_MAGIC "libvirt-xml\n \0 \r"
 # define LIBXL_SAVE_VERSION 1
 
@@ -137,6 +138,10 @@ libxlDriverConfigNew(void);
 libxlDriverConfigPtr
 libxlDriverConfigGet(libxlDriverPrivatePtr driver);
 
+int
+libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver,
+                       virNodeInfoPtr info);
+
 virCapsPtr
 libxlMakeCapabilities(libxl_ctx *ctx);
 
@@ -149,6 +154,9 @@ libxlMakeNic(virDomainDefPtr def,
 int
 libxlMakeVfb(libxlDriverPrivatePtr driver,
              virDomainGraphicsDefPtr l_vfb, libxl_device_vfb *x_vfb);
+
+int
+libxlMakePCI(virDomainHostdevDefPtr hostdev, libxl_device_pci *pcidev);
 
 int
 libxlBuildDomainConfig(libxlDriverPrivatePtr driver,

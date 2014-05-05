@@ -75,7 +75,12 @@
                 <ref name="UUID"/>
               </element>
             </element>
-            <ref name='domain'/>
+            <!-- Nested grammar ensures that any of our overrides of
+                 storagecommon/domaincommon defines do not conflict
+                 with any domain.rng overrides.  -->
+            <grammar>
+              <include href='domain.rng'/>
+            </grammar>
           </choice>
         </optional>
         <optional>
@@ -102,6 +107,11 @@
     </choice>
   </define>
 
+  <define name='storageSourceExtra' combine='choice'>
+    <!-- overrides the no-op version in storagecommon.rng -->
+    <ref name='disksnapshotdriver'/>
+  </define>
+
   <define name='disksnapshot'>
     <element name='disk'>
       <attribute name='name'>
@@ -123,19 +133,48 @@
               <value>external</value>
             </attribute>
           </optional>
-          <interleave>
-            <ref name='disksnapshotdriver'/>
-            <optional>
-              <element name='source'>
+          <choice>
+            <group>
+              <optional>
+                <attribute name='type'>
+                  <value>file</value>
+                </attribute>
+              </optional>
+              <interleave>
                 <optional>
-                  <attribute name='file'>
-                    <ref name='absFilePath'/>
-                  </attribute>
+                  <element name='source'>
+                    <optional>
+                      <attribute name='file'>
+                        <ref name='absFilePath'/>
+                      </attribute>
+                    </optional>
+                    <optional>
+                      <ref name='storageStartupPolicy'/>
+                    </optional>
+                    <empty/>
+                  </element>
                 </optional>
-                <empty/>
-              </element>
-            </optional>
-          </interleave>
+                <ref name='storageSourceExtra'/>
+              </interleave>
+            </group>
+            <group>
+              <attribute name='type'>
+                <value>block</value>
+              </attribute>
+              <interleave>
+                <optional>
+                  <element name="source">
+                    <attribute name="dev">
+                      <ref name="absFilePath"/>
+                    </attribute>
+                    <empty/>
+                  </element>
+                </optional>
+                <ref name='storageSourceExtra'/>
+              </interleave>
+            </group>
+            <ref name='diskSourceNetwork'/>
+          </choice>
         </group>
       </choice>
     </element>
@@ -146,7 +185,7 @@
       <element name='driver'>
         <optional>
           <attribute name='type'>
-            <ref name='storageFormat'/>
+            <ref name='storageFormatBacking'/>
           </attribute>
         </optional>
         <empty/>

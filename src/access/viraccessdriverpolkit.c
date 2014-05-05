@@ -1,7 +1,7 @@
 /*
  * viraccessdriverpolkit.c: polkited access control driver
  *
- * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright (C) 2012, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,9 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_ACCESS
+
+VIR_LOG_INIT("access.accessdriverpolkit");
+
 #define virAccessError(code, ...)                                       \
     virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                 \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
@@ -122,7 +125,7 @@ virAccessDriverPolkitFormatProcess(const char *actionid)
         goto cleanup;
 #endif
 
-cleanup:
+ cleanup:
     virObjectUnref(identity);
     return ret;
 }
@@ -170,16 +173,15 @@ virAccessDriverPolkitCheck(virAccessManagerPtr manager ATTRIBUTE_UNUSED,
             ret = 0; /* Denied */
         } else {
             ret = -1; /* Error */
-            char *tmp = virProcessTranslateStatus(status);
             virAccessError(VIR_ERR_ACCESS_DENIED,
-                           _("Policy kit denied action %s from %s: %s"),
-                           actionid, process, NULLSTR(tmp));
-            VIR_FREE(tmp);
+                           _("Policy kit denied action %s from %s: "
+                             "exit status %d"),
+                           actionid, process, status);
         }
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(actionid);
     VIR_FREE(process);

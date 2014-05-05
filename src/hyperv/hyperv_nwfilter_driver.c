@@ -1,4 +1,3 @@
-
 /*
  * hyperv_nwfilter_driver.c: nwfilter driver functions for managing
  *                           Microsoft Hyper-V firewall rules
@@ -27,7 +26,6 @@
 #include "virerror.h"
 #include "datatypes.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "hyperv_nwfilter_driver.h"
 

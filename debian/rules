@@ -1,7 +1,5 @@
 #!/usr/bin/make -f
 
-export VIR_TEST_DEBUG=1
-
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_XEN = --with-xen
@@ -18,7 +16,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_STORAGE_DISK   =	--with-storage-disk
   WITH_STORAGE_SHEEPDOG = --with-storage-sheepdog
   WITH_STORAGE_RBD    = --with-storage-rbd
-  WITH_UDEV           = --with-udev --without-hal
+  WITH_UDEV           = --with-udev
   WITH_CAPNG          = --with-capng
   WITH_POLKIT         = --with-polkit
   WITH_MACVTAP        = --with-macvtap
@@ -28,6 +26,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_NETCF          = --with-netcf
   WITH_SANLOCK        = --with-sanlock
   WITH_INIT_SCRIPT    =	--with-init-script=systemd
+  WITH_SYSTEMD        = --with-systemd-daemon
   WITH_AUDIT          = --with-audit
   WITH_SELINUX        = --with-selinux --with-secdriver-selinux --with-selinux-mount=/sys/fs/selinux
   WITH_APPARMOR       = --with-apparmor --with-secdriver-apparmor --with-apparmor-profiles
@@ -52,7 +51,7 @@ else
   WITH_STORAGE_DISK   =	--without-storage-disk
   WITH_STORAGE_SHEEPDOG = --without-storage-sheepdog
   WITH_STORAGE_RBD    = --without-storage-rbd
-  WITH_UDEV           = --without-udev --with-hal
+  WITH_UDEV           = --without-udev
   WITH_CAPNG          = --without-capng
   WITH_POLKIT         = --without-polkit
   WITH_MACVTAP        = --without-macvtap
@@ -62,6 +61,7 @@ else
   WITH_NUMA           = --without-numactl
   WITH_NETCF          = --without-netcf
   WITH_INIT_SCRIPT    =	--with-init-script=none
+  WITH_SYSTEMD        = --without-systemd-daemon
   WITH_AUDIT          = --without-audit
   WITH_SELINUX        = --without-selinux
   WITH_APPARMOR       = --without-apparmor
@@ -113,6 +113,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_LXC)              \
 	$(WITH_DTRACE)           \
 	$(WITH_AUDIT)            \
+	--without-hal            \
 	--without-firewalld
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
@@ -136,8 +137,13 @@ override_dh_auto_install:
 
 override_dh_auto_test:
 	export LD_PRELOAD="";     \
-	[ -z "$(MAKE_CHECK)" ] || \
-	  dh_auto_test -O--builddirectory=$(DEB_BUILDDIR)
+	export VIR_TEST_DEBUG=1;  \
+	[ -n "$(MAKE_CHECK)" ] || exit 0; \
+	if ! dh_auto_test -O--builddirectory=$(DEB_BUILDDIR); then \
+	    cat ./debian/build/gnulib/tests/test-suite.log \
+	        ./debian/build/tests/test-suite.log; \
+	    exit 1; \
+	fi
 
 override_dh_install:
 	dh_install
@@ -146,8 +152,10 @@ override_dh_install:
 	    debian/libvirt-bin.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-bin.libvirt-guests.default
-	-mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
-	    debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
+ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
+	mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
+	   debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
+endif
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
@@ -162,7 +170,7 @@ override_dh_install:
 
 override_dh_installinit:
 	dh_systemd_enable
-	dh_installinit --name=libvirt-bin --no-restart-on-upgrade -- defaults 28 72
+	dh_installinit --name=libvirt-bin --restart-after-upgrade -- defaults 28 72
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 	dh_systemd_start --restart-after-upgrade
 
@@ -183,4 +191,5 @@ override_dh_auto_clean:
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	rm -f $(CURDIR)/debian/libvirt-bin.*.logrotate
+	rm -f $(CURDIR)/debian/*.service
 	rm -rf $(DEB_BUILDDIR)

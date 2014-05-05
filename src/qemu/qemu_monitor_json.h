@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_json.h: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2009, 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2009, 2011-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -147,8 +147,12 @@ int qemuMonitorJSONGetSpiceMigrationStatus(qemuMonitorPtr mon,
 
 int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon);
 
+int qemuMonitorJSONGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
+                                                const char *capability);
+
 int qemuMonitorJSONDump(qemuMonitorPtr mon,
-                        const char *protocol);
+                        const char *protocol,
+                        const char *dumpformat);
 
 int qemuMonitorJSONGraphicsRelocate(qemuMonitorPtr mon,
                                     int type,
@@ -258,7 +262,8 @@ int qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
                                const char *top,
                                const char *base,
                                unsigned long long bandwidth)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4);
 
 int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,

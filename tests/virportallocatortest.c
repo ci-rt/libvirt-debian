@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,13 +19,61 @@
  */
 
 #include <config.h>
+#include <stdlib.h>
+#include "virfile.h"
+#include "testutils.h"
 
-#ifdef MOCK_HELPER
-# include "internal.h"
-# include <sys/socket.h>
-# include <errno.h>
-# include <arpa/inet.h>
-# include <netinet/in.h>
+#if HAVE_DLFCN_H
+# include <dlfcn.h>
+#endif
+
+#if defined(RTLD_NEXT)
+# ifdef MOCK_HELPER
+#  include "internal.h"
+#  include <sys/socket.h>
+#  include <errno.h>
+#  include <arpa/inet.h>
+#  include <netinet/in.h>
+#  include <stdio.h>
+
+static bool host_has_ipv6 = false;
+static int (*realsocket)(int domain, int type, int protocol);
+
+static void init_syms(void)
+{
+    int fd;
+
+    if (realsocket)
+        return;
+
+    realsocket = dlsym(RTLD_NEXT, "socket");
+
+    if (!realsocket) {
+        fprintf(stderr, "Unable to find 'socket' symbol\n");
+        abort();
+    }
+
+    fd = realsocket(AF_INET6, SOCK_STREAM, 0);
+    if (fd < 0)
+        return;
+
+    host_has_ipv6 = true;
+    VIR_FORCE_CLOSE(fd);
+}
+
+int socket(int domain,
+           int type,
+           int protocol)
+{
+    init_syms();
+
+    if (getenv("LIBVIRT_TEST_IPV4ONLY") && domain == AF_INET6) {
+        errno = EAFNOSUPPORT;
+        return -1;
+    }
+
+    return realsocket(domain, type, protocol);
+}
 
 int bind(int sockfd ATTRIBUTE_UNUSED,
          const struct sockaddr *addr,
@@ -34,6 +82,19 @@ int bind(int sockfd ATTRIBUTE_UNUSED,
     struct sockaddr_in saddr;
 
     memcpy(&saddr, addr, sizeof(saddr));
+
+    if (host_has_ipv6 && !getenv("LIBVIRT_TEST_IPV4ONLY")) {
+        if (saddr.sin_port == htons(5900) ||
+            (saddr.sin_family == AF_INET &&
+             saddr.sin_port == htons(5904)) ||
+            (saddr.sin_family == AF_INET6 &&
+             (saddr.sin_port == htons(5905) ||
+              saddr.sin_port == htons(5906)))) {
+            errno = EADDRINUSE;
+            return -1;
+        }
+        return 0;
+    }
 
     if (saddr.sin_port == htons(5900) ||
         saddr.sin_port == htons(5904) ||
@@ -46,20 +107,18 @@ int bind(int sockfd ATTRIBUTE_UNUSED,
     return 0;
 }
 
-#else
-# include <stdlib.h>
+# else
 
-# include "testutils.h"
-# include "virutil.h"
-# include "virerror.h"
-# include "viralloc.h"
-# include "virfile.h"
-# include "virlog.h"
-# include "virportallocator.h"
-# include "virstring.h"
+#  include "virutil.h"
+#  include "virerror.h"
+#  include "viralloc.h"
+#  include "virlog.h"
+#  include "virportallocator.h"
+#  include "virstring.h"
 
-# define VIR_FROM_THIS VIR_FROM_RPC
+#  define VIR_FROM_THIS VIR_FROM_RPC
 
+VIR_LOG_INIT("tests.portallocatortest");
 
 static int testAllocAll(const void *args ATTRIBUTE_UNUSED)
 {
@@ -125,7 +184,7 @@ static int testAllocAll(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(alloc);
     return ret;
 }
@@ -178,7 +237,7 @@ static int testAllocReuse(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(alloc);
     return ret;
 }
@@ -195,8 +254,24 @@ mymain(void)
     if (virtTestRun("Test alloc reuse", testAllocReuse, NULL) < 0)
         ret = -1;
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    setenv("LIBVIRT_TEST_IPV4ONLY", "really", 1);
+
+    if (virtTestRun("Test IPv4-only alloc all", testAllocAll, NULL) < 0)
+        ret = -1;
+
+    if (virtTestRun("Test IPv4-only alloc reuse", testAllocReuse, NULL) < 0)
+        ret = -1;
+
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/libvirportallocatormock.so")
+# endif
+
+#else /* ! defined(RTLD_NEXT) */
+int
+main(void)
+{
+    return EXIT_AM_SKIP;
+}
 #endif

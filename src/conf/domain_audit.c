@@ -1,7 +1,7 @@
 /*
  * domain_audit.c: Domain audit management
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -32,6 +32,8 @@
 #include "virlog.h"
 #include "viralloc.h"
 #include "virstring.h"
+
+VIR_LOG_INIT("conf.domain_audit");
 
 /* Return nn:mm in hex for block and character devices, and NULL
  * for other file types, stat failure, or allocation failure.  */
@@ -70,6 +72,7 @@ virDomainAuditChardevPath(virDomainChrSourceDefPtr chr)
     case VIR_DOMAIN_CHR_TYPE_DEV:
     case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
+    case VIR_DOMAIN_CHR_TYPE_NMDM:
         return chr->data.file.path;
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
@@ -81,6 +84,7 @@ virDomainAuditChardevPath(virDomainChrSourceDefPtr chr)
     case VIR_DOMAIN_CHR_TYPE_VC:
     case VIR_DOMAIN_CHR_TYPE_STDIO:
     case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
+    case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
     case VIR_DOMAIN_CHR_TYPE_LAST:
         return NULL;
     }
@@ -125,7 +129,7 @@ virDomainAuditDisk(virDomainObjPtr vm,
               virt, reason, vmname, uuidstr,
               oldsrc, newsrc);
 
-cleanup:
+ cleanup:
     VIR_FREE(vmname);
     VIR_FREE(oldsrc);
     VIR_FREE(newsrc);
@@ -206,13 +210,13 @@ virDomainAuditRNG(virDomainObjPtr vm,
               virt, reason, vmname, uuidstr,
               oldsrc, newsrc);
 
-cleanup:
+ cleanup:
     VIR_FREE(vmname);
     VIR_FREE(oldsrc);
     VIR_FREE(newsrc);
     return;
 
-no_memory:
+ no_memory:
     VIR_WARN("OOM while encoding audit message");
     goto cleanup;
 }
@@ -258,7 +262,7 @@ virDomainAuditFS(virDomainObjPtr vm,
               virt, reason, vmname, uuidstr,
               oldsrc, newsrc);
 
-cleanup:
+ cleanup:
     VIR_FREE(vmname);
     VIR_FREE(oldsrc);
     VIR_FREE(newsrc);
@@ -342,7 +346,7 @@ virDomainAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
               "virt=%s resrc=net reason=open %s uuid=%s net=%s %s rdev=%s",
               virt, vmname, uuidstr, macstr, dev_name, VIR_AUDIT_STR(rdev));
 
-cleanup:
+ cleanup:
     VIR_FREE(vmname);
     VIR_FREE(dev_name);
     VIR_FREE(rdev);
@@ -466,7 +470,7 @@ virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(vmname);
     VIR_FREE(device);
     VIR_FREE(address);
@@ -527,7 +531,7 @@ virDomainAuditRedirdev(virDomainObjPtr vm, virDomainRedirdevDefPtr redirdev,
               virDomainRedirdevBusTypeToString(redirdev->bus),
               device);
 
-cleanup:
+ cleanup:
     VIR_FREE(vmname);
     VIR_FREE(device);
     VIR_FREE(address);
@@ -580,7 +584,7 @@ virDomainAuditTPM(virDomainObjPtr vm, virDomainTPMDefPtr tpm,
         break;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(vmname);
     VIR_FREE(device);
 }
@@ -701,7 +705,7 @@ virDomainAuditCgroupPath(virDomainObjPtr vm, virCgroupPtr cgroup,
 
     virDomainAuditCgroup(vm, cgroup, reason, extra, rc == 0);
 
-cleanup:
+ cleanup:
     VIR_FREE(extra);
     VIR_FREE(detail);
     VIR_FREE(rdev);
@@ -796,9 +800,10 @@ virDomainAuditStart(virDomainObjPtr vm, const char *reason, bool success)
     size_t i;
 
     for (i = 0; i < vm->def->ndisks; i++) {
-        virDomainDiskDefPtr disk = vm->def->disks[i];
-        if (disk->src) /* Skips CDROM without media initially inserted */
-            virDomainAuditDisk(vm, NULL, disk->src, "start", true);
+        const char *src = virDomainDiskGetSource(vm->def->disks[i]);
+
+        if (src) /* Skips CDROM without media initially inserted */
+            virDomainAuditDisk(vm, NULL, src, "start", true);
     }
 
     for (i = 0; i < vm->def->nfss; i++) {

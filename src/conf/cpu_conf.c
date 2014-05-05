@@ -1,7 +1,7 @@
 /*
  * cpu_conf.c: CPU XML handling
  *
- * Copyright (C) 2009-2013 Red Hat, Inc.
+ * Copyright (C) 2009-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -168,7 +168,7 @@ virCPUDefCopy(const virCPUDef *cpu)
 
     return copy;
 
-error:
+ error:
     virCPUDefFree(copy);
     return NULL;
 }
@@ -221,7 +221,7 @@ virCPUDefParseXML(xmlNodePtr node,
             def->mode = virCPUModeTypeFromString(cpuMode);
 
             if (def->mode < 0) {
-                virReportError(VIR_ERR_XML_ERROR,
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("Invalid mode attribute '%s'"),
                                cpuMode);
                 VIR_FREE(cpuMode);
@@ -249,7 +249,7 @@ virCPUDefParseXML(xmlNodePtr node,
             VIR_FREE(match);
 
             if (def->match < 0) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("Invalid match attribute for CPU "
                                  "specification"));
                 goto error;
@@ -265,7 +265,7 @@ virCPUDefParseXML(xmlNodePtr node,
             goto error;
         }
         if ((def->arch = virArchFromString(arch)) == VIR_ARCH_NONE) {
-            virReportError(VIR_ERR_XML_ERROR,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unknown architecture %s"), arch);
             VIR_FREE(arch);
             goto error;
@@ -285,7 +285,7 @@ virCPUDefParseXML(xmlNodePtr node,
 
         if ((fallback = virXPathString("string(./model[1]/@fallback)", ctxt))) {
             if ((def->fallback = virCPUFallbackTypeFromString(fallback)) < 0) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("Invalid fallback attribute"));
                 goto error;
             }
@@ -391,7 +391,7 @@ virCPUDefParseXML(xmlNodePtr node,
             VIR_FREE(strpolicy);
 
             if (policy < 0) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("Invalid CPU feature policy"));
                 goto error;
             }
@@ -472,13 +472,13 @@ virCPUDefParseXML(xmlNodePtr node,
         }
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(fallback);
     VIR_FREE(vendor_id);
     VIR_FREE(nodes);
     return def;
 
-error:
+ error:
     virCPUDefFree(def);
     def = NULL;
     goto cleanup;
@@ -499,9 +499,9 @@ virCPUDefFormat(virCPUDefPtr def,
 
     return virBufferContentAndReset(&buf);
 
-no_memory:
+ no_memory:
     virReportOOMError();
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&buf);
     return NULL;
 }
@@ -541,12 +541,11 @@ virCPUDefFormatBufFull(virBufferPtr buf,
         }
     }
     virBufferAddLit(buf, ">\n");
+    virBufferAdjustIndent(buf, 2);
 
     if (def->arch)
-        virBufferAsprintf(buf, "  <arch>%s</arch>\n",
+        virBufferAsprintf(buf, "<arch>%s</arch>\n",
                           virArchToString(def->arch));
-
-    virBufferAdjustIndent(buf, 2);
     if (virCPUDefFormatBuf(buf, def, flags) < 0)
         return -1;
     virBufferAdjustIndent(buf, -2);
@@ -645,12 +644,14 @@ virCPUDefFormatBuf(virBufferPtr buf,
 
     if (def->ncells) {
         virBufferAddLit(buf, "<numa>\n");
+        virBufferAdjustIndent(buf, 2);
         for (i = 0; i < def->ncells; i++) {
-            virBufferAddLit(buf, "  <cell");
+            virBufferAddLit(buf, "<cell");
             virBufferAsprintf(buf, " cpus='%s'", def->cells[i].cpustr);
             virBufferAsprintf(buf, " memory='%d'", def->cells[i].mem);
             virBufferAddLit(buf, "/>\n");
         }
+        virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</numa>\n");
     }
     return 0;
@@ -819,6 +820,6 @@ virCPUDefIsEqual(virCPUDefPtr src,
 
     identical = true;
 
-cleanup:
+ cleanup:
     return identical;
 }

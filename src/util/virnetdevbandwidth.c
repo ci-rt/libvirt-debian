@@ -193,7 +193,7 @@ virNetDevBandwidthSet(const char *ifname,
         virCommandFree(cmd);
         cmd = virCommandNew(TC);
         virCommandAddArgList(cmd, "filter", "add", "dev", ifname, "parent",
-                             "1:0", "protocol", "ip", "handle", "1", "fw",
+                             "1:0", "protocol", "all", "handle", "1", "fw",
                              "flowid", "1", NULL);
 
         if (virCommandRun(cmd, NULL) < 0)
@@ -221,9 +221,10 @@ virNetDevBandwidthSet(const char *ifname,
 
         virCommandFree(cmd);
         cmd = virCommandNew(TC);
+        /* Set filter to match all ingress traffic */
         virCommandAddArgList(cmd, "filter", "add", "dev", ifname, "parent",
-                             "ffff:", "protocol", "ip", "u32", "match", "ip",
-                             "src", "0.0.0.0/0", "police", "rate", average,
+                             "ffff:", "protocol", "all", "u32", "match", "u32",
+                             "0", "0", "police", "rate", average,
                              "burst", burst, "mtu", "64kb", "drop", "flowid",
                              ":1", NULL);
 
@@ -233,7 +234,7 @@ virNetDevBandwidthSet(const char *ifname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(average);
     VIR_FREE(peak);
@@ -316,7 +317,7 @@ virNetDevBandwidthCopy(virNetDevBandwidthPtr *dest,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret < 0) {
         virNetDevBandwidthFree(*dest);
         *dest = NULL;
@@ -465,7 +466,7 @@ virNetDevBandwidthPlug(const char *brname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(mac[1]);
     VIR_FREE(mac[0]);
     VIR_FREE(ceil);
@@ -534,7 +535,7 @@ virNetDevBandwidthUnplug(const char *brname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(filter_id);
     VIR_FREE(qdisc_id);
     VIR_FREE(class_id);
@@ -582,7 +583,7 @@ virNetDevBandwidthUpdateRate(const char *ifname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(rate);
     VIR_FREE(ceil);

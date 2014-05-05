@@ -1,7 +1,7 @@
 /*
  * virkeyfile.c: "ini"-style configuration file handling
  *
- * Copyright (C) 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_CONF
+
+VIR_LOG_INIT("util.keyfile");
 
 typedef struct _virKeyFileGroup virKeyFileGroup;
 typedef virKeyFileGroup *virKeyFileGroupPtr;
@@ -101,11 +103,6 @@ virKeyFileErrorHelper(const char *file, const char *func, size_t line,
 }
 
 
-static void virKeyFileValueFree(void *value, const void *name ATTRIBUTE_UNUSED)
-{
-    VIR_FREE(value);
-}
-
 static int virKeyFileParseGroup(virKeyFileParserCtxtPtr ctxt)
 {
     int ret = -1;
@@ -128,14 +125,14 @@ static int virKeyFileParseGroup(virKeyFileParserCtxtPtr ctxt)
 
     NEXT;
 
-    if (!(ctxt->group = virHashCreate(10, virKeyFileValueFree)))
+    if (!(ctxt->group = virHashCreate(10, virHashValueFree)))
         goto cleanup;
 
     if (virHashAddEntry(ctxt->conf->groups, ctxt->groupname, ctxt->group) < 0)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     if (ret != 0) {
         virHashFree(ctxt->group);
         ctxt->group = NULL;
@@ -193,7 +190,7 @@ static int virKeyFileParseValue(virKeyFileParserCtxtPtr ctxt)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(key);
     return ret;
 }
@@ -266,7 +263,7 @@ static int virKeyFileParse(virKeyFilePtr conf,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(ctxt.groupname);
     return ret;
 }
@@ -291,7 +288,7 @@ virKeyFilePtr virKeyFileNew(void)
 
     return conf;
 
-error:
+ error:
     virKeyFileFree(conf);
     return NULL;
 }

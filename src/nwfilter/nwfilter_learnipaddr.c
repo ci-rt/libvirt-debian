@@ -2,7 +2,7 @@
  * nwfilter_learnipaddr.c: support for learning IP address used by a VM
  *                         on an interface
  *
- * Copyright (C) 2011, 2013 Red Hat, Inc.
+ * Copyright (C) 2011, 2013, 2014 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corp.
  * Copyright (C) 2010 Stefan Berger
  *
@@ -57,6 +57,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
+
+VIR_LOG_INIT("nwfilter.nwfilter_learnipaddr");
 
 #define IFINDEX2STR(VARNAME, ifindex) \
     char VARNAME[INT_BUFSIZE_BOUND(ifindex)]; \
@@ -117,10 +119,10 @@ struct ether_vlan_header
 } ATTRIBUTE_PACKED;
 
 
-static virMutex pendingLearnReqLock;
+static virMutex pendingLearnReqLock = VIR_MUTEX_INITIALIZER;
 static virHashTablePtr pendingLearnReq;
 
-static virMutex ifaceMapLock;
+static virMutex ifaceMapLock = VIR_MUTEX_INITIALIZER;
 static virHashTablePtr ifaceLockMap;
 
 typedef struct _virNWFilterIfaceLock virNWFilterIfaceLock;
@@ -136,7 +138,8 @@ static bool threadsTerminate = false;
 
 
 int
-virNWFilterLockIface(const char *ifname) {
+virNWFilterLockIface(const char *ifname)
+{
     virNWFilterIfaceLockPtr ifaceLock;
 
     virMutexLock(&ifaceMapLock);
@@ -185,14 +188,9 @@ virNWFilterLockIface(const char *ifname) {
 }
 
 
-static void
-freeIfaceLock(void *payload, const void *name ATTRIBUTE_UNUSED) {
-    VIR_FREE(payload);
-}
-
-
 void
-virNWFilterUnlockIface(const char *ifname) {
+virNWFilterUnlockIface(const char *ifname)
+{
     virNWFilterIfaceLockPtr ifaceLock;
 
     virMutexLock(&ifaceMapLock);
@@ -212,7 +210,8 @@ virNWFilterUnlockIface(const char *ifname) {
 
 
 static void
-virNWFilterIPAddrLearnReqFree(virNWFilterIPAddrLearnReqPtr req) {
+virNWFilterIPAddrLearnReqFree(virNWFilterIPAddrLearnReqPtr req)
+{
     if (!req)
         return;
 
@@ -226,7 +225,8 @@ virNWFilterIPAddrLearnReqFree(virNWFilterIPAddrLearnReqPtr req) {
 #if HAVE_LIBPCAP
 
 static int
-virNWFilterRegisterLearnReq(virNWFilterIPAddrLearnReqPtr req) {
+virNWFilterRegisterLearnReq(virNWFilterIPAddrLearnReqPtr req)
+{
     int res = -1;
     IFINDEX2STR(ifindex_str, req->ifindex);
 
@@ -244,7 +244,8 @@ virNWFilterRegisterLearnReq(virNWFilterIPAddrLearnReqPtr req) {
 #endif
 
 int
-virNWFilterTerminateLearnReq(const char *ifname) {
+virNWFilterTerminateLearnReq(const char *ifname)
+{
     int rc = -1;
     int ifindex;
     virNWFilterIPAddrLearnReqPtr req;
@@ -279,7 +280,8 @@ virNWFilterTerminateLearnReq(const char *ifname) {
 
 
 virNWFilterIPAddrLearnReqPtr
-virNWFilterLookupLearnReq(int ifindex) {
+virNWFilterLookupLearnReq(int ifindex)
+{
     void *res;
     IFINDEX2STR(ifindex_str, ifindex);
 
@@ -294,7 +296,8 @@ virNWFilterLookupLearnReq(int ifindex) {
 
 
 static void
-freeLearnReqEntry(void *payload, const void *name ATTRIBUTE_UNUSED) {
+freeLearnReqEntry(void *payload, const void *name ATTRIBUTE_UNUSED)
+{
     virNWFilterIPAddrLearnReqFree(payload);
 }
 
@@ -302,7 +305,8 @@ freeLearnReqEntry(void *payload, const void *name ATTRIBUTE_UNUSED) {
 #ifdef HAVE_LIBPCAP
 
 static virNWFilterIPAddrLearnReqPtr
-virNWFilterDeregisterLearnReq(int ifindex) {
+virNWFilterDeregisterLearnReq(int ifindex)
+{
     virNWFilterIPAddrLearnReqPtr res;
     IFINDEX2STR(ifindex_str, ifindex);
 
@@ -322,7 +326,8 @@ virNWFilterDeregisterLearnReq(int ifindex) {
 static void
 procDHCPOpts(struct dhcp *dhcp, int dhcp_opts_len,
              uint32_t *vmaddr, uint32_t *bcastaddr,
-             enum howDetect *howDetected) {
+             enum howDetect *howDetected)
+{
     struct dhcp_option *dhcpopt = &dhcp->options[0];
 
     while (dhcp_opts_len >= 2) {
@@ -557,7 +562,7 @@ learnIPAddressThread(void *arg)
                                        iphdr->ihl * 4 +
                                        sizeof(struct udphdr))) {
                         VIR_WARNINGS_NO_CAST_ALIGN
-                        struct udphdr *udphdr= (struct udphdr *)
+                        struct udphdr *udphdr = (struct udphdr *)
                                           ((char *)iphdr + iphdr->ihl * 4);
                         VIR_WARNINGS_RESET
                         if (ntohs(udphdr->source) == 67 &&
@@ -617,7 +622,6 @@ learnIPAddressThread(void *arg)
                                                    req->ifname,
                                                    req->ifindex,
                                                    req->linkdev,
-                                                   req->nettype,
                                                    &req->macaddr,
                                                    req->filtername,
                                                    req->filterparams);
@@ -656,7 +660,6 @@ learnIPAddressThread(void *arg)
  * @ifindex: the index of the interface
  * @linkdev : the name of the link device; currently only used in case of a
  *     macvtap device
- * @nettype : the type of interface
  * @macaddr : the MAC address of the interface
  * @filtername : the name of the top-level filter to apply to the interface
  *               once its IP address has been detected
@@ -676,12 +679,12 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
                           const char *ifname,
                           int ifindex,
                           const char *linkdev,
-                          enum virDomainNetType nettype,
                           const virMacAddr *macaddr,
                           const char *filtername,
                           virNWFilterHashTablePtr filterparams,
                           virNWFilterDriverStatePtr driver,
-                          enum howDetect howDetect) {
+                          enum howDetect howDetect)
+{
     int rc;
     virNWFilterIPAddrLearnReqPtr req = NULL;
     virNWFilterHashTablePtr ht = NULL;
@@ -727,7 +730,6 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
     }
 
     req->ifindex = ifindex;
-    req->nettype = nettype;
     virMacAddrSet(&req->macaddr, macaddr);
     req->driver = driver;
     req->filterparams = ht;
@@ -748,13 +750,13 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
 
     return 0;
 
-err_dereg_req:
+ err_dereg_req:
     virNWFilterDeregisterLearnReq(ifindex);
-err_free_ht:
+ err_free_ht:
     virNWFilterHashTableFree(ht);
-err_free_req:
+ err_free_req:
     virNWFilterIPAddrLearnReqFree(req);
-err_no_req:
+ err_no_req:
     return -1;
 }
 
@@ -765,7 +767,6 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver ATTRIBUTE_UNUSED,
                           const char *ifname ATTRIBUTE_UNUSED,
                           int ifindex ATTRIBUTE_UNUSED,
                           const char *linkdev ATTRIBUTE_UNUSED,
-                          enum virDomainNetType nettype ATTRIBUTE_UNUSED,
                           const virMacAddr *macaddr ATTRIBUTE_UNUSED,
                           const char *filtername ATTRIBUTE_UNUSED,
                           virNWFilterHashTablePtr filterparams ATTRIBUTE_UNUSED,
@@ -786,7 +787,8 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver ATTRIBUTE_UNUSED,
  * Initialization of this layer
  */
 int
-virNWFilterLearnInit(void) {
+virNWFilterLearnInit(void)
+{
 
     if (pendingLearnReq)
         return 0;
@@ -799,18 +801,8 @@ virNWFilterLearnInit(void) {
         return -1;
     }
 
-    if (virMutexInit(&pendingLearnReqLock) < 0) {
-        virNWFilterLearnShutdown();
-        return -1;
-    }
-
-    ifaceLockMap = virHashCreate(0, freeIfaceLock);
+    ifaceLockMap = virHashCreate(0, virHashValueFree);
     if (!ifaceLockMap) {
-        virNWFilterLearnShutdown();
-        return -1;
-    }
-
-    if (virMutexInit(&ifaceMapLock) < 0) {
         virNWFilterLearnShutdown();
         return -1;
     }
@@ -820,7 +812,8 @@ virNWFilterLearnInit(void) {
 
 
 void
-virNWFilterLearnThreadsTerminate(bool allowNewThreads) {
+virNWFilterLearnThreadsTerminate(bool allowNewThreads)
+{
     threadsTerminate = true;
 
     while (virHashSize(pendingLearnReq) != 0)

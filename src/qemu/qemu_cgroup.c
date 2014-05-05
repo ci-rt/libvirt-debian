@@ -1,7 +1,7 @@
 /*
  * qemu_cgroup.c: QEMU cgroup management
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -36,6 +36,8 @@
 #include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
+
+VIR_LOG_INIT("qemu.qemu_cgroup");
 
 static const char *const defaultDeviceACL[] = {
     "/dev/null", "/dev/full", "/dev/zero",
@@ -183,7 +185,7 @@ qemuSetupTPMCgroup(virDomainDefPtr def,
 
 
 static int
-qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
+qemuSetupHostUSBDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
                              const char *path,
                              void *opaque)
 {
@@ -200,7 +202,7 @@ qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
 }
 
 static int
-qemuSetupHostScsiDeviceCgroup(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
+qemuSetupHostSCSIDeviceCgroup(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
                               const char *path,
                               void *opaque)
 {
@@ -281,25 +283,27 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
                 goto cleanup;
             }
 
-            /* oddly, qemuSetupHostUsbDeviceCgroup doesn't ever
+            /* oddly, qemuSetupHostUSBDeviceCgroup doesn't ever
              * reference the usb object we just created
              */
-            if (virUSBDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
+            if (virUSBDeviceFileIterate(usb, qemuSetupHostUSBDeviceCgroup,
                                         vm) < 0) {
                 goto cleanup;
             }
             break;
 
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
-            if ((scsi = virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+            if ((scsi = virSCSIDeviceNew(NULL,
+                                         dev->source.subsys.u.scsi.adapter,
                                          dev->source.subsys.u.scsi.bus,
                                          dev->source.subsys.u.scsi.target,
                                          dev->source.subsys.u.scsi.unit,
-                                         dev->readonly)) == NULL)
+                                         dev->readonly,
+                                         dev->shareable)) == NULL)
                 goto cleanup;
 
             if (virSCSIDeviceFileIterate(scsi,
-                                         qemuSetupHostScsiDeviceCgroup,
+                                         qemuSetupHostSCSIDeviceCgroup,
                                          vm) < 0)
                 goto cleanup;
 
@@ -309,7 +313,7 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virPCIDeviceFree(pci);
     virUSBDeviceFree(usb);
     virSCSIDeviceFree(scsi);
@@ -370,7 +374,7 @@ qemuTeardownHostdevCgroup(virDomainObjPtr vm,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virPCIDeviceFree(pci);
     VIR_FREE(path);
     return ret;
@@ -400,10 +404,29 @@ qemuSetupBlkioCgroup(virDomainObjPtr vm)
     if (vm->def->blkio.ndevices) {
         for (i = 0; i < vm->def->blkio.ndevices; i++) {
             virBlkioDevicePtr dev = &vm->def->blkio.devices[i];
-            if (!dev->weight)
-                continue;
-            if (virCgroupSetBlkioDeviceWeight(priv->cgroup, dev->path,
-                                              dev->weight) < 0)
+            if (dev->weight &&
+                (virCgroupSetBlkioDeviceWeight(priv->cgroup, dev->path,
+                                               dev->weight) < 0))
+                return -1;
+
+            if (dev->riops &&
+                (virCgroupSetBlkioDeviceReadIops(priv->cgroup, dev->path,
+                                                 dev->riops) < 0))
+                return -1;
+
+            if (dev->wiops &&
+                (virCgroupSetBlkioDeviceWriteIops(priv->cgroup, dev->path,
+                                                  dev->wiops) < 0))
+                return -1;
+
+            if (dev->rbps &&
+                (virCgroupSetBlkioDeviceReadBps(priv->cgroup, dev->path,
+                                                dev->rbps) < 0))
+                return -1;
+
+            if (dev->wbps &&
+                (virCgroupSetBlkioDeviceWriteBps(priv->cgroup, dev->path,
+                                                 dev->wbps) < 0))
                 return -1;
         }
     }
@@ -504,7 +527,7 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
 
     for (i = 0; deviceACL[i] != NULL; i++) {
         if (!virFileExists(deviceACL[i])) {
-            VIR_DEBUG("Ignoring non-existant device %s", deviceACL[i]);
+            VIR_DEBUG("Ignoring non-existent device %s", deviceACL[i]);
             continue;
         }
 
@@ -533,8 +556,20 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
             goto cleanup;
     }
 
+    if (vm->def->rng &&
+        (vm->def->rng->backend == VIR_DOMAIN_RNG_BACKEND_RANDOM)) {
+        VIR_DEBUG("Setting Cgroup ACL for RNG device");
+        rv = virCgroupAllowDevicePath(priv->cgroup, vm->def->rng->source.file,
+                                      VIR_CGROUP_DEVICE_RW);
+        virDomainAuditCgroupPath(vm, priv->cgroup, "allow",
+                                 vm->def->rng->source.file, "rw", rv == 0);
+        if (rv < 0 &&
+            !virLastErrorIsSystemErrno(ENOENT))
+            goto cleanup;
+    }
+
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
@@ -598,7 +633,7 @@ qemuSetupCpusetCgroup(virDomainObjPtr vm,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(mem_mask);
     VIR_FREE(cpu_mask);
     return ret;
@@ -611,7 +646,7 @@ qemuSetupCpuCgroup(virDomainObjPtr vm)
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
     if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
-       if (vm->def->cputune.shares) {
+       if (vm->def->cputune.sharesSpecified) {
            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                           _("CPU tuning is not available on this host"));
            return -1;
@@ -620,9 +655,15 @@ qemuSetupCpuCgroup(virDomainObjPtr vm)
        }
     }
 
-    if (vm->def->cputune.shares &&
-        virCgroupSetCpuShares(priv->cgroup, vm->def->cputune.shares) < 0)
-        return -1;
+    if (vm->def->cputune.sharesSpecified) {
+        unsigned long long val;
+        if (virCgroupSetCpuShares(priv->cgroup, vm->def->cputune.shares) < 0)
+            return -1;
+
+        if (virCgroupGetCpuShares(priv->cgroup, &val) < 0)
+            return -1;
+        vm->def->cputune.shares = val;
+    }
 
     return 0;
 }
@@ -681,9 +722,9 @@ qemuInitCgroup(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-done:
+ done:
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
@@ -715,9 +756,9 @@ qemuConnectCgroup(virQEMUDriverPtr driver,
                                   &priv->cgroup) < 0)
         goto cleanup;
 
-done:
+ done:
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
@@ -762,7 +803,7 @@ qemuSetupCgroup(virQEMUDriverPtr driver,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(caps);
     return ret;
 }
@@ -792,7 +833,7 @@ qemuSetupCgroupVcpuBW(virCgroupPtr cgroup,
 
     return 0;
 
-error:
+ error:
     if (period) {
         virErrorPtr saved = virSaveLastError();
         ignore_value(virCgroupSetCpuCfsPeriod(cgroup, old_period));
@@ -840,7 +881,7 @@ qemuSetupCgroupEmulatorPin(virCgroupPtr cgroup,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(new_cpus);
     return ret;
 }
@@ -913,7 +954,7 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
 
     return 0;
 
-cleanup:
+ cleanup:
     if (cgroup_vcpu) {
         virCgroupRemove(cgroup_vcpu);
         virCgroupFree(&cgroup_vcpu);
@@ -978,7 +1019,7 @@ qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
     virBitmapFree(cpumap);
     return 0;
 
-cleanup:
+ cleanup:
     virBitmapFree(cpumap);
 
     if (cgroup_emulator) {

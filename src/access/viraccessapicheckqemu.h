@@ -10,6 +10,9 @@
 #include "node_device_conf.h"
 #include "interface_conf.h"
 
+extern int virConnectDomainQemuMonitorEventDeregisterEnsureACL(virConnectPtr conn);
+extern int virConnectDomainQemuMonitorEventRegisterEnsureACL(virConnectPtr conn);
+extern bool virConnectDomainQemuMonitorEventRegisterCheckACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainQemuAgentCommandEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainQemuAttachEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainQemuMonitorCommandEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

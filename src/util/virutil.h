@@ -42,6 +42,7 @@ int virSetBlocking(int fd, bool blocking) ATTRIBUTE_RETURN_CHECK;
 int virSetNonBlock(int fd) ATTRIBUTE_RETURN_CHECK;
 int virSetInherit(int fd, bool inherit) ATTRIBUTE_RETURN_CHECK;
 int virSetCloseExec(int fd) ATTRIBUTE_RETURN_CHECK;
+int virSetSockReuseAddr(int fd) ATTRIBUTE_RETURN_CHECK;
 
 int virPipeReadUntilEOF(int outfd, int errfd,
                         char **outbuf, char **errbuf);
@@ -98,19 +99,23 @@ const char *virEnumToString(const char *const*types,
 
 /* No-op workarounds for functionality missing in mingw.  */
 # ifndef HAVE_GETUID
-static inline int getuid(void) { return 0; }
+static inline int getuid(void)
+{ return 0; }
 # endif
 
 # ifndef HAVE_GETEUID
-static inline int geteuid(void) { return 0; }
+static inline int geteuid(void)
+{ return 0; }
 # endif
 
 # ifndef HAVE_GETGID
-static inline int getgid(void) { return 0; }
+static inline int getgid(void)
+{ return 0; }
 # endif
 
 # ifndef HAVE_GETEGID
-static inline int getegid(void) { return 0; }
+static inline int getegid(void)
+{ return 0; }
 # endif
 
 # ifdef FUNC_PTHREAD_SIGMASK_BROKEN
@@ -193,5 +198,9 @@ int virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr);
 const char *virGetEnvBlockSUID(const char *name);
 const char *virGetEnvAllowSUID(const char *name);
 bool virIsSUID(void);
+
+
+time_t virGetSelfLastChanged(void);
+void virUpdateSelfLastChanged(const char *path);
 
 #endif /* __VIR_UTIL_H__ */

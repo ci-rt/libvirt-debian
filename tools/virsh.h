@@ -1,7 +1,7 @@
 /*
  * virsh.h: a shell to exercise the libvirt API
  *
- * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -154,7 +154,7 @@ typedef char **(*vshCompleter)(unsigned int flags);
  * vshCmdInfo -- name/value pair for information about command
  *
  * Commands should have at least the following names:
- * "name" - command name
+ * "help" - short description of command
  * "desc" - description of command, or empty string
  */
 struct _vshCmdInfo {
@@ -242,9 +242,15 @@ struct _vshControl {
     virMutex lock;
     bool eventLoopStarted;
     bool quit;
+    int eventPipe[2];           /* Write-to-self pipe to end waiting for an
+                                 * event to occur */
+    int eventTimerId;           /* id of event loop timeout registration */
 
     const char *escapeChar;     /* String representation of
                                    console escape character */
+
+    int keepalive_interval;     /* Client keepalive interval */
+    int keepalive_count;        /* Client keepalive count */
 
 # ifndef WIN32
     struct termios termattr;    /* settings of the tty terminal */
@@ -265,6 +271,8 @@ void vshOutputLogFile(vshControl *ctl, int log_level, const char *format,
                       va_list ap)
     ATTRIBUTE_FMT_PRINTF(3, 0);
 void vshCloseLogFile(vshControl *ctl);
+
+virConnectPtr vshConnect(vshControl *ctl, const char *uri, bool readonly);
 
 const char *vshCmddefGetInfo(const vshCmdDef *cmd, const char *info);
 const vshCmdDef *vshCmddefSearch(const char *cmdname);
@@ -301,6 +309,8 @@ bool vshCommandOptBool(const vshCmd *cmd, const char *name);
 const vshCmdOpt *vshCommandOptArgv(const vshCmd *cmd,
                                    const vshCmdOpt *opt);
 bool vshCmdHasOption(vshControl *ctl, const vshCmd *cmd, const char *optname);
+
+int vshCommandOptTimeoutToMs(vshControl *ctl, const vshCmd *cmd, int *timeout);
 
 /* Filter flags for various vshCommandOpt*By() functions */
 typedef enum {
@@ -367,6 +377,16 @@ int vshTTYRestore(vshControl *ctl);
 int vshTTYMakeRaw(vshControl *ctl, bool report_errors);
 bool vshTTYAvailable(vshControl *ctl);
 
+/* waiting for events */
+enum {
+    VSH_EVENT_INTERRUPT,
+    VSH_EVENT_TIMEOUT,
+    VSH_EVENT_DONE,
+};
+int vshEventStart(vshControl *ctl, int timeout_ms);
+void vshEventDone(vshControl *ctl);
+int vshEventWait(vshControl *ctl);
+void vshEventCleanup(vshControl *ctl);
 
 /* allocation wrappers */
 void *_vshMalloc(vshControl *ctl, size_t sz, const char *filename, int line);

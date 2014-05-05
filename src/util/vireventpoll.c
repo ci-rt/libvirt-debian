@@ -1,7 +1,7 @@
 /*
  * vireventpoll.c: Poll based event loop for monitoring file handles
  *
- * Copyright (C) 2007, 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2007, 2010-2014 Red Hat, Inc.
  * Copyright (C) 2007 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -38,11 +38,14 @@
 #include "virutil.h"
 #include "virfile.h"
 #include "virerror.h"
+#include "virprobe.h"
 #include "virtime.h"
 
 #define EVENT_DEBUG(fmt, ...) VIR_DEBUG(fmt, __VA_ARGS__)
 
 #define VIR_FROM_THIS VIR_FROM_EVENT
+
+VIR_LOG_INIT("util.eventpoll");
 
 static int virEventPollInterruptLocked(void);
 
@@ -103,7 +106,8 @@ static int nextTimer = 1;
 int virEventPollAddHandle(int fd, int events,
                           virEventHandleCallback cb,
                           void *opaque,
-                          virFreeCallback ff) {
+                          virFreeCallback ff)
+{
     int watch;
     virMutexLock(&eventLoop.lock);
     if (eventLoop.handlesCount == eventLoop.handlesAlloc) {
@@ -139,7 +143,8 @@ int virEventPollAddHandle(int fd, int events,
     return watch;
 }
 
-void virEventPollUpdateHandle(int watch, int events) {
+void virEventPollUpdateHandle(int watch, int events)
+{
     size_t i;
     bool found = false;
     PROBE(EVENT_POLL_UPDATE_HANDLE,
@@ -173,7 +178,8 @@ void virEventPollUpdateHandle(int watch, int events) {
  * For this reason we only ever set a flag in the existing list.
  * Actual deletion will be done out-of-band
  */
-int virEventPollRemoveHandle(int watch) {
+int virEventPollRemoveHandle(int watch)
+{
     size_t i;
     PROBE(EVENT_POLL_REMOVE_HANDLE,
           "watch=%d",
@@ -293,7 +299,8 @@ void virEventPollUpdateTimeout(int timer, int frequency)
  * For this reason we only ever set a flag in the existing list.
  * Actual deletion will be done out-of-band
  */
-int virEventPollRemoveTimeout(int timer) {
+int virEventPollRemoveTimeout(int timer)
+{
     size_t i;
     PROBE(EVENT_POLL_REMOVE_TIMEOUT,
           "timer=%d",
@@ -326,7 +333,8 @@ int virEventPollRemoveTimeout(int timer) {
  *           no timeout is pending
  * returns: 0 on success, -1 on error
  */
-static int virEventPollCalculateTimeout(int *timeout) {
+static int virEventPollCalculateTimeout(int *timeout)
+{
     unsigned long long then = 0;
     size_t i;
     EVENT_DEBUG("Calculate expiry of %zu timers", eventLoop.timeoutsCount);
@@ -466,7 +474,8 @@ static int virEventPollDispatchTimeouts(void)
  *
  * Returns 0 upon success, -1 if an error occurred
  */
-static int virEventPollDispatchHandles(int nfds, struct pollfd *fds) {
+static int virEventPollDispatchHandles(int nfds, struct pollfd *fds)
+{
     size_t i, n;
     VIR_DEBUG("Dispatch %d", nfds);
 
@@ -511,7 +520,8 @@ static int virEventPollDispatchHandles(int nfds, struct pollfd *fds) {
  * were previously marked as deleted. This asynchronous
  * cleanup is needed to make dispatch re-entrant safe.
  */
-static void virEventPollCleanupTimeouts(void) {
+static void virEventPollCleanupTimeouts(void)
+{
     size_t i;
     size_t gap;
     VIR_DEBUG("Cleanup %zu", eventLoop.timeoutsCount);
@@ -559,7 +569,8 @@ static void virEventPollCleanupTimeouts(void) {
  * were previously marked as deleted. This asynchronous
  * cleanup is needed to make dispatch re-entrant safe.
  */
-static void virEventPollCleanupHandles(void) {
+static void virEventPollCleanupHandles(void)
+{
     size_t i;
     size_t gap;
     VIR_DEBUG("Cleanup %zu", eventLoop.handlesCount);
@@ -607,7 +618,8 @@ static void virEventPollCleanupHandles(void) {
  * Run a single iteration of the event loop, blocking until
  * at least one file handle has an event, or a timer expires
  */
-int virEventPollRunOnce(void) {
+int virEventPollRunOnce(void)
+{
     struct pollfd *fds = NULL;
     int ret, timeout, nfds;
 
@@ -656,9 +668,9 @@ int virEventPollRunOnce(void) {
     VIR_FREE(fds);
     return 0;
 
-error:
+ error:
     virMutexUnlock(&eventLoop.lock);
-error_unlocked:
+ error_unlocked:
     VIR_FREE(fds);
     return -1;
 }

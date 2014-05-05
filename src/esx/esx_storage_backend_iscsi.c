@@ -1,7 +1,7 @@
-
 /*
  * esx_storage_backend_iscsi.c: ESX storage backend for iSCSI handling
  *
+ * Copyright (C) 2014 Red Hat, Inc.
  * Copyright (C) 2012 Ata E Husain Bohra <ata.husain@hotmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -29,7 +29,6 @@
 #include "internal.h"
 #include "md5.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "storage_conf.h"
 #include "virstoragefile.h"
@@ -86,7 +85,7 @@ esxConnectNumOfStoragePools(virConnectPtr conn)
 
     success = true;
 
-  cleanup:
+ cleanup:
     esxVI_HostInternetScsiHba_Free(&hostInternetScsiHba);
 
     return success ? count : -1;
@@ -139,7 +138,7 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names,
 
     success = true;
 
-  cleanup:
+ cleanup:
     if (! success) {
         for (i = 0; i < count; ++i) {
             VIR_FREE(names[i]);
@@ -187,7 +186,7 @@ esxStoragePoolLookupByName(virConnectPtr conn,
 
     pool = virGetStoragePool(conn, name, md5, &esxStorageBackendISCSI, NULL);
 
-  cleanup:
+ cleanup:
     esxVI_HostInternetScsiHbaStaticTarget_Free(&target);
 
     return pool;
@@ -236,7 +235,7 @@ esxStoragePoolLookupByUUID(virConnectPtr conn,
     pool = virGetStoragePool(conn, target->iScsiName, md5,
                              &esxStorageBackendISCSI, NULL);
 
-  cleanup:
+ cleanup:
     esxVI_HostInternetScsiHba_Free(&hostInternetScsiHba);
 
     return pool;
@@ -271,7 +270,7 @@ esxStoragePoolRefresh(virStoragePoolPtr pool,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_HostInternetScsiHba_Free(&hostInternetScsiHba);
 
     return result;
@@ -346,7 +345,7 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
     /* TODO: add CHAP authentication params */
     xml = virStoragePoolDefFormat(&def);
 
-  cleanup:
+ cleanup:
     VIR_FREE(def.source.hosts);
     esxVI_HostInternetScsiHba_Free(&hostInternetScsiHba);
 
@@ -424,7 +423,7 @@ esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
 
     success = true;
 
-  cleanup:
+ cleanup:
     if (! success) {
         for (i = 0; i < count; ++i) {
             VIR_FREE(names[i]);
@@ -461,7 +460,7 @@ esxStorageVolLookupByName(virStoragePoolPtr pool,
          scsiLun = scsiLun->_next) {
         if (STREQ(scsiLun->deviceName, name)) {
             /*
-             * ScsiLun provides an UUID field that is unique accross
+             * ScsiLun provides a UUID field that is unique across
              * multiple servers. But this field length is ~55 characters
              * compute MD5 hash to transform it to an acceptable
              * libvirt format
@@ -480,7 +479,7 @@ esxStorageVolLookupByName(virStoragePoolPtr pool,
         }
     }
 
-  cleanup:
+ cleanup:
     esxVI_ScsiLun_Free(&scsiLunList);
 
     return volume;
@@ -527,7 +526,7 @@ esxStorageVolLookupByPath(virConnectPtr conn, const char *path)
         }
     }
 
-  cleanup:
+ cleanup:
     esxVI_ScsiLun_Free(&scsiLunList);
     VIR_FREE(poolName);
 
@@ -582,7 +581,7 @@ esxStorageVolLookupByKey(virConnectPtr conn, const char *key)
         }
     }
 
-  cleanup:
+ cleanup:
     esxVI_ScsiLun_Free(&scsiLunList);
     VIR_FREE(poolName);
 
@@ -679,17 +678,17 @@ esxStorageVolGetXMLDesc(virStorageVolPtr volume,
 
     def.target.path = hostScsiDisk->devicePath;
 
-    def.capacity = hostScsiDisk->capacity->block->value *
+    def.target.capacity = hostScsiDisk->capacity->block->value *
                    hostScsiDisk->capacity->blockSize->value;
 
-    def.allocation = def.capacity;
+    def.target.allocation = def.target.capacity;
 
     /* iSCSI LUN(s) hosting a datastore will be auto-mounted by ESX host */
     def.target.format = VIR_STORAGE_FILE_RAW;
 
     xml = virStorageVolDefFormat(&pool, &def);
 
-  cleanup:
+ cleanup:
     esxVI_ScsiLun_Free(&scsiLunList);
     VIR_FREE(def.key);
 

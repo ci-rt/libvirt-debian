@@ -4,12 +4,12 @@ Subject: Debianize libvirt-guests
 
 Origin: vendor
 ---
- tools/libvirt-guests.sh.in   | 41 ++++++++++++++++++++++++-----------------
+ tools/libvirt-guests.sh.in   | 45 +++++++++++++++++++++++++++-----------------
  tools/libvirt-guests.sysconf |  4 ++--
- 2 files changed, 26 insertions(+), 19 deletions(-)
+ 2 files changed, 30 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index 38e93c5..0f729be 100644
+index a158b62..62ee35f 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
 @@ -1,5 +1,17 @@
@@ -31,7 +31,7 @@ index 38e93c5..0f729be 100644
  # Copyright (C) 2011-2013 Red Hat, Inc.
  #
  # This library is free software; you can redistribute it and/or
-@@ -16,33 +28,29 @@
+@@ -16,23 +28,23 @@
  # License along with this library.  If not, see
  # <http://www.gnu.org/licenses/>.
  
@@ -50,6 +50,10 @@ index 38e93c5..0f729be 100644
  # Make sure this file is recognized as having translations: _("dummy")
 -. "@bindir@"/gettext.sh
 +. /usr/bin/gettext.sh
++
++# Make sure calls to this script get redirected to systemctl when
++# using systemd
++. /lib/lsb/init-functions
  
 -export TEXTDOMAIN="@PACKAGE@" TEXTDOMAINDIR="@localedir@"
 +export TEXTDOMAIN="libvirt" TEXTDOMAINDIR="/usr/share/locale"
@@ -62,7 +66,9 @@ index 38e93c5..0f729be 100644
  SHUTDOWN_TIMEOUT=300
  PARALLEL_SHUTDOWN=0
  START_DELAY=0
- BYPASS_CACHE=0
+@@ -40,11 +52,11 @@ BYPASS_CACHE=0
+ CONNECT_RETRIES=10
+ RETRIES_SLEEP=1
  
 -test -f "$sysconfdir"/sysconfig/libvirt-guests &&
 -    . "$sysconfdir"/sysconfig/libvirt-guests
@@ -75,7 +81,7 @@ index 38e93c5..0f729be 100644
  
  RETVAL=0
  
-@@ -531,8 +539,7 @@ gueststatus() {
+@@ -540,8 +552,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start

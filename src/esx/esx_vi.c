@@ -1,4 +1,3 @@
-
 /*
  * esx_vi.c: client for the VMware VI API 2.5 to manage ESX hosts
  *
@@ -39,7 +38,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
-
+VIR_LOG_INIT("esx.esx_vi");
 
 #define ESX_VI__SOAP__RESPONSE_XPATH(_type)                                   \
     ((char *)"/soapenv:Envelope/soapenv:Body/"                                \
@@ -438,7 +437,7 @@ esxVI_CURL_Download(esxVI_CURL *curl, const char *url, char **content,
 
     *content = virBufferContentAndReset(&buffer);
 
-  cleanup:
+ cleanup:
     VIR_FREE(range);
 
     if (!(*content)) {
@@ -1162,7 +1161,7 @@ esxVI_Context_LookupManagedObjectsByPath(esxVI_Context *ctx, const char *path)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         virBufferFreeAndReset(&buffer);
     }
@@ -1216,7 +1215,7 @@ esxVI_Context_LookupManagedObjectsByHostSystemIp(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_ManagedObjectReference_Free(&managedObjectReference);
 
     return result;
@@ -1396,7 +1395,7 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         virBufferFreeAndReset(&buffer);
         esxVI_Response_Free(response);
@@ -1598,7 +1597,7 @@ esxVI_List_DeepCopy(esxVI_List **destList, esxVI_List *srcList,
 
     return 0;
 
-  failure:
+ failure:
     freeFunc(&dest);
     freeFunc(destList);
 
@@ -1652,7 +1651,7 @@ esxVI_List_CastFromAnyType(esxVI_AnyType *anyType, esxVI_List **list,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         freeFunc(&item);
         freeFunc(list);
@@ -1721,7 +1720,7 @@ esxVI_List_Deserialize(xmlNodePtr node, esxVI_List **list,
 
     return 0;
 
-  failure:
+ failure:
     freeFunc(&item);
     freeFunc(list);
 
@@ -1789,7 +1788,7 @@ esxVI_BuildSelectSet(esxVI_SelectionSpec **selectSet,
 
     return 0;
 
-  failure:
+ failure:
     esxVI_TraversalSpec_Free(&traversalSpec);
     esxVI_SelectionSpec_Free(&selectionSpec);
 
@@ -1971,7 +1970,7 @@ esxVI_EnsureSession(esxVI_Context *ctx)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     virMutexUnlock(ctx->sessionLock);
 
     esxVI_String_Free(&propertyNameList);
@@ -2121,7 +2120,7 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     /*
      * Remove values given by the caller from the data structures to prevent
      * them from being freed by the call to esxVI_PropertyFilterSpec_Free().
@@ -2407,7 +2406,7 @@ esxVI_LookupNumberOfDomainsByPowerState(esxVI_Context *ctx,
 
     success = true;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&virtualMachineList);
 
@@ -2518,7 +2517,7 @@ esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
 
     return 0;
 
-  failure:
+ failure:
     if (name) {
         VIR_FREE(*name);
     }
@@ -2590,7 +2589,7 @@ esxVI_GetSnapshotTreeNames(esxVI_VirtualMachineSnapshotTree *snapshotTreeList,
 
     return count;
 
-  failure:
+ failure:
     for (i = 0; i < count; ++i) {
         VIR_FREE(names[i]);
     }
@@ -2755,7 +2754,7 @@ esxVI_LookupVirtualMachineByUuid(esxVI_Context *ctx, const unsigned char *uuid,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_ManagedObjectReference_Free(&managedObjectReference);
 
     return result;
@@ -2822,7 +2821,7 @@ esxVI_LookupVirtualMachineByName(esxVI_Context *ctx, const char *name,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&completePropertyNameList);
     esxVI_ObjectContent_Free(&virtualMachineList);
     VIR_FREE(name_candidate);
@@ -2874,7 +2873,7 @@ esxVI_LookupVirtualMachineByUuidAndPrepareForTask
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&completePropertyNameList);
     esxVI_VirtualMachineQuestionInfo_Free(&questionInfo);
     esxVI_TaskInfo_Free(&pendingTaskInfoList);
@@ -2955,7 +2954,7 @@ esxVI_LookupDatastoreByName(esxVI_Context *ctx, const char *name,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&completePropertyNameList);
     esxVI_ObjectContent_Free(&datastoreList);
 
@@ -3043,7 +3042,7 @@ esxVI_LookupDatastoreByAbsolutePath(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&completePropertyNameList);
     esxVI_ObjectContent_Free(&datastoreList);
     esxVI_DatastoreHostMount_Free(&datastoreHostMountList);
@@ -3113,7 +3112,7 @@ esxVI_LookupDatastoreHostMount(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&objectContent);
     esxVI_DatastoreHostMount_Free(&hostMountList);
@@ -3160,7 +3159,7 @@ esxVI_LookupTaskInfoByTask(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&objectContent);
 
@@ -3221,7 +3220,7 @@ esxVI_LookupPendingTaskInfoListByVirtualMachine
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         esxVI_TaskInfo_Free(pendingTaskInfoList);
     }
@@ -3269,7 +3268,7 @@ esxVI_LookupAndHandleVirtualMachineQuestion(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_ObjectContent_Free(&virtualMachine);
     esxVI_String_Free(&propertyNameList);
     esxVI_VirtualMachineQuestionInfo_Free(&questionInfo);
@@ -3318,7 +3317,7 @@ esxVI_LookupRootSnapshotTreeList
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         esxVI_VirtualMachineSnapshotTree_Free(rootSnapshotTreeList);
     }
@@ -3403,7 +3402,7 @@ esxVI_LookupCurrentSnapshotTree
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&virtualMachine);
     esxVI_ManagedObjectReference_Free(&currentSnapshot);
@@ -3594,7 +3593,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     /* Don't double free fileName */
     if (searchSpec && searchSpec->matchPattern) {
         searchSpec->matchPattern->value = NULL;
@@ -3727,7 +3726,7 @@ esxVI_LookupDatastoreContentByDatastoreName
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastore);
     esxVI_ManagedObjectReference_Free(&hostDatastoreBrowser);
@@ -3792,7 +3791,7 @@ esxVI_LookupStorageVolumeKeyByDatastorePath(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_FileInfo_Free(&fileInfo);
     VIR_FREE(uuid_string);
 
@@ -3849,7 +3848,7 @@ esxVI_LookupAutoStartDefaults(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostAutoStartManager);
 
@@ -3900,7 +3899,7 @@ esxVI_LookupAutoStartPowerInfoList(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostAutoStartManager);
 
@@ -3944,7 +3943,7 @@ esxVI_LookupPhysicalNicList(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostSystem);
 
@@ -3994,7 +3993,7 @@ esxVI_LookupPhysicalNicByName(esxVI_Context *ctx, const char *name,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_PhysicalNic_Free(&physicalNicList);
 
     return result;
@@ -4043,7 +4042,7 @@ esxVI_LookupPhysicalNicByMACAddress(esxVI_Context *ctx, const char *mac,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_PhysicalNic_Free(&physicalNicList);
 
     return result;
@@ -4086,7 +4085,7 @@ esxVI_LookupHostVirtualSwitchList(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostSystem);
 
@@ -4139,7 +4138,7 @@ esxVI_LookupHostVirtualSwitchByName(esxVI_Context *ctx, const char *name,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_HostVirtualSwitch_Free(&hostVirtualSwitchList);
 
     return result;
@@ -4184,7 +4183,7 @@ esxVI_LookupHostPortGroupList(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostSystem);
 
@@ -4300,7 +4299,7 @@ esxVI_HandleVirtualMachineQuestion
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         virBufferFreeAndReset(&buffer);
     }
@@ -4484,7 +4483,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     /*
      * Remove values given by the caller from the data structures to prevent
      * them from being freed by the call to esxVI_PropertyFilterSpec_Free().
@@ -4651,7 +4650,7 @@ esxVI_LookupHostInternetScsiHbaStaticTargetByName
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_HostInternetScsiHba_Free(&hostInternetScsiHba);
 
     return result;
@@ -4695,7 +4694,7 @@ esxVI_LookupHostInternetScsiHba(esxVI_Context *ctx,
     for (hostHostBusAdapter = hostHostBusAdapterList;
          hostHostBusAdapter;
          hostHostBusAdapter = hostHostBusAdapter->_next) {
-        esxVI_HostInternetScsiHba *candidate=
+        esxVI_HostInternetScsiHba *candidate =
             esxVI_HostInternetScsiHba_DynamicCast(hostHostBusAdapter);
 
         if (candidate) {
@@ -4709,7 +4708,7 @@ esxVI_LookupHostInternetScsiHba(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostSystem);
     esxVI_HostHostBusAdapter_Free(&hostHostBusAdapterList);
@@ -4750,7 +4749,7 @@ esxVI_LookupScsiLunList(esxVI_Context *ctx, esxVI_ScsiLun **scsiLunList)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostSystem);
 
@@ -4843,7 +4842,7 @@ esxVI_LookupHostScsiTopologyLunListByTargetName
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostSystem);
     esxVI_HostScsiTopologyInterface_Free(&hostScsiInterfaceList);
@@ -4932,7 +4931,7 @@ esxVI_LookupStoragePoolNameByScsiLunKey(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     esxVI_ObjectContent_Free(&hostSystem);
     esxVI_String_Free(&propertyNameList);
     esxVI_HostScsiTopologyInterface_Free(&hostScsiInterfaceList);
@@ -5138,7 +5137,7 @@ esxVI_LookupManagedObjectHelper(esxVI_Context *ctx,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         esxVI_ObjectContent_Free(objectContentList);
     } else {

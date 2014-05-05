@@ -24,16 +24,16 @@
 #include <config.h>
 
 #include "viralloc.h"
+#include "virfile.h"
 #include "cpu.h"
 #include "cpu_map.h"
 #include "configmake.h"
 #include "virstring.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_CPU
 
-#define CPUMAPFILE PKGDATADIR "/cpu_map.xml"
-
-static char *cpumap;
+VIR_LOG_INIT("cpu.cpu_map");
 
 VIR_ENUM_IMPL(cpuMapElement, CPU_MAP_ELEMENT_LAST,
     "vendor",
@@ -67,7 +67,7 @@ static int load(xmlXPathContextPtr ctxt,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     ctxt->node = ctxt_node;
 
     return ret;
@@ -84,18 +84,25 @@ int cpuMapLoad(const char *arch,
     char *xpath = NULL;
     int ret = -1;
     int element;
-    const char *mapfile = (cpumap ? cpumap : CPUMAPFILE);
+    char *mapfile;
+
+    if (!(mapfile = virFileFindResource("cpu_map.xml",
+                                        "src/cpu",
+                                        PKGDATADIR)))
+        return -1;
+
+    VIR_DEBUG("Loading CPU map from %s", mapfile);
 
     if (arch == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("undefined hardware architecture"));
-        return -1;
+        goto cleanup;
     }
 
     if (cb == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("no callback provided"));
-        return -1;
+        goto cleanup;
     }
 
     if ((xml = xmlParseFile(mapfile)) == NULL) {
@@ -132,28 +139,15 @@ int cpuMapLoad(const char *arch,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
     VIR_FREE(xpath);
+    VIR_FREE(mapfile);
 
     return ret;
 
-no_memory:
+ no_memory:
     virReportOOMError();
     goto cleanup;
-}
-
-
-int
-cpuMapOverride(const char *path)
-{
-    char *map;
-
-    if (VIR_STRDUP(map, path) < 0)
-        return -1;
-
-    VIR_FREE(cpumap);
-    cpumap = map;
-    return 0;
 }

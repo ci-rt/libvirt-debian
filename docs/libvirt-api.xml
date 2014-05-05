@@ -3,7 +3,7 @@
   <files>
     <file name='libvirt'>
      <summary>core interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2013 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
+     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='LIBVIR_CHECK_VERSION' type='macro'/>
      <exports symbol='LIBVIR_VERSION_NUMBER' type='macro'/>
@@ -17,7 +17,11 @@
      <exports symbol='VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_OUT_BURST' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_OUT_PEAK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLKIO_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLKIO_WEIGHT' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' type='macro'/>
@@ -92,6 +96,7 @@
      <exports symbol='VIR_NODEINFO_MAXCPUS' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_IDLE' type='macro'/>
+     <exports symbol='VIR_NODE_CPU_STATS_INTR' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_IOWAIT' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_KERNEL' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_USER' type='macro'/>
@@ -229,6 +234,11 @@
      <exports symbol='VIR_DOMAIN_CONTROL_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_OCCUPIED' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_OK' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_RAW' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED_PANICKED' type='enum'/>
@@ -568,6 +578,7 @@
      <exports symbol='VIR_MEMORY_PHYSICAL' type='enum'/>
      <exports symbol='VIR_MEMORY_VIRTUAL' type='enum'/>
      <exports symbol='VIR_MIGRATE_ABORT_ON_ERROR' type='enum'/>
+     <exports symbol='VIR_MIGRATE_AUTO_CONVERGE' type='enum'/>
      <exports symbol='VIR_MIGRATE_CHANGE_PROTECTION' type='enum'/>
      <exports symbol='VIR_MIGRATE_COMPRESSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
@@ -718,6 +729,7 @@
      <exports symbol='virDomainControlInfoPtr' type='typedef'/>
      <exports symbol='virDomainControlState' type='typedef'/>
      <exports symbol='virDomainCoreDumpFlags' type='typedef'/>
+     <exports symbol='virDomainCoreDumpFormat' type='typedef'/>
      <exports symbol='virDomainCrashedReason' type='typedef'/>
      <exports symbol='virDomainCreateFlags' type='typedef'/>
      <exports symbol='virDomainDestroyFlagsValues' type='typedef'/>
@@ -967,6 +979,7 @@
      <exports symbol='virDomainBlockStats' type='function'/>
      <exports symbol='virDomainBlockStatsFlags' type='function'/>
      <exports symbol='virDomainCoreDump' type='function'/>
+     <exports symbol='virDomainCoreDumpWithFormat' type='function'/>
      <exports symbol='virDomainCreate' type='function'/>
      <exports symbol='virDomainCreateLinux' type='function'/>
      <exports symbol='virDomainCreateWithFiles' type='function'/>
@@ -1389,10 +1402,12 @@
      <exports symbol='VIR_FROM_ACCESS' type='enum'/>
      <exports symbol='VIR_FROM_AUDIT' type='enum'/>
      <exports symbol='VIR_FROM_AUTH' type='enum'/>
+     <exports symbol='VIR_FROM_BHYVE' type='enum'/>
      <exports symbol='VIR_FROM_CAPABILITIES' type='enum'/>
      <exports symbol='VIR_FROM_CGROUP' type='enum'/>
      <exports symbol='VIR_FROM_CONF' type='enum'/>
      <exports symbol='VIR_FROM_CPU' type='enum'/>
+     <exports symbol='VIR_FROM_CRYPTO' type='enum'/>
      <exports symbol='VIR_FROM_DBUS' type='enum'/>
      <exports symbol='VIR_FROM_DEVICE' type='enum'/>
      <exports symbol='VIR_FROM_DOM' type='enum'/>
@@ -1400,6 +1415,7 @@
      <exports symbol='VIR_FROM_DOMAIN_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_FROM_ESX' type='enum'/>
      <exports symbol='VIR_FROM_EVENT' type='enum'/>
+     <exports symbol='VIR_FROM_FIREWALL' type='enum'/>
      <exports symbol='VIR_FROM_HOOK' type='enum'/>
      <exports symbol='VIR_FROM_HYPERV' type='enum'/>
      <exports symbol='VIR_FROM_IDENTITY' type='enum'/>
@@ -1522,8 +1538,20 @@
     <macro name='VIR_DOMAIN_BANDWIDTH_OUT_PEAK' file='libvirt'>
       <info><![CDATA[Macro represents the outbound peak of NIC bandwidth, as a uint.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS' file='libvirt'>
+      <info><![CDATA[Macro for the blkio tunable throttle.read_iops_device: it represents the bytes of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, read_bps elements, separated by ','.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS' file='libvirt'>
+      <info><![CDATA[Macro for the blkio tunable throttle.read_iops_device: it represents the number of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, read_iops elements, separated by ','.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT' file='libvirt'>
       <info><![CDATA[Macro for the blkio tunable weight_device: it represents the per-device weight, as a string.  The string is parsed as a series of /path/to/device,weight elements, separated by ','.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS' file='libvirt'>
+      <info><![CDATA[Macro for the blkio tunable throttle.read_iops_device: it represents the number of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, write_bps elements, separated by ','.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS' file='libvirt'>
+      <info><![CDATA[Macro for the blkio tunable throttle.write_iops_device: it represents the number of writing the block device per second, as a string. The string is parsed as a series of /path/to/device, write_iops elements, separated by ','.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLKIO_FIELD_LENGTH' file='libvirt'>
       <info><![CDATA[Macro providing the field length of virBlkioParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
@@ -1751,6 +1779,9 @@
     <macro name='VIR_NODE_CPU_STATS_IDLE' file='libvirt'>
       <info><![CDATA[The cumulative idle CPU time, since the node booting up (in nanoseconds).]]></info>
     </macro>
+    <macro name='VIR_NODE_CPU_STATS_INTR' file='libvirt'>
+      <info><![CDATA[The cumulative interrupt CPU time, since the node booting up (in nanoseconds).]]></info>
+    </macro>
     <macro name='VIR_NODE_CPU_STATS_IOWAIT' file='libvirt'>
       <info><![CDATA[The cumulative I/O wait CPU time, since the node booting up (in nanoseconds).]]></info>
     </macro>
@@ -1944,6 +1975,16 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_CONTROL_LAST' file='libvirt' value='4' type='virDomainControlState'/>
     <enum name='VIR_DOMAIN_CONTROL_OCCUPIED' file='libvirt' value='2' type='virDomainControlState' info='occupied by a running command'/>
     <enum name='VIR_DOMAIN_CONTROL_OK' file='libvirt' value='0' type='virDomainControlState' info='operational, ready to accept commands'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO' file='libvirt' value='3' type='virDomainCoreDumpFormat' info='kdump-compressed format, with
+ lzo compression'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY' file='libvirt' value='4' type='virDomainCoreDumpFormat' info='kdump-compressed format, with
+ snappy compression'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB' file='libvirt' value='2' type='virDomainCoreDumpFormat' info='kdump-compressed format, with
+ zlib compression'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_LAST' file='libvirt' value='5' type='virDomainCoreDumpFormat' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last state supported
+ by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_RAW' file='libvirt' value='1' type='virDomainCoreDumpFormat' info='dump guest memory in raw format'/>
     <enum name='VIR_DOMAIN_CRASHED' file='libvirt' value='6' type='virDomainState' info='the domain is crashed'/>
     <enum name='VIR_DOMAIN_CRASHED_LAST' file='libvirt' value='2' type='virDomainCrashedReason'/>
     <enum name='VIR_DOMAIN_CRASHED_PANICKED' file='libvirt' value='1' type='virDomainCrashedReason' info='domain panicked'/>
@@ -2048,7 +2089,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_LAST' file='libvirt' value='6' type='virDomainEventWatchdogAction'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_NONE' file='libvirt' value='0' type='virDomainEventWatchdogAction' info='No action, watchdog ignored'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE' file='libvirt' value='1' type='virDomainEventWatchdogAction' info='Guest CPUs are paused'/>
-    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' file='libvirt' value='3' type='virDomainEventWatchdogAction' info='Guest is forcably powered off'/>
+    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' file='libvirt' value='3' type='virDomainEventWatchdogAction' info='Guest is forcibly powered off'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_RESET' file='libvirt' value='2' type='virDomainEventWatchdogAction' info='Guest CPUs are reset'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN' file='libvirt' value='4' type='virDomainEventWatchdogAction' info='Guest is requested to gracefully shutdown'/>
     <enum name='VIR_DOMAIN_JOB_BOUNDED' file='libvirt' value='1' type='virDomainJobType' info='Job with a finite completion time'/>
@@ -2334,7 +2375,7 @@ construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='57' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='60' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2429,10 +2470,12 @@ formed or broken'/>
     <enum name='VIR_FROM_ACCESS' file='virterror' value='55' type='virErrorDomain' info='Error from access control manager'/>
     <enum name='VIR_FROM_AUDIT' file='virterror' value='36' type='virErrorDomain' info='Error from auditing subsystem'/>
     <enum name='VIR_FROM_AUTH' file='virterror' value='46' type='virErrorDomain' info='Error from auth handling'/>
+    <enum name='VIR_FROM_BHYVE' file='virterror' value='57' type='virErrorDomain' info='Error from bhyve driver'/>
     <enum name='VIR_FROM_CAPABILITIES' file='virterror' value='44' type='virErrorDomain' info='Error from capabilities'/>
     <enum name='VIR_FROM_CGROUP' file='virterror' value='54' type='virErrorDomain' info='Error from cgroups'/>
     <enum name='VIR_FROM_CONF' file='virterror' value='9' type='virErrorDomain' info='Error in the configuration file handling'/>
     <enum name='VIR_FROM_CPU' file='virterror' value='31' type='virErrorDomain' info='Error from CPU driver'/>
+    <enum name='VIR_FROM_CRYPTO' file='virterror' value='58' type='virErrorDomain' info='Error from crypto code'/>
     <enum name='VIR_FROM_DBUS' file='virterror' value='47' type='virErrorDomain' info='Error from DBus'/>
     <enum name='VIR_FROM_DEVICE' file='virterror' value='49' type='virErrorDomain' info='Error from Device'/>
     <enum name='VIR_FROM_DOM' file='virterror' value='6' type='virErrorDomain' info='Error when operating on a domain'/>
@@ -2440,6 +2483,7 @@ formed or broken'/>
     <enum name='VIR_FROM_DOMAIN_SNAPSHOT' file='virterror' value='35' type='virErrorDomain' info='Error from domain snapshot'/>
     <enum name='VIR_FROM_ESX' file='virterror' value='28' type='virErrorDomain' info='Error from ESX driver'/>
     <enum name='VIR_FROM_EVENT' file='virterror' value='40' type='virErrorDomain' info='Error from event loop impl'/>
+    <enum name='VIR_FROM_FIREWALL' file='virterror' value='59' type='virErrorDomain' info='Error from firewall'/>
     <enum name='VIR_FROM_HOOK' file='virterror' value='34' type='virErrorDomain' info='Error from Synchronous hooks'/>
     <enum name='VIR_FROM_HYPERV' file='virterror' value='43' type='virErrorDomain' info='Error from Hyper-V driver'/>
     <enum name='VIR_FROM_IDENTITY' file='virterror' value='53' type='virErrorDomain' info='Error from identity code'/>
@@ -2502,6 +2546,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt' value='2' type='virDomainMemoryFlags' info='addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
     <enum name='VIR_MIGRATE_ABORT_ON_ERROR' file='libvirt' value='4096' type='virDomainMigrateFlags' info='abort migration on I/O errors happened during migration'/>
+    <enum name='VIR_MIGRATE_AUTO_CONVERGE' file='libvirt' value='8192' type='virDomainMigrateFlags' info='force convergence'/>
     <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt' value='256' type='virDomainMigrateFlags' info='protect for changing domain configuration through the
  whole migration process; this will be used automatically
  when supported'/>
@@ -2733,6 +2778,7 @@ and ERROR states)'/>
     </typedef>
     <typedef name='virDomainControlState' file='libvirt' type='enum'/>
     <typedef name='virDomainCoreDumpFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainCoreDumpFormat' file='libvirt' type='enum'/>
     <typedef name='virDomainCrashedReason' file='libvirt' type='enum'/>
     <typedef name='virDomainCreateFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainDestroyFlagsValues' file='libvirt' type='enum'/>
@@ -3282,7 +3328,7 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()]]></info>
     </functype>
     <functype name='virConnectDomainEventIOErrorReasonCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[The callback signature to use when registering for an event of type
-VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()]]></info>
+VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON with virConnectDomainEventRegisterAny()]]></info>
       <return type='void'/>
       <arg name='conn' type='virConnectPtr' info='connection object'/>
       <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
@@ -4085,7 +4131,11 @@ having hotplug semantics, is only allowed on an active domain.
 
 For compatibility, this method can also be used to change the media
 in an existing CDROM/Floppy device, however, applications are
-recommended to use the virDomainUpdateDeviceFlag method instead.]]></info>
+recommended to use the virDomainUpdateDeviceFlag method instead.
+
+Be aware that hotplug changes might not persist across a domain going
+into S4 state (also known as hibernation) unless you also modify the
+persistent domain definition.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
@@ -4105,7 +4155,11 @@ persisted device allocation.
 
 For compatibility, this method can also be used to change the media
 in an existing CDROM/Floppy device, however, applications are
-recommended to use the virDomainUpdateDeviceFlag method instead.]]></info>
+recommended to use the virDomainUpdateDeviceFlag method instead.
+
+Be aware that hotplug changes might not persist across a domain going
+into S4 state (also known as hibernation) unless you also modify the
+persistent domain definition.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
@@ -4158,6 +4212,14 @@ block device (the <source file='...'/> sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
+The @base and @top parameters can be either paths to files within the
+backing chain, or the device target shorthand (the <target dev='...'/>
+sub-element, such as "vda") followed by an index to the backing chain
+enclosed in square brackets. Backing chain indexes can be found by
+inspecting //disk//backingStore/@index in the domain XML. Thus, for
+example, "vda[3]" refers to the backing store with index equal to "3"
+in the chain of disk "vda".
+
 The maximum bandwidth (in MiB/s) that will be used to do the commit can be
 specified with the bandwidth parameter.  If set to 0, libvirt will choose a
 suitable default.  Some hypervisors do not support this feature and will
@@ -4167,8 +4229,8 @@ The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
-      <arg name='base' type='const char *' info='path to backing file to merge into, or NULL for default'/>
-      <arg name='top' type='const char *' info='path to file within backing chain that contains data to be merged, or NULL to merge all possible data'/>
+      <arg name='base' type='const char *' info='path to backing file to merge into, or device shorthand, or NULL for default'/>
+      <arg name='top' type='const char *' info='path to file within backing chain that contains data to be merged, or device shorthand, or NULL to merge all possible data'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify commit bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockCommitFlags'/>
     </function>
@@ -4355,6 +4417,14 @@ block device (the <source file='...'/> sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
+The @base parameter can be either a path to a file within the backing
+chain, or the device target shorthand (the <target dev='...'/>
+sub-element, such as "vda") followed by an index to the backing chain
+enclosed in square brackets. Backing chain indexes can be found by
+inspecting //disk//backingStore/@index in the domain XML. Thus, for
+example, "vda[3]" refers to the backing store with index equal to "3"
+in the chain of disk "vda".
+
 The maximum bandwidth (in MiB/s) that will be used to do the copy can be
 specified with the bandwidth parameter.  If set to 0, libvirt will choose a
 suitable default.  Some hypervisors do not support this feature and will
@@ -4367,7 +4437,7 @@ virDomainBlockPull().]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
-      <arg name='base' type='const char *' info='path to backing file to keep, or NULL for no backing file'/>
+      <arg name='base' type='const char *' info='path to backing file to keep, or device shorthand, or NULL for no backing file'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify copy bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockRebaseFlags'/>
     </function>
@@ -4404,7 +4474,9 @@ The @disk parameter is either the device target shorthand (the
 an unambiguous source name of the block device (the <source
 file='...'/> sub-element, such as "/path/to/image").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.
+elements within //domain/devices/disk. Some drivers might also
+accept the empty string for the @disk parameter, and then yield
+summary stats for the entire domain.
 
 Domains may have more than one block device.  To get stats for
 each you should make multiple calls to this function.
@@ -4427,7 +4499,9 @@ The @disk parameter is either the device target shorthand (the
 an unambiguous source name of the block device (the <source
 file='...'/> sub-element, such as "/path/to/image").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.
+elements within //domain/devices/disk. Some drivers might also
+accept the empty string for the @disk parameter, and then yield
+summary stats for the entire domain.
 
 Domains may have more than one block device.  To get stats for
 each you should make multiple calls to this function.
@@ -4467,10 +4541,39 @@ The above three flags are mutually exclusive.
 Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
 will attempt to bypass the file system cache while creating the file,
 or fail if it cannot do so for the given system; this can allow less
+pressure on file system cache, but also risks slowing saves to NFS.
+
+For more control over the output format, see virDomainCoreDumpWithFormat().]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='to' type='const char *' info='path for the core file'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainCoreDumpFlags'/>
+    </function>
+    <function name='virDomainCoreDumpWithFormat' file='libvirt' module='libvirt'>
+      <info><![CDATA[This method will dump the core of a domain on a given file for analysis.
+Note that for remote Xen Daemon the file path will be interpreted in
+the remote host. Hypervisors may require  the user to manually ensure
+proper permissions on the file named by @to.
+
+@dumpformat controls which format the dump will have; use of
+VIR_DOMAIN_CORE_DUMP_FORMAT_RAW mirrors what virDomainCoreDump() will
+perform.  Not all hypervisors are able to support all formats.
+
+If @flags includes VIR_DUMP_CRASH, then leave the guest shut off with
+a crashed state after the dump completes.  If @flags includes
+VIR_DUMP_LIVE, then make the core dump while continuing to allow
+the guest to run; otherwise, the guest is suspended during the dump.
+VIR_DUMP_RESET flag forces reset of the quest after dump.
+The above three flags are mutually exclusive.
+
+Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
+will attempt to bypass the file system cache while creating the file,
+or fail if it cannot do so for the given system; this can allow less
 pressure on file system cache, but also risks slowing saves to NFS.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='to' type='const char *' info='path for the core file'/>
+      <arg name='dumpformat' type='unsigned int' info='format of domain memory&apos;s dump'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainCoreDumpFlags'/>
     </function>
     <function name='virDomainCreate' file='libvirt' module='libvirt'>
@@ -4676,7 +4779,11 @@ ignore the shutdown request).]]></info>
     </function>
     <function name='virDomainDetachDevice' file='libvirt' module='libvirt'>
       <info><![CDATA[Destroy a virtual device attachment to backend.  This function,
-having hot-unplug semantics, is only allowed on an active domain.]]></info>
+having hot-unplug semantics, is only allowed on an active domain.
+
+Be aware that hotplug changes might not persist across a domain going
+into S4 state (also known as hibernation) unless you also modify the
+persistent domain definition.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
@@ -4708,7 +4815,7 @@ various failures on subsequent operations. To check whether the device was
 successfully removed, either recheck domain configuration using
 virDomainGetXMLDesc() or add handler for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED
 event. In case the device is already gone when virDomainDetachDeviceFlags]]></info>
-      <return type='int' info='the event is delivered before this API call ends. To help existing clients work better in most cases, this API will try to transform an asynchronous device removal that finishes shortly after the request into a synchronous removal. In other words, this API may wait a bit for the removal to complete in case it was not synchronous.  Returns 0 in case of success, -1 in case of failure.'/>
+      <return type='int' info='the event is delivered before this API call ends. To help existing clients work better in most cases, this API will try to transform an asynchronous device removal that finishes shortly after the request into a synchronous removal. In other words, this API may wait a bit for the removal to complete in case it was not synchronous.  Be aware that hotplug changes might not persist across a domain going into S4 state (also known as hibernation) unless you also modify the persistent domain definition.  Returns 0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
@@ -4773,7 +4880,60 @@ block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
 (the <target dev='...'/> sub-element, such as "xvda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.]]></info>
+elements within //domain/devices/disk.
+
+For QEMU domains, the allocation and physical virDomainBlockInfo
+values returned will generally be the same, except when using a
+non raw, block backing device, such as qcow2 for an active domain.
+When the persistent domain is not active, QEMU will return the
+default which is the same value for allocation and physical.
+
+Active QEMU domains can return an allocation value which is more
+representative of the currently used blocks by the device compared
+to the physical size of the device. Applications can use/monitor
+the allocation value with the understanding that if the domain
+becomes inactive during an attempt to get the value, the default
+values will be returned. Thus, the application should check
+after the call for the domain being inactive if the values are
+the same. Optionally, the application could be watching for a
+shutdown event and then ignore any values received afterwards.
+This can be an issue when a domain is being migrated and the
+exact timing of the domain being made inactive and check of
+the allocation value results the default being returned. For
+a transient domain in the similar situation, this call will return
+-1 and an error message indicating the "domain is not running".
+
+The following is some pseudo code illustrating the call sequence:
+
+  ...
+  virDomainPtr dom;
+  virDomainBlockInfo info;
+  char *device;
+  ...
+  // Either get a list of all domains or a specific domain
+  // via a virDomainLookupBy*() call.
+  //
+  // It's also required to fill in the device pointer, but that's
+  // specific to the implementation. For the purposes of this example
+  // a qcow2 backed device name string would need to be provided.
+  ...
+  // If the following call is made on a persistent domain with a
+  // qcow2 block backed block device, then it's possible the returned
+  // allocation equals the physical value. In that case, the domain
+  // that may have been active prior to calling has become inactive,
+  // such as is the case during a domain migration. Thus once we
+  // get data returned, check for active domain when the values are
+  // the same.
+  if (virDomainGetBlockInfo(dom, device, &info, 0) < 0)
+      goto failure;
+  if (info.allocation == info.physical) {
+      // If the domain is no longer active,
+      // then the defaults are being returned.
+      if (!virDomainIsActive())
+              goto ignore_return;
+  }
+  // Do something with the allocation and physical values
+  ...]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
@@ -5223,7 +5383,7 @@ virtual CPU limit is queried.  Otherwise, this call queries the
 current virtual CPU count.
 
 If @flags includes VIR_DOMAIN_VCPU_GUEST, then the state of the processors
-is modified in the guest instead of the hypervisor. This flag is only usable
+is queried in the guest instead of the hypervisor. This flag is only usable
 on live domains. Guest agent may be needed for this flag to be available.]]></info>
       <return type='int' info='the number of vCPUs in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
@@ -6033,7 +6193,7 @@ of rebooting.
 
 If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
-pass one or more of the virDomainShutdownFlagValues. The order
+pass one or more of the virDomainRebootFlagValues. The order
 in which the hypervisor tries each shutdown method is undefined,
 and a hypervisor is not required to support all methods.
 
@@ -6289,7 +6449,7 @@ namespace. The value zero is not valid.
 Not all hypervisors will support sending signals to
 arbitrary processes or process groups. If this API is
 implemented the minimum requirement is to be able to
-use @pid_value==1 (i.e. kill init). No other value is
+use @pid_value == 1 (i.e. kill init). No other value is
 required to be supported.
 
 If the @signum is VIR_DOMAIN_PROCESS_SIGNAL_NOP then this
@@ -6484,8 +6644,11 @@ flags are supported.]]></info>
     <function name='virDomainSetVcpus' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
-does not support it or if growing the number is arbitrary limited.
+does not support it or if growing the number is arbitrarily limited.
 This function may require privileged access to the hypervisor.
+
+Note that if this call is executed before the guest has finished booting,
+the guest may fail to process the change.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.  It is hypervisor-dependent
@@ -6498,7 +6661,7 @@ use virDomainSetVcpusFlags().]]></info>
     <function name='virDomainSetVcpusFlags' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
-does not support it or if growing the number is arbitrary limited.
+does not support it or if growing the number is arbitrarily limited.
 This function may require privileged access to the hypervisor.
 
 @flags may include VIR_DOMAIN_AFFECT_LIVE to affect a running
@@ -6509,6 +6672,9 @@ If neither flag is specified (that is, @flags is VIR_DOMAIN_AFFECT_CURRENT),
 then an inactive domain modifies persistent setup, while an active domain
 is hypervisor-dependent on whether just live or both live and persistent
 state is changed.
+
+Note that if this call is executed before the guest has finished booting,
+the guest may fail to process the change.
 
 If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then
 VIR_DOMAIN_AFFECT_LIVE must be clear, and only the maximum virtual
@@ -6564,7 +6730,10 @@ If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
 pass one or more of the virDomainShutdownFlagValues. The order
 in which the hypervisor tries each shutdown method is undefined,
-and a hypervisor is not required to support all methods.]]></info>
+and a hypervisor is not required to support all methods.
+
+To use guest agent (VIR_DOMAIN_SHUTDOWN_GUEST_AGENT) the domain XML
+must have <channel> configured.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainShutdownFlagValues'/>
@@ -8660,7 +8829,7 @@ is guaranteed to succeed if a callback is already registered]]></info>
       <arg name='events' type='int' info='set of events to monitor'/>
     </function>
     <function name='virStreamFinish' file='libvirt' module='libvirt'>
-      <info><![CDATA[Indicate that there is no further data is to be transmitted
+      <info><![CDATA[Indicate that there is no further data to be transmitted
 on the stream. For output streams this should be called once
 all data has been written. For input streams this should be
 called once virStreamRecv returns end-of-file.
@@ -8747,7 +8916,7 @@ API looks like
     <function name='virStreamRecvAll' file='libvirt' module='libvirt'>
       <info><![CDATA[Receive the entire data stream, sending the data to the
 requested data sink. This is simply a convenient alternative
-to virStreamRecv, for apps that do blocking-I/o.
+to virStreamRecv, for apps that do blocking-I/O.
 
 An example using this with a hypothetical file download
 API looks like
@@ -8839,7 +9008,7 @@ API looks like
     <function name='virStreamSendAll' file='libvirt' module='libvirt'>
       <info><![CDATA[Send the entire data stream, reading the data from the
 requested data source. This is simply a convenient alternative
-to virStreamSend, for apps that do blocking-I/o.
+to virStreamSend, for apps that do blocking-I/O.
 
 An example using this with a hypothetical file upload
 API looks like

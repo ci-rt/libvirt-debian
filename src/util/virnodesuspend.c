@@ -1,6 +1,7 @@
 /*
  * virnodesuspend.c: Support for suspending a node (host machine)
  *
+ * Copyright (C) 2014 Red Hat, Inc.
  * Copyright (C) 2011 Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -22,6 +23,7 @@
 #include <config.h>
 #include "virnodesuspend.h"
 
+#include "virsystemd.h"
 #include "vircommand.h"
 #include "virthread.h"
 #include "datatypes.h"
@@ -31,6 +33,8 @@
 #include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.nodesuspend");
 
 #define SUSPEND_DELAY 10 /* in seconds */
 
@@ -44,7 +48,7 @@
 static unsigned int nodeSuspendTargetMask;
 static bool nodeSuspendTargetMaskInit;
 
-static virMutex virNodeSuspendMutex;
+static virMutex virNodeSuspendMutex = VIR_MUTEX_INITIALIZER;
 
 static bool aboutToSuspend;
 
@@ -57,20 +61,6 @@ static void virNodeSuspendUnlock(void)
 {
     virMutexUnlock(&virNodeSuspendMutex);
 }
-
-
-static int virNodeSuspendOnceInit(void)
-{
-    if (virMutexInit(&virNodeSuspendMutex) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Unable to initialize mutex"));
-        return -1;
-    }
-
-    return 0;
-}
-
-VIR_ONCE_GLOBAL_INIT(virNodeSuspend)
 
 
 /**
@@ -98,7 +88,7 @@ static int virNodeSuspendSetNodeWakeup(unsigned long long alarmTime)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(setAlarmCmd);
     return ret;
 }
@@ -176,9 +166,6 @@ int nodeSuspendForDuration(unsigned int target,
 
     virCheckFlags(0, -1);
 
-    if (virNodeSuspendInitialize() < 0)
-        return -1;
-
     if (virNodeSuspendGetTargetMask(&supported) < 0)
         return -1;
 
@@ -238,35 +225,18 @@ int nodeSuspendForDuration(unsigned int target,
 
     aboutToSuspend = true;
     ret = 0;
-cleanup:
+ cleanup:
     virNodeSuspendUnlock();
     return ret;
 }
 
-
-/**
- * virNodeSuspendSupportsTarget:
- * @target: The power management target to check whether it is supported
- *           by the host. Values could be:
- *           VIR_NODE_SUSPEND_TARGET_MEM
- *           VIR_NODE_SUSPEND_TARGET_DISK
- *           VIR_NODE_SUSPEND_TARGET_HYBRID
- * @supported: set to true if supported, false otherwise
- *
- * Run the script 'pm-is-supported' (from the pm-utils package)
- * to find out if @target is supported by the host.
- *
- * Returns 0 if the query was successful, -1 on failure.
- */
+#ifdef WITH_PM_UTILS
 static int
-virNodeSuspendSupportsTarget(unsigned int target, bool *supported)
+virNodeSuspendSupportsTargetPMUtils(unsigned int target, bool *supported)
 {
     virCommandPtr cmd;
     int status;
     int ret = -1;
-
-    if (virNodeSuspendInitialize() < 0)
-        return -1;
 
     *supported = false;
 
@@ -294,8 +264,75 @@ virNodeSuspendSupportsTarget(unsigned int target, bool *supported)
     *supported = (status == 0);
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
+    return ret;
+}
+#else /* ! WITH_PM_UTILS */
+static int
+virNodeSuspendSupportsTargetPMUtils(unsigned int target ATTRIBUTE_UNUSED,
+                                    bool *supported ATTRIBUTE_UNUSED)
+{
+    return -2;
+}
+#endif /* ! WITH_PM_UTILS */
+
+static int
+virNodeSuspendSupportsTargetSystemd(unsigned int target, bool *supported)
+{
+    int ret = -1;
+
+    *supported = false;
+
+    switch (target) {
+    case VIR_NODE_SUSPEND_TARGET_MEM:
+        ret = virSystemdCanSuspend(supported);
+        break;
+    case VIR_NODE_SUSPEND_TARGET_DISK:
+        ret = virSystemdCanHibernate(supported);
+        break;
+    case VIR_NODE_SUSPEND_TARGET_HYBRID:
+        ret = virSystemdCanHybridSleep(supported);
+        break;
+    default:
+        return ret;
+    }
+
+    return ret;
+}
+
+/**
+ * virNodeSuspendSupportsTarget:
+ * @target: The power management target to check whether it is supported
+ *           by the host. Values could be:
+ *           VIR_NODE_SUSPEND_TARGET_MEM
+ *           VIR_NODE_SUSPEND_TARGET_DISK
+ *           VIR_NODE_SUSPEND_TARGET_HYBRID
+ * @supported: set to true if supported, false otherwise
+ *
+ * Run the script 'pm-is-supported' (from the pm-utils package)
+ * to find out if @target is supported by the host.
+ *
+ * Returns 0 if the query was successful, -1 on failure.
+ */
+static int
+virNodeSuspendSupportsTarget(unsigned int target, bool *supported)
+{
+    int ret;
+
+    ret = virNodeSuspendSupportsTargetSystemd(target, supported);
+
+    /* If just unavailable, try other options */
+    if (ret == -2)
+        ret = virNodeSuspendSupportsTargetPMUtils(target, supported);
+
+    /* If still unavailable, then report error */
+    if (ret == -2) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Cannot probe for supported suspend types"));
+        ret = -1;
+    }
+
     return ret;
 }
 
@@ -347,7 +384,7 @@ virNodeSuspendGetTargetMask(unsigned int *bitmask)
 
     *bitmask = nodeSuspendTargetMask;
     ret = 0;
-cleanup:
+ cleanup:
     virNodeSuspendUnlock();
     return ret;
 }

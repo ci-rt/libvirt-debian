@@ -118,6 +118,10 @@
                         <div>
                           <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for bhyve" class="inactive" href="drvbhyve.html">Bhyve</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -139,6 +143,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -218,6 +226,7 @@
     </p>
         <h2>
           <a name="project" shape="rect" id="project">Project Links</a>
+          <a class="headerlink" href="#project" title="Permalink to this headline">¶</a>
         </h2>
         <ul><li>
         The <a href="http://www.linux-kvm.org/" shape="rect">KVM</a> Linux
@@ -227,6 +236,7 @@
       </li></ul>
         <h2>
           <a name="prereq" shape="rect" id="prereq">Deployment pre-requisites</a>
+          <a class="headerlink" href="#prereq" title="Permalink to this headline">¶</a>
         </h2>
         <ul><li>
         <strong>QEMU emulators</strong>: The driver will probe <code>/usr/bin</code>
@@ -249,6 +259,7 @@
       </li></ul>
         <h2>
           <a name="uris" shape="rect" id="uris">Connections to QEMU driver</a>
+          <a class="headerlink" href="#uris" title="Permalink to this headline">¶</a>
         </h2>
         <p>
     The libvirt QEMU driver is a multi-instance driver, providing a single
@@ -268,6 +279,7 @@ qemu+ssh://root@example.com/system   (remote access, SSH tunnelled)
 </pre>
         <h2>
           <a name="security" shape="rect" id="security">Driver security architecture</a>
+          <a class="headerlink" href="#security" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       There are multiple layers to security in the QEMU driver, allowing for
@@ -275,6 +287,7 @@ qemu+ssh://root@example.com/system   (remote access, SSH tunnelled)
     </p>
         <h3>
           <a name="securitydriver" shape="rect" id="securitydriver">Driver instances</a>
+          <a class="headerlink" href="#securitydriver" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       As explained above there are two ways to access the QEMU driver
@@ -298,6 +311,7 @@ qemu+ssh://root@example.com/system   (remote access, SSH tunnelled)
     </p>
         <h3>
           <a name="securitydac" shape="rect" id="securitydac">POSIX users/groups</a>
+          <a class="headerlink" href="#securitydac" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       In the "session" instance, the POSIX users/groups model restricts QEMU
@@ -384,6 +398,7 @@ chmod o+x /path/to/directory
       </li></ul>
         <h3>
           <a name="securitycap" shape="rect" id="securitycap">Linux process capabilities</a>
+          <a class="headerlink" href="#securitycap" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The libvirt QEMU driver has a build time option allowing it to use
@@ -419,6 +434,7 @@ chmod o+x /path/to/directory
     </p>
         <h3>
           <a name="securityselinux" shape="rect" id="securityselinux">SELinux basic confinement</a>
+          <a class="headerlink" href="#securityselinux" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The basic SELinux protection for QEMU virtual machines is intended to
@@ -449,6 +465,7 @@ chmod o+x /path/to/directory
     </p>
         <h3>
           <a name="securitysvirt" shape="rect" id="securitysvirt">SELinux sVirt confinement</a>
+          <a class="headerlink" href="#securitysvirt" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The SELinux sVirt protection for QEMU virtual machines builds to the
@@ -495,6 +512,7 @@ chmod o+x /path/to/directory
     </p>
         <h3>
           <a name="securitysvirtaa" shape="rect" id="securitysvirtaa">AppArmor sVirt confinement</a>
+          <a class="headerlink" href="#securitysvirtaa" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       When using basic AppArmor protection for the libvirtd daemon and
@@ -557,6 +575,7 @@ chmod o+x /path/to/directory
     </p>
         <h3>
           <a name="securityacl" shape="rect" id="securityacl">Cgroups device ACLs</a>
+          <a class="headerlink" href="#securityacl" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Recent Linux kernels have a capability known as "cgroups" which is used
@@ -595,6 +614,7 @@ mount -t cgroup none /dev/cgroup -o devices
     </p>
         <h2>
           <a name="imex" shape="rect" id="imex">Import and export of libvirt domain XML configs</a>
+          <a class="headerlink" href="#imex" title="Permalink to this headline">¶</a>
         </h2>
         <p>The QEMU driver currently supports a single native
       config format known as <code>qemu-argv</code>. The data for this format
@@ -603,6 +623,7 @@ mount -t cgroup none /dev/cgroup -o devices
       arguments</p>
         <h3>
           <a name="xmlimport" shape="rect" id="xmlimport">Converting from QEMU args to domain XML</a>
+          <a class="headerlink" href="#xmlimport" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The <code>virsh domxml-from-native</code> provides a way to
@@ -650,6 +671,7 @@ $ virsh domxml-from-native qemu-argv demo.args
         <p>NB, don't include the literal \ in the args, put everything on one line</p>
         <h3>
           <a name="xmlexport" shape="rect" id="xmlexport">Converting from domain XML to QEMU args</a>
+          <a class="headerlink" href="#xmlexport" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The <code>virsh domxml-to-native</code> provides a way to convert a
@@ -692,6 +714,7 @@ $ virsh domxml-to-native qemu-argv demo.xml
         <h2>
           <a name="qemucommand" shape="rect" id="qemucommand">Pass-through of arbitrary qemu
     commands</a>
+          <a class="headerlink" href="#qemucommand" title="Permalink to this headline">¶</a>
         </h2>
         <p>Libvirt provides an XML namespace and an optional
       library <code>libvirt-qemu.so</code> for dealing specifically
@@ -754,6 +777,7 @@ $ virsh domxml-to-native qemu-argv demo.xml
 </pre>
         <h2>
           <a name="xmlconfig" shape="rect" id="xmlconfig">Example domain XML config</a>
+          <a class="headerlink" href="#xmlconfig" title="Permalink to this headline">¶</a>
         </h2>
         <h3>QEMU emulated guest on x86_64</h3>
         <pre xml:space="preserve">&lt;domain type='qemu'&gt;

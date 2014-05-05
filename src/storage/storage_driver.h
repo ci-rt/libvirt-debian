@@ -1,7 +1,7 @@
 /*
  * storage_driver.h: core driver for storage APIs
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -24,7 +24,19 @@
 #ifndef __VIR_STORAGE_DRIVER_H__
 # define __VIR_STORAGE_DRIVER_H__
 
+# include <sys/stat.h>
+
 # include "storage_conf.h"
+# include "virstoragefile.h"
+
+int
+virStorageFileInit(virStorageSourcePtr src);
+void virStorageFileDeinit(virStorageSourcePtr src);
+
+int virStorageFileCreate(virStorageSourcePtr src);
+int virStorageFileUnlink(virStorageSourcePtr src);
+int virStorageFileStat(virStorageSourcePtr src,
+                       struct stat *stat);
 
 int storageRegister(void);
 

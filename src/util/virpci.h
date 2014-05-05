@@ -63,11 +63,15 @@ void virPCIDeviceSetManaged(virPCIDevice *dev,
                             bool managed);
 unsigned int virPCIDeviceGetManaged(virPCIDevice *dev);
 int virPCIDeviceSetStubDriver(virPCIDevicePtr dev,
-                              const char *driver);
+                              const char *driver)
+    ATTRIBUTE_NONNULL(2);
 const char *virPCIDeviceGetStubDriver(virPCIDevicePtr dev);
-void virPCIDeviceSetUsedBy(virPCIDevice *dev,
-                           const char *used_by);
-const char *virPCIDeviceGetUsedBy(virPCIDevice *dev);
+int virPCIDeviceSetUsedBy(virPCIDevice *dev,
+                          const char *drv_name,
+                          const char *dom_name);
+void virPCIDeviceGetUsedBy(virPCIDevice *dev,
+                           const char **drv_name,
+                           const char **dom_name);
 unsigned int virPCIDeviceGetUnbindFromStub(virPCIDevicePtr dev);
 void  virPCIDeviceSetUnbindFromStub(virPCIDevice *dev,
                                     bool unbind);
@@ -166,5 +170,10 @@ int virPCIDeviceAddressParse(char *address, virPCIDeviceAddressPtr bdf);
 
 int virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
                                  char **pfname, int *vf_index);
+
+int virPCIDeviceUnbind(virPCIDevicePtr dev, bool reprobe);
+int virPCIDeviceGetDriverPathAndName(virPCIDevicePtr dev,
+                                     char **path,
+                                     char **name);
 
 #endif /* __VIR_PCI_H__ */

@@ -12,6 +12,9 @@
 
 extern int virConnectBaselineCPUEnsureACL(virConnectPtr conn);
 extern int virConnectCompareCPUEnsureACL(virConnectPtr conn);
+extern int virConnectDomainEventCallbackDeregisterAnyEnsureACL(virConnectPtr conn);
+extern int virConnectDomainEventCallbackRegisterAnyEnsureACL(virConnectPtr conn);
+extern bool virConnectDomainEventCallbackRegisterAnyCheckACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virConnectDomainEventDeregisterEnsureACL(virConnectPtr conn);
 extern int virConnectDomainEventDeregisterAnyEnsureACL(virConnectPtr conn);
 extern int virConnectDomainEventRegisterEnsureACL(virConnectPtr conn);
@@ -102,6 +105,7 @@ extern int virDomainBlockResizeEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainBlockStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainBlockStatsFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCoreDumpEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainCoreDumpWithFormatEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateWithFilesEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateWithFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -141,7 +145,7 @@ extern int virDomainGetSecurityLabelListEnsureACL(virConnectPtr conn, virDomainD
 extern int virDomainGetStateEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetVcpuPinInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
-extern int virDomainGetVcpusFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetVcpusFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainHasCurrentSnapshotEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainHasManagedSaveImageEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -189,7 +193,7 @@ extern int virDomainPinVcpuEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 extern int virDomainPinVcpuFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainPMSuspendForDurationEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPMWakeupEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
-extern int virDomainRebootEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainRebootEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainResetEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainRestoreEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainRestoreFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -218,8 +222,8 @@ extern int virDomainSetSchedulerParametersFlagsEnsureACL(virConnectPtr conn, vir
 extern int virDomainSetVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetVcpusFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainShutdownEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
-extern int virDomainShutdownFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
-extern int virDomainSnapshotCreateXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainShutdownFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainSnapshotCreateXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSnapshotCurrentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSnapshotDeleteEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSnapshotGetParentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

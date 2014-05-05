@@ -45,6 +45,7 @@
 /* XXX fixme */
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.json");
 
 typedef struct _virJSONParserState virJSONParserState;
 typedef virJSONParserState *virJSONParserStatePtr;
@@ -58,7 +59,7 @@ typedef virJSONParser *virJSONParserPtr;
 struct _virJSONParser {
     virJSONValuePtr head;
     virJSONParserStatePtr state;
-    unsigned int nstate;
+    size_t nstate;
 };
 
 
@@ -889,10 +890,7 @@ static int virJSONParserHandleEndMap(void *ctx)
         return 0;
     }
 
-    if (VIR_REALLOC_N(parser->state,
-                      parser->nstate - 1) < 0)
-        return 0;
-    parser->nstate--;
+    VIR_DELETE_ELEMENT(parser->state, parser->nstate - 1, parser->nstate);
 
     return 1;
 }
@@ -939,10 +937,7 @@ static int virJSONParserHandleEndArray(void *ctx)
         return 0;
     }
 
-    if (VIR_REALLOC_N(parser->state,
-                      parser->nstate - 1) < 0)
-        return 0;
-    parser->nstate--;
+    VIR_DELETE_ELEMENT(parser->state, parser->nstate - 1, parser->nstate);
 
     return 1;
 }
@@ -1013,7 +1008,7 @@ virJSONValuePtr virJSONValueFromString(const char *jsonstring)
         ret = parser.head;
     }
 
-cleanup:
+ cleanup:
     yajl_free(hand);
 
     if (parser.nstate) {
@@ -1133,7 +1128,7 @@ char *virJSONValueToString(virJSONValuePtr object,
 
     ignore_value(VIR_STRDUP(ret, (const char *)str));
 
-cleanup:
+ cleanup:
     yajl_gen_free(g);
 
     VIR_DEBUG("result=%s", NULLSTR(ret));

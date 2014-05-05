@@ -21,58 +21,16 @@
 
 #include <config.h>
 
-int networkCheckRouteCollision(virNetworkObjPtr network ATTRIBUTE_UNUSED)
+int networkCheckRouteCollision(virNetworkDefPtr def ATTRIBUTE_UNUSED)
 {
     return 0;
 }
 
-int networkAddMasqueradingFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED,
-                                        virNetworkIpDefPtr ipdef ATTRIBUTE_UNUSED)
+int networkAddFirewallRules(virNetworkDefPtr def ATTRIBUTE_UNUSED)
 {
     return 0;
 }
 
-void networkRemoveMasqueradingFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED,
-                                            virNetworkIpDefPtr ipdef ATTRIBUTE_UNUSED)
-{
-}
-
-int networkAddRoutingFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED,
-                                   virNetworkIpDefPtr ipdef ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
-void networkRemoveRoutingFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED,
-                                       virNetworkIpDefPtr ipdef ATTRIBUTE_UNUSED)
-{
-}
-
-int networkAddGeneralFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
-void networkRemoveGeneralFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED)
-{
-}
-
-int networkAddIpSpecificFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED,
-                                      virNetworkIpDefPtr ipdef ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
-void networkRemoveIpSpecificFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED,
-                                          virNetworkIpDefPtr ipdef ATTRIBUTE_UNUSED)
-{
-}
-
-int networkAddFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
-void networkRemoveFirewallRules(virNetworkObjPtr network ATTRIBUTE_UNUSED)
+void networkRemoveFirewallRules(virNetworkDefPtr def ATTRIBUTE_UNUSED)
 {
 }

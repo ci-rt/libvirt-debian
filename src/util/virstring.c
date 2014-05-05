@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,14 +23,18 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <regex.h>
 
 #include "c-ctype.h"
 #include "virstring.h"
 #include "viralloc.h"
 #include "virbuffer.h"
 #include "virerror.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.string");
 
 /*
  * The following virStringSplit & virStringJoin methods
@@ -107,7 +111,7 @@ char **virStringSplit(const char *string,
 
     return tokens;
 
-error:
+ error:
     for (i = 0; i < ntokens; i++)
         VIR_FREE(tokens[i]);
     VIR_FREE(tokens);
@@ -207,17 +211,52 @@ virStrToLong_i(char const *s, char **end_ptr, int base, int *result)
     return 0;
 }
 
-/* Just like virStrToLong_i, above, but produce an "unsigned int" value.  */
+/* Just like virStrToLong_i, above, but produce an "unsigned int"
+ * value.  This version allows twos-complement wraparound of negative
+ * numbers. */
 int
 virStrToLong_ui(char const *s, char **end_ptr, int base, unsigned int *result)
 {
     unsigned long int val;
     char *p;
-    int err;
+    bool err = false;
 
     errno = 0;
     val = strtoul(s, &p, base); /* exempt from syntax-check */
-    err = (errno || (!end_ptr && *p) || p == s || (unsigned int) val != val);
+
+    /* This one's tricky.  We _want_ to allow "-1" as shorthand for
+     * UINT_MAX regardless of whether long is 32-bit or 64-bit.  But
+     * strtoul treats "-1" as ULONG_MAX, and going from ulong back
+     * to uint differs depending on the size of long. */
+    if (sizeof(long) > sizeof(int) && memchr(s, '-', p - s)) {
+        if (-val > UINT_MAX)
+            err = true;
+        else
+            val &= 0xffffffff;
+    }
+
+    err |= (errno || (!end_ptr && *p) || p == s || (unsigned int) val != val);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce an "unsigned int"
+ * value.  This version rejects any negative signs.  */
+int
+virStrToLong_uip(char const *s, char **end_ptr, int base, unsigned int *result)
+{
+    unsigned long int val;
+    char *p;
+    bool err = false;
+
+    errno = 0;
+    val = strtoul(s, &p, base); /* exempt from syntax-check */
+    err = (memchr(s, '-', p - s) ||
+           errno || (!end_ptr && *p) || p == s || (unsigned int) val != val);
     if (end_ptr)
         *end_ptr = p;
     if (err)
@@ -245,7 +284,9 @@ virStrToLong_l(char const *s, char **end_ptr, int base, long *result)
     return 0;
 }
 
-/* Just like virStrToLong_i, above, but produce an "unsigned long" value.  */
+/* Just like virStrToLong_i, above, but produce an "unsigned long"
+ * value.  This version allows twos-complement wraparound of negative
+ * numbers. */
 int
 virStrToLong_ul(char const *s, char **end_ptr, int base, unsigned long *result)
 {
@@ -256,6 +297,28 @@ virStrToLong_ul(char const *s, char **end_ptr, int base, unsigned long *result)
     errno = 0;
     val = strtoul(s, &p, base); /* exempt from syntax-check */
     err = (errno || (!end_ptr && *p) || p == s);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce an "unsigned long"
+ * value.  This version rejects any negative signs.  */
+int
+virStrToLong_ulp(char const *s, char **end_ptr, int base,
+                 unsigned long *result)
+{
+    unsigned long int val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtoul(s, &p, base); /* exempt from syntax-check */
+    err = (memchr(s, '-', p - s) ||
+           errno || (!end_ptr && *p) || p == s);
     if (end_ptr)
         *end_ptr = p;
     if (err)
@@ -283,9 +346,12 @@ virStrToLong_ll(char const *s, char **end_ptr, int base, long long *result)
     return 0;
 }
 
-/* Just like virStrToLong_i, above, but produce an "unsigned long long" value.  */
+/* Just like virStrToLong_i, above, but produce an "unsigned long
+ * long" value.  This version allows twos-complement wraparound of
+ * negative numbers. */
 int
-virStrToLong_ull(char const *s, char **end_ptr, int base, unsigned long long *result)
+virStrToLong_ull(char const *s, char **end_ptr, int base,
+                 unsigned long long *result)
 {
     unsigned long long val;
     char *p;
@@ -294,6 +360,28 @@ virStrToLong_ull(char const *s, char **end_ptr, int base, unsigned long long *re
     errno = 0;
     val = strtoull(s, &p, base); /* exempt from syntax-check */
     err = (errno || (!end_ptr && *p) || p == s);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce an "unsigned long
+ * long" value.  This version rejects any negative signs.  */
+int
+virStrToLong_ullp(char const *s, char **end_ptr, int base,
+                  unsigned long long *result)
+{
+    unsigned long long val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtoull(s, &p, base); /* exempt from syntax-check */
+    err = (memchr(s, '-', p - s) ||
+           errno || (!end_ptr && *p) || p == s);
     if (end_ptr)
         *end_ptr = p;
     if (err)
@@ -644,4 +732,151 @@ int virStringSortRevCompare(const void *a, const void *b)
     const char **sb = (const char**)b;
 
     return strcmp(*sb, *sa);
+}
+
+/**
+ * virStringSearch:
+ * @str: string to search
+ * @regexp: POSIX Extended regular expression pattern used for matching
+ * @max_matches: maximum number of substrings to return
+ * @result: pointer to an array to be filled with NULL terminated list of matches
+ *
+ * Performs a POSIX extended regex search against a string and return all matching substrings.
+ * The @result value should be freed with virStringFreeList() when no longer
+ * required.
+ *
+ * @code
+ *  char *source = "6853a496-1c10-472e-867a-8244937bd6f0
+ *                  773ab075-4cd7-4fc2-8b6e-21c84e9cb391
+ *                  bbb3c75c-d60f-43b0-b802-fd56b84a4222
+ *                  60c04aa1-0375-4654-8d9f-e149d9885273
+ *                  4548d465-9891-4c34-a184-3b1c34a26aa8";
+ *  char **matches = NULL;
+ *  virStringSearch(source,
+ *                  "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})",
+ *                  3,
+ *                  &matches);
+ *
+ *  // matches[0] == "6853a496-1c10-472e-867a-8244937bd6f0";
+ *  // matches[1] == "773ab075-4cd7-4fc2-8b6e-21c84e9cb391";
+ *  // matches[2] == "bbb3c75c-d60f-43b0-b802-fd56b84a4222"
+ *  // matches[3] == NULL;
+ *
+ *  virStringFreeList(matches);
+ * @endcode
+ *
+ * Returns: -1 on error, or number of matches
+ */
+ssize_t
+virStringSearch(const char *str,
+                const char *regexp,
+                size_t max_matches,
+                char ***matches)
+{
+    regex_t re;
+    regmatch_t rem;
+    size_t nmatches = 0;
+    ssize_t ret = -1;
+    int rv = -1;
+
+    *matches = NULL;
+
+    VIR_DEBUG("search '%s' for '%s'", str, regexp);
+
+    if ((rv = regcomp(&re, regexp, REG_EXTENDED)) != 0) {
+        char error[100];
+        regerror(rv, &re, error, sizeof(error));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Error while compiling regular expression '%s': %s"),
+                       regexp, error);
+        return -1;
+    }
+
+    if (re.re_nsub != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Regular expression '%s' must have exactly 1 match group, not %zu"),
+                       regexp, re.re_nsub);
+        goto cleanup;
+    }
+
+    /* '*matches' must always be NULL terminated in every iteration
+     * of the loop, so start by allocating 1 element
+     */
+    if (VIR_EXPAND_N(*matches, nmatches, 1) < 0)
+        goto cleanup;
+
+    while ((nmatches - 1) < max_matches) {
+        char *match;
+
+        if (regexec(&re, str, 1, &rem, 0) != 0)
+            break;
+
+        if (VIR_EXPAND_N(*matches, nmatches, 1) < 0)
+            goto cleanup;
+
+        if (VIR_STRNDUP(match, str + rem.rm_so,
+                        rem.rm_eo - rem.rm_so) < 0)
+            goto cleanup;
+
+        VIR_DEBUG("Got '%s'", match);
+
+        (*matches)[nmatches-2] = match;
+
+        str = str + rem.rm_eo;
+    }
+
+    ret = nmatches - 1; /* don't count the trailing null */
+
+ cleanup:
+    regfree(&re);
+    if (ret < 0) {
+        virStringFreeList(*matches);
+        *matches = NULL;
+    }
+    return ret;
+}
+
+/**
+ * virStringReplace:
+ * @haystack: the source string to process
+ * @oldneedle: the substring to locate
+ * @newneedle: the substring to insert
+ *
+ * Search @haystack and replace all occurrences of @oldneedle with @newneedle.
+ *
+ * Returns: a new string with all the replacements, or NULL on error
+ */
+char *
+virStringReplace(const char *haystack,
+                 const char *oldneedle,
+                 const char *newneedle)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    const char *tmp1, *tmp2;
+    size_t oldneedlelen = strlen(oldneedle);
+    size_t newneedlelen = strlen(newneedle);
+
+    tmp1 = haystack;
+    tmp2 = NULL;
+
+    while (tmp1) {
+        tmp2 = strstr(tmp1, oldneedle);
+
+        if (tmp2) {
+            virBufferAdd(&buf, tmp1, (tmp2 - tmp1));
+            virBufferAdd(&buf, newneedle, newneedlelen);
+            tmp2 += oldneedlelen;
+        } else {
+            virBufferAdd(&buf, tmp1, -1);
+        }
+
+        tmp1 = tmp2;
+    }
+
+    if (virBufferError(&buf)) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    return virBufferContentAndReset(&buf);
 }

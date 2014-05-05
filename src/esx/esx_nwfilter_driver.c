@@ -1,4 +1,3 @@
-
 /*
  * esx_nwfilter_driver.c: nwfilter driver functions for managing VMware ESX
  *                        firewall rules
@@ -26,7 +25,6 @@
 
 #include "internal.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "esx_private.h"
 #include "esx_nwfilter_driver.h"

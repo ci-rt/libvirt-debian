@@ -118,6 +118,10 @@
                         <div>
                           <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for bhyve" class="inactive" href="drvbhyve.html">Bhyve</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -139,6 +143,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -279,6 +287,7 @@
       </li></ul>
         <h2>
           <a name="StorageBackendDir" shape="rect" id="StorageBackendDir">Directory pool</a>
+          <a class="headerlink" href="#StorageBackendDir" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       A pool with a type of <code>dir</code> provides the means to manage
@@ -318,6 +327,7 @@
     </p>
         <h2>
           <a name="StorageBackendFS" shape="rect" id="StorageBackendFS">Filesystem pool</a>
+          <a class="headerlink" href="#StorageBackendFS" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This is a variant of the directory pool. Instead of creating a
@@ -375,6 +385,7 @@
     </p>
         <h2>
           <a name="StorageBackendNetFS" shape="rect" id="StorageBackendNetFS">Network filesystem pool</a>
+          <a class="headerlink" href="#StorageBackendNetFS" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This is a variant of the filesystem pool. Instead of requiring
@@ -420,6 +431,7 @@
     </p>
         <h2>
           <a name="StorageBackendLogical" shape="rect" id="StorageBackendLogical">Logical volume pools</a>
+          <a class="headerlink" href="#StorageBackendLogical" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This provides a pool based on an LVM volume group. For a
@@ -455,6 +467,7 @@
     </p>
         <h2>
           <a name="StorageBackendDisk" shape="rect" id="StorageBackendDisk">Disk volume pools</a>
+          <a class="headerlink" href="#StorageBackendDisk" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This provides a pool based on a physical disk. Volumes are created
@@ -524,6 +537,7 @@
       </li></ul>
         <h2>
           <a name="StorageBackendISCSI" shape="rect" id="StorageBackendISCSI">iSCSI volume pools</a>
+          <a class="headerlink" href="#StorageBackendISCSI" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This provides a pool based on an iSCSI target. Volumes must be
@@ -555,6 +569,7 @@
     </p>
         <h2>
           <a name="StorageBackendSCSI" shape="rect" id="StorageBackendSCSI">SCSI volume pools</a>
+          <a class="headerlink" href="#StorageBackendSCSI" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This provides a pool based on a SCSI HBA. Volumes are preexisting SCSI
@@ -585,6 +600,7 @@
     </p>
         <h2>
           <a name="StorageBackendMultipath" shape="rect" id="StorageBackendMultipath">Multipath pools</a>
+          <a class="headerlink" href="#StorageBackendMultipath" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This provides a pool that contains all the multipath devices on the
@@ -615,6 +631,7 @@
     </p>
         <h2>
           <a name="StorageBackendRBD" shape="rect" id="StorageBackendRBD">RBD pools</a>
+          <a class="headerlink" href="#StorageBackendRBD" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This storage driver provides a pool which contains all RBD
@@ -682,6 +699,7 @@
     </p>
         <h2>
           <a name="StorageBackendSheepdog" shape="rect" id="StorageBackendSheepdog">Sheepdog pools</a>
+          <a class="headerlink" href="#StorageBackendSheepdog" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This provides a pool based on a Sheepdog Cluster.
@@ -737,6 +755,7 @@
     </p>
         <h2>
           <a name="StorageBackendGluster" shape="rect" id="StorageBackendGluster">Gluster pools</a>
+          <a class="headerlink" href="#StorageBackendGluster" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This provides a pool based on native Gluster access.  Gluster is
@@ -789,12 +808,14 @@
       correspond to the files that can be found when mounting the
       gluster volume.  The <code>name</code> is the path relative to
       the effective mount specified for the pool; and
-      the <code>key</code> is a path including the gluster volume
-      name and any subdirectory specified by the pool.</p>
+      the <code>key</code> is a string that identifies a single volume
+      uniquely. Currently the <code>key</code> attribute consists of the
+      URI of the volume but it may be changed to a UUID of the volume
+      in the future.</p>
         <pre xml:space="preserve">
        &lt;volume&gt;
          &lt;name&gt;myfile&lt;/name&gt;
-         &lt;key&gt;volname/myfile&lt;/key&gt;
+         &lt;key&gt;gluster://localhost/volname/myfile&lt;/key&gt;
          &lt;source&gt;
          &lt;/source&gt;
          &lt;capacity unit='bytes'&gt;53687091200&lt;/capacity&gt;

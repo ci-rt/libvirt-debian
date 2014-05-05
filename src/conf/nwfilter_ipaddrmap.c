@@ -33,7 +33,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
-static virMutex ipAddressMapLock;
+static virMutex ipAddressMapLock = VIR_MUTEX_INITIALIZER;
 static virNWFilterHashTablePtr ipAddressMap;
 
 
@@ -60,7 +60,7 @@ virNWFilterIPAddrMapAddIPAddr(const char *ifname, char *addr)
         val = virNWFilterVarValueCreateSimple(addr);
         if (!val)
             goto cleanup;
-        ret = virNWFilterHashTablePut(ipAddressMap, ifname, val, 1);
+        ret = virNWFilterHashTablePut(ipAddressMap, ifname, val);
         goto cleanup;
     } else {
         if (virNWFilterVarValueAddValue(val, addr) < 0)
@@ -69,7 +69,7 @@ virNWFilterIPAddrMapAddIPAddr(const char *ifname, char *addr)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&ipAddressMapLock);
 
     return ret;
@@ -108,7 +108,7 @@ virNWFilterIPAddrMapDelIPAddr(const char *ifname, const char *ipaddr)
             ret = virNWFilterVarValueGetCardinality(val);
         }
     } else {
-remove_entry:
+ remove_entry:
         /* remove whole entry */
         val = virNWFilterHashTableRemoveEntry(ipAddressMap, ifname);
         virNWFilterVarValueFree(val);
@@ -146,11 +146,6 @@ virNWFilterIPAddrMapInit(void)
     ipAddressMap = virNWFilterHashTableCreate(0);
     if (!ipAddressMap)
         return -1;
-
-    if (virMutexInit(&ipAddressMapLock) < 0) {
-        virNWFilterIPAddrMapShutdown();
-        return -1;
-    }
 
     return 0;
 }

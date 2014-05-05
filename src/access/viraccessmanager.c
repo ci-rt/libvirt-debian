@@ -33,6 +33,9 @@
 #include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_ACCESS
+
+VIR_LOG_INIT("access.accessmanager");
+
 #define virAccessError(code, ...)                                       \
     virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                 \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
@@ -167,7 +170,7 @@ virAccessManagerPtr virAccessManagerNewStack(const char **names)
 
     return manager;
 
-error:
+ error:
     virObjectUnref(manager);
     return NULL;
 }

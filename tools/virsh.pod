@@ -52,21 +52,6 @@ The B<virsh> program understands the following I<OPTIONS>.
 
 =over 4
 
-=item B<-h>, B<--help>
-
-Ignore all other arguments, and behave as if the B<help> command were
-given instead.
-
-=item B<-v>, B<--version[=short]>
-
-Ignore all other arguments, and prints the version of the libvirt library
-virsh is coming from
-
-=item B<-V>, B<--version=long>
-
-Ignore all other arguments, and prints the version of the libvirt library
-virsh is coming from and which options and driver are compiled in.
-
 =item B<-c>, B<--connect> I<URI>
 
 Connect to the specified I<URI>, as if by the B<connect> command,
@@ -77,6 +62,29 @@ instead of the default connection.
 Enable debug messages at integer I<LEVEL> and above.  I<LEVEL> can
 range from 0 to 4 (default).  See the documentation of B<VIRSH_DEBUG>
 environment variable below for the description of each I<LEVEL>.
+
+=item B<-e>, B<--escape> I<string>
+
+Set alternative escape sequence for I<console> command. By default,
+telnet's B<^]> is used. Allowed characters when using hat notation are:
+alphabetic character, @, [, ], \, ^, _.
+
+=item B<-h>, B<--help>
+
+Ignore all other arguments, and behave as if the B<help> command were
+given instead.
+
+=item B<-k>, B<--keepalive-interval> I<INTERVAL>
+
+Set an I<INTERVAL> (in seconds) for sending keepalive messages to
+check whether connection to the server is still alive.  Setting the
+interval to 0 disables client keepalive mechanism.
+
+=item B<-K>, B<--keepalive-count> I<COUNT>
+
+Set a number of times keepalive message can be sent without getting an
+answer from the server without marking the connection dead.  There is
+no effect to this setting in case the I<INTERVAL> is set to 0.
 
 =item B<-l>, B<--log> I<FILE>
 
@@ -95,11 +103,15 @@ option of the B<connect> command.
 
 Output elapsed time information for each command.
 
-=item B<-e>, B<--escape> I<string>
+=item B<-v>, B<--version[=short]>
 
-Set alternative escape sequence for I<console> command. By default,
-telnet's B<^]> is used. Allowed characters when using hat notation are:
-alphabetic character, @, [, ], \, ^, _.
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from
+
+=item B<-V>, B<--version=long>
+
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from and which options and driver are compiled in.
 
 =back
 
@@ -297,13 +309,17 @@ If I<cell> is specified, this will prints specified cell statistics only.
 
 =item B<nodesuspend> [I<target>] [I<duration>]
 
-Puts the node (host machine) into a system-wide sleep state such as
-Suspend-to-RAM, Suspend-to-Disk or Hybrid-Suspend and sets up a
-Real-Time-Clock interrupt to fire (to wake up the node) after a time delay
-specified by the 'duration' parameter. The duration time should be
-at least 60 seconds.
+Puts the node (host machine) into a system-wide sleep state and schedule
+the node's Real-Time-Clock interrupt to resume the node after the time
+duration specified by I<duration> is out.
+I<target> specifies the state to which the host will be suspended to, it
+can be "mem" (suspend to RAM), "disk" (suspend to disk), or "hybrid"
+(suspend to both RAM and disk).  I<duration> specifies the time duration
+in seconds for which the host has to be suspended, it should be at least
+60 seconds.
 
 =item B<node-memory-tune> [I<shm-pages-to-scan>] [I<shm-sleep-millisecs>]
+[I<shm-merge-across-nodes>]
 
 Allows you to display or set the node memory parameters.
 I<shm-pages-to-scan> can be used to set the number of pages to scan
@@ -313,6 +329,9 @@ sleep before next scan; I<shm-merge-across-nodes> specifies if pages from
 different numa nodes can be merged. When set to 0, only pages which physically
 reside in the memory area of same NUMA node can be merged. When set to 1,
 pages from all nodes can be merged. Default to 1.
+
+B<Note>: Currently the "shared memory service" only means KSM (Kernel Samepage
+Merging).
 
 =item B<capabilities>
 
@@ -616,12 +635,13 @@ If I<--graceful> is specified, don't resort to extreme measures
 (e.g. SIGKILL) when the guest doesn't stop after a reasonable timeout;
 return an error instead.
 
-=item B<domblkstat> I<domain> I<block-device> [I<--human>]
+=item B<domblkstat> I<domain> [I<block-device>] [I<--human>]
 
 Get device block stats for a running domain.  A I<block-device> corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
-also B<domblklist> for listing these names).
+also B<domblklist> for listing these names). On a lxc domain, omitting the
+I<block-device> yields device block stats summarily for the entire domain.
 
 Use I<--human> for a more human readable output.
 
@@ -673,7 +693,13 @@ or the MAC address.
 If no I<--inbound> or I<--outbound> is specified, this command will
 query and show the bandwidth settings. Otherwise, it will set the
 inbound or outbound bandwidth. I<average,peak,burst> is the same as
-in command I<attach-interface>.
+in command I<attach-interface>.  Values for I<average> and I<peak> are
+expressed in kilobytes per second, while I<burst> is expressed in kilobytes
+in a single burst at -I<peak> speed as described in the Network XML
+documentation at L<http://libvirt.org/formatnetwork.html#elementQoS>.
+
+To clear inbound or outbound settings, use I<--inbound> or I<--outbound>
+respectfully with average value of zero.
 
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
@@ -984,6 +1010,7 @@ I<format> argument may be B<xen-xm> or B<xen-sxpr>.
 
 =item B<dump> I<domain> I<corefilepath> [I<--bypass-cache>]
 { [I<--live>] | [I<--crash>] | [I<--reset>] } [I<--verbose>] [I<--memory-only>]
+[I<--format> I<string>]
 
 Dumps the core of a domain to a file for analysis.
 If I<--live> is specified, the domain continues to run until the core
@@ -997,6 +1024,10 @@ cache, although this may slow down the operation.
 If I<--memory-only> is specified, the file is elf file, and will only
 include domain's memory and cpu common register value. It is very
 useful if the domain uses host devices directly.
+I<--format> I<string> is used to specify the format of 'memory-only'
+dump, and I<string> can be one of them: elf, kdump-zlib(kdump-compressed
+format with zlib-compressed), kdump-lzo(kdump-compressed format with
+lzo-compressed), kdump-snappy(kdump-compressed format with snappy-compressed).
 
 The progress may be monitored using B<domjobinfo> virsh command and canceled
 with B<domjobabort> command (sent by another virsh instance). Another option
@@ -1035,6 +1066,23 @@ except that it does some error checking.
 
 The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
+
+=item B<event> {[I<domain>] { I<event> | I<--all> } [I<--loop>]
+[I<--timeout> I<seconds>] | I<--list>}
+
+Wait for a class of domain events to occur, and print appropriate details
+of events as they happen.  The events can optionally be filtered by
+I<domain>.  Using I<--list> as the only argument will provide a list
+of possible I<event> values known by this client, although the connection
+might not allow registering for all these events.  It is also possible
+to use I<--all> instead of I<event> to register for all possible event
+types at once.
+
+By default, this command is one-shot, and returns success once an event
+occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
+If I<--timeout> is specified, the command gives up waiting for events
+after I<seconds> have elapsed.   With I<--loop>, the command prints all
+events until a timeout or interrupt key.
 
 =item B<managedsave> I<domain> [I<--bypass-cache>]
 [{I<--running> | I<--paused>}] [I<--verbose>]
@@ -1625,8 +1673,12 @@ The guaranteed minimum memory allocation for the guest.
 Specifying -1 as a value for these limits is interpreted as unlimited.
 
 =item B<blkiotune> I<domain> [I<--weight> B<weight>]
-[I<--device-weights> B<device-weights>] [[I<--config>]
-[I<--live>] | [I<--current>]]
+[I<--device-weights> B<device-weights>]
+[I<--device-read-iops-sec> B<device-read-iops-sec>]
+[I<--device-write-iops-sec> B<device-write-iops-sec>]
+[I<--device-read-bytes-sec> B<device-read-bytes-sec>]
+[I<--device-write-bytes-sec> B<device-write-bytes-sec>]
+[[I<--config>] [I<--live>] | [I<--current>]]
 
 Display or set the blkio parameters. QEMU/KVM supports I<--weight>.
 I<--weight> is in range [100, 1000]. After kernel 2.6.39, the value
@@ -1638,6 +1690,34 @@ Each weight is in the range [100, 1000], [10, 1000] after kernel 2.6.39,
 or the value 0 to remove that device from per-device listings.
 Only the devices listed in the string are modified;
 any existing per-device weights for other devices remain unchanged.
+
+B<device-read-iops-sec> is a single string listing one or more device/read_iops_sec
+pairs, int the format of /path/to/device,read_iops_sec,/path/to/device,read_iops_sec.
+Each read_iops_sec is a number which type is unsigned int, value 0 to remove that
+device from per-decice listing.
+Only the devices listed in the string are modified;
+any existing per-device read_iops_sec for other devices remain unchanged.
+
+B<device-write-iops-sec> is a single string listing one or more device/write_iops_sec
+pairs, int the format of /path/to/device,write_iops_sec,/path/to/device,write_iops_sec.
+Each write_iops_sec is a number which type is unsigned int, value 0 to remove that
+device from per-decice listing.
+Only the devices listed in the string are modified;
+any existing per-device write_iops_sec for other devices remain unchanged.
+
+B<device-read-bytes-sec> is a single string listing one or more device/read_bytes_sec
+pairs, int the format of /path/to/device,read_bytes_sec,/path/to/device,read_bytes_sec.
+Each read_bytes_sec is a number which type is unsigned long long, value 0 to remove
+that device from per-decice listing.
+Only the devices listed in the string are modified;
+any existing per-device read_bytes_sec for other devices remain unchanged.
+
+B<device-write-bytes-sec> is a single string listing one or more device/write_bytes_sec
+pairs, int the format of /path/to/device,write_bytes_sec,/path/to/device,write_bytes_sec.
+Each write_bytes_sec is a number which type is unsigned long long, value 0 to remove
+that device from per-decice listing.
+Only the devices listed in the string are modified;
+any existing per-device write_bytes_sec for other devices remain unchanged.
 
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
@@ -1663,7 +1743,9 @@ domain is next started.
 
 If I<--live> is specified, the guest domain must be active, and the change
 takes place immediately.  Both the I<--config> and I<--live> flags may be
-specified together if supported by the hypervisor.
+specified together if supported by the hypervisor.  If this command is run
+before the guest has finished booting, the guest may fail to process
+the change.
 
 If I<--current> is specified, affect the current guest state.
 
@@ -1980,7 +2062,10 @@ of the network interface.  I<script> allows to specify a path to a script
 handling a bridge instead of the default one.  I<model> allows to specify the
 model type.  I<inbound> and I<outbound> control the bandwidth of the interface.
 I<peak> and I<burst> are optional, so "average,peak", "average,,burst" and
-"average" are also legal.
+"average" are also legal. Values for I<average> and I<peak> are
+expressed in kilobytes per second, while I<burst> is expressed in kilobytes
+in a single burst at -I<peak> speed as described in the Network XML
+documentation at L<http://libvirt.org/formatnetwork.html#elementQoS>.
 
 If I<--live> is specified, affect a running domain.
 If I<--config> is specified, affect the next startup of a persistent domain.
@@ -2265,6 +2350,21 @@ except that it does some error checking.
 
 The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
+
+=item B<net-event> {[I<network>] I<event> [I<--loop>] [I<--timeout>
+I<seconds>] | I<--list>}
+
+Wait for a class of network events to occur, and print appropriate details
+of events as they happen.  The events can optionally be filtered by
+I<network>.  Using I<--list> as the only argument will provide a list
+of possible I<event> values known by this client, although the connection
+might not allow registering for all these events.
+
+By default, this command is one-shot, and returns success once an event
+occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
+If I<--timeout> is specified, the command gives up waiting for events
+after I<seconds> have elapsed.   With I<--loop>, the command prints all
+events until a timeout or interrupt key.
 
 =item B<net-info> I<network>
 
@@ -2611,6 +2711,15 @@ Refresh the list of volumes contained in I<pool>.
 
 Start the storage I<pool>, which is previously defined but inactive.
 
+B<Note>: A storage pool that relies on remote resources such as an
+"iscsi" or a (v)HBA backed "scsi" pool may need to be refreshed multiple
+times in order to have all the volumes detected (see B<pool-refresh>).
+This is because the corresponding volume devices may not be present in
+the host's filesystem during the initial pool startup or the current
+refresh attempt. The number of refresh retries is dependant upon the
+network connection and the time the host takes to export the
+corresponding devices.
+
 =item B<pool-undefine> I<pool-or-uuid>
 
 Undefine the configuration for an inactive I<pool>.
@@ -2829,7 +2938,7 @@ B<blockresize> for live resizing.
 The following commands manipulate "secrets" (e.g. passwords, passphrases and
 encryption keys).  Libvirt can store secrets independently from their use, and
 other objects (e.g. volumes or domains) can refer to the secrets for encryption
-or possibly other uses.  Secrets are identified using an UUID.  See
+or possibly other uses.  Secrets are identified using a UUID.  See
 L<http://libvirt.org/formatsecret.html> for documentation of the XML format
 used to represent properties of secrets.
 
@@ -2839,7 +2948,7 @@ used to represent properties of secrets.
 
 Create a secret with the properties specified in I<file>, with no associated
 secret value.  If I<file> does not specify a UUID, choose one automatically.
-If I<file> specifies an UUID of an existing secret, replace its properties by
+If I<file> specifies a UUID of an existing secret, replace its properties by
 properties defined in I<file>, without affecting the secret value.
 
 =item B<secret-dumpxml> I<secret>
@@ -2963,7 +3072,7 @@ is specified, the snapshot will not include vm state.
 The I<--memspec> option can be used to control whether a checkpoint
 is internal or external.  The I<--memspec> flag is mandatory, followed
 by a B<memspec> of the form B<[file=]name[,snapshot=type]>, where
-type can be B<none>, B<internal>, or B<external>.  To include a literal
+type can be B<no>, B<internal>, or B<external>.  To include a literal
 comma in B<file=name>, escape it with a second comma. I<--memspec> cannot
 be used together with I<--disk-only>.
 
@@ -3055,7 +3164,7 @@ with I<--current>.
 =item B<snapshot-list> I<domain> [I<--metadata>] [I<--no-metadata>]
 [{I<--parent> | I<--roots> | [{I<--tree> | I<--name>}]}]
 [{[I<--from>] B<snapshot> | I<--current>} [I<--descendants>]]
-[I<--leaves>] [I<--no-leaves>] p[I<--inactive>] [I<--active>]
+[I<--leaves>] [I<--no-leaves>] [I<--inactive>] [I<--active>]
 [I<--disk-only>] [I<--internal>] [I<--external>]
 
 List all of the available snapshots for the given domain, defaulting
@@ -3224,12 +3333,15 @@ variables, and defaults to C<vi>.
 
 =back
 
-=head1 QEMU-SPECIFIC COMMANDS
+=head1 HYPERVISOR-SPECIFIC COMMANDS
 
 NOTE: Use of the following commands is B<strongly> discouraged.  They
 can cause libvirt to become confused and do the wrong thing on subsequent
-operations.  Once you have used this command, please do not report
-problems to the libvirt developers; the reports will be ignored.
+operations.  Once you have used these commands, please do not report
+problems to the libvirt developers; the reports will be ignored.  If
+you find that these commands are the only way to accomplish something,
+then it is better to request that the feature be added as a first-class
+citizen in the regular libvirt library.
 
 =over 4
 
@@ -3268,7 +3380,8 @@ and the monitor uses QMP, then the output will be pretty-printed.  If more
 than one argument is provided for I<command>, they are concatenated with a
 space in between before passing the single command to the monitor.
 
-=item B<qemu-agent-command> I<domain> [I<--timeout> I<seconds> | I<--async> | I<--block>] I<command>...
+=item B<qemu-agent-command> I<domain> [I<--timeout> I<seconds> | I<--async> |
+I<--block>] I<command>...
 
 Send an arbitrary guest agent command I<command> to domain I<domain> through
 qemu agent.
@@ -3278,13 +3391,32 @@ When I<--aysnc> is given, the command waits for timeout whether success or
 failed. And when I<--block> is given, the command waits forever with blocking
 timeout.
 
+=item B<qemu-monitor-event> [I<domain>] [I<--event> I<event-name>] [I<--loop>]
+[I<--timeout> I<seconds>] [I<--pretty>] [I<--regex>] [I<--no-case>]
+
+Wait for arbitrary QEMU monitor events to occur, and print out the
+details of events as they happen.  The events can optionally be filtered
+by I<domain> or I<event-name>.  The 'query-events' QMP command can be
+used via I<qemu-monitor-command> to learn what events are supported.
+If I<--regex> is used, I<event-name> is a basic regular expression
+instead of a literal string.  If I<--no-case> is used, I<event-name>
+will match case-insensitively.
+
+By default, this command is one-shot, and returns success once an event
+occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
+If I<--timeout> is specified, the command gives up waiting for events
+after I<seconds> have elapsed.  With I<--loop>, the command prints all
+events until a timeout or interrupt key.  If I<--pretty> is specified,
+any JSON event details are pretty-printed for better legibility.
+
 =item B<lxc-enter-namespace> I<domain> -- /path/to/binary [arg1, [arg2, ...]]
 
 Enter the namespace of I<domain> and execute the command C</path/to/binary>
 passing the requested args. The binary path is relative to the container
 root filesystem, not the host root filesystem. The binary will inherit the
 environment variables / console visible to virsh. This command only works
-when connected to the LXC hypervisor driver.
+when connected to the LXC hypervisor driver.  This command succeeds only
+if C</path/to/binary> has 0 exit status.
 
 =back
 
@@ -3399,7 +3531,7 @@ Alternatively report bugs to your software distributor / vendor.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2005, 2007-2010 Red Hat, Inc., and the authors listed in the
+Copyright (C) 2005, 2007-2014 Red Hat, Inc., and the authors listed in the
 libvirt AUTHORS file.
 
 =head1 LICENSE

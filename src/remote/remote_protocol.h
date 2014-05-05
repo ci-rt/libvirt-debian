@@ -871,6 +871,14 @@ struct remote_domain_core_dump_args {
 };
 typedef struct remote_domain_core_dump_args remote_domain_core_dump_args;
 
+struct remote_domain_core_dump_with_format_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string to;
+        u_int dumpformat;
+        u_int flags;
+};
+typedef struct remote_domain_core_dump_with_format_args remote_domain_core_dump_with_format_args;
+
 struct remote_domain_screenshot_args {
         remote_nonnull_domain dom;
         u_int screen;
@@ -2241,6 +2249,12 @@ struct remote_domain_event_lifecycle_msg {
 };
 typedef struct remote_domain_event_lifecycle_msg remote_domain_event_lifecycle_msg;
 
+struct remote_domain_event_callback_lifecycle_msg {
+        int callbackID;
+        remote_domain_event_lifecycle_msg msg;
+};
+typedef struct remote_domain_event_callback_lifecycle_msg remote_domain_event_callback_lifecycle_msg;
+
 struct remote_connect_domain_xml_from_native_args {
         remote_nonnull_string nativeFormat;
         remote_nonnull_string nativeConfig;
@@ -2567,10 +2581,32 @@ struct remote_connect_domain_event_deregister_any_args {
 };
 typedef struct remote_connect_domain_event_deregister_any_args remote_connect_domain_event_deregister_any_args;
 
+struct remote_connect_domain_event_callback_register_any_args {
+        int eventID;
+        remote_domain dom;
+};
+typedef struct remote_connect_domain_event_callback_register_any_args remote_connect_domain_event_callback_register_any_args;
+
+struct remote_connect_domain_event_callback_register_any_ret {
+        int callbackID;
+};
+typedef struct remote_connect_domain_event_callback_register_any_ret remote_connect_domain_event_callback_register_any_ret;
+
+struct remote_connect_domain_event_callback_deregister_any_args {
+        int callbackID;
+};
+typedef struct remote_connect_domain_event_callback_deregister_any_args remote_connect_domain_event_callback_deregister_any_args;
+
 struct remote_domain_event_reboot_msg {
         remote_nonnull_domain dom;
 };
 typedef struct remote_domain_event_reboot_msg remote_domain_event_reboot_msg;
+
+struct remote_domain_event_callback_reboot_msg {
+        int callbackID;
+        remote_domain_event_reboot_msg msg;
+};
+typedef struct remote_domain_event_callback_reboot_msg remote_domain_event_callback_reboot_msg;
 
 struct remote_domain_event_rtc_change_msg {
         remote_nonnull_domain dom;
@@ -2578,11 +2614,23 @@ struct remote_domain_event_rtc_change_msg {
 };
 typedef struct remote_domain_event_rtc_change_msg remote_domain_event_rtc_change_msg;
 
+struct remote_domain_event_callback_rtc_change_msg {
+        int callbackID;
+        remote_domain_event_rtc_change_msg msg;
+};
+typedef struct remote_domain_event_callback_rtc_change_msg remote_domain_event_callback_rtc_change_msg;
+
 struct remote_domain_event_watchdog_msg {
         remote_nonnull_domain dom;
         int action;
 };
 typedef struct remote_domain_event_watchdog_msg remote_domain_event_watchdog_msg;
+
+struct remote_domain_event_callback_watchdog_msg {
+        int callbackID;
+        remote_domain_event_watchdog_msg msg;
+};
+typedef struct remote_domain_event_callback_watchdog_msg remote_domain_event_callback_watchdog_msg;
 
 struct remote_domain_event_io_error_msg {
         remote_nonnull_domain dom;
@@ -2592,6 +2640,12 @@ struct remote_domain_event_io_error_msg {
 };
 typedef struct remote_domain_event_io_error_msg remote_domain_event_io_error_msg;
 
+struct remote_domain_event_callback_io_error_msg {
+        int callbackID;
+        remote_domain_event_io_error_msg msg;
+};
+typedef struct remote_domain_event_callback_io_error_msg remote_domain_event_callback_io_error_msg;
+
 struct remote_domain_event_io_error_reason_msg {
         remote_nonnull_domain dom;
         remote_nonnull_string srcPath;
@@ -2600,6 +2654,12 @@ struct remote_domain_event_io_error_reason_msg {
         remote_nonnull_string reason;
 };
 typedef struct remote_domain_event_io_error_reason_msg remote_domain_event_io_error_reason_msg;
+
+struct remote_domain_event_callback_io_error_reason_msg {
+        int callbackID;
+        remote_domain_event_io_error_reason_msg msg;
+};
+typedef struct remote_domain_event_callback_io_error_reason_msg remote_domain_event_callback_io_error_reason_msg;
 
 struct remote_domain_event_graphics_address {
         int family;
@@ -2628,6 +2688,12 @@ struct remote_domain_event_graphics_msg {
 };
 typedef struct remote_domain_event_graphics_msg remote_domain_event_graphics_msg;
 
+struct remote_domain_event_callback_graphics_msg {
+        int callbackID;
+        remote_domain_event_graphics_msg msg;
+};
+typedef struct remote_domain_event_callback_graphics_msg remote_domain_event_callback_graphics_msg;
+
 struct remote_domain_event_block_job_msg {
         remote_nonnull_domain dom;
         remote_nonnull_string path;
@@ -2635,6 +2701,12 @@ struct remote_domain_event_block_job_msg {
         int status;
 };
 typedef struct remote_domain_event_block_job_msg remote_domain_event_block_job_msg;
+
+struct remote_domain_event_callback_block_job_msg {
+        int callbackID;
+        remote_domain_event_block_job_msg msg;
+};
+typedef struct remote_domain_event_callback_block_job_msg remote_domain_event_callback_block_job_msg;
 
 struct remote_domain_event_disk_change_msg {
         remote_nonnull_domain dom;
@@ -2645,6 +2717,12 @@ struct remote_domain_event_disk_change_msg {
 };
 typedef struct remote_domain_event_disk_change_msg remote_domain_event_disk_change_msg;
 
+struct remote_domain_event_callback_disk_change_msg {
+        int callbackID;
+        remote_domain_event_disk_change_msg msg;
+};
+typedef struct remote_domain_event_callback_disk_change_msg remote_domain_event_callback_disk_change_msg;
+
 struct remote_domain_event_tray_change_msg {
         remote_nonnull_domain dom;
         remote_nonnull_string devAlias;
@@ -2652,15 +2730,35 @@ struct remote_domain_event_tray_change_msg {
 };
 typedef struct remote_domain_event_tray_change_msg remote_domain_event_tray_change_msg;
 
+struct remote_domain_event_callback_tray_change_msg {
+        int callbackID;
+        remote_domain_event_tray_change_msg msg;
+};
+typedef struct remote_domain_event_callback_tray_change_msg remote_domain_event_callback_tray_change_msg;
+
 struct remote_domain_event_pmwakeup_msg {
         remote_nonnull_domain dom;
 };
 typedef struct remote_domain_event_pmwakeup_msg remote_domain_event_pmwakeup_msg;
 
+struct remote_domain_event_callback_pmwakeup_msg {
+        int callbackID;
+        int reason;
+        remote_domain_event_pmwakeup_msg msg;
+};
+typedef struct remote_domain_event_callback_pmwakeup_msg remote_domain_event_callback_pmwakeup_msg;
+
 struct remote_domain_event_pmsuspend_msg {
         remote_nonnull_domain dom;
 };
 typedef struct remote_domain_event_pmsuspend_msg remote_domain_event_pmsuspend_msg;
+
+struct remote_domain_event_callback_pmsuspend_msg {
+        int callbackID;
+        int reason;
+        remote_domain_event_pmsuspend_msg msg;
+};
+typedef struct remote_domain_event_callback_pmsuspend_msg remote_domain_event_callback_pmsuspend_msg;
 
 struct remote_domain_event_balloon_change_msg {
         remote_nonnull_domain dom;
@@ -2668,10 +2766,23 @@ struct remote_domain_event_balloon_change_msg {
 };
 typedef struct remote_domain_event_balloon_change_msg remote_domain_event_balloon_change_msg;
 
+struct remote_domain_event_callback_balloon_change_msg {
+        int callbackID;
+        remote_domain_event_balloon_change_msg msg;
+};
+typedef struct remote_domain_event_callback_balloon_change_msg remote_domain_event_callback_balloon_change_msg;
+
 struct remote_domain_event_pmsuspend_disk_msg {
         remote_nonnull_domain dom;
 };
 typedef struct remote_domain_event_pmsuspend_disk_msg remote_domain_event_pmsuspend_disk_msg;
+
+struct remote_domain_event_callback_pmsuspend_disk_msg {
+        int callbackID;
+        int reason;
+        remote_domain_event_pmsuspend_disk_msg msg;
+};
+typedef struct remote_domain_event_callback_pmsuspend_disk_msg remote_domain_event_callback_pmsuspend_disk_msg;
 
 struct remote_domain_managed_save_args {
         remote_nonnull_domain dom;
@@ -3045,6 +3156,12 @@ struct remote_domain_event_control_error_msg {
 };
 typedef struct remote_domain_event_control_error_msg remote_domain_event_control_error_msg;
 
+struct remote_domain_event_callback_control_error_msg {
+        int callbackID;
+        remote_domain_event_control_error_msg msg;
+};
+typedef struct remote_domain_event_callback_control_error_msg remote_domain_event_callback_control_error_msg;
+
 struct remote_domain_get_control_info_args {
         remote_nonnull_domain dom;
         u_int flags;
@@ -3392,6 +3509,12 @@ struct remote_domain_event_device_removed_msg {
         remote_nonnull_string devAlias;
 };
 typedef struct remote_domain_event_device_removed_msg remote_domain_event_device_removed_msg;
+
+struct remote_domain_event_callback_device_removed_msg {
+        int callbackID;
+        remote_domain_event_device_removed_msg msg;
+};
+typedef struct remote_domain_event_callback_device_removed_msg remote_domain_event_callback_device_removed_msg;
 
 struct remote_connect_get_cpu_model_names_args {
         remote_nonnull_string arch;
@@ -3751,6 +3874,25 @@ enum remote_procedure {
         REMOTE_PROC_CONNECT_NETWORK_EVENT_REGISTER_ANY = 313,
         REMOTE_PROC_CONNECT_NETWORK_EVENT_DEREGISTER_ANY = 314,
         REMOTE_PROC_NETWORK_EVENT_LIFECYCLE = 315,
+        REMOTE_PROC_CONNECT_DOMAIN_EVENT_CALLBACK_REGISTER_ANY = 316,
+        REMOTE_PROC_CONNECT_DOMAIN_EVENT_CALLBACK_DEREGISTER_ANY = 317,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_LIFECYCLE = 318,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_REBOOT = 319,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_RTC_CHANGE = 320,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_WATCHDOG = 321,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_IO_ERROR = 322,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_GRAPHICS = 323,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_IO_ERROR_REASON = 324,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_CONTROL_ERROR = 325,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_BLOCK_JOB = 326,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DISK_CHANGE = 327,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_TRAY_CHANGE = 328,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_PMWAKEUP = 329,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_PMSUSPEND = 330,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_BALLOON_CHANGE = 331,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_PMSUSPEND_DISK = 332,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVED = 333,
+        REMOTE_PROC_DOMAIN_CORE_DUMP_WITH_FORMAT = 334,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -3880,6 +4022,7 @@ extern  bool_t xdr_remote_domain_save_image_get_xml_desc_args (XDR *, remote_dom
 extern  bool_t xdr_remote_domain_save_image_get_xml_desc_ret (XDR *, remote_domain_save_image_get_xml_desc_ret*);
 extern  bool_t xdr_remote_domain_save_image_define_xml_args (XDR *, remote_domain_save_image_define_xml_args*);
 extern  bool_t xdr_remote_domain_core_dump_args (XDR *, remote_domain_core_dump_args*);
+extern  bool_t xdr_remote_domain_core_dump_with_format_args (XDR *, remote_domain_core_dump_with_format_args*);
 extern  bool_t xdr_remote_domain_screenshot_args (XDR *, remote_domain_screenshot_args*);
 extern  bool_t xdr_remote_domain_screenshot_ret (XDR *, remote_domain_screenshot_ret*);
 extern  bool_t xdr_remote_domain_get_xml_desc_args (XDR *, remote_domain_get_xml_desc_args*);
@@ -4098,6 +4241,7 @@ extern  bool_t xdr_remote_node_device_destroy_args (XDR *, remote_node_device_de
 extern  bool_t xdr_remote_connect_domain_event_register_ret (XDR *, remote_connect_domain_event_register_ret*);
 extern  bool_t xdr_remote_connect_domain_event_deregister_ret (XDR *, remote_connect_domain_event_deregister_ret*);
 extern  bool_t xdr_remote_domain_event_lifecycle_msg (XDR *, remote_domain_event_lifecycle_msg*);
+extern  bool_t xdr_remote_domain_event_callback_lifecycle_msg (XDR *, remote_domain_event_callback_lifecycle_msg*);
 extern  bool_t xdr_remote_connect_domain_xml_from_native_args (XDR *, remote_connect_domain_xml_from_native_args*);
 extern  bool_t xdr_remote_connect_domain_xml_from_native_ret (XDR *, remote_connect_domain_xml_from_native_ret*);
 extern  bool_t xdr_remote_connect_domain_xml_to_native_args (XDR *, remote_connect_domain_xml_to_native_args*);
@@ -4153,21 +4297,37 @@ extern  bool_t xdr_remote_domain_migrate_get_max_speed_args (XDR *, remote_domai
 extern  bool_t xdr_remote_domain_migrate_get_max_speed_ret (XDR *, remote_domain_migrate_get_max_speed_ret*);
 extern  bool_t xdr_remote_connect_domain_event_register_any_args (XDR *, remote_connect_domain_event_register_any_args*);
 extern  bool_t xdr_remote_connect_domain_event_deregister_any_args (XDR *, remote_connect_domain_event_deregister_any_args*);
+extern  bool_t xdr_remote_connect_domain_event_callback_register_any_args (XDR *, remote_connect_domain_event_callback_register_any_args*);
+extern  bool_t xdr_remote_connect_domain_event_callback_register_any_ret (XDR *, remote_connect_domain_event_callback_register_any_ret*);
+extern  bool_t xdr_remote_connect_domain_event_callback_deregister_any_args (XDR *, remote_connect_domain_event_callback_deregister_any_args*);
 extern  bool_t xdr_remote_domain_event_reboot_msg (XDR *, remote_domain_event_reboot_msg*);
+extern  bool_t xdr_remote_domain_event_callback_reboot_msg (XDR *, remote_domain_event_callback_reboot_msg*);
 extern  bool_t xdr_remote_domain_event_rtc_change_msg (XDR *, remote_domain_event_rtc_change_msg*);
+extern  bool_t xdr_remote_domain_event_callback_rtc_change_msg (XDR *, remote_domain_event_callback_rtc_change_msg*);
 extern  bool_t xdr_remote_domain_event_watchdog_msg (XDR *, remote_domain_event_watchdog_msg*);
+extern  bool_t xdr_remote_domain_event_callback_watchdog_msg (XDR *, remote_domain_event_callback_watchdog_msg*);
 extern  bool_t xdr_remote_domain_event_io_error_msg (XDR *, remote_domain_event_io_error_msg*);
+extern  bool_t xdr_remote_domain_event_callback_io_error_msg (XDR *, remote_domain_event_callback_io_error_msg*);
 extern  bool_t xdr_remote_domain_event_io_error_reason_msg (XDR *, remote_domain_event_io_error_reason_msg*);
+extern  bool_t xdr_remote_domain_event_callback_io_error_reason_msg (XDR *, remote_domain_event_callback_io_error_reason_msg*);
 extern  bool_t xdr_remote_domain_event_graphics_address (XDR *, remote_domain_event_graphics_address*);
 extern  bool_t xdr_remote_domain_event_graphics_identity (XDR *, remote_domain_event_graphics_identity*);
 extern  bool_t xdr_remote_domain_event_graphics_msg (XDR *, remote_domain_event_graphics_msg*);
+extern  bool_t xdr_remote_domain_event_callback_graphics_msg (XDR *, remote_domain_event_callback_graphics_msg*);
 extern  bool_t xdr_remote_domain_event_block_job_msg (XDR *, remote_domain_event_block_job_msg*);
+extern  bool_t xdr_remote_domain_event_callback_block_job_msg (XDR *, remote_domain_event_callback_block_job_msg*);
 extern  bool_t xdr_remote_domain_event_disk_change_msg (XDR *, remote_domain_event_disk_change_msg*);
+extern  bool_t xdr_remote_domain_event_callback_disk_change_msg (XDR *, remote_domain_event_callback_disk_change_msg*);
 extern  bool_t xdr_remote_domain_event_tray_change_msg (XDR *, remote_domain_event_tray_change_msg*);
+extern  bool_t xdr_remote_domain_event_callback_tray_change_msg (XDR *, remote_domain_event_callback_tray_change_msg*);
 extern  bool_t xdr_remote_domain_event_pmwakeup_msg (XDR *, remote_domain_event_pmwakeup_msg*);
+extern  bool_t xdr_remote_domain_event_callback_pmwakeup_msg (XDR *, remote_domain_event_callback_pmwakeup_msg*);
 extern  bool_t xdr_remote_domain_event_pmsuspend_msg (XDR *, remote_domain_event_pmsuspend_msg*);
+extern  bool_t xdr_remote_domain_event_callback_pmsuspend_msg (XDR *, remote_domain_event_callback_pmsuspend_msg*);
 extern  bool_t xdr_remote_domain_event_balloon_change_msg (XDR *, remote_domain_event_balloon_change_msg*);
+extern  bool_t xdr_remote_domain_event_callback_balloon_change_msg (XDR *, remote_domain_event_callback_balloon_change_msg*);
 extern  bool_t xdr_remote_domain_event_pmsuspend_disk_msg (XDR *, remote_domain_event_pmsuspend_disk_msg*);
+extern  bool_t xdr_remote_domain_event_callback_pmsuspend_disk_msg (XDR *, remote_domain_event_callback_pmsuspend_disk_msg*);
 extern  bool_t xdr_remote_domain_managed_save_args (XDR *, remote_domain_managed_save_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_args (XDR *, remote_domain_has_managed_save_image_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_ret (XDR *, remote_domain_has_managed_save_image_ret*);
@@ -4220,6 +4380,7 @@ extern  bool_t xdr_remote_domain_migrate_finish3_args (XDR *, remote_domain_migr
 extern  bool_t xdr_remote_domain_migrate_finish3_ret (XDR *, remote_domain_migrate_finish3_ret*);
 extern  bool_t xdr_remote_domain_migrate_confirm3_args (XDR *, remote_domain_migrate_confirm3_args*);
 extern  bool_t xdr_remote_domain_event_control_error_msg (XDR *, remote_domain_event_control_error_msg*);
+extern  bool_t xdr_remote_domain_event_callback_control_error_msg (XDR *, remote_domain_event_callback_control_error_msg*);
 extern  bool_t xdr_remote_domain_get_control_info_args (XDR *, remote_domain_get_control_info_args*);
 extern  bool_t xdr_remote_domain_get_control_info_ret (XDR *, remote_domain_get_control_info_ret*);
 extern  bool_t xdr_remote_domain_open_graphics_args (XDR *, remote_domain_open_graphics_args*);
@@ -4261,6 +4422,7 @@ extern  bool_t xdr_remote_domain_migrate_finish3_params_args (XDR *, remote_doma
 extern  bool_t xdr_remote_domain_migrate_finish3_params_ret (XDR *, remote_domain_migrate_finish3_params_ret*);
 extern  bool_t xdr_remote_domain_migrate_confirm3_params_args (XDR *, remote_domain_migrate_confirm3_params_args*);
 extern  bool_t xdr_remote_domain_event_device_removed_msg (XDR *, remote_domain_event_device_removed_msg*);
+extern  bool_t xdr_remote_domain_event_callback_device_removed_msg (XDR *, remote_domain_event_callback_device_removed_msg*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_args (XDR *, remote_connect_get_cpu_model_names_args*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_ret (XDR *, remote_connect_get_cpu_model_names_ret*);
 extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote_connect_network_event_register_any_args*);
@@ -4393,6 +4555,7 @@ extern bool_t xdr_remote_domain_save_image_get_xml_desc_args ();
 extern bool_t xdr_remote_domain_save_image_get_xml_desc_ret ();
 extern bool_t xdr_remote_domain_save_image_define_xml_args ();
 extern bool_t xdr_remote_domain_core_dump_args ();
+extern bool_t xdr_remote_domain_core_dump_with_format_args ();
 extern bool_t xdr_remote_domain_screenshot_args ();
 extern bool_t xdr_remote_domain_screenshot_ret ();
 extern bool_t xdr_remote_domain_get_xml_desc_args ();
@@ -4611,6 +4774,7 @@ extern bool_t xdr_remote_node_device_destroy_args ();
 extern bool_t xdr_remote_connect_domain_event_register_ret ();
 extern bool_t xdr_remote_connect_domain_event_deregister_ret ();
 extern bool_t xdr_remote_domain_event_lifecycle_msg ();
+extern bool_t xdr_remote_domain_event_callback_lifecycle_msg ();
 extern bool_t xdr_remote_connect_domain_xml_from_native_args ();
 extern bool_t xdr_remote_connect_domain_xml_from_native_ret ();
 extern bool_t xdr_remote_connect_domain_xml_to_native_args ();
@@ -4666,21 +4830,37 @@ extern bool_t xdr_remote_domain_migrate_get_max_speed_args ();
 extern bool_t xdr_remote_domain_migrate_get_max_speed_ret ();
 extern bool_t xdr_remote_connect_domain_event_register_any_args ();
 extern bool_t xdr_remote_connect_domain_event_deregister_any_args ();
+extern bool_t xdr_remote_connect_domain_event_callback_register_any_args ();
+extern bool_t xdr_remote_connect_domain_event_callback_register_any_ret ();
+extern bool_t xdr_remote_connect_domain_event_callback_deregister_any_args ();
 extern bool_t xdr_remote_domain_event_reboot_msg ();
+extern bool_t xdr_remote_domain_event_callback_reboot_msg ();
 extern bool_t xdr_remote_domain_event_rtc_change_msg ();
+extern bool_t xdr_remote_domain_event_callback_rtc_change_msg ();
 extern bool_t xdr_remote_domain_event_watchdog_msg ();
+extern bool_t xdr_remote_domain_event_callback_watchdog_msg ();
 extern bool_t xdr_remote_domain_event_io_error_msg ();
+extern bool_t xdr_remote_domain_event_callback_io_error_msg ();
 extern bool_t xdr_remote_domain_event_io_error_reason_msg ();
+extern bool_t xdr_remote_domain_event_callback_io_error_reason_msg ();
 extern bool_t xdr_remote_domain_event_graphics_address ();
 extern bool_t xdr_remote_domain_event_graphics_identity ();
 extern bool_t xdr_remote_domain_event_graphics_msg ();
+extern bool_t xdr_remote_domain_event_callback_graphics_msg ();
 extern bool_t xdr_remote_domain_event_block_job_msg ();
+extern bool_t xdr_remote_domain_event_callback_block_job_msg ();
 extern bool_t xdr_remote_domain_event_disk_change_msg ();
+extern bool_t xdr_remote_domain_event_callback_disk_change_msg ();
 extern bool_t xdr_remote_domain_event_tray_change_msg ();
+extern bool_t xdr_remote_domain_event_callback_tray_change_msg ();
 extern bool_t xdr_remote_domain_event_pmwakeup_msg ();
+extern bool_t xdr_remote_domain_event_callback_pmwakeup_msg ();
 extern bool_t xdr_remote_domain_event_pmsuspend_msg ();
+extern bool_t xdr_remote_domain_event_callback_pmsuspend_msg ();
 extern bool_t xdr_remote_domain_event_balloon_change_msg ();
+extern bool_t xdr_remote_domain_event_callback_balloon_change_msg ();
 extern bool_t xdr_remote_domain_event_pmsuspend_disk_msg ();
+extern bool_t xdr_remote_domain_event_callback_pmsuspend_disk_msg ();
 extern bool_t xdr_remote_domain_managed_save_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_ret ();
@@ -4733,6 +4913,7 @@ extern bool_t xdr_remote_domain_migrate_finish3_args ();
 extern bool_t xdr_remote_domain_migrate_finish3_ret ();
 extern bool_t xdr_remote_domain_migrate_confirm3_args ();
 extern bool_t xdr_remote_domain_event_control_error_msg ();
+extern bool_t xdr_remote_domain_event_callback_control_error_msg ();
 extern bool_t xdr_remote_domain_get_control_info_args ();
 extern bool_t xdr_remote_domain_get_control_info_ret ();
 extern bool_t xdr_remote_domain_open_graphics_args ();
@@ -4774,6 +4955,7 @@ extern bool_t xdr_remote_domain_migrate_finish3_params_args ();
 extern bool_t xdr_remote_domain_migrate_finish3_params_ret ();
 extern bool_t xdr_remote_domain_migrate_confirm3_params_args ();
 extern bool_t xdr_remote_domain_event_device_removed_msg ();
+extern bool_t xdr_remote_domain_event_callback_device_removed_msg ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_args ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_ret ();
 extern bool_t xdr_remote_connect_network_event_register_any_args ();

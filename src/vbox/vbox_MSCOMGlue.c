@@ -1,4 +1,3 @@
-
 /*
  * vbox_MSCOMGlue.c: glue to the MSCOM based VirtualBox API
  *
@@ -39,6 +38,8 @@
 #include "vbox_MSCOMGlue.h"
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
+
+VIR_LOG_INIT("vbox.vbox_MSCOMGlue");
 
 #define VBOX_REGKEY_ORACLE "Software\\Oracle\\VirtualBox"
 #define VBOX_REGKEY_SUN "Software\\Sun\\xVM VirtualBox"
@@ -388,7 +389,7 @@ vboxLookupRegistryValue(HKEY key, const char *keyName, const char *valueName)
         value[length] = '\0';
     }
 
-  cleanup:
+ cleanup:
     return value;
 }
 
@@ -440,7 +441,7 @@ vboxLookupVersionInRegistry(void)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     VIR_FREE(value);
     RegCloseKey(key);
 
@@ -579,7 +580,7 @@ vboxComInitialize_v2(const char *pszVirtualBoxIID, IVirtualBox **ppVirtualBox,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         if (vboxVirtualBox != NULL) {
             vboxVirtualBox->vtbl->nsisupports.Release((nsISupports *)vboxVirtualBox);

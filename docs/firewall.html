@@ -132,6 +132,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -194,7 +198,7 @@
           do nearly everything you would want to on a guest NIC filter.
       </li></ul>
         <h3><a name="name-fw-virtual-network-driver" id="id-fw-virtual-network-driver" shape="rect">The virtual network driver</a>
-    </h3>
+    <a class="headerlink" href="#name-fw-virtual-network-driver" title="Permalink to this headline">¶</a></h3>
         <p>The typical configuration for guests is to use bridging of the
        physical NIC on the host to connect the guest directly to the LAN.
        In RHEL6 there is also the possibility of using macvtap/sr-iov
@@ -278,7 +282,7 @@ target     prot opt in     out     source               destination
 MASQUERADE all  --  *      *       192.168.122.0/24    !192.168.122.0/24</pre>
       </li></ul>
         <h3><a name="name-fw-network-filter-driver" id="id-fw-network-filter-driver" shape="rect">The network filter driver</a>
-    </h3>
+    <a class="headerlink" href="#name-fw-network-filter-driver" title="Permalink to this headline">¶</a></h3>
         <p>This driver provides a fully configurable network filtering capability
        that leverages ebtables, iptables and ip6tables. This was written by
        the libvirt guys at IBM and although its XML schema is defined by libvirt,

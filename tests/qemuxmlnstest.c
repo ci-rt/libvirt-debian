@@ -119,18 +119,20 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      vmdef, &monitor_chr, json, extraFlags,
                                      migrateFrom, migrateFd, NULL,
                                      VIR_NETDEV_VPORT_PROFILE_OP_NO_OP,
-                                     &testCallbacks)))
+                                     &testCallbacks, false)))
         goto fail;
 
-    if (!!virGetLastError() != expectError) {
-        if (virTestGetDebug() && (log = virtTestLogContentAndReset()))
-            fprintf(stderr, "\n%s", log);
-        goto fail;
-    }
+    if (!virtTestOOMActive()) {
+        if (!!virGetLastError() != expectError) {
+            if (virTestGetDebug() && (log = virtTestLogContentAndReset()))
+                fprintf(stderr, "\n%s", log);
+            goto fail;
+        }
 
-    if (expectError) {
-        /* need to suppress the errors */
-        virResetLastError();
+        if (expectError) {
+            /* need to suppress the errors */
+            virResetLastError();
+        }
     }
 
     if (!(actualargv = virCommandToString(cmd)))
@@ -191,7 +193,7 @@ testCompareXMLToArgvHelper(const void *data)
                                        info->migrateFrom, info->migrateFd,
                                        info->json, info->expectError);
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(args);
     return result;
@@ -203,7 +205,6 @@ static int
 mymain(void)
 {
     int ret = 0;
-    char *map = NULL;
     bool json = false;
 
     abs_top_srcdir = getenv("abs_top_srcdir");
@@ -215,11 +216,6 @@ mymain(void)
         return EXIT_FAILURE;
     if (!(driver.xmlopt = virQEMUDriverCreateXMLConf(&driver)))
         return EXIT_FAILURE;
-    if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
-        cpuMapOverride(map) < 0) {
-        VIR_FREE(map);
-        return EXIT_FAILURE;
-    }
 
 # define DO_TEST_FULL(name, migrateFrom, migrateFd, expectError, ...)   \
     do {                                                                \
@@ -264,9 +260,8 @@ mymain(void)
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
-    VIR_FREE(map);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

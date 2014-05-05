@@ -1,7 +1,7 @@
 /*
  * libvirtd.c: daemon start of day, guest process & i/o management
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -35,6 +35,7 @@
 #include "libvirt_internal.h"
 #include "virerror.h"
 #include "virfile.h"
+#include "virlog.h"
 #include "virpidfile.h"
 #include "virprocess.h"
 
@@ -77,6 +78,9 @@
 # ifdef WITH_VBOX
 #  include "vbox/vbox_driver.h"
 # endif
+# ifdef WITH_BHYVE
+#  include "bhyve/bhyve_driver.h"
+# endif
 # ifdef WITH_NETWORK
 #  include "network/bridge_driver.h"
 # endif
@@ -100,6 +104,9 @@
 #include "configmake.h"
 
 #include "virdbus.h"
+#include "cpu/cpu_map.h"
+
+VIR_LOG_INIT("daemon.libvirtd");
 
 #if WITH_SASL
 virNetSASLContextPtr saslCtxt = NULL;
@@ -203,7 +210,7 @@ static int daemonForkIntoBackground(const char *argv0)
             VIR_FORCE_CLOSE(statuspipe[1]);
 
             /* We wait to make sure the first child forked successfully */
-            if (virProcessWait(pid, NULL) < 0)
+            if (virProcessWait(pid, NULL, false) < 0)
                 goto error;
 
             /* If we get here, then the grandchild was spawned, so we
@@ -235,7 +242,7 @@ static int daemonForkIntoBackground(const char *argv0)
         }
     }
 
-error:
+ error:
     VIR_FORCE_CLOSE(statuspipe[0]);
     VIR_FORCE_CLOSE(statuspipe[1]);
     return -1;
@@ -273,7 +280,7 @@ daemonPidFilePath(bool privileged,
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -318,7 +325,7 @@ daemonUnixSocketPaths(struct daemonConfig *config,
     }
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -405,6 +412,9 @@ static void daemonInitialize(void)
 # ifdef WITH_VBOX
     virDriverLoadModule("vbox");
 # endif
+# ifdef WITH_BHYVE
+    virDriverLoadModule("bhyve");
+# endif
 #else
 # ifdef WITH_NETWORK
     networkRegister();
@@ -441,6 +451,9 @@ static void daemonInitialize(void)
 # endif
 # ifdef WITH_VBOX
     vboxRegister();
+# endif
+# ifdef WITH_BHYVE
+    bhyveRegister();
 # endif
 #endif
 }
@@ -605,7 +618,7 @@ static int daemonSetupNetworking(virNetServerPtr srv,
 
     return 0;
 
-error:
+ error:
 #if WITH_GNUTLS
     virObjectUnref(svcTLS);
 #endif
@@ -648,8 +661,6 @@ daemonSetupLogging(struct daemonConfig *config,
         virLogSetDefaultPriority(config->log_level);
 
     virLogSetFromEnv();
-
-    virLogSetBufferSize(config->log_buffer_size);
 
     if (virLogGetNbFilters() == 0)
         virLogParseFilters(config->log_filters);
@@ -724,7 +735,7 @@ daemonSetupLogging(struct daemonConfig *config,
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -937,7 +948,7 @@ static void daemonRunStateInit(void *opaque)
 #endif
     /* Only now accept clients from network */
     virNetServerUpdateServices(srv, true);
-cleanup:
+ cleanup:
     daemonInhibitCallback(false, srv);
     virObjectUnref(srv);
     virObjectUnref(sysident);
@@ -1143,31 +1154,9 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    if (strstr(argv[0], "lt-libvirtd") ||
-        strstr(argv[0], "/daemon/.libs/libvirtd")) {
-        char *tmp = strrchr(argv[0], '/');
-        if (!tmp) {
-            fprintf(stderr, _("%s: cannot identify driver directory\n"), argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        *tmp = '\0';
-        char *driverdir;
-        if (virAsprintfQuiet(&driverdir, "%s/../../src/.libs", argv[0]) < 0) {
-            fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        if (access(driverdir, R_OK) < 0) {
-            fprintf(stderr, _("%s: expected driver directory '%s' is missing\n"),
-                    argv[0], driverdir);
-            exit(EXIT_FAILURE);
-        }
-        virLockManagerSetPluginDir(driverdir);
-#ifdef WITH_DRIVER_MODULES
-        virDriverModuleInitialize(driverdir);
-#endif
-        *tmp = '/';
-        /* Must not free 'driverdir' - it is still used */
-    }
+    virUpdateSelfLastChanged(argv[0]);
+
+    virFileActivateDirOverride(argv[0]);
 
     while (1) {
         int optidx = 0;
@@ -1353,7 +1342,7 @@ int main(int argc, char **argv) {
     umask(old_umask);
 
     /* Try to claim the pidfile, exiting if we can't */
-    if ((pid_file_fd = virPidFileAcquirePath(pid_file, getpid())) < 0) {
+    if ((pid_file_fd = virPidFileAcquirePath(pid_file, false, getpid())) < 0) {
         ret = VIR_DAEMON_ERR_PIDFILE;
         goto cleanup;
     }
@@ -1367,6 +1356,7 @@ int main(int argc, char **argv) {
                                 config->max_workers,
                                 config->prio_workers,
                                 config->max_clients,
+                                config->max_anonymous_clients,
                                 config->keepalive_interval,
                                 config->keepalive_count,
                                 !!config->keepalive_required,
@@ -1521,7 +1511,7 @@ int main(int argc, char **argv) {
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_SHUTDOWN,
                 0, "shutdown", NULL, NULL);
 
-cleanup:
+ cleanup:
     virNetlinkEventServiceStopAll();
     virObjectUnref(remoteProgram);
     virObjectUnref(lxcProgram);

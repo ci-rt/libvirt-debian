@@ -51,6 +51,7 @@
 #include "virlog.h"
 #include "virfile.h"
 #include "virthread.h"
+#include "virprobe.h"
 #include "virprocess.h"
 #include "virstring.h"
 #include "passfd.h"
@@ -61,6 +62,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
+VIR_LOG_INIT("rpc.netsocket");
 
 struct _virNetSocket {
     virObjectLockable parent;
@@ -206,7 +208,7 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
 
     return sock;
 
-error:
+ error:
     sock->fd = sock->errfd = -1; /* Caller owns fd/errfd on failure */
     virObjectUnref(sock);
     return NULL;
@@ -253,8 +255,7 @@ int virNetSocketNewListenTCP(const char *nodename,
             goto error;
         }
 
-        int opt = 1;
-        if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        if (virSetSockReuseAddr(fd) < 0) {
             virReportSystemError(errno, "%s", _("Unable to enable port reuse"));
             goto error;
         }
@@ -318,7 +319,7 @@ int virNetSocketNewListenTCP(const char *nodename,
     *nretsocks = nsocks;
     return 0;
 
-error:
+ error:
     for (i = 0; i < nsocks; i++)
         virObjectUnref(socks[i]);
     VIR_FREE(socks);
@@ -387,7 +388,7 @@ int virNetSocketNewListenUNIX(const char *path,
 
     return 0;
 
-error:
+ error:
     if (path[0] != '@')
         unlink(path);
     VIR_FORCE_CLOSE(fd);
@@ -458,15 +459,13 @@ int virNetSocketNewConnectTCP(const char *nodename,
 
     runp = ai;
     while (runp) {
-        int opt = 1;
-
         if ((fd = socket(runp->ai_family, runp->ai_socktype,
                          runp->ai_protocol)) < 0) {
             virReportSystemError(errno, "%s", _("Unable to create socket"));
             goto error;
         }
 
-        if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        if (virSetSockReuseAddr(fd) < 0) {
             VIR_WARN("Unable to enable port reuse");
         }
 
@@ -504,7 +503,7 @@ int virNetSocketNewConnectTCP(const char *nodename,
 
     return 0;
 
-error:
+ error:
     freeaddrinfo(ai);
     VIR_FORCE_CLOSE(fd);
     return -1;
@@ -546,7 +545,7 @@ int virNetSocketNewConnectUNIX(const char *path,
     if (remoteAddr.data.un.sun_path[0] == '@')
         remoteAddr.data.un.sun_path[0] = '\0';
 
-retry:
+ retry:
     if (connect(fd, &remoteAddr.data.sa, remoteAddr.len) < 0) {
         if ((errno == ECONNREFUSED ||
              errno == ENOENT) &&
@@ -579,7 +578,7 @@ retry:
 
     return 0;
 
-error:
+ error:
     VIR_FORCE_CLOSE(fd);
     return -1;
 }
@@ -640,7 +639,7 @@ int virNetSocketNewConnectCommand(virCommandPtr cmd,
 
     return 0;
 
-error:
+ error:
     VIR_FORCE_CLOSE(sv[0]);
     VIR_FORCE_CLOSE(sv[1]);
     VIR_FORCE_CLOSE(errfd[0]);
@@ -843,7 +842,7 @@ virNetSocketNewConnectLibSSH2(const char *host,
     VIR_FREE(authMethodsCopy);
     return 0;
 
-error:
+ error:
     virObjectUnref(sock);
     virObjectUnref(sess);
     VIR_FREE(authMethodsCopy);
@@ -1005,7 +1004,7 @@ virJSONValuePtr virNetSocketPreExecRestart(virNetSocketPtr sock)
     virObjectUnlock(sock);
     return object;
 
-error:
+ error:
     virObjectUnlock(sock);
     virJSONValueFree(object);
     return NULL;
@@ -1143,7 +1142,7 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sock);
     return ret;
 }
@@ -1228,7 +1227,7 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sock);
     return ret;
 }
@@ -1270,7 +1269,7 @@ int virNetSocketGetSELinuxContext(virNetSocketPtr sock,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     freecon(seccon);
     virObjectUnlock(sock);
     return ret;
@@ -1409,7 +1408,7 @@ static ssize_t virNetSocketReadWire(virNetSocketPtr sock, char *buf, size_t len)
         return virNetSocketLibSSH2Read(sock, buf, len);
 #endif
 
-reread:
+ reread:
 #if WITH_GNUTLS
     if (sock->tlsSession &&
         virNetTLSSessionGetHandshakeStatus(sock->tlsSession) ==
@@ -1468,7 +1467,7 @@ static ssize_t virNetSocketWriteWire(virNetSocketPtr sock, const char *buf, size
         return virNetSocketLibSSH2Write(sock, buf, len);
 #endif
 
-rewrite:
+ rewrite:
 #if WITH_GNUTLS
     if (sock->tlsSession &&
         virNetTLSSessionGetHandshakeStatus(sock->tlsSession) ==
@@ -1653,7 +1652,7 @@ int virNetSocketSendFD(virNetSocketPtr sock, int fd)
     }
     ret = 1;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sock);
     return ret;
 }
@@ -1687,7 +1686,7 @@ int virNetSocketRecvFD(virNetSocketPtr sock, int *fd)
           "sock=%p fd=%d", sock, *fd);
     ret = 1;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sock);
     return ret;
 }
@@ -1747,7 +1746,7 @@ int virNetSocketAccept(virNetSocketPtr sock, virNetSocketPtr *clientsock)
     fd = -1;
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     virObjectUnlock(sock);
     return ret;
@@ -1822,7 +1821,7 @@ int virNetSocketAddIOCallback(virNetSocketPtr sock,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sock);
     if (ret != 0)
         virObjectUnref(sock);

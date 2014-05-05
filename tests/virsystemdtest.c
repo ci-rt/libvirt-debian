@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,14 +22,114 @@
 
 #include "testutils.h"
 
-#ifdef __linux__
+#ifdef WITH_DBUS
 
 # include <stdlib.h>
+# include <dbus/dbus.h>
 
 # include "virsystemd.h"
 # include "virlog.h"
-
+# include "virmock.h"
 # define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("tests.systemdtest");
+
+VIR_MOCK_IMPL_RET_ARGS(dbus_connection_send_with_reply_and_block,
+                       DBusMessage *,
+                       DBusConnection *, connection,
+                       DBusMessage *, message,
+                       int, timeout_milliseconds,
+                       DBusError *, error)
+{
+    DBusMessage *reply = NULL;
+    const char *service = dbus_message_get_destination(message);
+    const char *member = dbus_message_get_member(message);
+
+    VIR_MOCK_IMPL_INIT_REAL(dbus_connection_send_with_reply_and_block);
+
+    if (STREQ(service, "org.freedesktop.machine1")) {
+        if (getenv("FAIL_BAD_SERVICE")) {
+            dbus_set_error_const(error,
+                                 "org.freedesktop.systemd.badthing",
+                                 "Something went wrong creating the machine");
+        } else {
+            reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+        }
+    } else if (STREQ(service, "org.freedesktop.login1")) {
+        char *supported = getenv("RESULT_SUPPORT");
+        DBusMessageIter iter;
+        reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+        dbus_message_iter_init_append(reply, &iter);
+
+        if (!dbus_message_iter_append_basic(&iter,
+                                            DBUS_TYPE_STRING,
+                                            &supported))
+            goto error;
+    } else if (STREQ(service, "org.freedesktop.DBus") &&
+               STREQ(member, "ListActivatableNames")) {
+        const char *svc1 = "org.foo.bar.wizz";
+        const char *svc2 = "org.freedesktop.machine1";
+        const char *svc3 = "org.freedesktop.login1";
+        DBusMessageIter iter;
+        DBusMessageIter sub;
+        reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+        dbus_message_iter_init_append(reply, &iter);
+        dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY,
+                                         "s", &sub);
+
+        if (!dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc1))
+            goto error;
+        if (!getenv("FAIL_NO_SERVICE") &&
+            !dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc2))
+            goto error;
+        if (!getenv("FAIL_NO_SERVICE") &&
+            !dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc3))
+            goto error;
+        dbus_message_iter_close_container(&iter, &sub);
+    } else if (STREQ(service, "org.freedesktop.DBus") &&
+               STREQ(member, "ListNames")) {
+        const char *svc1 = "org.foo.bar.wizz";
+        const char *svc2 = "org.freedesktop.systemd1";
+        const char *svc3 = "org.freedesktop.login1";
+        DBusMessageIter iter;
+        DBusMessageIter sub;
+        reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+        dbus_message_iter_init_append(reply, &iter);
+        dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY,
+                                         "s", &sub);
+
+        if (!dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc1))
+            goto error;
+        if ((!getenv("FAIL_NO_SERVICE") && !getenv("FAIL_NOT_REGISTERED")) &&
+            !dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc2))
+            goto error;
+        if ((!getenv("FAIL_NO_SERVICE") && !getenv("FAIL_NOT_REGISTERED")) &&
+            !dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc3))
+            goto error;
+        dbus_message_iter_close_container(&iter, &sub);
+    } else {
+        reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+    }
+
+    return reply;
+
+ error:
+    dbus_message_unref(reply);
+    return NULL;
+}
+
 
 static int testCreateContainer(const void *opaque ATTRIBUTE_UNUSED)
 {
@@ -135,6 +235,40 @@ static int testCreateNoSystemd(const void *opaque ATTRIBUTE_UNUSED)
     return 0;
 }
 
+static int testCreateSystemdNotRunning(const void *opaque ATTRIBUTE_UNUSED)
+{
+    unsigned char uuid[VIR_UUID_BUFLEN] = {
+        1, 1, 1, 1,
+        2, 2, 2, 2,
+        3, 3, 3, 3,
+        4, 4, 4, 4
+    };
+    int rv;
+
+    setenv("FAIL_NOT_REGISTERED", "1", 1);
+
+    if ((rv = virSystemdCreateMachine("demo",
+                                      "qemu",
+                                      true,
+                                      uuid,
+                                      NULL,
+                                      123,
+                                      false,
+                                      NULL)) == 0) {
+        unsetenv("FAIL_NOT_REGISTERED");
+        fprintf(stderr, "%s", "Unexpected create machine success\n");
+        return -1;
+    }
+    unsetenv("FAIL_NOT_REGISTERED");
+
+    if (rv != -2) {
+        fprintf(stderr, "%s", "Unexpected create machine error\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 static int testCreateBadSystemd(const void *opaque ATTRIBUTE_UNUSED)
 {
     unsigned char uuid[VIR_UUID_BUFLEN] = {
@@ -201,6 +335,86 @@ testScopeName(const void *opaque)
     return ret;
 }
 
+typedef int (*virSystemdCanHelper)(bool * result);
+struct testPMSupportData {
+    virSystemdCanHelper tested;
+};
+
+static int testPMSupportHelper(const void *opaque)
+{
+    int rv;
+    bool result;
+    size_t i;
+    const char *results[4] = {"yes", "no", "na", "challenge"};
+    int expected[4] = {1, 0, 0, 1};
+    const struct testPMSupportData *data = opaque;
+
+    for (i = 0; i < 4; i++) {
+        setenv("RESULT_SUPPORT",  results[i], 1);
+        if ((rv = data->tested(&result)) < 0) {
+            fprintf(stderr, "%s", "Unexpected canSuspend error\n");
+            return -1;
+        }
+
+        if (result != expected[i]) {
+            fprintf(stderr, "Unexpected result for answer '%s'\n", results[i]);
+            goto error;
+        }
+        unsetenv("RESULT_SUPPORT");
+    }
+
+    return 0;
+ error:
+    unsetenv("RESULT_SUPPORT");
+    return -1;
+}
+
+static int testPMSupportHelperNoSystemd(const void *opaque)
+{
+    int rv;
+    bool result;
+    const struct testPMSupportData *data = opaque;
+
+    setenv("FAIL_NO_SERVICE", "1", 1);
+
+    if ((rv = data->tested(&result)) == 0) {
+        unsetenv("FAIL_NO_SERVICE");
+        fprintf(stderr, "%s", "Unexpected canSuspend success\n");
+        return -1;
+    }
+    unsetenv("FAIL_NO_SERVICE");
+
+    if (rv != -2) {
+        fprintf(stderr, "%s", "Unexpected canSuspend error\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int testPMSupportSystemdNotRunning(const void *opaque)
+{
+    int rv;
+    bool result;
+    const struct testPMSupportData *data = opaque;
+
+    setenv("FAIL_NOT_REGISTERED", "1", 1);
+
+    if ((rv = data->tested(&result)) == 0) {
+        unsetenv("FAIL_NOT_REGISTERED");
+        fprintf(stderr, "%s", "Unexpected canSuspend success\n");
+        return -1;
+    }
+    unsetenv("FAIL_NOT_REGISTERED");
+
+    if (rv != -2) {
+        fprintf(stderr, "%s", "Unexpected canSuspend error\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 static int
 mymain(void)
 {
@@ -215,6 +429,9 @@ mymain(void)
     if (virtTestRun("Test terminate machine ", testTerminateMachine, NULL) < 0)
         ret = -1;
     if (virtTestRun("Test create no systemd ", testCreateNoSystemd, NULL) < 0)
+        ret = -1;
+    if (virtTestRun("Test create systemd not running ",
+                    testCreateSystemdNotRunning, NULL) < 0)
         ret = -1;
     if (virtTestRun("Test create bad systemd ", testCreateBadSystemd, NULL) < 0)
         ret = -1;
@@ -236,15 +453,34 @@ mymain(void)
     TEST_SCOPE("demo", "/machine/eng-dept/testing!stuff",
                "machine-eng\\x2ddept-testing\\x21stuff-lxc\\x2ddemo.scope");
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+# define TESTS_PM_SUPPORT_HELPER(name, function)                        \
+    do {                                                                \
+        struct testPMSupportData data = {                               \
+            function                                                    \
+        };                                                              \
+        if (virtTestRun("Test " name " ", testPMSupportHelper, &data) < 0)  \
+            ret = -1;                                                   \
+        if (virtTestRun("Test " name " no systemd ",                    \
+                        testPMSupportHelperNoSystemd, &data) < 0)       \
+            ret = -1;                                                   \
+        if (virtTestRun("Test systemd " name " not running ",           \
+                        testPMSupportSystemdNotRunning, &data) < 0)     \
+            ret = -1;                                                   \
+    } while (0)
+
+    TESTS_PM_SUPPORT_HELPER("canSuspend", &virSystemdCanSuspend);
+    TESTS_PM_SUPPORT_HELPER("canHibernate", &virSystemdCanHibernate);
+    TESTS_PM_SUPPORT_HELPER("canHybridSleep", &virSystemdCanHybridSleep);
+
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virsystemdmock.so")
+VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virmockdbus.so")
 
-#else
+#else /* ! WITH_DBUS */
 int
 main(void)
 {
     return EXIT_AM_SKIP;
 }
-#endif
+#endif /* ! WITH_DBUS */

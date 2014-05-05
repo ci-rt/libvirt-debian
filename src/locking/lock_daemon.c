@@ -54,6 +54,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_LOCKING
 
+VIR_LOG_INIT("locking.lock_daemon");
+
 #define VIR_LOCK_DAEMON_NUM_LOCKSPACES 3
 
 struct _virLockDaemon {
@@ -145,7 +147,7 @@ virLockDaemonNew(virLockDaemonConfigPtr config, bool privileged)
     }
 
     if (!(lockd->srv = virNetServerNew(1, 1, 0, config->max_clients,
-                                       -1, 0,
+                                       config->max_clients, -1, 0,
                                        false, NULL,
                                        virLockDaemonClientNew,
                                        virLockDaemonClientPreExecRestart,
@@ -162,7 +164,7 @@ virLockDaemonNew(virLockDaemonConfigPtr config, bool privileged)
 
     return lockd;
 
-error:
+ error:
     virLockDaemonFree(lockd);
     return NULL;
 }
@@ -244,7 +246,7 @@ virLockDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
 
     return lockd;
 
-error:
+ error:
     virLockDaemonFree(lockd);
     return NULL;
 }
@@ -394,7 +396,7 @@ virLockDaemonPidFilePath(bool privileged,
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -429,7 +431,7 @@ virLockDaemonUnixSocketPaths(bool privileged,
     }
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -475,8 +477,6 @@ virLockDaemonSetupLogging(virLockDaemonConfigPtr config,
         virLogSetDefaultPriority(config->log_level);
 
     virLogSetFromEnv();
-
-    virLogSetBufferSize(config->log_buffer_size);
 
     if (virLogGetNbFilters() == 0)
         virLogParseFilters(config->log_filters);
@@ -551,7 +551,7 @@ virLockDaemonSetupLogging(virLockDaemonConfigPtr config,
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -816,7 +816,7 @@ virLockDaemonClientNew(virNetServerClientPtr client,
 
     return priv;
 
-error:
+ error:
     virMutexDestroy(&priv->lock);
     VIR_FREE(priv);
     return NULL;
@@ -871,7 +871,7 @@ virLockDaemonClientNewPostExecRestart(virNetServerClientPtr client,
     }
     return priv;
 
-error:
+ error:
     virLockDaemonClientFree(priv);
     return NULL;
 }
@@ -917,13 +917,48 @@ virLockDaemonClientPreExecRestart(virNetServerClientPtr client ATTRIBUTE_UNUSED,
 
     return object;
 
-error:
+ error:
     virJSONValueFree(object);
     return NULL;
 }
 
 
-#define VIR_LOCK_DAEMON_RESTART_EXEC_FILE LOCALSTATEDIR "/run/virtlockd-restart-exec.json"
+static int
+virLockDaemonExecRestartStatePath(bool privileged,
+                                  char **state_file)
+{
+    if (privileged) {
+        if (VIR_STRDUP(*state_file, LOCALSTATEDIR "/run/virtlockd-restart-exec.json") < 0)
+            goto error;
+    } else {
+        char *rundir = NULL;
+        mode_t old_umask;
+
+        if (!(rundir = virGetUserRuntimeDirectory()))
+            goto error;
+
+        old_umask = umask(077);
+        if (virFileMakePath(rundir) < 0) {
+            umask(old_umask);
+            VIR_FREE(rundir);
+            goto error;
+        }
+        umask(old_umask);
+
+        if (virAsprintf(state_file, "%s/virtlockd-restart-exec.json", rundir) < 0) {
+            VIR_FREE(rundir);
+            goto error;
+        }
+
+        VIR_FREE(rundir);
+    }
+
+    return 0;
+
+ error:
+    return -1;
+}
+
 
 static char *
 virLockDaemonGetExecRestartMagic(void)
@@ -936,7 +971,10 @@ virLockDaemonGetExecRestartMagic(void)
 
 
 static int
-virLockDaemonPostExecRestart(bool privileged)
+virLockDaemonPostExecRestart(const char *state_file,
+                             const char *pid_file,
+                             int *pid_file_fd,
+                             bool privileged)
 {
     const char *gotmagic;
     char *wantmagic = NULL;
@@ -946,14 +984,14 @@ virLockDaemonPostExecRestart(bool privileged)
 
     VIR_DEBUG("Running post-restart exec");
 
-    if (!virFileExists(VIR_LOCK_DAEMON_RESTART_EXEC_FILE)) {
-        VIR_DEBUG("No restart file %s present",
-                  VIR_LOCK_DAEMON_RESTART_EXEC_FILE);
+    if (!virFileExists(state_file)) {
+        VIR_DEBUG("No restart state file %s present",
+                  state_file);
         ret = 0;
         goto cleanup;
     }
 
-    if (virFileReadAll(VIR_LOCK_DAEMON_RESTART_EXEC_FILE,
+    if (virFileReadAll(state_file,
                        1024 * 1024 * 10, /* 10 MB */
                        &state) < 0)
         goto cleanup;
@@ -980,13 +1018,18 @@ virLockDaemonPostExecRestart(bool privileged)
         goto cleanup;
     }
 
+    /* Re-claim PID file now as we will not be daemonizing */
+    if (pid_file &&
+        (*pid_file_fd = virPidFileAcquirePath(pid_file, false, getpid())) < 0)
+        goto cleanup;
+
     if (!(lockDaemon = virLockDaemonNewPostExecRestart(object, privileged)))
         goto cleanup;
 
     ret = 1;
 
-cleanup:
-    unlink(VIR_LOCK_DAEMON_RESTART_EXEC_FILE);
+ cleanup:
+    unlink(state_file);
     VIR_FREE(wantmagic);
     VIR_FREE(state);
     virJSONValueFree(object);
@@ -995,7 +1038,8 @@ cleanup:
 
 
 static int
-virLockDaemonPreExecRestart(virNetServerPtr srv,
+virLockDaemonPreExecRestart(const char *state_file,
+                            virNetServerPtr srv,
                             char **argv)
 {
     virJSONValuePtr child;
@@ -1063,15 +1107,15 @@ virLockDaemonPreExecRestart(virNetServerPtr srv,
 
     VIR_DEBUG("Saving state %s", state);
 
-    if (virFileWriteStr(VIR_LOCK_DAEMON_RESTART_EXEC_FILE,
+    if (virFileWriteStr(state_file,
                         state, 0700) < 0) {
         virReportSystemError(errno,
                              _("Unable to save state file %s"),
-                             VIR_LOCK_DAEMON_RESTART_EXEC_FILE);
+                             state_file);
         goto cleanup;
     }
 
-    if (execv(argv[0], argv) < 0) {
+    if (execvp(argv[0], argv) < 0) {
         virReportSystemError(errno, "%s",
                              _("Unable to restart self"));
         goto cleanup;
@@ -1079,7 +1123,7 @@ virLockDaemonPreExecRestart(virNetServerPtr srv,
 
     abort(); /* This should be impossible to reach */
 
-cleanup:
+ cleanup:
     VIR_FREE(pairs);
     VIR_FREE(state);
     virJSONValueFree(object);
@@ -1099,6 +1143,7 @@ virLockDaemonUsage(const char *argv0, bool privileged)
               "  -h | --help            Display program help:\n"
               "  -v | --verbose         Verbose messages.\n"
               "  -d | --daemon          Run as a daemon & write PID file.\n"
+              "  -t | --timeout <secs>  Exit after timeout period.\n"
               "  -f | --config <file>   Configuration file.\n"
               "  -V | --version         Display version information.\n"
               "  -p | --pid-file <file> Change name of PID file.\n"
@@ -1151,6 +1196,8 @@ int main(int argc, char **argv) {
     char *pid_file = NULL;
     int pid_file_fd = -1;
     char *sock_file = NULL;
+    int timeout = -1;        /* -t: Shutdown timeout */
+    char *state_file = NULL;
     bool implicit_conf = false;
     mode_t old_umask;
     bool privileged = false;
@@ -1161,6 +1208,7 @@ int main(int argc, char **argv) {
         { "verbose", no_argument, &verbose, 'v'},
         { "daemon", no_argument, &godaemon, 'd'},
         { "config", required_argument, NULL, 'f'},
+        { "timeout", required_argument, NULL, 't'},
         { "pid-file", required_argument, NULL, 'p'},
         { "version", no_argument, NULL, 'V' },
         { "help", no_argument, NULL, 'h' },
@@ -1181,6 +1229,7 @@ int main(int argc, char **argv) {
     while (1) {
         int optidx = 0;
         int c;
+        char *tmp;
 
         c = getopt_long(argc, argv, "ldf:p:t:vVh", opts, &optidx);
 
@@ -1197,6 +1246,16 @@ int main(int argc, char **argv) {
             break;
         case 'd':
             godaemon = 1;
+            break;
+
+        case 't':
+            if (virStrToLong_i(optarg, &tmp, 10, &timeout) != 0
+                || timeout <= 0
+                /* Ensure that we can multiply by 1000 without overflowing.  */
+                || timeout > INT_MAX / 1000) {
+                VIR_ERROR(_("Invalid value for timeout"));
+                exit(EXIT_FAILURE);
+            }
             break;
 
         case 'p':
@@ -1225,6 +1284,8 @@ int main(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
     }
+
+    virFileActivateDirOverride(argv[0]);
 
     if (!(config = virLockDaemonConfigNew(privileged))) {
         VIR_ERROR(_("Can't create initial configuration"));
@@ -1274,21 +1335,13 @@ int main(int argc, char **argv) {
     VIR_DEBUG("Decided on socket paths '%s'",
               sock_file);
 
-    if (godaemon) {
-        char ebuf[1024];
-
-        if (chdir("/") < 0) {
-            VIR_ERROR(_("cannot change to root directory: %s"),
-                      virStrerror(errno, ebuf, sizeof(ebuf)));
-            goto cleanup;
-        }
-
-        if ((statuswrite = virLockDaemonForkIntoBackground(argv[0])) < 0) {
-            VIR_ERROR(_("Failed to fork as daemon: %s"),
-                      virStrerror(errno, ebuf, sizeof(ebuf)));
-            goto cleanup;
-        }
+    if (virLockDaemonExecRestartStatePath(privileged,
+                                          &state_file) < 0) {
+        VIR_ERROR(_("Can't determine restart state file path"));
+        exit(EXIT_FAILURE);
     }
+    VIR_DEBUG("Decided on restart state file path '%s'",
+              state_file);
 
     /* Ensure the rundir exists (on tmpfs on some systems) */
     if (privileged) {
@@ -1315,20 +1368,41 @@ int main(int argc, char **argv) {
     }
     umask(old_umask);
 
-    /* If we have a pidfile set, claim it now, exiting if already taken */
-    if ((pid_file_fd = virPidFileAcquirePath(pid_file, getpid())) < 0) {
-        ret = VIR_LOCK_DAEMON_ERR_PIDFILE;
-        goto cleanup;
-    }
-
-    if ((rv = virLockDaemonPostExecRestart(privileged)) < 0) {
+    if ((rv = virLockDaemonPostExecRestart(state_file,
+                                           pid_file,
+                                           &pid_file_fd,
+                                           privileged)) < 0) {
         ret = VIR_LOCK_DAEMON_ERR_INIT;
         goto cleanup;
     }
 
     /* rv == 1, means we setup everything from saved state,
-     * so we only setup stuff from scratch if rv == 0 */
+     * so only (possibly) daemonize and setup stuff from
+     * scratch if rv == 0
+     */
     if (rv == 0) {
+        if (godaemon) {
+            char ebuf[1024];
+
+            if (chdir("/") < 0) {
+                VIR_ERROR(_("cannot change to root directory: %s"),
+                          virStrerror(errno, ebuf, sizeof(ebuf)));
+                goto cleanup;
+            }
+
+            if ((statuswrite = virLockDaemonForkIntoBackground(argv[0])) < 0) {
+                VIR_ERROR(_("Failed to fork as daemon: %s"),
+                          virStrerror(errno, ebuf, sizeof(ebuf)));
+                goto cleanup;
+            }
+        }
+
+        /* If we have a pidfile set, claim it now, exiting if already taken */
+        if ((pid_file_fd = virPidFileAcquirePath(pid_file, false, getpid())) < 0) {
+            ret = VIR_LOCK_DAEMON_ERR_PIDFILE;
+            goto cleanup;
+        }
+
         if (!(lockDaemon = virLockDaemonNew(config, privileged))) {
             ret = VIR_LOCK_DAEMON_ERR_INIT;
             goto cleanup;
@@ -1345,6 +1419,12 @@ int main(int argc, char **argv) {
             ret = VIR_LOCK_DAEMON_ERR_NETWORK;
             goto cleanup;
         }
+    }
+
+    if (timeout != -1) {
+        VIR_DEBUG("Registering shutdown timeout %d", timeout);
+        virNetServerAutoShutdown(lockDaemon->srv,
+                                 timeout);
     }
 
     if ((virLockDaemonSetupSignals(lockDaemon->srv)) < 0) {
@@ -1386,12 +1466,14 @@ int main(int argc, char **argv) {
     virNetServerRun(lockDaemon->srv);
 
     if (execRestart &&
-        virLockDaemonPreExecRestart(lockDaemon->srv, argv) < 0)
+        virLockDaemonPreExecRestart(state_file,
+                                    lockDaemon->srv,
+                                    argv) < 0)
         ret = VIR_LOCK_DAEMON_ERR_REEXEC;
     else
         ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnref(lockProgram);
     virLockDaemonFree(lockDaemon);
     if (statuswrite != -1) {
@@ -1408,10 +1490,11 @@ cleanup:
         virPidFileReleasePath(pid_file, pid_file_fd);
     VIR_FREE(pid_file);
     VIR_FREE(sock_file);
+    VIR_FREE(state_file);
     VIR_FREE(run_dir);
     return ret;
 
-no_memory:
+ no_memory:
     VIR_ERROR(_("Can't allocate memory"));
     exit(EXIT_FAILURE);
 }

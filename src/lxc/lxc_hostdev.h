@@ -1,5 +1,5 @@
 /*
- * virLXC_hostdev.h: VIRLXC hostdev management
+ * lxc_hostdev.h: VIRLXC hostdev management
  *
  * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
@@ -27,7 +27,7 @@
 # include "lxc_conf.h"
 # include "domain_conf.h"
 
-int virLXCUpdateActiveUsbHostdevs(virLXCDriverPtr driver,
+int virLXCUpdateActiveUSBHostdevs(virLXCDriverPtr driver,
                                   virDomainDefPtr def);
 int virLXCFindHostdevUSBDevice(virDomainHostdevDefPtr hostdev,
                                bool mandatory,

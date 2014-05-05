@@ -1,7 +1,7 @@
 /*
  * virhook.c: implementation of the synchronous hooks support
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2010 Daniel Veillard
  *
  * This library is free software; you can redistribute it and/or
@@ -41,6 +41,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_HOOK
 
+VIR_LOG_INIT("util.hook");
+
 #define LIBVIRT_HOOK_DIR SYSCONFDIR "/libvirt/hooks"
 
 VIR_ENUM_DECL(virHookDriver)
@@ -48,12 +50,14 @@ VIR_ENUM_DECL(virHookDaemonOp)
 VIR_ENUM_DECL(virHookSubop)
 VIR_ENUM_DECL(virHookQemuOp)
 VIR_ENUM_DECL(virHookLxcOp)
+VIR_ENUM_DECL(virHookNetworkOp)
 
 VIR_ENUM_IMPL(virHookDriver,
               VIR_HOOK_DRIVER_LAST,
               "daemon",
               "qemu",
-              "lxc")
+              "lxc",
+              "network")
 
 VIR_ENUM_IMPL(virHookDaemonOp, VIR_HOOK_DAEMON_OP_LAST,
               "start",
@@ -83,6 +87,13 @@ VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_LXC_OP_LAST,
               "started",
               "reconnect")
 
+VIR_ENUM_IMPL(virHookNetworkOp, VIR_HOOK_NETWORK_OP_LAST,
+              "start",
+              "started",
+              "stopped",
+              "plugged",
+              "unplugged")
+
 static int virHooksFound = -1;
 
 /**
@@ -96,7 +107,8 @@ static int virHooksFound = -1;
  * Returns 1 if found, 0 if not found, and -1 in case of error
  */
 static int
-virHookCheck(int no, const char *driver) {
+virHookCheck(int no, const char *driver)
+{
     char *path;
     int ret;
 
@@ -138,7 +150,8 @@ virHookCheck(int no, const char *driver) {
  * Returns the number of hooks found or -1 in case of failure
  */
 int
-virHookInitialize(void) {
+virHookInitialize(void)
+{
     size_t i;
     int res, ret = 0;
 
@@ -166,7 +179,8 @@ virHookInitialize(void) {
  * Returns 1 if present, 0 otherwise
  */
 int
-virHookPresent(int driver) {
+virHookPresent(int driver)
+{
     if ((driver < VIR_HOOK_DRIVER_DAEMON) ||
         (driver >= VIR_HOOK_DRIVER_LAST))
         return 0;
@@ -246,6 +260,8 @@ virHookCall(int driver,
         case VIR_HOOK_DRIVER_LXC:
             opstr = virHookLxcOpTypeToString(op);
             break;
+        case VIR_HOOK_DRIVER_NETWORK:
+            opstr = virHookNetworkOpTypeToString(op);
     }
     if (opstr == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,

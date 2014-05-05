@@ -1,6 +1,6 @@
 /*
  * xenapi_driver.c: Xen API driver.
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Citrix Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -94,7 +94,7 @@ getCapsObject(void)
 
     return caps;
 
-  error_cleanup:
+ error_cleanup:
     virObjectUnref(caps);
     return NULL;
 }
@@ -208,7 +208,7 @@ xenapiConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
 
     xenapiSessionErrorHandler(conn, VIR_ERR_AUTH_FAILED, NULL);
 
-  error:
+ error:
     VIR_FREE(username);
     VIR_FREE(password);
 
@@ -441,7 +441,7 @@ xenapiConnectGetCapabilities(virConnectPtr conn)
             goto cleanup;
         return xml;
     }
-  cleanup:
+ cleanup:
     xenapiSessionErrorHandler(conn, VIR_ERR_INTERNAL_ERROR,
                               _("Capabilities not available"));
     return NULL;
@@ -582,7 +582,7 @@ xenapiDomainLookupByID(virConnectPtr conn, int id)
     xen_vm_set *result;
     xen_vm_record *record;
     unsigned char raw_uuid[VIR_UUID_BUFLEN];
-    virDomainPtr domP=NULL;
+    virDomainPtr domP = NULL;
     xen_session *session = ((struct _xenapiPrivate *)(conn->privateData))->session;
 
     xen_session_get_this_host(session, &host, session);
@@ -722,7 +722,7 @@ xenapiDomainSuspend(virDomainPtr dom)
 {
     /* vm.pause() */
     xen_vm vm;
-    xen_vm_set *vms=NULL;
+    xen_vm_set *vms = NULL;
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
     if (xen_vm_get_by_name_label(session, &vms, dom->name) &&  vms->size > 0) {
         if (vms->size != 1) {
@@ -931,10 +931,10 @@ xenapiDomainDestroy(virDomainPtr dom)
 static char *
 xenapiDomainGetOSType(virDomainPtr dom)
 {
-    xen_vm vm=NULL;
+    xen_vm vm = NULL;
     xen_vm_set *vms;
     char *ostype = NULL;
-    char *boot_policy=NULL;
+    char *boot_policy = NULL;
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
 
     if (xen_vm_get_by_name_label(session, &vms, dom->name) && vms->size > 0) {
@@ -955,7 +955,7 @@ xenapiDomainGetOSType(virDomainPtr dom)
     } else
         xenapiSessionErrorHandler(dom->conn, VIR_ERR_NO_DOMAIN, NULL);
 
-  cleanup:
+ cleanup:
     if (vms)
         xen_vm_set_free(vms);
     return ostype;
@@ -1115,7 +1115,7 @@ xenapiDomainGetState(virDomainPtr dom,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (vms)
         xen_vm_set_free(vms);
     return ret;
@@ -1360,14 +1360,14 @@ xenapiDomainGetMaxVcpus(virDomainPtr dom)
 static char *
 xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 {
-    xen_vm vm=NULL;
+    xen_vm vm = NULL;
     xen_vm_set *vms;
-    xen_string_string_map *result=NULL;
+    xen_string_string_map *result = NULL;
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
     virDomainDefPtr defPtr = NULL;
     char *boot_policy = NULL;
-    unsigned long memory=0;
-    int64_t dynamic_mem=0;
+    unsigned long memory = 0;
+    int64_t dynamic_mem = 0;
     char *val = NULL;
     struct xen_vif_set *vif_set = NULL;
     char *xml;
@@ -1545,7 +1545,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     virDomainDefFree(defPtr);
     return xml;
 
-  error:
+ error:
     xen_vm_set_free(vms);
     virDomainDefFree(defPtr);
     return NULL;
@@ -1700,9 +1700,9 @@ static virDomainPtr
 xenapiDomainDefineXML(virConnectPtr conn, const char *xml)
 {
     struct _xenapiPrivate *priv = conn->privateData;
-    xen_vm_record *record=NULL;
-    xen_vm vm=NULL;
-    virDomainPtr domP=NULL;
+    xen_vm_record *record = NULL;
+    xen_vm vm = NULL;
+    virDomainPtr domP = NULL;
     if (!priv->caps)
         return NULL;
     virDomainDefPtr defPtr = virDomainDefParseString(xml,
@@ -1850,7 +1850,7 @@ xenapiDomainSetAutostart(virDomainPtr dom, int autostart)
         }
         vm = vms->contents[0];
         xen_vm_remove_from_other_config(session, vm, (char *)"auto_poweron");
-        if (autostart==1)
+        if (autostart == 1)
             value = (char *)"true";
         else
             value = (char *)"false";

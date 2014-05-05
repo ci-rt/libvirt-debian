@@ -56,6 +56,10 @@ Access Control
 Access to the libvirt socket is controlled by membership in the "libvirt" group.
 If you want to manage VMs as non root you need to add a user to that group.
 
+Note that this will allow users in this group to use all of libvirt's
+API including modifying files on the host. For finer grained access
+control have a look at libvirt's ACLs.
+
 System QEMU/KVM processes are run as user and group libvirt-qemu. This can be
 adjusted via /etc/libvirt/qemu.conf.
 

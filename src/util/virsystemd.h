@@ -46,4 +46,12 @@ int virSystemdTerminateMachine(const char *name,
                                const char *drivername,
                                bool privileged);
 
+void virSystemdNotifyStartup(void);
+
+int virSystemdCanSuspend(bool *result);
+
+int virSystemdCanHibernate(bool *result);
+
+int virSystemdCanHybridSleep(bool *result);
+
 #endif /* __VIR_SYSTEMD_H__ */

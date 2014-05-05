@@ -1,7 +1,7 @@
 /*
  * virnetserverclient.c: generic network RPC server client
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -35,10 +35,13 @@
 #include "viralloc.h"
 #include "virthread.h"
 #include "virkeepalive.h"
+#include "virprobe.h"
 #include "virstring.h"
 #include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("rpc.netserverclient");
 
 /* Allow for filtering of incoming messages to a custom
  * dispatch processing queue, instead of the workers.
@@ -138,7 +141,8 @@ static int virNetServerClientSendMessageLocked(virNetServerClientPtr client,
  * @client: a locked client object
  */
 static int
-virNetServerClientCalculateHandleMode(virNetServerClientPtr client) {
+virNetServerClientCalculateHandleMode(virNetServerClientPtr client)
+{
     int mode = 0;
 
 
@@ -385,7 +389,7 @@ virNetServerClientNewInternal(virNetSocketPtr sock,
 
     return client;
 
-error:
+ error:
     virObjectUnref(client);
     return NULL;
 }
@@ -502,7 +506,7 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
 
     return client;
 
-error:
+ error:
     virObjectUnref(client);
     return NULL;
 }
@@ -545,7 +549,7 @@ virJSONValuePtr virNetServerClientPreExecRestart(virNetServerClientPtr client)
     virObjectUnlock(client);
     return object;
 
-error:
+ error:
     virObjectUnlock(client);
     virJSONValueFree(object);
     return NULL;
@@ -763,7 +767,7 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
                            seccontext) < 0)
         goto error;
 
-cleanup:
+ cleanup:
     VIR_FREE(username);
     VIR_FREE(userid);
     VIR_FREE(groupname);
@@ -779,7 +783,7 @@ cleanup:
 #endif
     return ret;
 
-error:
+ error:
     virObjectUnref(ret);
     ret = NULL;
     goto cleanup;
@@ -1081,7 +1085,7 @@ int virNetServerClientInit(virNetServerClientPtr client)
     virObjectUnlock(client);
     return 0;
 
-error:
+ error:
     client->wantClose = true;
     virObjectUnlock(client);
     return -1;
@@ -1126,7 +1130,7 @@ static ssize_t virNetServerClientRead(virNetServerClientPtr client)
  */
 static void virNetServerClientDispatchRead(virNetServerClientPtr client)
 {
-readmore:
+ readmore:
     if (client->rx->nfds == 0) {
         if (virNetServerClientRead(client) < 0) {
             client->wantClose = true;
@@ -1530,7 +1534,7 @@ virNetServerClientInitKeepAlive(virNetServerClientPtr client,
 
     client->keepalive = ka;
 
-cleanup:
+ cleanup:
     virObjectUnlock(client);
 
     return ret;
@@ -1554,7 +1558,7 @@ virNetServerClientStartKeepAlive(virNetServerClientPtr client)
 
     ret = virKeepAliveStart(client->keepalive, 0, 0);
 
-cleanup:
+ cleanup:
     virObjectUnlock(client);
     return ret;
 }

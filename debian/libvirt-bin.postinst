@@ -96,28 +96,6 @@ case "$1" in
         add_users_groups
         add_statoverrides
 
-	# libvirt from 0.6.0 on is safe to restart with running vms:
-	if [ -n "$2" ] &&  dpkg --compare-versions "$2" ge 0.6.0; then
-	    if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
-                invoke-rc.d libvirt-bin stop
-            else
-                /etc/init.d/libvirt-bin stop
-            fi
-	    sleep 1
-	fi
-
-	if dpkg --compare-versions "$2" lt "0.6.1-2"; then
-	    if [ -e /etc/rc2.d/S20libvirt-bin ] && \
-	       [ -e /etc/rc3.d/S20libvirt-bin ] && \
-	       [ -e /etc/rc4.d/S20libvirt-bin ] && \
-	       [ -e /etc/rc5.d/S20libvirt-bin ] && \
-	       [ -e /etc/rc0.d/K20libvirt-bin ] && \
-	       [ -e /etc/rc1.d/K20libvirt-bin ] && \
-	       [ -e /etc/rc6.d/K20libvirt-bin ]; then
-		update-rc.d -f libvirt-bin remove >/dev/null
-	    fi
-	fi
-
 	# Make sure the directories don't get removed on package removal since
 	# logrotate chokes otherwise.
 	for dir in qemu uml lxc; do

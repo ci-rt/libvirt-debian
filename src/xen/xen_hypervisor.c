@@ -1,7 +1,7 @@
 /*
- * xen_internal.c: direct access to Xen hypervisor level
+ * xen_hypervisor.c: direct access to Xen hypervisor level
  *
- * Copyright (C) 2005-2013 Red Hat, Inc.
+ * Copyright (C) 2005-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -82,6 +82,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
+
+VIR_LOG_INIT("xen.xen_hypervisor");
 
 /*
  * so far there is 2 versions of the structures usable for doing
@@ -2004,7 +2006,8 @@ xenHypervisorInit(struct xenHypervisorVersions *override_versions)
 }
 
 
-static int xenHypervisorOnceInit(void) {
+static int xenHypervisorOnceInit(void)
+{
     return xenHypervisorInit(NULL);
 }
 
@@ -2272,7 +2275,7 @@ get_cpu_flags(virConnectPtr conn, const char **hvm, int *pae, int *longmode)
 
     ret = 1;
 
-out:
+ out:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -2534,7 +2537,7 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     if (virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
         VIR_WARN("Failed to get host power management capabilities");
 
-cleanup:
+ cleanup:
     VIR_FORCE_FCLOSE(cpuinfo);
     VIR_FORCE_FCLOSE(capabilities);
 

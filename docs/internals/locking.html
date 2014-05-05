@@ -94,6 +94,10 @@
                         <div>
                           <span class="active">Lock managers</span>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Simulating OOM conditions in the test suite" class="inactive" href="../internals/oomtesting.html">Out of memory testing</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -103,6 +107,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="../virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="../governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -163,6 +171,7 @@
     </p>
         <h2>
           <a name="goals" shape="rect" id="goals">Goals</a>
+          <a class="headerlink" href="#goals" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The high level goal is to prevent the same disk image being
@@ -182,6 +191,7 @@
       </li></ol>
         <h2>
           <a name="requirement" shape="rect" id="requirement">Requirements</a>
+          <a class="headerlink" href="#requirement" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The high level goal leads to a set of requirements
@@ -206,6 +216,7 @@
       </li></ol>
         <h2>
           <a name="design" shape="rect" id="design">Design</a>
+          <a class="headerlink" href="#design" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Within a lock manager the following series of operations
@@ -234,6 +245,7 @@
       </li></ul>
         <h2>
           <a name="impl" shape="rect" id="impl">Plugin Implementations</a>
+          <a class="headerlink" href="#impl" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Lock manager implementations are provided as LGPLv2+
@@ -260,6 +272,7 @@
     </p>
         <h2>
           <a name="qemuIntegrate" shape="rect" id="qemuIntegrate">QEMU Driver integration</a>
+          <a class="headerlink" href="#qemuIntegrate" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       With the QEMU driver, the lock plugin will be set
@@ -275,6 +288,7 @@
     </p>
         <h2>
           <a name="usagePatterns" shape="rect" id="usagePatterns">Lock usage patterns</a>
+          <a class="headerlink" href="#usagePatterns" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The following pseudo code illustrates the common
@@ -283,6 +297,7 @@
     </p>
         <h3>
           <a name="usageLockAcquire" shape="rect" id="usageLockAcquire">Lock acquisition</a>
+          <a class="headerlink" href="#usageLockAcquire" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Initial lock acquisition will be performed from the
@@ -330,6 +345,7 @@
     </pre>
         <h3>
           <a name="usageLockAttach" shape="rect" id="usageLockAttach">Lock release</a>
+          <a class="headerlink" href="#usageLockAttach" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The locks are all implicitly released when the process
