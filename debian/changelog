@@ -1,3 +1,14 @@
+libvirt (1.2.4-1) unstable; urgency=medium
+
+  * [b38846c] New upstream version 1.2.4
+  * [f8d48c5] Drop.
+        tests-Only-use-privileged-mode-if-Qemu-user-and-grou.patch
+    applied upstream
+  * [8388a28] Disable hal on all architectures (Closes: #710195)
+  * [726b0bb] LSN-2014-0003: Don't expand entities when parsing XML
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 05 May 2014 10:59:18 +0200
+
 libvirt (1.2.4~rc2-1) experimental; urgency=medium
 
   * [1190eb8] New upstream version 1.2.4~rc2
