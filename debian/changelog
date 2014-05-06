@@ -1,3 +1,19 @@
+libvirt (1.2.4-1~bpo70+1) wheezy-backports; urgency=medium
+
+  * Rebuild for wheezy-backports.
+  * Fixes LSN-2014-0003
+  * Remaining chnages:
+    * [b46b754] Drop sheepdog support not available in Wheezy
+    * [31a2113] Use libnl1
+      since libnetcf1 is linked against libnl1 in Wheezy. Also make sure we
+      don't pickup up libnetcf-dev using libnl3.
+    * [c5a59dd] Drop version in polkit-1 dependency.
+      This reintroduces CVE-2013-4311 since we don't have a recent enough
+      polkit-1 in wheezy.
+    * [4db6aaa] Disable xenlight support not available in wheezy
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 06 May 2014 14:12:38 +0200
+
 libvirt (1.2.4-1) unstable; urgency=medium
 
   * [b38846c] New upstream version 1.2.4
