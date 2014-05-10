@@ -1,3 +1,11 @@
+libvirt (1.2.4-2) unstable; urgency=medium
+
+  * [8bcbf97] Only linux has apparmor (Closes: #747565)
+  * [0fa7624] Disable tests requiring filesystem attributes since they seem to
+    fail on the buildd (Closes: #747565)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 10 May 2014 15:38:57 +0200
+
 libvirt (1.2.4-1) unstable; urgency=medium
 
   * [b38846c] New upstream version 1.2.4
