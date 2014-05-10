@@ -108,7 +108,8 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_DTRACE)           \
 	$(WITH_AUDIT)            \
 	--without-hal            \
-	--without-firewalld
+	--without-firewalld      \
+	--without-attr
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
 LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate.in))))

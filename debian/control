@@ -56,7 +56,6 @@ Build-Depends:
  dnsmasq-base,
  openssh-client,
  netcat-openbsd,
- libattr1-dev,
  ebtables [linux-any],
  iptables [linux-any],
  qemu-utils [linux-any],
