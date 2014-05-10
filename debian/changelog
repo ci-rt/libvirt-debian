@@ -1,3 +1,13 @@
+libvirt (1.2.4-3) unstable; urgency=medium
+
+  * [b0b7359] Don't pretend kFreeBSD supports linux only features.  So far we
+    worked around missing kFreeBSD features by creating empty dirs this looks
+    bad on the target systems and makes us maintain things in debian rules and
+    *.install. Explicitly invoke dh_install in debian/rules instead.
+    Closes: #747658
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 10 May 2014 22:23:06 +0200
+
 libvirt (1.2.4-2) unstable; urgency=medium
 
   * [8bcbf97] Only linux has apparmor (Closes: #747565)
