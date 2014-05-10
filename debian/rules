@@ -122,6 +122,10 @@ override_dh_auto_configure:
 
 override_dh_auto_install:
 	dh_auto_install
+ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
+	# Only linux has app-armor
+	dh_install -p libvirt-bin usr/lib/libvirt/virt-aa-helper
+endif
 	# Add empty dirs so dh_install doesn't fail on kFreebsd until we have
 	# Polkit/Systemd/systemtap/apparmor support
 	mkdir -p debian/tmp/usr/share/polkit-1 \
