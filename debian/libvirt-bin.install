@@ -2,12 +2,8 @@ usr/bin/*
 usr/sbin/*
 etc/libvirt/*
 etc/sasl2/*
-etc/apparmor.d
-usr/share/polkit-1
 usr/lib/libvirt/libvirt*
 usr/lib/libvirt/connection-driver
 usr/share/augeas/*
 usr/share/libvirt/*
 usr/share/man/man8/*
-usr/lib/systemd/system lib/systemd/
-usr/share/systemtap

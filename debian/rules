@@ -121,19 +121,6 @@ EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 override_dh_auto_configure:
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
 
-override_dh_auto_install:
-	dh_auto_install
-ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
-	# Only linux has app-armor
-	dh_install -p libvirt-bin usr/lib/libvirt/virt-aa-helper
-endif
-	# Add empty dirs so dh_install doesn't fail on kFreebsd until we have
-	# Polkit/Systemd/systemtap/apparmor support
-	mkdir -p debian/tmp/usr/share/polkit-1 \
-	         debian/tmp/lib/systemd/system \
-	         debian/tmp/usr/share/systemtap \
-	         debian/tmp/etc/apparmor.d/
-
 override_dh_auto_test:
 	export LD_PRELOAD="";     \
 	export VIR_TEST_DEBUG=1;  \
@@ -152,8 +139,16 @@ override_dh_install:
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-bin.libvirt-guests.default
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
+	# Linux supports more nice things:
+	dh_install -p libvirt-bin usr/lib/systemd/system lib/systemd/
 	mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
 	   debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
+	dh_install -p libvirt-bin usr/lib/libvirt/virt-aa-helper
+	dh_install -p libvirt-bin etc/apparmor.d
+	dh_install -p libvirt-bin usr/share/polkit-1
+	# Not all linux arches have systemtap yet
+	mkdir -p debian/tmp/usr/share/systemtap
+	dh_install -p libvirt-bin usr/share/systemtap
 endif
 
 	for l in $(LOGROTATE); do \
