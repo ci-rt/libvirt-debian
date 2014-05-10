@@ -77,7 +77,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_QEMU)		 \
 	--with-qemu-user=libvirt-qemu  \
 	--with-qemu-group=libvirt-qemu \
-        $(WITH_OPENVZ)		 \
+	$(WITH_OPENVZ)		 \
 	--with-avahi             \
 	--with-sasl              \
 	--with-yajl              \
@@ -153,7 +153,7 @@ endif
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
-                   debian/libvirt-bin.$$l.logrotate; \
+	        debian/libvirt-bin.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done
 
