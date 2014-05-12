@@ -141,8 +141,6 @@ override_dh_install:
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	# Linux supports more nice things:
 	dh_install -p libvirt-bin usr/lib/systemd/system lib/systemd/
-	mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
-	   debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
 	dh_install -p libvirt-bin usr/lib/libvirt/virt-aa-helper
 	dh_install -p libvirt-bin etc/apparmor.d
 	dh_install -p libvirt-bin usr/share/polkit-1

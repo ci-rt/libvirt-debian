@@ -22,16 +22,9 @@ index 086da36..9bc433c 100644
  ExecReload=/bin/kill -HUP $MAINPID
  KillMode=process
  Restart=on-failure
-diff --git a/tools/libvirt-guests.service.in b/tools/libvirt-guests.service.in
-index d8d7adf..e743edd 100644
 --- a/tools/libvirt-guests.service.in
 +++ b/tools/libvirt-guests.service.in
-@@ -1,11 +1,11 @@
- [Unit]
- Description=Suspend Active Libvirt Guests
--After=network.target libvirtd.service
-+After=network.target libvirt-bin.service
- Documentation=man:libvirtd(8)
+@@ -5,7 +5,7 @@ Documentation=man:libvirtd(8)
  Documentation=http://libvirt.org
  
  [Service]
