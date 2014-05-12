@@ -15,7 +15,7 @@ index 02671b4..e721b35 100644
  Most B<virsh> operations rely upon the libvirt library being able to
  connect to an already running libvirtd service.  This can usually be
 -done using the command B<service libvirtd start>.
-+done using the command B<invoke-rc.d libvirt-bin start>.
++done using the command B<invoke-rc.d libvirtd start>.
  
  Most B<virsh> commands require root privileges to run due to the
  communications channels used to talk to the hypervisor.  Running as

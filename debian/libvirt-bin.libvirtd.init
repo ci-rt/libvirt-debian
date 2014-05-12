@@ -31,13 +31,13 @@ PIDFILE=/var/run/$NAME.pid
 DODTIME=1                   # Time to wait for the server to die, in seconds
 
 # Include libvirtd defaults if available
-if [ -f /etc/default/libvirt-bin ] ; then
-	. /etc/default/libvirt-bin
+if [ -f /etc/default/libvirtd ] ; then
+	. /etc/default/libvirtd
 fi
 
 check_start_libvirtd_option() {
   if [ ! "$start_libvirtd" = "yes" ]; then
-    log_warning_msg "Not starting libvirt management daemon libvirtd, disabled via /etc/default/libvirt-bin"
+    log_warning_msg "Not starting libvirt management daemon libvirtd, disabled via /etc/default/libvirtd"
     return 1
   else
     return 0
@@ -223,7 +223,7 @@ case "$1" in
 	fi
 	;;
   *)
-	N=/etc/init.d/libvirt-bin
+	N=/etc/init.d/libvirtd
 	echo "Usage: $N {start|stop|restart|reload|force-reload|status|force-stop}" >&2
 	exit 1
 	;;
