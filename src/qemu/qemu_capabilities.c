@@ -254,6 +254,8 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "spiceport",
 
               "usb-kbd", /* 165 */
+              "host-pci-multidomain",
+              "msg-timestamp",
     );
 
 
@@ -1043,6 +1045,8 @@ virQEMUCapsComputeCmdFlags(const char *help,
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DRIVE_SERIAL);
     if (strstr(help, "-pcidevice"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_PCIDEVICE);
+    if (strstr(help, "host=[seg:]bus"))
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_HOST_PCI_MULTIDOMAIN);
     if (strstr(help, "-mem-path"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_MEM_PATH);
     if (strstr(help, "-chardev")) {
@@ -2375,6 +2379,7 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "boot-opts", "strict", QEMU_CAPS_BOOT_STRICT },
     { "boot-opts", "reboot-timeout", QEMU_CAPS_REBOOT_TIMEOUT },
     { "spice", "disable-agent-file-xfer", QEMU_CAPS_SPICE_FILE_XFER_DISABLE },
+    { "msg", "timestamp", QEMU_CAPS_MSG_TIMESTAMP },
 };
 
 static int
@@ -2970,6 +2975,7 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_OPT);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_CORE);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_VNC_SHARE_POLICY);
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_HOST_PCI_MULTIDOMAIN);
 }
 
 /* Capabilities that are architecture depending
@@ -3459,6 +3465,12 @@ virQEMUCapsSupportsChardev(virDomainDefPtr def,
     if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_CHARDEV) ||
         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))
         return false;
+
+    if ((def->os.arch == VIR_ARCH_PPC) || (def->os.arch == VIR_ARCH_PPC64)) {
+        /* only pseries need -device spapr-vty with -chardev */
+        return (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
+                chr->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO);
+    }
 
     if ((def->os.arch != VIR_ARCH_ARMV7L) && (def->os.arch != VIR_ARCH_AARCH64))
         return true;

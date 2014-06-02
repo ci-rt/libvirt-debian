@@ -255,6 +255,8 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     cfg->keepAliveCount = 5;
     cfg->seccompSandbox = -1;
 
+    cfg->logTimestamp = true;
+
     return cfg;
 
  error:
@@ -574,7 +576,10 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 
     GET_VALUE_LONG("seccomp_sandbox", cfg->seccompSandbox);
 
+    GET_VALUE_STR("migration_host", cfg->migrateHost);
     GET_VALUE_STR("migration_address", cfg->migrationAddress);
+
+    GET_VALUE_BOOL("log_timestamp", cfg->logTimestamp);
 
     ret = 0;
 
@@ -1312,7 +1317,7 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
     virStorageNetHostDefFree(def->src.nhosts, def->src.hosts);
     virStorageSourceAuthClear(&def->src);
 
-    switch ((enum virStoragePoolType) pooldef->type) {
+    switch ((virStoragePoolType) pooldef->type) {
     case VIR_STORAGE_POOL_DIR:
     case VIR_STORAGE_POOL_FS:
     case VIR_STORAGE_POOL_NETFS:

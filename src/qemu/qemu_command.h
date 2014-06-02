@@ -24,6 +24,7 @@
 #ifndef __QEMU_COMMAND_H__
 # define __QEMU_COMMAND_H__
 
+# include "domain_addr.h"
 # include "domain_conf.h"
 # include "vircommand.h"
 # include "capabilities.h"
@@ -75,7 +76,7 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    const char *migrateFrom,
                                    int migrateFd,
                                    virDomainSnapshotObjPtr current_snapshot,
-                                   enum virNetDevVPortProfileOp vmop,
+                                   virNetDevVPortProfileOp vmop,
                                    qemuBuildCommandLineCallbacksPtr callbacks,
                                    bool forXMLToArgv)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(11);
@@ -152,7 +153,8 @@ char * qemuBuildSoundDevStr(virDomainDefPtr domainDef,
                             virQEMUCapsPtr qemuCaps);
 
 /* Legacy, pre device support */
-char * qemuBuildPCIHostdevPCIDevStr(virDomainHostdevDefPtr dev);
+char * qemuBuildPCIHostdevPCIDevStr(virDomainHostdevDefPtr dev,
+                                    virQEMUCapsPtr qemuCaps);
 /* Current, best practice */
 char * qemuBuildPCIHostdevDevStr(virDomainDefPtr def,
                                  virDomainHostdevDefPtr dev,
@@ -195,7 +197,7 @@ int qemuPhysIfaceConnect(virDomainDefPtr def,
                          virQEMUDriverPtr driver,
                          virDomainNetDefPtr net,
                          virQEMUCapsPtr qemuCaps,
-                         enum virNetDevVPortProfileOp vmop);
+                         virNetDevVPortProfileOp vmop);
 
 int qemuOpenVhostNet(virDomainDefPtr def,
                      virDomainNetDefPtr net,
@@ -233,55 +235,17 @@ void qemuDomainReleaseDeviceAddress(virDomainObjPtr vm,
                                     virDomainDeviceInfoPtr info,
                                     const char *devstr);
 
-typedef enum {
-   QEMU_PCI_CONNECT_HOTPLUGGABLE = 1 << 0,
-   /* This bus supports hot-plug */
-   QEMU_PCI_CONNECT_SINGLESLOT   = 1 << 1,
-   /* This "bus" has only a single downstream slot/port */
-
-   QEMU_PCI_CONNECT_TYPE_PCI     = 1 << 2,
-   /* PCI devices can connect to this bus */
-   QEMU_PCI_CONNECT_TYPE_PCIE    = 1 << 3,
-   /* PCI Express devices can connect to this bus */
-   QEMU_PCI_CONNECT_TYPE_EITHER_IF_CONFIG = 1 << 4,
-   /* PCI *and* PCIe devices allowed, if the address
-    * was specified in the config by the user
-    */
-} qemuDomainPCIConnectFlags;
-
-/* a combination of all bit that describe the type of connections
- * allowed, e.g. PCI, PCIe, switch
- */
-# define QEMU_PCI_CONNECT_TYPES_MASK \
-   (QEMU_PCI_CONNECT_TYPE_PCI | QEMU_PCI_CONNECT_TYPE_PCIE)
-
 
 int qemuDomainAssignPCIAddresses(virDomainDefPtr def,
                                  virQEMUCapsPtr qemuCaps,
                                  virDomainObjPtr obj);
-qemuDomainPCIAddressSetPtr qemuDomainPCIAddressSetCreate(virDomainDefPtr def,
-                                                         unsigned int nbuses,
-                                                         bool dryRun);
-int qemuDomainPCIAddressReserveSlot(qemuDomainPCIAddressSetPtr addrs,
-                                    virDevicePCIAddressPtr addr,
-                                    qemuDomainPCIConnectFlags flags);
-int qemuDomainPCIAddressReserveAddr(qemuDomainPCIAddressSetPtr addrs,
-                                    virDevicePCIAddressPtr addr,
-                                    qemuDomainPCIConnectFlags flags,
-                                    bool reserveEntireSlot,
-                                    bool fromConfig);
-int qemuDomainPCIAddressReserveNextSlot(qemuDomainPCIAddressSetPtr addrs,
-                                        virDomainDeviceInfoPtr dev,
-                                        qemuDomainPCIConnectFlags flags);
-int qemuDomainPCIAddressEnsureAddr(qemuDomainPCIAddressSetPtr addrs,
-                                   virDomainDeviceInfoPtr dev);
-int qemuDomainPCIAddressReleaseAddr(qemuDomainPCIAddressSetPtr addrs,
-                                    virDevicePCIAddressPtr addr);
+virDomainPCIAddressSetPtr qemuDomainPCIAddressSetCreate(virDomainDefPtr def,
+                                                        unsigned int nbuses,
+                                                        bool dryRun);
 
-void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs);
 int  qemuAssignDevicePCISlots(virDomainDefPtr def,
                               virQEMUCapsPtr qemuCaps,
-                              qemuDomainPCIAddressSetPtr addrs);
+                              virDomainPCIAddressSetPtr addrs);
 
 int qemuDomainCCWAddressAssign(virDomainDeviceInfoPtr dev, qemuDomainCCWAddressSetPtr addrs,
                                bool autoassign);

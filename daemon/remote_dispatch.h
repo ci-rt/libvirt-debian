@@ -3471,6 +3471,118 @@ cleanup:
 
 
 
+static int remoteDispatchDomainFSFreeze(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsfreeze_args *args,
+    remote_domain_fsfreeze_ret *ret);
+static int remoteDispatchDomainFSFreezeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainFSFreeze(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainFSFreeze(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsfreeze_args *args,
+    remote_domain_fsfreeze_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    int filesystems;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((filesystems = virDomainFSFreeze(dom, (const char **) args->mountpoints.mountpoints_val, args->mountpoints.mountpoints_len, args->flags)) < 0)
+        goto cleanup;
+
+    ret->filesystems = filesystems;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainFSThaw(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsthaw_args *args,
+    remote_domain_fsthaw_ret *ret);
+static int remoteDispatchDomainFSThawHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainFSThaw(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainFSThaw(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsthaw_args *args,
+    remote_domain_fsthaw_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    int filesystems;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((filesystems = virDomainFSThaw(dom, (const char **) args->mountpoints.mountpoints_val, args->mountpoints.mountpoints_len, args->flags)) < 0)
+        goto cleanup;
+
+    ret->filesystems = filesystems;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainFSTrim(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -4457,6 +4569,28 @@ static int remoteDispatchDomainGetStateHelper(
   return remoteDispatchDomainGetState(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetState body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainGetTime(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_time_args *args,
+    remote_domain_get_time_ret *ret);
+static int remoteDispatchDomainGetTimeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetTime(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetTime body has to be implemented manually */
 
 
 
@@ -8061,6 +8195,58 @@ cleanup:
     if (dom)
         virDomainFree(dom);
     virTypedParamsFree(params, nparams);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSetTime(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_time_args *args);
+static int remoteDispatchDomainSetTimeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetTime(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainSetTime(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_time_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainSetTime(dom, args->seconds, args->nseconds, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
     return rv;
 }
 
@@ -17144,6 +17330,42 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainCoreDumpWithFormatHelper,
    sizeof(remote_domain_core_dump_with_format_args),
    (xdrproc_t)xdr_remote_domain_core_dump_with_format_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainFSFreeze => 335 */
+   remoteDispatchDomainFSFreezeHelper,
+   sizeof(remote_domain_fsfreeze_args),
+   (xdrproc_t)xdr_remote_domain_fsfreeze_args,
+   sizeof(remote_domain_fsfreeze_ret),
+   (xdrproc_t)xdr_remote_domain_fsfreeze_ret,
+   true,
+   0
+},
+{ /* Method DomainFSThaw => 336 */
+   remoteDispatchDomainFSThawHelper,
+   sizeof(remote_domain_fsthaw_args),
+   (xdrproc_t)xdr_remote_domain_fsthaw_args,
+   sizeof(remote_domain_fsthaw_ret),
+   (xdrproc_t)xdr_remote_domain_fsthaw_ret,
+   true,
+   0
+},
+{ /* Method DomainGetTime => 337 */
+   remoteDispatchDomainGetTimeHelper,
+   sizeof(remote_domain_get_time_args),
+   (xdrproc_t)xdr_remote_domain_get_time_args,
+   sizeof(remote_domain_get_time_ret),
+   (xdrproc_t)xdr_remote_domain_get_time_ret,
+   true,
+   0
+},
+{ /* Method DomainSetTime => 338 */
+   remoteDispatchDomainSetTimeHelper,
+   sizeof(remote_domain_set_time_args),
+   (xdrproc_t)xdr_remote_domain_set_time_args,
    0,
    (xdrproc_t)xdr_void,
    true,

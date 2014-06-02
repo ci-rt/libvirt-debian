@@ -702,6 +702,7 @@ am__objects_5 = conf/libvirt_conf_la-netdev_bandwidth_conf.lo \
 	conf/libvirt_conf_la-netdev_vport_profile_conf.lo \
 	conf/libvirt_conf_la-netdev_vlan_conf.lo
 am__objects_6 = conf/libvirt_conf_la-capabilities.lo \
+	conf/libvirt_conf_la-domain_addr.lo \
 	conf/libvirt_conf_la-domain_conf.lo \
 	conf/libvirt_conf_la-domain_audit.lo \
 	conf/libvirt_conf_la-domain_nwfilter.lo \
@@ -3610,6 +3611,7 @@ NETDEV_CONF_SOURCES = \
 # Domain driver generic impl APIs
 DOMAIN_CONF_SOURCES = \
 		conf/capabilities.c conf/capabilities.h		\
+		conf/domain_addr.c conf/domain_addr.h		\
 		conf/domain_conf.c conf/domain_conf.h		\
 		conf/domain_audit.c conf/domain_audit.h		\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
@@ -5191,6 +5193,8 @@ conf/libvirt_conf_la-netdev_vlan_conf.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-capabilities.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
+conf/libvirt_conf_la-domain_addr.lo: conf/$(am__dirstamp) \
+	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-domain_conf.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-domain_audit.lo: conf/$(am__dirstamp) \
@@ -6218,6 +6222,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-capabilities.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-cpu_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-device_conf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_addr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_audit.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_event.Plo@am__quote@
@@ -7000,6 +7005,13 @@ conf/libvirt_conf_la-capabilities.lo: conf/capabilities.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='conf/capabilities.c' object='conf/libvirt_conf_la-capabilities.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-capabilities.lo `test -f 'conf/capabilities.c' || echo '$(srcdir)/'`conf/capabilities.c
+
+conf/libvirt_conf_la-domain_addr.lo: conf/domain_addr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-domain_addr.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-domain_addr.Tpo -c -o conf/libvirt_conf_la-domain_addr.lo `test -f 'conf/domain_addr.c' || echo '$(srcdir)/'`conf/domain_addr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) conf/$(DEPDIR)/libvirt_conf_la-domain_addr.Tpo conf/$(DEPDIR)/libvirt_conf_la-domain_addr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='conf/domain_addr.c' object='conf/libvirt_conf_la-domain_addr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-domain_addr.lo `test -f 'conf/domain_addr.c' || echo '$(srcdir)/'`conf/domain_addr.c
 
 conf/libvirt_conf_la-domain_conf.lo: conf/domain_conf.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-domain_conf.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-domain_conf.Tpo -c -o conf/libvirt_conf_la-domain_conf.lo `test -f 'conf/domain_conf.c' || echo '$(srcdir)/'`conf/domain_conf.c

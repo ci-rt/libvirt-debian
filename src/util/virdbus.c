@@ -1404,10 +1404,12 @@ int virDBusCreateReply(DBusMessage **reply,
  *
  * Returns 0 on success, or -1 upon error
  */
-int virDBusCall(DBusConnection *conn,
-                DBusMessage *call,
-                DBusMessage **replyout,
-                DBusError *error)
+static int
+virDBusCall(DBusConnection *conn,
+            DBusMessage *call,
+            DBusMessage **replyout,
+            DBusError *error,
+            const char *member)
 {
     DBusMessage *reply = NULL;
     DBusError localerror;
@@ -1422,9 +1424,10 @@ int virDBusCall(DBusConnection *conn,
                                                             error ? error : &localerror))) {
         if (error)
             ret = 0;
-        else
-            virReportDBusServiceError(localerror.message ? localerror.message : "unknown error",
-                                      localerror.name);
+        else {
+            virReportError(VIR_ERR_DBUS_SERVICE, _("%s: %s"), member,
+                localerror.message ? localerror.message : _("unknown error"));
+        }
         goto cleanup;
     }
 
@@ -1500,7 +1503,7 @@ int virDBusCallMethod(DBusConnection *conn,
 
     ret = -1;
 
-    ret = virDBusCall(conn, call, replyout, error);
+    ret = virDBusCall(conn, call, replyout, error, member);
 
  cleanup:
     if (call)
@@ -1688,16 +1691,6 @@ int virDBusCreateReplyV(DBusMessage **reply ATTRIBUTE_UNUSED,
 
 int virDBusCreateReply(DBusMessage **reply ATTRIBUTE_UNUSED,
                        const char *types ATTRIBUTE_UNUSED, ...)
-{
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("DBus support not compiled into this binary"));
-    return -1;
-}
-
-int virDBusCall(DBusConnection *conn ATTRIBUTE_UNUSED,
-                DBusMessage *call ATTRIBUTE_UNUSED,
-                DBusMessage **reply ATTRIBUTE_UNUSED,
-                DBusError *error ATTRIBUTE_UNUSED)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("DBus support not compiled into this binary"));

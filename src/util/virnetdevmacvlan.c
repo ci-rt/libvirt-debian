@@ -434,7 +434,7 @@ struct virNetlinkCallbackData {
     char *linkdev;
     int vf;
     unsigned char vmuuid[VIR_UUID_BUFLEN];
-    enum virNetDevVPortProfileOp vmOp;
+    virNetDevVPortProfileOp vmOp;
     unsigned int linkState;
 };
 
@@ -748,7 +748,7 @@ virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname,
                                              const char *linkdev,
                                              const unsigned char *vmuuid,
                                              virNetDevVPortProfilePtr virtPortProfile,
-                                             enum virNetDevVPortProfileOp vmOp)
+                                             virNetDevVPortProfileOp vmOp)
 {
     virNetlinkCallbackDataPtr calld = NULL;
 
@@ -803,13 +803,13 @@ virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname,
 int virNetDevMacVLanCreateWithVPortProfile(const char *tgifname,
                                            const virMacAddr *macaddress,
                                            const char *linkdev,
-                                           enum virNetDevMacVLanMode mode,
+                                           virNetDevMacVLanMode mode,
                                            bool withTap,
                                            int vnet_hdr,
                                            const unsigned char *vmuuid,
                                            virNetDevVPortProfilePtr virtPortProfile,
                                            char **res_ifname,
-                                           enum virNetDevVPortProfileOp vmOp,
+                                           virNetDevVPortProfileOp vmOp,
                                            char *stateDir,
                                            virNetDevBandwidthPtr bandwidth)
 {
@@ -1022,7 +1022,7 @@ int virNetDevMacVLanRestartWithVPortProfile(const char *cr_ifname,
                                            const char *linkdev,
                                            const unsigned char *vmuuid,
                                            virNetDevVPortProfilePtr virtPortProfile,
-                                           enum virNetDevVPortProfileOp vmOp)
+                                           virNetDevVPortProfileOp vmOp)
 {
     int rc = 0;
 
@@ -1068,13 +1068,13 @@ int virNetDevMacVLanDelete(const char *ifname ATTRIBUTE_UNUSED)
 int virNetDevMacVLanCreateWithVPortProfile(const char *ifname ATTRIBUTE_UNUSED,
                                            const virMacAddr *macaddress ATTRIBUTE_UNUSED,
                                            const char *linkdev ATTRIBUTE_UNUSED,
-                                           enum virNetDevMacVLanMode mode ATTRIBUTE_UNUSED,
+                                           virNetDevMacVLanMode mode ATTRIBUTE_UNUSED,
                                            bool withTap ATTRIBUTE_UNUSED,
                                            int vnet_hdr ATTRIBUTE_UNUSED,
                                            const unsigned char *vmuuid ATTRIBUTE_UNUSED,
                                            virNetDevVPortProfilePtr virtPortProfile ATTRIBUTE_UNUSED,
                                            char **res_ifname ATTRIBUTE_UNUSED,
-                                           enum virNetDevVPortProfileOp vmop ATTRIBUTE_UNUSED,
+                                           virNetDevVPortProfileOp vmop ATTRIBUTE_UNUSED,
                                            char *stateDir ATTRIBUTE_UNUSED,
                                            virNetDevBandwidthPtr bandwidth ATTRIBUTE_UNUSED)
 {
@@ -1100,7 +1100,7 @@ int virNetDevMacVLanRestartWithVPortProfile(const char *cr_ifname ATTRIBUTE_UNUS
                                            const char *linkdev ATTRIBUTE_UNUSED,
                                            const unsigned char *vmuuid ATTRIBUTE_UNUSED,
                                            virNetDevVPortProfilePtr virtPortProfile ATTRIBUTE_UNUSED,
-                                           enum virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED)
+                                           virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Cannot create macvlan devices on this platform"));
@@ -1112,7 +1112,7 @@ int virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname ATTRIBUTE_UN
                                              const char *linkdev ATTRIBUTE_UNUSED,
                                              const unsigned char *vmuuid ATTRIBUTE_UNUSED,
                                              virNetDevVPortProfilePtr virtPortProfile ATTRIBUTE_UNUSED,
-                                             enum virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED)
+                                             virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Cannot create macvlan devices on this platform"));

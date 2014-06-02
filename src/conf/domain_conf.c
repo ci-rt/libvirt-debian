@@ -99,7 +99,7 @@ typedef enum {
    VIR_DOMAIN_XML_INTERNAL_PCI_ORIG_STATES = (1<<18),
    VIR_DOMAIN_XML_INTERNAL_ALLOW_ROM = (1<<19),
    VIR_DOMAIN_XML_INTERNAL_ALLOW_BOOT = (1<<20),
-   VIR_DOMAIN_XML_INTERNAL_BASEDATE = (1 << 21),
+   VIR_DOMAIN_XML_INTERNAL_CLOCK_ADJUST = (1<<21),
 } virDomainXMLInternalFlags;
 
 VIR_ENUM_IMPL(virDomainTaint, VIR_DOMAIN_TAINT_LAST,
@@ -329,7 +329,7 @@ VIR_ENUM_IMPL(virDomainFS, VIR_DOMAIN_FS_TYPE_LAST,
               "ram",
               "bind")
 
-VIR_ENUM_IMPL(virDomainFSDriverType, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
+VIR_ENUM_IMPL(virDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
               "default",
               "path",
               "handle",
@@ -4972,7 +4972,7 @@ virDomainDiskSourceParse(xmlNodePtr node,
 
     memset(&host, 0, sizeof(host));
 
-    switch ((enum virStorageType)src->type) {
+    switch ((virStorageType)src->type) {
     case VIR_STORAGE_TYPE_FILE:
         src->path = virXMLPropString(node, "file");
         break;
@@ -4989,7 +4989,7 @@ virDomainDiskSourceParse(xmlNodePtr node,
             goto cleanup;
         }
 
-        if ((src->protocol = virStorageNetProtocolTypeFromString(protocol)) < 0){
+        if ((src->protocol = virStorageNetProtocolTypeFromString(protocol)) <= 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown protocol type '%s'"), protocol);
             goto cleanup;
@@ -5000,6 +5000,27 @@ virDomainDiskSourceParse(xmlNodePtr node,
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("missing name for disk source"));
             goto cleanup;
+        }
+
+        /* for historical reasons the volume name for gluster volume is stored
+         * as a part of the path. This is hard to work with when dealing with
+         * relative names. Split out the volume into a separate variable */
+        if (src->path && src->protocol == VIR_STORAGE_NET_PROTOCOL_GLUSTER) {
+            char *tmp;
+            if (!(tmp = strchr(src->path, '/')) ||
+                tmp == src->path) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("missing volume name or file name in "
+                                 "gluster source path '%s'"), src->path);
+                goto cleanup;
+            }
+
+            src->volume = src->path;
+
+            if (VIR_STRDUP(src->path, tmp) < 0)
+                goto cleanup;
+
+            tmp[0] = '\0';
         }
 
         child = node->children;
@@ -5110,7 +5131,7 @@ virDomainDiskBackingStoreParse(xmlXPathContextPtr ctxt,
     }
 
     backingStore->type = virStorageTypeFromString(type);
-    if (backingStore->type < 0) {
+    if (backingStore->type <= 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unknown disk backing store type '%s'"), type);
         goto cleanup;
@@ -5123,7 +5144,7 @@ virDomainDiskBackingStoreParse(xmlXPathContextPtr ctxt,
     }
 
     backingStore->format = virStorageFileFormatTypeFromString(format);
-    if (backingStore->format < 0) {
+    if (backingStore->format <= 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unknown disk backing store format '%s'"), format);
         goto cleanup;
@@ -5375,7 +5396,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                             goto error;
                         }
                         auth_secret_usage =
-                            virSecretUsageTypeTypeFromString(usageType);
+                            virSecretUsageTypeFromString(usageType);
                         if (auth_secret_usage < 0) {
                             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                            _("invalid secret type %s"),
@@ -5537,7 +5558,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     if (auth_secret_usage != -1 && auth_secret_usage != expected_secret_usage) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("invalid secret type '%s'"),
-                       virSecretUsageTypeTypeToString(auth_secret_usage));
+                       virSecretUsageTypeToString(auth_secret_usage));
         goto error;
     }
 
@@ -6313,7 +6334,7 @@ virDomainFSDefParseXML(xmlNodePtr node,
     }
 
     if (fsdriver) {
-        if ((def->fsdriver = virDomainFSDriverTypeTypeFromString(fsdriver)) <= 0) {
+        if ((def->fsdriver = virDomainFSDriverTypeFromString(fsdriver)) <= 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown fs driver type '%s'"), fsdriver);
             goto error;
@@ -12003,6 +12024,9 @@ virDomainDefParseXML(xmlDocPtr xml,
         if (virXPathLongLong("number(./clock/@adjustment)", ctxt,
                              &def->clock.data.variable.adjustment) < 0)
             def->clock.data.variable.adjustment = 0;
+        if (virXPathLongLong("number(./clock/@adjustment0)", ctxt,
+                             &def->clock.data.variable.adjustment0) < 0)
+            def->clock.data.variable.adjustment0 = 0;
         tmp = virXPathString("string(./clock/@basis)", ctxt);
         if (tmp) {
             if ((def->clock.data.variable.basis = virDomainClockBasisTypeFromString(tmp)) < 0) {
@@ -12024,16 +12048,6 @@ virDomainDefParseXML(xmlDocPtr xml,
             goto error;
         }
         break;
-    }
-
-    if (def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_VARIABLE &&
-        flags & VIR_DOMAIN_XML_INTERNAL_BASEDATE) {
-        if (virXPathULongLong("number(./clock/@basedate)", ctxt,
-                              &def->clock.data.variable.basedate) < 0) {
-            virReportError(VIR_ERR_XML_ERROR, "%s",
-                           _("invalid basedate"));
-            goto error;
-        }
     }
 
     if ((n = virXPathNodeSet("./clock/timer", ctxt, &nodes)) < 0)
@@ -14809,16 +14823,16 @@ virDomainDiskBlockIoDefFormat(virBufferPtr buf,
 }
 
 
-/* virDomainDiskSourceDefFormatSeclabel:
+/* virDomainSourceDefFormatSeclabel:
  *
  * This function automaticaly closes the <source> element and formats any
  * possible seclabels.
  */
 static void
-virDomainDiskSourceDefFormatSeclabel(virBufferPtr buf,
-                                     size_t nseclabels,
-                                     virSecurityDeviceLabelDefPtr *seclabels,
-                                     unsigned int flags)
+virDomainSourceDefFormatSeclabel(virBufferPtr buf,
+                                 size_t nseclabels,
+                                 virSecurityDeviceLabelDefPtr *seclabels,
+                                 unsigned int flags)
 {
     size_t n;
 
@@ -14841,29 +14855,30 @@ virDomainDiskSourceFormat(virBufferPtr buf,
                           unsigned int flags)
 {
     size_t n;
+    char *path = NULL;
     const char *startupPolicy = NULL;
 
     if (policy)
         startupPolicy = virDomainStartupPolicyTypeToString(policy);
 
     if (src->path || src->nhosts > 0 || src->srcpool || startupPolicy) {
-        switch ((enum virStorageType)src->type) {
+        switch ((virStorageType)src->type) {
         case VIR_STORAGE_TYPE_FILE:
             virBufferAddLit(buf, "<source");
             virBufferEscapeString(buf, " file='%s'", src->path);
             virBufferEscapeString(buf, " startupPolicy='%s'", startupPolicy);
 
-            virDomainDiskSourceDefFormatSeclabel(buf, src->nseclabels,
-                                                 src->seclabels, flags);
-           break;
+            virDomainSourceDefFormatSeclabel(buf, src->nseclabels,
+                                             src->seclabels, flags);
+            break;
 
         case VIR_STORAGE_TYPE_BLOCK:
             virBufferAddLit(buf, "<source");
             virBufferEscapeString(buf, " dev='%s'", src->path);
             virBufferEscapeString(buf, " startupPolicy='%s'", startupPolicy);
 
-            virDomainDiskSourceDefFormatSeclabel(buf, src->nseclabels,
-                                                 src->seclabels, flags);
+            virDomainSourceDefFormatSeclabel(buf, src->nseclabels,
+                                             src->seclabels, flags);
             break;
 
         case VIR_STORAGE_TYPE_DIR:
@@ -14876,7 +14891,16 @@ virDomainDiskSourceFormat(virBufferPtr buf,
         case VIR_STORAGE_TYPE_NETWORK:
             virBufferAsprintf(buf, "<source protocol='%s'",
                               virStorageNetProtocolTypeToString(src->protocol));
-            virBufferEscapeString(buf, " name='%s'", src->path);
+
+
+            if (src->volume) {
+                if (virAsprintf(&path, "%s%s", src->volume, src->path) < 0)
+                    return -1;
+            }
+
+            virBufferEscapeString(buf, " name='%s'", path ? path : src->path);
+
+            VIR_FREE(path);
 
             if (src->nhosts == 0) {
                 virBufferAddLit(buf, "/>\n");
@@ -14917,8 +14941,8 @@ virDomainDiskSourceFormat(virBufferPtr buf,
             }
             virBufferEscapeString(buf, " startupPolicy='%s'", startupPolicy);
 
-            virDomainDiskSourceDefFormatSeclabel(buf, src->nseclabels,
-                                                 src->seclabels, flags);
+            virDomainSourceDefFormatSeclabel(buf, src->nseclabels,
+                                             src->seclabels, flags);
             break;
 
         case VIR_STORAGE_TYPE_NONE:
@@ -15327,7 +15351,7 @@ virDomainFSDefFormat(virBufferPtr buf,
 {
     const char *type = virDomainFSTypeToString(def->type);
     const char *accessmode = virDomainFSAccessModeTypeToString(def->accessmode);
-    const char *fsdriver = virDomainFSDriverTypeTypeToString(def->fsdriver);
+    const char *fsdriver = virDomainFSDriverTypeToString(def->fsdriver);
     const char *wrpolicy = virDomainFSWrpolicyTypeToString(def->wrpolicy);
 
     if (!type) {
@@ -15862,11 +15886,19 @@ virDomainNetDefFormat(virBufferPtr buf,
  * output at " type='type'>". */
 static int
 virDomainChrSourceDefFormat(virBufferPtr buf,
+                            virDomainChrDefPtr chr_def,
                             virDomainChrSourceDefPtr def,
                             bool tty_compat,
                             unsigned int flags)
 {
     const char *type = virDomainChrTypeToString(def->type);
+    size_t nseclabels = 0;
+    virSecurityDeviceLabelDefPtr *seclabels = NULL;
+
+    if (chr_def) {
+        nseclabels = chr_def->nseclabels;
+        seclabels = chr_def->seclabels;
+    }
 
     if (!type) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -15898,8 +15930,9 @@ virDomainChrSourceDefFormat(virBufferPtr buf,
         if (def->type != VIR_DOMAIN_CHR_TYPE_PTY ||
             (def->data.file.path &&
              !(flags & VIR_DOMAIN_XML_INACTIVE))) {
-            virBufferEscapeString(buf, "<source path='%s'/>\n",
+            virBufferEscapeString(buf, "<source path='%s'",
                                   def->data.file.path);
+            virDomainSourceDefFormatSeclabel(buf, nseclabels, seclabels, flags);
         }
         break;
 
@@ -15957,7 +15990,7 @@ virDomainChrSourceDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf, "<source mode='%s'",
                           def->data.nix.listen ? "bind" : "connect");
         virBufferEscapeString(buf, " path='%s'", def->data.nix.path);
-        virBufferAddLit(buf, "/>\n");
+        virDomainSourceDefFormatSeclabel(buf, nseclabels, seclabels, flags);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
@@ -15979,7 +16012,6 @@ virDomainChrDefFormat(virBufferPtr buf,
     const char *targetType = virDomainChrTargetTypeToString(def->deviceType,
                                                             def->targetType);
     bool tty_compat;
-    size_t n;
 
     int ret = 0;
 
@@ -15997,7 +16029,7 @@ virDomainChrDefFormat(virBufferPtr buf,
                   def->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
                   !(flags & VIR_DOMAIN_XML_INACTIVE) &&
                   def->source.data.file.path);
-    if (virDomainChrSourceDefFormat(buf, &def->source, tty_compat, flags) < 0)
+    if (virDomainChrSourceDefFormat(buf, def, &def->source, tty_compat, flags) < 0)
         return -1;
 
     /* Format <target> block */
@@ -16069,14 +16101,6 @@ virDomainChrDefFormat(virBufferPtr buf,
             return -1;
     }
 
-    /* Security label overrides, if any. */
-    if (def->seclabels && def->nseclabels > 0) {
-        virBufferAdjustIndent(buf, 2);
-        for (n = 0; n < def->nseclabels; n++)
-            virSecurityDeviceLabelDefFormat(buf, def->seclabels[n], flags);
-        virBufferAdjustIndent(buf, -2);
-    }
-
     virBufferAdjustIndent(buf, -2);
     virBufferAsprintf(buf, "</%s>\n", elementName);
 
@@ -16119,7 +16143,7 @@ virDomainSmartcardDefFormat(virBufferPtr buf,
         break;
 
     case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
-        if (virDomainChrSourceDefFormat(buf, &def->data.passthru, false,
+        if (virDomainChrSourceDefFormat(buf, NULL, &def->data.passthru, false,
                                         flags) < 0)
             return -1;
         break;
@@ -16384,7 +16408,7 @@ virDomainRNGDefFormat(virBufferPtr buf,
 
     case VIR_DOMAIN_RNG_BACKEND_EGD:
         virBufferAdjustIndent(buf, 2);
-        if (virDomainChrSourceDefFormat(buf, def->source.chardev,
+        if (virDomainChrSourceDefFormat(buf, NULL, def->source.chardev,
                                         false, flags) < 0)
             return -1;
         virBufferAdjustIndent(buf, -2);
@@ -16976,7 +17000,7 @@ virDomainRedirdevDefFormat(virBufferPtr buf,
 
     virBufferAsprintf(buf, "<redirdev bus='%s'", bus);
     virBufferAdjustIndent(buf, 2);
-    if (virDomainChrSourceDefFormat(buf, &def->source.chr, false, flags) < 0)
+    if (virDomainChrSourceDefFormat(buf, NULL, &def->source.chr, false, flags) < 0)
         return -1;
     if (virDomainDeviceInfoFormat(buf, &def->info,
                                   flags | VIR_DOMAIN_XML_INTERNAL_ALLOW_BOOT) < 0)
@@ -17098,7 +17122,7 @@ virDomainResourceDefFormat(virBufferPtr buf,
 verify(((VIR_DOMAIN_XML_INTERNAL_STATUS |
          VIR_DOMAIN_XML_INTERNAL_ACTUAL_NET |
          VIR_DOMAIN_XML_INTERNAL_PCI_ORIG_STATES |
-         VIR_DOMAIN_XML_INTERNAL_BASEDATE)
+         VIR_DOMAIN_XML_INTERNAL_CLOCK_ADJUST)
         & DUMPXML_FLAGS) == 0);
 
 /* This internal version can accept VIR_DOMAIN_XML_INTERNAL_*,
@@ -17121,7 +17145,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                   VIR_DOMAIN_XML_INTERNAL_STATUS |
                   VIR_DOMAIN_XML_INTERNAL_ACTUAL_NET |
                   VIR_DOMAIN_XML_INTERNAL_PCI_ORIG_STATES |
-                  VIR_DOMAIN_XML_INTERNAL_BASEDATE,
+                  VIR_DOMAIN_XML_INTERNAL_CLOCK_ADJUST,
                   -1);
 
     if (!(type = virDomainVirtTypeToString(def->virtType))) {
@@ -17655,10 +17679,11 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAsprintf(buf, " adjustment='%lld' basis='%s'",
                           def->clock.data.variable.adjustment,
                           virDomainClockBasisTypeToString(def->clock.data.variable.basis));
-
-        if (flags & VIR_DOMAIN_XML_INTERNAL_BASEDATE)
-            virBufferAsprintf(buf, " basedate='%llu'",
-                              def->clock.data.variable.basedate);
+        if (flags & VIR_DOMAIN_XML_INTERNAL_CLOCK_ADJUST) {
+            if (def->clock.data.variable.adjustment0)
+                virBufferAsprintf(buf, " adjustment0='%lld'",
+                                  def->clock.data.variable.adjustment0);
+        }
         break;
     case VIR_DOMAIN_CLOCK_OFFSET_TIMEZONE:
         virBufferEscapeString(buf, " timezone='%s'", def->clock.data.timezone);
@@ -18090,7 +18115,7 @@ virDomainSaveStatus(virDomainXMLOptionPtr xmlopt,
                           VIR_DOMAIN_XML_INTERNAL_STATUS |
                           VIR_DOMAIN_XML_INTERNAL_ACTUAL_NET |
                           VIR_DOMAIN_XML_INTERNAL_PCI_ORIG_STATES |
-                          VIR_DOMAIN_XML_INTERNAL_BASEDATE);
+                          VIR_DOMAIN_XML_INTERNAL_CLOCK_ADJUST);
 
     int ret = -1;
     char *xml;
@@ -18179,7 +18204,7 @@ virDomainObjListLoadStatus(virDomainObjListPtr doms,
                                       VIR_DOMAIN_XML_INTERNAL_STATUS |
                                       VIR_DOMAIN_XML_INTERNAL_ACTUAL_NET |
                                       VIR_DOMAIN_XML_INTERNAL_PCI_ORIG_STATES |
-                                      VIR_DOMAIN_XML_INTERNAL_BASEDATE)))
+                                      VIR_DOMAIN_XML_INTERNAL_CLOCK_ADJUST)))
         goto error;
 
     virUUIDFormat(obj->def->uuid, uuidstr);
@@ -18655,34 +18680,37 @@ virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
     int ret = -1;
     size_t depth = 0;
     virStorageSourcePtr tmp;
-    const char *path = virDomainDiskGetSource(disk);
-    int type = virDomainDiskGetType(disk);
+    char *brokenRaw = NULL;
 
-    if (!path || type == VIR_STORAGE_TYPE_NETWORK ||
-        (type == VIR_STORAGE_TYPE_VOLUME &&
-         disk->src.srcpool &&
-         disk->src.srcpool->mode == VIR_STORAGE_SOURCE_POOL_MODE_DIRECT))
-        return 0;
+    if (!ignoreOpenFailure) {
+        if (virStorageFileChainGetBroken(&disk->src, &brokenRaw) < 0)
+            goto cleanup;
 
-    if (iter(disk, path, 0, opaque) < 0)
-        goto cleanup;
-
-    tmp = disk->src.backingStore;
-    while (tmp && virStorageIsFile(tmp->path)) {
-        if (!ignoreOpenFailure && tmp->backingStoreRaw && !tmp->backingStore) {
+        if (brokenRaw) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unable to visit backing chain file %s"),
-                           tmp->backingStoreRaw);
+                           brokenRaw);
             goto cleanup;
         }
-        if (iter(disk, tmp->path, ++depth, opaque) < 0)
-            goto cleanup;
-        tmp = tmp->backingStore;
+    }
+
+    for (tmp = &disk->src; tmp; tmp = tmp->backingStore) {
+        int actualType = virStorageSourceGetActualType(tmp);
+        /* execute the callback only for local storage */
+        if (actualType != VIR_STORAGE_TYPE_NETWORK &&
+            actualType != VIR_STORAGE_TYPE_VOLUME &&
+            tmp->path) {
+            if (iter(disk, tmp->path, depth, opaque) < 0)
+                goto cleanup;
+        }
+
+        depth++;
     }
 
     ret = 0;
 
  cleanup:
+    VIR_FREE(brokenRaw);
     return ret;
 }
 

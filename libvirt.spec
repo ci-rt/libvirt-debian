@@ -262,16 +262,11 @@
 %endif
 
 # Enable sanlock library for lock management with QEMU
-# Sanlock is available only on i686 x86_64 for RHEL
+# Sanlock is available only on x86_64 for RHEL
 %if 0%{?fedora} >= 16
     %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
-%if 0%{?rhel} == 6
-    %ifarch %{ix86} x86_64
-        %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
-    %endif
-%endif
-%if 0%{?rhel} >= 7
+%if 0%{?rhel} >= 6
     %ifarch x86_64
         %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
     %endif
@@ -389,7 +384,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.4
+Version: 1.2.5
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -1883,7 +1878,9 @@ exit 0
 %{_datadir}/augeas/lenses/virtlockd.aug
 %{_datadir}/augeas/lenses/tests/test_virtlockd.aug
 %{_datadir}/augeas/lenses/libvirt_lockd.aug
+    %if %{with_qemu}
 %{_datadir}/augeas/lenses/tests/test_libvirt_lockd.aug
+    %endif
 
     %if %{with_polkit}
         %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6

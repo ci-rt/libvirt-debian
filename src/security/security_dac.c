@@ -53,6 +53,14 @@ struct _virSecurityDACData {
     char *baselabel;
 };
 
+typedef struct _virSecurityDACCallbackData virSecurityDACCallbackData;
+typedef virSecurityDACCallbackData *virSecurityDACCallbackDataPtr;
+
+struct _virSecurityDACCallbackData {
+    virSecurityManagerPtr manager;
+    virSecurityLabelDefPtr secdef;
+};
+
 /* returns -1 on error, 0 on success */
 int
 virSecurityDACSetUserAndGroup(virSecurityManagerPtr mgr,
@@ -81,65 +89,44 @@ virSecurityDACSetDynamicOwnership(virSecurityManagerPtr mgr,
 
 /* returns 1 if label isn't found, 0 on success, -1 on error */
 static int
-virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
+ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+virSecurityDACParseIds(virSecurityLabelDefPtr seclabel,
+                       uid_t *uidPtr, gid_t *gidPtr)
 {
-    uid_t uid;
-    gid_t gid;
-    virSecurityLabelDefPtr seclabel;
-
-    if (def == NULL)
+    if (!seclabel || !seclabel->label)
         return 1;
 
-    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
-    if (seclabel == NULL || seclabel->label == NULL) {
-        VIR_DEBUG("DAC seclabel for domain '%s' wasn't found", def->name);
-        return 1;
-    }
-
-    if (virParseOwnershipIds(seclabel->label, &uid, &gid) < 0)
+    if (virParseOwnershipIds(seclabel->label, uidPtr, gidPtr) < 0)
         return -1;
-
-    if (uidPtr)
-        *uidPtr = uid;
-    if (gidPtr)
-        *gidPtr = gid;
 
     return 0;
 }
 
 static int
-virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
+ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
+virSecurityDACGetIds(virSecurityLabelDefPtr seclabel,
+                     virSecurityDACDataPtr priv,
                      uid_t *uidPtr, gid_t *gidPtr,
                      gid_t **groups, int *ngroups)
 {
     int ret;
-
-    if (!def && !priv) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Failed to determine default DAC seclabel "
-                         "for an unknown object"));
-        return -1;
-    }
 
     if (groups)
         *groups = priv ? priv->groups : NULL;
     if (ngroups)
         *ngroups = priv ? priv->ngroups : 0;
 
-    if ((ret = virSecurityDACParseIds(def, uidPtr, gidPtr)) <= 0)
+    if ((ret = virSecurityDACParseIds(seclabel, uidPtr, gidPtr)) <= 0)
         return ret;
 
     if (!priv) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("DAC seclabel couldn't be determined "
-                         "for domain '%s'"), def->name);
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("DAC seclabel couldn't be determined"));
         return -1;
     }
 
-    if (uidPtr)
-        *uidPtr = priv->user;
-    if (gidPtr)
-        *gidPtr = priv->group;
+    *uidPtr = priv->user;
+    *gidPtr = priv->group;
 
     return 0;
 }
@@ -147,60 +134,38 @@ virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
 
 /* returns 1 if label isn't found, 0 on success, -1 on error */
 static int
-virSecurityDACParseImageIds(virDomainDefPtr def,
+ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+virSecurityDACParseImageIds(virSecurityLabelDefPtr seclabel,
                             uid_t *uidPtr, gid_t *gidPtr)
 {
-    uid_t uid;
-    gid_t gid;
-    virSecurityLabelDefPtr seclabel;
-
-    if (def == NULL)
+    if (!seclabel || !seclabel->imagelabel)
         return 1;
 
-    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
-    if (seclabel == NULL || seclabel->imagelabel == NULL) {
-        VIR_DEBUG("DAC imagelabel for domain '%s' wasn't found", def->name);
-        return 1;
-    }
-
-    if (virParseOwnershipIds(seclabel->imagelabel, &uid, &gid) < 0)
+    if (virParseOwnershipIds(seclabel->imagelabel, uidPtr, gidPtr) < 0)
         return -1;
-
-    if (uidPtr)
-        *uidPtr = uid;
-    if (gidPtr)
-        *gidPtr = gid;
 
     return 0;
 }
 
 static int
-virSecurityDACGetImageIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
+ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
+virSecurityDACGetImageIds(virSecurityLabelDefPtr seclabel,
+                          virSecurityDACDataPtr priv,
                           uid_t *uidPtr, gid_t *gidPtr)
 {
     int ret;
 
-    if (!def && !priv) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Failed to determine default DAC imagelabel "
-                         "for an unknown object"));
-        return -1;
-    }
-
-    if ((ret = virSecurityDACParseImageIds(def, uidPtr, gidPtr)) <= 0)
+    if ((ret = virSecurityDACParseImageIds(seclabel, uidPtr, gidPtr)) <= 0)
         return ret;
 
     if (!priv) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("DAC imagelabel couldn't be determined "
-                         "for domain '%s'"), def->name);
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("DAC imagelabel couldn't be determined"));
         return -1;
     }
 
-    if (uidPtr)
-        *uidPtr = priv->user;
-    if (gidPtr)
-        *gidPtr = priv->group;
+    *uidPtr = priv->user;
+    *gidPtr = priv->group;
 
     return 0;
 }
@@ -324,20 +289,32 @@ virSecurityDACRestoreSecurityFileLabel(const char *path)
 
 
 static int
-virSecurityDACSetSecurityFileLabel(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
+virSecurityDACSetSecurityFileLabel(virDomainDiskDefPtr disk,
                                    const char *path,
                                    size_t depth ATTRIBUTE_UNUSED,
                                    void *opaque)
 {
-    void **params = opaque;
-    virSecurityManagerPtr mgr = params[0];
-    virDomainDefPtr def = params[1];
+    virSecurityDACCallbackDataPtr cbdata = opaque;
+    virSecurityManagerPtr mgr = cbdata->manager;
+    virSecurityLabelDefPtr secdef = cbdata->secdef;
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityDeviceLabelDefPtr disk_seclabel;
     uid_t user;
     gid_t group;
 
-    if (virSecurityDACGetImageIds(def, priv, &user, &group))
-        return -1;
+    disk_seclabel = virDomainDiskDefGetSecurityLabelDef(disk,
+                                                        SECURITY_DAC_NAME);
+
+    if (disk_seclabel && disk_seclabel->norelabel)
+        return 0;
+
+    if (disk_seclabel && disk_seclabel->label) {
+        if (virParseOwnershipIds(disk_seclabel->label, &user, &group) < 0)
+            return -1;
+    } else {
+        if (virSecurityDACGetImageIds(secdef, priv, &user, &group))
+            return -1;
+    }
 
     return virSecurityDACSetOwnership(path, user, group);
 }
@@ -349,8 +326,9 @@ virSecurityDACSetSecurityImageLabel(virSecurityManagerPtr mgr,
                                     virDomainDiskDefPtr disk)
 
 {
-    void *params[2];
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityDACCallbackData cbdata;
+    virSecurityLabelDefPtr secdef;
 
     if (!priv->dynamicOwnership)
         return 0;
@@ -358,28 +336,46 @@ virSecurityDACSetSecurityImageLabel(virSecurityManagerPtr mgr,
     if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
         return 0;
 
-    params[0] = mgr;
-    params[1] = def;
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (secdef && secdef->norelabel)
+        return 0;
+
+    cbdata.manager = mgr;
+    cbdata.secdef = secdef;
     return virDomainDiskDefForeachPath(disk,
                                        false,
                                        virSecurityDACSetSecurityFileLabel,
-                                       params);
+                                       &cbdata);
 }
 
 
 static int
 virSecurityDACRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
-                                           virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                           virDomainDefPtr def,
                                            virDomainDiskDefPtr disk,
                                            int migrated)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr secdef;
+    virSecurityDeviceLabelDefPtr disk_seclabel;
     const char *src = virDomainDiskGetSource(disk);
 
     if (!priv->dynamicOwnership)
         return 0;
 
     if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
+        return 0;
+
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (secdef && secdef->norelabel)
+        return 0;
+
+    disk_seclabel = virDomainDiskDefGetSecurityLabelDef(disk,
+                                                        SECURITY_DAC_NAME);
+
+    if (disk_seclabel && disk_seclabel->norelabel)
         return 0;
 
     /* Don't restore labels on readoly/shared disks, because
@@ -429,14 +425,14 @@ static int
 virSecurityDACSetSecurityHostdevLabelHelper(const char *file,
                                             void *opaque)
 {
-    void **params = opaque;
-    virSecurityManagerPtr mgr = params[0];
-    virDomainDefPtr def = params[1];
+    virSecurityDACCallbackDataPtr cbdata = opaque;
+    virSecurityManagerPtr mgr = cbdata->manager;
+    virSecurityLabelDefPtr secdef = cbdata->secdef;
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     uid_t user;
     gid_t group;
 
-    if (virSecurityDACGetIds(def, priv, &user, &group, NULL, NULL))
+    if (virSecurityDACGetIds(secdef, priv, &user, &group, NULL, NULL))
         return -1;
 
     return virSecurityDACSetOwnership(file, user, group);
@@ -476,8 +472,8 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
                                       virDomainHostdevDefPtr dev,
                                       const char *vroot)
 {
-    void *params[] = {mgr, def};
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityDACCallbackData cbdata;
     int ret = -1;
 
     if (!priv->dynamicOwnership)
@@ -486,7 +482,13 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return 0;
 
-    switch (dev->source.subsys.type) {
+    cbdata.manager = mgr;
+    cbdata.secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (cbdata.secdef && cbdata.secdef->norelabel)
+        return 0;
+
+    switch ((enum virDomainHostdevSubsysType) dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         virUSBDevicePtr usb;
 
@@ -499,8 +501,9 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
         if (!usb)
             goto done;
 
-        ret = virUSBDeviceFileIterate(usb, virSecurityDACSetSecurityUSBLabel,
-                                      params);
+        ret = virUSBDeviceFileIterate(usb,
+                                      virSecurityDACSetSecurityUSBLabel,
+                                      &cbdata);
         virUSBDeviceFree(usb);
         break;
     }
@@ -523,11 +526,12 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
                 virPCIDeviceFree(pci);
                 goto done;
             }
-            ret = virSecurityDACSetSecurityPCILabel(pci, vfioGroupDev, params);
+            ret = virSecurityDACSetSecurityPCILabel(pci, vfioGroupDev, &cbdata);
             VIR_FREE(vfioGroupDev);
         } else {
-            ret = virPCIDeviceFileIterate(pci, virSecurityDACSetSecurityPCILabel,
-                                          params);
+            ret = virPCIDeviceFileIterate(pci,
+                                          virSecurityDACSetSecurityPCILabel,
+                                          &cbdata);
         }
 
         virPCIDeviceFree(pci);
@@ -547,14 +551,15 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
         if (!scsi)
             goto done;
 
-        ret = virSCSIDeviceFileIterate(scsi, virSecurityDACSetSecuritySCSILabel,
-                                       params);
+        ret = virSCSIDeviceFileIterate(scsi,
+                                       virSecurityDACSetSecuritySCSILabel,
+                                       &cbdata);
         virSCSIDeviceFree(scsi);
 
         break;
     }
 
-    default:
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST:
         ret = 0;
         break;
     }
@@ -593,21 +598,24 @@ virSecurityDACRestoreSecuritySCSILabel(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
 
 static int
 virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
-                                          virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                          virDomainDefPtr def,
                                           virDomainHostdevDefPtr dev,
                                           const char *vroot)
 
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr secdef;
     int ret = -1;
 
-    if (!priv->dynamicOwnership)
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (!priv->dynamicOwnership || (secdef && secdef->norelabel))
         return 0;
 
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return 0;
 
-    switch (dev->source.subsys.type) {
+    switch ((enum virDomainHostdevSubsysType) dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         virUSBDevicePtr usb;
 
@@ -672,7 +680,7 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
         break;
     }
 
-    default:
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST:
         ret = 0;
         break;
     }
@@ -685,41 +693,69 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
                               virDomainDefPtr def,
-                              virDomainChrSourceDefPtr dev)
+                              virDomainChrDefPtr dev,
+                              virDomainChrSourceDefPtr dev_source)
 
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr seclabel;
+    virSecurityDeviceLabelDefPtr chr_seclabel = NULL;
     char *in = NULL, *out = NULL;
     int ret = -1;
     uid_t user;
     gid_t group;
 
-    if (virSecurityDACGetIds(def, priv, &user, &group, NULL, NULL))
-        return -1;
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
 
-    switch (dev->type) {
+    if (dev)
+        chr_seclabel = virDomainChrDefGetSecurityLabelDef(dev,
+                                                          SECURITY_DAC_NAME);
+
+    if (chr_seclabel && chr_seclabel->norelabel)
+        return 0;
+
+    if (chr_seclabel && chr_seclabel->label) {
+        if (virParseOwnershipIds(chr_seclabel->label, &user, &group) < 0)
+            return -1;
+    } else {
+        if (virSecurityDACGetIds(seclabel, priv, &user, &group, NULL, NULL) < 0)
+            return -1;
+    }
+
+    switch ((enum virDomainChrType) dev_source->type) {
     case VIR_DOMAIN_CHR_TYPE_DEV:
     case VIR_DOMAIN_CHR_TYPE_FILE:
-        ret = virSecurityDACSetOwnership(dev->data.file.path, user, group);
+        ret = virSecurityDACSetOwnership(dev_source->data.file.path,
+                                         user, group);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if ((virAsprintf(&in, "%s.in", dev->data.file.path) < 0) ||
-            (virAsprintf(&out, "%s.out", dev->data.file.path) < 0))
+        if ((virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0) ||
+            (virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0))
             goto done;
         if (virFileExists(in) && virFileExists(out)) {
             if ((virSecurityDACSetOwnership(in, user, group) < 0) ||
                 (virSecurityDACSetOwnership(out, user, group) < 0)) {
                 goto done;
             }
-        } else if (virSecurityDACSetOwnership(dev->data.file.path,
+        } else if (virSecurityDACSetOwnership(dev_source->data.file.path,
                                               user, group) < 0) {
             goto done;
         }
         ret = 0;
         break;
 
-    default:
+    case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
+    case VIR_DOMAIN_CHR_TYPE_NULL:
+    case VIR_DOMAIN_CHR_TYPE_VC:
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+    case VIR_DOMAIN_CHR_TYPE_STDIO:
+    case VIR_DOMAIN_CHR_TYPE_UDP:
+    case VIR_DOMAIN_CHR_TYPE_TCP:
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+    case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
+    case VIR_DOMAIN_CHR_TYPE_NMDM:
+    case VIR_DOMAIN_CHR_TYPE_LAST:
         ret = 0;
         break;
     }
@@ -732,33 +768,53 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
 
 static int
 virSecurityDACRestoreChardevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                                  virDomainChrSourceDefPtr dev)
+                                  virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                  virDomainChrDefPtr dev,
+                                  virDomainChrSourceDefPtr dev_source)
 {
+    virSecurityDeviceLabelDefPtr chr_seclabel = NULL;
     char *in = NULL, *out = NULL;
     int ret = -1;
 
-    switch (dev->type) {
+    if (dev)
+        chr_seclabel = virDomainChrDefGetSecurityLabelDef(dev,
+                                                          SECURITY_DAC_NAME);
+
+    if (chr_seclabel && chr_seclabel->norelabel)
+        return 0;
+
+    switch ((enum virDomainChrType) dev_source->type) {
     case VIR_DOMAIN_CHR_TYPE_DEV:
     case VIR_DOMAIN_CHR_TYPE_FILE:
-        ret = virSecurityDACRestoreSecurityFileLabel(dev->data.file.path);
+        ret = virSecurityDACRestoreSecurityFileLabel(dev_source->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if ((virAsprintf(&out, "%s.out", dev->data.file.path) < 0) ||
-            (virAsprintf(&in, "%s.in", dev->data.file.path) < 0))
+        if ((virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0) ||
+            (virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0))
             goto done;
         if (virFileExists(in) && virFileExists(out)) {
             if ((virSecurityDACRestoreSecurityFileLabel(out) < 0) ||
                 (virSecurityDACRestoreSecurityFileLabel(in) < 0)) {
-            goto done;
+                goto done;
             }
-        } else if (virSecurityDACRestoreSecurityFileLabel(dev->data.file.path) < 0) {
+        } else if (virSecurityDACRestoreSecurityFileLabel(dev_source->data.file.path) < 0) {
             goto done;
         }
         ret = 0;
         break;
 
-    default:
+    case VIR_DOMAIN_CHR_TYPE_NULL:
+    case VIR_DOMAIN_CHR_TYPE_VC:
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+    case VIR_DOMAIN_CHR_TYPE_STDIO:
+    case VIR_DOMAIN_CHR_TYPE_UDP:
+    case VIR_DOMAIN_CHR_TYPE_TCP:
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+    case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
+    case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
+    case VIR_DOMAIN_CHR_TYPE_NMDM:
+    case VIR_DOMAIN_CHR_TYPE_LAST:
         ret = 0;
         break;
     }
@@ -771,13 +827,13 @@ virSecurityDACRestoreChardevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 
 
 static int
-virSecurityDACRestoreChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
+virSecurityDACRestoreChardevCallback(virDomainDefPtr def,
                                      virDomainChrDefPtr dev,
                                      void *opaque)
 {
     virSecurityManagerPtr mgr = opaque;
 
-    return virSecurityDACRestoreChardevLabel(mgr, &dev->source);
+    return virSecurityDACRestoreChardevLabel(mgr, def, dev, &dev->source);
 }
 
 
@@ -790,7 +846,7 @@ virSecurityDACSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
 
     switch (tpm->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
-        ret = virSecurityDACSetChardevLabel(mgr, def,
+        ret = virSecurityDACSetChardevLabel(mgr, def, NULL,
                                             &tpm->data.passthrough.source);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
@@ -803,13 +859,14 @@ virSecurityDACSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
 
 static int
 virSecurityDACRestoreSecurityTPMFileLabel(virSecurityManagerPtr mgr,
+                                          virDomainDefPtr def,
                                           virDomainTPMDefPtr tpm)
 {
     int ret = 0;
 
     switch (tpm->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
-        ret = virSecurityDACRestoreChardevLabel(mgr,
+        ret = virSecurityDACRestoreChardevLabel(mgr, def, NULL,
                                           &tpm->data.passthrough.source);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
@@ -826,12 +883,14 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                       int migrated)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr secdef;
     size_t i;
     int rc = 0;
 
-    if (!priv->dynamicOwnership)
-        return 0;
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
 
+    if (!priv->dynamicOwnership || (secdef && secdef->norelabel))
+        return 0;
 
     VIR_DEBUG("Restoring security label on %s migrated=%d",
               def->name, migrated);
@@ -859,6 +918,7 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
 
     if (def->tpm) {
         if (virSecurityDACRestoreSecurityTPMFileLabel(mgr,
+                                                      def,
                                                       def->tpm) < 0)
             rc = -1;
     }
@@ -880,13 +940,13 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
 
 
 static int
-virSecurityDACSetChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
+virSecurityDACSetChardevCallback(virDomainDefPtr def,
                                  virDomainChrDefPtr dev,
                                  void *opaque)
 {
     virSecurityManagerPtr mgr = opaque;
 
-    return virSecurityDACSetChardevLabel(mgr, def, &dev->source);
+    return virSecurityDACSetChardevLabel(mgr, def, dev, &dev->source);
 }
 
 
@@ -896,11 +956,14 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                   const char *stdin_path ATTRIBUTE_UNUSED)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr secdef;
     size_t i;
     uid_t user;
     gid_t group;
 
-    if (!priv->dynamicOwnership)
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (!priv->dynamicOwnership || (secdef && secdef->norelabel))
         return 0;
 
     for (i = 0; i < def->ndisks; i++) {
@@ -933,7 +996,7 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
             return -1;
     }
 
-    if (virSecurityDACGetImageIds(def, priv, &user, &group))
+    if (virSecurityDACGetImageIds(secdef, priv, &user, &group))
         return -1;
 
     if (def->os.kernel &&
@@ -957,11 +1020,14 @@ virSecurityDACSetSavedStateLabel(virSecurityManagerPtr mgr,
                                  virDomainDefPtr def,
                                  const char *savefile)
 {
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr secdef;
     uid_t user;
     gid_t group;
-    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
 
-    if (virSecurityDACGetImageIds(def, priv, &user, &group))
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (virSecurityDACGetImageIds(secdef, priv, &user, &group) < 0)
         return -1;
 
     return virSecurityDACSetOwnership(savefile, user, group);
@@ -984,15 +1050,18 @@ virSecurityDACRestoreSavedStateLabel(virSecurityManagerPtr mgr,
 
 static int
 virSecurityDACSetProcessLabel(virSecurityManagerPtr mgr,
-                              virDomainDefPtr def ATTRIBUTE_UNUSED)
+                              virDomainDefPtr def)
 {
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr secdef;
     uid_t user;
     gid_t group;
     gid_t *groups;
     int ngroups;
-    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
 
-    if (virSecurityDACGetIds(def, priv, &user, &group, &groups, &ngroups))
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (virSecurityDACGetIds(secdef, priv, &user, &group, &groups, &ngroups) < 0)
         return -1;
 
     VIR_DEBUG("Dropping privileges of DEF to %u:%u, %d supplemental groups",
@@ -1007,14 +1076,17 @@ virSecurityDACSetProcessLabel(virSecurityManagerPtr mgr,
 
 static int
 virSecurityDACSetChildProcessLabel(virSecurityManagerPtr mgr,
-                                   virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                   virDomainDefPtr def,
                                    virCommandPtr cmd)
 {
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr secdef;
     uid_t user;
     gid_t group;
-    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
 
-    if (virSecurityDACGetIds(def, priv, &user, &group, NULL, NULL))
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (virSecurityDACGetIds(secdef, priv, &user, &group, NULL, NULL))
         return -1;
 
     VIR_DEBUG("Setting child to drop privileges of DEF to %u:%u",
@@ -1042,9 +1114,8 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
-    if (seclabel == NULL) {
+    if (seclabel == NULL)
         return rc;
-    }
 
     if (seclabel->imagelabel) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1062,7 +1133,7 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
             return rc;
     }
 
-    switch (seclabel->type) {
+    switch ((virDomainSeclabelType) seclabel->type) {
     case VIR_DOMAIN_SECLABEL_STATIC:
         if (seclabel->label == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1086,7 +1157,8 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
     case VIR_DOMAIN_SECLABEL_NONE:
         /* no op */
         return 0;
-    default:
+    case VIR_DOMAIN_SECLABEL_DEFAULT:
+    case VIR_DOMAIN_SECLABEL_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected security label type '%s'"),
                        virDomainSeclabelTypeToString(seclabel->type));
@@ -1119,9 +1191,9 @@ virSecurityDACReserveLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 
 static int
 virSecurityDACGetProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                              virDomainDefPtr def ATTRIBUTE_UNUSED,
+                              virDomainDefPtr def,
                               pid_t pid ATTRIBUTE_UNUSED,
-                              virSecurityLabelPtr seclabel ATTRIBUTE_UNUSED)
+                              virSecurityLabelPtr seclabel)
 {
     virSecurityLabelDefPtr secdef =
         virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);

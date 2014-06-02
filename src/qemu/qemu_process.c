@@ -831,7 +831,6 @@ qemuProcessHandleResume(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     return 0;
 }
 
-
 static int
 qemuProcessHandleRTCChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                            virDomainObjPtr vm,
@@ -844,25 +843,30 @@ qemuProcessHandleRTCChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 
     virObjectLock(vm);
 
-    /* QEMU's RTC_CHANGE event returns the offset from the specified
-     * date instead of the host UTC if a specific date is provided
-     * (-rtc base=$date). We need to convert it to be offset from
-     * host UTC.
-     */
     if (vm->def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_VARIABLE) {
-        time_t now = time(NULL);
+        /* when a basedate is manually given on the qemu commandline
+         * rather than simply "-rtc base=utc", the offset sent by qemu
+         * in this event is *not* the new offset from UTC, but is
+         * instead the new offset from the *original basedate* +
+         * uptime. For example, if the original offset was 3600 and
+         * the guest clock has been advanced by 10 seconds, qemu will
+         * send "10" in the event - this means that the new offset
+         * from UTC is 3610, *not* 10. If the guest clock is advanced
+         * by another 10 seconds, qemu will now send "20" - i.e. each
+         * event is the sum of the most recent change and all previous
+         * changes since the domain was started. Fortunately, we have
+         * saved the initial offset in "adjustment0", so to arrive at
+         * the proper new "adjustment", we just add the most recent
+         * offset to adjustment0.
+         */
+        offset += vm->def->clock.data.variable.adjustment0;
+        vm->def->clock.data.variable.adjustment = offset;
 
-        offset += vm->def->clock.data.variable.basedate -
-                  (unsigned long long)now;
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
+           VIR_WARN("unable to save domain status with RTC change");
     }
 
     event = virDomainEventRTCChangeNewFromObj(vm, offset);
-
-    if (vm->def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_VARIABLE)
-        vm->def->clock.data.variable.adjustment = offset;
-
-    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
-        VIR_WARN("unable to save domain status with RTC change");
 
     virObjectUnlock(vm);
 
@@ -2655,6 +2659,19 @@ qemuProcessPrepareChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
 }
 
 
+static int
+qemuProcessCleanupChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                virDomainChrDefPtr dev,
+                                void *opaque ATTRIBUTE_UNUSED)
+{
+    if (dev->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
+        dev->source.data.nix.listen)
+        unlink(dev->source.data.nix.path);
+
+    return 0;
+}
+
+
 struct qemuProcessHookData {
     virConnectPtr conn;
     virDomainObjPtr vm;
@@ -2747,23 +2764,26 @@ qemuProcessStartCPUs(virQEMUDriverPtr driver, virDomainObjPtr vm,
     }
     VIR_FREE(priv->lockState);
 
-    ret = qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob);
-    if (ret == 0) {
-        ret = qemuMonitorStartCPUs(priv->mon, conn);
-        qemuDomainObjExitMonitor(driver, vm);
-    }
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        goto release;
 
-    if (ret == 0) {
-        virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
-    } else {
-        if (virDomainLockProcessPause(driver->lockManager, vm, &priv->lockState) < 0)
-            VIR_WARN("Unable to release lease on %s", vm->def->name);
-        VIR_DEBUG("Preserving lock state '%s'", NULLSTR(priv->lockState));
-    }
+    ret = qemuMonitorStartCPUs(priv->mon, conn);
+    qemuDomainObjExitMonitor(driver, vm);
+
+    if (ret < 0)
+        goto release;
+
+    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
 
  cleanup:
     virObjectUnref(cfg);
     return ret;
+
+ release:
+    if (virDomainLockProcessPause(driver->lockManager, vm, &priv->lockState) < 0)
+        VIR_WARN("Unable to release lease on %s", vm->def->name);
+    VIR_DEBUG("Preserving lock state '%s'", NULLSTR(priv->lockState));
+    goto cleanup;
 }
 
 
@@ -2771,24 +2791,26 @@ int qemuProcessStopCPUs(virQEMUDriverPtr driver, virDomainObjPtr vm,
                         virDomainPausedReason reason,
                         enum qemuDomainAsyncJob asyncJob)
 {
-    int ret;
+    int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
     VIR_FREE(priv->lockState);
 
-    ret = qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob);
-    if (ret == 0) {
-        ret = qemuMonitorStopCPUs(priv->mon);
-        qemuDomainObjExitMonitor(driver, vm);
-    }
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        goto cleanup;
 
-    if (ret == 0) {
-        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, reason);
-        if (virDomainLockProcessPause(driver->lockManager, vm, &priv->lockState) < 0)
-            VIR_WARN("Unable to release lease on %s", vm->def->name);
-        VIR_DEBUG("Preserving lock state '%s'", NULLSTR(priv->lockState));
-    }
+    ret = qemuMonitorStopCPUs(priv->mon);
+    qemuDomainObjExitMonitor(driver, vm);
 
+    if (ret < 0)
+        goto cleanup;
+
+    virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, reason);
+    if (virDomainLockProcessPause(driver->lockManager, vm, &priv->lockState) < 0)
+        VIR_WARN("Unable to release lease on %s", vm->def->name);
+    VIR_DEBUG("Preserving lock state '%s'", NULLSTR(priv->lockState));
+
+ cleanup:
     return ret;
 }
 
@@ -3208,6 +3230,11 @@ qemuProcessReconnect(void *opaque)
         if (qemuTranslateDiskSourcePool(conn, obj->def->disks[i]) < 0)
             goto error;
 
+        /* XXX we should be able to restore all data from XML in the future */
+        if (qemuDomainDetermineDiskChain(driver, obj,
+                                         obj->def->disks[i], true) < 0)
+            goto error;
+
         dev.type = VIR_DOMAIN_DEVICE_DISK;
         dev.data.disk = obj->def->disks[i];
         if (qemuAddSharedDevice(driver, &dev, obj->def->name) < 0)
@@ -3606,7 +3633,7 @@ int qemuProcessStart(virConnectPtr conn,
                      int stdin_fd,
                      const char *stdin_path,
                      virDomainSnapshotObjPtr snapshot,
-                     enum virNetDevVPortProfileOp vmop,
+                     virNetDevVPortProfileOp vmop,
                      unsigned int flags)
 {
     int ret;
@@ -4339,6 +4366,12 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         priv->monConfig = NULL;
     }
 
+    ignore_value(virDomainChrDefForeach(vm->def,
+                                        false,
+                                        qemuProcessCleanupChardevDevice,
+                                        NULL));
+
+
     /* shut it off for sure */
     ignore_value(qemuProcessKill(vm,
                                  VIR_QEMU_PROCESS_KILL_FORCE|
@@ -4390,7 +4423,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     virDomainDefClearDeviceAliases(vm->def);
     if (!priv->persistentAddrs) {
         virDomainDefClearPCIAddresses(vm->def);
-        qemuDomainPCIAddressSetFree(priv->pciaddrs);
+        virDomainPCIAddressSetFree(priv->pciaddrs);
         priv->pciaddrs = NULL;
         virDomainDefClearCCWAddresses(vm->def);
         qemuDomainCCWAddressSetFree(priv->ccwaddrs);

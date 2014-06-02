@@ -99,7 +99,7 @@ void virReportSystemErrorFull(int domcode,
                       #argname,                                      \
                       NULL,                                          \
                       0, 0,                                          \
-                      _("%s in %s must greater than zero"),          \
+                      _("%s in %s must be greater than zero"),       \
                       #argname, __FUNCTION__)
 # define virReportInvalidNonZeroArg(argname)                         \
     virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
@@ -144,17 +144,6 @@ void virReportSystemErrorFull(int domcode,
                       NULL,                                          \
                       0, 0,                                          \
                       (fmt), __VA_ARGS__)
-
-# define virReportDBusServiceError(message, name)                    \
-    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
-                      VIR_FROM_THIS,                                 \
-                      VIR_ERR_DBUS_SERVICE,                          \
-                      VIR_ERR_ERROR,                                 \
-                      __FUNCTION__,                                  \
-                      name,                                          \
-                      NULL,                                          \
-                      0, 0,                                          \
-                      "%s", message);
 
 # define virReportUnsupportedError()                                    \
     virReportErrorHelper(VIR_FROM_THIS, VIR_ERR_NO_SUPPORT,             \

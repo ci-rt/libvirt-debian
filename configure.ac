@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.4], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.5], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -2683,6 +2683,13 @@ AC_CHECK_DECLS([cpuset_getaffinity],
                [#include <sys/param.h>
                 #include <sys/cpuset.h>
                ])
+
+# Check for BSD kvm (kernel memory interface)
+if test $with_freebsd = yes; then
+     AC_CHECK_LIB([kvm], [kvm_getprocs], [],
+                  [AC_MSG_ERROR([BSD kernel memory interface library is required to build on FreeBSD])]
+                 )
+fi
 
 # Check if we need to look for ifconfig
 if test "$want_ifconfig" = "yes"; then

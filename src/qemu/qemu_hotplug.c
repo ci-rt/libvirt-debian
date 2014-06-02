@@ -106,6 +106,9 @@ int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     ret = qemuMonitorEjectMedia(priv->mon, driveAlias, force);
     qemuDomainObjExitMonitor(driver, vm);
 
+    if (ret < 0)
+        goto audit;
+
     virObjectRef(vm);
     /* we don't want to report errors from media tray_open polling */
     while (retries) {
@@ -121,14 +124,11 @@ int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     virObjectUnref(vm);
 
     if (retries <= 0) {
-        if (ret == 0) {
-            /* If ret == -1, EjectMedia already set an error message */
-            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                           _("Unable to eject media"));
-        }
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Unable to eject media"));
+        ret = -1;
         goto audit;
     }
-    ret = 0;
 
     src = virDomainDiskGetSource(disk);
     if (src) {
@@ -284,7 +284,7 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
                 goto error;
         } else if (!disk->info.type ||
                     disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-            if (qemuDomainPCIAddressEnsureAddr(priv->pciaddrs, &disk->info) < 0)
+            if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &disk->info) < 0)
                 goto error;
         }
         releaseaddr = true;
@@ -386,7 +386,7 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
 
         if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE ||
             controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-            if (qemuDomainPCIAddressEnsureAddr(priv->pciaddrs, &controller->info) < 0)
+            if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &controller->info) < 0)
                 goto cleanup;
         } else if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
             if (qemuDomainCCWAddressAssign(&controller->info, priv->ccwaddrs,
@@ -940,7 +940,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                         _("virtio-s390 net device cannot be hotplugged."));
     else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-             qemuDomainPCIAddressEnsureAddr(priv->pciaddrs, &net->info) < 0)
+             virDomainPCIAddressEnsureAddr(priv->pciaddrs, &net->info) < 0)
              goto cleanup;
 
     releaseaddr = true;
@@ -1230,7 +1230,7 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (qemuAssignDeviceHostdevAlias(vm->def, hostdev, -1) < 0)
             goto error;
-        if (qemuDomainPCIAddressEnsureAddr(priv->pciaddrs, hostdev->info) < 0)
+        if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, hostdev->info) < 0)
             goto error;
         releaseaddr = true;
         if (backend != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO &&
@@ -1258,16 +1258,23 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
                                          configfd, configfd_name);
         qemuDomainObjExitMonitor(driver, vm);
     } else {
-        virDevicePCIAddress guestAddr = hostdev->info->addr.pci;
+        virDevicePCIAddressPtr guestAddr = &hostdev->info->addr.pci;
+        virDevicePCIAddressPtr hostAddr = &hostdev->source.subsys.u.pci.addr;
+
+        if (hostAddr->domain &&
+            !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_HOST_PCI_MULTIDOMAIN)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("non-zero domain='%.4x' in host device "
+                             "PCI address not supported in this QEMU binary"),
+                           hostAddr->domain);
+            goto error;
+        }
 
         qemuDomainObjEnterMonitor(driver, vm);
-        ret = qemuMonitorAddPCIHostDevice(priv->mon,
-                                          &hostdev->source.subsys.u.pci.addr,
-                                          &guestAddr);
+        ret = qemuMonitorAddPCIHostDevice(priv->mon, hostAddr, guestAddr);
         qemuDomainObjExitMonitor(driver, vm);
 
         hostdev->info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
-        memcpy(&hostdev->info->addr.pci, &guestAddr, sizeof(guestAddr));
     }
     virDomainAuditHostdev(vm, hostdev, "attach", ret == 0);
     if (ret < 0)

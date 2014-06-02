@@ -62,7 +62,7 @@ VIR_ENUM_IMPL(virStorageFileFormat,
               "cloop", "dmg", "iso",
               "vpc", "vdi",
               /* Not direct file formats, but used for various drivers */
-              "fat", "vhd",
+              "fat", "vhd", "ploop",
               /* Formats with backing file below here */
               "cow", "qcow", "qcow2", "qed", "vmdk")
 
@@ -72,6 +72,7 @@ VIR_ENUM_IMPL(virStorageFileFeature,
               )
 
 VIR_ENUM_IMPL(virStorageNetProtocol, VIR_STORAGE_NET_PROTOCOL_LAST,
+              "none",
               "nbd",
               "rbd",
               "sheepdog",
@@ -229,6 +230,8 @@ static struct FileTypeInfo const fileTypeInfo[] = {
     [VIR_STORAGE_FILE_FAT] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
                                -1, {0}, 0, 0, 0, 0, NULL, NULL },
     [VIR_STORAGE_FILE_VHD] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
+                               -1, {0}, 0, 0, 0, 0, NULL, NULL },
+    [VIR_STORAGE_FILE_PLOOP] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
                                -1, {0}, 0, 0, 0, 0, NULL, NULL },
 
     /* All formats with a backing store probe below here */
@@ -713,7 +716,8 @@ virStorageIsFile(const char *backing)
     return true;
 }
 
-int
+
+static int
 virStorageFileProbeFormatFromBuf(const char *path,
                                  char *buf,
                                  size_t buflen)
@@ -948,15 +952,8 @@ virStorageFileMetadataNew(const char *path,
     if (VIR_STRDUP(ret->relPath, path) < 0)
         goto error;
 
-    if (virStorageIsFile(path)) {
-        if (!(ret->path = canonicalize_file_name(path))) {
-            virReportSystemError(errno, _("unable to resolve '%s'"), path);
-            goto error;
-        }
-    } else {
-        if (VIR_STRDUP(ret->path, path) < 0)
-            goto error;
-    }
+    if (VIR_STRDUP(ret->path, path) < 0)
+        goto error;
 
     return ret;
 
@@ -971,16 +968,13 @@ virStorageFileMetadataNew(const char *path,
  * @path: name of file, for error messages
  * @buf: header bytes from @path
  * @len: length of @buf
- * @format: expected image format
  * @backing: output malloc'd name of backing image, if any
  * @backingFormat: format of @backing
  *
- * Extract metadata about the storage volume with the specified
- * image format. If image format is VIR_STORAGE_FILE_AUTO, it
- * will probe to automatically identify the format.  Does not recurse.
- *
- * Callers are advised never to use VIR_STORAGE_FILE_AUTO as a
- * format, since a malicious guest can turn a raw file into any
+ * Extract metadata about the storage volume, including probing its
+ * format.  Does not recurse.  Callers are advised not to trust the
+ * learned format if a guest has ever used the volume when it was
+ * raw, since a malicious guest can turn a raw file into any
  * other non-raw format at will.
  *
  * If the returned @backingFormat is VIR_STORAGE_FILE_AUTO
@@ -994,14 +988,13 @@ virStorageSourcePtr
 virStorageFileGetMetadataFromBuf(const char *path,
                                  char *buf,
                                  size_t len,
-                                 int format,
                                  char **backing,
                                  int *backingFormat)
 {
     virStorageSourcePtr ret = NULL;
     virStorageSourcePtr meta = NULL;
 
-    if (!(meta = virStorageFileMetadataNew(path, format)))
+    if (!(meta = virStorageFileMetadataNew(path, VIR_STORAGE_FILE_AUTO)))
         return NULL;
 
     if (virStorageFileGetMetadataInternal(meta, buf, len,
@@ -1091,19 +1084,29 @@ virStorageFileGetMetadataFromFDInternal(virStorageSourcePtr meta,
 virStorageSourcePtr
 virStorageFileGetMetadataFromFD(const char *path,
                                 int fd,
-                                int format)
+                                int format,
+                                int *backingFormat)
+
 {
     virStorageSourcePtr ret = NULL;
+    char *canonPath = NULL;
 
-    if (!(ret = virStorageFileMetadataNew(path, format)))
+    if (!(canonPath = canonicalize_file_name(path))) {
+        virReportSystemError(errno, _("unable to resolve '%s'"), path);
+        goto cleanup;
+    }
+
+    if (!(ret = virStorageFileMetadataNew(canonPath, format)))
         goto cleanup;
 
-    if (virStorageFileGetMetadataFromFDInternal(ret, fd, NULL) < 0) {
+
+    if (virStorageFileGetMetadataFromFDInternal(ret, fd, backingFormat) < 0) {
         virStorageSourceFree(ret);
         ret = NULL;
     }
 
  cleanup:
+    VIR_FREE(canonPath);
     return ret;
 }
 
@@ -1588,7 +1591,7 @@ virStorageFileChainLookup(virStorageSourcePtr chain,
             if (idx == i)
                 break;
         } else {
-            if (STREQ(name, chain->relPath))
+            if (STREQ_NULLABLE(name, chain->relPath))
                 break;
             if (nameIsFile && (chain->type == VIR_STORAGE_TYPE_FILE ||
                                chain->type == VIR_STORAGE_TYPE_BLOCK)) {
@@ -1758,6 +1761,7 @@ virStorageSourceClear(virStorageSourcePtr def)
         return;
 
     VIR_FREE(def->path);
+    VIR_FREE(def->volume);
     virStorageSourcePoolDefFree(def->srcpool);
     VIR_FREE(def->driverName);
     virBitmapFree(def->features);

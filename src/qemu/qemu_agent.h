@@ -70,7 +70,8 @@ typedef enum {
 int qemuAgentShutdown(qemuAgentPtr mon,
                       qemuAgentShutdownMode mode);
 
-int qemuAgentFSFreeze(qemuAgentPtr mon);
+int qemuAgentFSFreeze(qemuAgentPtr mon,
+                      const char **mountpoints, unsigned int nmountpoints);
 int qemuAgentFSThaw(qemuAgentPtr mon);
 
 int qemuAgentSuspend(qemuAgentPtr mon,
@@ -97,4 +98,12 @@ int qemuAgentSetVCPUs(qemuAgentPtr mon, qemuAgentCPUInfoPtr cpus, size_t ncpus);
 int qemuAgentUpdateCPUInfo(unsigned int nvcpus,
                            qemuAgentCPUInfoPtr cpuinfo,
                            int ncpuinfo);
+
+int qemuAgentGetTime(qemuAgentPtr mon,
+                     long long *seconds,
+                     unsigned int *nseconds);
+int qemuAgentSetTime(qemuAgentPtr mon,
+                     long long seconds,
+                     unsigned int nseconds,
+                     bool sync);
 #endif /* __QEMU_AGENT_H__ */

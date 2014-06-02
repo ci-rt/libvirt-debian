@@ -190,6 +190,8 @@
             <a href="#usage">Guest usage / management</a>
             <ul><li>
                 <a href="#console">Connecting to a guest console</a>
+              </li><li>
+                <a href="#xmltonative">Converting from domain XML to Bhyve args</a>
               </li></ul>
           </li></ul>
         <p>
@@ -283,6 +285,7 @@ the following to the domain XML (<span class="since">Since 1.2.4</span>):
     &lt;/serial&gt;
   &lt;/devices&gt;
   ...</pre>
+        <p>Make sure to load the <code>nmdm</code> kernel module if you plan to use that.</p>
         <p>
 Then <code>virsh console</code> command can be used to connect to the text console
 of a guest.</p>
@@ -292,6 +295,27 @@ until the console is opened by a client. This bug was fixed in FreeBSD
 an older version is used, one either has to open a console manually with <code>virsh console</code>
 to let a guest boot or start a guest using:</p>
         <pre xml:space="preserve">start --console domname</pre>
+        <h3>
+          <a name="xmltonative" shape="rect" id="xmltonative">Converting from domain XML to Bhyve args</a>
+          <a class="headerlink" href="#xmltonative" title="Permalink to this headline">¶</a>
+        </h3>
+        <p>
+The <code>virsh domxml-to-native</code> command can preview the actual
+<code>bhyve</code> commands that will be executed for a given domain.
+It outputs two lines, the first line is a <code>bhyveload</code> command and
+the second is a <code>bhyve</code> command.
+</p>
+        <p>Please note that the <code>virsh domxml-to-native</code> doesn't do any
+real actions other than printing the command, for example, it doesn't try to
+find a proper TAP interface and create it, like what is done when starting
+a domain; and always returns <code>tap0</code> for the network interface. So
+if you're going to run these commands manually, most likely you might want to
+tweak them.</p>
+        <pre xml:space="preserve">
+# virsh -c "bhyve:///system"  domxml-to-native --format bhyve-argv --xml /path/to/bhyve.xml
+/usr/sbin/bhyveload -m 214 -d /home/user/vm1.img vm1
+/usr/sbin/bhyve -c 2 -m 214 -A -I -H -P -s 0:0,hostbridge -s 3:0,virtio-net,tap0,mac=52:54:00:5d:74:e3 -s 2:0,virtio-blk,/home/user/vm1.img -s 1,lpc -l com1,/dev/nmdm0A vm1
+</pre>
       </div>
     </div>
     <div id="footer">
