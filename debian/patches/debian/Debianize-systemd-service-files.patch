@@ -4,8 +4,8 @@ Subject: Debianize systemd service files
 
 ---
  daemon/libvirtd.service.in      | 4 ++--
- tools/libvirt-guests.service.in | 4 ++--
- 2 files changed, 4 insertions(+), 4 deletions(-)
+ tools/libvirt-guests.service.in | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/daemon/libvirtd.service.in b/daemon/libvirtd.service.in
 index 086da36..9bc433c 100644
@@ -22,6 +22,8 @@ index 086da36..9bc433c 100644
  ExecReload=/bin/kill -HUP $MAINPID
  KillMode=process
  Restart=on-failure
+diff --git a/tools/libvirt-guests.service.in b/tools/libvirt-guests.service.in
+index d8d7adf..15dfcbd 100644
 --- a/tools/libvirt-guests.service.in
 +++ b/tools/libvirt-guests.service.in
 @@ -5,7 +5,7 @@ Documentation=man:libvirtd(8)
