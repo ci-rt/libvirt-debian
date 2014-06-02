@@ -85,6 +85,23 @@ virDevicePCIAddressIsValid;
 virDevicePCIAddressParseXML;
 
 
+# conf/domain_addr.h
+virDomainPCIAddressAsString;
+virDomainPCIAddressBusSetModel;
+virDomainPCIAddressEnsureAddr;
+virDomainPCIAddressFlagsCompatible;
+virDomainPCIAddressGetNextSlot;
+virDomainPCIAddressReleaseSlot;
+virDomainPCIAddressReserveAddr;
+virDomainPCIAddressReserveNextSlot;
+virDomainPCIAddressReserveSlot;
+virDomainPCIAddressSetAlloc;
+virDomainPCIAddressSetFree;
+virDomainPCIAddressSetGrow;
+virDomainPCIAddressSlotInUse;
+virDomainPCIAddressValidate;
+
+
 # conf/domain_audit.h
 virDomainAuditCgroup;
 virDomainAuditCgroupMajor;
@@ -654,8 +671,8 @@ virSecretDefFormat;
 virSecretDefFree;
 virSecretDefParseFile;
 virSecretDefParseString;
-virSecretUsageTypeTypeFromString;
-virSecretUsageTypeTypeToString;
+virSecretUsageTypeFromString;
+virSecretUsageTypeToString;
 
 
 # conf/snapshot_conf.h
@@ -684,7 +701,7 @@ virDomainSnapshotUpdateRelations;
 
 
 # conf/storage_conf.h
-virStoragePartedFsTypeTypeToString;
+virStoragePartedFsTypeToString;
 virStoragePoolDefFormat;
 virStoragePoolDefFree;
 virStoragePoolDefParseFile;
@@ -707,8 +724,8 @@ virStoragePoolObjLock;
 virStoragePoolObjRemove;
 virStoragePoolObjSaveDef;
 virStoragePoolObjUnlock;
-virStoragePoolSourceAdapterTypeTypeFromString;
-virStoragePoolSourceAdapterTypeTypeToString;
+virStoragePoolSourceAdapterTypeFromString;
+virStoragePoolSourceAdapterTypeToString;
 virStoragePoolSourceClear;
 virStoragePoolSourceDeviceClear;
 virStoragePoolSourceFindDuplicate;
@@ -1148,7 +1165,6 @@ virCryptoHashString;
 
 
 # util/virdbus.h
-virDBusCall;
 virDBusCallMethod;
 virDBusCloseSystemBus;
 virDBusCreateMethod;
@@ -1854,7 +1870,6 @@ virStorageFileGetSCSIKey;
 virStorageFileIsClusterFS;
 virStorageFileParseChainIndex;
 virStorageFileProbeFormat;
-virStorageFileProbeFormatFromBuf;
 virStorageFileResize;
 virStorageIsFile;
 virStorageNetHostDefClear;
@@ -1969,6 +1984,7 @@ virTimeFieldsNow;
 virTimeFieldsNowRaw;
 virTimeFieldsThen;
 virTimeFieldsThenRaw;
+virTimeLocalOffsetFromUTC;
 virTimeMillisNow;
 virTimeMillisNowRaw;
 virTimeStringNow;

@@ -5963,6 +5963,43 @@ xdr_remote_domain_fstrim_args (XDR *xdrs, remote_domain_fstrim_args *objp)
 }
 
 bool_t
+xdr_remote_domain_get_time_args (XDR *xdrs, remote_domain_get_time_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_time_ret (XDR *xdrs, remote_domain_get_time_ret *objp)
+{
+
+         if (!xdr_int64_t (xdrs, &objp->seconds))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->nseconds))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_set_time_args (XDR *xdrs, remote_domain_set_time_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_int64_t (xdrs, &objp->seconds))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->nseconds))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_migrate_begin3_params_args (XDR *xdrs, remote_domain_migrate_begin3_params_args *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
@@ -6211,6 +6248,54 @@ xdr_remote_network_event_lifecycle_msg (XDR *xdrs, remote_network_event_lifecycl
          if (!xdr_int (xdrs, &objp->event))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->detail))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_fsfreeze_args (XDR *xdrs, remote_domain_fsfreeze_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->mountpoints.mountpoints_val;
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->mountpoints.mountpoints_len, REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX,
+                sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_fsfreeze_ret (XDR *xdrs, remote_domain_fsfreeze_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->filesystems))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_fsthaw_args (XDR *xdrs, remote_domain_fsthaw_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->mountpoints.mountpoints_val;
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->mountpoints.mountpoints_len, REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX,
+                sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_fsthaw_ret (XDR *xdrs, remote_domain_fsthaw_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->filesystems))
                  return FALSE;
         return TRUE;
 }

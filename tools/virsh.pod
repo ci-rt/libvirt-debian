@@ -941,6 +941,29 @@ Output a URI which can be used to connect to the graphical display of the
 domain via VNC, SPICE or RDP. If I<--include-password> is specified, the
 SPICE channel password will be included in the URI.
 
+=item B<domfsfreeze> I<domain> [[I<--mountpoint>] B<mountpoint>...]
+
+Freeze mounted filesystems within a running domain to prepare for consistent
+snapshots.
+
+The I<--mountpoint> option takes a parameter B<mountpoint>, which is a
+mount point path of the filesystem to be frozen. This option can occur
+multiple times. If this is not specified, every mounted filesystem is frozen.
+
+Note: B<snapshot-create> command has a I<--quiesce> option to freeze
+and thaw the filesystems automatically to keep snapshots consistent.
+B<domfsfreeze> command is only needed when a user wants to utilize the
+native snapshot features of storage devices not supported by libvirt.
+
+=item B<domfsthaw> I<domain> [[I<--mountpoint>] B<mountpoint>...]
+
+Thaw mounted filesystems within a running domain, which have been frozen by
+domfsfreeze command.
+
+The I<--mountpoint> option takes a parameter B<mountpoint>, which is a
+mount point path of the filesystem to be thawed. This option can occur
+multiple times. If this is not specified, every mounted filesystem is thawed.
+
 =item B<domfstrim> I<domain> [I<--minimum> B<bytes>]
 [I<--mountpoint mountPoint>]
 
@@ -993,6 +1016,24 @@ reason for the state.
 Returns state of an interface to VMM used to control a domain.  For
 states other than "ok" or "error" the command also prints number of
 seconds elapsed since the control interface entered its current state.
+
+=item B<domtime> I<domain> { [I<--now>] [I<--pretty>] [I<--sync>]
+[I<--time> B<time>] }
+
+Gets or sets the domain's system time. When run without any arguments
+(but I<domain>), the current domain's system time is printed out. The
+I<--pretty> modifier can be used to print the time in more human
+readable form.
+
+When I<--time> B<time> is specified, the domain's time is
+not gotten but set instead. The I<--now> modifier acts like if it was
+an alias for I<--time> B<$now>, which means it sets the time that is
+currently on the host virsh is running at. In both cases (setting and
+getting), time is in seconds relative to Epoch of 1970-01-01 in UTC.
+The I<--sync> modifies the set behavior a bit: The time passed is
+ignored, but the time to set is read from domain's RTC instead. Please
+note, that some hypervisors may require a guest agent to be configured
+in order to get or set the guest time.
 
 =item B<domxml-from-native> I<format> I<config>
 
@@ -1302,8 +1343,8 @@ I<on_reboot> parameter in the domain's XML definition.
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the I<--mode> parameter
 can specify a comma separated list which includes C<acpi>, C<agent>,
-C<initctl> and C<signal>. The order in which drivers will try each
-mode is undefined, and not related to the order specified to virsh.
+C<initctl>, C<signal> and C<paravirt>. The order in which drivers will
+try each mode is undefined, and not related to the order specified to virsh.
 For strict control over ordering, use a single mode at a time and
 repeat the command.
 
@@ -1781,8 +1822,8 @@ snapshot metadata with B<snapshot-create>.
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the I<--mode> parameter
 can specify a comma separated list which includes C<acpi>, C<agent>,
-C<initctl> and C<signal>. The order in which drivers will try each
-mode is undefined, and not related to the order specified to virsh.
+C<initctl>, C<signal> and C<paravirt>. The order in which drivers will
+try each mode is undefined, and not related to the order specified to virsh.
 For strict control over ordering, use a single mode at a time and
 repeat the command.
 
@@ -2005,7 +2046,7 @@ expected.
 =item B<attach-disk> I<domain> I<source> I<target>
 [[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
 [I<--driver driver>] [I<--subdriver subdriver>] [I<--cache cache>]
-[I<--type type>] [I<--mode mode>] [I<--config>] [I<--sourcetype soucetype>]
+[I<--type type>] [I<--mode mode>] [I<--sourcetype sourcetype>]
 [I<--serial serial>] [I<--wwn wwn>] [I<--rawio>]
 [I<--address address>] [I<--multifunction>] [I<--print-xml>]
 

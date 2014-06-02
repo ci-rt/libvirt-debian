@@ -235,6 +235,9 @@ const REMOTE_DOMAIN_JOB_STATS_MAX = 64;
 /* Upper limit on number of CPU models */
 const REMOTE_CONNECT_CPU_MODELS_MAX = 8192;
 
+/* Upper limit on number of mountpoints to frozen */
+const REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX = 256;
+
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
 
@@ -2852,6 +2855,23 @@ struct remote_domain_fstrim_args {
     unsigned int flags;
 };
 
+struct remote_domain_get_time_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_time_ret {
+    hyper seconds;
+    unsigned int nseconds;
+};
+
+struct remote_domain_set_time_args {
+    remote_nonnull_domain dom;
+    hyper seconds;
+    unsigned int nseconds;
+    unsigned int flags;
+};
+
 struct remote_domain_migrate_begin3_params_args {
     remote_nonnull_domain dom;
     remote_typed_param params<REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX>;
@@ -2959,6 +2979,25 @@ struct remote_network_event_lifecycle_msg {
     int detail;
 };
 
+struct remote_domain_fsfreeze_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string mountpoints<REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX>; /* (const char **) */
+    unsigned int flags;
+};
+
+struct remote_domain_fsfreeze_ret {
+    int filesystems;
+};
+
+struct remote_domain_fsthaw_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string mountpoints<REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX>; /* (const char **) */
+    unsigned int flags;
+};
+
+struct remote_domain_fsthaw_ret {
+    int filesystems;
+};
 
 
 /*----- Protocol. -----*/
@@ -4289,7 +4328,7 @@ enum remote_procedure {
     /**
      * @generate: both
      * @acl: domain:snapshot
-     * @acl: domain:write:VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE
+     * @acl: domain:fs_freeze:VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE
      */
     REMOTE_PROC_DOMAIN_SNAPSHOT_CREATE_XML = 185,
 
@@ -5275,5 +5314,29 @@ enum remote_procedure {
      * @generate: both
      * @acl: domain:core_dump
      */
-    REMOTE_PROC_DOMAIN_CORE_DUMP_WITH_FORMAT = 334
+    REMOTE_PROC_DOMAIN_CORE_DUMP_WITH_FORMAT = 334,
+
+    /**
+     * @generate: both
+     * @acl: domain:fs_freeze
+     */
+    REMOTE_PROC_DOMAIN_FSFREEZE = 335,
+
+    /**
+     * @generate: both
+     * @acl: domain:fs_freeze
+     */
+    REMOTE_PROC_DOMAIN_FSTHAW = 336,
+
+    /**
+     * @generate: none
+     * @acl: domain:read
+     */
+    REMOTE_PROC_DOMAIN_GET_TIME = 337,
+
+    /**
+     * @generate: both
+     * @acl: domain:set_time
+     */
+    REMOTE_PROC_DOMAIN_SET_TIME = 338
 };

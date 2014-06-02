@@ -71,8 +71,6 @@ virStorageBackendProbeTarget(virStorageSourcePtr target,
     int ret = -1;
     virStorageSourcePtr meta = NULL;
     struct stat sb;
-    char *header = NULL;
-    ssize_t len = VIR_STORAGE_MAX_HEADER;
 
     *backingStore = NULL;
     *backingStoreFormat = VIR_STORAGE_FILE_AUTO;
@@ -89,30 +87,19 @@ virStorageBackendProbeTarget(virStorageSourcePtr target,
         goto error;
     }
 
+    ret = -1;
+
     if (S_ISDIR(sb.st_mode)) {
         target->format = VIR_STORAGE_FILE_DIR;
     } else {
-        if ((len = virFileReadHeaderFD(fd, len, &header)) < 0) {
-            virReportSystemError(errno, _("cannot read header '%s'"),
-                                 target->path);
+        if (!(meta = virStorageFileGetMetadataFromFD(target->path,
+                                                     fd,
+                                                     VIR_STORAGE_FILE_AUTO,
+                                                     backingStoreFormat)))
             goto error;
-        }
 
-        target->format = virStorageFileProbeFormatFromBuf(target->path,
-                                                          header, len);
-        if (target->format < 0) {
-            ret = -1;
+        if (VIR_STRDUP(*backingStore, meta->backingStoreRaw) < 0)
             goto error;
-        }
-
-        if (!(meta = virStorageFileGetMetadataFromBuf(target->path,
-                                                      header, len,
-                                                      target->format,
-                                                      backingStore,
-                                                      backingStoreFormat))) {
-            ret = -1;
-            goto error;
-        }
     }
 
     VIR_FORCE_CLOSE(fd);
@@ -178,7 +165,6 @@ virStorageBackendProbeTarget(virStorageSourcePtr target,
 
  cleanup:
     virStorageSourceFree(meta);
-    VIR_FREE(header);
     return ret;
 
 }
@@ -1347,18 +1333,31 @@ virStorageBackend virStorageBackendNetFileSystem = {
 };
 
 
+static void
+virStorageFileBackendFileDeinit(virStorageSourcePtr src)
+{
+    VIR_DEBUG("deinitializing FS storage file %p (%s:%s)", src,
+              virStorageTypeToString(virStorageSourceGetActualType(src)),
+              src->path);
+
+}
+
+
+static int
+virStorageFileBackendFileInit(virStorageSourcePtr src)
+{
+    VIR_DEBUG("initializing FS storage file %p (%s:%s)", src,
+              virStorageTypeToString(virStorageSourceGetActualType(src)),
+              src->path);
+
+    return 0;
+}
+
+
 static int
 virStorageFileBackendFileUnlink(virStorageSourcePtr src)
 {
-    int ret;
-
-    ret = unlink(src->path);
-    /* preserve errno */
-
-    VIR_DEBUG("removing storage file %p(%s): ret=%d, errno=%d",
-              src, src->path, ret, errno);
-
-    return ret;
+    return unlink(src->path);
 }
 
 
@@ -1366,13 +1365,33 @@ static int
 virStorageFileBackendFileStat(virStorageSourcePtr src,
                               struct stat *st)
 {
-    int ret;
+    return stat(src->path, st);
+}
 
-    ret = stat(src->path, st);
-    /* preserve errno */
 
-    VIR_DEBUG("stat of storage file %p(%s): ret=%d, errno=%d",
-              src, src->path, ret, errno);
+static ssize_t
+virStorageFileBackendFileReadHeader(virStorageSourcePtr src,
+                                    ssize_t max_len,
+                                    char **buf)
+{
+    int fd = -1;
+    ssize_t ret = -1;
+
+    if ((fd = virFileOpenAs(src->path, O_RDONLY, 0,
+                            src->drv->uid, src->drv->gid, 0)) < 0) {
+        virReportSystemError(-fd, _("Failed to open file '%s'"),
+                             src->path);
+        return -1;
+    }
+
+    if ((ret = virFileReadHeaderFD(fd, max_len, buf)) < 0) {
+        virReportSystemError(errno,
+                             _("cannot read header '%s'"), src->path);
+        goto cleanup;
+    }
+
+ cleanup:
+    VIR_FORCE_CLOSE(fd);
 
     return ret;
 }
@@ -1381,15 +1400,23 @@ virStorageFileBackendFileStat(virStorageSourcePtr src,
 virStorageFileBackend virStorageFileBackendFile = {
     .type = VIR_STORAGE_TYPE_FILE,
 
+    .backendInit = virStorageFileBackendFileInit,
+    .backendDeinit = virStorageFileBackendFileDeinit,
+
     .storageFileUnlink = virStorageFileBackendFileUnlink,
     .storageFileStat = virStorageFileBackendFileStat,
+    .storageFileReadHeader = virStorageFileBackendFileReadHeader,
 };
 
 
 virStorageFileBackend virStorageFileBackendBlock = {
     .type = VIR_STORAGE_TYPE_BLOCK,
 
+    .backendInit = virStorageFileBackendFileInit,
+    .backendDeinit = virStorageFileBackendFileDeinit,
+
     .storageFileStat = virStorageFileBackendFileStat,
+    .storageFileReadHeader = virStorageFileBackendFileReadHeader,
 };
 
 

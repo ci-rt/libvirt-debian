@@ -91,6 +91,10 @@
       <td>Delete domain</td>
     </tr>
     <tr>
+      <td><a name="perm_domain_fs_freeze">fs-freeze</a></td>
+      <td>Freeze and thaw domain filesystems</td>
+    </tr>
+    <tr>
       <td><a name="perm_domain_fs_trim">fs-trim</a></td>
       <td>Trim domain filesystems</td>
     </tr>
@@ -161,6 +165,10 @@
     <tr>
       <td><a name="perm_domain_send_signal">send-signal</a></td>
       <td>Send domain signal</td>
+    </tr>
+    <tr>
+      <td><a name="perm_domain_set_time">set-time</a></td>
+      <td>Write domain time</td>
     </tr>
     <tr>
       <td><a name="perm_domain_snapshot">snapshot</a></td>

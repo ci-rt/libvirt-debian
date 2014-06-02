@@ -29,14 +29,18 @@
 # include "storage_conf.h"
 # include "virstoragefile.h"
 
-int
-virStorageFileInit(virStorageSourcePtr src);
+int virStorageFileInit(virStorageSourcePtr src);
+int virStorageFileInitAs(virStorageSourcePtr src,
+                         uid_t uid, gid_t gid);
 void virStorageFileDeinit(virStorageSourcePtr src);
 
 int virStorageFileCreate(virStorageSourcePtr src);
 int virStorageFileUnlink(virStorageSourcePtr src);
 int virStorageFileStat(virStorageSourcePtr src,
                        struct stat *stat);
+ssize_t virStorageFileReadHeader(virStorageSourcePtr src,
+                                 ssize_t max_len,
+                                 char **buf);
 
 int storageRegister(void);
 

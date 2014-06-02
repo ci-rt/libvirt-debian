@@ -1496,7 +1496,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1002004
+#define LIBVIR_VERSION_NUMBER 1002005
 
 /**
  * LIBVIR_CHECK_VERSION:
@@ -1652,6 +1652,7 @@ typedef enum {
     VIR_DOMAIN_SHUTDOWN_GUEST_AGENT    = (1 << 1), /* Use guest agent */
     VIR_DOMAIN_SHUTDOWN_INITCTL        = (1 << 2), /* Use initctl */
     VIR_DOMAIN_SHUTDOWN_SIGNAL         = (1 << 3), /* Send a signal */
+    VIR_DOMAIN_SHUTDOWN_PARAVIRT       = (1 << 4), /* Use paravirt guest control */
 } virDomainShutdownFlagValues;
 
 int                     virDomainShutdown       (virDomainPtr domain);
@@ -1664,6 +1665,7 @@ typedef enum {
     VIR_DOMAIN_REBOOT_GUEST_AGENT    = (1 << 1), /* Use guest agent */
     VIR_DOMAIN_REBOOT_INITCTL        = (1 << 2), /* Use initctl */
     VIR_DOMAIN_REBOOT_SIGNAL         = (1 << 3), /* Send a signal */
+    VIR_DOMAIN_REBOOT_PARAVIRT       = (1 << 4), /* Use paravirt guest control */
 } virDomainRebootFlagValues;
 
 int                     virDomainReboot         (virDomainPtr domain,
@@ -5276,6 +5278,30 @@ int virDomainFSTrim(virDomainPtr dom,
                     const char *mountPoint,
                     unsigned long long minimum,
                     unsigned int flags);
+
+int virDomainFSFreeze(virDomainPtr dom,
+                      const char **mountpoints,
+                      unsigned int nmountpoints,
+                      unsigned int flags);
+
+int virDomainFSThaw(virDomainPtr dom,
+                    const char **mountpoints,
+                    unsigned int nmountpoints,
+                    unsigned int flags);
+
+int virDomainGetTime(virDomainPtr dom,
+                     long long *seconds,
+                     unsigned int *nseconds,
+                     unsigned int flags);
+
+typedef enum {
+    VIR_DOMAIN_TIME_SYNC = (1 << 0), /* Re-sync domain time from domain's RTC */
+} virDomainSetTimeFlags;
+
+int virDomainSetTime(virDomainPtr dom,
+                     long long seconds,
+                     unsigned int nseconds,
+                     unsigned int flags);
 
 /**
  * virSchedParameterType:

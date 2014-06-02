@@ -607,7 +607,7 @@ struct _virDomainDiskDef {
     int removable; /* enum virDomainFeatureState */
 
     char *mirror;
-    int mirrorFormat; /* enum virStorageFileFormat */
+    int mirrorFormat; /* virStorageFileFormat */
     bool mirroring;
 
     struct {
@@ -635,7 +635,7 @@ struct _virDomainDiskDef {
     int ioeventfd; /* enum virDomainIoEventFd */
     int event_idx; /* enum virDomainVirtioEventIdx */
     int copy_on_read; /* enum virDomainDiskCopyOnRead */
-    int snapshot; /* enum virDomainSnapshotLocation, snapshot_conf.h */
+    int snapshot; /* virDomainSnapshotLocation, snapshot_conf.h */
     int startupPolicy; /* enum virDomainStartupPolicy */
     bool readonly;
     bool shared;
@@ -776,7 +776,7 @@ struct _virDomainFSDef {
     int fsdriver; /* enum virDomainFSDriverType */
     int accessmode; /* enum virDomainFSAccessMode */
     int wrpolicy; /* enum virDomainFSWrpolicy */
-    int format; /* enum virStorageFileFormat */
+    int format; /* virStorageFileFormat */
     unsigned long long usage; /* in bytes */
     char *src;
     char *dst;
@@ -1728,10 +1728,12 @@ struct _virDomainClockDef {
             long long adjustment;
             int basis;
 
-            /* Store the base date (-rtc base=$date, in seconds
-             * since the Epoch) of guest process, internal only
+            /* domain start-time adjustment. This is a
+             * private/internal read-only value that only exists when
+             * a domain is running, and only if the clock
+             * offset='variable'
              */
-            unsigned long long basedate;
+            long long adjustment0;
         } variable;
 
         /* Timezone name, when
@@ -2554,7 +2556,7 @@ VIR_ENUM_DECL(virDomainControllerModelPCI)
 VIR_ENUM_DECL(virDomainControllerModelSCSI)
 VIR_ENUM_DECL(virDomainControllerModelUSB)
 VIR_ENUM_DECL(virDomainFS)
-VIR_ENUM_DECL(virDomainFSDriverType)
+VIR_ENUM_DECL(virDomainFSDriver)
 VIR_ENUM_DECL(virDomainFSAccessMode)
 VIR_ENUM_DECL(virDomainFSWrpolicy)
 VIR_ENUM_DECL(virDomainNet)

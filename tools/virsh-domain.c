@@ -2979,8 +2979,14 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
     size_t i;
     size_t j;
 
-
     ignore_value(vshCommandOptString(cmd, "storage", &vol_string));
+
+    if (!(vol_string || remove_all_storage) && wipe_storage) {
+        vshError(ctl,
+                 _("'--wipe-storage' requires '--storage <string>' or "
+                   "'--remove-all-storage'"));
+        return false;
+    }
 
     if (managed_save) {
         flags |= VIR_DOMAIN_UNDEFINE_MANAGED_SAVE;
@@ -4837,7 +4843,7 @@ static const vshCmdOptDef opts_shutdown[] = {
     },
     {.name = "mode",
      .type = VSH_OT_STRING,
-     .help = N_("shutdown mode: acpi|agent|initctl|signal")
+     .help = N_("shutdown mode: acpi|agent|initctl|signal|paravirt")
     },
     {.name = NULL}
 };
@@ -4872,9 +4878,12 @@ cmdShutdown(vshControl *ctl, const vshCmd *cmd)
             flags |= VIR_DOMAIN_SHUTDOWN_INITCTL;
         } else if (STREQ(mode, "signal")) {
             flags |= VIR_DOMAIN_SHUTDOWN_SIGNAL;
+        } else if (STREQ(mode, "paravirt")) {
+            flags |= VIR_DOMAIN_SHUTDOWN_PARAVIRT;
         } else {
             vshError(ctl, _("Unknown mode %s value, expecting "
-                            "'acpi', 'agent', 'initctl' or 'signal'"), mode);
+                            "'acpi', 'agent', 'initctl', 'signal', "
+                            "or 'paravirt'"), mode);
             goto cleanup;
         }
         tmp++;
@@ -4923,7 +4932,7 @@ static const vshCmdOptDef opts_reboot[] = {
     },
     {.name = "mode",
      .type = VSH_OT_STRING,
-     .help = N_("shutdown mode: acpi|agent|initctl|signal")
+     .help = N_("shutdown mode: acpi|agent|initctl|signal|paravirt")
     },
     {.name = NULL}
 };
@@ -4957,9 +4966,12 @@ cmdReboot(vshControl *ctl, const vshCmd *cmd)
             flags |= VIR_DOMAIN_REBOOT_INITCTL;
         } else if (STREQ(mode, "signal")) {
             flags |= VIR_DOMAIN_REBOOT_SIGNAL;
+        } else if (STREQ(mode, "paravirt")) {
+            flags |= VIR_DOMAIN_REBOOT_PARAVIRT;
         } else {
             vshError(ctl, _("Unknown mode %s value, expecting "
-                            "'acpi', 'agent', 'initctl' or 'signal'"), mode);
+                            "'acpi', 'agent', 'initctl', 'signal' "
+                            "or 'paravirt'"), mode);
             goto cleanup;
         }
         tmp++;
@@ -9386,12 +9398,6 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         passwd = virXPathString(xpath, ctxt);
         VIR_FREE(xpath);
 
-        if (STREQ(scheme[iter], "vnc")) {
-            /* VNC protocol handlers take their port number as
-             * 'port' - 5900 */
-            port -= 5900;
-        }
-
         /* Build up the full URI, starting with the scheme */
         virBufferAsprintf(&buf, "%s://", scheme[iter]);
 
@@ -9410,8 +9416,15 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
             virBufferAsprintf(&buf, "%s", listen_addr);
 
         /* Add the port */
-        if (port)
+        if (port) {
+            if (STREQ(scheme[iter], "vnc")) {
+                /* VNC protocol handlers take their port number as
+                 * 'port' - 5900 */
+                port -= 5900;
+            }
+
             virBufferAsprintf(&buf, ":%d", port);
+        }
 
         /* TLS Port */
         if (tls_port) {
@@ -11391,6 +11404,120 @@ cmdDomFSTrim(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
+static const vshCmdInfo info_domfsfreeze[] = {
+    {.name = "help",
+     .data = N_("Freeze domain's mounted filesystems.")
+    },
+    {.name = "desc",
+     .data = N_("Freeze domain's mounted filesystems.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_domfsfreeze[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "mountpoint",
+     .type = VSH_OT_ARGV,
+     .help = N_("mountpoint path to be frozen")
+    },
+    {.name = NULL}
+};
+static bool
+cmdDomFSFreeze(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    int ret = -1;
+    const vshCmdOpt *opt = NULL;
+    const char **mountpoints = NULL;
+    size_t nmountpoints = 0;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    while ((opt = vshCommandOptArgv(cmd, opt))) {
+        if (VIR_EXPAND_N(mountpoints, nmountpoints, 1) < 0) {
+            vshError(ctl, _("%s: %d: failed to allocate mountpoints"),
+                     __FILE__, __LINE__);
+            goto cleanup;
+        }
+        mountpoints[nmountpoints-1] = opt->data;
+    }
+
+    ret = virDomainFSFreeze(dom, mountpoints, nmountpoints, 0);
+    if (ret < 0) {
+        vshError(ctl, _("Unable to freeze filesystems"));
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("Froze %d filesystem(s)\n"), ret);
+
+ cleanup:
+    VIR_FREE(mountpoints);
+    virDomainFree(dom);
+    return ret >= 0;
+}
+
+static const vshCmdInfo info_domfsthaw[] = {
+    {.name = "help",
+     .data = N_("Thaw domain's mounted filesystems.")
+    },
+    {.name = "desc",
+     .data = N_("Thaw domain's mounted filesystems.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_domfsthaw[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "mountpoint",
+     .type = VSH_OT_ARGV,
+     .help = N_("mountpoint path to be thawed")
+    },
+    {.name = NULL}
+};
+static bool
+cmdDomFSThaw(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    int ret = -1;
+    const vshCmdOpt *opt = NULL;
+    const char **mountpoints = NULL;
+    size_t nmountpoints = 0;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    while ((opt = vshCommandOptArgv(cmd, opt))) {
+        if (VIR_EXPAND_N(mountpoints, nmountpoints, 1) < 0) {
+            vshError(ctl, _("%s: %d: failed to allocate mountpoints"),
+                     __FILE__, __LINE__);
+            goto cleanup;
+        }
+        mountpoints[nmountpoints-1] = opt->data;
+    }
+
+    ret = virDomainFSThaw(dom, mountpoints, nmountpoints, 0);
+    if (ret < 0) {
+        vshError(ctl, _("Unable to thaw filesystems"));
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("Thawed %d filesystem(s)\n"), ret);
+
+ cleanup:
+    VIR_FREE(mountpoints);
+    virDomainFree(dom);
+    return ret >= 0;
+}
+
 const vshCmdDef domManagementCmds[] = {
     {.name = "attach-device",
      .handler = cmdAttachDevice,
@@ -11536,6 +11663,18 @@ const vshCmdDef domManagementCmds[] = {
      .handler = cmdDomDisplay,
      .opts = opts_domdisplay,
      .info = info_domdisplay,
+     .flags = 0
+    },
+    {.name = "domfsfreeze",
+     .handler = cmdDomFSFreeze,
+     .opts = opts_domfsfreeze,
+     .info = info_domfsfreeze,
+     .flags = 0
+    },
+    {.name = "domfsthaw",
+     .handler = cmdDomFSThaw,
+     .opts = opts_domfsthaw,
+     .info = info_domfsthaw,
      .flags = 0
     },
     {.name = "domfstrim",

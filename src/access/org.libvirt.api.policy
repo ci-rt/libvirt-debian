@@ -157,9 +157,18 @@
       <allow_active>no</allow_active>
     </defaults>
   </action>
+  <action id="org.libvirt.api.domain.fs-freeze">
+    <description>Freeze and thaw domain filesystems</description>
+    <message>Freezing and thawing domain filesystems requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
   <action id="org.libvirt.api.domain.fs-trim">
     <description>Trim domain filesystems</description>
-    <message>Trimming domain filesystems require authorization</message>
+    <message>Trimming domain filesystems requires authorization</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -313,6 +322,15 @@
   <action id="org.libvirt.api.domain.send-signal">
     <description>Send domain signal</description>
     <message>Sending signals to processes in domain requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.domain.set-time">
+    <description>Write domain time</description>
+    <message>Setting the domain time requires authorization</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>

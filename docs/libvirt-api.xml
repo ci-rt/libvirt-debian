@@ -472,6 +472,7 @@
      <exports symbol='VIR_DOMAIN_REBOOT_DEFAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_REBOOT_GUEST_AGENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_REBOOT_INITCTL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_REBOOT_PARAVIRT' type='enum'/>
      <exports symbol='VIR_DOMAIN_REBOOT_SIGNAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_BOOTED' type='enum'/>
@@ -500,6 +501,7 @@
      <exports symbol='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_INITCTL' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTDOWN_PARAVIRT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_SIGNAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_USER' type='enum'/>
@@ -543,6 +545,7 @@
      <exports symbol='VIR_DOMAIN_START_BYPASS_CACHE' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_FORCE_BOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_PAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_TIME_SYNC' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_CONFIG' type='enum'/>
@@ -785,6 +788,7 @@
      <exports symbol='virDomainRebootFlagValues' type='typedef'/>
      <exports symbol='virDomainRunningReason' type='typedef'/>
      <exports symbol='virDomainSaveRestoreFlags' type='typedef'/>
+     <exports symbol='virDomainSetTimeFlags' type='typedef'/>
      <exports symbol='virDomainShutdownFlagValues' type='typedef'/>
      <exports symbol='virDomainShutdownReason' type='typedef'/>
      <exports symbol='virDomainShutoffReason' type='typedef'/>
@@ -991,6 +995,8 @@
      <exports symbol='virDomainDestroyFlags' type='function'/>
      <exports symbol='virDomainDetachDevice' type='function'/>
      <exports symbol='virDomainDetachDeviceFlags' type='function'/>
+     <exports symbol='virDomainFSFreeze' type='function'/>
+     <exports symbol='virDomainFSThaw' type='function'/>
      <exports symbol='virDomainFSTrim' type='function'/>
      <exports symbol='virDomainFree' type='function'/>
      <exports symbol='virDomainGetAutostart' type='function'/>
@@ -1022,6 +1028,7 @@
      <exports symbol='virDomainGetSecurityLabel' type='function'/>
      <exports symbol='virDomainGetSecurityLabelList' type='function'/>
      <exports symbol='virDomainGetState' type='function'/>
+     <exports symbol='virDomainGetTime' type='function'/>
      <exports symbol='virDomainGetUUID' type='function'/>
      <exports symbol='virDomainGetUUIDString' type='function'/>
      <exports symbol='virDomainGetVcpuPinInfo' type='function'/>
@@ -1090,6 +1097,7 @@
      <exports symbol='virDomainSetNumaParameters' type='function'/>
      <exports symbol='virDomainSetSchedulerParameters' type='function'/>
      <exports symbol='virDomainSetSchedulerParametersFlags' type='function'/>
+     <exports symbol='virDomainSetTime' type='function'/>
      <exports symbol='virDomainSetVcpus' type='function'/>
      <exports symbol='virDomainSetVcpusFlags' type='function'/>
      <exports symbol='virDomainShutdown' type='function'/>
@@ -2234,6 +2242,7 @@ power management'/>
     <enum name='VIR_DOMAIN_REBOOT_DEFAULT' file='libvirt' value='0' type='virDomainRebootFlagValues' info='hypervisor choice'/>
     <enum name='VIR_DOMAIN_REBOOT_GUEST_AGENT' file='libvirt' value='2' type='virDomainRebootFlagValues' info='Use guest agent'/>
     <enum name='VIR_DOMAIN_REBOOT_INITCTL' file='libvirt' value='4' type='virDomainRebootFlagValues' info='Use initctl'/>
+    <enum name='VIR_DOMAIN_REBOOT_PARAVIRT' file='libvirt' value='16' type='virDomainRebootFlagValues' info='Use paravirt guest control'/>
     <enum name='VIR_DOMAIN_REBOOT_SIGNAL' file='libvirt' value='8' type='virDomainRebootFlagValues' info='Send a signal'/>
     <enum name='VIR_DOMAIN_RUNNING' file='libvirt' value='1' type='virDomainState' info='the domain is running'/>
     <enum name='VIR_DOMAIN_RUNNING_BOOTED' file='libvirt' value='1' type='virDomainRunningReason' info='normal startup from boot'/>
@@ -2263,6 +2272,7 @@ wakeup event'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT' file='libvirt' value='2' type='virDomainShutdownFlagValues' info='Use guest agent'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_INITCTL' file='libvirt' value='4' type='virDomainShutdownFlagValues' info='Use initctl'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_LAST' file='libvirt' value='2' type='virDomainShutdownReason'/>
+    <enum name='VIR_DOMAIN_SHUTDOWN_PARAVIRT' file='libvirt' value='16' type='virDomainShutdownFlagValues' info='Use paravirt guest control'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_SIGNAL' file='libvirt' value='8' type='virDomainShutdownFlagValues' info='Send a signal'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_UNKNOWN' file='libvirt' value='0' type='virDomainShutdownReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_USER' file='libvirt' value='1' type='virDomainShutdownReason' info='shutting down on user request'/>
@@ -2339,6 +2349,7 @@ listing a domain'/>
     <enum name='VIR_DOMAIN_START_BYPASS_CACHE' file='libvirt' value='4' type='virDomainCreateFlags' info='Avoid file system cache pollution'/>
     <enum name='VIR_DOMAIN_START_FORCE_BOOT' file='libvirt' value='8' type='virDomainCreateFlags' info='Boot, discarding any managed save'/>
     <enum name='VIR_DOMAIN_START_PAUSED' file='libvirt' value='1' type='virDomainCreateFlags' info='Launch guest in paused state'/>
+    <enum name='VIR_DOMAIN_TIME_SYNC' file='libvirt' value='1' type='virDomainSetTimeFlags' info='Re-sync domain time from domain&apos;s RTC'/>
     <enum name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' file='libvirt' value='1' type='virDomainUndefineFlagsValues' info='Also remove any
 managed save'/>
     <enum name='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' file='libvirt' value='2' type='virDomainUndefineFlagsValues' info='If last use of domain,
@@ -2893,6 +2904,7 @@ and ERROR states)'/>
     <typedef name='virDomainRebootFlagValues' file='libvirt' type='enum'/>
     <typedef name='virDomainRunningReason' file='libvirt' type='enum'/>
     <typedef name='virDomainSaveRestoreFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainSetTimeFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainShutdownFlagValues' file='libvirt' type='enum'/>
     <typedef name='virDomainShutdownReason' file='libvirt' type='enum'/>
     <typedef name='virDomainShutoffReason' file='libvirt' type='enum'/>
@@ -3934,8 +3946,15 @@ to match the signature of this method.
 
 The virNetworkPtr object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
-If the callback wishes to keep the network object after the callback]]></info>
-      <return type='int' info='it shall take a reference to it, by calling virNetworkRef(). The reference can be released once the object is no longer required by calling virNetworkFree().  The return value from this method is a positive integer identifier for the callback. To unregister a callback, this callback ID should be passed to the virConnectNetworkEventDeregisterAny() method.  Returns a callback identifier on success, -1 on failure.'/>
+If the callback wishes to keep the network object after the callback
+returns, it shall take a reference to it, by calling virNetworkRef().
+The reference can be released once the object is no longer required
+by calling virNetworkFree().
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virConnectNetworkEventDeregisterAny() method.]]></info>
+      <return type='int' info='a callback identifier on success, -1 on failure.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='net' type='virNetworkPtr' info='pointer to the network'/>
       <arg name='eventID' type='int' info='the event type to receive'/>
@@ -4208,7 +4227,7 @@ top-most file; restrictions may differ for online vs. offline domains.
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or the device target shorthand (the
-<target dev='...'/> sub-element, such as "xvda").  Valid names
+<target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
@@ -4240,7 +4259,7 @@ The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
-(the <target dev='...'/> sub-element, such as "xvda").  Valid names
+(the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
@@ -4278,7 +4297,7 @@ bandwidth is 0, the limit will revert to the hypervisor default.
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
-(the <target dev='...'/> sub-element, such as "xvda").  Valid names
+(the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.]]></info>
       <return type='int' info='-1 in case of failure, 0 when successful.'/>
@@ -4304,7 +4323,7 @@ Hence the need for this call).
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
-(the <target dev='...'/> sub-element, such as "xvda").  Valid names
+(the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
@@ -4340,7 +4359,7 @@ data in the opposite direction, see virDomainBlockCommit().
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
-(the <target dev='...'/> sub-element, such as "xvda").  Valid names
+(the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
@@ -4413,7 +4432,7 @@ also restrict a copy job to transient domains.
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or the device target shorthand (the
-<target dev='...'/> sub-element, such as "xvda").  Valid names
+<target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
@@ -4452,7 +4471,7 @@ to the next alignment boundary.
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
-(the <target dev='...'/> sub-element, such as "xvda").  Valid names
+(the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
@@ -4470,7 +4489,7 @@ hypervisor.]]></info>
 devices attached to the domain.
 
 The @disk parameter is either the device target shorthand (the
-<target dev='...'/> sub-element, such as "xvda"), or (since 0.9.8)
+<target dev='...'/> sub-element, such as "vda"), or (since 0.9.8)
 an unambiguous source name of the block device (the <source
 file='...'/> sub-element, such as "/path/to/image").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
@@ -4495,7 +4514,7 @@ that particular statistic.]]></info>
 devices attached to the domain.
 
 The @disk parameter is either the device target shorthand (the
-<target dev='...'/> sub-element, such as "xvda"), or (since 0.9.8)
+<target dev='...'/> sub-element, such as "vda"), or (since 0.9.8)
 an unambiguous source name of the block device (the <source
 file='...'/> sub-element, such as "/path/to/image").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
@@ -4814,11 +4833,42 @@ configuration before it was actually removed by the hypervisor causing
 various failures on subsequent operations. To check whether the device was
 successfully removed, either recheck domain configuration using
 virDomainGetXMLDesc() or add handler for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED
-event. In case the device is already gone when virDomainDetachDeviceFlags]]></info>
-      <return type='int' info='the event is delivered before this API call ends. To help existing clients work better in most cases, this API will try to transform an asynchronous device removal that finishes shortly after the request into a synchronous removal. In other words, this API may wait a bit for the removal to complete in case it was not synchronous.  Be aware that hotplug changes might not persist across a domain going into S4 state (also known as hibernation) unless you also modify the persistent domain definition.  Returns 0 in case of success, -1 in case of failure.'/>
+event. In case the device is already gone when virDomainDetachDeviceFlags
+returns, the event is delivered before this API call ends. To help existing
+clients work better in most cases, this API will try to transform an
+asynchronous device removal that finishes shortly after the request into
+a synchronous removal. In other words, this API may wait a bit for the
+removal to complete in case it was not synchronous.
+
+Be aware that hotplug changes might not persist across a domain going
+into S4 state (also known as hibernation) unless you also modify the
+persistent domain definition.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
+    </function>
+    <function name='virDomainFSFreeze' file='libvirt' module='libvirt'>
+      <info><![CDATA[Freeze specified filesystems within the guest (hence guest agent
+may be required depending on hypervisor used). If @mountpoints is NULL and
+@nmountpoints is 0, every mounted filesystem on the guest is frozen.
+In some environments (e.g. QEMU guest with guest agent which doesn't
+support mountpoints argument), @mountpoints may need to be NULL.]]></info>
+      <return type='int' info='the number of frozen filesystems on success, -1 otherwise.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='mountpoints' type='const char **' info='list of mount points to be frozen'/>
+      <arg name='nmountpoints' type='unsigned int' info='the number of mount points specified in @mountpoints'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainFSThaw' file='libvirt' module='libvirt'>
+      <info><![CDATA[Thaw specified filesystems within the guest. If @mountpoints is NULL and
+@nmountpoints is 0, every mounted filesystem on the guest is thawed.
+In some drivers (e.g. QEMU driver), @mountpoints may need to be NULL.]]></info>
+      <return type='int' info='the number of thawed filesystems on success, -1 otherwise.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='mountpoints' type='const char **' info='list of mount points to be thawed'/>
+      <arg name='nmountpoints' type='unsigned int' info='the number of mount points specified in @mountpoints'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainFSTrim' file='libvirt' module='libvirt'>
       <info><![CDATA[Calls FITRIM within the guest (hence guest agent may be
@@ -4878,7 +4928,7 @@ expects the caller to allocate the @params.]]></info>
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
-(the <target dev='...'/> sub-element, such as "xvda").  Valid names
+(the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
@@ -4976,7 +5026,7 @@ unless @nparams is 0 on input.]]></info>
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
-(the <target dev='...'/> sub-element, such as "xvda").  Valid names
+(the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.]]></info>
       <return type='int' info='-1 in case of failure, 0 when nothing found, 1 when info was found.'/>
@@ -5074,8 +5124,17 @@ subelement in domain XML), such as "vda", and accompanied with the error
 that was seen on it.  The caller is also responsible for calling free()
 on each disk name returned.
 
-In a special case when @errors is NULL and @maxerrors is 0, the function]]></info>
-      <return type='int' info='preferred size of @errors that the caller should use to get all disk errors.  Since calling virDomainGetDiskErrors(dom, NULL, 0, 0) to get preferred size of @errors array and getting the errors are two separate operations, new disks may be hotplugged to the domain and new errors may be encountered between the two calls.  Thus, this function may not return all disk errors because the supplied array is not large enough.  Such errors may, however, be detected by listening to domain events.  Returns number of disks with errors filled in the @errors array or -1 on error.'/>
+In a special case when @errors is NULL and @maxerrors is 0, the function
+returns preferred size of @errors that the caller should use to get all
+disk errors.
+
+Since calling virDomainGetDiskErrors(dom, NULL, 0, 0) to get preferred size
+of @errors array and getting the errors are two separate operations, new
+disks may be hotplugged to the domain and new errors may be encountered
+between the two calls.  Thus, this function may not return all disk errors
+because the supplied array is not large enough.  Such errors may, however,
+be detected by listening to domain events.]]></info>
+      <return type='int' info='number of disks with errors filled in the @errors array or -1 on error.'/>
       <arg name='dom' type='virDomainPtr' info='a domain object'/>
       <arg name='errors' type='virDomainDiskErrorPtr' info='array to populate on output'/>
       <arg name='maxerrors' type='unsigned int' info='size of @errors array'/>
@@ -5221,7 +5280,7 @@ without having to go through virDomainGetXMLDesc().
 configuration will be queried.]]></info>
       <return type='char *' info='the metadata string on success (caller must free), or NULL in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='type' type='int' info='type of description, from virDomainMetadataType'/>
+      <arg name='type' type='int' info='type of metadata, from virDomainMetadataType'/>
       <arg name='uri' type='const char *' info='XML namespace identifier'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
@@ -5325,6 +5384,19 @@ which led to the state.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='state' type='int *' info='returned state of the domain (one of virDomainState)'/>
       <arg name='reason' type='int *' info='returned reason which led to @state (one of virDomain*Reason corresponding to the current state); it is allowed to be NULL'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainGetTime' file='libvirt' module='libvirt'>
+      <info><![CDATA[Extract information about guest time and store it into
+@seconds and @nseconds. The @seconds represents the number of
+seconds since the UNIX Epoch of 1970-01-01 00:00:00 in UTC.
+
+Please note that some hypervisors may require guest agent to
+be configured and running in order to run this API.]]></info>
+      <return type='int' info='0 on success, -1 otherwise.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='seconds' type='long long *' info='domain&apos;s time in seconds'/>
+      <arg name='nseconds' type='unsigned int *' info='the nanoscond part of @seconds'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainGetUUID' file='libvirt' module='libvirt'>
@@ -6585,7 +6657,7 @@ Not all hypervisors can support all flag combinations.]]></info>
     </function>
     <function name='virDomainSetMetadata' file='libvirt' module='libvirt'>
       <info><![CDATA[Sets the appropriate domain element given by @type to the
-value of @description.  A @type of VIR_DOMAIN_METADATA_DESCRIPTION
+value of @metadata.  A @type of VIR_DOMAIN_METADATA_DESCRIPTION
 is free-form text; VIR_DOMAIN_METADATA_TITLE is free-form, but no
 newlines are permitted, and should be short (although the length is
 not enforced). For these two options @key and @uri are irrelevant and
@@ -6604,7 +6676,7 @@ as well as quick access through virDomainGetMetadata().
 or both will be modified.]]></info>
       <return type='int' info='0 on success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='type' type='int' info='type of description, from virDomainMetadataType'/>
+      <arg name='type' type='int' info='type of metadata, from virDomainMetadataType'/>
       <arg name='metadata' type='const char *' info='new metadata text'/>
       <arg name='key' type='const char *' info='XML namespace key, or NULL'/>
       <arg name='uri' type='const char *' info='XML namespace URI, or NULL'/>
@@ -6640,6 +6712,24 @@ flags are supported.]]></info>
       <arg name='params' type='virTypedParameterPtr' info='pointer to scheduler parameter objects'/>
       <arg name='nparams' type='int' info='number of scheduler parameter objects (this value can be the same or less than the returned value nparams of virDomainGetSchedulerType)'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
+    <function name='virDomainSetTime' file='libvirt' module='libvirt'>
+      <info><![CDATA[When a domain is suspended or restored from a file the
+domain's OS has no idea that there was a big gap in the time.
+Depending on how long the gap was, NTP might not be able to
+resynchronize the guest.
+
+This API tries to set guest time to the given value. The time
+to set (@seconds and @nseconds) should be in seconds relative
+to the Epoch of 1970-01-01 00:00:00 in UTC.
+
+Please note that some hypervisors may require guest agent to
+be configured and running in order to be able to run this API.]]></info>
+      <return type='int' info='0 on success, -1 otherwise.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='seconds' type='long long' info='time to set'/>
+      <arg name='nseconds' type='unsigned int' info='the nanosecond part of @seconds'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainSetTimeFlags'/>
     </function>
     <function name='virDomainSetVcpus' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.

@@ -1483,7 +1483,7 @@ storageVolLookupByPath(virConnectPtr conn,
            continue;
         }
 
-        switch ((enum virStoragePoolType) pool->def->type) {
+        switch ((virStoragePoolType) pool->def->type) {
             case VIR_STORAGE_POOL_DIR:
             case VIR_STORAGE_POOL_FS:
             case VIR_STORAGE_POOL_NETFS:
@@ -1640,6 +1640,13 @@ storageVolDelete(virStorageVolPtr obj,
     if (virStorageVolDeleteEnsureACL(obj->conn, pool->def, vol) < 0)
         goto cleanup;
 
+    if (vol->in_use) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("volume '%s' is still in use."),
+                       vol->name);
+        goto cleanup;
+    }
+
     if (vol->building) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        _("volume '%s' is still being allocated."),
@@ -1759,12 +1766,11 @@ storageVolCreateXML(virStoragePoolPtr obj,
         voldef->building = 0;
         pool->asyncjobs--;
 
-        voldef = NULL;
-
         if (buildret < 0) {
-            storageVolDeleteInternal(volobj, backend, pool, buildvoldef,
+            VIR_FREE(buildvoldef);
+            storageVolDeleteInternal(volobj, backend, pool, voldef,
                                      0, false);
-            buildvoldef = NULL;
+            voldef = NULL;
             goto cleanup;
         }
 
@@ -1912,8 +1918,8 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
 
     /* Drop the pool lock during volume allocation */
     pool->asyncjobs++;
-    origvol->building = 1;
     newvol->building = 1;
+    origvol->in_use++;
     virStoragePoolObjUnlock(pool);
 
     if (origpool) {
@@ -1929,7 +1935,7 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
         virStoragePoolObjLock(origpool);
     storageDriverUnlock(driver);
 
-    origvol->building = 0;
+    origvol->in_use--;
     newvol->building = 0;
     allocation = newvol->target.allocation;
     pool->asyncjobs--;
@@ -2076,6 +2082,13 @@ storageVolUpload(virStorageVolPtr obj,
     if (virStorageVolUploadEnsureACL(obj->conn, pool->def, vol) < 0)
         goto cleanup;
 
+    if (vol->in_use) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("volume '%s' is still in use."),
+                       vol->name);
+        goto cleanup;
+    }
+
     if (vol->building) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        _("volume '%s' is still being allocated."),
@@ -2083,7 +2096,7 @@ storageVolUpload(virStorageVolPtr obj,
         goto cleanup;
     }
 
-    switch ((enum virStoragePoolType) pool->def->type) {
+    switch ((virStoragePoolType) pool->def->type) {
     case VIR_STORAGE_POOL_DIR:
     case VIR_STORAGE_POOL_FS:
     case VIR_STORAGE_POOL_NETFS:
@@ -2166,6 +2179,13 @@ storageVolResize(virStorageVolPtr obj,
 
     if (virStorageVolResizeEnsureACL(obj->conn, pool->def, vol) < 0)
         goto cleanup;
+
+    if (vol->in_use) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("volume '%s' is still in use."),
+                       vol->name);
+        goto cleanup;
+    }
 
     if (vol->building) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -2474,6 +2494,13 @@ storageVolWipePattern(virStorageVolPtr obj,
     if (virStorageVolWipePatternEnsureACL(obj->conn, pool->def, vol) < 0)
         goto cleanup;
 
+    if (vol->in_use) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("volume '%s' is still in use."),
+                       vol->name);
+        goto cleanup;
+    }
+
     if (vol->building) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        _("volume '%s' is still being allocated."),
@@ -2774,12 +2801,36 @@ virStorageFileDeinit(virStorageSourcePtr src)
 }
 
 
+/**
+ * virStorageFileInitAs:
+ *
+ * @src: storage source definition
+ * @uid: uid used to access the file, or -1 for current uid
+ * @gid: gid used to access the file, or -1 for current gid
+ *
+ * Initialize a storage source to be used with storage driver. Use the provided
+ * uid and gid if possible for the operations.
+ *
+ * Returns 0 if the storage file was successfully initialized, -1 if the
+ * initialization failed. Libvirt error is reported.
+ */
 int
-virStorageFileInit(virStorageSourcePtr src)
+virStorageFileInitAs(virStorageSourcePtr src,
+                     uid_t uid, gid_t gid)
 {
     int actualType = virStorageSourceGetActualType(src);
     if (VIR_ALLOC(src->drv) < 0)
         return -1;
+
+    if (uid == (uid_t) -1)
+        src->drv->uid = geteuid();
+    else
+        src->drv->uid = uid;
+
+    if (gid == (gid_t) -1)
+        src->drv->gid = getegid();
+    else
+        src->drv->gid = gid;
 
     if (!(src->drv->backend = virStorageFileBackendForType(actualType,
                                                            src->protocol)))
@@ -2798,6 +2849,19 @@ virStorageFileInit(virStorageSourcePtr src)
 
 
 /**
+ * virStorageFileInit:
+ *
+ * See virStorageFileInitAs. The file is initialized to be accessed by the
+ * current user.
+ */
+int
+virStorageFileInit(virStorageSourcePtr src)
+{
+    return virStorageFileInitAs(src, -1, -1);
+}
+
+
+/**
  * virStorageFileCreate: Creates an empty storage file via storage driver
  *
  * @src: file structure pointing to the file
@@ -2808,13 +2872,20 @@ virStorageFileInit(virStorageSourcePtr src)
 int
 virStorageFileCreate(virStorageSourcePtr src)
 {
+    int ret;
+
     if (!virStorageFileIsInitialized(src) ||
         !src->drv->backend->storageFileCreate) {
         errno = ENOSYS;
         return -2;
     }
 
-    return src->drv->backend->storageFileCreate(src);
+    ret = src->drv->backend->storageFileCreate(src);
+
+    VIR_DEBUG("created storage file %p: ret=%d, errno=%d",
+              src, ret, errno);
+
+    return ret;
 }
 
 
@@ -2831,13 +2902,20 @@ virStorageFileCreate(virStorageSourcePtr src)
 int
 virStorageFileUnlink(virStorageSourcePtr src)
 {
+    int ret;
+
     if (!virStorageFileIsInitialized(src) ||
         !src->drv->backend->storageFileUnlink) {
         errno = ENOSYS;
         return -2;
     }
 
-    return src->drv->backend->storageFileUnlink(src);
+    ret = src->drv->backend->storageFileUnlink(src);
+
+    VIR_DEBUG("unlinked storage file %p: ret=%d, errno=%d",
+              src, ret, errno);
+
+    return ret;
 }
 
 
@@ -2854,11 +2932,58 @@ int
 virStorageFileStat(virStorageSourcePtr src,
                    struct stat *st)
 {
+    int ret;
+
     if (!virStorageFileIsInitialized(src) ||
         !src->drv->backend->storageFileStat) {
         errno = ENOSYS;
         return -2;
     }
 
-    return src->drv->backend->storageFileStat(src, st);
+    ret = src->drv->backend->storageFileStat(src, st);
+
+    VIR_DEBUG("stat of storage file %p: ret=%d, errno=%d",
+              src, ret, errno);
+
+    return ret;
+}
+
+
+/**
+ * virStorageFileReadHeader: read the beginning bytes of a file into a buffer
+ *
+ * @src: file structure pointing to the file
+ * @max_len: maximum number of bytes read from the storage file
+ * @buf: buffer to read the data into. buffer shall be freed by caller)
+ *
+ * Returns the count of bytes read on success and -1 on failure, -2 if the
+ * function isn't supported by the backend. Libvirt error is reported on failure.
+ */
+ssize_t
+virStorageFileReadHeader(virStorageSourcePtr src,
+                         ssize_t max_len,
+                         char **buf)
+{
+    ssize_t ret;
+
+    if (!virStorageFileIsInitialized(src)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("storage file backend not initialized"));
+        return -1;
+    }
+
+    if (!src->drv->backend->storageFileReadHeader) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("storage file header reading is not supported for "
+                         "storage type %s (protocol: %s)"),
+                       virStorageTypeToString(src->type),
+                       virStorageNetProtocolTypeToString(src->protocol));
+        return -2;
+    }
+
+    ret = src->drv->backend->storageFileReadHeader(src, max_len, buf);
+
+    VIR_DEBUG("read of storage header %p: ret=%zd", src, ret);
+
+    return ret;
 }

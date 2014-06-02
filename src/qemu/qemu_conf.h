@@ -163,10 +163,13 @@ struct _virQEMUDriverConfig {
 
     int seccompSandbox;
 
+    char *migrateHost;
     /* The default for -incoming */
     char *migrationAddress;
     int migrationPortMin;
     int migrationPortMax;
+
+    bool logTimestamp;
 };
 
 /* Main driver state */

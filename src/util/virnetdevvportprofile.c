@@ -1139,7 +1139,7 @@ virNetDevVPortProfileAssociate(const char *macvtap_ifname,
                                const char *linkdev,
                                int vf,
                                const unsigned char *vmuuid,
-                               enum virNetDevVPortProfileOp vmOp,
+                               virNetDevVPortProfileOp vmOp,
                                bool setlink_only)
 {
     int rc = 0;
@@ -1202,7 +1202,7 @@ virNetDevVPortProfileDisassociate(const char *macvtap_ifname,
                                   const virMacAddr *macvtap_macaddr,
                                   const char *linkdev,
                                   int vf,
-                                  enum virNetDevVPortProfileOp vmOp)
+                                  virNetDevVPortProfileOp vmOp)
 {
     int rc = 0;
 
@@ -1248,7 +1248,7 @@ int virNetDevVPortProfileAssociate(const char *macvtap_ifname ATTRIBUTE_UNUSED,
                                const char *linkdev ATTRIBUTE_UNUSED,
                                int vf ATTRIBUTE_UNUSED,
                                const unsigned char *vmuuid ATTRIBUTE_UNUSED,
-                               enum virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED,
+                               virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED,
                                bool setlink_only ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
@@ -1261,7 +1261,7 @@ int virNetDevVPortProfileDisassociate(const char *macvtap_ifname ATTRIBUTE_UNUSE
                                       const virMacAddr *macvtap_macaddr ATTRIBUTE_UNUSED,
                                       const char *linkdev ATTRIBUTE_UNUSED,
                                       int vf ATTRIBUTE_UNUSED,
-                                      enum virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED)
+                                      virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Virtual port profile association not supported on this platform"));

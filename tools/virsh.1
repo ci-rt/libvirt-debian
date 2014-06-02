@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2014-04-25" "libvirt-1.2.4" "Virtualization Support"
+.TH VIRSH 1 "2014-05-30" "libvirt-1.2.5" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -972,6 +972,27 @@ also \fBdomblklist\fR for listing these names).
 Output a \s-1URI\s0 which can be used to connect to the graphical display of the
 domain via \s-1VNC, SPICE\s0 or \s-1RDP.\s0 If \fI\-\-include\-password\fR is specified, the
 \&\s-1SPICE\s0 channel password will be included in the \s-1URI.\s0
+.IP "\fBdomfsfreeze\fR \fIdomain\fR [[\fI\-\-mountpoint\fR] \fBmountpoint\fR...]" 4
+.IX Item "domfsfreeze domain [[--mountpoint] mountpoint...]"
+Freeze mounted filesystems within a running domain to prepare for consistent
+snapshots.
+.Sp
+The \fI\-\-mountpoint\fR option takes a parameter \fBmountpoint\fR, which is a
+mount point path of the filesystem to be frozen. This option can occur
+multiple times. If this is not specified, every mounted filesystem is frozen.
+.Sp
+Note: \fBsnapshot-create\fR command has a \fI\-\-quiesce\fR option to freeze
+and thaw the filesystems automatically to keep snapshots consistent.
+\&\fBdomfsfreeze\fR command is only needed when a user wants to utilize the
+native snapshot features of storage devices not supported by libvirt.
+.IP "\fBdomfsthaw\fR \fIdomain\fR [[\fI\-\-mountpoint\fR] \fBmountpoint\fR...]" 4
+.IX Item "domfsthaw domain [[--mountpoint] mountpoint...]"
+Thaw mounted filesystems within a running domain, which have been frozen by
+domfsfreeze command.
+.Sp
+The \fI\-\-mountpoint\fR option takes a parameter \fBmountpoint\fR, which is a
+mount point path of the filesystem to be thawed. This option can occur
+multiple times. If this is not specified, every mounted filesystem is thawed.
 .IP "\fBdomfstrim\fR \fIdomain\fR [\fI\-\-minimum\fR \fBbytes\fR] [\fI\-\-mountpoint mountPoint\fR]" 4
 .IX Item "domfstrim domain [--minimum bytes] [--mountpoint mountPoint]"
 Issue a fstrim command on all mounted filesystems within a running
@@ -1014,6 +1035,22 @@ reason for the state.
 Returns state of an interface to \s-1VMM\s0 used to control a domain.  For
 states other than \*(L"ok\*(R" or \*(L"error\*(R" the command also prints number of
 seconds elapsed since the control interface entered its current state.
+.IP "\fBdomtime\fR \fIdomain\fR { [\fI\-\-now\fR] [\fI\-\-pretty\fR] [\fI\-\-sync\fR] [\fI\-\-time\fR \fBtime\fR] }" 4
+.IX Item "domtime domain { [--now] [--pretty] [--sync] [--time time] }"
+Gets or sets the domain's system time. When run without any arguments
+(but \fIdomain\fR), the current domain's system time is printed out. The
+\&\fI\-\-pretty\fR modifier can be used to print the time in more human
+readable form.
+.Sp
+When \fI\-\-time\fR \fBtime\fR is specified, the domain's time is
+not gotten but set instead. The \fI\-\-now\fR modifier acts like if it was
+an alias for \fI\-\-time\fR \fB\f(CB$now\fB\fR, which means it sets the time that is
+currently on the host virsh is running at. In both cases (setting and
+getting), time is in seconds relative to Epoch of 1970\-01\-01 in \s-1UTC.\s0
+The \fI\-\-sync\fR modifies the set behavior a bit: The time passed is
+ignored, but the time to set is read from domain's \s-1RTC\s0 instead. Please
+note, that some hypervisors may require a guest agent to be configured
+in order to get or set the guest time.
 .IP "\fBdomxml-from-native\fR \fIformat\fR \fIconfig\fR" 4
 .IX Item "domxml-from-native format config"
 Convert the file \fIconfig\fR in the native guest configuration format
@@ -1299,8 +1336,8 @@ The exact behavior of a domain when it reboots is set by the
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the \fI\-\-mode\fR parameter
 can specify a comma separated list which includes \f(CW\*(C`acpi\*(C'\fR, \f(CW\*(C`agent\*(C'\fR,
-\&\f(CW\*(C`initctl\*(C'\fR and \f(CW\*(C`signal\*(C'\fR. The order in which drivers will try each
-mode is undefined, and not related to the order specified to virsh.
+\&\f(CW\*(C`initctl\*(C'\fR, \f(CW\*(C`signal\*(C'\fR and \f(CW\*(C`paravirt\*(C'\fR. The order in which drivers will
+try each mode is undefined, and not related to the order specified to virsh.
 For strict control over ordering, use a single mode at a time and
 repeat the command.
 .IP "\fBreset\fR \fIdomain\fR" 4
@@ -1740,8 +1777,8 @@ snapshot metadata with \fBsnapshot-create\fR.
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the \fI\-\-mode\fR parameter
 can specify a comma separated list which includes \f(CW\*(C`acpi\*(C'\fR, \f(CW\*(C`agent\*(C'\fR,
-\&\f(CW\*(C`initctl\*(C'\fR and \f(CW\*(C`signal\*(C'\fR. The order in which drivers will try each
-mode is undefined, and not related to the order specified to virsh.
+\&\f(CW\*(C`initctl\*(C'\fR, \f(CW\*(C`signal\*(C'\fR and \f(CW\*(C`paravirt\*(C'\fR. The order in which drivers will
+try each mode is undefined, and not related to the order specified to virsh.
 For strict control over ordering, use a single mode at a time and
 repeat the command.
 .IP "\fBstart\fR \fIdomain-name-or-uuid\fR [\fI\-\-console\fR] [\fI\-\-paused\fR] [\fI\-\-autodestroy\fR] [\fI\-\-bypass\-cache\fR] [\fI\-\-force\-boot\fR] [\fI\-\-pass\-fds N,M,...\fR]" 4
@@ -1934,8 +1971,8 @@ an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain
 \&\fBNote\fR: using of partial device definition \s-1XML\s0 files may lead to unexpected
 results as some fields may be autogenerated and thus match devices other than
 expected.
-.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-config\fR] [\fI\-\-sourcetype soucetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-wwn wwn\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR] [\fI\-\-print\-xml\fR]" 4
-.IX Item "attach-disk domain source target [[[--live] [--config] | [--current]] | [--persistent]] [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--config] [--sourcetype soucetype] [--serial serial] [--wwn wwn] [--rawio] [--address address] [--multifunction] [--print-xml]"
+.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-sourcetype sourcetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-wwn wwn\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR] [\fI\-\-print\-xml\fR]" 4
+.IX Item "attach-disk domain source target [[[--live] [--config] | [--current]] | [--persistent]] [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--sourcetype sourcetype] [--serial serial] [--wwn wwn] [--rawio] [--address address] [--multifunction] [--print-xml]"
 Attach a new disk device to the domain.
 \&\fIsource\fR is path for the files and devices. \fItarget\fR controls the bus or
 device under which the disk is exposed to the guest \s-1OS.\s0 It indicates the

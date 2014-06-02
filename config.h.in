@@ -1135,6 +1135,9 @@
 /* Define to 1 if you have the <libintl.h> header file. */
 #undef HAVE_LIBINTL_H
 
+/* Define to 1 if you have the `kvm' library (-lkvm). */
+#undef HAVE_LIBKVM
+
 /* whether the netlink library is available */
 #undef HAVE_LIBNL
 
@@ -2307,6 +2310,10 @@
 
 /* path to directory containing UUCP device lock files */
 #undef VIR_CHRDEV_LOCK_FILE_PATH
+
+/* Define to empty or 'const' depending on how SELinux qualifies its security
+   context parameters */
+#undef VIR_SELINUX_CTX_CONST
 
 /* Define to the absolute path of a shell that does not truncate on <>
    redirection, if /bin/sh does not fit the bill */

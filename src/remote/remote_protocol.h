@@ -79,6 +79,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX 64
 #define REMOTE_DOMAIN_JOB_STATS_MAX 64
 #define REMOTE_CONNECT_CPU_MODELS_MAX 8192
+#define REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX 256
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -3381,6 +3382,26 @@ struct remote_domain_fstrim_args {
 };
 typedef struct remote_domain_fstrim_args remote_domain_fstrim_args;
 
+struct remote_domain_get_time_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_get_time_args remote_domain_get_time_args;
+
+struct remote_domain_get_time_ret {
+        int64_t seconds;
+        u_int nseconds;
+};
+typedef struct remote_domain_get_time_ret remote_domain_get_time_ret;
+
+struct remote_domain_set_time_args {
+        remote_nonnull_domain dom;
+        int64_t seconds;
+        u_int nseconds;
+        u_int flags;
+};
+typedef struct remote_domain_set_time_args remote_domain_set_time_args;
+
 struct remote_domain_migrate_begin3_params_args {
         remote_nonnull_domain dom;
         struct {
@@ -3555,6 +3576,36 @@ struct remote_network_event_lifecycle_msg {
         int detail;
 };
 typedef struct remote_network_event_lifecycle_msg remote_network_event_lifecycle_msg;
+
+struct remote_domain_fsfreeze_args {
+        remote_nonnull_domain dom;
+        struct {
+                u_int mountpoints_len;
+                remote_nonnull_string *mountpoints_val;
+        } mountpoints;
+        u_int flags;
+};
+typedef struct remote_domain_fsfreeze_args remote_domain_fsfreeze_args;
+
+struct remote_domain_fsfreeze_ret {
+        int filesystems;
+};
+typedef struct remote_domain_fsfreeze_ret remote_domain_fsfreeze_ret;
+
+struct remote_domain_fsthaw_args {
+        remote_nonnull_domain dom;
+        struct {
+                u_int mountpoints_len;
+                remote_nonnull_string *mountpoints_val;
+        } mountpoints;
+        u_int flags;
+};
+typedef struct remote_domain_fsthaw_args remote_domain_fsthaw_args;
+
+struct remote_domain_fsthaw_ret {
+        int filesystems;
+};
+typedef struct remote_domain_fsthaw_ret remote_domain_fsthaw_ret;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -3893,6 +3944,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_PMSUSPEND_DISK = 332,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVED = 333,
         REMOTE_PROC_DOMAIN_CORE_DUMP_WITH_FORMAT = 334,
+        REMOTE_PROC_DOMAIN_FSFREEZE = 335,
+        REMOTE_PROC_DOMAIN_FSTHAW = 336,
+        REMOTE_PROC_DOMAIN_GET_TIME = 337,
+        REMOTE_PROC_DOMAIN_SET_TIME = 338,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4410,6 +4465,9 @@ extern  bool_t xdr_remote_node_get_memory_parameters_ret (XDR *, remote_node_get
 extern  bool_t xdr_remote_node_get_cpu_map_args (XDR *, remote_node_get_cpu_map_args*);
 extern  bool_t xdr_remote_node_get_cpu_map_ret (XDR *, remote_node_get_cpu_map_ret*);
 extern  bool_t xdr_remote_domain_fstrim_args (XDR *, remote_domain_fstrim_args*);
+extern  bool_t xdr_remote_domain_get_time_args (XDR *, remote_domain_get_time_args*);
+extern  bool_t xdr_remote_domain_get_time_ret (XDR *, remote_domain_get_time_ret*);
+extern  bool_t xdr_remote_domain_set_time_args (XDR *, remote_domain_set_time_args*);
 extern  bool_t xdr_remote_domain_migrate_begin3_params_args (XDR *, remote_domain_migrate_begin3_params_args*);
 extern  bool_t xdr_remote_domain_migrate_begin3_params_ret (XDR *, remote_domain_migrate_begin3_params_ret*);
 extern  bool_t xdr_remote_domain_migrate_prepare3_params_args (XDR *, remote_domain_migrate_prepare3_params_args*);
@@ -4429,6 +4487,10 @@ extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote
 extern  bool_t xdr_remote_connect_network_event_register_any_ret (XDR *, remote_connect_network_event_register_any_ret*);
 extern  bool_t xdr_remote_connect_network_event_deregister_any_args (XDR *, remote_connect_network_event_deregister_any_args*);
 extern  bool_t xdr_remote_network_event_lifecycle_msg (XDR *, remote_network_event_lifecycle_msg*);
+extern  bool_t xdr_remote_domain_fsfreeze_args (XDR *, remote_domain_fsfreeze_args*);
+extern  bool_t xdr_remote_domain_fsfreeze_ret (XDR *, remote_domain_fsfreeze_ret*);
+extern  bool_t xdr_remote_domain_fsthaw_args (XDR *, remote_domain_fsthaw_args*);
+extern  bool_t xdr_remote_domain_fsthaw_ret (XDR *, remote_domain_fsthaw_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -4943,6 +5005,9 @@ extern bool_t xdr_remote_node_get_memory_parameters_ret ();
 extern bool_t xdr_remote_node_get_cpu_map_args ();
 extern bool_t xdr_remote_node_get_cpu_map_ret ();
 extern bool_t xdr_remote_domain_fstrim_args ();
+extern bool_t xdr_remote_domain_get_time_args ();
+extern bool_t xdr_remote_domain_get_time_ret ();
+extern bool_t xdr_remote_domain_set_time_args ();
 extern bool_t xdr_remote_domain_migrate_begin3_params_args ();
 extern bool_t xdr_remote_domain_migrate_begin3_params_ret ();
 extern bool_t xdr_remote_domain_migrate_prepare3_params_args ();
@@ -4962,6 +5027,10 @@ extern bool_t xdr_remote_connect_network_event_register_any_args ();
 extern bool_t xdr_remote_connect_network_event_register_any_ret ();
 extern bool_t xdr_remote_connect_network_event_deregister_any_args ();
 extern bool_t xdr_remote_network_event_lifecycle_msg ();
+extern bool_t xdr_remote_domain_fsfreeze_args ();
+extern bool_t xdr_remote_domain_fsfreeze_ret ();
+extern bool_t xdr_remote_domain_fsthaw_args ();
+extern bool_t xdr_remote_domain_fsthaw_ret ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

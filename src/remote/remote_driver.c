@@ -7435,6 +7435,39 @@ remoteDomainCreateWithFiles(virDomainPtr dom,
     return rv;
 }
 
+static int
+remoteDomainGetTime(virDomainPtr dom,
+                    long long *seconds,
+                    unsigned int *nseconds,
+                    unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_time_args args;
+    remote_domain_get_time_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    *seconds = *nseconds = 0;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_TIME,
+             (xdrproc_t) xdr_remote_domain_get_time_args, (char *) &args,
+             (xdrproc_t) xdr_remote_domain_get_time_ret, (char *) &ret) == -1)
+        goto cleanup;
+
+    *seconds = ret.seconds;
+    *nseconds = ret.nseconds;
+    xdr_free((xdrproc_t) &xdr_remote_domain_get_time_ret, (char *) &ret);
+    rv = 0;
+
+ cleanup:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
@@ -7768,6 +7801,10 @@ static virDriver remote_driver = {
     .domainMigrateFinish3Params = remoteDomainMigrateFinish3Params, /* 1.1.0 */
     .domainMigrateConfirm3Params = remoteDomainMigrateConfirm3Params, /* 1.1.0 */
     .connectGetCPUModelNames = remoteConnectGetCPUModelNames, /* 1.1.3 */
+    .domainFSFreeze = remoteDomainFSFreeze, /* 1.2.5 */
+    .domainFSThaw = remoteDomainFSThaw, /* 1.2.5 */
+    .domainGetTime = remoteDomainGetTime, /* 1.2.5 */
+    .domainSetTime = remoteDomainSetTime, /* 1.2.5 */
 };
 
 static virNetworkDriver network_driver = {
