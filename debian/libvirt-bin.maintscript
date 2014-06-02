@@ -1,0 +1,2 @@
+mv_conffile /etc/default/libvirt-bin /etc/default/libvirtd 1.2.5-1~
+mv_conffile /etc/init.d/libvirt-bin /etc/init.d/libvirtd 1.2.5-1~
