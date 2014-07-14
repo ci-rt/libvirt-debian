@@ -4172,16 +4172,37 @@
       <empty/>
     </element>
   </define>
+
   <define name='diskMirror'>
     <element name='mirror'>
-      <attribute name='file'>
-        <ref name='absFilePath'/>
-      </attribute>
-      <optional>
-        <attribute name='format'>
-          <ref name='storageFormat'/>
-        </attribute>
-      </optional>
+      <choice>
+        <group> <!-- old format, for block copy back-compat -->
+          <attribute name='file'>
+            <ref name='absFilePath'/>
+          </attribute>
+          <optional>
+            <attribute name='format'>
+              <ref name='storageFormat'/>
+            </attribute>
+          </optional>
+          <optional>
+            <interleave>
+              <ref name='diskSourceFile'/>
+              <optional>
+                <ref name="diskFormat"/>
+              </optional>
+            </interleave>
+          </optional>
+        </group>
+        <group> <!-- preferred format -->
+          <interleave>
+            <ref name="diskSource"/>
+            <optional>
+              <ref name="diskFormat"/>
+            </optional>
+          </interleave>
+        </group>
+      </choice>
       <optional>
         <attribute name='ready'>
           <value>yes</value>

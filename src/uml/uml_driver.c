@@ -430,6 +430,16 @@ umlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         dev->data.chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_NONE)
         dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML;
 
+    /* forbid capabilities mode hostdev in this kind of hypervisor */
+    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV &&
+        dev->data.hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("hostdev mode 'capabilities' is not "
+                         "supported in %s"),
+                       virDomainVirtTypeToString(def->virtType));
+        return -1;
+    }
+
     return 0;
 }
 
@@ -2806,10 +2816,15 @@ umlNodeGetCellsFreeMemory(virConnectPtr conn,
 static unsigned long long
 umlNodeGetFreeMemory(virConnectPtr conn)
 {
+    unsigned long long freeMem;
+
     if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
         return 0;
 
-    return nodeGetFreeMemory();
+    if (nodeGetMemory(NULL, &freeMem) < 0)
+        return 0;
+
+    return freeMem;
 }
 
 
@@ -2862,6 +2877,24 @@ umlNodeSuspendForDuration(virConnectPtr conn,
         return -1;
 
     return nodeSuspendForDuration(target, duration, flags);
+}
+
+
+static int
+umlNodeGetFreePages(virConnectPtr conn,
+                    unsigned int npages,
+                    unsigned int *pages,
+                    int startCell,
+                    unsigned int cellCount,
+                    unsigned long long *counts,
+                    unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+    if (virNodeGetFreePagesEnsureACL(conn) < 0)
+        return -1;
+
+    return nodeGetFreePages(npages, pages, startCell, cellCount, counts);
 }
 
 
@@ -2926,6 +2959,7 @@ static virDriver umlDriver = {
     .nodeSuspendForDuration = umlNodeSuspendForDuration, /* 0.9.8 */
     .nodeGetMemoryParameters = umlNodeGetMemoryParameters, /* 0.10.2 */
     .nodeSetMemoryParameters = umlNodeSetMemoryParameters, /* 0.10.2 */
+    .nodeGetFreePages = umlNodeGetFreePages, /* 1.2.6 */
 };
 
 static virStateDriver umlStateDriver = {

@@ -28,6 +28,7 @@
 
 #include <selinux/selinux.h>
 #include <selinux/context.h>
+#include <attr/xattr.h>
 
 #include "internal.h"
 #include "testutils.h"
@@ -56,6 +57,37 @@ struct testSELinuxFile {
     char *context;
 };
 
+static int
+testUserXattrEnabled(void)
+{
+    int ret = -1;
+    ssize_t len;
+    const char *con_value = "system_u:object_r:svirt_image_t:s0:c41,c264";
+    char *path = NULL;
+    if (virAsprintf(&path, "%s/securityselinuxlabeldata/testxattr",
+                    abs_builddir) < 0)
+        goto cleanup;
+
+    if (virFileMakePath(abs_builddir "/securityselinuxlabeldata") < 0 ||
+        virFileTouch(path, 0600) < 0)
+        goto cleanup;
+
+    len = setxattr(path, "user.libvirt.selinux", con_value,
+                   strlen(con_value), 0);
+    if (len < 0) {
+        if (errno == EOPNOTSUPP)
+            ret = 0;
+        goto cleanup;
+    }
+
+    ret = 1;
+
+ cleanup:
+    unlink(path);
+    rmdir(abs_builddir "/securityselinuxlabeldata");
+    VIR_FREE(path);
+    return ret;
+}
 
 static int
 testSELinuxMungePath(char **path)
@@ -169,11 +201,11 @@ testSELinuxLoadDef(const char *testname)
         goto cleanup;
 
     for (i = 0; i < def->ndisks; i++) {
-        if (def->disks[i]->src.type != VIR_STORAGE_TYPE_FILE &&
-            def->disks[i]->src.type != VIR_STORAGE_TYPE_BLOCK)
+        if (def->disks[i]->src->type != VIR_STORAGE_TYPE_FILE &&
+            def->disks[i]->src->type != VIR_STORAGE_TYPE_BLOCK)
             continue;
 
-        if (testSELinuxMungePath(&def->disks[i]->src.path) < 0)
+        if (testSELinuxMungePath(&def->disks[i]->src->path) < 0)
             goto cleanup;
     }
 
@@ -321,6 +353,12 @@ static int
 mymain(void)
 {
     int ret = 0;
+    int rc = testUserXattrEnabled();
+
+    if (rc < 0)
+        return EXIT_FAILURE;
+    if (!rc)
+        return EXIT_AM_SKIP;
 
     if (!(mgr = virSecurityManagerNew("selinux", "QEMU", false, true, false))) {
         virErrorPtr err = virGetLastError();

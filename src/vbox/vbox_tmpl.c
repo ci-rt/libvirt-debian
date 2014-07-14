@@ -43,6 +43,7 @@
 #include "datatypes.h"
 #include "domain_conf.h"
 #include "snapshot_conf.h"
+#include "vbox_snapshot_conf.h"
 #include "network_conf.h"
 #include "virerror.h"
 #include "domain_event.h"
@@ -58,6 +59,8 @@
 #include "fdstream.h"
 #include "viruri.h"
 #include "virstring.h"
+#include "virtime.h"
+#include "virutil.h"
 
 /* This one changes from version to version. */
 #if VBOX_API_VERSION == 2002000
@@ -2768,7 +2771,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
             if ((def->ndisks > 0) && (VIR_ALLOC_N(def->disks, def->ndisks) >= 0)) {
                 for (i = 0; i < def->ndisks; i++) {
-                    if (VIR_ALLOC(def->disks[i]) >= 0) {
+                    if ((def->disks[i] = virDomainDiskDefNew())) {
                         def->disks[i]->device = VIR_DOMAIN_DISK_DEVICE_DISK;
                         def->disks[i]->bus = VIR_DOMAIN_DISK_BUS_IDE;
                         virDomainDiskSetType(def->disks[i],
@@ -2869,10 +2872,12 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
             /* Allocate mem, if fails return error */
             if (VIR_ALLOC_N(def->disks, def->ndisks) >= 0) {
                 for (i = 0; i < def->ndisks; i++) {
-                    if (VIR_ALLOC(def->disks[i]) < 0) {
+                    virDomainDiskDefPtr disk = virDomainDiskDefNew();
+                    if (!disk) {
                         error = true;
                         break;
                     }
+                    def->disks[i] = disk;
                 }
             } else {
                 error = true;
@@ -3247,7 +3252,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
                         def->ndisks++;
                         if (VIR_REALLOC_N(def->disks, def->ndisks) >= 0) {
-                            if (VIR_ALLOC(def->disks[def->ndisks - 1]) >= 0) {
+                            if ((def->disks[def->ndisks - 1] = virDomainDiskDefNew())) {
                                 def->disks[def->ndisks - 1]->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
                                 def->disks[def->ndisks - 1]->bus = VIR_DOMAIN_DISK_BUS_IDE;
                                 virDomainDiskSetType(def->disks[def->ndisks - 1],
@@ -3294,7 +3299,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
                             def->ndisks++;
                             if (VIR_REALLOC_N(def->disks, def->ndisks) >= 0) {
-                                if (VIR_ALLOC(def->disks[def->ndisks - 1]) >= 0) {
+                                if ((def->disks[def->ndisks - 1] = virDomainDiskDefNew())) {
                                     def->disks[def->ndisks - 1]->device = VIR_DOMAIN_DISK_DEVICE_FLOPPY;
                                     def->disks[def->ndisks - 1]->bus = VIR_DOMAIN_DISK_BUS_FDC;
                                     virDomainDiskSetType(def->disks[def->ndisks - 1],
@@ -6013,6 +6018,963 @@ vboxDomainSnapshotGet(vboxGlobalData *data,
     return snapshot;
 }
 
+#if VBOX_API_VERSION >= 4002000
+static int vboxCloseDisksRecursively(virDomainPtr dom, char *location)
+{
+    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    nsresult rc;
+    size_t i = 0;
+    PRUnichar *locationUtf = NULL;
+    IMedium *medium = NULL;
+    IMedium **children = NULL;
+    PRUint32 childrenSize = 0;
+    VBOX_UTF8_TO_UTF16(location, &locationUtf);
+    rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                         locationUtf,
+                                         DeviceType_HardDisk,
+                                         AccessMode_ReadWrite,
+                                         false,
+                                         &medium);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to open HardDisk, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+    rc = medium->vtbl->GetChildren(medium, &childrenSize, &children);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s"
+                       , _("Unable to get disk children"));
+        goto cleanup;
+    }
+    for (i = 0; i < childrenSize; i++) {
+        IMedium *childMedium = children[i];
+        if (childMedium) {
+            PRUnichar *childLocationUtf = NULL;
+            char *childLocation = NULL;
+            rc = childMedium->vtbl->GetLocation(childMedium, &childLocationUtf);
+            VBOX_UTF16_TO_UTF8(childLocationUtf, &childLocation);
+            VBOX_UTF16_FREE(childLocationUtf);
+            if (vboxCloseDisksRecursively(dom, childLocation) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s"
+                               , _("Unable to close disk children"));
+                goto cleanup;
+            }
+            VIR_FREE(childLocation);
+        }
+    }
+    rc = medium->vtbl->Close(medium);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to close HardDisk, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VBOX_UTF16_FREE(locationUtf);
+    return ret;
+}
+
+static int
+vboxSnapshotRedefine(virDomainPtr dom,
+                     virDomainSnapshotDefPtr def,
+                     bool isCurrent)
+{
+    /*
+     * If your snapshot has a parent,
+     * it will only be redefined if you have already
+     * redefined the parent.
+     *
+     * The general algorithm of this function is below :
+     * First of all, we are going to create our vboxSnapshotXmlMachinePtr struct from
+     * the machine settings path.
+     * Then, if the machine current snapshot xml file is saved in the machine location,
+     * it means that this snapshot was previously modified by us and has fake disks.
+     * Fake disks are added when the flag VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT was not set
+     * yet, in order to not corrupt read-only disks. The first thing to do is to remove those
+     * disks and restore the read-write disks, if any, in the vboxSnapshotXmlMachinePtr struct.
+     * We also delete the current snapshot xml file.
+     *
+     * After that, we are going to register the snapshot read-only disks that we want to redefine,
+     * if they are not in the media registry struct.
+     *
+     * The next step is to unregister the machine and close all disks.
+     *
+     * Then, we check if the flag VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE has already been set.
+     * If this flag was set, we just add read-write disks to the media registry
+     * struct. Otherwise, we save the snapshot xml file into the machine location in order
+     * to recover the read-write disks during the next redefine and we create differential disks
+     * from the snapshot read-only disks and add them to the media registry struct.
+     *
+     * Finally, we register the machine with the new virtualbox description file.
+     */
+    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    vboxIID domiid = VBOX_IID_INITIALIZER;
+    IMachine *machine = NULL;
+    nsresult rc;
+    PRUnichar *settingsFilePath = NULL;
+    char *settingsFilePath_Utf8 = NULL;
+    virVBoxSnapshotConfMachinePtr snapshotMachineDesc = NULL;
+    char *currentSnapshotXmlFilePath = NULL;
+    PRUnichar *machineNameUtf16 = NULL;
+    char *machineName = NULL;
+    char **realReadWriteDisksPath = NULL;
+    int realReadWriteDisksPathSize = 0;
+    char **realReadOnlyDisksPath = NULL;
+    int realReadOnlyDisksPathSize = 0;
+    virVBoxSnapshotConfSnapshotPtr newSnapshotPtr = NULL;
+    unsigned char snapshotUuid[VIR_UUID_BUFLEN];
+    int it = 0;
+    int jt = 0;
+    PRUint32 aMediaSize = 0;
+    IMedium **aMedia = NULL;
+    char *machineLocationPath = NULL;
+    char *nameTmpUse = NULL;
+    bool snapshotFileExists = false;
+    bool needToChangeStorageController = false;
+
+    vboxIIDFromUUID(&domiid, dom->uuid);
+    rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_NO_DOMAIN, "%s",
+                       _("no domain with matching UUID"));
+        goto cleanup;
+    }
+
+    rc = machine->vtbl->SaveSettings(machine);
+    /*It may failed when the machine is not mutable.*/
+    rc = machine->vtbl->GetSettingsFilePath(machine, &settingsFilePath);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot get settings file path"));
+        goto cleanup;
+    }
+    VBOX_UTF16_TO_UTF8(settingsFilePath, &settingsFilePath_Utf8);
+
+    /*Getting the machine name to retrieve the machine location path.*/
+    rc = machine->vtbl->GetName(machine, &machineNameUtf16);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot get machine name"));
+        goto cleanup;
+    }
+    VBOX_UTF16_TO_UTF8(machineNameUtf16, &machineName);
+
+    if (virAsprintf(&nameTmpUse, "%s.vbox", machineName) < 0)
+        goto cleanup;
+    machineLocationPath = virStringReplace(settingsFilePath_Utf8, nameTmpUse, "");
+    if (machineLocationPath == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to get the machine location path"));
+        goto cleanup;
+    }
+
+    /*We create the xml struct with the settings file path.*/
+    snapshotMachineDesc = virVBoxSnapshotConfLoadVboxFile(settingsFilePath_Utf8, machineLocationPath);
+    if (snapshotMachineDesc == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot create a vboxSnapshotXmlPtr"));
+        goto cleanup;
+    }
+    if (snapshotMachineDesc->currentSnapshot != NULL) {
+        if (virAsprintf(&currentSnapshotXmlFilePath, "%s%s.xml", machineLocationPath,
+                       snapshotMachineDesc->currentSnapshot) < 0)
+            goto cleanup;
+        snapshotFileExists = virFileExists(currentSnapshotXmlFilePath);
+    }
+
+    if (snapshotFileExists) {
+        /*
+         * We have created fake disks, so we have to remove them and replace them with
+         * the read-write disks if there are any. The fake disks will be closed during
+         * the machine unregistration.
+         */
+        if (virVBoxSnapshotConfRemoveFakeDisks(snapshotMachineDesc) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to remove Fake Disks"));
+            goto cleanup;
+        }
+        realReadWriteDisksPathSize = virVBoxSnapshotConfGetRWDisksPathsFromLibvirtXML(currentSnapshotXmlFilePath,
+                                                             &realReadWriteDisksPath);
+        realReadOnlyDisksPathSize = virVBoxSnapshotConfGetRODisksPathsFromLibvirtXML(currentSnapshotXmlFilePath,
+                                                                         &realReadOnlyDisksPath);
+        /*The read-only disk number is necessarily greater or equal to the
+         *read-write disk number*/
+        if (realReadOnlyDisksPathSize < realReadWriteDisksPathSize) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("The read only disk number must be greater or equal to the "
+                           " read write disk number"));
+            goto cleanup;
+        }
+        for (it = 0; it < realReadWriteDisksPathSize; it++) {
+            virVBoxSnapshotConfHardDiskPtr readWriteDisk = NULL;
+            PRUnichar *locationUtf = NULL;
+            IMedium *readWriteMedium = NULL;
+            PRUnichar *uuidUtf = NULL;
+            char *uuid = NULL;
+            PRUnichar *formatUtf = NULL;
+            char *format = NULL;
+            const char *parentUuid = NULL;
+
+            VBOX_UTF8_TO_UTF16(realReadWriteDisksPath[it], &locationUtf);
+            rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                                 locationUtf,
+                                                 DeviceType_HardDisk,
+                                                 AccessMode_ReadWrite,
+                                                 false,
+                                                 &readWriteMedium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to open HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                VBOX_UTF16_FREE(locationUtf);
+                goto cleanup;
+            }
+            VBOX_UTF16_FREE(locationUtf);
+
+            rc = readWriteMedium->vtbl->GetId(readWriteMedium, &uuidUtf);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get the read write medium id"));
+                goto cleanup;
+            }
+            VBOX_UTF16_TO_UTF8(uuidUtf, &uuid);
+            VBOX_UTF16_FREE(uuidUtf);
+
+            rc = readWriteMedium->vtbl->GetFormat(readWriteMedium, &formatUtf);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get the read write medium format"));
+                VIR_FREE(uuid);
+                goto cleanup;
+            }
+            VBOX_UTF16_TO_UTF8(formatUtf, &format);
+            VBOX_UTF16_FREE(formatUtf);
+
+            if (VIR_ALLOC(readWriteDisk) < 0) {
+                VIR_FREE(uuid);
+                VIR_FREE(formatUtf);
+                goto cleanup;
+            }
+
+            readWriteDisk->format = format;
+            readWriteDisk->uuid = uuid;
+            readWriteDisk->location = realReadWriteDisksPath[it];
+            /*
+             * We get the current snapshot's read-only disk uuid in order to add the
+             * read-write disk to the media registry as it's child. The read-only disk
+             * is already in the media registry because it is the fake disk's parent.
+             */
+            parentUuid = virVBoxSnapshotConfHardDiskUuidByLocation(snapshotMachineDesc,
+                                                      realReadOnlyDisksPath[it]);
+            if (parentUuid == NULL) {
+                VIR_FREE(readWriteDisk);
+                goto cleanup;
+            }
+
+            if (virVBoxSnapshotConfAddHardDiskToMediaRegistry(readWriteDisk,
+                                           snapshotMachineDesc->mediaRegistry,
+                                           parentUuid) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to add hard disk to media Registry"));
+                VIR_FREE(readWriteDisk);
+                goto cleanup;
+            }
+            rc = readWriteMedium->vtbl->Close(readWriteMedium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to close HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+        }
+        /*
+         * Now we have done this swap, we remove the snapshot xml file from the
+         * current machine location.
+         */
+        if (unlink(currentSnapshotXmlFilePath) < 0) {
+            virReportSystemError(errno,
+                                 _("Unable to delete file %s"), currentSnapshotXmlFilePath);
+            goto cleanup;
+        }
+    }
+    /*
+     * Before unregistering the machine, while all disks are still open, ensure that all
+     * read-only disks are in the redefined snapshot's media registry (the disks need to
+     * be open to query their uuid).
+     */
+    for (it = 0; it < def->dom->ndisks; it++) {
+        int diskInMediaRegistry = 0;
+        IMedium *readOnlyMedium = NULL;
+        PRUnichar *locationUtf = NULL;
+        PRUnichar *uuidUtf = NULL;
+        char *uuid = NULL;
+        PRUnichar *formatUtf = NULL;
+        char *format = NULL;
+        PRUnichar *parentUuidUtf = NULL;
+        char *parentUuid = NULL;
+        virVBoxSnapshotConfHardDiskPtr readOnlyDisk = NULL;
+
+        diskInMediaRegistry = virVBoxSnapshotConfDiskIsInMediaRegistry(snapshotMachineDesc,
+                                                        def->dom->disks[it]->src->path);
+        if (diskInMediaRegistry == -1) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to know if disk is in media registry"));
+            goto cleanup;
+        }
+        if (diskInMediaRegistry == 1) /*Nothing to do.*/
+            continue;
+        /*The read only disk is not in the media registry*/
+
+        VBOX_UTF8_TO_UTF16(def->dom->disks[it]->src->path, &locationUtf);
+        rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                             locationUtf,
+                                             DeviceType_HardDisk,
+                                             AccessMode_ReadWrite,
+                                             false,
+                                             &readOnlyMedium);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to open HardDisk, rc=%08x"),
+                           (unsigned)rc);
+            VBOX_UTF16_FREE(locationUtf);
+            goto cleanup;
+        }
+        VBOX_UTF16_FREE(locationUtf);
+
+        rc = readOnlyMedium->vtbl->GetId(readOnlyMedium, &uuidUtf);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to get hard disk id"));
+            goto cleanup;
+        }
+        VBOX_UTF16_TO_UTF8(uuidUtf, &uuid);
+        VBOX_UTF16_FREE(uuidUtf);
+
+        rc = readOnlyMedium->vtbl->GetFormat(readOnlyMedium, &formatUtf);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to get hard disk format"));
+            VIR_FREE(uuid);
+            goto cleanup;
+        }
+        VBOX_UTF16_TO_UTF8(formatUtf, &format);
+        VBOX_UTF16_FREE(formatUtf);
+
+        /*This disk is already in the media registry*/
+        IMedium *parentReadOnlyMedium = NULL;
+        rc = readOnlyMedium->vtbl->GetParent(readOnlyMedium, &parentReadOnlyMedium);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to get parent hard disk"));
+            VIR_FREE(uuid);
+            goto cleanup;
+        }
+
+        rc = parentReadOnlyMedium->vtbl->GetId(parentReadOnlyMedium, &parentUuidUtf);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to get hard disk id, rc=%08x"),
+                           (unsigned)rc);
+            VIR_FREE(uuid);
+            goto cleanup;
+        }
+        VBOX_UTF16_TO_UTF8(parentUuidUtf, &parentUuid);
+        VBOX_UTF16_FREE(parentUuidUtf);
+
+        rc = readOnlyMedium->vtbl->Close(readOnlyMedium);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to close HardDisk, rc=%08x"),
+                           (unsigned)rc);
+            VIR_FREE(uuid);
+            VIR_FREE(parentUuid);
+            goto cleanup;
+        }
+
+        if (VIR_ALLOC(readOnlyDisk) < 0) {
+            VIR_FREE(uuid);
+            VIR_FREE(parentUuid);
+            goto cleanup;
+        }
+
+        readOnlyDisk->format = format;
+        readOnlyDisk->uuid = uuid;
+        if (VIR_STRDUP(readOnlyDisk->location, def->dom->disks[it]->src->path) < 0) {
+            VIR_FREE(readOnlyDisk);
+            goto cleanup;
+        }
+
+        if (virVBoxSnapshotConfAddHardDiskToMediaRegistry(readOnlyDisk, snapshotMachineDesc->mediaRegistry,
+                                       parentUuid) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to add hard disk to media registry"));
+            VIR_FREE(readOnlyDisk);
+            goto cleanup;
+        }
+    }
+
+    /*Now, we can unregister the machine*/
+    rc = machine->vtbl->Unregister(machine,
+                              CleanupMode_DetachAllReturnHardDisksOnly,
+                              &aMediaSize,
+                              &aMedia);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to unregister machine, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+    VBOX_RELEASE(machine);
+
+    /*
+     * Unregister the machine, and then close all disks returned by the unregister method.
+     * Some close operations will fail because some disks that need to be closed will not
+     * be returned by virtualbox. We will close them just after. We have to use this
+     * solution because it is the only way to delete fake disks.
+     */
+    for (it = 0; it < aMediaSize; it++) {
+        IMedium *medium = aMedia[it];
+        if (medium) {
+            PRUnichar *locationUtf16 = NULL;
+            char *locationUtf8 = NULL;
+            rc = medium->vtbl->GetLocation(medium, &locationUtf16);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get medium location"));
+                goto cleanup;
+            }
+            VBOX_UTF16_TO_UTF8(locationUtf16, &locationUtf8);
+            VBOX_UTF16_FREE(locationUtf16);
+            if (strstr(locationUtf8, "fake") != NULL) {
+                /*we delete the fake disk because we don't need it anymore*/
+                IProgress *progress = NULL;
+                PRInt32 resultCode = -1;
+                rc = medium->vtbl->DeleteStorage(medium, &progress);
+                if (NS_FAILED(rc)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to delete medium, rc=%08x"),
+                                   (unsigned)rc);
+                    VIR_FREE(locationUtf8);
+                    goto cleanup;
+                }
+                progress->vtbl->WaitForCompletion(progress, -1);
+                progress->vtbl->GetResultCode(progress, &resultCode);
+                if (NS_FAILED(resultCode)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Error while closing medium, rc=%08x"),
+                                   (unsigned)resultCode);
+                    VIR_FREE(locationUtf8);
+                    goto cleanup;
+                }
+                VBOX_RELEASE(progress);
+            } else {
+                /*
+                 * This a comment from vboxmanage code in the handleUnregisterVM
+                 * function in VBoxManageMisc.cpp :
+                 * Note that the IMachine::Unregister method will return the medium
+                 * reference in a sane order, which means that closing will normally
+                 * succeed, unless there is still another machine which uses the
+                 * medium. No harm done if we ignore the error.
+                 */
+                rc = medium->vtbl->Close(medium);
+            }
+            VBOX_UTF8_FREE(locationUtf8);
+        }
+    }
+    /*Close all disks that failed to close normally.*/
+    for (it = 0; it < snapshotMachineDesc->mediaRegistry->ndisks; it++) {
+        if (vboxCloseDisksRecursively(dom, snapshotMachineDesc->mediaRegistry->disks[it]->location) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to close recursively all disks"));
+            goto cleanup;
+        }
+    }
+    /*Here, all disks are closed or deleted*/
+
+    /*We are now going to create and fill the Snapshot xml struct*/
+    if (VIR_ALLOC(newSnapshotPtr) < 0)
+        goto cleanup;
+
+    if (virUUIDGenerate(snapshotUuid) < 0)
+        goto cleanup;
+
+    char uuidtmp[VIR_UUID_STRING_BUFLEN];
+    virUUIDFormat(snapshotUuid, uuidtmp);
+    if (VIR_STRDUP(newSnapshotPtr->uuid, uuidtmp) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("New snapshot UUID: %s", newSnapshotPtr->uuid);
+    if (VIR_STRDUP(newSnapshotPtr->name, def->name) < 0)
+        goto cleanup;
+
+    newSnapshotPtr->timeStamp = virTimeStringThen(def->creationTime * 1000);
+
+    if (VIR_STRDUP(newSnapshotPtr->description, def->description) < 0)
+        goto cleanup;
+
+    if (VIR_STRDUP(newSnapshotPtr->hardware, snapshotMachineDesc->hardware) < 0)
+        goto cleanup;
+
+    if (VIR_STRDUP(newSnapshotPtr->storageController, snapshotMachineDesc->storageController) < 0)
+        goto cleanup;
+
+    /*We get the parent disk uuid from the parent disk location to correctly fill the storage controller.*/
+    for (it = 0; it < def->dom->ndisks; it++) {
+        char *location = NULL;
+        const char *uuidReplacing = NULL;
+        char **searchResultTab = NULL;
+        ssize_t resultSize = 0;
+        char *tmp = NULL;
+
+        location = def->dom->disks[it]->src->path;
+        if (!location)
+            goto cleanup;
+        /*Replacing the uuid*/
+        uuidReplacing = virVBoxSnapshotConfHardDiskUuidByLocation(snapshotMachineDesc, location);
+        if (uuidReplacing == NULL)
+            goto cleanup;
+
+        resultSize = virStringSearch(newSnapshotPtr->storageController,
+                                     VBOX_UUID_REGEX,
+                                     it + 1,
+                                     &searchResultTab);
+        if (resultSize != it + 1)
+            goto cleanup;
+
+        tmp = virStringReplace(newSnapshotPtr->storageController,
+                               searchResultTab[it],
+                               uuidReplacing);
+        virStringFreeList(searchResultTab);
+        VIR_FREE(newSnapshotPtr->storageController);
+        if (!tmp)
+            goto cleanup;
+        if (VIR_STRDUP(newSnapshotPtr->storageController, tmp) < 0)
+            goto cleanup;
+
+        VIR_FREE(tmp);
+    }
+    if (virVBoxSnapshotConfAddSnapshotToXmlMachine(newSnapshotPtr, snapshotMachineDesc, def->parent) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to add the snapshot to the machine description"));
+        goto cleanup;
+    }
+    /*
+     * We change the current snapshot only if there is no current snapshot or if the
+     * snapshotFile exists, otherwise, it means that the correct current snapshot is
+     * already set.
+     */
+
+    if (snapshotMachineDesc->currentSnapshot == NULL || snapshotFileExists) {
+        snapshotMachineDesc->currentSnapshot = newSnapshotPtr->uuid;
+        needToChangeStorageController = true;
+    }
+
+    /*
+     * Open the snapshot's read-write disk's full ancestry to allow opening the
+     * read-write disk itself.
+     */
+    for (it = 0; it < def->dom->ndisks; it++) {
+        char *location = NULL;
+        virVBoxSnapshotConfHardDiskPtr *hardDiskToOpen = NULL;
+        size_t hardDiskToOpenSize = 0;
+
+        location = def->dom->disks[it]->src->path;
+        if (!location)
+            goto cleanup;
+
+        hardDiskToOpenSize = virVBoxSnapshotConfDiskListToOpen(snapshotMachineDesc,
+                                                   &hardDiskToOpen, location);
+        for (jt = hardDiskToOpenSize -1; jt >= 0; jt--) {
+            IMedium *medium = NULL;
+            PRUnichar *locationUtf16 = NULL;
+            VBOX_UTF8_TO_UTF16(hardDiskToOpen[jt]->location, &locationUtf16);
+
+            rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                                 locationUtf16,
+                                                 DeviceType_HardDisk,
+                                                 AccessMode_ReadWrite,
+                                                 false,
+                                                 &medium);
+            VBOX_UTF16_FREE(locationUtf16);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to open HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+        }
+    }
+    if (isCurrent || !needToChangeStorageController) {
+        /* We don't create a differential hard disk because either the current snapshot
+         * has already been defined or the snapshot to redefine is the current snapshot.
+         * If the snapshot to redefine is the current snapshot, we add read-write disks in
+         * the machine storage controllers.
+         */
+        for (it = 0; it < def->ndisks; it++) {
+            IMedium *medium = NULL;
+            PRUnichar *locationUtf16 = NULL;
+            virVBoxSnapshotConfHardDiskPtr disk = NULL;
+            PRUnichar *formatUtf16 = NULL;
+            char *format = NULL;
+            PRUnichar *uuidUtf16 = NULL;
+            char *uuid = NULL;
+            IMedium *parentDisk = NULL;
+            PRUnichar *parentUuidUtf16 = NULL;
+            char *parentUuid = NULL;
+
+            VBOX_UTF8_TO_UTF16(def->disks[it].src->path, &locationUtf16);
+            rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                                 locationUtf16,
+                                                 DeviceType_HardDisk,
+                                                 AccessMode_ReadWrite,
+                                                 false,
+                                                 &medium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to open HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+            VBOX_UTF16_FREE(locationUtf16);
+
+            if (VIR_ALLOC(disk) < 0)
+                goto cleanup;
+
+            rc = medium->vtbl->GetFormat(medium, &formatUtf16);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get disk format"));
+                VIR_FREE(disk);
+                goto cleanup;
+            }
+
+            VBOX_UTF16_TO_UTF8(formatUtf16, &format);
+            disk->format = format;
+            VBOX_UTF16_FREE(formatUtf16);
+
+            if (VIR_STRDUP(disk->location, def->disks[it].src->path) < 0) {
+                VIR_FREE(disk);
+                goto cleanup;
+            }
+
+            rc = medium->vtbl->GetId(medium, &uuidUtf16);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get disk uuid"));
+                VIR_FREE(disk);
+                goto cleanup;
+            }
+            VBOX_UTF16_TO_UTF8(uuidUtf16, &uuid);
+            disk->uuid  = uuid;
+            VBOX_UTF16_FREE(uuidUtf16);
+
+            rc = medium->vtbl->GetParent(medium, &parentDisk);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get disk parent"));
+                VIR_FREE(disk);
+                goto cleanup;
+            }
+
+            parentDisk->vtbl->GetId(parentDisk, &parentUuidUtf16);
+            VBOX_UTF16_TO_UTF8(parentUuidUtf16, &parentUuid);
+            VBOX_UTF16_FREE(parentUuidUtf16);
+            if (virVBoxSnapshotConfAddHardDiskToMediaRegistry(disk,
+                                           snapshotMachineDesc->mediaRegistry,
+                                           parentUuid) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to add hard disk to the media registry"));
+                VIR_FREE(disk);
+                goto cleanup;
+            }
+
+            if (needToChangeStorageController) {
+                /*We need to append this disk in the storage controller*/
+                char **searchResultTab = NULL;
+                ssize_t resultSize = 0;
+                char *tmp = NULL;
+                resultSize = virStringSearch(snapshotMachineDesc->storageController,
+                                             VBOX_UUID_REGEX,
+                                             it + 1,
+                                             &searchResultTab);
+                if (resultSize != it + 1) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to find UUID %s"), searchResultTab[it]);
+                    goto cleanup;
+                }
+
+                tmp = virStringReplace(snapshotMachineDesc->storageController,
+                                       searchResultTab[it],
+                                       disk->uuid);
+                virStringFreeList(searchResultTab);
+                VIR_FREE(snapshotMachineDesc->storageController);
+                if (!tmp)
+                    goto cleanup;
+                if (VIR_STRDUP(snapshotMachineDesc->storageController, tmp) < 0)
+                    goto cleanup;
+
+                VIR_FREE(tmp);
+            }
+            /*Close disk*/
+            rc = medium->vtbl->Close(medium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to close HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+        }
+    } else {
+        /*Create a "fake" disk to avoid corrupting children snapshot disks.*/
+        for (it = 0; it < def->dom->ndisks; it++) {
+            IMedium *medium = NULL;
+            PRUnichar *locationUtf16 = NULL;
+            PRUnichar *parentUuidUtf16 = NULL;
+            char *parentUuid = NULL;
+            IMedium *newMedium = NULL;
+            PRUnichar *formatUtf16 = NULL;
+            PRUnichar *newLocation = NULL;
+            char *newLocationUtf8 = NULL;
+            PRInt32 resultCode = -1;
+            virVBoxSnapshotConfHardDiskPtr disk = NULL;
+            PRUnichar *uuidUtf16 = NULL;
+            char *uuid = NULL;
+            char *format = NULL;
+            char **searchResultTab = NULL;
+            ssize_t resultSize = 0;
+            char *tmp = NULL;
+
+            VBOX_UTF8_TO_UTF16(def->dom->disks[it]->src->path, &locationUtf16);
+            rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                                 locationUtf16,
+                                                 DeviceType_HardDisk,
+                                                 AccessMode_ReadWrite,
+                                                 false,
+                                                 &medium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to open HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                VBOX_UTF16_FREE(locationUtf16);
+                goto cleanup;
+            }
+            VBOX_UTF16_FREE(locationUtf16);
+
+            rc = medium->vtbl->GetId(medium, &parentUuidUtf16);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to get hardDisk Id, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+            VBOX_UTF16_TO_UTF8(parentUuidUtf16, &parentUuid);
+            VBOX_UTF16_FREE(parentUuidUtf16);
+            VBOX_UTF8_TO_UTF16("VDI", &formatUtf16);
+
+            if (virAsprintf(&newLocationUtf8, "%sfakedisk-%d.vdi", machineLocationPath, it) < 0)
+                goto cleanup;
+            VBOX_UTF8_TO_UTF16(newLocationUtf8, &newLocation);
+            rc = data->vboxObj->vtbl->CreateHardDisk(data->vboxObj,
+                                                formatUtf16,
+                                                newLocation,
+                                                &newMedium);
+            VBOX_UTF16_FREE(newLocation);
+            VBOX_UTF16_FREE(formatUtf16);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to create HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+
+            IProgress *progress = NULL;
+# if VBOX_API_VERSION < 4003000
+            medium->vtbl->CreateDiffStorage(medium, newMedium, MediumVariant_Diff, &progress);
+# else
+            PRUint32 tab[1];
+            tab[0] =  MediumVariant_Diff;
+            medium->vtbl->CreateDiffStorage(medium, newMedium, 1, tab, &progress);
+# endif
+
+            progress->vtbl->WaitForCompletion(progress, -1);
+            progress->vtbl->GetResultCode(progress, &resultCode);
+            if (NS_FAILED(resultCode)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Error while creating diff storage, rc=%08x"),
+                               (unsigned)resultCode);
+                goto cleanup;
+            }
+            VBOX_RELEASE(progress);
+            /*
+             * The differential disk is created, we add it to the media registry and the
+             * machine storage controllers.
+             */
+
+            if (VIR_ALLOC(disk) < 0)
+                goto cleanup;
+
+            rc = newMedium->vtbl->GetId(newMedium, &uuidUtf16);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to get medium uuid, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+            VBOX_UTF16_TO_UTF8(uuidUtf16, &uuid);
+            disk->uuid = uuid;
+            VBOX_UTF16_FREE(uuidUtf16);
+
+            if (VIR_STRDUP(disk->location, newLocationUtf8) < 0)
+                goto cleanup;
+
+            rc = newMedium->vtbl->GetFormat(newMedium, &formatUtf16);
+            VBOX_UTF16_TO_UTF8(formatUtf16, &format);
+            disk->format = format;
+            VBOX_UTF16_FREE(formatUtf16);
+
+            if (virVBoxSnapshotConfAddHardDiskToMediaRegistry(disk,
+                                           snapshotMachineDesc->mediaRegistry,
+                                           parentUuid) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to add hard disk to the media registry"));
+                goto cleanup;
+            }
+            /*Adding the fake disk to the machine storage controllers*/
+
+            resultSize = virStringSearch(snapshotMachineDesc->storageController,
+                                         VBOX_UUID_REGEX,
+                                         it + 1,
+                                         &searchResultTab);
+            if (resultSize != it + 1) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to find UUID %s"), searchResultTab[it]);
+                goto cleanup;
+            }
+
+            tmp = virStringReplace(snapshotMachineDesc->storageController,
+                                   searchResultTab[it],
+                                   disk->uuid);
+            virStringFreeList(searchResultTab);
+            VIR_FREE(snapshotMachineDesc->storageController);
+            if (!tmp)
+                goto cleanup;
+            if (VIR_STRDUP(snapshotMachineDesc->storageController, tmp) < 0)
+                goto cleanup;
+
+            VIR_FREE(tmp);
+            /*Closing the "fake" disk*/
+            rc = newMedium->vtbl->Close(newMedium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to close the new medium, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+        }
+        /*
+         * We save the snapshot xml file to retrieve the real read-write disk during the
+         * next define. This file is saved as "'machineLocation'/snapshot-'uuid'.xml"
+         */
+        VIR_FREE(currentSnapshotXmlFilePath);
+        if (virAsprintf(&currentSnapshotXmlFilePath, "%s%s.xml", machineLocationPath, snapshotMachineDesc->currentSnapshot) < 0)
+            goto cleanup;
+        char *snapshotContent = virDomainSnapshotDefFormat(NULL, def, VIR_DOMAIN_XML_SECURE, 0);
+        if (snapshotContent == NULL) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to get snapshot content"));
+            goto cleanup;
+        }
+        if (virFileWriteStr(currentSnapshotXmlFilePath, snapshotContent, 0644) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to save new snapshot xml file"));
+            goto cleanup;
+        }
+        VIR_FREE(snapshotContent);
+    }
+    /*
+     * All the snapshot structure manipulation is done, we close the disks we have
+     * previously opened.
+     */
+    for (it = 0; it < def->dom->ndisks; it++) {
+        char *location = def->dom->disks[it]->src->path;
+        if (!location)
+            goto cleanup;
+
+        virVBoxSnapshotConfHardDiskPtr *hardDiskToOpen = NULL;
+        size_t hardDiskToOpenSize = virVBoxSnapshotConfDiskListToOpen(snapshotMachineDesc,
+                                                   &hardDiskToOpen, location);
+        for (jt = 0; jt < hardDiskToOpenSize; jt++) {
+            IMedium *medium = NULL;
+            PRUnichar *locationUtf16 = NULL;
+            VBOX_UTF8_TO_UTF16(hardDiskToOpen[jt]->location, &locationUtf16);
+            rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                                 locationUtf16,
+                                                 DeviceType_HardDisk,
+                                                 AccessMode_ReadWrite,
+                                                 false,
+                                                 &medium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to open HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+            rc = medium->vtbl->Close(medium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to close HardDisk, rc=%08x"),
+                               (unsigned)rc);
+                goto cleanup;
+            }
+            VBOX_UTF16_FREE(locationUtf16);
+        }
+    }
+
+    /*Now, we rewrite the 'machineName'.vbox file to redefine the machine.*/
+    if (virVBoxSnapshotConfSaveVboxFile(snapshotMachineDesc, settingsFilePath_Utf8) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to serialize the machine description"));
+        goto cleanup;
+    }
+    rc = data->vboxObj->vtbl->OpenMachine(data->vboxObj,
+                                     settingsFilePath,
+                                     &machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to open Machine, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+
+    rc = data->vboxObj->vtbl->RegisterMachine(data->vboxObj, machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to register Machine, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VBOX_RELEASE(machine);
+    VBOX_UTF16_FREE(settingsFilePath);
+    VBOX_UTF8_FREE(settingsFilePath_Utf8);
+    VIR_FREE(snapshotMachineDesc);
+    VIR_FREE(currentSnapshotXmlFilePath);
+    VBOX_UTF16_FREE(machineNameUtf16);
+    VBOX_UTF8_FREE(machineName);
+    virStringFreeList(realReadOnlyDisksPath);
+    virStringFreeList(realReadWriteDisksPath);
+    VIR_FREE(newSnapshotPtr);
+    VIR_FREE(machineLocationPath);
+    VIR_FREE(nameTmpUse);
+    return ret;
+}
+#endif
+
 static virDomainSnapshotPtr
 vboxDomainSnapshotCreateXML(virDomainPtr dom,
                             const char *xmlDesc,
@@ -6034,19 +6996,22 @@ vboxDomainSnapshotCreateXML(virDomainPtr dom,
 #else
     PRInt32 result;
 #endif
+#if VBOX_API_VERSION >= 4002000
+    bool isCurrent = false;
+#endif
+
 
     /* VBox has no snapshot metadata, so this flag is trivial.  */
-    virCheckFlags(VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA, NULL);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA |
+                  VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE |
+                  VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT, NULL);
 
     if (!(def = virDomainSnapshotDefParseString(xmlDesc, data->caps,
-                                                data->xmlopt, 0, 0)))
+                                                data->xmlopt, -1,
+                                                VIR_DOMAIN_SNAPSHOT_PARSE_DISKS |
+                                                VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE)))
         goto cleanup;
 
-    if (def->ndisks) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("disk snapshots not supported yet"));
-        goto cleanup;
-    }
 
     vboxIIDFromUUID(&domiid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
@@ -6055,6 +7020,16 @@ vboxDomainSnapshotCreateXML(virDomainPtr dom,
                        _("no domain with matching UUID"));
         goto cleanup;
     }
+
+#if VBOX_API_VERSION >= 4002000
+    isCurrent = flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT;
+    if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) {
+        if (vboxSnapshotRedefine(dom, def, isCurrent) < 0)
+            goto cleanup;
+        ret = virGetDomainSnapshot(dom, def->name);
+        goto cleanup;
+    }
+#endif
 
     rc = machine->vtbl->GetState(machine, &state);
     if (NS_FAILED(rc)) {
@@ -6130,6 +7105,437 @@ vboxDomainSnapshotCreateXML(virDomainPtr dom,
     return ret;
 }
 
+#if VBOX_API_VERSION >=4002000
+static
+int vboxSnapshotGetReadWriteDisks(virDomainSnapshotDefPtr def,
+                                    virDomainSnapshotPtr snapshot)
+{
+    virDomainPtr dom = snapshot->domain;
+    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    vboxIID domiid = VBOX_IID_INITIALIZER;
+    IMachine *machine = NULL;
+    ISnapshot *snap = NULL;
+    IMachine *snapMachine = NULL;
+    vboxArray mediumAttachments         = VBOX_ARRAY_INITIALIZER;
+    PRUint32   maxPortPerInst[StorageBus_Floppy + 1] = {};
+    PRUint32   maxSlotPerPort[StorageBus_Floppy + 1] = {};
+    int diskCount = 0;
+    nsresult rc;
+    vboxIID snapIid = VBOX_IID_INITIALIZER;
+    char *snapshotUuidStr = NULL;
+    size_t i = 0;
+
+    vboxIIDFromUUID(&domiid, dom->uuid);
+    rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("no domain with matching UUID"));
+        goto cleanup;
+    }
+    if (!(snap = vboxDomainSnapshotGet(data, dom, machine, snapshot->name)))
+        goto cleanup;
+
+    rc = snap->vtbl->GetId(snap, &snapIid.value);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Could not get snapshot id"));
+        goto cleanup;
+    }
+
+    VBOX_UTF16_TO_UTF8(snapIid.value, &snapshotUuidStr);
+    rc = snap->vtbl->GetMachine(snap, &snapMachine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("could not get machine"));
+        goto cleanup;
+    }
+    def->ndisks = 0;
+    rc = vboxArrayGet(&mediumAttachments, snapMachine, snapMachine->vtbl->GetMediumAttachments);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("no medium attachments"));
+        goto cleanup;
+    }
+    /* get the number of attachments */
+    for (i = 0; i < mediumAttachments.count; i++) {
+        IMediumAttachment *imediumattach = mediumAttachments.items[i];
+        if (imediumattach) {
+            IMedium *medium = NULL;
+
+            rc = imediumattach->vtbl->GetMedium(imediumattach, &medium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("cannot get medium"));
+                goto cleanup;
+            }
+            if (medium) {
+                def->ndisks++;
+                VBOX_RELEASE(medium);
+            }
+        }
+    }
+    /* Allocate mem, if fails return error */
+    if (VIR_ALLOC_N(def->disks, def->ndisks) < 0)
+        goto cleanup;
+    for (i = 0; i < def->ndisks; i++) {
+        if (VIR_ALLOC(def->disks[i].src) < 0)
+            goto cleanup;
+    }
+
+    if (!vboxGetMaxPortSlotValues(data->vboxObj, maxPortPerInst, maxSlotPerPort))
+        goto cleanup;
+
+    /* get the attachment details here */
+    for (i = 0; i < mediumAttachments.count && diskCount < def->ndisks; i++) {
+        IStorageController *storageController = NULL;
+        PRUnichar *storageControllerName = NULL;
+        PRUint32   deviceType     = DeviceType_Null;
+        PRUint32   storageBus     = StorageBus_Null;
+        IMedium   *disk         = NULL;
+        PRUnichar *childLocUtf16 = NULL;
+        char      *childLocUtf8  = NULL;
+        PRUint32   deviceInst     = 0;
+        PRInt32    devicePort     = 0;
+        PRInt32    deviceSlot     = 0;
+        vboxArray children = VBOX_ARRAY_INITIALIZER;
+        vboxArray snapshotIids = VBOX_ARRAY_INITIALIZER;
+        IMediumAttachment *imediumattach = mediumAttachments.items[i];
+        size_t j = 0;
+        size_t k = 0;
+        if (!imediumattach)
+            continue;
+        rc = imediumattach->vtbl->GetMedium(imediumattach, &disk);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get medium"));
+            goto cleanup;
+        }
+        if (!disk)
+            continue;
+        rc = imediumattach->vtbl->GetController(imediumattach, &storageControllerName);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get controller"));
+            goto cleanup;
+        }
+        if (!storageControllerName) {
+            VBOX_RELEASE(disk);
+            continue;
+        }
+        rc = vboxArrayGet(&children, disk, disk->vtbl->GetChildren);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get children disk"));
+            goto cleanup;
+        }
+        rc = vboxArrayGetWithPtrArg(&snapshotIids, disk, disk->vtbl->GetSnapshotIds, domiid.value);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get snapshot ids"));
+            goto cleanup;
+        }
+        for (j = 0; j < children.count; ++j) {
+            IMedium *child = children.items[j];
+            for (k = 0; k < snapshotIids.count; ++k) {
+                PRUnichar *diskSnapId = snapshotIids.items[k];
+                char *diskSnapIdStr = NULL;
+                VBOX_UTF16_TO_UTF8(diskSnapId, &diskSnapIdStr);
+                if (STREQ(diskSnapIdStr, snapshotUuidStr)) {
+                    rc = machine->vtbl->GetStorageControllerByName(machine,
+                                                              storageControllerName,
+                                                              &storageController);
+                    VBOX_UTF16_FREE(storageControllerName);
+                    if (!storageController) {
+                        VBOX_RELEASE(child);
+                        break;
+                    }
+                    rc = child->vtbl->GetLocation(child, &childLocUtf16);
+                    if (NS_FAILED(rc)) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("cannot get disk location"));
+                        goto cleanup;
+                    }
+                    VBOX_UTF16_TO_UTF8(childLocUtf16, &childLocUtf8);
+                    VBOX_UTF16_FREE(childLocUtf16);
+                    if (VIR_STRDUP(def->disks[diskCount].src->path, childLocUtf8) < 0) {
+                        VBOX_RELEASE(child);
+                        VBOX_RELEASE(storageController);
+                        goto cleanup;
+                    }
+                    VBOX_UTF8_FREE(childLocUtf8);
+
+                    rc = storageController->vtbl->GetBus(storageController, &storageBus);
+                    if (NS_FAILED(rc)) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("cannot get storage controller bus"));
+                        goto cleanup;
+                    }
+                    rc = imediumattach->vtbl->GetType(imediumattach, &deviceType);
+                    if (NS_FAILED(rc)) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("cannot get medium attachment type"));
+                        goto cleanup;
+                    }
+                    rc = imediumattach->vtbl->GetPort(imediumattach, &devicePort);
+                    if (NS_FAILED(rc)) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("cannot get medium attachment type"));
+                        goto cleanup;
+                    }
+                    rc = imediumattach->vtbl->GetDevice(imediumattach, &deviceSlot);
+                    if (NS_FAILED(rc)) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("cannot get medium attachment device"));
+                        goto cleanup;
+                    }
+                    def->disks[diskCount].src->type = VIR_STORAGE_TYPE_FILE;
+                    def->disks[diskCount].name = vboxGenerateMediumName(storageBus,
+                                                                        deviceInst,
+                                                                        devicePort,
+                                                                        deviceSlot,
+                                                                        maxPortPerInst,
+                                                                        maxSlotPerPort);
+                }
+                VBOX_UTF8_FREE(diskSnapIdStr);
+            }
+        }
+        VBOX_RELEASE(storageController);
+        VBOX_RELEASE(disk);
+        diskCount++;
+    }
+    vboxArrayRelease(&mediumAttachments);
+
+    ret = 0;
+ cleanup:
+    if (ret < 0) {
+        for (i = 0; i < def->ndisks; i++) {
+            VIR_FREE(def->disks[i].src);
+        }
+        VIR_FREE(def->disks);
+        def->ndisks = 0;
+    }
+    VBOX_RELEASE(snap);
+    return ret;
+}
+
+static
+int vboxSnapshotGetReadOnlyDisks(virDomainSnapshotPtr snapshot,
+                                    virDomainSnapshotDefPtr def)
+{
+    virDomainPtr dom = snapshot->domain;
+    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    vboxIID domiid = VBOX_IID_INITIALIZER;
+    ISnapshot *snap = NULL;
+    IMachine *machine = NULL;
+    IMachine *snapMachine = NULL;
+    IStorageController *storageController = NULL;
+    IMedium   *disk         = NULL;
+    nsresult rc;
+    vboxIIDFromUUID(&domiid, dom->uuid);
+    vboxArray mediumAttachments         = VBOX_ARRAY_INITIALIZER;
+    size_t i = 0;
+    PRUint32   maxPortPerInst[StorageBus_Floppy + 1] = {};
+    PRUint32   maxSlotPerPort[StorageBus_Floppy + 1] = {};
+    int diskCount = 0;
+
+    rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_NO_DOMAIN, "%s",
+                       _("no domain with matching UUID"));
+        goto cleanup;
+    }
+
+    if (!(snap = vboxDomainSnapshotGet(data, dom, machine, snapshot->name)))
+        goto cleanup;
+
+    rc = snap->vtbl->GetMachine(snap, &snapMachine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot get machine"));
+        goto cleanup;
+    }
+    /*
+     * Get READ ONLY disks
+     * In the snapshot metadata, these are the disks written inside the <domain> node
+    */
+    rc = vboxArrayGet(&mediumAttachments, snapMachine, snapMachine->vtbl->GetMediumAttachments);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot get medium attachments"));
+        goto cleanup;
+    }
+    /* get the number of attachments */
+    for (i = 0; i < mediumAttachments.count; i++) {
+        IMediumAttachment *imediumattach = mediumAttachments.items[i];
+        if (imediumattach) {
+            IMedium *medium = NULL;
+
+            rc = imediumattach->vtbl->GetMedium(imediumattach, &medium);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("cannot get medium"));
+                goto cleanup;
+            }
+            if (medium) {
+                def->dom->ndisks++;
+                VBOX_RELEASE(medium);
+            }
+        }
+    }
+
+    /* Allocate mem, if fails return error */
+    if (VIR_ALLOC_N(def->dom->disks, def->dom->ndisks) >= 0) {
+        for (i = 0; i < def->dom->ndisks; i++) {
+            virDomainDiskDefPtr diskDef = virDomainDiskDefNew();
+            if (!diskDef)
+                goto cleanup;
+            def->dom->disks[i] = diskDef;
+        }
+    } else {
+        goto cleanup;
+    }
+
+    if (!vboxGetMaxPortSlotValues(data->vboxObj, maxPortPerInst, maxSlotPerPort))
+        goto cleanup;
+
+    /* get the attachment details here */
+    for (i = 0; i < mediumAttachments.count && diskCount < def->dom->ndisks; i++) {
+        PRUnichar *storageControllerName = NULL;
+        PRUint32   deviceType     = DeviceType_Null;
+        PRUint32   storageBus     = StorageBus_Null;
+        PRBool     readOnly       = PR_FALSE;
+        PRUnichar *mediumLocUtf16 = NULL;
+        char      *mediumLocUtf8  = NULL;
+        PRUint32   deviceInst     = 0;
+        PRInt32    devicePort     = 0;
+        PRInt32    deviceSlot     = 0;
+        IMediumAttachment *imediumattach = mediumAttachments.items[i];
+        if (!imediumattach)
+            continue;
+        rc = imediumattach->vtbl->GetMedium(imediumattach, &disk);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get medium"));
+            goto cleanup;
+        }
+        if (!disk)
+            continue;
+        rc = imediumattach->vtbl->GetController(imediumattach, &storageControllerName);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get storage controller name"));
+            goto cleanup;
+        }
+        if (!storageControllerName)
+            continue;
+        rc = machine->vtbl->GetStorageControllerByName(machine,
+                                                  storageControllerName,
+                                                  &storageController);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get storage controller"));
+            goto cleanup;
+        }
+        VBOX_UTF16_FREE(storageControllerName);
+        if (!storageController)
+            continue;
+        rc = disk->vtbl->GetLocation(disk, &mediumLocUtf16);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get disk location"));
+            goto cleanup;
+        }
+        VBOX_UTF16_TO_UTF8(mediumLocUtf16, &mediumLocUtf8);
+        VBOX_UTF16_FREE(mediumLocUtf16);
+        if (VIR_STRDUP(def->dom->disks[diskCount]->src->path, mediumLocUtf8) < 0)
+            goto cleanup;
+
+        VBOX_UTF8_FREE(mediumLocUtf8);
+
+        rc = storageController->vtbl->GetBus(storageController, &storageBus);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get storage controller bus"));
+            goto cleanup;
+        }
+        if (storageBus == StorageBus_IDE) {
+            def->dom->disks[diskCount]->bus = VIR_DOMAIN_DISK_BUS_IDE;
+        } else if (storageBus == StorageBus_SATA) {
+            def->dom->disks[diskCount]->bus = VIR_DOMAIN_DISK_BUS_SATA;
+        } else if (storageBus == StorageBus_SCSI) {
+            def->dom->disks[diskCount]->bus = VIR_DOMAIN_DISK_BUS_SCSI;
+        } else if (storageBus == StorageBus_Floppy) {
+            def->dom->disks[diskCount]->bus = VIR_DOMAIN_DISK_BUS_FDC;
+        }
+
+        rc = imediumattach->vtbl->GetType(imediumattach, &deviceType);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get medium attachment type"));
+            goto cleanup;
+        }
+        if (deviceType == DeviceType_HardDisk)
+            def->dom->disks[diskCount]->device = VIR_DOMAIN_DISK_DEVICE_DISK;
+        else if (deviceType == DeviceType_Floppy)
+            def->dom->disks[diskCount]->device = VIR_DOMAIN_DISK_DEVICE_FLOPPY;
+        else if (deviceType == DeviceType_DVD)
+            def->dom->disks[diskCount]->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
+
+        rc = imediumattach->vtbl->GetPort(imediumattach, &devicePort);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get medium attachment port"));
+            goto cleanup;
+        }
+        rc = imediumattach->vtbl->GetDevice(imediumattach, &deviceSlot);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get device"));
+            goto cleanup;
+        }
+        rc = disk->vtbl->GetReadOnly(disk, &readOnly);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot get read only attribute"));
+            goto cleanup;
+        }
+        if (readOnly == PR_TRUE)
+            def->dom->disks[diskCount]->readonly = true;
+        def->dom->disks[diskCount]->src->type = VIR_STORAGE_TYPE_FILE;
+        def->dom->disks[diskCount]->dst = vboxGenerateMediumName(storageBus,
+                                                                 deviceInst,
+                                                                 devicePort,
+                                                                 deviceSlot,
+                                                                 maxPortPerInst,
+                                                                 maxSlotPerPort);
+        if (!def->dom->disks[diskCount]->dst) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not generate medium name for the disk "
+                             "at: controller instance:%u, port:%d, slot:%d"),
+                           deviceInst, devicePort, deviceSlot);
+            ret = -1;
+            goto cleanup;
+        }
+        diskCount ++;
+    }
+    /* cleanup on error */
+
+    ret = 0;
+ cleanup:
+    if (ret < 0) {
+        for (i = 0; i < def->dom->ndisks; i++)
+            virDomainDiskDefFree(def->dom->disks[i]);
+        VIR_FREE(def->dom->disks);
+        def->dom->ndisks = 0;
+    }
+    VBOX_RELEASE(disk);
+    VBOX_RELEASE(storageController);
+    vboxArrayRelease(&mediumAttachments);
+    VBOX_RELEASE(snap);
+    return ret;
+}
+#endif
+
 static char *
 vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
                              unsigned int flags)
@@ -6147,6 +7553,10 @@ vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     PRInt64 timestamp;
     PRBool online = PR_FALSE;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
+#if VBOX_API_VERSION >=4002000
+    PRUint32 memorySize                 = 0;
+    PRUint32 CPUCount                 = 0;
+#endif
 
     virCheckFlags(0, NULL);
 
@@ -6161,10 +7571,40 @@ vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     if (!(snap = vboxDomainSnapshotGet(data, dom, machine, snapshot->name)))
         goto cleanup;
 
-    if (VIR_ALLOC(def) < 0)
+    if (VIR_ALLOC(def) < 0 || VIR_ALLOC(def->dom) < 0)
         goto cleanup;
     if (VIR_STRDUP(def->name, snapshot->name) < 0)
         goto cleanup;
+
+#if VBOX_API_VERSION >=4002000
+    /* Register def->dom properties for them to be saved inside the snapshot XMl
+     * Otherwise, there is a problem while parsing the xml
+     */
+    def->dom->virtType = VIR_DOMAIN_VIRT_VBOX;
+    def->dom->id = dom->id;
+    memcpy(def->dom->uuid, dom->uuid, VIR_UUID_BUFLEN);
+    if (VIR_STRDUP(def->dom->name, dom->name) < 0)
+        goto cleanup;
+    machine->vtbl->GetMemorySize(machine, &memorySize);
+    def->dom->mem.cur_balloon = memorySize * 1024;
+    /* Currently setting memory and maxMemory as same, cause
+     * the notation here seems to be inconsistent while
+     * reading and while dumping xml
+     */
+    def->dom->mem.max_balloon = memorySize * 1024;
+    if (VIR_STRDUP(def->dom->os.type, "hvm") < 0)
+        goto cleanup;
+    def->dom->os.arch = virArchFromHost();
+    machine->vtbl->GetCPUCount(machine, &CPUCount);
+    def->dom->maxvcpus = def->dom->vcpus = CPUCount;
+    if (vboxSnapshotGetReadWriteDisks(def, snapshot) < 0) {
+        VIR_DEBUG("Could not get read write disks for snapshot");
+    }
+
+    if (vboxSnapshotGetReadOnlyDisks(snapshot, def) < 0) {
+        VIR_DEBUG("Could not get Readonly disks for snapshot");
+    }
+#endif /* VBOX_API_VERSION >= 4002000 */
 
     rc = snap->vtbl->GetDescription(snap, &str16);
     if (NS_FAILED(rc)) {
@@ -6230,6 +7670,7 @@ vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
         def->state = VIR_DOMAIN_SHUTOFF;
 
     virUUIDFormat(dom->uuid, uuidstr);
+    memcpy(def->dom->uuid, dom->uuid, VIR_UUID_BUFLEN);
     ret = virDomainSnapshotDefFormat(uuidstr, def, flags, 0);
 
  cleanup:
@@ -6936,6 +8377,462 @@ vboxDomainSnapshotDeleteTree(vboxGlobalData *data,
     return ret;
 }
 
+#if VBOX_API_VERSION >= 4002000
+static int
+vboxDomainSnapshotDeleteMetadataOnly(virDomainSnapshotPtr snapshot)
+{
+    /*
+     * This function will remove the node in the vbox xml corresponding to the snapshot.
+     * It is usually called by vboxDomainSnapshotDelete() with the flag
+     * VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY.
+     * If you want to use it anywhere else, be careful, if the snapshot you want to delete
+     * has children, the result is not granted, they will probably will be deleted in the
+     * xml, but you may have a problem with hard drives.
+     *
+     * If the snapshot which is being deleted is the current one, we will set the current
+     * snapshot of the machine to the parent of this snapshot. Before writing the modified
+     * xml file, we undefine the machine from vbox. After writing the file, we redefine
+     * the machine with the new file.
+     */
+
+    virDomainPtr dom = snapshot->domain;
+    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    virDomainSnapshotDefPtr def= NULL;
+    char *defXml = NULL;
+    vboxIID domiid = VBOX_IID_INITIALIZER;
+    nsresult rc;
+    IMachine *machine = NULL;
+    PRUnichar *settingsFilePathUtf16 = NULL;
+    char *settingsFilepath = NULL;
+    virVBoxSnapshotConfMachinePtr snapshotMachineDesc = NULL;
+    int isCurrent = -1;
+    int it = 0;
+    PRUnichar *machineNameUtf16 = NULL;
+    char *machineName = NULL;
+    char *nameTmpUse = NULL;
+    char *machineLocationPath = NULL;
+    PRUint32 aMediaSize = 0;
+    IMedium **aMedia = NULL;
+
+    defXml = vboxDomainSnapshotGetXMLDesc(snapshot, 0);
+    if (!defXml) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to get XML Desc of snapshot"));
+        goto cleanup;
+    }
+    def = virDomainSnapshotDefParseString(defXml,
+                                          data->caps,
+                                          data->xmlopt,
+                                          -1,
+                                          VIR_DOMAIN_SNAPSHOT_PARSE_DISKS |
+                                          VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE);
+    if (!def) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to get a virDomainSnapshotDefPtr"));
+        goto cleanup;
+    }
+
+    vboxIIDFromUUID(&domiid, dom->uuid);
+    rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_NO_DOMAIN, "%s",
+                       _("no domain with matching UUID"));
+        goto cleanup;
+    }
+    rc = machine->vtbl->GetSettingsFilePath(machine, &settingsFilePathUtf16);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot get settings file path"));
+        goto cleanup;
+    }
+    VBOX_UTF16_TO_UTF8(settingsFilePathUtf16, &settingsFilepath);
+
+    /*Getting the machine name to retrieve the machine location path.*/
+    rc = machine->vtbl->GetName(machine, &machineNameUtf16);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot get machine name"));
+        goto cleanup;
+    }
+    VBOX_UTF16_TO_UTF8(machineNameUtf16, &machineName);
+    if (virAsprintf(&nameTmpUse, "%s.vbox", machineName) < 0)
+        goto cleanup;
+    machineLocationPath = virStringReplace(settingsFilepath, nameTmpUse, "");
+    if (machineLocationPath == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to get the machine location path"));
+        goto cleanup;
+    }
+    snapshotMachineDesc = virVBoxSnapshotConfLoadVboxFile(settingsFilepath, machineLocationPath);
+    if (!snapshotMachineDesc) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot create a vboxSnapshotXmlPtr"));
+        goto cleanup;
+    }
+
+    isCurrent = virVBoxSnapshotConfIsCurrentSnapshot(snapshotMachineDesc, def->name);
+    if (isCurrent < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to know if the snapshot is the current snapshot"));
+        goto cleanup;
+    }
+    if (isCurrent) {
+        /*
+         * If the snapshot is the current snapshot, it means that the machine has read-write
+         * disks. The first thing to do is to manipulate VirtualBox API to create
+         * differential read-write disks if the parent snapshot is not null.
+         */
+        if (def->parent != NULL) {
+            for (it = 0; it < def->dom->ndisks; it++) {
+                virVBoxSnapshotConfHardDiskPtr readOnly = NULL;
+                IMedium *medium = NULL;
+                PRUnichar *locationUtf16 = NULL;
+                PRUnichar *parentUuidUtf16 = NULL;
+                char *parentUuid = NULL;
+                IMedium *newMedium = NULL;
+                PRUnichar *formatUtf16 = NULL;
+                PRUnichar *newLocation = NULL;
+                char *newLocationUtf8 = NULL;
+                IProgress *progress = NULL;
+                PRInt32 resultCode = -1;
+                virVBoxSnapshotConfHardDiskPtr disk = NULL;
+                PRUnichar *uuidUtf16 = NULL;
+                char *uuid = NULL;
+                char *format = NULL;
+                char **searchResultTab = NULL;
+                ssize_t resultSize = 0;
+                char *tmp = NULL;
+
+                readOnly = virVBoxSnapshotConfHardDiskPtrByLocation(snapshotMachineDesc,
+                                                 def->dom->disks[it]->src->path);
+                if (!readOnly) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("Cannot get hard disk by location"));
+                    goto cleanup;
+                }
+                if (readOnly->parent == NULL) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("The read only disk has no parent"));
+                    goto cleanup;
+                }
+
+                VBOX_UTF8_TO_UTF16(readOnly->parent->location, &locationUtf16);
+                rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                                     locationUtf16,
+                                                     DeviceType_HardDisk,
+                                                     AccessMode_ReadWrite,
+                                                     false,
+                                                     &medium);
+                if (NS_FAILED(rc)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to open HardDisk, rc=%08x"),
+                                   (unsigned)rc);
+                    goto cleanup;
+                }
+
+                rc = medium->vtbl->GetId(medium, &parentUuidUtf16);
+                if (NS_FAILED(rc)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to get hardDisk Id, rc=%08x"),
+                                   (unsigned)rc);
+                    goto cleanup;
+                }
+                VBOX_UTF16_TO_UTF8(parentUuidUtf16, &parentUuid);
+                VBOX_UTF16_FREE(parentUuidUtf16);
+                VBOX_UTF16_FREE(locationUtf16);
+                VBOX_UTF8_TO_UTF16("VDI", &formatUtf16);
+
+                if (virAsprintf(&newLocationUtf8, "%sfakedisk-%s-%d.vdi",
+                                machineLocationPath, def->parent, it) < 0)
+                    goto cleanup;
+                VBOX_UTF8_TO_UTF16(newLocationUtf8, &newLocation);
+                rc = data->vboxObj->vtbl->CreateHardDisk(data->vboxObj,
+                                                         formatUtf16,
+                                                         newLocation,
+                                                         &newMedium);
+                if (NS_FAILED(rc)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to create HardDisk, rc=%08x"),
+                                   (unsigned)rc);
+                    goto cleanup;
+                }
+                VBOX_UTF16_FREE(formatUtf16);
+                VBOX_UTF16_FREE(newLocation);
+
+# if VBOX_API_VERSION < 4003000
+                medium->vtbl->CreateDiffStorage(medium, newMedium, MediumVariant_Diff, &progress);
+# else
+                PRUint32 tab[1];
+                tab[0] =  MediumVariant_Diff;
+                medium->vtbl->CreateDiffStorage(medium, newMedium, 1, tab, &progress);
+# endif
+
+                progress->vtbl->WaitForCompletion(progress, -1);
+                progress->vtbl->GetResultCode(progress, &resultCode);
+                if (NS_FAILED(resultCode)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Error while creating diff storage, rc=%08x"),
+                                   (unsigned)resultCode);
+                    goto cleanup;
+                }
+                VBOX_RELEASE(progress);
+                /*
+                 * The differential disk is created, we add it to the media registry and
+                 * the machine storage controller.
+                 */
+
+                if (VIR_ALLOC(disk) < 0)
+                    goto cleanup;
+
+                rc = newMedium->vtbl->GetId(newMedium, &uuidUtf16);
+                if (NS_FAILED(rc)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to get medium uuid, rc=%08x"),
+                                   (unsigned)rc);
+                    VIR_FREE(disk);
+                    goto cleanup;
+                }
+                VBOX_UTF16_TO_UTF8(uuidUtf16, &uuid);
+                disk->uuid = uuid;
+                VBOX_UTF16_FREE(uuidUtf16);
+
+                if (VIR_STRDUP(disk->location, newLocationUtf8) < 0) {
+                    VIR_FREE(disk);
+                    goto cleanup;
+                }
+
+                rc = newMedium->vtbl->GetFormat(newMedium, &formatUtf16);
+                VBOX_UTF16_TO_UTF8(formatUtf16, &format);
+                disk->format = format;
+                VBOX_UTF16_FREE(formatUtf16);
+
+                if (virVBoxSnapshotConfAddHardDiskToMediaRegistry(disk,
+                                               snapshotMachineDesc->mediaRegistry,
+                                               parentUuid) < 0) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("Unable to add hard disk to the media registry"));
+                    goto cleanup;
+                }
+                /*Adding fake disks to the machine storage controllers*/
+
+                resultSize = virStringSearch(snapshotMachineDesc->storageController,
+                                             VBOX_UUID_REGEX,
+                                             it + 1,
+                                             &searchResultTab);
+                if (resultSize != it + 1) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to find UUID %s"), searchResultTab[it]);
+                    goto cleanup;
+                }
+
+                tmp = virStringReplace(snapshotMachineDesc->storageController,
+                                       searchResultTab[it],
+                                       disk->uuid);
+                virStringFreeList(searchResultTab);
+                VIR_FREE(snapshotMachineDesc->storageController);
+                if (!tmp)
+                    goto cleanup;
+                if (VIR_STRDUP(snapshotMachineDesc->storageController, tmp) < 0)
+                    goto cleanup;
+
+                VIR_FREE(tmp);
+                /*Closing the "fake" disk*/
+                rc = newMedium->vtbl->Close(newMedium);
+                if (NS_FAILED(rc)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to close the new medium, rc=%08x"),
+                                   (unsigned)rc);
+                    goto cleanup;
+                }
+            }
+        } else {
+            for (it = 0; it < def->dom->ndisks; it++) {
+                const char *uuidRO = NULL;
+                char **searchResultTab = NULL;
+                ssize_t resultSize = 0;
+                char *tmp = NULL;
+                uuidRO = virVBoxSnapshotConfHardDiskUuidByLocation(snapshotMachineDesc,
+                                                      def->dom->disks[it]->src->path);
+                if (!uuidRO) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("No such disk in media registry %s"),
+                                   def->dom->disks[it]->src->path);
+                    goto cleanup;
+                }
+
+                resultSize = virStringSearch(snapshotMachineDesc->storageController,
+                                             VBOX_UUID_REGEX,
+                                             it + 1,
+                                             &searchResultTab);
+                if (resultSize != it + 1) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to find UUID %s"),
+                                   searchResultTab[it]);
+                    goto cleanup;
+                }
+
+                tmp = virStringReplace(snapshotMachineDesc->storageController,
+                                       searchResultTab[it],
+                                       uuidRO);
+                virStringFreeList(searchResultTab);
+                VIR_FREE(snapshotMachineDesc->storageController);
+                if (!tmp)
+                    goto cleanup;
+                if (VIR_STRDUP(snapshotMachineDesc->storageController, tmp) < 0)
+                    goto cleanup;
+
+                VIR_FREE(tmp);
+            }
+        }
+    }
+    /*We remove the read write disks from the media registry*/
+    for (it = 0; it < def->ndisks; it++) {
+        const char *uuidRW =
+            virVBoxSnapshotConfHardDiskUuidByLocation(snapshotMachineDesc,
+                                                      def->disks[it].src->path);
+        if (!uuidRW) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to find UUID for location %s"), def->disks[it].src->path);
+            goto cleanup;
+        }
+        if (virVBoxSnapshotConfRemoveHardDisk(snapshotMachineDesc->mediaRegistry, uuidRW) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to remove disk from media registry. uuid = %s"), uuidRW);
+            goto cleanup;
+        }
+    }
+    /*If the parent snapshot is not NULL, we remove the-read only disks from the media registry*/
+    if (def->parent != NULL) {
+        for (it = 0; it < def->dom->ndisks; it++) {
+            const char *uuidRO =
+                virVBoxSnapshotConfHardDiskUuidByLocation(snapshotMachineDesc,
+                                                          def->dom->disks[it]->src->path);
+            if (!uuidRO) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to find UUID for location %s"), def->dom->disks[it]->src->path);
+                goto cleanup;
+            }
+            if (virVBoxSnapshotConfRemoveHardDisk(snapshotMachineDesc->mediaRegistry, uuidRO) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to remove disk from media registry. uuid = %s"), uuidRO);
+                goto cleanup;
+            }
+        }
+    }
+    rc = machine->vtbl->Unregister(machine,
+                              CleanupMode_DetachAllReturnHardDisksOnly,
+                              &aMediaSize,
+                              &aMedia);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to unregister machine, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+    VBOX_RELEASE(machine);
+    for (it = 0; it < aMediaSize; it++) {
+        IMedium *medium = aMedia[it];
+        if (medium) {
+            PRUnichar *locationUtf16 = NULL;
+            char *locationUtf8 = NULL;
+            rc = medium->vtbl->GetLocation(medium, &locationUtf16);
+            VBOX_UTF16_TO_UTF8(locationUtf16, &locationUtf8);
+            if (isCurrent && strstr(locationUtf8, "fake") != NULL) {
+                /*we delete the fake disk because we don't need it anymore*/
+                IProgress *progress = NULL;
+                PRInt32 resultCode = -1;
+                rc = medium->vtbl->DeleteStorage(medium, &progress);
+                if (NS_FAILED(rc)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to delete medium, rc=%08x"),
+                                   (unsigned)rc);
+                    goto cleanup;
+                }
+                progress->vtbl->WaitForCompletion(progress, -1);
+                progress->vtbl->GetResultCode(progress, &resultCode);
+                if (NS_FAILED(resultCode)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Error while closing medium, rc=%08x"),
+                                   (unsigned)resultCode);
+                    goto cleanup;
+                }
+                VBOX_RELEASE(progress);
+            } else {
+                /* This a comment from vboxmanage code in the handleUnregisterVM
+                 * function in VBoxManageMisc.cpp :
+                 * Note that the IMachine::Unregister method will return the medium
+                 * reference in a sane order, which means that closing will normally
+                 * succeed, unless there is still another machine which uses the
+                 * medium. No harm done if we ignore the error. */
+                rc = medium->vtbl->Close(medium);
+            }
+            VBOX_UTF16_FREE(locationUtf16);
+            VBOX_UTF8_FREE(locationUtf8);
+        }
+    }
+
+    /*removing the snapshot*/
+    if (virVBoxSnapshotConfRemoveSnapshot(snapshotMachineDesc, def->name) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to remove snapshot %s"), def->name);
+        goto cleanup;
+    }
+
+    if (isCurrent) {
+        VIR_FREE(snapshotMachineDesc->currentSnapshot);
+        if (def->parent != NULL) {
+            virVBoxSnapshotConfSnapshotPtr snap = virVBoxSnapshotConfSnapshotByName(snapshotMachineDesc->snapshot, def->parent);
+            if (!snap) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get the snapshot to remove"));
+                goto cleanup;
+            }
+            if (VIR_STRDUP(snapshotMachineDesc->currentSnapshot, snap->uuid) < 0)
+                goto cleanup;
+        }
+    }
+
+    /*Registering the machine*/
+    if (virVBoxSnapshotConfSaveVboxFile(snapshotMachineDesc, settingsFilepath) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to serialize the machine description"));
+        goto cleanup;
+    }
+    rc = data->vboxObj->vtbl->OpenMachine(data->vboxObj,
+                                     settingsFilePathUtf16,
+                                     &machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to open Machine, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+
+    rc = data->vboxObj->vtbl->RegisterMachine(data->vboxObj, machine);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to register Machine, rc=%08x"),
+                       (unsigned)rc);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(def);
+    VIR_FREE(defXml);
+    VBOX_RELEASE(machine);
+    VBOX_UTF16_FREE(settingsFilePathUtf16);
+    VBOX_UTF8_FREE(settingsFilepath);
+    VIR_FREE(snapshotMachineDesc);
+    VBOX_UTF16_FREE(machineNameUtf16);
+    VBOX_UTF8_FREE(machineName);
+    VIR_FREE(machineLocationPath);
+    VIR_FREE(nameTmpUse);
+
+    return ret;
+}
+#endif
+
 static int
 vboxDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
                          unsigned int flags)
@@ -6948,6 +8845,7 @@ vboxDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
     IConsole *console = NULL;
     PRUint32 state;
     nsresult rc;
+    vboxArray snapChildren = VBOX_ARRAY_INITIALIZER;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN |
                   VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY, -1);
@@ -6971,10 +8869,25 @@ vboxDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
         goto cleanup;
     }
 
-    /* VBOX snapshots do not require any libvirt metadata, making this
-     * flag trivial once we know we have a valid snapshot.  */
+    /* In case we just want to delete the metadata, we will edit the vbox file in order
+     *to remove the node concerning the snapshot
+    */
     if (flags & VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY) {
-        ret = 0;
+        rc = vboxArrayGet(&snapChildren, snap, snap->vtbl->GetChildren);
+        if (NS_FAILED(rc)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not get snapshot children"));
+            goto cleanup;
+        }
+        if (snapChildren.count != 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot delete metadata of a snapshot with children"));
+            goto cleanup;
+        } else {
+#if VBOX_API_VERSION >= 4002000
+            ret = vboxDomainSnapshotDeleteMetadataOnly(snapshot);
+#endif
+        }
         goto cleanup;
     }
 
@@ -8989,7 +10902,6 @@ static int vboxStorageVolDelete(virStorageVolPtr vol,
 
             if (machineIdsSize == 0 || machineIdsSize == deregister) {
                 IProgress *progress = NULL;
-
                 rc = hardDisk->vtbl->DeleteStorage(hardDisk, &progress);
 
                 if (NS_SUCCEEDED(rc) && progress) {
@@ -9564,7 +11476,25 @@ vboxNodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
 static unsigned long long
 vboxNodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    return nodeGetFreeMemory();
+    unsigned long long freeMem;
+    if (nodeGetMemory(NULL, &freeMem) < 0)
+        return 0;
+    return freeMem;
+}
+
+
+static int
+vboxNodeGetFreePages(virConnectPtr conn ATTRIBUTE_UNUSED,
+                     unsigned int npages,
+                     unsigned int *pages,
+                     int startCell,
+                     unsigned int cellCount,
+                     unsigned long long *counts,
+                     unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+    return nodeGetFreePages(npages, pages, startCell, cellCount, counts);
 }
 
 
@@ -9649,6 +11579,7 @@ virDriver NAME(Driver) = {
     .domainRevertToSnapshot = vboxDomainRevertToSnapshot, /* 0.8.0 */
     .domainSnapshotDelete = vboxDomainSnapshotDelete, /* 0.8.0 */
     .connectIsAlive = vboxConnectIsAlive, /* 0.9.8 */
+    .nodeGetFreePages = vboxNodeGetFreePages, /* 1.2.6 */
 };
 
 virNetworkDriver NAME(NetworkDriver) = {

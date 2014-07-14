@@ -183,7 +183,7 @@ struct _virDomainDeviceDef {
 
 /* Different types of hypervisor */
 /* NB: Keep in sync with virDomainVirtTypeToString impl */
-enum virDomainVirtType {
+typedef enum {
     VIR_DOMAIN_VIRT_QEMU,
     VIR_DOMAIN_VIRT_KQEMU,
     VIR_DOMAIN_VIRT_KVM,
@@ -200,9 +200,9 @@ enum virDomainVirtType {
     VIR_DOMAIN_VIRT_BHYVE,
 
     VIR_DOMAIN_VIRT_LAST
-};
+} virDomainVirtType;
 
-enum virDomainDeviceAddressType {
+typedef enum {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE,
@@ -216,15 +216,15 @@ enum virDomainDeviceAddressType {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_ISA,
 
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST
-};
+} virDomainDeviceAddressType;
 
-enum virDomainPCIRombarMode {
+typedef enum {
     VIR_DOMAIN_PCI_ROMBAR_DEFAULT = 0,
     VIR_DOMAIN_PCI_ROMBAR_ON,
     VIR_DOMAIN_PCI_ROMBAR_OFF,
 
     VIR_DOMAIN_PCI_ROMBAR_LAST
-};
+} virDomainPCIRombarMode;
 
 typedef struct _virDomainDeviceDriveAddress virDomainDeviceDriveAddress;
 typedef virDomainDeviceDriveAddress *virDomainDeviceDriveAddressPtr;
@@ -277,12 +277,12 @@ struct _virDomainDeviceSpaprVioAddress {
     bool has_reg;
 };
 
-enum virDomainControllerMaster {
+typedef enum {
     VIR_DOMAIN_CONTROLLER_MASTER_NONE,
     VIR_DOMAIN_CONTROLLER_MASTER_USB,
 
     VIR_DOMAIN_CONTROLLER_MASTER_LAST
-};
+} virDomainControllerMaster;
 
 typedef struct _virDomainDeviceUSBMaster virDomainDeviceUSBMaster;
 typedef virDomainDeviceUSBMaster *virDomainDeviceUSBMasterPtr;
@@ -363,20 +363,20 @@ struct _virDomainLeaseDef {
 };
 
 
-enum virDomainHostdevMode {
+typedef enum {
     VIR_DOMAIN_HOSTDEV_MODE_SUBSYS,
     VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES,
 
     VIR_DOMAIN_HOSTDEV_MODE_LAST
-};
+} virDomainHostdevMode;
 
-enum virDomainHostdevSubsysType {
+typedef enum {
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB,
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI,
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
 
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST
-};
+} virDomainHostdevSubsysType;
 
 /* the backend driver used for PCI hostdev devices */
 typedef enum {
@@ -419,13 +419,13 @@ struct _virDomainHostdevSubsys {
 };
 
 
-enum virDomainHostdevCapsType {
+typedef enum {
     VIR_DOMAIN_HOSTDEV_CAPS_TYPE_STORAGE,
     VIR_DOMAIN_HOSTDEV_CAPS_TYPE_MISC,
     VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET,
 
     VIR_DOMAIN_HOSTDEV_CAPS_TYPE_LAST
-};
+} virDomainHostdevCapsType;
 
 typedef struct _virDomainHostdevCaps virDomainHostdevCaps;
 typedef virDomainHostdevCaps *virDomainHostdevCapsPtr;
@@ -465,16 +465,16 @@ struct _virDomainHostdevDef {
 
 /* Types of disk frontend (guest view).  For backends (host view), see
  * virStorageType in util/virstoragefile.h */
-enum virDomainDiskDevice {
+typedef enum {
     VIR_DOMAIN_DISK_DEVICE_DISK,
     VIR_DOMAIN_DISK_DEVICE_CDROM,
     VIR_DOMAIN_DISK_DEVICE_FLOPPY,
     VIR_DOMAIN_DISK_DEVICE_LUN,
 
     VIR_DOMAIN_DISK_DEVICE_LAST
-};
+} virDomainDiskDevice;
 
-enum virDomainDiskBus {
+typedef enum {
     VIR_DOMAIN_DISK_BUS_IDE,
     VIR_DOMAIN_DISK_BUS_FDC,
     VIR_DOMAIN_DISK_BUS_SCSI,
@@ -486,9 +486,9 @@ enum virDomainDiskBus {
     VIR_DOMAIN_DISK_BUS_SD,
 
     VIR_DOMAIN_DISK_BUS_LAST
-};
+} virDomainDiskBus;
 
-enum virDomainDiskCache {
+typedef enum {
     VIR_DOMAIN_DISK_CACHE_DEFAULT,
     VIR_DOMAIN_DISK_CACHE_DISABLE,
     VIR_DOMAIN_DISK_CACHE_WRITETHRU,
@@ -497,9 +497,9 @@ enum virDomainDiskCache {
     VIR_DOMAIN_DISK_CACHE_UNSAFE,
 
     VIR_DOMAIN_DISK_CACHE_LAST
-};
+} virDomainDiskCache;
 
-enum virDomainDiskErrorPolicy {
+typedef enum {
     VIR_DOMAIN_DISK_ERROR_POLICY_DEFAULT,
     VIR_DOMAIN_DISK_ERROR_POLICY_STOP,
     VIR_DOMAIN_DISK_ERROR_POLICY_REPORT,
@@ -507,82 +507,82 @@ enum virDomainDiskErrorPolicy {
     VIR_DOMAIN_DISK_ERROR_POLICY_ENOSPACE,
 
     VIR_DOMAIN_DISK_ERROR_POLICY_LAST
-};
+} virDomainDiskErrorPolicy;
 
 
-enum virDomainDiskTray {
+typedef enum {
     VIR_DOMAIN_DISK_TRAY_CLOSED,
     VIR_DOMAIN_DISK_TRAY_OPEN,
 
     VIR_DOMAIN_DISK_TRAY_LAST
-};
+} virDomainDiskTray;
 
-enum virDomainDiskGeometryTrans {
+typedef enum {
     VIR_DOMAIN_DISK_TRANS_DEFAULT = 0,
     VIR_DOMAIN_DISK_TRANS_NONE,
     VIR_DOMAIN_DISK_TRANS_AUTO,
     VIR_DOMAIN_DISK_TRANS_LBA,
 
     VIR_DOMAIN_DISK_TRANS_LAST
-};
+} virDomainDiskGeometryTrans;
 
-enum virDomainDiskIo {
+typedef enum {
     VIR_DOMAIN_DISK_IO_DEFAULT,
     VIR_DOMAIN_DISK_IO_NATIVE,
     VIR_DOMAIN_DISK_IO_THREADS,
 
     VIR_DOMAIN_DISK_IO_LAST
-};
+} virDomainDiskIo;
 
-enum virDomainIoEventFd {
+typedef enum {
     VIR_DOMAIN_IO_EVENT_FD_DEFAULT = 0,
     VIR_DOMAIN_IO_EVENT_FD_ON,
     VIR_DOMAIN_IO_EVENT_FD_OFF,
 
     VIR_DOMAIN_IO_EVENT_FD_LAST
-};
+} virDomainIoEventFd;
 
-enum virDomainVirtioEventIdx {
+typedef enum {
     VIR_DOMAIN_VIRTIO_EVENT_IDX_DEFAULT = 0,
     VIR_DOMAIN_VIRTIO_EVENT_IDX_ON,
     VIR_DOMAIN_VIRTIO_EVENT_IDX_OFF,
 
     VIR_DOMAIN_VIRTIO_EVENT_IDX_LAST
-};
+} virDomainVirtioEventIdx;
 
-enum virDomainDiskCopyOnRead {
+typedef enum {
     VIR_DOMAIN_DISK_COPY_ON_READ_DEFAULT = 0,
     VIR_DOMAIN_DISK_COPY_ON_READ_ON,
     VIR_DOMAIN_DISK_COPY_ON_READ_OFF,
 
     VIR_DOMAIN_DISK_COPY_ON_READ_LAST
-};
+} virDomainDiskCopyOnRead;
 
-enum virDomainStartupPolicy {
+typedef enum {
     VIR_DOMAIN_STARTUP_POLICY_DEFAULT = 0,
     VIR_DOMAIN_STARTUP_POLICY_MANDATORY,
     VIR_DOMAIN_STARTUP_POLICY_REQUISITE,
     VIR_DOMAIN_STARTUP_POLICY_OPTIONAL,
 
     VIR_DOMAIN_STARTUP_POLICY_LAST
-};
+} virDomainStartupPolicy;
 
 
-enum virDomainDeviceSGIO {
+typedef enum {
     VIR_DOMAIN_DEVICE_SGIO_DEFAULT = 0,
     VIR_DOMAIN_DEVICE_SGIO_FILTERED,
     VIR_DOMAIN_DEVICE_SGIO_UNFILTERED,
 
     VIR_DOMAIN_DEVICE_SGIO_LAST
-};
+} virDomainDeviceSGIO;
 
-enum virDomainDiskDiscard {
+typedef enum {
     VIR_DOMAIN_DISK_DISCARD_DEFAULT = 0,
     VIR_DOMAIN_DISK_DISCARD_UNMAP,
     VIR_DOMAIN_DISK_DISCARD_IGNORE,
 
     VIR_DOMAIN_DISK_DISCARD_LAST
-};
+} virDomainDiskDiscard;
 
 typedef struct _virDomainBlockIoTuneInfo virDomainBlockIoTuneInfo;
 struct _virDomainBlockIoTuneInfo {
@@ -598,7 +598,7 @@ typedef virDomainBlockIoTuneInfo *virDomainBlockIoTuneInfoPtr;
 
 /* Stores the virtual disk configuration */
 struct _virDomainDiskDef {
-    virStorageSource src;
+    virStorageSourcePtr src; /* non-NULL.  XXX Allow NULL for empty cdrom? */
 
     int device; /* enum virDomainDiskDevice */
     int bus; /* enum virDomainDiskBus */
@@ -606,8 +606,7 @@ struct _virDomainDiskDef {
     int tray_status; /* enum virDomainDiskTray */
     int removable; /* enum virDomainFeatureState */
 
-    char *mirror;
-    int mirrorFormat; /* virStorageFileFormat */
+    virStorageSourcePtr mirror;
     bool mirroring;
 
     struct {
@@ -648,7 +647,7 @@ struct _virDomainDiskDef {
 };
 
 
-enum virDomainControllerType {
+typedef enum {
     VIR_DOMAIN_CONTROLLER_TYPE_IDE,
     VIR_DOMAIN_CONTROLLER_TYPE_FDC,
     VIR_DOMAIN_CONTROLLER_TYPE_SCSI,
@@ -659,7 +658,7 @@ enum virDomainControllerType {
     VIR_DOMAIN_CONTROLLER_TYPE_PCI,
 
     VIR_DOMAIN_CONTROLLER_TYPE_LAST
-};
+} virDomainControllerType;
 
 
 typedef enum {
@@ -671,7 +670,7 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST
 } virDomainControllerModelPCI;
 
-enum virDomainControllerModelSCSI {
+typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_SCSI_AUTO,
     VIR_DOMAIN_CONTROLLER_MODEL_SCSI_BUSLOGIC,
     VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC,
@@ -682,9 +681,9 @@ enum virDomainControllerModelSCSI {
     VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1078,
 
     VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST
-};
+} virDomainControllerModelSCSI;
 
-enum virDomainControllerModelUSB {
+typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI,
     VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX4_UHCI,
     VIR_DOMAIN_CONTROLLER_MODEL_USB_EHCI,
@@ -698,7 +697,7 @@ enum virDomainControllerModelUSB {
     VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE,
 
     VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST
-};
+} virDomainControllerModelUSB;
 
 typedef struct _virDomainVirtioSerialOpts virDomainVirtioSerialOpts;
 typedef virDomainVirtioSerialOpts *virDomainVirtioSerialOptsPtr;
@@ -729,7 +728,7 @@ struct _virDomainControllerDef {
 
 
 /* Two types of disk backends */
-enum virDomainFSType {
+typedef enum {
     VIR_DOMAIN_FS_TYPE_MOUNT, /* Mounts (binds) a host dir on a guest dir */
     VIR_DOMAIN_FS_TYPE_BLOCK, /* Mounts a host block dev on a guest dir */
     VIR_DOMAIN_FS_TYPE_FILE,  /* Loopback mounts a host file on a guest dir */
@@ -738,10 +737,10 @@ enum virDomainFSType {
     VIR_DOMAIN_FS_TYPE_BIND,  /* Binds a guest dir to another guest dir */
 
     VIR_DOMAIN_FS_TYPE_LAST
-};
+} virDomainFSType;
 
 /* Filesystem driver type */
-enum virDomainFSDriverType {
+typedef enum {
     VIR_DOMAIN_FS_DRIVER_TYPE_DEFAULT = 0,
     VIR_DOMAIN_FS_DRIVER_TYPE_PATH,
     VIR_DOMAIN_FS_DRIVER_TYPE_HANDLE,
@@ -749,24 +748,24 @@ enum virDomainFSDriverType {
     VIR_DOMAIN_FS_DRIVER_TYPE_NBD,
 
     VIR_DOMAIN_FS_DRIVER_TYPE_LAST
-};
+} virDomainFSDriverType;
 
 /* Filesystem mount access mode  */
-enum virDomainFSAccessMode {
+typedef enum {
     VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH,
     VIR_DOMAIN_FS_ACCESSMODE_MAPPED,
     VIR_DOMAIN_FS_ACCESSMODE_SQUASH,
 
     VIR_DOMAIN_FS_ACCESSMODE_LAST
-};
+} virDomainFSAccessMode;
 
 /* Filesystem Write policy */
-enum virDomainFSWrpolicy {
+typedef enum {
     VIR_DOMAIN_FS_WRPOLICY_DEFAULT = 0,
     VIR_DOMAIN_FS_WRPOLICY_IMMEDIATE,
 
     VIR_DOMAIN_FS_WRPOLICY_LAST
-};
+} virDomainFSWrpolicy;
 
 /* Allow 2 MB ram usage */
 # define VIR_DOMAIN_FS_RAM_DEFAULT_USAGE (1024 * 2)
@@ -788,7 +787,7 @@ struct _virDomainFSDef {
 
 
 /* network config types */
-enum virDomainNetType {
+typedef enum {
     VIR_DOMAIN_NET_TYPE_USER,
     VIR_DOMAIN_NET_TYPE_ETHERNET,
     VIR_DOMAIN_NET_TYPE_SERVER,
@@ -801,34 +800,34 @@ enum virDomainNetType {
     VIR_DOMAIN_NET_TYPE_HOSTDEV,
 
     VIR_DOMAIN_NET_TYPE_LAST
-};
+} virDomainNetType;
 
 /* the backend driver used for virtio interfaces */
-enum virDomainNetBackendType {
+typedef enum {
     VIR_DOMAIN_NET_BACKEND_TYPE_DEFAULT, /* prefer kernel, fall back to user */
     VIR_DOMAIN_NET_BACKEND_TYPE_QEMU,    /* userland */
     VIR_DOMAIN_NET_BACKEND_TYPE_VHOST,   /* kernel */
 
     VIR_DOMAIN_NET_BACKEND_TYPE_LAST
-};
+} virDomainNetBackendType;
 
 /* the TX algorithm used for virtio interfaces */
-enum virDomainNetVirtioTxModeType {
+typedef enum {
     VIR_DOMAIN_NET_VIRTIO_TX_MODE_DEFAULT, /* default for this version of qemu */
     VIR_DOMAIN_NET_VIRTIO_TX_MODE_IOTHREAD,
     VIR_DOMAIN_NET_VIRTIO_TX_MODE_TIMER,
 
     VIR_DOMAIN_NET_VIRTIO_TX_MODE_LAST
-};
+} virDomainNetVirtioTxModeType;
 
 /* link interface states */
-enum virDomainNetInterfaceLinkState {
+typedef enum {
         VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DEFAULT = 0, /* Default link state (up) */
         VIR_DOMAIN_NET_INTERFACE_LINK_STATE_UP,          /* Link is up. ("cable" connected) */
         VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN ,       /* Link is down. ("cable" disconnected) */
 
         VIR_DOMAIN_NET_INTERFACE_LINK_STATE_LAST
-};
+} virDomainNetInterfaceLinkState;
 
 /* Config that was actually used to bring up interface, after
  * resolving network reference. This is private data, only used within
@@ -859,15 +858,15 @@ struct _virDomainActualNetDef {
 
 /* Stores the virtual network interface configuration */
 struct _virDomainNetDef {
-    enum virDomainNetType type;
+    virDomainNetType type;
     virMacAddr mac;
     char *model;
     union {
         struct {
-            enum virDomainNetBackendType name; /* which driver backend to use */
-            enum virDomainNetVirtioTxModeType txmode;
-            enum virDomainIoEventFd ioeventfd;
-            enum virDomainVirtioEventIdx event_idx;
+            virDomainNetBackendType name; /* which driver backend to use */
+            virDomainNetVirtioTxModeType txmode;
+            virDomainIoEventFd ioeventfd;
+            virDomainVirtioEventIdx event_idx;
             unsigned int queues; /* Multiqueue virtio-net */
         } virtio;
     } driver;
@@ -928,31 +927,31 @@ struct _virDomainNetDef {
  * by libvirt, and cannot be used for a persistent network name.  */
 # define VIR_NET_GENERATED_PREFIX "vnet"
 
-enum virDomainChrDeviceType {
+typedef enum {
     VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL = 0,
     VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL,
     VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE,
     VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL,
 
     VIR_DOMAIN_CHR_DEVICE_TYPE_LAST
-};
+} virDomainChrDeviceType;
 
-enum virDomainChrSerialTargetType {
+typedef enum {
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_ISA = 0,
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB,
 
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_LAST
-};
+} virDomainChrSerialTargetType;
 
-enum virDomainChrChannelTargetType {
+typedef enum {
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_NONE = 0,
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD,
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO,
 
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST
-};
+} virDomainChrChannelTargetType;
 
-enum virDomainChrConsoleTargetType {
+typedef enum {
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_NONE  = 0,
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL,
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN,
@@ -964,9 +963,9 @@ enum virDomainChrConsoleTargetType {
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SCLPLM,
 
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LAST
-};
+} virDomainChrConsoleTargetType;
 
-enum virDomainChrType {
+typedef enum {
     VIR_DOMAIN_CHR_TYPE_NULL,
     VIR_DOMAIN_CHR_TYPE_VC,
     VIR_DOMAIN_CHR_TYPE_PTY,
@@ -982,24 +981,24 @@ enum virDomainChrType {
     VIR_DOMAIN_CHR_TYPE_NMDM,
 
     VIR_DOMAIN_CHR_TYPE_LAST
-};
+} virDomainChrType;
 
-enum virDomainChrTcpProtocol {
+typedef enum {
     VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW,
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET,
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS, /* secure telnet */
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS,
 
     VIR_DOMAIN_CHR_TCP_PROTOCOL_LAST
-};
+} virDomainChrTcpProtocol;
 
-enum virDomainChrSpicevmcName {
+typedef enum {
     VIR_DOMAIN_CHR_SPICEVMC_VDAGENT,
     VIR_DOMAIN_CHR_SPICEVMC_SMARTCARD,
     VIR_DOMAIN_CHR_SPICEVMC_USBREDIR,
 
     VIR_DOMAIN_CHR_SPICEVMC_LAST
-};
+} virDomainChrSpicevmcName;
 
 /* The host side information for a character device.  */
 typedef struct _virDomainChrSourceDef virDomainChrSourceDef;
@@ -1058,13 +1057,13 @@ struct _virDomainChrDef {
     virSecurityDeviceLabelDefPtr *seclabels;
 };
 
-enum virDomainSmartcardType {
+typedef enum {
     VIR_DOMAIN_SMARTCARD_TYPE_HOST,
     VIR_DOMAIN_SMARTCARD_TYPE_HOST_CERTIFICATES,
     VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH,
 
     VIR_DOMAIN_SMARTCARD_TYPE_LAST
-};
+} virDomainSmartcardType;
 
 # define VIR_DOMAIN_SMARTCARD_NUM_CERTIFICATES 3
 # define VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE "/etc/pki/nssdb"
@@ -1088,26 +1087,26 @@ struct _virDomainHubDef {
     virDomainDeviceInfo info;
 };
 
-enum virDomainTPMModel {
+typedef enum {
     VIR_DOMAIN_TPM_MODEL_TIS,
 
     VIR_DOMAIN_TPM_MODEL_LAST
-};
+} virDomainTPMModel;
 
-enum virDomainTPMBackendType {
+typedef enum {
     VIR_DOMAIN_TPM_TYPE_PASSTHROUGH,
 
     VIR_DOMAIN_TPM_TYPE_LAST
-};
+} virDomainTPMBackendType;
 
 # define VIR_DOMAIN_TPM_DEFAULT_DEVICE "/dev/tpm0"
 
 typedef struct _virDomainTPMDef virDomainTPMDef;
 typedef virDomainTPMDef *virDomainTPMDefPtr;
 struct _virDomainTPMDef {
-    enum virDomainTPMBackendType type;
+    virDomainTPMBackendType type;
     virDomainDeviceInfo info;
-    enum virDomainTPMModel model;
+    virDomainTPMModel model;
     union {
         struct {
             virDomainChrSourceDef source;
@@ -1115,21 +1114,21 @@ struct _virDomainTPMDef {
     } data;
 };
 
-enum virDomainInputType {
+typedef enum {
     VIR_DOMAIN_INPUT_TYPE_MOUSE,
     VIR_DOMAIN_INPUT_TYPE_TABLET,
     VIR_DOMAIN_INPUT_TYPE_KBD,
 
     VIR_DOMAIN_INPUT_TYPE_LAST
-};
+} virDomainInputType;
 
-enum virDomainInputBus {
+typedef enum {
     VIR_DOMAIN_INPUT_BUS_PS2,
     VIR_DOMAIN_INPUT_BUS_USB,
     VIR_DOMAIN_INPUT_BUS_XEN,
 
     VIR_DOMAIN_INPUT_BUS_LAST
-};
+} virDomainInputBus;
 
 struct _virDomainInputDef {
     int type;
@@ -1137,14 +1136,14 @@ struct _virDomainInputDef {
     virDomainDeviceInfo info;
 };
 
-enum virDomainSoundCodecType {
+typedef enum {
     VIR_DOMAIN_SOUND_CODEC_TYPE_DUPLEX,
     VIR_DOMAIN_SOUND_CODEC_TYPE_MICRO,
 
     VIR_DOMAIN_SOUND_CODEC_TYPE_LAST
-};
+} virDomainSoundCodecType;
 
-enum virDomainSoundModel {
+typedef enum {
     VIR_DOMAIN_SOUND_MODEL_SB16,
     VIR_DOMAIN_SOUND_MODEL_ES1370,
     VIR_DOMAIN_SOUND_MODEL_PCSPK,
@@ -1153,7 +1152,7 @@ enum virDomainSoundModel {
     VIR_DOMAIN_SOUND_MODEL_ICH9,
 
     VIR_DOMAIN_SOUND_MODEL_LAST
-};
+} virDomainSoundModel;
 
 struct _virDomainSoundCodecDef {
     int type;
@@ -1168,14 +1167,14 @@ struct _virDomainSoundDef {
     virDomainSoundCodecDefPtr *codecs;
 };
 
-enum virDomainWatchdogModel {
+typedef enum {
     VIR_DOMAIN_WATCHDOG_MODEL_I6300ESB,
     VIR_DOMAIN_WATCHDOG_MODEL_IB700,
 
     VIR_DOMAIN_WATCHDOG_MODEL_LAST
-};
+} virDomainWatchdogModel;
 
-enum virDomainWatchdogAction {
+typedef enum {
     VIR_DOMAIN_WATCHDOG_ACTION_RESET,
     VIR_DOMAIN_WATCHDOG_ACTION_SHUTDOWN,
     VIR_DOMAIN_WATCHDOG_ACTION_POWEROFF,
@@ -1184,7 +1183,7 @@ enum virDomainWatchdogAction {
     VIR_DOMAIN_WATCHDOG_ACTION_NONE,
 
     VIR_DOMAIN_WATCHDOG_ACTION_LAST
-};
+} virDomainWatchdogAction;
 
 struct _virDomainWatchdogDef {
     int model;
@@ -1193,7 +1192,7 @@ struct _virDomainWatchdogDef {
 };
 
 
-enum virDomainVideoType {
+typedef enum {
     VIR_DOMAIN_VIDEO_TYPE_VGA,
     VIR_DOMAIN_VIDEO_TYPE_CIRRUS,
     VIR_DOMAIN_VIDEO_TYPE_VMVGA,
@@ -1202,7 +1201,7 @@ enum virDomainVideoType {
     VIR_DOMAIN_VIDEO_TYPE_QXL,
 
     VIR_DOMAIN_VIDEO_TYPE_LAST
-};
+} virDomainVideoType;
 
 
 typedef struct _virDomainVideoAccelDef virDomainVideoAccelDef;
@@ -1224,7 +1223,7 @@ struct _virDomainVideoDef {
 };
 
 /* graphics console modes */
-enum virDomainGraphicsType {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_TYPE_SDL,
     VIR_DOMAIN_GRAPHICS_TYPE_VNC,
     VIR_DOMAIN_GRAPHICS_TYPE_RDP,
@@ -1232,25 +1231,25 @@ enum virDomainGraphicsType {
     VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
 
     VIR_DOMAIN_GRAPHICS_TYPE_LAST
-};
+} virDomainGraphicsType;
 
-enum virDomainGraphicsVNCSharePolicy {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_VNC_SHARE_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_VNC_SHARE_ALLOW_EXCLUSIVE,
     VIR_DOMAIN_GRAPHICS_VNC_SHARE_FORCE_SHARED,
     VIR_DOMAIN_GRAPHICS_VNC_SHARE_IGNORE,
 
     VIR_DOMAIN_GRAPHICS_VNC_SHARE_LAST
-};
+} virDomainGraphicsVNCSharePolicy;
 
-enum virDomainGraphicsAuthConnectedType {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_FAIL,
     VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_DISCONNECT,
     VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_KEEP,
 
     VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_LAST
-};
+} virDomainGraphicsAuthConnectedType;
 
 typedef struct _virDomainGraphicsAuthDef virDomainGraphicsAuthDef;
 typedef virDomainGraphicsAuthDef *virDomainGraphicsAuthDefPtr;
@@ -1261,7 +1260,7 @@ struct _virDomainGraphicsAuthDef {
     int connected; /* action if connected */
 };
 
-enum virDomainGraphicsSpiceChannelName {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MAIN,
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_DISPLAY,
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_INPUT,
@@ -1272,17 +1271,17 @@ enum virDomainGraphicsSpiceChannelName {
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_USBREDIR,
 
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST
-};
+} virDomainGraphicsSpiceChannelName;
 
-enum virDomainGraphicsSpiceChannelMode {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY,
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE,
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE,
 
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_LAST
-};
+} virDomainGraphicsSpiceChannelMode;
 
-enum virDomainGraphicsSpiceImageCompression {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_IMAGE_COMPRESSION_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_IMAGE_COMPRESSION_AUTO_GLZ,
     VIR_DOMAIN_GRAPHICS_SPICE_IMAGE_COMPRESSION_AUTO_LZ,
@@ -1292,80 +1291,80 @@ enum virDomainGraphicsSpiceImageCompression {
     VIR_DOMAIN_GRAPHICS_SPICE_IMAGE_COMPRESSION_OFF,
 
     VIR_DOMAIN_GRAPHICS_SPICE_IMAGE_COMPRESSION_LAST
-};
+} virDomainGraphicsSpiceImageCompression;
 
-enum virDomainGraphicsSpiceJpegCompression {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_JPEG_COMPRESSION_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_JPEG_COMPRESSION_AUTO,
     VIR_DOMAIN_GRAPHICS_SPICE_JPEG_COMPRESSION_NEVER,
     VIR_DOMAIN_GRAPHICS_SPICE_JPEG_COMPRESSION_ALWAYS,
 
     VIR_DOMAIN_GRAPHICS_SPICE_JPEG_COMPRESSION_LAST
-};
+} virDomainGraphicsSpiceJpegCompression;
 
-enum virDomainGraphicsSpiceZlibCompression {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_ZLIB_COMPRESSION_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_ZLIB_COMPRESSION_AUTO,
     VIR_DOMAIN_GRAPHICS_SPICE_ZLIB_COMPRESSION_NEVER,
     VIR_DOMAIN_GRAPHICS_SPICE_ZLIB_COMPRESSION_ALWAYS,
 
     VIR_DOMAIN_GRAPHICS_SPICE_ZLIB_COMPRESSION_LAST
-};
+} virDomainGraphicsSpiceZlibCompression;
 
-enum virDomainGraphicsSpicePlaybackCompression {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_PLAYBACK_COMPRESSION_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_PLAYBACK_COMPRESSION_ON,
     VIR_DOMAIN_GRAPHICS_SPICE_PLAYBACK_COMPRESSION_OFF,
 
     VIR_DOMAIN_GRAPHICS_SPICE_PLAYBACK_COMPRESSION_LAST
-};
+} virDomainGraphicsSpicePlaybackCompression;
 
-enum virDomainGraphicsSpiceMouseMode {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_SERVER,
     VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_CLIENT,
 
     VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_LAST
-};
+} virDomainGraphicsSpiceMouseMode;
 
-enum virDomainGraphicsSpiceStreamingMode {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_STREAMING_MODE_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_STREAMING_MODE_FILTER,
     VIR_DOMAIN_GRAPHICS_SPICE_STREAMING_MODE_ALL,
     VIR_DOMAIN_GRAPHICS_SPICE_STREAMING_MODE_OFF,
 
     VIR_DOMAIN_GRAPHICS_SPICE_STREAMING_MODE_LAST
-};
+} virDomainGraphicsSpiceStreamingMode;
 
-enum virDomainGraphicsSpiceClipboardCopypaste {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_YES,
     VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_NO,
 
     VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_LAST
-};
+} virDomainGraphicsSpiceClipboardCopypaste;
 
-enum virDomainGraphicsSpiceAgentFileTransfer {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_SPICE_AGENT_FILE_TRANSFER_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_SPICE_AGENT_FILE_TRANSFER_YES,
     VIR_DOMAIN_GRAPHICS_SPICE_AGENT_FILE_TRANSFER_NO,
 
     VIR_DOMAIN_GRAPHICS_SPICE_AGENT_FILE_TRANSFER_LAST
-};
+} virDomainGraphicsSpiceAgentFileTransfer;
 
-enum virDomainGraphicsListenType {
+typedef enum {
     VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NONE = 0,
     VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS,
     VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK,
 
     VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_LAST
-};
+} virDomainGraphicsListenType;
 
-enum virDomainHubType {
+typedef enum {
     VIR_DOMAIN_HUB_TYPE_USB,
 
     VIR_DOMAIN_HUB_TYPE_LAST
-};
+} virDomainHubType;
 
 typedef struct _virDomainGraphicsListenDef virDomainGraphicsListenDef;
 typedef virDomainGraphicsListenDef *virDomainGraphicsListenDefPtr;
@@ -1386,6 +1385,7 @@ struct _virDomainGraphicsDef {
     union {
         struct {
             int port;
+            bool portReserved;
             int websocket;
             bool autoport;
             char *keymap;
@@ -1411,6 +1411,8 @@ struct _virDomainGraphicsDef {
         struct {
             int port;
             int tlsPort;
+            bool portReserved;
+            bool tlsPortReserved;
             int mousemode;
             char *keymap;
             virDomainGraphicsAuthDef auth;
@@ -1433,11 +1435,11 @@ struct _virDomainGraphicsDef {
     virDomainGraphicsListenDefPtr listens;
 };
 
-enum virDomainRedirdevBus {
+typedef enum {
     VIR_DOMAIN_REDIRDEV_BUS_USB,
 
     VIR_DOMAIN_REDIRDEV_BUS_LAST
-};
+} virDomainRedirdevBus;
 
 struct _virDomainRedirdevDef {
     int bus; /* enum virDomainRedirdevBus */
@@ -1462,13 +1464,13 @@ struct _virDomainRedirFilterDef {
     virDomainRedirFilterUSBDevDefPtr *usbdevs;
 };
 
-enum virDomainMemDump {
+typedef enum {
     VIR_DOMAIN_MEM_DUMP_DEFAULT = 0,
     VIR_DOMAIN_MEM_DUMP_ON,
     VIR_DOMAIN_MEM_DUMP_OFF,
 
     VIR_DOMAIN_MEM_DUMP_LAST,
-};
+} virDomainMemDump;
 
 enum {
     VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO,
@@ -1488,36 +1490,36 @@ struct _virDomainNVRAMDef {
     virDomainDeviceInfo info;
 };
 
-enum virDomainSmbiosMode {
+typedef enum {
     VIR_DOMAIN_SMBIOS_NONE = 0,
     VIR_DOMAIN_SMBIOS_EMULATE,
     VIR_DOMAIN_SMBIOS_HOST,
     VIR_DOMAIN_SMBIOS_SYSINFO,
 
     VIR_DOMAIN_SMBIOS_LAST
-};
+} virDomainSmbiosMode;
 
 
 # define VIR_DOMAIN_MAX_BOOT_DEVS 4
 
-enum virDomainBootOrder {
+typedef enum {
     VIR_DOMAIN_BOOT_FLOPPY,
     VIR_DOMAIN_BOOT_CDROM,
     VIR_DOMAIN_BOOT_DISK,
     VIR_DOMAIN_BOOT_NET,
 
     VIR_DOMAIN_BOOT_LAST
-};
+} virDomainBootOrder;
 
-enum virDomainBootMenu {
+typedef enum {
     VIR_DOMAIN_BOOT_MENU_DEFAULT = 0,
     VIR_DOMAIN_BOOT_MENU_ENABLED,
     VIR_DOMAIN_BOOT_MENU_DISABLED,
 
     VIR_DOMAIN_BOOT_MENU_LAST
-};
+} virDomainBootMenu;
 
-enum virDomainFeature {
+typedef enum {
     VIR_DOMAIN_FEATURE_ACPI,
     VIR_DOMAIN_FEATURE_APIC,
     VIR_DOMAIN_FEATURE_PAE,
@@ -1528,34 +1530,34 @@ enum virDomainFeature {
     VIR_DOMAIN_FEATURE_PVSPINLOCK,
 
     VIR_DOMAIN_FEATURE_LAST
-};
+} virDomainFeature;
 
-enum virDomainFeatureState {
+typedef enum {
     VIR_DOMAIN_FEATURE_STATE_DEFAULT = 0,
     VIR_DOMAIN_FEATURE_STATE_ON,
     VIR_DOMAIN_FEATURE_STATE_OFF,
 
     VIR_DOMAIN_FEATURE_STATE_LAST
-};
+} virDomainFeatureState;
 
-enum virDomainHyperv {
+typedef enum {
     VIR_DOMAIN_HYPERV_RELAXED = 0,
     VIR_DOMAIN_HYPERV_VAPIC,
     VIR_DOMAIN_HYPERV_SPINLOCKS,
 
     VIR_DOMAIN_HYPERV_LAST
-};
+} virDomainHyperv;
 
-enum virDomainLifecycleAction {
+typedef enum {
     VIR_DOMAIN_LIFECYCLE_DESTROY,
     VIR_DOMAIN_LIFECYCLE_RESTART,
     VIR_DOMAIN_LIFECYCLE_RESTART_RENAME,
     VIR_DOMAIN_LIFECYCLE_PRESERVE,
 
     VIR_DOMAIN_LIFECYCLE_LAST
-};
+} virDomainLifecycleAction;
 
-enum virDomainLifecycleCrashAction {
+typedef enum {
     VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY,
     VIR_DOMAIN_LIFECYCLE_CRASH_RESTART,
     VIR_DOMAIN_LIFECYCLE_CRASH_RESTART_RENAME,
@@ -1564,7 +1566,7 @@ enum virDomainLifecycleCrashAction {
     VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_RESTART,
 
     VIR_DOMAIN_LIFECYCLE_CRASH_LAST
-};
+} virDomainLifecycleCrashAction;
 
 typedef enum {
     VIR_DOMAIN_LOCK_FAILURE_DEFAULT,
@@ -1578,19 +1580,19 @@ typedef enum {
 
 VIR_ENUM_DECL(virDomainLockFailure)
 
-enum virDomainPMState {
+typedef enum {
     VIR_DOMAIN_PM_STATE_DEFAULT = 0,
     VIR_DOMAIN_PM_STATE_ENABLED,
     VIR_DOMAIN_PM_STATE_DISABLED,
 
     VIR_DOMAIN_PM_STATE_LAST
-};
+} virDomainPMState;
 
-enum virDomainBIOSUseserial {
+typedef enum {
     VIR_DOMAIN_BIOS_USESERIAL_DEFAULT = 0,
     VIR_DOMAIN_BIOS_USESERIAL_YES,
     VIR_DOMAIN_BIOS_USESERIAL_NO
-};
+} virDomainBIOSUseserial;
 
 typedef struct _virDomainBIOSDef virDomainBIOSDef;
 typedef virDomainBIOSDef *virDomainBIOSDefPtr;
@@ -1627,7 +1629,7 @@ struct _virDomainOSDef {
     virDomainBIOSDef bios;
 };
 
-enum virDomainTimerNameType {
+typedef enum {
     VIR_DOMAIN_TIMER_NAME_PLATFORM = 0,
     VIR_DOMAIN_TIMER_NAME_PIT,
     VIR_DOMAIN_TIMER_NAME_RTC,
@@ -1637,26 +1639,26 @@ enum virDomainTimerNameType {
     VIR_DOMAIN_TIMER_NAME_HYPERVCLOCK,
 
     VIR_DOMAIN_TIMER_NAME_LAST
-};
+} virDomainTimerNameType;
 
-enum virDomainTimerTrackType {
+typedef enum {
     VIR_DOMAIN_TIMER_TRACK_BOOT = 0,
     VIR_DOMAIN_TIMER_TRACK_GUEST,
     VIR_DOMAIN_TIMER_TRACK_WALL,
 
     VIR_DOMAIN_TIMER_TRACK_LAST
-};
+} virDomainTimerTrackType;
 
-enum virDomainTimerTickpolicyType {
+typedef enum {
     VIR_DOMAIN_TIMER_TICKPOLICY_DELAY = 0,
     VIR_DOMAIN_TIMER_TICKPOLICY_CATCHUP,
     VIR_DOMAIN_TIMER_TICKPOLICY_MERGE,
     VIR_DOMAIN_TIMER_TICKPOLICY_DISCARD,
 
     VIR_DOMAIN_TIMER_TICKPOLICY_LAST
-};
+} virDomainTimerTickpolicyType;
 
-enum virDomainTimerModeType {
+typedef enum {
     VIR_DOMAIN_TIMER_MODE_AUTO = 0,
     VIR_DOMAIN_TIMER_MODE_NATIVE,
     VIR_DOMAIN_TIMER_MODE_EMULATE,
@@ -1664,14 +1666,14 @@ enum virDomainTimerModeType {
     VIR_DOMAIN_TIMER_MODE_SMPSAFE,
 
     VIR_DOMAIN_TIMER_MODE_LAST
-};
+} virDomainTimerModeType;
 
-enum virDomainCpuPlacementMode {
+typedef enum {
     VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC = 0,
     VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO,
 
     VIR_DOMAIN_CPU_PLACEMENT_MODE_LAST
-};
+} virDomainCpuPlacementMode;
 
 typedef struct _virDomainTimerCatchupDef virDomainTimerCatchupDef;
 typedef virDomainTimerCatchupDef *virDomainTimerCatchupDefPtr;
@@ -1698,21 +1700,21 @@ struct _virDomainTimerDef {
     int mode;       /* auto|native|emulate|paravirt */
 };
 
-enum virDomainClockOffsetType {
+typedef enum {
     VIR_DOMAIN_CLOCK_OFFSET_UTC = 0,
     VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME = 1,
     VIR_DOMAIN_CLOCK_OFFSET_VARIABLE = 2,
     VIR_DOMAIN_CLOCK_OFFSET_TIMEZONE = 3,
 
     VIR_DOMAIN_CLOCK_OFFSET_LAST
-};
+} virDomainClockOffsetType;
 
-enum virDomainClockBasis {
+typedef enum {
     VIR_DOMAIN_CLOCK_BASIS_UTC = 0,
     VIR_DOMAIN_CLOCK_BASIS_LOCALTIME = 1,
 
     VIR_DOMAIN_CLOCK_BASIS_LAST
-};
+} virDomainClockBasis;
 
 typedef struct _virDomainClockDef virDomainClockDef;
 typedef virDomainClockDef *virDomainClockDefPtr;
@@ -1779,19 +1781,19 @@ struct _virBlkioDevice {
     unsigned long long wbps;
 };
 
-enum virDomainRNGModel {
+typedef enum {
     VIR_DOMAIN_RNG_MODEL_VIRTIO,
 
     VIR_DOMAIN_RNG_MODEL_LAST
-};
+} virDomainRNGModel;
 
-enum virDomainRNGBackend {
+typedef enum {
     VIR_DOMAIN_RNG_BACKEND_RANDOM,
     VIR_DOMAIN_RNG_BACKEND_EGD,
     /* VIR_DOMAIN_RNG_BACKEND_POOL, */
 
     VIR_DOMAIN_RNG_BACKEND_LAST
-};
+} virDomainRNGBackend;
 
 struct _virDomainRNGDef {
     int model;
@@ -1989,7 +1991,7 @@ struct _virDomainDef {
     xmlNodePtr metadata;
 };
 
-enum virDomainTaintFlags {
+typedef enum {
     VIR_DOMAIN_TAINT_CUSTOM_ARGV,      /* Custom ARGV passthrough from XML */
     VIR_DOMAIN_TAINT_CUSTOM_MONITOR,   /* Custom monitor commands issued */
     VIR_DOMAIN_TAINT_HIGH_PRIVILEGES,  /* Running with undesirably high privileges */
@@ -2000,7 +2002,7 @@ enum virDomainTaintFlags {
     VIR_DOMAIN_TAINT_HOOK,             /* Domain (possibly) changed via hook script */
 
     VIR_DOMAIN_TAINT_LAST
-};
+} virDomainTaintFlags;
 
 /* Guest VM runtime state */
 typedef struct _virDomainStateReason virDomainStateReason;
@@ -2123,12 +2125,13 @@ virDomainObjPtr virDomainObjListFindByName(virDomainObjListPtr doms,
                                            const char *name);
 
 bool virDomainObjTaint(virDomainObjPtr obj,
-                       enum virDomainTaintFlags taint);
+                       virDomainTaintFlags taint);
 
 void virDomainPanicDefFree(virDomainPanicDefPtr panic);
 void virDomainResourceDefFree(virDomainResourceDefPtr resource);
 void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
 void virDomainInputDefFree(virDomainInputDefPtr def);
+virDomainDiskDefPtr virDomainDiskDefNew(void);
 void virDomainDiskDefFree(virDomainDiskDefPtr def);
 void virDomainLeaseDefFree(virDomainLeaseDefPtr def);
 int virDomainDiskGetType(virDomainDiskDefPtr def);
@@ -2396,7 +2399,7 @@ virDomainLeaseRemove(virDomainDefPtr def,
 
 void
 virDomainChrGetDomainPtrs(const virDomainDef *vmdef,
-                          enum virDomainChrDeviceType type,
+                          virDomainChrDeviceType type,
                           const virDomainChrDef ***arrPtr,
                           size_t *cntPtr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
@@ -2517,9 +2520,6 @@ virDomainObjGetState(virDomainObjPtr obj, int *reason)
 
 virSecurityLabelDefPtr
 virDomainDefGetSecurityLabelDef(virDomainDefPtr def, const char *model);
-
-virSecurityDeviceLabelDefPtr
-virDomainDiskDefGetSecurityLabelDef(virDomainDiskDefPtr def, const char *model);
 
 virSecurityDeviceLabelDefPtr
 virDomainChrDefGetSecurityLabelDef(virDomainChrDefPtr def, const char *model);

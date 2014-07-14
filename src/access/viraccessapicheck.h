@@ -261,6 +261,7 @@ extern int virNetworkDefineXMLEnsureACL(virConnectPtr conn, virNetworkDefPtr net
 extern int virNetworkDestroyEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkGetAutostartEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkGetBridgeNameEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
+extern int virNetworkGetDHCPLeasesEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkGetXMLDescEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkIsActiveEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkIsPersistentEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
@@ -285,6 +286,7 @@ extern int virNodeGetCellsFreeMemoryEnsureACL(virConnectPtr conn);
 extern int virNodeGetCPUMapEnsureACL(virConnectPtr conn);
 extern int virNodeGetCPUStatsEnsureACL(virConnectPtr conn);
 extern int virNodeGetFreeMemoryEnsureACL(virConnectPtr conn);
+extern int virNodeGetFreePagesEnsureACL(virConnectPtr conn);
 extern int virNodeGetInfoEnsureACL(virConnectPtr conn);
 extern int virNodeGetMemoryParametersEnsureACL(virConnectPtr conn);
 extern int virNodeGetMemoryStatsEnsureACL(virConnectPtr conn);

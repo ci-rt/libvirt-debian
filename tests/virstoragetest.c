@@ -31,6 +31,8 @@
 #include "virstring.h"
 #include "dirname.h"
 
+#include "storage/storage_driver.h"
+
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 VIR_LOG_INIT("tests.storagetest");
@@ -96,6 +98,7 @@ testStorageFileGetMetadata(const char *path,
                            uid_t uid, gid_t gid,
                            bool allow_probe)
 {
+    struct stat st;
     virStorageSourcePtr ret = NULL;
 
     if (VIR_ALLOC(ret) < 0)
@@ -104,18 +107,17 @@ testStorageFileGetMetadata(const char *path,
     ret->type = VIR_STORAGE_TYPE_FILE;
     ret->format = format;
 
-    if (VIR_STRDUP(ret->relPath, path) < 0)
-        goto error;
-
-    if (!(ret->relDir = mdir_name(path))) {
-        virReportOOMError();
-        goto error;
+    if (stat(path, &st) == 0) {
+        if (S_ISDIR(st.st_mode)) {
+            ret->type = VIR_STORAGE_TYPE_DIR;
+            ret->format = VIR_STORAGE_FILE_DIR;
+        } else if (S_ISBLK(st.st_mode)) {
+            ret->type = VIR_STORAGE_TYPE_BLOCK;
+        }
     }
 
-    if (!(ret->path = canonicalize_file_name(path))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "failed to resolve '%s'", path);
+    if (VIR_STRDUP(ret->path, path) < 0)
         goto error;
-    }
 
     if (virStorageFileGetMetadata(ret, uid, gid, allow_probe) < 0)
         goto error;
@@ -270,15 +272,11 @@ testPrepImages(void)
 typedef struct _testFileData testFileData;
 struct _testFileData
 {
-    const char *expBackingStore;
     const char *expBackingStoreRaw;
     unsigned long long expCapacity;
     bool expEncrypted;
     const char *pathRel;
-    const char *pathAbs;
     const char *path;
-    const char *relDirRel;
-    const char *relDirAbs;
     int type;
     int format;
 };
@@ -288,7 +286,6 @@ enum {
     EXP_FAIL = 1,
     EXP_WARN = 2,
     ALLOW_PROBE = 4,
-    ABS_START = 8,
 };
 
 struct testChainData
@@ -300,6 +297,17 @@ struct testChainData
     unsigned int flags;
 };
 
+
+static const char testStorageChainFormat[] =
+    "chain member: %zu\n"
+    "path:%s\n"
+    "backingStoreRaw: %s\n"
+    "capacity: %lld\n"
+    "encryption: %d\n"
+    "relPath:%s\n"
+    "type:%d\n"
+    "format:%d\n";
+
 static int
 testStorageChain(const void *args)
 {
@@ -309,7 +317,6 @@ testStorageChain(const void *args)
     virStorageSourcePtr elt;
     size_t i = 0;
     char *broken = NULL;
-    bool isAbs = !!(data->flags & ABS_START);
 
     meta = testStorageFileGetMetadata(data->start, data->format, -1, -1,
                                       (data->flags & ALLOW_PROBE) != 0);
@@ -348,46 +355,35 @@ testStorageChain(const void *args)
     while (elt) {
         char *expect = NULL;
         char *actual = NULL;
-        const char *expPath;
-        const char *expRelDir;
 
         if (i == data->nfiles) {
             fprintf(stderr, "probed chain was too long\n");
             goto cleanup;
         }
 
-        expPath = isAbs ? data->files[i]->pathAbs
-            : data->files[i]->pathRel;
-        expRelDir = isAbs ? data->files[i]->relDirAbs
-            : data->files[i]->relDirRel;
         if (virAsprintf(&expect,
-                        "store:%s\nraw:%s\nother:%lld %d\n"
-                        "relPath:%s\npath:%s\nrelDir:%s\ntype:%d %d\n",
-                        NULLSTR(data->files[i]->expBackingStore),
+                        testStorageChainFormat, i,
+                        NULLSTR(data->files[i]->path),
                         NULLSTR(data->files[i]->expBackingStoreRaw),
                         data->files[i]->expCapacity,
                         data->files[i]->expEncrypted,
-                        NULLSTR(expPath),
-                        NULLSTR(data->files[i]->path),
-                        NULLSTR(expRelDir),
+                        NULLSTR(data->files[i]->pathRel),
                         data->files[i]->type,
                         data->files[i]->format) < 0 ||
             virAsprintf(&actual,
-                        "store:%s\nraw:%s\nother:%lld %d\n"
-                        "relPath:%s\npath:%s\nrelDir:%s\ntype:%d %d\n",
-                        NULLSTR(elt->backingStore ? elt->backingStore->path : NULL),
-                        NULLSTR(elt->backingStoreRaw),
-                        elt->capacity, !!elt->encryption,
-                        NULLSTR(elt->relPath),
+                        testStorageChainFormat, i,
                         NULLSTR(elt->path),
-                        NULLSTR(elt->relDir),
-                        elt->type, elt->format) < 0) {
+                        NULLSTR(elt->backingStoreRaw),
+                        elt->capacity,
+                        !!elt->encryption,
+                        NULLSTR(elt->relPath),
+                        elt->type,
+                        elt->format) < 0) {
             VIR_FREE(expect);
             VIR_FREE(actual);
             goto cleanup;
         }
         if (STRNEQ(expect, actual)) {
-            fprintf(stderr, "chain member %zu", i);
             virtTestDifference(stderr, expect, actual);
             VIR_FREE(expect);
             VIR_FREE(actual);
@@ -414,6 +410,7 @@ struct testLookupData
 {
     virStorageSourcePtr chain;
     const char *target;
+    virStorageSourcePtr from;
     const char *name;
     unsigned int expIndex;
     const char *expResult;
@@ -441,7 +438,7 @@ testStorageLookup(const void *args)
     }
 
      /* Test twice to ensure optional parameter doesn't cause NULL deref. */
-    result = virStorageFileChainLookup(data->chain, NULL,
+    result = virStorageFileChainLookup(data->chain, data->from,
                                        idx ? NULL : data->name,
                                        idx, NULL);
 
@@ -470,7 +467,7 @@ testStorageLookup(const void *args)
         ret = -1;
     }
 
-    result = virStorageFileChainLookup(data->chain, data->chain,
+    result = virStorageFileChainLookup(data->chain, data->from,
                                        data->name, idx, &actualParent);
     if (!data->expResult)
         virResetLastError();
@@ -500,13 +497,175 @@ testStorageLookup(const void *args)
     return ret;
 }
 
+
+struct testPathCanonicalizeData
+{
+    const char *path;
+    const char *expect;
+};
+
+static const char *testPathCanonicalizeSymlinks[][2] =
+{
+    {"/path/blah", "/other/path/huzah"},
+    {"/path/to/relative/symlink", "../../actual/file"},
+    {"/cycle", "/cycle"},
+    {"/cycle2/link", "./link"},
+};
+
+static int
+testPathCanonicalizeReadlink(const char *path,
+                             char **linkpath,
+                             void *data ATTRIBUTE_UNUSED)
+{
+    size_t i;
+
+    *linkpath = NULL;
+
+    for (i = 0; i < ARRAY_CARDINALITY(testPathCanonicalizeSymlinks); i++) {
+        if (STREQ(path, testPathCanonicalizeSymlinks[i][0])) {
+            if (VIR_STRDUP(*linkpath, testPathCanonicalizeSymlinks[i][1]) < 0)
+                return -1;
+
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+
+static int
+testPathCanonicalize(const void *args)
+{
+    const struct testPathCanonicalizeData *data = args;
+    char *canon = NULL;
+    int ret = -1;
+
+    canon = virStorageFileCanonicalizePath(data->path,
+                                           testPathCanonicalizeReadlink,
+                                           NULL);
+
+    if (STRNEQ_NULLABLE(data->expect, canon)) {
+        fprintf(stderr,
+                "path canonicalization of '%s' failed: expected '%s' got '%s'\n",
+                data->path, NULLSTR(data->expect), NULLSTR(canon));
+
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(canon);
+
+    return ret;
+}
+
+static virStorageSource backingchain[12];
+
+static void
+testPathRelativePrepare(void)
+{
+    size_t i;
+
+    for (i = 0; i < ARRAY_CARDINALITY(backingchain); i++) {
+        if (i < ARRAY_CARDINALITY(backingchain) - 1)
+            backingchain[i].backingStore = &backingchain[i + 1];
+        else
+            backingchain[i].backingStore = NULL;
+
+        backingchain[i].relPath = NULL;
+    }
+
+    /* normal relative backing chain */
+    backingchain[0].path = (char *) "/path/to/some/img";
+
+    backingchain[1].path = (char *) "/path/to/some/asdf";
+    backingchain[1].relPath = (char *) "asdf";
+
+    backingchain[2].path = (char *) "/path/to/some/test";
+    backingchain[2].relPath = (char *) "test";
+
+    backingchain[3].path = (char *) "/path/to/some/blah";
+    backingchain[3].relPath = (char *) "blah";
+
+    /* ovirt's backing chain */
+    backingchain[4].path = (char *) "/path/to/volume/image1";
+
+    backingchain[5].path = (char *) "/path/to/volume/image2";
+    backingchain[5].relPath = (char *) "../volume/image2";
+
+    backingchain[6].path = (char *) "/path/to/volume/image3";
+    backingchain[6].relPath = (char *) "../volume/image3";
+
+    backingchain[7].path = (char *) "/path/to/volume/image4";
+    backingchain[7].relPath = (char *) "../volume/image4";
+
+    /* some arbitrarily crazy backing chains */
+    backingchain[8].path = (char *) "/crazy/base/image";
+
+    backingchain[9].path = (char *) "/crazy/base/directory/stuff/volumes/garbage/image2";
+    backingchain[9].relPath = (char *) "directory/stuff/volumes/garbage/image2";
+
+    backingchain[10].path = (char *) "/crazy/base/directory/image3";
+    backingchain[10].relPath = (char *) "../../../image3";
+
+    backingchain[11].path = (char *) "/crazy/base/blah/image4";
+    backingchain[11].relPath = (char *) "../blah/image4";
+}
+
+
+struct testPathRelativeBacking
+{
+    virStorageSourcePtr top;
+    virStorageSourcePtr base;
+
+    const char *expect;
+};
+
+static int
+testPathRelative(const void *args)
+{
+    const struct testPathRelativeBacking *data = args;
+    char *actual = NULL;
+    int ret = -1;
+
+    if (virStorageFileGetRelativeBackingPath(data->top,
+                                             data->base,
+                                             &actual) < 0) {
+        fprintf(stderr, "relative backing path resolution failed\n");
+        goto cleanup;
+    }
+
+    if (STRNEQ_NULLABLE(data->expect, actual)) {
+        fprintf(stderr, "relative path resolution from '%s' to '%s': "
+                "expected '%s', got '%s'\n",
+                data->top->path, data->base->path,
+                NULLSTR(data->expect), NULLSTR(actual));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(actual);
+
+    return ret;
+}
+
+
 static int
 mymain(void)
 {
     int ret;
     virCommandPtr cmd = NULL;
     struct testChainData data;
+    struct testLookupData data2;
+    struct testPathCanonicalizeData data3;
+    struct testPathRelativeBacking data4;
     virStorageSourcePtr chain = NULL;
+    virStorageSourcePtr chain2; /* short for chain->backingStore */
+    virStorageSourcePtr chain3; /* short for chain2->backingStore */
 
     /* Prep some files with qemu-img; if that is not found on PATH, or
      * if it lacks support for qcow2 and qed, skip this test.  */
@@ -531,17 +690,10 @@ mymain(void)
 #define VIR_FLATTEN_2(...) __VA_ARGS__
 #define VIR_FLATTEN_1(_1) VIR_FLATTEN_2 _1
 
-#define TEST_CHAIN(id, relstart, absstart, format, chain1, flags1,   \
-                   chain2, flags2, chain3, flags3, chain4, flags4)   \
-    do {                                                             \
-        TEST_ONE_CHAIN(#id "a", relstart, format, flags1,            \
-                       VIR_FLATTEN_1(chain1));                       \
-        TEST_ONE_CHAIN(#id "b", relstart, format, flags2,            \
-                       VIR_FLATTEN_1(chain2));                       \
-        TEST_ONE_CHAIN(#id "c", absstart, format, flags3 | ABS_START,\
-                       VIR_FLATTEN_1(chain3));                       \
-        TEST_ONE_CHAIN(#id "d", absstart, format, flags4 | ABS_START,\
-                       VIR_FLATTEN_1(chain4));                       \
+#define TEST_CHAIN(id, path, format, chain1, flags1, chain2, flags2)           \
+    do {                                                                       \
+        TEST_ONE_CHAIN(#id "a", path, format, flags1, VIR_FLATTEN_1(chain1));  \
+        TEST_ONE_CHAIN(#id "b", path, format, flags2, VIR_FLATTEN_1(chain2));  \
     } while (0)
 
     /* The actual tests, in several groups. */
@@ -551,56 +703,35 @@ mymain(void)
 
     /* Raw image, whether with right format or no specified format */
     testFileData raw = {
-        .pathRel = "raw",
-        .pathAbs = canonraw,
         .path = canonraw,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(1, "raw", absraw, VIR_STORAGE_FILE_RAW,
-               (&raw), EXP_PASS,
-               (&raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(1, absraw, VIR_STORAGE_FILE_RAW,
                (&raw), EXP_PASS,
                (&raw), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(2, "raw", absraw, VIR_STORAGE_FILE_AUTO,
-               (&raw), EXP_PASS,
-               (&raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(2, absraw, VIR_STORAGE_FILE_AUTO,
                (&raw), EXP_PASS,
                (&raw), ALLOW_PROBE | EXP_PASS);
 
     /* Qcow2 file with relative raw backing, format provided */
-    raw.pathAbs = "raw";
+    raw.pathRel = "raw";
     testFileData qcow2 = {
-        .expBackingStore = canonraw,
         .expBackingStoreRaw = "raw",
         .expCapacity = 1024,
-        .pathRel = "qcow2",
-        .pathAbs = canonqcow2,
         .path = canonqcow2,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
     testFileData qcow2_as_raw = {
-        .pathRel = "qcow2",
-        .pathAbs = canonqcow2,
         .path = canonqcow2,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(3, "qcow2", absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(3, absqcow2, VIR_STORAGE_FILE_QCOW2,
                (&qcow2, &raw), EXP_PASS,
                (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(4, "qcow2", absqcow2, VIR_STORAGE_FILE_AUTO,
-               (&qcow2_as_raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(4, absqcow2, VIR_STORAGE_FILE_AUTO,
                (&qcow2_as_raw), EXP_PASS,
                (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
 
@@ -611,40 +742,25 @@ mymain(void)
     if (virCommandRun(cmd, NULL) < 0)
         ret = -1;
     qcow2.expBackingStoreRaw = absraw;
-    raw.pathRel = absraw;
-    raw.pathAbs = absraw;
-    raw.relDirRel = datadir;
+    raw.pathRel = NULL;
 
     /* Qcow2 file with raw as absolute backing, backing format provided */
-    TEST_CHAIN(5, "qcow2", absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(5, absqcow2, VIR_STORAGE_FILE_QCOW2,
                (&qcow2, &raw), EXP_PASS,
                (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(6, "qcow2", absqcow2, VIR_STORAGE_FILE_AUTO,
-               (&qcow2_as_raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(6, absqcow2, VIR_STORAGE_FILE_AUTO,
                (&qcow2_as_raw), EXP_PASS,
                (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
 
     /* Wrapped file access */
     testFileData wrap = {
-        .expBackingStore = canonqcow2,
         .expBackingStoreRaw = absqcow2,
         .expCapacity = 1024,
-        .pathRel = "wrap",
-        .pathAbs = abswrap,
         .path = canonwrap,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
-    qcow2.pathRel = absqcow2;
-    qcow2.relDirRel = datadir;
-    TEST_CHAIN(7, "wrap", abswrap, VIR_STORAGE_FILE_QCOW2,
-               (&wrap, &qcow2, &raw), EXP_PASS,
-               (&wrap, &qcow2, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(7, abswrap, VIR_STORAGE_FILE_QCOW2,
                (&wrap, &qcow2, &raw), EXP_PASS,
                (&wrap, &qcow2, &raw), ALLOW_PROBE | EXP_PASS);
 
@@ -660,25 +776,16 @@ mymain(void)
                                "-b", absqcow2, "wrap", NULL);
     if (virCommandRun(cmd, NULL) < 0)
         ret = -1;
-    qcow2_as_raw.pathRel = absqcow2;
-    qcow2_as_raw.relDirRel = datadir;
 
     /* Qcow2 file with raw as absolute backing, backing format omitted */
     testFileData wrap_as_raw = {
-        .expBackingStore = canonqcow2,
         .expBackingStoreRaw = absqcow2,
         .expCapacity = 1024,
-        .pathRel = "wrap",
-        .pathAbs = abswrap,
         .path = canonwrap,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
-    TEST_CHAIN(8, "wrap", abswrap, VIR_STORAGE_FILE_QCOW2,
-               (&wrap_as_raw, &qcow2_as_raw), EXP_PASS,
-               (&wrap, &qcow2, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(8, abswrap, VIR_STORAGE_FILE_QCOW2,
                (&wrap_as_raw, &qcow2_as_raw), EXP_PASS,
                (&wrap, &qcow2, &raw), ALLOW_PROBE | EXP_PASS);
 
@@ -689,15 +796,10 @@ mymain(void)
                                "qcow2", NULL);
     if (virCommandRun(cmd, NULL) < 0)
         ret = -1;
-    qcow2.expBackingStore = NULL;
     qcow2.expBackingStoreRaw = datadir "/bogus";
-    qcow2.pathRel = "qcow2";
-    qcow2.relDirRel = ".";
 
     /* Qcow2 file with missing backing file but specified type */
-    TEST_CHAIN(9, "qcow2", absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2), EXP_WARN,
-               (&qcow2), ALLOW_PROBE | EXP_WARN,
+    TEST_CHAIN(9, absqcow2, VIR_STORAGE_FILE_QCOW2,
                (&qcow2), EXP_WARN,
                (&qcow2), ALLOW_PROBE | EXP_WARN);
 
@@ -709,82 +811,56 @@ mymain(void)
         ret = -1;
 
     /* Qcow2 file with missing backing file and no specified type */
-    TEST_CHAIN(10, "qcow2", absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2), EXP_WARN,
-               (&qcow2), ALLOW_PROBE | EXP_WARN,
+    TEST_CHAIN(10, absqcow2, VIR_STORAGE_FILE_QCOW2,
                (&qcow2), EXP_WARN,
                (&qcow2), ALLOW_PROBE | EXP_WARN);
 
     /* Rewrite qcow2 to use an nbd: protocol as backend */
     virCommandFree(cmd);
     cmd = virCommandNewArgList(qemuimg, "rebase", "-u", "-f", "qcow2",
-                               "-F", "raw", "-b", "nbd:example.org:6000",
+                               "-F", "raw", "-b", "nbd:example.org:6000:exportname=blah",
                                "qcow2", NULL);
     if (virCommandRun(cmd, NULL) < 0)
         ret = -1;
-    qcow2.expBackingStore = "nbd:example.org:6000";
-    qcow2.expBackingStoreRaw = "nbd:example.org:6000";
+    qcow2.expBackingStoreRaw = "nbd:example.org:6000:exportname=blah";
 
     /* Qcow2 file with backing protocol instead of file */
     testFileData nbd = {
-        .pathRel = "nbd:example.org:6000",
-        .pathAbs = "nbd:example.org:6000",
-        .path = "nbd:example.org:6000",
+        .path = "blah",
         .type = VIR_STORAGE_TYPE_NETWORK,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(11, "qcow2", absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &nbd), EXP_PASS,
-               (&qcow2, &nbd), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(11, absqcow2, VIR_STORAGE_FILE_QCOW2,
                (&qcow2, &nbd), EXP_PASS,
                (&qcow2, &nbd), ALLOW_PROBE | EXP_PASS);
 
     /* qed file */
     testFileData qed = {
-        .expBackingStore = canonraw,
         .expBackingStoreRaw = absraw,
         .expCapacity = 1024,
-        .pathRel = "qed",
-        .pathAbs = absqed,
         .path = canonqed,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QED,
     };
     testFileData qed_as_raw = {
-        .pathRel = "qed",
-        .pathAbs = absqed,
         .path = canonqed,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(12, "qed", absqed, VIR_STORAGE_FILE_AUTO,
-               (&qed_as_raw), EXP_PASS,
-               (&qed, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(12, absqed, VIR_STORAGE_FILE_AUTO,
                (&qed_as_raw), EXP_PASS,
                (&qed, &raw), ALLOW_PROBE | EXP_PASS);
 
     /* directory */
     testFileData dir = {
-        .pathRel = "dir",
-        .pathAbs = absdir,
         .path = canondir,
-        .relDirRel = ".",
-        .relDirAbs = datadir,
         .type = VIR_STORAGE_TYPE_DIR,
         .format = VIR_STORAGE_FILE_DIR,
     };
-    TEST_CHAIN(13, "dir", absdir, VIR_STORAGE_FILE_AUTO,
-               (&dir), EXP_PASS,
-               (&dir), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(13, absdir, VIR_STORAGE_FILE_AUTO,
                (&dir), EXP_PASS,
                (&dir), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(14, "dir", absdir, VIR_STORAGE_FILE_DIR,
-               (&dir), EXP_PASS,
-               (&dir), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(14, absdir, VIR_STORAGE_FILE_DIR,
                (&dir), EXP_PASS,
                (&dir), ALLOW_PROBE | EXP_PASS);
 
@@ -806,36 +882,24 @@ mymain(void)
 
     /* Behavior of symlinks to qcow2 with relative backing files */
     testFileData link1 = {
-        .expBackingStore = canonraw,
         .expBackingStoreRaw = "../raw",
         .expCapacity = 1024,
         .pathRel = "../sub/link1",
-        .pathAbs = "../sub/link1",
-        .path = canonqcow2,
-        .relDirRel = "sub/../sub",
-        .relDirAbs = datadir "/sub/../sub",
+        .path = datadir "/sub/../sub/link1",
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
     testFileData link2 = {
-        .expBackingStore = canonqcow2,
         .expBackingStoreRaw = "../sub/link1",
         .expCapacity = 1024,
-        .pathRel = "sub/link2",
-        .pathAbs = abslink2,
-        .path = canonwrap,
-        .relDirRel = "sub",
-        .relDirAbs = datadir "/sub",
+        .path = abslink2,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
+
+    raw.path = datadir "/sub/../sub/../raw";
     raw.pathRel = "../raw";
-    raw.pathAbs = "../raw";
-    raw.relDirRel = "sub/../sub/..";
-    raw.relDirAbs = datadir "/sub/../sub/..";
-    TEST_CHAIN(15, "sub/link2", abslink2, VIR_STORAGE_FILE_QCOW2,
-               (&link2, &link1, &raw), EXP_PASS,
-               (&link2, &link1, &raw), ALLOW_PROBE | EXP_PASS,
+    TEST_CHAIN(15, abslink2, VIR_STORAGE_FILE_QCOW2,
                (&link2, &link1, &raw), EXP_PASS,
                (&link2, &link1, &raw), ALLOW_PROBE | EXP_PASS);
 #endif
@@ -846,13 +910,10 @@ mymain(void)
                                "-F", "qcow2", "-b", "qcow2", "qcow2", NULL);
     if (virCommandRun(cmd, NULL) < 0)
         ret = -1;
-    qcow2.expBackingStore = NULL;
     qcow2.expBackingStoreRaw = "qcow2";
 
     /* Behavior of an infinite loop chain */
-    TEST_CHAIN(16, "qcow2", absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2), EXP_WARN,
-               (&qcow2), ALLOW_PROBE | EXP_WARN,
+    TEST_CHAIN(16, absqcow2, VIR_STORAGE_FILE_QCOW2,
                (&qcow2), EXP_WARN,
                (&qcow2), ALLOW_PROBE | EXP_WARN);
 
@@ -869,13 +930,9 @@ mymain(void)
     if (virCommandRun(cmd, NULL) < 0)
         ret = -1;
     qcow2.expBackingStoreRaw = "wrap";
-    qcow2.pathRel = absqcow2;
-    qcow2.relDirRel =  datadir;
 
     /* Behavior of an infinite loop chain */
-    TEST_CHAIN(17, "wrap", abswrap, VIR_STORAGE_FILE_QCOW2,
-               (&wrap, &qcow2), EXP_WARN,
-               (&wrap, &qcow2), ALLOW_PROBE | EXP_WARN,
+    TEST_CHAIN(17, abswrap, VIR_STORAGE_FILE_QCOW2,
                (&wrap, &qcow2), EXP_WARN,
                (&wrap, &qcow2), ALLOW_PROBE | EXP_WARN);
 
@@ -893,31 +950,50 @@ mymain(void)
         ret = -1;
         goto cleanup;
     }
+    chain2 = chain->backingStore;
+    chain3 = chain2->backingStore;
 
-#define TEST_LOOKUP_TARGET(id, target, name, index, result, meta, parent)   \
-    do {                                                                    \
-        struct testLookupData data2 = { chain, target, name, index,         \
-                                        result, meta, parent, };            \
-        if (virtTestRun("Chain lookup " #id,                                \
-                        testStorageLookup, &data2) < 0)                     \
-            ret = -1;                                                       \
+#define TEST_LOOKUP_TARGET(id, target, from, name, index, result,       \
+                           meta, parent)                                \
+    do {                                                                \
+        data2 = (struct testLookupData){                                \
+            chain, target, from, name, index,                           \
+            result, meta, parent, };                                    \
+        if (virtTestRun("Chain lookup " #id,                            \
+                        testStorageLookup, &data2) < 0)                 \
+            ret = -1;                                                   \
     } while (0)
-#define TEST_LOOKUP(id, name, result, meta, parent)                         \
-    TEST_LOOKUP_TARGET(id, NULL, name, 0, result, meta, parent)
+#define TEST_LOOKUP(id, from, name, result, meta, parent)               \
+    TEST_LOOKUP_TARGET(id, NULL, from, name, 0, result, meta, parent)
 
-    TEST_LOOKUP(0, "bogus", NULL, NULL, NULL);
-    TEST_LOOKUP(1, "wrap", chain->path, chain, NULL);
-    TEST_LOOKUP(2, abswrap, chain->path, chain, NULL);
-    TEST_LOOKUP(3, "qcow2", chain->backingStore->path, chain->backingStore,
-                chain->path);
-    TEST_LOOKUP(4, absqcow2, chain->backingStore->path, chain->backingStore,
-                chain->path);
-    TEST_LOOKUP(5, "raw", chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
-    TEST_LOOKUP(6, absraw, chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
-    TEST_LOOKUP(7, NULL, chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
+    TEST_LOOKUP(0, NULL, "bogus", NULL, NULL, NULL);
+    TEST_LOOKUP(1, chain, "bogus", NULL, NULL, NULL);
+    TEST_LOOKUP(2, NULL, "wrap", chain->path, chain, NULL);
+    TEST_LOOKUP(3, chain, "wrap", NULL, NULL, NULL);
+    TEST_LOOKUP(4, chain2, "wrap", NULL, NULL, NULL);
+    TEST_LOOKUP(5, NULL, abswrap, chain->path, chain, NULL);
+    TEST_LOOKUP(6, chain, abswrap, NULL, NULL, NULL);
+    TEST_LOOKUP(7, chain2, abswrap, NULL, NULL, NULL);
+    TEST_LOOKUP(8, NULL, "qcow2", chain2->path, chain2, chain->path);
+    TEST_LOOKUP(9, chain, "qcow2", chain2->path, chain2, chain->path);
+    TEST_LOOKUP(10, chain2, "qcow2", NULL, NULL, NULL);
+    TEST_LOOKUP(11, chain3, "qcow2", NULL, NULL, NULL);
+    TEST_LOOKUP(12, NULL, absqcow2, chain2->path, chain2, chain->path);
+    TEST_LOOKUP(13, chain, absqcow2, chain2->path, chain2, chain->path);
+    TEST_LOOKUP(14, chain2, absqcow2, NULL, NULL, NULL);
+    TEST_LOOKUP(15, chain3, absqcow2, NULL, NULL, NULL);
+    TEST_LOOKUP(16, NULL, "raw", chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(17, chain, "raw", chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(18, chain2, "raw", chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(19, chain3, "raw", NULL, NULL, NULL);
+    TEST_LOOKUP(20, NULL, absraw, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(21, chain, absraw, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(22, chain2, absraw, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(23, chain3, absraw, NULL, NULL, NULL);
+    TEST_LOOKUP(24, NULL, NULL, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(25, chain, NULL, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(26, chain2, NULL, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(27, chain3, NULL, NULL, NULL, NULL);
 
     /* Rewrite wrap and qcow2 back to 3-deep chain, relative backing */
     virCommandFree(cmd);
@@ -940,20 +1016,37 @@ mymain(void)
         ret = -1;
         goto cleanup;
     }
+    chain2 = chain->backingStore;
+    chain3 = chain2->backingStore;
 
-    TEST_LOOKUP(8, "bogus", NULL, NULL, NULL);
-    TEST_LOOKUP(9, "wrap", chain->path, chain, NULL);
-    TEST_LOOKUP(10, abswrap, chain->path, chain, NULL);
-    TEST_LOOKUP(11, "qcow2", chain->backingStore->path, chain->backingStore,
-                chain->path);
-    TEST_LOOKUP(12, absqcow2, chain->backingStore->path, chain->backingStore,
-                chain->path);
-    TEST_LOOKUP(13, "raw", chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
-    TEST_LOOKUP(14, absraw, chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
-    TEST_LOOKUP(15, NULL, chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
+    TEST_LOOKUP(28, NULL, "bogus", NULL, NULL, NULL);
+    TEST_LOOKUP(29, chain, "bogus", NULL, NULL, NULL);
+    TEST_LOOKUP(30, NULL, "wrap", chain->path, chain, NULL);
+    TEST_LOOKUP(31, chain, "wrap", NULL, NULL, NULL);
+    TEST_LOOKUP(32, chain2, "wrap", NULL, NULL, NULL);
+    TEST_LOOKUP(33, NULL, abswrap, chain->path, chain, NULL);
+    TEST_LOOKUP(34, chain, abswrap, NULL, NULL, NULL);
+    TEST_LOOKUP(35, chain2, abswrap, NULL, NULL, NULL);
+    TEST_LOOKUP(36, NULL, "qcow2", chain2->path, chain2, chain->path);
+    TEST_LOOKUP(37, chain, "qcow2", chain2->path, chain2, chain->path);
+    TEST_LOOKUP(38, chain2, "qcow2", NULL, NULL, NULL);
+    TEST_LOOKUP(39, chain3, "qcow2", NULL, NULL, NULL);
+    TEST_LOOKUP(40, NULL, absqcow2, chain2->path, chain2, chain->path);
+    TEST_LOOKUP(41, chain, absqcow2, chain2->path, chain2, chain->path);
+    TEST_LOOKUP(42, chain2, absqcow2, NULL, NULL, NULL);
+    TEST_LOOKUP(43, chain3, absqcow2, NULL, NULL, NULL);
+    TEST_LOOKUP(44, NULL, "raw", chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(45, chain, "raw", chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(46, chain2, "raw", chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(47, chain3, "raw", NULL, NULL, NULL);
+    TEST_LOOKUP(48, NULL, absraw, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(49, chain, absraw, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(50, chain2, absraw, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(51, chain3, absraw, NULL, NULL, NULL);
+    TEST_LOOKUP(52, NULL, NULL, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(53, chain, NULL, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(54, chain2, NULL, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(55, chain3, NULL, NULL, NULL, NULL);
 
     /* Use link to wrap with cross-directory relative backing */
     virCommandFree(cmd);
@@ -970,37 +1063,131 @@ mymain(void)
         ret = -1;
         goto cleanup;
     }
+    chain2 = chain->backingStore;
+    chain3 = chain2->backingStore;
 
-    TEST_LOOKUP(16, "bogus", NULL, NULL, NULL);
-    TEST_LOOKUP(17, "sub/link2", chain->path, chain, NULL);
-    TEST_LOOKUP(18, "wrap", chain->path, chain, NULL);
-    TEST_LOOKUP(19, abswrap, chain->path, chain, NULL);
-    TEST_LOOKUP(20, "../qcow2", chain->backingStore->path, chain->backingStore,
-                chain->path);
-    TEST_LOOKUP(21, "qcow2", NULL, NULL, NULL);
-    TEST_LOOKUP(22, absqcow2, chain->backingStore->path, chain->backingStore,
-                chain->path);
-    TEST_LOOKUP(23, "raw", chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
-    TEST_LOOKUP(24, absraw, chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
-    TEST_LOOKUP(25, NULL, chain->backingStore->backingStore->path,
-                chain->backingStore->backingStore, chain->backingStore->path);
+    TEST_LOOKUP(56, NULL, "bogus", NULL, NULL, NULL);
+    TEST_LOOKUP(57, NULL, "sub/link2", chain->path, chain, NULL);
+    TEST_LOOKUP(58, NULL, "wrap", chain->path, chain, NULL);
+    TEST_LOOKUP(59, NULL, abswrap, chain->path, chain, NULL);
+    TEST_LOOKUP(60, NULL, "../qcow2", chain2->path, chain2, chain->path);
+    TEST_LOOKUP(61, NULL, "qcow2", NULL, NULL, NULL);
+    TEST_LOOKUP(62, NULL, absqcow2, chain2->path, chain2, chain->path);
+    TEST_LOOKUP(63, NULL, "raw", chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(64, NULL, absraw, chain3->path, chain3, chain2->path);
+    TEST_LOOKUP(65, NULL, NULL, chain3->path, chain3, chain2->path);
 
-    TEST_LOOKUP_TARGET(26, "vda", "bogus[1]", 0, NULL, NULL, NULL);
-    TEST_LOOKUP_TARGET(27, "vda", "vda[-1]", 0, NULL, NULL, NULL);
-    TEST_LOOKUP_TARGET(28, "vda", "vda[1][1]", 0, NULL, NULL, NULL);
-    TEST_LOOKUP_TARGET(29, "vda", "wrap", 0, chain->path, chain, NULL);
-    TEST_LOOKUP_TARGET(30, "vda", "vda[0]", 0, NULL, NULL, NULL);
-    TEST_LOOKUP_TARGET(31, "vda", "vda[1]", 1,
-                       chain->backingStore->path,
-                       chain->backingStore,
+    TEST_LOOKUP_TARGET(66, "vda", NULL, "bogus[1]", 0, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(67, "vda", NULL, "vda[-1]", 0, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(68, "vda", NULL, "vda[1][1]", 0, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(69, "vda", NULL, "wrap", 0, chain->path, chain, NULL);
+    TEST_LOOKUP_TARGET(70, "vda", chain, "wrap", 0, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(71, "vda", chain2, "wrap", 0, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(72, "vda", NULL, "vda[0]", 0, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(73, "vda", NULL, "vda[1]", 1, chain2->path, chain2,
                        chain->path);
-    TEST_LOOKUP_TARGET(32, "vda", "vda[2]", 2,
-                       chain->backingStore->backingStore->path,
-                       chain->backingStore->backingStore,
-                       chain->backingStore->path);
-    TEST_LOOKUP_TARGET(33, "vda", "vda[3]", 3, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(74, "vda", chain, "vda[1]", 1, chain2->path, chain2,
+                       chain->path);
+    TEST_LOOKUP_TARGET(75, "vda", chain2, "vda[1]", 1, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(76, "vda", chain3, "vda[1]", 1, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(77, "vda", NULL, "vda[2]", 2, chain3->path, chain3,
+                       chain2->path);
+    TEST_LOOKUP_TARGET(78, "vda", chain, "vda[2]", 2, chain3->path, chain3,
+                       chain2->path);
+    TEST_LOOKUP_TARGET(79, "vda", chain2, "vda[2]", 2, chain3->path, chain3,
+                       chain2->path);
+    TEST_LOOKUP_TARGET(80, "vda", chain3, "vda[2]", 2, NULL, NULL, NULL);
+    TEST_LOOKUP_TARGET(81, "vda", NULL, "vda[3]", 3, NULL, NULL, NULL);
+
+#define TEST_PATH_CANONICALIZE(id, PATH, EXPECT)                            \
+    do {                                                                    \
+        data3.path = PATH;                                                  \
+        data3.expect = EXPECT;                                              \
+        if (virtTestRun("Path canonicalize " #id,                           \
+                        testPathCanonicalize, &data3) < 0)                  \
+            ret = -1;                                                       \
+    } while (0)
+
+    TEST_PATH_CANONICALIZE(1, "/", "/");
+    TEST_PATH_CANONICALIZE(2, "/path", "/path");
+    TEST_PATH_CANONICALIZE(3, "/path/to/blah", "/path/to/blah");
+    TEST_PATH_CANONICALIZE(4, "/path/", "/path");
+    TEST_PATH_CANONICALIZE(5, "///////", "/");
+    TEST_PATH_CANONICALIZE(6, "//", "//");
+    TEST_PATH_CANONICALIZE(7, "", "");
+    TEST_PATH_CANONICALIZE(8, ".", ".");
+    TEST_PATH_CANONICALIZE(9, "../", "..");
+    TEST_PATH_CANONICALIZE(10, "../../", "../..");
+    TEST_PATH_CANONICALIZE(11, "../../blah", "../../blah");
+    TEST_PATH_CANONICALIZE(12, "/./././blah", "/blah");
+    TEST_PATH_CANONICALIZE(13, ".././../././../blah", "../../../blah");
+    TEST_PATH_CANONICALIZE(14, "/././", "/");
+    TEST_PATH_CANONICALIZE(15, "./././", ".");
+    TEST_PATH_CANONICALIZE(16, "blah/../foo", "foo");
+    TEST_PATH_CANONICALIZE(17, "foo/bar/../blah", "foo/blah");
+    TEST_PATH_CANONICALIZE(18, "foo/bar/.././blah", "foo/blah");
+    TEST_PATH_CANONICALIZE(19, "/path/to/foo/bar/../../../../../../../../baz", "/baz");
+    TEST_PATH_CANONICALIZE(20, "path/to/foo/bar/../../../../../../../../baz", "../../../../baz");
+    TEST_PATH_CANONICALIZE(21, "path/to/foo/bar", "path/to/foo/bar");
+    TEST_PATH_CANONICALIZE(22, "//foo//bar", "//foo/bar");
+    TEST_PATH_CANONICALIZE(23, "/bar//foo", "/bar/foo");
+    TEST_PATH_CANONICALIZE(24, "//../blah", "//blah");
+
+    /* test paths with symlinks */
+    TEST_PATH_CANONICALIZE(25, "/path/blah", "/other/path/huzah");
+    TEST_PATH_CANONICALIZE(26, "/path/to/relative/symlink", "/path/actual/file");
+    TEST_PATH_CANONICALIZE(27, "/path/to/relative/symlink/blah", "/path/actual/file/blah");
+    TEST_PATH_CANONICALIZE(28, "/path/blah/yippee", "/other/path/huzah/yippee");
+    TEST_PATH_CANONICALIZE(29, "/cycle", NULL);
+    TEST_PATH_CANONICALIZE(30, "/cycle2/link", NULL);
+    TEST_PATH_CANONICALIZE(31, "///", "/");
+
+#define TEST_RELATIVE_BACKING(id, TOP, BASE, EXPECT)                        \
+    do {                                                                    \
+        data4.top = &TOP;                                                   \
+        data4.base = &BASE;                                                 \
+        data4.expect = EXPECT;                                              \
+        if (virtTestRun("Path relative resolve " #id,                       \
+                        testPathRelative, &data4) < 0)                      \
+            ret = -1;                                                       \
+    } while (0)
+
+    testPathRelativePrepare();
+
+    /* few negative tests first */
+
+    /* a non-relative image is in the backing chain span */
+    TEST_RELATIVE_BACKING(1, backingchain[0], backingchain[1], NULL);
+    TEST_RELATIVE_BACKING(2, backingchain[0], backingchain[2], NULL);
+    TEST_RELATIVE_BACKING(3, backingchain[0], backingchain[3], NULL);
+    TEST_RELATIVE_BACKING(4, backingchain[1], backingchain[5], NULL);
+
+    /* image is not in chain (specified backwards) */
+    TEST_RELATIVE_BACKING(5, backingchain[2], backingchain[1], NULL);
+
+    /* positive tests */
+    TEST_RELATIVE_BACKING(6, backingchain[1], backingchain[1], "asdf");
+    TEST_RELATIVE_BACKING(7, backingchain[1], backingchain[2], "test");
+    TEST_RELATIVE_BACKING(8, backingchain[1], backingchain[3], "blah");
+    TEST_RELATIVE_BACKING(9, backingchain[2], backingchain[2], "test");
+    TEST_RELATIVE_BACKING(10, backingchain[2], backingchain[3], "blah");
+    TEST_RELATIVE_BACKING(11, backingchain[3], backingchain[3], "blah");
+
+    /* oVirt spelling */
+    TEST_RELATIVE_BACKING(12, backingchain[5], backingchain[5], "../volume/image2");
+    TEST_RELATIVE_BACKING(13, backingchain[5], backingchain[6], "../volume/../volume/image3");
+    TEST_RELATIVE_BACKING(14, backingchain[5], backingchain[7], "../volume/../volume/../volume/image4");
+    TEST_RELATIVE_BACKING(15, backingchain[6], backingchain[6], "../volume/image3");
+    TEST_RELATIVE_BACKING(16, backingchain[6], backingchain[7], "../volume/../volume/image4");
+    TEST_RELATIVE_BACKING(17, backingchain[7], backingchain[7], "../volume/image4");
+
+    /* crazy spellings */
+    TEST_RELATIVE_BACKING(17, backingchain[9], backingchain[9], "directory/stuff/volumes/garbage/image2");
+    TEST_RELATIVE_BACKING(18, backingchain[9], backingchain[10], "directory/stuff/volumes/garbage/../../../image3");
+    TEST_RELATIVE_BACKING(19, backingchain[9], backingchain[11], "directory/stuff/volumes/garbage/../../../../blah/image4");
+    TEST_RELATIVE_BACKING(20, backingchain[10], backingchain[10], "../../../image3");
+    TEST_RELATIVE_BACKING(21, backingchain[10], backingchain[11], "../../../../blah/image4");
+    TEST_RELATIVE_BACKING(22, backingchain[11], backingchain[11], "../blah/image4");
 
  cleanup:
     /* Final cleanup */

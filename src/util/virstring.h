@@ -26,6 +26,12 @@
 
 # include "internal.h"
 
+char **virStringSplitCount(const char *string,
+                           const char *delim,
+                           size_t max_tokens,
+                           size_t *tokcount)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
 char **virStringSplit(const char *string,
                       const char *delim,
                       size_t max_tokens)
@@ -36,6 +42,7 @@ char *virStringJoin(const char **strings,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 void virStringFreeList(char **strings);
+void virStringFreeListCount(char **strings, size_t count);
 
 bool virStringArrayHasString(char **strings, const char *needle);
 
@@ -248,6 +255,5 @@ char *virStringReplace(const char *haystack,
                        const char *oldneedle,
                        const char *newneedle)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
-
 
 #endif /* __VIR_STRING_H__ */

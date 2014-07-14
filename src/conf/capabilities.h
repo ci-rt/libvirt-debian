@@ -95,6 +95,20 @@ struct _virCapsHostNUMACellCPU {
     virBitmapPtr siblings;
 };
 
+typedef struct _virCapsHostNUMACellSiblingInfo virCapsHostNUMACellSiblingInfo;
+typedef virCapsHostNUMACellSiblingInfo *virCapsHostNUMACellSiblingInfoPtr;
+struct _virCapsHostNUMACellSiblingInfo {
+    int node;               /* foreign NUMA node */
+    unsigned int distance;  /* distance to the node */
+};
+
+typedef struct _virCapsHostNUMACellPageInfo virCapsHostNUMACellPageInfo;
+typedef virCapsHostNUMACellPageInfo *virCapsHostNUMACellPageInfoPtr;
+struct _virCapsHostNUMACellPageInfo {
+    unsigned int size;      /* page size in kibibytes */
+    size_t avail;           /* the size of pool */
+};
+
 typedef struct _virCapsHostNUMACell virCapsHostNUMACell;
 typedef virCapsHostNUMACell *virCapsHostNUMACellPtr;
 struct _virCapsHostNUMACell {
@@ -102,6 +116,10 @@ struct _virCapsHostNUMACell {
     int ncpus;
     unsigned long long mem; /* in kibibytes */
     virCapsHostNUMACellCPUPtr cpus;
+    int nsiblings;
+    virCapsHostNUMACellSiblingInfoPtr siblings;
+    int npageinfo;
+    virCapsHostNUMACellPageInfoPtr pageinfo;
 };
 
 typedef struct _virCapsHostSecModelLabel virCapsHostSecModelLabel;
@@ -143,6 +161,8 @@ struct _virCapsHost {
     virCapsHostSecModelPtr secModels;
 
     virCPUDefPtr cpu;
+    int nPagesSize;             /* size of pagesSize array */
+    unsigned int *pagesSize;    /* page sizes support on the system */
     unsigned char host_uuid[VIR_UUID_BUFLEN];
 };
 
@@ -193,9 +213,13 @@ virCapabilitiesAddHostMigrateTransport(virCapsPtr caps,
 extern int
 virCapabilitiesAddHostNUMACell(virCapsPtr caps,
                                int num,
-                               int ncpus,
                                unsigned long long mem,
-                               virCapsHostNUMACellCPUPtr cpus);
+                               int ncpus,
+                               virCapsHostNUMACellCPUPtr cpus,
+                               int nsiblings,
+                               virCapsHostNUMACellSiblingInfoPtr siblings,
+                               int npageinfo,
+                               virCapsHostNUMACellPageInfoPtr pageinfo);
 
 
 extern int

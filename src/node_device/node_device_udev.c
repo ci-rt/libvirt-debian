@@ -40,6 +40,7 @@
 #include "virfile.h"
 #include "virpci.h"
 #include "virstring.h"
+#include "virnetdev.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -52,6 +53,7 @@ VIR_LOG_INIT("node_device.node_device_udev");
 struct _udevPrivate {
     struct udev_monitor *udev_monitor;
     int watch;
+    bool privileged;
 };
 
 static virNodeDeviceDriverStatePtr driverState = NULL;
@@ -425,6 +427,9 @@ static int udevProcessPCI(struct udev_device *device,
     const char *syspath = NULL;
     union _virNodeDevCapData *data = &def->caps->data;
     virPCIDeviceAddress addr;
+    virPCIEDeviceInfoPtr pci_express = NULL;
+    virPCIDevicePtr pciDev = NULL;
+    udevPrivate *priv = driverState->privateData;
     int tmpGroup, ret = -1;
     char *p;
     int rc;
@@ -493,6 +498,18 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     }
 
+    rc = udevGetIntSysfsAttr(device,
+                            "numa_node",
+                            &data->pci_dev.numa_node,
+                            10);
+    if (rc == PROPERTY_ERROR) {
+        goto out;
+    } else if (rc == PROPERTY_MISSING) {
+        /* The default value is -1, because it can't be 0
+         * as zero is valid node number. */
+        data->pci_dev.numa_node = -1;
+    }
+
     if (!virPCIGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
         data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
 
@@ -522,9 +539,42 @@ static int udevProcessPCI(struct udev_device *device,
         data->pci_dev.iommuGroupNumber = tmpGroup;
     }
 
+    if (!(pciDev = virPCIDeviceNew(data->pci_dev.domain,
+                                   data->pci_dev.bus,
+                                   data->pci_dev.slot,
+                                   data->pci_dev.function)))
+        goto out;
+
+    /* We need to be root to read PCI device configs */
+    if (priv->privileged && virPCIDeviceIsPCIExpress(pciDev) > 0) {
+        if (VIR_ALLOC(pci_express) < 0)
+            goto out;
+
+        if (virPCIDeviceHasPCIExpressLink(pciDev) > 0) {
+            if (VIR_ALLOC(pci_express->link_cap) < 0 ||
+                VIR_ALLOC(pci_express->link_sta) < 0)
+                goto out;
+
+            if (virPCIDeviceGetLinkCapSta(pciDev,
+                                          &pci_express->link_cap->port,
+                                          &pci_express->link_cap->speed,
+                                          &pci_express->link_cap->width,
+                                          &pci_express->link_sta->speed,
+                                          &pci_express->link_sta->width) < 0)
+                goto out;
+
+            pci_express->link_sta->port = -1; /* PCIe can't negotiate port. Yet :) */
+        }
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCIE;
+        data->pci_dev.pci_express = pci_express;
+        pci_express = NULL;
+    }
+
     ret = 0;
 
  out:
+    virPCIDeviceFree(pciDev);
+    VIR_FREE(pci_express);
     return ret;
 }
 
@@ -666,6 +716,9 @@ static int udevProcessNetworkInterface(struct udev_device *device,
     if (udevGenerateDeviceName(device, def, data->net.address) != 0) {
         goto out;
     }
+
+    if (virNetDevGetLinkInfo(data->net.ifname, &data->net.lnk) < 0)
+        goto out;
 
     ret = 0;
 
@@ -1662,7 +1715,7 @@ static int udevSetupSystemDev(void)
     return ret;
 }
 
-static int nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
+static int nodeStateInitialize(bool privileged,
                                virStateInhibitCallback callback ATTRIBUTE_UNUSED,
                                void *opaque ATTRIBUTE_UNUSED)
 {
@@ -1696,6 +1749,7 @@ static int nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
     }
 
     priv->watch = -1;
+    priv->privileged = privileged;
 
     if (VIR_ALLOC(driverState) < 0) {
         VIR_FREE(priv);

@@ -45,6 +45,7 @@
 #include "libxl_domain.h"
 #include "libxl_driver.h"
 #include "libxl_conf.h"
+#include "libxl_migration.h"
 #include "xen_xm.h"
 #include "xen_sxpr.h"
 #include "virtypedparam.h"
@@ -209,6 +210,7 @@ libxlStateCleanup(void)
     virObjectUnref(libxl_driver->xmlopt);
     virObjectUnref(libxl_driver->domains);
     virObjectUnref(libxl_driver->reservedVNCPorts);
+    virObjectUnref(libxl_driver->migrationPorts);
 
     virObjectEventStateFree(libxl_driver->domainEventState);
     virSysinfoDefFree(libxl_driver->hostsysinfo);
@@ -301,6 +303,13 @@ libxlStateInitialize(bool privileged,
                               LIBXL_VNC_PORT_MAX)))
         goto error;
 
+    /* Allocate bitmap for migration port reservation */
+    if (!(libxl_driver->migrationPorts =
+          virPortAllocatorNew(_("migration"),
+                              LIBXL_MIGRATION_PORT_MIN,
+                              LIBXL_MIGRATION_PORT_MAX)))
+        goto error;
+
     if (!(libxl_driver->domains = virDomainObjListNew()))
         goto error;
 
@@ -353,9 +362,7 @@ libxlStateInitialize(bool privileged,
         goto error;
     }
 
-    if (!(libxl_driver->xmlopt = virDomainXMLOptionNew(&libxlDomainDefParserConfig,
-                                                       &libxlDomainXMLPrivateDataCallbacks,
-                                                       NULL)))
+    if (!(libxl_driver->xmlopt = libxlCreateXMLConf()))
         goto error;
 
     /* Load running domains first. */
@@ -1372,6 +1379,11 @@ libxlDomainSaveFlags(virDomainPtr dom, const char *to, const char *dxml,
     int ret = -1;
     bool remove_dom = false;
 
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return -1;
+#endif
+
     virCheckFlags(0, -1);
     if (dxml) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
@@ -1432,6 +1444,11 @@ libxlDomainRestoreFlags(virConnectPtr conn, const char *from,
     libxlSavefileHeader hdr;
     int fd = -1;
     int ret = -1;
+
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return -1;
+#endif
 
     virCheckFlags(VIR_DOMAIN_SAVE_PAUSED, -1);
     if (dxml) {
@@ -3995,8 +4012,7 @@ libxlDomainGetNumaParameters(virDomainPtr dom,
                 }
             }
 
-            nodeset = virBitmapFormat(nodes);
-            if (!nodeset && VIR_STRDUP(nodeset, "") < 0)
+            if (!(nodeset = virBitmapFormat(nodes)))
                 goto cleanup;
 
             if (virTypedParameterAssign(param, VIR_DOMAIN_NUMA_NODESET,
@@ -4155,6 +4171,7 @@ libxlConnectSupportsFeature(virConnectPtr conn, int feature)
 
     switch (feature) {
     case VIR_DRV_FEATURE_TYPED_PARAM_STRING:
+    case VIR_DRV_FEATURE_MIGRATION_PARAMS:
         return 1;
     default:
         return 0;
@@ -4333,6 +4350,251 @@ libxlNodeDeviceReset(virNodeDevicePtr dev)
     return ret;
 }
 
+static char *
+libxlDomainMigrateBegin3Params(virDomainPtr domain,
+                               virTypedParameterPtr params,
+                               int nparams,
+                               char **cookieout ATTRIBUTE_UNUSED,
+                               int *cookieoutlen ATTRIBUTE_UNUSED,
+                               unsigned int flags)
+{
+    const char *xmlin = NULL;
+    virDomainObjPtr vm = NULL;
+
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return NULL;
+#endif
+
+    virCheckFlags(LIBXL_MIGRATION_FLAGS, NULL);
+    if (virTypedParamsValidate(params, nparams, LIBXL_MIGRATION_PARAMETERS) < 0)
+        return NULL;
+
+    if (virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_XML,
+                                &xmlin) < 0)
+        return NULL;
+
+    if (!(vm = libxlDomObjFromDomain(domain)))
+        return NULL;
+
+    if (virDomainMigrateBegin3ParamsEnsureACL(domain->conn, vm->def) < 0) {
+        virObjectUnlock(vm);
+        return NULL;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        virObjectUnlock(vm);
+        return NULL;
+    }
+
+    return libxlDomainMigrationBegin(domain->conn, vm, xmlin);
+}
+
+static int
+libxlDomainMigratePrepare3Params(virConnectPtr dconn,
+                                 virTypedParameterPtr params,
+                                 int nparams,
+                                 const char *cookiein ATTRIBUTE_UNUSED,
+                                 int cookieinlen ATTRIBUTE_UNUSED,
+                                 char **cookieout ATTRIBUTE_UNUSED,
+                                 int *cookieoutlen ATTRIBUTE_UNUSED,
+                                 char **uri_out,
+                                 unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dconn->privateData;
+    virDomainDefPtr def = NULL;
+    const char *dom_xml = NULL;
+    const char *dname = NULL;
+    const char *uri_in = NULL;
+
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return -1;
+#endif
+
+    virCheckFlags(LIBXL_MIGRATION_FLAGS, -1);
+    if (virTypedParamsValidate(params, nparams, LIBXL_MIGRATION_PARAMETERS) < 0)
+        goto error;
+
+    if (virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_XML,
+                                &dom_xml) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_NAME,
+                                &dname) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_URI,
+                                &uri_in) < 0)
+
+        goto error;
+
+    if (!(def = libxlDomainMigrationPrepareDef(driver, dom_xml, dname)))
+        goto error;
+
+    if (virDomainMigratePrepare3ParamsEnsureACL(dconn, def) < 0)
+        goto error;
+
+    if (libxlDomainMigrationPrepare(dconn, def, uri_in, uri_out, flags) < 0)
+        goto error;
+
+    return 0;
+
+ error:
+    virDomainDefFree(def);
+    return -1;
+}
+
+static int
+libxlDomainMigratePerform3Params(virDomainPtr dom,
+                                 const char *dconnuri,
+                                 virTypedParameterPtr params,
+                                 int nparams,
+                                 const char *cookiein ATTRIBUTE_UNUSED,
+                                 int cookieinlen ATTRIBUTE_UNUSED,
+                                 char **cookieout ATTRIBUTE_UNUSED,
+                                 int *cookieoutlen ATTRIBUTE_UNUSED,
+                                 unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    const char *dom_xml = NULL;
+    const char *dname = NULL;
+    const char *uri = NULL;
+    int ret = -1;
+
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return -1;
+#endif
+
+    virCheckFlags(LIBXL_MIGRATION_FLAGS, -1);
+    if (virTypedParamsValidate(params, nparams, LIBXL_MIGRATION_PARAMETERS) < 0)
+        goto cleanup;
+
+    if (virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_XML,
+                                &dom_xml) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_NAME,
+                                &dname) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_URI,
+                                &uri) < 0)
+
+        goto cleanup;
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainMigratePerform3ParamsEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (libxlDomainMigrationPerform(driver, vm, dom_xml, dconnuri,
+                                    uri, dname, flags) < 0) {
+        /* Job terminated and vm unlocked if MigrationPerform failed */
+        vm = NULL;
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+static virDomainPtr
+libxlDomainMigrateFinish3Params(virConnectPtr dconn,
+                                virTypedParameterPtr params,
+                                int nparams,
+                                const char *cookiein ATTRIBUTE_UNUSED,
+                                int cookieinlen ATTRIBUTE_UNUSED,
+                                char **cookieout ATTRIBUTE_UNUSED,
+                                int *cookieoutlen ATTRIBUTE_UNUSED,
+                                unsigned int flags,
+                                int cancelled)
+{
+    libxlDriverPrivatePtr driver = dconn->privateData;
+    virDomainObjPtr vm = NULL;
+    const char *dname = NULL;
+
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return NULL;
+#endif
+
+    virCheckFlags(LIBXL_MIGRATION_FLAGS, NULL);
+    if (virTypedParamsValidate(params, nparams, LIBXL_MIGRATION_PARAMETERS) < 0)
+        return NULL;
+
+    if (virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_NAME,
+                                &dname) < 0)
+        return NULL;
+
+    if (!dname ||
+        !(vm = virDomainObjListFindByName(driver->domains, dname))) {
+        /* Migration obviously failed if the domain doesn't exist */
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("Migration failed. No domain on destination host "
+                         "with matching name '%s'"),
+                       NULLSTR(dname));
+        return NULL;
+    }
+
+    if (virDomainMigrateFinish3ParamsEnsureACL(dconn, vm->def) < 0) {
+        virObjectUnlock(vm);
+        return NULL;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        /* Migration failed if domain is inactive */
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       "%s", _("Migration failed. Domain is not running "
+                               "on destination host"));
+        virObjectUnlock(vm);
+        return NULL;
+    }
+
+    return libxlDomainMigrationFinish(dconn, vm, flags, cancelled);
+}
+
+static int
+libxlDomainMigrateConfirm3Params(virDomainPtr domain,
+                                 virTypedParameterPtr params,
+                                 int nparams,
+                                 const char *cookiein ATTRIBUTE_UNUSED,
+                                 int cookieinlen ATTRIBUTE_UNUSED,
+                                 unsigned int flags,
+                                 int cancelled)
+{
+    libxlDriverPrivatePtr driver = domain->conn->privateData;
+    virDomainObjPtr vm = NULL;
+
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return -1;
+#endif
+
+    virCheckFlags(LIBXL_MIGRATION_FLAGS, -1);
+    if (virTypedParamsValidate(params, nparams, LIBXL_MIGRATION_PARAMETERS) < 0)
+        return -1;
+
+    if (!(vm = libxlDomObjFromDomain(domain)))
+        return -1;
+
+    if (virDomainMigrateConfirm3ParamsEnsureACL(domain->conn, vm->def) < 0) {
+        virObjectUnlock(vm);
+        return -1;
+    }
+
+    return libxlDomainMigrationConfirm(driver, vm, flags, cancelled);
+}
+
 
 static virDriver libxlDriver = {
     .no = VIR_DRV_LIBXL,
@@ -4423,6 +4685,11 @@ static virDriver libxlDriver = {
     .nodeDeviceDetachFlags = libxlNodeDeviceDetachFlags, /* 1.2.3 */
     .nodeDeviceReAttach = libxlNodeDeviceReAttach, /* 1.2.3 */
     .nodeDeviceReset = libxlNodeDeviceReset, /* 1.2.3 */
+    .domainMigrateBegin3Params = libxlDomainMigrateBegin3Params, /* 1.2.6 */
+    .domainMigratePrepare3Params = libxlDomainMigratePrepare3Params, /* 1.2.6 */
+    .domainMigratePerform3Params = libxlDomainMigratePerform3Params, /* 1.2.6 */
+    .domainMigrateFinish3Params = libxlDomainMigrateFinish3Params, /* 1.2.6 */
+    .domainMigrateConfirm3Params = libxlDomainMigrateConfirm3Params, /* 1.2.6 */
 };
 
 static virStateDriver libxlStateDriver = {

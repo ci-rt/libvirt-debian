@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.5], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.6], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -2727,7 +2727,13 @@ AC_CONFIG_FILES([\
         docs/schemas/Makefile \
         gnulib/lib/Makefile \
         gnulib/tests/Makefile \
-        libvirt.pc libvirt.spec mingw-libvirt.spec \
+        libvirt.pc \
+        libvirt-qemu.pc \
+        libvirt-lxc.pc \
+        src/libvirt.pc \
+        src/libvirt-qemu.pc \
+        src/libvirt-lxc.pc \
+        libvirt.spec mingw-libvirt.spec \
         po/Makefile.in \
         include/libvirt/Makefile include/libvirt/libvirt.h \
         daemon/Makefile \
@@ -2742,6 +2748,7 @@ AC_CONFIG_FILES([\
         examples/hellolibvirt/Makefile \
         examples/systemtap/Makefile \
         examples/xml/nwfilter/Makefile \
+        examples/lxcconvert/Makefile \
         tools/wireshark/Makefile \
         tools/wireshark/src/Makefile])
 AC_OUTPUT

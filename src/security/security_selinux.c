@@ -585,7 +585,7 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (seclabel == NULL)
-        return rc;
+        return 0;
 
     data = virSecurityManagerGetPrivateData(mgr);
 
@@ -739,11 +739,7 @@ virSecuritySELinuxReserveSecurityLabel(virSecurityManagerPtr mgr,
     virSecurityLabelDefPtr seclabel;
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (seclabel == NULL) {
-        return -1;
-    }
-
-    if (seclabel->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (!seclabel || seclabel->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
     if (getpidcon_raw(pid, &pctx) == -1) {
@@ -1060,7 +1056,7 @@ virSecuritySELinuxSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (seclabel == NULL)
-        return -1;
+        return 0;
 
     switch (tpm->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
@@ -1102,7 +1098,7 @@ virSecuritySELinuxRestoreSecurityTPMFileLabelInt(virSecurityManagerPtr mgr,
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (seclabel == NULL)
-        return -1;
+        return 0;
 
     switch (tpm->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
@@ -1128,7 +1124,7 @@ static int
 virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
                                                virDomainDefPtr def,
                                                virDomainDiskDefPtr disk,
-                                               int migrated)
+                                               bool migrated)
 {
     virSecurityLabelDefPtr seclabel;
     virSecurityDeviceLabelDefPtr disk_seclabel;
@@ -1136,9 +1132,9 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (seclabel == NULL)
-        return -1;
+        return 0;
 
-    disk_seclabel = virDomainDiskDefGetSecurityLabelDef(disk,
+    disk_seclabel = virStorageSourceGetSecurityLabelDef(disk->src,
                                                         SECURITY_SELINUX_NAME);
     if (seclabel->norelabel || (disk_seclabel && disk_seclabel->norelabel))
         return 0;
@@ -1148,7 +1144,7 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
      * be tracked in domain XML, at which point labelskip should be a
      * per-file attribute instead of a disk attribute.  */
     if (disk_seclabel && disk_seclabel->labelskip &&
-        !disk->src.backingStore)
+        !disk->src->backingStore)
         return 0;
 
     /* Don't restore labels on readoly/shared disks, because
@@ -1186,11 +1182,11 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
 
 
 static int
-virSecuritySELinuxRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
-                                            virDomainDefPtr def,
-                                            virDomainDiskDefPtr disk)
+virSecuritySELinuxRestoreSecurityDiskLabel(virSecurityManagerPtr mgr,
+                                           virDomainDefPtr def,
+                                           virDomainDiskDefPtr disk)
 {
-    return virSecuritySELinuxRestoreSecurityImageLabelInt(mgr, def, disk, 0);
+    return virSecuritySELinuxRestoreSecurityImageLabelInt(mgr, def, disk, false);
 }
 
 
@@ -1206,7 +1202,7 @@ virSecuritySELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
     virSecurityLabelDefPtr secdef = cbdata->secdef;
     virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(cbdata->manager);
 
-    disk_seclabel = virDomainDiskDefGetSecurityLabelDef(disk,
+    disk_seclabel = virStorageSourceGetSecurityLabelDef(disk->src,
                                                         SECURITY_SELINUX_NAME);
 
     if (disk_seclabel && disk_seclabel->norelabel)
@@ -1236,7 +1232,7 @@ virSecuritySELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
         if (!disk_seclabel)
             return -1;
         disk_seclabel->labelskip = true;
-        if (VIR_APPEND_ELEMENT(disk->src.seclabels, disk->src.nseclabels,
+        if (VIR_APPEND_ELEMENT(disk->src->seclabels, disk->src->nseclabels,
                                disk_seclabel) < 0) {
             virSecurityDeviceLabelDefFree(disk_seclabel);
             return -1;
@@ -1247,22 +1243,16 @@ virSecuritySELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
 }
 
 static int
-virSecuritySELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
-                                        virDomainDefPtr def,
-                                        virDomainDiskDefPtr disk)
+virSecuritySELinuxSetSecurityDiskLabel(virSecurityManagerPtr mgr,
+                                       virDomainDefPtr def,
+                                       virDomainDiskDefPtr disk)
 
 {
     virSecuritySELinuxCallbackData cbdata;
     cbdata.manager = mgr;
     cbdata.secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
 
-    if (cbdata.secdef == NULL)
-        return -1;
-
-    if (cbdata.secdef->norelabel)
-        return 0;
-
-    if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
+    if (!cbdata.secdef || cbdata.secdef->norelabel)
         return 0;
 
     return virDomainDiskDefForeachPath(disk,
@@ -1279,7 +1269,7 @@ virSecuritySELinuxSetSecurityHostdevLabelHelper(const char *file, void *opaque)
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (secdef == NULL)
-        return -1;
+        return 0;
     return virSecuritySELinuxSetFilecon(file, secdef->imagelabel);
 }
 
@@ -1397,7 +1387,7 @@ virSecuritySELinuxSetSecurityHostdevCapsLabel(virDomainDefPtr def,
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (secdef == NULL)
-        return -1;
+        return 0;
 
     switch (dev->source.caps.type) {
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_STORAGE: {
@@ -1447,10 +1437,7 @@ virSecuritySELinuxSetSecurityHostdevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UN
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->norelabel)
+    if (!secdef || secdef->norelabel)
         return 0;
 
     switch (dev->mode) {
@@ -1635,10 +1622,7 @@ virSecuritySELinuxRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->norelabel)
+    if (!secdef || secdef->norelabel)
         return 0;
 
     switch (dev->mode) {
@@ -1667,14 +1651,14 @@ virSecuritySELinuxSetSecurityChardevLabel(virDomainDefPtr def,
     int ret = -1;
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (seclabel == NULL)
-        return -1;
+    if (!seclabel || seclabel->norelabel)
+        return 0;
 
     if (dev)
         chr_seclabel = virDomainChrDefGetSecurityLabelDef(dev,
                                                           SECURITY_SELINUX_NAME);
 
-    if (seclabel->norelabel || (chr_seclabel && chr_seclabel->norelabel))
+    if (chr_seclabel && chr_seclabel->norelabel)
         return 0;
 
     if (chr_seclabel)
@@ -1738,13 +1722,13 @@ virSecuritySELinuxRestoreSecurityChardevLabel(virSecurityManagerPtr mgr,
     int ret = -1;
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (seclabel == NULL)
-        return -1;
+    if (!seclabel || seclabel->norelabel)
+        return 0;
 
     if (dev)
         chr_seclabel = virDomainChrDefGetSecurityLabelDef(dev,
                                                           SECURITY_SELINUX_NAME);
-    if (seclabel->norelabel || (chr_seclabel && chr_seclabel->norelabel))
+    if (chr_seclabel && chr_seclabel->norelabel)
         return 0;
 
     switch (dev_source->type) {
@@ -1853,7 +1837,7 @@ virSecuritySELinuxGetBaseLabel(virSecurityManagerPtr mgr, int virtType)
 static int
 virSecuritySELinuxRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                           virDomainDefPtr def,
-                                          int migrated ATTRIBUTE_UNUSED)
+                                          bool migrated)
 {
     virSecurityLabelDefPtr secdef;
     virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
@@ -1864,7 +1848,7 @@ virSecuritySELinuxRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (secdef == NULL)
-        return -1;
+        return 0;
 
     if (secdef->norelabel || data->skipAllLabel)
         return 0;
@@ -1925,7 +1909,7 @@ virSecuritySELinuxReleaseSecurityLabel(virSecurityManagerPtr mgr,
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (secdef == NULL)
-        return -1;
+        return 0;
 
     if (secdef->type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
         if (secdef->label != NULL) {
@@ -1953,10 +1937,7 @@ virSecuritySELinuxSetSavedStateLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->norelabel)
+    if (!secdef || secdef->norelabel)
         return 0;
 
     return virSecuritySELinuxSetFilecon(savefile, secdef->imagelabel);
@@ -1971,10 +1952,7 @@ virSecuritySELinuxRestoreSavedStateLabel(virSecurityManagerPtr mgr,
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->norelabel)
+    if (!secdef || secdef->norelabel)
         return 0;
 
     return virSecuritySELinuxRestoreSecurityFileLabel(mgr, savefile);
@@ -1989,7 +1967,7 @@ virSecuritySELinuxSecurityVerify(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (secdef == NULL)
-        return -1;
+        return 0;
 
     if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2018,10 +1996,7 @@ virSecuritySELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UN
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->label == NULL)
+    if (!secdef || !secdef->label)
         return 0;
 
     VIR_DEBUG("label=%s", secdef->label);
@@ -2055,10 +2030,7 @@ virSecuritySELinuxSetSecurityChildProcessLabel(virSecurityManagerPtr mgr ATTRIBU
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->label == NULL)
+    if (!secdef || !secdef->label)
         return 0;
 
     VIR_DEBUG("label=%s", secdef->label);
@@ -2088,10 +2060,7 @@ virSecuritySELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr ATTRIBU
     int rc = -1;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->label == NULL)
+    if (!secdef || !secdef->label)
         return 0;
 
     if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
@@ -2138,10 +2107,7 @@ virSecuritySELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNU
     int rc = -1;
 
     secdef = virDomainDefGetSecurityLabelDef(vm, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->label == NULL)
+    if (!secdef || !secdef->label)
         return 0;
 
     if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
@@ -2179,10 +2145,7 @@ virSecuritySELinuxClearSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_U
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->label == NULL)
+    if (!secdef || !secdef->label)
         return 0;
 
     if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
@@ -2264,7 +2227,7 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (secdef == NULL)
-        return -1;
+        return 0;
 
     if (secdef->norelabel || data->skipAllLabel)
         return 0;
@@ -2277,7 +2240,7 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
                      def->disks[i]->dst);
             continue;
         }
-        if (virSecuritySELinuxSetSecurityImageLabel(mgr,
+        if (virSecuritySELinuxSetSecurityDiskLabel(mgr,
                                          def, def->disks[i]) < 0)
             return -1;
     }
@@ -2337,10 +2300,7 @@ virSecuritySELinuxSetImageFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     virSecurityLabelDefPtr secdef;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return -1;
-
-    if (secdef->imagelabel == NULL)
+    if (!secdef || !secdef->imagelabel)
         return 0;
 
     return virSecuritySELinuxFSetFilecon(fd, secdef->imagelabel);
@@ -2358,10 +2318,7 @@ virSecuritySELinuxSetTapFDLabel(virSecurityManagerPtr mgr,
     int rc = -1;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (secdef == NULL)
-        return rc;
-
-    if (secdef->label == NULL)
+    if (!secdef || !secdef->label)
         return 0;
 
     if (fstat(fd, &buf) < 0) {
@@ -2469,8 +2426,8 @@ virSecurityDriver virSecurityDriverSELinux = {
 
     .domainSecurityVerify               = virSecuritySELinuxSecurityVerify,
 
-    .domainSetSecurityImageLabel        = virSecuritySELinuxSetSecurityImageLabel,
-    .domainRestoreSecurityImageLabel    = virSecuritySELinuxRestoreSecurityImageLabel,
+    .domainSetSecurityDiskLabel         = virSecuritySELinuxSetSecurityDiskLabel,
+    .domainRestoreSecurityDiskLabel     = virSecuritySELinuxRestoreSecurityDiskLabel,
 
     .domainSetSecurityDaemonSocketLabel = virSecuritySELinuxSetSecurityDaemonSocketLabel,
     .domainSetSecuritySocketLabel       = virSecuritySELinuxSetSecuritySocketLabel,

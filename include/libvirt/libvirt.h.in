@@ -2501,18 +2501,26 @@ int virDomainUpdateDeviceFlags(virDomainPtr domain,
 /**
  * virDomainBlockJobType:
  *
- * VIR_DOMAIN_BLOCK_JOB_TYPE_PULL: Block Pull (virDomainBlockPull, or
- * virDomainBlockRebase without flags), job ends on completion
- * VIR_DOMAIN_BLOCK_JOB_TYPE_COPY: Block Copy (virDomainBlockRebase with
- * flags), job exists as long as mirroring is active
- * VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT: Block Commit (virDomainBlockCommit),
- * job ends on completion
+ * Describes various possible block jobs.
  */
 typedef enum {
-    VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0,
+    VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0, /* Placeholder */
+
     VIR_DOMAIN_BLOCK_JOB_TYPE_PULL = 1,
+    /* Block Pull (virDomainBlockPull, or virDomainBlockRebase without
+     * flags), job ends on completion */
+
     VIR_DOMAIN_BLOCK_JOB_TYPE_COPY = 2,
+    /* Block Copy (virDomainBlockRebase with flags), job exists as
+     * long as mirroring is active */
+
     VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT = 3,
+    /* Block Commit (virDomainBlockCommit without flags), job ends on
+     * completion */
+
+    VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT = 4,
+    /* Active Block Commit (virDomainBlockCommit with flags), job
+     * exists as long as sync is active */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_BLOCK_JOB_TYPE_LAST
@@ -2523,7 +2531,8 @@ typedef enum {
  * virDomainBlockJobAbortFlags:
  *
  * VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC: Request only, do not wait for completion
- * VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT: Pivot to mirror when ending a copy job
+ * VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT: Pivot to new file when ending a copy or
+ *                                   active commit job
  */
 typedef enum {
     VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC = 1 << 0,
@@ -2535,7 +2544,7 @@ typedef unsigned long long virDomainBlockJobCursor;
 
 typedef struct _virDomainBlockJobInfo virDomainBlockJobInfo;
 struct _virDomainBlockJobInfo {
-    virDomainBlockJobType type;
+    int type; /* virDomainBlockJobType */
     unsigned long bandwidth;
     /*
      * The following fields provide an indication of block job progress.  @cur
@@ -2588,6 +2597,8 @@ typedef enum {
     VIR_DOMAIN_BLOCK_COMMIT_DELETE  = 1 << 1, /* Delete any files that are now
                                                  invalid after their contents
                                                  have been committed */
+    VIR_DOMAIN_BLOCK_COMMIT_ACTIVE  = 1 << 2, /* Allow a two-phase commit when
+                                                 top is the active layer */
 } virDomainBlockCommitFlags;
 
 int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
@@ -4111,17 +4122,11 @@ typedef enum {
 #endif
 } virCPUCompareResult;
 
-/**
- * virConnectCompareCPU:
- *
- * @conn: virConnect connection
- * @xmlDesc: XML description of either guest or host cpu with <cpu> root tag
- * @flags: comparison flags
- *
- * Compares given CPU with host cpu.
- *
- * Returns virCPUCompareResult.
- */
+typedef enum {
+    VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE = (1 << 0), /* treat incompatible
+                                                             CPUs as failure */
+} virConnectCompareCPUFlags;
+
 int virConnectCompareCPU(virConnectPtr conn,
                          const char *xmlDesc,
                          unsigned int flags);
@@ -4140,19 +4145,6 @@ typedef enum {
     VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES  = (1 << 0),  /* show all features */
 } virConnectBaselineCPUFlags;
 
-/**
- * virConnectBaselineCPU:
- *
- * @conn: virConnect connection
- * @ncpus: number of CPUs in xmlCPUs
- * @xmlCPUs: array of XML descriptions of host CPUs
- * @flags: fine-tuning flags
- *
- * Computes the most feature-rich CPU which is compatible with all given
- * host CPUs.
- *
- * Returns XML description of the computed CPU or NULL on error.
- */
 char *virConnectBaselineCPU(virConnectPtr conn,
                             const char **xmlCPUs,
                             unsigned int ncpus,
@@ -4823,8 +4815,8 @@ typedef void (*virConnectDomainEventGraphicsCallback)(virConnectPtr conn,
 /**
  * virConnectDomainEventBlockJobStatus:
  *
- * The final status of a virDomainBlockPull() or virDomainBlockRebase()
- * operation
+ * Tracks status of a virDomainBlockPull(), virDomainBlockRebase(),
+ * or virDomainBlockCommit() operation
  */
 typedef enum {
     VIR_DOMAIN_BLOCK_JOB_COMPLETED = 0,
@@ -4841,13 +4833,25 @@ typedef enum {
  * virConnectDomainEventBlockJobCallback:
  * @conn: connection object
  * @dom: domain on which the event occurred
- * @disk: fully-qualified filename of the affected disk
+ * @disk: name associated with the affected disk (filename or target
+ *        device, depending on how the callback was registered)
  * @type: type of block job (virDomainBlockJobType)
- * @status: final status of the operation (virConnectDomainEventBlockJobStatus)
+ * @status: status of the operation (virConnectDomainEventBlockJobStatus)
  * @opaque: application specified data
  *
- * The callback signature to use when registering for an event of type
- * VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()
+ * The string returned for @disk can be used in any of the libvirt API
+ * that operate on a particular disk of the domain, and depends on what
+ * event type was registered with virConnectDomainEventRegisterAny().
+ * If the callback was registered using the older type of
+ * VIR_DOMAIN_EVENT_ID_BLOCK_JOB, then @disk contains the absolute file
+ * name of the host resource for the active layer of the disk; however,
+ * this name is unstable (pivoting via block copy or active block commit
+ * will change which file is active, giving a different name for the two
+ * events associated with the same job) and cannot be relied on if the
+ * active layer is associated with a network resource.  If the callback
+ * was registered using the newer type of VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
+ * then @disk will contain the device target shorthand (the <target
+ * dev='...'/> sub-element, such as "vda").
  */
 typedef void (*virConnectDomainEventBlockJobCallback)(virConnectPtr conn,
                                                       virDomainPtr dom,
@@ -5051,6 +5055,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE = 13, /* virConnectDomainEventBalloonChangeCallback */
     VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK = 14, /* virConnectDomainEventPMSuspendDiskCallback */
     VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED = 15, /* virConnectDomainEventDeviceRemovedCallback */
+    VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2 = 16,    /* virConnectDomainEventBlockJobCallback */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST
@@ -5137,6 +5142,36 @@ typedef enum {
      */
 #endif
 } virNetworkEventID;
+
+typedef enum {
+    VIR_IP_ADDR_TYPE_IPV4,
+    VIR_IP_ADDR_TYPE_IPV6,
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_IP_ADDR_TYPE_LAST
+#endif
+} virIPAddrType;
+
+typedef struct _virNetworkDHCPLease virNetworkDHCPLease;
+typedef virNetworkDHCPLease *virNetworkDHCPLeasePtr;
+struct _virNetworkDHCPLease {
+    char *iface;                /* Network interface name */
+    long long expirytime;       /* Seconds since epoch */
+    int type;                   /* virIPAddrType */
+    char *mac;                  /* MAC address */
+    char *iaid;                 /* IAID */
+    char *ipaddr;               /* IP address */
+    unsigned int prefix;        /* IP address prefix */
+    char *hostname;             /* Hostname */
+    char *clientid;             /* Client ID or DUID */
+};
+
+void virNetworkDHCPLeaseFree(virNetworkDHCPLeasePtr lease);
+
+int virNetworkGetDHCPLeases(virNetworkPtr network,
+                            const char *mac,
+                            virNetworkDHCPLeasePtr **leases,
+                            unsigned int flags);
 
 /**
  * virConnectNetworkEventGenericCallback:
@@ -5303,6 +5338,13 @@ int virDomainSetTime(virDomainPtr dom,
                      unsigned int nseconds,
                      unsigned int flags);
 
+int virNodeGetFreePages(virConnectPtr conn,
+                        unsigned int npages,
+                        unsigned int *pages,
+                        int startcell,
+                        unsigned int cellcount,
+                        unsigned long long *counts,
+                        unsigned int flags);
 /**
  * virSchedParameterType:
  *

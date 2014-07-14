@@ -658,5 +658,11 @@ LIBVIRT_1.2.5 {
         virDomainSetTime;
 } LIBVIRT_1.2.3;
 
+LIBVIRT_1.2.6 {
+    global:
+        virNodeGetFreePages;
+        virNetworkDHCPLeaseFree;
+        virNetworkGetDHCPLeases;
+} LIBVIRT_1.2.5;
 
 # .... define new API here using predicted next version number ....

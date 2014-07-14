@@ -104,6 +104,25 @@ vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
                             "might help"), n, pooloptname);
     }
 
+    /* If the pool was specified, then make sure that the returned
+     * volume is from the given pool */
+    if (pool && vol) {
+        virStoragePoolPtr volpool = NULL;
+
+        if ((volpool = virStoragePoolLookupByVolume(vol))) {
+            if (STRNEQ(virStoragePoolGetName(volpool),
+                       virStoragePoolGetName(pool))) {
+                vshResetLibvirtError();
+                vshError(ctl,
+                         _("Requested volume '%s' is not in pool '%s'"),
+                         n, virStoragePoolGetName(pool));
+                virStorageVolFree(vol);
+                vol = NULL;
+            }
+            virStoragePoolFree(volpool);
+        }
+    }
+
     if (pool)
         virStoragePoolFree(pool);
 
@@ -658,12 +677,12 @@ cmdVolUpload(vshControl *ctl, const vshCmd *cmd)
     const char *name = NULL;
     unsigned long long offset = 0, length = 0;
 
-    if (vshCommandOptULongLong(cmd, "offset", &offset) < 0) {
+    if (vshCommandOptULongLongWrap(cmd, "offset", &offset) < 0) {
         vshError(ctl, _("Unable to parse integer"));
         return false;
     }
 
-    if (vshCommandOptULongLong(cmd, "length", &length) < 0) {
+    if (vshCommandOptULongLongWrap(cmd, "length", &length) < 0) {
         vshError(ctl, _("Unable to parse integer"));
         return false;
     }
@@ -768,12 +787,12 @@ cmdVolDownload(vshControl *ctl, const vshCmd *cmd)
     unsigned long long offset = 0, length = 0;
     bool created = false;
 
-    if (vshCommandOptULongLong(cmd, "offset", &offset) < 0) {
+    if (vshCommandOptULongLongWrap(cmd, "offset", &offset) < 0) {
         vshError(ctl, _("Unable to parse integer"));
         return false;
     }
 
-    if (vshCommandOptULongLong(cmd, "length", &length) < 0) {
+    if (vshCommandOptULongLongWrap(cmd, "length", &length) < 0) {
         vshError(ctl, _("Unable to parse integer"));
         return false;
     }

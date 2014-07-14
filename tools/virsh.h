@@ -285,8 +285,14 @@ int vshCommandOptInt(const vshCmd *cmd, const char *name, int *value)
 int vshCommandOptUInt(const vshCmd *cmd, const char *name,
                       unsigned int *value)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
+int vshCommandOptUIntWrap(const vshCmd *cmd, const char *name,
+                          unsigned int *value)
+    ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 int vshCommandOptUL(const vshCmd *cmd, const char *name,
                     unsigned long *value)
+    ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
+int vshCommandOptULWrap(const vshCmd *cmd, const char *name,
+                        unsigned long *value)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 int vshCommandOptString(const vshCmd *cmd, const char *name,
                         const char **value)
@@ -300,6 +306,9 @@ int vshCommandOptLongLong(const vshCmd *cmd, const char *name,
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 int vshCommandOptULongLong(const vshCmd *cmd, const char *name,
                            unsigned long long *value)
+    ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
+int vshCommandOptULongLongWrap(const vshCmd *cmd, const char *name,
+                               unsigned long long *value)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 int vshCommandOptScaledInt(const vshCmd *cmd, const char *name,
                            unsigned long long *value, int scale,

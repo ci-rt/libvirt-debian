@@ -246,6 +246,11 @@
  */
 # define NULLSTR(s) ((s) ? (s) : "<null>")
 
+/*
+ * Similar to NULLSTR, but print '-' to make it more user friendly.
+ */
+# define EMPTYSTR(s) ((s) ? (s) : "-")
+
 /**
  * TODO:
  *
@@ -254,6 +259,18 @@
 # define TODO								\
     fprintf(stderr, "Unimplemented block at %s:%d\n",			\
             __FILE__, __LINE__);
+
+/**
+ * SWAP:
+ *
+ * In place exchange of two values
+ */
+# define SWAP(a, b)         \
+    do {                    \
+        (a) = (a) ^ (b);    \
+        (b) = (a) ^ (b);    \
+        (a) = (a) ^ (b);    \
+    } while (0)
 
 /**
  * virCheckFlags:

@@ -1832,3 +1832,104 @@ virNetDevRestoreNetConfig(const char *linkdev ATTRIBUTE_UNUSED,
 }
 
 #endif /* defined(__linux__) && defined(HAVE_LIBNL) */
+
+#ifdef __linux__
+int
+virNetDevGetLinkInfo(const char *ifname,
+                     virInterfaceLinkPtr lnk)
+{
+    int ret = -1;
+    char *path = NULL;
+    char *buf = NULL;
+    char *tmp;
+    int tmp_state;
+    unsigned int tmp_speed;
+
+    if (virNetDevSysfsFile(&path, ifname, "operstate") < 0)
+        goto cleanup;
+
+    if (virFileReadAll(path, 1024, &buf) < 0) {
+        virReportSystemError(errno,
+                             _("unable to read: %s"),
+                             path);
+        goto cleanup;
+    }
+
+    if (!(tmp = strchr(buf, '\n'))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse: %s"),
+                       buf);
+        goto cleanup;
+    }
+
+    *tmp = '\0';
+
+    /* We shouldn't allow 0 here, because
+     * virInterfaceState enum starts from 1. */
+    if ((tmp_state = virInterfaceStateTypeFromString(buf)) <= 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse: %s"),
+                       buf);
+        goto cleanup;
+    }
+
+    lnk->state = tmp_state;
+
+    /* Shortcut to avoid some kernel issues. If link is not up several drivers
+     * report several misleading values. While igb reports 65535, realtek goes
+     * with 10. To avoid muddying XML with insane values, don't report link
+     * speed if that's the case. */
+    if (lnk->state != VIR_INTERFACE_STATE_UP) {
+        lnk->speed = 0;
+        ret = 0;
+        goto cleanup;
+    }
+
+    VIR_FREE(path);
+    VIR_FREE(buf);
+
+    if (virNetDevSysfsFile(&path, ifname, "speed") < 0)
+        goto cleanup;
+
+    if (virFileReadAllQuiet(path, 1024, &buf) < 0) {
+        /* Some devices doesn't report speed, in which case we get EINVAL */
+        if (errno == EINVAL) {
+            ret = 0;
+            goto cleanup;
+        }
+        virReportSystemError(errno,
+                             _("unable to read: %s"),
+                             path);
+        goto cleanup;
+    }
+
+    if (virStrToLong_ui(buf, &tmp, 10, &tmp_speed) < 0 ||
+        *tmp != '\n') {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse: %s"),
+                       buf);
+        goto cleanup;
+    }
+
+    lnk->speed = tmp_speed;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(buf);
+    VIR_FREE(path);
+    return ret;
+}
+
+#else
+
+int
+virNetDevGetLinkInfo(const char *ifname,
+                     virInterfaceLinkPtr lnk)
+{
+    /* Port me */
+    VIR_DEBUG("Getting link info on %s is not implemented on this platform",
+              ifname);
+    lnk->speed = lnk->state = 0;
+    return 0;
+}
+#endif /* defined(__linux__) */

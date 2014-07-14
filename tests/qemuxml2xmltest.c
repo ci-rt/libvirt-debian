@@ -224,6 +224,7 @@ mymain(void)
     DO_TEST("disk-scsi-virtio-scsi");
     DO_TEST("disk-virtio-scsi-num_queues");
     DO_TEST("disk-scsi-megasas");
+    DO_TEST_DIFFERENT("disk-mirror-old");
     DO_TEST_FULL("disk-mirror", false, WHEN_ACTIVE);
     DO_TEST_FULL("disk-mirror", true, WHEN_INACTIVE);
     DO_TEST("graphics-listen-network");
@@ -303,6 +304,7 @@ mymain(void)
     DO_TEST("seclabel-static");
     DO_TEST_FULL("seclabel-static-labelskip", false, WHEN_ACTIVE);
     DO_TEST("seclabel-none");
+    DO_TEST("seclabel-dac-none");
     DO_TEST("numad-static-vcpu-no-numatune");
     DO_TEST("disk-scsi-lun-passthrough-sgio");
 

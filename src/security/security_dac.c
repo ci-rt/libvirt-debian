@@ -302,7 +302,7 @@ virSecurityDACSetSecurityFileLabel(virDomainDiskDefPtr disk,
     uid_t user;
     gid_t group;
 
-    disk_seclabel = virDomainDiskDefGetSecurityLabelDef(disk,
+    disk_seclabel = virStorageSourceGetSecurityLabelDef(disk->src,
                                                         SECURITY_DAC_NAME);
 
     if (disk_seclabel && disk_seclabel->norelabel)
@@ -321,9 +321,9 @@ virSecurityDACSetSecurityFileLabel(virDomainDiskDefPtr disk,
 
 
 static int
-virSecurityDACSetSecurityImageLabel(virSecurityManagerPtr mgr,
-                                    virDomainDefPtr def,
-                                    virDomainDiskDefPtr disk)
+virSecurityDACSetSecurityDiskLabel(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr def,
+                                   virDomainDiskDefPtr disk)
 
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
@@ -331,9 +331,6 @@ virSecurityDACSetSecurityImageLabel(virSecurityManagerPtr mgr,
     virSecurityLabelDefPtr secdef;
 
     if (!priv->dynamicOwnership)
-        return 0;
-
-    if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
         return 0;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
@@ -354,7 +351,7 @@ static int
 virSecurityDACRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
                                            virDomainDefPtr def,
                                            virDomainDiskDefPtr disk,
-                                           int migrated)
+                                           bool migrated)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityLabelDefPtr secdef;
@@ -372,7 +369,7 @@ virSecurityDACRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
     if (secdef && secdef->norelabel)
         return 0;
 
-    disk_seclabel = virDomainDiskDefGetSecurityLabelDef(disk,
+    disk_seclabel = virStorageSourceGetSecurityLabelDef(disk->src,
                                                         SECURITY_DAC_NAME);
 
     if (disk_seclabel && disk_seclabel->norelabel)
@@ -413,11 +410,11 @@ virSecurityDACRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
 
 
 static int
-virSecurityDACRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
-                                        virDomainDefPtr def,
-                                        virDomainDiskDefPtr disk)
+virSecurityDACRestoreSecurityDiskLabel(virSecurityManagerPtr mgr,
+                                       virDomainDefPtr def,
+                                       virDomainDiskDefPtr disk)
 {
-    return virSecurityDACRestoreSecurityImageLabelInt(mgr, def, disk, 0);
+    return virSecurityDACRestoreSecurityImageLabelInt(mgr, def, disk, false);
 }
 
 
@@ -488,7 +485,7 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     if (cbdata.secdef && cbdata.secdef->norelabel)
         return 0;
 
-    switch ((enum virDomainHostdevSubsysType) dev->source.subsys.type) {
+    switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         virUSBDevicePtr usb;
 
@@ -615,7 +612,7 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return 0;
 
-    switch ((enum virDomainHostdevSubsysType) dev->source.subsys.type) {
+    switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         virUSBDevicePtr usb;
 
@@ -722,7 +719,7 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
             return -1;
     }
 
-    switch ((enum virDomainChrType) dev_source->type) {
+    switch ((virDomainChrType) dev_source->type) {
     case VIR_DOMAIN_CHR_TYPE_DEV:
     case VIR_DOMAIN_CHR_TYPE_FILE:
         ret = virSecurityDACSetOwnership(dev_source->data.file.path,
@@ -783,7 +780,7 @@ virSecurityDACRestoreChardevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     if (chr_seclabel && chr_seclabel->norelabel)
         return 0;
 
-    switch ((enum virDomainChrType) dev_source->type) {
+    switch ((virDomainChrType) dev_source->type) {
     case VIR_DOMAIN_CHR_TYPE_DEV:
     case VIR_DOMAIN_CHR_TYPE_FILE:
         ret = virSecurityDACRestoreSecurityFileLabel(dev_source->data.file.path);
@@ -880,7 +877,7 @@ virSecurityDACRestoreSecurityTPMFileLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
-                                      int migrated)
+                                      bool migrated)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityLabelDefPtr secdef;
@@ -970,9 +967,9 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
         /* XXX fixme - we need to recursively label the entire tree :-( */
         if (virDomainDiskGetType(def->disks[i]) == VIR_STORAGE_TYPE_DIR)
             continue;
-        if (virSecurityDACSetSecurityImageLabel(mgr,
-                                                def,
-                                                def->disks[i]) < 0)
+        if (virSecurityDACSetSecurityDiskLabel(mgr,
+                                               def,
+                                               def->disks[i]) < 0)
             return -1;
     }
     for (i = 0; i < def->nhostdevs; i++) {
@@ -1276,8 +1273,8 @@ virSecurityDriver virSecurityDriverDAC = {
 
     .domainSecurityVerify               = virSecurityDACVerify,
 
-    .domainSetSecurityImageLabel        = virSecurityDACSetSecurityImageLabel,
-    .domainRestoreSecurityImageLabel    = virSecurityDACRestoreSecurityImageLabel,
+    .domainSetSecurityDiskLabel         = virSecurityDACSetSecurityDiskLabel,
+    .domainRestoreSecurityDiskLabel     = virSecurityDACRestoreSecurityDiskLabel,
 
     .domainSetSecurityDaemonSocketLabel = virSecurityDACSetDaemonSocketLabel,
     .domainSetSecuritySocketLabel       = virSecurityDACSetSocketLabel,

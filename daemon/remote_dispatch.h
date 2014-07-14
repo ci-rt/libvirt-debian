@@ -10314,6 +10314,28 @@ cleanup:
 
 
 
+static int remoteDispatchNetworkGetDHCPLeases(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_get_dhcp_leases_args *args,
+    remote_network_get_dhcp_leases_ret *ret);
+static int remoteDispatchNetworkGetDHCPLeasesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkGetDHCPLeases(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchNetworkGetDHCPLeases body has to be implemented manually */
+
+
+
 static int remoteDispatchNetworkGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -11514,6 +11536,28 @@ cleanup:
         virNetMessageSaveError(rerr);
     return rv;
 }
+
+
+
+static int remoteDispatchNodeGetFreePages(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_get_free_pages_args *args,
+    remote_node_get_free_pages_ret *ret);
+static int remoteDispatchNodeGetFreePagesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetFreePages(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchNodeGetFreePages body has to be implemented manually */
 
 
 
@@ -17368,6 +17412,33 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_time_args,
    0,
    (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventBlockJob2 => 339 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeGetFreePages => 340 */
+   remoteDispatchNodeGetFreePagesHelper,
+   sizeof(remote_node_get_free_pages_args),
+   (xdrproc_t)xdr_remote_node_get_free_pages_args,
+   sizeof(remote_node_get_free_pages_ret),
+   (xdrproc_t)xdr_remote_node_get_free_pages_ret,
+   true,
+   1
+},
+{ /* Method NetworkGetDHCPLeases => 341 */
+   remoteDispatchNetworkGetDHCPLeasesHelper,
+   sizeof(remote_network_get_dhcp_leases_args),
+   (xdrproc_t)xdr_remote_network_get_dhcp_leases_args,
+   sizeof(remote_network_get_dhcp_leases_ret),
+   (xdrproc_t)xdr_remote_network_get_dhcp_leases_ret,
    true,
    0
 },

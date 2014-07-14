@@ -69,6 +69,7 @@ struct _libxlDomainObjPrivate {
     virChrdevsPtr devs;
     libxl_evgen_domain_death *deathW;
     libxlDriverPrivatePtr driver;
+    unsigned short migrationPort;
 
     struct libxlDomainJobObj job;
 };
@@ -138,5 +139,10 @@ libxlDomainStart(libxlDriverPrivatePtr driver,
                  virDomainObjPtr vm,
                  bool start_paused,
                  int restore_fd);
+
+bool
+libxlDomainDefCheckABIStability(libxlDriverPrivatePtr driver,
+                                virDomainDefPtr src,
+                                virDomainDefPtr dst);
 
 #endif /* LIBXL_DOMAIN_H */

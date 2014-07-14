@@ -51,7 +51,9 @@ fakeSecretLookupByUsage(virConnectPtr conn,
     if (STRNEQ(usageID, "mycluster_myname"))
         return NULL;
 
-    virUUIDGenerate(uuid);
+    if (virUUIDGenerate(uuid) < 0)
+        return NULL;
+
     return virGetSecret(conn, uuid, usageType, usageID);
 }
 
@@ -630,7 +632,7 @@ mymain(void)
     DO_TEST_FAILURE("reboot-timeout-enabled", NONE);
 
     DO_TEST("bios", QEMU_CAPS_DEVICE, QEMU_CAPS_SGA);
-    DO_TEST("clock-utc", NONE);
+    DO_TEST("clock-utc", QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE);
     DO_TEST("clock-localtime", NONE);
     DO_TEST("clock-localtime-basis-localtime", QEMU_CAPS_RTC);
     DO_TEST("clock-variable", QEMU_CAPS_RTC);
@@ -1214,6 +1216,7 @@ mymain(void)
     DO_TEST("seclabel-static-relabel", QEMU_CAPS_NAME);
     DO_TEST("seclabel-static-labelskip", QEMU_CAPS_NAME);
     DO_TEST("seclabel-none", QEMU_CAPS_NAME);
+    DO_TEST("seclabel-dac-none", QEMU_CAPS_NAME);
 
     DO_TEST("pseries-basic",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);

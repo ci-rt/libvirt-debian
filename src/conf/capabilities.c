@@ -107,6 +107,8 @@ virCapabilitiesFreeHostNUMACell(virCapsHostNUMACellPtr cell)
     virCapabilitiesClearHostNUMACellCPUTopology(cell->cpus, cell->ncpus);
 
     VIR_FREE(cell->cpus);
+    VIR_FREE(cell->siblings);
+    VIR_FREE(cell->pageinfo);
     VIR_FREE(cell);
 }
 
@@ -222,6 +224,7 @@ virCapabilitiesDispose(void *object)
     }
     VIR_FREE(caps->host.secModels);
 
+    VIR_FREE(caps->host.pagesSize);
     virCPUDefFree(caps->host.cpu);
 }
 
@@ -275,9 +278,13 @@ virCapabilitiesAddHostMigrateTransport(virCapsPtr caps,
  * virCapabilitiesAddHostNUMACell:
  * @caps: capabilities to extend
  * @num: ID number of NUMA cell
- * @ncpus: number of CPUs in cell
  * @mem: Total size of memory in the NUMA node (in KiB)
+ * @ncpus: number of CPUs in cell
  * @cpus: array of CPU definition structures, the pointer is stolen
+ * @nsiblings: number of sibling NUMA nodes
+ * @siblings: info on sibling NUMA nodes
+ * @npageinfo: number of pages at node @num
+ * @pageinfo: info on each single memory page
  *
  * Registers a new NUMA cell for a host, passing in a
  * array of CPU IDs belonging to the cell
@@ -285,9 +292,13 @@ virCapabilitiesAddHostMigrateTransport(virCapsPtr caps,
 int
 virCapabilitiesAddHostNUMACell(virCapsPtr caps,
                                int num,
-                               int ncpus,
                                unsigned long long mem,
-                               virCapsHostNUMACellCPUPtr cpus)
+                               int ncpus,
+                               virCapsHostNUMACellCPUPtr cpus,
+                               int nsiblings,
+                               virCapsHostNUMACellSiblingInfoPtr siblings,
+                               int npageinfo,
+                               virCapsHostNUMACellPageInfoPtr pageinfo)
 {
     virCapsHostNUMACellPtr cell;
 
@@ -298,10 +309,14 @@ virCapabilitiesAddHostNUMACell(virCapsPtr caps,
     if (VIR_ALLOC(cell) < 0)
         return -1;
 
-    cell->ncpus = ncpus;
     cell->num = num;
     cell->mem = mem;
+    cell->ncpus = ncpus;
     cell->cpus = cpus;
+    cell->nsiblings = nsiblings;
+    cell->siblings = siblings;
+    cell->npageinfo = npageinfo;
+    cell->pageinfo = pageinfo;
 
     caps->host.numaCell[caps->host.nnumaCell++] = cell;
 
@@ -766,16 +781,32 @@ virCapabilitiesFormatNUMATopology(virBufferPtr buf,
             virBufferAsprintf(buf, "<memory unit='KiB'>%llu</memory>\n",
                               cells[i]->mem);
 
+        for (j = 0; j < cells[i]->npageinfo; j++) {
+            virBufferAsprintf(buf, "<pages unit='KiB' size='%u'>%zu</pages>\n",
+                              cells[i]->pageinfo[j].size,
+                              cells[i]->pageinfo[j].avail);
+        }
+
+        if (cells[i]->nsiblings) {
+            virBufferAddLit(buf, "<distances>\n");
+            virBufferAdjustIndent(buf, 2);
+            for (j = 0; j < cells[i]->nsiblings; j++) {
+                virBufferAsprintf(buf, "<sibling id='%d' value='%d'/>\n",
+                                  cells[i]->siblings[j].node,
+                                  cells[i]->siblings[j].distance);
+            }
+            virBufferAdjustIndent(buf, -2);
+            virBufferAddLit(buf, "</distances>\n");
+        }
+
         virBufferAsprintf(buf, "<cpus num='%d'>\n", cells[i]->ncpus);
         virBufferAdjustIndent(buf, 2);
         for (j = 0; j < cells[i]->ncpus; j++) {
             virBufferAsprintf(buf, "<cpu id='%d'", cells[i]->cpus[j].id);
 
             if (cells[i]->cpus[j].siblings) {
-                if (!(siblings = virBitmapFormat(cells[i]->cpus[j].siblings))) {
-                    virReportOOMError();
+                if (!(siblings = virBitmapFormat(cells[i]->cpus[j].siblings)))
                     return -1;
-                }
 
                 virBufferAsprintf(buf,
                                   " socket_id='%d' core_id='%d' siblings='%s'",
@@ -838,6 +869,11 @@ virCapabilitiesFormatXML(virCapsPtr caps)
         virBufferAddLit(&buf, "</features>\n");
     }
     virCPUDefFormatBuf(&buf, caps->host.cpu, 0);
+
+    for (i = 0; i < caps->host.nPagesSize; i++) {
+        virBufferAsprintf(&buf, "<pages unit='KiB' size='%u'/>\n",
+                          caps->host.pagesSize[i]);
+    }
 
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</cpu>\n");

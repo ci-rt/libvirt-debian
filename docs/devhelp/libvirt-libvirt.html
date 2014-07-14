@@ -159,6 +159,7 @@ typedef struct _virConnectAuth <a href="#virConnectAuth">virConnectAuth</a>;
 typedef <a href="libvirt-libvirt.html#virConnectAuth">virConnectAuth</a> * <a href="#virConnectAuthPtr">virConnectAuthPtr</a>;
 typedef enum <a href="#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a>;
 typedef enum <a href="#virConnectCloseReason">virConnectCloseReason</a>;
+typedef enum <a href="#virConnectCompareCPUFlags">virConnectCompareCPUFlags</a>;
 typedef struct _virConnectCredential <a href="#virConnectCredential">virConnectCredential</a>;
 typedef <a href="libvirt-libvirt.html#virConnectCredential">virConnectCredential</a> * <a href="#virConnectCredentialPtr">virConnectCredentialPtr</a>;
 typedef enum <a href="#virConnectCredentialType">virConnectCredentialType</a>;
@@ -263,6 +264,7 @@ typedef enum <a href="#virDomainUndefineFlagsValues">virDomainUndefineFlagsValue
 typedef enum <a href="#virDomainVcpuFlags">virDomainVcpuFlags</a>;
 typedef enum <a href="#virDomainXMLFlags">virDomainXMLFlags</a>;
 typedef enum <a href="#virEventHandleType">virEventHandleType</a>;
+typedef enum <a href="#virIPAddrType">virIPAddrType</a>;
 typedef struct _virInterface <a href="#virInterface">virInterface</a>;
 typedef <a href="libvirt-libvirt.html#virInterface">virInterface</a> * <a href="#virInterfacePtr">virInterfacePtr</a>;
 typedef enum <a href="#virInterfaceXMLFlags">virInterfaceXMLFlags</a>;
@@ -273,6 +275,8 @@ typedef enum <a href="#virMemoryParameterType">virMemoryParameterType</a>;
 typedef struct _virNWFilter <a href="#virNWFilter">virNWFilter</a>;
 typedef <a href="libvirt-libvirt.html#virNWFilter">virNWFilter</a> * <a href="#virNWFilterPtr">virNWFilterPtr</a>;
 typedef struct _virNetwork <a href="#virNetwork">virNetwork</a>;
+typedef struct _virNetworkDHCPLease <a href="#virNetworkDHCPLease">virNetworkDHCPLease</a>;
+typedef <a href="libvirt-libvirt.html#virNetworkDHCPLease">virNetworkDHCPLease</a> * <a href="#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a>;
 typedef enum <a href="#virNetworkEventID">virNetworkEventID</a>;
 typedef enum <a href="#virNetworkEventLifecycleType">virNetworkEventLifecycleType</a>;
 typedef <a href="libvirt-libvirt.html#virNetwork">virNetwork</a> * <a href="#virNetworkPtr">virNetworkPtr</a>;
@@ -609,12 +613,14 @@ int	<a href="#virNWFilterRef">virNWFilterRef</a>			(<a href="libvirt-libvirt.htm
 int	<a href="#virNWFilterUndefine">virNWFilterUndefine</a>		(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
 int	<a href="#virNetworkCreate">virNetworkCreate</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network);
 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkCreateXML">virNetworkCreateXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc);
+void	<a href="#virNetworkDHCPLeaseFree">virNetworkDHCPLeaseFree</a>		(<a href="libvirt-libvirt.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> lease);
 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkDefineXML">virNetworkDefineXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml);
 int	<a href="#virNetworkDestroy">virNetworkDestroy</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network);
 int	<a href="#virNetworkFree">virNetworkFree</a>			(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network);
 int	<a href="#virNetworkGetAutostart">virNetworkGetAutostart</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 int * autostart);
 char *	<a href="#virNetworkGetBridgeName">virNetworkGetBridgeName</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network);
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virNetworkGetConnect">virNetworkGetConnect</a>	(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> net);
+int	<a href="#virNetworkGetDHCPLeases">virNetworkGetDHCPLeases</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 const char * mac, <br/>					 <a href="libvirt-libvirt.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> ** leases, <br/>					 unsigned int flags);
 const char *	<a href="#virNetworkGetName">virNetworkGetName</a>	(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network);
 int	<a href="#virNetworkGetUUID">virNetworkGetUUID</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned char * uuid);
 int	<a href="#virNetworkGetUUIDString">virNetworkGetUUIDString</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 char * buf);
@@ -647,6 +653,7 @@ int	<a href="#virNodeGetCPUMap">virNodeGetCPUMap</a>		(<a href="libvirt-libvirt.
 int	<a href="#virNodeGetCPUStats">virNodeGetCPUStats</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cpuNum, <br/>					 <a href="libvirt-libvirt.html#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 int	<a href="#virNodeGetCellsFreeMemory">virNodeGetCellsFreeMemory</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long long * freeMems, <br/>					 int startCell, <br/>					 int maxCells);
 unsigned long long	<a href="#virNodeGetFreeMemory">virNodeGetFreeMemory</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virNodeGetFreePages">virNodeGetFreePages</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pages, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned long long * counts, <br/>					 unsigned int flags);
 int	<a href="#virNodeGetInfo">virNodeGetInfo</a>			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virNodeInfoPtr">virNodeInfoPtr</a> info);
 int	<a href="#virNodeGetMemoryParameters">virNodeGetMemoryParameters</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 int	<a href="#virNodeGetMemoryStats">virNodeGetMemoryStats</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cellNum, <br/>					 <a href="libvirt-libvirt.html#virNodeMemoryStatsPtr">virNodeMemoryStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
@@ -1273,6 +1280,12 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCompareCPUFlags">Enum </a>virConnectCompareCPUFlags</h3><pre class="programlisting">enum <a href="#virConnectCompareCPUFlags">virConnectCompareCPUFlags</a> {
+    <a name="VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE">VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE</a> = 1 /* treat incompatible CPUs as failure */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectCredential">Structure </a>virConnectCredential</h3><pre class="programlisting">struct _virConnectCredential {
     int	type	: One of <a href="libvirt-libvirt.html#virConnectCredentialType">virConnectCredentialType</a> constants
     const char *	prompt	: Prompt to show to user
@@ -1426,6 +1439,7 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockCommitFlags">Enum </a>virDomainBlockCommitFlags</h3><pre class="programlisting">enum <a href="#virDomainBlockCommitFlags">virDomainBlockCommitFlags</a> {
     <a name="VIR_DOMAIN_BLOCK_COMMIT_SHALLOW">VIR_DOMAIN_BLOCK_COMMIT_SHALLOW</a> = 1 /* NULL base means next backing file, not whole chain */
     <a name="VIR_DOMAIN_BLOCK_COMMIT_DELETE">VIR_DOMAIN_BLOCK_COMMIT_DELETE</a> = 2 /* Delete any files that are now invalid after their contents have been committed */
+    <a name="VIR_DOMAIN_BLOCK_COMMIT_ACTIVE">VIR_DOMAIN_BLOCK_COMMIT_ACTIVE</a> = 4 /* Allow a two-phase commit when top is the active layer */
 };
 </pre><p/>
 </div>
@@ -1454,7 +1468,7 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobInfo">Structure </a>virDomainBlockJobInfo</h3><pre class="programlisting">struct _virDomainBlockJobInfo {
-    <a href="libvirt-libvirt.html#virDomainBlockJobType">virDomainBlockJobType</a>	type
+    int	type	: <a href="libvirt-libvirt.html#virDomainBlockJobType">virDomainBlockJobType</a>
     unsigned long	bandwidth	: The following fields provide an indication of block job progress. @cu
     <a href="libvirt-libvirt.html#virDomainBlockJobCursor">virDomainBlockJobCursor</a>	cur
     <a href="libvirt-libvirt.html#virDomainBlockJobCursor">virDomainBlockJobCursor</a>	end
@@ -1467,11 +1481,12 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobType">Enum </a>virDomainBlockJobType</h3><pre class="programlisting">enum <a href="#virDomainBlockJobType">virDomainBlockJobType</a> {
-    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN">VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN</a> = 0
-    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_PULL">VIR_DOMAIN_BLOCK_JOB_TYPE_PULL</a> = 1
-    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_COPY">VIR_DOMAIN_BLOCK_JOB_TYPE_COPY</a> = 2
-    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT">VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT</a> = 3
-    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_LAST">VIR_DOMAIN_BLOCK_JOB_TYPE_LAST</a> = 4
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN">VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN</a> = 0 /* Placeholder */
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_PULL">VIR_DOMAIN_BLOCK_JOB_TYPE_PULL</a> = 1 /* Block Pull (virDomainBlockPull, or virDomainBlockRebase without  flags), job ends on completion */
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_COPY">VIR_DOMAIN_BLOCK_JOB_TYPE_COPY</a> = 2 /* Block Copy (virDomainBlockRebase with flags), job exists as  long as mirroring is active */
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT">VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT</a> = 3 /* Block Commit (virDomainBlockCommit without flags), job ends on  completion */
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT">VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT</a> = 4 /* Active Block Commit (virDomainBlockCommit with flags), job  exists as long as sync is active */
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_LAST">VIR_DOMAIN_BLOCK_JOB_TYPE_LAST</a> = 5
 };
 </pre><p/>
 </div>
@@ -1558,11 +1573,11 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCoreDumpFormat">Enum </a>virDomainCoreDumpFormat</h3><pre class="programlisting">enum <a href="#virDomainCoreDumpFormat">virDomainCoreDumpFormat</a> {
-    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_RAW">VIR_DOMAIN_CORE_DUMP_FORMAT_RAW</a> = 1 /* dump guest memory in raw format */
-    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB</a> = 2 /* kdump-compressed format, with  zlib compression */
-    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO</a> = 3 /* kdump-compressed format, with  lzo compression */
-    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY</a> = 4 /* kdump-compressed format, with  snappy compression */
-    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_LAST">VIR_DOMAIN_CORE_DUMP_FORMAT_LAST</a> = 5 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last state supported  by this version of the libvirt API. */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_RAW">VIR_DOMAIN_CORE_DUMP_FORMAT_RAW</a> = 0 /* dump guest memory in raw format */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB</a> = 1 /* kdump-compressed format, with  zlib compression */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO</a> = 2 /* kdump-compressed format, with  lzo compression */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY</a> = 3 /* kdump-compressed format, with  snappy compression */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_LAST">VIR_DOMAIN_CORE_DUMP_FORMAT_LAST</a> = 4 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last state supported  by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -1649,10 +1664,10 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainEventGraphicsAddressType">Enum </a>virDomainEventGraphicsAddressType</h3><pre class="programlisting">enum <a href="#virDomainEventGraphicsAddressType">virDomainEventGraphicsAddressType</a> {
-    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4</a> = 1 /* IPv4 address */
-    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6</a> = 2 /* IPv6 address */
-    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX</a> = 3 /* UNIX socket path */
-    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST</a> = 4
+    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4</a> = 0 /* IPv4 address */
+    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6</a> = 1 /* IPv6 address */
+    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX</a> = 2 /* UNIX socket path */
+    <a name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST">VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST</a> = 3
 };
 </pre><p/>
 </div>
@@ -1705,7 +1720,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE">VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE</a> = 13 /* virConnectDomainEventBalloonChangeCallback */
     <a name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK">VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK</a> = 14 /* virConnectDomainEventPMSuspendDiskCallback */
     <a name="VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED">VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED</a> = 15 /* virConnectDomainEventDeviceRemovedCallback */
-    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 16 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
+    <a name="VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2">VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2</a> = 16 /* virConnectDomainEventBlockJobCallback */
+    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 17 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -2271,6 +2287,14 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virIPAddrType">Enum </a>virIPAddrType</h3><pre class="programlisting">enum <a href="#virIPAddrType">virIPAddrType</a> {
+    <a name="VIR_IP_ADDR_TYPE_IPV4">VIR_IP_ADDR_TYPE_IPV4</a> = 0
+    <a name="VIR_IP_ADDR_TYPE_IPV6">VIR_IP_ADDR_TYPE_IPV6</a> = 1
+    <a name="VIR_IP_ADDR_TYPE_LAST">VIR_IP_ADDR_TYPE_LAST</a> = 2
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterface">Structure </a>virInterface</h3><pre class="programlisting">struct _virInterface {
 The content of this structure is not made public by the API.
 } virInterface;
@@ -2339,6 +2363,24 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virNetwork">Structure </a>virNetwork</h3><pre class="programlisting">struct _virNetwork {
 The content of this structure is not made public by the API.
 } virNetwork;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDHCPLease">Structure </a>virNetworkDHCPLease</h3><pre class="programlisting">struct _virNetworkDHCPLease {
+    char *	iface	: Network interface name
+    long long	expirytime	: Seconds since epoch
+    int	type	: <a href="libvirt-libvirt.html#virIPAddrType">virIPAddrType</a>
+    char *	mac	: MAC address
+    char *	iaid	: IAID
+    char *	ipaddr	: IP address
+    unsigned int	prefix	: IP address prefix
+    char *	hostname	: Hostname
+    char *	clientid	: Client ID or DUID
+} virNetworkDHCPLease;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDHCPLeasePtr">Typedef </a>virNetworkDHCPLeasePtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetworkDHCPLease">virNetworkDHCPLease</a> * virNetworkDHCPLeasePtr;
 </pre><p/>
 </div>
         <hr/>
@@ -2762,9 +2804,20 @@ VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>actual</tt></i>:</span></td><td>the new balloon level measured in kibibytes(blocks of 1024 bytes)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventBlockJobCallback"/>Function type virConnectDomainEventBlockJobCallback</h3><pre class="programlisting">void	virConnectDomainEventBlockJobCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * disk, <br/>						 int type, <br/>						 int status, <br/>						 void * opaque)<br/>
-</pre><p>The callback signature to use when registering for an event of type
-VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>fully-qualified filename of the affected disk</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>type of block job (virDomainBlockJobType)</td></tr><tr><td><span class="term"><i><tt>status</tt></i>:</span></td><td>final status of the operation (virConnectDomainEventBlockJobStatus)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+</pre><p>The string returned for @disk can be used in any of the libvirt API
+that operate on a particular disk of the domain, and depends on what
+event type was registered with virConnectDomainEventRegisterAny().
+If the callback was registered using the older type of
+VIR_DOMAIN_EVENT_ID_BLOCK_JOB, then @disk contains the absolute file
+name of the host resource for the active layer of the disk; however,
+this name is unstable (pivoting via block copy or active block commit
+will change which file is active, giving a different name for the two
+events associated with the same job) and cannot be relied on if the
+active layer is associated with a network resource. If the callback
+was registered using the newer type of VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
+then @disk will contain the device target shorthand (the &lt;target
+dev='...'/&gt; sub-element, such as "vda").</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>name associated with the affected disk (filename or target device, depending on how the callback was registered)</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>type of block job (virDomainBlockJobType)</td></tr><tr><td><span class="term"><i><tt>status</tt></i>:</span></td><td>status of the operation (virConnectDomainEventBlockJobStatus)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventCallback"/>Function type virConnectDomainEventCallback</h3><pre class="programlisting">int	virConnectDomainEventCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque)<br/>
 </pre><p>A callback function to be registered, and called when a domain event occurs</p>
@@ -2999,7 +3052,7 @@ after the corresponding operation completes.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectCompareCPU"/>virConnectCompareCPU ()</h3><pre class="programlisting">int	virConnectCompareCPU		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags)<br/>
 </pre><p>Compares the given CPU description with the host CPU</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>XML describing the CPU to compare with host CPU</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>comparison result according to enum <a href="libvirt-libvirt.html#virCPUCompareResult">virCPUCompareResult</a></td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>XML describing the CPU to compare with host CPU</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectCompareCPUFlags">virConnectCompareCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>comparison result according to enum virCPUCompareResult. If <a href="libvirt-libvirt.html#VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE">VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE</a> is used and @xmlDesc CPU is incompatible with host CPU, this function will return <a href="libvirt-libvirt.html#VIR_CPU_COMPARE_ERROR">VIR_CPU_COMPARE_ERROR</a> (instead of VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the <a href="libvirt-virterror.html#VIR_ERR_CPU_INCOMPATIBLE">VIR_ERR_CPU_INCOMPATIBLE</a> code with a message providing more details about the incompatibility.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventDeregister"/>virConnectDomainEventDeregister ()</h3><pre class="programlisting">int	virConnectDomainEventDeregister	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb)<br/>
 </pre><p>Removes a callback previously registered with the
@@ -3636,17 +3689,32 @@ raised to indicate the final status, and the job no longer exists. If
 the job is aborted, it is up to the hypervisor whether starting a new
 job will resume from the same point, or start over.
 
+As a special case, if @top is the active image (or NULL), and @flags
+includes VIR_DOMAIN_BLOCK_COMMIT_ACTIVE, the block job will have a type
+of VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT, and operates in two phases.
+In the first phase, the contents are being committed into @base, and the
+job can only be canceled. The job transitions to the second phase when
+the job info states cur == end, and remains alive to keep all further
+changes to @top synchronized into @base; an event with status
+VIR_DOMAIN_BLOCK_JOB_READY is also issued to mark the job transition.
+Once in the second phase, the user must choose whether to cancel the job
+(keeping @top as the active image, but now containing only the changes
+since the time the job ended) or to pivot the job (adjusting to @base as
+the active image, and invalidating @top).
+
 Be aware that this command may invalidate files even if it is aborted;
 the user is cautioned against relying on the contents of invalidated
-intermediate files such as @top without manually rebasing those files
-to use a backing file of a read-only copy of @base prior to the point
-where the commit operation was started (although such a rebase cannot
-be safely done until the commit has successfully completed). However,
-the domain itself will not have any issues; the active layer remains
-valid throughout the entire commit operation. As a convenience,
-if @flags contains VIR_DOMAIN_BLOCK_COMMIT_DELETE, this command will
-unlink all files that were invalidated, after the commit successfully
-completes.
+intermediate files such as @top (when @top is not the active image)
+without manually rebasing those files to use a backing file of a
+read-only copy of @base prior to the point where the commit operation
+was started (and such a rebase cannot be safely done until the commit
+has successfully completed). However, the domain itself will not have
+any issues; the active layer remains valid throughout the entire commit
+operation.
+
+Some hypervisors may support a shortcut where if @flags contains
+VIR_DOMAIN_BLOCK_COMMIT_DELETE, then this command will unlink all files
+that were invalidated, after the commit successfully completes.
 
 By default, if @base is NULL, the commit target will be the bottom of
 the backing chain; if @flags contains VIR_DOMAIN_BLOCK_COMMIT_SHALLOW,
@@ -3654,8 +3722,9 @@ then the immediate backing file of @top will be used instead. If @top
 is NULL, the active image at the top of the chain will be used. Some
 hypervisors place restrictions on how much can be committed, and might
 fail if @base is not the immediate backing file of @top, or if @top is
-the active layer in use by a running domain, or if @top is not the
-top-most file; restrictions may differ for online vs. offline domains.
+the active layer in use by a running domain but @flags did not include
+VIR_DOMAIN_BLOCK_COMMIT_ACTIVE, or if @top is not the top-most file;
+restrictions may differ for online vs. offline domains.
 
 The @disk parameter is either an unambiguous source name of the
 block device (the &lt;source file='...'/&gt; sub-element, such as
@@ -3705,13 +3774,16 @@ to pick up from where it left off.
 
 If the current block job for @disk is VIR_DOMAIN_BLOCK_JOB_TYPE_COPY, then
 the default is to abort the mirroring and revert to the source disk;
-adding @flags of <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT">VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT</a> causes this call to
-fail with <a href="libvirt-virterror.html#VIR_ERR_BLOCK_COPY_ACTIVE">VIR_ERR_BLOCK_COPY_ACTIVE</a> if the copy is not fully populated,
-otherwise it will swap the disk over to the copy to end the mirroring. An
-event will be issued when the job is ended, and it is possible to use
-VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC to control whether this command waits
-for the completion of the job. Restarting this job requires starting
-over from the beginning of the first phase.</p>
+likewise, if the current job is VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT,
+the default is to abort without changing the active layer of @disk.
+Adding @flags of <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT">VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT</a> causes this call to
+fail with <a href="libvirt-virterror.html#VIR_ERR_BLOCK_COPY_ACTIVE">VIR_ERR_BLOCK_COPY_ACTIVE</a> if the copy or commit is not yet
+ready; otherwise it will swap the disk over to the new active image
+to end the mirroring or active commit. An event will be issued when the
+job is ended, and it is possible to use VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC
+to control whether this command waits for the completion of the job.
+Restarting a copy or active commit job requires starting over from the
+beginning of the first phase.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockJobAbortFlags">virDomainBlockJobAbortFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobSetSpeed"/>virDomainBlockJobSetSpeed ()</h3><pre class="programlisting">int	virDomainBlockJobSetSpeed	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
@@ -6619,6 +6691,10 @@ moves from the defined to the running networks pools.</p>
 similar to the one returned by virNetworkGetXMLDesc()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>an XML description of the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDHCPLeaseFree"/>virNetworkDHCPLeaseFree ()</h3><pre class="programlisting">void	virNetworkDHCPLeaseFree		(<a href="libvirt-libvirt.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> lease)<br/>
+</pre><p>Frees all the memory occupied by @lease.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>lease</tt></i>:</span></td><td>pointer to a leases object</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkDefineXML"/>virNetworkDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	virNetworkDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml)<br/>
 </pre><p>Define a network, but does not create it</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the network, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a pointer to the network otherwise</td></tr></tbody></table></div></div>
@@ -6655,6 +6731,34 @@ WARNING: When writing libvirt bindings in other languages, do
 not use this function. Instead, store the connection and
 the network object together.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to a network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> or NULL in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetDHCPLeases"/>virNetworkGetDHCPLeases ()</h3><pre class="programlisting">int	virNetworkGetDHCPLeases		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 const char * mac, <br/>					 <a href="libvirt-libvirt.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> ** leases, <br/>					 unsigned int flags)<br/>
+</pre><p>For DHCPv4, the information returned:
+- Network Interface Name
+- Expiry Time
+- MAC address
+- IAID (NULL)
+- IPv4 address (with type and prefix)
+- Hostname (can be NULL)
+- Client ID (can be NULL)
+
+For DHCPv6, the information returned:
+- Network Interface Name
+- Expiry Time
+- MAC address
+- IAID (can be NULL, only in rare cases)
+- IPv6 address (with type and prefix)
+- Hostname (can be NULL)
+- Client DUID
+
+Note: @mac, @iaid, @ipaddr, @clientid are in ASCII form, not raw bytes.
+Note: @expirytime can 0, in case the lease is for infinite time.
+
+The API fetches leases info of guests in the specified network. If the
+optional parameter @mac is specified, the returned list will contain only
+lease info about a specific guest interface with @mac. There can be
+multiple leases for a single @mac because this API supports DHCPv6 too.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>Pointer to network object</td></tr><tr><td><span class="term"><i><tt>mac</tt></i>:</span></td><td>Optional ASCII formatted MAC address of an interface</td></tr><tr><td><span class="term"><i><tt>leases</tt></i>:</span></td><td>Pointer to a variable to store the array containing details on obtained leases, or NULL if the list is not required (just returns number of leases).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>Extra flags, not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of leases found or -1 and sets @leases to NULL in case of error. On success, the array stored into @leases is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virNetworkDHCPLeaseFree() on each array element, then calling free() on @leases. See also virNetworkGetDHCPLeasesForMAC() as a convenience for filtering the list to a single MAC address. Example of usage: <a href="libvirt-libvirt.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> *leases = NULL; <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network = ... obtain a network pointer here ...; size_t i; int nleases; unsigned int flags = 0; nleases = virNetworkGetDHCPLeases(network, NULL, &amp;leases, flags); if (nleases &lt; 0) error(); ... do something with returned values, for example: for (i = 0; i &lt; nleases; i++) { <a href="libvirt-libvirt.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> lease = leases[i]; printf("Time(epoch): %lu, MAC address: %s, " "IP address: %s, Hostname: %s, ClientID: %s\n", lease-&gt;expirytime, lease-&gt;mac, lease-&gt;ipaddr, lease-&gt;hostname, lease-&gt;clientid); virNetworkDHCPLeaseFree(leases[i]); } free(leases);</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkGetName"/>virNetworkGetName ()</h3><pre class="programlisting">const char *	virNetworkGetName	(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
 </pre><p>Get the public name for that network</p>
@@ -6910,6 +7014,53 @@ whichever is smaller.</p>
 Note: most libvirt APIs provide memory sizes in kibibytes, but in this
 function the returned value is in bytes. Divide by 1024 as necessary.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the available free memory in bytes or 0 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetFreePages"/>virNodeGetFreePages ()</h3><pre class="programlisting">int	virNodeGetFreePages		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pages, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned long long * counts, <br/>					 unsigned int flags)<br/>
+</pre><p>This calls queries the host system on free pages of
+specified size. Ont the input, @pages is expected to be
+filled with pages that caller is interested in (the size
+unit is kibibytes, so e.g. pass 2048 for 2MB), then @startcell
+refers to the first NUMA node that info should be collected
+from, and @cellcount tells how many consecutive nodes should
+be queried. On the function output, @counts is filled with
+desired information, where items are grouped by NUMA node.
+So from @counts[0] till @counts[@npages - 1] you'll find count
+for the first node (@startcell), then from @counts[@npages]
+till @count[2 * @npages - 1] you'll find info for the
+(@startcell + 1) node, and so on. It's callers responsibility
+to allocate the @counts array.
+
+Example how to use this API:
+
+ unsigned int pages[] = { 4, 2048, 1048576}
+ unsigned int npages = ARRAY_CARDINALITY(pages);
+ int startcell = 0;
+ unsigned int cellcount = 2;
+
+ unsigned long long counts = malloc(sizeof(long long) * npages * cellcount);
+
+ virNodeGetFreePages(conn, pages, npages,
+ startcell, cellcount, counts, 0);
+
+ for (i = 0 ; i &lt; cellcount ; i++) {
+ fprintf(stdout, "Cell %d\n", startcell + i);
+ for (j = 0 ; j &lt; npages ; j++) {
+ fprintf(stdout, " Page size=%d count=%d bytes=%llu\n",
+ pages[j], counts[(i * npages) + j],
+ pages[j] * counts[(i * npages) + j]);
+ }
+ }
+
+ This little code snippet will produce something like this:
+Cell 0
+ Page size=4096 count=300 bytes=1228800
+ Page size=2097152 count=0 bytes=0
+ Page size=1073741824 count=1 bytes=1073741824
+Cell 1
+ Page size=4096 count=0 bytes=0
+ Page size=2097152 count=20 bytes=41943040
+ Page size=1073741824 count=0 bytes=0</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>npages</tt></i>:</span></td><td>number of items in the @pages array</td></tr><tr><td><span class="term"><i><tt>pages</tt></i>:</span></td><td>page sizes to query</td></tr><tr><td><span class="term"><i><tt>startCell</tt></i>:</span></td><td>index of first cell to return free pages info on.</td></tr><tr><td><span class="term"><i><tt>cellCount</tt></i>:</span></td><td>maximum number of cells for which free pages information can be returned.</td></tr><tr><td><span class="term"><i><tt>counts</tt></i>:</span></td><td>returned counts of free pages</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of entries filled in @counts or -1 in case of error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeGetInfo"/>virNodeGetInfo ()</h3><pre class="programlisting">int	virNodeGetInfo			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virNodeInfoPtr">virNodeInfoPtr</a> info)<br/>
 </pre><p>Extract hardware information about the node.</p>

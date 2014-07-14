@@ -124,6 +124,8 @@ EXTRA_DIST =		\
 	storagevolxml2xmlout \
 	sysinfodata \
 	test-lib.sh	\
+	vircaps2xmldata \
+	vboxsnapshotxmldata \
 	virsh-uriprecedence \
 	virfiledata \
 	virpcitestdata \
@@ -162,12 +164,12 @@ test_programs = virshtest sockettest \
 	virstringtest \
 	virportallocatortest \
 	sysinfotest \
-	virstoragetest \
 	virnetdevbandwidthtest \
 	virkmodtest \
 	vircapstest \
 	domainconftest \
 	virhostdevtest \
+	vircaps2xmltest \
 	$(NULL)
 
 if WITH_REMOTE
@@ -235,6 +237,10 @@ if WITH_ESX
 test_programs += esxutilstest
 endif WITH_ESX
 
+if WITH_VBOX
+test_programs += vboxsnapshotxmltest
+endif WITH_VBOX
+
 if WITH_VMX
 test_programs += vmx2xmltest xml2vmxtest
 endif WITH_VMX
@@ -281,6 +287,10 @@ endif WITH_NWFILTER
 if WITH_STORAGE
 test_programs += storagevolxml2argvtest
 endif WITH_STORAGE
+
+if WITH_STORAGE_FS
+test_programs += virstoragetest
+endif WITH_STORAGE_FS
 
 if WITH_LINUX
 test_programs += virscsitest
@@ -617,6 +627,16 @@ else ! WITH_ESX
 EXTRA_DIST += esxutilstest.c
 endif ! WITH_ESX
 
+if WITH_VBOX
+vboxsnapshotxmltest_SOURCES = \
+	vboxsnapshotxmltest.c \
+	testutils.c testutils.h
+vbox_LDADDS = ../src/libvirt_driver_vbox_impl.la
+vboxsnapshotxmltest_LDADD = $(LDADDS) $(vbox_LDADDS)
+else ! WITH_VBOX
+EXTRA_DIST += vboxsnapshotxmltest.c
+endif ! WITH_VBOX
+
 if WITH_VMX
 vmx2xmltest_SOURCES = \
 	vmx2xmltest.c \
@@ -803,6 +823,10 @@ vircapstest_SOURCES = \
 	vircapstest.c testutils.h testutils.c
 vircapstest_LDADD = $(LDADDS)
 
+vircaps2xmltest_SOURCES = \
+	vircaps2xmltest.c testutils.h testutils.c
+vircaps2xmltest_LDADD = $(LDADDS)
+
 if WITH_LIBVIRTD
 libvirtdconftest_SOURCES = \
 	libvirtdconftest.c testutils.h testutils.c \
@@ -869,7 +893,13 @@ virstringtest_LDADD = $(LDADDS)
 
 virstoragetest_SOURCES = \
 	virstoragetest.c testutils.h testutils.c
-virstoragetest_LDADD = $(LDADDS)
+virstoragetest_LDADD = $(LDADDS) \
+	../src/libvirt.la \
+	../src/libvirt_conf.la \
+	../src/libvirt_util.la \
+	../src/libvirt_driver_storage_impl.la \
+	../gnulib/lib/libgnu.la \
+	$(NULL)
 
 viridentitytest_SOURCES = \
 	viridentitytest.c testutils.h testutils.c

@@ -207,9 +207,11 @@ libxlCapsInitNuma(libxl_ctx *ctx, virCapsPtr caps)
         if (numa_info[i].size == LIBXL_NUMAINFO_INVALID_ENTRY)
             continue;
 
-        if (virCapabilitiesAddHostNUMACell(caps, i, nr_cpus_node[i],
+        if (virCapabilitiesAddHostNUMACell(caps, i,
                                            numa_info[i].size / 1024,
-                                           cpus[i]) < 0) {
+                                           nr_cpus_node[i], cpus[i],
+                                           0, NULL,
+                                           0, NULL) < 0) {
             virCapabilitiesClearHostNUMACellCPUTopology(cpus[i],
                                                         nr_cpus_node[i]);
             goto cleanup;
@@ -567,10 +569,10 @@ libxlMakeChrdevStr(virDomainChrDefPtr def, char **buf)
 }
 
 static int
-libxlMakeDomBuildInfo(virDomainObjPtr vm, libxl_domain_config *d_config)
+libxlMakeDomBuildInfo(virDomainDefPtr def,
+                      libxl_ctx *ctx,
+                      libxl_domain_config *d_config)
 {
-    virDomainDefPtr def = vm->def;
-    libxlDomainObjPrivatePtr priv = vm->privateData;
     libxl_domain_build_info *b_info = &d_config->b_info;
     int hvm = STREQ(def->os.type, "hvm");
     size_t i;
@@ -583,7 +585,7 @@ libxlMakeDomBuildInfo(virDomainObjPtr vm, libxl_domain_config *d_config)
         libxl_domain_build_info_init_type(b_info, LIBXL_DOMAIN_TYPE_PV);
 
     b_info->max_vcpus = def->maxvcpus;
-    if (libxl_cpu_bitmap_alloc(priv->ctx, &b_info->avail_vcpus, def->maxvcpus))
+    if (libxl_cpu_bitmap_alloc(ctx, &b_info->avail_vcpus, def->maxvcpus))
         goto error;
     libxl_bitmap_set_none(&b_info->avail_vcpus);
     for (i = 0; i < def->vcpus; i++)
@@ -794,7 +796,7 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
                 return -1;
             }
             x_disk->format = LIBXL_DISK_FORMAT_RAW;
-            x_disk->backend = LIBXL_DISK_BACKEND_TAP;
+            x_disk->backend = LIBXL_DISK_BACKEND_QDISK;
         } else if (STREQ(driver, "phy")) {
             if (format != VIR_STORAGE_FILE_NONE &&
                 format != VIR_STORAGE_FILE_RAW) {
@@ -873,11 +875,20 @@ libxlMakeNic(virDomainDefPtr def,
              libxl_device_nic *x_nic)
 {
     bool ioemu_nic = STREQ(def->os.type, "hvm");
+    virDomainNetType actual_type = virDomainNetGetActualType(l_nic);
 
     /* TODO: Where is mtu stored?
      *
      * x_nics[i].mtu = 1492;
      */
+
+    if (l_nic->script && !(actual_type == VIR_DOMAIN_NET_TYPE_BRIDGE ||
+                           actual_type == VIR_DOMAIN_NET_TYPE_ETHERNET)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("specifying a script is only supported with "
+                         "interface types bridge and ethernet"));
+        return -1;
+    }
 
     libxl_device_nic_init(x_nic);
 
@@ -898,18 +909,62 @@ libxlMakeNic(virDomainDefPtr def,
     if (VIR_STRDUP(x_nic->ifname, l_nic->ifname) < 0)
         return -1;
 
-    switch (l_nic->type) {
+    switch (actual_type) {
         case VIR_DOMAIN_NET_TYPE_BRIDGE:
-            if (VIR_STRDUP(x_nic->bridge, l_nic->data.bridge.brname) < 0)
+            if (VIR_STRDUP(x_nic->bridge,
+                           virDomainNetGetActualBridgeName(l_nic)) < 0)
                 return -1;
             /* fallthrough */
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
             if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
                 return -1;
             break;
-        default:
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("libxenlight does not support network device type %s"),
+        case VIR_DOMAIN_NET_TYPE_NETWORK:
+        {
+            bool fail = false;
+            char *brname = NULL;
+            virNetworkPtr network;
+            virConnectPtr conn;
+            virErrorPtr errobj;
+
+            if (!(conn = virConnectOpen("xen:///system")))
+                return -1;
+
+            if (!(network =
+                  virNetworkLookupByName(conn, l_nic->data.network.name))) {
+                virObjectUnref(conn);
+                return -1;
+            }
+
+            if ((brname = virNetworkGetBridgeName(network))) {
+                if (VIR_STRDUP(x_nic->bridge, brname) < 0)
+                    fail = true;
+            } else {
+                fail = true;
+            }
+
+            VIR_FREE(brname);
+
+            /* Preserve any previous failure */
+            errobj = virSaveLastError();
+            virNetworkFree(network);
+            virSetError(errobj);
+            virFreeError(errobj);
+            virObjectUnref(conn);
+            if (fail)
+                return -1;
+            break;
+        }
+        case VIR_DOMAIN_NET_TYPE_USER:
+        case VIR_DOMAIN_NET_TYPE_SERVER:
+        case VIR_DOMAIN_NET_TYPE_CLIENT:
+        case VIR_DOMAIN_NET_TYPE_MCAST:
+        case VIR_DOMAIN_NET_TYPE_INTERNAL:
+        case VIR_DOMAIN_NET_TYPE_DIRECT:
+        case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+        case VIR_DOMAIN_NET_TYPE_LAST:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                    _("unsupported interface type %s"),
                     virDomainNetTypeToString(l_nic->type));
             return -1;
     }
@@ -959,7 +1014,7 @@ libxlMakeNicList(virDomainDefPtr def,  libxl_domain_config *d_config)
 }
 
 int
-libxlMakeVfb(libxlDriverPrivatePtr driver,
+libxlMakeVfb(virPortAllocatorPtr graphicsports,
              virDomainGraphicsDefPtr l_vfb,
              libxl_device_vfb *x_vfb)
 {
@@ -982,7 +1037,7 @@ libxlMakeVfb(libxlDriverPrivatePtr driver,
             libxl_defbool_set(&x_vfb->vnc.findunused, 0);
             if (l_vfb->data.vnc.autoport) {
 
-                if (virPortAllocatorAcquire(driver->reservedVNCPorts, &port) < 0)
+                if (virPortAllocatorAcquire(graphicsports, &port) < 0)
                     return -1;
                 l_vfb->data.vnc.port = port;
             }
@@ -1004,7 +1059,7 @@ libxlMakeVfb(libxlDriverPrivatePtr driver,
 }
 
 static int
-libxlMakeVfbList(libxlDriverPrivatePtr driver,
+libxlMakeVfbList(virPortAllocatorPtr graphicsports,
                  virDomainDefPtr def,
                  libxl_domain_config *d_config)
 {
@@ -1027,7 +1082,7 @@ libxlMakeVfbList(libxlDriverPrivatePtr driver,
     for (i = 0; i < nvfbs; i++) {
         libxl_device_vkb_init(&x_vkbs[i]);
 
-        if (libxlMakeVfb(driver, l_vfbs[i], &x_vfbs[i]) < 0)
+        if (libxlMakeVfb(graphicsports, l_vfbs[i], &x_vfbs[i]) < 0)
             goto error;
     }
 
@@ -1285,7 +1340,11 @@ libxlMakeCapabilities(libxl_ctx *ctx)
 {
     virCapsPtr caps;
 
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    if ((caps = virCapabilitiesNew(virArchFromHost(), 0, 0)) == NULL)
+#else
     if ((caps = virCapabilitiesNew(virArchFromHost(), 1, 1)) == NULL)
+#endif
         return NULL;
 
     if (libxlCapsInitHost(ctx, caps) < 0)
@@ -1305,18 +1364,17 @@ libxlMakeCapabilities(libxl_ctx *ctx)
 }
 
 int
-libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
-                       virDomainObjPtr vm, libxl_domain_config *d_config)
+libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
+                       virDomainDefPtr def,
+                       libxl_ctx *ctx,
+                       libxl_domain_config *d_config)
 {
-    virDomainDefPtr def = vm->def;
-    libxlDomainObjPrivatePtr priv = vm->privateData;
-
     libxl_domain_config_init(d_config);
 
-    if (libxlMakeDomCreateInfo(priv->ctx, def, &d_config->c_info) < 0)
+    if (libxlMakeDomCreateInfo(ctx, def, &d_config->c_info) < 0)
         return -1;
 
-    if (libxlMakeDomBuildInfo(vm, d_config) < 0)
+    if (libxlMakeDomBuildInfo(def, ctx, d_config) < 0)
         return -1;
 
     if (libxlMakeDiskList(def, d_config) < 0)
@@ -1325,7 +1383,7 @@ libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
     if (libxlMakeNicList(def, d_config) < 0)
         return -1;
 
-    if (libxlMakeVfbList(driver, def, d_config) < 0)
+    if (libxlMakeVfbList(graphicsports, def, d_config) < 0)
         return -1;
 
     if (libxlMakePCIList(def, d_config) < 0)
@@ -1336,4 +1394,12 @@ libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
     d_config->on_crash = def->onCrash;
 
     return 0;
+}
+
+virDomainXMLOptionPtr
+libxlCreateXMLConf(void)
+{
+    return virDomainXMLOptionNew(&libxlDomainDefParserConfig,
+                                 &libxlDomainXMLPrivateDataCallbacks,
+                                 NULL);
 }

@@ -41,7 +41,8 @@ VIR_ENUM_IMPL(virInterface,
 static virInterfaceDefPtr
 virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType);
 static int
-virInterfaceDefDevFormat(virBufferPtr buf, const virInterfaceDef *def);
+virInterfaceDefDevFormat(virBufferPtr buf, const virInterfaceDef *def,
+                         virInterfaceType parentIfType);
 
 static
 void virInterfaceIpDefFree(virInterfaceIpDefPtr def)
@@ -487,11 +488,27 @@ virInterfaceDefParseBridge(virInterfaceDefPtr def,
     xmlNodePtr *interfaces = NULL;
     xmlNodePtr bridge;
     virInterfaceDefPtr itf;
+    char *tmp = NULL;
     int nbItf;
     size_t i;
     int ret = 0;
 
     bridge = ctxt->node;
+    def->data.bridge.stp = -1;
+    if ((tmp = virXMLPropString(bridge, "stp"))) {
+        if (STREQ(tmp, "on")) {
+            def->data.bridge.stp = 1;
+        } else if (STREQ(tmp, "off")) {
+            def->data.bridge.stp = 0;
+        } else {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("bridge interface stp should be on or off got %s"),
+                           tmp);
+            goto error;
+        }
+    }
+    def->data.bridge.delay = virXMLPropString(bridge, "delay");
+
     nbItf = virXPathNodeSet("./interface", ctxt, &interfaces);
     if (nbItf < 0) {
         ret = -1;
@@ -517,6 +534,7 @@ virInterfaceDefParseBridge(virInterfaceDefPtr def,
     }
 
  error:
+    VIR_FREE(tmp);
     VIR_FREE(interfaces);
     ctxt->node = bridge;
     return ret;
@@ -669,6 +687,8 @@ virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType)
     int type;
     char *tmp;
     xmlNodePtr cur = ctxt->node;
+    xmlNodePtr lnk;
+
 
     /* check @type */
     tmp = virXPathString("string(./@type)", ctxt);
@@ -704,58 +724,40 @@ virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType)
         goto error;
     }
     def->type = type;
+
+    if (virInterfaceDefParseName(def, ctxt) < 0)
+       goto error;
+
+    if (parentIfType == VIR_INTERFACE_TYPE_LAST) {
+        /* only recognize these in toplevel bond interfaces */
+        if (virInterfaceDefParseStartMode(def, ctxt) < 0)
+            goto error;
+        if (virInterfaceDefParseMtu(def, ctxt) < 0)
+            goto error;
+        if (virInterfaceDefParseIfAdressing(def, ctxt) < 0)
+            goto error;
+    }
+
+    if (type != VIR_INTERFACE_TYPE_BRIDGE) {
+        /* link status makes no sense for a bridge */
+        lnk = virXPathNode("./link", ctxt);
+        if (lnk && virInterfaceLinkParseXML(lnk, &def->lnk) < 0)
+            goto error;
+    }
+
     switch (type) {
         case VIR_INTERFACE_TYPE_ETHERNET:
-            if (virInterfaceDefParseName(def, ctxt) < 0)
-                goto error;
-            tmp = virXPathString("string(./mac/@address)", ctxt);
-            if (tmp != NULL)
+            if ((tmp = virXPathString("string(./mac/@address)", ctxt)))
                 def->mac = tmp;
-            if (parentIfType == VIR_INTERFACE_TYPE_LAST) {
-                /* only recognize these in toplevel bond interfaces */
-                if (virInterfaceDefParseStartMode(def, ctxt) < 0)
-                    goto error;
-                if (virInterfaceDefParseMtu(def, ctxt) < 0)
-                    goto error;
-                if (virInterfaceDefParseIfAdressing(def, ctxt) < 0)
-                    goto error;
-            }
             break;
         case VIR_INTERFACE_TYPE_BRIDGE: {
             xmlNodePtr bridge;
 
-            if (virInterfaceDefParseName(def, ctxt) < 0)
-                goto error;
-            if (virInterfaceDefParseStartMode(def, ctxt) < 0)
-                goto error;
-            if (virInterfaceDefParseMtu(def, ctxt) < 0)
-                goto error;
-            if (virInterfaceDefParseIfAdressing(def, ctxt) < 0)
-                goto error;
-
-            bridge = virXPathNode("./bridge[1]", ctxt);
-            if (bridge == NULL) {
+            if (!(bridge = virXPathNode("./bridge[1]", ctxt))) {
                 virReportError(VIR_ERR_XML_ERROR,
                                "%s", _("bridge interface misses the bridge element"));
                 goto error;
             }
-            tmp = virXMLPropString(bridge, "stp");
-            def->data.bridge.stp = -1;
-            if (tmp != NULL) {
-                if (STREQ(tmp, "on")) {
-                    def->data.bridge.stp = 1;
-                } else if (STREQ(tmp, "off")) {
-                    def->data.bridge.stp = 0;
-                } else {
-                    virReportError(VIR_ERR_XML_ERROR,
-                                   _("bridge interface stp should be on or off got %s"),
-                                   tmp);
-                    VIR_FREE(tmp);
-                    goto error;
-                }
-                VIR_FREE(tmp);
-            }
-            def->data.bridge.delay = virXMLPropString(bridge, "delay");
             ctxt->node = bridge;
             if (virInterfaceDefParseBridge(def, ctxt) < 0)
                 goto error;
@@ -764,20 +766,7 @@ virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType)
         case VIR_INTERFACE_TYPE_BOND: {
             xmlNodePtr bond;
 
-            if (virInterfaceDefParseName(def, ctxt) < 0)
-                goto error;
-            if (parentIfType == VIR_INTERFACE_TYPE_LAST) {
-                /* only recognize these in toplevel bond interfaces */
-                if (virInterfaceDefParseStartMode(def, ctxt) < 0)
-                    goto error;
-                if (virInterfaceDefParseMtu(def, ctxt) < 0)
-                    goto error;
-                if (virInterfaceDefParseIfAdressing(def, ctxt) < 0)
-                    goto error;
-            }
-
-            bond = virXPathNode("./bond[1]", ctxt);
-            if (bond == NULL) {
+            if (!(bond = virXPathNode("./bond[1]", ctxt))) {
                 virReportError(VIR_ERR_XML_ERROR,
                                "%s", _("bond interface misses the bond element"));
                 goto error;
@@ -790,15 +779,7 @@ virInterfaceDefParseXML(xmlXPathContextPtr ctxt, int parentIfType)
         case VIR_INTERFACE_TYPE_VLAN: {
             xmlNodePtr vlan;
 
-            tmp = virXPathString("string(./@name)", ctxt);
-            if (tmp != NULL)
-                def->name = tmp;
-            if (virInterfaceDefParseStartMode(def, ctxt) < 0)
-                goto error;
-            if (virInterfaceDefParseIfAdressing(def, ctxt) < 0)
-                goto error;
-            vlan = virXPathNode("./vlan[1]", ctxt);
-            if (vlan == NULL) {
+            if (!(vlan = virXPathNode("./vlan[1]", ctxt))) {
                 virReportError(VIR_ERR_XML_ERROR,
                                "%s", _("vlan interface misses the vlan element"));
                 goto error;
@@ -890,7 +871,8 @@ virInterfaceBridgeDefFormat(virBufferPtr buf, const virInterfaceDef *def)
     virBufferAdjustIndent(buf, 2);
 
     for (i = 0; i < def->data.bridge.nbItf; i++) {
-        if (virInterfaceDefDevFormat(buf, def->data.bridge.itf[i]) < 0)
+        if (virInterfaceDefDevFormat(buf, def->data.bridge.itf[i],
+                                     VIR_INTERFACE_TYPE_BRIDGE) < 0)
             ret = -1;
     }
 
@@ -952,7 +934,8 @@ virInterfaceBondDefFormat(virBufferPtr buf, const virInterfaceDef *def)
         virBufferAddLit(buf, "/>\n");
     }
     for (i = 0; i < def->data.bond.nbItf; i++) {
-        if (virInterfaceDefDevFormat(buf, def->data.bond.itf[i]) < 0)
+        if (virInterfaceDefDevFormat(buf, def->data.bond.itf[i],
+                                     VIR_INTERFACE_TYPE_BOND) < 0)
             ret = -1;
     }
 
@@ -1055,7 +1038,8 @@ virInterfaceStartmodeDefFormat(virBufferPtr buf,
 }
 
 static int
-virInterfaceDefDevFormat(virBufferPtr buf, const virInterfaceDef *def)
+virInterfaceDefDevFormat(virBufferPtr buf, const virInterfaceDef *def,
+                         virInterfaceType parentIfType)
 {
     const char *type = NULL;
 
@@ -1083,36 +1067,33 @@ virInterfaceDefDevFormat(virBufferPtr buf, const virInterfaceDef *def)
     virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 2);
 
+    if (parentIfType == VIR_INTERFACE_TYPE_LAST) {
+        /* these elements are only valid on top-level interfaces - IP
+         * address info ("protocol") only makes sense for the
+         * top-level, and subordinate interfaces inherit the toplevel
+         * setting for mtu and start mode, which cannot be overridden.
+         */
+        virInterfaceStartmodeDefFormat(buf, def->startmode);
+        if (def->mtu)
+            virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
+        virInterfaceProtocolDefFormat(buf, def);
+    }
+
+    if (def->type != VIR_INTERFACE_TYPE_BRIDGE) {
+        virInterfaceLinkFormat(buf, &def->lnk);
+    }
     switch (def->type) {
         case VIR_INTERFACE_TYPE_ETHERNET:
-            virInterfaceStartmodeDefFormat(buf, def->startmode);
-            if (def->mac != NULL)
+            if (def->mac)
                 virBufferAsprintf(buf, "<mac address='%s'/>\n", def->mac);
-            if (def->mtu != 0)
-                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def);
             break;
         case VIR_INTERFACE_TYPE_BRIDGE:
-            virInterfaceStartmodeDefFormat(buf, def->startmode);
-            if (def->mtu != 0)
-                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def);
             virInterfaceBridgeDefFormat(buf, def);
             break;
         case VIR_INTERFACE_TYPE_BOND:
-            virInterfaceStartmodeDefFormat(buf, def->startmode);
-            if (def->mtu != 0)
-                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def);
             virInterfaceBondDefFormat(buf, def);
             break;
         case VIR_INTERFACE_TYPE_VLAN:
-            virInterfaceStartmodeDefFormat(buf, def->startmode);
-            if (def->mac != NULL)
-                virBufferAsprintf(buf, "<mac address='%s'/>\n", def->mac);
-            if (def->mtu != 0)
-                virBufferAsprintf(buf, "<mtu size='%d'/>\n", def->mtu);
-            virInterfaceProtocolDefFormat(buf, def);
             virInterfaceVlanDefFormat(buf, def);
             break;
     }
@@ -1133,7 +1114,7 @@ char *virInterfaceDefFormat(const virInterfaceDef *def)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (virInterfaceDefDevFormat(&buf, def) < 0) {
+    if (virInterfaceDefDevFormat(&buf, def, VIR_INTERFACE_TYPE_LAST) < 0) {
         virBufferFreeAndReset(&buf);
         return NULL;
     }

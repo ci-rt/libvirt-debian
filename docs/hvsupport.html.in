@@ -49,7 +49,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.6</td>
 <td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
@@ -1909,7 +1909,7 @@ in.
 <td>0.9.0</td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.6</td>
 <td></td>
 <td>0.4.4</td>
 <td>0.3.0</td>
@@ -2366,7 +2366,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.6</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2406,7 +2406,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.6</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2486,7 +2486,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.6</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2606,7 +2606,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.6</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2686,7 +2686,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.6</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4261,6 +4261,26 @@ in.
 <td>0.8.0</td>
 </tr>
 <tr>
+<td><a href="html/libvirt-libvirt.html#virNodeGetFreePages">virNodeGetFreePages</a></td>
+<td>1.2.6</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>1.2.6</td>
+<td></td>
+<td></td>
+<td></td>
+<td>1.2.6</td>
+<td>1.2.6</td>
+<td></td>
+<td>1.2.6</td>
+<td>1.2.6</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virNodeGetInfo">virNodeGetInfo</a></td>
 <td>0.1.0</td>
 <td>1.2.3</td>
@@ -4803,6 +4823,16 @@ in.
 <td></td>
 </tr>
 <tr>
+<td><a href="html/libvirt-libvirt.html#virNetworkGetDHCPLeases">virNetworkGetDHCPLeases</a></td>
+<td>1.2.6</td>
+<td>1.2.6</td>
+<td></td>
+<td></td>
+<td>1.2.6</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virNetworkGetXMLDesc">virNetworkGetXMLDesc</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
@@ -4813,16 +4843,6 @@ in.
 <td>0.6.4</td>
 </tr>
 <tr>
-<td><a href="html/libvirt-libvirt.html#virNetworkIsActive">virNetworkIsActive</a></td>
-<td>0.7.3</td>
-<td>0.7.3</td>
-<td>0.10.0</td>
-<td></td>
-<td>0.7.3</td>
-<td>0.7.3</td>
-<td></td>
-</tr>
-<tr>
 <th>API</th>
 <th>Version</th>
   <th>bridge</th>
@@ -4831,6 +4851,16 @@ in.
   <th>remote</th>
   <th>test</th>
   <th>vbox</th>
+</tr>
+<tr>
+<td><a href="html/libvirt-libvirt.html#virNetworkIsActive">virNetworkIsActive</a></td>
+<td>0.7.3</td>
+<td>0.7.3</td>
+<td>0.10.0</td>
+<td></td>
+<td>0.7.3</td>
+<td>0.7.3</td>
+<td></td>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNetworkIsPersistent">virNetworkIsPersistent</a></td>

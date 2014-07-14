@@ -2413,6 +2413,13 @@ struct remote_domain_event_callback_device_removed_msg {
         int                        callbackID;
         remote_domain_event_device_removed_msg msg;
 };
+struct remote_domain_event_block_job_2_msg {
+        int                        callbackID;
+        remote_nonnull_domain      dom;
+        remote_nonnull_string      dst;
+        int                        type;
+        int                        status;
+};
 struct remote_connect_get_cpu_model_names_args {
         remote_nonnull_string      arch;
         int                        need_results;
@@ -2462,6 +2469,45 @@ struct remote_domain_fsthaw_args {
 };
 struct remote_domain_fsthaw_ret {
         int                        filesystems;
+};
+struct remote_node_get_free_pages_args {
+        struct {
+                u_int              pages_len;
+                u_int *            pages_val;
+        } pages;
+        int                        startCell;
+        u_int                      cellCount;
+        u_int                      flags;
+};
+struct remote_node_get_free_pages_ret {
+        struct {
+                u_int              counts_len;
+                uint64_t *         counts_val;
+        } counts;
+};
+struct remote_network_dhcp_lease {
+        remote_nonnull_string      iface;
+        int64_t                    expirytime;
+        int                        type;
+        remote_string              mac;
+        remote_string              iaid;
+        remote_nonnull_string      ipaddr;
+        u_int                      prefix;
+        remote_string              hostname;
+        remote_string              clientid;
+};
+struct remote_network_get_dhcp_leases_args {
+        remote_nonnull_network     net;
+        remote_string              mac;
+        int                        need_results;
+        u_int                      flags;
+};
+struct remote_network_get_dhcp_leases_ret {
+        struct {
+                u_int              leases_len;
+                remote_network_dhcp_lease * leases_val;
+        } leases;
+        u_int                      ret;
 };
 enum remote_procedure {
         REMOTE_PROC_CONNECT_OPEN = 1,
@@ -2802,4 +2848,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_FSTHAW = 336,
         REMOTE_PROC_DOMAIN_GET_TIME = 337,
         REMOTE_PROC_DOMAIN_SET_TIME = 338,
+        REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB_2 = 339,
+        REMOTE_PROC_NODE_GET_FREE_PAGES = 340,
+        REMOTE_PROC_NETWORK_GET_DHCP_LEASES = 341,
 };
