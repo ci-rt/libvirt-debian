@@ -17,7 +17,7 @@ index 086da36..9bc433c 100644
  Type=notify
 -EnvironmentFile=-/etc/sysconfig/libvirtd
 -ExecStart=@sbindir@/libvirtd $LIBVIRTD_ARGS
-+EnvironmentFile=-/etc/default/libvirtd
++EnvironmentFile=-/etc/default/libvirt-bin
 +ExecStart=@sbindir@/libvirtd $libvirtd_opts
  ExecReload=/bin/kill -HUP $MAINPID
  KillMode=process
