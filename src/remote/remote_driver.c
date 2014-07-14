@@ -321,6 +321,11 @@ remoteDomainBuildEventCallbackDeviceRemoved(virNetClientProgramPtr prog,
                                             void *evdata, void *opaque);
 
 static void
+remoteDomainBuildEventBlockJob2(virNetClientProgramPtr prog,
+                                virNetClientPtr client,
+                                void *evdata, void *opaque);
+
+static void
 remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                  virNetClientPtr client ATTRIBUTE_UNUSED,
                                  void *evdata, void *opaque);
@@ -467,6 +472,10 @@ static virNetClientProgramEvent remoteEvents[] = {
       remoteDomainBuildEventCallbackDeviceRemoved,
       sizeof(remote_domain_event_callback_device_removed_msg),
       (xdrproc_t)xdr_remote_domain_event_callback_device_removed_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB_2,
+      remoteDomainBuildEventBlockJob2,
+      sizeof(remote_domain_event_block_job_2_msg),
+      (xdrproc_t)xdr_remote_domain_event_block_job_2_msg },
 };
 
 
@@ -5048,6 +5057,28 @@ remoteDomainBuildEventCallbackBlockJob(virNetClientProgramPtr prog ATTRIBUTE_UNU
     remote_domain_event_callback_block_job_msg *msg = evdata;
     remoteDomainBuildEventBlockJobHelper(conn, &msg->msg, msg->callbackID);
 }
+static void
+remoteDomainBuildEventBlockJob2(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                virNetClientPtr client ATTRIBUTE_UNUSED,
+                                void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    remote_domain_event_block_job_2_msg *msg = evdata;
+    struct private_data *priv = conn->privateData;
+    virDomainPtr dom;
+    virObjectEventPtr event = NULL;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom)
+        return;
+
+    event = virDomainEventBlockJob2NewFromDom(dom, msg->dst, msg->type,
+                                              msg->status);
+
+    virDomainFree(dom);
+
+    remoteEventQueue(priv, event, msg->callbackID);
+}
 
 static void
 remoteDomainBuildEventGraphicsHelper(virConnectPtr conn,
@@ -7469,6 +7500,173 @@ remoteDomainGetTime(virDomainPtr dom,
 }
 
 
+static int
+remoteNodeGetFreePages(virConnectPtr conn,
+                       unsigned int npages,
+                       unsigned int *pages,
+                       int startCell,
+                       unsigned int cellCount,
+                       unsigned long long *counts,
+                       unsigned int flags)
+{
+    int rv = -1;
+    remote_node_get_free_pages_args args;
+    remote_node_get_free_pages_ret ret;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    if (npages * cellCount > REMOTE_NODE_MAX_CELLS) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many NUMA cells: %d > %d"),
+                       npages * cellCount, REMOTE_NODE_MAX_CELLS);
+        goto done;
+    }
+
+    if (VIR_ALLOC_N(args.pages.pages_val, npages) < 0)
+        goto done;
+    memcpy(args.pages.pages_val, pages, npages * sizeof(*pages));
+    args.pages.pages_len = npages;
+    args.startCell = startCell;
+    args.cellCount = cellCount;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_GET_FREE_PAGES,
+             (xdrproc_t) xdr_remote_node_get_free_pages_args, (char *)&args,
+             (xdrproc_t) xdr_remote_node_get_free_pages_ret, (char *)&ret) == -1)
+        goto done;
+
+    memcpy(counts, ret.counts.counts_val, ret.counts.counts_len * sizeof(*counts));
+
+    xdr_free((xdrproc_t) xdr_remote_node_get_free_pages_ret, (char *) &ret);
+
+    rv = ret.counts.counts_len;
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+/* Copy contents of remote_network_dhcp_lease to virNetworkDHCPLeasePtr */
+static int
+remoteSerializeDHCPLease(virNetworkDHCPLeasePtr lease_dst, remote_network_dhcp_lease *lease_src)
+{
+    lease_dst->expirytime = lease_src->expirytime;
+    lease_dst->type = lease_src->type;
+    lease_dst->prefix = lease_src->prefix;
+
+    if (VIR_STRDUP(lease_dst->iface, lease_src->iface) < 0)
+        goto error;
+
+    if (VIR_STRDUP(lease_dst->ipaddr, lease_src->ipaddr) < 0)
+        goto error;
+
+    if (lease_src->mac) {
+        if (VIR_STRDUP(lease_dst->mac, *lease_src->mac) < 0)
+            goto error;
+    } else {
+        lease_src->mac = NULL;
+    }
+
+    if (lease_src->iaid) {
+        if (VIR_STRDUP(lease_dst->iaid, *lease_src->iaid) < 0)
+            goto error;
+    } else {
+        lease_src->iaid = NULL;
+    }
+
+    if (lease_src->hostname) {
+        if (VIR_STRDUP(lease_dst->hostname, *lease_src->hostname) < 0)
+            goto error;
+    } else {
+        lease_src->hostname = NULL;
+    }
+
+    if (lease_src->clientid) {
+        if (VIR_STRDUP(lease_dst->clientid, *lease_src->clientid) < 0)
+            goto error;
+    } else {
+        lease_src->clientid = NULL;
+    }
+
+    return 0;
+
+ error:
+    virNetworkDHCPLeaseFree(lease_dst);
+    return -1;
+}
+
+
+static int
+remoteNetworkGetDHCPLeases(virNetworkPtr net,
+                           const char *mac,
+                           virNetworkDHCPLeasePtr **leases,
+                           unsigned int flags)
+{
+    int rv = -1;
+    size_t i;
+    struct private_data *priv = net->conn->networkPrivateData;
+    remote_network_get_dhcp_leases_args args;
+    remote_network_get_dhcp_leases_ret ret;
+
+    virNetworkDHCPLeasePtr *leases_ret = NULL;
+    remoteDriverLock(priv);
+
+    make_nonnull_network(&args.net, net);
+    args.mac = mac ? (char **) &mac : NULL;
+    args.flags = flags;
+    args.need_results = !!leases;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_GET_DHCP_LEASES,
+             (xdrproc_t)xdr_remote_network_get_dhcp_leases_args, (char *)&args,
+             (xdrproc_t)xdr_remote_network_get_dhcp_leases_ret, (char *)&ret) == -1)
+        goto done;
+
+    if (ret.leases.leases_len > REMOTE_NETWORK_DHCP_LEASES_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Number of leases is %d, which exceeds max limit: %d"),
+                       ret.leases.leases_len, REMOTE_NETWORK_DHCP_LEASES_MAX);
+        goto cleanup;
+    }
+
+    if (leases) {
+        if (ret.leases.leases_len &&
+            VIR_ALLOC_N(leases_ret, ret.leases.leases_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.leases.leases_len; i++) {
+            if (VIR_ALLOC(leases_ret[i]) < 0)
+                goto cleanup;
+
+            if (remoteSerializeDHCPLease(leases_ret[i], &ret.leases.leases_val[i]) < 0)
+                goto cleanup;
+        }
+
+        *leases = leases_ret;
+        leases_ret = NULL;
+    }
+
+    rv = ret.ret;
+
+ cleanup:
+    if (leases_ret) {
+        for (i = 0; i < ret.leases.leases_len; i++)
+            virNetworkDHCPLeaseFree(leases_ret[i]);
+        VIR_FREE(leases_ret);
+    }
+    xdr_free((xdrproc_t)xdr_remote_network_get_dhcp_leases_ret,
+             (char *) &ret);
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
  * These can return NULL if underlying memory allocations fail,
@@ -7805,6 +8003,7 @@ static virDriver remote_driver = {
     .domainFSThaw = remoteDomainFSThaw, /* 1.2.5 */
     .domainGetTime = remoteDomainGetTime, /* 1.2.5 */
     .domainSetTime = remoteDomainSetTime, /* 1.2.5 */
+    .nodeGetFreePages = remoteNodeGetFreePages, /* 1.2.6 */
 };
 
 static virNetworkDriver network_driver = {
@@ -7832,6 +8031,7 @@ static virNetworkDriver network_driver = {
     .networkSetAutostart = remoteNetworkSetAutostart, /* 0.3.0 */
     .networkIsActive = remoteNetworkIsActive, /* 0.7.3 */
     .networkIsPersistent = remoteNetworkIsPersistent, /* 0.7.3 */
+    .networkGetDHCPLeases = remoteNetworkGetDHCPLeases, /* 1.2.6 */
 };
 
 static virInterfaceDriver interface_driver = {

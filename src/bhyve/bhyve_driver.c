@@ -53,8 +53,10 @@
 #include "viraccessapicheck.h"
 #include "nodeinfo.h"
 
+#include "bhyve_device.h"
 #include "bhyve_driver.h"
 #include "bhyve_command.h"
+#include "bhyve_domain.h"
 #include "bhyve_process.h"
 #include "bhyve_utils.h"
 #include "bhyve_capabilities.h"
@@ -509,6 +511,9 @@ bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
     if (virDomainDefineXMLEnsureACL(conn, def) < 0)
         goto cleanup;
 
+    if (bhyveDomainAssignAddresses(def, NULL) < 0)
+        goto cleanup;
+
     if (!(vm = virDomainObjListAdd(privconn->domains, def,
                                    privconn->xmlopt,
                                    0, &oldDef)))
@@ -683,6 +688,9 @@ bhyveConnectDomainXMLToNative(virConnectPtr conn,
     if (!(def = virDomainDefParseString(xmlData, caps, privconn->xmlopt,
                                   1 << VIR_DOMAIN_VIRT_BHYVE,
                                   VIR_DOMAIN_XML_INACTIVE)))
+        goto cleanup;
+
+    if (bhyveDomainAssignAddresses(def, NULL) < 0)
         goto cleanup;
 
     if (!(loadcmd = virBhyveProcessBuildLoadCmd(privconn, def)))
@@ -895,6 +903,9 @@ bhyveDomainCreateXML(virConnectPtr conn,
         goto cleanup;
 
     if (virDomainCreateXMLEnsureACL(conn, def) < 0)
+        goto cleanup;
+
+    if (bhyveDomainAssignAddresses(def, NULL) < 0)
         goto cleanup;
 
     if (!(vm = virDomainObjListAdd(privconn->domains, def,
@@ -1160,7 +1171,9 @@ bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
     if (!(bhyve_driver->caps = virBhyveCapsBuild()))
         goto cleanup;
 
-    if (!(bhyve_driver->xmlopt = virDomainXMLOptionNew(NULL, NULL, NULL)))
+    if (!(bhyve_driver->xmlopt = virDomainXMLOptionNew(&virBhyveDriverDomainDefParserConfig,
+                                                       &virBhyveDriverPrivateDataCallbacks,
+                                                       NULL)))
         goto cleanup;
 
     if (!(bhyve_driver->domains = virDomainObjListNew()))
@@ -1231,10 +1244,15 @@ bhyveConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED,
 static unsigned long long
 bhyveNodeGetFreeMemory(virConnectPtr conn)
 {
+    unsigned long long freeMem;
+
     if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
         return 0;
 
-    return nodeGetFreeMemory();
+    if (nodeGetMemory(NULL, &freeMem) < 0)
+        return 0;
+
+    return freeMem;
 }
 
 static int
@@ -1300,21 +1318,30 @@ bhyveConnectCompareCPU(virConnectPtr conn,
     bhyveConnPtr driver = conn->privateData;
     int ret = VIR_CPU_COMPARE_ERROR;
     virCapsPtr caps = NULL;
+    bool failIncompatible;
 
-    virCheckFlags(0, VIR_CPU_COMPARE_ERROR);
+    virCheckFlags(VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE,
+                  VIR_CPU_COMPARE_ERROR);
 
     if (virConnectCompareCPUEnsureACL(conn) < 0)
         goto cleanup;
+
+    failIncompatible = !!(flags & VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE);
 
     if (!(caps = bhyveDriverGetCapabilities(driver)))
         goto cleanup;
 
     if (!caps->host.cpu ||
         !caps->host.cpu->model) {
-        VIR_WARN("cannot get host CPU capabilities");
-        ret = VIR_CPU_COMPARE_INCOMPATIBLE;
+        if (failIncompatible) {
+            virReportError(VIR_ERR_CPU_INCOMPATIBLE, "%s",
+                           _("cannot get host CPU capabilities"));
+        } else {
+            VIR_WARN("cannot get host CPU capabilities");
+            ret = VIR_CPU_COMPARE_INCOMPATIBLE;
+        }
     } else {
-        ret = cpuCompareXML(caps->host.cpu, xmlDesc);
+        ret = cpuCompareXML(caps->host.cpu, xmlDesc, failIncompatible);
     }
 
  cleanup:

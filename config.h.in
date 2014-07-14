@@ -1293,6 +1293,9 @@
 /* whether numad is available */
 #undef HAVE_NUMAD
 
+/* whether numa_bitmask_isbitset is available */
+#undef HAVE_NUMA_BITMASK_ISBITSET
+
 /* Define to 1 if the system has the 'openpty' function. */
 #undef HAVE_OPENPTY
 
@@ -2009,6 +2012,10 @@
 /* Define to a substitute value for mmap()'s MAP_ANONYMOUS flag. */
 #undef MAP_ANONYMOUS
 
+/* Define if the mbrtowc function does not return (size_t) -2 for empty input.
+   */
+#undef MBRTOWC_EMPTY_INPUT_BUG
+
 /* Define if the mbrtowc function has the NULL pwc argument bug. */
 #undef MBRTOWC_NULL_ARG1_BUG
 
@@ -2099,7 +2106,7 @@
    */
 #undef PTHREAD_SIGMASK_FAILS_WITH_ERRNO
 
-/* Define to 1 if pthread_sigmask() may returns 0 and have no effect. */
+/* Define to 1 if pthread_sigmask may return 0 and have no effect. */
 #undef PTHREAD_SIGMASK_INEFFECTIVE
 
 /* Define to 1 if pthread_sigmask() unblocks signals incorrectly. */
@@ -2852,6 +2859,16 @@
 /* The name _UNUSED_PARAMETER_ is an earlier spelling, although the name
    is a misnomer outside of parameter lists.  */
 #define _UNUSED_PARAMETER_ _GL_UNUSED
+
+/* gcc supports the "unused" attribute on possibly unused labels, and
+   g++ has since version 4.5.  Note to support C++ as well as C,
+   _GL_UNUSED_LABEL should be used with a trailing ;  */
+#if !defined __cplusplus || __GNUC__ > 4 \
+    || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
+# define _GL_UNUSED_LABEL _GL_UNUSED
+#else
+# define _GL_UNUSED_LABEL
+#endif
 
 /* The __pure__ attribute was added in gcc 2.96.  */
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96)

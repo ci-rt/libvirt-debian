@@ -1173,6 +1173,21 @@ typedef int
                       unsigned int nmountpoints,
                       unsigned int flags);
 
+typedef int
+(*virDrvNodeGetFreePages)(virConnectPtr conn,
+                          unsigned int npages,
+                          unsigned int *pages,
+                          int startCell,
+                          unsigned int cellCount,
+                          unsigned long long *counts,
+                          unsigned int flags);
+
+typedef int
+(*virDrvNetworkGetDHCPLeases)(virNetworkPtr network,
+                              const char *mac,
+                              virNetworkDHCPLeasePtr **leases,
+                              unsigned int flags);
+
 typedef struct _virDriver virDriver;
 typedef virDriver *virDriverPtr;
 
@@ -1391,6 +1406,7 @@ struct _virDriver {
     virDrvDomainFSThaw domainFSThaw;
     virDrvDomainGetTime domainGetTime;
     virDrvDomainSetTime domainSetTime;
+    virDrvNodeGetFreePages nodeGetFreePages;
 };
 
 
@@ -1524,6 +1540,7 @@ struct _virNetworkDriver {
     virDrvNetworkSetAutostart networkSetAutostart;
     virDrvNetworkIsActive networkIsActive;
     virDrvNetworkIsPersistent networkIsPersistent;
+    virDrvNetworkGetDHCPLeases networkGetDHCPLeases;
 };
 
 

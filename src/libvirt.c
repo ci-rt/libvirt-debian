@@ -17245,11 +17245,16 @@ virConnectIsSecure(virConnectPtr conn)
  * virConnectCompareCPU:
  * @conn: virConnect connection
  * @xmlDesc: XML describing the CPU to compare with host CPU
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @flags: bitwise-OR of virConnectCompareCPUFlags
  *
  * Compares the given CPU description with the host CPU
  *
- * Returns comparison result according to enum virCPUCompareResult
+ * Returns comparison result according to enum virCPUCompareResult. If
+ * VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE is used and @xmlDesc CPU is
+ * incompatible with host CPU, this function will return VIR_CPU_COMPARE_ERROR
+ * (instead of VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the
+ * VIR_ERR_CPU_INCOMPATIBLE code with a message providing more details about
+ * the incompatibility.
  */
 int
 virConnectCompareCPU(virConnectPtr conn,
@@ -19473,13 +19478,16 @@ virDomainOpenChannel(virDomainPtr dom,
  *
  * If the current block job for @disk is VIR_DOMAIN_BLOCK_JOB_TYPE_COPY, then
  * the default is to abort the mirroring and revert to the source disk;
- * adding @flags of VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT causes this call to
- * fail with VIR_ERR_BLOCK_COPY_ACTIVE if the copy is not fully populated,
- * otherwise it will swap the disk over to the copy to end the mirroring.  An
- * event will be issued when the job is ended, and it is possible to use
- * VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC to control whether this command waits
- * for the completion of the job.  Restarting this job requires starting
- * over from the beginning of the first phase.
+ * likewise, if the current job is VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT,
+ * the default is to abort without changing the active layer of @disk.
+ * Adding @flags of VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT causes this call to
+ * fail with VIR_ERR_BLOCK_COPY_ACTIVE if the copy or commit is not yet
+ * ready; otherwise it will swap the disk over to the new active image
+ * to end the mirroring or active commit.  An event will be issued when the
+ * job is ended, and it is possible to use VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC
+ * to control whether this command waits for the completion of the job.
+ * Restarting a copy or active commit job requires starting over from the
+ * beginning of the first phase.
  *
  * Returns -1 in case of failure, 0 when successful.
  */
@@ -19849,17 +19857,32 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * the job is aborted, it is up to the hypervisor whether starting a new
  * job will resume from the same point, or start over.
  *
+ * As a special case, if @top is the active image (or NULL), and @flags
+ * includes VIR_DOMAIN_BLOCK_COMMIT_ACTIVE, the block job will have a type
+ * of VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT, and operates in two phases.
+ * In the first phase, the contents are being committed into @base, and the
+ * job can only be canceled.  The job transitions to the second phase when
+ * the job info states cur == end, and remains alive to keep all further
+ * changes to @top synchronized into @base; an event with status
+ * VIR_DOMAIN_BLOCK_JOB_READY is also issued to mark the job transition.
+ * Once in the second phase, the user must choose whether to cancel the job
+ * (keeping @top as the active image, but now containing only the changes
+ * since the time the job ended) or to pivot the job (adjusting to @base as
+ * the active image, and invalidating @top).
+ *
  * Be aware that this command may invalidate files even if it is aborted;
  * the user is cautioned against relying on the contents of invalidated
- * intermediate files such as @top without manually rebasing those files
- * to use a backing file of a read-only copy of @base prior to the point
- * where the commit operation was started (although such a rebase cannot
- * be safely done until the commit has successfully completed).  However,
- * the domain itself will not have any issues; the active layer remains
- * valid throughout the entire commit operation.  As a convenience,
- * if @flags contains VIR_DOMAIN_BLOCK_COMMIT_DELETE, this command will
- * unlink all files that were invalidated, after the commit successfully
- * completes.
+ * intermediate files such as @top (when @top is not the active image)
+ * without manually rebasing those files to use a backing file of a
+ * read-only copy of @base prior to the point where the commit operation
+ * was started (and such a rebase cannot be safely done until the commit
+ * has successfully completed).  However, the domain itself will not have
+ * any issues; the active layer remains valid throughout the entire commit
+ * operation.
+ *
+ * Some hypervisors may support a shortcut where if @flags contains
+ * VIR_DOMAIN_BLOCK_COMMIT_DELETE, then this command will unlink all files
+ * that were invalidated, after the commit successfully completes.
  *
  * By default, if @base is NULL, the commit target will be the bottom of
  * the backing chain; if @flags contains VIR_DOMAIN_BLOCK_COMMIT_SHALLOW,
@@ -19867,8 +19890,9 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * is NULL, the active image at the top of the chain will be used.  Some
  * hypervisors place restrictions on how much can be committed, and might
  * fail if @base is not the immediate backing file of @top, or if @top is
- * the active layer in use by a running domain, or if @top is not the
- * top-most file; restrictions may differ for online vs. offline domains.
+ * the active layer in use by a running domain but @flags did not include
+ * VIR_DOMAIN_BLOCK_COMMIT_ACTIVE, or if @top is not the top-most file;
+ * restrictions may differ for online vs. offline domains.
  *
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
@@ -20890,4 +20914,226 @@ virDomainSetTime(virDomainPtr dom,
  error:
     virDispatchError(dom->conn);
     return -1;
+}
+
+
+/**
+ * virNodeGetFreePages:
+ * @conn: pointer to the hypervisor connection
+ * @npages: number of items in the @pages array
+ * @pages: page sizes to query
+ * @startCell: index of first cell to return free pages info on.
+ * @cellCount: maximum number of cells for which free pages
+ *             information can be returned.
+ * @counts: returned counts of free pages
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * This calls queries the host system on free pages of
+ * specified size. Ont the input, @pages is expected to be
+ * filled with pages that caller is interested in (the size
+ * unit is kibibytes, so e.g. pass 2048 for 2MB), then @startcell
+ * refers to the first NUMA node that info should be collected
+ * from, and @cellcount tells how many consecutive nodes should
+ * be queried. On the function output, @counts is filled with
+ * desired information, where items are grouped by NUMA node.
+ * So from @counts[0] till @counts[@npages - 1] you'll find count
+ * for the first node (@startcell), then from @counts[@npages]
+ * till @count[2 * @npages - 1] you'll find info for the
+ * (@startcell + 1) node, and so on. It's callers responsibility
+ * to allocate the @counts array.
+ *
+ * Example how to use this API:
+ *
+ *   unsigned int pages[] = { 4, 2048, 1048576}
+ *   unsigned int npages = ARRAY_CARDINALITY(pages);
+ *   int startcell = 0;
+ *   unsigned int cellcount = 2;
+ *
+ *   unsigned long long counts = malloc(sizeof(long long) * npages * cellcount);
+ *
+ *   virNodeGetFreePages(conn, pages, npages,
+ *                       startcell, cellcount, counts, 0);
+ *
+ *   for (i = 0 ; i < cellcount ; i++) {
+ *       fprintf(stdout, "Cell %d\n", startcell + i);
+ *       for (j = 0 ; j < npages ; j++) {
+ *          fprintf(stdout, "  Page size=%d count=%d bytes=%llu\n",
+ *                  pages[j], counts[(i * npages) +  j],
+ *                  pages[j] * counts[(i * npages) +  j]);
+ *       }
+ *   }
+ *
+ *   This little code snippet will produce something like this:
+ * Cell 0
+ *    Page size=4096 count=300 bytes=1228800
+ *    Page size=2097152 count=0 bytes=0
+ *    Page size=1073741824 count=1 bytes=1073741824
+ * Cell 1
+ *    Page size=4096 count=0 bytes=0
+ *    Page size=2097152 count=20 bytes=41943040
+ *    Page size=1073741824 count=0 bytes=0
+ *
+ * Returns: the number of entries filled in @counts or -1 in case of error.
+ */
+int
+virNodeGetFreePages(virConnectPtr conn,
+                    unsigned int npages,
+                    unsigned int *pages,
+                    int startCell,
+                    unsigned int cellCount,
+                    unsigned long long *counts,
+                    unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, npages=%u, pages=%p, startCell=%u, "
+              "cellCount=%u, counts=%p, flags=%x",
+              conn, npages, pages, startCell, cellCount, counts, flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, -1);
+    virCheckNonZeroArgGoto(npages, error);
+    virCheckNonNullArgGoto(pages, error);
+    virCheckNonZeroArgGoto(cellCount, error);
+    virCheckNonNullArgGoto(counts, error);
+
+    if (conn->driver->nodeGetFreePages) {
+        int ret;
+        ret = conn->driver->nodeGetFreePages(conn, npages, pages, startCell,
+                                             cellCount, counts, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+ error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virNetworkGetDHCPLeases:
+ * @network: Pointer to network object
+ * @mac: Optional ASCII formatted MAC address of an interface
+ * @leases: Pointer to a variable to store the array containing details on
+ *          obtained leases, or NULL if the list is not required (just returns
+ *          number of leases).
+ * @flags: Extra flags, not used yet, so callers should always pass 0
+ *
+ * For DHCPv4, the information returned:
+ * - Network Interface Name
+ * - Expiry Time
+ * - MAC address
+ * - IAID (NULL)
+ * - IPv4 address (with type and prefix)
+ * - Hostname (can be NULL)
+ * - Client ID (can be NULL)
+ *
+ * For DHCPv6, the information returned:
+ * - Network Interface Name
+ * - Expiry Time
+ * - MAC address
+ * - IAID (can be NULL, only in rare cases)
+ * - IPv6 address (with type and prefix)
+ * - Hostname (can be NULL)
+ * - Client DUID
+ *
+ * Note: @mac, @iaid, @ipaddr, @clientid are in ASCII form, not raw bytes.
+ * Note: @expirytime can 0, in case the lease is for infinite time.
+ *
+ * The API fetches leases info of guests in the specified network. If the
+ * optional parameter @mac is specified, the returned list will contain only
+ * lease info about a specific guest interface with @mac. There can be
+ * multiple leases for a single @mac because this API supports DHCPv6 too.
+ *
+ * Returns the number of leases found or -1 and sets @leases to NULL in
+ * case of error. On success, the array stored into @leases is guaranteed to
+ * have an extra allocated element set to NULL but not included in the return
+ * count, to make iteration easier. The caller is responsible for calling
+ * virNetworkDHCPLeaseFree() on each array element, then calling free() on @leases.
+ *
+ * See also virNetworkGetDHCPLeasesForMAC() as a convenience for filtering
+ * the list to a single MAC address.
+ *
+ * Example of usage:
+ *
+ * virNetworkDHCPLeasePtr *leases = NULL;
+ * virNetworkPtr network = ... obtain a network pointer here ...;
+ * size_t i;
+ * int nleases;
+ * unsigned int flags = 0;
+ *
+ * nleases = virNetworkGetDHCPLeases(network, NULL, &leases, flags);
+ * if (nleases < 0)
+ *     error();
+ *
+ * ... do something with returned values, for example:
+ *
+ * for (i = 0; i < nleases; i++) {
+ *     virNetworkDHCPLeasePtr lease = leases[i];
+ *
+ *     printf("Time(epoch): %lu, MAC address: %s, "
+ *            "IP address: %s, Hostname: %s, ClientID: %s\n",
+ *            lease->expirytime, lease->mac, lease->ipaddr,
+ *            lease->hostname, lease->clientid);
+ *
+ *            virNetworkDHCPLeaseFree(leases[i]);
+ * }
+ *
+ * free(leases);
+ *
+ */
+int
+virNetworkGetDHCPLeases(virNetworkPtr network,
+                        const char *mac,
+                        virNetworkDHCPLeasePtr **leases,
+                        unsigned int flags)
+{
+    virConnectPtr conn;
+    VIR_DEBUG("network=%p, mac='%s' leases=%p, flags=%x",
+               network, NULLSTR(mac), leases, flags);
+
+    virResetLastError();
+
+    if (leases)
+        *leases = NULL;
+
+    virCheckNetworkReturn(network, -1);
+
+    conn = network->conn;
+
+    if (conn->networkDriver && conn->networkDriver->networkGetDHCPLeases) {
+        int ret;
+        ret = conn->networkDriver->networkGetDHCPLeases(network, mac, leases, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(network->conn);
+    return -1;
+}
+
+
+/**
+ * virNetworkDHCPLeaseFree:
+ * @lease: pointer to a leases object
+ *
+ * Frees all the memory occupied by @lease.
+ */
+void
+virNetworkDHCPLeaseFree(virNetworkDHCPLeasePtr lease)
+{
+    if (!lease)
+        return;
+    VIR_FREE(lease->iface);
+    VIR_FREE(lease->mac);
+    VIR_FREE(lease->iaid);
+    VIR_FREE(lease->ipaddr);
+    VIR_FREE(lease->hostname);
+    VIR_FREE(lease->clientid);
+    VIR_FREE(lease);
 }

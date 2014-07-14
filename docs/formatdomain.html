@@ -1809,15 +1809,25 @@
           </dd></dl>
       </dd><dt><code>mirror</code></dt><dd>
         This element is present if the hypervisor has started a block
-        copy operation (via the <code>virDomainBlockCopy</code> API),
-        where the mirror location in attribute <code>file</code> will
-        eventually have the same contents as the source, and with the
-        file format in attribute <code>format</code> (which might
-        differ from the format of the source).  If
+        copy operation (via the <code>virDomainBlockRebase</code>
+        API), where the mirror location in the <code>source</code>
+        sub-element will eventually have the same contents as the
+        source, and with the file format in the
+        sub-element <code>format</code> (which might differ from the
+        format of the source).  The details of the <code>source</code>
+        sub-element are determined by the <code>type</code> attribute
+        of the mirror, similar to what is done for the
+        overall <code>disk</code> device element. If
         attribute <code>ready</code> is present, then it is known the
         disk is ready to pivot; otherwise, the disk is probably still
         copying.  For now, this element only valid in output; it is
-        ignored on input.  <span class="since">Since 0.9.12</span>
+        ignored on input.  The <code>source</code> sub-element exists
+        for all two-phase jobs <span class="since">since 1.2.6</span>.
+        Older libvirt supported only block copy to a
+        file, <span class="since">since 0.9.12</span>; for
+        compatibility with older clients, such jobs include redundant
+        information in the attributes <code>file</code>
+        and <code>format</code> in the <code>mirror</code> element.
       </dd><dt><code>target</code></dt><dd>The <code>target</code> element controls the bus / device
         under which the disk is exposed to the guest
         OS. The <code>dev</code> attribute indicates the "logical"
@@ -2627,8 +2637,8 @@
     </pre>
         <dl><dt><code>hostdev</code></dt><dd>The <code>hostdev</code> element is the main container for describing
         host devices. For block/character device passthrough <code>mode</code> is
-        always "capabilities" and <code>type</code> is "block" for a block
-        device, "char" for a character device and "net" for a host network
+        always "capabilities" and <code>type</code> is "storage" for a block
+        device, "misc" for a character device and "net" for a host network
         interface.
       </dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host.
         For block devices, the path to the block device in the host

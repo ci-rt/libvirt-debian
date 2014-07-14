@@ -40,7 +40,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_CPUMAP_MAX 2048
 #define REMOTE_VCPUINFO_MAX 16384
 #define REMOTE_CPUMAPS_MAX 8388608
-#define REMOTE_MIGRATE_COOKIE_MAX 16384
+#define REMOTE_MIGRATE_COOKIE_MAX 4194304
 #define REMOTE_NETWORK_LIST_MAX 16384
 #define REMOTE_INTERFACE_LIST_MAX 16384
 #define REMOTE_STORAGE_POOL_LIST_MAX 4096
@@ -80,6 +80,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_JOB_STATS_MAX 64
 #define REMOTE_CONNECT_CPU_MODELS_MAX 8192
 #define REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX 256
+#define REMOTE_NETWORK_DHCP_LEASES_MAX 65536
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -3537,6 +3538,15 @@ struct remote_domain_event_callback_device_removed_msg {
 };
 typedef struct remote_domain_event_callback_device_removed_msg remote_domain_event_callback_device_removed_msg;
 
+struct remote_domain_event_block_job_2_msg {
+        int callbackID;
+        remote_nonnull_domain dom;
+        remote_nonnull_string dst;
+        int type;
+        int status;
+};
+typedef struct remote_domain_event_block_job_2_msg remote_domain_event_block_job_2_msg;
+
 struct remote_connect_get_cpu_model_names_args {
         remote_nonnull_string arch;
         int need_results;
@@ -3606,6 +3616,55 @@ struct remote_domain_fsthaw_ret {
         int filesystems;
 };
 typedef struct remote_domain_fsthaw_ret remote_domain_fsthaw_ret;
+
+struct remote_node_get_free_pages_args {
+        struct {
+                u_int pages_len;
+                u_int *pages_val;
+        } pages;
+        int startCell;
+        u_int cellCount;
+        u_int flags;
+};
+typedef struct remote_node_get_free_pages_args remote_node_get_free_pages_args;
+
+struct remote_node_get_free_pages_ret {
+        struct {
+                u_int counts_len;
+                uint64_t *counts_val;
+        } counts;
+};
+typedef struct remote_node_get_free_pages_ret remote_node_get_free_pages_ret;
+
+struct remote_network_dhcp_lease {
+        remote_nonnull_string iface;
+        int64_t expirytime;
+        int type;
+        remote_string mac;
+        remote_string iaid;
+        remote_nonnull_string ipaddr;
+        u_int prefix;
+        remote_string hostname;
+        remote_string clientid;
+};
+typedef struct remote_network_dhcp_lease remote_network_dhcp_lease;
+
+struct remote_network_get_dhcp_leases_args {
+        remote_nonnull_network net;
+        remote_string mac;
+        int need_results;
+        u_int flags;
+};
+typedef struct remote_network_get_dhcp_leases_args remote_network_get_dhcp_leases_args;
+
+struct remote_network_get_dhcp_leases_ret {
+        struct {
+                u_int leases_len;
+                remote_network_dhcp_lease *leases_val;
+        } leases;
+        u_int ret;
+};
+typedef struct remote_network_get_dhcp_leases_ret remote_network_get_dhcp_leases_ret;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -3948,6 +4007,9 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_FSTHAW = 336,
         REMOTE_PROC_DOMAIN_GET_TIME = 337,
         REMOTE_PROC_DOMAIN_SET_TIME = 338,
+        REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB_2 = 339,
+        REMOTE_PROC_NODE_GET_FREE_PAGES = 340,
+        REMOTE_PROC_NETWORK_GET_DHCP_LEASES = 341,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4481,6 +4543,7 @@ extern  bool_t xdr_remote_domain_migrate_finish3_params_ret (XDR *, remote_domai
 extern  bool_t xdr_remote_domain_migrate_confirm3_params_args (XDR *, remote_domain_migrate_confirm3_params_args*);
 extern  bool_t xdr_remote_domain_event_device_removed_msg (XDR *, remote_domain_event_device_removed_msg*);
 extern  bool_t xdr_remote_domain_event_callback_device_removed_msg (XDR *, remote_domain_event_callback_device_removed_msg*);
+extern  bool_t xdr_remote_domain_event_block_job_2_msg (XDR *, remote_domain_event_block_job_2_msg*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_args (XDR *, remote_connect_get_cpu_model_names_args*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_ret (XDR *, remote_connect_get_cpu_model_names_ret*);
 extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote_connect_network_event_register_any_args*);
@@ -4491,6 +4554,11 @@ extern  bool_t xdr_remote_domain_fsfreeze_args (XDR *, remote_domain_fsfreeze_ar
 extern  bool_t xdr_remote_domain_fsfreeze_ret (XDR *, remote_domain_fsfreeze_ret*);
 extern  bool_t xdr_remote_domain_fsthaw_args (XDR *, remote_domain_fsthaw_args*);
 extern  bool_t xdr_remote_domain_fsthaw_ret (XDR *, remote_domain_fsthaw_ret*);
+extern  bool_t xdr_remote_node_get_free_pages_args (XDR *, remote_node_get_free_pages_args*);
+extern  bool_t xdr_remote_node_get_free_pages_ret (XDR *, remote_node_get_free_pages_ret*);
+extern  bool_t xdr_remote_network_dhcp_lease (XDR *, remote_network_dhcp_lease*);
+extern  bool_t xdr_remote_network_get_dhcp_leases_args (XDR *, remote_network_get_dhcp_leases_args*);
+extern  bool_t xdr_remote_network_get_dhcp_leases_ret (XDR *, remote_network_get_dhcp_leases_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5021,6 +5089,7 @@ extern bool_t xdr_remote_domain_migrate_finish3_params_ret ();
 extern bool_t xdr_remote_domain_migrate_confirm3_params_args ();
 extern bool_t xdr_remote_domain_event_device_removed_msg ();
 extern bool_t xdr_remote_domain_event_callback_device_removed_msg ();
+extern bool_t xdr_remote_domain_event_block_job_2_msg ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_args ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_ret ();
 extern bool_t xdr_remote_connect_network_event_register_any_args ();
@@ -5031,6 +5100,11 @@ extern bool_t xdr_remote_domain_fsfreeze_args ();
 extern bool_t xdr_remote_domain_fsfreeze_ret ();
 extern bool_t xdr_remote_domain_fsthaw_args ();
 extern bool_t xdr_remote_domain_fsthaw_ret ();
+extern bool_t xdr_remote_node_get_free_pages_args ();
+extern bool_t xdr_remote_node_get_free_pages_ret ();
+extern bool_t xdr_remote_network_dhcp_lease ();
+extern bool_t xdr_remote_network_get_dhcp_leases_args ();
+extern bool_t xdr_remote_network_get_dhcp_leases_ret ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

@@ -58,6 +58,10 @@ int virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
 
 bool virNumaIsAvailable(void);
 int virNumaGetMaxNode(void);
+bool virNumaNodeIsAvailable(int node);
+int virNumaGetDistances(int node,
+                        int **distances,
+                        int *ndistances);
 int virNumaGetNodeMemory(int node,
                          unsigned long long *memsize,
                          unsigned long long *memfree);
@@ -66,4 +70,15 @@ unsigned int virNumaGetMaxCPUs(void);
 
 int virNumaGetNodeCPUs(int node, virBitmapPtr *cpus);
 
+int virNumaGetPageInfo(int node,
+                       unsigned int page_size,
+                       unsigned long long huge_page_sum,
+                       unsigned int *page_avail,
+                       unsigned int *page_free);
+int virNumaGetPages(int node,
+                    unsigned int **pages_size,
+                    unsigned int **pages_avail,
+                    unsigned int **pages_free,
+                    size_t *npages)
+    ATTRIBUTE_NONNULL(5);
 #endif /* __VIR_NUMA_H__ */

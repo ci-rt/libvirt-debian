@@ -247,12 +247,9 @@ struct _virStorageSource {
     virStorageDriverDataPtr drv;
 
     /* metadata about storage image which need separate fields */
-    /* Name of the current file as spelled by the user (top level) or
-     * metadata of the overlay (if this is a backing store).  */
+    /* Relative name by which this image was opened from its parent, or NULL
+     * if this image was opened by absolute name */
     char *relPath;
-    /* Directory to start from if backingStoreRaw is a relative file
-     * name.  */
-    char *relDir;
     /* Name of the child backing store recorded in metadata of the
      * current file.  */
     char *backingStoreRaw;
@@ -265,10 +262,12 @@ struct _virStorageSource {
 
 int virStorageFileProbeFormat(const char *path, uid_t uid, gid_t gid);
 
-int virStorageFileGetMetadata(virStorageSourcePtr src,
-                              uid_t uid, gid_t gid,
-                              bool allow_probe)
-    ATTRIBUTE_NONNULL(1);
+int virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
+                                      char *buf,
+                                      size_t len,
+                                      int *backingFormat)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(4);
+
 virStorageSourcePtr virStorageFileGetMetadataFromFD(const char *path,
                                                     int fd,
                                                     int format,
@@ -308,6 +307,10 @@ int virStorageFileGetLVMKey(const char *path,
 int virStorageFileGetSCSIKey(const char *path,
                              char **key);
 
+virSecurityDeviceLabelDefPtr
+virStorageSourceGetSecurityLabelDef(virStorageSourcePtr src,
+                                    const char *model);
+
 void virStorageNetHostDefClear(virStorageNetHostDefPtr def);
 void virStorageNetHostDefFree(size_t nhosts, virStorageNetHostDefPtr hosts);
 virStorageNetHostDefPtr virStorageNetHostDefCopy(size_t nhosts,
@@ -318,6 +321,20 @@ void virStorageSourcePoolDefFree(virStorageSourcePoolDefPtr def);
 void virStorageSourceClear(virStorageSourcePtr def);
 int virStorageSourceGetActualType(virStorageSourcePtr def);
 void virStorageSourceFree(virStorageSourcePtr def);
-void virStorageSourceClearBackingStore(virStorageSourcePtr def);
+void virStorageSourceBackingStoreClear(virStorageSourcePtr def);
+virStorageSourcePtr virStorageSourceNewFromBacking(virStorageSourcePtr parent);
+
+typedef int
+(*virStorageFileSimplifyPathReadlinkCallback)(const char *path,
+                                              char **link,
+                                              void *data);
+char *virStorageFileCanonicalizePath(const char *path,
+                                     virStorageFileSimplifyPathReadlinkCallback cb,
+                                     void *cbdata);
+
+int virStorageFileGetRelativeBackingPath(virStorageSourcePtr from,
+                                         virStorageSourcePtr to,
+                                         char **relpath)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 #endif /* __VIR_STORAGE_FILE_H__ */

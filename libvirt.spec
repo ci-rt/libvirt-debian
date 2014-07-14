@@ -384,7 +384,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.5
+Version: 1.2.6
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -1917,6 +1917,7 @@ exit 0
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+%attr(0755, root, root) %{_libexecdir}/libvirt_leaseshelper
         %endif
         %if %{with_nwfilter}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
@@ -1992,6 +1993,7 @@ exit 0
 %ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+%attr(0755, root, root) %{_libexecdir}/libvirt_leaseshelper
 %{_libdir}/%{name}/connection-driver/libvirt_driver_network.so
         %endif
 
@@ -2146,7 +2148,9 @@ exit 0
 %{_bindir}/virt-xml-validate
 %{_bindir}/virt-pki-validate
 %{_bindir}/virt-host-validate
-%{_libdir}/lib*.so.*
+%{_libdir}/libvirt.so.*
+%{_libdir}/libvirt-qemu.so.*
+%{_libdir}/libvirt-lxc.so.*
 
 %if %{with_dtrace}
 %{_datadir}/systemtap/tapset/libvirt_probes*.stp
@@ -2203,10 +2207,17 @@ exit 0
 %files devel
 %defattr(-, root, root)
 
-%{_libdir}/lib*.so
+%{_libdir}/libvirt.so
+%{_libdir}/libvirt-qemu.so
+%{_libdir}/libvirt-lxc.so
 %dir %{_includedir}/libvirt
-%{_includedir}/libvirt/*.h
+%{_includedir}/libvirt/virterror.h
+%{_includedir}/libvirt/libvirt.h
+%{_includedir}/libvirt/libvirt-qemu.h
+%{_includedir}/libvirt/libvirt-lxc.h
 %{_libdir}/pkgconfig/libvirt.pc
+%{_libdir}/pkgconfig/libvirt-qemu.pc
+%{_libdir}/pkgconfig/libvirt-lxc.pc
 
 %dir %{_datadir}/libvirt/api/
 %{_datadir}/libvirt/api/libvirt-api.xml
@@ -2225,6 +2236,17 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Wed Jul  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.6-1
+- libxl: add migration support and fixes
+- various improvements and fixes for NUMA
+- many improvements and bug fixes
+
+* Mon Jun  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.5-1
+- LSN-2014-0003: Don't expand entities when parsing XML (security)
+- Introduce virDomain{Get,Set}Time APIs
+- Introduce virDomainFSFreeze() and virDomainFSThaw() public API
+- various improvements and bug fixes
+
 * Sun May  4 2014 Daniel Veillard <veillard@redhat.com> - 1.2.4-1
 - various improvements and bug fixes
 - lot of internal code refactoring

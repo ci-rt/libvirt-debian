@@ -31,6 +31,7 @@
 #include <net/if.h>
 #include <net/if_tap.h>
 
+#include "bhyve_device.h"
 #include "bhyve_process.h"
 #include "bhyve_command.h"
 #include "datatypes.h"
@@ -77,10 +78,12 @@ bhyveNetCleanup(virDomainObjPtr vm)
         int actualType = virDomainNetGetActualType(net);
 
         if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-            ignore_value(virNetDevBridgeRemovePort(
-                            virDomainNetGetActualBridgeName(net),
-                            net->ifname));
-            ignore_value(virNetDevTapDelete(net->ifname));
+            if (net->ifname) {
+                ignore_value(virNetDevBridgeRemovePort(
+                                virDomainNetGetActualBridgeName(net),
+                                net->ifname));
+                ignore_value(virNetDevTapDelete(net->ifname));
+            }
         }
     }
 }
@@ -129,6 +132,9 @@ virBhyveProcessStart(virConnectPtr conn,
                              privconn->pidfile);
         goto cleanup;
     }
+
+    if (bhyveDomainAssignAddresses(vm->def, NULL) < 0)
+        goto cleanup;
 
     /* Call bhyve to start the VM */
     if (!(cmd = virBhyveProcessBuildBhyveCmd(driver,
@@ -183,12 +189,13 @@ virBhyveProcessStart(virConnectPtr conn,
 
  cleanup:
     if (ret < 0) {
+        int exitstatus; /* Needed to avoid logging non-zero status */
         virCommandPtr destroy_cmd;
         if ((destroy_cmd = virBhyveProcessBuildDestroyCmd(driver,
                                                           vm->def)) != NULL) {
             virCommandSetOutputFD(load_cmd, &logfd);
             virCommandSetErrorFD(load_cmd, &logfd);
-            ignore_value(virCommandRun(destroy_cmd, NULL));
+            ignore_value(virCommandRun(destroy_cmd, &exitstatus));
             virCommandFree(destroy_cmd);
         }
 

@@ -895,7 +895,11 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
     size_t i;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
-                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    /* We don't return strings, and thus trivially support this flag.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
@@ -1993,7 +1997,11 @@ lxcDomainGetSchedulerParametersFlags(virDomainPtr dom,
     virLXCDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
-                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    /* We don't return strings, and thus trivially support this flag.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
@@ -3897,14 +3905,14 @@ lxcDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
     switch (data->def->type) {
     case VIR_DOMAIN_DEVICE_DISK: {
         virDomainDiskDefPtr def = data->def->data.disk;
-        char *tmpsrc = def->src.path;
-        def->src.path = data->file;
-        if (virSecurityManagerSetImageLabel(data->driver->securityManager,
-                                            data->vm->def, def) < 0) {
-            def->src.path = tmpsrc;
+        char *tmpsrc = def->src->path;
+        def->src->path = data->file;
+        if (virSecurityManagerSetDiskLabel(data->driver->securityManager,
+                                           data->vm->def, def) < 0) {
+            def->src->path = tmpsrc;
             goto cleanup;
         }
-        def->src.path = tmpsrc;
+        def->src->path = tmpsrc;
     }   break;
 
     case VIR_DOMAIN_DEVICE_HOSTDEV: {
@@ -5477,10 +5485,15 @@ lxcNodeGetCellsFreeMemory(virConnectPtr conn,
 static unsigned long long
 lxcNodeGetFreeMemory(virConnectPtr conn)
 {
+    unsigned long long freeMem;
+
     if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
         return 0;
 
-    return nodeGetFreeMemory();
+    if (nodeGetMemory(NULL, &freeMem) < 0)
+        return 0;
+
+    return freeMem;
 }
 
 
@@ -5651,6 +5664,24 @@ lxcDomainGetCPUStats(virDomainPtr dom,
 }
 
 
+static int
+lxcNodeGetFreePages(virConnectPtr conn,
+                    unsigned int npages,
+                    unsigned int *pages,
+                    int startCell,
+                    unsigned int cellCount,
+                    unsigned long long *counts,
+                    unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+    if (virNodeGetFreePagesEnsureACL(conn) < 0)
+        return -1;
+
+    return nodeGetFreePages(npages, pages, startCell, cellCount, counts);
+}
+
+
 /* Function Tables */
 static virDriver lxcDriver = {
     .no = VIR_DRV_LXC,
@@ -5740,6 +5771,7 @@ static virDriver lxcDriver = {
     .domainShutdownFlags = lxcDomainShutdownFlags, /* 1.0.1 */
     .domainReboot = lxcDomainReboot, /* 1.0.1 */
     .domainLxcOpenNamespace = lxcDomainLxcOpenNamespace, /* 1.0.2 */
+    .nodeGetFreePages = lxcNodeGetFreePages, /* 1.2.6 */
 };
 
 static virStateDriver lxcStateDriver = {

@@ -158,6 +158,45 @@
       </element>
     </optional>
 
+    <optional>
+      <element name='numa'>
+        <optional>
+          <attribute name='node'>
+            <data type='int'/>
+          </attribute>
+        </optional>
+      </element>
+    </optional>
+
+    <optional>
+      <element name='pci-express'>
+        <zeroOrMore>
+          <element name='link'>
+            <attribute name='validity'>
+              <choice>
+                <value>cap</value>
+                <value>sta</value>
+              </choice>
+            </attribute>
+            <optional>
+              <attribute name='port'>
+                <ref name='unsignedInt'/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name='speed'>
+                <data type="string">
+                  <param name="pattern">[0-9]+(.[0-9]+)?</param>
+                </data>
+              </attribute>
+            </optional>
+            <attribute name='width'>
+              <ref name='unsignedInt'/>
+            </attribute>
+          </element>
+        </zeroOrMore>
+      </element>
+    </optional>
   </define>
 
   <define name='capusbdev'>
@@ -233,6 +272,7 @@
         <ref name='mac'/>
       </element>
     </optional>
+    <ref name="link-speed-state"/>
 
     <zeroOrMore>
       <ref name='subcapnet'/>

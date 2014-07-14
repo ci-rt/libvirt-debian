@@ -19,7 +19,7 @@ under the GNU Lesser General Public License. Virtualization of the
 Linux Operating System means the ability to run multiple instances of
 Operating Systems concurrently on a single hardware system where the
 basic resources are driven by a Linux instance. The library aims at
-providing a long term stable C API.  It currently supports Xen, QEmu,
+providing a long term stable C API.  It currently supports Xen, QEMU,
 KVM, LXC, OpenVZ, VirtualBox and VMware ESX.
 
 The basic structure of most virsh usage is:
@@ -206,23 +206,28 @@ option instead.  For example:
 
 quit this interactive terminal
 
-=item B<version>
+=item B<version> [I<--daemon>]
 
 Will print out the major version info about what this built from.
+If I<--daemon> is specified then the version of the libvirt daemon
+is included in the output.
 
 =over 4
 
 B<Example>
 
-B<virsh> version
+ $ virsh version
+ Compiled against library: libvirt 1.2.3
+ Using library: libvirt 1.2.3
+ Using API: QEMU 1.2.3
+ Running hypervisor: QEMU 2.0.50
 
-Compiled against library: libvir 0.0.6
-
-Using library: libvir 0.0.6
-
-Using API: Xen 3.0.0
-
-Running hypervisor: Xen 3.0.0
+ $ virsh version --daemon
+ Compiled against library: libvirt 1.2.3
+ Using library: libvirt 1.2.3
+ Using API: QEMU 1.2.3
+ Running hypervisor: QEMU 2.0.50
+ Running against daemon: 1.2.6
 
 =back
 
@@ -255,11 +260,11 @@ this is used to connect to the local Xen hypervisor
 
 =item qemu:///system
 
-connect locally as root to the daemon supervising QEmu and KVM domains
+connect locally as root to the daemon supervising QEMU and KVM domains
 
 =item qemu:///session
 
-connect locally as a normal user to his own set of QEmu and KVM domains
+connect locally as a normal user to his own set of QEMU and KVM domains
 
 =item lxc:///
 
@@ -290,10 +295,12 @@ and size of the physical memory. The output corresponds to virNodeInfo
 structure. Specifically, the "CPU socket(s)" field means number of CPU
 sockets per NUMA cell.
 
-=item B<nodecpumap>
+=item B<nodecpumap> [I<--pretty>]
 
 Displays the node's total number of CPUs, the number of online CPUs
 and the list of online CPUs.
+
+With I<--pretty> the online CPUs are printed as a range instead of a list.
 
 =item B<nodecpustats> [I<cpu>] [I<--percent>]
 
@@ -509,6 +516,14 @@ cell and the total free memory on the machine.  Finally, with a
 numeric argument or with --cellno plus a cell number it will display
 the free memory for the specified cell only.
 
+=item B<freepages> [{ [I<--cellno>] I<cellno> [I<--pagesize>] I<pagesize> |
+    I<--all> }]
+
+Prints the available amount of pages within a NUMA cell. I<cellno> refers
+to the NUMA cell you're interested in. I<pagesize> is a scaled integer (see
+B<NOTES> above).  Alternatively, if I<--all> is used, info on each possible
+combination of NUMA cell and page size is printed out.
+
 =item B<cpu-baseline> I<FILE> [I<--features>]
 
 Compute baseline CPU which will be supported by all host CPUs given in <file>.
@@ -520,14 +535,17 @@ resulting XML description will explicitly include all features that make
 up the CPU, without this option features that are part of the CPU model
 will not be listed in the XML description.
 
-=item B<cpu-compare> I<FILE>
+=item B<cpu-compare> I<FILE> [I<--error>]
 
 Compare CPU definition from XML <file> with host CPU. The XML <file> may
 contain either host or guest CPU definition. The host CPU definition is the
 <cpu> element and its contents as printed by B<capabilities> command. The
 guest CPU definition is the <cpu> element and its contents from domain XML
 definition. For more information on guest CPU definition see:
-L<http://libvirt.org/formatdomain.html#elementsCPU>
+L<http://libvirt.org/formatdomain.html#elementsCPU>. If I<--error> is
+specified, the command will return an error when the given CPU is
+incompatible with host CPU and a message providing more details about the
+incompatibility will be printed out.
 
 =item B<echo> [I<--shell>] [I<--xml>] [I<arg>...]
 
@@ -767,8 +785,9 @@ address of virtual interface (such as I<detach-interface> or
 I<domif-setlink>) will accept the MAC address printed by this command.
 
 =item B<blockcommit> I<domain> I<path> [I<bandwidth>]
-{[I<base>] | [I<--shallow>]} [I<top>] [I<--delete>]
-[I<--wait> [I<--verbose>] [I<--timeout> B<seconds>] [I<--async>]]
+[I<base>] [I<--shallow>] [I<top>] [I<--delete>]
+[I<--wait> [I<--async>] [I<--verbose>]] [I<--timeout> B<seconds>]
+[I<--active>] [{I<--pivot> | I<--keep-overlay>}]
 
 Reduce the length of a backing image chain, by committing changes at the
 top of the chain (snapshot or delta files) into backing images.  By
@@ -778,19 +797,32 @@ operation is constrained to committing just that portion of the chain;
 I<--shallow> can be used instead of I<base> to specify the immediate
 backing file of the resulting top image to be committed.  The files
 being committed are rendered invalid, possibly as soon as the operation
-starts; using the I<--delete> flag will remove these files at the successful
-completion of the commit operation.
+starts; using the I<--delete> flag will attempt to remove these invalidated
+files at the successful completion of the commit operation.
+
+When I<top> is omitted or specified as the active image, it is also
+possible to specify I<--active> to trigger a two-phase active commit. In
+the first phase, I<top> is copied into I<base> and the job can only be
+canceled, with top still containing data not yet in base. In the second
+phase, I<top> and I<base> remain identical until a call to B<blockjob>
+with the I<--abort> flag (keeping top as the active image that tracks
+changes from that point in time) or the I<--pivot> flag (making base
+the new active image and invalidating top).
 
 By default, this command returns as soon as possible, and data for
 the entire disk is committed in the background; the progress of the
 operation can be checked with B<blockjob>.  However, if I<--wait> is
-specified, then this command will block until the operation completes,
-or cancel the operation if the optional I<timeout> in seconds elapses
+specified, then this command will block until the operation completes
+(or for I<--active>, enters the second phase), or until the operation
+is canceled because the optional I<timeout> in seconds elapses
 or SIGINT is sent (usually with C<Ctrl-C>).  Using I<--verbose> along
 with I<--wait> will produce periodic status updates.  If job cancellation
 is triggered, I<--async> will return control to the user as fast as
 possible, otherwise the command may continue to block a little while
-longer until the job is done cleaning up.
+longer until the job is done cleaning up.  Using I<--pivot> is shorthand
+for combining I<--active> I<--wait> with an automatic B<blockjob>
+I<--pivot>; and using I<--keep-overlay> is shorthand for combining
+I<--active> I<--wait> with an automatic B<blockjob> I<--abort>.
 
 I<path> specifies fully-qualified path of the disk; it corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
@@ -800,8 +832,8 @@ I<bandwidth> specifies copying bandwidth limit in MiB/s, although for
 qemu, it may be non-zero only for an online domain.
 
 =item B<blockcopy> I<domain> I<path> I<dest> [I<bandwidth>] [I<--shallow>]
-[I<--reuse-external>] [I<--raw>] [I<--wait> [I<--verbose>]
-[{I<--pivot> | I<--finish>}] [I<--timeout> B<seconds>] [I<--async>]]
+[I<--reuse-external>] [I<--raw>] [I<--wait> [I<--async>] [I<--verbose>]]
+[{I<--pivot> | I<--finish>}] [I<--timeout> B<seconds>]
 
 Copy a disk backing image chain to I<dest>. By default, this command
 flattens the entire chain; but if I<--shallow> is specified, the copy
@@ -830,12 +862,13 @@ faithful copy of that point in time.  However, if I<--wait> is specified,
 then this command will block until the mirroring phase begins, or cancel
 the operation if the optional I<timeout> in seconds elapses or SIGINT is
 sent (usually with C<Ctrl-C>).  Using I<--verbose> along with I<--wait>
-will produce periodic status updates.  Using I<--pivot> or I<--finish>
-along with I<--wait> will additionally end the job cleanly rather than
-leaving things in the mirroring phase.  If job cancellation is triggered,
-I<--async> will return control to the user as fast as possible, otherwise
-the command may continue to block a little while longer until the job
-is done cleaning up.
+will produce periodic status updates.  Using I<--pivot> (similar to
+B<blockjob> I<--pivot>) or I<--finish> (similar to B<blockjob> I<--abort>)
+implies I<--wait>, and will additionally end the job cleanly rather than
+leaving things in the mirroring phase.  If job cancellation is triggered
+by timeout or by I<--finish>, I<--async> will return control to the user
+as fast as possible, otherwise the command may continue to block a little
+while longer until the job has actually cancelled.
 
 I<path> specifies fully-qualified path of the disk.
 I<bandwidth> specifies copying bandwidth limit in MiB/s.
@@ -916,8 +949,8 @@ also B<domblklist> for listing these names).
 If I<--abort> is specified, the active job on the specified disk will
 be aborted.  If I<--async> is also specified, this command will return
 immediately, rather than waiting for the cancellation to complete.  If
-I<--pivot> is specified, this requests that an active copy job
-be pivoted over to the new copy.
+I<--pivot> is specified, this requests that an active copy or active
+commit job be pivoted over to the new image.
 If I<--info> is specified, the active job information on the specified
 disk will be printed.
 I<bandwidth> can be used to set bandwidth limit for the active job.
@@ -1207,8 +1240,6 @@ unsafe unless the disk images are stored on coherent clustered filesystem,
 such as GFS2 or GPFS. If you are sure the migration is safe or you just do not
 care, use I<--unsafe> to force the migration.
 
-The I<desturi> is the connection URI of the destination host, and
-I<migrateuri> is the migration URI, which usually can be omitted (see below).
 I<dname> is used for renaming the domain to new name during migration, which
 also usually can be omitted.  Likewise, I<--xml> B<file> is usually
 omitted, but can be used to supply an alternative XML file for use on
@@ -1222,6 +1253,12 @@ then the migration will complete offline. It can only be used with I<--live>.
 
 Running migration can be canceled by interrupting virsh (usually using
 C<Ctrl-C>) or by B<domjobabort> command sent from another virsh instance.
+
+The I<desturi> and I<migrateuri> parameters can be used to control which
+destination the migration uses.  I<desturi> is important for managed
+migration, but unused for direct migration; I<migrateuri> is required
+for direct migration, but can usually be automatically determined for
+managed migration.
 
 B<Note>: The I<desturi> parameter for normal migration and peer2peer migration
 has different semantics:
@@ -1237,7 +1274,11 @@ seen from the source machine.
 =back
 
 When I<migrateuri> is not specified, libvirt will automatically determine the
-hypervisor specific URI, by looking up the target host's configured hostname.
+hypervisor specific URI.  Some hypervisors, including QEMU, have an optional
+"migration_host" configuration parameter (useful when the host has multiple
+network interfaces).  If this is unspecified, libvirt determines a name
+by looking up the target host's configured hostname.
+
 There are a few scenarios where specifying I<migrateuri> may help:
 
 =over 4
@@ -1261,6 +1302,9 @@ might be specified to choose a specific port number outside the default range in
 order to comply with local firewall policies.
 
 =back
+
+See L<http://libvirt.org/migration.html#uris> for more details on
+migration URIs.
 
 Optional I<graphicsuri> overrides connection parameters used for automatically
 reconnecting a graphical clients at the end of migration. If omitted, libvirt
@@ -1954,10 +1998,12 @@ If I<--guest> is specified, then the count of cpus is reported from
 the perspective of the guest. This flag is usable only for live domains
 and may require guest agent to be configured in the guest.
 
-=item B<vcpuinfo> I<domain>
+=item B<vcpuinfo> I<domain> [I<--pretty>]
 
 Returns basic information about the domain virtual CPUs, like the number of
 vCPUs, the running time, the affinity to physical processors.
+
+With I<--pretty>, cpu affinities are shown as ranges.
 
 =item B<vcpupin> I<domain> [I<vcpu>] [I<cpulist>] [[I<--live>]
 [I<--config>] | [I<--current>]]
@@ -2481,6 +2527,12 @@ If I<--config> is specified, affect the next startup of a persistent network.
 If I<--current> is specified, affect the current network state.
 Both I<--live> and I<--config> flags may be given, but I<--current> is
 exclusive. Not specifying any flag is the same as specifying I<--current>.
+
+=item B<net-dhcp-leases> I<network> [I<mac>]
+
+Get a list of dhcp leases for all network interfaces connected to the given
+virtual I<network> or limited output just for one interface if I<mac> is
+specified.
 
 =back
 

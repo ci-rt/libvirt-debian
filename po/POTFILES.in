@@ -9,6 +9,7 @@ gnulib/lib/regcomp.c
 src/access/viraccessdriverpolkit.c
 src/access/viraccessmanager.c
 src/bhyve/bhyve_command.c
+src/bhyve/bhyve_device.c
 src/bhyve/bhyve_driver.c
 src/bhyve/bhyve_process.c
 src/conf/capabilities.c
@@ -74,8 +75,10 @@ src/lxc/lxc_process.c
 src/libxl/libxl_domain.c
 src/libxl/libxl_driver.c
 src/libxl/libxl_conf.c
+src/libxl/libxl_migration.c
 src/network/bridge_driver.c
 src/network/bridge_driver_linux.c
+src/network/leaseshelper.c
 src/node_device/node_device_driver.c
 src/node_device/node_device_hal.c
 src/node_device/node_device_linux_sysfs.c
@@ -210,6 +213,7 @@ src/util/virxml.c
 src/vbox/vbox_MSCOMGlue.c
 src/vbox/vbox_XPCOMCGlue.c
 src/vbox/vbox_driver.c
+src/vbox/vbox_snapshot_conf.c
 src/vbox/vbox_tmpl.c
 src/vmware/vmware_conf.c
 src/vmware/vmware_driver.c

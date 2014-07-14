@@ -83,6 +83,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(top_srcdir)/configure $(am__configure_deps) \
 	$(srcdir)/config.h.in $(top_srcdir)/build-aux/mkinstalldirs \
 	$(srcdir)/run.in $(srcdir)/libvirt.pc.in \
+	$(srcdir)/libvirt-qemu.pc.in $(srcdir)/libvirt-lxc.pc.in \
 	$(srcdir)/libvirt.spec.in $(srcdir)/mingw-libvirt.spec.in \
 	ABOUT-NLS COPYING COPYING.LESSER TODO build-aux/compile \
 	build-aux/config.guess build-aux/config.rpath \
@@ -260,7 +261,8 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = run libvirt.pc libvirt.spec mingw-libvirt.spec
+CONFIG_CLEAN_FILES = run libvirt.pc libvirt-qemu.pc libvirt-lxc.pc \
+	libvirt.spec mingw-libvirt.spec
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -1834,7 +1836,8 @@ SUBDIRS = . gnulib/lib include src daemon tools docs gnulib/tests \
   tests po examples/object-events examples/hellolibvirt \
   examples/dominfo examples/domsuspend examples/apparmor \
   examples/xml/nwfilter examples/openauth examples/systemtap \
-  tools/wireshark examples/dommigrate
+  tools/wireshark examples/dommigrate \
+  examples/lxcconvert
 
 ACLOCAL_AMFLAGS = -I m4
 XML_EXAMPLES = \
@@ -1847,6 +1850,8 @@ EXTRA_DIST = \
   libvirt.spec libvirt.spec.in \
   mingw-libvirt.spec.in \
   libvirt.pc.in \
+  libvirt-qemu.pc.in \
+  libvirt-lxc.pc.in \
   autobuild.sh \
   Makefile.nonreentrant \
   autogen.sh \
@@ -1856,7 +1861,7 @@ EXTRA_DIST = \
   $(XML_EXAMPLES)
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libvirt.pc
+pkgconfig_DATA = libvirt.pc libvirt-qemu.pc libvirt-lxc.pc
 MAINTAINERCLEANFILES = .git-module-status
 
 # Generate the ChangeLog file (with all entries since the switch to git)
@@ -1918,6 +1923,10 @@ distclean-hdr:
 run: $(top_builddir)/config.status $(srcdir)/run.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 libvirt.pc: $(top_builddir)/config.status $(srcdir)/libvirt.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+libvirt-qemu.pc: $(top_builddir)/config.status $(srcdir)/libvirt-qemu.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+libvirt-lxc.pc: $(top_builddir)/config.status $(srcdir)/libvirt-lxc.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 libvirt.spec: $(top_builddir)/config.status $(srcdir)/libvirt.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

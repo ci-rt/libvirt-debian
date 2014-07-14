@@ -86,7 +86,7 @@ const REMOTE_VCPUINFO_MAX = 16384;
 const REMOTE_CPUMAPS_MAX = 8388608;
 
 /* Upper limit on migrate cookie. */
-const REMOTE_MIGRATE_COOKIE_MAX = 16384;
+const REMOTE_MIGRATE_COOKIE_MAX = 4194304;
 
 /* Upper limit on lists of networks. */
 const REMOTE_NETWORK_LIST_MAX = 16384;
@@ -237,6 +237,9 @@ const REMOTE_CONNECT_CPU_MODELS_MAX = 8192;
 
 /* Upper limit on number of mountpoints to frozen */
 const REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX = 256;
+
+/* Upper limit on the maximum number of leases in one lease file */
+const REMOTE_NETWORK_DHCP_LEASES_MAX = 65536;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -2948,6 +2951,14 @@ struct remote_domain_event_callback_device_removed_msg {
     remote_domain_event_device_removed_msg msg;
 };
 
+struct remote_domain_event_block_job_2_msg {
+    int callbackID;
+    remote_nonnull_domain dom;
+    remote_nonnull_string dst;
+    int type;
+    int status;
+};
+
 struct remote_connect_get_cpu_model_names_args {
     remote_nonnull_string arch;
     int need_results;
@@ -2999,6 +3010,40 @@ struct remote_domain_fsthaw_ret {
     int filesystems;
 };
 
+struct remote_node_get_free_pages_args {
+    unsigned int pages<REMOTE_NODE_MAX_CELLS>;
+    int startCell;
+    unsigned int cellCount;
+    unsigned int flags;
+};
+
+struct remote_node_get_free_pages_ret {
+    unsigned hyper counts<REMOTE_NODE_MAX_CELLS>;
+};
+
+struct remote_network_dhcp_lease {
+    remote_nonnull_string iface;
+    hyper expirytime;
+    int type;
+    remote_string mac;
+    remote_string iaid;
+    remote_nonnull_string ipaddr;
+    unsigned int prefix;
+    remote_string hostname;
+    remote_string clientid;
+};
+
+struct remote_network_get_dhcp_leases_args {
+    remote_nonnull_network net;
+    remote_string mac;
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_network_get_dhcp_leases_ret {
+    remote_network_dhcp_lease leases<REMOTE_NETWORK_DHCP_LEASES_MAX>;
+    unsigned int ret;
+};
 
 /*----- Protocol. -----*/
 
@@ -5338,5 +5383,25 @@ enum remote_procedure {
      * @generate: both
      * @acl: domain:set_time
      */
-    REMOTE_PROC_DOMAIN_SET_TIME = 338
+    REMOTE_PROC_DOMAIN_SET_TIME = 338,
+
+    /**
+     * @generate: none
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB_2 = 339,
+
+    /**
+     * @generate: none
+     * @priority: high
+     * @acl: connect:read
+     */
+    REMOTE_PROC_NODE_GET_FREE_PAGES = 340,
+
+    /**
+     * @generate: none
+     * @acl: network:read
+     */
+    REMOTE_PROC_NETWORK_GET_DHCP_LEASES = 341
+
 };

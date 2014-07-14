@@ -35,7 +35,7 @@ int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
                                    bool force);
 int qemuDomainCheckEjectableMedia(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
-                                  enum qemuDomainAsyncJob asyncJob);
+                                  qemuDomainAsyncJob asyncJob);
 int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainControllerDefPtr controller);
@@ -106,7 +106,7 @@ void qemuDomainRemoveDevice(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virDomainDeviceDefPtr dev);
 
-void qemuDomainSignalDeviceRemoval(virDomainObjPtr vm,
+bool qemuDomainSignalDeviceRemoval(virDomainObjPtr vm,
                                    const char *devAlias);
 
 #endif /* __QEMU_HOTPLUG_H__ */

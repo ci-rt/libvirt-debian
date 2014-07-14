@@ -90,7 +90,7 @@ endif
 
 # Files that should never cause syntax check failures.
 VC_LIST_ALWAYS_EXCLUDE_REGEX = \
-  (^(HACKING|docs/(news\.html\.in|.*\.patch))|\.po)$$
+  (^(HACKING|docs/(news\.html\.in|.*\.patch))|\.(po|fig|gif|ico|png))$$
 
 # Functions like free() that are no-ops on NULL arguments.
 useless_free_options =				\
@@ -774,7 +774,7 @@ sc_prohibit_cross_inclusion:
 	    access/ | conf/) safe="($$dir|conf|util)";;			\
 	    locking/) safe="($$dir|util|conf|rpc)";;			\
 	    cpu/| network/| node_device/| rpc/| security/| storage/)	\
-	      safe="($$dir|util|conf)";;				\
+	      safe="($$dir|util|conf|storage)";;			\
 	    xenapi/ | xenxs/ ) safe="($$dir|util|conf|xen)";;		\
 	    *) safe="($$dir|$(mid_dirs)|util)";;			\
 	  esac;								\
@@ -929,9 +929,24 @@ sc_prohibit_mixed_case_abbreviations:
 	halt='Use PCI, USB, SCSI, not Pci, Usb, Scsi'	\
 	  $(_sc_search_regexp)
 
+# Require #include <locale.h> in all files that call setlocale()
+sc_require_locale_h:
+	@require='include.*locale\.h'					\
+	containing='setlocale *('					\
+	halt='setlocale() requires <locale.h>'				\
+	  $(_sc_search_regexp)
+
+sc_prohibit_empty_first_line:
+	@awk 'BEGIN { fail=0; }						\
+	FNR == 1 { if ($$0 == "") { print FILENAME ":1:"; fail=1; } }	\
+	END { if (fail == 1) {						\
+	  print "$(ME): Prohibited empty first line" > "/dev/stderr";	\
+	} exit fail; }' $$($(VC_LIST_EXCEPT));
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
+ifneq ($(_gl-Makefile),)
 ifeq (0,$(MAKELEVEL))
   _curr_status = .git-module-status
   # The sed filter accommodates those who check out on a commit from which
@@ -964,6 +979,7 @@ ifeq (0,$(MAKELEVEL))
 maint.mk Makefile: _autogen
   endif
 endif
+endif
 
 # It is necessary to call autogen any time gnulib changes.  Autogen
 # reruns configure, then we regenerate all Makefiles at once.
@@ -973,7 +989,9 @@ _autogen:
 	./config.status
 
 # regenerate HACKING as part of the syntax-check
+ifneq ($(_gl-Makefile),)
 syntax-check: $(top_srcdir)/HACKING bracket-spacing-check
+endif
 
 bracket-spacing-check:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.c$$'`; \
@@ -1029,7 +1047,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c|tests/vir(cgroup|pci)mock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.(gif|ico|png|diff)$$)
+  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.diff$$)
 
 _src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -1075,7 +1093,7 @@ exclude_file_name_regexp--sc_require_config_h_first = \
 	^(examples/|tools/virsh-edit\.c$$)
 
 exclude_file_name_regexp--sc_trailing_blank = \
-  (/qemuhelpdata/|/sysinfodata/.*\.data|\.(fig|gif|ico|png)$$)
+  /qemuhelpdata/|/sysinfodata/.*\.data|/nodeinfodata/.*\.cpuinfo$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
@@ -1104,3 +1122,6 @@ exclude_file_name_regexp--sc_avoid_attribute_unused_in_header = \
 
 exclude_file_name_regexp--sc_prohibit_mixed_case_abbreviations = \
   ^src/(vbox/vbox_CAPI.*.h|esx/esx_vi.(c|h)|esx/esx_storage_backend_iscsi.c)$$
+
+exclude_file_name_regexp--sc_prohibit_empty_first_line = \
+  ^(README|daemon/THREADS\.txt|src/esx/README|docs/library.xen|tests/vmwareverdata/fusion-5.0.3.txt|tests/nodeinfodata/linux-raspberrypi/cpu/offline)$$

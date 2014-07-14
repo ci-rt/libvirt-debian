@@ -550,7 +550,7 @@ AppArmorReleaseSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 static int
 AppArmorRestoreSecurityAllLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                 virDomainDefPtr def,
-                                int migrated ATTRIBUTE_UNUSED)
+                                bool migrated ATTRIBUTE_UNUSED)
 {
     int rc = 0;
     virSecurityLabelDefPtr secdef =
@@ -684,9 +684,9 @@ AppArmorClearSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 
 /* Called when hotplugging */
 static int
-AppArmorRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
-                                  virDomainDefPtr def,
-                                  virDomainDiskDefPtr disk)
+AppArmorRestoreSecurityDiskLabel(virSecurityManagerPtr mgr,
+                                 virDomainDefPtr def,
+                                 virDomainDiskDefPtr disk)
 {
     if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
         return 0;
@@ -696,8 +696,8 @@ AppArmorRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
 
 /* Called when hotplugging */
 static int
-AppArmorSetSecurityImageLabel(virSecurityManagerPtr mgr,
-                              virDomainDefPtr def, virDomainDiskDefPtr disk)
+AppArmorSetSecurityDiskLabel(virSecurityManagerPtr mgr,
+                             virDomainDefPtr def, virDomainDiskDefPtr disk)
 {
     int rc = -1;
     char *profile_name = NULL;
@@ -972,8 +972,8 @@ virSecurityDriver virAppArmorSecurityDriver = {
 
     .domainSecurityVerify               = AppArmorSecurityVerify,
 
-    .domainSetSecurityImageLabel        = AppArmorSetSecurityImageLabel,
-    .domainRestoreSecurityImageLabel    = AppArmorRestoreSecurityImageLabel,
+    .domainSetSecurityDiskLabel         = AppArmorSetSecurityDiskLabel,
+    .domainRestoreSecurityDiskLabel     = AppArmorRestoreSecurityDiskLabel,
 
     .domainSetSecurityDaemonSocketLabel = AppArmorSetSecurityDaemonSocketLabel,
     .domainSetSecuritySocketLabel       = AppArmorSetSecuritySocketLabel,

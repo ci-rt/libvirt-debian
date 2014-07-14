@@ -125,6 +125,7 @@
     <function name="VIR_CONNECT_CLOSE_REASON_ERROR" link="libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_ERROR"/>
     <function name="VIR_CONNECT_CLOSE_REASON_KEEPALIVE" link="libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_KEEPALIVE"/>
     <function name="VIR_CONNECT_CLOSE_REASON_LAST" link="libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_LAST"/>
+    <function name="VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE" link="libvirt-libvirt.html#VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE"/>
     <function name="VIR_CONNECT_LIST_DOMAINS_ACTIVE" link="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_ACTIVE"/>
     <function name="VIR_CONNECT_LIST_DOMAINS_AUTOSTART" link="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_AUTOSTART"/>
     <function name="VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT" link="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT"/>
@@ -209,6 +210,7 @@
     <function name="VIR_DOMAIN_BLOCKED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED"/>
     <function name="VIR_DOMAIN_BLOCKED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED_LAST"/>
     <function name="VIR_DOMAIN_BLOCKED_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED_UNKNOWN"/>
+    <function name="VIR_DOMAIN_BLOCK_COMMIT_ACTIVE" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_COMMIT_ACTIVE"/>
     <function name="VIR_DOMAIN_BLOCK_COMMIT_DELETE" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_COMMIT_DELETE"/>
     <function name="VIR_DOMAIN_BLOCK_COMMIT_SHALLOW" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_COMMIT_SHALLOW"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC"/>
@@ -218,6 +220,7 @@
     <function name="VIR_DOMAIN_BLOCK_JOB_FAILED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_FAILED"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_LAST"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_READY" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_READY"/>
+    <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_COPY" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_COPY"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_LAST"/>
@@ -275,6 +278,7 @@
     <function name="VIR_DOMAIN_EVENT_GRAPHICS_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_LAST"/>
     <function name="VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE"/>
     <function name="VIR_DOMAIN_EVENT_ID_BLOCK_JOB" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_BLOCK_JOB"/>
+    <function name="VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2"/>
     <function name="VIR_DOMAIN_EVENT_ID_CONTROL_ERROR" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_CONTROL_ERROR"/>
     <function name="VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED"/>
     <function name="VIR_DOMAIN_EVENT_ID_DISK_CHANGE" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_DISK_CHANGE"/>
@@ -574,6 +578,7 @@
     <function name="VIR_ERR_CALL_FAILED" link="libvirt-virterror.html#VIR_ERR_CALL_FAILED"/>
     <function name="VIR_ERR_CONFIG_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_CONFIG_UNSUPPORTED"/>
     <function name="VIR_ERR_CONF_SYNTAX" link="libvirt-virterror.html#VIR_ERR_CONF_SYNTAX"/>
+    <function name="VIR_ERR_CPU_INCOMPATIBLE" link="libvirt-virterror.html#VIR_ERR_CPU_INCOMPATIBLE"/>
     <function name="VIR_ERR_DBUS_SERVICE" link="libvirt-virterror.html#VIR_ERR_DBUS_SERVICE"/>
     <function name="VIR_ERR_DOMAIN_LAST" link="libvirt-virterror.html#VIR_ERR_DOMAIN_LAST"/>
     <function name="VIR_ERR_DOM_EXIST" link="libvirt-virterror.html#VIR_ERR_DOM_EXIST"/>
@@ -718,6 +723,9 @@
     <function name="VIR_FROM_XEN_INOTIFY" link="libvirt-virterror.html#VIR_FROM_XEN_INOTIFY"/>
     <function name="VIR_FROM_XML" link="libvirt-virterror.html#VIR_FROM_XML"/>
     <function name="VIR_INTERFACE_XML_INACTIVE" link="libvirt-libvirt.html#VIR_INTERFACE_XML_INACTIVE"/>
+    <function name="VIR_IP_ADDR_TYPE_IPV4" link="libvirt-libvirt.html#VIR_IP_ADDR_TYPE_IPV4"/>
+    <function name="VIR_IP_ADDR_TYPE_IPV6" link="libvirt-libvirt.html#VIR_IP_ADDR_TYPE_IPV6"/>
+    <function name="VIR_IP_ADDR_TYPE_LAST" link="libvirt-libvirt.html#VIR_IP_ADDR_TYPE_LAST"/>
     <function name="VIR_KEYCODE_SET_ATSET1" link="libvirt-libvirt.html#VIR_KEYCODE_SET_ATSET1"/>
     <function name="VIR_KEYCODE_SET_ATSET2" link="libvirt-libvirt.html#VIR_KEYCODE_SET_ATSET2"/>
     <function name="VIR_KEYCODE_SET_ATSET3" link="libvirt-libvirt.html#VIR_KEYCODE_SET_ATSET3"/>
@@ -853,6 +861,7 @@
     <function name="virConnectAuthPtr" link="libvirt-libvirt.html#virConnectAuthPtr"/>
     <function name="virConnectBaselineCPUFlags" link="libvirt-libvirt.html#virConnectBaselineCPUFlags"/>
     <function name="virConnectCloseReason" link="libvirt-libvirt.html#virConnectCloseReason"/>
+    <function name="virConnectCompareCPUFlags" link="libvirt-libvirt.html#virConnectCompareCPUFlags"/>
     <function name="virConnectCredentialPtr" link="libvirt-libvirt.html#virConnectCredentialPtr"/>
     <function name="virConnectCredentialType" link="libvirt-libvirt.html#virConnectCredentialType"/>
     <function name="virConnectDomainEventBlockJobStatus" link="libvirt-libvirt.html#virConnectDomainEventBlockJobStatus"/>
@@ -946,12 +955,14 @@
     <function name="virErrorNumber" link="libvirt-virterror.html#virErrorNumber"/>
     <function name="virErrorPtr" link="libvirt-virterror.html#virErrorPtr"/>
     <function name="virEventHandleType" link="libvirt-libvirt.html#virEventHandleType"/>
+    <function name="virIPAddrType" link="libvirt-libvirt.html#virIPAddrType"/>
     <function name="virInterfacePtr" link="libvirt-libvirt.html#virInterfacePtr"/>
     <function name="virInterfaceXMLFlags" link="libvirt-libvirt.html#virInterfaceXMLFlags"/>
     <function name="virKeycodeSet" link="libvirt-libvirt.html#virKeycodeSet"/>
     <function name="virMemoryParameterPtr" link="libvirt-libvirt.html#virMemoryParameterPtr"/>
     <function name="virMemoryParameterType" link="libvirt-libvirt.html#virMemoryParameterType"/>
     <function name="virNWFilterPtr" link="libvirt-libvirt.html#virNWFilterPtr"/>
+    <function name="virNetworkDHCPLeasePtr" link="libvirt-libvirt.html#virNetworkDHCPLeasePtr"/>
     <function name="virNetworkEventID" link="libvirt-libvirt.html#virNetworkEventID"/>
     <function name="virNetworkEventLifecycleType" link="libvirt-libvirt.html#virNetworkEventLifecycleType"/>
     <function name="virNetworkPtr" link="libvirt-libvirt.html#virNetworkPtr"/>
@@ -1016,6 +1027,7 @@
     <function name="virMemoryParameter" link="libvirt-libvirt.html#virMemoryParameter"/>
     <function name="virNWFilter" link="libvirt-libvirt.html#virNWFilter"/>
     <function name="virNetwork" link="libvirt-libvirt.html#virNetwork"/>
+    <function name="virNetworkDHCPLease" link="libvirt-libvirt.html#virNetworkDHCPLease"/>
     <function name="virNodeCPUStats" link="libvirt-libvirt.html#virNodeCPUStats"/>
     <function name="virNodeDevice" link="libvirt-libvirt.html#virNodeDevice"/>
     <function name="virNodeInfo" link="libvirt-libvirt.html#virNodeInfo"/>
@@ -1325,12 +1337,14 @@
     <function name="virNWFilterUndefine ()" link="libvirt-libvirt.html#virNWFilterUndefine"/>
     <function name="virNetworkCreate ()" link="libvirt-libvirt.html#virNetworkCreate"/>
     <function name="virNetworkCreateXML ()" link="libvirt-libvirt.html#virNetworkCreateXML"/>
+    <function name="virNetworkDHCPLeaseFree ()" link="libvirt-libvirt.html#virNetworkDHCPLeaseFree"/>
     <function name="virNetworkDefineXML ()" link="libvirt-libvirt.html#virNetworkDefineXML"/>
     <function name="virNetworkDestroy ()" link="libvirt-libvirt.html#virNetworkDestroy"/>
     <function name="virNetworkFree ()" link="libvirt-libvirt.html#virNetworkFree"/>
     <function name="virNetworkGetAutostart ()" link="libvirt-libvirt.html#virNetworkGetAutostart"/>
     <function name="virNetworkGetBridgeName ()" link="libvirt-libvirt.html#virNetworkGetBridgeName"/>
     <function name="virNetworkGetConnect ()" link="libvirt-libvirt.html#virNetworkGetConnect"/>
+    <function name="virNetworkGetDHCPLeases ()" link="libvirt-libvirt.html#virNetworkGetDHCPLeases"/>
     <function name="virNetworkGetName ()" link="libvirt-libvirt.html#virNetworkGetName"/>
     <function name="virNetworkGetUUID ()" link="libvirt-libvirt.html#virNetworkGetUUID"/>
     <function name="virNetworkGetUUIDString ()" link="libvirt-libvirt.html#virNetworkGetUUIDString"/>
@@ -1363,6 +1377,7 @@
     <function name="virNodeGetCPUStats ()" link="libvirt-libvirt.html#virNodeGetCPUStats"/>
     <function name="virNodeGetCellsFreeMemory ()" link="libvirt-libvirt.html#virNodeGetCellsFreeMemory"/>
     <function name="virNodeGetFreeMemory ()" link="libvirt-libvirt.html#virNodeGetFreeMemory"/>
+    <function name="virNodeGetFreePages ()" link="libvirt-libvirt.html#virNodeGetFreePages"/>
     <function name="virNodeGetInfo ()" link="libvirt-libvirt.html#virNodeGetInfo"/>
     <function name="virNodeGetMemoryParameters ()" link="libvirt-libvirt.html#virNodeGetMemoryParameters"/>
     <function name="virNodeGetMemoryStats ()" link="libvirt-libvirt.html#virNodeGetMemoryStats"/>

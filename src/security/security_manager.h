@@ -61,18 +61,18 @@ bool virSecurityManagerGetAllowDiskFormatProbing(virSecurityManagerPtr mgr);
 bool virSecurityManagerGetDefaultConfined(virSecurityManagerPtr mgr);
 bool virSecurityManagerGetRequireConfined(virSecurityManagerPtr mgr);
 
-int virSecurityManagerRestoreImageLabel(virSecurityManagerPtr mgr,
-                                        virDomainDefPtr def,
-                                        virDomainDiskDefPtr disk);
+int virSecurityManagerRestoreDiskLabel(virSecurityManagerPtr mgr,
+                                       virDomainDefPtr def,
+                                       virDomainDiskDefPtr disk);
 int virSecurityManagerSetDaemonSocketLabel(virSecurityManagerPtr mgr,
                                            virDomainDefPtr vm);
 int virSecurityManagerSetSocketLabel(virSecurityManagerPtr mgr,
                                      virDomainDefPtr def);
 int virSecurityManagerClearSocketLabel(virSecurityManagerPtr mgr,
                                        virDomainDefPtr def);
-int virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
-                                    virDomainDefPtr def,
-                                    virDomainDiskDefPtr disk);
+int virSecurityManagerSetDiskLabel(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr def,
+                                   virDomainDiskDefPtr disk);
 int virSecurityManagerRestoreHostdevLabel(virSecurityManagerPtr mgr,
                                           virDomainDefPtr def,
                                           virDomainHostdevDefPtr dev,
@@ -99,7 +99,7 @@ int virSecurityManagerSetAllLabel(virSecurityManagerPtr mgr,
                                   const char *stdin_path);
 int virSecurityManagerRestoreAllLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
-                                      int migrated);
+                                      bool migrated);
 int virSecurityManagerGetProcessLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
                                       pid_t pid,
@@ -118,11 +118,10 @@ int virSecurityManagerSetTapFDLabel(virSecurityManagerPtr mgr,
                                     virDomainDefPtr vm,
                                     int fd);
 char *virSecurityManagerGetMountOptions(virSecurityManagerPtr mgr,
-                                              virDomainDefPtr vm);
-virSecurityManagerPtr*
-virSecurityManagerGetNested(virSecurityManagerPtr mgr);
+                                        virDomainDefPtr vm);
+virSecurityManagerPtr* virSecurityManagerGetNested(virSecurityManagerPtr mgr);
 int virSecurityManagerSetHugepages(virSecurityManagerPtr mgr,
-                                  virDomainDefPtr sec,
-                                  const char *hugepages_path);
+                                   virDomainDefPtr sec,
+                                   const char *hugepages_path);
 
 #endif /* VIR_SECURITY_MANAGER_H__ */
