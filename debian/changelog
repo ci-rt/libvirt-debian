@@ -1,3 +1,31 @@
+libvirt (1.2.6-1) experimental; urgency=medium
+
+  [ Laurent Bigonville ]
+  * [4c4977e,87fc2db] Rename libvirt-bin.service back to libvirtd.service
+    and use symlink or Alias= instead. This is what upstream uses.
+    (Closes: #730604)
+
+  [ Guido Günther ]
+  * Upload to experimental
+  * [9321997] Drop build-dep on hal-dev too (Closes: #710195)
+  * [899c1d3] New upstream version 1.2.5
+  * [34d54b9] Refresh patches.
+    Dropped, fixed upstream:
+       LSN-2014-0003-Don-t-expand-entities-when-parsing-XML.patch
+  * [12e5468] Update symbols file
+  * [8ae2cf5] Depend on gnutls/gcrypt explicitly (Closes: #753121)
+  * [8881fe5] Recommend iproute2 instead of iproute (Closes: #753713)
+  * [ab710a4] New upstream version 1.2.6
+  * [a23d7fc] Rediff patches
+  * [e6c037b] Bump symbol versions
+  * [7ca6a8a] Split out daemon configuration (Closes: #679074)
+  * [60ec538] Cleanup old conffile (Closes: #748720)
+  * [cc59dd4] Provide build and packager information (Closes: #753306)
+  * [74baa7e] Use sensible-editor as fallback.
+    Based on a patch by Dmitry Smirnov (Closes: #594444)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 22 Jul 2014 22:33:51 +0200
+
 libvirt (1.2.4-3) unstable; urgency=medium
 
   * [b0b7359] Don't pretend kFreeBSD supports linux only features.  So far we
