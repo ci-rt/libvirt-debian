@@ -1,5 +1,10 @@
 #!/usr/bin/make -f
 
+DEB_RELEASE=$(shell dpkg-parsechangelog -SVersion | sed 's/[^-]\+-//')
+DEB_BUILDHOST=$(shell hostname)
+DEB_BUILDDATE=$(shell date +"%F-%T")
+DEB_BUILDUSER=${USER}
+
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_XEN = --with-xen
@@ -72,6 +77,8 @@ else
 endif
 
 DEB_CONFIGURE_EXTRA_ARGS :=      \
+	--with-packager="$(DEB_BUILDUSER) $(DEB_BUILDDATE) $(DEB_BUILDHOST)" \
+	--with-packager-version="$(DEB_RELEASE)" \
 	--disable-silent-rules   \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \
