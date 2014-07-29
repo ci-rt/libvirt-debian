@@ -1,3 +1,9 @@
+libvirt (1.2.6-2) experimental; urgency=medium
+
+  * [501afad] Update copyright information
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 29 Jul 2014 08:55:26 +0200
+
 libvirt (1.2.6-1) experimental; urgency=medium
 
   [ Laurent Bigonville ]
