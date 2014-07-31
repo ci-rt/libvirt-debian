@@ -96,18 +96,6 @@ case "$1" in
         add_users_groups
         add_statoverrides
 
-	# When renaming the .service file, systemd might become confused, we
-	# need to ensure that the libvirtd daemon is fully stopped before
-	# trying to restart it again. (Bug: #730604)
-	if dpkg --compare-versions "$2" le "1.2.6-1~"; then
-	    if [ -d /run/systemd/system ]; then
-	        start-stop-daemon --stop --quiet --pidfile /var/run/libvirtd.pid \
-		    --oknodo --exec /usr/sbin/libvirtd --retry 1
-	    fi
-	    # Remove everything we know about libvirt-bin.service
-	    deb-systemd-helper purge libvirt-bin.service >/dev/null
-	fi
-
 	# Make sure the directories don't get removed on package removal since
 	# logrotate chokes otherwise.
 	for dir in qemu uml lxc; do
