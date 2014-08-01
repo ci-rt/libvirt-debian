@@ -28,6 +28,7 @@
 # include "capabilities.h"
 # include "vircommand.h"
 # include "qemu_monitor.h"
+# include "domain_capabilities.h"
 
 /* Internal flags to keep track of qemu command line capabilities */
 typedef enum {
@@ -206,6 +207,11 @@ typedef enum {
     QEMU_CAPS_DEVICE_USB_KBD     = 165, /* -device usb-kbd */
     QEMU_CAPS_HOST_PCI_MULTIDOMAIN = 166, /* support domain > 0 in host pci address */
     QEMU_CAPS_MSG_TIMESTAMP      = 167, /* -msg timestamp */
+    QEMU_CAPS_ACTIVE_COMMIT      = 168, /* block-commit works without 'top' */
+    QEMU_CAPS_CHANGE_BACKING_FILE = 169, /* change name of backing file in metadata */
+    QEMU_CAPS_OBJECT_MEMORY_RAM  = 170, /* -object memory-backend-ram */
+    QEMU_CAPS_NUMA               = 171, /* newer -numa handling with disjoint cpu ranges */
+    QEMU_CAPS_OBJECT_MEMORY_FILE = 172, /* -object memory-backend-file */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -274,6 +280,8 @@ virQEMUCapsPtr virQEMUCapsCacheLookup(virQEMUCapsCachePtr cache,
                                       const char *binary);
 virQEMUCapsPtr virQEMUCapsCacheLookupCopy(virQEMUCapsCachePtr cache,
                                           const char *binary);
+virQEMUCapsPtr virQEMUCapsCacheLookupByArch(virQEMUCapsCachePtr cache,
+                                            virArch arch);
 void virQEMUCapsCacheFree(virQEMUCapsCachePtr cache);
 
 virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache);
@@ -300,11 +308,19 @@ bool virQEMUCapsSupportsChardev(virDomainDefPtr def,
                                 virQEMUCapsPtr qemuCaps,
                                 virDomainChrDefPtr chr);
 
+bool virQEMUCapsIsMachineSupported(virQEMUCapsPtr qemuCaps,
+                                   const char *canonical_machine);
+
+const char * virQEMUCapsGetDefaultMachine(virQEMUCapsPtr qemuCaps);
+
 int virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
                                    const char *binary,
                                    virQEMUCapsPtr qemubinCaps,
                                    const char *kvmbin,
                                    virQEMUCapsPtr kvmbinCaps,
                                    virArch guestarch);
+
+void virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
+                               virQEMUCapsPtr qemuCaps);
 
 #endif /* __QEMU_CAPABILITIES_H__*/

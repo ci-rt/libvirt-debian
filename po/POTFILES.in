@@ -16,6 +16,7 @@ src/conf/capabilities.c
 src/conf/cpu_conf.c
 src/conf/device_conf.c
 src/conf/domain_addr.c
+src/conf/domain_capabilities.c
 src/conf/domain_conf.c
 src/conf/domain_event.c
 src/conf/interface_conf.c
@@ -24,6 +25,7 @@ src/conf/netdev_vlan_conf.c
 src/conf/netdev_vport_profile_conf.c
 src/conf/network_conf.c
 src/conf/node_device_conf.c
+src/conf/numatune_conf.c
 src/conf/nwfilter_conf.c
 src/conf/nwfilter_params.c
 src/conf/object_event.c
@@ -156,6 +158,7 @@ src/util/viraudit.c
 src/util/virauth.c
 src/util/virauthconfig.c
 src/util/virbitmap.c
+src/util/virbuffer.c
 src/util/vircgroup.c
 src/util/virclosecallbacks.c
 src/util/vircommand.c
@@ -196,7 +199,7 @@ src/util/virrandom.c
 src/util/virsexpr.c
 src/util/virscsi.c
 src/util/virsocketaddr.c
-src/util/virstatslinux.c
+src/util/virstats.c
 src/util/virstorageencryption.c
 src/util/virstoragefile.c
 src/util/virstring.c

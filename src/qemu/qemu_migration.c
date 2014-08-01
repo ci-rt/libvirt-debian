@@ -666,11 +666,8 @@ static char *qemuMigrationCookieXMLFormatStr(virQEMUDriverPtr driver,
         return NULL;
     }
 
-    if (virBufferError(&buf)) {
-        virReportOOMError();
-        virBufferFreeAndReset(&buf);
+    if (virBufferCheckError(&buf) < 0)
         return NULL;
-    }
 
     return virBufferContentAndReset(&buf);
 }
@@ -1159,7 +1156,8 @@ qemuMigrationStartNBDServer(virQEMUDriverPtr driver,
         virDomainDiskDefPtr disk = vm->def->disks[i];
 
         /* skip shared, RO and source-less disks */
-        if (disk->shared || disk->readonly || !virDomainDiskGetSource(disk))
+        if (disk->src->shared || disk->src->readonly ||
+            !virDomainDiskGetSource(disk))
             continue;
 
         VIR_FREE(diskAlias);
@@ -1265,7 +1263,8 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
         virDomainBlockJobInfo info;
 
         /* skip shared, RO and source-less disks */
-        if (disk->shared || disk->readonly || !virDomainDiskGetSource(disk))
+        if (disk->src->shared || disk->src->readonly ||
+            !virDomainDiskGetSource(disk))
             continue;
 
         VIR_FREE(diskAlias);
@@ -1308,7 +1307,7 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
                                _("canceled by client"));
                 goto error;
             }
-            mon_ret = qemuMonitorBlockJob(priv->mon, diskAlias, NULL, 0,
+            mon_ret = qemuMonitorBlockJob(priv->mon, diskAlias, NULL, NULL, 0,
                                           &info, BLOCK_JOB_INFO, true);
             qemuDomainObjExitMonitor(driver, vm);
 
@@ -1351,7 +1350,8 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
         virDomainDiskDefPtr disk = vm->def->disks[--lastGood];
 
         /* skip shared, RO disks */
-        if (disk->shared || disk->readonly || !virDomainDiskGetSource(disk))
+        if (disk->src->shared || disk->src->readonly ||
+            !virDomainDiskGetSource(disk))
             continue;
 
         VIR_FREE(diskAlias);
@@ -1360,7 +1360,7 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
             continue;
         if (qemuDomainObjEnterMonitorAsync(driver, vm,
                                            QEMU_ASYNC_JOB_MIGRATION_OUT) == 0) {
-            if (qemuMonitorBlockJob(priv->mon, diskAlias, NULL, 0,
+            if (qemuMonitorBlockJob(priv->mon, diskAlias, NULL, NULL, 0,
                                     NULL, BLOCK_JOB_ABORT, true) < 0) {
                 VIR_WARN("Unable to cancel block-job on '%s'", diskAlias);
             }
@@ -1414,7 +1414,8 @@ qemuMigrationCancelDriveMirror(qemuMigrationCookiePtr mig,
         virDomainDiskDefPtr disk = vm->def->disks[i];
 
         /* skip shared, RO and source-less disks */
-        if (disk->shared || disk->readonly || !virDomainDiskGetSource(disk))
+        if (disk->src->shared || disk->src->readonly ||
+            !virDomainDiskGetSource(disk))
             continue;
 
         VIR_FREE(diskAlias);
@@ -1426,7 +1427,7 @@ qemuMigrationCancelDriveMirror(qemuMigrationCookiePtr mig,
                                            QEMU_ASYNC_JOB_MIGRATION_OUT) < 0)
             goto cleanup;
 
-        if (qemuMonitorBlockJob(priv->mon, diskAlias, NULL, 0,
+        if (qemuMonitorBlockJob(priv->mon, diskAlias, NULL, NULL, 0,
                                 NULL, BLOCK_JOB_ABORT, true) < 0)
             VIR_WARN("Unable to stop block job on %s", diskAlias);
         qemuDomainObjExitMonitor(driver, vm);
@@ -1513,6 +1514,21 @@ qemuMigrationIsAllowed(virQEMUDriverPtr driver, virDomainObjPtr vm,
         return false;
     }
 
+    for (i = 0; def->cpu && i < def->cpu->nfeatures; i++) {
+        virCPUFeatureDefPtr feature = &def->cpu->features[i];
+
+        if (feature->policy != VIR_CPU_FEATURE_REQUIRE)
+            continue;
+
+        /* QEMU blocks migration and save with invariant TSC enabled */
+        if (STREQ(feature->name, "invtsc")) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("domain has CPU feature: %s"),
+                           feature->name);
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -1528,8 +1544,8 @@ qemuMigrationIsSafe(virDomainDefPtr def)
         /* Our code elsewhere guarantees shared disks are either readonly (in
          * which case cache mode doesn't matter) or used with cache=none */
         if (src &&
-            !disk->shared &&
-            !disk->readonly &&
+            !disk->src->shared &&
+            !disk->src->readonly &&
             disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
             int rc;
 

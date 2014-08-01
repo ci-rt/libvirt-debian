@@ -41,7 +41,7 @@ buildVirCapabilities(int max_cells,
     int id;
     size_t i;
 
-    if ((caps = virCapabilitiesNew(VIR_ARCH_X86_64, 0, 0)) == NULL)
+    if ((caps = virCapabilitiesNew(VIR_ARCH_X86_64, false, false)) == NULL)
         goto error;
 
     id = 0;
@@ -114,10 +114,8 @@ test_virCapabilitiesFormat(const void *opaque)
                                       data->max_mem_in_cell)))
         goto cleanup;
 
-    if (!(capsXML = virCapabilitiesFormatXML(caps))) {
-        fprintf(stderr, "Unable to format capabilities XML");
+    if (!(capsXML = virCapabilitiesFormatXML(caps)))
         goto cleanup;
-    }
 
     if (virAsprintf(&path, "%s/vircaps2xmldata/vircaps-%s.xml",
                     abs_srcdir, data->filename) < 0)

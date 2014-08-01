@@ -66,12 +66,6 @@ VIR_ENUM_IMPL(virNetworkForwardDriverName,
               "kvm",
               "vfio")
 
-VIR_ENUM_IMPL(virNetworkDNSForwardPlainNames,
-              VIR_NETWORK_DNS_FORWARD_PLAIN_NAMES_LAST,
-              "default",
-              "yes",
-              "no")
-
 VIR_ENUM_IMPL(virNetworkTaint, VIR_NETWORK_TAINT_LAST,
               "hook-script");
 
@@ -1123,8 +1117,7 @@ virNetworkDNSDefParseXML(const char *networkName,
 
     forwardPlainNames = virXPathString("string(./@forwardPlainNames)", ctxt);
     if (forwardPlainNames) {
-        def->forwardPlainNames
-            = virNetworkDNSForwardPlainNamesTypeFromString(forwardPlainNames);
+        def->forwardPlainNames = virTristateBoolTypeFromString(forwardPlainNames);
         if (def->forwardPlainNames <= 0) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("Invalid dns forwardPlainNames setting '%s' "
@@ -2372,8 +2365,9 @@ virNetworkDNSDefFormat(virBufferPtr buf,
         return 0;
 
     virBufferAddLit(buf, "<dns");
+    /* default to "yes", but don't format it in the XML */
     if (def->forwardPlainNames) {
-        const char *fwd = virNetworkDNSForwardPlainNamesTypeToString(def->forwardPlainNames);
+        const char *fwd = virTristateBoolTypeToString(def->forwardPlainNames);
 
         if (!fwd) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2830,13 +2824,11 @@ virNetworkDefFormat(const virNetworkDef *def,
     if (virNetworkDefFormatBuf(&buf, def, flags) < 0)
         goto error;
 
-    if (virBufferError(&buf))
-        goto no_memory;
+    if (virBufferCheckError(&buf) < 0)
+        goto error;
 
     return virBufferContentAndReset(&buf);
 
- no_memory:
-    virReportOOMError();
  error:
     virBufferFreeAndReset(&buf);
     return NULL;
@@ -2871,13 +2863,11 @@ virNetworkObjFormat(virNetworkObjPtr net,
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</networkstatus>");
 
-    if (virBufferError(&buf))
-        goto no_memory;
+    if (virBufferCheckError(&buf) < 0)
+        goto error;
 
     return virBufferContentAndReset(&buf);
 
- no_memory:
-    virReportOOMError();
  error:
     virBufferFreeAndReset(&buf);
     return NULL;
@@ -3484,11 +3474,13 @@ virNetworkDefUpdateIPDHCPHost(virNetworkDefPtr def,
 
     if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
 
-        /* search for the entry with this (mac|name),
+        /* search for the entry with this (ip|mac|name),
          * and update the IP+(mac|name) */
         for (i = 0; i < ipdef->nhosts; i++) {
             if ((host.mac &&
                  !virMacAddrCompare(host.mac, ipdef->hosts[i].mac)) ||
+                (VIR_SOCKET_ADDR_VALID(&host.ip) &&
+                 virSocketAddrEqual(&host.ip, &ipdef->hosts[i].ip)) ||
                 (host.name &&
                  STREQ_NULLABLE(host.name, ipdef->hosts[i].name))) {
                 break;
@@ -3496,10 +3488,14 @@ virNetworkDefUpdateIPDHCPHost(virNetworkDefPtr def,
         }
 
         if (i == ipdef->nhosts) {
+            char *ip = virSocketAddrFormat(&host.ip);
             virReportError(VIR_ERR_OPERATION_INVALID,
                            _("couldn't locate an existing dhcp host entry with "
-                             "\"mac='%s'\" in network '%s'"),
-                           host.mac, def->name);
+                             "\"mac='%s'\" \"name='%s'\" \"ip='%s'\" in"
+                             " network '%s'"),
+                           host.mac ? host.mac : _("unknown"), host.name,
+                           ip ? ip : _("unknown"), def->name);
+            VIR_FREE(ip);
             goto cleanup;
         }
 
@@ -3528,8 +3524,8 @@ virNetworkDefUpdateIPDHCPHost(virNetworkDefPtr def,
                                _("there is an existing dhcp host entry in "
                                  "network '%s' that matches "
                                  "\"<host mac='%s' name='%s' ip='%s'/>\""),
-                               def->name, host.mac, host.name,
-                               ip ? ip : "unknown");
+                               def->name, host.mac ? host.mac : _("unknown"),
+                               host.name, ip ? ip : _("unknown"));
                 VIR_FREE(ip);
                 goto cleanup;
             }

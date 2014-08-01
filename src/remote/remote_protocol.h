@@ -298,6 +298,20 @@ struct remote_connect_get_capabilities_ret {
 };
 typedef struct remote_connect_get_capabilities_ret remote_connect_get_capabilities_ret;
 
+struct remote_connect_get_domain_capabilities_args {
+        remote_string emulatorbin;
+        remote_string arch;
+        remote_string machine;
+        remote_string virttype;
+        u_int flags;
+};
+typedef struct remote_connect_get_domain_capabilities_args remote_connect_get_domain_capabilities_args;
+
+struct remote_connect_get_domain_capabilities_ret {
+        remote_nonnull_string capabilities;
+};
+typedef struct remote_connect_get_domain_capabilities_ret remote_connect_get_domain_capabilities_ret;
+
 struct remote_node_get_cpu_stats_args {
         int cpuNum;
         int nparams;
@@ -4010,6 +4024,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB_2 = 339,
         REMOTE_PROC_NODE_GET_FREE_PAGES = 340,
         REMOTE_PROC_NETWORK_GET_DHCP_LEASES = 341,
+        REMOTE_PROC_CONNECT_GET_DOMAIN_CAPABILITIES = 342,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4056,6 +4071,8 @@ extern  bool_t xdr_remote_connect_get_max_vcpus_args (XDR *, remote_connect_get_
 extern  bool_t xdr_remote_connect_get_max_vcpus_ret (XDR *, remote_connect_get_max_vcpus_ret*);
 extern  bool_t xdr_remote_node_get_info_ret (XDR *, remote_node_get_info_ret*);
 extern  bool_t xdr_remote_connect_get_capabilities_ret (XDR *, remote_connect_get_capabilities_ret*);
+extern  bool_t xdr_remote_connect_get_domain_capabilities_args (XDR *, remote_connect_get_domain_capabilities_args*);
+extern  bool_t xdr_remote_connect_get_domain_capabilities_ret (XDR *, remote_connect_get_domain_capabilities_ret*);
 extern  bool_t xdr_remote_node_get_cpu_stats_args (XDR *, remote_node_get_cpu_stats_args*);
 extern  bool_t xdr_remote_node_get_cpu_stats_ret (XDR *, remote_node_get_cpu_stats_ret*);
 extern  bool_t xdr_remote_node_get_memory_stats_args (XDR *, remote_node_get_memory_stats_args*);
@@ -4602,6 +4619,8 @@ extern bool_t xdr_remote_connect_get_max_vcpus_args ();
 extern bool_t xdr_remote_connect_get_max_vcpus_ret ();
 extern bool_t xdr_remote_node_get_info_ret ();
 extern bool_t xdr_remote_connect_get_capabilities_ret ();
+extern bool_t xdr_remote_connect_get_domain_capabilities_args ();
+extern bool_t xdr_remote_connect_get_domain_capabilities_ret ();
 extern bool_t xdr_remote_node_get_cpu_stats_args ();
 extern bool_t xdr_remote_node_get_cpu_stats_ret ();
 extern bool_t xdr_remote_node_get_memory_stats_args ();

@@ -2230,11 +2230,19 @@ qemuDomainCheckDiskStartupPolicy(virQEMUDriverPtr driver,
 {
     char uuid[VIR_UUID_STRING_BUFLEN];
     int startupPolicy = vm->def->disks[diskIndex]->startupPolicy;
+    int device = vm->def->disks[diskIndex]->device;
 
     virUUIDFormat(vm->def->uuid, uuid);
 
     switch ((virDomainStartupPolicy) startupPolicy) {
         case VIR_DOMAIN_STARTUP_POLICY_OPTIONAL:
+            /* Once started with an optional disk, qemu saves its section
+             * in the migration stream, so later, when restoring from it
+             * we must make sure the sections match. */
+            if (!cold_boot &&
+                device != VIR_DOMAIN_DISK_DEVICE_FLOPPY &&
+                device != VIR_DOMAIN_DISK_DEVICE_CDROM)
+                goto error;
             break;
 
         case VIR_DOMAIN_STARTUP_POLICY_MANDATORY:
@@ -2400,7 +2408,7 @@ qemuDomainCleanupRun(virQEMUDriverPtr driver,
 static void
 qemuDomainGetImageIds(virQEMUDriverConfigPtr cfg,
                       virDomainObjPtr vm,
-                      virDomainDiskDefPtr disk,
+                      virStorageSourcePtr src,
                       uid_t *uid, gid_t *gid)
 {
     virSecurityLabelDefPtr vmlabel;
@@ -2423,9 +2431,32 @@ qemuDomainGetImageIds(virQEMUDriverConfigPtr cfg,
         vmlabel->label)
         virParseOwnershipIds(vmlabel->label, uid, gid);
 
-    if ((disklabel = virStorageSourceGetSecurityLabelDef(disk->src, "dac")) &&
+    if ((disklabel = virStorageSourceGetSecurityLabelDef(src, "dac")) &&
         disklabel->label)
         virParseOwnershipIds(disklabel->label, uid, gid);
+}
+
+
+int
+qemuDomainStorageFileInit(virQEMUDriverPtr driver,
+                          virDomainObjPtr vm,
+                          virStorageSourcePtr src)
+{
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    uid_t uid;
+    gid_t gid;
+    int ret = -1;
+
+    qemuDomainGetImageIds(cfg, vm, src, &uid, &gid);
+
+    if (virStorageFileInitAs(src, uid, gid) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(cfg);
+    return ret;
 }
 
 
@@ -2452,7 +2483,7 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
             goto cleanup;
     }
 
-    qemuDomainGetImageIds(cfg, vm, disk, &uid, &gid);
+    qemuDomainGetImageIds(cfg, vm, disk->src, &uid, &gid);
 
     if (virStorageFileGetMetadata(disk->src,
                                   uid, gid,

@@ -68,7 +68,7 @@
 #include "xen_driver.h"
 #include "xen_hypervisor.h"
 #include "xs_internal.h"
-#include "virstatslinux.h"
+#include "virstats.h"
 #include "block_stats.h"
 #include "xend_internal.h"
 #include "virbuffer.h"
@@ -1470,7 +1470,7 @@ xenHypervisorDomainInterfaceStats(virDomainDefPtr def,
         return -1;
     }
 
-    return linuxDomainInterfaceStats(path, stats);
+    return virNetInterfaceStats(path, stats);
 #else
     virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                    _("/proc/net/dev: Interface not found"));
@@ -2108,7 +2108,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
     int hv_major = hv_versions.hv >> 16;
     int hv_minor = hv_versions.hv & 0xFFFF;
 
-    if ((caps = virCapabilitiesNew(hostarch, 1, 1)) == NULL)
+    if ((caps = virCapabilitiesNew(hostarch, true, true)) == NULL)
         goto no_memory;
 
     if (hvm_type && STRNEQ(hvm_type, "") &&
@@ -2166,37 +2166,36 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
         if (guest_archs[i].pae &&
             virCapabilitiesAddGuestFeature(guest,
                                            "pae",
-                                           1,
-                                           0) == NULL)
+                                           true,
+                                           false) == NULL)
             goto no_memory;
 
         if (guest_archs[i].nonpae &&
             virCapabilitiesAddGuestFeature(guest,
                                            "nonpae",
-                                           1,
-                                           0) == NULL)
+                                           true,
+                                           false) == NULL)
             goto no_memory;
 
         if (guest_archs[i].ia64_be &&
             virCapabilitiesAddGuestFeature(guest,
                                            "ia64_be",
-                                           1,
-                                           0) == NULL)
+                                           true,
+                                           false) == NULL)
             goto no_memory;
 
         if (guest_archs[i].hvm) {
             if (virCapabilitiesAddGuestFeature(guest,
                                                "acpi",
-                                               1, 1) == NULL)
+                                               true, true) == NULL)
                 goto no_memory;
 
             /* In Xen 3.1.0, APIC is always on and can't be toggled */
             if (virCapabilitiesAddGuestFeature(guest,
                                                "apic",
-                                               1,
-                                               (hv_major > 3 &&
-                                                hv_minor > 0 ?
-                                                0 : 1)) == NULL)
+                                               true,
+                                               !(hv_major > 3 &&
+                                                 hv_minor > 0)) == NULL)
                 goto no_memory;
 
             /* Xen 3.3.x and beyond supports enabling/disabling
@@ -2205,8 +2204,8 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
             if ((hv_major == 3 && hv_minor >= 3) || (hv_major > 3))
                 if (virCapabilitiesAddGuestFeature(guest,
                                                    "hap",
-                                                   0,
-                                                   1) == NULL)
+                                                   false,
+                                                   true) == NULL)
                     goto no_memory;
 
             /* Xen 3.4.x and beyond supports the Viridian (Hyper-V)
@@ -2215,8 +2214,8 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
             if ((hv_major == 3 && hv_minor >= 4) || (hv_major > 3))
                 if (virCapabilitiesAddGuestFeature(guest,
                                                    "viridian",
-                                                   0,
-                                                   1) == NULL)
+                                                   false,
+                                                   true) == NULL)
                     goto no_memory;
         }
 
@@ -2557,14 +2556,8 @@ char *
 xenHypervisorGetCapabilities(virConnectPtr conn)
 {
     xenUnifiedPrivatePtr priv = conn->privateData;
-    char *xml;
 
-    if (!(xml = virCapabilitiesFormatXML(priv->caps))) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    return xml;
+    return virCapabilitiesFormatXML(priv->caps);
 }
 
 

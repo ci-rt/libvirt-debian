@@ -51,7 +51,7 @@
 #include "virnetdevveth.h"
 #include "nodeinfo.h"
 #include "viruuid.h"
-#include "virstatslinux.h"
+#include "virstats.h"
 #include "virhook.h"
 #include "virfile.h"
 #include "virpidfile.h"
@@ -232,8 +232,7 @@ static char *lxcConnectGetCapabilities(virConnectPtr conn) {
     if (!(caps = virLXCDriverGetCapabilities(driver, false)))
         return NULL;
 
-    if ((xml = virCapabilitiesFormatXML(caps)) == NULL)
-        virReportOOMError();
+    xml = virCapabilitiesFormatXML(caps);
 
     virObjectUnref(caps);
     return xml;
@@ -585,7 +584,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
 
     if (!virDomainObjIsActive(vm)) {
         info->cpuTime = 0;
-        info->memory = vm->def->mem.cur_balloon;
+        info->memory = 0;
     } else {
         if (virCgroupGetCpuacctUsage(priv->cgroup, &(info->cpuTime)) < 0) {
             virReportError(VIR_ERR_OPERATION_FAILED,
@@ -693,9 +692,14 @@ static int lxcDomainSetMaxMemory(virDomainPtr dom, unsigned long newmax)
         goto cleanup;
 
     if (newmax < vm->def->mem.cur_balloon) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       "%s", _("Cannot set max memory lower than current memory"));
-        goto cleanup;
+        if (!virDomainObjIsActive(vm)) {
+            vm->def->mem.cur_balloon = newmax;
+        } else {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("Cannot set max memory lower than current"
+                             " memory for an active domain"));
+            goto cleanup;
+        }
     }
 
     vm->def->mem.max_balloon = newmax;
@@ -707,36 +711,64 @@ static int lxcDomainSetMaxMemory(virDomainPtr dom, unsigned long newmax)
     return ret;
 }
 
-static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem)
+static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
+                                   unsigned int flags)
 {
     virDomainObjPtr vm;
+    virDomainDefPtr persistentDef = NULL;
+    virCapsPtr caps = NULL;
     int ret = -1;
     virLXCDomainObjPrivatePtr priv;
+    virLXCDriverPtr driver = dom->conn->privateData;
+    virLXCDriverConfigPtr cfg = NULL;
+    unsigned long oldmax = 0;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
 
+    cfg = virLXCDriverGetConfig(driver);
+
     priv = vm->privateData;
 
-    if (virDomainSetMemoryEnsureACL(dom->conn, vm->def) < 0)
+    if (virDomainSetMemoryFlagsEnsureACL(dom->conn, vm->def, flags) < 0)
         goto cleanup;
 
-    if (newmem > vm->def->mem.max_balloon) {
+    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
+        goto cleanup;
+
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE)
+        oldmax = vm->def->mem.max_balloon;
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (!oldmax || oldmax > persistentDef->mem.max_balloon)
+            oldmax = persistentDef->mem.max_balloon;
+    }
+
+    if (newmem > oldmax) {
         virReportError(VIR_ERR_INVALID_ARG,
                        "%s", _("Cannot set memory higher than max memory"));
         goto cleanup;
     }
 
-    if (!virDomainObjIsActive(vm)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("Domain is not running"));
-        goto cleanup;
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (virCgroupSetMemory(priv->cgroup, newmem) < 0) {
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           "%s", _("Failed to set memory for domain"));
+            goto cleanup;
+        }
     }
 
-    if (virCgroupSetMemory(priv->cgroup, newmem) < 0) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       "%s", _("Failed to set memory for domain"));
-        goto cleanup;
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        sa_assert(persistentDef);
+        persistentDef->mem.cur_balloon = newmem;
+        if (virDomainSaveConfig(cfg->configDir, persistentDef) < 0)
+            goto cleanup;
     }
 
     ret = 0;
@@ -744,7 +776,14 @@ static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem)
  cleanup:
     if (vm)
         virObjectUnlock(vm);
+    virObjectUnref(caps);
+    virObjectUnref(cfg);
     return ret;
+}
+
+static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem)
+{
+    return lxcDomainSetMemoryFlags(dom, newmem, VIR_DOMAIN_AFFECT_LIVE);
 }
 
 static int
@@ -1126,14 +1165,16 @@ static int lxcDomainCreateWithFlags(virDomainPtr dom,
 }
 
 /**
- * lxcDomainCreateXML:
+ * lxcDomainCreateXMLWithFiles:
  * @conn: pointer to connection
  * @xml: XML definition of domain
- * @flags: Must be 0 for now
+ * @nfiles: number of file descriptors passed
+ * @files: list of file descriptors passed
+ * @flags: bitwise-OR of supported virDomainCreateFlags
  *
  * Creates a domain based on xml and starts it
  *
- * Returns 0 on success or -1 in case of error
+ * Returns a new domain object or NULL in case of failure.
  */
 static virDomainPtr
 lxcDomainCreateXMLWithFiles(virConnectPtr conn,
@@ -1213,7 +1254,16 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
     return dom;
 }
 
-
+/**
+ * lxcDomainCreateXML:
+ * @conn: pointer to connection
+ * @xml: XML definition of domain
+ * @flags: bitwise-OR of supported virDomainCreateFlags
+ *
+ * Creates a domain based on xml and starts it
+ *
+ * Returns a new domain object or NULL in case of failure.
+ */
 static virDomainPtr
 lxcDomainCreateXML(virConnectPtr conn,
                    const char *xml,
@@ -1410,7 +1460,7 @@ lxcConnectDomainEventDeregisterAny(virConnectPtr conn,
 /**
  * lxcDomainDestroyFlags:
  * @dom: pointer to domain to destroy
- * @flags: an OR'ed set of virDomainDestroyFlags
+ * @flags: extra flags; not used yet.
  *
  * Sends SIGKILL to container root process to terminate the container
  *
@@ -2509,13 +2559,6 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
             virTypedParameterPtr param = &params[i];
 
             if (STREQ(param->field, VIR_DOMAIN_BLKIO_WEIGHT)) {
-                if (params[i].value.ui > 1000 || params[i].value.ui < 100) {
-                    virReportError(VIR_ERR_INVALID_ARG, "%s",
-                                   _("out of blkio weight range."));
-                    ret = -1;
-                    continue;
-                }
-
                 if (virCgroupSetBlkioWeight(priv->cgroup, params[i].value.ui) < 0)
                     ret = -1;
             } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) ||
@@ -2610,13 +2653,6 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
             virTypedParameterPtr param = &params[i];
 
             if (STREQ(param->field, VIR_DOMAIN_BLKIO_WEIGHT)) {
-                if (params[i].value.ui > 1000 || params[i].value.ui < 100) {
-                    virReportError(VIR_ERR_INVALID_ARG, "%s",
-                                   _("out of blkio weight range."));
-                    ret = -1;
-                    continue;
-                }
-
                 persistentDef->blkio.weight = params[i].value.ui;
             } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) ||
                        STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS) ||
@@ -2739,10 +2775,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           vm->def->blkio.devices[j].path,
                                           vm->def->blkio.devices[j].weight);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (virTypedParameterAssign(param,
@@ -2768,10 +2802,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           vm->def->blkio.devices[j].path,
                                           vm->def->blkio.devices[j].riops);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (virTypedParameterAssign(param,
@@ -2797,10 +2829,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           vm->def->blkio.devices[j].path,
                                           vm->def->blkio.devices[j].wiops);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (virTypedParameterAssign(param,
@@ -2826,10 +2856,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           vm->def->blkio.devices[j].path,
                                           vm->def->blkio.devices[j].rbps);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (virTypedParameterAssign(param,
@@ -2855,10 +2883,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           vm->def->blkio.devices[j].path,
                                           vm->def->blkio.devices[j].wbps);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (virTypedParameterAssign(param,
@@ -2903,10 +2929,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           persistentDef->blkio.devices[j].path,
                                           persistentDef->blkio.devices[j].weight);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
@@ -2937,10 +2961,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           persistentDef->blkio.devices[j].path,
                                           persistentDef->blkio.devices[j].riops);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
@@ -2970,10 +2992,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           persistentDef->blkio.devices[j].path,
                                           persistentDef->blkio.devices[j].wiops);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
@@ -3003,10 +3023,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           persistentDef->blkio.devices[j].path,
                                           persistentDef->blkio.devices[j].rbps);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
@@ -3037,10 +3055,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                                           persistentDef->blkio.devices[j].path,
                                           persistentDef->blkio.devices[j].wbps);
                     }
-                    if (virBufferError(&buf)) {
-                        virReportOOMError();
+                    if (virBufferCheckError(&buf) < 0)
                         goto cleanup;
-                    }
                     param->value.s = virBufferContentAndReset(&buf);
                 }
                 if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
@@ -3102,7 +3118,7 @@ lxcDomainInterfaceStats(virDomainPtr dom,
     }
 
     if (ret == 0)
-        ret = linuxDomainInterfaceStats(path, stats);
+        ret = virNetInterfaceStats(path, stats);
     else
         virReportError(VIR_ERR_INVALID_ARG,
                        _("Invalid path, '%s' is not a known interface"), path);
@@ -4062,13 +4078,7 @@ lxcDomainAttachDeviceDiskLive(virLXCDriverPtr driver,
         goto cleanup;
     }
 
-    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES)) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("devices cgroup isn't mounted"));
-        goto cleanup;
-    }
-
-    perms = (def->readonly ?
+    perms = (def->src->readonly ?
              VIR_CGROUP_DEVICE_READ :
              VIR_CGROUP_DEVICE_RW) |
         VIR_CGROUP_DEVICE_MKNOD;
@@ -4109,7 +4119,7 @@ lxcDomainAttachDeviceDiskLive(virLXCDriverPtr driver,
 
  cleanup:
     if (src)
-        virDomainAuditDisk(vm, NULL, src, "attach", ret == 0);
+        virDomainAuditDisk(vm, NULL, def->src, "attach", ret == 0);
     VIR_FREE(file);
     return ret;
 }
@@ -4240,6 +4250,7 @@ lxcDomainAttachDeviceHostdevSubsysUSBLive(virLXCDriverPtr driver,
     char *src = NULL;
     struct stat sb;
     virUSBDevicePtr usb = NULL;
+    virDomainHostdevSubsysUSBPtr usbsrc;
 
     if (virDomainHostdevFind(vm->def, def, NULL) >= 0) {
         virReportError(VIR_ERR_OPERATION_FAILED, "%s",
@@ -4247,13 +4258,12 @@ lxcDomainAttachDeviceHostdevSubsysUSBLive(virLXCDriverPtr driver,
         return -1;
     }
 
+    usbsrc = &def->source.subsys.u.usb;
     if (virAsprintf(&src, "/dev/bus/usb/%03d/%03d",
-                    def->source.subsys.u.usb.bus,
-                    def->source.subsys.u.usb.device) < 0)
+                    usbsrc->bus, usbsrc->device) < 0)
         goto cleanup;
 
-    if (!(usb = virUSBDeviceNew(def->source.subsys.u.usb.bus,
-                                def->source.subsys.u.usb.device, NULL)))
+    if (!(usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device, NULL)))
         goto cleanup;
 
     if (stat(src, &sb) < 0) {
@@ -4597,10 +4607,10 @@ lxcDomainDetachDeviceDiskLive(virDomainObjPtr vm,
     }
 
     if (lxcDomainAttachDeviceUnlink(vm, dst) < 0) {
-        virDomainAuditDisk(vm, src, NULL, "detach", false);
+        virDomainAuditDisk(vm, def->src, NULL, "detach", false);
         goto cleanup;
     }
-    virDomainAuditDisk(vm, src, NULL, "detach", true);
+    virDomainAuditDisk(vm, def->src, NULL, "detach", true);
 
     if (virCgroupDenyDevicePath(priv->cgroup, src, VIR_CGROUP_DEVICE_RWM) != 0)
         VIR_WARN("cannot deny device %s for domain %s",
@@ -4684,6 +4694,7 @@ lxcDomainDetachDeviceHostdevUSBLive(virLXCDriverPtr driver,
     char *dst = NULL;
     virUSBDevicePtr usb = NULL;
     virHostdevManagerPtr hostdev_mgr = driver->hostdevMgr;
+    virDomainHostdevSubsysUSBPtr usbsrc;
 
     if ((idx = virDomainHostdevFind(vm->def,
                                     dev->data.hostdev,
@@ -4693,9 +4704,9 @@ lxcDomainDetachDeviceHostdevUSBLive(virLXCDriverPtr driver,
         goto cleanup;
     }
 
+    usbsrc = &def->source.subsys.u.usb;
     if (virAsprintf(&dst, "/dev/bus/usb/%03d/%03d",
-                    def->source.subsys.u.usb.bus,
-                    def->source.subsys.u.usb.device) < 0)
+                    usbsrc->bus, usbsrc->device) < 0)
         goto cleanup;
 
     if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES)) {
@@ -4704,8 +4715,7 @@ lxcDomainDetachDeviceHostdevUSBLive(virLXCDriverPtr driver,
         goto cleanup;
     }
 
-    if (!(usb = virUSBDeviceNew(def->source.subsys.u.usb.bus,
-                                def->source.subsys.u.usb.device, NULL)))
+    if (!(usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device, NULL)))
         goto cleanup;
 
     if (lxcDomainAttachDeviceUnlink(vm, dst) < 0) {
@@ -5364,10 +5374,8 @@ lxcConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 
     if (virSysinfoFormat(&buf, driver->hostsysinfo) < 0)
         return NULL;
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         return NULL;
-    }
     return virBufferContentAndReset(&buf);
 }
 
@@ -5578,7 +5586,8 @@ lxcDomainSetMetadata(virDomainPtr dom,
         goto cleanup;
 
     ret = virDomainObjSetMetadata(vm, type, metadata, key, uri, caps,
-                                  driver->xmlopt, cfg->configDir, flags);
+                                  driver->xmlopt, cfg->stateDir,
+                                  cfg->configDir, flags);
 
  cleanup:
     virObjectUnlock(vm);
@@ -5710,6 +5719,7 @@ static virDriver lxcDriver = {
     .domainGetMaxMemory = lxcDomainGetMaxMemory, /* 0.7.2 */
     .domainSetMaxMemory = lxcDomainSetMaxMemory, /* 0.7.2 */
     .domainSetMemory = lxcDomainSetMemory, /* 0.7.2 */
+    .domainSetMemoryFlags = lxcDomainSetMemoryFlags, /* 1.2.7 */
     .domainSetMemoryParameters = lxcDomainSetMemoryParameters, /* 0.8.5 */
     .domainGetMemoryParameters = lxcDomainGetMemoryParameters, /* 0.8.5 */
     .domainSetBlkioParameters = lxcDomainSetBlkioParameters, /* 0.9.8 */

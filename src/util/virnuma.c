@@ -1,7 +1,7 @@
 /*
  * virnuma.c: helper APIs for managing numa
  *
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -51,17 +51,6 @@
 
 VIR_LOG_INIT("util.numa");
 
-VIR_ENUM_IMPL(virDomainNumatuneMemMode,
-              VIR_DOMAIN_NUMATUNE_MEM_LAST,
-              "strict",
-              "preferred",
-              "interleave");
-
-VIR_ENUM_IMPL(virNumaTuneMemPlacementMode,
-              VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_LAST,
-              "default",
-              "static",
-              "auto");
 
 #if HAVE_NUMAD
 char *
@@ -98,11 +87,10 @@ virNumaGetAutoPlacementAdvice(unsigned short vcpus ATTRIBUTE_UNUSED,
 
 #if WITH_NUMACTL
 int
-virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
+virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
                          virBitmapPtr nodemask)
 {
     nodemask_t mask;
-    int mode = -1;
     int node = -1;
     int ret = -1;
     int bit = 0;
@@ -110,19 +98,9 @@ virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
     int maxnode = 0;
     virBitmapPtr tmp_nodemask = NULL;
 
-    if (numatune.memory.placement_mode ==
-        VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_STATIC) {
-        if (!numatune.memory.nodemask)
-            return 0;
-        VIR_DEBUG("Set NUMA memory policy with specified nodeset");
-        tmp_nodemask = numatune.memory.nodemask;
-    } else if (numatune.memory.placement_mode ==
-               VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO) {
-        VIR_DEBUG("Set NUMA memory policy with advisory nodeset from numad");
-        tmp_nodemask = nodemask;
-    } else {
+    tmp_nodemask = virDomainNumatuneGetNodeset(numatune, nodemask, -1);
+    if (!tmp_nodemask)
         return 0;
-    }
 
     if (numa_available() < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -145,13 +123,15 @@ virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
         nodemask_set(&mask, bit);
     }
 
-    mode = numatune.memory.mode;
-
-    if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
+    switch (virDomainNumatuneGetMode(numatune, -1)) {
+    case VIR_DOMAIN_NUMATUNE_MEM_STRICT:
         numa_set_bind_policy(1);
         numa_set_membind(&mask);
         numa_set_bind_policy(0);
-    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_PREFERRED) {
+        break;
+
+    case VIR_DOMAIN_NUMATUNE_MEM_PREFERRED:
+    {
         int nnodes = 0;
         for (i = 0; i < NUMA_NUM_NODES; i++) {
             if (nodemask_isset(&mask, i)) {
@@ -169,17 +149,16 @@ virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
 
         numa_set_bind_policy(0);
         numa_set_preferred(node);
-    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE) {
-        numa_set_interleave_mask(&mask);
-    } else {
-        /* XXX: Shouldn't go here, as we already do checking when
-         * parsing domain XML.
-         */
-        virReportError(VIR_ERR_XML_ERROR,
-                       "%s", _("Invalid mode for memory NUMA tuning."));
-        goto cleanup;
     }
+    break;
 
+    case VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE:
+        numa_set_interleave_mask(&mask);
+        break;
+
+    case VIR_DOMAIN_NUMATUNE_MEM_LAST:
+        break;
+    }
     ret = 0;
 
  cleanup:
@@ -338,10 +317,10 @@ virNumaGetNodeCPUs(int node,
 
 #else
 int
-virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
+virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
                          virBitmapPtr nodemask ATTRIBUTE_UNUSED)
 {
-    if (numatune.memory.nodemask) {
+    if (virDomainNumatuneGetNodeset(numatune, NULL, -1)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("libvirt is compiled without NUMA tuning support"));
 
@@ -411,7 +390,7 @@ virNumaGetMaxCPUs(void)
 }
 
 
-#ifdef HAVE_NUMA_BITMASK_ISBITSET
+#if WITH_NUMACTL && HAVE_NUMA_BITMASK_ISBITSET
 /**
  * virNumaNodeIsAvailable:
  * @node: node to check
@@ -506,7 +485,7 @@ virNumaGetDistances(int node ATTRIBUTE_UNUSED,
 {
     *distances = NULL;
     *ndistances = 0;
-    VIR_DEBUG("NUMA distance information isn't availble on this host");
+    VIR_DEBUG("NUMA distance information isn't available on this host");
     return 0;
 }
 #endif

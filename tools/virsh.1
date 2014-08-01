@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2014-06-26" "libvirt-1.2.6" "Virtualization Support"
+.TH VIRSH 1 "2014-07-25" "libvirt-1.2.7" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -455,6 +455,39 @@ for each kind of guest which can be virtualized. For a more complete
 description see:
   <http://libvirt.org/formatcaps.html>
 The \s-1XML\s0 also show the \s-1NUMA\s0 topology information if available.
+.IP "\fBdomcapabilities\fR [\fIvirttype\fR] [\fIemulatorbin\fR] [\fIarch\fR] [\fImachine\fR]" 4
+.IX Item "domcapabilities [virttype] [emulatorbin] [arch] [machine]"
+Print an \s-1XML\s0 document describing the domain capabilities for the
+hypervisor we are connected to using information either sourced from an
+existing domain or taken from the \fBvirsh capabilities\fR output. This may
+be useful if you intend to create a new domain and are curious if for
+instance it could make use of \s-1VFIO\s0 by creating a domain for the
+hypervisor with a specific emulator and architecture.
+.Sp
+Each hypervisor will have different requirements regarding which options
+are required and which are optional. A hypervisor can support providing
+a default value for any of the options.
+.Sp
+The \fIvirttype\fR option specifies the virtualization type used. The value
+to be used is either from the 'type' attribute of the <domain/> top
+level element from the domain \s-1XML\s0 or the 'type' attribute found within
+each <guest/> element from the \fBvirsh capabilities\fR output.  The
+\&\fIemulatorbin\fR option specifies the path to the emulator. The value to
+be used is either the <emulator> element in the domain \s-1XML\s0 or the
+\&\fBvirsh capabilities\fR output. The \fIarch\fR option specifies the
+architecture to be used for the domain. The value to be used is either
+the \*(L"arch\*(R" attribute from the domain's \s-1XML\s0 <os/> element and <type/>
+subelement or the \*(L"name\*(R" attribute of an <arch/> element from the
+\&\fBvirsh capabililites\fR output. The \fImachine\fR specifies the machine type
+for the emulator. The value to be used is either the \*(L"machine\*(R" attribute
+from the domain's \s-1XML\s0 <os/> element and <type/> subelement or one from a
+list of machines from the \fBvirsh capabilities\fR output for a specific
+architecture and domain type.
+.Sp
+For the qemu hypervisor, a \fIvirttype\fR of either 'qemu' or 'kvm' must be
+supplied along with either the \fIemulatorbin\fR or \fIarch\fR in order to
+generate output for the default \fImachine\fR.  Supplying a \fImachine\fR
+value will generate output for the specific machine.
 .IP "\fBinject-nmi\fR \fIdomain\fR" 4
 .IX Item "inject-nmi domain"
 Inject \s-1NMI\s0 to the guest.
@@ -831,8 +864,8 @@ virtual interfaces that will be used on the next boot, rather than those
 currently in use by a running domain. Other contexts that require a \s-1MAC\s0
 address of virtual interface (such as \fIdetach-interface\fR or
 \&\fIdomif-setlink\fR) will accept the \s-1MAC\s0 address printed by this command.
-.IP "\fBblockcommit\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-shallow\fR] [\fItop\fR] [\fI\-\-delete\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-active\fR] [{\fI\-\-pivot\fR | \fI\-\-keep\-overlay\fR}]" 4
-.IX Item "blockcommit domain path [bandwidth] [base] [--shallow] [top] [--delete] [--wait [--async] [--verbose]] [--timeout seconds] [--active] [{--pivot | --keep-overlay}]"
+.IP "\fBblockcommit\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-shallow\fR] [\fItop\fR] [\fI\-\-delete\fR] [\fI\-\-keep\-relative\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-active\fR] [{\fI\-\-pivot\fR | \fI\-\-keep\-overlay\fR}]" 4
+.IX Item "blockcommit domain path [bandwidth] [base] [--shallow] [top] [--delete] [--keep-relative] [--wait [--async] [--verbose]] [--timeout seconds] [--active] [{--pivot | --keep-overlay}]"
 Reduce the length of a backing image chain, by committing changes at the
 top of the chain (snapshot or delta files) into backing images.  By
 default, this command attempts to flatten the entire chain.  If \fIbase\fR
@@ -842,7 +875,8 @@ operation is constrained to committing just that portion of the chain;
 backing file of the resulting top image to be committed.  The files
 being committed are rendered invalid, possibly as soon as the operation
 starts; using the \fI\-\-delete\fR flag will attempt to remove these invalidated
-files at the successful completion of the commit operation.
+files at the successful completion of the commit operation. When the
+\&\fI\-\-keep\-relative\fR flag is used, the backing file paths will be kept relative.
 .Sp
 When \fItop\fR is omitted or specified as the active image, it is also
 possible to specify \fI\-\-active\fR to trigger a two-phase active commit. In
@@ -873,7 +907,10 @@ to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
 also \fBdomblklist\fR for listing these names).
 \&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s, although for
-qemu, it may be non-zero only for an online domain.
+qemu, it may be non-zero only for an online domain. Specifying a negative
+value is interpreted as an unsigned long long value or essentially
+unlimited. The hypervisor can choose whether to reject the value or
+convert it to the maximum value allowed.
 .IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR \fIdest\fR [\fIbandwidth\fR] [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-raw\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [{\fI\-\-pivot\fR | \fI\-\-finish\fR}] [\fI\-\-timeout\fR \fBseconds\fR]" 4
 .IX Item "blockcopy domain path dest [bandwidth] [--shallow] [--reuse-external] [--raw] [--wait [--async] [--verbose]] [{--pivot | --finish}] [--timeout seconds]"
 Copy a disk backing image chain to \fIdest\fR. By default, this command
@@ -881,10 +918,11 @@ flattens the entire chain; but if \fI\-\-shallow\fR is specified, the copy
 shares the backing chain.
 .Sp
 If \fI\-\-reuse\-external\fR is specified, then \fIdest\fR must exist and have
-contents identical to the resulting backing file (that is, it must
-start with contents matching the backing file \fIdisk\fR if \fI\-\-shallow\fR
-is used, otherwise it must start empty); this option is typically used
-to set up a relative backing file name in the destination.
+sufficient space to hold the copy. If \fI\-\-shallow\fR is used in
+conjunction with \fI\-\-reuse\-external\fR then the pre-created image must have
+guest visible contents identical to guest visible contents of the backing
+file of the original image. This may be used to modify the backing file
+names on the destination.
 .Sp
 The format of the destination is determined by the first match in the
 following list: if \fI\-\-raw\fR is specified, it will be raw; if
@@ -912,9 +950,12 @@ as fast as possible, otherwise the command may continue to block a little
 while longer until the job has actually cancelled.
 .Sp
 \&\fIpath\fR specifies fully-qualified path of the disk.
-\&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s.
-.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]]" 4
-.IX Item "blockpull domain path [bandwidth] [base] [--wait [--verbose] [--timeout seconds] [--async]]"
+\&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s. Specifying a negative
+value is interpreted as an unsigned long long value or essentially
+unlimited. The hypervisor can choose whether to reject the value or
+convert it to the maximum value allowed.
+.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]] [\fI\-\-keep\-relative\fR]" 4
+.IX Item "blockpull domain path [bandwidth] [base] [--wait [--verbose] [--timeout seconds] [--async]] [--keep-relative]"
 Populate a disk from its backing image chain. By default, this command
 flattens the entire chain; but if \fIbase\fR is specified, containing the
 name of one of the backing files in the chain, then that file becomes
@@ -933,11 +974,17 @@ is triggered, \fI\-\-async\fR will return control to the user as fast as
 possible, otherwise the command may continue to block a little while
 longer until the job is done cleaning up.
 .Sp
+Using the \fI\-\-keep\-relative\fR flag will keep the backing chain names
+relative.
+.Sp
 \&\fIpath\fR specifies fully-qualified path of the disk; it corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
 also \fBdomblklist\fR for listing these names).
-\&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s.
+\&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s. Specifying a negative
+value is interpreted as an unsigned long long value or essentially
+unlimited. The hypervisor can choose whether to reject the value or
+convert it to the maximum value allowed.
 .IP "\fBblkdeviotune\fR \fIdomain\fR \fIdevice\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [[\fItotal-bytes-sec\fR] | [\fIread-bytes-sec\fR] [\fIwrite-bytes-sec\fR]] [[\fItotal-iops-sec\fR] | [\fIread-iops-sec\fR] [\fIwrite-iops-sec\fR]]" 4
 .IX Item "blkdeviotune domain device [[--config] [--live] | [--current]] [[total-bytes-sec] | [read-bytes-sec] [write-bytes-sec]] [[total-iops-sec] | [read-iops-sec] [write-iops-sec]]"
 Set or query the block disk io parameters for a block device of \fIdomain\fR.
@@ -987,6 +1034,9 @@ commit job be pivoted over to the new image.
 If \fI\-\-info\fR is specified, the active job information on the specified
 disk will be printed.
 \&\fIbandwidth\fR can be used to set bandwidth limit for the active job.
+Specifying a negative value is interpreted as an unsigned long long
+value or essentially unlimited. The hypervisor can choose whether to
+reject the value or convert it to the maximum value allowed.
 .IP "\fBblockresize\fR \fIdomain\fR \fIpath\fR \fIsize\fR" 4
 .IX Item "blockresize domain path size"
 Resize a block device of domain while the domain is running, \fIpath\fR
@@ -1345,7 +1395,10 @@ obtained from domjobinfo.
 .IP "\fBmigrate-setspeed\fR \fIdomain\fR \fIbandwidth\fR" 4
 .IX Item "migrate-setspeed domain bandwidth"
 Set the maximum migration bandwidth (in MiB/s) for a domain which is being
-migrated to another host.
+migrated to another host. \fIbandwidth\fR is interpreted as an unsigned long
+long value. Specifying a negative value results in an essentially unlimited
+value being provided to the hypervisor. The hypervisor can choose whether to
+reject the value or convert it to the maximum value allowed.
 .IP "\fBmigrate-getspeed\fR \fIdomain\fR" 4
 .IX Item "migrate-getspeed domain"
 Get the maximum migration bandwidth (in MiB/s) for a domain.
@@ -1355,9 +1408,11 @@ Set or get a domain's numa parameters, corresponding to the <numatune>
 element of domain \s-1XML. \s0 Without flags, the current settings are
 displayed.
 .Sp
-\&\fImode\fR can be one of `strict', `interleave' and `preferred'.  For a
-running domain, the mode can't be changed, and the nodeset can be
-changed only if the domain was started with a mode of `strict'.
+\&\fImode\fR can be one of `strict', `interleave' and `preferred' or any
+valid number from the virDomainNumatuneMemMode enum in case the daemon
+supports it.  For a running domain, the mode can't be changed, and the
+nodeset can be changed only if the domain was started with a mode of
+`strict'.
 .Sp
 \&\fInodeset\fR is a list of numa nodes used by the host for running the domain.
 Its syntax is a comma separated list, with '\-' for ranges and '^' for
@@ -2016,12 +2071,17 @@ an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain
 \&\fBNote\fR: using of partial device definition \s-1XML\s0 files may lead to unexpected
 results as some fields may be autogenerated and thus match devices other than
 expected.
-.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-sourcetype sourcetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-wwn wwn\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR] [\fI\-\-print\-xml\fR]" 4
-.IX Item "attach-disk domain source target [[[--live] [--config] | [--current]] | [--persistent]] [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--sourcetype sourcetype] [--serial serial] [--wwn wwn] [--rawio] [--address address] [--multifunction] [--print-xml]"
+.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-targetbus bus\fR] [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-sourcetype sourcetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-wwn wwn\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR] [\fI\-\-print\-xml\fR]" 4
+.IX Item "attach-disk domain source target [[[--live] [--config] | [--current]] | [--persistent]] [--targetbus bus] [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--sourcetype sourcetype] [--serial serial] [--wwn wwn] [--rawio] [--address address] [--multifunction] [--print-xml]"
 Attach a new disk device to the domain.
 \&\fIsource\fR is path for the files and devices. \fItarget\fR controls the bus or
 device under which the disk is exposed to the guest \s-1OS.\s0 It indicates the
-\&\*(L"logical\*(R" device name.  \fIdriver\fR can be \fIfile\fR, \fItap\fR or \fIphy\fR for the Xen
+\&\*(L"logical\*(R" device name; the optional \fItargetbus\fR attribute specifies the type
+of disk device to emulate; possible values are driver specific, with typical
+values being \fIide\fR, \fIscsi\fR, \fIvirtio\fR, \fIxen\fR, \fIusb\fR, \fIsata\fR, or \fIsd\fR, if
+omitted, the bus type is inferred from the style of the device name (e.g.  a
+device named 'sda' will typically be exported using a \s-1SCSI\s0 bus).  \fIdriver\fR can
+be \fIfile\fR, \fItap\fR or \fIphy\fR for the Xen
 hypervisor depending on the kind of access; or \fIqemu\fR for the \s-1QEMU\s0 emulator.
 Further details to the driver can be passed using \fIsubdriver\fR. For Xen
 \&\fIsubdriver\fR can be \fIaio\fR, while for \s-1QEMU\s0 subdriver should match the format
@@ -2726,7 +2786,10 @@ is in.
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume where the
 file will be uploaded.
 \&\fI\-\-offset\fR is the position in the storage volume at which to start writing
-the data. \fI\-\-length\fR is an upper bound of the amount of data to be uploaded.
+the data. The value must be 0 or larger. \fI\-\-length\fR is an upper bound
+of the amount of data to be uploaded. A negative value is interpreted
+as an unsigned long long value to essentially include everything from
+the offset to the end of the volume.
 An error will occur if the \fIlocal-file\fR is greater than the specified length.
 .IP "\fBvol-download\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] \fIvol-name-or-key-or-path\fR \fIlocal-file\fR" 4
 .IX Item "vol-download [--pool pool-or-uuid] [--offset bytes] [--length bytes] vol-name-or-key-or-path local-file"
@@ -2735,7 +2798,10 @@ Download the contents of a storage volume to \fIlocal-file\fR.
 is in.
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume to download.
 \&\fI\-\-offset\fR is the position in the storage volume at which to start reading
-the data. \fI\-\-length\fR is an upper bound of the amount of data to be downloaded.
+the data. The value must be 0 or larger. \fI\-\-length\fR is an upper bound of
+the amount of data to be downloaded. A negative value is interpreted as
+an unsigned long long value to essentially include everything from the
+offset to the end of the volume.
 .IP "\fBvol-wipe\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-algorithm\fR \fIalgorithm\fR] \fIvol-name-or-key-or-path\fR" 4
 .IX Item "vol-wipe [--pool pool-or-uuid] [--algorithm algorithm] vol-name-or-key-or-path"
 Wipe a volume, ensure data previously on the volume is not accessible to
@@ -2905,7 +2971,8 @@ metadata again).
 .Sp
 If \fI\-\-reuse\-external\fR is specified, and the snapshot \s-1XML\s0 requests an
 external snapshot with a destination of an existing file, then the
-destination must exist, and is reused; otherwise, a snapshot is refused
+destination must exist and be pre-created with correct format and
+metadata. The file is then reused; otherwise, a snapshot is refused
 to avoid losing contents of the existing files.
 .Sp
 If \fI\-\-quiesce\fR is specified, libvirt will try to use guest agent
@@ -2948,7 +3015,9 @@ The \fI\-\-diskspec\fR option can be used to control how \fI\-\-disk\-only\fR an
 external checkpoints create external files.  This option can occur
 multiple times, according to the number of <disk> elements in the domain
 xml.  Each <diskspec> is in the
-form \fBdisk[,snapshot=type][,driver=type][,file=name]\fR.  To include a
+form \fBdisk[,snapshot=type][,driver=type][,file=name]\fR.  A \fIdiskspec\fR
+must be provided for disks backed by block devices as libvirt doesn't
+auto-generate file names for those.  To include a
 literal comma in \fBdisk\fR or in \fBfile=name\fR, escape it with a second
 comma.  A literal \fI\-\-diskspec\fR must precede each \fBdiskspec\fR unless
 all three of \fIdomain\fR, \fIname\fR, and \fIdescription\fR are also present.
@@ -2960,8 +3029,9 @@ results in the following \s-1XML:
 .Sp
 If \fI\-\-reuse\-external\fR is specified, and the domain \s-1XML\s0 or \fIdiskspec\fR
 option requests an external snapshot with a destination of an existing
-file, then the destination must exist, and is reused; otherwise, a
-snapshot is refused to avoid losing contents of the existing files.
+file, then the destination must exist and be pre-created with correct
+format and metadata. The file is then reused; otherwise, a snapshot
+is refused to avoid losing contents of the existing files.
 .Sp
 If \fI\-\-quiesce\fR is specified, libvirt will try to use guest agent
 to freeze and unfreeze domain's mounted file systems. However,

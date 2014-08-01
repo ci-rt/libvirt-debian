@@ -1016,6 +1016,9 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     virObjectEventPtr event2 = NULL;
     const char *path;
     virDomainDiskDefPtr disk;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    virDomainDiskDefPtr persistDisk = NULL;
+    bool save = false;
 
     virObjectLock(vm);
     disk = qemuProcessFindDomainDiskByAlias(vm, diskAlias);
@@ -1023,33 +1026,92 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     if (disk) {
         /* Have to generate two variants of the event for old vs. new
          * client callbacks */
+        if (type == VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT &&
+            disk->mirrorJob == VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT)
+            type = disk->mirrorJob;
         path = virDomainDiskGetSource(disk);
         event = virDomainEventBlockJobNewFromObj(vm, path, type, status);
         event2 = virDomainEventBlockJob2NewFromObj(vm, disk->dst, type,
                                                    status);
-        /* XXX If we completed a block pull or commit, then recompute
-         * the cached backing chain to match.  Better would be storing
-         * the chain ourselves rather than reprobing, but this
-         * requires modifying domain_conf and our XML to fully track
-         * the chain across libvirtd restarts.  For that matter, if
-         * qemu gains support for committing the active layer, we have
-         * to update disk->src.  */
-        if ((type == VIR_DOMAIN_BLOCK_JOB_TYPE_PULL ||
-             type == VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT) &&
-            status == VIR_DOMAIN_BLOCK_JOB_COMPLETED)
+
+        /* If we completed a block pull or commit, then update the XML
+         * to match.  */
+        if (status == VIR_DOMAIN_BLOCK_JOB_COMPLETED) {
+            if (disk->mirrorState == VIR_DOMAIN_DISK_MIRROR_STATE_PIVOT) {
+                if (vm->newDef) {
+                    int indx = virDomainDiskIndexByName(vm->newDef, disk->dst,
+                                                        false);
+                    virStorageSourcePtr copy = NULL;
+
+                    if (indx >= 0) {
+                        persistDisk = vm->newDef->disks[indx];
+                        copy = virStorageSourceCopy(disk->mirror, false);
+                        if (virStorageSourceInitChainElement(copy,
+                                                             persistDisk->src,
+                                                             false) < 0) {
+                            VIR_WARN("Unable to update persistent definition "
+                                     "on vm %s after block job",
+                                     vm->def->name);
+                            virStorageSourceFree(copy);
+                            copy = NULL;
+                            persistDisk = NULL;
+                        }
+                    }
+                    if (copy) {
+                        virStorageSourceFree(persistDisk->src);
+                        persistDisk->src = copy;
+                    }
+                }
+
+                /* XXX We want to revoke security labels and disk
+                 * lease, as well as audit that revocation, before
+                 * dropping the original source.  But it gets tricky
+                 * if both source and mirror share common backing
+                 * files (we want to only revoke the non-shared
+                 * portion of the chain); so for now, we leak the
+                 * access to the original.  */
+                virStorageSourceFree(disk->src);
+                disk->src = disk->mirror;
+            } else {
+                virStorageSourceFree(disk->mirror);
+            }
+
+            /* Recompute the cached backing chain to match our
+             * updates.  Better would be storing the chain ourselves
+             * rather than reprobing, but we haven't quite completed
+             * that conversion to use our XML tracking. */
+            disk->mirror = NULL;
+            save = disk->mirrorState != VIR_DOMAIN_DISK_MIRROR_STATE_NONE;
+            disk->mirrorState = VIR_DOMAIN_DISK_MIRROR_STATE_NONE;
+            disk->mirrorJob = VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN;
             qemuDomainDetermineDiskChain(driver, vm, disk, true);
-        if (disk->mirror && type == VIR_DOMAIN_BLOCK_JOB_TYPE_COPY) {
+        } else if (disk->mirror &&
+                   (type == VIR_DOMAIN_BLOCK_JOB_TYPE_COPY ||
+                    type == VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT)) {
             if (status == VIR_DOMAIN_BLOCK_JOB_READY) {
-                disk->mirroring = true;
+                disk->mirrorState = VIR_DOMAIN_DISK_MIRROR_STATE_READY;
+                save = true;
             } else if (status == VIR_DOMAIN_BLOCK_JOB_FAILED) {
                 virStorageSourceFree(disk->mirror);
                 disk->mirror = NULL;
-                disk->mirroring = false;
+                disk->mirrorState = VIR_DOMAIN_DISK_MIRROR_STATE_NONE;
+                disk->mirrorJob = VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN;
+                save = true;
             }
         }
     }
 
+    if (save) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
+            VIR_WARN("Unable to save status on vm %s after block job",
+                     vm->def->name);
+        if (persistDisk && virDomainSaveConfig(cfg->configDir,
+                                               vm->newDef) < 0)
+            VIR_WARN("Unable to update persistent definition on vm %s "
+                     "after block job", vm->def->name);
+    }
     virObjectUnlock(vm);
+    virObjectUnref(cfg);
 
     if (event)
         qemuDomainEventQueue(driver, event);
@@ -3534,7 +3596,8 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
                     break;
 
                 case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY:
-                    needTLSPort = true;
+                    if (cfg->spiceTLS)
+                        needTLSPort = true;
                     needPort = true;
                     break;
                 }
@@ -3552,28 +3615,16 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
 
     if (needTLSPort || graphics->data.spice.tlsPort == -1) {
         if (!cfg->spiceTLS) {
-            /* log an error and fail if tls was specifically
-             * requested, or simply ignore (don't allocate a port)
-             * if we're here due to "defaultMode='any'"
-             * (aka unspecified).
-             */
-            if ((graphics->data.spice.tlsPort == -1) ||
-                (graphics->data.spice.defaultMode
-                 == VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("Auto allocation of spice TLS port requested "
-                                 "but spice TLS is disabled in qemu.conf"));
-                goto error;
-            }
-        } else {
-            /* cfg->spiceTLS *is* in place, so it makes sense to
-             * allocate a port.
-             */
-            if (virPortAllocatorAcquire(driver->remotePorts, &tlsPort) < 0)
-                goto error;
-
-            graphics->data.spice.tlsPort = tlsPort;
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Auto allocation of spice TLS port requested "
+                             "but spice TLS is disabled in qemu.conf"));
+            goto error;
         }
+
+        if (virPortAllocatorAcquire(driver->remotePorts, &tlsPort) < 0)
+            goto error;
+
+        graphics->data.spice.tlsPort = tlsPort;
     }
 
     return 0;
@@ -3612,6 +3663,7 @@ qemuProcessVerifyGuestCPU(virQEMUDriverPtr driver, virDomainObjPtr vm)
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int rc;
     bool ret = false;
+    size_t i;
 
     switch (arch) {
     case VIR_ARCH_I686:
@@ -3627,10 +3679,24 @@ qemuProcessVerifyGuestCPU(virQEMUDriverPtr driver, virDomainObjPtr vm)
             goto cleanup;
         }
 
-        if (def->features[VIR_DOMAIN_FEATURE_PVSPINLOCK] == VIR_DOMAIN_FEATURE_STATE_ON) {
+        if (def->features[VIR_DOMAIN_FEATURE_PVSPINLOCK] == VIR_TRISTATE_SWITCH_ON) {
             if (!cpuHasFeature(guestcpu, VIR_CPU_x86_KVM_PV_UNHALT)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("host doesn't support paravirtual spinlocks"));
+                goto cleanup;
+            }
+        }
+
+        for (i = 0; def->cpu && i < def->cpu->nfeatures; i++) {
+            virCPUFeatureDefPtr feature = &def->cpu->features[i];
+
+            if (feature->policy != VIR_CPU_FEATURE_REQUIRE)
+                continue;
+
+            if (STREQ(feature->name, "invtsc") &&
+                !cpuHasFeature(guestcpu, feature->name)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("host doesn't support invariant TSC"));
                 goto cleanup;
             }
         }
@@ -3787,12 +3853,21 @@ int qemuProcessStart(virConnectPtr conn,
     }
     virDomainAuditSecurityLabel(vm, true);
 
-    if (cfg->hugepagePath && vm->def->mem.hugepage_backed) {
-        if (virSecurityManagerSetHugepages(driver->securityManager,
-                                           vm->def, cfg->hugepagePath) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Unable to set huge path in security driver"));
-            goto cleanup;
+    if (vm->def->mem.nhugepages) {
+        for (i = 0; i < cfg->nhugetlbfs; i++) {
+            char *hugepagePath = qemuGetHugepagePath(&cfg->hugetlbfs[i]);
+
+            if (!hugepagePath)
+                goto cleanup;
+
+            if (virSecurityManagerSetHugepages(driver->securityManager,
+                                               vm->def, hugepagePath) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               "%s", _("Unable to set huge path in security driver"));
+                VIR_FREE(hugepagePath);
+                goto cleanup;
+            }
+            VIR_FREE(hugepagePath);
         }
     }
 
@@ -3894,10 +3969,7 @@ int qemuProcessStart(virConnectPtr conn,
     /* Get the advisory nodeset from numad if 'placement' of
      * either <vcpu> or <numatune> is 'auto'.
      */
-    if ((vm->def->placement_mode ==
-         VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) ||
-        (vm->def->numatune.memory.placement_mode ==
-         VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) {
+    if (virDomainDefNeedsPlacementAdvice(vm->def)) {
         nodeset = virNumaGetAutoPlacementAdvice(vm->def->vcpus,
                                                 vm->def->mem.max_balloon);
         if (!nodeset)
@@ -3905,8 +3977,7 @@ int qemuProcessStart(virConnectPtr conn,
 
         VIR_DEBUG("Nodeset returned from numad: %s", nodeset);
 
-        if (virBitmapParse(nodeset, 0, &nodemask,
-                           VIR_DOMAIN_CPUMASK_LEN) < 0)
+        if (virBitmapParse(nodeset, 0, &nodemask, VIR_DOMAIN_CPUMASK_LEN) < 0)
             goto cleanup;
     }
     hookData.nodemask = nodemask;
@@ -4153,6 +4224,10 @@ int qemuProcessStart(virConnectPtr conn,
 
     VIR_DEBUG("Detecting if required emulator features are present");
     if (!qemuProcessVerifyGuestCPU(driver, vm))
+        goto cleanup;
+
+    VIR_DEBUG("Setting up post-init cgroup restrictions");
+    if (qemuSetupCgroupPostInit(vm, nodemask) < 0)
         goto cleanup;
 
     VIR_DEBUG("Detecting VCPU PIDs");

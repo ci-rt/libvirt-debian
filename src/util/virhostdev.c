@@ -168,6 +168,7 @@ virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
 
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
+        virDomainHostdevSubsysPCIPtr pcisrc = &hostdev->source.subsys.u.pci;
         virPCIDevicePtr dev;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
@@ -175,10 +176,8 @@ virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
-                              hostdev->source.subsys.u.pci.addr.bus,
-                              hostdev->source.subsys.u.pci.addr.slot,
-                              hostdev->source.subsys.u.pci.addr.function);
+        dev = virPCIDeviceNew(pcisrc->addr.domain, pcisrc->addr.bus,
+                              pcisrc->addr.slot, pcisrc->addr.function);
         if (!dev) {
             virObjectUnref(list);
             return NULL;
@@ -191,14 +190,12 @@ virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
         }
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
-        if (hostdev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             if (virPCIDeviceSetStubDriver(dev, "vfio-pci") < 0) {
                 virObjectUnref(list);
                 return NULL;
             }
-        } else if (hostdev->source.subsys.u.pci.backend
-                   == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN) {
+        } else if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN) {
             if (virPCIDeviceSetStubDriver(dev, "pciback") < 0) {
                 virObjectUnref(list);
                 return NULL;
@@ -619,16 +616,15 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
         virPCIDevicePtr dev;
         virPCIDevicePtr pcidev;
         virDomainHostdevDefPtr hostdev = hostdevs[i];
+        virDomainHostdevSubsysPCIPtr pcisrc = &hostdev->source.subsys.u.pci;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
-                              hostdev->source.subsys.u.pci.addr.bus,
-                              hostdev->source.subsys.u.pci.addr.slot,
-                              hostdev->source.subsys.u.pci.addr.function);
+        dev = virPCIDeviceNew(pcisrc->addr.domain, pcisrc->addr.bus,
+                              pcisrc->addr.slot, pcisrc->addr.function);
 
         /* original states "unbind_from_stub", "remove_slot",
          * "reprobe" were already set by pciDettachDevice in
@@ -832,28 +828,26 @@ virHostdevUpdateActivePCIDevices(virHostdevManagerPtr mgr,
     virObjectLock(mgr->inactivePCIHostdevs);
 
     for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevSubsysPCIPtr pcisrc;
         hostdev = hostdevs[i];
+        pcisrc = &hostdev->source.subsys.u.pci;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
-                              hostdev->source.subsys.u.pci.addr.bus,
-                              hostdev->source.subsys.u.pci.addr.slot,
-                              hostdev->source.subsys.u.pci.addr.function);
+        dev = virPCIDeviceNew(pcisrc->addr.domain, pcisrc->addr.bus,
+                              pcisrc->addr.slot, pcisrc->addr.function);
 
         if (!dev)
             goto cleanup;
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
-        if (hostdev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             if (virPCIDeviceSetStubDriver(dev, "vfio-pci") < 0)
                 goto cleanup;
-        } else if (hostdev->source.subsys.u.pci.backend
-                   == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN) {
+        } else if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN) {
             if (virPCIDeviceSetStubDriver(dev, "pciback") < 0)
                 goto cleanup;
         } else {
@@ -897,22 +891,19 @@ virHostdevUpdateActiveUSBDevices(virHostdevManagerPtr mgr,
 
     virObjectLock(mgr->activeUSBHostdevs);
     for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevSubsysUSBPtr usbsrc;
         virUSBDevicePtr usb = NULL;
         hostdev = hostdevs[i];
+        usbsrc = &hostdev->source.subsys.u.usb;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
             continue;
 
-        usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
-                              hostdev->source.subsys.u.usb.device,
-                              NULL);
-        if (!usb) {
+        if (!(usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device, NULL))) {
             VIR_WARN("Unable to reattach USB device %03d.%03d on domain %s",
-                     hostdev->source.subsys.u.usb.bus,
-                     hostdev->source.subsys.u.usb.device,
-                     dom_name);
+                     usbsrc->bus, usbsrc->device, dom_name);
             continue;
         }
 
@@ -929,6 +920,43 @@ virHostdevUpdateActiveUSBDevices(virHostdevManagerPtr mgr,
     return ret;
 }
 
+static int
+virHostdevUpdateActiveSCSIHostDevices(virHostdevManagerPtr mgr,
+                                      virDomainHostdevDefPtr hostdev,
+                                      virDomainHostdevSubsysSCSIPtr scsisrc,
+                                      const char *drv_name,
+                                      const char *dom_name)
+{
+    virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
+    virSCSIDevicePtr scsi = NULL;
+    virSCSIDevicePtr tmp = NULL;
+    int ret = -1;
+
+    if (!(scsi = virSCSIDeviceNew(NULL,
+                                  scsihostsrc->adapter, scsihostsrc->bus,
+                                  scsihostsrc->target, scsihostsrc->unit,
+                                  hostdev->readonly, hostdev->shareable)))
+        goto cleanup;
+
+    if ((tmp = virSCSIDeviceListFind(mgr->activeSCSIHostdevs, scsi))) {
+        if (virSCSIDeviceSetUsedBy(tmp, drv_name, dom_name) < 0) {
+            virSCSIDeviceFree(scsi);
+            goto cleanup;
+        }
+        virSCSIDeviceFree(scsi);
+    } else {
+        if (virSCSIDeviceSetUsedBy(scsi, drv_name, dom_name) < 0 ||
+            virSCSIDeviceListAdd(mgr->activeSCSIHostdevs, scsi) < 0) {
+            virSCSIDeviceFree(scsi);
+            goto cleanup;
+        }
+    }
+    ret = 0;
+
+ cleanup:
+    return ret;
+}
+
 int
 virHostdevUpdateActiveSCSIDevices(virHostdevManagerPtr mgr,
                                   virDomainHostdevDefPtr *hostdevs,
@@ -939,41 +967,26 @@ virHostdevUpdateActiveSCSIDevices(virHostdevManagerPtr mgr,
     virDomainHostdevDefPtr hostdev = NULL;
     size_t i;
     int ret = -1;
-    virSCSIDevicePtr scsi = NULL;
-    virSCSIDevicePtr tmp = NULL;
 
     if (!nhostdevs)
         return 0;
 
     virObjectLock(mgr->activeSCSIHostdevs);
     for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevSubsysSCSIPtr scsisrc;
         hostdev = hostdevs[i];
+        scsisrc = &hostdev->source.subsys.u.scsi;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
             hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI)
             continue;
 
-        if (!(scsi = virSCSIDeviceNew(NULL,
-                                      hostdev->source.subsys.u.scsi.adapter,
-                                      hostdev->source.subsys.u.scsi.bus,
-                                      hostdev->source.subsys.u.scsi.target,
-                                      hostdev->source.subsys.u.scsi.unit,
-                                      hostdev->readonly,
-                                      hostdev->shareable)))
-            goto cleanup;
-
-        if ((tmp = virSCSIDeviceListFind(mgr->activeSCSIHostdevs, scsi))) {
-            if (virSCSIDeviceSetUsedBy(tmp, drv_name, dom_name) < 0) {
-                virSCSIDeviceFree(scsi);
-                goto cleanup;
-            }
-            virSCSIDeviceFree(scsi);
+        if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
+            continue;  /* Not supported for iSCSI */
         } else {
-            if (virSCSIDeviceSetUsedBy(scsi, drv_name, dom_name) < 0 ||
-                virSCSIDeviceListAdd(mgr->activeSCSIHostdevs, scsi) < 0) {
-                virSCSIDeviceFree(scsi);
+            if (virHostdevUpdateActiveSCSIHostDevices(mgr, hostdev, scsisrc,
+                                                      drv_name, dom_name) < 0)
                 goto cleanup;
-            }
         }
     }
     ret = 0;
@@ -1047,11 +1060,12 @@ virHostdevFindUSBDevice(virDomainHostdevDefPtr hostdev,
                         bool mandatory,
                         virUSBDevicePtr *usb)
 {
-    unsigned vendor = hostdev->source.subsys.u.usb.vendor;
-    unsigned product = hostdev->source.subsys.u.usb.product;
-    unsigned bus = hostdev->source.subsys.u.usb.bus;
-    unsigned device = hostdev->source.subsys.u.usb.device;
-    bool autoAddress = hostdev->source.subsys.u.usb.autoAddress;
+    virDomainHostdevSubsysUSBPtr usbsrc = &hostdev->source.subsys.u.usb;
+    unsigned vendor = usbsrc->vendor;
+    unsigned product = usbsrc->product;
+    unsigned bus = usbsrc->bus;
+    unsigned device = usbsrc->device;
+    bool autoAddress = usbsrc->autoAddress;
     int rc;
 
     *usb = NULL;
@@ -1106,16 +1120,15 @@ virHostdevFindUSBDevice(virDomainHostdevDefPtr hostdev,
             return -1;
         }
 
-        hostdev->source.subsys.u.usb.bus = virUSBDeviceGetBus(*usb);
-        hostdev->source.subsys.u.usb.device = virUSBDeviceGetDevno(*usb);
-        hostdev->source.subsys.u.usb.autoAddress = true;
+        usbsrc->bus = virUSBDeviceGetBus(*usb);
+        usbsrc->device = virUSBDeviceGetDevno(*usb);
+        usbsrc->autoAddress = true;
 
         if (autoAddress) {
             VIR_INFO("USB device %x:%x found at bus:%u device:%u (moved"
                      " from bus:%u device:%u)",
                      vendor, product,
-                     hostdev->source.subsys.u.usb.bus,
-                     hostdev->source.subsys.u.usb.device,
+                     usbsrc->bus, usbsrc->device,
                      bus, device);
         }
     } else if (!vendor && bus) {
@@ -1203,6 +1216,38 @@ virHostdevPrepareUSBDevices(virHostdevManagerPtr hostdev_mgr,
     return ret;
 }
 
+static int
+virHostdevPrepareSCSIHostDevices(virDomainHostdevDefPtr hostdev,
+                                 virDomainHostdevSubsysSCSIPtr scsisrc,
+                                 virSCSIDeviceListPtr list)
+{
+    virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
+    virSCSIDevicePtr scsi;
+    int ret = -1;
+
+    if (hostdev->managed) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("SCSI host device doesn't support managed mode"));
+        goto cleanup;
+    }
+
+    if (!(scsi = virSCSIDeviceNew(NULL,
+                                  scsihostsrc->adapter, scsihostsrc->bus,
+                                  scsihostsrc->target, scsihostsrc->unit,
+                                  hostdev->readonly, hostdev->shareable)))
+        goto cleanup;
+
+    if (virSCSIDeviceListAdd(list, scsi) < 0) {
+        virSCSIDeviceFree(scsi);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    return ret;
+}
+
 int
 virHostdevPrepareSCSIDevices(virHostdevManagerPtr hostdev_mgr,
                              const char *drv_name,
@@ -1229,30 +1274,17 @@ virHostdevPrepareSCSIDevices(virHostdevManagerPtr hostdev_mgr,
     /* Loop 1: build temporary list */
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
-        virSCSIDevicePtr scsi;
+        virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
             hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI)
             continue;
 
-        if (hostdev->managed) {
-            virReportError(VIR_ERR_XML_ERROR, "%s",
-                           _("SCSI host device doesn't support managed mode"));
-            goto cleanup;
-        }
-
-        if (!(scsi = virSCSIDeviceNew(NULL,
-                                      hostdev->source.subsys.u.scsi.adapter,
-                                      hostdev->source.subsys.u.scsi.bus,
-                                      hostdev->source.subsys.u.scsi.target,
-                                      hostdev->source.subsys.u.scsi.unit,
-                                      hostdev->readonly,
-                                      hostdev->shareable)))
-            goto cleanup;
-
-        if (scsi && virSCSIDeviceListAdd(list, scsi) < 0) {
-            virSCSIDeviceFree(scsi);
-            goto cleanup;
+        if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
+            continue;  /* Not supported for iSCSI */
+        } else {
+            if (virHostdevPrepareSCSIHostDevices(hostdev, scsisrc, list) < 0)
+                goto cleanup;
         }
     }
 
@@ -1332,6 +1364,7 @@ virHostdevReAttachUSBDevices(virHostdevManagerPtr hostdev_mgr,
     virObjectLock(hostdev_mgr->activeUSBHostdevs);
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
+        virDomainHostdevSubsysUSBPtr usbsrc = &hostdev->source.subsys.u.usb;
         virUSBDevicePtr usb, tmp;
         const char *usedby_drvname;
         const char *usedby_domname;
@@ -1343,15 +1376,9 @@ virHostdevReAttachUSBDevices(virHostdevManagerPtr hostdev_mgr,
         if (hostdev->missing)
             continue;
 
-        usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
-                              hostdev->source.subsys.u.usb.device,
-                              NULL);
-
-        if (!usb) {
+        if (!(usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device, NULL))) {
             VIR_WARN("Unable to reattach USB device %03d.%03d on domain %s",
-                     hostdev->source.subsys.u.usb.bus,
-                     hostdev->source.subsys.u.usb.device,
-                     dom_name);
+                     usbsrc->bus, usbsrc->device, dom_name);
             continue;
         }
 
@@ -1367,8 +1394,7 @@ virHostdevReAttachUSBDevices(virHostdevManagerPtr hostdev_mgr,
         if (!tmp) {
             VIR_WARN("Unable to find device %03d.%03d "
                      "in list of active USB devices",
-                     hostdev->source.subsys.u.usb.bus,
-                     hostdev->source.subsys.u.usb.device);
+                     usbsrc->bus, usbsrc->device);
             continue;
         }
 
@@ -1376,14 +1402,53 @@ virHostdevReAttachUSBDevices(virHostdevManagerPtr hostdev_mgr,
         if (STREQ_NULLABLE(drv_name, usedby_drvname) &&
             STREQ_NULLABLE(dom_name, usedby_domname)) {
             VIR_DEBUG("Removing %03d.%03d dom=%s from activeUSBHostdevs",
-                      hostdev->source.subsys.u.usb.bus,
-                      hostdev->source.subsys.u.usb.device,
-                      dom_name);
-
+                      usbsrc->bus, usbsrc->device, dom_name);
             virUSBDeviceListDel(hostdev_mgr->activeUSBHostdevs, tmp);
         }
     }
     virObjectUnlock(hostdev_mgr->activeUSBHostdevs);
+}
+
+static void
+virHostdevReAttachSCSIHostDevices(virHostdevManagerPtr hostdev_mgr,
+                                  virDomainHostdevDefPtr hostdev,
+                                  virDomainHostdevSubsysSCSIPtr scsisrc,
+                                  const char *drv_name,
+                                  const char *dom_name)
+{
+    virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
+    virSCSIDevicePtr scsi;
+    virSCSIDevicePtr tmp;
+
+    if (!(scsi = virSCSIDeviceNew(NULL,
+                                  scsihostsrc->adapter, scsihostsrc->bus,
+                                  scsihostsrc->target, scsihostsrc->unit,
+                                  hostdev->readonly, hostdev->shareable))) {
+        VIR_WARN("Unable to reattach SCSI device %s:%d:%d:%d on domain %s",
+                 scsihostsrc->adapter, scsihostsrc->bus, scsihostsrc->target,
+                 scsihostsrc->unit, dom_name);
+        return;
+    }
+
+    /* Only delete the devices which are marked as being used by @name,
+     * because qemuProcessStart could fail half way through. */
+
+    if (!(tmp = virSCSIDeviceListFind(hostdev_mgr->activeSCSIHostdevs, scsi))) {
+        VIR_WARN("Unable to find device %s:%d:%d:%d "
+                 "in list of active SCSI devices",
+                 scsihostsrc->adapter, scsihostsrc->bus,
+                 scsihostsrc->target, scsihostsrc->unit);
+        virSCSIDeviceFree(scsi);
+        return;
+    }
+
+    VIR_DEBUG("Removing %s:%d:%d:%d dom=%s from activeSCSIHostdevs",
+               scsihostsrc->adapter, scsihostsrc->bus, scsihostsrc->target,
+               scsihostsrc->unit, dom_name);
+
+    virSCSIDeviceListDel(hostdev_mgr->activeSCSIHostdevs, tmp,
+                         drv_name, dom_name);
+    virSCSIDeviceFree(scsi);
 }
 
 void
@@ -1401,53 +1466,17 @@ virHostdevReAttachSCSIDevices(virHostdevManagerPtr hostdev_mgr,
     virObjectLock(hostdev_mgr->activeSCSIHostdevs);
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
-        virSCSIDevicePtr scsi;
-        virSCSIDevicePtr tmp;
+        virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
             hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI)
             continue;
 
-        if (!(scsi = virSCSIDeviceNew(NULL,
-                                      hostdev->source.subsys.u.scsi.adapter,
-                                      hostdev->source.subsys.u.scsi.bus,
-                                      hostdev->source.subsys.u.scsi.target,
-                                      hostdev->source.subsys.u.scsi.unit,
-                                      hostdev->readonly,
-                                      hostdev->shareable))) {
-            VIR_WARN("Unable to reattach SCSI device %s:%d:%d:%d on domain %s",
-                     hostdev->source.subsys.u.scsi.adapter,
-                     hostdev->source.subsys.u.scsi.bus,
-                     hostdev->source.subsys.u.scsi.target,
-                     hostdev->source.subsys.u.scsi.unit,
-                     dom_name);
-            continue;
-        }
-
-        /* Only delete the devices which are marked as being used by @name,
-         * because qemuProcessStart could fail on the half way. */
-
-        if (!(tmp = virSCSIDeviceListFind(hostdev_mgr->activeSCSIHostdevs, scsi))) {
-            VIR_WARN("Unable to find device %s:%d:%d:%d "
-                     "in list of active SCSI devices",
-                     hostdev->source.subsys.u.scsi.adapter,
-                     hostdev->source.subsys.u.scsi.bus,
-                     hostdev->source.subsys.u.scsi.target,
-                     hostdev->source.subsys.u.scsi.unit);
-            virSCSIDeviceFree(scsi);
-            continue;
-        }
-
-        VIR_DEBUG("Removing %s:%d:%d:%d dom=%s from activeSCSIHostdevs",
-                   hostdev->source.subsys.u.scsi.adapter,
-                   hostdev->source.subsys.u.scsi.bus,
-                   hostdev->source.subsys.u.scsi.target,
-                   hostdev->source.subsys.u.scsi.unit,
-                   dom_name);
-
-        virSCSIDeviceListDel(hostdev_mgr->activeSCSIHostdevs, tmp,
-                             drv_name, dom_name);
-        virSCSIDeviceFree(scsi);
+        if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
+            continue; /* Not supported for iSCSI */
+        else
+            virHostdevReAttachSCSIHostDevices(hostdev_mgr, hostdev, scsisrc,
+                                              drv_name, dom_name);
     }
     virObjectUnlock(hostdev_mgr->activeSCSIHostdevs);
 }

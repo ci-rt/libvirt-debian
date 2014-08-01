@@ -201,6 +201,7 @@
         <value>vbox</value>
         <value>phyp</value>
         <value>parallels</value>
+        <value>bhyve</value>
       </choice>
     </attribute>
   </define>
@@ -567,7 +568,24 @@
           <interleave>
             <optional>
               <element name="hugepages">
-                <empty/>
+                <zeroOrMore>
+                  <element name="page">
+                    <attribute name="size">
+                      <ref name="unsignedLong"/>
+                    </attribute>
+                    <optional>
+                      <attribute name='unit'>
+                        <ref name='unit'/>
+                      </attribute>
+                    </optional>
+                    <optional>
+                      <attribute name="nodeset">
+                        <ref name='cpuset'/>
+                      </attribute>
+                    </optional>
+                    <empty/>
+                  </element>
+                </zeroOrMore>
               </element>
             </optional>
             <optional>
@@ -759,9 +777,42 @@
   <!-- All the NUMA related tunables would go in the numatune -->
   <define name="numatune">
     <element name="numatune">
-      <optional>
-        <element name="memory">
-          <optional>
+      <interleave>
+        <optional>
+          <element name="memory">
+            <optional>
+              <attribute name="mode">
+                <choice>
+                  <value>strict</value>
+                  <value>preferred</value>
+                  <value>interleave</value>
+                </choice>
+              </attribute>
+            </optional>
+            <choice>
+              <group>
+                <optional>
+                  <attribute name='placement'>
+                    <value>static</value>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name='nodeset'>
+                    <ref name='cpuset'/>
+                  </attribute>
+                </optional>
+              </group>
+              <attribute name='placement'>
+                <value>auto</value>
+              </attribute>
+            </choice>
+          </element>
+        </optional>
+        <zeroOrMore>
+          <element name="memnode">
+            <attribute name="cellid">
+              <ref name="unsignedInt"/>
+            </attribute>
             <attribute name="mode">
               <choice>
                 <value>strict</value>
@@ -769,26 +820,12 @@
                 <value>interleave</value>
               </choice>
             </attribute>
-          </optional>
-          <choice>
-            <group>
-              <optional>
-                <attribute name='placement'>
-                  <value>static</value>
-                </attribute>
-              </optional>
-              <optional>
-                <attribute name='nodeset'>
-                  <ref name='cpuset'/>
-                </attribute>
-              </optional>
-            </group>
-            <attribute name='placement'>
-              <value>auto</value>
+            <attribute name='nodeset'>
+              <ref name='cpuset'/>
             </attribute>
-              </choice>
-        </element>
-      </optional>
+          </element>
+        </zeroOrMore>
+      </interleave>
     </element>
   </define>
 
@@ -1735,6 +1772,16 @@
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
+            <optional>
+              <attribute name="cmd_per_lun">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name="max_sectors">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
           </element>
         </optional>
       </interleave>
@@ -1968,6 +2015,31 @@
         </group>
         <group>
           <attribute name="type">
+            <value>vhostuser</value>
+          </attribute>
+          <interleave>
+              <element name="source">
+                <attribute name="type">
+                  <choice>
+                    <value>unix</value>
+                  </choice>
+                </attribute>
+                <attribute name="path">
+                  <ref name="absFilePath"/>
+                </attribute>
+                <attribute name="mode">
+                  <choice>
+                    <value>server</value>
+                    <value>client</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            <ref name="interface-options"/>
+          </interleave>
+        </group>
+        <group>
+          <attribute name="type">
             <value>network</value>
           </attribute>
           <interleave>
@@ -2161,6 +2233,23 @@
           <attribute name="dev">
             <ref name="deviceName"/>
           </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="guest">
+          <interleave>
+            <optional>
+              <attribute name="dev">
+                <ref name="deviceName"/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name="actual">
+                <ref name="deviceName"/>
+              </attribute>
+            </optional>
+          </interleave>
           <empty/>
         </element>
       </optional>
@@ -2939,6 +3028,7 @@
       <value>pty</value>
       <value>spicevmc</value>
       <value>spiceport</value>
+      <value>nmdm</value>
     </choice>
   </define>
 
@@ -3010,6 +3100,12 @@
         </optional>
         <optional>
           <attribute name="channel"/>
+        </optional>
+        <optional>
+          <attribute name="master"/>
+        </optional>
+        <optional>
+          <attribute name="slave"/>
         </optional>
         <optional>
           <ref name='devSeclabel'/>
@@ -3744,6 +3840,9 @@
               <empty/>
             </element>
           </optional>
+          <optional>
+            <ref name="capabilities"/>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -3892,6 +3991,11 @@
 
   <define name="numaCell">
     <element name="cell">
+      <optional>
+        <attribute name="id">
+          <ref name="unsignedInt"/>
+        </attribute>
+      </optional>
       <attribute name="cpus">
         <ref name="cpuset"/>
       </attribute>
@@ -4186,6 +4290,13 @@
             </attribute>
           </optional>
           <optional>
+            <attribute name='job'>
+              <choice>
+                <value>copy</value>
+              </choice>
+            </attribute>
+          </optional>
+          <optional>
             <interleave>
               <ref name='diskSourceFile'/>
               <optional>
@@ -4195,6 +4306,12 @@
           </optional>
         </group>
         <group> <!-- preferred format -->
+          <attribute name='job'>
+            <choice>
+              <value>copy</value>
+              <value>active-commit</value>
+            </choice>
+          </attribute>
           <interleave>
             <ref name="diskSource"/>
             <optional>
@@ -4205,7 +4322,11 @@
       </choice>
       <optional>
         <attribute name='ready'>
-          <value>yes</value>
+          <choice>
+            <value>yes</value>
+            <value>abort</value>
+            <value>pivot</value>
+          </choice>
         </attribute>
       </optional>
     </element>
@@ -4311,11 +4432,215 @@
     </element>
   </define>
 
+  <!-- Optional capabilities features -->
+  <define name="capabilities">
+    <element name="capabilities">
+      <ref name="capabilitiespolicy"/>
+      <interleave>
+        <optional>
+          <element name="audit_control">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="audit_write">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="block_suspend">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="chown">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="dac_override">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="dac_read_search">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="fowner">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="fsetid">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="ipc_lock">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="ipc_owner">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="kill">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="lease">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="linux_immutable">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="mac_admin">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="mac_override">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="mknod">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="net_admin">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="net_bind_service">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="net_broadcast">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="net_raw">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="setgid">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="setfcap">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="setpcap">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="setuid">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_admin">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_boot">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_chroot">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_module">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_nice">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_pacct">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_ptrace">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_rawio">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_resource">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_time">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="sys_tty_config">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="syslog">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="wake_alarm">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
   <define name="featurestate">
     <attribute name="state">
       <choice>
         <value>on</value>
         <value>off</value>
+      </choice>
+    </attribute>
+  </define>
+
+  <define name="capabilitiespolicy">
+    <attribute name="policy">
+      <choice>
+        <value>default</value>
+        <value>allow</value>
+        <value>deny</value>
       </choice>
     </attribute>
   </define>

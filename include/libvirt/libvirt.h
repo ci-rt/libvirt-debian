@@ -1496,7 +1496,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1002006
+#define LIBVIR_VERSION_NUMBER 1002007
 
 /**
  * LIBVIR_CHECK_VERSION:
@@ -1584,6 +1584,13 @@ int                     virConnectGetMaxVcpus   (virConnectPtr conn,
 int                     virNodeGetInfo          (virConnectPtr conn,
                                                  virNodeInfoPtr info);
 char *                  virConnectGetCapabilities (virConnectPtr conn);
+
+char * virConnectGetDomainCapabilities(virConnectPtr conn,
+                                       const char *emulatorbin,
+                                       const char *arch,
+                                       const char *machine,
+                                       const char *virttype,
+                                       unsigned int flags);
 
 int                     virNodeGetCPUStats (virConnectPtr conn,
                                             int cpuNum,
@@ -2580,6 +2587,9 @@ typedef enum {
                                                    file for a copy */
     VIR_DOMAIN_BLOCK_REBASE_COPY_RAW  = 1 << 2, /* Make destination file raw */
     VIR_DOMAIN_BLOCK_REBASE_COPY      = 1 << 3, /* Start a copy job */
+    VIR_DOMAIN_BLOCK_REBASE_RELATIVE  = 1 << 4, /* Keep backing chain
+                                                   referenced using relative
+                                                   names */
 } virDomainBlockRebaseFlags;
 
 int           virDomainBlockRebase(virDomainPtr dom, const char *disk,
@@ -2599,6 +2609,9 @@ typedef enum {
                                                  have been committed */
     VIR_DOMAIN_BLOCK_COMMIT_ACTIVE  = 1 << 2, /* Allow a two-phase commit when
                                                  top is the active layer */
+    VIR_DOMAIN_BLOCK_COMMIT_RELATIVE = 1 << 3, /* keep the backing chain
+                                                  referenced using relative
+                                                  names */
 } virDomainBlockCommitFlags;
 
 int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,

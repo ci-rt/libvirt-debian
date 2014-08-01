@@ -51,6 +51,7 @@ struct _virSecurityDACData {
     int ngroups;
     bool dynamicOwnership;
     char *baselabel;
+    virSecurityManagerDACChownCallback chownCallback;
 };
 
 typedef struct _virSecurityDACCallbackData virSecurityDACCallbackData;
@@ -85,6 +86,14 @@ virSecurityDACSetDynamicOwnership(virSecurityManagerPtr mgr,
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     priv->dynamicOwnership = dynamicOwnership;
+}
+
+void
+virSecurityDACSetChownCallback(virSecurityManagerPtr mgr,
+                               virSecurityManagerDACChownCallback chownCallback)
+{
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    priv->chownCallback = chownCallback;
 }
 
 /* returns 1 if label isn't found, 0 on success, -1 on error */
@@ -221,23 +230,56 @@ virSecurityDACPreFork(virSecurityManagerPtr mgr)
 }
 
 static int
-virSecurityDACSetOwnership(const char *path, uid_t uid, gid_t gid)
+virSecurityDACSetOwnershipInternal(virSecurityDACDataPtr priv,
+                                   virStorageSourcePtr src,
+                                   const char *path,
+                                   uid_t uid,
+                                   gid_t gid)
 {
+    int rc;
+    int chown_errno;
+
     VIR_INFO("Setting DAC user and group on '%s' to '%ld:%ld'",
-             path, (long) uid, (long) gid);
+             NULLSTR(src ? src->path : path), (long) uid, (long) gid);
 
-    if (chown(path, uid, gid) < 0) {
+    if (priv && src && priv->chownCallback) {
+        rc = priv->chownCallback(src, uid, gid);
+        /* here path is used only for error messages */
+        path = NULLSTR(src->path);
+
+        /* on -2 returned an error was already reported */
+        if (rc == -2)
+            return -1;
+
+        /* on -1 only errno was set */
+        chown_errno = errno;
+    } else {
         struct stat sb;
-        int chown_errno = errno;
 
-        if (stat(path, &sb) >= 0) {
+        if (!path) {
+            if (!src || !src->path)
+                return 0;
+
+            if (!virStorageSourceIsLocalStorage(src))
+                return 0;
+
+            path = src->path;
+        }
+
+        rc = chown(path, uid, gid);
+        chown_errno = errno;
+
+        if (rc < 0 &&
+            stat(path, &sb) >= 0) {
             if (sb.st_uid == uid &&
                 sb.st_gid == gid) {
                 /* It's alright, there's nothing to change anyway. */
                 return 0;
             }
         }
+    }
 
+    if (rc < 0) {
         if (chown_errno == EOPNOTSUPP || chown_errno == EINVAL) {
             VIR_INFO("Setting user and group to '%ld:%ld' on '%s' not "
                      "supported by filesystem",
@@ -261,51 +303,55 @@ virSecurityDACSetOwnership(const char *path, uid_t uid, gid_t gid)
     return 0;
 }
 
+
 static int
-virSecurityDACRestoreSecurityFileLabel(const char *path)
+virSecurityDACSetOwnership(const char *path, uid_t uid, gid_t gid)
 {
-    struct stat buf;
-    int rc = -1;
-    char *newpath = NULL;
-
-    VIR_INFO("Restoring DAC user and group on '%s'", path);
-
-    if (virFileResolveLink(path, &newpath) < 0) {
-        virReportSystemError(errno,
-                             _("cannot resolve symlink %s"), path);
-        goto err;
-    }
-
-    if (stat(newpath, &buf) != 0)
-        goto err;
-
-    /* XXX record previous ownership */
-    rc = virSecurityDACSetOwnership(newpath, 0, 0);
-
- err:
-    VIR_FREE(newpath);
-    return rc;
+    return virSecurityDACSetOwnershipInternal(NULL, NULL, path, uid, gid);
 }
 
 
 static int
-virSecurityDACSetSecurityFileLabel(virDomainDiskDefPtr disk,
-                                   const char *path,
-                                   size_t depth ATTRIBUTE_UNUSED,
-                                   void *opaque)
+virSecurityDACRestoreSecurityFileLabelInternal(virSecurityDACDataPtr priv,
+                                               virStorageSourcePtr src,
+                                               const char *path)
 {
-    virSecurityDACCallbackDataPtr cbdata = opaque;
-    virSecurityManagerPtr mgr = cbdata->manager;
-    virSecurityLabelDefPtr secdef = cbdata->secdef;
-    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    VIR_INFO("Restoring DAC user and group on '%s'",
+             NULLSTR(src ? src->path : path));
+
+    /* XXX record previous ownership */
+    return virSecurityDACSetOwnershipInternal(priv, src, path, 0, 0);
+}
+
+
+static int
+virSecurityDACRestoreSecurityFileLabel(const char *path)
+{
+    return virSecurityDACRestoreSecurityFileLabelInternal(NULL, NULL, path);
+}
+
+
+static int
+virSecurityDACSetSecurityImageLabel(virSecurityManagerPtr mgr,
+                                    virDomainDefPtr def,
+                                    virStorageSourcePtr src)
+{
+    virSecurityLabelDefPtr secdef;
     virSecurityDeviceLabelDefPtr disk_seclabel;
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     uid_t user;
     gid_t group;
 
-    disk_seclabel = virStorageSourceGetSecurityLabelDef(disk->src,
-                                                        SECURITY_DAC_NAME);
+    if (!priv->dynamicOwnership)
+        return 0;
 
-    if (disk_seclabel && disk_seclabel->norelabel)
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+    if (secdef && !secdef->relabel)
+        return 0;
+
+    disk_seclabel = virStorageSourceGetSecurityLabelDef(src,
+                                                        SECURITY_DAC_NAME);
+    if (disk_seclabel && !disk_seclabel->relabel)
         return 0;
 
     if (disk_seclabel && disk_seclabel->label) {
@@ -316,7 +362,7 @@ virSecurityDACSetSecurityFileLabel(virDomainDiskDefPtr disk,
             return -1;
     }
 
-    return virSecurityDACSetOwnership(path, user, group);
+    return virSecurityDACSetOwnershipInternal(priv, src, NULL, user, group);
 }
 
 
@@ -326,86 +372,78 @@ virSecurityDACSetSecurityDiskLabel(virSecurityManagerPtr mgr,
                                    virDomainDiskDefPtr disk)
 
 {
-    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
-    virSecurityDACCallbackData cbdata;
-    virSecurityLabelDefPtr secdef;
+    virStorageSourcePtr next;
 
-    if (!priv->dynamicOwnership)
-        return 0;
+    for (next = disk->src; next; next = next->backingStore) {
+        if (virSecurityDACSetSecurityImageLabel(mgr, def, next) < 0)
+            return -1;
+    }
 
-    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
-
-    if (secdef && secdef->norelabel)
-        return 0;
-
-    cbdata.manager = mgr;
-    cbdata.secdef = secdef;
-    return virDomainDiskDefForeachPath(disk,
-                                       false,
-                                       virSecurityDACSetSecurityFileLabel,
-                                       &cbdata);
+    return 0;
 }
 
 
 static int
 virSecurityDACRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
                                            virDomainDefPtr def,
-                                           virDomainDiskDefPtr disk,
+                                           virStorageSourcePtr src,
                                            bool migrated)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityLabelDefPtr secdef;
     virSecurityDeviceLabelDefPtr disk_seclabel;
-    const char *src = virDomainDiskGetSource(disk);
 
     if (!priv->dynamicOwnership)
         return 0;
 
-    if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
+    /* Don't restore labels on readoly/shared disks, because other VMs may
+     * still be accessing these. Alternatively we could iterate over all
+     * running domains and try to figure out if it is in use, but this would
+     * not work for clustered filesystems, since we can't see running VMs using
+     * the file on other nodes. Safest bet is thus to skip the restore step. */
+    if (src->readonly || src->shared)
         return 0;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
-
-    if (secdef && secdef->norelabel)
+    if (secdef && !secdef->relabel)
         return 0;
 
-    disk_seclabel = virStorageSourceGetSecurityLabelDef(disk->src,
+    disk_seclabel = virStorageSourceGetSecurityLabelDef(src,
                                                         SECURITY_DAC_NAME);
-
-    if (disk_seclabel && disk_seclabel->norelabel)
+    if (disk_seclabel && !disk_seclabel->relabel)
         return 0;
 
-    /* Don't restore labels on readoly/shared disks, because
-     * other VMs may still be accessing these
-     * Alternatively we could iterate over all running
-     * domains and try to figure out if it is in use, but
-     * this would not work for clustered filesystems, since
-     * we can't see running VMs using the file on other nodes
-     * Safest bet is thus to skip the restore step.
-     */
-    if (disk->readonly || disk->shared)
-        return 0;
-
-    if (!src)
-        return 0;
-
-    /* If we have a shared FS & doing migrated, we must not
-     * change ownership, because that kills access on the
-     * destination host which is sub-optimal for the guest
-     * VM's I/O attempts :-)
-     */
+    /* If we have a shared FS and are doing migration, we must not change
+     * ownership, because that kills access on the destination host which is
+     * sub-optimal for the guest VM's I/O attempts :-) */
     if (migrated) {
-        int rc = virFileIsSharedFS(src);
-        if (rc < 0)
-            return -1;
+        int rc = 1;
+
+        if (virStorageSourceIsLocalStorage(src)) {
+            if (!src->path)
+                return 0;
+
+            if ((rc = virFileIsSharedFS(src->path)) < 0)
+                return -1;
+        }
+
         if (rc == 1) {
             VIR_DEBUG("Skipping image label restore on %s because FS is shared",
-                      src);
+                      src->path);
             return 0;
         }
     }
 
-    return virSecurityDACRestoreSecurityFileLabel(src);
+    return virSecurityDACRestoreSecurityFileLabelInternal(priv, src, NULL);
+}
+
+
+static int
+virSecurityDACRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
+                                        virDomainDefPtr def,
+                                        virStorageSourcePtr src)
+{
+    return virSecurityDACRestoreSecurityImageLabelInt(mgr, def, src, false);
 }
 
 
@@ -414,7 +452,7 @@ virSecurityDACRestoreSecurityDiskLabel(virSecurityManagerPtr mgr,
                                        virDomainDefPtr def,
                                        virDomainDiskDefPtr disk)
 {
-    return virSecurityDACRestoreSecurityImageLabelInt(mgr, def, disk, false);
+    return virSecurityDACRestoreSecurityImageLabelInt(mgr, def, disk->src, false);
 }
 
 
@@ -471,6 +509,9 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityDACCallbackData cbdata;
+    virDomainHostdevSubsysUSBPtr usbsrc = &dev->source.subsys.u.usb;
+    virDomainHostdevSubsysPCIPtr pcisrc = &dev->source.subsys.u.pci;
+    virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
     int ret = -1;
 
     if (!priv->dynamicOwnership)
@@ -479,10 +520,16 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return 0;
 
+    /* Like virSecurityDACSetSecurityImageLabel() for a networked disk,
+     * do nothing for an iSCSI hostdev
+     */
+    if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
+        return 0;
+
     cbdata.manager = mgr;
     cbdata.secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
 
-    if (cbdata.secdef && cbdata.secdef->norelabel)
+    if (cbdata.secdef && !cbdata.secdef->relabel)
         return 0;
 
     switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
@@ -492,10 +539,7 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
         if (dev->missing)
             return 0;
 
-        usb = virUSBDeviceNew(dev->source.subsys.u.usb.bus,
-                              dev->source.subsys.u.usb.device,
-                              vroot);
-        if (!usb)
+        if (!(usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device, vroot)))
             goto done;
 
         ret = virUSBDeviceFileIterate(usb,
@@ -507,16 +551,13 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
         virPCIDevicePtr pci =
-            virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
-                            dev->source.subsys.u.pci.addr.bus,
-                            dev->source.subsys.u.pci.addr.slot,
-                            dev->source.subsys.u.pci.addr.function);
+            virPCIDeviceNew(pcisrc->addr.domain, pcisrc->addr.bus,
+                            pcisrc->addr.slot, pcisrc->addr.function);
 
         if (!pci)
             goto done;
 
-        if (dev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             char *vfioGroupDev = virPCIDeviceGetIOMMUGroupDev(pci);
 
             if (!vfioGroupDev) {
@@ -536,14 +577,12 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
+        virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
         virSCSIDevicePtr scsi =
             virSCSIDeviceNew(NULL,
-                             dev->source.subsys.u.scsi.adapter,
-                             dev->source.subsys.u.scsi.bus,
-                             dev->source.subsys.u.scsi.target,
-                             dev->source.subsys.u.scsi.unit,
-                             dev->readonly,
-                             dev->shareable);
+                             scsihostsrc->adapter, scsihostsrc->bus,
+                             scsihostsrc->target, scsihostsrc->unit,
+                             dev->readonly, dev->shareable);
 
         if (!scsi)
             goto done;
@@ -602,14 +641,23 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityLabelDefPtr secdef;
+    virDomainHostdevSubsysUSBPtr usbsrc = &dev->source.subsys.u.usb;
+    virDomainHostdevSubsysPCIPtr pcisrc = &dev->source.subsys.u.pci;
+    virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
     int ret = -1;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
 
-    if (!priv->dynamicOwnership || (secdef && secdef->norelabel))
+    if (!priv->dynamicOwnership || (secdef && !secdef->relabel))
         return 0;
 
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+        return 0;
+
+    /* Like virSecurityDACRestoreSecurityImageLabelInt() for a networked disk,
+     * do nothing for an iSCSI hostdev
+     */
+    if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
         return 0;
 
     switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
@@ -619,10 +667,7 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
         if (dev->missing)
             return 0;
 
-        usb = virUSBDeviceNew(dev->source.subsys.u.usb.bus,
-                              dev->source.subsys.u.usb.device,
-                              vroot);
-        if (!usb)
+        if (!(usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device, vroot)))
             goto done;
 
         ret = virUSBDeviceFileIterate(usb, virSecurityDACRestoreSecurityUSBLabel, mgr);
@@ -633,16 +678,13 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
         virPCIDevicePtr pci =
-            virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
-                            dev->source.subsys.u.pci.addr.bus,
-                            dev->source.subsys.u.pci.addr.slot,
-                            dev->source.subsys.u.pci.addr.function);
+            virPCIDeviceNew(pcisrc->addr.domain, pcisrc->addr.bus,
+                            pcisrc->addr.slot, pcisrc->addr.function);
 
         if (!pci)
             goto done;
 
-        if (dev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             char *vfioGroupDev = virPCIDeviceGetIOMMUGroupDev(pci);
 
             if (!vfioGroupDev) {
@@ -659,14 +701,12 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
+        virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
         virSCSIDevicePtr scsi =
             virSCSIDeviceNew(NULL,
-                             dev->source.subsys.u.scsi.adapter,
-                             dev->source.subsys.u.scsi.bus,
-                             dev->source.subsys.u.scsi.target,
-                             dev->source.subsys.u.scsi.unit,
-                             dev->readonly,
-                             dev->shareable);
+                             scsihostsrc->adapter, scsihostsrc->bus,
+                             scsihostsrc->target, scsihostsrc->unit,
+                             dev->readonly, dev->shareable);
 
         if (!scsi)
             goto done;
@@ -708,7 +748,7 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
         chr_seclabel = virDomainChrDefGetSecurityLabelDef(dev,
                                                           SECURITY_DAC_NAME);
 
-    if (chr_seclabel && chr_seclabel->norelabel)
+    if (chr_seclabel && !chr_seclabel->relabel)
         return 0;
 
     if (chr_seclabel && chr_seclabel->label) {
@@ -777,7 +817,7 @@ virSecurityDACRestoreChardevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         chr_seclabel = virDomainChrDefGetSecurityLabelDef(dev,
                                                           SECURITY_DAC_NAME);
 
-    if (chr_seclabel && chr_seclabel->norelabel)
+    if (chr_seclabel && !chr_seclabel->relabel)
         return 0;
 
     switch ((virDomainChrType) dev_source->type) {
@@ -886,7 +926,7 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
 
-    if (!priv->dynamicOwnership || (secdef && secdef->norelabel))
+    if (!priv->dynamicOwnership || (secdef && !secdef->relabel))
         return 0;
 
     VIR_DEBUG("Restoring security label on %s migrated=%d",
@@ -902,7 +942,7 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
     for (i = 0; i < def->ndisks; i++) {
         if (virSecurityDACRestoreSecurityImageLabelInt(mgr,
                                                        def,
-                                                       def->disks[i],
+                                                       def->disks[i]->src,
                                                        migrated) < 0)
             rc = -1;
     }
@@ -960,7 +1000,7 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
 
-    if (!priv->dynamicOwnership || (secdef && secdef->norelabel))
+    if (!priv->dynamicOwnership || (secdef && !secdef->relabel))
         return 0;
 
     for (i = 0; i < def->ndisks; i++) {
@@ -1162,7 +1202,7 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
         return rc;
     }
 
-    if (!seclabel->norelabel && !seclabel->imagelabel &&
+    if (seclabel->relabel && !seclabel->imagelabel &&
         VIR_STRDUP(seclabel->imagelabel, seclabel->label) < 0) {
         VIR_FREE(seclabel->label);
         return rc;
@@ -1275,6 +1315,9 @@ virSecurityDriver virSecurityDriverDAC = {
 
     .domainSetSecurityDiskLabel         = virSecurityDACSetSecurityDiskLabel,
     .domainRestoreSecurityDiskLabel     = virSecurityDACRestoreSecurityDiskLabel,
+
+    .domainSetSecurityImageLabel        = virSecurityDACSetSecurityImageLabel,
+    .domainRestoreSecurityImageLabel    = virSecurityDACRestoreSecurityImageLabel,
 
     .domainSetSecurityDaemonSocketLabel = virSecurityDACSetDaemonSocketLabel,
     .domainSetSecuritySocketLabel       = virSecurityDACSetSocketLabel,

@@ -1005,6 +1005,9 @@
 /* Define to 1 if you have the `gethostname' function. */
 #undef HAVE_GETHOSTNAME
 
+/* Define to 1 if you have the 'getifaddrs' function. */
+#undef HAVE_GETIFADDRS
+
 /* Define to 1 if you have the 'getmntent_r' function. */
 #undef HAVE_GETMNTENT_R
 
@@ -1611,6 +1614,9 @@
 
 /* Define to 1 if `ifr_newname' is a member of `struct ifreq'. */
 #undef HAVE_STRUCT_IFREQ_IFR_NEWNAME
+
+/* Define to 1 if `ifi_oqdrops' is a member of `struct if_data'. */
+#undef HAVE_STRUCT_IF_DATA_IFI_OQDROPS
 
 /* Define to 1 if `decimal_point' is a member of `struct lconv'. */
 #undef HAVE_STRUCT_LCONV_DECIMAL_POINT
@@ -2630,12 +2636,18 @@
 /* Define to 1 if you need to in order for 'stat' and other things to work. */
 #undef _POSIX_SOURCE
 
+/* For thread-safety on OSF/1, Solaris. */
+#undef _REENTRANT
+
 /* Define if you want <regex.h> to include <limits.h>, so that it consistently
    overrides <limits.h>'s RE_DUP_MAX. */
 #undef _REGEX_INCLUDE_LIMITS_H
 
 /* Define if you want regoff_t to be at least as wide POSIX requires. */
 #undef _REGEX_LARGE_OFFSETS
+
+/* For thread-safety on AIX, FreeBSD. */
+#undef _THREAD_SAFE
 
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__

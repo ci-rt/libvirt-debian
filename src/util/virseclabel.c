@@ -61,8 +61,10 @@ virSecurityLabelDefNew(const char *model)
     if (VIR_ALLOC(seclabel) < 0 ||
         VIR_STRDUP(seclabel->model, model) < 0) {
         virSecurityLabelDefFree(seclabel);
-        seclabel = NULL;
+        return NULL;
     }
+
+    seclabel->relabel = true;
 
     return seclabel;
 }
@@ -90,7 +92,7 @@ virSecurityDeviceLabelDefCopy(const virSecurityDeviceLabelDef *src)
     if (VIR_ALLOC(ret) < 0)
         return NULL;
 
-    ret->norelabel = src->norelabel;
+    ret->relabel = src->relabel;
     ret->labelskip = src->labelskip;
 
     if (VIR_STRDUP(ret->model, src->model) < 0 ||

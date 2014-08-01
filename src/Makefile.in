@@ -707,10 +707,12 @@ am__objects_5 = conf/libvirt_conf_la-netdev_bandwidth_conf.lo \
 	conf/libvirt_conf_la-netdev_vlan_conf.lo
 am__objects_6 = conf/libvirt_conf_la-capabilities.lo \
 	conf/libvirt_conf_la-domain_addr.lo \
+	conf/libvirt_conf_la-domain_capabilities.lo \
 	conf/libvirt_conf_la-domain_conf.lo \
 	conf/libvirt_conf_la-domain_audit.lo \
 	conf/libvirt_conf_la-domain_nwfilter.lo \
-	conf/libvirt_conf_la-snapshot_conf.lo
+	conf/libvirt_conf_la-snapshot_conf.lo \
+	conf/libvirt_conf_la-numatune_conf.lo
 am__objects_7 = conf/libvirt_conf_la-object_event.lo
 am__objects_8 = conf/libvirt_conf_la-domain_event.lo
 am__objects_9 = conf/libvirt_conf_la-network_event.lo
@@ -1579,7 +1581,7 @@ am__objects_85 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virseclabel.lo \
 	util/libvirt_util_la-virsexpr.lo \
 	util/libvirt_util_la-virsocketaddr.lo \
-	util/libvirt_util_la-virstatslinux.lo \
+	util/libvirt_util_la-virstats.lo \
 	util/libvirt_util_la-virstorageencryption.lo \
 	util/libvirt_util_la-virstoragefile.lo \
 	util/libvirt_util_la-virstring.lo \
@@ -3572,7 +3574,7 @@ UTIL_SOURCES = \
 		util/virseclabel.c util/virseclabel.h		\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
-		util/virstatslinux.c util/virstatslinux.h	\
+		util/virstats.c util/virstats.h	\
 		util/virstorageencryption.c util/virstorageencryption.h \
 		util/virstoragefile.c util/virstoragefile.h	\
 		util/virstring.h util/virstring.c		\
@@ -3645,10 +3647,12 @@ NETDEV_CONF_SOURCES = \
 DOMAIN_CONF_SOURCES = \
 		conf/capabilities.c conf/capabilities.h		\
 		conf/domain_addr.c conf/domain_addr.h		\
+		conf/domain_capabilities.c conf/domain_capabilities.h	\
 		conf/domain_conf.c conf/domain_conf.h		\
 		conf/domain_audit.c conf/domain_audit.h		\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
-		conf/snapshot_conf.c conf/snapshot_conf.h
+		conf/snapshot_conf.c conf/snapshot_conf.h	\
+		conf/numatune_conf.c conf/numatune_conf.h
 
 OBJECT_EVENT_SOURCES = \
 		conf/object_event.c conf/object_event.h \
@@ -5262,6 +5266,8 @@ conf/libvirt_conf_la-capabilities.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-domain_addr.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
+conf/libvirt_conf_la-domain_capabilities.lo: conf/$(am__dirstamp) \
+	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-domain_conf.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-domain_audit.lo: conf/$(am__dirstamp) \
@@ -5269,6 +5275,8 @@ conf/libvirt_conf_la-domain_audit.lo: conf/$(am__dirstamp) \
 conf/libvirt_conf_la-domain_nwfilter.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-snapshot_conf.lo: conf/$(am__dirstamp) \
+	conf/$(DEPDIR)/$(am__dirstamp)
+conf/libvirt_conf_la-numatune_conf.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-object_event.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
@@ -5977,7 +5985,7 @@ util/libvirt_util_la-virsexpr.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virsocketaddr.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
-util/libvirt_util_la-virstatslinux.lo: util/$(am__dirstamp) \
+util/libvirt_util_la-virstats.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virstorageencryption.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
@@ -6307,6 +6315,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-device_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_addr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_audit.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_capabilities.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_event.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-domain_nwfilter.Plo@am__quote@
@@ -6317,6 +6326,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-network_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-network_event.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-node_device_conf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-numatune_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-nwfilter_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-nwfilter_ipaddrmap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-nwfilter_params.Plo@am__quote@
@@ -6569,7 +6579,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virseclabel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virsexpr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virsocketaddr.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virstatslinux.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virstats.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virstorageencryption.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virstoragefile.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virstring.Plo@am__quote@
@@ -7099,6 +7109,13 @@ conf/libvirt_conf_la-domain_addr.lo: conf/domain_addr.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-domain_addr.lo `test -f 'conf/domain_addr.c' || echo '$(srcdir)/'`conf/domain_addr.c
 
+conf/libvirt_conf_la-domain_capabilities.lo: conf/domain_capabilities.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-domain_capabilities.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-domain_capabilities.Tpo -c -o conf/libvirt_conf_la-domain_capabilities.lo `test -f 'conf/domain_capabilities.c' || echo '$(srcdir)/'`conf/domain_capabilities.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) conf/$(DEPDIR)/libvirt_conf_la-domain_capabilities.Tpo conf/$(DEPDIR)/libvirt_conf_la-domain_capabilities.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='conf/domain_capabilities.c' object='conf/libvirt_conf_la-domain_capabilities.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-domain_capabilities.lo `test -f 'conf/domain_capabilities.c' || echo '$(srcdir)/'`conf/domain_capabilities.c
+
 conf/libvirt_conf_la-domain_conf.lo: conf/domain_conf.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-domain_conf.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-domain_conf.Tpo -c -o conf/libvirt_conf_la-domain_conf.lo `test -f 'conf/domain_conf.c' || echo '$(srcdir)/'`conf/domain_conf.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) conf/$(DEPDIR)/libvirt_conf_la-domain_conf.Tpo conf/$(DEPDIR)/libvirt_conf_la-domain_conf.Plo
@@ -7126,6 +7143,13 @@ conf/libvirt_conf_la-snapshot_conf.lo: conf/snapshot_conf.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='conf/snapshot_conf.c' object='conf/libvirt_conf_la-snapshot_conf.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-snapshot_conf.lo `test -f 'conf/snapshot_conf.c' || echo '$(srcdir)/'`conf/snapshot_conf.c
+
+conf/libvirt_conf_la-numatune_conf.lo: conf/numatune_conf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-numatune_conf.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-numatune_conf.Tpo -c -o conf/libvirt_conf_la-numatune_conf.lo `test -f 'conf/numatune_conf.c' || echo '$(srcdir)/'`conf/numatune_conf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) conf/$(DEPDIR)/libvirt_conf_la-numatune_conf.Tpo conf/$(DEPDIR)/libvirt_conf_la-numatune_conf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='conf/numatune_conf.c' object='conf/libvirt_conf_la-numatune_conf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-numatune_conf.lo `test -f 'conf/numatune_conf.c' || echo '$(srcdir)/'`conf/numatune_conf.c
 
 conf/libvirt_conf_la-object_event.lo: conf/object_event.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-object_event.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-object_event.Tpo -c -o conf/libvirt_conf_la-object_event.lo `test -f 'conf/object_event.c' || echo '$(srcdir)/'`conf/object_event.c
@@ -8709,12 +8733,12 @@ util/libvirt_util_la-virsocketaddr.lo: util/virsocketaddr.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virsocketaddr.lo `test -f 'util/virsocketaddr.c' || echo '$(srcdir)/'`util/virsocketaddr.c
 
-util/libvirt_util_la-virstatslinux.lo: util/virstatslinux.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virstatslinux.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virstatslinux.Tpo -c -o util/libvirt_util_la-virstatslinux.lo `test -f 'util/virstatslinux.c' || echo '$(srcdir)/'`util/virstatslinux.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virstatslinux.Tpo util/$(DEPDIR)/libvirt_util_la-virstatslinux.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virstatslinux.c' object='util/libvirt_util_la-virstatslinux.lo' libtool=yes @AMDEPBACKSLASH@
+util/libvirt_util_la-virstats.lo: util/virstats.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virstats.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virstats.Tpo -c -o util/libvirt_util_la-virstats.lo `test -f 'util/virstats.c' || echo '$(srcdir)/'`util/virstats.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virstats.Tpo util/$(DEPDIR)/libvirt_util_la-virstats.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virstats.c' object='util/libvirt_util_la-virstats.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virstatslinux.lo `test -f 'util/virstatslinux.c' || echo '$(srcdir)/'`util/virstatslinux.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virstats.lo `test -f 'util/virstats.c' || echo '$(srcdir)/'`util/virstats.c
 
 util/libvirt_util_la-virstorageencryption.lo: util/virstorageencryption.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virstorageencryption.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virstorageencryption.Tpo -c -o util/libvirt_util_la-virstorageencryption.lo `test -f 'util/virstorageencryption.c' || echo '$(srcdir)/'`util/virstorageencryption.c

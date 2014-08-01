@@ -73,6 +73,25 @@ typedef int (*virStorageBackendVolumeResize)(virConnectPtr conn,
                                              virStorageVolDefPtr vol,
                                              unsigned long long capacity,
                                              unsigned int flags);
+typedef int (*virStorageBackendVolumeDownload)(virConnectPtr conn,
+                                               virStoragePoolObjPtr obj,
+                                               virStorageVolDefPtr vol,
+                                               virStreamPtr stream,
+                                               unsigned long long offset,
+                                               unsigned long long length,
+                                               unsigned int flags);
+typedef int (*virStorageBackendVolumeUpload)(virConnectPtr conn,
+                                             virStoragePoolObjPtr obj,
+                                             virStorageVolDefPtr vol,
+                                             virStreamPtr stream,
+                                             unsigned long long offset,
+                                             unsigned long long len,
+                                             unsigned int flags);
+typedef int (*virStorageBackendVolumeWipe)(virConnectPtr conn,
+                                           virStoragePoolObjPtr pool,
+                                           virStorageVolDefPtr vol,
+                                           unsigned int algorithm,
+                                           unsigned int flags);
 
 /* File creation/cloning functions used for cloning between backends */
 int virStorageBackendCreateRaw(virConnectPtr conn,
@@ -91,6 +110,26 @@ int virStorageBackendFindGlusterPoolSources(const char *host,
                                             int pooltype,
                                             virStoragePoolSourceListPtr list);
 
+int virStorageBackendVolUploadLocal(virConnectPtr conn,
+                                    virStoragePoolObjPtr pool,
+                                    virStorageVolDefPtr vol,
+                                    virStreamPtr stream,
+                                    unsigned long long offset,
+                                    unsigned long long len,
+                                    unsigned int flags);
+int virStorageBackendVolDownloadLocal(virConnectPtr conn,
+                                      virStoragePoolObjPtr pool,
+                                      virStorageVolDefPtr vol,
+                                      virStreamPtr stream,
+                                      unsigned long long offset,
+                                      unsigned long long len,
+                                      unsigned int flags);
+
+int virStorageBackendVolWipeLocal(virConnectPtr conn,
+                                  virStoragePoolObjPtr pool,
+                                  virStorageVolDefPtr vol,
+                                  unsigned int algorithm,
+                                  unsigned int flags);
 
 typedef struct _virStorageBackend virStorageBackend;
 typedef virStorageBackend *virStorageBackendPtr;
@@ -114,6 +153,9 @@ struct _virStorageBackend {
     virStorageBackendRefreshVol refreshVol;
     virStorageBackendDeleteVol deleteVol;
     virStorageBackendVolumeResize resizeVol;
+    virStorageBackendVolumeUpload uploadVol;
+    virStorageBackendVolumeDownload downloadVol;
+    virStorageBackendVolumeWipe wipeVol;
 };
 
 virStorageBackendPtr virStorageBackendForType(int type);
@@ -202,6 +244,11 @@ typedef int
 (*virStorageFileBackendAccess)(virStorageSourcePtr src,
                                int mode);
 
+typedef int
+(*virStorageFileBackendChown)(virStorageSourcePtr src,
+                              uid_t uid,
+                              gid_t gid);
+
 virStorageFileBackendPtr virStorageFileBackendForType(int type, int protocol);
 virStorageFileBackendPtr virStorageFileBackendForTypeInternal(int type,
                                                               int protocol,
@@ -227,6 +274,7 @@ struct _virStorageFileBackend {
     virStorageFileBackendUnlink storageFileUnlink;
     virStorageFileBackendStat   storageFileStat;
     virStorageFileBackendAccess storageFileAccess;
+    virStorageFileBackendChown  storageFileChown;
 };
 
 #endif /* __VIR_STORAGE_BACKEND_H__ */

@@ -21,6 +21,8 @@
 #ifndef _PACKET_LIBVIRT_H_
 # define _PACKET_LIBVIRT_H_
 
+# include "libvirt/libvirt.h"
+
 # ifndef LIBVIRT_PORT
 #  define LIBVIRT_PORT 16509
 # endif
@@ -84,22 +86,6 @@ static const value_string status_strings[] = {
     { -1, NULL }
 };
 
-/* TODO: These symbols will automatically included in generated headers in the feature */
-# define VIR_SECURITY_MODEL_BUFLEN (256 + 1)
-# define VIR_SECURITY_LABEL_BUFLEN (4096 + 1)
-# define VIR_SECURITY_DOI_BUFLEN (256 + 1)
-# define VIR_UUID_BUFLEN (16)
-enum {
-    VIR_TYPED_PARAM_INT     = 1, /* integer case */
-    VIR_TYPED_PARAM_UINT    = 2, /* unsigned integer case */
-    VIR_TYPED_PARAM_LLONG   = 3, /* long long case */
-    VIR_TYPED_PARAM_ULLONG  = 4, /* unsigned long long case */
-    VIR_TYPED_PARAM_DOUBLE  = 5, /* double case */
-    VIR_TYPED_PARAM_BOOLEAN = 6, /* boolean(character) case */
-    VIR_TYPED_PARAM_STRING  = 7, /* string case */
-};
-/* / */
-
 # define VIR_ERROR_MESSAGE_DISSECTOR dissect_xdr_remote_error
 
 static gboolean dissect_xdr_int(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, int hf);
@@ -119,9 +105,9 @@ static gboolean dissect_xdr_bytes(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, in
 static gboolean dissect_xdr_pointer(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, int hf,
                                     vir_xdr_dissector_t dp);
 static gboolean dissect_xdr_vector(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, int hf, gint ett,
-                                   int rhf, gchar *rtype, guint32 size, vir_xdr_dissector_t dp);
+                                   int rhf, const gchar *rtype, guint32 size, vir_xdr_dissector_t dp);
 static gboolean dissect_xdr_array(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, int hf, gint ett,
-                                  int rhf, gchar *rtype, guint32 maxlen, vir_xdr_dissector_t dp);
+                                  int rhf, const gchar *rtype, guint32 maxlen, vir_xdr_dissector_t dp);
 
 # include "libvirt/protocol.h"
 

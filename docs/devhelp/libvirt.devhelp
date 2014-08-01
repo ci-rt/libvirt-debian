@@ -212,6 +212,7 @@
     <function name="VIR_DOMAIN_BLOCKED_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED_UNKNOWN"/>
     <function name="VIR_DOMAIN_BLOCK_COMMIT_ACTIVE" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_COMMIT_ACTIVE"/>
     <function name="VIR_DOMAIN_BLOCK_COMMIT_DELETE" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_COMMIT_DELETE"/>
+    <function name="VIR_DOMAIN_BLOCK_COMMIT_RELATIVE" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_COMMIT_RELATIVE"/>
     <function name="VIR_DOMAIN_BLOCK_COMMIT_SHALLOW" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_COMMIT_SHALLOW"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT"/>
@@ -228,6 +229,7 @@
     <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN"/>
     <function name="VIR_DOMAIN_BLOCK_REBASE_COPY" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_COPY"/>
     <function name="VIR_DOMAIN_BLOCK_REBASE_COPY_RAW" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_COPY_RAW"/>
+    <function name="VIR_DOMAIN_BLOCK_REBASE_RELATIVE" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_RELATIVE"/>
     <function name="VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT"/>
     <function name="VIR_DOMAIN_BLOCK_REBASE_SHALLOW" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_SHALLOW"/>
     <function name="VIR_DOMAIN_BLOCK_RESIZE_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_RESIZE_BYTES"/>
@@ -1092,6 +1094,7 @@
     <function name="virConnectFindStoragePoolSources ()" link="libvirt-libvirt.html#virConnectFindStoragePoolSources"/>
     <function name="virConnectGetCPUModelNames ()" link="libvirt-libvirt.html#virConnectGetCPUModelNames"/>
     <function name="virConnectGetCapabilities ()" link="libvirt-libvirt.html#virConnectGetCapabilities"/>
+    <function name="virConnectGetDomainCapabilities ()" link="libvirt-libvirt.html#virConnectGetDomainCapabilities"/>
     <function name="virConnectGetHostname ()" link="libvirt-libvirt.html#virConnectGetHostname"/>
     <function name="virConnectGetLibVersion ()" link="libvirt-libvirt.html#virConnectGetLibVersion"/>
     <function name="virConnectGetMaxVcpus ()" link="libvirt-libvirt.html#virConnectGetMaxVcpus"/>

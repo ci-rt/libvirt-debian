@@ -578,6 +578,65 @@ static int remoteDispatchConnectGetCPUModelNamesHelper(
 
 
 
+static int remoteDispatchConnectGetDomainCapabilities(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_domain_capabilities_args *args,
+    remote_connect_get_domain_capabilities_ret *ret);
+static int remoteDispatchConnectGetDomainCapabilitiesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetDomainCapabilities(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectGetDomainCapabilities(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_domain_capabilities_args *args,
+    remote_connect_get_domain_capabilities_ret *ret)
+{
+    int rv = -1;
+    char *emulatorbin;
+    char *arch;
+    char *machine;
+    char *virttype;
+    char *capabilities;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    emulatorbin = args->emulatorbin ? *args->emulatorbin : NULL;
+    arch = args->arch ? *args->arch : NULL;
+    machine = args->machine ? *args->machine : NULL;
+    virttype = args->virttype ? *args->virttype : NULL;
+
+    if ((capabilities = virConnectGetDomainCapabilities(priv->conn, emulatorbin, arch, machine, virttype, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->capabilities = capabilities;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
 static int remoteDispatchConnectGetHostname(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -17439,6 +17498,15 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_get_dhcp_leases_args,
    sizeof(remote_network_get_dhcp_leases_ret),
    (xdrproc_t)xdr_remote_network_get_dhcp_leases_ret,
+   true,
+   0
+},
+{ /* Method ConnectGetDomainCapabilities => 342 */
+   remoteDispatchConnectGetDomainCapabilitiesHelper,
+   sizeof(remote_connect_get_domain_capabilities_args),
+   (xdrproc_t)xdr_remote_connect_get_domain_capabilities_args,
+   sizeof(remote_connect_get_domain_capabilities_ret),
+   (xdrproc_t)xdr_remote_connect_get_domain_capabilities_ret,
    true,
    0
 },

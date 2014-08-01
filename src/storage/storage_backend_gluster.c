@@ -246,6 +246,7 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
     virStorageSourcePtr meta = NULL;
     char *header = NULL;
     ssize_t len = VIR_STORAGE_MAX_HEADER;
+    int backingFormat;
 
     *volptr = NULL;
 
@@ -294,14 +295,24 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
         goto cleanup;
 
     if (!(meta = virStorageFileGetMetadataFromBuf(name, header, len,
-                                                  &vol->backingStore.path,
-                                                  &vol->backingStore.format)))
+                                                  VIR_STORAGE_FILE_AUTO,
+                                                  &backingFormat)))
         goto cleanup;
 
+    if (meta->backingStoreRaw) {
+        if (VIR_ALLOC(vol->target.backingStore) < 0)
+            goto cleanup;
+
+        vol->target.backingStore->path = meta->backingStoreRaw;
+
+        if (backingFormat < 0)
+            vol->target.backingStore->format = VIR_STORAGE_FILE_RAW;
+        else
+            vol->target.backingStore->format = backingFormat;
+        meta->backingStoreRaw = NULL;
+    }
+
     vol->target.format = meta->format;
-    if (vol->backingStore.path &&
-        vol->backingStore.format < 0)
-        vol->backingStore.format = VIR_STORAGE_FILE_RAW;
     if (meta->capacity)
         vol->target.capacity = meta->capacity;
     if (meta->encryption) {
@@ -623,6 +634,25 @@ virStorageFileBackendGlusterInit(virStorageSourcePtr src)
 
 
 static int
+virStorageFileBackendGlusterCreate(virStorageSourcePtr src)
+{
+    virStorageFileBackendGlusterPrivPtr priv = src->drv->priv;
+    glfs_fd_t *fd = NULL;
+    mode_t mode = S_IRUSR;
+
+    if (!src->readonly)
+        mode |= S_IWUSR;
+
+    if (!(fd = glfs_creat(priv->vol, src->path,
+                          O_CREAT | O_TRUNC | O_WRONLY, mode)))
+        return -1;
+
+    ignore_value(glfs_close(fd));
+    return 0;
+}
+
+
+static int
 virStorageFileBackendGlusterUnlink(virStorageSourcePtr src)
 {
     virStorageFileBackendGlusterPrivPtr priv = src->drv->priv;
@@ -648,9 +678,6 @@ virStorageFileBackendGlusterReadHeader(virStorageSourcePtr src,
 {
     virStorageFileBackendGlusterPrivPtr priv = src->drv->priv;
     glfs_fd_t *fd = NULL;
-    size_t alloc = 0;
-    size_t size = 0;
-    int save_errno;
     ssize_t ret = -1;
 
     *buf = NULL;
@@ -658,47 +685,11 @@ virStorageFileBackendGlusterReadHeader(virStorageSourcePtr src,
     if (!(fd = glfs_open(priv->vol, src->path, O_RDONLY))) {
         virReportSystemError(errno, _("Failed to open file '%s'"),
                              src->path);
-        goto cleanup;
+        return -1;
     }
 
-    /* code below is shamelessly stolen from saferead_lim */
-    for (;;) {
-        int count;
-        int requested;
+    ret = virStorageBackendGlusterReadHeader(fd, src->path, max_len, buf);
 
-        if (size + BUFSIZ + 1 > alloc) {
-            alloc += alloc / 2;
-            if (alloc < size + BUFSIZ + 1)
-                alloc = size + BUFSIZ + 1;
-
-            if (VIR_REALLOC_N(*buf, alloc) < 0) {
-                save_errno = errno;
-                break;
-            }
-        }
-
-        /* Ensure that (size + requested <= max_len); */
-        requested = MIN(size < max_len ? max_len - size : 0,
-                        alloc - size - 1);
-        count = glfs_read(fd, *buf + size, requested, 0);
-        size += count;
-
-        if (count != requested || requested == 0) {
-            save_errno = errno;
-            if (count < 0) {
-                virReportSystemError(errno,
-                                     _("cannot read header '%s'"), src->path);
-                break;
-            }
-            ret = size;
-            goto cleanup;
-        }
-    }
-
-    VIR_FREE(*buf);
-    errno = save_errno;
-
- cleanup:
     if (fd)
         glfs_close(fd);
 
@@ -790,6 +781,17 @@ virStorageFileBackendGlusterGetUniqueIdentifier(virStorageSourcePtr src)
 }
 
 
+static int
+virStorageFileBackendGlusterChown(virStorageSourcePtr src,
+                                  uid_t uid,
+                                  gid_t gid)
+{
+    virStorageFileBackendGlusterPrivPtr priv = src->drv->priv;
+
+    return glfs_chown(priv->vol, src->path, uid, gid);
+}
+
+
 virStorageFileBackend virStorageFileBackendGluster = {
     .type = VIR_STORAGE_TYPE_NETWORK,
     .protocol = VIR_STORAGE_NET_PROTOCOL_GLUSTER,
@@ -797,10 +799,12 @@ virStorageFileBackend virStorageFileBackendGluster = {
     .backendInit = virStorageFileBackendGlusterInit,
     .backendDeinit = virStorageFileBackendGlusterDeinit,
 
+    .storageFileCreate = virStorageFileBackendGlusterCreate,
     .storageFileUnlink = virStorageFileBackendGlusterUnlink,
     .storageFileStat = virStorageFileBackendGlusterStat,
     .storageFileReadHeader = virStorageFileBackendGlusterReadHeader,
     .storageFileAccess = virStorageFileBackendGlusterAccess,
+    .storageFileChown = virStorageFileBackendGlusterChown,
 
     .storageFileGetUniqueIdentifier = virStorageFileBackendGlusterGetUniqueIdentifier,
 

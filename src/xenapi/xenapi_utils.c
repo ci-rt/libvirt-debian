@@ -44,12 +44,15 @@ void
 xenSessionFree(xen_session *session)
 {
     size_t i;
+    char *tmp;
     if (session->error_description != NULL) {
         for (i = 0; i < session->error_description_count; i++)
             VIR_FREE(session->error_description[i]);
         VIR_FREE(session->error_description);
     }
-    VIR_FREE(session->session_id);
+    /* The session_id member is type of 'const char *'. Sigh. */
+    tmp = (char *)session->session_id;
+    VIR_FREE(tmp);
     VIR_FREE(session);
 }
 
@@ -284,11 +287,8 @@ mapDomainPinVcpu(unsigned char *cpumap, int maplen)
             }
         }
     }
-    if (virBufferError(&buf)) {
-        virReportOOMError();
-        virBufferFreeAndReset(&buf);
+    if (virBufferCheckError(&buf) < 0)
         return NULL;
-    }
     ret = virBufferContentAndReset(&buf);
     len = strlen(ret);
     if (len > 0 && ret[len - 1] == ',')
@@ -514,15 +514,15 @@ createVMRecordFromXml(virConnectPtr conn, virDomainDefPtr def,
     if (def->onCrash)
         (*record)->actions_after_crash = actionCrashLibvirt2XenapiEnum(def->onCrash);
 
-    if (def->features[VIR_DOMAIN_FEATURE_ACPI] == VIR_DOMAIN_FEATURE_STATE_ON)
+    if (def->features[VIR_DOMAIN_FEATURE_ACPI] == VIR_TRISTATE_SWITCH_ON)
         allocStringMap(&strings, (char *)"acpi", (char *)"true");
-    if (def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_DOMAIN_FEATURE_STATE_ON)
+    if (def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_TRISTATE_SWITCH_ON)
         allocStringMap(&strings, (char *)"apic", (char *)"true");
-    if (def->features[VIR_DOMAIN_FEATURE_PAE] == VIR_DOMAIN_FEATURE_STATE_ON)
+    if (def->features[VIR_DOMAIN_FEATURE_PAE] == VIR_TRISTATE_SWITCH_ON)
         allocStringMap(&strings, (char *)"pae", (char *)"true");
-    if (def->features[VIR_DOMAIN_FEATURE_HAP] == VIR_DOMAIN_FEATURE_STATE_ON)
+    if (def->features[VIR_DOMAIN_FEATURE_HAP] == VIR_TRISTATE_SWITCH_ON)
         allocStringMap(&strings, (char *)"hap", (char *)"true");
-    if (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] == VIR_DOMAIN_FEATURE_STATE_ON)
+    if (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] == VIR_TRISTATE_SWITCH_ON)
         allocStringMap(&strings, (char *)"viridian", (char *)"true");
     if (strings != NULL)
         (*record)->platform = strings;

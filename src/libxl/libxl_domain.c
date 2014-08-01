@@ -482,8 +482,18 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         STRNEQ(def->os.type, "hvm"))
         dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
 
-    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
-        virDomainHostdevDefPtr hostdev = dev->data.hostdev;
+    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV ||
+        (dev->type == VIR_DOMAIN_DEVICE_NET &&
+         dev->data.net->type == VIR_DOMAIN_NET_TYPE_HOSTDEV)) {
+
+        virDomainHostdevDefPtr hostdev;
+        virDomainHostdevSubsysPCIPtr pcisrc;
+
+        if (dev->type == VIR_DOMAIN_DEVICE_NET)
+            hostdev = &(dev->data.net)->data.hostdev.def;
+        else
+            hostdev = dev->data.hostdev;
+        pcisrc = &hostdev->source.subsys.u.pci;
 
         /* forbid capabilities mode hostdev in this kind of hypervisor */
         if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES) {
@@ -496,8 +506,8 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 
         if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
             hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
-            hostdev->source.subsys.u.pci.backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT)
-            hostdev->source.subsys.u.pci.backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN;
+            pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT)
+            pcisrc->backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN;
     }
 
     return 0;

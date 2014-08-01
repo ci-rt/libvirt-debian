@@ -50,30 +50,65 @@ static const char *const defaultDeviceACL[] = {
 #define DEVICE_SND_MAJOR 116
 
 static int
-qemuSetupDiskPathAllow(virDomainDiskDefPtr disk,
-                       const char *path,
-                       size_t depth ATTRIBUTE_UNUSED,
-                       void *opaque)
+qemuSetImageCgroupInternal(virDomainObjPtr vm,
+                           virStorageSourcePtr src,
+                           bool deny,
+                           bool forceReadonly)
 {
-    virDomainObjPtr vm = opaque;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    int perms = VIR_CGROUP_DEVICE_READ;
     int ret;
 
-    VIR_DEBUG("Process path %s for disk", path);
-    ret = virCgroupAllowDevicePath(priv->cgroup, path,
-                                   (disk->readonly ? VIR_CGROUP_DEVICE_READ
-                                    : VIR_CGROUP_DEVICE_RW));
-    virDomainAuditCgroupPath(vm, priv->cgroup, "allow", path,
-                             disk->readonly ? "r" : "rw", ret == 0);
+    if (!virCgroupHasController(priv->cgroup,
+                                VIR_CGROUP_CONTROLLER_DEVICES))
+        return 0;
+
+    if (!src->path || !virStorageSourceIsLocalStorage(src)) {
+        VIR_DEBUG("Not updating cgroups for disk path '%s', type: %s",
+                  NULLSTR(src->path), virStorageTypeToString(src->type));
+        return 0;
+    }
+
+    if (deny) {
+        perms |= VIR_CGROUP_DEVICE_WRITE | VIR_CGROUP_DEVICE_MKNOD;
+
+        VIR_DEBUG("Deny path %s", src->path);
+
+        ret = virCgroupDenyDevicePath(priv->cgroup, src->path, perms);
+    } else {
+        if (!src->readonly && !forceReadonly)
+            perms |= VIR_CGROUP_DEVICE_WRITE;
+
+        VIR_DEBUG("Allow path %s, perms: %s",
+                  src->path, virCgroupGetDevicePermsString(perms));
+
+        ret = virCgroupAllowDevicePath(priv->cgroup, src->path, perms);
+    }
+
+    virDomainAuditCgroupPath(vm, priv->cgroup,
+                             deny ? "deny" : "allow",
+                             src->path,
+                             virCgroupGetDevicePermsString(perms),
+                             ret == 0);
 
     /* Get this for root squash NFS */
     if (ret < 0 &&
         virLastErrorIsSystemErrno(EACCES)) {
-        VIR_DEBUG("Ignoring EACCES for %s", path);
+        VIR_DEBUG("Ignoring EACCES for %s", src->path);
         virResetLastError();
         ret = 0;
     }
+
     return ret;
+}
+
+
+int
+qemuSetImageCgroup(virDomainObjPtr vm,
+                   virStorageSourcePtr src,
+                   bool deny)
+{
+    return qemuSetImageCgroupInternal(vm, src, deny, false);
 }
 
 
@@ -81,39 +116,18 @@ int
 qemuSetupDiskCgroup(virDomainObjPtr vm,
                     virDomainDiskDefPtr disk)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virStorageSourcePtr next;
+    bool forceReadonly = false;
 
-    if (!virCgroupHasController(priv->cgroup,
-                                VIR_CGROUP_CONTROLLER_DEVICES))
-        return 0;
+    for (next = disk->src; next; next = next->backingStore) {
+        if (qemuSetImageCgroupInternal(vm, next, false, forceReadonly) < 0)
+            return -1;
 
-    return virDomainDiskDefForeachPath(disk, true, qemuSetupDiskPathAllow, vm);
-}
-
-
-static int
-qemuTeardownDiskPathDeny(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
-                         const char *path,
-                         size_t depth ATTRIBUTE_UNUSED,
-                         void *opaque)
-{
-    virDomainObjPtr vm = opaque;
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-    int ret;
-
-    VIR_DEBUG("Process path %s for disk", path);
-    ret = virCgroupDenyDevicePath(priv->cgroup, path,
-                                  VIR_CGROUP_DEVICE_RWM);
-    virDomainAuditCgroupPath(vm, priv->cgroup, "deny", path, "rwm", ret == 0);
-
-    /* Get this for root squash NFS */
-    if (ret < 0 &&
-        virLastErrorIsSystemErrno(EACCES)) {
-        VIR_DEBUG("Ignoring EACCES for %s", path);
-        virResetLastError();
-        ret = 0;
+        /* setup only the top level image for read-write */
+        forceReadonly = true;
     }
-    return ret;
+
+    return 0;
 }
 
 
@@ -121,17 +135,16 @@ int
 qemuTeardownDiskCgroup(virDomainObjPtr vm,
                        virDomainDiskDefPtr disk)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virStorageSourcePtr next;
 
-    if (!virCgroupHasController(priv->cgroup,
-                                VIR_CGROUP_CONTROLLER_DEVICES))
-        return 0;
+    for (next = disk->src; next; next = next->backingStore) {
+        if (qemuSetImageCgroup(vm, next, true) < 0)
+            return -1;
+    }
 
-    return virDomainDiskDefForeachPath(disk,
-                                       true,
-                                       qemuTeardownDiskPathDeny,
-                                       vm);
+    return 0;
 }
+
 
 static int
 qemuSetupChrSourceCgroup(virDomainDefPtr def ATTRIBUTE_UNUSED,
@@ -229,6 +242,9 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
 {
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainHostdevSubsysUSBPtr usbsrc = &dev->source.subsys.u.usb;
+    virDomainHostdevSubsysPCIPtr pcisrc = &dev->source.subsys.u.pci;
+    virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
     virPCIDevicePtr pci = NULL;
     virUSBDevicePtr usb = NULL;
     virSCSIDevicePtr scsi = NULL;
@@ -246,14 +262,13 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
 
         switch (dev->source.subsys.type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
-            if (dev->source.subsys.u.pci.backend
-                == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+            if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
                 int rv;
 
-                pci = virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
-                                      dev->source.subsys.u.pci.addr.bus,
-                                      dev->source.subsys.u.pci.addr.slot,
-                                      dev->source.subsys.u.pci.addr.function);
+                pci = virPCIDeviceNew(pcisrc->addr.domain,
+                                      pcisrc->addr.bus,
+                                      pcisrc->addr.slot,
+                                      pcisrc->addr.function);
                 if (!pci)
                     goto cleanup;
 
@@ -277,8 +292,7 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
              */
             if (dev->missing)
                 break;
-            if ((usb = virUSBDeviceNew(dev->source.subsys.u.usb.bus,
-                                       dev->source.subsys.u.usb.device,
+            if ((usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device,
                                        NULL)) == NULL) {
                 goto cleanup;
             }
@@ -292,20 +306,34 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
             }
             break;
 
-        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
-            if ((scsi = virSCSIDeviceNew(NULL,
-                                         dev->source.subsys.u.scsi.adapter,
-                                         dev->source.subsys.u.scsi.bus,
-                                         dev->source.subsys.u.scsi.target,
-                                         dev->source.subsys.u.scsi.unit,
-                                         dev->readonly,
-                                         dev->shareable)) == NULL)
-                goto cleanup;
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
+            if (scsisrc->protocol ==
+                VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
+                virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
+                /* Follow qemuSetupDiskCgroup() and qemuSetImageCgroupInternal()
+                 * which does nothing for non local storage
+                 */
+                VIR_DEBUG("Not updating cgroups for hostdev iSCSI path '%s'",
+                          iscsisrc->path);
+            } else {
+                virDomainHostdevSubsysSCSIHostPtr scsihostsrc =
+                    &scsisrc->u.host;
+                if ((scsi = virSCSIDeviceNew(NULL,
+                                             scsihostsrc->adapter,
+                                             scsihostsrc->bus,
+                                             scsihostsrc->target,
+                                             scsihostsrc->unit,
+                                             dev->readonly,
+                                             dev->shareable)) == NULL)
+                    goto cleanup;
 
-            if (virSCSIDeviceFileIterate(scsi,
-                                         qemuSetupHostSCSIDeviceCgroup,
-                                         vm) < 0)
-                goto cleanup;
+                if (virSCSIDeviceFileIterate(scsi,
+                                             qemuSetupHostSCSIDeviceCgroup,
+                                             vm) < 0)
+                    goto cleanup;
+            }
+            break;
+        }
 
         default:
             break;
@@ -327,6 +355,7 @@ qemuTeardownHostdevCgroup(virDomainObjPtr vm,
 {
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainHostdevSubsysPCIPtr pcisrc = &dev->source.subsys.u.pci;
     virPCIDevicePtr pci = NULL;
     char *path = NULL;
 
@@ -342,14 +371,13 @@ qemuTeardownHostdevCgroup(virDomainObjPtr vm,
 
         switch (dev->source.subsys.type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
-            if (dev->source.subsys.u.pci.backend
-                == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+            if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
                 int rv;
 
-                pci = virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
-                                      dev->source.subsys.u.pci.addr.bus,
-                                      dev->source.subsys.u.pci.addr.slot,
-                                      dev->source.subsys.u.pci.addr.function);
+                pci = virPCIDeviceNew(pcisrc->addr.domain,
+                                      pcisrc->addr.bus,
+                                      pcisrc->addr.slot,
+                                      pcisrc->addr.function);
                 if (!pci)
                     goto cleanup;
 
@@ -556,16 +584,19 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
             goto cleanup;
     }
 
-    if (vm->def->rng &&
-        (vm->def->rng->backend == VIR_DOMAIN_RNG_BACKEND_RANDOM)) {
-        VIR_DEBUG("Setting Cgroup ACL for RNG device");
-        rv = virCgroupAllowDevicePath(priv->cgroup, vm->def->rng->source.file,
-                                      VIR_CGROUP_DEVICE_RW);
-        virDomainAuditCgroupPath(vm, priv->cgroup, "allow",
-                                 vm->def->rng->source.file, "rw", rv == 0);
-        if (rv < 0 &&
-            !virLastErrorIsSystemErrno(ENOENT))
-            goto cleanup;
+    for (i = 0; i < vm->def->nrngs; i++) {
+        if (vm->def->rngs[i]->backend == VIR_DOMAIN_RNG_BACKEND_RANDOM) {
+            VIR_DEBUG("Setting Cgroup ACL for RNG device");
+            rv = virCgroupAllowDevicePath(priv->cgroup,
+                                          vm->def->rngs[i]->source.file,
+                                          VIR_CGROUP_DEVICE_RW);
+            virDomainAuditCgroupPath(vm, priv->cgroup, "allow",
+                                     vm->def->rngs[i]->source.file,
+                                     "rw", rv == 0);
+            if (rv < 0 &&
+                !virLastErrorIsSystemErrno(ENOENT))
+                goto cleanup;
+        }
     }
 
     ret = 0;
@@ -576,35 +607,43 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
 
 
 static int
-qemuSetupCpusetCgroup(virDomainObjPtr vm,
-                      virBitmapPtr nodemask,
-                      virCapsPtr caps)
+qemuSetupCpusetMems(virDomainObjPtr vm,
+                    virBitmapPtr nodemask)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *mem_mask = NULL;
-    char *cpu_mask = NULL;
     int ret = -1;
 
     if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
         return 0;
 
-    if ((vm->def->numatune.memory.nodemask ||
-         (vm->def->numatune.memory.placement_mode ==
-          VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) &&
-        vm->def->numatune.memory.mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
+    if (virDomainNumatuneMaybeFormatNodeset(vm->def->numatune,
+                                            nodemask,
+                                            &mem_mask, -1) < 0)
+        goto cleanup;
 
-        if (vm->def->numatune.memory.placement_mode ==
-            VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)
-            mem_mask = virBitmapFormat(nodemask);
-        else
-            mem_mask = virBitmapFormat(vm->def->numatune.memory.nodemask);
+    if (mem_mask &&
+        virCgroupSetCpusetMems(priv->cgroup, mem_mask) < 0)
+        goto cleanup;
 
-        if (!mem_mask)
-            goto cleanup;
+    ret = 0;
+ cleanup:
+    VIR_FREE(mem_mask);
+    return ret;
+}
 
-        if (virCgroupSetCpusetMems(priv->cgroup, mem_mask) < 0)
-            goto cleanup;
-    }
+
+static int
+qemuSetupCpusetCgroup(virDomainObjPtr vm,
+                      virBitmapPtr nodemask,
+                      virCapsPtr caps)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    char *cpu_mask = NULL;
+    int ret = -1;
+
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
+        return 0;
 
     if (vm->def->cpumask ||
         (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO)) {
@@ -628,7 +667,6 @@ qemuSetupCpusetCgroup(virDomainObjPtr vm,
 
     ret = 0;
  cleanup:
-    VIR_FREE(mem_mask);
     VIR_FREE(cpu_mask);
     return ret;
 }
@@ -803,6 +841,13 @@ qemuSetupCgroup(virQEMUDriverPtr driver,
 }
 
 int
+qemuSetupCgroupPostInit(virDomainObjPtr vm,
+                        virBitmapPtr nodemask)
+{
+    return qemuSetupCpusetMems(vm, nodemask);
+}
+
+int
 qemuSetupCgroupVcpuBW(virCgroupPtr cgroup,
                       unsigned long long period,
                       long long quota)
@@ -893,6 +938,15 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
         return -1;
     }
 
+    /*
+     * If CPU cgroup controller is not initialized here, then we need
+     * neither period nor quota settings.  And if CPUSET controller is
+     * not initialized either, then there's nothing to do anyway.
+     */
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) &&
+        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
+        return 0;
+
     /* We are trying to setup cgroups for CPU pinning, which can also be done
      * with virProcessSetAffinity, thus the lack of cgroups is not fatal here.
      */
@@ -971,6 +1025,15 @@ qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
                        _("cgroup cpu is required for scheduler tuning"));
         return -1;
     }
+
+    /*
+     * If CPU cgroup controller is not initialized here, then we need
+     * neither period nor quota settings.  And if CPUSET controller is
+     * not initialized either, then there's nothing to do anyway.
+     */
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) &&
+        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
+        return 0;
 
     if (priv->cgroup == NULL)
         return 0; /* Not supported, so claim success */

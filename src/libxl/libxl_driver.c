@@ -55,6 +55,7 @@
 #include "viraccessapicheck.h"
 #include "viratomic.h"
 #include "virhostdev.h"
+#include "network/bridge_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -544,10 +545,8 @@ libxlConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 
     if (virSysinfoFormat(&buf, driver->hostsysinfo) < 0)
         return NULL;
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         return NULL;
-    }
     return virBufferContentAndReset(&buf);
 }
 
@@ -594,8 +593,7 @@ libxlConnectGetCapabilities(virConnectPtr conn)
         return NULL;
 
     cfg = libxlDriverConfigGet(driver);
-    if ((xml = virCapabilitiesFormatXML(cfg->caps)) == NULL)
-        virReportOOMError();
+    xml = virCapabilitiesFormatXML(cfg->caps);
 
     virObjectUnref(cfg);
     return xml;
@@ -2629,6 +2627,7 @@ libxlDomainAttachHostPCIDevice(libxlDriverPrivatePtr driver,
     libxl_device_pci pcidev;
     virDomainHostdevDefPtr found;
     virHostdevManagerPtr hostdev_mgr = driver->hostdevMgr;
+    virDomainHostdevSubsysPCIPtr pcisrc = &hostdev->source.subsys.u.pci;
 
     if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
         return -1;
@@ -2636,10 +2635,8 @@ libxlDomainAttachHostPCIDevice(libxlDriverPrivatePtr driver,
     if (virDomainHostdevFind(vm->def, hostdev, &found) >= 0) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("target pci device %.4x:%.2x:%.2x.%.1x already exists"),
-                       hostdev->source.subsys.u.pci.addr.domain,
-                       hostdev->source.subsys.u.pci.addr.bus,
-                       hostdev->source.subsys.u.pci.addr.slot,
-                       hostdev->source.subsys.u.pci.addr.function);
+                       pcisrc->addr.domain, pcisrc->addr.bus,
+                       pcisrc->addr.slot, pcisrc->addr.function);
         return -1;
     }
 
@@ -2657,10 +2654,8 @@ libxlDomainAttachHostPCIDevice(libxlDriverPrivatePtr driver,
     if (libxl_device_pci_add(priv->ctx, vm->def->id, &pcidev, 0) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("libxenlight failed to attach pci device %.4x:%.2x:%.2x.%.1x"),
-                       hostdev->source.subsys.u.pci.addr.domain,
-                       hostdev->source.subsys.u.pci.addr.bus,
-                       hostdev->source.subsys.u.pci.addr.slot,
-                       hostdev->source.subsys.u.pci.addr.function);
+                       pcisrc->addr.domain, pcisrc->addr.bus,
+                       pcisrc->addr.slot, pcisrc->addr.function);
         goto error;
     }
 
@@ -2677,10 +2672,8 @@ static int
 libxlDomainAttachHostDevice(libxlDriverPrivatePtr driver,
                             libxlDomainObjPrivatePtr priv,
                             virDomainObjPtr vm,
-                            virDomainDeviceDefPtr dev)
+                            virDomainHostdevDefPtr hostdev)
 {
-    virDomainHostdevDefPtr hostdev = dev->data.hostdev;
-
     if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("hostdev mode '%s' not supported"),
@@ -2759,6 +2752,60 @@ libxlDomainDetachDeviceDiskLive(libxlDomainObjPrivatePtr priv,
 }
 
 static int
+libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
+                           libxlDomainObjPrivatePtr priv,
+                           virDomainObjPtr vm,
+                           virDomainNetDefPtr net)
+{
+    int actualType;
+    libxl_device_nic nic;
+    int ret = -1;
+
+    /* preallocate new slot for device */
+    if (VIR_REALLOC_N(vm->def->nets, vm->def->nnets + 1) < 0)
+        return -1;
+
+    /* If appropriate, grab a physical device from the configured
+     * network's pool of devices, or resolve bridge device name
+     * to the one defined in the network definition.
+     */
+    if (networkAllocateActualDevice(vm->def, net) < 0)
+        return -1;
+
+    actualType = virDomainNetGetActualType(net);
+
+    if (actualType == VIR_DOMAIN_NET_TYPE_HOSTDEV) {
+        /* This is really a "smart hostdev", so it should be attached
+         * as a hostdev (the hostdev code will reach over into the
+         * netdev-specific code as appropriate), then also added to
+         * the nets list (see out:) if successful.
+         */
+        ret = libxlDomainAttachHostDevice(driver, priv, vm,
+                                          virDomainNetGetActualHostdev(net));
+        goto out;
+    }
+
+    libxl_device_nic_init(&nic);
+    if (libxlMakeNic(vm->def, net, &nic) < 0)
+        goto cleanup;
+
+    if (libxl_device_nic_add(priv->ctx, vm->def->id, &nic, 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("libxenlight failed to attach network device"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    libxl_device_nic_dispose(&nic);
+ out:
+    if (!ret)
+        vm->def->nets[vm->def->nnets++] = net;
+    return ret;
+}
+
+static int
 libxlDomainAttachDeviceLive(libxlDriverPrivatePtr driver,
                             libxlDomainObjPrivatePtr priv,
                             virDomainObjPtr vm,
@@ -2773,8 +2820,16 @@ libxlDomainAttachDeviceLive(libxlDriverPrivatePtr driver,
                 dev->data.disk = NULL;
             break;
 
+        case VIR_DOMAIN_DEVICE_NET:
+            ret = libxlDomainAttachNetDevice(driver, priv, vm,
+                                             dev->data.net);
+            if (!ret)
+                dev->data.net = NULL;
+            break;
+
         case VIR_DOMAIN_DEVICE_HOSTDEV:
-            ret = libxlDomainAttachHostDevice(driver, priv, vm, dev);
+            ret = libxlDomainAttachHostDevice(driver, priv, vm,
+                                              dev->data.hostdev);
             if (!ret)
                 dev->data.hostdev = NULL;
             break;
@@ -2793,8 +2848,10 @@ static int
 libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
 {
     virDomainDiskDefPtr disk;
+    virDomainNetDefPtr net;
     virDomainHostdevDefPtr hostdev;
     virDomainHostdevDefPtr found;
+    virDomainHostdevSubsysPCIPtr pcisrc;
 
     switch (dev->type) {
         case VIR_DOMAIN_DEVICE_DISK:
@@ -2809,6 +2866,14 @@ libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
             /* vmdef has the pointer. Generic codes for vmdef will do all jobs */
             dev->data.disk = NULL;
             break;
+
+        case VIR_DOMAIN_DEVICE_NET:
+            net = dev->data.net;
+            if (virDomainNetInsert(vmdef, net))
+                return -1;
+            dev->data.net = NULL;
+            break;
+
         case VIR_DOMAIN_DEVICE_HOSTDEV:
             hostdev = dev->data.hostdev;
 
@@ -2816,13 +2881,12 @@ libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
                 return -1;
 
             if (virDomainHostdevFind(vmdef, hostdev, &found) >= 0) {
+                pcisrc = &hostdev->source.subsys.u.pci;
                 virReportError(VIR_ERR_OPERATION_FAILED,
                                _("target pci device %.4x:%.2x:%.2x.%.1x\
                                   already exists"),
-                               hostdev->source.subsys.u.pci.addr.domain,
-                               hostdev->source.subsys.u.pci.addr.bus,
-                               hostdev->source.subsys.u.pci.addr.slot,
-                               hostdev->source.subsys.u.pci.addr.function);
+                               pcisrc->addr.domain, pcisrc->addr.bus,
+                               pcisrc->addr.slot, pcisrc->addr.function);
                 return -1;
             }
 
@@ -2873,6 +2937,7 @@ libxlDomainDetachHostPCIDevice(libxlDriverPrivatePtr driver,
                                virDomainHostdevDefPtr hostdev)
 {
     virDomainHostdevSubsysPtr subsys = &hostdev->source.subsys;
+    virDomainHostdevSubsysPCIPtr pcisrc = &subsys->u.pci;
     libxl_device_pci pcidev;
     virDomainHostdevDefPtr detach;
     int idx;
@@ -2885,16 +2950,16 @@ libxlDomainDetachHostPCIDevice(libxlDriverPrivatePtr driver,
     if (idx < 0) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("host pci device %.4x:%.2x:%.2x.%.1x not found"),
-                       subsys->u.pci.addr.domain, subsys->u.pci.addr.bus,
-                       subsys->u.pci.addr.slot, subsys->u.pci.addr.function);
+                       pcisrc->addr.domain, pcisrc->addr.bus,
+                       pcisrc->addr.slot, pcisrc->addr.function);
         return -1;
     }
 
     if (libxlIsMultiFunctionDevice(vm->def, detach->info)) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"),
-                       subsys->u.pci.addr.domain, subsys->u.pci.addr.bus,
-                       subsys->u.pci.addr.slot, subsys->u.pci.addr.function);
+                       pcisrc->addr.domain, pcisrc->addr.bus,
+                       pcisrc->addr.slot, pcisrc->addr.function);
         goto error;
     }
 
@@ -2908,8 +2973,8 @@ libxlDomainDetachHostPCIDevice(libxlDriverPrivatePtr driver,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("libxenlight failed to detach pci device\
                           %.4x:%.2x:%.2x.%.1x"),
-                       subsys->u.pci.addr.domain, subsys->u.pci.addr.bus,
-                       subsys->u.pci.addr.slot, subsys->u.pci.addr.function);
+                       pcisrc->addr.domain, pcisrc->addr.bus,
+                       pcisrc->addr.slot, pcisrc->addr.function);
         goto error;
     }
 
@@ -2931,9 +2996,8 @@ static int
 libxlDomainDetachHostDevice(libxlDriverPrivatePtr driver,
                             libxlDomainObjPrivatePtr priv,
                             virDomainObjPtr vm,
-                            virDomainDeviceDefPtr dev)
+                            virDomainHostdevDefPtr hostdev)
 {
-    virDomainHostdevDefPtr hostdev = dev->data.hostdev;
     virDomainHostdevSubsysPtr subsys = &hostdev->source.subsys;
 
     if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
@@ -2957,6 +3021,53 @@ libxlDomainDetachHostDevice(libxlDriverPrivatePtr driver,
 }
 
 static int
+libxlDomainDetachNetDevice(libxlDriverPrivatePtr driver,
+                           libxlDomainObjPrivatePtr priv,
+                           virDomainObjPtr vm,
+                           virDomainNetDefPtr net)
+{
+    int detachidx;
+    virDomainNetDefPtr detach = NULL;
+    libxl_device_nic nic;
+    char mac[VIR_MAC_STRING_BUFLEN];
+    int ret = -1;
+
+    if ((detachidx = virDomainNetFindIdx(vm->def, net)) < 0)
+        return -1;
+
+    detach = vm->def->nets[detachidx];
+
+    if (virDomainNetGetActualType(detach) == VIR_DOMAIN_NET_TYPE_HOSTDEV) {
+        /* This is really a "smart hostdev", so it should be attached as a
+         * hostdev, then also removed from nets list (see out:) if successful.
+         */
+        ret = libxlDomainDetachHostDevice(driver, priv, vm,
+                                          virDomainNetGetActualHostdev(detach));
+        goto out;
+    }
+
+    libxl_device_nic_init(&nic);
+    if (libxl_mac_to_device_nic(priv->ctx, vm->def->id,
+                                virMacAddrFormat(&detach->mac, mac), &nic))
+        goto cleanup;
+
+    if (libxl_device_nic_remove(priv->ctx, vm->def->id, &nic, 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("libxenlight failed to detach network device"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    libxl_device_nic_dispose(&nic);
+ out:
+    if (!ret)
+        virDomainNetRemove(vm->def, detachidx);
+    return ret;
+}
+
+static int
 libxlDomainDetachDeviceLive(libxlDriverPrivatePtr driver,
                             libxlDomainObjPrivatePtr priv,
                             virDomainObjPtr vm,
@@ -2969,8 +3080,14 @@ libxlDomainDetachDeviceLive(libxlDriverPrivatePtr driver,
             ret = libxlDomainDetachDeviceDiskLive(priv, vm, dev);
             break;
 
+        case VIR_DOMAIN_DEVICE_NET:
+            ret = libxlDomainDetachNetDevice(driver, priv, vm,
+                                             dev->data.net);
+            break;
+
         case VIR_DOMAIN_DEVICE_HOSTDEV:
-            ret = libxlDomainDetachHostDevice(driver, priv, vm, dev);
+            ret = libxlDomainDetachHostDevice(driver, priv, vm,
+                                              dev->data.hostdev);
             break;
 
         default:
@@ -2988,7 +3105,9 @@ static int
 libxlDomainDetachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
 {
     virDomainDiskDefPtr disk, detach;
-    int ret = -1;
+    virDomainHostdevDefPtr hostdev, det_hostdev;
+    virDomainNetDefPtr net;
+    int idx;
 
     switch (dev->type) {
         case VIR_DOMAIN_DEVICE_DISK:
@@ -2996,18 +3115,39 @@ libxlDomainDetachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
             if (!(detach = virDomainDiskRemoveByName(vmdef, disk->dst))) {
                 virReportError(VIR_ERR_INVALID_ARG,
                                _("no target device %s"), disk->dst);
-                break;
+                return -1;
             }
             virDomainDiskDefFree(detach);
-            ret = 0;
             break;
+
+        case VIR_DOMAIN_DEVICE_NET:
+            net = dev->data.net;
+            if ((idx = virDomainNetFindIdx(vmdef, net)) < 0)
+                return -1;
+
+            /* this is guaranteed to succeed */
+            virDomainNetDefFree(virDomainNetRemove(vmdef, idx));
+            break;
+
+        case VIR_DOMAIN_DEVICE_HOSTDEV: {
+            hostdev = dev->data.hostdev;
+            if ((idx = virDomainHostdevFind(vmdef, hostdev, &det_hostdev)) < 0) {
+                virReportError(VIR_ERR_INVALID_ARG, "%s",
+                               _("device not present in domain configuration"));
+                return -1;
+            }
+            virDomainHostdevRemove(vmdef, idx);
+            virDomainHostdevDefFree(det_hostdev);
+            break;
+        }
+
         default:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("persistent detach of device is not supported"));
-            break;
+            return -1;
     }
 
-    return ret;
+    return 0;
 }
 
 static int
@@ -3143,10 +3283,8 @@ libxlDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
                                                     driver->xmlopt)))
             goto endjob;
 
-        if ((ret = libxlDomainAttachDeviceConfig(vmdef, dev)) < 0)
+        if (libxlDomainAttachDeviceConfig(vmdef, dev) < 0)
             goto endjob;
-    } else {
-        ret = 0;
     }
 
     if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
@@ -3157,7 +3295,7 @@ libxlDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
                                             VIR_DOMAIN_XML_INACTIVE)))
             goto endjob;
 
-        if ((ret = libxlDomainAttachDeviceLive(driver, priv, vm, dev)) < 0)
+        if (libxlDomainAttachDeviceLive(driver, priv, vm, dev) < 0)
             goto endjob;
 
         /*
@@ -3165,11 +3303,13 @@ libxlDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
          * changed even if we attach the device failed.
          */
         if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
-            ret = -1;
+            goto endjob;
     }
 
+    ret = 0;
+
     /* Finally, if no error until here, we can save config. */
-    if (!ret && (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG)) {
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
         ret = virDomainSaveConfig(cfg->configDir, vmdef);
         if (!ret) {
             virDomainObjAssignDef(vm, vmdef, false, NULL);
@@ -3254,10 +3394,8 @@ libxlDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
                                                     driver->xmlopt)))
             goto endjob;
 
-        if ((ret = libxlDomainDetachDeviceConfig(vmdef, dev)) < 0)
+        if (libxlDomainDetachDeviceConfig(vmdef, dev) < 0)
             goto endjob;
-    } else {
-        ret = 0;
     }
 
     if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
@@ -3268,7 +3406,7 @@ libxlDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
                                             VIR_DOMAIN_XML_INACTIVE)))
             goto endjob;
 
-        if ((ret = libxlDomainDetachDeviceLive(driver, priv, vm, dev)) < 0)
+        if (libxlDomainDetachDeviceLive(driver, priv, vm, dev) < 0)
             goto endjob;
 
         /*
@@ -3276,11 +3414,13 @@ libxlDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
          * changed even if we attach the device failed.
          */
         if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
-            ret = -1;
+            goto endjob;
     }
 
+    ret = 0;
+
     /* Finally, if no error until here, we can save config. */
-    if (!ret && (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG)) {
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
         ret = virDomainSaveConfig(cfg->configDir, vmdef);
         if (!ret) {
             virDomainObjAssignDef(vm, vmdef, false, NULL);
@@ -3986,11 +4126,12 @@ libxlDomainGetNumaParameters(virDomainPtr dom,
             if (numnodes <= 0)
                 goto cleanup;
 
-            if (libxl_node_bitmap_alloc(priv->ctx, &nodemap, 0) ||
-                !(nodes = virBitmapNew(numnodes))) {
+            if (libxl_node_bitmap_alloc(priv->ctx, &nodemap, 0)) {
                 virReportOOMError();
                 goto cleanup;
             }
+            if (!(nodes = virBitmapNew(numnodes)))
+                goto cleanup;
 
             rc = libxl_domain_get_nodeaffinity(priv->ctx,
                                                vm->def->id,
@@ -4437,7 +4578,7 @@ libxlDomainMigratePrepare3Params(virConnectPtr dconn,
     if (virDomainMigratePrepare3ParamsEnsureACL(dconn, def) < 0)
         goto error;
 
-    if (libxlDomainMigrationPrepare(dconn, def, uri_in, uri_out, flags) < 0)
+    if (libxlDomainMigrationPrepare(dconn, &def, uri_in, uri_out, flags) < 0)
         goto error;
 
     return 0;
@@ -4493,11 +4634,8 @@ libxlDomainMigratePerform3Params(virDomainPtr dom,
         goto cleanup;
 
     if (libxlDomainMigrationPerform(driver, vm, dom_xml, dconnuri,
-                                    uri, dname, flags) < 0) {
-        /* Job terminated and vm unlocked if MigrationPerform failed */
-        vm = NULL;
+                                    uri, dname, flags) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 

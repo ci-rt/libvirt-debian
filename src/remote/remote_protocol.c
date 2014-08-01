@@ -552,6 +552,32 @@ xdr_remote_connect_get_capabilities_ret (XDR *xdrs, remote_connect_get_capabilit
 }
 
 bool_t
+xdr_remote_connect_get_domain_capabilities_args (XDR *xdrs, remote_connect_get_domain_capabilities_args *objp)
+{
+
+         if (!xdr_remote_string (xdrs, &objp->emulatorbin))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->arch))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->machine))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->virttype))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_get_domain_capabilities_ret (XDR *xdrs, remote_connect_get_domain_capabilities_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->capabilities))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_node_get_cpu_stats_args (XDR *xdrs, remote_node_get_cpu_stats_args *objp)
 {
 

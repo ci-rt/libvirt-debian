@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.6], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.7], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -275,7 +275,7 @@ dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
   getmntent_r getpwuid_r getuid kill mmap newlocale posix_fallocate \
   posix_memalign prlimit regexec sched_getaffinity setgroups setns \
-  setrlimit symlink sysctlbyname])
+  setrlimit symlink sysctlbyname getifaddrs])
 
 dnl Availability of pthread functions. Because of $LIB_PTHREAD, we
 dnl cannot use AC_CHECK_FUNCS_ONCE. LIB_PTHREAD and LIBMULTITHREAD
@@ -2691,6 +2691,17 @@ if test $with_freebsd = yes; then
                  )
 fi
 
+# FreeBSD 10-STABLE requires _IFI_OQDROPS to be defined for if_data.ifi_oqdrops
+# field be available
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -D_IFI_OQDROPS"
+
+AC_CHECK_MEMBERS([struct if_data.ifi_oqdrops],
+		 [],
+		 [CFLAGS="$old_CFLAGS"],
+		 [#include <net/if.h>
+		 ])
+
 # Check if we need to look for ifconfig
 if test "$want_ifconfig" = "yes"; then
      AC_PATH_PROG([IFCONFIG_PATH], [ifconfig])
@@ -2744,6 +2755,7 @@ AC_CONFIG_FILES([\
         examples/domsuspend/Makefile \
         examples/dominfo/Makefile \
         examples/dommigrate/Makefile \
+        examples/domtop/Makefile \
         examples/openauth/Makefile \
         examples/hellolibvirt/Makefile \
         examples/systemtap/Makefile \

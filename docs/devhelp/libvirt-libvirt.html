@@ -362,6 +362,7 @@ char *	<a href="#virConnectDomainXMLToNative">virConnectDomainXMLToNative</a>	(<
 char *	<a href="#virConnectFindStoragePoolSources">virConnectFindStoragePoolSources</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * type, <br/>						 const char * srcSpec, <br/>						 unsigned int flags);
 int	<a href="#virConnectGetCPUModelNames">virConnectGetCPUModelNames</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * arch, <br/>					 char ** * models, <br/>					 unsigned int flags);
 char *	<a href="#virConnectGetCapabilities">virConnectGetCapabilities</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
+char *	<a href="#virConnectGetDomainCapabilities">virConnectGetDomainCapabilities</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * emulatorbin, <br/>					 const char * arch, <br/>					 const char * machine, <br/>					 const char * virttype, <br/>					 unsigned int flags);
 char *	<a href="#virConnectGetHostname">virConnectGetHostname</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectGetLibVersion">virConnectGetLibVersion</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * libVer);
 int	<a href="#virConnectGetMaxVcpus">virConnectGetMaxVcpus</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * type);
@@ -1440,6 +1441,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_BLOCK_COMMIT_SHALLOW">VIR_DOMAIN_BLOCK_COMMIT_SHALLOW</a> = 1 /* NULL base means next backing file, not whole chain */
     <a name="VIR_DOMAIN_BLOCK_COMMIT_DELETE">VIR_DOMAIN_BLOCK_COMMIT_DELETE</a> = 2 /* Delete any files that are now invalid after their contents have been committed */
     <a name="VIR_DOMAIN_BLOCK_COMMIT_ACTIVE">VIR_DOMAIN_BLOCK_COMMIT_ACTIVE</a> = 4 /* Allow a two-phase commit when top is the active layer */
+    <a name="VIR_DOMAIN_BLOCK_COMMIT_RELATIVE">VIR_DOMAIN_BLOCK_COMMIT_RELATIVE</a> = 8 /* keep the backing chain referenced using relative names */
 };
 </pre><p/>
 </div>
@@ -1496,6 +1498,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT">VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT</a> = 2 /* Reuse existing external file for a copy */
     <a name="VIR_DOMAIN_BLOCK_REBASE_COPY_RAW">VIR_DOMAIN_BLOCK_REBASE_COPY_RAW</a> = 4 /* Make destination file raw */
     <a name="VIR_DOMAIN_BLOCK_REBASE_COPY">VIR_DOMAIN_BLOCK_REBASE_COPY</a> = 8 /* Start a copy job */
+    <a name="VIR_DOMAIN_BLOCK_REBASE_RELATIVE">VIR_DOMAIN_BLOCK_REBASE_RELATIVE</a> = 16 /* Keep backing chain referenced using relative names */
 };
 </pre><p/>
 </div>
@@ -3033,7 +3036,7 @@ If @flags includes <a href="libvirt-libvirt.html#VIR_CONNECT_BASELINE_CPU_EXPAND
 will explicitly list all CPU features that are part of the host CPU,
 without this flag features that are part of the CPU model will not be
 listed.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlCPUs</tt></i>:</span></td><td>array of XML descriptions of host CPUs</td></tr><tr><td><span class="term"><i><tt>ncpus</tt></i>:</span></td><td>number of CPUs in xmlCPUs</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>XML description of the computed CPU or NULL on error.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlCPUs</tt></i>:</span></td><td>array of XML descriptions of host CPUs</td></tr><tr><td><span class="term"><i><tt>ncpus</tt></i>:</span></td><td>number of CPUs in xmlCPUs</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>XML description of the computed CPU (caller frees) or NULL on error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectClose"/>virConnectClose ()</h3><pre class="programlisting">int	virConnectClose			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>This function closes the connection to the Hypervisor. This should
@@ -3143,6 +3146,14 @@ local storage resources only)</p>
         <div class="refsect2" lang="en"><h3><a name="virConnectGetCapabilities"/>virConnectGetCapabilities ()</h3><pre class="programlisting">char *	virConnectGetCapabilities	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Provides capabilities of the hypervisor / driver.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, or an XML string defining the capabilities. The client must free the returned string after use.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetDomainCapabilities"/>virConnectGetDomainCapabilities ()</h3><pre class="programlisting">char *	virConnectGetDomainCapabilities	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * emulatorbin, <br/>					 const char * arch, <br/>					 const char * machine, <br/>					 const char * virttype, <br/>					 unsigned int flags)<br/>
+</pre><p>Prior creating a domain (for instance via virDomainCreateXML
+or virDomainDefineXML) it may be suitable to know what the
+underlying emulator and/or libvirt is capable of. For
+instance, if host, libvirt and qemu is capable of VFIO
+passthrough and so on.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>emulatorbin</tt></i>:</span></td><td>path to emulator</td></tr><tr><td><span class="term"><i><tt>arch</tt></i>:</span></td><td>domain architecture</td></tr><tr><td><span class="term"><i><tt>machine</tt></i>:</span></td><td>machine type</td></tr><tr><td><span class="term"><i><tt>virttype</tt></i>:</span></td><td>virtualization type</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error or an XML string defining the capabilities.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectGetHostname"/>virConnectGetHostname ()</h3><pre class="programlisting">char *	virConnectGetHostname		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>This returns a system hostname on which the hypervisor is
@@ -3549,7 +3560,10 @@ the libvirtd daemon to be active, it will automatically be launched
 if not already running. This can be prevented by setting the
 environment variable LIBVIRT_AUTOSTART=0
 
-URIs are documented at http://libvirt.org/uri.html</p>
+URIs are documented at http://libvirt.org/uri.html
+
+virConnectClose should be used to release the resources after the connection
+is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectOpenAuth"/>virConnectOpenAuth ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virConnectOpenAuth	(const char * name, <br/>					 <a href="libvirt-libvirt.html#virConnectAuthPtr">virConnectAuthPtr</a> auth, <br/>					 unsigned int flags)<br/>
@@ -3558,7 +3572,7 @@ Hypervisor. If necessary, authentication will be performed fetching
 credentials via the callback
 
 See <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
-have an effect on opening drivers
+have an effect on opening drivers and freeing the connection resources
 
 URIs are documented at http://libvirt.org/uri.html</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>auth</tt></i>:</span></td><td>Authenticate callback parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectFlags">virConnectFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
@@ -3569,7 +3583,7 @@ library functionalities. The set of APIs usable are then restricted
 on the available methods to control the domains.
 
 See <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
-have an effect on opening drivers
+have an effect on opening drivers and freeing the connection resources
 
 URIs are documented at http://libvirt.org/uri.html</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
@@ -3715,6 +3729,11 @@ operation.
 Some hypervisors may support a shortcut where if @flags contains
 VIR_DOMAIN_BLOCK_COMMIT_DELETE, then this command will unlink all files
 that were invalidated, after the commit successfully completes.
+
+If @flags contains VIR_DOMAIN_BLOCK_COMMIT_RELATIVE, the name recorded
+into the overlay of the @top image (if there is such image) as the
+path to the new backing file will be kept relative to other images.
+The operation will fail if libvirt can't infer the name.
 
 By default, if @base is NULL, the commit target will be the bottom of
 the backing chain; if @flags contains VIR_DOMAIN_BLOCK_COMMIT_SHALLOW,
@@ -3877,6 +3896,10 @@ event is raised to indicate the final status, and the job no longer
 exists. If the job is aborted, a new one can be started later to
 resume from the same point.
 
+If @flags contains VIR_DOMAIN_BLOCK_REBASE_RELATIVE, the name recorded
+into the active disk as the location for @base will be kept relative.
+The operation will fail if libvirt can't infer the name.
+
 When @flags includes VIR_DOMAIN_BLOCK_REBASE_COPY, this starts a copy,
 where @base must be the name of a new file to copy the chain to. By
 default, the copy will pull the entire source chain into the destination
@@ -3887,11 +3910,14 @@ created with the same file format as the source, but this can be altered
 by adding <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_COPY_RAW">VIR_DOMAIN_BLOCK_REBASE_COPY_RAW</a> to force the copy to be raw
 (does not make sense with the shallow flag unless the source is also raw),
 or by using <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT">VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT</a> to reuse an existing file
-with initial contents identical to the backing file of the source (this
-allows a management app to pre-create files with relative backing file
-names, rather than the default of absolute backing file names; as a
-security precaution, you should generally only use reuse_ext with the
-shallow flag and a non-raw destination file).
+which was pre-created with the correct format and metadata and sufficient
+size to hold the copy. In case the <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_SHALLOW">VIR_DOMAIN_BLOCK_REBASE_SHALLOW</a> flag
+is used the pre-created file has to exhibit the same guest visible contents
+as the backing file of the original image. This allows a management app to
+pre-create files with relative backing file names, rather than the default
+of absolute backing file names; as a security precaution, you should
+generally only use reuse_ext with the shallow flag and a non-raw
+destination file.
 
 A copy job has two parts; in the first phase, the @bandwidth parameter
 affects how fast the source is pulled into the destination, and the job
@@ -4006,7 +4032,7 @@ might support different parameters, so it might be necessary to compute
 @nparams for each block device). The caller should then allocate @params
 array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
 again. See virDomainGetMemoryParameters() for more details.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to block stats parameter object (return value)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of block stats; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to block stats parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of block stats; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCoreDump"/>virDomainCoreDump ()</h3><pre class="programlisting">int	virDomainCoreDump		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 unsigned int flags)<br/>
 </pre><p>This method will dump the core of a domain on a given file for analysis.
@@ -4018,7 +4044,7 @@ If @flags includes VIR_DUMP_CRASH, then leave the guest shut off with
 a crashed state after the dump completes. If @flags includes
 VIR_DUMP_LIVE, then make the core dump while continuing to allow
 the guest to run; otherwise, the guest is suspended during the dump.
-VIR_DUMP_RESET flag forces reset of the quest after dump.
+VIR_DUMP_RESET flag forces reset of the guest after dump.
 The above three flags are mutually exclusive.
 
 Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
@@ -4043,7 +4069,7 @@ If @flags includes VIR_DUMP_CRASH, then leave the guest shut off with
 a crashed state after the dump completes. If @flags includes
 VIR_DUMP_LIVE, then make the core dump while continuing to allow
 the guest to run; otherwise, the guest is suspended during the dump.
-VIR_DUMP_RESET flag forces reset of the quest after dump.
+VIR_DUMP_RESET flag forces reset of the guest after dump.
 The above three flags are mutually exclusive.
 
 Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
@@ -4145,7 +4171,10 @@ domain will be automatically destroyed when the virConnectPtr
 object is finally released. This will also happen if the
 client application crashes / loses its connection to the
 libvirtd daemon. Any domains marked for auto destroy will
-block attempts at migration, save-to-file, or snapshots.</p>
+block attempts at migration, save-to-file, or snapshots.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainCreateFlags">virDomainCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreateXMLWithFiles"/>virDomainCreateXMLWithFiles ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainCreateXMLWithFiles	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xmlDesc, <br/>						 unsigned int nfiles, <br/>						 int * files, <br/>						 unsigned int flags)<br/>
@@ -4172,7 +4201,10 @@ domain will be automatically destroyed when the virConnectPtr
 object is finally released. This will also happen if the
 client application crashes / loses its connection to the
 libvirtd daemon. Any domains marked for auto destroy will
-block attempts at migration, save-to-file, or snapshots.</p>
+block attempts at migration, save-to-file, or snapshots.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>nfiles</tt></i>:</span></td><td>number of file descriptors passed</td></tr><tr><td><span class="term"><i><tt>files</tt></i>:</span></td><td>list of file descriptors passed</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainCreateFlags">virDomainCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainDefineXML"/>virDomainDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml)<br/>
@@ -4184,7 +4216,10 @@ overridden if it already exists.
 Some hypervisors may prevent this operation if there is a current
 block copy operation on a transient domain with the same id as the
 domain being defined; in that case, use virDomainBlockJobAbort() to
-stop the block copy first.</p>
+stop the block copy first.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the domain, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a pointer to the domain otherwise</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainDestroy"/>virDomainDestroy ()</h3><pre class="programlisting">int	virDomainDestroy		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
@@ -4867,19 +4902,31 @@ additional files.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainLookupByID"/>virDomainLookupByID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainLookupByID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int id)<br/>
 </pre><p>Try to find a domain based on the hypervisor ID number
 Note that this won't work for inactive domains which have an ID of -1,
-in that case a lookup based on the Name or UUId need to be done instead.</p>
+in that case a lookup based on the Name or UUId need to be done instead.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>id</tt></i>:</span></td><td>the domain ID number</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure. If the domain cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN">VIR_ERR_NO_DOMAIN</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainLookupByName"/>virDomainLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name)<br/>
-</pre><p>Try to lookup a domain on the given hypervisor based on its name.</p>
+</pre><p>Try to lookup a domain on the given hypervisor based on its name.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the domain</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure. If the domain cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN">VIR_ERR_NO_DOMAIN</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainLookupByUUID"/>virDomainLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainLookupByUUID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid)<br/>
-</pre><p>Try to lookup a domain on the given hypervisor based on its UUID.</p>
+</pre><p>Try to lookup a domain on the given hypervisor based on its UUID.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the domain</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure. If the domain cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN">VIR_ERR_NO_DOMAIN</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainLookupByUUIDString"/>virDomainLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainLookupByUUIDString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
-</pre><p>Try to lookup a domain on the given hypervisor based on its UUID.</p>
+</pre><p>Try to lookup a domain on the given hypervisor based on its UUID.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the domain</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure. If the domain cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN">VIR_ERR_NO_DOMAIN</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainManagedSave"/>virDomainManagedSave ()</h3><pre class="programlisting">int	virDomainManagedSave		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags)<br/>
@@ -5025,7 +5072,10 @@ see virConnectGetCapabilities, /capabilities/host/migration_features.
 There are many limitations on migration imposed by the underlying
 technology - for example it may not be possible to migrate between
 different processors even with the same architecture, or between
-different types of hypervisor.</p>
+different types of hypervisor.
+
+virDomainFree should be used to free the resources after the
+returned domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>dconn</tt></i>:</span></td><td>destination host (a connection object)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainMigrateFlags">virDomainMigrateFlags</a></td></tr><tr><td><span class="term"><i><tt>dname</tt></i>:</span></td><td>(optional) rename domain to this at destination</td></tr><tr><td><span class="term"><i><tt>uri</tt></i>:</span></td><td>(optional) dest hostname/URI as seen from the source host</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify migration bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the new domain object if the migration was successful, or NULL in case of error. Note that the new domain object exists in the scope of the destination connection (dconn).</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMigrate2"/>virDomainMigrate2 ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainMigrate2	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> dconn, <br/>					 const char * dxml, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 const char * uri, <br/>					 unsigned long bandwidth)<br/>
@@ -5104,7 +5154,10 @@ if @dxml would cause any guest-visible changes. Pass NULL
 if no changes are needed to the XML between source and destination.
 @dxml cannot be used to rename the domain during migration (use
 @dname for that purpose). Domain name in @dxml must match the
-original domain name.</p>
+original domain name.
+
+virDomainFree should be used to free the resources after the
+returned domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>dconn</tt></i>:</span></td><td>destination host (a connection object)</td></tr><tr><td><span class="term"><i><tt>dxml</tt></i>:</span></td><td>(optional) XML config for launching guest on target</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainMigrateFlags">virDomainMigrateFlags</a></td></tr><tr><td><span class="term"><i><tt>dname</tt></i>:</span></td><td>(optional) rename domain to this at destination</td></tr><tr><td><span class="term"><i><tt>uri</tt></i>:</span></td><td>(optional) dest hostname/URI as seen from the source host</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify migration bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the new domain object if the migration was successful, or NULL in case of error. Note that the new domain object exists in the scope of the destination connection (dconn).</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMigrate3"/>virDomainMigrate3 ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainMigrate3	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> dconn, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 unsigned int nparams, <br/>					 unsigned int flags)<br/>
@@ -5123,7 +5176,10 @@ VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
 There are many limitations on migration imposed by the underlying
 technology - for example it may not be possible to migrate between
 different processors even with the same architecture, or between
-different types of hypervisor.</p>
+different types of hypervisor.
+
+virDomainFree should be used to free the resources after the
+returned domain object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>dconn</tt></i>:</span></td><td>destination host (a connection object)</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>(optional) migration parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>(optional) number of migration parameters in @params</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainMigrateFlags">virDomainMigrateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the new domain object if the migration was successful, or NULL in case of error. Note that the new domain object exists in the scope of the destination connection (dconn).</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMigrateGetCompressionCache"/>virDomainMigrateGetCompressionCache ()</h3><pre class="programlisting">int	virDomainMigrateGetCompressionCache	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>						 unsigned long long * cacheSize, <br/>						 unsigned int flags)<br/>
@@ -5984,10 +6040,12 @@ By default, if the snapshot involves external files, and any of the
 destination files already exist as a non-empty regular file, the
 snapshot is rejected to avoid losing contents of those files.
 However, if @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT,
-then the destination files must already exist and contain content
-identical to the source files (this allows a management app to
-pre-create files with relative backing file names, rather than the
-default of creating with absolute backing file names).
+then the destination files must be pre-created manually with
+the correct image format and metadata including backing store path
+(this allows a management app to pre-create files with relative backing
+file names, rather than the default of creating with absolute backing
+file names). Note that setting incorrect metadata in the pre-created
+image may lead to the VM being unable to start.
 
 Be aware that although libvirt prefers to report errors up front with
 no other effect, some hypervisors have certain types of failures where
@@ -6005,11 +6063,17 @@ in the much rarer cases of running out of memory or disk space).
 
 Some hypervisors may prevent this operation if there is a current
 block copy operation; in that case, use virDomainBlockJobAbort()
-to stop the block copy first.</p>
+to stop the block copy first.
+
+virDomainSnapshotFree should be used to free the resources after the
+snapshot object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainSnapshotCreateFlags">virDomainSnapshotCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>an (opaque) <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> on success, NULL on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotCurrent"/>virDomainSnapshotCurrent ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotCurrent	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 unsigned int flags)<br/>
-</pre><p>Get the current snapshot for a domain, if any.</p>
+</pre><p>Get the current snapshot for a domain, if any.
+
+virDomainSnapshotFree should be used to free the resources after the
+snapshot object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a domain snapshot object or NULL in case of failure. If the current domain snapshot cannot be found, then the <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotDelete"/>virDomainSnapshotDelete ()</h3><pre class="programlisting">int	virDomainSnapshotDelete		(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
@@ -6058,7 +6122,10 @@ function. Instead, store the domain and the snapshot object together.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a snapshot object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated as its lifetime will be the same as the snapshot object.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotGetParent"/>virDomainSnapshotGetParent ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotGetParent	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>							 unsigned int flags)<br/>
-</pre><p>Get the parent snapshot for @snapshot, if any.</p>
+</pre><p>Get the parent snapshot for @snapshot, if any.
+
+virDomainSnapshotFree should be used to free the resources after the
+snapshot object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a domain snapshot object or NULL in case of failure. If the given snapshot is a root (no parent), then the <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotGetXMLDesc"/>virDomainSnapshotGetXMLDesc ()</h3><pre class="programlisting">char *	virDomainSnapshotGetXMLDesc	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
@@ -6531,7 +6598,10 @@ virInterfaceChangeCommit() is called prior to the next reboot of
 the system running libvirtd. Prior to that time, it can be
 explicitly removed using virInterfaceChangeRollback(), or will be
 automatically removed during the next reboot of the system running
-libvirtd.</p>
+libvirtd.
+
+virInterfaceFree should be used to free the resources after the
+interface object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the interface, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a pointer to the interface otherwise</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceDestroy"/>virInterfaceDestroy ()</h3><pre class="programlisting">int	virInterfaceDestroy		(<a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a> iface, <br/>					 unsigned int flags)<br/>
@@ -6587,11 +6657,17 @@ setting of the interface, not the settings from the config files.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>pointer to the interface object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if running, 0 if inactive, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceLookupByMACString"/>virInterfaceLookupByMACString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a>	virInterfaceLookupByMACString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * macstr)<br/>
-</pre><p>Try to lookup an interface on the given hypervisor based on its MAC.</p>
+</pre><p>Try to lookup an interface on the given hypervisor based on its MAC.
+
+virInterfaceFree should be used to free the resources after the
+interface object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>macstr</tt></i>:</span></td><td>the MAC for the interface (null-terminated ASCII format)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new interface object or NULL in case of failure. If the interface cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_INTERFACE">VIR_ERR_NO_INTERFACE</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceLookupByName"/>virInterfaceLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a>	virInterfaceLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * name)<br/>
-</pre><p>Try to lookup an interface on the given hypervisor based on its name.</p>
+</pre><p>Try to lookup an interface on the given hypervisor based on its name.
+
+virInterfaceFree should be used to free the resources after the
+interface object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the interface</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new interface object or NULL in case of failure. If the interface cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_INTERFACE">VIR_ERR_NO_INTERFACE</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceRef"/>virInterfaceRef ()</h3><pre class="programlisting">int	virInterfaceRef			(<a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
@@ -6624,7 +6700,10 @@ during the next reboot of the system running libvirtd.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNWFilterDefineXML"/>virNWFilterDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc)<br/>
 </pre><p>Define a new network filter, based on an XML description
-similar to the one returned by virNWFilterGetXMLDesc()</p>
+similar to the one returned by virNWFilterGetXMLDesc()
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>an XML description of the nwfilter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNWFilterFree"/>virNWFilterFree ()</h3><pre class="programlisting">int	virNWFilterFree			(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
@@ -6651,15 +6730,24 @@ reused later to redefine the network filter with virNWFilterCreateXML().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByName"/>virNWFilterLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name)<br/>
-</pre><p>Try to lookup a network filter on the given hypervisor based on its name.</p>
+</pre><p>Try to lookup a network filter on the given hypervisor based on its name.
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the network filter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the network filter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByUUID"/>virNWFilterLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByUUID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid)<br/>
-</pre><p>Try to lookup a network filter on the given hypervisor based on its UUID.</p>
+</pre><p>Try to lookup a network filter on the given hypervisor based on its UUID.
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the network filter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the nwfdilter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByUUIDString"/>virNWFilterLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByUUIDString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
-</pre><p>Try to lookup an nwfilter on the given hypervisor based on its UUID.</p>
+</pre><p>Try to lookup an nwfilter on the given hypervisor based on its UUID.
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the nwfilter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the nwfilter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNWFilterRef"/>virNWFilterRef ()</h3><pre class="programlisting">int	virNWFilterRef			(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
@@ -6688,7 +6776,10 @@ moves from the defined to the running networks pools.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkCreateXML"/>virNetworkCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	virNetworkCreateXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc)<br/>
 </pre><p>Create and start a new virtual network, based on an XML description
-similar to the one returned by virNetworkGetXMLDesc()</p>
+similar to the one returned by virNetworkGetXMLDesc()
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>an XML description of the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkDHCPLeaseFree"/>virNetworkDHCPLeaseFree ()</h3><pre class="programlisting">void	virNetworkDHCPLeaseFree		(<a href="libvirt-libvirt.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> lease)<br/>
@@ -6696,7 +6787,10 @@ similar to the one returned by virNetworkGetXMLDesc()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>lease</tt></i>:</span></td><td>pointer to a leases object</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkDefineXML"/>virNetworkDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	virNetworkDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml)<br/>
-</pre><p>Define a network, but does not create it</p>
+</pre><p>Define a network, but does not create it
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the network, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a pointer to the network otherwise</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkDestroy"/>virNetworkDestroy ()</h3><pre class="programlisting">int	virNetworkDestroy		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
@@ -6793,11 +6887,17 @@ which means it will still exist after shutting down</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if persistent, 0 if transient, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkLookupByName"/>virNetworkLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	virNetworkLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name)<br/>
-</pre><p>Try to lookup a network on the given hypervisor based on its name.</p>
+</pre><p>Try to lookup a network on the given hypervisor based on its name.
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure. If the network cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NETWORK">VIR_ERR_NO_NETWORK</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkLookupByUUID"/>virNetworkLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	virNetworkLookupByUUID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid)<br/>
-</pre><p>Try to lookup a network on the given hypervisor based on its UUID.</p>
+</pre><p>Try to lookup a network on the given hypervisor based on its UUID.
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure. If the network cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NETWORK">VIR_ERR_NO_NETWORK</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkLookupByUUIDString"/>virNetworkLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	virNetworkLookupByUUIDString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
@@ -6833,7 +6933,10 @@ running state, its persistent configuration, or both.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceCreateXML"/>virNodeDeviceCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a>	virNodeDeviceCreateXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags)<br/>
 </pre><p>Create a new device on the VM host machine, for example, virtual
-HBAs created using vport_create.</p>
+HBAs created using vport_create.
+
+virNodeDeviceFree should be used to free the resources after the
+node device object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the device to be created</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a node device object if successful, NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceDestroy"/>virNodeDeviceDestroy ()</h3><pre class="programlisting">int	virNodeDeviceDestroy		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev)<br/>
@@ -6904,11 +7007,17 @@ the device.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>the device</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of capability names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of capability names listed in @names or -1 in case of error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceLookupByName"/>virNodeDeviceLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a>	virNodeDeviceLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * name)<br/>
-</pre><p>Lookup a node device by its name.</p>
+</pre><p>Lookup a node device by its name.
+
+virNodeDeviceFree should be used to free the resources after the
+node device object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>unique device name</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> if found, NULL otherwise.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceLookupSCSIHostByWWN"/>virNodeDeviceLookupSCSIHostByWWN ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a>	virNodeDeviceLookupSCSIHostByWWN	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * wwnn, <br/>							 const char * wwpn, <br/>							 unsigned int flags)<br/>
-</pre><p>Lookup SCSI Host which is capable with 'fc_host' by its WWNN and WWPN.</p>
+</pre><p>Lookup SCSI Host which is capable with 'fc_host' by its WWNN and WWPN.
+
+virNodeDeviceFree should be used to free the resources after the
+node device object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>wwnn</tt></i>:</span></td><td>WWNN of the SCSI Host.</td></tr><tr><td><span class="term"><i><tt>wwpn</tt></i>:</span></td><td>WWPN of the SCSI Host.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> if found, NULL otherwise.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceNumOfCaps"/>virNodeDeviceNumOfCaps ()</h3><pre class="programlisting">int	virNodeDeviceNumOfCaps		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev)<br/>
@@ -7167,7 +7276,10 @@ attributes of the secret specified by UUID by attributes specified in xml
 (any attributes not specified in xml are discarded).
 
 Otherwise, creates a new secret with an automatically chosen UUID, and
-initializes its attributes from xml.</p>
+initializes its attributes from xml.
+
+virSecretFree should be used to free the resources after the
+secret object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>XML describing the secret.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a secret on success, NULL on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSecretFree"/>virSecretFree ()</h3><pre class="programlisting">int	virSecretFree			(<a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a> secret)<br/>
@@ -7220,18 +7332,27 @@ do not explicitly know about.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSecretLookupByUUID"/>virSecretLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a>	virSecretLookupByUUID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid)<br/>
 </pre><p>Try to lookup a secret on the given hypervisor based on its UUID.
-Uses the 16 bytes of raw data to describe the UUID</p>
+Uses the 16 bytes of raw data to describe the UUID
+
+virSecretFree should be used to free the resources after the
+secret object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the secret</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new secret object or NULL in case of failure. If the secret cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_SECRET">VIR_ERR_NO_SECRET</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSecretLookupByUUIDString"/>virSecretLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a>	virSecretLookupByUUIDString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
 </pre><p>Try to lookup a secret on the given hypervisor based on its UUID.
-Uses the printable string value to describe the UUID</p>
+Uses the printable string value to describe the UUID
+
+virSecretFree should be used to free the resources after the
+secret object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the secret</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new secret object or NULL in case of failure. If the secret cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_SECRET">VIR_ERR_NO_SECRET</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSecretLookupByUsage"/>virSecretLookupByUsage ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a>	virSecretLookupByUsage	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int usageType, <br/>					 const char * usageID)<br/>
 </pre><p>Try to lookup a secret on the given hypervisor based on its usage
 The usageID is unique within the set of secrets sharing the
-same usageType value.</p>
+same usageType value.
+
+virSecretFree should be used to free the resources after the
+secret object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>usageType</tt></i>:</span></td><td>the type of secret usage</td></tr><tr><td><span class="term"><i><tt>usageID</tt></i>:</span></td><td>identifier of the object using the secret</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new secret object or NULL in case of failure. If the secret cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_SECRET">VIR_ERR_NO_SECRET</a> error is raised.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSecretRef"/>virSecretRef ()</h3><pre class="programlisting">int	virSecretRef			(<a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a> secret)<br/>
@@ -7269,12 +7390,18 @@ Build the underlying storage pool</p>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolCreateXML"/>virStoragePoolCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolCreateXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags)<br/>
 </pre><p>Create a new storage based on its XML description. The
 pool is not persistent, so its definition will disappear
-when it is destroyed, or if the host is restarted</p>
+when it is destroyed, or if the host is restarted
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>XML description for new pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if creation failed</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolDefineXML"/>virStoragePoolDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xml, <br/>						 unsigned int flags)<br/>
 </pre><p>Define a new inactive storage pool based on its XML description. The
-pool is persistent, until explicitly undefined.</p>
+pool is persistent, until explicitly undefined.
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>XML description for new pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if creation failed</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolDelete"/>virStoragePoolDelete ()</h3><pre class="programlisting">int	virStoragePoolDelete		(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags)<br/>
@@ -7332,7 +7459,7 @@ such as free space / usage summary</p>
 </pre><p>Fetch an XML document describing all aspects of the
 storage pool. This is suitable for later feeding back
 into the <a href="libvirt-libvirt.html#virStoragePoolCreateXML">virStoragePoolCreateXML</a> method.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virStorageXMLFlags">virStorageXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a XML document, or NULL on error</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virStorageXMLFlags">virStorageXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a XML document (caller frees), or NULL on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolIsActive"/>virStoragePoolIsActive ()</h3><pre class="programlisting">int	virStoragePoolIsActive		(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
 </pre><p>Determine if the storage pool is currently running</p>
@@ -7356,19 +7483,31 @@ To list the volume objects directly, see virStoragePoolListAllVolumes().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array in which to storage volume names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of names fetched, or -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByName"/>virStoragePoolLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * name)<br/>
-</pre><p>Fetch a storage pool based on its unique name</p>
+</pre><p>Fetch a storage pool based on its unique name
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of pool to fetch</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByUUID"/>virStoragePoolLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByUUID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const unsigned char * uuid)<br/>
-</pre><p>Fetch a storage pool based on its globally unique id</p>
+</pre><p>Fetch a storage pool based on its globally unique id
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>globally unique id of pool to fetch</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByUUIDString"/>virStoragePoolLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByUUIDString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * uuidstr)<br/>
-</pre><p>Fetch a storage pool based on its globally unique id</p>
+</pre><p>Fetch a storage pool based on its globally unique id
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>globally unique id of pool to fetch</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByVolume"/>virStoragePoolLookupByVolume ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByVolume	(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
-</pre><p>Fetch a storage pool which contains a particular volume</p>
+</pre><p>Fetch a storage pool which contains a particular volume
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolNumOfVolumes"/>virStoragePoolNumOfVolumes ()</h3><pre class="programlisting">int	virStoragePoolNumOfVolumes	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
@@ -7410,7 +7549,10 @@ creation of volumes.
 Since 1.0.1 VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA
 in flags can be used to get higher performance with
 qcow2 image files which don't support full preallocation,
-by creating a sparse image file with metadata.</p>
+by creating a sparse image file with metadata.
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virStorageVolCreateFlags">virStorageVolCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateXMLFrom"/>virStorageVolCreateXMLFrom ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolCreateXMLFrom	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmlDesc, <br/>							 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags)<br/>
@@ -7422,7 +7564,10 @@ XML description.
 Since 1.0.1 VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA
 in flags can be used to get higher performance with
 qcow2 image files which don't support full preallocation,
-by creating a sparse image file with metadata.</p>
+by creating a sparse image file with metadata.
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to parent pool for the new volume</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>clonevol</tt></i>:</span></td><td>storage volume to use as input</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virStorageVolCreateFlags">virStorageVolCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolDelete"/>virStorageVolDelete ()</h3><pre class="programlisting">int	virStorageVolDelete		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags)<br/>
@@ -7487,17 +7632,26 @@ the storage volume</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolLookupByKey"/>virStorageVolLookupByKey ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolLookupByKey	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * key)<br/>
 </pre><p>Fetch a pointer to a storage volume based on its
-globally unique key</p>
+globally unique key
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>key</tt></i>:</span></td><td>globally unique key</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a storage volume, or NULL if not found / error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolLookupByName"/>virStorageVolLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolLookupByName	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * name)<br/>
 </pre><p>Fetch a pointer to a storage volume based on its name
-within a pool</p>
+within a pool
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a storage volume, or NULL if not found / error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolLookupByPath"/>virStorageVolLookupByPath ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolLookupByPath	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * path)<br/>
 </pre><p>Fetch a pointer to a storage volume based on its
-locally (host) unique path</p>
+locally (host) unique path
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>locally unique path</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a storage volume, or NULL if not found / error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolRef"/>virStorageVolRef ()</h3><pre class="programlisting">int	virStorageVolRef		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>

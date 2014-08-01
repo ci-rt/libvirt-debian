@@ -617,7 +617,10 @@
 &lt;domain&gt;
   ...
   &lt;memoryBacking&gt;
-    &lt;hugepages/&gt;
+    &lt;hugepages&gt;
+      &lt;page size="1" unit="G" nodeset="0-3,5"/&gt;
+      &lt;page size="2" unit="M" nodeset="4"/&gt;
+    &lt;/hugepages&gt;
     &lt;nosharepages/&gt;
     &lt;locked/&gt;
   &lt;/memoryBacking&gt;
@@ -632,7 +635,19 @@
     <dl>
       <dt><code>hugepages</code></dt>
       <dd>This tells the hypervisor that the guest should have its memory
-        allocated using hugepages instead of the normal native page size.</dd>
+      allocated using hugepages instead of the normal native page size.
+      <span class='since'>Since 1.2.5</span> it's possible to set hugepages
+      more specifically per numa node. The <code>page</code> element is
+      introduced. It has one compulsory attribute <code>size</code> which
+      specifies which hugepages should be used (especially useful on systems
+      supporting hugepages of different sizes). The default unit for the
+      <code>size</code> attribute is kilobytes (multiplier of 1024). If you
+      want to use different unit, use optional <code>unit</code> attribute.
+      For systems with NUMA, the optional <code>nodeset</code> attribute may
+      come handy as it ties given guest's NUMA nodes to certain hugepage
+      sizes. From the example snippet, one gigabyte hugepages are used for
+      every NUMA node except node number four. For the correct syntax see
+      <a href="#elementsNUMATuning">this</a>.</dd>
       <dt><code>nosharepages</code></dt>
       <dd>Instructs hypervisor to disable shared pages (memory merge, KSM) for
         this domain. <span class="since">Since 1.0.6</span></dd>
@@ -709,6 +724,8 @@
   ...
   &lt;numatune&gt;
     &lt;memory mode="strict" nodeset="1-4,^3"/&gt;
+    &lt;memnode cellid="0" mode="strict" nodeset="1"/&gt;
+    &lt;memnode cellid="2" mode="preferred" nodeset="2"/&gt;
   &lt;/numatune&gt;
   ...
 &lt;/domain&gt;
@@ -744,6 +761,19 @@
         be added implicitly.
 
         <span class='since'>Since 0.9.3</span>
+      </dd>
+      <dt><code>memnode</code></dt>
+      <dd>
+        Optional <code>memnode</code> elements can specify memory allocation
+        policies per each guest NUMA node.  For those nodes having no
+        corresponding <code>memnode</code> element, the default from
+        element <code>memory</code> will be used.  Attribute <code>cellid</code>
+        addresses guest NUMA node for which the settings are applied.
+        Attributes <code>mode</code> and <code>nodeset</code> have the same
+        meaning and syntax as in <code>memory</code> element.
+
+        This setting is not compatible with automatic placement.
+        <span class='since'>QEMU Since 1.2.7</span>
       </dd>
     </dl>
 
@@ -1030,8 +1060,8 @@
   &lt;cpu&gt;
     ...
     &lt;numa&gt;
-      &lt;cell cpus='0-3' memory='512000'/&gt;
-      &lt;cell cpus='4-7' memory='512000'/&gt;
+      &lt;cell id='0' cpus='0-3' memory='512000'/&gt;
+      &lt;cell id='1' cpus='4-7' memory='512000'/&gt;
     &lt;/numa&gt;
     ...
   &lt;/cpu&gt;
@@ -1039,10 +1069,15 @@
 
     <p>
       Each <code>cell</code> element specifies a NUMA cell or a NUMA node.
-      <code>cpus</code> specifies the CPU or range of CPUs that are part of
-      the node. <code>memory</code> specifies the node memory in kibibytes
-      (i.e. blocks of 1024 bytes). Each cell or node is assigned cellid
-      or nodeid in the increasing order starting from 0.
+      <code>cpus</code> specifies the CPU or range of CPUs that are
+      part of the node. <code>memory</code> specifies the node memory
+      in kibibytes (i.e. blocks of 1024 bytes).
+      <span class="since">Since 1.2.7</span> all cells should
+      have <code>id</code> attribute in case referring to some cell is
+      necessary in the code, otherwise the cells are
+      assigned <code>id</code>s in the increasing order starting from
+      0.  Mixing cells with and without the <code>id</code> attribute
+      is not recommended as it may result in unwanted behaviour.
     </p>
 
     <p>
@@ -1594,18 +1629,17 @@
         &lt;host name='example.com' port='3260'/&gt;
       &lt;/source&gt;
       &lt;auth username='myuser'&gt;
-        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
       &lt;/auth&gt;
       &lt;target dev='vda' bus='virtio'/&gt;
     &lt;/disk&gt;
     &lt;disk type='network' device='lun'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
       &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/1'&gt;
-       iqn.2013-07.com.example:iscsi-pool
         &lt;host name='example.com' port='3260'/&gt;
       &lt;/source&gt;
       &lt;auth username='myuser'&gt;
-        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
       &lt;/auth&gt;
       &lt;target dev='sda' bus='scsi'/&gt;
     &lt;/disk&gt;
@@ -1613,7 +1647,7 @@
       &lt;driver name='qemu' type='raw'/&gt;
       &lt;source pool='iscsi-pool' volume='unit:0:0:1' mode='host'/&gt;
       &lt;auth username='myuser'&gt;
-        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
       &lt;/auth&gt;
       &lt;target dev='vda' bus='virtio'/&gt;
     &lt;/disk&gt;
@@ -1621,7 +1655,7 @@
       &lt;driver name='qemu' type='raw'/&gt;
       &lt;source pool='iscsi-pool' volume='unit:0:0:2' mode='direct'/&gt;
       &lt;auth username='myuser'&gt;
-        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
       &lt;/auth&gt;
       &lt;target dev='vda' bus='virtio'/&gt;
     &lt;/disk&gt;
@@ -1664,7 +1698,8 @@
             defaulting to "disk".
             <p>
             Using "lun" (<span class="since">since 0.9.10</span>) is only
-            valid when type is "block", and behaves identically to "disk",
+            valid when type is "block" or "network" using the iSCSI protocol,
+            and behaves identically to "disk",
             except that generic SCSI commands from the guest are accepted
             and passed through to the physical device. Also note that
             device='lun' will only be recognized for actual raw devices,
@@ -1878,18 +1913,25 @@
       </dd>
       <dt><code>mirror</code></dt>
       <dd>
-        This element is present if the hypervisor has started a block
-        copy operation (via the <code>virDomainBlockRebase</code>
-        API), where the mirror location in the <code>source</code>
-        sub-element will eventually have the same contents as the
-        source, and with the file format in the
+        This element is present if the hypervisor has started a
+        long-running block job operation, where the mirror location in
+        the <code>source</code> sub-element will eventually have the
+        same contents as the source, and with the file format in the
         sub-element <code>format</code> (which might differ from the
         format of the source).  The details of the <code>source</code>
         sub-element are determined by the <code>type</code> attribute
         of the mirror, similar to what is done for the
-        overall <code>disk</code> device element. If
-        attribute <code>ready</code> is present, then it is known the
-        disk is ready to pivot; otherwise, the disk is probably still
+        overall <code>disk</code> device element. The <code>job</code>
+        attribute mentions which API started the operation ("copy" for
+        the <code>virDomainBlockRebase</code> API, or "active-commit"
+        for the <code>virDomainBlockCommit</code>
+        API), <span class="since">since 1.2.7</span>.  The
+        attribute <code>ready</code>, if present, tracks progress of
+        the job: <code>yes</code> if the disk is known to be ready to
+        pivot, or, <span class="since">since
+        1.2.7</span>, <code>abort</code> or <code>pivot</code> if the
+        job is in the process of completing.  If <code>ready</code> is
+        not present, the disk is probably still
         copying.  For now, this element only valid in output; it is
         ignored on input.  The <code>source</code> sub-element exists
         for all two-phase jobs <span class="since">since 1.2.6</span>.
@@ -2180,7 +2222,10 @@
         are available, each defaulting to 0.
       </dd>
       <dt><code>auth</code></dt>
-      <dd>If present, the <code>auth</code> element provides the
+      <dd>The <code>auth</code> element is supported for a disk
+        <code>type</code> "network" that is using a <code>source</code>
+        element with the <code>protocol</code> attributes "rbd" or "iscsi".
+        If present, the <code>auth</code> element provides the
         authentication credentials needed to access the source.  It
         includes a mandatory attribute <code>username</code>, which
         identifies the username to use during authentication, as well
@@ -2189,11 +2234,11 @@
         a <a href="formatsecret.html">libvirt secret object</a> that
         holds the actual password or other credentials (the domain XML
         intentionally does not expose the password, only the reference
-        to the object that does manage the password).  For now, the
-        known secret <code>type</code>s are "ceph", for Ceph RBD
-        network sources, and "iscsi", for CHAP authentication of iSCSI
-        targets.  Both require either a <code>uuid</code> attribute
-        with the UUID of the secret object, or a <code>usage</code>
+        to the object that does manage the password).
+        Known secret types are "ceph" for Ceph RBD network sources and
+        "iscsi" for CHAP authentication of iSCSI targets.
+        Both will require either a <code>uuid</code> attribute
+        with the UUID of the secret object or a <code>usage</code>
         attribute matching the key that was specified in the
         secret object.  <span class="since">libvirt 0.9.7</span>
       </dd>
@@ -2569,11 +2614,32 @@
 
     <p>
       An optional sub-element <code>driver</code> can specify the driver
-      specific options. Currently it only supports attribute <code>queues</code>
-      (<span class="since">1.0.5</span>, QEMU and KVM only), which specifies the
-      number of queues for the controller. For best performance, it's recommended
-      to specify a value matching the number of vCPUs.
+      specific options:
     </p>
+    <dl>
+      <dt><code>queues</code></dt>
+      <dd>
+        The optional <code>queues</code> attribute specifies the number of
+        queues for the controller. For best performance, it's recommended to
+        specify a value matching the number of vCPUs.
+        <span class="since">Since 1.0.5 (QEMU and KVM only)</span>
+      </dd>
+      <dt><code>cmd_per_lun</code></dt>
+      <dd>
+        The optional <code>cmd_per_lun</code> attribute specifies the maximum
+        number of commands that can be queued on devices controlled by the
+        host.
+        <span class="since">Since 1.2.7 (QEMU and KVM only)</span>
+      </dd>
+      <dt><code>max_sectors</code></dt>
+      <dd>
+        The optional <code>max_sectors</code> attribute specifies the maximum
+        amount of data in bytes that will be transferred to or from the device
+        in a single command. The transfer length is measured in sectors, where
+        a sector is 512 bytes.
+        <span class="since">Since 1.2.7 (QEMU and KVM only)</span>
+      </dd>
+    </dl>
     <p>
       USB companion controllers have an optional
       sub-element <code>&lt;master&gt;</code> to specify the exact
@@ -2734,7 +2800,7 @@
   &lt;devices&gt;
     &lt;hostdev mode='subsystem' type='pci' managed='yes'&gt;
       &lt;source&gt;
-        &lt;address bus='0x06' slot='0x02' function='0x0'/&gt;
+        &lt;address domain='0x0000' bus='0x06' slot='0x02' function='0x0'/&gt;
       &lt;/source&gt;
       &lt;boot order='1'/&gt;
       &lt;rom bar='on' file='/etc/fake/boot.bin'/&gt;
@@ -2848,7 +2914,7 @@
       USB bus and device number the device appears at on the host.
       The values of these attributes can be given in decimal, hexadecimal
       (starting with 0x) or octal (starting with 0) form.
-      For PCI devices the element carries 3 attributes allowing to designate
+      For PCI devices the element carries 4 attributes allowing to designate
       the device as can be found with the <code>lspci</code> or
       with <code>virsh
       nodedev-list</code>. <a href="#elementsAddress">See above</a> for
@@ -3767,6 +3833,23 @@ qemu-kvm -net nic,model=? /dev/null
       targets using these prefixes will be ignored.
     </p>
 
+    <p>
+      Note that for LXC containers, this defines the name of the interface
+      on the host side. <span class="since">Since 1.2.7</span>, to define
+      the name of the device on the guest side, the <code>guest</code>
+      element should be used, as in the following snippet:
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='network'&gt;
+      &lt;source network='default'/&gt;
+      <b>&lt;guest dev='myeth'/&gt;</b>
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+
     <h5><a name="elementsNICSBoot">Specifying boot order</a></h5>
 
 <pre>
@@ -3833,7 +3916,7 @@ qemu-kvm -net nic,model=? /dev/null
         &lt;outbound average='128' peak='256' burst='256'/&gt;
       &lt;/bandwidth&gt;</b>
     &lt;/interface&gt;
-  &lt;devices&gt;
+  &lt;/devices&gt;
   ...</pre>
 
     <p>
@@ -3865,7 +3948,7 @@ qemu-kvm -net nic,model=? /dev/null
       <b>&lt;/vlan&gt;</b>
       ...
     &lt;/interface&gt;
-  &lt;devices&gt;
+  &lt;/devices&gt;
   ...</pre>
 
     <p>
@@ -3909,7 +3992,7 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;target dev='vnet0'/&gt;
       <b>&lt;link state='down'/&gt;</b>
     &lt;/interface&gt;
-  &lt;devices&gt;
+  &lt;/devices&gt;
   ...</pre>
 
     <p>
@@ -3919,6 +4002,37 @@ qemu-kvm -net nic,model=? /dev/null
       behaves as if it had the network cable disconnected. Default behavior if this
       element is unspecified is to have the link state <code>up</code>.
       <span class="since">Since 0.9.5</span>
+    </p>
+
+    <h5><a name="elementVhostuser">vhost-user interface</a></h5>
+
+    <p>
+    <span class="since">Since 1.2.7</span> the vhost-user enables the
+    communication between a QEMU virtual machine and other userspace process
+    using the Virtio transport protocol.  A char dev (e.g. Unix socket) is used
+    for the control plane, while the data plane is based on shared memory.
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='vhostuser'&gt;
+      &lt;mac address='52:54:00:3b:83:1a'/&gt;
+      &lt;source type='unix' path='/tmp/vhost.sock' mode='server'/&gt;
+      &lt;model type='virtio'/&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+
+    <p>
+      The <code>&lt;source&gt;</code> element has to be specified
+      along with the type of char device.
+      Currently, only type='unix' is supported, where the path (the
+      directory path of the socket) and mode attributes are required.
+      Both <code>mode='server'</code> and <code>mode='client'</code>
+      are supported.
+      vhost-user requires the virtio model type, thus the
+      <code>&lt;model&gt;</code> element is mandatory.
     </p>
 
     <h4><a name="elementsInput">Input devices</a></h4>
@@ -4099,7 +4213,13 @@ qemu-kvm -net nic,model=? /dev/null
               configured, it can be desirable to restrict what
               channels can be run on each port.  This is achieved by
               adding one or more &lt;channel&gt; elements inside the
-              main &lt;graphics&gt; element. Valid channel names
+              main &lt;graphics&gt; element and setting the <code>mode</code>
+              attribute to either <code>secure</code> or <code>insecure</code>.
+              Setting the mode attribute overrides the default value as set
+              by the <code>defaultMode</code> attribute. (Note that specifying
+              <code>any</code> as mode discards the entry as the channel would
+              inherit the default mode anyways)
+              Valid channel names
               include <code>main</code>, <code>display</code>,
               <code>inputs</code>, <code>cursor</code>,
               <code>playback</code>, <code>record</code>
@@ -4882,7 +5002,7 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;sound model='ich6'&gt;
       &lt;codec type='micro'/&gt;
-    &lt;sound/&gt;
+    &lt;/sound&gt;
   &lt;/devices&gt;
   ...</pre>
 
