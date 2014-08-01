@@ -1,3 +1,21 @@
+libvirt (1.2.7~rc2-1) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * [16575d9] New upstream version 1.2.7~rc2
+  * [bc785a7] Drop left over libvirt-bin references.
+    Fixes more leftovers of #730604.
+  * [ca64c62] Rediff patches
+  * [998e7d4] Update symbols file
+  * [06cf7b4] Make sure libvirt-bin versioned dependencies are recent enough
+
+  [ Laurent Bigonville ]
+  * [daf46fe] Stop the daemon in the preinst script instead of the postinst
+    one when renaming the .service file as it now contains the
+   "Restart=on-failure" option and blindly killing the daemon is not working
+   anymore.  This completes the fix for #730604
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 01 Aug 2014 10:52:57 +0200
+
 libvirt (1.2.6-2) experimental; urgency=medium
 
   * [501afad] Update copyright information
