@@ -68,8 +68,8 @@ Package: libvirt-bin
 Architecture: any
 Depends:
  ${misc:Depends},
- libvirt-daemon-system,
- libvirt-clients,
+ libvirt-daemon-system (>= ${binary:Version}),
+ libvirt-clients (>= ${binary:Version}),
 Section: oldlibs
 Priority: extra
 Description: programs for the libvirt library
