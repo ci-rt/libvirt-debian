@@ -2297,11 +2297,8 @@ int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
 
     /* Migrate to file */
     virBufferEscapeShell(&buf, target);
-    if (virBufferError(&buf)) {
-        virReportOOMError();
-        virBufferFreeAndReset(&buf);
+    if (virBufferCheckError(&buf) < 0)
         goto cleanup;
-    }
     safe_target = virBufferContentAndReset(&buf);
 
     /* Two dd processes, sharing the same stdout, are necessary to
@@ -3234,13 +3231,14 @@ qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
 int
 qemuMonitorBlockCommit(qemuMonitorPtr mon, const char *device,
                        const char *top, const char *base,
+                       const char *backingName,
                        unsigned long bandwidth)
 {
     int ret = -1;
     unsigned long long speed;
 
-    VIR_DEBUG("mon=%p, device=%s, top=%s, base=%s, bandwidth=%ld",
-              mon, device, top, base, bandwidth);
+    VIR_DEBUG("mon=%p, device=%s, top=%s, base=%s, backingName=%s, bandwidth=%lu",
+              mon, device, top, base, NULLSTR(backingName), bandwidth);
 
     /* Convert bandwidth MiB to bytes - unfortunately the JSON QMP protocol is
      * limited to LLONG_MAX also for unsigned values */
@@ -3254,12 +3252,25 @@ qemuMonitorBlockCommit(qemuMonitorPtr mon, const char *device,
     speed <<= 20;
 
     if (mon->json)
-        ret = qemuMonitorJSONBlockCommit(mon, device, top, base, speed);
+        ret = qemuMonitorJSONBlockCommit(mon, device, top, base,
+                                         backingName, speed);
     else
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("block-commit requires JSON monitor"));
     return ret;
 }
+
+
+/* Probe whether active commits are supported by a given qemu binary. */
+bool
+qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon)
+{
+    if (!mon->json)
+        return false;
+
+    return qemuMonitorJSONBlockCommit(mon, "bogus", NULL, NULL, NULL, 0) == -2;
+}
+
 
 /* Use the block-job-complete monitor command to pivot a block copy
  * job.  */
@@ -3351,6 +3362,7 @@ int qemuMonitorScreendump(qemuMonitorPtr mon,
 int qemuMonitorBlockJob(qemuMonitorPtr mon,
                         const char *device,
                         const char *base,
+                        const char *backingName,
                         unsigned long bandwidth,
                         virDomainBlockJobInfoPtr info,
                         qemuMonitorBlockJobCmd mode,
@@ -3359,9 +3371,10 @@ int qemuMonitorBlockJob(qemuMonitorPtr mon,
     int ret = -1;
     unsigned long long speed;
 
-    VIR_DEBUG("mon=%p, device=%s, base=%s, bandwidth=%luM, info=%p, mode=%o, "
-              "modern=%d", mon, device, NULLSTR(base), bandwidth, info, mode,
-              modern);
+    VIR_DEBUG("mon=%p, device=%s, base=%s, backingName=%s, bandwidth=%luM, "
+              "info=%p, mode=%o, modern=%d",
+              mon, device, NULLSTR(base), NULLSTR(backingName),
+              bandwidth, info, mode, modern);
 
     /* Convert bandwidth MiB to bytes - unfortunately the JSON QMP protocol is
      * limited to LLONG_MAX also for unsigned values */
@@ -3375,8 +3388,8 @@ int qemuMonitorBlockJob(qemuMonitorPtr mon,
     speed <<= 20;
 
     if (mon->json)
-        ret = qemuMonitorJSONBlockJob(mon, device, base, speed, info, mode,
-                                      modern);
+        ret = qemuMonitorJSONBlockJob(mon, device, base, backingName,
+                                      speed, info, mode, modern);
     else
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("block jobs require JSON monitor"));
@@ -3646,7 +3659,8 @@ int qemuMonitorGetEvents(qemuMonitorPtr mon,
 int
 qemuMonitorGetCommandLineOptionParameters(qemuMonitorPtr mon,
                                           const char *option,
-                                          char ***params)
+                                          char ***params,
+                                          bool *found)
 {
     VIR_DEBUG("mon=%p option=%s params=%p", mon, option, params);
 
@@ -3662,7 +3676,8 @@ qemuMonitorGetCommandLineOptionParameters(qemuMonitorPtr mon,
         return -1;
     }
 
-    return qemuMonitorJSONGetCommandLineOptionParameters(mon, option, params);
+    return qemuMonitorJSONGetCommandLineOptionParameters(mon, option,
+                                                         params, found);
 }
 
 

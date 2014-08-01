@@ -662,9 +662,11 @@ int qemuMonitorBlockCommit(qemuMonitorPtr mon,
                            const char *device,
                            const char *top,
                            const char *base,
+                           const char *backingName,
                            unsigned long bandwidth)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4);
+bool qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon);
 
 int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
                                 const char *cmd,
@@ -690,7 +692,8 @@ typedef enum {
 
 int qemuMonitorBlockJob(qemuMonitorPtr mon,
                         const char *device,
-                        const char *back,
+                        const char *base,
+                        const char *backingName,
                         unsigned long bandwidth,
                         virDomainBlockJobInfoPtr info,
                         qemuMonitorBlockJobCmd mode,
@@ -745,7 +748,8 @@ int qemuMonitorGetEvents(qemuMonitorPtr mon,
                          char ***events);
 int qemuMonitorGetCommandLineOptionParameters(qemuMonitorPtr mon,
                                               const char *option,
-                                              char ***params);
+                                              char ***params,
+                                              bool *found);
 
 int qemuMonitorGetKVMState(qemuMonitorPtr mon,
                            bool *enabled,

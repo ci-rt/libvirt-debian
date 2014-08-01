@@ -9,6 +9,7 @@ The primary maintainers and people with commit access rights:
 
 Alex Jia <ajia@redhat.com>
 Anthony Liguori <aliguori@us.ibm.com>
+Cédric Bosdonnat <cbosdonnat@suse.com>
 Chris Lalancette <clalance@redhat.com>
 Christophe Fergeau <cfergeau@redhat.com>
 Claudio Bley <cbley@av-test.de>
@@ -129,6 +130,7 @@ Christian Franke <nobody@nowhere.ws>
 Christophe Fergeau <cfergeau@redhat.com>
 Chuck Short <chuck.short@canonical.com>
 Chuck Short <zulcss@gmail.com>
+Chunhe Li <lichunhe@huawei.com>
 Chunyan Liu <cyliu@suse.com>
 Clark Laughlin <clark.laughlin@linaro.org>
 Claudio Bley <cbley@av-test.de>
@@ -211,12 +213,14 @@ Hendrik Schwartke <hendrik@os-t.de>
 Henrik Persson E <henrik.e.persson@ericsson.com>
 Hero Phương <herophuong93@gmail.com>
 Hongwei Bi <hwbi2008@gmail.com>
+Hu Jianwei <jiahu@redhat.com>
 Hu Tao <hutao@cn.fujitsu.com>
 Ian Campbell <Ian.Campbell@citrix.com>
 Ian Campbell <ian.campbell@citrix.com>
 Ian Main <imain@redhat.com>
 Ilja Livenson <ilja.livenson@gmail.com>
 J.B. Joret <jb@linux.vnet.ibm.com>
+James <james.wangyufei@huawei.com>
 James Shubin <james@shubin.ca>
 Jamie Strandboge <jamie@canonical.com>
 Jan Kiszka <jan.kiszka@siemens.com>
@@ -295,6 +299,8 @@ Michal Privoznik <miso.privoznik@gmail.com>
 Michal Privoznik <mprivozn@redhat.com>
 Michal Prívozník <mprivozn@redhat.com>
 Michał Łomnicki <michal.lomnicki@gmail.com>
+Michele Paolino <m.paolino@virtualopensystems.com>
+Mike Perez <thingee@gmail.com>
 Milos Vyletel <milos.vyletel@sde.cz>
 Miloslav Trmač <mitr@redhat.com>
 Minoru Usui <usui@mxm.nes.nec.co.jp>
@@ -309,6 +315,7 @@ Niels de Vos <ndevos@redhat.com>
 Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 Nishank Trivedi <nistrive@cisco.com>
 Ohad Levy <ohadlevy@gmail.com>
+Olaf Hering <olaf@aepfle.de>
 Oleg Strikov <oleg.strikov@canonical.com>
 Olivia Yin <Hong-Hua.Yin@freescale.com>
 Olivia Yin <hong-hua.yin@freescale.com>
@@ -421,9 +428,11 @@ Wout Mertens <wout.mertens@gmail.com>
 Xu He Jie <xuhj@linux.vnet.ibm.com>
 Xuesong Zhang <xuzhang@redhat.com>
 Yanbing Du <ydu@redhat.com>
+Yanbing Du <ydu@ydu-0.nay.redhat.com>
 Yogesh Tillu <tillu.yogesh@gmail.com>
 Yohan BELLEGUIC <yohan.belleguic@diateam.net>
 Yudai Yamagish <yummy@sfc.wide.ad.jp>
+Yue wenyuan <yuewenyuan@huawei.com>
 Yufang Zhang <yufang521247@gmail.com>
 Yufang Zhang <yuzhang@redhat.com>
 Yuji NISHIDA <nishidy@nict.go.jp>

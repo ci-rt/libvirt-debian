@@ -47,7 +47,7 @@
 #include "uml_conf.h"
 #include "virbuffer.h"
 #include "nodeinfo.h"
-#include "virstatslinux.h"
+#include "virstats.h"
 #include "capabilities.h"
 #include "viralloc.h"
 #include "viruuid.h"
@@ -1310,8 +1310,7 @@ static char *umlConnectGetCapabilities(virConnectPtr conn) {
         return NULL;
 
     umlDriverLock(driver);
-    if ((xml = virCapabilitiesFormatXML(driver->caps)) == NULL)
-        virReportOOMError();
+    xml = virCapabilitiesFormatXML(driver->caps);
     umlDriverUnlock(driver);
 
     return xml;

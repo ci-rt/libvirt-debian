@@ -152,7 +152,8 @@ virSecurityManagerNewDAC(const char *virtDriver,
                          bool allowDiskFormatProbing,
                          bool defaultConfined,
                          bool requireConfined,
-                         bool dynamicOwnership)
+                         bool dynamicOwnership,
+                         virSecurityManagerDACChownCallback chownCallback)
 {
     virSecurityManagerPtr mgr =
         virSecurityManagerNewDriver(&virSecurityDriverDAC,
@@ -170,6 +171,7 @@ virSecurityManagerNewDAC(const char *virtDriver,
     }
 
     virSecurityDACSetDynamicOwnership(mgr, dynamicOwnership);
+    virSecurityDACSetChownCallback(mgr, chownCallback);
 
     return mgr;
 }
@@ -360,6 +362,34 @@ virSecurityManagerRestoreDiskLabel(virSecurityManagerPtr mgr,
 }
 
 
+/**
+ * virSecurityManagerRestoreImageLabel:
+ * @mgr: security manager object
+ * @vm: domain definition object
+ * @src: disk source definition to operate on
+ *
+ * Removes security label from a single storage image.
+ *
+ * Returns: 0 on success, -1 on error.
+ */
+int
+virSecurityManagerRestoreImageLabel(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr vm,
+                                   virStorageSourcePtr src)
+{
+    if (mgr->drv->domainRestoreSecurityImageLabel) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainRestoreSecurityImageLabel(mgr, vm, src);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+    return -1;
+}
+
+
 int
 virSecurityManagerSetDaemonSocketLabel(virSecurityManagerPtr mgr,
                                        virDomainDefPtr vm)
@@ -431,6 +461,34 @@ virSecurityManagerSetDiskLabel(virSecurityManagerPtr mgr,
         int ret;
         virObjectLock(mgr);
         ret = mgr->drv->domainSetSecurityDiskLabel(mgr, vm, disk);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+    return -1;
+}
+
+
+/**
+ * virSecurityManagerSetImageLabel:
+ * @mgr: security manager object
+ * @vm: domain definition object
+ * @src: disk source definition to operate on
+ *
+ * Labels a single storage image with the configured security label.
+ *
+ * Returns: 0 on success, -1 on error.
+ */
+int
+virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
+                                virDomainDefPtr vm,
+                                virStorageSourcePtr src)
+{
+    if (mgr->drv->domainSetSecurityImageLabel) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainSetSecurityImageLabel(mgr, vm, src);
         virObjectUnlock(mgr);
         return ret;
     }
@@ -560,7 +618,7 @@ virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
                 seclabel->type = VIR_DOMAIN_SECLABEL_DYNAMIC;
             } else {
                 seclabel->type = VIR_DOMAIN_SECLABEL_NONE;
-                seclabel->norelabel = true;
+                seclabel->relabel = false;
             }
         }
 

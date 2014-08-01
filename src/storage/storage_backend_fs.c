@@ -61,20 +61,17 @@ VIR_LOG_INIT("storage.storage_backend_fs");
 #define VIR_STORAGE_VOL_FS_PROBE_FLAGS   (VIR_STORAGE_VOL_FS_OPEN_FLAGS | \
                                           VIR_STORAGE_VOL_OPEN_NOERROR)
 
-static int ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+static int
 virStorageBackendProbeTarget(virStorageSourcePtr target,
-                             char **backingStore,
-                             int *backingStoreFormat,
                              virStorageEncryptionPtr *encryption)
 {
+    int backingStoreFormat;
     int fd = -1;
     int ret = -1;
     int rc;
     virStorageSourcePtr meta = NULL;
     struct stat sb;
 
-    *backingStore = NULL;
-    *backingStoreFormat = VIR_STORAGE_FILE_AUTO;
     if (encryption)
         *encryption = NULL;
 
@@ -95,32 +92,53 @@ virStorageBackendProbeTarget(virStorageSourcePtr target,
     if (!(meta = virStorageFileGetMetadataFromFD(target->path,
                                                  fd,
                                                  VIR_STORAGE_FILE_AUTO,
-                                                 backingStoreFormat)))
+                                                 &backingStoreFormat)))
         goto cleanup;
 
-    if (VIR_STRDUP(*backingStore, meta->backingStoreRaw) < 0)
-        goto cleanup;
+    if (meta->backingStoreRaw) {
+        if (!(target->backingStore = virStorageSourceNewFromBacking(meta)))
+            goto cleanup;
 
-    /* Default to success below this point */
-    ret = 0;
+        target->backingStore->format = backingStoreFormat;
+
+        /* XXX: Remote storage doesn't play nicely with volumes backed by
+         * remote storage. To avoid trouble, just fake the backing store is RAW
+         * and put the string from the metadata as the path of the target. */
+        if (!virStorageSourceIsLocalStorage(target->backingStore)) {
+            virStorageSourceFree(target->backingStore);
+
+            if (VIR_ALLOC(target->backingStore) < 0)
+                goto cleanup;
+
+            target->backingStore->type = VIR_STORAGE_TYPE_NETWORK;
+            target->backingStore->path = meta->backingStoreRaw;
+            meta->backingStoreRaw = NULL;
+            target->backingStore->format = VIR_STORAGE_FILE_RAW;
+        }
+
+        if (target->backingStore->format == VIR_STORAGE_FILE_AUTO) {
+            if ((rc = virStorageFileProbeFormat(target->backingStore->path,
+                                                -1, -1)) < 0) {
+                /* If the backing file is currently unavailable or is
+                 * accessed via remote protocol only log an error, fake the
+                 * format as RAW and continue. Returning -1 here would
+                 * disable the whole storage pool, making it unavailable for
+                 * even maintenance. */
+                target->backingStore->format = VIR_STORAGE_FILE_RAW;
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("cannot probe backing volume format: %s"),
+                               target->backingStore->path);
+                ret = -3;
+            } else {
+                target->backingStore->format = rc;
+            }
+        }
+    }
 
     target->format = meta->format;
 
-    if (*backingStore &&
-        *backingStoreFormat == VIR_STORAGE_FILE_AUTO &&
-        virStorageIsFile(*backingStore)) {
-        if ((rc = virStorageFileProbeFormat(*backingStore, -1, -1)) < 0) {
-            /* If the backing file is currently unavailable, only log an error,
-             * but continue. Returning -1 here would disable the whole storage
-             * pool, making it unavailable for even maintenance. */
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot probe backing volume format: %s"),
-                           *backingStore);
-            ret = -3;
-        } else {
-            *backingStoreFormat = rc;
-        }
-    }
+    /* Default to success below this point */
+    ret = 0;
 
     if (meta->capacity)
         target->capacity = meta->capacity;
@@ -798,7 +816,7 @@ virStorageBackendFileSystemBuild(virConnectPtr conn ATTRIBUTE_UNUSED,
                             VIR_DIR_CREATE_FORCE_PERMS |
                             VIR_DIR_CREATE_ALLOW_EXIST |
                             (pool->def->type == VIR_STORAGE_POOL_NETFS
-                            ? VIR_DIR_CREATE_AS_UID : 0)) < 0)) {
+                            ? VIR_DIR_CREATE_AS_UID : 0))) < 0) {
         virReportSystemError(-err, _("cannot create path '%s'"),
                              pool->def->target.path);
         goto error;
@@ -840,33 +858,29 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
         virReportSystemError(errno,
                              _("cannot open path '%s'"),
                              pool->def->target.path);
-        goto cleanup;
+        goto error;
     }
 
     while ((direrr = virDirRead(dir, &ent, pool->def->target.path)) > 0) {
         int ret;
-        char *backingStore;
-        int backingStoreFormat;
 
         if (VIR_ALLOC(vol) < 0)
-            goto cleanup;
+            goto error;
 
         if (VIR_STRDUP(vol->name, ent->d_name) < 0)
-            goto cleanup;
+            goto error;
 
         vol->type = VIR_STORAGE_VOL_FILE;
         vol->target.format = VIR_STORAGE_FILE_RAW; /* Real value is filled in during probe */
         if (virAsprintf(&vol->target.path, "%s/%s",
                         pool->def->target.path,
                         vol->name) == -1)
-            goto cleanup;
+            goto error;
 
         if (VIR_STRDUP(vol->key, vol->target.path) < 0)
-            goto cleanup;
+            goto error;
 
         if ((ret = virStorageBackendProbeTarget(&vol->target,
-                                                &backingStore,
-                                                &backingStoreFormat,
                                                 &vol->target.encryption)) < 0) {
             if (ret == -2) {
                 /* Silently ignore non-regular files,
@@ -880,33 +894,29 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
                  * failed: continue with faked RAW format, since AUTO will
                  * break virStorageVolTargetDefFormat() generating the line
                  * <format type='...'/>. */
-                backingStoreFormat = VIR_STORAGE_FILE_RAW;
-            } else
-                goto cleanup;
+            } else {
+                goto error;
+            }
         }
 
         /* directory based volume */
         if (vol->target.format == VIR_STORAGE_FILE_DIR)
             vol->type = VIR_STORAGE_VOL_DIR;
 
-        if (backingStore != NULL) {
-            vol->backingStore.path = backingStore;
-            vol->backingStore.format = backingStoreFormat;
-
-            ignore_value(virStorageBackendUpdateVolTargetInfo(
-                                               &vol->backingStore, true, false,
-                                               VIR_STORAGE_VOL_OPEN_DEFAULT));
+        if (vol->target.backingStore) {
+            ignore_value(virStorageBackendUpdateVolTargetInfo(vol->target.backingStore,
+                                                              true, false,
+                                                              VIR_STORAGE_VOL_OPEN_DEFAULT));
             /* If this failed, the backing file is currently unavailable,
              * the capacity, allocation, owner, group and mode are unknown.
              * An error message was raised, but we just continue. */
         }
 
-
         if (VIR_APPEND_ELEMENT(pool->volumes.objs, pool->volumes.count, vol) < 0)
-            goto cleanup;
+            goto error;
     }
     if (direrr < 0)
-        goto cleanup;
+        goto error;
     closedir(dir);
 
     if (statvfs(pool->def->target.path, &sb) < 0) {
@@ -923,7 +933,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     return 0;
 
- cleanup:
+ error:
     if (dir)
         closedir(dir);
     virStorageVolDefFree(vol);
@@ -1275,6 +1285,7 @@ virStorageBackendFileSystemVolResize(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 }
 
+
 virStorageBackend virStorageBackendDirectory = {
     .type = VIR_STORAGE_POOL_DIR,
 
@@ -1288,6 +1299,9 @@ virStorageBackend virStorageBackendDirectory = {
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
     .resizeVol = virStorageBackendFileSystemVolResize,
+    .uploadVol = virStorageBackendVolUploadLocal,
+    .downloadVol = virStorageBackendVolDownloadLocal,
+    .wipeVol = virStorageBackendVolWipeLocal,
 };
 
 #if WITH_STORAGE_FS
@@ -1306,6 +1320,9 @@ virStorageBackend virStorageBackendFileSystem = {
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
     .resizeVol = virStorageBackendFileSystemVolResize,
+    .uploadVol = virStorageBackendVolUploadLocal,
+    .downloadVol = virStorageBackendVolDownloadLocal,
+    .wipeVol = virStorageBackendVolWipeLocal,
 };
 virStorageBackend virStorageBackendNetFileSystem = {
     .type = VIR_STORAGE_POOL_NETFS,
@@ -1323,6 +1340,9 @@ virStorageBackend virStorageBackendNetFileSystem = {
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
     .resizeVol = virStorageBackendFileSystemVolResize,
+    .uploadVol = virStorageBackendVolUploadLocal,
+    .downloadVol = virStorageBackendVolDownloadLocal,
+    .wipeVol = virStorageBackendVolWipeLocal,
 };
 
 
@@ -1362,6 +1382,26 @@ virStorageFileBackendFileInit(virStorageSourcePtr src)
 
     src->drv->priv = priv;
 
+    return 0;
+}
+
+
+static int
+virStorageFileBackendFileCreate(virStorageSourcePtr src)
+{
+    int fd = -1;
+    mode_t mode = S_IRUSR;
+
+    if (!src->readonly)
+        mode |= S_IWUSR;
+
+    if ((fd = virFileOpenAs(src->path, O_WRONLY | O_TRUNC | O_CREAT, mode,
+                            src->drv->uid, src->drv->gid, 0)) < 0) {
+        errno = -fd;
+        return -1;
+    }
+
+    VIR_FORCE_CLOSE(fd);
     return 0;
 }
 
@@ -1435,16 +1475,27 @@ virStorageFileBackendFileAccess(virStorageSourcePtr src,
 }
 
 
+static int
+virStorageFileBackendFileChown(virStorageSourcePtr src,
+                               uid_t uid,
+                               gid_t gid)
+{
+    return chown(src->path, uid, gid);
+}
+
+
 virStorageFileBackend virStorageFileBackendFile = {
     .type = VIR_STORAGE_TYPE_FILE,
 
     .backendInit = virStorageFileBackendFileInit,
     .backendDeinit = virStorageFileBackendFileDeinit,
 
+    .storageFileCreate = virStorageFileBackendFileCreate,
     .storageFileUnlink = virStorageFileBackendFileUnlink,
     .storageFileStat = virStorageFileBackendFileStat,
     .storageFileReadHeader = virStorageFileBackendFileReadHeader,
     .storageFileAccess = virStorageFileBackendFileAccess,
+    .storageFileChown = virStorageFileBackendFileChown,
 
     .storageFileGetUniqueIdentifier = virStorageFileBackendFileGetUniqueIdentifier,
 };
@@ -1459,6 +1510,7 @@ virStorageFileBackend virStorageFileBackendBlock = {
     .storageFileStat = virStorageFileBackendFileStat,
     .storageFileReadHeader = virStorageFileBackendFileReadHeader,
     .storageFileAccess = virStorageFileBackendFileAccess,
+    .storageFileChown = virStorageFileBackendFileChown,
 
     .storageFileGetUniqueIdentifier = virStorageFileBackendFileGetUniqueIdentifier,
 };
@@ -1471,6 +1523,7 @@ virStorageFileBackend virStorageFileBackendDir = {
     .backendDeinit = virStorageFileBackendFileDeinit,
 
     .storageFileAccess = virStorageFileBackendFileAccess,
+    .storageFileChown = virStorageFileBackendFileChown,
 
     .storageFileGetUniqueIdentifier = virStorageFileBackendFileGetUniqueIdentifier,
 };

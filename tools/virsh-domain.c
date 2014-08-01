@@ -277,6 +277,10 @@ static const vshCmdOptDef opts_attach_disk[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("target of disk device")
     },
+    {.name = "targetbus",
+     .type = VSH_OT_STRING,
+     .help = N_("target bus of disk device")
+    },
     {.name = "driver",
      .type = VSH_OT_STRING,
      .help = N_("driver of disk device")
@@ -502,7 +506,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     const char *source = NULL, *target = NULL, *driver = NULL,
                 *subdriver = NULL, *type = NULL, *mode = NULL,
                 *cache = NULL, *serial = NULL, *straddr = NULL,
-                *wwn = NULL;
+                *wwn = NULL, *targetbus = NULL;
     struct DiskAddress diskAddr;
     bool isFile = false, functionReturn = false;
     int ret;
@@ -536,6 +540,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         vshCommandOptStringReq(ctl, cmd, "serial", &serial) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "wwn", &wwn) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "address", &straddr) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "targetbus", &targetbus) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "sourcetype", &stype) < 0)
         goto cleanup;
 
@@ -590,7 +595,11 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     if (source)
         virBufferAsprintf(&buf, "<source %s='%s'/>\n",
                           isFile ? "file" : "dev", source);
-    virBufferAsprintf(&buf, "<target dev='%s'/>\n", target);
+    virBufferAsprintf(&buf, "<target dev='%s'", target);
+    if (targetbus)
+        virBufferAsprintf(&buf, " bus='%s'", targetbus);
+    virBufferAddLit(&buf, "/>\n");
+
     if (mode)
         virBufferAsprintf(&buf, "<%s/>\n", mode);
 
@@ -1246,7 +1255,7 @@ static const vshCmdOptDef opts_blkiotune[] = {
     },
     {.name = "weight",
      .type = VSH_OT_INT,
-     .help = N_("IO Weight in range [100, 1000]")
+     .help = N_("IO Weight")
     },
     {.name = "device-weights",
      .type = VSH_OT_STRING,
@@ -1479,10 +1488,14 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
     case VSH_CMD_BLOCK_JOB_PULL:
         if (vshCommandOptStringReq(ctl, cmd, "base", &base) < 0)
             goto cleanup;
-        if (base)
-            ret = virDomainBlockRebase(dom, path, base, bandwidth, 0);
+        if (vshCommandOptBool(cmd, "keep-relative"))
+            flags |= VIR_DOMAIN_BLOCK_REBASE_RELATIVE;
+
+        if (base || flags)
+            ret = virDomainBlockRebase(dom, path, base, bandwidth, flags);
         else
             ret = virDomainBlockPull(dom, path, bandwidth, 0);
+
         break;
     case VSH_CMD_BLOCK_JOB_COMMIT:
         if (vshCommandOptStringReq(ctl, cmd, "base", &base) < 0 ||
@@ -1496,6 +1509,8 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
             vshCommandOptBool(cmd, "pivot") ||
             vshCommandOptBool(cmd, "keep-overlay"))
             flags |= VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
+        if (vshCommandOptBool(cmd, "keep-relative"))
+            flags |= VIR_DOMAIN_BLOCK_COMMIT_RELATIVE;
         ret = virDomainBlockCommit(dom, path, base, top, bandwidth, flags);
         break;
     case VSH_CMD_BLOCK_JOB_COPY:
@@ -1628,6 +1643,10 @@ static const vshCmdOptDef opts_block_commit[] = {
     {.name = "async",
      .type = VSH_OT_BOOL,
      .help = N_("with --wait, don't wait for cancel to finish")
+    },
+    {.name = "keep-relative",
+     .type = VSH_OT_BOOL,
+     .help = N_("keep the backing chain relatively referenced")
     },
     {.name = NULL}
 };
@@ -2111,6 +2130,10 @@ static const vshCmdOptDef opts_block_pull[] = {
     {.name = "async",
      .type = VSH_OT_BOOL,
      .help = N_("with --wait, don't wait for cancel to finish")
+    },
+    {.name = "keep-relative",
+     .type = VSH_OT_BOOL,
+     .help = N_("keep the backing chain relatively referenced")
     },
     {.name = NULL}
 };
@@ -7800,7 +7823,8 @@ static const vshCmdOptDef opts_numatune[] = {
     },
     {.name = "mode",
      .type = VSH_OT_DATA,
-     .help = N_("NUMA mode, one of strict, preferred and interleave")
+     .help = N_("NUMA mode, one of strict, preferred and interleave \n"
+                "or a number from the virDomainNumatuneMemMode enum")
     },
     {.name = "nodeset",
      .type = VSH_OT_DATA,
@@ -9351,7 +9375,8 @@ static const vshCmdInfo info_domdisplay[] = {
      .data = N_("domain display connection URI")
     },
     {.name = "desc",
-     .data = N_("Output the IP address and port number for the graphical display.")
+     .data = N_("Output the IP address and port number "
+                "for the graphical display.")
     },
     {.name = NULL}
 };
@@ -9365,6 +9390,11 @@ static const vshCmdOptDef opts_domdisplay[] = {
     {.name = "include-password",
      .type = VSH_OT_BOOL,
      .help = N_("includes the password into the connection URI if available")
+    },
+    {.name = "type",
+     .type = VSH_OT_DATA,
+     .help = N_("select particular graphics display "
+                "(e.g. \"vnc\", \"spice\", \"rdp\")")
     },
     {.name = NULL}
 };
@@ -9384,6 +9414,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
     char *passwd = NULL;
     char *output = NULL;
     const char *scheme[] = { "vnc", "spice", "rdp", NULL };
+    const char *type = NULL;
     int iter = 0;
     int tmp;
     int flags = 0;
@@ -9402,6 +9433,9 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptBool(cmd, "include-password"))
         flags |= VIR_DOMAIN_XML_SECURE;
 
+    if (vshCommandOptStringReq(ctl, cmd, "type", &type) < 0)
+        goto cleanup;
+
     if (!(doc = virDomainGetXMLDesc(dom, flags)))
         goto cleanup;
 
@@ -9410,6 +9444,10 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
 
     /* Attempt to grab our display info */
     for (iter = 0; scheme[iter] != NULL; iter++) {
+        /* Particular scheme requested */
+        if (type && STRNEQ(type, scheme[iter]))
+            continue;
+
         /* Create our XPATH lookup for the current display's port */
         if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "port") < 0)
             goto cleanup;
@@ -9517,6 +9555,13 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         /* We got what we came for so return successfully */
         ret = true;
         break;
+    }
+
+    if (!ret) {
+        if (type)
+            vshError(ctl, _("No graphical display with type '%s' found"), type);
+        else
+            vshError(ctl, _("No graphical display found"));
     }
 
  cleanup:
@@ -10122,7 +10167,12 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
         virDomainIsActive(dom) == 1)
         flags |= VIR_DOMAIN_AFFECT_LIVE;
 
-    if (!(doc = virDomainGetXMLDesc(dom, 0)))
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG)
+        doc = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE);
+    else
+        doc = virDomainGetXMLDesc(dom, 0);
+
+    if (!doc)
         goto cleanup;
 
     if (!(xml = virXMLParseStringCtxt(doc, _("(domain_definition)"), &ctxt))) {
@@ -10320,8 +10370,8 @@ vshPrepareDiskXML(xmlNodePtr disk_node,
                   int type)
 {
     xmlNodePtr cur = NULL;
-    const char *disk_type = NULL;
-    const char *device_type = NULL;
+    char *disk_type = NULL;
+    char *device_type = NULL;
     xmlNodePtr new_node = NULL;
     char *ret = NULL;
 

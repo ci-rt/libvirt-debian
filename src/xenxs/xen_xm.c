@@ -84,9 +84,7 @@ static int xenXMConfigGetULong(virConfPtr conf,
     if (val->type == VIR_CONF_LONG) {
         *value = val->l;
     } else if (val->type == VIR_CONF_STRING) {
-        char *ret;
-        *value = strtol(val->str, &ret, 10);
-        if (ret == val->str) {
+        if (virStrToLong_ul(val->str, NULL, 10, value) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("config value %s was malformed"), name);
             return -1;
@@ -117,9 +115,7 @@ static int xenXMConfigGetULongLong(virConfPtr conf,
     if (val->type == VIR_CONF_LONG) {
         *value = val->l;
     } else if (val->type == VIR_CONF_STRING) {
-        char *ret;
-        *value = strtoll(val->str, &ret, 10);
-        if (ret == val->str) {
+        if (virStrToLong_ull(val->str, NULL, 10, value) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("config value %s was malformed"), name);
             return -1;
@@ -418,23 +414,23 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
         if (xenXMConfigGetBool(conf, "pae", &val, 0) < 0)
             goto cleanup;
         else if (val)
-            def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_TRISTATE_SWITCH_ON;
         if (xenXMConfigGetBool(conf, "acpi", &val, 0) < 0)
             goto cleanup;
         else if (val)
-            def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_TRISTATE_SWITCH_ON;
         if (xenXMConfigGetBool(conf, "apic", &val, 0) < 0)
             goto cleanup;
         else if (val)
-            def->features[VIR_DOMAIN_FEATURE_APIC] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_APIC] = VIR_TRISTATE_SWITCH_ON;
         if (xenXMConfigGetBool(conf, "hap", &val, 0) < 0)
             goto cleanup;
         else if (val)
-            def->features[VIR_DOMAIN_FEATURE_HAP] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_HAP] = VIR_TRISTATE_SWITCH_ON;
         if (xenXMConfigGetBool(conf, "viridian", &val, 0) < 0)
             goto cleanup;
         else if (val)
-            def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] = VIR_TRISTATE_SWITCH_ON;
 
         if (xenXMConfigGetBool(conf, "hpet", &val, -1) < 0)
             goto cleanup;
@@ -625,10 +621,10 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
 
             if (STREQ(head, "r") ||
                 STREQ(head, "ro"))
-                disk->readonly = true;
+                disk->src->readonly = true;
             else if ((STREQ(head, "w!")) ||
                      (STREQ(head, "!")))
-                disk->shared = true;
+                disk->src->shared = true;
 
             /* Maintain list in sorted order according to target device name */
             if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0)
@@ -656,7 +652,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             if (VIR_STRDUP(disk->dst, "hdc") < 0)
                 goto cleanup;
             disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
-            disk->readonly = true;
+            disk->src->readonly = true;
 
             if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0)
                 goto cleanup;
@@ -1030,7 +1026,14 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                         if (VIR_STRDUP(graphics->data.vnc.keymap, key + 7) < 0)
                             goto cleanup;
                     } else if (STRPREFIX(key, "vncdisplay=")) {
-                        graphics->data.vnc.port = strtol(key+11, NULL, 10) + 5900;
+                        if (virStrToLong_i(key + 11, NULL, 10,
+                                           &graphics->data.vnc.port) < 0) {
+                            virReportError(VIR_ERR_INTERNAL_ERROR,
+                                           _("invalid vncdisplay value '%s'"),
+                                           key + 11);
+                            goto cleanup;
+                        }
+                        graphics->data.vnc.port += 5900;
                     }
                 } else {
                     if (STRPREFIX(key, "display=")) {
@@ -1249,9 +1252,9 @@ xenFormatXMDisk(virConfValuePtr list,
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
         virBufferAddLit(&buf, ":cdrom");
 
-    if (disk->readonly)
+    if (disk->src->readonly)
         virBufferAddLit(&buf, ",r");
-    else if (disk->shared)
+    else if (disk->src->shared)
         virBufferAddLit(&buf, ",!");
     else
         virBufferAddLit(&buf, ",w");
@@ -1261,10 +1264,8 @@ xenFormatXMDisk(virConfValuePtr list,
         return -1;
     }
 
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         goto cleanup;
-    }
 
     if (VIR_ALLOC(val) < 0)
         goto cleanup;
@@ -1300,10 +1301,8 @@ static int xenFormatXMSerial(virConfValuePtr list,
     } else {
         virBufferAddLit(&buf, "none");
     }
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         goto cleanup;
-    }
 
     if (VIR_ALLOC(val) < 0)
         goto cleanup;
@@ -1406,10 +1405,8 @@ static int xenFormatXMNet(virConnectPtr conn,
         virBufferAsprintf(&buf, ",vifname=%s",
                           net->ifname);
 
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         goto cleanup;
-    }
 
     if (VIR_ALLOC(val) < 0)
         goto cleanup;
@@ -1595,28 +1592,28 @@ virConfPtr xenFormatXM(virConnectPtr conn,
 
         if (xenXMConfigSetInt(conf, "pae",
                               (def->features[VIR_DOMAIN_FEATURE_PAE] ==
-                               VIR_DOMAIN_FEATURE_STATE_ON) ? 1 : 0) < 0)
+                               VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             goto cleanup;
 
         if (xenXMConfigSetInt(conf, "acpi",
                               (def->features[VIR_DOMAIN_FEATURE_ACPI] ==
-                               VIR_DOMAIN_FEATURE_STATE_ON) ? 1 : 0) < 0)
+                               VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             goto cleanup;
 
         if (xenXMConfigSetInt(conf, "apic",
                               (def->features[VIR_DOMAIN_FEATURE_APIC] ==
-                               VIR_DOMAIN_FEATURE_STATE_ON) ? 1 : 0) < 0)
+                               VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             goto cleanup;
 
         if (xendConfigVersion >= XEND_CONFIG_VERSION_3_0_4) {
             if (xenXMConfigSetInt(conf, "hap",
                                   (def->features[VIR_DOMAIN_FEATURE_HAP] ==
-                                   VIR_DOMAIN_FEATURE_STATE_ON) ? 1 : 0) < 0)
+                                   VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
                 goto cleanup;
 
             if (xenXMConfigSetInt(conf, "viridian",
                                   (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] ==
-                                   VIR_DOMAIN_FEATURE_STATE_ON) ? 1 : 0) < 0)
+                                   VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
                 goto cleanup;
         }
 
@@ -1861,11 +1858,8 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                     virBufferAsprintf(&buf, ",keymap=%s",
                                       def->graphics[0]->data.vnc.keymap);
             }
-            if (virBufferError(&buf)) {
-                virBufferFreeAndReset(&buf);
-                virReportOOMError();
+            if (virBufferCheckError(&buf) < 0)
                 goto cleanup;
-            }
 
             vfbstr = virBufferContentAndReset(&buf);
 

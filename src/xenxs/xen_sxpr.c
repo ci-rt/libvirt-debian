@@ -495,10 +495,10 @@ xenParseSxprDisks(virDomainDefPtr def,
 
             if (mode &&
                 strchr(mode, 'r'))
-                disk->readonly = true;
+                disk->src->readonly = true;
             if (mode &&
                 strchr(mode, '!'))
-                disk->shared = true;
+                disk->src->shared = true;
 
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
                 goto error;
@@ -1201,15 +1201,15 @@ xenParseSxpr(const struct sexpr *root,
 
     if (hvm) {
         if (sexpr_int(root, "domain/image/hvm/acpi"))
-            def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_TRISTATE_SWITCH_ON;
         if (sexpr_int(root, "domain/image/hvm/apic"))
-            def->features[VIR_DOMAIN_FEATURE_APIC] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_APIC] = VIR_TRISTATE_SWITCH_ON;
         if (sexpr_int(root, "domain/image/hvm/pae"))
-            def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_TRISTATE_SWITCH_ON;
         if (sexpr_int(root, "domain/image/hvm/hap"))
-            def->features[VIR_DOMAIN_FEATURE_HAP] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_HAP] = VIR_TRISTATE_SWITCH_ON;
         if (sexpr_int(root, "domain/image/hvm/viridian"))
-            def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] = VIR_DOMAIN_FEATURE_STATE_ON;
+            def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] = VIR_TRISTATE_SWITCH_ON;
     }
 
     /* 12aaf4a2486b (3.0.3) added a second low-priority 'localtime' setting */
@@ -1321,7 +1321,7 @@ xenParseSxpr(const struct sexpr *root,
                 goto error;
             }
             disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
-            disk->readonly = true;
+            disk->src->readonly = true;
 
             if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0) {
                 virDomainDiskDefFree(disk);
@@ -1693,10 +1693,8 @@ xenFormatSxprChr(virDomainChrDefPtr def,
         return -1;
     }
 
-    if (virBufferError(buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(buf) < 0)
         return -1;
-    }
 
     return 0;
 }
@@ -1818,9 +1816,9 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
         }
     }
 
-    if (def->readonly)
+    if (def->src->readonly)
         virBufferAddLit(buf, "(mode 'r')");
-    else if (def->shared)
+    else if (def->src->shared)
         virBufferAddLit(buf, "(mode 'w!')");
     else
         virBufferAddLit(buf, "(mode 'w')");
@@ -1933,6 +1931,7 @@ xenFormatSxprNet(virConnectPtr conn,
             virBufferEscapeSexpr(buf, "(ip '%s')", def->data.ethernet.ipaddr);
         break;
 
+    case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
     case VIR_DOMAIN_NET_TYPE_USER:
     case VIR_DOMAIN_NET_TYPE_SERVER:
     case VIR_DOMAIN_NET_TYPE_CLIENT:
@@ -2118,10 +2117,8 @@ xenFormatSxprSound(virDomainDefPtr def,
         virBufferEscapeSexpr(buf, "%s", str);
     }
 
-    if (virBufferError(buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(buf) < 0)
         return -1;
-    }
 
     return 0;
 }
@@ -2342,15 +2339,15 @@ xenFormatSxpr(virConnectPtr conn,
                 }
             }
 
-            if (def->features[VIR_DOMAIN_FEATURE_ACPI] == VIR_DOMAIN_FEATURE_STATE_ON)
+            if (def->features[VIR_DOMAIN_FEATURE_ACPI] == VIR_TRISTATE_SWITCH_ON)
                 virBufferAddLit(&buf, "(acpi 1)");
-            if (def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_DOMAIN_FEATURE_STATE_ON)
+            if (def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_TRISTATE_SWITCH_ON)
                 virBufferAddLit(&buf, "(apic 1)");
-            if (def->features[VIR_DOMAIN_FEATURE_PAE] == VIR_DOMAIN_FEATURE_STATE_ON)
+            if (def->features[VIR_DOMAIN_FEATURE_PAE] == VIR_TRISTATE_SWITCH_ON)
                 virBufferAddLit(&buf, "(pae 1)");
-            if (def->features[VIR_DOMAIN_FEATURE_HAP] == VIR_DOMAIN_FEATURE_STATE_ON)
+            if (def->features[VIR_DOMAIN_FEATURE_HAP] == VIR_TRISTATE_SWITCH_ON)
                 virBufferAddLit(&buf, "(hap 1)");
-            if (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] == VIR_DOMAIN_FEATURE_STATE_ON)
+            if (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] == VIR_TRISTATE_SWITCH_ON)
                 virBufferAddLit(&buf, "(viridian 1)");
 
             virBufferAddLit(&buf, "(usb 1)");
@@ -2551,10 +2548,8 @@ xenFormatSxpr(virConnectPtr conn,
 
     virBufferAddLit(&buf, ")"); /* closes (vm */
 
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         goto error;
-    }
 
     bufout = virBufferContentAndReset(&buf);
     VIR_DEBUG("Formatted sexpr: \n%s", bufout);

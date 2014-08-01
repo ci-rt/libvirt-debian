@@ -149,6 +149,37 @@ done:
 }
 
 static char *
+remoteConnectGetDomainCapabilities(virConnectPtr conn, const char *emulatorbin, const char *arch, const char *machine, const char *virttype, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_connect_get_domain_capabilities_args args;
+    remote_connect_get_domain_capabilities_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.emulatorbin = emulatorbin ? (char **)&emulatorbin : NULL;
+    args.arch = arch ? (char **)&arch : NULL;
+    args.machine = machine ? (char **)&machine : NULL;
+    args.virttype = virttype ? (char **)&virttype : NULL;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_GET_DOMAIN_CAPABILITIES,
+             (xdrproc_t)xdr_remote_connect_get_domain_capabilities_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_get_domain_capabilities_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.capabilities;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
 remoteConnectGetHostname(virConnectPtr conn)
 {
     char *rv = NULL;

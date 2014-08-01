@@ -125,7 +125,7 @@ parallelsBuildCapabilities(void)
     virNodeInfo nodeinfo;
 
     if ((caps = virCapabilitiesNew(virArchFromHost(),
-                                   0, 0)) == NULL)
+                                   false, false)) == NULL)
         return NULL;
 
     if (nodeCapsInitNUMA(caps) < 0)
@@ -186,8 +186,7 @@ parallelsConnectGetCapabilities(virConnectPtr conn)
     char *xml;
 
     parallelsDriverLock(privconn);
-    if ((xml = virCapabilitiesFormatXML(privconn->caps)) == NULL)
-        virReportOOMError();
+    xml = virCapabilitiesFormatXML(privconn->caps);
     parallelsDriverUnlock(privconn);
     return xml;
 }
@@ -2024,7 +2023,7 @@ parallelsApplyChanges(virDomainObjPtr dom, virDomainDefPtr new)
             return -1;
     }
 
-    if (old->mem.hugepage_backed != new->mem.hugepage_backed ||
+    if (old->mem.nhugepages != new->mem.nhugepages ||
         old->mem.hard_limit != new->mem.hard_limit ||
         old->mem.soft_limit != new->mem.soft_limit ||
         old->mem.min_guarantee != new->mem.min_guarantee ||
@@ -2079,12 +2078,7 @@ parallelsApplyChanges(virDomainObjPtr dom, virDomainDefPtr new)
         return -1;
     }
 
-    if (old->numatune.memory.mode != new->numatune.memory.mode ||
-        old->numatune.memory.placement_mode != new->numatune.memory.placement_mode ||
-        ((old->numatune.memory.nodemask != NULL || new->numatune.memory.nodemask != NULL) &&
-         (old->numatune.memory.nodemask == NULL || new->numatune.memory.nodemask == NULL ||
-        !virBitmapEqual(old->numatune.memory.nodemask, new->numatune.memory.nodemask)))){
-
+    if (!virDomainNumatuneEquals(old->numatune, new->numatune)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                         _("numa parameters are not supported "
                           "by parallels driver"));

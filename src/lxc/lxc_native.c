@@ -1,6 +1,7 @@
 /*
  * lxc_native.c: LXC native configuration import
  *
+ * Copyright (c) 2014 Red Hat, Inc.
  * Copyright (c) 2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * This library is free software; you can redistribute it and/or
@@ -338,7 +339,8 @@ lxcCreateNetDef(const char *type,
                 const char *linkdev,
                 const char *mac,
                 const char *flag,
-                const char *macvlanmode)
+                const char *macvlanmode,
+                const char *name)
 {
     virDomainNetDefPtr net = NULL;
     virMacAddr macAddr;
@@ -353,6 +355,8 @@ lxcCreateNetDef(const char *type,
             net->linkstate = VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN;
     }
 
+    if (VIR_STRDUP(net->ifname_guest, name) < 0)
+        goto error;
 
     if (mac && virMacAddrParse(mac, &macAddr) == 0)
         net->mac = macAddr;
@@ -416,7 +420,8 @@ lxcAddNetworkDefinition(virDomainDefPtr def,
                         const char *mac,
                         const char *flag,
                         const char *macvlanmode,
-                        const char *vlanid)
+                        const char *vlanid,
+                        const char *name)
 {
     virDomainNetDefPtr net = NULL;
     virDomainHostdevDefPtr hostdev = NULL;
@@ -452,7 +457,7 @@ lxcAddNetworkDefinition(virDomainDefPtr def,
             goto error;
         def->hostdevs[def->nhostdevs - 1] = hostdev;
     } else {
-        if (!(net = lxcCreateNetDef(type, linkdev, mac, flag, macvlanmode)))
+        if (!(net = lxcCreateNetDef(type, linkdev, mac, flag, macvlanmode, name)))
             goto error;
 
         if (VIR_EXPAND_N(def->nets, def->nnets, 1) < 0)
@@ -476,6 +481,7 @@ typedef struct {
     char *flag;
     char *macvlanmode;
     char *vlanid;
+    char *name;
     bool privnet;
     size_t networks;
 } lxcNetworkParseData;
@@ -492,7 +498,8 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
                                          parseData->link, parseData->mac,
                                          parseData->flag,
                                          parseData->macvlanmode,
-                                         parseData->vlanid);
+                                         parseData->vlanid,
+                                         parseData->name);
 
         if (status < 0)
             return -1;
@@ -508,6 +515,7 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
         parseData->flag = NULL;
         parseData->macvlanmode = NULL;
         parseData->vlanid = NULL;
+        parseData->name = NULL;
 
         /* Keep the new value */
         parseData->type = value->str;
@@ -522,6 +530,8 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
         parseData->macvlanmode = value->str;
     else if (STREQ(name, "lxc.network.vlan.id"))
         parseData->vlanid = value->str;
+    else if (STREQ(name, "lxc.network.name"))
+        parseData->name = value->str;
     else if (STRPREFIX(name, "lxc.network"))
         VIR_WARN("Unhandled network property: %s = %s",
                  name,
@@ -535,7 +545,7 @@ lxcConvertNetworkSettings(virDomainDefPtr def, virConfPtr properties)
 {
     int status;
     lxcNetworkParseData data = {def, NULL, NULL, NULL, NULL,
-                                NULL, NULL, true, 0};
+                                NULL, NULL, NULL, true, 0};
 
     virConfWalk(properties, lxcNetworkWalkCallback, &data);
 
@@ -543,7 +553,8 @@ lxcConvertNetworkSettings(virDomainDefPtr def, virConfPtr properties)
     status = lxcAddNetworkDefinition(def, data.type, data.link,
                                      data.mac, data.flag,
                                      data.macvlanmode,
-                                     data.vlanid);
+                                     data.vlanid,
+                                     data.name);
     if (status < 0)
         return -1;
     else if (status > 0)
@@ -553,7 +564,7 @@ lxcConvertNetworkSettings(virDomainDefPtr def, virConfPtr properties)
 
     if (data.networks == 0 && data.privnet) {
         /* When no network type is provided LXC only adds loopback */
-        def->features[VIR_DOMAIN_FEATURE_PRIVNET] = VIR_DOMAIN_FEATURE_STATE_ON;
+        def->features[VIR_DOMAIN_FEATURE_PRIVNET] = VIR_TRISTATE_SWITCH_ON;
     }
 
     return 0;
@@ -708,6 +719,7 @@ static int
 lxcSetCpusetTune(virDomainDefPtr def, virConfPtr properties)
 {
     virConfValuePtr value;
+    virBitmapPtr nodeset = NULL;
 
     if ((value = virConfGetValue(properties, "lxc.cgroup.cpuset.cpus")) &&
             value->str) {
@@ -719,12 +731,19 @@ lxcSetCpusetTune(virDomainDefPtr def, virConfPtr properties)
     }
 
     if ((value = virConfGetValue(properties, "lxc.cgroup.cpuset.mems")) &&
-            value->str) {
-        def->numatune.memory.placement_mode = VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_STATIC;
-        def->numatune.memory.mode = VIR_DOMAIN_NUMATUNE_MEM_STRICT;
-        if (virBitmapParse(value->str, 0, &def->numatune.memory.nodemask,
-                           VIR_DOMAIN_CPUMASK_LEN) < 0)
+        value->str) {
+        if (virBitmapParse(value->str, 0, &nodeset, VIR_DOMAIN_CPUMASK_LEN) < 0)
             return -1;
+        if (virDomainNumatuneSet(&def->numatune,
+                                 def->placement_mode ==
+                                 VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC,
+                                 VIR_DOMAIN_NUMATUNE_PLACEMENT_STATIC,
+                                 VIR_DOMAIN_NUMATUNE_MEM_STRICT,
+                                 nodeset) < 0) {
+            virBitmapFree(nodeset);
+            return -1;
+        }
+        virBitmapFree(nodeset);
     }
 
     return 0;
@@ -838,6 +857,28 @@ lxcSetBlkioTune(virDomainDefPtr def, virConfPtr properties)
     return 0;
 }
 
+static void
+lxcSetCapDrop(virDomainDefPtr def, virConfPtr properties)
+{
+    virConfValuePtr value;
+    char **toDrop = NULL;
+    const char *capString;
+    size_t i;
+
+    if ((value = virConfGetValue(properties, "lxc.cap.drop")) && value->str)
+        toDrop = virStringSplit(value->str, " ", 0);
+
+    for (i = 0; i < VIR_DOMAIN_CAPS_FEATURE_LAST; i++) {
+        capString = virDomainCapsFeatureTypeToString(i);
+        if (toDrop != NULL && virStringArrayHasString(toDrop, capString))
+            def->caps_features[i] = VIR_TRISTATE_SWITCH_OFF;
+    }
+
+    def->features[VIR_DOMAIN_FEATURE_CAPABILITIES] = VIR_DOMAIN_CAPABILITIES_POLICY_ALLOW;
+
+    virStringFreeList(toDrop);
+}
+
 virDomainDefPtr
 lxcParseConfigString(const char *config)
 {
@@ -934,6 +975,9 @@ lxcParseConfigString(const char *config)
     /* lxc.cgroup.blkio.* */
     if (lxcSetBlkioTune(vmdef, properties) < 0)
         goto error;
+
+    /* lxc.cap.drop */
+    lxcSetCapDrop(vmdef, properties);
 
     goto cleanup;
 

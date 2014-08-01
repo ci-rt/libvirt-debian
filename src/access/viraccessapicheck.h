@@ -26,6 +26,7 @@ extern int virConnectDomainXMLToNativeEnsureACL(virConnectPtr conn);
 extern int virConnectFindStoragePoolSourcesEnsureACL(virConnectPtr conn);
 extern int virConnectGetCapabilitiesEnsureACL(virConnectPtr conn);
 extern int virConnectGetCPUModelNamesEnsureACL(virConnectPtr conn);
+extern int virConnectGetDomainCapabilitiesEnsureACL(virConnectPtr conn);
 extern int virConnectGetHostnameEnsureACL(virConnectPtr conn);
 extern int virConnectGetLibVersionEnsureACL(virConnectPtr conn);
 extern int virConnectGetMaxVcpusEnsureACL(virConnectPtr conn);

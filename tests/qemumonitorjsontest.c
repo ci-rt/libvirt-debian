@@ -583,6 +583,7 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
     int ret = -1;
     char **params = NULL;
     int nparams = 0;
+    bool found = false;
 
     if (!test)
         return -1;
@@ -604,7 +605,8 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
     /* present with params */
     if ((nparams = qemuMonitorGetCommandLineOptionParameters(qemuMonitorTestGetMonitor(test),
                                                              "option-rom",
-                                                             &params)) < 0)
+                                                             &params,
+                                                             NULL)) < 0)
         goto cleanup;
 
     if (nparams != 2) {
@@ -634,12 +636,18 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
     /* present but empty */
     if ((nparams = qemuMonitorGetCommandLineOptionParameters(qemuMonitorTestGetMonitor(test),
                                                              "acpi",
-                                                             &params)) < 0)
+                                                             &params,
+                                                             &found)) < 0)
         goto cleanup;
 
     if (nparams != 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "nparams was %d, expected 0", nparams);
+        goto cleanup;
+    }
+    if (!found) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "found was false, expected true");
         goto cleanup;
     }
     if (params && params[0]) {
@@ -654,12 +662,18 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
     /* no such option */
     if ((nparams = qemuMonitorGetCommandLineOptionParameters(qemuMonitorTestGetMonitor(test),
                                                              "foobar",
-                                                             &params)) < 0)
+                                                             &params,
+                                                             &found)) < 0)
         goto cleanup;
 
     if (nparams != 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "nparams was %d, expected 0", nparams);
+        goto cleanup;
+    }
+    if (found) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "found was true, expected false");
         goto cleanup;
     }
     if (params && params[0]) {
@@ -1164,7 +1178,7 @@ GEN_TEST_FUNC(qemuMonitorJSONAddDevice, "some_dummy_devicestr")
 GEN_TEST_FUNC(qemuMonitorJSONSetDrivePassphrase, "vda", "secret_passhprase")
 GEN_TEST_FUNC(qemuMonitorJSONDriveMirror, "vdb", "/foo/bar", NULL, 1024,
               VIR_DOMAIN_BLOCK_REBASE_SHALLOW | VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT)
-GEN_TEST_FUNC(qemuMonitorJSONBlockCommit, "vdb", "/foo/bar1", "/foo/bar2", 1024)
+GEN_TEST_FUNC(qemuMonitorJSONBlockCommit, "vdb", "/foo/bar1", "/foo/bar2", NULL, 1024)
 GEN_TEST_FUNC(qemuMonitorJSONDrivePivot, "vdb", NULL, NULL)
 GEN_TEST_FUNC(qemuMonitorJSONScreendump, "/foo/bar")
 GEN_TEST_FUNC(qemuMonitorJSONOpenGraphics, "spice", "spicefd", false)
@@ -1992,6 +2006,52 @@ testQemuMonitorJSONqemuMonitorJSONSendKeyHoldtime(const void *data)
 }
 
 static int
+testQemuMonitorJSONqemuMonitorSupportsActiveCommit(const void *data)
+{
+    virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
+    int ret = -1;
+    const char *error1 =
+        "{"
+        "  \"error\": {"
+        "    \"class\": \"DeviceNotFound\","
+        "    \"desc\": \"Device 'bogus' not found\""
+        "  }"
+        "}";
+    const char *error2 =
+        "{"
+        "  \"error\": {"
+        "    \"class\": \"GenericError\","
+        "    \"desc\": \"Parameter 'top' is missing\""
+        "  }"
+        "}";
+
+    if (!test)
+        return -1;
+
+    if (qemuMonitorTestAddItemParams(test, "block-commit", error1,
+                                     "device", "\"bogus\"",
+                                     NULL, NULL) < 0)
+        goto cleanup;
+
+    if (!qemuMonitorSupportsActiveCommit(qemuMonitorTestGetMonitor(test)))
+        goto cleanup;
+
+    if (qemuMonitorTestAddItemParams(test, "block-commit", error2,
+                                     "device", "\"bogus\"",
+                                     NULL, NULL) < 0)
+        goto cleanup;
+
+    if (qemuMonitorSupportsActiveCommit(qemuMonitorTestGetMonitor(test)))
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
+static int
 testQemuMonitorJSONqemuMonitorJSONGetDumpGuestMemoryCapability(const void *data)
 {
     virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
@@ -2263,6 +2323,7 @@ mymain(void)
     DO_TEST(qemuMonitorJSONSendKey);
     DO_TEST(qemuMonitorJSONGetDumpGuestMemoryCapability);
     DO_TEST(qemuMonitorJSONSendKeyHoldtime);
+    DO_TEST(qemuMonitorSupportsActiveCommit);
 
     DO_TEST_CPU_DATA("host");
     DO_TEST_CPU_DATA("full");

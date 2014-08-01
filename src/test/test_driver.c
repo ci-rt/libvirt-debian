@@ -318,7 +318,7 @@ testBuildCapabilities(virConnectPtr conn)
     const char *const guest_types[] = { "hvm", "xen" };
     size_t i;
 
-    if ((caps = virCapabilitiesNew(VIR_ARCH_I686, 0, 0)) == NULL)
+    if ((caps = virCapabilitiesNew(VIR_ARCH_I686, false, false)) == NULL)
         goto error;
 
     if (virCapabilitiesAddHostFeature(caps, "pae") < 0)
@@ -360,9 +360,9 @@ testBuildCapabilities(virConnectPtr conn)
                                           NULL) == NULL)
             goto error;
 
-        if (virCapabilitiesAddGuestFeature(guest, "pae", 1, 1) == NULL)
+        if (virCapabilitiesAddGuestFeature(guest, "pae", true, true) == NULL)
             goto error;
-        if (virCapabilitiesAddGuestFeature(guest, "nonpae", 1, 1) == NULL)
+        if (virCapabilitiesAddGuestFeature(guest, "nonpae", true, true) == NULL)
             goto error;
     }
 
@@ -1677,8 +1677,7 @@ static char *testConnectGetCapabilities(virConnectPtr conn)
     testConnPtr privconn = conn->privateData;
     char *xml;
     testDriverLock(privconn);
-    if ((xml = virCapabilitiesFormatXML(privconn->caps)) == NULL)
-        virReportOOMError();
+    xml = virCapabilitiesFormatXML(privconn->caps);
     testDriverUnlock(privconn);
     return xml;
 }
@@ -3043,7 +3042,7 @@ static int testDomainSetMetadata(virDomainPtr dom,
 
     ret = virDomainObjSetMetadata(privdom, type, metadata, key, uri,
                                   privconn->caps, privconn->xmlopt,
-                                  NULL, flags);
+                                  NULL, NULL, flags);
 
  cleanup:
     if (privdom)
@@ -6088,14 +6087,15 @@ testNodeDeviceCreateXML(virConnectPtr conn,
     if (VIR_STRDUP(def->name, wwpn) < 0)
         goto cleanup;
 
-    /* Fill in a random 'host' value, since this would also come from
-     * the backend */
+    /* Fill in a random 'host' and 'unique_id' value,
+     * since this would also come from the backend */
     caps = def->caps;
     while (caps) {
         if (caps->type != VIR_NODE_DEV_CAP_SCSI_HOST)
             continue;
 
         caps->data.scsi_host.host = virRandomBits(10);
+        caps->data.scsi_host.unique_id = 2;
         caps = caps->next;
     }
 

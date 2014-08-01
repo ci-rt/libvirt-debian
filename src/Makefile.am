@@ -149,7 +149,7 @@ UTIL_SOURCES =							\
 		util/virseclabel.c util/virseclabel.h		\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
-		util/virstatslinux.c util/virstatslinux.h	\
+		util/virstats.c util/virstats.h	\
 		util/virstorageencryption.c util/virstorageencryption.h \
 		util/virstoragefile.c util/virstoragefile.h	\
 		util/virstring.h util/virstring.c		\
@@ -248,10 +248,12 @@ NETDEV_CONF_SOURCES =						\
 DOMAIN_CONF_SOURCES =						\
 		conf/capabilities.c conf/capabilities.h		\
 		conf/domain_addr.c conf/domain_addr.h		\
+		conf/domain_capabilities.c conf/domain_capabilities.h	\
 		conf/domain_conf.c conf/domain_conf.h		\
 		conf/domain_audit.c conf/domain_audit.h		\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
-		conf/snapshot_conf.c conf/snapshot_conf.h
+		conf/snapshot_conf.c conf/snapshot_conf.h	\
+		conf/numatune_conf.c conf/numatune_conf.h
 
 OBJECT_EVENT_SOURCES =						\
 		conf/object_event.c conf/object_event.h \

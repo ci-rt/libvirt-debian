@@ -58,9 +58,6 @@ VIR_ENUM_IMPL(virNodeDevNetCap, VIR_NODE_DEV_CAP_NET_LAST,
               "80203",
               "80211")
 
-VIR_ENUM_IMPL(virPCIELinkSpeed, VIR_PCIE_LINK_SPEED_LAST,
-              "", "2.5", "5", "8")
-
 static int
 virNodeDevCapsDefParseString(const char *xpath,
                              xmlXPathContextPtr ctxt,
@@ -442,6 +439,9 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDef *def)
         case VIR_NODE_DEV_CAP_SCSI_HOST:
             virBufferAsprintf(&buf, "<host>%d</host>\n",
                               data->scsi_host.host);
+            if (data->scsi_host.unique_id != -1)
+                virBufferAsprintf(&buf, "<unique_id>%d</unique_id>\n",
+                                  data->scsi_host.unique_id);
             if (data->scsi_host.flags & VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
                 virBufferAddLit(&buf, "<capability type='fc_host'>\n");
                 virBufferAdjustIndent(&buf, 2);
@@ -544,7 +544,6 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDef *def)
         case VIR_NODE_DEV_CAP_FC_HOST:
         case VIR_NODE_DEV_CAP_VPORTS:
         case VIR_NODE_DEV_CAP_LAST:
-        default:
             break;
         }
 
@@ -555,15 +554,10 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDef *def)
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</device>\n");
 
-    if (virBufferError(&buf))
-        goto no_memory;
+    if (virBufferCheckError(&buf) < 0)
+        return NULL;
 
     return virBufferContentAndReset(&buf);
-
- no_memory:
-    virReportOOMError();
-    virBufferFreeAndReset(&buf);
-    return NULL;
 }
 
 /**
@@ -831,12 +825,20 @@ virNodeDevCapSCSIHostParseXML(xmlXPathContextPtr ctxt,
     orignode = ctxt->node;
     ctxt->node = node;
 
-    if (create == EXISTING_DEVICE &&
-        virNodeDevCapsDefParseULong("number(./host[1])", ctxt,
-                                    &data->scsi_host.host, def,
-                                    _("no SCSI host ID supplied for '%s'"),
-                                    _("invalid SCSI host ID supplied for '%s'")) < 0) {
-        goto out;
+    if (create == EXISTING_DEVICE) {
+        if (virNodeDevCapsDefParseULong("number(./host[1])", ctxt,
+                                        &data->scsi_host.host, def,
+                                        _("no SCSI host ID supplied for '%s'"),
+                                        _("invalid SCSI host ID supplied for '%s'")) < 0) {
+            goto out;
+        }
+        /* Optional unique_id value */
+        data->scsi_host.unique_id = -1;
+        if (virNodeDevCapsDefParseIntOptional("number(./unique_id[1])", ctxt,
+                                              &data->scsi_host.unique_id, def,
+                                              _("invalid unique_id supplied for '%s'")) < 0) {
+            goto out;
+        }
     }
 
     if ((n = virXPathNodeSet("./capability", ctxt, &nodes)) < 0) {
@@ -1289,7 +1291,7 @@ virNodeDevCapPCIDevParseXML(xmlXPathContextPtr ctxt,
 
     ret = 0;
  out:
-    VIR_FREE(pci_express);
+    virPCIEDeviceInfoFree(pci_express);
     ctxt->node = orignode;
     return ret;
 }
@@ -1347,7 +1349,7 @@ virNodeDevCapsDefParseXML(xmlXPathContextPtr ctxt,
 {
     virNodeDevCapsDefPtr caps;
     char *tmp;
-    int val, ret;
+    int val, ret = -1;
 
     if (VIR_ALLOC(caps) < 0)
         return NULL;
@@ -1399,7 +1401,10 @@ virNodeDevCapsDefParseXML(xmlXPathContextPtr ctxt,
     case VIR_NODE_DEV_CAP_STORAGE:
         ret = virNodeDevCapStorageParseXML(ctxt, def, node, &caps->data);
         break;
-    default:
+    case VIR_NODE_DEV_CAP_FC_HOST:
+    case VIR_NODE_DEV_CAP_VPORTS:
+    case VIR_NODE_DEV_CAP_SCSI_GENERIC:
+    case VIR_NODE_DEV_CAP_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unknown capability type '%d' for '%s'"),
                        caps->type, def->name);
@@ -1659,6 +1664,7 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
             VIR_FREE(data->pci_dev.iommuGroupDevices[i]);
         }
         VIR_FREE(data->pci_dev.iommuGroupDevices);
+        virPCIEDeviceInfoFree(data->pci_dev.pci_express);
         break;
     case VIR_NODE_DEV_CAP_USB_DEV:
         VIR_FREE(data->usb_dev.product_name);
@@ -1697,7 +1703,6 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
     case VIR_NODE_DEV_CAP_FC_HOST:
     case VIR_NODE_DEV_CAP_VPORTS:
     case VIR_NODE_DEV_CAP_LAST:
-    default:
         /* This case is here to shutup the compiler */
         break;
     }

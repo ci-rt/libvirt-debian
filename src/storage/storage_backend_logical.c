@@ -131,6 +131,15 @@ virStorageBackendLogicalMakeVol(char **const groups,
             goto cleanup;
     }
 
+    /* Mark the (s) sparse/snapshot lv, e.g. the lv created using
+     * the --virtualsize/-V option. We've already ignored the (t)hin
+     * pool definition. In the manner libvirt defines these, the
+     * thin pool is hidden to the lvs output, except as the name
+     * in brackets [] described for the groups[1] (backingStore).
+     */
+    if (attrs[0] == 's')
+        vol->target.sparse = true;
+
     /* Skips the backingStore of lv created with "--virtualsize",
      * its original device "/dev/$vgname/$lvname_vorigin" is
      * just for lvm internal use, one should never use it.
@@ -139,11 +148,14 @@ virStorageBackendLogicalMakeVol(char **const groups,
      *  lv is created with "--virtualsize").
      */
     if (groups[1] && !STREQ(groups[1], "") && (groups[1][0] != '[')) {
-        if (virAsprintf(&vol->backingStore.path, "%s/%s",
+        if (VIR_ALLOC(vol->target.backingStore) < 0)
+            goto cleanup;
+
+        if (virAsprintf(&vol->target.backingStore->path, "%s/%s",
                         pool->def->target.path, groups[1]) < 0)
             goto cleanup;
 
-        vol->backingStore.format = VIR_STORAGE_POOL_LOGICAL_LVM2;
+        vol->target.backingStore->format = VIR_STORAGE_POOL_LOGICAL_LVM2;
     }
 
     if (!vol->key && VIR_STRDUP(vol->key, groups[2]) < 0)
@@ -730,10 +742,8 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
 
     vol->type = VIR_STORAGE_VOL_BLOCK;
 
-    if (vol->target.path != NULL) {
-        /* A target path passed to CreateVol has no meaning */
-        VIR_FREE(vol->target.path);
-    }
+    /* A target path passed to CreateVol has no meaning */
+    VIR_FREE(vol->target.path);
 
     if (virAsprintf(&vol->target.path, "%s/%s",
                     pool->def->target.path,
@@ -749,11 +759,12 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
                                VIR_DIV_UP(vol->target.allocation
                                           ? vol->target.allocation : 1, 1024));
         virCommandAddArg(cmd, "--virtualsize");
+        vol->target.sparse = true;
     }
     virCommandAddArgFormat(cmd, "%lluK", VIR_DIV_UP(vol->target.capacity,
                                                     1024));
-    if (vol->backingStore.path)
-        virCommandAddArgList(cmd, "-s", vol->backingStore.path, NULL);
+    if (vol->target.backingStore)
+        virCommandAddArgList(cmd, "-s", vol->target.backingStore->path, NULL);
     else
         virCommandAddArg(cmd, pool->def->source.name);
 
@@ -826,6 +837,33 @@ virStorageBackendLogicalBuildVolFrom(virConnectPtr conn,
     return build_func(conn, pool, vol, inputvol, flags);
 }
 
+static int
+virStorageBackendLogicalVolWipe(virConnectPtr conn,
+                                virStoragePoolObjPtr pool,
+                                virStorageVolDefPtr vol,
+                                unsigned int algorithm,
+                                unsigned int flags)
+{
+    if (!vol->target.sparse)
+        return virStorageBackendVolWipeLocal(conn, pool, vol, algorithm, flags);
+
+    /* The wiping algorithms will write something to the logical volume.
+     * Writing to a sparse logical volume causes it to be filled resulting
+     * in the volume becoming INACTIVE because there is some amount of
+     * metadata contained within the sparse lv. Choosing to only write
+     * a wipe pattern to the already written portion lv based on what
+     * 'lvs' shows in the "Data%" column/field for the sparse lv was
+     * considered. However, there is no guarantee that sparse lv could
+     * grow or shrink outside of libvirt's knowledge and thus still render
+     * the volume INACTIVE. Until there is some sort of wipe function
+     * implemented by lvm for one of these sparse lv, we'll just return
+     * unsupported.
+     */
+    virReportError(VIR_ERR_NO_SUPPORT,
+                   _("logical volue '%s' is sparse, volume wipe not supported"),
+                   vol->target.path);
+    return -1;
+}
 
 virStorageBackend virStorageBackendLogical = {
     .type = VIR_STORAGE_POOL_LOGICAL,
@@ -841,4 +879,7 @@ virStorageBackend virStorageBackendLogical = {
     .buildVolFrom = virStorageBackendLogicalBuildVolFrom,
     .createVol = virStorageBackendLogicalCreateVol,
     .deleteVol = virStorageBackendLogicalDeleteVol,
+    .uploadVol = virStorageBackendVolUploadLocal,
+    .downloadVol = virStorageBackendVolDownloadLocal,
+    .wipeVol = virStorageBackendLogicalVolWipe,
 };

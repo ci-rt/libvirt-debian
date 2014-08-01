@@ -186,11 +186,8 @@ phypExec(LIBSSH2_SESSION *session, const char *cmd, int *exit_status,
     channel = NULL;
     VIR_FREE(buffer);
 
-    if (virBufferError(&tex_ret)) {
-        virBufferFreeAndReset(&tex_ret);
-        virReportOOMError();
+    if (virBufferCheckError(&tex_ret) < 0)
         return NULL;
-    }
     return virBufferContentAndReset(&tex_ret);
 
  err:
@@ -211,11 +208,8 @@ phypExecBuffer(LIBSSH2_SESSION *session, virBufferPtr buf, int *exit_status,
     char *cmd;
     char *ret;
 
-    if (virBufferError(buf)) {
-        virBufferFreeAndReset(buf);
-        virReportOOMError();
+    if (virBufferCheckError(buf) < 0)
         return NULL;
-    }
     cmd = virBufferContentAndReset(buf);
     ret = phypExec(session, cmd, exit_status, conn);
     VIR_FREE(cmd);
@@ -292,7 +286,7 @@ phypCapsInit(void)
     virCapsGuestPtr guest;
 
     if ((caps = virCapabilitiesNew(virArchFromHost(),
-                                   0, 0)) == NULL)
+                                   false, false)) == NULL)
         goto no_memory;
 
     /* Some machines have problematic NUMA toplogy causing
@@ -1981,7 +1975,7 @@ phypStorageVolCreateXML(virStoragePoolPtr pool,
     spdef->source.ndevice = 1;
 
     /*XXX source adapter not working properly, should show hdiskX */
-    if ((spdef->source.adapter.data.name =
+    if ((spdef->source.adapter.data.scsi_host.name =
          phypGetStoragePoolDevice(pool->conn, pool->name)) == NULL) {
         VIR_ERROR(_("Unable to determine storage pools's source adapter."));
         goto err;
@@ -2203,7 +2197,7 @@ phypStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
 
     pool.source.ndevice = 1;
 
-    if ((pool.source.adapter.data.name =
+    if ((pool.source.adapter.data.scsi_host.name =
          phypGetStoragePoolDevice(sp->conn, sp->name)) == NULL) {
         VIR_ERROR(_("Unable to determine storage sps's source adapter."));
         goto cleanup;
@@ -2442,7 +2436,7 @@ phypBuildStoragePool(virConnectPtr conn, virStoragePoolDefPtr def)
                           managed_system, vios_id);
 
     virBufferAsprintf(&buf, "mksp -f %schild %s", def->name,
-                      source.adapter.data.name);
+                      source.adapter.data.scsi_host.name);
 
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
@@ -2673,7 +2667,7 @@ phypStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
     def.source.ndevice = 1;
 
     /*XXX source adapter not working properly, should show hdiskX */
-    if ((def.source.adapter.data.name =
+    if ((def.source.adapter.data.scsi_host.name =
          phypGetStoragePoolDevice(pool->conn, pool->name)) == NULL) {
         VIR_ERROR(_("Unable to determine storage pools's source adapter."));
         goto err;
@@ -3582,12 +3576,8 @@ static char *
 phypConnectGetCapabilities(virConnectPtr conn)
 {
     phyp_driverPtr phyp_driver = conn->privateData;
-    char *xml;
 
-    if ((xml = virCapabilitiesFormatXML(phyp_driver->caps)) == NULL)
-        virReportOOMError();
-
-    return xml;
+    return virCapabilitiesFormatXML(phyp_driver->caps);
 }
 
 static int

@@ -1,5 +1,5 @@
 /*
- * virstatslinux.c: Linux block and network stats.
+ * virstats.c: Block and network stats.
  *
  * Copyright (C) 2007-2010 Red Hat, Inc.
  *
@@ -22,23 +22,25 @@
 
 #include <config.h>
 
-/* This file only applies on Linux. */
-#ifdef __linux__
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+#include <regex.h>
 
-# include <stdio.h>
-# include <stdlib.h>
-# include <fcntl.h>
-# include <string.h>
-# include <unistd.h>
-# include <regex.h>
+#ifdef HAVE_GETIFADDRS
+# include <net/if.h>
+# include <ifaddrs.h>
+#endif
 
-# include "virerror.h"
-# include "datatypes.h"
-# include "virstatslinux.h"
-# include "viralloc.h"
-# include "virfile.h"
+#include "virerror.h"
+#include "datatypes.h"
+#include "virstats.h"
+#include "viralloc.h"
+#include "virfile.h"
 
-# define VIR_FROM_THIS VIR_FROM_STATS_LINUX
+#define VIR_FROM_THIS VIR_FROM_STATS_LINUX
 
 
 /*-------------------- interface stats --------------------*/
@@ -46,10 +48,10 @@
  * NB. Caller must check that libvirt user is trying to query
  * the interface of a domain they own.  We do no such checking.
  */
-
+#ifdef __linux__
 int
-linuxDomainInterfaceStats(const char *path,
-                          struct _virDomainInterfaceStats *stats)
+virNetInterfaceStats(const char *path,
+                     struct _virDomainInterfaceStats *stats)
 {
     int path_len;
     FILE *fp;
@@ -115,6 +117,61 @@ linuxDomainInterfaceStats(const char *path,
 
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("/proc/net/dev: Interface not found"));
+    return -1;
+}
+#elif defined(HAVE_GETIFADDRS)
+int
+virNetInterfaceStats(const char *path,
+                     struct _virDomainInterfaceStats *stats)
+{
+    struct ifaddrs *ifap, *ifa;
+    struct if_data *ifd;
+    int ret = -1;
+
+    if (getifaddrs(&ifap) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Could not get interface list"));
+        return -1;
+    }
+
+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr->sa_family != AF_LINK)
+            continue;
+
+        if (STREQ(ifa->ifa_name, path)) {
+            ifd = (struct if_data *)ifa->ifa_data;
+            stats->tx_bytes = ifd->ifi_ibytes;
+            stats->tx_packets = ifd->ifi_ipackets;
+            stats->tx_errs = ifd->ifi_ierrors;
+            stats->tx_drop = ifd->ifi_iqdrops;
+            stats->rx_bytes = ifd->ifi_obytes;
+            stats->rx_packets = ifd->ifi_opackets;
+            stats->rx_errs = ifd->ifi_oerrors;
+# ifdef HAVE_STRUCT_IF_DATA_IFI_OQDROPS
+            stats->rx_drop = ifd->ifi_oqdrops;
+# else
+            stats->rx_drop = 0;
+# endif
+
+            ret = 0;
+            break;
+        }
+    }
+
+    if (ret < 0)
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Interface not found"));
+
+    freeifaddrs(ifap);
+    return ret;
+}
+#else
+int
+virNetInterfaceStats(const char *path ATTRIBUTE_UNUSED,
+                     struct _virDomainInterfaceStats *stats ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("interface stats not implemented on this platform"));
     return -1;
 }
 

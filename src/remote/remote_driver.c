@@ -582,7 +582,7 @@ doRemoteOpen(virConnectPtr conn,
         trans_tcp,
     } transport;
 #ifndef WIN32
-    const char *daemonPath = NULL;
+    char *daemonPath = NULL;
 #endif
 
     /* We handle *ALL* URIs here. The caller has rejected any
@@ -1068,6 +1068,9 @@ doRemoteOpen(virConnectPtr conn,
     VIR_FREE(pkipath);
     VIR_FREE(knownHostsVerify);
     VIR_FREE(knownHosts);
+#ifndef WIN32
+    VIR_FREE(daemonPath);
+#endif
 
     return retcode;
 
@@ -8004,6 +8007,7 @@ static virDriver remote_driver = {
     .domainGetTime = remoteDomainGetTime, /* 1.2.5 */
     .domainSetTime = remoteDomainSetTime, /* 1.2.5 */
     .nodeGetFreePages = remoteNodeGetFreePages, /* 1.2.6 */
+    .connectGetDomainCapabilities = remoteConnectGetDomainCapabilities, /* 1.2.7 */
 };
 
 static virNetworkDriver network_driver = {

@@ -79,22 +79,12 @@ static int virLXCCgroupSetupCpusetTune(virDomainDefPtr def,
             goto cleanup;
     }
 
-    if ((def->numatune.memory.nodemask ||
-         (def->numatune.memory.placement_mode ==
-          VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) &&
-          def->numatune.memory.mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
-        if (def->numatune.memory.placement_mode ==
-            VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)
-            mask = virBitmapFormat(nodemask);
-        else
-            mask = virBitmapFormat(def->numatune.memory.nodemask);
+    if (virDomainNumatuneMaybeFormatNodeset(def->numatune, nodemask,
+                                            &mask, -1) < 0)
+        goto cleanup;
 
-        if (!mask)
-            return -1;
-
-        if (virCgroupSetCpusetMems(cgroup, mask) < 0)
-            goto cleanup;
-    }
+    if (mask && virCgroupSetCpusetMems(cgroup, mask) < 0)
+        goto cleanup;
 
     ret = 0;
  cleanup:
@@ -347,6 +337,7 @@ virLXCTeardownHostUSBDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
 static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
                                       virCgroupPtr cgroup)
 {
+    int capMknod = def->caps_features[VIR_DOMAIN_CAPS_FEATURE_MKNOD];
     int ret = -1;
     size_t i;
     static virLXCCgroupDevicePolicy devices[] = {
@@ -362,6 +353,13 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
 
     if (virCgroupDenyAllDevices(cgroup) < 0)
         goto cleanup;
+
+    /* white list mknod if CAP_MKNOD has to be kept */
+    if (capMknod == VIR_TRISTATE_SWITCH_ON) {
+        if (virCgroupAllowAllDevices(cgroup,
+                                    VIR_CGROUP_DEVICE_MKNOD) < 0)
+            goto cleanup;
+    }
 
     for (i = 0; devices[i].type != 0; i++) {
         virLXCCgroupDevicePolicyPtr dev = &devices[i];
@@ -380,7 +378,7 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
 
         if (virCgroupAllowDevicePath(cgroup,
                                      virDomainDiskGetSource(def->disks[i]),
-                                     (def->disks[i]->readonly ?
+                                     (def->disks[i]->src->readonly ?
                                       VIR_CGROUP_DEVICE_READ :
                                       VIR_CGROUP_DEVICE_RW) |
                                      VIR_CGROUP_DEVICE_MKNOD) < 0)
@@ -403,6 +401,7 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
     VIR_DEBUG("Allowing any hostdev block devs");
     for (i = 0; i < def->nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = def->hostdevs[i];
+        virDomainHostdevSubsysUSBPtr usbsrc = &hostdev->source.subsys.u.usb;
         virUSBDevicePtr usb;
 
         switch (hostdev->mode) {
@@ -412,8 +411,7 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
             if (hostdev->missing)
                 continue;
 
-            if ((usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
-                                       hostdev->source.subsys.u.usb.device,
+            if ((usb = virUSBDeviceNew(usbsrc->bus, usbsrc->device,
                                        NULL)) == NULL)
                 goto cleanup;
 

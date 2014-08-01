@@ -37,6 +37,9 @@
 #ifdef __linux__
 # include <sys/ioctl.h>
 # include <linux/fs.h>
+# ifndef FS_NOCOW_FL
+#  define FS_NOCOW_FL                     0x00800000 /* Do not cow file */
+# endif
 #endif
 
 #if WITH_SELINUX
@@ -56,6 +59,7 @@
 #include "stat-time.h"
 #include "virstring.h"
 #include "virxml.h"
+#include "fdstream.h"
 
 #if WITH_STORAGE_LVM
 # include "storage_backend_logical.h"
@@ -452,6 +456,26 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
+    if (vol->target.nocow) {
+#ifdef __linux__
+        int attr;
+
+        /* Set NOCOW flag. This is an optimisation for btrfs.
+         * The FS_IOC_SETFLAGS ioctl return value will be ignored since any
+         * failure of this operation should not block the volume creation.
+         */
+        if (ioctl(fd, FS_IOC_GETFLAGS, &attr) < 0) {
+            virReportSystemError(errno, "%s", _("Failed to get fs flags"));
+        } else {
+            attr |= FS_NOCOW_FL;
+            if (ioctl(fd, FS_IOC_SETFLAGS, &attr) < 0) {
+                virReportSystemError(errno, "%s",
+                                     _("Failed to set NOCOW flag"));
+            }
+        }
+#endif
+    }
+
     if ((ret = createRawFile(fd, vol, inputvol)) < 0)
         /* createRawFile already reported the exact error. */
         ret = -1;
@@ -717,6 +741,7 @@ virStorageBackendCreateQemuImgOpts(char **opts,
                                    bool preallocate,
                                    int format,
                                    const char *compat,
+                                   bool nocow,
                                    virBitmapPtr features)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -729,6 +754,8 @@ virStorageBackendCreateQemuImgOpts(char **opts,
         virBufferAddLit(&buf, "encryption=on,");
     if (preallocate)
         virBufferAddLit(&buf, "preallocation=metadata,");
+    if (nocow)
+        virBufferAddLit(&buf, "nocow=on,");
 
     if (compat)
         virBufferAsprintf(&buf, "compat=%s,", compat);
@@ -760,14 +787,12 @@ virStorageBackendCreateQemuImgOpts(char **opts,
 
     virBufferTrim(&buf, ",", -1);
 
-    if (virBufferError(&buf))
-        goto no_memory;
+    if (virBufferCheckError(&buf) < 0)
+        goto error;
 
     *opts = virBufferContentAndReset(&buf);
     return 0;
 
- no_memory:
-    virReportOOMError();
  error:
     virBufferFreeAndReset(&buf);
     return -1;
@@ -845,11 +870,11 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
 
     }
 
-    if (vol->backingStore.path) {
+    if (vol->target.backingStore) {
         int accessRetCode = -1;
         char *absolutePath = NULL;
 
-        backingType = virStorageFileFormatTypeToString(vol->backingStore.format);
+        backingType = virStorageFileFormatTypeToString(vol->target.backingStore->format);
 
         if (preallocate) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -863,7 +888,8 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
          * may cause issues with lvm. Untested essentially.
          */
         if (inputvol &&
-            STRNEQ_NULLABLE(inputvol->backingStore.path, vol->backingStore.path)) {
+            STRNEQ_NULLABLE(inputvol->target.backingStore->path,
+                            vol->target.backingStore->path)) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("a different backing store cannot be specified."));
             return NULL;
@@ -872,24 +898,24 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
         if (backingType == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unknown storage vol backing store type %d"),
-                           vol->backingStore.format);
+                           vol->target.backingStore->format);
             return NULL;
         }
 
         /* Convert relative backing store paths to absolute paths for access
          * validation.
          */
-        if ('/' != *(vol->backingStore.path) &&
+        if ('/' != *(vol->target.backingStore->path) &&
             virAsprintf(&absolutePath, "%s/%s", pool->def->target.path,
-                        vol->backingStore.path) < 0)
+                        vol->target.backingStore->path) < 0)
             return NULL;
         accessRetCode = access(absolutePath ? absolutePath
-                               : vol->backingStore.path, R_OK);
+                               : vol->target.backingStore->path, R_OK);
         VIR_FREE(absolutePath);
         if (accessRetCode != 0) {
             virReportSystemError(errno,
                                  _("inaccessible backing store volume %s"),
-                                 vol->backingStore.path);
+                                 vol->target.backingStore->path);
             return NULL;
         }
     }
@@ -930,7 +956,7 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
     cmd = virCommandNew(create_tool);
 
     convert = !!inputvol;
-    backing = !inputvol && vol->backingStore.path;
+    backing = !inputvol && vol->target.backingStore;
 
     if (convert)
         virCommandAddArgList(cmd, "convert", "-f", inputType, "-O", type, NULL);
@@ -938,7 +964,7 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
         virCommandAddArgList(cmd, "create", "-f", type, NULL);
 
     if (backing)
-        virCommandAddArgList(cmd, "-b", vol->backingStore.path, NULL);
+        virCommandAddArgList(cmd, "-b", vol->target.backingStore->path, NULL);
 
     if (imgformat >= QEMU_IMG_BACKING_FORMAT_OPTIONS) {
         if (vol->target.format == VIR_STORAGE_FILE_QCOW2 && !compat &&
@@ -950,6 +976,7 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
                                                do_encryption, preallocate,
                                                vol->target.format,
                                                compat,
+                                               vol->target.nocow,
                                                vol->target.features) < 0) {
             virCommandFree(cmd);
             return NULL;
@@ -1056,7 +1083,7 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
                        vol->target.format);
         return -1;
     }
-    if (vol->backingStore.path != NULL) {
+    if (vol->target.backingStore != NULL) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("copy-on-write image not supported with "
                          "qcow-create"));
@@ -1456,16 +1483,17 @@ virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
     int ret;
 
     if ((ret = virStorageBackendUpdateVolTargetInfo(&vol->target,
-                                    updateCapacity,
-                                    withBlockVolFormat,
-                                    openflags)) < 0)
+                                                    updateCapacity,
+                                                    withBlockVolFormat,
+                                                    openflags)) < 0)
         return ret;
 
-    if (vol->backingStore.path &&
-        (ret = virStorageBackendUpdateVolTargetInfo(&vol->backingStore,
-                                            updateCapacity,
-                                            withBlockVolFormat,
-                                            VIR_STORAGE_VOL_OPEN_DEFAULT)) < 0)
+    if (vol->target.backingStore &&
+        (ret = virStorageBackendUpdateVolTargetInfo(vol->target.backingStore,
+                                                    updateCapacity,
+                                                    withBlockVolFormat,
+                                                    VIR_STORAGE_VOL_OPEN_DEFAULT |
+                                                    VIR_STORAGE_VOL_OPEN_NOERROR) < 0))
         return ret;
 
     return 0;
@@ -1670,6 +1698,239 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
 
     return stablepath;
 }
+
+int
+virStorageBackendVolUploadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+                                virStorageVolDefPtr vol,
+                                virStreamPtr stream,
+                                unsigned long long offset,
+                                unsigned long long len,
+                                unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+    /* Not using O_CREAT because the file is required to already exist at
+     * this point */
+    return virFDStreamOpenFile(stream, vol->target.path, offset, len, O_WRONLY);
+}
+
+int
+virStorageBackendVolDownloadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+                                  virStorageVolDefPtr vol,
+                                  virStreamPtr stream,
+                                  unsigned long long offset,
+                                  unsigned long long len,
+                                  unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+    return virFDStreamOpenFile(stream, vol->target.path, offset, len, O_RDONLY);
+}
+
+
+/* If the volume we're wiping is already a sparse file, we simply
+ * truncate and extend it to its original size, filling it with
+ * zeroes.  This behavior is guaranteed by POSIX:
+ *
+ * http://www.opengroup.org/onlinepubs/9699919799/functions/ftruncate.html
+ *
+ * If fildes refers to a regular file, the ftruncate() function shall
+ * cause the size of the file to be truncated to length. If the size
+ * of the file previously exceeded length, the extra data shall no
+ * longer be available to reads on the file. If the file previously
+ * was smaller than this size, ftruncate() shall increase the size of
+ * the file. If the file size is increased, the extended area shall
+ * appear as if it were zero-filled.
+ */
+static int
+virStorageBackendVolZeroSparseFileLocal(virStorageVolDefPtr vol,
+                                        off_t size,
+                                        int fd)
+{
+    int ret = -1;
+
+    ret = ftruncate(fd, 0);
+    if (ret == -1) {
+        virReportSystemError(errno,
+                             _("Failed to truncate volume with "
+                               "path '%s' to 0 bytes"),
+                             vol->target.path);
+        return ret;
+    }
+
+    ret = ftruncate(fd, size);
+    if (ret == -1) {
+        virReportSystemError(errno,
+                             _("Failed to truncate volume with "
+                               "path '%s' to %ju bytes"),
+                             vol->target.path, (uintmax_t)size);
+    }
+
+    return ret;
+}
+
+
+static int
+virStorageBackendWipeExtentLocal(virStorageVolDefPtr vol,
+                                 int fd,
+                                 off_t extent_start,
+                                 off_t extent_length,
+                                 char *writebuf,
+                                 size_t writebuf_length,
+                                 size_t *bytes_wiped)
+{
+    int ret = -1, written = 0;
+    off_t remaining = 0;
+    size_t write_size = 0;
+
+    VIR_DEBUG("extent logical start: %ju len: %ju",
+              (uintmax_t)extent_start, (uintmax_t)extent_length);
+
+    if ((ret = lseek(fd, extent_start, SEEK_SET)) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to seek to position %ju in volume "
+                               "with path '%s'"),
+                             (uintmax_t)extent_start, vol->target.path);
+        goto cleanup;
+    }
+
+    remaining = extent_length;
+    while (remaining > 0) {
+
+        write_size = (writebuf_length < remaining) ? writebuf_length : remaining;
+        written = safewrite(fd, writebuf, write_size);
+        if (written < 0) {
+            virReportSystemError(errno,
+                                 _("Failed to write %zu bytes to "
+                                   "storage volume with path '%s'"),
+                                 write_size, vol->target.path);
+
+            goto cleanup;
+        }
+
+        *bytes_wiped += written;
+        remaining -= written;
+    }
+
+    if (fdatasync(fd) < 0) {
+        ret = -errno;
+        virReportSystemError(errno,
+                             _("cannot sync data to volume with path '%s'"),
+                             vol->target.path);
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Wrote %zu bytes to volume with path '%s'",
+              *bytes_wiped, vol->target.path);
+
+    ret = 0;
+
+ cleanup:
+    return ret;
+}
+
+
+int
+virStorageBackendVolWipeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
+                              virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+                              virStorageVolDefPtr vol,
+                              unsigned int algorithm,
+                              unsigned int flags)
+{
+    int ret = -1, fd = -1;
+    struct stat st;
+    char *writebuf = NULL;
+    size_t bytes_wiped = 0;
+    virCommandPtr cmd = NULL;
+
+    virCheckFlags(0, -1);
+
+    VIR_DEBUG("Wiping volume with path '%s' and algorithm %u",
+              vol->target.path, algorithm);
+
+    fd = open(vol->target.path, O_RDWR);
+    if (fd == -1) {
+        virReportSystemError(errno,
+                             _("Failed to open storage volume with path '%s'"),
+                             vol->target.path);
+        goto cleanup;
+    }
+
+    if (fstat(fd, &st) == -1) {
+        virReportSystemError(errno,
+                             _("Failed to stat storage volume with path '%s'"),
+                             vol->target.path);
+        goto cleanup;
+    }
+
+    if (algorithm != VIR_STORAGE_VOL_WIPE_ALG_ZERO) {
+        const char *alg_char ATTRIBUTE_UNUSED = NULL;
+        switch (algorithm) {
+        case VIR_STORAGE_VOL_WIPE_ALG_NNSA:
+            alg_char = "nnsa";
+            break;
+        case VIR_STORAGE_VOL_WIPE_ALG_DOD:
+            alg_char = "dod";
+            break;
+        case VIR_STORAGE_VOL_WIPE_ALG_BSI:
+            alg_char = "bsi";
+            break;
+        case VIR_STORAGE_VOL_WIPE_ALG_GUTMANN:
+            alg_char = "gutmann";
+            break;
+        case VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER:
+            alg_char = "schneier";
+            break;
+        case VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7:
+            alg_char = "pfitzner7";
+            break;
+        case VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33:
+            alg_char = "pfitzner33";
+            break;
+        case VIR_STORAGE_VOL_WIPE_ALG_RANDOM:
+            alg_char = "random";
+            break;
+        default:
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("unsupported algorithm %d"),
+                           algorithm);
+        }
+        cmd = virCommandNew(SCRUB);
+        virCommandAddArgList(cmd, "-f", "-p", alg_char,
+                             vol->target.path, NULL);
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+
+        ret = 0;
+        goto cleanup;
+    } else {
+        if (S_ISREG(st.st_mode) && st.st_blocks < (st.st_size / DEV_BSIZE)) {
+            ret = virStorageBackendVolZeroSparseFileLocal(vol, st.st_size, fd);
+        } else {
+
+            if (VIR_ALLOC_N(writebuf, st.st_blksize) < 0)
+                goto cleanup;
+
+            ret = virStorageBackendWipeExtentLocal(vol,
+                                                   fd,
+                                                   0,
+                                                   vol->target.allocation,
+                                                   writebuf,
+                                                   st.st_blksize,
+                                                   &bytes_wiped);
+        }
+    }
+
+ cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(writebuf);
+    VIR_FORCE_CLOSE(fd);
+    return ret;
+}
+
 
 #ifdef GLUSTER_CLI
 int

@@ -85,7 +85,7 @@ getCapsObject(void)
 {
     virCapsGuestPtr guest1, guest2;
     virCapsGuestDomainPtr domain1, domain2;
-    virCapsPtr caps = virCapabilitiesNew(virArchFromHost(), 0, 0);
+    virCapsPtr caps = virCapabilitiesNew(virArchFromHost(), false, false);
 
     if (!caps)
         return NULL;
@@ -445,13 +445,9 @@ xenapiConnectGetCapabilities(virConnectPtr conn)
 {
 
     virCapsPtr caps = ((struct _xenapiPrivate *)(conn->privateData))->caps;
-    if (caps) {
-        char *xml = virCapabilitiesFormatXML(caps);
-        if (!xml)
-            goto cleanup;
-        return xml;
-    }
- cleanup:
+    if (caps)
+        return virCapabilitiesFormatXML(caps);
+
     xenapiSessionErrorHandler(conn, VIR_ERR_INTERNAL_ERROR,
                               _("Capabilities not available"));
     return NULL;
@@ -1499,15 +1495,15 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         for (i = 0; i < result->size; i++) {
             if (STREQ(result->contents[i].val, "true")) {
                 if (STREQ(result->contents[i].key, "acpi"))
-                    defPtr->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_DOMAIN_FEATURE_STATE_ON;
+                    defPtr->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_TRISTATE_SWITCH_ON;
                 else if (STREQ(result->contents[i].key, "apic"))
-                    defPtr->features[VIR_DOMAIN_FEATURE_APIC] = VIR_DOMAIN_FEATURE_STATE_ON;
+                    defPtr->features[VIR_DOMAIN_FEATURE_APIC] = VIR_TRISTATE_SWITCH_ON;
                 else if (STREQ(result->contents[i].key, "pae"))
-                    defPtr->features[VIR_DOMAIN_FEATURE_PAE] = VIR_DOMAIN_FEATURE_STATE_ON;
+                    defPtr->features[VIR_DOMAIN_FEATURE_PAE] = VIR_TRISTATE_SWITCH_ON;
                 else if (STREQ(result->contents[i].key, "hap"))
-                    defPtr->features[VIR_DOMAIN_FEATURE_HAP] = VIR_DOMAIN_FEATURE_STATE_ON;
+                    defPtr->features[VIR_DOMAIN_FEATURE_HAP] = VIR_TRISTATE_SWITCH_ON;
                 else if (STREQ(result->contents[i].key, "viridian"))
-                    defPtr->features[VIR_DOMAIN_FEATURE_VIRIDIAN] = VIR_DOMAIN_FEATURE_STATE_ON;
+                    defPtr->features[VIR_DOMAIN_FEATURE_VIRIDIAN] = VIR_TRISTATE_SWITCH_ON;
             }
         }
         xen_string_string_map_free(result);

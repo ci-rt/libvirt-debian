@@ -612,13 +612,13 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
 
         libxl_defbool_set(&b_info->u.hvm.pae,
                           def->features[VIR_DOMAIN_FEATURE_PAE] ==
-                          VIR_DOMAIN_FEATURE_STATE_ON);
+                          VIR_TRISTATE_SWITCH_ON);
         libxl_defbool_set(&b_info->u.hvm.apic,
                           def->features[VIR_DOMAIN_FEATURE_APIC] ==
-                          VIR_DOMAIN_FEATURE_STATE_ON);
+                          VIR_TRISTATE_SWITCH_ON);
         libxl_defbool_set(&b_info->u.hvm.acpi,
                           def->features[VIR_DOMAIN_FEATURE_ACPI] ==
-                          VIR_DOMAIN_FEATURE_STATE_ON);
+                          VIR_TRISTATE_SWITCH_ON);
         for (i = 0; i < def->clock.ntimers; i++) {
             if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_HPET &&
                 def->clock.timers[i]->present == 1) {
@@ -714,6 +714,35 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
     libxl_domain_build_info_dispose(b_info);
     return -1;
 }
+
+static int
+libxlDiskSetDiscard(libxl_device_disk *x_disk, int discard)
+{
+    if (!x_disk->readwrite)
+        return 0;
+#if defined(LIBXL_HAVE_LIBXL_DEVICE_DISK_DISCARD_ENABLE)
+    switch ((virDomainDiskDiscard)discard) {
+    case VIR_DOMAIN_DISK_DISCARD_DEFAULT:
+    case VIR_DOMAIN_DISK_DISCARD_LAST:
+        break;
+    case VIR_DOMAIN_DISK_DISCARD_UNMAP:
+        libxl_defbool_set(&x_disk->discard_enable, true);
+        break;
+    case VIR_DOMAIN_DISK_DISCARD_IGNORE:
+        libxl_defbool_set(&x_disk->discard_enable, false);
+        break;
+    }
+    return 0;
+#else
+    if (discard == VIR_DOMAIN_DISK_DISCARD_DEFAULT)
+        return 0;
+    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                   _("This version of libxenlight does not support "
+                     "disk 'discard' option passing"));
+    return -1;
+#endif
+}
+
 
 int
 libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
@@ -827,8 +856,10 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
 
     /* XXX is this right? */
     x_disk->removable = 1;
-    x_disk->readwrite = !l_disk->readonly;
+    x_disk->readwrite = !l_disk->src->readonly;
     x_disk->is_cdrom = l_disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM ? 1 : 0;
+    if (libxlDiskSetDiscard(x_disk, l_disk->discard) < 0)
+        return -1;
     /* An empty CDROM must have the empty format, otherwise libxl fails. */
     if (x_disk->is_cdrom && !x_disk->pdev_path)
         x_disk->format = LIBXL_DISK_FORMAT_EMPTY;
@@ -955,6 +986,7 @@ libxlMakeNic(virDomainDefPtr def,
                 return -1;
             break;
         }
+        case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
         case VIR_DOMAIN_NET_TYPE_USER:
         case VIR_DOMAIN_NET_TYPE_SERVER:
         case VIR_DOMAIN_NET_TYPE_CLIENT:
@@ -1242,15 +1274,16 @@ libxlDriverConfigGet(libxlDriverPrivatePtr driver)
 int
 libxlMakePCI(virDomainHostdevDefPtr hostdev, libxl_device_pci *pcidev)
 {
+    virDomainHostdevSubsysPCIPtr pcisrc = &hostdev->source.subsys.u.pci;
     if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return -1;
     if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
         return -1;
 
-    pcidev->domain = hostdev->source.subsys.u.pci.addr.domain;
-    pcidev->bus = hostdev->source.subsys.u.pci.addr.bus;
-    pcidev->dev = hostdev->source.subsys.u.pci.addr.slot;
-    pcidev->func = hostdev->source.subsys.u.pci.addr.function;
+    pcidev->domain = pcisrc->addr.domain;
+    pcidev->bus = pcisrc->addr.bus;
+    pcidev->dev = pcisrc->addr.slot;
+    pcidev->func = pcisrc->addr.function;
 
     return 0;
 }
@@ -1341,9 +1374,9 @@ libxlMakeCapabilities(libxl_ctx *ctx)
     virCapsPtr caps;
 
 #ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
-    if ((caps = virCapabilitiesNew(virArchFromHost(), 0, 0)) == NULL)
+    if ((caps = virCapabilitiesNew(virArchFromHost(), false, false)) == NULL)
 #else
-    if ((caps = virCapabilitiesNew(virArchFromHost(), 1, 1)) == NULL)
+    if ((caps = virCapabilitiesNew(virArchFromHost(), true, true)) == NULL)
 #endif
         return NULL;
 

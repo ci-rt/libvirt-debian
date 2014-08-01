@@ -199,6 +199,10 @@
                   </li><li>
                     <a href="#typeresourcerng">RNG</a>
                   </li><li>
+                    <a href="#typeresourcechardev">console/serial/parallel/channel</a>
+                  </li><li>
+                    <a href="#typeresourcesmartcard">smartcard</a>
+                  </li><li>
                     <a href="#typeresourceredir">Redirected device</a>
                   </li><li>
                     <a href="#typeresourcecgroup">Control group</a>
@@ -356,6 +360,26 @@
       The <code>msg</code> field will include the following sub-fields
     </p>
         <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>rng</code></dd><dt>old-rng</dt><dd>Original path of the host entropy source for the RNG</dd><dt>new-rng</dt><dd>Updated path of the host entropy source for the RNG</dd></dl>
+        <h4>
+          <a name="typeresourcechardev" shape="rect" id="typeresourcechardev">console/serial/parallel/channel</a>
+          <a class="headerlink" href="#typeresourcechardev" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>
+      The <code>msg</code> field will include the following sub-fields
+    </p>
+        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>chardev</code></dd><dt>old-chardev</dt><dd>Original path of the backing character device for given emulated device</dd><dt>new-chardev</dt><dd>Updated path of the backing character device for given emulated device</dd></dl>
+        <h4>
+          <a name="typeresourcesmartcard" shape="rect" id="typeresourcesmartcard">smartcard</a>
+          <a class="headerlink" href="#typeresourcesmartcard" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>
+      The <code>msg</code> field will include the following sub-fields
+    </p>
+        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>smartcard</code></dd><dt>old-smartcard</dt><dd>Original path of the backing character device, certificate store or
+          "nss-smartcard-device" for host smartcard passthrough.
+      </dd><dt>new-smartcard</dt><dd>Updated path of the backing character device, certificate store or
+          "nss-smartcard-device" for host smartcard passthrough.
+      </dd></dl>
         <h4>
           <a name="typeresourceredir" shape="rect" id="typeresourceredir">Redirected device</a>
           <a class="headerlink" href="#typeresourceredir" title="Permalink to this headline">¶</a>

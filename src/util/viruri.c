@@ -120,7 +120,7 @@ virURIParseParams(virURIPtr uri)
         if (virURIParamAppend(uri, name, value ? value : "") < 0) {
             VIR_FREE(name);
             VIR_FREE(value);
-            goto no_memory;
+            return -1;
         }
         VIR_FREE(name);
         VIR_FREE(value);
@@ -286,11 +286,8 @@ char *virURIFormatParams(virURIPtr uri)
         }
     }
 
-    if (virBufferError(&buf)) {
-        virBufferFreeAndReset(&buf);
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         return NULL;
-    }
 
     return virBufferContentAndReset(&buf);
 }

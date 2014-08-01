@@ -29,6 +29,7 @@
 # include "virstoragefile.h"
 # include "virbitmap.h"
 # include "virthread.h"
+# include "device_conf.h"
 
 # include <libxml/tree.h>
 
@@ -63,12 +64,11 @@ struct _virStorageVolDef {
     char *key;
     int type; /* virStorageVolType */
 
-    unsigned int building;
+    bool building;
     unsigned int in_use;
 
     virStorageVolSource source;
     virStorageSource target;
-    virStorageSource backingStore;
 };
 
 typedef struct _virStorageVolDefList virStorageVolDefList;
@@ -105,37 +105,6 @@ typedef enum {
     VIR_STORAGE_DEVICE_TYPE_LAST,
 } virStoragePoolDeviceType;
 
-
-typedef enum {
-    VIR_STORAGE_POOL_AUTH_NONE,
-    VIR_STORAGE_POOL_AUTH_CHAP,
-    VIR_STORAGE_POOL_AUTH_CEPHX,
-
-    VIR_STORAGE_POOL_AUTH_LAST,
-} virStoragePoolAuthType;
-VIR_ENUM_DECL(virStoragePoolAuth)
-
-typedef struct _virStoragePoolAuthSecret virStoragePoolAuthSecret;
-typedef virStoragePoolAuthSecret *virStoragePoolAuthSecretPtr;
-struct _virStoragePoolAuthSecret {
-    unsigned char uuid[VIR_UUID_BUFLEN];
-    char *usage;
-    bool uuidUsable;
-};
-
-typedef struct _virStoragePoolAuthChap virStoragePoolAuthChap;
-typedef virStoragePoolAuthChap *virStoragePoolAuthChapPtr;
-struct _virStoragePoolAuthChap {
-    char *username;
-    virStoragePoolAuthSecret secret;
-};
-
-typedef struct _virStoragePoolAuthCephx virStoragePoolAuthCephx;
-typedef virStoragePoolAuthCephx *virStoragePoolAuthCephxPtr;
-struct _virStoragePoolAuthCephx {
-    char *username;
-    virStoragePoolAuthSecret secret;
-};
 
 /*
  * For remote pools, info on how to reach the host
@@ -211,7 +180,12 @@ struct _virStoragePoolSourceAdapter {
     int type; /* virStoragePoolSourceAdapterType */
 
     union {
-        char *name;
+        struct {
+            char *name;
+            virDevicePCIAddress parentaddr; /* host address */
+            int unique_id;
+            bool has_parent;
+        } scsi_host;
         struct {
             char *parent;
             char *wwnn;
@@ -243,11 +217,8 @@ struct _virStoragePoolSource {
     /* Initiator IQN */
     virStoragePoolSourceInitiatorAttr initiator;
 
-    int authType;       /* virStoragePoolAuthType */
-    union {
-        virStoragePoolAuthChap chap;
-        virStoragePoolAuthCephx cephx;
-    } auth;
+    /* Authentication information */
+    virStorageAuthDefPtr auth;
 
     /* Vendor of the source */
     char *vendor;

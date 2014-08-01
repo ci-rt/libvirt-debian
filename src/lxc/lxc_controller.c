@@ -455,7 +455,7 @@ static int virLXCControllerSetupNBDDeviceDisk(virDomainDiskDefPtr disk)
 
     if (virFileNBDDeviceAssociate(src,
                                   format,
-                                  disk->readonly,
+                                  disk->src->readonly,
                                   &dev) < 0)
         return -1;
 
@@ -653,10 +653,7 @@ static int virLXCControllerGetNumadAdvice(virLXCControllerPtr ctrl,
     /* Get the advisory nodeset from numad if 'placement' of
      * either <vcpu> or <numatune> is 'auto'.
      */
-    if ((ctrl->def->placement_mode ==
-         VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) ||
-        (ctrl->def->numatune.memory.placement_mode ==
-         VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) {
+    if (virDomainDefNeedsPlacementAdvice(ctrl->def)) {
         nodeset = virNumaGetAutoPlacementAdvice(ctrl->def->vcpus,
                                                 ctrl->def->mem.cur_balloon);
         if (!nodeset)
@@ -1181,8 +1178,8 @@ virLXCControllerSetupUsernsMap(virDomainIdMapEntryPtr map,
         virBufferAsprintf(&map_value, "%u %u %u\n",
                           map[i].start, map[i].target, map[i].count);
 
-    if (virBufferError(&map_value))
-        goto no_memory;
+    if (virBufferCheckError(&map_value) < 0)
+        goto cleanup;
 
     VIR_DEBUG("Set '%s' to '%s'", path, virBufferCurrentContent(&map_value));
 
@@ -1195,10 +1192,6 @@ virLXCControllerSetupUsernsMap(virDomainIdMapEntryPtr map,
  cleanup:
     virBufferFreeAndReset(&map_value);
     return ret;
-
- no_memory:
-    virReportOOMError();
-    goto cleanup;
 }
 
 /**
@@ -1354,22 +1347,20 @@ virLXCControllerSetupHostdevSubsysUSB(virDomainDefPtr vmDef,
     char *vroot = NULL;
     struct stat sb;
     mode_t mode;
+    virDomainHostdevSubsysUSBPtr usbsrc = &def->source.subsys.u.usb;
 
     if (virAsprintf(&src, USB_DEVFS "/%03d/%03d",
-                    def->source.subsys.u.usb.bus,
-                    def->source.subsys.u.usb.device) < 0)
+                    usbsrc->bus, usbsrc->device) < 0)
         goto cleanup;
 
     if (virAsprintf(&vroot, "/%s/%s.dev/bus/usb/",
                     LXC_STATE_DIR, vmDef->name) < 0)
         goto cleanup;
 
-    if (virAsprintf(&dstdir, "%s/%03d/", vroot,
-                    def->source.subsys.u.usb.bus) < 0)
+    if (virAsprintf(&dstdir, "%s/%03d/", vroot, usbsrc->bus) < 0)
         goto cleanup;
 
-    if (virAsprintf(&dstfile, "%s/%03d", dstdir,
-                    def->source.subsys.u.usb.device) < 0)
+    if (virAsprintf(&dstfile, "%s/%03d", dstdir, usbsrc->device) < 0)
         goto cleanup;
 
     if (stat(src, &sb) < 0) {

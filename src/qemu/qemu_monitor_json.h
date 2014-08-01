@@ -261,9 +261,9 @@ int qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
                                const char *device,
                                const char *top,
                                const char *base,
+                               const char *backingName,
                                unsigned long long bandwidth)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
-    ATTRIBUTE_NONNULL(4);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,
@@ -283,6 +283,7 @@ int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
 int qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
                             const char *device,
                             const char *base,
+                            const char *backingName,
                             unsigned long long speed,
                             virDomainBlockJobInfoPtr info,
                             qemuMonitorBlockJobCmd mode,
@@ -331,7 +332,8 @@ int qemuMonitorJSONGetEvents(qemuMonitorPtr mon,
     ATTRIBUTE_NONNULL(2);
 int qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
                                                   const char *option,
-                                                  char ***params)
+                                                  char ***params,
+                                                  bool *found)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int qemuMonitorJSONGetKVMState(qemuMonitorPtr mon,
