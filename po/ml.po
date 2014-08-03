@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-07-31 11:46-0400\n"
+"POT-Creation-Date: 2014-08-03 08:45-0400\n"
 "PO-Revision-Date: 2014-02-26 03:31+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Malayalam (http://www.transifex.com/projects/p/fedora/"
@@ -1017,14 +1017,14 @@ msgstr "ട്രാന്‍സിയന്റ് ഡൊമെയിനു് a
 msgid "cannot create autostart directory %s"
 msgstr "autostart ഡയറക്ടറി %s ഉണ്ടാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3337
+#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3338
 #: src/storage/storage_driver.c:1141
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "സിംലിങ്ക് '%s' -> '%s' ഉണ്ടാക്കുന്നതില്‍ പരാജയം"
 
 #: src/bhyve/bhyve_driver.c:408 src/lxc/lxc_driver.c:3217
-#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3344
+#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3345
 #: src/qemu/qemu_driver.c:7508 src/storage/storage_driver.c:1149
 #: src/uml/uml_driver.c:2482
 #, c-format
@@ -11031,7 +11031,7 @@ msgstr ""
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT കണ്ട്രോളര്‍ മൌണ്ട് ചെയ്തിട്ടില്ല"
 
-#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2085
+#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2086
 #: src/qemu/qemu_command.c:387 src/qemu/qemu_driver.c:9966
 #: src/qemu/qemu_hotplug.c:2186 src/util/virnetdevmacvlan.c:926
 #, c-format
@@ -11930,77 +11930,77 @@ msgstr "radvd ക്രമീകരണ ഫയല്‍ '%s' സൂക്ഷി�
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s കണ്ടെത്താന്‍ കഴിഞ്ഞില്ല - പൊതിക്കെട്ട് ഇന്‍സ്റ്റോള്‍ ചെയ്തുകാണില്ല"
 
-#: src/network/bridge_driver.c:1845
-#, c-format
-msgid "cannot write to %s to disable IPv6 on bridge %s"
+#: src/network/bridge_driver.c:1847
+#, fuzzy, c-format
+msgid "cannot write to %s to enable/disable IPv6 on bridge %s"
 msgstr "ബ്രിഡ്ജ് %s-ല്‍ IPv6 പ്രവര്‍ത്തനരഹിതമാക്കാന്‍ %s-ല്‍ എഴുതാന്‍ സാധിക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:1865 src/network/bridge_driver.c:1879
+#: src/network/bridge_driver.c:1866 src/network/bridge_driver.c:1880
 #, c-format
 msgid "cannot disable %s"
 msgstr "%s പ്രവര്‍ത്തന രഹിതമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:1898
+#: src/network/bridge_driver.c:1899
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "ബ്രിഡ്ജ് '%s'ന് അസാധുവായ നെറ്റ്മാസ്കോ ഐ.പി. വിലാസമോ ഉണ്ട്"
 
-#: src/network/bridge_driver.c:1941
+#: src/network/bridge_driver.c:1942
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr "നെറ്റ്‍വര്‍ക്ക് '%s'-നു് റൂട്ട് നിഷ്കര്‍ഷണത്തില്‍ തെറ്റായ നെറ്റ്‌മാസ്ക് അല്ലെങ്കില്‍ ഐപി വിലാസം"
 
-#: src/network/bridge_driver.c:2059
+#: src/network/bridge_driver.c:2060
 msgid "failed to enable IP forwarding"
 msgstr "IP ഫോര്‍വേര്‍ഡിങ് സജ്ജമാക്കുന്നതില്‍ പരാജയം"
 
-#: src/network/bridge_driver.c:2219
+#: src/network/bridge_driver.c:2220
 msgid "network is already active"
 msgstr "നെറ്റ്‌വര്‍ക്കു് നിലിവില്‍ പ്രവര്‍ത്തനത്തിലാണ്"
 
-#: src/network/bridge_driver.c:2343 src/network/bridge_driver.c:2911
-#: src/network/bridge_driver.c:2985 src/network/bridge_driver.c:3144
-#: src/network/bridge_driver.c:3179 src/network/bridge_driver.c:3306
+#: src/network/bridge_driver.c:2344 src/network/bridge_driver.c:2912
+#: src/network/bridge_driver.c:2986 src/network/bridge_driver.c:3145
+#: src/network/bridge_driver.c:3180 src/network/bridge_driver.c:3307
 #: src/parallels/parallels_network.c:475 src/parallels/parallels_network.c:526
 #: src/parallels/parallels_network.c:592 src/test/test_driver.c:3827
 msgid "no network with matching uuid"
 msgstr "ചേരുന്ന uuid-യുള്ള നെറ്റ്‌വര്‍ക്ക് ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:2370 src/network/bridge_driver.c:3715
-#: src/network/bridge_driver.c:4107 src/network/bridge_driver.c:4298
-#: src/network/bridge_driver.c:4458 src/parallels/parallels_network.c:499
+#: src/network/bridge_driver.c:2371 src/network/bridge_driver.c:3716
+#: src/network/bridge_driver.c:4108 src/network/bridge_driver.c:4299
+#: src/network/bridge_driver.c:4459 src/parallels/parallels_network.c:499
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "'%s' എന്ന പേരുള്ള നെറ്റ്‌വര്‍ക്ക് ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:2654
+#: src/network/bridge_driver.c:2655
 #, c-format
 msgid "Unsupported <mac> element in network %s with forward mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2662
+#: src/network/bridge_driver.c:2663
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത <ip> എലമെന്റ് %s നെറ്റ്‌വര്‍ക്കില്‍, ഫോര്‍വേഡ് മോഡ്='%s'"
 
-#: src/network/bridge_driver.c:2670
+#: src/network/bridge_driver.c:2671
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത <dns> എലമെന്റ് %s നെറ്റ്‌വര്‍ക്കില്‍, ഫോര്‍വേഡ് മോഡ്='%s'"
 
-#: src/network/bridge_driver.c:2678
+#: src/network/bridge_driver.c:2679
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത <domain> എലമെന്റ് %s നെറ്റ്‌വര്‍ക്കില്‍, ഫോര്‍വേഡ് മോഡ്='%s'"
 
-#: src/network/bridge_driver.c:2686
+#: src/network/bridge_driver.c:2687
 #, c-format
 msgid ""
 "Unsupported network-wide <bandwidth> element in network %s with forward "
 "mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2704
+#: src/network/bridge_driver.c:2705
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -12008,7 +12008,7 @@ msgstr ""
 "അനവധി IPv4 dhcp വിഭാഗങ്ങള്‍ ലഭ്യമായി -- ഓരോ നെറ്റ്‌വര്‍ക്കിലും ഒറ്റ IPv4 വിലാസത്തിനു് മാത്രം "
 "dhcp പിന്തുണയ്ക്കുന്നു"
 
-#: src/network/bridge_driver.c:2717
+#: src/network/bridge_driver.c:2718
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -12016,7 +12016,7 @@ msgstr ""
 "അനവധി IPv6 dhcp വിഭാഗങ്ങള്‍ ലഭ്യമായി -- ഓരോ നെറ്റ്‌വര്‍ക്കിലും ഒറ്റ IPv6 വിലാസത്തിനു് മാത്രം "
 "dhcp പിന്തുണയ്ക്കുന്നു"
 
-#: src/network/bridge_driver.c:2761
+#: src/network/bridge_driver.c:2762
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -12025,7 +12025,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'-നുള്ള സ്വതവേയുള്ള അനവധി <portgroup> എലമെന്റുകളുകള്‍ ലഭ്യമാണു് (%s, %s), "
 "പക്ഷേ സ്വതവേ ഒന്നു് മാത്രമേ അനുവദിയ്ക്കുന്നുള്ളൂ"
 
-#: src/network/bridge_driver.c:2779
+#: src/network/bridge_driver.c:2780
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -12033,73 +12033,73 @@ msgid ""
 msgstr ""
 "<vlan> നെറ്റ്‌വര്‍ക്ക് %sല്‍ വ്യക്തമാക്കിയ ഘടകത്തിന്റെ തരം vlan ക്രമീകരണം പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3188 src/network/bridge_driver.c:3723
+#: src/network/bridge_driver.c:3189 src/network/bridge_driver.c:3724
 #, fuzzy, c-format
 msgid "network '%s' is not active"
 msgstr "നെറ്റ്‌വര്‍ക്ക് %s സജീവമല്ല"
 
-#: src/network/bridge_driver.c:3259 src/test/test_driver.c:3971
+#: src/network/bridge_driver.c:3260 src/test/test_driver.c:3971
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "നെറ്റ്‌വര്‍ക്ക് '%s'-നു് ഒരു ബ്രിഡ്ജ് നാമം ലഭ്യമല്ല."
 
-#: src/network/bridge_driver.c:3315
+#: src/network/bridge_driver.c:3316
 msgid "cannot set autostart for transient network"
 msgstr "ട്രാന്‍സിയന്റ് നെറ്റ്‌വര്‍ക്കിനു് autostart സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:3330
+#: src/network/bridge_driver.c:3331
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "ഓട്ടോസ്റ്റാര്‍ട്ട് ഡയറക്ടറി '%s' ഉണ്ടാക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/network/bridge_driver.c:3414
+#: src/network/bridge_driver.c:3415
 #, fuzzy, c-format
 msgid "invalid json in file: %s"
 msgstr "തെറ്റായ തരത്തിലുള്ള ഡൊമെയിന്‍ %s"
 
-#: src/network/bridge_driver.c:3420 src/network/leaseshelper.c:290
+#: src/network/bridge_driver.c:3421 src/network/leaseshelper.c:290
 #, fuzzy
 msgid "couldn't fetch array of leases"
 msgstr "സ്നാപ്പ്ഷോട്ട് %s-ന്റെ പേരന്റ് ലഭ്യമാക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/network/bridge_driver.c:3430 src/network/leaseshelper.c:301
+#: src/network/bridge_driver.c:3431 src/network/leaseshelper.c:301
 #: src/network/leaseshelper.c:308
 #, fuzzy
 msgid "failed to parse json"
 msgstr "%s പാഴ്സ് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/network/bridge_driver.c:3438
+#: src/network/bridge_driver.c:3439
 msgid "found lease without mac-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3448
+#: src/network/bridge_driver.c:3449
 msgid "found lease without expiry-time"
 msgstr ""
 
-#: src/network/bridge_driver.c:3465
+#: src/network/bridge_driver.c:3466
 msgid "found lease without ip-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3517
+#: src/network/bridge_driver.c:3518
 #, fuzzy, c-format
 msgid "no lease with matching MAC address: %s"
 msgstr "MAC വിലാസങ്ങള്‍ ചേരുന്ന അനവധി ഇന്റര്‍ഫെയിസുകള്‍"
 
-#: src/network/bridge_driver.c:3623
+#: src/network/bridge_driver.c:3624
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "വിര്‍ച്വല്‍ ധര്‍മം %s ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3630
+#: src/network/bridge_driver.c:3631
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr "SRIOV PF %sല്‍ ഒരു Vf പോലും ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3651
+#: src/network/bridge_driver.c:3652
 msgid "Direct mode types require interface names"
 msgstr "നേരിട്ടുള രീതിക്ക് ഇന്റര്‍ഫേസ് നാമം ആവശ്യമാണ്"
 
-#: src/network/bridge_driver.c:3801
+#: src/network/bridge_driver.c:3802
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -12107,19 +12107,19 @@ msgid ""
 msgstr ""
 "ബ്രിഡ്ജ് ഉപകരണമുപയോഗിക്കുന്ന നെറ്റ്‌വര്‍ക്ക്‌ '%s'നെ <വിര്‍ച്വല്‍ പോര്‍ട്ട് രീതി='%s'> പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3828 src/network/bridge_driver.c:3984
+#: src/network/bridge_driver.c:3829 src/network/bridge_driver.c:3985
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'ന് ഇന്റര്‍ഫേസില്‍ മറ്റാര്‍ക്കുമില്ലാത്ത പ്രവേശനം ആവശ്യമാണ്, പക്ഷേ ഒന്നും ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3854
+#: src/network/bridge_driver.c:3855
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "അപരിചിതമായ ഡ്രൈവര്‍ നാമത്തിന്റെ മൂല്ല്യം %d, '%s' നെറ്റ്‌വര്‍ക്കില്‍"
 
-#: src/network/bridge_driver.c:3878
+#: src/network/bridge_driver.c:3879
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -12128,7 +12128,7 @@ msgstr ""
 "PCI passthrough വഴി SR-IOV വിര്‍ച്വല്‍ ധര്‍മ്മമുപയോഗിക്കുന്ന നെറ്റ്‌വര്‍ക്ക്‌ '%s'നെ <വിര്‍ച്വല്‍ "
 "പോര്‍ട്ട് രീതി='%s'> പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3929
+#: src/network/bridge_driver.c:3930
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -12136,7 +12136,7 @@ msgid ""
 msgstr ""
 "macvtap ഉപകരണമുപയോഗിക്കുന്ന നെറ്റ്‌വര്‍ക്ക്‌ '%s'നെ <വിര്‍ച്വല്‍ പോര്‍ട്ട് രീതി='%s'> പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3942
+#: src/network/bridge_driver.c:3943
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -12144,7 +12144,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' നേരിട്ടുള്ള രീതിയാണുപയോഗിക്കുന്നത്, പക്ഷേ ഫോര്‍വേഡ് ഉപകരണമോ ഇന്റര്‍ഫേസ് സഞ്ചയമോ "
 "ഇല്ല"
 
-#: src/network/bridge_driver.c:4015
+#: src/network/bridge_driver.c:4016
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -12153,7 +12153,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'ലേക്ക് ബന്ധം സ്ഥാപിക്കുന്ന ഒരു ഇന്റര്‍ഫേസ് ഒരു vlan ടാഗ് ആവശ്യപ്പെടുന്നു, പക്ഷേ അത് "
 "ഇത്തരം നെറ്റ്‌വര്‍ക്കില്‍ പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:4021
+#: src/network/bridge_driver.c:4022
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -12162,7 +12162,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'ലേക്ക് ബന്ധം സ്ഥാപിക്കുന്ന ഒരു ഇന്റര്‍ഫേസ് ഒരു vlan ടാഗ് ആവശ്യപ്പെടുന്നു, പക്ഷേ അത് "
 "ഇത്തരം ബന്ധത്തെ പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:4126
+#: src/network/bridge_driver.c:4127
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -12171,32 +12171,32 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' നേരിട്ടുള്ള രീതിയോ hostdev രീതിയോ ആണുപയോഗിക്കുന്നത്, പക്ഷേ ഫോര്‍വേഡ് "
 "ഉപകരണമോ ഇന്റര്‍ഫേസ് സഞ്ചയമോ ഇല്ല"
 
-#: src/network/bridge_driver.c:4138 src/network/bridge_driver.c:4332
+#: src/network/bridge_driver.c:4139 src/network/bridge_driver.c:4333
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr "ഇന്റര്‍ഫേസ് നേരിട്ടുള്ള ഒരു രീതിയാണുപയോഗിക്കുന്നത്, പക്ഷേ ഉറവിട ഉപകരണം ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:4155 src/network/bridge_driver.c:4348
+#: src/network/bridge_driver.c:4156 src/network/bridge_driver.c:4349
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "ഡൊമെയിന്‍ ഉപയോഗത്തിലുള്ള ഉപകരണം ='%s' നെറ്റ്‌വര്‍ക്ക് '%s'-നില്ല"
 
-#: src/network/bridge_driver.c:4172
+#: src/network/bridge_driver.c:4173
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' അവകാശവാദമുന്നയിക്കുന്ന ഉപകരണം='%s' നിലവില്‍ വേറൊരു ഡൊമെയിന്‍ ഉപയോഗിക്കുന്നുണ്ട്"
 
-#: src/network/bridge_driver.c:4189 src/network/bridge_driver.c:4364
+#: src/network/bridge_driver.c:4190 src/network/bridge_driver.c:4365
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr "ഈ ഇന്റര്‍ഫേസ് ഒരു hostdev രീതി ഉപയോഗിക്കുന്നു, പക്ഷേ ഒരു hostdev പോലും ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:4207 src/network/bridge_driver.c:4380
+#: src/network/bridge_driver.c:4208 src/network/bridge_driver.c:4381
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'-ല്‍  ഡൊമെയിന്‍ ഉപയോഗിക്കുന്ന PCI ഉപകരണം %04x:%02x:%02x.%x ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:4224
+#: src/network/bridge_driver.c:4225
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -12205,7 +12205,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' ഡൊമെയിന്‍=%d ബസ്=%d സ്ലോട്ട്=%d ധര്‍മം=%d-യിലുള്ള PCI ഉപകരണത്തിന് "
 "അവകാശവാദമുന്നയിക്കുന്നു, പക്ഷേ നിലവില്‍ മറ്റൊരു ഡൊമെയിന്റെ ഉപയോഗത്തിലാണുള്ളത്"
 
-#: src/network/bridge_driver.c:4320
+#: src/network/bridge_driver.c:4321
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
@@ -12214,17 +12214,17 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' നേരിട്ടുള്ള രീതിയോ hostdev രീതിയോ ആണുപയോഗിക്കുന്നത്, പക്ഷേ ഫോര്‍വേഡ് "
 "ഉപകരണമോ ഇന്റര്‍ഫേസ് സഞ്ചയമോ ഇല്ല"
 
-#: src/network/bridge_driver.c:4472
+#: src/network/bridge_driver.c:4473
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr "നെറ്റ്‌വര്‍ക്ക് '%s'-നു് ഒരു IPv4 വിലാസമില്ല"
 
-#: src/network/bridge_driver.c:4494
+#: src/network/bridge_driver.c:4495
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "നെറ്റ്‌വര്‍ക്ക് '%s'ന് അനുബന്ധമായി ഒരു ഇന്റര്‍ഫേസോ ബ്രിഡ്ജോ ഇല്ല"
 
-#: src/network/bridge_driver.c:4548
+#: src/network/bridge_driver.c:4549
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -12233,7 +12233,7 @@ msgstr ""
 "MAC വിലാസം %s-ല്‍ 'floor'-ന്റെ തെറ്റായ ഉപയോഗം - നെറ്റ്‌വര്‍ക്ക് '%s'-ല്‍ ഇന്‍ബൌണ്ട് QoS സെറ്റ് "
 "ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:4568
+#: src/network/bridge_driver.c:4569
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
@@ -12242,7 +12242,7 @@ msgstr ""
 "'%s' ഇന്റര്‍ഫെയിസ് '%s'-ലേക്കു് പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല, കാരണം ഇതു് '%s' നെറ്റ്‌വര്‍ക്കിലേക്കു് "
 "'peak' ഓവര്‍കമ്മിറ്റ് ചെയ്യുന്നു"
 
-#: src/network/bridge_driver.c:4579
+#: src/network/bridge_driver.c:4580
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
@@ -12251,12 +12251,12 @@ msgstr ""
 "'%s' ഇന്റര്‍ഫെയിസ് '%s'-ലേക്കു് പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല, കാരണം ഇതു് '%s' നെറ്റ്‌വര്‍ക്കിലേക്കു് "
 "'average' ഓവര്‍കമ്മിറ്റ് ചെയ്യുന്നു"
 
-#: src/network/bridge_driver.c:4645
+#: src/network/bridge_driver.c:4646
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "ഇന്റര്‍ഫെയിസ് '%s'-ല്‍ ബാന്‍ഡ്‌വിഡ്ത് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല, തരം %d"
 
-#: src/network/bridge_driver.c:4653
+#: src/network/bridge_driver.c:4654
 msgid "Could not generate next class ID"
 msgstr "അടുത്ത ക്ലാസ്സ് ഐഡി തയ്യാറാക്കുവാന്‍ സാധ്യമായില്ല"
 

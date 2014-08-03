@@ -19,7 +19,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-07-31 11:46-0400\n"
+"POT-Creation-Date: 2014-08-03 08:45-0400\n"
 "PO-Revision-Date: 2014-03-27 11:24+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/fedora/language/"
@@ -1032,14 +1032,14 @@ msgstr "一時ドメインに対して自動起動を設定できません"
 msgid "cannot create autostart directory %s"
 msgstr "自動起動ディレクトリー %s を作成できません"
 
-#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3337
+#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3338
 #: src/storage/storage_driver.c:1141
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "'%s' へのシンボルリンク %s の作成に失敗しました"
 
 #: src/bhyve/bhyve_driver.c:408 src/lxc/lxc_driver.c:3217
-#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3344
+#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3345
 #: src/qemu/qemu_driver.c:7508 src/storage/storage_driver.c:1149
 #: src/uml/uml_driver.c:2482
 #, c-format
@@ -11222,7 +11222,7 @@ msgstr ""
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT コントローラーがマウントされていません"
 
-#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2085
+#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2086
 #: src/qemu/qemu_command.c:387 src/qemu/qemu_driver.c:9966
 #: src/qemu/qemu_hotplug.c:2186 src/util/virnetdevmacvlan.c:926
 #, c-format
@@ -12116,82 +12116,82 @@ msgstr "radvd 設定ファイル '%s' を書き込みできませんでした"
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s が見つかりません - おそらくパッケージがインストールされていません"
 
-#: src/network/bridge_driver.c:1845
-#, c-format
-msgid "cannot write to %s to disable IPv6 on bridge %s"
+#: src/network/bridge_driver.c:1847
+#, fuzzy, c-format
+msgid "cannot write to %s to enable/disable IPv6 on bridge %s"
 msgstr "%s に書き込み（ブリッジ %s において IPv6 を無効化するため）できません"
 
-#: src/network/bridge_driver.c:1865 src/network/bridge_driver.c:1879
+#: src/network/bridge_driver.c:1866 src/network/bridge_driver.c:1880
 #, c-format
 msgid "cannot disable %s"
 msgstr "%s を無効化できません"
 
-#: src/network/bridge_driver.c:1898
+#: src/network/bridge_driver.c:1899
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "ブリッジ '%s' が無効なネットマスクまたは IP アドレスを持ちます"
 
-#: src/network/bridge_driver.c:1941
+#: src/network/bridge_driver.c:1942
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr ""
 "ネットワーク '%s' がルート定義に無効なネットマスクまたは IP アドレスを持ちま"
 "す"
 
-#: src/network/bridge_driver.c:2059
+#: src/network/bridge_driver.c:2060
 msgid "failed to enable IP forwarding"
 msgstr "IP ホワーディングを有効にするのに失敗"
 
-#: src/network/bridge_driver.c:2219
+#: src/network/bridge_driver.c:2220
 msgid "network is already active"
 msgstr "ネットワークはすでにアクティブです"
 
-#: src/network/bridge_driver.c:2343 src/network/bridge_driver.c:2911
-#: src/network/bridge_driver.c:2985 src/network/bridge_driver.c:3144
-#: src/network/bridge_driver.c:3179 src/network/bridge_driver.c:3306
+#: src/network/bridge_driver.c:2344 src/network/bridge_driver.c:2912
+#: src/network/bridge_driver.c:2986 src/network/bridge_driver.c:3145
+#: src/network/bridge_driver.c:3180 src/network/bridge_driver.c:3307
 #: src/parallels/parallels_network.c:475 src/parallels/parallels_network.c:526
 #: src/parallels/parallels_network.c:592 src/test/test_driver.c:3827
 msgid "no network with matching uuid"
 msgstr "UUID と一致するネットワークがありません"
 
-#: src/network/bridge_driver.c:2370 src/network/bridge_driver.c:3715
-#: src/network/bridge_driver.c:4107 src/network/bridge_driver.c:4298
-#: src/network/bridge_driver.c:4458 src/parallels/parallels_network.c:499
+#: src/network/bridge_driver.c:2371 src/network/bridge_driver.c:3716
+#: src/network/bridge_driver.c:4108 src/network/bridge_driver.c:4299
+#: src/network/bridge_driver.c:4459 src/parallels/parallels_network.c:499
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "'%s' に一致する名前を持つネットワークがありません"
 
-#: src/network/bridge_driver.c:2654
+#: src/network/bridge_driver.c:2655
 #, c-format
 msgid "Unsupported <mac> element in network %s with forward mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2662
+#: src/network/bridge_driver.c:2663
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr ""
 "ネットワーク %s において <ip> 要素が転送モード='%s' でサポートされません"
 
-#: src/network/bridge_driver.c:2670
+#: src/network/bridge_driver.c:2671
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr ""
 "ネットワーク %s において <dns> 要素が転送モード='%s' でサポートされません"
 
-#: src/network/bridge_driver.c:2678
+#: src/network/bridge_driver.c:2679
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr ""
 "ネットワーク %s において <domain> 要素が転送モード='%s' でサポートされません"
 
-#: src/network/bridge_driver.c:2686
+#: src/network/bridge_driver.c:2687
 #, c-format
 msgid ""
 "Unsupported network-wide <bandwidth> element in network %s with forward "
 "mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2704
+#: src/network/bridge_driver.c:2705
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -12199,7 +12199,7 @@ msgstr ""
 "複数の IPv4 DHCP セクションが見つかりました -- DHCP は各ネットワークにおいて"
 "単一の IPv4 アドレスに対してのみサポートされます"
 
-#: src/network/bridge_driver.c:2717
+#: src/network/bridge_driver.c:2718
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -12207,7 +12207,7 @@ msgstr ""
 "複数の IPv6 DHCP セクションが見つかりました -- DHCP は各ネットワークにおいて"
 "単一の IPv6 アドレスに対してのみサポートされます"
 
-#: src/network/bridge_driver.c:2761
+#: src/network/bridge_driver.c:2762
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -12216,7 +12216,7 @@ msgstr ""
 "ネットワーク '%s' が複数の標準 <portgroup> 要素 (%s および %s) を持ちますが、"
 "標準設定は一つのみ許可されます"
 
-#: src/network/bridge_driver.c:2779
+#: src/network/bridge_driver.c:2780
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -12225,73 +12225,73 @@ msgstr ""
 "ネットワーク %s に対して <vlan> 要素が指定されていますが、この種別は VLAN 設"
 "定をサポートしません"
 
-#: src/network/bridge_driver.c:3188 src/network/bridge_driver.c:3723
+#: src/network/bridge_driver.c:3189 src/network/bridge_driver.c:3724
 #, fuzzy, c-format
 msgid "network '%s' is not active"
 msgstr "ネットワーク %s がアクティブではありません"
 
-#: src/network/bridge_driver.c:3259 src/test/test_driver.c:3971
+#: src/network/bridge_driver.c:3260 src/test/test_driver.c:3971
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "ネットワーク '%s' に bridge 名がありません"
 
-#: src/network/bridge_driver.c:3315
+#: src/network/bridge_driver.c:3316
 msgid "cannot set autostart for transient network"
 msgstr "一時ネットワークに対して自動起動を設定できません"
 
-#: src/network/bridge_driver.c:3330
+#: src/network/bridge_driver.c:3331
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "自動起動ディレクトリー %s を作成できません"
 
-#: src/network/bridge_driver.c:3414
+#: src/network/bridge_driver.c:3415
 #, fuzzy, c-format
 msgid "invalid json in file: %s"
 msgstr "無効なドメインタイプ %s"
 
-#: src/network/bridge_driver.c:3420 src/network/leaseshelper.c:290
+#: src/network/bridge_driver.c:3421 src/network/leaseshelper.c:290
 #, fuzzy
 msgid "couldn't fetch array of leases"
 msgstr "スナップショット %s の親を取得できませんでした"
 
-#: src/network/bridge_driver.c:3430 src/network/leaseshelper.c:301
+#: src/network/bridge_driver.c:3431 src/network/leaseshelper.c:301
 #: src/network/leaseshelper.c:308
 #, fuzzy
 msgid "failed to parse json"
 msgstr "%s の構文解析に失敗しました"
 
-#: src/network/bridge_driver.c:3438
+#: src/network/bridge_driver.c:3439
 msgid "found lease without mac-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3448
+#: src/network/bridge_driver.c:3449
 msgid "found lease without expiry-time"
 msgstr ""
 
-#: src/network/bridge_driver.c:3465
+#: src/network/bridge_driver.c:3466
 msgid "found lease without ip-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3517
+#: src/network/bridge_driver.c:3518
 #, fuzzy, c-format
 msgid "no lease with matching MAC address: %s"
 msgstr "一致する MAC アドレスのインターフェイスが複数あります"
 
-#: src/network/bridge_driver.c:3623
+#: src/network/bridge_driver.c:3624
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "%s において仮想ファンクションを取得できませんでした"
 
-#: src/network/bridge_driver.c:3630
+#: src/network/bridge_driver.c:3631
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr "SR-IOV 物理ファンクション %s に 仮想ファンクションのものが存在しません"
 
-#: src/network/bridge_driver.c:3651
+#: src/network/bridge_driver.c:3652
 msgid "Direct mode types require interface names"
 msgstr "ダイレクトモード形式はインターフェース名が必要です"
 
-#: src/network/bridge_driver.c:3801
+#: src/network/bridge_driver.c:3802
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -12300,7 +12300,7 @@ msgstr ""
 "<virtualport type='%s'> はブリッジデバイスを使用するネットワーク '%s' に対し"
 "てサポートされません"
 
-#: src/network/bridge_driver.c:3828 src/network/bridge_driver.c:3984
+#: src/network/bridge_driver.c:3829 src/network/bridge_driver.c:3985
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
@@ -12308,12 +12308,12 @@ msgstr ""
 "ネットワーク '%s' がインターフェースへの排他的アクセスを必要としていますが、"
 "利用できません"
 
-#: src/network/bridge_driver.c:3854
+#: src/network/bridge_driver.c:3855
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "認識されないドライバー名の値 %d がネットワーク '%s' にあります"
 
-#: src/network/bridge_driver.c:3878
+#: src/network/bridge_driver.c:3879
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -12322,7 +12322,7 @@ msgstr ""
 "<virtualport type='%s'> は PCI パススルー経由で SR-IOV 仮想ファンクションを使"
 "用するネットワーク '%s' に対してサポートされません"
 
-#: src/network/bridge_driver.c:3929
+#: src/network/bridge_driver.c:3930
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -12331,7 +12331,7 @@ msgstr ""
 "<virtualport type='%s'> は macvtap デバイスを使用するネットワーク '%s' に対し"
 "てサポートされません"
 
-#: src/network/bridge_driver.c:3942
+#: src/network/bridge_driver.c:3943
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -12339,7 +12339,7 @@ msgstr ""
 "ネットワーク '%s' が直接モードを使用していますが、転送デバイスおよびインター"
 "フェースプールがありません"
 
-#: src/network/bridge_driver.c:4015
+#: src/network/bridge_driver.c:4016
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -12348,7 +12348,7 @@ msgstr ""
 "ネットワーク '%s' に接続しているインターフェースは VLAN タグが必要です。しか"
 "し、この形式のネットワークに対してサポートされません。"
 
-#: src/network/bridge_driver.c:4021
+#: src/network/bridge_driver.c:4022
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -12357,7 +12357,7 @@ msgstr ""
 "'%s' 形式のインターフェースは VLAN タグが必要です。しかし、この形式のネット"
 "ワークに対してサポートされません。"
 
-#: src/network/bridge_driver.c:4126
+#: src/network/bridge_driver.c:4127
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -12366,37 +12366,37 @@ msgstr ""
 "ネットワーク '%s' が direct または hostdev モードを使用していますが、転送デバ"
 "イスおよびインターフェースプールがありません"
 
-#: src/network/bridge_driver.c:4138 src/network/bridge_driver.c:4332
+#: src/network/bridge_driver.c:4139 src/network/bridge_driver.c:4333
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr ""
 "インターフェースが直接モードを使用していますが、ソースデバイスがありません"
 
-#: src/network/bridge_driver.c:4155 src/network/bridge_driver.c:4348
+#: src/network/bridge_driver.c:4156 src/network/bridge_driver.c:4349
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "ネットワーク '%s' がドメインにより使用中の dev='%s' を持ちません"
 
-#: src/network/bridge_driver.c:4172
+#: src/network/bridge_driver.c:4173
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 "ネットワーク '%s' は dev='%s' がすでに他のドメインにより使用中であると宣言さ"
 "れました"
 
-#: src/network/bridge_driver.c:4189 src/network/bridge_driver.c:4364
+#: src/network/bridge_driver.c:4190 src/network/bridge_driver.c:4365
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr ""
 "インターフェースがホストデバイスモードを使用していますが、ホストデバイスがあ"
 "りません"
 
-#: src/network/bridge_driver.c:4207 src/network/bridge_driver.c:4380
+#: src/network/bridge_driver.c:4208 src/network/bridge_driver.c:4381
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "ネットワーク '%s' はドメインにより使用されている PCI デバイス %04x:%02x:%02x."
 "%x を持ちません"
 
-#: src/network/bridge_driver.c:4224
+#: src/network/bridge_driver.c:4225
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -12405,7 +12405,7 @@ msgstr ""
 "ネットワーク '%s' が ドメイン=%d バス=%d スロット=%d ファンクション=%d を要求"
 "していますが、すでに他のドメインにより使用されています"
 
-#: src/network/bridge_driver.c:4320
+#: src/network/bridge_driver.c:4321
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
@@ -12414,18 +12414,18 @@ msgstr ""
 "ネットワーク '%s' が direct または hostdev モードを使用していますが、転送デバ"
 "イスおよびインターフェースプールがありません"
 
-#: src/network/bridge_driver.c:4472
+#: src/network/bridge_driver.c:4473
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr "ネットワーク '%s' が IPv4 アドレスを持ちません"
 
-#: src/network/bridge_driver.c:4494
+#: src/network/bridge_driver.c:4495
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr ""
 "ネットワーク '%s' が関連づけられたインターフェースまたはブリッジを持ちません"
 
-#: src/network/bridge_driver.c:4548
+#: src/network/bridge_driver.c:4549
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -12434,7 +12434,7 @@ msgstr ""
 "MAC アドレス %s を持つインターフェースにおいて、無効な 'floor' が使用されてい"
 "ます - ネットワーク '%s' にインバウンド QoS 設定がありません"
 
-#: src/network/bridge_driver.c:4568
+#: src/network/bridge_driver.c:4569
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
@@ -12443,7 +12443,7 @@ msgstr ""
 "'%s' インターフェースを '%s' に挿入できません、ネットワーク '%s' において "
 "'peak' がオーバーコミットになるためです"
 
-#: src/network/bridge_driver.c:4579
+#: src/network/bridge_driver.c:4580
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
@@ -12452,12 +12452,12 @@ msgstr ""
 "'%s' インターフェースを '%s' に挿入できません、ネットワーク '%s' において "
 "'average' がオーバーコミットになるためです"
 
-#: src/network/bridge_driver.c:4645
+#: src/network/bridge_driver.c:4646
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "インターフェース '%s' (形式 %d) において帯域を設定できません"
 
-#: src/network/bridge_driver.c:4653
+#: src/network/bridge_driver.c:4654
 msgid "Could not generate next class ID"
 msgstr "次のクラス ID を生成できませんでした"
 

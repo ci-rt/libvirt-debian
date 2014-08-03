@@ -384,7 +384,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.2.7
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -393,7 +393,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2250,6 +2250,10 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Sun Aug  3 2014 Daniel Veillard <veillard@redhat.com> - 1.2.7-1
+- Introduce virConnectGetDomainCapabilities
+- many improvements and bug fixes
+
 * Wed Jul  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.6-1
 - libxl: add migration support and fixes
 - various improvements and fixes for NUMA

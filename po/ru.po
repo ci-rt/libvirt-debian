@@ -3,6 +3,7 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
+# Alexander Savchenko, 2014
 # Daniel <veillard@redhat.com>, 2011
 # Daniel <veillard@redhat.com>, 2011
 # Mikhail Zholobov <legal90@gmail.com>, 2013
@@ -15,10 +16,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-07-31 11:46-0400\n"
-"PO-Revision-Date: 2014-03-27 11:24+0000\n"
+"POT-Creation-Date: 2014-08-03 08:45-0400\n"
+"PO-Revision-Date: 2014-07-30 11:48+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
-"Language-Team: Russian (http://www.transifex.com/projects/p/fedora/language/"
+"Language-Team: Russian (http://www.transifex.com/projects/p/libvirt/language/"
 "ru/)\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -674,9 +675,8 @@ msgid "qemu monitor event callback %d not registered"
 msgstr ""
 
 #: daemon/remote.c:6178
-#, fuzzy
 msgid "the result won't fit into REMOTE_NODE_MAX_CELLS"
-msgstr "maxcells > REMOTE_NODE_MAX_CELLS"
+msgstr ""
 
 #: daemon/remote.c:6302 src/remote/remote_driver.c:7634
 #, c-format
@@ -931,14 +931,12 @@ msgid "Network type %d is not supported"
 msgstr "Тип сети %d не поддерживается"
 
 #: src/bhyve/bhyve_command.c:130
-#, fuzzy
 msgid "only nmdm console types are supported"
-msgstr "Поддерживаются только консоли PTY"
+msgstr ""
 
 #: src/bhyve/bhyve_command.c:137
-#, fuzzy
 msgid "only two serial ports are supported"
-msgstr "Поддерживаются только локальные каталоги"
+msgstr ""
 
 #: src/bhyve/bhyve_command.c:168 src/bhyve/bhyve_command.c:177
 #: src/bhyve/bhyve_command.c:310
@@ -954,14 +952,12 @@ msgid "unsupported disk type"
 msgstr ""
 
 #: src/bhyve/bhyve_command.c:198
-#, fuzzy
 msgid "cdrom device without source path not supported"
-msgstr "Тип сетевого устройства не поддерживается"
+msgstr ""
 
 #: src/bhyve/bhyve_command.c:301
-#, fuzzy
 msgid "domain should have at least one disk defined"
-msgstr "XML домена должен содержать как минимум один элемент <disk>."
+msgstr ""
 
 #: src/bhyve/bhyve_device.c:50
 msgid "PCI bus 0 slot 1 is reserved for the implicit LPC PCI-ISA bridge"
@@ -985,9 +981,8 @@ msgid "unknown error"
 msgstr "неизвестная ошибка"
 
 #: src/bhyve/bhyve_driver.c:149
-#, fuzzy
 msgid "Unable to get Capabilities"
-msgstr "не удалось получить информацию о возможностях"
+msgstr ""
 
 #: src/bhyve/bhyve_driver.c:172 src/lxc/lxc_driver.c:137
 #: src/libxl/libxl_driver.c:99 src/qemu/qemu_driver.c:223
@@ -1028,14 +1023,14 @@ msgstr "нельзя задать автозапуск для промежуто
 msgid "cannot create autostart directory %s"
 msgstr "не удалось создать каталог автозапуска %s"
 
-#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3337
+#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3338
 #: src/storage/storage_driver.c:1141
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "Не удалось создать символьную ссылку «%s» на «%s»"
 
 #: src/bhyve/bhyve_driver.c:408 src/lxc/lxc_driver.c:3217
-#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3344
+#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3345
 #: src/qemu/qemu_driver.c:7508 src/storage/storage_driver.c:1149
 #: src/uml/uml_driver.c:2482
 #, c-format
@@ -1047,9 +1042,9 @@ msgid "Cannot undefine transient domain"
 msgstr "Не удалось удалить определение промежуточного домена"
 
 #: src/bhyve/bhyve_driver.c:677
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported config type %s"
-msgstr "тип конфигурации %s не поддерживается"
+msgstr ""
 
 #: src/bhyve/bhyve_driver.c:748 src/lxc/lxc_driver.c:283
 #: src/vmware/vmware_driver.c:710
@@ -1134,9 +1129,8 @@ msgid "domain is not running"
 msgstr "домен не выполняется"
 
 #: src/bhyve/bhyve_driver.c:1005
-#, fuzzy
 msgid "no console devices available"
-msgstr "драйвер соединения недоступен"
+msgstr ""
 
 #: src/bhyve/bhyve_driver.c:1186 src/bhyve/bhyve_driver.c:1193
 #: src/lxc/lxc_container.c:900
@@ -1180,14 +1174,14 @@ msgid "Invalid PID %d for VM"
 msgstr ""
 
 #: src/bhyve/bhyve_process.c:284 src/bhyve/bhyve_process.c:373
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to get kvm descriptor: %s"
-msgstr "Не удалось получить доступ к дескриптору файла %d"
+msgstr ""
 
 #: src/bhyve/bhyve_process.c:293
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to obtain information about pid: %d"
-msgstr "Возвращает общую информацию об узле."
+msgstr ""
 
 #: src/conf/capabilities.c:1074
 #, c-format
@@ -1287,9 +1281,9 @@ msgid "NUMA topology defined without NUMA cells"
 msgstr "Топология NUMA определена без ячеек"
 
 #: src/conf/cpu_conf.c:450
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid 'id' attribute in NUMA cell: %s"
-msgstr "Недопустимый атрибут «memory» в ячейке NUMA"
+msgstr ""
 
 #: src/conf/cpu_conf.c:460
 msgid ""
@@ -1430,14 +1424,14 @@ msgid "Insufficient specification for PCI address"
 msgstr "Неполная спецификация адреса PCI"
 
 #: src/conf/device_conf.c:161
-#, fuzzy, c-format
+#, c-format
 msgid "unknown link state: %s"
-msgstr "неизвестный статус блочного ввода-вывода: %s"
+msgstr ""
 
 #: src/conf/device_conf.c:171
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to parse link speed: %s"
-msgstr "не удалось выполнить разбор спецификации диска: %s"
+msgstr ""
 
 #: src/conf/domain_addr.c:58
 #, c-format
@@ -1933,9 +1927,9 @@ msgid "Unknown disk name '%s' and no address specified"
 msgstr "Неизвестное имя диска «%s» и адрес не определен"
 
 #: src/conf/domain_conf.c:4613
-#, fuzzy, c-format
+#, c-format
 msgid "invalid security type '%s'"
-msgstr "недопустимый тип секретного ключа: «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:4632 src/conf/domain_conf.c:4880
 #, c-format
@@ -1951,9 +1945,9 @@ msgid "resource relabeling is not compatible with 'none' label type"
 msgstr "переопределение меток ресурсов несовместимо с type='none'"
 
 #: src/conf/domain_conf.c:4662
-#, fuzzy, c-format
+#, c-format
 msgid "unsupported type='%s' to model 'none'"
-msgstr "неподдерживаемый тип данных «%c» для аргумента «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:4682
 msgid "security label is missing"
@@ -1964,9 +1958,9 @@ msgid "security imagelabel is missing"
 msgstr "отсутствует imagelabel"
 
 #: src/conf/domain_conf.c:4757
-#, fuzzy, c-format
+#, c-format
 msgid "seclablel for model %s is already provided"
-msgstr "пул «%s» уже активен"
+msgstr ""
 
 #: src/conf/domain_conf.c:4791
 msgid "missing security model in domain seclabel"
@@ -2049,31 +2043,26 @@ msgid "unexpected disk type %s"
 msgstr "непредвиденный тип диска %s"
 
 #: src/conf/domain_conf.c:5211
-#, fuzzy
 msgid "missing disk backing store type"
 msgstr ""
-"строка <backend model='egd'> в описании устройства RNG должна содержать "
-"атрибут «type»"
 
 #: src/conf/domain_conf.c:5218
-#, fuzzy, c-format
+#, c-format
 msgid "unknown disk backing store type '%s'"
-msgstr "неизвестный тип шины диска «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:5224
-#, fuzzy
 msgid "missing disk backing store format"
-msgstr "отсутствует информация об ОС"
+msgstr ""
 
 #: src/conf/domain_conf.c:5231
-#, fuzzy, c-format
+#, c-format
 msgid "unknown disk backing store format '%s'"
-msgstr "неизвестный статус лотка: «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:5237
-#, fuzzy
 msgid "missing disk backing store source"
-msgstr "недоступный том запасного накопителя %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:5330
 #, c-format
@@ -2110,12 +2099,12 @@ msgstr "Недопустимый размер физического блока:
 #: src/conf/domain_conf.c:5456
 #, fuzzy, c-format
 msgid "unknown mirror job type '%s'"
-msgstr "неизвестный тип шины диска «%s»"
+msgstr "неизвестный тип протокола: «%s»"
 
 #: src/conf/domain_conf.c:5471
-#, fuzzy, c-format
+#, c-format
 msgid "unknown mirror backing store type '%s'"
-msgstr "неизвестный тип шины диска «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:5485
 msgid "mirror requires file name"
@@ -2131,9 +2120,8 @@ msgid "unknown mirror format value '%s'"
 msgstr "неизвестный тип зеркала: «%s»"
 
 #: src/conf/domain_conf.c:5511
-#, fuzzy
 msgid "mirror requires source element"
-msgstr "необходимо определить файл для зеркала"
+msgstr ""
 
 #: src/conf/domain_conf.c:5522
 #, fuzzy, c-format
@@ -2343,14 +2331,14 @@ msgid "Malformed 'queues' value '%s'"
 msgstr "Неверно сформированное  значение «queues»: «%s»"
 
 #: src/conf/domain_conf.c:6207
-#, fuzzy, c-format
+#, c-format
 msgid "Malformed 'cmd_per_lun' value '%s'"
-msgstr "Неверно сформированное  значение «queues»: «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:6213
-#, fuzzy, c-format
+#, c-format
 msgid "Malformed 'max_sectors' value %s'"
-msgstr "Неверно сформированное  значение «queues»: «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:6227
 #, c-format
@@ -2481,32 +2469,28 @@ msgid ""
 msgstr ""
 
 #: src/conf/domain_conf.c:6923
-#, fuzzy, c-format
+#, c-format
 msgid "Type='%s' unsupported for <interface type='vhostuser'>"
-msgstr "<interface type='%s'> не может содержать элемент <virtualport>"
+msgstr ""
 
 #: src/conf/domain_conf.c:6928
-#, fuzzy
 msgid "No <source> 'type' attribute specified for <interface type='vhostuser'>"
-msgstr "Не задан атрибут «name» для <source> (в <interface type='internal'/>)"
+msgstr ""
 
 #: src/conf/domain_conf.c:6936
-#, fuzzy
 msgid ""
 "No <source> 'path' attribute specified with <interface type='vhostuser'/>"
-msgstr "Не задан атрибут «name» для <source> (в <interface type='internal'/>)"
+msgstr ""
 
 #: src/conf/domain_conf.c:6944
-#, fuzzy
 msgid ""
 "No <source> 'mode' attribute specified with <interface type='vhostuser'/>"
-msgstr "Не задан атрибут «name» для <source> (в <interface type='internal'/>)"
+msgstr ""
 
 #: src/conf/domain_conf.c:6963
-#, fuzzy
 msgid ""
 "Wrong <source> 'mode' attribute specified with <interface type='vhostuser'/>"
-msgstr "Не задан атрибут «name» для <source> (в <interface type='internal'/>)"
+msgstr ""
 
 #: src/conf/domain_conf.c:6984
 msgid ""
@@ -2616,14 +2600,12 @@ msgid "Missing source path attribute for char device"
 msgstr "Отсутствует атрибут пути источника для символьного устройства"
 
 #: src/conf/domain_conf.c:7552
-#, fuzzy
 msgid "Missing master path attribute for nmdm device"
-msgstr "Отсутствует атрибут пути источника для символьного устройства"
+msgstr ""
 
 #: src/conf/domain_conf.c:7558
-#, fuzzy
 msgid "Missing slave path attribute for nmdm device"
-msgstr "Отсутствует атрибут пути источника для символьного устройства"
+msgstr ""
 
 #: src/conf/domain_conf.c:7572 src/conf/domain_conf.c:7590
 msgid "Missing source host attribute for char device"
@@ -3213,14 +3195,14 @@ msgid "multiple devices matching mac address %s found"
 msgstr "обнаружено несколько интерфейсов с совпадающим MAC %s"
 
 #: src/conf/domain_conf.c:10632
-#, fuzzy, c-format
+#, c-format
 msgid "no device matching mac address %s found on %.4x:%.2x:%.2x.%.1x"
-msgstr "обнаружено несколько интерфейсов с совпадающим MAC %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:10641
-#, fuzzy, c-format
+#, c-format
 msgid "no device matching mac address %s found"
-msgstr "обнаружено несколько интерфейсов с совпадающим MAC %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:10993
 msgid "unknown virt type"
@@ -3261,9 +3243,8 @@ msgstr ""
 "Недопустимое значение rebootTimeout: должно лежать в диапазоне [-1,65535]"
 
 #: src/conf/domain_conf.c:11161
-#, fuzzy
 msgid "invalid idmap start/target/count settings"
-msgstr "недопустимая причина изменения состояния домена: «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:11173
 msgid "You must map the root user of container"
@@ -3293,9 +3274,8 @@ msgid "unable to parse size attribute"
 msgstr "Не удалось выполнить разбор параметра размера"
 
 #: src/conf/domain_conf.c:11406
-#, fuzzy
 msgid "hugepage size can't be zero"
-msgstr "размер памяти должен содержать число"
+msgstr ""
 
 #: src/conf/domain_conf.c:11440
 msgid "missing resource partition attribute"
@@ -3525,14 +3505,14 @@ msgstr ""
 "меньше 4095"
 
 #: src/conf/domain_conf.c:12198
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected capability feature '%s'"
-msgstr "непредвиденное свойство %zu"
+msgstr ""
 
 #: src/conf/domain_conf.c:12209
-#, fuzzy, c-format
+#, c-format
 msgid "unknown state attribute '%s' of feature capability '%s'"
-msgstr "неизвестный тип возможностей хранения «%s» для «%s»"
+msgstr ""
 
 #: src/conf/domain_conf.c:12263
 #, c-format
@@ -3944,18 +3924,16 @@ msgid "Target hub device type %s does not match source %s"
 msgstr "%s не соответствует типу исходного концентратора, %s"
 
 #: src/conf/domain_conf.c:14051
-#, fuzzy, c-format
+#, c-format
 msgid "Target redirected device bus %s does not match source %s"
 msgstr ""
-"Шина целевого устройства ввода %s не соответствует шине исходного устройства "
-"(%s)"
 
 #: src/conf/domain_conf.c:14062
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Target redirected device source type %s does not match source device source "
 "type %s"
-msgstr "%s не соответствует типу исходного устройства ввода  %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:14088
 #, c-format
@@ -4158,9 +4136,9 @@ msgid "Target domain hub device count %zu does not match source %zu"
 msgstr "%zu не соответствует числу концентраторов исходного домена,  %zu"
 
 #: src/conf/domain_conf.c:14547
-#, fuzzy, c-format
+#, c-format
 msgid "Target domain redirected devices count %zu does not match source %zu"
-msgstr "%zu не соответствует числу устройств ввода исходного домена,  %zu"
+msgstr ""
 
 #: src/conf/domain_conf.c:14562
 #, c-format
@@ -4179,9 +4157,9 @@ msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 
 #: src/conf/domain_conf.c:14602
-#, fuzzy, c-format
+#, c-format
 msgid "Target domain RNG device count %zu does not match source %zu"
-msgstr "%zu не соответствует числу концентраторов исходного домена,  %zu"
+msgstr ""
 
 #: src/conf/domain_conf.c:14935
 #, c-format
@@ -4194,14 +4172,14 @@ msgid "unexpected disk type %d"
 msgstr "непредвиденный тип диска %d"
 
 #: src/conf/domain_conf.c:15268
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected disk backing store type %d"
-msgstr "непредвиденный тип диска %d"
+msgstr ""
 
 #: src/conf/domain_conf.c:15276
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected disk backing store format %d"
-msgstr "недопустимый режим дискового ввода-вывода: %d"
+msgstr ""
 
 #: src/conf/domain_conf.c:15325
 #, c-format
@@ -4457,9 +4435,9 @@ msgid "no device found with alias %s"
 msgstr "устройство %s не найдено"
 
 #: src/conf/domain_conf.c:19927 src/conf/domain_conf.c:19985
-#, fuzzy, c-format
+#, c-format
 msgid "unknown metadata type '%d'"
-msgstr "неизвестный тип метаданных"
+msgstr ""
 
 #: src/conf/domain_conf.c:19963
 msgid "Requested metadata element is not present"
@@ -5581,11 +5559,11 @@ msgstr ""
 "не удалось обновить запись dhcp: описание сети  «%s» не содержит элемент <ip>"
 
 #: src/conf/network_conf.c:3493
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "couldn't locate an existing dhcp host entry with \"mac='%s'\" \"name='%s'\" "
 "\"ip='%s'\" in network '%s'"
-msgstr "не найдена запись <host mac='%s'>  в описании сети «%s» "
+msgstr ""
 
 #: src/conf/network_conf.c:3496 src/conf/network_conf.c:3497
 #: src/conf/network_conf.c:3527 src/conf/network_conf.c:3528
@@ -5867,9 +5845,9 @@ msgid "no target name supplied for '%s'"
 msgstr "не задано имя цели для «%s»"
 
 #: src/conf/node_device_conf.c:839
-#, fuzzy, c-format
+#, c-format
 msgid "invalid unique_id supplied for '%s'"
-msgstr "недопустимый размер для «%s»"
+msgstr ""
 
 #: src/conf/node_device_conf.c:853
 #, c-format
@@ -5999,14 +5977,14 @@ msgid "mandatory attribute 'width' is missing or malformed"
 msgstr ""
 
 #: src/conf/node_device_conf.c:1153
-#, fuzzy, c-format
+#, c-format
 msgid "malformed 'speed' attribute: %s"
-msgstr "Недопустимый формат «floor_sum»: %s"
+msgstr ""
 
 #: src/conf/node_device_conf.c:1163
-#, fuzzy, c-format
+#, c-format
 msgid "malformed 'port' attribute: %s"
-msgstr "Недопустимый формат «floor_sum»: %s"
+msgstr ""
 
 #: src/conf/node_device_conf.c:1229
 #, c-format
@@ -6069,9 +6047,9 @@ msgid "invalid PCI product ID supplied for '%s'"
 msgstr "недопустимый ID продукта PCI для «%s»"
 
 #: src/conf/node_device_conf.c:1277
-#, fuzzy, c-format
+#, c-format
 msgid "invalid NUMA node ID supplied for '%s'"
-msgstr "недопустимый ID производителя USB для «%s»"
+msgstr ""
 
 #: src/conf/node_device_conf.c:1321
 #, c-format
@@ -6126,28 +6104,25 @@ msgid "Parent device %s is not capable of vport operations"
 msgstr "Родительское устройство %s не может выполнять действия vport"
 
 #: src/conf/numatune_conf.c:92
-#, fuzzy
 msgid "Cannot extract memnode nodes"
-msgstr "не удалось извлечь узлы numatune"
+msgstr ""
 
 #: src/conf/numatune_conf.c:102
-#, fuzzy
 msgid "Per-node binding is not compatible with automatic NUMA placement."
-msgstr "переопределение меток ресурсов несовместимо с type='none'"
+msgstr ""
 
 #: src/conf/numatune_conf.c:109
 msgid "Element 'memnode' is invalid without any guest NUMA cells"
 msgstr ""
 
 #: src/conf/numatune_conf.c:134
-#, fuzzy
 msgid "Missing required cellid attribute in memnode element"
-msgstr "Обязательный атрибут имени в <portgroup>"
+msgstr ""
 
 #: src/conf/numatune_conf.c:140
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid cellid attribute in memnode element: %s"
-msgstr "Недопустимый атрибут «memory» в ячейке NUMA"
+msgstr ""
 
 #: src/conf/numatune_conf.c:148
 msgid ""
@@ -6161,14 +6136,12 @@ msgid "Multiple memnode elements with cellid %u"
 msgstr ""
 
 #: src/conf/numatune_conf.c:168
-#, fuzzy
 msgid "Invalid mode attribute in memnode element"
-msgstr "Недопустимый атрибут режима «%s»"
+msgstr ""
 
 #: src/conf/numatune_conf.c:178
-#, fuzzy
 msgid "Missing required nodeset attribute in memnode element"
-msgstr "Обязательный атрибут имени в <portgroup>"
+msgstr ""
 
 #: src/conf/numatune_conf.c:211
 msgid "cannot extract numatune nodes"
@@ -6184,23 +6157,23 @@ msgid "Unsupported NUMA memory tuning mode '%s'"
 msgstr "Режим настройки NUMA не поддерживается: «%s»"
 
 #: src/conf/numatune_conf.c:259
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported NUMA memory placement mode '%s'"
-msgstr "Режим распределения памяти не поддерживается: «%s»"
+msgstr ""
 
 #: src/conf/numatune_conf.c:421
 msgid "Advice from numad is needed in case of automatic numa placement"
 msgstr ""
 
 #: src/conf/numatune_conf.c:452
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported numatune mode '%d'"
-msgstr "Режим переадресации «%s» не поддерживается"
+msgstr ""
 
 #: src/conf/numatune_conf.c:459
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported numatune placement '%d'"
-msgstr "Режим распределения памяти не поддерживается: «%s»"
+msgstr ""
 
 #: src/conf/numatune_conf.c:498
 msgid "nodeset for NUMA memory tuning must be set if 'placement' is 'static'"
@@ -6296,9 +6269,9 @@ msgid "filter with same UUID but different name ('%s') already exists"
 msgstr "фильтр с этим UUID (но с именем «%s») уже существует"
 
 #: src/conf/nwfilter_conf.c:3067
-#, fuzzy, c-format
+#, c-format
 msgid "filter '%s' already exists with uuid %s"
-msgstr "пул «%s» уже существует (UUID: %s)"
+msgstr ""
 
 #: src/conf/nwfilter_conf.c:3076
 msgid "filter would introduce a loop"
@@ -6494,9 +6467,9 @@ msgid "unknown disk snapshot driver '%s'"
 msgstr "неизвестный драйвер снимка диска: «%s»"
 
 #: src/conf/snapshot_conf.c:169
-#, fuzzy, c-format
+#, c-format
 msgid "disk format '%s' lacks backing file support"
-msgstr "Формат дисков %s не поддерживается"
+msgstr ""
 
 #: src/conf/snapshot_conf.c:225
 msgid "a redefined snapshot must have a name"
@@ -6677,26 +6650,22 @@ msgid "Missing scsi_host PCI address element"
 msgstr ""
 
 #: src/conf/storage_conf.c:601
-#, fuzzy
 msgid "Missing or invalid scsi adapter 'unique_id' value"
-msgstr "Атрибут ID тега vlan не определен или содержит недопустимое значение"
+msgstr ""
 
 #: src/conf/storage_conf.c:625
-#, fuzzy
 msgid ""
 "Use of 'wwnn', 'wwpn', and 'parent' attributes requires use of the adapter "
 "'type'"
-msgstr "Атрибуты «wwnn», «wwpn» и «parent» требуют, чтобы «type='fc_host'»"
+msgstr ""
 
 #: src/conf/storage_conf.c:632
-#, fuzzy
 msgid "Use of 'parent' element requires use of the adapter 'type'"
-msgstr "Атрибуты «wwnn», «wwpn» и «parent» требуют, чтобы «type='fc_host'»"
+msgstr ""
 
 #: src/conf/storage_conf.c:652
-#, fuzzy
 msgid "storage pool missing auth type"
-msgstr "отсутствует атрибут типа для пула носителей"
+msgstr ""
 
 #: src/conf/storage_conf.c:682
 msgid "(storage_source_specification)"
@@ -6750,19 +6719,13 @@ msgstr ""
 "Если «type='fc_host'», то необходимо определить атрибуты  «wwnn» и «wwpn» "
 
 #: src/conf/storage_conf.c:896
-#, fuzzy
 msgid "Either 'name' or 'parent' must be specified for the 'scsi_host' adapter"
 msgstr ""
-"Для исходного адреса SCSI hostdev необходимо определить «adapter» или "
-"«address»."
 
 #: src/conf/storage_conf.c:904
-#, fuzzy
 msgid ""
 "Both 'name' and 'parent' cannot be specified for the 'scsi_host' adapter"
 msgstr ""
-"Для исходного адреса SCSI hostdev необходимо определить «adapter» или "
-"«address»."
 
 #: src/conf/storage_conf.c:915
 msgid "missing storage pool source device name"
@@ -6897,9 +6860,8 @@ msgid "(CPU_definition)"
 msgstr "(определение_процессора)"
 
 #: src/cpu/cpu.c:147 src/cpu/cpu.c:272 src/cpu/cpu.c:381
-#, fuzzy
 msgid "no guest CPU model specified"
-msgstr "не указана модель CPU"
+msgstr ""
 
 #: src/cpu/cpu.c:156
 #, c-format
@@ -6911,9 +6873,8 @@ msgid "nonzero nmodels doesn't match with NULL models"
 msgstr "ненулевое значение nmodels не соответствует моделям NULL"
 
 #: src/cpu/cpu.c:216
-#, fuzzy
 msgid "invalid CPU definition stub"
-msgstr "недопустимое определение процессора"
+msgstr ""
 
 #: src/cpu/cpu.c:225
 #, c-format
@@ -6953,14 +6914,14 @@ msgid "nonzero ncpus doesn't match with NULL cpus"
 msgstr "ненулевое значение ncpus не соответствует процессорам NULL"
 
 #: src/cpu/cpu.c:550
-#, fuzzy, c-format
+#, c-format
 msgid "invalid CPU definition at index %zu"
-msgstr "недопустимое определение процессора"
+msgstr ""
 
 #: src/cpu/cpu.c:555
-#, fuzzy, c-format
+#, c-format
 msgid "no CPU model specified at index %zu"
-msgstr "не указана модель CPU"
+msgstr ""
 
 #: src/cpu/cpu.c:571
 #, c-format
@@ -7706,9 +7667,9 @@ msgid "iSCSI storage pool does not support volume creation"
 msgstr "Пул носителей iSCSI не поддерживает операции создания томов"
 
 #: src/esx/esx_storage_backend_iscsi.c:650
-#, fuzzy, c-format
+#, c-format
 msgid "Could not find volume with name: %s"
-msgstr "Том %s не найден."
+msgstr ""
 
 #: src/esx/esx_storage_backend_iscsi.c:706
 #, c-format
@@ -9093,9 +9054,9 @@ msgstr "VID VLAN-устройства «%s» не найден"
 
 #: src/interface/interface_backend_udev.c:1003
 #: src/interface/interface_backend_udev.c:1011
-#, fuzzy, c-format
+#, c-format
 msgid "failed to find the real device for the VLAN device '%s'"
-msgstr "VID VLAN-устройства «%s» не найден"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:1071
 #, c-format
@@ -9617,7 +9578,7 @@ msgid "Unable to restart self"
 msgstr "Программа не может перезапустить сама себя"
 
 #: src/locking/lock_daemon.c:1138
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Usage:\n"
@@ -9634,18 +9595,6 @@ msgid ""
 "\n"
 "libvirt lock management daemon:\n"
 msgstr ""
-"\n"
-"Формат:\n"
-"  %s [параметры]\n"
-"\n"
-"Параметры:\n"
-"  -v | --verbose         подробный вывод.\n"
-"  -d | --daemon          выполнение в режиме службы и запись в файл PID.\n"
-"   -f | --config <файл>   файл конфигурации.\n"
-"     | --version         версия программы.\n"
-"  -p | --pid-file <файл> изменение файла PID.\n"
-"\n"
-"служба управления блокировки libvirt:\n"
 
 #: src/locking/lock_daemon.c:1155
 #, c-format
@@ -10459,19 +10408,19 @@ msgid "Failed to resolve symlink at %s"
 msgstr ""
 
 #: src/lxc/lxc_container.c:1963
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to add capability %s: %d"
-msgstr "Не удалось применить возможности: %d"
+msgstr ""
 
 #: src/lxc/lxc_container.c:1995
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to remove capability %s: %d"
-msgstr "Не удалось удалить возможности: %d"
+msgstr ""
 
 #: src/lxc/lxc_container.c:2003
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported capabilities policy: %s"
-msgstr "операция обработки сбоя не поддерживается: «%s»\n"
+msgstr ""
 
 #: src/lxc/lxc_container.c:2010
 #, c-format
@@ -10773,9 +10722,8 @@ msgid "Cannot read cputime for domain"
 msgstr "Не удалось прочитать cputime для домена"
 
 #: src/lxc/lxc_driver.c:699
-#, fuzzy
 msgid "Cannot set max memory lower than current memory for an active domain"
-msgstr "Максимальный объём памяти не может быть меньше текущего объёма"
+msgstr ""
 
 #: src/lxc/lxc_driver.c:755
 msgid "Cannot set memory higher than max memory"
@@ -11127,7 +11075,7 @@ msgstr ""
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr ""
 
-#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2085
+#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2086
 #: src/qemu/qemu_command.c:387 src/qemu/qemu_driver.c:9966
 #: src/qemu/qemu_hotplug.c:2186 src/util/virnetdevmacvlan.c:926
 #, c-format
@@ -11263,9 +11211,9 @@ msgstr "не удалось получить мьютекс задания"
 #: src/libxl/libxl_domain.c:501 src/openvz/openvz_driver.c:120
 #: src/qemu/qemu_domain.c:947 src/uml/uml_driver.c:437
 #: src/xen/xen_driver.c:350 src/xenapi/xenapi_driver.c:62
-#, fuzzy, c-format
+#, c-format
 msgid "hostdev mode 'capabilities' is not supported in %s"
-msgstr "режим hostdev «%s» не поддерживается"
+msgstr ""
 
 #: src/libxl/libxl_domain.c:709
 msgid "Failed to create thread to handle domain shutdown"
@@ -11651,9 +11599,8 @@ msgid "device type '%s' cannot hot unplugged"
 msgstr "устройства типа «%s» не могут быть отключены в горячем режиме"
 
 #: src/libxl/libxl_driver.c:2794
-#, fuzzy
 msgid "libxenlight failed to attach network device"
-msgstr "libxenlight не смог подключить диск «%s»"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:2886
 #, c-format
@@ -11680,9 +11627,8 @@ msgid ""
 msgstr ""
 
 #: src/libxl/libxl_driver.c:3056
-#, fuzzy
 msgid "libxenlight failed to detach network device"
-msgstr "libxenlight не смог отсоединить диск «%s»"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:3171 src/qemu/qemu_driver.c:6681
 #, c-format
@@ -11776,14 +11722,13 @@ msgid "unsupported driver name '%s'"
 msgstr ""
 
 #: src/libxl/libxl_driver.c:4681
-#, fuzzy, c-format
+#, c-format
 msgid "Migration failed. No domain on destination host with matching name '%s'"
-msgstr "нет снимка домена с именем «%s»"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:4695
-#, fuzzy
 msgid "Migration failed. Domain is not running on destination host"
-msgstr "получающий хост не поддерживает миграцию в автономном режиме"
+msgstr ""
 
 #: src/libxl/libxl_conf.c:113
 msgid "Failed to get node physical info from libxenlight"
@@ -11831,10 +11776,9 @@ msgid "Parallel devices are not supported by libxl"
 msgstr ""
 
 #: src/libxl/libxl_conf.c:740
-#, fuzzy
 msgid ""
 "This version of libxenlight does not support disk 'discard' option passing"
-msgstr "libxenlight не поддерживает драйвер диска %s"
+msgstr ""
 
 #: src/libxl/libxl_conf.c:786 src/libxl/libxl_conf.c:811
 #: src/libxl/libxl_conf.c:821 src/libxl/libxl_conf.c:833
@@ -11858,9 +11802,9 @@ msgid ""
 msgstr ""
 
 #: src/libxl/libxl_conf.c:999
-#, fuzzy, c-format
+#, c-format
 msgid "unsupported interface type %s"
-msgstr "непредвиденный тип интерфейса %d"
+msgstr ""
 
 #: src/libxl/libxl_conf.c:1209
 #, c-format
@@ -11896,19 +11840,16 @@ msgid "machine type %s too big for destination"
 msgstr "слишком длинная запись типа машины: %s "
 
 #: src/libxl/libxl_migration.c:103
-#, fuzzy
 msgid "Fail to accept migration connection"
-msgstr "не удалось пробудить туннель миграции"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:159
-#, fuzzy
 msgid "Failed to send migration data to destination host"
-msgstr "не удалось разобрать статистику для всех данных %s"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:177
-#, fuzzy
 msgid "domain has assigned host devices"
-msgstr "домену назначены устройства, не являющиеся устройствами USB"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:242 src/qemu/qemu_migration.c:2797
 msgid "no domain XML passed"
@@ -11930,9 +11871,8 @@ msgid "missing host in migration URI: %s"
 msgstr "URI миграции должен содержать имя узла: %s"
 
 #: src/libxl/libxl_migration.c:354
-#, fuzzy
 msgid "Fail to create socket for incoming migration"
-msgstr "не удалось создать канал для туннельной миграции"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:451 src/xen/xend_internal.c:715
 #, c-format
@@ -11940,9 +11880,8 @@ msgid "unable to connect to '%s:%s'"
 msgstr "не удалось подключиться к «%s:%s»"
 
 #: src/libxl/libxl_migration.c:496
-#, fuzzy
 msgid "Failed to unpause domain"
-msgstr "Не удалось приостановить домен %s"
+msgstr ""
 
 #: src/network/bridge_driver.c:145
 #, c-format
@@ -11950,9 +11889,9 @@ msgid "no network with matching uuid '%s' (%s)"
 msgstr ""
 
 #: src/network/bridge_driver.c:499
-#, fuzzy, c-format
+#, c-format
 msgid "failed to open directory '%s'"
-msgstr "не удалось создать каталог «%s»"
+msgstr ""
 
 #: src/network/bridge_driver.c:505 src/network/bridge_driver.c:625
 #: src/network/bridge_driver.c:1319 src/network/bridge_driver.c:1330
@@ -11962,9 +11901,9 @@ msgid "cannot create directory %s"
 msgstr "не удалось создать каталог %s"
 
 #: src/network/bridge_driver.c:528
-#, fuzzy, c-format
+#, c-format
 msgid "failed to write network status file '%s'"
-msgstr "Ошибка записи в файл PID «%s»"
+msgstr ""
 
 #: src/network/bridge_driver.c:984
 #, c-format
@@ -12019,79 +11958,79 @@ msgstr "ошибка записи в файл конфигурации radvd: «
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s не найден. Возможно, пакет не установлен."
 
-#: src/network/bridge_driver.c:1845
-#, c-format
-msgid "cannot write to %s to disable IPv6 on bridge %s"
+#: src/network/bridge_driver.c:1847
+#, fuzzy, c-format
+msgid "cannot write to %s to enable/disable IPv6 on bridge %s"
 msgstr "ошибка записи в %s с целью отключения IPv6 для моста %s"
 
-#: src/network/bridge_driver.c:1865 src/network/bridge_driver.c:1879
+#: src/network/bridge_driver.c:1866 src/network/bridge_driver.c:1880
 #, c-format
 msgid "cannot disable %s"
 msgstr "не удалось отключить %s"
 
-#: src/network/bridge_driver.c:1898
+#: src/network/bridge_driver.c:1899
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "Недопустимая маска сети или IP-адрес моста «%s»"
 
-#: src/network/bridge_driver.c:1941
+#: src/network/bridge_driver.c:1942
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr "Недопустимая маска или IP-адрес в определении маршрута сети «%s»"
 
-#: src/network/bridge_driver.c:2059
+#: src/network/bridge_driver.c:2060
 msgid "failed to enable IP forwarding"
 msgstr "ошибка активации перенаправления IP"
 
-#: src/network/bridge_driver.c:2219
+#: src/network/bridge_driver.c:2220
 msgid "network is already active"
 msgstr "сеть уже активна"
 
-#: src/network/bridge_driver.c:2343 src/network/bridge_driver.c:2911
-#: src/network/bridge_driver.c:2985 src/network/bridge_driver.c:3144
-#: src/network/bridge_driver.c:3179 src/network/bridge_driver.c:3306
+#: src/network/bridge_driver.c:2344 src/network/bridge_driver.c:2912
+#: src/network/bridge_driver.c:2986 src/network/bridge_driver.c:3145
+#: src/network/bridge_driver.c:3180 src/network/bridge_driver.c:3307
 #: src/parallels/parallels_network.c:475 src/parallels/parallels_network.c:526
 #: src/parallels/parallels_network.c:592 src/test/test_driver.c:3827
 msgid "no network with matching uuid"
 msgstr "нет сети с совпадающим UUID"
 
-#: src/network/bridge_driver.c:2370 src/network/bridge_driver.c:3715
-#: src/network/bridge_driver.c:4107 src/network/bridge_driver.c:4298
-#: src/network/bridge_driver.c:4458 src/parallels/parallels_network.c:499
+#: src/network/bridge_driver.c:2371 src/network/bridge_driver.c:3716
+#: src/network/bridge_driver.c:4108 src/network/bridge_driver.c:4299
+#: src/network/bridge_driver.c:4459 src/parallels/parallels_network.c:499
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "нет сети с совпадающим именем «%s»"
 
-#: src/network/bridge_driver.c:2654
+#: src/network/bridge_driver.c:2655
 #, c-format
 msgid "Unsupported <mac> element in network %s with forward mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2662
+#: src/network/bridge_driver.c:2663
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr "Элемент <ip>  в сети %s с режимом переадресации «%s» не поддерживается"
 
-#: src/network/bridge_driver.c:2670
+#: src/network/bridge_driver.c:2671
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr ""
 "Элемент <dns>  в сети %s с режимом переадресации «%s» не поддерживается"
 
-#: src/network/bridge_driver.c:2678
+#: src/network/bridge_driver.c:2679
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr ""
 "Элемент <domain>  в сети %s с режимом переадресации «%s» не поддерживается"
 
-#: src/network/bridge_driver.c:2686
+#: src/network/bridge_driver.c:2687
 #, c-format
 msgid ""
 "Unsupported network-wide <bandwidth> element in network %s with forward "
 "mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2704
+#: src/network/bridge_driver.c:2705
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -12099,7 +12038,7 @@ msgstr ""
 "Обнаружено несколько секций DHCP IPv4. В определении сети только один адрес "
 "IPv4 может поддерживать DHCP."
 
-#: src/network/bridge_driver.c:2717
+#: src/network/bridge_driver.c:2718
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -12107,7 +12046,7 @@ msgstr ""
 "Обнаружено несколько секций DHCP IPv6. В определении сети только один адрес "
 "IPv6 может поддерживать DHCP."
 
-#: src/network/bridge_driver.c:2761
+#: src/network/bridge_driver.c:2762
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -12116,7 +12055,7 @@ msgstr ""
 "определение сети «%s»  может содержать только один элемент <portgroup> с "
 "параметром «default='yes'», но обнаружено несколько — %s и %s."
 
-#: src/network/bridge_driver.c:2779
+#: src/network/bridge_driver.c:2780
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -12124,73 +12063,71 @@ msgid ""
 msgstr ""
 "определение сети %s содержит элемент <vlan>, но ее тип не поддерживает vlan"
 
-#: src/network/bridge_driver.c:3188 src/network/bridge_driver.c:3723
-#, fuzzy, c-format
+#: src/network/bridge_driver.c:3189 src/network/bridge_driver.c:3724
+#, c-format
 msgid "network '%s' is not active"
-msgstr "сеть %s не активна"
+msgstr ""
 
-#: src/network/bridge_driver.c:3259 src/test/test_driver.c:3971
+#: src/network/bridge_driver.c:3260 src/test/test_driver.c:3971
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "нет имени моста для сети «%s»"
 
-#: src/network/bridge_driver.c:3315
+#: src/network/bridge_driver.c:3316
 msgid "cannot set autostart for transient network"
 msgstr "нельзя задать автозапуск для промежуточной сети"
 
-#: src/network/bridge_driver.c:3330
+#: src/network/bridge_driver.c:3331
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "не удалось создать каталог автозапуска «%s»"
 
-#: src/network/bridge_driver.c:3414
-#, fuzzy, c-format
+#: src/network/bridge_driver.c:3415
+#, c-format
 msgid "invalid json in file: %s"
-msgstr "недопустимый тип домена %s"
+msgstr ""
 
-#: src/network/bridge_driver.c:3420 src/network/leaseshelper.c:290
-#, fuzzy
+#: src/network/bridge_driver.c:3421 src/network/leaseshelper.c:290
 msgid "couldn't fetch array of leases"
-msgstr "не удалось получить родительский снимок %s"
+msgstr ""
 
-#: src/network/bridge_driver.c:3430 src/network/leaseshelper.c:301
+#: src/network/bridge_driver.c:3431 src/network/leaseshelper.c:301
 #: src/network/leaseshelper.c:308
-#, fuzzy
 msgid "failed to parse json"
-msgstr "не удалось разобрать %s"
+msgstr ""
 
-#: src/network/bridge_driver.c:3438
+#: src/network/bridge_driver.c:3439
 msgid "found lease without mac-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3448
+#: src/network/bridge_driver.c:3449
 msgid "found lease without expiry-time"
 msgstr ""
 
-#: src/network/bridge_driver.c:3465
+#: src/network/bridge_driver.c:3466
 msgid "found lease without ip-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3517
-#, fuzzy, c-format
+#: src/network/bridge_driver.c:3518
+#, c-format
 msgid "no lease with matching MAC address: %s"
-msgstr "несколько интерфейсов с совпадающим MAC-адресом"
+msgstr ""
 
-#: src/network/bridge_driver.c:3623
+#: src/network/bridge_driver.c:3624
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "Не удалось получить виртуальные функции для %s"
 
-#: src/network/bridge_driver.c:3630
+#: src/network/bridge_driver.c:3631
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr "Нет VF в SRIOV PF %s"
 
-#: src/network/bridge_driver.c:3651
+#: src/network/bridge_driver.c:3652
 msgid "Direct mode types require interface names"
 msgstr "Типы прямого режима требуют определения имен интерфейсов"
 
-#: src/network/bridge_driver.c:3801
+#: src/network/bridge_driver.c:3802
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -12199,19 +12136,19 @@ msgstr ""
 "<virtualport type='%s'> не поддерживается для сети «%s», использующей "
 "устройство моста"
 
-#: src/network/bridge_driver.c:3828 src/network/bridge_driver.c:3984
+#: src/network/bridge_driver.c:3829 src/network/bridge_driver.c:3985
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr ""
 "«%s» требует эксклюзивный доступ к интерфейсам, но доступных интерфейсов нет"
 
-#: src/network/bridge_driver.c:3854
+#: src/network/bridge_driver.c:3855
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "неопознанное имя драйвера %d в определении сети «%s»"
 
-#: src/network/bridge_driver.c:3878
+#: src/network/bridge_driver.c:3879
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -12220,7 +12157,7 @@ msgstr ""
 "<virtualport type='%s'> не поддерживается для сети «%s», так как эта сеть  "
 "использует виртуальные функции SR-IOV для сквозного режима PCI"
 
-#: src/network/bridge_driver.c:3929
+#: src/network/bridge_driver.c:3930
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -12229,7 +12166,7 @@ msgstr ""
 "<virtualport type='%s'> не поддерживается для сети «%s», использующей "
 "устройство macvtap"
 
-#: src/network/bridge_driver.c:3942
+#: src/network/bridge_driver.c:3943
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -12237,7 +12174,7 @@ msgstr ""
 "сеть «%s» использует прямой режим, но нет устройства перенаправления или "
 "пула интерфейсов"
 
-#: src/network/bridge_driver.c:4015
+#: src/network/bridge_driver.c:4016
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -12246,7 +12183,7 @@ msgstr ""
 "интерфейс, подключающийся к сети «%s», запрашивает тег vlan, что не "
 "поддерживается этим типом сети"
 
-#: src/network/bridge_driver.c:4021
+#: src/network/bridge_driver.c:4022
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -12255,41 +12192,41 @@ msgstr ""
 "интерфейс типа «%s» запрашивает тег vlan, который не поддерживается этим "
 "типом соединения"
 
-#: src/network/bridge_driver.c:4126
+#: src/network/bridge_driver.c:4127
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
 "interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:4138 src/network/bridge_driver.c:4332
+#: src/network/bridge_driver.c:4139 src/network/bridge_driver.c:4333
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr ""
 "интерфейс использует прямой режим, но исходное устройство не определено"
 
-#: src/network/bridge_driver.c:4155 src/network/bridge_driver.c:4348
+#: src/network/bridge_driver.c:4156 src/network/bridge_driver.c:4349
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "сеть «%s» не содержит используемое доменом устройство  «%s»"
 
-#: src/network/bridge_driver.c:4172
+#: src/network/bridge_driver.c:4173
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 "Сеть «%s» сообщает, что устройство «%s» уже используется другим доменом"
 
-#: src/network/bridge_driver.c:4189 src/network/bridge_driver.c:4364
+#: src/network/bridge_driver.c:4190 src/network/bridge_driver.c:4365
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr ""
 "интерфейс использует режим hostdev, но устройство hostdev не определено"
 
-#: src/network/bridge_driver.c:4207 src/network/bridge_driver.c:4380
+#: src/network/bridge_driver.c:4208 src/network/bridge_driver.c:4381
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "сеть «%s» не содержит используемое доменом устройство PCI  %04x:%02x:%02x.%x "
 
-#: src/network/bridge_driver.c:4224
+#: src/network/bridge_driver.c:4225
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -12298,24 +12235,24 @@ msgstr ""
 "Сеть «%s» сообщает, что устройство PCI в домене %d (шина %d, слот %d, "
 "функция %d) уже используется другим доменом"
 
-#: src/network/bridge_driver.c:4320
+#: src/network/bridge_driver.c:4321
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
 "interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:4472
+#: src/network/bridge_driver.c:4473
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr "у сети «%s» нет адреса IPv4"
 
-#: src/network/bridge_driver.c:4494
+#: src/network/bridge_driver.c:4495
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "сети  «%s» не сопоставлен интерфейс или мост"
 
-#: src/network/bridge_driver.c:4548
+#: src/network/bridge_driver.c:4549
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -12324,28 +12261,28 @@ msgstr ""
 "Недопустимое использование «floor» для интерфейса MAC %s: для сети %s не "
 "настроены функции QoS"
 
-#: src/network/bridge_driver.c:4568
+#: src/network/bridge_driver.c:4569
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
 "network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:4579
+#: src/network/bridge_driver.c:4580
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
 "on network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:4645
+#: src/network/bridge_driver.c:4646
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr ""
 "Не удалось установить значение пропускной способности для интерфейса  "
 "«%s» (тип %d)"
 
-#: src/network/bridge_driver.c:4653
+#: src/network/bridge_driver.c:4654
 msgid "Could not generate next class ID"
 msgstr "Ошибка генерации следующего идентификатора класса"
 
@@ -12360,9 +12297,9 @@ msgid "Invalid prefix or netmask for '%s'"
 msgstr "Недопустимый префикс или маска сети для «%s»"
 
 #: src/network/leaseshelper.c:66
-#, fuzzy, c-format
+#, c-format
 msgid "%s: try --help for more details\n"
-msgstr "%s: для получения подробной информации добавьте --help"
+msgstr ""
 
 #: src/network/leaseshelper.c:68
 #, c-format
@@ -12374,19 +12311,18 @@ msgstr ""
 
 #: src/network/leaseshelper.c:242 src/network/leaseshelper.c:275
 #: src/network/leaseshelper.c:327 src/network/leaseshelper.c:339
-#, fuzzy
 msgid "failed to create json"
-msgstr "не удалось создать %s"
+msgstr ""
 
 #: src/network/leaseshelper.c:248
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to convert lease expiry time to long long: %s"
-msgstr "Не удалось преобразовать «%s» в двойное длинное число без знака"
+msgstr ""
 
 #: src/network/leaseshelper.c:268
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported action: %s\n"
-msgstr "операция обработки сбоя не поддерживается: «%s»\n"
+msgstr ""
 
 #: src/network/leaseshelper.c:285
 #, c-format
@@ -12748,9 +12684,8 @@ msgid "node cpu info not implemented on this platform"
 msgstr ""
 
 #: src/nodeinfo.c:2050
-#, fuzzy
 msgid "no suitable info found"
-msgstr "строка доступной памяти не найдена"
+msgstr ""
 
 #: src/nwfilter/nwfilter_dhcpsnoop.c:583
 #, c-format
@@ -12966,9 +12901,9 @@ msgid "Unhandled datatype %x"
 msgstr "Необрабатываемый тип данных %x"
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:1500
-#, fuzzy, c-format
+#, c-format
 msgid "Unexpected protocol %d"
-msgstr "непредвиденный тип пула"
+msgstr ""
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:1922
 #, c-format
@@ -12977,14 +12912,13 @@ msgid ""
 msgstr ""
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:2354
-#, fuzzy, c-format
+#, c-format
 msgid "Unexpected rule protocol %d"
-msgstr "Непредвиденный код ошибки HTTP: %d"
+msgstr ""
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:2438
-#, fuzzy
 msgid "unexpected protocol type"
-msgstr "непредвиденный тип пула"
+msgstr ""
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:3142
 #, c-format
@@ -13008,9 +12942,9 @@ msgid "No output from iptables --version"
 msgstr ""
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:3702
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot parse version string '%s'"
-msgstr "не удалось разобрать версию %s"
+msgstr ""
 
 #: src/nwfilter/nwfilter_gentech_driver.c:159
 msgid "Could not add variable 'MAC' to hashmap"
@@ -13451,14 +13385,14 @@ msgid "Video RAM size should be multiple of 1Mb."
 msgstr "Размер видеопамяти должен быть кратен 1 МБ."
 
 #: src/parallels/parallels_driver.c:1663
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid disk format: %d"
-msgstr "Недействительная шина диска: %d"
+msgstr ""
 
 #: src/parallels/parallels_driver.c:1672
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid disk type: %d"
-msgstr "Недействительная шина диска: %d"
+msgstr ""
 
 #: src/parallels/parallels_driver.c:1680
 #, c-format
@@ -14195,9 +14129,9 @@ msgid "Cannot offline enough CPUs"
 msgstr "Не удалось отключить достаточное число процессоров"
 
 #: src/qemu/qemu_agent.c:1756
-#, fuzzy, c-format
+#, c-format
 msgid "Time '%lld' is too big for guest agent"
-msgstr "Слишком большой размер типа %s для цели"
+msgstr ""
 
 #: src/qemu/qemu_capabilities.c:481
 #, c-format
@@ -14656,9 +14590,8 @@ msgid "tray status 'open' is invalid for block type disk"
 msgstr "Недопустимый статус лотка («open») для дискового устройства"
 
 #: src/qemu/qemu_command.c:3426
-#, fuzzy
 msgid "readonly ide disks are not supported"
-msgstr "временные диски не поддерживаются"
+msgstr ""
 
 #: src/qemu/qemu_command.c:3433 src/xenxs/xen_sxpr.c:1827
 #: src/xenxs/xen_xm.c:1263
@@ -14815,14 +14748,12 @@ msgid "'queues' is only supported by virtio-scsi controller"
 msgstr "«queues» поддерживается только контроллером virtio-scsi"
 
 #: src/qemu/qemu_command.c:4147
-#, fuzzy
 msgid "'cmd_per_lun' is only supported by virtio-scsi controller"
-msgstr "«queues» поддерживается только контроллером virtio-scsi"
+msgstr ""
 
 #: src/qemu/qemu_command.c:4152
-#, fuzzy
 msgid "'max_sectors' is only supported by virtio-scsi controller"
-msgstr "«queues» поддерживается только контроллером virtio-scsi"
+msgstr ""
 
 #: src/qemu/qemu_command.c:4242
 msgid "PCI bridge index should be > 0"
@@ -14915,11 +14846,11 @@ msgstr ""
 
 #: src/qemu/qemu_command.c:4893 src/qemu/qemu_command.c:4932
 #: src/qemu/qemu_hotplug.c:1265
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "non-zero domain='%.4x' in host device PCI address not supported in this QEMU "
 "binary"
-msgstr "Этот QEMU не поддерживает устройство nvram"
+msgstr ""
 
 #: src/qemu/qemu_command.c:4961
 #, c-format
@@ -15090,9 +15021,8 @@ msgstr ""
 "максимального"
 
 #: src/qemu/qemu_command.c:6452
-#, fuzzy
 msgid "Per-node memory binding is not supported with this QEMU"
-msgstr "QEMU не поддерживает тип видео %s"
+msgstr ""
 
 #: src/qemu/qemu_command.c:6460
 #, fuzzy
@@ -15109,9 +15039,8 @@ msgid "Unable to find any usable hugetlbfs mount for %llu KiB"
 msgstr "не найдена точка монтирования hugetlbfs"
 
 #: src/qemu/qemu_command.c:6560
-#, fuzzy
 msgid "disjoint NUMA node ranges are not supported with this QEMU"
-msgstr "QEMU не поддерживает тип видео %s"
+msgstr ""
 
 #: src/qemu/qemu_command.c:6625
 msgid "vnc graphics are not supported with this QEMU"
@@ -15181,14 +15110,13 @@ msgid "unsupported graphics type '%s'"
 msgstr ""
 
 #: src/qemu/qemu_command.c:7047
-#, fuzzy
 msgid "Netdev support unavailable"
-msgstr "Система недоступна"
+msgstr ""
 
 #: src/qemu/qemu_command.c:7072
-#, fuzzy, c-format
+#, c-format
 msgid "vhost-user type '%s' not supported"
-msgstr "тип подсистемы hostdev «%s» не поддерживается"
+msgstr ""
 
 #: src/qemu/qemu_command.c:7088
 msgid "Error generating NIC -device string"
@@ -15272,9 +15200,8 @@ msgid "unsupported pit tickpolicy '%s'"
 msgstr ""
 
 #: src/qemu/qemu_command.c:7779
-#, fuzzy
 msgid "hpet timer is not supported"
-msgstr "таймер pit не поддерживается"
+msgstr ""
 
 #: src/qemu/qemu_command.c:7814
 msgid "setting ACPI S3 not supported"
@@ -16082,9 +16009,9 @@ msgid "Failed to parse snapshot XML from file '%s'"
 msgstr "Не удалось получить XML снимка из файла «%s»"
 
 #: src/qemu/qemu_driver.c:541
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to fully read directory %s"
-msgstr "не удалось создать каталог «%s»"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:544
 #, c-format
@@ -16561,9 +16488,8 @@ msgstr "домен уже выполняется"
 
 #: src/qemu/qemu_driver.c:6312 src/qemu/qemu_driver.c:13381
 #: src/qemu/qemu_driver.c:14018
-#, fuzzy
 msgid "domain has active block job"
-msgstr "в домене есть активное задание блокирования"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:6394 src/test/test_driver.c:3168
 #, c-format
@@ -16645,19 +16571,17 @@ msgid "cgroup cpuset controller is not mounted"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:8793
-#, fuzzy, c-format
+#, c-format
 msgid "unsupported numatune mode: '%d'"
-msgstr "Режим переадресации «%s» не поддерживается"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:8804
-#, fuzzy
 msgid "Invalid nodeset for numatune"
-msgstr "Недопустимое значение памяти узла"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:8814
-#, fuzzy
 msgid "can't change numatune mode for running domain"
-msgstr "Нельзя изменить режим numa работающего домена"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:9020
 #, c-format
@@ -16720,9 +16644,9 @@ msgid "invalid path %s not assigned to domain"
 msgstr "Недопустимый путь: %s не соответствует домену"
 
 #: src/qemu/qemu_driver.c:10381
-#, fuzzy, c-format
+#, c-format
 msgid "disk '%s' does not currently have a source assigned"
-msgstr "%s не соответствует исходному диску  %s"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:10392 src/storage/storage_backend.c:1346
 #: src/storage/storage_backend.c:1391 src/util/virstoragefile.c:875
@@ -16738,9 +16662,9 @@ msgid "cannot read header '%s'"
 msgstr "Не удалось прочитать заголовок «%s»"
 
 #: src/qemu/qemu_driver.c:10410
-#, fuzzy, c-format
+#, c-format
 msgid "failed to stat remote file '%s'"
-msgstr "Не удалось создать файл «%s»"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:10422
 #, c-format
@@ -16811,14 +16735,12 @@ msgid "bandwidth must be less than %llu"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:12150
-#, fuzzy
 msgid "domain is already quiesced"
-msgstr "домен уже выполняется"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12189
-#, fuzzy
 msgid "domain is not quiesced"
-msgstr "Домен не приостановлен"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12278
 #, c-format
@@ -16916,9 +16838,8 @@ msgid "unexpected code path"
 msgstr "непредвиденный путь к коду"
 
 #: src/qemu/qemu_driver.c:12774
-#, fuzzy
 msgid "nothing selected for snapshot"
-msgstr "не удалось удалить снимок"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12783
 msgid ""
@@ -16941,9 +16862,9 @@ msgid "atomic live snapshot of multiple disks is unsupported"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:12883
-#, fuzzy, c-format
+#, c-format
 msgid "failed to create image file '%s'"
-msgstr "Не удалось создать файл «%s»"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12915 src/qemu/qemu_driver.c:13056
 msgid "domain crashed while taking the snapshot"
@@ -16990,9 +16911,9 @@ msgid "qemu doesn't support taking snapshots of PMSUSPENDED guests"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:13450
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid domain state %s"
-msgstr "недопустимое состояние домена «%s»"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:13486
 msgid "internal snapshot of a running VM must include the memory state"
@@ -17030,9 +16951,9 @@ msgid "qemu doesn't support reversion of snapshot taken in PMSUSPENDED state"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:14295
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid target domain state '%s'. Refusing snapshot reversion"
-msgstr "Недопустимое состояние «%s» в XML снимка домена"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:14408
 #, c-format
@@ -17106,9 +17027,9 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:15040 src/qemu/qemu_driver.c:15298
 #: src/qemu/qemu_driver.c:15583
-#, fuzzy, c-format
+#, c-format
 msgid "disk '%s' already in active block job"
-msgstr "в домене есть активное задание блокирования"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:15055
 #, fuzzy, c-format
@@ -17116,9 +17037,8 @@ msgid "another job on disk '%s' is still being ended"
 msgstr "Том «%s» в процессе распределения."
 
 #: src/qemu/qemu_driver.c:15083
-#, fuzzy
 msgid "this QEMU binary doesn't support relative block pull/rebase"
-msgstr "Этот QEMU не поддерживает kqemu"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:15096 src/qemu/qemu_driver.c:15662
 msgid "can't keep relative backing relationship"
@@ -17164,9 +17084,8 @@ msgid "disk %s has no source file to be committed"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:15571
-#, fuzzy
 msgid "active commit not supported with this QEMU binary"
-msgstr "Этот QEMU не поддерживает применение изменений в режиме онлайн"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:15577
 #, c-format
@@ -17174,9 +17093,9 @@ msgid "commit of '%s' active layer requires active flag"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:15589
-#, fuzzy, c-format
+#, c-format
 msgid "active commit requested but '%s' is not active"
-msgstr "пул «%s» не активен"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:15596
 #, c-format
@@ -17189,9 +17108,8 @@ msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:15652
-#, fuzzy
 msgid "this qemu doesn't support relative blockpull"
-msgstr "QEMU не поддерживает параметр «readonly» для -drive"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:15751
 #, c-format
@@ -17252,34 +17170,33 @@ msgid "Specifying mount point is not supported for now"
 msgstr "Определение точки подключения не поддерживается"
 
 #: src/qemu/qemu_driver.c:16935
-#, fuzzy
 msgid "specifying mountpoints is not supported"
-msgstr "Определение точки подключения не поддерживается"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:17013
-#, fuzzy, c-format
+#, c-format
 msgid "unknown virttype: %s"
-msgstr "неизвестный тип виртуализации"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:17020
-#, fuzzy, c-format
+#, c-format
 msgid "unknown architecture: %s"
-msgstr "Неизвестная архитектура %s"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:17036
-#, fuzzy, c-format
+#, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
-msgstr "%s не соответствует имени исходного домена %s"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:17046
-#, fuzzy, c-format
+#, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
-msgstr "соответствия процессора для архитектуры %s не найдены"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:17060
-#, fuzzy, c-format
+#, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
-msgstr "этот QEMU не поддерживает миграцию на «%s»: %s"
+msgstr ""
 
 #: src/qemu/qemu_hostdev.c:188
 msgid "host doesn't support passthrough of host PCI devices"
@@ -17357,9 +17274,9 @@ msgid "detaching serial console is not supported"
 msgstr "отключение последовательной консоли не поддерживается"
 
 #: src/qemu/qemu_hotplug.c:1581
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to prepare scsi hostdev for iSCSI: %s"
-msgstr "Не удалось предварительно создать файл chardev: «%s»"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1586
 #, c-format
@@ -17549,9 +17466,9 @@ msgid "Underlying qemu does not support %s disk removal"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:2997
-#, fuzzy, c-format
+#, c-format
 msgid "disk '%s' is in an active block job"
-msgstr "в домене есть активное задание блокирования"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:3063 src/uml/uml_driver.c:2369
 msgid "This type of disk cannot be hot unplugged"
@@ -17605,9 +17522,9 @@ msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:3414
-#, fuzzy, c-format
+#, c-format
 msgid "host scsi iSCSI path %s not found"
-msgstr "SCSI-устройство %s:%d:%d.%d не найдено"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:3420
 #, c-format
@@ -17809,9 +17726,9 @@ msgid "domain has assigned non-USB host devices"
 msgstr "домену назначены устройства, не являющиеся устройствами USB"
 
 #: src/qemu/qemu_migration.c:1526
-#, fuzzy, c-format
+#, c-format
 msgid "domain has CPU feature: %s"
-msgstr "Неизвестная функция процессора %s"
+msgstr ""
 
 #: src/qemu/qemu_migration.c:1567
 msgid "Migration may lead to data corruption if disks use cache != none"
@@ -18520,9 +18437,8 @@ msgid "only modern block pull supports base: %s"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:3811
-#, fuzzy
 msgid "backing name is supported only for block pull"
-msgstr "Режим ioeventfd поддерживается только шиной virtio"
+msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:3817
 msgid "backing name requires a base image"
@@ -19229,9 +19145,8 @@ msgid "host doesn't support paravirtual spinlocks"
 msgstr ""
 
 #: src/qemu/qemu_process.c:3699
-#, fuzzy
 msgid "host doesn't support invariant TSC"
-msgstr "этот диск не поддерживает обновление"
+msgstr ""
 
 #: src/qemu/qemu_process.c:3776 src/qemu/qemu_process.c:4723
 #: src/uml/uml_driver.c:1053
@@ -21558,19 +21473,16 @@ msgid "storage pool does not support encrypted volumes"
 msgstr "пул не поддерживает шифрование томов"
 
 #: src/storage/storage_backend.c:468
-#, fuzzy
 msgid "Failed to get fs flags"
-msgstr "Не удалось получить метку безопасности"
+msgstr ""
 
 #: src/storage/storage_backend.c:473
-#, fuzzy
 msgid "Failed to set NOCOW flag"
-msgstr "Не удалось получить файл SYSFS PCI"
+msgstr ""
 
 #: src/storage/storage_backend.c:509
-#, fuzzy
 msgid "too many conflicts when generating a uuid"
-msgstr "слишком много конфликтов при генерации UUID"
+msgstr ""
 
 #: src/storage/storage_backend.c:539
 msgid "secrets already defined"
@@ -21710,9 +21622,9 @@ msgid "Volume path '%s' is a FIFO"
 msgstr ""
 
 #: src/storage/storage_backend.c:1365
-#, fuzzy, c-format
+#, c-format
 msgid "Volume path '%s' is a socket"
-msgstr "путь «%s» не является абсолютным"
+msgstr ""
 
 #: src/storage/storage_backend.c:1386
 #: src/storage/storage_backend_gluster.c:290
@@ -21721,14 +21633,14 @@ msgid "cannot open volume '%s'"
 msgstr "не удалось открыть том «%s»"
 
 #: src/storage/storage_backend.c:1413
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot use volume path '%s'"
-msgstr "не удалось открыть том «%s»"
+msgstr ""
 
 #: src/storage/storage_backend.c:1423
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected type for file '%s'"
-msgstr "непредвиденный тип %d поля %s"
+msgstr ""
 
 #: src/storage/storage_backend.c:1429
 #, c-format
@@ -21800,9 +21712,8 @@ msgid "(gluster_cli_output)"
 msgstr ""
 
 #: src/storage/storage_backend.c:1989
-#, fuzzy
 msgid "failed to extract gluster volume name"
-msgstr "Не удалось получить имя планировщика"
+msgstr ""
 
 #: src/storage/storage_backend_disk.c:97
 msgid "cannot parse device start location"
@@ -22013,9 +21924,9 @@ msgid "preallocate is only supported for raw type volume"
 msgstr ""
 
 #: src/storage/storage_backend_fs.c:1459
-#, fuzzy, c-format
+#, c-format
 msgid "can't canonicalize path '%s'"
-msgstr "не удалось создать путь «%s»"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:84
 #, c-format
@@ -22073,14 +21984,13 @@ msgid "cannot remove gluster volume dir '%s'"
 msgstr ""
 
 #: src/storage/storage_backend_gluster.c:501
-#, fuzzy
 msgid "hostname must be specified for gluster sources"
-msgstr "необходимо определить имя узла для источника netfs"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:583
-#, fuzzy, c-format
+#, c-format
 msgid "missing gluster volume name for path '%s'"
-msgstr "для авторизации необходимо предоставить имя пользователя"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:611
 #, c-format
@@ -22093,14 +22003,14 @@ msgid "failed to initialize gluster connection to server: '%s'"
 msgstr ""
 
 #: src/storage/storage_backend_gluster.c:724
-#, fuzzy, c-format
+#, c-format
 msgid "failed to stat gluster path '%s'"
-msgstr "не удалось сохранить путь к символьному устройству «%s»"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:738
-#, fuzzy, c-format
+#, c-format
 msgid "failed to read link of gluster file '%s'"
-msgstr "ошибка чтения файла «%s»"
+msgstr ""
 
 #: src/storage/storage_backend_iscsi.c:106
 #: src/storage/storage_backend_scsi.c:443 src/util/virnetdevtap.c:103
@@ -22218,9 +22128,9 @@ msgid "cannot find newly created volume '%s'"
 msgstr "не удалось найти только что созданный том «%s»"
 
 #: src/storage/storage_backend_logical.c:863
-#, fuzzy, c-format
+#, c-format
 msgid "logical volue '%s' is sparse, volume wipe not supported"
-msgstr "Создание томов %s не поддерживается"
+msgstr ""
 
 #: src/storage/storage_backend_mpath.c:191
 #, c-format
@@ -22365,9 +22275,9 @@ msgid "Invalid adapter name '%s' for SCSI pool"
 msgstr "Недопустимое имя адаптера «%s» для пула SCSI"
 
 #: src/storage/storage_backend_scsi.c:565
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to find scsi_host using PCI '%s' and unique_id='%u'"
-msgstr "Не удалось привязать cgroup «%s» к %s"
+msgstr ""
 
 #: src/storage/storage_backend_scsi.c:578
 #, c-format
@@ -22407,9 +22317,9 @@ msgid "Failed to autostart storage pool '%s': %s"
 msgstr "Не удалось автоматически запустить пул «%s»: %s"
 
 #: src/storage/storage_driver.c:281
-#, fuzzy, c-format
+#, c-format
 msgid "no storage pool with matching uuid '%s'"
-msgstr "нет пула носителей с UUID %s"
+msgstr ""
 
 #: src/storage/storage_driver.c:310 src/storage/storage_driver.c:338
 #: src/storage/storage_driver.c:1539 src/storage/storage_driver.c:1770
@@ -22425,9 +22335,9 @@ msgstr "пул типа «%s» не поддерживает обнаружен�
 #: src/storage/storage_driver.c:548 src/storage/storage_driver.c:717
 #: src/storage/storage_driver.c:855 src/storage/storage_driver.c:968
 #: src/storage/storage_driver.c:1114 src/storage/storage_driver.c:1763
-#, fuzzy, c-format
+#, c-format
 msgid "no storage pool with matching uuid '%s' (%s)"
-msgstr "нет пула носителей с UUID %s"
+msgstr ""
 
 #: src/storage/storage_driver.c:734 src/storage/storage_driver.c:874
 #: src/storage/storage_driver.c:931 src/storage/storage_driver.c:987
@@ -22460,9 +22370,9 @@ msgstr "пул носителей не поддерживает удаление
 
 #: src/storage/storage_driver.c:1590 src/storage/storage_driver.c:1981
 #: src/storage/storage_driver.c:2031 src/storage/storage_driver.c:2126
-#, fuzzy, c-format
+#, c-format
 msgid "volume '%s' is still in use."
-msgstr "Том «%s» в процессе распределения."
+msgstr ""
 
 #: src/storage/storage_driver.c:1597 src/storage/storage_driver.c:1830
 #: src/storage/storage_driver.c:1938 src/storage/storage_driver.c:1988
@@ -22490,14 +22400,12 @@ msgid "storage pool does not support volume creation from an existing volume"
 msgstr "пул носителей не поддерживает создание томов на основе существующих"
 
 #: src/storage/storage_driver.c:1945
-#, fuzzy
 msgid "storage pool doesn't support volume download"
-msgstr "пул носителей не поддерживает создание томов"
+msgstr ""
 
 #: src/storage/storage_driver.c:1995
-#, fuzzy
 msgid "storage pool doesn't support volume upload"
-msgstr "пул носителей не поддерживает создание томов"
+msgstr ""
 
 #: src/storage/storage_driver.c:2052
 msgid "can't shrink capacity below existing allocation"
@@ -22523,38 +22431,36 @@ msgid "wiping algorithm %d not supported"
 msgstr ""
 
 #: src/storage/storage_driver.c:2140
-#, fuzzy
 msgid "storage pool doesn't support volume wiping"
-msgstr "Пул носителей iSCSI не поддерживает операции очистки томов"
+msgstr ""
 
 #: src/storage/storage_driver.c:2572 src/storage/storage_driver.c:2606
-#, fuzzy
 msgid "storage file backend not initialized"
-msgstr "Sanlock не инициализирован"
+msgstr ""
 
 #: src/storage/storage_driver.c:2578
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "storage file header reading is not supported for storage type %s (protocol: "
 "%s)"
-msgstr "внутренний снимок %s для пространства данных типа %s не поддерживается"
+msgstr ""
 
 #: src/storage/storage_driver.c:2612
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "unique storage file identifier not implemented for storage type %s "
 "(protocol: %s)'"
-msgstr "внутренний снимок %s для пространства данных типа %s не поддерживается"
+msgstr ""
 
 #: src/storage/storage_driver.c:2702
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot access backing file %s"
-msgstr "Нет доступа к резервному файлу «%s»"
+msgstr ""
 
 #: src/storage/storage_driver.c:2712
-#, fuzzy, c-format
+#, c-format
 msgid "backing store for %s (%s) is self-referential"
-msgstr "резервное хранилище для %s ссылается само на себя"
+msgstr ""
 
 #: src/test/test_driver.c:246
 msgid "invalid transient"
@@ -22807,9 +22713,8 @@ msgid "IP address not supported for ethernet interface"
 msgstr "IP-адрес не поддерживается Ethernet-интерфейсом"
 
 #: src/uml/uml_conf.c:187
-#, fuzzy
 msgid "vhostuser networking type not supported"
-msgstr "режим hostdev не поддерживается"
+msgstr ""
 
 #: src/uml/uml_conf.c:192
 msgid "TCP server networking type not supported"
@@ -23115,9 +23020,8 @@ msgid "Failed to parse bitmap '%s'"
 msgstr ""
 
 #: src/util/virbuffer.c:291
-#, fuzzy
 msgid "Invalid buffer API usage"
-msgstr "Неизвестный объект для приостановки"
+msgstr ""
 
 #: src/util/vircgroup.c:179
 msgid "Cannot open /proc/cgroups"
@@ -24003,9 +23907,9 @@ msgid "Failed to read file '%s'"
 msgstr "Ошибка чтения файла «%s»"
 
 #: src/util/virfile.c:1414
-#, fuzzy, c-format
+#, c-format
 msgid "cannot resolve '%s' without starting directory"
-msgstr "не удалось создать каталог автозапуска %s"
+msgstr ""
 
 #: src/util/virfile.c:1711 src/util/virfile.c:1718
 #, c-format
@@ -24059,9 +23963,9 @@ msgid "virDirCreate is not implemented for WIN32"
 msgstr "Функции virDirCreate не реализованы в WIN32"
 
 #: src/util/virfile.c:2422
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to read directory '%s'"
-msgstr "Не удалось создать каталог %s"
+msgstr ""
 
 #: src/util/virfile.c:2807
 msgid "Could not write to stream"
@@ -24106,29 +24010,27 @@ msgid "direct firewall backend requested, but %s is not available"
 msgstr ""
 
 #: src/util/virfirewall.c:651 src/util/virfirewall.c:708
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown firewall layer %d"
-msgstr "Неизвестный выпуск: %s"
+msgstr ""
 
 #: src/util/virfirewall.c:673
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to apply firewall rules %s: %s"
-msgstr "Не удалось создать «%s»: %s"
+msgstr ""
 
 #: src/util/virfirewall.c:757
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to apply rule '%s'"
-msgstr "Не удалось сохранить «%s»"
+msgstr ""
 
 #: src/util/virfirewall.c:804
-#, fuzzy
 msgid "Unexpected firewall engine backend"
-msgstr "Непредвиденное значение резервного процессора: %d"
+msgstr ""
 
 #: src/util/virfirewall.c:822 src/util/virfirewall.c:891
-#, fuzzy
 msgid "Unable to create rule"
-msgstr "Не удалось создать канал"
+msgstr ""
 
 #: src/util/virhash.c:45
 msgid "Hash operation not allowed during iteration"
@@ -24689,15 +24591,15 @@ msgid "Unable to restore net config on this platform"
 msgstr "Не удалось восстановить конфигурацию сети на этой платформе"
 
 #: src/util/virnetdev.c:1853 src/util/virnetdev.c:1901
-#, fuzzy, c-format
+#, c-format
 msgid "unable to read: %s"
-msgstr "Не удалось прочитать %s"
+msgstr ""
 
 #: src/util/virnetdev.c:1860 src/util/virnetdev.c:1871
 #: src/util/virnetdev.c:1909
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to parse: %s"
-msgstr "Не удалось обработать URI %s"
+msgstr ""
 
 #: src/util/virnetdevbandwidth.c:406 src/util/virnetdevbandwidth.c:502
 #, c-format
@@ -25091,9 +24993,8 @@ msgid "no valid netlink response was received"
 msgstr ""
 
 #: src/util/virnetlink.c:259
-#, fuzzy
 msgid "nl_recv failed - returned 0 bytes"
-msgstr "nl_recv вернул ошибку"
+msgstr ""
 
 #: src/util/virnetlink.c:263
 msgid "nl_recv failed"
@@ -25197,24 +25098,23 @@ msgid "libvirt is compiled without NUMA tuning support"
 msgstr "Эта сборка libvirt не поддерживает изменение параметров NUMA"
 
 #: src/util/virnuma.c:586 src/util/virnuma.c:605
-#, fuzzy, c-format
+#, c-format
 msgid "unable to parse: %s"
-msgstr "не удалось обработать URI %s"
+msgstr ""
 
 #: src/util/virnuma.c:746
-#, fuzzy, c-format
+#, c-format
 msgid "unable to open path: %s"
-msgstr "Не удалось открыть %s"
+msgstr ""
 
 #: src/util/virnuma.c:767
-#, fuzzy, c-format
+#, c-format
 msgid "unable to parse %s"
-msgstr "не удалось обработать URI %s"
+msgstr ""
 
 #: src/util/virnuma.c:853 src/util/virnuma.c:866
-#, fuzzy
 msgid "page info is not supported on this platform"
-msgstr "Эта платформа не поддерживает необработанный ввод-вывод"
+msgstr ""
 
 #: src/util/virobject.c:133
 #, c-format
@@ -25413,9 +25313,9 @@ msgid "Error getting physical function's '%s' virtual_functions"
 msgstr ""
 
 #: src/util/virpci.c:2829
-#, fuzzy, c-format
+#, c-format
 msgid "pci device %s is not a PCI-Express device"
-msgstr "%s не является PCI-устройством"
+msgstr ""
 
 #: src/util/virpidfile.c:390
 #, c-format
@@ -25475,14 +25375,14 @@ msgid "Failed to release port %d"
 msgstr "Не удалось освободить порт %d"
 
 #: src/util/virportallocator.c:272
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to query port %d"
-msgstr "Не удалось опросить порт %zu"
+msgstr ""
 
 #: src/util/virportallocator.c:276
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to reserve port %d"
-msgstr "Не удалось освободить порт %d"
+msgstr ""
 
 #: src/util/virprocess.c:73
 #, c-format
@@ -25678,9 +25578,8 @@ msgid "/proc/net/dev: Interface not found"
 msgstr "/proc/net/dev: интерфейс не найден"
 
 #: src/util/virstats.c:133
-#, fuzzy
 msgid "Could not get interface list"
-msgstr "ошибка при получении интерфейса «%s»"
+msgstr ""
 
 #: src/util/virstats.c:163 src/util/virerror.c:1102
 msgid "Interface not found"
@@ -25738,9 +25637,9 @@ msgid "Cannot read from /dev/urandom"
 msgstr "не удалось выполнить чтение из /dev/urandom"
 
 #: src/util/virstoragefile.c:781
-#, fuzzy, c-format
+#, c-format
 msgid "unknown storage file meta->format %d"
-msgstr "неизвестный формат файла данных %d"
+msgstr ""
 
 #: src/util/virstoragefile.c:886
 #, c-format
@@ -25782,29 +25681,29 @@ msgid "Unable to get SCSI key for %s"
 msgstr "Не удалось получить ключ SCSI для %s"
 
 #: src/util/virstoragefile.c:1304
-#, fuzzy, c-format
+#, c-format
 msgid "requested target '%s' does not match target '%s'"
-msgstr "%s не соответствует имени исходного домена %s"
+msgstr ""
 
 #: src/util/virstoragefile.c:1402
-#, fuzzy, c-format
+#, c-format
 msgid "could not find backing store %u in chain for '%s'"
-msgstr "Не найдено родительское устройство для «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:1407
-#, fuzzy, c-format
+#, c-format
 msgid "could not find image '%s' beneath '%s' in chain for '%s'"
-msgstr "Не найдено родительское устройство для «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:1411
-#, fuzzy, c-format
+#, c-format
 msgid "could not find image '%s' in chain for '%s'"
-msgstr "Не найдено родительское устройство для «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:1415
-#, fuzzy, c-format
+#, c-format
 msgid "could not find base image in chain for '%s'"
-msgstr "Не найдено родительское устройство для «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:1560
 msgid "missing auth secret uuid or usage attribute"
@@ -25829,44 +25728,44 @@ msgid "unknown auth type '%s'"
 msgstr "неизвестный тип аутентификации «%s»"
 
 #: src/util/virstoragefile.c:2083
-#, fuzzy, c-format
+#, c-format
 msgid "failed to parse backing file location '%s'"
-msgstr "не удалось включить MAC-фильтр в «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:2094 src/util/virstoragefile.c:2173
-#, fuzzy, c-format
+#, c-format
 msgid "invalid backing protocol '%s'"
-msgstr "Неизвестный протокол «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:2102
-#, fuzzy, c-format
+#, c-format
 msgid "invalid protocol transport type '%s'"
-msgstr "неизвестный тип протокола «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:2191
-#, fuzzy, c-format
+#, c-format
 msgid "missing remote information in '%s' for protocol nbd"
-msgstr "отсутствует информация о корневом устройстве %s"
+msgstr ""
 
 #: src/util/virstoragefile.c:2197
-#, fuzzy, c-format
+#, c-format
 msgid "missing unix socket path in nbd backing string %s"
-msgstr "недоступный том запасного накопителя %s"
+msgstr ""
 
 #: src/util/virstoragefile.c:2208
-#, fuzzy, c-format
+#, c-format
 msgid "missing host name in nbd string '%s'"
-msgstr "отсутствует параметр файла для диска «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:2218
-#, fuzzy, c-format
+#, c-format
 msgid "missing port in nbd string '%s'"
-msgstr "отсутствует параметр файла для диска «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:2238
-#, fuzzy, c-format
+#, c-format
 msgid "backing store parser is not implemented for protocol %s"
-msgstr "Функции virDirCreate не реализованы в WIN32"
+msgstr ""
 
 #: src/util/virstoragefile.c:2250
 #, c-format
@@ -25874,9 +25773,9 @@ msgid "malformed backing store path for protocol %s"
 msgstr ""
 
 #: src/util/virstoragefile.c:2483
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to canonicalize path '%s'"
-msgstr "Не удалось открыть каталог «%s»"
+msgstr ""
 
 #: src/util/virstoragefile.c:2620
 msgid ""
@@ -26701,14 +26600,13 @@ msgid "error from service: %s"
 msgstr "ошибка службы: %s"
 
 #: src/util/virerror.c:1282
-#, fuzzy
 msgid "the CPU is incompatible with host CPU"
-msgstr "процессор гостя несовместим с процессором узла"
+msgstr ""
 
 #: src/util/virerror.c:1284
-#, fuzzy, c-format
+#, c-format
 msgid "the CPU is incompatible with host CPU: %s"
-msgstr "процессор гостя несовместим с процессором узла"
+msgstr ""
 
 #: src/util/virerror.h:80
 #, c-format
@@ -26721,9 +26619,9 @@ msgid "%s in %s must not be NULL"
 msgstr "%s в %s должен содержать NULL"
 
 #: src/util/virerror.h:102
-#, fuzzy, c-format
+#, c-format
 msgid "%s in %s must be greater than zero"
-msgstr "%s в %s должен быть больше нуля"
+msgstr ""
 
 #: src/util/virerror.h:113
 #, c-format
@@ -26746,19 +26644,16 @@ msgid "Unable to format time"
 msgstr ""
 
 #: src/util/virtime.c:348
-#, fuzzy
 msgid "failed to get current system time"
-msgstr "Не удалось получить текущее время"
+msgstr ""
 
 #: src/util/virtime.c:355
-#, fuzzy
 msgid "gmtime_r failed"
-msgstr "сбой setsid"
+msgstr ""
 
 #: src/util/virtime.c:365
-#, fuzzy
 msgid "mktime failed"
-msgstr "сбой setsid"
+msgstr ""
 
 #: src/util/virtpm.c:54
 #, c-format
@@ -27033,9 +26928,9 @@ msgid "failed to parse value of %s"
 msgstr "не удалось разобрать значение %s"
 
 #: src/util/virutil.c:1729
-#, fuzzy, c-format
+#, c-format
 msgid "unable to parse unique_id: %s"
-msgstr "не удалось разобрать MAC-адрес «%s»"
+msgstr ""
 
 #: src/util/virutil.c:1954
 #, c-format
@@ -27202,62 +27097,52 @@ msgid "unable to initialize VirtualBox driver API"
 msgstr "не удалось инициализировать API драйвера VirtualBox"
 
 #: src/vbox/vbox_snapshot_conf.c:74
-#, fuzzy
 msgid "Cannot parse <HardDisk> 'uuid' attribute"
-msgstr "Не удалось выполнить разбор атрибута «cssid» в <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:83
-#, fuzzy
 msgid "Cannot parse <HardDisk> 'location' attribute"
-msgstr "Не удалось разобрать атрибут «function» для <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:99
-#, fuzzy
 msgid "Cannot parse <HardDisk> 'format' attribute"
-msgstr "Не удалось разобрать атрибут «port» для <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:149
-#, fuzzy
 msgid "Cannot create a vboxSnapshotXmlHardDisk"
-msgstr "Не удалось создать каталог автозапуска %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:208
-#, fuzzy
 msgid "Cannot parse <Snapshot> 'uuid' attribute"
-msgstr "Не удалось выполнить разбор атрибута «cssid» в <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:217
-#, fuzzy
 msgid "Cannot parse <Snapshot> 'name' attribute"
-msgstr "Не удалось выполнить разбор атрибута «reg» в <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:223
-#, fuzzy
 msgid "Cannot parse <Snapshot> 'timeStamp' attribute"
-msgstr "Не удалось выполнить разбор атрибута «startport» в <master>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:236
 msgid "Cannot parse <Snapshot> <Hardware> node"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:244
-#, fuzzy
 msgid "Cannot parse <Snapshot> <StorageControllers> node"
-msgstr "Не удалось разобрать индекс контроллера %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:264
 msgid "Cannot create a vboxSnapshotXmlSnapshotPtr"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:428
-#, fuzzy
 msgid "Unable to add the snapshot hardware"
-msgstr "не удалось определить наличие родительского снимка"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:439
-#, fuzzy
 msgid "Unable to add the snapshot storageController"
-msgstr "не удалось определить наличие родительского снимка"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:607
 msgid "Filepath is Null"
@@ -27265,64 +27150,53 @@ msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:617 src/vbox/vbox_snapshot_conf.c:1304
 #: src/vbox/vbox_snapshot_conf.c:1366
-#, fuzzy
 msgid "Unable to parse the xml"
-msgstr "Не удалось выполнить разбор целого значения"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:628
-#, fuzzy
 msgid ""
 "Failed to register xml namespace 'http://www.innotek.de/VirtualBox-settings'"
-msgstr "Не удалось зарегистрировать пространство имен XML «%s»"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:639
 msgid "Cannot parse <VirtualBox> <Machine> node"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:646
-#, fuzzy
 msgid "Cannot parse <Machine> 'uuid' attribute"
-msgstr "Не удалось выполнить разбор атрибута «cssid» в <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:652
-#, fuzzy
 msgid "Cannot parse <Machine> 'name' attribute"
-msgstr "Не удалось выполнить разбор атрибута «reg» в <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:665
-#, fuzzy
 msgid "Cannot parse <Machine> 'currentSnapshot' attribute"
-msgstr "Не удалось выполнить разбор атрибута «startport» в <master>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:675
-#, fuzzy
 msgid "Cannot parse <Machine> 'snapshotFolder' attribute"
-msgstr "Не удалось разобрать атрибут «controller» для <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:688
-#, fuzzy
 msgid "Cannot parse <Machine> 'lastStateChange' attribute"
-msgstr "Не удалось выполнить разбор атрибута «target» в <address>"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:696
-#, fuzzy
 msgid "Cannot parse <Machine> <Hardware> node"
-msgstr "не удалось выполнить разбор PID в журнале vmware"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:708
-#, fuzzy
 msgid "Cannot parse <Machine> <StorageControllers> node"
-msgstr "Не удалось разобрать индекс контроллера %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:717
-#, fuzzy
 msgid "Cannot parse <Machine> <MediaRegistry> node"
-msgstr "Не удалось выполнить разбор категории в %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:769
-#, fuzzy
 msgid "Snapshot is Null"
-msgstr "Список доменов"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:774
 msgid "Machine is Null"
@@ -27339,9 +27213,9 @@ msgid "The machine has no snapshot and it should have it"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:799 src/vbox/vbox_snapshot_conf.c:1270
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to find the snapshot %s"
-msgstr "Не удалось удалить снимок %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:829
 msgid "Hard disk is null"
@@ -27352,28 +27226,25 @@ msgid "Media Registry is null"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:845
-#, fuzzy
 msgid "Unable to get the parent disk"
-msgstr "Не удалось получить параметры памяти"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:878
 msgid "machine is null"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:883 src/vbox/vbox_snapshot_conf.c:1264
-#, fuzzy
 msgid "snapshotName is null"
-msgstr "показать только имена снимков"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:888
-#, fuzzy
 msgid "the machine has no snapshot"
-msgstr "нет снимков домена"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:894
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to find the snapshot with name %s"
-msgstr "Снимок «%s» не найден."
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:899
 msgid "This snapshot has children, please delete theses snapshots before"
@@ -27392,9 +27263,9 @@ msgid "Uuid is null"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:961
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to find the hard disk with uuid %s"
-msgstr "Не удалось извлечь путь к диску из %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1018 src/vbox/vbox_snapshot_conf.c:1259
 msgid "Machine is null"
@@ -27417,43 +27288,37 @@ msgid "Error in xmlAddPrevSibling"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1149
-#, fuzzy
 msgid "Unable to add media registry other media"
-msgstr "Не удалось извлечь носитель"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1173
-#, fuzzy
 msgid "Unable to add hardware machine"
-msgstr "Не удалось выполнить разбор целого значения"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1186
-#, fuzzy
 msgid "Unable to add extra data"
-msgstr "Не удалось добавить дескриптор epoll"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1199
-#, fuzzy
 msgid "Unable to add storage controller"
-msgstr "Не удалось открыть контрольный сокет"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1209
-#, fuzzy
 msgid "Failed to serialize snapshot"
-msgstr "Не удалось удалить снимок %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1216
-#, fuzzy
 msgid "Unable to save the xml"
-msgstr "Не удалось сохранить файл %s"
+msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1298 src/vbox/vbox_snapshot_conf.c:1360
 msgid "filePath is null"
 msgstr ""
 
 #: src/vbox/vbox_snapshot_conf.c:1495
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove hard disk %s from media registry"
-msgstr "Ошибка чтения монитора"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:945
 msgid "nsIEventQueue object is null"
@@ -27740,51 +27605,44 @@ msgstr ""
 #: src/vbox/vbox_tmpl.c:6340 src/vbox/vbox_tmpl.c:6604
 #: src/vbox/vbox_tmpl.c:6637 src/vbox/vbox_tmpl.c:6759
 #: src/vbox/vbox_tmpl.c:6921 src/vbox/vbox_tmpl.c:8528
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to open HardDisk, rc=%08x"
-msgstr "Не удалось открыть %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6047
-#, fuzzy
 msgid "Unable to get disk children"
-msgstr "Не удалось уведомить дочерний процесс"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6060
-#, fuzzy
 msgid "Unable to close disk children"
-msgstr "Не удалось закрыть %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6069 src/vbox/vbox_tmpl.c:6288
 #: src/vbox/vbox_tmpl.c:6390 src/vbox/vbox_tmpl.c:6725
 #: src/vbox/vbox_tmpl.c:6928
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to close HardDisk, rc=%08x"
-msgstr "Не удалось закрыть %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6151 src/vbox/vbox_tmpl.c:8445
-#, fuzzy
 msgid "cannot get settings file path"
-msgstr "не удалось получить время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6160 src/vbox/vbox_tmpl.c:8454
-#, fuzzy
 msgid "cannot get machine name"
-msgstr "не удалось получить информацию домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6170 src/vbox/vbox_tmpl.c:8463
-#, fuzzy
 msgid "Unable to get the machine location path"
-msgstr "Не удалось получить индекс интерфейса на этой платформе"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6178 src/vbox/vbox_tmpl.c:8469
-#, fuzzy
 msgid "cannot create a vboxSnapshotXmlPtr"
-msgstr "не удалось создать каталог снимка «%s»"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6196
-#, fuzzy
 msgid "Unable to remove Fake Disks"
-msgstr "Не удалось удалить устройство %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6207
 msgid ""
@@ -27793,160 +27651,143 @@ msgid ""
 msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6240
-#, fuzzy
 msgid "Unable to get the read write medium id"
-msgstr "Не удалось выполнить генерацию случайного uuid."
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6249
-#, fuzzy
 msgid "Unable to get the read write medium format"
-msgstr "Не удалось получить статистику хоста"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6281
-#, fuzzy
 msgid "Unable to add hard disk to media Registry"
-msgstr "Не удалось добавить обработчик %d в цикл событий"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6299
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to delete file %s"
-msgstr "Не удалось удалить мост %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6324
 msgid "Unable to know if disk is in media registry"
 msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6350
-#, fuzzy
 msgid "Unable to get hard disk id"
-msgstr "Не удалось получить мост  %s %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6359
-#, fuzzy
 msgid "Unable to get hard disk format"
-msgstr "Не удалось получить информацию о диске"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6371
-#, fuzzy
 msgid "Unable to get parent hard disk"
-msgstr "Не удалось получить текущее время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6379
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to get hard disk id, rc=%08x"
-msgstr "Не удалось получить мост  %s %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6413
-#, fuzzy
 msgid "Unable to add hard disk to media registry"
-msgstr "Не удалось добавить обработчик %d в цикл событий"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6426 src/vbox/vbox_tmpl.c:8728
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to unregister machine, rc=%08x"
-msgstr "Не удалось сохранить предыдущий MAC для %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6446
-#, fuzzy
 msgid "Unable to get medium location"
-msgstr "Не удалось получить статистику хоста"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6458 src/vbox/vbox_tmpl.c:8747
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to delete medium, rc=%08x"
-msgstr "Не удалось удалить мост %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6467 src/vbox/vbox_tmpl.c:8755
-#, fuzzy, c-format
+#, c-format
 msgid "Error while closing medium, rc=%08x"
-msgstr "Ошибка обработки ввода-вывода монитора"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6491
-#, fuzzy
 msgid "Unable to close recursively all disks"
-msgstr "Не удалось открыть %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6561
-#, fuzzy
 msgid "Unable to add the snapshot to the machine description"
-msgstr "Не удалось изменить описание домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6649
-#, fuzzy
 msgid "Unable to get disk format"
-msgstr "Не удалось получить информацию о диске"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6666
-#, fuzzy
 msgid "Unable to get disk uuid"
-msgstr "Не удалось выполнить генерацию случайного uuid."
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6677
-#, fuzzy
 msgid "Unable to get disk parent"
-msgstr "Не удалось получить параметры blkio"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6689 src/vbox/vbox_tmpl.c:6842
 #: src/vbox/vbox_tmpl.c:8613
-#, fuzzy
 msgid "Unable to add hard disk to the media registry"
-msgstr "Не удалось добавить обработчик %d в цикл событий"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6705 src/vbox/vbox_tmpl.c:6853
 #: src/vbox/vbox_tmpl.c:8624 src/vbox/vbox_tmpl.c:8669
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to find UUID %s"
-msgstr "Не удалось обработать URI %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6769 src/vbox/vbox_tmpl.c:8536
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to get hardDisk Id, rc=%08x"
-msgstr "Не удалось получить идентификатор устройства: «%s»"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6788 src/vbox/vbox_tmpl.c:8555
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to create HardDisk, rc=%08x"
-msgstr "Не удалось создать устройство %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6806 src/vbox/vbox_tmpl.c:8574
-#, fuzzy, c-format
+#, c-format
 msgid "Error while creating diff storage, rc=%08x"
-msgstr "Ошибка при чтении имени домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6822 src/vbox/vbox_tmpl.c:8590
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to get medium uuid, rc=%08x"
-msgstr "Не удалось выполнить генерацию случайного uuid."
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6872 src/vbox/vbox_tmpl.c:8643
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to close the new medium, rc=%08x"
-msgstr "Не удалось создать виртуальный адаптер."
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6887
-#, fuzzy
 msgid "Unable to get snapshot content"
-msgstr "Не удалось получить число снимков"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6892
-#, fuzzy
 msgid "Unable to save new snapshot xml file"
-msgstr "Не удалось сохранить файл %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6939 src/vbox/vbox_tmpl.c:8798
-#, fuzzy
 msgid "Unable to serialize the machine description"
-msgstr "Не удалось изменить описание домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6947 src/vbox/vbox_tmpl.c:8806
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to open Machine, rc=%08x"
-msgstr "Не удалось открыть журнал %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:6955 src/vbox/vbox_tmpl.c:8814
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to register Machine, rc=%08x"
-msgstr "Не удалось сохранить предыдущий MAC для %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7037 src/vbox/vbox_tmpl.c:8169
 #: src/vbox/vbox_tmpl.c:8269 src/vbox/vbox_tmpl.c:8868
@@ -27970,14 +27811,12 @@ msgid "could not get current snapshot of domain %s"
 msgstr "не удалось получить текущий снимок домена %s"
 
 #: src/vbox/vbox_tmpl.c:7141
-#, fuzzy
 msgid "Could not get snapshot id"
-msgstr "Не удалось получить имя снимка"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7149
-#, fuzzy
 msgid "could not get machine"
-msgstr "не удалось получить статус домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7156
 msgid "no medium attachments"
@@ -27985,80 +27824,65 @@ msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7168 src/vbox/vbox_tmpl.c:7210
 #: src/vbox/vbox_tmpl.c:7376 src/vbox/vbox_tmpl.c:7418
-#, fuzzy
 msgid "cannot get medium"
-msgstr "не удалось получить время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7218
-#, fuzzy
 msgid "cannot get controller"
-msgstr "не удалось получить текущее время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7228
-#, fuzzy
 msgid "cannot get children disk"
-msgstr "не удалось получить текущее время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7234
-#, fuzzy
 msgid "cannot get snapshot ids"
-msgstr "не удалось получить UUID хоста"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7255 src/vbox/vbox_tmpl.c:7445
-#, fuzzy
 msgid "cannot get disk location"
-msgstr "не удалось разобрать начальное расположение устройства"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7270 src/vbox/vbox_tmpl.c:7458
-#, fuzzy
 msgid "cannot get storage controller bus"
-msgstr "не найден PCI-адрес контроллера %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7276 src/vbox/vbox_tmpl.c:7282
 #: src/vbox/vbox_tmpl.c:7474
-#, fuzzy
 msgid "cannot get medium attachment type"
-msgstr "не удалось получить текущее время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7288
-#, fuzzy
 msgid "cannot get medium attachment device"
-msgstr "не удалось получить информацию домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7354
-#, fuzzy
 msgid "cannot get machine"
-msgstr "не удалось получить информацию домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7364
-#, fuzzy
 msgid "cannot get medium attachments"
-msgstr "не удалось получить информацию домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7426
-#, fuzzy
 msgid "cannot get storage controller name"
-msgstr "Не удалось разобрать индекс контроллера %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7436
-#, fuzzy
 msgid "cannot get storage controller"
-msgstr "не удалось получить путь к контроллеру cgroup MEMORY"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7487
-#, fuzzy
 msgid "cannot get medium attachment port"
-msgstr "не удалось получить текущее время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7493
-#, fuzzy
 msgid "cannot get device"
-msgstr "не удалось разобрать устройство %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7499
-#, fuzzy
 msgid "cannot get read only attribute"
-msgstr "не удалось получить текущее время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:7612
 #, c-format
@@ -28134,29 +27958,24 @@ msgid "could not delete snapshot"
 msgstr "не удалось удалить снимок"
 
 #: src/vbox/vbox_tmpl.c:8420
-#, fuzzy
 msgid "Unable to get XML Desc of snapshot"
-msgstr "Не удалось получить ключ LVM для %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8431
-#, fuzzy
 msgid "Unable to get a virDomainSnapshotDefPtr"
-msgstr "Не удалось получить статус домена"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8476
-#, fuzzy
 msgid "Unable to know if the snapshot is the current snapshot"
-msgstr "Просмотр и изменение текущего снимка"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8510
-#, fuzzy
 msgid "Cannot get hard disk by location"
-msgstr "не удалось разобрать конечное расположение устройства"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8515
-#, fuzzy
 msgid "The read only disk has no parent"
-msgstr "у снимка «%s»  нет родителя"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8658
 #, c-format
@@ -28164,34 +27983,31 @@ msgid "No such disk in media registry %s"
 msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8695 src/vbox/vbox_tmpl.c:8712
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to find UUID for location %s"
-msgstr "Не удалось найти свободное петлевое устройство а в  /dev"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8700 src/vbox/vbox_tmpl.c:8717
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove disk from media registry. uuid = %s"
-msgstr "Не удалось удалить устройство %s"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8777
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove snapshot %s"
-msgstr "Не удалось удалить мост %s (порт %s)"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8787
-#, fuzzy
 msgid "Unable to get the snapshot to remove"
-msgstr "Не удалось получить текущее время"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8879
-#, fuzzy
 msgid "could not get snapshot children"
-msgstr "не удалось определить имя снимка"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8884
-#, fuzzy
 msgid "cannot delete metadata of a snapshot with children"
-msgstr "снимок работающего домена не может быть удален"
+msgstr ""
 
 #: src/vbox/vbox_tmpl.c:8897
 msgid "cannot delete snapshots of running domain"
@@ -28251,9 +28067,9 @@ msgid "Invalid driver type: %d"
 msgstr ""
 
 #: src/vmware/vmware_conf.c:246
-#, fuzzy, c-format
+#, c-format
 msgid "cannot find version pattern \"%s\""
-msgstr "не удалось найти сеанс"
+msgstr ""
 
 #: src/vmware/vmware_conf.c:252
 #, c-format
@@ -28509,12 +28325,10 @@ msgstr ""
 "%lld."
 
 #: src/vmx/vmx.c:1321
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Expecting VMX entry 'virtualHW.version' to be 4 or higher but found %lld"
 msgstr ""
-"Запись VMX «virtualHW.version» должна содержать 4, 7, 8 или 9, но обнаружено "
-"%lld."
 
 #: src/vmx/vmx.c:1342
 msgid "VMX entry 'name' contains invalid escape sequence"
@@ -29376,9 +29190,9 @@ msgid "block peeking not implemented"
 msgstr ""
 
 #: src/xen/xm_internal.c:1438
-#, fuzzy, c-format
+#, c-format
 msgid "cannot check link /etc/xen/auto/%s points to config %s"
-msgstr "не удалось проверить соответствие ссылки %s конфигурации %s"
+msgstr ""
 
 #: src/xen/xm_internal.c:1467
 #, c-format
@@ -29786,9 +29600,9 @@ msgid "VFB %s too big for destination"
 msgstr "Слишком большой VFB %s для цели"
 
 #: src/xenxs/xen_xm.c:1032
-#, fuzzy, c-format
+#, c-format
 msgid "invalid vncdisplay value '%s'"
-msgstr "Недопустимое значение преобразования: «%s»"
+msgstr ""
 
 #: src/xenxs/xen_xm.c:1173
 #, c-format
@@ -31221,47 +31035,42 @@ msgid "also print reason for the state"
 msgstr "вывести причину изменения состояния"
 
 #: tools/virsh-domain-monitor.c:1363
-#, fuzzy
 msgid "domain time"
-msgstr "тип домена"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1366
-#, fuzzy
 msgid "Gets or sets the domain's system time"
-msgstr "показать или изменить заголовок и описание домена"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1379
 msgid "set to the time of the host running virsh"
 msgstr ""
 
 #: tools/virsh-domain-monitor.c:1383
-#, fuzzy
 msgid "print domain's time in human readable form"
-msgstr "форматировать вывод при печати"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1387
 msgid "instead of setting given time, synchronize from domain's RTC"
 msgstr ""
 
 #: tools/virsh-domain-monitor.c:1391
-#, fuzzy
 msgid "time to set"
-msgstr "Не удалось установить %s"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1422
-#, fuzzy
 msgid "Unable to parse integer parameter to --time."
-msgstr "Не удалось обработать целое значение"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1456
-#, fuzzy, c-format
+#, c-format
 msgid "Time: %s"
-msgstr "Устройство: %s\n"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1458
-#, fuzzy, c-format
+#, c-format
 msgid "Time: %lld"
-msgstr "Прошло времени:"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1473
 msgid "list domains"
@@ -31376,9 +31185,8 @@ msgid "mark inactive domains with managed save state"
 msgstr ""
 
 #: tools/virsh-domain-monitor.c:1831
-#, fuzzy
 msgid "show domain title"
-msgstr "показать статистику процессоров домена"
+msgstr ""
 
 #: tools/virsh-domain-monitor.c:1885
 msgid "Only one argument from --table, --name and --uuid may be specified."
@@ -31470,9 +31278,8 @@ msgid "target of disk device"
 msgstr "целевое устройство в домене"
 
 #: tools/virsh-domain.c:282
-#, fuzzy
 msgid "target bus of disk device"
-msgstr "целевое устройство в домене"
+msgstr ""
 
 #: tools/virsh-domain.c:286
 msgid "driver of disk device"
@@ -31831,9 +31638,8 @@ msgid "with --wait, display the progress"
 msgstr "показывать ход выполнения при наличии --wait"
 
 #: tools/virsh-domain.c:1633 tools/virsh-domain.c:1841
-#, fuzzy
 msgid "implies --wait, abort if copy exceeds timeout (in seconds)"
-msgstr "если есть --wait, прервать при превышении времени ожидания (сек.)"
+msgstr ""
 
 #: tools/virsh-domain.c:1637
 msgid "implies --active --wait, pivot when commit is synced"
@@ -31853,9 +31659,8 @@ msgid "keep the backing chain relatively referenced"
 msgstr ""
 
 #: tools/virsh-domain.c:1677
-#, fuzzy
 msgid "cannot mix --pivot and --keep-overlay"
-msgstr "--pivot и  --finish не могут использоваться вместе"
+msgstr ""
 
 #: tools/virsh-domain.c:1698 tools/virsh-domain.c:1901
 #: tools/virsh-domain.c:2178
@@ -31938,16 +31743,12 @@ msgid "wait for job to reach mirroring phase"
 msgstr "дождаться перехода задания в стадию создания зеркальной копии"
 
 #: tools/virsh-domain.c:1845
-#, fuzzy
 msgid "implies --wait, pivot when mirroring starts"
 msgstr ""
-"если есть --wait, выйти при переходе к стадии создания зеркальной копии"
 
 #: tools/virsh-domain.c:1849
-#, fuzzy
 msgid "implies --wait, quit when mirroring starts"
 msgstr ""
-"если есть --wait, выйти при переходе к стадии создания зеркальной копии"
 
 #: tools/virsh-domain.c:1880
 msgid "cannot mix --pivot and --finish"
@@ -32859,21 +32660,19 @@ msgid "Run shutdown in the target domain."
 msgstr "Выполнить команду shutdown в целевом домене."
 
 #: tools/virsh-domain.c:4917 tools/virsh-domain.c:5006
-#, fuzzy
 msgid "shutdown mode: acpi|agent|initctl|signal|paravirt"
-msgstr "режим завершения работы: acpi|agent|initctl|signal"
+msgstr ""
 
 #: tools/virsh-domain.c:4937 tools/virsh-domain.c:5025
 msgid "Cannot parse mode string"
 msgstr "Не удалось выполнить разбор строки режима"
 
 #: tools/virsh-domain.c:4955
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Unknown mode %s value, expecting 'acpi', 'agent', 'initctl', 'signal', or "
 "'paravirt'"
 msgstr ""
-"Неизвестный режим %s (должен быть «acpi», «agenti», «acpi» или «acpi»)."
 
 #: tools/virsh-domain.c:4971
 #, c-format
@@ -32894,12 +32693,11 @@ msgid "Run a reboot command in the target domain."
 msgstr "Выполнить команду reboot в целевом домене."
 
 #: tools/virsh-domain.c:5043
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Unknown mode %s value, expecting 'acpi', 'agent', 'initctl', 'signal' or "
 "'paravirt'"
 msgstr ""
-"Неизвестный режим %s (должен быть «acpi», «agenti», «acpi» или «acpi»)."
 
 #: tools/virsh-domain.c:5055
 #, c-format
@@ -33120,9 +32918,8 @@ msgid "Returns basic information about the domain virtual CPUs."
 msgstr "Возвращает основную информацию о виртуальных процессорах домена."
 
 #: tools/virsh-domain.c:5604 tools/virsh-host.c:509
-#, fuzzy
 msgid "return human readable output"
-msgstr "форматировать вывод при печати"
+msgstr ""
 
 #: tools/virsh-domain.c:5650 tools/virsh-domain.c:5948
 msgid "VCPU:"
@@ -33180,18 +32977,16 @@ msgid "vcpupin: Invalid vCPU number."
 msgstr "vcpupin: Недопустимый номер виртуального процессора."
 
 #: tools/virsh-domain.c:5917
-#, fuzzy
 msgid "vcpupin: Missing vCPU number in pin mode."
-msgstr "vcpupin: Недопустимый или неверный номер виртуального процессора."
+msgstr ""
 
 #: tools/virsh-domain.c:5922
 msgid "vcpupin: failed to get domain information."
 msgstr "vcpupin: не удалось получить информацию о домене."
 
 #: tools/virsh-domain.c:5927
-#, fuzzy
 msgid "vcpupin: vCPU index out of range."
-msgstr "число виртуальных процессоров превышает допустимый диапазон: %d > %d"
+msgstr ""
 
 #: tools/virsh-domain.c:5948 tools/virsh-domain.c:6077
 msgid "CPU Affinity"
@@ -33250,9 +33045,8 @@ msgid "file containing an XML CPU description"
 msgstr "файл с XML-описанием процессора"
 
 #: tools/virsh-domain.c:6242
-#, fuzzy
 msgid "report error if CPUs are incompatible"
-msgstr "Процессоры несовместимы"
+msgstr ""
 
 #: tools/virsh-domain.c:6281
 #, c-format
@@ -34159,9 +33953,9 @@ msgid "Failed to create display URI"
 msgstr ""
 
 #: tools/virsh-domain.c:9562
-#, fuzzy, c-format
+#, c-format
 msgid "No graphical display with type '%s' found"
-msgstr "неизвестный тип <listen type='%s'> в описании графического устройства"
+msgstr ""
 
 #: tools/virsh-domain.c:9564
 msgid "No graphical display found"
@@ -34713,14 +34507,13 @@ msgid "mountpoint path to be frozen"
 msgstr ""
 
 #: tools/virsh-domain.c:11557 tools/virsh-domain.c:11614
-#, fuzzy, c-format
+#, c-format
 msgid "%s: %d: failed to allocate mountpoints"
-msgstr "%s: %d: не удалось выделить %lu байт"
+msgstr ""
 
 #: tools/virsh-domain.c:11566
-#, fuzzy
 msgid "Unable to freeze filesystems"
-msgstr "Не удалось открыть файловую систему %s"
+msgstr ""
 
 #: tools/virsh-domain.c:11570
 #, c-format
@@ -34728,18 +34521,16 @@ msgid "Froze %d filesystem(s)\n"
 msgstr ""
 
 #: tools/virsh-domain.c:11580 tools/virsh-domain.c:11583
-#, fuzzy
 msgid "Thaw domain's mounted filesystems."
-msgstr "Файловая система %s не может быть подключена"
+msgstr ""
 
 #: tools/virsh-domain.c:11596
 msgid "mountpoint path to be thawed"
 msgstr ""
 
 #: tools/virsh-domain.c:11623
-#, fuzzy
 msgid "Unable to thaw filesystems"
-msgstr "Не удалось открыть файловую систему %s"
+msgstr ""
 
 #: tools/virsh-domain.c:11627
 #, c-format
@@ -34767,14 +34558,12 @@ msgid "failed to get capabilities"
 msgstr "не удалось получить информацию о возможностях"
 
 #: tools/virsh-host.c:76
-#, fuzzy
 msgid "domain capabilities"
-msgstr "возможности"
+msgstr ""
 
 #: tools/virsh-host.c:79
-#, fuzzy
 msgid "Returns capabilities of emulator with respect to host and libvirt."
-msgstr "Возвращает возможности гипервизора/драйвера."
+msgstr ""
 
 #: tools/virsh-host.c:87
 msgid "virtualization type (/domain/@type)"
@@ -34793,9 +34582,8 @@ msgid "machine type (/domain/os/type/@machine)"
 msgstr ""
 
 #: tools/virsh-host.c:124
-#, fuzzy
 msgid "failed to get emulator capabilities"
-msgstr "не удалось получить информацию о возможностях"
+msgstr ""
 
 #: tools/virsh-host.c:140 tools/virsh-host.c:266
 msgid "NUMA free memory"
@@ -34847,29 +34635,26 @@ msgid "page size (in kibibytes)"
 msgstr ""
 
 #: tools/virsh-host.c:285
-#, fuzzy
 msgid "show free pages for all NUMA cells"
-msgstr "показать свободную память для всех ячеек NUMA."
+msgstr ""
 
 #: tools/virsh-host.c:317
-#, fuzzy
 msgid "unable to parse node capabilities"
-msgstr "не удалось получить характеристики узла"
+msgstr ""
 
 #: tools/virsh-host.c:324
-#, fuzzy
 msgid "could not get information about supported page sizes"
-msgstr "не удалось получить информацию о топологии NUMA"
+msgstr ""
 
 #: tools/virsh-host.c:335
-#, fuzzy, c-format
+#, c-format
 msgid "unable to parse page size: %s"
-msgstr "не удалось обработать memspec: %s"
+msgstr ""
 
 #: tools/virsh-host.c:354
-#, fuzzy, c-format
+#, c-format
 msgid "unable to parse numa node id: %s"
-msgstr "не удалось разобрать MAC-адрес «%s»"
+msgstr ""
 
 #: tools/virsh-host.c:364
 #, c-format
@@ -34877,29 +34662,24 @@ msgid "Node %d:\n"
 msgstr ""
 
 #: tools/virsh-host.c:373
-#, fuzzy
 msgid "missing cellno argument"
-msgstr "отсутствует аргумент"
+msgstr ""
 
 #: tools/virsh-host.c:378
-#, fuzzy
 msgid "Invalid cellno argument"
-msgstr "Недопустимый аргумент"
+msgstr ""
 
 #: tools/virsh-host.c:383
-#, fuzzy
 msgid "cell number must be non-negative integer or -1"
-msgstr "ID vcpu должен содержать целое число без знака или -1"
+msgstr ""
 
 #: tools/virsh-host.c:388
-#, fuzzy
 msgid "page size has to be a number"
-msgstr "размер памяти должен содержать число"
+msgstr ""
 
 #: tools/virsh-host.c:396
-#, fuzzy
 msgid "page size must be at least 1KiB"
-msgstr "размер не может превышать %llu"
+msgstr ""
 
 #: tools/virsh-host.c:425
 msgid "connection vcpu maximum"
@@ -36031,19 +35811,17 @@ msgid "either --list or event type is required"
 msgstr ""
 
 #: tools/virsh-network.c:1293
-#, fuzzy
 msgid "print lease info for a given network"
-msgstr "Принудительно остановить выбранную сеть."
+msgstr ""
 
 #: tools/virsh-network.c:1296
-#, fuzzy
 msgid "Print lease info for a given network"
-msgstr "Принудительно остановить выбранную сеть."
+msgstr ""
 
 #: tools/virsh-network.c:1352
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to get leases info for %s"
-msgstr "Не удалось освободить порт %d"
+msgstr ""
 
 #: tools/virsh-network.c:1360
 msgid "Expiry Time"
@@ -36051,12 +35829,11 @@ msgstr ""
 
 #: tools/virsh-network.c:1360
 msgid "Protocol"
-msgstr ""
+msgstr "Протокол"
 
 #: tools/virsh-network.c:1361
-#, fuzzy
 msgid "IP address"
-msgstr "MAC-адрес"
+msgstr ""
 
 #: tools/virsh-network.c:1361
 msgid "Hostname"
@@ -37437,9 +37214,9 @@ msgid "failed to get vol '%s', specifying --%s might help"
 msgstr " не удалось получить том  «%s» (попробуйте добавить --%s)"
 
 #: tools/virsh-volume.c:117
-#, fuzzy, c-format
+#, c-format
 msgid "Requested volume '%s' is not in pool '%s'"
-msgstr "%s не соответствует имени исходного домена %s"
+msgstr ""
 
 #: tools/virsh-volume.c:137
 msgid "create a volume from a set of args"
@@ -37629,14 +37406,12 @@ msgid "amount of data to download"
 msgstr "размер загружаемых данных"
 
 #: tools/virsh-volume.c:791
-#, fuzzy
 msgid "Unable to parse offset value"
-msgstr "Не удалось обработать квоту"
+msgstr ""
 
 #: tools/virsh-volume.c:796
-#, fuzzy
 msgid "Unable to parse length value"
-msgstr "Не удалось выполнить разбор целого значения"
+msgstr ""
 
 #: tools/virsh-volume.c:809
 #, c-format
@@ -37993,280 +37768,5 @@ msgstr ""
 msgid "Unable to exec shell %s"
 msgstr ""
 
-#~ msgid "invalid security type"
-#~ msgstr "недопустимый тип безопасности"
-
-#~ msgid "missing type for secret"
-#~ msgstr "тип секретного ключа не определен"
-
-#~ msgid "only one of uuid and usage can be specified"
-#~ msgstr "допускается только один атрибут «uuid» и один «usage»"
-
-#~ msgid "either uuid or usage should be specified for a secret"
-#~ msgstr "строка <secret> должна содержать атрибут  «uuid» или «usage»"
-
-#~ msgid "malformed uuid %s"
-#~ msgstr "неверно сформированный UUID: %s"
-
-#~ msgid "unsupported XML element %s"
-#~ msgstr "Элемент XML %s не поддерживается"
-
-#~ msgid "only a single RNG device is supported"
-#~ msgstr "поддерживается только одно устройство RNG"
-
-#~ msgid "Target domain RNG device count '%d' does not match source count '%d'"
-#~ msgstr "%d не соответствует числу устройств RNG исходного домена,  %d"
-
-#~ msgid "missing auth username attribute"
-#~ msgstr "элемент <auth> не содержит имя пользователя"
-
-#~ msgid "missing storage pool source adapter name"
-#~ msgstr "отсутствует имя адаптера источника пула хранения"
-
-#~ msgid "out of blkio weight range."
-#~ msgstr "за пределами допустимого диапазона веса blkio"
-
-#~ msgid ""
-#~ "Buffer error when generating device name for device with sysname '%s'"
-#~ msgstr "Ошибка буфера при генерации имени для устройства с sysname «%s»"
-
 #~ msgid "hugetlbfs filesystem is not mounted"
 #~ msgstr "файловая система hugetlbfs не смонтирована"
-
-#~ msgid "cannot resolve symlink %s"
-#~ msgstr "не удалось разрешить символьную ссылку %s"
-
-#~ msgid "Invalid mode for memory NUMA tuning."
-#~ msgstr "Недопустимый режим настройки NUMA."
-
-#~ msgid "IO Weight in range [100, 1000]"
-#~ msgstr "Вес ввода-вывода в диапазоне "
-
-#~ msgid "failed to format cpuset for vcpupin"
-#~ msgstr "не удалось отформатировать cpuset для <vcpupin>"
-
-#~ msgid "failed to format nodeset for NUMA memory tuning"
-#~ msgstr "не удалось отформатировать nodeset для NUMA"
-
-#~ msgid "failed to convert cpumask"
-#~ msgstr "не удалось преобразовать cpumask"
-
-#~ msgid "failed to convert memory nodemask"
-#~ msgstr "не удалось преобразовать маску узлов для памяти"
-
-#~ msgid "libxenlight does not support network device type %s"
-#~ msgstr "libxenlight не поддерживает сетевые устройства типа %s"
-
-#~ msgid "failed to convert cpu mask"
-#~ msgstr "не удалось преобразовать маску процессора"
-
-#~ msgid "Failed to format nodeset"
-#~ msgstr "Не удалось отформатировать набор узлов"
-
-#, fuzzy
-#~ msgid "committing the active layer not supported yet"
-#~ msgstr "временные диски не поддерживаются"
-
-#, fuzzy
-#~ msgid "unable to resolve '%s'"
-#~ msgstr "Не удалось сохранить «%s»"
-
-#~ msgid "failed to get the log file information"
-#~ msgstr "не удалось получить сведения о журнале"
-
-#~ msgid "the log path is not a file"
-#~ msgstr "путь к журналу не является файлом"
-
-#~ msgid "wait for job to complete"
-#~ msgstr "дождаться завершения задания"
-
-#~ msgid "invalid basedate"
-#~ msgstr "недопустимое значение basedate"
-
-#~ msgid "Can't find volume with path '%s'"
-#~ msgstr "Том «%s» не найден."
-
-#~ msgid "Can't find storage pool with name '%s'"
-#~ msgstr "Пул «%s» не найден."
-
-#~ msgid "Can't create VM '%s' without hard disks"
-#~ msgstr ""
-#~ "Для создания виртуальной машины  «%s» необходимо определить жесткие диски"
-
-#~ msgid "Can't allocate domobj"
-#~ msgstr "Не удалось выделить место для domobj"
-
-#~ msgid "%s: cannot identify driver directory\n"
-#~ msgstr "%s: не удалось идентифицировать каталог драйвера\n"
-
-#~ msgid "%s: expected driver directory '%s' is missing\n"
-#~ msgstr "%s: отсутствует каталог драйверов «%s»\n"
-
-#~ msgid "cannot save persistent config of transient network '%s'"
-#~ msgstr "постоянная конфигурация временной сети «%s» не может быть сохранена"
-
-#~ msgid "cannot save live config of inactive network '%s'"
-#~ msgstr "текущая конфигурация неактивной сети «%s» не может быть сохранена"
-
-#~ msgid "no matching network device was found"
-#~ msgstr "подходящее сетевое устройство не найдено"
-
-#~ msgid "Network '%s' is not active."
-#~ msgstr "сеть «%s» не активна"
-
-#~ msgid "network device %s not found"
-#~ msgstr "сетевое устройство %s не найдено"
-
-#~ msgid "network is not active"
-#~ msgstr "сеть не активна"
-
-#~ msgid "failed to add iptables rule to allow forwarding from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения перенаправления с «%s»"
-
-#~ msgid "failed to add iptables rule to allow forwarding to '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения перенаправления на "
-#~ "«%s»"
-
-#~ msgid "failed to add iptables rule to enable masquerading to %s"
-#~ msgstr "не удалось добавить правило iptables для маскирования в %s"
-
-#~ msgid "failed to add iptables rule to enable masquerading"
-#~ msgstr "не удалось добавить правило iptables для маскирования"
-
-#~ msgid "failed to add iptables rule to enable UDP masquerading to %s"
-#~ msgstr "не удалось добавить правило iptables для маскирования UDP в %s"
-
-#~ msgid "failed to add iptables rule to enable UDP masquerading"
-#~ msgstr "не удалось добавить правило iptables для активации маскирования UDP"
-
-#~ msgid "failed to add iptables rule to enable TCP masquerading to %s"
-#~ msgstr "не удалось добавить правило iptables для маскирования TCP в %s"
-
-#~ msgid "failed to add iptables rule to enable TCP masquerading"
-#~ msgstr "не удалось добавить правило iptables для маскирования TCP"
-
-#~ msgid "failed to add iptables rule to allow routing from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения маршрутизации с «%s»"
-
-#~ msgid "failed to add iptables rule to allow routing to '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения маршрутизации на «%s»"
-
-#~ msgid "failed to add ip6tables rule to block outbound traffic from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило ip6tables для блокирования исходящего трафика "
-#~ "из «%s»"
-
-#~ msgid "failed to add ip6tables rule to block inbound traffic to '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило ip6tables для блокирования поступающего "
-#~ "трафика на «%s»"
-
-#~ msgid "failed to add ip6tables rule to allow cross bridge traffic on '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило ip6tables для передачи трафика между мостами "
-#~ "на «%s»"
-
-#~ msgid "failed to add ip6tables rule to allow DNS requests from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило ip6tables для разрешения запросов DNS с «%s»"
-
-#~ msgid "failed to add ip6tables rule to allow DHCP6 requests from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило ip6tables для получения запросов DHCP6 c «%s»"
-
-#~ msgid "failed to add iptables rule to allow DHCP requests from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения запросов DHCP с «%s»"
-
-#~ msgid "failed to add iptables rule to allow DNS requests from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения запросов DNS с «%s»"
-
-#~ msgid "failed to add iptables rule to allow TFTP requests from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения запросов TFTP с «%s»"
-
-#~ msgid "failed to add iptables rule to block outbound traffic from '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для блокирования исходящего трафика "
-#~ "с «%s»"
-
-#~ msgid "failed to add iptables rule to block inbound traffic to '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для блокирования поступающего "
-#~ "трафика на «%s»"
-
-#~ msgid "failed to add iptables rule to allow cross bridge traffic on '%s'"
-#~ msgstr ""
-#~ "не удалось добавить правило iptables для разрешения трафика между мостами "
-#~ "на «%s»"
-
-#~ msgid "problem reading %s"
-#~ msgstr "ошибка при чтении %s"
-
-#~ msgid "cannot create rule since %s tool is missing."
-#~ msgstr "%s отсутствует, поэтому правило не может быть создано."
-
-#~ msgid "cannot create rule since ebtables tool is missing."
-#~ msgstr "Нет ebtables, поэтому правило не было создано."
-
-#~ msgid "illegal protocol type"
-#~ msgstr "Недопустимый тип протокола"
-
-#~ msgid "cannot create rules since ebtables tool is missing."
-#~ msgstr "ebtables отсутствует, поэтому правило не может быть создано."
-
-#~ msgid "Some rules could not be created."
-#~ msgstr "Не удалось создать правила."
-
-#~ msgid "Some rules could not be created for interface %s%s%s"
-#~ msgstr "Не удалось создать некоторые правила для интерфейса %s%s%s"
-
-#~ msgid "Testing of ebtables command failed: %s"
-#~ msgstr "Команда ebtables не прошла проверку: %s"
-
-#~ msgid "Testing of iptables command failed: %s"
-#~ msgstr "Команда iptables не прошла проверку: %s"
-
-#~ msgid "Testing of ip6tables command failed: %s"
-#~ msgstr "Команда ip6tables не прошла проверку: %s"
-
-#~ msgid ""
-#~ "essential tools to support ip(6)tables firewalls could not be located"
-#~ msgstr ""
-#~ "Не найдены необходимые инструменты для межсетевых экранов ip(6)tables"
-
-#~ msgid "firewall tools were not found or cannot be used"
-#~ msgstr ""
-#~ "инструменты межсетевого экрана не найдены или не могут быть использованы"
-
-#~ msgid "Failed to scan configuration directory"
-#~ msgstr "Не удалось завершить сканирование каталога конфигурации"
-
-#~ msgid "failed to delete vcpupin xml of a running domain"
-#~ msgstr "не удалось удалить xml vcuppin работающего домена"
-
-#~ msgid "failed to delete vcpupin xml of a persistent domain"
-#~ msgstr "не удалось удалить xml vcuppin постоянного домена"
-
-#~ msgid "couldn't find matching device with mac address %s"
-#~ msgstr "Устройство с MAC-адресом %s не найдено"
-
-#~ msgid "Failed to update volume for '%s'"
-#~ msgstr "Не удалось обновить том для «%s»"
-
-#~ msgid "Unable to iterate over NBD devices"
-#~ msgstr "Не удалось выполнить итерацию по устройствам NBD"
-
-#~ msgid "Cannot read dir '%s'"
-#~ msgstr "Не удалось прочитать каталог «%s»"
-
-#~ msgid "name too long: '%s'"
-#~ msgstr "Слишком длинное имя: «%s»"
-
-#~ msgid "show short domain description"
-#~ msgstr "показать краткое описание домена"
