@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-07-31 11:46-0400\n"
+"POT-Creation-Date: 2014-08-03 08:45-0400\n"
 "PO-Revision-Date: 2014-02-26 03:31+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Tamil (http://www.transifex.com/projects/p/fedora/language/"
@@ -1027,14 +1027,14 @@ msgstr "transient செயற்களத்திற்கு தானிய�
 msgid "cannot create autostart directory %s"
 msgstr "%s அடைவிற்கு தானியக்கி துவக்கத்தை உருவாக்க முடியாது"
 
-#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3337
+#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3338
 #: src/storage/storage_driver.c:1141
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "%s லிருந்து %s க்கு symlinkஐ உருவாக்க முடியவில்லை"
 
 #: src/bhyve/bhyve_driver.c:408 src/lxc/lxc_driver.c:3217
-#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3344
+#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3345
 #: src/qemu/qemu_driver.c:7508 src/storage/storage_driver.c:1149
 #: src/uml/uml_driver.c:2482
 #, c-format
@@ -11120,7 +11120,7 @@ msgstr ""
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT கன்ட்ரோலர் மவுன்ட் செய்யப்படவில்லை"
 
-#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2085
+#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2086
 #: src/qemu/qemu_command.c:387 src/qemu/qemu_driver.c:9966
 #: src/qemu/qemu_hotplug.c:2186 src/util/virnetdevmacvlan.c:926
 #, c-format
@@ -12011,79 +12011,79 @@ msgstr "radvd அமைவாக்கக் கோப்பு '%s' ஐ எழ�
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s ஐக் கண்டறிய முடியவில்லை -தொகுப்பு நிறுவப்படாமல் இருக்கலாம்"
 
-#: src/network/bridge_driver.c:1845
-#, c-format
-msgid "cannot write to %s to disable IPv6 on bridge %s"
+#: src/network/bridge_driver.c:1847
+#, fuzzy, c-format
+msgid "cannot write to %s to enable/disable IPv6 on bridge %s"
 msgstr "%s பிரிட்ஜில் IPv6 ஐ முடக்குவதற்காக %s இல் எழுத முடியவில்லை"
 
-#: src/network/bridge_driver.c:1865 src/network/bridge_driver.c:1879
+#: src/network/bridge_driver.c:1866 src/network/bridge_driver.c:1880
 #, c-format
 msgid "cannot disable %s"
 msgstr "%sஐ செயல்நீக்க முடியவில்லை"
 
-#: src/network/bridge_driver.c:1898
+#: src/network/bridge_driver.c:1899
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "பிரிட்ஜ் '%s' இல் தவறான நெட்மாஸ்க் அல்லது IP முகவரி உள்ளது"
 
-#: src/network/bridge_driver.c:1941
+#: src/network/bridge_driver.c:1942
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr ""
 "பிணையம் '%s' இல் தட வரையறையில் செல்லுபடியாகாத நெட்மாஸ்க் அல்லது IP முகவரி உள்ளது"
 
-#: src/network/bridge_driver.c:2059
+#: src/network/bridge_driver.c:2060
 msgid "failed to enable IP forwarding"
 msgstr "IP முன்னனுப்புதலை செயல்படுத்த முடியவில்லை"
 
-#: src/network/bridge_driver.c:2219
+#: src/network/bridge_driver.c:2220
 msgid "network is already active"
 msgstr "பிணையம் ஏற்கனவே செயலில் உள்ளது"
 
-#: src/network/bridge_driver.c:2343 src/network/bridge_driver.c:2911
-#: src/network/bridge_driver.c:2985 src/network/bridge_driver.c:3144
-#: src/network/bridge_driver.c:3179 src/network/bridge_driver.c:3306
+#: src/network/bridge_driver.c:2344 src/network/bridge_driver.c:2912
+#: src/network/bridge_driver.c:2986 src/network/bridge_driver.c:3145
+#: src/network/bridge_driver.c:3180 src/network/bridge_driver.c:3307
 #: src/parallels/parallels_network.c:475 src/parallels/parallels_network.c:526
 #: src/parallels/parallels_network.c:592 src/test/test_driver.c:3827
 msgid "no network with matching uuid"
 msgstr "uuidஉடன் பிணைய பொருத்தம் இல்லை"
 
-#: src/network/bridge_driver.c:2370 src/network/bridge_driver.c:3715
-#: src/network/bridge_driver.c:4107 src/network/bridge_driver.c:4298
-#: src/network/bridge_driver.c:4458 src/parallels/parallels_network.c:499
+#: src/network/bridge_driver.c:2371 src/network/bridge_driver.c:3716
+#: src/network/bridge_driver.c:4108 src/network/bridge_driver.c:4299
+#: src/network/bridge_driver.c:4459 src/parallels/parallels_network.c:499
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "பொருந்தும் பெயர் '%s'உடன் பிணையம் இல்லை"
 
-#: src/network/bridge_driver.c:2654
+#: src/network/bridge_driver.c:2655
 #, c-format
 msgid "Unsupported <mac> element in network %s with forward mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2662
+#: src/network/bridge_driver.c:2663
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr "முன்னோக்குப் பயன்முறை='%s' என அமைந்துள்ள பிணையம் %s இல் ஆதரிக்கப்படாத <ip> கூறு"
 
-#: src/network/bridge_driver.c:2670
+#: src/network/bridge_driver.c:2671
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr "முன்னோக்குப் பயன்முறை='%s' என அமைந்துள்ள பிணையம் %s இல் ஆதரிக்கப்படாத <dns> கூறு"
 
-#: src/network/bridge_driver.c:2678
+#: src/network/bridge_driver.c:2679
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr ""
 "முன்னோக்குப் பயன்முறை='%s' என அமைந்துள்ள பிணையம் %s இல் ஆதரிக்கப்படாத <domain> கூறு"
 
-#: src/network/bridge_driver.c:2686
+#: src/network/bridge_driver.c:2687
 #, c-format
 msgid ""
 "Unsupported network-wide <bandwidth> element in network %s with forward "
 "mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2704
+#: src/network/bridge_driver.c:2705
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -12091,7 +12091,7 @@ msgstr ""
 "பல IPv4 dhcp பிரிவுகள் கண்டறியப்பட்டுள்ளன -- ஒவ்வொரு பிணையத்திலும் ஒற்றை IPv4 "
 "முகவரிக்கு மட்டுமே  dhcp ஆதரிக்கப்படும்"
 
-#: src/network/bridge_driver.c:2717
+#: src/network/bridge_driver.c:2718
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -12099,7 +12099,7 @@ msgstr ""
 "பல IPv6 dhcp பிரிவுகள் கண்டறியப்பட்டுள்ளன -- ஒவ்வொரு பிணையத்திலும் ஒற்றை IPv6 "
 "முகவரிக்கு மட்டுமே dhcp ஆதரிக்கப்படும்"
 
-#: src/network/bridge_driver.c:2761
+#: src/network/bridge_driver.c:2762
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -12108,7 +12108,7 @@ msgstr ""
 "பிணையம் '%s' க்கு பல முன்னிருப்பு <portgroup> கூறுகள் (%s மற்றும் %s) உள்ளன, ஆனால் "
 "ஒரு முன்னிருப்பு மதிப்பு மட்டுமே அனுமதிக்கப்படும்"
 
-#: src/network/bridge_driver.c:2779
+#: src/network/bridge_driver.c:2780
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -12117,73 +12117,73 @@ msgstr ""
 "பிணையம் %s க்கு <vlan> கூறு குறிப்பிடப்பட்டுள்ளது, அதன் வகை vlan அமைவாக்கத்தை "
 "ஆதரிக்காது"
 
-#: src/network/bridge_driver.c:3188 src/network/bridge_driver.c:3723
+#: src/network/bridge_driver.c:3189 src/network/bridge_driver.c:3724
 #, fuzzy, c-format
 msgid "network '%s' is not active"
 msgstr "பிணையம் %s செயலில் இல்லை"
 
-#: src/network/bridge_driver.c:3259 src/test/test_driver.c:3971
+#: src/network/bridge_driver.c:3260 src/test/test_driver.c:3971
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "பிணையம் '%s' ஒரு பாலம் பெயர் இல்லை."
 
-#: src/network/bridge_driver.c:3315
+#: src/network/bridge_driver.c:3316
 msgid "cannot set autostart for transient network"
 msgstr "transient பிணையத்திற்கு தானியக்க துவக்கத்தை அமைக்க முடியவில்லை"
 
-#: src/network/bridge_driver.c:3330
+#: src/network/bridge_driver.c:3331
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "%s தானியக்கி துவக்க அடைவினை உருவாக்க முடியாது"
 
-#: src/network/bridge_driver.c:3414
+#: src/network/bridge_driver.c:3415
 #, fuzzy, c-format
 msgid "invalid json in file: %s"
 msgstr "தவறான செயற்கள வகை %s"
 
-#: src/network/bridge_driver.c:3420 src/network/leaseshelper.c:290
+#: src/network/bridge_driver.c:3421 src/network/leaseshelper.c:290
 #, fuzzy
 msgid "couldn't fetch array of leases"
 msgstr "ஸ்னாப்ஷாட் %s இன் தாய் ஸ்னாப்ஷாட்டைப் பெற முடியவில்லை"
 
-#: src/network/bridge_driver.c:3430 src/network/leaseshelper.c:301
+#: src/network/bridge_driver.c:3431 src/network/leaseshelper.c:301
 #: src/network/leaseshelper.c:308
 #, fuzzy
 msgid "failed to parse json"
 msgstr "%s ஐப் பாகுபடுத்துவது தோல்வி"
 
-#: src/network/bridge_driver.c:3438
+#: src/network/bridge_driver.c:3439
 msgid "found lease without mac-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3448
+#: src/network/bridge_driver.c:3449
 msgid "found lease without expiry-time"
 msgstr ""
 
-#: src/network/bridge_driver.c:3465
+#: src/network/bridge_driver.c:3466
 msgid "found lease without ip-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3517
+#: src/network/bridge_driver.c:3518
 #, fuzzy, c-format
 msgid "no lease with matching MAC address: %s"
 msgstr "MAC முகவரியுடன் பல முகப்புகள் பொருந்துகிறது"
 
-#: src/network/bridge_driver.c:3623
+#: src/network/bridge_driver.c:3624
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "%s இல் மெய்நிகர் செயல்தொகுதிகளைப் பெற முடியவில்லை"
 
-#: src/network/bridge_driver.c:3630
+#: src/network/bridge_driver.c:3631
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr "SRIOV PF %s இல் Vf's உள்ளது"
 
-#: src/network/bridge_driver.c:3651
+#: src/network/bridge_driver.c:3652
 msgid "Direct mode types require interface names"
 msgstr "நேரடி பயன்முறை வகைகளுக்கு இடைமுகப் பெயர்கள் அவசியம்"
 
-#: src/network/bridge_driver.c:3801
+#: src/network/bridge_driver.c:3802
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -12192,18 +12192,18 @@ msgstr ""
 "பிரிட்ஜ் சாதனத்தைப் பயன்படுத்துகின்ற பிணையம் '%s' க்கு <virtualport type='%s'> "
 "ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3828 src/network/bridge_driver.c:3984
+#: src/network/bridge_driver.c:3829 src/network/bridge_driver.c:3985
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr "பிணையம் '%s' க்கு இடைமுகங்களுக்கான பிரத்யேக அணுகல் தேவை ஆனால் கிடைக்கவில்லை"
 
-#: src/network/bridge_driver.c:3854
+#: src/network/bridge_driver.c:3855
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "பிணையம் '%2$s' இல் '%1$d' என்ற அடையாளம் காணப்படாத இயக்கி பெயர் மதிப்பு உள்ளது"
 
-#: src/network/bridge_driver.c:3878
+#: src/network/bridge_driver.c:3879
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -12212,7 +12212,7 @@ msgstr ""
 "PCI பாஸ்த்ரூ மூலமாக மெய்நிகர் SR-IOV செயல்தொகுதியைப் பயன்படுத்துகின்ற பிணையம் '%s' க்கு "
 "<virtualport type='%s'> ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3929
+#: src/network/bridge_driver.c:3930
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -12221,7 +12221,7 @@ msgstr ""
 "macvtap சாதனத்தைப் பயன்படுத்துகின்ற பிணையம் '%s' க்கு <virtualport type='%s'> "
 "ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3942
+#: src/network/bridge_driver.c:3943
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -12229,7 +12229,7 @@ msgstr ""
 "பிணையம் '%s' ஒரு நேரடி பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் முன்னோக்கு dev இல்லை "
 "மற்றும் இடைமுக தொகுப்பகம் இல்லை"
 
-#: src/network/bridge_driver.c:4015
+#: src/network/bridge_driver.c:4016
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -12238,7 +12238,7 @@ msgstr ""
 "பிணையம் '%s' க்கு இணைக்கும் ஒரு இடைமுகமானது vlan குறிச்சொலைக் கோருகிறது, ஆனால் "
 "இவ்வகை பிணையத்திற்கு அது ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:4021
+#: src/network/bridge_driver.c:4022
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -12247,7 +12247,7 @@ msgstr ""
 "'%s' வகை இடைமுகம் ஒன்று vlan குறிச்சொல்லைக் கோருகிறது, ஆனால் இவ்வகை இணைப்புக்கு அது "
 "ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:4126
+#: src/network/bridge_driver.c:4127
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -12256,32 +12256,32 @@ msgstr ""
 "பிணையம் '%s' ஒரு நேரடி பயன்முறை அல்லது hostdev பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் "
 "அதில் முன்னோக்கு dev இல்லை மற்றும் இடைமுக தொகுப்பகம் இல்லை"
 
-#: src/network/bridge_driver.c:4138 src/network/bridge_driver.c:4332
+#: src/network/bridge_driver.c:4139 src/network/bridge_driver.c:4333
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr "பிணையம் ஒரு நேரடி பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் மூல dev இல்லை"
 
-#: src/network/bridge_driver.c:4155 src/network/bridge_driver.c:4348
+#: src/network/bridge_driver.c:4156 src/network/bridge_driver.c:4349
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "பிணையம் '%s' இல் டொமைன் dev='%s' ஐ பயன்படுத்திக் கொண்டு இல்லை"
 
-#: src/network/bridge_driver.c:4172
+#: src/network/bridge_driver.c:4173
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 "பிணையம் '%s' ஆனது வேறொரு டொமைன் dev='%s' ஐ ஏற்கனவே பயன்படுத்திக் கொண்டுள்ளது என்கிறது"
 
-#: src/network/bridge_driver.c:4189 src/network/bridge_driver.c:4364
+#: src/network/bridge_driver.c:4190 src/network/bridge_driver.c:4365
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr "பிணையம் ஒரு hostdev பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் hostdev இல்லை"
 
-#: src/network/bridge_driver.c:4207 src/network/bridge_driver.c:4380
+#: src/network/bridge_driver.c:4208 src/network/bridge_driver.c:4381
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "பிணையம் '%s' இல் PCI சாதனம் %04x:%02x:%02x இல்லை.%x ஐ டொமைன் பயன்படுத்திக் கொண்டுள்ளது"
 
-#: src/network/bridge_driver.c:4224
+#: src/network/bridge_driver.c:4225
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -12290,7 +12290,7 @@ msgstr ""
 "பிணையம் '%s' ஆனது டொமைன்=%d bus=%d slot=%d function=%d இ உள்ள PCI சாதனத்தை "
 "ஏற்கனவே வேறொரு டொமைன் பயன்படுத்திக் கொண்டுள்ளது என்கிறது"
 
-#: src/network/bridge_driver.c:4320
+#: src/network/bridge_driver.c:4321
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
@@ -12299,17 +12299,17 @@ msgstr ""
 "பிணையம் '%s' ஒரு நேரடி பயன்முறை/hostdev பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் "
 "முன்னோக்கு dev இல்லை மற்றும் இடைமுக தொகுப்பகம் இல்லை"
 
-#: src/network/bridge_driver.c:4472
+#: src/network/bridge_driver.c:4473
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr "பிணையம் '%s' இல் IPv4 முகவரி இல்லை"
 
-#: src/network/bridge_driver.c:4494
+#: src/network/bridge_driver.c:4495
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "பிணையம் '%s' இல் இணைந்த இடைமுகம் அல்லது பிரிட்ஜ் இல்லை"
 
-#: src/network/bridge_driver.c:4548
+#: src/network/bridge_driver.c:4549
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -12318,7 +12318,7 @@ msgstr ""
 "%s என்ற MAC முகவரி கொண்ட இடைமுகத்தில் செல்லாதவகையில் 'floor' பயன்படுத்தப்பட்டுள்ளது - "
 "பிணையம் '%s' இல் அக QoS தொகுப்பு இல்லை"
 
-#: src/network/bridge_driver.c:4568
+#: src/network/bridge_driver.c:4569
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
@@ -12327,7 +12327,7 @@ msgstr ""
 "'%s' இடைமுகத்தை '%s' இல் செருக முடியாது, ஏனெனில் அது பிணையம் '%s' இல் 'peak' ஐ "
 "ஓவர்கமிட் செய்துவிடும்"
 
-#: src/network/bridge_driver.c:4579
+#: src/network/bridge_driver.c:4580
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
@@ -12336,12 +12336,12 @@ msgstr ""
 "'%s' இடைமுகத்தை '%s' இல் செருக முடியாது, ஏனெனில் அது பிணையம் '%s' இல் 'average' ஐ "
 "ஓவர்கமிட் செய்துவிடும்"
 
-#: src/network/bridge_driver.c:4645
+#: src/network/bridge_driver.c:4646
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "%2$d வகை இடைமுகம் '%1$s' இல் பட்டையகலத்தை அமைக்க முடியாது"
 
-#: src/network/bridge_driver.c:4653
+#: src/network/bridge_driver.c:4654
 msgid "Could not generate next class ID"
 msgstr "அடுத்த கிளாஸ் ID ஐ உருவாக்க முடியவில்லை"
 

@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-07-31 11:46-0400\n"
+"POT-Creation-Date: 2014-08-03 08:45-0400\n"
 "PO-Revision-Date: 2013-11-26 03:42+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Assamese (http://www.transifex.com/projects/p/fedora/language/"
@@ -1030,14 +1030,14 @@ msgstr "সক্ৰিয় ডোমেইনৰ মেমৰি নিৰ্ধ
 msgid "cannot create autostart directory %s"
 msgstr "autostart পঞ্জিকা %s নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
-#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3337
+#: src/bhyve/bhyve_driver.c:401 src/network/bridge_driver.c:3338
 #: src/storage/storage_driver.c:1141
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "'%s' symlink ক '%s' লৈ নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
 #: src/bhyve/bhyve_driver.c:408 src/lxc/lxc_driver.c:3217
-#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3344
+#: src/libxl/libxl_driver.c:3727 src/network/bridge_driver.c:3345
 #: src/qemu/qemu_driver.c:7508 src/storage/storage_driver.c:1149
 #: src/uml/uml_driver.c:2482
 #, c-format
@@ -11006,7 +11006,7 @@ msgstr "ডমেইন সক্ৰিয় নহয়"
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT নিয়ন্ত্ৰক মাউন্টেড নহয়"
 
-#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2085
+#: src/lxc/lxc_process.c:281 src/network/bridge_driver.c:2086
 #: src/qemu/qemu_command.c:387 src/qemu/qemu_driver.c:9966
 #: src/qemu/qemu_hotplug.c:2186 src/util/virnetdevmacvlan.c:926
 #, c-format
@@ -11897,77 +11897,77 @@ msgstr "radvd সংৰূপ ফাইল '%s' লিখিব পৰা নগ
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s বিচাৰি পোৱা নাযায় - সম্ভবত পেকেইজ ইনস্টল নাই"
 
-#: src/network/bridge_driver.c:1845
-#, c-format
-msgid "cannot write to %s to disable IPv6 on bridge %s"
+#: src/network/bridge_driver.c:1847
+#, fuzzy, c-format
+msgid "cannot write to %s to enable/disable IPv6 on bridge %s"
 msgstr "ব্ৰিজ %s ত IPv6 অসামৰ্থবান কৰিবলে %s লে লিখিব নোৱাৰি"
 
-#: src/network/bridge_driver.c:1865 src/network/bridge_driver.c:1879
+#: src/network/bridge_driver.c:1866 src/network/bridge_driver.c:1880
 #, c-format
 msgid "cannot disable %s"
 msgstr "%s নিষ্ক্ৰিয় কৰিবলৈ ব্যৰ্থ"
 
-#: src/network/bridge_driver.c:1898
+#: src/network/bridge_driver.c:1899
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "ব্ৰিজ '%s' ৰ এটা অবৈধ নেটমাস্ক অথবা IP ঠিকনা আছে"
 
-#: src/network/bridge_driver.c:1941
+#: src/network/bridge_driver.c:1942
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr "নেটৱাৰ্ক '%s' ৰ পথ বিৱৰণত অবৈধ নেটমাস্ক অথবা IP ঠিকনা"
 
-#: src/network/bridge_driver.c:2059
+#: src/network/bridge_driver.c:2060
 msgid "failed to enable IP forwarding"
 msgstr "IP আগবঢ়োৱা সক্ৰিয় কৰোঁতে ব্যৰ্থ"
 
-#: src/network/bridge_driver.c:2219
+#: src/network/bridge_driver.c:2220
 msgid "network is already active"
 msgstr "নে'টৱৰ্ক বৰ্তমানে সক্ৰিয়"
 
-#: src/network/bridge_driver.c:2343 src/network/bridge_driver.c:2911
-#: src/network/bridge_driver.c:2985 src/network/bridge_driver.c:3144
-#: src/network/bridge_driver.c:3179 src/network/bridge_driver.c:3306
+#: src/network/bridge_driver.c:2344 src/network/bridge_driver.c:2912
+#: src/network/bridge_driver.c:2986 src/network/bridge_driver.c:3145
+#: src/network/bridge_driver.c:3180 src/network/bridge_driver.c:3307
 #: src/parallels/parallels_network.c:475 src/parallels/parallels_network.c:526
 #: src/parallels/parallels_network.c:592 src/test/test_driver.c:3827
 msgid "no network with matching uuid"
 msgstr "uuid ৰ সৈতে সুসংগত নে'টৱৰ্ক অনুপস্থিত"
 
-#: src/network/bridge_driver.c:2370 src/network/bridge_driver.c:3715
-#: src/network/bridge_driver.c:4107 src/network/bridge_driver.c:4298
-#: src/network/bridge_driver.c:4458 src/parallels/parallels_network.c:499
+#: src/network/bridge_driver.c:2371 src/network/bridge_driver.c:3716
+#: src/network/bridge_driver.c:4108 src/network/bridge_driver.c:4299
+#: src/network/bridge_driver.c:4459 src/parallels/parallels_network.c:499
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "'%s' নামৰ সৈতে সুসংগত নে'টৱৰ্ক অনুপস্থিত"
 
-#: src/network/bridge_driver.c:2654
+#: src/network/bridge_driver.c:2655
 #, fuzzy, c-format
 msgid "Unsupported <mac> element in network %s with forward mode='%s'"
 msgstr "forward mode='%s' ৰ সৈতে নেটৱাৰ্ক %s ত অসমৰ্থিত <domain> উপাদান"
 
-#: src/network/bridge_driver.c:2662
+#: src/network/bridge_driver.c:2663
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr "forward mode='%s' ৰ সৈতে নেটৱাৰ্ক %s ত অসমৰ্থিত <ip> উপাদান"
 
-#: src/network/bridge_driver.c:2670
+#: src/network/bridge_driver.c:2671
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr "forward mode='%s' ৰ সৈতে নেটৱাৰ্ক %s ত অসমৰ্থিত <dns> উপাদান"
 
-#: src/network/bridge_driver.c:2678
+#: src/network/bridge_driver.c:2679
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr "forward mode='%s' ৰ সৈতে নেটৱাৰ্ক %s ত অসমৰ্থিত <domain> উপাদান"
 
-#: src/network/bridge_driver.c:2686
+#: src/network/bridge_driver.c:2687
 #, fuzzy, c-format
 msgid ""
 "Unsupported network-wide <bandwidth> element in network %s with forward "
 "mode='%s'"
 msgstr "forward mode='%s' ৰ সৈতে নেটৱাৰ্ক %s ত অসমৰ্থিত <ip> উপাদান"
 
-#: src/network/bridge_driver.c:2704
+#: src/network/bridge_driver.c:2705
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -11975,7 +11975,7 @@ msgstr ""
 "একাধিক IPv4 dhcp অধিবেশন প্ৰাপ্ত হল -- dhcp কেৱল প্ৰতিটো নেটৱাৰ্কত এটা IPv4 "
 "ঠিকনাৰ বাবে সমৰ্থিত"
 
-#: src/network/bridge_driver.c:2717
+#: src/network/bridge_driver.c:2718
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -11983,7 +11983,7 @@ msgstr ""
 "একাধিক IPv6 dhcp অধিবেশন প্ৰাপ্ত হল -- dhcp কেৱল প্ৰতিটো নেটৱাৰ্কত এটা IPv6 "
 "ঠিকনাৰ বাবে সমৰ্থিত"
 
-#: src/network/bridge_driver.c:2761
+#: src/network/bridge_driver.c:2762
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -11992,7 +11992,7 @@ msgstr ""
 "নেটৱাৰ্ক '%s' ৰ একাধিক অবিকল্পিত উপাদান (%s and %s) আছে, কিন্তু কেৱল এটা "
 "অবিকল্পিত অনুমোদিত"
 
-#: src/network/bridge_driver.c:2779
+#: src/network/bridge_driver.c:2780
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -12000,73 +12000,73 @@ msgid ""
 msgstr ""
 "নেটৱাৰ্ক %s ৰ বাবে <vlan> উপাদান ধাৰ্য্য কৰা আছে, যাৰ ধৰণে vlan সংৰূপ সমৰ্থন নকৰে"
 
-#: src/network/bridge_driver.c:3188 src/network/bridge_driver.c:3723
+#: src/network/bridge_driver.c:3189 src/network/bridge_driver.c:3724
 #, fuzzy, c-format
 msgid "network '%s' is not active"
 msgstr "নে'টৱৰ্ক '%s' সক্ৰিয় নহয়"
 
-#: src/network/bridge_driver.c:3259 src/test/test_driver.c:3971
+#: src/network/bridge_driver.c:3260 src/test/test_driver.c:3971
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "নে'টৱৰ্ক '%s' ৰ এটা bridge নাম নাই।"
 
-#: src/network/bridge_driver.c:3315
+#: src/network/bridge_driver.c:3316
 msgid "cannot set autostart for transient network"
 msgstr "স্বল্পকাল স্থায়ী নে'টৱৰ্কৰ বাবে স্বয়ংক্ৰিয় আৰম্ভৰ ব্যৱস্থা নিৰ্ধাৰণ কৰা সম্ভৱ নহয়"
 
-#: src/network/bridge_driver.c:3330
+#: src/network/bridge_driver.c:3331
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "autostart পঞ্জিকা '%s' নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
-#: src/network/bridge_driver.c:3414
+#: src/network/bridge_driver.c:3415
 #, fuzzy, c-format
 msgid "invalid json in file: %s"
 msgstr "অবৈধ ডোমেইন ধৰণ %s"
 
-#: src/network/bridge_driver.c:3420 src/network/leaseshelper.c:290
+#: src/network/bridge_driver.c:3421 src/network/leaseshelper.c:290
 #, fuzzy
 msgid "couldn't fetch array of leases"
 msgstr "স্নেপশ্বট %s ৰ উপধায়ক প্ৰাপ্ত কৰিব পৰা নগল"
 
-#: src/network/bridge_driver.c:3430 src/network/leaseshelper.c:301
+#: src/network/bridge_driver.c:3431 src/network/leaseshelper.c:301
 #: src/network/leaseshelper.c:308
 #, fuzzy
 msgid "failed to parse json"
 msgstr "%s বিশ্লেষণ কৰিবলে ব্যৰ্থ"
 
-#: src/network/bridge_driver.c:3438
+#: src/network/bridge_driver.c:3439
 msgid "found lease without mac-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3448
+#: src/network/bridge_driver.c:3449
 msgid "found lease without expiry-time"
 msgstr ""
 
-#: src/network/bridge_driver.c:3465
+#: src/network/bridge_driver.c:3466
 msgid "found lease without ip-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3517
+#: src/network/bridge_driver.c:3518
 #, fuzzy, c-format
 msgid "no lease with matching MAC address: %s"
 msgstr "একই MAC ঠিকনা সহ একাধিক সংযোগমাধ্যম আছে"
 
-#: src/network/bridge_driver.c:3623
+#: src/network/bridge_driver.c:3624
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "%s ত এটা ভাৰছুৱেল ফলন প্ৰাপ্ত কৰিব নোৱাৰি"
 
-#: src/network/bridge_driver.c:3630
+#: src/network/bridge_driver.c:3631
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr "SRIOV PF %s ত কোনো Vf's উপস্থিত নাই"
 
-#: src/network/bridge_driver.c:3651
+#: src/network/bridge_driver.c:3652
 msgid "Direct mode types require interface names"
 msgstr "প্ৰত্যক্ষ অৱস্থা ধৰণসমূহৰ আন্তঃপৃষ্ঠ নামসমূহৰ প্ৰয়োজন"
 
-#: src/network/bridge_driver.c:3801
+#: src/network/bridge_driver.c:3802
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -12075,18 +12075,18 @@ msgstr ""
 "এটা ব্ৰিজ ডিভাইচ ব্যৱহাৰ কৰা নেটৱাৰ্ক '%s' ৰ বাবে <virtualport type='%s'> "
 "সমৰ্থিত নহয়"
 
-#: src/network/bridge_driver.c:3828 src/network/bridge_driver.c:3984
+#: src/network/bridge_driver.c:3829 src/network/bridge_driver.c:3985
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr "নেটৱাৰ্ক '%s' ৰ আন্তঃপৃষ্ঠসমূহলে সূকীয়া অভিগমৰ প্ৰয়োজন, কিন্তু কোনো উপলব্ধ নাই"
 
-#: src/network/bridge_driver.c:3854
+#: src/network/bridge_driver.c:3855
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "অপৰিচিত ড্ৰাইভাৰ নাম মান %d নেটৱাৰ্ক '%s'"
 
-#: src/network/bridge_driver.c:3878
+#: src/network/bridge_driver.c:3879
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -12095,7 +12095,7 @@ msgstr ""
 "PCI পাছথ্ৰুৰে এটা SR-IOV ভাৰছুৱেল ফলন ব্যৱহাৰ কৰা নেটৱাৰ্ক '%s' ৰ বাবে "
 "<virtualport type='%s'> সমৰ্থিত নহয়"
 
-#: src/network/bridge_driver.c:3929
+#: src/network/bridge_driver.c:3930
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -12104,7 +12104,7 @@ msgstr ""
 "এটা macvtap  ডিভাইচ ব্যৱহাৰ কৰা নেটৱাৰ্ক '%s' ৰ বাবে <virtualport type='%s'> "
 "সমৰ্থিত নহয়"
 
-#: src/network/bridge_driver.c:3942
+#: src/network/bridge_driver.c:3943
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -12112,7 +12112,7 @@ msgstr ""
 "নেটৱাৰ্ক '%s' এটা প্ৰত্যক্ষ অৱস্থা ব্যৱহাৰ কৰে, কিন্তু কোনো ফৰৱাৰ্ড dev আৰু কোনো "
 "আন্তঃপৃষ্ঠ পুল নাই"
 
-#: src/network/bridge_driver.c:4015
+#: src/network/bridge_driver.c:4016
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -12121,7 +12121,7 @@ msgstr ""
 "নেটৱাৰ্ক '%s' লে সংযোগ কৰা এটা আন্তঃপৃষ্ঠয় এটা vlan টেগ অনুৰোধ কৰি আছে, কিন্তু "
 "সেইটো এই ধৰণৰ নেটৱাৰ্কৰ বাবে সমৰ্থিত নহয়"
 
-#: src/network/bridge_driver.c:4021
+#: src/network/bridge_driver.c:4022
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -12130,7 +12130,7 @@ msgstr ""
 "ধৰণ '%s' ৰ এটা আন্তঃপৃষ্ঠয় এটা vlan টেগ অনুৰোধ কৰি আছে, কিন্তু এই ধৰণৰ সংযোগৰ বাবে "
 "ই সমৰ্থিত নহয়"
 
-#: src/network/bridge_driver.c:4126
+#: src/network/bridge_driver.c:4127
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -12139,32 +12139,32 @@ msgstr ""
 "নেটৱাৰ্ক '%s' এটা প্ৰত্যক্ষ অথবা hostdev অৱস্থা ব্যৱহাৰ কৰে, কিন্তু ফৰৱাৰ্ড dev আৰু "
 "আন্তঃপৃষ্ঠ পুল নাই"
 
-#: src/network/bridge_driver.c:4138 src/network/bridge_driver.c:4332
+#: src/network/bridge_driver.c:4139 src/network/bridge_driver.c:4333
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr "আন্তঃপৃষ্ঠয় এটা প্ৰত্যক্ষ অৱস্থা ব্যৱহাৰ কৰে, কিন্তু কোনো উৎস dev নাই"
 
-#: src/network/bridge_driver.c:4155 src/network/bridge_driver.c:4348
+#: src/network/bridge_driver.c:4156 src/network/bridge_driver.c:4349
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "নেটৱাৰ্ক '%s' ৰ ডমেইন দ্বাৰা dev='%s' ব্যৱহাৰত নাই"
 
-#: src/network/bridge_driver.c:4172
+#: src/network/bridge_driver.c:4173
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 "নেটৱাৰ্ক '%s' এ dev='%s' ইতিমধ্যে এটা ভিন্ন ডমেইন দ্বাৰা ব্যৱহৃত বুলি দাবী কৰে"
 
-#: src/network/bridge_driver.c:4189 src/network/bridge_driver.c:4364
+#: src/network/bridge_driver.c:4190 src/network/bridge_driver.c:4365
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr "আন্তঃপৃষ্ঠয় এটা hostdev অৱস্থা ব্যৱহাৰ কৰে, কিন্তু কোনো hostdev নাই"
 
-#: src/network/bridge_driver.c:4207 src/network/bridge_driver.c:4380
+#: src/network/bridge_driver.c:4208 src/network/bridge_driver.c:4381
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "নেটৱাৰ্ক '%s' ৰ ডমেইন দ্বাৰা এটা PCI ডিভাইচ %04x:%02x:%02x.%x ব্যৱহাৰত নাই"
 
-#: src/network/bridge_driver.c:4224
+#: src/network/bridge_driver.c:4225
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -12173,7 +12173,7 @@ msgstr ""
 "নেটৱাৰ্ক '%s' এ দাবী কৰে যে domain=%d bus=%d slot=%d function=%d ত থকা PCI "
 "ডিভাইচ ইতিমধ্যে এটা ভিন্ন ডমেইন দ্বাৰা ব্যৱহাৰ কৰা হয়"
 
-#: src/network/bridge_driver.c:4320
+#: src/network/bridge_driver.c:4321
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
@@ -12182,17 +12182,17 @@ msgstr ""
 "নেটৱাৰ্ক '%s' এটা প্ৰত্যক্ষ/hostdev অৱস্থা ব্যৱহাৰ কৰে, কিন্তু ফৰৱাৰ্ড dev আৰু আন্তঃপৃষ্ঠ "
 "পুল নাই"
 
-#: src/network/bridge_driver.c:4472
+#: src/network/bridge_driver.c:4473
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr "নেটৱাৰ্ক '%s' ৰ এটা IPv4 ঠিকনা নাই"
 
-#: src/network/bridge_driver.c:4494
+#: src/network/bridge_driver.c:4495
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "নেটৱাৰ্ক '%s' ৰ কোনো সংলগ্ন আন্তঃপৃষ্ঠ অথবা ব্ৰিজ নাই"
 
-#: src/network/bridge_driver.c:4548
+#: src/network/bridge_driver.c:4549
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -12201,7 +12201,7 @@ msgstr ""
 "MAC ঠিকনা %s - নেটৱাৰ্ক '%s' ৰ সৈতে আন্তঃপৃষ্ঠত 'floor' ৰ অবৈধ ব্যৱহাৰৰ কোনো আহি "
 "থকা QoS সংহতি নাই"
 
-#: src/network/bridge_driver.c:4568
+#: src/network/bridge_driver.c:4569
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
@@ -12210,7 +12210,7 @@ msgstr ""
 "'%s' আন্তঃপৃষ্ঠক '%s' ত প্লাগ কৰিব নোৱাৰি কাৰণ ই নেটৱাৰ্ক '%s' ত 'peak' ক "
 "অভাৰকমিট কৰিব"
 
-#: src/network/bridge_driver.c:4579
+#: src/network/bridge_driver.c:4580
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
@@ -12219,12 +12219,12 @@ msgstr ""
 "'%s' আন্তঃপৃষ্ঠক '%s' ত প্লাগ কৰিব নোৱাৰি কাৰণ ই নেটৱাৰ্ক '%s' ত 'average' ক "
 "অভাৰকমিট কৰিব"
 
-#: src/network/bridge_driver.c:4645
+#: src/network/bridge_driver.c:4646
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "আন্তপৃষ্ঠ '%s' ত বেণ্ডৱাইড্ত সংহতি কৰিব নোৱাৰি ধৰণ %d"
 
-#: src/network/bridge_driver.c:4653
+#: src/network/bridge_driver.c:4654
 msgid "Could not generate next class ID"
 msgstr "পৰৱৰ্তী ক্লাচ ID সৃজন কৰিব পৰা নগল"
 
