@@ -1,3 +1,11 @@
+libvirt (1.2.7-1) experimental; urgency=medium
+
+  * [65e69d3] New upstream version 1.2.7
+  * [d615910] Don't try to install virt-login-shell on non-linux.
+    It's LXC only. This fixes the build failure on kFreeBSD.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 03 Aug 2014 19:20:26 +0200
+
 libvirt (1.2.7~rc2-1) experimental; urgency=medium
 
   [ Guido Günther ]
