@@ -155,6 +155,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	mkdir -p debian/tmp/usr/share/systemtap
 	dh_install -p libvirt-daemon-system usr/share/systemtap
 	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/lxc.conf
 endif
 
 	for l in $(LOGROTATE); do \
