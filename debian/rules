@@ -154,8 +154,11 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	# Not all linux arches have systemtap yet
 	mkdir -p debian/tmp/usr/share/systemtap
 	dh_install -p libvirt-daemon-system usr/share/systemtap
-	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/lxc.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu-lockd.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu-sanlock.conf
+	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
 endif
 
 	for l in $(LOGROTATE); do \
