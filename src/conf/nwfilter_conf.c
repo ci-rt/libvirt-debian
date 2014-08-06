@@ -967,10 +967,8 @@ virNWFilterPrintTCPFlags(uint8_t flags)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     printTCPFlags(&buf, flags);
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         return NULL;
-    }
     return virBufferContentAndReset(&buf);
 }
 
@@ -1753,7 +1751,7 @@ typedef struct _virAttributes virAttributes;
 struct _virAttributes {
     const char *id;
     const virXMLAttr2Struct *att;
-    enum virNWFilterRuleProtocolType prtclType;
+    virNWFilterRuleProtocolType prtclType;
 };
 
 #define PROTOCOL_ENTRY(ID, ATT, PRTCLTYPE) \
@@ -1799,7 +1797,7 @@ virNWFilterRuleDetailsParse(xmlNodePtr node,
     char *prop;
     bool found = false;
     enum attrDatatype datatype, att_datatypes;
-    enum virNWFilterEntryItemFlags *flags, match_flag = 0, flags_set = 0;
+    virNWFilterEntryItemFlags *flags, match_flag = 0, flags_set = 0;
     nwItemDesc *item;
     int int_val;
     unsigned int uint_val;
@@ -2511,7 +2509,7 @@ virNWFilterIsValidChainName(const char *chainname)
 static const char *
 virNWFilterIsAllowedChain(const char *chainname)
 {
-    enum virNWFilterChainSuffixType i;
+    virNWFilterChainSuffixType i;
     const char *name;
     char *msg;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -2548,11 +2546,8 @@ virNWFilterIsAllowedChain(const char *chainname)
         printed = true;
     }
 
-    if (virBufferError(&buf)) {
-        virReportOOMError();
-        virBufferFreeAndReset(&buf);
+    if (virBufferCheckError(&buf) < 0)
         goto err_exit;
-    }
 
     msg = virBufferContentAndReset(&buf);
 
@@ -3063,6 +3058,17 @@ virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
             return NULL;
         }
         virNWFilterObjUnlock(nwfilter);
+    } else {
+        nwfilter = virNWFilterObjFindByName(nwfilters, def->name);
+        if (nwfilter) {
+            char uuidstr[VIR_UUID_STRING_BUFLEN];
+            virUUIDFormat(nwfilter->def->uuid, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("filter '%s' already exists with uuid %s"),
+                           def->name, uuidstr);
+            virNWFilterObjUnlock(nwfilter);
+            return NULL;
+        }
     }
 
     if (virNWFilterDefLoopDetect(nwfilters, def) < 0) {
@@ -3287,7 +3293,7 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
         VIR_WARNINGS_NO_CAST_ALIGN
         item = (nwItemDesc *)((char *)def + att[i].dataIdx);
         VIR_WARNINGS_RESET
-        enum virNWFilterEntryItemFlags flags = item->flags;
+        virNWFilterEntryItemFlags flags = item->flags;
         if ((flags & NWFILTER_ENTRY_ITEM_FLAG_EXISTS)) {
             if (!typeShown) {
                 virBufferAsprintf(buf, "<%s", type);
@@ -3484,13 +3490,10 @@ virNWFilterDefFormat(const virNWFilterDef *def)
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</filter>\n");
 
-    if (virBufferError(&buf))
-        goto no_memory;
+    if (virBufferCheckError(&buf) < 0)
+        goto err_exit;
 
     return virBufferContentAndReset(&buf);
-
- no_memory:
-    virReportOOMError();
 
  err_exit:
     virBufferFreeAndReset(&buf);

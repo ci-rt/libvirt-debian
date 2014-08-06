@@ -1,5 +1,10 @@
 #!/usr/bin/make -f
 
+DEB_RELEASE=$(shell dpkg-parsechangelog -SVersion | sed 's/[^-]\+-//')
+DEB_BUILDHOST=$(shell hostname)
+DEB_BUILDDATE=$(shell date +"%F-%T")
+DEB_BUILDUSER=${USER}
+
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_XEN = --with-xen
@@ -72,6 +77,8 @@ else
 endif
 
 DEB_CONFIGURE_EXTRA_ARGS :=      \
+	--with-packager="$(DEB_BUILDUSER) $(DEB_BUILDDATE) $(DEB_BUILDHOST)" \
+	--with-packager-version="$(DEB_RELEASE)" \
 	--disable-silent-rules   \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \
@@ -135,37 +142,37 @@ override_dh_install:
 	dh_install
 	# Copy upstream files to debian/ so dh_* can find them
 	cp debian/tmp/usr/lib/libvirt/libvirt-guests.sh \
-	    debian/libvirt-bin.libvirt-guests.init
+	    debian/libvirt-daemon-system.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
-	    debian/libvirt-bin.libvirt-guests.default
+	    debian/libvirt-daemon-system.libvirt-guests.default
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	# Linux supports more nice things:
-	dh_install -p libvirt-bin usr/lib/systemd/system lib/systemd/
-	mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
-	   debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
-	dh_install -p libvirt-bin usr/lib/libvirt/virt-aa-helper
-	dh_install -p libvirt-bin etc/apparmor.d
-	dh_install -p libvirt-bin usr/share/polkit-1
+	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
+	dh_install -p libvirt-daemon-system usr/lib/libvirt/virt-aa-helper
+	dh_install -p libvirt-daemon-system etc/apparmor.d
+	dh_install -p libvirt-daemon-system usr/share/polkit-1
 	# Not all linux arches have systemtap yet
 	mkdir -p debian/tmp/usr/share/systemtap
-	dh_install -p libvirt-bin usr/share/systemtap
+	dh_install -p libvirt-daemon-system usr/share/systemtap
+	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/lxc.conf
 endif
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
-	        debian/libvirt-bin.$$l.logrotate; \
+	        debian/libvirt-daemon-system.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done
 
 	# Don't ship any la files
-	rm debian/libvirt-bin/usr/lib/libvirt/connection-driver/*.la
+	rm debian/libvirt-daemon/usr/lib/libvirt/connection-driver/*.la
 	# Don't ship api files in the daemon package
-	rm -r debian/libvirt-bin/usr/share/libvirt/api/
+	rm -r debian/libvirt-daemon/usr/share/libvirt/api/
 
 override_dh_installinit:
 	dh_systemd_enable
-	dh_installinit --name=libvirt-bin --restart-after-upgrade -- defaults 28 72
-	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
+	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 	dh_systemd_start --restart-after-upgrade
 
 override_dh_installdocs:
@@ -182,8 +189,8 @@ override_dh_strip:
 
 override_dh_auto_clean:
 	[ ! -f Makefile ] || dh_auto_clean
-	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
-	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
-	rm -f $(CURDIR)/debian/libvirt-bin.*.logrotate
+	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.init
+	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.default
+	rm -f $(CURDIR)/debian/libvirt-daemon-system.*.logrotate
 	rm -f $(CURDIR)/debian/*.service
 	rm -rf $(DEB_BUILDDIR)

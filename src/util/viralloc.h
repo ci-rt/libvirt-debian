@@ -1,7 +1,7 @@
 /*
  * viralloc.h: safer memory allocation
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -279,7 +279,7 @@ void virFree(void *ptrptr) ATTRIBUTE_NONNULL(1);
 # define VIR_SHRINK_N(ptr, count, remove) \
     virShrinkN(&(ptr), sizeof(*(ptr)), &(count), remove)
 
-/*
+/**
  * VIR_TYPEMATCH:
  *
  * The following macro seems a bit cryptic, so it needs a thorough
@@ -481,7 +481,7 @@ void virFree(void *ptrptr) ATTRIBUTE_NONNULL(1);
 # define VIR_DELETE_ELEMENT_INPLACE(ptr, at, count) \
     virDeleteElementsN(&(ptr), sizeof(*(ptr)), at, &(count), 1, true)
 
-/*
+/**
  * VIR_ALLOC_VAR_OVERSIZED:
  * @M: size of base structure
  * @N: number of array elements in trailing array
@@ -548,18 +548,17 @@ void virFree(void *ptrptr) ATTRIBUTE_NONNULL(1);
  * This macro is safe to use on arguments with side effects.
  */
 # if !STATIC_ANALYSIS
-/* The ternary ensures that ptr is a pointer and not an integer type,
- * while evaluating ptr only once.  This gives us extra compiler
- * safety when compiling under gcc.  For now, we intentionally cast
- * away const, since a number of callers safely pass const char *.
+/* The ternary ensures that ptr is a non-const pointer and not an
+ * integer type, all while evaluating ptr only once.  This gives us
+ * extra compiler safety when compiling under gcc.
  */
-#  define VIR_FREE(ptr) virFree((void *) (1 ? (const void *) &(ptr) : (ptr)))
+#  define VIR_FREE(ptr) virFree(1 ? (void *) &(ptr) : (ptr))
 # else
 /* The Coverity static analyzer considers the else path of the "?:" and
  * flags the VIR_FREE() of the address of the address of memory as a
  * RESOURCE_LEAK resulting in numerous false positives (eg, VIR_FREE(&ptr))
  */
-#  define VIR_FREE(ptr) virFree((void *) &(ptr))
+#  define VIR_FREE(ptr) virFree(&(ptr))
 # endif
 
 void virAllocTestInit(void);

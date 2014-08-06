@@ -306,11 +306,8 @@ _printDataType(virNWFilterVarCombIterPtr vars,
             }
         }
 
-        if (virBufferError(&vb)) {
-            virReportOOMError();
-            virBufferFreeAndReset(&vb);
+        if (virBufferCheckError(&vb) < 0)
             return -1;
-        }
 
         flags = virBufferContentAndReset(&vb);
 
@@ -1560,11 +1557,8 @@ printStateMatchFlags(int32_t flags, char **bufptr)
                                     "",
                                     flags,
                                     false);
-    if (virBufferError(&buf)) {
-        virBufferFreeAndReset(&buf);
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         return -1;
-    }
     *bufptr = virBufferContentAndReset(&buf);
     return 0;
 }
@@ -3719,6 +3713,7 @@ ebiptablesDriverProbeStateMatch(void)
 {
     unsigned long version;
     virFirewallPtr fw = virFirewallNew();
+    int ret = -1;
 
     virFirewallStartTransaction(fw, 0);
     virFirewallAddRuleFull(fw, VIR_FIREWALL_LAYER_IPV4,
@@ -3726,7 +3721,7 @@ ebiptablesDriverProbeStateMatch(void)
                            "--version", NULL);
 
     if (virFirewallApply(fw) < 0)
-        return -1;
+        goto cleanup;
 
     /*
      * since version 1.4.16 '-m state --state ...' will be converted to
@@ -3735,7 +3730,10 @@ ebiptablesDriverProbeStateMatch(void)
     if (version >= 1 * 1000000 + 4 * 1000 + 16)
         newMatchState = true;
 
-    return 0;
+    ret = 0;
+ cleanup:
+    virFirewallFree(fw);
+    return ret;
 }
 
 static int

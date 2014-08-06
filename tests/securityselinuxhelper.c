@@ -156,7 +156,7 @@ int getpidcon(pid_t pid, security_context_t *context)
     return getpidcon_raw(pid, context);
 }
 
-int setcon_raw(security_context_t context)
+int setcon_raw(VIR_SELINUX_CTX_CONST char *context)
 {
     if (!is_selinux_enabled()) {
         errno = EINVAL;
@@ -165,13 +165,13 @@ int setcon_raw(security_context_t context)
     return setenv("FAKE_SELINUX_CONTEXT", context, 1);
 }
 
-int setcon(security_context_t context)
+int setcon(VIR_SELINUX_CTX_CONST char *context)
 {
     return setcon_raw(context);
 }
 
 
-int setfilecon_raw(const char *path, security_context_t con)
+int setfilecon_raw(const char *path, VIR_SELINUX_CTX_CONST char *con)
 {
     const char *constr = con;
     if (STRPREFIX(path, abs_builddir "/securityselinuxlabeldata/nfs/")) {
@@ -182,7 +182,7 @@ int setfilecon_raw(const char *path, security_context_t con)
                     constr, strlen(constr), 0);
 }
 
-int setfilecon(const char *path, security_context_t con)
+int setfilecon(const char *path, VIR_SELINUX_CTX_CONST char *con)
 {
     return setfilecon_raw(path, con);
 }

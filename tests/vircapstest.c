@@ -44,7 +44,7 @@ buildNUMATopology(int seq)
     int core_id, cell_id;
     int id;
 
-    if ((caps = virCapabilitiesNew(VIR_ARCH_X86_64, 0, 0)) == NULL)
+    if ((caps = virCapabilitiesNew(VIR_ARCH_X86_64, false, false)) == NULL)
         goto error;
 
     id = 0;
@@ -64,9 +64,10 @@ buildNUMATopology(int seq)
         id++;
 
         if (virCapabilitiesAddHostNUMACell(caps, cell_id + seq,
-                                           MAX_CPUS_IN_CELL,
                                            MAX_MEM_IN_CELL,
-                                           cell_cpus) < 0)
+                                           MAX_CPUS_IN_CELL, cell_cpus,
+                                           0, NULL,
+                                           0, NULL) < 0)
            goto error;
 
         cell_cpus = NULL;

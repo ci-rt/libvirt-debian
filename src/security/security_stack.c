@@ -222,16 +222,16 @@ virSecurityStackReserveLabel(virSecurityManagerPtr mgr,
 
 
 static int
-virSecurityStackSetSecurityImageLabel(virSecurityManagerPtr mgr,
-                                      virDomainDefPtr vm,
-                                      virDomainDiskDefPtr disk)
+virSecurityStackSetSecurityDiskLabel(virSecurityManagerPtr mgr,
+                                     virDomainDefPtr vm,
+                                     virDomainDiskDefPtr disk)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
     int rc = 0;
 
     for (; item; item = item->next) {
-        if (virSecurityManagerSetImageLabel(item->securityManager, vm, disk) < 0)
+        if (virSecurityManagerSetDiskLabel(item->securityManager, vm, disk) < 0)
             rc = -1;
     }
 
@@ -240,16 +240,16 @@ virSecurityStackSetSecurityImageLabel(virSecurityManagerPtr mgr,
 
 
 static int
-virSecurityStackRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
-                                          virDomainDefPtr vm,
-                                          virDomainDiskDefPtr disk)
+virSecurityStackRestoreSecurityDiskLabel(virSecurityManagerPtr mgr,
+                                         virDomainDefPtr vm,
+                                         virDomainDiskDefPtr disk)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
     int rc = 0;
 
     for (; item; item = item->next) {
-        if (virSecurityManagerRestoreImageLabel(item->securityManager, vm, disk) < 0)
+        if (virSecurityManagerRestoreDiskLabel(item->securityManager, vm, disk) < 0)
             rc = -1;
     }
 
@@ -323,7 +323,7 @@ virSecurityStackSetSecurityAllLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityStackRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                         virDomainDefPtr vm,
-                                        int migrated)
+                                        bool migrated)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
@@ -513,8 +513,8 @@ virSecurityStackSetTapFDLabel(virSecurityManagerPtr mgr,
 
 static int
 virSecurityStackSetHugepages(virSecurityManagerPtr mgr,
-                              virDomainDefPtr vm,
-                              const char *path)
+                             virDomainDefPtr vm,
+                             const char *path)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
@@ -564,6 +564,41 @@ virSecurityStackGetBaseLabel(virSecurityManagerPtr mgr, int virtType)
                                           virtType);
 }
 
+static int
+virSecurityStackSetSecurityImageLabel(virSecurityManagerPtr mgr,
+                                      virDomainDefPtr vm,
+                                      virStorageSourcePtr src)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerSetImageLabel(item->securityManager, vm, src) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
+static int
+virSecurityStackRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
+                                          virDomainDefPtr vm,
+                                          virStorageSourcePtr src)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerRestoreImageLabel(item->securityManager,
+                                                vm, src) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
 virSecurityDriver virSecurityDriverStack = {
     .privateDataLen                     = sizeof(virSecurityStackData),
     .name                               = "stack",
@@ -577,6 +612,9 @@ virSecurityDriver virSecurityDriverStack = {
     .preFork                            = virSecurityStackPreFork,
 
     .domainSecurityVerify               = virSecurityStackVerify,
+
+    .domainSetSecurityDiskLabel         = virSecurityStackSetSecurityDiskLabel,
+    .domainRestoreSecurityDiskLabel     = virSecurityStackRestoreSecurityDiskLabel,
 
     .domainSetSecurityImageLabel        = virSecurityStackSetSecurityImageLabel,
     .domainRestoreSecurityImageLabel    = virSecurityStackRestoreSecurityImageLabel,

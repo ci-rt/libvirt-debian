@@ -19,7 +19,7 @@ under the GNU Lesser General Public License. Virtualization of the
 Linux Operating System means the ability to run multiple instances of
 Operating Systems concurrently on a single hardware system where the
 basic resources are driven by a Linux instance. The library aims at
-providing a long term stable C API.  It currently supports Xen, QEmu,
+providing a long term stable C API.  It currently supports Xen, QEMU,
 KVM, LXC, OpenVZ, VirtualBox and VMware ESX.
 
 The basic structure of most virsh usage is:
@@ -206,23 +206,28 @@ option instead.  For example:
 
 quit this interactive terminal
 
-=item B<version>
+=item B<version> [I<--daemon>]
 
 Will print out the major version info about what this built from.
+If I<--daemon> is specified then the version of the libvirt daemon
+is included in the output.
 
 =over 4
 
 B<Example>
 
-B<virsh> version
+ $ virsh version
+ Compiled against library: libvirt 1.2.3
+ Using library: libvirt 1.2.3
+ Using API: QEMU 1.2.3
+ Running hypervisor: QEMU 2.0.50
 
-Compiled against library: libvir 0.0.6
-
-Using library: libvir 0.0.6
-
-Using API: Xen 3.0.0
-
-Running hypervisor: Xen 3.0.0
+ $ virsh version --daemon
+ Compiled against library: libvirt 1.2.3
+ Using library: libvirt 1.2.3
+ Using API: QEMU 1.2.3
+ Running hypervisor: QEMU 2.0.50
+ Running against daemon: 1.2.6
 
 =back
 
@@ -255,11 +260,11 @@ this is used to connect to the local Xen hypervisor
 
 =item qemu:///system
 
-connect locally as root to the daemon supervising QEmu and KVM domains
+connect locally as root to the daemon supervising QEMU and KVM domains
 
 =item qemu:///session
 
-connect locally as a normal user to his own set of QEmu and KVM domains
+connect locally as a normal user to his own set of QEMU and KVM domains
 
 =item lxc:///
 
@@ -290,10 +295,12 @@ and size of the physical memory. The output corresponds to virNodeInfo
 structure. Specifically, the "CPU socket(s)" field means number of CPU
 sockets per NUMA cell.
 
-=item B<nodecpumap>
+=item B<nodecpumap> [I<--pretty>]
 
 Displays the node's total number of CPUs, the number of online CPUs
 and the list of online CPUs.
+
+With I<--pretty> the online CPUs are printed as a range instead of a list.
 
 =item B<nodecpustats> [I<cpu>] [I<--percent>]
 
@@ -342,6 +349,41 @@ for each kind of guest which can be virtualized. For a more complete
 description see:
   L<http://libvirt.org/formatcaps.html>
 The XML also show the NUMA topology information if available.
+
+=item B<domcapabilities> [I<virttype>] [I<emulatorbin>]
+[I<arch>] [I<machine>]
+
+Print an XML document describing the domain capabilities for the
+hypervisor we are connected to using information either sourced from an
+existing domain or taken from the B<virsh capabilities> output. This may
+be useful if you intend to create a new domain and are curious if for
+instance it could make use of VFIO by creating a domain for the
+hypervisor with a specific emulator and architecture.
+
+Each hypervisor will have different requirements regarding which options
+are required and which are optional. A hypervisor can support providing
+a default value for any of the options.
+
+The I<virttype> option specifies the virtualization type used. The value
+to be used is either from the 'type' attribute of the <domain/> top
+level element from the domain XML or the 'type' attribute found within
+each <guest/> element from the B<virsh capabilities> output.  The
+I<emulatorbin> option specifies the path to the emulator. The value to
+be used is either the <emulator> element in the domain XML or the
+B<virsh capabilities> output. The I<arch> option specifies the
+architecture to be used for the domain. The value to be used is either
+the "arch" attribute from the domain's XML <os/> element and <type/>
+subelement or the "name" attribute of an <arch/> element from the
+B<virsh capabililites> output. The I<machine> specifies the machine type
+for the emulator. The value to be used is either the "machine" attribute
+from the domain's XML <os/> element and <type/> subelement or one from a
+list of machines from the B<virsh capabilities> output for a specific
+architecture and domain type.
+
+For the qemu hypervisor, a I<virttype> of either 'qemu' or 'kvm' must be
+supplied along with either the I<emulatorbin> or I<arch> in order to
+generate output for the default I<machine>.  Supplying a I<machine>
+value will generate output for the specific machine.
 
 =item B<inject-nmi> I<domain>
 
@@ -509,6 +551,14 @@ cell and the total free memory on the machine.  Finally, with a
 numeric argument or with --cellno plus a cell number it will display
 the free memory for the specified cell only.
 
+=item B<freepages> [{ [I<--cellno>] I<cellno> [I<--pagesize>] I<pagesize> |
+    I<--all> }]
+
+Prints the available amount of pages within a NUMA cell. I<cellno> refers
+to the NUMA cell you're interested in. I<pagesize> is a scaled integer (see
+B<NOTES> above).  Alternatively, if I<--all> is used, info on each possible
+combination of NUMA cell and page size is printed out.
+
 =item B<cpu-baseline> I<FILE> [I<--features>]
 
 Compute baseline CPU which will be supported by all host CPUs given in <file>.
@@ -520,14 +570,17 @@ resulting XML description will explicitly include all features that make
 up the CPU, without this option features that are part of the CPU model
 will not be listed in the XML description.
 
-=item B<cpu-compare> I<FILE>
+=item B<cpu-compare> I<FILE> [I<--error>]
 
 Compare CPU definition from XML <file> with host CPU. The XML <file> may
 contain either host or guest CPU definition. The host CPU definition is the
 <cpu> element and its contents as printed by B<capabilities> command. The
 guest CPU definition is the <cpu> element and its contents from domain XML
 definition. For more information on guest CPU definition see:
-L<http://libvirt.org/formatdomain.html#elementsCPU>
+L<http://libvirt.org/formatdomain.html#elementsCPU>. If I<--error> is
+specified, the command will return an error when the given CPU is
+incompatible with host CPU and a message providing more details about the
+incompatibility will be printed out.
 
 =item B<echo> [I<--shell>] [I<--xml>] [I<arg>...]
 
@@ -767,8 +820,9 @@ address of virtual interface (such as I<detach-interface> or
 I<domif-setlink>) will accept the MAC address printed by this command.
 
 =item B<blockcommit> I<domain> I<path> [I<bandwidth>]
-{[I<base>] | [I<--shallow>]} [I<top>] [I<--delete>]
-[I<--wait> [I<--verbose>] [I<--timeout> B<seconds>] [I<--async>]]
+[I<base>] [I<--shallow>] [I<top>] [I<--delete>] [I<--keep-relative>]
+[I<--wait> [I<--async>] [I<--verbose>]] [I<--timeout> B<seconds>]
+[I<--active>] [{I<--pivot> | I<--keep-overlay>}]
 
 Reduce the length of a backing image chain, by committing changes at the
 top of the chain (snapshot or delta files) into backing images.  By
@@ -778,40 +832,58 @@ operation is constrained to committing just that portion of the chain;
 I<--shallow> can be used instead of I<base> to specify the immediate
 backing file of the resulting top image to be committed.  The files
 being committed are rendered invalid, possibly as soon as the operation
-starts; using the I<--delete> flag will remove these files at the successful
-completion of the commit operation.
+starts; using the I<--delete> flag will attempt to remove these invalidated
+files at the successful completion of the commit operation. When the
+I<--keep-relative> flag is used, the backing file paths will be kept relative.
+
+When I<top> is omitted or specified as the active image, it is also
+possible to specify I<--active> to trigger a two-phase active commit. In
+the first phase, I<top> is copied into I<base> and the job can only be
+canceled, with top still containing data not yet in base. In the second
+phase, I<top> and I<base> remain identical until a call to B<blockjob>
+with the I<--abort> flag (keeping top as the active image that tracks
+changes from that point in time) or the I<--pivot> flag (making base
+the new active image and invalidating top).
 
 By default, this command returns as soon as possible, and data for
 the entire disk is committed in the background; the progress of the
 operation can be checked with B<blockjob>.  However, if I<--wait> is
-specified, then this command will block until the operation completes,
-or cancel the operation if the optional I<timeout> in seconds elapses
+specified, then this command will block until the operation completes
+(or for I<--active>, enters the second phase), or until the operation
+is canceled because the optional I<timeout> in seconds elapses
 or SIGINT is sent (usually with C<Ctrl-C>).  Using I<--verbose> along
 with I<--wait> will produce periodic status updates.  If job cancellation
 is triggered, I<--async> will return control to the user as fast as
 possible, otherwise the command may continue to block a little while
-longer until the job is done cleaning up.
+longer until the job is done cleaning up.  Using I<--pivot> is shorthand
+for combining I<--active> I<--wait> with an automatic B<blockjob>
+I<--pivot>; and using I<--keep-overlay> is shorthand for combining
+I<--active> I<--wait> with an automatic B<blockjob> I<--abort>.
 
 I<path> specifies fully-qualified path of the disk; it corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
 also B<domblklist> for listing these names).
 I<bandwidth> specifies copying bandwidth limit in MiB/s, although for
-qemu, it may be non-zero only for an online domain.
+qemu, it may be non-zero only for an online domain. Specifying a negative
+value is interpreted as an unsigned long long value or essentially
+unlimited. The hypervisor can choose whether to reject the value or
+convert it to the maximum value allowed.
 
 =item B<blockcopy> I<domain> I<path> I<dest> [I<bandwidth>] [I<--shallow>]
-[I<--reuse-external>] [I<--raw>] [I<--wait> [I<--verbose>]
-[{I<--pivot> | I<--finish>}] [I<--timeout> B<seconds>] [I<--async>]]
+[I<--reuse-external>] [I<--raw>] [I<--wait> [I<--async>] [I<--verbose>]]
+[{I<--pivot> | I<--finish>}] [I<--timeout> B<seconds>]
 
 Copy a disk backing image chain to I<dest>. By default, this command
 flattens the entire chain; but if I<--shallow> is specified, the copy
 shares the backing chain.
 
 If I<--reuse-external> is specified, then I<dest> must exist and have
-contents identical to the resulting backing file (that is, it must
-start with contents matching the backing file I<disk> if I<--shallow>
-is used, otherwise it must start empty); this option is typically used
-to set up a relative backing file name in the destination.
+sufficient space to hold the copy. If I<--shallow> is used in
+conjunction with I<--reuse-external> then the pre-created image must have
+guest visible contents identical to guest visible contents of the backing
+file of the original image. This may be used to modify the backing file
+names on the destination.
 
 The format of the destination is determined by the first match in the
 following list: if I<--raw> is specified, it will be raw; if
@@ -830,18 +902,23 @@ faithful copy of that point in time.  However, if I<--wait> is specified,
 then this command will block until the mirroring phase begins, or cancel
 the operation if the optional I<timeout> in seconds elapses or SIGINT is
 sent (usually with C<Ctrl-C>).  Using I<--verbose> along with I<--wait>
-will produce periodic status updates.  Using I<--pivot> or I<--finish>
-along with I<--wait> will additionally end the job cleanly rather than
-leaving things in the mirroring phase.  If job cancellation is triggered,
-I<--async> will return control to the user as fast as possible, otherwise
-the command may continue to block a little while longer until the job
-is done cleaning up.
+will produce periodic status updates.  Using I<--pivot> (similar to
+B<blockjob> I<--pivot>) or I<--finish> (similar to B<blockjob> I<--abort>)
+implies I<--wait>, and will additionally end the job cleanly rather than
+leaving things in the mirroring phase.  If job cancellation is triggered
+by timeout or by I<--finish>, I<--async> will return control to the user
+as fast as possible, otherwise the command may continue to block a little
+while longer until the job has actually cancelled.
 
 I<path> specifies fully-qualified path of the disk.
-I<bandwidth> specifies copying bandwidth limit in MiB/s.
+I<bandwidth> specifies copying bandwidth limit in MiB/s. Specifying a negative
+value is interpreted as an unsigned long long value or essentially
+unlimited. The hypervisor can choose whether to reject the value or
+convert it to the maximum value allowed.
 
 =item B<blockpull> I<domain> I<path> [I<bandwidth>] [I<base>]
 [I<--wait> [I<--verbose>] [I<--timeout> B<seconds>] [I<--async>]]
+[I<--keep-relative>]
 
 Populate a disk from its backing image chain. By default, this command
 flattens the entire chain; but if I<base> is specified, containing the
@@ -861,11 +938,17 @@ is triggered, I<--async> will return control to the user as fast as
 possible, otherwise the command may continue to block a little while
 longer until the job is done cleaning up.
 
+Using the I<--keep-relative> flag will keep the backing chain names
+relative.
+
 I<path> specifies fully-qualified path of the disk; it corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
 also B<domblklist> for listing these names).
-I<bandwidth> specifies copying bandwidth limit in MiB/s.
+I<bandwidth> specifies copying bandwidth limit in MiB/s. Specifying a negative
+value is interpreted as an unsigned long long value or essentially
+unlimited. The hypervisor can choose whether to reject the value or
+convert it to the maximum value allowed.
 
 =item B<blkdeviotune> I<domain> I<device>
 [[I<--config>] [I<--live>] | [I<--current>]]
@@ -916,11 +999,14 @@ also B<domblklist> for listing these names).
 If I<--abort> is specified, the active job on the specified disk will
 be aborted.  If I<--async> is also specified, this command will return
 immediately, rather than waiting for the cancellation to complete.  If
-I<--pivot> is specified, this requests that an active copy job
-be pivoted over to the new copy.
+I<--pivot> is specified, this requests that an active copy or active
+commit job be pivoted over to the new image.
 If I<--info> is specified, the active job information on the specified
 disk will be printed.
 I<bandwidth> can be used to set bandwidth limit for the active job.
+Specifying a negative value is interpreted as an unsigned long long
+value or essentially unlimited. The hypervisor can choose whether to
+reject the value or convert it to the maximum value allowed.
 
 =item B<blockresize> I<domain> I<path> I<size>
 
@@ -940,6 +1026,29 @@ B<vol-resize> which defaults to bytes without a suffix).
 Output a URI which can be used to connect to the graphical display of the
 domain via VNC, SPICE or RDP. If I<--include-password> is specified, the
 SPICE channel password will be included in the URI.
+
+=item B<domfsfreeze> I<domain> [[I<--mountpoint>] B<mountpoint>...]
+
+Freeze mounted filesystems within a running domain to prepare for consistent
+snapshots.
+
+The I<--mountpoint> option takes a parameter B<mountpoint>, which is a
+mount point path of the filesystem to be frozen. This option can occur
+multiple times. If this is not specified, every mounted filesystem is frozen.
+
+Note: B<snapshot-create> command has a I<--quiesce> option to freeze
+and thaw the filesystems automatically to keep snapshots consistent.
+B<domfsfreeze> command is only needed when a user wants to utilize the
+native snapshot features of storage devices not supported by libvirt.
+
+=item B<domfsthaw> I<domain> [[I<--mountpoint>] B<mountpoint>...]
+
+Thaw mounted filesystems within a running domain, which have been frozen by
+domfsfreeze command.
+
+The I<--mountpoint> option takes a parameter B<mountpoint>, which is a
+mount point path of the filesystem to be thawed. This option can occur
+multiple times. If this is not specified, every mounted filesystem is thawed.
 
 =item B<domfstrim> I<domain> [I<--minimum> B<bytes>]
 [I<--mountpoint mountPoint>]
@@ -993,6 +1102,24 @@ reason for the state.
 Returns state of an interface to VMM used to control a domain.  For
 states other than "ok" or "error" the command also prints number of
 seconds elapsed since the control interface entered its current state.
+
+=item B<domtime> I<domain> { [I<--now>] [I<--pretty>] [I<--sync>]
+[I<--time> B<time>] }
+
+Gets or sets the domain's system time. When run without any arguments
+(but I<domain>), the current domain's system time is printed out. The
+I<--pretty> modifier can be used to print the time in more human
+readable form.
+
+When I<--time> B<time> is specified, the domain's time is
+not gotten but set instead. The I<--now> modifier acts like if it was
+an alias for I<--time> B<$now>, which means it sets the time that is
+currently on the host virsh is running at. In both cases (setting and
+getting), time is in seconds relative to Epoch of 1970-01-01 in UTC.
+The I<--sync> modifies the set behavior a bit: The time passed is
+ignored, but the time to set is read from domain's RTC instead. Please
+note, that some hypervisors may require a guest agent to be configured
+in order to get or set the guest time.
 
 =item B<domxml-from-native> I<format> I<config>
 
@@ -1166,8 +1293,6 @@ unsafe unless the disk images are stored on coherent clustered filesystem,
 such as GFS2 or GPFS. If you are sure the migration is safe or you just do not
 care, use I<--unsafe> to force the migration.
 
-The I<desturi> is the connection URI of the destination host, and
-I<migrateuri> is the migration URI, which usually can be omitted (see below).
 I<dname> is used for renaming the domain to new name during migration, which
 also usually can be omitted.  Likewise, I<--xml> B<file> is usually
 omitted, but can be used to supply an alternative XML file for use on
@@ -1181,6 +1306,12 @@ then the migration will complete offline. It can only be used with I<--live>.
 
 Running migration can be canceled by interrupting virsh (usually using
 C<Ctrl-C>) or by B<domjobabort> command sent from another virsh instance.
+
+The I<desturi> and I<migrateuri> parameters can be used to control which
+destination the migration uses.  I<desturi> is important for managed
+migration, but unused for direct migration; I<migrateuri> is required
+for direct migration, but can usually be automatically determined for
+managed migration.
 
 B<Note>: The I<desturi> parameter for normal migration and peer2peer migration
 has different semantics:
@@ -1196,7 +1327,11 @@ seen from the source machine.
 =back
 
 When I<migrateuri> is not specified, libvirt will automatically determine the
-hypervisor specific URI, by looking up the target host's configured hostname.
+hypervisor specific URI.  Some hypervisors, including QEMU, have an optional
+"migration_host" configuration parameter (useful when the host has multiple
+network interfaces).  If this is unspecified, libvirt determines a name
+by looking up the target host's configured hostname.
+
 There are a few scenarios where specifying I<migrateuri> may help:
 
 =over 4
@@ -1220,6 +1355,9 @@ might be specified to choose a specific port number outside the default range in
 order to comply with local firewall policies.
 
 =back
+
+See L<http://libvirt.org/migration.html#uris> for more details on
+migration URIs.
 
 Optional I<graphicsuri> overrides connection parameters used for automatically
 reconnecting a graphical clients at the end of migration. If omitted, libvirt
@@ -1264,7 +1402,10 @@ obtained from domjobinfo.
 =item B<migrate-setspeed> I<domain> I<bandwidth>
 
 Set the maximum migration bandwidth (in MiB/s) for a domain which is being
-migrated to another host.
+migrated to another host. I<bandwidth> is interpreted as an unsigned long
+long value. Specifying a negative value results in an essentially unlimited
+value being provided to the hypervisor. The hypervisor can choose whether to
+reject the value or convert it to the maximum value allowed.
 
 =item B<migrate-getspeed> I<domain>
 
@@ -1277,9 +1418,11 @@ Set or get a domain's numa parameters, corresponding to the <numatune>
 element of domain XML.  Without flags, the current settings are
 displayed.
 
-I<mode> can be one of `strict', `interleave' and `preferred'.  For a
-running domain, the mode can't be changed, and the nodeset can be
-changed only if the domain was started with a mode of `strict'.
+I<mode> can be one of `strict', `interleave' and `preferred' or any
+valid number from the virDomainNumatuneMemMode enum in case the daemon
+supports it.  For a running domain, the mode can't be changed, and the
+nodeset can be changed only if the domain was started with a mode of
+`strict'.
 
 I<nodeset> is a list of numa nodes used by the host for running the domain.
 Its syntax is a comma separated list, with '-' for ranges and '^' for
@@ -1302,8 +1445,8 @@ I<on_reboot> parameter in the domain's XML definition.
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the I<--mode> parameter
 can specify a comma separated list which includes C<acpi>, C<agent>,
-C<initctl> and C<signal>. The order in which drivers will try each
-mode is undefined, and not related to the order specified to virsh.
+C<initctl>, C<signal> and C<paravirt>. The order in which drivers will
+try each mode is undefined, and not related to the order specified to virsh.
 For strict control over ordering, use a single mode at a time and
 repeat the command.
 
@@ -1781,8 +1924,8 @@ snapshot metadata with B<snapshot-create>.
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the I<--mode> parameter
 can specify a comma separated list which includes C<acpi>, C<agent>,
-C<initctl> and C<signal>. The order in which drivers will try each
-mode is undefined, and not related to the order specified to virsh.
+C<initctl>, C<signal> and C<paravirt>. The order in which drivers will
+try each mode is undefined, and not related to the order specified to virsh.
 For strict control over ordering, use a single mode at a time and
 repeat the command.
 
@@ -1913,10 +2056,12 @@ If I<--guest> is specified, then the count of cpus is reported from
 the perspective of the guest. This flag is usable only for live domains
 and may require guest agent to be configured in the guest.
 
-=item B<vcpuinfo> I<domain>
+=item B<vcpuinfo> I<domain> [I<--pretty>]
 
 Returns basic information about the domain virtual CPUs, like the number of
 vCPUs, the running time, the affinity to physical processors.
+
+With I<--pretty>, cpu affinities are shown as ranges.
 
 =item B<vcpupin> I<domain> [I<vcpu>] [I<cpulist>] [[I<--live>]
 [I<--config>] | [I<--current>]]
@@ -2002,17 +2147,21 @@ B<Note>: using of partial device definition XML files may lead to unexpected
 results as some fields may be autogenerated and thus match devices other than
 expected.
 
-=item B<attach-disk> I<domain> I<source> I<target>
-[[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
-[I<--driver driver>] [I<--subdriver subdriver>] [I<--cache cache>]
-[I<--type type>] [I<--mode mode>] [I<--config>] [I<--sourcetype soucetype>]
-[I<--serial serial>] [I<--wwn wwn>] [I<--rawio>]
-[I<--address address>] [I<--multifunction>] [I<--print-xml>]
+=item B<attach-disk> I<domain> I<source> I<target> [[[I<--live>] [I<--config>]
+| [I<--current>]] | [I<--persistent>]] [I<--targetbus bus>] [I<--driver
+driver>] [I<--subdriver subdriver>] [I<--cache cache>] [I<--type type>]
+[I<--mode mode>] [I<--sourcetype sourcetype>] [I<--serial serial>] [I<--wwn
+wwn>] [I<--rawio>] [I<--address address>] [I<--multifunction>] [I<--print-xml>]
 
 Attach a new disk device to the domain.
 I<source> is path for the files and devices. I<target> controls the bus or
 device under which the disk is exposed to the guest OS. It indicates the
-"logical" device name.  I<driver> can be I<file>, I<tap> or I<phy> for the Xen
+"logical" device name; the optional I<targetbus> attribute specifies the type
+of disk device to emulate; possible values are driver specific, with typical
+values being I<ide>, I<scsi>, I<virtio>, I<xen>, I<usb>, I<sata>, or I<sd>, if
+omitted, the bus type is inferred from the style of the device name (e.g.  a
+device named 'sda' will typically be exported using a SCSI bus).  I<driver> can
+be I<file>, I<tap> or I<phy> for the Xen
 hypervisor depending on the kind of access; or I<qemu> for the QEMU emulator.
 Further details to the driver can be passed using I<subdriver>. For Xen
 I<subdriver> can be I<aio>, while for QEMU subdriver should match the format
@@ -2441,6 +2590,12 @@ If I<--current> is specified, affect the current network state.
 Both I<--live> and I<--config> flags may be given, but I<--current> is
 exclusive. Not specifying any flag is the same as specifying I<--current>.
 
+=item B<net-dhcp-leases> I<network> [I<mac>]
+
+Get a list of dhcp leases for all network interfaces connected to the given
+virtual I<network> or limited output just for one interface if I<mac> is
+specified.
+
 =back
 
 =head1 INTERFACE COMMANDS
@@ -2821,7 +2976,10 @@ is in.
 I<vol-name-or-key-or-path> is the name or key or path of the volume where the
 file will be uploaded.
 I<--offset> is the position in the storage volume at which to start writing
-the data. I<--length> is an upper bound of the amount of data to be uploaded.
+the data. The value must be 0 or larger. I<--length> is an upper bound
+of the amount of data to be uploaded. A negative value is interpreted
+as an unsigned long long value to essentially include everything from
+the offset to the end of the volume.
 An error will occur if the I<local-file> is greater than the specified length.
 
 =item B<vol-download> [I<--pool> I<pool-or-uuid>] [I<--offset> I<bytes>]
@@ -2832,7 +2990,10 @@ I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume
 is in.
 I<vol-name-or-key-or-path> is the name or key or path of the volume to download.
 I<--offset> is the position in the storage volume at which to start reading
-the data. I<--length> is an upper bound of the amount of data to be downloaded.
+the data. The value must be 0 or larger. I<--length> is an upper bound of
+the amount of data to be downloaded. A negative value is interpreted as
+an unsigned long long value to essentially include everything from the
+offset to the end of the volume.
 
 =item B<vol-wipe> [I<--pool> I<pool-or-uuid>] [I<--algorithm> I<algorithm>]
 I<vol-name-or-key-or-path>
@@ -3033,7 +3194,8 @@ metadata again).
 
 If I<--reuse-external> is specified, and the snapshot XML requests an
 external snapshot with a destination of an existing file, then the
-destination must exist, and is reused; otherwise, a snapshot is refused
+destination must exist and be pre-created with correct format and
+metadata. The file is then reused; otherwise, a snapshot is refused
 to avoid losing contents of the existing files.
 
 If I<--quiesce> is specified, libvirt will try to use guest agent
@@ -3080,7 +3242,9 @@ The I<--diskspec> option can be used to control how I<--disk-only> and
 external checkpoints create external files.  This option can occur
 multiple times, according to the number of <disk> elements in the domain
 xml.  Each <diskspec> is in the
-form B<disk[,snapshot=type][,driver=type][,file=name]>.  To include a
+form B<disk[,snapshot=type][,driver=type][,file=name]>.  A I<diskspec>
+must be provided for disks backed by block devices as libvirt doesn't
+auto-generate file names for those.  To include a
 literal comma in B<disk> or in B<file=name>, escape it with a second
 comma.  A literal I<--diskspec> must precede each B<diskspec> unless
 all three of I<domain>, I<name>, and I<description> are also present.
@@ -3092,8 +3256,9 @@ results in the following XML:
 
 If I<--reuse-external> is specified, and the domain XML or I<diskspec>
 option requests an external snapshot with a destination of an existing
-file, then the destination must exist, and is reused; otherwise, a
-snapshot is refused to avoid losing contents of the existing files.
+file, then the destination must exist and be pre-created with correct
+format and metadata. The file is then reused; otherwise, a snapshot
+is refused to avoid losing contents of the existing files.
 
 If I<--quiesce> is specified, libvirt will try to use guest agent
 to freeze and unfreeze domain's mounted file systems. However,

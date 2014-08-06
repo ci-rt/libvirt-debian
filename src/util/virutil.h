@@ -38,6 +38,7 @@
 #  define MAX(a, b) ((a) > (b) ? (a) : (b))
 # endif
 
+
 int virSetBlocking(int fd, bool blocking) ATTRIBUTE_RETURN_CHECK;
 int virSetNonBlock(int fd) ATTRIBUTE_RETURN_CHECK;
 int virSetInherit(int fd, bool inherit) ATTRIBUTE_RETURN_CHECK;
@@ -164,6 +165,14 @@ int virGetDeviceUnprivSGIO(const char *path,
                            int *unpriv_sgio);
 char *virGetUnprivSGIOSysfsPath(const char *path,
                                 const char *sysfs_dir);
+int virReadSCSIUniqueId(const char *sysfs_prefix,
+                        int host,
+                        int *result)
+    ATTRIBUTE_NONNULL(3);
+char *
+virFindSCSIHostByPCI(const char *sysfs_prefix,
+                     const char *parentaddr,
+                     unsigned int unique_id);
 int virReadFCHost(const char *sysfs_prefix,
                   int host,
                   const char *entry,
@@ -202,5 +211,25 @@ bool virIsSUID(void);
 
 time_t virGetSelfLastChanged(void);
 void virUpdateSelfLastChanged(const char *path);
+
+typedef enum {
+    VIR_TRISTATE_BOOL_ABSENT = 0,
+    VIR_TRISTATE_BOOL_YES,
+    VIR_TRISTATE_BOOL_NO,
+
+    VIR_TRISTATE_BOOL_LAST
+} virTristateBool;
+
+typedef enum {
+    VIR_TRISTATE_SWITCH_ABSENT = 0,
+    VIR_TRISTATE_SWITCH_ON,
+    VIR_TRISTATE_SWITCH_OFF,
+
+    VIR_TRISTATE_SWITCH_LAST
+} virTristateSwitch;
+
+
+VIR_ENUM_DECL(virTristateBool)
+VIR_ENUM_DECL(virTristateSwitch)
 
 #endif /* __VIR_UTIL_H__ */

@@ -26,6 +26,7 @@ extern int virConnectDomainXMLToNativeEnsureACL(virConnectPtr conn);
 extern int virConnectFindStoragePoolSourcesEnsureACL(virConnectPtr conn);
 extern int virConnectGetCapabilitiesEnsureACL(virConnectPtr conn);
 extern int virConnectGetCPUModelNamesEnsureACL(virConnectPtr conn);
+extern int virConnectGetDomainCapabilitiesEnsureACL(virConnectPtr conn);
 extern int virConnectGetHostnameEnsureACL(virConnectPtr conn);
 extern int virConnectGetLibVersionEnsureACL(virConnectPtr conn);
 extern int virConnectGetMaxVcpusEnsureACL(virConnectPtr conn);
@@ -116,6 +117,8 @@ extern int virDomainDestroyEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 extern int virDomainDestroyFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDetachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDetachDeviceFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainFSFreezeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainFSThawEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainFSTrimEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetAutostartEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetBlkioParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -143,6 +146,7 @@ extern int virDomainGetSchedulerTypeEnsureACL(virConnectPtr conn, virDomainDefPt
 extern int virDomainGetSecurityLabelEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetSecurityLabelListEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetStateEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetTimeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetVcpuPinInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetVcpusFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
@@ -219,6 +223,7 @@ extern int virDomainSetMetadataEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainSetNumaParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSetSchedulerParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetSchedulerParametersFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainSetTimeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetVcpusFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainShutdownEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -257,6 +262,7 @@ extern int virNetworkDefineXMLEnsureACL(virConnectPtr conn, virNetworkDefPtr net
 extern int virNetworkDestroyEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkGetAutostartEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkGetBridgeNameEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
+extern int virNetworkGetDHCPLeasesEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkGetXMLDescEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkIsActiveEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkIsPersistentEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
@@ -281,6 +287,7 @@ extern int virNodeGetCellsFreeMemoryEnsureACL(virConnectPtr conn);
 extern int virNodeGetCPUMapEnsureACL(virConnectPtr conn);
 extern int virNodeGetCPUStatsEnsureACL(virConnectPtr conn);
 extern int virNodeGetFreeMemoryEnsureACL(virConnectPtr conn);
+extern int virNodeGetFreePagesEnsureACL(virConnectPtr conn);
 extern int virNodeGetInfoEnsureACL(virConnectPtr conn);
 extern int virNodeGetMemoryParametersEnsureACL(virConnectPtr conn);
 extern int virNodeGetMemoryStatsEnsureACL(virConnectPtr conn);

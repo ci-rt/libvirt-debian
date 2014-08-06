@@ -578,6 +578,65 @@ static int remoteDispatchConnectGetCPUModelNamesHelper(
 
 
 
+static int remoteDispatchConnectGetDomainCapabilities(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_domain_capabilities_args *args,
+    remote_connect_get_domain_capabilities_ret *ret);
+static int remoteDispatchConnectGetDomainCapabilitiesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetDomainCapabilities(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectGetDomainCapabilities(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_domain_capabilities_args *args,
+    remote_connect_get_domain_capabilities_ret *ret)
+{
+    int rv = -1;
+    char *emulatorbin;
+    char *arch;
+    char *machine;
+    char *virttype;
+    char *capabilities;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    emulatorbin = args->emulatorbin ? *args->emulatorbin : NULL;
+    arch = args->arch ? *args->arch : NULL;
+    machine = args->machine ? *args->machine : NULL;
+    virttype = args->virttype ? *args->virttype : NULL;
+
+    if ((capabilities = virConnectGetDomainCapabilities(priv->conn, emulatorbin, arch, machine, virttype, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->capabilities = capabilities;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
 static int remoteDispatchConnectGetHostname(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3471,6 +3530,118 @@ cleanup:
 
 
 
+static int remoteDispatchDomainFSFreeze(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsfreeze_args *args,
+    remote_domain_fsfreeze_ret *ret);
+static int remoteDispatchDomainFSFreezeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainFSFreeze(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainFSFreeze(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsfreeze_args *args,
+    remote_domain_fsfreeze_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    int filesystems;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((filesystems = virDomainFSFreeze(dom, (const char **) args->mountpoints.mountpoints_val, args->mountpoints.mountpoints_len, args->flags)) < 0)
+        goto cleanup;
+
+    ret->filesystems = filesystems;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainFSThaw(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsthaw_args *args,
+    remote_domain_fsthaw_ret *ret);
+static int remoteDispatchDomainFSThawHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainFSThaw(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainFSThaw(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fsthaw_args *args,
+    remote_domain_fsthaw_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    int filesystems;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((filesystems = virDomainFSThaw(dom, (const char **) args->mountpoints.mountpoints_val, args->mountpoints.mountpoints_len, args->flags)) < 0)
+        goto cleanup;
+
+    ret->filesystems = filesystems;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainFSTrim(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -4457,6 +4628,28 @@ static int remoteDispatchDomainGetStateHelper(
   return remoteDispatchDomainGetState(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetState body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainGetTime(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_time_args *args,
+    remote_domain_get_time_ret *ret);
+static int remoteDispatchDomainGetTimeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetTime(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetTime body has to be implemented manually */
 
 
 
@@ -8066,6 +8259,58 @@ cleanup:
 
 
 
+static int remoteDispatchDomainSetTime(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_time_args *args);
+static int remoteDispatchDomainSetTimeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetTime(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainSetTime(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_time_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainSetTime(dom, args->seconds, args->nseconds, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainSetVcpus(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -10128,6 +10373,28 @@ cleanup:
 
 
 
+static int remoteDispatchNetworkGetDHCPLeases(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_get_dhcp_leases_args *args,
+    remote_network_get_dhcp_leases_ret *ret);
+static int remoteDispatchNetworkGetDHCPLeasesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkGetDHCPLeases(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchNetworkGetDHCPLeases body has to be implemented manually */
+
+
+
 static int remoteDispatchNetworkGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -11328,6 +11595,28 @@ cleanup:
         virNetMessageSaveError(rerr);
     return rv;
 }
+
+
+
+static int remoteDispatchNodeGetFreePages(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_get_free_pages_args *args,
+    remote_node_get_free_pages_ret *ret);
+static int remoteDispatchNodeGetFreePagesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetFreePages(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchNodeGetFreePages body has to be implemented manually */
 
 
 
@@ -17146,6 +17435,78 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_core_dump_with_format_args,
    0,
    (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainFSFreeze => 335 */
+   remoteDispatchDomainFSFreezeHelper,
+   sizeof(remote_domain_fsfreeze_args),
+   (xdrproc_t)xdr_remote_domain_fsfreeze_args,
+   sizeof(remote_domain_fsfreeze_ret),
+   (xdrproc_t)xdr_remote_domain_fsfreeze_ret,
+   true,
+   0
+},
+{ /* Method DomainFSThaw => 336 */
+   remoteDispatchDomainFSThawHelper,
+   sizeof(remote_domain_fsthaw_args),
+   (xdrproc_t)xdr_remote_domain_fsthaw_args,
+   sizeof(remote_domain_fsthaw_ret),
+   (xdrproc_t)xdr_remote_domain_fsthaw_ret,
+   true,
+   0
+},
+{ /* Method DomainGetTime => 337 */
+   remoteDispatchDomainGetTimeHelper,
+   sizeof(remote_domain_get_time_args),
+   (xdrproc_t)xdr_remote_domain_get_time_args,
+   sizeof(remote_domain_get_time_ret),
+   (xdrproc_t)xdr_remote_domain_get_time_ret,
+   true,
+   0
+},
+{ /* Method DomainSetTime => 338 */
+   remoteDispatchDomainSetTimeHelper,
+   sizeof(remote_domain_set_time_args),
+   (xdrproc_t)xdr_remote_domain_set_time_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventBlockJob2 => 339 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeGetFreePages => 340 */
+   remoteDispatchNodeGetFreePagesHelper,
+   sizeof(remote_node_get_free_pages_args),
+   (xdrproc_t)xdr_remote_node_get_free_pages_args,
+   sizeof(remote_node_get_free_pages_ret),
+   (xdrproc_t)xdr_remote_node_get_free_pages_ret,
+   true,
+   1
+},
+{ /* Method NetworkGetDHCPLeases => 341 */
+   remoteDispatchNetworkGetDHCPLeasesHelper,
+   sizeof(remote_network_get_dhcp_leases_args),
+   (xdrproc_t)xdr_remote_network_get_dhcp_leases_args,
+   sizeof(remote_network_get_dhcp_leases_ret),
+   (xdrproc_t)xdr_remote_network_get_dhcp_leases_ret,
+   true,
+   0
+},
+{ /* Method ConnectGetDomainCapabilities => 342 */
+   remoteDispatchConnectGetDomainCapabilitiesHelper,
+   sizeof(remote_connect_get_domain_capabilities_args),
+   (xdrproc_t)xdr_remote_connect_get_domain_capabilities_args,
+   sizeof(remote_connect_get_domain_capabilities_ret),
+   (xdrproc_t)xdr_remote_connect_get_domain_capabilities_ret,
    true,
    0
 },

@@ -39,8 +39,8 @@ void virDomainAuditStop(virDomainObjPtr vm,
                         const char *reason)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 void virDomainAuditDisk(virDomainObjPtr vm,
-                        const char *oldDef,
-                        const char *newDef,
+                        virStorageSourcePtr oldDef,
+                        virStorageSourcePtr newDef,
                         const char *reason,
                         bool success)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
@@ -110,5 +110,12 @@ void virDomainAuditRedirdev(virDomainObjPtr vm,
                             const char *reason,
                             bool success)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+void virDomainAuditChardev(virDomainObjPtr vm,
+                           virDomainChrDefPtr oldDef,
+                           virDomainChrDefPtr newDef,
+                           const char *reason,
+                           bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
 #endif /* __VIR_DOMAIN_AUDIT_H__ */

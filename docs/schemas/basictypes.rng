@@ -231,6 +231,12 @@
     </data>
   </define>
 
+  <define name="dirPath">
+    <data type="string">
+      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;&apos;&lt;&gt;/%]+</param>
+    </data>
+  </define>
+
   <define name="absFilePath">
     <data type="string">
       <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;&apos;&lt;&gt;/%,]+</param>
@@ -355,9 +361,27 @@
               <value>scsi_host</value>
             </attribute>
           </optional>
-          <attribute name='name'>
-            <text/>
-          </attribute>
+          <choice>
+            <group>
+              <attribute name='name'>
+                <text/>
+              </attribute>
+            </group>
+            <group>
+              <interleave>
+                <element name="parentaddr">
+                  <optional>
+                    <attribute name='unique_id'>
+                      <ref name='positiveInteger'/>
+                    </attribute>
+                  </optional>
+                  <element name="address">
+                    <ref name="pciaddress"/>
+                  </element>
+                </element>
+              </interleave>
+            </group>
+          </choice>
         </group>
         <group>
           <attribute name='type'>
@@ -394,6 +418,31 @@
           <param name="pattern">0x[a-fA-F0-9]</param>
         </data>
       </attribute>
+    </optional>
+  </define>
+
+  <define name="link-speed-state">
+    <optional>
+      <element name="link">
+        <optional>
+          <attribute name="speed">
+            <ref name="unsignedInt"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="state">
+            <choice>
+              <value>unknown</value>
+              <value>notpresent</value>
+              <value>down</value>
+              <value>lowerlayerdown</value>
+              <value>testing</value>
+              <value>dormant</value>
+              <value>up</value>
+            </choice>
+          </attribute>
+        </optional>
+      </element>
     </optional>
   </define>
 

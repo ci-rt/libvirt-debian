@@ -37,7 +37,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
-VIR_ENUM_IMPL(virStorageEncryptionSecretType,
+VIR_ENUM_IMPL(virStorageEncryptionSecret,
               VIR_STORAGE_ENCRYPTION_SECRET_TYPE_LAST, "passphrase")
 
 VIR_ENUM_IMPL(virStorageEncryptionFormat,
@@ -67,6 +67,46 @@ virStorageEncryptionFree(virStorageEncryptionPtr enc)
 }
 
 static virStorageEncryptionSecretPtr
+virStorageEncryptionSecretCopy(const virStorageEncryptionSecret *src)
+{
+    virStorageEncryptionSecretPtr ret;
+
+    if (VIR_ALLOC(ret) < 0)
+        return NULL;
+
+    memcpy(ret, src, sizeof(*src));
+
+    return ret;
+}
+
+virStorageEncryptionPtr
+virStorageEncryptionCopy(const virStorageEncryption *src)
+{
+    virStorageEncryptionPtr ret;
+    size_t i;
+
+    if (VIR_ALLOC(ret) < 0)
+        return NULL;
+
+    if (VIR_ALLOC_N(ret->secrets, src->nsecrets) < 0)
+        goto error;
+
+    ret->nsecrets = src->nsecrets;
+    ret->format = src->format;
+
+    for (i = 0; i < src->nsecrets; i++) {
+        if (!(ret->secrets[i] = virStorageEncryptionSecretCopy(src->secrets[i])))
+            goto error;
+    }
+
+    return ret;
+
+ error:
+    virStorageEncryptionFree(ret);
+    return NULL;
+}
+
+static virStorageEncryptionSecretPtr
 virStorageEncryptionSecretParse(xmlXPathContextPtr ctxt,
                                 xmlNodePtr node)
 {
@@ -88,7 +128,7 @@ virStorageEncryptionSecretParse(xmlXPathContextPtr ctxt,
                        _("unknown volume encryption secret type"));
         goto cleanup;
     }
-    type = virStorageEncryptionSecretTypeTypeFromString(type_str);
+    type = virStorageEncryptionSecretTypeFromString(type_str);
     if (type < 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unknown volume encryption secret type %s"),
@@ -209,7 +249,7 @@ virStorageEncryptionSecretFormat(virBufferPtr buf,
     const char *type;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    type = virStorageEncryptionSecretTypeTypeToString(secret->type);
+    type = virStorageEncryptionSecretTypeToString(secret->type);
     if (!type) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("unexpected volume encryption secret type"));

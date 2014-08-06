@@ -22,14 +22,14 @@
 #ifndef __SECLABEL_H
 # define __SECLABEL_H
 
-enum virDomainSeclabelType {
+typedef enum {
     VIR_DOMAIN_SECLABEL_DEFAULT,
     VIR_DOMAIN_SECLABEL_NONE,
     VIR_DOMAIN_SECLABEL_DYNAMIC,
     VIR_DOMAIN_SECLABEL_STATIC,
 
     VIR_DOMAIN_SECLABEL_LAST
-};
+} virDomainSeclabelType;
 
 /* Security configuration for domain */
 typedef struct _virSecurityLabelDef virSecurityLabelDef;
@@ -40,18 +40,18 @@ struct _virSecurityLabelDef {
     char *imagelabel;   /* security image label string */
     char *baselabel;    /* base name of label string */
     int type;           /* virDomainSeclabelType */
-    bool norelabel;
+    bool relabel;       /* true (default) for allowing relabels */
     bool implicit;      /* true if seclabel is auto-added */
 };
 
 
-/* Security configuration for domain */
+/* Security configuration for device */
 typedef struct _virSecurityDeviceLabelDef virSecurityDeviceLabelDef;
 typedef virSecurityDeviceLabelDef *virSecurityDeviceLabelDefPtr;
 struct _virSecurityDeviceLabelDef {
     char *model;
     char *label;        /* image label string */
-    bool norelabel;     /* true to skip label attempts */
+    bool relabel;       /* true (default) for allowing relabels */
     bool labelskip;     /* live-only; true if skipping failed label attempt */
 };
 
@@ -60,6 +60,10 @@ virSecurityLabelDefNew(const char *model);
 
 virSecurityDeviceLabelDefPtr
 virSecurityDeviceLabelDefNew(const char *model);
+
+virSecurityDeviceLabelDefPtr
+virSecurityDeviceLabelDefCopy(const virSecurityDeviceLabelDef *src)
+    ATTRIBUTE_NONNULL(1);
 
 void virSecurityLabelDefFree(virSecurityLabelDefPtr def);
 void virSecurityDeviceLabelDefFree(virSecurityDeviceLabelDefPtr def);

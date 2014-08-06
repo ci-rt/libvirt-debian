@@ -237,6 +237,9 @@ mymain(void)
             "qcow2-nobacking-convert-prealloc", flags, FMT_OPTIONS);
     DO_TEST_FAIL("pool-dir", "vol-qcow2",
                  "pool-dir", "vol-file",
+                 "qcow2-convert-nobacking", 0, FMT_OPTIONS);
+    DO_TEST_FAIL("pool-dir", "vol-qcow2",
+                 "pool-dir", "vol-file",
                  "qcow2-convert-prealloc", flags, FMT_OPTIONS);
     DO_TEST("pool-dir", "vol-qcow2",
             NULL, NULL,
@@ -296,6 +299,12 @@ mymain(void)
     DO_TEST("pool-logical", "vol-logical",
             "pool-dir", "vol-qcow2-nobacking",
             "logical-from-qcow2", 0, FMT_COMPAT);
+    DO_TEST("pool-dir", "vol-qcow2-nocow",
+            NULL, NULL,
+            "qcow2-nocow", 0, FMT_OPTIONS);
+    DO_TEST("pool-dir", "vol-qcow2-nocow",
+            NULL, NULL,
+            "qcow2-nocow-compat", 0, FMT_COMPAT);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

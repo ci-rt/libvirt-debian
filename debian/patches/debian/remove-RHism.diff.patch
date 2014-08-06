@@ -3,11 +3,12 @@ Date: Fri, 7 Mar 2008 09:08:25 +0100
 Subject: remove-RHism.diff
 
 ---
- tools/virsh.pod | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ debian/patches/debian/remove-RHism.diff.patch | 2 +-
+ tools/virsh.pod                               | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index abd2e93..dc3d63d 100644
+index 849ae31..8aa4b8a 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -119,7 +119,7 @@ virsh is coming from and which options and driver are compiled in.
@@ -15,7 +16,7 @@ index abd2e93..dc3d63d 100644
  Most B<virsh> operations rely upon the libvirt library being able to
  connect to an already running libvirtd service.  This can usually be
 -done using the command B<service libvirtd start>.
-+done using the command B<invoke-rc.d libvirt-bin start>.
++done using the command B<invoke-rc.d libvirtd start>.
  
  Most B<virsh> commands require root privileges to run due to the
  communications channels used to talk to the hypervisor.  Running as

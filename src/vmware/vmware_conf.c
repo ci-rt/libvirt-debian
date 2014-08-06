@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*/
 /*
  * Copyright (C) 2011-2014 Red Hat, Inc.
- * Copyright 2010, diateam (www.diateam.net)
+ * Copyright (C) 2010-2014, diateam (www.diateam.net)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -65,7 +65,7 @@ vmwareCapsInit(void)
     virCPUDataPtr data = NULL;
 
     if ((caps = virCapabilitiesNew(virArchFromHost(),
-                                   0, 0)) == NULL)
+                                   false, false)) == NULL)
         goto error;
 
     if (nodeCapsInitNUMA(caps) < 0)
@@ -241,7 +241,13 @@ vmwareParseVersionStr(int type, const char *verbuf, unsigned long *version)
             return -1;
     }
 
-    if ((tmp = STRSKIP(verbuf, pattern)) == NULL) {
+    if ((tmp = strstr(verbuf, pattern)) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot find version pattern \"%s\""), pattern);
+        return -1;
+    }
+
+    if ((tmp = STRSKIP(tmp, pattern)) == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("failed to parse %sversion"), pattern);
         return -1;

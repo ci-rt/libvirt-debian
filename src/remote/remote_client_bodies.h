@@ -149,6 +149,37 @@ done:
 }
 
 static char *
+remoteConnectGetDomainCapabilities(virConnectPtr conn, const char *emulatorbin, const char *arch, const char *machine, const char *virttype, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_connect_get_domain_capabilities_args args;
+    remote_connect_get_domain_capabilities_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.emulatorbin = emulatorbin ? (char **)&emulatorbin : NULL;
+    args.arch = arch ? (char **)&arch : NULL;
+    args.machine = machine ? (char **)&machine : NULL;
+    args.virttype = virttype ? (char **)&virttype : NULL;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_GET_DOMAIN_CAPABILITIES,
+             (xdrproc_t)xdr_remote_connect_get_domain_capabilities_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_get_domain_capabilities_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.capabilities;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
 remoteConnectGetHostname(virConnectPtr conn)
 {
     char *rv = NULL;
@@ -1560,6 +1591,80 @@ remoteDomainDetachDeviceFlags(virDomainPtr dom, const char *xml, unsigned int fl
     }
 
     rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainFSFreeze(virDomainPtr dom, const char **mountpoints, unsigned int mountpointslen, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_fsfreeze_args args;
+    remote_domain_fsfreeze_ret ret;
+
+    remoteDriverLock(priv);
+
+    if (mountpointslen > REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "mountpoints", (int)mountpointslen, REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX);
+        goto done;
+    }
+
+    make_nonnull_domain(&args.dom, dom);
+    args.mountpoints.mountpoints_val = (char **)mountpoints;
+    args.mountpoints.mountpoints_len = mountpointslen;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_FSFREEZE,
+             (xdrproc_t)xdr_remote_domain_fsfreeze_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_fsfreeze_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.filesystems;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainFSThaw(virDomainPtr dom, const char **mountpoints, unsigned int mountpointslen, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_fsthaw_args args;
+    remote_domain_fsthaw_ret ret;
+
+    remoteDriverLock(priv);
+
+    if (mountpointslen > REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "mountpoints", (int)mountpointslen, REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX);
+        goto done;
+    }
+
+    make_nonnull_domain(&args.dom, dom);
+    args.mountpoints.mountpoints_val = (char **)mountpoints;
+    args.mountpoints.mountpoints_len = mountpointslen;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_FSTHAW,
+             (xdrproc_t)xdr_remote_domain_fsthaw_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_fsthaw_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.filesystems;
 
 done:
     remoteDriverUnlock(priv);
@@ -3591,6 +3696,33 @@ remoteDomainSetSchedulerParametersFlags(virDomainPtr dom, virTypedParameterPtr p
 
 done:
     remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetTime(virDomainPtr dom, long long seconds, unsigned int nseconds, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_time_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.seconds = seconds;
+    args.nseconds = nseconds;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_TIME,
+             (xdrproc_t)xdr_remote_domain_set_time_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
     remoteDriverUnlock(priv);
     return rv;
 }

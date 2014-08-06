@@ -64,8 +64,11 @@ sub fixup_name {
     $name =~ s/Nmi$/NMI/;
     $name =~ s/Pm/PM/;
     $name =~ s/Fstrim$/FSTrim/;
+    $name =~ s/Fsfreeze$/FSFreeze/;
+    $name =~ s/Fsthaw$/FSThaw/;
     $name =~ s/Scsi/SCSI/;
     $name =~ s/Wwn$/WWN/;
+    $name =~ s/Dhcp$/DHCP/;
 
     return $name;
 }

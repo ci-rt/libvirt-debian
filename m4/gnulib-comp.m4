@@ -312,6 +312,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module posix_spawnp-tests:
   # Code from module progname:
   # Code from module pthread:
+  AC_DEFINE([_REENTRANT], 1, [For thread-safety on OSF/1, Solaris.])
+  AC_DEFINE([_THREAD_SAFE], 1, [For thread-safety on AIX, FreeBSD.])
   # Code from module pthread_sigmask:
   # Code from module pthread_sigmask-tests:
   # Code from module ptsname:

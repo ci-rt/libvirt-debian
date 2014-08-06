@@ -1,7 +1,7 @@
 /*
  * virnuma.h: helper APIs for managing numa
  *
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,41 +23,23 @@
 # define __VIR_NUMA_H__
 
 # include "internal.h"
+# include "numatune_conf.h"
 # include "virbitmap.h"
 # include "virutil.h"
 
-enum virNumaTuneMemPlacementMode {
-    VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_DEFAULT = 0,
-    VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_STATIC,
-    VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO,
-
-    VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_LAST
-};
-
-VIR_ENUM_DECL(virNumaTuneMemPlacementMode)
-
-VIR_ENUM_DECL(virDomainNumatuneMemMode)
-
-typedef struct _virNumaTuneDef virNumaTuneDef;
-typedef virNumaTuneDef *virNumaTuneDefPtr;
-struct _virNumaTuneDef {
-    struct {
-        virBitmapPtr nodemask;
-        int mode;
-        int placement_mode; /* enum virNumaTuneMemPlacementMode */
-    } memory;
-
-    /* Future NUMA tuning related stuff should go here. */
-};
 
 char *virNumaGetAutoPlacementAdvice(unsigned short vcups,
                                     unsigned long long balloon);
 
-int virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
+int virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
                              virBitmapPtr nodemask);
 
 bool virNumaIsAvailable(void);
 int virNumaGetMaxNode(void);
+bool virNumaNodeIsAvailable(int node);
+int virNumaGetDistances(int node,
+                        int **distances,
+                        int *ndistances);
 int virNumaGetNodeMemory(int node,
                          unsigned long long *memsize,
                          unsigned long long *memfree);
@@ -66,4 +48,15 @@ unsigned int virNumaGetMaxCPUs(void);
 
 int virNumaGetNodeCPUs(int node, virBitmapPtr *cpus);
 
+int virNumaGetPageInfo(int node,
+                       unsigned int page_size,
+                       unsigned long long huge_page_sum,
+                       unsigned int *page_avail,
+                       unsigned int *page_free);
+int virNumaGetPages(int node,
+                    unsigned int **pages_size,
+                    unsigned int **pages_avail,
+                    unsigned int **pages_free,
+                    size_t *npages)
+    ATTRIBUTE_NONNULL(5);
 #endif /* __VIR_NUMA_H__ */

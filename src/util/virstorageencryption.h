@@ -29,37 +29,40 @@
 
 # include <libxml/tree.h>
 
-enum virStorageEncryptionSecretType {
+typedef enum {
     VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE = 0,
 
     VIR_STORAGE_ENCRYPTION_SECRET_TYPE_LAST
-};
-VIR_ENUM_DECL(virStorageEncryptionSecretType)
+} virStorageEncryptionSecretType;
+VIR_ENUM_DECL(virStorageEncryptionSecret)
 
 typedef struct _virStorageEncryptionSecret virStorageEncryptionSecret;
 typedef virStorageEncryptionSecret *virStorageEncryptionSecretPtr;
 struct _virStorageEncryptionSecret {
-    int type;                   /* enum virStorageEncryptionSecretType */
+    int type; /* virStorageEncryptionSecretType */
     unsigned char uuid[VIR_UUID_BUFLEN];
 };
 
-enum virStorageEncryptionFormat {
+typedef enum {
     /* "default" is only valid for volume creation */
     VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT = 0,
     VIR_STORAGE_ENCRYPTION_FORMAT_QCOW, /* Both qcow and qcow2 */
 
     VIR_STORAGE_ENCRYPTION_FORMAT_LAST,
-};
+} virStorageEncryptionFormatType;
 VIR_ENUM_DECL(virStorageEncryptionFormat)
 
 typedef struct _virStorageEncryption virStorageEncryption;
 typedef virStorageEncryption *virStorageEncryptionPtr;
 struct _virStorageEncryption {
-    int format;            /* enum virStorageEncryptionFormat */
+    int format; /* virStorageEncryptionFormatType */
 
     size_t nsecrets;
     virStorageEncryptionSecretPtr *secrets;
 };
+
+virStorageEncryptionPtr virStorageEncryptionCopy(const virStorageEncryption *src)
+    ATTRIBUTE_NONNULL(1);
 
 void virStorageEncryptionFree(virStorageEncryptionPtr enc);
 

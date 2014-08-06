@@ -35,7 +35,7 @@ int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
                                    bool force);
 int qemuDomainCheckEjectableMedia(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
-                                  enum qemuDomainAsyncJob asyncJob);
+                                  qemuDomainAsyncJob asyncJob);
 int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainControllerDefPtr controller);
@@ -50,7 +50,8 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
 int qemuDomainAttachRedirdevDevice(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainRedirdevDefPtr hostdev);
-int qemuDomainAttachHostDevice(virQEMUDriverPtr driver,
+int qemuDomainAttachHostDevice(virConnectPtr conn,
+                               virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr hostdev);
 int qemuDomainChangeGraphics(virQEMUDriverPtr driver,
@@ -75,10 +76,12 @@ int qemuDomainDetachDeviceDiskLive(virQEMUDriverPtr driver,
 int qemuDomainDetachControllerDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainDeviceDefPtr dev);
-int qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
+int qemuDomainDetachNetDevice(virConnectPtr conn,
+                              virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainDeviceDefPtr dev);
-int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
+int qemuDomainDetachHostDevice(virConnectPtr conn,
+                               virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainDeviceDefPtr dev);
 int qemuDomainAttachLease(virQEMUDriverPtr driver,
@@ -106,7 +109,7 @@ void qemuDomainRemoveDevice(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virDomainDeviceDefPtr dev);
 
-void qemuDomainSignalDeviceRemoval(virDomainObjPtr vm,
+bool qemuDomainSignalDeviceRemoval(virDomainObjPtr vm,
                                    const char *devAlias);
 
 #endif /* __QEMU_HOTPLUG_H__ */

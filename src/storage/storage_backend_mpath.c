@@ -287,4 +287,7 @@ virStorageBackend virStorageBackendMpath = {
 
     .checkPool = virStorageBackendMpathCheckPool,
     .refreshPool = virStorageBackendMpathRefreshPool,
+    .uploadVol = virStorageBackendVolUploadLocal,
+    .downloadVol = virStorageBackendVolDownloadLocal,
+    .wipeVol = virStorageBackendVolWipeLocal,
 };

@@ -243,7 +243,7 @@ static virNetClientPtr virLockManagerLockDaemonConnectionNew(bool privileged,
 {
     virNetClientPtr client = NULL;
     char *lockdpath;
-    const char *daemonPath = NULL;
+    char *daemonPath = NULL;
 
     *prog = NULL;
 
@@ -273,11 +273,13 @@ static virNetClientPtr virLockManagerLockDaemonConnectionNew(bool privileged,
     if (virNetClientAddProgram(client, *prog) < 0)
         goto error;
 
+    VIR_FREE(daemonPath);
     VIR_FREE(lockdpath);
 
     return client;
 
  error:
+    VIR_FREE(daemonPath);
     VIR_FREE(lockdpath);
     virNetClientClose(client);
     virObjectUnref(client);

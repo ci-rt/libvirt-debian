@@ -1,0 +1,22 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 22 Jul 2014 22:27:09 +0200
+Subject: Use sensible-editor as fallback
+
+Closes: #594444
+---
+ tools/virsh.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/virsh.c b/tools/virsh.c
+index 3927120..52cd1e5 100644
+--- a/tools/virsh.c
++++ b/tools/virsh.c
+@@ -765,7 +765,7 @@ vshEditFile(vshControl *ctl, const char *filename)
+     if (!editor)
+         editor = virGetEnvBlockSUID("EDITOR");
+     if (!editor)
+-        editor = "vi"; /* could be cruel & default to ed(1) here */
++        editor = "sensible-editor";
+ 
+     /* Check that filename doesn't contain shell meta-characters, and
+      * if it does, refuse to run.  Follow the Unix conventions for

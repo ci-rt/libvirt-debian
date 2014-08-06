@@ -54,21 +54,38 @@
 %define with_vbox          0%{!?_without_vbox:%{server_drivers}}
 
 %define with_qemu_tcg      %{with_qemu}
-# Change if we ever provide qemu-kvm binaries on non-x86 hosts
-%if 0%{?fedora} >= 18
-    %if 0%{?fedora} >= 20
-        %define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x %{arm}
-    %else
-        %define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x
+
+%define qemu_kvm_arches %{ix86} x86_64
+
+%if 0%{?fedora}
+    %if 0%{?fedora} < 16
+        # Fedora doesn't have any QEMU on ppc64 until FC16 - only ppc
+        # I think F17 is the first release with the power64 macro
+        %ifarch ppc64
+            %define with_qemu_tcg 0
+        %endif
     %endif
-%else
-    %define qemu_kvm_arches    %{ix86} x86_64
+    %if 0%{?fedora} >= 18
+        %define qemu_kvm_arches %{ix86} x86_64 %{power64} s390x
+    %endif
+    %if 0%{?fedora} >= 20
+        %define qemu_kvm_arches %{ix86} x86_64 %{power64} s390x %{arm} aarch64
+    %endif
+%endif
+
+%if 0%{?rhel}
+    %define with_qemu_tcg 0
+    %define qemu_kvm_arches x86_64
 %endif
 
 %ifarch %{qemu_kvm_arches}
     %define with_qemu_kvm      %{with_qemu}
 %else
     %define with_qemu_kvm      0
+%endif
+
+%if ! %{with_qemu_tcg} && ! %{with_qemu_kvm}
+    %define with_qemu 0
 %endif
 
 # Then the hypervisor drivers that run outside libvirtd, in libvirt.so
@@ -191,32 +208,14 @@
     %define with_firewalld 1
 %endif
 
-# RHEL-5 has restricted QEMU to x86_64 only and is too old for LXC
+# RHEL-5 is too old for LXC
 %if 0%{?rhel} == 5
-    %define with_qemu_tcg 0
-    %ifnarch x86_64
-        %define with_qemu 0
-        %define with_qemu_kvm 0
-    %endif
     %define with_lxc 0
 %endif
 
-# RHEL-6 has restricted QEMU to x86_64 only, stopped including Xen
-# on all archs. Other archs all have LXC available though
+# RHEL-6 stopped including Xen on all archs.
 %if 0%{?rhel} >= 6
-    %define with_qemu_tcg 0
-    %ifnarch x86_64
-        %define with_qemu 0
-        %define with_qemu_kvm 0
-    %endif
     %define with_xen 0
-%endif
-
-# Fedora doesn't have any QEMU on ppc64 until FC16 - only ppc
-%if 0%{?fedora} && 0%{?fedora} < 16
-    %ifarch ppc64
-        %define with_qemu 0
-    %endif
 %endif
 
 # Fedora doesn't have new enough Xen for libxl until F18
@@ -262,17 +261,12 @@
 %endif
 
 # Enable sanlock library for lock management with QEMU
-# Sanlock is available only on i686 x86_64 for RHEL
+# Sanlock is available only on arches where kvm is available for RHEL
 %if 0%{?fedora} >= 16
     %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
-%if 0%{?rhel} == 6
-    %ifarch %{ix86} x86_64
-        %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
-    %endif
-%endif
-%if 0%{?rhel} >= 7
-    %ifarch x86_64
+%if 0%{?rhel} >= 6
+    %ifarch %{qemu_kvm_arches}
         %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
     %endif
 %endif
@@ -527,7 +521,9 @@ BuildRequires: libapparmor-devel
 %if %{with_network}
 BuildRequires: dnsmasq >= 2.41
 BuildRequires: iptables
+    %if (0%{?fedora} && 0%{?fedora} < 17) || (0%{?rhel} && 0%{?rhel} < 7)
 BuildRequires: iptables-ipv6
+    %endif
 BuildRequires: radvd
 %endif
 %if %{with_nwfilter}
@@ -538,10 +534,14 @@ BuildRequires: module-init-tools
 BuildRequires: cyrus-sasl-devel
 %endif
 %if %{with_polkit}
-    %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-BuildRequires: polkit-devel >= 0.93
+    %if 0%{?fedora} >= 20 || 0%{?rhel} >= 7
+BuildRequires: polkit-devel >= 0.112
     %else
+        %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+BuildRequires: polkit-devel >= 0.93
+        %else
 BuildRequires: PolicyKit-devel >= 0.6
+        %endif
     %endif
 %endif
 %if %{with_storage_fs}
@@ -701,10 +701,14 @@ Requires: avahi-libs
         %endif
     %endif
     %if %{with_polkit}
-        %if 0%{?fedora} >= 12 || 0%{?rhel} >=6
-Requires: polkit >= 0.93
+        %if 0%{?fedora} >= 20 || 0%{?rhel} >= 7
+Requires: polkit >= 0.112
         %else
+            %if 0%{?fedora} >= 12 || 0%{?rhel} >=6
+Requires: polkit >= 0.93
+            %else
 Requires: PolicyKit >= 0.6
+            %endif
         %endif
     %endif
     %if %{with_cgconfig}
@@ -771,7 +775,9 @@ Requires: libvirt-daemon = %{version}-%{release}
 Requires: dnsmasq >= 2.41
 Requires: radvd
 Requires: iptables
+            %if (0%{?fedora} && 0%{?fedora} < 17) || (0%{?rhel} && 0%{?rhel} < 7)
 Requires: iptables-ipv6
+            %endif
 
 %description daemon-driver-network
 The network driver plugin for the libvirtd daemon, providing
@@ -786,7 +792,9 @@ Summary: Nwfilter driver plugin for the libvirtd daemon
 Group: Development/Libraries
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: iptables
+            %if (0%{?fedora} && 0%{?fedora} < 17) || (0%{?rhel} && 0%{?rhel} < 7)
 Requires: iptables-ipv6
+            %endif
 Requires: ebtables
 
 %description daemon-driver-nwfilter
@@ -1498,7 +1506,7 @@ rm -fr %{buildroot}
 # on RHEL 5, thus we need to expand it here.
 make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
 
-for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap dommigrate
+for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap dommigrate domtop
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -1883,7 +1891,9 @@ exit 0
 %{_datadir}/augeas/lenses/virtlockd.aug
 %{_datadir}/augeas/lenses/tests/test_virtlockd.aug
 %{_datadir}/augeas/lenses/libvirt_lockd.aug
+    %if %{with_qemu}
 %{_datadir}/augeas/lenses/tests/test_libvirt_lockd.aug
+    %endif
 
     %if %{with_polkit}
         %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
@@ -1920,6 +1930,7 @@ exit 0
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+%attr(0755, root, root) %{_libexecdir}/libvirt_leaseshelper
         %endif
         %if %{with_nwfilter}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
@@ -1995,6 +2006,7 @@ exit 0
 %ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+%attr(0755, root, root) %{_libexecdir}/libvirt_leaseshelper
 %{_libdir}/%{name}/connection-driver/libvirt_driver_network.so
         %endif
 
@@ -2149,7 +2161,9 @@ exit 0
 %{_bindir}/virt-xml-validate
 %{_bindir}/virt-pki-validate
 %{_bindir}/virt-host-validate
-%{_libdir}/lib*.so.*
+%{_libdir}/libvirt.so.*
+%{_libdir}/libvirt-qemu.so.*
+%{_libdir}/libvirt-lxc.so.*
 
 %if %{with_dtrace}
 %{_datadir}/systemtap/tapset/libvirt_probes*.stp
@@ -2163,6 +2177,7 @@ exit 0
 %{_datadir}/libvirt/schemas/basictypes.rng
 %{_datadir}/libvirt/schemas/capability.rng
 %{_datadir}/libvirt/schemas/domain.rng
+%{_datadir}/libvirt/schemas/domaincaps.rng
 %{_datadir}/libvirt/schemas/domaincommon.rng
 %{_datadir}/libvirt/schemas/domainsnapshot.rng
 %{_datadir}/libvirt/schemas/interface.rng
@@ -2206,10 +2221,17 @@ exit 0
 %files devel
 %defattr(-, root, root)
 
-%{_libdir}/lib*.so
+%{_libdir}/libvirt.so
+%{_libdir}/libvirt-qemu.so
+%{_libdir}/libvirt-lxc.so
 %dir %{_includedir}/libvirt
-%{_includedir}/libvirt/*.h
+%{_includedir}/libvirt/virterror.h
+%{_includedir}/libvirt/libvirt.h
+%{_includedir}/libvirt/libvirt-qemu.h
+%{_includedir}/libvirt/libvirt-lxc.h
 %{_libdir}/pkgconfig/libvirt.pc
+%{_libdir}/pkgconfig/libvirt-qemu.pc
+%{_libdir}/pkgconfig/libvirt-lxc.pc
 
 %dir %{_datadir}/libvirt/api/
 %{_datadir}/libvirt/api/libvirt-api.xml
@@ -2228,6 +2250,21 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Sun Aug  3 2014 Daniel Veillard <veillard@redhat.com> - 1.2.7-1
+- Introduce virConnectGetDomainCapabilities
+- many improvements and bug fixes
+
+* Wed Jul  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.6-1
+- libxl: add migration support and fixes
+- various improvements and fixes for NUMA
+- many improvements and bug fixes
+
+* Mon Jun  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.5-1
+- LSN-2014-0003: Don't expand entities when parsing XML (security)
+- Introduce virDomain{Get,Set}Time APIs
+- Introduce virDomainFSFreeze() and virDomainFSThaw() public API
+- various improvements and bug fixes
+
 * Sun May  4 2014 Daniel Veillard <veillard@redhat.com> - 1.2.4-1
 - various improvements and bug fixes
 - lot of internal code refactoring

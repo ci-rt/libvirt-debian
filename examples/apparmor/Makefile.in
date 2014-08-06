@@ -1735,7 +1735,8 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ws_plugindir = @ws_plugindir@
 EXTRA_DIST = \
-	TEMPLATE			\
+	TEMPLATE.qemu			\
+	TEMPLATE.lxc			\
 	libvirt-qemu			\
 	libvirt-lxc 			\
 	usr.lib.libvirt.virt-aa-helper	\
@@ -1755,7 +1756,8 @@ EXTRA_DIST = \
 
 @WITH_APPARMOR_PROFILES_TRUE@templatesdir = $(apparmordir)/libvirt
 @WITH_APPARMOR_PROFILES_TRUE@templates_DATA = \
-@WITH_APPARMOR_PROFILES_TRUE@	TEMPLATE \
+@WITH_APPARMOR_PROFILES_TRUE@	TEMPLATE.qemu \
+@WITH_APPARMOR_PROFILES_TRUE@	TEMPLATE.lxc \
 @WITH_APPARMOR_PROFILES_TRUE@	$(NULL)
 
 all: all-am

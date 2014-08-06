@@ -266,7 +266,7 @@ test4(const void *data ATTRIBUTE_UNUSED)
     return -1;
 }
 
-/* test for virBitmapNewData/ToData */
+/* test for virBitmapNewData/ToData/DataToString */
 static int
 test5(const void *v ATTRIBUTE_UNUSED)
 {
@@ -278,6 +278,7 @@ test5(const void *v ATTRIBUTE_UNUSED)
     size_t i;
     ssize_t j;
     int ret = -1;
+    char *str = NULL;
 
     bitmap = virBitmapNewData(data, sizeof(data));
     if (!bitmap)
@@ -307,8 +308,19 @@ test5(const void *v ATTRIBUTE_UNUSED)
         data2[4] != 0x04)
         goto error;
 
+    if (!(str = virBitmapDataToString(data, sizeof(data))))
+        goto error;
+    if (STRNEQ(str, "0,9,34"))
+        goto error;
+    VIR_FREE(str);
+    if (!(str = virBitmapDataToString(data2, len2)))
+        goto error;
+    if (STRNEQ(str, "0,2,9,15,34"))
+        goto error;
+
     ret = 0;
  error:
+    VIR_FREE(str);
     virBitmapFree(bitmap);
     VIR_FREE(data2);
     return ret;
@@ -498,6 +510,30 @@ test9(const void *opaque ATTRIBUTE_UNUSED)
 }
 
 static int
+test10(const void *opaque ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+    virBitmapPtr b1 = NULL, b2 = NULL, b3 = NULL;
+
+    if (virBitmapParse("0-3,5-8,11-15", 0, &b1, 20) < 0 ||
+        virBitmapParse("4,9,10,16-19", 0, &b2, 20) < 0 ||
+        virBitmapParse("15", 0, &b3, 20) < 0)
+        goto cleanup;
+
+    if (virBitmapOverlaps(b1, b2) ||
+        virBitmapOverlaps(b2, b3) ||
+        !virBitmapOverlaps(b1, b3))
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virBitmapFree(b1);
+    virBitmapFree(b2);
+    virBitmapFree(b3);
+    return ret;
+}
+
+static int
 mymain(void)
 {
     int ret = 0;
@@ -519,6 +555,8 @@ mymain(void)
     if (virtTestRun("test8", test8, NULL) < 0)
         ret = -1;
     if (virtTestRun("test9", test9, NULL) < 0)
+        ret = -1;
+    if (virtTestRun("test10", test10, NULL) < 0)
         ret = -1;
 
     return ret;

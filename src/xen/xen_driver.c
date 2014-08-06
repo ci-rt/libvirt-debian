@@ -343,6 +343,16 @@ xenDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         STRNEQ(def->os.type, "hvm"))
         dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
 
+    /* forbid capabilities mode hostdev in this kind of hypervisor */
+    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV &&
+        dev->data.hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("hostdev mode 'capabilities' is not "
+                         "supported in %s"),
+                       virDomainVirtTypeToString(def->virtType));
+        return -1;
+    }
+
     return 0;
 }
 
@@ -649,10 +659,8 @@ xenUnifiedConnectGetSysinfo(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (virSysinfoFormat(&buf, hostsysinfo) < 0)
         return NULL;
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         return NULL;
-    }
     return virBufferContentAndReset(&buf);
 }
 
@@ -710,17 +718,11 @@ static char *
 xenUnifiedConnectGetCapabilities(virConnectPtr conn)
 {
     xenUnifiedPrivatePtr priv = conn->privateData;
-    char *xml;
 
     if (virConnectGetCapabilitiesEnsureACL(conn) < 0)
         return NULL;
 
-    if (!(xml = virCapabilitiesFormatXML(priv->caps))) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    return xml;
+    return virCapabilitiesFormatXML(priv->caps);
 }
 
 static int

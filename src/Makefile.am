@@ -149,7 +149,7 @@ UTIL_SOURCES =							\
 		util/virseclabel.c util/virseclabel.h		\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
-		util/virstatslinux.c util/virstatslinux.h	\
+		util/virstats.c util/virstats.h	\
 		util/virstorageencryption.c util/virstorageencryption.h \
 		util/virstoragefile.c util/virstoragefile.h	\
 		util/virstring.h util/virstring.c		\
@@ -247,10 +247,13 @@ NETDEV_CONF_SOURCES =						\
 # Domain driver generic impl APIs
 DOMAIN_CONF_SOURCES =						\
 		conf/capabilities.c conf/capabilities.h		\
+		conf/domain_addr.c conf/domain_addr.h		\
+		conf/domain_capabilities.c conf/domain_capabilities.h	\
 		conf/domain_conf.c conf/domain_conf.h		\
 		conf/domain_audit.c conf/domain_audit.h		\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
-		conf/snapshot_conf.c conf/snapshot_conf.h
+		conf/snapshot_conf.c conf/snapshot_conf.h	\
+		conf/numatune_conf.c conf/numatune_conf.h
 
 OBJECT_EVENT_SOURCES =						\
 		conf/object_event.c conf/object_event.h \
@@ -662,6 +665,7 @@ VMWARE_DRIVER_SOURCES =						\
 VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_glue.c vbox/vbox_glue.h			\
 	vbox/vbox_driver.c vbox/vbox_driver.h			\
+	vbox/vbox_snapshot_conf.c vbox/vbox_snapshot_conf.h \
 	vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
 	vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
 	vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
@@ -706,7 +710,8 @@ XENAPI_DRIVER_SOURCES =						\
 LIBXL_DRIVER_SOURCES =						\
 		libxl/libxl_conf.c libxl/libxl_conf.h		\
 		libxl/libxl_domain.c libxl/libxl_domain.h       \
-		libxl/libxl_driver.c libxl/libxl_driver.h
+		libxl/libxl_driver.c libxl/libxl_driver.h       \
+		libxl/libxl_migration.c libxl/libxl_migration.h
 
 UML_DRIVER_SOURCES =						\
 		uml/uml_conf.c uml/uml_conf.h			\
@@ -786,6 +791,10 @@ BHYVE_DRIVER_SOURCES =						\
 		bhyve/bhyve_capabilities.h			\
 		bhyve/bhyve_command.c				\
 		bhyve/bhyve_command.h				\
+		bhyve/bhyve_device.c				\
+		bhyve/bhyve_device.h				\
+		bhyve/bhyve_domain.c				\
+		bhyve/bhyve_domain.h				\
 		bhyve/bhyve_driver.h				\
 		bhyve/bhyve_driver.c				\
 		bhyve/bhyve_process.c				\
@@ -858,6 +867,9 @@ STORAGE_HELPER_DISK_SOURCES =					\
 
 UTIL_IO_HELPER_SOURCES =					\
 		util/iohelper.c
+
+NETWORK_LEASES_HELPER_SOURCES =                                 \
+               network/leaseshelper.c
 
 # Network filters
 NWFILTER_DRIVER_SOURCES =						\
@@ -981,6 +993,7 @@ libvirt_la_BUILT_LIBADD += libvirt_conf.la
 libvirt_conf_la_SOURCES = $(CONF_SOURCES)
 libvirt_conf_la_CFLAGS = $(AM_CFLAGS)
 libvirt_conf_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_conf_la_LIBADD = $(LIBXML_LIBS)
 
 noinst_LTLIBRARIES += libvirt_cpu.la
 libvirt_la_BUILT_LIBADD += libvirt_cpu.la
@@ -1133,7 +1146,9 @@ libvirt_driver_vbox_impl_la_CFLAGS =				\
 		-I$(top_srcdir)/src/conf			\
 		$(AM_CFLAGS)
 libvirt_driver_vbox_impl_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_vbox_impl_la_LIBADD =  $(DLOPEN_LIBS) $(MSCOM_LIBS)
+libvirt_driver_vbox_impl_la_LIBADD =  $(DLOPEN_LIBS)		\
+		$(MSCOM_LIBS)					\
+		$(LIBXML_LIBS)
 libvirt_driver_vbox_impl_la_SOURCES = $(VBOX_DRIVER_SOURCES)
 endif WITH_VBOX
 
@@ -1394,7 +1409,7 @@ endif ! WITH_DRIVER_MODULES
 libvirt_driver_interface_la_CFLAGS = \
 		-I$(top_srcdir)/src/access \
 		-I$(top_srcdir)/src/conf \
-		$(AM_CFLAGS)
+		$(AM_CFLAGS) $(LIBNL_CFLAGS)
 libvirt_driver_interface_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_interface_la_LIBADD =
 if WITH_NETCF
@@ -1440,7 +1455,7 @@ libvirt_driver_storage_impl_la_CFLAGS = \
 		$(AM_CFLAGS)
 libvirt_driver_storage_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_storage_impl_la_LIBADD =
-libvirt_driver_storage_impl_la_LIBADD += $(SECDRIVER_LIBS)
+libvirt_driver_storage_impl_la_LIBADD += $(SECDRIVER_LIBS) $(LIBXML_LIBS)
 if WITH_BLKID
 libvirt_driver_storage_impl_la_CFLAGS += $(BLKID_CFLAGS)
 libvirt_driver_storage_impl_la_LIBADD += $(BLKID_LIBS)
@@ -1513,7 +1528,7 @@ libvirt_driver_nodedev_la_SOURCES = $(NODE_DEVICE_DRIVER_SOURCES)
 libvirt_driver_nodedev_la_CFLAGS = \
 		-I$(top_srcdir)/src/access \
 		-I$(top_srcdir)/src/conf \
-		$(AM_CFLAGS)
+		$(AM_CFLAGS) $(LIBNL_CFLAGS)
 libvirt_driver_nodedev_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_nodedev_la_LIBADD =
 
@@ -2467,6 +2482,25 @@ libvirt_iohelper_CFLAGS = \
 		$(AM_CFLAGS) \
 		$(PIE_CFLAGS) \
 		$(NULL)
+
+if WITH_NETWORK
+libexec_PROGRAMS += libvirt_leaseshelper
+libvirt_leaseshelper_SOURCES = $(NETWORK_LEASES_HELPER_SOURCES)
+libvirt_leaseshelper_LDADD =           \
+               libvirt_util.la         \
+               ../gnulib/lib/libgnu.la
+if WITH_DTRACE_PROBES
+libvirt_leaseshelper_LDADD += libvirt_probes.lo
+endif WITH_DTRACE_PROBES
+
+libvirt_leaseshelper_CFLAGS = \
+	       $(AM_CFLAGS) \
+               $(PIE_CFLAGS) \
+               $(NULL)
+else ! WITH_NETWORK
+EXTRA_DIST += $(NETWORK_LEASES_HELPER_SOURCES)
+endif ! WITH_NETWORK
+
 endif WITH_LIBVIRTD
 
 if WITH_STORAGE_DISK
@@ -2564,8 +2598,10 @@ virt_aa_helper_LDFLAGS = \
 		$(PIE_LDFLAGS) \
 		$(NULL)
 virt_aa_helper_LDADD =						\
+		libvirt.la					\
 		libvirt_conf.la					\
 		libvirt_util.la					\
+		libvirt_driver_storage_impl.la			\
 		../gnulib/lib/libgnu.la
 if WITH_DTRACE_PROBES
 virt_aa_helper_LDADD += libvirt_probes.lo
