@@ -1,3 +1,12 @@
+libvirt (1.2.7-3) unstable; urgency=medium
+
+  * Upload to unstable
+  * [f634d53] Don't try to install qemu configuration on kFreeBSD.
+    QEMU support on kFreeBSD support is currently disabled due to test
+    failures.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 06 Aug 2014 20:28:05 +0200
+
 libvirt (1.2.7-2) experimental; urgency=medium
 
   * [ebfec9b] Don't try to install lxc.conf on kFreeBSD.
