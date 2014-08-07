@@ -1,3 +1,15 @@
+libvirt (1.2.7-4) unstable; urgency=medium
+
+  * [5e71896] Move networking configuration to libvirt-daemon-system too
+  * [32eea48] Remove left over empty directory
+  * [b3a2735] Also purge libvirt-bin.service on new installations.
+    The old service file was in libvirt-bin so we need to remove it when
+    libvirt-daemon-service is first installed (as we did before when
+    the whole code was in the postinst).
+    Thanks to Laurent Bigonville for the analysis (Closes: #757293)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 07 Aug 2014 10:57:53 +0200
+
 libvirt (1.2.7-3) unstable; urgency=medium
 
   * Upload to unstable
