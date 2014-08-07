@@ -6,7 +6,7 @@
 # based on the skeletons that comes with dh_make
 #
 ### BEGIN INIT INFO
-# Provides:          libvirt-bin libvirtd
+# Provides:          libvirtd
 # Required-Start:    $network $local_fs $remote_fs $syslog
 # Required-Stop:     $local_fs $remote_fs $syslog
 # Should-Start:      avahi-daemon cgconfig
