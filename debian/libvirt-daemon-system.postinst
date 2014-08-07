@@ -101,6 +101,8 @@ case "$1" in
 	for dir in qemu uml lxc; do
 	    touch /var/log/libvirt/"${dir}"/.placeholder
 	done
+        # Remove left over empty directory from pre 1.2.7
+        [ ! -d /etc/apparmor.d/libvirtd ] || rmdir --ignore-fail-on-non-empty /etc/apparmor.d/libvirtd
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
