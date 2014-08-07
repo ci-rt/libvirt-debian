@@ -1,3 +1,5 @@
 etc/libvirt/libvirtd.conf
 etc/libvirt/virtlockd.conf
 etc/sasl2/*
+etc/libvirt/qemu/networks/
+etc/libvirt/nwfilter/

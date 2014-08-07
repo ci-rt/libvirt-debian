@@ -139,7 +139,7 @@ Recommends:
 Section: admin
 Suggests: policykit-1, radvd, auditd, systemtap, systemd, apparmor
 Breaks: avahi-daemon (<< 0.6.31-3~)
-Replaces: libvirt-bin (<< 1.2.6-1~)
+Replaces: libvirt-bin (<< 1.2.7-4~)
 Conflicts: libvirt-bin (<< 1.2.6-1~)
 Description: Libvirt daemon configuration files
  Libvirt is a C toolkit to interact with the virtualization capabilities
