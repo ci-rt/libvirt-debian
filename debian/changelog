@@ -1,3 +1,13 @@
+libvirt (1.2.7-6) unstable; urgency=medium
+
+  * [5e39138] Don't provide libvirt-bin via LSB headers.
+    This avoids a conflict when /e/i/libvirt-bin and /e/i/libvirtd
+    are around at the same time during dpkg's configure phase and
+    both init scripts Provide: libvirt-bin.
+    (Closes: #757330)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 Aug 2014 17:58:36 +0200
+
 libvirt (1.2.7-5) unstable; urgency=medium
 
   * [06d457c] Bump comparison version so this applies to current failed
