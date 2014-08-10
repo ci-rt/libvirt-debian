@@ -158,6 +158,8 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu-lockd.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu-sanlock.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu/networks/
+	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/
 	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
 endif
 
