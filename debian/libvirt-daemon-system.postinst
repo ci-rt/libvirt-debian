@@ -103,6 +103,9 @@ case "$1" in
 	done
         # Remove left over empty directory from pre 1.2.7
         [ ! -d /etc/apparmor.d/libvirtd ] || rmdir --ignore-fail-on-non-empty /etc/apparmor.d/libvirtd
+	
+        # Force virtlockd to reexec
+        [ -d /run/systemd/system ] && systemctl reload virtlockd.service
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

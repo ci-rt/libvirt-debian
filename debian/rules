@@ -178,7 +178,8 @@ override_dh_installinit:
 	dh_systemd_enable
 	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
 	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
-	dh_systemd_start --restart-after-upgrade
+	dh_systemd_start --restart-after-upgrade libvirt-guests.service libvirtd.service
+	dh_systemd_start --no-restart-on-upgrade virtlockd.socket virtlockd.service
 
 override_dh_installdocs:
 	dh_installdocs
