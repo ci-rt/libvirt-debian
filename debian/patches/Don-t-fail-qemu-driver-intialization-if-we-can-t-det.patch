@@ -1,0 +1,35 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sun, 10 Aug 2014 12:42:37 +0200
+Subject: Don't fail qemu driver intialization if we can't determine hugepage
+ size
+
+Otherwise we fail like
+
+  libvirt version: 1.2.7, package: 6 (root 2014-08-08-16:09:22 bogon)
+  virAuditOpen:62 : Unable to initialize audit layer: Protocol not supported
+  virFileGetDefaultHugepageSize:2958 : internal error: Unable to parse /proc/meminfo
+  virStateInitialize:749 : Initialization of QEMU state driver failed: internal error: Unable to parse /proc/meminfo
+  daemonRunStateInit:922 : Driver state initialization failed
+
+if the data can't be determined.
+Closes: #757609
+---
+ src/util/virfile.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/util/virfile.c b/src/util/virfile.c
+index 9863fd0..717882c 100644
+--- a/src/util/virfile.c
++++ b/src/util/virfile.c
+@@ -2953,8 +2953,9 @@ virFileGetDefaultHugepageSize(unsigned long long *size)
+         goto cleanup;
+ 
+     if (!(c = strstr(meminfo, HUGEPAGESIZE_STR))) {
+-        virReportError(VIR_ERR_INTERNAL_ERROR,
+-                       _("Unable to parse %s"),
++        virReportError(VIR_ERR_NO_SUPPORT,
++                       _("%s not found in %s"),
++                       HUGEPAGESIZE_STR,
+                        PROC_MEMINFO);
+         goto cleanup;
+     }

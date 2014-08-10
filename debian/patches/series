@@ -13,3 +13,4 @@ Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 Include-param.h-on-kFreeBSD.patch
 Use-sensible-editor-as-fallback.patch
+Don-t-fail-qemu-driver-intialization-if-we-can-t-det.patch
