@@ -1,0 +1,29 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Mon, 11 Aug 2014 22:02:13 +0200
+Subject: Make 'uri' command a bit more prominent.
+
+This tries to address
+
+    https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=688778
+
+were libvirt autodetected vbox:///session and it wasn't listed in the
+manpage.
+
+Closes: #688778
+---
+ tools/virsh.pod | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/tools/virsh.pod b/tools/virsh.pod
+index 8aa4b8a..d57cf0b 100644
+--- a/tools/virsh.pod
++++ b/tools/virsh.pod
+@@ -272,6 +272,8 @@ connect to a local linux container
+ 
+ =back
+ 
++To find the currently used uri check the I<uri> command below.
++
+ For remote access see the documentation page at
+ L<http://libvirt.org/uri.html> on how to make URIs.
+ The I<--readonly> option allows for read-only connection
