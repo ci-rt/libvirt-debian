@@ -1,3 +1,22 @@
+libvirt (1.2.7-7) unstable; urgency=medium
+
+  * [42dbd16] Skip more linux specific stuff on kFreeBSD
+  * [a2ff23f] Don't restart virtlockd on upgrade virtlockd must be reloaded so
+    it reexecs itself. (Closes: #757453)
+  * [4914adc] Use symlinks for upstream changelog.  This safes 1.9M per
+    package
+  * [3583f4b] Don't fail qemu driver intialization if we can't determine
+    hugepage size.  Thanks to a lot to Jamie Heilman for testing it
+    (Closes: #757609)
+  * [3b23724] Make 'uri' command a bit more prominent. (Closes: #688778)
+  * [63e7e51] Also stop libvirt-bin in libvirt-bin's preinst.
+    When libvirt-daemon-system's preinst runs the new libvirt-bin might
+    already be unpacked and therefore the libvirt-bin service file already
+    gone. So additionally stop libvirt-bin in libvirt-bin's preinst.
+    (Closes: #757952)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 13 Aug 2014 21:50:07 +0200
+
 libvirt (1.2.7-6) unstable; urgency=medium
 
   * [5e39138] Don't provide libvirt-bin via LSB headers.
