@@ -1,3 +1,10 @@
+libvirt (1.2.7-8) unstable; urgency=medium
+
+  * [d98aa3b] Fix wrong relation in preinst.
+    Thanks to Laurent Bigonville (Closes: #758136)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 14 Aug 2014 21:06:45 +0200
+
 libvirt (1.2.7-7) unstable; urgency=medium
 
   * [42dbd16] Skip more linux specific stuff on kFreeBSD
