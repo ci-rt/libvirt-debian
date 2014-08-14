@@ -19,7 +19,7 @@ case "$1" in
 	# When renaming the .service file, systemd might become confused, we
 	# need to ensure that the libvirtd daemon is fully stopped before
 	# trying to restart it again. (Bug: #730604)
-	if dpkg --compare-versions "$2" lt-ne "1.2.6-1~"; then
+	if dpkg --compare-versions "$2" lt-nl "1.2.6-1~"; then
 	    if [ -d /run/systemd/system ]; then
 	        [ ! -f /lib/systemd/system/libvirt-bin.service ] || invoke-rc.d libvirt-bin stop
 	    fi
