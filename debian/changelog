@@ -1,3 +1,12 @@
+libvirt (1.2.7-9) unstable; urgency=medium
+
+  * [1c2c5ee] Don't let dh_systemd_start guess the package to act on
+    (Closes: #758552)
+  * [ab79901] Don't restart libvirt-guests when using systemd so it's
+    consistent with sysvinit. We'd restart VMs on package upgrads otherwise.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 19 Aug 2014 09:59:47 +0200
+
 libvirt (1.2.7-8) unstable; urgency=medium
 
   * [d98aa3b] Fix wrong relation in preinst.
