@@ -105,7 +105,7 @@ case "$1" in
         [ ! -d /etc/apparmor.d/libvirtd ] || rmdir --ignore-fail-on-non-empty /etc/apparmor.d/libvirtd
 	
         # Force virtlockd to reexec if enabled
-        if [ -d /run/systemd/system ] && systemctl is-enabled virtlockd.service >/dev/null; then
+        if [ -d /run/systemd/system ] && systemctl status virtlockd.service >/dev/null; then
            systemctl reload virtlockd.service
         fi
     ;;
