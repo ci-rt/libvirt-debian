@@ -77,7 +77,6 @@ Recommends: netcat-openbsd,
  parted,
  pm-utils
 Suggests: policykit-1, radvd, auditd, systemtap, systemd, apparmor
-Breaks: avahi-daemon (<< 0.6.31-3~)
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing

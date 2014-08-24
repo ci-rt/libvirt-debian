@@ -1,3 +1,11 @@
+libvirt (1.2.4-1~bpo70+1.1) wheezy-backports; urgency=medium
+
+  * Non-maintainer upload.
+  * Revert switch from avahi to avahi-daemon in init script; fixes
+    co-installability with avahi in wheezy.
+
+ -- Julien Cristau <jcristau@debian.org>  Sun, 24 Aug 2014 15:02:36 -0700
+
 libvirt (1.2.4-1~bpo70+1) wheezy-backports; urgency=medium
 
   * Rebuild for wheezy-backports.
