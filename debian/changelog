@@ -1,3 +1,12 @@
+libvirt (1.2.7-11) unstable; urgency=medium
+
+  * [6534478] Check status in a systemd 208 compatible way
+    systemd 204 returned 0 when trying to reload a not running service but
+    208 changed behaviour. So use status instead of is-enabled.
+    Thanks to Neutron Soutmun for his feedback (Closes: #758688)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 24 Aug 2014 10:54:26 +0200
+
 libvirt (1.2.7-10) unstable; urgency=medium
 
   * [d319f15] Only reexec virtlockd if enabled (Closes: #758688)
