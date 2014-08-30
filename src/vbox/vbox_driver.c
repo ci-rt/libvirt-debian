@@ -39,52 +39,51 @@
 #include "vbox_glue.h"
 #include "virerror.h"
 #include "virutil.h"
+#include "domain_event.h"
+#include "domain_conf.h"
+
+#include "vbox_install_api.h"
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 
 VIR_LOG_INIT("vbox.vbox_driver");
 
-extern virDriver vbox22Driver;
 extern virNetworkDriver vbox22NetworkDriver;
 extern virStorageDriver vbox22StorageDriver;
-extern virDriver vbox30Driver;
 extern virNetworkDriver vbox30NetworkDriver;
 extern virStorageDriver vbox30StorageDriver;
-extern virDriver vbox31Driver;
 extern virNetworkDriver vbox31NetworkDriver;
 extern virStorageDriver vbox31StorageDriver;
-extern virDriver vbox32Driver;
 extern virNetworkDriver vbox32NetworkDriver;
 extern virStorageDriver vbox32StorageDriver;
-extern virDriver vbox40Driver;
 extern virNetworkDriver vbox40NetworkDriver;
 extern virStorageDriver vbox40StorageDriver;
-extern virDriver vbox41Driver;
 extern virNetworkDriver vbox41NetworkDriver;
 extern virStorageDriver vbox41StorageDriver;
-extern virDriver vbox42Driver;
 extern virNetworkDriver vbox42NetworkDriver;
 extern virStorageDriver vbox42StorageDriver;
-extern virDriver vbox42_20Driver;
 extern virNetworkDriver vbox42_20NetworkDriver;
 extern virStorageDriver vbox42_20StorageDriver;
-extern virDriver vbox43Driver;
 extern virNetworkDriver vbox43NetworkDriver;
 extern virStorageDriver vbox43StorageDriver;
-extern virDriver vbox43_4Driver;
 extern virNetworkDriver vbox43_4NetworkDriver;
 extern virStorageDriver vbox43_4StorageDriver;
+
+extern virDriver vboxCommonDriver;
 
 static virDriver vboxDriverDummy;
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 
-int vboxRegister(void)
+static void
+vboxGetDrivers(virDriverPtr *driver_ret,
+               virNetworkDriverPtr *networkDriver_ret,
+               virStorageDriverPtr *storageDriver_ret)
 {
-    virDriverPtr        driver;
+    virDriverPtr driver;
     virNetworkDriverPtr networkDriver;
     virStorageDriverPtr storageDriver;
-    uint32_t            uVersion;
+    uint32_t uVersion;
 
     /*
      * If the glue layer does not initialize, we register a driver
@@ -110,74 +109,107 @@ int vboxRegister(void)
          */
         if (uVersion >= 2001052 && uVersion < 2002051) {
             VIR_DEBUG("VirtualBox API version: 2.2");
-            driver        = &vbox22Driver;
             networkDriver = &vbox22NetworkDriver;
             storageDriver = &vbox22StorageDriver;
         } else if (uVersion >= 2002051 && uVersion < 3000051) {
             VIR_DEBUG("VirtualBox API version: 3.0");
-            driver        = &vbox30Driver;
             networkDriver = &vbox30NetworkDriver;
             storageDriver = &vbox30StorageDriver;
         } else if (uVersion >= 3000051 && uVersion < 3001051) {
             VIR_DEBUG("VirtualBox API version: 3.1");
-            driver        = &vbox31Driver;
             networkDriver = &vbox31NetworkDriver;
             storageDriver = &vbox31StorageDriver;
         } else if (uVersion >= 3001051 && uVersion < 3002051) {
             VIR_DEBUG("VirtualBox API version: 3.2");
-            driver        = &vbox32Driver;
             networkDriver = &vbox32NetworkDriver;
             storageDriver = &vbox32StorageDriver;
         } else if (uVersion >= 3002051 && uVersion < 4000051) {
             VIR_DEBUG("VirtualBox API version: 4.0");
-            driver        = &vbox40Driver;
             networkDriver = &vbox40NetworkDriver;
             storageDriver = &vbox40StorageDriver;
         } else if (uVersion >= 4000051 && uVersion < 4001051) {
             VIR_DEBUG("VirtualBox API version: 4.1");
-            driver        = &vbox41Driver;
             networkDriver = &vbox41NetworkDriver;
             storageDriver = &vbox41StorageDriver;
         } else if (uVersion >= 4001051 && uVersion < 4002020) {
             VIR_DEBUG("VirtualBox API version: 4.2");
-            driver        = &vbox42Driver;
             networkDriver = &vbox42NetworkDriver;
             storageDriver = &vbox42StorageDriver;
         } else if (uVersion >= 4002020 && uVersion < 4002051) {
            VIR_DEBUG("VirtualBox API version: 4.2.20 or higher");
-           driver         = &vbox42_20Driver;
            networkDriver  = &vbox42_20NetworkDriver;
            storageDriver  = &vbox42_20StorageDriver;
         } else if (uVersion >= 4002051 && uVersion < 4003004) {
             VIR_DEBUG("VirtualBox API version: 4.3");
-            driver        = &vbox43Driver;
             networkDriver = &vbox43NetworkDriver;
             storageDriver = &vbox43StorageDriver;
         } else if (uVersion >= 4003004 && uVersion < 4003051) {
             VIR_DEBUG("VirtualBox API version: 4.3.4 or higher");
-            driver        = &vbox43_4Driver;
             networkDriver = &vbox43_4NetworkDriver;
             storageDriver = &vbox43_4StorageDriver;
         } else {
             VIR_DEBUG("Unsupported VirtualBox API version: %u", uVersion);
         }
+        /* Register vboxUniformedAPI. */
+        if (vboxRegisterUniformedAPI(uVersion) == 0)
+            /* Only if successfully register the uniformed api,
+             * can we use the vboxCommonDriver. Or use the
+             * vboxDriverDummy in case of failure. */
+            driver = &vboxCommonDriver;
     } else {
         VIR_DEBUG("VBoxCGlueInit failed, using dummy driver");
     }
 
-    if (virRegisterDriver(driver) < 0)
-        return -1;
-    if (virRegisterNetworkDriver(networkDriver) < 0)
-        return -1;
-    if (virRegisterStorageDriver(storageDriver) < 0)
-        return -1;
-
-    return 0;
+    if (driver_ret)
+        *driver_ret = driver;
+    if (networkDriver_ret)
+        *networkDriver_ret = networkDriver;
+    if (storageDriver_ret)
+        *storageDriver_ret = storageDriver;
 }
 
-static virDrvOpenStatus vboxConnectOpen(virConnectPtr conn,
-                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                        unsigned int flags)
+
+#if !defined(WITH_DRIVER_MODULES) || defined(VBOX_NETWORK_DRIVER)
+int vboxNetworkRegister(void)
+{
+    virNetworkDriverPtr networkDriver;
+
+    vboxGetDrivers(NULL, &networkDriver, NULL);
+    if (virRegisterNetworkDriver(networkDriver) < 0)
+        return -1;
+    return 0;
+}
+#endif
+
+#if !defined(WITH_DRIVER_MODULES) || defined(VBOX_STORAGE_DRIVER)
+int vboxStorageRegister(void)
+{
+    virStorageDriverPtr storageDriver;
+
+    vboxGetDrivers(NULL, NULL, &storageDriver);
+
+    if (virRegisterStorageDriver(storageDriver) < 0)
+        return -1;
+    return 0;
+}
+#endif
+
+#if !defined(WITH_DRIVER_MODULES) || defined(VBOX_DRIVER)
+int vboxRegister(void)
+{
+    virDriverPtr driver;
+
+    vboxGetDrivers(&driver, NULL, NULL);
+
+    if (virRegisterDriver(driver) < 0)
+        return -1;
+    return 0;
+}
+#endif
+
+static virDrvOpenStatus dummyConnectOpen(virConnectPtr conn,
+                                         virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                         unsigned int flags)
 {
     uid_t uid = geteuid();
 
@@ -218,5 +250,5 @@ static virDrvOpenStatus vboxConnectOpen(virConnectPtr conn,
 static virDriver vboxDriverDummy = {
     VIR_DRV_VBOX,
     "VBOX",
-    .connectOpen = vboxConnectOpen,
+    .connectOpen = dummyConnectOpen, /* 0.6.3 */
 };

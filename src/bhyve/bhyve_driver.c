@@ -689,10 +689,10 @@ bhyveConnectDomainXMLToNative(virConnectPtr conn,
     if (bhyveDomainAssignAddresses(def, NULL) < 0)
         goto cleanup;
 
-    if (!(loadcmd = virBhyveProcessBuildLoadCmd(privconn, def)))
+    if (!(loadcmd = virBhyveProcessBuildLoadCmd(conn, def)))
         goto cleanup;
 
-    if (!(cmd = virBhyveProcessBuildBhyveCmd(privconn, def, true)))
+    if (!(cmd = virBhyveProcessBuildBhyveCmd(conn, def, true)))
         goto cleanup;
 
     virBufferAdd(&buf, virCommandToString(loadcmd), -1);
@@ -1191,7 +1191,7 @@ bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
     if (virFileMakePath(BHYVE_STATE_DIR) < 0) {
         virReportSystemError(errno,
                              _("Failed to mkdir %s"),
-                             BHYVE_LOG_DIR);
+                             BHYVE_STATE_DIR);
         goto cleanup;
     }
 

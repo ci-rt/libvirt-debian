@@ -148,6 +148,7 @@ src/storage/storage_backend_mpath.c
 src/storage/storage_backend_rbd.c
 src/storage/storage_backend_scsi.c
 src/storage/storage_backend_sheepdog.c
+src/storage/storage_backend_zfs.c
 src/storage/storage_driver.c
 src/test/test_driver.c
 src/uml/uml_conf.c
@@ -216,6 +217,7 @@ src/util/virxml.c
 src/vbox/vbox_MSCOMGlue.c
 src/vbox/vbox_XPCOMCGlue.c
 src/vbox/vbox_driver.c
+src/vbox/vbox_common.c
 src/vbox/vbox_snapshot_conf.c
 src/vbox/vbox_tmpl.c
 src/vmware/vmware_conf.c
@@ -230,8 +232,9 @@ src/xen/xm_internal.c
 src/xen/xs_internal.c
 src/xenapi/xenapi_driver.c
 src/xenapi/xenapi_utils.c
-src/xenxs/xen_sxpr.c
-src/xenxs/xen_xm.c
+src/xenconfig/xen_common.c
+src/xenconfig/xen_sxpr.c
+src/xenconfig/xen_xm.c
 tools/libvirt-guests.sh.in
 tools/virsh.c
 tools/virsh.h

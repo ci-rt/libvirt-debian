@@ -21,6 +21,7 @@
 # include "conf/storage_conf.h"
 # include "cpu/cpu_map.h"
 # include "virstring.h"
+# include "storage/storage_driver.h"
 
 # include "testutilsqemu.h"
 
@@ -351,7 +352,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     }
 
     for (i = 0; i < vmdef->ndisks; i++) {
-        if (qemuTranslateDiskSourcePool(conn, vmdef->disks[i]) < 0)
+        if (virStorageTranslateDiskSourcePool(conn, vmdef->disks[i]) < 0)
             goto out;
     }
 
@@ -606,6 +607,11 @@ mymain(void)
     DO_TEST("boot-menu-enable",
             QEMU_CAPS_BOOT_MENU, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
             QEMU_CAPS_BOOTINDEX);
+    DO_TEST("boot-menu-enable-with-timeout",
+            QEMU_CAPS_BOOT_MENU, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_SPLASH_TIMEOUT);
+    DO_TEST_FAILURE("boot-menu-enable-with-timeout", QEMU_CAPS_BOOT_MENU);
+    DO_TEST_PARSE_ERROR("boot-menu-enable-with-timeout-invalid", NONE);
     DO_TEST("boot-menu-disable", QEMU_CAPS_BOOT_MENU);
     DO_TEST("boot-menu-disable-drive",
             QEMU_CAPS_BOOT_MENU, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE);
@@ -665,6 +671,9 @@ mymain(void)
 
     DO_TEST("hyperv", NONE);
     DO_TEST("hyperv-off", NONE);
+
+    DO_TEST("kvm-features", NONE);
+    DO_TEST("kvm-features-off", NONE);
 
     DO_TEST("hugepages", QEMU_CAPS_MEM_PATH);
     DO_TEST("hugepages-pages", QEMU_CAPS_MEM_PATH, QEMU_CAPS_OBJECT_MEMORY_RAM,
@@ -1136,7 +1145,8 @@ mymain(void)
     DO_TEST("sound-device",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_HDA_MICRO,
-            QEMU_CAPS_DEVICE_ICH9_INTEL_HDA);
+            QEMU_CAPS_DEVICE_ICH9_INTEL_HDA,
+            QEMU_CAPS_OBJECT_USB_AUDIO);
     DO_TEST("fs9p",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_FSDEV,
             QEMU_CAPS_FSDEV_WRITEOUT);
@@ -1175,6 +1185,10 @@ mymain(void)
 
     DO_TEST("smp", QEMU_CAPS_SMP_TOPOLOGY);
 
+    DO_TEST("iothreads", QEMU_CAPS_OBJECT_IOTHREAD);
+    DO_TEST("iothreads-disk", QEMU_CAPS_OBJECT_IOTHREAD, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
+
     DO_TEST("cpu-topology1", QEMU_CAPS_SMP_TOPOLOGY);
     DO_TEST("cpu-topology2", QEMU_CAPS_SMP_TOPOLOGY);
     DO_TEST("cpu-topology3", NONE);
@@ -1209,6 +1223,7 @@ mymain(void)
     DO_TEST("cputune-zero-shares", QEMU_CAPS_NAME);
 
     DO_TEST("numatune-memory", NONE);
+    DO_TEST_PARSE_ERROR("numatune-memory-invalid-nodeset", NONE);
     DO_TEST("numatune-memnode", QEMU_CAPS_NUMA, QEMU_CAPS_OBJECT_MEMORY_RAM);
     DO_TEST_FAILURE("numatune-memnode", NONE);
 
@@ -1220,6 +1235,7 @@ mymain(void)
     DO_TEST_PARSE_ERROR("numatune-memnodes-problematic", NONE);
     DO_TEST("numad", NONE);
     DO_TEST("numad-auto-vcpu-static-numatune", NONE);
+    DO_TEST_PARSE_ERROR("numad-auto-vcpu-static-numatune-no-nodeset", NONE);
     DO_TEST("numad-auto-memory-vcpu-cpuset", NONE);
     DO_TEST("numad-auto-memory-vcpu-no-cpuset-and-placement", NONE);
     DO_TEST("numad-static-memory-auto-vcpu", NONE);
@@ -1353,6 +1369,22 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_DEVICE_SCSI_GENERIC,
             QEMU_CAPS_DEVICE_SCSI_GENERIC_BOOTINDEX);
+    DO_TEST("hostdev-scsi-lsi-iscsi", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_LSI,
+            QEMU_CAPS_DEVICE_SCSI_GENERIC);
+    DO_TEST("hostdev-scsi-lsi-iscsi-auth", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_LSI,
+            QEMU_CAPS_DEVICE_SCSI_GENERIC);
+    DO_TEST("hostdev-scsi-virtio-iscsi", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_SCSI,
+            QEMU_CAPS_DEVICE_SCSI_GENERIC);
+    DO_TEST("hostdev-scsi-virtio-iscsi-auth", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_SCSI,
+            QEMU_CAPS_DEVICE_SCSI_GENERIC);
 
     DO_TEST("mlock-on", QEMU_CAPS_MLOCK);
     DO_TEST_FAILURE("mlock-on", NONE);

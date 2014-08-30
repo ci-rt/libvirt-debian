@@ -2480,7 +2480,8 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
     /* Start the QEMU daemon, with the same command-line arguments plus
      * -incoming $migrateFrom
      */
-    if (qemuProcessStart(dconn, driver, vm, migrateFrom, dataFD[0], NULL, NULL,
+    if (qemuProcessStart(dconn, driver, vm, QEMU_ASYNC_JOB_MIGRATION_IN,
+                         migrateFrom, dataFD[0], NULL, NULL,
                          VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_START,
                          VIR_QEMU_PROCESS_START_PAUSED |
                          VIR_QEMU_PROCESS_START_AUTODESTROY) < 0) {
@@ -4731,6 +4732,13 @@ qemuMigrationToFile(virQEMUDriverPtr driver, virDomainObjPtr vm,
         qemuDomainObjExitMonitor(driver, vm);
     }
 
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest unexpectedly quit"));
+        /* nothing to tear down */
+        return -1;
+    }
+
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
         (!compressor || pipe(pipeFD) == 0)) {
         /* All right! We can use fd migration, which means that qemu
@@ -4818,6 +4826,12 @@ qemuMigrationToFile(virQEMUDriverPtr driver, virDomainObjPtr vm,
     }
     qemuDomainObjExitMonitor(driver, vm);
 
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest unexpectedly quit"));
+        goto cleanup;
+    }
+
     if (rc < 0)
         goto cleanup;
 
@@ -4827,7 +4841,8 @@ qemuMigrationToFile(virQEMUDriverPtr driver, virDomainObjPtr vm,
         if (rc == -2) {
             orig_err = virSaveLastError();
             virCommandAbort(cmd);
-            if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
+            if (virDomainObjIsActive(vm) &&
+                qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
                 qemuMonitorMigrateCancel(priv->mon);
                 qemuDomainObjExitMonitor(driver, vm);
             }
@@ -4845,7 +4860,8 @@ qemuMigrationToFile(virQEMUDriverPtr driver, virDomainObjPtr vm,
         orig_err = virSaveLastError();
 
     /* Restore max migration bandwidth */
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
+    if (virDomainObjIsActive(vm) &&
+        qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
         qemuMonitorSetMigrationSpeed(priv->mon, saveMigBandwidth);
         priv->migMaxBandwidth = saveMigBandwidth;
         qemuDomainObjExitMonitor(driver, vm);

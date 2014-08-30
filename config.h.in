@@ -2529,6 +2529,9 @@
 /* whether Sheepdog backend for storage driver is enabled */
 #undef WITH_STORAGE_SHEEPDOG
 
+/* whether ZFS backend for storage driver is enabled */
+#undef WITH_STORAGE_ZFS
+
 /* whether libsystemd-daemon >= 0.27.1 is available */
 #undef WITH_SYSTEMD_DAEMON
 
@@ -2582,6 +2585,12 @@
 
 /* Define to 1 if gcc supports pragma push/pop */
 #undef WORKING_PRAGMA_PUSH
+
+/* Location of zfs program */
+#undef ZFS
+
+/* Location of zpool program */
+#undef ZPOOL
 
 /* Enable large inode numbers on Mac OS X 10.5. */
 #undef _DARWIN_USE_64_BIT_INODE

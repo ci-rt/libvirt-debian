@@ -182,6 +182,8 @@
               </li><li>
                 <a href="#elementsCPUAllocation">CPU Allocation</a>
               </li><li>
+                <a href="#elementsIOThreadsAllocation">IOThreads Allocation</a>
+              </li><li>
                 <a href="#elementsCPUTuning">CPU Tuning</a>
               </li><li>
                 <a href="#elementsMemoryAllocation">Memory Allocation</a>
@@ -420,7 +422,7 @@
     &lt;loader&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
     &lt;boot dev='hd'/&gt;
     &lt;boot dev='cdrom'/&gt;
-    &lt;bootmenu enable='yes'/&gt;
+    &lt;bootmenu enable='yes' timeout='3000'/&gt;
     &lt;smbios mode='sysinfo'/&gt;
     &lt;bios useserial='yes' rebootTimeout='0'/&gt;
   &lt;/os&gt;
@@ -464,6 +466,10 @@
       startup. The <code>enable</code> attribute can be either "yes" or "no".
       If not specified, the hypervisor default is used. <span class="since">
       Since 0.8.3</span>
+      Additional attribute <code>timeout</code> takes the number of milliseconds
+      the boot menu should wait until it times out.  Allowed values are numbers
+      in range [0, 65535] inclusive and it is ignored unless <code>enable</code>
+      is set to "yes". <span class="since">Since 1.2.8</span>
       </dd><dt><code>smbios</code></dt><dd>How to populate SMBIOS information visible in the guest.
       The <code>mode</code> attribute must be specified, and is either
       "emulate" (let the hypervisor generate all values), "host" (copy
@@ -651,37 +657,67 @@
 </pre>
         <dl><dt><code>vcpu</code></dt><dd>The content of this element defines the maximum number of virtual
         CPUs allocated for the guest OS, which must be between 1 and
-        the maximum supported by the hypervisor.  <span class="since">Since
-        0.4.4</span>, this element can contain an optional
-        <code>cpuset</code> attribute, which is a comma-separated
-        list of physical CPU numbers that domain process and virtual CPUs
-        can be pinned to by default. (NB: The pinning policy of domain
-        process and virtual CPUs can be specified separately by
-        <code>cputune</code>. If attribute <code>emulatorpin</code>
-        of <code>cputune</code> is specified, <code>cpuset</code>
-        specified by <code>vcpu</code> here will be ignored; Similarly,
-        For virtual CPUs which has <code>vcpupin</code> specified,
-        <code>cpuset</code> specified by <code>cpuset</code> here
-        will be ignored; For virtual CPUs which doesn't have
-        <code>vcpupin</code> specified, it will be pinned to the physical
-        CPUs specified by <code>cpuset</code> here).
-        Each element in that list is either a single CPU number,
-        a range of CPU numbers, or a caret followed by a CPU number to
-        be excluded from a previous range.  <span class="since">Since
-        0.8.5</span>, the optional attribute <code>current</code> can
-        be used to specify whether fewer than the maximum number of
-        virtual CPUs should be enabled.  <span class="since">Since
-        0.9.11 (QEMU and KVM only)</span>, the optional attribute
-        <code>placement</code> can be used to indicate the CPU placement
-        mode for domain process, its value can be either "static" or
-        "auto", defaults to <code>placement</code> of <code>numatune</code>,
-         or "static" if <code>cpuset</code> is specified. "auto" indicates
-        the domain process will be pinned to the advisory nodeset from querying
-        numad, and the value of attribute <code>cpuset</code> will be ignored
-        if it's specified. If both <code>cpuset</code> and <code>placement</code>
-        are not specified, or if <code>placement</code> is "static", but no
-        <code>cpuset</code> is specified, the domain process will be pinned to
-        all the available physical CPUs.
+        the maximum supported by the hypervisor.
+        <dl><dt><code>cpuset</code></dt><dd>
+           The optional attribute <code>cpuset</code> is a comma-separated
+           list of physical CPU numbers that domain process and virtual CPUs
+           can be pinned to by default. (NB: The pinning policy of domain
+           process and virtual CPUs can be specified separately by
+           <code>cputune</code>. If the attribute <code>emulatorpin</code>
+           of <code>cputune</code> is specified, the <code>cpuset</code>
+           specified by <code>vcpu</code> here will be ignored. Similarly,
+           for virtual CPUs which have the <code>vcpupin</code> specified,
+           the <code>cpuset</code> specified by <code>cpuset</code> here
+           will be ignored. For virtual CPUs which don't have
+           <code>vcpupin</code> specified, each will be pinned to the physical
+           CPUs specified by <code>cpuset</code> here).
+           Each element in that list is either a single CPU number,
+           a range of CPU numbers, or a caret followed by a CPU number to
+           be excluded from a previous range.
+           <span class="since">Since 0.4.4</span>
+         </dd><dt><code>current</code></dt><dd>
+           The optional attribute <code>current</code> can
+           be used to specify whether fewer than the maximum number of
+           virtual CPUs should be enabled.
+           <span class="since">Since 0.8.5</span>
+         </dd><dt><code>placement</code></dt><dd>
+           The optional attribute <code>placement</code> can be used to
+           indicate the CPU placement mode for domain process. The value can
+           be either "static" or "auto", but defaults to <code>placement</code>
+           of <code>numatune</code> or "static" if <code>cpuset</code> is
+           specified. Using "auto" indicates the domain process will be pinned
+           to the advisory nodeset from querying numad and the value of
+           attribute <code>cpuset</code> will be ignored if it's specified.
+           If both <code>cpuset</code> and <code>placement</code> are not
+           specified or if <code>placement</code> is "static", but no
+           <code>cpuset</code> is specified, the domain process will be
+           pinned to all the available physical CPUs.
+           <span class="since">Since 0.9.11 (QEMU and KVM only)</span>
+         </dd></dl>
+      </dd></dl>
+        <h3>
+          <a name="elementsIOThreadsAllocation" shape="rect" id="elementsIOThreadsAllocation">IOThreads Allocation</a>
+          <a class="headerlink" href="#elementsIOThreadsAllocation" title="Permalink to this headline">¶</a>
+        </h3>
+        <p>
+        IOThreads are dedicated event loop threads for supported disk
+        devices to perform block I/O requests in order to improve
+        scalability especially on an SMP host/guest with many LUNs.
+        <span class="since">Since 1.2.8 (QEMU only)</span>
+      </p>
+        <pre xml:space="preserve">
+&lt;domain&gt;
+  ...
+  &lt;iothreads&gt;4&lt;/iothreads&gt;
+  ...
+&lt;/domain&gt;
+</pre>
+        <dl><dt><code>iothreads</code></dt><dd>
+        The content of this optional element defines the number
+        of IOThreads to be assigned to the domain for use by
+        virtio-blk-pci target storage devices. There should be
+        only 1 or 2 IOThreads per host CPU. There may be more than
+        supported device assigned to each IOThread.
       </dd></dl>
         <h3>
           <a name="elementsCPUTuning" shape="rect" id="elementsCPUTuning">CPU Tuning</a>
@@ -898,7 +934,8 @@
         kibibytes (i.e. blocks of 1024 bytes). This has to be more than
         hard_limit value provided</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
         minimum memory allocation for the guest. The units for this value are
-        kibibytes (i.e. blocks of 1024 bytes)</dd></dl>
+        kibibytes (i.e. blocks of 1024 bytes). This element is only supported
+        by VMware ESX and OpenVZ drivers.</dd></dl>
         <h3>
           <a name="elementsNUMATuning" shape="rect" id="elementsNUMATuning">NUMA Node Tuning</a>
           <a class="headerlink" href="#elementsNUMATuning" title="Permalink to this headline">¶</a>
@@ -1310,6 +1347,9 @@
       &lt;vapic state='on'/&gt;
       &lt;spinlocks state='on' retries='4096'/&gt;
     &lt;/hyperv&gt;
+    &lt;kvm&gt;
+      &lt;hidden state='on'/&gt;
+    &lt;/kvm&gt;
     &lt;pvspinlock/&gt;
 
   &lt;/features&gt;
@@ -1344,6 +1384,8 @@
           for example by exposing the pvticketlocks mechanism. This feature
           can be explicitly disabled by using <code>state='off'</code>
           attribute.
+      </dd><dt><code>kvm</code></dt><dd>Various features to change the behavior of the KVM hypervisor.
+      <table class="top_table"><tr><th rowspan="1" colspan="1">Feature</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">Value</th><th rowspan="1" colspan="1">Since</th></tr><tr><td rowspan="1" colspan="1">hidden</td><td rowspan="1" colspan="1">Hide the KVM hypervisor from standard MSR based discovery</td><td rowspan="1" colspan="1">on, off</td><td rowspan="1" colspan="1"><span class="since">2.1.0 (QEMU only)</span></td></tr></table>
       </dd></dl>
         <h3>
           <a name="elementsTime" shape="rect" id="elementsTime">Time keeping</a>
@@ -1544,14 +1586,14 @@
       &lt;source protocol="rbd" name="image_name2"&gt;
         &lt;host name="hostname" port="7000"/&gt;
       &lt;/source&gt;
-      &lt;target dev="hdd" bus="ide"/&gt;
+      &lt;target dev="hdc" bus="ide"/&gt;
       &lt;auth username='myuser'&gt;
         &lt;secret type='ceph' usage='mypassid'/&gt;
       &lt;/auth&gt;
     &lt;/disk&gt;
     &lt;disk type='block' device='cdrom'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
-      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;target dev='hdd' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
     &lt;/disk&gt;
     &lt;disk type='network' device='cdrom'&gt;
@@ -1559,7 +1601,7 @@
       &lt;source protocol="http" name="url_path"&gt;
         &lt;host name="hostname" port="80"/&gt;
       &lt;/source&gt;
-      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;target dev='hde' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
     &lt;/disk&gt;
     &lt;disk type='network' device='cdrom'&gt;
@@ -1567,7 +1609,7 @@
       &lt;source protocol="https" name="url_path"&gt;
         &lt;host name="hostname" port="443"/&gt;
       &lt;/source&gt;
-      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;target dev='hdf' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
     &lt;/disk&gt;
     &lt;disk type='network' device='cdrom'&gt;
@@ -1575,7 +1617,7 @@
       &lt;source protocol="ftp" name="url_path"&gt;
         &lt;host name="hostname" port="21"/&gt;
       &lt;/source&gt;
-      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;target dev='hdg' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
     &lt;/disk&gt;
     &lt;disk type='network' device='cdrom'&gt;
@@ -1583,7 +1625,7 @@
       &lt;source protocol="ftps" name="url_path"&gt;
         &lt;host name="hostname" port="990"/&gt;
       &lt;/source&gt;
-      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;target dev='hdh' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
     &lt;/disk&gt;
     &lt;disk type='network' device='cdrom'&gt;
@@ -1591,7 +1633,7 @@
       &lt;source protocol="tftp" name="url_path"&gt;
         &lt;host name="hostname" port="69"/&gt;
       &lt;/source&gt;
-      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;target dev='hdi' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
     &lt;/disk&gt;
     &lt;disk type='block' device='lun'&gt;
@@ -1605,12 +1647,12 @@
       &lt;source dev='/dev/sda'/&gt;
       &lt;geometry cyls='16383' heads='16' secs='63' trans='lba'/&gt;
       &lt;blockio logical_block_size='512' physical_block_size='4096'/&gt;
-      &lt;target dev='hda' bus='ide'/&gt;
+      &lt;target dev='hdj' bus='ide'/&gt;
     &lt;/disk&gt;
     &lt;disk type='volume' device='disk'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
       &lt;source pool='blk-pool0' volume='blk-pool0-vol0'/&gt;
-      &lt;target dev='hda' bus='ide'/&gt;
+      &lt;target dev='hdk' bus='ide'/&gt;
     &lt;/disk&gt;
     &lt;disk type='network' device='disk'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
@@ -1630,7 +1672,7 @@
       &lt;auth username='myuser'&gt;
         &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
       &lt;/auth&gt;
-      &lt;target dev='sda' bus='scsi'/&gt;
+      &lt;target dev='sdb' bus='scsi'/&gt;
     &lt;/disk&gt;
     &lt;disk type='volume' device='disk'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
@@ -1638,7 +1680,7 @@
       &lt;auth username='myuser'&gt;
         &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
       &lt;/auth&gt;
-      &lt;target dev='vda' bus='virtio'/&gt;
+      &lt;target dev='vdb' bus='virtio'/&gt;
     &lt;/disk&gt;
     &lt;disk type='volume' device='disk'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
@@ -1646,7 +1688,7 @@
       &lt;auth username='myuser'&gt;
         &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
       &lt;/auth&gt;
-      &lt;target dev='vda' bus='virtio'/&gt;
+      &lt;target dev='vdc' bus='virtio'/&gt;
     &lt;/disk&gt;
     &lt;disk type='file' device='disk'&gt;
       &lt;driver name='qemu' type='qcow2'/&gt;
@@ -1660,7 +1702,7 @@
           &lt;backingStore/&gt;
         &lt;/backingStore&gt;
       &lt;/backingStore&gt;
-      &lt;target dev='vda' bus='virtio'/&gt;
+      &lt;target dev='vdd' bus='virtio'/&gt;
     &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -2003,6 +2045,13 @@
             "unmap" (allow the discard request to be passed) or "ignore"
             (ignore the discard request).
             <span class="since">Since 1.0.6 (QEMU and KVM only)</span>
+          </li><li>
+            The optional <code>iothread</code> attribute assigns the
+            disk to an IOThread as defined by the range for the domain
+            <a href="#elementsIOThreadsAllocation" shape="rect"><code>iothreads</code></a>
+            value. Multiple devices may be assigned to the same IOThread and
+            are numbered from 1 to the domain iothreads value.
+            <span class="since">Since 1.2.8 (QEMU only)</span>
           </li></ul>
       </dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
         attribute determines the order in which devices will be tried during
@@ -2564,40 +2613,73 @@
     &lt;/hostdev&gt;
   &lt;/devices&gt;
   ...</pre>
+        <p>or:</p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;hostdev mode='subsystem' type='scsi'&gt;
+      &lt;source protocol='iscsi' name='iqn.2014-08.com.example:iscsi-nopool/1'&gt;
+        &lt;host name='example.com' port='3260'/&gt;
+        &lt;auth username='myuser'&gt;
+          &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+        &lt;/auth&gt;
+      &lt;/source&gt;
+      &lt;address type='drive' controller='0' bus='0' target='0' unit='0'/&gt;
+    &lt;/hostdev&gt;
+  &lt;/devices&gt;
+  ...</pre>
         <dl><dt><code>hostdev</code></dt><dd>The <code>hostdev</code> element is the main container for describing
-        host devices. For usb device passthrough <code>mode</code> is always
-        "subsystem" and <code>type</code> is "usb" for a USB device, "pci"
-        for a PCI device and "scsi" for a SCSI device. When
-        <code>managed</code> is "yes" for a PCI
-        device, it is detached from the host before being passed on to
-        the guest, and reattached to the host after the guest exits.
-        If <code>managed</code> is omitted or "no", and for USB
-        devices, the user is responsible to
-        call <code>virNodeDeviceDettach</code> (or <code>virsh
-        nodedev-dettach</code>) before starting the guest or
-        hot-plugging the device,
-        and <code>virNodeDeviceReAttach</code> (or <code>virsh
-        nodedev-reattach</code>) after hot-unplug or stopping the
-        guest. For SCSI device, user is responsible to make sure the device
-        is not used by host.
-        The optional <code>sgio</code> (<span class="since">since 1.0.6</span>)
-        attribute indicates whether the kernel will filter unprivileged
-        SG_IO commands for the disk, valid settings are "filtered" or
-        "unfiltered". Defaults to "filtered".
-      </dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host.
-      The USB device can either be addressed by vendor / product id using the
-      <code>vendor</code> and <code>product</code> elements or by the device's
-      address on the hosts using the <code>address</code> element. PCI devices
-      on the other hand can only be described by their <code>address</code>.
-      SCSI devices are described by both the <code>adapter</code> and
-      <code>address</code> elements.
-
-      <span class="since">Since 1.0.0</span>, the <code>source</code> element
-      of USB devices may contain <code>startupPolicy</code> attribute which can
-      be used to define policy what to do if the specified host USB device is
-      not found. The attribute accepts the following values:
-        <table class="top_table"><tr><td rowspan="1" colspan="1"> mandatory </td><td rowspan="1" colspan="1"> fail if missing for any reason (the default) </td></tr><tr><td rowspan="1" colspan="1"> requisite </td><td rowspan="1" colspan="1"> fail if missing on boot up,
-                 drop if missing on migrate/restore/revert </td></tr><tr><td rowspan="1" colspan="1"> optional </td><td rowspan="1" colspan="1"> drop if missing at any start attempt </td></tr></table>
+        host devices. For each device, the <code>mode</code> is always
+        "subsystem" and the <code>type</code> is one of the following values
+        with additional attributes noted.
+        <dl><dt>usb</dt><dd>For USB devices, the user is responsible to call
+            <code>virNodeDeviceDettach</code> (or
+            <code>virsh nodedev-detach</code>) before starting the guest
+            or hot-plugging the device and <code>virNodeDeviceReAttach</code>
+            (or <code>virsh nodedev-reattach</code>) after hot-unplug or
+            stopping the guest.
+          </dd><dt>pci</dt><dd>For PCI devices, when <code>managed</code> is "yes" it is
+            detached from the host before being passed on to the guest
+            and reattached to the host after the guest exits. If
+            <code>managed</code> is omitted or "no", follow the steps
+            described for a USB device to detach before starting the
+            guest or hot-plugging and reattach after stopping the guest
+            or hot-unplug.
+          </dd><dt>scsi</dt><dd>For SCSI devices, user is responsible to make sure the device
+            is not used by host. The optional <code>sgio</code>
+            (<span class="since">since 1.0.6</span>) attribute indicates
+            whether the kernel will filter unprivileged SG_IO commands for
+            the disk, valid settings are "filtered" or "unfiltered".
+            The default is "filtered".
+          </dd></dl>
+      </dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host using
+        the following mechanism to describe:
+        <dl><dt>usb</dt><dd>The USB device can either be addressed by vendor / product id
+            using the <code>vendor</code> and <code>product</code> elements
+            or by the device's address on the host using the
+            <code>address</code> element.
+            <p>
+            <span class="since">Since 1.0.0</span>, the <code>source</code>
+            element of USB devices may contain <code>startupPolicy</code>
+            attribute which can be used to define policy what to do if the
+            specified host USB device is not found. The attribute accepts
+            the following values:
+            </p>
+            <table class="top_table"><tr><td rowspan="1" colspan="1"> mandatory </td><td rowspan="1" colspan="1"> fail if missing for any reason (the default) </td></tr><tr><td rowspan="1" colspan="1"> requisite </td><td rowspan="1" colspan="1"> fail if missing on boot up,
+                     drop if missing on migrate/restore/revert </td></tr><tr><td rowspan="1" colspan="1"> optional </td><td rowspan="1" colspan="1"> drop if missing at any start attempt </td></tr></table>
+          </dd><dt>pci</dt><dd>PCI devices can only be described by their <code>address</code>.
+          </dd><dt>scsi</dt><dd>SCSI devices are described by both the <code>adapter</code>
+            and <code>address</code> elements.
+            <p>
+            <span class="since">Since 1.2.8</span>, the <code>source</code>
+            element of a SCSI device may contain the <code>protocol</code>
+            attribute. When the attribute is set to "iscsi", the host
+            device XML follows the network <a href="#elementsDisks" shape="rect">disk</a>
+            device using the same <code>name</code> attribute and optionally
+            using the <code>auth</code> element to provide the authentication
+            credentials to the iSCSI server.
+            </p>
+          </dd></dl>
       </dd><dt><code>vendor</code>, <code>product</code></dt><dd>The <code>vendor</code> and <code>product</code> elements each have an
       <code>id</code> attribute that specifies the USB vendor and product id.
       The ids can be given in decimal, hexadecimal (starting with 0x) or
@@ -3238,7 +3320,7 @@
       before being passed on to the guest, and reattached to the host
       after the guest exits. If <code>managed</code> is omitted or "no",
       the user is responsible to call <code>virNodeDeviceDettach</code>
-      (or <code>virsh nodedev-dettach</code>) before starting the guest
+      (or <code>virsh nodedev-detach</code>) before starting the guest
       or hot-plugging the device, and <code>virNodeDeviceReAttach</code>
       (or <code>virsh nodedev-reattach</code>) after hot-unplug or
       stopping the guest.
@@ -3298,12 +3380,12 @@
   ...
   &lt;devices&gt;
     &lt;interface type='server'&gt;
-      &lt;mac address='52:54:00:22:c9:42'&gt;
+      &lt;mac address='52:54:00:22:c9:42'/&gt;
       &lt;source address='192.168.0.1' port='5558'/&gt;
     &lt;/interface&gt;
     ...
     &lt;interface type='client'&gt;
-      &lt;mac address='52:54:00:8b:c9:51'&gt;
+      &lt;mac address='52:54:00:8b:c9:51'/&gt;
       &lt;source address='192.168.0.1' port='5558'/&gt;
     &lt;/interface&gt;
   &lt;/devices&gt;
@@ -4522,9 +4604,10 @@ qemu-kvm -net nic,model=? /dev/null
         The <code>sound</code> element has one mandatory attribute,
         <code>model</code>, which specifies what real sound device is emulated.
         Valid values are specific to the underlying hypervisor, though typical
-        choices are 'es1370', 'sb16', 'ac97', and 'ich6'
+        choices are 'es1370', 'sb16', 'ac97', 'ich6' and 'usb'.
         (<span class="since">
-         'ac97' only since 0.6.0, 'ich6' only since 0.8.8</span>)
+         'ac97' only since 0.6.0, 'ich6' only since 0.8.8,
+         'usb' only since 1.2.7</span>)
       </dd></dl>
         <p>
       <span class="since">Since 0.9.13</span>, a sound element

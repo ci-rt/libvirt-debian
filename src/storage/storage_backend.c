@@ -88,6 +88,9 @@
 #if WITH_STORAGE_GLUSTER
 # include "storage_backend_gluster.h"
 #endif
+#if WITH_STORAGE_ZFS
+# include "storage_backend_zfs.h"
+#endif
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -124,6 +127,9 @@ static virStorageBackendPtr backends[] = {
 #endif
 #if WITH_STORAGE_GLUSTER
     &virStorageBackendGluster,
+#endif
+#if WITH_STORAGE_ZFS
+    &virStorageBackendZFS,
 #endif
     NULL
 };
@@ -615,7 +621,7 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
 
         if (virCommandRun(cmd, NULL) == 0) {
             /* command was successfully run, check if the file was created */
-            if (stat(vol->target.path, &st) >=0)
+            if (stat(vol->target.path, &st) >= 0)
                 filecreated = true;
         }
     }
@@ -1712,7 +1718,8 @@ virStorageBackendVolUploadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     /* Not using O_CREAT because the file is required to already exist at
      * this point */
-    return virFDStreamOpenFile(stream, vol->target.path, offset, len, O_WRONLY);
+    return virFDStreamOpenBlockDevice(stream, vol->target.path,
+                                      offset, len, O_WRONLY);
 }
 
 int
@@ -1726,7 +1733,8 @@ virStorageBackendVolDownloadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     virCheckFlags(0, -1);
 
-    return virFDStreamOpenFile(stream, vol->target.path, offset, len, O_RDONLY);
+    return virFDStreamOpenBlockDevice(stream, vol->target.path,
+                                      offset, len, O_RDONLY);
 }
 
 

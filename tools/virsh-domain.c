@@ -60,15 +60,63 @@
 # define SA_SIGINFO 0
 #endif
 
+
+static virDomainPtr
+vshLookupDomainInternal(vshControl *ctl,
+                        const char *cmdname,
+                        const char *name,
+                        unsigned int flags)
+{
+    virDomainPtr dom = NULL;
+    int id;
+    virCheckFlags(VSH_BYID | VSH_BYUUID | VSH_BYNAME, NULL);
+
+    /* try it by ID */
+    if (flags & VSH_BYID) {
+        if (virStrToLong_i(name, NULL, 10, &id) == 0 && id >= 0) {
+            vshDebug(ctl, VSH_ERR_DEBUG, "%s: <domain> looks like ID\n",
+                     cmdname);
+            dom = virDomainLookupByID(ctl->conn, id);
+        }
+    }
+
+    /* try it by UUID */
+    if (!dom && (flags & VSH_BYUUID) &&
+        strlen(name) == VIR_UUID_STRING_BUFLEN-1) {
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <domain> trying as domain UUID\n",
+                 cmdname);
+        dom = virDomainLookupByUUIDString(ctl->conn, name);
+    }
+
+    /* try it by NAME */
+    if (!dom && (flags & VSH_BYNAME)) {
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <domain> trying as domain NAME\n",
+                 cmdname);
+        dom = virDomainLookupByName(ctl->conn, name);
+    }
+
+    if (!dom)
+        vshError(ctl, _("failed to get domain '%s'"), name);
+
+    return dom;
+}
+
+
+virDomainPtr
+vshLookupDomainBy(vshControl *ctl,
+                  const char *name,
+                  unsigned int flags)
+{
+    return vshLookupDomainInternal(ctl, "unknown", name, flags);
+}
+
+
 virDomainPtr
 vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
                       const char **name, unsigned int flags)
 {
-    virDomainPtr dom = NULL;
     const char *n = NULL;
-    int id;
     const char *optname = "domain";
-    virCheckFlags(VSH_BYID | VSH_BYUUID | VSH_BYNAME, NULL);
 
     if (!vshCmdHasOption(ctl, cmd, optname))
         return NULL;
@@ -82,33 +130,7 @@ vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
     if (name)
         *name = n;
 
-    /* try it by ID */
-    if (flags & VSH_BYID) {
-        if (virStrToLong_i(n, NULL, 10, &id) == 0 && id >= 0) {
-            vshDebug(ctl, VSH_ERR_DEBUG,
-                     "%s: <%s> seems like domain ID\n",
-                     cmd->def->name, optname);
-            dom = virDomainLookupByID(ctl->conn, id);
-        }
-    }
-    /* try it by UUID */
-    if (!dom && (flags & VSH_BYUUID) &&
-        strlen(n) == VIR_UUID_STRING_BUFLEN-1) {
-        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as domain UUID\n",
-                 cmd->def->name, optname);
-        dom = virDomainLookupByUUIDString(ctl->conn, n);
-    }
-    /* try it by NAME */
-    if (!dom && (flags & VSH_BYNAME)) {
-        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as domain NAME\n",
-                 cmd->def->name, optname);
-        dom = virDomainLookupByName(ctl->conn, n);
-    }
-
-    if (!dom)
-        vshError(ctl, _("failed to get domain '%s'"), n);
-
-    return dom;
+    return vshLookupDomainInternal(ctl, cmd->def->name, n, flags);
 }
 
 VIR_ENUM_DECL(vshDomainVcpuState)
@@ -1453,14 +1475,14 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
              virDomainPtr *pdom)
 {
     virDomainPtr dom = NULL;
-    const char *name, *path;
+    const char *path;
     unsigned long bandwidth = 0;
     int ret = -1;
     const char *base = NULL;
     const char *top = NULL;
     unsigned int flags = 0;
 
-    if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         goto cleanup;
 
     if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
@@ -2686,6 +2708,14 @@ cmdDomIftune(vshControl *ctl, const vshCmd *cmd)
             vshError(ctl, _("inbound format is incorrect"));
             goto cleanup;
         }
+        /* we parse the rate as unsigned long long, but the API
+         * only accepts UINT */
+        if (inbound.average > UINT_MAX || inbound.peak > UINT_MAX ||
+            inbound.burst > UINT_MAX) {
+            vshError(ctl, _("inbound rate larger than maximum %u"),
+                     UINT_MAX);
+            goto cleanup;
+        }
         if (inbound.average == 0 && (inbound.burst || inbound.peak)) {
             vshError(ctl, _("inbound average is mandatory"));
             goto cleanup;
@@ -2712,6 +2742,12 @@ cmdDomIftune(vshControl *ctl, const vshCmd *cmd)
     if (outboundStr) {
         if (parseRateStr(outboundStr, &outbound) < 0) {
             vshError(ctl, _("outbound format is incorrect"));
+            goto cleanup;
+        }
+        if (outbound.average > UINT_MAX || outbound.peak > UINT_MAX ||
+            outbound.burst > UINT_MAX) {
+            vshError(ctl, _("outbound rate larger than maximum %u"),
+                     UINT_MAX);
             goto cleanup;
         }
         if (outbound.average == 0 && (outbound.burst || outbound.peak)) {
@@ -8951,6 +8987,7 @@ doMigrate(void *opaque)
     virTypedParameterPtr params = NULL;
     int nparams = 0;
     int maxparams = 0;
+    virConnectPtr dconn = data->dconn;
 
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGINT);
@@ -9065,18 +9102,12 @@ doMigrate(void *opaque)
             ret = '0';
     } else {
         /* For traditional live migration, connect to the destination host directly. */
-        virConnectPtr dconn = NULL;
         virDomainPtr ddom = NULL;
-
-        dconn = vshConnect(ctl, desturi, false);
-        if (!dconn)
-            goto out;
 
         if ((ddom = virDomainMigrate3(dom, dconn, params, nparams, flags))) {
             virDomainFree(ddom);
             ret = '0';
         }
-        virConnectClose(dconn);
     }
 
  out:
@@ -9113,7 +9144,7 @@ cmdMigrate(vshControl *ctl, const vshCmd *cmd)
     bool functionReturn = false;
     int timeout = 0;
     bool live_flag = false;
-    vshCtrlData data;
+    vshCtrlData data = { .dconn = NULL };
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -9138,6 +9169,23 @@ cmdMigrate(vshControl *ctl, const vshCmd *cmd)
     data.cmd = cmd;
     data.writefd = p[1];
 
+    if (vshCommandOptBool(cmd, "p2p") || vshCommandOptBool(cmd, "direct")) {
+        data.dconn = NULL;
+    } else {
+        /* For traditional live migration, connect to the destination host. */
+        virConnectPtr dconn = NULL;
+        const char *desturi = NULL;
+
+        if (vshCommandOptStringReq(ctl, cmd, "desturi", &desturi) < 0)
+            goto cleanup;
+
+        dconn = vshConnect(ctl, desturi, false);
+        if (!dconn)
+            goto cleanup;
+
+        data.dconn = dconn;
+    }
+
     if (virThreadCreate(&workerThread,
                         true,
                         doMigrate,
@@ -9149,6 +9197,8 @@ cmdMigrate(vshControl *ctl, const vshCmd *cmd)
     virThreadJoin(&workerThread);
 
  cleanup:
+    if (data.dconn)
+        virConnectClose(data.dconn);
     virDomainFree(dom);
     VIR_FORCE_CLOSE(p[0]);
     VIR_FORCE_CLOSE(p[1]);

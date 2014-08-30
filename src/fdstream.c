@@ -478,8 +478,10 @@ static int virFDStreamOpenInternal(virStreamPtr st,
               st, fd, cmd, errfd, length);
 
     if ((st->flags & VIR_STREAM_NONBLOCK) &&
-        virSetNonBlock(fd) < 0)
+        virSetNonBlock(fd) < 0) {
+        virReportSystemError(errno, "%s", _("Unable to set non-blocking mode"));
         return -1;
+    }
 
     if (VIR_ALLOC(fdst) < 0)
         return -1;
@@ -575,7 +577,8 @@ virFDStreamOpenFileInternal(virStreamPtr st,
                             unsigned long long offset,
                             unsigned long long length,
                             int oflags,
-                            int mode)
+                            int mode,
+                            bool forceIOHelper)
 {
     int fd = -1;
     int childfd = -1;
@@ -621,8 +624,8 @@ virFDStreamOpenFileInternal(virStreamPtr st,
      * the I/O so we just have a fifo. Or use AIO :-(
      */
     if ((st->flags & VIR_STREAM_NONBLOCK) &&
-        (!S_ISCHR(sb.st_mode) &&
-         !S_ISFIFO(sb.st_mode))) {
+        ((!S_ISCHR(sb.st_mode) &&
+         !S_ISFIFO(sb.st_mode)) || forceIOHelper)) {
         int fds[2] = { -1, -1 };
 
         if ((oflags & O_ACCMODE) == O_RDWR) {
@@ -701,7 +704,7 @@ int virFDStreamOpenFile(virStreamPtr st,
     }
     return virFDStreamOpenFileInternal(st, path,
                                        offset, length,
-                                       oflags, 0);
+                                       oflags, 0, false);
 }
 
 int virFDStreamCreateFile(virStreamPtr st,
@@ -713,7 +716,8 @@ int virFDStreamCreateFile(virStreamPtr st,
 {
     return virFDStreamOpenFileInternal(st, path,
                                        offset, length,
-                                       oflags | O_CREAT, mode);
+                                       oflags | O_CREAT, mode,
+                                       false);
 }
 
 #ifdef HAVE_CFMAKERAW
@@ -728,7 +732,8 @@ int virFDStreamOpenPTY(virStreamPtr st,
 
     if (virFDStreamOpenFileInternal(st, path,
                                     offset, length,
-                                    oflags | O_CREAT, 0) < 0)
+                                    oflags | O_CREAT, 0,
+                                    false) < 0)
         return -1;
 
     fdst = st->privateData;
@@ -764,9 +769,21 @@ int virFDStreamOpenPTY(virStreamPtr st,
 {
     return virFDStreamOpenFileInternal(st, path,
                                        offset, length,
-                                       oflags | O_CREAT, 0);
+                                       oflags | O_CREAT, 0,
+                                       false);
 }
 #endif /* !HAVE_CFMAKERAW */
+
+int virFDStreamOpenBlockDevice(virStreamPtr st,
+                               const char *path,
+                               unsigned long long offset,
+                               unsigned long long length,
+                               int oflags)
+{
+    return virFDStreamOpenFileInternal(st, path,
+                                       offset, length,
+                                       oflags, 0, true);
+}
 
 int virFDStreamSetInternalCloseCb(virStreamPtr st,
                                   virFDStreamInternalCloseCb cb,

@@ -311,6 +311,7 @@ virDomainLifecycleCrashTypeFromString;
 virDomainLifecycleCrashTypeToString;
 virDomainLifecycleTypeFromString;
 virDomainLifecycleTypeToString;
+virDomainListFree;
 virDomainLiveConfigHelperMethod;
 virDomainLockFailureTypeFromString;
 virDomainLockFailureTypeToString;
@@ -823,8 +824,10 @@ virStreamClass;
 virFDStreamConnectUNIX;
 virFDStreamCreateFile;
 virFDStreamOpen;
+virFDStreamOpenBlockDevice;
 virFDStreamOpenFile;
 virFDStreamOpenPTY;
+virFDStreamSetInternalCloseCb;
 
 
 # libvirt_internal.h
@@ -1145,6 +1148,7 @@ virCommandNewArgList;
 virCommandNewArgs;
 virCommandNonblockingFDs;
 virCommandPassFD;
+virCommandPassListenFDs;
 virCommandRawStatus;
 virCommandRequireHandshake;
 virCommandRun;
@@ -2106,6 +2110,7 @@ virGetGroupID;
 virGetGroupList;
 virGetGroupName;
 virGetHostname;
+virGetListenFDs;
 virGetSelfLastChanged;
 virGetUnprivSGIOSysfsPath;
 virGetUserCacheDirectory;

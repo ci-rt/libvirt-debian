@@ -412,7 +412,10 @@ libxlDomainMigrationPrepare(virConnectPtr dconn,
     }
 
  done:
-    virURIFree(uri);
+    if (!uri_in)
+        VIR_FREE(hostname);
+    else
+        virURIFree(uri);
     if (vm)
         virObjectUnlock(vm);
     return ret;
@@ -511,6 +514,11 @@ libxlDomainMigrationFinish(virConnectPtr dconn,
 
     if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         goto cleanup;
+
+    if (event) {
+        libxlDomainEventQueue(driver, event);
+        event = NULL;
+    }
 
     dom = virGetDomain(dconn, vm->def->name, vm->def->uuid);
 

@@ -171,7 +171,9 @@ mymain(void)
     DO_TEST("boot-network");
     DO_TEST("boot-floppy");
     DO_TEST("boot-multi");
+    DO_TEST("boot-menu-enable-with-timeout");
     DO_TEST("boot-menu-disable");
+    DO_TEST_DIFFERENT("boot-menu-disable-with-timeout");
     DO_TEST("boot-order");
     DO_TEST("bootloader");
 
@@ -195,6 +197,9 @@ mymain(void)
 
     DO_TEST("hyperv");
     DO_TEST("hyperv-off");
+
+    DO_TEST("kvm-features");
+    DO_TEST("kvm-features-off");
 
     DO_TEST("hugepages");
     DO_TEST("hugepages-pages");
@@ -296,9 +301,12 @@ mymain(void)
     DO_TEST("cputune-zero-shares");
 
     DO_TEST("smp");
+    DO_TEST("iothreads");
+    DO_TEST("iothreads-disk");
     DO_TEST("lease");
     DO_TEST("event_idx");
     DO_TEST("vhost_queues");
+    DO_TEST("interface-driver");
     DO_TEST("virtio-lun");
 
     DO_TEST("usb-redir");
@@ -360,6 +368,11 @@ mymain(void)
     DO_TEST("hostdev-scsi-sgio");
 
     DO_TEST_DIFFERENT("hostdev-scsi-autogen-address");
+
+    DO_TEST("hostdev-scsi-lsi-iscsi");
+    DO_TEST("hostdev-scsi-lsi-iscsi-auth");
+    DO_TEST("hostdev-scsi-virtio-iscsi");
+    DO_TEST("hostdev-scsi-virtio-iscsi-auth");
 
     DO_TEST_DIFFERENT("s390-defaultconsole");
 

@@ -506,10 +506,11 @@ qemuMonitorIOWrite(qemuMonitorPtr mon)
           mon->msg->txLength - mon->msg->txOffset,
           done, errno);
 
-    if (mon->msg->txFD != -1)
+    if (mon->msg->txFD != -1) {
         PROBE(QEMU_MONITOR_IO_SEND_FD,
               "mon=%p fd=%d ret=%d errno=%d",
               mon, mon->msg->txFD, done, errno);
+    }
 
     if (done < 0) {
         if (errno == EAGAIN)
@@ -4036,4 +4037,37 @@ qemuMonitorGetGuestCPU(qemuMonitorPtr mon,
     *data = NULL;
 
     return qemuMonitorJSONGetGuestCPU(mon, arch, data);
+}
+
+/**
+ * qemuMonitorRTCResetReinjection:
+ * @mon: Pointer to the monitor
+ *
+ * Issue rtc-reset-reinjection command.
+ * This should be used in cases where guest time is restored via
+ * guest agent, so RTC injection is not needed (in fact it would
+ * confuse guest's RTC).
+ *
+ * Returns 0 on success
+ *        -1 on error.
+ */
+int
+qemuMonitorRTCResetReinjection(qemuMonitorPtr mon)
+{
+
+    VIR_DEBUG("mon=%p", mon);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONRTCResetReinjection(mon);
 }
