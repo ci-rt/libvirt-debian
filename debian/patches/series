@@ -11,7 +11,4 @@ Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
-Include-param.h-on-kFreeBSD.patch
 Use-sensible-editor-as-fallback.patch
-Don-t-fail-qemu-driver-intialization-if-we-can-t-det.patch
-Make-uri-command-a-bit-more-prominent.patch
