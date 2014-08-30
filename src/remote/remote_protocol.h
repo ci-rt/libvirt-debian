@@ -81,6 +81,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_CONNECT_CPU_MODELS_MAX 8192
 #define REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX 256
 #define REMOTE_NETWORK_DHCP_LEASES_MAX 65536
+#define REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX 4096
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -3198,6 +3199,13 @@ struct remote_domain_open_graphics_args {
 };
 typedef struct remote_domain_open_graphics_args remote_domain_open_graphics_args;
 
+struct remote_domain_open_graphics_fd_args {
+        remote_nonnull_domain dom;
+        u_int idx;
+        u_int flags;
+};
+typedef struct remote_domain_open_graphics_fd_args remote_domain_open_graphics_fd_args;
+
 struct remote_node_suspend_for_duration_args {
         u_int target;
         uint64_t duration;
@@ -3679,6 +3687,33 @@ struct remote_network_get_dhcp_leases_ret {
         u_int ret;
 };
 typedef struct remote_network_get_dhcp_leases_ret remote_network_get_dhcp_leases_ret;
+
+struct remote_domain_stats_record {
+        remote_nonnull_domain dom;
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+};
+typedef struct remote_domain_stats_record remote_domain_stats_record;
+
+struct remote_connect_get_all_domain_stats_args {
+        struct {
+                u_int doms_len;
+                remote_nonnull_domain *doms_val;
+        } doms;
+        u_int stats;
+        u_int flags;
+};
+typedef struct remote_connect_get_all_domain_stats_args remote_connect_get_all_domain_stats_args;
+
+struct remote_connect_get_all_domain_stats_ret {
+        struct {
+                u_int retStats_len;
+                remote_domain_stats_record *retStats_val;
+        } retStats;
+};
+typedef struct remote_connect_get_all_domain_stats_ret remote_connect_get_all_domain_stats_ret;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4025,6 +4060,8 @@ enum remote_procedure {
         REMOTE_PROC_NODE_GET_FREE_PAGES = 340,
         REMOTE_PROC_NETWORK_GET_DHCP_LEASES = 341,
         REMOTE_PROC_CONNECT_GET_DOMAIN_CAPABILITIES = 342,
+        REMOTE_PROC_DOMAIN_OPEN_GRAPHICS_FD = 343,
+        REMOTE_PROC_CONNECT_GET_ALL_DOMAIN_STATS = 344,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4518,6 +4555,7 @@ extern  bool_t xdr_remote_domain_event_callback_control_error_msg (XDR *, remote
 extern  bool_t xdr_remote_domain_get_control_info_args (XDR *, remote_domain_get_control_info_args*);
 extern  bool_t xdr_remote_domain_get_control_info_ret (XDR *, remote_domain_get_control_info_ret*);
 extern  bool_t xdr_remote_domain_open_graphics_args (XDR *, remote_domain_open_graphics_args*);
+extern  bool_t xdr_remote_domain_open_graphics_fd_args (XDR *, remote_domain_open_graphics_fd_args*);
 extern  bool_t xdr_remote_node_suspend_for_duration_args (XDR *, remote_node_suspend_for_duration_args*);
 extern  bool_t xdr_remote_domain_shutdown_flags_args (XDR *, remote_domain_shutdown_flags_args*);
 extern  bool_t xdr_remote_domain_get_disk_errors_args (XDR *, remote_domain_get_disk_errors_args*);
@@ -4576,6 +4614,9 @@ extern  bool_t xdr_remote_node_get_free_pages_ret (XDR *, remote_node_get_free_p
 extern  bool_t xdr_remote_network_dhcp_lease (XDR *, remote_network_dhcp_lease*);
 extern  bool_t xdr_remote_network_get_dhcp_leases_args (XDR *, remote_network_get_dhcp_leases_args*);
 extern  bool_t xdr_remote_network_get_dhcp_leases_ret (XDR *, remote_network_get_dhcp_leases_ret*);
+extern  bool_t xdr_remote_domain_stats_record (XDR *, remote_domain_stats_record*);
+extern  bool_t xdr_remote_connect_get_all_domain_stats_args (XDR *, remote_connect_get_all_domain_stats_args*);
+extern  bool_t xdr_remote_connect_get_all_domain_stats_ret (XDR *, remote_connect_get_all_domain_stats_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5066,6 +5107,7 @@ extern bool_t xdr_remote_domain_event_callback_control_error_msg ();
 extern bool_t xdr_remote_domain_get_control_info_args ();
 extern bool_t xdr_remote_domain_get_control_info_ret ();
 extern bool_t xdr_remote_domain_open_graphics_args ();
+extern bool_t xdr_remote_domain_open_graphics_fd_args ();
 extern bool_t xdr_remote_node_suspend_for_duration_args ();
 extern bool_t xdr_remote_domain_shutdown_flags_args ();
 extern bool_t xdr_remote_domain_get_disk_errors_args ();
@@ -5124,6 +5166,9 @@ extern bool_t xdr_remote_node_get_free_pages_ret ();
 extern bool_t xdr_remote_network_dhcp_lease ();
 extern bool_t xdr_remote_network_get_dhcp_leases_args ();
 extern bool_t xdr_remote_network_get_dhcp_leases_ret ();
+extern bool_t xdr_remote_domain_stats_record ();
+extern bool_t xdr_remote_connect_get_all_domain_stats_args ();
+extern bool_t xdr_remote_connect_get_all_domain_stats_ret ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

@@ -7613,7 +7613,7 @@ virDomainGetSchedulerType(virDomainPtr domain, int *nparams)
     virCheckDomainReturn(domain, NULL);
     conn = domain->conn;
 
-    if (conn->driver->domainGetSchedulerType){
+    if (conn->driver->domainGetSchedulerType) {
         schedtype = conn->driver->domainGetSchedulerType(domain, nparams);
         if (!schedtype)
             goto error;
@@ -10987,7 +10987,7 @@ virNetworkLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     virCheckConnectReturn(conn, NULL);
     virCheckNonNullArgGoto(uuid, error);
 
-    if (conn->networkDriver && conn->networkDriver->networkLookupByUUID){
+    if (conn->networkDriver && conn->networkDriver->networkLookupByUUID) {
         virNetworkPtr ret;
         ret = conn->networkDriver->networkLookupByUUID(conn, uuid);
         if (!ret)
@@ -13960,6 +13960,14 @@ virStorageVolDownload(virStorageVolPtr vol,
  * detect any errors. The results will be unpredictable if
  * another active stream is writing to the storage volume.
  *
+ * When the data stream is closed whether the upload is successful
+ * or not the target storage pool will be refreshed to reflect pool
+ * and volume changes as a result of the upload. Depending on
+ * the target volume storage backend and the source stream type
+ * for a successful upload, the target volume may take on the
+ * characteristics from the source stream such as format type,
+ * capacity, and allocation.
+ *
  * Returns 0, or -1 upon error.
  */
 int
@@ -14209,7 +14217,7 @@ virStorageVolGetInfo(virStorageVolPtr vol,
 
     conn = vol->conn;
 
-    if (conn->storageDriver->storageVolGetInfo){
+    if (conn->storageDriver->storageVolGetInfo) {
         int ret;
         ret = conn->storageDriver->storageVolGetInfo(vol, info);
         if (ret < 0)
@@ -16956,7 +16964,7 @@ virNWFilterLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     virCheckConnectReturn(conn, NULL);
     virCheckNonNullArgGoto(uuid, error);
 
-    if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByUUID){
+    if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByUUID) {
         virNWFilterPtr ret;
         ret = conn->nwfilterDriver->nwfilterLookupByUUID(conn, uuid);
         if (!ret)
@@ -19916,7 +19924,13 @@ virDomainBlockPull(virDomainPtr dom, const char *disk,
  * The actual speed can be determined with virDomainGetBlockJobInfo().
  *
  * When @base is NULL and @flags is 0, this is identical to
- * virDomainBlockPull().
+ * virDomainBlockPull().  When @flags contains VIR_DOMAIN_BLOCK_REBASE_COPY,
+ * this command is shorthand for virDomainBlockCopy() where the destination
+ * XML encodes @base as a <disk type='file'>, @bandwidth is properly scaled
+ * and passed as a typed parameter, the shallow and reuse external flags
+ * are preserved, and remaining flags control whether the XML encodes a
+ * destination format of raw instead of leaving the destination identical
+ * to the source format or probed from the reused file.
  *
  * Returns 0 if the operation has started, -1 on failure.
  */
@@ -19953,6 +19967,120 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
         int ret;
         ret = conn->driver->domainBlockRebase(dom, disk, base, bandwidth,
                                               flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainBlockCopy:
+ * @dom: pointer to domain object
+ * @disk: path to the block device, or device shorthand
+ * @destxml: XML description of the copy destination
+ * @params: Pointer to block copy parameter objects, or NULL
+ * @nparams: Number of block copy parameters (this value can be the same or
+ *           less than the number of parameters supported)
+ * @flags: bitwise-OR of virDomainBlockCopyFlags
+ *
+ * Copy the guest-visible contents of a disk image to a new file described
+ * by @destxml.  The destination XML has a top-level element of <disk>, and
+ * resembles what is used when hot-plugging a disk via virDomainAttachDevice(),
+ * except that only sub-elements related to describing the new host resource
+ * are necessary (sub-elements related to the guest view, such as <target>,
+ * are ignored).  It is strongly recommended to include a <driver type='...'/>
+ * format designation for the destination, to avoid the potential of any
+ * security problem that might be caused by probing a file for its format.
+ *
+ * This command starts a long-running copy.  By default, the copy will pull
+ * the entire source chain into the destination file, but if @flags also
+ * contains VIR_DOMAIN_BLOCK_COPY_SHALLOW, then only the top of the source
+ * chain will be copied (the source and destination have a common backing
+ * file).  The format of the destination file is controlled by the <driver>
+ * sub-element of the XML.  The destination will be created unless the
+ * VIR_DOMAIN_BLOCK_COPY_REUSE_EXT flag is present stating that the file
+ * was pre-created with the correct format and metadata and sufficient
+ * size to hold the copy. In case the VIR_DOMAIN_BLOCK_COPY_SHALLOW flag
+ * is used the pre-created file has to exhibit the same guest visible contents
+ * as the backing file of the original image. This allows a management app to
+ * pre-create files with relative backing file names, rather than the default
+ * of absolute backing file names.
+ *
+ * A copy job has two parts; in the first phase, the source is copied into
+ * the destination, and the job can only be canceled by reverting to the
+ * source file; progress in this phase can be tracked via the
+ * virDomainBlockJobInfo() command, with a job type of
+ * VIR_DOMAIN_BLOCK_JOB_TYPE_COPY.  The job transitions to the second
+ * phase when the job info states cur == end, and remains alive to mirror
+ * all further changes to both source and destination.  The user must
+ * call virDomainBlockJobAbort() to end the mirroring while choosing
+ * whether to revert to source or pivot to the destination.  An event is
+ * issued when the job ends, and depending on the hypervisor, an event may
+ * also be issued when the job transitions from pulling to mirroring.  If
+ * the job is aborted, a new job will have to start over from the beginning
+ * of the first phase.
+ *
+ * Some hypervisors will restrict certain actions, such as virDomainSave()
+ * or virDomainDetachDevice(), while a copy job is active; they may
+ * also restrict a copy job to transient domains.
+ *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or the device target shorthand (the
+ * <target dev='...'/> sub-element, such as "vda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
+ * The @params and @nparams arguments can be used to set hypervisor-specific
+ * tuning parameters, such as maximum bandwidth or granularity.  For a
+ * parameter that the hypervisor understands, explicitly specifying 0
+ * behaves the same as omitting the parameter, to use the hypervisor
+ * default; however, omitting a parameter is less likely to fail.
+ *
+ * This command is a superset of the older virDomainBlockRebase() when used
+ * with the VIR_DOMAIN_BLOCK_REBASE_COPY flag, and offers better control
+ * over the destination format, the ability to copy to a destination that
+ * is not a local file, and the possibility of additional tuning parameters.
+ *
+ * Returns 0 if the operation has started, -1 on failure.
+ */
+int
+virDomainBlockCopy(virDomainPtr dom, const char *disk,
+                   const char *destxml,
+                   virTypedParameterPtr params,
+                   int nparams,
+                   unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom,
+                     "disk=%s, destxml=%s, params=%p, nparams=%d, flags=%x",
+                     disk, destxml, params, nparams, flags);
+    VIR_TYPED_PARAMS_DEBUG(params, nparams);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+    conn = dom->conn;
+
+    virCheckReadOnlyGoto(conn->flags, error);
+    virCheckNonNullArgGoto(disk, error);
+    virCheckNonNullArgGoto(destxml, error);
+    virCheckNonNegativeArgGoto(nparams, error);
+    if (nparams)
+        virCheckNonNullArgGoto(params, error);
+
+    if (conn->driver->domainBlockCopy) {
+        int ret;
+        ret = conn->driver->domainBlockCopy(dom, disk, destxml,
+                                            params, nparams, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -20160,6 +20288,63 @@ virDomainOpenGraphics(virDomainPtr dom,
     if (dom->conn->driver->domainOpenGraphics) {
         int ret;
         ret = dom->conn->driver->domainOpenGraphics(dom, idx, fd, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainOpenGraphicsFD:
+ * @dom: pointer to domain object
+ * @idx: index of graphics config to open
+ * @flags: bitwise-OR of virDomainOpenGraphicsFlags
+ *
+ * This will create a socket pair connected to the graphics backend of @dom.
+ * One end of the socket will be returned on success, and the other end is
+ * handed to the hypervisor.
+ * If @dom has multiple graphics backends configured, then @idx will determine
+ * which one is opened, starting from @idx 0.
+ *
+ * To disable any authentication, pass the VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH
+ * constant for @flags.
+ *
+ * This method can only be used when connected to a local
+ * libvirt hypervisor, over a UNIX domain socket. Attempts
+ * to use this method over a TCP connection will always fail.
+ *
+ * Returns an fd on success, -1 on failure
+ */
+int
+virDomainOpenGraphicsFD(virDomainPtr dom,
+                        unsigned int idx,
+                        unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "idx=%u, flags=%x", idx, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+
+    if (!VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
+                                  VIR_DRV_FEATURE_FD_PASSING)) {
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("fd passing is not supported by this connection"));
+        goto error;
+    }
+
+    if (dom->conn->driver->domainOpenGraphicsFD) {
+        int ret;
+        ret = dom->conn->driver->domainOpenGraphicsFD(dom, idx, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -21332,4 +21517,217 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  error:
     virDispatchError(conn);
     return NULL;
+}
+
+
+/**
+ * virConnectGetAllDomainStats:
+ * @conn: pointer to the hypervisor connection
+ * @stats: stats to return, binary-OR of virDomainStatsTypes
+ * @retStats: Pointer that will be filled with the array of returned stats
+ * @flags: extra flags; binary-OR of virConnectGetAllDomainStatsFlags
+ *
+ * Query statistics for all domains on a given connection.
+ *
+ * Report statistics of various parameters for a running VM according to @stats
+ * field. The statistics are returned as an array of structures for each queried
+ * domain. The structure contains an array of typed parameters containing the
+ * individual statistics. The typed parameter name for each statistic field
+ * consists of a dot-separated string containing name of the requested group
+ * followed by a group specific description of the statistic value.
+ *
+ * The statistic groups are enabled using the @stats parameter which is a
+ * binary-OR of enum virDomainStatsTypes. The following groups are available
+ * (although not necessarily implemented for each hypervisor):
+ *
+ * VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
+ * state. The typed parameter keys are in this format:
+ * "state.state" - state of the VM, returned as int from virDomainState enum
+ * "state.reason" - reason for entering given state, returned as int from
+ *                  virDomain*Reason enum corresponding to given state.
+ *
+ * Using 0 for @stats returns all stats groups supported by the given
+ * hypervisor.
+ *
+ * Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
+ * the function return error in case some of the stat types in @stats were
+ * not recognized by the daemon.
+ *
+ * Similarly to virConnectListAllDomains, @flags can contain various flags to
+ * filter the list of domains to provide stats for.
+ *
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE selects online domains while
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE selects offline ones.
+ *
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT and
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT allow to filter the list
+ * according to their persistence.
+ *
+ * To filter the list of VMs by domain state @flags can contain
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_RUNNING,
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED,
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF and/or
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER for all other states.
+ *
+ * Returns the count of returned statistics structures on success, -1 on error.
+ * The requested data are returned in the @retStats parameter. The returned
+ * array should be freed by the caller. See virDomainStatsRecordListFree.
+ */
+int
+virConnectGetAllDomainStats(virConnectPtr conn,
+                            unsigned int stats,
+                            virDomainStatsRecordPtr **retStats,
+                            unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("conn=%p, stats=0x%x, retStats=%p, flags=0x%x",
+              conn, stats, retStats, flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, -1);
+    virCheckNonNullArgGoto(retStats, cleanup);
+
+    if (!conn->driver->connectGetAllDomainStats) {
+        virReportUnsupportedError();
+        goto cleanup;
+    }
+
+    ret = conn->driver->connectGetAllDomainStats(conn, NULL, 0, stats,
+                                                 retStats, flags);
+
+ cleanup:
+    if (ret < 0)
+        virDispatchError(conn);
+
+    return ret;
+}
+
+
+/**
+ * virDomainListGetStats:
+ * @doms: NULL terminated array of domains
+ * @stats: stats to return, binary-OR of virDomainStatsTypes
+ * @retStats: Pointer that will be filled with the array of returned stats
+ * @flags: extra flags; binary-OR of virConnectGetAllDomainStatsFlags
+ *
+ * Query statistics for domains provided by @doms. Note that all domains in
+ * @doms must share the same connection.
+ *
+ * Report statistics of various parameters for a running VM according to @stats
+ * field. The statistics are returned as an array of structures for each queried
+ * domain. The structure contains an array of typed parameters containing the
+ * individual statistics. The typed parameter name for each statistic field
+ * consists of a dot-separated string containing name of the requested group
+ * followed by a group specific description of the statistic value.
+ *
+ * The statistic groups are enabled using the @stats parameter which is a
+ * binary-OR of enum virDomainStatsTypes. The following groups are available
+ * (although not necessarily implemented for each hypervisor):
+ *
+ * VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
+ * state. The typed parameter keys are in this format:
+ * "state.state" - state of the VM, returned as int from virDomainState enum
+ * "state.reason" - reason for entering given state, returned as int from
+ *                  virDomain*Reason enum corresponding to given state.
+ *
+ * Using 0 for @stats returns all stats groups supported by the given
+ * hypervisor.
+ *
+ * Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
+ * the function return error in case some of the stat types in @stats were
+ * not recognized by the daemon.
+ *
+ * Note that any of the domain list filtering flags in @flags will be rejected
+ * by this function.
+ *
+ * Returns the count of returned statistics structures on success, -1 on error.
+ * The requested data are returned in the @retStats parameter. The returned
+ * array should be freed by the caller. See virDomainStatsRecordListFree.
+ * Note that the count of returned stats may be less than the domain count
+ * provided via @doms.
+ */
+int
+virDomainListGetStats(virDomainPtr *doms,
+                      unsigned int stats,
+                      virDomainStatsRecordPtr **retStats,
+                      unsigned int flags)
+{
+    virConnectPtr conn = NULL;
+    virDomainPtr *nextdom = doms;
+    unsigned int ndoms = 0;
+    int ret = -1;
+
+    VIR_DEBUG("doms=%p, stats=0x%x, retStats=%p, flags=0x%x",
+              doms, stats, retStats, flags);
+
+    virResetLastError();
+
+    virCheckNonNullArgGoto(doms, cleanup);
+    virCheckNonNullArgGoto(retStats, cleanup);
+
+    if (!*doms) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("doms array in %s must contain at least one domain"),
+                       __FUNCTION__);
+        goto cleanup;
+    }
+
+    conn = doms[0]->conn;
+    virCheckConnectReturn(conn, -1);
+
+    if (!conn->driver->connectGetAllDomainStats) {
+        virReportUnsupportedError();
+        goto cleanup;
+    }
+
+    while (*nextdom) {
+        virDomainPtr dom = *nextdom;
+
+        virCheckDomainGoto(dom, cleanup);
+
+        if (dom->conn != conn) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("domains in 'doms' array must belong to a "
+                             "single connection in %s"), __FUNCTION__);
+            goto cleanup;
+        }
+
+        ndoms++;
+        nextdom++;
+    }
+
+    ret = conn->driver->connectGetAllDomainStats(conn, doms, ndoms,
+                                                 stats, retStats, flags);
+
+ cleanup:
+    if (ret < 0)
+        virDispatchError(conn);
+    return ret;
+}
+
+
+/**
+ * virDomainStatsRecordListFree:
+ * @stats: NULL terminated array of virDomainStatsRecords to free
+ *
+ * Convenience function to free a list of domain stats returned by
+ * virDomainListGetStats and virConnectGetAllDomainStats.
+ */
+void
+virDomainStatsRecordListFree(virDomainStatsRecordPtr *stats)
+{
+    virDomainStatsRecordPtr *next;
+
+    if (!stats)
+        return;
+
+    for (next = stats; *next; next++) {
+        virTypedParamsFree((*next)->params, (*next)->nparams);
+        virDomainFree((*next)->dom);
+        VIR_FREE(*next);
+    }
+
+    VIR_FREE(stats);
 }

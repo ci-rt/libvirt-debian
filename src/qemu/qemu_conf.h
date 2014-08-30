@@ -286,7 +286,7 @@ bool qemuSharedDeviceEntryDomainExists(qemuSharedDeviceEntryPtr entry,
                                        int *index)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-char * qemuGetSharedDeviceKey(const char *disk_path)
+char *qemuGetSharedDeviceKey(const char *disk_path)
     ATTRIBUTE_NONNULL(1);
 
 void qemuSharedDeviceEntryFree(void *payload, const void *name)
@@ -302,13 +302,15 @@ int qemuRemoveSharedDevice(virQEMUDriverPtr driver,
                            const char *name)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
+int qemuRemoveSharedDisk(virQEMUDriverPtr driver,
+                         virDomainDiskDefPtr disk,
+                         const char *name)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
 int qemuSetUnprivSGIO(virDomainDeviceDefPtr dev);
 
 int qemuDriverAllocateID(virQEMUDriverPtr driver);
 virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);
-
-int qemuTranslateDiskSourcePool(virConnectPtr conn,
-                                virDomainDiskDefPtr def);
 
 int qemuTranslateSnapshotDiskSourcePool(virConnectPtr conn,
                                         virDomainSnapshotDiskDefPtr def);

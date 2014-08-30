@@ -24,6 +24,9 @@
      <exports symbol='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLKIO_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLKIO_WEIGHT' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC' type='macro'/>
@@ -124,6 +127,15 @@
      <exports symbol='VIR_CONNECT_CLOSE_REASON_KEEPALIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_CLOSE_REASON_LAST' type='enum'/>
      <exports symbol='VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_RUNNING' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_ACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_AUTOSTART' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT' type='enum'/>
@@ -179,6 +191,7 @@
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_SCSI' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ZFS' type='enum'/>
      <exports symbol='VIR_CONNECT_NO_ALIASES' type='enum'/>
      <exports symbol='VIR_CONNECT_RO' type='enum'/>
      <exports symbol='VIR_CPU_COMPARE_ERROR' type='enum'/>
@@ -212,6 +225,8 @@
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_DELETE' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_RELATIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_SHALLOW' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COPY_REUSE_EXT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COPY_SHALLOW' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_CANCELED' type='enum'/>
@@ -551,6 +566,7 @@
      <exports symbol='VIR_DOMAIN_START_BYPASS_CACHE' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_FORCE_BOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_PAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_STATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_TIME_SYNC' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' type='enum'/>
@@ -715,6 +731,7 @@
      <exports symbol='virConnectDomainEventBlockJobStatus' type='typedef'/>
      <exports symbol='virConnectDomainEventDiskChangeReason' type='typedef'/>
      <exports symbol='virConnectFlags' type='typedef'/>
+     <exports symbol='virConnectGetAllDomainStatsFlags' type='typedef'/>
      <exports symbol='virConnectListAllDomainsFlags' type='typedef'/>
      <exports symbol='virConnectListAllInterfacesFlags' type='typedef'/>
      <exports symbol='virConnectListAllNetworksFlags' type='typedef'/>
@@ -724,6 +741,7 @@
      <exports symbol='virConnectPtr' type='typedef'/>
      <exports symbol='virDomain' type='typedef'/>
      <exports symbol='virDomainBlockCommitFlags' type='typedef'/>
+     <exports symbol='virDomainBlockCopyFlags' type='typedef'/>
      <exports symbol='virDomainBlockInfo' type='typedef'/>
      <exports symbol='virDomainBlockInfoPtr' type='typedef'/>
      <exports symbol='virDomainBlockJobAbortFlags' type='typedef'/>
@@ -809,6 +827,9 @@
      <exports symbol='virDomainSnapshotPtr' type='typedef'/>
      <exports symbol='virDomainSnapshotRevertFlags' type='typedef'/>
      <exports symbol='virDomainState' type='typedef'/>
+     <exports symbol='virDomainStatsRecord' type='typedef'/>
+     <exports symbol='virDomainStatsRecordPtr' type='typedef'/>
+     <exports symbol='virDomainStatsTypes' type='typedef'/>
      <exports symbol='virDomainUndefineFlagsValues' type='typedef'/>
      <exports symbol='virDomainVcpuFlags' type='typedef'/>
      <exports symbol='virDomainXMLFlags' type='typedef'/>
@@ -896,6 +917,7 @@
      <exports symbol='_virDomainInterfaceStats' type='struct'/>
      <exports symbol='_virDomainJobInfo' type='struct'/>
      <exports symbol='_virDomainMemoryStat' type='struct'/>
+     <exports symbol='_virDomainStatsRecord' type='struct'/>
      <exports symbol='_virNetworkDHCPLease' type='struct'/>
      <exports symbol='_virNodeCPUStats' type='struct'/>
      <exports symbol='_virNodeInfo' type='struct'/>
@@ -934,6 +956,7 @@
      <exports symbol='virConnectDomainXMLFromNative' type='function'/>
      <exports symbol='virConnectDomainXMLToNative' type='function'/>
      <exports symbol='virConnectFindStoragePoolSources' type='function'/>
+     <exports symbol='virConnectGetAllDomainStats' type='function'/>
      <exports symbol='virConnectGetCPUModelNames' type='function'/>
      <exports symbol='virConnectGetCapabilities' type='function'/>
      <exports symbol='virConnectGetDomainCapabilities' type='function'/>
@@ -989,6 +1012,7 @@
      <exports symbol='virDomainAttachDevice' type='function'/>
      <exports symbol='virDomainAttachDeviceFlags' type='function'/>
      <exports symbol='virDomainBlockCommit' type='function'/>
+     <exports symbol='virDomainBlockCopy' type='function'/>
      <exports symbol='virDomainBlockJobAbort' type='function'/>
      <exports symbol='virDomainBlockJobSetSpeed' type='function'/>
      <exports symbol='virDomainBlockPeek' type='function'/>
@@ -1058,6 +1082,7 @@
      <exports symbol='virDomainIsPersistent' type='function'/>
      <exports symbol='virDomainIsUpdated' type='function'/>
      <exports symbol='virDomainListAllSnapshots' type='function'/>
+     <exports symbol='virDomainListGetStats' type='function'/>
      <exports symbol='virDomainLookupByID' type='function'/>
      <exports symbol='virDomainLookupByName' type='function'/>
      <exports symbol='virDomainLookupByUUID' type='function'/>
@@ -1080,6 +1105,7 @@
      <exports symbol='virDomainOpenChannel' type='function'/>
      <exports symbol='virDomainOpenConsole' type='function'/>
      <exports symbol='virDomainOpenGraphics' type='function'/>
+     <exports symbol='virDomainOpenGraphicsFD' type='function'/>
      <exports symbol='virDomainPMSuspendForDuration' type='function'/>
      <exports symbol='virDomainPMWakeup' type='function'/>
      <exports symbol='virDomainPinEmulator' type='function'/>
@@ -1135,6 +1161,7 @@
      <exports symbol='virDomainSnapshotNum' type='function'/>
      <exports symbol='virDomainSnapshotNumChildren' type='function'/>
      <exports symbol='virDomainSnapshotRef' type='function'/>
+     <exports symbol='virDomainStatsRecordListFree' type='function'/>
      <exports symbol='virDomainSuspend' type='function'/>
      <exports symbol='virDomainUndefine' type='function'/>
      <exports symbol='virDomainUndefineFlags' type='function'/>
@@ -1586,6 +1613,15 @@
     <macro name='VIR_DOMAIN_BLKIO_WEIGHT' file='libvirt'>
       <info><![CDATA[Macro for the Blkio tunable weight: it represents the io weight the guest can use, as a uint.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH' file='libvirt'>
+      <info><![CDATA[Macro for the virDomainBlockCopy bandwidth tunable: it represents the maximum bandwidth in bytes/s, and is used while getting the copy operation into the mirrored phase, with a type of ullong.  For compatibility with virDomainBlockJobSetSpeed(), values larger than 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected due to overflow considerations, and hypervisors may further restrict the set of valid values. Specifying 0 is the same as omitting this parameter, to request no bandwidth limiting.  Some hypervisors may lack support for this parameter, while still allowing a subsequent change of bandwidth via virDomainBlockJobSetSpeed().  The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE' file='libvirt'>
+      <info><![CDATA[Macro for the virDomainBlockCopy buffer size tunable: it represents how much data in bytes can be in flight between source and destination, as an unsigned int. Specifying 0 is the same as omitting this parameter, to request the hypervisor default.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' file='libvirt'>
+      <info><![CDATA[Macro for the virDomainBlockCopy granularity tunable: it represents the granularity in bytes at which the copy operation recognizes dirty blocks that need copying, as an unsigned int.  Hypervisors may restrict this to be a power of two or fall within a certain range. Specifying 0 is the same as omitting this parameter, to request the hypervisor default.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' file='libvirt'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the read bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
@@ -1878,6 +1914,15 @@
     <enum name='VIR_CONNECT_CLOSE_REASON_LAST' file='libvirt' value='4' type='virConnectCloseReason'/>
     <enum name='VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE' file='libvirt' value='1' type='virConnectCompareCPUFlags' info='treat incompatible
 CPUs as failure'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_ACTIVE' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS' file='libvirt' value='2147483648' type='virConnectGetAllDomainStatsFlags' info='enforce requested stats'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_INACTIVE' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_OTHER' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_PAUSED' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_PERSISTENT' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_RUNNING' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_RUNNING' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_SHUTOFF' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT' file='libvirt' value='VIR_CONNECT_LIST_DOMAINS_TRANSIENT' type='virConnectGetAllDomainStatsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_ACTIVE' file='libvirt' value='1' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_AUTOSTART' file='libvirt' value='1024' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT' file='libvirt' value='4096' type='virConnectListAllDomainsFlags'/>
@@ -1936,6 +1981,7 @@ node'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_SCSI' file='libvirt' value='4096' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG' file='libvirt' value='32768' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT' file='libvirt' value='8' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_ZFS' file='libvirt' value='131072' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_NO_ALIASES' file='libvirt' value='2' type='virConnectFlags' info='Don&apos;t try to resolve URI aliases'/>
     <enum name='VIR_CONNECT_RO' file='libvirt' value='1' type='virConnectFlags' info='A readonly connection'/>
     <enum name='VIR_CPU_COMPARE_ERROR' file='libvirt' value='-1' type='virCPUCompareResult'/>
@@ -1975,6 +2021,10 @@ referenced using relative
 names'/>
     <enum name='VIR_DOMAIN_BLOCK_COMMIT_SHALLOW' file='libvirt' value='1' type='virDomainBlockCommitFlags' info='NULL base means next backing
 file, not whole chain'/>
+    <enum name='VIR_DOMAIN_BLOCK_COPY_REUSE_EXT' file='libvirt' value='2' type='virDomainBlockCopyFlags' info='Reuse existing external
+file for a copy'/>
+    <enum name='VIR_DOMAIN_BLOCK_COPY_SHALLOW' file='libvirt' value='1' type='virDomainBlockCopyFlags' info='Limit copy to top of source
+backing chain'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC' file='libvirt' value='1' type='virDomainBlockJobAbortFlags'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT' file='libvirt' value='2' type='virDomainBlockJobAbortFlags'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_CANCELED' file='libvirt' value='2' type='virConnectDomainEventBlockJobStatus'/>
@@ -1986,8 +2036,8 @@ file, not whole chain'/>
  exists as long as sync is active'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' file='libvirt' value='3' type='virDomainBlockJobType' info='Block Commit (virDomainBlockCommit without flags), job ends on
  completion'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' file='libvirt' value='2' type='virDomainBlockJobType' info='Block Copy (virDomainBlockRebase with flags), job exists as
- long as mirroring is active'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' file='libvirt' value='2' type='virDomainBlockJobType' info='Block Copy (virDomainBlockCopy, or virDomainBlockRebase with
+ flags), job exists as long as mirroring is active'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' file='libvirt' value='5' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' file='libvirt' value='1' type='virDomainBlockJobType' info='Block Pull (virDomainBlockPull, or virDomainBlockRebase without
  flags), job ends on completion'/>
@@ -2384,6 +2434,7 @@ listing a domain'/>
     <enum name='VIR_DOMAIN_START_BYPASS_CACHE' file='libvirt' value='4' type='virDomainCreateFlags' info='Avoid file system cache pollution'/>
     <enum name='VIR_DOMAIN_START_FORCE_BOOT' file='libvirt' value='8' type='virDomainCreateFlags' info='Boot, discarding any managed save'/>
     <enum name='VIR_DOMAIN_START_PAUSED' file='libvirt' value='1' type='virDomainCreateFlags' info='Launch guest in paused state'/>
+    <enum name='VIR_DOMAIN_STATS_STATE' file='libvirt' value='1' type='virDomainStatsTypes' info='return domain state'/>
     <enum name='VIR_DOMAIN_TIME_SYNC' file='libvirt' value='1' type='virDomainSetTimeFlags' info='Re-sync domain time from domain&apos;s RTC'/>
     <enum name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' file='libvirt' value='1' type='virDomainUndefineFlagsValues' info='Also remove any
 managed save'/>
@@ -2773,6 +2824,7 @@ Cryptography&quot; (1996)'/>
     <typedef name='virConnectDomainEventBlockJobStatus' file='libvirt' type='enum'/>
     <typedef name='virConnectDomainEventDiskChangeReason' file='libvirt' type='enum'/>
     <typedef name='virConnectFlags' file='libvirt' type='enum'/>
+    <typedef name='virConnectGetAllDomainStatsFlags' file='libvirt' type='enum'/>
     <typedef name='virConnectListAllDomainsFlags' file='libvirt' type='enum'/>
     <typedef name='virConnectListAllInterfacesFlags' file='libvirt' type='enum'/>
     <typedef name='virConnectListAllNetworksFlags' file='libvirt' type='enum'/>
@@ -2784,6 +2836,7 @@ Cryptography&quot; (1996)'/>
     </typedef>
     <struct name='virDomain' file='libvirt' type='struct _virDomain'/>
     <typedef name='virDomainBlockCommitFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainBlockCopyFlags' file='libvirt' type='enum'/>
     <struct name='virDomainBlockInfo' file='libvirt' type='struct _virDomainBlockInfo'>
       <field name='capacity' type='unsigned long long' info='logical size in bytes of the block device backing image'/>
       <field name='allocation' type='unsigned long long' info='highest allocated extent in bytes of the block device backing image'/>
@@ -2958,6 +3011,13 @@ and ERROR states)'/>
     </typedef>
     <typedef name='virDomainSnapshotRevertFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainState' file='libvirt' type='enum'/>
+    <struct name='virDomainStatsRecord' file='libvirt' type='struct _virDomainStatsRecord'>
+      <field name='dom' type='virDomainPtr' info=''/>
+      <field name='params' type='virTypedParameterPtr' info=''/>
+      <field name='nparams' type='int' info=''/>
+    </struct>
+    <typedef name='virDomainStatsRecordPtr' file='libvirt' type='virDomainStatsRecord *'/>
+    <typedef name='virDomainStatsTypes' file='libvirt' type='enum'/>
     <typedef name='virDomainUndefineFlagsValues' file='libvirt' type='enum'/>
     <typedef name='virDomainVcpuFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainXMLFlags' file='libvirt' type='enum'/>
@@ -3567,6 +3627,54 @@ local storage resources only)]]></info>
       <arg name='type' type='const char *' info='type of storage pool sources to discover'/>
       <arg name='srcSpec' type='const char *' info='XML document specifying discovery source'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virConnectGetAllDomainStats' file='libvirt' module='libvirt'>
+      <info><![CDATA[Query statistics for all domains on a given connection.
+
+Report statistics of various parameters for a running VM according to @stats
+field. The statistics are returned as an array of structures for each queried
+domain. The structure contains an array of typed parameters containing the
+individual statistics. The typed parameter name for each statistic field
+consists of a dot-separated string containing name of the requested group
+followed by a group specific description of the statistic value.
+
+The statistic groups are enabled using the @stats parameter which is a
+binary-OR of enum virDomainStatsTypes. The following groups are available
+(although not necessarily implemented for each hypervisor):
+
+VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
+state. The typed parameter keys are in this format:
+"state.state" - state of the VM, returned as int from virDomainState enum
+"state.reason" - reason for entering given state, returned as int from
+                 virDomain*Reason enum corresponding to given state.
+
+Using 0 for @stats returns all stats groups supported by the given
+hypervisor.
+
+Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
+the function return error in case some of the stat types in @stats were
+not recognized by the daemon.
+
+Similarly to virConnectListAllDomains, @flags can contain various flags to
+filter the list of domains to provide stats for.
+
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE selects online domains while
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE selects offline ones.
+
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT and
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT allow to filter the list
+according to their persistence.
+
+To filter the list of VMs by domain state @flags can contain
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_RUNNING,
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED,
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF and/or
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER for all other states.]]></info>
+      <return type='int' info='the count of returned statistics structures on success, -1 on error. The requested data are returned in the @retStats parameter. The returned array should be freed by the caller. See virDomainStatsRecordListFree.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='stats' type='unsigned int' info='stats to return, binary-OR of virDomainStatsTypes'/>
+      <arg name='retStats' type='virDomainStatsRecordPtr **' info='Pointer that will be filled with the array of returned stats'/>
+      <arg name='flags' type='unsigned int' info='extra flags; binary-OR of virConnectGetAllDomainStatsFlags'/>
     </function>
     <function name='virConnectGetCPUModelNames' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the list of supported CPU models for a specific architecture.]]></info>
@@ -4356,6 +4464,73 @@ The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify commit bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockCommitFlags'/>
     </function>
+    <function name='virDomainBlockCopy' file='libvirt' module='libvirt'>
+      <info><![CDATA[Copy the guest-visible contents of a disk image to a new file described
+by @destxml.  The destination XML has a top-level element of <disk>, and
+resembles what is used when hot-plugging a disk via virDomainAttachDevice(),
+except that only sub-elements related to describing the new host resource
+are necessary (sub-elements related to the guest view, such as <target>,
+are ignored).  It is strongly recommended to include a <driver type='...'/>
+format designation for the destination, to avoid the potential of any
+security problem that might be caused by probing a file for its format.
+
+This command starts a long-running copy.  By default, the copy will pull
+the entire source chain into the destination file, but if @flags also
+contains VIR_DOMAIN_BLOCK_COPY_SHALLOW, then only the top of the source
+chain will be copied (the source and destination have a common backing
+file).  The format of the destination file is controlled by the <driver>
+sub-element of the XML.  The destination will be created unless the
+VIR_DOMAIN_BLOCK_COPY_REUSE_EXT flag is present stating that the file
+was pre-created with the correct format and metadata and sufficient
+size to hold the copy. In case the VIR_DOMAIN_BLOCK_COPY_SHALLOW flag
+is used the pre-created file has to exhibit the same guest visible contents
+as the backing file of the original image. This allows a management app to
+pre-create files with relative backing file names, rather than the default
+of absolute backing file names.
+
+A copy job has two parts; in the first phase, the source is copied into
+the destination, and the job can only be canceled by reverting to the
+source file; progress in this phase can be tracked via the
+virDomainBlockJobInfo() command, with a job type of
+VIR_DOMAIN_BLOCK_JOB_TYPE_COPY.  The job transitions to the second
+phase when the job info states cur == end, and remains alive to mirror
+all further changes to both source and destination.  The user must
+call virDomainBlockJobAbort() to end the mirroring while choosing
+whether to revert to source or pivot to the destination.  An event is
+issued when the job ends, and depending on the hypervisor, an event may
+also be issued when the job transitions from pulling to mirroring.  If
+the job is aborted, a new job will have to start over from the beginning
+of the first phase.
+
+Some hypervisors will restrict certain actions, such as virDomainSave()
+or virDomainDetachDevice(), while a copy job is active; they may
+also restrict a copy job to transient domains.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the <source file='...'/> sub-element, such as
+"/path/to/image"), or the device target shorthand (the
+<target dev='...'/> sub-element, such as "vda").  Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
+
+The @params and @nparams arguments can be used to set hypervisor-specific
+tuning parameters, such as maximum bandwidth or granularity.  For a
+parameter that the hypervisor understands, explicitly specifying 0
+behaves the same as omitting the parameter, to use the hypervisor
+default; however, omitting a parameter is less likely to fail.
+
+This command is a superset of the older virDomainBlockRebase() when used
+with the VIR_DOMAIN_BLOCK_REBASE_COPY flag, and offers better control
+over the destination format, the ability to copy to a destination that
+is not a local file, and the possibility of additional tuning parameters.]]></info>
+      <return type='int' info='0 if the operation has started, -1 on failure.'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
+      <arg name='destxml' type='const char *' info='XML description of the copy destination'/>
+      <arg name='params' type='virTypedParameterPtr' info='Pointer to block copy parameter objects, or NULL'/>
+      <arg name='nparams' type='int' info='Number of block copy parameters (this value can be the same or less than the number of parameters supported)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockCopyFlags'/>
+    </function>
     <function name='virDomainBlockJobAbort' file='libvirt' module='libvirt'>
       <info><![CDATA[Cancel the active block job on the given disk.
 
@@ -4565,7 +4740,13 @@ possible for a later call to virDomainBlockJobSetSpeed() to succeed.
 The actual speed can be determined with virDomainGetBlockJobInfo().
 
 When @base is NULL and @flags is 0, this is identical to
-virDomainBlockPull().]]></info>
+virDomainBlockPull().  When @flags contains VIR_DOMAIN_BLOCK_REBASE_COPY,
+this command is shorthand for virDomainBlockCopy() where the destination
+XML encodes @base as a <disk type='file'>, @bandwidth is properly scaled
+and passed as a typed parameter, the shallow and reuse external flags
+are preserved, and remaining flags control whether the XML encodes a
+destination format of raw instead of leaving the destination identical
+to the source format or probed from the reused file.]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
@@ -5695,6 +5876,42 @@ additional files.]]></info>
       <arg name='snaps' type='virDomainSnapshotPtr **' info='pointer to variable to store the array containing snapshot objects, or NULL if the list is not required (just returns number of snapshots)'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
     </function>
+    <function name='virDomainListGetStats' file='libvirt' module='libvirt'>
+      <info><![CDATA[Query statistics for domains provided by @doms. Note that all domains in
+@doms must share the same connection.
+
+Report statistics of various parameters for a running VM according to @stats
+field. The statistics are returned as an array of structures for each queried
+domain. The structure contains an array of typed parameters containing the
+individual statistics. The typed parameter name for each statistic field
+consists of a dot-separated string containing name of the requested group
+followed by a group specific description of the statistic value.
+
+The statistic groups are enabled using the @stats parameter which is a
+binary-OR of enum virDomainStatsTypes. The following groups are available
+(although not necessarily implemented for each hypervisor):
+
+VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
+state. The typed parameter keys are in this format:
+"state.state" - state of the VM, returned as int from virDomainState enum
+"state.reason" - reason for entering given state, returned as int from
+                 virDomain*Reason enum corresponding to given state.
+
+Using 0 for @stats returns all stats groups supported by the given
+hypervisor.
+
+Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
+the function return error in case some of the stat types in @stats were
+not recognized by the daemon.
+
+Note that any of the domain list filtering flags in @flags will be rejected
+by this function.]]></info>
+      <return type='int' info='the count of returned statistics structures on success, -1 on error. The requested data are returned in the @retStats parameter. The returned array should be freed by the caller. See virDomainStatsRecordListFree. Note that the count of returned stats may be less than the domain count provided via @doms.'/>
+      <arg name='doms' type='virDomainPtr *' info='NULL terminated array of domains'/>
+      <arg name='stats' type='unsigned int' info='stats to return, binary-OR of virDomainStatsTypes'/>
+      <arg name='retStats' type='virDomainStatsRecordPtr **' info='Pointer that will be filled with the array of returned stats'/>
+      <arg name='flags' type='unsigned int' info='extra flags; binary-OR of virConnectGetAllDomainStatsFlags'/>
+    </function>
     <function name='virDomainLookupByID' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to find a domain based on the hypervisor ID number
 Note that this won't work for inactive domains which have an ID of -1,
@@ -6309,6 +6526,24 @@ to use this method over a TCP connection will always fail]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='idx' type='unsigned int' info='index of graphics config to open'/>
       <arg name='fd' type='int' info='file descriptor to attach graphics to'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainOpenGraphicsFlags'/>
+    </function>
+    <function name='virDomainOpenGraphicsFD' file='libvirt' module='libvirt'>
+      <info><![CDATA[This will create a socket pair connected to the graphics backend of @dom.
+One end of the socket will be returned on success, and the other end is
+handed to the hypervisor.
+If @dom has multiple graphics backends configured, then @idx will determine
+which one is opened, starting from @idx 0.
+
+To disable any authentication, pass the VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH
+constant for @flags.
+
+This method can only be used when connected to a local
+libvirt hypervisor, over a UNIX domain socket. Attempts
+to use this method over a TCP connection will always fail.]]></info>
+      <return type='int' info='an fd on success, -1 on failure'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='idx' type='unsigned int' info='index of graphics config to open'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainOpenGraphicsFlags'/>
     </function>
     <function name='virDomainPMSuspendForDuration' file='libvirt' module='libvirt'>
@@ -7395,6 +7630,12 @@ using the snapshot. ie, each new thread using a snapshot would
 increment the reference count.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='the snapshot to hold a reference on'/>
+    </function>
+    <function name='virDomainStatsRecordListFree' file='libvirt' module='libvirt'>
+      <info><![CDATA[Convenience function to free a list of domain stats returned by
+virDomainListGetStats and virConnectGetAllDomainStats.]]></info>
+      <return type='void'/>
+      <arg name='stats' type='virDomainStatsRecordPtr *' info='NULL terminated array of virDomainStatsRecords to free'/>
     </function>
     <function name='virDomainSuspend' file='libvirt' module='libvirt'>
       <info><![CDATA[Suspends an active domain, the process is frozen without further access
@@ -9184,7 +9425,15 @@ This call sets up an asynchronous stream; subsequent use of
 stream APIs is necessary to transfer the actual data,
 determine how much data is successfully transferred, and
 detect any errors. The results will be unpredictable if
-another active stream is writing to the storage volume.]]></info>
+another active stream is writing to the storage volume.
+
+When the data stream is closed whether the upload is successful
+or not the target storage pool will be refreshed to reflect pool
+and volume changes as a result of the upload. Depending on
+the target volume storage backend and the source stream type
+for a successful upload, the target volume may take on the
+characteristics from the source stream such as format type,
+capacity, and allocation.]]></info>
       <return type='int' info='0, or -1 upon error.'/>
       <arg name='vol' type='virStorageVolPtr' info='pointer to volume to upload'/>
       <arg name='stream' type='virStreamPtr' info='stream to use as input'/>

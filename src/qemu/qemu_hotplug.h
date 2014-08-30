@@ -29,9 +29,10 @@
 # include "domain_conf.h"
 
 int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
+                                   virConnectPtr conn,
                                    virDomainObjPtr vm,
                                    virDomainDiskDefPtr disk,
-                                   virDomainDiskDefPtr orig_disk,
+                                   virStorageSourcePtr newsrc,
                                    bool force);
 int qemuDomainCheckEjectableMedia(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
@@ -61,7 +62,8 @@ int qemuDomainChangeGraphicsPasswords(virQEMUDriverPtr driver,
                                       virDomainObjPtr vm,
                                       int type,
                                       virDomainGraphicsAuthDefPtr auth,
-                                      const char *defaultPasswd);
+                                      const char *defaultPasswd,
+                                      int asyncJob);
 int qemuDomainChangeNet(virQEMUDriverPtr driver,
                         virDomainObjPtr vm,
                         virDomainPtr dom,

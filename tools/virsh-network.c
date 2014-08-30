@@ -798,10 +798,10 @@ cmdNetworkStart(vshControl *ctl, const vshCmd *cmd)
  */
 static const vshCmdInfo info_network_undefine[] = {
     {.name = "help",
-     .data = N_("undefine an inactive network")
+     .data = N_("undefine a persistent network")
     },
     {.name = "desc",
-     .data = N_("Undefine the configuration for an inactive network.")
+     .data = N_("Undefine the configuration for a persistent network.")
     },
     {.name = NULL}
 };
@@ -974,7 +974,7 @@ cmdNetworkUpdate(vshControl *ctl, const vshCmd *cmd)
     if (current) {
         if (live || config) {
             vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
+            goto cleanup;
         }
         flags |= VIR_NETWORK_UPDATE_AFFECT_CURRENT;
     } else {

@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2014-07-25" "libvirt-1.2.7" "Virtualization Support"
+.TH VIRSH 1 "2014-08-29" "libvirt-1.2.8" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -387,6 +387,8 @@ connect locally as a normal user to his own set of \s-1QEMU\s0 and \s-1KVM\s0 do
 connect to a local linux container
 .RE
 .RS 4
+.Sp
+To find the currently used \s-1URI,\s0 check the \fIuri\fR command documented below.
 .Sp
 For remote access see the documentation page at
 <http://libvirt.org/uri.html> on how to make URIs.
@@ -715,6 +717,7 @@ effect on the next boot.
 Show or modify description and title of a domain. These values are user
 fields that allow to store arbitrary textual data to allow easy
 identification of domains. Title should be short, although it's not enforced.
+(See also \fBmetadata\fR that works with \s-1XML\s0 based domain metadata.)
 .Sp
 Flags \fI\-\-live\fR or \fI\-\-config\fR select whether this command works on live
 or persistent definitions of the domain. If both \fI\-\-live\fR and \fI\-\-config\fR
@@ -856,6 +859,27 @@ disk type and device value will also be printed. Other contexts
 that require a block device name (such as \fIdomblkinfo\fR or
 \&\fIsnapshot-create\fR for disk snapshots) will accept either target
 or unique source names printed by this command.
+.IP "\fBdomstats\fR [\fI\-\-raw\fR] [\fI\-\-enforce\fR] [\fI\-\-state\fR] [[\fI\-\-list\-active\fR] [\fI\-\-list\-inactive\fR] [\fI\-\-list\-persistent\fR] [\fI\-\-list\-transient\fR] [\fI\-\-list\-running\fR] [\fI\-\-list\-paused\fR] [\fI\-\-list\-shutoff\fR] [\fI\-\-list\-other\fR]] | [\fIdomain\fR ...]" 4
+.IX Item "domstats [--raw] [--enforce] [--state] [[--list-active] [--list-inactive] [--list-persistent] [--list-transient] [--list-running] [--list-paused] [--list-shutoff] [--list-other]] | [domain ...]"
+Get statistics for multiple or all domains. Without any argument this
+command prints all available statistics for all domains.
+.Sp
+The list of domains to gather stats for can be either limited by listing
+the domains as a space separated list, or by specifying one of the
+filtering flags \fI\-\-list\-*\fR. (The approaches can't be combined.)
+.Sp
+By default some of the returned fields may be converted to more
+human friendly values by a set of pretty-printers. To suppress this
+behavior use the \fI\-\-raw\fR flag.
+.Sp
+The individual statistics groups are selectable via specific flags. By
+default all supported statistics groups are returned. Supported
+statistics groups flags are: \fI\-\-state\fR.
+.Sp
+Selecting a specific statistics groups doesn't guarantee that the
+daemon supports the selected group of stats. Flag \fI\-\-enforce\fR
+forces the command to fail if the daemon doesn't support the
+selected group.
 .IP "\fBdomiflist\fR \fIdomain\fR [\fI\-\-inactive\fR]" 4
 .IX Item "domiflist domain [--inactive]"
 Print a table showing the brief information of all virtual interfaces
@@ -1138,13 +1162,15 @@ in order to get or set the guest time.
 Convert the file \fIconfig\fR in the native guest configuration format
 named by \fIformat\fR to a domain \s-1XML\s0 format. For \s-1QEMU/KVM\s0 hypervisor,
 the \fIformat\fR argument must be \fBqemu-argv\fR. For Xen hypervisor, the
-\&\fIformat\fR argument may be \fBxen-xm\fR or \fBxen-sxpr\fR.
+\&\fIformat\fR argument may be \fBxen-xm\fR or \fBxen-sxpr\fR. For \s-1LXC\s0 hypervisor,
+the \fIformat\fR argument must be \fBlxc-tools\fR.
 .IP "\fBdomxml-to-native\fR \fIformat\fR \fIxml\fR" 4
 .IX Item "domxml-to-native format xml"
 Convert the file \fIxml\fR in domain \s-1XML\s0 format to the native guest
 configuration format named by \fIformat\fR. For \s-1QEMU/KVM\s0 hypervisor,
 the \fIformat\fR argument must be \fBqemu-argv\fR. For Xen hypervisor, the
-\&\fIformat\fR argument may be \fBxen-xm\fR or \fBxen-sxpr\fR.
+\&\fIformat\fR argument may be \fBxen-xm\fR or \fBxen-sxpr\fR. For \s-1LXC\s0 hypervisor,
+the \fIformat\fR argument must be \fBlxc-tools\fR.
 .IP "\fBdump\fR \fIdomain\fR \fIcorefilepath\fR [\fI\-\-bypass\-cache\fR] { [\fI\-\-live\fR] | [\fI\-\-crash\fR] | [\fI\-\-reset\fR] } [\fI\-\-verbose\fR] [\fI\-\-memory\-only\fR] [\fI\-\-format\fR \fIstring\fR]" 4
 .IX Item "dump domain corefilepath [--bypass-cache] { [--live] | [--crash] | [--reset] } [--verbose] [--memory-only] [--format string]"
 Dumps the core of a domain to a file for analysis.
@@ -1251,8 +1277,37 @@ be running. Default it shows stats for all CPUs, and a total. Use
 \&\fI\-\-total\fR for only the total stats, \fIstart\fR for only the per-cpu
 stats of the CPUs from \fIstart\fR, \fIcount\fR for only \fIcount\fR CPUs'
 stats.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] [\fI\-\-abort\-on\-error\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--abort-on-error] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds] [--xml file]"
+.IP "\fBmetadata\fR \fIdomain\fR [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] [\fI\-\-edit\fR] [\fIuri\fR] [\fIkey\fR] [\fIset\fR] [\fI\-\-remove\fR]" 4
+.IX Item "metadata domain [[--live] [--config] | [--current]] [--edit] [uri] [key] [set] [--remove]"
+Show or modify custom \s-1XML\s0 metadata of a domain. The metadata is a user
+defined \s-1XML\s0 that allows to store arbitrary \s-1XML\s0 data in the domain definition.
+Multiple separate custom metadata pieces can be stored in the domain \s-1XML.\s0
+The pieces are identified by a private \s-1XML\s0 namespace provided via the
+\&\fIuri\fR argument. (See also \fBdesc\fR that works with textual metadata of
+a domain.)
+.Sp
+Flags \fI\-\-live\fR or \fI\-\-config\fR select whether this command works on live
+or persistent definitions of the domain. If both \fI\-\-live\fR and \fI\-\-config\fR
+are specified, the \fI\-\-config\fR option takes precedence on getting the current
+description and both live configuration and config are updated while setting
+the description. \fI\-\-current\fR is exclusive and implied if none of these was
+specified.
+.Sp
+Flag \fI\-\-remove\fR specifies that the metadata element specified by the \fIuri\fR
+argument should be removed rather than updated.
+.Sp
+Flag \fI\-\-edit\fR specifies that an editor with the metadata identified by the
+\&\fIuri\fR argument should be opened and the contents saved back afterwards.
+Otherwise the new contents can be provided via the \fIset\fR argument.
+.Sp
+When setting metadata via \fI\-\-edit\fR or \fIset\fR the \fIkey\fR argument must be
+specified and is used to prefix the custom elements to bind them
+to the private namespace.
+.Sp
+If neither of \fI\-\-edit\fR and \fIset\fR are specified the \s-1XML\s0 metadata corresponding
+to the \fIuri\fR namespace is displayed instead of being modified.
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-auto\-converge\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--abort-on-error] [--auto-converge] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds] [--xml file]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1274,7 +1329,8 @@ used to reject the migration if the hypervisor lacks change protection
 support.  \fI\-\-verbose\fR displays the progress of migration.  \fI\-\-compressed\fR
 activates compression of memory pages that have to be transferred repeatedly
 during live migration. \fI\-\-abort\-on\-error\fR cancels the migration if a soft
-error (for example I/O error) happens during the migration.
+error (for example I/O error) happens during the migration. \fI\-\-auto\-converge\fR
+forces convergence during live migration.
 .Sp
 \&\fBNote\fR: Individual hypervisors usually do not support all possible types of
 migration. For example, \s-1QEMU\s0 does not support direct migration.
@@ -1550,7 +1606,7 @@ variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
 Allows you to show (and set) the domain scheduler parameters. The parameters
 available for each hypervisor are:
 .Sp
-\&\s-1LXC \s0(posix scheduler) : cpu_shares
+\&\s-1LXC \s0(posix scheduler) : cpu_shares, vcpu_period, vcpu_quota
 .Sp
 \&\s-1QEMU/KVM \s0(posix scheduler): cpu_shares, vcpu_period, vcpu_quota,
 emulator_period, emulator_quota
@@ -2118,19 +2174,29 @@ an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain
 Likewise, \fI\-\-shareable\fR is an alias for \fI\-\-mode shareable\fR.
 .IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-config\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
 .IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--config] [--inbound average,peak,burst] [--outbound average,peak,burst]"
-Attach a new network interface to the domain.  \fItype\fR can be either \fInetwork\fR
-to indicate a physical network device or \fIbridge\fR to indicate a bridge to a
-device.  \fIsource\fR indicates the source device.  \fItarget\fR allows to indicate
-the target device in the guest. Names starting with 'vnet' are considered as
-auto-generated an hence blanked out.  \fImac\fR allows to specify the \s-1MAC\s0 address
-of the network interface.  \fIscript\fR allows to specify a path to a script
-handling a bridge instead of the default one.  \fImodel\fR allows to specify the
-model type.  \fIinbound\fR and \fIoutbound\fR control the bandwidth of the interface.
-\&\fIpeak\fR and \fIburst\fR are optional, so \*(L"average,peak\*(R", \*(L"average,,burst\*(R" and
-\&\*(L"average\*(R" are also legal. Values for \fIaverage\fR and \fIpeak\fR are
-expressed in kilobytes per second, while \fIburst\fR is expressed in kilobytes
-in a single burst at \-\fIpeak\fR speed as described in the Network \s-1XML\s0
-documentation at <http://libvirt.org/formatnetwork.html#elementQoS>.
+Attach a new network interface to the domain.  \fItype\fR can be either
+\&\fInetwork\fR to indicate connection via a libvirt virtual network or
+\&\fIbridge\fR to indicate connection via a bridge device on the host.
+\&\fIsource\fR indicates the source of the connection (either the name of a
+network, or of a bridge device).  \fItarget\fR is used to specify the
+tap/macvtap device to be used to connect the domain to the
+source. Names starting with 'vnet' are considered as auto-generated
+and are blanked out/regenerated each time the interface is attached.
+\&\fImac\fR specifies the \s-1MAC\s0 address of the network interface; if a \s-1MAC\s0
+address is not given, a new address will be automatically generated
+(and stored in the persistent configuration if \*(L"\-\-config\*(R" is given on
+the commandline).  \fIscript\fR is used to specify a path to a custom
+script to be called while attaching to a bridge \- this will be called
+instead of the default script not in addition to it; \-\-script is valid
+only for interfaces of type \fIbridge\fR and only for Xen domains.
+\&\fImodel\fR specifies the network device model to be presented to the
+domain.  \fIinbound\fR and \fIoutbound\fR control the bandwidth of the
+interface.  \fIpeak\fR and \fIburst\fR are optional, so \*(L"average,peak\*(R",
+\&\*(L"average,,burst\*(R" and \*(L"average\*(R" are also legal. Values for \fIaverage\fR
+and \fIpeak\fR are expressed in kilobytes per second, while \fIburst\fR is
+expressed in kilobytes in a single burst at \-\fIpeak\fR speed as
+described in the Network \s-1XML\s0 documentation at
+<http://libvirt.org/formatnetwork.html#elementQoS>.
 .Sp
 If \fI\-\-live\fR is specified, affect a running domain.
 If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.
@@ -2421,7 +2487,8 @@ Convert a network \s-1UUID\s0 to network name.
 Start a (previously defined) inactive network.
 .IP "\fBnet-undefine\fR \fInetwork\fR" 4
 .IX Item "net-undefine network"
-Undefine the configuration for an inactive network.
+Undefine the configuration for a persistent network. If the network is active,
+make it transient.
 .IP "\fBnet-uuid\fR \fInetwork-name\fR" 4
 .IX Item "net-uuid network-name"
 Convert a network name to network \s-1UUID.\s0
@@ -2791,6 +2858,9 @@ of the amount of data to be uploaded. A negative value is interpreted
 as an unsigned long long value to essentially include everything from
 the offset to the end of the volume.
 An error will occur if the \fIlocal-file\fR is greater than the specified length.
+See the description for the libvirt virStorageVolUpload \s-1API\s0 for details
+regarding possible target volume and pool changes as a result of the
+pool refresh when the upload is attempted.
 .IP "\fBvol-download\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] \fIvol-name-or-key-or-path\fR \fIlocal-file\fR" 4
 .IX Item "vol-download [--pool pool-or-uuid] [--offset bytes] [--length bytes] vol-name-or-key-or-path local-file"
 Download the contents of a storage volume to \fIlocal-file\fR.

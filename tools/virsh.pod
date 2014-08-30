@@ -272,6 +272,8 @@ connect to a local linux container
 
 =back
 
+To find the currently used URI, check the I<uri> command documented below.
+
 For remote access see the documentation page at
 L<http://libvirt.org/uri.html> on how to make URIs.
 The I<--readonly> option allows for read-only connection
@@ -654,6 +656,7 @@ effect on the next boot.
 Show or modify description and title of a domain. These values are user
 fields that allow to store arbitrary textual data to allow easy
 identification of domains. Title should be short, although it's not enforced.
+(See also B<metadata> that works with XML based domain metadata.)
 
 Flags I<--live> or I<--config> select whether this command works on live
 or persistent definitions of the domain. If both I<--live> and I<--config>
@@ -809,6 +812,31 @@ disk type and device value will also be printed. Other contexts
 that require a block device name (such as I<domblkinfo> or
 I<snapshot-create> for disk snapshots) will accept either target
 or unique source names printed by this command.
+
+=item B<domstats> [I<--raw>] [I<--enforce>] [I<--state>]
+[[I<--list-active>] [I<--list-inactive>] [I<--list-persistent>]
+[I<--list-transient>] [I<--list-running>] [I<--list-paused>]
+[I<--list-shutoff>] [I<--list-other>]] | [I<domain> ...]
+
+Get statistics for multiple or all domains. Without any argument this
+command prints all available statistics for all domains.
+
+The list of domains to gather stats for can be either limited by listing
+the domains as a space separated list, or by specifying one of the
+filtering flags I<--list-*>. (The approaches can't be combined.)
+
+By default some of the returned fields may be converted to more
+human friendly values by a set of pretty-printers. To suppress this
+behavior use the I<--raw> flag.
+
+The individual statistics groups are selectable via specific flags. By
+default all supported statistics groups are returned. Supported
+statistics groups flags are: I<--state>.
+
+Selecting a specific statistics groups doesn't guarantee that the
+daemon supports the selected group of stats. Flag I<--enforce>
+forces the command to fail if the daemon doesn't support the
+selected group.
 
 =item B<domiflist> I<domain> [I<--inactive>]
 
@@ -1126,14 +1154,16 @@ in order to get or set the guest time.
 Convert the file I<config> in the native guest configuration format
 named by I<format> to a domain XML format. For QEMU/KVM hypervisor,
 the I<format> argument must be B<qemu-argv>. For Xen hypervisor, the
-I<format> argument may be B<xen-xm> or B<xen-sxpr>.
+I<format> argument may be B<xen-xm> or B<xen-sxpr>. For LXC hypervisor,
+the I<format> argument must be B<lxc-tools>.
 
 =item B<domxml-to-native> I<format> I<xml>
 
 Convert the file I<xml> in domain XML format to the native guest
 configuration format named by I<format>. For QEMU/KVM hypervisor,
 the I<format> argument must be B<qemu-argv>. For Xen hypervisor, the
-I<format> argument may be B<xen-xm> or B<xen-sxpr>.
+I<format> argument may be B<xen-xm> or B<xen-sxpr>. For LXC hypervisor,
+the I<format> argument must be B<lxc-tools>.
 
 =item B<dump> I<domain> I<corefilepath> [I<--bypass-cache>]
 { [I<--live>] | [I<--crash>] | [I<--reset>] } [I<--verbose>] [I<--memory-only>]
@@ -1252,10 +1282,41 @@ I<--total> for only the total stats, I<start> for only the per-cpu
 stats of the CPUs from I<start>, I<count> for only I<count> CPUs'
 stats.
 
+=item B<metadata> I<domain> [[I<--live>] [I<--config>] | [I<--current>]]
+[I<--edit>] [I<uri>] [I<key>] [I<set>] [I<--remove>]
+
+Show or modify custom XML metadata of a domain. The metadata is a user
+defined XML that allows to store arbitrary XML data in the domain definition.
+Multiple separate custom metadata pieces can be stored in the domain XML.
+The pieces are identified by a private XML namespace provided via the
+I<uri> argument. (See also B<desc> that works with textual metadata of
+a domain.)
+
+Flags I<--live> or I<--config> select whether this command works on live
+or persistent definitions of the domain. If both I<--live> and I<--config>
+are specified, the I<--config> option takes precedence on getting the current
+description and both live configuration and config are updated while setting
+the description. I<--current> is exclusive and implied if none of these was
+specified.
+
+Flag I<--remove> specifies that the metadata element specified by the I<uri>
+argument should be removed rather than updated.
+
+Flag I<--edit> specifies that an editor with the metadata identified by the
+I<uri> argument should be opened and the contents saved back afterwards.
+Otherwise the new contents can be provided via the I<set> argument.
+
+When setting metadata via I<--edit> or I<set> the I<key> argument must be
+specified and is used to prefix the custom elements to bind them
+to the private namespace.
+
+If neither of I<--edit> and I<set> are specified the XML metadata corresponding
+to the I<uri> namespace is displayed instead of being modified.
+
 =item B<migrate> [I<--live>] [I<--offline>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
 [I<--persistent>] [I<--undefinesource>] [I<--suspend>] [I<--copy-storage-all>]
 [I<--copy-storage-inc>] [I<--change-protection>] [I<--unsafe>] [I<--verbose>]
-[I<--compressed>] [I<--abort-on-error>]
+[I<--compressed>] [I<--abort-on-error>] [I<--auto-converge>]
 I<domain> I<desturi> [I<migrateuri>] [I<graphicsuri>] [I<listen-address>]
 [I<dname>] [I<--timeout> B<seconds>] [I<--xml> B<file>]
 
@@ -1280,7 +1341,8 @@ used to reject the migration if the hypervisor lacks change protection
 support.  I<--verbose> displays the progress of migration.  I<--compressed>
 activates compression of memory pages that have to be transferred repeatedly
 during live migration. I<--abort-on-error> cancels the migration if a soft
-error (for example I/O error) happens during the migration.
+error (for example I/O error) happens during the migration. I<--auto-converge>
+forces convergence during live migration.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -1568,7 +1630,7 @@ I<domain>
 Allows you to show (and set) the domain scheduler parameters. The parameters
 available for each hypervisor are:
 
-LXC (posix scheduler) : cpu_shares
+LXC (posix scheduler) : cpu_shares, vcpu_period, vcpu_quota
 
 QEMU/KVM (posix scheduler): cpu_shares, vcpu_period, vcpu_quota,
 emulator_period, emulator_quota
@@ -2202,19 +2264,29 @@ Likewise, I<--shareable> is an alias for I<--mode shareable>.
 [I<--target target>] [I<--mac mac>] [I<--script script>] [I<--model model>]
 [I<--config>] [I<--inbound average,peak,burst>] [I<--outbound average,peak,burst>]
 
-Attach a new network interface to the domain.  I<type> can be either I<network>
-to indicate a physical network device or I<bridge> to indicate a bridge to a
-device.  I<source> indicates the source device.  I<target> allows to indicate
-the target device in the guest. Names starting with 'vnet' are considered as
-auto-generated an hence blanked out.  I<mac> allows to specify the MAC address
-of the network interface.  I<script> allows to specify a path to a script
-handling a bridge instead of the default one.  I<model> allows to specify the
-model type.  I<inbound> and I<outbound> control the bandwidth of the interface.
-I<peak> and I<burst> are optional, so "average,peak", "average,,burst" and
-"average" are also legal. Values for I<average> and I<peak> are
-expressed in kilobytes per second, while I<burst> is expressed in kilobytes
-in a single burst at -I<peak> speed as described in the Network XML
-documentation at L<http://libvirt.org/formatnetwork.html#elementQoS>.
+Attach a new network interface to the domain.  I<type> can be either
+I<network> to indicate connection via a libvirt virtual network or
+I<bridge> to indicate connection via a bridge device on the host.
+I<source> indicates the source of the connection (either the name of a
+network, or of a bridge device).  I<target> is used to specify the
+tap/macvtap device to be used to connect the domain to the
+source. Names starting with 'vnet' are considered as auto-generated
+and are blanked out/regenerated each time the interface is attached.
+I<mac> specifies the MAC address of the network interface; if a MAC
+address is not given, a new address will be automatically generated
+(and stored in the persistent configuration if "--config" is given on
+the commandline).  I<script> is used to specify a path to a custom
+script to be called while attaching to a bridge - this will be called
+instead of the default script not in addition to it; --script is valid
+only for interfaces of type I<bridge> and only for Xen domains.
+I<model> specifies the network device model to be presented to the
+domain.  I<inbound> and I<outbound> control the bandwidth of the
+interface.  I<peak> and I<burst> are optional, so "average,peak",
+"average,,burst" and "average" are also legal. Values for I<average>
+and I<peak> are expressed in kilobytes per second, while I<burst> is
+expressed in kilobytes in a single burst at -I<peak> speed as
+described in the Network XML documentation at
+L<http://libvirt.org/formatnetwork.html#elementQoS>.
 
 If I<--live> is specified, affect a running domain.
 If I<--config> is specified, affect the next startup of a persistent domain.
@@ -2545,7 +2617,8 @@ Start a (previously defined) inactive network.
 
 =item B<net-undefine> I<network>
 
-Undefine the configuration for an inactive network.
+Undefine the configuration for a persistent network. If the network is active,
+make it transient.
 
 =item B<net-uuid> I<network-name>
 
@@ -2981,6 +3054,9 @@ of the amount of data to be uploaded. A negative value is interpreted
 as an unsigned long long value to essentially include everything from
 the offset to the end of the volume.
 An error will occur if the I<local-file> is greater than the specified length.
+See the description for the libvirt virStorageVolUpload API for details
+regarding possible target volume and pool changes as a result of the
+pool refresh when the upload is attempted.
 
 =item B<vol-download> [I<--pool> I<pool-or-uuid>] [I<--offset> I<bytes>]
 [I<--length> I<bytes>] I<vol-name-or-key-or-path> I<local-file>

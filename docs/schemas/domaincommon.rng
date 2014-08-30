@@ -259,6 +259,11 @@
                 <value>no</value>
               </choice>
             </attribute>
+            <optional>
+              <attribute name="timeout">
+                <ref name="unsignedShort"/>
+              </attribute>
+            </optional>
           </element>
         </optional>
         <optional>
@@ -623,6 +628,12 @@
             </attribute>
           </optional>
           <ref name="countCPU"/>
+        </element>
+      </optional>
+
+      <optional>
+        <element name="iothreads">
+          <ref name="unsignedInt"/>
         </element>
       </optional>
 
@@ -1561,6 +1572,9 @@
       <optional>
         <ref name="discard"/>
       </optional>
+      <optional>
+        <ref name="driverIOThread"/>
+      </optional>
       <empty/>
     </element>
   </define>
@@ -1646,6 +1660,11 @@
         <value>unmap</value>
         <value>ignore</value>
       </choice>
+    </attribute>
+  </define>
+  <define name="driverIOThread">
+    <attribute name='iothread'>
+      <ref name="unsignedInt"/>
     </attribute>
   </define>
   <define name="controller">
@@ -3168,6 +3187,7 @@
           <value>ac97</value>
           <value>ich6</value>
           <value>ich9</value>
+          <value>usb</value>
         </choice>
       </attribute>
       <interleave>
@@ -3589,12 +3609,51 @@
       </attribute>
     </optional>
     <element name="source">
-      <interleave>
-        <ref name="sourceinfoadapter"/>
-        <element name="address">
-          <ref name="scsiaddress"/>
-        </element>
-      </interleave>
+      <choice>
+        <group>  <!-- scsi_host adapter -->
+          <optional>
+            <attribute name="protocol">
+              <choice>
+                <value>adapter</value>   <!-- scsi_host, default, optional -->
+              </choice>
+            </attribute>
+          </optional>
+          <interleave>
+            <ref name="sourceinfoadapter"/>
+            <element name="address">
+              <ref name="scsiaddress"/>
+            </element>
+          </interleave>
+        </group>
+        <group>  <!-- iscsi adapter -->
+          <attribute name="protocol">
+            <choice>
+              <value>iscsi</value>     <!-- iscsi, required -->
+            </choice>
+          </attribute>
+          <attribute name="name">
+            <text/>
+          </attribute>
+          <interleave>
+            <oneOrMore>
+              <element name='host'>
+                <attribute name='name'>
+                  <text/>
+                </attribute>
+                <optional>
+                  <attribute name='port'>
+                    <ref name="PortNumber"/>
+                  </attribute>
+                </optional>
+                <empty/>
+              </element>
+            </oneOrMore>
+            <optional>
+              <ref name='diskAuth'/>
+            </optional>
+          </interleave>
+        </group>
+      </choice>
     </element>
   </define>
 
@@ -3786,7 +3845,7 @@
   </define>
   <!--
       A set of optional features: PAE, APIC, ACPI,
-      HyperV Enlightenment, paravirtual spinlocks  and HAP support
+      HyperV Enlightenment, KVM features, paravirtual spinlocks and HAP support
     -->
   <define name="features">
     <optional>
@@ -3826,6 +3885,9 @@
             <element name="viridian">
               <empty/>
             </element>
+          </optional>
+          <optional>
+            <ref name="kvm"/>
           </optional>
           <optional>
             <element name="privnet">
@@ -4426,6 +4488,19 @@
                 <data type="unsignedInt"/>
               </attribute>
             </optional>
+          </element>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
+  <!-- Optional KVM features -->
+  <define name="kvm">
+    <element name="kvm">
+      <interleave>
+        <optional>
+          <element name="hidden">
+            <ref name="featurestate"/>
           </element>
         </optional>
       </interleave>

@@ -205,31 +205,32 @@ TESTS = $(am__EXEEXT_28) $(am__EXEEXT_31)
 @WITH_VBOX_FALSE@am__append_47 = vboxsnapshotxmltest.c
 @WITH_VMX_FALSE@am__append_48 = vmx2xmltest.c xml2vmxtest.c
 @WITH_VMWARE_FALSE@am__append_49 = vmwarevertest.c
-@WITH_BHYVE_FALSE@am__append_50 = bhyvexml2argvtest.c bhyvexml2xmltest.c bhyvexml2argvmock.c
-@WITH_NETWORK_FALSE@am__append_51 = networkxml2conftest.c
-@WITH_STORAGE_SHEEPDOG_FALSE@am__append_52 = storagebackendsheepdogtest.c
-@WITH_STORAGE_FALSE@am__append_53 = storagevolxml2argvtest.c
-@WITH_QEMU_TRUE@am__append_54 = testutilsqemu.c testutilsqemu.h
-@WITH_QEMU_TRUE@am__append_55 = $(qemu_LDADDS) $(GNULIB_LIBS)
-@WITH_LIBVIRTD_FALSE@am__append_56 = libvirtdconftest.c
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_57 = pkix_asn1_tab.c
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_58 = -ltasn1
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_59 = pkix_asn1_tab.c
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_60 = -ltasn1
-@HAVE_LIBTASN1_FALSE@@WITH_GNUTLS_TRUE@am__append_61 = pkix_asn1_tab.c
-@WITH_GNUTLS_FALSE@am__append_62 = \
+@WITH_BHYVE_TRUE@@WITH_STORAGE_TRUE@am__append_50 = ../src/libvirt_driver_storage_impl.la
+@WITH_BHYVE_FALSE@am__append_51 = bhyvexml2argvtest.c bhyvexml2xmltest.c bhyvexml2argvmock.c
+@WITH_NETWORK_FALSE@am__append_52 = networkxml2conftest.c
+@WITH_STORAGE_SHEEPDOG_FALSE@am__append_53 = storagebackendsheepdogtest.c
+@WITH_STORAGE_FALSE@am__append_54 = storagevolxml2argvtest.c
+@WITH_QEMU_TRUE@am__append_55 = testutilsqemu.c testutilsqemu.h
+@WITH_QEMU_TRUE@am__append_56 = $(qemu_LDADDS) $(GNULIB_LIBS)
+@WITH_LIBVIRTD_FALSE@am__append_57 = libvirtdconftest.c
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_58 = pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_59 = -ltasn1
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_60 = pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_61 = -ltasn1
+@HAVE_LIBTASN1_FALSE@@WITH_GNUTLS_TRUE@am__append_62 = pkix_asn1_tab.c
+@WITH_GNUTLS_FALSE@am__append_63 = \
 @WITH_GNUTLS_FALSE@	virnettlscontexttest.c virnettlssessiontest.c \
 @WITH_GNUTLS_FALSE@	virnettlshelpers.h virnettlshelpers.c \
 @WITH_GNUTLS_FALSE@	testutils.h testutils.c pkix_asn1_tab.c
 
 @WITH_SELINUX_FALSE@viridentitytest_DEPENDENCIES =  \
 @WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_2)
-@WITH_DBUS_FALSE@am__append_63 = virdbustest.c virmockdbus.c virsystemdtest.c
-@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_TRUE@am__append_64 = libsecurityselinuxhelper.la
-@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_FALSE@am__append_65 = libsecurityselinuxhelper.la
-@WITH_LINUX_FALSE@am__append_66 = fchosttest.c scsihosttest.c \
+@WITH_DBUS_FALSE@am__append_64 = virdbustest.c virmockdbus.c virsystemdtest.c
+@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_TRUE@am__append_65 = libsecurityselinuxhelper.la
+@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_FALSE@am__append_66 = libsecurityselinuxhelper.la
+@WITH_LINUX_FALSE@am__append_67 = fchosttest.c scsihosttest.c \
 @WITH_LINUX_FALSE@	virscsitest.c
-@WITH_CIL_FALSE@am__append_67 = objectlocking.ml
+@WITH_CIL_FALSE@am__append_68 = objectlocking.ml
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/mkinstalldirs \
@@ -616,7 +617,7 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(PROBES_O) $(GNULIB_LIBS) ../src/libvirt.la
 @WITH_BHYVE_TRUE@am__DEPENDENCIES_3 =  \
 @WITH_BHYVE_TRUE@	../src/libvirt_driver_bhyve_impl.la \
-@WITH_BHYVE_TRUE@	$(am__DEPENDENCIES_2)
+@WITH_BHYVE_TRUE@	$(am__append_50) $(am__DEPENDENCIES_2)
 @WITH_BHYVE_TRUE@bhyvexml2argvtest_DEPENDENCIES =  \
 @WITH_BHYVE_TRUE@	$(am__DEPENDENCIES_3)
 am__bhyvexml2xmltest_SOURCES_DIST = bhyvexml2xmltest.c testutils.c \
@@ -647,7 +648,7 @@ am__domaincapstest_SOURCES_DIST = domaincapstest.c testutils.h \
 am_domaincapstest_OBJECTS = domaincapstest.$(OBJEXT) \
 	testutils.$(OBJEXT) $(am__objects_2)
 domaincapstest_OBJECTS = $(am_domaincapstest_OBJECTS)
-domaincapstest_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__append_55)
+domaincapstest_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__append_56)
 am_domainconftest_OBJECTS = domainconftest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 domainconftest_OBJECTS = $(am_domainconftest_OBJECTS)
@@ -2992,6 +2993,8 @@ XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
+ZFS = @ZFS@
+ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
 
 # old automake does not provide abs_{src,build}dir variables
@@ -3116,11 +3119,11 @@ EXTRA_DIST = bhyvexml2argvdata bhyvexml2xmloutdata \
 	$(am__append_38) $(am__append_42) $(am__append_44) \
 	$(am__append_45) openvzutilstest.conf $(am__append_46) \
 	$(am__append_47) $(am__append_48) $(am__append_49) \
-	$(am__append_50) $(am__append_51) $(am__append_52) \
-	$(am__append_53) $(am__append_56) $(am__append_61) \
-	$(am__append_62) $(am__append_63) securityselinuxtest.c \
+	$(am__append_51) $(am__append_52) $(am__append_53) \
+	$(am__append_54) $(am__append_57) $(am__append_62) \
+	$(am__append_63) $(am__append_64) securityselinuxtest.c \
 	securityselinuxlabeltest.c securityselinuxhelper.c \
-	$(am__append_66) $(am__append_67)
+	$(am__append_67) $(am__append_68)
 test_helpers = commandhelper ssh test_conf
 test_programs = virshtest sockettest nodeinfotest virbuftest \
 	commandtest seclabeltest virhashtest viratomictest utiltest \
@@ -3158,9 +3161,9 @@ test_libraries = libshunload.la libvirportallocatormock.la \
 	$(NULL) $(am__append_34) $(am__append_35) $(am__append_36) \
 	$(am__append_37)
 @WITH_TESTS_TRUE@noinst_LTLIBRARIES = $(test_libraries) \
-@WITH_TESTS_TRUE@	$(am__append_64)
+@WITH_TESTS_TRUE@	$(am__append_65)
 @WITH_TESTS_FALSE@check_LTLIBRARIES = $(test_libraries) \
-@WITH_TESTS_FALSE@	$(am__append_65)
+@WITH_TESTS_FALSE@	$(am__append_66)
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
@@ -3356,7 +3359,7 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_BHYVE_TRUE@			-rpath /evil/libtool/hack/to/force/shared/lib/creation
 
 @WITH_BHYVE_TRUE@bhyve_LDADDS = ../src/libvirt_driver_bhyve_impl.la \
-@WITH_BHYVE_TRUE@	$(LDADDS)
+@WITH_BHYVE_TRUE@	$(am__append_50) $(LDADDS)
 @WITH_BHYVE_TRUE@bhyvexml2argvtest_SOURCES = \
 @WITH_BHYVE_TRUE@	bhyvexml2argvtest.c \
 @WITH_BHYVE_TRUE@	testutils.c testutils.h
@@ -3499,8 +3502,8 @@ vircaps2xmltest_SOURCES = \
 
 vircaps2xmltest_LDADD = $(LDADDS)
 domaincapstest_SOURCES = domaincapstest.c testutils.h testutils.c \
-	$(am__append_54)
-domaincapstest_LDADD = $(LDADDS) $(am__append_55)
+	$(am__append_55)
+domaincapstest_LDADD = $(LDADDS) $(am__append_56)
 @WITH_LIBVIRTD_TRUE@libvirtdconftest_SOURCES = \
 @WITH_LIBVIRTD_TRUE@	libvirtdconftest.c testutils.h testutils.c \
 @WITH_LIBVIRTD_TRUE@	$(NULL)
@@ -3531,15 +3534,15 @@ virnetserverclientmock_la_LDFLAGS = -module -avoid-version \
 @WITH_GNUTLS_TRUE@virnettlscontexttest_SOURCES =  \
 @WITH_GNUTLS_TRUE@	virnettlscontexttest.c virnettlshelpers.h \
 @WITH_GNUTLS_TRUE@	virnettlshelpers.c testutils.h testutils.c \
-@WITH_GNUTLS_TRUE@	$(am__append_57)
+@WITH_GNUTLS_TRUE@	$(am__append_58)
 @WITH_GNUTLS_TRUE@virnettlscontexttest_LDADD = $(LDADDS) \
-@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_58)
+@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_59)
 @WITH_GNUTLS_TRUE@virnettlssessiontest_SOURCES =  \
 @WITH_GNUTLS_TRUE@	virnettlssessiontest.c virnettlshelpers.h \
 @WITH_GNUTLS_TRUE@	virnettlshelpers.c testutils.h testutils.c \
-@WITH_GNUTLS_TRUE@	$(am__append_59)
+@WITH_GNUTLS_TRUE@	$(am__append_60)
 @WITH_GNUTLS_TRUE@virnettlssessiontest_LDADD = $(LDADDS) \
-@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_60)
+@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_61)
 virtimetest_SOURCES = \
 	virtimetest.c testutils.h testutils.c
 

@@ -667,6 +667,7 @@ struct _virDomainDiskDef {
     int rawio; /* no = 0, yes = 1 */
     int sgio; /* enum virDomainDeviceSGIO */
     int discard; /* enum virDomainDiskDiscard */
+    unsigned int iothread; /* unused = 0, > 0 specific thread # */
 };
 
 
@@ -752,7 +753,7 @@ struct _virDomainControllerDef {
 };
 
 
-/* Two types of disk backends */
+/* Types of disk backends */
 typedef enum {
     VIR_DOMAIN_FS_TYPE_MOUNT, /* Mounts (binds) a host dir on a guest dir */
     VIR_DOMAIN_FS_TYPE_BLOCK, /* Mounts a host block dev on a guest dir */
@@ -1177,6 +1178,7 @@ typedef enum {
     VIR_DOMAIN_SOUND_MODEL_AC97,
     VIR_DOMAIN_SOUND_MODEL_ICH6,
     VIR_DOMAIN_SOUND_MODEL_ICH9,
+    VIR_DOMAIN_SOUND_MODEL_USB,
 
     VIR_DOMAIN_SOUND_MODEL_LAST
 } virDomainSoundModel;
@@ -1514,6 +1516,7 @@ typedef enum {
     VIR_DOMAIN_FEATURE_VIRIDIAN,
     VIR_DOMAIN_FEATURE_PRIVNET,
     VIR_DOMAIN_FEATURE_HYPERV,
+    VIR_DOMAIN_FEATURE_KVM,
     VIR_DOMAIN_FEATURE_PVSPINLOCK,
     VIR_DOMAIN_FEATURE_CAPABILITIES,
 
@@ -1527,6 +1530,12 @@ typedef enum {
 
     VIR_DOMAIN_HYPERV_LAST
 } virDomainHyperv;
+
+typedef enum {
+    VIR_DOMAIN_KVM_HIDDEN = 0,
+
+    VIR_DOMAIN_KVM_LAST
+} virDomainKVM;
 
 typedef enum {
     VIR_DOMAIN_CAPABILITIES_POLICY_DEFAULT = 0,
@@ -1629,6 +1638,8 @@ struct _virDomainOSDef {
     size_t nBootDevs;
     int bootDevs[VIR_DOMAIN_BOOT_LAST];
     int bootmenu; /* enum virTristateBool */
+    unsigned int bm_timeout;
+    bool bm_timeout_set;
     char *init;
     char **initargv;
     char *kernel;
@@ -1905,6 +1916,8 @@ struct _virDomainDef {
     int placement_mode;
     virBitmapPtr cpumask;
 
+    unsigned int iothreads;
+
     struct {
         unsigned long shares;
         bool sharesSpecified;
@@ -1942,6 +1955,7 @@ struct _virDomainDef {
     int features[VIR_DOMAIN_FEATURE_LAST];
     int apic_eoi;
     int hyperv_features[VIR_DOMAIN_HYPERV_LAST];
+    int kvm_features[VIR_DOMAIN_KVM_LAST];
     unsigned int hyperv_spinlocks;
 
     /* These options are of type virTristateSwitch: ON = keep, OFF = drop */
@@ -2484,7 +2498,7 @@ int virDiskNameToBusDeviceIndex(virDomainDiskDefPtr disk,
                                 int *devIdx);
 
 virDomainFSDefPtr virDomainGetFilesystemForTarget(virDomainDefPtr def,
-                                                  const char *path);
+                                                  const char *target);
 int virDomainFSInsert(virDomainDefPtr def, virDomainFSDefPtr fs);
 int virDomainFSIndexByName(virDomainDefPtr def, const char *name);
 virDomainFSDefPtr virDomainFSRemove(virDomainDefPtr def, size_t i);
@@ -2625,6 +2639,7 @@ VIR_ENUM_DECL(virDomainGraphicsSpiceStreamingMode)
 VIR_ENUM_DECL(virDomainGraphicsSpiceMouseMode)
 VIR_ENUM_DECL(virDomainGraphicsVNCSharePolicy)
 VIR_ENUM_DECL(virDomainHyperv)
+VIR_ENUM_DECL(virDomainKVM)
 VIR_ENUM_DECL(virDomainRNGModel)
 VIR_ENUM_DECL(virDomainRNGBackend)
 VIR_ENUM_DECL(virDomainTPMModel)
@@ -2695,6 +2710,8 @@ int virDomainObjListExport(virDomainObjListPtr doms,
                            virDomainObjListFilter filter,
                            unsigned int flags);
 
+void virDomainListFree(virDomainPtr *list);
+
 int
 virDomainDefMaybeAddController(virDomainDefPtr def,
                                int type,
@@ -2712,7 +2729,7 @@ int virDomainDefFindDevice(virDomainDefPtr def,
                            virDomainDeviceDefPtr dev,
                            bool reportError);
 
-bool virDomainDiskSourceIsBlockType(virDomainDiskDefPtr def)
+bool virDomainDiskSourceIsBlockType(virStorageSourcePtr src)
     ATTRIBUTE_NONNULL(1);
 
 void virDomainChrSourceDefClear(virDomainChrSourceDefPtr def);

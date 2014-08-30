@@ -160,7 +160,7 @@ VIR_ENUM_IMPL(qemuNumaPolicy, VIR_DOMAIN_NUMATUNE_MEM_LAST,
  * qemuPhysIfaceConnect:
  * @def: the definition of the VM (needed by 802.1Qbh and audit)
  * @driver: pointer to the driver instance
- * @net: pointer to he VM's interface description with direct device type
+ * @net: pointer to the VM's interface description with direct device type
  * @qemuCaps: flags for qemu
  * @vmop: VM operation type
  *
@@ -192,10 +192,6 @@ qemuPhysIfaceConnect(virDomainDefPtr def,
         vmop, cfg->stateDir,
         virDomainNetGetActualBandwidth(net));
     if (rc >= 0) {
-        if (virSecurityManagerSetTapFDLabel(driver->securityManager,
-                                            def, rc) < 0)
-            goto error;
-
         virDomainAuditNetDevice(def, net, res_ifname, true);
         VIR_FREE(net->ifname);
         net->ifname = res_ifname;
@@ -203,17 +199,6 @@ qemuPhysIfaceConnect(virDomainDefPtr def,
 
     virObjectUnref(cfg);
     return rc;
-
- error:
-    ignore_value(virNetDevMacVLanDeleteWithVPortProfile(
-                     res_ifname, &net->mac,
-                     virDomainNetGetActualDirectDev(net),
-                     virDomainNetGetActualDirectMode(net),
-                     virDomainNetGetActualVirtPortProfile(net),
-                     cfg->stateDir));
-    VIR_FREE(res_ifname);
-    virObjectUnref(cfg);
-    return -1;
 }
 
 
@@ -382,14 +367,10 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
 
     if (virNetDevBandwidthSet(net->ifname,
                               virDomainNetGetActualBandwidth(net),
-                              false) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot set bandwidth limits on %s"),
-                       net->ifname);
+                              false) < 0)
         goto cleanup;
-    }
 
-    if (net->filter && net->ifname &&
+    if (net->filter &&
         virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0) {
         goto cleanup;
     }
@@ -2090,9 +2071,10 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
     for (i = 0; i < def->nsounds; i++) {
         if (def->sounds[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             continue;
-        /* Skip ISA sound card, and PCSPK */
+        /* Skip ISA sound card, PCSPK and usb-audio */
         if (def->sounds[i]->model == VIR_DOMAIN_SOUND_MODEL_SB16 ||
-            def->sounds[i]->model == VIR_DOMAIN_SOUND_MODEL_PCSPK)
+            def->sounds[i]->model == VIR_DOMAIN_SOUND_MODEL_PCSPK ||
+            def->sounds[i]->model == VIR_DOMAIN_SOUND_MODEL_USB)
             continue;
 
         if (virDomainPCIAddressReserveNextSlot(addrs, &def->sounds[i]->info,
@@ -2813,6 +2795,7 @@ qemuParseISCSIString(virDomainDiskDefPtr def)
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("invalid name '%s' for iSCSI disk"),
                            def->src->path);
+            virURIFree(uri);
             return -1;
         }
     }
@@ -3234,6 +3217,73 @@ qemuGetDriveSourceString(virStorageSourcePtr src,
 }
 
 
+/* Perform disk definition config validity checks */
+int
+qemuCheckDiskConfig(virDomainDiskDefPtr disk)
+{
+    if (virDiskNameToIndex(disk->dst) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unsupported disk type '%s'"), disk->dst);
+        goto error;
+    }
+
+    if (disk->wwn) {
+        if ((disk->bus != VIR_DOMAIN_DISK_BUS_IDE) &&
+            (disk->bus != VIR_DOMAIN_DISK_BUS_SCSI)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Only ide and scsi disk support wwn"));
+            goto error;
+        }
+    }
+
+    if ((disk->vendor || disk->product) &&
+        disk->bus != VIR_DOMAIN_DISK_BUS_SCSI) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Only scsi disk supports vendor and product"));
+            goto error;
+    }
+
+    if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
+        /* make sure that both the bus supports type='lun' (SG_IO). */
+        if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO &&
+            disk->bus != VIR_DOMAIN_DISK_BUS_SCSI) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("disk device='lun' is not supported for bus='%s'"),
+                           virDomainDiskQEMUBusTypeToString(disk->bus));
+            goto error;
+        }
+        if (disk->src->type == VIR_STORAGE_TYPE_NETWORK) {
+            if (disk->src->protocol != VIR_STORAGE_NET_PROTOCOL_ISCSI) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("disk device='lun' is not supported "
+                                 "for protocol='%s'"),
+                               virStorageNetProtocolTypeToString(disk->src->protocol));
+                goto error;
+            }
+        } else if (!virDomainDiskSourceIsBlockType(disk->src)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("disk device='lun' is only valid for block "
+                             "type disk source"));
+            goto error;
+        }
+        if (disk->wwn) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Setting wwn is not supported for lun device"));
+            goto error;
+        }
+        if (disk->vendor || disk->product) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Setting vendor or product is not supported "
+                             "for lun device"));
+            goto error;
+        }
+    }
+    return 0;
+ error:
+    return -1;
+}
+
+
 char *
 qemuBuildDriveStr(virConnectPtr conn,
                   virDomainDiskDefPtr disk,
@@ -3571,6 +3621,18 @@ qemuBuildDriveStr(virConnectPtr conn,
         goto error;
     }
 
+    if (disk->blkdeviotune.total_bytes_sec > LLONG_MAX ||
+        disk->blkdeviotune.read_bytes_sec > LLONG_MAX ||
+        disk->blkdeviotune.write_bytes_sec > LLONG_MAX ||
+        disk->blkdeviotune.total_iops_sec > LLONG_MAX ||
+        disk->blkdeviotune.read_iops_sec > LLONG_MAX ||
+        disk->blkdeviotune.write_iops_sec > LLONG_MAX) {
+        virReportError(VIR_ERR_OVERFLOW,
+                      _("block I/O throttle limit must "
+                        "be less than %llu using QEMU"), LLONG_MAX);
+        goto error;
+    }
+
     if (disk->blkdeviotune.total_bytes_sec) {
         virBufferAsprintf(&opt, ",bps=%llu",
                           disk->blkdeviotune.total_bytes_sec);
@@ -3612,6 +3674,39 @@ qemuBuildDriveStr(virConnectPtr conn,
     return NULL;
 }
 
+
+static bool
+qemuCheckIothreads(virDomainDefPtr def,
+                   virQEMUCapsPtr qemuCaps,
+                   virDomainDiskDefPtr disk)
+{
+    /* Have capability */
+    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("IOThreads not supported for this QEMU"));
+        return false;
+    }
+
+    /* Right "type" of disk" */
+    if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO &&
+        disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("IOThreads only available for virtio pci disk"));
+        return false;
+    }
+
+    /* Value larger than iothreads available? */
+    if (disk->iothread > def->iothreads) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Disk iothread '%u' invalid only %u IOThreads"),
+                       disk->iothread, def->iothreads);
+        return false;
+    }
+
+    return true;
+}
+
+
 char *
 qemuBuildDriveDevStr(virDomainDefPtr def,
                      virDomainDiskDefPtr disk,
@@ -3620,71 +3715,24 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
 {
     virBuffer opt = VIR_BUFFER_INITIALIZER;
     const char *bus = virDomainDiskQEMUBusTypeToString(disk->bus);
-    int idx = virDiskNameToIndex(disk->dst);
     int controllerModel;
 
-    if (idx < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unsupported disk type '%s'"), disk->dst);
+    if (qemuCheckDiskConfig(disk) < 0)
         goto error;
-    }
 
-    if (disk->wwn) {
-        if ((disk->bus != VIR_DOMAIN_DISK_BUS_IDE) &&
-            (disk->bus != VIR_DOMAIN_DISK_BUS_SCSI)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Only ide and scsi disk support wwn"));
-            goto error;
-        }
-    }
-
-    if ((disk->vendor || disk->product) &&
-        disk->bus != VIR_DOMAIN_DISK_BUS_SCSI) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Only scsi disk supports vendor and product"));
-            goto error;
-    }
-
+    /* Live only checks */
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
-        /* make sure that both the bus and the qemu binary support
-         *  type='lun' (SG_IO).
-         */
-        if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO &&
-            disk->bus != VIR_DOMAIN_DISK_BUS_SCSI) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("disk device='lun' is not supported for bus='%s'"),
-                           bus);
-            goto error;
-        }
-        if (disk->src->type == VIR_STORAGE_TYPE_NETWORK) {
-            if (disk->src->protocol != VIR_STORAGE_NET_PROTOCOL_ISCSI) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("disk device='lun' is not supported for protocol='%s'"),
-                               virStorageNetProtocolTypeToString(disk->src->protocol));
-                goto error;
-            }
-        } else if (!virDomainDiskSourceIsBlockType(disk)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("disk device='lun' is only valid for block type disk source"));
-            goto error;
-        }
+        /* make sure that the qemu binary supports type='lun' (SG_IO). */
         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_BLK_SG_IO)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("disk device='lun' is not supported by this QEMU"));
-            goto error;
-        }
-        if (disk->wwn) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Setting wwn is not supported for lun device"));
-            goto error;
-        }
-        if (disk->vendor || disk->product) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Setting vendor or product is not supported "
-                             "for lun device"));
+                           _("disk device='lun' is not supported by "
+                             "this QEMU"));
             goto error;
         }
     }
+
+    if (disk->iothread && !qemuCheckIothreads(def, qemuCaps, disk))
+        goto error;
 
     switch (disk->bus) {
     case VIR_DOMAIN_DISK_BUS_IDE:
@@ -3863,6 +3911,8 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
             virBufferAddLit(&opt, "virtio-blk-device");
         } else {
             virBufferAddLit(&opt, "virtio-blk-pci");
+            if (disk->iothread)
+                virBufferAsprintf(&opt, ",iothread=iothread%u", disk->iothread);
         }
         qemuBuildIoEventFdStr(&opt, disk->ioeventfd, qemuCaps);
         if (disk->event_idx &&
@@ -3992,13 +4042,13 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
     }
 
     if (fs->wrpolicy) {
-       if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_FSDEV_WRITEOUT)) {
-           virBufferAsprintf(&opt, ",writeout=%s", wrpolicy);
-       } else {
-           virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                          _("filesystem writeout not supported"));
-           goto error;
-       }
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_FSDEV_WRITEOUT)) {
+            virBufferAsprintf(&opt, ",writeout=%s", wrpolicy);
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("filesystem writeout not supported"));
+            goto error;
+        }
     }
 
     virBufferAsprintf(&opt, ",id=%s%s", QEMU_FSDEV_HOST_PREFIX, fs->info.alias);
@@ -4686,6 +4736,15 @@ qemuBuildSoundDevStr(virDomainDefPtr def,
         break;
     case VIR_DOMAIN_SOUND_MODEL_ICH6:
         model = "intel-hda";
+        break;
+    case VIR_DOMAIN_SOUND_MODEL_USB:
+        model = "usb-audio";
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_USB_AUDIO)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("usb-audio controller is not supported "
+                             "by this QEMU binary"));
+            goto error;
+        }
         break;
     case VIR_DOMAIN_SOUND_MODEL_ICH9:
         model = "ich9-intel-hda";
@@ -6216,7 +6275,27 @@ qemuBuildCpuArgStr(virQEMUDriverPtr driver,
                                       def->hyperv_spinlocks);
                 break;
 
+            /* coverity[dead_error_begin] */
             case VIR_DOMAIN_HYPERV_LAST:
+                break;
+            }
+        }
+    }
+
+    if (def->features[VIR_DOMAIN_FEATURE_KVM] == VIR_TRISTATE_SWITCH_ON) {
+        if (!have_cpu) {
+            virBufferAdd(&buf, default_model, -1);
+            have_cpu = true;
+        }
+
+        for (i = 0; i < VIR_DOMAIN_KVM_LAST; i++) {
+            switch ((virDomainKVM) i) {
+            case VIR_DOMAIN_KVM_HIDDEN:
+                if (def->kvm_features[i] == VIR_TRISTATE_SWITCH_ON)
+                    virBufferAddLit(&buf, ",kvm=off");
+                break;
+
+            case VIR_DOMAIN_KVM_LAST:
                 break;
             }
         }
@@ -7195,6 +7274,9 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
     }
 
     for (i = 0; i < tapfdSize; i++) {
+        if (virSecurityManagerSetTapFDLabel(driver->securityManager,
+                                            def, tapfd[i]) < 0)
+            goto cleanup;
         virCommandPassFD(cmd, tapfd[i],
                          VIR_COMMAND_PASS_FD_CLOSE_PARENT);
         if (virAsprintf(&tapfdName[i], "%d", tapfd[i]) < 0)
@@ -7369,7 +7451,7 @@ qemuBuildCommandLine(virConnectPtr conn,
             goto error;
         }
 
-        if (def->blkio.weight || def->blkio.ndevices) {
+        if (def->blkio.weight) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Block I/O tuning is not available in session mode"));
             goto error;
@@ -7498,6 +7580,19 @@ qemuBuildCommandLine(virConnectPtr conn,
         goto error;
     virCommandAddArg(cmd, smp);
     VIR_FREE(smp);
+
+    if (def->iothreads > 0 &&
+        virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
+        /* Create named iothread objects starting with 1. These may be used
+         * by a disk definition which will associate to an iothread by
+         * supplying a value of 1 up to the number of iothreads available
+         * (since 0 would indicate to not use the feature).
+         */
+        for (i = 1; i <= def->iothreads; i++) {
+            virCommandAddArg(cmd, "-object");
+            virCommandAddArgFormat(cmd, "iothread,id=iothread%zu", i);
+        }
+    }
 
     if (def->cpu && def->cpu->ncells)
         if (qemuBuildNumaArgStr(cfg, def, cmd, qemuCaps) < 0)
@@ -7914,6 +8009,21 @@ qemuBuildCommandLine(virConnectPtr conn,
             virBufferAsprintf(&boot_buf,
                               "reboot-timeout=%d",
                               def->os.bios.rt_delay);
+        }
+
+        if (def->os.bm_timeout_set) {
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SPLASH_TIMEOUT)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("splash timeout is not supported "
+                                 "by this QEMU binary"));
+                virBufferFreeAndReset(&boot_buf);
+                goto error;
+            }
+
+            if (boot_nparams++)
+                virBufferAddChar(&boot_buf, ',');
+
+            virBufferAsprintf(&boot_buf, "splash-time=%u", def->os.bm_timeout);
         }
 
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_BOOT_STRICT)) {
@@ -9777,7 +9887,6 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
     int idx = -1;
     int busid = -1;
     int unitid = -1;
-    int trans = VIR_DOMAIN_DISK_TRANS_DEFAULT;
 
     if (qemuParseKeywords(val,
                           &keywords,
@@ -9996,12 +10105,12 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
         } else if (STREQ(keywords[i], "trans")) {
             def->geometry.trans =
                 virDomainDiskGeometryTransTypeFromString(values[i]);
-            if ((trans < VIR_DOMAIN_DISK_TRANS_DEFAULT) ||
-                (trans >= VIR_DOMAIN_DISK_TRANS_LAST)) {
+            if ((def->geometry.trans < VIR_DOMAIN_DISK_TRANS_DEFAULT) ||
+                (def->geometry.trans >= VIR_DOMAIN_DISK_TRANS_LAST)) {
                 virDomainDiskDefFree(def);
                 def = NULL;
                 virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("cannot parse translation value'%s'"),
+                               _("cannot parse translation value '%s'"),
                                values[i]);
                 goto error;
             }
@@ -10686,6 +10795,9 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
             }
             virStringFreeList(hv_tokens);
             hv_tokens = NULL;
+        } else if (STREQ(tokens[i], "kvm=off")) {
+             dom->features[VIR_DOMAIN_FEATURE_KVM] = VIR_TRISTATE_SWITCH_ON;
+             dom->kvm_features[VIR_DOMAIN_KVM_HIDDEN] = VIR_TRISTATE_SWITCH_ON;
         }
     }
 

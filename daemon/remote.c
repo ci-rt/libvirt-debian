@@ -1535,7 +1535,7 @@ remoteDispatchConnectListAllDomains(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (doms) {
+    if (doms && ndomains > 0) {
         for (i = 0; i < ndomains; i++)
             virDomainFree(doms[i]);
         VIR_FREE(doms);
@@ -4398,6 +4398,52 @@ remoteDispatchDomainOpenGraphics(virNetServerPtr server ATTRIBUTE_UNUSED,
     return rv;
 }
 
+
+static int
+remoteDispatchDomainOpenGraphicsFd(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                   virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                   virNetMessagePtr msg,
+                                   virNetMessageErrorPtr rerr,
+                                   remote_domain_open_graphics_fd_args *args)
+{
+    virDomainPtr dom = NULL;
+    int rv = -1;
+    int fd = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((fd = virDomainOpenGraphicsFD(dom,
+                                      args->idx,
+                                      args->flags)) < 0)
+        goto cleanup;
+
+    if (virNetMessageAddFD(msg, fd) < 0)
+        goto cleanup;
+
+    /* return 1 here to let virNetServerProgramDispatchCall know
+     * we are passing a FD */
+    rv = 1;
+
+ cleanup:
+    VIR_FORCE_CLOSE(fd);
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+    }
+
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
 static int
 remoteDispatchDomainGetInterfaceParameters(virNetServerPtr server ATTRIBUTE_UNUSED,
                                            virNetServerClientPtr client ATTRIBUTE_UNUSED,
@@ -4586,7 +4632,7 @@ remoteDispatchDomainGetDiskErrors(virNetServerPtr server ATTRIBUTE_UNUSED,
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    if (errors) {
+    if (errors && len > 0) {
         size_t i;
         for (i = 0; i < len; i++)
             VIR_FREE(errors[i].disk);
@@ -4652,7 +4698,7 @@ remoteDispatchDomainListAllSnapshots(virNetServerPtr server ATTRIBUTE_UNUSED,
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    if (snaps) {
+    if (snaps && nsnaps > 0) {
         for (i = 0; i < nsnaps; i++)
             virDomainSnapshotFree(snaps[i]);
         VIR_FREE(snaps);
@@ -4723,7 +4769,7 @@ remoteDispatchDomainSnapshotListAllChildren(virNetServerPtr server ATTRIBUTE_UNU
         virDomainSnapshotFree(snapshot);
     if (dom)
         virDomainFree(dom);
-    if (snaps) {
+    if (snaps && nsnaps > 0) {
         for (i = 0; i < nsnaps; i++)
             virDomainSnapshotFree(snaps[i]);
         VIR_FREE(snaps);
@@ -4782,7 +4828,7 @@ remoteDispatchConnectListAllStoragePools(virNetServerPtr server ATTRIBUTE_UNUSED
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (pools) {
+    if (pools && npools > 0) {
         for (i = 0; i < npools; i++)
             virStoragePoolFree(pools[i]);
         VIR_FREE(pools);
@@ -4845,7 +4891,7 @@ remoteDispatchStoragePoolListAllVolumes(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (vols) {
+    if (vols && nvols > 0) {
         for (i = 0; i < nvols; i++)
             virStorageVolFree(vols[i]);
         VIR_FREE(vols);
@@ -4906,7 +4952,7 @@ remoteDispatchConnectListAllNetworks(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (nets) {
+    if (nets && nnets > 0) {
         for (i = 0; i < nnets; i++)
             virNetworkFree(nets[i]);
         VIR_FREE(nets);
@@ -4965,7 +5011,7 @@ remoteDispatchConnectListAllInterfaces(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (ifaces) {
+    if (ifaces && nifaces > 0) {
         for (i = 0; i < nifaces; i++)
             virInterfaceFree(ifaces[i]);
         VIR_FREE(ifaces);
@@ -5024,7 +5070,7 @@ remoteDispatchConnectListAllNodeDevices(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (devices) {
+    if (devices && ndevices > 0) {
         for (i = 0; i < ndevices; i++)
             virNodeDeviceFree(devices[i]);
         VIR_FREE(devices);
@@ -5083,7 +5129,7 @@ remoteDispatchConnectListAllNWFilters(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (filters) {
+    if (filters && nfilters > 0) {
         for (i = 0; i < nfilters; i++)
             virNWFilterFree(filters[i]);
         VIR_FREE(filters);
@@ -5142,7 +5188,7 @@ remoteDispatchConnectListAllSecrets(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (secrets) {
+    if (secrets && nsecrets > 0) {
         for (i = 0; i < nsecrets; i++)
             virSecretFree(secrets[i]);
         VIR_FREE(secrets);
@@ -6327,12 +6373,98 @@ remoteDispatchNetworkGetDHCPLeases(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (leases) {
+    if (leases && nleases > 0) {
         for (i = 0; i < nleases; i++)
             virNetworkDHCPLeaseFree(leases[i]);
         VIR_FREE(leases);
     }
     virNetworkFree(net);
+    return rv;
+}
+
+
+static int
+remoteDispatchConnectGetAllDomainStats(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                       virNetServerClientPtr client,
+                                       virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                       virNetMessageErrorPtr rerr,
+                                       remote_connect_get_all_domain_stats_args *args,
+                                       remote_connect_get_all_domain_stats_ret *ret)
+{
+    int rv = -1;
+    size_t i;
+    struct daemonClientPrivate *priv = virNetServerClientGetPrivateData(client);
+    virDomainStatsRecordPtr *retStats = NULL;
+    int nrecords = 0;
+    virDomainPtr *doms = NULL;
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->doms.doms_len) {
+        if (VIR_ALLOC_N(doms, args->doms.doms_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < args->doms.doms_len; i++) {
+            if (!(doms[i] = get_nonnull_domain(priv->conn, args->doms.doms_val[i])))
+                goto cleanup;
+        }
+
+        if ((nrecords = virDomainListGetStats(doms,
+                                              args->stats,
+                                              &retStats,
+                                              args->flags)) < 0)
+            goto cleanup;
+    } else {
+        if ((nrecords = virConnectGetAllDomainStats(priv->conn,
+                                                    args->stats,
+                                                    &retStats,
+                                                    args->flags)) < 0)
+            goto cleanup;
+    }
+
+    if (nrecords > REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Number of domain stats records is %d, "
+                         "which exceeds max limit: %d"),
+                       nrecords, REMOTE_DOMAIN_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (nrecords) {
+        if (VIR_ALLOC_N(ret->retStats.retStats_val, nrecords) < 0)
+            goto cleanup;
+
+        ret->retStats.retStats_len = nrecords;
+
+        for (i = 0; i < nrecords; i++) {
+            remote_domain_stats_record *dst = ret->retStats.retStats_val + i;
+
+            make_nonnull_domain(&dst->dom, retStats[i]->dom);
+
+            if (remoteSerializeTypedParameters(retStats[i]->params,
+                                               retStats[i]->nparams,
+                                               &dst->params.params_val,
+                                               &dst->params.params_len,
+                                               VIR_TYPED_PARAM_STRING_OKAY) < 0)
+                goto cleanup;
+        }
+    } else {
+        ret->retStats.retStats_len = 0;
+        ret->retStats.retStats_val = NULL;
+    }
+
+    rv = 0;
+
+ cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+
+    virDomainStatsRecordListFree(retStats);
+    virDomainListFree(doms);
+
     return rv;
 }
 

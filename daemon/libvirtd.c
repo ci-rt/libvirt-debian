@@ -56,6 +56,7 @@
 #include "virstring.h"
 #include "locking/lock_manager.h"
 #include "viraccessmanager.h"
+#include "virutil.h"
 
 #ifdef WITH_DRIVER_MODULES
 # include "driver.h"
@@ -365,10 +366,15 @@ static void daemonInitialize(void)
 {
     /*
      * Note that the order is important: the first ones have a higher
-     * priority when calling virStateInitialize. We must register
-     * the network, storage and nodedev drivers before any domain
-     * drivers, since their resources must be auto-started before
-     * any domains can be auto-started.
+     * priority when calling virStateInitialize. We must register the
+     * network, storage and nodedev drivers before any stateful domain
+     * driver, since their resources must be auto-started before any
+     * domains can be auto-started. Moreover, some stateless drivers
+     * implement their own subdrivers (e.g. the vbox driver has its
+     * own network and storage subdriers) which need to have higher
+     * priority. Otherwise, when connecting to such driver the generic
+     * subdriver may be opened instead of the one corresponding to the
+     * stateless driver.
      */
 #ifdef WITH_DRIVER_MODULES
     /* We don't care if any of these fail, because the whole point
@@ -376,8 +382,17 @@ static void daemonInitialize(void)
      * If they try to open a connection for a module that
      * is not loaded they'll get a suitable error at that point
      */
+# ifdef WITH_VBOX
+    virDriverLoadModule("vbox_network");
+# endif
 # ifdef WITH_NETWORK
     virDriverLoadModule("network");
+# endif
+# ifdef WITH_INTERFACE
+    virDriverLoadModule("interface");
+# endif
+# ifdef WITH_VBOX
+    virDriverLoadModule("vbox_storage");
 # endif
 # ifdef WITH_STORAGE
     virDriverLoadModule("storage");
@@ -390,9 +405,6 @@ static void daemonInitialize(void)
 # endif
 # ifdef WITH_NWFILTER
     virDriverLoadModule("nwfilter");
-# endif
-# ifdef WITH_INTERFACE
-    virDriverLoadModule("interface");
 # endif
 # ifdef WITH_XEN
     virDriverLoadModule("xen");
@@ -416,11 +428,17 @@ static void daemonInitialize(void)
     virDriverLoadModule("bhyve");
 # endif
 #else
+# ifdef WITH_VBOX
+    vboxNetworkRegister();
+# endif
 # ifdef WITH_NETWORK
     networkRegister();
 # endif
 # ifdef WITH_INTERFACE
     interfaceRegister();
+# endif
+# ifdef WITH_VBOX
+    vboxStorageRegister();
 # endif
 # ifdef WITH_STORAGE
     storageRegister();
@@ -476,9 +494,17 @@ static int daemonSetupNetworking(virNetServerPtr srv,
     int unix_sock_ro_mask = 0;
     int unix_sock_rw_mask = 0;
 
+    unsigned int cur_fd = STDERR_FILENO + 1;
+    unsigned int nfds = virGetListenFDs();
+
     if (config->unix_sock_group) {
         if (virGetGroupID(config->unix_sock_group, &unix_sock_gid) < 0)
             return -1;
+    }
+
+    if (nfds && nfds > ((int)!!sock_path + (int)!!sock_path_ro)) {
+        VIR_ERROR(_("Too many (%u) FDs passed from caller"), nfds);
+        return -1;
     }
 
     if (virStrToLong_i(config->unix_sock_ro_perms, NULL, 8, &unix_sock_ro_mask) != 0) {
@@ -491,30 +517,30 @@ static int daemonSetupNetworking(virNetServerPtr srv,
         goto error;
     }
 
-    VIR_DEBUG("Registering unix socket %s", sock_path);
-    if (!(svc = virNetServerServiceNewUNIX(sock_path,
-                                           unix_sock_rw_mask,
-                                           unix_sock_gid,
-                                           config->auth_unix_rw,
+    if (!(svc = virNetServerServiceNewFDOrUNIX(sock_path,
+                                               unix_sock_rw_mask,
+                                               unix_sock_gid,
+                                               config->auth_unix_rw,
 #if WITH_GNUTLS
-                                           NULL,
+                                               NULL,
 #endif
-                                           false,
-                                           config->max_queued_clients,
-                                           config->max_client_requests)))
+                                               false,
+                                               config->max_queued_clients,
+                                               config->max_client_requests,
+                                               nfds, &cur_fd)))
         goto error;
     if (sock_path_ro) {
-        VIR_DEBUG("Registering unix socket %s", sock_path_ro);
-        if (!(svcRO = virNetServerServiceNewUNIX(sock_path_ro,
-                                                 unix_sock_ro_mask,
-                                                 unix_sock_gid,
-                                                 config->auth_unix_ro,
+        if (!(svcRO = virNetServerServiceNewFDOrUNIX(sock_path_ro,
+                                                     unix_sock_ro_mask,
+                                                     unix_sock_gid,
+                                                     config->auth_unix_ro,
 #if WITH_GNUTLS
-                                                 NULL,
+                                                     NULL,
 #endif
-                                                 true,
-                                                 config->max_queued_clients,
-                                                 config->max_client_requests)))
+                                                     true,
+                                                     config->max_queued_clients,
+                                                     config->max_client_requests,
+                                                     nfds, &cur_fd)))
             goto error;
     }
 
@@ -669,6 +695,12 @@ daemonSetupLogging(struct daemonConfig *config,
         virLogParseOutputs(config->log_outputs);
 
     /*
+     * Command line override for --verbose
+     */
+    if ((verbose) && (virLogGetDefaultPriority() > VIR_LOG_INFO))
+        virLogSetDefaultPriority(VIR_LOG_INFO);
+
+    /*
      * If no defined outputs, and either running
      * as daemon or not on a tty, then first try
      * to direct it to the systemd journal
@@ -678,7 +710,14 @@ daemonSetupLogging(struct daemonConfig *config,
         (godaemon || !isatty(STDIN_FILENO))) {
         char *tmp;
         if (access("/run/systemd/journal/socket", W_OK) >= 0) {
-            if (virAsprintf(&tmp, "%d:journald", virLogGetDefaultPriority()) < 0)
+            virLogPriority priority = virLogGetDefaultPriority();
+
+            /* By default we don't want to log too much stuff into journald as
+             * it may employ rate limiting and thus block libvirt execution. */
+            if (priority == VIR_LOG_DEBUG)
+                priority = VIR_LOG_INFO;
+
+            if (virAsprintf(&tmp, "%d:journald", priority) < 0)
                 goto error;
             virLogParseOutputs(tmp);
             VIR_FREE(tmp);
@@ -726,12 +765,6 @@ daemonSetupLogging(struct daemonConfig *config,
         virLogParseOutputs(tmp);
         VIR_FREE(tmp);
     }
-
-    /*
-     * Command line override for --verbose
-     */
-    if ((verbose) && (virLogGetDefaultPriority() > VIR_LOG_INFO))
-        virLogSetDefaultPriority(VIR_LOG_INFO);
 
     return 0;
 
@@ -803,11 +836,11 @@ static void daemonReloadHandler(virNetServerPtr srv ATTRIBUTE_UNUSED,
                                 siginfo_t *sig ATTRIBUTE_UNUSED,
                                 void *opaque ATTRIBUTE_UNUSED)
 {
-        VIR_INFO("Reloading configuration on SIGHUP");
-        virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
-                    VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL, NULL);
-        if (virStateReload() < 0)
-            VIR_WARN("Error while reloading drivers");
+    VIR_INFO("Reloading configuration on SIGHUP");
+    virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
+                VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL, NULL);
+    if (virStateReload() < 0)
+        VIR_WARN("Error while reloading drivers");
 }
 
 static int daemonSetupSignals(virNetServerPtr srv)

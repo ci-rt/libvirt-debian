@@ -1,7 +1,7 @@
 /*
  * virnetserverservice.c: generic network RPC server service
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2012, 2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -24,6 +24,8 @@
 #include <config.h>
 
 #include "virnetserverservice.h"
+
+#include <unistd.h>
 
 #include "viralloc.h"
 #include "virerror.h"
@@ -87,6 +89,55 @@ static void virNetServerServiceAccept(virNetSocketPtr sock,
 
  cleanup:
     virObjectUnref(clientsock);
+}
+
+
+virNetServerServicePtr
+virNetServerServiceNewFDOrUNIX(const char *path,
+                               mode_t mask,
+                               gid_t grp,
+                               int auth,
+#if WITH_GNUTLS
+                               virNetTLSContextPtr tls,
+#endif
+                               bool readonly,
+                               size_t max_queued_clients,
+                               size_t nrequests_client_max,
+                               unsigned int nfds,
+                               unsigned int *cur_fd)
+{
+    if (*cur_fd - STDERR_FILENO > nfds) {
+        /*
+         * There are no more file descriptors to use, so we have to
+         * fallback to UNIX socket.
+         */
+        return virNetServerServiceNewUNIX(path,
+                                          mask,
+                                          grp,
+                                          auth,
+#if WITH_GNUTLS
+                                          tls,
+#endif
+                                          readonly,
+                                          max_queued_clients,
+                                          nrequests_client_max);
+
+    } else {
+        /*
+         * There's still enough file descriptors.  In this case we'll
+         * use the current one and increment it afterwards. Take care
+         * with order of operation for pointer arithmetic and auto
+         * increment on cur_fd - the parentheses are necessary.
+         */
+        return virNetServerServiceNewFD((*cur_fd)++,
+                                        auth,
+#if WITH_GNUTLS
+                                        tls,
+#endif
+                                        readonly,
+                                        max_queued_clients,
+                                        nrequests_client_max);
+    }
 }
 
 
@@ -217,6 +268,7 @@ virNetServerServicePtr virNetServerServiceNewFD(int fd,
                                                 virNetTLSContextPtr tls,
 #endif
                                                 bool readonly,
+                                                size_t max_queued_clients,
                                                 size_t nrequests_client_max)
 {
     virNetServerServicePtr svc;
@@ -244,6 +296,9 @@ virNetServerServicePtr virNetServerServiceNewFD(int fd,
         goto error;
 
     for (i = 0; i < svc->nsocks; i++) {
+        if (virNetSocketListen(svc->socks[i], max_queued_clients) < 0)
+            goto error;
+
         /* IO callback is initially disabled, until we're ready
          * to deal with incoming clients */
         if (virNetSocketAddIOCallback(svc->socks[i],

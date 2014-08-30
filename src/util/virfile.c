@@ -2953,8 +2953,9 @@ virFileGetDefaultHugepageSize(unsigned long long *size)
         goto cleanup;
 
     if (!(c = strstr(meminfo, HUGEPAGESIZE_STR))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unable to parse %s"),
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("%s not found in %s"),
+                       HUGEPAGESIZE_STR,
                        PROC_MEMINFO);
         goto cleanup;
     }
@@ -2990,10 +2991,7 @@ virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
     char mntbuf[1024];
     virHugeTLBFSPtr fs = NULL;
     size_t nfs = 0;
-    unsigned long long default_hugepagesz;
-
-    if (virFileGetDefaultHugepageSize(&default_hugepagesz) < 0)
-        goto cleanup;
+    unsigned long long default_hugepagesz = 0;
 
     if (!(f = setmntent(PROC_MOUNTS, "r"))) {
         virReportSystemError(errno,
@@ -3017,6 +3015,10 @@ virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
             goto cleanup;
 
         if (virFileGetHugepageSize(tmp->mnt_dir, &tmp->size) < 0)
+            goto cleanup;
+
+        if (!default_hugepagesz &&
+            virFileGetDefaultHugepageSize(&default_hugepagesz) < 0)
             goto cleanup;
 
         tmp->deflt = tmp->size == default_hugepagesz;

@@ -61,7 +61,8 @@ VIR_ENUM_IMPL(virStoragePool,
               VIR_STORAGE_POOL_LAST,
               "dir", "fs", "netfs",
               "logical", "disk", "iscsi",
-              "scsi", "mpath", "rbd", "sheepdog", "gluster")
+              "scsi", "mpath", "rbd",
+              "sheepdog", "gluster", "zfs")
 
 VIR_ENUM_IMPL(virStoragePoolFormatFileSystem,
               VIR_STORAGE_POOL_FS_LAST,
@@ -278,7 +279,13 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
          .formatFromString = virStorageVolFormatDiskTypeFromString,
          .formatToString = virStorageVolFormatDiskTypeToString,
      },
-    }
+    },
+    {.poolType = VIR_STORAGE_POOL_ZFS,
+     .poolOptions = {
+         .flags = (VIR_STORAGE_POOL_SOURCE_NAME),
+         .defaultFormat = VIR_STORAGE_FILE_RAW,
+     },
+    },
 };
 
 
@@ -654,6 +661,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
         }
 
         source->auth = authdef;
+        authdef = NULL;
     }
 
     source->vendor = virXPathString("string(./vendor/@name)", ctxt);
@@ -666,6 +674,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
     VIR_FREE(port);
     VIR_FREE(nodeset);
     VIR_FREE(adapter_type);
+    virStorageAuthDefFree(authdef);
     return ret;
 }
 
@@ -922,6 +931,10 @@ virStoragePoolDefParseXML(xmlXPathContextPtr ctxt)
     if (!(options->flags & VIR_STORAGE_POOL_SOURCE_NETWORK)) {
         if (ret->type == VIR_STORAGE_POOL_LOGICAL) {
             if (virAsprintf(&target_path, "/dev/%s", ret->source.name) < 0) {
+                goto error;
+            }
+        } else if (ret->type == VIR_STORAGE_POOL_ZFS) {
+            if (virAsprintf(&target_path, "/dev/zvol/%s", ret->source.name) < 0) {
                 goto error;
             }
         } else {
@@ -2111,7 +2124,7 @@ virStoragePoolSourceFindDuplicate(virStoragePoolObjListPtr pools,
                           def->source.adapter.data.fchost.wwpn))
                     matchpool = pool;
             } else if (pool->def->source.adapter.type ==
-                       VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_SCSI_HOST){
+                       VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_SCSI_HOST) {
                 if (pool->def->source.adapter.data.scsi_host.name) {
                     if (STREQ(pool->def->source.adapter.data.scsi_host.name,
                               def->source.adapter.data.scsi_host.name))

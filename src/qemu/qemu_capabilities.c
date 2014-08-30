@@ -264,6 +264,11 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "memory-backend-ram", /* 170 */
               "numa",
               "memory-backend-file",
+              "usb-audio",
+              "rtc-reset-reinjection",
+
+              "splash-timeout", /* 175 */
+              "iothread",
     );
 
 
@@ -429,8 +434,10 @@ virQEMUCapsParseMachineTypesStr(const char *output,
 
         if ((t = strstr(p, "(alias of ")) && (!next || t < next)) {
             p = t + strlen("(alias of ");
-            if (!(t = strchr(p, ')')) || (next && t >= next))
+            if (!(t = strchr(p, ')')) || (next && t >= next)) {
+                VIR_FREE(name);
                 continue;
+            }
 
             if (VIR_STRNDUP(canonical, p, t - p) < 0) {
                 VIR_FREE(name);
@@ -1130,6 +1137,8 @@ virQEMUCapsComputeCmdFlags(const char *help,
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_BOOT_MENU);
     if (strstr(help, ",reboot-timeout=rb_time"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_REBOOT_TIMEOUT);
+    if (strstr(help, ",splash-time=sp_time"))
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_SPLASH_TIMEOUT);
     if ((fsdev = strstr(help, "-fsdev"))) {
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_FSDEV);
         if (strstr(fsdev, "readonly"))
@@ -1423,6 +1432,7 @@ struct virQEMUCapsStringFlags virQEMUCapsCommands[] = {
     { "add-fd", QEMU_CAPS_ADD_FD },
     { "nbd-server-start", QEMU_CAPS_NBD_SERVER },
     { "change-backing-file", QEMU_CAPS_CHANGE_BACKING_FILE },
+    { "rtc-reset-reinjection", QEMU_CAPS_RTC_RESET_REINJECTION },
 };
 
 struct virQEMUCapsStringFlags virQEMUCapsEvents[] = {
@@ -1483,6 +1493,8 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "usb-kbd", QEMU_CAPS_DEVICE_USB_KBD },
     { "memory-backend-ram", QEMU_CAPS_OBJECT_MEMORY_RAM },
     { "memory-backend-file", QEMU_CAPS_OBJECT_MEMORY_FILE },
+    { "usb-audio", QEMU_CAPS_OBJECT_USB_AUDIO },
+    { "iothread", QEMU_CAPS_OBJECT_IOTHREAD},
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
@@ -2098,6 +2110,7 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
         virCapsGuestMachinePtr mach;
         if (VIR_ALLOC(mach) < 0)
             goto error;
+        (*machines)[i] = mach;
         if (qemuCaps->machineAliases[i]) {
             if (VIR_STRDUP(mach->name, qemuCaps->machineAliases[i]) < 0 ||
                 VIR_STRDUP(mach->canonical, qemuCaps->machineTypes[i]) < 0)
@@ -2107,7 +2120,6 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
                 goto error;
         }
         mach->maxCpus = qemuCaps->machineMaxCpus[i];
-        (*machines)[i] = mach;
     }
 
     return 0;
@@ -2427,6 +2439,7 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "realtime", "mlock", QEMU_CAPS_MLOCK },
     { "boot-opts", "strict", QEMU_CAPS_BOOT_STRICT },
     { "boot-opts", "reboot-timeout", QEMU_CAPS_REBOOT_TIMEOUT },
+    { "boot-opts", "splash-time", QEMU_CAPS_SPLASH_TIMEOUT },
     { "spice", "disable-agent-file-xfer", QEMU_CAPS_SPICE_FILE_XFER_DISABLE },
     { "msg", "timestamp", QEMU_CAPS_MSG_TIMESTAMP },
     { "numa", NULL, QEMU_CAPS_NUMA },
@@ -3340,9 +3353,12 @@ virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
                                        uid_t runUid,
                                        gid_t runGid)
 {
-    virQEMUCapsPtr qemuCaps = virQEMUCapsNew();
+    virQEMUCapsPtr qemuCaps;
     struct stat sb;
     int rv;
+
+    if (!(qemuCaps = virQEMUCapsNew()))
+        goto error;
 
     if (VIR_STRDUP(qemuCaps->binary, binary) < 0)
         goto error;

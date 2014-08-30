@@ -24,6 +24,8 @@ extern bool virConnectDomainEventRegisterAnyCheckACL(virConnectPtr conn, virDoma
 extern int virConnectDomainXMLFromNativeEnsureACL(virConnectPtr conn);
 extern int virConnectDomainXMLToNativeEnsureACL(virConnectPtr conn);
 extern int virConnectFindStoragePoolSourcesEnsureACL(virConnectPtr conn);
+extern int virConnectGetAllDomainStatsEnsureACL(virConnectPtr conn);
+extern bool virConnectGetAllDomainStatsCheckACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virConnectGetCapabilitiesEnsureACL(virConnectPtr conn);
 extern int virConnectGetCPUModelNamesEnsureACL(virConnectPtr conn);
 extern int virConnectGetDomainCapabilitiesEnsureACL(virConnectPtr conn);
@@ -192,6 +194,7 @@ extern int virDomainMigrateSetMaxSpeedEnsureACL(virConnectPtr conn, virDomainDef
 extern int virDomainOpenChannelEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainOpenConsoleEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainOpenGraphicsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainOpenGraphicsFdEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPinEmulatorEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainPinVcpuEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPinVcpuFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);

@@ -62,7 +62,8 @@ main(void)
 
 #else
 
-static int checkoutput(const char *testname)
+static int checkoutput(const char *testname,
+                       char *prefix)
 {
     int ret = -1;
     char *expectname = NULL;
@@ -84,6 +85,16 @@ static int checkoutput(const char *testname)
     if (virFileReadAll(actualname, 1024*64, &actuallog) < 0) {
         fprintf(stderr, "cannot read %s\n", actualname);
         goto cleanup;
+    }
+
+    if (prefix) {
+        char *tmp = NULL;
+
+        if (virAsprintf(&tmp, "%s%s", prefix, expectlog) < 0)
+            goto cleanup;
+
+        VIR_FREE(expectlog);
+        expectlog = tmp;
     }
 
     if (STRNEQ(expectlog, actuallog)) {
@@ -173,7 +184,7 @@ static int test2(const void *unused ATTRIBUTE_UNUSED)
         return -1;
     }
 
-    if ((ret = checkoutput("test2")) != 0) {
+    if ((ret = checkoutput("test2", NULL)) != 0) {
         virCommandFree(cmd);
         return ret;
     }
@@ -187,7 +198,7 @@ static int test2(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test2");
+    return checkoutput("test2", NULL);
 }
 
 /*
@@ -219,7 +230,7 @@ static int test3(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = checkoutput("test3");
+    ret = checkoutput("test3", NULL);
 
  cleanup:
     virCommandFree(cmd);
@@ -261,7 +272,7 @@ static int test4(const void *unused ATTRIBUTE_UNUSED)
     while (kill(pid, 0) != -1)
         usleep(100*1000);
 
-    ret = checkoutput("test4");
+    ret = checkoutput("test4", NULL);
 
  cleanup:
     virCommandFree(cmd);
@@ -291,7 +302,7 @@ static int test5(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test5");
+    return checkoutput("test5", NULL);
 }
 
 
@@ -315,7 +326,7 @@ static int test6(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test6");
+    return checkoutput("test6", NULL);
 }
 
 
@@ -340,7 +351,7 @@ static int test7(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test7");
+    return checkoutput("test7", NULL);
 }
 
 /*
@@ -365,7 +376,7 @@ static int test8(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test8");
+    return checkoutput("test8", NULL);
 }
 
 
@@ -403,7 +414,7 @@ static int test9(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test9");
+    return checkoutput("test9", NULL);
 }
 
 
@@ -429,7 +440,7 @@ static int test10(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test10");
+    return checkoutput("test10", NULL);
 }
 
 /*
@@ -453,7 +464,7 @@ static int test11(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test11");
+    return checkoutput("test11", NULL);
 }
 
 /*
@@ -475,7 +486,7 @@ static int test12(const void *unused ATTRIBUTE_UNUSED)
 
     virCommandFree(cmd);
 
-    return checkoutput("test12");
+    return checkoutput("test12", NULL);
 }
 
 /*
@@ -510,7 +521,7 @@ static int test13(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = checkoutput("test13");
+    ret = checkoutput("test13", NULL);
 
  cleanup:
     virCommandFree(cmd);
@@ -582,7 +593,7 @@ static int test14(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = checkoutput("test14");
+    ret = checkoutput("test14", NULL);
 
  cleanup:
     virCommandFree(cmd);
@@ -613,7 +624,7 @@ static int test15(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = checkoutput("test15");
+    ret = checkoutput("test15", NULL);
 
  cleanup:
     VIR_FREE(cwd);
@@ -659,7 +670,7 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = checkoutput("test16");
+    ret = checkoutput("test16", NULL);
 
  cleanup:
     virCommandFree(cmd);
@@ -841,7 +852,7 @@ static int test20(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = checkoutput("test20");
+    ret = checkoutput("test20", NULL);
  cleanup:
     virCommandFree(cmd);
     VIR_FREE(buf);
@@ -900,7 +911,7 @@ static int test21(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = checkoutput("test21");
+    ret = checkoutput("test21", NULL);
  cleanup:
     VIR_FREE(outbuf);
     VIR_FREE(errbuf);
@@ -1018,6 +1029,62 @@ test23(const void *unused ATTRIBUTE_UNUSED)
 
     ret = 0;
  cleanup:
+    return ret;
+}
+
+static int test24(const void *unused ATTRIBUTE_UNUSED)
+{
+    char *pidfile = virPidFileBuildPath(abs_builddir, "commandhelper");
+    char *prefix = NULL;
+    int newfd1 = dup(STDERR_FILENO);
+    int newfd2 = dup(STDERR_FILENO);
+    int newfd3 = dup(STDERR_FILENO);
+    int ret = -1;
+    pid_t pid;
+    virCommandPtr cmd = virCommandNew(abs_builddir "/commandhelper");
+
+    if (!pidfile)
+        goto cleanup;
+
+    if (VIR_CLOSE(newfd1) < 0)
+        printf("Cannot close fd %d\n", newfd1);
+
+    virCommandSetPidFile(cmd, pidfile);
+    virCommandDaemonize(cmd);
+    virCommandPassFD(cmd, newfd2, VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+    virCommandPassFD(cmd, newfd3, VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+    virCommandPassListenFDs(cmd);
+
+    if (virCommandRun(cmd, NULL) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+
+    if (virPidFileRead(abs_builddir, "commandhelper", &pid) < 0) {
+        printf("cannot read pidfile\n");
+        goto cleanup;
+    }
+
+    if (virAsprintf(&prefix,
+                    "ENV:LISTEN_FDS=2\nENV:LISTEN_PID=%u\n",
+                    pid) < 0)
+        goto cleanup;
+
+    while (kill(pid, 0) != -1)
+        usleep(100*1000);
+
+    ret = checkoutput("test24", prefix);
+
+ cleanup:
+    if (pidfile)
+        unlink(pidfile);
+    VIR_FREE(pidfile);
+    virCommandFree(cmd);
+    VIR_FORCE_CLOSE(newfd1);
+    /* coverity[double_close] */
+    VIR_FORCE_CLOSE(newfd2);
+    VIR_FORCE_CLOSE(newfd3);
     return ret;
 }
 
@@ -1170,6 +1237,7 @@ mymain(void)
     DO_TEST(test21);
     DO_TEST(test22);
     DO_TEST(test23);
+    DO_TEST(test24);
 
     virMutexLock(&test->lock);
     if (test->running) {
