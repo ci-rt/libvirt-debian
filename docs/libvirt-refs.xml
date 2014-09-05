@@ -14403,6 +14403,7 @@
           <ref name='_virDomainBlockInfo'/>
         </word>
         <word name='long'>
+          <ref name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE'/>
           <ref name='_virDomainControlInfo'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainSetTime'/>

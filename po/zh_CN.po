@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-08-29 14:32+0200\n"
+"POT-Creation-Date: 2014-09-02 09:15+0200\n"
 "PO-Revision-Date: 2014-03-27 11:24+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/projects/p/fedora/"
@@ -19576,14 +19576,14 @@ msgid "Unable to bind to port"
 msgstr "无法捆绑到端口"
 
 #: src/rpc/virnetsocket.c:318 src/rpc/virnetsocket.c:448
-#: src/rpc/virnetsocket.c:517 src/rpc/virnetsocket.c:639
-#: src/rpc/virnetsocket.c:961 src/rpc/virnetsocket.c:1013
-#: src/rpc/virnetsocket.c:1804
+#: src/rpc/virnetsocket.c:517 src/rpc/virnetsocket.c:641
+#: src/rpc/virnetsocket.c:963 src/rpc/virnetsocket.c:1015
+#: src/rpc/virnetsocket.c:1806
 msgid "Unable to get local socket name"
 msgstr "无法获取本地插槽名"
 
 #: src/rpc/virnetsocket.c:378 src/rpc/virnetsocket.c:563
-#: src/rpc/virnetsocket.c:585
+#: src/rpc/virnetsocket.c:586
 msgid "Failed to create socket"
 msgstr "生成插槽失败"
 
@@ -19602,7 +19602,7 @@ msgstr "将插槽捆绑到 '%s' 失败"
 msgid "Failed to change ownership of '%s' to %d:%d"
 msgstr "将 '%s' 的拥有者改为 %d 失败：%d"
 
-#: src/rpc/virnetsocket.c:433 src/rpc/virnetsocket.c:662
+#: src/rpc/virnetsocket.c:433 src/rpc/virnetsocket.c:664
 msgid "UNIX sockets are not supported on this platform"
 msgstr "这个平台不支持 UNIX 插槽"
 
@@ -19619,156 +19619,156 @@ msgstr "无法获取远程插槽名"
 msgid "Auto-spawn of daemon requested, but no binary specified"
 msgstr "需要 auto-spawn 守护进程，但没有指定二进制文件。"
 
-#: src/rpc/virnetsocket.c:577 src/rpc/virnetsocket.c:628
+#: src/rpc/virnetsocket.c:578 src/rpc/virnetsocket.c:629
 #, c-format
 msgid "Failed to connect socket to '%s'"
 msgstr "将插槽连接到 '%s' 失败"
 
-#: src/rpc/virnetsocket.c:622
+#: src/rpc/virnetsocket.c:623
 #, fuzzy
 msgid "Failed to listen on socket that's about to be passed to the daemon"
 msgstr "为 sanlock 守护进程打开插槽失败"
 
-#: src/rpc/virnetsocket.c:684 src/rpc/virnetsocket.c:690
+#: src/rpc/virnetsocket.c:686 src/rpc/virnetsocket.c:692
 msgid "unable to create socket pair"
 msgstr "无法创建套接字对"
 
-#: src/rpc/virnetsocket.c:728
+#: src/rpc/virnetsocket.c:730
 msgid "Tunnelling sockets not supported on this platform"
 msgstr "这个平台不支持管道插槽"
 
-#: src/rpc/virnetsocket.c:832
+#: src/rpc/virnetsocket.c:834
 msgid "Failed to parse port number"
 msgstr "解析端口号失败"
 
-#: src/rpc/virnetsocket.c:852
+#: src/rpc/virnetsocket.c:854
 #, c-format
 msgid "Invalid host key verification method: '%s'"
 msgstr "无效主机密钥认证方法：'%s'"
 
-#: src/rpc/virnetsocket.c:889
+#: src/rpc/virnetsocket.c:891
 #, c-format
 msgid "Invalid authentication method: '%s'"
 msgstr "无效认证方法：'%s'"
 
-#: src/rpc/virnetsocket.c:934
+#: src/rpc/virnetsocket.c:936
 msgid "libssh2 transport support was not enabled"
 msgstr "未启用 libssh2 传输支持"
 
-#: src/rpc/virnetsocket.c:981
+#: src/rpc/virnetsocket.c:983
 msgid "Missing fd data in JSON document"
 msgstr "JSON 文件中缺少 fd 数据"
 
-#: src/rpc/virnetsocket.c:987
+#: src/rpc/virnetsocket.c:989
 msgid "Missing pid data in JSON document"
 msgstr "JSON 文件中缺少 pid 数据"
 
-#: src/rpc/virnetsocket.c:993
+#: src/rpc/virnetsocket.c:995
 msgid "Missing errfd data in JSON document"
 msgstr "JSON 文件中缺少 errfd 数据"
 
-#: src/rpc/virnetsocket.c:998
+#: src/rpc/virnetsocket.c:1000
 msgid "Missing isClient data in JSON document"
 msgstr "JSON 文件中缺少 isClient 数据"
 
-#: src/rpc/virnetsocket.c:1007
+#: src/rpc/virnetsocket.c:1009
 msgid "Unable to get peer socket name"
 msgstr "无法获取同级插槽名"
 
-#: src/rpc/virnetsocket.c:1031
+#: src/rpc/virnetsocket.c:1033
 msgid "Unable to save socket state when SASL session is active"
 msgstr "SASL 会话活跃时无法保存插槽状态"
 
-#: src/rpc/virnetsocket.c:1038
+#: src/rpc/virnetsocket.c:1040
 msgid "Unable to save socket state when TLS session is active"
 msgstr "TLS 会话活跃时无法保存插槽状态"
 
-#: src/rpc/virnetsocket.c:1060
+#: src/rpc/virnetsocket.c:1062
 #, c-format
 msgid "Cannot disable close-on-exec flag on socket %d"
 msgstr "无法为插槽 %d 禁用 close-on-exec 标签"
 
-#: src/rpc/virnetsocket.c:1067
+#: src/rpc/virnetsocket.c:1069
 #, c-format
 msgid "Cannot disable close-on-exec flag on pipe %d"
 msgstr "无法为管道 %d 禁用 close-on-exec 标签"
 
-#: src/rpc/virnetsocket.c:1146
+#: src/rpc/virnetsocket.c:1148
 msgid "Unable to copy socket file handle"
 msgstr "无法复制插槽文件句柄"
 
-#: src/rpc/virnetsocket.c:1200 src/rpc/virnetsocket.c:1250
+#: src/rpc/virnetsocket.c:1202 src/rpc/virnetsocket.c:1252
 msgid "Failed to get client socket identity"
 msgstr "获取客户端插槽身份失败"
 
-#: src/rpc/virnetsocket.c:1256
+#: src/rpc/virnetsocket.c:1258
 msgid "Failed to get valid client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1262
+#: src/rpc/virnetsocket.c:1264
 msgid "Failed to get valid client socket identity groups"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1290
+#: src/rpc/virnetsocket.c:1292
 msgid "Failed to get client socket PID"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1311
+#: src/rpc/virnetsocket.c:1313
 msgid "Client socket identity not available"
 msgstr "客户端插槽身份不可用"
 
-#: src/rpc/virnetsocket.c:1332
+#: src/rpc/virnetsocket.c:1334
 msgid "Unable to query peer security context"
 msgstr "无法查询同级安全上下文"
 
-#: src/rpc/virnetsocket.c:1510
+#: src/rpc/virnetsocket.c:1512
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr "无法 recv 数据：%s"
 
-#: src/rpc/virnetsocket.c:1513
+#: src/rpc/virnetsocket.c:1515
 msgid "Cannot recv data"
 msgstr "无法 recv 数据"
 
-#: src/rpc/virnetsocket.c:1518
+#: src/rpc/virnetsocket.c:1520
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr "读取数据时进入文件终点：%s"
 
-#: src/rpc/virnetsocket.c:1521
+#: src/rpc/virnetsocket.c:1523
 msgid "End of file while reading data"
 msgstr "读取数据时进入文件终点"
 
-#: src/rpc/virnetsocket.c:1558
+#: src/rpc/virnetsocket.c:1560
 msgid "Cannot write data"
 msgstr "无法写入数据"
 
-#: src/rpc/virnetsocket.c:1563
+#: src/rpc/virnetsocket.c:1565
 msgid "End of file while writing data"
 msgstr "写入数据时进入文件终点"
 
-#: src/rpc/virnetsocket.c:1706
+#: src/rpc/virnetsocket.c:1708
 msgid "Sending file descriptors is not supported on this socket"
 msgstr "这个插槽不支持发送文件描述符"
 
-#: src/rpc/virnetsocket.c:1717
+#: src/rpc/virnetsocket.c:1719
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "发送文件描述符 %d 失败"
 
-#: src/rpc/virnetsocket.c:1740
+#: src/rpc/virnetsocket.c:1742
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr "这个插槽不支持接收文件描述符"
 
-#: src/rpc/virnetsocket.c:1750
+#: src/rpc/virnetsocket.c:1752
 msgid "Failed to recv file descriptor"
 msgstr "接收文件描述符失败"
 
-#: src/rpc/virnetsocket.c:1767
+#: src/rpc/virnetsocket.c:1769
 msgid "Unable to listen on socket"
 msgstr "无法在插槽中侦听"
 
-#: src/rpc/virnetsocket.c:1798
+#: src/rpc/virnetsocket.c:1800
 msgid "Unable to accept client"
 msgstr "无法接受客户端"
 
@@ -22081,7 +22081,7 @@ msgstr ""
 msgid "Sheepdog does not support encrypted volumes"
 msgstr "Sheepdog 不支持加密卷"
 
-#: src/storage/storage_backend_zfs.c:106
+#: src/storage/storage_backend_zfs.c:110
 #, fuzzy
 msgid "malformed volsize reported"
 msgstr "畸形的八进制模式"

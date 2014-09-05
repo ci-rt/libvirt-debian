@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-08-29 14:32+0200\n"
+"POT-Creation-Date: 2014-09-02 09:15+0200\n"
 "PO-Revision-Date: 2014-03-27 11:24+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Telugu (http://www.transifex.com/projects/p/fedora/language/"
@@ -19676,14 +19676,14 @@ msgid "Unable to bind to port"
 msgstr "పోర్టుకు బందనం చేయలేదు"
 
 #: src/rpc/virnetsocket.c:318 src/rpc/virnetsocket.c:448
-#: src/rpc/virnetsocket.c:517 src/rpc/virnetsocket.c:639
-#: src/rpc/virnetsocket.c:961 src/rpc/virnetsocket.c:1013
-#: src/rpc/virnetsocket.c:1804
+#: src/rpc/virnetsocket.c:517 src/rpc/virnetsocket.c:641
+#: src/rpc/virnetsocket.c:963 src/rpc/virnetsocket.c:1015
+#: src/rpc/virnetsocket.c:1806
 msgid "Unable to get local socket name"
 msgstr "స్థానిక సాకెట్ పేరు పొందలేదు"
 
 #: src/rpc/virnetsocket.c:378 src/rpc/virnetsocket.c:563
-#: src/rpc/virnetsocket.c:585
+#: src/rpc/virnetsocket.c:586
 msgid "Failed to create socket"
 msgstr "TCP సాకెట్ సృష్టించుటలో విఫలం"
 
@@ -19702,7 +19702,7 @@ msgstr "సాకెట్ '%s' కు బందనం చేయలేదు"
 msgid "Failed to change ownership of '%s' to %d:%d"
 msgstr "'%s' యాజమాన్యం %d:%d కు మార్చుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:433 src/rpc/virnetsocket.c:662
+#: src/rpc/virnetsocket.c:433 src/rpc/virnetsocket.c:664
 msgid "UNIX sockets are not supported on this platform"
 msgstr "యునిక్స్ సాకెట్లు యీ ప్లాట్‌ఫాం పైన తోడ్పాటులేదు"
 
@@ -19719,156 +19719,156 @@ msgstr "రిమోట్ సాకెట్ పేరు పొందలేక
 msgid "Auto-spawn of daemon requested, but no binary specified"
 msgstr "డెమాన్ ఆటో-స్పాన్ అభ్యర్ధించబడెను, అయితే బైనరీ తెలుపలేదు"
 
-#: src/rpc/virnetsocket.c:577 src/rpc/virnetsocket.c:628
+#: src/rpc/virnetsocket.c:578 src/rpc/virnetsocket.c:629
 #, c-format
 msgid "Failed to connect socket to '%s'"
 msgstr "సాకెట్‌ను '%s' కు అనుసంధానించుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:622
+#: src/rpc/virnetsocket.c:623
 #, fuzzy
 msgid "Failed to listen on socket that's about to be passed to the daemon"
 msgstr "సాన్‌లాక్ డీమన్‌కు సాకెట్ తెరువుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:684 src/rpc/virnetsocket.c:690
+#: src/rpc/virnetsocket.c:686 src/rpc/virnetsocket.c:692
 msgid "unable to create socket pair"
 msgstr "సాకెట్ జంట సృష్టించుట లేదు"
 
-#: src/rpc/virnetsocket.c:728
+#: src/rpc/virnetsocket.c:730
 msgid "Tunnelling sockets not supported on this platform"
 msgstr "ఈ ప్లాట్‌ఫాం పైన సాకెట్ల టన్నెలింగ్ తోడ్పాటులేదు"
 
-#: src/rpc/virnetsocket.c:832
+#: src/rpc/virnetsocket.c:834
 msgid "Failed to parse port number"
 msgstr "పోర్టు సంఖ్య పార్స్ చేయుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:852
+#: src/rpc/virnetsocket.c:854
 #, c-format
 msgid "Invalid host key verification method: '%s'"
 msgstr "చెల్లని అతిధేయ కీ నిర్ధారణ పద్దతి: '%s'"
 
-#: src/rpc/virnetsocket.c:889
+#: src/rpc/virnetsocket.c:891
 #, c-format
 msgid "Invalid authentication method: '%s'"
 msgstr "చెల్లని ధృవీకరణ పద్దతి: '%s'"
 
-#: src/rpc/virnetsocket.c:934
+#: src/rpc/virnetsocket.c:936
 msgid "libssh2 transport support was not enabled"
 msgstr "libssh2 బదిలీ తోడ్పాటు చేతనం కాలేదు"
 
-#: src/rpc/virnetsocket.c:981
+#: src/rpc/virnetsocket.c:983
 msgid "Missing fd data in JSON document"
 msgstr "JSON పత్రము నందు fd దత్తాంశం దొరకలేదు"
 
-#: src/rpc/virnetsocket.c:987
+#: src/rpc/virnetsocket.c:989
 msgid "Missing pid data in JSON document"
 msgstr "JSON పత్రము నందు pid దత్తాంశం దొరకలేదు"
 
-#: src/rpc/virnetsocket.c:993
+#: src/rpc/virnetsocket.c:995
 msgid "Missing errfd data in JSON document"
 msgstr "JSON పత్రము నందు errfd దత్తాంశం దొరకలేదు"
 
-#: src/rpc/virnetsocket.c:998
+#: src/rpc/virnetsocket.c:1000
 msgid "Missing isClient data in JSON document"
 msgstr "JSON పత్రము నందు isClient దత్తాంశం దొరకలేదు"
 
-#: src/rpc/virnetsocket.c:1007
+#: src/rpc/virnetsocket.c:1009
 msgid "Unable to get peer socket name"
 msgstr "పీర్ సాకెట్ పేరు పొందలేదు"
 
-#: src/rpc/virnetsocket.c:1031
+#: src/rpc/virnetsocket.c:1033
 msgid "Unable to save socket state when SASL session is active"
 msgstr "SASL సెషన్ క్రియాశీలంగా వున్నప్పుడు సాకెట్ స్థితిని దాయలేదు"
 
-#: src/rpc/virnetsocket.c:1038
+#: src/rpc/virnetsocket.c:1040
 msgid "Unable to save socket state when TLS session is active"
 msgstr "TLS సెషన్ క్రియాశీలంగా వున్నప్పుడు సాకెట్ స్థితి దాయలేదు"
 
-#: src/rpc/virnetsocket.c:1060
+#: src/rpc/virnetsocket.c:1062
 #, c-format
 msgid "Cannot disable close-on-exec flag on socket %d"
 msgstr "సాకెట్ %d పైన close-on-exec ఫ్లాగ్ అచేతనం చేయలేదు"
 
-#: src/rpc/virnetsocket.c:1067
+#: src/rpc/virnetsocket.c:1069
 #, c-format
 msgid "Cannot disable close-on-exec flag on pipe %d"
 msgstr "పైప్ %d పైన close-on-exec ఫ్లాగ్ అచేతనం చేయలేదు"
 
-#: src/rpc/virnetsocket.c:1146
+#: src/rpc/virnetsocket.c:1148
 msgid "Unable to copy socket file handle"
 msgstr "సాకెట్ ఫైల్ సంభాలికను నకలుతీయలేదు"
 
-#: src/rpc/virnetsocket.c:1200 src/rpc/virnetsocket.c:1250
+#: src/rpc/virnetsocket.c:1202 src/rpc/virnetsocket.c:1252
 msgid "Failed to get client socket identity"
 msgstr "క్లైంట్ సాకెట్ గుర్తింపు పొందుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:1256
+#: src/rpc/virnetsocket.c:1258
 msgid "Failed to get valid client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1262
+#: src/rpc/virnetsocket.c:1264
 msgid "Failed to get valid client socket identity groups"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1290
+#: src/rpc/virnetsocket.c:1292
 msgid "Failed to get client socket PID"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1311
+#: src/rpc/virnetsocket.c:1313
 msgid "Client socket identity not available"
 msgstr "క్లైంట్ సాకెట్ గుర్తింపు అందుబాటులోలేదు"
 
-#: src/rpc/virnetsocket.c:1332
+#: src/rpc/virnetsocket.c:1334
 msgid "Unable to query peer security context"
 msgstr "పీర్ రక్షణ సందర్భమును ప్రశ్నించలేదు"
 
-#: src/rpc/virnetsocket.c:1510
+#: src/rpc/virnetsocket.c:1512
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr "దత్తాంశం స్వీకరించలేదు: %s"
 
-#: src/rpc/virnetsocket.c:1513
+#: src/rpc/virnetsocket.c:1515
 msgid "Cannot recv data"
 msgstr "దత్తాంశం స్వీకరించలేదు"
 
-#: src/rpc/virnetsocket.c:1518
+#: src/rpc/virnetsocket.c:1520
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr "దత్తాంశం చదువునప్పుడు ఫైల్ ముగింపు: %s"
 
-#: src/rpc/virnetsocket.c:1521
+#: src/rpc/virnetsocket.c:1523
 msgid "End of file while reading data"
 msgstr "దత్తాంశం చదువునప్పుడు ఫైల్ ముగింపు"
 
-#: src/rpc/virnetsocket.c:1558
+#: src/rpc/virnetsocket.c:1560
 msgid "Cannot write data"
 msgstr "దత్తాంశం వ్రాయలేదు"
 
-#: src/rpc/virnetsocket.c:1563
+#: src/rpc/virnetsocket.c:1565
 msgid "End of file while writing data"
 msgstr "దత్తాంశం వ్రాయునప్పుడు ఫైల్ ముగింపు"
 
-#: src/rpc/virnetsocket.c:1706
+#: src/rpc/virnetsocket.c:1708
 msgid "Sending file descriptors is not supported on this socket"
 msgstr "ఈ సాకెట్ పైన ఫైల్ వివరణిలను పంపుట తోడ్పాటులేదు"
 
-#: src/rpc/virnetsocket.c:1717
+#: src/rpc/virnetsocket.c:1719
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "ఫైల్ వివరిణి %d పంపుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:1740
+#: src/rpc/virnetsocket.c:1742
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr "ఈ సాకెట్ పైన ఫైల్ వివరిణిలను స్వీకరించుటకు తోడ్పాటులేదు"
 
-#: src/rpc/virnetsocket.c:1750
+#: src/rpc/virnetsocket.c:1752
 msgid "Failed to recv file descriptor"
 msgstr "ఫైల్ వివరిణిలను స్వీకరించుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:1767
+#: src/rpc/virnetsocket.c:1769
 msgid "Unable to listen on socket"
 msgstr "సాకెట్ పైన వినలేదు"
 
-#: src/rpc/virnetsocket.c:1798
+#: src/rpc/virnetsocket.c:1800
 msgid "Unable to accept client"
 msgstr "క్లైంట్ ఆమోదించలేదు"
 
@@ -22184,7 +22184,7 @@ msgstr ""
 msgid "Sheepdog does not support encrypted volumes"
 msgstr "ఎన్క్రిప్టెడ్ వాల్యూమ్‌లను Sheepdog తోడ్పాటునీయదు"
 
-#: src/storage/storage_backend_zfs.c:106
+#: src/storage/storage_backend_zfs.c:110
 #, fuzzy
 msgid "malformed volsize reported"
 msgstr "తప్పుగాఫార్మైన అష్టాంశ తీరు"
