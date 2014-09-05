@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-08-29 14:32+0200\n"
+"POT-Creation-Date: 2014-09-02 09:15+0200\n"
 "PO-Revision-Date: 2014-07-30 11:48+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/"
@@ -20212,14 +20212,14 @@ msgid "Unable to bind to port"
 msgstr "Não foi possível vincular à porta"
 
 #: src/rpc/virnetsocket.c:318 src/rpc/virnetsocket.c:448
-#: src/rpc/virnetsocket.c:517 src/rpc/virnetsocket.c:639
-#: src/rpc/virnetsocket.c:961 src/rpc/virnetsocket.c:1013
-#: src/rpc/virnetsocket.c:1804
+#: src/rpc/virnetsocket.c:517 src/rpc/virnetsocket.c:641
+#: src/rpc/virnetsocket.c:963 src/rpc/virnetsocket.c:1015
+#: src/rpc/virnetsocket.c:1806
 msgid "Unable to get local socket name"
 msgstr "Não foi possível obter nome do soquete local"
 
 #: src/rpc/virnetsocket.c:378 src/rpc/virnetsocket.c:563
-#: src/rpc/virnetsocket.c:585
+#: src/rpc/virnetsocket.c:586
 msgid "Failed to create socket"
 msgstr "falha ao criar soquete"
 
@@ -20238,7 +20238,7 @@ msgstr "falha ao associar o socket \"%s\" "
 msgid "Failed to change ownership of '%s' to %d:%d"
 msgstr "Falha ao mudar a propriedade de '%s' para %d:%d"
 
-#: src/rpc/virnetsocket.c:433 src/rpc/virnetsocket.c:662
+#: src/rpc/virnetsocket.c:433 src/rpc/virnetsocket.c:664
 msgid "UNIX sockets are not supported on this platform"
 msgstr "Os soquetes do domínio UNIX não são suportados nesta plataforma"
 
@@ -20255,156 +20255,156 @@ msgstr "Não foi possível obter nome do soquete remoto"
 msgid "Auto-spawn of daemon requested, but no binary specified"
 msgstr "Auto-spawn de daemon requisitado, mas nenhum binário especificado"
 
-#: src/rpc/virnetsocket.c:577 src/rpc/virnetsocket.c:628
+#: src/rpc/virnetsocket.c:578 src/rpc/virnetsocket.c:629
 #, c-format
 msgid "Failed to connect socket to '%s'"
 msgstr "falha ao conectar o soquete ao '%s'"
 
-#: src/rpc/virnetsocket.c:622
+#: src/rpc/virnetsocket.c:623
 #, fuzzy
 msgid "Failed to listen on socket that's about to be passed to the daemon"
 msgstr "Falha ao abrir o soquete para o sanlock daemon"
 
-#: src/rpc/virnetsocket.c:684 src/rpc/virnetsocket.c:690
+#: src/rpc/virnetsocket.c:686 src/rpc/virnetsocket.c:692
 msgid "unable to create socket pair"
 msgstr "não foi possível criar par de sockets"
 
-#: src/rpc/virnetsocket.c:728
+#: src/rpc/virnetsocket.c:730
 msgid "Tunnelling sockets not supported on this platform"
 msgstr "Soquetes de ajuste não são suportados nesta plataforma"
 
-#: src/rpc/virnetsocket.c:832
+#: src/rpc/virnetsocket.c:834
 msgid "Failed to parse port number"
 msgstr "Falha ao analisar o número de porta"
 
-#: src/rpc/virnetsocket.c:852
+#: src/rpc/virnetsocket.c:854
 #, c-format
 msgid "Invalid host key verification method: '%s'"
 msgstr "Método de verificação de chave de host inválido: '%s'"
 
-#: src/rpc/virnetsocket.c:889
+#: src/rpc/virnetsocket.c:891
 #, c-format
 msgid "Invalid authentication method: '%s'"
 msgstr "Método de autenticação inválido: '%s'"
 
-#: src/rpc/virnetsocket.c:934
+#: src/rpc/virnetsocket.c:936
 msgid "libssh2 transport support was not enabled"
 msgstr "suporte de transporte libssh2 não foi habilitado"
 
-#: src/rpc/virnetsocket.c:981
+#: src/rpc/virnetsocket.c:983
 msgid "Missing fd data in JSON document"
 msgstr "Falta dados dados de fd no documento do JSON"
 
-#: src/rpc/virnetsocket.c:987
+#: src/rpc/virnetsocket.c:989
 msgid "Missing pid data in JSON document"
 msgstr "Falta dados do pid no documento  JSON"
 
-#: src/rpc/virnetsocket.c:993
+#: src/rpc/virnetsocket.c:995
 msgid "Missing errfd data in JSON document"
 msgstr "Falta dados do errfd no documento do JSON"
 
-#: src/rpc/virnetsocket.c:998
+#: src/rpc/virnetsocket.c:1000
 msgid "Missing isClient data in JSON document"
 msgstr "Falta dados do isClient no documento  JSON"
 
-#: src/rpc/virnetsocket.c:1007
+#: src/rpc/virnetsocket.c:1009
 msgid "Unable to get peer socket name"
 msgstr "Não foi possível obter nome do soquete do peer"
 
-#: src/rpc/virnetsocket.c:1031
+#: src/rpc/virnetsocket.c:1033
 msgid "Unable to save socket state when SASL session is active"
 msgstr "Incapaz de salvar estado de soquete quando a sessão SASL está ativa"
 
-#: src/rpc/virnetsocket.c:1038
+#: src/rpc/virnetsocket.c:1040
 msgid "Unable to save socket state when TLS session is active"
 msgstr "Incapaz de salvar estado de soquete quando a sessão do TLS está ativa"
 
-#: src/rpc/virnetsocket.c:1060
+#: src/rpc/virnetsocket.c:1062
 #, c-format
 msgid "Cannot disable close-on-exec flag on socket %d"
 msgstr "Não foi possível desabilitar flag close-on-exec no soquete %d"
 
-#: src/rpc/virnetsocket.c:1067
+#: src/rpc/virnetsocket.c:1069
 #, c-format
 msgid "Cannot disable close-on-exec flag on pipe %d"
 msgstr "Não foi possível desabilitar flag close-on-exec na pipe %d"
 
-#: src/rpc/virnetsocket.c:1146
+#: src/rpc/virnetsocket.c:1148
 msgid "Unable to copy socket file handle"
 msgstr "Não foi possível copiar manuseio de arquivo de soquete"
 
-#: src/rpc/virnetsocket.c:1200 src/rpc/virnetsocket.c:1250
+#: src/rpc/virnetsocket.c:1202 src/rpc/virnetsocket.c:1252
 msgid "Failed to get client socket identity"
 msgstr "Falha ao obter identidade de soquete de cliente"
 
-#: src/rpc/virnetsocket.c:1256
+#: src/rpc/virnetsocket.c:1258
 msgid "Failed to get valid client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1262
+#: src/rpc/virnetsocket.c:1264
 msgid "Failed to get valid client socket identity groups"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1290
+#: src/rpc/virnetsocket.c:1292
 msgid "Failed to get client socket PID"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1311
+#: src/rpc/virnetsocket.c:1313
 msgid "Client socket identity not available"
 msgstr "Identidade de soquete de cliente não está disponível"
 
-#: src/rpc/virnetsocket.c:1332
+#: src/rpc/virnetsocket.c:1334
 msgid "Unable to query peer security context"
 msgstr "Incapaz de pesquisar o contexto de segurança do peer"
 
-#: src/rpc/virnetsocket.c:1510
+#: src/rpc/virnetsocket.c:1512
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr "não foi possível receber dados:%s"
 
-#: src/rpc/virnetsocket.c:1513
+#: src/rpc/virnetsocket.c:1515
 msgid "Cannot recv data"
 msgstr "não foi possível receber dados"
 
-#: src/rpc/virnetsocket.c:1518
+#: src/rpc/virnetsocket.c:1520
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr "Final do arquivo ao ler dados: %s"
 
-#: src/rpc/virnetsocket.c:1521
+#: src/rpc/virnetsocket.c:1523
 msgid "End of file while reading data"
 msgstr "Final do arquivo ao ler dados "
 
-#: src/rpc/virnetsocket.c:1558
+#: src/rpc/virnetsocket.c:1560
 msgid "Cannot write data"
 msgstr "não foi possível gravar dados"
 
-#: src/rpc/virnetsocket.c:1563
+#: src/rpc/virnetsocket.c:1565
 msgid "End of file while writing data"
 msgstr "Final do arquivo ao ler os dados"
 
-#: src/rpc/virnetsocket.c:1706
+#: src/rpc/virnetsocket.c:1708
 msgid "Sending file descriptors is not supported on this socket"
 msgstr "Envio de descritores de arquivo não é suportado neste soquete"
 
-#: src/rpc/virnetsocket.c:1717
+#: src/rpc/virnetsocket.c:1719
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "Falha ao enviar o descritor de arquivo %d"
 
-#: src/rpc/virnetsocket.c:1740
+#: src/rpc/virnetsocket.c:1742
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr "Recepção de descritores de arquivo não é suportado neste soquete"
 
-#: src/rpc/virnetsocket.c:1750
+#: src/rpc/virnetsocket.c:1752
 msgid "Failed to recv file descriptor"
 msgstr "Não foi possível receber descritor de arquivo "
 
-#: src/rpc/virnetsocket.c:1767
+#: src/rpc/virnetsocket.c:1769
 msgid "Unable to listen on socket"
 msgstr "falha ao ouvir em soquete"
 
-#: src/rpc/virnetsocket.c:1798
+#: src/rpc/virnetsocket.c:1800
 msgid "Unable to accept client"
 msgstr "Falha ao aceitar cliente"
 
@@ -22770,7 +22770,7 @@ msgstr ""
 msgid "Sheepdog does not support encrypted volumes"
 msgstr "Sheepdog não suporta volumes criptografados"
 
-#: src/storage/storage_backend_zfs.c:106
+#: src/storage/storage_backend_zfs.c:110
 #, fuzzy
 msgid "malformed volsize reported"
 msgstr "modo octal mal formado"
