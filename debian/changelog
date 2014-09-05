@@ -1,3 +1,18 @@
+libvirt (1.2.8-1) experimental; urgency=medium
+
+  * [e55688b] New upstream version 1.2.8
+    (Closes: #760510)
+  * [daa5c92] New upstream version 1.2.8~rc2
+  * [7f85d5e] Bump symbol versions
+  * [ea29953] Rediff patches.
+    Drop patches appplied upstream:
+        Don-t-fail-qemu-driver-intialization-if-we-can-t-det.patch
+        Include-param.h-on-kFreeBSD.patch
+        Make-uri-command-a-bit-more-prominent.patch
+  * [4633967] Verify tarball signature
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 05 Sep 2014 19:56:50 +0200
+
 libvirt (1.2.7-11) unstable; urgency=medium
 
   * [6534478] Check status in a systemd 208 compatible way
