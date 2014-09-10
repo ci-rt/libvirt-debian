@@ -1,0 +1,21 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 9 Sep 2014 09:01:12 +0200
+Subject: Debianize virtlockd
+
+---
+ src/locking/virtlockd.service.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/locking/virtlockd.service.in b/src/locking/virtlockd.service.in
+index 57089b0..fccc78a 100644
+--- a/src/locking/virtlockd.service.in
++++ b/src/locking/virtlockd.service.in
+@@ -5,7 +5,7 @@ Documentation=man:virtlockd(8)
+ Documentation=http://libvirt.org
+ 
+ [Service]
+-EnvironmentFile=-/etc/sysconfig/virtlockd
++EnvironmentFile=-/etc/default/virtlockd
+ ExecStart=@sbindir@/virtlockd $VIRTLOCKD_ARGS
+ ExecReload=/bin/kill -USR1 $MAINPID
+ # Loosing the locks is a really bad thing that will
