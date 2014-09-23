@@ -1,3 +1,12 @@
+libvirt (1.2.8-2) unstable; urgency=medium
+
+  * [7b0894e] Debianize virtlockd unit file
+  * [2c522fd] Tag Debian specific patches as such
+  * [e1e734b] CVE-2014-3633: qemu: blkiotune: Use correct definition when
+    looking up disk. Thanks to Peter Krempa (Closes: #762203)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 23 Sep 2014 08:53:01 +0200
+
 libvirt (1.2.8-1) experimental; urgency=medium
 
   * [e55688b] New upstream version 1.2.8
