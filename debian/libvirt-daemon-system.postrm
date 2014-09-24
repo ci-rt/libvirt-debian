@@ -33,7 +33,18 @@ case "$1" in
     		delgroup libvirt-qemu || true
 	fi
 
-	rm -rf /var/log/libvirt
+	# Clean up logs and cached capabilities
+	rm -rf /var/log/libvirt \
+	       /var/cache/libvirt/qemu/capabilities
+
+	# Clean up created dirs if emtpy, they contain
+	# precious data otherwise
+	rmdir --ignore-fail-on-non-empty   \
+	    /var/lib/libvirt/qemu/save     \
+	    /var/lib/libvirt/qemu/snapshot \
+	    /var/lib/libvirt/qemu/dump     \
+	    /var/lib/libvirt/qemu          \
+	    /var/cache/libvirt/qemu
     ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;
