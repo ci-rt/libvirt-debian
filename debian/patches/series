@@ -14,3 +14,4 @@ Skip-vircgrouptest.patch
 debian/Use-sensible-editor-as-fallback.patch
 debian/Debianize-virtlockd.patch
 security/CVE-2014-3633-qemu-blkiotune-Use-correct-definition-.patch
+qemu-remove-capabilities.monitor.sock-when-done.patch
