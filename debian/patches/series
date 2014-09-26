@@ -12,3 +12,4 @@ Don-t-fail-if-we-can-t-setup-avahi.patch
 Only-check-for-cluster-fs-if-we-re-using-a-filesyste.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Allow-xen-toolstack-to-find-it-s-binaries.patch
+security/CVE-2014-3633-qemu-blkiotune-Use-correct-definition-.patch
