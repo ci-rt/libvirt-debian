@@ -988,7 +988,12 @@ vboxSetBootDeviceOrder(virDomainDefPtr def, vboxGlobalData *data,
     VIR_DEBUG("def->os.initrd           %s", def->os.initrd);
     VIR_DEBUG("def->os.cmdline          %s", def->os.cmdline);
     VIR_DEBUG("def->os.root             %s", def->os.root);
-    VIR_DEBUG("def->os.loader           %s", def->os.loader);
+    if (def->os.loader) {
+        VIR_DEBUG("def->os.loader->path     %s", def->os.loader->path);
+        VIR_DEBUG("def->os.loader->readonly %d", def->os.loader->readonly);
+        VIR_DEBUG("def->os.loader->type     %d", def->os.loader->type);
+        VIR_DEBUG("def->os.loader->nvram    %s", def->os.loader->nvram);
+    }
     VIR_DEBUG("def->os.bootloader       %s", def->os.bootloader);
     VIR_DEBUG("def->os.bootloaderArgs   %s", def->os.bootloaderArgs);
 
@@ -1291,8 +1296,7 @@ vboxAttachSound(virDomainDefPtr def, IMachine *machine)
     if (def->sounds[0]->model == VIR_DOMAIN_SOUND_MODEL_SB16) {
         gVBoxAPI.UIAudioAdapter.SetAudioController(audioAdapter,
                                                    AudioControllerType_SB16);
-    } else
-    if (def->sounds[0]->model == VIR_DOMAIN_SOUND_MODEL_AC97) {
+    } else if (def->sounds[0]->model == VIR_DOMAIN_SOUND_MODEL_AC97) {
         gVBoxAPI.UIAudioAdapter.SetAudioController(audioAdapter,
                                                    AudioControllerType_AC97);
     }
@@ -3381,8 +3385,9 @@ vboxDumpDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                 }
 
                 def->ngraphics++;
-            } else
+            } else {
                 virReportOOMError();
+            }
         }
         VBOX_RELEASE(VRDxServer);
     }
@@ -3576,8 +3581,8 @@ vboxDumpNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine, PR
                          MACAddress[8], MACAddress[9], MACAddress[10], MACAddress[11]);
 
                 /* XXX some real error handling here some day ... */
-                if (virMacAddrParse(macaddr, &def->nets[netAdpIncCnt]->mac) < 0)
-                {}
+                ignore_value(virMacAddrParse(macaddr,
+                                             &def->nets[netAdpIncCnt]->mac));
 
                 netAdpIncCnt++;
 
@@ -4340,6 +4345,11 @@ static int vboxCloseDisksRecursively(virDomainPtr dom, char *location)
             PRUnichar *childLocationUtf = NULL;
             char *childLocation = NULL;
             rc = gVBoxAPI.UIMedium.GetLocation(childMedium, &childLocationUtf);
+            if (NS_FAILED(rc)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to get childMedium location"));
+                goto cleanup;
+            }
             VBOX_UTF16_TO_UTF8(childLocationUtf, &childLocation);
             VBOX_UTF16_FREE(childLocationUtf);
             if (vboxCloseDisksRecursively(dom, childLocation) < 0) {
@@ -4762,7 +4772,7 @@ vboxSnapshotRedefine(virDomainPtr dom,
                  * succeed, unless there is still another machine which uses the
                  * medium. No harm done if we ignore the error.
                  */
-                rc = gVBoxAPI.UIMedium.Close(medium);
+                ignore_value(gVBoxAPI.UIMedium.Close(medium));
             }
             VBOX_UTF8_FREE(locationUtf8);
         }
@@ -6510,8 +6520,9 @@ static int vboxDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         ret = vboxDomainCreate(dom);
         if (!ret)
             gVBoxAPI.snapshotRestore(dom, machine, prevSnapshot);
-    } else
+    } else {
         ret = 0;
+    }
 
  cleanup:
     VBOX_RELEASE(prevSnapshot);
@@ -6981,7 +6992,7 @@ vboxDomainSnapshotDeleteMetadataOnly(virDomainSnapshotPtr snapshot)
              * reference in a sane order, which means that closing will normally
              * succeed, unless there is still another machine which uses the
              * medium. No harm done if we ignore the error. */
-            rc = gVBoxAPI.UIMedium.Close(medium);
+            ignore_value(gVBoxAPI.UIMedium.Close(medium));
         }
         VBOX_UTF16_FREE(locationUtf16);
         VBOX_UTF8_FREE(locationUtf8);
@@ -7093,8 +7104,7 @@ static int vboxDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("cannot delete metadata of a snapshot with children"));
             goto cleanup;
-        } else
-        if (gVBoxAPI.vboxSnapshotRedefine) {
+        } else if (gVBoxAPI.vboxSnapshotRedefine) {
             ret = vboxDomainSnapshotDeleteMetadataOnly(snapshot);
         }
         goto cleanup;
@@ -7452,6 +7462,24 @@ vboxNodeGetFreePages(virConnectPtr conn ATTRIBUTE_UNUSED,
     return nodeGetFreePages(npages, pages, startCell, cellCount, counts);
 }
 
+static int
+vboxNodeAllocPages(virConnectPtr conn ATTRIBUTE_UNUSED,
+                   unsigned int npages,
+                   unsigned int *pageSizes,
+                   unsigned long long *pageCounts,
+                   int startCell,
+                   unsigned int cellCount,
+                   unsigned int flags)
+{
+    bool add = !(flags & VIR_NODE_ALLOC_PAGES_SET);
+
+    virCheckFlags(VIR_NODE_ALLOC_PAGES_SET, -1);
+
+    return nodeAllocPages(npages, pageSizes, pageCounts,
+                          startCell, cellCount, add);
+}
+
+
 /**
  * Function Tables
  */
@@ -7523,6 +7551,7 @@ virDriver vboxCommonDriver = {
     .domainSnapshotDelete = vboxDomainSnapshotDelete, /* 0.8.0 */
     .connectIsAlive = vboxConnectIsAlive, /* 0.9.8 */
     .nodeGetFreePages = vboxNodeGetFreePages, /* 1.2.6 */
+    .nodeAllocPages = vboxNodeAllocPages, /* 1.2.8 */
 };
 
 static void updateDriver(void)

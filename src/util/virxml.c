@@ -420,7 +420,7 @@ virXPathULongLong(const char *xpath,
 }
 
 /**
- * virXPathULongLong:
+ * virXPathLongLong:
  * @xpath: the XPath string to evaluate
  * @ctxt: an XPath context
  * @value: the returned long long value
@@ -973,6 +973,9 @@ virXMLFindChildNodeByNs(xmlNodePtr root,
                         const char *uri)
 {
     xmlNodePtr next;
+
+    if (!root)
+        return NULL;
 
     for (next = root->children; next; next = next->next) {
         if (next->ns &&

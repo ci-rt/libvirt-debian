@@ -48,6 +48,13 @@
      <exports symbol='VIR_DOMAIN_CPU_STATS_USERTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_CPU_STATS_VCPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN' type='macro'/>
+     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA' type='macro'/>
+     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN' type='macro'/>
+     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_BYTES' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES' type='macro'/>
@@ -56,16 +63,19 @@
      <exports symbol='VIR_DOMAIN_JOB_DATA_PROCESSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DATA_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DATA_TOTAL' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DISK_BPS' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DISK_PROCESSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DISK_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DISK_TOTAL' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DOWNTIME' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_BPS' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_CONSTANT' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_NORMAL' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_PROCESSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_TOTAL' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_SETUP_TIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
@@ -222,6 +232,7 @@
      <exports symbol='VIR_DOMAIN_BLOCKED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCKED_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_ACTIVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_BANDWIDTH_BYTES' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_DELETE' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_RELATIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_SHALLOW' type='enum'/>
@@ -232,15 +243,20 @@
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_CANCELED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_FAILED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_READY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_REBASE_COPY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_REBASE_COPY_DEV' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_REBASE_COPY_RAW' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_REBASE_RELATIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT' type='enum'/>
@@ -308,6 +324,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_REBOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_TRAY_CHANGE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_TUNABLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_WATCHDOG' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_NONE' type='enum'/>
@@ -370,6 +387,7 @@
      <exports symbol='VIR_DOMAIN_JOB_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_NONE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_STATS_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_UNBOUNDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_PARAM_BOOLEAN' type='enum'/>
@@ -566,9 +584,15 @@
      <exports symbol='VIR_DOMAIN_START_BYPASS_CACHE' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_FORCE_BOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_PAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_BALLOON' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_BLOCK' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_CPU_TOTAL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_INTERFACE' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_STATE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_VCPU' type='enum'/>
      <exports symbol='VIR_DOMAIN_TIME_SYNC' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_UNDEFINE_NVRAM' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_CONFIG' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_CURRENT' type='enum'/>
@@ -616,6 +640,7 @@
      <exports symbol='VIR_MIGRATE_PAUSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_PEER2PEER' type='enum'/>
      <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
+     <exports symbol='VIR_MIGRATE_RDMA_PIN_ALL' type='enum'/>
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNSAFE' type='enum'/>
@@ -650,6 +675,8 @@
      <exports symbol='VIR_NETWORK_UPDATE_COMMAND_MODIFY' type='enum'/>
      <exports symbol='VIR_NETWORK_UPDATE_COMMAND_NONE' type='enum'/>
      <exports symbol='VIR_NETWORK_XML_INACTIVE' type='enum'/>
+     <exports symbol='VIR_NODE_ALLOC_PAGES_ADD' type='enum'/>
+     <exports symbol='VIR_NODE_ALLOC_PAGES_SET' type='enum'/>
      <exports symbol='VIR_NODE_CPU_STATS_ALL_CPUS' type='enum'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_ALL_CELLS' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_DISK' type='enum'/>
@@ -747,8 +774,11 @@
      <exports symbol='virDomainBlockJobAbortFlags' type='typedef'/>
      <exports symbol='virDomainBlockJobCursor' type='typedef'/>
      <exports symbol='virDomainBlockJobInfo' type='typedef'/>
+     <exports symbol='virDomainBlockJobInfoFlags' type='typedef'/>
      <exports symbol='virDomainBlockJobInfoPtr' type='typedef'/>
+     <exports symbol='virDomainBlockJobSetSpeedFlags' type='typedef'/>
      <exports symbol='virDomainBlockJobType' type='typedef'/>
+     <exports symbol='virDomainBlockPullFlags' type='typedef'/>
      <exports symbol='virDomainBlockRebaseFlags' type='typedef'/>
      <exports symbol='virDomainBlockResizeFlags' type='typedef'/>
      <exports symbol='virDomainBlockStatsPtr' type='typedef'/>
@@ -790,6 +820,7 @@
      <exports symbol='virDomainEventType' type='typedef'/>
      <exports symbol='virDomainEventUndefinedDetailType' type='typedef'/>
      <exports symbol='virDomainEventWatchdogAction' type='typedef'/>
+     <exports symbol='virDomainGetJobStatsFlags' type='typedef'/>
      <exports symbol='virDomainInfo' type='typedef'/>
      <exports symbol='virDomainInfoPtr' type='typedef'/>
      <exports symbol='virDomainInterfaceStatsPtr' type='typedef'/>
@@ -854,6 +885,7 @@
      <exports symbol='virNetworkUpdateFlags' type='typedef'/>
      <exports symbol='virNetworkUpdateSection' type='typedef'/>
      <exports symbol='virNetworkXMLFlags' type='typedef'/>
+     <exports symbol='virNodeAllocPagesFlags' type='typedef'/>
      <exports symbol='virNodeCPUStats' type='typedef'/>
      <exports symbol='virNodeCPUStatsPtr' type='typedef'/>
      <exports symbol='virNodeDevice' type='typedef'/>
@@ -952,6 +984,7 @@
      <exports symbol='virConnectDomainEventRegister' type='function'/>
      <exports symbol='virConnectDomainEventRegisterAny' type='function'/>
      <exports symbol='virConnectDomainEventTrayChangeCallback' type='function'/>
+     <exports symbol='virConnectDomainEventTunableCallback' type='function'/>
      <exports symbol='virConnectDomainEventWatchdogCallback' type='function'/>
      <exports symbol='virConnectDomainXMLFromNative' type='function'/>
      <exports symbol='virConnectDomainXMLToNative' type='function'/>
@@ -1236,6 +1269,7 @@
      <exports symbol='virNetworkSetAutostart' type='function'/>
      <exports symbol='virNetworkUndefine' type='function'/>
      <exports symbol='virNetworkUpdate' type='function'/>
+     <exports symbol='virNodeAllocPages' type='function'/>
      <exports symbol='virNodeDeviceCreateXML' type='function'/>
      <exports symbol='virNodeDeviceDestroy' type='function'/>
      <exports symbol='virNodeDeviceDetachFlags' type='function'/>
@@ -1488,6 +1522,7 @@
      <exports symbol='VIR_FROM_OPENVZ' type='enum'/>
      <exports symbol='VIR_FROM_PARALLELS' type='enum'/>
      <exports symbol='VIR_FROM_PHYP' type='enum'/>
+     <exports symbol='VIR_FROM_POLKIT' type='enum'/>
      <exports symbol='VIR_FROM_PROXY' type='enum'/>
      <exports symbol='VIR_FROM_QEMU' type='enum'/>
      <exports symbol='VIR_FROM_REMOTE' type='enum'/>
@@ -1614,7 +1649,7 @@
       <info><![CDATA[Macro for the Blkio tunable weight: it represents the io weight the guest can use, as a uint.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH' file='libvirt'>
-      <info><![CDATA[Macro for the virDomainBlockCopy bandwidth tunable: it represents the maximum bandwidth in bytes/s, and is used while getting the copy operation into the mirrored phase, with a type of ullong.  For compatibility with virDomainBlockJobSetSpeed(), values larger than 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected due to overflow considerations, and hypervisors may further restrict the set of valid values. Specifying 0 is the same as omitting this parameter, to request no bandwidth limiting.  Some hypervisors may lack support for this parameter, while still allowing a subsequent change of bandwidth via virDomainBlockJobSetSpeed().  The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
+      <info><![CDATA[Macro for the virDomainBlockCopy bandwidth tunable: it represents the maximum bandwidth in bytes/s, and is used while getting the copy operation into the mirrored phase, with a type of ullong.  For compatibility with virDomainBlockJobSetSpeed(), values larger than 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected on input due to overflow considerations (but do you really have an interface with that much bandwidth?), and values larger than 2^31 bytes/sec may cause overflow problems if queried in bytes/sec.  Hypervisors may further restrict the set of valid values. Specifying 0 is the same as omitting this parameter, to request no bandwidth limiting. Some hypervisors may lack support for this parameter, while still allowing a subsequent change of bandwidth via virDomainBlockJobSetSpeed().  The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE' file='libvirt'>
       <info><![CDATA[Macro for the virDomainBlockCopy buffer size tunable: it represents how much data in bytes can be in flight between source and destination, as an unsigned long long. Specifying 0 is the same as omitting this parameter, to request the hypervisor default.]]></info>
@@ -1685,6 +1720,27 @@
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES' file='libvirt'>
+      <info><![CDATA[Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN' file='libvirt'>
+      <info><![CDATA[Macro represents formatted pinning for emulator process, as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD' file='libvirt'>
+      <info><![CDATA[Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA' file='libvirt'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN' file='libvirt'>
+      <info><![CDATA[Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD' file='libvirt'>
+      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA' file='libvirt'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_JOB_COMPRESSION_BYTES' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
@@ -1709,6 +1765,9 @@
     <macro name='VIR_DOMAIN_JOB_DATA_TOTAL' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: total number of bytes supposed to be transferred, as VIR_TYPED_PARAM_ULLONG. For VIR_DOMAIN_JOB_UNBOUNDED jobs, this may be less than the sum of VIR_DOMAIN_JOB_DATA_PROCESSED and VIR_DOMAIN_JOB_DATA_REMAINING in the event that the hypervisor has to repeat some data, e.g., due to dirtied pages during migration. For VIR_DOMAIN_JOB_BOUNDED jobs, VIR_DOMAIN_JOB_DATA_TOTAL shall always equal VIR_DOMAIN_JOB_DATA_PROCESSED + VIR_DOMAIN_JOB_DATA_REMAINING.  This field corresponds to dataTotal field in virDomainJobInfo.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_JOB_DISK_BPS' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: network throughput used while migrating disks in Bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_JOB_DISK_PROCESSED' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileProcessed field in virDomainJobInfo.]]></info>
     </macro>
@@ -1720,6 +1779,9 @@
     </macro>
     <macro name='VIR_DOMAIN_JOB_DOWNTIME' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: downtime (ms) that is expected to happen during migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_BPS' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: network throughput used while migrating memory in Bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_JOB_MEMORY_CONSTANT' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: number of pages filled with a constant byte (all bytes in a single page are identical) transferred since the beginning of the migration job, as VIR_TYPED_PARAM_ULLONG.  The most common example of such pages are zero pages, i.e., pages filled with zero bytes.]]></info>
@@ -1738,6 +1800,9 @@
     </macro>
     <macro name='VIR_DOMAIN_JOB_MEMORY_TOTAL' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memTotal field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_SETUP_TIME' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: total time in milliseconds spent preparing the migration in the 'setup' phase before the iterations begin, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: time (ms) since the beginning of the job, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeElapsed field in virDomainJobInfo.]]></info>
@@ -2013,6 +2078,8 @@ node'/>
     <enum name='VIR_DOMAIN_BLOCKED_UNKNOWN' file='libvirt' value='0' type='virDomainBlockedReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_BLOCK_COMMIT_ACTIVE' file='libvirt' value='4' type='virDomainBlockCommitFlags' info='Allow a two-phase commit when
 top is the active layer'/>
+    <enum name='VIR_DOMAIN_BLOCK_COMMIT_BANDWIDTH_BYTES' file='libvirt' value='16' type='virDomainBlockCommitFlags' info='bandwidth in bytes/s
+instead of MiB/s'/>
     <enum name='VIR_DOMAIN_BLOCK_COMMIT_DELETE' file='libvirt' value='2' type='virDomainBlockCommitFlags' info='Delete any files that are now
 invalid after their contents
 have been committed'/>
@@ -2030,8 +2097,12 @@ backing chain'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_CANCELED' file='libvirt' value='2' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_COMPLETED' file='libvirt' value='0' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_FAILED' file='libvirt' value='1' type='virConnectDomainEventBlockJobStatus'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES' file='libvirt' value='1' type='virDomainBlockJobInfoFlags' info='bandwidth in bytes/s
+instead of MiB/s'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_LAST' file='libvirt' value='4' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_READY' file='libvirt' value='3' type='virConnectDomainEventBlockJobStatus'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES' file='libvirt' value='1' type='virDomainBlockJobSetSpeedFlags' info='bandwidth in bytes/s
+instead of MiB/s'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT' file='libvirt' value='4' type='virDomainBlockJobType' info='Active Block Commit (virDomainBlockCommit with flags), job
  exists as long as sync is active'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' file='libvirt' value='3' type='virDomainBlockJobType' info='Block Commit (virDomainBlockCommit without flags), job ends on
@@ -2042,7 +2113,13 @@ backing chain'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' file='libvirt' value='1' type='virDomainBlockJobType' info='Block Pull (virDomainBlockPull, or virDomainBlockRebase without
  flags), job ends on completion'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN' file='libvirt' value='0' type='virDomainBlockJobType' info='Placeholder'/>
+    <enum name='VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES' file='libvirt' value='64' type='virDomainBlockPullFlags' info='bandwidth in bytes/s
+instead of MiB/s'/>
+    <enum name='VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES' file='libvirt' value='64' type='virDomainBlockRebaseFlags' info='bandwidth in bytes/s
+instead of MiB/s'/>
     <enum name='VIR_DOMAIN_BLOCK_REBASE_COPY' file='libvirt' value='8' type='virDomainBlockRebaseFlags' info='Start a copy job'/>
+    <enum name='VIR_DOMAIN_BLOCK_REBASE_COPY_DEV' file='libvirt' value='32' type='virDomainBlockRebaseFlags' info='Treat destination as block
+device instead of file'/>
     <enum name='VIR_DOMAIN_BLOCK_REBASE_COPY_RAW' file='libvirt' value='4' type='virDomainBlockRebaseFlags' info='Make destination file raw'/>
     <enum name='VIR_DOMAIN_BLOCK_REBASE_RELATIVE' file='libvirt' value='16' type='virDomainBlockRebaseFlags' info='Keep backing chain
 referenced using relative
@@ -2119,7 +2196,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_GRAPHICS' file='libvirt' value='5' type='virDomainEventID' info='virConnectDomainEventGraphicsCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt' value='17' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt' value='18' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
@@ -2129,6 +2206,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_REBOOT' file='libvirt' value='1' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' file='libvirt' value='2' type='virDomainEventID' info='virConnectDomainEventRTCChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_TRAY_CHANGE' file='libvirt' value='10' type='virDomainEventID' info='virConnectDomainEventTrayChangeCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_TUNABLE' file='libvirt' value='17' type='virDomainEventID' info='virConnectDomainEventTunableCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_WATCHDOG' file='libvirt' value='3' type='virDomainEventID' info='virConnectDomainEventWatchdogCallback'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_LAST' file='libvirt' value='3' type='virDomainEventIOErrorAction'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_NONE' file='libvirt' value='0' type='virDomainEventIOErrorAction' info='No action, IO error ignored'/>
@@ -2191,6 +2269,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_JOB_FAILED' file='libvirt' value='4' type='virDomainJobType' info='Job hit error, but isn&apos;t cleaned up'/>
     <enum name='VIR_DOMAIN_JOB_LAST' file='libvirt' value='6' type='virDomainJobType'/>
     <enum name='VIR_DOMAIN_JOB_NONE' file='libvirt' value='0' type='virDomainJobType' info='No job is active'/>
+    <enum name='VIR_DOMAIN_JOB_STATS_COMPLETED' file='libvirt' value='1' type='virDomainGetJobStatsFlags' info='return stats of a recently
+ completed job'/>
     <enum name='VIR_DOMAIN_JOB_UNBOUNDED' file='libvirt' value='2' type='virDomainJobType' info='Job without a finite completion time'/>
     <enum name='VIR_DOMAIN_LAST' file='libvirt' value='8' type='virDomainState' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last state supported
@@ -2434,13 +2514,20 @@ listing a domain'/>
     <enum name='VIR_DOMAIN_START_BYPASS_CACHE' file='libvirt' value='4' type='virDomainCreateFlags' info='Avoid file system cache pollution'/>
     <enum name='VIR_DOMAIN_START_FORCE_BOOT' file='libvirt' value='8' type='virDomainCreateFlags' info='Boot, discarding any managed save'/>
     <enum name='VIR_DOMAIN_START_PAUSED' file='libvirt' value='1' type='virDomainCreateFlags' info='Launch guest in paused state'/>
+    <enum name='VIR_DOMAIN_STATS_BALLOON' file='libvirt' value='4' type='virDomainStatsTypes' info='return domain balloon info'/>
+    <enum name='VIR_DOMAIN_STATS_BLOCK' file='libvirt' value='32' type='virDomainStatsTypes' info='return domain block info'/>
+    <enum name='VIR_DOMAIN_STATS_CPU_TOTAL' file='libvirt' value='2' type='virDomainStatsTypes' info='return domain CPU info'/>
+    <enum name='VIR_DOMAIN_STATS_INTERFACE' file='libvirt' value='16' type='virDomainStatsTypes' info='return domain interfaces info'/>
     <enum name='VIR_DOMAIN_STATS_STATE' file='libvirt' value='1' type='virDomainStatsTypes' info='return domain state'/>
+    <enum name='VIR_DOMAIN_STATS_VCPU' file='libvirt' value='8' type='virDomainStatsTypes' info='return domain virtual CPU info'/>
     <enum name='VIR_DOMAIN_TIME_SYNC' file='libvirt' value='1' type='virDomainSetTimeFlags' info='Re-sync domain time from domain&apos;s RTC'/>
     <enum name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' file='libvirt' value='1' type='virDomainUndefineFlagsValues' info='Also remove any
 managed save'/>
+    <enum name='VIR_DOMAIN_UNDEFINE_NVRAM' file='libvirt' value='4' type='virDomainUndefineFlagsValues' info='Also remove any
+nvram file Future undefine control flags should come here.'/>
     <enum name='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' file='libvirt' value='2' type='virDomainUndefineFlagsValues' info='If last use of domain,
 then also remove any
-snapshot metadata Future undefine control flags should come here.'/>
+snapshot metadata'/>
     <enum name='VIR_DOMAIN_VCPU_CONFIG' file='libvirt' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainVcpuFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_VCPU_CURRENT' file='libvirt' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainVcpuFlags'/>
     <enum name='VIR_DOMAIN_VCPU_GUEST' file='libvirt' value='8' type='virDomainVcpuFlags' info='Modify state of the cpu in the guest'/>
@@ -2474,7 +2561,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='60' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='61' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2602,6 +2689,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_FROM_OPENVZ' file='virterror' value='14' type='virErrorDomain' info='Error from OpenVZ driver'/>
     <enum name='VIR_FROM_PARALLELS' file='virterror' value='48' type='virErrorDomain' info='Error from Parallels'/>
     <enum name='VIR_FROM_PHYP' file='virterror' value='29' type='virErrorDomain' info='Error from IBM power hypervisor'/>
+    <enum name='VIR_FROM_POLKIT' file='virterror' value='60' type='virErrorDomain' info='Error from polkit code'/>
     <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code; unused since
 0.8.6'/>
     <enum name='VIR_FROM_QEMU' file='virterror' value='10' type='virErrorDomain' info='Error at the QEMU daemon'/>
@@ -2661,6 +2749,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt' value='2' type='virDomainMigrateFlags' info='direct source -&gt; dest host control channel Note the less-common spelling that we&apos;re stuck with:
 VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt' value='8' type='virDomainMigrateFlags' info='persist the VM on the destination'/>
+    <enum name='VIR_MIGRATE_RDMA_PIN_ALL' file='libvirt' value='16384' type='virDomainMigrateFlags' info='RDMA memory pinning'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
     <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
     <enum name='VIR_MIGRATE_UNSAFE' file='libvirt' value='512' type='virDomainMigrateFlags' info='force migration even if it is considered unsafe'/>
@@ -2698,6 +2787,11 @@ config if it&apos;s not active'/>
     <enum name='VIR_NETWORK_UPDATE_COMMAND_MODIFY' file='libvirt' value='1' type='virNetworkUpdateCommand' info='modify an existing element'/>
     <enum name='VIR_NETWORK_UPDATE_COMMAND_NONE' file='libvirt' value='0' type='virNetworkUpdateCommand' info='(invalid)'/>
     <enum name='VIR_NETWORK_XML_INACTIVE' file='libvirt' value='1' type='virNetworkXMLFlags' info='dump inactive network information'/>
+    <enum name='VIR_NODE_ALLOC_PAGES_ADD' file='libvirt' value='0' type='virNodeAllocPagesFlags' info='Add @pageCounts to the pages pool. This
+can be used only to size up the pool.'/>
+    <enum name='VIR_NODE_ALLOC_PAGES_SET' file='libvirt' value='1' type='virNodeAllocPagesFlags' info='Don&apos;t add @pageCounts, instead set
+passed number of pages. This can be
+used to free allocated pages.'/>
     <enum name='VIR_NODE_CPU_STATS_ALL_CPUS' file='libvirt' value='-1' type='virNodeGetCPUStatsAllCPUs'/>
     <enum name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt' value='-1' type='virNodeGetMemoryStatsAllCells'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_DISK' file='libvirt' value='1' type='virNodeSuspendTarget'/>
@@ -2854,8 +2948,11 @@ Cryptography&quot; (1996)'/>
       <field name='cur' type='virDomainBlockJobCursor' info=''/>
       <field name='end' type='virDomainBlockJobCursor' info=''/>
     </struct>
+    <typedef name='virDomainBlockJobInfoFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainBlockJobInfoPtr' file='libvirt' type='virDomainBlockJobInfo *'/>
+    <typedef name='virDomainBlockJobSetSpeedFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainBlockJobType' file='libvirt' type='enum'/>
+    <typedef name='virDomainBlockPullFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainBlockRebaseFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainBlockResizeFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainBlockStatsPtr' file='libvirt' type='virDomainBlockStatsStruct *'>
@@ -2926,6 +3023,7 @@ and ERROR states)'/>
     <typedef name='virDomainEventType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventUndefinedDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventWatchdogAction' file='libvirt' type='enum'/>
+    <typedef name='virDomainGetJobStatsFlags' file='libvirt' type='enum'/>
     <struct name='virDomainInfo' file='libvirt' type='struct _virDomainInfo'>
       <field name='state' type='unsigned char' info='the running state, one of virDomainState'/>
       <field name='maxMem' type='unsigned long' info='the maximum memory in KBytes allowed'/>
@@ -3095,6 +3193,7 @@ see note above'/>
     <typedef name='virNetworkUpdateFlags' file='libvirt' type='enum'/>
     <typedef name='virNetworkUpdateSection' file='libvirt' type='enum'/>
     <typedef name='virNetworkXMLFlags' file='libvirt' type='enum'/>
+    <typedef name='virNodeAllocPagesFlags' file='libvirt' type='enum'/>
     <struct name='virNodeCPUStats' file='libvirt' type='struct _virNodeCPUStats'>
       <field name='field' type='char field[VIR_NODE_CPU_STATS_FIELD_LENGTH]' info=''/>
       <field name='value' type='unsigned long long' info=''/>
@@ -3583,6 +3682,23 @@ VIR_DOMAIN_EVENT_ID_TRAY_CHANGE with virConnectDomainEventRegisterAny()]]></info
       <arg name='reason' type='int' info='why the tray status was changed?'/>
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
+    <functype name='virConnectDomainEventTunableCallback' file='libvirt' module='libvirt'>
+      <info><![CDATA[This callback occurs when tunable values are updated. The params must not
+be freed in the callback handler as it's done internally after the callback
+handler is executed.
+
+Currently supported name spaces:
+ "cputune.*"
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_TUNABLE with virConnectDomainEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='params' type='virTypedParameterPtr' info='changed tunable values stored as array of virTypedParameter'/>
+      <arg name='nparams' type='int' info='size of the array'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
     <functype name='virConnectDomainEventWatchdogCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_WATCHDOG with virConnectDomainEventRegisterAny()]]></info>
@@ -3647,6 +3763,72 @@ state. The typed parameter keys are in this format:
 "state.state" - state of the VM, returned as int from virDomainState enum
 "state.reason" - reason for entering given state, returned as int from
                  virDomain*Reason enum corresponding to given state.
+
+VIR_DOMAIN_STATS_CPU_TOTAL: Return CPU statistics and usage information.
+The typed parameter keys are in this format:
+"cpu.time" - total cpu time spent for this domain in nanoseconds
+             as unsigned long long.
+"cpu.user" - user cpu time spent in nanoseconds as unsigned long long.
+"cpu.system" - system cpu time spent in nanoseconds as unsigned long long.
+
+VIR_DOMAIN_STATS_BALLOON: Return memory balloon device information.
+The typed parameter keys are in this format:
+"balloon.current" - the memory in kiB currently used
+                    as unsigned long long.
+"balloon.maximum" - the maximum memory in kiB allowed
+                    as unsigned long long.
+
+VIR_DOMAIN_STATS_VCPU: Return virtual CPU statistics.
+Due to VCPU hotplug, the vcpu.<num>.* array could be sparse.
+The actual size of the array corresponds to "vcpu.current".
+The array size will never exceed "vcpu.maximum".
+The typed parameter keys are in this format:
+"vcpu.current" - current number of online virtual CPUs as unsigned int.
+"vcpu.maximum" - maximum number of online virtual CPUs as unsigned int.
+"vcpu.<num>.state" - state of the virtual CPU <num>, as int
+                     from virVcpuState enum.
+"vcpu.<num>.time" - virtual cpu time spent by virtual CPU <num>
+                    as unsigned long long.
+
+VIR_DOMAIN_STATS_INTERFACE: Return network interface statistics.
+The typed parameter keys are in this format:
+"net.count" - number of network interfaces on this domain
+              as unsigned int.
+"net.<num>.name" - name of the interface <num> as string.
+"net.<num>.rx.bytes" - bytes received as unsigned long long.
+"net.<num>.rx.pkts" - packets received as unsigned long long.
+"net.<num>.rx.errs" - receive errors as unsigned long long.
+"net.<num>.rx.drop" - receive packets dropped as unsigned long long.
+"net.<num>.tx.bytes" - bytes transmitted as unsigned long long.
+"net.<num>.tx.pkts" - packets transmitted as unsigned long long.
+"net.<num>.tx.errs" - transmission errors as unsigned long long.
+"net.<num>.tx.drop" - transmit packets dropped as unsigned long long.
+
+VIR_DOMAIN_STATS_BLOCK: Return block devices statistics.
+The typed parameter keys are in this format:
+"block.count" - number of block devices on this domain
+                as unsigned int.
+"block.<num>.name" - name of the block device <num> as string.
+                     matches the target name (vda/sda/hda) of the
+                     block device.
+"block.<num>.rd.reqs" - number of read requests as unsigned long long.
+"block.<num>.rd.bytes" - number of read bytes as unsigned long long.
+"block.<num>.rd.times" - total time (ns) spent on reads as
+                         unsigned long long.
+"block.<num>.wr.reqs" - number of write requests as unsigned long long.
+"block.<num>.wr.bytes" - number of written bytes as unsigned long long.
+"block.<num>.wr.times" - total time (ns) spent on writes as
+                         unsigned long long.
+"block.<num>.fl.reqs" - total flush requests as unsigned long long.
+"block.<num>.fl.times" - total time (ns) spent on cache flushing as
+                         unsigned long long.
+"block.<num>.errors" - Xen only: the 'oo_req' value as
+                       unsigned long long.
+
+Note that entire stats groups or individual stat fields may be missing from
+the output in case they are not supported by the given hypervisor, are not
+applicable for the current state of the guest domain, or their retrieval
+was not successful.
 
 Using 0 for @stats returns all stats groups supported by the given
 hypervisor.
@@ -4450,18 +4632,26 @@ inspecting //disk//backingStore/@index in the domain XML. Thus, for
 example, "vda[3]" refers to the backing store with index equal to "3"
 in the chain of disk "vda".
 
-The maximum bandwidth (in MiB/s) that will be used to do the commit can be
-specified with the bandwidth parameter.  If set to 0, libvirt will choose a
-suitable default.  Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0; in this case, it might still be
-possible for a later call to virDomainBlockJobSetSpeed() to succeed.
-The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
+The maximum bandwidth that will be used to do the commit can be
+specified with the @bandwidth parameter.  If set to 0, there is no
+limit.  If @flags includes VIR_DOMAIN_BLOCK_COMMIT_BANDWIDTH_BYTES,
+@bandwidth is in bytes/second; otherwise, it is in MiB/second.
+Values larger than 2^52 bytes/sec may be rejected due to overflow
+considerations based on the word size of both client and server,
+and values larger than 2^31 bytes/sec may cause overflow problems
+if later queried by virDomainGetBlockJobInfo() without scaling.
+Hypervisors may further restrict the range of valid bandwidth
+values.  Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0; in this case, it might still
+be possible for a later call to virDomainBlockJobSetSpeed() to
+succeed.  The actual speed can be determined with
+virDomainGetBlockJobInfo().]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='base' type='const char *' info='path to backing file to merge into, or device shorthand, or NULL for default'/>
       <arg name='top' type='const char *' info='path to file within backing chain that contains data to be merged, or device shorthand, or NULL to merge all possible data'/>
-      <arg name='bandwidth' type='unsigned long' info='(optional) specify commit bandwidth limit in MiB/s'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify bandwidth limit; flags determine the unit'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockCommitFlags'/>
     </function>
     <function name='virDomainBlockCopy' file='libvirt' module='libvirt'>
@@ -4573,7 +4763,16 @@ beginning of the first phase.]]></info>
     </function>
     <function name='virDomainBlockJobSetSpeed' file='libvirt' module='libvirt'>
       <info><![CDATA[Set the maximimum allowable bandwidth that a block job may consume.  If
-bandwidth is 0, the limit will revert to the hypervisor default.
+bandwidth is 0, the limit will revert to the hypervisor default of
+unlimited.
+
+If @flags contains VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES, @bandwidth
+is in bytes/second; otherwise, it is in MiB/second.  Values larger than
+2^52 bytes/sec may be rejected due to overflow considerations based on
+the word size of both client and server, and values larger than 2^31
+bytes/sec may cause overflow problems if later queried by
+virDomainGetBlockJobInfo() without scaling.  Hypervisors may further
+restrict the range of valid bandwidth values.
 
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
@@ -4584,8 +4783,8 @@ elements within //domain/devices/disk.]]></info>
       <return type='int' info='-1 in case of failure, 0 when successful.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
-      <arg name='bandwidth' type='unsigned long' info='specify bandwidth limit in MiB/s'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='bandwidth' type='unsigned long' info='specify bandwidth limit; flags determine the unit'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockJobSetSpeedFlags'/>
     </function>
     <function name='virDomainBlockPeek' file='libvirt' module='libvirt'>
       <info><![CDATA[This function allows you to read the contents of a domain's
@@ -4644,19 +4843,27 @@ block device (the <source file='...'/> sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
-The maximum bandwidth (in MiB/s) that will be used to do the copy can be
-specified with the bandwidth parameter.  If set to 0, libvirt will choose a
-suitable default.  Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0; in this case, it might still be
-possible for a later call to virDomainBlockJobSetSpeed() to succeed.
-The actual speed can be determined with virDomainGetBlockJobInfo().
+The maximum bandwidth that will be used to do the copy can be
+specified with the @bandwidth parameter.  If set to 0, there is no
+limit.  If @flags includes VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES,
+@bandwidth is in bytes/second; otherwise, it is in MiB/second.
+Values larger than 2^52 bytes/sec may be rejected due to overflow
+considerations based on the word size of both client and server,
+and values larger than 2^31 bytes/sec may cause overflow problems
+if later queried by virDomainGetBlockJobInfo() without scaling.
+Hypervisors may further restrict the range of valid bandwidth
+values.  Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0; in this case, it might still
+be possible for a later call to virDomainBlockJobSetSpeed() to
+succeed.  The actual speed can be determined with
+virDomainGetBlockJobInfo().
 
 This is shorthand for virDomainBlockRebase() with a NULL base.]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
-      <arg name='bandwidth' type='unsigned long' info='(optional) specify copy bandwidth limit in MiB/s'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify bandwidth limit; flags determine the unit'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockPullFlags'/>
     </function>
     <function name='virDomainBlockRebase' file='libvirt' module='libvirt'>
       <info><![CDATA[Populate a disk image with data from its backing image chain, and
@@ -4697,7 +4904,10 @@ as the backing file of the original image. This allows a management app to
 pre-create files with relative backing file names, rather than the default
 of absolute backing file names; as a security precaution, you should
 generally only use reuse_ext with the shallow flag and a non-raw
-destination file.
+destination file.  By default, the copy destination will be treated as
+type='file', but using VIR_DOMAIN_BLOCK_REBASE_COPY_DEV treats the
+destination as type='block' (affecting how virDomainGetBlockInfo() will
+report allocation after pivoting).
 
 A copy job has two parts; in the first phase, the @bandwidth parameter
 affects how fast the source is pulled into the destination, and the job
@@ -4732,12 +4942,20 @@ inspecting //disk//backingStore/@index in the domain XML. Thus, for
 example, "vda[3]" refers to the backing store with index equal to "3"
 in the chain of disk "vda".
 
-The maximum bandwidth (in MiB/s) that will be used to do the copy can be
-specified with the bandwidth parameter.  If set to 0, libvirt will choose a
-suitable default.  Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0; in this case, it might still be
-possible for a later call to virDomainBlockJobSetSpeed() to succeed.
-The actual speed can be determined with virDomainGetBlockJobInfo().
+The maximum bandwidth that will be used to do the copy can be
+specified with the @bandwidth parameter.  If set to 0, there is no
+limit.  If @flags includes VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES,
+@bandwidth is in bytes/second; otherwise, it is in MiB/second.
+Values larger than 2^52 bytes/sec may be rejected due to overflow
+considerations based on the word size of both client and server,
+and values larger than 2^31 bytes/sec may cause overflow problems
+if later queried by virDomainGetBlockJobInfo() without scaling.
+Hypervisors may further restrict the range of valid bandwidth
+values.  Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0; in this case, it might still
+be possible for a later call to virDomainBlockJobSetSpeed() to
+succeed.  The actual speed can be determined with
+virDomainGetBlockJobInfo().
 
 When @base is NULL and @flags is 0, this is identical to
 virDomainBlockPull().  When @flags contains VIR_DOMAIN_BLOCK_REBASE_COPY,
@@ -4751,7 +4969,7 @@ to the source format or probed from the reused file.]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='base' type='const char *' info='path to backing file to keep, or device shorthand, or NULL for no backing file'/>
-      <arg name='bandwidth' type='unsigned long' info='(optional) specify copy bandwidth limit in MiB/s'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify bandwidth limit; flags determine the unit'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockRebaseFlags'/>
     </function>
     <function name='virDomainBlockResize' file='libvirt' module='libvirt'>
@@ -5324,7 +5542,11 @@ unless @nparams is 0 on input.]]></info>
     </function>
     <function name='virDomainGetBlockJobInfo' file='libvirt' module='libvirt'>
       <info><![CDATA[Request block job information for the given disk.  If an operation is active
-@info will be updated with the current progress.
+@info will be updated with the current progress.  The units used for the
+bandwidth field of @info depends on @flags.  If @flags includes
+VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES, bandwidth is in bytes/second
+(although this mode can risk failure due to overflow, depending on both
+client and server word size); otherwise, the value is rounded up to MiB/s.
 
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
@@ -5336,7 +5558,7 @@ elements within //domain/devices/disk.]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='info' type='virDomainBlockJobInfoPtr' info='pointer to a virDomainBlockJobInfo structure'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockJobInfoFlags'/>
     </function>
     <function name='virDomainGetCPUStats' file='libvirt' module='libvirt'>
       <info><![CDATA[Get statistics relating to CPU usage attributable to a single
@@ -5513,13 +5735,22 @@ a superset of progress information provided by virDomainGetJobInfo.
 Possible fields returned in @params are defined by VIR_DOMAIN_JOB_*
 macros and new fields will likely be introduced in the future so callers
 may receive fields that they do not understand in case they talk to a
-newer server.]]></info>
+newer server.
+
+When @flags contains VIR_DOMAIN_JOB_STATS_COMPLETED, the function will
+return statistics about a recently completed job. Specifically, this
+flag may be used to query statistics of a completed incoming migration.
+Statistics of a completed job are automatically destroyed once read or
+when libvirtd is restarted. Note that time information returned for
+completed migrations may be completely irrelevant unless both source and
+destination hosts have synchronized time (i.e., NTP daemon is running on
+both of them).]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='type' type='int *' info='where to store the job type (one of virDomainJobType)'/>
       <arg name='params' type='virTypedParameterPtr *' info='where to store job statistics'/>
       <arg name='nparams' type='int *' info='number of items in @params'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainGetJobStatsFlags'/>
     </function>
     <function name='virDomainGetMaxMemory' file='libvirt' module='libvirt'>
       <info><![CDATA[Retrieve the maximum amount of physical memory allocated to a
@@ -5888,14 +6119,8 @@ consists of a dot-separated string containing name of the requested group
 followed by a group specific description of the statistic value.
 
 The statistic groups are enabled using the @stats parameter which is a
-binary-OR of enum virDomainStatsTypes. The following groups are available
-(although not necessarily implemented for each hypervisor):
-
-VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
-state. The typed parameter keys are in this format:
-"state.state" - state of the VM, returned as int from virDomainState enum
-"state.reason" - reason for entering given state, returned as int from
-                 virDomain*Reason enum corresponding to given state.
+binary-OR of enum virDomainStatsTypes. The stats groups are documented
+in virConnectGetAllDomainStats.
 
 Using 0 for @stats returns all stats groups supported by the given
 hypervisor.
@@ -8438,6 +8663,34 @@ running state, its persistent configuration, or both.]]></info>
       <arg name='xml' type='const char *' info='the XML description for the network, preferably in UTF-8'/>
       <arg name='flags' type='unsigned int' info='bitwise OR of virNetworkUpdateFlags.'/>
     </function>
+    <function name='virNodeAllocPages' file='libvirt' module='libvirt'>
+      <info><![CDATA[Sometimes, when trying to start a new domain, it may be
+necessary to reserve some huge pages in the system pool which
+can be then allocated by the domain. This API serves that
+purpose. On its input, @pageSizes and @pageCounts are arrays
+of the same cardinality of @npages. The @pageSizes contains
+page sizes which are to be allocated in the system (the size
+unit is kibibytes), and @pageCounts then contains the number
+of pages to reserve.  If @flags is 0
+(VIR_NODE_ALLOC_PAGES_ADD), each pool corresponding to
+@pageSizes grows by the number of pages specified in the
+corresponding @pageCounts.  If @flags contains
+VIR_NODE_ALLOC_PAGES_SET, each pool mentioned is resized to
+the given number of pages.  The pages pool can be allocated
+over several NUMA nodes at once, just point at @startCell and
+tell how many subsequent NUMA nodes should be taken in. As a
+special case, if @startCell is equal to negative one, then
+kernel is instructed to allocate the pages over all NUMA nodes
+proportionally.]]></info>
+      <return type='int' info='the number of nodes successfully adjusted or -1 in case of an error.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='npages' type='unsigned int' info='number of items in the @pageSizes and @pageCounts arrays'/>
+      <arg name='pageSizes' type='unsigned int *' info='which huge page sizes to allocate'/>
+      <arg name='pageCounts' type='unsigned long long *' info='how many pages should be allocated'/>
+      <arg name='startCell' type='int' info='index of first cell to allocate pages on'/>
+      <arg name='cellCount' type='unsigned int' info='number of consecutive cells to allocate pages on'/>
+      <arg name='flags' type='unsigned int' info='extra flags; binary-OR of virNodeAllocPagesFlags'/>
+    </function>
     <function name='virNodeDeviceCreateXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Create a new device on the VM host machine, for example, virtual
 HBAs created using vport_create.
@@ -8673,7 +8926,7 @@ function the returned value is in bytes. Divide by 1024 as necessary.]]></info>
     </function>
     <function name='virNodeGetFreePages' file='libvirt' module='libvirt'>
       <info><![CDATA[This calls queries the host system on free pages of
-specified size. Ont the input, @pages is expected to be
+specified size. For the input, @pages is expected to be
 filled with pages that caller is interested in (the size
 unit is kibibytes, so e.g. pass 2048 for 2MB), then @startcell
 refers to the first NUMA node that info should be collected

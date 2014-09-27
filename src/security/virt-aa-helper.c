@@ -579,9 +579,9 @@ valid_path(const char *path, const bool readonly)
     if (STRNEQLEN(path, "/", 1))
         return 1;
 
-    if (!virFileExists(path))
+    if (!virFileExists(path)) {
         vah_warning(_("path does not exist, skipping file type checks"));
-    else {
+    } else {
         if (stat(path, &sb) == -1)
             return -1;
 
@@ -777,9 +777,9 @@ vah_add_path(virBufferPtr buf, const char *path, const char *perms, bool recursi
             vah_error(NULL, 0, _("could not find realpath for disk"));
             return rc;
         }
-    } else
-        if (VIR_STRDUP_QUIET(tmp, path) < 0)
-            return rc;
+    } else if (VIR_STRDUP_QUIET(tmp, path) < 0) {
+        return rc;
+    }
 
     if (strchr(perms, 'w') != NULL)
         readonly = false;
@@ -932,7 +932,7 @@ get_files(vahControl * ctl)
          */
         if (!disk->src->backingStore) {
             bool probe = ctl->allowDiskFormatProbing;
-            virStorageFileGetMetadata(disk->src, -1, -1, probe);
+            virStorageFileGetMetadata(disk->src, -1, -1, probe, false);
         }
 
         /* XXX passing ignoreOpenFailure = true to get back to the behavior
@@ -1006,8 +1006,8 @@ get_files(vahControl * ctl)
         if (vah_add_file(&buf, ctl->def->os.dtb, "r") != 0)
             goto cleanup;
 
-    if (ctl->def->os.loader && ctl->def->os.loader)
-        if (vah_add_file(&buf, ctl->def->os.loader, "r") != 0)
+    if (ctl->def->os.loader && ctl->def->os.loader->path)
+        if (vah_add_file(&buf, ctl->def->os.loader->path, "r") != 0)
             goto cleanup;
 
     for (i = 0; i < ctl->def->ngraphics; i++) {
@@ -1269,9 +1269,9 @@ main(int argc, char **argv)
                          APPARMOR_DIR "/libvirt", ctl->uuid) < 0)
         vah_error(ctl, 0, _("could not allocate memory"));
 
-    if (ctl->cmd == 'a')
+    if (ctl->cmd == 'a') {
         rc = parserLoad(ctl->uuid);
-    else if (ctl->cmd == 'R' || ctl->cmd == 'D') {
+    } else if (ctl->cmd == 'R' || ctl->cmd == 'D') {
         rc = parserRemove(ctl->uuid);
         if (ctl->cmd == 'D') {
             unlink(include_file);

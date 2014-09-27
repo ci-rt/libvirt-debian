@@ -72,6 +72,11 @@ VIR_LOG_INIT("remote.remote_driver");
 # define HYPER_TO_ULONG(_to, _from) (_to) = (_from)
 #endif
 
+#define remoteDeserializeTypedParameters(ret_params_val, ret_params_len,      \
+                                         limit, params, nparams)              \
+    deserializeTypedParameters(__FUNCTION__, ret_params_val, ret_params_len,  \
+                               limit, params, nparams)
+
 static bool inside_daemon = false;
 static virDriverPtr remoteDriver = NULL;
 
@@ -326,6 +331,11 @@ remoteDomainBuildEventBlockJob2(virNetClientProgramPtr prog,
                                 void *evdata, void *opaque);
 
 static void
+remoteDomainBuildEventCallbackTunable(virNetClientProgramPtr prog,
+                                      virNetClientPtr client,
+                                      void *evdata, void *opaque);
+
+static void
 remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                  virNetClientPtr client ATTRIBUTE_UNUSED,
                                  void *evdata, void *opaque);
@@ -476,6 +486,10 @@ static virNetClientProgramEvent remoteEvents[] = {
       remoteDomainBuildEventBlockJob2,
       sizeof(remote_domain_event_block_job_2_msg),
       (xdrproc_t)xdr_remote_domain_event_block_job_2_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_CALLBACK_TUNABLE,
+      remoteDomainBuildEventCallbackTunable,
+      sizeof(remote_domain_event_callback_tunable_msg),
+      (xdrproc_t)xdr_remote_domain_event_callback_tunable_msg },
 };
 
 
@@ -606,9 +620,9 @@ doRemoteOpen(virConnectPtr conn,
                 else
                     transport = trans_unix;
             } else {
-                if (STRCASEEQ(transport_str, "tls"))
+                if (STRCASEEQ(transport_str, "tls")) {
                     transport = trans_tls;
-                else if (STRCASEEQ(transport_str, "unix")) {
+                } else if (STRCASEEQ(transport_str, "unix")) {
                     if (conn->uri->server) {
                         virReportError(VIR_ERR_INVALID_ARG,
                                        _("using unix socket and remote "
@@ -618,15 +632,15 @@ doRemoteOpen(virConnectPtr conn,
                     } else {
                         transport = trans_unix;
                     }
-                } else if (STRCASEEQ(transport_str, "ssh"))
+                } else if (STRCASEEQ(transport_str, "ssh")) {
                     transport = trans_ssh;
-                else if (STRCASEEQ(transport_str, "libssh2"))
+                } else if (STRCASEEQ(transport_str, "libssh2")) {
                     transport = trans_libssh2;
-                else if (STRCASEEQ(transport_str, "ext"))
+                } else if (STRCASEEQ(transport_str, "ext")) {
                     transport = trans_ext;
-                else if (STRCASEEQ(transport_str, "tcp"))
+                } else if (STRCASEEQ(transport_str, "tcp")) {
                     transport = trans_tcp;
-                else {
+                } else {
                     virReportError(VIR_ERR_INVALID_ARG, "%s",
                                    _("remote_open: transport in URL not recognised "
                                      "(should be tls|unix|ssh|ext|tcp|libssh2)"));
@@ -1743,21 +1757,30 @@ remoteSerializeTypedParameters(virTypedParameterPtr params,
 
 /* Helper to deserialize typed parameters. */
 static int
-remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
-                                 u_int ret_params_len,
-                                 int limit,
-                                 virTypedParameterPtr *params,
-                                 int *nparams)
+deserializeTypedParameters(const char *funcname,
+                           remote_typed_param *ret_params_val,
+                           u_int ret_params_len,
+                           int limit,
+                           virTypedParameterPtr *params,
+                           int *nparams)
 {
     size_t i = 0;
     int rv = -1;
     bool userAllocated = *params != NULL;
 
+    if (ret_params_len > limit) {
+        virReportError(VIR_ERR_RPC,
+                       _("%s: too many parameters '%u' for limit '%d'"),
+                       funcname, ret_params_len, limit);
+        goto cleanup;
+    }
+
     if (userAllocated) {
         /* Check the length of the returned list carefully. */
-        if (ret_params_len > limit || ret_params_len > *nparams) {
-            virReportError(VIR_ERR_RPC, "%s",
-                           _("returned number of parameters exceeds limit"));
+        if (ret_params_len > *nparams) {
+            virReportError(VIR_ERR_RPC,
+                           _("%s: too many parameters '%u' for nparams '%d'"),
+                           funcname, ret_params_len, *nparams);
             goto cleanup;
         }
     } else {
@@ -1774,8 +1797,8 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
         if (virStrcpyStatic(param->field,
                             ret_param->field) == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Parameter %s too big for destination"),
-                           ret_param->field);
+                           _("%s: parameter %s too big for destination"),
+                           funcname, ret_param->field);
             goto cleanup;
         }
 
@@ -1811,8 +1834,8 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
                 goto cleanup;
             break;
         default:
-            virReportError(VIR_ERR_RPC, _("unknown parameter type: %d"),
-                           param->type);
+            virReportError(VIR_ERR_RPC, _("%s: unknown parameter type: %d"),
+                           funcname, param->type);
             goto cleanup;
         }
     }
@@ -2676,7 +2699,7 @@ remoteDomainGetSchedulerType(virDomainPtr domain, int *nparams)
 
 static int
 remoteDomainMemoryStats(virDomainPtr domain,
-                        struct _virDomainMemoryStat *stats,
+                        virDomainMemoryStatPtr stats,
                         unsigned int nr_stats,
                         unsigned int flags)
 {
@@ -5500,6 +5523,39 @@ remoteDomainBuildEventCallbackDeviceRemoved(virNetClientProgramPtr prog ATTRIBUT
 
 
 static void
+remoteDomainBuildEventCallbackTunable(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                      virNetClientPtr client ATTRIBUTE_UNUSED,
+                                      void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    remote_domain_event_callback_tunable_msg *msg = evdata;
+    struct private_data *priv = conn->privateData;
+    virDomainPtr dom;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    virObjectEventPtr event = NULL;
+
+    if (remoteDeserializeTypedParameters(msg->params.params_val,
+                                         msg->params.params_len,
+                                         REMOTE_DOMAIN_EVENT_TUNABLE_MAX,
+                                         &params, &nparams) < 0)
+        return;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom) {
+        virTypedParamsFree(params, nparams);
+        return;
+    }
+
+    event = virDomainEventTunableNewFromDom(dom, params, nparams);
+
+    virDomainFree(dom);
+
+    remoteEventQueue(priv, event, msg->callbackID);
+}
+
+
+static void
 remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                  virNetClientPtr client ATTRIBUTE_UNUSED,
                                  void *evdata, void *opaque)
@@ -6987,19 +7043,12 @@ remoteDomainGetJobStats(virDomainPtr domain,
              (xdrproc_t) xdr_remote_domain_get_job_stats_ret, (char *) &ret) == -1)
         goto done;
 
-    if (ret.params.params_len > REMOTE_DOMAIN_JOB_STATS_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many job stats '%d' for limit '%d'"),
-                       ret.params.params_len,
-                       REMOTE_DOMAIN_JOB_STATS_MAX);
-        goto cleanup;
-    }
-
     *type = ret.type;
 
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
-                                         0, params, nparams) < 0)
+                                         REMOTE_DOMAIN_JOB_STATS_MAX,
+                                         params, nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -7730,7 +7779,7 @@ remoteConnectGetAllDomainStats(virConnectPtr conn,
     size_t i;
     remote_connect_get_all_domain_stats_args args;
     remote_connect_get_all_domain_stats_ret ret;
-
+    virDomainStatsRecordPtr elem = NULL;
     virDomainStatsRecordPtr *tmpret = NULL;
 
     if (ndoms) {
@@ -7769,7 +7818,6 @@ remoteConnectGetAllDomainStats(virConnectPtr conn,
         goto cleanup;
 
     for (i = 0; i < ret.retStats.retStats_len; i++) {
-        virDomainStatsRecordPtr elem;
         remote_domain_stats_record *rec = ret.retStats.retStats_val + i;
 
         if (VIR_ALLOC(elem) < 0)
@@ -7786,6 +7834,7 @@ remoteConnectGetAllDomainStats(virConnectPtr conn,
             goto cleanup;
 
         tmpret[i] = elem;
+        elem = NULL;
     }
 
     *retStats = tmpret;
@@ -7793,12 +7842,62 @@ remoteConnectGetAllDomainStats(virConnectPtr conn,
     rv = ret.retStats.retStats_len;
 
  cleanup:
+    if (elem) {
+        virObjectUnref(elem->dom);
+        VIR_FREE(elem);
+    }
     virDomainStatsRecordListFree(tmpret);
     xdr_free((xdrproc_t)xdr_remote_connect_get_all_domain_stats_ret,
              (char *) &ret);
 
     return rv;
 }
+
+
+static int
+remoteNodeAllocPages(virConnectPtr conn,
+                     unsigned int npages,
+                     unsigned int *pageSizes,
+                     unsigned long long *pageCounts,
+                     int startCell,
+                     unsigned int cellCount,
+                     unsigned int flags)
+{
+    int rv = -1;
+    remote_node_alloc_pages_args args;
+    remote_node_alloc_pages_ret ret;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    if (npages > REMOTE_NODE_MAX_CELLS) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many NUMA cells: %d > %d"),
+                       npages, REMOTE_NODE_MAX_CELLS);
+        goto done;
+    }
+
+    args.pageSizes.pageSizes_val = (u_int *) pageSizes;
+    args.pageSizes.pageSizes_len = npages;
+    args.pageCounts.pageCounts_val = (uint64_t *) pageCounts;
+    args.pageCounts.pageCounts_len = npages;
+    args.startCell = startCell;
+    args.cellCount = cellCount;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_ALLOC_PAGES,
+             (xdrproc_t) xdr_remote_node_alloc_pages_args, (char *) &args,
+             (xdrproc_t) xdr_remote_node_alloc_pages_ret, (char *) &ret) == -1)
+        goto done;
+
+    rv = ret.ret;
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
@@ -8108,6 +8207,7 @@ static virDriver remote_driver = {
     .domainBlockJobSetSpeed = remoteDomainBlockJobSetSpeed, /* 0.9.4 */
     .domainBlockPull = remoteDomainBlockPull, /* 0.9.4 */
     .domainBlockRebase = remoteDomainBlockRebase, /* 0.9.10 */
+    .domainBlockCopy = remoteDomainBlockCopy, /* 1.2.9 */
     .domainBlockCommit = remoteDomainBlockCommit, /* 0.10.2 */
     .connectSetKeepAlive = remoteConnectSetKeepAlive, /* 0.9.8 */
     .connectIsAlive = remoteConnectIsAlive, /* 0.9.8 */
@@ -8140,6 +8240,7 @@ static virDriver remote_driver = {
     .nodeGetFreePages = remoteNodeGetFreePages, /* 1.2.6 */
     .connectGetDomainCapabilities = remoteConnectGetDomainCapabilities, /* 1.2.7 */
     .connectGetAllDomainStats = remoteConnectGetAllDomainStats, /* 1.2.8 */
+    .nodeAllocPages = remoteNodeAllocPages, /* 1.2.9 */
 };
 
 static virNetworkDriver network_driver = {

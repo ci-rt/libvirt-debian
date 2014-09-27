@@ -1111,9 +1111,6 @@ cmdNetworkEdit(vshControl *ctl, const vshCmd *cmd)
     ret = true; goto edit_cleanup;
 #define EDIT_DEFINE \
     (network_edited = virNetworkDefineXML(ctl->conn, doc_edited))
-#define EDIT_FREE \
-    if (network_edited) \
-        virNetworkFree(network_edited);
 #include "virsh-edit.c"
 
     vshPrint(ctl, _("Network %s XML configuration edited.\n"),
@@ -1363,7 +1360,7 @@ cmdNetworkDHCPLeases(vshControl *ctl, const vshCmd *cmd)
                   "---------------------------------------------------------");
 
     for (i = 0; i < nleases; i++) {
-        const char *type = NULL;
+        const char *typestr = NULL;
         char *cidr_format = NULL;
         virNetworkDHCPLeasePtr lease = leases[i];
         time_t expirytime_tmp = lease->expirytime;
@@ -1372,14 +1369,17 @@ cmdNetworkDHCPLeases(vshControl *ctl, const vshCmd *cmd)
         ts = *localtime_r(&expirytime_tmp, &ts);
         strftime(expirytime, sizeof(expirytime), "%Y-%m-%d %H:%M:%S", &ts);
 
-        type = (lease->type == VIR_IP_ADDR_TYPE_IPV4) ? "ipv4" :
-            (lease->type == VIR_IP_ADDR_TYPE_IPV6) ? "ipv6" : "";
+        if (lease->type == VIR_IP_ADDR_TYPE_IPV4)
+            typestr = "ipv4";
+        else if (lease->type == VIR_IP_ADDR_TYPE_IPV6)
+            typestr = "ipv6";
 
         ignore_value(virAsprintf(&cidr_format, "%s/%d",
                                  lease->ipaddr, lease->prefix));
 
         vshPrintExtra(ctl, " %-20s %-18s %-9s %-25s %-15s %s\n",
-                      expirytime, EMPTYSTR(lease->mac), EMPTYSTR(type), cidr_format,
+                      expirytime, EMPTYSTR(lease->mac),
+                      EMPTYSTR(typestr), cidr_format,
                       EMPTYSTR(lease->hostname), EMPTYSTR(lease->clientid));
     }
 

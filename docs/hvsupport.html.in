@@ -271,8 +271,8 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
-<td></td>
+<td>1.2.8</td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td></td>
@@ -748,7 +748,7 @@ in.
 <td></td>
 <td>1.1.1</td>
 <td>1.2.2</td>
-<td></td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td>0.5.0</td>
@@ -851,8 +851,8 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
-<td></td>
+<td>1.2.9</td>
+<td>1.2.9</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2428,7 +2428,7 @@ in.
 <td></td>
 <td>1.2.6</td>
 <td></td>
-<td></td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td>1.1.0</td>
@@ -2468,7 +2468,7 @@ in.
 <td></td>
 <td>1.2.6</td>
 <td></td>
-<td></td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td>1.1.0</td>
@@ -2548,7 +2548,7 @@ in.
 <td></td>
 <td>1.2.6</td>
 <td></td>
-<td></td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td>1.1.0</td>
@@ -2668,7 +2668,7 @@ in.
 <td></td>
 <td>1.2.6</td>
 <td></td>
-<td></td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td>1.1.0</td>
@@ -2748,7 +2748,7 @@ in.
 <td></td>
 <td>1.2.6</td>
 <td></td>
-<td></td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td>1.1.0</td>
@@ -4161,23 +4161,23 @@ in.
 <td></td>
 </tr>
 <tr>
-<td><a href="html/libvirt-libvirt.html#virNodeDeviceDetachFlags">virNodeDeviceDetachFlags</a></td>
-<td>1.0.5</td>
-<td></td>
-<td></td>
-<td></td>
-<td>1.2.3</td>
+<td><a href="html/libvirt-libvirt.html#virNodeAllocPages">virNodeAllocPages</a></td>
+<td>1.2.9</td>
 <td></td>
 <td></td>
 <td></td>
 <td></td>
-<td>1.0.5</td>
-<td>1.0.5</td>
+<td>1.2.8</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.8</td>
+<td>1.2.9</td>
 <td></td>
-<td>1.0.5</td>
+<td>1.2.8</td>
+<td>1.2.8</td>
+<td></td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4199,6 +4199,26 @@ in.
   <th>vmware</th>
   <th>xen</th>
   <th>xenapi</th>
+</tr>
+<tr>
+<td><a href="html/libvirt-libvirt.html#virNodeDeviceDetachFlags">virNodeDeviceDetachFlags</a></td>
+<td>1.0.5</td>
+<td></td>
+<td></td>
+<td></td>
+<td>1.2.3</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>1.0.5</td>
+<td>1.0.5</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>1.0.5</td>
+<td></td>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNodeDeviceDettach">virNodeDeviceDettach</a></td>
@@ -4479,6 +4499,26 @@ in.
 <td></td>
 <td>0.9.8</td>
 <td></td>
+</tr>
+<tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>parallels</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>xen</th>
+  <th>xenapi</th>
 </tr>
 </tbody>
 </table>

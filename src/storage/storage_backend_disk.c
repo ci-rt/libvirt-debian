@@ -414,9 +414,9 @@ virStorageBackendDiskBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto error;
     }
 
-    if (flags & VIR_STORAGE_POOL_BUILD_OVERWRITE)
+    if (flags & VIR_STORAGE_POOL_BUILD_OVERWRITE) {
         ok_to_mklabel = true;
-    else {
+    } else {
         int check;
 
         check = virStorageBackendDiskFindLabel(
@@ -560,7 +560,7 @@ virStorageBackendDiskPartBoundaries(virStoragePoolObjPtr pool,
     unsigned long long extraBytes = 0;
     unsigned long long alignedAllocation = allocation;
     virStoragePoolSourceDevicePtr dev = &pool->def->source.devices[0];
-    unsigned long long cylinderSize = dev->geometry.heads *
+    unsigned long long cylinderSize = (unsigned long long)dev->geometry.heads *
                                       dev->geometry.sectors * SECTOR_SIZE;
 
     VIR_DEBUG("find free area: allocation %llu, cyl size %llu", allocation,

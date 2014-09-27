@@ -124,6 +124,9 @@ const REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX = 16;
 /* Upper limit on list of numa parameters. */
 const REMOTE_DOMAIN_NUMA_PARAMETERS_MAX = 16;
 
+/* Upper limit on block copy tunable parameters. */
+const REMOTE_DOMAIN_BLOCK_COPY_PARAMETERS_MAX = 16;
+
 /* Upper limit on list of node cpu stats. */
 const REMOTE_NODE_CPU_STATS_MAX = 16;
 
@@ -243,6 +246,9 @@ const REMOTE_NETWORK_DHCP_LEASES_MAX = 65536;
 
 /* Upper limit on count of parameters returned via bulk stats API */
 const REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX = 4096;
+
+/* Upper limit of message size for tunable event. */
+const REMOTE_DOMAIN_EVENT_TUNABLE_MAX = 2048;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -1282,6 +1288,13 @@ struct remote_domain_block_rebase_args {
     remote_nonnull_string path;
     remote_string base;
     unsigned hyper bandwidth;
+    unsigned int flags;
+};
+struct remote_domain_block_copy_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    remote_nonnull_string destxml;
+    remote_typed_param params<REMOTE_DOMAIN_BLOCK_COPY_PARAMETERS_MAX>;
     unsigned int flags;
 };
 struct remote_domain_block_commit_args {
@@ -2980,6 +2993,12 @@ struct remote_domain_event_block_job_2_msg {
     int status;
 };
 
+struct remote_domain_event_callback_tunable_msg {
+    int callbackID;
+    remote_nonnull_domain dom;
+    remote_typed_param params<REMOTE_DOMAIN_EVENT_TUNABLE_MAX>;
+};
+
 struct remote_connect_get_cpu_model_names_args {
     remote_nonnull_string arch;
     int need_results;
@@ -3040,6 +3059,18 @@ struct remote_node_get_free_pages_args {
 
 struct remote_node_get_free_pages_ret {
     unsigned hyper counts<REMOTE_NODE_MAX_CELLS>;
+};
+
+struct remote_node_alloc_pages_args {
+    unsigned int pageSizes<REMOTE_NODE_MAX_CELLS>;
+    unsigned hyper pageCounts<REMOTE_NODE_MAX_CELLS>;
+    int startCell;
+    unsigned int cellCount;
+    unsigned int flags;
+};
+
+struct remote_node_alloc_pages_ret {
+    int ret;
 };
 
 struct remote_network_dhcp_lease {
@@ -5456,5 +5487,23 @@ enum remote_procedure {
      * @acl: connect:search_domains
      * @aclfilter: domain:read
      */
-    REMOTE_PROC_CONNECT_GET_ALL_DOMAIN_STATS = 344
+    REMOTE_PROC_CONNECT_GET_ALL_DOMAIN_STATS = 344,
+
+    /**
+     * @generate: both
+     * @acl: domain:block_write
+     */
+    REMOTE_PROC_DOMAIN_BLOCK_COPY = 345,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_CALLBACK_TUNABLE = 346,
+
+    /**
+     * @generate: none
+     * @acl: connect:write
+     */
+    REMOTE_PROC_NODE_ALLOC_PAGES = 347
 };

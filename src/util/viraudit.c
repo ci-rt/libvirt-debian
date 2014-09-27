@@ -99,10 +99,8 @@ void virAuditSend(virLogSourcePtr source,
 #endif
 
     va_start(args, fmt);
-    if (virVasprintf(&str, fmt, args) < 0) {
+    if (virVasprintf(&str, fmt, args) < 0)
         VIR_WARN("Out of memory while formatting audit message");
-        str = NULL;
-    }
     va_end(args);
 
     if (auditlog && str) {
@@ -117,12 +115,7 @@ void virAuditSend(virLogSourcePtr source,
     }
 
 #if WITH_AUDIT
-    if (auditfd < 0) {
-        VIR_FREE(str);
-        return;
-    }
-
-    if (str) {
+    if (str && auditfd >= 0) {
         static const int record_types[] = {
             [VIR_AUDIT_RECORD_MACHINE_CONTROL] = AUDIT_VIRT_CONTROL,
             [VIR_AUDIT_RECORD_MACHINE_ID] = AUDIT_VIRT_MACHINE_ID,
@@ -137,9 +130,9 @@ void virAuditSend(virLogSourcePtr source,
             VIR_WARN("Failed to send audit message %s: %s",
                      NULLSTR(str), virStrerror(errno, ebuf, sizeof(ebuf)));
         }
-        VIR_FREE(str);
     }
 #endif
+    VIR_FREE(str);
 }
 
 void virAuditClose(void)

@@ -194,6 +194,7 @@ src/util/virnuma.c
 src/util/virobject.c
 src/util/virpci.c
 src/util/virpidfile.c
+src/util/virpolkit.c
 src/util/virportallocator.c
 src/util/virprocess.c
 src/util/virrandom.c
@@ -235,6 +236,7 @@ src/xenapi/xenapi_utils.c
 src/xenconfig/xen_common.c
 src/xenconfig/xen_sxpr.c
 src/xenconfig/xen_xm.c
+tests/virpolkittest.c
 tools/libvirt-guests.sh.in
 tools/virsh.c
 tools/virsh.h

@@ -81,6 +81,13 @@
 #define <a href="#VIR_DOMAIN_CPU_STATS_USERTIME">VIR_DOMAIN_CPU_STATS_USERTIME</a>;
 #define <a href="#VIR_DOMAIN_CPU_STATS_VCPUTIME">VIR_DOMAIN_CPU_STATS_VCPUTIME</a>;
 #define <a href="#VIR_DOMAIN_EVENT_CALLBACK">VIR_DOMAIN_EVENT_CALLBACK</a>;
+#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES">VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES</a>;
+#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN">VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN</a>;
+#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD</a>;
+#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA</a>;
+#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN">VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN</a>;
+#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD</a>;
+#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA</a>;
 #define <a href="#VIR_DOMAIN_JOB_COMPRESSION_BYTES">VIR_DOMAIN_JOB_COMPRESSION_BYTES</a>;
 #define <a href="#VIR_DOMAIN_JOB_COMPRESSION_CACHE">VIR_DOMAIN_JOB_COMPRESSION_CACHE</a>;
 #define <a href="#VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES">VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES</a>;
@@ -89,16 +96,19 @@
 #define <a href="#VIR_DOMAIN_JOB_DATA_PROCESSED">VIR_DOMAIN_JOB_DATA_PROCESSED</a>;
 #define <a href="#VIR_DOMAIN_JOB_DATA_REMAINING">VIR_DOMAIN_JOB_DATA_REMAINING</a>;
 #define <a href="#VIR_DOMAIN_JOB_DATA_TOTAL">VIR_DOMAIN_JOB_DATA_TOTAL</a>;
+#define <a href="#VIR_DOMAIN_JOB_DISK_BPS">VIR_DOMAIN_JOB_DISK_BPS</a>;
 #define <a href="#VIR_DOMAIN_JOB_DISK_PROCESSED">VIR_DOMAIN_JOB_DISK_PROCESSED</a>;
 #define <a href="#VIR_DOMAIN_JOB_DISK_REMAINING">VIR_DOMAIN_JOB_DISK_REMAINING</a>;
 #define <a href="#VIR_DOMAIN_JOB_DISK_TOTAL">VIR_DOMAIN_JOB_DISK_TOTAL</a>;
 #define <a href="#VIR_DOMAIN_JOB_DOWNTIME">VIR_DOMAIN_JOB_DOWNTIME</a>;
+#define <a href="#VIR_DOMAIN_JOB_MEMORY_BPS">VIR_DOMAIN_JOB_MEMORY_BPS</a>;
 #define <a href="#VIR_DOMAIN_JOB_MEMORY_CONSTANT">VIR_DOMAIN_JOB_MEMORY_CONSTANT</a>;
 #define <a href="#VIR_DOMAIN_JOB_MEMORY_NORMAL">VIR_DOMAIN_JOB_MEMORY_NORMAL</a>;
 #define <a href="#VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES">VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES</a>;
 #define <a href="#VIR_DOMAIN_JOB_MEMORY_PROCESSED">VIR_DOMAIN_JOB_MEMORY_PROCESSED</a>;
 #define <a href="#VIR_DOMAIN_JOB_MEMORY_REMAINING">VIR_DOMAIN_JOB_MEMORY_REMAINING</a>;
 #define <a href="#VIR_DOMAIN_JOB_MEMORY_TOTAL">VIR_DOMAIN_JOB_MEMORY_TOTAL</a>;
+#define <a href="#VIR_DOMAIN_JOB_SETUP_TIME">VIR_DOMAIN_JOB_SETUP_TIME</a>;
 #define <a href="#VIR_DOMAIN_JOB_TIME_ELAPSED">VIR_DOMAIN_JOB_TIME_ELAPSED</a>;
 #define <a href="#VIR_DOMAIN_JOB_TIME_REMAINING">VIR_DOMAIN_JOB_TIME_REMAINING</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_FIELD_LENGTH">VIR_DOMAIN_MEMORY_FIELD_LENGTH</a>;
@@ -185,8 +195,11 @@ typedef <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a>
 typedef enum <a href="#virDomainBlockJobAbortFlags">virDomainBlockJobAbortFlags</a>;
 typedef unsigned long long <a href="#virDomainBlockJobCursor">virDomainBlockJobCursor</a>;
 typedef struct _virDomainBlockJobInfo <a href="#virDomainBlockJobInfo">virDomainBlockJobInfo</a>;
+typedef enum <a href="#virDomainBlockJobInfoFlags">virDomainBlockJobInfoFlags</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockJobInfo">virDomainBlockJobInfo</a> * <a href="#virDomainBlockJobInfoPtr">virDomainBlockJobInfoPtr</a>;
+typedef enum <a href="#virDomainBlockJobSetSpeedFlags">virDomainBlockJobSetSpeedFlags</a>;
 typedef enum <a href="#virDomainBlockJobType">virDomainBlockJobType</a>;
+typedef enum <a href="#virDomainBlockPullFlags">virDomainBlockPullFlags</a>;
 typedef enum <a href="#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a>;
 typedef enum <a href="#virDomainBlockResizeFlags">virDomainBlockResizeFlags</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a> * <a href="#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a>;
@@ -228,6 +241,7 @@ typedef enum <a href="#virDomainEventTrayChangeReason">virDomainEventTrayChangeR
 typedef enum <a href="#virDomainEventType">virDomainEventType</a>;
 typedef enum <a href="#virDomainEventUndefinedDetailType">virDomainEventUndefinedDetailType</a>;
 typedef enum <a href="#virDomainEventWatchdogAction">virDomainEventWatchdogAction</a>;
+typedef enum <a href="#virDomainGetJobStatsFlags">virDomainGetJobStatsFlags</a>;
 typedef struct _virDomainInfo <a href="#virDomainInfo">virDomainInfo</a>;
 typedef <a href="libvirt-libvirt.html#virDomainInfo">virDomainInfo</a> * <a href="#virDomainInfoPtr">virDomainInfoPtr</a>;
 typedef <a href="libvirt-libvirt.html#virDomainInterfaceStatsStruct">virDomainInterfaceStatsStruct</a> * <a href="#virDomainInterfaceStatsPtr">virDomainInterfaceStatsPtr</a>;
@@ -292,6 +306,7 @@ typedef enum <a href="#virNetworkUpdateCommand">virNetworkUpdateCommand</a>;
 typedef enum <a href="#virNetworkUpdateFlags">virNetworkUpdateFlags</a>;
 typedef enum <a href="#virNetworkUpdateSection">virNetworkUpdateSection</a>;
 typedef enum <a href="#virNetworkXMLFlags">virNetworkXMLFlags</a>;
+typedef enum <a href="#virNodeAllocPagesFlags">virNodeAllocPagesFlags</a>;
 typedef struct _virNodeCPUStats <a href="#virNodeCPUStats">virNodeCPUStats</a>;
 typedef <a href="libvirt-libvirt.html#virNodeCPUStats">virNodeCPUStats</a> * <a href="#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a>;
 typedef struct _virNodeDevice <a href="#virNodeDevice">virNodeDevice</a>;
@@ -364,6 +379,7 @@ typedef void <a href="#virConnectDomainEventRTCChangeCallback">virConnectDomainE
 int	<a href="#virConnectDomainEventRegister">virConnectDomainEventRegister</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb);
 int	<a href="#virConnectDomainEventRegisterAny">virConnectDomainEventRegisterAny</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt.html#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb);
 typedef void <a href="#virConnectDomainEventTrayChangeCallback">virConnectDomainEventTrayChangeCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * devAlias, <br/>						 int reason, <br/>						 void * opaque);
+typedef void <a href="#virConnectDomainEventTunableCallback">virConnectDomainEventTunableCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>						 int nparams, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventWatchdogCallback">virConnectDomainEventWatchdogCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int action, <br/>						 void * opaque);
 char *	<a href="#virConnectDomainXMLFromNative">virConnectDomainXMLFromNative</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * nativeFormat, <br/>					 const char * nativeConfig, <br/>					 unsigned int flags);
 char *	<a href="#virConnectDomainXMLToNative">virConnectDomainXMLToNative</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * nativeFormat, <br/>					 const char * domainXml, <br/>					 unsigned int flags);
@@ -648,6 +664,7 @@ int	<a href="#virNetworkRef">virNetworkRef</a>			(<a href="libvirt-libvirt.html#
 int	<a href="#virNetworkSetAutostart">virNetworkSetAutostart</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 int autostart);
 int	<a href="#virNetworkUndefine">virNetworkUndefine</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network);
 int	<a href="#virNetworkUpdate">virNetworkUpdate</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned int command, <br/>					 unsigned int section, <br/>					 int parentIndex, <br/>					 const char * xml, <br/>					 unsigned int flags);
+int	<a href="#virNodeAllocPages">virNodeAllocPages</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pageSizes, <br/>					 unsigned long long * pageCounts, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a>	<a href="#virNodeDeviceCreateXML">virNodeDeviceCreateXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags);
 int	<a href="#virNodeDeviceDestroy">virNodeDeviceDestroy</a>		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev);
 int	<a href="#virNodeDeviceDetachFlags">virNodeDeviceDetachFlags</a>	(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev, <br/>					 const char * driverName, <br/>					 unsigned int flags);
@@ -855,7 +872,7 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_COPY_BANDWIDTH">Macro </a>VIR_DOMAIN_BLOCK_COPY_BANDWIDTH</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_COPY_BANDWIDTH">VIR_DOMAIN_BLOCK_COPY_BANDWIDTH</a>;
-</pre><p>Macro for the <a href="libvirt-libvirt.html#virDomainBlockCopy">virDomainBlockCopy</a> bandwidth tunable: it represents the maximum bandwidth in bytes/s, and is used while getting the copy operation into the mirrored phase, with a type of ullong. For compatibility with virDomainBlockJobSetSpeed(), values larger than 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected due to overflow considerations, and hypervisors may further restrict the set of valid values. Specifying 0 is the same as omitting this parameter, to request no bandwidth limiting. Some hypervisors may lack support for this parameter, while still allowing a subsequent change of bandwidth via virDomainBlockJobSetSpeed(). The actual speed can be determined with virDomainGetBlockJobInfo().</p>
+</pre><p>Macro for the <a href="libvirt-libvirt.html#virDomainBlockCopy">virDomainBlockCopy</a> bandwidth tunable: it represents the maximum bandwidth in bytes/s, and is used while getting the copy operation into the mirrored phase, with a type of ullong. For compatibility with virDomainBlockJobSetSpeed(), values larger than 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected on input due to overflow considerations (but do you really have an interface with that much bandwidth?), and values larger than 2^31 bytes/sec may cause overflow problems if queried in bytes/sec. Hypervisors may further restrict the set of valid values. Specifying 0 is the same as omitting this parameter, to request no bandwidth limiting. Some hypervisors may lack support for this parameter, while still allowing a subsequent change of bandwidth via virDomainBlockJobSetSpeed(). The actual speed can be determined with virDomainGetBlockJobInfo().</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_COPY_BUF_SIZE">Macro </a>VIR_DOMAIN_BLOCK_COPY_BUF_SIZE</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_COPY_BUF_SIZE">VIR_DOMAIN_BLOCK_COPY_BUF_SIZE</a>;
@@ -950,6 +967,34 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </pre><p>Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()</p>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES">VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES</a>;
+</pre><p>Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN">VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN</a>;
+</pre><p>Macro represents formatted pinning for emulator process, as VIR_TYPED_PARAM_STRING.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD</a>;
+</pre><p>Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA</a>;
+</pre><p>Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN">VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN</a>;
+</pre><p>Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD</a>;
+</pre><p>Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA</a>;
+</pre><p>Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.</p>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_COMPRESSION_BYTES">Macro </a>VIR_DOMAIN_JOB_COMPRESSION_BYTES</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_COMPRESSION_BYTES">VIR_DOMAIN_JOB_COMPRESSION_BYTES</a>;
 </pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.</p>
 </div>
@@ -982,6 +1027,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: total number of bytes supposed to be transferred, as VIR_TYPED_PARAM_ULLONG. For <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_UNBOUNDED">VIR_DOMAIN_JOB_UNBOUNDED</a> jobs, this may be less than the sum of <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_PROCESSED">VIR_DOMAIN_JOB_DATA_PROCESSED</a> and <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_REMAINING">VIR_DOMAIN_JOB_DATA_REMAINING</a> in the event that the hypervisor has to repeat some data, e.g., due to dirtied pages during migration. For <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_BOUNDED">VIR_DOMAIN_JOB_BOUNDED</a> jobs, <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_TOTAL">VIR_DOMAIN_JOB_DATA_TOTAL</a> shall always equal <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_PROCESSED">VIR_DOMAIN_JOB_DATA_PROCESSED</a> + VIR_DOMAIN_JOB_DATA_REMAINING. This field corresponds to dataTotal field in virDomainJobInfo.</p>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_DISK_BPS">Macro </a>VIR_DOMAIN_JOB_DISK_BPS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_DISK_BPS">VIR_DOMAIN_JOB_DISK_BPS</a>;
+</pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: network throughput used while migrating disks in Bytes per second, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_DISK_PROCESSED">Macro </a>VIR_DOMAIN_JOB_DISK_PROCESSED</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_DISK_PROCESSED">VIR_DOMAIN_JOB_DISK_PROCESSED</a>;
 </pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: as <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_PROCESSED">VIR_DOMAIN_JOB_DATA_PROCESSED</a> but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG. This field corresponds to fileProcessed field in virDomainJobInfo.</p>
 </div>
@@ -996,6 +1045,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_DOWNTIME">Macro </a>VIR_DOMAIN_JOB_DOWNTIME</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_DOWNTIME">VIR_DOMAIN_JOB_DOWNTIME</a>;
 </pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: downtime (ms) that is expected to happen during migration, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_MEMORY_BPS">Macro </a>VIR_DOMAIN_JOB_MEMORY_BPS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_MEMORY_BPS">VIR_DOMAIN_JOB_MEMORY_BPS</a>;
+</pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: network throughput used while migrating memory in Bytes per second, as VIR_TYPED_PARAM_ULLONG.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_MEMORY_CONSTANT">Macro </a>VIR_DOMAIN_JOB_MEMORY_CONSTANT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_MEMORY_CONSTANT">VIR_DOMAIN_JOB_MEMORY_CONSTANT</a>;
@@ -1020,6 +1073,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_MEMORY_TOTAL">Macro </a>VIR_DOMAIN_JOB_MEMORY_TOTAL</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_MEMORY_TOTAL">VIR_DOMAIN_JOB_MEMORY_TOTAL</a>;
 </pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: as <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_TOTAL">VIR_DOMAIN_JOB_DATA_TOTAL</a> but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG. This field corresponds to memTotal field in virDomainJobInfo.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_SETUP_TIME">Macro </a>VIR_DOMAIN_JOB_SETUP_TIME</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_SETUP_TIME">VIR_DOMAIN_JOB_SETUP_TIME</a>;
+</pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: total time in milliseconds spent preparing the migration in the 'setup' phase before the iterations begin, as VIR_TYPED_PARAM_ULLONG.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_TIME_ELAPSED">Macro </a>VIR_DOMAIN_JOB_TIME_ELAPSED</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_TIME_ELAPSED">VIR_DOMAIN_JOB_TIME_ELAPSED</a>;
@@ -1482,6 +1539,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_BLOCK_COMMIT_DELETE">VIR_DOMAIN_BLOCK_COMMIT_DELETE</a> = 2 /* Delete any files that are now invalid after their contents have been committed */
     <a name="VIR_DOMAIN_BLOCK_COMMIT_ACTIVE">VIR_DOMAIN_BLOCK_COMMIT_ACTIVE</a> = 4 /* Allow a two-phase commit when top is the active layer */
     <a name="VIR_DOMAIN_BLOCK_COMMIT_RELATIVE">VIR_DOMAIN_BLOCK_COMMIT_RELATIVE</a> = 8 /* keep the backing chain referenced using relative names */
+    <a name="VIR_DOMAIN_BLOCK_COMMIT_BANDWIDTH_BYTES">VIR_DOMAIN_BLOCK_COMMIT_BANDWIDTH_BYTES</a> = 16 /* bandwidth in bytes/s instead of MiB/s */
 };
 </pre><p/>
 </div>
@@ -1525,7 +1583,19 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobInfoFlags">Enum </a>virDomainBlockJobInfoFlags</h3><pre class="programlisting">enum <a href="#virDomainBlockJobInfoFlags">virDomainBlockJobInfoFlags</a> {
+    <a name="VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES">VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES</a> = 1 /* bandwidth in bytes/s instead of MiB/s */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobInfoPtr">Typedef </a>virDomainBlockJobInfoPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainBlockJobInfo">virDomainBlockJobInfo</a> * virDomainBlockJobInfoPtr;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobSetSpeedFlags">Enum </a>virDomainBlockJobSetSpeedFlags</h3><pre class="programlisting">enum <a href="#virDomainBlockJobSetSpeedFlags">virDomainBlockJobSetSpeedFlags</a> {
+    <a name="VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES">VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES</a> = 1 /* bandwidth in bytes/s instead of MiB/s */
+};
 </pre><p/>
 </div>
         <hr/>
@@ -1540,12 +1610,20 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockPullFlags">Enum </a>virDomainBlockPullFlags</h3><pre class="programlisting">enum <a href="#virDomainBlockPullFlags">virDomainBlockPullFlags</a> {
+    <a name="VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES">VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES</a> = 64 /* bandwidth in bytes/s instead of MiB/s */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockRebaseFlags">Enum </a>virDomainBlockRebaseFlags</h3><pre class="programlisting">enum <a href="#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a> {
     <a name="VIR_DOMAIN_BLOCK_REBASE_SHALLOW">VIR_DOMAIN_BLOCK_REBASE_SHALLOW</a> = 1 /* Limit copy to top of source backing chain */
     <a name="VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT">VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT</a> = 2 /* Reuse existing external file for a copy */
     <a name="VIR_DOMAIN_BLOCK_REBASE_COPY_RAW">VIR_DOMAIN_BLOCK_REBASE_COPY_RAW</a> = 4 /* Make destination file raw */
     <a name="VIR_DOMAIN_BLOCK_REBASE_COPY">VIR_DOMAIN_BLOCK_REBASE_COPY</a> = 8 /* Start a copy job */
     <a name="VIR_DOMAIN_BLOCK_REBASE_RELATIVE">VIR_DOMAIN_BLOCK_REBASE_RELATIVE</a> = 16 /* Keep backing chain referenced using relative names */
+    <a name="VIR_DOMAIN_BLOCK_REBASE_COPY_DEV">VIR_DOMAIN_BLOCK_REBASE_COPY_DEV</a> = 32 /* Treat destination as block device instead of file */
+    <a name="VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES">VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES</a> = 64 /* bandwidth in bytes/s instead of MiB/s */
 };
 </pre><p/>
 </div>
@@ -1771,7 +1849,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK">VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK</a> = 14 /* virConnectDomainEventPMSuspendDiskCallback */
     <a name="VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED">VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED</a> = 15 /* virConnectDomainEventDeviceRemovedCallback */
     <a name="VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2">VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2</a> = 16 /* virConnectDomainEventBlockJobCallback */
-    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 17 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
+    <a name="VIR_DOMAIN_EVENT_ID_TUNABLE">VIR_DOMAIN_EVENT_ID_TUNABLE</a> = 17 /* virConnectDomainEventTunableCallback */
+    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 18 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -1884,6 +1963,12 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN">VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN</a> = 4 /* Guest is requested to gracefully shutdown */
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_DEBUG">VIR_DOMAIN_EVENT_WATCHDOG_DEBUG</a> = 5 /* No action, a debug message logged */
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_LAST">VIR_DOMAIN_EVENT_WATCHDOG_LAST</a> = 6
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetJobStatsFlags">Enum </a>virDomainGetJobStatsFlags</h3><pre class="programlisting">enum <a href="#virDomainGetJobStatsFlags">virDomainGetJobStatsFlags</a> {
+    <a name="VIR_DOMAIN_JOB_STATS_COMPLETED">VIR_DOMAIN_JOB_STATS_COMPLETED</a> = 1 /* return stats of a recently  completed job */
 };
 </pre><p/>
 </div>
@@ -2018,6 +2103,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_MIGRATE_COMPRESSED">VIR_MIGRATE_COMPRESSED</a> = 2048 /* compress data during migration */
     <a name="VIR_MIGRATE_ABORT_ON_ERROR">VIR_MIGRATE_ABORT_ON_ERROR</a> = 4096 /* abort migration on I/O errors happened during migration */
     <a name="VIR_MIGRATE_AUTO_CONVERGE">VIR_MIGRATE_AUTO_CONVERGE</a> = 8192 /* force convergence */
+    <a name="VIR_MIGRATE_RDMA_PIN_ALL">VIR_MIGRATE_RDMA_PIN_ALL</a> = 16384 /* RDMA memory pinning */
 };
 </pre><p/>
 </div>
@@ -2316,13 +2402,19 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainStatsTypes">Enum </a>virDomainStatsTypes</h3><pre class="programlisting">enum <a href="#virDomainStatsTypes">virDomainStatsTypes</a> {
     <a name="VIR_DOMAIN_STATS_STATE">VIR_DOMAIN_STATS_STATE</a> = 1 /* return domain state */
+    <a name="VIR_DOMAIN_STATS_CPU_TOTAL">VIR_DOMAIN_STATS_CPU_TOTAL</a> = 2 /* return domain CPU info */
+    <a name="VIR_DOMAIN_STATS_BALLOON">VIR_DOMAIN_STATS_BALLOON</a> = 4 /* return domain balloon info */
+    <a name="VIR_DOMAIN_STATS_VCPU">VIR_DOMAIN_STATS_VCPU</a> = 8 /* return domain virtual CPU info */
+    <a name="VIR_DOMAIN_STATS_INTERFACE">VIR_DOMAIN_STATS_INTERFACE</a> = 16 /* return domain interfaces info */
+    <a name="VIR_DOMAIN_STATS_BLOCK">VIR_DOMAIN_STATS_BLOCK</a> = 32 /* return domain block info */
 };
 </pre><p/>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainUndefineFlagsValues">Enum </a>virDomainUndefineFlagsValues</h3><pre class="programlisting">enum <a href="#virDomainUndefineFlagsValues">virDomainUndefineFlagsValues</a> {
     <a name="VIR_DOMAIN_UNDEFINE_MANAGED_SAVE">VIR_DOMAIN_UNDEFINE_MANAGED_SAVE</a> = 1 /* Also remove any managed save */
-    <a name="VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA">VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA</a> = 2 /* If last use of domain, then also remove any snapshot metadata Future undefine control flags should come here. */
+    <a name="VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA">VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA</a> = 2 /* If last use of domain, then also remove any snapshot metadata */
+    <a name="VIR_DOMAIN_UNDEFINE_NVRAM">VIR_DOMAIN_UNDEFINE_NVRAM</a> = 4 /* Also remove any nvram file Future undefine control flags should come here. */
 };
 </pre><p/>
 </div>
@@ -2513,6 +2605,13 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkXMLFlags">Enum </a>virNetworkXMLFlags</h3><pre class="programlisting">enum <a href="#virNetworkXMLFlags">virNetworkXMLFlags</a> {
     <a name="VIR_NETWORK_XML_INACTIVE">VIR_NETWORK_XML_INACTIVE</a> = 1 /* dump inactive network information */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeAllocPagesFlags">Enum </a>virNodeAllocPagesFlags</h3><pre class="programlisting">enum <a href="#virNodeAllocPagesFlags">virNodeAllocPagesFlags</a> {
+    <a name="VIR_NODE_ALLOC_PAGES_ADD">VIR_NODE_ALLOC_PAGES_ADD</a> = 0 /* Add @pageCounts to the pages pool. This can be used only to size up the pool. */
+    <a name="VIR_NODE_ALLOC_PAGES_SET">VIR_NODE_ALLOC_PAGES_SET</a> = 1 /* Don't add @pageCounts, instead set passed number of pages. This can be used to free allocated pages. */
 };
 </pre><p/>
 </div>
@@ -2964,6 +3063,18 @@ The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_TRAY_CHANGE with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td>device alias</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>why the tray status was changed?</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventTunableCallback"/>Function type virConnectDomainEventTunableCallback</h3><pre class="programlisting">void	virConnectDomainEventTunableCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>						 int nparams, <br/>						 void * opaque)<br/>
+</pre><p>This callback occurs when tunable values are updated. The params must not
+be freed in the callback handler as it's done internally after the callback
+handler is executed.
+
+Currently supported name spaces:
+ "cputune.*"
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_TUNABLE with virConnectDomainEventRegisterAny()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>changed tunable values stored as array of <a href="libvirt-libvirt.html#virTypedParameter">virTypedParameter</a></td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>size of the array</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventWatchdogCallback"/>Function type virConnectDomainEventWatchdogCallback</h3><pre class="programlisting">void	virConnectDomainEventWatchdogCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int action, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_WATCHDOG with virConnectDomainEventRegisterAny()</p>
@@ -3223,6 +3334,72 @@ state. The typed parameter keys are in this format:
 "state.state" - state of the VM, returned as int from <a href="libvirt-libvirt.html#virDomainState">virDomainState</a> enum
 "state.reason" - reason for entering given state, returned as int from
  virDomain*Reason enum corresponding to given state.
+
+VIR_DOMAIN_STATS_CPU_TOTAL: Return CPU statistics and usage information.
+The typed parameter keys are in this format:
+"cpu.time" - total cpu time spent for this domain in nanoseconds
+ as unsigned long long.
+"cpu.user" - user cpu time spent in nanoseconds as unsigned long long.
+"cpu.system" - system cpu time spent in nanoseconds as unsigned long long.
+
+VIR_DOMAIN_STATS_BALLOON: Return memory balloon device information.
+The typed parameter keys are in this format:
+"balloon.current" - the memory in kiB currently used
+ as unsigned long long.
+"balloon.maximum" - the maximum memory in kiB allowed
+ as unsigned long long.
+
+VIR_DOMAIN_STATS_VCPU: Return virtual CPU statistics.
+Due to VCPU hotplug, the vcpu.&lt;num&gt;.* array could be sparse.
+The actual size of the array corresponds to "vcpu.current".
+The array size will never exceed "vcpu.maximum".
+The typed parameter keys are in this format:
+"vcpu.current" - current number of online virtual CPUs as unsigned int.
+"vcpu.maximum" - maximum number of online virtual CPUs as unsigned int.
+"vcpu.&lt;num&gt;.state" - state of the virtual CPU &lt;num&gt;, as int
+ from <a href="libvirt-libvirt.html#virVcpuState">virVcpuState</a> enum.
+"vcpu.&lt;num&gt;.time" - virtual cpu time spent by virtual CPU &lt;num&gt;
+ as unsigned long long.
+
+VIR_DOMAIN_STATS_INTERFACE: Return network interface statistics.
+The typed parameter keys are in this format:
+"net.count" - number of network interfaces on this domain
+ as unsigned int.
+"net.&lt;num&gt;.name" - name of the interface &lt;num&gt; as string.
+"net.&lt;num&gt;.rx.bytes" - bytes received as unsigned long long.
+"net.&lt;num&gt;.rx.pkts" - packets received as unsigned long long.
+"net.&lt;num&gt;.rx.errs" - receive errors as unsigned long long.
+"net.&lt;num&gt;.rx.drop" - receive packets dropped as unsigned long long.
+"net.&lt;num&gt;.tx.bytes" - bytes transmitted as unsigned long long.
+"net.&lt;num&gt;.tx.pkts" - packets transmitted as unsigned long long.
+"net.&lt;num&gt;.tx.errs" - transmission errors as unsigned long long.
+"net.&lt;num&gt;.tx.drop" - transmit packets dropped as unsigned long long.
+
+VIR_DOMAIN_STATS_BLOCK: Return block devices statistics.
+The typed parameter keys are in this format:
+"block.count" - number of block devices on this domain
+ as unsigned int.
+"block.&lt;num&gt;.name" - name of the block device &lt;num&gt; as string.
+ matches the target name (vda/sda/hda) of the
+ block device.
+"block.&lt;num&gt;.rd.reqs" - number of read requests as unsigned long long.
+"block.&lt;num&gt;.rd.bytes" - number of read bytes as unsigned long long.
+"block.&lt;num&gt;.rd.times" - total time (ns) spent on reads as
+ unsigned long long.
+"block.&lt;num&gt;.wr.reqs" - number of write requests as unsigned long long.
+"block.&lt;num&gt;.wr.bytes" - number of written bytes as unsigned long long.
+"block.&lt;num&gt;.wr.times" - total time (ns) spent on writes as
+ unsigned long long.
+"block.&lt;num&gt;.fl.reqs" - total flush requests as unsigned long long.
+"block.&lt;num&gt;.fl.times" - total time (ns) spent on cache flushing as
+ unsigned long long.
+"block.&lt;num&gt;.errors" - Xen only: the 'oo_req' value as
+ unsigned long long.
+
+Note that entire stats groups or individual stat fields may be missing from
+the output in case they are not supported by the given hypervisor, are not
+applicable for the current state of the guest domain, or their retrieval
+was not successful.
 
 Using 0 for @stats returns all stats groups supported by the given
 hypervisor.
@@ -3869,13 +4046,21 @@ inspecting //disk//backingStore/@index in the domain XML. Thus, for
 example, "vda[3]" refers to the backing store with index equal to "3"
 in the chain of disk "vda".
 
-The maximum bandwidth (in MiB/s) that will be used to do the commit can be
-specified with the bandwidth parameter. If set to 0, libvirt will choose a
-suitable default. Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0; in this case, it might still be
-possible for a later call to virDomainBlockJobSetSpeed() to succeed.
-The actual speed can be determined with virDomainGetBlockJobInfo().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to merge into, or device shorthand, or NULL for default</td></tr><tr><td><span class="term"><i><tt>top</tt></i>:</span></td><td>path to file within backing chain that contains data to be merged, or device shorthand, or NULL to merge all possible data</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify commit bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockCommitFlags">virDomainBlockCommitFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
+The maximum bandwidth that will be used to do the commit can be
+specified with the @bandwidth parameter. If set to 0, there is no
+limit. If @flags includes VIR_DOMAIN_BLOCK_COMMIT_BANDWIDTH_BYTES,
+@bandwidth is in bytes/second; otherwise, it is in MiB/second.
+Values larger than 2^52 bytes/sec may be rejected due to overflow
+considerations based on the word size of both client and server,
+and values larger than 2^31 bytes/sec may cause overflow problems
+if later queried by virDomainGetBlockJobInfo() without scaling.
+Hypervisors may further restrict the range of valid bandwidth
+values. Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0; in this case, it might still
+be possible for a later call to virDomainBlockJobSetSpeed() to
+succeed. The actual speed can be determined with
+virDomainGetBlockJobInfo().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to merge into, or device shorthand, or NULL for default</td></tr><tr><td><span class="term"><i><tt>top</tt></i>:</span></td><td>path to file within backing chain that contains data to be merged, or device shorthand, or NULL to merge all possible data</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify bandwidth limit; flags determine the unit</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockCommitFlags">virDomainBlockCommitFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockCopy"/>virDomainBlockCopy ()</h3><pre class="programlisting">int	virDomainBlockCopy		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 const char * destxml, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>Copy the guest-visible contents of a disk image to a new file described
@@ -3977,7 +4162,16 @@ beginning of the first phase.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobSetSpeed"/>virDomainBlockJobSetSpeed ()</h3><pre class="programlisting">int	virDomainBlockJobSetSpeed	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
 </pre><p>Set the maximimum allowable bandwidth that a block job may consume. If
-bandwidth is 0, the limit will revert to the hypervisor default.
+bandwidth is 0, the limit will revert to the hypervisor default of
+unlimited.
+
+If @flags contains VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES, @bandwidth
+is in bytes/second; otherwise, it is in MiB/second. Values larger than
+2^52 bytes/sec may be rejected due to overflow considerations based on
+the word size of both client and server, and values larger than 2^31
+bytes/sec may cause overflow problems if later queried by
+virDomainGetBlockJobInfo() without scaling. Hypervisors may further
+restrict the range of valid bandwidth values.
 
 The @disk parameter is either an unambiguous source name of the
 block device (the &lt;source file='...'/&gt; sub-element, such as
@@ -3985,7 +4179,7 @@ block device (the &lt;source file='...'/&gt; sub-element, such as
 (the &lt;target dev='...'/&gt; sub-element, such as "vda"). Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>specify bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>specify bandwidth limit; flags determine the unit</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockJobSetSpeedFlags">virDomainBlockJobSetSpeedFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockPeek"/>virDomainBlockPeek ()</h3><pre class="programlisting">int	virDomainBlockPeek		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long offset, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags)<br/>
 </pre><p>This function allows you to read the contents of a domain's
@@ -4038,15 +4232,23 @@ block device (the &lt;source file='...'/&gt; sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
-The maximum bandwidth (in MiB/s) that will be used to do the copy can be
-specified with the bandwidth parameter. If set to 0, libvirt will choose a
-suitable default. Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0; in this case, it might still be
-possible for a later call to virDomainBlockJobSetSpeed() to succeed.
-The actual speed can be determined with virDomainGetBlockJobInfo().
+The maximum bandwidth that will be used to do the copy can be
+specified with the @bandwidth parameter. If set to 0, there is no
+limit. If @flags includes VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES,
+@bandwidth is in bytes/second; otherwise, it is in MiB/second.
+Values larger than 2^52 bytes/sec may be rejected due to overflow
+considerations based on the word size of both client and server,
+and values larger than 2^31 bytes/sec may cause overflow problems
+if later queried by virDomainGetBlockJobInfo() without scaling.
+Hypervisors may further restrict the range of valid bandwidth
+values. Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0; in this case, it might still
+be possible for a later call to virDomainBlockJobSetSpeed() to
+succeed. The actual speed can be determined with
+virDomainGetBlockJobInfo().
 
 This is shorthand for virDomainBlockRebase() with a NULL base.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify bandwidth limit; flags determine the unit</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockPullFlags">virDomainBlockPullFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockRebase"/>virDomainBlockRebase ()</h3><pre class="programlisting">int	virDomainBlockRebase		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 const char * base, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
 </pre><p>Populate a disk image with data from its backing image chain, and
@@ -4087,7 +4289,10 @@ as the backing file of the original image. This allows a management app to
 pre-create files with relative backing file names, rather than the default
 of absolute backing file names; as a security precaution, you should
 generally only use reuse_ext with the shallow flag and a non-raw
-destination file.
+destination file. By default, the copy destination will be treated as
+type='file', but using <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_COPY_DEV">VIR_DOMAIN_BLOCK_REBASE_COPY_DEV</a> treats the
+destination as type='block' (affecting how virDomainGetBlockInfo() will
+report allocation after pivoting).
 
 A copy job has two parts; in the first phase, the @bandwidth parameter
 affects how fast the source is pulled into the destination, and the job
@@ -4122,12 +4327,20 @@ inspecting //disk//backingStore/@index in the domain XML. Thus, for
 example, "vda[3]" refers to the backing store with index equal to "3"
 in the chain of disk "vda".
 
-The maximum bandwidth (in MiB/s) that will be used to do the copy can be
-specified with the bandwidth parameter. If set to 0, libvirt will choose a
-suitable default. Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0; in this case, it might still be
-possible for a later call to virDomainBlockJobSetSpeed() to succeed.
-The actual speed can be determined with virDomainGetBlockJobInfo().
+The maximum bandwidth that will be used to do the copy can be
+specified with the @bandwidth parameter. If set to 0, there is no
+limit. If @flags includes VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES,
+@bandwidth is in bytes/second; otherwise, it is in MiB/second.
+Values larger than 2^52 bytes/sec may be rejected due to overflow
+considerations based on the word size of both client and server,
+and values larger than 2^31 bytes/sec may cause overflow problems
+if later queried by virDomainGetBlockJobInfo() without scaling.
+Hypervisors may further restrict the range of valid bandwidth
+values. Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0; in this case, it might still
+be possible for a later call to virDomainBlockJobSetSpeed() to
+succeed. The actual speed can be determined with
+virDomainGetBlockJobInfo().
 
 When @base is NULL and @flags is 0, this is identical to
 virDomainBlockPull(). When @flags contains VIR_DOMAIN_BLOCK_REBASE_COPY,
@@ -4137,7 +4350,7 @@ and passed as a typed parameter, the shallow and reuse external flags
 are preserved, and remaining flags control whether the XML encodes a
 destination format of raw instead of leaving the destination identical
 to the source format or probed from the reused file.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to keep, or device shorthand, or NULL for no backing file</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to keep, or device shorthand, or NULL for no backing file</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify bandwidth limit; flags determine the unit</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockResize"/>virDomainBlockResize ()</h3><pre class="programlisting">int	virDomainBlockResize		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long size, <br/>					 unsigned int flags)<br/>
 </pre><p>Resize a block device of domain while the domain is running. If
@@ -4633,7 +4846,11 @@ unless @nparams is 0 on input.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockJobInfo"/>virDomainGetBlockJobInfo ()</h3><pre class="programlisting">int	virDomainGetBlockJobInfo	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockJobInfoPtr">virDomainBlockJobInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
 </pre><p>Request block job information for the given disk. If an operation is active
-@info will be updated with the current progress.
+@info will be updated with the current progress. The units used for the
+bandwidth field of @info depends on @flags. If @flags includes
+VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES, bandwidth is in bytes/second
+(although this mode can risk failure due to overflow, depending on both
+client and server word size); otherwise, the value is rounded up to MiB/s.
 
 The @disk parameter is either an unambiguous source name of the
 block device (the &lt;source file='...'/&gt; sub-element, such as
@@ -4641,7 +4858,7 @@ block device (the &lt;source file='...'/&gt; sub-element, such as
 (the &lt;target dev='...'/&gt; sub-element, such as "vda"). Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockJobInfo">virDomainBlockJobInfo</a> structure</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when nothing found, 1 when info was found.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockJobInfo">virDomainBlockJobInfo</a> structure</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockJobInfoFlags">virDomainBlockJobInfoFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when nothing found, 1 when info was found.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetCPUStats"/>virDomainGetCPUStats ()</h3><pre class="programlisting">int	virDomainGetCPUStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 unsigned int nparams, <br/>					 int start_cpu, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags)<br/>
 </pre><p>Get statistics relating to CPU usage attributable to a single
@@ -4788,8 +5005,17 @@ a superset of progress information provided by virDomainGetJobInfo.
 Possible fields returned in @params are defined by VIR_DOMAIN_JOB_*
 macros and new fields will likely be introduced in the future so callers
 may receive fields that they do not understand in case they talk to a
-newer server.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>where to store the job type (one of virDomainJobType)</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>where to store job statistics</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of items in @params</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+newer server.
+
+When @flags contains VIR_DOMAIN_JOB_STATS_COMPLETED, the function will
+return statistics about a recently completed job. Specifically, this
+flag may be used to query statistics of a completed incoming migration.
+Statistics of a completed job are automatically destroyed once read or
+when libvirtd is restarted. Note that time information returned for
+completed migrations may be completely irrelevant unless both source and
+destination hosts have synchronized time (i.e., NTP daemon is running on
+both of them).</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>where to store the job type (one of virDomainJobType)</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>where to store job statistics</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of items in @params</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainGetJobStatsFlags">virDomainGetJobStatsFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetMaxMemory"/>virDomainGetMaxMemory ()</h3><pre class="programlisting">unsigned long	virDomainGetMaxMemory	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Retrieve the maximum amount of physical memory allocated to a
@@ -5087,14 +5313,8 @@ consists of a dot-separated string containing name of the requested group
 followed by a group specific description of the statistic value.
 
 The statistic groups are enabled using the @stats parameter which is a
-binary-OR of enum virDomainStatsTypes. The following groups are available
-(although not necessarily implemented for each hypervisor):
-
-VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
-state. The typed parameter keys are in this format:
-"state.state" - state of the VM, returned as int from <a href="libvirt-libvirt.html#virDomainState">virDomainState</a> enum
-"state.reason" - reason for entering given state, returned as int from
- virDomain*Reason enum corresponding to given state.
+binary-OR of enum virDomainStatsTypes. The stats groups are documented
+in virConnectGetAllDomainStats.
 
 Using 0 for @stats returns all stats groups supported by the given
 hypervisor.
@@ -7159,6 +7379,27 @@ when the host machine boots.</p>
 running state, its persistent configuration, or both.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>pointer to a defined network</td></tr><tr><td><span class="term"><i><tt>command</tt></i>:</span></td><td>what action to perform (add/delete/modify) (see <a href="libvirt-libvirt.html#virNetworkUpdateCommand">virNetworkUpdateCommand</a> for descriptions)</td></tr><tr><td><span class="term"><i><tt>section</tt></i>:</span></td><td>which section of the network to update (see <a href="libvirt-libvirt.html#virNetworkUpdateSection">virNetworkUpdateSection</a> for descriptions)</td></tr><tr><td><span class="term"><i><tt>parentIndex</tt></i>:</span></td><td>which parent element, if there are multiple parents of the same type (e.g. which &lt;ip&gt; element when modifying a &lt;dhcp&gt;/&lt;host&gt; element), or "-1" for "don't care" or "automatically find appropriate one".</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the network, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise OR of virNetworkUpdateFlags.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error <a href="libvirt-libvirt.html#virNetworkUpdateCommand">virNetworkUpdateCommand</a> <a href="libvirt-libvirt.html#virNetworkUpdateSection">virNetworkUpdateSection</a></td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeAllocPages"/>virNodeAllocPages ()</h3><pre class="programlisting">int	virNodeAllocPages		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pageSizes, <br/>					 unsigned long long * pageCounts, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned int flags)<br/>
+</pre><p>Sometimes, when trying to start a new domain, it may be
+necessary to reserve some huge pages in the system pool which
+can be then allocated by the domain. This API serves that
+purpose. On its input, @pageSizes and @pageCounts are arrays
+of the same cardinality of @npages. The @pageSizes contains
+page sizes which are to be allocated in the system (the size
+unit is kibibytes), and @pageCounts then contains the number
+of pages to reserve. If @flags is 0
+(VIR_NODE_ALLOC_PAGES_ADD), each pool corresponding to
+@pageSizes grows by the number of pages specified in the
+corresponding @pageCounts. If @flags contains
+VIR_NODE_ALLOC_PAGES_SET, each pool mentioned is resized to
+the given number of pages. The pages pool can be allocated
+over several NUMA nodes at once, just point at @startCell and
+tell how many subsequent NUMA nodes should be taken in. As a
+special case, if @startCell is equal to negative one, then
+kernel is instructed to allocate the pages over all NUMA nodes
+proportionally.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>npages</tt></i>:</span></td><td>number of items in the @pageSizes and @pageCounts arrays</td></tr><tr><td><span class="term"><i><tt>pageSizes</tt></i>:</span></td><td>which huge page sizes to allocate</td></tr><tr><td><span class="term"><i><tt>pageCounts</tt></i>:</span></td><td>how many pages should be allocated</td></tr><tr><td><span class="term"><i><tt>startCell</tt></i>:</span></td><td>index of first cell to allocate pages on</td></tr><tr><td><span class="term"><i><tt>cellCount</tt></i>:</span></td><td>number of consecutive cells to allocate pages on</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; binary-OR of <a href="libvirt-libvirt.html#virNodeAllocPagesFlags">virNodeAllocPagesFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of nodes successfully adjusted or -1 in case of an error.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceCreateXML"/>virNodeDeviceCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a>	virNodeDeviceCreateXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags)<br/>
 </pre><p>Create a new device on the VM host machine, for example, virtual
 HBAs created using vport_create.
@@ -7354,7 +7595,7 @@ function the returned value is in bytes. Divide by 1024 as necessary.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeGetFreePages"/>virNodeGetFreePages ()</h3><pre class="programlisting">int	virNodeGetFreePages		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pages, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned long long * counts, <br/>					 unsigned int flags)<br/>
 </pre><p>This calls queries the host system on free pages of
-specified size. Ont the input, @pages is expected to be
+specified size. For the input, @pages is expected to be
 filled with pages that caller is interested in (the size
 unit is kibibytes, so e.g. pass 2048 for 2MB), then @startcell
 refers to the first NUMA node that info should be collected

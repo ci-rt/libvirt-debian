@@ -1172,8 +1172,7 @@ virBuildPathInternal(char **path, ...)
     path_component = va_arg(ap, char *);
     virBufferAdd(&buf, path_component, -1);
 
-    while ((path_component = va_arg(ap, char *)) != NULL)
-    {
+    while ((path_component = va_arg(ap, char *)) != NULL) {
         virBufferAddChar(&buf, '/');
         virBufferAdd(&buf, path_component, -1);
     }
@@ -2001,8 +2000,11 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
     }
 
     pid = virFork();
-    if (pid < 0)
-        return -errno;
+    if (pid < 0) {
+        ret = -errno;
+        VIR_FREE(groups);
+        return ret;
+    }
 
     if (pid == 0) {
 
@@ -2073,8 +2075,7 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
     }
 
     /* wait for child to complete, and retrieve its exit code */
-    while ((waitret = waitpid(pid, &status, 0) == -1)
-           && (errno == EINTR));
+    while ((waitret = waitpid(pid, &status, 0)) == -1 && errno == EINTR);
     if (waitret == -1) {
         ret = -errno;
         virReportSystemError(errno,
@@ -2291,7 +2292,7 @@ virDirCreate(const char *path,
     if (pid) { /* parent */
         /* wait for child to complete, and retrieve its exit code */
         VIR_FREE(groups);
-        while ((waitret = waitpid(pid, &status, 0) == -1)  && (errno == EINTR));
+        while ((waitret = waitpid(pid, &status, 0)) == -1 && errno == EINTR);
         if (waitret == -1) {
             ret = -errno;
             virReportSystemError(errno,

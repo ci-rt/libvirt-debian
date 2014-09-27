@@ -141,6 +141,7 @@ UTIL_SOURCES =							\
 		util/virobject.c util/virobject.h		\
 		util/virpci.c util/virpci.h			\
 		util/virpidfile.c util/virpidfile.h		\
+		util/virpolkit.c util/virpolkit.h               \
 		util/virportallocator.c util/virportallocator.h \
 		util/virprobe.h					\
 		util/virprocess.c util/virprocess.h		\
@@ -988,11 +989,13 @@ libvirt_util_la_SOURCES =					\
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM) $(NUMACTL_CFLAGS)	\
-		$(SYSTEMD_DAEMON_CFLAGS) -I$(top_srcdir)/src/conf
+		$(SYSTEMD_DAEMON_CFLAGS) $(POLKIT_CFLAGS) \
+		-I$(top_srcdir)/src/conf
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
-		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(SYSTEMD_DAEMON_LIBS)
+		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(SYSTEMD_DAEMON_LIBS) \
+		$(POLKIT_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -2483,13 +2486,11 @@ libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \
 			$(DBUS_CFLAGS) \
 			$(XDR_CFLAGS) \
-			$(AM_CFLAGS) \
-			$(POLKIT_CFLAGS)
+			$(AM_CFLAGS)
 libvirt_net_rpc_server_la_LDFLAGS = \
 			$(AM_LDFLAGS) \
 			$(AVAHI_LIBS) \
 			$(DBUS_LIBS) \
-			$(POLKIT_LIBS) \
 			$(CYGWIN_EXTRA_LDFLAGS) \
 			$(MINGW_EXTRA_LDFLAGS)
 libvirt_net_rpc_server_la_LIBADD = \
@@ -2679,6 +2680,7 @@ endif WITH_SANLOCK
 if WITH_QEMU
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu/channel/target"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu/nvram"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/log/libvirt/qemu"

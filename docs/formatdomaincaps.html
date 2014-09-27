@@ -169,6 +169,8 @@
             <ul><li>
                 <a href="#elementsCPUAllocation">CPU Allocation</a>
               </li><li>
+                <a href="#elementsOSBIOS">BIOS bootloader</a>
+              </li><li>
                 <a href="#elementsDevices">Devices</a>
                 <ul><li>
                     <a href="#elementsDisks">Hard drives, floppy disks, CDROMs</a>
@@ -242,6 +244,40 @@
 &lt;/domainCapabilities&gt;
 </pre>
         <dl><dt>vcpu</dt><dd>The maximum number of supported virtual CPUs</dd></dl>
+        <h3>
+          <a name="elementsOSBIOS" shape="rect" id="elementsOSBIOS">BIOS bootloader</a>
+          <a class="headerlink" href="#elementsOSBIOS" title="Permalink to this headline">¶</a>
+        </h3>
+        <p>Sometimes users might want to tweak some BIOS knobs or use
+    UEFI. For cases like that, <a href="formatdomain.html#elementsOSBIOS" shape="rect"><code>os</code></a>
+    element exposes what values can be passed to its children.</p>
+        <pre xml:space="preserve">
+&lt;domainCapabilities&gt;
+  ...
+  &lt;os supported='yes'&gt;
+    &lt;loader supported='yes'&gt;
+      &lt;value&gt;/usr/share/OVMF/OVMF_CODE.fd&lt;/value&gt;
+      &lt;enum name='type'&gt;
+        &lt;value&gt;rom&lt;/value&gt;
+        &lt;value&gt;pflash&lt;/value&gt;
+      &lt;/enum&gt;
+      &lt;enum name='readonly'&gt;
+        &lt;value&gt;yes&lt;/value&gt;
+        &lt;value&gt;no&lt;/value&gt;
+      &lt;/enum&gt;
+    &lt;/loader&gt;
+  &lt;/os&gt;
+  ...
+&lt;domainCapabilities&gt;
+</pre>
+        <p>For the <code>loader</code> element, the following can occur:</p>
+        <dl><dt>value</dt><dd>List of known loader paths. Currently this is only used
+      to advertise known locations of OVMF binaries for qemu. Binaries
+      will only be listed if they actually exist on disk.</dd><dt>type</dt><dd>Whether loader is a typical BIOS (<code>rom</code>) or
+      an UEFI binary (<code>pflash</code>). This refers to
+      <code>type</code> attribute of the &lt;loader/&gt;
+      element.</dd><dt>readonly</dt><dd>Options for the <code>readonly</code> attribute of the
+      &lt;loader/&gt; element.</dd></dl>
         <h3>
           <a name="elementsDevices" shape="rect" id="elementsDevices">Devices</a>
           <a class="headerlink" href="#elementsDevices" title="Permalink to this headline">¶</a>

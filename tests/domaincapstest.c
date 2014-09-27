@@ -28,19 +28,53 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-typedef void (*virDomainCapsFill)(virDomainCapsPtr domCaps,
-                                  void *opaque);
+typedef int (*virDomainCapsFill)(virDomainCapsPtr domCaps,
+                                 void *opaque);
 
 #define SET_ALL_BITS(x) \
     memset(&(x.values), 0xff, sizeof(x.values))
 
-static void
+static int ATTRIBUTE_SENTINEL
+fillStringValues(virDomainCapsStringValuesPtr values, ...)
+{
+    int ret = 0;
+    va_list list;
+    const char *str;
+
+    va_start(list, values);
+    while ((str = va_arg(list, const char *))) {
+        if (VIR_REALLOC_N(values->values, values->nvalues + 1) < 0 ||
+            VIR_STRDUP(values->values[values->nvalues], str) < 0) {
+            ret = -1;
+            break;
+        }
+        values->nvalues++;
+    }
+    va_end(list);
+
+    return ret;
+}
+
+static int
 fillAll(virDomainCapsPtr domCaps,
         void *opaque ATTRIBUTE_UNUSED)
 {
+    virDomainCapsOSPtr os = &domCaps->os;
+    virDomainCapsLoaderPtr loader = &os->loader;
     virDomainCapsDeviceDiskPtr disk = &domCaps->disk;
     virDomainCapsDeviceHostdevPtr hostdev = &domCaps->hostdev;
     domCaps->maxvcpus = 255;
+
+    os->device.supported = true;
+
+    loader->device.supported = true;
+    SET_ALL_BITS(loader->type);
+    SET_ALL_BITS(loader->readonly);
+    if (fillStringValues(&loader->values,
+                         "/foo/bar",
+                         "/tmp/my_path",
+                         NULL) < 0)
+        return -1;
 
     disk->device.supported = true;
     SET_ALL_BITS(disk->diskDevice);
@@ -52,18 +86,29 @@ fillAll(virDomainCapsPtr domCaps,
     SET_ALL_BITS(hostdev->subsysType);
     SET_ALL_BITS(hostdev->capsType);
     SET_ALL_BITS(hostdev->pciBackend);
+    return 0;
 }
 
 
 #ifdef WITH_QEMU
 # include "testutilsqemu.h"
-static void
+
+struct fillQemuCapsData {
+    virQEMUCapsPtr qemuCaps;
+    virQEMUDriverConfigPtr cfg;
+};
+
+static int
 fillQemuCaps(virDomainCapsPtr domCaps,
              void *opaque)
 {
-    virQEMUCapsPtr qemuCaps = (virQEMUCapsPtr) opaque;
+    struct fillQemuCapsData *data = (struct fillQemuCapsData *) opaque;
+    virQEMUCapsPtr qemuCaps = data->qemuCaps;
+    virQEMUDriverConfigPtr cfg = data->cfg;
 
-    virQEMUCapsFillDomainCaps(domCaps, qemuCaps);
+    if (virQEMUCapsFillDomainCaps(domCaps, qemuCaps,
+                                  cfg->loader, cfg->nloader) < 0)
+        return -1;
 
     /* The function above tries to query host's KVM & VFIO capabilities by
      * calling qemuHostdevHostSupportsPassthroughLegacy() and
@@ -74,6 +119,18 @@ fillQemuCaps(virDomainCapsPtr domCaps,
                              VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT,
                              VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM,
                              VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO);
+
+    /* Moreover, as of f05b6a918e28 we are expecting to see
+     * OVMF_CODE.fd file which may not exists everywhere. */
+    if (!domCaps->os.loader.values.nvalues) {
+        virDomainCapsLoaderPtr loader = &domCaps->os.loader;
+
+        if (fillStringValues(&loader->values,
+                             "/usr/share/OVMF/OVMF_CODE.fd",
+                             NULL) < 0)
+            return -1;
+    }
+    return 0;
 }
 #endif /* WITH_QEMU */
 
@@ -86,16 +143,19 @@ buildVirDomainCaps(const char *emulatorbin,
                    virDomainCapsFill fillFunc,
                    void *opaque)
 {
-    virDomainCapsPtr domCaps;
+    virDomainCapsPtr domCaps, ret = NULL;
 
     if (!(domCaps = virDomainCapsNew(emulatorbin, machine, arch, type)))
         goto cleanup;
 
-    if (fillFunc)
-        fillFunc(domCaps, opaque);
+    if (fillFunc && fillFunc(domCaps, opaque) < 0) {
+        virObjectUnref(domCaps);
+        domCaps = NULL;
+    }
 
+    ret = domCaps;
  cleanup:
-    return domCaps;
+    return ret;
 }
 
 struct test_virDomainCapsFormatData {
@@ -169,13 +229,16 @@ mymain(void)
 
 #ifdef WITH_QEMU
 
+    virQEMUDriverConfigPtr cfg = virQEMUDriverConfigNew(false);
+
 # define DO_TEST_QEMU(Filename, QemuCapsFile, Emulatorbin, Machine, Arch, Type, ...)    \
     do {                                                                                \
         const char *capsPath = abs_srcdir "/qemucapabilitiesdata/" QemuCapsFile ".caps";    \
         virQEMUCapsPtr qemuCaps = qemuTestParseCapabilities(capsPath);                  \
+        struct fillQemuCapsData fillData = {.qemuCaps = qemuCaps, .cfg = cfg};          \
         struct test_virDomainCapsFormatData data = {.filename = Filename,               \
             .emulatorbin = Emulatorbin, .machine = Machine, .arch = Arch,               \
-            .type = Type, .fillFunc = fillQemuCaps, .opaque = qemuCaps};                \
+            .type = Type, .fillFunc = fillQemuCaps, .opaque = &fillData};               \
         if (!qemuCaps) {                                                                \
             fprintf(stderr, "Unable to build qemu caps from %s\n", capsPath);           \
             ret = -1;                                                                   \
@@ -186,6 +249,7 @@ mymain(void)
     DO_TEST_QEMU("qemu_1.6.50-1", "caps_1.6.50-1", "/usr/bin/qemu-system-x86_64",
                  "pc-1.2",  VIR_ARCH_X86_64, VIR_DOMAIN_VIRT_KVM);
 
+    virObjectUnref(cfg);
 #endif /* WITH_QEMU */
 
     return ret;

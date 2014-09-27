@@ -385,15 +385,22 @@ qcowXGetBackingStore(char **res,
     offset = virReadBufInt64BE(buf + QCOWX_HDR_BACKING_FILE_OFFSET);
     if (offset > buf_size)
         return BACKING_STORE_INVALID;
+
+    if (offset == 0) {
+        if (format)
+            *format = VIR_STORAGE_FILE_NONE;
+        return BACKING_STORE_OK;
+    }
+
     size = virReadBufInt32BE(buf + QCOWX_HDR_BACKING_FILE_SIZE);
     if (size == 0) {
         if (format)
             *format = VIR_STORAGE_FILE_NONE;
         return BACKING_STORE_OK;
     }
-    if (offset + size > buf_size || offset + size < offset)
+    if (size > 1023)
         return BACKING_STORE_INVALID;
-    if (size + 1 == 0)
+    if (offset + size > buf_size || offset + size < offset)
         return BACKING_STORE_INVALID;
     if (VIR_ALLOC_N(*res, size + 1) < 0)
         return BACKING_STORE_ERROR;
@@ -1920,6 +1927,10 @@ virStorageSourceInitChainElement(virStorageSourcePtr newelem,
         virStorageSourceSeclabelsCopy(newelem, old) < 0)
         goto cleanup;
 
+    if (!newelem->driverName &&
+        VIR_STRDUP(newelem->driverName, old->driverName) < 0)
+        goto cleanup;
+
     newelem->shared = old->shared;
     newelem->readonly = old->readonly;
 
@@ -1956,7 +1967,43 @@ virStorageSourceGetActualType(virStorageSourcePtr def)
 bool
 virStorageSourceIsLocalStorage(virStorageSourcePtr src)
 {
-    return virStorageSourceGetActualType(src) != VIR_STORAGE_TYPE_NETWORK;
+    virStorageType type = virStorageSourceGetActualType(src);
+
+    switch (type) {
+    case VIR_STORAGE_TYPE_FILE:
+    case VIR_STORAGE_TYPE_BLOCK:
+    case VIR_STORAGE_TYPE_DIR:
+        return true;
+
+    case VIR_STORAGE_TYPE_NETWORK:
+    case VIR_STORAGE_TYPE_VOLUME:
+    case VIR_STORAGE_TYPE_LAST:
+    case VIR_STORAGE_TYPE_NONE:
+        return false;
+    }
+
+    return false;
+}
+
+
+/**
+ * virStorageSourceIsEmpty:
+ *
+ * @src: disk source to check
+ *
+ * Returns true if the guest disk has no associated host storage source
+ * (such as an empty cdrom drive).
+ */
+bool
+virStorageSourceIsEmpty(virStorageSourcePtr src)
+{
+    if (virStorageSourceIsLocalStorage(src) && !src->path)
+        return true;
+
+    if (src->type == VIR_STORAGE_TYPE_NONE)
+        return true;
+
+    return false;
 }
 
 

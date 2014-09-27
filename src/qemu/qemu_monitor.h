@@ -346,6 +346,26 @@ int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  long long *flush_req,
                                  long long *flush_total_times,
                                  long long *errs);
+
+typedef struct _qemuBlockStats qemuBlockStats;
+typedef qemuBlockStats *qemuBlockStatsPtr;
+struct _qemuBlockStats {
+    long long rd_req;
+    long long rd_bytes;
+    long long wr_req;
+    long long wr_bytes;
+    long long rd_total_times;
+    long long wr_total_times;
+    long long flush_req;
+    long long flush_total_times;
+};
+
+int qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
+                                    const char *dev_name,
+                                    qemuBlockStatsPtr stats,
+                                    int nstats)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
+
 int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
                                          int *nparams);
 
@@ -423,10 +443,18 @@ struct _qemuMonitorMigrationStatus {
     /* total or expected depending on status */
     bool downtime_set;
     unsigned long long downtime;
+    /*
+     * Duration of the QEMU 'setup' state.
+     * for RDMA, this may be on the order of several seconds
+     * if pinning support is requested before the migration begins.
+     */
+    bool setup_time_set;
+    unsigned long long setup_time;
 
     unsigned long long ram_transferred;
     unsigned long long ram_remaining;
     unsigned long long ram_total;
+    unsigned long long ram_bps;
     bool ram_duplicate_set;
     unsigned long long ram_duplicate;
     unsigned long long ram_normal;
@@ -435,6 +463,7 @@ struct _qemuMonitorMigrationStatus {
     unsigned long long disk_transferred;
     unsigned long long disk_remaining;
     unsigned long long disk_total;
+    unsigned long long disk_bps;
 
     bool xbzrle_set;
     unsigned long long xbzrle_cache_size;
@@ -452,12 +481,15 @@ int qemuMonitorGetSpiceMigrationStatus(qemuMonitorPtr mon,
 typedef enum {
     QEMU_MONITOR_MIGRATION_CAPS_XBZRLE,
     QEMU_MONITOR_MIGRATION_CAPS_AUTO_CONVERGE,
+    QEMU_MONITOR_MIGRATION_CAPS_RDMA_PIN_ALL,
 
     QEMU_MONITOR_MIGRATION_CAPS_LAST
 } qemuMonitorMigrationCaps;
 
 VIR_ENUM_DECL(qemuMonitorMigrationCaps);
 
+int qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
+                                        char ***capabilities);
 int qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
                                       qemuMonitorMigrationCaps capability);
 int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
@@ -476,6 +508,7 @@ int qemuMonitorMigrateToFd(qemuMonitorPtr mon,
 
 int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
                              unsigned int flags,
+                             const char *protocol,
                              const char *hostname,
                              int port);
 
@@ -649,7 +682,9 @@ int qemuMonitorDriveMirror(qemuMonitorPtr mon,
                            const char *device,
                            const char *file,
                            const char *format,
-                           unsigned long bandwidth,
+                           unsigned long long bandwidth,
+                           unsigned int granularity,
+                           unsigned long long buf_size,
                            unsigned int flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 int qemuMonitorDrivePivot(qemuMonitorPtr mon,
@@ -663,7 +698,7 @@ int qemuMonitorBlockCommit(qemuMonitorPtr mon,
                            const char *top,
                            const char *base,
                            const char *backingName,
-                           unsigned long bandwidth)
+                           unsigned long long bandwidth)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4);
 bool qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon);
@@ -685,7 +720,6 @@ int qemuMonitorSendKey(qemuMonitorPtr mon,
 
 typedef enum {
     BLOCK_JOB_ABORT,
-    BLOCK_JOB_INFO,
     BLOCK_JOB_SPEED,
     BLOCK_JOB_PULL,
 } qemuMonitorBlockJobCmd;
@@ -694,11 +728,16 @@ int qemuMonitorBlockJob(qemuMonitorPtr mon,
                         const char *device,
                         const char *base,
                         const char *backingName,
-                        unsigned long bandwidth,
-                        virDomainBlockJobInfoPtr info,
+                        unsigned long long bandwidth,
                         qemuMonitorBlockJobCmd mode,
                         bool modern)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorBlockJobInfo(qemuMonitorPtr mon,
+                            const char *device,
+                            virDomainBlockJobInfoPtr info,
+                            unsigned long long *bandwidth)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
                             const char *protocol,
@@ -791,6 +830,18 @@ int qemuMonitorGetGuestCPU(qemuMonitorPtr mon,
                            virCPUDataPtr *data);
 
 int qemuMonitorRTCResetReinjection(qemuMonitorPtr mon);
+
+typedef struct _qemuMonitorIOThreadsInfo qemuMonitorIOThreadsInfo;
+typedef qemuMonitorIOThreadsInfo *qemuMonitorIOThreadsInfoPtr;
+
+struct _qemuMonitorIOThreadsInfo {
+    char *name;
+    int thread_id;
+};
+int qemuMonitorGetIOThreads(qemuMonitorPtr mon,
+                            qemuMonitorIOThreadsInfoPtr **iothreads);
+
+void qemuMonitorIOThreadsInfoFree(qemuMonitorIOThreadsInfoPtr iothread);
 
 /**
  * When running two dd process and using <> redirection, we need a

@@ -102,7 +102,8 @@
   ...
   &lt;os&gt;
     &lt;type&gt;hvm&lt;/type&gt;
-    &lt;loader&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
+    &lt;loader readonly='yes' type='rom'&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
+    &lt;nvram template='/usr/share/OVMF/OVMF_VARS.fd'&gt;/var/lib/libvirt/nvram/guest_VARS.fd&lt;/nvram&gt;
     &lt;boot dev='hd'/&gt;
     &lt;boot dev='cdrom'/&gt;
     &lt;bootmenu enable='yes' timeout='3000'/&gt;
@@ -129,7 +130,24 @@
         used to assist the domain creation process. It is used by Xen
         fully virtualized domains as well as setting the QEMU BIOS file
         path for QEMU/KVM domains. <span class="since">Xen since 0.1.0,
-        QEMU/KVM since 0.9.12</span></dd>
+        QEMU/KVM since 0.9.12</span> Then, <span class="since">since
+        1.2.8</span> it's possible for the element to have two
+        optional attributes: <code>readonly</code> (accepted values are
+        <code>yes</code> and <code>no</code>) to reflect the fact that the
+        image should be writable or read-only. The second attribute
+        <code>type</code> accepts values <code>rom</code> and
+        <code>pflash</code>. It tells the hypervisor where in the guest
+        memory the file should be mapped.  For instance, if the loader
+        path points to an UEFI image, <code>type</code> should be
+        <code>pflash</code>.</dd>
+      <dt><code>nvram</code></dt>
+      <dd>Some UEFI firmwares may want to use a non-volatile memory to store
+        some variables. In the host, this is represented as a file and the path
+        to the file is stored in this element. Moreover, when the domain is
+        started up libvirt copies so called master NVRAM store file defined
+        in <code>qemu.conf</code>. If needed, the <code>template</code>
+        attribute can be used to per domain override map of master NVRAM stores
+        from the config file. <span class="since">Since 1.2.8</span></dd>
       <dt><code>boot</code></dt>
       <dd>The <code>dev</code> attribute takes one of the values "fd", "hd",
         "cdrom" or "network" and is used to specify the next boot device
@@ -297,7 +315,7 @@
 
     <dl>
       <dt><code>start</code></dt>
-      <dd>First user ID in container.</dd>
+      <dd>First user ID in container. It must be '0'.</dd>
       <dt><code>target</code></dt>
       <dd>The first user ID in container will be mapped to this target user
           ID in host.</dd>
@@ -508,6 +526,8 @@
     &lt;vcpupin vcpu="2" cpuset="2,3"/&gt;
     &lt;vcpupin vcpu="3" cpuset="0,4"/&gt;
     &lt;emulatorpin cpuset="1-3"/&gt;
+    &lt;iothreadpin iothread="1" cpuset="5,6"/&gt;
+    &lt;iothreadpin iothread="2" cpuset="7,8"/&gt;
     &lt;shares&gt;2048&lt;/shares&gt;
     &lt;period&gt;1000000&lt;/period&gt;
     &lt;quota&gt;-1&lt;/quota&gt;
@@ -548,6 +568,22 @@
          CPUs to pin to. NB, <code>emulatorpin</code> is not allowed if
          attribute <code>placement</code> of element <code>vcpu</code> is
          "auto".
+       </dd>
+       <dt><code>iothreadpin</code></dt>
+       <dd>
+         The optional <code>iothreadpin</code> element specifies which of host
+         physical CPUs the IOThreads will be pinned to. If this is omitted
+         and attribute <code>cpuset</code> of element <code>vcpu</code> is
+         not specified, the IOThreads are pinned to all the physical CPUs
+         by default. There are two required attributes, the attribute
+         <code>iothread</code> specifies the IOThread id and the attribute
+         <code>cpuset</code> specifying which physical CPUs to pin to. The
+         <code>iothread</code> value begins at "1" through the number of
+          <a href="#elementsIOThreadsAllocation"><code>iothreads</code></a>
+         allocated to the domain. A value of "0" is not permitted.
+         NB, <code>iothreadpin</code> is not allowed if attribute
+         <code>placement</code> of element <code>vcpu</code> is "auto".
+        <span class="since">Since 1.2.9</span>
        </dd>
       <dt><code>shares</code></dt>
       <dd>
@@ -1105,7 +1141,7 @@
     ...
     &lt;numa&gt;
       &lt;cell id='0' cpus='0-3' memory='512000'/&gt;
-      &lt;cell id='1' cpus='4-7' memory='512000'/&gt;
+      &lt;cell id='1' cpus='4-7' memory='512000' memAccess='shared'/&gt;
     &lt;/numa&gt;
     ...
   &lt;/cpu&gt;
@@ -1122,6 +1158,11 @@
       assigned <code>id</code>s in the increasing order starting from
       0.  Mixing cells with and without the <code>id</code> attribute
       is not recommended as it may result in unwanted behaviour.
+
+      <span class='since'>Since 1.2.9</span> the optional attribute
+      <code>memAccess</code> can control whether the memory is to be
+      mapped as "shared" or "private".  This is valid only for
+      hugepages-backed memory.
     </p>
 
     <p>
@@ -1774,7 +1815,7 @@
           <dt><code>rawio</code> attribute
           <span class="since">since 0.9.10</span></dt>
             <dd>
-            Indicates whether the disk is needs rawio capability; valid
+            Indicates whether the disk needs rawio capability. Valid
             settings are "yes" or "no" (default is "no"). If any one disk
             in a domain has rawio='yes', rawio capability will be enabled
             for all disks in the domain (because, in the case of QEMU, this
@@ -2884,7 +2925,7 @@
 <pre>
   ...
   &lt;devices&gt;
-    &lt;hostdev mode='subsystem' type='scsi'&gt;
+    &lt;hostdev mode='subsystem' type='scsi' sgio='filtered' rawio='yes'&gt;
       &lt;source&gt;
         &lt;adapter name='scsi_host0'/&gt;
         &lt;address type='scsi' bus='0' target='0' unit='0'/&gt;
@@ -2943,7 +2984,13 @@
             (<span class="since">since 1.0.6</span>) attribute indicates
             whether the kernel will filter unprivileged SG_IO commands for
             the disk, valid settings are "filtered" or "unfiltered".
-            The default is "filtered".
+            The default is "filtered". The optional <code>rawio</code>
+            (<span class="since">since 1.2.9</span>) attribute indicates
+            whether the lun needs the rawio capability. Valid settings are
+            "yes" or "no". See the rawio description within the
+            <a href="#elementsDisks">disk</a> section.
+            If a disk lun in the domain already has the rawio capability,
+            then this setting not required.
           </dd>
         </dl>
       </dd>
@@ -3827,7 +3874,11 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source network='default'/&gt;
       &lt;target dev='vnet1'/&gt;
       &lt;model type='virtio'/&gt;
-      <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5'/&gt;</b>
+      <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5'&gt;
+        &lt;host csum='off' gso='off' tso4='off' tso6='off' ecn='off' ufo='off'/&gt;
+        &lt;guest csum='off' tso4='off' tso6='off' ecn='off' ufo='off'/&gt;
+      &lt;/driver&gt;
+      </b>
     &lt;/interface&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -3931,8 +3982,46 @@ qemu-kvm -net nic,model=? /dev/null
         processor, resulting in much higher throughput.
         <span class="since">Since 1.0.6 (QEMU and KVM only)</span>
       </dd>
+      <dt><code>host</code> offloading options</dt>
+      <dd>
+        The <code>csum</code>, <code>gso</code>, <code>tso4</code>,
+        <code>tso6</code>, <code>ecn</code> and <code>ufo</code>
+        attributes with possible values <code>on</code>
+        and <code>off</code> can be used to turn off host offloading options.
+        By default, the supported offloads are enabled by QEMU.
+        <span class="since">Since 1.2.9 (QEMU only)</span>
+      </dd>
+      <dt><code>guest</code> offloading options</dt>
+      <dd>
+        The <code>csum</code>, <code>tso4</code>,
+        <code>tso6</code>, <code>ecn</code> and <code>ufo</code>
+        attributes with possible values <code>on</code>
+        and <code>off</code> can be used to turn off guest offloading options.
+        By default, the supported offloads are enabled by QEMU.
+        <span class="since">Since 1.2.9 (QEMU only)</span>
+      </dd>
     </dl>
 
+    <h5><a name="elementsBackendOptions">Setting network backend-specific options</a></h5>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='network'&gt;
+      &lt;source network='default'/&gt;
+      &lt;target dev='vnet1'/&gt;
+      &lt;model type='virtio'/&gt;
+      <b>&lt;backend tap='/dev/net/tun' vhost='/dev/vhost-net'/&gt;</b>
+      &lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5'/&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+
+    <p>
+      For tuning the backend of the network, the <code>backend</code> element
+      can be used. Supported attributes are <code>tap</code> and <code>vhost</code>,
+      allowing to override the default devices for creating tap and vhost devices.
+    </p>
     <h5><a name="elementsNICSTargetOverride">Overriding the target element</a></h5>
 
 <pre>

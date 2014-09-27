@@ -313,7 +313,7 @@ environment variables. The following standard environment variables are mandated
 by <a href="http://www.freedesktop.org/wiki/Software/systemd/ContainerInterface" shape="rect">systemd container interface</a>
 to be provided by all container technologies on Linux.
 </p>
-        <dl><dt>container</dt><dd>The fixed string <code>libvirt-lxc</code> to identify libvirt as the creator</dd><dt>container_uuid</dt><dd>The UUID assigned to the container by libvirt</dd><dt>PATH</dt><dd>The fixed string <code>/bin:/usr/bin</code></dd><dt>TERM</dt><dd>The fixed string <code>linux</code></dd></dl>
+        <dl><dt>container</dt><dd>The fixed string <code>libvirt-lxc</code> to identify libvirt as the creator</dd><dt>container_uuid</dt><dd>The UUID assigned to the container by libvirt</dd><dt>PATH</dt><dd>The fixed string <code>/bin:/usr/bin</code></dd><dt>TERM</dt><dd>The fixed string <code>linux</code></dd><dt>HOME</dt><dd>The fixed string <code>/</code></dd></dl>
         <p>
 In addition to the standard variables, the following libvirt specific
 environment variables are also provided

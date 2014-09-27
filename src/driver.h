@@ -505,7 +505,7 @@ typedef int
 typedef int
 (*virDrvDomainBlockStats)(virDomainPtr domain,
                           const char *path,
-                          struct _virDomainBlockStats *stats);
+                          virDomainBlockStatsPtr stats);
 
 typedef int
 (*virDrvDomainBlockStatsFlags)(virDomainPtr domain,
@@ -517,7 +517,7 @@ typedef int
 typedef int
 (*virDrvDomainInterfaceStats)(virDomainPtr domain,
                               const char *path,
-                              struct _virDomainInterfaceStats *stats);
+                              virDomainInterfaceStatsPtr stats);
 
 typedef int
 (*virDrvDomainSetInterfaceParameters)(virDomainPtr dom,
@@ -535,7 +535,7 @@ typedef int
 
 typedef int
 (*virDrvDomainMemoryStats)(virDomainPtr domain,
-                           struct _virDomainMemoryStat *stats,
+                           virDomainMemoryStatPtr stats,
                            unsigned int nr_stats,
                            unsigned int flags);
 
@@ -1212,6 +1212,15 @@ typedef int
                                   virDomainStatsRecordPtr **retStats,
                                   unsigned int flags);
 
+typedef int
+(*virDrvNodeAllocPages)(virConnectPtr conn,
+                        unsigned int npages,
+                        unsigned int *pageSizes,
+                        unsigned long long *pageCounts,
+                        int startCell,
+                        unsigned int cellCount,
+                        unsigned int flags);
+
 typedef struct _virDriver virDriver;
 typedef virDriver *virDriverPtr;
 
@@ -1435,6 +1444,7 @@ struct _virDriver {
     virDrvNodeGetFreePages nodeGetFreePages;
     virDrvConnectGetDomainCapabilities connectGetDomainCapabilities;
     virDrvConnectGetAllDomainStats connectGetAllDomainStats;
+    virDrvNodeAllocPages nodeAllocPages;
 };
 
 

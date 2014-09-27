@@ -1032,7 +1032,8 @@ static void umlCleanupTapDevices(virDomainObjPtr vm)
             def->type != VIR_DOMAIN_NET_TYPE_NETWORK)
             continue;
 
-        ignore_value(virNetDevTapDelete(def->ifname));
+        ignore_value(virNetDevTapDelete(def->ifname,
+                                        def->backend.tap));
     }
 }
 
@@ -2364,10 +2365,9 @@ static int umlDomainDetachDevice(virDomainPtr dom, const char *xml)
         dev->data.disk->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
         if (dev->data.disk->bus == VIR_DOMAIN_DISK_BUS_UML)
             ret = umlDomainDetachUmlDisk(driver, vm, dev);
-        else {
+        else
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("This type of disk cannot be hot unplugged"));
-        }
     } else {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        "%s", _("This type of device cannot be hot unplugged"));
@@ -2897,6 +2897,27 @@ umlNodeGetFreePages(virConnectPtr conn,
 }
 
 
+static int
+umlNodeAllocPages(virConnectPtr conn,
+                  unsigned int npages,
+                  unsigned int *pageSizes,
+                  unsigned long long *pageCounts,
+                  int startCell,
+                  unsigned int cellCount,
+                  unsigned int flags)
+{
+    bool add = !(flags & VIR_NODE_ALLOC_PAGES_SET);
+
+    virCheckFlags(VIR_NODE_ALLOC_PAGES_SET, -1);
+
+    if (virNodeAllocPagesEnsureACL(conn) < 0)
+        return -1;
+
+    return nodeAllocPages(npages, pageSizes, pageCounts,
+                          startCell, cellCount, add);
+}
+
+
 static virDriver umlDriver = {
     .no = VIR_DRV_UML,
     .name = "UML",
@@ -2959,6 +2980,7 @@ static virDriver umlDriver = {
     .nodeGetMemoryParameters = umlNodeGetMemoryParameters, /* 0.10.2 */
     .nodeSetMemoryParameters = umlNodeSetMemoryParameters, /* 0.10.2 */
     .nodeGetFreePages = umlNodeGetFreePages, /* 1.2.6 */
+    .nodeAllocPages = umlNodeAllocPages, /* 1.2.8 */
 };
 
 static virStateDriver umlStateDriver = {

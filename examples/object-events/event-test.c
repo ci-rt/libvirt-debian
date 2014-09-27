@@ -464,6 +464,57 @@ static int myNetworkEventCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
+static int
+myDomainEventTunableCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                             virDomainPtr dom,
+                             virTypedParameterPtr params,
+                             int nparams,
+                             void *opaque ATTRIBUTE_UNUSED)
+{
+    size_t i;
+
+    printf("%s EVENT: Domain %s(%d) tunable updated:\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom));
+
+#ifdef WIN32
+/* MinGW doesn't know the lld/llu so we have to use I64f/I64u instead. */
+# define LLD_FORMAT "%I64d"
+# define LLU_FORMAT "%I64u"
+#else /* WIN32 */
+# define LLD_FORMAT "%lld"
+# define LLU_FORMAT "%llu"
+#endif /* WIN32 */
+
+    for (i = 0; i < nparams; i++) {
+        switch (params[i].type) {
+        case VIR_TYPED_PARAM_INT:
+            printf("\t%s: %d\n", params[i].field, params[i].value.i);
+            break;
+        case VIR_TYPED_PARAM_UINT:
+            printf("\t%s: %u\n", params[i].field, params[i].value.ui);
+            break;
+        case VIR_TYPED_PARAM_LLONG:
+            printf("\t%s: " LLD_FORMAT "\n", params[i].field, params[i].value.l);
+            break;
+        case VIR_TYPED_PARAM_ULLONG:
+            printf("\t%s: " LLU_FORMAT "\n", params[i].field, params[i].value.ul);
+            break;
+        case VIR_TYPED_PARAM_DOUBLE:
+            printf("\t%s: %g\n", params[i].field, params[i].value.d);
+            break;
+        case VIR_TYPED_PARAM_BOOLEAN:
+            printf("\t%s: %d\n", params[i].field, params[i].value.b);
+            break;
+        case VIR_TYPED_PARAM_STRING:
+            printf("\t%s: %s\n", params[i].field, params[i].value.s);
+            break;
+        default:
+            printf("\t%s: unknown type\n", params[i].field);
+        }
+    }
+
+    return 0;
+}
 
 static void myFreeFunc(void *opaque)
 {
@@ -506,6 +557,7 @@ int main(int argc, char **argv)
     int callback14ret = -1;
     int callback15ret = -1;
     int callback16ret = -1;
+    int callback17ret = -1;
     struct sigaction action_stop;
 
     memset(&action_stop, 0, sizeof(action_stop));
@@ -624,6 +676,11 @@ int main(int argc, char **argv)
                                                       VIR_NETWORK_EVENT_ID_LIFECYCLE,
                                                       VIR_NETWORK_EVENT_CALLBACK(myNetworkEventCallback),
                                                       strdup("net callback"), myFreeFunc);
+    callback17ret = virConnectDomainEventRegisterAny(dconn,
+                                                     NULL,
+                                                     VIR_DOMAIN_EVENT_ID_TUNABLE,
+                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventTunableCallback),
+                                                     strdup("tunable"), myFreeFunc);
 
     if ((callback1ret != -1) &&
         (callback2ret != -1) &&
@@ -639,7 +696,8 @@ int main(int argc, char **argv)
         (callback13ret != -1) &&
         (callback14ret != -1) &&
         (callback15ret != -1) &&
-        (callback16ret != -1)) {
+        (callback16ret != -1) &&
+        (callback17ret != -1)) {
         if (virConnectSetKeepAlive(dconn, 5, 3) < 0) {
             virErrorPtr err = virGetLastError();
             fprintf(stderr, "Failed to start keepalive protocol: %s\n",
@@ -671,6 +729,7 @@ int main(int argc, char **argv)
         virConnectDomainEventDeregisterAny(dconn, callback14ret);
         virConnectDomainEventDeregisterAny(dconn, callback15ret);
         virConnectNetworkEventDeregisterAny(dconn, callback16ret);
+        virConnectDomainEventDeregisterAny(dconn, callback17ret);
         if (callback8ret != -1)
             virConnectDomainEventDeregisterAny(dconn, callback8ret);
     }

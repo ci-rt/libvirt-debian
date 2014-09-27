@@ -1224,6 +1224,7 @@ typedef enum {
     VIR_MIGRATE_COMPRESSED        = (1 << 11), /* compress data during migration */
     VIR_MIGRATE_ABORT_ON_ERROR    = (1 << 12), /* abort migration on I/O errors happened during migration */
     VIR_MIGRATE_AUTO_CONVERGE     = (1 << 13), /* force convergence */
+    VIR_MIGRATE_RDMA_PIN_ALL      = (1 << 14), /* RDMA memory pinning */
 } virDomainMigrateFlags;
 
 
@@ -1496,7 +1497,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1002008
+#define LIBVIR_VERSION_NUMBER 1002009
 
 /**
  * LIBVIR_CHECK_VERSION:
@@ -2257,6 +2258,8 @@ typedef enum {
     VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA = (1 << 1), /* If last use of domain,
                                                           then also remove any
                                                           snapshot metadata */
+    VIR_DOMAIN_UNDEFINE_NVRAM              = (1 << 2), /* Also remove any
+                                                          nvram file */
 
     /* Future undefine control flags should come here. */
 } virDomainUndefineFlagsValues;
@@ -2511,6 +2514,11 @@ struct _virDomainStatsRecord {
 
 typedef enum {
     VIR_DOMAIN_STATS_STATE = (1 << 0), /* return domain state */
+    VIR_DOMAIN_STATS_CPU_TOTAL = (1 << 1), /* return domain CPU info */
+    VIR_DOMAIN_STATS_BALLOON = (1 << 2), /* return domain balloon info */
+    VIR_DOMAIN_STATS_VCPU = (1 << 3), /* return domain virtual CPU info */
+    VIR_DOMAIN_STATS_INTERFACE = (1 << 4), /* return domain interfaces info */
+    VIR_DOMAIN_STATS_BLOCK = (1 << 5), /* return domain block info */
 } virDomainStatsTypes;
 
 typedef enum {
@@ -2585,13 +2593,23 @@ typedef enum {
     VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT = 1 << 1,
 } virDomainBlockJobAbortFlags;
 
+int virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
+                           unsigned int flags);
+
+/* Flags for use with virDomainGetBlockJobInfo */
+typedef enum {
+    VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES = 1 << 0, /* bandwidth in bytes/s
+                                                           instead of MiB/s */
+} virDomainBlockJobInfoFlags;
+
 /* An iterator for monitoring block job operations */
 typedef unsigned long long virDomainBlockJobCursor;
 
 typedef struct _virDomainBlockJobInfo virDomainBlockJobInfo;
 struct _virDomainBlockJobInfo {
     int type; /* virDomainBlockJobType */
-    unsigned long bandwidth;
+    unsigned long bandwidth; /* either bytes/s or MiB/s, according to flags */
+
     /*
      * The following fields provide an indication of block job progress.  @cur
      * indicates the current position and will be between 0 and @end.  @end is
@@ -2603,16 +2621,28 @@ struct _virDomainBlockJobInfo {
 };
 typedef virDomainBlockJobInfo *virDomainBlockJobInfoPtr;
 
-int       virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
-                                 unsigned int flags);
-int     virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
-                                 virDomainBlockJobInfoPtr info,
-                                 unsigned int flags);
-int    virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
-                                 unsigned long bandwidth, unsigned int flags);
+int virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
+                             virDomainBlockJobInfoPtr info,
+                             unsigned int flags);
 
-int           virDomainBlockPull(virDomainPtr dom, const char *disk,
-                                 unsigned long bandwidth, unsigned int flags);
+/* Flags for use with virDomainBlockJobSetSpeed */
+typedef enum {
+    VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES = 1 << 0, /* bandwidth in bytes/s
+                                                            instead of MiB/s */
+} virDomainBlockJobSetSpeedFlags;
+
+int virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
+                              unsigned long bandwidth, unsigned int flags);
+
+/* Flags for use with virDomainBlockPull (values chosen to be a subset
+ * of the flags for virDomainBlockRebase) */
+typedef enum {
+    VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES = 1 << 6, /* bandwidth in bytes/s
+                                                       instead of MiB/s */
+} virDomainBlockPullFlags;
+
+int virDomainBlockPull(virDomainPtr dom, const char *disk,
+                       unsigned long bandwidth, unsigned int flags);
 
 /**
  * virDomainBlockRebaseFlags:
@@ -2629,11 +2659,15 @@ typedef enum {
     VIR_DOMAIN_BLOCK_REBASE_RELATIVE  = 1 << 4, /* Keep backing chain
                                                    referenced using relative
                                                    names */
+    VIR_DOMAIN_BLOCK_REBASE_COPY_DEV  = 1 << 5, /* Treat destination as block
+                                                   device instead of file */
+    VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES = 1 << 6, /* bandwidth in bytes/s
+                                                         instead of MiB/s */
 } virDomainBlockRebaseFlags;
 
-int           virDomainBlockRebase(virDomainPtr dom, const char *disk,
-                                   const char *base, unsigned long bandwidth,
-                                   unsigned int flags);
+int virDomainBlockRebase(virDomainPtr dom, const char *disk,
+                         const char *base, unsigned long bandwidth,
+                         unsigned int flags);
 
 /**
  * virDomainBlockCopyFlags:
@@ -2653,13 +2687,16 @@ typedef enum {
  * the maximum bandwidth in bytes/s, and is used while getting the
  * copy operation into the mirrored phase, with a type of ullong.  For
  * compatibility with virDomainBlockJobSetSpeed(), values larger than
- * 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected due to
- * overflow considerations, and hypervisors may further restrict the
- * set of valid values. Specifying 0 is the same as omitting this
- * parameter, to request no bandwidth limiting.  Some hypervisors may
- * lack support for this parameter, while still allowing a subsequent
- * change of bandwidth via virDomainBlockJobSetSpeed().  The actual
- * speed can be determined with virDomainGetBlockJobInfo().
+ * 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected on input due
+ * to overflow considerations (but do you really have an interface
+ * with that much bandwidth?), and values larger than 2^31 bytes/sec
+ * may cause overflow problems if queried in bytes/sec.  Hypervisors
+ * may further restrict the set of valid values. Specifying 0 is the
+ * same as omitting this parameter, to request no bandwidth limiting.
+ * Some hypervisors may lack support for this parameter, while still
+ * allowing a subsequent change of bandwidth via
+ * virDomainBlockJobSetSpeed().  The actual speed can be determined
+ * with virDomainGetBlockJobInfo().
  */
 #define VIR_DOMAIN_BLOCK_COPY_BANDWIDTH "bandwidth"
 
@@ -2705,6 +2742,8 @@ typedef enum {
     VIR_DOMAIN_BLOCK_COMMIT_RELATIVE = 1 << 3, /* keep the backing chain
                                                   referenced using relative
                                                   names */
+    VIR_DOMAIN_BLOCK_COMMIT_BANDWIDTH_BYTES = 1 << 4, /* bandwidth in bytes/s
+                                                         instead of MiB/s */
 } virDomainBlockCommitFlags;
 
 int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
@@ -4306,6 +4345,17 @@ struct _virDomainJobInfo {
     unsigned long long fileRemaining;
 };
 
+/**
+ * virDomainGetJobStatsFlags:
+ *
+ * Flags OR'ed together to provide specific behavior when querying domain
+ * job statistics.
+ */
+typedef enum {
+    VIR_DOMAIN_JOB_STATS_COMPLETED = 1 << 0, /* return stats of a recently
+                                              * completed job */
+} virDomainGetJobStatsFlags;
+
 int virDomainGetJobInfo(virDomainPtr dom,
                         virDomainJobInfoPtr info);
 int virDomainGetJobStats(virDomainPtr domain,
@@ -4342,6 +4392,15 @@ int virDomainAbortJob(virDomainPtr dom);
  * during migration, as VIR_TYPED_PARAM_ULLONG.
  */
 #define VIR_DOMAIN_JOB_DOWNTIME                 "downtime"
+
+/**
+ * VIR_DOMAIN_JOB_SETUP_TIME:
+ *
+ * virDomainGetJobStats field: total time in milliseconds spent preparing
+ * the migration in the 'setup' phase before the iterations begin, as
+ * VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_SETUP_TIME               "setup_time"
 
 /**
  * VIR_DOMAIN_JOB_DATA_TOTAL:
@@ -4441,6 +4500,14 @@ int virDomainAbortJob(virDomainPtr dom);
 #define VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES      "memory_normal_bytes"
 
 /**
+ * VIR_DOMAIN_JOB_MEMORY_BPS:
+ *
+ * virDomainGetJobStats field: network throughput used while migrating
+ * memory in Bytes per second, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_MEMORY_BPS               "memory_bps"
+
+/**
  * VIR_DOMAIN_JOB_DISK_TOTAL:
  *
  * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only
@@ -4469,6 +4536,14 @@ int virDomainAbortJob(virDomainPtr dom);
  * This field corresponds to fileRemaining field in virDomainJobInfo.
  */
 #define VIR_DOMAIN_JOB_DISK_REMAINING           "disk_remaining"
+
+/**
+ * VIR_DOMAIN_JOB_DISK_BPS:
+ *
+ * virDomainGetJobStats field: network throughput used while migrating
+ * disks in Bytes per second, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_DISK_BPS                 "disk_bps"
 
 /**
  * VIR_DOMAIN_JOB_COMPRESSION_CACHE:
@@ -5128,6 +5203,90 @@ typedef void (*virConnectDomainEventDeviceRemovedCallback)(virConnectPtr conn,
                                                            const char *devAlias,
                                                            void *opaque);
 
+/**
+ * VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN:
+ *
+ * Macro represents formatted pinning for one vcpu specified by id which is
+ * appended to the parameter name, for example "cputune.vcpupin1",
+ * as VIR_TYPED_PARAM_STRING.
+ */
+#define VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN "cputune.vcpupin%u"
+
+/**
+ * VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN:
+ *
+ * Macro represents formatted pinning for emulator process,
+ * as VIR_TYPED_PARAM_STRING.
+ */
+#define VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN "cputune.emulatorpin"
+
+/**
+ * VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES:
+ *
+ * Macro represents proportional weight of the scheduler used on the
+ * host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES "cputune.cpu_shares"
+
+/**
+ * VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD:
+ *
+ * Macro represents the enforcement period for a quota, in microseconds,
+ * for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD "cputune.vcpu_period"
+
+/**
+ * VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA:
+ *
+ * Macro represents the maximum bandwidth to be used within a period for
+ * vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.
+ */
+#define VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA "cputune.vcpu_quota"
+
+/**
+ * VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD:
+ *
+ * Macro represents the enforcement period for a quota in microseconds,
+ * when using the posix scheduler, for all emulator activity not tied to
+ * vcpus, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD "cputune.emulator_period"
+
+/**
+ * VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA:
+ *
+ * Macro represents the maximum bandwidth to be used within a period for
+ * all emulator activity not tied to vcpus, when using the posix scheduler,
+ * as an VIR_TYPED_PARAM_LLONG.
+ */
+#define VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA "cputune.emulator_quota"
+
+
+/**
+ * virConnectDomainEventTunableCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @params: changed tunable values stored as array of virTypedParameter
+ * @nparams: size of the array
+ * @opaque: application specified data
+ *
+ * This callback occurs when tunable values are updated. The params must not
+ * be freed in the callback handler as it's done internally after the callback
+ * handler is executed.
+ *
+ * Currently supported name spaces:
+ *  "cputune.*"
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_TUNABLE with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventTunableCallback)(virConnectPtr conn,
+                                                     virDomainPtr dom,
+                                                     virTypedParameterPtr params,
+                                                     int nparams,
+                                                     void *opaque);
+
 
 /**
  * VIR_DOMAIN_EVENT_CALLBACK:
@@ -5163,6 +5322,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK = 14, /* virConnectDomainEventPMSuspendDiskCallback */
     VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED = 15, /* virConnectDomainEventDeviceRemovedCallback */
     VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2 = 16,    /* virConnectDomainEventBlockJobCallback */
+    VIR_DOMAIN_EVENT_ID_TUNABLE = 17,        /* virConnectDomainEventTunableCallback */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST
@@ -5456,6 +5616,22 @@ int virNodeGetFreePages(virConnectPtr conn,
                         unsigned int cellcount,
                         unsigned long long *counts,
                         unsigned int flags);
+
+typedef enum {
+    VIR_NODE_ALLOC_PAGES_ADD = 0, /* Add @pageCounts to the pages pool. This
+                                     can be used only to size up the pool. */
+    VIR_NODE_ALLOC_PAGES_SET = (1 << 0), /* Don't add @pageCounts, instead set
+                                            passed number of pages. This can be
+                                            used to free allocated pages. */
+} virNodeAllocPagesFlags;
+
+int virNodeAllocPages(virConnectPtr conn,
+                      unsigned int npages,
+                      unsigned int *pageSizes,
+                      unsigned long long *pageCounts,
+                      int startCell,
+                      unsigned int cellCount,
+                      unsigned int flags);
 /**
  * virSchedParameterType:
  *
