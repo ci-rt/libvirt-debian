@@ -8,10 +8,10 @@ Closes: #594444
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/virsh.c b/tools/virsh.c
-index 713c9a5..e583090 100644
+index 64195a4..492419b 100644
 --- a/tools/virsh.c
 +++ b/tools/virsh.c
-@@ -765,7 +765,7 @@ vshEditFile(vshControl *ctl, const char *filename)
+@@ -785,7 +785,7 @@ vshEditFile(vshControl *ctl, const char *filename)
      if (!editor)
          editor = virGetEnvBlockSUID("EDITOR");
      if (!editor)

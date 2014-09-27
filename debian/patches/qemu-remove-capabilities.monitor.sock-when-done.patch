@@ -10,10 +10,10 @@ Prompted by
  1 file changed, 1 insertion(+)
 
 diff --git a/src/qemu/qemu_capabilities.c b/src/qemu/qemu_capabilities.c
-index c70a1a8..f60f543 100644
+index 49f5f75..dca00b2 100644
 --- a/src/qemu/qemu_capabilities.c
 +++ b/src/qemu/qemu_capabilities.c
-@@ -3304,6 +3304,7 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
+@@ -3306,6 +3306,7 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
      virCommandAbort(cmd);
      virCommandFree(cmd);
      VIR_FREE(monarg);
