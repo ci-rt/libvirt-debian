@@ -53,8 +53,9 @@ can handle the virtual bridges.
 
 Access Control
 ==============
-Access to the libvirt socket is controlled by membership in the "libvirt" group.
-If you want to manage VMs as non root you need to add a user to that group.
+Access to the libvirt managing tasks is controlled by PolicyKit. To ease
+configuration membership in the "libvirt" group is sufficient. If you want to
+manage VMs as non-root you need to add a user to that group.
 
 Note that this will allow users in this group to use all of libvirt's
 API including modifying files on the host. For finer grained access
@@ -83,4 +84,4 @@ for a complete explanation:
   <http://bugs.debian.org/453627>
   <http://bugs.debian.org/614291>
 
- -- Guido Günther <agx@sigxcpu.org>  Mon, 06 Feb 2011 17:28:35 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 28 Sep 2014 09:50:41 +0200

@@ -127,6 +127,7 @@ Depends:
  libvirt-clients (= ${binary:Version}),
  libvirt-daemon (= ${binary:Version}),
  logrotate,
+ policykit-1,
 Recommends:
  bridge-utils,
  dmidecode,
@@ -137,7 +138,7 @@ Recommends:
  parted,
  pm-utils,
 Section: admin
-Suggests: policykit-1, radvd, auditd, systemtap, systemd, apparmor
+Suggests: radvd, auditd, systemtap, systemd, apparmor
 Breaks: avahi-daemon (<< 0.6.31-3~)
 Replaces: libvirt-bin (<< 1.2.7-4~)
 Conflicts: libvirt-bin (<< 1.2.6-1~)

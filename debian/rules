@@ -145,6 +145,9 @@ override_dh_install:
 	    debian/libvirt-daemon-system.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-daemon-system.libvirt-guests.default
+	# Add our backward compat polkit rule
+	cp debian/polkit/60-libvirt.rules \
+	    debian/libvirt-daemon-system/etc/polkit-1/rules.d/
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	# Linux supports more nice things:
 	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
