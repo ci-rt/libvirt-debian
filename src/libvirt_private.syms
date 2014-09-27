@@ -222,6 +222,7 @@ virDomainDiskDefAssignAddress;
 virDomainDiskDefForeachPath;
 virDomainDiskDefFree;
 virDomainDiskDefNew;
+virDomainDiskDefSourceParse;
 virDomainDiskDeviceTypeToString;
 virDomainDiskDiscardTypeToString;
 virDomainDiskErrorPolicyTypeFromString;
@@ -313,6 +314,9 @@ virDomainLifecycleTypeFromString;
 virDomainLifecycleTypeToString;
 virDomainListFree;
 virDomainLiveConfigHelperMethod;
+virDomainLoaderDefFree;
+virDomainLoaderTypeFromString;
+virDomainLoaderTypeToString;
 virDomainLockFailureTypeFromString;
 virDomainLockFailureTypeToString;
 virDomainMemballoonModelTypeFromString;
@@ -469,6 +473,8 @@ virDomainEventStateRegister;
 virDomainEventStateRegisterID;
 virDomainEventTrayChangeNewFromDom;
 virDomainEventTrayChangeNewFromObj;
+virDomainEventTunableNewFromDom;
+virDomainEventTunableNewFromObj;
 virDomainEventWatchdogNewFromDom;
 virDomainEventWatchdogNewFromObj;
 virDomainQemuMonitorEventNew;
@@ -887,6 +893,7 @@ virLockManagerRelease;
 
 
 # nodeinfo.h
+nodeAllocPages;
 nodeCapsInitNUMA;
 nodeGetCellsFreeMemory;
 nodeGetCPUBitmap;
@@ -1085,6 +1092,7 @@ virCgroupNewDetectMachine;
 virCgroupNewDomainPartition;
 virCgroupNewEmulator;
 virCgroupNewIgnoreError;
+virCgroupNewIOThread;
 virCgroupNewMachine;
 virCgroupNewPartition;
 virCgroupNewSelf;
@@ -1171,6 +1179,7 @@ virCommandSetPidFile;
 virCommandSetPreExecHook;
 virCommandSetSELinuxLabel;
 virCommandSetUID;
+virCommandSetUmask;
 virCommandSetWorkingDirectory;
 virCommandToString;
 virCommandWait;
@@ -1393,11 +1402,29 @@ virHostdevUpdateDomainActiveDevices;
 # util/viridentity.h
 virIdentityGetAttr;
 virIdentityGetCurrent;
+virIdentityGetSASLUserName;
+virIdentityGetSELinuxContext;
 virIdentityGetSystem;
+virIdentityGetUNIXGroupID;
+virIdentityGetUNIXGroupName;
+virIdentityGetUNIXProcessID;
+virIdentityGetUNIXProcessTime;
+virIdentityGetUNIXUserID;
+virIdentityGetUNIXUserName;
+virIdentityGetX509DName;
 virIdentityIsEqual;
 virIdentityNew;
 virIdentitySetAttr;
 virIdentitySetCurrent;
+virIdentitySetSASLUserName;
+virIdentitySetSELinuxContext;
+virIdentitySetUNIXGroupID;
+virIdentitySetUNIXGroupName;
+virIdentitySetUNIXProcessID;
+virIdentitySetUNIXProcessTime;
+virIdentitySetUNIXUserID;
+virIdentitySetUNIXUserName;
+virIdentitySetX509DName;
 
 
 # util/virinitctl.h
@@ -1693,6 +1720,7 @@ virNumaGetPageInfo;
 virNumaGetPages;
 virNumaIsAvailable;
 virNumaNodeIsAvailable;
+virNumaSetPagePoolSize;
 virNumaSetupMemoryPolicy;
 
 
@@ -1773,6 +1801,7 @@ virPCIIsVirtualFunction;
 virPidFileAcquire;
 virPidFileAcquirePath;
 virPidFileBuildPath;
+virPidFileConstructPath;
 virPidFileDelete;
 virPidFileDeletePath;
 virPidFileRead;
@@ -1783,6 +1812,10 @@ virPidFileRelease;
 virPidFileReleasePath;
 virPidFileWrite;
 virPidFileWritePath;
+
+
+# util/virpolkit.h
+virPolkitCheckAuth;
 
 
 # util/virportallocator.h
@@ -1936,6 +1969,7 @@ virStorageSourceFree;
 virStorageSourceGetActualType;
 virStorageSourceGetSecurityLabelDef;
 virStorageSourceInitChainElement;
+virStorageSourceIsEmpty;
 virStorageSourceIsLocalStorage;
 virStorageSourceNewFromBacking;
 virStorageSourcePoolDefFree;

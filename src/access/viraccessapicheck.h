@@ -99,6 +99,7 @@ extern int virDomainAbortJobEnsureACL(virConnectPtr conn, virDomainDefPtr domain
 extern int virDomainAttachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainAttachDeviceFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainBlockCommitEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainBlockCopyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainBlockJobAbortEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainBlockJobSetSpeedEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainBlockPeekEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -274,6 +275,7 @@ extern int virNetworkLookupByUUIDEnsureACL(virConnectPtr conn, virNetworkDefPtr 
 extern int virNetworkSetAutostartEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkUndefineEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkUpdateEnsureACL(virConnectPtr conn, virNetworkDefPtr network, unsigned int flags);
+extern int virNodeAllocPagesEnsureACL(virConnectPtr conn);
 extern int virNodeDeviceCreateXMLEnsureACL(virConnectPtr conn, virNodeDeviceDefPtr device);
 extern int virNodeDeviceDestroyEnsureACL(virConnectPtr conn, virNodeDeviceDefPtr device);
 extern int virNodeDeviceDetachFlagsEnsureACL(virConnectPtr conn, virNodeDeviceDefPtr device);

@@ -782,9 +782,9 @@ networkKillDaemon(pid_t pid, const char *daemonName, const char *networkName)
      */
     for (i = 0; i < 25; i++) {
         int signum = 0;
-        if (i == 0)
+        if (i == 0) {
             signum = SIGTERM;
-        else if (i == 15) {
+        } else if (i == 15) {
             signum = SIGKILL;
             signame = "KILL";
         }
@@ -1221,9 +1221,9 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
 
     /* Are we doing RA instead of radvd? */
     if (DNSMASQ_RA_SUPPORT(caps)) {
-        if (ipv6def)
+        if (ipv6def) {
             virBufferAddLit(&configbuf, "enable-ra\n");
-        else {
+        } else {
             for (i = 0;
                  (ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET6, i));
                  i++) {
@@ -1991,7 +1991,7 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
         /* Keep tun fd open and interface up to allow for IPv6 DAD to happen */
         if (virNetDevTapCreateInBridgePort(network->def->bridge,
                                            &macTapIfName, &network->def->mac,
-                                           NULL, &tapfd, 1, NULL, NULL,
+                                           NULL, NULL, &tapfd, 1, NULL, NULL,
                                            VIR_NETDEV_TAP_CREATE_USE_MAC_FOR_BRIDGE |
                                            VIR_NETDEV_TAP_CREATE_IFUP |
                                            VIR_NETDEV_TAP_CREATE_PERSIST) < 0) {
@@ -2117,7 +2117,7 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
 
     if (macTapIfName) {
         VIR_FORCE_CLOSE(tapfd);
-        ignore_value(virNetDevTapDelete(macTapIfName));
+        ignore_value(virNetDevTapDelete(macTapIfName, NULL));
         VIR_FREE(macTapIfName);
     }
 
@@ -2156,7 +2156,7 @@ static int networkShutdownNetworkVirtual(virNetworkDriverStatePtr driver ATTRIBU
     if (network->def->mac_specified) {
         char *macTapIfName = networkBridgeDummyNicName(network->def->bridge);
         if (macTapIfName) {
-            ignore_value(virNetDevTapDelete(macTapIfName));
+            ignore_value(virNetDevTapDelete(macTapIfName, NULL));
             VIR_FREE(macTapIfName);
         }
     }
@@ -3871,8 +3871,7 @@ networkAllocateActualDevice(virDomainDefPtr dom,
         iface->data.network.actual->data.hostdev.def.source.subsys.type = dev->type;
         iface->data.network.actual->data.hostdev.def.source.subsys.u.pci.addr = dev->device.pci;
 
-        switch (netdef->forward.driverName)
-        {
+        switch (netdef->forward.driverName) {
         case VIR_NETWORK_FORWARD_DRIVER_NAME_DEFAULT:
             backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT;
             break;

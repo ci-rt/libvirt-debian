@@ -37,10 +37,33 @@ struct _virDomainCapsEnum {
     unsigned int values; /* Bitmask of values supported in the corresponding enum */
 };
 
+typedef struct _virDomainCapsStringValues virDomainCapsStringValues;
+typedef virDomainCapsStringValues *virDomainCapsStringValuesPtr;
+struct _virDomainCapsStringValues {
+    char **values;  /* raw string values */
+    size_t nvalues; /* number of strings */
+};
+
 typedef struct _virDomainCapsDevice virDomainCapsDevice;
 typedef virDomainCapsDevice *virDomainCapsDevicePtr;
 struct _virDomainCapsDevice {
     bool supported; /* true if <devtype> is supported by hypervisor */
+};
+
+typedef struct _virDomainCapsLoader virDomainCapsLoader;
+typedef virDomainCapsLoader *virDomainCapsLoaderPtr;
+struct _virDomainCapsLoader {
+    virDomainCapsDevice device;
+    virDomainCapsStringValues values;   /* Info about values for the element */
+    virDomainCapsEnum type;     /* Info about virDomainLoader */
+    virDomainCapsEnum readonly; /* Info about readonly:virTristateBool */
+};
+
+typedef struct _virDomainCapsOS virDomainCapsOS;
+typedef virDomainCapsOS *virDomainCapsOSPtr;
+struct _virDomainCapsOS {
+    virDomainCapsDevice device;
+    virDomainCapsLoader loader;     /* Info about virDomainLoaderDef */
 };
 
 typedef struct _virDomainCapsDeviceDisk virDomainCapsDeviceDisk;
@@ -75,6 +98,7 @@ struct _virDomainCaps {
     /* Some machine specific info */
     int maxvcpus;
 
+    virDomainCapsOS os;
     virDomainCapsDeviceDisk disk;
     virDomainCapsDeviceHostdev hostdev;
     /* add new domain devices here */

@@ -2199,7 +2199,11 @@ parse_reg_exp (re_string_t *regexp, regex_t *preg, re_token_t *token,
 	{
 	  branch = parse_branch (regexp, preg, token, syntax, nest, err);
 	  if (BE (*err != REG_NOERROR && branch == NULL, 0))
-	    return NULL;
+	    {
+	      if (tree != NULL)
+		postorder (tree, free_tree, NULL);
+	      return NULL;
+	    }
 	}
       else
 	branch = NULL;
@@ -2631,6 +2635,8 @@ parse_dup_op (bin_tree_t *elem, re_string_t *regexp, re_dfa_t *dfa,
 
       /* Duplicate ELEM before it is marked optional.  */
       elem = duplicate_tree (elem, dfa);
+      if (BE (elem == NULL, 0))
+        goto parse_dup_op_espace;
       old_tree = tree;
     }
   else

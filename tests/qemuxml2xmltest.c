@@ -205,6 +205,7 @@ mymain(void)
     DO_TEST("hugepages-pages");
     DO_TEST("hugepages-pages2");
     DO_TEST("hugepages-pages3");
+    DO_TEST("hugepages-shared");
     DO_TEST("nosharepages");
     DO_TEST("disk-aio");
     DO_TEST("disk-cdrom");
@@ -260,6 +261,7 @@ mymain(void)
     DO_TEST("net-user");
     DO_TEST("net-virtio");
     DO_TEST("net-virtio-device");
+    DO_TEST("net-virtio-disable-offloads");
     DO_TEST("net-eth");
     DO_TEST("net-eth-ifname");
     DO_TEST("net-virtio-network-portgroup");
@@ -302,6 +304,7 @@ mymain(void)
 
     DO_TEST("smp");
     DO_TEST("iothreads");
+    DO_TEST_DIFFERENT("cputune-iothreads");
     DO_TEST("iothreads-disk");
     DO_TEST("lease");
     DO_TEST("event_idx");
@@ -315,12 +318,13 @@ mymain(void)
     DO_TEST_FULL("seclabel-dynamic-baselabel", false, WHEN_INACTIVE);
     DO_TEST_FULL("seclabel-dynamic-override", false, WHEN_INACTIVE);
     DO_TEST_FULL("seclabel-dynamic-labelskip", true, WHEN_INACTIVE);
-    DO_TEST_FULL("seclabel-dynamic-relabel", false, WHEN_INACTIVE);
+    DO_TEST_FULL("seclabel-dynamic-relabel", true, WHEN_INACTIVE);
     DO_TEST("seclabel-static");
     DO_TEST_FULL("seclabel-static-labelskip", false, WHEN_ACTIVE);
-    DO_TEST("seclabel-none");
+    DO_TEST_DIFFERENT("seclabel-none");
     DO_TEST("seclabel-dac-none");
     DO_TEST("seclabel-dynamic-none");
+    DO_TEST_FULL("seclabel-dynamic-none-relabel", true, WHEN_INACTIVE);
     DO_TEST("numad-static-vcpu-no-numatune");
     DO_TEST("disk-scsi-lun-passthrough-sgio");
 
@@ -366,6 +370,7 @@ mymain(void)
     DO_TEST("disk-copy_on_read");
     DO_TEST("hostdev-scsi-shareable");
     DO_TEST("hostdev-scsi-sgio");
+    DO_TEST("hostdev-scsi-rawio");
 
     DO_TEST_DIFFERENT("hostdev-scsi-autogen-address");
 
@@ -390,10 +395,15 @@ mymain(void)
     DO_TEST_DIFFERENT("cpu-numa1");
     DO_TEST_DIFFERENT("cpu-numa2");
     DO_TEST("cpu-numa-disjoint");
+    DO_TEST("cpu-numa-memshared");
 
     DO_TEST_DIFFERENT("numatune-auto-prefer");
     DO_TEST_DIFFERENT("numatune-memnode");
     DO_TEST("numatune-memnode-no-memory");
+
+    DO_TEST("bios-nvram");
+
+    DO_TEST("tap-vhost");
 
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);

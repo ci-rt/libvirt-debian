@@ -93,13 +93,15 @@ xenParseSxprOS(const struct sexpr *node,
                int hvm)
 {
     if (hvm) {
-        if (sexpr_node_copy(node, "domain/image/hvm/loader", &def->os.loader) < 0)
+        if (VIR_ALLOC(def->os.loader) < 0)
             goto error;
-        if (def->os.loader == NULL) {
-            if (sexpr_node_copy(node, "domain/image/hvm/kernel", &def->os.loader) < 0)
+        if (sexpr_node_copy(node, "domain/image/hvm/loader", &def->os.loader->path) < 0)
+            goto error;
+        if (def->os.loader->path == NULL) {
+            if (sexpr_node_copy(node, "domain/image/hvm/kernel", &def->os.loader->path) < 0)
                 goto error;
 
-            if (def->os.loader == NULL) {
+            if (def->os.loader->path == NULL) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s", _("domain information incomplete, missing HVM loader"));
                 return -1;
@@ -128,7 +130,7 @@ xenParseSxprOS(const struct sexpr *node,
     /* If HVM kenrel == loader, then old xend, so kill off kernel */
     if (hvm &&
         def->os.kernel &&
-        STREQ(def->os.kernel, def->os.loader)) {
+        STREQ(def->os.kernel, def->os.loader->path)) {
         VIR_FREE(def->os.kernel);
     }
     /* Drop kernel argument that has no value */
@@ -1176,8 +1178,9 @@ xenParseSxpr(const struct sexpr *root,
                            _("unknown lifecycle type %s"), tmp);
             goto error;
         }
-    } else
+    } else {
         def->onPoweroff = VIR_DOMAIN_LIFECYCLE_DESTROY;
+    }
 
     tmp = sexpr_node(root, "domain/on_reboot");
     if (tmp != NULL) {
@@ -1186,8 +1189,9 @@ xenParseSxpr(const struct sexpr *root,
                            _("unknown lifecycle type %s"), tmp);
             goto error;
         }
-    } else
+    } else {
         def->onReboot = VIR_DOMAIN_LIFECYCLE_RESTART;
+    }
 
     tmp = sexpr_node(root, "domain/on_crash");
     if (tmp != NULL) {
@@ -1196,8 +1200,9 @@ xenParseSxpr(const struct sexpr *root,
                            _("unknown lifecycle type %s"), tmp);
             goto error;
         }
-    } else
+    } else {
         def->onCrash = VIR_DOMAIN_LIFECYCLE_DESTROY;
+    }
 
     if (hvm) {
         if (sexpr_int(root, "domain/image/hvm/acpi"))
@@ -1950,12 +1955,10 @@ xenFormatSxprNet(virConnectPtr conn,
     if (!hvm) {
         if (def->model != NULL)
             virBufferEscapeSexpr(buf, "(model '%s')", def->model);
-    }
-    else {
+    } else {
         if (def->model != NULL && STREQ(def->model, "netfront")) {
             virBufferAddLit(buf, "(type netfront)");
-        }
-        else {
+        } else {
             if (def->model != NULL) {
                 virBufferEscapeSexpr(buf, "(model '%s')", def->model);
             }
@@ -2279,9 +2282,9 @@ xenFormatSxpr(virConnectPtr conn,
         if (hvm) {
             char bootorder[VIR_DOMAIN_BOOT_LAST+1];
             if (def->os.kernel)
-                virBufferEscapeSexpr(&buf, "(loader '%s')", def->os.loader);
+                virBufferEscapeSexpr(&buf, "(loader '%s')", def->os.loader->path);
             else
-                virBufferEscapeSexpr(&buf, "(kernel '%s')", def->os.loader);
+                virBufferEscapeSexpr(&buf, "(kernel '%s')", def->os.loader->path);
 
             virBufferAsprintf(&buf, "(vcpus %u)", def->maxvcpus);
             if (def->vcpus < def->maxvcpus)
@@ -2393,8 +2396,7 @@ xenFormatSxpr(virConnectPtr conn,
                         }
                     }
                     virBufferAddLit(&buf, "))");
-                }
-                else {
+                } else {
                     virBufferAddLit(&buf, "(serial ");
                     if (xenFormatSxprChr(def->serials[0], &buf) < 0)
                         goto error;

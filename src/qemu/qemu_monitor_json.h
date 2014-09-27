@@ -79,6 +79,10 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
                                      long long *flush_req,
                                      long long *flush_total_times,
                                      long long *errs);
+int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
+                                        const char *dev_name,
+                                        qemuBlockStatsPtr stats,
+                                        int nstats);
 int qemuMonitorJSONGetBlockStatsParamsNumber(qemuMonitorPtr mon,
                                              int *nparams);
 int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
@@ -133,6 +137,8 @@ int qemuMonitorJSONSetMigrationCacheSize(qemuMonitorPtr mon,
 int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
                                       qemuMonitorMigrationStatusPtr status);
 
+int qemuMonitorJSONGetMigrationCapabilities(qemuMonitorPtr mon,
+                                            char ***capabilities);
 int qemuMonitorJSONGetMigrationCapability(qemuMonitorPtr mon,
                                           qemuMonitorMigrationCaps capability);
 int qemuMonitorJSONSetMigrationCapability(qemuMonitorPtr mon,
@@ -249,6 +255,8 @@ int qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
                                const char *file,
                                const char *format,
                                unsigned long long speed,
+                               unsigned int granularity,
+                               unsigned long long buf_size,
                                unsigned int flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 int qemuMonitorJSONDrivePivot(qemuMonitorPtr mon,
@@ -285,10 +293,15 @@ int qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
                             const char *base,
                             const char *backingName,
                             unsigned long long speed,
-                            virDomainBlockJobInfoPtr info,
                             qemuMonitorBlockJobCmd mode,
                             bool modern)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockJobInfo(qemuMonitorPtr mon,
+                                const char *device,
+                                virDomainBlockJobInfoPtr info,
+                                unsigned long long *bandwidth)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int qemuMonitorJSONSetLink(qemuMonitorPtr mon,
                            const char *name,
@@ -439,4 +452,8 @@ int qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
                                virCPUDataPtr *data);
 
 int qemuMonitorJSONRTCResetReinjection(qemuMonitorPtr mon);
+
+int qemuMonitorJSONGetIOThreads(qemuMonitorPtr mon,
+                                qemuMonitorIOThreadsInfoPtr **iothreads)
+    ATTRIBUTE_NONNULL(2);
 #endif /* QEMU_MONITOR_JSON_H */

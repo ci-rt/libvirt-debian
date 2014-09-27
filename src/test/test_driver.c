@@ -521,6 +521,7 @@ testDomainGenerateIfname(virDomainDefPtr domdef)
 
         if (!found)
             return ifname;
+        VIR_FREE(ifname);
     }
 
     virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -3368,7 +3369,7 @@ testDomainSetSchedulerParameters(virDomainPtr domain,
 
 static int testDomainBlockStats(virDomainPtr domain,
                                 const char *path,
-                                struct _virDomainBlockStats *stats)
+                                virDomainBlockStatsPtr stats)
 {
     testConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
@@ -3421,7 +3422,7 @@ static int testDomainBlockStats(virDomainPtr domain,
 
 static int testDomainInterfaceStats(virDomainPtr domain,
                                     const char *path,
-                                    struct _virDomainInterfaceStats *stats)
+                                    virDomainInterfaceStatsPtr stats)
 {
     testConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;

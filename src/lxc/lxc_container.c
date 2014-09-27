@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 Red Hat, Inc.
+ * Copyright (C) 2008-2014 Red Hat, Inc.
  * Copyright (C) 2008 IBM Corp.
  *
  * lxc_container.c: file description
@@ -236,6 +236,7 @@ static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef,
     virCommandAddEnvString(cmd, "PATH=/bin:/sbin");
     virCommandAddEnvString(cmd, "TERM=linux");
     virCommandAddEnvString(cmd, "container=lxc-libvirt");
+    virCommandAddEnvString(cmd, "HOME=/");
     virCommandAddEnvPair(cmd, "container_uuid", uuidstr);
     if (nttyPaths > 1)
         virCommandAddEnvPair(cmd, "container_ttys", virBufferCurrentContent(&buf));
@@ -886,12 +887,14 @@ static int lxcContainerMountBasicFS(bool userns_enabled,
             if (ret == 0) {
                 VIR_DEBUG("Skipping '%s' which isn't mounted in host",
                           mnt->dst);
+                VIR_FREE(mnt_src);
                 continue;
             }
         }
 
         if (mnt->skipUserNS && userns_enabled) {
             VIR_DEBUG("Skipping due to user ns enablement");
+            VIR_FREE(mnt_src);
             continue;
         }
 
@@ -930,6 +933,8 @@ static int lxcContainerMountBasicFS(bool userns_enabled,
                                  MS_BIND|MS_REMOUNT|MS_RDONLY);
             goto cleanup;
         }
+
+        VIR_FREE(mnt_src);
     }
 
     rc = 0;

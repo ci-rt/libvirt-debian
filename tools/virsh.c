@@ -151,22 +151,40 @@ vshNameSorter(const void *a, const void *b)
 double
 vshPrettyCapacity(unsigned long long val, const char **unit)
 {
-    if (val < 1024) {
+    double limit = 1024;
+
+    if (val < limit) {
         *unit = "B";
-        return (double)val;
-    } else if (val < (1024.0l * 1024.0l)) {
-        *unit = "KiB";
-        return (((double)val / 1024.0l));
-    } else if (val < (1024.0l * 1024.0l * 1024.0l)) {
-        *unit = "MiB";
-        return (double)val / (1024.0l * 1024.0l);
-    } else if (val < (1024.0l * 1024.0l * 1024.0l * 1024.0l)) {
-        *unit = "GiB";
-        return (double)val / (1024.0l * 1024.0l * 1024.0l);
-    } else {
-        *unit = "TiB";
-        return (double)val / (1024.0l * 1024.0l * 1024.0l * 1024.0l);
+        return val;
     }
+    limit *= 1024;
+    if (val < limit) {
+        *unit = "KiB";
+        return val / (limit / 1024);
+    }
+    limit *= 1024;
+    if (val < limit) {
+        *unit = "MiB";
+        return val / (limit / 1024);
+    }
+    limit *= 1024;
+    if (val < limit) {
+        *unit = "GiB";
+        return val / (limit / 1024);
+    }
+    limit *= 1024;
+    if (val < limit) {
+        *unit = "TiB";
+        return val / (limit / 1024);
+    }
+    limit *= 1024;
+    if (val < limit) {
+        *unit = "PiB";
+        return val / (limit / 1024);
+    }
+    limit *= 1024;
+    *unit = "EiB";
+    return val / (limit / 1024);
 }
 
 /*
@@ -397,6 +415,7 @@ vshReconnect(vshControl *ctl)
     disconnected = 0;
     ctl->useGetInfo = false;
     ctl->useSnapshotOld = false;
+    ctl->blockJobNoBytes = false;
 }
 
 
@@ -454,6 +473,7 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
 
     ctl->useGetInfo = false;
     ctl->useSnapshotOld = false;
+    ctl->blockJobNoBytes = false;
     ctl->readonly = ro;
 
     ctl->conn = vshConnect(ctl, ctl->name, ctl->readonly);

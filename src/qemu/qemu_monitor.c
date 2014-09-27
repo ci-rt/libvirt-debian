@@ -121,7 +121,7 @@ VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
-              "xbzrle", "auto-converge")
+              "xbzrle", "auto-converge", "rdma-pin-all")
 
 VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
@@ -478,6 +478,8 @@ static int
 qemuMonitorIOWrite(qemuMonitorPtr mon)
 {
     int done;
+    char *buf;
+    size_t len;
 
     /* If no active message, or fully transmitted, the no-op */
     if (!mon->msg || mon->msg->txOffset == mon->msg->txLength)
@@ -489,22 +491,16 @@ qemuMonitorIOWrite(qemuMonitorPtr mon)
         return -1;
     }
 
+    buf = mon->msg->txBuffer + mon->msg->txOffset;
+    len = mon->msg->txLength - mon->msg->txOffset;
     if (mon->msg->txFD == -1)
-        done = write(mon->fd,
-                     mon->msg->txBuffer + mon->msg->txOffset,
-                     mon->msg->txLength - mon->msg->txOffset);
+        done = write(mon->fd, buf, len);
     else
-        done = qemuMonitorIOWriteWithFD(mon,
-                                        mon->msg->txBuffer + mon->msg->txOffset,
-                                        mon->msg->txLength - mon->msg->txOffset,
-                                        mon->msg->txFD);
+        done = qemuMonitorIOWriteWithFD(mon, buf, len, mon->msg->txFD);
 
     PROBE(QEMU_MONITOR_IO_WRITE,
-          "mon=%p buf=%s len=%d ret=%d errno=%d",
-          mon,
-          mon->msg->txBuffer + mon->msg->txOffset,
-          mon->msg->txLength - mon->msg->txOffset,
-          done, errno);
+          "mon=%p buf=%s len=%zu ret=%d errno=%d",
+          mon, buf, len, done, errno);
 
     if (mon->msg->txFD != -1) {
         PROBE(QEMU_MONITOR_IO_SEND_FD,
@@ -631,8 +627,11 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque)
         error = true;
     } else {
         if (events & VIR_EVENT_HANDLE_WRITABLE) {
-            if (qemuMonitorIOWrite(mon) < 0)
+            if (qemuMonitorIOWrite(mon) < 0) {
                 error = true;
+                if (errno == ECONNRESET)
+                    hangup = true;
+            }
             events &= ~VIR_EVENT_HANDLE_WRITABLE;
         }
 
@@ -642,6 +641,8 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque)
             events &= ~VIR_EVENT_HANDLE_READABLE;
             if (got < 0) {
                 error = true;
+                if (errno == ECONNRESET)
+                    hangup = true;
             } else if (got == 0) {
                 eof = true;
             } else {
@@ -683,8 +684,9 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque)
         if (hangup) {
             /* Check if an error message from qemu is available and if so, use
              * it to overwrite the actual message. It's done only in early
-             * startup phases where the message from qemu is certainly more
-             * interesting than a "connection reset by peer" message.
+             * startup phases or during incoming migration when the message
+             * from qemu is certainly more interesting than a
+             * "connection reset by peer" message.
              */
             char *qemuMessage;
 
@@ -1754,6 +1756,32 @@ int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
     return ret;
 }
 
+/* Fills the first 'nstats' block stats. 'stats' must be an array.
+ * Returns <0 on error, otherwise the number of block stats retrieved.
+ * if 'dev_name' is != NULL, look for this device only and skip
+ * any other. In that case return value cannot be greater than 1.
+ */
+int
+qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
+                                const char *dev_name,
+                                qemuBlockStatsPtr stats,
+                                int nstats)
+{
+    int ret;
+    VIR_DEBUG("mon=%p dev=%s", mon, dev_name);
+
+    if (mon->json) {
+        ret = qemuMonitorJSONGetAllBlockStatsInfo(mon, dev_name,
+                                                  stats, nstats);
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("unable to query all block stats with this QEMU"));
+        return -1;
+    }
+
+    return ret;
+}
+
 /* Return 0 and update @nparams with the number of block stats
  * QEMU supports if success. Return -1 if failure.
  */
@@ -2203,6 +2231,7 @@ int qemuMonitorMigrateToFd(qemuMonitorPtr mon,
 
 int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
                              unsigned int flags,
+                             const char *protocol,
                              const char *hostname,
                              int port)
 {
@@ -2218,7 +2247,7 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
     }
 
 
-    if (virAsprintf(&uri, "tcp:%s:%d", hostname, port) < 0)
+    if (virAsprintf(&uri, "%s:%s:%d", protocol, hostname, port) < 0)
         return -1;
 
     if (mon->json)
@@ -3178,34 +3207,24 @@ qemuMonitorDiskSnapshot(qemuMonitorPtr mon, virJSONValuePtr actions,
     return ret;
 }
 
-/* Start a drive-mirror block job.  bandwidth is in MiB/sec.  */
+/* Start a drive-mirror block job.  bandwidth is in bytes/sec.  */
 int
 qemuMonitorDriveMirror(qemuMonitorPtr mon,
                        const char *device, const char *file,
-                       const char *format, unsigned long bandwidth,
+                       const char *format, unsigned long long bandwidth,
+                       unsigned int granularity, unsigned long long buf_size,
                        unsigned int flags)
 {
     int ret = -1;
-    unsigned long long speed;
 
-    VIR_DEBUG("mon=%p, device=%s, file=%s, format=%s, bandwidth=%ld, "
-              "flags=%x",
-              mon, device, file, NULLSTR(format), bandwidth, flags);
-
-    /* Convert bandwidth MiB to bytes - unfortunately the JSON QMP protocol is
-     * limited to LLONG_MAX also for unsigned values */
-    speed = bandwidth;
-    if (speed > LLONG_MAX >> 20) {
-        virReportError(VIR_ERR_OVERFLOW,
-                       _("bandwidth must be less than %llu"),
-                       LLONG_MAX >> 20);
-        return -1;
-    }
-    speed <<= 20;
+    VIR_DEBUG("mon=%p, device=%s, file=%s, format=%s, bandwidth=%lld, "
+              "granularity=%#x, buf_size=%lld, flags=%x",
+              mon, device, file, NULLSTR(format), bandwidth, granularity,
+              buf_size, flags);
 
     if (mon->json)
-        ret = qemuMonitorJSONDriveMirror(mon, device, file, format, speed,
-                                         flags);
+        ret = qemuMonitorJSONDriveMirror(mon, device, file, format, bandwidth,
+                                         granularity, buf_size, flags);
     else
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("drive-mirror requires JSON monitor"));
@@ -3228,33 +3247,22 @@ qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
     return ret;
 }
 
-/* Start a block-commit block job.  bandwidth is in MiB/sec.  */
+/* Start a block-commit block job.  bandwidth is in bytes/sec.  */
 int
 qemuMonitorBlockCommit(qemuMonitorPtr mon, const char *device,
                        const char *top, const char *base,
                        const char *backingName,
-                       unsigned long bandwidth)
+                       unsigned long long bandwidth)
 {
     int ret = -1;
-    unsigned long long speed;
 
-    VIR_DEBUG("mon=%p, device=%s, top=%s, base=%s, backingName=%s, bandwidth=%lu",
+    VIR_DEBUG("mon=%p, device=%s, top=%s, base=%s, backingName=%s, "
+              "bandwidth=%llu",
               mon, device, top, base, NULLSTR(backingName), bandwidth);
-
-    /* Convert bandwidth MiB to bytes - unfortunately the JSON QMP protocol is
-     * limited to LLONG_MAX also for unsigned values */
-    speed = bandwidth;
-    if (speed > LLONG_MAX >> 20) {
-        virReportError(VIR_ERR_OVERFLOW,
-                       _("bandwidth must be less than %llu"),
-                       LLONG_MAX >> 20);
-        return -1;
-    }
-    speed <<= 20;
 
     if (mon->json)
         ret = qemuMonitorJSONBlockCommit(mon, device, top, base,
-                                         backingName, speed);
+                                         backingName, bandwidth);
     else
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("block-commit requires JSON monitor"));
@@ -3359,43 +3367,52 @@ int qemuMonitorScreendump(qemuMonitorPtr mon,
     return ret;
 }
 
-/* bandwidth is in MiB/sec */
-int qemuMonitorBlockJob(qemuMonitorPtr mon,
-                        const char *device,
-                        const char *base,
-                        const char *backingName,
-                        unsigned long bandwidth,
-                        virDomainBlockJobInfoPtr info,
-                        qemuMonitorBlockJobCmd mode,
-                        bool modern)
+/* bandwidth is in bytes/sec */
+int
+qemuMonitorBlockJob(qemuMonitorPtr mon,
+                    const char *device,
+                    const char *base,
+                    const char *backingName,
+                    unsigned long long bandwidth,
+                    qemuMonitorBlockJobCmd mode,
+                    bool modern)
 {
     int ret = -1;
-    unsigned long long speed;
 
-    VIR_DEBUG("mon=%p, device=%s, base=%s, backingName=%s, bandwidth=%luM, "
-              "info=%p, mode=%o, modern=%d",
+    VIR_DEBUG("mon=%p, device=%s, base=%s, backingName=%s, bandwidth=%lluB, "
+              "mode=%o, modern=%d",
               mon, device, NULLSTR(base), NULLSTR(backingName),
-              bandwidth, info, mode, modern);
-
-    /* Convert bandwidth MiB to bytes - unfortunately the JSON QMP protocol is
-     * limited to LLONG_MAX also for unsigned values */
-    speed = bandwidth;
-    if (speed > LLONG_MAX >> 20) {
-        virReportError(VIR_ERR_OVERFLOW,
-                       _("bandwidth must be less than %llu"),
-                       LLONG_MAX >> 20);
-        return -1;
-    }
-    speed <<= 20;
+              bandwidth, mode, modern);
 
     if (mon->json)
         ret = qemuMonitorJSONBlockJob(mon, device, base, backingName,
-                                      speed, info, mode, modern);
+                                      bandwidth, mode, modern);
     else
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("block jobs require JSON monitor"));
     return ret;
 }
+
+
+int
+qemuMonitorBlockJobInfo(qemuMonitorPtr mon,
+                        const char *device,
+                        virDomainBlockJobInfoPtr info,
+                        unsigned long long *bandwidth)
+{
+    int ret = -1;
+
+    VIR_DEBUG("mon=%p, device=%s, info=%p, bandwidth=%p",
+              mon, device, info, bandwidth);
+
+    if (mon->json)
+        ret = qemuMonitorJSONBlockJobInfo(mon, device, info, bandwidth);
+    else
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("block jobs require JSON monitor"));
+    return ret;
+}
+
 
 int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
@@ -3771,6 +3788,26 @@ char *qemuMonitorGetTargetArch(qemuMonitorPtr mon)
 }
 
 
+int
+qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
+                                    char ***capabilities)
+{
+    VIR_DEBUG("mon=%p", mon);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    /* No capability is supported without JSON monitor */
+    if (!mon->json)
+        return 0;
+
+    return qemuMonitorJSONGetMigrationCapabilities(mon, capabilities);
+}
+
+
 /**
  * Returns 1 if @capability is supported, 0 if it's not, or -1 on error.
  */
@@ -4070,4 +4107,45 @@ qemuMonitorRTCResetReinjection(qemuMonitorPtr mon)
     }
 
     return qemuMonitorJSONRTCResetReinjection(mon);
+}
+
+/**
+ * qemuMonitorGetIOThreads:
+ * @mon: Pointer to the monitor
+ * @iothreads: Location to return array of IOThreadInfo data
+ *
+ * Issue query-iothreads command.
+ * Retrieve the list of iothreads defined/running for the machine
+ *
+ * Returns count of IOThreadInfo structures on success
+ *        -1 on error.
+ */
+int
+qemuMonitorGetIOThreads(qemuMonitorPtr mon,
+                        qemuMonitorIOThreadsInfoPtr **iothreads)
+{
+
+    VIR_DEBUG("mon=%p iothreads=%p", mon, iothreads);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    /* Requires JSON to make the query */
+    if (!mon->json) {
+        *iothreads = NULL;
+        return 0;
+    }
+
+    return qemuMonitorJSONGetIOThreads(mon, iothreads);
+}
+
+void qemuMonitorIOThreadsInfoFree(qemuMonitorIOThreadsInfoPtr iothread)
+{
+    if (!iothread)
+        return;
+    VIR_FREE(iothread->name);
+    VIR_FREE(iothread);
 }

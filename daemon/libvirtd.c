@@ -163,9 +163,9 @@ static int daemonForkIntoBackground(const char *argv0)
 
             VIR_FORCE_CLOSE(statuspipe[0]);
 
-            if ((stdinfd = open("/dev/null", O_RDONLY)) < 0)
+            if ((stdinfd = open("/dev/null", O_RDONLY)) <= STDERR_FILENO)
                 goto cleanup;
-            if ((stdoutfd = open("/dev/null", O_WRONLY)) < 0)
+            if ((stdoutfd = open("/dev/null", O_WRONLY)) <= STDERR_FILENO)
                 goto cleanup;
             if (dup2(stdinfd, STDIN_FILENO) != STDIN_FILENO)
                 goto cleanup;
@@ -173,9 +173,9 @@ static int daemonForkIntoBackground(const char *argv0)
                 goto cleanup;
             if (dup2(stdoutfd, STDERR_FILENO) != STDERR_FILENO)
                 goto cleanup;
-            if (stdinfd > STDERR_FILENO && VIR_CLOSE(stdinfd) < 0)
+            if (VIR_CLOSE(stdinfd) < 0)
                 goto cleanup;
-            if (stdoutfd > STDERR_FILENO && VIR_CLOSE(stdoutfd) < 0)
+            if (VIR_CLOSE(stdoutfd) < 0)
                 goto cleanup;
 
             if (setsid() < 0)
@@ -249,41 +249,6 @@ static int daemonForkIntoBackground(const char *argv0)
     return -1;
 }
 
-
-static int
-daemonPidFilePath(bool privileged,
-                  char **pidfile)
-{
-    if (privileged) {
-        if (VIR_STRDUP(*pidfile, LOCALSTATEDIR "/run/libvirtd.pid") < 0)
-            goto error;
-    } else {
-        char *rundir = NULL;
-        mode_t old_umask;
-
-        if (!(rundir = virGetUserRuntimeDirectory()))
-            goto error;
-
-        old_umask = umask(077);
-        if (virFileMakePath(rundir) < 0) {
-            umask(old_umask);
-            goto error;
-        }
-        umask(old_umask);
-
-        if (virAsprintf(pidfile, "%s/libvirtd.pid", rundir) < 0) {
-            VIR_FREE(rundir);
-            goto error;
-        }
-
-        VIR_FREE(rundir);
-    }
-
-    return 0;
-
- error:
-    return -1;
-}
 
 static int
 daemonUnixSocketPaths(struct daemonConfig *config,
@@ -477,12 +442,13 @@ static void daemonInitialize(void)
 }
 
 
-static int daemonSetupNetworking(virNetServerPtr srv,
-                                 struct daemonConfig *config,
-                                 const char *sock_path,
-                                 const char *sock_path_ro,
-                                 bool ipsock,
-                                 bool privileged)
+static int ATTRIBUTE_NONNULL(3)
+daemonSetupNetworking(virNetServerPtr srv,
+                      struct daemonConfig *config,
+                      const char *sock_path,
+                      const char *sock_path_ro,
+                      bool ipsock,
+                      bool privileged)
 {
     virNetServerServicePtr svc = NULL;
     virNetServerServicePtr svcRO = NULL;
@@ -502,7 +468,7 @@ static int daemonSetupNetworking(virNetServerPtr srv,
             return -1;
     }
 
-    if (nfds && nfds > ((int)!!sock_path + (int)!!sock_path_ro)) {
+    if (nfds > (sock_path_ro ? 2 : 1)) {
         VIR_ERROR(_("Too many (%u) FDs passed from caller"), nfds);
         return -1;
     }
@@ -1313,8 +1279,10 @@ int main(int argc, char **argv) {
     }
 
     if (!pid_file &&
-        daemonPidFilePath(privileged,
-                          &pid_file) < 0) {
+        virPidFileConstructPath(privileged,
+                                LOCALSTATEDIR,
+                                "libvirtd",
+                                &pid_file) < 0) {
         VIR_ERROR(_("Can't determine pid file path."));
         exit(EXIT_FAILURE);
     }

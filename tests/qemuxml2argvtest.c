@@ -259,6 +259,7 @@ typedef enum {
     FLAG_EXPECT_FAILURE     = 1 << 1,
     FLAG_EXPECT_PARSE_ERROR = 1 << 2,
     FLAG_JSON               = 1 << 3,
+    FLAG_FIPS               = 1 << 4,
 } virQemuXML2ArgvTestFlags;
 
 static int testCompareXMLToArgvFiles(const char *xml,
@@ -360,7 +361,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      (flags & FLAG_JSON), extraFlags,
                                      migrateFrom, migrateFd, NULL,
                                      VIR_NETDEV_VPORT_PROFILE_OP_NO_OP,
-                                     &testCallbacks, false))) {
+                                     &testCallbacks, false,
+                                     (flags & FLAG_FIPS)))) {
         if (!virtTestOOMActive() &&
             (flags & FLAG_EXPECT_FAILURE)) {
             ret = 0;
@@ -442,6 +444,9 @@ testCompareXMLToArgvHelper(const void *data)
 
     if (virQEMUCapsGet(info->extraFlags, QEMU_CAPS_MONITOR_JSON))
         flags |= FLAG_JSON;
+
+    if (virQEMUCapsGet(info->extraFlags, QEMU_CAPS_ENABLE_FIPS))
+        flags |= FLAG_FIPS;
 
     result = testCompareXMLToArgvFiles(xml, args, info->extraFlags,
                                        info->migrateFrom, info->migrateFd,
@@ -642,6 +647,8 @@ mymain(void)
     DO_TEST_FAILURE("reboot-timeout-enabled", NONE);
 
     DO_TEST("bios", QEMU_CAPS_DEVICE, QEMU_CAPS_SGA);
+    DO_TEST("bios-nvram", QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DRIVE_FORMAT, QEMU_CAPS_DRIVE_READONLY);
     DO_TEST("clock-utc", QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE);
     DO_TEST("clock-localtime", NONE);
     DO_TEST("clock-localtime-basis-localtime", QEMU_CAPS_RTC);
@@ -682,6 +689,11 @@ mymain(void)
             QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST("hugepages-pages3", QEMU_CAPS_MEM_PATH, QEMU_CAPS_OBJECT_MEMORY_RAM,
             QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST("hugepages-shared", QEMU_CAPS_MEM_PATH, QEMU_CAPS_OBJECT_MEMORY_RAM,
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST_FAILURE("hugepages-pages4", QEMU_CAPS_MEM_PATH,
+            QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST("hugepages-pages5", QEMU_CAPS_MEM_PATH);
     DO_TEST("nosharepages", QEMU_CAPS_MACHINE_OPT, QEMU_CAPS_MEM_MERGE);
     DO_TEST("disk-cdrom", NONE);
     DO_TEST("disk-cdrom-network-http", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
@@ -952,11 +964,14 @@ mymain(void)
     DO_TEST_FAILURE("misc-enable-s4", NONE);
     DO_TEST("misc-no-reboot", NONE);
     DO_TEST("misc-uuid", QEMU_CAPS_NAME, QEMU_CAPS_UUID);
+    DO_TEST_PARSE_ERROR("vhost_queues-invalid", NONE);
     DO_TEST("net-vhostuser", QEMU_CAPS_DEVICE, QEMU_CAPS_NETDEV);
     DO_TEST("net-user", NONE);
     DO_TEST("net-virtio", NONE);
     DO_TEST("net-virtio-device",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_VIRTIO_TX_ALG);
+    DO_TEST("net-virtio-disable-offloads",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("net-virtio-netdev",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NETDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("net-virtio-s390",
@@ -1205,6 +1220,9 @@ mymain(void)
     DO_TEST_PARSE_ERROR("cpu-numa3", NONE);
     DO_TEST_FAILURE("cpu-numa-disjoint", NONE);
     DO_TEST("cpu-numa-disjoint", QEMU_CAPS_NUMA);
+    DO_TEST_FAILURE("cpu-numa-memshared", QEMU_CAPS_SMP_TOPOLOGY,
+                    QEMU_CAPS_OBJECT_MEMORY_RAM);
+    DO_TEST_FAILURE("cpu-numa-memshared", QEMU_CAPS_SMP_TOPOLOGY);
     DO_TEST("cpu-host-model", NONE);
     skipLegacyCPUs = true;
     DO_TEST("cpu-host-model-fallback", NONE);
@@ -1443,6 +1461,8 @@ mymain(void)
 
     DO_TEST("panic", QEMU_CAPS_DEVICE_PANIC,
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+
+    DO_TEST("fips-enabled", QEMU_CAPS_ENABLE_FIPS);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

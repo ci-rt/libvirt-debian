@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #if HAVE_SETRLIMIT
 # include <sys/time.h>
 # include <sys/resource.h>
@@ -60,6 +61,45 @@
 
 VIR_LOG_INIT("util.process");
 
+/*
+ * Workaround older glibc. While kernel may support the setns
+ * syscall, the glibc wrapper might not exist. If that's the
+ * case, use our own.
+ */
+#ifndef __NR_setns
+# if defined(__x86_64__)
+#  define __NR_setns 308
+# elif defined(__i386__)
+#  define __NR_setns 346
+# elif defined(__arm__)
+#  define __NR_setns 375
+# elif defined(__aarch64__)
+#  define __NR_setns 375
+# elif defined(__powerpc__)
+#  define __NR_setns 350
+# elif defined(__s390__)
+#  define __NR_setns 339
+# endif
+#endif
+
+#ifndef HAVE_SETNS
+# if defined(__NR_setns) && !defined(WIN32)
+#  include <sys/syscall.h>
+
+static inline int setns(int fd, int nstype)
+{
+    return syscall(__NR_setns, fd, nstype);
+}
+# else /* __NR_setns && !WIN32 */
+static inline int setns(int fd ATTRIBUTE_UNUSED, int nstype ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Namespaces are not supported on this platform."));
+    return -1;
+}
+# endif /* __NR_setns && !WIN32 */
+#endif /* HAVE_SETNS */
+
 /**
  * virProcessTranslateStatus:
  * @status: child exit status to translate
@@ -73,13 +113,13 @@ virProcessTranslateStatus(int status)
 {
     char *buf;
     if (WIFEXITED(status)) {
-        ignore_value(virAsprintf(&buf, _("exit status %d"),
-                                 WEXITSTATUS(status)));
+        ignore_value(virAsprintfQuiet(&buf, _("exit status %d"),
+                                      WEXITSTATUS(status)));
     } else if (WIFSIGNALED(status)) {
-        ignore_value(virAsprintf(&buf, _("fatal signal %d"),
-                                 WTERMSIG(status)));
+        ignore_value(virAsprintfQuiet(&buf, _("fatal signal %d"),
+                                      WTERMSIG(status)));
     } else {
-        ignore_value(virAsprintf(&buf, _("invalid value %d"), status));
+        ignore_value(virAsprintfQuiet(&buf, _("invalid value %d"), status));
     }
     return buf;
 }
@@ -559,7 +599,6 @@ int virProcessGetAffinity(pid_t pid ATTRIBUTE_UNUSED,
 #endif /* HAVE_SCHED_GETAFFINITY */
 
 
-#if HAVE_SETNS
 int virProcessGetNamespaces(pid_t pid,
                             size_t *nfdlist,
                             int **fdlist)
@@ -630,26 +669,6 @@ int virProcessSetNamespaces(size_t nfdlist,
     }
     return 0;
 }
-#else /* ! HAVE_SETNS */
-int virProcessGetNamespaces(pid_t pid,
-                            size_t *nfdlist ATTRIBUTE_UNUSED,
-                            int **fdlist ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS,
-                         _("Cannot get namespaces for %llu"),
-                         (unsigned long long)pid);
-    return -1;
-}
-
-
-int virProcessSetNamespaces(size_t nfdlist ATTRIBUTE_UNUSED,
-                            int *fdlist ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("Cannot set namespaces"));
-    return -1;
-}
-#endif /* ! HAVE_SETNS */
 
 #if HAVE_PRLIMIT
 static int
@@ -905,7 +924,6 @@ int virProcessGetStartTime(pid_t pid,
 #endif
 
 
-#ifdef HAVE_SETNS
 static int virProcessNamespaceHelper(int errfd,
                                      pid_t pid,
                                      virProcessNamespaceCallback cb,
@@ -992,17 +1010,6 @@ virProcessRunInMountNamespace(pid_t pid,
     VIR_FORCE_CLOSE(errfd[1]);
     return ret;
 }
-#else /* !HAVE_SETNS */
-int
-virProcessRunInMountNamespace(pid_t pid ATTRIBUTE_UNUSED,
-                              virProcessNamespaceCallback cb ATTRIBUTE_UNUSED,
-                              void *opaque ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("Mount namespaces are not available on this platform"));
-    return -1;
-}
-#endif
 
 
 /**

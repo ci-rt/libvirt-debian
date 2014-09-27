@@ -916,6 +916,16 @@ struct remote_domain_block_rebase_args {
         uint64_t                   bandwidth;
         u_int                      flags;
 };
+struct remote_domain_block_copy_args {
+        remote_nonnull_domain      dom;
+        remote_nonnull_string      path;
+        remote_nonnull_string      destxml;
+        struct {
+                u_int              params_len;
+                remote_typed_param * params_val;
+        } params;
+        u_int                      flags;
+};
 struct remote_domain_block_commit_args {
         remote_nonnull_domain      dom;
         remote_nonnull_string      disk;
@@ -2435,6 +2445,14 @@ struct remote_domain_event_block_job_2_msg {
         int                        type;
         int                        status;
 };
+struct remote_domain_event_callback_tunable_msg {
+        int                        callbackID;
+        remote_nonnull_domain      dom;
+        struct {
+                u_int              params_len;
+                remote_typed_param * params_val;
+        } params;
+};
 struct remote_connect_get_cpu_model_names_args {
         remote_nonnull_string      arch;
         int                        need_results;
@@ -2499,6 +2517,22 @@ struct remote_node_get_free_pages_ret {
                 u_int              counts_len;
                 uint64_t *         counts_val;
         } counts;
+};
+struct remote_node_alloc_pages_args {
+        struct {
+                u_int              pageSizes_len;
+                u_int *            pageSizes_val;
+        } pageSizes;
+        struct {
+                u_int              pageCounts_len;
+                uint64_t *         pageCounts_val;
+        } pageCounts;
+        int                        startCell;
+        u_int                      cellCount;
+        u_int                      flags;
+};
+struct remote_node_alloc_pages_ret {
+        int                        ret;
 };
 struct remote_network_dhcp_lease {
         remote_nonnull_string      iface;
@@ -2890,4 +2924,7 @@ enum remote_procedure {
         REMOTE_PROC_CONNECT_GET_DOMAIN_CAPABILITIES = 342,
         REMOTE_PROC_DOMAIN_OPEN_GRAPHICS_FD = 343,
         REMOTE_PROC_CONNECT_GET_ALL_DOMAIN_STATS = 344,
+        REMOTE_PROC_DOMAIN_BLOCK_COPY = 345,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_TUNABLE = 346,
+        REMOTE_PROC_NODE_ALLOC_PAGES = 347,
 };

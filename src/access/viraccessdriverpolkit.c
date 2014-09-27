@@ -26,6 +26,7 @@
 #include "virlog.h"
 #include "virprocess.h"
 #include "virerror.h"
+#include "virpolkit.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_ACCESS
@@ -71,59 +72,41 @@ virAccessDriverPolkitFormatAction(const char *typename,
 }
 
 
-static char *
-virAccessDriverPolkitFormatProcess(const char *actionid)
+static int
+virAccessDriverPolkitGetCaller(const char *actionid,
+                               pid_t *pid,
+                               unsigned long long *startTime,
+                               uid_t *uid)
 {
     virIdentityPtr identity = virIdentityGetCurrent();
-    const char *callerPid = NULL;
-    const char *callerTime = NULL;
-    const char *callerUid = NULL;
-    char *ret = NULL;
-#ifndef PKCHECK_SUPPORTS_UID
-    static bool polkitInsecureWarned;
-#endif
+    int ret = -1;
 
     if (!identity) {
         virAccessError(VIR_ERR_ACCESS_DENIED,
                        _("Policy kit denied action %s from <anonymous>"),
                        actionid);
-        return NULL;
+        return -1;
     }
-    if (virIdentityGetAttr(identity, VIR_IDENTITY_ATTR_UNIX_PROCESS_ID, &callerPid) < 0)
+    if (virIdentityGetUNIXProcessID(identity, pid) < 0)
         goto cleanup;
-    if (virIdentityGetAttr(identity, VIR_IDENTITY_ATTR_UNIX_PROCESS_TIME, &callerTime) < 0)
+    if (virIdentityGetUNIXProcessTime(identity, startTime) < 0)
         goto cleanup;
-    if (virIdentityGetAttr(identity, VIR_IDENTITY_ATTR_UNIX_USER_ID, &callerUid) < 0)
+    if (virIdentityGetUNIXUserID(identity, uid) < 0)
         goto cleanup;
 
-    if (!callerPid) {
+    if (!pid) {
         virAccessError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("No UNIX process ID available"));
         goto cleanup;
     }
-    if (!callerTime) {
-        virAccessError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("No UNIX process start time available"));
-        goto cleanup;
-    }
-    if (!callerUid) {
-        virAccessError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("No UNIX caller UID available"));
-        goto cleanup;
-    }
 
-#ifdef PKCHECK_SUPPORTS_UID
-    if (virAsprintf(&ret, "%s,%s,%s", callerPid, callerTime, callerUid) < 0)
+    if (virIdentityGetUNIXProcessTime(identity, startTime) < 0)
         goto cleanup;
-#else
-    if (!polkitInsecureWarned) {
-        VIR_WARN("No support for caller UID with pkcheck. "
-                 "This deployment is known to be insecure.");
-        polkitInsecureWarned = true;
-    }
-    if (virAsprintf(&ret, "%s,%s", callerPid, callerTime) < 0)
+
+    if (virIdentityGetUNIXUserID(identity, uid) < 0)
         goto cleanup;
-#endif
+
+    ret = 0;
 
  cleanup:
     virObjectUnref(identity);
@@ -138,53 +121,43 @@ virAccessDriverPolkitCheck(virAccessManagerPtr manager ATTRIBUTE_UNUSED,
                            const char **attrs)
 {
     char *actionid = NULL;
-    char *process = NULL;
-    virCommandPtr cmd = NULL;
-    int status;
     int ret = -1;
+    pid_t pid;
+    uid_t uid;
+    unsigned long long startTime;
+    int rv;
 
     if (!(actionid = virAccessDriverPolkitFormatAction(typename, permname)))
         goto cleanup;
 
-    if (!(process = virAccessDriverPolkitFormatProcess(actionid)))
+    if (virAccessDriverPolkitGetCaller(actionid,
+                                       &pid,
+                                       &startTime,
+                                       &uid) < 0)
         goto cleanup;
 
-    VIR_DEBUG("Check action '%s' for process '%s'", actionid, process);
+    VIR_DEBUG("Check action '%s' for process '%d' time %lld uid %d",
+              actionid, pid, startTime, uid);
 
-    cmd = virCommandNewArgList(PKCHECK_PATH,
-                               "--action-id", actionid,
-                               "--process", process,
-                               NULL);
+    rv = virPolkitCheckAuth(actionid,
+                            pid,
+                            startTime,
+                            uid,
+                            attrs,
+                            false);
 
-    while (attrs && attrs[0] && attrs[1]) {
-        virCommandAddArgList(cmd, "--detail", attrs[0], attrs[1], NULL);
-        attrs += 2;
-    }
-
-    if (virCommandRun(cmd, &status) < 0)
-        goto cleanup;
-
-    if (status == 0) {
+    if (rv == 0) {
         ret = 1; /* Allowed */
     } else {
-        if (status == 1 ||
-            status == 2 ||
-            status == 3) {
+        if (rv == -2) {
             ret = 0; /* Denied */
         } else {
             ret = -1; /* Error */
-            virAccessError(VIR_ERR_ACCESS_DENIED,
-                           _("Policy kit denied action %s from %s: "
-                             "exit status %d"),
-                           actionid, process, status);
         }
-        goto cleanup;
     }
 
  cleanup:
-    virCommandFree(cmd);
     VIR_FREE(actionid);
-    VIR_FREE(process);
     return ret;
 }
 

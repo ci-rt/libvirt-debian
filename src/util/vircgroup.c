@@ -1492,6 +1492,49 @@ virCgroupNewEmulator(virCgroupPtr domain,
 }
 
 
+/**
+ * virCgroupNewIOThread:
+ *
+ * @domain: group for the domain
+ * @iothreadid: id of the iothread
+ * @create: true to create if not already existing
+ * @group: Pointer to returned virCgroupPtr
+ *
+ * Returns 0 on success, or -1 on error
+ */
+int
+virCgroupNewIOThread(virCgroupPtr domain,
+                     int iothreadid,
+                     bool create,
+                     virCgroupPtr *group)
+{
+    int ret = -1;
+    char *name = NULL;
+    int controllers;
+
+    if (virAsprintf(&name, "iothread%d", iothreadid) < 0)
+        goto cleanup;
+
+    controllers = ((1 << VIR_CGROUP_CONTROLLER_CPU) |
+                   (1 << VIR_CGROUP_CONTROLLER_CPUACCT) |
+                   (1 << VIR_CGROUP_CONTROLLER_CPUSET));
+
+    if (virCgroupNew(-1, name, domain, controllers, group) < 0)
+        goto cleanup;
+
+    if (virCgroupMakeGroup(domain, *group, create, VIR_CGROUP_NONE) < 0) {
+        virCgroupRemove(*group);
+        virCgroupFree(group);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(name);
+    return ret;
+}
+
+
 int
 virCgroupNewDetect(pid_t pid,
                    int controllers,
@@ -3757,7 +3800,7 @@ virCgroupIsolateMount(virCgroupPtr group, const char *oldroot,
                                      _("Unable to symlink directory %s to %s"),
                                      group->controllers[i].mountPoint,
                                      group->controllers[i].linkPoint);
-                return -1;
+                goto cleanup;
             }
         }
     }
@@ -3930,6 +3973,18 @@ virCgroupNewVcpu(virCgroupPtr domain ATTRIBUTE_UNUSED,
 
 int
 virCgroupNewEmulator(virCgroupPtr domain ATTRIBUTE_UNUSED,
+                     bool create ATTRIBUTE_UNUSED,
+                     virCgroupPtr *group ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENXIO, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
+virCgroupNewIOThread(virCgroupPtr domain ATTRIBUTE_UNUSED,
+                     int iothreadid ATTRIBUTE_UNUSED,
                      bool create ATTRIBUTE_UNUSED,
                      virCgroupPtr *group ATTRIBUTE_UNUSED)
 {

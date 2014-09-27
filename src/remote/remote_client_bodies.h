@@ -1219,6 +1219,39 @@ done:
 }
 
 static int
+remoteDomainBlockCopy(virDomainPtr dom, const char *path, const char *destxml, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_block_copy_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.path = (char *)path;
+    args.destxml = (char *)destxml;
+    args.flags = flags;
+
+    if (remoteSerializeTypedParameters(params, nparams, &args.params.params_val, &args.params.params_len) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_domain_block_copy_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_COPY,
+             (xdrproc_t)xdr_remote_domain_block_copy_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainBlockJobAbort(virDomainPtr dom, const char *path, unsigned int flags)
 {
     int rv = -1;

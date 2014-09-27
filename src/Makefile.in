@@ -1645,7 +1645,8 @@ libvirt_util_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_7) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am__objects_89 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virarch.lo \
 	util/libvirt_util_la-viratomic.lo \
@@ -1697,6 +1698,7 @@ am__objects_89 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virobject.lo \
 	util/libvirt_util_la-virpci.lo \
 	util/libvirt_util_la-virpidfile.lo \
+	util/libvirt_util_la-virpolkit.lo \
 	util/libvirt_util_la-virportallocator.lo \
 	util/libvirt_util_la-virprocess.lo \
 	util/libvirt_util_la-virrandom.lo \
@@ -2424,6 +2426,7 @@ GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
 GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_PUTS = @GNULIB_PUTS@
 GNULIB_PWRITE = @GNULIB_PWRITE@
+GNULIB_QSORT_R = @GNULIB_QSORT_R@
 GNULIB_RAISE = @GNULIB_RAISE@
 GNULIB_RANDOM = @GNULIB_RANDOM@
 GNULIB_RANDOM_R = @GNULIB_RANDOM_R@
@@ -3308,6 +3311,7 @@ REPLACE_PTSNAME = @REPLACE_PTSNAME@
 REPLACE_PTSNAME_R = @REPLACE_PTSNAME_R@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
+REPLACE_QSORT_R = @REPLACE_QSORT_R@
 REPLACE_RAISE = @REPLACE_RAISE@
 REPLACE_RANDOM_R = @REPLACE_RANDOM_R@
 REPLACE_READ = @REPLACE_READ@
@@ -3701,6 +3705,7 @@ UTIL_SOURCES = \
 		util/virobject.c util/virobject.h		\
 		util/virpci.c util/virpci.h			\
 		util/virpidfile.c util/virpidfile.h		\
+		util/virpolkit.c util/virpolkit.h               \
 		util/virportallocator.c util/virportallocator.h \
 		util/virprobe.h					\
 		util/virprocess.c util/virprocess.h		\
@@ -4416,12 +4421,14 @@ libvirt_util_la_SOURCES = \
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM) $(NUMACTL_CFLAGS)	\
-		$(SYSTEMD_DAEMON_CFLAGS) -I$(top_srcdir)/src/conf
+		$(SYSTEMD_DAEMON_CFLAGS) $(POLKIT_CFLAGS) \
+		-I$(top_srcdir)/src/conf
 
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
-		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(SYSTEMD_DAEMON_LIBS)
+		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(SYSTEMD_DAEMON_LIBS) \
+		$(POLKIT_LIBS)
 
 libvirt_conf_la_SOURCES = $(CONF_SOURCES)
 libvirt_conf_la_CFLAGS = $(AM_CFLAGS)
@@ -4985,14 +4992,12 @@ libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \
 			$(DBUS_CFLAGS) \
 			$(XDR_CFLAGS) \
-			$(AM_CFLAGS) \
-			$(POLKIT_CFLAGS)
+			$(AM_CFLAGS)
 
 libvirt_net_rpc_server_la_LDFLAGS = \
 			$(AM_LDFLAGS) \
 			$(AVAHI_LIBS) \
 			$(DBUS_LIBS) \
-			$(POLKIT_LIBS) \
 			$(CYGWIN_EXTRA_LDFLAGS) \
 			$(MINGW_EXTRA_LDFLAGS)
 
@@ -6218,6 +6223,8 @@ util/libvirt_util_la-virpci.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virpidfile.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-virpolkit.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virportallocator.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virprocess.lo: util/$(am__dirstamp) \
@@ -6822,6 +6829,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virobject.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virpci.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virpidfile.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virpolkit.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virportallocator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virprocess.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virrandom.Plo@am__quote@
@@ -9174,6 +9182,13 @@ util/libvirt_util_la-virpidfile.lo: util/virpidfile.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virpidfile.lo `test -f 'util/virpidfile.c' || echo '$(srcdir)/'`util/virpidfile.c
 
+util/libvirt_util_la-virpolkit.lo: util/virpolkit.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virpolkit.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virpolkit.Tpo -c -o util/libvirt_util_la-virpolkit.lo `test -f 'util/virpolkit.c' || echo '$(srcdir)/'`util/virpolkit.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virpolkit.Tpo util/$(DEPDIR)/libvirt_util_la-virpolkit.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virpolkit.c' object='util/libvirt_util_la-virpolkit.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virpolkit.lo `test -f 'util/virpolkit.c' || echo '$(srcdir)/'`util/virpolkit.c
+
 util/libvirt_util_la-virportallocator.lo: util/virportallocator.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virportallocator.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virportallocator.Tpo -c -o util/libvirt_util_la-virportallocator.lo `test -f 'util/virportallocator.c' || echo '$(srcdir)/'`util/virportallocator.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virportallocator.Tpo util/$(DEPDIR)/libvirt_util_la-virportallocator.Plo
@@ -10586,6 +10601,7 @@ install-data-local: install-init install-systemd
 @WITH_SANLOCK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock"
 @WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
 @WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu/channel/target"
+@WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu/nvram"
 @WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
 @WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt/qemu"
 @WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/log/libvirt/qemu"

@@ -2222,8 +2222,10 @@ lxcDomainParseBlkioDeviceStr(char *blkioDeviceStr, const char *type,
                    _("unable to parse blkio device '%s' '%s'"),
                    type, blkioDeviceStr);
  cleanup:
-    virBlkioDeviceArrayClear(result, ndevices);
-    VIR_FREE(result);
+    if (result) {
+        virBlkioDeviceArrayClear(result, ndevices);
+        VIR_FREE(result);
+    }
     return -1;
 }
 
@@ -2246,17 +2248,17 @@ lxcDomainMergeBlkioDevice(virBlkioDevicePtr *dest_array,
             if (STREQ(src->path, dest->path)) {
                 found = true;
 
-                if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT))
+                if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
                     dest->weight = src->weight;
-                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS))
+                } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS)) {
                     dest->riops = src->riops;
-                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS))
+                } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS)) {
                     dest->wiops = src->wiops;
-                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS))
+                } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS)) {
                     dest->rbps = src->rbps;
-                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS))
+                } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS)) {
                     dest->wbps = src->wbps;
-                else {
+                } else {
                     virReportError(VIR_ERR_INVALID_ARG, _("Unknown parameter %s"),
                                    type);
                     return -1;
@@ -2272,17 +2274,17 @@ lxcDomainMergeBlkioDevice(virBlkioDevicePtr *dest_array,
                 return -1;
             dest = &(*dest_array)[*dest_size - 1];
 
-            if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT))
+            if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
                 dest->weight = src->weight;
-            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS))
+            } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS)) {
                 dest->riops = src->riops;
-            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS))
+            } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS)) {
                 dest->wiops = src->wiops;
-            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS))
+            } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS)) {
                 dest->rbps = src->rbps;
-            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS))
+            } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS)) {
                 dest->wbps = src->wbps;
-            else {
+            } else {
                 *dest_size = *dest_size - 1;
                 return -1;
             }
@@ -2299,7 +2301,7 @@ lxcDomainMergeBlkioDevice(virBlkioDevicePtr *dest_array,
 static int
 lxcDomainBlockStats(virDomainPtr dom,
                     const char *path,
-                    struct _virDomainBlockStats *stats)
+                    virDomainBlockStatsPtr stats)
 {
     int ret = -1, idx;
     virDomainObjPtr vm;
@@ -3082,7 +3084,7 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
 static int
 lxcDomainInterfaceStats(virDomainPtr dom,
                         const char *path,
-                        struct _virDomainInterfaceStats *stats)
+                        virDomainInterfaceStatsPtr stats)
 {
     virDomainObjPtr vm;
     size_t i;
@@ -3124,7 +3126,7 @@ lxcDomainInterfaceStats(virDomainPtr dom,
 static int
 lxcDomainInterfaceStats(virDomainPtr dom,
                         const char *path ATTRIBUTE_UNUSED,
-                        struct _virDomainInterfaceStats *stats ATTRIBUTE_UNUSED)
+                        virDomainInterfaceStatsPtr stats ATTRIBUTE_UNUSED)
 {
     virReportUnsupportedError();
     return -1;
@@ -5385,7 +5387,7 @@ lxcNodeGetInfo(virConnectPtr conn,
 
 static int
 lxcDomainMemoryStats(virDomainPtr dom,
-                     struct _virDomainMemoryStat *stats,
+                     virDomainMemoryStatPtr stats,
                      unsigned int nr_stats,
                      unsigned int flags)
 {
@@ -5683,6 +5685,27 @@ lxcNodeGetFreePages(virConnectPtr conn,
 }
 
 
+static int
+lxcNodeAllocPages(virConnectPtr conn,
+                  unsigned int npages,
+                  unsigned int *pageSizes,
+                  unsigned long long *pageCounts,
+                  int startCell,
+                  unsigned int cellCount,
+                  unsigned int flags)
+{
+    bool add = !(flags & VIR_NODE_ALLOC_PAGES_SET);
+
+    virCheckFlags(VIR_NODE_ALLOC_PAGES_SET, -1);
+
+    if (virNodeAllocPagesEnsureACL(conn) < 0)
+        return -1;
+
+    return nodeAllocPages(npages, pageSizes, pageCounts,
+                          startCell, cellCount, add);
+}
+
+
 /* Function Tables */
 static virDriver lxcDriver = {
     .no = VIR_DRV_LXC,
@@ -5774,6 +5797,7 @@ static virDriver lxcDriver = {
     .domainReboot = lxcDomainReboot, /* 1.0.1 */
     .domainLxcOpenNamespace = lxcDomainLxcOpenNamespace, /* 1.0.2 */
     .nodeGetFreePages = lxcNodeGetFreePages, /* 1.2.6 */
+    .nodeAllocPages = lxcNodeAllocPages, /* 1.2.8 */
 };
 
 static virStateDriver lxcStateDriver = {

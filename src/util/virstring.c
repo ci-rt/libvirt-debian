@@ -198,10 +198,27 @@ virStringFreeListCount(char **strings,
 {
     size_t i;
 
+    if (!strings)
+        return;
+
     for (i = 0; i < count; i++)
         VIR_FREE(strings[i]);
 
     VIR_FREE(strings);
+}
+
+
+size_t virStringListLen(const char **strings)
+{
+    size_t i = 0;
+
+    if (!strings)
+        return 0;
+
+    while (strings[i] != NULL)
+        i++;
+
+    return i;
 }
 
 
