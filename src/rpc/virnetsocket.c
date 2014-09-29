@@ -1,7 +1,7 @@
 /*
  * virnetsocket.c: generic network socket handling
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -121,7 +121,7 @@ VIR_ONCE_GLOBAL_INIT(virNetSocket)
 
 
 #ifndef WIN32
-static int virNetSocketForkDaemon(const char *binary)
+static int virNetSocketForkDaemon(const char *binary, int passfd)
 {
     int ret;
     virCommandPtr cmd = virCommandNewArgList(binary,
@@ -134,6 +134,10 @@ static int virNetSocketForkDaemon(const char *binary)
     virCommandAddEnvPassBlockSUID(cmd, "XDG_RUNTIME_DIR", NULL);
     virCommandClearCaps(cmd);
     virCommandDaemonize(cmd);
+    if (passfd) {
+        virCommandPassFD(cmd, passfd, VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+        virCommandPassListenFDs(cmd);
+    }
     ret = virCommandRun(cmd, NULL);
     virCommandFree(cmd);
     return ret;
@@ -226,14 +230,28 @@ int virNetSocketNewListenTCP(const char *nodename,
     struct addrinfo hints;
     int fd = -1;
     size_t i;
-    int addrInUse = false;
+    bool addrInUse = false;
+    bool familyNotSupported = false;
+    virSocketAddr tmp_addr;
 
     *retsocks = NULL;
     *nretsocks = 0;
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
+    hints.ai_flags = AI_PASSIVE;
     hints.ai_socktype = SOCK_STREAM;
+
+    /* Don't use ADDRCONFIG for binding to the wildcard address.
+     * Just catch the error returned by socket() if the system has
+     * no IPv6 support.
+     *
+     * This allows libvirtd to be started in parallel with the network
+     * startup in most cases.
+     */
+    if (nodename &&
+        !(virSocketAddrParse(&tmp_addr, nodename, AF_UNSPEC) > 0 &&
+          virSocketAddrIsWildcard(&tmp_addr)))
+        hints.ai_flags |= AI_ADDRCONFIG;
 
     int e = getaddrinfo(nodename, service, &hints, &ai);
     if (e != 0) {
@@ -251,6 +269,11 @@ int virNetSocketNewListenTCP(const char *nodename,
 
         if ((fd = socket(runp->ai_family, runp->ai_socktype,
                          runp->ai_protocol)) < 0) {
+            if (errno == EAFNOSUPPORT) {
+                familyNotSupported = true;
+                runp = runp->ai_next;
+                continue;
+            }
             virReportSystemError(errno, "%s", _("Unable to create socket"));
             goto error;
         }
@@ -305,6 +328,11 @@ int virNetSocketNewListenTCP(const char *nodename,
             goto error;
         runp = runp->ai_next;
         fd = -1;
+    }
+
+    if (nsocks == 0 && familyNotSupported) {
+        virReportSystemError(EAFNOSUPPORT, "%s", _("Unable to bind to port"));
+        goto error;
     }
 
     if (nsocks == 0 &&
@@ -516,10 +544,9 @@ int virNetSocketNewConnectUNIX(const char *path,
                                const char *binary,
                                virNetSocketPtr *retsock)
 {
+    int fd, passfd = -1;
     virSocketAddr localAddr;
     virSocketAddr remoteAddr;
-    int fd;
-    int retries = 0;
 
     memset(&localAddr, 0, sizeof(localAddr));
     memset(&remoteAddr, 0, sizeof(remoteAddr));
@@ -547,24 +574,66 @@ int virNetSocketNewConnectUNIX(const char *path,
 
  retry:
     if (connect(fd, &remoteAddr.data.sa, remoteAddr.len) < 0) {
-        if ((errno == ECONNREFUSED ||
-             errno == ENOENT) &&
-            spawnDaemon && retries < 20) {
-            VIR_DEBUG("Connection refused for %s, trying to spawn %s",
-                      path, binary);
-            if (retries == 0 &&
-                virNetSocketForkDaemon(binary) < 0)
+        if (!spawnDaemon) {
+            virReportSystemError(errno, _("Failed to connect socket to '%s'"),
+                                 path);
+            goto error;
+        } else {
+            int status = 0;
+            pid_t pid = 0;
+
+            if ((passfd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
+                virReportSystemError(errno, "%s", _("Failed to create socket"));
+                goto error;
+            }
+
+            /*
+             * We have to fork() here, because umask() is set
+             * per-process, chmod() is racy and fchmod() has undefined
+             * behaviour on sockets according to POSIX, so it doesn't
+             * work outside Linux.
+             */
+            if ((pid = virFork()) < 0)
                 goto error;
 
-            retries++;
-            usleep(1000 * 100 * retries);
-            goto retry;
-        }
+            if (pid == 0) {
+                umask(0077);
+                if (bind(passfd, &remoteAddr.data.sa, remoteAddr.len) < 0)
+                    _exit(EXIT_FAILURE);
 
-        virReportSystemError(errno,
-                             _("Failed to connect socket to '%s'"),
-                             path);
-        goto error;
+                _exit(EXIT_SUCCESS);
+            }
+
+            if (virProcessWait(pid, &status, false) < 0)
+                goto error;
+
+            if (status != EXIT_SUCCESS) {
+                /*
+                 * OK, so the subprocces failed to bind() the socket.  This may mean
+                 * that another daemon was starting at the same time and succeeded
+                 * with its bind().  So we'll try connecting again, but this time
+                 * without spawning the daemon.
+                 */
+                spawnDaemon = false;
+                goto retry;
+            }
+
+            if (listen(passfd, 0) < 0) {
+                virReportSystemError(errno, "%s",
+                                     _("Failed to listen on socket that's about "
+                                       "to be passed to the daemon"));
+                goto error;
+            }
+
+            if (connect(fd, &remoteAddr.data.sa, remoteAddr.len) < 0) {
+                virReportSystemError(errno, _("Failed to connect socket to '%s'"),
+                                     path);
+                goto error;
+            }
+
+            if (virNetSocketForkDaemon(binary, passfd) < 0)
+                goto error;
+        }
     }
 
     localAddr.len = sizeof(localAddr.data);
@@ -580,6 +649,9 @@ int virNetSocketNewConnectUNIX(const char *path,
 
  error:
     VIR_FORCE_CLOSE(fd);
+    VIR_FORCE_CLOSE(passfd);
+    if (spawnDaemon)
+        unlink(path);
     return -1;
 }
 #else
@@ -704,10 +776,8 @@ int virNetSocketNewConnectSSH(const char *nodename,
     virCommandAddArgList(cmd, nodename, "sh", "-c", NULL);
 
     virBufferEscapeShell(&buf, netcat);
-    if (virBufferError(&buf)) {
+    if (virBufferCheckError(&buf) < 0) {
         virCommandFree(cmd);
-        virBufferFreeAndReset(&buf);
-        virReportOOMError();
         return -1;
     }
     quoted = virBufferContentAndReset(&buf);

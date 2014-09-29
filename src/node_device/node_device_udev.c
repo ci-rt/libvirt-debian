@@ -1,7 +1,7 @@
 /*
  * node_device_udev.c: node device enumeration - libudev implementation
  *
- * Copyright (C) 2009-2013 Red Hat, Inc.
+ * Copyright (C) 2009-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,6 +40,7 @@
 #include "virfile.h"
 #include "virpci.h"
 #include "virstring.h"
+#include "virnetdev.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -52,6 +53,7 @@ VIR_LOG_INIT("node_device.node_device_udev");
 struct _udevPrivate {
     struct udev_monitor *udev_monitor;
     int watch;
+    bool privileged;
 };
 
 static virNodeDeviceDriverStatePtr driverState = NULL;
@@ -331,12 +333,8 @@ static int udevGenerateDeviceName(struct udev_device *device,
         virBufferAsprintf(&buf, "_%s", s);
     }
 
-    if (virBufferError(&buf)) {
-        virBufferFreeAndReset(&buf);
-        VIR_ERROR(_("Buffer error when generating device name for device "
-                    "with sysname '%s'"), udev_device_get_sysname(device));
-        ret = -1;
-    }
+    if (virBufferCheckError(&buf) < 0)
+        return -1;
 
     def->name = virBufferContentAndReset(&buf);
 
@@ -425,6 +423,9 @@ static int udevProcessPCI(struct udev_device *device,
     const char *syspath = NULL;
     union _virNodeDevCapData *data = &def->caps->data;
     virPCIDeviceAddress addr;
+    virPCIEDeviceInfoPtr pci_express = NULL;
+    virPCIDevicePtr pciDev = NULL;
+    udevPrivate *priv = driverState->privateData;
     int tmpGroup, ret = -1;
     char *p;
     int rc;
@@ -493,6 +494,18 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     }
 
+    rc = udevGetIntSysfsAttr(device,
+                            "numa_node",
+                            &data->pci_dev.numa_node,
+                            10);
+    if (rc == PROPERTY_ERROR) {
+        goto out;
+    } else if (rc == PROPERTY_MISSING) {
+        /* The default value is -1, because it can't be 0
+         * as zero is valid node number. */
+        data->pci_dev.numa_node = -1;
+    }
+
     if (!virPCIGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
         data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
 
@@ -522,9 +535,42 @@ static int udevProcessPCI(struct udev_device *device,
         data->pci_dev.iommuGroupNumber = tmpGroup;
     }
 
+    if (!(pciDev = virPCIDeviceNew(data->pci_dev.domain,
+                                   data->pci_dev.bus,
+                                   data->pci_dev.slot,
+                                   data->pci_dev.function)))
+        goto out;
+
+    /* We need to be root to read PCI device configs */
+    if (priv->privileged && virPCIDeviceIsPCIExpress(pciDev) > 0) {
+        if (VIR_ALLOC(pci_express) < 0)
+            goto out;
+
+        if (virPCIDeviceHasPCIExpressLink(pciDev) > 0) {
+            if (VIR_ALLOC(pci_express->link_cap) < 0 ||
+                VIR_ALLOC(pci_express->link_sta) < 0)
+                goto out;
+
+            if (virPCIDeviceGetLinkCapSta(pciDev,
+                                          &pci_express->link_cap->port,
+                                          &pci_express->link_cap->speed,
+                                          &pci_express->link_cap->width,
+                                          &pci_express->link_sta->speed,
+                                          &pci_express->link_sta->width) < 0)
+                goto out;
+
+            pci_express->link_sta->port = -1; /* PCIe can't negotiate port. Yet :) */
+        }
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCIE;
+        data->pci_dev.pci_express = pci_express;
+        pci_express = NULL;
+    }
+
     ret = 0;
 
  out:
+    virPCIDeviceFree(pciDev);
+    virPCIEDeviceInfoFree(pci_express);
     return ret;
 }
 
@@ -666,6 +712,9 @@ static int udevProcessNetworkInterface(struct udev_device *device,
     if (udevGenerateDeviceName(device, def, data->net.address) != 0) {
         goto out;
     }
+
+    if (virNetDevGetLinkInfo(data->net.ifname, &data->net.lnk) < 0)
+        goto out;
 
     ret = 0;
 
@@ -1093,20 +1142,27 @@ static int udevProcessStorage(struct udev_device *device,
 
     if (udevGetStringProperty(device,
                               "ID_TYPE",
-                              &data->storage.drive_type) != PROPERTY_FOUND) {
+                              &data->storage.drive_type) != PROPERTY_FOUND ||
+        STREQ(def->caps->data.storage.drive_type, "generic")) {
         int tmp_int = 0;
 
         /* All floppy drives have the ID_DRIVE_FLOPPY prop. This is
          * needed since legacy floppies don't have a drive_type */
-        if ((udevGetIntProperty(device, "ID_DRIVE_FLOPPY",
-                                &tmp_int, 0) == PROPERTY_FOUND) &&
-            (tmp_int == 1)) {
+        if (udevGetIntProperty(device, "ID_DRIVE_FLOPPY",
+                               &tmp_int, 0) == PROPERTY_FOUND &&
+            tmp_int == 1) {
 
             if (VIR_STRDUP(data->storage.drive_type, "floppy") < 0)
                 goto out;
-        } else if ((udevGetIntProperty(device, "ID_DRIVE_FLASH_SD",
-                                       &tmp_int, 0) == PROPERTY_FOUND) &&
-                   (tmp_int == 1)) {
+        } else if (udevGetIntProperty(device, "ID_CDROM",
+                                      &tmp_int, 0) == PROPERTY_FOUND &&
+                   tmp_int == 1) {
+
+            if (VIR_STRDUP(data->storage.drive_type, "cd") < 0)
+                goto out;
+        } else if (udevGetIntProperty(device, "ID_DRIVE_FLASH_SD",
+                                      &tmp_int, 0) == PROPERTY_FOUND &&
+                   tmp_int == 1) {
 
             if (VIR_STRDUP(data->storage.drive_type, "sd") < 0)
                 goto out;
@@ -1169,7 +1225,7 @@ udevHasDeviceProperty(struct udev_device *dev,
 
 static int
 udevGetDeviceType(struct udev_device *device,
-                  enum virNodeDevCapType *type)
+                  virNodeDevCapType *type)
 {
     const char *devtype = NULL;
     char *subsystem = NULL;
@@ -1655,7 +1711,7 @@ static int udevSetupSystemDev(void)
     return ret;
 }
 
-static int nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
+static int nodeStateInitialize(bool privileged,
                                virStateInhibitCallback callback ATTRIBUTE_UNUSED,
                                void *opaque ATTRIBUTE_UNUSED)
 {
@@ -1689,6 +1745,7 @@ static int nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
     }
 
     priv->watch = -1;
+    priv->privileged = privileged;
 
     if (VIR_ALLOC(driverState) < 0) {
         VIR_FREE(priv);

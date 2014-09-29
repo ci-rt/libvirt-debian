@@ -119,9 +119,6 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     # ideally we'd turn many of them on
     dontwarn="$dontwarn -Wfloat-equal"
     dontwarn="$dontwarn -Wdeclaration-after-statement"
-    dontwarn="$dontwarn -Wcast-qual"
-    dontwarn="$dontwarn -Wconversion"
-    dontwarn="$dontwarn -Wsign-conversion"
     dontwarn="$dontwarn -Wpacked"
     dontwarn="$dontwarn -Wunused-macros"
     dontwarn="$dontwarn -Woverlength-strings"
@@ -167,18 +164,14 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
        dnl "error: -fstack-protector not supported for this target [-Werror]"
        ;;
        *-*-linux*)
-       dnl Fedora only uses -fstack-protector, but doesn't seem to
-       dnl be great overhead in adding -fstack-protector-all instead
-       dnl wantwarn="$wantwarn -fstack-protector"
-       wantwarn="$wantwarn -fstack-protector-all"
-       wantwarn="$wantwarn --param=ssp-buffer-size=4"
-       dnl Even though it supports it, clang complains about
-       dnl use of --param=ssp-buffer-size=4 unless used with
-       dnl the -c arg. It doesn't like it when used with args
-       dnl that just link together .o files. Unfortunately
-       dnl we can't avoid that with automake, so we must turn
-       dnl off the following clang specific warning
-       wantwarn="$wantwarn -Wno-unused-command-line-argument"
+       dnl Prefer -fstack-protector-strong if it's available.
+       dnl There doesn't seem to be great overhead in adding
+       dnl -fstack-protector-all instead of -fstack-protector.
+       dnl
+       dnl We also don't need ssp-buffer-size with -all or -strong,
+       dnl since functions are protected regardless of buffer size.
+       dnl wantwarn="$wantwarn --param=ssp-buffer-size=4"
+       wantwarn="$wantwarn -fstack-protector-strong"
        ;;
        *-*-freebsd*)
        dnl FreeBSD ships old gcc 4.2.1 which doesn't handle
@@ -208,6 +201,19 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     for w in $wantwarn; do
       gl_WARN_ADD([$w])
     done
+
+    case $host in
+        *-*-linux*)
+        dnl Fall back to -fstack-protector-all if -strong is not available
+        case $WARN_CFLAGS in
+        *-fstack-protector-strong*)
+        ;;
+        *)
+            gl_WARN_ADD(["-fstack-protector-all"])
+        ;;
+        esac
+        ;;
+    esac
 
     # Silence certain warnings in gnulib, and use improved glibc headers
     AC_DEFINE([lint], [1],

@@ -1299,6 +1299,9 @@ do_open(const char *name,
  *
  * URIs are documented at http://libvirt.org/uri.html
  *
+ * virConnectClose should be used to release the resources after the connection
+ * is no longer needed.
+ *
  * Returns a pointer to the hypervisor connection or NULL in case of error
  */
 virConnectPtr
@@ -1331,7 +1334,7 @@ virConnectOpen(const char *name)
  * on the available methods to control the domains.
  *
  * See virConnectOpen for notes about environment variables which can
- * have an effect on opening drivers
+ * have an effect on opening drivers and freeing the connection resources
  *
  * URIs are documented at http://libvirt.org/uri.html
  *
@@ -1369,7 +1372,7 @@ virConnectOpenReadOnly(const char *name)
  * credentials via the callback
  *
  * See virConnectOpen for notes about environment variables which can
- * have an effect on opening drivers
+ * have an effect on opening drivers and freeing the connection resources
  *
  * URIs are documented at http://libvirt.org/uri.html
  *
@@ -1875,6 +1878,9 @@ virDomainGetConnect(virDomainPtr dom)
  * libvirtd daemon. Any domains marked for auto destroy will
  * block attempts at migration, save-to-file, or snapshots.
  *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
+ *
  * Returns a new domain object or NULL in case of failure
  */
 virDomainPtr
@@ -1936,6 +1942,9 @@ virDomainCreateXML(virConnectPtr conn, const char *xmlDesc,
  * client application crashes / loses its connection to the
  * libvirtd daemon. Any domains marked for auto destroy will
  * block attempts at migration, save-to-file, or snapshots.
+ *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
  *
  * Returns a new domain object or NULL in case of failure
  */
@@ -2000,6 +2009,9 @@ virDomainCreateLinux(virConnectPtr conn, const char *xmlDesc,
  * Note that this won't work for inactive domains which have an ID of -1,
  * in that case a lookup based on the Name or UUId need to be done instead.
  *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
+ *
  * Returns a new domain object or NULL in case of failure.  If the
  * domain cannot be found, then VIR_ERR_NO_DOMAIN error is raised.
  */
@@ -2035,6 +2047,9 @@ virDomainLookupByID(virConnectPtr conn, int id)
  * @uuid: the raw UUID for the domain
  *
  * Try to lookup a domain on the given hypervisor based on its UUID.
+ *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
  *
  * Returns a new domain object or NULL in case of failure.  If the
  * domain cannot be found, then VIR_ERR_NO_DOMAIN error is raised.
@@ -2072,6 +2087,9 @@ virDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
  *
  * Try to lookup a domain on the given hypervisor based on its UUID.
  *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
+ *
  * Returns a new domain object or NULL in case of failure.  If the
  * domain cannot be found, then VIR_ERR_NO_DOMAIN error is raised.
  */
@@ -2107,6 +2125,9 @@ virDomainLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
  * @name: name for the domain
  *
  * Try to lookup a domain on the given hypervisor based on its name.
+ *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
  *
  * Returns a new domain object or NULL in case of failure.  If the
  * domain cannot be found, then VIR_ERR_NO_DOMAIN error is raised.
@@ -2929,7 +2950,7 @@ virDomainSaveImageDefineXML(virConnectPtr conn, const char *file,
  * a crashed state after the dump completes.  If @flags includes
  * VIR_DUMP_LIVE, then make the core dump while continuing to allow
  * the guest to run; otherwise, the guest is suspended during the dump.
- * VIR_DUMP_RESET flag forces reset of the quest after dump.
+ * VIR_DUMP_RESET flag forces reset of the guest after dump.
  * The above three flags are mutually exclusive.
  *
  * Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
@@ -3021,7 +3042,7 @@ virDomainCoreDump(virDomainPtr domain, const char *to, unsigned int flags)
  * a crashed state after the dump completes.  If @flags includes
  * VIR_DUMP_LIVE, then make the core dump while continuing to allow
  * the guest to run; otherwise, the guest is suspended during the dump.
- * VIR_DUMP_RESET flag forces reset of the quest after dump.
+ * VIR_DUMP_RESET flag forces reset of the guest after dump.
  * The above three flags are mutually exclusive.
  *
  * Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
@@ -5284,6 +5305,9 @@ virDomainMigrateDirect(virDomainPtr domain,
  * different processors even with the same architecture, or between
  * different types of hypervisor.
  *
+ * virDomainFree should be used to free the resources after the
+ * returned domain object is no longer needed.
+ *
  * Returns the new domain object if the migration was successful,
  *   or NULL in case of error.  Note that the new domain object
  *   exists in the scope of the destination connection (dconn).
@@ -5509,6 +5533,9 @@ virDomainMigrate(virDomainPtr domain,
  * @dname for that purpose).  Domain name in @dxml must match the
  * original domain name.
  *
+ * virDomainFree should be used to free the resources after the
+ * returned domain object is no longer needed.
+ *
  * Returns the new domain object if the migration was successful,
  *   or NULL in case of error.  Note that the new domain object
  *   exists in the scope of the destination connection (dconn).
@@ -5680,6 +5707,9 @@ virDomainMigrate2(virDomainPtr domain,
  * different processors even with the same architecture, or between
  * different types of hypervisor.
  *
+ * virDomainFree should be used to free the resources after the
+ * returned domain object is no longer needed.
+ *
  * Returns the new domain object if the migration was successful,
  *   or NULL in case of error.  Note that the new domain object
  *   exists in the scope of the destination connection (dconn).
@@ -5723,10 +5753,16 @@ virDomainMigrate3(virDomainPtr domain,
                             __FUNCTION__);
         goto error;
     }
-    if (flags & (VIR_MIGRATE_PEER2PEER | VIR_MIGRATE_TUNNELLED)) {
+    if (flags & VIR_MIGRATE_PEER2PEER) {
         virReportInvalidArg(flags, "%s",
                             _("use virDomainMigrateToURI3 for peer-to-peer "
                               "migration"));
+        goto error;
+    }
+    if (flags & VIR_MIGRATE_TUNNELLED) {
+        virReportInvalidArg(flags, "%s",
+                            _("cannot perform tunnelled migration "
+                              "without using peer2peer flag"));
         goto error;
     }
 
@@ -7577,7 +7613,7 @@ virDomainGetSchedulerType(virDomainPtr domain, int *nparams)
     virCheckDomainReturn(domain, NULL);
     conn = domain->conn;
 
-    if (conn->driver->domainGetSchedulerType){
+    if (conn->driver->domainGetSchedulerType) {
         schedtype = conn->driver->domainGetSchedulerType(domain, nparams);
         if (!schedtype)
             goto error;
@@ -7850,7 +7886,7 @@ virDomainSetSchedulerParametersFlags(virDomainPtr domain,
  * devices attached to the domain.
  *
  * The @disk parameter is either the device target shorthand (the
- * <target dev='...'/> sub-element, such as "xvda"), or (since 0.9.8)
+ * <target dev='...'/> sub-element, such as "vda"), or (since 0.9.8)
  * an unambiguous source name of the block device (the <source
  * file='...'/> sub-element, such as "/path/to/image").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
@@ -7910,7 +7946,7 @@ virDomainBlockStats(virDomainPtr dom, const char *disk,
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
  * @params: pointer to block stats parameter object
- *          (return value)
+ *          (return value, allocated by the caller)
  * @nparams: pointer to number of block stats; input and output
  * @flags: bitwise-OR of virTypedParameterFlags
  *
@@ -7918,7 +7954,7 @@ virDomainBlockStats(virDomainPtr dom, const char *disk,
  * devices attached to the domain.
  *
  * The @disk parameter is either the device target shorthand (the
- * <target dev='...'/> sub-element, such as "xvda"), or (since 0.9.8)
+ * <target dev='...'/> sub-element, such as "vda"), or (since 0.9.8)
  * an unambiguous source name of the block device (the <source
  * file='...'/> sub-element, such as "/path/to/image").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
@@ -8270,7 +8306,7 @@ virDomainMemoryStats(virDomainPtr dom, virDomainMemoryStatPtr stats,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or (since 0.9.5) the device target shorthand
- * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * (the <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -8348,7 +8384,7 @@ virDomainBlockPeek(virDomainPtr dom,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or (since 0.9.5) the device target shorthand
- * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * (the <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -8510,7 +8546,7 @@ virDomainMemoryPeek(virDomainPtr dom,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or (since 0.9.5) the device target shorthand
- * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * (the <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -8624,6 +8660,9 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *disk,
  * block copy operation on a transient domain with the same id as the
  * domain being defined; in that case, use virDomainBlockJobAbort() to
  * stop the block copy first.
+ *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
  *
  * Returns NULL in case of error, a pointer to the domain otherwise
  */
@@ -10103,14 +10142,14 @@ virDomainGetSecurityLabelList(virDomainPtr domain,
 /**
  * virDomainSetMetadata:
  * @domain: a domain object
- * @type: type of description, from virDomainMetadataType
+ * @type: type of metadata, from virDomainMetadataType
  * @metadata: new metadata text
  * @key: XML namespace key, or NULL
  * @uri: XML namespace URI, or NULL
  * @flags: bitwise-OR of virDomainModificationImpact
  *
  * Sets the appropriate domain element given by @type to the
- * value of @description.  A @type of VIR_DOMAIN_METADATA_DESCRIPTION
+ * value of @metadata.  A @type of VIR_DOMAIN_METADATA_DESCRIPTION
  * is free-form text; VIR_DOMAIN_METADATA_TITLE is free-form, but no
  * newlines are permitted, and should be short (although the length is
  * not enforced). For these two options @key and @uri are irrelevant and
@@ -10196,7 +10235,7 @@ virDomainSetMetadata(virDomainPtr domain,
 /**
  * virDomainGetMetadata:
  * @domain: a domain object
- * @type: type of description, from virDomainMetadataType
+ * @type: type of metadata, from virDomainMetadataType
  * @uri: XML namespace identifier
  * @flags: bitwise-OR of virDomainModificationImpact
  *
@@ -10893,6 +10932,9 @@ virConnectListDefinedNetworks(virConnectPtr conn, char **const names,
  *
  * Try to lookup a network on the given hypervisor based on its name.
  *
+ * virNetworkFree should be used to free the resources after the
+ * network object is no longer needed.
+ *
  * Returns a new network object or NULL in case of failure.  If the
  * network cannot be found, then VIR_ERR_NO_NETWORK error is raised.
  */
@@ -10929,6 +10971,9 @@ virNetworkLookupByName(virConnectPtr conn, const char *name)
  *
  * Try to lookup a network on the given hypervisor based on its UUID.
  *
+ * virNetworkFree should be used to free the resources after the
+ * network object is no longer needed.
+ *
  * Returns a new network object or NULL in case of failure.  If the
  * network cannot be found, then VIR_ERR_NO_NETWORK error is raised.
  */
@@ -10942,7 +10987,7 @@ virNetworkLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     virCheckConnectReturn(conn, NULL);
     virCheckNonNullArgGoto(uuid, error);
 
-    if (conn->networkDriver && conn->networkDriver->networkLookupByUUID){
+    if (conn->networkDriver && conn->networkDriver->networkLookupByUUID) {
         virNetworkPtr ret;
         ret = conn->networkDriver->networkLookupByUUID(conn, uuid);
         if (!ret)
@@ -11002,6 +11047,9 @@ virNetworkLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
  * Create and start a new virtual network, based on an XML description
  * similar to the one returned by virNetworkGetXMLDesc()
  *
+ * virNetworkFree should be used to free the resources after the
+ * network object is no longer needed.
+ *
  * Returns a new network object or NULL in case of failure
  */
 virNetworkPtr
@@ -11037,6 +11085,9 @@ virNetworkCreateXML(virConnectPtr conn, const char *xmlDesc)
  * @xml: the XML description for the network, preferably in UTF-8
  *
  * Define a network, but does not create it
+ *
+ * virNetworkFree should be used to free the resources after the
+ * network object is no longer needed.
  *
  * Returns NULL in case of error, a pointer to the network otherwise
  */
@@ -11782,6 +11833,9 @@ virConnectListDefinedInterfaces(virConnectPtr conn,
  *
  * Try to lookup an interface on the given hypervisor based on its name.
  *
+ * virInterfaceFree should be used to free the resources after the
+ * interface object is no longer needed.
+ *
  * Returns a new interface object or NULL in case of failure.  If the
  * interface cannot be found, then VIR_ERR_NO_INTERFACE error is raised.
  */
@@ -11817,6 +11871,9 @@ virInterfaceLookupByName(virConnectPtr conn, const char *name)
  * @macstr: the MAC for the interface (null-terminated ASCII format)
  *
  * Try to lookup an interface on the given hypervisor based on its MAC.
+ *
+ * virInterfaceFree should be used to free the resources after the
+ * interface object is no longer needed.
  *
  * Returns a new interface object or NULL in case of failure.  If the
  * interface cannot be found, then VIR_ERR_NO_INTERFACE error is raised.
@@ -11955,6 +12012,9 @@ virInterfaceGetXMLDesc(virInterfacePtr iface, unsigned int flags)
  * explicitly removed using virInterfaceChangeRollback(), or will be
  * automatically removed during the next reboot of the system running
  * libvirtd.
+ *
+ * virInterfaceFree should be used to free the resources after the
+ * interface object is no longer needed.
  *
  * Returns NULL in case of error, a pointer to the interface otherwise
  */
@@ -12628,6 +12688,9 @@ virConnectFindStoragePoolSources(virConnectPtr conn,
  *
  * Fetch a storage pool based on its unique name
  *
+ * virStoragePoolFree should be used to free the resources after the
+ * storage pool object is no longer needed.
+ *
  * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
  */
 virStoragePoolPtr
@@ -12663,6 +12726,9 @@ virStoragePoolLookupByName(virConnectPtr conn,
  * @uuid: globally unique id of pool to fetch
  *
  * Fetch a storage pool based on its globally unique id
+ *
+ * virStoragePoolFree should be used to free the resources after the
+ * storage pool object is no longer needed.
  *
  * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
  */
@@ -12700,6 +12766,9 @@ virStoragePoolLookupByUUID(virConnectPtr conn,
  *
  * Fetch a storage pool based on its globally unique id
  *
+ * virStoragePoolFree should be used to free the resources after the
+ * storage pool object is no longer needed.
+ *
  * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
  */
 virStoragePoolPtr
@@ -12734,6 +12803,9 @@ virStoragePoolLookupByUUIDString(virConnectPtr conn,
  * @vol: pointer to storage volume
  *
  * Fetch a storage pool which contains a particular volume
+ *
+ * virStoragePoolFree should be used to free the resources after the
+ * storage pool object is no longer needed.
  *
  * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
  */
@@ -12771,6 +12843,9 @@ virStoragePoolLookupByVolume(virStorageVolPtr vol)
  * Create a new storage based on its XML description. The
  * pool is not persistent, so its definition will disappear
  * when it is destroyed, or if the host is restarted
+ *
+ * virStoragePoolFree should be used to free the resources after the
+ * storage pool object is no longer needed.
  *
  * Returns a virStoragePoolPtr object, or NULL if creation failed
  */
@@ -12811,6 +12886,9 @@ virStoragePoolCreateXML(virConnectPtr conn,
  *
  * Define a new inactive storage pool based on its XML description. The
  * pool is persistent, until explicitly undefined.
+ *
+ * virStoragePoolFree should be used to free the resources after the
+ * storage pool object is no longer needed.
  *
  * Returns a virStoragePoolPtr object, or NULL if creation failed
  */
@@ -13271,7 +13349,7 @@ virStoragePoolGetInfo(virStoragePoolPtr pool,
  * storage pool. This is suitable for later feeding back
  * into the virStoragePoolCreateXML method.
  *
- * Returns a XML document, or NULL on error
+ * Returns a XML document (caller frees), or NULL on error
  */
 char *
 virStoragePoolGetXMLDesc(virStoragePoolPtr pool,
@@ -13536,6 +13614,9 @@ virStorageVolGetConnect(virStorageVolPtr vol)
  * Fetch a pointer to a storage volume based on its name
  * within a pool
  *
+ * virStorageVolFree should be used to free the resources after the
+ * storage volume object is no longer needed.
+ *
  * Returns a storage volume, or NULL if not found / error
  */
 virStorageVolPtr
@@ -13573,6 +13654,9 @@ virStorageVolLookupByName(virStoragePoolPtr pool,
  * Fetch a pointer to a storage volume based on its
  * globally unique key
  *
+ * virStorageVolFree should be used to free the resources after the
+ * storage volume object is no longer needed.
+ *
  * Returns a storage volume, or NULL if not found / error
  */
 virStorageVolPtr
@@ -13609,6 +13693,9 @@ virStorageVolLookupByKey(virConnectPtr conn,
  *
  * Fetch a pointer to a storage volume based on its
  * locally (host) unique path
+ *
+ * virStorageVolFree should be used to free the resources after the
+ * storage volume object is no longer needed.
  *
  * Returns a storage volume, or NULL if not found / error
  */
@@ -13699,6 +13786,9 @@ virStorageVolGetKey(virStorageVolPtr vol)
  * qcow2 image files which don't support full preallocation,
  * by creating a sparse image file with metadata.
  *
+ * virStorageVolFree should be used to free the resources after the
+ * storage volume object is no longer needed.
+ *
  * Returns the storage volume, or NULL on error
  */
 virStorageVolPtr
@@ -13746,6 +13836,9 @@ virStorageVolCreateXML(virStoragePoolPtr pool,
  * in flags can be used to get higher performance with
  * qcow2 image files which don't support full preallocation,
  * by creating a sparse image file with metadata.
+ *
+ * virStorageVolFree should be used to free the resources after the
+ * storage volume object is no longer needed.
  *
  * Returns the storage volume, or NULL on error
  */
@@ -13866,6 +13959,14 @@ virStorageVolDownload(virStorageVolPtr vol,
  * determine how much data is successfully transferred, and
  * detect any errors. The results will be unpredictable if
  * another active stream is writing to the storage volume.
+ *
+ * When the data stream is closed whether the upload is successful
+ * or not the target storage pool will be refreshed to reflect pool
+ * and volume changes as a result of the upload. Depending on
+ * the target volume storage backend and the source stream type
+ * for a successful upload, the target volume may take on the
+ * characteristics from the source stream such as format type,
+ * capacity, and allocation.
  *
  * Returns 0, or -1 upon error.
  */
@@ -14116,7 +14217,7 @@ virStorageVolGetInfo(virStorageVolPtr vol,
 
     conn = vol->conn;
 
-    if (conn->storageDriver->storageVolGetInfo){
+    if (conn->storageDriver->storageVolGetInfo) {
         int ret;
         ret = conn->storageDriver->storageVolGetInfo(vol, info);
         if (ret < 0)
@@ -14448,6 +14549,9 @@ virNodeListDevices(virConnectPtr conn,
  *
  * Lookup a node device by its name.
  *
+ * virNodeDeviceFree should be used to free the resources after the
+ * node device object is no longer needed.
+ *
  * Returns a virNodeDevicePtr if found, NULL otherwise.
  */
 virNodeDevicePtr
@@ -14484,6 +14588,9 @@ virNodeDeviceLookupByName(virConnectPtr conn, const char *name)
  * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Lookup SCSI Host which is capable with 'fc_host' by its WWNN and WWPN.
+ *
+ * virNodeDeviceFree should be used to free the resources after the
+ * node device object is no longer needed.
  *
  * Returns a virNodeDevicePtr if found, NULL otherwise.
  */
@@ -14935,6 +15042,9 @@ virNodeDeviceReset(virNodeDevicePtr dev)
  * Create a new device on the VM host machine, for example, virtual
  * HBAs created using vport_create.
  *
+ * virNodeDeviceFree should be used to free the resources after the
+ * node device object is no longer needed.
+ *
  * Returns a node device object if successful, NULL in case of failure
  */
 virNodeDevicePtr
@@ -15274,6 +15384,9 @@ virConnectListSecrets(virConnectPtr conn, char **uuids, int maxuuids)
  * Try to lookup a secret on the given hypervisor based on its UUID.
  * Uses the 16 bytes of raw data to describe the UUID
  *
+ * virSecretFree should be used to free the resources after the
+ * secret object is no longer needed.
+ *
  * Returns a new secret object or NULL in case of failure.  If the
  * secret cannot be found, then VIR_ERR_NO_SECRET error is raised.
  */
@@ -15311,6 +15424,9 @@ virSecretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
  *
  * Try to lookup a secret on the given hypervisor based on its UUID.
  * Uses the printable string value to describe the UUID
+ *
+ * virSecretFree should be used to free the resources after the
+ * secret object is no longer needed.
  *
  * Returns a new secret object or NULL in case of failure.  If the
  * secret cannot be found, then VIR_ERR_NO_SECRET error is raised.
@@ -15350,6 +15466,9 @@ virSecretLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
  * Try to lookup a secret on the given hypervisor based on its usage
  * The usageID is unique within the set of secrets sharing the
  * same usageType value.
+ *
+ * virSecretFree should be used to free the resources after the
+ * secret object is no longer needed.
  *
  * Returns a new secret object or NULL in case of failure.  If the
  * secret cannot be found, then VIR_ERR_NO_SECRET error is raised.
@@ -15395,6 +15514,9 @@ virSecretLookupByUsage(virConnectPtr conn,
  *
  * Otherwise, creates a new secret with an automatically chosen UUID, and
  * initializes its attributes from xml.
+ *
+ * virSecretFree should be used to free the resources after the
+ * secret object is no longer needed.
  *
  * Returns a secret on success, NULL on failure.
  */
@@ -16787,6 +16909,9 @@ virConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
  *
  * Try to lookup a network filter on the given hypervisor based on its name.
  *
+ * virNWFilterFree should be used to free the resources after the
+ * nwfilter object is no longer needed.
+ *
  * Returns a new nwfilter object or NULL in case of failure.  If the
  * network filter cannot be found, then VIR_ERR_NO_NWFILTER error is raised.
  */
@@ -16823,6 +16948,9 @@ virNWFilterLookupByName(virConnectPtr conn, const char *name)
  *
  * Try to lookup a network filter on the given hypervisor based on its UUID.
  *
+ * virNWFilterFree should be used to free the resources after the
+ * nwfilter object is no longer needed.
+ *
  * Returns a new nwfilter object or NULL in case of failure.  If the
  * nwfdilter cannot be found, then VIR_ERR_NO_NWFILTER error is raised.
  */
@@ -16836,7 +16964,7 @@ virNWFilterLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     virCheckConnectReturn(conn, NULL);
     virCheckNonNullArgGoto(uuid, error);
 
-    if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByUUID){
+    if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByUUID) {
         virNWFilterPtr ret;
         ret = conn->nwfilterDriver->nwfilterLookupByUUID(conn, uuid);
         if (!ret)
@@ -16858,6 +16986,9 @@ virNWFilterLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
  * @uuidstr: the string UUID for the nwfilter
  *
  * Try to lookup an nwfilter on the given hypervisor based on its UUID.
+ *
+ * virNWFilterFree should be used to free the resources after the
+ * nwfilter object is no longer needed.
  *
  * Returns a new nwfilter object or NULL in case of failure.  If the
  * nwfilter cannot be found, then VIR_ERR_NO_NWFILTER error is raised.
@@ -16998,6 +17129,9 @@ virNWFilterGetUUIDString(virNWFilterPtr nwfilter, char *buf)
  *
  * Define a new network filter, based on an XML description
  * similar to the one returned by virNWFilterGetXMLDesc()
+ *
+ * virNWFilterFree should be used to free the resources after the
+ * nwfilter object is no longer needed.
  *
  * Returns a new nwfilter object or NULL in case of failure
  */
@@ -17239,11 +17373,16 @@ virConnectIsSecure(virConnectPtr conn)
  * virConnectCompareCPU:
  * @conn: virConnect connection
  * @xmlDesc: XML describing the CPU to compare with host CPU
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @flags: bitwise-OR of virConnectCompareCPUFlags
  *
  * Compares the given CPU description with the host CPU
  *
- * Returns comparison result according to enum virCPUCompareResult
+ * Returns comparison result according to enum virCPUCompareResult. If
+ * VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE is used and @xmlDesc CPU is
+ * incompatible with host CPU, this function will return VIR_CPU_COMPARE_ERROR
+ * (instead of VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the
+ * VIR_ERR_CPU_INCOMPATIBLE code with a message providing more details about
+ * the incompatibility.
  */
 int
 virConnectCompareCPU(virConnectPtr conn,
@@ -17337,7 +17476,7 @@ virConnectGetCPUModelNames(virConnectPtr conn, const char *arch, char ***models,
  * without this flag features that are part of the CPU model will not be
  * listed.
  *
- * Returns XML description of the computed CPU or NULL on error.
+ * Returns XML description of the computed CPU (caller frees) or NULL on error.
  */
 char *
 virConnectBaselineCPU(virConnectPtr conn,
@@ -18263,10 +18402,12 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * destination files already exist as a non-empty regular file, the
  * snapshot is rejected to avoid losing contents of those files.
  * However, if @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT,
- * then the destination files must already exist and contain content
- * identical to the source files (this allows a management app to
- * pre-create files with relative backing file names, rather than the
- * default of creating with absolute backing file names).
+ * then the destination files must be pre-created manually with
+ * the correct image format and metadata including backing store path
+ * (this allows a management app to pre-create files with relative backing
+ * file names, rather than the default of creating with absolute backing
+ * file names). Note that setting incorrect metadata in the pre-created
+ * image may lead to the VM being unable to start.
  *
  * Be aware that although libvirt prefers to report errors up front with
  * no other effect, some hypervisors have certain types of failures where
@@ -18285,6 +18426,9 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * Some hypervisors may prevent this operation if there is a current
  * block copy operation; in that case, use virDomainBlockJobAbort()
  * to stop the block copy first.
+ *
+ * virDomainSnapshotFree should be used to free the resources after the
+ * snapshot object is no longer needed.
  *
  * Returns an (opaque) virDomainSnapshotPtr on success, NULL on failure.
  */
@@ -18955,6 +19099,9 @@ virDomainHasCurrentSnapshot(virDomainPtr domain, unsigned int flags)
  *
  * Get the current snapshot for a domain, if any.
  *
+ * virDomainSnapshotFree should be used to free the resources after the
+ * snapshot object is no longer needed.
+ *
  * Returns a domain snapshot object or NULL in case of failure.  If the
  * current domain snapshot cannot be found, then the VIR_ERR_NO_DOMAIN_SNAPSHOT
  * error is raised.
@@ -18993,6 +19140,9 @@ virDomainSnapshotCurrent(virDomainPtr domain,
  * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Get the parent snapshot for @snapshot, if any.
+ *
+ * virDomainSnapshotFree should be used to free the resources after the
+ * snapshot object is no longer needed.
  *
  * Returns a domain snapshot object or NULL in case of failure.  If the
  * given snapshot is a root (no parent), then the VIR_ERR_NO_DOMAIN_SNAPSHOT
@@ -19448,7 +19598,7 @@ virDomainOpenChannel(virDomainPtr dom,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or (since 0.9.5) the device target shorthand
- * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * (the <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -19467,13 +19617,16 @@ virDomainOpenChannel(virDomainPtr dom,
  *
  * If the current block job for @disk is VIR_DOMAIN_BLOCK_JOB_TYPE_COPY, then
  * the default is to abort the mirroring and revert to the source disk;
- * adding @flags of VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT causes this call to
- * fail with VIR_ERR_BLOCK_COPY_ACTIVE if the copy is not fully populated,
- * otherwise it will swap the disk over to the copy to end the mirroring.  An
- * event will be issued when the job is ended, and it is possible to use
- * VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC to control whether this command waits
- * for the completion of the job.  Restarting this job requires starting
- * over from the beginning of the first phase.
+ * likewise, if the current job is VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT,
+ * the default is to abort without changing the active layer of @disk.
+ * Adding @flags of VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT causes this call to
+ * fail with VIR_ERR_BLOCK_COPY_ACTIVE if the copy or commit is not yet
+ * ready; otherwise it will swap the disk over to the new active image
+ * to end the mirroring or active commit.  An event will be issued when the
+ * job is ended, and it is possible to use VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC
+ * to control whether this command waits for the completion of the job.
+ * Restarting a copy or active commit job requires starting over from the
+ * beginning of the first phase.
  *
  * Returns -1 in case of failure, 0 when successful.
  */
@@ -19522,7 +19675,7 @@ virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or (since 0.9.5) the device target shorthand
- * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * (the <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -19576,7 +19729,7 @@ virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or (since 0.9.5) the device target shorthand
- * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * (the <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -19633,7 +19786,7 @@ virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or (since 0.9.5) the device target shorthand
- * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * (the <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -19707,6 +19860,10 @@ virDomainBlockPull(virDomainPtr dom, const char *disk,
  * exists.  If the job is aborted, a new one can be started later to
  * resume from the same point.
  *
+ * If @flags contains VIR_DOMAIN_BLOCK_REBASE_RELATIVE, the name recorded
+ * into the active disk as the location for @base will be kept relative.
+ * The operation will fail if libvirt can't infer the name.
+ *
  * When @flags includes VIR_DOMAIN_BLOCK_REBASE_COPY, this starts a copy,
  * where @base must be the name of a new file to copy the chain to.  By
  * default, the copy will pull the entire source chain into the destination
@@ -19717,11 +19874,14 @@ virDomainBlockPull(virDomainPtr dom, const char *disk,
  * by adding VIR_DOMAIN_BLOCK_REBASE_COPY_RAW to force the copy to be raw
  * (does not make sense with the shallow flag unless the source is also raw),
  * or by using VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT to reuse an existing file
- * with initial contents identical to the backing file of the source (this
- * allows a management app to pre-create files with relative backing file
- * names, rather than the default of absolute backing file names; as a
- * security precaution, you should generally only use reuse_ext with the
- * shallow flag and a non-raw destination file).
+ * which was pre-created with the correct format and metadata and sufficient
+ * size to hold the copy. In case the VIR_DOMAIN_BLOCK_REBASE_SHALLOW flag
+ * is used the pre-created file has to exhibit the same guest visible contents
+ * as the backing file of the original image. This allows a management app to
+ * pre-create files with relative backing file names, rather than the default
+ * of absolute backing file names; as a security precaution, you should
+ * generally only use reuse_ext with the shallow flag and a non-raw
+ * destination file.
  *
  * A copy job has two parts; in the first phase, the @bandwidth parameter
  * affects how fast the source is pulled into the destination, and the job
@@ -19744,7 +19904,7 @@ virDomainBlockPull(virDomainPtr dom, const char *disk,
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or the device target shorthand (the
- * <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -19764,7 +19924,13 @@ virDomainBlockPull(virDomainPtr dom, const char *disk,
  * The actual speed can be determined with virDomainGetBlockJobInfo().
  *
  * When @base is NULL and @flags is 0, this is identical to
- * virDomainBlockPull().
+ * virDomainBlockPull().  When @flags contains VIR_DOMAIN_BLOCK_REBASE_COPY,
+ * this command is shorthand for virDomainBlockCopy() where the destination
+ * XML encodes @base as a <disk type='file'>, @bandwidth is properly scaled
+ * and passed as a typed parameter, the shallow and reuse external flags
+ * are preserved, and remaining flags control whether the XML encodes a
+ * destination format of raw instead of leaving the destination identical
+ * to the source format or probed from the reused file.
  *
  * Returns 0 if the operation has started, -1 on failure.
  */
@@ -19815,6 +19981,120 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
 
 
 /**
+ * virDomainBlockCopy:
+ * @dom: pointer to domain object
+ * @disk: path to the block device, or device shorthand
+ * @destxml: XML description of the copy destination
+ * @params: Pointer to block copy parameter objects, or NULL
+ * @nparams: Number of block copy parameters (this value can be the same or
+ *           less than the number of parameters supported)
+ * @flags: bitwise-OR of virDomainBlockCopyFlags
+ *
+ * Copy the guest-visible contents of a disk image to a new file described
+ * by @destxml.  The destination XML has a top-level element of <disk>, and
+ * resembles what is used when hot-plugging a disk via virDomainAttachDevice(),
+ * except that only sub-elements related to describing the new host resource
+ * are necessary (sub-elements related to the guest view, such as <target>,
+ * are ignored).  It is strongly recommended to include a <driver type='...'/>
+ * format designation for the destination, to avoid the potential of any
+ * security problem that might be caused by probing a file for its format.
+ *
+ * This command starts a long-running copy.  By default, the copy will pull
+ * the entire source chain into the destination file, but if @flags also
+ * contains VIR_DOMAIN_BLOCK_COPY_SHALLOW, then only the top of the source
+ * chain will be copied (the source and destination have a common backing
+ * file).  The format of the destination file is controlled by the <driver>
+ * sub-element of the XML.  The destination will be created unless the
+ * VIR_DOMAIN_BLOCK_COPY_REUSE_EXT flag is present stating that the file
+ * was pre-created with the correct format and metadata and sufficient
+ * size to hold the copy. In case the VIR_DOMAIN_BLOCK_COPY_SHALLOW flag
+ * is used the pre-created file has to exhibit the same guest visible contents
+ * as the backing file of the original image. This allows a management app to
+ * pre-create files with relative backing file names, rather than the default
+ * of absolute backing file names.
+ *
+ * A copy job has two parts; in the first phase, the source is copied into
+ * the destination, and the job can only be canceled by reverting to the
+ * source file; progress in this phase can be tracked via the
+ * virDomainBlockJobInfo() command, with a job type of
+ * VIR_DOMAIN_BLOCK_JOB_TYPE_COPY.  The job transitions to the second
+ * phase when the job info states cur == end, and remains alive to mirror
+ * all further changes to both source and destination.  The user must
+ * call virDomainBlockJobAbort() to end the mirroring while choosing
+ * whether to revert to source or pivot to the destination.  An event is
+ * issued when the job ends, and depending on the hypervisor, an event may
+ * also be issued when the job transitions from pulling to mirroring.  If
+ * the job is aborted, a new job will have to start over from the beginning
+ * of the first phase.
+ *
+ * Some hypervisors will restrict certain actions, such as virDomainSave()
+ * or virDomainDetachDevice(), while a copy job is active; they may
+ * also restrict a copy job to transient domains.
+ *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or the device target shorthand (the
+ * <target dev='...'/> sub-element, such as "vda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
+ * The @params and @nparams arguments can be used to set hypervisor-specific
+ * tuning parameters, such as maximum bandwidth or granularity.  For a
+ * parameter that the hypervisor understands, explicitly specifying 0
+ * behaves the same as omitting the parameter, to use the hypervisor
+ * default; however, omitting a parameter is less likely to fail.
+ *
+ * This command is a superset of the older virDomainBlockRebase() when used
+ * with the VIR_DOMAIN_BLOCK_REBASE_COPY flag, and offers better control
+ * over the destination format, the ability to copy to a destination that
+ * is not a local file, and the possibility of additional tuning parameters.
+ *
+ * Returns 0 if the operation has started, -1 on failure.
+ */
+int
+virDomainBlockCopy(virDomainPtr dom, const char *disk,
+                   const char *destxml,
+                   virTypedParameterPtr params,
+                   int nparams,
+                   unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom,
+                     "disk=%s, destxml=%s, params=%p, nparams=%d, flags=%x",
+                     disk, destxml, params, nparams, flags);
+    VIR_TYPED_PARAMS_DEBUG(params, nparams);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+    conn = dom->conn;
+
+    virCheckReadOnlyGoto(conn->flags, error);
+    virCheckNonNullArgGoto(disk, error);
+    virCheckNonNullArgGoto(destxml, error);
+    virCheckNonNegativeArgGoto(nparams, error);
+    if (nparams)
+        virCheckNonNullArgGoto(params, error);
+
+    if (conn->driver->domainBlockCopy) {
+        int ret;
+        ret = conn->driver->domainBlockCopy(dom, disk, destxml,
+                                            params, nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
  * virDomainBlockCommit:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
@@ -19843,17 +20123,37 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * the job is aborted, it is up to the hypervisor whether starting a new
  * job will resume from the same point, or start over.
  *
+ * As a special case, if @top is the active image (or NULL), and @flags
+ * includes VIR_DOMAIN_BLOCK_COMMIT_ACTIVE, the block job will have a type
+ * of VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT, and operates in two phases.
+ * In the first phase, the contents are being committed into @base, and the
+ * job can only be canceled.  The job transitions to the second phase when
+ * the job info states cur == end, and remains alive to keep all further
+ * changes to @top synchronized into @base; an event with status
+ * VIR_DOMAIN_BLOCK_JOB_READY is also issued to mark the job transition.
+ * Once in the second phase, the user must choose whether to cancel the job
+ * (keeping @top as the active image, but now containing only the changes
+ * since the time the job ended) or to pivot the job (adjusting to @base as
+ * the active image, and invalidating @top).
+ *
  * Be aware that this command may invalidate files even if it is aborted;
  * the user is cautioned against relying on the contents of invalidated
- * intermediate files such as @top without manually rebasing those files
- * to use a backing file of a read-only copy of @base prior to the point
- * where the commit operation was started (although such a rebase cannot
- * be safely done until the commit has successfully completed).  However,
- * the domain itself will not have any issues; the active layer remains
- * valid throughout the entire commit operation.  As a convenience,
- * if @flags contains VIR_DOMAIN_BLOCK_COMMIT_DELETE, this command will
- * unlink all files that were invalidated, after the commit successfully
- * completes.
+ * intermediate files such as @top (when @top is not the active image)
+ * without manually rebasing those files to use a backing file of a
+ * read-only copy of @base prior to the point where the commit operation
+ * was started (and such a rebase cannot be safely done until the commit
+ * has successfully completed).  However, the domain itself will not have
+ * any issues; the active layer remains valid throughout the entire commit
+ * operation.
+ *
+ * Some hypervisors may support a shortcut where if @flags contains
+ * VIR_DOMAIN_BLOCK_COMMIT_DELETE, then this command will unlink all files
+ * that were invalidated, after the commit successfully completes.
+ *
+ * If @flags contains VIR_DOMAIN_BLOCK_COMMIT_RELATIVE, the name recorded
+ * into the overlay of the @top image (if there is such image) as the
+ * path to the new backing file will be kept relative to other images.
+ * The operation will fail if libvirt can't infer the name.
  *
  * By default, if @base is NULL, the commit target will be the bottom of
  * the backing chain; if @flags contains VIR_DOMAIN_BLOCK_COMMIT_SHALLOW,
@@ -19861,13 +20161,14 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * is NULL, the active image at the top of the chain will be used.  Some
  * hypervisors place restrictions on how much can be committed, and might
  * fail if @base is not the immediate backing file of @top, or if @top is
- * the active layer in use by a running domain, or if @top is not the
- * top-most file; restrictions may differ for online vs. offline domains.
+ * the active layer in use by a running domain but @flags did not include
+ * VIR_DOMAIN_BLOCK_COMMIT_ACTIVE, or if @top is not the top-most file;
+ * restrictions may differ for online vs. offline domains.
  *
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
  * "/path/to/image"), or the device target shorthand (the
- * <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * <target dev='...'/> sub-element, such as "vda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
@@ -19987,6 +20288,63 @@ virDomainOpenGraphics(virDomainPtr dom,
     if (dom->conn->driver->domainOpenGraphics) {
         int ret;
         ret = dom->conn->driver->domainOpenGraphics(dom, idx, fd, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainOpenGraphicsFD:
+ * @dom: pointer to domain object
+ * @idx: index of graphics config to open
+ * @flags: bitwise-OR of virDomainOpenGraphicsFlags
+ *
+ * This will create a socket pair connected to the graphics backend of @dom.
+ * One end of the socket will be returned on success, and the other end is
+ * handed to the hypervisor.
+ * If @dom has multiple graphics backends configured, then @idx will determine
+ * which one is opened, starting from @idx 0.
+ *
+ * To disable any authentication, pass the VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH
+ * constant for @flags.
+ *
+ * This method can only be used when connected to a local
+ * libvirt hypervisor, over a UNIX domain socket. Attempts
+ * to use this method over a TCP connection will always fail.
+ *
+ * Returns an fd on success, -1 on failure
+ */
+int
+virDomainOpenGraphicsFD(virDomainPtr dom,
+                        unsigned int idx,
+                        unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "idx=%u, flags=%x", idx, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+
+    if (!VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
+                                  VIR_DRV_FEATURE_FD_PASSING)) {
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("fd passing is not supported by this connection"));
+        goto error;
+    }
+
+    if (dom->conn->driver->domainOpenGraphicsFD) {
+        int ret;
+        ret = dom->conn->driver->domainOpenGraphicsFD(dom, idx, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -20697,4 +21055,679 @@ virDomainFSTrim(virDomainPtr dom,
  error:
     virDispatchError(dom->conn);
     return -1;
+}
+
+/**
+ * virDomainFSFreeze:
+ * @dom: a domain object
+ * @mountpoints: list of mount points to be frozen
+ * @nmountpoints: the number of mount points specified in @mountpoints
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Freeze specified filesystems within the guest (hence guest agent
+ * may be required depending on hypervisor used). If @mountpoints is NULL and
+ * @nmountpoints is 0, every mounted filesystem on the guest is frozen.
+ * In some environments (e.g. QEMU guest with guest agent which doesn't
+ * support mountpoints argument), @mountpoints may need to be NULL.
+ *
+ * Returns the number of frozen filesystems on success, -1 otherwise.
+ */
+int
+virDomainFSFreeze(virDomainPtr dom,
+                  const char **mountpoints,
+                  unsigned int nmountpoints,
+                  unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "mountpoints=%p, nmountpoints=%d, flags=%x",
+                     mountpoints, nmountpoints, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+    if (nmountpoints)
+        virCheckNonNullArgGoto(mountpoints, error);
+    else
+        virCheckNullArgGoto(mountpoints, error);
+
+    if (dom->conn->driver->domainFSFreeze) {
+        int ret = dom->conn->driver->domainFSFreeze(
+            dom, mountpoints, nmountpoints, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
+ * virDomainFSThaw:
+ * @dom: a domain object
+ * @mountpoints: list of mount points to be thawed
+ * @nmountpoints: the number of mount points specified in @mountpoints
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Thaw specified filesystems within the guest. If @mountpoints is NULL and
+ * @nmountpoints is 0, every mounted filesystem on the guest is thawed.
+ * In some drivers (e.g. QEMU driver), @mountpoints may need to be NULL.
+ *
+ * Returns the number of thawed filesystems on success, -1 otherwise.
+ */
+int
+virDomainFSThaw(virDomainPtr dom,
+                const char **mountpoints,
+                unsigned int nmountpoints,
+                unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "flags=%x", flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+    if (nmountpoints)
+        virCheckNonNullArgGoto(mountpoints, error);
+    else
+        virCheckNullArgGoto(mountpoints, error);
+
+    if (dom->conn->driver->domainFSThaw) {
+        int ret = dom->conn->driver->domainFSThaw(
+            dom, mountpoints, nmountpoints, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetTime:
+ * @dom: a domain object
+ * @seconds: domain's time in seconds
+ * @nseconds: the nanoscond part of @seconds
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Extract information about guest time and store it into
+ * @seconds and @nseconds. The @seconds represents the number of
+ * seconds since the UNIX Epoch of 1970-01-01 00:00:00 in UTC.
+ *
+ * Please note that some hypervisors may require guest agent to
+ * be configured and running in order to run this API.
+ *
+ * Returns 0 on success, -1 otherwise.
+ */
+int
+virDomainGetTime(virDomainPtr dom,
+                 long long *seconds,
+                 unsigned int *nseconds,
+                 unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "seconds=%p, nseconds=%p, flags=%x",
+                     seconds, nseconds, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+
+    if (dom->conn->driver->domainGetTime) {
+        int ret = dom->conn->driver->domainGetTime(dom, seconds,
+                                                   nseconds, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
+ * virDomainSetTime:
+ * @dom: a domain object
+ * @seconds: time to set
+ * @nseconds: the nanosecond part of @seconds
+ * @flags: bitwise-OR of virDomainSetTimeFlags
+ *
+ * When a domain is suspended or restored from a file the
+ * domain's OS has no idea that there was a big gap in the time.
+ * Depending on how long the gap was, NTP might not be able to
+ * resynchronize the guest.
+ *
+ * This API tries to set guest time to the given value. The time
+ * to set (@seconds and @nseconds) should be in seconds relative
+ * to the Epoch of 1970-01-01 00:00:00 in UTC.
+ *
+ * Please note that some hypervisors may require guest agent to
+ * be configured and running in order to be able to run this API.
+ *
+ * Returns 0 on success, -1 otherwise.
+ */
+int
+virDomainSetTime(virDomainPtr dom,
+                 long long seconds,
+                 unsigned int nseconds,
+                 unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "seconds=%lld, nseconds=%u, flags=%x",
+                     seconds, nseconds, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+
+    if (dom->conn->driver->domainSetTime) {
+        int ret = dom->conn->driver->domainSetTime(dom, seconds,
+                                                   nseconds, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virNodeGetFreePages:
+ * @conn: pointer to the hypervisor connection
+ * @npages: number of items in the @pages array
+ * @pages: page sizes to query
+ * @startCell: index of first cell to return free pages info on.
+ * @cellCount: maximum number of cells for which free pages
+ *             information can be returned.
+ * @counts: returned counts of free pages
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * This calls queries the host system on free pages of
+ * specified size. Ont the input, @pages is expected to be
+ * filled with pages that caller is interested in (the size
+ * unit is kibibytes, so e.g. pass 2048 for 2MB), then @startcell
+ * refers to the first NUMA node that info should be collected
+ * from, and @cellcount tells how many consecutive nodes should
+ * be queried. On the function output, @counts is filled with
+ * desired information, where items are grouped by NUMA node.
+ * So from @counts[0] till @counts[@npages - 1] you'll find count
+ * for the first node (@startcell), then from @counts[@npages]
+ * till @count[2 * @npages - 1] you'll find info for the
+ * (@startcell + 1) node, and so on. It's callers responsibility
+ * to allocate the @counts array.
+ *
+ * Example how to use this API:
+ *
+ *   unsigned int pages[] = { 4, 2048, 1048576}
+ *   unsigned int npages = ARRAY_CARDINALITY(pages);
+ *   int startcell = 0;
+ *   unsigned int cellcount = 2;
+ *
+ *   unsigned long long counts = malloc(sizeof(long long) * npages * cellcount);
+ *
+ *   virNodeGetFreePages(conn, pages, npages,
+ *                       startcell, cellcount, counts, 0);
+ *
+ *   for (i = 0 ; i < cellcount ; i++) {
+ *       fprintf(stdout, "Cell %d\n", startcell + i);
+ *       for (j = 0 ; j < npages ; j++) {
+ *          fprintf(stdout, "  Page size=%d count=%d bytes=%llu\n",
+ *                  pages[j], counts[(i * npages) +  j],
+ *                  pages[j] * counts[(i * npages) +  j]);
+ *       }
+ *   }
+ *
+ *   This little code snippet will produce something like this:
+ * Cell 0
+ *    Page size=4096 count=300 bytes=1228800
+ *    Page size=2097152 count=0 bytes=0
+ *    Page size=1073741824 count=1 bytes=1073741824
+ * Cell 1
+ *    Page size=4096 count=0 bytes=0
+ *    Page size=2097152 count=20 bytes=41943040
+ *    Page size=1073741824 count=0 bytes=0
+ *
+ * Returns: the number of entries filled in @counts or -1 in case of error.
+ */
+int
+virNodeGetFreePages(virConnectPtr conn,
+                    unsigned int npages,
+                    unsigned int *pages,
+                    int startCell,
+                    unsigned int cellCount,
+                    unsigned long long *counts,
+                    unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, npages=%u, pages=%p, startCell=%u, "
+              "cellCount=%u, counts=%p, flags=%x",
+              conn, npages, pages, startCell, cellCount, counts, flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, -1);
+    virCheckNonZeroArgGoto(npages, error);
+    virCheckNonNullArgGoto(pages, error);
+    virCheckNonZeroArgGoto(cellCount, error);
+    virCheckNonNullArgGoto(counts, error);
+
+    if (conn->driver->nodeGetFreePages) {
+        int ret;
+        ret = conn->driver->nodeGetFreePages(conn, npages, pages, startCell,
+                                             cellCount, counts, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+ error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virNetworkGetDHCPLeases:
+ * @network: Pointer to network object
+ * @mac: Optional ASCII formatted MAC address of an interface
+ * @leases: Pointer to a variable to store the array containing details on
+ *          obtained leases, or NULL if the list is not required (just returns
+ *          number of leases).
+ * @flags: Extra flags, not used yet, so callers should always pass 0
+ *
+ * For DHCPv4, the information returned:
+ * - Network Interface Name
+ * - Expiry Time
+ * - MAC address
+ * - IAID (NULL)
+ * - IPv4 address (with type and prefix)
+ * - Hostname (can be NULL)
+ * - Client ID (can be NULL)
+ *
+ * For DHCPv6, the information returned:
+ * - Network Interface Name
+ * - Expiry Time
+ * - MAC address
+ * - IAID (can be NULL, only in rare cases)
+ * - IPv6 address (with type and prefix)
+ * - Hostname (can be NULL)
+ * - Client DUID
+ *
+ * Note: @mac, @iaid, @ipaddr, @clientid are in ASCII form, not raw bytes.
+ * Note: @expirytime can 0, in case the lease is for infinite time.
+ *
+ * The API fetches leases info of guests in the specified network. If the
+ * optional parameter @mac is specified, the returned list will contain only
+ * lease info about a specific guest interface with @mac. There can be
+ * multiple leases for a single @mac because this API supports DHCPv6 too.
+ *
+ * Returns the number of leases found or -1 and sets @leases to NULL in
+ * case of error. On success, the array stored into @leases is guaranteed to
+ * have an extra allocated element set to NULL but not included in the return
+ * count, to make iteration easier. The caller is responsible for calling
+ * virNetworkDHCPLeaseFree() on each array element, then calling free() on @leases.
+ *
+ * See also virNetworkGetDHCPLeasesForMAC() as a convenience for filtering
+ * the list to a single MAC address.
+ *
+ * Example of usage:
+ *
+ * virNetworkDHCPLeasePtr *leases = NULL;
+ * virNetworkPtr network = ... obtain a network pointer here ...;
+ * size_t i;
+ * int nleases;
+ * unsigned int flags = 0;
+ *
+ * nleases = virNetworkGetDHCPLeases(network, NULL, &leases, flags);
+ * if (nleases < 0)
+ *     error();
+ *
+ * ... do something with returned values, for example:
+ *
+ * for (i = 0; i < nleases; i++) {
+ *     virNetworkDHCPLeasePtr lease = leases[i];
+ *
+ *     printf("Time(epoch): %lu, MAC address: %s, "
+ *            "IP address: %s, Hostname: %s, ClientID: %s\n",
+ *            lease->expirytime, lease->mac, lease->ipaddr,
+ *            lease->hostname, lease->clientid);
+ *
+ *            virNetworkDHCPLeaseFree(leases[i]);
+ * }
+ *
+ * free(leases);
+ *
+ */
+int
+virNetworkGetDHCPLeases(virNetworkPtr network,
+                        const char *mac,
+                        virNetworkDHCPLeasePtr **leases,
+                        unsigned int flags)
+{
+    virConnectPtr conn;
+    VIR_DEBUG("network=%p, mac='%s' leases=%p, flags=%x",
+               network, NULLSTR(mac), leases, flags);
+
+    virResetLastError();
+
+    if (leases)
+        *leases = NULL;
+
+    virCheckNetworkReturn(network, -1);
+
+    conn = network->conn;
+
+    if (conn->networkDriver && conn->networkDriver->networkGetDHCPLeases) {
+        int ret;
+        ret = conn->networkDriver->networkGetDHCPLeases(network, mac, leases, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(network->conn);
+    return -1;
+}
+
+
+/**
+ * virNetworkDHCPLeaseFree:
+ * @lease: pointer to a leases object
+ *
+ * Frees all the memory occupied by @lease.
+ */
+void
+virNetworkDHCPLeaseFree(virNetworkDHCPLeasePtr lease)
+{
+    if (!lease)
+        return;
+    VIR_FREE(lease->iface);
+    VIR_FREE(lease->mac);
+    VIR_FREE(lease->iaid);
+    VIR_FREE(lease->ipaddr);
+    VIR_FREE(lease->hostname);
+    VIR_FREE(lease->clientid);
+    VIR_FREE(lease);
+}
+
+/**
+ * virConnectGetDomainCapabilities:
+ * @conn: pointer to the hypervisor connection
+ * @emulatorbin: path to emulator
+ * @arch: domain architecture
+ * @machine: machine type
+ * @virttype: virtualization type
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Prior creating a domain (for instance via virDomainCreateXML
+ * or virDomainDefineXML) it may be suitable to know what the
+ * underlying emulator and/or libvirt is capable of. For
+ * instance, if host, libvirt and qemu is capable of VFIO
+ * passthrough and so on.
+ *
+ * Returns NULL in case of error or an XML string
+ * defining the capabilities.
+ */
+char *
+virConnectGetDomainCapabilities(virConnectPtr conn,
+                                const char *emulatorbin,
+                                const char *arch,
+                                const char *machine,
+                                const char *virttype,
+                                unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, emulatorbin=%s, arch=%s, "
+              "machine=%s, virttype=%s, flags=%x",
+              conn, NULLSTR(emulatorbin), NULLSTR(arch),
+              NULLSTR(machine), NULLSTR(virttype), flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, NULL);
+
+    if (conn->driver->connectGetDomainCapabilities) {
+        char *ret;
+        ret = conn->driver->connectGetDomainCapabilities(conn, emulatorbin,
+                                                         arch, machine,
+                                                         virttype, flags);
+        if (!ret)
+            goto error;
+        VIR_DEBUG("conn=%p, ret=%s", conn, ret);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+
+/**
+ * virConnectGetAllDomainStats:
+ * @conn: pointer to the hypervisor connection
+ * @stats: stats to return, binary-OR of virDomainStatsTypes
+ * @retStats: Pointer that will be filled with the array of returned stats
+ * @flags: extra flags; binary-OR of virConnectGetAllDomainStatsFlags
+ *
+ * Query statistics for all domains on a given connection.
+ *
+ * Report statistics of various parameters for a running VM according to @stats
+ * field. The statistics are returned as an array of structures for each queried
+ * domain. The structure contains an array of typed parameters containing the
+ * individual statistics. The typed parameter name for each statistic field
+ * consists of a dot-separated string containing name of the requested group
+ * followed by a group specific description of the statistic value.
+ *
+ * The statistic groups are enabled using the @stats parameter which is a
+ * binary-OR of enum virDomainStatsTypes. The following groups are available
+ * (although not necessarily implemented for each hypervisor):
+ *
+ * VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
+ * state. The typed parameter keys are in this format:
+ * "state.state" - state of the VM, returned as int from virDomainState enum
+ * "state.reason" - reason for entering given state, returned as int from
+ *                  virDomain*Reason enum corresponding to given state.
+ *
+ * Using 0 for @stats returns all stats groups supported by the given
+ * hypervisor.
+ *
+ * Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
+ * the function return error in case some of the stat types in @stats were
+ * not recognized by the daemon.
+ *
+ * Similarly to virConnectListAllDomains, @flags can contain various flags to
+ * filter the list of domains to provide stats for.
+ *
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE selects online domains while
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE selects offline ones.
+ *
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT and
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT allow to filter the list
+ * according to their persistence.
+ *
+ * To filter the list of VMs by domain state @flags can contain
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_RUNNING,
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED,
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF and/or
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER for all other states.
+ *
+ * Returns the count of returned statistics structures on success, -1 on error.
+ * The requested data are returned in the @retStats parameter. The returned
+ * array should be freed by the caller. See virDomainStatsRecordListFree.
+ */
+int
+virConnectGetAllDomainStats(virConnectPtr conn,
+                            unsigned int stats,
+                            virDomainStatsRecordPtr **retStats,
+                            unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("conn=%p, stats=0x%x, retStats=%p, flags=0x%x",
+              conn, stats, retStats, flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, -1);
+    virCheckNonNullArgGoto(retStats, cleanup);
+
+    if (!conn->driver->connectGetAllDomainStats) {
+        virReportUnsupportedError();
+        goto cleanup;
+    }
+
+    ret = conn->driver->connectGetAllDomainStats(conn, NULL, 0, stats,
+                                                 retStats, flags);
+
+ cleanup:
+    if (ret < 0)
+        virDispatchError(conn);
+
+    return ret;
+}
+
+
+/**
+ * virDomainListGetStats:
+ * @doms: NULL terminated array of domains
+ * @stats: stats to return, binary-OR of virDomainStatsTypes
+ * @retStats: Pointer that will be filled with the array of returned stats
+ * @flags: extra flags; binary-OR of virConnectGetAllDomainStatsFlags
+ *
+ * Query statistics for domains provided by @doms. Note that all domains in
+ * @doms must share the same connection.
+ *
+ * Report statistics of various parameters for a running VM according to @stats
+ * field. The statistics are returned as an array of structures for each queried
+ * domain. The structure contains an array of typed parameters containing the
+ * individual statistics. The typed parameter name for each statistic field
+ * consists of a dot-separated string containing name of the requested group
+ * followed by a group specific description of the statistic value.
+ *
+ * The statistic groups are enabled using the @stats parameter which is a
+ * binary-OR of enum virDomainStatsTypes. The following groups are available
+ * (although not necessarily implemented for each hypervisor):
+ *
+ * VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
+ * state. The typed parameter keys are in this format:
+ * "state.state" - state of the VM, returned as int from virDomainState enum
+ * "state.reason" - reason for entering given state, returned as int from
+ *                  virDomain*Reason enum corresponding to given state.
+ *
+ * Using 0 for @stats returns all stats groups supported by the given
+ * hypervisor.
+ *
+ * Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
+ * the function return error in case some of the stat types in @stats were
+ * not recognized by the daemon.
+ *
+ * Note that any of the domain list filtering flags in @flags will be rejected
+ * by this function.
+ *
+ * Returns the count of returned statistics structures on success, -1 on error.
+ * The requested data are returned in the @retStats parameter. The returned
+ * array should be freed by the caller. See virDomainStatsRecordListFree.
+ * Note that the count of returned stats may be less than the domain count
+ * provided via @doms.
+ */
+int
+virDomainListGetStats(virDomainPtr *doms,
+                      unsigned int stats,
+                      virDomainStatsRecordPtr **retStats,
+                      unsigned int flags)
+{
+    virConnectPtr conn = NULL;
+    virDomainPtr *nextdom = doms;
+    unsigned int ndoms = 0;
+    int ret = -1;
+
+    VIR_DEBUG("doms=%p, stats=0x%x, retStats=%p, flags=0x%x",
+              doms, stats, retStats, flags);
+
+    virResetLastError();
+
+    virCheckNonNullArgGoto(doms, cleanup);
+    virCheckNonNullArgGoto(retStats, cleanup);
+
+    if (!*doms) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("doms array in %s must contain at least one domain"),
+                       __FUNCTION__);
+        goto cleanup;
+    }
+
+    conn = doms[0]->conn;
+    virCheckConnectReturn(conn, -1);
+
+    if (!conn->driver->connectGetAllDomainStats) {
+        virReportUnsupportedError();
+        goto cleanup;
+    }
+
+    while (*nextdom) {
+        virDomainPtr dom = *nextdom;
+
+        virCheckDomainGoto(dom, cleanup);
+
+        if (dom->conn != conn) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("domains in 'doms' array must belong to a "
+                             "single connection in %s"), __FUNCTION__);
+            goto cleanup;
+        }
+
+        ndoms++;
+        nextdom++;
+    }
+
+    ret = conn->driver->connectGetAllDomainStats(conn, doms, ndoms,
+                                                 stats, retStats, flags);
+
+ cleanup:
+    if (ret < 0)
+        virDispatchError(conn);
+    return ret;
+}
+
+
+/**
+ * virDomainStatsRecordListFree:
+ * @stats: NULL terminated array of virDomainStatsRecords to free
+ *
+ * Convenience function to free a list of domain stats returned by
+ * virDomainListGetStats and virConnectGetAllDomainStats.
+ */
+void
+virDomainStatsRecordListFree(virDomainStatsRecordPtr *stats)
+{
+    virDomainStatsRecordPtr *next;
+
+    if (!stats)
+        return;
+
+    for (next = stats; *next; next++) {
+        virTypedParamsFree((*next)->params, (*next)->nparams);
+        virDomainFree((*next)->dom);
+        VIR_FREE(*next);
+    }
+
+    VIR_FREE(stats);
 }

@@ -926,7 +926,7 @@ class CParser:
                 if i < len(l) and l[i] == ' ':
                     i = i + 1
                 l = l[i:]
-            if len(l) >= 6 and  l[0:7] == "returns" or l[0:7] == "Returns":
+            if len(l) >= 6 and l[0:7] == "Returns":
                 try:
                     l = string.split(l, ' ', 1)[1]
                 except:
@@ -1312,7 +1312,7 @@ class CParser:
         name = None
         self.comment = None
         comment = ""
-        value = "0"
+        value = "-1"
         while token is not None:
             if token[0] == "sep" and token[1] == "{":
                 token = self.token()

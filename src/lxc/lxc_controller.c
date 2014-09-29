@@ -455,7 +455,7 @@ static int virLXCControllerSetupNBDDeviceDisk(virDomainDiskDefPtr disk)
 
     if (virFileNBDDeviceAssociate(src,
                                   format,
-                                  disk->readonly,
+                                  disk->src->readonly,
                                   &dev) < 0)
         return -1;
 
@@ -523,7 +523,7 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("fs driver %s is not supported"),
-                           virDomainFSDriverTypeTypeToString(fs->fsdriver));
+                           virDomainFSDriverTypeToString(fs->fsdriver));
             goto cleanup;
         }
     }
@@ -653,10 +653,7 @@ static int virLXCControllerGetNumadAdvice(virLXCControllerPtr ctrl,
     /* Get the advisory nodeset from numad if 'placement' of
      * either <vcpu> or <numatune> is 'auto'.
      */
-    if ((ctrl->def->placement_mode ==
-         VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) ||
-        (ctrl->def->numatune.memory.placement_mode ==
-         VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) {
+    if (virDomainDefNeedsPlacementAdvice(ctrl->def)) {
         nodeset = virNumaGetAutoPlacementAdvice(ctrl->def->vcpus,
                                                 ctrl->def->mem.cur_balloon);
         if (!nodeset)
@@ -1167,6 +1164,20 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
     return rc;
 }
 
+static unsigned int
+virLXCControllerLookupUsernsMap(virDomainIdMapEntryPtr map,
+                                int num,
+                                unsigned int src)
+{
+    size_t i;
+
+    for (i = 0; i < num; i++) {
+        if (src > map[i].start && src < map[i].start + map[i].count)
+            return map[i].target + (src - map[i].start);
+    }
+
+    return src;
+}
 
 static int
 virLXCControllerSetupUsernsMap(virDomainIdMapEntryPtr map,
@@ -1181,8 +1192,8 @@ virLXCControllerSetupUsernsMap(virDomainIdMapEntryPtr map,
         virBufferAsprintf(&map_value, "%u %u %u\n",
                           map[i].start, map[i].target, map[i].count);
 
-    if (virBufferError(&map_value))
-        goto no_memory;
+    if (virBufferCheckError(&map_value) < 0)
+        goto cleanup;
 
     VIR_DEBUG("Set '%s' to '%s'", path, virBufferCurrentContent(&map_value));
 
@@ -1195,10 +1206,6 @@ virLXCControllerSetupUsernsMap(virDomainIdMapEntryPtr map,
  cleanup:
     virBufferFreeAndReset(&map_value);
     return ret;
-
- no_memory:
-    virReportOOMError();
-    goto cleanup;
 }
 
 /**
@@ -1354,22 +1361,20 @@ virLXCControllerSetupHostdevSubsysUSB(virDomainDefPtr vmDef,
     char *vroot = NULL;
     struct stat sb;
     mode_t mode;
+    virDomainHostdevSubsysUSBPtr usbsrc = &def->source.subsys.u.usb;
 
     if (virAsprintf(&src, USB_DEVFS "/%03d/%03d",
-                    def->source.subsys.u.usb.bus,
-                    def->source.subsys.u.usb.device) < 0)
+                    usbsrc->bus, usbsrc->device) < 0)
         goto cleanup;
 
     if (virAsprintf(&vroot, "/%s/%s.dev/bus/usb/",
                     LXC_STATE_DIR, vmDef->name) < 0)
         goto cleanup;
 
-    if (virAsprintf(&dstdir, "%s/%03d/", vroot,
-                    def->source.subsys.u.usb.bus) < 0)
+    if (virAsprintf(&dstdir, "%s/%03d/", vroot, usbsrc->bus) < 0)
         goto cleanup;
 
-    if (virAsprintf(&dstfile, "%s/%03d", dstdir,
-                    def->source.subsys.u.usb.device) < 0)
+    if (virAsprintf(&dstfile, "%s/%03d", dstdir, usbsrc->device) < 0)
         goto cleanup;
 
     if (stat(src, &sb) < 0) {
@@ -1669,7 +1674,7 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
     int ret = -1;
     struct stat sb;
     mode_t mode;
-    char *tmpsrc = def->src.path;
+    char *tmpsrc = def->src->path;
 
     if (virDomainDiskGetType(def) != VIR_STORAGE_TYPE_BLOCK) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -1686,7 +1691,7 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
                     LXC_STATE_DIR, ctrl->def->name, def->dst) < 0)
         goto cleanup;
 
-    if (stat(def->src.path, &sb) < 0) {
+    if (stat(def->src->path, &sb) < 0) {
         virReportSystemError(errno,
                              _("Unable to access %s"), tmpsrc);
         goto cleanup;
@@ -1726,14 +1731,14 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
 
     /* Labelling normally operates on src, but we need
      * to actually label the dst here, so hack the config */
-    def->src.path = dst;
-    if (virSecurityManagerSetImageLabel(securityDriver, ctrl->def, def) < 0)
+    def->src->path = dst;
+    if (virSecurityManagerSetDiskLabel(securityDriver, ctrl->def, def) < 0)
         goto cleanup;
 
     ret = 0;
 
  cleanup:
-    def->src.path = tmpsrc;
+    def->src->path = tmpsrc;
     VIR_FREE(dst);
     return ret;
 }
@@ -1939,6 +1944,7 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
     char *opts = NULL;
     char *devpts = NULL;
     int ret = -1;
+    gid_t ptsgid = 5;
 
     VIR_DEBUG("Setting up private /dev/pts");
 
@@ -1958,10 +1964,15 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
         goto cleanup;
     }
 
+    if (ctrl->def->idmap.ngidmap)
+        ptsgid = virLXCControllerLookupUsernsMap(ctrl->def->idmap.gidmap,
+                                                 ctrl->def->idmap.ngidmap,
+                                                 ptsgid);
+
     /* XXX should we support gid=X for X!=5 for distros which use
      * a different gid for tty?  */
-    if (virAsprintf(&opts, "newinstance,ptmxmode=0666,mode=0620,gid=5%s",
-                    (mount_options ? mount_options : "")) < 0)
+    if (virAsprintf(&opts, "newinstance,ptmxmode=0666,mode=0620,gid=%u%s",
+                    ptsgid, (mount_options ? mount_options : "")) < 0)
         goto cleanup;
 
     VIR_DEBUG("Mount devpts on %s type=tmpfs flags=%x, opts=%s",

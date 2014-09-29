@@ -3,12 +3,48 @@ libvirt was initially debianized by Andrew Mitchell <ajmitch@ubuntu.com>
 It was downloaded from http://libvirt.org/sources/
 
 Upstream Author:
-  
-   Daniel Veillard      <veillard@redhat.com> or <daniel@veillard.com>
+
+   Alex Jia <ajia@redhat.com>
+   Anthony Liguori <aliguori@us.ibm.com>
+   Chris Lalancette <clalance@redhat.com>
+   Christophe Fergeau <cfergeau@redhat.com>
+   Claudio Bley <cbley@av-test.de>
+   Cole Robinson <crobinso@redhat.com>
+   Daniel Berrange <berrange@redhat.com>
+   Daniel Veillard <veillard@redhat.com>
+   Dave Allan <dallan@redhat.com>
+   Doug Goldstein <cardoe@gentoo.org>
+   Eric Blake <eblake@redhat.com>
+   Gao Feng <gaofeng@cn.fujitsu.com>
+   Guannan Ren <gren@redhat.com>
+   Guido Günther <agx@sigxcpu.org>
+   Ján Tomko <jtomko@redhat.com>
+   Jim Fehlig <jfehlig@suse.com>
+   Jim Meyering <meyering@redhat.com>
+   Jiří Denemark <jdenemar@redhat.com>
+   John Ferlan <jferlan@redhat.com>
+   John Levon <john.levon@sun.com>
+   Laine Stump <laine@redhat.com>
+   Mark McLoughlin <markmc@redhat.com>
+   Martin Kletzander <mkletzan@redhat.com>
+   Matthias Bolte <matthias.bolte@googlemail.com>
+   Michal Prívozník <mprivozn@redhat.com>
+   Osier Yang <jyang@redhat.com>
+   Pavel Hrdina <phrdina@redhat.com>
+   Peter Krempa <pkrempa@redhat.com>
+   Richard W.M. Jones <rjones@redhat.com>
+   Roman Bogorodskiy <bogorodskiy@gmail.com>
+   Stefan Berger <stefanb@us.ibm.com>
+   Wen Congyang <wency@cn.fujitsu.com>
+   Atsushi SAKAI <sakaia@jp.fujitsu.com>
+   Dan Smith <danms@us.ibm.com>
+   Dave Leskovec <dlesko@linux.vnet.ibm.com>
+   Justin Clift <jclift@redhat.com>
+   Karel Zak <kzak@redhat.com>
 
 Copyright:
 
-   2005,2006 Red Hat, Inc
+   2005-2014 Red Hat, Inc
 
 Licenses:
 
@@ -29,16 +65,79 @@ Licenses:
  src/hash.c:
 
   Copyright (C) 2000 Bjorn Reese and Daniel Veillard.
- 
+
   Permission to use, copy, modify, and distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
   copyright notice and this permission notice appear in all copies.
- 
+
   THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
   WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
   MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND
   CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.
 
+ gnulib/tests/
+ build-aux/snippet/
 
-On Debian systems, the complete text of the GNU Lesser General
-Public License can be found in `/usr/share/common-licenses/LGPL'.
+   Copyright (C) 2008-2014 Free Software Foundation, Inc.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+ build-aux/ltmain.sh:
+
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
+   2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+   This is free software; see the source for copying conditions.  There is NO
+   warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+   GNU Libtool is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   As a special exception to the GNU General Public License,
+   if you distribute this file as part of a program or library that
+   is built using GNU Libtool, you may include this file under the
+   same distribution terms that you use for the rest of that program.
+
+   GNU Libtool is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+ docs/wrapstring.xsl:
+
+   Copyright 2010 Aristotle Pagaltzis; under the MIT licence
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+On Debian systems, the complete text of the GNU Lesser General Public License
+can be found in `/usr/share/common-licenses/LGPL', of the GNU General Public
+License Version 3 in '/usr/share/common-licenses/GPL-3', of the GNU General
+Public License Version 2 in '/usr/share/common-licenses/GPL-2'.

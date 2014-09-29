@@ -3,6 +3,7 @@
   <protocol family='ipv4'>
     <dhcp peerdns='no'/>
   </protocol>
+  <link state='lowerlayerdown'/>
   <vlan tag='42'>
     <interface name='eth0'/>
   </vlan>

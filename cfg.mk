@@ -90,7 +90,7 @@ endif
 
 # Files that should never cause syntax check failures.
 VC_LIST_ALWAYS_EXCLUDE_REGEX = \
-  (^(HACKING|docs/(news\.html\.in|.*\.patch))|\.po)$$
+  (^(HACKING|docs/(news\.html\.in|.*\.patch))|\.(po|fig|gif|ico|png))$$
 
 # Functions like free() that are no-ops on NULL arguments.
 useless_free_options =				\
@@ -568,7 +568,7 @@ sc_avoid_attribute_unused_in_header:
 	  $(_sc_search_regexp)
 
 sc_prohibit_int_ijk:
-	@prohibit='\<(int|unsigned) ([^(]* )*(i|j|k)\>(\s|,|;)'		\
+	@prohibit='\<(int|unsigned) ([^(=]* )*(i|j|k)\>(\s|,|;)'	\
 	halt='use size_t, not int/unsigned int for loop vars i, j, k'	\
 	  $(_sc_search_regexp)
 
@@ -625,7 +625,7 @@ sc_libvirt_unmarked_diagnostics:
 	  $(_sc_search_regexp)
 	@{ grep     -nE '\<$(func_re) *\(.*;$$' $$($(VC_LIST_EXCEPT));   \
 	   grep -A1 -nE '\<$(func_re) *\(.*,$$' $$($(VC_LIST_EXCEPT)); } \
-	   | sed 's/_("\([^\"]\|\\.\)\+"//;s/[	 ]"%s"//'		\
+	   | $(SED) 's/_("\([^\"]\|\\.\)\+"//;s/[	 ]"%s"//'		\
 	   | grep '[	 ]"' &&						\
 	  { echo '$(ME): found unmarked diagnostic(s)' 1>&2;		\
 	    exit 1; } || :
@@ -650,7 +650,7 @@ sc_prohibit_newline_at_end_of_diagnostic:
 sc_prohibit_diagnostic_without_format:
 	@{ grep     -nE '\<$(func_re) *\(.*;$$' $$($(VC_LIST_EXCEPT));   \
 	   grep -A2 -nE '\<$(func_re) *\(.*,$$' $$($(VC_LIST_EXCEPT)); } \
-	   | sed -rn -e ':l; /[,"]$$/ {N;b l;}'				 \
+	   | $(SED) -rn -e ':l; /[,"]$$/ {N;b l;}'				 \
 		-e '/(xenapiSessionErrorHandler|vah_(error|warning))/d'	 \
 		-e '/\<$(func_re) *\([^"]*"([^%"]|"\n[^"]*")*"[,)]/p'	 \
            | grep -vE 'VIR_ERROR' &&					 \
@@ -672,7 +672,7 @@ sc_prohibit_useless_translation:
 # or \n on one side of the split.
 sc_require_whitespace_in_translation:
 	@grep -n -A1 '"$$' $$($(VC_LIST_EXCEPT))   			\
-	   | sed -ne ':l; /"$$/ {N;b l;}; s/"\n[^"]*"/""/g; s/\\n/ /g'	\
+	   | $(SED) -ne ':l; /"$$/ {N;b l;}; s/"\n[^"]*"/""/g; s/\\n/ /g'	\
 		-e '/_(.*[^\ ]""[^\ ]/p' | grep . &&			\
 	  { echo '$(ME): missing whitespace at line split' 1>&2;	\
 	    exit 1; } || :
@@ -692,11 +692,11 @@ sc_preprocessor_indentation:
 sc_spec_indentation:
 	@if cppi --version >/dev/null 2>&1; then			\
 	  for f in $$($(VC_LIST_EXCEPT) | grep '\.spec\.in$$'); do	\
-	    sed -e 's|#|// #|; s|%ifn*\(arch\)* |#if a // |'		\
+	    $(SED) -e 's|#|// #|; s|%ifn*\(arch\)* |#if a // |'		\
 		-e 's/%\(else\|endif\|define\)/#\1/'			\
 		-e 's/^\( *\)\1\1\1#/#\1/'				\
 		-e 's|^\( *[^#/ ]\)|// \1|; s|^\( */[^/]\)|// \1|' $$f	\
-	    | cppi -a -c 2>&1 | sed "s|standard input|$$f|";		\
+	    | cppi -a -c 2>&1 | $(SED) "s|standard input|$$f|";		\
 	  done | { if grep . >&2; then false; else :; fi; }		\
 	    || { echo '$(ME): incorrect preprocessor indentation' 1>&2;	\
 		exit 1; };						\
@@ -774,8 +774,8 @@ sc_prohibit_cross_inclusion:
 	    access/ | conf/) safe="($$dir|conf|util)";;			\
 	    locking/) safe="($$dir|util|conf|rpc)";;			\
 	    cpu/| network/| node_device/| rpc/| security/| storage/)	\
-	      safe="($$dir|util|conf)";;				\
-	    xenapi/ | xenxs/ ) safe="($$dir|util|conf|xen)";;		\
+	      safe="($$dir|util|conf|storage)";;			\
+	    xenapi/ | xenconfig/ ) safe="($$dir|util|conf|xen)";;	\
 	    *) safe="($$dir|$(mid_dirs)|util)";;			\
 	  esac;								\
 	  in_vc_files="^src/$$dir"					\
@@ -789,7 +789,7 @@ sc_prohibit_cross_inclusion:
 # elements added to the enum by using a _LAST marker.
 sc_require_enum_last_marker:
 	@grep -A1 -nE '^[^#]*VIR_ENUM_IMPL *\(' $$($(VC_LIST_EXCEPT))	\
-	   | sed -ne '/VIR_ENUM_IMPL[^,]*,$$/N'				\
+	   | $(SED) -ne '/VIR_ENUM_IMPL[^,]*,$$/N'				\
 	     -e '/VIR_ENUM_IMPL[^,]*,[^,]*[^_,][^L,][^A,][^S,][^T,],/p'	\
 	     -e '/VIR_ENUM_IMPL[^,]*,[^,]\{0,4\},/p'			\
 	   | grep . &&							\
@@ -929,9 +929,30 @@ sc_prohibit_mixed_case_abbreviations:
 	halt='Use PCI, USB, SCSI, not Pci, Usb, Scsi'	\
 	  $(_sc_search_regexp)
 
+# Require #include <locale.h> in all files that call setlocale()
+sc_require_locale_h:
+	@require='include.*locale\.h'					\
+	containing='setlocale *('					\
+	halt='setlocale() requires <locale.h>'				\
+	  $(_sc_search_regexp)
+
+sc_prohibit_empty_first_line:
+	@awk 'BEGIN { fail=0; }						\
+	FNR == 1 { if ($$0 == "") { print FILENAME ":1:"; fail=1; } }	\
+	END { if (fail == 1) {						\
+	  print "$(ME): Prohibited empty first line" > "/dev/stderr";	\
+	} exit fail; }' $$($(VC_LIST_EXCEPT));
+
+sc_prohibit_paren_brace:
+	@prohibit='\)\{$$'						\
+	in_vc_files='\.[chx]$$'						\
+	halt='Put space between closing parenthesis and opening brace'	\
+	  $(_sc_search_regexp)
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
+ifneq ($(_gl-Makefile),)
 ifeq (0,$(MAKELEVEL))
   _curr_status = .git-module-status
   # The sed filter accommodates those who check out on a commit from which
@@ -944,7 +965,7 @@ ifeq (0,$(MAKELEVEL))
   # b653eda3ac4864de205419d9f41eec267cb89eeb
   #
   # Keep this logic in sync with autogen.sh.
-  _submodule_hash = sed 's/^[ +-]//;s/ .*//'
+  _submodule_hash = $(SED) 's/^[ +-]//;s/ .*//'
   _update_required := $(shell						\
       cd '$(srcdir)';							\
       test -d .git || { echo 0; exit; };				\
@@ -964,6 +985,7 @@ ifeq (0,$(MAKELEVEL))
 maint.mk Makefile: _autogen
   endif
 endif
+endif
 
 # It is necessary to call autogen any time gnulib changes.  Autogen
 # reruns configure, then we regenerate all Makefiles at once.
@@ -973,7 +995,9 @@ _autogen:
 	./config.status
 
 # regenerate HACKING as part of the syntax-check
+ifneq ($(_gl-Makefile),)
 syntax-check: $(top_srcdir)/HACKING bracket-spacing-check
+endif
 
 bracket-spacing-check:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.c$$'`; \
@@ -1029,7 +1053,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c|tests/vir(cgroup|pci)mock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.(gif|ico|png|diff)$$)
+  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.diff$$)
 
 _src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -1047,7 +1071,7 @@ exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|tests)/|docs/.*(py|html\.in)|run.in$$|tools/wireshark/util/genxdrstub\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
-  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper\.c|tests/vircgroupmock\.c|tools/wireshark/src/packet-libvirt.c)$$
+  ^(docs/hacking\.html\.in|src/util/viralloc\.[ch]|examples/.*|tests/(securityselinuxhelper|vircgroupmock)\.c|tools/wireshark/src/packet-libvirt\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_readlink = \
   ^src/(util/virutil|lxc/lxc_container)\.c$$
@@ -1055,12 +1079,11 @@ exclude_file_name_regexp--sc_prohibit_readlink = \
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = \
-  ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)|(tools/wireshark/util/genxdrstub\.pl)$$
+  (^docs/hacking\.html\.in|\.stp|\.pl)$$
 
 exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
-exclude_file_name_regexp--sc_prohibit_strtol = \
-  ^(src/(util/virsexpr|(vbox|xen|xenxs)/.*)\.c)|(examples/domsuspend/suspend.c)$$
+exclude_file_name_regexp--sc_prohibit_strtol = ^examples/dom.*/.*\.c$$
 
 exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/virxml\.c$$
 
@@ -1075,7 +1098,7 @@ exclude_file_name_regexp--sc_require_config_h_first = \
 	^(examples/|tools/virsh-edit\.c$$)
 
 exclude_file_name_regexp--sc_trailing_blank = \
-  (/qemuhelpdata/|/sysinfodata/.*\.data|\.(fig|gif|ico|png)$$)
+  /qemuhelpdata/|/sysinfodata/.*\.data|/nodeinfodata/.*\.cpuinfo$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
@@ -1104,3 +1127,6 @@ exclude_file_name_regexp--sc_avoid_attribute_unused_in_header = \
 
 exclude_file_name_regexp--sc_prohibit_mixed_case_abbreviations = \
   ^src/(vbox/vbox_CAPI.*.h|esx/esx_vi.(c|h)|esx/esx_storage_backend_iscsi.c)$$
+
+exclude_file_name_regexp--sc_prohibit_empty_first_line = \
+  ^(README|daemon/THREADS\.txt|src/esx/README|docs/library.xen|tests/vmwareverdata/fusion-5.0.3.txt|tests/nodeinfodata/linux-raspberrypi/cpu/offline)$$

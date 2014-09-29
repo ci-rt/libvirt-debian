@@ -26,6 +26,12 @@
 
 # include "internal.h"
 
+char **virStringSplitCount(const char *string,
+                           const char *delim,
+                           size_t max_tokens,
+                           size_t *tokcount)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
 char **virStringSplit(const char *string,
                       const char *delim,
                       size_t max_tokens)
@@ -36,6 +42,7 @@ char *virStringJoin(const char **strings,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 void virStringFreeList(char **strings);
+void virStringFreeListCount(char **strings, size_t count);
 
 bool virStringArrayHasString(char **strings, const char *needle);
 
@@ -44,43 +51,53 @@ char *virArgvToString(const char *const *argv);
 int virStrToLong_i(char const *s,
                    char **end_ptr,
                    int base,
-                   int *result);
+                   int *result)
+    ATTRIBUTE_RETURN_CHECK;
 
 int virStrToLong_ui(char const *s,
                     char **end_ptr,
                     int base,
-                    unsigned int *result);
+                    unsigned int *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToLong_uip(char const *s,
                      char **end_ptr,
                      int base,
-                     unsigned int *result);
+                     unsigned int *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToLong_l(char const *s,
                    char **end_ptr,
                    int base,
-                   long *result);
+                   long *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToLong_ul(char const *s,
                     char **end_ptr,
                     int base,
-                    unsigned long *result);
+                    unsigned long *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToLong_ulp(char const *s,
                      char **end_ptr,
                      int base,
-                     unsigned long *result);
+                     unsigned long *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToLong_ll(char const *s,
                     char **end_ptr,
                     int base,
-                    long long *result);
+                    long long *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToLong_ull(char const *s,
                      char **end_ptr,
                      int base,
-                     unsigned long long *result);
+                     unsigned long long *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToLong_ullp(char const *s,
                       char **end_ptr,
                       int base,
-                      unsigned long long *result);
+                      unsigned long long *result)
+    ATTRIBUTE_RETURN_CHECK;
 int virStrToDouble(char const *s,
                    char **end_ptr,
-                   double *result);
+                   double *result)
+    ATTRIBUTE_RETURN_CHECK;
 
 void virSkipSpaces(const char **str) ATTRIBUTE_NONNULL(1);
 void virSkipSpacesAndBackslash(const char **str) ATTRIBUTE_NONNULL(1);
@@ -248,6 +265,5 @@ char *virStringReplace(const char *haystack,
                        const char *oldneedle,
                        const char *newneedle)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
-
 
 #endif /* __VIR_STRING_H__ */

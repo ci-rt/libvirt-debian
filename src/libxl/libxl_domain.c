@@ -482,21 +482,71 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         STRNEQ(def->os.type, "hvm"))
         dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
 
-    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
-        virDomainHostdevDefPtr hostdev = dev->data.hostdev;
+    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV ||
+        (dev->type == VIR_DOMAIN_DEVICE_NET &&
+         dev->data.net->type == VIR_DOMAIN_NET_TYPE_HOSTDEV)) {
+
+        virDomainHostdevDefPtr hostdev;
+        virDomainHostdevSubsysPCIPtr pcisrc;
+
+        if (dev->type == VIR_DOMAIN_DEVICE_NET)
+            hostdev = &(dev->data.net)->data.hostdev.def;
+        else
+            hostdev = dev->data.hostdev;
+        pcisrc = &hostdev->source.subsys.u.pci;
+
+        /* forbid capabilities mode hostdev in this kind of hypervisor */
+        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("hostdev mode 'capabilities' is not "
+                             "supported in %s"),
+                           virDomainVirtTypeToString(def->virtType));
+            return -1;
+        }
 
         if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
             hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
-            hostdev->source.subsys.u.pci.backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT)
-            hostdev->source.subsys.u.pci.backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN;
+            pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT)
+            pcisrc->backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN;
     }
 
+    return 0;
+}
+
+static int
+libxlDomainDefPostParse(virDomainDefPtr def,
+                        virCapsPtr caps ATTRIBUTE_UNUSED,
+                        void *opaque ATTRIBUTE_UNUSED)
+{
+    if (STREQ(def->os.type, "hvm"))
+        return 0;
+
+    if (def->nconsoles == 0) {
+        virDomainChrDefPtr chrdef;
+
+        if (!(chrdef = virDomainChrDefNew()))
+            return -1;
+
+        chrdef->source.type = VIR_DOMAIN_CHR_TYPE_PTY;
+        chrdef->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
+        chrdef->target.port = 0;
+        chrdef->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
+
+        if (VIR_ALLOC_N(def->consoles, 1) < 0) {
+            virDomainChrDefFree(chrdef);
+            return -1;
+        }
+
+        def->nconsoles = 1;
+        def->consoles[0] = chrdef;
+    }
     return 0;
 }
 
 virDomainDefParserConfig libxlDomainDefParserConfig = {
     .macPrefix = { 0x00, 0x16, 0x3e },
     .devicesPostParseCallback = libxlDomainDeviceDefPostParse,
+    .domainPostParseCallback = libxlDomainDefPostParse,
 };
 
 
@@ -526,7 +576,7 @@ libxlDomainShutdownThread(void *opaque)
         dom_event = virDomainEventLifecycleNewFromObj(vm,
                                            VIR_DOMAIN_EVENT_STOPPED,
                                            VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN);
-        switch ((enum virDomainLifecycleAction) vm->def->onPoweroff) {
+        switch ((virDomainLifecycleAction) vm->def->onPoweroff) {
         case VIR_DOMAIN_LIFECYCLE_DESTROY:
             reason = VIR_DOMAIN_SHUTOFF_SHUTDOWN;
             goto destroy;
@@ -541,7 +591,7 @@ libxlDomainShutdownThread(void *opaque)
         dom_event = virDomainEventLifecycleNewFromObj(vm,
                                            VIR_DOMAIN_EVENT_STOPPED,
                                            VIR_DOMAIN_EVENT_STOPPED_CRASHED);
-        switch ((enum virDomainLifecycleCrashAction) vm->def->onCrash) {
+        switch ((virDomainLifecycleCrashAction) vm->def->onCrash) {
         case VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY:
             reason = VIR_DOMAIN_SHUTOFF_CRASHED;
             goto destroy;
@@ -562,7 +612,7 @@ libxlDomainShutdownThread(void *opaque)
         dom_event = virDomainEventLifecycleNewFromObj(vm,
                                            VIR_DOMAIN_EVENT_STOPPED,
                                            VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN);
-        switch ((enum virDomainLifecycleAction) vm->def->onReboot) {
+        switch ((virDomainLifecycleAction) vm->def->onReboot) {
         case VIR_DOMAIN_LIFECYCLE_DESTROY:
             reason = VIR_DOMAIN_SHUTOFF_SHUTDOWN;
             goto destroy;
@@ -1100,6 +1150,8 @@ libxlDomainStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
 #endif
     virHostdevManagerPtr hostdev_mgr = driver->hostdevMgr;
 
+    libxl_domain_config_init(&d_config);
+
     if (libxlDomainObjPrivateInitCtx(vm) < 0)
         return ret;
 
@@ -1149,9 +1201,8 @@ libxlDomainStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
         VIR_FREE(managed_save_path);
     }
 
-    libxl_domain_config_init(&d_config);
-
-    if (libxlBuildDomainConfig(driver, vm, &d_config) < 0)
+    if (libxlBuildDomainConfig(driver->reservedVNCPorts, vm->def,
+                               priv->ctx, &d_config) < 0)
         goto endjob;
 
     if (cfg->autoballoon && libxlDomainFreeMem(priv, &d_config) < 0) {
@@ -1252,6 +1303,29 @@ libxlDomainStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
     VIR_FREE(managed_save_path);
     virDomainDefFree(def);
     VIR_FORCE_CLOSE(managed_save_fd);
+    virObjectUnref(cfg);
+    return ret;
+}
+
+bool
+libxlDomainDefCheckABIStability(libxlDriverPrivatePtr driver,
+                                virDomainDefPtr src,
+                                virDomainDefPtr dst)
+{
+    virDomainDefPtr migratableDefSrc = NULL;
+    virDomainDefPtr migratableDefDst = NULL;
+    libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
+    bool ret = false;
+
+    if (!(migratableDefSrc = virDomainDefCopy(src, cfg->caps, driver->xmlopt, true)) ||
+        !(migratableDefDst = virDomainDefCopy(dst, cfg->caps, driver->xmlopt, true)))
+        goto cleanup;
+
+    ret = virDomainDefCheckABIStability(migratableDefSrc, migratableDefDst);
+
+ cleanup:
+    virDomainDefFree(migratableDefSrc);
+    virDomainDefFree(migratableDefDst);
     virObjectUnref(cfg);
     return ret;
 }

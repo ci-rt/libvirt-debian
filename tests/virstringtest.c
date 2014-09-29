@@ -53,11 +53,14 @@ static int testSplit(const void *args)
 {
     const struct testSplitData *data = args;
     char **got;
+    size_t ntokens;
+    size_t exptokens = 0;
     char **tmp1;
     const char **tmp2;
     int ret = -1;
 
-    if (!(got = virStringSplit(data->string, data->delim, data->max_tokens))) {
+    if (!(got = virStringSplitCount(data->string, data->delim,
+                                    data->max_tokens, &ntokens))) {
         VIR_DEBUG("Got no tokens at all");
         return -1;
     }
@@ -71,6 +74,7 @@ static int testSplit(const void *args)
         }
         tmp1++;
         tmp2++;
+        exptokens++;
     }
     if (*tmp1) {
         virFilePrintf(stderr, "Too many pieces returned\n");
@@ -78,6 +82,14 @@ static int testSplit(const void *args)
     }
     if (*tmp2) {
         virFilePrintf(stderr, "Too few pieces returned\n");
+        goto cleanup;
+    }
+
+    if (ntokens != exptokens) {
+        virFilePrintf(stderr,
+                      "Returned token count (%zu) doesn't match "
+                      "expected count (%zu)",
+                      ntokens, exptokens);
         goto cleanup;
     }
 
@@ -485,6 +497,26 @@ testStringToLong(const void *opaque)
 }
 
 
+/* The point of this test is to check whether all members of the array are
+ * freed. The test has to be checked using valgrind. */
+static int
+testVirStringFreeListCount(const void *opaque ATTRIBUTE_UNUSED)
+{
+    char **list;
+
+    if (VIR_ALLOC_N(list, 4) < 0)
+        return -1;
+
+    ignore_value(VIR_STRDUP(list[0], "test1"));
+    ignore_value(VIR_STRDUP(list[2], "test2"));
+    ignore_value(VIR_STRDUP(list[3], "test3"));
+
+    virStringFreeListCount(list, 4);
+
+    return 0;
+}
+
+
 static int
 mymain(void)
 {
@@ -670,7 +702,7 @@ mymain(void)
                 -1LL, 0, 18446744073709551615ULL, 0);
     TEST_STRTOL("-2147483647", NULL, -2147483647, 0, 2147483649U, 0,
                 -2147483647LL, 0, 18446744071562067969ULL, 0);
-    TEST_STRTOL("-2147483648", NULL, -2147483648, 0, 2147483648U, 0,
+    TEST_STRTOL("-2147483648", NULL, INT32_MIN, 0, 2147483648U, 0,
                 -2147483648LL, 0, 18446744071562067968ULL, 0);
     TEST_STRTOL("-2147483649", NULL, 0, -1, 2147483647U, 0,
                 -2147483649LL, 0, 18446744071562067967ULL, 0);
@@ -680,16 +712,19 @@ mymain(void)
                 -4294967296LL, 0, 18446744069414584320ULL, 0);
     TEST_STRTOL("-9223372036854775807", NULL, 0, -1, 0U, -1,
                 -9223372036854775807LL, 0, 9223372036854775809ULL, 0);
-    /* Bah, stupid gcc warning about -9223372036854775808LL being an
-     * unrepresentable integer constant */
     TEST_STRTOL("-9223372036854775808", NULL, 0, -1, 0U, -1,
-                0x8000000000000000LL, 0, 9223372036854775808ULL, 0);
+                INT64_MIN, 0, 9223372036854775808ULL, 0);
     TEST_STRTOL("-9223372036854775809", NULL, 0, -1, 0U, -1,
                 0LL, -1, 9223372036854775807ULL, 0);
     TEST_STRTOL("-18446744073709551615", NULL, 0, -1, 0U, -1,
                 0LL, -1, 1ULL, 0);
     TEST_STRTOL("-18446744073709551616", NULL, 0, -1, 0U, -1,
                 0LL, -1, 0ULL, -1);
+
+    /* test virStringFreeListCount */
+    if (virtTestRun("virStringFreeListCount", testVirStringFreeListCount,
+                    NULL) < 0)
+        ret = -1;
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

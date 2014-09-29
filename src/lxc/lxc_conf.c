@@ -70,11 +70,11 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
     char *lxc_path = NULL;
 
     if ((caps = virCapabilitiesNew(virArchFromHost(),
-                                   0, 0)) == NULL)
+                                   false, false)) == NULL)
         goto error;
 
     /* Some machines have problematic NUMA toplogy causing
-     * unexpected failures. We don't want to break the QEMU
+     * unexpected failures. We don't want to break the lxc
      * driver in this scenario, so log errors & carry on
      */
     if (nodeCapsInitNUMA(caps) < 0) {
@@ -259,7 +259,7 @@ virLXCLoadDriverConfig(virLXCDriverConfigPtr cfg,
     if (!conf)
         goto done;
 
-#define CHECK_TYPE(name,typ) if (p && p->type != (typ)) {               \
+#define CHECK_TYPE(name, typ) if (p && p->type != (typ)) {              \
         virReportError(VIR_ERR_INTERNAL_ERROR,                          \
                        "%s: %s: expected type " #typ,                   \
                        filename, (name));                               \

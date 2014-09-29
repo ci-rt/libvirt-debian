@@ -2,7 +2,7 @@
  * driver.h: description of the set of interfaces provided by a
  *           entry point to the virtualization engine
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -78,7 +78,7 @@ typedef enum {
  *   != 0  Feature is supported.
  *   0     Feature is not supported.
  */
-# define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                     \
+# define VIR_DRV_SUPPORTS_FEATURE(drv, conn, feature)                   \
     ((drv)->connectSupportsFeature ?                                    \
         (drv)->connectSupportsFeature((conn), (feature)) > 0 : 0)
 
@@ -125,6 +125,14 @@ typedef int
 
 typedef char *
 (*virDrvConnectGetCapabilities)(virConnectPtr conn);
+
+typedef char *
+(*virDrvConnectGetDomainCapabilities)(virConnectPtr conn,
+                                      const char *emulatorbin,
+                                      const char *arch,
+                                      const char *machine,
+                                      const char *virttype,
+                                      unsigned int flags);
 
 typedef int
 (*virDrvConnectListDomains)(virConnectPtr conn,
@@ -880,6 +888,11 @@ typedef int
                             unsigned int flags);
 
 typedef int
+(*virDrvDomainOpenGraphicsFD)(virDomainPtr dom,
+                              unsigned int idx,
+                              unsigned int flags);
+
+typedef int
 (*virDrvDomainInjectNMI)(virDomainPtr dom,
                          unsigned int flags);
 
@@ -1001,6 +1014,14 @@ typedef int
                            unsigned int flags);
 
 typedef int
+(*virDrvDomainBlockCopy)(virDomainPtr dom,
+                         const char *path,
+                         const char *destxml,
+                         virTypedParameterPtr params,
+                         int nparams,
+                         unsigned int flags);
+
+typedef int
 (*virDrvDomainBlockCommit)(virDomainPtr dom,
                            const char *disk,
                            const char *base,
@@ -1084,6 +1105,18 @@ typedef int
                       unsigned int flags);
 
 typedef int
+(*virDrvDomainGetTime)(virDomainPtr dom,
+                       long long *seconds,
+                       unsigned int *nseconds,
+                       unsigned int flags);
+
+typedef int
+(*virDrvDomainSetTime)(virDomainPtr dom,
+                       long long seconds,
+                       unsigned int nseconds,
+                       unsigned int flags);
+
+typedef int
 (*virDrvDomainLxcOpenNamespace)(virDomainPtr dom,
                                 int **fdlist,
                                 unsigned int flags);
@@ -1148,6 +1181,36 @@ typedef int
                                      int cookieinlen,
                                      unsigned int flags,
                                      int cancelled);
+
+typedef int
+(*virDrvDomainFSFreeze)(virDomainPtr dom,
+                        const char **mountpoints,
+                        unsigned int nmountpoints,
+                        unsigned int flags);
+
+typedef int
+(*virDrvDomainFSThaw)(virDomainPtr dom,
+                      const char **mountpoints,
+                      unsigned int nmountpoints,
+                      unsigned int flags);
+
+typedef int
+(*virDrvNodeGetFreePages)(virConnectPtr conn,
+                          unsigned int npages,
+                          unsigned int *pages,
+                          int startCell,
+                          unsigned int cellCount,
+                          unsigned long long *counts,
+                          unsigned int flags);
+
+
+typedef int
+(*virDrvConnectGetAllDomainStats)(virConnectPtr conn,
+                                  virDomainPtr *doms,
+                                  unsigned int ndoms,
+                                  unsigned int stats,
+                                  virDomainStatsRecordPtr **retStats,
+                                  unsigned int flags);
 
 typedef struct _virDriver virDriver;
 typedef virDriver *virDriverPtr;
@@ -1327,6 +1390,7 @@ struct _virDriver {
     virDrvDomainOpenConsole domainOpenConsole;
     virDrvDomainOpenChannel domainOpenChannel;
     virDrvDomainOpenGraphics domainOpenGraphics;
+    virDrvDomainOpenGraphicsFD domainOpenGraphicsFD;
     virDrvDomainInjectNMI domainInjectNMI;
     virDrvDomainMigrateBegin3 domainMigrateBegin3;
     virDrvDomainMigratePrepare3 domainMigratePrepare3;
@@ -1340,6 +1404,7 @@ struct _virDriver {
     virDrvDomainBlockJobSetSpeed domainBlockJobSetSpeed;
     virDrvDomainBlockPull domainBlockPull;
     virDrvDomainBlockRebase domainBlockRebase;
+    virDrvDomainBlockCopy domainBlockCopy;
     virDrvDomainBlockCommit domainBlockCommit;
     virDrvConnectSetKeepAlive connectSetKeepAlive;
     virDrvConnectIsAlive connectIsAlive;
@@ -1363,6 +1428,13 @@ struct _virDriver {
     virDrvDomainMigrateFinish3Params domainMigrateFinish3Params;
     virDrvDomainMigrateConfirm3Params domainMigrateConfirm3Params;
     virDrvConnectGetCPUModelNames connectGetCPUModelNames;
+    virDrvDomainFSFreeze domainFSFreeze;
+    virDrvDomainFSThaw domainFSThaw;
+    virDrvDomainGetTime domainGetTime;
+    virDrvDomainSetTime domainSetTime;
+    virDrvNodeGetFreePages nodeGetFreePages;
+    virDrvConnectGetDomainCapabilities connectGetDomainCapabilities;
+    virDrvConnectGetAllDomainStats connectGetAllDomainStats;
 };
 
 
@@ -1456,7 +1528,11 @@ typedef int
 typedef int
 (*virDrvNetworkIsPersistent)(virNetworkPtr net);
 
-
+typedef int
+(*virDrvNetworkGetDHCPLeases)(virNetworkPtr network,
+                              const char *mac,
+                              virNetworkDHCPLeasePtr **leases,
+                              unsigned int flags);
 
 typedef struct _virNetworkDriver virNetworkDriver;
 typedef virNetworkDriver *virNetworkDriverPtr;
@@ -1496,6 +1572,7 @@ struct _virNetworkDriver {
     virDrvNetworkSetAutostart networkSetAutostart;
     virDrvNetworkIsActive networkIsActive;
     virDrvNetworkIsPersistent networkIsPersistent;
+    virDrvNetworkGetDHCPLeases networkGetDHCPLeases;
 };
 
 

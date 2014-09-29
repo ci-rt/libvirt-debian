@@ -1,5 +1,7 @@
 # -*- rpm-spec -*-
 
+# This spec file assumes you are building for Fedora 13 or newer,
+# or for RHEL 5 or newer. It may need some tweaks for other distros.
 # If neither fedora nor rhel was defined, try to guess them from %{dist}
 %if !0%{?rhel} && !0%{?fedora}
 %{expand:%(echo "%{?dist}" | \
@@ -54,21 +56,38 @@
 %define with_vbox          0%{!?_without_vbox:%{server_drivers}}
 
 %define with_qemu_tcg      %{with_qemu}
-# Change if we ever provide qemu-kvm binaries on non-x86 hosts
-%if 0%{?fedora} >= 18
-    %if 0%{?fedora} >= 20
-        %define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x %{arm}
-    %else
-        %define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x
+
+%define qemu_kvm_arches %{ix86} x86_64
+
+%if 0%{?fedora}
+    %if 0%{?fedora} < 16
+        # Fedora doesn't have any QEMU on ppc64 until FC16 - only ppc
+        # I think F17 is the first release with the power64 macro
+        %ifarch ppc64
+            %define with_qemu_tcg 0
+        %endif
     %endif
-%else
-    %define qemu_kvm_arches    %{ix86} x86_64
+    %if 0%{?fedora} >= 18
+        %define qemu_kvm_arches %{ix86} x86_64 %{power64} s390x
+    %endif
+    %if 0%{?fedora} >= 20
+        %define qemu_kvm_arches %{ix86} x86_64 %{power64} s390x %{arm} aarch64
+    %endif
+%endif
+
+%if 0%{?rhel}
+    %define with_qemu_tcg 0
+    %define qemu_kvm_arches x86_64
 %endif
 
 %ifarch %{qemu_kvm_arches}
     %define with_qemu_kvm      %{with_qemu}
 %else
     %define with_qemu_kvm      0
+%endif
+
+%if ! %{with_qemu_tcg} && ! %{with_qemu_kvm}
+    %define with_qemu 0
 %endif
 
 # Then the hypervisor drivers that run outside libvirtd, in libvirt.so
@@ -122,7 +141,6 @@
 %define with_libpcap       0%{!?_without_libpcap:0}
 %define with_macvtap       0%{!?_without_macvtap:0}
 %define with_libnl         0%{!?_without_libnl:0}
-%define with_audit         0%{!?_without_audit:0}
 %define with_dtrace        0%{!?_without_dtrace:0}
 %define with_cgconfig      0%{!?_without_cgconfig:0}
 %define with_sanlock       0%{!?_without_sanlock:0}
@@ -136,6 +154,7 @@
 
 # Non-server/HV driver defaults which are always enabled
 %define with_sasl          0%{!?_without_sasl:1}
+%define with_audit         0%{!?_without_audit:1}
 
 
 # Finally set the OS / architecture specific special cases
@@ -191,32 +210,14 @@
     %define with_firewalld 1
 %endif
 
-# RHEL-5 has restricted QEMU to x86_64 only and is too old for LXC
+# RHEL-5 is too old for LXC
 %if 0%{?rhel} == 5
-    %define with_qemu_tcg 0
-    %ifnarch x86_64
-        %define with_qemu 0
-        %define with_qemu_kvm 0
-    %endif
     %define with_lxc 0
 %endif
 
-# RHEL-6 has restricted QEMU to x86_64 only, stopped including Xen
-# on all archs. Other archs all have LXC available though
+# RHEL-6 stopped including Xen on all archs.
 %if 0%{?rhel} >= 6
-    %define with_qemu_tcg 0
-    %ifnarch x86_64
-        %define with_qemu 0
-        %define with_qemu_kvm 0
-    %endif
     %define with_xen 0
-%endif
-
-# Fedora doesn't have any QEMU on ppc64 until FC16 - only ppc
-%if 0%{?fedora} && 0%{?fedora} < 16
-    %ifarch ppc64
-        %define with_qemu 0
-    %endif
 %endif
 
 # Fedora doesn't have new enough Xen for libxl until F18
@@ -224,31 +225,21 @@
     %define with_libxl 0
 %endif
 
-# PolicyKit was introduced in Fedora 8 / RHEL-6 or newer
-%if 0%{?fedora} >= 8 || 0%{?rhel} >= 6
-    %define with_polkit    0%{!?_without_polkit:1}
-%endif
-
-# libcapng is used to manage capabilities in Fedora 12 / RHEL-6 or newer
-%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-    %define with_capng     0%{!?_without_capng:1}
-%endif
-
 # fuse is used to provide virtualized /proc for LXC
 %if 0%{?fedora} >= 17 || 0%{?rhel} >= 7
     %define with_fuse      0%{!?_without_fuse:1}
 %endif
 
-# netcf is used to manage network interfaces in Fedora 12 / RHEL-6 or newer
-%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-    %define with_netcf     0%{!?_without_netcf:%{server_drivers}}
-%endif
-
-# udev is used to manage host devices in Fedora 12 / RHEL-6 or newer
-%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-    %define with_udev     0%{!?_without_udev:%{server_drivers}}
-%else
+# RHEL 5 lacks newer tools
+%if 0%{?rhel} == 5
     %define with_hal       0%{!?_without_hal:%{server_drivers}}
+%else
+    %define with_polkit    0%{!?_without_polkit:1}
+    %define with_capng     0%{!?_without_capng:1}
+    %define with_netcf     0%{!?_without_netcf:%{server_drivers}}
+    %define with_udev      0%{!?_without_udev:%{server_drivers}}
+    %define with_yajl      0%{!?_without_yajl:%{server_drivers}}
+    %define with_dtrace 1
 %endif
 
 # interface requires netcf
@@ -256,23 +247,13 @@
     %define with_interface     0
 %endif
 
-# Enable yajl library for JSON mode with QEMU
-%if 0%{?fedora} >= 13 || 0%{?rhel} >= 6
-    %define with_yajl     0%{!?_without_yajl:%{server_drivers}}
-%endif
-
 # Enable sanlock library for lock management with QEMU
-# Sanlock is available only on i686 x86_64 for RHEL
+# Sanlock is available only on arches where kvm is available for RHEL
 %if 0%{?fedora} >= 16
     %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
-%if 0%{?rhel} == 6
-    %ifarch %{ix86} x86_64
-        %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
-    %endif
-%endif
-%if 0%{?rhel} >= 7
-    %ifarch x86_64
+%if 0%{?rhel} >= 6
+    %ifarch %{qemu_kvm_arches}
         %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
     %endif
 %endif
@@ -326,16 +307,8 @@
     %define with_libnl 1
 %endif
 
-%if 0%{?fedora} >= 11 || 0%{?rhel} >= 5
-    %define with_audit    0%{!?_without_audit:1}
-%endif
-
-%if 0%{?fedora} >= 13 || 0%{?rhel} >= 6
-    %define with_dtrace 1
-%endif
-
 # Pull in cgroups config system
-%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 6
     %if %{with_qemu} || %{with_lxc}
         %define with_cgconfig 0%{!?_without_cgconfig:1}
     %endif
@@ -355,7 +328,7 @@
 
 
 # Force QEMU to run as non-root
-%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 6
     %define qemu_user  qemu
     %define qemu_group  qemu
 %else
@@ -389,7 +362,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.4
+Version: 1.2.8
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -452,6 +425,7 @@ BuildRequires: gettext-devel
 BuildRequires: libtool
 BuildRequires: /usr/bin/pod2man
 %endif
+BuildRequires: perl
 BuildRequires: python
 %if %{with_systemd}
 BuildRequires: systemd-units
@@ -478,7 +452,7 @@ BuildRequires: libattr-devel
 # For pool-build probing for existing pools
 BuildRequires: libblkid-devel >= 2.17
 %endif
-%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 6
 # for augparse, optionally used in testing
 BuildRequires: augeas
 %endif
@@ -527,7 +501,9 @@ BuildRequires: libapparmor-devel
 %if %{with_network}
 BuildRequires: dnsmasq >= 2.41
 BuildRequires: iptables
+    %if (0%{?fedora} && 0%{?fedora} < 17) || (0%{?rhel} && 0%{?rhel} < 7)
 BuildRequires: iptables-ipv6
+    %endif
 BuildRequires: radvd
 %endif
 %if %{with_nwfilter}
@@ -538,10 +514,14 @@ BuildRequires: module-init-tools
 BuildRequires: cyrus-sasl-devel
 %endif
 %if %{with_polkit}
-    %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-BuildRequires: polkit-devel >= 0.93
+    %if 0%{?fedora} >= 20 || 0%{?rhel} >= 7
+BuildRequires: polkit-devel >= 0.112
     %else
+        %if 0%{?fedora} || 0%{?rhel} >= 6
+BuildRequires: polkit-devel >= 0.93
+        %else
 BuildRequires: PolicyKit-devel >= 0.6
+        %endif
     %endif
 %endif
 %if %{with_storage_fs}
@@ -620,7 +600,7 @@ BuildRequires: netcf-devel >= 0.1.4
     %endif
 %endif
 %if %{with_esx}
-    %if 0%{?fedora} >= 9 || 0%{?rhel} >= 6
+    %if 0%{?fedora} || 0%{?rhel} >= 6
 BuildRequires: libcurl-devel
     %else
 BuildRequires: curl-devel
@@ -701,10 +681,14 @@ Requires: avahi-libs
         %endif
     %endif
     %if %{with_polkit}
-        %if 0%{?fedora} >= 12 || 0%{?rhel} >=6
-Requires: polkit >= 0.93
+        %if 0%{?fedora} >= 20 || 0%{?rhel} >= 7
+Requires: polkit >= 0.112
         %else
+            %if 0%{?fedora} || 0%{?rhel} >=6
+Requires: polkit >= 0.93
+            %else
 Requires: PolicyKit >= 0.6
+            %endif
         %endif
     %endif
     %if %{with_cgconfig}
@@ -771,7 +755,9 @@ Requires: libvirt-daemon = %{version}-%{release}
 Requires: dnsmasq >= 2.41
 Requires: radvd
 Requires: iptables
+            %if (0%{?fedora} && 0%{?fedora} < 17) || (0%{?rhel} && 0%{?rhel} < 7)
 Requires: iptables-ipv6
+            %endif
 
 %description daemon-driver-network
 The network driver plugin for the libvirtd daemon, providing
@@ -786,7 +772,9 @@ Summary: Nwfilter driver plugin for the libvirtd daemon
 Group: Development/Libraries
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: iptables
+            %if (0%{?fedora} && 0%{?fedora} < 17) || (0%{?rhel} && 0%{?rhel} < 7)
 Requires: iptables-ipv6
+            %endif
 Requires: ebtables
 
 %description daemon-driver-nwfilter
@@ -856,7 +844,7 @@ Requires: nfs-utils
 # For mkfs
 Requires: util-linux
 # For glusterfs
-                %if 0%{?fedora} >= 11
+                %if 0%{?fedora}
 Requires: glusterfs-client >= 2.0.1
                 %endif
             %endif
@@ -1498,7 +1486,7 @@ rm -fr %{buildroot}
 # on RHEL 5, thus we need to expand it here.
 make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
 
-for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap dommigrate
+for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap dommigrate domtop
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -1570,7 +1558,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/systemtap/tapset/libvirt_qemu_probes.stp \
     %endif
 %endif
 
-%if 0%{?fedora} < 14 && 0%{?rhel} < 6
+%if 0%{?rhel} == 5
 rm -f $RPM_BUILD_ROOT%{_prefix}/lib/sysctl.d/libvirtd.conf
 %endif
 
@@ -1598,7 +1586,7 @@ fi
     %if ! %{with_driver_modules}
         %if %{with_qemu}
 %pre daemon
-            %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+            %if 0%{?fedora} || 0%{?rhel} >= 6
 # We want soft static allocation of well-known ids, as disk images
 # are commonly shared across NFS mounts by id rather than name; see
 # https://fedoraproject.org/wiki/Packaging:UsersAndGroups
@@ -1662,11 +1650,13 @@ done
 
     %if %{with_systemd}
         %if %{with_systemd_macros}
-            %systemd_post virtlockd.socket libvirtd.service
+            %systemd_post virtlockd.socket libvirtd.service libvirtd.socket
         %else
 if [ $1 -eq 1 ] ; then
     # Initial installation
-    /bin/systemctl enable virtlockd.socket libvirtd.service >/dev/null 2>&1 || :
+    /bin/systemctl enable \
+        virtlockd.socket \
+        libvirtd.service >/dev/null 2>&1 || :
 fi
         %endif
     %else
@@ -1687,12 +1677,24 @@ fi
 %preun daemon
     %if %{with_systemd}
         %if %{with_systemd_macros}
-            %systemd_preun libvirtd.service virtlockd.socket virtlockd.service
+            %systemd_preun \
+                libvirtd.socket \
+                libvirtd.service \
+                virtlockd.socket \
+                virtlockd.service
         %else
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
-    /bin/systemctl --no-reload disable libvirtd.service virtlockd.socket virtlockd.service > /dev/null 2>&1 || :
-    /bin/systemctl stop libvirtd.service virtlockd.socket virtlockd.service > /dev/null 2>&1 || :
+    /bin/systemctl --no-reload disable \
+        libvirtd.socket \
+        libvirtd.service \
+        virtlockd.socket \
+        virtlockd.service > /dev/null 2>&1 || :
+    /bin/systemctl stop \
+        libvirtd.socket \
+        libvirtd.service \
+        virtlockd.socket \
+        virtlockd.service > /dev/null 2>&1 || :
 fi
         %endif
     %else
@@ -1753,7 +1755,7 @@ fi
     %if %{with_driver_modules}
         %if %{with_qemu}
 %pre daemon-driver-qemu
-            %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+            %if 0%{?fedora} || 0%{?rhel} >= 6
 # We want soft static allocation of well-known ids, as disk images
 # are commonly shared across NFS mounts by id rather than name; see
 # https://fedoraproject.org/wiki/Packaging:UsersAndGroups
@@ -1849,6 +1851,7 @@ exit 0
 
     %if %{with_systemd}
 %{_unitdir}/libvirtd.service
+%{_unitdir}/libvirtd.socket
 %{_unitdir}/virtlockd.service
 %{_unitdir}/virtlockd.socket
     %else
@@ -1860,7 +1863,7 @@ exit 0
 %config(noreplace) %{_sysconfdir}/sysconfig/virtlockd
 %config(noreplace) %{_sysconfdir}/libvirt/libvirtd.conf
 %config(noreplace) %{_sysconfdir}/libvirt/virtlockd.conf
-    %if 0%{?fedora} >= 14 || 0%{?rhel} >= 6
+    %if 0%{?fedora} || 0%{?rhel} >= 6
 %config(noreplace) %{_prefix}/lib/sysctl.d/libvirtd.conf
     %endif
 
@@ -1883,10 +1886,12 @@ exit 0
 %{_datadir}/augeas/lenses/virtlockd.aug
 %{_datadir}/augeas/lenses/tests/test_virtlockd.aug
 %{_datadir}/augeas/lenses/libvirt_lockd.aug
+    %if %{with_qemu}
 %{_datadir}/augeas/lenses/tests/test_libvirt_lockd.aug
+    %endif
 
     %if %{with_polkit}
-        %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+        %if 0%{?fedora} || 0%{?rhel} >= 6
 %{_datadir}/polkit-1/actions/org.libvirt.unix.policy
 %{_datadir}/polkit-1/actions/org.libvirt.api.policy
         %else
@@ -1920,6 +1925,7 @@ exit 0
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+%attr(0755, root, root) %{_libexecdir}/libvirt_leaseshelper
         %endif
         %if %{with_nwfilter}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
@@ -1995,6 +2001,7 @@ exit 0
 %ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+%attr(0755, root, root) %{_libexecdir}/libvirt_leaseshelper
 %{_libdir}/%{name}/connection-driver/libvirt_driver_network.so
         %endif
 
@@ -2087,6 +2094,8 @@ exit 0
 %files daemon-driver-vbox
 %defattr(-, root, root)
 %{_libdir}/%{name}/connection-driver/libvirt_driver_vbox.so
+%{_libdir}/%{name}/connection-driver/libvirt_driver_vbox_network.so
+%{_libdir}/%{name}/connection-driver/libvirt_driver_vbox_storage.so
         %endif
     %endif # %{with_driver_modules}
 
@@ -2149,7 +2158,9 @@ exit 0
 %{_bindir}/virt-xml-validate
 %{_bindir}/virt-pki-validate
 %{_bindir}/virt-host-validate
-%{_libdir}/lib*.so.*
+%{_libdir}/libvirt.so.*
+%{_libdir}/libvirt-qemu.so.*
+%{_libdir}/libvirt-lxc.so.*
 
 %if %{with_dtrace}
 %{_datadir}/systemtap/tapset/libvirt_probes*.stp
@@ -2163,6 +2174,7 @@ exit 0
 %{_datadir}/libvirt/schemas/basictypes.rng
 %{_datadir}/libvirt/schemas/capability.rng
 %{_datadir}/libvirt/schemas/domain.rng
+%{_datadir}/libvirt/schemas/domaincaps.rng
 %{_datadir}/libvirt/schemas/domaincommon.rng
 %{_datadir}/libvirt/schemas/domainsnapshot.rng
 %{_datadir}/libvirt/schemas/interface.rng
@@ -2206,10 +2218,17 @@ exit 0
 %files devel
 %defattr(-, root, root)
 
-%{_libdir}/lib*.so
+%{_libdir}/libvirt.so
+%{_libdir}/libvirt-qemu.so
+%{_libdir}/libvirt-lxc.so
 %dir %{_includedir}/libvirt
-%{_includedir}/libvirt/*.h
+%{_includedir}/libvirt/virterror.h
+%{_includedir}/libvirt/libvirt.h
+%{_includedir}/libvirt/libvirt-qemu.h
+%{_includedir}/libvirt/libvirt-lxc.h
 %{_libdir}/pkgconfig/libvirt.pc
+%{_libdir}/pkgconfig/libvirt-qemu.pc
+%{_libdir}/pkgconfig/libvirt-lxc.pc
 
 %dir %{_datadir}/libvirt/api/
 %{_datadir}/libvirt/api/libvirt-api.xml
@@ -2228,6 +2247,28 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Tue Sep  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.8-1
+- blockcopy: virDomainBlockCopy with XML destination, typed params
+- Introduce API for retrieving bulk domain stats
+- Introduce virDomainOpenGraphicsFD API
+- storage: ZFS support
+- many improvements and bug fixes
+
+* Sun Aug  3 2014 Daniel Veillard <veillard@redhat.com> - 1.2.7-1
+- Introduce virConnectGetDomainCapabilities
+- many improvements and bug fixes
+
+* Wed Jul  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.6-1
+- libxl: add migration support and fixes
+- various improvements and fixes for NUMA
+- many improvements and bug fixes
+
+* Mon Jun  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.5-1
+- LSN-2014-0003: Don't expand entities when parsing XML (security)
+- Introduce virDomain{Get,Set}Time APIs
+- Introduce virDomainFSFreeze() and virDomainFSThaw() public API
+- various improvements and bug fixes
+
 * Sun May  4 2014 Daniel Veillard <veillard@redhat.com> - 1.2.4-1
 - various improvements and bug fixes
 - lot of internal code refactoring

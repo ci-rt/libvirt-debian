@@ -11,5 +11,7 @@ Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
-Include-param.h-on-kFreeBSD.patch
-security/LSN-2014-0003-Don-t-expand-entities-when-parsing-XML.patch
+debian/Use-sensible-editor-as-fallback.patch
+debian/Debianize-virtlockd.patch
+security/CVE-2014-3633-qemu-blkiotune-Use-correct-definition-.patch
+qemu-remove-capabilities.monitor.sock-when-done.patch

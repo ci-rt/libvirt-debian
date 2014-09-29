@@ -218,6 +218,8 @@ char *virBitmapString(virBitmapPtr bitmap)
  *
  * See virBitmapParse for the format of @str.
  *
+ * If bitmap is NULL or it has no bits set, an empty string is returned.
+ *
  * Returns the string on success or NULL otherwise. Caller should call
  * VIR_FREE to free the string.
  */
@@ -227,11 +229,7 @@ char *virBitmapFormat(virBitmapPtr bitmap)
     bool first = true;
     int start, cur, prev;
 
-    if (!bitmap)
-        return NULL;
-
-    cur = virBitmapNextSetBit(bitmap, -1);
-    if (cur < 0) {
+    if (!bitmap || (cur = virBitmapNextSetBit(bitmap, -1)) < 0) {
         char *ret;
         ignore_value(VIR_STRDUP(ret, ""));
         return ret;
@@ -263,6 +261,7 @@ char *virBitmapFormat(virBitmapPtr bitmap)
 
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
+        virReportOOMError();
         return NULL;
     }
 
@@ -378,6 +377,9 @@ virBitmapParse(const char *str,
             goto error;
         }
     }
+
+    if (virBitmapIsAllClear(*bitmap))
+        goto error;
 
     return virBitmapCountBits(*bitmap);
 
@@ -707,4 +709,49 @@ virBitmapCountBits(virBitmapPtr bitmap)
         ret += count_one_bits_l(bitmap->map[i]);
 
     return ret;
+}
+
+/**
+ * virBitmapDataToString:
+ * @data: the data
+ * @len: length of @data in bytes
+ *
+ * Convert a chunk of data containing bits information to a human
+ * readable string, e.g.: 0-1,4
+ *
+ * Returns: a string representation of the data, or NULL on error
+ */
+char *
+virBitmapDataToString(void *data,
+                      int len)
+{
+    virBitmapPtr map = NULL;
+    char *ret = NULL;
+
+    if (!(map = virBitmapNewData(data, len)))
+        return NULL;
+
+    ret = virBitmapFormat(map);
+    virBitmapFree(map);
+    return ret;
+}
+
+bool
+virBitmapOverlaps(virBitmapPtr b1,
+                  virBitmapPtr b2)
+{
+    size_t i;
+
+    if (b1->max_bit > b2->max_bit) {
+        virBitmapPtr tmp = b1;
+        b1 = b2;
+        b2 = tmp;
+    }
+
+    for (i = 0; i < b1->map_len; i++) {
+        if (b1->map[i] & b2->map[i])
+            return true;
+    }
+
+    return false;
 }

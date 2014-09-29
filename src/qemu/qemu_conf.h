@@ -45,6 +45,7 @@
 # include "qemu_capabilities.h"
 # include "virclosecallbacks.h"
 # include "virhostdev.h"
+# include "virfile.h"
 
 # ifdef CPU_SETSIZE /* Linux */
 #  define QEMUD_CPUMASK_LEN CPU_SETSIZE
@@ -126,8 +127,9 @@ struct _virQEMUDriverConfig {
     int webSocketPortMin;
     int webSocketPortMax;
 
-    char *hugetlbfsMount;
-    char *hugepagePath;
+    virHugeTLBFSPtr hugetlbfs;
+    size_t nhugetlbfs;
+
     char *bridgeHelperName;
 
     bool macFilter;
@@ -163,10 +165,13 @@ struct _virQEMUDriverConfig {
 
     int seccompSandbox;
 
+    char *migrateHost;
     /* The default for -incoming */
     char *migrationAddress;
     int migrationPortMin;
     int migrationPortMax;
+
+    bool logTimestamp;
 };
 
 /* Main driver state */
@@ -281,7 +286,7 @@ bool qemuSharedDeviceEntryDomainExists(qemuSharedDeviceEntryPtr entry,
                                        int *index)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-char * qemuGetSharedDeviceKey(const char *disk_path)
+char *qemuGetSharedDeviceKey(const char *disk_path)
     ATTRIBUTE_NONNULL(1);
 
 void qemuSharedDeviceEntryFree(void *payload, const void *name)
@@ -297,15 +302,20 @@ int qemuRemoveSharedDevice(virQEMUDriverPtr driver,
                            const char *name)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
+int qemuRemoveSharedDisk(virQEMUDriverPtr driver,
+                         virDomainDiskDefPtr disk,
+                         const char *name)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
 int qemuSetUnprivSGIO(virDomainDeviceDefPtr dev);
 
 int qemuDriverAllocateID(virQEMUDriverPtr driver);
 virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);
 
-int qemuTranslateDiskSourcePool(virConnectPtr conn,
-                                virDomainDiskDefPtr def);
-
 int qemuTranslateSnapshotDiskSourcePool(virConnectPtr conn,
                                         virDomainSnapshotDiskDefPtr def);
 
+char * qemuGetHugepagePath(virHugeTLBFSPtr hugepage);
+char * qemuGetDefaultHugepath(virHugeTLBFSPtr hugetlbfs,
+                              size_t nhugetlbfs);
 #endif /* __QEMUD_CONF_H */

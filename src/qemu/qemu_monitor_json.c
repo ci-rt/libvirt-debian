@@ -451,7 +451,30 @@ qemuMonitorJSONMakeCommandRaw(bool wrap, const char *cmdname, ...)
             goto error;
         }
 
-        /* Keys look like   s:name  the first letter is a type code */
+        /* Keys look like   s:name  the first letter is a type code:
+         * Explanation of type codes:
+         * s: string value, must be non-null
+         * S: string value, omitted if null
+         *
+         * i: signed integer value
+         * z: signed integer value, omitted if zero
+         *
+         * I: signed long integer value
+         * Z: signed long integer value, omitted if zero
+         *
+         * u: unsigned integer value
+         * p: unsigned integer value, omitted if zero
+         *
+         * U: unsigned long integer value (see below for quirks)
+         * P: unsigned long integer value, omitted if zero
+         *
+         * b: boolean value
+         * B: boolean value, omitted if false
+         *
+         * d: double precision floating point number
+         * n: json null value
+         * a: json array
+         */
         type = key[0];
         key += 2;
 
@@ -461,9 +484,13 @@ qemuMonitorJSONMakeCommandRaw(bool wrap, const char *cmdname, ...)
 
         /* This doesn't support maps, but no command uses those.  */
         switch (type) {
+        case 'S':
         case 's': {
             char *val = va_arg(args, char *);
             if (!val) {
+                if (type == 'S')
+                    continue;
+
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("argument key '%s' must not have null value"),
                                key);
@@ -471,18 +498,38 @@ qemuMonitorJSONMakeCommandRaw(bool wrap, const char *cmdname, ...)
             }
             ret = virJSONValueObjectAppendString(jargs, key, val);
         }   break;
+
+        case 'z':
         case 'i': {
             int val = va_arg(args, int);
+
+            if (!val && type == 'z')
+                continue;
+
             ret = virJSONValueObjectAppendNumberInt(jargs, key, val);
         }   break;
+
+        case 'p':
         case 'u': {
             unsigned int val = va_arg(args, unsigned int);
+
+            if (!val && type == 'p')
+                continue;
+
             ret = virJSONValueObjectAppendNumberUint(jargs, key, val);
         }   break;
+
+        case 'Z':
         case 'I': {
             long long val = va_arg(args, long long);
+
+            if (!val && type == 'Z')
+                continue;
+
             ret = virJSONValueObjectAppendNumberLong(jargs, key, val);
         }   break;
+
+        case 'P':
         case 'U': {
             /* qemu silently truncates numbers larger than LLONG_MAX,
              * so passing the full range of unsigned 64 bit integers
@@ -490,23 +537,37 @@ qemuMonitorJSONMakeCommandRaw(bool wrap, const char *cmdname, ...)
              * instead.
              */
             long long val = va_arg(args, long long);
+
+            if (!val && type == 'P')
+                continue;
+
             ret = virJSONValueObjectAppendNumberLong(jargs, key, val);
         }   break;
+
         case 'd': {
             double val = va_arg(args, double);
             ret = virJSONValueObjectAppendNumberDouble(jargs, key, val);
         }   break;
+
+        case 'B':
         case 'b': {
             int val = va_arg(args, int);
+
+            if (!val && type == 'B')
+                continue;
+
             ret = virJSONValueObjectAppendBoolean(jargs, key, val);
         }   break;
+
         case 'n': {
             ret = virJSONValueObjectAppendNull(jargs, key);
         }   break;
+
         case 'a': {
             virJSONValuePtr val = va_arg(args, virJSONValuePtr);
             ret = virJSONValueObjectAppend(jargs, key, val);
         }   break;
+
         default:
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unsupported data type '%c' for arg '%s'"), type, key - 2);
@@ -1162,7 +1223,7 @@ int qemuMonitorJSONSystemPowerdown(qemuMonitorPtr mon)
 
 int qemuMonitorJSONSetLink(qemuMonitorPtr mon,
                            const char *name,
-                           enum virDomainNetInterfaceLinkState state)
+                           virDomainNetInterfaceLinkState state)
 {
 
     int ret;
@@ -1465,12 +1526,22 @@ int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
                                            NULL)))
         goto cleanup;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
 
-    if (ret == 0)
-        ret = qemuMonitorJSONCheckError(cmd, reply);
+    if ((data = virJSONValueObjectGet(reply, "error"))) {
+        const char *klass = virJSONValueObjectGetString(data, "class");
+        const char *desc = virJSONValueObjectGetString(data, "desc");
 
-    if (ret < 0)
+        if (STREQ_NULLABLE(klass, "GenericError") &&
+            STREQ_NULLABLE(desc, "guest hasn't updated any stats yet")) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("the guest hasn't updated any stats yet"));
+            goto cleanup;
+        }
+    }
+
+    if ((ret = qemuMonitorJSONCheckError(cmd, reply)) < 0)
         goto cleanup;
 
     if (!(data = virJSONValueObjectGet(reply, "return"))) {
@@ -2193,19 +2264,14 @@ int qemuMonitorJSONChangeMedia(qemuMonitorPtr mon,
 {
     int ret;
     virJSONValuePtr cmd;
-    if (format)
-        cmd = qemuMonitorJSONMakeCommand("change",
-                                         "s:device", dev_name,
-                                         "s:target", newmedia,
-                                         "s:arg", format,
-                                         NULL);
-    else
-        cmd = qemuMonitorJSONMakeCommand("change",
-                                         "s:device", dev_name,
-                                         "s:target", newmedia,
-                                         NULL);
-
     virJSONValuePtr reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("change",
+                                     "s:device", dev_name,
+                                     "s:target", newmedia,
+                                     "S:arg", format,
+                                     NULL);
+
     if (!cmd)
         return -1;
 
@@ -2771,8 +2837,7 @@ int qemuMonitorJSONGraphicsRelocate(qemuMonitorPtr mon,
                                                      "s:hostname", hostname,
                                                      "i:port", port,
                                                      "i:tls-port", tlsPort,
-                                                     (tlsSubject ? "s:cert-subject" : NULL),
-                                                     (tlsSubject ? tlsSubject : NULL),
+                                                     "S:cert-subject", tlsSubject,
                                                      NULL);
     virJSONValuePtr reply = NULL;
     if (!cmd)
@@ -2909,8 +2974,8 @@ qemuMonitorJSONAddFd(qemuMonitorPtr mon, int fdset, int fd, const char *name)
     int ret;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("add-fd",
                                                      "i:fdset-id", fdset,
-                                                     name ? "s:opaque" : NULL,
-                                                     name, NULL);
+                                                     "S:opaque", name,
+                                                     NULL);
     virJSONValuePtr reply = NULL;
     if (!cmd)
         return -1;
@@ -3304,8 +3369,7 @@ qemuMonitorJSONDiskSnapshot(qemuMonitorPtr mon, virJSONValuePtr actions,
                                         "s:device", device,
                                         "s:snapshot-file", file,
                                         "s:format", format,
-                                        reuse ? "s:mode" : NULL,
-                                        reuse ? "existing" : NULL,
+                                        "S:mode", reuse ? "existing" : NULL,
                                         NULL);
     if (!cmd)
         return -1;
@@ -3346,9 +3410,8 @@ qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
                                      "s:target", file,
                                      "U:speed", speed,
                                      "s:sync", shallow ? "top" : "full",
-                                     "s:mode",
-                                     reuse ? "existing" : "absolute-paths",
-                                     format ? "s:format" : NULL, format,
+                                     "s:mode", reuse ? "existing" : "absolute-paths",
+                                     "S:format", format,
                                      NULL);
     if (!cmd)
         return -1;
@@ -3391,10 +3454,18 @@ qemuMonitorJSONTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
     return ret;
 }
 
-/* speed is in bytes/sec */
+/* speed is in bytes/sec. Returns 0 on success, -1 with error message
+ * emitted on failure.
+ *
+ * Additionally, can be used to probe if active commit is supported:
+ * pass in a bogus device and NULL top and base.  The probe return is
+ * -2 if active commit is detected, -3 if inconclusive; with no error
+ * message issued.
+ */
 int
 qemuMonitorJSONBlockCommit(qemuMonitorPtr mon, const char *device,
                            const char *top, const char *base,
+                           const char *backingName,
                            unsigned long long speed)
 {
     int ret = -1;
@@ -3404,14 +3475,31 @@ qemuMonitorJSONBlockCommit(qemuMonitorPtr mon, const char *device,
     cmd = qemuMonitorJSONMakeCommand("block-commit",
                                      "s:device", device,
                                      "U:speed", speed,
-                                     "s:top", top,
-                                     "s:base", base,
+                                     "S:top", top,
+                                     "S:base", base,
+                                     "S:backing-file", backingName,
                                      NULL);
     if (!cmd)
         return -1;
 
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
+    if (!top && !base) {
+        /* Normally we always specify top and base; but omitting them
+         * allows for probing whether qemu is new enough to support
+         * live commit.  */
+        if (qemuMonitorJSONHasError(reply, "DeviceNotFound")) {
+            VIR_DEBUG("block-commit supports active commit");
+            ret = -2;
+        } else {
+            /* This is a false negative for qemu 2.0; but probably not
+             * worth the additional complexity to worry about it */
+            VIR_DEBUG("block-commit requires 'top' parameter, "
+                      "assuming it lacks active commit");
+            ret = -3;
+        }
+        goto cleanup;
+    }
     ret = qemuMonitorJSONCheckError(cmd, reply);
 
  cleanup:
@@ -3547,8 +3635,8 @@ int qemuMonitorJSONSendKey(qemuMonitorPtr mon,
 
     cmd = qemuMonitorJSONMakeCommand("send-key",
                                      "a:keys", keys,
-                                      holdtime ? "U:hold-time" : NULL, holdtime,
-                                      NULL);
+                                     "p:hold-time", holdtime,
+                                     NULL);
     if (!cmd)
         goto cleanup;
 
@@ -3701,6 +3789,7 @@ int
 qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
                         const char *device,
                         const char *base,
+                        const char *backingName,
                         unsigned long long speed,
                         virDomainBlockJobInfoPtr info,
                         qemuMonitorBlockJobCmd mode,
@@ -3716,6 +3805,19 @@ qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
                        _("only modern block pull supports base: %s"), base);
         return -1;
     }
+
+    if (backingName && mode != BLOCK_JOB_PULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("backing name is supported only for block pull"));
+        return -1;
+    }
+
+    if (backingName && !base) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("backing name requires a base image"));
+        return -1;
+    }
+
     if (speed && mode == BLOCK_JOB_PULL && !modern) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("only modern block pull supports speed: %llu"),
@@ -3726,31 +3828,32 @@ qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
     switch (mode) {
     case BLOCK_JOB_ABORT:
         cmd_name = modern ? "block-job-cancel" : "block_job_cancel";
-        cmd = qemuMonitorJSONMakeCommand(cmd_name, "s:device", device, NULL);
+        cmd = qemuMonitorJSONMakeCommand(cmd_name,
+                                         "s:device", device,
+                                         NULL);
         break;
+
     case BLOCK_JOB_INFO:
         cmd_name = "query-block-jobs";
         cmd = qemuMonitorJSONMakeCommand(cmd_name, NULL);
         break;
+
     case BLOCK_JOB_SPEED:
         cmd_name = modern ? "block-job-set-speed" : "block_job_set_speed";
-        cmd = qemuMonitorJSONMakeCommand(cmd_name, "s:device", device,
-                                         modern ? "U:speed" : "U:value",
-                                         speed, NULL);
+        cmd = qemuMonitorJSONMakeCommand(cmd_name,
+                                         "s:device", device,
+                                         modern ? "U:speed" : "U:value", speed,
+                                         NULL);
         break;
+
     case BLOCK_JOB_PULL:
         cmd_name = modern ? "block-stream" : "block_stream";
-        if (speed)
-            cmd = qemuMonitorJSONMakeCommand(cmd_name,
-                                             "s:device", device,
-                                             "U:speed", speed,
-                                             base ? "s:base" : NULL, base,
-                                             NULL);
-        else
-            cmd = qemuMonitorJSONMakeCommand(cmd_name,
-                                             "s:device", device,
-                                             base ? "s:base" : NULL, base,
-                                             NULL);
+        cmd = qemuMonitorJSONMakeCommand(cmd_name,
+                                         "s:device", device,
+                                         "P:speed", speed,
+                                         "S:base", base,
+                                         "S:backing-file", backingName,
+                                         NULL);
         break;
     }
 
@@ -3765,7 +3868,7 @@ qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
             virReportError(VIR_ERR_OPERATION_INVALID,
                            _("No active operation on device: %s"),
                            device);
-        } else if (qemuMonitorJSONHasError(reply, "DeviceInUse")){
+        } else if (qemuMonitorJSONHasError(reply, "DeviceInUse")) {
             virReportError(VIR_ERR_OPERATION_FAILED,
                            _("Device %s in use"), device);
         } else if (qemuMonitorJSONHasError(reply, "NotSupported")) {
@@ -4401,7 +4504,8 @@ int qemuMonitorJSONGetEvents(qemuMonitorPtr mon,
 int
 qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
                                               const char *option,
-                                              char ***params)
+                                              char ***params,
+                                              bool *found)
 {
     int ret;
     virJSONValuePtr cmd = NULL;
@@ -4413,6 +4517,8 @@ qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
     size_t i;
 
     *params = NULL;
+    if (found)
+        *found = false;
 
     /* query-command-line-options has fixed output for a given qemu
      * binary; but since callers want to query parameters for one
@@ -4472,6 +4578,9 @@ qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
         ret = 0;
         goto cleanup;
     }
+
+    if (found)
+        *found = true;
 
     if ((n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -5157,7 +5266,6 @@ qemuMonitorJSONBuildUnixSocketAddress(const char *path)
 
     return addr;
  error:
-    virReportOOMError();
     virJSONValueFree(data);
     virJSONValueFree(addr);
     return NULL;
@@ -5352,10 +5460,10 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
     if (!(backend = virJSONValueNewObject()) ||
         !(data = virJSONValueNewObject())) {
-        goto no_memory;
+        goto error;
     }
 
-    switch ((enum virDomainChrType) chr->type) {
+    switch ((virDomainChrType) chr->type) {
     case VIR_DOMAIN_CHR_TYPE_NULL:
     case VIR_DOMAIN_CHR_TYPE_VC:
         backend_type = "null";
@@ -5368,14 +5476,14 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
     case VIR_DOMAIN_CHR_TYPE_FILE:
         backend_type = "file";
         if (virJSONValueObjectAppendString(data, "out", chr->data.file.path) < 0)
-            goto no_memory;
+            goto error;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_DEV:
         backend_type = STRPREFIX(chrID, "parallel") ? "parallel" : "serial";
         if (virJSONValueObjectAppendString(data, "device",
                                            chr->data.file.path) < 0)
-            goto no_memory;
+            goto error;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_TCP:
@@ -5384,7 +5492,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
                                                      chr->data.tcp.service);
         if (!addr ||
             virJSONValueObjectAppend(data, "addr", addr) < 0)
-            goto no_memory;
+            goto error;
         addr = NULL;
 
         telnet = chr->data.tcp.protocol == VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
@@ -5392,7 +5500,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
         if (virJSONValueObjectAppendBoolean(data, "wait", false) < 0 ||
             virJSONValueObjectAppendBoolean(data, "telnet", telnet) < 0 ||
             virJSONValueObjectAppendBoolean(data, "server", chr->data.tcp.listen) < 0)
-            goto no_memory;
+            goto error;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
@@ -5401,7 +5509,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
                                                      chr->data.udp.connectService);
         if (!addr ||
             virJSONValueObjectAppend(data, "addr", addr) < 0)
-            goto no_memory;
+            goto error;
         addr = NULL;
         break;
 
@@ -5411,12 +5519,12 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
         if (!addr ||
             virJSONValueObjectAppend(data, "addr", addr) < 0)
-            goto no_memory;
+            goto error;
         addr = NULL;
 
         if (virJSONValueObjectAppendBoolean(data, "wait", false) < 0 ||
             virJSONValueObjectAppendBoolean(data, "server", chr->data.nix.listen) < 0)
-            goto no_memory;
+            goto error;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
@@ -5433,7 +5541,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
     if (virJSONValueObjectAppendString(backend, "type", backend_type) < 0 ||
         virJSONValueObjectAppend(backend, "data", data) < 0)
-        goto no_memory;
+        goto error;
     data = NULL;
 
     if (!(ret = qemuMonitorJSONMakeCommand("chardev-add",
@@ -5444,8 +5552,6 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
     return ret;
 
- no_memory:
-    virReportOOMError();
  error:
     virJSONValueFree(addr);
     virJSONValueFree(data);
@@ -5744,4 +5850,25 @@ qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
                        virArchToString(arch));
         return -1;
     }
+}
+
+int
+qemuMonitorJSONRTCResetReinjection(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("rtc-reset-reinjection",
+                                           NULL)))
+        return ret;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
 }

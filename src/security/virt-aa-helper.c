@@ -55,6 +55,8 @@
 #include "virrandom.h"
 #include "virstring.h"
 
+#include "storage/storage_driver.h"
+
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
 static char *progname;
@@ -334,24 +336,20 @@ create_profile(const char *profile, const char *profile_name,
     char *pcontent = NULL;
     char *replace_name = NULL;
     char *replace_files = NULL;
-    char *replace_driver = NULL;
     const char *template_name = "\nprofile LIBVIRT_TEMPLATE";
     const char *template_end = "\n}";
-    const char *template_driver = "libvirt-driver";
     int tlen, plen;
     int fd;
     int rc = -1;
-    const char *driver_name = "qemu";
-
-    if (virtType == VIR_DOMAIN_VIRT_LXC)
-        driver_name = "lxc";
 
     if (virFileExists(profile)) {
         vah_error(NULL, 0, _("profile exists"));
         goto end;
     }
 
-    if (virAsprintfQuiet(&template, "%s/TEMPLATE", APPARMOR_DIR "/libvirt") < 0) {
+
+    if (virAsprintfQuiet(&template, "%s/TEMPLATE.%s", APPARMOR_DIR "/libvirt",
+                         virDomainVirtTypeToString(virtType)) < 0) {
         vah_error(NULL, 0, _("template name exceeds maximum length"));
         goto end;
     }
@@ -376,11 +374,6 @@ create_profile(const char *profile, const char *profile_name,
         goto clean_tcontent;
     }
 
-    if (strstr(tcontent, template_driver) == NULL) {
-        vah_error(NULL, 0, _("no replacement string in template"));
-        goto clean_tcontent;
-    }
-
     /* '\nprofile <profile_name>\0' */
     if (virAsprintfQuiet(&replace_name, "\nprofile %s", profile_name) == -1) {
         vah_error(NULL, 0, _("could not allocate memory for profile name"));
@@ -395,15 +388,7 @@ create_profile(const char *profile, const char *profile_name,
         goto clean_tcontent;
     }
 
-    /* 'libvirt-<driver_name>\0' */
-    if (virAsprintfQuiet(&replace_driver, "libvirt-%s", driver_name) == -1) {
-        vah_error(NULL, 0, _("could not allocate memory for profile driver"));
-        VIR_FREE(replace_driver);
-        goto clean_tcontent;
-    }
-
-    plen = tlen + strlen(replace_name) - strlen(template_name) +
-           strlen(replace_driver) - strlen(template_driver) + 1;
+    plen = tlen + strlen(replace_name) - strlen(template_name) + 1;
 
     if (virtType != VIR_DOMAIN_VIRT_LXC)
         plen += strlen(replace_files) - strlen(template_end);
@@ -419,9 +404,6 @@ create_profile(const char *profile, const char *profile_name,
     }
     pcontent[0] = '\0';
     strcpy(pcontent, tcontent);
-
-    if (replace_string(pcontent, plen, template_driver, replace_driver) < 0)
-        goto clean_all;
 
     if (replace_string(pcontent, plen, template_name, replace_name) < 0)
         goto clean_all;
@@ -453,7 +435,6 @@ create_profile(const char *profile, const char *profile_name,
  clean_replace:
     VIR_FREE(replace_name);
     VIR_FREE(replace_files);
-    VIR_FREE(replace_driver);
  clean_tcontent:
     VIR_FREE(tcontent);
  end:
@@ -725,7 +706,7 @@ get_definition(vahControl * ctl, const char *xmlStr)
     if (caps_mockup(ctl, xmlStr) != 0)
         goto exit;
 
-    if ((ctl->caps = virCapabilitiesNew(ctl->arch, 1, 1)) == NULL) {
+    if ((ctl->caps = virCapabilitiesNew(ctl->arch, true, true)) == NULL) {
         vah_error(ctl, 0, _("could not allocate memory"));
         goto exit;
     }
@@ -905,7 +886,7 @@ add_file_path(virDomainDiskDefPtr disk,
     int ret;
 
     if (depth == 0) {
-        if (disk->readonly)
+        if (disk->src->readonly)
             ret = vah_add_file(buf, path, "r");
         else
             ret = vah_add_file(buf, path, "rw");
@@ -927,7 +908,7 @@ get_files(vahControl * ctl)
     size_t i;
     char *uuid;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    bool needsVfio = false;
+    bool needsVfio = false, needsvhost = false;
 
     /* verify uuid is same as what we were given on the command line */
     virUUIDFormat(ctl->def->uuid, uuidstr);
@@ -949,9 +930,9 @@ get_files(vahControl * ctl)
         /* XXX - if we knew the qemu user:group here we could send it in
          *        so that the open could be re-tried as that user:group.
          */
-        if (!disk->src.backingStore) {
+        if (!disk->src->backingStore) {
             bool probe = ctl->allowDiskFormatProbing;
-            virStorageFileGetMetadata(&disk->src, -1, -1, probe);
+            virStorageFileGetMetadata(disk->src, -1, -1, probe);
         }
 
         /* XXX passing ignoreOpenFailure = true to get back to the behavior
@@ -1045,12 +1026,11 @@ get_files(vahControl * ctl)
     for (i = 0; i < ctl->def->nhostdevs; i++)
         if (ctl->def->hostdevs[i]) {
             virDomainHostdevDefPtr dev = ctl->def->hostdevs[i];
+            virDomainHostdevSubsysUSBPtr usbsrc = &dev->source.subsys.u.usb;
             switch (dev->source.subsys.type) {
             case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
                 virUSBDevicePtr usb =
-                    virUSBDeviceNew(dev->source.subsys.u.usb.bus,
-                                    dev->source.subsys.u.usb.device,
-                                    NULL);
+                    virUSBDeviceNew(usbsrc->bus, usbsrc->device, NULL);
 
                 if (usb == NULL)
                     continue;
@@ -1095,13 +1075,28 @@ get_files(vahControl * ctl)
                 ctl->def->fss[i]->type == VIR_DOMAIN_FS_TYPE_MOUNT &&
                 (ctl->def->fss[i]->fsdriver == VIR_DOMAIN_FS_DRIVER_TYPE_PATH ||
                  ctl->def->fss[i]->fsdriver == VIR_DOMAIN_FS_DRIVER_TYPE_DEFAULT) &&
-                ctl->def->fss[i]->src){
+                ctl->def->fss[i]->src) {
             virDomainFSDefPtr fs = ctl->def->fss[i];
 
             if (vah_add_path(&buf, fs->src, fs->readonly ? "r" : "rw", true) != 0)
                 goto cleanup;
         }
     }
+
+    if (ctl->def->virtType == VIR_DOMAIN_VIRT_KVM) {
+        for (i = 0; i < ctl->def->nnets; i++) {
+            virDomainNetDefPtr net = ctl->def->nets[i];
+            if (net && net->model) {
+                if (net->driver.virtio.name == VIR_DOMAIN_NET_BACKEND_TYPE_QEMU)
+                    continue;
+                if (STRNEQ(net->model, "virtio"))
+                    continue;
+            }
+            needsvhost = true;
+        }
+    }
+    if (needsvhost)
+        virBufferAddLit(&buf, "  /dev/vhost-net rw,\n");
 
     if (needsVfio) {
         virBufferAddLit(&buf, "  /dev/vfio/vfio rw,\n");
@@ -1325,10 +1320,13 @@ main(int argc, char **argv)
             vah_info(include_file);
             vah_info(included_files);
             rc = 0;
+        } else if (ctl->def->virtType == VIR_DOMAIN_VIRT_LXC) {
+            rc = 0;
         } else if ((rc = update_include_file(include_file,
                                              included_files,
-                                             ctl->append)) != 0)
+                                             ctl->append)) != 0) {
             goto cleanup;
+        }
 
 
         /* create the profile from TEMPLATE */

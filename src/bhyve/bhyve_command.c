@@ -33,53 +33,46 @@
 #include "virnetdev.h"
 #include "virnetdevbridge.h"
 #include "virnetdevtap.h"
+#include "storage/storage_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_BHYVE
 
 VIR_LOG_INIT("bhyve.bhyve_command");
 
 static int
-bhyveBuildNetArgStr(const virDomainDef *def, virCommandPtr cmd)
+bhyveBuildNetArgStr(const virDomainDef *def,
+                    virDomainNetDefPtr net,
+                    virCommandPtr cmd,
+                    bool dryRun)
 {
-    virDomainNetDefPtr net = NULL;
-    char *brname = NULL;
-    char *realifname = NULL;
-    int *tapfd = NULL;
     char macaddr[VIR_MAC_STRING_BUFLEN];
+    char *realifname = NULL;
+    char *brname = NULL;
+    int actualType = virDomainNetGetActualType(net);
 
-    if (def->nnets != 1) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("domain should have one and only one net defined"));
+    if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
+        if (VIR_STRDUP(brname, virDomainNetGetActualBridgeName(net)) < 0)
+            return -1;
+    } else {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Network type %d is not supported"),
+                       virDomainNetGetActualType(net));
         return -1;
     }
 
-    net = def->nets[0];
-
-    if (net) {
-        int actualType = virDomainNetGetActualType(net);
-
-        if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-            if (VIR_STRDUP(brname, virDomainNetGetActualBridgeName(net)) < 0)
-                return -1;
-        } else {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Network type %d is not supported"),
-                           virDomainNetGetActualType(net));
+    if (!net->ifname ||
+        STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
+        strchr(net->ifname, '%')) {
+        VIR_FREE(net->ifname);
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0) {
+            VIR_FREE(brname);
             return -1;
         }
+    }
 
-        if (!net->ifname ||
-            STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
-            strchr(net->ifname, '%')) {
-            VIR_FREE(net->ifname);
-            if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0) {
-                VIR_FREE(brname);
-                return -1;
-            }
-        }
-
+    if (!dryRun) {
         if (virNetDevTapCreateInBridgePort(brname, &net->ifname, &net->mac,
-                                           def->uuid, tapfd, 1,
+                                           def->uuid, NULL, 0,
                                            virDomainNetGetActualVirtPortProfile(net),
                                            virDomainNetGetActualVlan(net),
                                            VIR_NETDEV_TAP_CREATE_IFUP | VIR_NETDEV_TAP_CREATE_PERSIST) < 0) {
@@ -87,30 +80,37 @@ bhyveBuildNetArgStr(const virDomainDef *def, virCommandPtr cmd)
             VIR_FREE(brname);
             return -1;
         }
+
+        realifname = virNetDevTapGetRealDeviceName(net->ifname);
+
+        if (realifname == NULL) {
+            VIR_FREE(net->ifname);
+            VIR_FREE(brname);
+            return -1;
+        }
+
+        VIR_DEBUG("%s -> %s", net->ifname, realifname);
+        /* hack on top of other hack: we need to set
+         * interface to 'UP' again after re-opening to find its
+         * name
+         */
+        if (virNetDevSetOnline(net->ifname, true) != 0) {
+            VIR_FREE(realifname);
+            VIR_FREE(net->ifname);
+            VIR_FREE(brname);
+            return -1;
+        }
+    } else {
+        if (VIR_STRDUP(realifname, "tap0") < 0)
+            return -1;
     }
 
-    realifname = virNetDevTapGetRealDeviceName(net->ifname);
-
-    if (realifname == NULL) {
-        VIR_FREE(net->ifname);
-        VIR_FREE(brname);
-        return -1;
-    }
-
-    VIR_DEBUG("%s -> %s", net->ifname, realifname);
-    /* hack on top of other hack: we need to set
-     * interface to 'UP' again after re-opening to find its
-     * name
-     */
-    if (virNetDevSetOnline(net->ifname, true) != 0) {
-        VIR_FREE(net->ifname);
-        VIR_FREE(brname);
-        return -1;
-    }
 
     virCommandAddArg(cmd, "-s");
-    virCommandAddArgFormat(cmd, "1:0,virtio-net,%s,mac=%s",
+    virCommandAddArgFormat(cmd, "%d:0,virtio-net,%s,mac=%s",
+                           net->info.addr.pci.slot,
                            realifname, virMacAddrFormat(&net->mac, macaddr));
+    VIR_FREE(realifname);
 
     return 0;
 }
@@ -139,7 +139,7 @@ bhyveBuildConsoleArgStr(const virDomainDef *def, virCommandPtr cmd)
         return -1;
     }
 
-    virCommandAddArgList(cmd, "-s", "31,lpc", NULL);
+    virCommandAddArgList(cmd, "-s", "1,lpc", NULL);
     virCommandAddArg(cmd, "-l");
     virCommandAddArgFormat(cmd, "com%d,%s",
                            chr->target.port + 1, chr->source.data.file.path);
@@ -148,25 +148,36 @@ bhyveBuildConsoleArgStr(const virDomainDef *def, virCommandPtr cmd)
 }
 
 static int
-bhyveBuildDiskArgStr(const virDomainDef *def, virCommandPtr cmd)
+bhyveBuildDiskArgStr(const virDomainDef *def ATTRIBUTE_UNUSED,
+                     virDomainDiskDefPtr disk,
+                     virCommandPtr cmd)
 {
-    virDomainDiskDefPtr disk;
     const char *bus_type;
-
-    if (def->ndisks != 1) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("domain should have one and only one disk defined"));
-        return -1;
-    }
-
-    disk = def->disks[0];
+    const char *disk_source;
 
     switch (disk->bus) {
     case VIR_DOMAIN_DISK_BUS_SATA:
-        bus_type = "ahci-hd";
+        switch (disk->device) {
+        case VIR_DOMAIN_DISK_DEVICE_DISK:
+            bus_type = "ahci-hd";
+            break;
+        case VIR_DOMAIN_DISK_DEVICE_CDROM:
+            bus_type = "ahci-cd";
+            break;
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("unsupported disk device"));
+            return -1;
+        }
         break;
     case VIR_DOMAIN_DISK_BUS_VIRTIO:
-        bus_type = "virtio-blk";
+        if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
+            bus_type = "virtio-blk";
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("unsupported disk device"));
+            return -1;
+        }
         break;
     default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -174,28 +185,34 @@ bhyveBuildDiskArgStr(const virDomainDef *def, virCommandPtr cmd)
         return -1;
     }
 
-    if (disk->device != VIR_DOMAIN_DISK_DEVICE_DISK) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("unsupported disk device"));
-        return -1;
-    }
-
-    if (virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_FILE) {
+    if ((virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_FILE) &&
+        (virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_VOLUME)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk type"));
         return -1;
     }
 
+    disk_source = virDomainDiskGetSource(disk);
+
+    if ((disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM) &&
+        (disk_source == NULL)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cdrom device without source path "
+                             "not supported"));
+            return -1;
+    }
+
     virCommandAddArg(cmd, "-s");
-    virCommandAddArgFormat(cmd, "2:0,%s,%s", bus_type,
-                           virDomainDiskGetSource(disk));
+    virCommandAddArgFormat(cmd, "%d:0,%s,%s",
+                           disk->info.addr.pci.slot, bus_type,
+                           disk_source);
 
     return 0;
 }
 
 virCommandPtr
-virBhyveProcessBuildBhyveCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
-                             virDomainObjPtr vm)
+virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
+                             virDomainDefPtr def, bool dryRun)
 {
     /*
      * /usr/sbin/bhyve -c 2 -m 256 -AI -H -P \
@@ -205,21 +222,23 @@ virBhyveProcessBuildBhyveCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
      *            -S 31,uart,stdio \
      *            vm0
      */
+    size_t i;
+
     virCommandPtr cmd = virCommandNew(BHYVE);
 
     /* CPUs */
     virCommandAddArg(cmd, "-c");
-    virCommandAddArgFormat(cmd, "%d", vm->def->vcpus);
+    virCommandAddArgFormat(cmd, "%d", def->vcpus);
 
     /* Memory */
     virCommandAddArg(cmd, "-m");
     virCommandAddArgFormat(cmd, "%llu",
-                           VIR_DIV_UP(vm->def->mem.max_balloon, 1024));
+                           VIR_DIV_UP(def->mem.max_balloon, 1024));
 
     /* Options */
-    if (vm->def->features[VIR_DOMAIN_FEATURE_ACPI] == VIR_DOMAIN_FEATURE_STATE_ON)
+    if (def->features[VIR_DOMAIN_FEATURE_ACPI] == VIR_TRISTATE_SWITCH_ON)
         virCommandAddArg(cmd, "-A"); /* Create an ACPI table */
-    if (vm->def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_DOMAIN_FEATURE_STATE_ON)
+    if (def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_TRISTATE_SWITCH_ON)
         virCommandAddArg(cmd, "-I"); /* Present ioapic to the guest */
 
     /* Clarification about -H and -P flags from Peter Grehan:
@@ -238,13 +257,23 @@ virBhyveProcessBuildBhyveCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
 
     virCommandAddArgList(cmd, "-s", "0:0,hostbridge", NULL);
     /* Devices */
-    if (bhyveBuildNetArgStr(vm->def, cmd) < 0)
+    for (i = 0; i < def->nnets; i++) {
+        virDomainNetDefPtr net = def->nets[i];
+        if (bhyveBuildNetArgStr(def, net, cmd, dryRun) < 0)
+            goto error;
+    }
+    for (i = 0; i < def->ndisks; i++) {
+        virDomainDiskDefPtr disk = def->disks[i];
+
+        if (virStorageTranslateDiskSourcePool(conn, disk) < 0)
+            goto error;
+
+        if (bhyveBuildDiskArgStr(def, disk, cmd) < 0)
+            goto error;
+    }
+    if (bhyveBuildConsoleArgStr(def, cmd) < 0)
         goto error;
-    if (bhyveBuildDiskArgStr(vm->def, cmd) < 0)
-        goto error;
-    if (bhyveBuildConsoleArgStr(vm->def, cmd) < 0)
-        goto error;
-    virCommandAddArg(cmd, vm->def->name);
+    virCommandAddArg(cmd, def->name);
 
     return cmd;
 
@@ -255,38 +284,43 @@ virBhyveProcessBuildBhyveCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
 
 virCommandPtr
 virBhyveProcessBuildDestroyCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
-                               virDomainObjPtr vm)
+                               virDomainDefPtr def)
 {
     virCommandPtr cmd = virCommandNew(BHYVECTL);
 
     virCommandAddArg(cmd, "--destroy");
-    virCommandAddArgPair(cmd, "--vm", vm->def->name);
+    virCommandAddArgPair(cmd, "--vm", def->name);
 
     return cmd;
 }
 
 virCommandPtr
-virBhyveProcessBuildLoadCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
-                            virDomainObjPtr vm)
+virBhyveProcessBuildLoadCmd(virConnectPtr conn,
+                            virDomainDefPtr def)
 {
     virCommandPtr cmd;
     virDomainDiskDefPtr disk;
 
-    if (vm->def->ndisks != 1) {
+    if (def->ndisks < 1) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("domain should have one and only one disk defined"));
+                       _("domain should have at least one disk defined"));
         return NULL;
     }
 
-    disk = vm->def->disks[0];
+    disk = def->disks[0];
 
-    if (disk->device != VIR_DOMAIN_DISK_DEVICE_DISK) {
+    if (virStorageTranslateDiskSourcePool(conn, disk) < 0)
+        return NULL;
+
+    if ((disk->device != VIR_DOMAIN_DISK_DEVICE_DISK) &&
+        (disk->device != VIR_DOMAIN_DISK_DEVICE_CDROM)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk device"));
         return NULL;
     }
 
-    if (virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_FILE) {
+    if ((virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_FILE) &&
+        (virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_VOLUME)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk type"));
         return NULL;
@@ -297,14 +331,14 @@ virBhyveProcessBuildLoadCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
     /* Memory */
     virCommandAddArg(cmd, "-m");
     virCommandAddArgFormat(cmd, "%llu",
-                           VIR_DIV_UP(vm->def->mem.max_balloon, 1024));
+                           VIR_DIV_UP(def->mem.max_balloon, 1024));
 
     /* Image path */
     virCommandAddArg(cmd, "-d");
     virCommandAddArg(cmd, virDomainDiskGetSource(disk));
 
     /* VM name */
-    virCommandAddArg(cmd, vm->def->name);
+    virCommandAddArg(cmd, def->name);
 
     return cmd;
 }

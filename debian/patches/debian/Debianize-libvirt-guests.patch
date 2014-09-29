@@ -9,7 +9,7 @@ Origin: vendor
  2 files changed, 30 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index a158b62..62ee35f 100644
+index 1b17bbe..0ee0210 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
 @@ -1,5 +1,17 @@
@@ -18,8 +18,8 @@ index a158b62..62ee35f 100644
 +#
 +### BEGIN INIT INFO
 +# Provides: libvirt-guests
-+# Required-Start: $remote_fs libvirt-bin
-+# Required-Stop: $remote_fs libvirt-bin
++# Required-Start: $remote_fs libvirtd
++# Required-Stop: $remote_fs libvirtd
 +# Default-Start: 2 3 4 5
 +# Default-Stop: 0 1 6
 +# Short-Description: suspend/resume libvirt guests on shutdown/boot
@@ -28,7 +28,7 @@ index a158b62..62ee35f 100644
 +#              See http://libvirt.org
 +### END INIT INFO
 +#
- # Copyright (C) 2011-2013 Red Hat, Inc.
+ # Copyright (C) 2011-2014 Red Hat, Inc.
  #
  # This library is free software; you can redistribute it and/or
 @@ -16,23 +28,23 @@

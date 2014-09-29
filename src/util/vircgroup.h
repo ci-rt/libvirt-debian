@@ -173,7 +173,11 @@ enum {
     VIR_CGROUP_DEVICE_RWM   = VIR_CGROUP_DEVICE_RW | VIR_CGROUP_DEVICE_MKNOD,
 };
 
+const char *virCgroupGetDevicePermsString(int perms);
+
 int virCgroupDenyAllDevices(virCgroupPtr group);
+
+int virCgroupAllowAllDevices(virCgroupPtr group, int perms);
 
 int virCgroupAllowDevice(virCgroupPtr group,
                          char type,

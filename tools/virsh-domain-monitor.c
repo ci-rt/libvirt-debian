@@ -1356,6 +1356,116 @@ cmdDomstate(vshControl *ctl, const vshCmd *cmd)
 }
 
 /*
+ * "domtime" command
+ */
+static const vshCmdInfo info_domtime[] = {
+    {.name = "help",
+     .data = N_("domain time")
+    },
+    {.name = "desc",
+     .data = N_("Gets or sets the domain's system time")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_domtime[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "now",
+     .type = VSH_OT_BOOL,
+     .help = N_("set to the time of the host running virsh")
+    },
+    {.name = "pretty",
+     .type = VSH_OT_BOOL,
+     .help = N_("print domain's time in human readable form")
+    },
+    {.name = "sync",
+     .type = VSH_OT_BOOL,
+     .help = N_("instead of setting given time, synchronize from domain's RTC"),
+    },
+    {.name = "time",
+     .type = VSH_OT_INT,
+     .help = N_("time to set")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdDomTime(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    bool ret = false;
+    bool now = vshCommandOptBool(cmd, "now");
+    bool pretty = vshCommandOptBool(cmd, "pretty");
+    bool rtcSync = vshCommandOptBool(cmd, "sync");
+    long long seconds = 0;
+    unsigned int nseconds = 0;
+    unsigned int flags = 0;
+    bool doSet = false;
+    int rv;
+
+    VSH_EXCLUSIVE_OPTIONS("time", "now");
+    VSH_EXCLUSIVE_OPTIONS("time", "sync");
+    VSH_EXCLUSIVE_OPTIONS("now", "sync");
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    rv = vshCommandOptLongLong(cmd, "time", &seconds);
+
+    if (rv < 0) {
+        /* invalid integer format */
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter to --time."));
+        goto cleanup;
+    } else if (rv > 0) {
+        /* valid integer to set */
+        doSet = true;
+    }
+
+    if (doSet || now || rtcSync) {
+        if (now && ((seconds = time(NULL)) == (time_t) -1)) {
+            vshError(ctl, _("Unable to get current time"));
+            goto cleanup;
+        }
+
+        if (rtcSync)
+            flags |= VIR_DOMAIN_TIME_SYNC;
+
+        if (virDomainSetTime(dom, seconds, nseconds, flags) < 0)
+            goto cleanup;
+
+    } else {
+        if (virDomainGetTime(dom, &seconds, &nseconds, flags) < 0)
+            goto cleanup;
+
+        if (pretty) {
+            char timestr[100];
+            time_t cur_time = seconds;
+            struct tm time_info;
+
+            if (!gmtime_r(&cur_time, &time_info)) {
+                vshError(ctl, _("Unable to format time"));
+                goto cleanup;
+            }
+            strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", &time_info);
+
+            vshPrint(ctl, _("Time: %s"), timestr);
+        } else {
+            vshPrint(ctl, _("Time: %lld"), seconds);
+        }
+    }
+
+    ret = true;
+ cleanup:
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
  * "list" command
  */
 static const vshCmdInfo info_list[] = {
@@ -1844,6 +1954,182 @@ cmdList(vshControl *ctl, const vshCmd *cmd)
 }
 #undef FILTER
 
+/*
+ * "domstats" command
+ */
+static const vshCmdInfo info_domstats[] = {
+    {.name = "help",
+     .data = N_("get statistics about one or multiple domains")
+    },
+    {.name = "desc",
+     .data = N_("Gets statistics about one or more (or all) domains")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_domstats[] = {
+    {.name = "state",
+     .type = VSH_OT_BOOL,
+     .help = N_("report domain state"),
+    },
+    {.name = "list-active",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only active domains"),
+    },
+    {.name = "list-inactive",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only inactive domains"),
+    },
+    {.name = "list-persistent",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only persistent domains"),
+    },
+    {.name = "list-transient",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only transient domains"),
+    },
+    {.name = "list-running",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only running domains"),
+    },
+    {.name = "list-paused",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only paused domains"),
+    },
+    {.name = "list-shutoff",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only shutoff domains"),
+    },
+    {.name = "list-other",
+     .type = VSH_OT_BOOL,
+     .help = N_("list only domains in other states"),
+    },
+    {.name = "raw",
+     .type = VSH_OT_BOOL,
+     .help = N_("do not pretty-print the fields"),
+    },
+    {.name = "enforce",
+     .type = VSH_OT_BOOL,
+     .help = N_("enforce requested stats parameters"),
+    },
+    {.name = "domain",
+     .type = VSH_OT_ARGV,
+     .flags = VSH_OFLAG_NONE,
+     .help = N_("list of domains to get stats for"),
+    },
+    {.name = NULL}
+};
+
+
+static bool
+vshDomainStatsPrintRecord(vshControl *ctl ATTRIBUTE_UNUSED,
+                          virDomainStatsRecordPtr record,
+                          bool raw ATTRIBUTE_UNUSED)
+{
+    char *param;
+    size_t i;
+
+    vshPrint(ctl, "Domain: '%s'\n", virDomainGetName(record->dom));
+
+    /* XXX: Implement pretty-printing */
+
+    for (i = 0; i < record->nparams; i++) {
+        if (!(param = vshGetTypedParamValue(ctl, record->params + i)))
+            return false;
+
+        vshPrint(ctl, "  %s=%s\n", record->params[i].field, param);
+
+        VIR_FREE(param);
+    }
+
+    vshPrint(ctl, "\n");
+    return true;
+}
+
+static bool
+cmdDomstats(vshControl *ctl, const vshCmd *cmd)
+{
+    unsigned int stats = 0;
+    virDomainPtr *domlist = NULL;
+    virDomainPtr dom;
+    size_t ndoms = 0;
+    virDomainStatsRecordPtr *records = NULL;
+    virDomainStatsRecordPtr *next;
+    bool raw = vshCommandOptBool(cmd, "raw");
+    int flags = 0;
+    const vshCmdOpt *opt = NULL;
+    bool ret = false;
+
+    if (vshCommandOptBool(cmd, "state"))
+        stats |= VIR_DOMAIN_STATS_STATE;
+
+    if (vshCommandOptBool(cmd, "list-active"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE;
+
+    if (vshCommandOptBool(cmd, "list-inactive"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE;
+
+    if (vshCommandOptBool(cmd, "list-persistent"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT;
+
+    if (vshCommandOptBool(cmd, "list-transient"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT;
+
+    if (vshCommandOptBool(cmd, "list-running"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_RUNNING;
+
+    if (vshCommandOptBool(cmd, "list-paused"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED;
+
+    if (vshCommandOptBool(cmd, "list-shutoff"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF;
+
+    if (vshCommandOptBool(cmd, "list-other"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER;
+
+    if (vshCommandOptBool(cmd, "enforce"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS;
+
+    if (vshCommandOptBool(cmd, "domain")) {
+        if (VIR_ALLOC_N(domlist, 1) < 0)
+            goto cleanup;
+        ndoms = 1;
+
+        while ((opt = vshCommandOptArgv(cmd, opt))) {
+            if (!(dom = vshLookupDomainBy(ctl, opt->data,
+                                          VSH_BYID | VSH_BYUUID | VSH_BYNAME)))
+                goto cleanup;
+
+            if (VIR_INSERT_ELEMENT(domlist, ndoms - 1, ndoms, dom) < 0)
+                goto cleanup;
+        }
+
+        if (virDomainListGetStats(domlist,
+                                  stats,
+                                  &records,
+                                  flags) < 0)
+            goto cleanup;
+    } else {
+       if ((virConnectGetAllDomainStats(ctl->conn,
+                                        stats,
+                                        &records,
+                                        flags)) < 0)
+           goto cleanup;
+    }
+
+    for (next = records; *next; next++) {
+        if (!vshDomainStatsPrintRecord(ctl, *next, raw))
+            goto cleanup;
+    }
+
+    ret = true;
+ cleanup:
+    virDomainStatsRecordListFree(records);
+    virDomainListFree(domlist);
+
+    return ret;
+}
+
 const vshCmdDef domMonitoringCmds[] = {
     {.name = "domblkerror",
      .handler = cmdDomBlkError,
@@ -1909,6 +2195,18 @@ const vshCmdDef domMonitoringCmds[] = {
      .handler = cmdDomstate,
      .opts = opts_domstate,
      .info = info_domstate,
+     .flags = 0
+    },
+    {.name = "domstats",
+     .handler = cmdDomstats,
+     .opts = opts_domstats,
+     .info = info_domstats,
+     .flags = 0
+    },
+    {.name = "domtime",
+     .handler = cmdDomTime,
+     .opts = opts_domtime,
+     .info = info_domtime,
      .flags = 0
     },
     {.name = "list",

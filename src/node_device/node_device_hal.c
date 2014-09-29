@@ -1,7 +1,7 @@
 /*
  * node_device_hal.c: node device enumeration - HAL-based implementation
  *
- * Copyright (C) 2011, 2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -151,10 +151,10 @@ gather_pci_cap(LibHalContext *ctx, const char *udi,
     if (get_str_prop(ctx, udi, "pci.linux.sysfs_path", &sysfs_path) == 0) {
         char *p = strrchr(sysfs_path, '/');
         if (p) {
-            (void)virStrToLong_ui(p+1, &p, 16, &d->pci_dev.domain);
-            (void)virStrToLong_ui(p+1, &p, 16, &d->pci_dev.bus);
-            (void)virStrToLong_ui(p+1, &p, 16, &d->pci_dev.slot);
-            (void)virStrToLong_ui(p+1, &p, 16, &d->pci_dev.function);
+            ignore_value(virStrToLong_ui(p+1, &p, 16, &d->pci_dev.domain));
+            ignore_value(virStrToLong_ui(p+1, &p, 16, &d->pci_dev.bus));
+            ignore_value(virStrToLong_ui(p+1, &p, 16, &d->pci_dev.slot));
+            ignore_value(virStrToLong_ui(p+1, &p, 16, &d->pci_dev.function));
         }
 
         if (!virPCIGetPhysicalFunction(sysfs_path,
@@ -343,7 +343,7 @@ gather_system_cap(LibHalContext *ctx, const char *udi,
 
 struct _caps_tbl_entry {
     const char *cap_name;
-    enum virNodeDevCapType type;
+    virNodeDevCapType type;
     int (*gather_fn)(LibHalContext *ctx,
                      const char *udi,
                      union _virNodeDevCapData *data);

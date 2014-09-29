@@ -51,6 +51,7 @@
 #include "nodeinfo.h"
 #include "c-ctype.h"
 #include "virstring.h"
+#include "cpu/cpu.h"
 
 #include "parallels_driver.h"
 #include "parallels_utils.h"
@@ -108,6 +109,7 @@ parallelsDomObjFreePrivate(void *p)
     if (!pdom)
         return;
 
+    virBitmapFree(pdom->cpumask);
     VIR_FREE(pdom->uuid);
     VIR_FREE(pdom->home);
     VIR_FREE(p);
@@ -116,11 +118,14 @@ parallelsDomObjFreePrivate(void *p)
 static virCapsPtr
 parallelsBuildCapabilities(void)
 {
-    virCapsPtr caps;
+    virCapsPtr caps = NULL;
+    virCPUDefPtr cpu = NULL;
+    virCPUDataPtr data = NULL;
     virCapsGuestPtr guest;
+    virNodeInfo nodeinfo;
 
     if ((caps = virCapabilitiesNew(virArchFromHost(),
-                                   0, 0)) == NULL)
+                                   false, false)) == NULL)
         return NULL;
 
     if (nodeCapsInitNUMA(caps) < 0)
@@ -146,11 +151,32 @@ parallelsBuildCapabilities(void)
                                       "parallels", NULL, NULL, 0, NULL) == NULL)
         goto error;
 
+    if (nodeGetInfo(&nodeinfo))
+        goto error;
+
+    if (VIR_ALLOC(cpu) < 0)
+        goto error;
+
+    cpu->arch = caps->host.arch;
+    cpu->type = VIR_CPU_TYPE_HOST;
+    cpu->sockets = nodeinfo.sockets;
+    cpu->cores = nodeinfo.cores;
+    cpu->threads = nodeinfo.threads;
+
+    caps->host.cpu = cpu;
+
+    if (!(data = cpuNodeData(cpu->arch))
+        || cpuDecode(cpu, data, NULL, 0, NULL) < 0) {
+        goto cleanup;
+    }
+
+ cleanup:
+    cpuDataFree(data);
     return caps;
 
  error:
     virObjectUnref(caps);
-    return NULL;
+    goto cleanup;
 }
 
 static char *
@@ -160,8 +186,7 @@ parallelsConnectGetCapabilities(virConnectPtr conn)
     char *xml;
 
     parallelsDriverLock(privconn);
-    if ((xml = virCapabilitiesFormatXML(privconn->caps)) == NULL)
-        virReportOOMError();
+    xml = virCapabilitiesFormatXML(privconn->caps);
     parallelsDriverUnlock(privconn);
     return xml;
 }
@@ -321,6 +346,8 @@ parallelsGetHddInfo(virDomainDefPtr def,
 
         if (virDomainDiskSetSource(disk, tmp) < 0)
             return -1;
+
+        virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_PLOOP);
     }
 
     tmp = virJSONValueObjectGetString(value, "port");
@@ -379,7 +406,7 @@ parallelsAddHddInfo(virDomainDefPtr def, const char *key, virJSONValuePtr value)
 {
     virDomainDiskDefPtr disk = NULL;
 
-    if (VIR_ALLOC(disk) < 0)
+    if (!(disk = virDomainDiskDefNew()))
         goto error;
 
     if (parallelsGetHddInfo(def, disk, key, value))
@@ -648,8 +675,12 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
     unsigned int x;
     const char *autostart;
     const char *state;
+    int hostcpus;
 
     if (VIR_ALLOC(def) < 0)
+        goto cleanup;
+
+    if (VIR_ALLOC(pdom) < 0)
         goto cleanup;
 
     def->virtType = VIR_DOMAIN_VIRT_PARALLELS;
@@ -714,6 +745,19 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
         goto cleanup;
     }
 
+    if ((hostcpus = nodeGetCPUCount()) < 0)
+        goto cleanup;
+
+    if (!(tmp = virJSONValueObjectGetString(jobj3, "mask"))) {
+        /* Absence of this field means that all domains cpus are available */
+        if (!(pdom->cpumask = virBitmapNew(hostcpus)))
+            goto cleanup;
+        virBitmapSetAll(pdom->cpumask);
+    } else {
+        if (virBitmapParse(tmp, 0, &pdom->cpumask, hostcpus) < 0)
+            goto cleanup;
+    }
+
     if (!(jobj3 = virJSONValueObjectGet(jobj2, "memory"))) {
         parallelsParseError();
         goto cleanup;
@@ -754,9 +798,6 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
     }
 
     def->os.arch = VIR_ARCH_X86_64;
-
-    if (VIR_ALLOC(pdom) < 0)
-        goto cleanup;
 
     if (virJSONValueObjectGetNumberUint(jobj, "EnvID", &x) < 0)
         goto cleanup;
@@ -1491,7 +1532,7 @@ parallelsApplyGraphicsParams(virDomainGraphicsDefPtr *oldgraphics, int nold,
 
     return 0;
  error:
-    virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                    _("changing display parameters is not supported "
                      "by parallels driver"));
     return -1;
@@ -1539,7 +1580,7 @@ parallelsApplySerialParams(virDomainChrDefPtr *oldserials, int nold,
 
     return 0;
  error:
-    virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                    _("changing serial device parameters is "
                      "not supported by parallels driver"));
     return -1;
@@ -1554,7 +1595,7 @@ parallelsApplyVideoParams(parallelsDomObjPtr pdom,
     char str_vram[32];
 
     if (nold != 1 || nnew != 1) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Only one video device is "
                          "supported by parallels driver"));
         return -1;
@@ -1563,14 +1604,14 @@ parallelsApplyVideoParams(parallelsDomObjPtr pdom,
     old = oldvideos[0];
     new = newvideos[0];
     if (new->type != VIR_DOMAIN_VIDEO_TYPE_VGA) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Only VGA video device is "
                          "supported by parallels driver"));
         return -1;
     }
 
     if (new->heads != 1) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Only one monitor is supported by parallels driver"));
         return -1;
     }
@@ -1580,20 +1621,21 @@ parallelsApplyVideoParams(parallelsDomObjPtr pdom,
         old->accel->support2d != new->accel->support2d ||
         old->accel->support3d != new->accel->support3d) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                    _("Changing video acceleration parameters is "
                      "not supported by parallels driver"));
         return -1;
+
     }
 
     if (old->vram != new->vram) {
-        if (new->vram % (1 << 20) != 0) {
-            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        if (new->vram % (1 << 10) != 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Video RAM size should be multiple of 1Mb."));
             return -1;
         }
 
-        snprintf(str_vram, 31, "%d", new->vram >> 20);
+        snprintf(str_vram, 31, "%dK", new->vram);
         str_vram[31] = '\0';
 
         if (parallelsCmdRun(PRLCTL, "set", pdom->uuid,
@@ -1603,20 +1645,39 @@ parallelsApplyVideoParams(parallelsDomObjPtr pdom,
     return 0;
 }
 
-static int parallelsAddHddByVolume(parallelsDomObjPtr pdom,
-                                   virDomainDiskDefPtr disk,
-                                   virStoragePoolObjPtr pool,
-                                   virStorageVolDefPtr voldef)
+static int parallelsAddHdd(parallelsDomObjPtr pdom,
+                           virDomainDiskDefPtr disk)
 {
     int ret = -1;
+    const char *src = virDomainDiskGetSource(disk);
+    int type = virDomainDiskGetType(disk);
     const char *strbus;
 
     virCommandPtr cmd = virCommandNewArgList(PRLCTL, "set", pdom->uuid,
                                              "--device-add", "hdd", NULL);
-    virCommandAddArgFormat(cmd, "--size=%lluM", voldef->target.capacity >> 20);
+
+    if (type == VIR_STORAGE_TYPE_FILE) {
+        int format = virDomainDiskGetFormat(disk);
+
+        if (format != VIR_STORAGE_FILE_PLOOP) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Invalid disk format: %d"), type);
+            goto cleanup;
+        }
+
+        virCommandAddArg(cmd, "--image");
+    } else if (VIR_STORAGE_TYPE_BLOCK) {
+        virCommandAddArg(cmd, "--device");
+    } else {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Invalid disk type: %d"), type);
+        goto cleanup;
+    }
+
+    virCommandAddArg(cmd, src);
 
     if (!(strbus = parallelsGetDiskBusName(disk->bus))) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Invalid disk bus: %d"), disk->bus);
         goto cleanup;
     }
@@ -1630,54 +1691,10 @@ static int parallelsAddHddByVolume(parallelsDomObjPtr pdom,
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    if (parallelsStorageVolDefRemove(pool, voldef))
-        goto cleanup;
-
     ret = 0;
+
  cleanup:
     virCommandFree(cmd);
-    return ret;
-}
-
-static int parallelsAddHdd(virConnectPtr conn,
-                           parallelsDomObjPtr pdom,
-                           virDomainDiskDefPtr disk)
-{
-    parallelsConnPtr privconn = conn->privateData;
-    virStorageVolDefPtr voldef = NULL;
-    virStoragePoolObjPtr pool = NULL;
-    virStorageVolPtr vol = NULL;
-    int ret = -1;
-    const char *src = virDomainDiskGetSource(disk);
-
-    if (!(vol = parallelsStorageVolLookupByPathLocked(conn, src))) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Can't find volume with path '%s'"), src);
-        return -1;
-    }
-
-    pool = virStoragePoolObjFindByName(&privconn->pools, vol->pool);
-    if (!pool) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Can't find storage pool with name '%s'"),
-                       vol->pool);
-        goto cleanup;
-    }
-
-    voldef = virStorageVolDefFindByPath(pool, src);
-    if (!voldef) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Can't find storage volume definition for path '%s'"),
-                       src);
-        goto cleanup;
-    }
-
-    ret = parallelsAddHddByVolume(pdom, disk, pool, voldef);
-
- cleanup:
-    if (pool)
-        virStoragePoolObjUnlock(pool);
-    virObjectUnref(vol);
     return ret;
 }
 
@@ -1698,7 +1715,7 @@ static int parallelsRemoveHdd(parallelsDomObjPtr pdom,
 }
 
 static int
-parallelsApplyDisksParams(virConnectPtr conn, parallelsDomObjPtr pdom,
+parallelsApplyDisksParams(parallelsDomObjPtr pdom,
                           virDomainDiskDefPtr *olddisks, int nold,
                           virDomainDiskDefPtr *newdisks, int nnew)
 {
@@ -1716,7 +1733,7 @@ parallelsApplyDisksParams(virConnectPtr conn, parallelsDomObjPtr pdom,
 
         if (!newdisk) {
             if (parallelsRemoveHdd(pdom, olddisk)) {
-                virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("Can't remove disk '%s' "
                                  "in the specified config"), olddisks[i]->serial);
                 return -1;
@@ -1741,7 +1758,7 @@ parallelsApplyDisksParams(virConnectPtr conn, parallelsDomObjPtr pdom,
             snprintf(strpos, 15, "%d", newdisk->info.addr.drive.target);
 
             if (!(strbus = parallelsGetDiskBusName(newdisk->bus))) {
-                virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("Unsupported disk bus: %d"), newdisk->bus);
                 return -1;
             }
@@ -1764,7 +1781,7 @@ parallelsApplyDisksParams(virConnectPtr conn, parallelsDomObjPtr pdom,
         if (found)
             continue;
 
-        if (parallelsAddHdd(conn, pdom, newdisk))
+        if (parallelsAddHdd(pdom, newdisk))
             return -1;
     }
 
@@ -1789,58 +1806,58 @@ static int parallelsApplyIfaceParams(parallelsDomObjPtr pdom,
     }
 
     if (!create && oldnet->type != newnet->type) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Changing network type is not supported"));
         goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->model, newnet->model)) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Changing network device model is not supported"));
         goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->data.network.portgroup,
                         newnet->data.network.portgroup)) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Changing network portgroup is not supported"));
         goto cleanup;
     }
 
     if (!virNetDevVPortProfileEqual(oldnet->virtPortProfile,
                                     newnet->virtPortProfile)) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Changing virtual port profile is not supported"));
         goto cleanup;
     }
 
     if (newnet->tune.sndbuf_specified) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Setting send buffer size is not supported"));
         goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->script, newnet->script)) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Setting startup script is not supported"));
         goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->filter, newnet->filter)) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Changing filter params is not supported"));
         goto cleanup;
     }
 
     if (newnet->bandwidth != NULL) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Setting bandwidth params is not supported"));
         goto cleanup;
     }
 
     for (i = 0; i < sizeof(newnet->vlan); i++) {
         if (((char *)&newnet->vlan)[i] != 0) {
-            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Setting vlan params is not supported"));
             goto cleanup;
         }
@@ -1952,9 +1969,10 @@ parallelsApplyIfacesParams(parallelsDomObjPtr pdom,
 }
 
 static int
-parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr new)
+parallelsApplyChanges(virDomainObjPtr dom, virDomainDefPtr new)
 {
     char buf[32];
+    size_t i;
 
     virDomainDefPtr old = dom->def;
     parallelsDomObjPtr pdom = dom->privateData;
@@ -1972,13 +1990,13 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
     }
 
     if (new->title && !STREQ_NULLABLE(old->title, new->title)) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("titles are not supported by parallels driver"));
         return -1;
     }
 
     if (new->blkio.ndevices > 0) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("blkio parameters are not supported "
                          "by parallels driver"));
         return -1;
@@ -1986,14 +2004,14 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
 
     if (old->mem.max_balloon != new->mem.max_balloon) {
         if (new->mem.max_balloon != new->mem.cur_balloon) {
-            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing balloon parameters is not supported "
                          "by parallels driver"));
            return -1;
         }
 
         if (new->mem.max_balloon % (1 << 10) != 0) {
-            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Memory size should be multiple of 1Mb."));
             return -1;
         }
@@ -2006,13 +2024,13 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
             return -1;
     }
 
-    if (old->mem.hugepage_backed != new->mem.hugepage_backed ||
+    if (old->mem.nhugepages != new->mem.nhugepages ||
         old->mem.hard_limit != new->mem.hard_limit ||
         old->mem.soft_limit != new->mem.soft_limit ||
         old->mem.min_guarantee != new->mem.min_guarantee ||
         old->mem.swap_hard_limit != new->mem.swap_hard_limit) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Memory parameter is not supported "
                          "by parallels driver"));
         return -1;
@@ -2020,7 +2038,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
 
     if (old->vcpus != new->vcpus) {
         if (new->vcpus != new->maxvcpus) {
-            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("current vcpus must be equal to maxvcpus"));
             return -1;
         }
@@ -2034,7 +2052,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
     }
 
     if (old->placement_mode != new->placement_mode) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing cpu placement mode is not supported "
                          "by parallels driver"));
         return -1;
@@ -2044,7 +2062,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
         (old->cpumask == NULL || new->cpumask == NULL ||
         !virBitmapEqual(old->cpumask, new->cpumask))) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing cpu mask is not supported "
                          "by parallels driver"));
         return -1;
@@ -2056,18 +2074,13 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
         old->cputune.quota != new->cputune.quota ||
         old->cputune.nvcpupin != new->cputune.nvcpupin) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("cputune is not supported by parallels driver"));
         return -1;
     }
 
-    if (old->numatune.memory.mode != new->numatune.memory.mode ||
-        old->numatune.memory.placement_mode != new->numatune.memory.placement_mode ||
-        ((old->numatune.memory.nodemask != NULL || new->numatune.memory.nodemask != NULL) &&
-         (old->numatune.memory.nodemask == NULL || new->numatune.memory.nodemask == NULL ||
-        !virBitmapEqual(old->numatune.memory.nodemask, new->numatune.memory.nodemask)))){
-
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+    if (!virDomainNumatuneEquals(old->numatune, new->numatune)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                         _("numa parameters are not supported "
                           "by parallels driver"));
         return -1;
@@ -2077,7 +2090,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
         old->onPoweroff != new->onPoweroff ||
         old->onCrash != new->onCrash) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("on_reboot, on_poweroff and on_crash parameters "
                          "are not supported by parallels driver"));
         return -1;
@@ -2096,7 +2109,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
         new->os.bootloaderArgs != NULL || new->os.smbios_mode != 0 ||
         new->os.bios.useserial != 0) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing OS parameters is not supported "
                          "by parallels driver"));
         return -1;
@@ -2106,7 +2119,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
             new->os.bootDevs[0] != VIR_DOMAIN_BOOT_DISK ||
             new->os.init != NULL || new->os.initargv != NULL) {
 
-            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("changing OS parameters is not supported "
                              "by parallels driver"));
             return -1;
@@ -2116,7 +2129,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
             !STREQ_NULLABLE(old->os.init, new->os.init) ||
             (new->os.initargv != NULL && new->os.initargv[0] != NULL)) {
 
-            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("changing OS parameters is not supported "
                              "by parallels driver"));
             return -1;
@@ -2125,23 +2138,25 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
 
 
     if (!STREQ_NULLABLE(old->emulator, new->emulator)) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing emulator is not supported "
                          "by parallels driver"));
         return -1;
     }
 
-    if (old->features != new->features) {
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                       _("changing features is not supported "
-                         "by parallels driver"));
-        return -1;
+    for (i = 0; i < VIR_DOMAIN_FEATURE_LAST; i++) {
+        if (old->features[i] != new->features[i]) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("changing features is not supported "
+                             "by parallels driver"));
+            return -1;
+        }
     }
 
     if (new->clock.offset != VIR_DOMAIN_CLOCK_OFFSET_UTC ||
         new->clock.ntimers != 0) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing clock parameters is not supported "
                          "by parallels driver"));
         return -1;
@@ -2157,7 +2172,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
         new->nparallels || new->nchannels != 0 ||
         new->nleases != 0 || new->nhubs != 0) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing devices parameters is not supported "
                          "by parallels driver"));
         return -1;
@@ -2169,7 +2184,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
         (new->inputs[0]->type != VIR_DOMAIN_INPUT_TYPE_MOUSE ||
         new->inputs[0]->bus != VIR_DOMAIN_INPUT_BUS_PS2))) {
 
-        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing input devices parameters is not supported "
                          "by parallels driver"));
     }
@@ -2186,7 +2201,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
     if (parallelsApplyVideoParams(pdom, old->videos, old->nvideos,
                                    new->videos, new->nvideos) < 0)
         return -1;
-    if (parallelsApplyDisksParams(conn, pdom, old->disks, old->ndisks,
+    if (parallelsApplyDisksParams(pdom, old->disks, old->ndisks,
                                   new->disks, new->ndisks) < 0)
         return -1;
     if (parallelsApplyIfacesParams(pdom, old->nets, old->nnets,
@@ -2197,77 +2212,17 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
 }
 
 static int
-parallelsCreateVm(virConnectPtr conn, virDomainDefPtr def)
+parallelsCreateVm(virConnectPtr conn ATTRIBUTE_UNUSED, virDomainDefPtr def)
 {
-    parallelsConnPtr privconn = conn->privateData;
-    size_t i;
-    virStorageVolDefPtr privvol = NULL;
-    virStoragePoolObjPtr pool = NULL;
-    virStorageVolPtr vol = NULL;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    const char *src;
-
-    for (i = 0; i < def->ndisks; i++) {
-        if (def->disks[i]->device != VIR_DOMAIN_DISK_DEVICE_DISK)
-            continue;
-
-        src = virDomainDiskGetSource(def->disks[i]);
-        vol = parallelsStorageVolLookupByPathLocked(conn, src);
-        if (!vol) {
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("Can't find volume with path '%s'"),
-                           src);
-            return -1;
-        }
-        break;
-    }
-
-    if (!vol) {
-        /* We determine path to VM directory from volume, so
-         * let's report error if no disk until better solution
-         * will be found */
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Can't create VM '%s' without hard disks"),
-                       def->name ? def->name : _("(unnamed)"));
-        return -1;
-    }
-
-    pool = virStoragePoolObjFindByName(&privconn->pools, vol->pool);
-    if (!pool) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Can't find storage pool with name '%s'"),
-                       vol->pool);
-        goto error;
-    }
-
-    privvol = virStorageVolDefFindByPath(pool, src);
-    if (!privvol) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Can't find storage volume definition for path '%s'"),
-                       src);
-        goto error2;
-    }
 
     virUUIDFormat(def->uuid, uuidstr);
 
-    if (parallelsCmdRun(PRLCTL, "create", def->name, "--dst",
-                        pool->def->target.path, "--no-hdd",
+    if (parallelsCmdRun(PRLCTL, "create", def->name, "--no-hdd",
                         "--uuid", uuidstr, NULL) < 0)
-        goto error2;
-
-    if (parallelsCmdRun(PRLCTL, "set", def->name, "--vnc-mode", "auto", NULL) < 0)
-        goto error2;
-
-    virStoragePoolObjUnlock(pool);
-    virObjectUnref(vol);
+        return -1;
 
     return 0;
-
- error2:
-    virStoragePoolObjUnlock(pool);
- error:
-    virObjectUnref(vol);
-    return -1;
 }
 
 static int
@@ -2291,9 +2246,6 @@ parallelsCreateCt(virConnectPtr conn ATTRIBUTE_UNUSED, virDomainDefPtr def)
                         "--ostemplate", def->fss[0]->src, NULL) < 0)
         goto error;
 
-    if (parallelsCmdRun(PRLCTL, "set", def->name, "--vnc-mode", "auto", NULL) < 0)
-        goto error;
-
     return 0;
 
  error:
@@ -2306,7 +2258,7 @@ parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
     parallelsConnPtr privconn = conn->privateData;
     virDomainPtr ret = NULL;
     virDomainDefPtr def;
-    virDomainObjPtr dom = NULL, olddom = NULL;
+    virDomainObjPtr olddom = NULL;
 
     parallelsDriverLock(privconn);
     if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
@@ -2342,30 +2294,18 @@ parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
         }
     }
 
-    if (parallelsApplyChanges(conn, olddom, def) < 0) {
+    if (parallelsApplyChanges(olddom, def) < 0) {
         virObjectUnlock(olddom);
         goto cleanup;
     }
     virObjectUnlock(olddom);
 
-    if (!(dom = virDomainObjListAdd(privconn->domains, def,
-                                    privconn->xmlopt,
-                                    0, NULL))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Can't allocate domobj"));
-        goto cleanup;
-    }
-
-    def = NULL;
-
-    ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
+    ret = virGetDomain(conn, def->name, def->uuid);
     if (ret)
-        ret->id = dom->def->id;
+        ret->id = def->id;
 
  cleanup:
     virDomainDefFree(def);
-    if (dom)
-        virObjectUnlock(dom);
     parallelsDriverUnlock(privconn);
     return ret;
 }
@@ -2375,6 +2315,116 @@ parallelsNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
                      virNodeInfoPtr nodeinfo)
 {
     return nodeGetInfo(nodeinfo);
+}
+
+static int parallelsConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* Encryption is not relevant / applicable to way we talk to PCS */
+    return 0;
+}
+
+static int parallelsConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* We run CLI tools directly so this is secure */
+    return 1;
+}
+
+static int parallelsConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
+}
+
+
+static char *
+parallelsConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
+                            const char **xmlCPUs,
+                            unsigned int ncpus,
+                            unsigned int flags)
+{
+    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, NULL);
+
+    return cpuBaselineXML(xmlCPUs, ncpus, NULL, 0, flags);
+}
+
+
+static int
+parallelsDomainGetVcpus(virDomainPtr domain,
+                        virVcpuInfoPtr info,
+                        int maxinfo,
+                        unsigned char *cpumaps,
+                        int maplen)
+{
+    parallelsConnPtr privconn = domain->conn->privateData;
+    parallelsDomObjPtr privdomdata = NULL;
+    virDomainObjPtr privdom = NULL;
+    size_t i;
+    int v, maxcpu, hostcpus;
+    int ret = -1;
+
+    parallelsDriverLock(privconn);
+    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
+    parallelsDriverUnlock(privconn);
+
+    if (privdom == NULL) {
+        parallelsDomNotFoundError(domain);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(privdom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s",
+                       _("cannot list vcpu pinning for an inactive domain"));
+        goto cleanup;
+    }
+
+    privdomdata = privdom->privateData;
+    if ((hostcpus = nodeGetCPUCount()) < 0)
+        goto cleanup;
+
+    maxcpu = maplen * 8;
+    if (maxcpu > hostcpus)
+        maxcpu = hostcpus;
+
+    if (maxinfo >= 1) {
+        if (info != NULL) {
+            memset(info, 0, sizeof(*info) * maxinfo);
+            for (i = 0; i < maxinfo; i++) {
+                info[i].number = i;
+                info[i].state = VIR_VCPU_RUNNING;
+            }
+        }
+        if (cpumaps != NULL) {
+            unsigned char *tmpmap = NULL;
+            int tmpmapLen = 0;
+
+            memset(cpumaps, 0, maplen * maxinfo);
+            virBitmapToData(privdomdata->cpumask, &tmpmap, &tmpmapLen);
+            if (tmpmapLen > maplen)
+                tmpmapLen = maplen;
+
+            for (v = 0; v < maxinfo; v++) {
+                unsigned char *cpumap = VIR_GET_CPUMAP(cpumaps, maplen, v);
+                memcpy(cpumap, tmpmap, tmpmapLen);
+            }
+            VIR_FREE(tmpmap);
+        }
+    }
+    ret = maxinfo;
+
+ cleanup:
+    if (privdom)
+        virObjectUnlock(privdom);
+    return ret;
+}
+
+
+static int
+parallelsNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       unsigned char **cpumap,
+                       unsigned int *online,
+                       unsigned int flags)
+{
+    return nodeGetCPUMap(cpumap, online, flags);
 }
 
 
@@ -2387,6 +2437,7 @@ static virDriver parallelsDriver = {
     .connectGetHostname = parallelsConnectGetHostname,      /* 0.10.0 */
     .nodeGetInfo = parallelsNodeGetInfo,      /* 0.10.0 */
     .connectGetCapabilities = parallelsConnectGetCapabilities,      /* 0.10.0 */
+    .connectBaselineCPU = parallelsConnectBaselineCPU, /* 1.2.6 */
     .connectListDomains = parallelsConnectListDomains,      /* 0.10.0 */
     .connectNumOfDomains = parallelsConnectNumOfDomains,    /* 0.10.0 */
     .connectListDefinedDomains = parallelsConnectListDefinedDomains,        /* 0.10.0 */
@@ -2401,12 +2452,17 @@ static virDriver parallelsDriver = {
     .domainGetXMLDesc = parallelsDomainGetXMLDesc,    /* 0.10.0 */
     .domainIsPersistent = parallelsDomainIsPersistent,        /* 0.10.0 */
     .domainGetAutostart = parallelsDomainGetAutostart,        /* 0.10.0 */
+    .domainGetVcpus = parallelsDomainGetVcpus, /* 1.2.6 */
     .domainSuspend = parallelsDomainSuspend,    /* 0.10.0 */
     .domainResume = parallelsDomainResume,    /* 0.10.0 */
     .domainDestroy = parallelsDomainDestroy,  /* 0.10.0 */
     .domainShutdown = parallelsDomainShutdown, /* 0.10.0 */
     .domainCreate = parallelsDomainCreate,    /* 0.10.0 */
     .domainDefineXML = parallelsDomainDefineXML,      /* 0.10.0 */
+    .nodeGetCPUMap = parallelsNodeGetCPUMap, /* 1.2.8 */
+    .connectIsEncrypted = parallelsConnectIsEncrypted, /* 1.2.5 */
+    .connectIsSecure = parallelsConnectIsSecure, /* 1.2.5 */
+    .connectIsAlive = parallelsConnectIsAlive, /* 1.2.5 */
 };
 
 /**

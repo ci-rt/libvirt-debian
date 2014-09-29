@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.4], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.8], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -275,7 +275,7 @@ dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
   getmntent_r getpwuid_r getuid kill mmap newlocale posix_fallocate \
   posix_memalign prlimit regexec sched_getaffinity setgroups setns \
-  setrlimit symlink sysctlbyname])
+  setrlimit symlink sysctlbyname getifaddrs])
 
 dnl Availability of pthread functions. Because of $LIB_PTHREAD, we
 dnl cannot use AC_CHECK_FUNCS_ONCE. LIB_PTHREAD and LIBMULTITHREAD
@@ -967,7 +967,7 @@ AM_CONDITIONAL([WITH_XEN], [test "$with_xen" = "yes"])
 AC_SUBST([XEN_CFLAGS])
 AC_SUBST([XEN_LIBS])
 
-AM_CONDITIONAL([WITH_XENXS], [test "$with_libxl" = "yes" || test "$with_xen" = "yes"])
+AM_CONDITIONAL([WITH_XENCONFIG], [test "$with_libxl" = "yes" || test "$with_xen" = "yes"])
 
 dnl
 dnl check for kernel headers required by xen_inotify
@@ -1734,6 +1734,10 @@ AC_ARG_WITH([storage-gluster],
   [AS_HELP_STRING([--with-storage-gluster],
     [with Gluster backend for the storage driver @<:@default=check@:>@])],
   [],[with_storage_gluster=check])
+AC_ARG_WITH([storage-zfs],
+  [AS_HELP_STRING([--with-storage-zfs],
+    [with ZFS backend for the storage driver @<:@default=check@:>@])],
+  [],[with_storage_zfs=check])
 
 if test "$with_libvirtd" = "no"; then
   with_storage_dir=no
@@ -1746,6 +1750,7 @@ if test "$with_libvirtd" = "no"; then
   with_storage_rbd=no
   with_storage_sheepdog=no
   with_storage_gluster=no
+  with_storage_zfs=no
 fi
 if test "$with_storage_dir" = "yes" ; then
   AC_DEFINE_UNQUOTED([WITH_STORAGE_DIR], 1, [whether directory backend for storage driver is enabled])
@@ -1963,6 +1968,43 @@ if test "$with_storage_gluster" = "yes"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
 
+if test "$with_storage_zfs" = "check"; then
+    with_storage_zfs=$with_freebsd
+fi
+
+if test "$with_storage_zfs" = "yes" && test "$with_freebsd" = "no"; then
+    AC_MSG_ERROR([The ZFS storage driver can be enabled on FreeBSD only.])
+fi
+
+if test "$with_storage_zfs" = "yes" ||
+   test "$with_storage_zfs" = "check"; then
+  AC_PATH_PROG([ZFS], [zfs], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([ZPOOL], [zpool], [], [$PATH:/sbin:/usr/sbin])
+
+  if test "$with_storage_zfs" = "yes"; then
+    if test -z "$ZFS" || test -z "$ZPOOL"; then
+      AC_MSG_ERROR([We need zfs and zpool for ZFS storage driver])
+    fi
+  else
+    if test -z "$ZFS" || test -z "$ZPOOL"; then
+      with_storage_zfs=no
+    fi
+
+    if test "$with_storage_zfs" = "check"; then
+      with_storage_zfs=yes
+    fi
+  fi
+
+  if test "$with_storage_zfs" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_STORAGE_ZFS], 1,
+      [whether ZFS backend for storage driver is enabled])
+    AC_DEFINE_UNQUOTED([ZFS], ["$ZFS"], [Location of zfs program])
+    AC_DEFINE_UNQUOTED([ZPOOL], ["$ZPOOL"], [Location of zpool program])
+  fi
+fi
+AM_CONDITIONAL([WITH_STORAGE_ZFS],
+  [test "$with_storage_zfs" = "yes"])
+
 if test "$with_storage_fs" = "yes" ||
    test "$with_storage_gluster" = "yes"; then
   AC_PATH_PROG([GLUSTER_CLI], [gluster], [], [$PATH:/sbin:/usr/sbin])
@@ -2131,6 +2173,9 @@ AM_CONDITIONAL([WITH_HYPERV], [test "$with_hyperv" = "yes"])
 dnl Allow perl/python overrides
 AC_PATH_PROGS([PYTHON], [python2 python])
 AC_PATH_PROG([PERL], [perl])
+if test -z "$PERL"; then
+         AC_MSG_ERROR([Failed to find perl.])
+fi
 
 AC_ARG_WITH([test-suite],
             [AS_HELP_STRING([--with-test-suite],
@@ -2684,6 +2729,24 @@ AC_CHECK_DECLS([cpuset_getaffinity],
                 #include <sys/cpuset.h>
                ])
 
+# Check for BSD kvm (kernel memory interface)
+if test $with_freebsd = yes; then
+     AC_CHECK_LIB([kvm], [kvm_getprocs], [],
+                  [AC_MSG_ERROR([BSD kernel memory interface library is required to build on FreeBSD])]
+                 )
+fi
+
+# FreeBSD 10-STABLE requires _IFI_OQDROPS to be defined for if_data.ifi_oqdrops
+# field be available
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -D_IFI_OQDROPS"
+
+AC_CHECK_MEMBERS([struct if_data.ifi_oqdrops],
+		 [],
+		 [CFLAGS="$old_CFLAGS"],
+		 [#include <net/if.h>
+		 ])
+
 # Check if we need to look for ifconfig
 if test "$want_ifconfig" = "yes"; then
      AC_PATH_PROG([IFCONFIG_PATH], [ifconfig])
@@ -2720,7 +2783,13 @@ AC_CONFIG_FILES([\
         docs/schemas/Makefile \
         gnulib/lib/Makefile \
         gnulib/tests/Makefile \
-        libvirt.pc libvirt.spec mingw-libvirt.spec \
+        libvirt.pc \
+        libvirt-qemu.pc \
+        libvirt-lxc.pc \
+        src/libvirt.pc \
+        src/libvirt-qemu.pc \
+        src/libvirt-lxc.pc \
+        libvirt.spec mingw-libvirt.spec \
         po/Makefile.in \
         include/libvirt/Makefile include/libvirt/libvirt.h \
         daemon/Makefile \
@@ -2731,10 +2800,12 @@ AC_CONFIG_FILES([\
         examples/domsuspend/Makefile \
         examples/dominfo/Makefile \
         examples/dommigrate/Makefile \
+        examples/domtop/Makefile \
         examples/openauth/Makefile \
         examples/hellolibvirt/Makefile \
         examples/systemtap/Makefile \
         examples/xml/nwfilter/Makefile \
+        examples/lxcconvert/Makefile \
         tools/wireshark/Makefile \
         tools/wireshark/src/Makefile])
 AC_OUTPUT
@@ -2780,6 +2851,7 @@ AC_MSG_NOTICE([    Disk: $with_storage_disk])
 AC_MSG_NOTICE([     RBD: $with_storage_rbd])
 AC_MSG_NOTICE([Sheepdog: $with_storage_sheepdog])
 AC_MSG_NOTICE([ Gluster: $with_storage_gluster])
+AC_MSG_NOTICE([     ZFS: $with_storage_zfs])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Security Drivers])
 AC_MSG_NOTICE([])

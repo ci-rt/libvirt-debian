@@ -171,7 +171,9 @@ mymain(void)
     DO_TEST("boot-network");
     DO_TEST("boot-floppy");
     DO_TEST("boot-multi");
+    DO_TEST("boot-menu-enable-with-timeout");
     DO_TEST("boot-menu-disable");
+    DO_TEST_DIFFERENT("boot-menu-disable-with-timeout");
     DO_TEST("boot-order");
     DO_TEST("bootloader");
 
@@ -196,7 +198,13 @@ mymain(void)
     DO_TEST("hyperv");
     DO_TEST("hyperv-off");
 
+    DO_TEST("kvm-features");
+    DO_TEST("kvm-features-off");
+
     DO_TEST("hugepages");
+    DO_TEST("hugepages-pages");
+    DO_TEST("hugepages-pages2");
+    DO_TEST("hugepages-pages3");
     DO_TEST("nosharepages");
     DO_TEST("disk-aio");
     DO_TEST("disk-cdrom");
@@ -223,9 +231,13 @@ mymain(void)
     DO_TEST("disk-scsi-vscsi");
     DO_TEST("disk-scsi-virtio-scsi");
     DO_TEST("disk-virtio-scsi-num_queues");
+    DO_TEST("disk-virtio-scsi-cmd_per_lun");
+    DO_TEST("disk-virtio-scsi-max_sectors");
     DO_TEST("disk-scsi-megasas");
+    DO_TEST_DIFFERENT("disk-mirror-old");
     DO_TEST_FULL("disk-mirror", false, WHEN_ACTIVE);
     DO_TEST_FULL("disk-mirror", true, WHEN_INACTIVE);
+    DO_TEST_FULL("disk-active-commit", false, WHEN_ACTIVE);
     DO_TEST("graphics-listen-network");
     DO_TEST("graphics-vnc");
     DO_TEST("graphics-vnc-websocket");
@@ -244,6 +256,7 @@ mymain(void)
     DO_TEST("misc-disable-suspends");
     DO_TEST("misc-enable-s4");
     DO_TEST("misc-no-reboot");
+    DO_TEST("net-vhostuser");
     DO_TEST("net-user");
     DO_TEST("net-virtio");
     DO_TEST("net-virtio-device");
@@ -288,9 +301,12 @@ mymain(void)
     DO_TEST("cputune-zero-shares");
 
     DO_TEST("smp");
+    DO_TEST("iothreads");
+    DO_TEST("iothreads-disk");
     DO_TEST("lease");
     DO_TEST("event_idx");
     DO_TEST("vhost_queues");
+    DO_TEST("interface-driver");
     DO_TEST("virtio-lun");
 
     DO_TEST("usb-redir");
@@ -303,6 +319,8 @@ mymain(void)
     DO_TEST("seclabel-static");
     DO_TEST_FULL("seclabel-static-labelskip", false, WHEN_ACTIVE);
     DO_TEST("seclabel-none");
+    DO_TEST("seclabel-dac-none");
+    DO_TEST("seclabel-dynamic-none");
     DO_TEST("numad-static-vcpu-no-numatune");
     DO_TEST("disk-scsi-lun-passthrough-sgio");
 
@@ -351,6 +369,11 @@ mymain(void)
 
     DO_TEST_DIFFERENT("hostdev-scsi-autogen-address");
 
+    DO_TEST("hostdev-scsi-lsi-iscsi");
+    DO_TEST("hostdev-scsi-lsi-iscsi-auth");
+    DO_TEST("hostdev-scsi-virtio-iscsi");
+    DO_TEST("hostdev-scsi-virtio-iscsi-auth");
+
     DO_TEST_DIFFERENT("s390-defaultconsole");
 
     DO_TEST("pcihole64");
@@ -361,6 +384,16 @@ mymain(void)
     DO_TEST("panic");
 
     DO_TEST_DIFFERENT("disk-backing-chains");
+
+    DO_TEST("chardev-label");
+
+    DO_TEST_DIFFERENT("cpu-numa1");
+    DO_TEST_DIFFERENT("cpu-numa2");
+    DO_TEST("cpu-numa-disjoint");
+
+    DO_TEST_DIFFERENT("numatune-auto-prefer");
+    DO_TEST_DIFFERENT("numatune-memnode");
+    DO_TEST("numatune-memnode-no-memory");
 
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);

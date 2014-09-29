@@ -1,3 +1,213 @@
+libvirt (1.2.8-3) unstable; urgency=medium
+
+  * [9e3d695] Don't ship the socket activation file until we switched to
+    polkit and we can therefore ignore socket permissions. (Closes: #762606)
+  * [a32e72e,4eb67f4] Clean up capabilities and possibly empty dirs
+    (Closes: #761131)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 25 Sep 2014 12:08:51 +0200
+
+libvirt (1.2.8-2) unstable; urgency=medium
+
+  * [7b0894e] Debianize virtlockd unit file
+  * [2c522fd] Tag Debian specific patches as such
+  * [e1e734b] CVE-2014-3633: qemu: blkiotune: Use correct definition when
+    looking up disk. Thanks to Peter Krempa (Closes: #762203)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 23 Sep 2014 08:53:01 +0200
+
+libvirt (1.2.8-1) experimental; urgency=medium
+
+  * [e55688b] New upstream version 1.2.8
+    (Closes: #760510)
+  * [daa5c92] New upstream version 1.2.8~rc2
+  * [7f85d5e] Bump symbol versions
+  * [ea29953] Rediff patches.
+    Drop patches appplied upstream:
+        Don-t-fail-qemu-driver-intialization-if-we-can-t-det.patch
+        Include-param.h-on-kFreeBSD.patch
+        Make-uri-command-a-bit-more-prominent.patch
+  * [4633967] Verify tarball signature
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 05 Sep 2014 19:56:50 +0200
+
+libvirt (1.2.7-11) unstable; urgency=medium
+
+  * [6534478] Check status in a systemd 208 compatible way
+    systemd 204 returned 0 when trying to reload a not running service but
+    208 changed behaviour. So use status instead of is-enabled.
+    Thanks to Neutron Soutmun for his feedback (Closes: #758688)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 24 Aug 2014 10:54:26 +0200
+
+libvirt (1.2.7-10) unstable; urgency=medium
+
+  * [d319f15] Only reexec virtlockd if enabled (Closes: #758688)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 21 Aug 2014 16:34:36 +0200
+
+libvirt (1.2.7-9) unstable; urgency=medium
+
+  * [1c2c5ee] Don't let dh_systemd_start guess the package to act on
+    (Closes: #758552)
+  * [ab79901] Don't restart libvirt-guests when using systemd so it's
+    consistent with sysvinit. We'd restart VMs on package upgrads otherwise.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 19 Aug 2014 09:59:47 +0200
+
+libvirt (1.2.7-8) unstable; urgency=medium
+
+  * [d98aa3b] Fix wrong relation in preinst.
+    Thanks to Laurent Bigonville (Closes: #758136)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 14 Aug 2014 21:06:45 +0200
+
+libvirt (1.2.7-7) unstable; urgency=medium
+
+  * [42dbd16] Skip more linux specific stuff on kFreeBSD
+  * [a2ff23f] Don't restart virtlockd on upgrade virtlockd must be reloaded so
+    it reexecs itself. (Closes: #757453)
+  * [4914adc] Use symlinks for upstream changelog.  This safes 1.9M per
+    package
+  * [3583f4b] Don't fail qemu driver intialization if we can't determine
+    hugepage size.  Thanks to a lot to Jamie Heilman for testing it
+    (Closes: #757609)
+  * [3b23724] Make 'uri' command a bit more prominent. (Closes: #688778)
+  * [63e7e51] Also stop libvirt-bin in libvirt-bin's preinst.
+    When libvirt-daemon-system's preinst runs the new libvirt-bin might
+    already be unpacked and therefore the libvirt-bin service file already
+    gone. So additionally stop libvirt-bin in libvirt-bin's preinst.
+    (Closes: #757952)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 13 Aug 2014 21:50:07 +0200
+
+libvirt (1.2.7-6) unstable; urgency=medium
+
+  * [5e39138] Don't provide libvirt-bin via LSB headers.
+    This avoids a conflict when /e/i/libvirt-bin and /e/i/libvirtd
+    are around at the same time during dpkg's configure phase and
+    both init scripts Provide: libvirt-bin.
+    (Closes: #757330)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 Aug 2014 17:58:36 +0200
+
+libvirt (1.2.7-5) unstable; urgency=medium
+
+  * [06d457c] Bump comparison version so this applies to current failed
+    upgrades too.
+  * [bdae16d] Remove another obsolete conffile (Closes: #757332)
+  * [2f486c5] Don't try to stop libvirt-bin if it's already gone
+    (Closes: #757407)
+  * [a9643a0] Remove another obsolete conffile (Closes: #757332)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 07 Aug 2014 23:21:39 +0200
+
+libvirt (1.2.7-4) unstable; urgency=medium
+
+  * [5e71896] Move networking configuration to libvirt-daemon-system too
+  * [32eea48] Remove left over empty directory
+  * [b3a2735] Also purge libvirt-bin.service on new installations.
+    The old service file was in libvirt-bin so we need to remove it when
+    libvirt-daemon-service is first installed (as we did before when
+    the whole code was in the postinst).
+    Thanks to Laurent Bigonville for the analysis (Closes: #757293)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 07 Aug 2014 10:57:53 +0200
+
+libvirt (1.2.7-3) unstable; urgency=medium
+
+  * Upload to unstable
+  * [f634d53] Don't try to install qemu configuration on kFreeBSD.
+    QEMU support on kFreeBSD support is currently disabled due to test
+    failures.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 06 Aug 2014 20:28:05 +0200
+
+libvirt (1.2.7-2) experimental; urgency=medium
+
+  * [ebfec9b] Don't try to install lxc.conf on kFreeBSD.
+    Another kFreeBSD build fix
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 04 Aug 2014 14:10:57 +0200
+
+libvirt (1.2.7-1) experimental; urgency=medium
+
+  * [65e69d3] New upstream version 1.2.7
+  * [d615910] Don't try to install virt-login-shell on non-linux.
+    It's LXC only. This fixes the build failure on kFreeBSD.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 03 Aug 2014 19:20:26 +0200
+
+libvirt (1.2.7~rc2-1) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * [16575d9] New upstream version 1.2.7~rc2
+  * [bc785a7] Drop left over libvirt-bin references.
+    Fixes more leftovers of #730604.
+  * [ca64c62] Rediff patches
+  * [998e7d4] Update symbols file
+  * [06cf7b4] Make sure libvirt-bin versioned dependencies are recent enough
+
+  [ Laurent Bigonville ]
+  * [daf46fe] Stop the daemon in the preinst script instead of the postinst
+    one when renaming the .service file as it now contains the
+   "Restart=on-failure" option and blindly killing the daemon is not working
+   anymore.  This completes the fix for #730604
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 01 Aug 2014 10:52:57 +0200
+
+libvirt (1.2.6-2) experimental; urgency=medium
+
+  * [501afad] Update copyright information
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 29 Jul 2014 08:55:26 +0200
+
+libvirt (1.2.6-1) experimental; urgency=medium
+
+  [ Laurent Bigonville ]
+  * [4c4977e,87fc2db] Rename libvirt-bin.service back to libvirtd.service
+    and use symlink or Alias= instead. This is what upstream uses.
+    (Closes: #730604)
+
+  [ Guido Günther ]
+  * Upload to experimental
+  * [9321997] Drop build-dep on hal-dev too (Closes: #710195)
+  * [899c1d3] New upstream version 1.2.5
+  * [34d54b9] Refresh patches.
+    Dropped, fixed upstream:
+       LSN-2014-0003-Don-t-expand-entities-when-parsing-XML.patch
+  * [12e5468] Update symbols file
+  * [8ae2cf5] Depend on gnutls/gcrypt explicitly (Closes: #753121)
+  * [8881fe5] Recommend iproute2 instead of iproute (Closes: #753713)
+  * [ab710a4] New upstream version 1.2.6
+  * [a23d7fc] Rediff patches
+  * [e6c037b] Bump symbol versions
+  * [7ca6a8a] Split out daemon configuration (Closes: #679074)
+  * [60ec538] Cleanup old conffile (Closes: #748720)
+  * [cc59dd4] Provide build and packager information (Closes: #753306)
+  * [74baa7e] Use sensible-editor as fallback.
+    Based on a patch by Dmitry Smirnov (Closes: #594444)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 22 Jul 2014 22:33:51 +0200
+
+libvirt (1.2.4-3) unstable; urgency=medium
+
+  * [b0b7359] Don't pretend kFreeBSD supports linux only features.  So far we
+    worked around missing kFreeBSD features by creating empty dirs this looks
+    bad on the target systems and makes us maintain things in debian rules and
+    *.install. Explicitly invoke dh_install in debian/rules instead.
+    Closes: #747658
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 10 May 2014 22:23:06 +0200
+
+libvirt (1.2.4-2) unstable; urgency=medium
+
+  * [8bcbf97] Only linux has apparmor (Closes: #747565)
+  * [0fa7624] Disable tests requiring filesystem attributes since they seem to
+    fail on the buildd (Closes: #747565)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 10 May 2014 15:38:57 +0200
+
 libvirt (1.2.4-1~bpo70+1.1) wheezy-backports; urgency=medium
 
   * Non-maintainer upload.

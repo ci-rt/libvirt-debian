@@ -4,34 +4,29 @@ Subject: Debianize systemd service files
 
 ---
  daemon/libvirtd.service.in      | 4 ++--
- tools/libvirt-guests.service.in | 4 ++--
- 2 files changed, 4 insertions(+), 4 deletions(-)
+ tools/libvirt-guests.service.in | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/daemon/libvirtd.service.in b/daemon/libvirtd.service.in
-index 086da36..9bc433c 100644
+index 1759ac8..5269a7f 100644
 --- a/daemon/libvirtd.service.in
 +++ b/daemon/libvirtd.service.in
-@@ -15,8 +15,8 @@ Documentation=http://libvirt.org
+@@ -10,8 +10,8 @@ Documentation=http://libvirt.org
  
  [Service]
  Type=notify
 -EnvironmentFile=-/etc/sysconfig/libvirtd
 -ExecStart=@sbindir@/libvirtd $LIBVIRTD_ARGS
-+EnvironmentFile=-/etc/default/libvirt-bin
++EnvironmentFile=-/etc/default/libvirtd
 +ExecStart=@sbindir@/libvirtd $libvirtd_opts
  ExecReload=/bin/kill -HUP $MAINPID
  KillMode=process
  Restart=on-failure
 diff --git a/tools/libvirt-guests.service.in b/tools/libvirt-guests.service.in
-index d8d7adf..e743edd 100644
+index d8d7adf..15dfcbd 100644
 --- a/tools/libvirt-guests.service.in
 +++ b/tools/libvirt-guests.service.in
-@@ -1,11 +1,11 @@
- [Unit]
- Description=Suspend Active Libvirt Guests
--After=network.target libvirtd.service
-+After=network.target libvirt-bin.service
- Documentation=man:libvirtd(8)
+@@ -5,7 +5,7 @@ Documentation=man:libvirtd(8)
  Documentation=http://libvirt.org
  
  [Service]

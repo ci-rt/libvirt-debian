@@ -122,7 +122,7 @@
           Some tests are skipped by default in a development environment,
           based on the time they take in comparison to the likelihood
           that those tests will turn up problems during incremental builds.
-          These tests default to being run when when building from a
+          These tests default to being run when building from a
           tarball or with the configure option --enable-expensive-tests;
           you can also force a one-time toggle of these tests by
           setting VIR_TEST_EXPENSIVE to 0 or 1 at make time, as in:
@@ -260,7 +260,7 @@
     <p>
       There is more on this subject, including lots of links to background
       reading on the subject, on
-      <a href="http://et.redhat.com/~rjones/how-to-supply-code-to-open-source-projects/">
+      <a href="http://people.redhat.com/rjones/how-to-supply-code-to-open-source-projects/">
         Richard Jones' guide to working with open source projects</a>.
     </p>
 
@@ -614,7 +614,7 @@
     </p>
 <pre>
   #if defined(HAVE_POSIX_FALLOCATE) &amp;&amp; !defined(HAVE_FALLOCATE)
-  # define fallocate(a,ignored,b,c) posix_fallocate(a,b,c)
+  # define fallocate(a, ignored, b, c) posix_fallocate(a, b, c)
   #endif
 </pre>
 
@@ -948,7 +948,7 @@
     <p>
       If there is a need for complex string concatenations, avoid using
       the usual sequence of malloc/strcpy/strcat/snprintf functions and
-      make use of the virBuffer API described in buf.h
+      make use of the virBuffer API described in virbuffer.h
     </p>
 
     <p>Typical usage is as follows:</p>
@@ -968,11 +968,8 @@
 
      ...
 
-     if (virBufferError(&amp;buf)) {
-         virBufferFreeAndReset(&amp;buf);
-         virReportOOMError();
+     if (virBufferCheckError(&amp;buf) &lt; 0)
          return NULL;
-     }
 
      return virBufferContentAndReset(&amp;buf);
   }

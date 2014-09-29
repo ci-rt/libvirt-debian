@@ -746,11 +746,11 @@ virXMLParseHelper(int domcode,
 
     if (filename) {
         xml = xmlCtxtReadFile(pctxt, filename, NULL,
-                              XML_PARSE_NOENT | XML_PARSE_NONET |
+                              XML_PARSE_NONET |
                               XML_PARSE_NOWARNING);
     } else {
         xml = xmlCtxtReadDoc(pctxt, BAD_CAST xmlStr, url, NULL,
-                             XML_PARSE_NOENT | XML_PARSE_NONET |
+                             XML_PARSE_NONET |
                              XML_PARSE_NOWARNING);
     }
     if (!xml)
@@ -931,11 +931,6 @@ virXMLNodeToString(xmlDocPtr doc,
 
 typedef int (*virXMLForeachCallback)(xmlNodePtr node,
                                      void *opaque);
-
-static int
-virXMLForeachNode(xmlNodePtr root,
-                  virXMLForeachCallback cb,
-                  void *opaque);
 
 static int
 virXMLForeachNode(xmlNodePtr root,

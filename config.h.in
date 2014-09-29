@@ -1005,6 +1005,9 @@
 /* Define to 1 if you have the `gethostname' function. */
 #undef HAVE_GETHOSTNAME
 
+/* Define to 1 if you have the 'getifaddrs' function. */
+#undef HAVE_GETIFADDRS
+
 /* Define to 1 if you have the 'getmntent_r' function. */
 #undef HAVE_GETMNTENT_R
 
@@ -1134,6 +1137,9 @@
 
 /* Define to 1 if you have the <libintl.h> header file. */
 #undef HAVE_LIBINTL_H
+
+/* Define to 1 if you have the `kvm' library (-lkvm). */
+#undef HAVE_LIBKVM
 
 /* whether the netlink library is available */
 #undef HAVE_LIBNL
@@ -1289,6 +1295,9 @@
 
 /* whether numad is available */
 #undef HAVE_NUMAD
+
+/* whether numa_bitmask_isbitset is available */
+#undef HAVE_NUMA_BITMASK_ISBITSET
 
 /* Define to 1 if the system has the 'openpty' function. */
 #undef HAVE_OPENPTY
@@ -1605,6 +1614,9 @@
 
 /* Define to 1 if `ifr_newname' is a member of `struct ifreq'. */
 #undef HAVE_STRUCT_IFREQ_IFR_NEWNAME
+
+/* Define to 1 if `ifi_oqdrops' is a member of `struct if_data'. */
+#undef HAVE_STRUCT_IF_DATA_IFI_OQDROPS
 
 /* Define to 1 if `decimal_point' is a member of `struct lconv'. */
 #undef HAVE_STRUCT_LCONV_DECIMAL_POINT
@@ -2006,6 +2018,10 @@
 /* Define to a substitute value for mmap()'s MAP_ANONYMOUS flag. */
 #undef MAP_ANONYMOUS
 
+/* Define if the mbrtowc function does not return (size_t) -2 for empty input.
+   */
+#undef MBRTOWC_EMPTY_INPUT_BUG
+
 /* Define if the mbrtowc function has the NULL pwc argument bug. */
 #undef MBRTOWC_NULL_ARG1_BUG
 
@@ -2096,7 +2112,7 @@
    */
 #undef PTHREAD_SIGMASK_FAILS_WITH_ERRNO
 
-/* Define to 1 if pthread_sigmask() may returns 0 and have no effect. */
+/* Define to 1 if pthread_sigmask may return 0 and have no effect. */
 #undef PTHREAD_SIGMASK_INEFFECTIVE
 
 /* Define to 1 if pthread_sigmask() unblocks signals incorrectly. */
@@ -2308,6 +2324,10 @@
 /* path to directory containing UUCP device lock files */
 #undef VIR_CHRDEV_LOCK_FILE_PATH
 
+/* Define to empty or 'const' depending on how SELinux qualifies its security
+   context parameters */
+#undef VIR_SELINUX_CTX_CONST
+
 /* Define to the absolute path of a shell that does not truncate on <>
    redirection, if /bin/sh does not fit the bill */
 #undef VIR_WRAPPER_SHELL
@@ -2509,6 +2529,9 @@
 /* whether Sheepdog backend for storage driver is enabled */
 #undef WITH_STORAGE_SHEEPDOG
 
+/* whether ZFS backend for storage driver is enabled */
+#undef WITH_STORAGE_ZFS
+
 /* whether libsystemd-daemon >= 0.27.1 is available */
 #undef WITH_SYSTEMD_DAEMON
 
@@ -2563,6 +2586,12 @@
 /* Define to 1 if gcc supports pragma push/pop */
 #undef WORKING_PRAGMA_PUSH
 
+/* Location of zfs program */
+#undef ZFS
+
+/* Location of zpool program */
+#undef ZPOOL
+
 /* Enable large inode numbers on Mac OS X 10.5. */
 #undef _DARWIN_USE_64_BIT_INODE
 
@@ -2616,12 +2645,18 @@
 /* Define to 1 if you need to in order for 'stat' and other things to work. */
 #undef _POSIX_SOURCE
 
+/* For thread-safety on OSF/1, Solaris. */
+#undef _REENTRANT
+
 /* Define if you want <regex.h> to include <limits.h>, so that it consistently
    overrides <limits.h>'s RE_DUP_MAX. */
 #undef _REGEX_INCLUDE_LIMITS_H
 
 /* Define if you want regoff_t to be at least as wide POSIX requires. */
 #undef _REGEX_LARGE_OFFSETS
+
+/* For thread-safety on AIX, FreeBSD. */
+#undef _THREAD_SAFE
 
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
@@ -2845,6 +2880,16 @@
 /* The name _UNUSED_PARAMETER_ is an earlier spelling, although the name
    is a misnomer outside of parameter lists.  */
 #define _UNUSED_PARAMETER_ _GL_UNUSED
+
+/* gcc supports the "unused" attribute on possibly unused labels, and
+   g++ has since version 4.5.  Note to support C++ as well as C,
+   _GL_UNUSED_LABEL should be used with a trailing ;  */
+#if !defined __cplusplus || __GNUC__ > 4 \
+    || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
+# define _GL_UNUSED_LABEL _GL_UNUSED
+#else
+# define _GL_UNUSED_LABEL
+#endif
 
 /* The __pure__ attribute was added in gcc 2.96.  */
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96)

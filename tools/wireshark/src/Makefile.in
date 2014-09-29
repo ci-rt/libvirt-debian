@@ -1742,6 +1742,8 @@ XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
+ZFS = @ZFS@
+ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -1803,7 +1805,12 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ws_plugindir = @ws_plugindir@
-INCLUDES = -I$(top_srcdir)
+INCLUDES = \
+  -I$(top_srcdir) \
+  -I$(top_srcdir)/src \
+  -I$(top_srcdir)/include \
+  -I$(top_srcdir)/gnulib/lib
+
 ws_plugin_LTLIBRARIES = libvirt.la
 libvirt_la_SOURCES = packet-libvirt.h packet-libvirt.c plugin.c
 libvirt_la_CPPFLAGS = $(WS_DISSECTOR_CPPFLAGS)

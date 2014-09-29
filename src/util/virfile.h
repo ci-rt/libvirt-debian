@@ -32,7 +32,7 @@
 # include "internal.h"
 # include "virstoragefile.h"
 
-typedef enum virFileCloseFlags {
+typedef enum {
     VIR_FILE_CLOSE_PRESERVE_ERRNO = 1 << 0,
     VIR_FILE_CLOSE_IGNORE_EBADF = 1 << 1,
     VIR_FILE_CLOSE_DONT_LOG = 1 << 2,
@@ -84,10 +84,10 @@ typedef virFileWrapperFd *virFileWrapperFdPtr;
 
 int virFileDirectFdFlag(void);
 
-enum virFileWrapperFdFlags {
+typedef enum {
     VIR_FILE_WRAPPER_BYPASS_CACHE   = (1 << 0),
     VIR_FILE_WRAPPER_NON_BLOCKING   = (1 << 1),
-};
+} virFileWrapperFdFlags;
 
 virFileWrapperFdPtr virFileWrapperFdNew(int *fd,
                                         const char *name,
@@ -117,7 +117,7 @@ int virFileLoopDeviceAssociate(const char *file,
                                char **dev);
 
 int virFileNBDDeviceAssociate(const char *file,
-                              enum virStorageFileFormat fmt,
+                              virStorageFileFormat fmt,
                               bool readonly,
                               char **dev);
 
@@ -128,6 +128,8 @@ int virFileReadHeaderFD(int fd, int maxlen, char **buf)
 int virFileReadLimFD(int fd, int maxlen, char **buf)
     ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NONNULL(3);
 int virFileReadAll(const char *path, int maxlen, char **buf)
+    ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
+int virFileReadAllQuiet(const char *path, int maxlen, char **buf)
     ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
 
 int virFileWriteStr(const char *path, const char *str, mode_t mode)
@@ -281,4 +283,16 @@ int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 int virFilePrintf(FILE *fp, const char *msg, ...)
     ATTRIBUTE_FMT_PRINTF(2, 3);
 
+typedef struct _virHugeTLBFS virHugeTLBFS;
+typedef virHugeTLBFS *virHugeTLBFSPtr;
+struct _virHugeTLBFS {
+    char *mnt_dir;                  /* Where the FS is mount to */
+    unsigned long long size;        /* page size in kibibytes */
+    bool deflt;                     /* is this the default huge page size */
+};
+
+int virFileGetHugepageSize(const char *path,
+                           unsigned long long *size);
+int virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
+                         size_t *ret_nfs);
 #endif /* __VIR_FILE_H */

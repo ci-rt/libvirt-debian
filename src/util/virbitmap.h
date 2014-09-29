@@ -69,8 +69,7 @@ int virBitmapGetBit(virBitmapPtr bitmap, size_t b, bool *result)
 char *virBitmapString(virBitmapPtr bitmap)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
-char *virBitmapFormat(virBitmapPtr bitmap)
-    ATTRIBUTE_NONNULL(1);
+char *virBitmapFormat(virBitmapPtr bitmap);
 
 int virBitmapParse(const char *str,
                    char sep,
@@ -111,5 +110,12 @@ ssize_t virBitmapNextClearBit(virBitmapPtr bitmap, ssize_t pos)
 
 size_t virBitmapCountBits(virBitmapPtr bitmap)
     ATTRIBUTE_NONNULL(1);
+
+char *virBitmapDataToString(void *data,
+                            int len)
+    ATTRIBUTE_NONNULL(1);
+bool virBitmapOverlaps(virBitmapPtr b1,
+                       virBitmapPtr b2)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 #endif

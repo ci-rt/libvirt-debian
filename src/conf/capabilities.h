@@ -1,7 +1,7 @@
 /*
  * capabilities.h: hypervisor capabilities
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -37,8 +37,8 @@ typedef struct _virCapsGuestFeature virCapsGuestFeature;
 typedef virCapsGuestFeature *virCapsGuestFeaturePtr;
 struct _virCapsGuestFeature {
     char *name;
-    int defaultOn;
-    int toggle;
+    bool defaultOn;
+    bool toggle;
 };
 
 typedef struct _virCapsGuestMachine virCapsGuestMachine;
@@ -95,6 +95,20 @@ struct _virCapsHostNUMACellCPU {
     virBitmapPtr siblings;
 };
 
+typedef struct _virCapsHostNUMACellSiblingInfo virCapsHostNUMACellSiblingInfo;
+typedef virCapsHostNUMACellSiblingInfo *virCapsHostNUMACellSiblingInfoPtr;
+struct _virCapsHostNUMACellSiblingInfo {
+    int node;               /* foreign NUMA node */
+    unsigned int distance;  /* distance to the node */
+};
+
+typedef struct _virCapsHostNUMACellPageInfo virCapsHostNUMACellPageInfo;
+typedef virCapsHostNUMACellPageInfo *virCapsHostNUMACellPageInfoPtr;
+struct _virCapsHostNUMACellPageInfo {
+    unsigned int size;      /* page size in kibibytes */
+    size_t avail;           /* the size of pool */
+};
+
 typedef struct _virCapsHostNUMACell virCapsHostNUMACell;
 typedef virCapsHostNUMACell *virCapsHostNUMACellPtr;
 struct _virCapsHostNUMACell {
@@ -102,6 +116,10 @@ struct _virCapsHostNUMACell {
     int ncpus;
     unsigned long long mem; /* in kibibytes */
     virCapsHostNUMACellCPUPtr cpus;
+    int nsiblings;
+    virCapsHostNUMACellSiblingInfoPtr siblings;
+    int npageinfo;
+    virCapsHostNUMACellPageInfoPtr pageinfo;
 };
 
 typedef struct _virCapsHostSecModelLabel virCapsHostSecModelLabel;
@@ -130,8 +148,8 @@ struct _virCapsHost {
     unsigned int powerMgmt;    /* Bitmask of the PM capabilities.
                                 * See enum virHostPMCapability.
                                 */
-    int offlineMigrate;
-    int liveMigrate;
+    bool offlineMigrate;
+    bool liveMigrate;
     size_t nmigrateTrans;
     size_t nmigrateTrans_max;
     char **migrateTrans;
@@ -143,6 +161,8 @@ struct _virCapsHost {
     virCapsHostSecModelPtr secModels;
 
     virCPUDefPtr cpu;
+    int nPagesSize;             /* size of pagesSize array */
+    unsigned int *pagesSize;    /* page sizes support on the system */
     unsigned char host_uuid[VIR_UUID_BUFLEN];
 };
 
@@ -175,8 +195,8 @@ struct _virCaps {
 
 extern virCapsPtr
 virCapabilitiesNew(virArch hostarch,
-                   int offlineMigrate,
-                   int liveMigrate);
+                   bool offlineMigrate,
+                   bool liveMigrate);
 
 extern void
 virCapabilitiesFreeNUMAInfo(virCapsPtr caps);
@@ -193,9 +213,13 @@ virCapabilitiesAddHostMigrateTransport(virCapsPtr caps,
 extern int
 virCapabilitiesAddHostNUMACell(virCapsPtr caps,
                                int num,
-                               int ncpus,
                                unsigned long long mem,
-                               virCapsHostNUMACellCPUPtr cpus);
+                               int ncpus,
+                               virCapsHostNUMACellCPUPtr cpus,
+                               int nsiblings,
+                               virCapsHostNUMACellSiblingInfoPtr siblings,
+                               int npageinfo,
+                               virCapsHostNUMACellPageInfoPtr pageinfo);
 
 
 extern int
@@ -230,8 +254,8 @@ virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
 extern virCapsGuestFeaturePtr
 virCapabilitiesAddGuestFeature(virCapsGuestPtr guest,
                                const char *name,
-                               int defaultOn,
-                               int toggle);
+                               bool defaultOn,
+                               bool toggle);
 
 extern int
 virCapabilitiesHostSecModelAddBaseLabel(virCapsHostSecModelPtr secmodel,

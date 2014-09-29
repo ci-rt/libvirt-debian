@@ -9,11 +9,14 @@ gnulib/lib/regcomp.c
 src/access/viraccessdriverpolkit.c
 src/access/viraccessmanager.c
 src/bhyve/bhyve_command.c
+src/bhyve/bhyve_device.c
 src/bhyve/bhyve_driver.c
 src/bhyve/bhyve_process.c
 src/conf/capabilities.c
 src/conf/cpu_conf.c
 src/conf/device_conf.c
+src/conf/domain_addr.c
+src/conf/domain_capabilities.c
 src/conf/domain_conf.c
 src/conf/domain_event.c
 src/conf/interface_conf.c
@@ -22,6 +25,7 @@ src/conf/netdev_vlan_conf.c
 src/conf/netdev_vport_profile_conf.c
 src/conf/network_conf.c
 src/conf/node_device_conf.c
+src/conf/numatune_conf.c
 src/conf/nwfilter_conf.c
 src/conf/nwfilter_params.c
 src/conf/object_event.c
@@ -73,8 +77,10 @@ src/lxc/lxc_process.c
 src/libxl/libxl_domain.c
 src/libxl/libxl_driver.c
 src/libxl/libxl_conf.c
+src/libxl/libxl_migration.c
 src/network/bridge_driver.c
 src/network/bridge_driver_linux.c
+src/network/leaseshelper.c
 src/node_device/node_device_driver.c
 src/node_device/node_device_hal.c
 src/node_device/node_device_linux_sysfs.c
@@ -142,6 +148,7 @@ src/storage/storage_backend_mpath.c
 src/storage/storage_backend_rbd.c
 src/storage/storage_backend_scsi.c
 src/storage/storage_backend_sheepdog.c
+src/storage/storage_backend_zfs.c
 src/storage/storage_driver.c
 src/test/test_driver.c
 src/uml/uml_conf.c
@@ -152,6 +159,7 @@ src/util/viraudit.c
 src/util/virauth.c
 src/util/virauthconfig.c
 src/util/virbitmap.c
+src/util/virbuffer.c
 src/util/vircgroup.c
 src/util/virclosecallbacks.c
 src/util/vircommand.c
@@ -192,7 +200,7 @@ src/util/virrandom.c
 src/util/virsexpr.c
 src/util/virscsi.c
 src/util/virsocketaddr.c
-src/util/virstatslinux.c
+src/util/virstats.c
 src/util/virstorageencryption.c
 src/util/virstoragefile.c
 src/util/virstring.c
@@ -209,6 +217,8 @@ src/util/virxml.c
 src/vbox/vbox_MSCOMGlue.c
 src/vbox/vbox_XPCOMCGlue.c
 src/vbox/vbox_driver.c
+src/vbox/vbox_common.c
+src/vbox/vbox_snapshot_conf.c
 src/vbox/vbox_tmpl.c
 src/vmware/vmware_conf.c
 src/vmware/vmware_driver.c
@@ -222,8 +232,9 @@ src/xen/xm_internal.c
 src/xen/xs_internal.c
 src/xenapi/xenapi_driver.c
 src/xenapi/xenapi_utils.c
-src/xenxs/xen_sxpr.c
-src/xenxs/xen_xm.c
+src/xenconfig/xen_common.c
+src/xenconfig/xen_sxpr.c
+src/xenconfig/xen_xm.c
 tools/libvirt-guests.sh.in
 tools/virsh.c
 tools/virsh.h

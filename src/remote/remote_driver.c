@@ -321,6 +321,11 @@ remoteDomainBuildEventCallbackDeviceRemoved(virNetClientProgramPtr prog,
                                             void *evdata, void *opaque);
 
 static void
+remoteDomainBuildEventBlockJob2(virNetClientProgramPtr prog,
+                                virNetClientPtr client,
+                                void *evdata, void *opaque);
+
+static void
 remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                  virNetClientPtr client ATTRIBUTE_UNUSED,
                                  void *evdata, void *opaque);
@@ -467,6 +472,10 @@ static virNetClientProgramEvent remoteEvents[] = {
       remoteDomainBuildEventCallbackDeviceRemoved,
       sizeof(remote_domain_event_callback_device_removed_msg),
       (xdrproc_t)xdr_remote_domain_event_callback_device_removed_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB_2,
+      remoteDomainBuildEventBlockJob2,
+      sizeof(remote_domain_event_block_job_2_msg),
+      (xdrproc_t)xdr_remote_domain_event_block_job_2_msg },
 };
 
 
@@ -573,7 +582,7 @@ doRemoteOpen(virConnectPtr conn,
         trans_tcp,
     } transport;
 #ifndef WIN32
-    const char *daemonPath = NULL;
+    char *daemonPath = NULL;
 #endif
 
     /* We handle *ALL* URIs here. The caller has rejected any
@@ -1059,6 +1068,9 @@ doRemoteOpen(virConnectPtr conn,
     VIR_FREE(pkipath);
     VIR_FREE(knownHostsVerify);
     VIR_FREE(knownHosts);
+#ifndef WIN32
+    VIR_FREE(daemonPath);
+#endif
 
     return retcode;
 
@@ -5048,6 +5060,28 @@ remoteDomainBuildEventCallbackBlockJob(virNetClientProgramPtr prog ATTRIBUTE_UNU
     remote_domain_event_callback_block_job_msg *msg = evdata;
     remoteDomainBuildEventBlockJobHelper(conn, &msg->msg, msg->callbackID);
 }
+static void
+remoteDomainBuildEventBlockJob2(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                virNetClientPtr client ATTRIBUTE_UNUSED,
+                                void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    remote_domain_event_block_job_2_msg *msg = evdata;
+    struct private_data *priv = conn->privateData;
+    virDomainPtr dom;
+    virObjectEventPtr event = NULL;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom)
+        return;
+
+    event = virDomainEventBlockJob2NewFromDom(dom, msg->dst, msg->type,
+                                              msg->status);
+
+    virDomainFree(dom);
+
+    remoteEventQueue(priv, event, msg->callbackID);
+}
 
 static void
 remoteDomainBuildEventGraphicsHelper(virConnectPtr conn,
@@ -6412,6 +6446,53 @@ remoteDomainOpenGraphics(virDomainPtr dom,
 
 
 static int
+remoteDomainOpenGraphicsFD(virDomainPtr dom,
+                           unsigned int idx,
+                           unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_open_graphics_args args;
+    struct private_data *priv = dom->conn->privateData;
+    int *fdout = NULL;
+    size_t fdoutlen = 0;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.idx = idx;
+    args.flags = flags;
+
+    if (callFull(dom->conn, priv, 0,
+                 NULL, 0,
+                 &fdout, &fdoutlen,
+                 REMOTE_PROC_DOMAIN_OPEN_GRAPHICS_FD,
+                 (xdrproc_t) xdr_remote_domain_open_graphics_fd_args, (char *) &args,
+                 (xdrproc_t) xdr_void, NULL) == -1)
+        goto done;
+
+    if (fdoutlen != 1) {
+        if (fdoutlen) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("too many file descriptors received"));
+            while (fdoutlen)
+                VIR_FORCE_CLOSE(fdout[--fdoutlen]);
+        } else {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("no file descriptor received"));
+        }
+        goto done;
+    }
+    rv = fdout[0];
+
+ done:
+    VIR_FREE(fdout);
+    remoteDriverUnlock(priv);
+
+    return rv;
+}
+
+
+static int
 remoteConnectSetKeepAlive(virConnectPtr conn, int interval, unsigned int count)
 {
     struct private_data *priv = conn->privateData;
@@ -7435,6 +7516,289 @@ remoteDomainCreateWithFiles(virDomainPtr dom,
     return rv;
 }
 
+static int
+remoteDomainGetTime(virDomainPtr dom,
+                    long long *seconds,
+                    unsigned int *nseconds,
+                    unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_time_args args;
+    remote_domain_get_time_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    *seconds = *nseconds = 0;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_TIME,
+             (xdrproc_t) xdr_remote_domain_get_time_args, (char *) &args,
+             (xdrproc_t) xdr_remote_domain_get_time_ret, (char *) &ret) == -1)
+        goto cleanup;
+
+    *seconds = ret.seconds;
+    *nseconds = ret.nseconds;
+    xdr_free((xdrproc_t) &xdr_remote_domain_get_time_ret, (char *) &ret);
+    rv = 0;
+
+ cleanup:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+static int
+remoteNodeGetFreePages(virConnectPtr conn,
+                       unsigned int npages,
+                       unsigned int *pages,
+                       int startCell,
+                       unsigned int cellCount,
+                       unsigned long long *counts,
+                       unsigned int flags)
+{
+    int rv = -1;
+    remote_node_get_free_pages_args args;
+    remote_node_get_free_pages_ret ret;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    if (npages * cellCount > REMOTE_NODE_MAX_CELLS) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many NUMA cells: %d > %d"),
+                       npages * cellCount, REMOTE_NODE_MAX_CELLS);
+        goto done;
+    }
+
+    if (VIR_ALLOC_N(args.pages.pages_val, npages) < 0)
+        goto done;
+    memcpy(args.pages.pages_val, pages, npages * sizeof(*pages));
+    args.pages.pages_len = npages;
+    args.startCell = startCell;
+    args.cellCount = cellCount;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_GET_FREE_PAGES,
+             (xdrproc_t) xdr_remote_node_get_free_pages_args, (char *)&args,
+             (xdrproc_t) xdr_remote_node_get_free_pages_ret, (char *)&ret) == -1)
+        goto done;
+
+    memcpy(counts, ret.counts.counts_val, ret.counts.counts_len * sizeof(*counts));
+
+    xdr_free((xdrproc_t) xdr_remote_node_get_free_pages_ret, (char *) &ret);
+
+    rv = ret.counts.counts_len;
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+/* Copy contents of remote_network_dhcp_lease to virNetworkDHCPLeasePtr */
+static int
+remoteSerializeDHCPLease(virNetworkDHCPLeasePtr lease_dst, remote_network_dhcp_lease *lease_src)
+{
+    lease_dst->expirytime = lease_src->expirytime;
+    lease_dst->type = lease_src->type;
+    lease_dst->prefix = lease_src->prefix;
+
+    if (VIR_STRDUP(lease_dst->iface, lease_src->iface) < 0)
+        goto error;
+
+    if (VIR_STRDUP(lease_dst->ipaddr, lease_src->ipaddr) < 0)
+        goto error;
+
+    if (lease_src->mac) {
+        if (VIR_STRDUP(lease_dst->mac, *lease_src->mac) < 0)
+            goto error;
+    } else {
+        lease_src->mac = NULL;
+    }
+
+    if (lease_src->iaid) {
+        if (VIR_STRDUP(lease_dst->iaid, *lease_src->iaid) < 0)
+            goto error;
+    } else {
+        lease_src->iaid = NULL;
+    }
+
+    if (lease_src->hostname) {
+        if (VIR_STRDUP(lease_dst->hostname, *lease_src->hostname) < 0)
+            goto error;
+    } else {
+        lease_src->hostname = NULL;
+    }
+
+    if (lease_src->clientid) {
+        if (VIR_STRDUP(lease_dst->clientid, *lease_src->clientid) < 0)
+            goto error;
+    } else {
+        lease_src->clientid = NULL;
+    }
+
+    return 0;
+
+ error:
+    virNetworkDHCPLeaseFree(lease_dst);
+    return -1;
+}
+
+
+static int
+remoteNetworkGetDHCPLeases(virNetworkPtr net,
+                           const char *mac,
+                           virNetworkDHCPLeasePtr **leases,
+                           unsigned int flags)
+{
+    int rv = -1;
+    size_t i;
+    struct private_data *priv = net->conn->networkPrivateData;
+    remote_network_get_dhcp_leases_args args;
+    remote_network_get_dhcp_leases_ret ret;
+
+    virNetworkDHCPLeasePtr *leases_ret = NULL;
+    remoteDriverLock(priv);
+
+    make_nonnull_network(&args.net, net);
+    args.mac = mac ? (char **) &mac : NULL;
+    args.flags = flags;
+    args.need_results = !!leases;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_GET_DHCP_LEASES,
+             (xdrproc_t)xdr_remote_network_get_dhcp_leases_args, (char *)&args,
+             (xdrproc_t)xdr_remote_network_get_dhcp_leases_ret, (char *)&ret) == -1)
+        goto done;
+
+    if (ret.leases.leases_len > REMOTE_NETWORK_DHCP_LEASES_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Number of leases is %d, which exceeds max limit: %d"),
+                       ret.leases.leases_len, REMOTE_NETWORK_DHCP_LEASES_MAX);
+        goto cleanup;
+    }
+
+    if (leases) {
+        if (ret.leases.leases_len &&
+            VIR_ALLOC_N(leases_ret, ret.leases.leases_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.leases.leases_len; i++) {
+            if (VIR_ALLOC(leases_ret[i]) < 0)
+                goto cleanup;
+
+            if (remoteSerializeDHCPLease(leases_ret[i], &ret.leases.leases_val[i]) < 0)
+                goto cleanup;
+        }
+
+        *leases = leases_ret;
+        leases_ret = NULL;
+    }
+
+    rv = ret.ret;
+
+ cleanup:
+    if (leases_ret) {
+        for (i = 0; i < ret.leases.leases_len; i++)
+            virNetworkDHCPLeaseFree(leases_ret[i]);
+        VIR_FREE(leases_ret);
+    }
+    xdr_free((xdrproc_t)xdr_remote_network_get_dhcp_leases_ret,
+             (char *) &ret);
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+static int
+remoteConnectGetAllDomainStats(virConnectPtr conn,
+                               virDomainPtr *doms,
+                               unsigned int ndoms,
+                               unsigned int stats,
+                               virDomainStatsRecordPtr **retStats,
+                               unsigned int flags)
+{
+    struct private_data *priv = conn->networkPrivateData;
+    int rv = -1;
+    size_t i;
+    remote_connect_get_all_domain_stats_args args;
+    remote_connect_get_all_domain_stats_ret ret;
+
+    virDomainStatsRecordPtr *tmpret = NULL;
+
+    if (ndoms) {
+        if (VIR_ALLOC_N(args.doms.doms_val, ndoms) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ndoms; i++)
+            make_nonnull_domain(args.doms.doms_val + i, doms[i]);
+    }
+    args.doms.doms_len = ndoms;
+
+    args.stats = stats;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    remoteDriverLock(priv);
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_GET_ALL_DOMAIN_STATS,
+             (xdrproc_t)xdr_remote_connect_get_all_domain_stats_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_get_all_domain_stats_ret, (char *)&ret) == -1) {
+        remoteDriverUnlock(priv);
+        goto cleanup;
+    }
+    remoteDriverUnlock(priv);
+
+    if (ret.retStats.retStats_len > REMOTE_DOMAIN_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Number of stats entries is %d, which exceeds max limit: %d"),
+                       ret.retStats.retStats_len, REMOTE_DOMAIN_LIST_MAX);
+        goto cleanup;
+    }
+
+    *retStats = NULL;
+
+    if (VIR_ALLOC_N(tmpret, ret.retStats.retStats_len + 1) < 0)
+        goto cleanup;
+
+    for (i = 0; i < ret.retStats.retStats_len; i++) {
+        virDomainStatsRecordPtr elem;
+        remote_domain_stats_record *rec = ret.retStats.retStats_val + i;
+
+        if (VIR_ALLOC(elem) < 0)
+            goto cleanup;
+
+        if (!(elem->dom = get_nonnull_domain(conn, rec->dom)))
+            goto cleanup;
+
+        if (remoteDeserializeTypedParameters(rec->params.params_val,
+                                             rec->params.params_len,
+                                             REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX,
+                                             &elem->params,
+                                             &elem->nparams))
+            goto cleanup;
+
+        tmpret[i] = elem;
+    }
+
+    *retStats = tmpret;
+    tmpret = NULL;
+    rv = ret.retStats.retStats_len;
+
+ cleanup:
+    virDomainStatsRecordListFree(tmpret);
+    xdr_free((xdrproc_t)xdr_remote_connect_get_all_domain_stats_ret,
+             (char *) &ret);
+
+    return rv;
+}
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
@@ -7729,6 +8093,7 @@ static virDriver remote_driver = {
     .domainOpenConsole = remoteDomainOpenConsole, /* 0.8.6 */
     .domainOpenChannel = remoteDomainOpenChannel, /* 1.0.2 */
     .domainOpenGraphics = remoteDomainOpenGraphics, /* 0.9.7 */
+    .domainOpenGraphicsFD = remoteDomainOpenGraphicsFD, /* 1.2.8 */
     .domainInjectNMI = remoteDomainInjectNMI, /* 0.9.2 */
     .domainMigrateBegin3 = remoteDomainMigrateBegin3, /* 0.9.2 */
     .domainMigratePrepare3 = remoteDomainMigratePrepare3, /* 0.9.2 */
@@ -7768,6 +8133,13 @@ static virDriver remote_driver = {
     .domainMigrateFinish3Params = remoteDomainMigrateFinish3Params, /* 1.1.0 */
     .domainMigrateConfirm3Params = remoteDomainMigrateConfirm3Params, /* 1.1.0 */
     .connectGetCPUModelNames = remoteConnectGetCPUModelNames, /* 1.1.3 */
+    .domainFSFreeze = remoteDomainFSFreeze, /* 1.2.5 */
+    .domainFSThaw = remoteDomainFSThaw, /* 1.2.5 */
+    .domainGetTime = remoteDomainGetTime, /* 1.2.5 */
+    .domainSetTime = remoteDomainSetTime, /* 1.2.5 */
+    .nodeGetFreePages = remoteNodeGetFreePages, /* 1.2.6 */
+    .connectGetDomainCapabilities = remoteConnectGetDomainCapabilities, /* 1.2.7 */
+    .connectGetAllDomainStats = remoteConnectGetAllDomainStats, /* 1.2.8 */
 };
 
 static virNetworkDriver network_driver = {
@@ -7795,6 +8167,7 @@ static virNetworkDriver network_driver = {
     .networkSetAutostart = remoteNetworkSetAutostart, /* 0.3.0 */
     .networkIsActive = remoteNetworkIsActive, /* 0.7.3 */
     .networkIsPersistent = remoteNetworkIsPersistent, /* 0.7.3 */
+    .networkGetDHCPLeases = remoteNetworkGetDHCPLeases, /* 1.2.6 */
 };
 
 static virInterfaceDriver interface_driver = {

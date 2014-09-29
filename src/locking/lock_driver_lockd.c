@@ -99,7 +99,7 @@ static int virLockManagerLockDaemonLoadConfig(const char *configFile)
     if (!(conf = virConfReadFile(configFile, 0)))
         return -1;
 
-#define CHECK_TYPE(name,typ) if (p && p->type != (typ)) {               \
+#define CHECK_TYPE(name, typ) if (p && p->type != (typ)) {              \
         virReportError(VIR_ERR_INTERNAL_ERROR,                          \
                        "%s: %s: expected type " #typ,                   \
                        configFile, (name));                             \
@@ -243,7 +243,7 @@ static virNetClientPtr virLockManagerLockDaemonConnectionNew(bool privileged,
 {
     virNetClientPtr client = NULL;
     char *lockdpath;
-    const char *daemonPath = NULL;
+    char *daemonPath = NULL;
 
     *prog = NULL;
 
@@ -273,11 +273,13 @@ static virNetClientPtr virLockManagerLockDaemonConnectionNew(bool privileged,
     if (virNetClientAddProgram(client, *prog) < 0)
         goto error;
 
+    VIR_FREE(daemonPath);
     VIR_FREE(lockdpath);
 
     return client;
 
  error:
+    VIR_FREE(daemonPath);
     VIR_FREE(lockdpath);
     virNetClientClose(client);
     virObjectUnref(client);

@@ -505,11 +505,8 @@ xend_op_ext(virConnectPtr xend, const char *path, const char *key, va_list ap)
             virBufferAddChar(&buf, '&');
     }
 
-    if (virBufferError(&buf)) {
-        virBufferFreeAndReset(&buf);
-        virReportOOMError();
+    if (virBufferCheckError(&buf) < 0)
         return -1;
-    }
 
     content = virBufferContentAndReset(&buf);
     VIR_DEBUG("xend op: %s\n", content);
@@ -852,9 +849,7 @@ xenDaemonDomainLookupByName_ids(virConnectPtr xend,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("domain information incomplete, missing domid"));
         goto error;
-    }
-    ret = strtol(value, NULL, 0);
-    if ((ret == 0) && (value[0] != '0')) {
+    } else if (virStrToLong_i(value, NULL, 0, &ret) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("domain information incorrect domid not numeric"));
         ret = -1;
@@ -877,22 +872,26 @@ xend_detect_config_version(virConnectPtr conn)
     struct sexpr *root;
     const char *value;
     xenUnifiedPrivatePtr priv = conn->privateData;
+    int ret = -1;
 
     root = sexpr_get(conn, "/xend/node/");
     if (root == NULL)
-        return -1;
+        return ret;
 
     value = sexpr_node(root, "node/xend_config_format");
 
     if (value) {
-        priv->xendConfigVersion = strtol(value, NULL, 10);
+        if (virStrToLong_i(value, NULL, 10, &priv->xendConfigVersion) < 0)
+            goto cleanup;
     }  else {
         /* Xen prior to 3.0.3 did not have the xend_config_format
            field, and is implicitly version 1. */
         priv->xendConfigVersion = XEND_CONFIG_VERSION_3_0_2;
     }
+    ret = 0;
+ cleanup:
     sexpr_free(root);
-    return 0;
+    return ret;
 }
 
 
@@ -1100,7 +1099,10 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
         }
         virBitmapFree(cpuset);
 
-        if (virCapabilitiesAddHostNUMACell(caps, cell, nb_cpus, 0, cpuInfo) < 0)
+        if (virCapabilitiesAddHostNUMACell(caps, cell, 0,
+                                           nb_cpus, cpuInfo,
+                                           0, NULL,
+                                           0, NULL) < 0)
             goto error;
         cpuInfo = NULL;
     }
@@ -2608,10 +2610,8 @@ xenDaemonDomainSetAutostart(virConnectPtr conn,
             goto error;
         }
 
-        if (virBufferError(&buffer)) {
-            virReportOOMError();
+        if (virBufferCheckError(&buffer) < 0)
             goto error;
-        }
 
         content = virBufferContentAndReset(&buffer);
 
@@ -2976,7 +2976,7 @@ xenDaemonGetSchedulerType(virConnectPtr conn,
 
     /* get xen_scheduler from xend/node */
     ret = sexpr_node(root, "node/xen_scheduler");
-    if (ret == NULL){
+    if (ret == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("node information incomplete, missing scheduler name"));
         goto error;
@@ -3047,7 +3047,7 @@ xenDaemonGetSchedulerParameters(virConnectPtr conn,
         goto error;
     }
 
-    switch (sched_nparam){
+    switch (sched_nparam) {
         case XEN_SCHED_SEDF_NPARAM:
             if (*nparams < XEN_SCHED_SEDF_NPARAM) {
                 virReportError(VIR_ERR_INVALID_ARG,
@@ -3152,7 +3152,7 @@ xenDaemonSetSchedulerParameters(virConnectPtr conn,
         goto error;
     }
 
-    switch (sched_nparam){
+    switch (sched_nparam) {
         case XEN_SCHED_SEDF_NPARAM:
             /* TODO: Implement for Xen/SEDF */
             TODO

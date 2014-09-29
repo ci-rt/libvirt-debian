@@ -97,7 +97,7 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_15 = ../src/libvirt_driver_nwfilter.la
 @WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.policy $(LOGROTATE_CONFS)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.init
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.service libvirtd.socket
 subdir = daemon
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/mkinstalldirs \
@@ -1788,6 +1788,8 @@ XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
+ZFS = @ZFS@
+ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -1887,6 +1889,7 @@ EXTRA_DIST = \
 	libvirtd.policy.in				\
 	libvirtd.sasl					\
 	libvirtd.service.in				\
+	libvirtd.socket.in				\
 	libvirtd.sysconf				\
 	libvirtd.sysctl					\
 	libvirtd.aug                                    \
@@ -2651,13 +2654,16 @@ qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@install-init-upstart:
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-upstart:
 
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@install-init-systemd: install-sysconfig libvirtd.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@install-init-systemd: install-sysconfig libvirtd.service libvirtd.socket
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.service \
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.socket \
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.socket
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.socket
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) || :
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@install-init-systemd:
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd:
@@ -2676,6 +2682,12 @@ qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 @WITH_LIBVIRTD_TRUE@	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
 @WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	    mv $@-t $@
+
+@WITH_LIBVIRTD_TRUE@libvirtd.socket: libvirtd.socket.in $(top_builddir)/config.status
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]runstatedir[@]|$(runstatedir)|g'		\
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 

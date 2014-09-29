@@ -1,5 +1,10 @@
 #!/usr/bin/make -f
 
+DEB_RELEASE=$(shell dpkg-parsechangelog -SVersion | sed 's/[^-]\+-//')
+DEB_BUILDHOST=$(shell hostname)
+DEB_BUILDDATE=$(shell date +"%F-%T")
+DEB_BUILDUSER=${USER}
+
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_XEN = --with-xen
@@ -78,12 +83,14 @@ WITH_LIBXL            = --without-libxl
 WITH_MACVTAP          = --without-macvtap
 
 DEB_CONFIGURE_EXTRA_ARGS :=      \
+	--with-packager="$(DEB_BUILDUSER) $(DEB_BUILDDATE) $(DEB_BUILDHOST)" \
+	--with-packager-version="$(DEB_RELEASE)" \
 	--disable-silent-rules   \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \
 	--with-qemu-user=libvirt-qemu  \
 	--with-qemu-group=libvirt-qemu \
-        $(WITH_OPENVZ)		 \
+	$(WITH_OPENVZ)		 \
 	--with-avahi             \
 	--with-sasl              \
 	--with-yajl              \
@@ -114,7 +121,8 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_DTRACE)           \
 	$(WITH_AUDIT)            \
 	--without-hal            \
-	--without-firewalld
+	--without-firewalld      \
+	--without-attr
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
 LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate.in))))
@@ -125,15 +133,6 @@ EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
-
-override_dh_auto_install:
-	dh_auto_install
-	# Add empty dirs so dh_install doesn't fail on kFreebsd until we have
-	# Polkit/Systemd/systemtap/apparmor support
-	mkdir -p debian/tmp/usr/share/polkit-1 \
-	         debian/tmp/lib/systemd/system \
-	         debian/tmp/usr/share/systemtap \
-	         debian/tmp/etc/apparmor.d/
 
 override_dh_auto_test:
 	export LD_PRELOAD="";     \
@@ -149,30 +148,48 @@ override_dh_install:
 	dh_install
 	# Copy upstream files to debian/ so dh_* can find them
 	cp debian/tmp/usr/lib/libvirt/libvirt-guests.sh \
-	    debian/libvirt-bin.libvirt-guests.init
+	    debian/libvirt-daemon-system.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
-	    debian/libvirt-bin.libvirt-guests.default
+	    debian/libvirt-daemon-system.libvirt-guests.default
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
-	mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
-	   debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
+	# Linux supports more nice things:
+	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
+	dh_install -p libvirt-daemon-system usr/lib/libvirt/virt-aa-helper
+	dh_install -p libvirt-daemon-system etc/apparmor.d
+	dh_install -p libvirt-daemon-system usr/share/polkit-1
+	# Not all linux arches have systemtap yet
+	mkdir -p debian/tmp/usr/share/systemtap
+	dh_install -p libvirt-daemon-system usr/share/systemtap
+	dh_install -p libvirt-daemon-system etc/libvirt/lxc.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu-lockd.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu-sanlock.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/qemu/networks/
+	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/
+	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
 endif
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
-                   debian/libvirt-bin.$$l.logrotate; \
+	        debian/libvirt-daemon-system.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done
 
 	# Don't ship any la files
-	rm debian/libvirt-bin/usr/lib/libvirt/connection-driver/*.la
+	rm debian/libvirt-daemon/usr/lib/libvirt/connection-driver/*.la
 	# Don't ship api files in the daemon package
-	rm -r debian/libvirt-bin/usr/share/libvirt/api/
+	rm -r debian/libvirt-daemon/usr/share/libvirt/api/
+
+	# Don't ship the socket activation file until we switched to polkit
+	# and we can therefore ignore socket permissions (#762606)
+	rm -f debian/*/lib/systemd/system/libvirtd.socket
 
 override_dh_installinit:
 	dh_systemd_enable
-	dh_installinit --name=libvirt-bin --restart-after-upgrade -- defaults 28 72
-	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
-	dh_systemd_start --restart-after-upgrade
+	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
+	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service
+	dh_systemd_start -p libvirt-daemon-system --no-restart-on-upgrade libvirt-guests.service virtlockd.socket virtlockd.service
 
 override_dh_installdocs:
 	dh_installdocs
@@ -188,8 +205,12 @@ override_dh_strip:
 
 override_dh_auto_clean:
 	[ ! -f Makefile ] || dh_auto_clean
-	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
-	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
-	rm -f $(CURDIR)/debian/libvirt-bin.*.logrotate
+	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.init
+	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.default
+	rm -f $(CURDIR)/debian/libvirt-daemon-system.*.logrotate
 	rm -f $(CURDIR)/debian/*.service
 	rm -rf $(DEB_BUILDDIR)
+
+override_dh_installchangelogs:
+	dh_installchangelogs -plibvirt0
+	dh_installchangelogs -Nlibvirt0 -XChangeLog
