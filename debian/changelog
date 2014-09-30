@@ -1,3 +1,14 @@
+libvirt (1.2.9~rc2-1) experimental; urgency=medium
+
+  * [8707039] New upstream version 1.2.9~rc2
+  * [79ae3d2] Rework patches.
+    Dropped
+        qemu-remove-capabilities.....patch: applied upstream
+  * [c64dc81] qemu: use systemd's TerminateMachine to kill all processes
+    (Closes: #761521)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 30 Sep 2014 20:47:46 +0200
+
 libvirt (1.2.9~rc1-1) experimental; urgency=medium
 
   * [063cc84] New upstream version 1.2.9~rc1
