@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-09-25 11:47+0200\n"
+"POT-Creation-Date: 2014-09-29 20:22+0800\n"
 "PO-Revision-Date: 2014-08-29 13:11+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Panjabi (Punjabi) (http://www.transifex.com/projects/p/"
@@ -612,7 +612,7 @@ msgstr ""
 msgid "the result won't fit into REMOTE_NODE_MAX_CELLS"
 msgstr ""
 
-#: daemon/remote.c:6182 src/remote/remote_driver.c:7730
+#: daemon/remote.c:6182 src/remote/remote_driver.c:7728
 #, c-format
 msgid "Number of leases is %d, which exceeds max limit: %d"
 msgstr ""
@@ -842,8 +842,18 @@ msgstr "ਕੋਈ ਪਿਛਲਾ ਰੈਗੂਲਰ ਐਕਸਪਰੈਸ਼ਨ �
 msgid "Policy kit denied action %s from <anonymous>"
 msgstr "ਪਾਲਿਸੀ ਕਿੱਟ ਨੇ ਕਾਰਵਾਈ %s ਨੂੰ <anonymous> ਤੋਂ ਰੱਦ ਕੀਤਾ ਹੈ"
 
-#: src/access/viraccessdriverpolkit.c:99
+#: src/access/viraccessdriverpolkit.c:93
 msgid "No UNIX process ID available"
+msgstr "ਕੋਈ UNIX ਕਾਰਵਾਈ ID ਉਪਲੱਬਧ ਨਹੀਂ"
+
+#: src/access/viraccessdriverpolkit.c:98
+#, fuzzy
+msgid "No UNIX process start time available"
+msgstr "ਕੋਈ UNIX ਕਾਰਵਾਈ ID ਉਪਲੱਬਧ ਨਹੀਂ"
+
+#: src/access/viraccessdriverpolkit.c:103
+#, fuzzy
+msgid "No UNIX caller UID available"
 msgstr "ਕੋਈ UNIX ਕਾਰਵਾਈ ID ਉਪਲੱਬਧ ਨਹੀਂ"
 
 #: src/access/viraccessmanager.c:142
@@ -978,7 +988,7 @@ msgstr ""
 msgid "No domain with matching uuid '%s'"
 msgstr "uuid '%s' ਨਾਲ ਮੇਲ ਖਾਂਦਾ ਕੋਈ ਡੋਮੇਨ ਨਹੀਂ ਹੈ"
 
-#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1206
+#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1220
 #: src/qemu/qemu_driver.c:1520 src/qemu/qemu_driver.c:11055
 #: src/qemu/qemu_driver.c:11466 src/qemu/qemu_driver.c:11509
 #, c-format
@@ -1043,13 +1053,13 @@ msgstr "ਡੋਮੇਨ ਚੱਲ ਨਹੀਂ ਰਿਹਾ"
 #: src/qemu/qemu_driver.c:15353 src/qemu/qemu_driver.c:15437
 #: src/qemu/qemu_driver.c:15547 src/qemu/qemu_driver.c:15914
 #: src/qemu/qemu_driver.c:16134 src/qemu/qemu_driver.c:16200
-#: src/qemu/qemu_driver.c:16615 src/qemu/qemu_driver.c:16757
-#: src/qemu/qemu_driver.c:16817 src/qemu/qemu_driver.c:16855
-#: src/qemu/qemu_driver.c:16895 src/qemu/qemu_driver.c:16966
-#: src/qemu/qemu_driver.c:16978 src/qemu/qemu_driver.c:17077
-#: src/qemu/qemu_driver.c:17089 src/qemu/qemu_driver.c:17266
-#: src/qemu/qemu_driver.c:17327 src/qemu/qemu_driver.c:17343
-#: src/qemu/qemu_driver.c:17390 src/qemu/qemu_driver.c:17440
+#: src/qemu/qemu_driver.c:16669 src/qemu/qemu_driver.c:16811
+#: src/qemu/qemu_driver.c:16871 src/qemu/qemu_driver.c:16909
+#: src/qemu/qemu_driver.c:16949 src/qemu/qemu_driver.c:17020
+#: src/qemu/qemu_driver.c:17032 src/qemu/qemu_driver.c:17131
+#: src/qemu/qemu_driver.c:17143 src/qemu/qemu_driver.c:17320
+#: src/qemu/qemu_driver.c:17381 src/qemu/qemu_driver.c:17397
+#: src/qemu/qemu_driver.c:17444 src/qemu/qemu_driver.c:17494
 #: src/qemu/qemu_migration.c:2415 src/qemu/qemu_migration.c:4521
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2601
 #: src/xen/xen_driver.c:2644 src/xen/xm_internal.c:677
@@ -1091,7 +1101,7 @@ msgstr ""
 msgid "Cannot remove state PID file %s"
 msgstr ""
 
-#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4430
+#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4433
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "ਡੋਮੇਨ %s ਦਿਸਿਆ ਨਹੀਂ"
@@ -1187,7 +1197,7 @@ msgstr "ਗੈਰਮੌਜੂਦ 'threads' ਐਟਰੀਬਿਊਟ CPU ਟੋ�
 msgid "Invalid CPU topology"
 msgstr "ਗਲਤ CPU ਟੋਪੋਲੋਜੀ"
 
-#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:629
+#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:631
 msgid "Non-empty feature list specified without CPU model"
 msgstr "ਨਾ-ਖਾਲੀ ਵਿਸ਼ੇਸ਼ਤਾ ਸੂਚੀ ਨਿਰਧਾਰਤ ਬਿਨਾਂ CPU ਮਾਡਲ"
 
@@ -1199,7 +1209,7 @@ msgstr "ਗਲਤ CPU ਵਿਸ਼ੇਸ਼ਤਾ ਪਾਲਿਸੀ"
 msgid "Invalid CPU feature name"
 msgstr "ਗਲਤ CPU ਵਿਸ਼ੇਸ਼ਤਾ ਨਾਂ"
 
-#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:734
+#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:736
 #, fuzzy, c-format
 msgid "CPU feature '%s' specified more than once"
 msgstr "CPU ਵਿਸ਼ੇਸ਼ਤਾ `%s' ਇੱਕ ਤੋਂ ਜਿਆਦਾ ਵਾਰ ਦਿੱਤੀ ਗਈ ਹੈ"
@@ -1236,95 +1246,95 @@ msgstr "ਗੈਰਮੌਜੂਦ 'memory' ਐਟਰੀੂਬਿਊਟ NUMA ਸ�
 msgid "Invalid 'memory' attribute in NUMA cell"
 msgstr "ਗਲਤ 'memory' ਐਟਰੀਬਿਊਟ NUMA ਸੈੱਲ ਵਿੱਚ"
 
-#: src/conf/cpu_conf.c:515
+#: src/conf/cpu_conf.c:514
 #, fuzzy, c-format
 msgid "Invalid 'memAccess' attribute value '%s'"
 msgstr "ਅਢੁਕਵਾਂ ਮੈਮੋਰੀ ਕੋਰ ਡੰਪ ਐਟਰੀਬਿਊਟ ਮੁੱਲ '%s'"
 
-#: src/conf/cpu_conf.c:574
+#: src/conf/cpu_conf.c:576
 #, c-format
 msgid "Unexpected CPU mode %d"
 msgstr "ਅਣਜਾਣ CPU ਮੋਡ %d"
 
-#: src/conf/cpu_conf.c:585
+#: src/conf/cpu_conf.c:587
 #, c-format
 msgid "Unexpected CPU match policy %d"
 msgstr "ਅਚਾਨਕ CPU ਮੇਲ ਪਾਲਿਸੀ %d"
 
-#: src/conf/cpu_conf.c:641
+#: src/conf/cpu_conf.c:643
 #, c-format
 msgid "Unexpected CPU fallback value: %d"
 msgstr "ਅਣਜਾਣ CPU ਫਾਲਬੈਕ ਮੁੱਲ: %d"
 
-#: src/conf/cpu_conf.c:672 src/cpu/cpu_x86.c:713
+#: src/conf/cpu_conf.c:674 src/cpu/cpu_x86.c:713
 msgid "Missing CPU feature name"
 msgstr "ਗੈਰਮੌਜੂਦ CPU ਵਿਸ਼ੇਸ਼ਤਾ ਨਾਂ"
 
-#: src/conf/cpu_conf.c:682
+#: src/conf/cpu_conf.c:684
 #, c-format
 msgid "Unexpected CPU feature policy %d"
 msgstr "ਅਚਾਨਕ CPU ਵਿਸ਼ੇਸ਼ਤਾ ਪਾਲਿਸੀ %d"
 
-#: src/conf/cpu_conf.c:782
+#: src/conf/cpu_conf.c:784
 msgid "Target CPU does not match source"
 msgstr "ਟਾਰਗਿਟ CPU ਸੋਰਸ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:788
+#: src/conf/cpu_conf.c:790
 #, c-format
 msgid "Target CPU type %s does not match source %s"
 msgstr "ਟਾਰਗਿਟ CPU ਕਿਸਮ %s ਸੋਰਸ %s ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦੀ"
 
-#: src/conf/cpu_conf.c:796
+#: src/conf/cpu_conf.c:798
 #, c-format
 msgid "Target CPU mode %s does not match source %s"
 msgstr "ਟਾਰਗਿਟ CPU ਮੋਡ %s ਸੋਰਸ %s ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:804
+#: src/conf/cpu_conf.c:806
 #, c-format
 msgid "Target CPU arch %s does not match source %s"
 msgstr "ਟਾਰਗਿਟ CPU arch %s ਸੋਰਸ %s ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:812
+#: src/conf/cpu_conf.c:814
 #, c-format
 msgid "Target CPU model %s does not match source %s"
 msgstr "ਟਾਰਗਿਟ CPU ਮਾਡਲ %s ਸੋਰਸ %s ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:819
+#: src/conf/cpu_conf.c:821
 #, c-format
 msgid "Target CPU vendor %s does not match source %s"
 msgstr "ਟਾਰਗਿਟ CPU ਵਿਕਰੇਤਾ %s ਸੋਰਸ %s ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:826
+#: src/conf/cpu_conf.c:828
 #, c-format
 msgid "Target CPU vendor id %s does not match source %s"
 msgstr ""
 
-#: src/conf/cpu_conf.c:833
+#: src/conf/cpu_conf.c:835
 #, c-format
 msgid "Target CPU sockets %d does not match source %d"
 msgstr "ਟਾਰਗਿਟ CPU ਸਾਕਟ %d ਸੋਰਸ %d ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:840
+#: src/conf/cpu_conf.c:842
 #, c-format
 msgid "Target CPU cores %d does not match source %d"
 msgstr "ਟਾਰਗਿਟ CPU ਕੋਰਾਂ %d ਸੋਰਸ %d ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:847
+#: src/conf/cpu_conf.c:849
 #, c-format
 msgid "Target CPU threads %d does not match source %d"
 msgstr "ਟਾਰਗਿਟ CPU ਥਰਿੱਡ %d ਸੋਰਸ %d ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:854
+#: src/conf/cpu_conf.c:856
 #, c-format
 msgid "Target CPU feature count %zu does not match source %zu"
 msgstr "ਟਾਰਗਿਟ CPU ਫੀਚਰ ਕਾਊਂਟ %zu ਸੋਰਸ %zu ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
 
-#: src/conf/cpu_conf.c:862
+#: src/conf/cpu_conf.c:864
 #, c-format
 msgid "Target CPU feature %s does not match source %s"
 msgstr "ਟਾਰਗਿਟ CPU ਫੀਚਰ %s ਸੋਰਸ %s ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦੀ"
 
-#: src/conf/cpu_conf.c:869
+#: src/conf/cpu_conf.c:871
 #, c-format
 msgid "Target CPU feature policy %s does not match source %s"
 msgstr "ਟਾਰਗਿਟ CPU ਫੀਚਰ ਪਾਲਿਸੀ %s ਸੋਰਸ %s ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦੀ"
@@ -4658,7 +4668,7 @@ msgstr "ਅਚਾਨਕ ਇੰਟਰਫੇਸ ਕਿਸਮ %d"
 #: src/conf/interface_conf.c:1256 src/conf/network_conf.c:386
 #: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3117
 #: src/conf/storage_conf.c:1774 src/libxl/libxl_driver.c:295
-#: src/parallels/parallels_driver.c:931 src/qemu/qemu_driver.c:641
+#: src/parallels/parallels_driver.c:932 src/qemu/qemu_driver.c:641
 #: src/remote/remote_driver.c:1118 src/test/test_driver.c:716
 #: src/test/test_driver.c:1413 src/xen/xen_driver.c:464
 msgid "cannot initialize mutex"
@@ -8478,7 +8488,7 @@ msgid "Unable to set non-blocking mode"
 msgstr ""
 
 #: src/fdstream.c:496 src/locking/lock_daemon.c:144
-#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3442
+#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3444
 #: src/util/vireventpoll.c:694 src/util/virobject.c:224
 msgid "Unable to initialize mutex"
 msgstr "mutex ਨੂੰ ਸ਼ੁਰੂ ਨਹੀਂ ਕਰ ਸਕਦਾ"
@@ -10003,7 +10013,7 @@ msgstr "ਅਸਮਰਥਿਤ ਅਸਫਲਤਾ ਕਾਰਵਾਈ: '%s'\n"
 msgid "cannot get the path of MEMORY cgroup controller"
 msgstr "MEMORY cgroup ਕੰਟਰੋਲਰ ਦਾ ਰਾਹ ਨਹੀ ਲੈ ਸਕਦਾ"
 
-#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:753
+#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:754
 #, c-format
 msgid "Resource partition '%s' must start with '/'"
 msgstr "ਵਸੀਲਾ ਹਿੱਸਾ '%s' ਦਾ '/' ਨਾਲ ਸ਼ੁਰੂ ਹੋਣਾ ਲਾਜਮੀ ਹੈ"
@@ -11057,7 +11067,7 @@ msgstr "ਜੀਵੰਤ ਯੰਤਰਾਂ ਵਿੱਚ ਸੁਧਾਰ ਕਰ�
 msgid "domain is not active"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16763
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16817
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT ਕੰਟਰੋਲਕ ਮਾਊਂਟ ਨਹੀਂ ਹੋਇਆ"
 
@@ -13065,7 +13075,7 @@ msgstr "'%s' ਨੂੰ ਸੰਰਚਨਾ ਵਿੱਚੋਂ ਕੰਨਟੇਨ�
 msgid "Failed to parse vzlist output"
 msgstr "vzlist ਆਊਟਪੁੱਟ ਪਾਰਸ ਕਰਨ ਵਿੱਚ ਫੇਲ"
 
-#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:703
+#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:704
 msgid "UUID in config file malformed"
 msgstr "ਸੰਰਚਨਾ ਫਾਇਲ ਵਿੱਚ UUID ਗਲਤ ਹੈ"
 
@@ -13255,8 +13265,8 @@ msgstr "ਮੁੱਲ ਪਾਰਸ ਨਹੀਂ ਕਰ ਸਕਦਾ"
 msgid "Failed to set %s for %s: value too large"
 msgstr "%s ਨੂੰ %s ਲਈ ਨਿਰਧਾਰਤ ਕਰਨ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:71
-#: src/parallels/parallels_driver.c:1179 src/qemu/qemu_driver.c:1493
+#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:72
+#: src/parallels/parallels_driver.c:1193 src/qemu/qemu_driver.c:1493
 #: src/test/test_driver.c:2610 src/uml/uml_driver.c:1785
 #: src/uml/uml_driver.c:1815 src/uml/uml_driver.c:1852
 #: src/uml/uml_driver.c:2225 src/uml/uml_driver.c:2346
@@ -13289,217 +13299,222 @@ msgstr "ਡੋਮੇਨ ਚੱਲ ਨਹੀਂ ਰਿਹਾ"
 msgid "Can't determine page size"
 msgstr "QEMU argv ਸੈਂਟਿਕਸ ਪਤਾ ਨਹੀਂ ਕਰ ਸਕਿਆ"
 
-#: src/parallels/parallels_driver.c:454
+#: src/parallels/parallels_driver.c:455
 #, c-format
 msgid "Invalid MAC address format '%s'"
 msgstr "ਅਢੁਕਵਾਂ MAC ਪਤਾ ਫਾਰਮੈਟ '%s'"
 
-#: src/parallels/parallels_driver.c:733
+#: src/parallels/parallels_driver.c:734
 msgid "Can't get node info"
 msgstr "ਨੋਡ ਜਾਣਕਾਰੀ ਨਹੀਂ ਪ੍ਰਾਪਤ ਕਰ ਸਕਦਾ"
 
-#: src/parallels/parallels_driver.c:982
+#: src/parallels/parallels_driver.c:937
+#, fuzzy
+msgid "Can't initialize Parallels SDK"
+msgstr "ਦਖਲ ਪ੍ਰਬੰਧਕ ਨੂੰ ਸ਼ੁਰੂ ਨਹੀਂ ਕਰ ਸਕਦਾ"
+
+#: src/parallels/parallels_driver.c:994
 #, c-format
 msgid "Unexpected Parallels URI path '%s', try parallels:///system"
 msgstr "ਅਚਾਨਕ ਪੈਰਲਲ URI ਟਿਕਾਣਾ '%s', parallels:///system ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ"
 
-#: src/parallels/parallels_driver.c:1403
+#: src/parallels/parallels_driver.c:1417
 #, c-format
 msgid "domain '%s' not %s"
 msgstr "ਡੋਮੇਨ '%s' %s ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1536
+#: src/parallels/parallels_driver.c:1550
 msgid "changing display parameters is not supported by parallels driver"
 msgstr "ਇਸ ਫੰਕਸ਼ਨ ਨੂੰ ਕੁਨੈਕਸ਼ਨ ਡਰਾਈਵਰ ਨਾਲ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1584
+#: src/parallels/parallels_driver.c:1598
 msgid "changing serial device parameters is not supported by parallels driver"
 msgstr "ਸੀਰੀਅਲ ਯੰਤਰ ਪੈਰਾਮੀਟਰਾਂ ਨੂੰ ਬਦਲਣਾ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1599
+#: src/parallels/parallels_driver.c:1613
 msgid "Only one video device is supported by parallels driver"
 msgstr "ਸਿਰਫ ਇੱਕ ਹੀ watchdog ਜੰਤਰ ਸਹਿਯੋਗੀ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1608
+#: src/parallels/parallels_driver.c:1622
 msgid "Only VGA video device is supported by parallels driver"
 msgstr "ਸਿਰਫ਼ VGA ਵੀਡੀਓ ਯੰਤਰ ਹੀ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1615
+#: src/parallels/parallels_driver.c:1629
 msgid "Only one monitor is supported by parallels driver"
 msgstr "ਸਿਰਫ਼ ਇੱਕ ਮੌਨੀਟਰ ਹੀ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1625
+#: src/parallels/parallels_driver.c:1639
 msgid ""
 "Changing video acceleration parameters is not supported by parallels driver"
 msgstr "ਵੀਡਾਓ ਗਤੀ ਤੇਜ ਕਰਨ ਵਾਲੇ ਪੈਰਾਮੀਟਰਾਂ ਨੂੰ ਬਦਲਣਾ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1634
+#: src/parallels/parallels_driver.c:1648
 msgid "Video RAM size should be multiple of 1Mb."
 msgstr "ਵੀਡੀਓ RAM ਆਕਾਰ 1Mb ਦਾ ਗੁਣਜ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।"
 
-#: src/parallels/parallels_driver.c:1664
+#: src/parallels/parallels_driver.c:1678
 #, c-format
 msgid "Invalid disk format: %d"
 msgstr ""
 
-#: src/parallels/parallels_driver.c:1673
+#: src/parallels/parallels_driver.c:1687
 #, c-format
 msgid "Invalid disk type: %d"
 msgstr ""
 
-#: src/parallels/parallels_driver.c:1681
+#: src/parallels/parallels_driver.c:1695
 #, c-format
 msgid "Invalid disk bus: %d"
 msgstr "ਅਢੁਕਵੀਂ ਡਿਸਕ ਬਸ: %d"
 
-#: src/parallels/parallels_driver.c:1737
+#: src/parallels/parallels_driver.c:1751
 #, c-format
 msgid "Can't remove disk '%s' in the specified config"
 msgstr "ਦਰਸਾਈ ਗਈ ਸੰਰਚਨਾ ਵਿੱਚ ਡਿਸਕ '%s' ਨੂੰ ਹਟਾ ਨਹੀਂ ਸਕਦਾ"
 
-#: src/parallels/parallels_driver.c:1762
+#: src/parallels/parallels_driver.c:1776
 #, c-format
 msgid "Unsupported disk bus: %d"
 msgstr "ਅਸਮਰਥਿਤ ਡਿਸਕ ਬਸ: %d"
 
-#: src/parallels/parallels_driver.c:1810
+#: src/parallels/parallels_driver.c:1824
 msgid "Changing network type is not supported"
 msgstr "ਨੈੱਟਵਰਕ ਕਿਸਮ ਬਦਲਣ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1816
+#: src/parallels/parallels_driver.c:1830
 msgid "Changing network device model is not supported"
 msgstr "ਨੈੱਟਵਰਕ ਯੰਤਰ ਮਾਡਲ ਬਦਲਣ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1823
+#: src/parallels/parallels_driver.c:1837
 msgid "Changing network portgroup is not supported"
 msgstr "ਨੈੱਟਵਰਕ portgroup ਬਦਲਣ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1830
+#: src/parallels/parallels_driver.c:1844
 msgid "Changing virtual port profile is not supported"
 msgstr "ਆਭਾਸੀ ਪੋਰਟ ਪ੍ਰੋਫਾਈਲ ਬਦਲਣ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1836
+#: src/parallels/parallels_driver.c:1850
 msgid "Setting send buffer size is not supported"
 msgstr "ਬਫ਼ਰ ਆਕਾਰ ਭੇਜੋ ਸੈੱਟ ਕਰਨ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1842
+#: src/parallels/parallels_driver.c:1856
 msgid "Setting startup script is not supported"
 msgstr "ਸ਼ੁਰੂਆਤੀ ਸਕ੍ਰਿਪਟ ਸੈੱਟ ਕਰਨ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1848
+#: src/parallels/parallels_driver.c:1862
 msgid "Changing filter params is not supported"
 msgstr "ਫਿਲਟਰ ਪੈਰਾਮੀਟਰ ਬਦਲਣ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1854
+#: src/parallels/parallels_driver.c:1868
 msgid "Setting bandwidth params is not supported"
 msgstr "ਬੈਂਡਵਿਡਥ ਪੈਰਾਮੀਟਰ ਸੈੱਟ ਕਰਨ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1861
+#: src/parallels/parallels_driver.c:1875
 msgid "Setting vlan params is not supported"
 msgstr "vlan ਪੈਰਾਮੀਟਰ ਸੈੱਟ ਕਰਨ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:1994
+#: src/parallels/parallels_driver.c:2008
 msgid "titles are not supported by parallels driver"
 msgstr "SASL ਵਿਧੀ ਨੂੰ ਸਰਵਰ ਤੋਂ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2000
+#: src/parallels/parallels_driver.c:2014
 msgid "blkio parameters are not supported by parallels driver"
 msgstr "blkio ਪੈਰਾਮੀਟਰ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹਨ"
 
-#: src/parallels/parallels_driver.c:2008
+#: src/parallels/parallels_driver.c:2022
 msgid "changing balloon parameters is not supported by parallels driver"
 msgstr "ਬੈਲੂਨ ਪੈਰਾਮੀਟਰ ਬਦਲਣਾ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2015
+#: src/parallels/parallels_driver.c:2029
 msgid "Memory size should be multiple of 1Mb."
 msgstr "ਮੈਮੋਰੀ ਆਕਾਰ 1Mb ਦਾ ਗੁਣਜ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।"
 
-#: src/parallels/parallels_driver.c:2034
+#: src/parallels/parallels_driver.c:2048
 msgid "Memory parameter is not supported by parallels driver"
 msgstr "ਮੈਮੋਰੀ ਪੈਰਾਮੀਟਰ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2042
+#: src/parallels/parallels_driver.c:2056
 msgid "current vcpus must be equal to maxvcpus"
 msgstr "ਮੌਜੂਦਾ vcpus ਦਾ maxvcpus ਦੇ ਬਰਾਬਰ ਹੋਣਾ ਜਰੂਰੀ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2056
+#: src/parallels/parallels_driver.c:2070
 msgid "changing cpu placement mode is not supported by parallels driver"
 msgstr "cpu ਪਲੇਸਮੈਂਟ ਮੋਡ ਬਦਲਣਾ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2066
+#: src/parallels/parallels_driver.c:2080
 msgid "changing cpu mask is not supported by parallels driver"
 msgstr "ਇਸ ਫੰਕਸ਼ਨ ਨੂੰ ਕੁਨੈਕਸ਼ਨ ਡਰਾਈਵਰ ਨਾਲ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2078
+#: src/parallels/parallels_driver.c:2092
 msgid "cputune is not supported by parallels driver"
 msgstr "cputune ਨੂੰ ਪੈਰਲਲ ਡਰਾਈਵਰ ਦੁਆਰਾ ਸਹਿਯੋਗੀ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2084
+#: src/parallels/parallels_driver.c:2098
 msgid "numa parameters are not supported by parallels driver"
 msgstr "numa ਪੈਰਾਮੀਟਰਾਂ ਨੂੰ ਪੈਰਲਲ ਡਰਾਈਵਰ ਦੁਆਰਾ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2094
+#: src/parallels/parallels_driver.c:2108
 msgid ""
 "on_reboot, on_poweroff and on_crash parameters are not supported by "
 "parallels driver"
 msgstr "on_reboot, on_poweroff ਅਤੇ on_crash ਪੈਰਾਮੀਟਰ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹਨ"
 
-#: src/parallels/parallels_driver.c:2113 src/parallels/parallels_driver.c:2123
-#: src/parallels/parallels_driver.c:2133
+#: src/parallels/parallels_driver.c:2127 src/parallels/parallels_driver.c:2137
+#: src/parallels/parallels_driver.c:2147
 msgid "changing OS parameters is not supported by parallels driver"
 msgstr "OS ਪੈਰਾਮੀਟਰ ਤਬਦੀਲੀ ਨੂੰ ਪੈਰਲਲ ਡਰਾਈਵਰ ਦੁਆਰਾ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2142
+#: src/parallels/parallels_driver.c:2156
 msgid "changing emulator is not supported by parallels driver"
 msgstr "ਇੰਮੁਲੇਟਰ ਤਬਦੀਲੀ ਨੂੰ ਪੈਰਲਲ ਡਰਾਈਵਰ ਦੁਆਰਾ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2150
+#: src/parallels/parallels_driver.c:2164
 msgid "changing features is not supported by parallels driver"
 msgstr "ਤਬਦੀਲੀ ਫੀਚਰਾਂ ਨੂੰ ਪੈਰਲਲ ਡਰਾਈਵਰ ਦੁਆਰਾ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2160
+#: src/parallels/parallels_driver.c:2174
 msgid "changing clock parameters is not supported by parallels driver"
 msgstr "ਘੜੀ ਪੈਰਾਮੀਟਰ ਤਬਦੀਲੀ ਨੂੰ ਪੈਰਲਲ ਡਰਾਈਵਰ ਦੁਆਰਾ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2176
+#: src/parallels/parallels_driver.c:2190
 msgid "changing devices parameters is not supported by parallels driver"
 msgstr "ਜੰਤਰ ਪੈਰਾਮੀਟਰ ਤਬਦੀਲੀ ਨੂੰ ਪੈਰਲਲ ਡਰਾਈਵਰ ਦੁਆਰਾ ਸਹਿਯੋਗ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2188
+#: src/parallels/parallels_driver.c:2202
 msgid "changing input devices parameters is not supported by parallels driver"
 msgstr "ਇਨਪੁਟ ਯੰਤਰ ਪੈਰਾਮੀਟਰ ਬਦਲਣਾ ਸਮਾਂਤਰ ਚਾਲਕ ਵੱਲੋਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2239
+#: src/parallels/parallels_driver.c:2253
 msgid "There must be only 1 template FS for container creation"
 msgstr "ਕੰਟੇਨਰ ਬਣਾਉਣ ਲਈ ਸਿਰਫ਼ 1 ਟੈਂਪਲੇਟ FS ਜਰੂਰ ਹੋਵੇ"
 
-#: src/parallels/parallels_driver.c:2268
+#: src/parallels/parallels_driver.c:2282
 msgid "Can't parse XML desc"
 msgstr "XML desc ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕਰ ਸਕਦਾ"
 
-#: src/parallels/parallels_driver.c:2283
+#: src/parallels/parallels_driver.c:2297
 #, c-format
 msgid "Unsupported OS type: %s"
 msgstr "ਅਸਮਰਥਿਤ OS ਕਿਸਮ: %s"
 
-#: src/parallels/parallels_driver.c:2291
+#: src/parallels/parallels_driver.c:2305
 #, c-format
 msgid "Domain for '%s' is not defined after creation"
 msgstr "'%s' ਲਈ ਡੋਮੇਨ ਬਣ ਜਾਣ ਤੋਂ ਬਾਅਦ ਪਰਿਭਾਸ਼ਤ ਨਹੀਂ ਹੈ"
 
-#: src/parallels/parallels_driver.c:2292
+#: src/parallels/parallels_driver.c:2306
 msgid "(unnamed)"
 msgstr "(ਬੇਨਾਮ)"
 
-#: src/parallels/parallels_driver.c:2376 src/qemu/qemu_driver.c:5082
+#: src/parallels/parallels_driver.c:2390 src/qemu/qemu_driver.c:5082
 msgid "cannot list vcpu pinning for an inactive domain"
 msgstr "ਇੱਕ ਨਾ-ਸਰਗਰਮ ਡੋਮੇਨ ਲਈ vcpu ਨੂੰ ਵੇਖਾ ਨਹੀਂ ਸਕਦਾ"
 
-#: src/parallels/parallels_driver.c:2480
+#: src/parallels/parallels_driver.c:2494
 msgid "Can't find prlctl command in the PATH env"
 msgstr "PATH env ਵਿੱਚ prlctl ਕਮਾਂਡ ਨਹੀਂ ਲੱਭੀ"
 
-#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:36
+#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:38
 msgid "Can't parse prlctl output"
 msgstr "vzlist ਆਊਟਪੁੱਟ ਪਾਰਸ ਕਰਨ ਵਿੱਚ ਫੇਲ"
 
@@ -13526,6 +13541,11 @@ msgstr "MAC '%s' ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕਰ ਸਕਦਾ"
 #: src/parallels/parallels_network.c:257
 msgid "Can't parse UUID"
 msgstr "UUID ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕਰ ਸਕਦਾ"
+
+#: src/parallels/parallels_sdk.c:64 src/parallels/parallels_sdk.c:105
+#, c-format
+msgid "%s %s"
+msgstr ""
 
 #: src/parallels/parallels_utils.c:78
 #, c-format
@@ -14187,26 +14207,26 @@ msgstr ""
 msgid "Unknown QEMU arch %s"
 msgstr "ਅਣਪਛਾਤਾ QEMU ਢਾਂਚਾ %s"
 
-#: src/qemu/qemu_capabilities.c:3318
+#: src/qemu/qemu_capabilities.c:3320
 #, c-format
 msgid "Failed to kill process %lld: %s"
 msgstr "ਕਾਰਵਾਈ %lld ਨੂੰ ਖਤਮ ਕਰਨ ਵਿੱਚ ਅਸਫਲ: %s"
 
-#: src/qemu/qemu_capabilities.c:3346
+#: src/qemu/qemu_capabilities.c:3348
 #, c-format
 msgid "Failed to probe capabilities for %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3348
+#: src/qemu/qemu_capabilities.c:3350
 msgid "unknown failure"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3371
+#: src/qemu/qemu_capabilities.c:3373
 #, c-format
 msgid "Cannot check QEMU binary %s"
 msgstr "QEMU ਬਾਇਨਰੀ %s ਜਾਂਚ ਨਹੀਂ ਸਕਦਾ"
 
-#: src/qemu/qemu_capabilities.c:3382
+#: src/qemu/qemu_capabilities.c:3384
 #, c-format
 msgid "QEMU binary %s is not executable"
 msgstr "QEMU ਬਾਇਨਰੀ %s ਐਗਜ਼ੀਕਿਊਟੇਬਲ ਨਹੀਂ ਹੈ"
@@ -14219,16 +14239,16 @@ msgstr "ਇਸ ਮੇਜਬਾਨ ਤੇ Block I/O tuning ਉਪਲਬੱਧ ਨ
 msgid "Memory cgroup is not available on this host"
 msgstr "NUMA ਮੈਮੋਰੀ ਜਾਣਕਾਰੀ ਇਸ ਪਲੇਟਫਾਰਮ ਤੇ ਉਪਲੱਬਧ ਨਹੀਂ ਹੈ"
 
-#: src/qemu/qemu_cgroup.c:688
+#: src/qemu/qemu_cgroup.c:689
 msgid "CPU tuning is not available on this host"
 msgstr "NUMA ਮੈਮੋਰੀ ਜਾਣਕਾਰੀ ਇਸ ਪਲੇਟਫਾਰਮ ਤੇ ਉਪਲੱਬਧ ਨਹੀਂ ਹੈ"
 
-#: src/qemu/qemu_cgroup.c:826
+#: src/qemu/qemu_cgroup.c:827
 msgid "Cannot setup cgroups until process is started"
 msgstr "ਕਾਰਵਾਈ ਸ਼ੁਰੂ ਹੋਣ ਤੱਕ cgroups ਨੂੰ ਸੈੱਟਅਪ ਨਹੀਂ ਕਰ ਸਕਦਾ"
 
-#: src/qemu/qemu_cgroup.c:971 src/qemu/qemu_cgroup.c:1059
-#: src/qemu/qemu_cgroup.c:1132
+#: src/qemu/qemu_cgroup.c:972 src/qemu/qemu_cgroup.c:1060
+#: src/qemu/qemu_cgroup.c:1133
 msgid "cgroup cpu is required for scheduler tuning"
 msgstr "ਅਨੁਸੂਚਕ ਸੁਰ ਵਿੱਚ ਕਰਨ ਲਈ cgroup cpu ਲੋੜੀਂਦਾ ਹੈ"
 
@@ -14598,7 +14618,7 @@ msgstr "ਰੱਦ ਕਰਨਾ ਇਸ QEMU ਬਾਇਨਰੀ ਦੁਆਰਾ �
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "SATA ਇਸ QEMU ਬਾਇਨਰੀ ਨਾਲ ਸਹਿਯੋਗੀ ਨਹੀਂ ਹੈ"
 
-#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16381
+#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16419
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "STDIO ਮਾਈਗਰੇਸ਼ਨ ਇਸ QEMU ਬਾਇਨਰੀ ਨਾਲ ਸਹਿਯੋਗੀ ਨਹੀਂ ਹੈ"
 
@@ -16100,7 +16120,7 @@ msgid "domain is pmsuspended"
 msgstr "ਡੋਮੇਨ ਮੁਅੱਤਲ ਕੀਤੀ ਗਈ ਹੈ"
 
 #: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4923
-#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4620
+#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4623
 msgid "resume operation failed"
 msgstr "ਮੁੜ-ਪ੍ਰਾਪਤੀ ਕਾਰਵਾਈ ਫੇਲ ਹੋਈ"
 
@@ -16174,13 +16194,13 @@ msgstr "'%s' ਬਣਾਉਣ ਵਾਲੇ ਅਧੀਨ ਕਾਰਜ ਤੋਂ �
 msgid "Error from child process opening '%s'"
 msgstr "ਮਾਤਹਿਤ ਕਾਰਵਾਈ ਖੁੱਲਣ '%s' ਵਿੱਚ ਗਲਤੀ"
 
-#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3914
+#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3917
 #: src/storage/storage_backend.c:460
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "ਫਾਇਲ '%s' ਨੂੰ ਬਣਾਉਣ ਵਿੱਚ ਫੇਲ"
 
-#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3905
+#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3908
 #: src/storage/storage_backend_fs.c:1433
 #: src/storage/storage_backend_gluster.c:686 src/util/virfile.c:1289
 #: src/util/virstoragefile.c:878
@@ -17108,98 +17128,103 @@ msgstr "ਸੂਚੀ %d ਵਾਲਾ ਕੋਈ ਡੋਮੇਨ ਨਹੀਂ"
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr "ਸਿਰਫ਼ VNC ਜਾਂ SPICE ਗਰਾਫਿਕਸ ਬੈਕਐਂਡ ਖੋਲ੍ਹ ਸਕਦਾ ਹੈ, %s ਨਹੀਂ"
 
-#: src/qemu/qemu_driver.c:16324
+#: src/qemu/qemu_driver.c:16332
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr "ਬਲਾਕ I/O ਥਰੌਟਲ ਹੱਦ ਮੁੱਲ ਲਾਜਮੀ %llu ਤੋਂ ਘੱਟ ਹੋਵੇ"
 
-#: src/qemu/qemu_driver.c:16358
+#: src/qemu/qemu_driver.c:16396
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr "bytes_sec ਦਾ ਕੁੱਲ ਅਤੇ ਪੜ੍ਹਨ/ਲਿਖਣ ਇਕੋ ਸਮੇਂ ਤੇ ਸੈੱਟ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"
 
-#: src/qemu/qemu_driver.c:16365
+#: src/qemu/qemu_driver.c:16403
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr "iops_sec ਦਾ ਕੁੱਲ ਅਤੇ ਪੜ੍ਹਨ/ਲਿਖਣ ਇਕੋ ਸਮੇਂ ਤੇ ਸੈੱਟ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"
 
-#: src/qemu/qemu_driver.c:16372
+#: src/qemu/qemu_driver.c:16410
 #, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16428
+#: src/qemu/qemu_driver.c:16451
+#, fuzzy
+msgid "Saving live XML config failed"
+msgstr "ਪੂਲ ਦੀ ਕੋਈ ਸੰਰਚਨਾ ਫਾਇਲ ਨਹੀ ਹੈ"
+
+#: src/qemu/qemu_driver.c:16480
 msgid "Write to config file failed"
 msgstr "ਸੰਰਚਨਾ ਫਾਇਲ ਤੇ ਲਿਖਣ ਵਿੱਚ ਫੇਲ"
 
-#: src/qemu/qemu_driver.c:16511
+#: src/qemu/qemu_driver.c:16565
 #, fuzzy, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr ""
 "ਆਇਤਨ '%s' ਡੋਮੇਨ ਦੀ ਪਰਿਭਾਸ਼ਾ ਵਿੱਚ ਨਹੀਂ ਲੱਭਿਆ ਸੀ।\n"
 "\n"
 
-#: src/qemu/qemu_driver.c:16794
+#: src/qemu/qemu_driver.c:16848
 msgid "Duration not supported. Use 0 for now"
 msgstr "ਅਰਸਾ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ। ਹੁਣ ਲਈ 0 ਵਰਤੋ"
 
-#: src/qemu/qemu_driver.c:16802
+#: src/qemu/qemu_driver.c:16856
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "ਅਚਾਨਕ ਵਿਧੀ: %u"
 
-#: src/qemu/qemu_driver.c:16825
+#: src/qemu/qemu_driver.c:16879
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr "ਲਾਪਤਾ system_wakeup ਮੌਨੀਟਰ ਕਮਾਂਡ ਦੇ ਕਰ ਕੇ ਡੋਮੇਨ ਨੂੰ ਮੁਲਤਵੀ ਕਰਨ ਤੋਂ ਅਸਮਰੱਥ"
 
-#: src/qemu/qemu_driver.c:16835
+#: src/qemu/qemu_driver.c:16889
 msgid "S3 state is disabled for this domain"
 msgstr "ਇਸ ਡੋਮੇਨ ਲਈ S3 ਹਾਲਤ ਅਯੋਗ ਕੀਤੀ ਗਈ ਹੈ"
 
-#: src/qemu/qemu_driver.c:16842
+#: src/qemu/qemu_driver.c:16896
 msgid "S4 state is disabled for this domain"
 msgstr "ਇਸ ਡੋਮੇਨ ਲਈ S4 ਹਾਲਤ ਅਯੋਗ ਕੀਤੀ ਗਈ ਹੈ"
 
-#: src/qemu/qemu_driver.c:16903
+#: src/qemu/qemu_driver.c:16957
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr "ਲਾਪਤਾ system_wakeup ਮੌਨੀਟਰ ਕਮਾਂਡ ਦੇ ਕਰ ਕੇ ਡੋਮੇਨ ਨੂੰ ਜਗਾਉਣ ਤੋਂ ਅਸਮਰੱਥ"
 
-#: src/qemu/qemu_driver.c:17062
+#: src/qemu/qemu_driver.c:17116
 msgid "Specifying mount point is not supported for now"
 msgstr "ਮਾਊਂਟ ਬਿੰਦੂਆਂ ਦਾ ਨਿਰਧਾਰਨ ਇਸ ਸਮੇਂ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ"
 
-#: src/qemu/qemu_driver.c:17317
+#: src/qemu/qemu_driver.c:17371
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17425
+#: src/qemu/qemu_driver.c:17479
 msgid "specifying mountpoints is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17506
+#: src/qemu/qemu_driver.c:17560
 #, c-format
 msgid "unknown virttype: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17513
+#: src/qemu/qemu_driver.c:17567
 #, c-format
 msgid "unknown architecture: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17529
+#: src/qemu/qemu_driver.c:17583
 #, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17539
+#: src/qemu/qemu_driver.c:17593
 #, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17553
+#: src/qemu/qemu_driver.c:17607
 #, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17973
+#: src/qemu/qemu_driver.c:18027
 #, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr ""
@@ -19212,47 +19237,47 @@ msgstr ""
 msgid "host doesn't support invariant TSC"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3897
+#: src/qemu/qemu_process.c:3900
 #, fuzzy, c-format
 msgid "unable to find any master var store for loader: %s"
 msgstr "ਇੱਕ ਸੀਕਰੇਟ ਡਰਾਈਵਰ ਨੂੰ ਲੱਭਣ ਵਿੱਚ ਫੇਲ ਹੋਇਆ: %s"
 
-#: src/qemu/qemu_process.c:3925
+#: src/qemu/qemu_process.c:3928
 #, fuzzy, c-format
 msgid "Unable to read from file '%s'"
 msgstr "'%s' ਤੋਂ ਪੜ੍ਹਨ ਤੋਂ ਅਸਮਰੱਥ"
 
-#: src/qemu/qemu_process.c:3932
+#: src/qemu/qemu_process.c:3935
 #, fuzzy, c-format
 msgid "Unable to write to file '%s'"
 msgstr "'%s' ਵਿੱਚ ਲਿਖਣ ਤੋਂ ਅਸਮਰੱਥ"
 
-#: src/qemu/qemu_process.c:3940 src/qemu/qemu_process.c:3946
+#: src/qemu/qemu_process.c:3943 src/qemu/qemu_process.c:3949
 #, fuzzy, c-format
 msgid "Unable to close file '%s'"
 msgstr "ਫਾਇਲ %s ਸੰਭਾਲਣ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/qemu/qemu_process.c:4030 src/qemu/qemu_process.c:5036
+#: src/qemu/qemu_process.c:4033 src/qemu/qemu_process.c:5039
 #: src/uml/uml_driver.c:1054
 msgid "VM is already active"
 msgstr "VM ਪਹਿਲਾਂ ਹੀ ਸਰਗਰਮ ਹੈ"
 
-#: src/qemu/qemu_process.c:4127
+#: src/qemu/qemu_process.c:4130
 msgid "Unable to set huge path in security driver"
 msgstr "ਸੁਰੱਖਿਆ ਚਾਲਕ ਵਿੱਚ ਵੱਡਾ ਰਾਹ ਸੈੱਟ ਕਰਨ ਤੋਂ ਅਸਮਰੱਥ"
 
-#: src/qemu/qemu_process.c:4200
+#: src/qemu/qemu_process.c:4203
 msgid ""
 "QEMU does not support multiple listen addresses for one graphics device."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4209 src/qemu/qemu_process.c:5060
+#: src/qemu/qemu_process.c:4212 src/qemu/qemu_process.c:5063
 #: src/uml/uml_driver.c:1076
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "ਲਾਗ ਡਾਇਰੈਕਟਰੀ %s ਬਣਾ ਨਹੀਂ ਸਕਦਾ"
 
-#: src/qemu/qemu_process.c:4222
+#: src/qemu/qemu_process.c:4225
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
@@ -19261,29 +19286,29 @@ msgstr ""
 "ਡੈਮੇਨ ਨੂੰ KVM ਲੋੜੀਂਦਾ ਹੈ, ਪਰ ਇਹ ਉਪਲੱਬਧ ਨਹੀਂ ਹੈ। ਜਾਂਚੋ ਕਿ ਆਭਾਸੀਕਰਣ ਵਿੱਚ ਮੇਜਬਾਨ BIOS ਯੋਗ ਕੀਤੀ "
 "ਹੋਈ ਹੈ, ਅਤੇ ਮੇਜਬਾਨ ਸੰਰਚਨਾ kvm ਮੌਡਿਊਲਾਂ ਨੂੰ ਲੋਡ ਕਰਨ ਲਈ ਸੈੱਟਅੱਪ ਹੈ।"
 
-#: src/qemu/qemu_process.c:4265
+#: src/qemu/qemu_process.c:4268
 msgid "Parameter 'min_guarantee' not supported by QEMU."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4285
+#: src/qemu/qemu_process.c:4288
 msgid "Failed to build pidfile path."
 msgstr "pidfile ਮਾਰਗ ਬਣਾਉਣ ਵਿੱਚ ਫੇਲ"
 
-#: src/qemu/qemu_process.c:4292
+#: src/qemu/qemu_process.c:4295
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "%s ਲਈ ਸਟੇਟ PID ਫਾਇਲ ਹਟਾਉਣ ਵਿੱਚ ਫੇਲ"
 
-#: src/qemu/qemu_process.c:4371 src/qemu/qemu_process.c:4396
+#: src/qemu/qemu_process.c:4374 src/qemu/qemu_process.c:4399
 msgid "Raw I/O is not supported on this platform"
 msgstr "ਕੱਚੀ I/O ਇਸ ਪਲੇਟਫਾਰਮ ਤੇ ਸਮਰਥਿਤ ਨਹੀਂ ਹਨ"
 
-#: src/qemu/qemu_process.c:4483
+#: src/qemu/qemu_process.c:4486
 #, c-format
 msgid "cannot stat fd %d"
 msgstr "stat fd %d ਨਹੀਂ ਕਰ ਸਕਦਾ"
 
-#: src/qemu/qemu_process.c:4598
+#: src/qemu/qemu_process.c:4601
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr "ਬੈਲੂਨ ਨੂੰ %lld ਸੈੱਟ ਨਹੀਂ ਕਰ ਸਕਦਾ"
@@ -19384,7 +19409,7 @@ msgid "remoteNodeGetMemoryStats: returned number of stats exceeds limit"
 msgstr "remoteNodeGetMemoryStats:  ਨਤੀਜੇ ਵਜੋਂ ਮਿਲੇ ਪੈਰਾਮੀਟਰ ਸੀਮਾਂ ਤੋਂ ਪਾਰ ਲੰਘ ਗਏ ਹਨ"
 
 #: src/remote/remote_driver.c:1542 src/remote/remote_driver.c:7620
-#: src/remote/remote_driver.c:7875
+#: src/remote/remote_driver.c:7873
 #, c-format
 msgid "too many NUMA cells: %d > %d"
 msgstr "ਬਹੁਤ ਸਾਰੇ NUMA ਸੈੱਲ: %d > %d"
@@ -19575,7 +19600,7 @@ msgid ""
 msgstr ""
 "ਕਾਲਰ keepalive ਜਾਬਤੇ ਨੂੰ ਸਮਰਥਨ ਨਹੀਂ ਦਿੰਦਾ; ਸ਼ਾਇਦ ਇਹ ਈਵੈਂਟ ਲੂਪ ਲਾਗੂ ਕਰਨਾ ਭੁੱਲ ਰਿਹਾ ਹੈ"
 
-#: src/remote/remote_driver.c:7810
+#: src/remote/remote_driver.c:7808
 #, c-format
 msgid "Number of stats entries is %d, which exceeds max limit: %d"
 msgstr ""

@@ -4653,7 +4653,7 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
             goto cleanup;
 
         if (snprintf(paramField, VIR_TYPED_PARAM_FIELD_LENGTH,
-                     VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN, vcpu) < 0) {
+                     VIR_DOMAIN_TUNABLE_CPU_VCPUPIN, vcpu) < 0) {
             goto cleanup;
         }
 
@@ -4940,7 +4940,7 @@ qemuDomainPinEmulator(virDomainPtr dom,
         str = virBitmapFormat(pcpumap);
         if (virTypedParamsAddString(&eventParams, &eventNparams,
                                     &eventMaxparams,
-                                    VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN,
+                                    VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN,
                                     str) < 0)
             goto cleanup;
 
@@ -9318,7 +9318,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
 
                 if (virTypedParamsAddULLong(&eventParams, &eventNparams,
                                             &eventMaxNparams,
-                                            VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES,
+                                            VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES,
                                             val) < 0)
                     goto cleanup;
             }
@@ -9341,7 +9341,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
 
                 if (virTypedParamsAddULLong(&eventParams, &eventNparams,
                                             &eventMaxNparams,
-                                            VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD,
+                                            VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD,
                                             value_ul) < 0)
                     goto cleanup;
             }
@@ -9361,7 +9361,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
 
                 if (virTypedParamsAddLLong(&eventParams, &eventNparams,
                                            &eventMaxNparams,
-                                           VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA,
+                                           VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA,
                                            value_l) < 0)
                     goto cleanup;
             }
@@ -9382,7 +9382,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
 
                 if (virTypedParamsAddULLong(&eventParams, &eventNparams,
                                             &eventMaxNparams,
-                                            VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD,
+                                            VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD,
                                             value_ul) < 0)
                     goto cleanup;
             }
@@ -9403,7 +9403,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
 
                 if (virTypedParamsAddLLong(&eventParams, &eventNparams,
                                            &eventMaxNparams,
-                                           VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA,
+                                           VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA,
                                            value_l) < 0)
                     goto cleanup;
             }
@@ -16275,6 +16275,10 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     bool set_iops = false;
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
+    virObjectEventPtr event = NULL;
+    virTypedParameterPtr eventParams = NULL;
+    int eventNparams = 0;
+    int eventMaxparams = 0;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -16316,6 +16320,10 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
                                         &persistentDef) < 0)
         goto endjob;
 
+    if (virTypedParamsAddString(&eventParams, &eventNparams, &eventMaxparams,
+                                VIR_DOMAIN_TUNABLE_BLKDEV_DISK, disk) < 0)
+        goto endjob;
+
     for (i = 0; i < nparams; i++) {
         virTypedParameterPtr param = &params[i];
 
@@ -16329,26 +16337,56 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
         if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC)) {
             info.total_bytes_sec = param->value.ul;
             set_bytes = true;
+            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
+                                        &eventMaxparams,
+                                        VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC,
+                                        param->value.ul) < 0)
+                goto endjob;
         } else if (STREQ(param->field,
                          VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC)) {
             info.read_bytes_sec = param->value.ul;
             set_bytes = true;
+            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
+                                        &eventMaxparams,
+                                        VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC,
+                                        param->value.ul) < 0)
+                goto endjob;
         } else if (STREQ(param->field,
                          VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC)) {
             info.write_bytes_sec = param->value.ul;
             set_bytes = true;
+            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
+                                        &eventMaxparams,
+                                        VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC,
+                                        param->value.ul) < 0)
+                goto endjob;
         } else if (STREQ(param->field,
                          VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC)) {
             info.total_iops_sec = param->value.ul;
             set_iops = true;
+            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
+                                        &eventMaxparams,
+                                        VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC,
+                                        param->value.ul) < 0)
+                goto endjob;
         } else if (STREQ(param->field,
                          VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC)) {
             info.read_iops_sec = param->value.ul;
             set_iops = true;
+            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
+                                        &eventMaxparams,
+                                        VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC,
+                                        param->value.ul) < 0)
+                goto endjob;
         } else if (STREQ(param->field,
                          VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC)) {
             info.write_iops_sec = param->value.ul;
             set_iops = true;
+            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
+                                        &eventMaxparams,
+                                        VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC,
+                                        param->value.ul) < 0)
+                goto endjob;
         }
     }
 
@@ -16406,6 +16444,20 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
         if (ret < 0)
             goto endjob;
         vm->def->disks[idx]->blkdeviotune = info;
+
+        ret = virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm);
+        if (ret < 0) {
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Saving live XML config failed"));
+            goto endjob;
+        }
+
+        if (eventNparams) {
+            event = virDomainEventTunableNewFromDom(dom, eventParams, eventNparams);
+            eventNparams = 0;
+            if (event)
+                qemuDomainEventQueue(driver, event);
+        }
     }
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
@@ -16438,6 +16490,8 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     VIR_FREE(device);
     if (vm)
         virObjectUnlock(vm);
+    if (eventNparams)
+        virTypedParamsFree(eventParams, eventNparams);
     virObjectUnref(caps);
     virObjectUnref(cfg);
     return ret;
@@ -18362,7 +18416,7 @@ static virDriver qemuDriver = {
     .nodeGetFreePages = qemuNodeGetFreePages, /* 1.2.6 */
     .connectGetDomainCapabilities = qemuConnectGetDomainCapabilities, /* 1.2.7 */
     .connectGetAllDomainStats = qemuConnectGetAllDomainStats, /* 1.2.8 */
-    .nodeAllocPages = qemuNodeAllocPages, /* 1.2.8 */
+    .nodeAllocPages = qemuNodeAllocPages, /* 1.2.9 */
 };
 
 

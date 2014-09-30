@@ -203,13 +203,6 @@
     <reference name='VIR_DOMAIN_DISK_ERROR_NO_SPACE' href='html/libvirt-libvirt.html#VIR_DOMAIN_DISK_ERROR_NO_SPACE'/>
     <reference name='VIR_DOMAIN_DISK_ERROR_UNSPEC' href='html/libvirt-libvirt.html#VIR_DOMAIN_DISK_ERROR_UNSPEC'/>
     <reference name='VIR_DOMAIN_EVENT_CALLBACK' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CALLBACK'/>
-    <reference name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES'/>
-    <reference name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
-    <reference name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-    <reference name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
-    <reference name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
-    <reference name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
-    <reference name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA'/>
     <reference name='VIR_DOMAIN_EVENT_CRASHED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CRASHED'/>
     <reference name='VIR_DOMAIN_EVENT_CRASHED_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CRASHED_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_CRASHED_PANICKED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CRASHED_PANICKED'/>
@@ -555,6 +548,20 @@
     <reference name='VIR_DOMAIN_STATS_STATE' href='html/libvirt-libvirt.html#VIR_DOMAIN_STATS_STATE'/>
     <reference name='VIR_DOMAIN_STATS_VCPU' href='html/libvirt-libvirt.html#VIR_DOMAIN_STATS_VCPU'/>
     <reference name='VIR_DOMAIN_TIME_SYNC' href='html/libvirt-libvirt.html#VIR_DOMAIN_TIME_SYNC'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
+    <reference name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
+    <reference name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
+    <reference name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+    <reference name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+    <reference name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
+    <reference name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
+    <reference name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' href='html/libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
     <reference name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_UNDEFINE_MANAGED_SAVE'/>
     <reference name='VIR_DOMAIN_UNDEFINE_NVRAM' href='html/libvirt-libvirt.html#VIR_DOMAIN_UNDEFINE_NVRAM'/>
     <reference name='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' href='html/libvirt-libvirt.html#VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA'/>
@@ -1772,13 +1779,6 @@
       <ref name='VIR_DOMAIN_DISK_ERROR_NO_SPACE'/>
       <ref name='VIR_DOMAIN_DISK_ERROR_UNSPEC'/>
       <ref name='VIR_DOMAIN_EVENT_CALLBACK'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA'/>
       <ref name='VIR_DOMAIN_EVENT_CRASHED'/>
       <ref name='VIR_DOMAIN_EVENT_CRASHED_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_CRASHED_PANICKED'/>
@@ -2124,6 +2124,20 @@
       <ref name='VIR_DOMAIN_STATS_STATE'/>
       <ref name='VIR_DOMAIN_STATS_VCPU'/>
       <ref name='VIR_DOMAIN_TIME_SYNC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
       <ref name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE'/>
       <ref name='VIR_DOMAIN_UNDEFINE_NVRAM'/>
       <ref name='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA'/>
@@ -4496,13 +4510,6 @@
       <ref name='VIR_DOMAIN_DISK_ERROR_NO_SPACE'/>
       <ref name='VIR_DOMAIN_DISK_ERROR_UNSPEC'/>
       <ref name='VIR_DOMAIN_EVENT_CALLBACK'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
-      <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA'/>
       <ref name='VIR_DOMAIN_EVENT_CRASHED'/>
       <ref name='VIR_DOMAIN_EVENT_CRASHED_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_CRASHED_PANICKED'/>
@@ -4848,6 +4855,20 @@
       <ref name='VIR_DOMAIN_STATS_STATE'/>
       <ref name='VIR_DOMAIN_STATS_VCPU'/>
       <ref name='VIR_DOMAIN_TIME_SYNC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
+      <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
       <ref name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE'/>
       <ref name='VIR_DOMAIN_UNDEFINE_NVRAM'/>
       <ref name='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA'/>
@@ -6724,6 +6745,10 @@
         <word name='Management'>
           <ref name='virNodeDeviceReset'/>
         </word>
+        <word name='Marco'>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
+        </word>
         <word name='Master'>
           <ref name='virDomainBlockPeek'/>
         </word>
@@ -8578,45 +8603,17 @@
           <ref name='VIR_DOMAIN_SCHED_FIELD_LENGTH'/>
         </word>
         <word name='VIR_TYPED_PARAM_LLONG'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
         </word>
         <word name='VIR_TYPED_PARAM_STRING'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
           <ref name='VIR_MIGRATE_PARAM_DEST_NAME'/>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
           <ref name='VIR_MIGRATE_PARAM_URI'/>
-        </word>
-        <word name='VIR_TYPED_PARAM_ULLONG'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_BYTES'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_CACHE'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_PAGES'/>
-          <ref name='VIR_DOMAIN_JOB_DATA_PROCESSED'/>
-          <ref name='VIR_DOMAIN_JOB_DATA_REMAINING'/>
-          <ref name='VIR_DOMAIN_JOB_DATA_TOTAL'/>
-          <ref name='VIR_DOMAIN_JOB_DISK_BPS'/>
-          <ref name='VIR_DOMAIN_JOB_DISK_PROCESSED'/>
-          <ref name='VIR_DOMAIN_JOB_DISK_REMAINING'/>
-          <ref name='VIR_DOMAIN_JOB_DISK_TOTAL'/>
-          <ref name='VIR_DOMAIN_JOB_DOWNTIME'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_BPS'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_CONSTANT'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_PROCESSED'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_REMAINING'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
-          <ref name='VIR_DOMAIN_JOB_SETUP_TIME'/>
-          <ref name='VIR_DOMAIN_JOB_TIME_ELAPSED'/>
-          <ref name='VIR_DOMAIN_JOB_TIME_REMAINING'/>
-          <ref name='VIR_MIGRATE_PARAM_BANDWIDTH'/>
         </word>
         <word name='VIR_UUID_BUFLEN'>
           <ref name='virDomainGetUUID'/>
@@ -8863,10 +8860,10 @@
           <ref name='virNodeGetSecurityModel'/>
         </word>
         <word name='activity'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
         </word>
         <word name='actual'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
@@ -9257,7 +9254,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='appended'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
         </word>
         <word name='applicable'>
           <ref name='virConnectGetAllDomainStats'/>
@@ -9795,6 +9792,9 @@
         <word name='bitwise-or'>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virDomainSetSchedulerParametersFlags'/>
+        </word>
+        <word name='blkdeviotune'>
+          <ref name='virConnectDomainEventTunableCallback'/>
         </word>
         <word name='blkio'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS'/>
@@ -11058,7 +11058,7 @@
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='cputune'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
           <ref name='virConnectDomainEventTunableCallback'/>
         </word>
         <word name='crashed'>
@@ -11925,11 +11925,11 @@
           <ref name='virDomainReset'/>
         </word>
         <word name='emulator'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
           <ref name='virConnectGetDomainCapabilities'/>
           <ref name='virDomainGetEmulatorPinInfo'/>
           <ref name='virDomainPinEmulator'/>
@@ -12003,10 +12003,10 @@
           <ref name='virDomainSetMetadata'/>
         </word>
         <word name='enforcement'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
         </word>
         <word name='enlarge'>
           <ref name='virStorageVolResize'/>
@@ -12763,8 +12763,8 @@
           <ref name='virDomainCoreDumpWithFormat'/>
         </word>
         <word name='formatted'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
           <ref name='virNetworkGetDHCPLeases'/>
         </word>
         <word name='formed'>
@@ -15070,10 +15070,10 @@
           <ref name='micro'/>
         </word>
         <word name='microseconds'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
         </word>
         <word name='migrate'>
           <ref name='virDomainMigrate'/>
@@ -15938,6 +15938,9 @@
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetDiskErrors'/>
@@ -16231,6 +16234,12 @@
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_JOB_DISK_BPS'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_BPS'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
           <ref name='_virNodeInfo'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainScreenshot'/>
@@ -16269,14 +16278,14 @@
           <ref name='virDomainBlockJobAbort'/>
         </word>
         <word name='period'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
         </word>
         <word name='permanent'>
@@ -16360,8 +16369,8 @@
           <ref name='virDomainGetEmulatorPinInfo'/>
         </word>
         <word name='pinning'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='pipe'>
@@ -16489,16 +16498,16 @@
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='posix'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_CPU_SHARES'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
         </word>
         <word name='possibility'>
           <ref name='virConnectListAllDomains'/>
@@ -16747,7 +16756,7 @@
           <ref name='virDomainBlockRebase'/>
         </word>
         <word name='process'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
           <ref name='virDomainCreateWithFiles'/>
           <ref name='virDomainCreateXMLWithFiles'/>
           <ref name='virDomainGetCPUStats'/>
@@ -16826,8 +16835,8 @@
           <ref name='virDomainBlockRebase'/>
         </word>
         <word name='proportional'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES'/>
           <ref name='VIR_DOMAIN_SCHEDULER_CPU_SHARES'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
         </word>
         <word name='proportionally'>
           <ref name='virNodeAllocPages'/>
@@ -17022,10 +17031,10 @@
           <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='quota'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
         </word>
       </letter>
       <letter name='r'>
@@ -17152,6 +17161,8 @@
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_READ_BYTES'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_READ_REQ'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
           <ref name='_virDomainBlockStats'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockPeek'/>
@@ -19552,6 +19563,9 @@
         <word name='throughput'>
           <ref name='VIR_DOMAIN_JOB_DISK_BPS'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_BPS'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
         </word>
         <word name='thrown'>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -19562,10 +19576,10 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
         </word>
         <word name='tied'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
           <ref name='virNetworkGetXMLDesc'/>
         </word>
         <word name='till'>
@@ -20171,6 +20185,7 @@
           <ref name='virNetworkUpdate'/>
         </word>
         <word name='updated'>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
           <ref name='virConnectDomainEventTunableCallback'/>
           <ref name='virDomainGetBlockJobInfo'/>
           <ref name='virDomainIsUpdated'/>
@@ -20337,6 +20352,7 @@
         </word>
         <word name='values'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
           <ref name='_virConnectAuth'/>
           <ref name='virConnectDomainEventTunableCallback'/>
           <ref name='virConnectGetLibVersion'/>
@@ -20388,23 +20404,23 @@
           <ref name='VIR_CPU_USABLE'/>
           <ref name='VIR_DOMAIN_CPU_STATS_CPUTIME'/>
           <ref name='VIR_DOMAIN_CPU_STATS_VCPUTIME'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
           <ref name='VIR_GET_CPUMAP'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='vcpupin1'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
         </word>
         <word name='vcpus'>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
         </word>
@@ -21856,9 +21872,9 @@
         <word name='weight'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT'/>
           <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
-          <ref name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES'/>
           <ref name='VIR_DOMAIN_SCHEDULER_CPU_SHARES'/>
           <ref name='VIR_DOMAIN_SCHEDULER_WEIGHT'/>
+          <ref name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
         </word>
         <word name='weight:'>
           <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
@@ -21981,6 +21997,8 @@
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
           <ref name='_virDomainBlockStats'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virStreamRecv'/>

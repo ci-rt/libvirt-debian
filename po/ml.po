@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-09-25 11:47+0200\n"
+"POT-Creation-Date: 2014-09-29 20:22+0800\n"
 "PO-Revision-Date: 2014-08-29 13:11+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Malayalam (http://www.transifex.com/projects/p/libvirt/"
@@ -622,7 +622,7 @@ msgstr ""
 msgid "the result won't fit into REMOTE_NODE_MAX_CELLS"
 msgstr ""
 
-#: daemon/remote.c:6182 src/remote/remote_driver.c:7730
+#: daemon/remote.c:6182 src/remote/remote_driver.c:7728
 #, c-format
 msgid "Number of leases is %d, which exceeds max limit: %d"
 msgstr ""
@@ -852,8 +852,18 @@ msgstr "മുമ്പുള്ള റെഗുലര്‍ എക്സ്പ�
 msgid "Policy kit denied action %s from <anonymous>"
 msgstr "<anonymous>-ല്‍ നിന്നും പോളിസി കിറ്റ് %s പ്രവര്‍ത്തി നിഷേധിച്ചു"
 
-#: src/access/viraccessdriverpolkit.c:99
+#: src/access/viraccessdriverpolkit.c:93
 msgid "No UNIX process ID available"
+msgstr "യുണിക്സ് പ്രൊസസ്സ് ഐഡി ലഭ്യമല്ല"
+
+#: src/access/viraccessdriverpolkit.c:98
+#, fuzzy
+msgid "No UNIX process start time available"
+msgstr "യുണിക്സ് പ്രൊസസ്സ് ഐഡി ലഭ്യമല്ല"
+
+#: src/access/viraccessdriverpolkit.c:103
+#, fuzzy
+msgid "No UNIX caller UID available"
 msgstr "യുണിക്സ് പ്രൊസസ്സ് ഐഡി ലഭ്യമല്ല"
 
 #: src/access/viraccessmanager.c:142
@@ -988,7 +998,7 @@ msgstr ""
 msgid "No domain with matching uuid '%s'"
 msgstr "ചേരുന്ന uuid '%s' ഉള്ള ഡൊമെയിന്‍ ലഭ്യമല്ല"
 
-#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1206
+#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1220
 #: src/qemu/qemu_driver.c:1520 src/qemu/qemu_driver.c:11055
 #: src/qemu/qemu_driver.c:11466 src/qemu/qemu_driver.c:11509
 #, c-format
@@ -1053,13 +1063,13 @@ msgstr "ഡൊമെയിന്‍ പ്രവര്‍ത്തിക്ക�
 #: src/qemu/qemu_driver.c:15353 src/qemu/qemu_driver.c:15437
 #: src/qemu/qemu_driver.c:15547 src/qemu/qemu_driver.c:15914
 #: src/qemu/qemu_driver.c:16134 src/qemu/qemu_driver.c:16200
-#: src/qemu/qemu_driver.c:16615 src/qemu/qemu_driver.c:16757
-#: src/qemu/qemu_driver.c:16817 src/qemu/qemu_driver.c:16855
-#: src/qemu/qemu_driver.c:16895 src/qemu/qemu_driver.c:16966
-#: src/qemu/qemu_driver.c:16978 src/qemu/qemu_driver.c:17077
-#: src/qemu/qemu_driver.c:17089 src/qemu/qemu_driver.c:17266
-#: src/qemu/qemu_driver.c:17327 src/qemu/qemu_driver.c:17343
-#: src/qemu/qemu_driver.c:17390 src/qemu/qemu_driver.c:17440
+#: src/qemu/qemu_driver.c:16669 src/qemu/qemu_driver.c:16811
+#: src/qemu/qemu_driver.c:16871 src/qemu/qemu_driver.c:16909
+#: src/qemu/qemu_driver.c:16949 src/qemu/qemu_driver.c:17020
+#: src/qemu/qemu_driver.c:17032 src/qemu/qemu_driver.c:17131
+#: src/qemu/qemu_driver.c:17143 src/qemu/qemu_driver.c:17320
+#: src/qemu/qemu_driver.c:17381 src/qemu/qemu_driver.c:17397
+#: src/qemu/qemu_driver.c:17444 src/qemu/qemu_driver.c:17494
 #: src/qemu/qemu_migration.c:2415 src/qemu/qemu_migration.c:4521
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2601
 #: src/xen/xen_driver.c:2644 src/xen/xm_internal.c:677
@@ -1101,7 +1111,7 @@ msgstr ""
 msgid "Cannot remove state PID file %s"
 msgstr ""
 
-#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4430
+#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4433
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "ഡൊമെയിന്‍ %s ലഭ്യമല്ല"
@@ -1196,7 +1206,7 @@ msgstr "ത്രെട്സ് (threads) സവിശേഷം സി.പി.�
 msgid "Invalid CPU topology"
 msgstr "അറിയാത്ത സി.പി.യു മോഡല്‍"
 
-#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:629
+#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:631
 msgid "Non-empty feature list specified without CPU model"
 msgstr "സിപിയു മോഡല്‍ ഇല്ലാതെ വിശേഷത പട്ടിക നല്‍കിയിരിയ്ക്കുന്നു"
 
@@ -1208,7 +1218,7 @@ msgstr "അസാധുവായ സി.പി.യു. സവിശേഷതാ 
 msgid "Invalid CPU feature name"
 msgstr "അറിയാത്ത സിപിയു വിശേഷത നാമം"
 
-#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:734
+#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:736
 #, fuzzy, c-format
 msgid "CPU feature '%s' specified more than once"
 msgstr "സി.പി.യു. സവിശേഷതാ `%s' ഒന്നിലധികം തവണ "
@@ -1245,95 +1255,95 @@ msgstr "NUMA സെല്ലില്‍ 'memory' വിശേഷത ലഭ്�
 msgid "Invalid 'memory' attribute in NUMA cell"
 msgstr "NUMA സെല്ലില്‍  തെറ്റായ 'memory' വിശേഷത"
 
-#: src/conf/cpu_conf.c:515
+#: src/conf/cpu_conf.c:514
 #, fuzzy, c-format
 msgid "Invalid 'memAccess' attribute value '%s'"
 msgstr "തെറ്റായ മെമ്മറി കോര്‍ ഡംപ് വിശേഷത മൂല്ല്യം '%s'"
 
-#: src/conf/cpu_conf.c:574
+#: src/conf/cpu_conf.c:576
 #, c-format
 msgid "Unexpected CPU mode %d"
 msgstr "അപ്രതീക്ഷിതമായ സിപിയു മോഡ് %d"
 
-#: src/conf/cpu_conf.c:585
+#: src/conf/cpu_conf.c:587
 #, c-format
 msgid "Unexpected CPU match policy %d"
 msgstr "അപ്രതീക്ഷിതമായ സിപിയു പോളിസി %d"
 
-#: src/conf/cpu_conf.c:641
+#: src/conf/cpu_conf.c:643
 #, c-format
 msgid "Unexpected CPU fallback value: %d"
 msgstr "അപ്രതീക്ഷിതമായ സിപിയു പിന്‍വിളി മൂല്ല്യം: %d"
 
-#: src/conf/cpu_conf.c:672 src/cpu/cpu_x86.c:713
+#: src/conf/cpu_conf.c:674 src/cpu/cpu_x86.c:713
 msgid "Missing CPU feature name"
 msgstr "സിപിയു വിശേഷത നാമം ലഭ്യമല്ല"
 
-#: src/conf/cpu_conf.c:682
+#: src/conf/cpu_conf.c:684
 #, c-format
 msgid "Unexpected CPU feature policy %d"
 msgstr "അപ്രതീക്ഷിതമായ സിപിയു വിശേഷത പോളിസി %d"
 
-#: src/conf/cpu_conf.c:782
+#: src/conf/cpu_conf.c:784
 msgid "Target CPU does not match source"
 msgstr "ലക്ഷ്യ സിപിയു ഉറവിടവുമായി ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:788
+#: src/conf/cpu_conf.c:790
 #, c-format
 msgid "Target CPU type %s does not match source %s"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു തരം %s-മായി ശ്രോതസ്സ് %s ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:796
+#: src/conf/cpu_conf.c:798
 #, c-format
 msgid "Target CPU mode %s does not match source %s"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു മോഡ് %s-മായി ശ്രോതസ്സ് %s ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:804
+#: src/conf/cpu_conf.c:806
 #, c-format
 msgid "Target CPU arch %s does not match source %s"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു ആര്‍ക്ക് %s-മായി ശ്രോതസ്സ് %s ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:812
+#: src/conf/cpu_conf.c:814
 #, c-format
 msgid "Target CPU model %s does not match source %s"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു മോഡല്‍ %s-മായി ശ്രോതസ്സ് %s ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:819
+#: src/conf/cpu_conf.c:821
 #, c-format
 msgid "Target CPU vendor %s does not match source %s"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു വെണ്ടര്‍ %s-മായി ശ്രോതസ്സ് %s ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:826
+#: src/conf/cpu_conf.c:828
 #, c-format
 msgid "Target CPU vendor id %s does not match source %s"
 msgstr ""
 
-#: src/conf/cpu_conf.c:833
+#: src/conf/cpu_conf.c:835
 #, c-format
 msgid "Target CPU sockets %d does not match source %d"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു സോക്കറ്റുകള്‍ %d-മായി ശ്രോതസ്സ് %d ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:840
+#: src/conf/cpu_conf.c:842
 #, c-format
 msgid "Target CPU cores %d does not match source %d"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു കോറുകള്‍ %d-മായി ശ്രോതസ്സ് %d ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:847
+#: src/conf/cpu_conf.c:849
 #, c-format
 msgid "Target CPU threads %d does not match source %d"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു ത്രെഡുകള്‍ %d-മായി ശ്രോതസ്സ് %d ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:854
+#: src/conf/cpu_conf.c:856
 #, c-format
 msgid "Target CPU feature count %zu does not match source %zu"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു വിശേഷതയുടെ എണ്ണം %zu-മായി ശ്രോതസ്സ് %zu ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:862
+#: src/conf/cpu_conf.c:864
 #, c-format
 msgid "Target CPU feature %s does not match source %s"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു വിശേഷത %s-മായി ശ്രോതസ്സ് %s ചേരുന്നില്ല"
 
-#: src/conf/cpu_conf.c:869
+#: src/conf/cpu_conf.c:871
 #, c-format
 msgid "Target CPU feature policy %s does not match source %s"
 msgstr "ലക്ഷ്യത്തിലുള്ള സിപിയു വിശേഷതയുടെ പോളിസി %s-മായി ശ്രോതസ്സ് %s ചേരുന്നില്ല"
@@ -4690,7 +4700,7 @@ msgstr "അപ്രതീക്ഷിതമായ ഇന്റര്‍ഫെ�
 #: src/conf/interface_conf.c:1256 src/conf/network_conf.c:386
 #: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3117
 #: src/conf/storage_conf.c:1774 src/libxl/libxl_driver.c:295
-#: src/parallels/parallels_driver.c:931 src/qemu/qemu_driver.c:641
+#: src/parallels/parallels_driver.c:932 src/qemu/qemu_driver.c:641
 #: src/remote/remote_driver.c:1118 src/test/test_driver.c:716
 #: src/test/test_driver.c:1413 src/xen/xen_driver.c:464
 msgid "cannot initialize mutex"
@@ -8570,7 +8580,7 @@ msgid "Unable to set non-blocking mode"
 msgstr ""
 
 #: src/fdstream.c:496 src/locking/lock_daemon.c:144
-#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3442
+#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3444
 #: src/util/vireventpoll.c:694 src/util/virobject.c:224
 msgid "Unable to initialize mutex"
 msgstr "മ്യൂട്ടക്സ് തുടങ്ങുവാന്‍ സാധ്യമായില്ല"
@@ -10105,7 +10115,7 @@ msgstr "പിന്തുണയില്ലാത്ത പരാജയ പ്�
 msgid "cannot get the path of MEMORY cgroup controller"
 msgstr "MEMORY cgroup കണ്ട്രോളറിനുള്ള പാഥ് ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:753
+#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:754
 #, c-format
 msgid "Resource partition '%s' must start with '/'"
 msgstr "'%s' റിസോഴ്സ് പാര്‍ട്ടീഷന്‍ '/'-ല്‍ ആരംഭിയ്ക്കണം"
@@ -11160,7 +11170,7 @@ msgstr "ലൈവ് ഡിവൈസുകളില്‍ മാറ്റം വ
 msgid "domain is not active"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16763
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16817
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT കണ്ട്രോളര്‍ മൌണ്ട് ചെയ്തിട്ടില്ല"
 
@@ -13210,7 +13220,7 @@ msgstr ""
 msgid "Failed to parse vzlist output"
 msgstr "vzlist ഔട്ട്പുട്ട് പാഴ്സ് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:703
+#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:704
 msgid "UUID in config file malformed"
 msgstr "ക്രമീകരണ ഫയലിലുള്ള UUID തെറ്റാണു്"
 
@@ -13400,8 +13410,8 @@ msgstr "ഇവിടെ നിന്നും ബാറിയര്‍ പാഴ
 msgid "Failed to set %s for %s: value too large"
 msgstr "%s , %s നു വേണ്ടി  സജ്ജീകരിക്കുന്നതില്‍ പരാജയപ്പെട്ടു. : മൂല്യം  വളരെ കൂടുതലാണ്"
 
-#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:71
-#: src/parallels/parallels_driver.c:1179 src/qemu/qemu_driver.c:1493
+#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:72
+#: src/parallels/parallels_driver.c:1193 src/qemu/qemu_driver.c:1493
 #: src/test/test_driver.c:2610 src/uml/uml_driver.c:1785
 #: src/uml/uml_driver.c:1815 src/uml/uml_driver.c:1852
 #: src/uml/uml_driver.c:2225 src/uml/uml_driver.c:2346
@@ -13434,219 +13444,224 @@ msgstr "ഡൊമെയിന്‍ പ്രവര്‍ത്തിക്ക�
 msgid "Can't determine page size"
 msgstr "താളിന്റെ വ്യാപ്തി കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/parallels/parallels_driver.c:454
+#: src/parallels/parallels_driver.c:455
 #, c-format
 msgid "Invalid MAC address format '%s'"
 msgstr "തെറ്റായ MAC വിലാസ ശൈലി '%s'"
 
-#: src/parallels/parallels_driver.c:733
+#: src/parallels/parallels_driver.c:734
 msgid "Can't get node info"
 msgstr "നോഡ് വിവരം ലഭ്യമല്ല"
 
-#: src/parallels/parallels_driver.c:982
+#: src/parallels/parallels_driver.c:937
+#, fuzzy
+msgid "Can't initialize Parallels SDK"
+msgstr "ആക്സസ്സ്മാനേജര്‍ ആരംഭിയ്ക്കുവാന്‍ സാധ്യമല്ല"
+
+#: src/parallels/parallels_driver.c:994
 #, c-format
 msgid "Unexpected Parallels URI path '%s', try parallels:///system"
 msgstr ""
 "പ്രതീക്ഷിക്കാത്ത പാരല്ലല്‍സ് യു ആര്‍ എല്‍ പാത്ത് : %s . parallels:///system ഉപയോഗിച്ച് ശ്രമിക്കൂ"
 
-#: src/parallels/parallels_driver.c:1403
+#: src/parallels/parallels_driver.c:1417
 #, c-format
 msgid "domain '%s' not %s"
 msgstr "ഡൊമെയിന്‍ '%s' %s അല്ല"
 
-#: src/parallels/parallels_driver.c:1536
+#: src/parallels/parallels_driver.c:1550
 msgid "changing display parameters is not supported by parallels driver"
 msgstr "ഡിസ്‌‌പ്ലേ പരാമീറ്ററുകള്‍ മാറ്റുന്നതിനെ parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:1584
+#: src/parallels/parallels_driver.c:1598
 msgid "changing serial device parameters is not supported by parallels driver"
 msgstr "സീരിയല്‍ ഡിവൈസ് പരാമീറ്ററുകള്‍ മാറ്റുന്നതിനെ parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:1599
+#: src/parallels/parallels_driver.c:1613
 msgid "Only one video device is supported by parallels driver"
 msgstr "parallels driver ഒരു വീഡിയോ ഡിവൈസ് മാത്രമേ പിന്തുണക്കൂ"
 
-#: src/parallels/parallels_driver.c:1608
+#: src/parallels/parallels_driver.c:1622
 msgid "Only VGA video device is supported by parallels driver"
 msgstr "VGA വീഡിയോ ഉപകരണം  മാത്രമേ parallels driver പിന്തുണക്കൂ"
 
-#: src/parallels/parallels_driver.c:1615
+#: src/parallels/parallels_driver.c:1629
 msgid "Only one monitor is supported by parallels driver"
 msgstr "ഒരു മോണിറ്റര്‍ മാത്രമേ parallels driver പിന്തുണക്കൂ "
 
-#: src/parallels/parallels_driver.c:1625
+#: src/parallels/parallels_driver.c:1639
 msgid ""
 "Changing video acceleration parameters is not supported by parallels driver"
 msgstr "വീഡിയോ ആക്സിലറേഷന്‍ പരാമീറ്ററുകള്‍ parallels driver പിന്തുണക്കില്ല "
 
-#: src/parallels/parallels_driver.c:1634
+#: src/parallels/parallels_driver.c:1648
 msgid "Video RAM size should be multiple of 1Mb."
 msgstr "വീഡീയോ RAM വലുപ്പം  1 എം  ബി യുടെ ഗുണിതങ്ങളായിരിക്കണം"
 
-#: src/parallels/parallels_driver.c:1664
+#: src/parallels/parallels_driver.c:1678
 #, c-format
 msgid "Invalid disk format: %d"
 msgstr ""
 
-#: src/parallels/parallels_driver.c:1673
+#: src/parallels/parallels_driver.c:1687
 #, c-format
 msgid "Invalid disk type: %d"
 msgstr ""
 
-#: src/parallels/parallels_driver.c:1681
+#: src/parallels/parallels_driver.c:1695
 #, c-format
 msgid "Invalid disk bus: %d"
 msgstr "തെറ്റായ ഡിവൈസ് ബസ്: %d"
 
-#: src/parallels/parallels_driver.c:1737
+#: src/parallels/parallels_driver.c:1751
 #, c-format
 msgid "Can't remove disk '%s' in the specified config"
 msgstr "നിഷ്കര്‍ഷിച്ചിരിയ്ക്കുന്ന ക്രമീകരണത്തില്‍ '%s' ഡിസ്ക് നീക്കം ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/parallels/parallels_driver.c:1762
+#: src/parallels/parallels_driver.c:1776
 #, c-format
 msgid "Unsupported disk bus: %d"
 msgstr "പിന്തുണയ്ക്കാത്ത ഡിസ്ക് ബസ്: %d"
 
-#: src/parallels/parallels_driver.c:1810
+#: src/parallels/parallels_driver.c:1824
 msgid "Changing network type is not supported"
 msgstr "നെറ്റ്‌വര്‍ക്ക് തരം മാറ്റുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1816
+#: src/parallels/parallels_driver.c:1830
 msgid "Changing network device model is not supported"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് മോഡല്‍ മാറ്റുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1823
+#: src/parallels/parallels_driver.c:1837
 msgid "Changing network portgroup is not supported"
 msgstr "നെറ്റ്‌വര്‍ക്ക് portgroup മാറ്റുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1830
+#: src/parallels/parallels_driver.c:1844
 msgid "Changing virtual port profile is not supported"
 msgstr "വിര്‍ച്ച്വല്‍ പോര്‍ട്ട് പ്രൊഫൈല്‍ മാറ്റുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1836
+#: src/parallels/parallels_driver.c:1850
 msgid "Setting send buffer size is not supported"
 msgstr "അയയ്ക്കുന്ന ബഫര്‍ വ്യാപ്തി സജ്ജമാക്കുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1842
+#: src/parallels/parallels_driver.c:1856
 msgid "Setting startup script is not supported"
 msgstr "പ്രാരംഭ സ്ക്രിപ്റ്റ് സജ്ജമാക്കുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1848
+#: src/parallels/parallels_driver.c:1862
 msgid "Changing filter params is not supported"
 msgstr "ഫില്‍റ്റര്‍ പരാമീറ്ററുകള്‍ മാറ്റുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1854
+#: src/parallels/parallels_driver.c:1868
 msgid "Setting bandwidth params is not supported"
 msgstr "vlan bandwidth സജ്ജമാക്കുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1861
+#: src/parallels/parallels_driver.c:1875
 msgid "Setting vlan params is not supported"
 msgstr "vlan params സജ്ജമാക്കുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/parallels/parallels_driver.c:1994
+#: src/parallels/parallels_driver.c:2008
 msgid "titles are not supported by parallels driver"
 msgstr "തലക്കെട്ടുകള്‍ parallels driver പിന്തുണക്കില്ല "
 
-#: src/parallels/parallels_driver.c:2000
+#: src/parallels/parallels_driver.c:2014
 msgid "blkio parameters are not supported by parallels driver"
 msgstr "blkio പരാമീറ്ററുകള്‍ parallels driver പിന്തുണക്കില്ല "
 
-#: src/parallels/parallels_driver.c:2008
+#: src/parallels/parallels_driver.c:2022
 msgid "changing balloon parameters is not supported by parallels driver"
 msgstr "ബലൂണ്‍ പരാമീറ്ററുകള്‍ മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല "
 
-#: src/parallels/parallels_driver.c:2015
+#: src/parallels/parallels_driver.c:2029
 msgid "Memory size should be multiple of 1Mb."
 msgstr "മെമ്മറിയുടെ വലുപ്പം  1 എംബിയുടെ ഗുണിതങ്ങളായിരിക്കണം "
 
-#: src/parallels/parallels_driver.c:2034
+#: src/parallels/parallels_driver.c:2048
 msgid "Memory parameter is not supported by parallels driver"
 msgstr "മെമ്മറി പരാമീറ്റര്‍ parallels driver പിന്തുണക്കില്ല "
 
-#: src/parallels/parallels_driver.c:2042
+#: src/parallels/parallels_driver.c:2056
 msgid "current vcpus must be equal to maxvcpus"
 msgstr "ഇപ്പോഴത്തെ vcpus maxvcpus നു തുല്യമായിരിക്കണം "
 
-#: src/parallels/parallels_driver.c:2056
+#: src/parallels/parallels_driver.c:2070
 msgid "changing cpu placement mode is not supported by parallels driver"
 msgstr "സിപിയു പ്ലേസ്മെന്റ് മോഡ് മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2066
+#: src/parallels/parallels_driver.c:2080
 msgid "changing cpu mask is not supported by parallels driver"
 msgstr "സിപിയു മാസ്ക് മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല "
 
-#: src/parallels/parallels_driver.c:2078
+#: src/parallels/parallels_driver.c:2092
 msgid "cputune is not supported by parallels driver"
 msgstr "cputune നെ parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2084
+#: src/parallels/parallels_driver.c:2098
 msgid "numa parameters are not supported by parallels driver"
 msgstr "നൂമ പരാമീറ്ററുകള്‍ parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2094
+#: src/parallels/parallels_driver.c:2108
 msgid ""
 "on_reboot, on_poweroff and on_crash parameters are not supported by "
 "parallels driver"
 msgstr ""
 "on_reboot, on_poweroff , on_crash എന്നീ പരാമീറ്ററുകള്‍ parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2113 src/parallels/parallels_driver.c:2123
-#: src/parallels/parallels_driver.c:2133
+#: src/parallels/parallels_driver.c:2127 src/parallels/parallels_driver.c:2137
+#: src/parallels/parallels_driver.c:2147
 msgid "changing OS parameters is not supported by parallels driver"
 msgstr "OS പരാമീറ്ററുകള്‍ മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2142
+#: src/parallels/parallels_driver.c:2156
 msgid "changing emulator is not supported by parallels driver"
 msgstr "എമുലേറ്റര്‍ മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2150
+#: src/parallels/parallels_driver.c:2164
 msgid "changing features is not supported by parallels driver"
 msgstr "ഫിച്ചറുകള്‍ മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2160
+#: src/parallels/parallels_driver.c:2174
 msgid "changing clock parameters is not supported by parallels driver"
 msgstr "ക്ലോക്ക് പരാമീറ്ററുകള്‍ മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2176
+#: src/parallels/parallels_driver.c:2190
 msgid "changing devices parameters is not supported by parallels driver"
 msgstr "ഡിവൈസ് പരാമീറ്ററുകള്‍ മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല"
 
-#: src/parallels/parallels_driver.c:2188
+#: src/parallels/parallels_driver.c:2202
 msgid "changing input devices parameters is not supported by parallels driver"
 msgstr "ല്ലഇന്‍പുട്ട് ഡിവൈസുകളുടെ പരാമീറ്ററുകള്‍ മാറ്റുന്നത് parallels driver പിന്തുണക്കില്ല "
 
-#: src/parallels/parallels_driver.c:2239
+#: src/parallels/parallels_driver.c:2253
 msgid "There must be only 1 template FS for container creation"
 msgstr "കണ്ടൈനര്‍ നിര്‍മിക്കുന്നതിനായി ഒരു ടെംപ്ലേറ്റ് FS മാത്രമേ പാടുള്ളൂ"
 
-#: src/parallels/parallels_driver.c:2268
+#: src/parallels/parallels_driver.c:2282
 msgid "Can't parse XML desc"
 msgstr "XM വിവരണം പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/parallels/parallels_driver.c:2283
+#: src/parallels/parallels_driver.c:2297
 #, c-format
 msgid "Unsupported OS type: %s"
 msgstr "പിന്തുണയില്ലാത്ത ഒഎസ് തരം: %s"
 
-#: src/parallels/parallels_driver.c:2291
+#: src/parallels/parallels_driver.c:2305
 #, c-format
 msgid "Domain for '%s' is not defined after creation"
 msgstr "നിര്‍മിതിക്കുശേഷം  '%s' നുവേണ്ടിയുള്ള ഡൊമൈന്‍ നിര്‍വചിച്ചിട്ടില്ല"
 
-#: src/parallels/parallels_driver.c:2292
+#: src/parallels/parallels_driver.c:2306
 msgid "(unnamed)"
 msgstr "(പേരില്ലാത്ത)"
 
-#: src/parallels/parallels_driver.c:2376 src/qemu/qemu_driver.c:5082
+#: src/parallels/parallels_driver.c:2390 src/qemu/qemu_driver.c:5082
 msgid "cannot list vcpu pinning for an inactive domain"
 msgstr "നിര്‍ജ്ജീവമായൊരു ഡൊമെയിനു് vcpu പിന്നിങ് ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/parallels/parallels_driver.c:2480
+#: src/parallels/parallels_driver.c:2494
 msgid "Can't find prlctl command in the PATH env"
 msgstr "PATH env ല്‍ prlctl കമാന്റ് കണ്ടെത്താനായില്ല"
 
-#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:36
+#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:38
 msgid "Can't parse prlctl output"
 msgstr "prlctl ഔട്ട്പുട്ട് പാര്‍സ് ചെയ്യാന്‍ കഴിഞ്ഞില്ല"
 
@@ -13673,6 +13688,11 @@ msgstr "എംഎസി '%s' പാഴ്സ് ചെയ്യുവാന്�
 #: src/parallels/parallels_network.c:257
 msgid "Can't parse UUID"
 msgstr "യുയുഐഡി പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
+
+#: src/parallels/parallels_sdk.c:64 src/parallels/parallels_sdk.c:105
+#, c-format
+msgid "%s %s"
+msgstr ""
 
 #: src/parallels/parallels_utils.c:78
 #, c-format
@@ -14338,26 +14358,26 @@ msgstr ""
 msgid "Unknown QEMU arch %s"
 msgstr "അപരിചിതമായ ക്യുഇഎംയു ആര്‍ക്ക് %s"
 
-#: src/qemu/qemu_capabilities.c:3318
+#: src/qemu/qemu_capabilities.c:3320
 #, c-format
 msgid "Failed to kill process %lld: %s"
 msgstr "%lld പ്രക്രിയ ഇല്ലാതാക്കുന്നതില്‍ പരാജയപ്പെട്ടു: %s"
 
-#: src/qemu/qemu_capabilities.c:3346
+#: src/qemu/qemu_capabilities.c:3348
 #, c-format
 msgid "Failed to probe capabilities for %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3348
+#: src/qemu/qemu_capabilities.c:3350
 msgid "unknown failure"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3371
+#: src/qemu/qemu_capabilities.c:3373
 #, c-format
 msgid "Cannot check QEMU binary %s"
 msgstr "QEMU ബൈനറി %s പരിശോധിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_capabilities.c:3382
+#: src/qemu/qemu_capabilities.c:3384
 #, c-format
 msgid "QEMU binary %s is not executable"
 msgstr "QEMU ബൈനറി %s എക്സിക്യൂട്ടബിളല്ല"
@@ -14370,16 +14390,16 @@ msgstr "ബ്ലോക്ക് ഐ/ഒ ട്യൂണിങ് ഈ ഹോസ�
 msgid "Memory cgroup is not available on this host"
 msgstr "ഈ ഹോസ്റ്റില്‍ മെമ്മറി cgroup ലഭ്യമല്ല"
 
-#: src/qemu/qemu_cgroup.c:688
+#: src/qemu/qemu_cgroup.c:689
 msgid "CPU tuning is not available on this host"
 msgstr "ഈ ഹോസ്റ്റില്‍ സിപിയു ട്യൂണിങ് ലഭ്യമല്ല"
 
-#: src/qemu/qemu_cgroup.c:826
+#: src/qemu/qemu_cgroup.c:827
 msgid "Cannot setup cgroups until process is started"
 msgstr "പ്രക്രിയ ആരംഭിയ്ക്കുന്നതു് വരെ cgroups സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_cgroup.c:971 src/qemu/qemu_cgroup.c:1059
-#: src/qemu/qemu_cgroup.c:1132
+#: src/qemu/qemu_cgroup.c:972 src/qemu/qemu_cgroup.c:1060
+#: src/qemu/qemu_cgroup.c:1133
 msgid "cgroup cpu is required for scheduler tuning"
 msgstr "ഷെഡ്യുളര്‍ ട്യൂണിങിനു് cgroup സിപിസു ആവശ്യമാണു്"
 
@@ -14756,7 +14776,7 @@ msgstr "ഈ QEMU ബൈനറി discard പിന്തുണയ്ക്കു
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "ഈ  QEMU  ബൈനറി ഡിസ്ക് aio മോഡ് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16381
+#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16419
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "ഈ QEMU ബൈനറി ബ്ലോക്ക് ഐ/ഒ ത്രോട്ടിലിങ് പിന്തുണയ്ക്കുന്നില്ല"
 
@@ -16276,7 +16296,7 @@ msgid "domain is pmsuspended"
 msgstr "ഡൊമെയിന്‍ pmsuspend ചെയ്തിരിയ്ക്കുന്നു"
 
 #: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4923
-#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4620
+#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4623
 msgid "resume operation failed"
 msgstr "പ്രക്രിയ വീണ്ടും ആരംഭിക്കുന്നതു് പരാജയപ്പെട്ടു"
 
@@ -16352,13 +16372,13 @@ msgstr "'%s' തയ്യാറാക്കുന്നതില്‍ ചൈള
 msgid "Error from child process opening '%s'"
 msgstr "ചൈള്‍ഡ് പ്രക്രിയ '%s' തുറക്കുന്നതില്‍ പിശക്"
 
-#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3914
+#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3917
 #: src/storage/storage_backend.c:460
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "ഫയല്‍ '%s' തയ്യാറാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3905
+#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3908
 #: src/storage/storage_backend_fs.c:1433
 #: src/storage/storage_backend_gluster.c:686 src/util/virfile.c:1289
 #: src/util/virstoragefile.c:878
@@ -17302,97 +17322,102 @@ msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr ""
 "വിഎന്‍സി അല്ലെങ്കില്‍ സ്പയിസ് ഗ്രാഫിക്സ് ബാക്കെന്‍ഡുകള്‍ മാത്രമേ തുറക്കുവാന്‍ സാധിയ്ക്കു,  %s അല്ല"
 
-#: src/qemu/qemu_driver.c:16324
+#: src/qemu/qemu_driver.c:16332
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr "ബ്ലോക്ക് ഐ/ഒ ത്രോട്ടില്‍ പരിധി %llu-നേക്കാള്‍ കുറവായിരിയ്ക്കണം"
 
-#: src/qemu/qemu_driver.c:16358
+#: src/qemu/qemu_driver.c:16396
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr "ഒരേ സമയത്തു് bytes_sec-നുള്ള മൊത്തം, റീഡ്/റൈറ്റ് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_driver.c:16365
+#: src/qemu/qemu_driver.c:16403
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr "ഒരേ സമയത്തു് iops_sec-നുള്ള മൊത്തം, റീഡ്/റൈറ്റ് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_driver.c:16372
+#: src/qemu/qemu_driver.c:16410
 #, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16428
+#: src/qemu/qemu_driver.c:16451
+#, fuzzy
+msgid "Saving live XML config failed"
+msgstr "xm ക്രമീകരണം പാഴ്സ് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
+
+#: src/qemu/qemu_driver.c:16480
 msgid "Write to config file failed"
 msgstr "ക്രമീകരണ ഫയലില്‍ സൂക്ഷിയ്ക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/qemu/qemu_driver.c:16511
+#: src/qemu/qemu_driver.c:16565
 #, fuzzy, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr "'%s' വോള്യം ഡൊമൈനിന്റെ ഡെഫനിഷനില്‍ കാണുന്നില്ല.\n"
 
-#: src/qemu/qemu_driver.c:16794
+#: src/qemu/qemu_driver.c:16848
 msgid "Duration not supported. Use 0 for now"
 msgstr "കാലാവധി പിന്തുണയ്ക്കുന്നില്ല, തല്‍ക്കാലം 0 ഉപയോഗിയ്ക്കുക"
 
-#: src/qemu/qemu_driver.c:16802
+#: src/qemu/qemu_driver.c:16856
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "അപരിചിതമായ സസ്പെന്‍ഡ് ലക്ഷ്യം: %u"
 
-#: src/qemu/qemu_driver.c:16825
+#: src/qemu/qemu_driver.c:16879
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr ""
 "system_wakeup മെണിറ്റര്‍ കമാന്‍ഡ് ലഭ്യമല്ലാത്തതിനാല്‍ ഡൊമെയിന്‍ സസ്പെന്‍ഡ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_driver.c:16835
+#: src/qemu/qemu_driver.c:16889
 msgid "S3 state is disabled for this domain"
 msgstr "ഈ ഡൊമെയിനു് S3 അവസ്ഥ പ്രവര്‍ത്തന രഹിതമാക്കിയിരിയ്ക്കുന്നു"
 
-#: src/qemu/qemu_driver.c:16842
+#: src/qemu/qemu_driver.c:16896
 msgid "S4 state is disabled for this domain"
 msgstr "ഈ ഡൊമെയിനു് S4 അവസ്ഥ പ്രവര്‍ത്തന രഹിതമാക്കിയിരിയ്ക്കുന്നു"
 
-#: src/qemu/qemu_driver.c:16903
+#: src/qemu/qemu_driver.c:16957
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr "system_wakeup മെണിറ്റര്‍ കമാന്‍ഡ് ലഭ്യമല്ലാത്തതിനാല്‍ ഡൊമെയിന്‍ ഉണര്‍ത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_driver.c:17062
+#: src/qemu/qemu_driver.c:17116
 msgid "Specifying mount point is not supported for now"
 msgstr "മൌണ്ട് പോയിന്റ് നല്‍കുന്നതു് ഇപ്പോള്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_driver.c:17317
+#: src/qemu/qemu_driver.c:17371
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17425
+#: src/qemu/qemu_driver.c:17479
 msgid "specifying mountpoints is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17506
+#: src/qemu/qemu_driver.c:17560
 #, c-format
 msgid "unknown virttype: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17513
+#: src/qemu/qemu_driver.c:17567
 #, c-format
 msgid "unknown architecture: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17529
+#: src/qemu/qemu_driver.c:17583
 #, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17539
+#: src/qemu/qemu_driver.c:17593
 #, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17553
+#: src/qemu/qemu_driver.c:17607
 #, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17973
+#: src/qemu/qemu_driver.c:18027
 #, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr ""
@@ -19413,47 +19438,47 @@ msgstr ""
 msgid "host doesn't support invariant TSC"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3897
+#: src/qemu/qemu_process.c:3900
 #, fuzzy, c-format
 msgid "unable to find any master var store for loader: %s"
 msgstr "രഹസ്യമായ ഒരു സ്റ്റോറേജ് ഡ്രൈവര്‍ ലഭ്യമാക്കുവാന്‍ പരാജയപ്പെട്ടു: %s"
 
-#: src/qemu/qemu_process.c:3925
+#: src/qemu/qemu_process.c:3928
 #, fuzzy, c-format
 msgid "Unable to read from file '%s'"
 msgstr "'%s'-ല്‍ നിന്നും ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:3932
+#: src/qemu/qemu_process.c:3935
 #, fuzzy, c-format
 msgid "Unable to write to file '%s'"
 msgstr "'%s'-ലേക്കു് സൂക്ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:3940 src/qemu/qemu_process.c:3946
+#: src/qemu/qemu_process.c:3943 src/qemu/qemu_process.c:3949
 #, fuzzy, c-format
 msgid "Unable to close file '%s'"
 msgstr "ഫയല്‍ %s അടയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:4030 src/qemu/qemu_process.c:5036
+#: src/qemu/qemu_process.c:4033 src/qemu/qemu_process.c:5039
 #: src/uml/uml_driver.c:1054
 msgid "VM is already active"
 msgstr "വിഎം നിലിവില്‍ പ്രവര്‍ത്തനത്തിലാണ്"
 
-#: src/qemu/qemu_process.c:4127
+#: src/qemu/qemu_process.c:4130
 msgid "Unable to set huge path in security driver"
 msgstr "സുരക്ഷ ഡ്രൈവറില്‍ ഹ്യൂജ് പാഥ് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:4200
+#: src/qemu/qemu_process.c:4203
 msgid ""
 "QEMU does not support multiple listen addresses for one graphics device."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4209 src/qemu/qemu_process.c:5060
+#: src/qemu/qemu_process.c:4212 src/qemu/qemu_process.c:5063
 #: src/uml/uml_driver.c:1076
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "ലോഗ് ഡയറക്ടറി %s ഉണ്ടാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:4222
+#: src/qemu/qemu_process.c:4225
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
@@ -19462,29 +19487,29 @@ msgstr ""
 "ഡൊമെയിനു് കെവിഎം ആവശ്യമുണ്ടു്, പക്ഷേ ലഭ്യമല്ല. ഹോസ്റ്റ് ബയോസില്‍ വിര്‍ച്ച്വലൈസേഷന്‍ പ്രവര്‍ത്തന "
 "സജ്ജമെന്നും കെവിഎം ഘടകങ്ങള്‍ ഹോസ്റ്റ് ക്രമീകരണത്തില്‍ സജ്ജമെന്നും ഉറപ്പാക്കുക"
 
-#: src/qemu/qemu_process.c:4265
+#: src/qemu/qemu_process.c:4268
 msgid "Parameter 'min_guarantee' not supported by QEMU."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4285
+#: src/qemu/qemu_process.c:4288
 msgid "Failed to build pidfile path."
 msgstr "pidfile പാഥ് ബിള്‍ഡ് ചെയ്യുന്നതില്‍ പരാജയം."
 
-#: src/qemu/qemu_process.c:4292
+#: src/qemu/qemu_process.c:4295
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "സ്റ്റെയില്‍ പിഐഡി ഫയല്‍ %s നീക്കം ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:4371 src/qemu/qemu_process.c:4396
+#: src/qemu/qemu_process.c:4374 src/qemu/qemu_process.c:4399
 msgid "Raw I/O is not supported on this platform"
 msgstr "റോ ഐ/ഒ ഈ പ്ലാറ്റ്ഫോമില്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_process.c:4483
+#: src/qemu/qemu_process.c:4486
 #, c-format
 msgid "cannot stat fd %d"
 msgstr "fd %d സ്റ്റാറ്റ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:4598
+#: src/qemu/qemu_process.c:4601
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr "ബലൂണ്‍ %lld-ലേക്കു് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
@@ -19588,7 +19613,7 @@ msgid "remoteNodeGetMemoryStats: returned number of stats exceeds limit"
 msgstr "remoteNodeGetMemoryStats: തിരികെ ലഭ്യമായ സ്റ്റാറ്റ്സ് എണ്ണം പരിധിയേക്കാള്‍ കൂടുതല്‍"
 
 #: src/remote/remote_driver.c:1542 src/remote/remote_driver.c:7620
-#: src/remote/remote_driver.c:7875
+#: src/remote/remote_driver.c:7873
 #, c-format
 msgid "too many NUMA cells: %d > %d"
 msgstr "ഒരുപാടു് NUMA സെല്ലുകള്‍: %d > %d"
@@ -19779,7 +19804,7 @@ msgid ""
 "loop implementation"
 msgstr "കോളര്‍ keepalive പിന്തുണ ലഭ്യമാക്കുന്നില്ല ; ഒരു പക്ഷേ ഇവന്റ് ലൂപ്പ് ലഭ്യമാക്കല്‍ ലഭ്യമല്ല"
 
-#: src/remote/remote_driver.c:7810
+#: src/remote/remote_driver.c:7808
 #, c-format
 msgid "Number of stats entries is %d, which exceeds max limit: %d"
 msgstr ""

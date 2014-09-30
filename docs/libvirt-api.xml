@@ -48,13 +48,6 @@
      <exports symbol='VIR_DOMAIN_CPU_STATS_USERTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_CPU_STATS_VCPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
-     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES' type='macro'/>
-     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN' type='macro'/>
-     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD' type='macro'/>
-     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA' type='macro'/>
-     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN' type='macro'/>
-     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD' type='macro'/>
-     <exports symbol='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_BYTES' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES' type='macro'/>
@@ -98,6 +91,20 @@
      <exports symbol='VIR_DOMAIN_SCHEDULER_WEIGHT' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_SEND_KEY_MAX_KEYS' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_BANDWIDTH' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_DEST_NAME' type='macro'/>
@@ -1720,27 +1727,6 @@
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES' file='libvirt'>
-      <info><![CDATA[Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
-    </macro>
-    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN' file='libvirt'>
-      <info><![CDATA[Macro represents formatted pinning for emulator process, as VIR_TYPED_PARAM_STRING.]]></info>
-    </macro>
-    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD' file='libvirt'>
-      <info><![CDATA[Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as VIR_TYPED_PARAM_ULLONG.]]></info>
-    </macro>
-    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA' file='libvirt'>
-      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.]]></info>
-    </macro>
-    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN' file='libvirt'>
-      <info><![CDATA[Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.]]></info>
-    </macro>
-    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD' file='libvirt'>
-      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
-    </macro>
-    <macro name='VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA' file='libvirt'>
-      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.]]></info>
-    </macro>
     <macro name='VIR_DOMAIN_JOB_COMPRESSION_BYTES' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
@@ -1869,6 +1855,48 @@
     </macro>
     <macro name='VIR_DOMAIN_SEND_KEY_MAX_KEYS' file='libvirt'>
       <info><![CDATA[Maximum number of keycodes that can be sent in one virDomainSendKey() call.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' file='libvirt'>
+      <info><![CDATA[Macro represents the name of guest disk for which the values are updated, as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' file='libvirt'>
+      <info><![CDATA[Marco represents the read throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' file='libvirt'>
+      <info><![CDATA[Macro represents the read I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' file='libvirt'>
+      <info><![CDATA[Marco represents the total throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' file='libvirt'>
+      <info><![CDATA[Macro represents the total I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' file='libvirt'>
+      <info><![CDATA[Macro represents the write throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' file='libvirt'>
+      <info><![CDATA[Macro represents the write I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' file='libvirt'>
+      <info><![CDATA[Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' file='libvirt'>
+      <info><![CDATA[Macro represents formatted pinning for emulator process, as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' file='libvirt'>
+      <info><![CDATA[Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' file='libvirt'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' file='libvirt'>
+      <info><![CDATA[Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' file='libvirt'>
+      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' file='libvirt'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.]]></info>
     </macro>
     <macro name='VIR_GET_CPUMAP' file='libvirt'>
       <info><![CDATA[This macro is to be used in conjunction with virDomainGetVcpus() and virDomainPinVcpu() APIs. VIR_GET_CPUMAP macro returns a pointer to the cpumap of the specified vcpu from cpumaps array.]]></info>
@@ -3689,6 +3717,7 @@ handler is executed.
 
 Currently supported name spaces:
  "cputune.*"
+ "blkdeviotune.*"
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_TUNABLE with virConnectDomainEventRegisterAny()]]></info>

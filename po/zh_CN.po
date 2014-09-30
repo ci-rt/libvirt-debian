@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-09-25 11:47+0200\n"
+"POT-Creation-Date: 2014-09-29 20:22+0800\n"
 "PO-Revision-Date: 2014-03-27 11:24+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/projects/p/fedora/"
@@ -599,7 +599,7 @@ msgstr ""
 msgid "the result won't fit into REMOTE_NODE_MAX_CELLS"
 msgstr "maxcells > REMOTE_NODE_MAX_CELLS"
 
-#: daemon/remote.c:6182 src/remote/remote_driver.c:7730
+#: daemon/remote.c:6182 src/remote/remote_driver.c:7728
 #, c-format
 msgid "Number of leases is %d, which exceeds max limit: %d"
 msgstr ""
@@ -829,8 +829,18 @@ msgstr "没有上一个正则表达式"
 msgid "Policy kit denied action %s from <anonymous>"
 msgstr "拒绝 <anonymous> 中动作 %s 的套件"
 
-#: src/access/viraccessdriverpolkit.c:99
+#: src/access/viraccessdriverpolkit.c:93
 msgid "No UNIX process ID available"
+msgstr "没有可用 UNIX 进程 ID"
+
+#: src/access/viraccessdriverpolkit.c:98
+#, fuzzy
+msgid "No UNIX process start time available"
+msgstr "没有可用 UNIX 进程 ID"
+
+#: src/access/viraccessdriverpolkit.c:103
+#, fuzzy
+msgid "No UNIX caller UID available"
 msgstr "没有可用 UNIX 进程 ID"
 
 #: src/access/viraccessmanager.c:142
@@ -970,7 +980,7 @@ msgstr "不支持的配置类型 %s"
 msgid "No domain with matching uuid '%s'"
 msgstr "没有匹配 uuid '%s' 的域"
 
-#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1206
+#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1220
 #: src/qemu/qemu_driver.c:1520 src/qemu/qemu_driver.c:11055
 #: src/qemu/qemu_driver.c:11466 src/qemu/qemu_driver.c:11509
 #, c-format
@@ -1035,13 +1045,13 @@ msgstr "域没有在运行"
 #: src/qemu/qemu_driver.c:15353 src/qemu/qemu_driver.c:15437
 #: src/qemu/qemu_driver.c:15547 src/qemu/qemu_driver.c:15914
 #: src/qemu/qemu_driver.c:16134 src/qemu/qemu_driver.c:16200
-#: src/qemu/qemu_driver.c:16615 src/qemu/qemu_driver.c:16757
-#: src/qemu/qemu_driver.c:16817 src/qemu/qemu_driver.c:16855
-#: src/qemu/qemu_driver.c:16895 src/qemu/qemu_driver.c:16966
-#: src/qemu/qemu_driver.c:16978 src/qemu/qemu_driver.c:17077
-#: src/qemu/qemu_driver.c:17089 src/qemu/qemu_driver.c:17266
-#: src/qemu/qemu_driver.c:17327 src/qemu/qemu_driver.c:17343
-#: src/qemu/qemu_driver.c:17390 src/qemu/qemu_driver.c:17440
+#: src/qemu/qemu_driver.c:16669 src/qemu/qemu_driver.c:16811
+#: src/qemu/qemu_driver.c:16871 src/qemu/qemu_driver.c:16909
+#: src/qemu/qemu_driver.c:16949 src/qemu/qemu_driver.c:17020
+#: src/qemu/qemu_driver.c:17032 src/qemu/qemu_driver.c:17131
+#: src/qemu/qemu_driver.c:17143 src/qemu/qemu_driver.c:17320
+#: src/qemu/qemu_driver.c:17381 src/qemu/qemu_driver.c:17397
+#: src/qemu/qemu_driver.c:17444 src/qemu/qemu_driver.c:17494
 #: src/qemu/qemu_migration.c:2415 src/qemu/qemu_migration.c:4521
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2601
 #: src/xen/xen_driver.c:2644 src/xen/xm_internal.c:677
@@ -1084,7 +1094,7 @@ msgstr ""
 msgid "Cannot remove state PID file %s"
 msgstr ""
 
-#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4430
+#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4433
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "未显示域 %s"
@@ -1178,7 +1188,7 @@ msgstr "CPU 拓扑中缺少 ‘threads’ 属性"
 msgid "Invalid CPU topology"
 msgstr "无效 CPU 拓扑"
 
-#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:629
+#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:631
 msgid "Non-empty feature list specified without CPU model"
 msgstr "未指定 CPU 型号的非空功能列表"
 
@@ -1190,7 +1200,7 @@ msgstr "无效 CPU 特性策略"
 msgid "Invalid CPU feature name"
 msgstr "无效 CPU 特性名称"
 
-#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:734
+#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:736
 #, fuzzy, c-format
 msgid "CPU feature '%s' specified more than once"
 msgstr "指定一次以上 CPU 特性 `%s' "
@@ -1227,95 +1237,95 @@ msgstr "NUMA 单元中缺少 'memory' 属性"
 msgid "Invalid 'memory' attribute in NUMA cell"
 msgstr "NUMA 单元中的 'memory' 属性无效"
 
-#: src/conf/cpu_conf.c:515
+#: src/conf/cpu_conf.c:514
 #, fuzzy, c-format
 msgid "Invalid 'memAccess' attribute value '%s'"
 msgstr "无效内存 core dump 属性值 '%s'"
 
-#: src/conf/cpu_conf.c:574
+#: src/conf/cpu_conf.c:576
 #, c-format
 msgid "Unexpected CPU mode %d"
 msgstr "意外的 CPU 模式 %d"
 
-#: src/conf/cpu_conf.c:585
+#: src/conf/cpu_conf.c:587
 #, c-format
 msgid "Unexpected CPU match policy %d"
 msgstr "意外 CPU match 策略 %d"
 
-#: src/conf/cpu_conf.c:641
+#: src/conf/cpu_conf.c:643
 #, c-format
 msgid "Unexpected CPU fallback value: %d"
 msgstr "意外的 CPU 返回值：%d"
 
-#: src/conf/cpu_conf.c:672 src/cpu/cpu_x86.c:713
+#: src/conf/cpu_conf.c:674 src/cpu/cpu_x86.c:713
 msgid "Missing CPU feature name"
 msgstr "缺少 CPU 特性名称"
 
-#: src/conf/cpu_conf.c:682
+#: src/conf/cpu_conf.c:684
 #, c-format
 msgid "Unexpected CPU feature policy %d"
 msgstr "意外 CPU 特性策略 %d"
 
-#: src/conf/cpu_conf.c:782
+#: src/conf/cpu_conf.c:784
 msgid "Target CPU does not match source"
 msgstr "目标 CPU 与源不符"
 
-#: src/conf/cpu_conf.c:788
+#: src/conf/cpu_conf.c:790
 #, c-format
 msgid "Target CPU type %s does not match source %s"
 msgstr "目标 CPU 类型 %s 与源 %s 不符"
 
-#: src/conf/cpu_conf.c:796
+#: src/conf/cpu_conf.c:798
 #, c-format
 msgid "Target CPU mode %s does not match source %s"
 msgstr "目标 CPU 模式 %s 与源 %s 不符"
 
-#: src/conf/cpu_conf.c:804
+#: src/conf/cpu_conf.c:806
 #, c-format
 msgid "Target CPU arch %s does not match source %s"
 msgstr "目标 CPU 架构 %s 与源 %s 不符"
 
-#: src/conf/cpu_conf.c:812
+#: src/conf/cpu_conf.c:814
 #, c-format
 msgid "Target CPU model %s does not match source %s"
 msgstr "目标 CPU 型号 %s 与源 %s 不符"
 
-#: src/conf/cpu_conf.c:819
+#: src/conf/cpu_conf.c:821
 #, c-format
 msgid "Target CPU vendor %s does not match source %s"
 msgstr "目标 CPU 销售商 %s 与源 %s 不符"
 
-#: src/conf/cpu_conf.c:826
+#: src/conf/cpu_conf.c:828
 #, c-format
 msgid "Target CPU vendor id %s does not match source %s"
 msgstr ""
 
-#: src/conf/cpu_conf.c:833
+#: src/conf/cpu_conf.c:835
 #, c-format
 msgid "Target CPU sockets %d does not match source %d"
 msgstr "目标 CPU 插槽 %d 与源 %d 不符"
 
-#: src/conf/cpu_conf.c:840
+#: src/conf/cpu_conf.c:842
 #, c-format
 msgid "Target CPU cores %d does not match source %d"
 msgstr "目标 CPU  core %d 与源 %d 不符"
 
-#: src/conf/cpu_conf.c:847
+#: src/conf/cpu_conf.c:849
 #, c-format
 msgid "Target CPU threads %d does not match source %d"
 msgstr "目标 CPU 线程 %d 与源 %d 不符"
 
-#: src/conf/cpu_conf.c:854
+#: src/conf/cpu_conf.c:856
 #, c-format
 msgid "Target CPU feature count %zu does not match source %zu"
 msgstr "目标 CPU 功能计数 %zu 与源 %zu 不符"
 
-#: src/conf/cpu_conf.c:862
+#: src/conf/cpu_conf.c:864
 #, c-format
 msgid "Target CPU feature %s does not match source %s"
 msgstr "目标 CPU 功能 %s 与源 %s 不匹配"
 
-#: src/conf/cpu_conf.c:869
+#: src/conf/cpu_conf.c:871
 #, c-format
 msgid "Target CPU feature policy %s does not match source %s"
 msgstr "目标 CPU 功能策略 %s 与源 %s 不匹配"
@@ -4663,7 +4673,7 @@ msgstr "意外接口类型 %d"
 #: src/conf/interface_conf.c:1256 src/conf/network_conf.c:386
 #: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3117
 #: src/conf/storage_conf.c:1774 src/libxl/libxl_driver.c:295
-#: src/parallels/parallels_driver.c:931 src/qemu/qemu_driver.c:641
+#: src/parallels/parallels_driver.c:932 src/qemu/qemu_driver.c:641
 #: src/remote/remote_driver.c:1118 src/test/test_driver.c:716
 #: src/test/test_driver.c:1413 src/xen/xen_driver.c:464
 msgid "cannot initialize mutex"
@@ -8432,7 +8442,7 @@ msgid "Unable to set non-blocking mode"
 msgstr "无法将监视器置于无阻塞模式"
 
 #: src/fdstream.c:496 src/locking/lock_daemon.c:144
-#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3442
+#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3444
 #: src/util/vireventpoll.c:694 src/util/virobject.c:224
 msgid "Unable to initialize mutex"
 msgstr "无法初始化互斥"
@@ -9949,7 +9959,7 @@ msgstr "不支持的失败动作：'%s'\n"
 msgid "cannot get the path of MEMORY cgroup controller"
 msgstr "无法获取 MEMORY cgroup 控制器路径"
 
-#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:753
+#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:754
 #, c-format
 msgid "Resource partition '%s' must start with '/'"
 msgstr "资源分区 '%s' 必须以 '/' 开始"
@@ -11004,7 +11014,7 @@ msgstr "无法修改 live 设备"
 msgid "domain is not active"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16763
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16817
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "未挂载 cgroup CPUACCT 控制器"
 
@@ -12998,7 +13008,7 @@ msgstr "'%s' 屏障和限制无法从 config 中为容器 %d 解析"
 msgid "Failed to parse vzlist output"
 msgstr "解析 vzlist 输入失败"
 
-#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:703
+#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:704
 msgid "UUID in config file malformed"
 msgstr "配置文件中的 UUID 很奇怪"
 
@@ -13188,8 +13198,8 @@ msgstr "无法解析障碍"
 msgid "Failed to set %s for %s: value too large"
 msgstr "为 %s 设定 %s 失败：数值太大"
 
-#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:71
-#: src/parallels/parallels_driver.c:1179 src/qemu/qemu_driver.c:1493
+#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:72
+#: src/parallels/parallels_driver.c:1193 src/qemu/qemu_driver.c:1493
 #: src/test/test_driver.c:2610 src/uml/uml_driver.c:1785
 #: src/uml/uml_driver.c:1815 src/uml/uml_driver.c:1852
 #: src/uml/uml_driver.c:2225 src/uml/uml_driver.c:2346
@@ -13222,217 +13232,222 @@ msgstr "目标主机不支持离线迁移"
 msgid "Can't determine page size"
 msgstr "无法确定页面大小"
 
-#: src/parallels/parallels_driver.c:454
+#: src/parallels/parallels_driver.c:455
 #, c-format
 msgid "Invalid MAC address format '%s'"
 msgstr "无效 MAC 地址 '%s'"
 
-#: src/parallels/parallels_driver.c:733
+#: src/parallels/parallels_driver.c:734
 msgid "Can't get node info"
 msgstr "无法获取节点信息"
 
-#: src/parallels/parallels_driver.c:982
+#: src/parallels/parallels_driver.c:937
+#, fuzzy
+msgid "Can't initialize Parallels SDK"
+msgstr "无法初始化访问管理器"
+
+#: src/parallels/parallels_driver.c:994
 #, c-format
 msgid "Unexpected Parallels URI path '%s', try parallels:///system"
 msgstr "意外的平行 URI 路径 '%s'，尝试 parallels:///system"
 
-#: src/parallels/parallels_driver.c:1403
+#: src/parallels/parallels_driver.c:1417
 #, c-format
 msgid "domain '%s' not %s"
 msgstr "域 '%s' 没有 %s"
 
-#: src/parallels/parallels_driver.c:1536
+#: src/parallels/parallels_driver.c:1550
 msgid "changing display parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改显示参数"
 
-#: src/parallels/parallels_driver.c:1584
+#: src/parallels/parallels_driver.c:1598
 msgid "changing serial device parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改串口设备参数"
 
-#: src/parallels/parallels_driver.c:1599
+#: src/parallels/parallels_driver.c:1613
 msgid "Only one video device is supported by parallels driver"
 msgstr "平行驱动程序只支持一个视频设备"
 
-#: src/parallels/parallels_driver.c:1608
+#: src/parallels/parallels_driver.c:1622
 msgid "Only VGA video device is supported by parallels driver"
 msgstr "平行驱动程序只支持 VGA 视频设备"
 
-#: src/parallels/parallels_driver.c:1615
+#: src/parallels/parallels_driver.c:1629
 msgid "Only one monitor is supported by parallels driver"
 msgstr "平行驱动程序只支持一个监视器"
 
-#: src/parallels/parallels_driver.c:1625
+#: src/parallels/parallels_driver.c:1639
 msgid ""
 "Changing video acceleration parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改串口视频加速参数"
 
-#: src/parallels/parallels_driver.c:1634
+#: src/parallels/parallels_driver.c:1648
 msgid "Video RAM size should be multiple of 1Mb."
 msgstr "视频 RAM 大小应为 1Mb 的几倍"
 
-#: src/parallels/parallels_driver.c:1664
+#: src/parallels/parallels_driver.c:1678
 #, fuzzy, c-format
 msgid "Invalid disk format: %d"
 msgstr "无效磁盘总线：%d"
 
-#: src/parallels/parallels_driver.c:1673
+#: src/parallels/parallels_driver.c:1687
 #, fuzzy, c-format
 msgid "Invalid disk type: %d"
 msgstr "无效磁盘总线：%d"
 
-#: src/parallels/parallels_driver.c:1681
+#: src/parallels/parallels_driver.c:1695
 #, c-format
 msgid "Invalid disk bus: %d"
 msgstr "无效磁盘总线：%d"
 
-#: src/parallels/parallels_driver.c:1737
+#: src/parallels/parallels_driver.c:1751
 #, c-format
 msgid "Can't remove disk '%s' in the specified config"
 msgstr "无法在指定 config 中删除磁盘 '%s'"
 
-#: src/parallels/parallels_driver.c:1762
+#: src/parallels/parallels_driver.c:1776
 #, c-format
 msgid "Unsupported disk bus: %d"
 msgstr "不支持的磁盘总线：%d"
 
-#: src/parallels/parallels_driver.c:1810
+#: src/parallels/parallels_driver.c:1824
 msgid "Changing network type is not supported"
 msgstr "不支持更改网络类型"
 
-#: src/parallels/parallels_driver.c:1816
+#: src/parallels/parallels_driver.c:1830
 msgid "Changing network device model is not supported"
 msgstr "不支持更改网络设备型号"
 
-#: src/parallels/parallels_driver.c:1823
+#: src/parallels/parallels_driver.c:1837
 msgid "Changing network portgroup is not supported"
 msgstr "不支持更改网络 portgroup"
 
-#: src/parallels/parallels_driver.c:1830
+#: src/parallels/parallels_driver.c:1844
 msgid "Changing virtual port profile is not supported"
 msgstr "不只层更改虚拟端口侧写"
 
-#: src/parallels/parallels_driver.c:1836
+#: src/parallels/parallels_driver.c:1850
 msgid "Setting send buffer size is not supported"
 msgstr "不支持发送缓存大小"
 
-#: src/parallels/parallels_driver.c:1842
+#: src/parallels/parallels_driver.c:1856
 msgid "Setting startup script is not supported"
 msgstr "不支持设置启动脚本"
 
-#: src/parallels/parallels_driver.c:1848
+#: src/parallels/parallels_driver.c:1862
 msgid "Changing filter params is not supported"
 msgstr "不支持更改过滤器参数"
 
-#: src/parallels/parallels_driver.c:1854
+#: src/parallels/parallels_driver.c:1868
 msgid "Setting bandwidth params is not supported"
 msgstr "不支持设定带宽参数"
 
-#: src/parallels/parallels_driver.c:1861
+#: src/parallels/parallels_driver.c:1875
 msgid "Setting vlan params is not supported"
 msgstr "不支持设定 vlan 参数"
 
-#: src/parallels/parallels_driver.c:1994
+#: src/parallels/parallels_driver.c:2008
 msgid "titles are not supported by parallels driver"
 msgstr "平行驱动程序不支持标题"
 
-#: src/parallels/parallels_driver.c:2000
+#: src/parallels/parallels_driver.c:2014
 msgid "blkio parameters are not supported by parallels driver"
 msgstr "平行驱动程序不支持 blkio 参数"
 
-#: src/parallels/parallels_driver.c:2008
+#: src/parallels/parallels_driver.c:2022
 msgid "changing balloon parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改布尔值参数"
 
-#: src/parallels/parallels_driver.c:2015
+#: src/parallels/parallels_driver.c:2029
 msgid "Memory size should be multiple of 1Mb."
 msgstr "内存大小应为 1Mb 的几倍"
 
-#: src/parallels/parallels_driver.c:2034
+#: src/parallels/parallels_driver.c:2048
 msgid "Memory parameter is not supported by parallels driver"
 msgstr "平行驱动程序不支持内存参数"
 
-#: src/parallels/parallels_driver.c:2042
+#: src/parallels/parallels_driver.c:2056
 msgid "current vcpus must be equal to maxvcpus"
 msgstr "当前 vcpus 必须等于 maxvcpus"
 
-#: src/parallels/parallels_driver.c:2056
+#: src/parallels/parallels_driver.c:2070
 msgid "changing cpu placement mode is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改 cpu 布局模式"
 
-#: src/parallels/parallels_driver.c:2066
+#: src/parallels/parallels_driver.c:2080
 msgid "changing cpu mask is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改 cpu 掩码"
 
-#: src/parallels/parallels_driver.c:2078
+#: src/parallels/parallels_driver.c:2092
 msgid "cputune is not supported by parallels driver"
 msgstr "平行驱动程序不支持 cputune"
 
-#: src/parallels/parallels_driver.c:2084
+#: src/parallels/parallels_driver.c:2098
 msgid "numa parameters are not supported by parallels driver"
 msgstr "平行驱动程序不支持 numa 参数"
 
-#: src/parallels/parallels_driver.c:2094
+#: src/parallels/parallels_driver.c:2108
 msgid ""
 "on_reboot, on_poweroff and on_crash parameters are not supported by "
 "parallels driver"
 msgstr "平行驱动程序不支持 on_reboot, on_poweroff 和 on_crash 参数"
 
-#: src/parallels/parallels_driver.c:2113 src/parallels/parallels_driver.c:2123
-#: src/parallels/parallels_driver.c:2133
+#: src/parallels/parallels_driver.c:2127 src/parallels/parallels_driver.c:2137
+#: src/parallels/parallels_driver.c:2147
 msgid "changing OS parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改 OS 参数"
 
-#: src/parallels/parallels_driver.c:2142
+#: src/parallels/parallels_driver.c:2156
 msgid "changing emulator is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改模拟程序"
 
-#: src/parallels/parallels_driver.c:2150
+#: src/parallels/parallels_driver.c:2164
 msgid "changing features is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改性能"
 
-#: src/parallels/parallels_driver.c:2160
+#: src/parallels/parallels_driver.c:2174
 msgid "changing clock parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改 clock 参数"
 
-#: src/parallels/parallels_driver.c:2176
+#: src/parallels/parallels_driver.c:2190
 msgid "changing devices parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改设备参数"
 
-#: src/parallels/parallels_driver.c:2188
+#: src/parallels/parallels_driver.c:2202
 msgid "changing input devices parameters is not supported by parallels driver"
 msgstr "平行驱动程序不支持更改输入设备参数"
 
-#: src/parallels/parallels_driver.c:2239
+#: src/parallels/parallels_driver.c:2253
 msgid "There must be only 1 template FS for container creation"
 msgstr "生成容器只能有一个模板 FS"
 
-#: src/parallels/parallels_driver.c:2268
+#: src/parallels/parallels_driver.c:2282
 msgid "Can't parse XML desc"
 msgstr "无法解析 XML desc"
 
-#: src/parallels/parallels_driver.c:2283
+#: src/parallels/parallels_driver.c:2297
 #, c-format
 msgid "Unsupported OS type: %s"
 msgstr "不支持的 OS 类型：%s"
 
-#: src/parallels/parallels_driver.c:2291
+#: src/parallels/parallels_driver.c:2305
 #, c-format
 msgid "Domain for '%s' is not defined after creation"
 msgstr "生成后没有为 '%s' 指定域"
 
-#: src/parallels/parallels_driver.c:2292
+#: src/parallels/parallels_driver.c:2306
 msgid "(unnamed)"
 msgstr "（未命名）"
 
-#: src/parallels/parallels_driver.c:2376 src/qemu/qemu_driver.c:5082
+#: src/parallels/parallels_driver.c:2390 src/qemu/qemu_driver.c:5082
 msgid "cannot list vcpu pinning for an inactive domain"
 msgstr "无法为不活跃域列出 vcpu pinning"
 
-#: src/parallels/parallels_driver.c:2480
+#: src/parallels/parallels_driver.c:2494
 msgid "Can't find prlctl command in the PATH env"
 msgstr "无法在 PATH env 中找到 prlctl 命令"
 
-#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:36
+#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:38
 msgid "Can't parse prlctl output"
 msgstr "无法节写 prlctl 输出结果"
 
@@ -13459,6 +13474,11 @@ msgstr "无法解析 MAC 地址 '%s'"
 #: src/parallels/parallels_network.c:257
 msgid "Can't parse UUID"
 msgstr "无法解析 UUID"
+
+#: src/parallels/parallels_sdk.c:64 src/parallels/parallels_sdk.c:105
+#, c-format
+msgid "%s %s"
+msgstr ""
 
 #: src/parallels/parallels_utils.c:78
 #, c-format
@@ -14116,26 +14136,26 @@ msgstr ""
 msgid "Unknown QEMU arch %s"
 msgstr "未知 QEMU arch %s"
 
-#: src/qemu/qemu_capabilities.c:3318
+#: src/qemu/qemu_capabilities.c:3320
 #, c-format
 msgid "Failed to kill process %lld: %s"
 msgstr "杀死进程 %lld 失败：%s"
 
-#: src/qemu/qemu_capabilities.c:3346
+#: src/qemu/qemu_capabilities.c:3348
 #, c-format
 msgid "Failed to probe capabilities for %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3348
+#: src/qemu/qemu_capabilities.c:3350
 msgid "unknown failure"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3371
+#: src/qemu/qemu_capabilities.c:3373
 #, c-format
 msgid "Cannot check QEMU binary %s"
 msgstr "无法检查 QEMU 二进制 %s"
 
-#: src/qemu/qemu_capabilities.c:3382
+#: src/qemu/qemu_capabilities.c:3384
 #, c-format
 msgid "QEMU binary %s is not executable"
 msgstr "QEMU 二进制 %s 不能执行"
@@ -14148,16 +14168,16 @@ msgstr "这台主机中无法使用阻断 I/O调节"
 msgid "Memory cgroup is not available on this host"
 msgstr "这个主机中的没存 cgroup 不可用"
 
-#: src/qemu/qemu_cgroup.c:688
+#: src/qemu/qemu_cgroup.c:689
 msgid "CPU tuning is not available on this host"
 msgstr "这个主机中的 CPU 调节不可用"
 
-#: src/qemu/qemu_cgroup.c:826
+#: src/qemu/qemu_cgroup.c:827
 msgid "Cannot setup cgroups until process is started"
 msgstr "进程启动前无法设定 cgroups"
 
-#: src/qemu/qemu_cgroup.c:971 src/qemu/qemu_cgroup.c:1059
-#: src/qemu/qemu_cgroup.c:1132
+#: src/qemu/qemu_cgroup.c:972 src/qemu/qemu_cgroup.c:1060
+#: src/qemu/qemu_cgroup.c:1133
 msgid "cgroup cpu is required for scheduler tuning"
 msgstr "调度程序调节需要 cgroup cpu"
 
@@ -14526,7 +14546,7 @@ msgstr "这个 QEMU 二进制不支持弃用"
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "这个 QEMU 二进制不支持磁盘 aio 模式"
 
-#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16381
+#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16419
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "这个 QEMU 二进制中不支持块 I/O节流"
 
@@ -16033,7 +16053,7 @@ msgid "domain is pmsuspended"
 msgstr "域为 pm 暂停的"
 
 #: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4923
-#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4620
+#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4623
 msgid "resume operation failed"
 msgstr "恢复操作失败"
 
@@ -16107,13 +16127,13 @@ msgstr "生成 '%s' 的子进程的错误"
 msgid "Error from child process opening '%s'"
 msgstr "从自进程打开 '%s' 出错"
 
-#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3914
+#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3917
 #: src/storage/storage_backend.c:460
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "创建文件 '%s' 失败"
 
-#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3905
+#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3908
 #: src/storage/storage_backend_fs.c:1433
 #: src/storage/storage_backend_gluster.c:686 src/util/virfile.c:1289
 #: src/util/virstoragefile.c:878
@@ -17046,97 +17066,102 @@ msgstr "没有使用索引 %d 的图形后端"
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr "只能打开 VNC 或者 SPICE 图形后端，无法打开 %s。"
 
-#: src/qemu/qemu_driver.c:16324
+#: src/qemu/qemu_driver.c:16332
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr "块 I/O 节流器阈值必须小于 %llu"
 
-#: src/qemu/qemu_driver.c:16358
+#: src/qemu/qemu_driver.c:16396
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr "无法在同时设置总计以及读取/写入 bytes_sec"
 
-#: src/qemu/qemu_driver.c:16365
+#: src/qemu/qemu_driver.c:16403
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr "无法同时设置总计以及读取/写入 iops_sec "
 
-#: src/qemu/qemu_driver.c:16372
+#: src/qemu/qemu_driver.c:16410
 #, fuzzy, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr "丢失设备的目标信息 %s"
 
-#: src/qemu/qemu_driver.c:16428
+#: src/qemu/qemu_driver.c:16451
+#, fuzzy
+msgid "Saving live XML config failed"
+msgstr "解析 xm 配置失败"
+
+#: src/qemu/qemu_driver.c:16480
 msgid "Write to config file failed"
 msgstr "写入配置文件失败"
 
-#: src/qemu/qemu_driver.c:16511
+#: src/qemu/qemu_driver.c:16565
 #, fuzzy, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr "在域定义中未发现卷 '%s'。\n"
 
-#: src/qemu/qemu_driver.c:16794
+#: src/qemu/qemu_driver.c:16848
 msgid "Duration not supported. Use 0 for now"
 msgstr "不支持时限。从现在开始使用 0。"
 
-#: src/qemu/qemu_driver.c:16802
+#: src/qemu/qemu_driver.c:16856
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "未知挂起目标：%u"
 
-#: src/qemu/qemu_driver.c:16825
+#: src/qemu/qemu_driver.c:16879
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr "由于缺少 system_wakeup 监控程序命令无法挂起域"
 
-#: src/qemu/qemu_driver.c:16835
+#: src/qemu/qemu_driver.c:16889
 msgid "S3 state is disabled for this domain"
 msgstr "这个域禁用了 S3 状态"
 
-#: src/qemu/qemu_driver.c:16842
+#: src/qemu/qemu_driver.c:16896
 msgid "S4 state is disabled for this domain"
 msgstr "这个域禁用了 S4 状态"
 
-#: src/qemu/qemu_driver.c:16903
+#: src/qemu/qemu_driver.c:16957
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr "由于缺少 system_wakeup 监控程序命令无法唤醒域"
 
-#: src/qemu/qemu_driver.c:17062
+#: src/qemu/qemu_driver.c:17116
 msgid "Specifying mount point is not supported for now"
 msgstr "现在还不支持指定挂载点"
 
-#: src/qemu/qemu_driver.c:17317
+#: src/qemu/qemu_driver.c:17371
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17425
+#: src/qemu/qemu_driver.c:17479
 #, fuzzy
 msgid "specifying mountpoints is not supported"
 msgstr "现在还不支持指定挂载点"
 
-#: src/qemu/qemu_driver.c:17506
+#: src/qemu/qemu_driver.c:17560
 #, fuzzy, c-format
 msgid "unknown virttype: %s"
 msgstr "未知 virt 类型"
 
-#: src/qemu/qemu_driver.c:17513
+#: src/qemu/qemu_driver.c:17567
 #, fuzzy, c-format
 msgid "unknown architecture: %s"
 msgstr "未知架构 %s"
 
-#: src/qemu/qemu_driver.c:17529
+#: src/qemu/qemu_driver.c:17583
 #, fuzzy, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr "目标域名 '%s' 与源 '%s' 不映射"
 
-#: src/qemu/qemu_driver.c:17539
+#: src/qemu/qemu_driver.c:17593
 #, fuzzy, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr "无法为 %s 架构找到 CPU 映射文件"
 
-#: src/qemu/qemu_driver.c:17553
+#: src/qemu/qemu_driver.c:17607
 #, fuzzy, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr "sanlock 不支持失败的操作 %s"
 
-#: src/qemu/qemu_driver.c:17973
+#: src/qemu/qemu_driver.c:18027
 #, fuzzy, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr "这个 qemu 不支持设定链接状态"
@@ -19145,47 +19170,47 @@ msgstr ""
 msgid "host doesn't support invariant TSC"
 msgstr "这个磁盘不支持更新"
 
-#: src/qemu/qemu_process.c:3897
+#: src/qemu/qemu_process.c:3900
 #, fuzzy, c-format
 msgid "unable to find any master var store for loader: %s"
 msgstr "查找 secret 存储驱动程序失败：%s"
 
-#: src/qemu/qemu_process.c:3925
+#: src/qemu/qemu_process.c:3928
 #, fuzzy, c-format
 msgid "Unable to read from file '%s'"
 msgstr "无法从 '%s' 中读取"
 
-#: src/qemu/qemu_process.c:3932
+#: src/qemu/qemu_process.c:3935
 #, fuzzy, c-format
 msgid "Unable to write to file '%s'"
 msgstr "无法写入 '%s'"
 
-#: src/qemu/qemu_process.c:3940 src/qemu/qemu_process.c:3946
+#: src/qemu/qemu_process.c:3943 src/qemu/qemu_process.c:3949
 #, fuzzy, c-format
 msgid "Unable to close file '%s'"
 msgstr "无法关闭文件 %s"
 
-#: src/qemu/qemu_process.c:4030 src/qemu/qemu_process.c:5036
+#: src/qemu/qemu_process.c:4033 src/qemu/qemu_process.c:5039
 #: src/uml/uml_driver.c:1054
 msgid "VM is already active"
 msgstr "VM 已经激活"
 
-#: src/qemu/qemu_process.c:4127
+#: src/qemu/qemu_process.c:4130
 msgid "Unable to set huge path in security driver"
 msgstr "无法在安全驱动程序中设定超大路径"
 
-#: src/qemu/qemu_process.c:4200
+#: src/qemu/qemu_process.c:4203
 msgid ""
 "QEMU does not support multiple listen addresses for one graphics device."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4209 src/qemu/qemu_process.c:5060
+#: src/qemu/qemu_process.c:4212 src/qemu/qemu_process.c:5063
 #: src/uml/uml_driver.c:1076
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "无法生成日志目录 %s"
 
-#: src/qemu/qemu_process.c:4222
+#: src/qemu/qemu_process.c:4225
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
@@ -19194,30 +19219,30 @@ msgstr ""
 "域需要 KVM，但不可用。在主机 BIOS 中启用了检查虚拟化，同时将主机配置为载入 "
 "kvm 模块。"
 
-#: src/qemu/qemu_process.c:4265
+#: src/qemu/qemu_process.c:4268
 #, fuzzy
 msgid "Parameter 'min_guarantee' not supported by QEMU."
 msgstr "不支持参数 '%s'"
 
-#: src/qemu/qemu_process.c:4285
+#: src/qemu/qemu_process.c:4288
 msgid "Failed to build pidfile path."
 msgstr "无法构建 pidfile 路径。"
 
-#: src/qemu/qemu_process.c:4292
+#: src/qemu/qemu_process.c:4295
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "无法删除停滞 PID 文件 %s"
 
-#: src/qemu/qemu_process.c:4371 src/qemu/qemu_process.c:4396
+#: src/qemu/qemu_process.c:4374 src/qemu/qemu_process.c:4399
 msgid "Raw I/O is not supported on this platform"
 msgstr "这个平台不支持原始 I/O"
 
-#: src/qemu/qemu_process.c:4483
+#: src/qemu/qemu_process.c:4486
 #, c-format
 msgid "cannot stat fd %d"
 msgstr "无法执行 stat fd %d"
 
-#: src/qemu/qemu_process.c:4598
+#: src/qemu/qemu_process.c:4601
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr "无法将布尔值设定为 %lld"
@@ -19318,7 +19343,7 @@ msgid "remoteNodeGetMemoryStats: returned number of stats exceeds limit"
 msgstr "remoteNodeGetMemoryStats: 返回的统计数据超过限制"
 
 #: src/remote/remote_driver.c:1542 src/remote/remote_driver.c:7620
-#: src/remote/remote_driver.c:7875
+#: src/remote/remote_driver.c:7873
 #, c-format
 msgid "too many NUMA cells: %d > %d"
 msgstr "NUMA 单元过多：%d > %d"
@@ -19510,7 +19535,7 @@ msgid ""
 "loop implementation"
 msgstr "调用程序不支持 keepalive 协议；可能没有使用事件循环。"
 
-#: src/remote/remote_driver.c:7810
+#: src/remote/remote_driver.c:7808
 #, c-format
 msgid "Number of stats entries is %d, which exceeds max limit: %d"
 msgstr ""
