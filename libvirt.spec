@@ -363,7 +363,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.2.9
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 0rc2%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -372,7 +372,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1569,7 +1569,7 @@ rm -fr %{buildroot}
 cd tests
 make
 # These tests don't current work in a mock build root
-for i in nodeinfotest seclabeltest virsh-uriprecedence
+for i in nodeinfotest seclabeltest
 do
   rm -f $i
   printf 'int main(void) { return 0; }' > $i.c

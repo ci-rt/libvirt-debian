@@ -1148,16 +1148,19 @@ libvirt_driver_openvz_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(libvirt_driver_openvz_la_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 @WITH_OPENVZ_TRUE@am_libvirt_driver_openvz_la_rpath =
-libvirt_driver_parallels_la_LIBADD =
+@WITH_PARALLELS_TRUE@libvirt_driver_parallels_la_DEPENDENCIES =  \
+@WITH_PARALLELS_TRUE@	$(am__DEPENDENCIES_1)
 am__libvirt_driver_parallels_la_SOURCES_DIST =  \
 	parallels/parallels_driver.h parallels/parallels_driver.c \
 	parallels/parallels_utils.c parallels/parallels_utils.h \
-	parallels/parallels_storage.c parallels/parallels_network.c
+	parallels/parallels_storage.c parallels/parallels_network.c \
+	parallels/parallels_sdk.h parallels/parallels_sdk.c
 am__objects_48 =  \
 	parallels/libvirt_driver_parallels_la-parallels_driver.lo \
 	parallels/libvirt_driver_parallels_la-parallels_utils.lo \
 	parallels/libvirt_driver_parallels_la-parallels_storage.lo \
-	parallels/libvirt_driver_parallels_la-parallels_network.lo
+	parallels/libvirt_driver_parallels_la-parallels_network.lo \
+	parallels/libvirt_driver_parallels_la-parallels_sdk.lo
 @WITH_PARALLELS_TRUE@am_libvirt_driver_parallels_la_OBJECTS =  \
 @WITH_PARALLELS_TRUE@	$(am__objects_48)
 libvirt_driver_parallels_la_OBJECTS =  \
@@ -3135,6 +3138,8 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PARALLELS_SDK_CFLAGS = @PARALLELS_SDK_CFLAGS@
+PARALLELS_SDK_LIBS = @PARALLELS_SDK_LIBS@
 PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PCIACCESS_CFLAGS = @PCIACCESS_CFLAGS@
@@ -4214,7 +4219,9 @@ PARALLELS_DRIVER_SOURCES = \
 		parallels/parallels_utils.c			\
 		parallels/parallels_utils.h			\
 		parallels/parallels_storage.c		\
-		parallels/parallels_network.c
+		parallels/parallels_network.c		\
+		parallels/parallels_sdk.h			\
+		parallels/parallels_sdk.c
 
 BHYVE_DRIVER_SOURCES = \
 		bhyve/bhyve_capabilities.c			\
@@ -4658,8 +4665,10 @@ HYPERV_GENERATED_STAMP = .hyperv_wmi_generator.stamp
 @WITH_HYPERV_TRUE@libvirt_driver_hyperv_la_LIBADD = $(OPENWSMAN_LIBS)
 @WITH_HYPERV_TRUE@libvirt_driver_hyperv_la_SOURCES = $(HYPERV_DRIVER_SOURCES)
 @WITH_PARALLELS_TRUE@libvirt_driver_parallels_la_CFLAGS = \
-@WITH_PARALLELS_TRUE@		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+@WITH_PARALLELS_TRUE@		-I$(top_srcdir)/src/conf $(AM_CFLAGS) \
+@WITH_PARALLELS_TRUE@		$(PARALLELS_SDK_CFLAGS)
 
+@WITH_PARALLELS_TRUE@libvirt_driver_parallels_la_LIBADD = $(PARALLELS_SDK_LIBS)
 @WITH_PARALLELS_TRUE@libvirt_driver_parallels_la_SOURCES = $(PARALLELS_DRIVER_SOURCES)
 @WITH_BHYVE_TRUE@libvirt_driver_bhyve_la_SOURCES = 
 @WITH_BHYVE_TRUE@libvirt_driver_bhyve_la_LIBADD =  \
@@ -5799,6 +5808,8 @@ parallels/libvirt_driver_parallels_la-parallels_storage.lo:  \
 	parallels/$(am__dirstamp) parallels/$(DEPDIR)/$(am__dirstamp)
 parallels/libvirt_driver_parallels_la-parallels_network.lo:  \
 	parallels/$(am__dirstamp) parallels/$(DEPDIR)/$(am__dirstamp)
+parallels/libvirt_driver_parallels_la-parallels_sdk.lo:  \
+	parallels/$(am__dirstamp) parallels/$(DEPDIR)/$(am__dirstamp)
 
 libvirt_driver_parallels.la: $(libvirt_driver_parallels_la_OBJECTS) $(libvirt_driver_parallels_la_DEPENDENCIES) $(EXTRA_libvirt_driver_parallels_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libvirt_driver_parallels_la_LINK) $(am_libvirt_driver_parallels_la_rpath) $(libvirt_driver_parallels_la_OBJECTS) $(libvirt_driver_parallels_la_LIBADD) $(LIBS)
@@ -6678,6 +6689,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@openvz/$(DEPDIR)/libvirt_driver_openvz_la-openvz_util.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_network.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_sdk.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_storage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_utils.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@phyp/$(DEPDIR)/libvirt_driver_phyp_la-phyp_driver.Plo@am__quote@
@@ -8159,6 +8171,13 @@ parallels/libvirt_driver_parallels_la-parallels_network.lo: parallels/parallels_
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='parallels/parallels_network.c' object='parallels/libvirt_driver_parallels_la-parallels_network.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_parallels_la_CFLAGS) $(CFLAGS) -c -o parallels/libvirt_driver_parallels_la-parallels_network.lo `test -f 'parallels/parallels_network.c' || echo '$(srcdir)/'`parallels/parallels_network.c
+
+parallels/libvirt_driver_parallels_la-parallels_sdk.lo: parallels/parallels_sdk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_parallels_la_CFLAGS) $(CFLAGS) -MT parallels/libvirt_driver_parallels_la-parallels_sdk.lo -MD -MP -MF parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_sdk.Tpo -c -o parallels/libvirt_driver_parallels_la-parallels_sdk.lo `test -f 'parallels/parallels_sdk.c' || echo '$(srcdir)/'`parallels/parallels_sdk.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_sdk.Tpo parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_sdk.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='parallels/parallels_sdk.c' object='parallels/libvirt_driver_parallels_la-parallels_sdk.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_parallels_la_CFLAGS) $(CFLAGS) -c -o parallels/libvirt_driver_parallels_la-parallels_sdk.lo `test -f 'parallels/parallels_sdk.c' || echo '$(srcdir)/'`parallels/parallels_sdk.c
 
 phyp/libvirt_driver_phyp_la-phyp_driver.lo: phyp/phyp_driver.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_phyp_la_CFLAGS) $(CFLAGS) -MT phyp/libvirt_driver_phyp_la-phyp_driver.lo -MD -MP -MF phyp/$(DEPDIR)/libvirt_driver_phyp_la-phyp_driver.Tpo -c -o phyp/libvirt_driver_phyp_la-phyp_driver.lo `test -f 'phyp/phyp_driver.c' || echo '$(srcdir)/'`phyp/phyp_driver.c

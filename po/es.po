@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-09-25 11:47+0200\n"
+"POT-Creation-Date: 2014-09-29 20:22+0800\n"
 "PO-Revision-Date: 2014-01-14 02:48+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/fedora/language/"
@@ -610,7 +610,7 @@ msgstr "el dominio del evento %d no se encuentra registrado"
 msgid "the result won't fit into REMOTE_NODE_MAX_CELLS"
 msgstr "maxcells > REMOTE_NODE_MAX_CELLS"
 
-#: daemon/remote.c:6182 src/remote/remote_driver.c:7730
+#: daemon/remote.c:6182 src/remote/remote_driver.c:7728
 #, c-format
 msgid "Number of leases is %d, which exceeds max limit: %d"
 msgstr ""
@@ -840,8 +840,18 @@ msgstr " No hay expresiones regulares previas"
 msgid "Policy kit denied action %s from <anonymous>"
 msgstr "Kit de política negó la acción %s desde <anonymous>"
 
-#: src/access/viraccessdriverpolkit.c:99
+#: src/access/viraccessdriverpolkit.c:93
 msgid "No UNIX process ID available"
+msgstr "No hay ID de proceso UNIX disponible"
+
+#: src/access/viraccessdriverpolkit.c:98
+#, fuzzy
+msgid "No UNIX process start time available"
+msgstr "No hay ID de proceso UNIX disponible"
+
+#: src/access/viraccessdriverpolkit.c:103
+#, fuzzy
+msgid "No UNIX caller UID available"
 msgstr "No hay ID de proceso UNIX disponible"
 
 #: src/access/viraccessmanager.c:142
@@ -985,7 +995,7 @@ msgstr "tipo de configuración %s no soportado"
 msgid "No domain with matching uuid '%s'"
 msgstr "No existe un dominio coincidente con el uuid '%s'"
 
-#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1206
+#: src/bhyve/bhyve_driver.c:776 src/parallels/parallels_driver.c:1220
 #: src/qemu/qemu_driver.c:1520 src/qemu/qemu_driver.c:11055
 #: src/qemu/qemu_driver.c:11466 src/qemu/qemu_driver.c:11509
 #, c-format
@@ -1050,13 +1060,13 @@ msgstr "El dominio no está ejecutándose"
 #: src/qemu/qemu_driver.c:15353 src/qemu/qemu_driver.c:15437
 #: src/qemu/qemu_driver.c:15547 src/qemu/qemu_driver.c:15914
 #: src/qemu/qemu_driver.c:16134 src/qemu/qemu_driver.c:16200
-#: src/qemu/qemu_driver.c:16615 src/qemu/qemu_driver.c:16757
-#: src/qemu/qemu_driver.c:16817 src/qemu/qemu_driver.c:16855
-#: src/qemu/qemu_driver.c:16895 src/qemu/qemu_driver.c:16966
-#: src/qemu/qemu_driver.c:16978 src/qemu/qemu_driver.c:17077
-#: src/qemu/qemu_driver.c:17089 src/qemu/qemu_driver.c:17266
-#: src/qemu/qemu_driver.c:17327 src/qemu/qemu_driver.c:17343
-#: src/qemu/qemu_driver.c:17390 src/qemu/qemu_driver.c:17440
+#: src/qemu/qemu_driver.c:16669 src/qemu/qemu_driver.c:16811
+#: src/qemu/qemu_driver.c:16871 src/qemu/qemu_driver.c:16909
+#: src/qemu/qemu_driver.c:16949 src/qemu/qemu_driver.c:17020
+#: src/qemu/qemu_driver.c:17032 src/qemu/qemu_driver.c:17131
+#: src/qemu/qemu_driver.c:17143 src/qemu/qemu_driver.c:17320
+#: src/qemu/qemu_driver.c:17381 src/qemu/qemu_driver.c:17397
+#: src/qemu/qemu_driver.c:17444 src/qemu/qemu_driver.c:17494
 #: src/qemu/qemu_migration.c:2415 src/qemu/qemu_migration.c:4521
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2601
 #: src/xen/xen_driver.c:2644 src/xen/xm_internal.c:677
@@ -1100,7 +1110,7 @@ msgstr "Falló al construir la ruta pidfile."
 msgid "Cannot remove state PID file %s"
 msgstr "No es posible eliminar archivo viejo de PID de %s"
 
-#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4430
+#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4433
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "Dominio %s no apareció"
@@ -1196,7 +1206,7 @@ msgstr "No se encuentra atributo  'threads' en la topología de CPU"
 msgid "Invalid CPU topology"
 msgstr "Topología de CPU inválida"
 
-#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:629
+#: src/conf/cpu_conf.c:370 src/conf/cpu_conf.c:631
 msgid "Non-empty feature list specified without CPU model"
 msgstr ""
 "Se ha específicado una lista de características no vacía sin ningún modelo "
@@ -1210,7 +1220,7 @@ msgstr "Política no válida de característica de CPU"
 msgid "Invalid CPU feature name"
 msgstr "Nombre inválido de funcionalidad de CPU"
 
-#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:734
+#: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:736
 #, fuzzy, c-format
 msgid "CPU feature '%s' specified more than once"
 msgstr "Se ha especificado más de una vez la funcionalidad '%s ' de CPU"
@@ -1247,97 +1257,97 @@ msgstr "Falta el atributo 'memory' en celda de NUMA"
 msgid "Invalid 'memory' attribute in NUMA cell"
 msgstr "Atributo 'memory' inválido en celda NUMA"
 
-#: src/conf/cpu_conf.c:515
+#: src/conf/cpu_conf.c:514
 #, fuzzy, c-format
 msgid "Invalid 'memAccess' attribute value '%s'"
 msgstr "Valor de atributo de vaciado de núcleo de memoria '%s' no es válido"
 
-#: src/conf/cpu_conf.c:574
+#: src/conf/cpu_conf.c:576
 #, c-format
 msgid "Unexpected CPU mode %d"
 msgstr "Modo de CPU %d inesperado"
 
-#: src/conf/cpu_conf.c:585
+#: src/conf/cpu_conf.c:587
 #, c-format
 msgid "Unexpected CPU match policy %d"
 msgstr "Política %d de concordancia de CPU inesperada"
 
-#: src/conf/cpu_conf.c:641
+#: src/conf/cpu_conf.c:643
 #, c-format
 msgid "Unexpected CPU fallback value: %d"
 msgstr "Valor de recuperación de CPU: %d"
 
-#: src/conf/cpu_conf.c:672 src/cpu/cpu_x86.c:713
+#: src/conf/cpu_conf.c:674 src/cpu/cpu_x86.c:713
 msgid "Missing CPU feature name"
 msgstr "No se encuentra nombre de funcionalidad de CPU"
 
-#: src/conf/cpu_conf.c:682
+#: src/conf/cpu_conf.c:684
 #, c-format
 msgid "Unexpected CPU feature policy %d"
 msgstr "Política %d de funcionalidad de CPU no esperada"
 
-#: src/conf/cpu_conf.c:782
+#: src/conf/cpu_conf.c:784
 msgid "Target CPU does not match source"
 msgstr "El CPU destino no coincide con la fuente"
 
-#: src/conf/cpu_conf.c:788
+#: src/conf/cpu_conf.c:790
 #, c-format
 msgid "Target CPU type %s does not match source %s"
 msgstr "El tipo %s de la CPU elegido no coincide con la fuente %s"
 
-#: src/conf/cpu_conf.c:796
+#: src/conf/cpu_conf.c:798
 #, c-format
 msgid "Target CPU mode %s does not match source %s"
 msgstr "Modo  de CPU de destino %s no coincide con  la fuente %s"
 
-#: src/conf/cpu_conf.c:804
+#: src/conf/cpu_conf.c:806
 #, c-format
 msgid "Target CPU arch %s does not match source %s"
 msgstr "La arquitectura %s de la CPU elegida no coincide con la fuente %s"
 
-#: src/conf/cpu_conf.c:812
+#: src/conf/cpu_conf.c:814
 #, c-format
 msgid "Target CPU model %s does not match source %s"
 msgstr "El modelo %s de la CPU elegida no coincide con la fuente %s"
 
-#: src/conf/cpu_conf.c:819
+#: src/conf/cpu_conf.c:821
 #, c-format
 msgid "Target CPU vendor %s does not match source %s"
 msgstr "El proveedor %s de la CPU elegida no coincide con la fuente %s"
 
-#: src/conf/cpu_conf.c:826
+#: src/conf/cpu_conf.c:828
 #, c-format
 msgid "Target CPU vendor id %s does not match source %s"
 msgstr ""
 
-#: src/conf/cpu_conf.c:833
+#: src/conf/cpu_conf.c:835
 #, c-format
 msgid "Target CPU sockets %d does not match source %d"
 msgstr "Los sockets %d de la CPU elegida no coinciden con la fuente %d"
 
-#: src/conf/cpu_conf.c:840
+#: src/conf/cpu_conf.c:842
 #, c-format
 msgid "Target CPU cores %d does not match source %d"
 msgstr "Los núcleos %d de la CPU elegida no coinciden con la fuente %d"
 
-#: src/conf/cpu_conf.c:847
+#: src/conf/cpu_conf.c:849
 #, c-format
 msgid "Target CPU threads %d does not match source %d"
 msgstr "Los hilos %d de  la CPU elegida no coinciden con la fuente %d"
 
-#: src/conf/cpu_conf.c:854
+#: src/conf/cpu_conf.c:856
 #, c-format
 msgid "Target CPU feature count %zu does not match source %zu"
 msgstr ""
 "La funcionalidad de conteo %zu de la CPU elegida no coincide con la fuente "
 "%zu"
 
-#: src/conf/cpu_conf.c:862
+#: src/conf/cpu_conf.c:864
 #, c-format
 msgid "Target CPU feature %s does not match source %s"
 msgstr "La  funcionalidad %s de la CPU elegido no coincide con la fuente %s"
 
-#: src/conf/cpu_conf.c:869
+#: src/conf/cpu_conf.c:871
 #, c-format
 msgid "Target CPU feature policy %s does not match source %s"
 msgstr ""
@@ -4836,7 +4846,7 @@ msgstr "Tipo de interfaz %d no esperada"
 #: src/conf/interface_conf.c:1256 src/conf/network_conf.c:386
 #: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3117
 #: src/conf/storage_conf.c:1774 src/libxl/libxl_driver.c:295
-#: src/parallels/parallels_driver.c:931 src/qemu/qemu_driver.c:641
+#: src/parallels/parallels_driver.c:932 src/qemu/qemu_driver.c:641
 #: src/remote/remote_driver.c:1118 src/test/test_driver.c:716
 #: src/test/test_driver.c:1413 src/xen/xen_driver.c:464
 msgid "cannot initialize mutex"
@@ -8872,7 +8882,7 @@ msgid "Unable to set non-blocking mode"
 msgstr "No es posible colocar el monitor en modo non-blocking"
 
 #: src/fdstream.c:496 src/locking/lock_daemon.c:144
-#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3442
+#: src/locking/lock_daemon.c:187 src/qemu/qemu_capabilities.c:3444
 #: src/util/vireventpoll.c:694 src/util/virobject.c:224
 msgid "Unable to initialize mutex"
 msgstr "No se pudo inicializar mutex"
@@ -10427,7 +10437,7 @@ msgstr "Acción de falla no tiene soporte: '%s\n"
 msgid "cannot get the path of MEMORY cgroup controller"
 msgstr "No se puede obtener ruta de controlador de MEMORY cgroup"
 
-#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:753
+#: src/lxc/lxc_cgroup.c:467 src/qemu/qemu_cgroup.c:754
 #, c-format
 msgid "Resource partition '%s' must start with '/'"
 msgstr "La partición de recursos '%s' debe iniciar por '/'"
@@ -11493,7 +11503,7 @@ msgstr "No se pudieron modificar dispositivos en vivo"
 msgid "domain is not active"
 msgstr "El dominio no está activo"
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16763
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16817
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "Controlador cgroup CPUACCT no está montado"
 
@@ -13586,7 +13596,7 @@ msgstr ""
 msgid "Failed to parse vzlist output"
 msgstr "Falló al analizar salida vzlist"
 
-#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:703
+#: src/openvz/openvz_conf.c:563 src/parallels/parallels_driver.c:704
 msgid "UUID in config file malformed"
 msgstr "El UUID en el archivo de configuración es erróneo"
 
@@ -13777,8 +13787,8 @@ msgstr "No se  pudo leer barrera de"
 msgid "Failed to set %s for %s: value too large"
 msgstr "Falló al establecer %s para %s: valor demasiado grande"
 
-#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:71
-#: src/parallels/parallels_driver.c:1179 src/qemu/qemu_driver.c:1493
+#: src/openvz/openvz_driver.c:1993 src/parallels/parallels_driver.c:72
+#: src/parallels/parallels_driver.c:1193 src/qemu/qemu_driver.c:1493
 #: src/test/test_driver.c:2610 src/uml/uml_driver.c:1785
 #: src/uml/uml_driver.c:1815 src/uml/uml_driver.c:1852
 #: src/uml/uml_driver.c:2225 src/uml/uml_driver.c:2346
@@ -13811,172 +13821,177 @@ msgstr "El host de destino no soporta migración desconectada"
 msgid "Can't determine page size"
 msgstr "No se puede determinar tamaño de páginaCan't determine page size"
 
-#: src/parallels/parallels_driver.c:454
+#: src/parallels/parallels_driver.c:455
 #, c-format
 msgid "Invalid MAC address format '%s'"
 msgstr "Formato de dirección MAC inválido '%s'"
 
-#: src/parallels/parallels_driver.c:733
+#: src/parallels/parallels_driver.c:734
 msgid "Can't get node info"
 msgstr "No se puede obtener información de nodo"
 
-#: src/parallels/parallels_driver.c:982
+#: src/parallels/parallels_driver.c:937
+#, fuzzy
+msgid "Can't initialize Parallels SDK"
+msgstr "No se puede inicializar gestor de acceso"
+
+#: src/parallels/parallels_driver.c:994
 #, c-format
 msgid "Unexpected Parallels URI path '%s', try parallels:///system"
 msgstr "Ruta inesperada de Parallels URI '%s', intente parallels:///system"
 
-#: src/parallels/parallels_driver.c:1403
+#: src/parallels/parallels_driver.c:1417
 #, c-format
 msgid "domain '%s' not %s"
 msgstr "dominio '%s' no %s"
 
-#: src/parallels/parallels_driver.c:1536
+#: src/parallels/parallels_driver.c:1550
 msgid "changing display parameters is not supported by parallels driver"
 msgstr ""
 "El cambio de parámetros de pantalla no está soportado por controlador "
 "'paralells'"
 
-#: src/parallels/parallels_driver.c:1584
+#: src/parallels/parallels_driver.c:1598
 msgid "changing serial device parameters is not supported by parallels driver"
 msgstr ""
 "El cambio de parámetros de pantalla no está soportado por controlador "
 "'parallels'"
 
-#: src/parallels/parallels_driver.c:1599
+#: src/parallels/parallels_driver.c:1613
 msgid "Only one video device is supported by parallels driver"
 msgstr ""
 "Solo un dispositivo de vídeo está soportado  por el controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:1608
+#: src/parallels/parallels_driver.c:1622
 msgid "Only VGA video device is supported by parallels driver"
 msgstr ""
 "Solo un dispositivo de vídeo VGA está soportado  por el controlador "
 "'parallels"
 
-#: src/parallels/parallels_driver.c:1615
+#: src/parallels/parallels_driver.c:1629
 msgid "Only one monitor is supported by parallels driver"
 msgstr "Solo un monitor está soportado  por el controlador 'parallels"
 
-#: src/parallels/parallels_driver.c:1625
+#: src/parallels/parallels_driver.c:1639
 msgid ""
 "Changing video acceleration parameters is not supported by parallels driver"
 msgstr ""
 "El cambio de parámetros de aceleración de vídeo no está soportado por el  "
 "controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:1634
+#: src/parallels/parallels_driver.c:1648
 msgid "Video RAM size should be multiple of 1Mb."
 msgstr "Tamaño RAM de vídeo debe ser múltiplo de 1Mb."
 
-#: src/parallels/parallels_driver.c:1664
+#: src/parallels/parallels_driver.c:1678
 #, fuzzy, c-format
 msgid "Invalid disk format: %d"
 msgstr "Bus de disco inválido: %d"
 
-#: src/parallels/parallels_driver.c:1673
+#: src/parallels/parallels_driver.c:1687
 #, fuzzy, c-format
 msgid "Invalid disk type: %d"
 msgstr "Bus de disco inválido: %d"
 
-#: src/parallels/parallels_driver.c:1681
+#: src/parallels/parallels_driver.c:1695
 #, c-format
 msgid "Invalid disk bus: %d"
 msgstr "Bus de disco inválido: %d"
 
-#: src/parallels/parallels_driver.c:1737
+#: src/parallels/parallels_driver.c:1751
 #, c-format
 msgid "Can't remove disk '%s' in the specified config"
 msgstr "No se puede retirar  disco '%s' en config especificado"
 
-#: src/parallels/parallels_driver.c:1762
+#: src/parallels/parallels_driver.c:1776
 #, c-format
 msgid "Unsupported disk bus: %d"
 msgstr "Bus de disco no tiene soporte: %d"
 
-#: src/parallels/parallels_driver.c:1810
+#: src/parallels/parallels_driver.c:1824
 msgid "Changing network type is not supported"
 msgstr "El cambio de tipo de red no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1816
+#: src/parallels/parallels_driver.c:1830
 msgid "Changing network device model is not supported"
 msgstr "El cambio de dispositivo de red no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1823
+#: src/parallels/parallels_driver.c:1837
 msgid "Changing network portgroup is not supported"
 msgstr "El cambio de 'portgroup' de red no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1830
+#: src/parallels/parallels_driver.c:1844
 msgid "Changing virtual port profile is not supported"
 msgstr "El cambio de perfil de puerto virtual no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1836
+#: src/parallels/parallels_driver.c:1850
 msgid "Setting send buffer size is not supported"
 msgstr "Configuración del tamaño del búfer de envío no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1842
+#: src/parallels/parallels_driver.c:1856
 msgid "Setting startup script is not supported"
 msgstr "Configuración del script de inicio no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1848
+#: src/parallels/parallels_driver.c:1862
 msgid "Changing filter params is not supported"
 msgstr "El cambio de parámetros de filtro no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1854
+#: src/parallels/parallels_driver.c:1868
 msgid "Setting bandwidth params is not supported"
 msgstr "Configuración de parámetros del ancho de banda no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1861
+#: src/parallels/parallels_driver.c:1875
 msgid "Setting vlan params is not supported"
 msgstr "Configuración de  parámetros de vlan no tiene soporte"
 
-#: src/parallels/parallels_driver.c:1994
+#: src/parallels/parallels_driver.c:2008
 msgid "titles are not supported by parallels driver"
 msgstr "Los títulos  no están soportados por el controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2000
+#: src/parallels/parallels_driver.c:2014
 msgid "blkio parameters are not supported by parallels driver"
 msgstr ""
 "Los parámetros de pantalla no están soportados por controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2008
+#: src/parallels/parallels_driver.c:2022
 msgid "changing balloon parameters is not supported by parallels driver"
 msgstr ""
 "El cambio de parámetros de globos no está soportado por el  controlador "
 "'parallels'"
 
-#: src/parallels/parallels_driver.c:2015
+#: src/parallels/parallels_driver.c:2029
 msgid "Memory size should be multiple of 1Mb."
 msgstr "Tamaño de memoria debe ser múltiplo de 1Mb."
 
-#: src/parallels/parallels_driver.c:2034
+#: src/parallels/parallels_driver.c:2048
 msgid "Memory parameter is not supported by parallels driver"
 msgstr ""
 "El parámetro de memoria no está soportado por el controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2042
+#: src/parallels/parallels_driver.c:2056
 msgid "current vcpus must be equal to maxvcpus"
 msgstr "VCPU actuales deben ser igual a maxvcpus"
 
-#: src/parallels/parallels_driver.c:2056
+#: src/parallels/parallels_driver.c:2070
 msgid "changing cpu placement mode is not supported by parallels driver"
 msgstr ""
 "El cambio de modo de localización de CPU no está soportado por el  "
 "controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2066
+#: src/parallels/parallels_driver.c:2080
 msgid "changing cpu mask is not supported by parallels driver"
 msgstr ""
 "El cambio de máscara de CPU no está soportado por el  controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2078
+#: src/parallels/parallels_driver.c:2092
 msgid "cputune is not supported by parallels driver"
 msgstr "cputune no está soportado por el  controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2084
+#: src/parallels/parallels_driver.c:2098
 msgid "numa parameters are not supported by parallels driver"
 msgstr "Parámetros numa no están soportados por el  controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2094
+#: src/parallels/parallels_driver.c:2108
 msgid ""
 "on_reboot, on_poweroff and on_crash parameters are not supported by "
 "parallels driver"
@@ -13984,69 +13999,69 @@ msgstr ""
 "Los parámetros on_reboot, on_poweroff y on_crash parameters no están "
 "soportados por el controlador 'parallels'"
 
-#: src/parallels/parallels_driver.c:2113 src/parallels/parallels_driver.c:2123
-#: src/parallels/parallels_driver.c:2133
+#: src/parallels/parallels_driver.c:2127 src/parallels/parallels_driver.c:2137
+#: src/parallels/parallels_driver.c:2147
 msgid "changing OS parameters is not supported by parallels driver"
 msgstr ""
 "El cambio de parámetros de SO no está soportado por el  controlador "
 "'parallels'"
 
-#: src/parallels/parallels_driver.c:2142
+#: src/parallels/parallels_driver.c:2156
 msgid "changing emulator is not supported by parallels driver"
 msgstr "El cambio de emulador no tiene soporte para controlador de paralelos"
 
-#: src/parallels/parallels_driver.c:2150
+#: src/parallels/parallels_driver.c:2164
 msgid "changing features is not supported by parallels driver"
 msgstr ""
 "El cambio de funcionalidades no tiene soporte por controlador de paralelos"
 
-#: src/parallels/parallels_driver.c:2160
+#: src/parallels/parallels_driver.c:2174
 msgid "changing clock parameters is not supported by parallels driver"
 msgstr "El cambio de reloj no tiene soporte por controlador de paralelos"
 
-#: src/parallels/parallels_driver.c:2176
+#: src/parallels/parallels_driver.c:2190
 msgid "changing devices parameters is not supported by parallels driver"
 msgstr ""
 "El cambio de parámetros de dispositivos  no tiene soporte por controlador de "
 "paralelos"
 
-#: src/parallels/parallels_driver.c:2188
+#: src/parallels/parallels_driver.c:2202
 msgid "changing input devices parameters is not supported by parallels driver"
 msgstr ""
 "El cambio de parámetros de dispositivos no tiene soporte por controlador de "
 "paralelos"
 
-#: src/parallels/parallels_driver.c:2239
+#: src/parallels/parallels_driver.c:2253
 msgid "There must be only 1 template FS for container creation"
 msgstr "Debe haber únicamente 1 plantilla FS  para creación del contenedor"
 
-#: src/parallels/parallels_driver.c:2268
+#: src/parallels/parallels_driver.c:2282
 msgid "Can't parse XML desc"
 msgstr "No se puede leer descripción  XML"
 
-#: src/parallels/parallels_driver.c:2283
+#: src/parallels/parallels_driver.c:2297
 #, c-format
 msgid "Unsupported OS type: %s"
 msgstr "Tipo de sistema operativo sin soporte: %s"
 
-#: src/parallels/parallels_driver.c:2291
+#: src/parallels/parallels_driver.c:2305
 #, c-format
 msgid "Domain for '%s' is not defined after creation"
 msgstr "Dominio para '%s' no se define después de la creación"
 
-#: src/parallels/parallels_driver.c:2292
+#: src/parallels/parallels_driver.c:2306
 msgid "(unnamed)"
 msgstr "(sin nombre)"
 
-#: src/parallels/parallels_driver.c:2376 src/qemu/qemu_driver.c:5082
+#: src/parallels/parallels_driver.c:2390 src/qemu/qemu_driver.c:5082
 msgid "cannot list vcpu pinning for an inactive domain"
 msgstr "no es posible mostrar vcpus adjuntos en un dominio inactivo"
 
-#: src/parallels/parallels_driver.c:2480
+#: src/parallels/parallels_driver.c:2494
 msgid "Can't find prlctl command in the PATH env"
 msgstr "No se  pudo hallar comando prlctl en el entorno PATH"
 
-#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:36
+#: src/parallels/parallels_network.c:40 src/parallels/parallels_utils.h:38
 msgid "Can't parse prlctl output"
 msgstr "No se puede leer salida prlctl"
 
@@ -14073,6 +14088,11 @@ msgstr "No se puede leer MAC '%s'"
 #: src/parallels/parallels_network.c:257
 msgid "Can't parse UUID"
 msgstr "No se puede leer UUID"
+
+#: src/parallels/parallels_sdk.c:64 src/parallels/parallels_sdk.c:105
+#, c-format
+msgid "%s %s"
+msgstr ""
 
 #: src/parallels/parallels_utils.c:78
 #, c-format
@@ -14754,27 +14774,27 @@ msgstr "No puede acceder a la secuencia para '%s'"
 msgid "Unknown QEMU arch %s"
 msgstr "Se desconoce arquitectura QEMU '%s'"
 
-#: src/qemu/qemu_capabilities.c:3318
+#: src/qemu/qemu_capabilities.c:3320
 #, c-format
 msgid "Failed to kill process %lld: %s"
 msgstr "No pudo matar el proceso %lld: %s"
 
-#: src/qemu/qemu_capabilities.c:3346
+#: src/qemu/qemu_capabilities.c:3348
 #, fuzzy, c-format
 msgid "Failed to probe capabilities for %s: %s"
 msgstr "Falló al eliminar capacidades: %d"
 
-#: src/qemu/qemu_capabilities.c:3348
+#: src/qemu/qemu_capabilities.c:3350
 #, fuzzy
 msgid "unknown failure"
 msgstr "%s: falla desconocida con %s\n"
 
-#: src/qemu/qemu_capabilities.c:3371
+#: src/qemu/qemu_capabilities.c:3373
 #, c-format
 msgid "Cannot check QEMU binary %s"
 msgstr "No  se puede comprobar binario QEMU %s"
 
-#: src/qemu/qemu_capabilities.c:3382
+#: src/qemu/qemu_capabilities.c:3384
 #, c-format
 msgid "QEMU binary %s is not executable"
 msgstr "Binario QEMU %s no es ejecutable"
@@ -14787,16 +14807,16 @@ msgstr "Bloque de ajuste E/S no está disponible en este host"
 msgid "Memory cgroup is not available on this host"
 msgstr "Cgroup de memoria no está disponible en este host"
 
-#: src/qemu/qemu_cgroup.c:688
+#: src/qemu/qemu_cgroup.c:689
 msgid "CPU tuning is not available on this host"
 msgstr "Ajuste de CPU no está disponible en este host"
 
-#: src/qemu/qemu_cgroup.c:826
+#: src/qemu/qemu_cgroup.c:827
 msgid "Cannot setup cgroups until process is started"
 msgstr "No se pueden  configurar cgroups, sino cuando se inicia el proceso"
 
-#: src/qemu/qemu_cgroup.c:971 src/qemu/qemu_cgroup.c:1059
-#: src/qemu/qemu_cgroup.c:1132
+#: src/qemu/qemu_cgroup.c:972 src/qemu/qemu_cgroup.c:1060
+#: src/qemu/qemu_cgroup.c:1133
 msgid "cgroup cpu is required for scheduler tuning"
 msgstr "Se requiere CPU de cgroup para ajuste de programador"
 
@@ -15179,7 +15199,7 @@ msgstr "Binario QEMU no admite descarte"
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "Modo de disco aio no tiene soporte con binario de QEMU "
 
-#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16381
+#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16419
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "Límite de E/S de bloque no tiene soporte con este binario QEMU"
 
@@ -16751,7 +16771,7 @@ msgid "domain is pmsuspended"
 msgstr "Dominio es pmsuspended"
 
 #: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4923
-#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4620
+#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4623
 msgid "resume operation failed"
 msgstr "Falló al reanudarse la operación"
 
@@ -16838,13 +16858,13 @@ msgstr "Error de creación del proceso hijo '%s'"
 msgid "Error from child process opening '%s'"
 msgstr "Error desde la apertura del proceso hijo '%s'"
 
-#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3914
+#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3917
 #: src/storage/storage_backend.c:460
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "Falló al crear archivo '%s' "
 
-#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3905
+#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3908
 #: src/storage/storage_backend_fs.c:1433
 #: src/storage/storage_backend_gluster.c:686 src/util/virfile.c:1289
 #: src/util/virstoragefile.c:878
@@ -17833,34 +17853,39 @@ msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr ""
 "Solo puede abrir las gráficas  open VNC or SPICE graphics backends, not %s"
 
-#: src/qemu/qemu_driver.c:16324
+#: src/qemu/qemu_driver.c:16332
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr ""
 "El valor límite de regulador de bloque de E/S debe ser inferior a  %llu"
 
-#: src/qemu/qemu_driver.c:16358
+#: src/qemu/qemu_driver.c:16396
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr ""
 "Total y bytes_sec de lectura y escritura no pueden establecerse al mismo "
 "tiempo"
 
-#: src/qemu/qemu_driver.c:16365
+#: src/qemu/qemu_driver.c:16403
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr ""
 "No  se puede establecer al mismo tiempo iops_sec  total y de lectura/"
 "escritura"
 
-#: src/qemu/qemu_driver.c:16372
+#: src/qemu/qemu_driver.c:16410
 #, fuzzy, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr "no se encuentra información de destino para el dispositivo %s"
 
-#: src/qemu/qemu_driver.c:16428
+#: src/qemu/qemu_driver.c:16451
+#, fuzzy
+msgid "Saving live XML config failed"
+msgstr "Falló  lectura de xm config "
+
+#: src/qemu/qemu_driver.c:16480
 msgid "Write to config file failed"
 msgstr "Falló la escritura  archivo de configuración "
 
-#: src/qemu/qemu_driver.c:16511
+#: src/qemu/qemu_driver.c:16565
 #, fuzzy, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr ""
@@ -17868,74 +17893,74 @@ msgstr ""
 "\n"
 "\n"
 
-#: src/qemu/qemu_driver.c:16794
+#: src/qemu/qemu_driver.c:16848
 msgid "Duration not supported. Use 0 for now"
 msgstr "Duración no tiene soporte. Use 0 por ahora"
 
-#: src/qemu/qemu_driver.c:16802
+#: src/qemu/qemu_driver.c:16856
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "Se desconoce el desitno suspend: %u"
 
-#: src/qemu/qemu_driver.c:16825
+#: src/qemu/qemu_driver.c:16879
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr ""
 "No se  pudo suspender el dominio debido a que  falta el comando de monitor "
 "system-wakeup"
 
-#: src/qemu/qemu_driver.c:16835
+#: src/qemu/qemu_driver.c:16889
 msgid "S3 state is disabled for this domain"
 msgstr "Estado S3 está inhabilitado para este dominio"
 
-#: src/qemu/qemu_driver.c:16842
+#: src/qemu/qemu_driver.c:16896
 msgid "S4 state is disabled for this domain"
 msgstr "Estado S4 está inhabilitado para este dominio"
 
-#: src/qemu/qemu_driver.c:16903
+#: src/qemu/qemu_driver.c:16957
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr ""
 "No se  pudo despertar el dominio debido a que  falta el comando de monitor "
 "system-wakeup"
 
-#: src/qemu/qemu_driver.c:17062
+#: src/qemu/qemu_driver.c:17116
 msgid "Specifying mount point is not supported for now"
 msgstr "La especificación de punto de montaje no tiene soporte por ahora"
 
-#: src/qemu/qemu_driver.c:17317
+#: src/qemu/qemu_driver.c:17371
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17425
+#: src/qemu/qemu_driver.c:17479
 #, fuzzy
 msgid "specifying mountpoints is not supported"
 msgstr "La especificación de punto de montaje no tiene soporte por ahora"
 
-#: src/qemu/qemu_driver.c:17506
+#: src/qemu/qemu_driver.c:17560
 #, fuzzy, c-format
 msgid "unknown virttype: %s"
 msgstr "tipo de virt desconocido"
 
-#: src/qemu/qemu_driver.c:17513
+#: src/qemu/qemu_driver.c:17567
 #, fuzzy, c-format
 msgid "unknown architecture: %s"
 msgstr "Se desconoce arquitectura  %s"
 
-#: src/qemu/qemu_driver.c:17529
+#: src/qemu/qemu_driver.c:17583
 #, fuzzy, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr "Nombre de dominio de destino '%s' no coincide con la fuente '%s'"
 
-#: src/qemu/qemu_driver.c:17539
+#: src/qemu/qemu_driver.c:17593
 #, fuzzy, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr "No es posible encontrar mapeo de la CPU para la arquitectura %s"
 
-#: src/qemu/qemu_driver.c:17553
+#: src/qemu/qemu_driver.c:17607
 #, fuzzy, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr "  Sanlock no soporta acción de falla %s"
 
-#: src/qemu/qemu_driver.c:17973
+#: src/qemu/qemu_driver.c:18027
 #, fuzzy, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr "La configuración del estado de enlace no está soportada por este QEMU"
@@ -20031,48 +20056,48 @@ msgstr ""
 msgid "host doesn't support invariant TSC"
 msgstr "Este disco no soporta actualización"
 
-#: src/qemu/qemu_process.c:3897
+#: src/qemu/qemu_process.c:3900
 #, fuzzy, c-format
 msgid "unable to find any master var store for loader: %s"
 msgstr ""
 "Falló al intentar encontrar un dispositivo de almacenamiento secreto: %s"
 
-#: src/qemu/qemu_process.c:3925
+#: src/qemu/qemu_process.c:3928
 #, fuzzy, c-format
 msgid "Unable to read from file '%s'"
 msgstr "No se puede leer desde '%s'"
 
-#: src/qemu/qemu_process.c:3932
+#: src/qemu/qemu_process.c:3935
 #, fuzzy, c-format
 msgid "Unable to write to file '%s'"
 msgstr "No se puede  escribir a '%s'"
 
-#: src/qemu/qemu_process.c:3940 src/qemu/qemu_process.c:3946
+#: src/qemu/qemu_process.c:3943 src/qemu/qemu_process.c:3949
 #, fuzzy, c-format
 msgid "Unable to close file '%s'"
 msgstr "No se  puede cerrar archivo %s"
 
-#: src/qemu/qemu_process.c:4030 src/qemu/qemu_process.c:5036
+#: src/qemu/qemu_process.c:4033 src/qemu/qemu_process.c:5039
 #: src/uml/uml_driver.c:1054
 msgid "VM is already active"
 msgstr "la MV ya se encuentra activa"
 
-#: src/qemu/qemu_process.c:4127
+#: src/qemu/qemu_process.c:4130
 msgid "Unable to set huge path in security driver"
 msgstr "No se puede establecer ruta amplia en controlador de seguridad"
 
-#: src/qemu/qemu_process.c:4200
+#: src/qemu/qemu_process.c:4203
 msgid ""
 "QEMU does not support multiple listen addresses for one graphics device."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4209 src/qemu/qemu_process.c:5060
+#: src/qemu/qemu_process.c:4212 src/qemu/qemu_process.c:5063
 #: src/uml/uml_driver.c:1076
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "no es posible crear directorio de registro %s"
 
-#: src/qemu/qemu_process.c:4222
+#: src/qemu/qemu_process.c:4225
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
@@ -20082,30 +20107,30 @@ msgstr ""
 "activada en el BIOS de host, y si el host está  configurado para cargar los "
 "módulos KVM."
 
-#: src/qemu/qemu_process.c:4265
+#: src/qemu/qemu_process.c:4268
 #, fuzzy
 msgid "Parameter 'min_guarantee' not supported by QEMU."
 msgstr "El parámetro '%s'  no tiene soporte"
 
-#: src/qemu/qemu_process.c:4285
+#: src/qemu/qemu_process.c:4288
 msgid "Failed to build pidfile path."
 msgstr "Falló al construir la ruta pidfile."
 
-#: src/qemu/qemu_process.c:4292
+#: src/qemu/qemu_process.c:4295
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "No es posible eliminar archivo viejo de PID de %s"
 
-#: src/qemu/qemu_process.c:4371 src/qemu/qemu_process.c:4396
+#: src/qemu/qemu_process.c:4374 src/qemu/qemu_process.c:4399
 msgid "Raw I/O is not supported on this platform"
 msgstr "E/S cruda no tiene soporte en esta plataforma"
 
-#: src/qemu/qemu_process.c:4483
+#: src/qemu/qemu_process.c:4486
 #, c-format
 msgid "cannot stat fd %d"
 msgstr "No se pudo stat fd %d"
 
-#: src/qemu/qemu_process.c:4598
+#: src/qemu/qemu_process.c:4601
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr "No es posible establecer globo para %lld"
@@ -20214,7 +20239,7 @@ msgstr ""
 "remoteNodeGetMemoryStats: el número devuelto de estadística  excede el límite"
 
 #: src/remote/remote_driver.c:1542 src/remote/remote_driver.c:7620
-#: src/remote/remote_driver.c:7875
+#: src/remote/remote_driver.c:7873
 #, c-format
 msgid "too many NUMA cells: %d > %d"
 msgstr "demasiadas celdas NUMA: %d > %d"
@@ -20417,7 +20442,7 @@ msgstr ""
 "El llamador no soporta el protocolo keepalive; quizás le falta el evento de "
 "implementación de bucle "
 
-#: src/remote/remote_driver.c:7810
+#: src/remote/remote_driver.c:7808
 #, c-format
 msgid "Number of stats entries is %d, which exceeds max limit: %d"
 msgstr ""

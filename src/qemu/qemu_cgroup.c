@@ -674,7 +674,8 @@ qemuSetupCpusetCgroup(virDomainObjPtr vm,
 
 
 static int
-qemuSetupCpuCgroup(virDomainObjPtr vm)
+qemuSetupCpuCgroup(virQEMUDriverPtr driver,
+                   virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virObjectEventPtr event = NULL;
@@ -703,7 +704,7 @@ qemuSetupCpuCgroup(virDomainObjPtr vm)
             vm->def->cputune.shares = val;
             if (virTypedParamsAddULLong(&eventParams, &eventNparams,
                                         &eventMaxparams,
-                                        VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES,
+                                        VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES,
                                         val) < 0)
                 return -1;
 
@@ -711,7 +712,7 @@ qemuSetupCpuCgroup(virDomainObjPtr vm)
         }
 
         if (event)
-            qemuDomainEventQueue(vm->privateData, event);
+            qemuDomainEventQueue(driver, event);
     }
 
     return 0;
@@ -845,7 +846,7 @@ qemuSetupCgroup(virQEMUDriverPtr driver,
     if (qemuSetupMemoryCgroup(vm) < 0)
         goto cleanup;
 
-    if (qemuSetupCpuCgroup(vm) < 0)
+    if (qemuSetupCpuCgroup(driver, vm) < 0)
         goto cleanup;
 
     if (qemuSetupCpusetCgroup(vm, nodemask, caps) < 0)

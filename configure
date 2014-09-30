@@ -873,6 +873,8 @@ BHYVECTL
 BHYVE
 WITH_PARALLELS_FALSE
 WITH_PARALLELS_TRUE
+PARALLELS_SDK_LIBS
+PARALLELS_SDK_CFLAGS
 WITH_LXC_FALSE
 WITH_LXC_TRUE
 WITH_XEN_INOTIFY_FALSE
@@ -2501,6 +2503,8 @@ SYSTEMD_DAEMON_CFLAGS
 SYSTEMD_DAEMON_LIBS
 UDEV_CFLAGS
 UDEV_LIBS
+PARALLELS_SDK_CFLAGS
+PARALLELS_SDK_LIBS
 LIBXML_CFLAGS
 LIBXML_LIBS
 GNUTLS_CFLAGS
@@ -3354,6 +3358,10 @@ Some influential environment variables:
               linker flags for SYSTEMD_DAEMON, overriding pkg-config
   UDEV_CFLAGS C compiler flags for UDEV, overriding pkg-config
   UDEV_LIBS   linker flags for UDEV, overriding pkg-config
+  PARALLELS_SDK_CFLAGS
+              C compiler flags for PARALLELS_SDK, overriding pkg-config
+  PARALLELS_SDK_LIBS
+              linker flags for PARALLELS_SDK, overriding pkg-config
   LIBXML_CFLAGS
               C compiler flags for LIBXML, overriding pkg-config
   LIBXML_LIBS linker flags for LIBXML, overriding pkg-config
@@ -62550,23 +62558,93 @@ fi
 
 
 
-if test "$with_parallels" = "check"; then
-    with_parallels=$with_linux
-    if test ! $host_cpu = 'x86_64'; then
-        with_parallels=no
+
+if test "$with_parallels" = "yes" ||
+   test "$with_parallels" = "check"; then
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for PARALLELS_SDK" >&5
+$as_echo_n "checking for PARALLELS_SDK... " >&6; }
+
+if test -n "$PARALLELS_SDK_CFLAGS"; then
+    pkg_cv_PARALLELS_SDK_CFLAGS="$PARALLELS_SDK_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"parallels-sdk\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "parallels-sdk") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_PARALLELS_SDK_CFLAGS=`$PKG_CONFIG --cflags "parallels-sdk" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$PARALLELS_SDK_LIBS"; then
+    pkg_cv_PARALLELS_SDK_LIBS="$PARALLELS_SDK_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"parallels-sdk\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "parallels-sdk") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_PARALLELS_SDK_LIBS=`$PKG_CONFIG --libs "parallels-sdk" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        PARALLELS_SDK_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "parallels-sdk" 2>&1`
+        else
+	        PARALLELS_SDK_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "parallels-sdk" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$PARALLELS_SDK_PKG_ERRORS" >&5
+
+	PARALLELS_SDK_FOUND=no
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	PARALLELS_SDK_FOUND=no
+else
+	PARALLELS_SDK_CFLAGS=$pkg_cv_PARALLELS_SDK_CFLAGS
+	PARALLELS_SDK_LIBS=$pkg_cv_PARALLELS_SDK_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	PARALLELS_SDK_FOUND=yes
+fi
+
+    if test "$with_parallels" = "yes" && test "$PARALLELS_SDK_FOUND" = "no"; then
+        as_fn_error $? "Parallels Virtualization SDK is needed to build the Parallels driver." "$LINENO" 5
     fi
-fi
 
-if test "$with_parallels" = "yes" && test "$with_linux" = "no"; then
-    as_fn_error $? "The Parallels driver can be enabled on Linux only." "$LINENO" 5
-fi
-
-if test "$with_parallels" = "yes"; then
+    with_parallels=$PARALLELS_SDK_FOUND
+    if test "$with_parallels" = "yes"; then
 
 cat >>confdefs.h <<_ACEOF
 #define WITH_PARALLELS 1
 _ACEOF
 
+    fi
 fi
  if test "$with_parallels" = "yes"; then
   WITH_PARALLELS_TRUE=
