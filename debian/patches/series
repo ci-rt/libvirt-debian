@@ -12,3 +12,4 @@ Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 debian/Use-sensible-editor-as-fallback.patch
 debian/Debianize-virtlockd.patch
+qemu-use-systemd-s-TerminateMachine-to-kill-all-proc.patch
