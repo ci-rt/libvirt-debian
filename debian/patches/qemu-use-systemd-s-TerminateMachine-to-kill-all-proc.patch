@@ -83,10 +83,10 @@ index 8a2c723..4a4f22c 100644
  
  #endif /* __QEMU_CGROUP_H__ */
 diff --git a/src/qemu/qemu_process.c b/src/qemu/qemu_process.c
-index 1b8931e..e1a4218 100644
+index 11eeb3c..712a25e 100644
 --- a/src/qemu/qemu_process.c
 +++ b/src/qemu/qemu_process.c
-@@ -4138,7 +4138,7 @@ int qemuProcessStart(virConnectPtr conn,
+@@ -4143,7 +4143,7 @@ int qemuProcessStart(virConnectPtr conn,
      /* Ensure no historical cgroup for this VM is lying around bogus
       * settings */
      VIR_DEBUG("Ensuring no historical cgroup is lying around");
@@ -95,7 +95,7 @@ index 1b8931e..e1a4218 100644
  
      for (i = 0; i < vm->def->ngraphics; ++i) {
          virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
-@@ -4916,7 +4916,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
+@@ -4921,7 +4921,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
      }
  
   retry:
