@@ -17,8 +17,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-09-29 20:22+0800\n"
-"PO-Revision-Date: 2014-08-29 16:34+0000\n"
+"POT-Creation-Date: 2014-10-01 15:55+0800\n"
+"PO-Revision-Date: 2014-09-25 12:28+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/libvirt/"
 "language/uk/)\n"
@@ -875,12 +875,14 @@ msgid "No UNIX process ID available"
 msgstr "Ідентифікатор процесу UNIX недоступний"
 
 #: src/access/viraccessdriverpolkit.c:98
+#, fuzzy
 msgid "No UNIX process start time available"
-msgstr "Дані щодо часу запуску процесу UNIX недоступні"
+msgstr "Ідентифікатор процесу UNIX недоступний"
 
 #: src/access/viraccessdriverpolkit.c:103
+#, fuzzy
 msgid "No UNIX caller UID available"
-msgstr "Дані щодо UID виклику UNIX недоступні"
+msgstr "Ідентифікатор процесу UNIX недоступний"
 
 #: src/access/viraccessmanager.c:142
 #, c-format
@@ -1070,23 +1072,23 @@ msgstr "Домен не запущено"
 #: src/qemu/qemu_driver.c:10398 src/qemu/qemu_driver.c:10520
 #: src/qemu/qemu_driver.c:10768 src/qemu/qemu_driver.c:11865
 #: src/qemu/qemu_driver.c:11903 src/qemu/qemu_driver.c:11963
-#: src/qemu/qemu_driver.c:12020 src/qemu/qemu_driver.c:12070
-#: src/qemu/qemu_driver.c:12125 src/qemu/qemu_driver.c:12191
-#: src/qemu/qemu_driver.c:13163 src/qemu/qemu_driver.c:14663
-#: src/qemu/qemu_driver.c:14672 src/qemu/qemu_driver.c:14820
-#: src/qemu/qemu_driver.c:14901 src/qemu/qemu_driver.c:15016
-#: src/qemu/qemu_driver.c:15171 src/qemu/qemu_driver.c:15206
-#: src/qemu/qemu_driver.c:15353 src/qemu/qemu_driver.c:15437
-#: src/qemu/qemu_driver.c:15547 src/qemu/qemu_driver.c:15914
-#: src/qemu/qemu_driver.c:16134 src/qemu/qemu_driver.c:16200
-#: src/qemu/qemu_driver.c:16669 src/qemu/qemu_driver.c:16811
-#: src/qemu/qemu_driver.c:16871 src/qemu/qemu_driver.c:16909
-#: src/qemu/qemu_driver.c:16949 src/qemu/qemu_driver.c:17020
-#: src/qemu/qemu_driver.c:17032 src/qemu/qemu_driver.c:17131
-#: src/qemu/qemu_driver.c:17143 src/qemu/qemu_driver.c:17320
-#: src/qemu/qemu_driver.c:17381 src/qemu/qemu_driver.c:17397
-#: src/qemu/qemu_driver.c:17444 src/qemu/qemu_driver.c:17494
-#: src/qemu/qemu_migration.c:2415 src/qemu/qemu_migration.c:4521
+#: src/qemu/qemu_driver.c:12020 src/qemu/qemu_driver.c:12064
+#: src/qemu/qemu_driver.c:12119 src/qemu/qemu_driver.c:12185
+#: src/qemu/qemu_driver.c:13157 src/qemu/qemu_driver.c:14657
+#: src/qemu/qemu_driver.c:14666 src/qemu/qemu_driver.c:14814
+#: src/qemu/qemu_driver.c:14895 src/qemu/qemu_driver.c:15010
+#: src/qemu/qemu_driver.c:15165 src/qemu/qemu_driver.c:15200
+#: src/qemu/qemu_driver.c:15347 src/qemu/qemu_driver.c:15431
+#: src/qemu/qemu_driver.c:15541 src/qemu/qemu_driver.c:15908
+#: src/qemu/qemu_driver.c:16128 src/qemu/qemu_driver.c:16194
+#: src/qemu/qemu_driver.c:16663 src/qemu/qemu_driver.c:16805
+#: src/qemu/qemu_driver.c:16865 src/qemu/qemu_driver.c:16903
+#: src/qemu/qemu_driver.c:16943 src/qemu/qemu_driver.c:17014
+#: src/qemu/qemu_driver.c:17026 src/qemu/qemu_driver.c:17125
+#: src/qemu/qemu_driver.c:17137 src/qemu/qemu_driver.c:17314
+#: src/qemu/qemu_driver.c:17375 src/qemu/qemu_driver.c:17391
+#: src/qemu/qemu_driver.c:17438 src/qemu/qemu_driver.c:17488
+#: src/qemu/qemu_migration.c:2417 src/qemu/qemu_migration.c:4523
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2601
 #: src/xen/xen_driver.c:2644 src/xen/xm_internal.c:677
 msgid "domain is not running"
@@ -1127,7 +1129,7 @@ msgstr "Не вдалося побудувати шлях до файла PID"
 msgid "Cannot remove state PID file %s"
 msgstr "Не вдалося вилучити файл PID стану, %s"
 
-#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4433
+#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4438
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "Домен %s не показано"
@@ -1158,7 +1160,6 @@ msgid "XML does not contain expected 'cpu' element"
 msgstr "У XML не міститься очікуваного елемента «cpu»"
 
 #: src/conf/cpu_conf.c:206
-#, fuzzy
 msgid ""
 "'arch' element cannot be used inside 'cpu' element with 'match' attribute'"
 msgstr ""
@@ -1237,7 +1238,7 @@ msgid "Invalid CPU feature name"
 msgstr "Некоректна назва можливості процесора"
 
 #: src/conf/cpu_conf.c:416 src/conf/cpu_conf.c:736
-#, fuzzy, c-format
+#, c-format
 msgid "CPU feature '%s' specified more than once"
 msgstr "Можливість процесора «%s» вказано декілька разів"
 
@@ -1277,9 +1278,9 @@ msgid "Invalid 'memory' attribute in NUMA cell"
 msgstr "Некоректний атрибут «memory» у комірці NUMA"
 
 #: src/conf/cpu_conf.c:514
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid 'memAccess' attribute value '%s'"
-msgstr "Некоректне значення атрибута дампу пам’яті ядра, «%s»"
+msgstr "Некоректне значення атрибута «memAccess»,«%s»"
 
 #: src/conf/cpu_conf.c:576
 #, c-format
@@ -1933,14 +1934,13 @@ msgid "unknown sgio mode '%s'"
 msgstr "невідомий режим sgio «%s»"
 
 #: src/conf/domain_conf.c:4580
-#, fuzzy
 msgid "rawio is only supported for scsi host device"
-msgstr "підтримку sgio передбачено лише для пристроїв-вузлів scsi"
+msgstr "підтримку rawio передбачено лише для пристроїв scsi основної системи"
 
 #: src/conf/domain_conf.c:4586
-#, fuzzy, c-format
+#, c-format
 msgid "unknown hostdev rawio setting '%s'"
-msgstr "невідомий параметр rawio диска, «%s»"
+msgstr "невідомий параметр rawio пристрою основної системи, «%s»"
 
 #: src/conf/domain_conf.c:4602
 #, c-format
@@ -2480,10 +2480,10 @@ msgid "Unable to parse class id '%s'"
 msgstr "Не вдалося обробити ідентифікатор класу «%s»"
 
 #: src/conf/domain_conf.c:6857
-#, fuzzy
 msgid ""
 "Missing <source> element with bridge name in interface's <actual> element"
-msgstr "у елементі інтерфейсу <actual> не вказано атрибута типу"
+msgstr ""
+"Пропущено елемент <source> з назвою містка у елементі <actual> інтерфейсу"
 
 #: src/conf/domain_conf.c:6946
 #, c-format
@@ -2626,59 +2626,59 @@ msgid "'queues' attribute must be positive number: %s"
 msgstr "значенням атрибута «queues» має бути додатне число: %s"
 
 #: src/conf/domain_conf.c:7421
-#, fuzzy, c-format
+#, c-format
 msgid "unknown host csum mode '%s'"
-msgstr "невідомий режим hostdev %s"
+msgstr "невідомий режим csum основної системи, «%s»"
 
 #: src/conf/domain_conf.c:7431
-#, fuzzy, c-format
+#, c-format
 msgid "unknown host gso mode '%s'"
-msgstr "невідомий режим sgio «%s»"
+msgstr "невідомий режим gso основної системи, «%s»"
 
 #: src/conf/domain_conf.c:7441
-#, fuzzy, c-format
+#, c-format
 msgid "unknown host tso4 mode '%s'"
-msgstr "невідомий режим hostdev %s"
+msgstr "невідомий режим tso4 основної системи, «%s»"
 
 #: src/conf/domain_conf.c:7451
-#, fuzzy, c-format
+#, c-format
 msgid "unknown host tso6 mode '%s'"
-msgstr "невідомий режим hostdev %s"
+msgstr "невідомий режим tso6 основної системи, «%s»"
 
 #: src/conf/domain_conf.c:7461
-#, fuzzy, c-format
+#, c-format
 msgid "unknown host ecn mode '%s'"
-msgstr "невідомий режим hostdev %s"
+msgstr "невідомий режим ecn основної системи, «%s»"
 
 #: src/conf/domain_conf.c:7471
-#, fuzzy, c-format
+#, c-format
 msgid "unknown host ufo mode '%s'"
-msgstr "невідомий режим hostdev %s"
+msgstr "невідомий режим ufo основної системи, «%s»"
 
 #: src/conf/domain_conf.c:7481
-#, fuzzy, c-format
+#, c-format
 msgid "unknown guest csum mode '%s'"
-msgstr "невідомий режим роботи таймера «%s»"
+msgstr "невідомий режим csum гостьової системи, «%s»"
 
 #: src/conf/domain_conf.c:7491
-#, fuzzy, c-format
+#, c-format
 msgid "unknown guest tso4 mode '%s'"
-msgstr "невідомий режим sgio «%s»"
+msgstr "невідомий режим tso4 гостьової системи, «%s»"
 
 #: src/conf/domain_conf.c:7501
-#, fuzzy, c-format
+#, c-format
 msgid "unknown guest tso6 mode '%s'"
-msgstr "невідомий режим sgio «%s»"
+msgstr "невідомий режим tso6 гостьової системи, «%s»"
 
 #: src/conf/domain_conf.c:7511
-#, fuzzy, c-format
+#, c-format
 msgid "unknown guest ecn mode '%s'"
-msgstr "невідомий режим hostdev %s"
+msgstr "невідомий режим ecn гостьової системи «%s»"
 
 #: src/conf/domain_conf.c:7521
-#, fuzzy, c-format
+#, c-format
 msgid "unknown guest ufo mode '%s'"
-msgstr "невідомий режим sgio «%s»"
+msgstr "невідомий режим ufo гостьової системи, «%s»"
 
 #: src/conf/domain_conf.c:7533
 #, c-format
@@ -3311,14 +3311,13 @@ msgid "unknown device type '%s'"
 msgstr "невідомий тип пристрою, «%s»"
 
 #: src/conf/domain_conf.c:10593
-#, fuzzy
 msgid "(disk_definition)"
-msgstr "(визначення_пристрою)"
+msgstr "(визначення_диска)"
 
 #: src/conf/domain_conf.c:10599
-#, fuzzy, c-format
+#, c-format
 msgid "expecting root element of 'disk', not '%s'"
-msgstr "Кореневим елементом не є «node»"
+msgstr "кореневим елементом мав бути «disk», а не «%s»"
 
 #: src/conf/domain_conf.c:11000
 #, c-format
@@ -3405,28 +3404,28 @@ msgstr ""
 "за максимальну кількість процесорів"
 
 #: src/conf/domain_conf.c:11659
-#, fuzzy, c-format
+#, c-format
 msgid "invalid setting for iothread '%s'"
-msgstr "некоректна кількість потоків введення-виведення (iothreads), «%s»"
+msgstr "некоректний параметр iothread, «%s»"
 
 #: src/conf/domain_conf.c:11666
-#, fuzzy
 msgid "zero is an invalid iothread id value"
-msgstr "некоректне значення кількості процесорних потоків обробки вузла"
+msgstr ""
+"нуль є некоректним значенням ідентифікатора потоку введення-виведення "
+"(iothread)"
 
 #: src/conf/domain_conf.c:11676
-#, fuzzy
 msgid "iothread id must not exceed iothreads"
-msgstr "розмір у %s не повинен перевищувати %zu"
+msgstr ""
+"значення ідентифікатора iothread не повинне перевищувати значення iothreads"
 
 #: src/conf/domain_conf.c:11687
 msgid "missing cpuset for emulatorpin"
 msgstr "пропущено cpuset для emulatorpin"
 
 #: src/conf/domain_conf.c:11690
-#, fuzzy
 msgid "missing cpuset for iothreadpin"
-msgstr "пропущено cpuset для emulatorpin"
+msgstr "у iothreadpin пропущено cpuset"
 
 #: src/conf/domain_conf.c:11693
 msgid "missing cpuset for vcpupin"
@@ -3445,14 +3444,14 @@ msgid "missing resource partition attribute"
 msgstr "не вказано атрибута розділу ресурсу"
 
 #: src/conf/domain_conf.c:11929
-#, fuzzy, c-format
+#, c-format
 msgid "unknown readonly value: %s"
-msgstr "невідоме значення вмикання, «%s»"
+msgstr "невідоме значення readonly: %s"
 
 #: src/conf/domain_conf.c:11937
-#, fuzzy, c-format
+#, c-format
 msgid "unknown type value: %s"
-msgstr "невідоме значення стану керування живленням, %s"
+msgstr "невідоме значення type: %s"
 
 #: src/conf/domain_conf.c:11984
 msgid "missing domain type attribute"
@@ -3614,14 +3613,12 @@ msgid "only one emulatorpin is supported"
 msgstr "передбачено підтримку лише одного emulatorpin"
 
 #: src/conf/domain_conf.c:12459
-#, fuzzy
 msgid "cannot extract iothreadpin nodes"
-msgstr "не вдалося видобути вузли emulatorpin"
+msgstr "не вдалося видобути вузли iothreadpin"
 
 #: src/conf/domain_conf.c:12484
-#, fuzzy
 msgid "duplicate iothreadpin for same iothread"
-msgstr "дублювання запису vcpupin для одного з віртуальних процесорів"
+msgstr "дублювання iothreadpin для одного iothread"
 
 #: src/conf/domain_conf.c:12513
 msgid "Maximum CPUs greater than topology limit"
@@ -5766,9 +5763,9 @@ msgid "Invalid ipv6 setting '%s' in network '%s'"
 msgstr "Некоректний параметр ipv6, «%s», у мережі «%s»"
 
 #: src/conf/network_conf.c:2084
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid delay value in network '%s'"
-msgstr "Некоректна адреса «%s» у мережі «%s»"
+msgstr "Некоректне значення затримки у мережі «%s»"
 
 #: src/conf/network_conf.c:2095
 #, c-format
@@ -7453,7 +7450,7 @@ msgstr ""
 msgid "Cannot find CPU model with PVR 0x%08x"
 msgstr "Не вдалося знайти моделі процесора з PVR 0x%08x"
 
-#: src/cpu/cpu_powerpc.c:558 src/cpu/cpu_x86.c:2140
+#: src/cpu/cpu_powerpc.c:558 src/cpu/cpu_x86.c:2138
 #, c-format
 msgid "Unexpected CPU mode: %d"
 msgstr "Неочікуваний режим процесора: %d"
@@ -7979,7 +7976,7 @@ msgstr "Знімок «%s» вже існує"
 msgid "Could not create snapshot: %s"
 msgstr "Не вдалося створити знімок: %s"
 
-#: src/esx/esx_driver.c:4602 src/qemu/qemu_driver.c:13988
+#: src/esx/esx_driver.c:4602 src/qemu/qemu_driver.c:13982
 #: src/test/test_driver.c:6750 src/vbox/vbox_common.c:6298
 #, c-format
 msgid "snapshot '%s' does not have a parent"
@@ -9685,16 +9682,16 @@ msgstr "virDomainGetXMLDesc із безпечною ознакою"
 msgid "domainMigratePrepare did not set uri"
 msgstr "domainMigratePrepare не вказав URI"
 
-#: src/libvirt.c:4677 src/qemu/qemu_migration.c:4001
+#: src/libvirt.c:4677 src/qemu/qemu_migration.c:4003
 msgid "domainMigratePrepare2 did not set uri"
 msgstr "domainMigratePrepare2 не вказав URI"
 
-#: src/libvirt.c:4712 src/libvirt.c:4968 src/qemu/qemu_migration.c:4044
-#: src/qemu/qemu_migration.c:4292
+#: src/libvirt.c:4712 src/libvirt.c:4968 src/qemu/qemu_migration.c:4046
+#: src/qemu/qemu_migration.c:4294
 msgid "finish step ignored that migration was cancelled"
 msgstr "на завершальному кроці проігноровано скасування перенесення"
 
-#: src/libvirt.c:4885 src/qemu/qemu_migration.c:4213
+#: src/libvirt.c:4885 src/qemu/qemu_migration.c:4215
 msgid "domainMigratePrepare3 did not set uri"
 msgstr "domainMigratePrepare3 не встановлено адресу"
 
@@ -9726,7 +9723,7 @@ msgid "offline migration is not supported by the source host"
 msgstr "перенесення з вимиканням не підтримується вузлом джерела"
 
 #: src/libvirt.c:5359 src/libvirt.c:5588 src/libvirt.c:5780
-#: src/qemu/qemu_migration.c:4445
+#: src/qemu/qemu_migration.c:4447
 msgid "offline migration is not supported by the destination host"
 msgstr "перенесення з вимиканням не підтримується вузлом призначення"
 
@@ -9744,7 +9741,7 @@ msgstr ""
 msgid "use virDomainMigrateToURI3 for peer-to-peer migration"
 msgstr "скористайтеся virDomainMigrateToURI3 для перенесення з вузла на вузол"
 
-#: src/libvirt.c:5815 src/qemu/qemu_migration.c:4438
+#: src/libvirt.c:5815 src/qemu/qemu_migration.c:4440
 msgid ""
 "Migration APIs with extensible parameters are not supported but extended "
 "parameters were passed"
@@ -11411,7 +11408,7 @@ msgid "default"
 msgstr "типовий"
 
 #: src/lxc/lxc_driver.c:3460 src/libxl/libxl_driver.c:4004
-#: src/qemu/qemu_driver.c:14856 src/uml/uml_driver.c:2629
+#: src/qemu/qemu_driver.c:14850 src/uml/uml_driver.c:2629
 #: src/xen/xen_driver.c:2672
 #, c-format
 msgid "character device %s is not using a PTY"
@@ -11604,7 +11601,7 @@ msgstr "Внесення змін до інтерактивних пристро
 msgid "domain is not active"
 msgstr "домен не є активним"
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16817
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16811
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "контролер CPUACCT cgroup не змонтовано"
 
@@ -12227,12 +12224,12 @@ msgstr ""
 msgid "Named device aliases are not supported"
 msgstr "Підтримки іменованих псевдонімів пристроїв не передбачено"
 
-#: src/libxl/libxl_driver.c:3997 src/qemu/qemu_driver.c:14849
+#: src/libxl/libxl_driver.c:3997 src/qemu/qemu_driver.c:14843
 #, c-format
 msgid "cannot find character device %s"
 msgstr "не вдалося знайти символьний пристрій %s"
 
-#: src/libxl/libxl_driver.c:4029 src/qemu/qemu_driver.c:14869
+#: src/libxl/libxl_driver.c:4029 src/qemu/qemu_driver.c:14863
 msgid "Active console session exists for this domain"
 msgstr "Для цього домену існує активний сеанс консолі"
 
@@ -12400,12 +12397,12 @@ msgid "domain has assigned host devices"
 msgstr "у домені є пов’язані пристрої основної системи"
 
 #: src/libxl/libxl_migration.c:242 src/openvz/openvz_driver.c:2307
-#: src/qemu/qemu_migration.c:3051
+#: src/qemu/qemu_migration.c:3053
 msgid "no domain XML passed"
 msgstr "не передано XML домену"
 
 #: src/libxl/libxl_migration.c:300 src/openvz/openvz_driver.c:2330
-#: src/qemu/qemu_migration.c:2968
+#: src/qemu/qemu_migration.c:2970
 msgid ""
 "hostname on destination resolved to localhost, but migration requires an FQDN"
 msgstr ""
@@ -12418,7 +12415,7 @@ msgid "unable to parse URI: %s"
 msgstr "не вдалося обробити адресу %s"
 
 #: src/libxl/libxl_migration.c:331 src/openvz/openvz_driver.c:2346
-#: src/qemu/qemu_migration.c:2995
+#: src/qemu/qemu_migration.c:2997
 #, c-format
 msgid "missing host in migration URI: %s"
 msgstr "у адресі перенесення немає елемента вузла: %s"
@@ -12961,9 +12958,9 @@ msgid "libhal_get_all_devices failed"
 msgstr "Помилка libhal_get_all_devices"
 
 #: src/node_device/node_device_hal.c:722 src/qemu/qemu_migration.c:1505
-#: src/qemu/qemu_migration.c:2000 src/qemu/qemu_migration.c:2006
-#: src/qemu/qemu_migration.c:2012 src/qemu/qemu_migration.c:2064
-#: src/qemu/qemu_migration.c:3593 src/util/virdbus.c:1536
+#: src/qemu/qemu_migration.c:2002 src/qemu/qemu_migration.c:2008
+#: src/qemu/qemu_migration.c:2014 src/qemu/qemu_migration.c:2066
+#: src/qemu/qemu_migration.c:3595 src/util/virdbus.c:1536
 #, c-format
 msgid "%s: %s"
 msgstr "%s: %s"
@@ -13926,10 +13923,8 @@ msgid "Can't modify device type '%s'"
 msgstr "Внесення змін до пристрою типу «%s» неможливе"
 
 #: src/openvz/openvz_driver.c:2480
-#, fuzzy
 msgid "domain is not running on destination host"
-msgstr ""
-"Не вдалося виконати перенесення. На вузлі призначення домен не запущено."
+msgstr "домен не запущено на основній системі призначення"
 
 #: src/openvz/openvz_util.c:50
 msgid "Can't determine page size"
@@ -15296,9 +15291,8 @@ msgid "readonly ide disks are not supported"
 msgstr "підтримки придатних лише до читання дисків IDE не передбачено"
 
 #: src/qemu/qemu_command.c:3519
-#, fuzzy
 msgid "readonly sata disks are not supported"
-msgstr "підтримки придатних лише до читання дисків IDE не передбачено"
+msgstr "підтримки дисків SATA, призначених лише для читання, не передбачено"
 
 #: src/qemu/qemu_command.c:3527 src/xenconfig/xen_sxpr.c:1832
 #: src/xenconfig/xen_xm.c:295
@@ -15336,7 +15330,7 @@ msgid "disk aio mode not supported with this QEMU binary"
 msgstr ""
 "асинхронний режим роботи диска не підтримується цим виконуваним файлом QEMU"
 
-#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16419
+#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16413
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr ""
 "регулювання введення-виведення блоків не підтримується цим виконуваним "
@@ -15762,9 +15756,9 @@ msgstr ""
 "кожного вузла NUMA"
 
 #: src/qemu/qemu_command.c:6650
-#, fuzzy, c-format
+#, c-format
 msgid "hugepages: node %zd not found"
-msgstr "не знайдено пристрою основної системи %s"
+msgstr "hugepages: не знайдено вузол %zd"
 
 #: src/qemu/qemu_command.c:6670
 msgid "disjoint NUMA cpu ranges are not supported with this QEMU"
@@ -15778,18 +15772,16 @@ msgstr ""
 "для %llu КіБ"
 
 #: src/qemu/qemu_command.c:6756
-#, fuzzy
 msgid "Shared memory mapping is supported only with hugepages"
-msgstr "У цій версії QEMU не передбачено прив’язки пам’яті до окремих вузлів"
+msgstr "Підтримку прив’язки спільної пам’яті передбачено лише з hugepages"
 
 #: src/qemu/qemu_command.c:6773
 msgid "disjoint NUMA node ranges are not supported with this QEMU"
 msgstr "У цьому QEMU не передбачено відокремлених діапазонів вузлів NUMA"
 
 #: src/qemu/qemu_command.c:6793
-#, fuzzy
 msgid "Shared memory mapping is not supported with this QEMU"
-msgstr "У цій версії QEMU не передбачено прив’язки пам’яті до окремих вузлів"
+msgstr "У цій версії QEMU не передбачено підтримки прив’язки спільної пам’яті"
 
 #: src/qemu/qemu_command.c:6845
 msgid "vnc graphics are not supported with this QEMU"
@@ -15889,31 +15881,28 @@ msgid "Multiqueue network is not supported for: %s"
 msgstr "Мережі з декількома чергами не підтримуються для %s"
 
 #: src/qemu/qemu_command.c:7537
-#, fuzzy, c-format
+#, c-format
 msgid "pflash is not supported for %s guest architecture"
-msgstr "Для пристрою %s не передбачено підтримки портативних носіїв даних"
+msgstr "для архітектури гостьової системи %s підтримки pflash не передбачено"
 
 #: src/qemu/qemu_command.c:7544
-#, fuzzy
 msgid "this QEMU binary doesn't support -drive"
-msgstr "виконуваний файл QEMU не підтримує роботу з kvm"
+msgstr "у цьому виконуваному файлі QEMU не передбачено підтримки -drive"
 
 #: src/qemu/qemu_command.c:7549
-#, fuzzy
 msgid "this QEMU binary doesn't support passing drive format"
 msgstr ""
-"у цьому бінарному файлі QEMU не передбачено підтримки відносного отримання "
-"або перебазування блоків"
+"у цьому виконуваному файлі QEMU не передбачено підтримки передавання формату "
+"диска"
 
 #: src/qemu/qemu_command.c:7556
 msgid "ACPI must be enabled in order to use UEFI"
-msgstr ""
+msgstr "Щоб користуватися UEFI, слід увімкнути ACPI"
 
 #: src/qemu/qemu_command.c:7568
-#, fuzzy
 msgid "this qemu doesn't support passing readonly attribute"
 msgstr ""
-"у цьому варіанті qemu не передбачено підтримки атрибута «readonly» для -drive"
+"у цій версії qemu не передбачено підтримки передавання атрибута readonly"
 
 #: src/qemu/qemu_command.c:7680 src/qemu/qemu_driver.c:8598
 #: src/qemu/qemu_driver.c:8729
@@ -16199,9 +16188,10 @@ msgid "TCP migration is not supported with this QEMU binary"
 msgstr "TCP-перенесення не підтримуються цим двійковим компонентом QEMU"
 
 #: src/qemu/qemu_command.c:9526
-#, fuzzy
 msgid "incoming RDMA migration is not supported with this QEMU binary"
-msgstr "FD-перенесення не підтримуються цим двійковим компонентом QEMU"
+msgstr ""
+"у цьому виконуваному файлі QEMU не передбачено підтримки вхідного "
+"перенесення RDMA"
 
 #: src/qemu/qemu_command.c:9543
 msgid "STDIO migration is not supported with this QEMU binary"
@@ -16244,9 +16234,8 @@ msgid "QEMU does not support seccomp sandboxes"
 msgstr "У QEMU не передбачено підтримки пісочниць seccomp"
 
 #: src/qemu/qemu_command.c:9682
-#, fuzzy
 msgid "panic is supported only with ISA address type"
-msgstr "додаткова пам’ять не підтримується з типом адреси «%s»"
+msgstr "підтримку panic передбачно лише з типом адрес ISA"
 
 #: src/qemu/qemu_command.c:9688
 msgid "your QEMU is too old to support pvpanic"
@@ -16534,9 +16523,9 @@ msgid "Unable to resolve %s for pid %u"
 msgstr "Не вдалося виконати визначення %s для pid %u"
 
 #: src/qemu/qemu_conf.c:372
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid nvram format: '%s'"
-msgstr "Некоректний формат MAC-адреси «%s»"
+msgstr "Некоректний формат nvram: «%s»"
 
 #: src/qemu/qemu_conf.c:456
 msgid "security_driver must be a list of strings"
@@ -16616,9 +16605,8 @@ msgid "hugetlbfs_mount must be a list of strings"
 msgstr "hugetlbfs_mount має бути списком рядків"
 
 #: src/qemu/qemu_conf.c:732
-#, fuzzy
 msgid "nvram must be a list of strings"
-msgstr "оболонку (shell) слід визначати як список рядків"
+msgstr "nvram має бути списком рядків"
 
 #: src/qemu/qemu_conf.c:892
 #, c-format
@@ -16940,8 +16928,8 @@ msgstr "немає домену із відповідним ідентифіка
 msgid "domain is pmsuspended"
 msgstr "домен приспано"
 
-#: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4923
-#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4623
+#: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4925
+#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4628
 msgid "resume operation failed"
 msgstr "помилка дії з відновлення"
 
@@ -17023,13 +17011,13 @@ msgid "Error from child process opening '%s'"
 msgstr ""
 "Повідомлення про помилку від дочірнього процесу під час спроби відкрити «%s»"
 
-#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3917
+#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3922
 #: src/storage/storage_backend.c:460
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "Не вдалося створити файл «%s»"
 
-#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3908
+#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3913
 #: src/storage/storage_backend_fs.c:1433
 #: src/storage/storage_backend_gluster.c:686 src/util/virfile.c:1289
 #: src/util/virstoragefile.c:878
@@ -17048,13 +17036,13 @@ msgid "unable to write %s"
 msgstr "не вдалося записати %s"
 
 #: src/qemu/qemu_driver.c:3183 src/qemu/qemu_driver.c:3198
-#: src/qemu/qemu_driver.c:3732 src/qemu/qemu_driver.c:12535
-#: src/qemu/qemu_driver.c:13338 src/qemu/qemu_driver.c:14301
-#: src/qemu/qemu_driver.c:14353 src/qemu/qemu_driver.c:15049
+#: src/qemu/qemu_driver.c:3732 src/qemu/qemu_driver.c:12529
+#: src/qemu/qemu_driver.c:13332 src/qemu/qemu_driver.c:14295
+#: src/qemu/qemu_driver.c:14347 src/qemu/qemu_driver.c:15043
 #: src/qemu/qemu_hotplug.c:538 src/qemu/qemu_hotplug.c:1049
-#: src/qemu/qemu_migration.c:3657 src/qemu/qemu_migration.c:3994
-#: src/qemu/qemu_migration.c:4453 src/qemu/qemu_migration.c:4838
-#: src/qemu/qemu_migration.c:5049 src/qemu/qemu_migration.c:5143
+#: src/qemu/qemu_migration.c:3659 src/qemu/qemu_migration.c:3996
+#: src/qemu/qemu_migration.c:4455 src/qemu/qemu_migration.c:4840
+#: src/qemu/qemu_migration.c:5051 src/qemu/qemu_migration.c:5145
 #: src/qemu/qemu_process.c:574 src/qemu/qemu_process.c:587
 msgid "guest unexpectedly quit"
 msgstr "гостьова система несподівано завершила роботу"
@@ -17068,7 +17056,7 @@ msgid "Invalid save image format specified in configuration file"
 msgstr "У файлі налаштування вказано некоректний формат збереження образу"
 
 #: src/qemu/qemu_driver.c:3322 src/qemu/qemu_driver.c:3414
-#: src/qemu/qemu_driver.c:13367
+#: src/qemu/qemu_driver.c:13361
 msgid ""
 "Compression program for image format in configuration file isn't available"
 msgstr "Програма стискання для формату образів з файла налаштувань недоступна"
@@ -17320,8 +17308,8 @@ msgstr "не вдалося вилучити керований файл збе�
 msgid "domain is already running"
 msgstr "домен вже запущено"
 
-#: src/qemu/qemu_driver.c:6501 src/qemu/qemu_driver.c:13520
-#: src/qemu/qemu_driver.c:14180
+#: src/qemu/qemu_driver.c:6501 src/qemu/qemu_driver.c:13514
+#: src/qemu/qemu_driver.c:14174
 msgid "domain has active block job"
 msgstr "у домені є активне блокове завдання"
 
@@ -17331,14 +17319,13 @@ msgid "cannot delete inactive domain with %d snapshots"
 msgstr "не вдалося вилучити неактивний домен з %d знімками"
 
 #: src/qemu/qemu_driver.c:6618
-#, fuzzy
 msgid "cannot delete inactive domain with nvram"
-msgstr "не вдалося вилучити неактивний домен з %d знімками"
+msgstr "не можна вилучати неактивний домен з nvram"
 
 #: src/qemu/qemu_driver.c:6624
-#, fuzzy, c-format
+#, c-format
 msgid "failed to remove nvram: %s"
-msgstr "не вдалося вилучити посилання %s"
+msgstr "не вдалося вилучити nvram: %s"
 
 #: src/qemu/qemu_driver.c:6682
 #, c-format
@@ -17573,40 +17560,36 @@ msgid "cannot abort incoming migration; use virDomainDestroy instead"
 msgstr ""
 "не можна переривати вхідне перенесення; скористайтеся краще virDomainDestroy"
 
-#: src/qemu/qemu_driver.c:12028
-msgid "domain is not being migrated"
-msgstr "домен не переноситься"
-
-#: src/qemu/qemu_driver.c:12083 src/qemu/qemu_driver.c:12138
+#: src/qemu/qemu_driver.c:12077 src/qemu/qemu_driver.c:12132
 msgid "Compressed migration is not supported by QEMU binary"
 msgstr ""
 "У виконуваному файлі QEMU не передбачено можливості перенесення зі стисканням"
 
-#: src/qemu/qemu_driver.c:12180 src/qemu/qemu_driver.c:15286
-#: src/qemu/qemu_driver.c:15743 src/qemu/qemu_driver.c:15930
-#: src/qemu/qemu_monitor.c:2081 tools/virsh-domain.c:2012
+#: src/qemu/qemu_driver.c:12174 src/qemu/qemu_driver.c:15280
+#: src/qemu/qemu_driver.c:15737 src/qemu/qemu_driver.c:15924
+#: src/qemu/qemu_monitor.c:2075 tools/virsh-domain.c:2012
 #, c-format
 msgid "bandwidth must be less than %llu"
 msgstr "ширина каналу має бути меншою за %llu"
 
-#: src/qemu/qemu_driver.c:12318
+#: src/qemu/qemu_driver.c:12312
 msgid "domain is already quiesced"
 msgstr "домен вже заморожено"
 
-#: src/qemu/qemu_driver.c:12358
+#: src/qemu/qemu_driver.c:12352
 msgid "domain is not quiesced"
 msgstr "домен не заморожено"
 
-#: src/qemu/qemu_driver.c:12449
+#: src/qemu/qemu_driver.c:12443
 #, c-format
 msgid "unknown image format of '%s' and format probing is disabled"
 msgstr "невідомий формат образу «%s», засіб визначення формату вимкнено"
 
-#: src/qemu/qemu_driver.c:12569 src/qemu/qemu_driver.c:13435
+#: src/qemu/qemu_driver.c:12563 src/qemu/qemu_driver.c:13429
 msgid "resuming after snapshot failed"
 msgstr "відновлення після невдалої спроби створення знімка"
 
-#: src/qemu/qemu_driver.c:12605
+#: src/qemu/qemu_driver.c:12599
 #, c-format
 msgid ""
 "external inactive snapshots are not supported on 'network' disks using '%s' "
@@ -17615,16 +17598,16 @@ msgstr ""
 "підтримки зовнішніх неактивних знімків для дисків «network» з використанням "
 "протоколу «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:12617 src/qemu/qemu_driver.c:12705
+#: src/qemu/qemu_driver.c:12611 src/qemu/qemu_driver.c:12699
 #, c-format
 msgid "external inactive snapshots are not supported on '%s' disks"
 msgstr "підтримки зовнішніх неактивних знімків для дисків «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:12631
+#: src/qemu/qemu_driver.c:12625
 msgid "external active snapshots are not supported on scsi passthrough devices"
 msgstr "підтримки зовнішніх активних знімків для пристроїв passthrough SCSI"
 
-#: src/qemu/qemu_driver.c:12667
+#: src/qemu/qemu_driver.c:12661
 #, c-format
 msgid ""
 "external active snapshots are not supported on 'network' disks using '%s' "
@@ -17633,22 +17616,22 @@ msgstr ""
 "підтримки зовнішніх активних знімків для дисків «network» з використанням "
 "протоколу «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:12680
+#: src/qemu/qemu_driver.c:12674
 #, c-format
 msgid "external active snapshots are not supported on '%s' disks"
 msgstr "підтримки зовнішніх активних знімків для дисків «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:12750 src/qemu/qemu_driver.c:15600
+#: src/qemu/qemu_driver.c:12744 src/qemu/qemu_driver.c:15594
 #, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr "не вдалося отримати дані щодо диска %s: %s"
 
-#: src/qemu/qemu_driver.c:12755
+#: src/qemu/qemu_driver.c:12749
 #, c-format
 msgid "missing existing file for disk %s: %s"
 msgstr "не вистачає вже створеного файла для диска %s: %s"
 
-#: src/qemu/qemu_driver.c:12761
+#: src/qemu/qemu_driver.c:12755
 #, c-format
 msgid ""
 "external snapshot file for disk %s already exists and is not a block device: "
@@ -17656,7 +17639,7 @@ msgid ""
 msgstr ""
 "файл зовнішнього знімка для диска %s вже існує, пристрій не є блоковим: %s"
 
-#: src/qemu/qemu_driver.c:12811
+#: src/qemu/qemu_driver.c:12805
 #, c-format
 msgid ""
 "internal inactive snapshots are not supported on 'network' disks using '%s' "
@@ -17665,16 +17648,16 @@ msgstr ""
 "підтримки внутрішніх неактивних знімків для дисків «network» з використанням "
 "протоколу «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:12823
+#: src/qemu/qemu_driver.c:12817
 #, c-format
 msgid "internal inactive snapshots are not supported on '%s' disks"
 msgstr "підтримки внутрішніх неактивних знімків для дисків «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:12851
+#: src/qemu/qemu_driver.c:12845
 msgid "reuse is not supported with this QEMU binary"
 msgstr "повторне використання не підтримується цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_driver.c:12865
+#: src/qemu/qemu_driver.c:12859
 #, c-format
 msgid ""
 "active qemu domains require external disk snapshots; disk %s requested "
@@ -17683,283 +17666,282 @@ msgstr ""
 "активні домени qemu потребують зовнішніх знімків диска; запит щодо диска %s "
 "є внутрішнім"
 
-#: src/qemu/qemu_driver.c:12883
+#: src/qemu/qemu_driver.c:12877
 #, c-format
 msgid "internal snapshot for disk %s unsupported for storage type %s"
 msgstr ""
 "підтримки внутрішнього знімка для диска %s не передбачено для сховища даних "
 "типу %s"
 
-#: src/qemu/qemu_driver.c:12898
+#: src/qemu/qemu_driver.c:12892
 #, c-format
 msgid "external snapshot format for disk %s is unsupported: %s"
 msgstr "підтримки формату зовнішніх знімків для диска %s не передбачено: %s"
 
-#: src/qemu/qemu_driver.c:12921 src/qemu/qemu_driver.c:13008
+#: src/qemu/qemu_driver.c:12915 src/qemu/qemu_driver.c:13002
 msgid "unexpected code path"
 msgstr "неочікувана адреса коду"
 
-#: src/qemu/qemu_driver.c:12929
+#: src/qemu/qemu_driver.c:12923
 msgid "nothing selected for snapshot"
 msgstr "для знімка нічого не вибрано"
 
-#: src/qemu/qemu_driver.c:12938
+#: src/qemu/qemu_driver.c:12932
 msgid ""
 "internal snapshots and checkpoints require all disks to be selected for "
 "snapshot"
 msgstr "для внутрішніх знімків та контрольних точок слід позначити усі диски"
 
-#: src/qemu/qemu_driver.c:12946
+#: src/qemu/qemu_driver.c:12940
 msgid ""
 "disk-only snapshots require at least one disk to be selected for snapshot"
 msgstr "для знімків лише дисків слід вибрати для знімка принаймні один диск"
 
-#: src/qemu/qemu_driver.c:12958
+#: src/qemu/qemu_driver.c:12952
 msgid ""
 "mixing internal and external targets for a snapshot is not yet supported"
 msgstr ""
 "підтримки одночасного використання внутрішніх і зовнішніх призначень для "
 "знімка ще не передбачено"
 
-#: src/qemu/qemu_driver.c:12973
+#: src/qemu/qemu_driver.c:12967
 msgid "atomic live snapshot of multiple disks is unsupported"
 msgstr ""
 "підтримки елементарних інтерактивних знімків декількох дисків не передбачено"
 
-#: src/qemu/qemu_driver.c:13039
+#: src/qemu/qemu_driver.c:13033
 #, c-format
 msgid "failed to create image file '%s'"
 msgstr "не вдалося створити файл образу «%s»"
 
-#: src/qemu/qemu_driver.c:13071 src/qemu/qemu_driver.c:13214
+#: src/qemu/qemu_driver.c:13065 src/qemu/qemu_driver.c:13208
 msgid "domain crashed while taking the snapshot"
 msgstr "під час створення знімка домен завершив роботу у аварійному режимі"
 
-#: src/qemu/qemu_driver.c:13172
+#: src/qemu/qemu_driver.c:13166
 msgid "live disk snapshot not supported with this QEMU binary"
 msgstr ""
 "створення знімків дисків у інтерактивному режимі не підтримується цим "
 "виконуваним файлом QEMU"
 
-#: src/qemu/qemu_driver.c:13360
+#: src/qemu/qemu_driver.c:13354
 msgid "Invalid snapshot image format specified in configuration file"
 msgstr "У файлі налаштувань вказано некоректний формат образу знімка"
 
-#: src/qemu/qemu_driver.c:13492
+#: src/qemu/qemu_driver.c:13486
 msgid "quiesce requires disk-only"
 msgstr "для переведення у пасивний режим слід вказати disk-only"
 
-#: src/qemu/qemu_driver.c:13515 src/qemu/qemu_migration.c:1662
+#: src/qemu/qemu_driver.c:13509 src/qemu/qemu_migration.c:1662
 msgid "domain is marked for auto destroy"
 msgstr "домен позначено для автоматичного знищення"
 
-#: src/qemu/qemu_driver.c:13526 src/test/test_driver.c:6937
+#: src/qemu/qemu_driver.c:13520 src/test/test_driver.c:6937
 msgid "cannot halt after transient domain snapshot"
 msgstr "переривання після створення тимчасового знімка домену неможливе"
 
-#: src/qemu/qemu_driver.c:13543
+#: src/qemu/qemu_driver.c:13537
 #, c-format
 msgid "invalid snapshot name '%s': name can't contain '/'"
 msgstr "некоректна назва знімка, «%s»: у назві не повинно бути символів «/»"
 
-#: src/qemu/qemu_driver.c:13551
+#: src/qemu/qemu_driver.c:13545
 #, c-format
 msgid "invalid snapshot name '%s': name can't start with '.'"
 msgstr "некоректна назва знімка, «%s»: назва не може починатися з «.»"
 
-#: src/qemu/qemu_driver.c:13564
+#: src/qemu/qemu_driver.c:13558
 msgid "live snapshot creation is supported only with external checkpoints"
 msgstr ""
 "створення інтерактивних знімків підтримується лише для зовнішніх контрольних "
 "точок"
 
-#: src/qemu/qemu_driver.c:13581
+#: src/qemu/qemu_driver.c:13575
 msgid "qemu doesn't support taking snapshots of PMSUSPENDED guests"
 msgstr ""
 "у qemu не передбачено підтримки створення знімків гостьових систем "
 "PMSUSPENDED"
 
-#: src/qemu/qemu_driver.c:13589
+#: src/qemu/qemu_driver.c:13583
 #, c-format
 msgid "Invalid domain state %s"
 msgstr "Некоректний стан домену, %s"
 
-#: src/qemu/qemu_driver.c:13634
+#: src/qemu/qemu_driver.c:13628
 msgid "internal snapshot of a running VM must include the memory state"
 msgstr ""
 "Внутрішній знімок запущеної віртуальної машини має включати дані щодо стану "
 "пам’яті"
 
-#: src/qemu/qemu_driver.c:13720
+#: src/qemu/qemu_driver.c:13714
 #, c-format
 msgid "unable to save metadata for snapshot %s"
 msgstr "не вдалося зберегти метадані для знімка %s"
 
-#: src/qemu/qemu_driver.c:14018 src/test/test_driver.c:6777
+#: src/qemu/qemu_driver.c:14012 src/test/test_driver.c:6777
 msgid "the domain does not have a current snapshot"
 msgstr "у домені немає поточного знімка"
 
-#: src/qemu/qemu_driver.c:14196 src/test/test_driver.c:7187
+#: src/qemu/qemu_driver.c:14190 src/test/test_driver.c:7187
 msgid ""
 "transient domain needs to request run or pause to revert to inactive snapshot"
 msgstr ""
 "тимчасовий домен потребує запиту щодо запуску або призупинки для повернення "
 "до неактивного знімка"
 
-#: src/qemu/qemu_driver.c:14203
+#: src/qemu/qemu_driver.c:14197
 msgid "revert to external snapshot not supported yet"
 msgstr "підтримки повернення до зовнішнього знімка ще не передбачено"
 
-#: src/qemu/qemu_driver.c:14210 src/test/test_driver.c:7195
+#: src/qemu/qemu_driver.c:14204 src/test/test_driver.c:7195
 #, c-format
 msgid "snapshot '%s' lacks domain '%s' rollback info"
 msgstr "у знімку «%s» не вказано даних щодо відновлення домену «%s»"
 
-#: src/qemu/qemu_driver.c:14220
+#: src/qemu/qemu_driver.c:14214
 msgid "must respawn qemu to start inactive snapshot"
 msgstr "для запуску неактивного знімка доведеться перезапустити qemu"
 
-#: src/qemu/qemu_driver.c:14449
+#: src/qemu/qemu_driver.c:14443
 msgid "qemu doesn't support reversion of snapshot taken in PMSUSPENDED state"
 msgstr ""
 "у qemu не передбачено підтримки зміни версії знімка, зробленого у стані "
 "PMSUSPENDED"
 
-#: src/qemu/qemu_driver.c:14457
+#: src/qemu/qemu_driver.c:14451
 #, c-format
 msgid "Invalid target domain state '%s'. Refusing snapshot reversion"
 msgstr ""
 "Некоректний стан домену призначення, «%s». У зміні версії знімка відмовлено."
 
-#: src/qemu/qemu_driver.c:14575
+#: src/qemu/qemu_driver.c:14569
 #, c-format
 msgid "deletion of %d external disk snapshots not supported yet"
 msgstr "підтримки вилучення %d зовнішніх знімків дисків ще не передбачено"
 
-#: src/qemu/qemu_driver.c:14599
+#: src/qemu/qemu_driver.c:14593
 #, c-format
 msgid "failed to set snapshot '%s' as current"
 msgstr "не вдалося зробити знімок «%s» поточним"
 
-#: src/qemu/qemu_driver.c:14727
+#: src/qemu/qemu_driver.c:14721
 #, c-format
 msgid "No monitor connection for pid %u"
 msgstr "З’єднання монітора не існує для pid %u"
 
-#: src/qemu/qemu_driver.c:14732
+#: src/qemu/qemu_driver.c:14726
 #, c-format
 msgid "Cannot connect to monitor connection of type '%s' for pid %u"
 msgstr ""
 "Не вдалося встановити з’єднання зі з’єднанням монітора типу «%s» для pid %u"
 
-#: src/qemu/qemu_driver.c:14924
+#: src/qemu/qemu_driver.c:14918
 #, c-format
 msgid "cannot find channel %s"
 msgstr "не вдалося знайти канал %s"
 
-#: src/qemu/qemu_driver.c:14931
+#: src/qemu/qemu_driver.c:14925
 #, c-format
 msgid "channel %s is not using a UNIX socket"
 msgstr "каналом %s не використовується сокет UNIX"
 
-#: src/qemu/qemu_driver.c:14944
+#: src/qemu/qemu_driver.c:14938
 msgid "Active channel stream exists for this domain"
 msgstr "Для цього домену вже існує активний канал потоку даних"
 
-#: src/qemu/qemu_driver.c:14977
+#: src/qemu/qemu_driver.c:14971
 msgid "No device found for specified path"
 msgstr "Для вказаного шляху не знайдено жодного пристрою"
 
-#: src/qemu/qemu_driver.c:15000 src/qemu/qemu_driver.c:15225
+#: src/qemu/qemu_driver.c:14994 src/qemu/qemu_driver.c:15219
 #, c-format
 msgid "pivot of disk '%s' requires an active copy job"
 msgstr "для зміни кореня диска «%s» потрібне активне завдання з копіювання"
 
-#: src/qemu/qemu_driver.c:15026
+#: src/qemu/qemu_driver.c:15020
 #, c-format
 msgid "disk '%s' not ready for pivot yet"
 msgstr "диск «%s» ще не є готовим до зміни"
 
-#: src/qemu/qemu_driver.c:15135
+#: src/qemu/qemu_driver.c:15129
 msgid "resuming after drive-reopen failed"
 msgstr "відновлення після помилки drive-reopen"
 
-#: src/qemu/qemu_driver.c:15177
+#: src/qemu/qemu_driver.c:15171
 msgid "flag VIR_DOMAIN_BLOCK_REBASE_RELATIVE is valid only with non-null base"
 msgstr ""
 "прапорець VIR_DOMAIN_BLOCK_REBASE_RELATIVE є коректним лише для ненульової "
 "бази"
 
-#: src/qemu/qemu_driver.c:15187 src/qemu/qemu_driver.c:15428
+#: src/qemu/qemu_driver.c:15181 src/qemu/qemu_driver.c:15422
 msgid "block jobs not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки обробки блоків"
 
-#: src/qemu/qemu_driver.c:15191
+#: src/qemu/qemu_driver.c:15185
 msgid "partial block pull not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки часткового "
 "отримання блоків"
 
-#: src/qemu/qemu_driver.c:15196
+#: src/qemu/qemu_driver.c:15190
 msgid ""
 "setting bandwidth at start of block pull not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено встановлення ширини каналу на "
 "початку отримання блоків"
 
-#: src/qemu/qemu_driver.c:15217 src/qemu/qemu_driver.c:15558
-#: src/qemu/qemu_driver.c:15974
+#: src/qemu/qemu_driver.c:15211 src/qemu/qemu_driver.c:15552
+#: src/qemu/qemu_driver.c:15968
 #, c-format
 msgid "disk '%s' already in active block job"
 msgstr "диск «%s» вже є у активному блоковому завданні"
 
-#: src/qemu/qemu_driver.c:15232
+#: src/qemu/qemu_driver.c:15226
 #, c-format
 msgid "another job on disk '%s' is still being ended"
 msgstr "ще не завершено виконання іншого завдання на диску «%s»"
 
-#: src/qemu/qemu_driver.c:15260
+#: src/qemu/qemu_driver.c:15254
 msgid "this QEMU binary doesn't support relative block pull/rebase"
 msgstr ""
 "у цьому бінарному файлі QEMU не передбачено підтримки відносного отримання "
 "або перебазування блоків"
 
-#: src/qemu/qemu_driver.c:15273 src/qemu/qemu_driver.c:16053
+#: src/qemu/qemu_driver.c:15267 src/qemu/qemu_driver.c:16047
 msgid "can't keep relative backing relationship"
 msgstr "підтримання відносного зв’язку резервного копіювання є неможливим"
 
-#: src/qemu/qemu_driver.c:15461
+#: src/qemu/qemu_driver.c:15455
 #, c-format
 msgid "bandwidth %llu cannot be represented in result"
-msgstr ""
+msgstr "у результаті не може бути представлено пропускну здатність %llu"
 
-#: src/qemu/qemu_driver.c:15566
+#: src/qemu/qemu_driver.c:15560
 msgid "block copy is not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки копіювання блоків"
 
-#: src/qemu/qemu_driver.c:15575
+#: src/qemu/qemu_driver.c:15569
 msgid "domain is not transient"
 msgstr "домен не є проміжним"
 
-#: src/qemu/qemu_driver.c:15586
+#: src/qemu/qemu_driver.c:15580
 #, c-format
 msgid "disk '%s' has backing file, so raw shallow copy is not possible"
 msgstr ""
 "диск «%s» містить резервний файл, отже просте бітове копіювання неможливе"
 
-#: src/qemu/qemu_driver.c:15596
-#, fuzzy
+#: src/qemu/qemu_driver.c:15590
 msgid "non-file destination not supported yet"
-msgstr "підтримки знімків дисків ще не передбачено"
+msgstr "підтримки нефайлових призначень ще не передбачено"
 
-#: src/qemu/qemu_driver.c:15606
+#: src/qemu/qemu_driver.c:15600
 #, c-format
 msgid "missing destination file for disk %s: %s"
 msgstr "не вистачає файла призначення для диска %s: %s"
 
-#: src/qemu/qemu_driver.c:15613
+#: src/qemu/qemu_driver.c:15607
 #, c-format
 msgid ""
 "external destination file for disk %s already exists and is not a block "
@@ -17968,176 +17950,177 @@ msgstr ""
 "файл зовнішнього призначення для диска %s вже існує, пристрій не є блоковим: "
 "%s"
 
-#: src/qemu/qemu_driver.c:15620
+#: src/qemu/qemu_driver.c:15614
 #, c-format
 msgid ""
 "blockdev flag requested for disk %s, but file '%s' is not a block device"
 msgstr ""
+"надіслано запит на прапорець blockdev для диска %s, втім, файл «%s» не є "
+"блоковим пристроєм"
 
-#: src/qemu/qemu_driver.c:15755
-#, fuzzy
+#: src/qemu/qemu_driver.c:15749
 msgid "Relative backing during copy not supported yet"
-msgstr "дуже великі сторінки не підтримуються «%s»"
+msgstr "Підтримки відносного резервування під час копіювання ще не передбачено"
 
-#: src/qemu/qemu_driver.c:15822
-#, fuzzy, c-format
+#: src/qemu/qemu_driver.c:15816
+#, c-format
 msgid "bandwidth must be less than %llu bytes"
-msgstr "ширина каналу має бути меншою за %llu"
+msgstr "пропускна здатність (bandwidth) має бути меншою за %llu байтів"
 
-#: src/qemu/qemu_driver.c:15922
+#: src/qemu/qemu_driver.c:15916
 msgid "online commit not supported with this QEMU binary"
 msgstr ""
 "У цьому виконуваному файлі QEMU не передбачено інтерактивного внесення змін"
 
-#: src/qemu/qemu_driver.c:15944
+#: src/qemu/qemu_driver.c:15938
 #, c-format
 msgid "disk %s has no source file to be committed"
 msgstr "диск %s не має початкового файла для внесення змін"
 
-#: src/qemu/qemu_driver.c:15962
+#: src/qemu/qemu_driver.c:15956
 msgid "active commit not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки активних внесків"
 
-#: src/qemu/qemu_driver.c:15968
+#: src/qemu/qemu_driver.c:15962
 #, c-format
 msgid "commit of '%s' active layer requires active flag"
 msgstr "внесення активного шару «%s» потребує параметра active"
 
-#: src/qemu/qemu_driver.c:15980
+#: src/qemu/qemu_driver.c:15974
 #, c-format
 msgid "active commit requested but '%s' is not active"
 msgstr "надіслано запит щодо активного внеску, але «%s» не є активним"
 
-#: src/qemu/qemu_driver.c:15987
+#: src/qemu/qemu_driver.c:15981
 #, c-format
 msgid "top '%s' in chain for '%s' has no backing file"
 msgstr "початок «%s» у ланцюжку «%s» не має резервного файла"
 
-#: src/qemu/qemu_driver.c:16002
+#: src/qemu/qemu_driver.c:15996
 #, c-format
 msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr "основа «%s» перебуває не безпосередньо за «%s» у ланцюжку для «%s»"
 
-#: src/qemu/qemu_driver.c:16043
+#: src/qemu/qemu_driver.c:16037
 msgid "this qemu doesn't support relative blockpull"
 msgstr "у цій версії qemu не передбачено підтримки відносного буфера блоків"
 
-#: src/qemu/qemu_driver.c:16142 src/qemu/qemu_driver.c:16208
+#: src/qemu/qemu_driver.c:16136 src/qemu/qemu_driver.c:16202
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr "Немає графічного сервера з індексом %d"
 
-#: src/qemu/qemu_driver.c:16154 src/qemu/qemu_driver.c:16220
+#: src/qemu/qemu_driver.c:16148 src/qemu/qemu_driver.c:16214
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr "Можливе відкриття лише графічних серверів VNC або SPICE, але не %s"
 
-#: src/qemu/qemu_driver.c:16332
+#: src/qemu/qemu_driver.c:16326
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr ""
 "значення обмеження на введення-виведення для блокових пристроїв має бути "
 "меншим за %llu"
 
-#: src/qemu/qemu_driver.c:16396
+#: src/qemu/qemu_driver.c:16390
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr "Не можна одночасно встановлювати total і read/write bytes_sec"
 
-#: src/qemu/qemu_driver.c:16403
+#: src/qemu/qemu_driver.c:16397
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr "Не можна одночасно встановлювати total і read/write iops_sec"
 
-#: src/qemu/qemu_driver.c:16410
+#: src/qemu/qemu_driver.c:16404
 #, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr "немає сталих налаштувань для диска «%s»"
 
-#: src/qemu/qemu_driver.c:16451
+#: src/qemu/qemu_driver.c:16445
 #, fuzzy
 msgid "Saving live XML config failed"
 msgstr "не вдалося обробити налаштування у форматі XML"
 
-#: src/qemu/qemu_driver.c:16480
+#: src/qemu/qemu_driver.c:16474
 msgid "Write to config file failed"
 msgstr "Спроба запису до файла налаштувань завершилася невдало"
 
-#: src/qemu/qemu_driver.c:16565
-#, fuzzy, c-format
+#: src/qemu/qemu_driver.c:16559
+#, c-format
 msgid "disk '%s' was not found in the domain config"
-msgstr "У визначенні домену не знайдено тому «%s».\n"
+msgstr "у налаштуваннях домену не знайдено диска «%s»"
 
-#: src/qemu/qemu_driver.c:16848
+#: src/qemu/qemu_driver.c:16842
 msgid "Duration not supported. Use 0 for now"
 msgstr "Підтримки тривалості не передбачено. Скористайтеся значенням 0."
 
-#: src/qemu/qemu_driver.c:16856
+#: src/qemu/qemu_driver.c:16850
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "Невідома ціль призупинення: %u"
 
-#: src/qemu/qemu_driver.c:16879
+#: src/qemu/qemu_driver.c:16873
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr ""
 "Не вдалося призупинити домен через те, що не вказано команду монітора "
 "system_wakeup"
 
-#: src/qemu/qemu_driver.c:16889
+#: src/qemu/qemu_driver.c:16883
 msgid "S3 state is disabled for this domain"
 msgstr "на цьому домені стан S3 вимкнено"
 
-#: src/qemu/qemu_driver.c:16896
+#: src/qemu/qemu_driver.c:16890
 msgid "S4 state is disabled for this domain"
 msgstr "на цьому домені стан S4 вимкнено"
 
-#: src/qemu/qemu_driver.c:16957
+#: src/qemu/qemu_driver.c:16951
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr ""
 "Не вдалося пробудити домен через те, що не вказано команду монітора "
 "system_wakeup"
 
-#: src/qemu/qemu_driver.c:17116
+#: src/qemu/qemu_driver.c:17110
 msgid "Specifying mount point is not supported for now"
 msgstr ""
 "У поточній версії ще не передбачено визначення точки монтування користувачем"
 
-#: src/qemu/qemu_driver.c:17371
+#: src/qemu/qemu_driver.c:17365
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 "не вдалося встановити час: у qemu не передбачено підтримки команди rtc-reset-"
 "reinjection"
 
-#: src/qemu/qemu_driver.c:17479
+#: src/qemu/qemu_driver.c:17473
 msgid "specifying mountpoints is not supported"
 msgstr "підтримки визначення точок монтування не передбачно"
 
-#: src/qemu/qemu_driver.c:17560
+#: src/qemu/qemu_driver.c:17554
 #, c-format
 msgid "unknown virttype: %s"
 msgstr "невідоме значення virttype: %s"
 
-#: src/qemu/qemu_driver.c:17567
+#: src/qemu/qemu_driver.c:17561
 #, c-format
 msgid "unknown architecture: %s"
 msgstr "невідома архітектура: %s"
 
-#: src/qemu/qemu_driver.c:17583
+#: src/qemu/qemu_driver.c:17577
 #, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr ""
 "архітектура від емулятора «%s» не збігається із наданою архітектурою, «%s»"
 
-#: src/qemu/qemu_driver.c:17593
+#: src/qemu/qemu_driver.c:17587
 #, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr "не знайдено жодного емулятора, здатного обслуговувати архітектуру «%s»"
 
-#: src/qemu/qemu_driver.c:17607
+#: src/qemu/qemu_driver.c:17601
 #, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr "підтримки машини «%s» у емуляторі «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:18027
+#: src/qemu/qemu_driver.c:18021
 #, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr "Біти типів статистики 0x%x не підтримуються цією фоновою службою"
@@ -18565,7 +18548,7 @@ msgstr "Дані перенесення мережі вже існують"
 msgid "missing type attribute in migration data"
 msgstr "немає атрибута type у даних перенесення"
 
-#: src/qemu/qemu_migration.c:809 src/qemu/qemu_migration.c:2141
+#: src/qemu/qemu_migration.c:809 src/qemu/qemu_migration.c:2143
 #, c-format
 msgid "unknown graphics type %s"
 msgstr "невідомий тип графічної системи %s"
@@ -18677,8 +18660,8 @@ msgstr ""
 msgid "Failed to resume guest %s after failure"
 msgstr "Не вдалося відновити роботу гостьової системи %s після помилки"
 
-#: src/qemu/qemu_migration.c:1507 src/qemu/qemu_migration.c:2012
-#: src/qemu/qemu_migration.c:3595
+#: src/qemu/qemu_migration.c:1507 src/qemu/qemu_migration.c:2014
+#: src/qemu/qemu_migration.c:3597
 msgid "canceled by client"
 msgstr "скасовано клієнтом"
 
@@ -18699,234 +18682,234 @@ msgstr "доменом виконується завдання з обробки
 msgid "domain has assigned non-USB host devices"
 msgstr "з доменом пов’язано пристрої основної системи, які не є пристроями USB"
 
-#: src/qemu/qemu_migration.c:1726
+#: src/qemu/qemu_migration.c:1727
 #, c-format
 msgid "domain has CPU feature: %s"
 msgstr "у домену є можливість процесора: %s"
 
-#: src/qemu/qemu_migration.c:1767
+#: src/qemu/qemu_migration.c:1769
 msgid "Migration may lead to data corruption if disks use cache != none"
 msgstr ""
 "Перенесення може призвести до пошкодження даних, якщо для дисків "
 "використовується значення кешу, відмінне від none"
 
-#: src/qemu/qemu_migration.c:1821
+#: src/qemu/qemu_migration.c:1823
 msgid "Compressed migration is not supported by target QEMU binary"
 msgstr ""
 "У виконуваному файлі QEMU призначення не передбачено можливості перенесення "
 "зі стисканням"
 
-#: src/qemu/qemu_migration.c:1825
+#: src/qemu/qemu_migration.c:1827
 msgid "Compressed migration is not supported by source QEMU binary"
 msgstr ""
 "У виконуваному файлі QEMU джерела не передбачено можливості перенесення зі "
 "стисканням"
 
-#: src/qemu/qemu_migration.c:1860
+#: src/qemu/qemu_migration.c:1862
 msgid "Auto-Converge is not supported by QEMU binary"
 msgstr ""
 "У виконуваному файлі QEMU не передбачено підтримки автоматичного зближення"
 
-#: src/qemu/qemu_migration.c:1896
-#, fuzzy
+#: src/qemu/qemu_migration.c:1898
 msgid "rdma pinning migration is not supported by target QEMU binary"
 msgstr ""
-"У виконуваному файлі QEMU призначення не передбачено можливості перенесення "
-"зі стисканням"
+"у виконуваному файлі QEMU призначення не передбачено прикріпленого "
+"перенесення rdma"
 
-#: src/qemu/qemu_migration.c:1900
-#, fuzzy
+#: src/qemu/qemu_migration.c:1902
 msgid "rdma pinning migration is not supported by source QEMU binary"
 msgstr ""
-"У виконуваному файлі QEMU джерела не передбачено можливості перенесення зі "
-"стисканням"
+"у виконуваному файлі QEMU джерела не передбачено прикріпленого перенесення "
+"rdma"
 
-#: src/qemu/qemu_migration.c:2000
+#: src/qemu/qemu_migration.c:2002
 msgid "is not active"
 msgstr "неактивне"
 
-#: src/qemu/qemu_migration.c:2006
+#: src/qemu/qemu_migration.c:2008
 msgid "unexpectedly failed"
 msgstr "несподівано завершилося помилкою"
 
-#: src/qemu/qemu_migration.c:2038 src/qemu/qemu_migration.c:3669
+#: src/qemu/qemu_migration.c:2040 src/qemu/qemu_migration.c:3671
 msgid "migration job"
 msgstr "завдання з перенесення"
 
-#: src/qemu/qemu_migration.c:2041
+#: src/qemu/qemu_migration.c:2043
 msgid "domain save job"
 msgstr "завдання зі збереження домену"
 
-#: src/qemu/qemu_migration.c:2044
+#: src/qemu/qemu_migration.c:2046
 msgid "domain core dump job"
 msgstr "завдання зі створення дампу ядра домену"
 
-#: src/qemu/qemu_migration.c:2047
+#: src/qemu/qemu_migration.c:2049
 msgid "job"
 msgstr "завдання"
 
-#: src/qemu/qemu_migration.c:2064
+#: src/qemu/qemu_migration.c:2066
 msgid "failed due to I/O error"
 msgstr "невдача через помилку введення-виведення"
 
-#: src/qemu/qemu_migration.c:2070
+#: src/qemu/qemu_migration.c:2072
 msgid "Lost connection to destination host"
 msgstr "Втрачено з’єднання з основною системою призначення"
 
-#: src/qemu/qemu_migration.c:2156
+#: src/qemu/qemu_migration.c:2158
 #, c-format
 msgid "invalid tlsPort number: %s"
 msgstr "некоректний номер tlsPort: %s"
 
-#: src/qemu/qemu_migration.c:2208 src/util/virnetdevopenvswitch.c:251
+#: src/qemu/qemu_migration.c:2210 src/util/virnetdevopenvswitch.c:251
 #, c-format
 msgid "Unable to run command to set OVS port data for interface %s"
 msgstr ""
 "Не вдалося виконати команду для встановлення даних порту OVS для інтерфейсу "
 "%s"
 
-#: src/qemu/qemu_migration.c:2349 src/qemu/qemu_migration.c:2529
+#: src/qemu/qemu_migration.c:2351 src/qemu/qemu_migration.c:2531
 msgid "offline migration cannot handle non-shared storage"
 msgstr ""
 "засіб перенесення без вимикання не може працювати зі сховищем даних, яке не "
 "належить до сховищ спільного використання"
 
-#: src/qemu/qemu_migration.c:2355 src/qemu/qemu_migration.c:2535
+#: src/qemu/qemu_migration.c:2357 src/qemu/qemu_migration.c:2537
 msgid "offline migration must be specified with the persistent flag set"
 msgstr ""
 "перенесення без вимикання має бути вказано разом зі встановленням прапорця "
 "persistent"
 
-#: src/qemu/qemu_migration.c:2361 src/qemu/qemu_migration.c:2541
+#: src/qemu/qemu_migration.c:2363 src/qemu/qemu_migration.c:2543
 msgid "tunnelled offline migration does not make sense"
 msgstr "тунельоване перенесення без вимикання позбавлене сенсу"
 
-#: src/qemu/qemu_migration.c:2442 src/qemu/qemu_migration.c:2807
+#: src/qemu/qemu_migration.c:2444 src/qemu/qemu_migration.c:2809
 msgid "domain disappeared"
 msgstr "домен зник"
 
-#: src/qemu/qemu_migration.c:2637
+#: src/qemu/qemu_migration.c:2639
 msgid "qemu isn't capable of IPv6"
 msgstr "у qemu не передбачено підтримки IPv6"
 
-#: src/qemu/qemu_migration.c:2642
+#: src/qemu/qemu_migration.c:2644
 msgid "host isn't capable of IPv6"
 msgstr "у основній системі не передбачено підтримки IPv6"
 
-#: src/qemu/qemu_migration.c:2699 src/qemu/qemu_migration.c:3799
+#: src/qemu/qemu_migration.c:2701 src/qemu/qemu_migration.c:3801
 msgid "cannot start RDMA migration with no memory hard limit set"
 msgstr ""
+"неможливо розпочати перенесення RDMA без встановлення жорсткого обмеження "
+"пам’яті"
 
-#: src/qemu/qemu_migration.c:2717 src/qemu/qemu_migration.c:3881
+#: src/qemu/qemu_migration.c:2719 src/qemu/qemu_migration.c:3883
 msgid "cannot create pipe for tunnelled migration"
 msgstr "не вдалося створити канал для тунельованого перенесення"
 
-#: src/qemu/qemu_migration.c:2736
+#: src/qemu/qemu_migration.c:2738
 msgid "cannot pass pipe for tunnelled migration"
 msgstr "не вдалося передати канал для тунельованого перенесення"
 
-#: src/qemu/qemu_migration.c:2874
+#: src/qemu/qemu_migration.c:2876
 msgid "tunnelled migration requested but NULL stream passed"
 msgstr ""
 "надійшов запит щодо тунельованого перенесення, але передано нульовий потік "
 "даних"
 
-#: src/qemu/qemu_migration.c:2989
-#, fuzzy, c-format
+#: src/qemu/qemu_migration.c:2991
+#, c-format
 msgid "unsupported scheme %s in migration URI %s"
-msgstr "непідтримувана конфігурація: %s"
+msgstr "непідтримувана схема, %s, у адресі перенесення %s"
 
-#: src/qemu/qemu_migration.c:3305
+#: src/qemu/qemu_migration.c:3307
 msgid "poll failed in migration tunnel"
 msgstr "невдала спроба опитування у тунелі перенесення"
 
-#: src/qemu/qemu_migration.c:3323
+#: src/qemu/qemu_migration.c:3325
 msgid "failed to read from wakeup fd"
 msgstr "не вдалося прочитати дані з дескриптора пробудження"
 
-#: src/qemu/qemu_migration.c:3345
+#: src/qemu/qemu_migration.c:3347
 msgid "tunnelled migration failed to read from qemu"
 msgstr "під час тунельованого перенесення не вдалося прочитати дані qemu"
 
-#: src/qemu/qemu_migration.c:3389
+#: src/qemu/qemu_migration.c:3391
 msgid "Unable to make pipe"
 msgstr "Не вдалося створити канал"
 
-#: src/qemu/qemu_migration.c:3405
+#: src/qemu/qemu_migration.c:3407
 msgid "Unable to create migration thread"
 msgstr "Не вдалося створити потік обробки для перенесення"
 
-#: src/qemu/qemu_migration.c:3427
+#: src/qemu/qemu_migration.c:3429
 msgid "failed to wakeup migration tunnel"
 msgstr "не вдалося пробудити тунель перенесення"
 
-#: src/qemu/qemu_migration.c:3481
+#: src/qemu/qemu_migration.c:3483
 #, c-format
 msgid "Unable to set FD %d blocking"
 msgstr "Не вдалося встановити блокування дескриптора файла %d"
 
-#: src/qemu/qemu_migration.c:3541
+#: src/qemu/qemu_migration.c:3543
 #, c-format
 msgid "Migration with lock driver %s requires cookie support"
 msgstr ""
 "Для перенесення за допомогою драйвера блокування %s потрібна підтримка кук"
 
-#: src/qemu/qemu_migration.c:3677
+#: src/qemu/qemu_migration.c:3679
 msgid "failed to accept connection from qemu"
 msgstr "Не вдалося прийняти з’єднання від QEMU"
 
-#: src/qemu/qemu_migration.c:3793
-#, fuzzy
+#: src/qemu/qemu_migration.c:3795
 msgid "outgoing RDMA migration is not supported with this QEMU binary"
-msgstr "FD-перенесення не підтримуються цим двійковим компонентом QEMU"
+msgstr ""
+"у цьому виконуваному файлі QEMU не передбачено вихідного перенесення RDMA"
 
-#: src/qemu/qemu_migration.c:3858
+#: src/qemu/qemu_migration.c:3860
 msgid "Source qemu is too old to support tunnelled migration"
 msgstr "QEMU джерела є занадто старим для підтримки тунельованого перенесення"
 
-#: src/qemu/qemu_migration.c:4402
+#: src/qemu/qemu_migration.c:4404
 #, c-format
 msgid "Failed to connect to remote libvirt URI %s: %s"
 msgstr "Не вдалося встановити з’єднання з віддаленою адресою libvirt %s: %s"
 
-#: src/qemu/qemu_migration.c:4430
+#: src/qemu/qemu_migration.c:4432
 msgid "Destination libvirt does not support peer-to-peer migration protocol"
 msgstr "libvirt призначення не підтримує протокол перенесення P2P"
 
-#: src/qemu/qemu_migration.c:4695
+#: src/qemu/qemu_migration.c:4697
 msgid "received unexpected cookie with P2P migration"
 msgstr "з перенесенням P2P отримано неочікувану куку"
 
-#: src/qemu/qemu_migration.c:4707
+#: src/qemu/qemu_migration.c:4709
 msgid "Unexpected dconnuri parameter with non-peer2peer migration"
 msgstr ""
 "Неочікуваний параметр dconnuri з перенесенням, яке не є перенесенням між "
 "вузлами (P2P)"
 
-#: src/qemu/qemu_migration.c:4746
+#: src/qemu/qemu_migration.c:4748
 #, c-format
 msgid "Port profile Associate failed for %s"
 msgstr "Не вдалося виконати прив’язку порту для %s"
 
-#: src/qemu/qemu_migration.c:4899
+#: src/qemu/qemu_migration.c:4901
 msgid "can't get vmdef"
 msgstr "не вдалося отримати vmdef"
 
-#: src/qemu/qemu_migration.c:5119
+#: src/qemu/qemu_migration.c:5121
 msgid "Unable to set cloexec flag"
 msgstr "Не вдалося встановити прапорець cloexec"
 
-#: src/qemu/qemu_migration.c:5240
+#: src/qemu/qemu_migration.c:5242
 #, c-format
 msgid "migration protocol going backwards %s => %s"
 msgstr "протокол перенесення працює у зворотному напрямку, %s => %s"
 
-#: src/qemu/qemu_migration.c:5275
+#: src/qemu/qemu_migration.c:5277
 #, c-format
 msgid "domain '%s' is not processing incoming migration"
 msgstr "домен «%s» не обробляє вхідне перенесення"
 
-#: src/qemu/qemu_migration.c:5277
+#: src/qemu/qemu_migration.c:5279
 #, c-format
 msgid "domain '%s' is not being migrated"
 msgstr "домен «%s» не буде перенесено"
@@ -18993,46 +18976,46 @@ msgstr "Не вдалося вилучити екранування з кома�
 #: src/qemu/qemu_monitor.c:1562 src/qemu/qemu_monitor.c:1582
 #: src/qemu/qemu_monitor.c:1603 src/qemu/qemu_monitor.c:1626
 #: src/qemu/qemu_monitor.c:1680 src/qemu/qemu_monitor.c:1734
-#: src/qemu/qemu_monitor.c:1796 src/qemu/qemu_monitor.c:1847
-#: src/qemu/qemu_monitor.c:1893 src/qemu/qemu_monitor.c:1925
-#: src/qemu/qemu_monitor.c:1947 src/qemu/qemu_monitor.c:1966
-#: src/qemu/qemu_monitor.c:1987 src/qemu/qemu_monitor.c:2010
-#: src/qemu/qemu_monitor.c:2033 src/qemu/qemu_monitor.c:2055
-#: src/qemu/qemu_monitor.c:2075 src/qemu/qemu_monitor.c:2102
-#: src/qemu/qemu_monitor.c:2122 src/qemu/qemu_monitor.c:2143
-#: src/qemu/qemu_monitor.c:2165 src/qemu/qemu_monitor.c:2185
-#: src/qemu/qemu_monitor.c:2211 src/qemu/qemu_monitor.c:2245
-#: src/qemu/qemu_monitor.c:2275 src/qemu/qemu_monitor.c:2313
-#: src/qemu/qemu_monitor.c:2371 src/qemu/qemu_monitor.c:2394
-#: src/qemu/qemu_monitor.c:2415 src/qemu/qemu_monitor.c:2434
-#: src/qemu/qemu_monitor.c:2498 src/qemu/qemu_monitor.c:2519
-#: src/qemu/qemu_monitor.c:2540 src/qemu/qemu_monitor.c:2563
-#: src/qemu/qemu_monitor.c:2586 src/qemu/qemu_monitor.c:2607
-#: src/qemu/qemu_monitor.c:2629 src/qemu/qemu_monitor.c:2651
-#: src/qemu/qemu_monitor.c:2689 src/qemu/qemu_monitor.c:2719
-#: src/qemu/qemu_monitor.c:2760 src/qemu/qemu_monitor.c:2794
-#: src/qemu/qemu_monitor.c:2839 src/qemu/qemu_monitor.c:2867
-#: src/qemu/qemu_monitor.c:2909 src/qemu/qemu_monitor.c:2930
-#: src/qemu/qemu_monitor.c:2951 src/qemu/qemu_monitor.c:2977
-#: src/qemu/qemu_monitor.c:2998 src/qemu/qemu_monitor.c:3017
-#: src/qemu/qemu_monitor.c:3036 src/qemu/qemu_monitor.c:3059
-#: src/qemu/qemu_monitor.c:3093 src/qemu/qemu_monitor.c:3114
-#: src/qemu/qemu_monitor.c:3133 src/qemu/qemu_monitor.c:3152
-#: src/qemu/qemu_monitor.c:3171 src/qemu/qemu_monitor.c:3197
-#: src/qemu/qemu_monitor.c:3359 src/qemu/qemu_monitor.c:3516
-#: src/qemu/qemu_monitor.c:3542 src/qemu/qemu_monitor.c:3566
-#: src/qemu/qemu_monitor.c:3587 src/qemu/qemu_monitor.c:3617
-#: src/qemu/qemu_monitor.c:3639 src/qemu/qemu_monitor.c:3661
-#: src/qemu/qemu_monitor.c:3687 src/qemu/qemu_monitor.c:3711
-#: src/qemu/qemu_monitor.c:3733 src/qemu/qemu_monitor.c:3756
-#: src/qemu/qemu_monitor.c:3777 src/qemu/qemu_monitor.c:3799
-#: src/qemu/qemu_monitor.c:3821 src/qemu/qemu_monitor.c:3839
-#: src/qemu/qemu_monitor.c:3861 src/qemu/qemu_monitor.c:3883
-#: src/qemu/qemu_monitor.c:3902 src/qemu/qemu_monitor.c:3924
-#: src/qemu/qemu_monitor.c:3946 src/qemu/qemu_monitor.c:3967
-#: src/qemu/qemu_monitor.c:3987 src/qemu/qemu_monitor.c:4008
-#: src/qemu/qemu_monitor.c:4064 src/qemu/qemu_monitor.c:4099
-#: src/qemu/qemu_monitor.c:4132
+#: src/qemu/qemu_monitor.c:1790 src/qemu/qemu_monitor.c:1841
+#: src/qemu/qemu_monitor.c:1887 src/qemu/qemu_monitor.c:1919
+#: src/qemu/qemu_monitor.c:1941 src/qemu/qemu_monitor.c:1960
+#: src/qemu/qemu_monitor.c:1981 src/qemu/qemu_monitor.c:2004
+#: src/qemu/qemu_monitor.c:2027 src/qemu/qemu_monitor.c:2049
+#: src/qemu/qemu_monitor.c:2069 src/qemu/qemu_monitor.c:2096
+#: src/qemu/qemu_monitor.c:2116 src/qemu/qemu_monitor.c:2137
+#: src/qemu/qemu_monitor.c:2159 src/qemu/qemu_monitor.c:2179
+#: src/qemu/qemu_monitor.c:2205 src/qemu/qemu_monitor.c:2239
+#: src/qemu/qemu_monitor.c:2269 src/qemu/qemu_monitor.c:2307
+#: src/qemu/qemu_monitor.c:2365 src/qemu/qemu_monitor.c:2388
+#: src/qemu/qemu_monitor.c:2409 src/qemu/qemu_monitor.c:2428
+#: src/qemu/qemu_monitor.c:2492 src/qemu/qemu_monitor.c:2513
+#: src/qemu/qemu_monitor.c:2534 src/qemu/qemu_monitor.c:2557
+#: src/qemu/qemu_monitor.c:2580 src/qemu/qemu_monitor.c:2601
+#: src/qemu/qemu_monitor.c:2623 src/qemu/qemu_monitor.c:2645
+#: src/qemu/qemu_monitor.c:2683 src/qemu/qemu_monitor.c:2713
+#: src/qemu/qemu_monitor.c:2754 src/qemu/qemu_monitor.c:2788
+#: src/qemu/qemu_monitor.c:2833 src/qemu/qemu_monitor.c:2861
+#: src/qemu/qemu_monitor.c:2903 src/qemu/qemu_monitor.c:2924
+#: src/qemu/qemu_monitor.c:2945 src/qemu/qemu_monitor.c:2971
+#: src/qemu/qemu_monitor.c:2992 src/qemu/qemu_monitor.c:3011
+#: src/qemu/qemu_monitor.c:3030 src/qemu/qemu_monitor.c:3053
+#: src/qemu/qemu_monitor.c:3087 src/qemu/qemu_monitor.c:3108
+#: src/qemu/qemu_monitor.c:3127 src/qemu/qemu_monitor.c:3146
+#: src/qemu/qemu_monitor.c:3165 src/qemu/qemu_monitor.c:3191
+#: src/qemu/qemu_monitor.c:3353 src/qemu/qemu_monitor.c:3510
+#: src/qemu/qemu_monitor.c:3536 src/qemu/qemu_monitor.c:3560
+#: src/qemu/qemu_monitor.c:3581 src/qemu/qemu_monitor.c:3611
+#: src/qemu/qemu_monitor.c:3633 src/qemu/qemu_monitor.c:3655
+#: src/qemu/qemu_monitor.c:3681 src/qemu/qemu_monitor.c:3705
+#: src/qemu/qemu_monitor.c:3727 src/qemu/qemu_monitor.c:3750
+#: src/qemu/qemu_monitor.c:3771 src/qemu/qemu_monitor.c:3793
+#: src/qemu/qemu_monitor.c:3815 src/qemu/qemu_monitor.c:3833
+#: src/qemu/qemu_monitor.c:3855 src/qemu/qemu_monitor.c:3877
+#: src/qemu/qemu_monitor.c:3896 src/qemu/qemu_monitor.c:3918
+#: src/qemu/qemu_monitor.c:3940 src/qemu/qemu_monitor.c:3961
+#: src/qemu/qemu_monitor.c:3981 src/qemu/qemu_monitor.c:4002
+#: src/qemu/qemu_monitor.c:4058 src/qemu/qemu_monitor.c:4093
+#: src/qemu/qemu_monitor.c:4126
 msgid "monitor must not be NULL"
 msgstr "значенням monitor не повинен бути NULL"
 
@@ -19044,19 +19027,19 @@ msgstr "значеннями monitor і running мають бути NULL"
 msgid "monitor || name must not be NULL"
 msgstr "значенням monitor || name не повинен бути NULL"
 
-#: src/qemu/qemu_monitor.c:1632 src/qemu/qemu_monitor.c:2128
-#: src/qemu/qemu_monitor.c:2149 src/qemu/qemu_monitor.c:2193
-#: src/qemu/qemu_monitor.c:3548 src/qemu/qemu_monitor.c:3572
-#: src/qemu/qemu_monitor.c:3593 src/qemu/qemu_monitor.c:3623
-#: src/qemu/qemu_monitor.c:3645 src/qemu/qemu_monitor.c:3667
-#: src/qemu/qemu_monitor.c:3693 src/qemu/qemu_monitor.c:3717
-#: src/qemu/qemu_monitor.c:3739 src/qemu/qemu_monitor.c:3762
-#: src/qemu/qemu_monitor.c:3783 src/qemu/qemu_monitor.c:3845
-#: src/qemu/qemu_monitor.c:3867 src/qemu/qemu_monitor.c:3889
-#: src/qemu/qemu_monitor.c:3908 src/qemu/qemu_monitor.c:3930
-#: src/qemu/qemu_monitor.c:3952 src/qemu/qemu_monitor.c:3973
-#: src/qemu/qemu_monitor.c:3993 src/qemu/qemu_monitor.c:4014
-#: src/qemu/qemu_monitor.c:4070 src/qemu/qemu_monitor.c:4105
+#: src/qemu/qemu_monitor.c:1632 src/qemu/qemu_monitor.c:2122
+#: src/qemu/qemu_monitor.c:2143 src/qemu/qemu_monitor.c:2187
+#: src/qemu/qemu_monitor.c:3542 src/qemu/qemu_monitor.c:3566
+#: src/qemu/qemu_monitor.c:3587 src/qemu/qemu_monitor.c:3617
+#: src/qemu/qemu_monitor.c:3639 src/qemu/qemu_monitor.c:3661
+#: src/qemu/qemu_monitor.c:3687 src/qemu/qemu_monitor.c:3711
+#: src/qemu/qemu_monitor.c:3733 src/qemu/qemu_monitor.c:3756
+#: src/qemu/qemu_monitor.c:3777 src/qemu/qemu_monitor.c:3839
+#: src/qemu/qemu_monitor.c:3861 src/qemu/qemu_monitor.c:3883
+#: src/qemu/qemu_monitor.c:3902 src/qemu/qemu_monitor.c:3924
+#: src/qemu/qemu_monitor.c:3946 src/qemu/qemu_monitor.c:3967
+#: src/qemu/qemu_monitor.c:3987 src/qemu/qemu_monitor.c:4008
+#: src/qemu/qemu_monitor.c:4064 src/qemu/qemu_monitor.c:4099
 msgid "JSON monitor is required"
 msgstr "потрібен монітор JSON"
 
@@ -19070,85 +19053,85 @@ msgstr "невідомий стан введення-виведення блок
 msgid "cannot find info for device '%s'"
 msgstr "не вдалося знайти дані щодо пристрою «%s»"
 
-#: src/qemu/qemu_monitor.c:1778
-#, fuzzy
+#: src/qemu/qemu_monitor.c:1772
 msgid "unable to query all block stats with this QEMU"
-msgstr "за використання цього QEMU запити щодо розширення блоків неможливі"
+msgstr ""
+"за допомогою цього QEMU не вдалося отримати усі статистичні дані щодо блоків"
 
-#: src/qemu/qemu_monitor.c:1870
+#: src/qemu/qemu_monitor.c:1864
 #, c-format
 msgid "unsupported protocol type %s"
 msgstr "непідтримуваний тип протоколу %s"
 
-#: src/qemu/qemu_monitor.c:2319
+#: src/qemu/qemu_monitor.c:2313
 #, c-format
 msgid "file offset must be a multiple of %llu"
 msgstr "відступ у файлі має бути кратним до %llu"
 
-#: src/qemu/qemu_monitor.c:2443
+#: src/qemu/qemu_monitor.c:2437
 msgid "dump-guest-memory is not supported in text mode"
 msgstr "у текстовому режимі підтримки dump-guest-memory не передбачено"
 
-#: src/qemu/qemu_monitor.c:2657
+#: src/qemu/qemu_monitor.c:2651
 msgid "fd must be valid"
 msgstr "дескриптор файла має бути коректним"
 
-#: src/qemu/qemu_monitor.c:2663 src/qemu/qemu_monitor.c:2731
+#: src/qemu/qemu_monitor.c:2657 src/qemu/qemu_monitor.c:2725
 #, c-format
 msgid "qemu is not using a unix socket monitor, cannot send fd %s"
 msgstr ""
 "QEMU не використовується монітор спостереження за сокетами UNIX, неможливо "
 "надіслати дескриптор файла %s"
 
-#: src/qemu/qemu_monitor.c:2725
+#: src/qemu/qemu_monitor.c:2719
 msgid "fd and fdset must be valid"
 msgstr "значення fd і fdset мають бути чинними"
 
-#: src/qemu/qemu_monitor.c:2740
+#: src/qemu/qemu_monitor.c:2734
 msgid "add fd requires JSON monitor"
 msgstr "додавання файлового дескриптора потребує монітора JSON"
 
-#: src/qemu/qemu_monitor.c:2768
+#: src/qemu/qemu_monitor.c:2762
 msgid "remove fd requires JSON monitor"
 msgstr "вилучення файлового дескриптора потребує монітора JSON"
 
-#: src/qemu/qemu_monitor.c:2809
+#: src/qemu/qemu_monitor.c:2803
 msgid "JSON monitor should be using AddNetdev"
 msgstr "монітор JSON має використовувати AddNetdev"
 
-#: src/qemu/qemu_monitor.c:2845
+#: src/qemu/qemu_monitor.c:2839
 msgid "JSON monitor should be using RemoveNetdev"
 msgstr "монітор JSON має використовувати RemoveNetdev"
 
-#: src/qemu/qemu_monitor.c:2983
+#: src/qemu/qemu_monitor.c:2977
 msgid "JSON monitor should be using AddDrive"
 msgstr "монітор JSON має використовувати AddDrive"
 
-#: src/qemu/qemu_monitor.c:3206
+#: src/qemu/qemu_monitor.c:3200
 msgid "disk snapshot requires JSON monitor"
 msgstr "знімок диска потребує монітора JSON"
 
-#: src/qemu/qemu_monitor.c:3230
+#: src/qemu/qemu_monitor.c:3224
 msgid "drive-mirror requires JSON monitor"
 msgstr "для виконання drive-mirror потрібен монітор JSON"
 
-#: src/qemu/qemu_monitor.c:3246
+#: src/qemu/qemu_monitor.c:3240
 msgid "transaction requires JSON monitor"
 msgstr "для виконання операції потрібен монітор JSON"
 
-#: src/qemu/qemu_monitor.c:3268
+#: src/qemu/qemu_monitor.c:3262
 msgid "block-commit requires JSON monitor"
 msgstr "для виконання block-commit потрібен монітор JSON"
 
-#: src/qemu/qemu_monitor.c:3299
+#: src/qemu/qemu_monitor.c:3293
 msgid "drive pivot requires JSON monitor"
 msgstr "для виконання drive-pivot потрібен монітор JSON"
 
-#: src/qemu/qemu_monitor.c:3392 src/qemu/qemu_monitor.c:3412
+#: src/qemu/qemu_monitor.c:3386 src/qemu/qemu_monitor.c:3406
 msgid "block jobs require JSON monitor"
 msgstr "для виконання завдань з роботи над блоками потрібен монітор JSON"
 
-#: src/qemu/qemu_monitor.c:4036
+#: src/qemu/qemu_monitor.c:4030
 msgid "failed to duplicate log fd"
 msgstr "не вдалося здублювати файлових дескриптор журналу"
 
@@ -19172,9 +19155,9 @@ msgid "argument key '%s' must not have null value"
 msgstr "значення аргументу «%s» не повинно бути порожнім"
 
 #: src/qemu/qemu_monitor_json.c:514 src/qemu/qemu_monitor_json.c:543
-#, fuzzy, c-format
+#, c-format
 msgid "argument key '%s' must not be negative"
-msgstr "значення аргументу «%s» не повинно бути порожнім"
+msgstr "ключ аргумента «%s» має бути невід’ємним"
 
 #: src/qemu/qemu_monitor_json.c:651
 #, c-format
@@ -19234,8 +19217,8 @@ msgstr "результат info balloon не містить даних щодо 
 msgid "the guest hasn't updated any stats yet"
 msgstr "у гостьовій системи ще не оновлено жодних статистичних даних"
 
-#: src/qemu/qemu_monitor_json.c:1571 src/qemu/qemu_monitor_json.c:4980
-#: src/qemu/qemu_monitor_json.c:5023 src/qemu/qemu_monitor_json.c:5923
+#: src/qemu/qemu_monitor_json.c:1571 src/qemu/qemu_monitor_json.c:4973
+#: src/qemu/qemu_monitor_json.c:5016 src/qemu/qemu_monitor_json.c:5916
 msgid "qom-get reply was missing return data"
 msgstr "у відповіді qom-get не міститься даних"
 
@@ -19252,574 +19235,571 @@ msgstr "запис щодо даних блоків зберігається у 
 msgid "cannot read %s value"
 msgstr "не вдалося прочитати значення %s"
 
-#: src/qemu/qemu_monitor_json.c:1806 src/qemu/qemu_monitor_json.c:1961
-#: src/qemu/qemu_monitor_json.c:2036
-msgid "blockstats reply was missing device list"
-msgstr "результат виконання blockstats не містить списку пристроїв"
-
-#: src/qemu/qemu_monitor_json.c:1816 src/qemu/qemu_monitor_json.c:1828
-#: src/qemu/qemu_monitor_json.c:1969 src/qemu/qemu_monitor_json.c:2047
-#: src/qemu/qemu_monitor_json.c:2053
-msgid "blockstats device entry was not in expected format"
-msgstr "запис «device» blockstats зберігається у неочікуваному форматі"
-
-#: src/qemu/qemu_monitor_json.c:1847 src/qemu/qemu_monitor_json.c:1976
-#: src/qemu/qemu_monitor_json.c:2078
-msgid "blockstats stats entry was not in expected format"
-msgstr "запис «stats» blockstats зберігається у неочікуваному форматі"
-
-#: src/qemu/qemu_monitor_json.c:1855 src/qemu/qemu_monitor_json.c:1862
-#: src/qemu/qemu_monitor_json.c:1870 src/qemu/qemu_monitor_json.c:1877
-#: src/qemu/qemu_monitor_json.c:1884 src/qemu/qemu_monitor_json.c:1892
-#: src/qemu/qemu_monitor_json.c:1900 src/qemu/qemu_monitor_json.c:1908
-#: src/qemu/qemu_monitor_json.c:2084
-#, c-format
-msgid "cannot read %s statistic"
-msgstr "не вдалося прочитати статистичні дані щодо %s"
-
-#: src/qemu/qemu_monitor_json.c:1922 src/qemu/qemu_monitor_json.c:2092
+#: src/qemu/qemu_monitor_json.c:1758 src/qemu/qemu_monitor_json.c:2085
 #, c-format
 msgid "cannot find statistics for device '%s'"
 msgstr "не вдалося знайти статистичних даних щодо пристрою «%s»"
 
+#: src/qemu/qemu_monitor_json.c:1812 src/qemu/qemu_monitor_json.c:1954
+#: src/qemu/qemu_monitor_json.c:2029
+msgid "blockstats reply was missing device list"
+msgstr "результат виконання blockstats не містить списку пристроїв"
+
+#: src/qemu/qemu_monitor_json.c:1826 src/qemu/qemu_monitor_json.c:1833
+#: src/qemu/qemu_monitor_json.c:1962 src/qemu/qemu_monitor_json.c:2040
+#: src/qemu/qemu_monitor_json.c:2046
+msgid "blockstats device entry was not in expected format"
+msgstr "запис «device» blockstats зберігається у неочікуваному форматі"
+
+#: src/qemu/qemu_monitor_json.c:1844 src/qemu/qemu_monitor_json.c:1969
 #: src/qemu/qemu_monitor_json.c:2071
+msgid "blockstats stats entry was not in expected format"
+msgstr "запис «stats» blockstats зберігається у неочікуваному форматі"
+
+#: src/qemu/qemu_monitor_json.c:1852 src/qemu/qemu_monitor_json.c:1859
+#: src/qemu/qemu_monitor_json.c:1867 src/qemu/qemu_monitor_json.c:1874
+#: src/qemu/qemu_monitor_json.c:1881 src/qemu/qemu_monitor_json.c:1889
+#: src/qemu/qemu_monitor_json.c:1897 src/qemu/qemu_monitor_json.c:1905
+#: src/qemu/qemu_monitor_json.c:2077
+#, c-format
+msgid "cannot read %s statistic"
+msgstr "не вдалося прочитати статистичні дані щодо %s"
+
+#: src/qemu/qemu_monitor_json.c:2064
 msgid "blockstats parent entry was not in expected format"
 msgstr "запис «parent» blockstats зберігається у неочікуваному форматі"
 
-#: src/qemu/qemu_monitor_json.c:2477
+#: src/qemu/qemu_monitor_json.c:2470
 msgid "query-migrate-cache-size reply was missing 'return' data"
 msgstr "у відповіді query-migrate-cache-size немає даних «return»"
 
-#: src/qemu/qemu_monitor_json.c:2526
+#: src/qemu/qemu_monitor_json.c:2519
 msgid "info migration reply was missing return data"
 msgstr "результати виконання info не містить даних"
 
-#: src/qemu/qemu_monitor_json.c:2532
+#: src/qemu/qemu_monitor_json.c:2525
 msgid "info migration reply was missing return status"
 msgstr "результат info migration не містить стану повернення"
 
-#: src/qemu/qemu_monitor_json.c:2539 src/qemu/qemu_monitor_text.c:1449
+#: src/qemu/qemu_monitor_json.c:2532 src/qemu/qemu_monitor_text.c:1449
 #: src/qemu/qemu_monitor_text.c:1457
 #, c-format
 msgid "unexpected migration status in %s"
 msgstr "неочікуваний стан перенесення у %s"
 
-#: src/qemu/qemu_monitor_json.c:2564
+#: src/qemu/qemu_monitor_json.c:2557
 msgid "migration was active, but no RAM info was set"
 msgstr ""
 "виконується перенесення, але даних щодо оперативної пам’яті не встановлено"
 
-#: src/qemu/qemu_monitor_json.c:2571
+#: src/qemu/qemu_monitor_json.c:2564
 msgid "migration was active, but RAM 'transferred' data was missing"
 msgstr ""
 "виконується перенесення, але даних щодо переданих до оперативної пам’яті "
 "даних не вказано"
 
-#: src/qemu/qemu_monitor_json.c:2578
+#: src/qemu/qemu_monitor_json.c:2571
 msgid "migration was active, but RAM 'remaining' data was missing"
 msgstr ""
 "виконується перенесення, але даних щодо ще не переданих до оперативної "
 "пам’яті даних не вказано"
 
-#: src/qemu/qemu_monitor_json.c:2585
+#: src/qemu/qemu_monitor_json.c:2578
 msgid "migration was active, but RAM 'total' data was missing"
 msgstr ""
 "виконується перенесення, але даних щодо ще загального об’єму даних "
 "оперативної пам’яті не вказано"
 
-#: src/qemu/qemu_monitor_json.c:2610
+#: src/qemu/qemu_monitor_json.c:2603
 msgid "disk migration was active, but 'transferred' data was missing"
 msgstr ""
 "виконується перенесення диска, але даних щодо переданих до оперативної "
 "пам’яті даних не вказано"
 
-#: src/qemu/qemu_monitor_json.c:2619
+#: src/qemu/qemu_monitor_json.c:2612
 msgid "disk migration was active, but 'remaining' data was missing"
 msgstr ""
 "виконується перенесення диска, але даних щодо ще не переданих до оперативної "
 "пам’яті даних не вказано"
 
-#: src/qemu/qemu_monitor_json.c:2628
+#: src/qemu/qemu_monitor_json.c:2621
 msgid "disk migration was active, but 'total' data was missing"
 msgstr ""
 "виконується перенесення диска, але даних щодо ще загального об’єму даних "
 "оперативної пам’яті не вказано"
 
-#: src/qemu/qemu_monitor_json.c:2647
+#: src/qemu/qemu_monitor_json.c:2640
 msgid "XBZRLE is active, but 'cache-size' data was missing"
 msgstr "Задіяно XBZRLE, але не вказано даних «cache-size»"
 
-#: src/qemu/qemu_monitor_json.c:2656
+#: src/qemu/qemu_monitor_json.c:2649
 msgid "XBZRLE is active, but 'bytes' data was missing"
 msgstr "Задіяно XBZRLE, але не вказано даних «butes»"
 
-#: src/qemu/qemu_monitor_json.c:2665
+#: src/qemu/qemu_monitor_json.c:2658
 msgid "XBZRLE is active, but 'pages' data was missing"
 msgstr "Задіяно XBZRLE, але не вказано даних «pages»"
 
-#: src/qemu/qemu_monitor_json.c:2674
+#: src/qemu/qemu_monitor_json.c:2667
 msgid "XBZRLE is active, but 'cache-miss' data was missing"
 msgstr "Задіяно XBZRLE, але не вказано даних «cache-miss»"
 
-#: src/qemu/qemu_monitor_json.c:2683
+#: src/qemu/qemu_monitor_json.c:2676
 msgid "XBZRLE is active, but 'overflow' data was missing"
 msgstr "Задіяно XBZRLE, але не вказано даних «overflow»"
 
-#: src/qemu/qemu_monitor_json.c:2732
+#: src/qemu/qemu_monitor_json.c:2725
 msgid "query-spice reply was missing return data"
 msgstr "у відповіді на query-spice немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:2849
+#: src/qemu/qemu_monitor_json.c:2842
 msgid "missing dump guest memory capabilities"
 msgstr "не вказано можливостей щодо пам’яті гостьової системи дампів"
 
-#: src/qemu/qemu_monitor_json.c:2856
+#: src/qemu/qemu_monitor_json.c:2849
 msgid "missing supported dump formats"
 msgstr "не вказано підтримуваних форматів дампів"
 
-#: src/qemu/qemu_monitor_json.c:2865
+#: src/qemu/qemu_monitor_json.c:2858
 msgid "missing entry in supported dump formats"
 msgstr "у списку підтримуваних форматів дампів пропущено запис"
 
-#: src/qemu/qemu_monitor_json.c:2953 src/qemu/qemu_monitor_json.c:2963
-#: src/qemu/qemu_monitor_json.c:2973
+#: src/qemu/qemu_monitor_json.c:2946 src/qemu/qemu_monitor_json.c:2956
+#: src/qemu/qemu_monitor_json.c:2966
 msgid "usb_add not supported in JSON mode"
 msgstr "usb_add не підтримується у режимі JSON"
 
-#: src/qemu/qemu_monitor_json.c:2983 src/qemu/qemu_monitor_json.c:2994
-#: src/qemu/qemu_monitor_json.c:3004 src/qemu/qemu_monitor_json.c:3299
+#: src/qemu/qemu_monitor_json.c:2976 src/qemu/qemu_monitor_json.c:2987
+#: src/qemu/qemu_monitor_json.c:2997 src/qemu/qemu_monitor_json.c:3292
 msgid "pci_add not supported in JSON mode"
 msgstr "pci_add не підтримується у режимі JSON"
 
-#: src/qemu/qemu_monitor_json.c:3013
+#: src/qemu/qemu_monitor_json.c:3006
 msgid "pci_del not supported in JSON mode"
 msgstr "pci_del не підтримується у режимі JSON"
 
-#: src/qemu/qemu_monitor_json.c:3092
+#: src/qemu/qemu_monitor_json.c:3085
 msgid "missing return information"
 msgstr "не вистачає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:3099
+#: src/qemu/qemu_monitor_json.c:3092
 msgid "incomplete return information"
 msgstr "повернуті дані є неповними"
 
-#: src/qemu/qemu_monitor_json.c:3216
+#: src/qemu/qemu_monitor_json.c:3209
 msgid "character device reply was missing return data"
 msgstr "у повернутих даних немає відповіді символьного пристрою"
 
-#: src/qemu/qemu_monitor_json.c:3222
+#: src/qemu/qemu_monitor_json.c:3215
 msgid "character device information was not an array"
 msgstr "дані символьного пристрою не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:3232
+#: src/qemu/qemu_monitor_json.c:3225
 msgid "character device information was missing array element"
 msgstr "у елементі масиву не вистачає даних щодо символьного пристрою"
 
-#: src/qemu/qemu_monitor_json.c:3238 src/qemu/qemu_monitor_json.c:3244
+#: src/qemu/qemu_monitor_json.c:3231 src/qemu/qemu_monitor_json.c:3237
 msgid "character device information was missing filename"
 msgstr "у даних символьного пристрою немає назви файла"
 
-#: src/qemu/qemu_monitor_json.c:3255 src/qemu/qemu_monitor_text.c:2229
+#: src/qemu/qemu_monitor_json.c:3248 src/qemu/qemu_monitor_text.c:2229
 #, c-format
 msgid "failed to save chardev path '%s'"
 msgstr "не вдалося зберегти дані щодо адреси символьного пристрою «%s»"
 
-#: src/qemu/qemu_monitor_json.c:3308
+#: src/qemu/qemu_monitor_json.c:3301
 msgid "query-pci not supported in JSON mode"
 msgstr "query-pci не підтримується у режимі JSON"
 
-#: src/qemu/qemu_monitor_json.c:3390
+#: src/qemu/qemu_monitor_json.c:3383
 msgid ""
 "deleting disk is not supported.  This may leak data if disk is reassigned"
 msgstr ""
 "підтримки вилучення дисків не передбачено. Це може призвести до втрати даних "
 "під час вилучення диска."
 
-#: src/qemu/qemu_monitor_json.c:3709 src/qemu/qemu_monitor_text.c:2887
+#: src/qemu/qemu_monitor_json.c:3702 src/qemu/qemu_monitor_text.c:2887
 #, c-format
 msgid "keycode %zu is invalid: 0x%X"
 msgstr "код клавіші %zu є некоректним: 0x%X"
 
-#: src/qemu/qemu_monitor_json.c:3798
+#: src/qemu/qemu_monitor_json.c:3791
 msgid "entry was missing 'device'"
 msgstr "у запису немає «device»"
 
-#: src/qemu/qemu_monitor_json.c:3807
+#: src/qemu/qemu_monitor_json.c:3800
 msgid "entry was missing 'type'"
 msgstr "у запису немає «type»"
 
-#: src/qemu/qemu_monitor_json.c:3822
+#: src/qemu/qemu_monitor_json.c:3815
 msgid "entry was missing 'speed'"
 msgstr "у запису немає «speed»"
 
-#: src/qemu/qemu_monitor_json.c:3828
+#: src/qemu/qemu_monitor_json.c:3821
 msgid "entry was missing 'offset'"
 msgstr "у запису немає «offset»"
 
-#: src/qemu/qemu_monitor_json.c:3834
+#: src/qemu/qemu_monitor_json.c:3827
 msgid "entry was missing 'len'"
 msgstr "у запису немає «len»"
 
-#: src/qemu/qemu_monitor_json.c:3866
+#: src/qemu/qemu_monitor_json.c:3859
 msgid "reply was missing return data"
 msgstr "у відповіді не міститься даних"
 
-#: src/qemu/qemu_monitor_json.c:3872
+#: src/qemu/qemu_monitor_json.c:3865
 msgid "unrecognized format of block job information"
 msgstr "невідомий формат даних  щодо завдання з блокування"
 
-#: src/qemu/qemu_monitor_json.c:3878
+#: src/qemu/qemu_monitor_json.c:3871
 msgid "unable to determine array size"
 msgstr "не вдалося визначити розмір масиву"
 
-#: src/qemu/qemu_monitor_json.c:3886
+#: src/qemu/qemu_monitor_json.c:3879
 msgid "missing array element"
 msgstr "не вистачає елемента масиву"
 
-#: src/qemu/qemu_monitor_json.c:3918
+#: src/qemu/qemu_monitor_json.c:3911
 #, c-format
 msgid "only modern block pull supports base: %s"
 msgstr ""
 "підтримку визначення основи передбачено лише у сучасних механізмах отримання "
 "блоків: %s"
 
-#: src/qemu/qemu_monitor_json.c:3924
+#: src/qemu/qemu_monitor_json.c:3917
 msgid "backing name is supported only for block pull"
 msgstr "резервну назву передбачено лише для блокового сховища"
 
-#: src/qemu/qemu_monitor_json.c:3930
+#: src/qemu/qemu_monitor_json.c:3923
 msgid "backing name requires a base image"
 msgstr "резервна назва потребує базового образу"
 
-#: src/qemu/qemu_monitor_json.c:3936
+#: src/qemu/qemu_monitor_json.c:3929
 #, c-format
 msgid "only modern block pull supports speed: %llu"
 msgstr ""
 "підтримку визначення швидкості передбачено лише у сучасних механізмах "
 "передавання блоків: %llu"
 
-#: src/qemu/qemu_monitor_json.c:3977 src/qemu/qemu_monitor_json.c:4139
-#: src/qemu/qemu_monitor_json.c:4172
+#: src/qemu/qemu_monitor_json.c:3970 src/qemu/qemu_monitor_json.c:4132
+#: src/qemu/qemu_monitor_json.c:4165
 #, c-format
 msgid "No active operation on device: %s"
 msgstr "Жодної активної дії над пристроєм: %s"
 
-#: src/qemu/qemu_monitor_json.c:3981
+#: src/qemu/qemu_monitor_json.c:3974
 #, c-format
 msgid "Device %s in use"
 msgstr "Пристрій %s вже використовується"
 
-#: src/qemu/qemu_monitor_json.c:3984 src/qemu/qemu_monitor_json.c:4142
-#: src/qemu/qemu_monitor_json.c:4175
+#: src/qemu/qemu_monitor_json.c:3977 src/qemu/qemu_monitor_json.c:4135
+#: src/qemu/qemu_monitor_json.c:4168
 #, c-format
 msgid "Operation is not supported for device: %s"
 msgstr "Підтримки дії для пристрою не передбачено: %s"
 
-#: src/qemu/qemu_monitor_json.c:3988 src/qemu/qemu_monitor_text.c:2998
+#: src/qemu/qemu_monitor_json.c:3981 src/qemu/qemu_monitor_text.c:2998
 #: src/qemu/qemu_monitor_text.c:3097
 #, c-format
 msgid "Command '%s' is not found"
 msgstr "Команди «%s» не знайдено"
 
-#: src/qemu/qemu_monitor_json.c:3993
+#: src/qemu/qemu_monitor_json.c:3986
 #, c-format
 msgid "Unexpected error: (%s) '%s'"
 msgstr "Неочікувана помилка: (%s) «%s»"
 
-#: src/qemu/qemu_monitor_json.c:4037
+#: src/qemu/qemu_monitor_json.c:4030
 #, c-format
 msgid "block_io_throttle field '%s' missing in qemu's output"
 msgstr "у даних, виведених qemu, немає поля «%s» block_io_throttle"
 
-#: src/qemu/qemu_monitor_json.c:4056
+#: src/qemu/qemu_monitor_json.c:4049
 msgid " block_io_throttle reply was missing device list"
 msgstr " у відповіді block_io_throttle не вказано списку пристроїв"
 
-#: src/qemu/qemu_monitor_json.c:4067 src/qemu/qemu_monitor_json.c:4074
+#: src/qemu/qemu_monitor_json.c:4060 src/qemu/qemu_monitor_json.c:4067
 msgid "block_io_throttle device entry was not in expected format"
 msgstr ""
 "запис block_io_throttle щодо пристрою зберігається у неочікуваному форматі"
 
-#: src/qemu/qemu_monitor_json.c:4086
+#: src/qemu/qemu_monitor_json.c:4079
 msgid "block_io_throttle inserted entry was not in expected format"
 msgstr ""
 "вставлений запис block_io_throttle зберігається у неочікуваному форматі"
 
-#: src/qemu/qemu_monitor_json.c:4103
+#: src/qemu/qemu_monitor_json.c:4096
 #, c-format
 msgid "cannot find throttling info for device '%s'"
 msgstr "не вдалося знайти дані щодо регулювання для пристрою «%s»"
 
-#: src/qemu/qemu_monitor_json.c:4145 src/qemu/qemu_monitor_json.c:4178
+#: src/qemu/qemu_monitor_json.c:4138 src/qemu/qemu_monitor_json.c:4171
 msgid "Unexpected error"
 msgstr "Неочікувана помилка"
 
-#: src/qemu/qemu_monitor_json.c:4242
+#: src/qemu/qemu_monitor_json.c:4235
 msgid "query-version reply was missing 'return' data"
 msgstr "у відповіді на запит щодо версії немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:4248
+#: src/qemu/qemu_monitor_json.c:4241
 msgid "query-version reply was missing 'qemu' data"
 msgstr "у відповіді на запит щодо версії немає даних «qemu»"
 
-#: src/qemu/qemu_monitor_json.c:4254
+#: src/qemu/qemu_monitor_json.c:4247
 msgid "query-version reply was missing 'major' version"
 msgstr "у відповіді на запит щодо версії немає даних «major» версії"
 
-#: src/qemu/qemu_monitor_json.c:4259
+#: src/qemu/qemu_monitor_json.c:4252
 msgid "query-version reply was missing 'minor' version"
 msgstr "у відповіді на запит щодо версії немає даних «minor» версії"
 
-#: src/qemu/qemu_monitor_json.c:4264
+#: src/qemu/qemu_monitor_json.c:4257
 msgid "query-version reply was missing 'micro' version"
 msgstr "у відповіді на запит щодо версії немає даних «micro» версії"
 
-#: src/qemu/qemu_monitor_json.c:4272
+#: src/qemu/qemu_monitor_json.c:4265
 msgid "query-version reply was missing 'package' version"
 msgstr "у відповіді на запит щодо версії немає даних «package» версії"
 
-#: src/qemu/qemu_monitor_json.c:4316
+#: src/qemu/qemu_monitor_json.c:4309
 msgid "query-machines reply was missing return data"
 msgstr "у відповіді на query-machines немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:4322
+#: src/qemu/qemu_monitor_json.c:4315
 msgid "query-machines reply data was not an array"
 msgstr "дані відповіді query-machines не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4342
+#: src/qemu/qemu_monitor_json.c:4335
 msgid "query-machines reply data was missing 'name'"
 msgstr "у даних відповіді query-machines не міститься поля «name»"
 
-#: src/qemu/qemu_monitor_json.c:4352
+#: src/qemu/qemu_monitor_json.c:4345
 msgid "query-machines reply has malformed 'is-default' data"
 msgstr ""
 "форматування даних «is-default» у відповіді query-machines є помилковим"
 
-#: src/qemu/qemu_monitor_json.c:4359
+#: src/qemu/qemu_monitor_json.c:4352
 msgid "query-machines reply has malformed 'alias' data"
 msgstr "форматування даних «alias» у відповіді query-machines є помилковим"
 
-#: src/qemu/qemu_monitor_json.c:4368
+#: src/qemu/qemu_monitor_json.c:4361
 msgid "query-machines reply has malformed 'cpu-max' data"
 msgstr "форматування даних «cpu-max» у відповіді query-machines є помилковим"
 
-#: src/qemu/qemu_monitor_json.c:4428
+#: src/qemu/qemu_monitor_json.c:4421
 msgid "query-cpu-definitions reply was missing return data"
 msgstr "у відповіді на query-cpu-definitions немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:4434
+#: src/qemu/qemu_monitor_json.c:4427
 msgid "query-cpu-definitions reply data was not an array"
 msgstr "дані відповіді query-cpu-definitions не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4448
+#: src/qemu/qemu_monitor_json.c:4441
 msgid "query-cpu-definitions reply data was missing 'name'"
 msgstr "у даних відповіді query-cpu-definitions не міститься поля «name»"
 
-#: src/qemu/qemu_monitor_json.c:4496
+#: src/qemu/qemu_monitor_json.c:4489
 msgid "query-commands reply was missing return data"
 msgstr "у відповіді на запит щодо команд немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:4502
+#: src/qemu/qemu_monitor_json.c:4495
 msgid "query-commands reply data was not an array"
 msgstr "дані відповіді query-commands не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4516
+#: src/qemu/qemu_monitor_json.c:4509
 msgid "query-commands reply data was missing 'name'"
 msgstr "у даних відповіді query-commands не міститься поля «name»"
 
-#: src/qemu/qemu_monitor_json.c:4569
+#: src/qemu/qemu_monitor_json.c:4562
 msgid "query-events reply was missing return data"
 msgstr "у відповіді на запит щодо подій (query-events) немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:4575
+#: src/qemu/qemu_monitor_json.c:4568
 msgid "query-events reply data was not an array"
 msgstr "дані відповіді query-events не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4589
+#: src/qemu/qemu_monitor_json.c:4582
 msgid "query-events reply data was missing 'name'"
 msgstr "у даних відповіді query-events не міститься поля «name»"
 
-#: src/qemu/qemu_monitor_json.c:4649
+#: src/qemu/qemu_monitor_json.c:4642
 msgid "query-command-line-options reply was missing return data"
 msgstr "у відповіді query-command-line-options не міститься повернених даних"
 
-#: src/qemu/qemu_monitor_json.c:4660
+#: src/qemu/qemu_monitor_json.c:4653
 msgid "query-command-line-options reply data was not an array"
 msgstr "дані відповіді query-command-line-options не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4671
+#: src/qemu/qemu_monitor_json.c:4664
 msgid "query-command-line-options reply data was missing 'option'"
 msgstr ""
 "у даних відповіді query-command-line-options не міститься елемента «option»"
 
-#: src/qemu/qemu_monitor_json.c:4692
+#: src/qemu/qemu_monitor_json.c:4685
 msgid "query-command-line-options parameter data was not an array"
 msgstr "дані параметра query-command-line-options не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4707
+#: src/qemu/qemu_monitor_json.c:4700
 msgid "query-command-line-options parameter data was missing 'name'"
 msgstr ""
 "у даних параметра query-command-line-options не міститься елемента «name»"
 
-#: src/qemu/qemu_monitor_json.c:4764
+#: src/qemu/qemu_monitor_json.c:4757
 msgid "query-kvm reply was missing return data"
 msgstr "у відповіді query-kvm немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:4771
+#: src/qemu/qemu_monitor_json.c:4764
 msgid "query-kvm replied unexpected data"
 msgstr "query-kvm повернуто неочікувані дані"
 
-#: src/qemu/qemu_monitor_json.c:4812
+#: src/qemu/qemu_monitor_json.c:4805
 msgid "qom-list-types reply was missing return data"
 msgstr "у відповіді qom-list-types не міститься даних"
 
-#: src/qemu/qemu_monitor_json.c:4818
+#: src/qemu/qemu_monitor_json.c:4811
 msgid "qom-list-types reply data was not an array"
 msgstr "дані відповіді qom-list-types не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4832
+#: src/qemu/qemu_monitor_json.c:4825
 msgid "qom-list-types reply data was missing 'name'"
 msgstr "у даних відповіді qom-list-types не міститься поля «name»"
 
-#: src/qemu/qemu_monitor_json.c:4883
+#: src/qemu/qemu_monitor_json.c:4876
 msgid "qom-list reply was missing return data"
 msgstr "у відповіді qom-list не міститься даних"
 
-#: src/qemu/qemu_monitor_json.c:4889
+#: src/qemu/qemu_monitor_json.c:4882
 msgid "qom-list reply data was not an array"
 msgstr "дані відповіді qom-list не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:4909
+#: src/qemu/qemu_monitor_json.c:4902
 msgid "qom-list reply data was missing 'name'"
 msgstr "у даних відповіді qom-list не міститься поля «name»"
 
-#: src/qemu/qemu_monitor_json.c:4919
+#: src/qemu/qemu_monitor_json.c:4912
 msgid "qom-list reply has malformed 'type' data"
 msgstr "помилкове форматування даних «type» у відповіді qom-list"
 
-#: src/qemu/qemu_monitor_json.c:5015
+#: src/qemu/qemu_monitor_json.c:5008
 #, c-format
 msgid "qom-get invalid object property type %d"
 msgstr "некоректний тип властивості об’єкта qom-get, %d"
 
-#: src/qemu/qemu_monitor_json.c:5078
+#: src/qemu/qemu_monitor_json.c:5071
 #, c-format
 msgid "qom-set invalid object property type %d"
 msgstr "некоректний тип властивості об’єкта qom-set, %d"
 
-#: src/qemu/qemu_monitor_json.c:5134
+#: src/qemu/qemu_monitor_json.c:5127
 msgid "device-list-properties reply was missing return data"
 msgstr "у відповіді device-list-properties не міститься повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:5140
+#: src/qemu/qemu_monitor_json.c:5133
 msgid "device-list-properties reply data was not an array"
 msgstr "дані відповіді device-list-properties не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:5154
+#: src/qemu/qemu_monitor_json.c:5147
 msgid "device-list-properties reply data was missing 'name'"
 msgstr "у даних відповіді device-list-properties не міститься поля «name»"
 
-#: src/qemu/qemu_monitor_json.c:5197
+#: src/qemu/qemu_monitor_json.c:5190
 msgid "query-target reply was missing return data"
 msgstr ""
 "у відповіді на запит щодо призначення не виявлено даних щодо повернення "
 "(return)"
 
-#: src/qemu/qemu_monitor_json.c:5203
+#: src/qemu/qemu_monitor_json.c:5196
 msgid "query-target reply was missing arch data"
 msgstr ""
 "у відповіді на запит щодо призначення не виявлено даних щодо архітектури"
 
-#: src/qemu/qemu_monitor_json.c:5250
+#: src/qemu/qemu_monitor_json.c:5243
 msgid "missing migration capabilities"
 msgstr "не вказано можливостей з перенесення"
 
-#: src/qemu/qemu_monitor_json.c:5263
+#: src/qemu/qemu_monitor_json.c:5256
 msgid "missing entry in migration capabilities list"
 msgstr "не вказано запису у списку можливостей з перенесення"
 
-#: src/qemu/qemu_monitor_json.c:5269
+#: src/qemu/qemu_monitor_json.c:5262
 msgid "missing migration capability name"
 msgstr "не вказано назви можливості з перенесення"
 
-#: src/qemu/qemu_monitor_json.c:5526
+#: src/qemu/qemu_monitor_json.c:5519
 #, c-format
 msgid "%s reply was missing return data"
 msgstr "У відповіді %s немає повернутих даних"
 
-#: src/qemu/qemu_monitor_json.c:5533
+#: src/qemu/qemu_monitor_json.c:5526
 #, c-format
 msgid "%s reply data was not an array"
 msgstr "Дані відповіді %s не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:5548
+#: src/qemu/qemu_monitor_json.c:5541
 #, c-format
 msgid "%s array element does not contain data"
 msgstr "Елемент масиву %s не містить даних"
 
-#: src/qemu/qemu_monitor_json.c:5668
+#: src/qemu/qemu_monitor_json.c:5661
 #, c-format
 msgid "Unsupported char device type '%d'"
 msgstr "Непідтримуваний тип символьного пристрою «%d»"
 
-#: src/qemu/qemu_monitor_json.c:5718
+#: src/qemu/qemu_monitor_json.c:5711
 msgid "chardev-add reply was missing return data"
 msgstr "у відповіді chardev-add не міститься даних"
 
-#: src/qemu/qemu_monitor_json.c:5724
+#: src/qemu/qemu_monitor_json.c:5717
 msgid "chardev-add reply was missing pty path"
 msgstr "у відповіді chardev-add не міститься шляху до pty"
 
-#: src/qemu/qemu_monitor_json.c:5814
+#: src/qemu/qemu_monitor_json.c:5807
 msgid "missing cpuid-register in CPU data"
 msgstr ""
 "у даних щодо процесора пропущено регістр ідентифікатор процесора (cpuid)"
 
-#: src/qemu/qemu_monitor_json.c:5819
+#: src/qemu/qemu_monitor_json.c:5812
 msgid "missing or invalid cpuid-input-eax in CPU data"
 msgstr ""
 "у даних щодо процесора пропущено cpuid-input-eax або вказано некоректне "
 "значення"
 
-#: src/qemu/qemu_monitor_json.c:5824
+#: src/qemu/qemu_monitor_json.c:5817
 msgid "missing or invalid features in CPU data"
 msgstr ""
 "у даних щодо процесора пропущено можливості або вказано некоректні дані"
 
-#: src/qemu/qemu_monitor_json.c:5839
+#: src/qemu/qemu_monitor_json.c:5832
 #, c-format
 msgid "unknown CPU register '%s'"
 msgstr "невідомий регістр процесора, «%s»"
 
-#: src/qemu/qemu_monitor_json.c:5888 src/qemu/qemu_monitor_json.c:5929
+#: src/qemu/qemu_monitor_json.c:5881 src/qemu/qemu_monitor_json.c:5922
 #, c-format
 msgid "%s CPU property did not return an array"
 msgstr "властивістю процесора %s не було повернуто масив даних"
 
-#: src/qemu/qemu_monitor_json.c:5980
+#: src/qemu/qemu_monitor_json.c:5973
 #, c-format
 msgid "CPU definition retrieval isn't supported for '%s'"
 msgstr "для «%s» не передбачено отримання визначення процесора"
 
-#: src/qemu/qemu_monitor_json.c:6042
-#, fuzzy
+#: src/qemu/qemu_monitor_json.c:6035
 msgid "query-iothreads reply was missing return data"
-msgstr "у відповіді на запит щодо команд немає повернутих даних"
+msgstr "у повернутих даних немає відповіді щодо query-iothreads"
 
-#: src/qemu/qemu_monitor_json.c:6048
-#, fuzzy
+#: src/qemu/qemu_monitor_json.c:6041
 msgid "query-iothreads reply data was not an array"
-msgstr "дані відповіді query-commands не є масивом"
+msgstr "дані відповіді query-iothreads не є масивом"
 
-#: src/qemu/qemu_monitor_json.c:6068
-#, fuzzy
+#: src/qemu/qemu_monitor_json.c:6061
 msgid "query-iothreads reply data was missing 'id'"
-msgstr "у даних відповіді query-commands не міститься поля «name»"
+msgstr "у даних відповіді query-iothreads немає «id»"
 
-#: src/qemu/qemu_monitor_json.c:6078
-#, fuzzy
+#: src/qemu/qemu_monitor_json.c:6071
 msgid "query-iothreads reply has malformed 'thread-id' data"
-msgstr "форматування даних «alias» у відповіді query-machines є помилковим"
+msgstr ""
+"у відповіді query-iothreads порушено правила форматування даних «thread-id»"
 
 #: src/qemu/qemu_monitor_text.c:181
 msgid "Password request seen, but no handler available"
@@ -20161,11 +20141,11 @@ msgstr ""
 "процес завершив роботу під час спроби встановлення з’єднання з монітором: %s"
 
 #: src/qemu/qemu_process.c:2128
-#, fuzzy, c-format
+#, c-format
 msgid "got wrong number of IOThread pids from QEMU monitor. got %d, wanted %d"
 msgstr ""
-"Отримано помилкове значення кількості віртуальних процесорів від монітора "
-"QEMU. Отримано %d, мало бути %d"
+"отримано помилкові дані щодо кількості ідентифікаторів процесів IOThread від "
+"монітора QEMU. Отримано %d, потрібно %d"
 
 #: src/qemu/qemu_process.c:2189
 msgid "Failed to convert nodeset to cpuset"
@@ -20188,9 +20168,8 @@ msgid "Couldn't set link state on interface: %s"
 msgstr "Не вдалося встановити стан посилання на інтерфейсі: %s"
 
 #: src/qemu/qemu_process.c:2359
-#, fuzzy
 msgid "IOThread affinity is not supported"
-msgstr "прив’язка процесорів не підтримується"
+msgstr "підтримки прив’язки IOThread не передбачено"
 
 #: src/qemu/qemu_process.c:2712
 #, c-format
@@ -20251,59 +20230,60 @@ msgstr ""
 "Максимальна кількість процесорів перевищує встановлене обмеження архітектури "
 "процесора"
 
-#: src/qemu/qemu_process.c:3808
+#: src/qemu/qemu_process.c:3813
 msgid "host doesn't support paravirtual spinlocks"
 msgstr ""
 "основною системою не передбачено паравіртуальних блокувань перемикання "
 "(spinlocks)"
 
-#: src/qemu/qemu_process.c:3822
+#: src/qemu/qemu_process.c:3827
 msgid "host doesn't support invariant TSC"
 msgstr "у основній системі не передбачено підтримки інваріантних TSC"
 
-#: src/qemu/qemu_process.c:3900
-#, fuzzy, c-format
+#: src/qemu/qemu_process.c:3905
+#, c-format
 msgid "unable to find any master var store for loader: %s"
-msgstr "Не вдалося знайти драйвер сховища ключів: %s"
+msgstr ""
+"не вдалося знайти основного жодного сховища змінних для завантажувача: %s"
 
-#: src/qemu/qemu_process.c:3928
-#, fuzzy, c-format
+#: src/qemu/qemu_process.c:3933
+#, c-format
 msgid "Unable to read from file '%s'"
-msgstr "Не вдалося виконати читання з «%s»"
+msgstr "Не вдалося виконати читання з файла «%s»"
 
-#: src/qemu/qemu_process.c:3935
-#, fuzzy, c-format
+#: src/qemu/qemu_process.c:3940
+#, c-format
 msgid "Unable to write to file '%s'"
-msgstr "Не вдалося виконати запис до «%s»"
+msgstr "Не вдалося виконати запис до файла «%s»"
 
-#: src/qemu/qemu_process.c:3943 src/qemu/qemu_process.c:3949
-#, fuzzy, c-format
+#: src/qemu/qemu_process.c:3948 src/qemu/qemu_process.c:3954
+#, c-format
 msgid "Unable to close file '%s'"
-msgstr "не вдалося закрити %s"
+msgstr "Не вдалося закрити файл «%s»"
 
-#: src/qemu/qemu_process.c:4033 src/qemu/qemu_process.c:5039
+#: src/qemu/qemu_process.c:4038 src/qemu/qemu_process.c:5044
 #: src/uml/uml_driver.c:1054
 msgid "VM is already active"
 msgstr "Віртуальна машина вже активна"
 
-#: src/qemu/qemu_process.c:4130
+#: src/qemu/qemu_process.c:4135
 msgid "Unable to set huge path in security driver"
 msgstr "Не вдалося встановити дуже довгий рядок шляху у драйвері захисту"
 
-#: src/qemu/qemu_process.c:4203
+#: src/qemu/qemu_process.c:4208
 msgid ""
 "QEMU does not support multiple listen addresses for one graphics device."
 msgstr ""
 "У QEMU не передбачено підтримки декількох адрес очікування для одного "
 "графічного пристрою."
 
-#: src/qemu/qemu_process.c:4212 src/qemu/qemu_process.c:5063
+#: src/qemu/qemu_process.c:4217 src/qemu/qemu_process.c:5068
 #: src/uml/uml_driver.c:1076
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "не вдалося створити каталог журналу %s"
 
-#: src/qemu/qemu_process.c:4225
+#: src/qemu/qemu_process.c:4230
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
@@ -20313,30 +20293,30 @@ msgstr ""
 "увімкнено віртуалізацію у BIOS основної системи і чи налаштовано основну "
 "систему на завантаження модулів kvm."
 
-#: src/qemu/qemu_process.c:4268
+#: src/qemu/qemu_process.c:4273
 msgid "Parameter 'min_guarantee' not supported by QEMU."
 msgstr "Підтримки параметра «min_guarantee» у QEMU не передбачено."
 
-#: src/qemu/qemu_process.c:4288
+#: src/qemu/qemu_process.c:4293
 msgid "Failed to build pidfile path."
 msgstr "Не вдалося побудувати шлях до файла PID."
 
-#: src/qemu/qemu_process.c:4295
+#: src/qemu/qemu_process.c:4300
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "Не вдалося вилучити застарілий файл PID %s"
 
-#: src/qemu/qemu_process.c:4374 src/qemu/qemu_process.c:4399
+#: src/qemu/qemu_process.c:4379 src/qemu/qemu_process.c:4404
 msgid "Raw I/O is not supported on this platform"
 msgstr ""
 "Підтримки введення-виведення без обробки для цієї платформи не передбачено"
 
-#: src/qemu/qemu_process.c:4486
+#: src/qemu/qemu_process.c:4491
 #, c-format
 msgid "cannot stat fd %d"
 msgstr "не вдалося виконати stat для дескриптора файла %d"
 
-#: src/qemu/qemu_process.c:4601
+#: src/qemu/qemu_process.c:4606
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr "не вдалося встановити для balloon значення %lld"
@@ -20456,24 +20436,24 @@ msgid "too many NUMA cells: %d > %d"
 msgstr "занадто багато комірок NUMA: %d > %d"
 
 #: src/remote/remote_driver.c:1773
-#, fuzzy, c-format
+#, c-format
 msgid "%s: too many parameters '%u' for limit '%d'"
-msgstr "Забагато параметрів перенесення, «%d», при обмеженні у «%d»"
+msgstr "%s: забагато параметрів, «%u», а обмеження у «%d»"
 
 #: src/remote/remote_driver.c:1782
-#, fuzzy, c-format
+#, c-format
 msgid "%s: too many parameters '%u' for nparams '%d'"
-msgstr "Забагато параметрів перенесення, «%d», при обмеженні у «%d»"
+msgstr "%s: забагато параметрів, «%u, для nparams рівного «%d»"
 
 #: src/remote/remote_driver.c:1800
-#, fuzzy, c-format
+#, c-format
 msgid "%s: parameter %s too big for destination"
-msgstr "Значення параметра %s є занадто великим для призначення"
+msgstr "%s: параметр %s є надто великим для призначення"
 
 #: src/remote/remote_driver.c:1837
-#, fuzzy, c-format
+#, c-format
 msgid "%s: unknown parameter type: %d"
-msgstr "невідомий тип параметра: %d"
+msgstr "%s: невідомий тип параметра: %d"
 
 #: src/remote/remote_driver.c:1869
 msgid "returned number of disk errors exceeds limit"
@@ -21066,9 +21046,9 @@ msgid "Failed to connect socket to '%s'"
 msgstr "Не вдалося з’єднати сокет з «%s»"
 
 #: src/rpc/virnetsocket.c:590
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot determine basename for binary '%s'"
-msgstr "не вдалося визначити файлову систему для «%s»"
+msgstr "Не вдалося визначити базову назву для виконуваного файла «%s»"
 
 #: src/rpc/virnetsocket.c:660
 msgid "Failed to listen on socket that's about to be passed to the daemon"
@@ -22365,19 +22345,19 @@ msgid "unable to clear socket security context '%s'"
 msgstr "не вдалося зняти контекст безпеки сокета «%s»"
 
 #: src/security/security_selinux.c:2363
-#, fuzzy, c-format
+#, c-format
 msgid "cannot stat tap fd %d"
-msgstr "не вдалося виконати stat для дескриптора файла %d"
+msgstr "не вдалося отримати статистичні дані щодо файлового дескриптора tap %d"
 
 #: src/security/security_selinux.c:2369
-#, fuzzy, c-format
+#, c-format
 msgid "tap fd %d is not character device"
-msgstr "Початковим пристроєм USB %s не був символьний пристрій"
+msgstr "дескриптор файла tap %d не є символьним пристроєм"
 
 #: src/security/security_selinux.c:2375
 #, c-format
 msgid "cannot lookup default selinux label for tap fd %d"
-msgstr ""
+msgstr "не вдалося знайти типової мітки selinux для дескриптора файла tap %d"
 
 #: src/security/security_selinux.c:2409
 #, c-format
@@ -23626,9 +23606,8 @@ msgid "malformed volsize reported"
 msgstr "повідомлено про volsize з помилковим форматуванням"
 
 #: src/storage/storage_backend_zfs.c:341
-#, fuzzy
 msgid "missing source devices"
-msgstr "не вистачає пристрою джерела"
+msgstr "не вказано пристроїв-джерел"
 
 #: src/storage/storage_driver.c:97
 #, c-format
@@ -23801,15 +23780,19 @@ msgstr ""
 "(протокол %s) не передбачено"
 
 #: src/storage/storage_driver.c:2811
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot access storage file '%s' (as uid:%d, gid:%d)"
-msgstr "Не вдалося отримати доступ до резервного файла %s"
+msgstr ""
+"Не вдалося отримати доступ до файла сховища даних «%s» (від імені uid:%d, "
+"gid:%d)"
 
 #: src/storage/storage_driver.c:2816
 #, c-format
 msgid ""
 "Cannot access backing file '%s' of storage file '%s' (as uid:%d, gid:%d)"
 msgstr ""
+"Не вдалося отримати доступ до резервного файла «%s» файла сховища даних "
+"«%s» (від імені uid:%d, gid:%d)"
 
 #: src/storage/storage_driver.c:2829
 #, c-format
@@ -25101,29 +25084,33 @@ msgid "Cannot close container iterator"
 msgstr "Не вдалося закрити ітератор контейнера"
 
 #: src/util/virdbus.c:729
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Got array ref but '%s' is not a single basic type or dict with matching key"
 "+value type"
-msgstr "Отримано посилання на масив, але «%s» не є одинарним базовим типом"
+msgstr ""
+"Отримано посилання на масив, але «%s» не є одинарним базовим типом або "
+"словником із відповідністю типу ключ+значення"
 
 #: src/util/virdbus.c:766 src/util/virdbus.c:1066
 msgid "Missing variant type signature"
 msgstr "Не вказано підпису типу варіанта"
 
 #: src/util/virdbus.c:822
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown type '%x' in signature '%s'"
-msgstr "Невідомий тип, «%c», у підписі «%s»"
+msgstr "Невідомий тип «%x» у підписі «%s»"
 
 #: src/util/virdbus.c:933 src/util/virdbus.c:1144
 msgid "Not enough fields in message for signature"
 msgstr "У повідомленні недостатньо полів для підпису"
 
 #: src/util/virdbus.c:1027
-#, fuzzy, c-format
+#, c-format
 msgid "Got array ref but '%s' is not a single basic type / dict"
-msgstr "Отримано посилання на масив, але «%s» не є одинарним базовим типом"
+msgstr ""
+"Отримано посилання на масив, але «%s» не є одинарним базовим типом або "
+"словником"
 
 #: src/util/virdbus.c:1116
 #, c-format
@@ -26209,9 +26196,9 @@ msgid "Unable to query tap interface name"
 msgstr "Не вдалося визначити назву інтерфейсу tap"
 
 #: src/util/virnetdevtap.c:254 src/util/virnetdevtap.c:337
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to open %s, is tun module loaded?"
-msgstr "Не вдалося відкрити /dev/net/tun, чи завантажено модуль tun?"
+msgstr "Не вдалося відкрити %s. Чи завантажено модуль tun?"
 
 #: src/util/virnetdevtap.c:268 src/util/virnetdevtap.c:384
 msgid "Multiqueue devices are not supported on this system"
@@ -26582,31 +26569,30 @@ msgstr "не вдалося обробити %s"
 
 #: src/util/virnuma.c:859
 msgid "system pages pool can't be modified"
-msgstr ""
+msgstr "буфер системних сторінок змінювати не можна"
 
 #: src/util/virnuma.c:873 src/util/virnuma.c:920
-#, fuzzy, c-format
+#, c-format
 msgid "invalid number '%s' in '%s'"
-msgstr "Некоректне значення, «%s», «%s»"
+msgstr "некоректне число «%s» у «%s»"
 
 #: src/util/virnuma.c:907
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to write to: %s"
 msgstr "Не вдалося виконати запис до «%s»"
 
 #: src/util/virnuma.c:927
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to allocate %llu pages. Allocated only %llu"
-msgstr "Не вдалося розмістити %s"
+msgstr "Не вдалося розподілити %llu сторінок. Розподілено лише %llu"
 
 #: src/util/virnuma.c:949 src/util/virnuma.c:962
 msgid "page info is not supported on this platform"
 msgstr "підтримки отримання даних сторінки для цієї платформи не передбачено"
 
 #: src/util/virnuma.c:974
-#, fuzzy
 msgid "page pool allocation is not supported on this platform"
-msgstr "попереднє отримання пам’яті на цій платформі не передбачено"
+msgstr "на цій платформі не передбачено підтримки розподілу буфера сторінок"
 
 #: src/util/virobject.c:133
 #, c-format
@@ -26829,39 +26815,35 @@ msgid "Failed to write to pid file '%s'"
 msgstr "Не вдалося виконати запис до файла pid «%s»"
 
 #: src/util/virpidfile.c:542
-#, fuzzy
 msgid "No statedir specified"
-msgstr "не вказано ядра"
+msgstr "Не вказано значення statedir"
 
 #: src/util/virpidfile.c:553
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create user runtime directory '%s'"
-msgstr "не вдалось створити= каталог автозапуску «%s»"
+msgstr "Не вдалося створити тимчасовий каталог користувача «%s»"
 
 #: src/util/virpolkit.c:122 tests/virpolkittest.c:258
-#, fuzzy
 msgid "user cancelled authentication process"
-msgstr "непідтримуваний тип розпізнавання %d"
+msgstr "процес розпізнавання скасовано користувачем"
 
 #: src/util/virpolkit.c:125 tests/virpolkittest.c:224
-#, fuzzy
 msgid "no agent is available to authenticate"
-msgstr "numad є недоступним для цього вузла"
+msgstr "немає доступу до жодного з агентів розпізнавання"
 
 #: src/util/virpolkit.c:128 tests/virpolkittest.c:190
 #: tests/virpolkittest.c:319
-#, fuzzy
 msgid "access denied by policy"
-msgstr "доступ заборонено"
+msgstr "доступ заборонено правилами"
 
 #: src/util/virpolkit.c:156
-#, fuzzy
 msgid "Details not supported with polkit v0"
-msgstr "Можливість %s не підтримується, якщо рівень сумісності %s"
+msgstr "Для polkit версії 0 підтримки показу подробиць не передбачено"
 
 #: src/util/virpolkit.c:248
 msgid "Polkit auth attempted, even though polkit is not available"
 msgstr ""
+"Спроба виконати розпізнавання за допомогою Polkit, хоча polkit є недоступним"
 
 #: src/util/virportallocator.c:135
 #, c-format
@@ -26912,9 +26894,8 @@ msgid "Failed to reserve port %d"
 msgstr "Не вдалося зарезервувати порт %d"
 
 #: src/util/virprocess.c:97
-#, fuzzy
 msgid "Namespaces are not supported on this platform."
-msgstr "Підтримки сокетів UNIX на цій платформі не передбачено"
+msgstr "На цій платформі не передбачено підтримки просторів назв."
 
 #: src/util/virprocess.c:116
 #, c-format
@@ -28854,9 +28835,8 @@ msgid "Unable to get disk children"
 msgstr "Не вдалося отримати список дочірніх об’єктів диска"
 
 #: src/vbox/vbox_common.c:4350
-#, fuzzy
 msgid "Unable to get childMedium location"
-msgstr "Не вдалося отримати дані щодо розташування носія даних"
+msgstr "Не вдалося отримати дані щодо розташування childMedium"
 
 #: src/vbox/vbox_common.c:4357
 msgid "Unable to close disk children"
@@ -32882,29 +32862,25 @@ msgid "report domain state"
 msgstr "повідомити про стан домену"
 
 #: tools/virsh-domain-monitor.c:1977
-#, fuzzy
 msgid "report domain physical cpu usage"
-msgstr "повідомити про стан домену"
+msgstr "звітувати щодо використання доменом фізичних процесорів"
 
 #: tools/virsh-domain-monitor.c:1981
-#, fuzzy
 msgid "report domain balloon statistics"
-msgstr "повідомити про стан домену"
+msgstr ""
+"звітувати щодо статистичних даних використання додаткової пам’яті доменом"
 
 #: tools/virsh-domain-monitor.c:1985
-#, fuzzy
 msgid "report domain virtual cpu information"
-msgstr "докладні дані щодо віртуальних процесорів домену"
+msgstr "звітувати про дані щодо віртуальних процесорів домену"
 
 #: tools/virsh-domain-monitor.c:1989
-#, fuzzy
 msgid "report domain network interface information"
-msgstr "Не вдається отримати інформацію про пристрій"
+msgstr "звітувати про дані щодо інтерфейсів мережі домену"
 
 #: tools/virsh-domain-monitor.c:1993
-#, fuzzy
 msgid "report domain block device statistics"
-msgstr "показати статистичні дані щодо процесора домену"
+msgstr "звітувати про статистичні дані щодо блокових пристроїв домену"
 
 #: tools/virsh-domain-monitor.c:1997
 msgid "list only active domains"
@@ -33020,9 +32996,8 @@ msgid "subdriver of disk device"
 msgstr "піддрайвер для дискового пристрою"
 
 #: tools/virsh-domain.c:316
-#, fuzzy
 msgid "IOThread to be used by supported device"
-msgstr "Підтримки дії для пристрою не передбачено: %s"
+msgstr "IOThread, який буде використано підтримуваним пристроєм"
 
 #: tools/virsh-domain.c:320
 msgid "cache mode of disk device"
@@ -33482,9 +33457,8 @@ msgid "Copy a disk backing image chain to dest."
 msgstr "Копіювати резервну копію ланцюжка образів диска до призначення."
 
 #: tools/virsh-domain.c:1828
-#, fuzzy
 msgid "fully-qualified path of source disk"
-msgstr "шлях до диска повністю"
+msgstr "шлях до диска джерела повністю"
 
 #: tools/virsh-domain.c:1832
 msgid "path of the copy to create"
@@ -33500,7 +33474,7 @@ msgstr "повторно використати вже створену теку
 
 #: tools/virsh-domain.c:1852
 msgid "copy destination is block device instead of regular file"
-msgstr ""
+msgstr "призначенням копіювання є блоковий пристрій, а не звичайний файл"
 
 #: tools/virsh-domain.c:1856
 msgid "wait for job to reach mirroring phase"
@@ -33516,40 +33490,37 @@ msgid "implies --wait, quit when mirroring starts"
 msgstr "додає --wait, вийти, коли розпочнеться створення дзеркала"
 
 #: tools/virsh-domain.c:1880
-#, fuzzy
 msgid "filename containing XML description of the copy destination"
-msgstr "файл, у якому містить опис пристрою у форматі XML"
+msgstr "назва файла, щоб містить опис призначення копіювання у форматі XML"
 
 #: tools/virsh-domain.c:1884
-#, fuzzy
 msgid "format of the destination file"
-msgstr "використовувати необроблений файл призначення"
+msgstr "формат файла призначення"
 
 #: tools/virsh-domain.c:1888
 msgid "power-of-two granularity to use during the copy"
 msgstr ""
+"модульність (степінь двійки), якою слід скористатися під час копіювання"
 
 #: tools/virsh-domain.c:1892
 msgid "maximum amount of in-flight data during the copy"
-msgstr ""
+msgstr "максимальний об’єм транзитних даних під час копіювання"
 
 #: tools/virsh-domain.c:1943
 msgid "cannot mix --pivot and --finish"
 msgstr "не можна використовувати одночасно --pivot і --finish"
 
 #: tools/virsh-domain.c:1978
-#, fuzzy
 msgid "granularity must be a number"
-msgstr "ширина каналу має бути числом"
+msgstr "модульність має бути числом"
 
 #: tools/virsh-domain.c:1982
-#, fuzzy
 msgid "buf-size must be a number"
-msgstr "ширина каналу має бути числом"
+msgstr "розмір буфера має бути числом"
 
 #: tools/virsh-domain.c:1992
 msgid "need either --dest or --xml"
-msgstr ""
+msgstr "слід вказати --dest або --xml"
 
 #: tools/virsh-domain.c:2065
 msgid "Block Copy started"
@@ -33588,11 +33559,14 @@ msgstr "перервати поточне завдання для вказано
 #: tools/virsh-domain.c:2172
 msgid "implies --abort; request but don't wait for job end"
 msgstr ""
+"використовує --abort; надіслати запит, але не очікувати на завершення "
+"виконання завдання"
 
 #: tools/virsh-domain.c:2176
-#, fuzzy
 msgid "implies --abort; conclude and pivot a copy or commit job"
-msgstr "завершити і обернути завдання з копіювання"
+msgstr ""
+"використовує --abort; завершити і обернути завдання з копіювання або "
+"внесення змін"
 
 #: tools/virsh-domain.c:2180
 msgid "get active job information for the specified disk"
@@ -33600,11 +33574,12 @@ msgstr "отримати дані щодо активного завдання �
 
 #: tools/virsh-domain.c:2184
 msgid "with --info, get bandwidth in bytes rather than MiB/s"
-msgstr ""
+msgstr "разом з --info, отримати пропускну здатність у байтах, а не у МіБ/с"
 
 #: tools/virsh-domain.c:2188
 msgid "implies --info; output details rather than human summary"
 msgstr ""
+"використовує --info; вивести подробиці, а не резюме для зручного читання"
 
 #: tools/virsh-domain.c:2192
 msgid "set the Bandwidth limit in MiB/s"
@@ -33624,23 +33599,22 @@ msgid "Active Block Commit"
 msgstr "Активне внесення блоку"
 
 #: tools/virsh-domain.c:2233
-#, fuzzy
 msgid "conflict between abort, info, and bandwidth modes"
-msgstr "конфлікт між режимами --abort, --info та --bandwidth"
+msgstr "конфлікт між режимами abort, info та bandwidth"
 
 #: tools/virsh-domain.c:2238
 msgid "--bytes requires info mode"
-msgstr ""
+msgstr "--bytes потребує використання режиму info"
 
 #: tools/virsh-domain.c:2289
 #, c-format
 msgid "overflow in converting %ld MiB/s to bytes\n"
-msgstr ""
+msgstr "переповнення під час перетворення %ld МіБ/с на байти\n"
 
 #: tools/virsh-domain.c:2298
-#, fuzzy, c-format
+#, c-format
 msgid "No current block job for %s"
-msgstr "не вдалося встановити режим блокування для «%s»"
+msgstr "Немає поточних блокових завдань для %s"
 
 #: tools/virsh-domain.c:2304
 #, c-format
@@ -33650,11 +33624,15 @@ msgid ""
 " cur=%llu\n"
 " end=%llu\n"
 msgstr ""
+" тип=%s\n"
+" проп. здатність=%lu\n"
+" поточ.=%llu\n"
+" кінц.=%llu\n"
 
 #: tools/virsh-domain.c:2313
-#, fuzzy, c-format
+#, c-format
 msgid "    Bandwidth limit: %llu bytes/s (%-.3lf %s/s)"
-msgstr "    Обмеження ширини каналу: %lu МіБ/с\n"
+msgstr "    Обмеження пропускної здатності: %llu байт/с (%-.3lf %s/s)"
 
 #: tools/virsh-domain.c:2330 tools/virsh-domain.c:2333
 msgid "Populate a disk from its backing image."
@@ -33952,9 +33930,8 @@ msgid "remove all domain snapshot metadata, if inactive"
 msgstr "вилучити всі метадані знімка домену, якщо він неактивний"
 
 #: tools/virsh-domain.c:3260
-#, fuzzy
 msgid "remove nvram file, if inactive"
-msgstr "вилучити всі метадані знімка домену, якщо він неактивний"
+msgstr "вилучити файл nvram, якщо неактивний"
 
 #: tools/virsh-domain.c:3315
 msgid ""
@@ -34626,7 +34603,7 @@ msgstr "Повертає дані щодо завдань, які виконую
 
 #: tools/virsh-domain.c:5397
 msgid "return statistics of a recently completed job"
-msgstr ""
+msgstr "повернути статистичні дані щодо нещодавно завершеного завдання"
 
 #: tools/virsh-domain.c:5405
 msgid "None"
@@ -34649,9 +34626,8 @@ msgid "Cancelled"
 msgstr "Скасовано"
 
 #: tools/virsh-domain.c:5479
-#, fuzzy
 msgid "Optional flags are not supported by the daemon"
-msgstr "Біти типів статистики 0x%x не підтримуються цією фоновою службою"
+msgstr "У фоновій службі не передбачено підтримки додаткових прапорців"
 
 #: tools/virsh-domain.c:5490
 msgid "Job type:"
@@ -34690,9 +34666,8 @@ msgid "Memory total:"
 msgstr "Загалом пам’яті:"
 
 #: tools/virsh-domain.c:5529
-#, fuzzy
 msgid "Memory bandwidth:"
-msgstr "Залишилося пам’яті:"
+msgstr "Пропускна здатність пам’яті:"
 
 #: tools/virsh-domain.c:5535
 msgid "File processed:"
@@ -34707,9 +34682,8 @@ msgid "File total:"
 msgstr "Загалом файлів:"
 
 #: tools/virsh-domain.c:5548
-#, fuzzy
 msgid "File bandwidth:"
-msgstr "Залишилося файлів:"
+msgstr "Пропускна здатність за файлами:"
 
 #: tools/virsh-domain.c:5557
 msgid "Constant pages:"
@@ -34724,18 +34698,16 @@ msgid "Normal data:"
 msgstr "Звичайні дані:"
 
 #: tools/virsh-domain.c:5582
-#, fuzzy
 msgid "Total downtime:"
-msgstr "Очікуваний час непрацездатності:"
+msgstr "Загальний час непрацездатності:"
 
 #: tools/virsh-domain.c:5585
 msgid "Expected downtime:"
 msgstr "Очікуваний час непрацездатності:"
 
 #: tools/virsh-domain.c:5594
-#, fuzzy
 msgid "Setup time:"
-msgstr "Час CPU:"
+msgstr "Час налаштування:"
 
 #: tools/virsh-domain.c:5602
 msgid "Compression cache:"
@@ -35192,37 +35164,33 @@ msgid "Failed to collect new description/title"
 msgstr "Не вдалося зібрати новий опис або заголовок"
 
 #: tools/virsh-domain.c:7269
-#, fuzzy
 msgid "Domain title not changed\n"
-msgstr "Опис домену не змінено.\n"
+msgstr "Заголовок домену не змінено\n"
 
 #: tools/virsh-domain.c:7270
-#, fuzzy
 msgid "Domain description not changed\n"
-msgstr "Опис домену не змінено.\n"
+msgstr "Опис домену не змінено\n"
 
 #: tools/virsh-domain.c:7282
-#, fuzzy
 msgid "Failed to set new domain title"
-msgstr "Не вдалося отримати дані щодо стану домену"
+msgstr "Не вдалося встановити новий заголовок домену"
 
 #: tools/virsh-domain.c:7283
 msgid "Failed to set new domain description"
 msgstr "Не вдалося встановити новий опис домену"
 
 #: tools/virsh-domain.c:7287
-#, fuzzy
 msgid "Domain title updated successfully"
-msgstr "Опис домену успішно оновлено"
+msgstr "Успішно оновлено заголовок домену"
 
 #: tools/virsh-domain.c:7288
 msgid "Domain description updated successfully"
 msgstr "Опис домену успішно оновлено"
 
 #: tools/virsh-domain.c:7299
-#, fuzzy, c-format
+#, c-format
 msgid "No title for domain: %s"
-msgstr "Немає опису домену: %s"
+msgstr "Немає заголовка домену: %s"
 
 #: tools/virsh-domain.c:7300
 #, c-format
@@ -35812,9 +35780,8 @@ msgid "force convergence during live migration"
 msgstr "примусове зближення під час інтерактивної міграції"
 
 #: tools/virsh-domain.c:9217
-#, fuzzy
 msgid "support memory pinning during RDMA live migration"
-msgstr "примусове зближення під час інтерактивної міграції"
+msgstr "підтримувати прив’язку пам’яті під час інтерактивного перенесення RDMA"
 
 #: tools/virsh-domain.c:9221
 msgid "abort on soft errors during migration"
@@ -36410,14 +36377,14 @@ msgid "event 'device-removed' for domain %s: %s\n"
 msgstr "подія «device-removed» для домену %s: %s\n"
 
 #: tools/virsh-domain.c:11472
-#, fuzzy, c-format
+#, c-format
 msgid "event 'tunable' for domain %s:\n"
-msgstr "подія «%s» для домену %s\n"
+msgstr "подія «tunable» для домену %s:\n"
 
 #: tools/virsh-domain.c:11478
-#, fuzzy, c-format
+#, c-format
 msgid "\t%s: %s\n"
-msgstr "%s: %s"
+msgstr "\t%s: %s\n"
 
 #: tools/virsh-domain.c:11528
 msgid "Domain Events"
@@ -36730,42 +36697,36 @@ msgid "cell number must be non-negative integer or -1"
 msgstr "кількість комірок має бути невід’ємною або рівною -1"
 
 #: tools/virsh-host.c:403
-#, fuzzy
 msgid "missing pagesize argument"
-msgstr "не вистачає аргументу"
+msgstr "пропущено аргумент розміру сторінки"
 
 #: tools/virsh-host.c:436
 msgid "Manipulate pages pool size"
-msgstr ""
+msgstr "Керування розміром буфера сторінок"
 
 #: tools/virsh-host.c:439
-#, fuzzy
 msgid "Allocate or free some pages in the pool for NUMA cell."
-msgstr "показати дані щодо доступних вільних сторінок для комірки NUMA."
+msgstr "Розподілити або вивільнити сторінки у буфері для комірки NUMA."
 
 #: tools/virsh-host.c:452
-#, fuzzy
 msgid "page count"
-msgstr "кількість помилок:"
+msgstr "кількість сторінок"
 
 #: tools/virsh-host.c:460
 msgid "instead of setting new pool size add pages to it"
-msgstr ""
+msgstr "замість встановлення нового розміру буфера додати до нього сторінки"
 
 #: tools/virsh-host.c:464
-#, fuzzy
 msgid "set on all NUMA cells"
-msgstr "вивести вільні сторінки для усіх комірок NUMA"
+msgstr "встановити на усіх комірках NUMA"
 
 #: tools/virsh-host.c:494
-#, fuzzy
 msgid "pagesize has to be a number"
 msgstr "розмір сторінки має бути числом"
 
 #: tools/virsh-host.c:500
-#, fuzzy
 msgid "pagecount hat to be a number"
-msgstr "розмір сторінки має бути числом"
+msgstr "кількість сторінок має бути числом"
 
 #: tools/virsh-host.c:565
 msgid "connection vcpu maximum"
@@ -39913,65 +39874,5 @@ msgstr "Не вдалося змінити каталог на %s"
 msgid "Unable to exec shell %s"
 msgstr "Не вдалося виконати оболонку %s"
 
-#~ msgid "Policy kit denied action %s from pid %lld, uid %d with status %d"
-#~ msgstr "PolicyKit заборонено дію %s з pid %lld, uid %d зі станом %d"
-
-#~ msgid "authentication cancelled by user"
-#~ msgstr "розпізнавання скасовано користувачем"
-
-#~ msgid "polkit: %s"
-#~ msgstr "polkit: %s"
-
-#~ msgid "cannot get peer socket identity"
-#~ msgstr "не вдається отримати ідентифікаційні дані сокету сусіднього вузла"
-
-#~ msgid "Failed to lookup policy kit caller: %s"
-#~ msgstr "Помилка під час пошуку модуля виклику policy kit: %s"
-
-#~ msgid "Failed to create polkit action %s"
-#~ msgstr "Не вдалося створити дію polkit %s"
-
-#~ msgid "Failed to create polkit context %s"
-#~ msgstr "Не вдалося створити контекст polkit %s"
-
-#~ msgid "Policy kit failed to check authorization %d %s"
-#~ msgstr "Помилка у Policy kit при перевірці авторизації %d %s"
-
-#~ msgid "Policy kit denied action %s from pid %lld, uid %d, result: %s"
-#~ msgstr "PolicyKit заборонено дію %s з pid %lld, uid %d, результат: %s"
-
-#~ msgid "client tried unsupported PolicyKit init request"
-#~ msgstr "клієнт намагався виконати неприпустимий запит init PolicyKit"
-
-#~ msgid "Policy kit denied action %s from %s: exit status %d"
-#~ msgstr "PolicyKit заборонено дію %s %s: стан виходу %d"
-
-#~ msgid "Backing file '%s' of image '%s' is missing."
-#~ msgstr "Не вистачає резервного файла «%s» образу «%s»."
-
-#~ msgid "unrecognized format '%s'"
-#~ msgstr "невідомий формат «%s»"
-
-#~ msgid "only tcp URIs are supported for KVM/QEMU migrations"
-#~ msgstr "перенесення KVM/QEMU можливе лише за використання адрес TCP"
-
-#~ msgid "returned number of parameters exceeds limit"
-#~ msgstr "кількість повернутих параметрів перевищує максимальну можливу"
-
-#~ msgid "Unable to enable port reuse"
-#~ msgstr "Не вдалося увімкнути повторне використання портів"
-
-#~ msgid "Cannot get namespaces for %llu"
-#~ msgstr "Не вдалося отримати простори назв для %llu"
-
-#~ msgid "Cannot set namespaces"
-#~ msgstr "Не вдалося встановити простори назв"
-
-#~ msgid "Mount namespaces are not available on this platform"
-#~ msgstr "Простори назв для монтування недоступні на цій платформі"
-
-#~ msgid "don't wait for --abort to complete"
-#~ msgstr "не очікувати на --abort для завершення"
-
-#~ msgid "page size must be at least 1KiB"
-#~ msgstr "розмір сторінки має бути не меншим за 1 КіБ"
+#~ msgid "domain is not being migrated"
+#~ msgstr "домен не переноситься"

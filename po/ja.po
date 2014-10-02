@@ -19,7 +19,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-09-29 20:22+0800\n"
+"POT-Creation-Date: 2014-10-01 15:55+0800\n"
 "PO-Revision-Date: 2014-08-29 13:11+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/libvirt/"
@@ -1068,23 +1068,23 @@ msgstr "ドメインが実行中です"
 #: src/qemu/qemu_driver.c:10398 src/qemu/qemu_driver.c:10520
 #: src/qemu/qemu_driver.c:10768 src/qemu/qemu_driver.c:11865
 #: src/qemu/qemu_driver.c:11903 src/qemu/qemu_driver.c:11963
-#: src/qemu/qemu_driver.c:12020 src/qemu/qemu_driver.c:12070
-#: src/qemu/qemu_driver.c:12125 src/qemu/qemu_driver.c:12191
-#: src/qemu/qemu_driver.c:13163 src/qemu/qemu_driver.c:14663
-#: src/qemu/qemu_driver.c:14672 src/qemu/qemu_driver.c:14820
-#: src/qemu/qemu_driver.c:14901 src/qemu/qemu_driver.c:15016
-#: src/qemu/qemu_driver.c:15171 src/qemu/qemu_driver.c:15206
-#: src/qemu/qemu_driver.c:15353 src/qemu/qemu_driver.c:15437
-#: src/qemu/qemu_driver.c:15547 src/qemu/qemu_driver.c:15914
-#: src/qemu/qemu_driver.c:16134 src/qemu/qemu_driver.c:16200
-#: src/qemu/qemu_driver.c:16669 src/qemu/qemu_driver.c:16811
-#: src/qemu/qemu_driver.c:16871 src/qemu/qemu_driver.c:16909
-#: src/qemu/qemu_driver.c:16949 src/qemu/qemu_driver.c:17020
-#: src/qemu/qemu_driver.c:17032 src/qemu/qemu_driver.c:17131
-#: src/qemu/qemu_driver.c:17143 src/qemu/qemu_driver.c:17320
-#: src/qemu/qemu_driver.c:17381 src/qemu/qemu_driver.c:17397
-#: src/qemu/qemu_driver.c:17444 src/qemu/qemu_driver.c:17494
-#: src/qemu/qemu_migration.c:2415 src/qemu/qemu_migration.c:4521
+#: src/qemu/qemu_driver.c:12020 src/qemu/qemu_driver.c:12064
+#: src/qemu/qemu_driver.c:12119 src/qemu/qemu_driver.c:12185
+#: src/qemu/qemu_driver.c:13157 src/qemu/qemu_driver.c:14657
+#: src/qemu/qemu_driver.c:14666 src/qemu/qemu_driver.c:14814
+#: src/qemu/qemu_driver.c:14895 src/qemu/qemu_driver.c:15010
+#: src/qemu/qemu_driver.c:15165 src/qemu/qemu_driver.c:15200
+#: src/qemu/qemu_driver.c:15347 src/qemu/qemu_driver.c:15431
+#: src/qemu/qemu_driver.c:15541 src/qemu/qemu_driver.c:15908
+#: src/qemu/qemu_driver.c:16128 src/qemu/qemu_driver.c:16194
+#: src/qemu/qemu_driver.c:16663 src/qemu/qemu_driver.c:16805
+#: src/qemu/qemu_driver.c:16865 src/qemu/qemu_driver.c:16903
+#: src/qemu/qemu_driver.c:16943 src/qemu/qemu_driver.c:17014
+#: src/qemu/qemu_driver.c:17026 src/qemu/qemu_driver.c:17125
+#: src/qemu/qemu_driver.c:17137 src/qemu/qemu_driver.c:17314
+#: src/qemu/qemu_driver.c:17375 src/qemu/qemu_driver.c:17391
+#: src/qemu/qemu_driver.c:17438 src/qemu/qemu_driver.c:17488
+#: src/qemu/qemu_migration.c:2417 src/qemu/qemu_migration.c:4523
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2601
 #: src/xen/xen_driver.c:2644 src/xen/xm_internal.c:677
 msgid "domain is not running"
@@ -1125,7 +1125,7 @@ msgstr ""
 msgid "Cannot remove state PID file %s"
 msgstr ""
 
-#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4433
+#: src/bhyve/bhyve_process.c:176 src/qemu/qemu_process.c:4438
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "ドメイン %s が現れませんでした"
@@ -7263,7 +7263,7 @@ msgstr "ホスト CPU モデルが要求された CPU モデル %s と一致し�
 msgid "Cannot find CPU model with PVR 0x%08x"
 msgstr "PVR 0x%08x を持つ CPU モデルを見つけられませんでした"
 
-#: src/cpu/cpu_powerpc.c:558 src/cpu/cpu_x86.c:2140
+#: src/cpu/cpu_powerpc.c:558 src/cpu/cpu_x86.c:2138
 #, c-format
 msgid "Unexpected CPU mode: %d"
 msgstr "予期しない CPU モード: %d"
@@ -7795,7 +7795,7 @@ msgstr "スナップショット '%s' がすでに存在します"
 msgid "Could not create snapshot: %s"
 msgstr "スナップショットを作成できませんでした: %s"
 
-#: src/esx/esx_driver.c:4602 src/qemu/qemu_driver.c:13988
+#: src/esx/esx_driver.c:4602 src/qemu/qemu_driver.c:13982
 #: src/test/test_driver.c:6750 src/vbox/vbox_common.c:6298
 #, c-format
 msgid "snapshot '%s' does not have a parent"
@@ -9480,16 +9480,16 @@ msgstr "セキュアフラグのある virDomainGetXMLDesc"
 msgid "domainMigratePrepare did not set uri"
 msgstr "domainMigratePrepare は uri をセットしませんでした"
 
-#: src/libvirt.c:4677 src/qemu/qemu_migration.c:4001
+#: src/libvirt.c:4677 src/qemu/qemu_migration.c:4003
 msgid "domainMigratePrepare2 did not set uri"
 msgstr "domainMigratePrepare2 は uri をセットしませんでした"
 
-#: src/libvirt.c:4712 src/libvirt.c:4968 src/qemu/qemu_migration.c:4044
-#: src/qemu/qemu_migration.c:4292
+#: src/libvirt.c:4712 src/libvirt.c:4968 src/qemu/qemu_migration.c:4046
+#: src/qemu/qemu_migration.c:4294
 msgid "finish step ignored that migration was cancelled"
 msgstr ""
 
-#: src/libvirt.c:4885 src/qemu/qemu_migration.c:4213
+#: src/libvirt.c:4885 src/qemu/qemu_migration.c:4215
 msgid "domainMigratePrepare3 did not set uri"
 msgstr "domainMigratePrepare3 が URI を設定していません"
 
@@ -9519,7 +9519,7 @@ msgid "offline migration is not supported by the source host"
 msgstr "オフラインマイグレーションがソースホストによりサポートされません"
 
 #: src/libvirt.c:5359 src/libvirt.c:5588 src/libvirt.c:5780
-#: src/qemu/qemu_migration.c:4445
+#: src/qemu/qemu_migration.c:4447
 msgid "offline migration is not supported by the destination host"
 msgstr "オフラインマイグレーションがあて先ホストによりサポートされません"
 
@@ -9535,7 +9535,7 @@ msgstr "peer2peer フラグを使用せずにトンネルマイグレーショ�
 msgid "use virDomainMigrateToURI3 for peer-to-peer migration"
 msgstr "ピアツーピアの移行に virDomainMigrateToURI3 を使用します"
 
-#: src/libvirt.c:5815 src/qemu/qemu_migration.c:4438
+#: src/libvirt.c:5815 src/qemu/qemu_migration.c:4440
 msgid ""
 "Migration APIs with extensible parameters are not supported but extended "
 "parameters were passed"
@@ -11164,7 +11164,7 @@ msgid "default"
 msgstr "デフォルト"
 
 #: src/lxc/lxc_driver.c:3460 src/libxl/libxl_driver.c:4004
-#: src/qemu/qemu_driver.c:14856 src/uml/uml_driver.c:2629
+#: src/qemu/qemu_driver.c:14850 src/uml/uml_driver.c:2629
 #: src/xen/xen_driver.c:2672
 #, c-format
 msgid "character device %s is not using a PTY"
@@ -11353,7 +11353,7 @@ msgstr "稼働中のデバイスを変更できません"
 msgid "domain is not active"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16817
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:16811
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT コントローラーがマウントされていません"
 
@@ -11958,12 +11958,12 @@ msgstr ""
 msgid "Named device aliases are not supported"
 msgstr "名前付きデバイスのエイリアスはサポートされません"
 
-#: src/libxl/libxl_driver.c:3997 src/qemu/qemu_driver.c:14849
+#: src/libxl/libxl_driver.c:3997 src/qemu/qemu_driver.c:14843
 #, c-format
 msgid "cannot find character device %s"
 msgstr "キャラクターデバイス %s を見つけられませんでした"
 
-#: src/libxl/libxl_driver.c:4029 src/qemu/qemu_driver.c:14869
+#: src/libxl/libxl_driver.c:4029 src/qemu/qemu_driver.c:14863
 msgid "Active console session exists for this domain"
 msgstr "使用中のコンソールセッションがこのドメインに対して存在します"
 
@@ -12120,12 +12120,12 @@ msgid "domain has assigned host devices"
 msgstr ""
 
 #: src/libxl/libxl_migration.c:242 src/openvz/openvz_driver.c:2307
-#: src/qemu/qemu_migration.c:3051
+#: src/qemu/qemu_migration.c:3053
 msgid "no domain XML passed"
 msgstr "ドメイン XML が渡されていません"
 
 #: src/libxl/libxl_migration.c:300 src/openvz/openvz_driver.c:2330
-#: src/qemu/qemu_migration.c:2968
+#: src/qemu/qemu_migration.c:2970
 msgid ""
 "hostname on destination resolved to localhost, but migration requires an FQDN"
 msgstr ""
@@ -12138,7 +12138,7 @@ msgid "unable to parse URI: %s"
 msgstr "URI を構文解析できません: %s"
 
 #: src/libxl/libxl_migration.c:331 src/openvz/openvz_driver.c:2346
-#: src/qemu/qemu_migration.c:2995
+#: src/qemu/qemu_migration.c:2997
 #, c-format
 msgid "missing host in migration URI: %s"
 msgstr "マイグレーション URI にホストがありません: %s"
@@ -12674,9 +12674,9 @@ msgid "libhal_get_all_devices failed"
 msgstr "libhal_get_all_devices に失敗しました"
 
 #: src/node_device/node_device_hal.c:722 src/qemu/qemu_migration.c:1505
-#: src/qemu/qemu_migration.c:2000 src/qemu/qemu_migration.c:2006
-#: src/qemu/qemu_migration.c:2012 src/qemu/qemu_migration.c:2064
-#: src/qemu/qemu_migration.c:3593 src/util/virdbus.c:1536
+#: src/qemu/qemu_migration.c:2002 src/qemu/qemu_migration.c:2008
+#: src/qemu/qemu_migration.c:2014 src/qemu/qemu_migration.c:2066
+#: src/qemu/qemu_migration.c:3595 src/util/virdbus.c:1536
 #, c-format
 msgid "%s: %s"
 msgstr "%s: %s"
@@ -15011,7 +15011,7 @@ msgstr "破棄はこの QEMU バイナリーによりサポートされません
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "ディスク aio モードはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16419
+#: src/qemu/qemu_command.c:3663 src/qemu/qemu_driver.c:16413
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "ブロック I/O スロットリングはこの QEMU バイナリーでサポートされません"
 
@@ -16562,8 +16562,8 @@ msgstr "一致する id %d のドメインはありません"
 msgid "domain is pmsuspended"
 msgstr "ドメインがサスペンドされています"
 
-#: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4923
-#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4623
+#: src/qemu/qemu_driver.c:1909 src/qemu/qemu_migration.c:4925
+#: src/qemu/qemu_process.c:599 src/qemu/qemu_process.c:4628
 msgid "resume operation failed"
 msgstr "レジューム操作は失敗しました"
 
@@ -16642,13 +16642,13 @@ msgstr "'%s' を作成している子プロセスからエラーが起きまし�
 msgid "Error from child process opening '%s'"
 msgstr "'%s' を開いている子プロセスからエラーが起きました"
 
-#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3917
+#: src/qemu/qemu_driver.c:3019 src/qemu/qemu_process.c:3922
 #: src/storage/storage_backend.c:460
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "ファイル '%s' の作成に失敗しました"
 
-#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3908
+#: src/qemu/qemu_driver.c:3020 src/qemu/qemu_process.c:3913
 #: src/storage/storage_backend_fs.c:1433
 #: src/storage/storage_backend_gluster.c:686 src/util/virfile.c:1289
 #: src/util/virstoragefile.c:878
@@ -16667,13 +16667,13 @@ msgid "unable to write %s"
 msgstr "%s を書き込みできません"
 
 #: src/qemu/qemu_driver.c:3183 src/qemu/qemu_driver.c:3198
-#: src/qemu/qemu_driver.c:3732 src/qemu/qemu_driver.c:12535
-#: src/qemu/qemu_driver.c:13338 src/qemu/qemu_driver.c:14301
-#: src/qemu/qemu_driver.c:14353 src/qemu/qemu_driver.c:15049
+#: src/qemu/qemu_driver.c:3732 src/qemu/qemu_driver.c:12529
+#: src/qemu/qemu_driver.c:13332 src/qemu/qemu_driver.c:14295
+#: src/qemu/qemu_driver.c:14347 src/qemu/qemu_driver.c:15043
 #: src/qemu/qemu_hotplug.c:538 src/qemu/qemu_hotplug.c:1049
-#: src/qemu/qemu_migration.c:3657 src/qemu/qemu_migration.c:3994
-#: src/qemu/qemu_migration.c:4453 src/qemu/qemu_migration.c:4838
-#: src/qemu/qemu_migration.c:5049 src/qemu/qemu_migration.c:5143
+#: src/qemu/qemu_migration.c:3659 src/qemu/qemu_migration.c:3996
+#: src/qemu/qemu_migration.c:4455 src/qemu/qemu_migration.c:4840
+#: src/qemu/qemu_migration.c:5051 src/qemu/qemu_migration.c:5145
 #: src/qemu/qemu_process.c:574 src/qemu/qemu_process.c:587
 msgid "guest unexpectedly quit"
 msgstr "ゲストが予期せず終了しました"
@@ -16687,7 +16687,7 @@ msgid "Invalid save image format specified in configuration file"
 msgstr "無効なイメージ保存形式が設定ファイルにおいて指定されました"
 
 #: src/qemu/qemu_driver.c:3322 src/qemu/qemu_driver.c:3414
-#: src/qemu/qemu_driver.c:13367
+#: src/qemu/qemu_driver.c:13361
 msgid ""
 "Compression program for image format in configuration file isn't available"
 msgstr "設定ファイルにあるイメージ形式に対する圧縮プログラムが利用できません"
@@ -16925,8 +16925,8 @@ msgstr "管理保存ファイル %s を削除できません"
 msgid "domain is already running"
 msgstr "ドメインがすでに実行中です"
 
-#: src/qemu/qemu_driver.c:6501 src/qemu/qemu_driver.c:13520
-#: src/qemu/qemu_driver.c:14180
+#: src/qemu/qemu_driver.c:6501 src/qemu/qemu_driver.c:13514
+#: src/qemu/qemu_driver.c:14174
 msgid "domain has active block job"
 msgstr ""
 
@@ -17173,77 +17173,73 @@ msgstr ""
 "入力中のマイグレーションを中断できません、代わりに virDomainDestroy を使用し"
 "ます"
 
-#: src/qemu/qemu_driver.c:12028
-msgid "domain is not being migrated"
-msgstr "ドメインはマイグレーションされていません"
-
-#: src/qemu/qemu_driver.c:12083 src/qemu/qemu_driver.c:12138
+#: src/qemu/qemu_driver.c:12077 src/qemu/qemu_driver.c:12132
 msgid "Compressed migration is not supported by QEMU binary"
 msgstr "圧縮マイグレーションはこの QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_driver.c:12180 src/qemu/qemu_driver.c:15286
-#: src/qemu/qemu_driver.c:15743 src/qemu/qemu_driver.c:15930
-#: src/qemu/qemu_monitor.c:2081 tools/virsh-domain.c:2012
+#: src/qemu/qemu_driver.c:12174 src/qemu/qemu_driver.c:15280
+#: src/qemu/qemu_driver.c:15737 src/qemu/qemu_driver.c:15924
+#: src/qemu/qemu_monitor.c:2075 tools/virsh-domain.c:2012
 #, c-format
 msgid "bandwidth must be less than %llu"
 msgstr "帯域は %llu より小さい必要があります"
 
-#: src/qemu/qemu_driver.c:12318
+#: src/qemu/qemu_driver.c:12312
 msgid "domain is already quiesced"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12358
+#: src/qemu/qemu_driver.c:12352
 msgid "domain is not quiesced"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12449
+#: src/qemu/qemu_driver.c:12443
 #, c-format
 msgid "unknown image format of '%s' and format probing is disabled"
 msgstr "'%s' のイメージ形式が不明で、形式の検知が無効化されています"
 
-#: src/qemu/qemu_driver.c:12569 src/qemu/qemu_driver.c:13435
+#: src/qemu/qemu_driver.c:12563 src/qemu/qemu_driver.c:13429
 msgid "resuming after snapshot failed"
 msgstr "スナップショット失敗後に再開中"
 
-#: src/qemu/qemu_driver.c:12605
+#: src/qemu/qemu_driver.c:12599
 #, c-format
 msgid ""
 "external inactive snapshots are not supported on 'network' disks using '%s' "
 "protocol"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12617 src/qemu/qemu_driver.c:12705
+#: src/qemu/qemu_driver.c:12611 src/qemu/qemu_driver.c:12699
 #, c-format
 msgid "external inactive snapshots are not supported on '%s' disks"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12631
+#: src/qemu/qemu_driver.c:12625
 msgid "external active snapshots are not supported on scsi passthrough devices"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12667
+#: src/qemu/qemu_driver.c:12661
 #, c-format
 msgid ""
 "external active snapshots are not supported on 'network' disks using '%s' "
 "protocol"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12680
+#: src/qemu/qemu_driver.c:12674
 #, c-format
 msgid "external active snapshots are not supported on '%s' disks"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12750 src/qemu/qemu_driver.c:15600
+#: src/qemu/qemu_driver.c:12744 src/qemu/qemu_driver.c:15594
 #, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr "ディスク %s の統計情報を取得できません: %s"
 
-#: src/qemu/qemu_driver.c:12755
+#: src/qemu/qemu_driver.c:12749
 #, c-format
 msgid "missing existing file for disk %s: %s"
 msgstr "ディスク %s に対して既存のファイルがありません: %s"
 
-#: src/qemu/qemu_driver.c:12761
+#: src/qemu/qemu_driver.c:12755
 #, c-format
 msgid ""
 "external snapshot file for disk %s already exists and is not a block device: "
@@ -17252,23 +17248,23 @@ msgstr ""
 "ディスク %s に対する外部スナップショットファイルがすでに存在し、ブロックデバ"
 "イスではありません: %s"
 
-#: src/qemu/qemu_driver.c:12811
+#: src/qemu/qemu_driver.c:12805
 #, c-format
 msgid ""
 "internal inactive snapshots are not supported on 'network' disks using '%s' "
 "protocol"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12823
+#: src/qemu/qemu_driver.c:12817
 #, c-format
 msgid "internal inactive snapshots are not supported on '%s' disks"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12851
+#: src/qemu/qemu_driver.c:12845
 msgid "reuse is not supported with this QEMU binary"
 msgstr "reuse はこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_driver.c:12865
+#: src/qemu/qemu_driver.c:12859
 #, c-format
 msgid ""
 "active qemu domains require external disk snapshots; disk %s requested "
@@ -17277,266 +17273,266 @@ msgstr ""
 "動作中の QEMU ドメインは外部ディスクスナップショットが必要です、ディスク %s "
 "は内部を要求しました"
 
-#: src/qemu/qemu_driver.c:12883
+#: src/qemu/qemu_driver.c:12877
 #, c-format
 msgid "internal snapshot for disk %s unsupported for storage type %s"
 msgstr ""
 "ディスク %s の内部スナップショットはストレージ形式 %s に対してサポートされま"
 "せん"
 
-#: src/qemu/qemu_driver.c:12898
+#: src/qemu/qemu_driver.c:12892
 #, c-format
 msgid "external snapshot format for disk %s is unsupported: %s"
 msgstr "ディスク %s に対する外部スナップショット形式はサポートされません: %s"
 
-#: src/qemu/qemu_driver.c:12921 src/qemu/qemu_driver.c:13008
+#: src/qemu/qemu_driver.c:12915 src/qemu/qemu_driver.c:13002
 msgid "unexpected code path"
 msgstr "予期しないコードパスです"
 
-#: src/qemu/qemu_driver.c:12929
+#: src/qemu/qemu_driver.c:12923
 msgid "nothing selected for snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12938
+#: src/qemu/qemu_driver.c:12932
 msgid ""
 "internal snapshots and checkpoints require all disks to be selected for "
 "snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12946
+#: src/qemu/qemu_driver.c:12940
 msgid ""
 "disk-only snapshots require at least one disk to be selected for snapshot"
 msgstr ""
 "ディスク専用スナップショットは少なくとも一つのディスクをスナップショットに対"
 "して選択する必要があります"
 
-#: src/qemu/qemu_driver.c:12958
+#: src/qemu/qemu_driver.c:12952
 msgid ""
 "mixing internal and external targets for a snapshot is not yet supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12973
+#: src/qemu/qemu_driver.c:12967
 msgid "atomic live snapshot of multiple disks is unsupported"
 msgstr "複数ディスクの原子性のあるライブスナップショットはサポートされません"
 
-#: src/qemu/qemu_driver.c:13039
+#: src/qemu/qemu_driver.c:13033
 #, c-format
 msgid "failed to create image file '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13071 src/qemu/qemu_driver.c:13214
+#: src/qemu/qemu_driver.c:13065 src/qemu/qemu_driver.c:13208
 msgid "domain crashed while taking the snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13172
+#: src/qemu/qemu_driver.c:13166
 msgid "live disk snapshot not supported with this QEMU binary"
 msgstr ""
 "ライブディスクスナップショットはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_driver.c:13360
+#: src/qemu/qemu_driver.c:13354
 msgid "Invalid snapshot image format specified in configuration file"
 msgstr "無効なスナップショットイメージ形式が設定ファイルにおいて指定されました"
 
-#: src/qemu/qemu_driver.c:13492
+#: src/qemu/qemu_driver.c:13486
 msgid "quiesce requires disk-only"
 msgstr "quiesce は disk-only が必要です"
 
-#: src/qemu/qemu_driver.c:13515 src/qemu/qemu_migration.c:1662
+#: src/qemu/qemu_driver.c:13509 src/qemu/qemu_migration.c:1662
 msgid "domain is marked for auto destroy"
 msgstr "ドメインは自動デプロイとして印がつけられています"
 
-#: src/qemu/qemu_driver.c:13526 src/test/test_driver.c:6937
+#: src/qemu/qemu_driver.c:13520 src/test/test_driver.c:6937
 msgid "cannot halt after transient domain snapshot"
 msgstr "一時ドメインのスナップショット後に停止できません"
 
-#: src/qemu/qemu_driver.c:13543
+#: src/qemu/qemu_driver.c:13537
 #, c-format
 msgid "invalid snapshot name '%s': name can't contain '/'"
 msgstr "無効なスナップショット名 '%s': 名前に '/' を含められません"
 
-#: src/qemu/qemu_driver.c:13551
+#: src/qemu/qemu_driver.c:13545
 #, c-format
 msgid "invalid snapshot name '%s': name can't start with '.'"
 msgstr "無効なスナップショット名 '%s': 名前を '.' から始められません"
 
-#: src/qemu/qemu_driver.c:13564
+#: src/qemu/qemu_driver.c:13558
 msgid "live snapshot creation is supported only with external checkpoints"
 msgstr ""
 "ライブスナップショットの作成は外部チェックポイントのみでサポートされます"
 
-#: src/qemu/qemu_driver.c:13581
+#: src/qemu/qemu_driver.c:13575
 msgid "qemu doesn't support taking snapshots of PMSUSPENDED guests"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13589
+#: src/qemu/qemu_driver.c:13583
 #, c-format
 msgid "Invalid domain state %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13634
+#: src/qemu/qemu_driver.c:13628
 msgid "internal snapshot of a running VM must include the memory state"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13720
+#: src/qemu/qemu_driver.c:13714
 #, c-format
 msgid "unable to save metadata for snapshot %s"
 msgstr "スナップショット %s のメタデータを保存できません"
 
-#: src/qemu/qemu_driver.c:14018 src/test/test_driver.c:6777
+#: src/qemu/qemu_driver.c:14012 src/test/test_driver.c:6777
 msgid "the domain does not have a current snapshot"
 msgstr "ドメインはカレントスナップショットを持ちません"
 
-#: src/qemu/qemu_driver.c:14196 src/test/test_driver.c:7187
+#: src/qemu/qemu_driver.c:14190 src/test/test_driver.c:7187
 msgid ""
 "transient domain needs to request run or pause to revert to inactive snapshot"
 msgstr ""
 "一時ドメインは非稼動のスナップショットを復元するために実行または一時停止する"
 "必要があります"
 
-#: src/qemu/qemu_driver.c:14203
+#: src/qemu/qemu_driver.c:14197
 msgid "revert to external snapshot not supported yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14210 src/test/test_driver.c:7195
+#: src/qemu/qemu_driver.c:14204 src/test/test_driver.c:7195
 #, c-format
 msgid "snapshot '%s' lacks domain '%s' rollback info"
 msgstr "スナップショット '%s' にドメイン '%s' のロールバック情報がありません"
 
-#: src/qemu/qemu_driver.c:14220
+#: src/qemu/qemu_driver.c:14214
 msgid "must respawn qemu to start inactive snapshot"
 msgstr ""
 "停止状態のスナップショットを開始するには QEMU を respawn する必要があります"
 
-#: src/qemu/qemu_driver.c:14449
+#: src/qemu/qemu_driver.c:14443
 msgid "qemu doesn't support reversion of snapshot taken in PMSUSPENDED state"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14457
+#: src/qemu/qemu_driver.c:14451
 #, c-format
 msgid "Invalid target domain state '%s'. Refusing snapshot reversion"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14575
+#: src/qemu/qemu_driver.c:14569
 #, c-format
 msgid "deletion of %d external disk snapshots not supported yet"
 msgstr "%d 個の外部ディスクスナップショットの削除はまだサポートされていません"
 
-#: src/qemu/qemu_driver.c:14599
+#: src/qemu/qemu_driver.c:14593
 #, c-format
 msgid "failed to set snapshot '%s' as current"
 msgstr "スナップショット '%s' をカレントとして設定できませんでした"
 
-#: src/qemu/qemu_driver.c:14727
+#: src/qemu/qemu_driver.c:14721
 #, c-format
 msgid "No monitor connection for pid %u"
 msgstr "PID %u のモニター接続がありません"
 
-#: src/qemu/qemu_driver.c:14732
+#: src/qemu/qemu_driver.c:14726
 #, c-format
 msgid "Cannot connect to monitor connection of type '%s' for pid %u"
 msgstr "'%s' 形式のモニター接続 (PID %u) に接続できません"
 
-#: src/qemu/qemu_driver.c:14924
+#: src/qemu/qemu_driver.c:14918
 #, c-format
 msgid "cannot find channel %s"
 msgstr "チャネル %s を見つけられません"
 
-#: src/qemu/qemu_driver.c:14931
+#: src/qemu/qemu_driver.c:14925
 #, c-format
 msgid "channel %s is not using a UNIX socket"
 msgstr "チャネル %s が UNIX ソケットを使用していません"
 
-#: src/qemu/qemu_driver.c:14944
+#: src/qemu/qemu_driver.c:14938
 msgid "Active channel stream exists for this domain"
 msgstr "動作中のチャネルストリームがこのドメインに存在します"
 
-#: src/qemu/qemu_driver.c:14977
+#: src/qemu/qemu_driver.c:14971
 msgid "No device found for specified path"
 msgstr "指定されたパスにデバイスが見つかりませんでした"
 
-#: src/qemu/qemu_driver.c:15000 src/qemu/qemu_driver.c:15225
+#: src/qemu/qemu_driver.c:14994 src/qemu/qemu_driver.c:15219
 #, c-format
 msgid "pivot of disk '%s' requires an active copy job"
 msgstr "ディスク '%s' をピボットするには稼働中のコピージョブが必要です"
 
-#: src/qemu/qemu_driver.c:15026
+#: src/qemu/qemu_driver.c:15020
 #, c-format
 msgid "disk '%s' not ready for pivot yet"
 msgstr "ディスク '%s' はまだピボットの準備ができていません"
 
-#: src/qemu/qemu_driver.c:15135
+#: src/qemu/qemu_driver.c:15129
 msgid "resuming after drive-reopen failed"
 msgstr "ドライブの再オープン後の再開に失敗しました"
 
-#: src/qemu/qemu_driver.c:15177
+#: src/qemu/qemu_driver.c:15171
 msgid "flag VIR_DOMAIN_BLOCK_REBASE_RELATIVE is valid only with non-null base"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15187 src/qemu/qemu_driver.c:15428
+#: src/qemu/qemu_driver.c:15181 src/qemu/qemu_driver.c:15422
 msgid "block jobs not supported with this QEMU binary"
 msgstr "ブロックジョブはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_driver.c:15191
+#: src/qemu/qemu_driver.c:15185
 msgid "partial block pull not supported with this QEMU binary"
 msgstr "部分的なブロック取り出しはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_driver.c:15196
+#: src/qemu/qemu_driver.c:15190
 msgid ""
 "setting bandwidth at start of block pull not supported with this QEMU binary"
 msgstr ""
 "ブロック取り出しの開始時における帯域の設定はこの QEMU バイナリーでサポートさ"
 "れません"
 
-#: src/qemu/qemu_driver.c:15217 src/qemu/qemu_driver.c:15558
-#: src/qemu/qemu_driver.c:15974
+#: src/qemu/qemu_driver.c:15211 src/qemu/qemu_driver.c:15552
+#: src/qemu/qemu_driver.c:15968
 #, c-format
 msgid "disk '%s' already in active block job"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15232
+#: src/qemu/qemu_driver.c:15226
 #, c-format
 msgid "another job on disk '%s' is still being ended"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15260
+#: src/qemu/qemu_driver.c:15254
 msgid "this QEMU binary doesn't support relative block pull/rebase"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15273 src/qemu/qemu_driver.c:16053
+#: src/qemu/qemu_driver.c:15267 src/qemu/qemu_driver.c:16047
 msgid "can't keep relative backing relationship"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15461
+#: src/qemu/qemu_driver.c:15455
 #, c-format
 msgid "bandwidth %llu cannot be represented in result"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15566
+#: src/qemu/qemu_driver.c:15560
 msgid "block copy is not supported with this QEMU binary"
 msgstr "ブロックコピーはこの QEMU バイナリーでサポートされていません"
 
-#: src/qemu/qemu_driver.c:15575
+#: src/qemu/qemu_driver.c:15569
 msgid "domain is not transient"
 msgstr "ドメインが一時的ではありません"
 
-#: src/qemu/qemu_driver.c:15586
+#: src/qemu/qemu_driver.c:15580
 #, c-format
 msgid "disk '%s' has backing file, so raw shallow copy is not possible"
 msgstr ""
 "ディスク '%s' にバッキングファイルがあります、ロー形式の浅いコピーをできませ"
 "ん"
 
-#: src/qemu/qemu_driver.c:15596
+#: src/qemu/qemu_driver.c:15590
 #, fuzzy
 msgid "non-file destination not supported yet"
 msgstr "ディスクのスナップショットはまだサポートされていません"
 
-#: src/qemu/qemu_driver.c:15606
+#: src/qemu/qemu_driver.c:15600
 #, c-format
 msgid "missing destination file for disk %s: %s"
 msgstr "ディスク %s の宛先ファイルがありません: %s"
 
-#: src/qemu/qemu_driver.c:15613
+#: src/qemu/qemu_driver.c:15607
 #, c-format
 msgid ""
 "external destination file for disk %s already exists and is not a block "
@@ -17545,164 +17541,164 @@ msgstr ""
 "ディスク %s の外部宛先ファイルがすでに存在しますが、ブロックデバイスではあり"
 "ません: %s"
 
-#: src/qemu/qemu_driver.c:15620
+#: src/qemu/qemu_driver.c:15614
 #, c-format
 msgid ""
 "blockdev flag requested for disk %s, but file '%s' is not a block device"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15755
+#: src/qemu/qemu_driver.c:15749
 #, fuzzy
 msgid "Relative backing during copy not supported yet"
 msgstr "hugepage バッキングは '%s' によりサポートされません"
 
-#: src/qemu/qemu_driver.c:15822
+#: src/qemu/qemu_driver.c:15816
 #, fuzzy, c-format
 msgid "bandwidth must be less than %llu bytes"
 msgstr "帯域は %llu より小さい必要があります"
 
-#: src/qemu/qemu_driver.c:15922
+#: src/qemu/qemu_driver.c:15916
 msgid "online commit not supported with this QEMU binary"
 msgstr "オンラインコミットはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_driver.c:15944
+#: src/qemu/qemu_driver.c:15938
 #, c-format
 msgid "disk %s has no source file to be committed"
 msgstr "ディスク %s はコミットするソースファイルがありません"
 
-#: src/qemu/qemu_driver.c:15962
+#: src/qemu/qemu_driver.c:15956
 msgid "active commit not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15968
+#: src/qemu/qemu_driver.c:15962
 #, c-format
 msgid "commit of '%s' active layer requires active flag"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15980
+#: src/qemu/qemu_driver.c:15974
 #, c-format
 msgid "active commit requested but '%s' is not active"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15987
+#: src/qemu/qemu_driver.c:15981
 #, c-format
 msgid "top '%s' in chain for '%s' has no backing file"
 msgstr "最上部 '%s' (チェイン '%s') にバッキングファイルがありません"
 
-#: src/qemu/qemu_driver.c:16002
+#: src/qemu/qemu_driver.c:15996
 #, c-format
 msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr "ベース '%s' が '%s' 以下 ('%s' のチェイン) すぐではありません"
 
-#: src/qemu/qemu_driver.c:16043
+#: src/qemu/qemu_driver.c:16037
 msgid "this qemu doesn't support relative blockpull"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16142 src/qemu/qemu_driver.c:16208
+#: src/qemu/qemu_driver.c:16136 src/qemu/qemu_driver.c:16202
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr "インデックス %d を持つグラフィックバックエンドがありません"
 
-#: src/qemu/qemu_driver.c:16154 src/qemu/qemu_driver.c:16220
+#: src/qemu/qemu_driver.c:16148 src/qemu/qemu_driver.c:16214
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr "VNC または SPICEグラフィックバックエンドのみ開けます、%s はできません"
 
-#: src/qemu/qemu_driver.c:16332
+#: src/qemu/qemu_driver.c:16326
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr "ブロック I/O スロットルの上限値は %llu 未満にしてください"
 
-#: src/qemu/qemu_driver.c:16396
+#: src/qemu/qemu_driver.c:16390
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr "bytes_sec の合計と読み書きは同時に設定できません"
 
-#: src/qemu/qemu_driver.c:16403
+#: src/qemu/qemu_driver.c:16397
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr "iops_sec の合計と読み書きは同時に設定できません"
 
-#: src/qemu/qemu_driver.c:16410
+#: src/qemu/qemu_driver.c:16404
 #, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16451
+#: src/qemu/qemu_driver.c:16445
 #, fuzzy
 msgid "Saving live XML config failed"
 msgstr "xm 設定ファイルの構文解析に失敗しました"
 
-#: src/qemu/qemu_driver.c:16480
+#: src/qemu/qemu_driver.c:16474
 msgid "Write to config file failed"
 msgstr "設定ファイルへの書き込みに失敗しました"
 
-#: src/qemu/qemu_driver.c:16565
+#: src/qemu/qemu_driver.c:16559
 #, fuzzy, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr "ボリューム '%s' がドメインの定義において見つかりませんでした。\n"
 
-#: src/qemu/qemu_driver.c:16848
+#: src/qemu/qemu_driver.c:16842
 msgid "Duration not supported. Use 0 for now"
 msgstr "間隔の指定はサポートされません。今のところ 0 を使用します"
 
-#: src/qemu/qemu_driver.c:16856
+#: src/qemu/qemu_driver.c:16850
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "不明な一時停止ターゲット: %u"
 
-#: src/qemu/qemu_driver.c:16879
+#: src/qemu/qemu_driver.c:16873
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr "system_wakeup モニターコマンドがないため、ドメインを一時停止できません"
 
-#: src/qemu/qemu_driver.c:16889
+#: src/qemu/qemu_driver.c:16883
 msgid "S3 state is disabled for this domain"
 msgstr "このドメインに対して S3 状態が無効化されています"
 
-#: src/qemu/qemu_driver.c:16896
+#: src/qemu/qemu_driver.c:16890
 msgid "S4 state is disabled for this domain"
 msgstr "このドメインに対して S4 状態が無効化されています"
 
-#: src/qemu/qemu_driver.c:16957
+#: src/qemu/qemu_driver.c:16951
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr "system_wakeup モニターコマンドがないため、ドメインを再開できません"
 
-#: src/qemu/qemu_driver.c:17116
+#: src/qemu/qemu_driver.c:17110
 msgid "Specifying mount point is not supported for now"
 msgstr "マウントポイントの指定が今のところサポートされません"
 
-#: src/qemu/qemu_driver.c:17371
+#: src/qemu/qemu_driver.c:17365
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17479
+#: src/qemu/qemu_driver.c:17473
 msgid "specifying mountpoints is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17560
+#: src/qemu/qemu_driver.c:17554
 #, c-format
 msgid "unknown virttype: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17567
+#: src/qemu/qemu_driver.c:17561
 #, c-format
 msgid "unknown architecture: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17583
+#: src/qemu/qemu_driver.c:17577
 #, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17593
+#: src/qemu/qemu_driver.c:17587
 #, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17607
+#: src/qemu/qemu_driver.c:17601
 #, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:18027
+#: src/qemu/qemu_driver.c:18021
 #, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr ""
@@ -18118,7 +18114,7 @@ msgstr "ネットワークマイグレーションデータがすでに存在し
 msgid "missing type attribute in migration data"
 msgstr "マイグレーションのデータに type 属性がありません"
 
-#: src/qemu/qemu_migration.c:809 src/qemu/qemu_migration.c:2141
+#: src/qemu/qemu_migration.c:809 src/qemu/qemu_migration.c:2143
 #, c-format
 msgid "unknown graphics type %s"
 msgstr "不明なグラフィックス形式 %s"
@@ -18229,8 +18225,8 @@ msgstr "ソースのホストロックドライバー %s がターゲットの %
 msgid "Failed to resume guest %s after failure"
 msgstr "失敗後にゲスト %s の再開に失敗しました"
 
-#: src/qemu/qemu_migration.c:1507 src/qemu/qemu_migration.c:2012
-#: src/qemu/qemu_migration.c:3595
+#: src/qemu/qemu_migration.c:1507 src/qemu/qemu_migration.c:2014
+#: src/qemu/qemu_migration.c:3597
 msgid "canceled by client"
 msgstr "クライアントにより取り消されました"
 
@@ -18251,218 +18247,218 @@ msgstr "ドメインに実行中のブロックジョブがあります"
 msgid "domain has assigned non-USB host devices"
 msgstr "ドメインに割り当てられた非 USB ホストデバイスがあります"
 
-#: src/qemu/qemu_migration.c:1726
+#: src/qemu/qemu_migration.c:1727
 #, c-format
 msgid "domain has CPU feature: %s"
 msgstr ""
 
-#: src/qemu/qemu_migration.c:1767
+#: src/qemu/qemu_migration.c:1769
 msgid "Migration may lead to data corruption if disks use cache != none"
 msgstr ""
 "ディスクが cache != none を使用していると、マイグレーションによりデータが破損"
 "するかもしれません"
 
-#: src/qemu/qemu_migration.c:1821
+#: src/qemu/qemu_migration.c:1823
 msgid "Compressed migration is not supported by target QEMU binary"
 msgstr "圧縮マイグレーションが送信先の QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_migration.c:1825
+#: src/qemu/qemu_migration.c:1827
 msgid "Compressed migration is not supported by source QEMU binary"
 msgstr "圧縮マイグレーションが送信元の QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_migration.c:1860
+#: src/qemu/qemu_migration.c:1862
 msgid "Auto-Converge is not supported by QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_migration.c:1896
+#: src/qemu/qemu_migration.c:1898
 #, fuzzy
 msgid "rdma pinning migration is not supported by target QEMU binary"
 msgstr "圧縮マイグレーションが送信先の QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_migration.c:1900
+#: src/qemu/qemu_migration.c:1902
 #, fuzzy
 msgid "rdma pinning migration is not supported by source QEMU binary"
 msgstr "圧縮マイグレーションが送信元の QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_migration.c:2000
+#: src/qemu/qemu_migration.c:2002
 msgid "is not active"
 msgstr "動作中ではありません"
 
-#: src/qemu/qemu_migration.c:2006
+#: src/qemu/qemu_migration.c:2008
 msgid "unexpectedly failed"
 msgstr "予期せず失敗しました"
 
-#: src/qemu/qemu_migration.c:2038 src/qemu/qemu_migration.c:3669
+#: src/qemu/qemu_migration.c:2040 src/qemu/qemu_migration.c:3671
 msgid "migration job"
 msgstr "マイグレーションジョブ"
 
-#: src/qemu/qemu_migration.c:2041
+#: src/qemu/qemu_migration.c:2043
 msgid "domain save job"
 msgstr "ドメイン保存ジョブ"
 
-#: src/qemu/qemu_migration.c:2044
+#: src/qemu/qemu_migration.c:2046
 msgid "domain core dump job"
 msgstr "ドメインコアダンプジョブ"
 
-#: src/qemu/qemu_migration.c:2047
+#: src/qemu/qemu_migration.c:2049
 msgid "job"
 msgstr "ジョブ"
 
-#: src/qemu/qemu_migration.c:2064
+#: src/qemu/qemu_migration.c:2066
 msgid "failed due to I/O error"
 msgstr "I/O エラーのため失敗しました"
 
-#: src/qemu/qemu_migration.c:2070
+#: src/qemu/qemu_migration.c:2072
 msgid "Lost connection to destination host"
 msgstr "宛先ホストへの接続が失われました"
 
-#: src/qemu/qemu_migration.c:2156
+#: src/qemu/qemu_migration.c:2158
 #, c-format
 msgid "invalid tlsPort number: %s"
 msgstr "無効な tlsPort 番号: %s"
 
-#: src/qemu/qemu_migration.c:2208 src/util/virnetdevopenvswitch.c:251
+#: src/qemu/qemu_migration.c:2210 src/util/virnetdevopenvswitch.c:251
 #, c-format
 msgid "Unable to run command to set OVS port data for interface %s"
 msgstr ""
 "インターフェース %s の OVS ポートデータを設定するコマンドを実行できません"
 
-#: src/qemu/qemu_migration.c:2349 src/qemu/qemu_migration.c:2529
+#: src/qemu/qemu_migration.c:2351 src/qemu/qemu_migration.c:2531
 msgid "offline migration cannot handle non-shared storage"
 msgstr "オフラインマイグレーションが非共有ストレージを取り扱えません"
 
-#: src/qemu/qemu_migration.c:2355 src/qemu/qemu_migration.c:2535
+#: src/qemu/qemu_migration.c:2357 src/qemu/qemu_migration.c:2537
 msgid "offline migration must be specified with the persistent flag set"
 msgstr "オフラインマイグレーションが永続フラグの設定を指定する必要があります"
 
-#: src/qemu/qemu_migration.c:2361 src/qemu/qemu_migration.c:2541
+#: src/qemu/qemu_migration.c:2363 src/qemu/qemu_migration.c:2543
 msgid "tunnelled offline migration does not make sense"
 msgstr "トンネルオフラインマイグレーションは意味がありません"
 
-#: src/qemu/qemu_migration.c:2442 src/qemu/qemu_migration.c:2807
+#: src/qemu/qemu_migration.c:2444 src/qemu/qemu_migration.c:2809
 msgid "domain disappeared"
 msgstr "ドメインが消えました"
 
-#: src/qemu/qemu_migration.c:2637
+#: src/qemu/qemu_migration.c:2639
 msgid "qemu isn't capable of IPv6"
 msgstr "QEMU は IPv6 に対応していません"
 
-#: src/qemu/qemu_migration.c:2642
+#: src/qemu/qemu_migration.c:2644
 msgid "host isn't capable of IPv6"
 msgstr "ホストが IPv6 に対応していません"
 
-#: src/qemu/qemu_migration.c:2699 src/qemu/qemu_migration.c:3799
+#: src/qemu/qemu_migration.c:2701 src/qemu/qemu_migration.c:3801
 msgid "cannot start RDMA migration with no memory hard limit set"
 msgstr ""
 
-#: src/qemu/qemu_migration.c:2717 src/qemu/qemu_migration.c:3881
+#: src/qemu/qemu_migration.c:2719 src/qemu/qemu_migration.c:3883
 msgid "cannot create pipe for tunnelled migration"
 msgstr "トンネルマイグレーションのパイプを"
 
-#: src/qemu/qemu_migration.c:2736
+#: src/qemu/qemu_migration.c:2738
 msgid "cannot pass pipe for tunnelled migration"
 msgstr "トンネルマイグレーションのパイプを渡せません"
 
-#: src/qemu/qemu_migration.c:2874
+#: src/qemu/qemu_migration.c:2876
 msgid "tunnelled migration requested but NULL stream passed"
 msgstr ""
 "トンネルマイグレーションが要求されましたが、NULL ストリームが渡されました"
 
-#: src/qemu/qemu_migration.c:2989
+#: src/qemu/qemu_migration.c:2991
 #, fuzzy, c-format
 msgid "unsupported scheme %s in migration URI %s"
 msgstr "サポートされない設定: %s"
 
-#: src/qemu/qemu_migration.c:3305
+#: src/qemu/qemu_migration.c:3307
 msgid "poll failed in migration tunnel"
 msgstr "マイグレーショントンネルにおいてポーリングが失敗しました"
 
-#: src/qemu/qemu_migration.c:3323
+#: src/qemu/qemu_migration.c:3325
 msgid "failed to read from wakeup fd"
 msgstr "ウェイクアップファイル記述子からの読み込みに失敗しました"
 
-#: src/qemu/qemu_migration.c:3345
+#: src/qemu/qemu_migration.c:3347
 msgid "tunnelled migration failed to read from qemu"
 msgstr "トンネルマイグレーションが QEMU からの読み込みに失敗しました"
 
-#: src/qemu/qemu_migration.c:3389
+#: src/qemu/qemu_migration.c:3391
 msgid "Unable to make pipe"
 msgstr "パイプを作成できません"
 
-#: src/qemu/qemu_migration.c:3405
+#: src/qemu/qemu_migration.c:3407
 msgid "Unable to create migration thread"
 msgstr "マイグレーションのスレッドを作成できません"
 
-#: src/qemu/qemu_migration.c:3427
+#: src/qemu/qemu_migration.c:3429
 msgid "failed to wakeup migration tunnel"
 msgstr "マイグレーショントンネルの起動に失敗しました"
 
-#: src/qemu/qemu_migration.c:3481
+#: src/qemu/qemu_migration.c:3483
 #, c-format
 msgid "Unable to set FD %d blocking"
 msgstr "ファイル記述子 %d をブロックに設定できません"
 
-#: src/qemu/qemu_migration.c:3541
+#: src/qemu/qemu_migration.c:3543
 #, c-format
 msgid "Migration with lock driver %s requires cookie support"
 msgstr ""
 "ロックドライバー %s を用いたマイグレーションはクッキーのサポートが必要です"
 
-#: src/qemu/qemu_migration.c:3677
+#: src/qemu/qemu_migration.c:3679
 msgid "failed to accept connection from qemu"
 msgstr "QEMU からの接続の試行に失敗しました"
 
-#: src/qemu/qemu_migration.c:3793
+#: src/qemu/qemu_migration.c:3795
 #, fuzzy
 msgid "outgoing RDMA migration is not supported with this QEMU binary"
 msgstr "FD マイグレーションはこの QEMU バイナリーではサポートされません"
 
-#: src/qemu/qemu_migration.c:3858
+#: src/qemu/qemu_migration.c:3860
 msgid "Source qemu is too old to support tunnelled migration"
 msgstr "ソースの QEMU はトンネルマイグレーションをサポートするには古すぎます"
 
-#: src/qemu/qemu_migration.c:4402
+#: src/qemu/qemu_migration.c:4404
 #, c-format
 msgid "Failed to connect to remote libvirt URI %s: %s"
 msgstr "リモート libvirt URI %s への接続に失敗しました: %s"
 
-#: src/qemu/qemu_migration.c:4430
+#: src/qemu/qemu_migration.c:4432
 msgid "Destination libvirt does not support peer-to-peer migration protocol"
 msgstr ""
 "宛先 libvirt がピアツーピアマイグレーションプロトコルをサポートしません"
 
-#: src/qemu/qemu_migration.c:4695
+#: src/qemu/qemu_migration.c:4697
 msgid "received unexpected cookie with P2P migration"
 msgstr "P2P マイグレーションで予期しないクッキーを受信しました"
 
-#: src/qemu/qemu_migration.c:4707
+#: src/qemu/qemu_migration.c:4709
 msgid "Unexpected dconnuri parameter with non-peer2peer migration"
 msgstr "非ピアツーピアマイグレーションで予期しない dconnuri パラメーターです"
 
-#: src/qemu/qemu_migration.c:4746
+#: src/qemu/qemu_migration.c:4748
 #, c-format
 msgid "Port profile Associate failed for %s"
 msgstr "%s に対するポートプロファイルの関連付けに失敗しました"
 
-#: src/qemu/qemu_migration.c:4899
+#: src/qemu/qemu_migration.c:4901
 msgid "can't get vmdef"
 msgstr "仮想マシンの定義を取得できません"
 
-#: src/qemu/qemu_migration.c:5119
+#: src/qemu/qemu_migration.c:5121
 msgid "Unable to set cloexec flag"
 msgstr "cloexec フラグを設定できません"
 
-#: src/qemu/qemu_migration.c:5240
+#: src/qemu/qemu_migration.c:5242
 #, c-format
 msgid "migration protocol going backwards %s => %s"
 msgstr "マイグレーションプロトコル が  %s => %s に逆行しています"
 
-#: src/qemu/qemu_migration.c:5275
+#: src/qemu/qemu_migration.c:5277
 #, c-format
 msgid "domain '%s' is not processing incoming migration"
 msgstr "ドメイン '%s' は入力中のマイグレーションを処理していません"
 
-#: src/qemu/qemu_migration.c:5277
+#: src/qemu/qemu_migration.c:5279
 #, c-format
 msgid "domain '%s' is not being migrated"
 msgstr "ドメイン '%s' がマイグレーションされていません"
@@ -18527,46 +18523,46 @@ msgstr "コマンドをエスケープ解除できません"
 #: src/qemu/qemu_monitor.c:1562 src/qemu/qemu_monitor.c:1582
 #: src/qemu/qemu_monitor.c:1603 src/qemu/qemu_monitor.c:1626
 #: src/qemu/qemu_monitor.c:1680 src/qemu/qemu_monitor.c:1734
-#: src/qemu/qemu_monitor.c:1796 src/qemu/qemu_monitor.c:1847
-#: src/qemu/qemu_monitor.c:1893 src/qemu/qemu_monitor.c:1925
-#: src/qemu/qemu_monitor.c:1947 src/qemu/qemu_monitor.c:1966
-#: src/qemu/qemu_monitor.c:1987 src/qemu/qemu_monitor.c:2010
-#: src/qemu/qemu_monitor.c:2033 src/qemu/qemu_monitor.c:2055
-#: src/qemu/qemu_monitor.c:2075 src/qemu/qemu_monitor.c:2102
-#: src/qemu/qemu_monitor.c:2122 src/qemu/qemu_monitor.c:2143
-#: src/qemu/qemu_monitor.c:2165 src/qemu/qemu_monitor.c:2185
-#: src/qemu/qemu_monitor.c:2211 src/qemu/qemu_monitor.c:2245
-#: src/qemu/qemu_monitor.c:2275 src/qemu/qemu_monitor.c:2313
-#: src/qemu/qemu_monitor.c:2371 src/qemu/qemu_monitor.c:2394
-#: src/qemu/qemu_monitor.c:2415 src/qemu/qemu_monitor.c:2434
-#: src/qemu/qemu_monitor.c:2498 src/qemu/qemu_monitor.c:2519
-#: src/qemu/qemu_monitor.c:2540 src/qemu/qemu_monitor.c:2563
-#: src/qemu/qemu_monitor.c:2586 src/qemu/qemu_monitor.c:2607
-#: src/qemu/qemu_monitor.c:2629 src/qemu/qemu_monitor.c:2651
-#: src/qemu/qemu_monitor.c:2689 src/qemu/qemu_monitor.c:2719
-#: src/qemu/qemu_monitor.c:2760 src/qemu/qemu_monitor.c:2794
-#: src/qemu/qemu_monitor.c:2839 src/qemu/qemu_monitor.c:2867
-#: src/qemu/qemu_monitor.c:2909 src/qemu/qemu_monitor.c:2930
-#: src/qemu/qemu_monitor.c:2951 src/qemu/qemu_monitor.c:2977
-#: src/qemu/qemu_monitor.c:2998 src/qemu/qemu_monitor.c:3017
-#: src/qemu/qemu_monitor.c:3036 src/qemu/qemu_monitor.c:3059
-#: src/qemu/qemu_monitor.c:3093 src/qemu/qemu_monitor.c:3114
-#: src/qemu/qemu_monitor.c:3133 src/qemu/qemu_monitor.c:3152
-#: src/qemu/qemu_monitor.c:3171 src/qemu/qemu_monitor.c:3197
-#: src/qemu/qemu_monitor.c:3359 src/qemu/qemu_monitor.c:3516
-#: src/qemu/qemu_monitor.c:3542 src/qemu/qemu_monitor.c:3566
-#: src/qemu/qemu_monitor.c:3587 src/qemu/qemu_monitor.c:3617
-#: src/qemu/qemu_monitor.c:3639 src/qemu/qemu_monitor.c:3661
-#: src/qemu/qemu_monitor.c:3687 src/qemu/qemu_monitor.c:3711
-#: src/qemu/qemu_monitor.c:3733 src/qemu/qemu_monitor.c:3756
-#: src/qemu/qemu_monitor.c:3777 src/qemu/qemu_monitor.c:3799
-#: src/qemu/qemu_monitor.c:3821 src/qemu/qemu_monitor.c:3839
-#: src/qemu/qemu_monitor.c:3861 src/qemu/qemu_monitor.c:3883
-#: src/qemu/qemu_monitor.c:3902 src/qemu/qemu_monitor.c:3924
-#: src/qemu/qemu_monitor.c:3946 src/qemu/qemu_monitor.c:3967
-#: src/qemu/qemu_monitor.c:3987 src/qemu/qemu_monitor.c:4008
-#: src/qemu/qemu_monitor.c:4064 src/qemu/qemu_monitor.c:4099
-#: src/qemu/qemu_monitor.c:4132
+#: src/qemu/qemu_monitor.c:1790 src/qemu/qemu_monitor.c:1841
+#: src/qemu/qemu_monitor.c:1887 src/qemu/qemu_monitor.c:1919
+#: src/qemu/qemu_monitor.c:1941 src/qemu/qemu_monitor.c:1960
+#: src/qemu/qemu_monitor.c:1981 src/qemu/qemu_monitor.c:2004
+#: src/qemu/qemu_monitor.c:2027 src/qemu/qemu_monitor.c:2049
+#: src/qemu/qemu_monitor.c:2069 src/qemu/qemu_monitor.c:2096
+#: src/qemu/qemu_monitor.c:2116 src/qemu/qemu_monitor.c:2137
+#: src/qemu/qemu_monitor.c:2159 src/qemu/qemu_monitor.c:2179
+#: src/qemu/qemu_monitor.c:2205 src/qemu/qemu_monitor.c:2239
+#: src/qemu/qemu_monitor.c:2269 src/qemu/qemu_monitor.c:2307
+#: src/qemu/qemu_monitor.c:2365 src/qemu/qemu_monitor.c:2388
+#: src/qemu/qemu_monitor.c:2409 src/qemu/qemu_monitor.c:2428
+#: src/qemu/qemu_monitor.c:2492 src/qemu/qemu_monitor.c:2513
+#: src/qemu/qemu_monitor.c:2534 src/qemu/qemu_monitor.c:2557
+#: src/qemu/qemu_monitor.c:2580 src/qemu/qemu_monitor.c:2601
+#: src/qemu/qemu_monitor.c:2623 src/qemu/qemu_monitor.c:2645
+#: src/qemu/qemu_monitor.c:2683 src/qemu/qemu_monitor.c:2713
+#: src/qemu/qemu_monitor.c:2754 src/qemu/qemu_monitor.c:2788
+#: src/qemu/qemu_monitor.c:2833 src/qemu/qemu_monitor.c:2861
+#: src/qemu/qemu_monitor.c:2903 src/qemu/qemu_monitor.c:2924
+#: src/qemu/qemu_monitor.c:2945 src/qemu/qemu_monitor.c:2971
+#: src/qemu/qemu_monitor.c:2992 src/qemu/qemu_monitor.c:3011
+#: src/qemu/qemu_monitor.c:3030 src/qemu/qemu_monitor.c:3053
+#: src/qemu/qemu_monitor.c:3087 src/qemu/qemu_monitor.c:3108
+#: src/qemu/qemu_monitor.c:3127 src/qemu/qemu_monitor.c:3146
+#: src/qemu/qemu_monitor.c:3165 src/qemu/qemu_monitor.c:3191
+#: src/qemu/qemu_monitor.c:3353 src/qemu/qemu_monitor.c:3510
+#: src/qemu/qemu_monitor.c:3536 src/qemu/qemu_monitor.c:3560
+#: src/qemu/qemu_monitor.c:3581 src/qemu/qemu_monitor.c:3611
+#: src/qemu/qemu_monitor.c:3633 src/qemu/qemu_monitor.c:3655
+#: src/qemu/qemu_monitor.c:3681 src/qemu/qemu_monitor.c:3705
+#: src/qemu/qemu_monitor.c:3727 src/qemu/qemu_monitor.c:3750
+#: src/qemu/qemu_monitor.c:3771 src/qemu/qemu_monitor.c:3793
+#: src/qemu/qemu_monitor.c:3815 src/qemu/qemu_monitor.c:3833
+#: src/qemu/qemu_monitor.c:3855 src/qemu/qemu_monitor.c:3877
+#: src/qemu/qemu_monitor.c:3896 src/qemu/qemu_monitor.c:3918
+#: src/qemu/qemu_monitor.c:3940 src/qemu/qemu_monitor.c:3961
+#: src/qemu/qemu_monitor.c:3981 src/qemu/qemu_monitor.c:4002
+#: src/qemu/qemu_monitor.c:4058 src/qemu/qemu_monitor.c:4093
+#: src/qemu/qemu_monitor.c:4126
 msgid "monitor must not be NULL"
 msgstr "モニターが NULL ではいけません"
 
@@ -18578,19 +18574,19 @@ msgstr "モニターおよび実行中の両方が NULL にはなれません"
 msgid "monitor || name must not be NULL"
 msgstr "monitor || name は NULL ではいけません"
 
-#: src/qemu/qemu_monitor.c:1632 src/qemu/qemu_monitor.c:2128
-#: src/qemu/qemu_monitor.c:2149 src/qemu/qemu_monitor.c:2193
-#: src/qemu/qemu_monitor.c:3548 src/qemu/qemu_monitor.c:3572
-#: src/qemu/qemu_monitor.c:3593 src/qemu/qemu_monitor.c:3623
-#: src/qemu/qemu_monitor.c:3645 src/qemu/qemu_monitor.c:3667
-#: src/qemu/qemu_monitor.c:3693 src/qemu/qemu_monitor.c:3717
-#: src/qemu/qemu_monitor.c:3739 src/qemu/qemu_monitor.c:3762
-#: src/qemu/qemu_monitor.c:3783 src/qemu/qemu_monitor.c:3845
-#: src/qemu/qemu_monitor.c:3867 src/qemu/qemu_monitor.c:3889
-#: src/qemu/qemu_monitor.c:3908 src/qemu/qemu_monitor.c:3930
-#: src/qemu/qemu_monitor.c:3952 src/qemu/qemu_monitor.c:3973
-#: src/qemu/qemu_monitor.c:3993 src/qemu/qemu_monitor.c:4014
-#: src/qemu/qemu_monitor.c:4070 src/qemu/qemu_monitor.c:4105
+#: src/qemu/qemu_monitor.c:1632 src/qemu/qemu_monitor.c:2122
+#: src/qemu/qemu_monitor.c:2143 src/qemu/qemu_monitor.c:2187
+#: src/qemu/qemu_monitor.c:3542 src/qemu/qemu_monitor.c:3566
+#: src/qemu/qemu_monitor.c:3587 src/qemu/qemu_monitor.c:3617
+#: src/qemu/qemu_monitor.c:3639 src/qemu/qemu_monitor.c:3661
+#: src/qemu/qemu_monitor.c:3687 src/qemu/qemu_monitor.c:3711
+#: src/qemu/qemu_monitor.c:3733 src/qemu/qemu_monitor.c:3756
+#: src/qemu/qemu_monitor.c:3777 src/qemu/qemu_monitor.c:3839
+#: src/qemu/qemu_monitor.c:3861 src/qemu/qemu_monitor.c:3883
+#: src/qemu/qemu_monitor.c:3902 src/qemu/qemu_monitor.c:3924
+#: src/qemu/qemu_monitor.c:3946 src/qemu/qemu_monitor.c:3967
+#: src/qemu/qemu_monitor.c:3987 src/qemu/qemu_monitor.c:4008
+#: src/qemu/qemu_monitor.c:4064 src/qemu/qemu_monitor.c:4099
 msgid "JSON monitor is required"
 msgstr "JSON モニターが必要です"
 
@@ -18604,85 +18600,85 @@ msgstr "不明なブロック I/O 状態: %s"
 msgid "cannot find info for device '%s'"
 msgstr "デバイス '%s' の情報を見つけられません"
 
-#: src/qemu/qemu_monitor.c:1778
+#: src/qemu/qemu_monitor.c:1772
 #, fuzzy
 msgid "unable to query all block stats with this QEMU"
 msgstr "この QEMU を用いてブロックのエクステントを問い合わせできません"
 
-#: src/qemu/qemu_monitor.c:1870
+#: src/qemu/qemu_monitor.c:1864
 #, c-format
 msgid "unsupported protocol type %s"
 msgstr "サポートされないプロトコル形式 %s"
 
-#: src/qemu/qemu_monitor.c:2319
+#: src/qemu/qemu_monitor.c:2313
 #, c-format
 msgid "file offset must be a multiple of %llu"
 msgstr "ファイルのオフセットは %llu の倍数である必要があります"
 
-#: src/qemu/qemu_monitor.c:2443
+#: src/qemu/qemu_monitor.c:2437
 msgid "dump-guest-memory is not supported in text mode"
 msgstr "dump-guest-memory はテキストモードにおいてサポートされません"
 
-#: src/qemu/qemu_monitor.c:2657
+#: src/qemu/qemu_monitor.c:2651
 msgid "fd must be valid"
 msgstr "ファイルディスクリプターが有効である必要があります"
 
-#: src/qemu/qemu_monitor.c:2663 src/qemu/qemu_monitor.c:2731
+#: src/qemu/qemu_monitor.c:2657 src/qemu/qemu_monitor.c:2725
 #, c-format
 msgid "qemu is not using a unix socket monitor, cannot send fd %s"
 msgstr ""
 "QEMU が unix ソケットモニターを使用していません、ファイル記述子 %s を送信でき"
 "ません"
 
-#: src/qemu/qemu_monitor.c:2725
+#: src/qemu/qemu_monitor.c:2719
 msgid "fd and fdset must be valid"
 msgstr "fd および fdset が有効である必要があります"
 
-#: src/qemu/qemu_monitor.c:2740
+#: src/qemu/qemu_monitor.c:2734
 msgid "add fd requires JSON monitor"
 msgstr "FD の追加は JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:2768
+#: src/qemu/qemu_monitor.c:2762
 msgid "remove fd requires JSON monitor"
 msgstr "FD の削除は JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:2809
+#: src/qemu/qemu_monitor.c:2803
 msgid "JSON monitor should be using AddNetdev"
 msgstr "JSON モニターが AddNetdev を使用するべきです"
 
-#: src/qemu/qemu_monitor.c:2845
+#: src/qemu/qemu_monitor.c:2839
 msgid "JSON monitor should be using RemoveNetdev"
 msgstr "JSON モニターが RemoveNetdev を使用するべきです"
 
-#: src/qemu/qemu_monitor.c:2983
+#: src/qemu/qemu_monitor.c:2977
 msgid "JSON monitor should be using AddDrive"
 msgstr "JSON モニターが AddDrive を使用するべきです"
 
-#: src/qemu/qemu_monitor.c:3206
+#: src/qemu/qemu_monitor.c:3200
 msgid "disk snapshot requires JSON monitor"
 msgstr "ディスクのスナップショットは JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:3230
+#: src/qemu/qemu_monitor.c:3224
 msgid "drive-mirror requires JSON monitor"
 msgstr "ドライブのミラーは JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:3246
+#: src/qemu/qemu_monitor.c:3240
 msgid "transaction requires JSON monitor"
 msgstr "トランザクションは JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:3268
+#: src/qemu/qemu_monitor.c:3262
 msgid "block-commit requires JSON monitor"
 msgstr "ブロックのコミットは JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:3299
+#: src/qemu/qemu_monitor.c:3293
 msgid "drive pivot requires JSON monitor"
 msgstr "ドライブのピボットは JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:3392 src/qemu/qemu_monitor.c:3412
+#: src/qemu/qemu_monitor.c:3386 src/qemu/qemu_monitor.c:3406
 msgid "block jobs require JSON monitor"
 msgstr "ブロックジョブは JSON モニターが必要です"
 
-#: src/qemu/qemu_monitor.c:4036
+#: src/qemu/qemu_monitor.c:4030
 msgid "failed to duplicate log fd"
 msgstr "ログのファイル記述子の複製に失敗しました"
 
@@ -18768,8 +18764,8 @@ msgstr "info balloon の応答に balloon データがありませんでした"
 msgid "the guest hasn't updated any stats yet"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:1571 src/qemu/qemu_monitor_json.c:4980
-#: src/qemu/qemu_monitor_json.c:5023 src/qemu/qemu_monitor_json.c:5923
+#: src/qemu/qemu_monitor_json.c:1571 src/qemu/qemu_monitor_json.c:4973
+#: src/qemu/qemu_monitor_json.c:5016 src/qemu/qemu_monitor_json.c:5916
 msgid "qom-get reply was missing return data"
 msgstr "qom-get の応答に返り値がありませんでした"
 
@@ -18786,549 +18782,549 @@ msgstr "block info device 項目が期待した形式ではありませんでし
 msgid "cannot read %s value"
 msgstr "%s の値を読み込めませんでした"
 
-#: src/qemu/qemu_monitor_json.c:1806 src/qemu/qemu_monitor_json.c:1961
-#: src/qemu/qemu_monitor_json.c:2036
-msgid "blockstats reply was missing device list"
-msgstr "blockstats reply に device list がありませんでした"
-
-#: src/qemu/qemu_monitor_json.c:1816 src/qemu/qemu_monitor_json.c:1828
-#: src/qemu/qemu_monitor_json.c:1969 src/qemu/qemu_monitor_json.c:2047
-#: src/qemu/qemu_monitor_json.c:2053
-msgid "blockstats device entry was not in expected format"
-msgstr "blockstats device 項目が期待した形式ではありませんでした"
-
-#: src/qemu/qemu_monitor_json.c:1847 src/qemu/qemu_monitor_json.c:1976
-#: src/qemu/qemu_monitor_json.c:2078
-msgid "blockstats stats entry was not in expected format"
-msgstr "blockstats stats 項目が期待した形式ではありませんでした"
-
-#: src/qemu/qemu_monitor_json.c:1855 src/qemu/qemu_monitor_json.c:1862
-#: src/qemu/qemu_monitor_json.c:1870 src/qemu/qemu_monitor_json.c:1877
-#: src/qemu/qemu_monitor_json.c:1884 src/qemu/qemu_monitor_json.c:1892
-#: src/qemu/qemu_monitor_json.c:1900 src/qemu/qemu_monitor_json.c:1908
-#: src/qemu/qemu_monitor_json.c:2084
-#, c-format
-msgid "cannot read %s statistic"
-msgstr "%s 統計を読み込みできません"
-
-#: src/qemu/qemu_monitor_json.c:1922 src/qemu/qemu_monitor_json.c:2092
+#: src/qemu/qemu_monitor_json.c:1758 src/qemu/qemu_monitor_json.c:2085
 #, c-format
 msgid "cannot find statistics for device '%s'"
 msgstr "デバイス '%s' の統計を見つけられません"
 
+#: src/qemu/qemu_monitor_json.c:1812 src/qemu/qemu_monitor_json.c:1954
+#: src/qemu/qemu_monitor_json.c:2029
+msgid "blockstats reply was missing device list"
+msgstr "blockstats reply に device list がありませんでした"
+
+#: src/qemu/qemu_monitor_json.c:1826 src/qemu/qemu_monitor_json.c:1833
+#: src/qemu/qemu_monitor_json.c:1962 src/qemu/qemu_monitor_json.c:2040
+#: src/qemu/qemu_monitor_json.c:2046
+msgid "blockstats device entry was not in expected format"
+msgstr "blockstats device 項目が期待した形式ではありませんでした"
+
+#: src/qemu/qemu_monitor_json.c:1844 src/qemu/qemu_monitor_json.c:1969
 #: src/qemu/qemu_monitor_json.c:2071
+msgid "blockstats stats entry was not in expected format"
+msgstr "blockstats stats 項目が期待した形式ではありませんでした"
+
+#: src/qemu/qemu_monitor_json.c:1852 src/qemu/qemu_monitor_json.c:1859
+#: src/qemu/qemu_monitor_json.c:1867 src/qemu/qemu_monitor_json.c:1874
+#: src/qemu/qemu_monitor_json.c:1881 src/qemu/qemu_monitor_json.c:1889
+#: src/qemu/qemu_monitor_json.c:1897 src/qemu/qemu_monitor_json.c:1905
+#: src/qemu/qemu_monitor_json.c:2077
+#, c-format
+msgid "cannot read %s statistic"
+msgstr "%s 統計を読み込みできません"
+
+#: src/qemu/qemu_monitor_json.c:2064
 msgid "blockstats parent entry was not in expected format"
 msgstr "blockstats parent 項目が期待した形式ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2477
+#: src/qemu/qemu_monitor_json.c:2470
 msgid "query-migrate-cache-size reply was missing 'return' data"
 msgstr "query-migrate-cache-size 応答に 'return' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2526
+#: src/qemu/qemu_monitor_json.c:2519
 msgid "info migration reply was missing return data"
 msgstr "info migration の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2532
+#: src/qemu/qemu_monitor_json.c:2525
 msgid "info migration reply was missing return status"
 msgstr "info migration reply に return status がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2539 src/qemu/qemu_monitor_text.c:1449
+#: src/qemu/qemu_monitor_json.c:2532 src/qemu/qemu_monitor_text.c:1449
 #: src/qemu/qemu_monitor_text.c:1457
 #, c-format
 msgid "unexpected migration status in %s"
 msgstr "%s において予期しないマイグレーション状態です"
 
-#: src/qemu/qemu_monitor_json.c:2564
+#: src/qemu/qemu_monitor_json.c:2557
 msgid "migration was active, but no RAM info was set"
 msgstr "マイグレーションが有効でしたが、RAM の情報が設定されていませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2571
+#: src/qemu/qemu_monitor_json.c:2564
 msgid "migration was active, but RAM 'transferred' data was missing"
 msgstr ""
 "マイグレーションが有効でしたが、RAM の '転送済み' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2578
+#: src/qemu/qemu_monitor_json.c:2571
 msgid "migration was active, but RAM 'remaining' data was missing"
 msgstr "マイグレーションが有効でしたが、RAM の '残り' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2585
+#: src/qemu/qemu_monitor_json.c:2578
 msgid "migration was active, but RAM 'total' data was missing"
 msgstr "マイグレーションが有効でしたが、RAM の '合計' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2610
+#: src/qemu/qemu_monitor_json.c:2603
 msgid "disk migration was active, but 'transferred' data was missing"
 msgstr ""
 "ディスクマイグレーションがアクティブでしたが、'転送済み' データがありませんで"
 "した"
 
-#: src/qemu/qemu_monitor_json.c:2619
+#: src/qemu/qemu_monitor_json.c:2612
 msgid "disk migration was active, but 'remaining' data was missing"
 msgstr ""
 "ディスクマイグレーションがアクティブでしたが、'残り' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2628
+#: src/qemu/qemu_monitor_json.c:2621
 msgid "disk migration was active, but 'total' data was missing"
 msgstr ""
 "ディスクマイグレーションがアクティブでしたが、'合計' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2647
+#: src/qemu/qemu_monitor_json.c:2640
 msgid "XBZRLE is active, but 'cache-size' data was missing"
 msgstr "XBZRLE が有効ですが 'cache-size' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2656
+#: src/qemu/qemu_monitor_json.c:2649
 msgid "XBZRLE is active, but 'bytes' data was missing"
 msgstr "XBZRLE が有効ですが 'bytes' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2665
+#: src/qemu/qemu_monitor_json.c:2658
 msgid "XBZRLE is active, but 'pages' data was missing"
 msgstr "XBZRLE が有効ですが 'pages' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2674
+#: src/qemu/qemu_monitor_json.c:2667
 msgid "XBZRLE is active, but 'cache-miss' data was missing"
 msgstr "XBZRLE が有効でしたが 'cache-miss' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2683
+#: src/qemu/qemu_monitor_json.c:2676
 msgid "XBZRLE is active, but 'overflow' data was missing"
 msgstr "XBZRLE が有効でしたが 'overflow' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2732
+#: src/qemu/qemu_monitor_json.c:2725
 msgid "query-spice reply was missing return data"
 msgstr "query-spice の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:2849
+#: src/qemu/qemu_monitor_json.c:2842
 msgid "missing dump guest memory capabilities"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:2856
+#: src/qemu/qemu_monitor_json.c:2849
 msgid "missing supported dump formats"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:2865
+#: src/qemu/qemu_monitor_json.c:2858
 msgid "missing entry in supported dump formats"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:2953 src/qemu/qemu_monitor_json.c:2963
-#: src/qemu/qemu_monitor_json.c:2973
+#: src/qemu/qemu_monitor_json.c:2946 src/qemu/qemu_monitor_json.c:2956
+#: src/qemu/qemu_monitor_json.c:2966
 msgid "usb_add not supported in JSON mode"
 msgstr "usb_add は JSON モードにおいてサポートされません"
 
-#: src/qemu/qemu_monitor_json.c:2983 src/qemu/qemu_monitor_json.c:2994
-#: src/qemu/qemu_monitor_json.c:3004 src/qemu/qemu_monitor_json.c:3299
+#: src/qemu/qemu_monitor_json.c:2976 src/qemu/qemu_monitor_json.c:2987
+#: src/qemu/qemu_monitor_json.c:2997 src/qemu/qemu_monitor_json.c:3292
 msgid "pci_add not supported in JSON mode"
 msgstr "pci_add は JSON モードにおいてサポートされません"
 
-#: src/qemu/qemu_monitor_json.c:3013
+#: src/qemu/qemu_monitor_json.c:3006
 msgid "pci_del not supported in JSON mode"
 msgstr "pci_del は JSON モードにおいてサポートされません"
 
-#: src/qemu/qemu_monitor_json.c:3092
+#: src/qemu/qemu_monitor_json.c:3085
 msgid "missing return information"
 msgstr "返り情報がありません"
 
-#: src/qemu/qemu_monitor_json.c:3099
+#: src/qemu/qemu_monitor_json.c:3092
 msgid "incomplete return information"
 msgstr "不完全な返り情報"
 
-#: src/qemu/qemu_monitor_json.c:3216
+#: src/qemu/qemu_monitor_json.c:3209
 msgid "character device reply was missing return data"
 msgstr "キャラクターデバイスの応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3222
+#: src/qemu/qemu_monitor_json.c:3215
 msgid "character device information was not an array"
 msgstr "キャラクターデバイスの情報が配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3232
+#: src/qemu/qemu_monitor_json.c:3225
 msgid "character device information was missing array element"
 msgstr "キャラクターデバイスの情報に配列要素がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3238 src/qemu/qemu_monitor_json.c:3244
+#: src/qemu/qemu_monitor_json.c:3231 src/qemu/qemu_monitor_json.c:3237
 msgid "character device information was missing filename"
 msgstr "キャラクターデバイスの情報にファイル名がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3255 src/qemu/qemu_monitor_text.c:2229
+#: src/qemu/qemu_monitor_json.c:3248 src/qemu/qemu_monitor_text.c:2229
 #, c-format
 msgid "failed to save chardev path '%s'"
 msgstr "キャラクターデバイスのパス '%s' の保存に失敗しました"
 
-#: src/qemu/qemu_monitor_json.c:3308
+#: src/qemu/qemu_monitor_json.c:3301
 msgid "query-pci not supported in JSON mode"
 msgstr "query-pci は JSON モードにおいてサポートされません"
 
-#: src/qemu/qemu_monitor_json.c:3390
+#: src/qemu/qemu_monitor_json.c:3383
 msgid ""
 "deleting disk is not supported.  This may leak data if disk is reassigned"
 msgstr ""
 "ディスクの削除はサポートされません。ディスクが再割り当てされると、データの漏"
 "えいを引き起こすかもしれません。"
 
-#: src/qemu/qemu_monitor_json.c:3709 src/qemu/qemu_monitor_text.c:2887
+#: src/qemu/qemu_monitor_json.c:3702 src/qemu/qemu_monitor_text.c:2887
 #, c-format
 msgid "keycode %zu is invalid: 0x%X"
 msgstr "キーコード %zu が無効です: 0x%X"
 
-#: src/qemu/qemu_monitor_json.c:3798
+#: src/qemu/qemu_monitor_json.c:3791
 msgid "entry was missing 'device'"
 msgstr "エントリーに 'device' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3807
+#: src/qemu/qemu_monitor_json.c:3800
 msgid "entry was missing 'type'"
 msgstr "エントリーに 'type' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3822
+#: src/qemu/qemu_monitor_json.c:3815
 msgid "entry was missing 'speed'"
 msgstr "エントリーに 'speed' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3828
+#: src/qemu/qemu_monitor_json.c:3821
 msgid "entry was missing 'offset'"
 msgstr "エントリーに 'offset' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3834
+#: src/qemu/qemu_monitor_json.c:3827
 msgid "entry was missing 'len'"
 msgstr "エントリーに 'len' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3866
+#: src/qemu/qemu_monitor_json.c:3859
 msgid "reply was missing return data"
 msgstr "応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:3872
+#: src/qemu/qemu_monitor_json.c:3865
 msgid "unrecognized format of block job information"
 msgstr "ブロックジョブ情報の認識されない形式"
 
-#: src/qemu/qemu_monitor_json.c:3878
+#: src/qemu/qemu_monitor_json.c:3871
 msgid "unable to determine array size"
 msgstr "配列の大きさを決定できません"
 
-#: src/qemu/qemu_monitor_json.c:3886
+#: src/qemu/qemu_monitor_json.c:3879
 msgid "missing array element"
 msgstr "array 要素がありません"
 
-#: src/qemu/qemu_monitor_json.c:3918
+#: src/qemu/qemu_monitor_json.c:3911
 #, c-format
 msgid "only modern block pull supports base: %s"
 msgstr "最近のブロック取り出しのみがベースをサポートします: %s"
 
-#: src/qemu/qemu_monitor_json.c:3924
+#: src/qemu/qemu_monitor_json.c:3917
 msgid "backing name is supported only for block pull"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3930
+#: src/qemu/qemu_monitor_json.c:3923
 msgid "backing name requires a base image"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3936
+#: src/qemu/qemu_monitor_json.c:3929
 #, c-format
 msgid "only modern block pull supports speed: %llu"
 msgstr "最近のブロック取り出しのみが speed をサポートします: %llu"
 
-#: src/qemu/qemu_monitor_json.c:3977 src/qemu/qemu_monitor_json.c:4139
-#: src/qemu/qemu_monitor_json.c:4172
+#: src/qemu/qemu_monitor_json.c:3970 src/qemu/qemu_monitor_json.c:4132
+#: src/qemu/qemu_monitor_json.c:4165
 #, c-format
 msgid "No active operation on device: %s"
 msgstr "デバイスにおいて動作中の操作がありません: %s"
 
-#: src/qemu/qemu_monitor_json.c:3981
+#: src/qemu/qemu_monitor_json.c:3974
 #, c-format
 msgid "Device %s in use"
 msgstr "デバイス %s は使用中です"
 
-#: src/qemu/qemu_monitor_json.c:3984 src/qemu/qemu_monitor_json.c:4142
-#: src/qemu/qemu_monitor_json.c:4175
+#: src/qemu/qemu_monitor_json.c:3977 src/qemu/qemu_monitor_json.c:4135
+#: src/qemu/qemu_monitor_json.c:4168
 #, c-format
 msgid "Operation is not supported for device: %s"
 msgstr "操作がデバイスに対してサポートされていません: %s"
 
-#: src/qemu/qemu_monitor_json.c:3988 src/qemu/qemu_monitor_text.c:2998
+#: src/qemu/qemu_monitor_json.c:3981 src/qemu/qemu_monitor_text.c:2998
 #: src/qemu/qemu_monitor_text.c:3097
 #, c-format
 msgid "Command '%s' is not found"
 msgstr "コマンド '%s' が見つかりません"
 
-#: src/qemu/qemu_monitor_json.c:3993
+#: src/qemu/qemu_monitor_json.c:3986
 #, c-format
 msgid "Unexpected error: (%s) '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4037
+#: src/qemu/qemu_monitor_json.c:4030
 #, c-format
 msgid "block_io_throttle field '%s' missing in qemu's output"
 msgstr "QEMU の出力に block_io_throttle 項目 '%s' がありません"
 
-#: src/qemu/qemu_monitor_json.c:4056
+#: src/qemu/qemu_monitor_json.c:4049
 msgid " block_io_throttle reply was missing device list"
 msgstr " block_io_throttle reply に device list がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4067 src/qemu/qemu_monitor_json.c:4074
+#: src/qemu/qemu_monitor_json.c:4060 src/qemu/qemu_monitor_json.c:4067
 msgid "block_io_throttle device entry was not in expected format"
 msgstr "block_io_throttle device 項目が期待した形式ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4086
+#: src/qemu/qemu_monitor_json.c:4079
 msgid "block_io_throttle inserted entry was not in expected format"
 msgstr "block_io_throttle inserted 項目が期待した形式ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4103
+#: src/qemu/qemu_monitor_json.c:4096
 #, c-format
 msgid "cannot find throttling info for device '%s'"
 msgstr "デバイス '%s' のスロットリング情報がありません"
 
-#: src/qemu/qemu_monitor_json.c:4145 src/qemu/qemu_monitor_json.c:4178
+#: src/qemu/qemu_monitor_json.c:4138 src/qemu/qemu_monitor_json.c:4171
 msgid "Unexpected error"
 msgstr "予期しないエラー"
 
-#: src/qemu/qemu_monitor_json.c:4242
+#: src/qemu/qemu_monitor_json.c:4235
 msgid "query-version reply was missing 'return' data"
 msgstr "query-version の応答に 'return' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4248
+#: src/qemu/qemu_monitor_json.c:4241
 msgid "query-version reply was missing 'qemu' data"
 msgstr "query-version の応答に 'qemu' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4254
+#: src/qemu/qemu_monitor_json.c:4247
 msgid "query-version reply was missing 'major' version"
 msgstr "query-version の応答に 'major' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4259
+#: src/qemu/qemu_monitor_json.c:4252
 msgid "query-version reply was missing 'minor' version"
 msgstr "query-version の応答に 'minor' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4264
+#: src/qemu/qemu_monitor_json.c:4257
 msgid "query-version reply was missing 'micro' version"
 msgstr "query-version の応答に 'micro' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4272
+#: src/qemu/qemu_monitor_json.c:4265
 msgid "query-version reply was missing 'package' version"
 msgstr "query-version の応答に 'package' データがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4316
+#: src/qemu/qemu_monitor_json.c:4309
 msgid "query-machines reply was missing return data"
 msgstr "query-machines の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4322
+#: src/qemu/qemu_monitor_json.c:4315
 msgid "query-machines reply data was not an array"
 msgstr "query-machines の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4342
+#: src/qemu/qemu_monitor_json.c:4335
 msgid "query-machines reply data was missing 'name'"
 msgstr "query-machines の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4352
+#: src/qemu/qemu_monitor_json.c:4345
 msgid "query-machines reply has malformed 'is-default' data"
 msgstr "query-machines の応答データに不正な形式の 'is-default' がありました"
 
-#: src/qemu/qemu_monitor_json.c:4359
+#: src/qemu/qemu_monitor_json.c:4352
 msgid "query-machines reply has malformed 'alias' data"
 msgstr "query-machines の応答データに不正な形式の 'alias' がありました"
 
-#: src/qemu/qemu_monitor_json.c:4368
+#: src/qemu/qemu_monitor_json.c:4361
 msgid "query-machines reply has malformed 'cpu-max' data"
 msgstr "query-machines の応答に不正な形式の 'cpu-max' データがあります"
 
-#: src/qemu/qemu_monitor_json.c:4428
+#: src/qemu/qemu_monitor_json.c:4421
 msgid "query-cpu-definitions reply was missing return data"
 msgstr "query-cpu-definitions の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4434
+#: src/qemu/qemu_monitor_json.c:4427
 msgid "query-cpu-definitions reply data was not an array"
 msgstr "query-cpu-definitions の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4448
+#: src/qemu/qemu_monitor_json.c:4441
 msgid "query-cpu-definitions reply data was missing 'name'"
 msgstr "query-cpu-definitions の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4496
+#: src/qemu/qemu_monitor_json.c:4489
 msgid "query-commands reply was missing return data"
 msgstr "query-commands の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4502
+#: src/qemu/qemu_monitor_json.c:4495
 msgid "query-commands reply data was not an array"
 msgstr "query-commands の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4516
+#: src/qemu/qemu_monitor_json.c:4509
 msgid "query-commands reply data was missing 'name'"
 msgstr "query-commands の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4569
+#: src/qemu/qemu_monitor_json.c:4562
 msgid "query-events reply was missing return data"
 msgstr "query-events の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4575
+#: src/qemu/qemu_monitor_json.c:4568
 msgid "query-events reply data was not an array"
 msgstr "query-events の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4589
+#: src/qemu/qemu_monitor_json.c:4582
 msgid "query-events reply data was missing 'name'"
 msgstr "query-events の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4649
+#: src/qemu/qemu_monitor_json.c:4642
 msgid "query-command-line-options reply was missing return data"
 msgstr "query-command-line-options の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4660
+#: src/qemu/qemu_monitor_json.c:4653
 msgid "query-command-line-options reply data was not an array"
 msgstr "query-command-line-options の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4671
+#: src/qemu/qemu_monitor_json.c:4664
 msgid "query-command-line-options reply data was missing 'option'"
 msgstr "query-command-line-options の応答データに 'option' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4692
+#: src/qemu/qemu_monitor_json.c:4685
 msgid "query-command-line-options parameter data was not an array"
 msgstr ""
 "query-command-line-options のパラメーターデータが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4707
+#: src/qemu/qemu_monitor_json.c:4700
 msgid "query-command-line-options parameter data was missing 'name'"
 msgstr ""
 "query-command-line-options のパラメーターデータに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4764
+#: src/qemu/qemu_monitor_json.c:4757
 msgid "query-kvm reply was missing return data"
 msgstr "query-kvm の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4771
+#: src/qemu/qemu_monitor_json.c:4764
 msgid "query-kvm replied unexpected data"
 msgstr "query-kvm が予期しないデータを返しました"
 
-#: src/qemu/qemu_monitor_json.c:4812
+#: src/qemu/qemu_monitor_json.c:4805
 msgid "qom-list-types reply was missing return data"
 msgstr "qom-list-types の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4818
+#: src/qemu/qemu_monitor_json.c:4811
 msgid "qom-list-types reply data was not an array"
 msgstr "qom-list-types の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4832
+#: src/qemu/qemu_monitor_json.c:4825
 msgid "qom-list-types reply data was missing 'name'"
 msgstr "qom-list-types の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4883
+#: src/qemu/qemu_monitor_json.c:4876
 msgid "qom-list reply was missing return data"
 msgstr "qom-list の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4889
+#: src/qemu/qemu_monitor_json.c:4882
 msgid "qom-list reply data was not an array"
 msgstr "qom-list の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4909
+#: src/qemu/qemu_monitor_json.c:4902
 msgid "qom-list reply data was missing 'name'"
 msgstr "qom-list の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:4919
+#: src/qemu/qemu_monitor_json.c:4912
 msgid "qom-list reply has malformed 'type' data"
 msgstr "qom-list の応答データに不正な形式の 'type' データがありました"
 
-#: src/qemu/qemu_monitor_json.c:5015
+#: src/qemu/qemu_monitor_json.c:5008
 #, c-format
 msgid "qom-get invalid object property type %d"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5078
+#: src/qemu/qemu_monitor_json.c:5071
 #, c-format
 msgid "qom-set invalid object property type %d"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5134
+#: src/qemu/qemu_monitor_json.c:5127
 msgid "device-list-properties reply was missing return data"
 msgstr "device-list-properties の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5140
+#: src/qemu/qemu_monitor_json.c:5133
 msgid "device-list-properties reply data was not an array"
 msgstr "device-list-properties の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5154
+#: src/qemu/qemu_monitor_json.c:5147
 msgid "device-list-properties reply data was missing 'name'"
 msgstr "device-list-properties の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5197
+#: src/qemu/qemu_monitor_json.c:5190
 msgid "query-target reply was missing return data"
 msgstr "query-target の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5203
+#: src/qemu/qemu_monitor_json.c:5196
 msgid "query-target reply was missing arch data"
 msgstr "query-target の応答にアーキテクチャーデータがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5250
+#: src/qemu/qemu_monitor_json.c:5243
 msgid "missing migration capabilities"
 msgstr "マイグレーションのケイパビリティがありません"
 
-#: src/qemu/qemu_monitor_json.c:5263
+#: src/qemu/qemu_monitor_json.c:5256
 msgid "missing entry in migration capabilities list"
 msgstr "マイグレーションのケイパビリティ一覧に項目がありません"
 
-#: src/qemu/qemu_monitor_json.c:5269
+#: src/qemu/qemu_monitor_json.c:5262
 msgid "missing migration capability name"
 msgstr "マイグレーションのケイパビリティ名がありません"
 
-#: src/qemu/qemu_monitor_json.c:5526
+#: src/qemu/qemu_monitor_json.c:5519
 #, c-format
 msgid "%s reply was missing return data"
 msgstr "%s の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5533
+#: src/qemu/qemu_monitor_json.c:5526
 #, c-format
 msgid "%s reply data was not an array"
 msgstr "%s の応答が配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5548
+#: src/qemu/qemu_monitor_json.c:5541
 #, c-format
 msgid "%s array element does not contain data"
 msgstr "%s 配列要素にデータが含まれていません"
 
-#: src/qemu/qemu_monitor_json.c:5668
+#: src/qemu/qemu_monitor_json.c:5661
 #, c-format
 msgid "Unsupported char device type '%d'"
 msgstr "サポートされないキャラクターデバイス形式 '%d'"
 
-#: src/qemu/qemu_monitor_json.c:5718
+#: src/qemu/qemu_monitor_json.c:5711
 msgid "chardev-add reply was missing return data"
 msgstr "chardev-add の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5724
+#: src/qemu/qemu_monitor_json.c:5717
 msgid "chardev-add reply was missing pty path"
 msgstr "chardev-add の応答に pty パスがありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5814
+#: src/qemu/qemu_monitor_json.c:5807
 msgid "missing cpuid-register in CPU data"
 msgstr "CPU データに cpuid-register がありません"
 
-#: src/qemu/qemu_monitor_json.c:5819
+#: src/qemu/qemu_monitor_json.c:5812
 msgid "missing or invalid cpuid-input-eax in CPU data"
 msgstr "CPU データに cpuid-input-eax がありません、または無効です。"
 
-#: src/qemu/qemu_monitor_json.c:5824
+#: src/qemu/qemu_monitor_json.c:5817
 msgid "missing or invalid features in CPU data"
 msgstr "CPU データに features がありません、または無効です。"
 
-#: src/qemu/qemu_monitor_json.c:5839
+#: src/qemu/qemu_monitor_json.c:5832
 #, c-format
 msgid "unknown CPU register '%s'"
 msgstr "不明な CPU レジスター '%s'"
 
-#: src/qemu/qemu_monitor_json.c:5888 src/qemu/qemu_monitor_json.c:5929
+#: src/qemu/qemu_monitor_json.c:5881 src/qemu/qemu_monitor_json.c:5922
 #, c-format
 msgid "%s CPU property did not return an array"
 msgstr "%s CPU のプロパティが配列を返しませんでした"
 
-#: src/qemu/qemu_monitor_json.c:5980
+#: src/qemu/qemu_monitor_json.c:5973
 #, c-format
 msgid "CPU definition retrieval isn't supported for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6042
+#: src/qemu/qemu_monitor_json.c:6035
 #, fuzzy
 msgid "query-iothreads reply was missing return data"
 msgstr "query-commands の応答に返り値がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:6048
+#: src/qemu/qemu_monitor_json.c:6041
 #, fuzzy
 msgid "query-iothreads reply data was not an array"
 msgstr "query-commands の応答データが配列ではありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:6068
+#: src/qemu/qemu_monitor_json.c:6061
 #, fuzzy
 msgid "query-iothreads reply data was missing 'id'"
 msgstr "query-commands の応答データに 'name' がありませんでした"
 
-#: src/qemu/qemu_monitor_json.c:6078
+#: src/qemu/qemu_monitor_json.c:6071
 #, fuzzy
 msgid "query-iothreads reply has malformed 'thread-id' data"
 msgstr "query-machines の応答データに不正な形式の 'alias' がありました"
@@ -19741,55 +19737,55 @@ msgstr ""
 msgid "Maximum CPUs greater than specified machine type limit"
 msgstr "最大 CPU が指定されたマシン形式の制限値より大きいです"
 
-#: src/qemu/qemu_process.c:3808
+#: src/qemu/qemu_process.c:3813
 msgid "host doesn't support paravirtual spinlocks"
 msgstr "ホストは準仮想化スピンロックをサポートしません"
 
-#: src/qemu/qemu_process.c:3822
+#: src/qemu/qemu_process.c:3827
 msgid "host doesn't support invariant TSC"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3900
+#: src/qemu/qemu_process.c:3905
 #, fuzzy, c-format
 msgid "unable to find any master var store for loader: %s"
 msgstr "シークレットストレージドライバーの検出に失敗しました: %s"
 
-#: src/qemu/qemu_process.c:3928
+#: src/qemu/qemu_process.c:3933
 #, fuzzy, c-format
 msgid "Unable to read from file '%s'"
 msgstr "'%s' から読み込みできません"
 
-#: src/qemu/qemu_process.c:3935
+#: src/qemu/qemu_process.c:3940
 #, fuzzy, c-format
 msgid "Unable to write to file '%s'"
 msgstr "'%s' に書き込みできません"
 
-#: src/qemu/qemu_process.c:3943 src/qemu/qemu_process.c:3949
+#: src/qemu/qemu_process.c:3948 src/qemu/qemu_process.c:3954
 #, fuzzy, c-format
 msgid "Unable to close file '%s'"
 msgstr "ファイル %s を閉じられません"
 
-#: src/qemu/qemu_process.c:4033 src/qemu/qemu_process.c:5039
+#: src/qemu/qemu_process.c:4038 src/qemu/qemu_process.c:5044
 #: src/uml/uml_driver.c:1054
 msgid "VM is already active"
 msgstr "VM はすでにアクティブです"
 
-#: src/qemu/qemu_process.c:4130
+#: src/qemu/qemu_process.c:4135
 msgid "Unable to set huge path in security driver"
 msgstr "セキュリティドライバーにおいて大きなパスを設定できません"
 
-#: src/qemu/qemu_process.c:4203
+#: src/qemu/qemu_process.c:4208
 msgid ""
 "QEMU does not support multiple listen addresses for one graphics device."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4212 src/qemu/qemu_process.c:5063
+#: src/qemu/qemu_process.c:4217 src/qemu/qemu_process.c:5068
 #: src/uml/uml_driver.c:1076
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "ログディレクトリー %s を作成できません"
 
-#: src/qemu/qemu_process.c:4225
+#: src/qemu/qemu_process.c:4230
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
@@ -19799,29 +19795,29 @@ msgstr ""
 "トの BIOS において有効になっていること、およびホストの設定が kvm モジュールを"
 "読み込むために設定されていることを確認してください。"
 
-#: src/qemu/qemu_process.c:4268
+#: src/qemu/qemu_process.c:4273
 msgid "Parameter 'min_guarantee' not supported by QEMU."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4288
+#: src/qemu/qemu_process.c:4293
 msgid "Failed to build pidfile path."
 msgstr "PID ファイルのパスの構築に失敗しました"
 
-#: src/qemu/qemu_process.c:4295
+#: src/qemu/qemu_process.c:4300
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "期限切れの PID ファイル %s を削除できません"
 
-#: src/qemu/qemu_process.c:4374 src/qemu/qemu_process.c:4399
+#: src/qemu/qemu_process.c:4379 src/qemu/qemu_process.c:4404
 msgid "Raw I/O is not supported on this platform"
 msgstr "ロー I/O はこのプラットフォームにおいてサポートされません"
 
-#: src/qemu/qemu_process.c:4486
+#: src/qemu/qemu_process.c:4491
 #, c-format
 msgid "cannot stat fd %d"
 msgstr "ファイル記述子 %d を統計できません"
 
-#: src/qemu/qemu_process.c:4601
+#: src/qemu/qemu_process.c:4606
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr "バルーンを %lld に設定できません"
@@ -39029,6 +39025,9 @@ msgstr "chdir(%s) できません"
 #, c-format
 msgid "Unable to exec shell %s"
 msgstr "シェル %s を実行できません"
+
+#~ msgid "domain is not being migrated"
+#~ msgstr "ドメインはマイグレーションされていません"
 
 #~ msgid "authentication cancelled by user"
 #~ msgstr "利用者により認証が取り消されました"

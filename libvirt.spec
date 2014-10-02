@@ -363,7 +363,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.2.9
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -372,7 +372,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2274,6 +2274,15 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Wed Oct  1 2014 Daniel Veillard <veillard@redhat.com> - 1.2.9-1
+- CVE-2014-3657: domain_conf: fix domain deadlock
+- CVE-2014-3633: qemu: blkiotune: Use correct definition when looking up disk
+- Introduce virNodeAllocPages
+- event: introduce new event for tunable values
+- add migration support for OpenVZ driver
+- Add support for fetching statistics of completed jobs
+- many improvements and bug fixes
+
 * Tue Sep  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.8-1
 - blockcopy: virDomainBlockCopy with XML destination, typed params
 - Introduce API for retrieving bulk domain stats
