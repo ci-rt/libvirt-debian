@@ -50,13 +50,6 @@
     <function name="VIR_DOMAIN_CPU_STATS_USERTIME" link="libvirt-libvirt.html#VIR_DOMAIN_CPU_STATS_USERTIME"/>
     <function name="VIR_DOMAIN_CPU_STATS_VCPUTIME" link="libvirt-libvirt.html#VIR_DOMAIN_CPU_STATS_VCPUTIME"/>
     <function name="VIR_DOMAIN_EVENT_CALLBACK" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CALLBACK"/>
-    <function name="VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES"/>
-    <function name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN"/>
-    <function name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD"/>
-    <function name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA"/>
-    <function name="VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN"/>
-    <function name="VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD"/>
-    <function name="VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA"/>
     <function name="VIR_DOMAIN_JOB_COMPRESSION_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_BYTES"/>
     <function name="VIR_DOMAIN_JOB_COMPRESSION_CACHE" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_CACHE"/>
     <function name="VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES"/>
@@ -100,6 +93,20 @@
     <function name="VIR_DOMAIN_SCHEDULER_WEIGHT" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_WEIGHT"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_SEND_KEY_MAX_KEYS" link="libvirt-libvirt.html#VIR_DOMAIN_SEND_KEY_MAX_KEYS"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_DISK" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_DISK"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_VCPUPIN" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_VCPUPIN"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA" link="libvirt-libvirt.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA"/>
     <function name="VIR_GET_CPUMAP" link="libvirt-libvirt.html#VIR_GET_CPUMAP"/>
     <function name="VIR_MIGRATE_PARAM_BANDWIDTH" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_BANDWIDTH"/>
     <function name="VIR_MIGRATE_PARAM_DEST_NAME" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_DEST_NAME"/>

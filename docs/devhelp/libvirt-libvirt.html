@@ -81,13 +81,6 @@
 #define <a href="#VIR_DOMAIN_CPU_STATS_USERTIME">VIR_DOMAIN_CPU_STATS_USERTIME</a>;
 #define <a href="#VIR_DOMAIN_CPU_STATS_VCPUTIME">VIR_DOMAIN_CPU_STATS_VCPUTIME</a>;
 #define <a href="#VIR_DOMAIN_EVENT_CALLBACK">VIR_DOMAIN_EVENT_CALLBACK</a>;
-#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES">VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES</a>;
-#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN">VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN</a>;
-#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD</a>;
-#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA</a>;
-#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN">VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN</a>;
-#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD</a>;
-#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA</a>;
 #define <a href="#VIR_DOMAIN_JOB_COMPRESSION_BYTES">VIR_DOMAIN_JOB_COMPRESSION_BYTES</a>;
 #define <a href="#VIR_DOMAIN_JOB_COMPRESSION_CACHE">VIR_DOMAIN_JOB_COMPRESSION_CACHE</a>;
 #define <a href="#VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES">VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES</a>;
@@ -131,6 +124,20 @@
 #define <a href="#VIR_DOMAIN_SCHEDULER_WEIGHT">VIR_DOMAIN_SCHEDULER_WEIGHT</a>;
 #define <a href="#VIR_DOMAIN_SCHED_FIELD_LENGTH">VIR_DOMAIN_SCHED_FIELD_LENGTH</a>;
 #define <a href="#VIR_DOMAIN_SEND_KEY_MAX_KEYS">VIR_DOMAIN_SEND_KEY_MAX_KEYS</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_DISK">VIR_DOMAIN_TUNABLE_BLKDEV_DISK</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES">VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN">VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD">VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA">VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_CPU_VCPUPIN">VIR_DOMAIN_TUNABLE_CPU_VCPUPIN</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD">VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD</a>;
+#define <a href="#VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA">VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA</a>;
 #define <a href="#VIR_GET_CPUMAP">VIR_GET_CPUMAP</a>(cpumaps, maplen, vcpu);
 #define <a href="#VIR_MIGRATE_PARAM_BANDWIDTH">VIR_MIGRATE_PARAM_BANDWIDTH</a>;
 #define <a href="#VIR_MIGRATE_PARAM_DEST_NAME">VIR_MIGRATE_PARAM_DEST_NAME</a>;
@@ -967,34 +974,6 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </pre><p>Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()</p>
 </div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES">VIR_DOMAIN_EVENT_CPUTUNE_CPU_SHARES</a>;
-</pre><p>Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.</p>
-</div>
-        <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN">VIR_DOMAIN_EVENT_CPUTUNE_EMULATORIN</a>;
-</pre><p>Macro represents formatted pinning for emulator process, as VIR_TYPED_PARAM_STRING.</p>
-</div>
-        <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_PERIOD</a>;
-</pre><p>Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as VIR_TYPED_PARAM_ULLONG.</p>
-</div>
-        <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_EMULATOR_QUOTA</a>;
-</pre><p>Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.</p>
-</div>
-        <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN">VIR_DOMAIN_EVENT_CPUTUNE_VCPUPIN</a>;
-</pre><p>Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.</p>
-</div>
-        <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_PERIOD</a>;
-</pre><p>Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.</p>
-</div>
-        <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA">Macro </a>VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA">VIR_DOMAIN_EVENT_CPUTUNE_VCPU_QUOTA</a>;
-</pre><p>Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.</p>
-</div>
-        <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_COMPRESSION_BYTES">Macro </a>VIR_DOMAIN_JOB_COMPRESSION_BYTES</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_COMPRESSION_BYTES">VIR_DOMAIN_JOB_COMPRESSION_BYTES</a>;
 </pre><p><a href="libvirt-libvirt.html#virDomainGetJobStats">virDomainGetJobStats</a> field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.</p>
 </div>
@@ -1165,6 +1144,62 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_SEND_KEY_MAX_KEYS">Macro </a>VIR_DOMAIN_SEND_KEY_MAX_KEYS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_SEND_KEY_MAX_KEYS">VIR_DOMAIN_SEND_KEY_MAX_KEYS</a>;
 </pre><p>Maximum number of keycodes that can be sent in one virDomainSendKey() call.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_BLKDEV_DISK">Macro </a>VIR_DOMAIN_TUNABLE_BLKDEV_DISK</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_DISK">VIR_DOMAIN_TUNABLE_BLKDEV_DISK</a>;
+</pre><p>Macro represents the name of guest disk for which the values are updated, as VIR_TYPED_PARAM_STRING.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC">Macro </a>VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC</a>;
+</pre><p>Marco represents the read throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC">Macro </a>VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC</a>;
+</pre><p>Macro represents the read I/O operations per second, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC">Macro </a>VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC</a>;
+</pre><p>Marco represents the total throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC">Macro </a>VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC</a>;
+</pre><p>Macro represents the total I/O operations per second, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC">Macro </a>VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC</a>;
+</pre><p>Macro represents the write throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC">Macro </a>VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC">VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC</a>;
+</pre><p>Macro represents the write I/O operations per second, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES">Macro </a>VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES">VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES</a>;
+</pre><p>Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN">Macro </a>VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN">VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN</a>;
+</pre><p>Macro represents formatted pinning for emulator process, as VIR_TYPED_PARAM_STRING.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD">Macro </a>VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD">VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD</a>;
+</pre><p>Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA">Macro </a>VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA">VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA</a>;
+</pre><p>Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_CPU_VCPUPIN">Macro </a>VIR_DOMAIN_TUNABLE_CPU_VCPUPIN</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_CPU_VCPUPIN">VIR_DOMAIN_TUNABLE_CPU_VCPUPIN</a>;
+</pre><p>Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD">Macro </a>VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD">VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD</a>;
+</pre><p>Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA">Macro </a>VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA">VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA</a>;
+</pre><p>Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_GET_CPUMAP">Macro </a>VIR_GET_CPUMAP</h3><pre class="programlisting">#define <a href="#VIR_GET_CPUMAP">VIR_GET_CPUMAP</a>(cpumaps, maplen, vcpu);
@@ -3070,6 +3105,7 @@ handler is executed.
 
 Currently supported name spaces:
  "cputune.*"
+ "blkdeviotune.*"
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_TUNABLE with virConnectDomainEventRegisterAny()</p>
