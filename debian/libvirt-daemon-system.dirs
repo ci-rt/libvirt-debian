@@ -9,4 +9,4 @@
 /var/log/libvirt/uml
 /var/log/libvirt/lxc
 /etc/libvirt/hooks
-/etc/polkit-1/rules.d/
+/usr/share/polkit-1/rules.d/
