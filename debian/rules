@@ -148,6 +148,8 @@ override_dh_install:
 	# Add our backward compat polkit rule
 	cp debian/polkit/60-libvirt.rules \
 	    debian/libvirt-daemon-system/usr/share/polkit-1/rules.d/
+	cp debian/polkit/60-libvirt.pkla \
+	    debian/libvirt-daemon-system/var/lib/polkit-1/localauthority/10-vendor.d/
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	# Linux supports more nice things:
 	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
