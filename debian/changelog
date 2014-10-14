@@ -1,3 +1,18 @@
+libvirt (1.2.9-3) unstable; urgency=medium
+
+  * [28dd361] Remove obsolete conffiles in libvirt-bin too. Depending on the
+    upgrade path they can belong to either libvirt-bin or
+    libvirt-daemon-system. (Closes: #764679)
+  * [de9dcf9] Move polkit rule to /u/s/polkit-1/rules.d/
+    since /e/polkit-1 is for admin changes (Closes: #764826)
+  * [114d777] Remove unused python files. We split out libvirt-python ages
+    ago.
+  * [3a06d85] Add rules for older policy kit (as in jessie/sid).
+    Thanks to Török Edwin, Wolodja Wentland and Michael Biebl
+    (Closes: #765346)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 14 Oct 2014 18:34:38 +0200
+
 libvirt (1.2.9-2) unstable; urgency=medium
 
   * Upload to unstable
