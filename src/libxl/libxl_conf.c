@@ -102,6 +102,62 @@ libxlDriverConfigDispose(void *obj)
     VIR_FREE(cfg->autoDumpDir);
 }
 
+
+static libxl_action_on_shutdown
+libxlActionFromVirLifecycle(virDomainLifecycleAction action)
+{
+    switch (action) {
+    case VIR_DOMAIN_LIFECYCLE_DESTROY:
+        return LIBXL_ACTION_ON_SHUTDOWN_DESTROY;
+
+    case VIR_DOMAIN_LIFECYCLE_RESTART:
+        return  LIBXL_ACTION_ON_SHUTDOWN_RESTART;
+
+    case VIR_DOMAIN_LIFECYCLE_RESTART_RENAME:
+        return LIBXL_ACTION_ON_SHUTDOWN_RESTART_RENAME;
+
+    case VIR_DOMAIN_LIFECYCLE_PRESERVE:
+        return LIBXL_ACTION_ON_SHUTDOWN_PRESERVE;
+
+    case VIR_DOMAIN_LIFECYCLE_LAST:
+        break;
+    }
+
+    return 0;
+}
+
+
+static libxl_action_on_shutdown
+libxlActionFromVirLifecycleCrash(virDomainLifecycleCrashAction action)
+{
+
+    switch (action) {
+    case VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY:
+        return LIBXL_ACTION_ON_SHUTDOWN_DESTROY;
+
+    case VIR_DOMAIN_LIFECYCLE_CRASH_RESTART:
+        return  LIBXL_ACTION_ON_SHUTDOWN_RESTART;
+
+    case VIR_DOMAIN_LIFECYCLE_CRASH_RESTART_RENAME:
+        return LIBXL_ACTION_ON_SHUTDOWN_RESTART_RENAME;
+
+    case VIR_DOMAIN_LIFECYCLE_CRASH_PRESERVE:
+        return LIBXL_ACTION_ON_SHUTDOWN_PRESERVE;
+
+    case VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_DESTROY:
+        return LIBXL_ACTION_ON_SHUTDOWN_COREDUMP_DESTROY;
+
+    case VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_RESTART:
+        return LIBXL_ACTION_ON_SHUTDOWN_COREDUMP_RESTART;
+
+    case VIR_DOMAIN_LIFECYCLE_CRASH_LAST:
+        break;
+    }
+
+    return 0;
+}
+
+
 static int
 libxlCapsInitHost(libxl_ctx *ctx, virCapsPtr caps)
 {
@@ -312,17 +368,14 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
                     pae = 1;
                 else
                     nonpae = 1;
-            }
-            else if (STRPREFIX(&token[subs[2].rm_so], "x86_64")) {
+            } else if (STRPREFIX(&token[subs[2].rm_so], "x86_64")) {
                 arch = VIR_ARCH_X86_64;
-            }
-            else if (STRPREFIX(&token[subs[2].rm_so], "ia64")) {
+            } else if (STRPREFIX(&token[subs[2].rm_so], "ia64")) {
                 arch = VIR_ARCH_ITANIUM;
                 if (subs[3].rm_so != -1 &&
                     STRPREFIX(&token[subs[3].rm_so], "be"))
                     ia64_be = 1;
-            }
-            else if (STRPREFIX(&token[subs[2].rm_so], "powerpc64")) {
+            } else if (STRPREFIX(&token[subs[2].rm_so], "powerpc64")) {
                 arch = VIR_ARCH_PPC64;
             } else if (STRPREFIX(&token[subs[2].rm_so], "armv7l")) {
                 arch = VIR_ARCH_ARMV7L;
@@ -645,8 +698,7 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         if (def->os.nBootDevs == 0) {
             bootorder[0] = 'c';
             bootorder[1] = '\0';
-        }
-        else {
+        } else {
             bootorder[def->os.nBootDevs] = '\0';
         }
         if (VIR_STRDUP(b_info->u.hvm.boot, bootorder) < 0)
@@ -1436,9 +1488,9 @@ libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
     if (libxlMakePCIList(def, d_config) < 0)
         return -1;
 
-    d_config->on_reboot = def->onReboot;
-    d_config->on_poweroff = def->onPoweroff;
-    d_config->on_crash = def->onCrash;
+    d_config->on_reboot = libxlActionFromVirLifecycle(def->onReboot);
+    d_config->on_poweroff = libxlActionFromVirLifecycle(def->onPoweroff);
+    d_config->on_crash = libxlActionFromVirLifecycleCrash(def->onCrash);
 
     return 0;
 }

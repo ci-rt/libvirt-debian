@@ -48,12 +48,28 @@ VIR_ONCE_GLOBAL_INIT(virDomainCaps)
 
 
 static void
+virDomainCapsStringValuesFree(virDomainCapsStringValuesPtr values)
+{
+    size_t i;
+
+    if (!values || !values->values)
+        return;
+
+    for (i = 0; i < values->nvalues; i++)
+        VIR_FREE(values->values[i]);
+    VIR_FREE(values->values);
+}
+
+
+static void
 virDomainCapsDispose(void *obj)
 {
     virDomainCapsPtr caps = obj;
 
     VIR_FREE(caps->path);
     VIR_FREE(caps->machine);
+
+    virDomainCapsStringValuesFree(&caps->os.loader.values);
 }
 
 
@@ -156,6 +172,18 @@ virDomainCapsEnumFormat(virBufferPtr buf,
     return ret;
 }
 
+
+static void
+virDomainCapsStringValuesFormat(virBufferPtr buf,
+                                virDomainCapsStringValuesPtr values)
+{
+    size_t i;
+
+    for (i = 0; i < values->nvalues; i++)
+        virBufferEscapeString(buf, "<value>%s</value>\n", values->values[i]);
+}
+
+
 #define FORMAT_PROLOGUE(item)                                       \
     do {                                                            \
         virBufferAsprintf(buf, "<" #item " supported='%s'%s\n",     \
@@ -177,6 +205,33 @@ virDomainCapsEnumFormat(virBufferPtr buf,
         virDomainCapsEnumFormat(buf, &master->capsEnum,             \
                                 #capsEnum, valToStr);               \
     } while (0)
+
+
+static void
+virDomainCapsLoaderFormat(virBufferPtr buf,
+                          virDomainCapsLoaderPtr loader)
+{
+    FORMAT_PROLOGUE(loader);
+
+    virDomainCapsStringValuesFormat(buf, &loader->values);
+    ENUM_PROCESS(loader, type, virDomainLoaderTypeToString);
+    ENUM_PROCESS(loader, readonly, virTristateBoolTypeToString);
+
+    FORMAT_EPILOGUE(loader);
+}
+
+static void
+virDomainCapsOSFormat(virBufferPtr buf,
+                      virDomainCapsOSPtr os)
+{
+    virDomainCapsLoaderPtr loader = &os->loader;
+
+    FORMAT_PROLOGUE(os);
+
+    virDomainCapsLoaderFormat(buf, loader);
+
+    FORMAT_EPILOGUE(os);
+}
 
 static void
 virDomainCapsDeviceDiskFormat(virBufferPtr buf,
@@ -224,6 +279,8 @@ virDomainCapsFormatInternal(virBufferPtr buf,
 
     if (caps->maxvcpus)
         virBufferAsprintf(buf, "<vcpu max='%d'/>\n", caps->maxvcpus);
+
+    virDomainCapsOSFormat(buf, &caps->os);
 
     virBufferAddLit(buf, "<devices>\n");
     virBufferAdjustIndent(buf, 2);

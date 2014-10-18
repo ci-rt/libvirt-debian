@@ -1,0 +1,12 @@
+libvirt (1.2.9~rc1-1) experimental; urgency=medium
+
+  libvirtd now uses PolicyKit instead of unix socket domain permissions for r/w
+  connections. This has the advantage of requiring less reconfiguration when
+  using ACL based access and bringing us closer to upstream's recommendations.
+  In order to keep old configurations working we're still allowing all members
+  of the libvirt group full access via /etc/polkit-1/rules.d/60-libvirt.rules.
+
+  If you want to continue to use socket permission based access control you can
+  still configure it in /etc/libvirt/libvirtd.conf.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 27 Sep 2014 19:22:46 +0200

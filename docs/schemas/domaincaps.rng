@@ -26,6 +26,9 @@
           <ref name='vcpu'/>
         </optional>
         <optional>
+          <ref name='os'/>
+        </optional>
+        <optional>
           <ref name='devices'/>
         </optional>
       </interleave>
@@ -38,6 +41,27 @@
         <ref name='unsignedInt'/>
       </attribute>
       <empty/>
+    </element>
+  </define>
+
+  <define name='loader'>
+    <element name='loader'>
+      <ref name='supported'/>
+      <optional>
+        <ref name='value'/>
+      </optional>
+      <ref name='enum'/>
+    </element>
+  </define>
+
+  <define name='os'>
+    <element name='os'>
+      <interleave>
+        <ref name='supported'/>
+        <optional>
+          <ref name='loader'/>
+        </optional>
+      </interleave>
     </element>
   </define>
 
@@ -64,12 +88,17 @@
     </element>
   </define>
 
+  <define name='value'>
+    <zeroOrMore>
+      <element name='value'>
+        <text/>
+      </element>
+    </zeroOrMore>
+  </define>
+
   <define name='supported'>
     <attribute name='supported'>
-      <choice>
-        <value>yes</value>
-        <value>no</value>
-      </choice>
+      <ref name="virYesNo"/>
     </attribute>
   </define>
 
@@ -79,11 +108,7 @@
         <attribute name='name'>
           <text/>
         </attribute>
-        <zeroOrMore>
-          <element name='value'>
-            <text/>
-          </element>
-        </zeroOrMore>
+        <ref name='value'/>
       </element>
     </zeroOrMore>
   </define>

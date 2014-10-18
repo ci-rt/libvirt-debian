@@ -172,6 +172,11 @@ struct _virQEMUDriverConfig {
     int migrationPortMax;
 
     bool logTimestamp;
+
+    /* Pairs of loader:nvram paths. The list is @nloader items long */
+    char **loader;
+    char **nvram;
+    size_t nloader;
 };
 
 /* Main driver state */
@@ -289,8 +294,7 @@ bool qemuSharedDeviceEntryDomainExists(qemuSharedDeviceEntryPtr entry,
 char *qemuGetSharedDeviceKey(const char *disk_path)
     ATTRIBUTE_NONNULL(1);
 
-void qemuSharedDeviceEntryFree(void *payload, const void *name)
-    ATTRIBUTE_NONNULL(1);
+void qemuSharedDeviceEntryFree(void *payload, const void *name);
 
 int qemuAddSharedDevice(virQEMUDriverPtr driver,
                         virDomainDeviceDefPtr dev,

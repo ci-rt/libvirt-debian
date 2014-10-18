@@ -1677,11 +1677,7 @@ fi
 %preun daemon
     %if %{with_systemd}
         %if %{with_systemd_macros}
-            %systemd_preun \
-                libvirtd.socket \
-                libvirtd.service \
-                virtlockd.socket \
-                virtlockd.service
+            %systemd_preun libvirtd.socket libvirtd.service virtlockd.socket virtlockd.service
         %else
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
@@ -1732,8 +1728,37 @@ fi
     %if %{with_network}
 %post daemon-config-network
 if test $1 -eq 1 && test ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml ; then
+    # see if the network used by default network creates a conflict,
+    # and try to resolve it
+    # NB: 192.168.122.0/24 is used in the default.xml template file;
+    # do not modify any of those values here without also modifying
+    # them in the template.
+    orig_sub=122
+    sub=${orig_sub}
+    nl='
+'
+    routes="${nl}$(ip route show | cut -d' ' -f1)${nl}"
+    case ${routes} in
+      *"${nl}192.168.${orig_sub}.0/24${nl}"*)
+        # there was a match, so we need to look for an unused subnet
+        for new_sub in $(seq 124 254); do
+          case ${routes} in
+          *"${nl}192.168.${new_sub}.0/24${nl}"*)
+            ;;
+          *)
+            sub=$new_sub
+            break;
+            ;;
+          esac
+        done
+        ;;
+      *)
+        ;;
+    esac
+
     UUID=`/usr/bin/uuidgen`
-    sed -e "s,</name>,</name>\n  <uuid>$UUID</uuid>," \
+    sed -e "s/${orig_sub}/${sub}/g" \
+        -e "s,</name>,</name>\n  <uuid>$UUID</uuid>," \
          < %{_datadir}/libvirt/networks/default.xml \
          > %{_sysconfdir}/libvirt/qemu/networks/default.xml
     ln -s ../default.xml %{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
@@ -1942,6 +1967,7 @@ exit 0
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/target/
+%dir %attr(0711, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/nvram/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %{_datadir}/augeas/lenses/libvirtd_qemu.aug
 %{_datadir}/augeas/lenses/tests/test_libvirtd_qemu.aug
@@ -2044,6 +2070,7 @@ exit 0
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/target/
+%dir %attr(0711, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/nvram/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %{_datadir}/augeas/lenses/libvirtd_qemu.aug
 %{_datadir}/augeas/lenses/tests/test_libvirtd_qemu.aug
@@ -2247,6 +2274,15 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Wed Oct  1 2014 Daniel Veillard <veillard@redhat.com> - 1.2.9-1
+- CVE-2014-3657: domain_conf: fix domain deadlock
+- CVE-2014-3633: qemu: blkiotune: Use correct definition when looking up disk
+- Introduce virNodeAllocPages
+- event: introduce new event for tunable values
+- add migration support for OpenVZ driver
+- Add support for fetching statistics of completed jobs
+- many improvements and bug fixes
+
 * Tue Sep  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.8-1
 - blockcopy: virDomainBlockCopy with XML destination, typed params
 - Introduce API for retrieving bulk domain stats

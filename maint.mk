@@ -711,7 +711,7 @@ sc_changelog:
 # Ensure that each .c file containing a "main" function also
 # calls set_program_name.
 sc_program_name:
-	@require='set_program_name *\(m?argv\[0\]\);'			\
+	@require='set_program_name *\(.*\);'				\
 	in_vc_files='\.c$$'						\
 	containing='\<main *('						\
 	halt='the above files do not call set_program_name'		\
@@ -995,6 +995,14 @@ sc_prohibit_undesirable_word_seq:
 	     $$($(VC_LIST_EXCEPT))					\
 	  | grep -vE '$(ignore_undesirable_word_sequence_RE_)' | grep .	\
 	  && { echo '$(ME): undesirable word sequence' >&2; exit 1; } || :
+
+# Except for shell files and for loops, double semicolon is probably a mistake
+sc_prohibit_double_semicolon:
+	@prohibit='; *;[	{} \]*(/[/*]|$$)'			\
+	in_vc_files='\.[chly]$$'					\
+	exclude='\bfor *\(.*\)'						\
+	halt="Double semicolon detected"				\
+	  $(_sc_search_regexp)
 
 _ptm1 = use "test C1 && test C2", not "test C1 -''a C2"
 _ptm2 = use "test C1 || test C2", not "test C1 -''o C2"

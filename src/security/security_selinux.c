@@ -731,7 +731,9 @@ virSecuritySELinuxReserveSecurityLabel(virSecurityManagerPtr mgr,
     virSecurityLabelDefPtr seclabel;
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (!seclabel || seclabel->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (!seclabel ||
+        seclabel->type == VIR_DOMAIN_SECLABEL_NONE ||
+        seclabel->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
     if (getpidcon_raw(pid, &pctx) == -1) {
@@ -1327,7 +1329,8 @@ virSecuritySELinuxSetSecurityHostdevSubsysLabel(virDomainDefPtr def,
     /* Like virSecuritySELinuxSetSecurityImageLabelInternal() for a networked
      * disk, do nothing for an iSCSI hostdev
      */
-    if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
+    if (dev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
+        scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
         return 0;
 
     switch (dev->source.subsys.type) {
@@ -1520,7 +1523,8 @@ virSecuritySELinuxRestoreSecurityHostdevSubsysLabel(virSecurityManagerPtr mgr,
     /* Like virSecuritySELinuxRestoreSecurityImageLabelInt() for a networked
      * disk, do nothing for an iSCSI hostdev
      */
-    if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
+    if (dev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
+        scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
         return 0;
 
     switch (dev->source.subsys.type) {
@@ -1911,6 +1915,10 @@ virSecuritySELinuxRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                      mgr) < 0)
         rc = -1;
 
+    if (def->os.loader && def->os.loader->nvram &&
+        virSecuritySELinuxRestoreSecurityFileLabel(mgr, def->os.loader->nvram) < 0)
+        rc = -1;
+
     if (def->os.kernel &&
         virSecuritySELinuxRestoreSecurityFileLabel(mgr, def->os.kernel) < 0)
         rc = -1;
@@ -2294,6 +2302,13 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                      mgr) < 0)
         return -1;
 
+    /* This is different than kernel or initrd. The nvram store
+     * is really a disk, qemu can read and write to it. */
+    if (def->os.loader && def->os.loader->nvram &&
+        secdef && secdef->imagelabel &&
+        virSecuritySELinuxSetFilecon(def->os.loader->nvram, secdef->imagelabel) < 0)
+        return -1;
+
     if (def->os.kernel &&
         virSecuritySELinuxSetFilecon(def->os.kernel, data->content_context) < 0)
         return -1;
@@ -2330,17 +2345,47 @@ virSecuritySELinuxSetImageFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 }
 
 static int
-virSecuritySELinuxSetTapFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+virSecuritySELinuxSetTapFDLabel(virSecurityManagerPtr mgr,
                                 virDomainDefPtr def,
                                 int fd)
 {
+    struct stat buf;
+    security_context_t fcon = NULL;
     virSecurityLabelDefPtr secdef;
+    char *str = NULL;
+    int rc = -1;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (!secdef || !secdef->label)
         return 0;
 
-    return virSecuritySELinuxFSetFilecon(fd, secdef->imagelabel);
+    if (fstat(fd, &buf) < 0) {
+        virReportSystemError(errno, _("cannot stat tap fd %d"), fd);
+        goto cleanup;
+    }
+
+    if ((buf.st_mode & S_IFMT) != S_IFCHR) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("tap fd %d is not character device"), fd);
+        goto cleanup;
+    }
+
+    if (getContext(mgr, "/dev/tap.*", buf.st_mode, &fcon) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot lookup default selinux label for tap fd %d"), fd);
+        goto cleanup;
+    }
+
+    if (!(str = virSecuritySELinuxContextAddRange(secdef->label, fcon))) {
+        goto cleanup;
+    } else {
+        rc = virSecuritySELinuxFSetFilecon(fd, str);
+    }
+
+ cleanup:
+    freecon(fcon);
+    VIR_FREE(str);
+    return rc;
 }
 
 static char *

@@ -1,3 +1,8 @@
 # libvirt-bin renamed to libvirtd
 mv_conffile /etc/default/libvirt-bin /etc/default/libvirtd 1.2.6-1~
 mv_conffile /etc/init.d/libvirt-bin /etc/init.d/libvirtd 1.2.6-1~
+
+# Installed incorrectly
+rm_conffile /etc/apparmor.d/libvirtd/TEMPLATE 1.2.9-3~ libvirt-bin
+# Obsolete
+rm_conffile /etc/apparmor.d/libvirt/TEMPLATE 1.2.9-3~ libvirt-bin

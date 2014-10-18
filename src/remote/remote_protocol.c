@@ -2376,6 +2376,25 @@ xdr_remote_domain_block_rebase_args (XDR *xdrs, remote_domain_block_rebase_args 
 }
 
 bool_t
+xdr_remote_domain_block_copy_args (XDR *xdrs, remote_domain_block_copy_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->path))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->destxml))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_BLOCK_COPY_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_block_commit_args (XDR *xdrs, remote_domain_block_commit_args *objp)
 {
 
@@ -6239,6 +6258,21 @@ xdr_remote_domain_event_block_job_2_msg (XDR *xdrs, remote_domain_event_block_jo
 }
 
 bool_t
+xdr_remote_domain_event_callback_tunable_msg (XDR *xdrs, remote_domain_event_callback_tunable_msg *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_EVENT_TUNABLE_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_connect_get_cpu_model_names_args (XDR *xdrs, remote_connect_get_cpu_model_names_args *objp)
 {
 
@@ -6380,6 +6414,36 @@ xdr_remote_node_get_free_pages_ret (XDR *xdrs, remote_node_get_free_pages_ret *o
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->counts.counts_len, REMOTE_NODE_MAX_CELLS,
                 sizeof (uint64_t), (xdrproc_t) xdr_uint64_t))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_alloc_pages_args (XDR *xdrs, remote_node_alloc_pages_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->pageSizes.pageSizes_val;
+        char **objp_cpp1 = (char **) (void *) &objp->pageCounts.pageCounts_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->pageSizes.pageSizes_len, REMOTE_NODE_MAX_CELLS,
+                sizeof (u_int), (xdrproc_t) xdr_u_int))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp1, (u_int *) &objp->pageCounts.pageCounts_len, REMOTE_NODE_MAX_CELLS,
+                sizeof (uint64_t), (xdrproc_t) xdr_uint64_t))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->startCell))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->cellCount))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_alloc_pages_ret (XDR *xdrs, remote_node_alloc_pages_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->ret))
                  return FALSE;
         return TRUE;
 }

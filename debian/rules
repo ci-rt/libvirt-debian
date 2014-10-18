@@ -151,6 +151,11 @@ override_dh_install:
 	    debian/libvirt-daemon-system.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-daemon-system.libvirt-guests.default
+	# Add our backward compat polkit rule
+	cp debian/polkit/60-libvirt.rules \
+	    debian/libvirt-daemon-system/usr/share/polkit-1/rules.d/
+	cp debian/polkit/60-libvirt.pkla \
+	    debian/libvirt-daemon-system/var/lib/polkit-1/localauthority/10-vendor.d/
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	# Linux supports more nice things:
 	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
@@ -179,10 +184,6 @@ endif
 	rm debian/libvirt-daemon/usr/lib/libvirt/connection-driver/*.la
 	# Don't ship api files in the daemon package
 	rm -r debian/libvirt-daemon/usr/share/libvirt/api/
-
-	# Don't ship the socket activation file until we switched to polkit
-	# and we can therefore ignore socket permissions (#762606)
-	rm -f debian/*/lib/systemd/system/libvirtd.socket
 
 override_dh_installinit:
 	dh_systemd_enable

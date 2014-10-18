@@ -1933,17 +1933,13 @@ nodeCapsInitNUMA(virCapsPtr caps)
     ret = 0;
 
  cleanup:
-    if (topology_failed || ret < 0)
+    if ((topology_failed || ret < 0) && cpus)
         virCapabilitiesClearHostNUMACellCPUTopology(cpus, ncpus);
 
     virBitmapFree(cpumap);
     VIR_FREE(cpus);
     VIR_FREE(siblings);
     VIR_FREE(pageinfo);
-
-    if (ret < 0)
-        VIR_FREE(cpus);
-
     return ret;
 }
 
@@ -2032,10 +2028,22 @@ nodeGetFreePages(unsigned int npages,
                  unsigned long long *counts)
 {
     int ret = -1;
-    int cell;
+    int cell, lastCell;
     size_t i, ncounts = 0;
 
-    for (cell = startCell; cell < (int) (startCell + cellCount); cell++) {
+    if ((lastCell = virNumaGetMaxNode()) < 0)
+        return 0;
+
+    if (startCell > lastCell) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("start cell %d out of range (0-%d)"),
+                       startCell, lastCell);
+        goto cleanup;
+    }
+
+    lastCell = MIN(lastCell, startCell + (int) cellCount - 1);
+
+    for (cell = startCell; cell <= lastCell; cell++) {
         for (i = 0; i < npages; i++) {
             unsigned int page_size = pages[i];
             unsigned int page_free;
@@ -2051,6 +2059,47 @@ nodeGetFreePages(unsigned int npages,
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("no suitable info found"));
         goto cleanup;
+    }
+
+    ret = ncounts;
+ cleanup:
+    return ret;
+}
+
+int
+nodeAllocPages(unsigned int npages,
+               unsigned int *pageSizes,
+               unsigned long long *pageCounts,
+               int startCell,
+               unsigned int cellCount,
+               bool add)
+{
+    int ret = -1;
+    int cell, lastCell;
+    size_t i, ncounts = 0;
+
+    if ((lastCell = virNumaGetMaxNode()) < 0)
+        return 0;
+
+    if (startCell > lastCell) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("start cell %d out of range (0-%d)"),
+                       startCell, lastCell);
+        goto cleanup;
+    }
+
+    lastCell = MIN(lastCell, startCell + (int) cellCount - 1);
+
+    for (cell = startCell; cell <= lastCell; cell++) {
+        for (i = 0; i < npages; i++) {
+            unsigned int page_size = pageSizes[i];
+            unsigned long long page_count = pageCounts[i];
+
+            if (virNumaSetPagePoolSize(cell, page_size, page_count, add) < 0)
+                goto cleanup;
+
+            ncounts++;
+        }
     }
 
     ret = ncounts;

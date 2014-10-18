@@ -301,14 +301,15 @@ libxlStateInitialize(bool privileged,
     if (!(libxl_driver->reservedVNCPorts =
           virPortAllocatorNew(_("VNC"),
                               LIBXL_VNC_PORT_MIN,
-                              LIBXL_VNC_PORT_MAX)))
+                              LIBXL_VNC_PORT_MAX,
+                              0)))
         goto error;
 
     /* Allocate bitmap for migration port reservation */
     if (!(libxl_driver->migrationPorts =
           virPortAllocatorNew(_("migration"),
                               LIBXL_MIGRATION_PORT_MIN,
-                              LIBXL_MIGRATION_PORT_MAX)))
+                              LIBXL_MIGRATION_PORT_MAX, 0)))
         goto error;
 
     if (!(libxl_driver->domains = virDomainObjListNew()))
@@ -2380,25 +2381,22 @@ libxlDomainDefineXML(virConnectPtr conn, const char *xml)
     virObjectEventPtr event = NULL;
     virDomainDefPtr oldDef = NULL;
 
-    /* Lock the driver until the virDomainObj is created and locked */
-    libxlDriverLock(driver);
     if (!(def = virDomainDefParseString(xml, cfg->caps, driver->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE)))
-        goto cleanup_unlock;
+        goto cleanup;
 
     if (virDomainDefineXMLEnsureACL(conn, def) < 0)
-        goto cleanup_unlock;
+        goto cleanup;
 
     if (!(vm = virDomainObjListAdd(driver->domains, def,
                                    driver->xmlopt,
                                    0,
                                    &oldDef)))
-        goto cleanup_unlock;
+        goto cleanup;
 
     def = NULL;
     vm->persistent = 1;
-    libxlDriverUnlock(driver);
 
     if (virDomainSaveConfig(cfg->configDir,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
@@ -2425,10 +2423,6 @@ libxlDomainDefineXML(virConnectPtr conn, const char *xml)
         libxlDomainEventQueue(driver, event);
     virObjectUnref(cfg);
     return dom;
-
- cleanup_unlock:
-    libxlDriverUnlock(driver);
-    goto cleanup;
 }
 
 static int
@@ -2890,7 +2884,8 @@ libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
                 return -1;
             }
 
-            virDomainHostdevInsert(vmdef, hostdev);
+            if (virDomainHostdevInsert(vmdef, hostdev) < 0)
+                return -1;
             break;
 
         default:

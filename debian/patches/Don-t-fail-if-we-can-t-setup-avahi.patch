@@ -7,7 +7,7 @@ Subject: Don't fail if we can't setup avahi
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/src/rpc/virnetserver.c b/src/rpc/virnetserver.c
-index 7e3fc0a..3f13fac 100644
+index 762c185..6e489e7 100644
 --- a/src/rpc/virnetserver.c
 +++ b/src/rpc/virnetserver.c
 @@ -1093,8 +1093,7 @@ void virNetServerRun(virNetServerPtr srv)

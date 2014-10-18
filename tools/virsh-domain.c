@@ -311,6 +311,10 @@ static const vshCmdOptDef opts_attach_disk[] = {
      .type = VSH_OT_STRING,
      .help = N_("subdriver of disk device")
     },
+    {.name = "iothread",
+     .type = VSH_OT_STRING,
+     .help = N_("IOThread to be used by supported device")
+    },
     {.name = "cache",
      .type = VSH_OT_STRING,
      .help = N_("cache mode of disk device")
@@ -527,8 +531,8 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom = NULL;
     const char *source = NULL, *target = NULL, *driver = NULL,
                 *subdriver = NULL, *type = NULL, *mode = NULL,
-                *cache = NULL, *serial = NULL, *straddr = NULL,
-                *wwn = NULL, *targetbus = NULL;
+                *iothread = NULL, *cache = NULL, *serial = NULL,
+                *straddr = NULL, *wwn = NULL, *targetbus = NULL;
     struct DiskAddress diskAddr;
     bool isFile = false, functionReturn = false;
     int ret;
@@ -558,6 +562,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         vshCommandOptStringReq(ctl, cmd, "subdriver", &subdriver) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "type", &type) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "mode", &mode) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "iothread", &iothread) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "cache", &cache) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "serial", &serial) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "wwn", &wwn) < 0 ||
@@ -601,13 +606,15 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     virBufferAddLit(&buf, ">\n");
     virBufferAdjustIndent(&buf, 2);
 
-    if (driver || subdriver || cache) {
+    if (driver || subdriver || iothread || cache) {
         virBufferAddLit(&buf, "<driver");
 
         if (driver)
             virBufferAsprintf(&buf, " name='%s'", driver);
         if (subdriver)
             virBufferAsprintf(&buf, " type='%s'", subdriver);
+        if (iothread)
+            virBufferAsprintf(&buf, " iothread='%s'", iothread);
         if (cache)
             virBufferAsprintf(&buf, " cache='%s'", cache);
 
@@ -1461,23 +1468,20 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
 }
 
 typedef enum {
-    VSH_CMD_BLOCK_JOB_ABORT = 0,
-    VSH_CMD_BLOCK_JOB_INFO = 1,
-    VSH_CMD_BLOCK_JOB_SPEED = 2,
-    VSH_CMD_BLOCK_JOB_PULL = 3,
-    VSH_CMD_BLOCK_JOB_COPY = 4,
-    VSH_CMD_BLOCK_JOB_COMMIT = 5,
+    VSH_CMD_BLOCK_JOB_ABORT,
+    VSH_CMD_BLOCK_JOB_SPEED,
+    VSH_CMD_BLOCK_JOB_PULL,
+    VSH_CMD_BLOCK_JOB_COMMIT,
 } vshCmdBlockJobMode;
 
-static int
+static bool
 blockJobImpl(vshControl *ctl, const vshCmd *cmd,
-             virDomainBlockJobInfoPtr info, int mode,
-             virDomainPtr *pdom)
+             vshCmdBlockJobMode mode, virDomainPtr *pdom)
 {
     virDomainPtr dom = NULL;
     const char *path;
     unsigned long bandwidth = 0;
-    int ret = -1;
+    bool ret = false;
     const char *base = NULL;
     const char *top = NULL;
     unsigned int flags = 0;
@@ -1493,19 +1497,18 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
         goto cleanup;
     }
 
-    switch ((vshCmdBlockJobMode) mode) {
+    switch (mode) {
     case VSH_CMD_BLOCK_JOB_ABORT:
         if (vshCommandOptBool(cmd, "async"))
             flags |= VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC;
         if (vshCommandOptBool(cmd, "pivot"))
             flags |= VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT;
-        ret = virDomainBlockJobAbort(dom, path, flags);
-        break;
-    case VSH_CMD_BLOCK_JOB_INFO:
-        ret = virDomainGetBlockJobInfo(dom, path, info, 0);
+        if (virDomainBlockJobAbort(dom, path, flags) < 0)
+            goto cleanup;
         break;
     case VSH_CMD_BLOCK_JOB_SPEED:
-        ret = virDomainBlockJobSetSpeed(dom, path, bandwidth, 0);
+        if (virDomainBlockJobSetSpeed(dom, path, bandwidth, 0) < 0)
+            goto cleanup;
         break;
     case VSH_CMD_BLOCK_JOB_PULL:
         if (vshCommandOptStringReq(ctl, cmd, "base", &base) < 0)
@@ -1513,10 +1516,13 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
         if (vshCommandOptBool(cmd, "keep-relative"))
             flags |= VIR_DOMAIN_BLOCK_REBASE_RELATIVE;
 
-        if (base || flags)
-            ret = virDomainBlockRebase(dom, path, base, bandwidth, flags);
-        else
-            ret = virDomainBlockPull(dom, path, bandwidth, 0);
+        if (base || flags) {
+            if (virDomainBlockRebase(dom, path, base, bandwidth, flags) < 0)
+                goto cleanup;
+        } else {
+            if (virDomainBlockPull(dom, path, bandwidth, 0) < 0)
+                goto cleanup;
+        }
 
         break;
     case VSH_CMD_BLOCK_JOB_COMMIT:
@@ -1533,23 +1539,15 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
             flags |= VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
         if (vshCommandOptBool(cmd, "keep-relative"))
             flags |= VIR_DOMAIN_BLOCK_COMMIT_RELATIVE;
-        ret = virDomainBlockCommit(dom, path, base, top, bandwidth, flags);
-        break;
-    case VSH_CMD_BLOCK_JOB_COPY:
-        flags |= VIR_DOMAIN_BLOCK_REBASE_COPY;
-        if (vshCommandOptBool(cmd, "shallow"))
-            flags |= VIR_DOMAIN_BLOCK_REBASE_SHALLOW;
-        if (vshCommandOptBool(cmd, "reuse-external"))
-            flags |= VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT;
-        if (vshCommandOptBool(cmd, "raw"))
-            flags |= VIR_DOMAIN_BLOCK_REBASE_COPY_RAW;
-        if (vshCommandOptStringReq(ctl, cmd, "dest", &base) < 0)
+        if (virDomainBlockCommit(dom, path, base, top, bandwidth, flags) < 0)
             goto cleanup;
-        ret = virDomainBlockRebase(dom, path, base, bandwidth, flags);
+        break;
     }
 
+    ret = true;
+
  cleanup:
-    if (pdom && ret == 0)
+    if (pdom && ret)
         *pdom = dom;
     else if (dom)
         virDomainFree(dom);
@@ -1721,7 +1719,7 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
-    if (blockJobImpl(ctl, cmd, NULL, VSH_CMD_BLOCK_JOB_COMMIT, &dom) < 0)
+    if (!blockJobImpl(ctl, cmd, VSH_CMD_BLOCK_JOB_COMMIT, &dom))
         goto cleanup;
 
     if (!blocking) {
@@ -1827,11 +1825,10 @@ static const vshCmdOptDef opts_block_copy[] = {
     {.name = "path",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
-     .help = N_("fully-qualified path of disk")
+     .help = N_("fully-qualified path of source disk")
     },
     {.name = "dest",
      .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
      .help = N_("path of the copy to create")
     },
     {.name = "bandwidth",
@@ -1847,8 +1844,12 @@ static const vshCmdOptDef opts_block_copy[] = {
      .help = N_("reuse existing destination")
     },
     {.name = "raw",
+     .type = VSH_OT_ALIAS,
+     .help = "format=raw"
+    },
+    {.name = "blockdev",
      .type = VSH_OT_BOOL,
-     .help = N_("use raw destination file")
+     .help = N_("copy destination is block device instead of regular file")
     },
     {.name = "wait",
      .type = VSH_OT_BOOL,
@@ -1874,6 +1875,22 @@ static const vshCmdOptDef opts_block_copy[] = {
      .type = VSH_OT_BOOL,
      .help = N_("with --wait, don't wait for cancel to finish")
     },
+    {.name = "xml",
+     .type = VSH_OT_DATA,
+     .help = N_("filename containing XML description of the copy destination")
+    },
+    {.name = "format",
+     .type = VSH_OT_DATA,
+     .help = N_("format of the destination file")
+    },
+    {.name = "granularity",
+     .type = VSH_OT_INT,
+     .help = N_("power-of-two granularity to use during the copy")
+    },
+    {.name = "buf-size",
+     .type = VSH_OT_INT,
+     .help = N_("maximum amount of in-flight data during the copy")
+    },
     {.name = NULL}
 };
 
@@ -1881,11 +1898,18 @@ static bool
 cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
+    const char *dest = NULL;
+    const char *format = NULL;
+    unsigned long bandwidth = 0;
+    unsigned int granularity = 0;
+    unsigned long long buf_size = 0;
+    unsigned int flags = 0;
     bool ret = false;
     bool blocking = vshCommandOptBool(cmd, "wait");
     bool verbose = vshCommandOptBool(cmd, "verbose");
     bool pivot = vshCommandOptBool(cmd, "pivot");
     bool finish = vshCommandOptBool(cmd, "finish");
+    bool blockdev = vshCommandOptBool(cmd, "blockdev");
     int timeout = 0;
     struct sigaction sig_action;
     struct sigaction old_sig_action;
@@ -1895,6 +1919,23 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
     const char *path = NULL;
     bool quit = false;
     int abort_flags = 0;
+    const char *xml = NULL;
+    char *xmlstr = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+
+    if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
+        return false;
+    if (vshCommandOptString(cmd, "dest", &dest) < 0)
+        return false;
+    if (vshCommandOptString(cmd, "xml", &xml) < 0)
+        return false;
+    if (vshCommandOptString(cmd, "format", &format) < 0)
+        return false;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(dest, xml);
+    VSH_EXCLUSIVE_OPTIONS_VAR(format, xml);
+    VSH_EXCLUSIVE_OPTIONS_VAR(blockdev, xml);
 
     blocking |= vshCommandOptBool(cmd, "timeout") || pivot || finish;
     if (blocking) {
@@ -1903,8 +1944,6 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
             return false;
         }
         if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
-            return false;
-        if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
             return false;
         if (vshCommandOptBool(cmd, "async"))
             abort_flags |= VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC;
@@ -1924,8 +1963,103 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
-    if (blockJobImpl(ctl, cmd, NULL, VSH_CMD_BLOCK_JOB_COPY, &dom) < 0)
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         goto cleanup;
+
+    /* XXX: Parse bandwidth as scaled input, rather than forcing
+     * MiB/s, and either reject negative input or treat it as 0 rather
+     * than trying to guess which value will work well across both
+     * APIs with their different sizes and scales.  */
+    if (vshCommandOptULWrap(cmd, "bandwidth", &bandwidth) < 0) {
+        vshError(ctl, "%s", _("bandwidth must be a number"));
+        goto cleanup;
+    }
+    if (vshCommandOptUInt(cmd, "granularity", &granularity) < 0) {
+        vshError(ctl, "%s", _("granularity must be a number"));
+        goto cleanup;
+    }
+    if (vshCommandOptULongLong(cmd, "buf-size", &buf_size) < 0) {
+        vshError(ctl, "%s", _("buf-size must be a number"));
+        goto cleanup;
+    }
+
+    if (xml) {
+        if (virFileReadAll(xml, 8192, &xmlstr) < 0) {
+            vshReportError(ctl);
+            goto cleanup;
+        }
+    } else if (!dest) {
+        vshError(ctl, "%s", _("need either --dest or --xml"));
+        goto cleanup;
+    }
+
+    /* Exploit that some VIR_DOMAIN_BLOCK_REBASE_* and
+     * VIR_DOMAIN_BLOCK_COPY_* flags have the same values.  */
+    if (vshCommandOptBool(cmd, "shallow"))
+        flags |= VIR_DOMAIN_BLOCK_REBASE_SHALLOW;
+    if (vshCommandOptBool(cmd, "reuse-external"))
+        flags |= VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT;
+
+    if (granularity || buf_size || (format && STRNEQ(format, "raw")) || xml) {
+        /* New API */
+        if (bandwidth || granularity || buf_size) {
+            params = vshCalloc(ctl, 3, sizeof(*params));
+            if (bandwidth) {
+                /* bandwidth is ulong MiB/s, but the typed parameter is
+                 * ullong bytes/s; make sure we don't overflow */
+                if (bandwidth + 0ULL > ULLONG_MAX >> 20) {
+                    virReportError(VIR_ERR_OVERFLOW,
+                                   _("bandwidth must be less than %llu"),
+                                   ULLONG_MAX >> 20);
+                }
+                if (virTypedParameterAssign(&params[nparams++],
+                                            VIR_DOMAIN_BLOCK_COPY_BANDWIDTH,
+                                            VIR_TYPED_PARAM_ULLONG,
+                                            bandwidth << 20ULL) < 0)
+                    goto cleanup;
+            }
+            if (granularity &&
+                virTypedParameterAssign(&params[nparams++],
+                                        VIR_DOMAIN_BLOCK_COPY_GRANULARITY,
+                                        VIR_TYPED_PARAM_UINT,
+                                        granularity) < 0)
+                goto cleanup;
+            if (buf_size &&
+                virTypedParameterAssign(&params[nparams++],
+                                        VIR_DOMAIN_BLOCK_COPY_BUF_SIZE,
+                                        VIR_TYPED_PARAM_ULLONG,
+                                        buf_size) < 0)
+                goto cleanup;
+        }
+
+        if (!xmlstr) {
+            virBuffer buf = VIR_BUFFER_INITIALIZER;
+            virBufferAsprintf(&buf, "<disk type='%s'>\n",
+                              blockdev ? "block" : "file");
+            virBufferAdjustIndent(&buf, 2);
+            virBufferAsprintf(&buf, "<source %s", blockdev ? "dev" : "file");
+            virBufferEscapeString(&buf, "='%s'/>\n", dest);
+            virBufferEscapeString(&buf, "<driver type='%s'/>\n", format);
+            virBufferAdjustIndent(&buf, -2);
+            virBufferAddLit(&buf, "</disk>\n");
+            if (virBufferCheckError(&buf) < 0)
+                goto cleanup;
+            xmlstr = virBufferContentAndReset(&buf);
+        }
+
+        if (virDomainBlockCopy(dom, path, xmlstr, params, nparams, flags) < 0)
+            goto cleanup;
+    } else {
+        /* Old API */
+        flags |= VIR_DOMAIN_BLOCK_REBASE_COPY;
+        if (vshCommandOptBool(cmd, "blockdev"))
+            flags |= VIR_DOMAIN_BLOCK_REBASE_COPY_DEV;
+        if (STREQ_NULLABLE(format, "raw"))
+            flags |= VIR_DOMAIN_BLOCK_REBASE_COPY_RAW;
+
+        if (virDomainBlockRebase(dom, path, dest, bandwidth, flags) < 0)
+            goto cleanup;
+    }
 
     if (!blocking) {
         vshPrint(ctl, "%s", _("Block Copy started"));
@@ -1996,6 +2130,8 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
  cleanup:
+    VIR_FREE(xmlstr);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     if (blocking)
@@ -2033,15 +2169,23 @@ static const vshCmdOptDef opts_block_job[] = {
     },
     {.name = "async",
      .type = VSH_OT_BOOL,
-     .help = N_("don't wait for --abort to complete")
+     .help = N_("implies --abort; request but don't wait for job end")
     },
     {.name = "pivot",
      .type = VSH_OT_BOOL,
-     .help = N_("conclude and pivot a copy job")
+     .help = N_("implies --abort; conclude and pivot a copy or commit job")
     },
     {.name = "info",
      .type = VSH_OT_BOOL,
      .help = N_("get active job information for the specified disk")
+    },
+    {.name = "bytes",
+     .type = VSH_OT_BOOL,
+     .help = N_("with --info, get bandwidth in bytes rather than MiB/s")
+    },
+    {.name = "raw",
+     .type = VSH_OT_BOOL,
+     .help = N_("implies --info; output details rather than human summary")
     },
     {.name = "bandwidth",
      .type = VSH_OT_DATA,
@@ -2069,40 +2213,113 @@ vshDomainBlockJobToString(int type)
 static bool
 cmdBlockJob(vshControl *ctl, const vshCmd *cmd)
 {
-    int mode;
     virDomainBlockJobInfo info;
-    int ret;
+    bool ret = false;
+    int rc = -1;
+    bool raw = vshCommandOptBool(cmd, "raw");
+    bool bytes = vshCommandOptBool(cmd, "bytes");
     bool abortMode = (vshCommandOptBool(cmd, "abort") ||
                       vshCommandOptBool(cmd, "async") ||
                       vshCommandOptBool(cmd, "pivot"));
-    bool infoMode = vshCommandOptBool(cmd, "info");
+    bool infoMode = vshCommandOptBool(cmd, "info") || raw;
     bool bandwidth = vshCommandOptBool(cmd, "bandwidth");
+    virDomainPtr dom = NULL;
+    const char *path;
+    unsigned int flags = 0;
+    unsigned long long speed;
 
     if (abortMode + infoMode + bandwidth > 1) {
         vshError(ctl, "%s",
-                 _("conflict between --abort, --info, and --bandwidth modes"));
+                 _("conflict between abort, info, and bandwidth modes"));
+        return false;
+    }
+    /* XXX also support --bytes with bandwidth mode */
+    if (bytes && (abortMode || bandwidth)) {
+        vshError(ctl, "%s", _("--bytes requires info mode"));
         return false;
     }
 
     if (abortMode)
-        mode = VSH_CMD_BLOCK_JOB_ABORT;
-    else if (bandwidth)
-        mode = VSH_CMD_BLOCK_JOB_SPEED;
-    else
-        mode = VSH_CMD_BLOCK_JOB_INFO;
+        return blockJobImpl(ctl, cmd, VSH_CMD_BLOCK_JOB_ABORT, NULL);
+    if (bandwidth)
+        return blockJobImpl(ctl, cmd, VSH_CMD_BLOCK_JOB_SPEED, NULL);
 
-    ret = blockJobImpl(ctl, cmd, &info, mode, NULL);
-    if (ret < 0)
-        return false;
+    /* Everything below here is for --info mode */
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        goto cleanup;
 
-    if (ret == 0 || mode != VSH_CMD_BLOCK_JOB_INFO)
-        return true;
+    /* XXX Allow path to be optional to list info on all devices at once */
+    if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
+        goto cleanup;
 
-    vshPrintJobProgress(vshDomainBlockJobToString(info.type),
-                        info.end - info.cur, info.end);
-    if (info.bandwidth != 0)
-        vshPrint(ctl, _("    Bandwidth limit: %lu MiB/s\n"), info.bandwidth);
-    return true;
+    /* If bytes were requested, or if raw mode is not forcing a MiB/s
+     * query and cache can't prove failure, then query bytes/sec.  */
+    if (bytes || !(raw || ctl->blockJobNoBytes)) {
+        flags |= VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES;
+        rc = virDomainGetBlockJobInfo(dom, path, &info, flags);
+        if (rc < 0) {
+            /* Check for particular errors, let all the rest be fatal. */
+            switch (last_error->code) {
+            case VIR_ERR_INVALID_ARG:
+                ctl->blockJobNoBytes = true;
+                /* fallthrough */
+            case VIR_ERR_OVERFLOW:
+                if (!bytes && !raw) {
+                    /* try again with MiB/s, unless forcing bytes */
+                    vshResetLibvirtError();
+                    break;
+                }
+                /* fallthrough */
+            default:
+                goto cleanup;
+            }
+        }
+        speed = info.bandwidth;
+    }
+    /* If we don't already have a query result, query for MiB/s */
+    if (rc < 0) {
+        flags &= ~VIR_DOMAIN_BLOCK_JOB_INFO_BANDWIDTH_BYTES;
+        if ((rc = virDomainGetBlockJobInfo(dom, path, &info, flags)) < 0)
+            goto cleanup;
+        speed = info.bandwidth;
+        /* Scale to bytes/s unless in raw mode */
+        if (!raw) {
+            speed <<= 20;
+            if (speed >> 20 != info.bandwidth) {
+                vshError(ctl, _("overflow in converting %ld MiB/s to bytes\n"),
+                         info.bandwidth);
+                goto cleanup;
+            }
+        }
+    }
+
+    if (rc == 0) {
+        if (!raw)
+            vshPrint(ctl, _("No current block job for %s"), path);
+        ret = true;
+        goto cleanup;
+    }
+
+    if (raw) {
+        vshPrint(ctl, _(" type=%s\n bandwidth=%lu\n cur=%llu\n end=%llu\n"),
+                 vshDomainBlockJobTypeToString(info.type),
+                 info.bandwidth, info.cur, info.end);
+    } else {
+        vshPrintJobProgress(vshDomainBlockJobToString(info.type),
+                            info.end - info.cur, info.end);
+        if (speed) {
+            const char *unit;
+            double val = vshPrettyCapacity(speed, &unit);
+            vshPrint(ctl, _("    Bandwidth limit: %llu bytes/s (%-.3lf %s/s)"),
+                     speed, val, unit);
+        }
+        vshPrint(ctl, "\n");
+    }
+    ret = true;
+ cleanup:
+    if (dom)
+        virDomainFree(dom);
+    return ret;
 }
 
 /*
@@ -2201,7 +2418,7 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
-    if (blockJobImpl(ctl, cmd, NULL, VSH_CMD_BLOCK_JOB_PULL, &dom) < 0)
+    if (!blockJobImpl(ctl, cmd, VSH_CMD_BLOCK_JOB_PULL, &dom))
         goto cleanup;
 
     if (!blocking) {
@@ -2920,13 +3137,13 @@ cmdDomPMSuspend(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "target", &target) < 0)
         goto cleanup;
 
-    if (STREQ(target, "mem"))
+    if (STREQ(target, "mem")) {
         suspendTarget = VIR_NODE_SUSPEND_TARGET_MEM;
-    else if (STREQ(target, "disk"))
+    } else if (STREQ(target, "disk")) {
         suspendTarget = VIR_NODE_SUSPEND_TARGET_DISK;
-    else if (STREQ(target, "hybrid"))
+    } else if (STREQ(target, "hybrid")) {
         suspendTarget = VIR_NODE_SUSPEND_TARGET_HYBRID;
-    else {
+    } else {
         vshError(ctl, "%s", _("Invalid target"));
         goto cleanup;
     }
@@ -3038,6 +3255,10 @@ static const vshCmdOptDef opts_undefine[] = {
      .type = VSH_OT_BOOL,
      .help = N_("remove all domain snapshot metadata, if inactive")
     },
+    {.name = "nvram",
+     .type = VSH_OT_BOOL,
+     .help = N_("remove nvram file, if inactive")
+    },
     {.name = NULL}
 };
 
@@ -3060,6 +3281,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
     bool snapshots_metadata = vshCommandOptBool(cmd, "snapshots-metadata");
     bool wipe_storage = vshCommandOptBool(cmd, "wipe-storage");
     bool remove_all_storage = vshCommandOptBool(cmd, "remove-all-storage");
+    bool nvram = vshCommandOptBool(cmd, "nvram");
     /* Positive if these items exist.  */
     int has_managed_save = 0;
     int has_snapshots_metadata = 0;
@@ -3102,6 +3324,9 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
     if (snapshots_metadata) {
         flags |= VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA;
         snapshots_safe = true;
+    }
+    if (nvram) {
+        flags |= VIR_DOMAIN_UNDEFINE_NVRAM;
     }
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
@@ -3293,11 +3518,15 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
      * VIR_DOMAIN_UNDEFINE_MANAGED_SAVE in 0.9.4, the
      * VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA flag was not present
      * until 0.9.5; skip to piecewise emulation if we couldn't prove
-     * above that the new API is safe.  */
-    if (managed_save_safe && snapshots_safe) {
+     * above that the new API is safe.
+     * Moreover, only the newer UndefineFlags() API understands
+     * the VIR_DOMAIN_UNDEFINE_NVRAM flag. So if user has
+     * specified --nvram we must use the Flags() API. */
+    if ((managed_save_safe && snapshots_safe) || nvram) {
         rc = virDomainUndefineFlags(dom, flags);
-        if (rc == 0 || (last_error->code != VIR_ERR_NO_SUPPORT &&
-                        last_error->code != VIR_ERR_INVALID_ARG))
+        if (rc == 0 || nvram ||
+            (last_error->code != VIR_ERR_NO_SUPPORT &&
+             last_error->code != VIR_ERR_INVALID_ARG))
             goto out;
         vshResetLibvirtError();
     }
@@ -3677,7 +3906,8 @@ doSave(void *opaque)
  out:
     pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
  out_sig:
-    if (dom) virDomainFree(dom);
+    if (dom)
+        virDomainFree(dom);
     VIR_FREE(xml);
     ignore_value(safewrite(data->writefd, &ret, sizeof(ret)));
 }
@@ -3841,8 +4071,7 @@ cmdSave(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, _("\nDomain %s saved to %s\n"), name, to);
 
  cleanup:
-    if (dom)
-        virDomainFree(dom);
+    virDomainFree(dom);
     return ret;
 }
 
@@ -4032,7 +4261,6 @@ cmdSaveImageEdit(vshControl *ctl, const vshCmd *cmd)
     ret = true; goto edit_cleanup;
 #define EDIT_DEFINE \
     (virDomainSaveImageDefineXML(ctl->conn, file, doc_edited, define_flags) == 0)
-#define EDIT_FREE /* */
 #include "virsh-edit.c"
 
     vshPrint(ctl, _("State file %s edited.\n"), file);
@@ -5164,6 +5392,10 @@ static const vshCmdOptDef opts_domjobinfo[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("domain name, id or uuid")
     },
+    {.name = "completed",
+     .type = VSH_OT_BOOL,
+     .help = N_("return statistics of a recently completed job")
+    },
     {.name = NULL}
 };
 
@@ -5195,14 +5427,18 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
     virTypedParameterPtr params = NULL;
     int nparams = 0;
     unsigned long long value;
+    unsigned int flags = 0;
     int rc;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
+    if (vshCommandOptBool(cmd, "completed"))
+        flags |= VIR_DOMAIN_JOB_STATS_COMPLETED;
+
     memset(&info, 0, sizeof(info));
 
-    rc = virDomainGetJobStats(dom, &info.type, &params, &nparams, 0);
+    rc = virDomainGetJobStats(dom, &info.type, &params, &nparams, flags);
     if (rc == 0) {
         if (virTypedParamsGetULLong(params, nparams,
                                     VIR_DOMAIN_JOB_TIME_ELAPSED,
@@ -5239,6 +5475,11 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
                                     &info.fileRemaining) < 0)
             goto save_error;
     } else if (last_error->code == VIR_ERR_NO_SUPPORT) {
+        if (flags) {
+            vshError(ctl, "%s", _("Optional flags are not supported by the "
+                                  "daemon"));
+            goto cleanup;
+        }
         vshDebug(ctl, VSH_ERR_DEBUG, "detailed statistics not supported\n");
         vshResetLibvirtError();
         rc = virDomainGetJobInfo(dom, &info);
@@ -5249,7 +5490,9 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
     vshPrint(ctl, "%-17s %-12s\n", _("Job type:"),
              vshDomainJobToString(info.type));
     if (info.type != VIR_DOMAIN_JOB_BOUNDED &&
-        info.type != VIR_DOMAIN_JOB_UNBOUNDED) {
+        info.type != VIR_DOMAIN_JOB_UNBOUNDED &&
+        (!(flags & VIR_DOMAIN_JOB_STATS_COMPLETED) ||
+         info.type != VIR_DOMAIN_JOB_COMPLETED)) {
         ret = true;
         goto cleanup;
     }
@@ -5275,6 +5518,16 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, "%-17s %-.3lf %s\n", _("Memory remaining:"), val, unit);
         val = vshPrettyCapacity(info.memTotal, &unit);
         vshPrint(ctl, "%-17s %-.3lf %s\n", _("Memory total:"), val, unit);
+
+        if ((rc = virTypedParamsGetULLong(params, nparams,
+                                          VIR_DOMAIN_JOB_MEMORY_BPS,
+                                          &value)) < 0) {
+            goto save_error;
+        } else if (rc && value) {
+            val = vshPrettyCapacity(value, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s/s\n",
+                     _("Memory bandwidth:"), val, unit);
+        }
     }
 
     if (info.fileTotal || info.fileRemaining || info.fileProcessed) {
@@ -5284,6 +5537,16 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, "%-17s %-.3lf %s\n", _("File remaining:"), val, unit);
         val = vshPrettyCapacity(info.fileTotal, &unit);
         vshPrint(ctl, "%-17s %-.3lf %s\n", _("File total:"), val, unit);
+
+        if ((rc = virTypedParamsGetULLong(params, nparams,
+                                          VIR_DOMAIN_JOB_DISK_BPS,
+                                          &value)) < 0) {
+            goto save_error;
+        } else if (rc && value) {
+            val = vshPrettyCapacity(value, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s/s\n",
+                     _("File bandwidth:"), val, unit);
+        }
     }
 
     if ((rc = virTypedParamsGetULLong(params, nparams,
@@ -5314,8 +5577,21 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
                                       &value)) < 0) {
         goto save_error;
     } else if (rc) {
-        vshPrint(ctl, "%-17s %-12llu ms\n", _("Expected downtime:"), value);
+        if (info.type == VIR_DOMAIN_JOB_COMPLETED) {
+            vshPrint(ctl, "%-17s %-12llu ms\n",
+                     _("Total downtime:"), value);
+        } else {
+            vshPrint(ctl, "%-17s %-12llu ms\n",
+                     _("Expected downtime:"), value);
+        }
     }
+
+    if ((rc = virTypedParamsGetULLong(params, nparams,
+                                      VIR_DOMAIN_JOB_SETUP_TIME,
+                                      &value)) < 0)
+        goto save_error;
+    else if (rc)
+        vshPrint(ctl, "%-17s %-12llu ms\n", _("Setup time:"), value);
 
     if ((rc = virTypedParamsGetULLong(params, nparams,
                                       VIR_DOMAIN_JOB_COMPRESSION_CACHE,
@@ -6504,7 +6780,7 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     virTypedParameterPtr params = NULL;
-    int pos, max_id, cpu = 0, show_count = -1, nparams = 0;
+    int pos, max_id, cpu = 0, show_count = -1, nparams = 0, stats_per_cpu;
     size_t i, j;
     bool show_total = false, show_per_cpu = false;
     unsigned int flags = 0;
@@ -6623,11 +6899,12 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
     /* passing start_cpu == -1 gives us domain's total status */
-    if ((nparams = virDomainGetCPUStats(dom, params, nparams, -1, 1, flags)) < 0)
+    if ((stats_per_cpu = virDomainGetCPUStats(dom, params, nparams,
+                                              -1, 1, flags)) < 0)
         goto failed_stats;
 
     vshPrint(ctl, _("Total:\n"));
-    for (i = 0; i < nparams; i++) {
+    for (i = 0; i < stats_per_cpu; i++) {
         vshPrint(ctl, "\t%-12s ", params[i].field);
         if ((STREQ(params[i].field, VIR_DOMAIN_CPU_STATS_CPUTIME) ||
              STREQ(params[i].field, VIR_DOMAIN_CPU_STATS_USERTIME) ||
@@ -6988,7 +7265,9 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd)
 
             /* Compare original XML with edited.  Has it changed at all? */
             if (STREQ(desc, desc_edited)) {
-                vshPrint(ctl, _("Domain description not changed.\n"));
+                vshPrint(ctl, "%s",
+                         title ? _("Domain title not changed\n") :
+                                 _("Domain description not changed\n"));
                 ret = true;
                 goto cleanup;
             }
@@ -7000,10 +7279,13 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd)
 
         if (virDomainSetMetadata(dom, type, desc, NULL, NULL, flags) < 0) {
             vshError(ctl, "%s",
-                     _("Failed to set new domain description"));
+                     title ? _("Failed to set new domain title") :
+                             _("Failed to set new domain description"));
             goto cleanup;
         }
-        vshPrint(ctl, "%s", _("Domain description updated successfully"));
+        vshPrint(ctl, "%s",
+                 title ? _("Domain title updated successfully") :
+                         _("Domain description updated successfully"));
     } else {
         desc = vshGetDomainDescription(ctl, dom, title,
                                        config?VIR_DOMAIN_XML_INACTIVE:0);
@@ -7013,7 +7295,9 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd)
         if (strlen(desc) > 0)
             vshPrint(ctl, "%s", desc);
         else
-            vshPrint(ctl, _("No description for domain: %s"),
+            vshPrint(ctl,
+                     title ? _("No title for domain: %s") :
+                             _("No description for domain: %s"),
                      virDomainGetName(dom));
     }
 
@@ -7162,7 +7446,6 @@ cmdMetadata(vshControl *ctl, const vshCmd *cmd)
 #define EDIT_DEFINE                                                         \
         (virDomainSetMetadata(dom, VIR_DOMAIN_METADATA_ELEMENT, doc_edited, \
                               key, uri, flags) == 0)
-#define EDIT_FREE /* nothing */
 #include "virsh-edit.c"
 
         vshPrint("%s\n", _("Metadata modified"));
@@ -8262,17 +8545,15 @@ cmdQemuAttach(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    if (!(dom = virDomainQemuAttach(ctl->conn, pid_value, flags)))
-        goto cleanup;
-
-    if (dom != NULL) {
-        vshPrint(ctl, _("Domain %s attached to pid %u\n"),
-                 virDomainGetName(dom), pid_value);
-        virDomainFree(dom);
-        ret = true;
-    } else {
+    if (!(dom = virDomainQemuAttach(ctl->conn, pid_value, flags))) {
         vshError(ctl, _("Failed to attach to pid %u"), pid_value);
+        goto cleanup;
     }
+
+    vshPrint(ctl, _("Domain %s attached to pid %u\n"),
+                virDomainGetName(dom), pid_value);
+    virDomainFree(dom);
+    ret = true;
 
  cleanup:
     return ret;
@@ -8931,6 +9212,10 @@ static const vshCmdOptDef opts_migrate[] = {
      .type = VSH_OT_BOOL,
      .help = N_("force convergence during live migration")
     },
+    {.name = "rdma-pin-all",
+     .type = VSH_OT_BOOL,
+     .help = N_("support memory pinning during RDMA live migration")
+    },
     {.name = "abort-on-error",
      .type = VSH_OT_BOOL,
      .help = N_("abort on soft errors during migration")
@@ -9078,6 +9363,9 @@ doMigrate(void *opaque)
 
     if (vshCommandOptBool(cmd, "auto-converge"))
         flags |= VIR_MIGRATE_AUTO_CONVERGE;
+
+    if (vshCommandOptBool(cmd, "rdma-pin-all"))
+        flags |= VIR_MIGRATE_RDMA_PIN_ALL;
 
     if (vshCommandOptBool(cmd, "offline")) {
         flags |= VIR_MIGRATE_OFFLINE;
@@ -9578,8 +9866,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         /* TLS Port */
         if (tls_port) {
             virBufferAsprintf(&buf,
-                              "%stls-port=%d",
-                              params ? "&" : "?",
+                              "?tls-port=%d",
                               tls_port);
             params = true;
         }
@@ -10656,9 +10943,6 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
     ret = true; goto edit_cleanup;
 #define EDIT_DEFINE \
     (dom_edited = virDomainDefineXML(ctl->conn, doc_edited))
-#define EDIT_FREE \
-    if (dom_edited) \
-        virDomainFree(dom_edited);
 #include "virsh-edit.c"
 
     vshPrint(ctl, _("Domain %s XML configuration edited.\n"),
@@ -11170,6 +11454,37 @@ vshEventDeviceRemovedPrint(virConnectPtr conn ATTRIBUTE_UNUSED,
         vshEventDone(data->ctl);
 }
 
+static void
+vshEventTunablePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
+                     virDomainPtr dom,
+                     virTypedParameterPtr params,
+                     int nparams,
+                     void *opaque)
+{
+    vshDomEventData *data = opaque;
+    size_t i;
+    char *value = NULL;
+
+    if (!data->loop && *data->count)
+        return;
+
+    vshPrint(data->ctl,
+             _("event 'tunable' for domain %s:\n"),
+             virDomainGetName(dom));
+
+    for (i = 0; i < nparams; i++) {
+        value = virTypedParameterToString(&params[i]);
+        if (value) {
+            vshPrint(data->ctl, _("\t%s: %s\n"), params[i].field, value);
+            VIR_FREE(value);
+        }
+    }
+
+    (*data->count)++;
+    if (!data->loop)
+        vshEventDone(data->ctl);
+}
+
 static vshEventCallback vshEventCallbacks[] = {
     { "lifecycle",
       VIR_DOMAIN_EVENT_CALLBACK(vshEventLifecyclePrint), },
@@ -11203,6 +11518,8 @@ static vshEventCallback vshEventCallbacks[] = {
       VIR_DOMAIN_EVENT_CALLBACK(vshEventDeviceRemovedPrint), },
     { "block-job-2",
       VIR_DOMAIN_EVENT_CALLBACK(vshEventBlockJobPrint), },
+    { "tunable",
+      VIR_DOMAIN_EVENT_CALLBACK(vshEventTunablePrint), },
 };
 verify(VIR_DOMAIN_EVENT_ID_LAST == ARRAY_CARDINALITY(vshEventCallbacks));
 

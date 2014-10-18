@@ -1,7 +1,7 @@
 /*
  * virpidfile.c: manipulation of pidfiles
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2012, 2014 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  *
@@ -520,4 +520,50 @@ int virPidFileRelease(const char *dir,
  cleanup:
     VIR_FREE(pidfile);
     return rc;
+}
+
+
+int
+virPidFileConstructPath(bool privileged,
+                        const char *statedir,
+                        const char *progname,
+                        char **pidfile)
+{
+    int ret = -1;
+    char *rundir = NULL;
+
+    if (privileged) {
+        /*
+         * This is here just to allow calling this function with
+         * statedir == NULL; of course only when !privileged.
+         */
+        if (!statedir) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("No statedir specified"));
+            goto cleanup;
+        }
+        if (virAsprintf(pidfile, "%s/run/%s.pid", statedir, progname) < 0)
+            goto cleanup;
+    } else {
+        if (!(rundir = virGetUserRuntimeDirectory()))
+            goto cleanup;
+
+        if (virFileMakePathWithMode(rundir, 0700) < 0) {
+            virReportSystemError(errno,
+                                 _("Cannot create user runtime directory '%s'"),
+                                 rundir);
+            goto cleanup;
+        }
+
+        if (virAsprintf(pidfile, "%s/%s.pid", rundir, progname) < 0) {
+            VIR_FREE(rundir);
+            goto cleanup;
+        }
+
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(rundir);
+    return ret;
 }

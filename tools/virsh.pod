@@ -561,6 +561,18 @@ to the NUMA cell you're interested in. I<pagesize> is a scaled integer (see
 B<NOTES> above).  Alternatively, if I<--all> is used, info on each possible
 combination of NUMA cell and page size is printed out.
 
+=item B<allocpages> [I<--pagesize>] I<pagesize> [I<--pagecount>] I<pagecount>
+[[I<--cellno>] I<cellno>] [I<--add>] [I<--all>]
+
+Change the size of pages pool of I<pagesize> on the host. If
+I<--add> is specified, then I<pagecount> pages are added into the
+pool. However, if I<--add> wasn't specified, then the
+I<pagecount> is taken as the new absolute size of the pool (this
+may be used to free some pages and size the pool down). The
+I<cellno> modifier can be used to narrow the modification down to
+a single host NUMA cell. On the other end of spectrum lies
+I<--all> which executes the modification on all NUMA cells.
+
 =item B<cpu-baseline> I<FILE> [I<--features>]
 
 Compute baseline CPU which will be supported by all host CPUs given in <file>.
@@ -814,6 +826,7 @@ I<snapshot-create> for disk snapshots) will accept either target
 or unique source names printed by this command.
 
 =item B<domstats> [I<--raw>] [I<--enforce>] [I<--state>]
+[I<--cpu-total>] [I<--balloon>] [I<--vcpu>] [I<--interface>] [I<--block>]
 [[I<--list-active>] [I<--list-inactive>] [I<--list-persistent>]
 [I<--list-transient>] [I<--list-running>] [I<--list-paused>]
 [I<--list-shutoff>] [I<--list-other>]] | [I<domain> ...]
@@ -831,7 +844,54 @@ behavior use the I<--raw> flag.
 
 The individual statistics groups are selectable via specific flags. By
 default all supported statistics groups are returned. Supported
-statistics groups flags are: I<--state>.
+statistics groups flags are: I<--state>, I<--cpu-total>, I<--balloon>,
+I<--vcpu>, I<--interface>, I<--block>.
+
+When selecting the I<--state> group the following fields are returned:
+"state.state" - state of the VM, returned as number from virDomainState enum,
+"state.reason" - reason for entering given state, returned as int from,
+virDomain*Reason enum corresponding to given state.
+
+I<--cpu-total> returns:
+"cpu.time" - total cpu time spent for this domain in nanoseconds,
+"cpu.user" - user cpu time spent in nanoseconds,
+"cpu.system" - system cpu time spent in nanoseconds
+
+I<--balloon> returns:
+"balloon.current" - the memory in kiB currently used,
+"balloon.maximum" - the maximum memory in kiB allowed
+
+I<--vcpu> returns:
+"vcpu.current" - current number of online virtual CPUs,
+"vcpu.maximum" - maximum number of online virtual CPUs,
+"vcpu.<num>.state" - state of the virtual CPU <num>, as number
+from virVcpuState enum,
+"vcpu.<num>.time" - virtual cpu time spent by virtual CPU <num>
+
+I<--interface> returns:
+"net.count" - number of network interfaces on this domain,
+"net.<num>.name" - name of the interface <num>,
+"net.<num>.rx.bytes" - number of bytes received,
+"net.<num>.rx.pkts" - number of packets received,
+"net.<num>.rx.errs" - number of receive errors,
+"net.<num>.rx.drop" - number of receive packets dropped,
+"net.<num>.tx.bytes" - number of bytes transmitted,
+"net.<num>.tx.pkts" - number of packets transmitted,
+"net.<num>.tx.errs" - number of transmission errors,
+"net.<num>.tx.drop" - number of transmit packets dropped,
+
+I<block> returns:
+"block.count" - number of block devices on this domain,
+"block.<num>.name" - name of the target of the block device <num>,
+"block.<num>.rd.reqs" - number of read requests,
+"block.<num>.rd.bytes" - number of read bytes,
+"block.<num>.rd.times" - total time (ns) spent on reads,
+"block.<num>.wr.reqs" - number of write requests,
+"block.<num>.wr.bytes" - number of written bytes,
+"block.<num>.wr.times" - total time (ns) spent on writes,
+"block.<num>.fl.reqs" - total flush requests,
+"block.<num>.fl.times" - total time (ns) spent on cache flushing,
+"block.<num>.errors" - Xen only: the 'oo_req' value,
 
 Selecting a specific statistics groups doesn't guarantee that the
 daemon supports the selected group of stats. Flag I<--enforce>
@@ -898,26 +958,30 @@ value is interpreted as an unsigned long long value or essentially
 unlimited. The hypervisor can choose whether to reject the value or
 convert it to the maximum value allowed.
 
-=item B<blockcopy> I<domain> I<path> I<dest> [I<bandwidth>] [I<--shallow>]
-[I<--reuse-external>] [I<--raw>] [I<--wait> [I<--async>] [I<--verbose>]]
-[{I<--pivot> | I<--finish>}] [I<--timeout> B<seconds>]
+=item B<blockcopy> I<domain> I<path> { I<dest> [I<format>] [I<--blockdev>]
+| I<xml> } [I<--shallow>] [I<--reuse-external>] [I<bandwidth>]
+[I<--wait> [I<--async>] [I<--verbose>]] [{I<--pivot> | I<--finish>}]
+[I<--timeout> B<seconds>] [I<granularity>] [I<buf-size>]
 
-Copy a disk backing image chain to I<dest>. By default, this command
-flattens the entire chain; but if I<--shallow> is specified, the copy
-shares the backing chain.
+Copy a disk backing image chain to a destination.  Either I<dest> as
+the destination file name, or I<xml> as the name of an XML file containing
+a top-level <disk> element describing the destination, must be present.
+Additionally, if I<dest> is given, I<format> should be specified to declare
+the format of the destination (if I<format> is omitted, then libvirt
+will reuse the format of the source, or with I<--reuse-external> will
+be forced to probe the destination format, which could be a potential
+security hole).  The command supports I<--raw> as a boolean flag synonym for
+I<--format=raw>.  When using I<dest>, the destination is treated as a regular
+file unless I<--blockdev> is used to signal that it is a block device. By
+default, this command flattens the entire chain; but if I<--shallow> is
+specified, the copy shares the backing chain.
 
-If I<--reuse-external> is specified, then I<dest> must exist and have
+If I<--reuse-external> is specified, then the destination must exist and have
 sufficient space to hold the copy. If I<--shallow> is used in
 conjunction with I<--reuse-external> then the pre-created image must have
 guest visible contents identical to guest visible contents of the backing
 file of the original image. This may be used to modify the backing file
 names on the destination.
-
-The format of the destination is determined by the first match in the
-following list: if I<--raw> is specified, it will be raw; if
-I<--reuse-external> is specified, the existing destination is probed
-for a format; and in all other cases, the destination format will
-match the source format.
 
 By default, the copy job runs in the background, and consists of two
 phases.  Initially, the job must copy all data from the source, and
@@ -940,9 +1004,15 @@ while longer until the job has actually cancelled.
 
 I<path> specifies fully-qualified path of the disk.
 I<bandwidth> specifies copying bandwidth limit in MiB/s. Specifying a negative
-value is interpreted as an unsigned long long value or essentially
-unlimited. The hypervisor can choose whether to reject the value or
-convert it to the maximum value allowed.
+value is interpreted as an unsigned long long value that might be essentially
+unlimited, but more likely would overflow; it is safer to use 0 for that
+purpose.  Specifying I<granularity> allows fine-tuning of the granularity that
+will be copied when a dirty region is detected; larger values trigger less
+I/O overhead but may end up copying more data overall (the default value is
+usually correct); this value must be a power of two.  Specifying I<buf-size>
+will control how much data can be simultaneously in-flight during the copy;
+larger values use more memory but may allow faster completion (the default
+value is usually correct).
 
 =item B<blockpull> I<domain> I<path> [I<bandwidth>] [I<base>]
 [I<--wait> [I<--verbose>] [I<--timeout> B<seconds>] [I<--async>]]
@@ -1013,24 +1083,33 @@ exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
 =item B<blockjob> I<domain> I<path> { [I<--abort>] [I<--async>] [I<--pivot>] |
-[I<--info>] | [I<bandwidth>] }
+[I<--info>] [I<--raw>] [I<--bytes>] | [I<bandwidth>] }
 
-Manage active block operations.  There are three modes: I<--info>,
-I<bandwidth>, and I<--abort>; I<--info> is default except that I<--async>
-or I<--pivot> implies I<--abort>.
+Manage active block operations.  There are three mutually-exclusive modes:
+I<--info>, I<bandwidth>, and I<--abort>.  I<--async> and I<--pivot> imply
+abort mode; I<--raw> implies info mode; and if no mode was given, I<--info>
+mode is assumed.
 
 I<path> specifies fully-qualified path of the disk; it corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
 also B<domblklist> for listing these names).
 
-If I<--abort> is specified, the active job on the specified disk will
+In I<--abort> mode, the active job on the specified disk will
 be aborted.  If I<--async> is also specified, this command will return
 immediately, rather than waiting for the cancellation to complete.  If
 I<--pivot> is specified, this requests that an active copy or active
 commit job be pivoted over to the new image.
-If I<--info> is specified, the active job information on the specified
-disk will be printed.
+
+In I<--info> mode, the active job information on the specified
+disk will be printed.  By default, the output is a single human-readable
+summary line; this format may change in future versions.  Adding
+I<--raw> lists each field of the struct, in a stable format.  If the
+I<--bytes> flag is set, then the command errors out if the server could
+not supply bytes/s resolution; when omitting the flag, raw output is
+listed in MiB/s and human-readable output automatically selects the
+best resolution supported by the server.
+
 I<bandwidth> can be used to set bandwidth limit for the active job.
 Specifying a negative value is interpreted as an unsigned long long
 value or essentially unlimited. The hypervisor can choose whether to
@@ -1112,9 +1191,15 @@ Convert a domain name (or UUID) to a domain id
 
 Abort the currently running domain job.
 
-=item B<domjobinfo> I<domain>
+=item B<domjobinfo> I<domain> [I<--completed>]
 
-Returns information about jobs running on a domain.
+Returns information about jobs running on a domain. I<--completed> tells
+virsh to return information about a recently finished job. Statistics of
+a completed job are automatically destroyed once read or when libvirtd
+is restarted. Note that time information returned for completed
+migrations may be completely irrelevant unless both source and
+destination hosts have synchronized time (i.e., NTP daemon is running
+on both of them).
 
 =item B<domname> I<domain-id-or-uuid>
 
@@ -2058,7 +2143,7 @@ Output the device used for the TTY console of the domain. If the information
 is not available the processes will provide an exit code of 1.
 
 =item B<undefine> I<domain> [I<--managed-save>] [I<--snapshots-metadata>]
-[ {I<--storage> B<volumes> | I<--remove-all-storage>} I<--wipe-storage>]
+[I<--nvram>] [ {I<--storage> B<volumes> | I<--remove-all-storage>} I<--wipe-storage>]
 
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
@@ -2073,6 +2158,10 @@ B<snapshot-list> command) are also cleaned up when undefining an inactive
 domain.  Without the flag, attempts to undefine an inactive domain with
 snapshot metadata will fail.  If the domain is active, this flag is
 ignored.
+
+The I<--nvram> flag ensures no nvram (/domain/os/nvram/) file is
+left behind. If the domain has an nvram file and the flag is
+omitted, the undefine will fail.
 
 The I<--storage> flag takes a parameter B<volumes>, which is a comma separated
 list of volume target names or source paths of storage volumes to be removed
@@ -2211,7 +2300,8 @@ expected.
 
 =item B<attach-disk> I<domain> I<source> I<target> [[[I<--live>] [I<--config>]
 | [I<--current>]] | [I<--persistent>]] [I<--targetbus bus>] [I<--driver
-driver>] [I<--subdriver subdriver>] [I<--cache cache>] [I<--type type>]
+driver>] [I<--subdriver subdriver>] [I<--iothread iothread>]
+[I<--cache cache>] [I<--type type>]
 [I<--mode mode>] [I<--sourcetype sourcetype>] [I<--serial serial>] [I<--wwn
 wwn>] [I<--rawio>] [I<--address address>] [I<--multifunction>] [I<--print-xml>]
 
@@ -2238,6 +2328,8 @@ I<mode> can specify the two specific mode I<readonly> or I<shareable>.
 I<sourcetype> can indicate the type of source (block|file)
 I<cache> can be one of "default", "none", "writethrough", "writeback",
 "directsync" or "unsafe".
+I<iothread> is the number within the range of domain IOThreads to which
+this disk may be attached (QEMU only).
 I<serial> is the serial of disk device. I<wwn> is the wwn of disk device.
 I<rawio> indicates the disk needs rawio capability.
 I<address> is the address of disk device in the form of pci:domain.bus.slot.function,

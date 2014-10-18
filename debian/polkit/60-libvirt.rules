@@ -1,0 +1,13 @@
+/* -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*- */
+
+// Mimic behaviour of group libvirt owning libvirt's rw socket
+//
+// See the polkit(8) man page for more information
+// about configuring polkit.
+
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.libvirt.unix.manage" &&
+        subject.isInGroup("libvirt")) {
+        return polkit.Result.YES;
+    }
+});

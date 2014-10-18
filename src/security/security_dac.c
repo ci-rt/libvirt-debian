@@ -523,7 +523,8 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     /* Like virSecurityDACSetSecurityImageLabel() for a networked disk,
      * do nothing for an iSCSI hostdev
      */
-    if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
+    if (dev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
+        scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
         return 0;
 
     cbdata.manager = mgr;
@@ -657,7 +658,8 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
     /* Like virSecurityDACRestoreSecurityImageLabelInt() for a networked disk,
      * do nothing for an iSCSI hostdev
      */
-    if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
+    if (dev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
+        scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
         return 0;
 
     switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
@@ -960,6 +962,10 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
             rc = -1;
     }
 
+    if (def->os.loader && def->os.loader->nvram &&
+        virSecurityDACRestoreSecurityFileLabel(def->os.loader->nvram) < 0)
+        rc = -1;
+
     if (def->os.kernel &&
         virSecurityDACRestoreSecurityFileLabel(def->os.kernel) < 0)
         rc = -1;
@@ -1034,6 +1040,10 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
     }
 
     if (virSecurityDACGetImageIds(secdef, priv, &user, &group))
+        return -1;
+
+    if (def->os.loader && def->os.loader->nvram &&
+        virSecurityDACSetOwnership(def->os.loader->nvram, user, group) < 0)
         return -1;
 
     if (def->os.kernel &&
