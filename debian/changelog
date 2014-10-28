@@ -1,3 +1,20 @@
+libvirt (1.2.9-3~bpo70+1) wheezy-backports; urgency=medium
+
+  * Rebuild for wheezy-backports.
+  * [773a305] Allow backported versions of dh-systemd
+  * [314c4aa] Use libgcrpt/gnutls versions from wheezy
+  * Remaining changes:
+    * [b46b754] Drop sheepdog support not available in Wheezy
+    * [31a2113] Use libnl1 since libnetcf1 is linked against libnl1 in Wheezy.
+      Also make sure we don't pickup up libnetcf-dev using libnl3.
+    * [c5a59dd] Drop version in polkit-1 dependency. This reintroduces
+      CVE-2013-4311 since we don't have a recent enough polkit-1 in wheezy.
+    * [4db6aaa] Disable xenlight support not available in wheezy
+    * Revert switch from avahi to avahi-daemon in init script; fixes
+      co-installability with avahi in wheezy.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 28 Oct 2014 08:10:57 +0100
+
 libvirt (1.2.9-3) unstable; urgency=medium
 
   * [28dd361] Remove obsolete conffiles in libvirt-bin too. Depending on the
