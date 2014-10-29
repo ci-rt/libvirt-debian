@@ -1,5 +1,7 @@
 /*
- * Copyright 2014, Taowei Luo (uaedante@gmail.com)
+ * esx_stream.h: libcurl based stream driver
+ *
+ * Copyright (C) 2012-2014 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,13 +16,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
+ *
  */
 
-#ifndef VBOX_INSTALL_API_H
-# define VBOX_INSTALL_API_H
+#ifndef __ESX_STREAM_H__
+# define __ESX_STREAM_H__
 
 # include "internal.h"
+# include "esx_private.h"
 
-int vboxRegisterUniformedAPI(uint32_t uVersion);
+int esxStreamOpenUpload(virStreamPtr stream, esxPrivate *priv, const char *url);
+int esxStreamOpenDownload(virStreamPtr stream, esxPrivate *priv, const char *url,
+                          unsigned long long offset, unsigned long long length);
 
-#endif /* VBOX_INSTALL_API_H */
+#endif /* __ESX_STREAM_H__ */

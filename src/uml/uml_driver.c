@@ -444,8 +444,18 @@ umlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 }
 
 
+static int
+umlDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                      virCapsPtr caps ATTRIBUTE_UNUSED,
+                      void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
 virDomainDefParserConfig umlDriverDomainDefParserConfig = {
     .devicesPostParseCallback = umlDomainDeviceDefPostParse,
+    .domainPostParseCallback = umlDomainDefPostParse,
 };
 
 
@@ -2918,7 +2928,7 @@ umlNodeAllocPages(virConnectPtr conn,
 }
 
 
-static virDriver umlDriver = {
+static virHypervisorDriver umlDriver = {
     .no = VIR_DRV_UML,
     .name = "UML",
     .connectOpen = umlConnectOpen, /* 0.5.0 */
@@ -2993,7 +3003,7 @@ static virStateDriver umlStateDriver = {
 
 int umlRegister(void)
 {
-    if (virRegisterDriver(&umlDriver) < 0)
+    if (virRegisterHypervisorDriver(&umlDriver) < 0)
         return -1;
     if (virRegisterStateDriver(&umlStateDriver) < 0)
         return -1;

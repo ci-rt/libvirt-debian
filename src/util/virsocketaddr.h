@@ -125,5 +125,7 @@ bool virSocketAddrIsPrivate(const virSocketAddr *addr);
 
 bool virSocketAddrIsWildcard(const virSocketAddr *addr);
 
-bool virSocketAddrIsNumeric(const char *address);
+int virSocketAddrNumericFamily(const char *address);
+
+bool virSocketAddrIsNumericLocalhost(const char *addr);
 #endif /* __VIR_SOCKETADDR_H__ */

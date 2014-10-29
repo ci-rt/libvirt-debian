@@ -184,11 +184,30 @@ NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c nodeinfopriv.h
 DATATYPES_SOURCES = datatypes.h datatypes.c
 DRIVER_SOURCES =							\
 		driver.c driver.h					\
+		driver-hypervisor.h					\
+		driver-interface.h					\
+		driver-network.h					\
+		driver-nodedev.h					\
+		driver-nwfilter.h					\
+		driver-secret.h						\
+		driver-state.h						\
+		driver-storage.h					\
+		driver-stream.h						\
 		internal.h						\
 		$(DATATYPES_SOURCES)					\
 		fdstream.c fdstream.h					\
 		$(NODE_INFO_SOURCES)					\
 		libvirt.c libvirt_internal.h				\
+		libvirt-domain.c 					\
+		libvirt-domain-snapshot.c 				\
+		libvirt-host.c 						\
+		libvirt-interface.c	 				\
+		libvirt-network.c	 				\
+		libvirt-nodedev.c	 				\
+		libvirt-nwfilter.c	 				\
+		libvirt-secret.c	 				\
+		libvirt-storage.c	 				\
+		libvirt-stream.c	 				\
 		locking/lock_manager.c locking/lock_manager.h		\
 		locking/lock_driver.h					\
 		locking/lock_driver_nop.h locking/lock_driver_nop.c	\
@@ -519,6 +538,8 @@ DRIVER_SOURCE_FILES = \
 	$(TEST_DRIVER_SOURCES) \
 	$(UML_DRIVER_SOURCES) \
 	$(VBOX_DRIVER_SOURCES) \
+	$(VBOX_NETWORK_DRIVER_SOURCES) \
+	$(VBOX_STORAGE_DRIVER_SOURCES) \
 	vbox/vbox_tmpl.c \
 	$(VMWARE_DRIVER_SOURCES) \
 	$(XEN_DRIVER_SOURCES) \
@@ -666,7 +687,7 @@ VMWARE_DRIVER_SOURCES =						\
 VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_glue.c vbox/vbox_glue.h			\
 	vbox/vbox_driver.c vbox/vbox_driver.h			\
-	vbox/vbox_snapshot_conf.c vbox/vbox_snapshot_conf.h \
+	vbox/vbox_snapshot_conf.c vbox/vbox_snapshot_conf.h     \
 	vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
 	vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
 	vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
@@ -674,12 +695,20 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h			\
 	vbox/vbox_V4_1.c vbox/vbox_CAPI_v4_1.h			\
 	vbox/vbox_V4_2.c vbox/vbox_CAPI_v4_2.h			\
-	vbox/vbox_V4_2_20.c vbox/vbox_CAPI_v4_2_20.h			\
+	vbox/vbox_V4_2_20.c vbox/vbox_CAPI_v4_2_20.h		\
 	vbox/vbox_V4_3.c vbox/vbox_CAPI_v4_3.h			\
 	vbox/vbox_V4_3_4.c vbox/vbox_CAPI_v4_3_4.h              \
 	vbox/vbox_common.c vbox/vbox_common.h                   \
 	vbox/vbox_uniformed_api.h                               \
-	vbox/vbox_install_api.h
+	vbox/vbox_get_driver.h
+
+VBOX_NETWORK_DRIVER_SOURCES =					\
+	vbox/vbox_driver.c vbox/vbox_driver.h			\
+	vbox/vbox_network.c vbox/vbox_get_driver.h
+
+VBOX_STORAGE_DRIVER_SOURCES =					\
+	vbox/vbox_driver.c vbox/vbox_driver.h			\
+	vbox/vbox_storage.c vbox/vbox_get_driver.h
 
 VBOX_DRIVER_EXTRA_DIST =					\
 		vbox/vbox_tmpl.c vbox/README			\
@@ -731,6 +760,7 @@ ESX_DRIVER_SOURCES =							\
 		esx/esx_storage_backend_iscsi.c esx/esx_storage_backend_iscsi.h	\
 		esx/esx_device_monitor.c esx/esx_device_monitor.h	\
 		esx/esx_secret_driver.c esx/esx_secret_driver.h		\
+		esx/esx_stream.c esx/esx_stream.h			\
 		esx/esx_nwfilter_driver.c esx/esx_nwfilter_driver.h	\
 		esx/esx_util.c esx/esx_util.h				\
 		esx/esx_vi.c esx/esx_vi.h				\
@@ -1166,6 +1196,8 @@ noinst_LTLIBRARIES += libvirt_driver_vbox.la
 # GPLv2-only license requries that it be linked into
 # libvirtd and *not* libvirt.so
 #libvirt_la_BUILT_LIBADD += libvirt_driver_vbox.la
+libvirt_driver_vbox_la_LIBADD += libvirt_driver_vbox_network_impl.la \
+				 libvirt_driver_vbox_storage_impl.la
 endif ! WITH_DRIVER_MODULES
 
 libvirt_driver_vbox_impl_la_CFLAGS =				\
@@ -1185,8 +1217,9 @@ libvirt_driver_vbox_network_impl_la_CFLAGS =	\
 libvirt_driver_vbox_network_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_vbox_network_impl_la_LIBADD = $(DLOPEN_LIBS)		\
 		$(MSCOM_LIBS)					\
-		$(LIBXML_LIBS)
-libvirt_driver_vbox_network_impl_la_SOURCES = $(VBOX_DRIVER_SOURCES)
+		$(LIBXML_LIBS)					\
+		libvirt_driver_vbox_impl.la
+libvirt_driver_vbox_network_impl_la_SOURCES = $(VBOX_NETWORK_DRIVER_SOURCES)
 
 libvirt_driver_vbox_storage_impl_la_CFLAGS =	\
 		-I$(top_srcdir)/src/conf	\
@@ -1196,7 +1229,8 @@ libvirt_driver_vbox_storage_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_vbox_storage_impl_la_LIBADD = $(DLOPEN_LIBS)		\
 		$(MSCOM_LIBS)					\
 		$(LIBXML_LIBS)
-libvirt_driver_vbox_storage_impl_la_SOURCES = $(VBOX_DRIVER_SOURCES)
+		libvirt_driver_vbox_impl.la
+libvirt_driver_vbox_storage_impl_la_SOURCES = $(VBOX_STORAGE_DRIVER_SOURCES)
 endif WITH_VBOX
 
 if WITH_XENAPI
@@ -2178,6 +2212,16 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		remote/lxc_protocol.c		\
 		datatypes.c			\
 		libvirt.c			\
+		libvirt-domain.c		\
+		libvirt-domain-snapshot.c	\
+		libvirt-host.c			\
+		libvirt-interface.c		\
+		libvirt-network.c		\
+		libvirt-nodedev.c		\
+		libvirt-nwfilter.c		\
+		libvirt-secret.c		\
+		libvirt-storage.c		\
+		libvirt-stream.c		\
 		libvirt-lxc.c			\
 		$(NULL)
 

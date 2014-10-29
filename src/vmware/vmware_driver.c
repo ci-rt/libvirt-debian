@@ -82,13 +82,35 @@ vmwareDataFreeFunc(void *data)
     VIR_FREE(dom);
 }
 
+static int
+vmwareDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                         virCapsPtr caps ATTRIBUTE_UNUSED,
+                         void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static int
+vmwareDomainDeviceDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                               const virDomainDef *def ATTRIBUTE_UNUSED,
+                               virCapsPtr caps ATTRIBUTE_UNUSED,
+                               void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+virDomainDefParserConfig vmwareDomainDefParserConfig = {
+    .devicesPostParseCallback = vmwareDomainDeviceDefPostParse,
+    .domainPostParseCallback = vmwareDomainDefPostParse,
+};
+
 static virDomainXMLOptionPtr
 vmwareDomainXMLConfigInit(void)
 {
     virDomainXMLPrivateDataCallbacks priv = { .alloc = vmwareDataAllocFunc,
                                               .free = vmwareDataFreeFunc };
 
-    return virDomainXMLOptionNew(NULL, &priv, NULL);
+    return virDomainXMLOptionNew(&vmwareDomainDefParserConfig, &priv, NULL);
 }
 
 static virDrvOpenStatus
@@ -1160,7 +1182,7 @@ vmwareConnectListAllDomains(virConnectPtr conn,
 
 
 
-static virDriver vmwareDriver = {
+static virHypervisorDriver vmwareDriver = {
     .no = VIR_DRV_VMWARE,
     .name = "VMWARE",
     .connectOpen = vmwareConnectOpen, /* 0.8.7 */
@@ -1201,7 +1223,7 @@ static virDriver vmwareDriver = {
 int
 vmwareRegister(void)
 {
-    if (virRegisterDriver(&vmwareDriver) < 0)
+    if (virRegisterHypervisorDriver(&vmwareDriver) < 0)
         return -1;
     return 0;
 }

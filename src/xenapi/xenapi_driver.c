@@ -69,8 +69,18 @@ xenapiDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 }
 
 
+static int
+xenapiDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                         virCapsPtr caps ATTRIBUTE_UNUSED,
+                         void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
 virDomainDefParserConfig xenapiDomainDefParserConfig = {
     .devicesPostParseCallback = xenapiDomainDeviceDefPostParse,
+    .domainPostParseCallback = xenapiDomainDefPostParse,
 };
 
 
@@ -1953,7 +1963,7 @@ xenapiConnectIsAlive(virConnectPtr conn)
 }
 
 /* The interface which we export upwards to libvirt.c. */
-static virDriver xenapiDriver = {
+static virHypervisorDriver xenapiDriver = {
     .no = VIR_DRV_XENAPI,
     .name = "XenAPI",
     .connectOpen = xenapiConnectOpen, /* 0.8.0 */
@@ -2015,7 +2025,7 @@ static virDriver xenapiDriver = {
 int
 xenapiRegister(void)
 {
-    return virRegisterDriver(&xenapiDriver);
+    return virRegisterHypervisorDriver(&xenapiDriver);
 }
 
 /*

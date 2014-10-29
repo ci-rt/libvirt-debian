@@ -78,7 +78,6 @@ VIR_LOG_INIT("remote.remote_driver");
                                limit, params, nparams)
 
 static bool inside_daemon = false;
-static virDriverPtr remoteDriver = NULL;
 
 struct private_data {
     virMutex lock;
@@ -7780,6 +7779,8 @@ remoteConnectGetAllDomainStats(virConnectPtr conn,
     virDomainStatsRecordPtr elem = NULL;
     virDomainStatsRecordPtr *tmpret = NULL;
 
+    memset(&args, 0, sizeof(args));
+
     if (ndoms) {
         if (VIR_ALLOC_N(args.doms.doms_val, ndoms) < 0)
             goto cleanup;
@@ -8030,7 +8031,7 @@ unsigned long remoteVersion(void)
     return REMOTE_PROTOCOL_VERSION;
 }
 
-static virDriver remote_driver = {
+static virHypervisorDriver hypervisor_driver = {
     .no = VIR_DRV_REMOTE,
     .name = "remote",
     .connectOpen = remoteConnectOpen, /* 0.3.0 */
@@ -8403,9 +8404,7 @@ static virStateDriver state_driver = {
 int
 remoteRegister(void)
 {
-    remoteDriver = &remote_driver;
-
-    if (virRegisterDriver(&remote_driver) < 0)
+    if (virRegisterHypervisorDriver(&hypervisor_driver) < 0)
         return -1;
     if (virRegisterNetworkDriver(&network_driver) < 0)
         return -1;

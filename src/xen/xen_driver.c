@@ -353,6 +353,25 @@ xenDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         return -1;
     }
 
+    if (dev->type == VIR_DOMAIN_DEVICE_VIDEO && dev->data.video->vram == 0) {
+        switch (dev->data.video->type) {
+        case VIR_DOMAIN_VIDEO_TYPE_VGA:
+        case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+        case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
+            dev->data.video->vram = 9 * 1024;
+        break;
+
+        case VIR_DOMAIN_VIDEO_TYPE_XEN:
+            /* Original Xen PVFB hardcoded to 4 MB */
+            dev->data.video->vram = 4 * 1024;
+            break;
+
+        case VIR_DOMAIN_VIDEO_TYPE_QXL:
+            /* Use 64M as the minimal video video memory for qxl device */
+            return 64 * 1024;
+        }
+    }
+
     return 0;
 }
 
@@ -2725,7 +2744,7 @@ xenUnifiedNodeSuspendForDuration(virConnectPtr conn,
 /*----- Register with libvirt.c, and initialize Xen drivers. -----*/
 
 /* The interface which we export upwards to libvirt.c. */
-static virDriver xenUnifiedDriver = {
+static virHypervisorDriver xenUnifiedDriver = {
     .no = VIR_DRV_XEN_UNIFIED,
     .name = "Xen",
     .connectOpen = xenUnifiedConnectOpen, /* 0.0.3 */
@@ -2833,7 +2852,7 @@ xenRegister(void)
 {
     if (virRegisterStateDriver(&state_driver) == -1) return -1;
 
-    return virRegisterDriver(&xenUnifiedDriver);
+    return virRegisterHypervisorDriver(&xenUnifiedDriver);
 }
 
 /**

@@ -856,26 +856,53 @@ virSocketAddrGetIpPrefix(const virSocketAddr *address,
 }
 
 /**
- * virSocketAddrIsNumeric:
+ * virSocketAddrNumericFamily:
  * @address: address to check
  *
- * Check if passed address is an IP address in numeric format. For
- * instance, for 0.0.0.0 true is returned, for 'examplehost"
- * false is returned.
+ * Check if passed address is an IP address in numeric format.
  *
- * Returns: true if @address is an IP address,
- *          false otherwise
+ * Returns: AF_INET or AF_INET6 if @address is an numeric IP address,
+ *          -1 otherwise.
  */
-bool
-virSocketAddrIsNumeric(const char *address)
+int
+virSocketAddrNumericFamily(const char *address)
 {
     struct addrinfo *res;
     unsigned short family;
 
     if (virSocketAddrParseInternal(&res, address, AF_UNSPEC, false) < 0)
-        return false;
+        return -1;
 
     family = res->ai_addr->sa_family;
     freeaddrinfo(res);
-    return family == AF_INET || family == AF_INET6;
+    return family;
+}
+
+/**
+ * virSocketAddrIsNumericLocalhost:
+ * @address: address to check
+ *
+ * Check if passed address is a numeric 'localhost' address.
+ *
+ * Returns: true if @address is a numeric 'localhost' address,
+ *          false otherwise
+ */
+bool
+virSocketAddrIsNumericLocalhost(const char *addr)
+{
+    virSocketAddr res;
+    struct in_addr tmp = { .s_addr = htonl(INADDR_LOOPBACK) };
+
+    if (virSocketAddrParse(&res, addr, AF_UNSPEC) < 0)
+        return false;
+
+    switch (res.data.stor.ss_family) {
+    case AF_INET:
+        return memcmp(&res.data.inet4.sin_addr.s_addr, &tmp.s_addr,
+                     sizeof(res.data.inet4.sin_addr.s_addr)) == 0;
+    case AF_INET6:
+        return IN6_IS_ADDR_LOOPBACK(&res.data.inet6.sin6_addr);
+    }
+
+    return false;
 }

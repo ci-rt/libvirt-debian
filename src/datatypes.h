@@ -27,6 +27,7 @@
 # include "driver.h"
 # include "virthread.h"
 # include "virobject.h"
+# include "viruuid.h"
 
 extern virClassPtr virConnectClass;
 extern virClassPtr virDomainClass;
@@ -336,11 +337,11 @@ struct _virConnect {
     virURIPtr uri;          /* connection URI */
 
     /* The underlying hypervisor driver and network driver. */
-    virDriverPtr      driver;
+    virHypervisorDriverPtr driver;
     virNetworkDriverPtr networkDriver;
     virInterfaceDriverPtr interfaceDriver;
     virStorageDriverPtr storageDriver;
-    virNodeDeviceDriverPtr  nodeDeviceDriver;
+    virNodeDeviceDriverPtr nodeDeviceDriver;
     virSecretDriverPtr secretDriver;
     virNWFilterDriverPtr nwfilterDriver;
 

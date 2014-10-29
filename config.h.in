@@ -76,6 +76,9 @@
 /* Define as the word index where to find the sign of 'double'. */
 #undef DBL_SIGNBIT_WORD
 
+/* Default editor to use */
+#undef DEFAULT_EDITOR
+
 /* Location or name of the dmidecode program */
 #undef DMIDECODE
 

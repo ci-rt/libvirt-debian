@@ -225,14 +225,16 @@ TESTS = $(am__EXEEXT_29) $(am__EXEEXT_32)
 @WITH_GNUTLS_FALSE@	virnettlshelpers.h virnettlshelpers.c \
 @WITH_GNUTLS_FALSE@	testutils.h testutils.c pkix_asn1_tab.c
 
+@WITH_SELINUX_TRUE@am__append_65 = $(SELINUX_LIBS)
 @WITH_SELINUX_FALSE@viridentitytest_DEPENDENCIES =  \
-@WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_2)
-@WITH_DBUS_FALSE@am__append_65 = virdbustest.c virmockdbus.c virsystemdtest.c
-@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_TRUE@am__append_66 = libsecurityselinuxhelper.la
-@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_FALSE@am__append_67 = libsecurityselinuxhelper.la
-@WITH_LINUX_FALSE@am__append_68 = fchosttest.c scsihosttest.c \
+@WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_2) \
+@WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_6)
+@WITH_DBUS_FALSE@am__append_66 = virdbustest.c virmockdbus.c virsystemdtest.c
+@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_TRUE@am__append_67 = libsecurityselinuxhelper.la
+@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_FALSE@am__append_68 = libsecurityselinuxhelper.la
+@WITH_LINUX_FALSE@am__append_69 = fchosttest.c scsihosttest.c \
 @WITH_LINUX_FALSE@	virscsitest.c
-@WITH_CIL_FALSE@am__append_69 = objectlocking.ml
+@WITH_CIL_FALSE@am__append_70 = objectlocking.ml
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/mkinstalldirs \
@@ -1046,6 +1048,7 @@ virhostdevtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_viridentitytest_OBJECTS = viridentitytest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 viridentitytest_OBJECTS = $(am_viridentitytest_OBJECTS)
+@WITH_SELINUX_TRUE@am__DEPENDENCIES_6 = $(am__DEPENDENCIES_1)
 am_viriscsitest_OBJECTS = viriscsitest.$(OBJEXT) testutils.$(OBJEXT)
 viriscsitest_OBJECTS = $(am_viriscsitest_OBJECTS)
 viriscsitest_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -3088,6 +3091,7 @@ AM_CFLAGS = \
 	-Dabs_builddir="\"$(abs_builddir)\"" \
 	-Dabs_srcdir="\"$(abs_srcdir)\"" \
 	$(LIBXML_CFLAGS) \
+	$(LIBNL_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
@@ -3141,9 +3145,9 @@ EXTRA_DIST = bhyvexml2argvdata bhyvexml2xmloutdata \
 	$(am__append_48) $(am__append_49) $(am__append_50) \
 	$(am__append_52) $(am__append_53) $(am__append_54) \
 	$(am__append_55) $(am__append_58) $(am__append_63) \
-	$(am__append_64) $(am__append_65) securityselinuxtest.c \
+	$(am__append_64) $(am__append_66) securityselinuxtest.c \
 	securityselinuxlabeltest.c securityselinuxhelper.c \
-	$(am__append_68) $(am__append_69)
+	$(am__append_69) $(am__append_70)
 test_helpers = commandhelper ssh test_conf
 test_programs = virshtest sockettest nodeinfotest virbuftest \
 	commandtest seclabeltest virhashtest viratomictest utiltest \
@@ -3182,9 +3186,9 @@ test_libraries = libshunload.la libvirportallocatormock.la \
 	$(NULL) $(am__append_35) $(am__append_36) $(am__append_37) \
 	$(am__append_38)
 @WITH_TESTS_TRUE@noinst_LTLIBRARIES = $(test_libraries) \
-@WITH_TESTS_TRUE@	$(am__append_66)
+@WITH_TESTS_TRUE@	$(am__append_67)
 @WITH_TESTS_FALSE@check_LTLIBRARIES = $(test_libraries) \
-@WITH_TESTS_FALSE@	$(am__append_67)
+@WITH_TESTS_FALSE@	$(am__append_68)
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
@@ -3586,7 +3590,7 @@ virstoragetest_LDADD = $(LDADDS) \
 viridentitytest_SOURCES = \
 	viridentitytest.c testutils.h testutils.c
 
-viridentitytest_LDADD = $(LDADDS)
+viridentitytest_LDADD = $(LDADDS) $(am__append_65)
 @WITH_SELINUX_TRUE@viridentitytest_DEPENDENCIES = libsecurityselinuxhelper.la \
 @WITH_SELINUX_TRUE@	../src/libvirt.la
 

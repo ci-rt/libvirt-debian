@@ -1054,6 +1054,32 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
     return session;
 }
 
+
+static int
+phypDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                       virCapsPtr caps ATTRIBUTE_UNUSED,
+                       void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
+static int
+phypDomainDeviceDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                             const virDomainDef *def ATTRIBUTE_UNUSED,
+                             virCapsPtr caps ATTRIBUTE_UNUSED,
+                             void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
+virDomainDefParserConfig virPhypDriverDomainDefParserConfig = {
+    .devicesPostParseCallback = phypDomainDeviceDefPostParse,
+    .domainPostParseCallback = phypDomainDefPostParse,
+};
+
+
 static virDrvOpenStatus
 phypConnectOpen(virConnectPtr conn,
                 virConnectAuthPtr auth, unsigned int flags)
@@ -1131,7 +1157,8 @@ phypConnectOpen(virConnectPtr conn,
     if ((phyp_driver->caps = phypCapsInit()) == NULL)
         goto failure;
 
-    if (!(phyp_driver->xmlopt = virDomainXMLOptionNew(NULL, NULL, NULL)))
+    if (!(phyp_driver->xmlopt = virDomainXMLOptionNew(&virPhypDriverDomainDefParserConfig,
+                                                      NULL, NULL)))
         goto failure;
 
     conn->privateData = phyp_driver;
@@ -3690,7 +3717,7 @@ phypInterfaceClose(virConnectPtr conn ATTRIBUTE_UNUSED)
     return 0;
 }
 
-static virDriver phypDriver = {
+static virHypervisorDriver phypDriver = {
     .no = VIR_DRV_PHYP,
     .name = "PHYP",
     .connectOpen = phypConnectOpen, /* 0.7.0 */
@@ -3759,7 +3786,7 @@ static virInterfaceDriver phypInterfaceDriver = {
 int
 phypRegister(void)
 {
-    if (virRegisterDriver(&phypDriver) < 0)
+    if (virRegisterHypervisorDriver(&phypDriver) < 0)
         return -1;
     if (virRegisterStorageDriver(&phypStorageDriver) < 0)
         return -1;
