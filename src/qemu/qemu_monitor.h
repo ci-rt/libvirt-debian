@@ -31,6 +31,7 @@
 # include "virbitmap.h"
 # include "virhash.h"
 # include "virjson.h"
+# include "virnetdev.h"
 # include "device_conf.h"
 # include "cpu/cpu.h"
 
@@ -170,6 +171,10 @@ typedef int (*qemuMonitorDomainDeviceDeletedCallback)(qemuMonitorPtr mon,
                                                       virDomainObjPtr vm,
                                                       const char *devAlias,
                                                       void *opaque);
+typedef int (*qemuMonitorDomainNicRxFilterChangedCallback)(qemuMonitorPtr mon,
+                                                           virDomainObjPtr vm,
+                                                           const char *devAlias,
+                                                           void *opaque);
 
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
@@ -196,6 +201,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainPMSuspendDiskCallback domainPMSuspendDisk;
     qemuMonitorDomainGuestPanicCallback domainGuestPanic;
     qemuMonitorDomainDeviceDeletedCallback domainDeviceDeleted;
+    qemuMonitorDomainNicRxFilterChangedCallback domainNicRxFilterChanged;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -284,6 +290,8 @@ int qemuMonitorEmitPMSuspendDisk(qemuMonitorPtr mon);
 int qemuMonitorEmitGuestPanic(qemuMonitorPtr mon);
 int qemuMonitorEmitDeviceDeleted(qemuMonitorPtr mon,
                                  const char *devAlias);
+int qemuMonitorEmitNicRxFilterChanged(qemuMonitorPtr mon,
+                                      const char *devAlias);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -333,7 +341,7 @@ int qemuMonitorBlockIOStatusToError(const char *status);
 virHashTablePtr qemuMonitorGetBlockInfo(qemuMonitorPtr mon);
 struct qemuDomainDiskInfo *
 qemuMonitorBlockInfoLookup(virHashTablePtr blockInfo,
-                           const char *devname);
+                           const char *dev_name);
 
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  const char *dev_name,
@@ -358,10 +366,17 @@ struct _qemuBlockStats {
     long long wr_total_times;
     long long flush_req;
     long long flush_total_times;
+    unsigned long long capacity;
+    unsigned long long physical;
+    unsigned long long wr_highest_offset;
 };
 
 int qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
                                     virHashTablePtr *ret_stats)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorBlockStatsUpdateCapacity(qemuMonitorPtr mon,
+                                        virHashTablePtr stats)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
@@ -371,7 +386,7 @@ int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
                               const char *dev_name,
                               unsigned long long *extent);
 int qemuMonitorBlockResize(qemuMonitorPtr mon,
-                           const char *devname,
+                           const char *dev_name,
                            unsigned long long size);
 int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password);
@@ -388,7 +403,7 @@ int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, bool online);
 
 
 /* XXX should we pass the virDomainDiskDefPtr instead
- * and hide devname details inside monitor. Reconsider
+ * and hide dev_name details inside monitor. Reconsider
  * this when doing the QMP implementation
  */
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
@@ -620,6 +635,9 @@ int qemuMonitorAddNetdev(qemuMonitorPtr mon,
 int qemuMonitorRemoveNetdev(qemuMonitorPtr mon,
                             const char *alias);
 
+int qemuMonitorQueryRxFilter(qemuMonitorPtr mon, const char *alias,
+                             virNetDevRxFilterPtr *filter);
+
 int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
                            virHashTablePtr paths);
 
@@ -653,6 +671,14 @@ int qemuMonitorAddDeviceWithFd(qemuMonitorPtr mon,
 
 int qemuMonitorDelDevice(qemuMonitorPtr mon,
                          const char *devalias);
+
+int qemuMonitorAddObject(qemuMonitorPtr mon,
+                         const char *type,
+                         const char *objalias,
+                         virJSONValuePtr props);
+
+int qemuMonitorDelObject(qemuMonitorPtr mon,
+                         const char *objalias);
 
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
                         const char *drivestr);

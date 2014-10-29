@@ -915,8 +915,29 @@ parallelsLoadDomains(parallelsConnPtr privconn, const char *domain_name)
 }
 
 
+static int
+parallelsDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                            virCapsPtr caps ATTRIBUTE_UNUSED,
+                            void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
+static int
+parallelsDomainDeviceDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                                  const virDomainDef *def ATTRIBUTE_UNUSED,
+                                  virCapsPtr caps ATTRIBUTE_UNUSED,
+                                  void *opaque ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
 virDomainDefParserConfig parallelsDomainDefParserConfig = {
     .macPrefix = {0x42, 0x1C, 0x00},
+    .devicesPostParseCallback = parallelsDomainDeviceDefPostParse,
+    .domainPostParseCallback = parallelsDomainDefPostParse,
 };
 
 
@@ -2442,7 +2463,7 @@ parallelsNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 
-static virDriver parallelsDriver = {
+static virHypervisorDriver parallelsDriver = {
     .no = VIR_DRV_PARALLELS,
     .name = "Parallels",
     .connectOpen = parallelsConnectOpen,            /* 0.10.0 */
@@ -2497,7 +2518,7 @@ parallelsRegister(void)
 
     VIR_FREE(prlctl_path);
 
-    if (virRegisterDriver(&parallelsDriver) < 0)
+    if (virRegisterHypervisorDriver(&parallelsDriver) < 0)
         return -1;
     if (parallelsStorageRegister())
         return -1;

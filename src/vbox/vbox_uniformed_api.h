@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Taowei Luo (uaedante@gmail.com)
+ * Copyright (C) 2014, Taowei Luo (uaedante@gmail.com)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -168,14 +168,18 @@ typedef struct {
     nsresult (*vboxArrayGet)(vboxArray *array, void *self, void *getter);
     nsresult (*vboxArrayGetWithIIDArg)(vboxArray *array, void *self, void *getter, vboxIIDUnion *iidu);
     void (*vboxArrayRelease)(vboxArray *array);
+    void (*vboxArrayUnalloc)(vboxArray *array);
     /* Generate function pointers for vboxArrayGet */
     void* (*handleGetMachines)(IVirtualBox *vboxObj);
+    void* (*handleGetHardDisks)(IVirtualBox *vboxObj);
     void* (*handleUSBGetDeviceFilters)(IUSBCommon *USBCommon);
     void* (*handleMachineGetMediumAttachments)(IMachine *machine);
     void* (*handleMachineGetSharedFolders)(IMachine *machine);
     void* (*handleSnapshotGetChildren)(ISnapshot *snapshot);
     void* (*handleMediumGetChildren)(IMedium *medium);
     void* (*handleMediumGetSnapshotIds)(IMedium *medium);
+    void* (*handleMediumGetMachineIds)(IMedium *medium);
+    void* (*handleHostGetNetworkInterfaces)(IHost *host);
 } vboxUniformedArray;
 
 /* Functions for nsISupports */
@@ -190,11 +194,17 @@ typedef struct {
     nsresult (*GetMachine)(IVirtualBox *vboxObj, vboxIIDUnion *iidu, IMachine **machine);
     nsresult (*OpenMachine)(IVirtualBox *vboxObj, PRUnichar *settingsFile, IMachine **machine);
     nsresult (*GetSystemProperties)(IVirtualBox *vboxObj, ISystemProperties **systemProperties);
+    nsresult (*GetHost)(IVirtualBox *vboxObj, IHost **host);
     nsresult (*CreateMachine)(vboxGlobalData *data, virDomainDefPtr def, IMachine **machine, char *uuidstr);
-    nsresult (*CreateHardDiskMedium)(IVirtualBox *vboxObj, PRUnichar *format, PRUnichar *location, IMedium **medium);
+    nsresult (*CreateHardDisk)(IVirtualBox *vboxObj, PRUnichar *format, PRUnichar *location, IHardDisk **hardDisk);
     nsresult (*RegisterMachine)(IVirtualBox *vboxObj, IMachine *machine);
-    nsresult (*FindMedium)(IVirtualBox *vboxObj, PRUnichar *location, PRUint32 deviceType, PRUint32 accessMode, IMedium **medium);
+    nsresult (*FindHardDisk)(IVirtualBox *vboxObj, PRUnichar *location, PRUint32 deviceType,
+                             PRUint32 accessMode, IHardDisk **hardDisk);
     nsresult (*OpenMedium)(IVirtualBox *vboxObj, PRUnichar *location, PRUint32 deviceType, PRUint32 accessMode, IMedium **medium);
+    nsresult (*GetHardDiskByIID)(IVirtualBox *vboxObj, vboxIIDUnion *iidu, IHardDisk **hardDisk);
+    nsresult (*FindDHCPServerByNetworkName)(IVirtualBox *vboxObj, PRUnichar *name, IDHCPServer **server);
+    nsresult (*CreateDHCPServer)(IVirtualBox *vboxObj, PRUnichar *name, IDHCPServer **server);
+    nsresult (*RemoveDHCPServer)(IVirtualBox *vboxObj, IDHCPServer *server);
 } vboxUniformedIVirtualBox;
 
 /* Functions for IMachine */
@@ -217,6 +227,8 @@ typedef struct {
     nsresult (*Unregister)(IMachine *machine, PRUint32 cleanupMode,
                            PRUint32 *aMediaSize, IMedium ***aMedia);
     nsresult (*FindSnapshot)(IMachine *machine, vboxIIDUnion *iidu, ISnapshot **snapshot);
+    nsresult (*DetachDevice)(IMachine *machine, PRUnichar *name,
+                             PRInt32 controllerPort, PRInt32 device);
     nsresult (*GetAccessible)(IMachine *machine, PRBool *isAccessible);
     nsresult (*GetState)(IMachine *machine, PRUint32 *state);
     nsresult (*GetName)(IMachine *machine, PRUnichar **name);
@@ -402,6 +414,9 @@ typedef struct {
 typedef struct {
     nsresult (*GetId)(IMedium *medium, vboxIIDUnion *iidu);
     nsresult (*GetLocation)(IMedium *medium, PRUnichar **location);
+    nsresult (*GetState)(IMedium *medium, PRUint32 *state);
+    nsresult (*GetName)(IMedium *medium, PRUnichar **name);
+    nsresult (*GetSize)(IMedium *medium, PRUint64 *uSize);
     nsresult (*GetReadOnly)(IMedium *medium, PRBool *readOnly);
     nsresult (*GetParent)(IMedium *medium, IMedium **parent);
     nsresult (*GetChildren)(IMedium *medium, PRUint32 *childrenSize, IMedium ***children);
@@ -416,7 +431,7 @@ typedef struct {
 
 /* Functions for IMediumAttachment */
 typedef struct {
-    nsresult (*GetMedium)(IMediumAttachment *mediumAttachment, IMedium **medium);
+    nsresult (*GetMedium)(IMediumAttachment *mediumAttachment, IHardDisk **hardDisk);
     nsresult (*GetController)(IMediumAttachment *mediumAttachment, PRUnichar **controller);
     nsresult (*GetType)(IMediumAttachment *mediumAttachment, PRUint32 *type);
     nsresult (*GetPort)(IMediumAttachment *mediumAttachment, PRInt32 *port);
@@ -464,6 +479,60 @@ typedef struct {
                                          PRUint8** screenData);
 } vboxUniformedIDisplay;
 
+/* Functions for IHost */
+typedef struct {
+    nsresult (*FindHostNetworkInterfaceById)(IHost *host, vboxIIDUnion *iidu,
+                                             IHostNetworkInterface **networkInterface);
+    nsresult (*FindHostNetworkInterfaceByName)(IHost *host, PRUnichar *name,
+                                               IHostNetworkInterface **networkInterface);
+    nsresult (*CreateHostOnlyNetworkInterface)(vboxGlobalData *data,
+                                               IHost *host, char *name,
+                                               IHostNetworkInterface **networkInterface);
+    nsresult (*RemoveHostOnlyNetworkInterface)(IHost *host, vboxIIDUnion *iidu,
+                                               IProgress **progress);
+} vboxUniformedIHost;
+
+/* Functions for IHostNetworkInterface */
+typedef struct {
+    nsresult (*GetInterfaceType)(IHostNetworkInterface *hni, PRUint32 *interfaceType);
+    nsresult (*GetStatus)(IHostNetworkInterface *hni, PRUint32 *status);
+    nsresult (*GetName)(IHostNetworkInterface *hni, PRUnichar **name);
+    nsresult (*GetId)(IHostNetworkInterface *hni, vboxIIDUnion *iidu);
+    nsresult (*GetHardwareAddress)(IHostNetworkInterface *hni, PRUnichar **hardwareAddress);
+    nsresult (*GetIPAddress)(IHostNetworkInterface *hni, PRUnichar **IPAddress);
+    nsresult (*GetNetworkMask)(IHostNetworkInterface *hni, PRUnichar **networkMask);
+    nsresult (*EnableStaticIPConfig)(IHostNetworkInterface *hni, PRUnichar *IPAddress,
+                                     PRUnichar *networkMask);
+    nsresult (*EnableDynamicIPConfig)(IHostNetworkInterface *hni);
+    nsresult (*DHCPRediscover)(IHostNetworkInterface *hni);
+} vboxUniformedIHNInterface;
+
+/* Functions for IDHCPServer */
+typedef struct {
+    nsresult (*GetIPAddress)(IDHCPServer *dhcpServer, PRUnichar **IPAddress);
+    nsresult (*GetNetworkMask)(IDHCPServer *dhcpServer, PRUnichar **networkMask);
+    nsresult (*GetLowerIP)(IDHCPServer *dhcpServer, PRUnichar **lowerIP);
+    nsresult (*GetUpperIP)(IDHCPServer *dhcpServer, PRUnichar **upperIP);
+    nsresult (*SetEnabled)(IDHCPServer *dhcpServer, PRBool enabled);
+    nsresult (*SetConfiguration)(IDHCPServer *dhcpServer, PRUnichar *IPAddress,
+                                 PRUnichar *networkMask, PRUnichar *FromIPAddress,
+                                 PRUnichar *ToIPAddress);
+    nsresult (*Start)(IDHCPServer *dhcpServer, PRUnichar *networkName,
+                      PRUnichar *trunkName, PRUnichar *trunkType);
+    nsresult (*Stop)(IDHCPServer *dhcpServer);
+} vboxUniformedIDHCPServer;
+
+/* Functions for IHardDisk, in vbox3.1 and later, it will call the
+ * corresponding functions in IMedium as IHardDisk does't exist in
+ * these versions. */
+typedef struct {
+    nsresult (*CreateBaseStorage)(IHardDisk *hardDisk, PRUint64 logicalSize,
+                                  PRUint32 variant, IProgress **progress);
+    nsresult (*DeleteStorage)(IHardDisk *hardDisk, IProgress **progress);
+    nsresult (*GetLogicalSizeInByte)(IHardDisk *hardDisk, PRUint64 *uLogicalSize);
+    nsresult (*GetFormat)(IHardDisk *hardDisk, PRUnichar **format);
+} vboxUniformedIHardDisk;
+
 typedef struct {
     bool (*Online)(PRUint32 state);
     bool (*Inactive)(PRUint32 state);
@@ -493,7 +562,7 @@ typedef struct {
     int (*attachFloppy)(vboxGlobalData *data, IMachine *machine, const char *src);
     int (*detachFloppy)(IMachine *machine);
     int (*snapshotRestore)(virDomainPtr dom, IMachine *machine, ISnapshot *snapshot);
-    void (*registerDomainEvent)(virDriverPtr driver);
+    void (*registerDomainEvent)(virHypervisorDriverPtr driver);
     vboxUniformedPFN UPFN;
     vboxUniformedIID UIID;
     vboxUniformedArray UArray;
@@ -518,6 +587,10 @@ typedef struct {
     vboxUniformedISharedFolder UISharedFolder;
     vboxUniformedISnapshot UISnapshot;
     vboxUniformedIDisplay UIDisplay;
+    vboxUniformedIHost UIHost;
+    vboxUniformedIHNInterface UIHNInterface;
+    vboxUniformedIDHCPServer UIDHCPServer;
+    vboxUniformedIHardDisk UIHardDisk;
     uniformedMachineStateChecker machineStateChecker;
     /* vbox API features */
     bool domainEventCallbacks;
@@ -530,6 +603,7 @@ typedef struct {
     bool oldMediumInterface;
     bool vboxSnapshotRedefine;
     bool supportScreenshot;
+    bool networkRemoveInterface;
 } vboxUniformedAPI;
 
 virDomainPtr vboxDomainLookupByUUID(virConnectPtr conn,

@@ -173,6 +173,16 @@ char *
 virFindSCSIHostByPCI(const char *sysfs_prefix,
                      const char *parentaddr,
                      unsigned int unique_id);
+int
+virGetSCSIHostNumber(const char *adapter_name,
+                     unsigned int *result)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+char *
+virGetSCSIHostNameByParentaddr(unsigned int domain,
+                               unsigned int bus,
+                               unsigned int slot,
+                               unsigned int function,
+                               unsigned int unique_id);
 int virReadFCHost(const char *sysfs_prefix,
                   int host,
                   const char *entry,

@@ -35,6 +35,7 @@ AM_CFLAGS = \
 	-Dabs_builddir="\"$(abs_builddir)\"" \
 	-Dabs_srcdir="\"$(abs_srcdir)\"" \
 	$(LIBXML_CFLAGS) \
+	$(LIBNL_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
@@ -927,6 +928,7 @@ viridentitytest_SOURCES = \
 	viridentitytest.c testutils.h testutils.c
 viridentitytest_LDADD = $(LDADDS)
 if WITH_SELINUX
+viridentitytest_LDADD += $(SELINUX_LIBS)
 viridentitytest_DEPENDENCIES = libsecurityselinuxhelper.la \
 	../src/libvirt.la
 endif WITH_SELINUX

@@ -3062,7 +3062,13 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventIOErrorReasonCallback"/>Function type virConnectDomainEventIOErrorReasonCallback</h3><pre class="programlisting">void	virConnectDomainEventIOErrorReasonCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
-VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON with virConnectDomainEventRegisterAny()</p>
+VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON with virConnectDomainEventRegisterAny()
+
+If the I/O error is known to be caused by an ENOSPC condition in
+the host (where resizing the disk to be larger will allow the guest
+to be resumed as if nothing happened), @reason will be "enospc".
+Otherwise, @reason will be "", although future strings may be added
+if determination of other error types becomes possible.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td>The host file on which the IO error occurred</td></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td>The guest device alias associated with the path</td></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td>action that is to be taken due to the IO error</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>the cause of the IO error</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventPMSuspendCallback"/>Function type virConnectDomainEventPMSuspendCallback</h3><pre class="programlisting">void	virConnectDomainEventPMSuspendCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque)<br/>
@@ -3431,6 +3437,12 @@ The typed parameter keys are in this format:
  unsigned long long.
 "block.&lt;num&gt;.errors" - Xen only: the 'oo_req' value as
  unsigned long long.
+"block.&lt;num&gt;.allocation" - offset of the highest written sector
+ as unsigned long long.
+"block.&lt;num&gt;.capacity" - logical size in bytes of the block device backing
+ image as unsigned long long.
+"block.&lt;num&gt;.physical" - physical size in bytes of the container of the
+ backing image as unsigned long long.
 
 Note that entire stats groups or individual stat fields may be missing from
 the output in case they are not supported by the given hypervisor, are not

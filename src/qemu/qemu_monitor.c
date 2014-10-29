@@ -1387,6 +1387,19 @@ qemuMonitorEmitDeviceDeleted(qemuMonitorPtr mon,
 }
 
 
+int
+qemuMonitorEmitNicRxFilterChanged(qemuMonitorPtr mon,
+                                  const char *devAlias)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainNicRxFilterChanged, mon->vm, devAlias);
+
+    return ret;
+}
+
+
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     int ret;
@@ -1776,6 +1789,23 @@ qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
     return qemuMonitorJSONGetAllBlockStatsInfo(mon, ret_stats);
 }
 
+
+/* Updates "stats" to fill virtual and physical size of the image */
+int qemuMonitorBlockStatsUpdateCapacity(qemuMonitorPtr mon,
+                                        virHashTablePtr stats)
+{
+    VIR_DEBUG("mon=%p, stats=%p", mon, stats);
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("block capacity/size info requires JSON monitor"));
+        return -1;
+    }
+
+    return qemuMonitorJSONBlockStatsUpdateCapacity(mon, stats);
+}
+
+
 /* Return 0 and update @nparams with the number of block stats
  * QEMU supports if success. Return -1 if failure.
  */
@@ -1804,7 +1834,7 @@ int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
                               unsigned long long *extent)
 {
     int ret;
-    VIR_DEBUG("mon=%p, dev_name=%p", mon, dev_name);
+    VIR_DEBUG("mon=%p, dev_name=%s", mon, dev_name);
 
     if (mon->json)
         ret = qemuMonitorJSONGetBlockExtent(mon, dev_name, extent);
@@ -1819,7 +1849,7 @@ int qemuMonitorBlockResize(qemuMonitorPtr mon,
                            unsigned long long size)
 {
     int ret;
-    VIR_DEBUG("mon=%p, devname=%p size=%llu", mon, device, size);
+    VIR_DEBUG("mon=%p, device=%s size=%llu", mon, device, size);
 
     if (mon->json)
         ret = qemuMonitorJSONBlockResize(mon, device, size);
@@ -2912,6 +2942,32 @@ int qemuMonitorRemoveNetdev(qemuMonitorPtr mon,
 }
 
 
+int
+qemuMonitorQueryRxFilter(qemuMonitorPtr mon, const char *alias,
+                         virNetDevRxFilterPtr *filter)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p alias=%s filter=%p",
+              mon, alias, filter);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+
+    VIR_DEBUG("mon=%p, alias=%s", mon, alias);
+
+    if (mon->json)
+        ret = qemuMonitorJSONQueryRxFilter(mon, alias, filter);
+    else
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("query-rx-filter requires JSON monitor"));
+    return ret;
+}
+
+
 int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
                            virHashTablePtr paths)
 {
@@ -3075,6 +3131,54 @@ int qemuMonitorAddDevice(qemuMonitorPtr mon,
 {
     return qemuMonitorAddDeviceWithFd(mon, devicestr, -1, NULL);
 }
+
+
+/**
+ * qemuMonitorAddObject:
+ * @mon: Pointer to monitor object
+ * @type: Type name of object to add
+ * @objalias: Alias of the new object
+ * @props: Optional arguments for the given type. The object is consumed and
+ *         should not be referenced by the caller after this function returns.
+ *
+ * Returns 0 on success -1 on error.
+ */
+int
+qemuMonitorAddObject(qemuMonitorPtr mon,
+                     const char *type,
+                     const char *objalias,
+                     virJSONValuePtr props)
+{
+    VIR_DEBUG("mon=%p type=%s objalias=%s props=%p",
+              mon, type, objalias, props);
+    int ret = -1;
+
+    if (mon->json)
+        ret = qemuMonitorJSONAddObject(mon, type, objalias, props);
+    else
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("object adding requires JSON monitor"));
+
+    return ret;
+}
+
+
+int
+qemuMonitorDelObject(qemuMonitorPtr mon,
+                     const char *objalias)
+{
+    VIR_DEBUG("mon=%p objalias=%s", mon, objalias);
+    int ret = -1;
+
+    if (mon->json)
+        ret = qemuMonitorJSONDelObject(mon, objalias);
+    else
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("object deletion requires JSON monitor"));
+
+    return ret;
+}
+
 
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
                         const char *drivestr)

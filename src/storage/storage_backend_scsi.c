@@ -511,38 +511,6 @@ virStorageBackendSCSITriggerRescan(uint32_t host)
     return retval;
 }
 
-static int
-getHostNumber(const char *adapter_name,
-              unsigned int *result)
-{
-    char *host = (char *)adapter_name;
-
-    /* Specifying adapter like 'host5' is still supported for
-     * back-compat reason.
-     */
-    if (STRPREFIX(host, "scsi_host")) {
-        host += strlen("scsi_host");
-    } else if (STRPREFIX(host, "fc_host")) {
-        host += strlen("fc_host");
-    } else if (STRPREFIX(host, "host")) {
-        host += strlen("host");
-    } else {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Invalid adapter name '%s' for SCSI pool"),
-                       adapter_name);
-        return -1;
-    }
-
-    if (result && virStrToLong_ui(host, NULL, 10, result) == -1) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Invalid adapter name '%s' for SCSI pool"),
-                       adapter_name);
-        return -1;
-    }
-
-    return 0;
-}
-
 static char *
 getAdapterName(virStoragePoolSourceAdapter adapter)
 {
@@ -551,22 +519,15 @@ getAdapterName(virStoragePoolSourceAdapter adapter)
 
     if (adapter.type == VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_SCSI_HOST) {
         if (adapter.data.scsi_host.has_parent) {
+            virDevicePCIAddress addr = adapter.data.scsi_host.parentaddr;
             unsigned int unique_id = adapter.data.scsi_host.unique_id;
 
-            if (virAsprintf(&parentaddr, "%04x:%02x:%02x.%01x",
-                            adapter.data.scsi_host.parentaddr.domain,
-                            adapter.data.scsi_host.parentaddr.bus,
-                            adapter.data.scsi_host.parentaddr.slot,
-                            adapter.data.scsi_host.parentaddr.function) < 0)
+            if (!(name = virGetSCSIHostNameByParentaddr(addr.domain,
+                                                        addr.bus,
+                                                        addr.slot,
+                                                        addr.function,
+                                                        unique_id)))
                 goto cleanup;
-            if (!(name = virFindSCSIHostByPCI(NULL, parentaddr,
-                                              unique_id))) {
-                virReportError(VIR_ERR_XML_ERROR,
-                               _("Failed to find scsi_host using PCI '%s' "
-                                 "and unique_id='%u'"),
-                               parentaddr, unique_id);
-                goto cleanup;
-            }
         } else {
             ignore_value(VIR_STRDUP(name, adapter.data.scsi_host.name));
         }
@@ -610,7 +571,7 @@ createVport(virStoragePoolSourceAdapter adapter)
          return -1;
     }
 
-    if (getHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
+    if (virGetSCSIHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
         return -1;
 
     if (virManageVport(parent_host, adapter.data.fchost.wwpn,
@@ -643,7 +604,7 @@ deleteVport(virStoragePoolSourceAdapter adapter)
                                        adapter.data.fchost.wwpn)))
         return -1;
 
-    if (getHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
+    if (virGetSCSIHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
         goto cleanup;
 
     if (virManageVport(parent_host, adapter.data.fchost.wwpn,
@@ -683,7 +644,7 @@ virStorageBackendSCSICheckPool(virConnectPtr conn ATTRIBUTE_UNUSED,
         }
     }
 
-    if (getHostNumber(name, &host) < 0)
+    if (virGetSCSIHostNumber(name, &host) < 0)
         goto cleanup;
 
     if (virAsprintf(&path, "%s/host%d",
@@ -712,7 +673,7 @@ virStorageBackendSCSIRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (!(name = getAdapterName(pool->def->source.adapter)))
         return -1;
 
-    if (getHostNumber(name, &host) < 0)
+    if (virGetSCSIHostNumber(name, &host) < 0)
         goto out;
 
     VIR_DEBUG("Scanning host%u", host);

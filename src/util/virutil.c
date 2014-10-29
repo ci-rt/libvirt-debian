@@ -1838,6 +1838,91 @@ virFindSCSIHostByPCI(const char *sysfs_prefix,
     return ret;
 }
 
+/* virGetSCSIHostNumber:
+ * @adapter_name: Name of the host adapter
+ * @result: Return the entry value as unsigned int
+ *
+ * Convert the various forms of scsi_host names into the numeric
+ * host# value that can be used in order to scan sysfs looking for
+ * the specific host.
+ *
+ * Names can be either "scsi_host#" or just "host#", where
+ * "host#" is the back-compat format, but both equate to
+ * the same source adapter.  First check if both pool and def
+ * are using same format (easier) - if so, then compare
+ *
+ * Returns 0 on success, and @result has the host number.
+ * Otherwise returns -1.
+ */
+int
+virGetSCSIHostNumber(const char *adapter_name,
+                     unsigned int *result)
+{
+    /* Specifying adapter like 'host5' is still supported for
+     * back-compat reason.
+     */
+    if (STRPREFIX(adapter_name, "scsi_host")) {
+        adapter_name += strlen("scsi_host");
+    } else if (STRPREFIX(adapter_name, "fc_host")) {
+        adapter_name += strlen("fc_host");
+    } else if (STRPREFIX(adapter_name, "host")) {
+        adapter_name += strlen("host");
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid adapter name '%s' for SCSI pool"),
+                       adapter_name);
+        return -1;
+    }
+
+    if (virStrToLong_ui(adapter_name, NULL, 10, result) == -1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid adapter name '%s' for SCSI pool"),
+                       adapter_name);
+        return -1;
+    }
+
+    return 0;
+}
+
+/* virGetSCSIHostNameByParentaddr:
+ * @domain: The domain from the scsi_host parentaddr
+ * @bus: The bus from the scsi_host parentaddr
+ * @slot: The slot from the scsi_host parentaddr
+ * @function: The function from the scsi_host parentaddr
+ * @unique_id: The unique id value for parentaddr
+ *
+ * Generate a parentaddr and find the scsi_host host# for
+ * the provided parentaddr PCI address fields.
+ *
+ * Returns the "host#" string which must be free'd by
+ * the caller or NULL on error
+ */
+char *
+virGetSCSIHostNameByParentaddr(unsigned int domain,
+                               unsigned int bus,
+                               unsigned int slot,
+                               unsigned int function,
+                               unsigned int unique_id)
+{
+    char *name = NULL;
+    char *parentaddr = NULL;
+
+    if (virAsprintf(&parentaddr, "%04x:%02x:%02x.%01x",
+                    domain, bus, slot, function) < 0)
+        goto cleanup;
+    if (!(name = virFindSCSIHostByPCI(NULL, parentaddr, unique_id))) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Failed to find scsi_host using PCI '%s' "
+                         "and unique_id='%u'"),
+                       parentaddr, unique_id);
+        goto cleanup;
+    }
+
+ cleanup:
+    VIR_FREE(parentaddr);
+    return name;
+}
+
 /* virReadFCHost:
  * @sysfs_prefix: "fc_host" sysfs path, defaults to SYSFS_FC_HOST_PATH
  * @host: Host number, E.g. 5 of "fc_host/host5"
@@ -2203,6 +2288,25 @@ char *
 virFindSCSIHostByPCI(const char *sysfs_prefix ATTRIBUTE_UNUSED,
                      const char *parentaddr ATTRIBUTE_UNUSED,
                      unsigned int unique_id ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return NULL;
+}
+
+int
+virGetSCSIHostNumber(const char *adapter_name ATTRIBUTE_UNUSED,
+                     unsigned int *result ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return NULL;
+}
+
+char *
+virGetSCSIHostNameByParentaddr(unsigned int domain ATTRIBUTE_UNUSED,
+                               unsigned int bus ATTRIBUTE_UNUSED,
+                               unsigned int slot ATTRIBUTE_UNUSED,
+                               unsigned int function ATTRIBUTE_UNUSED,
+                               unsigned int unique_id ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
     return NULL;

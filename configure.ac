@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.9], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.10], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -2613,7 +2613,11 @@ if test "$with_linux" = "yes"; then
              [whether the netlink v1 library is available])
         ], [
             if test "$with_macvtap" = "yes"; then
-                AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
+                    if test "$LIBNL_REQUIRED" = "3.0";then
+                        AC_MSG_ERROR([libnl3-devel >= $LIBNL_REQUIRED is required for macvtap support])
+                    else
+                        AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
+                    fi
             fi
         ])
     fi
@@ -2772,6 +2776,14 @@ t=0
 test "x$lv_cv_static_analysis" = xyes && t=1
 AC_DEFINE_UNQUOTED([STATIC_ANALYSIS], [$t],
   [Define to 1 when performing static analysis.])
+
+AC_ARG_WITH([default-editor],
+  [AS_HELP_STRING([--with-default-editor],
+    [Editor to use for interactive commands
+     @<:@default=vi@:>@])],
+  [DEFAULT_EDITOR=${withval}],
+  [DEFAULT_EDITOR=vi])
+AC_DEFINE_UNQUOTED([DEFAULT_EDITOR], ["$DEFAULT_EDITOR"], [Default editor to use])
 
 # Some GNULIB base64 symbols clash with a kerberos library
 AC_DEFINE_UNQUOTED([isbase64],[libvirt_gl_isbase64],[Hack to avoid symbol clash])
@@ -2973,6 +2985,7 @@ AC_MSG_NOTICE([            numad: $with_numad])
 AC_MSG_NOTICE([      XML Catalog: $XML_CATALOG_FILE])
 AC_MSG_NOTICE([      Init script: $with_init_script])
 AC_MSG_NOTICE([Char device locks: $with_chrdev_lock_files])
+AC_MSG_NOTICE([   Default Editor: $DEFAULT_EDITOR])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Developer Tools])
 AC_MSG_NOTICE([])

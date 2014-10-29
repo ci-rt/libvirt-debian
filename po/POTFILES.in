@@ -44,6 +44,7 @@ src/esx/esx_network_driver.c
 src/esx/esx_storage_backend_iscsi.c
 src/esx/esx_storage_backend_vmfs.c
 src/esx/esx_storage_driver.c
+src/esx/esx_stream.c
 src/esx/esx_util.c
 src/esx/esx_vi.c
 src/esx/esx_vi_methods.c
@@ -56,7 +57,15 @@ src/interface/interface_backend_netcf.c
 src/interface/interface_backend_udev.c
 src/internal.h
 src/libvirt.c
+src/libvirt-domain.c
+src/libvirt-domain-snapshot.c
+src/libvirt-host.c
 src/libvirt-lxc.c
+src/libvirt-network.c
+src/libvirt-nwfilter.c
+src/libvirt-secret.c
+src/libvirt-storage.c
+src/libvirt-stream.c
 src/libvirt-qemu.c
 src/locking/lock_daemon.c
 src/locking/lock_daemon_config.c
@@ -220,6 +229,8 @@ src/vbox/vbox_MSCOMGlue.c
 src/vbox/vbox_XPCOMCGlue.c
 src/vbox/vbox_driver.c
 src/vbox/vbox_common.c
+src/vbox/vbox_network.c
+src/vbox/vbox_storage.c
 src/vbox/vbox_snapshot_conf.c
 src/vbox/vbox_tmpl.c
 src/vmware/vmware_conf.c

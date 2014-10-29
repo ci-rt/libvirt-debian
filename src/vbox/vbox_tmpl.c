@@ -42,24 +42,10 @@
 #include "internal.h"
 #include "datatypes.h"
 #include "domain_conf.h"
-#include "snapshot_conf.h"
-#include "vbox_snapshot_conf.h"
-#include "network_conf.h"
-#include "virerror.h"
 #include "domain_event.h"
-#include "storage_conf.h"
-#include "virstoragefile.h"
-#include "viruuid.h"
 #include "viralloc.h"
-#include "nodeinfo.h"
 #include "virlog.h"
-#include "vbox_driver.h"
-#include "configmake.h"
-#include "virfile.h"
-#include "fdstream.h"
-#include "viruri.h"
 #include "virstring.h"
-#include "virtime.h"
 #include "virutil.h"
 
 /* This one changes from version to version. */
@@ -104,7 +90,9 @@ typedef IUSBDeviceFilters IUSBCommon;
 
 #if VBOX_API_VERSION < 3001000
 typedef IHardDiskAttachment IMediumAttachment;
-#endif /* VBOX_API_VERSION < 3001000 */
+#else  /* VBOX_API_VERSION >= 3001000 */
+typedef IMedium IHardDisk;
+#endif /* VBOX_API_VERSION >= 3001000 */
 
 #include "vbox_uniformed_api.h"
 
@@ -131,18 +119,8 @@ VIR_LOG_INIT("vbox.vbox_tmpl");
         }                                                               \
     } while (0)
 
-#define VBOX_COM_UNALLOC_MEM(arg)                                       \
-    do {                                                                \
-        if (arg) {                                                      \
-            data->pFuncs->pfnComUnallocMem(arg);                        \
-            (arg) = NULL;                                               \
-        }                                                               \
-    } while (0)
-
 #define VBOX_UTF16_TO_UTF8(arg1, arg2)  data->pFuncs->pfnUtf16ToUtf8(arg1, arg2)
 #define VBOX_UTF8_TO_UTF16(arg1, arg2)  data->pFuncs->pfnUtf8ToUtf16(arg1, arg2)
-
-#define VBOX_ADDREF(arg) (arg)->vtbl->nsisupports.AddRef((nsISupports *)(arg))
 
 #define VBOX_RELEASE(arg)                                                     \
     do {                                                                      \
@@ -152,48 +130,12 @@ VIR_LOG_INIT("vbox.vbox_tmpl");
         }                                                                     \
     } while (0)
 
-#define VBOX_OBJECT_CHECK(conn, type, value) \
-vboxGlobalData *data = conn->privateData;\
-type ret = value;\
-if (!data->vboxObj) {\
-    return ret;\
-}
-
-#define VBOX_OBJECT_HOST_CHECK(conn, type, value) \
-vboxGlobalData *data = conn->privateData;\
-type ret = value;\
-IHost *host = NULL;\
-if (!data->vboxObj) {\
-    return ret;\
-}\
-data->vboxObj->vtbl->GetHost(data->vboxObj, &host);\
-if (!host) {\
-    return ret;\
-}
-
 #if VBOX_API_VERSION < 3001000
-
 # define VBOX_MEDIUM_RELEASE(arg) \
 if (arg)\
     (arg)->vtbl->imedium.nsisupports.Release((nsISupports *)(arg))
-# define VBOX_MEDIUM_FUNC_ARG1(object, func, arg1) \
-    (object)->vtbl->imedium.func((IMedium *)(object), arg1)
-# define VBOX_MEDIUM_FUNC_ARG2(object, func, arg1, arg2) \
-    (object)->vtbl->imedium.func((IMedium *)(object), arg1, arg2)
-
 #else  /* VBOX_API_VERSION >= 3001000 */
-
-typedef IMedium IHardDisk;
-typedef IMediumAttachment IHardDiskAttachment;
-# define MediaState_Inaccessible     MediumState_Inaccessible
-# define HardDiskVariant_Standard    MediumVariant_Standard
-# define HardDiskVariant_Fixed       MediumVariant_Fixed
 # define VBOX_MEDIUM_RELEASE(arg) VBOX_RELEASE(arg)
-# define VBOX_MEDIUM_FUNC_ARG1(object, func, arg1) \
-    (object)->vtbl->func(object, arg1)
-# define VBOX_MEDIUM_FUNC_ARG2(object, func, arg1, arg2) \
-    (object)->vtbl->func(object, arg1, arg2)
-
 #endif /* VBOX_API_VERSION >= 3001000 */
 
 #define DEBUGPRUnichar(msg, strUtf16) \
@@ -241,28 +183,16 @@ static vboxGlobalData *g_pVBoxGlobalData = NULL;
 
 #if VBOX_API_VERSION < 4000000
 
-# define VBOX_OBJECT_GET_MACHINE(/* in */ iid_value, /* out */ machine) \
-    data->vboxObj->vtbl->GetMachine(data->vboxObj, iid_value, machine)
-
 # define VBOX_SESSION_OPEN(/* in */ iid_value, /* unused */ machine) \
     data->vboxObj->vtbl->OpenSession(data->vboxObj, data->vboxSession, iid_value)
-
-# define VBOX_SESSION_OPEN_EXISTING(/* in */ iid_value, /* unused */ machine) \
-    data->vboxObj->vtbl->OpenExistingSession(data->vboxObj, data->vboxSession, iid_value)
 
 # define VBOX_SESSION_CLOSE() \
     data->vboxSession->vtbl->Close(data->vboxSession)
 
 #else /* VBOX_API_VERSION >= 4000000 */
 
-# define VBOX_OBJECT_GET_MACHINE(/* in */ iid_value, /* out */ machine) \
-    data->vboxObj->vtbl->FindMachine(data->vboxObj, iid_value, machine)
-
 # define VBOX_SESSION_OPEN(/* unused */ iid_value, /* in */ machine) \
     machine->vtbl->LockMachine(machine, data->vboxSession, LockType_Write)
-
-# define VBOX_SESSION_OPEN_EXISTING(/* unused */ iid_value, /* in */ machine) \
-    machine->vtbl->LockMachine(machine, data->vboxSession, LockType_Shared)
 
 # define VBOX_SESSION_CLOSE() \
     data->vboxSession->vtbl->UnlockMachine(data->vboxSession)
@@ -838,45 +768,6 @@ static PRUnichar *PRUnicharFromInt(int n) {
 
 #endif /* VBOX_API_VERSION >= 3001000 */
 
-static PRUnichar *
-vboxSocketFormatAddrUtf16(vboxGlobalData *data, virSocketAddrPtr addr)
-{
-    char *utf8 = NULL;
-    PRUnichar *utf16 = NULL;
-
-    utf8 = virSocketAddrFormat(addr);
-
-    if (utf8 == NULL) {
-        return NULL;
-    }
-
-    VBOX_UTF8_TO_UTF16(utf8, &utf16);
-    VIR_FREE(utf8);
-
-    return utf16;
-}
-
-static int
-vboxSocketParseAddrUtf16(vboxGlobalData *data, const PRUnichar *utf16,
-                         virSocketAddrPtr addr)
-{
-    int result = -1;
-    char *utf8 = NULL;
-
-    VBOX_UTF16_TO_UTF8(utf16, &utf8);
-
-    if (virSocketAddrParse(addr, utf8, AF_UNSPEC) < 0) {
-        goto cleanup;
-    }
-
-    result = 0;
-
- cleanup:
-    VBOX_UTF8_FREE(utf8);
-
-    return result;
-}
-
 static virDomainState _vboxConvertState(PRUint32 state)
 {
     switch (state) {
@@ -1389,9 +1280,13 @@ _vboxDomainSnapshotRestore(virDomainPtr dom,
                           IMachine *machine,
                           ISnapshot *snapshot)
 {
-    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    vboxGlobalData *data = dom->conn->privateData;
     vboxIID iid = VBOX_IID_INITIALIZER;
     nsresult rc;
+    int ret = -1;
+
+    if (!data->vboxObj)
+        return ret;
 
     rc = snapshot->vtbl->GetId(snapshot, &iid.value);
     if (NS_FAILED(rc)) {
@@ -1419,13 +1314,17 @@ _vboxDomainSnapshotRestore(virDomainPtr dom,
                           IMachine *machine,
                           ISnapshot *snapshot)
 {
-    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    vboxGlobalData *data = dom->conn->privateData;
     IConsole *console = NULL;
     IProgress *progress = NULL;
     PRUint32 state;
     nsresult rc;
     PRInt32 result;
     vboxIID domiid = VBOX_IID_INITIALIZER;
+    int ret = -1;
+
+    if (!data->vboxObj)
+        return ret;
 
     rc = machine->vtbl->GetId(machine, &domiid.value);
     if (NS_FAILED(rc)) {
@@ -1495,7 +1394,7 @@ _vboxDomainSnapshotRestore(virDomainPtr dom,
     /* No Callback support for VirtualBox 4.* series */
 
 static void
-_registerDomainEvent(virDriverPtr driver)
+_registerDomainEvent(virHypervisorDriverPtr driver)
 {
     driver->connectDomainEventRegister = NULL;
     driver->connectDomainEventDeregister = NULL;
@@ -1854,9 +1753,13 @@ vboxConnectDomainEventRegister(virConnectPtr conn,
                                void *opaque,
                                virFreeCallback freecb)
 {
-    VBOX_OBJECT_CHECK(conn, int, -1);
+    vboxGlobalData *data = conn->privateData;
     int vboxRet          = -1;
     nsresult rc;
+    int ret = -1;
+
+    if (!data->vboxObj)
+        return ret;
 
     /* Locking has to be there as callbacks are not
      * really fully thread safe
@@ -1917,8 +1820,12 @@ static int
 vboxConnectDomainEventDeregister(virConnectPtr conn,
                                  virConnectDomainEventCallback callback)
 {
-    VBOX_OBJECT_CHECK(conn, int, -1);
+    vboxGlobalData *data = conn->privateData;
     int cnt;
+    int ret = -1;
+
+    if (!data->vboxObj)
+        return ret;
 
     /* Locking has to be there as callbacks are not
      * really fully thread safe
@@ -1952,9 +1859,13 @@ static int vboxConnectDomainEventRegisterAny(virConnectPtr conn,
                                              void *opaque,
                                              virFreeCallback freecb)
 {
-    VBOX_OBJECT_CHECK(conn, int, -1);
+    vboxGlobalData *data = conn->privateData;
     int vboxRet          = -1;
     nsresult rc;
+    int ret = -1;
+
+    if (!data->vboxObj)
+        return ret;
 
     /* Locking has to be there as callbacks are not
      * really fully thread safe
@@ -2017,8 +1928,12 @@ static int
 vboxConnectDomainEventDeregisterAny(virConnectPtr conn,
                                     int callbackID)
 {
-    VBOX_OBJECT_CHECK(conn, int, -1);
+    vboxGlobalData *data = conn->privateData;
     int cnt;
+    int ret = -1;
+
+    if (!data->vboxObj)
+        return ret;
 
     /* Locking has to be there as callbacks are not
      * really fully thread safe
@@ -2046,7 +1961,7 @@ vboxConnectDomainEventDeregisterAny(virConnectPtr conn,
 }
 
 static void
-_registerDomainEvent(virDriverPtr driver)
+_registerDomainEvent(virHypervisorDriverPtr driver)
 {
     driver->connectDomainEventRegister = vboxConnectDomainEventRegister; /* 0.7.0 */
     driver->connectDomainEventDeregister = vboxConnectDomainEventDeregister; /* 0.7.0 */
@@ -2055,1703 +1970,6 @@ _registerDomainEvent(virDriverPtr driver)
 }
 
 #endif /* !(VBOX_API_VERSION == 2002000 || VBOX_API_VERSION >= 4000000) */
-
-/**
- * The Network Functions here on
- */
-static virDrvOpenStatus vboxNetworkOpen(virConnectPtr conn,
-                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                        unsigned int flags)
-{
-    vboxGlobalData *data = conn->privateData;
-
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (STRNEQ(conn->driver->name, "VBOX"))
-        goto cleanup;
-
-    if ((data->pFuncs      == NULL) ||
-        (data->vboxObj     == NULL) ||
-        (data->vboxSession == NULL))
-        goto cleanup;
-
-    VIR_DEBUG("network initialized");
-    /* conn->networkPrivateData = some network specific data */
-    return VIR_DRV_OPEN_SUCCESS;
-
- cleanup:
-    return VIR_DRV_OPEN_DECLINED;
-}
-
-static int vboxNetworkClose(virConnectPtr conn)
-{
-    VIR_DEBUG("network uninitialized");
-    conn->networkPrivateData = NULL;
-    return 0;
-}
-
-static int vboxConnectNumOfNetworks(virConnectPtr conn)
-{
-    VBOX_OBJECT_HOST_CHECK(conn, int, 0);
-    vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    size_t i = 0;
-
-    vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
-
-    for (i = 0; i < networkInterfaces.count; i++) {
-        IHostNetworkInterface *networkInterface = networkInterfaces.items[i];
-
-        if (networkInterface) {
-            PRUint32 interfaceType = 0;
-
-            networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-            if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-                PRUint32 status = HostNetworkInterfaceStatus_Unknown;
-
-                networkInterface->vtbl->GetStatus(networkInterface, &status);
-
-                if (status == HostNetworkInterfaceStatus_Up)
-                    ret++;
-            }
-        }
-    }
-
-    vboxArrayRelease(&networkInterfaces);
-
-    VBOX_RELEASE(host);
-
-    VIR_DEBUG("numActive: %d", ret);
-    return ret;
-}
-
-static int vboxConnectListNetworks(virConnectPtr conn, char **const names, int nnames) {
-    VBOX_OBJECT_HOST_CHECK(conn, int, 0);
-    vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    size_t i = 0;
-
-    vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
-
-    for (i = 0; (ret < nnames) && (i < networkInterfaces.count); i++) {
-        IHostNetworkInterface *networkInterface = networkInterfaces.items[i];
-
-        if (networkInterface) {
-            PRUint32 interfaceType = 0;
-
-            networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-
-            if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-                PRUint32 status = HostNetworkInterfaceStatus_Unknown;
-
-                networkInterface->vtbl->GetStatus(networkInterface, &status);
-
-                if (status == HostNetworkInterfaceStatus_Up) {
-                    char *nameUtf8       = NULL;
-                    PRUnichar *nameUtf16 = NULL;
-
-                    networkInterface->vtbl->GetName(networkInterface, &nameUtf16);
-                    VBOX_UTF16_TO_UTF8(nameUtf16, &nameUtf8);
-
-                    VIR_DEBUG("nnames[%d]: %s", ret, nameUtf8);
-                    if (VIR_STRDUP(names[ret], nameUtf8) >= 0)
-                        ret++;
-
-                    VBOX_UTF8_FREE(nameUtf8);
-                    VBOX_UTF16_FREE(nameUtf16);
-                }
-            }
-        }
-    }
-
-    vboxArrayRelease(&networkInterfaces);
-
-    VBOX_RELEASE(host);
-
-    return ret;
-}
-
-static int vboxConnectNumOfDefinedNetworks(virConnectPtr conn)
-{
-    VBOX_OBJECT_HOST_CHECK(conn, int, 0);
-    vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    size_t i = 0;
-
-    vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
-
-    for (i = 0; i < networkInterfaces.count; i++) {
-        IHostNetworkInterface *networkInterface = networkInterfaces.items[i];
-
-        if (networkInterface) {
-            PRUint32 interfaceType = 0;
-
-            networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-            if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-                PRUint32 status = HostNetworkInterfaceStatus_Unknown;
-
-                networkInterface->vtbl->GetStatus(networkInterface, &status);
-
-                if (status == HostNetworkInterfaceStatus_Down)
-                    ret++;
-            }
-        }
-    }
-
-    vboxArrayRelease(&networkInterfaces);
-
-    VBOX_RELEASE(host);
-
-    VIR_DEBUG("numActive: %d", ret);
-    return ret;
-}
-
-static int vboxConnectListDefinedNetworks(virConnectPtr conn, char **const names, int nnames) {
-    VBOX_OBJECT_HOST_CHECK(conn, int, 0);
-    vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    size_t i = 0;
-
-    vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
-
-    for (i = 0; (ret < nnames) && (i < networkInterfaces.count); i++) {
-        IHostNetworkInterface *networkInterface = networkInterfaces.items[i];
-
-        if (networkInterface) {
-            PRUint32 interfaceType = 0;
-
-            networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-
-            if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-                PRUint32 status = HostNetworkInterfaceStatus_Unknown;
-
-                networkInterface->vtbl->GetStatus(networkInterface, &status);
-
-                if (status == HostNetworkInterfaceStatus_Down) {
-                    char *nameUtf8       = NULL;
-                    PRUnichar *nameUtf16 = NULL;
-
-                    networkInterface->vtbl->GetName(networkInterface, &nameUtf16);
-                    VBOX_UTF16_TO_UTF8(nameUtf16, &nameUtf8);
-
-                    VIR_DEBUG("nnames[%d]: %s", ret, nameUtf8);
-                    if (VIR_STRDUP(names[ret], nameUtf8) >= 0)
-                        ret++;
-
-                    VBOX_UTF8_FREE(nameUtf8);
-                    VBOX_UTF16_FREE(nameUtf16);
-                }
-            }
-        }
-    }
-
-    vboxArrayRelease(&networkInterfaces);
-
-    VBOX_RELEASE(host);
-
-    return ret;
-}
-
-static virNetworkPtr
-vboxNetworkLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
-{
-    VBOX_OBJECT_HOST_CHECK(conn, virNetworkPtr, NULL);
-    vboxIID iid = VBOX_IID_INITIALIZER;
-
-    vboxIIDFromUUID(&iid, uuid);
-
-    /* TODO: "internal" networks are just strings and
-     * thus can't do much with them
-     */
-    IHostNetworkInterface *networkInterface = NULL;
-
-    host->vtbl->FindHostNetworkInterfaceById(host, iid.value, &networkInterface);
-    if (networkInterface) {
-        PRUint32 interfaceType = 0;
-
-        networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-
-        if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-            char *nameUtf8       = NULL;
-            PRUnichar *nameUtf16 = NULL;
-
-            networkInterface->vtbl->GetName(networkInterface, &nameUtf16);
-            VBOX_UTF16_TO_UTF8(nameUtf16, &nameUtf8);
-
-            ret = virGetNetwork(conn, nameUtf8, uuid);
-
-            VIR_DEBUG("Network Name: %s", nameUtf8);
-            DEBUGIID("Network UUID", iid.value);
-
-            VBOX_UTF8_FREE(nameUtf8);
-            VBOX_UTF16_FREE(nameUtf16);
-        }
-
-        VBOX_RELEASE(networkInterface);
-    }
-
-    VBOX_RELEASE(host);
-
-    vboxIIDUnalloc(&iid);
-    return ret;
-}
-
-static virNetworkPtr
-vboxNetworkLookupByName(virConnectPtr conn, const char *name)
-{
-    VBOX_OBJECT_HOST_CHECK(conn, virNetworkPtr, NULL);
-    PRUnichar *nameUtf16                    = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
-
-    VBOX_UTF8_TO_UTF16(name, &nameUtf16);
-
-    host->vtbl->FindHostNetworkInterfaceByName(host, nameUtf16, &networkInterface);
-
-    if (networkInterface) {
-        PRUint32 interfaceType = 0;
-
-        networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-
-        if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-            unsigned char uuid[VIR_UUID_BUFLEN];
-            vboxIID iid = VBOX_IID_INITIALIZER;
-
-            networkInterface->vtbl->GetId(networkInterface, &iid.value);
-            vboxIIDToUUID(&iid, uuid);
-            ret = virGetNetwork(conn, name, uuid);
-            VIR_DEBUG("Network Name: %s", name);
-
-            DEBUGIID("Network UUID", iid.value);
-            vboxIIDUnalloc(&iid);
-        }
-
-        VBOX_RELEASE(networkInterface);
-    }
-
-    VBOX_UTF16_FREE(nameUtf16);
-    VBOX_RELEASE(host);
-
-    return ret;
-}
-
-static virNetworkPtr
-vboxNetworkDefineCreateXML(virConnectPtr conn, const char *xml, bool start)
-{
-    VBOX_OBJECT_HOST_CHECK(conn, virNetworkPtr, NULL);
-    PRUnichar *networkInterfaceNameUtf16    = NULL;
-    char      *networkInterfaceNameUtf8     = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
-    nsresult rc;
-
-    virNetworkDefPtr def = virNetworkDefParseString(xml);
-    virNetworkIpDefPtr ipdef;
-    virSocketAddr netmask;
-
-    if ((!def) ||
-        (def->forward.type != VIR_NETWORK_FORWARD_NONE) ||
-        (def->nips == 0 || !def->ips))
-        goto cleanup;
-
-    /* Look for the first IPv4 IP address definition and use that.
-     * If there weren't any IPv4 addresses, ignore the network (since it's
-     * required below to have an IPv4 address)
-    */
-    ipdef = virNetworkDefGetIpByIndex(def, AF_INET, 0);
-    if (!ipdef)
-        goto cleanup;
-
-    if (virNetworkIpDefNetmask(ipdef, &netmask) < 0)
-        goto cleanup;
-
-    /* the current limitation of hostonly network is that you can't
-     * assign a name to it and it defaults to vboxnet*, for e.g:
-     * vboxnet0, vboxnet1, etc. Also the UUID is assigned to it
-     * automatically depending on the mac address and thus both
-     * these paramters are ignored here for now.
-     */
-
-#if VBOX_API_VERSION == 2002000
-    if (STREQ(def->name, "vboxnet0")) {
-        PRUint32 interfaceType = 0;
-
-        VBOX_UTF8_TO_UTF16(def->name, &networkInterfaceNameUtf16);
-        host->vtbl->FindHostNetworkInterfaceByName(host, networkInterfaceNameUtf16, &networkInterface);
-
-        networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-        if (interfaceType != HostNetworkInterfaceType_HostOnly) {
-            VBOX_RELEASE(networkInterface);
-            networkInterface = NULL;
-        }
-    }
-#else /* VBOX_API_VERSION != 2002000 */
-    {
-        IProgress *progress = NULL;
-        host->vtbl->CreateHostOnlyNetworkInterface(host, &networkInterface,
-                                                   &progress);
-
-        if (progress) {
-            progress->vtbl->WaitForCompletion(progress, -1);
-            VBOX_RELEASE(progress);
-        }
-    }
-#endif /* VBOX_API_VERSION != 2002000 */
-
-    if (networkInterface) {
-        unsigned char uuid[VIR_UUID_BUFLEN];
-        char      *networkNameUtf8  = NULL;
-        PRUnichar *networkNameUtf16 = NULL;
-        vboxIID vboxnetiid = VBOX_IID_INITIALIZER;
-
-        networkInterface->vtbl->GetName(networkInterface, &networkInterfaceNameUtf16);
-        if (networkInterfaceNameUtf16) {
-            VBOX_UTF16_TO_UTF8(networkInterfaceNameUtf16, &networkInterfaceNameUtf8);
-
-            if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", networkInterfaceNameUtf8) < 0) {
-                VBOX_RELEASE(host);
-                VBOX_RELEASE(networkInterface);
-                goto cleanup;
-            }
-        }
-
-        VBOX_UTF8_TO_UTF16(networkNameUtf8, &networkNameUtf16);
-
-        /* Currently support only one dhcp server per network
-         * with contigious address space from start to end
-         */
-        if ((ipdef->nranges >= 1) &&
-            VIR_SOCKET_ADDR_VALID(&ipdef->ranges[0].start) &&
-            VIR_SOCKET_ADDR_VALID(&ipdef->ranges[0].end)) {
-            IDHCPServer *dhcpServer = NULL;
-
-            data->vboxObj->vtbl->FindDHCPServerByNetworkName(data->vboxObj,
-                                                             networkNameUtf16,
-                                                             &dhcpServer);
-            if (!dhcpServer) {
-                /* create a dhcp server */
-                data->vboxObj->vtbl->CreateDHCPServer(data->vboxObj,
-                                                      networkNameUtf16,
-                                                      &dhcpServer);
-                VIR_DEBUG("couldn't find dhcp server so creating one");
-            }
-            if (dhcpServer) {
-                PRUnichar *ipAddressUtf16     = NULL;
-                PRUnichar *networkMaskUtf16   = NULL;
-                PRUnichar *fromIPAddressUtf16 = NULL;
-                PRUnichar *toIPAddressUtf16   = NULL;
-                PRUnichar *trunkTypeUtf16     = NULL;
-
-                ipAddressUtf16 = vboxSocketFormatAddrUtf16(data, &ipdef->address);
-                networkMaskUtf16 = vboxSocketFormatAddrUtf16(data, &netmask);
-                fromIPAddressUtf16 = vboxSocketFormatAddrUtf16(data, &ipdef->ranges[0].start);
-                toIPAddressUtf16 = vboxSocketFormatAddrUtf16(data, &ipdef->ranges[0].end);
-
-                if (ipAddressUtf16 == NULL || networkMaskUtf16 == NULL ||
-                    fromIPAddressUtf16 == NULL || toIPAddressUtf16 == NULL) {
-                    VBOX_UTF16_FREE(ipAddressUtf16);
-                    VBOX_UTF16_FREE(networkMaskUtf16);
-                    VBOX_UTF16_FREE(fromIPAddressUtf16);
-                    VBOX_UTF16_FREE(toIPAddressUtf16);
-                    VBOX_RELEASE(dhcpServer);
-                    goto cleanup;
-                }
-
-                VBOX_UTF8_TO_UTF16("netflt", &trunkTypeUtf16);
-
-                dhcpServer->vtbl->SetEnabled(dhcpServer, PR_TRUE);
-
-                dhcpServer->vtbl->SetConfiguration(dhcpServer,
-                                                   ipAddressUtf16,
-                                                   networkMaskUtf16,
-                                                   fromIPAddressUtf16,
-                                                   toIPAddressUtf16);
-
-                if (start)
-                    dhcpServer->vtbl->Start(dhcpServer,
-                                            networkNameUtf16,
-                                            networkInterfaceNameUtf16,
-                                            trunkTypeUtf16);
-
-                VBOX_UTF16_FREE(ipAddressUtf16);
-                VBOX_UTF16_FREE(networkMaskUtf16);
-                VBOX_UTF16_FREE(fromIPAddressUtf16);
-                VBOX_UTF16_FREE(toIPAddressUtf16);
-                VBOX_UTF16_FREE(trunkTypeUtf16);
-                VBOX_RELEASE(dhcpServer);
-            }
-        }
-
-        if ((ipdef->nhosts >= 1) &&
-            VIR_SOCKET_ADDR_VALID(&ipdef->hosts[0].ip)) {
-            PRUnichar *ipAddressUtf16   = NULL;
-            PRUnichar *networkMaskUtf16 = NULL;
-
-            ipAddressUtf16 = vboxSocketFormatAddrUtf16(data, &ipdef->hosts[0].ip);
-            networkMaskUtf16 = vboxSocketFormatAddrUtf16(data, &netmask);
-
-            if (ipAddressUtf16 == NULL || networkMaskUtf16 == NULL) {
-                VBOX_UTF16_FREE(ipAddressUtf16);
-                VBOX_UTF16_FREE(networkMaskUtf16);
-                goto cleanup;
-            }
-
-            /* Current drawback is that since EnableStaticIpConfig() sets
-             * IP and enables the interface so even if the dhcpserver is not
-             * started the interface is still up and running
-             */
-#if VBOX_API_VERSION < 4002000
-            networkInterface->vtbl->EnableStaticIpConfig(networkInterface,
-                                                         ipAddressUtf16,
-                                                         networkMaskUtf16);
-#else
-            networkInterface->vtbl->EnableStaticIPConfig(networkInterface,
-                                                         ipAddressUtf16,
-                                                         networkMaskUtf16);
-#endif
-
-            VBOX_UTF16_FREE(ipAddressUtf16);
-            VBOX_UTF16_FREE(networkMaskUtf16);
-        } else {
-#if VBOX_API_VERSION < 4002000
-            networkInterface->vtbl->EnableDynamicIpConfig(networkInterface);
-            networkInterface->vtbl->DhcpRediscover(networkInterface);
-#else
-            networkInterface->vtbl->EnableDynamicIPConfig(networkInterface);
-            networkInterface->vtbl->DHCPRediscover(networkInterface);
-#endif
-        }
-
-        rc = networkInterface->vtbl->GetId(networkInterface, &vboxnetiid.value);
-        if (NS_SUCCEEDED(rc)) {
-            vboxIIDToUUID(&vboxnetiid, uuid);
-            DEBUGIID("Real Network UUID", vboxnetiid.value);
-            vboxIIDUnalloc(&vboxnetiid);
-            ret = virGetNetwork(conn, networkInterfaceNameUtf8, uuid);
-        }
-
-        VIR_FREE(networkNameUtf8);
-        VBOX_UTF16_FREE(networkNameUtf16);
-        VBOX_RELEASE(networkInterface);
-    }
-
-    VBOX_UTF8_FREE(networkInterfaceNameUtf8);
-    VBOX_UTF16_FREE(networkInterfaceNameUtf16);
-    VBOX_RELEASE(host);
-
- cleanup:
-    virNetworkDefFree(def);
-    return ret;
-}
-
-static virNetworkPtr vboxNetworkCreateXML(virConnectPtr conn, const char *xml)
-{
-    return vboxNetworkDefineCreateXML(conn, xml, true);
-}
-
-static virNetworkPtr vboxNetworkDefineXML(virConnectPtr conn, const char *xml)
-{
-    return vboxNetworkDefineCreateXML(conn, xml, false);
-}
-
-static int
-vboxNetworkUndefineDestroy(virNetworkPtr network, bool removeinterface)
-{
-    VBOX_OBJECT_HOST_CHECK(network->conn, int, -1);
-    char *networkNameUtf8 = NULL;
-    PRUnichar *networkInterfaceNameUtf16    = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
-
-    /* Current limitation of the function for VirtualBox 2.2.* is
-     * that you can't delete the default hostonly adaptor namely:
-     * vboxnet0 and thus all this functions does is remove the
-     * dhcp server configuration, but the network can still be used
-     * by giving the machine static IP and also it will still
-     * show up in the net-list in virsh
-     */
-
-    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0)
-        goto cleanup;
-
-    VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
-
-    host->vtbl->FindHostNetworkInterfaceByName(host, networkInterfaceNameUtf16, &networkInterface);
-
-    if (networkInterface) {
-        PRUint32 interfaceType = 0;
-
-        networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-
-        if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-            PRUnichar *networkNameUtf16 = NULL;
-            IDHCPServer *dhcpServer     = NULL;
-
-#if VBOX_API_VERSION != 2002000
-            if (removeinterface) {
-                PRUnichar *iidUtf16 = NULL;
-                IProgress *progress = NULL;
-
-                networkInterface->vtbl->GetId(networkInterface, &iidUtf16);
-
-                if (iidUtf16) {
-# if VBOX_API_VERSION == 3000000
-                    IHostNetworkInterface *netInt = NULL;
-                    host->vtbl->RemoveHostOnlyNetworkInterface(host, iidUtf16, &netInt, &progress);
-                    VBOX_RELEASE(netInt);
-# else  /* VBOX_API_VERSION > 3000000 */
-                    host->vtbl->RemoveHostOnlyNetworkInterface(host, iidUtf16, &progress);
-# endif /* VBOX_API_VERSION > 3000000 */
-                    VBOX_UTF16_FREE(iidUtf16);
-                }
-
-                if (progress) {
-                    progress->vtbl->WaitForCompletion(progress, -1);
-                    VBOX_RELEASE(progress);
-                }
-            }
-#endif /* VBOX_API_VERSION != 2002000 */
-
-            VBOX_UTF8_TO_UTF16(networkNameUtf8, &networkNameUtf16);
-
-            data->vboxObj->vtbl->FindDHCPServerByNetworkName(data->vboxObj,
-                                                             networkNameUtf16,
-                                                             &dhcpServer);
-            if (dhcpServer) {
-                dhcpServer->vtbl->SetEnabled(dhcpServer, PR_FALSE);
-                dhcpServer->vtbl->Stop(dhcpServer);
-                if (removeinterface)
-                    data->vboxObj->vtbl->RemoveDHCPServer(data->vboxObj, dhcpServer);
-                VBOX_RELEASE(dhcpServer);
-            }
-
-            VBOX_UTF16_FREE(networkNameUtf16);
-
-        }
-        VBOX_RELEASE(networkInterface);
-    }
-
-    VBOX_UTF16_FREE(networkInterfaceNameUtf16);
-    VBOX_RELEASE(host);
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(networkNameUtf8);
-    return ret;
-}
-
-static int vboxNetworkUndefine(virNetworkPtr network)
-{
-    return vboxNetworkUndefineDestroy(network, true);
-}
-
-static int vboxNetworkCreate(virNetworkPtr network)
-{
-    VBOX_OBJECT_HOST_CHECK(network->conn, int, -1);
-    char *networkNameUtf8 = NULL;
-    PRUnichar *networkInterfaceNameUtf16    = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
-
-    /* Current limitation of the function for VirtualBox 2.2.* is
-     * that the default hostonly network "vboxnet0" is always active
-     * and thus all this functions does is start the dhcp server,
-     * but the network can still be used without starting the dhcp
-     * server by giving the machine static IP
-     */
-
-    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0)
-        goto cleanup;
-
-    VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
-
-    host->vtbl->FindHostNetworkInterfaceByName(host, networkInterfaceNameUtf16, &networkInterface);
-
-    if (networkInterface) {
-        PRUint32 interfaceType = 0;
-
-        networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-
-        if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-            PRUnichar *networkNameUtf16 = NULL;
-            IDHCPServer *dhcpServer     = NULL;
-
-
-            VBOX_UTF8_TO_UTF16(networkNameUtf8, &networkNameUtf16);
-
-            data->vboxObj->vtbl->FindDHCPServerByNetworkName(data->vboxObj,
-                                                             networkNameUtf16,
-                                                             &dhcpServer);
-            if (dhcpServer) {
-                PRUnichar *trunkTypeUtf16 = NULL;
-
-                dhcpServer->vtbl->SetEnabled(dhcpServer, PR_TRUE);
-
-                VBOX_UTF8_TO_UTF16("netflt", &trunkTypeUtf16);
-
-                dhcpServer->vtbl->Start(dhcpServer,
-                                        networkNameUtf16,
-                                        networkInterfaceNameUtf16,
-                                        trunkTypeUtf16);
-
-                VBOX_UTF16_FREE(trunkTypeUtf16);
-                VBOX_RELEASE(dhcpServer);
-            }
-
-            VBOX_UTF16_FREE(networkNameUtf16);
-        }
-
-        VBOX_RELEASE(networkInterface);
-    }
-
-    VBOX_UTF16_FREE(networkInterfaceNameUtf16);
-    VBOX_RELEASE(host);
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(networkNameUtf8);
-    return ret;
-}
-
-static int vboxNetworkDestroy(virNetworkPtr network)
-{
-    return vboxNetworkUndefineDestroy(network, false);
-}
-
-static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
-                                   unsigned int flags)
-{
-    VBOX_OBJECT_HOST_CHECK(network->conn, char *, NULL);
-    virNetworkDefPtr def  = NULL;
-    virNetworkIpDefPtr ipdef = NULL;
-    char *networkNameUtf8 = NULL;
-    PRUnichar *networkInterfaceNameUtf16    = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
-
-    virCheckFlags(0, NULL);
-
-    if (VIR_ALLOC(def) < 0)
-        goto cleanup;
-    if (VIR_ALLOC(ipdef) < 0)
-        goto cleanup;
-    def->ips = ipdef;
-    def->nips = 1;
-
-    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0)
-        goto cleanup;
-
-    VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
-
-    host->vtbl->FindHostNetworkInterfaceByName(host, networkInterfaceNameUtf16, &networkInterface);
-
-    if (networkInterface) {
-        PRUint32 interfaceType = 0;
-
-        networkInterface->vtbl->GetInterfaceType(networkInterface, &interfaceType);
-
-        if (interfaceType == HostNetworkInterfaceType_HostOnly) {
-            if (VIR_STRDUP(def->name, network->name) >= 0) {
-                PRUnichar *networkNameUtf16 = NULL;
-                IDHCPServer *dhcpServer     = NULL;
-                vboxIID vboxnet0IID = VBOX_IID_INITIALIZER;
-
-                networkInterface->vtbl->GetId(networkInterface, &vboxnet0IID.value);
-                vboxIIDToUUID(&vboxnet0IID, def->uuid);
-
-                VBOX_UTF8_TO_UTF16(networkNameUtf8, &networkNameUtf16);
-
-                def->forward.type = VIR_NETWORK_FORWARD_NONE;
-
-                data->vboxObj->vtbl->FindDHCPServerByNetworkName(data->vboxObj,
-                                                                 networkNameUtf16,
-                                                                 &dhcpServer);
-                if (dhcpServer) {
-                    ipdef->nranges = 1;
-                    if (VIR_ALLOC_N(ipdef->ranges, ipdef->nranges) >= 0) {
-                        PRUnichar *ipAddressUtf16     = NULL;
-                        PRUnichar *networkMaskUtf16   = NULL;
-                        PRUnichar *fromIPAddressUtf16 = NULL;
-                        PRUnichar *toIPAddressUtf16   = NULL;
-                        bool errorOccurred = false;
-
-                        dhcpServer->vtbl->GetIPAddress(dhcpServer, &ipAddressUtf16);
-                        dhcpServer->vtbl->GetNetworkMask(dhcpServer, &networkMaskUtf16);
-                        dhcpServer->vtbl->GetLowerIP(dhcpServer, &fromIPAddressUtf16);
-                        dhcpServer->vtbl->GetUpperIP(dhcpServer, &toIPAddressUtf16);
-                        /* Currently virtualbox supports only one dhcp server per network
-                         * with contigious address space from start to end
-                         */
-                        if (vboxSocketParseAddrUtf16(data, ipAddressUtf16,
-                                                     &ipdef->address) < 0 ||
-                            vboxSocketParseAddrUtf16(data, networkMaskUtf16,
-                                                     &ipdef->netmask) < 0 ||
-                            vboxSocketParseAddrUtf16(data, fromIPAddressUtf16,
-                                                     &ipdef->ranges[0].start) < 0 ||
-                            vboxSocketParseAddrUtf16(data, toIPAddressUtf16,
-                                                     &ipdef->ranges[0].end) < 0) {
-                            errorOccurred = true;
-                        }
-
-                        VBOX_UTF16_FREE(ipAddressUtf16);
-                        VBOX_UTF16_FREE(networkMaskUtf16);
-                        VBOX_UTF16_FREE(fromIPAddressUtf16);
-                        VBOX_UTF16_FREE(toIPAddressUtf16);
-
-                        if (errorOccurred) {
-                            goto cleanup;
-                        }
-                    } else {
-                        ipdef->nranges = 0;
-                    }
-
-                    ipdef->nhosts = 1;
-                    if (VIR_ALLOC_N(ipdef->hosts, ipdef->nhosts) >= 0) {
-                        if (VIR_STRDUP(ipdef->hosts[0].name, network->name) < 0) {
-                            VIR_FREE(ipdef->hosts);
-                            ipdef->nhosts = 0;
-                        } else {
-                            PRUnichar *macAddressUtf16 = NULL;
-                            PRUnichar *ipAddressUtf16  = NULL;
-                            bool errorOccurred = false;
-
-                            networkInterface->vtbl->GetHardwareAddress(networkInterface, &macAddressUtf16);
-                            networkInterface->vtbl->GetIPAddress(networkInterface, &ipAddressUtf16);
-
-                            VBOX_UTF16_TO_UTF8(macAddressUtf16, &ipdef->hosts[0].mac);
-
-                            if (vboxSocketParseAddrUtf16(data, ipAddressUtf16,
-                                                         &ipdef->hosts[0].ip) < 0) {
-                                errorOccurred = true;
-                            }
-
-                            VBOX_UTF16_FREE(macAddressUtf16);
-                            VBOX_UTF16_FREE(ipAddressUtf16);
-
-                            if (errorOccurred) {
-                                goto cleanup;
-                            }
-                        }
-                    } else {
-                        ipdef->nhosts = 0;
-                    }
-
-                    VBOX_RELEASE(dhcpServer);
-                } else {
-                    PRUnichar *networkMaskUtf16 = NULL;
-                    PRUnichar *ipAddressUtf16   = NULL;
-                    bool errorOccurred = false;
-
-                    networkInterface->vtbl->GetNetworkMask(networkInterface, &networkMaskUtf16);
-                    networkInterface->vtbl->GetIPAddress(networkInterface, &ipAddressUtf16);
-
-                    if (vboxSocketParseAddrUtf16(data, networkMaskUtf16,
-                                                 &ipdef->netmask) < 0 ||
-                        vboxSocketParseAddrUtf16(data, ipAddressUtf16,
-                                                 &ipdef->address) < 0) {
-                        errorOccurred = true;
-                    }
-
-                    VBOX_UTF16_FREE(networkMaskUtf16);
-                    VBOX_UTF16_FREE(ipAddressUtf16);
-
-                    if (errorOccurred) {
-                        goto cleanup;
-                    }
-                }
-
-                DEBUGIID("Network UUID", vboxnet0IID.value);
-                vboxIIDUnalloc(&vboxnet0IID);
-                VBOX_UTF16_FREE(networkNameUtf16);
-            }
-        }
-
-        VBOX_RELEASE(networkInterface);
-    }
-
-    VBOX_UTF16_FREE(networkInterfaceNameUtf16);
-    VBOX_RELEASE(host);
-
-    ret = virNetworkDefFormat(def, 0);
-
- cleanup:
-    virNetworkDefFree(def);
-    VIR_FREE(networkNameUtf8);
-    return ret;
-}
-
-/**
- * The Storage Functions here on
- */
-
-static virDrvOpenStatus vboxStorageOpen(virConnectPtr conn,
-                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                        unsigned int flags)
-{
-    vboxGlobalData *data = conn->privateData;
-
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (STRNEQ(conn->driver->name, "VBOX"))
-        return VIR_DRV_OPEN_DECLINED;
-
-    if ((data->pFuncs      == NULL) ||
-        (data->vboxObj     == NULL) ||
-        (data->vboxSession == NULL))
-        return VIR_DRV_OPEN_ERROR;
-
-    VIR_DEBUG("vbox storage initialized");
-    /* conn->storagePrivateData = some storage specific data */
-    return VIR_DRV_OPEN_SUCCESS;
-}
-
-static int vboxStorageClose(virConnectPtr conn)
-{
-    VIR_DEBUG("vbox storage uninitialized");
-    conn->storagePrivateData = NULL;
-    return 0;
-}
-
-static int vboxConnectNumOfStoragePools(virConnectPtr conn ATTRIBUTE_UNUSED)
-{
-
-    /** Currently only one pool supported, the default one
-     * given by ISystemProperties::defaultHardDiskFolder()
-     */
-
-    return 1;
-}
-
-static int vboxConnectListStoragePools(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                       char **const names, int nnames) {
-    int numActive = 0;
-
-    if (nnames == 1 &&
-        VIR_STRDUP(names[numActive], "default-pool") > 0)
-        numActive++;
-    return numActive;
-}
-
-static virStoragePoolPtr
-vboxStoragePoolLookupByName(virConnectPtr conn, const char *name)
-{
-    virStoragePoolPtr ret = NULL;
-
-    /** Current limitation of the function: since
-     * the default pool doesn't have UUID just assign
-     * one till vbox can handle pools
-     */
-    if (STREQ("default-pool", name)) {
-        unsigned char uuid[VIR_UUID_BUFLEN];
-        const char *uuidstr = "1deff1ff-1481-464f-967f-a50fe8936cc4";
-
-        ignore_value(virUUIDParse(uuidstr, uuid));
-
-        ret = virGetStoragePool(conn, name, uuid, NULL, NULL);
-    }
-
-    return ret;
-}
-
-static int vboxStoragePoolNumOfVolumes(virStoragePoolPtr pool)
-{
-    VBOX_OBJECT_CHECK(pool->conn, int, -1);
-    vboxArray hardDisks = VBOX_ARRAY_INITIALIZER;
-    PRUint32 hardDiskAccessible = 0;
-    nsresult rc;
-    size_t i;
-
-    rc = vboxArrayGet(&hardDisks, data->vboxObj, data->vboxObj->vtbl->GetHardDisks);
-    if (NS_SUCCEEDED(rc)) {
-        for (i = 0; i < hardDisks.count; ++i) {
-            IHardDisk *hardDisk = hardDisks.items[i];
-            if (hardDisk) {
-                PRUint32 hddstate;
-
-                VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-                if (hddstate != MediaState_Inaccessible)
-                    hardDiskAccessible++;
-            }
-        }
-
-        vboxArrayRelease(&hardDisks);
-
-        ret = hardDiskAccessible;
-    } else {
-        ret = -1;
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("could not get number of volumes in the pool: %s, rc=%08x"),
-                       pool->name, (unsigned)rc);
-    }
-
-    return ret;
-}
-
-static int vboxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int nnames) {
-    VBOX_OBJECT_CHECK(pool->conn, int, -1);
-    vboxArray hardDisks = VBOX_ARRAY_INITIALIZER;
-    PRUint32 numActive     = 0;
-    nsresult rc;
-    size_t i;
-
-    rc = vboxArrayGet(&hardDisks, data->vboxObj, data->vboxObj->vtbl->GetHardDisks);
-    if (NS_SUCCEEDED(rc)) {
-        for (i = 0; i < hardDisks.count && numActive < nnames; ++i) {
-            IHardDisk *hardDisk = hardDisks.items[i];
-
-            if (hardDisk) {
-                PRUint32 hddstate;
-                char      *nameUtf8  = NULL;
-                PRUnichar *nameUtf16 = NULL;
-
-                VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-                if (hddstate != MediaState_Inaccessible) {
-                    VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetName, &nameUtf16);
-
-                    VBOX_UTF16_TO_UTF8(nameUtf16, &nameUtf8);
-                    VBOX_UTF16_FREE(nameUtf16);
-
-                    if (nameUtf8) {
-                        VIR_DEBUG("nnames[%d]: %s", numActive, nameUtf8);
-                        if (VIR_STRDUP(names[numActive], nameUtf8) > 0)
-                            numActive++;
-
-                        VBOX_UTF8_FREE(nameUtf8);
-                    }
-                }
-            }
-        }
-
-        vboxArrayRelease(&hardDisks);
-
-        ret = numActive;
-    } else {
-        ret = -1;
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("could not get the volume list in the pool: %s, rc=%08x"),
-                       pool->name, (unsigned)rc);
-    }
-
-    return ret;
-}
-
-static virStorageVolPtr
-vboxStorageVolLookupByName(virStoragePoolPtr pool, const char *name)
-{
-    VBOX_OBJECT_CHECK(pool->conn, virStorageVolPtr, NULL);
-    vboxArray hardDisks = VBOX_ARRAY_INITIALIZER;
-    nsresult rc;
-    size_t i;
-
-    if (!name)
-        return ret;
-
-    rc = vboxArrayGet(&hardDisks, data->vboxObj, data->vboxObj->vtbl->GetHardDisks);
-    if (NS_SUCCEEDED(rc)) {
-        for (i = 0; i < hardDisks.count; ++i) {
-            IHardDisk *hardDisk = hardDisks.items[i];
-
-            if (hardDisk) {
-                PRUint32 hddstate;
-                char      *nameUtf8  = NULL;
-                PRUnichar *nameUtf16 = NULL;
-
-                VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-                if (hddstate != MediaState_Inaccessible) {
-                    VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetName, &nameUtf16);
-
-                    if (nameUtf16) {
-                        VBOX_UTF16_TO_UTF8(nameUtf16, &nameUtf8);
-                        VBOX_UTF16_FREE(nameUtf16);
-                    }
-
-                    if (nameUtf8 && STREQ(nameUtf8, name)) {
-                        vboxIID hddIID = VBOX_IID_INITIALIZER;
-                        unsigned char uuid[VIR_UUID_BUFLEN];
-                        char key[VIR_UUID_STRING_BUFLEN] = "";
-
-                        rc = VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetId, &hddIID.value);
-                        if (NS_SUCCEEDED(rc)) {
-                            vboxIIDToUUID(&hddIID, uuid);
-                            virUUIDFormat(uuid, key);
-
-                            ret = virGetStorageVol(pool->conn, pool->name, name, key,
-                                                   NULL, NULL);
-
-                            VIR_DEBUG("virStorageVolPtr: %p", ret);
-                            VIR_DEBUG("Storage Volume Name: %s", name);
-                            VIR_DEBUG("Storage Volume key : %s", key);
-                            VIR_DEBUG("Storage Volume Pool: %s", pool->name);
-                        }
-
-                        vboxIIDUnalloc(&hddIID);
-                        VBOX_UTF8_FREE(nameUtf8);
-                        break;
-                    }
-
-                    VBOX_UTF8_FREE(nameUtf8);
-                }
-            }
-        }
-
-        vboxArrayRelease(&hardDisks);
-    }
-
-    return ret;
-}
-
-static virStorageVolPtr
-vboxStorageVolLookupByKey(virConnectPtr conn, const char *key)
-{
-    VBOX_OBJECT_CHECK(conn, virStorageVolPtr, NULL);
-    vboxIID hddIID = VBOX_IID_INITIALIZER;
-    unsigned char uuid[VIR_UUID_BUFLEN];
-    IHardDisk *hardDisk  = NULL;
-    nsresult rc;
-
-    if (!key)
-        return ret;
-
-    if (virUUIDParse(key, uuid) < 0) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Could not parse UUID from '%s'"), key);
-        return NULL;
-    }
-
-    vboxIIDFromUUID(&hddIID, uuid);
-#if VBOX_API_VERSION < 4000000
-    rc = data->vboxObj->vtbl->GetHardDisk(data->vboxObj, hddIID.value, &hardDisk);
-#elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
-    rc = data->vboxObj->vtbl->FindMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, &hardDisk);
-#else
-    rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, AccessMode_ReadWrite,
-                                         PR_FALSE, &hardDisk);
-#endif /* VBOX_API_VERSION >= 4000000 */
-    if (NS_SUCCEEDED(rc)) {
-        PRUint32 hddstate;
-
-        VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-        if (hddstate != MediaState_Inaccessible) {
-            PRUnichar *hddNameUtf16 = NULL;
-            char      *hddNameUtf8  = NULL;
-
-            VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetName, &hddNameUtf16);
-            VBOX_UTF16_TO_UTF8(hddNameUtf16, &hddNameUtf8);
-
-            if (hddNameUtf8) {
-                if (vboxConnectNumOfStoragePools(conn) == 1) {
-                    ret = virGetStorageVol(conn, "default-pool", hddNameUtf8, key,
-                                           NULL, NULL);
-                    VIR_DEBUG("Storage Volume Pool: %s", "default-pool");
-                } else {
-                    /* TODO: currently only one default pool and thus
-                     * nothing here, change it when pools are supported
-                     */
-                }
-
-                VIR_DEBUG("Storage Volume Name: %s", key);
-                VIR_DEBUG("Storage Volume key : %s", hddNameUtf8);
-
-                VBOX_UTF8_FREE(hddNameUtf8);
-                VBOX_UTF16_FREE(hddNameUtf16);
-            }
-        }
-
-        VBOX_MEDIUM_RELEASE(hardDisk);
-    }
-
-    vboxIIDUnalloc(&hddIID);
-    return ret;
-}
-
-static virStorageVolPtr
-vboxStorageVolLookupByPath(virConnectPtr conn, const char *path)
-{
-    VBOX_OBJECT_CHECK(conn, virStorageVolPtr, NULL);
-    PRUnichar *hddPathUtf16 = NULL;
-    IHardDisk *hardDisk     = NULL;
-    nsresult rc;
-
-    if (!path)
-        return ret;
-
-    VBOX_UTF8_TO_UTF16(path, &hddPathUtf16);
-
-    if (!hddPathUtf16)
-        return ret;
-
-#if VBOX_API_VERSION < 4000000
-    rc = data->vboxObj->vtbl->FindHardDisk(data->vboxObj, hddPathUtf16, &hardDisk);
-#elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
-    rc = data->vboxObj->vtbl->FindMedium(data->vboxObj, hddPathUtf16,
-                                         DeviceType_HardDisk, &hardDisk);
-#else
-    rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj, hddPathUtf16,
-                                         DeviceType_HardDisk, AccessMode_ReadWrite,
-                                         PR_FALSE, &hardDisk);
-#endif /* VBOX_API_VERSION >= 4000000 */
-    if (NS_SUCCEEDED(rc)) {
-        PRUint32 hddstate;
-
-        VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-        if (hddstate != MediaState_Inaccessible) {
-            PRUnichar *hddNameUtf16 = NULL;
-            char      *hddNameUtf8  = NULL;
-
-            VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetName, &hddNameUtf16);
-
-            if (hddNameUtf16) {
-                VBOX_UTF16_TO_UTF8(hddNameUtf16, &hddNameUtf8);
-                VBOX_UTF16_FREE(hddNameUtf16);
-            }
-
-            if (hddNameUtf8) {
-                vboxIID hddIID = VBOX_IID_INITIALIZER;
-                unsigned char uuid[VIR_UUID_BUFLEN];
-                char key[VIR_UUID_STRING_BUFLEN] = "";
-
-                rc = VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetId, &hddIID.value);
-                if (NS_SUCCEEDED(rc)) {
-                    vboxIIDToUUID(&hddIID, uuid);
-                    virUUIDFormat(uuid, key);
-
-                    /* TODO: currently only one default pool and thus
-                     * the check below, change it when pools are supported
-                     */
-                    if (vboxConnectNumOfStoragePools(conn) == 1)
-                        ret = virGetStorageVol(conn, "default-pool", hddNameUtf8, key,
-                                               NULL, NULL);
-
-                    VIR_DEBUG("Storage Volume Pool: %s", "default-pool");
-                    VIR_DEBUG("Storage Volume Name: %s", hddNameUtf8);
-                    VIR_DEBUG("Storage Volume key : %s", key);
-                }
-
-                vboxIIDUnalloc(&hddIID);
-            }
-
-            VBOX_UTF8_FREE(hddNameUtf8);
-        }
-
-        VBOX_MEDIUM_RELEASE(hardDisk);
-    }
-
-    VBOX_UTF16_FREE(hddPathUtf16);
-
-    return ret;
-}
-
-static virStorageVolPtr vboxStorageVolCreateXML(virStoragePoolPtr pool,
-                                                const char *xml,
-                                                unsigned int flags)
-{
-    VBOX_OBJECT_CHECK(pool->conn, virStorageVolPtr, NULL);
-    virStorageVolDefPtr  def  = NULL;
-    PRUnichar *hddFormatUtf16 = NULL;
-    PRUnichar *hddNameUtf16   = NULL;
-    virStoragePoolDef poolDef;
-    nsresult rc;
-
-    virCheckFlags(0, NULL);
-
-    /* since there is currently one default pool now
-     * and virStorageVolDefFormat() just checks it type
-     * so just assign it for now, change the behaviour
-     * when vbox supports pools.
-     */
-    memset(&poolDef, 0, sizeof(poolDef));
-    poolDef.type = VIR_STORAGE_POOL_DIR;
-
-    if ((def = virStorageVolDefParseString(&poolDef, xml)) == NULL)
-        goto cleanup;
-
-    if (!def->name ||
-        (def->type != VIR_STORAGE_VOL_FILE))
-        goto cleanup;
-
-    /* For now only the vmdk, vpc and vdi type harddisk
-     * variants can be created.  For historical reason, we default to vdi */
-    if (def->target.format == VIR_STORAGE_FILE_VMDK) {
-        VBOX_UTF8_TO_UTF16("VMDK", &hddFormatUtf16);
-    } else if (def->target.format == VIR_STORAGE_FILE_VPC) {
-        VBOX_UTF8_TO_UTF16("VHD", &hddFormatUtf16);
-    } else {
-        VBOX_UTF8_TO_UTF16("VDI", &hddFormatUtf16);
-    }
-
-    VBOX_UTF8_TO_UTF16(def->name, &hddNameUtf16);
-
-    if (hddFormatUtf16 && hddNameUtf16) {
-        IHardDisk *hardDisk = NULL;
-
-        rc = data->vboxObj->vtbl->CreateHardDisk(data->vboxObj, hddFormatUtf16, hddNameUtf16, &hardDisk);
-        if (NS_SUCCEEDED(rc)) {
-            IProgress *progress    = NULL;
-            PRUint64   logicalSize = VIR_DIV_UP(def->target.capacity,
-                                                1024 * 1024);
-            PRUint32   variant     = HardDiskVariant_Standard;
-
-            if (def->target.capacity == def->target.allocation)
-                variant = HardDiskVariant_Fixed;
-
-#if VBOX_API_VERSION < 4003000
-            rc = hardDisk->vtbl->CreateBaseStorage(hardDisk, logicalSize, variant, &progress);
-#else
-            rc = hardDisk->vtbl->CreateBaseStorage(hardDisk, logicalSize, 1, &variant, &progress);
-#endif
-            if (NS_SUCCEEDED(rc) && progress) {
-#if VBOX_API_VERSION == 2002000
-                nsresult resultCode;
-#else
-                PRInt32  resultCode;
-#endif
-
-                progress->vtbl->WaitForCompletion(progress, -1);
-                progress->vtbl->GetResultCode(progress, &resultCode);
-
-                if (NS_SUCCEEDED(resultCode)) {
-                    vboxIID hddIID = VBOX_IID_INITIALIZER;
-                    unsigned char uuid[VIR_UUID_BUFLEN];
-                    char key[VIR_UUID_STRING_BUFLEN] = "";
-
-                    rc = VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetId, &hddIID.value);
-                    if (NS_SUCCEEDED(rc)) {
-                        vboxIIDToUUID(&hddIID, uuid);
-                        virUUIDFormat(uuid, key);
-
-                        ret = virGetStorageVol(pool->conn, pool->name, def->name, key,
-                                               NULL, NULL);
-                    }
-
-                    vboxIIDUnalloc(&hddIID);
-                }
-
-                VBOX_RELEASE(progress);
-            }
-        }
-    }
-
-    VBOX_UTF16_FREE(hddFormatUtf16);
-    VBOX_UTF16_FREE(hddNameUtf16);
-
- cleanup:
-    virStorageVolDefFree(def);
-    return ret;
-}
-
-static int vboxStorageVolDelete(virStorageVolPtr vol,
-                                unsigned int flags)
-{
-    VBOX_OBJECT_CHECK(vol->conn, int, -1);
-    vboxIID hddIID = VBOX_IID_INITIALIZER;
-    unsigned char uuid[VIR_UUID_BUFLEN];
-    IHardDisk *hardDisk  = NULL;
-    int deregister = 0;
-    nsresult rc;
-    size_t i = 0;
-    size_t j = 0;
-
-    virCheckFlags(0, -1);
-
-    if (virUUIDParse(vol->key, uuid) < 0) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Could not parse UUID from '%s'"), vol->key);
-        return -1;
-    }
-
-    vboxIIDFromUUID(&hddIID, uuid);
-#if VBOX_API_VERSION < 4000000
-    rc = data->vboxObj->vtbl->GetHardDisk(data->vboxObj, hddIID.value, &hardDisk);
-#elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
-    rc = data->vboxObj->vtbl->FindMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, &hardDisk);
-#else
-    rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, AccessMode_ReadWrite,
-                                         PR_FALSE, &hardDisk);
-#endif /* VBOX_API_VERSION >= 4000000 */
-    if (NS_SUCCEEDED(rc)) {
-        PRUint32 hddstate;
-
-        VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-        if (hddstate != MediaState_Inaccessible) {
-            PRUint32  machineIdsSize = 0;
-            vboxArray machineIds = VBOX_ARRAY_INITIALIZER;
-
-#if VBOX_API_VERSION < 3001000
-            vboxArrayGet(&machineIds, hardDisk, hardDisk->vtbl->imedium.GetMachineIds);
-#else  /* VBOX_API_VERSION >= 3001000 */
-            vboxArrayGet(&machineIds, hardDisk, hardDisk->vtbl->GetMachineIds);
-#endif /* VBOX_API_VERSION >= 3001000 */
-
-#if VBOX_API_VERSION == 2002000 && defined WIN32
-            /* VirtualBox 2.2 on Windows represents IIDs as GUIDs and the
-             * machineIds array contains direct instances of the GUID struct
-             * instead of pointers to the actual struct instances. But there
-             * is no 128bit width simple item type for a SafeArray to fit a
-             * GUID in. The largest simple type it 64bit width and VirtualBox
-             * uses two of this 64bit items to represents one GUID. Therefore,
-             * we divide the size of the SafeArray by two, to compensate for
-             * this workaround in VirtualBox */
-            machineIds.count /= 2;
-#endif /* VBOX_API_VERSION >= 2002000 */
-
-            machineIdsSize = machineIds.count;
-
-            for (i = 0; i < machineIds.count; i++) {
-                IMachine *machine = NULL;
-                vboxIID machineId = VBOX_IID_INITIALIZER;
-
-                vboxIIDFromArrayItem(&machineId, &machineIds, i);
-
-#if VBOX_API_VERSION >= 4000000
-                rc = VBOX_OBJECT_GET_MACHINE(machineId.value, &machine);
-                if (NS_FAILED(rc)) {
-                    virReportError(VIR_ERR_NO_DOMAIN, "%s",
-                                   _("no domain with matching uuid"));
-                    break;
-                }
-#endif
-
-                rc = VBOX_SESSION_OPEN(machineId.value, machine);
-
-                if (NS_SUCCEEDED(rc)) {
-
-                    rc = data->vboxSession->vtbl->GetMachine(data->vboxSession, &machine);
-                    if (NS_SUCCEEDED(rc)) {
-                        vboxArray hddAttachments = VBOX_ARRAY_INITIALIZER;
-
-#if VBOX_API_VERSION < 3001000
-                        vboxArrayGet(&hddAttachments, machine,
-                                     machine->vtbl->GetHardDiskAttachments);
-#else  /* VBOX_API_VERSION >= 3001000 */
-                        vboxArrayGet(&hddAttachments, machine,
-                                     machine->vtbl->GetMediumAttachments);
-#endif /* VBOX_API_VERSION >= 3001000 */
-                        for (j = 0; j < hddAttachments.count; j++) {
-                            IHardDiskAttachment *hddAttachment = hddAttachments.items[j];
-
-                            if (hddAttachment) {
-                                IHardDisk *hdd = NULL;
-
-#if VBOX_API_VERSION < 3001000
-                                rc = hddAttachment->vtbl->GetHardDisk(hddAttachment, &hdd);
-#else  /* VBOX_API_VERSION >= 3001000 */
-                                rc = hddAttachment->vtbl->GetMedium(hddAttachment, &hdd);
-#endif /* VBOX_API_VERSION >= 3001000 */
-                                if (NS_SUCCEEDED(rc) && hdd) {
-                                    vboxIID iid = VBOX_IID_INITIALIZER;
-
-                                    rc = VBOX_MEDIUM_FUNC_ARG1(hdd, GetId, &iid.value);
-                                    if (NS_SUCCEEDED(rc)) {
-
-                                            DEBUGIID("HardDisk (to delete) UUID", hddIID.value);
-                                            DEBUGIID("HardDisk (currently processing) UUID", iid.value);
-
-                                        if (vboxIIDIsEqual(&hddIID, &iid)) {
-                                            PRUnichar *controller = NULL;
-                                            PRInt32    port       = 0;
-                                            PRInt32    device     = 0;
-
-                                            DEBUGIID("Found HardDisk to delete, UUID", hddIID.value);
-
-                                            hddAttachment->vtbl->GetController(hddAttachment, &controller);
-                                            hddAttachment->vtbl->GetPort(hddAttachment, &port);
-                                            hddAttachment->vtbl->GetDevice(hddAttachment, &device);
-
-#if VBOX_API_VERSION < 3001000
-                                            rc = machine->vtbl->DetachHardDisk(machine, controller, port, device);
-#else  /* VBOX_API_VERSION >= 3001000 */
-                                            rc = machine->vtbl->DetachDevice(machine, controller, port, device);
-#endif /* VBOX_API_VERSION >= 3001000 */
-                                            if (NS_SUCCEEDED(rc)) {
-                                                rc = machine->vtbl->SaveSettings(machine);
-                                                VIR_DEBUG("saving machine settings");
-                                            }
-
-                                            if (NS_SUCCEEDED(rc)) {
-                                                deregister++;
-                                                VIR_DEBUG("deregistering hdd:%d", deregister);
-                                            }
-
-                                            VBOX_UTF16_FREE(controller);
-                                        }
-                                        vboxIIDUnalloc(&iid);
-                                    }
-                                    VBOX_MEDIUM_RELEASE(hdd);
-                                }
-                            }
-                        }
-                        vboxArrayRelease(&hddAttachments);
-                        VBOX_RELEASE(machine);
-                    }
-                    VBOX_SESSION_CLOSE();
-                }
-
-                vboxIIDUnalloc(&machineId);
-            }
-
-            vboxArrayUnalloc(&machineIds);
-
-            if (machineIdsSize == 0 || machineIdsSize == deregister) {
-                IProgress *progress = NULL;
-                rc = hardDisk->vtbl->DeleteStorage(hardDisk, &progress);
-
-                if (NS_SUCCEEDED(rc) && progress) {
-                    progress->vtbl->WaitForCompletion(progress, -1);
-                    VBOX_RELEASE(progress);
-                    DEBUGIID("HardDisk deleted, UUID", hddIID.value);
-                    ret = 0;
-                }
-            }
-        }
-
-        VBOX_MEDIUM_RELEASE(hardDisk);
-    }
-
-    vboxIIDUnalloc(&hddIID);
-
-    return ret;
-}
-
-static int
-vboxStorageVolGetInfo(virStorageVolPtr vol, virStorageVolInfoPtr info)
-{
-    VBOX_OBJECT_CHECK(vol->conn, int, -1);
-    IHardDisk *hardDisk  = NULL;
-    unsigned char uuid[VIR_UUID_BUFLEN];
-    vboxIID hddIID = VBOX_IID_INITIALIZER;
-    nsresult rc;
-
-    if (!info)
-        return ret;
-
-    if (virUUIDParse(vol->key, uuid) < 0) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Could not parse UUID from '%s'"), vol->key);
-        return ret;
-    }
-
-    vboxIIDFromUUID(&hddIID, uuid);
-#if VBOX_API_VERSION < 4000000
-    rc = data->vboxObj->vtbl->GetHardDisk(data->vboxObj, hddIID.value, &hardDisk);
-#elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
-    rc = data->vboxObj->vtbl->FindMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, &hardDisk);
-#else
-    rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, AccessMode_ReadWrite,
-                                         PR_FALSE, &hardDisk);
-#endif /* VBOX_API_VERSION >= 4000000 */
-    if (NS_SUCCEEDED(rc)) {
-        PRUint32 hddstate;
-
-        VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-        if (hddstate != MediaState_Inaccessible) {
-#if VBOX_API_VERSION < 4000000
-            PRUint64 hddLogicalSize;
-            PRUint64 hddActualSize;
-#else /* VBOX_API_VERSION >= 4000000 */
-            PRInt64 hddLogicalSize;
-            PRInt64 hddActualSize;
-#endif /* VBOX_API_VERSION >= 4000000 */
-
-            info->type = VIR_STORAGE_VOL_FILE;
-
-            hardDisk->vtbl->GetLogicalSize(hardDisk, &hddLogicalSize);
-#if VBOX_API_VERSION < 4000000
-            info->capacity = hddLogicalSize * 1024 * 1024; /* MB => Bytes */
-#else /* VBOX_API_VERSION >= 4000000 */
-            info->capacity = hddLogicalSize;
-#endif /* VBOX_API_VERSION >= 4000000 */
-
-            VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetSize, &hddActualSize);
-            info->allocation = hddActualSize;
-
-            ret = 0;
-
-            VIR_DEBUG("Storage Volume Name: %s", vol->name);
-            VIR_DEBUG("Storage Volume Type: %s", info->type == VIR_STORAGE_VOL_BLOCK ? "Block" : "File");
-            VIR_DEBUG("Storage Volume Capacity: %llu", info->capacity);
-            VIR_DEBUG("Storage Volume Allocation: %llu", info->allocation);
-        }
-
-        VBOX_MEDIUM_RELEASE(hardDisk);
-    }
-
-    vboxIIDUnalloc(&hddIID);
-
-    return ret;
-}
-
-static char *vboxStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
-{
-    VBOX_OBJECT_CHECK(vol->conn, char *, NULL);
-    IHardDisk *hardDisk  = NULL;
-    unsigned char uuid[VIR_UUID_BUFLEN];
-    vboxIID hddIID = VBOX_IID_INITIALIZER;
-    virStoragePoolDef pool;
-    virStorageVolDef def;
-    int defOk = 0;
-    nsresult rc;
-
-    virCheckFlags(0, NULL);
-
-    memset(&pool, 0, sizeof(pool));
-    memset(&def, 0, sizeof(def));
-
-    if (virUUIDParse(vol->key, uuid) < 0) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Could not parse UUID from '%s'"), vol->key);
-        return ret;
-    }
-
-    vboxIIDFromUUID(&hddIID, uuid);
-#if VBOX_API_VERSION < 4000000
-    rc = data->vboxObj->vtbl->GetHardDisk(data->vboxObj, hddIID.value, &hardDisk);
-#elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
-    rc = data->vboxObj->vtbl->FindMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, &hardDisk);
-#else
-    rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, AccessMode_ReadWrite,
-                                         PR_FALSE, &hardDisk);
-#endif /* VBOX_API_VERSION >= 4000000 */
-    if (NS_SUCCEEDED(rc)) {
-        PRUint32 hddstate;
-
-        VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-        if (NS_SUCCEEDED(rc) && hddstate != MediaState_Inaccessible) {
-            PRUnichar *hddFormatUtf16 = NULL;
-#if VBOX_API_VERSION < 4000000
-            PRUint64 hddLogicalSize;
-            PRUint64 hddActualSize;
-#else /* VBOX_API_VERSION >= 4000000 */
-            PRInt64 hddLogicalSize;
-            PRInt64 hddActualSize;
-#endif /* VBOX_API_VERSION >= 4000000 */
-
-            /* since there is currently one default pool now
-             * and virStorageVolDefFormat() just checks it type
-             * so just assign it for now, change the behaviour
-             * when vbox supports pools.
-             */
-            pool.type = VIR_STORAGE_POOL_DIR;
-            def.type = VIR_STORAGE_VOL_FILE;
-            defOk = 1;
-
-            rc = hardDisk->vtbl->GetLogicalSize(hardDisk, &hddLogicalSize);
-            if (NS_SUCCEEDED(rc) && defOk) {
-#if VBOX_API_VERSION < 4000000
-                def.target.capacity = hddLogicalSize * 1024 * 1024; /* MB => Bytes */
-#else /* VBOX_API_VERSION >= 4000000 */
-                def.target.capacity = hddLogicalSize;
-#endif /* VBOX_API_VERSION >= 4000000 */
-            } else {
-                defOk = 0;
-            }
-
-            rc = VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetSize, &hddActualSize);
-            if (NS_SUCCEEDED(rc) && defOk)
-                def.target.allocation = hddActualSize;
-            else
-                defOk = 0;
-
-            if (VIR_STRDUP(def.name, vol->name) < 0)
-                defOk = 0;
-
-            if (VIR_STRDUP(def.key, vol->key) < 0)
-                defOk = 0;
-
-            rc = hardDisk->vtbl->GetFormat(hardDisk, &hddFormatUtf16);
-            if (NS_SUCCEEDED(rc) && defOk) {
-                char *hddFormatUtf8 = NULL;
-
-                VBOX_UTF16_TO_UTF8(hddFormatUtf16, &hddFormatUtf8);
-                if (hddFormatUtf8) {
-
-                    VIR_DEBUG("Storage Volume Format: %s", hddFormatUtf8);
-
-                    if (STRCASEEQ("vmdk", hddFormatUtf8))
-                        def.target.format = VIR_STORAGE_FILE_VMDK;
-                    else if (STRCASEEQ("vhd", hddFormatUtf8))
-                        def.target.format = VIR_STORAGE_FILE_VPC;
-                    else if (STRCASEEQ("vdi", hddFormatUtf8))
-                        def.target.format = VIR_STORAGE_FILE_VDI;
-                    else
-                        def.target.format = VIR_STORAGE_FILE_RAW;
-
-                    VBOX_UTF8_FREE(hddFormatUtf8);
-                }
-
-                VBOX_UTF16_FREE(hddFormatUtf16);
-            } else {
-                defOk = 0;
-            }
-        }
-
-        VBOX_MEDIUM_RELEASE(hardDisk);
-    }
-
-    vboxIIDUnalloc(&hddIID);
-
-    if (defOk)
-        ret = virStorageVolDefFormat(&pool, &def);
-
-    return ret;
-}
-
-static char *vboxStorageVolGetPath(virStorageVolPtr vol) {
-    VBOX_OBJECT_CHECK(vol->conn, char *, NULL);
-    IHardDisk *hardDisk  = NULL;
-    unsigned char uuid[VIR_UUID_BUFLEN];
-    vboxIID hddIID = VBOX_IID_INITIALIZER;
-    nsresult rc;
-
-    if (virUUIDParse(vol->key, uuid) < 0) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Could not parse UUID from '%s'"), vol->key);
-        return ret;
-    }
-
-    vboxIIDFromUUID(&hddIID, uuid);
-#if VBOX_API_VERSION < 4000000
-    rc = data->vboxObj->vtbl->GetHardDisk(data->vboxObj, hddIID.value, &hardDisk);
-#elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
-    rc = data->vboxObj->vtbl->FindMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, &hardDisk);
-#else
-    rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj, hddIID.value,
-                                         DeviceType_HardDisk, AccessMode_ReadWrite,
-                                         PR_FALSE, &hardDisk);
-#endif /* VBOX_API_VERSION >= 4000000 */
-    if (NS_SUCCEEDED(rc)) {
-        PRUint32 hddstate;
-
-        VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetState, &hddstate);
-        if (hddstate != MediaState_Inaccessible) {
-            PRUnichar *hddLocationUtf16 = NULL;
-            char      *hddLocationUtf8  = NULL;
-
-            VBOX_MEDIUM_FUNC_ARG1(hardDisk, GetLocation, &hddLocationUtf16);
-
-            VBOX_UTF16_TO_UTF8(hddLocationUtf16, &hddLocationUtf8);
-            if (hddLocationUtf8) {
-
-                ignore_value(VIR_STRDUP(ret, hddLocationUtf8));
-
-                VIR_DEBUG("Storage Volume Name: %s", vol->name);
-                VIR_DEBUG("Storage Volume Path: %s", hddLocationUtf8);
-                VIR_DEBUG("Storage Volume Pool: %s", vol->pool);
-
-                VBOX_UTF8_FREE(hddLocationUtf8);
-            }
-
-            VBOX_UTF16_FREE(hddLocationUtf16);
-        }
-
-        VBOX_MEDIUM_RELEASE(hardDisk);
-    }
-
-    vboxIIDUnalloc(&hddIID);
-
-    return ret;
-}
 
 static int _pfnInitialize(vboxGlobalData *data)
 {
@@ -3887,7 +2105,7 @@ _unregisterMachine(vboxGlobalData *data, vboxIIDUnion *iidu, IMachine **machine)
 {
     nsresult rc;
     vboxArray media = VBOX_ARRAY_INITIALIZER;
-    rc = VBOX_OBJECT_GET_MACHINE(IID_MEMBER(value), machine);
+    rc = data->vboxObj->vtbl->FindMachine(data->vboxObj, IID_MEMBER(value), machine);
     if (NS_FAILED(rc)) {
         virReportError(VIR_ERR_NO_DOMAIN, "%s",
                        _("no domain with matching uuid"));
@@ -4492,6 +2710,11 @@ static void* _handleGetMachines(IVirtualBox *vboxObj)
     return vboxObj->vtbl->GetMachines;
 }
 
+static void* _handleGetHardDisks(IVirtualBox *vboxObj)
+{
+    return vboxObj->vtbl->GetHardDisks;
+}
+
 static void* _handleUSBGetDeviceFilters(IUSBCommon *USBCommon)
 {
     return USBCommon->vtbl->GetDeviceFilters;
@@ -4529,6 +2752,16 @@ static void* _handleMediumGetChildren(IMedium *medium ATTRIBUTE_UNUSED)
 static void* _handleMediumGetSnapshotIds(IMedium *medium)
 {
     return medium->vtbl->GetSnapshotIds;
+}
+
+static void* _handleMediumGetMachineIds(IMedium *medium)
+{
+    return medium->vtbl->GetMachineIds;
+}
+
+static void* _handleHostGetNetworkInterfaces(IHost *host)
+{
+    return host->vtbl->GetNetworkInterfaces;
 }
 
 static nsresult _nsisupportsRelease(nsISupports *nsi)
@@ -4575,6 +2808,12 @@ static nsresult
 _virtualboxGetSystemProperties(IVirtualBox *vboxObj, ISystemProperties **systemProperties)
 {
     return vboxObj->vtbl->GetSystemProperties(vboxObj, systemProperties);
+}
+
+static nsresult
+_virtualboxGetHost(IVirtualBox *vboxObj, IHost **host)
+{
+    return vboxObj->vtbl->GetHost(vboxObj, host);
 }
 
 static nsresult
@@ -4642,17 +2881,13 @@ _virtualboxCreateMachine(vboxGlobalData *data, virDomainDefPtr def, IMachine **m
 }
 
 static nsresult
-_virtualboxCreateHardDiskMedium(IVirtualBox *vboxObj ATTRIBUTE_UNUSED,
-                                PRUnichar *format ATTRIBUTE_UNUSED,
-                                PRUnichar *location ATTRIBUTE_UNUSED,
-                                IMedium **medium ATTRIBUTE_UNUSED)
+_virtualboxCreateHardDisk(IVirtualBox *vboxObj, PRUnichar *format,
+                          PRUnichar *location, IHardDisk **hardDisk)
 {
-#if VBOX_API_VERSION < 3001000
-    vboxUnsupported();
-    return 0;
-#else /* VBOX_API_VERSION >= 3001000 */
-    return vboxObj->vtbl->CreateHardDisk(vboxObj, format, location, medium);
-#endif /* VBOX_API_VERSION >= 3001000 */
+    /* In vbox 2.2 and 3.0, this function will create a IHardDisk object.
+     * In vbox 3.1 and later, this function will create a IMedium object.
+     */
+    return vboxObj->vtbl->CreateHardDisk(vboxObj, format, location, hardDisk);
 }
 
 static nsresult
@@ -4662,22 +2897,23 @@ _virtualboxRegisterMachine(IVirtualBox *vboxObj, IMachine *machine)
 }
 
 static nsresult
-_virtualboxFindMedium(IVirtualBox *vboxObj ATTRIBUTE_UNUSED,
-                      PRUnichar *location ATTRIBUTE_UNUSED,
-                      PRUint32 deviceType ATTRIBUTE_UNUSED,
-                      PRUint32 accessMode ATTRIBUTE_UNUSED,
-                      IMedium **medium ATTRIBUTE_UNUSED)
+_virtualboxFindHardDisk(IVirtualBox *vboxObj, PRUnichar *location,
+                        PRUint32 deviceType ATTRIBUTE_UNUSED,
+                        PRUint32 accessMode ATTRIBUTE_UNUSED,
+                        IHardDisk **hardDisk)
 {
-#if VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
+    /* In vbox 2.2 and 3.0, this function will create a IHardDisk object.
+     * In vbox 3.1 and later, this function will create a IMedium object.
+     */
+#if VBOX_API_VERSION < 4000000
+    return vboxObj->vtbl->FindHardDisk(vboxObj, location, hardDisk);
+#elif VBOX_API_VERSION < 4002000
     return vboxObj->vtbl->FindMedium(vboxObj, location,
-                                     deviceType, medium);
-#elif VBOX_API_VERSION >= 4002000
+                                     deviceType, hardDisk);
+#else /* VBOX_API_VERSION >= 4002000 */
     return vboxObj->vtbl->OpenMedium(vboxObj, location,
-                                     deviceType, accessMode, PR_FALSE, medium);
-#else
-    vboxUnsupported();
-    return 0;
-#endif
+                                     deviceType, accessMode, PR_FALSE, hardDisk);
+#endif /* VBOX_API_VERSION >= 4002000 */
 }
 
 static nsresult
@@ -4702,6 +2938,38 @@ _virtualboxOpenMedium(IVirtualBox *vboxObj ATTRIBUTE_UNUSED,
     vboxUnsupported();
     return 0;
 #endif
+}
+
+static nsresult
+_virtualboxGetHardDiskByIID(IVirtualBox *vboxObj, vboxIIDUnion *iidu, IHardDisk **hardDisk)
+{
+#if VBOX_API_VERSION < 4000000
+    return vboxObj->vtbl->GetHardDisk(vboxObj, IID_MEMBER(value), hardDisk);
+#elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
+    return vboxObj->vtbl->FindMedium(vboxObj, IID_MEMBER(value), DeviceType_HardDisk,
+                                     hardDisk);
+#else /* VBOX_API_VERSION >= 4002000 */
+    return vboxObj->vtbl->OpenMedium(vboxObj, IID_MEMBER(value), DeviceType_HardDisk,
+                                     AccessMode_ReadWrite, PR_FALSE, hardDisk);
+#endif /* VBOX_API_VERSION >= 4002000 */
+}
+
+static nsresult
+_virtualboxFindDHCPServerByNetworkName(IVirtualBox *vboxObj, PRUnichar *name, IDHCPServer **server)
+{
+    return vboxObj->vtbl->FindDHCPServerByNetworkName(vboxObj, name, server);
+}
+
+static nsresult
+_virtualboxCreateDHCPServer(IVirtualBox *vboxObj, PRUnichar *name, IDHCPServer **server)
+{
+    return vboxObj->vtbl->CreateDHCPServer(vboxObj, name, server);
+}
+
+static nsresult
+_virtualboxRemoveDHCPServer(IVirtualBox *vboxObj, IDHCPServer *server)
+{
+    return vboxObj->vtbl->RemoveDHCPServer(vboxObj, server);
 }
 
 static nsresult
@@ -4800,6 +3068,17 @@ _machineFindSnapshot(IMachine *machine, vboxIIDUnion *iidu, ISnapshot **snapshot
 #else /* VBOX_API_VERSION >= 4000000 */
     return machine->vtbl->FindSnapshot(machine, IID_MEMBER(value), snapshot);
 #endif /* VBOX_API_VERSION >= 4000000 */
+}
+
+static nsresult
+_machineDetachDevice(IMachine *machine, PRUnichar *name,
+                     PRInt32 controllerPort, PRInt32 device)
+{
+#if VBOX_API_VERSION < 3001000
+    return machine->vtbl->DetachHardDisk(machine, name, controllerPort, device);
+#else  /* VBOX_API_VERSION >= 3001000 */
+    return machine->vtbl->DetachDevice(machine, name, controllerPort, device);
+#endif /* VBOX_API_VERSION >= 3001000 */
 }
 
 static nsresult
@@ -5812,6 +4091,29 @@ static nsresult _mediumGetLocation(IMedium *medium, PRUnichar **location)
     return medium->vtbl->GetLocation(medium, location);
 }
 
+static nsresult _mediumGetState(IMedium *medium, PRUint32 *state)
+{
+    return medium->vtbl->GetState(medium, state);
+}
+
+static nsresult _mediumGetName(IMedium *medium, PRUnichar **name)
+{
+    return medium->vtbl->GetName(medium, name);
+}
+
+static nsresult _mediumGetSize(IMedium *medium, PRUint64 *uSize)
+{
+#if VBOX_API_VERSION < 4000000
+    return medium->vtbl->GetSize(medium, uSize);
+#else /* VBOX_API_VERSION >= 4000000 */
+    nsresult rc;
+    PRInt64 Size;
+    rc = medium->vtbl->GetSize(medium, &Size);
+    *uSize = Size;
+    return rc;
+#endif /* VBOX_API_VERSION >= 4000000 */
+}
+
 static nsresult _mediumGetReadOnly(IMedium *medium ATTRIBUTE_UNUSED,
                                    PRBool *readOnly ATTRIBUTE_UNUSED)
 {
@@ -5925,14 +4227,13 @@ _mediumCreateDiffStorage(IMedium *medium ATTRIBUTE_UNUSED,
 }
 
 static nsresult
-_mediumAttachmentGetMedium(IMediumAttachment *mediumAttachment ATTRIBUTE_UNUSED,
-                           IMedium **medium ATTRIBUTE_UNUSED)
+_mediumAttachmentGetMedium(IMediumAttachment *mediumAttachment,
+                           IHardDisk **hardDisk)
 {
 #if VBOX_API_VERSION < 3001000
-    vboxUnsupported();
-    return 0;
+    return mediumAttachment->vtbl->GetHardDisk(mediumAttachment, hardDisk);
 #else /* VBOX_API_VERSION >= 3001000 */
-    return mediumAttachment->vtbl->GetMedium(mediumAttachment, medium);
+    return mediumAttachment->vtbl->GetMedium(mediumAttachment, hardDisk);
 #endif /* VBOX_API_VERSION >= 3001000 */
 }
 
@@ -6073,6 +4374,241 @@ _displayTakeScreenShotPNGToArray(IDisplay *display ATTRIBUTE_UNUSED,
 #endif /* VBOX_API_VERSION >= 4000000 */
 }
 
+static nsresult
+_hostFindHostNetworkInterfaceById(IHost *host, vboxIIDUnion *iidu,
+                                  IHostNetworkInterface **networkInterface)
+{
+    return host->vtbl->FindHostNetworkInterfaceById(host, IID_MEMBER(value),
+                                                    networkInterface);
+}
+
+static nsresult
+_hostFindHostNetworkInterfaceByName(IHost *host, PRUnichar *name,
+                                    IHostNetworkInterface **networkInterface)
+{
+    return host->vtbl->FindHostNetworkInterfaceByName(host, name,
+                                                      networkInterface);
+}
+
+static nsresult
+_hostCreateHostOnlyNetworkInterface(vboxGlobalData *data ATTRIBUTE_UNUSED,
+                                    IHost *host, char *name ATTRIBUTE_UNUSED,
+                                    IHostNetworkInterface **networkInterface)
+{
+    nsresult rc = -1;
+#if VBOX_API_VERSION == 2002000
+    if (STREQ(name, "vboxnet0")) {
+        PRUint32 interfaceType = 0;
+        PRUnichar *networkInterfaceNameUtf16 = NULL;
+
+        VBOX_UTF8_TO_UTF16(name, &networkInterfaceNameUtf16);
+        host->vtbl->FindHostNetworkInterfaceByName(host, networkInterfaceNameUtf16, networkInterface);
+
+        (*networkInterface)->vtbl->GetInterfaceType(*networkInterface, &interfaceType);
+        if (interfaceType != HostNetworkInterfaceType_HostOnly) {
+            VBOX_RELEASE(*networkInterface);
+            *networkInterface = NULL;
+        } else {
+            rc = 0;
+        }
+    }
+#else /* VBOX_API_VERSION != 2002000 */
+    IProgress *progress = NULL;
+    host->vtbl->CreateHostOnlyNetworkInterface(host, networkInterface,
+                                               &progress);
+
+    if (progress) {
+        rc = progress->vtbl->WaitForCompletion(progress, -1);
+        VBOX_RELEASE(progress);
+    }
+#endif /* VBOX_API_VERSION != 2002000 */
+    return rc;
+}
+
+static nsresult
+_hostRemoveHostOnlyNetworkInterface(IHost *host ATTRIBUTE_UNUSED,
+                                    vboxIIDUnion *iidu ATTRIBUTE_UNUSED,
+                                    IProgress **progress ATTRIBUTE_UNUSED)
+{
+#if VBOX_API_VERSION == 2002000
+    vboxUnsupported();
+    return 0;
+#elif VBOX_API_VERSION == 3000000
+    nsresult rc;
+    IHostNetworkInterface *netInt = NULL;
+    rc = host->vtbl->RemoveHostOnlyNetworkInterface(host, IID_MEMBER(value), &netInt, progress);
+    VBOX_RELEASE(netInt);
+    return rc;
+#else  /* VBOX_API_VERSION > 3000000 */
+    return host->vtbl->RemoveHostOnlyNetworkInterface(host, IID_MEMBER(value), progress);
+#endif /* VBOX_API_VERSION > 3000000 */
+}
+
+static nsresult
+_hnInterfaceGetInterfaceType(IHostNetworkInterface *hni, PRUint32 *interfaceType)
+{
+    return hni->vtbl->GetInterfaceType(hni, interfaceType);
+}
+
+static nsresult
+_hnInterfaceGetStatus(IHostNetworkInterface *hni, PRUint32 *status)
+{
+    return hni->vtbl->GetStatus(hni, status);
+}
+
+static nsresult
+_hnInterfaceGetName(IHostNetworkInterface *hni, PRUnichar **name)
+{
+    return hni->vtbl->GetName(hni, name);
+}
+
+static nsresult
+_hnInterfaceGetId(IHostNetworkInterface *hni, vboxIIDUnion *iidu)
+{
+    return hni->vtbl->GetId(hni, &IID_MEMBER(value));
+}
+
+static nsresult
+_hnInterfaceGetHardwareAddress(IHostNetworkInterface *hni, PRUnichar **hardwareAddress)
+{
+    return hni->vtbl->GetHardwareAddress(hni, hardwareAddress);
+}
+
+static nsresult
+_hnInterfaceGetIPAddress(IHostNetworkInterface *hni, PRUnichar **IPAddress)
+{
+    return hni->vtbl->GetIPAddress(hni, IPAddress);
+}
+
+static nsresult
+_hnInterfaceGetNetworkMask(IHostNetworkInterface *hni, PRUnichar **networkMask)
+{
+    return hni->vtbl->GetNetworkMask(hni, networkMask);
+}
+
+static nsresult
+_hnInterfaceEnableStaticIPConfig(IHostNetworkInterface *hni, PRUnichar *IPAddress,
+                                 PRUnichar *networkMask)
+{
+#if VBOX_API_VERSION < 4002000
+    return hni->vtbl->EnableStaticIpConfig(hni, IPAddress, networkMask);
+#else
+    return hni->vtbl->EnableStaticIPConfig(hni, IPAddress, networkMask);
+#endif
+}
+
+static nsresult
+_hnInterfaceEnableDynamicIPConfig(IHostNetworkInterface *hni)
+{
+#if VBOX_API_VERSION < 4002000
+    return hni->vtbl->EnableDynamicIpConfig(hni);
+#else
+    return hni->vtbl->EnableDynamicIPConfig(hni);
+#endif
+}
+
+static nsresult
+_hnInterfaceDHCPRediscover(IHostNetworkInterface *hni)
+{
+#if VBOX_API_VERSION < 4002000
+    return hni->vtbl->DhcpRediscover(hni);
+#else
+    return hni->vtbl->DHCPRediscover(hni);
+#endif
+}
+
+static nsresult
+_dhcpServerGetIPAddress(IDHCPServer *dhcpServer, PRUnichar **IPAddress)
+{
+    return dhcpServer->vtbl->GetIPAddress(dhcpServer, IPAddress);
+}
+
+static nsresult
+_dhcpServerGetNetworkMask(IDHCPServer *dhcpServer, PRUnichar **networkMask)
+{
+    return dhcpServer->vtbl->GetNetworkMask(dhcpServer, networkMask);
+}
+
+static nsresult
+_dhcpServerGetLowerIP(IDHCPServer *dhcpServer, PRUnichar **lowerIP)
+{
+    return dhcpServer->vtbl->GetLowerIP(dhcpServer, lowerIP);
+}
+
+static nsresult
+_dhcpServerGetUpperIP(IDHCPServer *dhcpServer, PRUnichar **upperIP)
+{
+    return dhcpServer->vtbl->GetUpperIP(dhcpServer, upperIP);
+}
+
+static nsresult
+_dhcpServerSetEnabled(IDHCPServer *dhcpServer, PRBool enabled)
+{
+    return dhcpServer->vtbl->SetEnabled(dhcpServer, enabled);
+}
+
+static nsresult
+_dhcpServerSetConfiguration(IDHCPServer *dhcpServer, PRUnichar *IPAddress,
+                            PRUnichar *networkMask, PRUnichar *FromIPAddress,
+                            PRUnichar *ToIPAddress)
+{
+    return dhcpServer->vtbl->SetConfiguration(dhcpServer, IPAddress,
+                                              networkMask, FromIPAddress,
+                                              ToIPAddress);
+}
+
+static nsresult
+_dhcpServerStart(IDHCPServer *dhcpServer, PRUnichar *networkName,
+                 PRUnichar *trunkName, PRUnichar *trunkType)
+{
+    return dhcpServer->vtbl->Start(dhcpServer, networkName,
+                                   trunkName, trunkType);
+}
+
+static nsresult
+_dhcpServerStop(IDHCPServer *dhcpServer)
+{
+    return dhcpServer->vtbl->Stop(dhcpServer);
+}
+
+static nsresult
+_hardDiskCreateBaseStorage(IHardDisk *hardDisk, PRUint64 logicalSize,
+                           PRUint32 variant, IProgress **progress)
+{
+#if VBOX_API_VERSION < 4003000
+    return hardDisk->vtbl->CreateBaseStorage(hardDisk, logicalSize, variant, progress);
+#else
+    return hardDisk->vtbl->CreateBaseStorage(hardDisk, logicalSize, 1, &variant, progress);
+#endif
+}
+
+static nsresult
+_hardDiskDeleteStorage(IHardDisk *hardDisk, IProgress **progress)
+{
+    return hardDisk->vtbl->DeleteStorage(hardDisk, progress);
+}
+
+static nsresult
+_hardDiskGetLogicalSizeInByte(IHardDisk *hardDisk, PRUint64 *uLogicalSize)
+{
+    nsresult rc;
+#if VBOX_API_VERSION < 4000000
+    rc = hardDisk->vtbl->GetLogicalSize(hardDisk, uLogicalSize);
+    *uLogicalSize *= 1024 * 1024; /* MB => Bytes */
+#else /* VBOX_API_VERSION >= 4000000 */
+    PRInt64 logicalSize;
+    rc = hardDisk->vtbl->GetLogicalSize(hardDisk, &logicalSize);
+    *uLogicalSize = logicalSize;
+#endif /* VBOX_API_VERSION >= 4000000 */
+    return rc;
+}
+
+static nsresult
+_hardDiskGetFormat(IHardDisk *hardDisk, PRUnichar **format)
+{
+    return hardDisk->vtbl->GetFormat(hardDisk, format);
+}
+
 static bool _machineStateOnline(PRUint32 state)
 {
     return ((state >= MachineState_FirstOnline) &&
@@ -6132,13 +4668,17 @@ static vboxUniformedArray _UArray = {
     .vboxArrayGet = vboxArrayGet,
     .vboxArrayGetWithIIDArg = _vboxArrayGetWithIIDArg,
     .vboxArrayRelease = vboxArrayRelease,
+    .vboxArrayUnalloc = vboxArrayUnalloc,
     .handleGetMachines = _handleGetMachines,
+    .handleGetHardDisks = _handleGetHardDisks,
     .handleUSBGetDeviceFilters = _handleUSBGetDeviceFilters,
     .handleMachineGetMediumAttachments = _handleMachineGetMediumAttachments,
     .handleMachineGetSharedFolders = _handleMachineGetSharedFolders,
     .handleSnapshotGetChildren = _handleSnapshotGetChildren,
     .handleMediumGetChildren = _handleMediumGetChildren,
     .handleMediumGetSnapshotIds = _handleMediumGetSnapshotIds,
+    .handleMediumGetMachineIds = _handleMediumGetMachineIds,
+    .handleHostGetNetworkInterfaces = _handleHostGetNetworkInterfaces,
 };
 
 static vboxUniformednsISupports _nsUISupports = {
@@ -6151,11 +4691,16 @@ static vboxUniformedIVirtualBox _UIVirtualBox = {
     .GetMachine = _virtualboxGetMachine,
     .OpenMachine = _virtualboxOpenMachine,
     .GetSystemProperties = _virtualboxGetSystemProperties,
+    .GetHost = _virtualboxGetHost,
     .CreateMachine = _virtualboxCreateMachine,
-    .CreateHardDiskMedium = _virtualboxCreateHardDiskMedium,
+    .CreateHardDisk = _virtualboxCreateHardDisk,
     .RegisterMachine = _virtualboxRegisterMachine,
-    .FindMedium = _virtualboxFindMedium,
+    .FindHardDisk = _virtualboxFindHardDisk,
     .OpenMedium = _virtualboxOpenMedium,
+    .GetHardDiskByIID = _virtualboxGetHardDiskByIID,
+    .FindDHCPServerByNetworkName = _virtualboxFindDHCPServerByNetworkName,
+    .CreateDHCPServer = _virtualboxCreateDHCPServer,
+    .RemoveDHCPServer = _virtualboxRemoveDHCPServer,
 };
 
 static vboxUniformedIMachine _UIMachine = {
@@ -6167,6 +4712,7 @@ static vboxUniformedIMachine _UIMachine = {
     .LaunchVMProcess = _machineLaunchVMProcess,
     .Unregister = _machineUnregister,
     .FindSnapshot = _machineFindSnapshot,
+    .DetachDevice = _machineDetachDevice,
     .GetAccessible = _machineGetAccessible,
     .GetState = _machineGetState,
     .GetName = _machineGetName,
@@ -6330,6 +4876,9 @@ static vboxUniformedIUSBDeviceFilter _UIUSBDeviceFilter = {
 static vboxUniformedIMedium _UIMedium = {
     .GetId = _mediumGetId,
     .GetLocation = _mediumGetLocation,
+    .GetState = _mediumGetState,
+    .GetName = _mediumGetName,
+    .GetSize = _mediumGetSize,
     .GetReadOnly = _mediumGetReadOnly,
     .GetParent = _mediumGetParent,
     .GetChildren = _mediumGetChildren,
@@ -6372,6 +4921,44 @@ static vboxUniformedISnapshot _UISnapshot = {
 static vboxUniformedIDisplay _UIDisplay = {
     .GetScreenResolution = _displayGetScreenResolution,
     .TakeScreenShotPNGToArray = _displayTakeScreenShotPNGToArray,
+};
+
+static vboxUniformedIHost _UIHost = {
+    .FindHostNetworkInterfaceById = _hostFindHostNetworkInterfaceById,
+    .FindHostNetworkInterfaceByName = _hostFindHostNetworkInterfaceByName,
+    .CreateHostOnlyNetworkInterface = _hostCreateHostOnlyNetworkInterface,
+    .RemoveHostOnlyNetworkInterface = _hostRemoveHostOnlyNetworkInterface,
+};
+
+static vboxUniformedIHNInterface _UIHNInterface = {
+    .GetInterfaceType = _hnInterfaceGetInterfaceType,
+    .GetStatus = _hnInterfaceGetStatus,
+    .GetName = _hnInterfaceGetName,
+    .GetId = _hnInterfaceGetId,
+    .GetHardwareAddress = _hnInterfaceGetHardwareAddress,
+    .GetIPAddress = _hnInterfaceGetIPAddress,
+    .GetNetworkMask = _hnInterfaceGetNetworkMask,
+    .EnableStaticIPConfig = _hnInterfaceEnableStaticIPConfig,
+    .EnableDynamicIPConfig = _hnInterfaceEnableDynamicIPConfig,
+    .DHCPRediscover = _hnInterfaceDHCPRediscover,
+};
+
+static vboxUniformedIDHCPServer _UIDHCPServer = {
+    .GetIPAddress = _dhcpServerGetIPAddress,
+    .GetNetworkMask = _dhcpServerGetNetworkMask,
+    .GetLowerIP = _dhcpServerGetLowerIP,
+    .GetUpperIP = _dhcpServerGetUpperIP,
+    .SetEnabled = _dhcpServerSetEnabled,
+    .SetConfiguration = _dhcpServerSetConfiguration,
+    .Start = _dhcpServerStart,
+    .Stop = _dhcpServerStop,
+};
+
+static vboxUniformedIHardDisk _UIHardDisk = {
+    .CreateBaseStorage = _hardDiskCreateBaseStorage,
+    .DeleteStorage = _hardDiskDeleteStorage,
+    .GetLogicalSizeInByte = _hardDiskGetLogicalSizeInByte,
+    .GetFormat = _hardDiskGetFormat,
 };
 
 static uniformedMachineStateChecker _machineStateChecker = {
@@ -6427,6 +5014,10 @@ void NAME(InstallUniformedAPI)(vboxUniformedAPI *pVBoxAPI)
     pVBoxAPI->UISharedFolder = _UISharedFolder;
     pVBoxAPI->UISnapshot = _UISnapshot;
     pVBoxAPI->UIDisplay = _UIDisplay;
+    pVBoxAPI->UIHost = _UIHost;
+    pVBoxAPI->UIHNInterface = _UIHNInterface;
+    pVBoxAPI->UIDHCPServer = _UIDHCPServer;
+    pVBoxAPI->UIHardDisk = _UIHardDisk;
     pVBoxAPI->machineStateChecker = _machineStateChecker;
 
 #if VBOX_API_VERSION <= 2002000 || VBOX_API_VERSION >= 4000000
@@ -6473,46 +5064,10 @@ void NAME(InstallUniformedAPI)(vboxUniformedAPI *pVBoxAPI)
 #else /* VBOX_API_VERSION < 4002000 */
     pVBoxAPI->vboxSnapshotRedefine = 0;
 #endif /* VBOX_API_VERSION < 4002000 */
+
+#if VBOX_API_VERSION == 2002000
+    pVBoxAPI->networkRemoveInterface = 0;
+#else /* VBOX_API_VERSION > 2002000 */
+    pVBoxAPI->networkRemoveInterface = 1;
+#endif /* VBOX_API_VERSION > 2002000 */
 }
-
-/**
- * Function Tables
- */
-
-virNetworkDriver NAME(NetworkDriver) = {
-    "VBOX",
-    .networkOpen = vboxNetworkOpen, /* 0.6.4 */
-    .networkClose = vboxNetworkClose, /* 0.6.4 */
-    .connectNumOfNetworks = vboxConnectNumOfNetworks, /* 0.6.4 */
-    .connectListNetworks = vboxConnectListNetworks, /* 0.6.4 */
-    .connectNumOfDefinedNetworks = vboxConnectNumOfDefinedNetworks, /* 0.6.4 */
-    .connectListDefinedNetworks = vboxConnectListDefinedNetworks, /* 0.6.4 */
-    .networkLookupByUUID = vboxNetworkLookupByUUID, /* 0.6.4 */
-    .networkLookupByName = vboxNetworkLookupByName, /* 0.6.4 */
-    .networkCreateXML = vboxNetworkCreateXML, /* 0.6.4 */
-    .networkDefineXML = vboxNetworkDefineXML, /* 0.6.4 */
-    .networkUndefine = vboxNetworkUndefine, /* 0.6.4 */
-    .networkCreate = vboxNetworkCreate, /* 0.6.4 */
-    .networkDestroy = vboxNetworkDestroy, /* 0.6.4 */
-    .networkGetXMLDesc = vboxNetworkGetXMLDesc, /* 0.6.4 */
-};
-
-virStorageDriver NAME(StorageDriver) = {
-    .name               = "VBOX",
-    .storageOpen = vboxStorageOpen, /* 0.7.1 */
-    .storageClose = vboxStorageClose, /* 0.7.1 */
-    .connectNumOfStoragePools = vboxConnectNumOfStoragePools, /* 0.7.1 */
-    .connectListStoragePools = vboxConnectListStoragePools, /* 0.7.1 */
-    .storagePoolLookupByName = vboxStoragePoolLookupByName, /* 0.7.1 */
-    .storagePoolNumOfVolumes = vboxStoragePoolNumOfVolumes, /* 0.7.1 */
-    .storagePoolListVolumes = vboxStoragePoolListVolumes, /* 0.7.1 */
-
-    .storageVolLookupByName = vboxStorageVolLookupByName, /* 0.7.1 */
-    .storageVolLookupByKey = vboxStorageVolLookupByKey, /* 0.7.1 */
-    .storageVolLookupByPath = vboxStorageVolLookupByPath, /* 0.7.1 */
-    .storageVolCreateXML = vboxStorageVolCreateXML, /* 0.7.1 */
-    .storageVolDelete = vboxStorageVolDelete, /* 0.7.1 */
-    .storageVolGetInfo = vboxStorageVolGetInfo, /* 0.7.1 */
-    .storageVolGetXMLDesc = vboxStorageVolGetXMLDesc, /* 0.7.1 */
-    .storageVolGetPath = vboxStorageVolGetPath /* 0.7.1 */
-};

@@ -363,7 +363,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -372,7 +372,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2251,6 +2251,17 @@ exit 0
 %dir %{_includedir}/libvirt
 %{_includedir}/libvirt/virterror.h
 %{_includedir}/libvirt/libvirt.h
+%{_includedir}/libvirt/libvirt-domain.h
+%{_includedir}/libvirt/libvirt-domain-snapshot.h
+%{_includedir}/libvirt/libvirt-event.h
+%{_includedir}/libvirt/libvirt-host.h
+%{_includedir}/libvirt/libvirt-interface.h
+%{_includedir}/libvirt/libvirt-network.h
+%{_includedir}/libvirt/libvirt-nodedev.h
+%{_includedir}/libvirt/libvirt-nwfilter.h
+%{_includedir}/libvirt/libvirt-secret.h
+%{_includedir}/libvirt/libvirt-storage.h
+%{_includedir}/libvirt/libvirt-stream.h
 %{_includedir}/libvirt/libvirt-qemu.h
 %{_includedir}/libvirt/libvirt-lxc.h
 %{_libdir}/pkgconfig/libvirt.pc

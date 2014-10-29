@@ -707,7 +707,28 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     GET_VALUE_LONG("seccomp_sandbox", cfg->seccompSandbox);
 
     GET_VALUE_STR("migration_host", cfg->migrateHost);
+    virStringStripIPv6Brackets(cfg->migrateHost);
+    if (cfg->migrateHost &&
+        (STRPREFIX(cfg->migrateHost, "localhost") ||
+         virSocketAddrIsNumericLocalhost(cfg->migrateHost))) {
+        virReportError(VIR_ERR_CONF_SYNTAX,
+                       _("migration_host must not be the address of"
+                         " the local machine: %s"),
+                       cfg->migrateHost);
+        goto cleanup;
+    }
+
     GET_VALUE_STR("migration_address", cfg->migrationAddress);
+    virStringStripIPv6Brackets(cfg->migrationAddress);
+    if (cfg->migrationAddress &&
+        (STRPREFIX(cfg->migrationAddress, "localhost") ||
+         virSocketAddrIsNumericLocalhost(cfg->migrationAddress))) {
+        virReportError(VIR_ERR_CONF_SYNTAX,
+                       _("migration_address must not be the address of"
+                         " the local machine: %s"),
+                       cfg->migrationAddress);
+        goto cleanup;
+    }
 
     GET_VALUE_BOOL("log_timestamp", cfg->logTimestamp);
 

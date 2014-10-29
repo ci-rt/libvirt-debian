@@ -136,6 +136,9 @@ typedef virDomainPanicDef *virDomainPanicDefPtr;
 typedef struct _virDomainChrSourceDef virDomainChrSourceDef;
 typedef virDomainChrSourceDef *virDomainChrSourceDefPtr;
 
+typedef struct _virDomainShmemDef virDomainShmemDef;
+typedef virDomainShmemDef *virDomainShmemDefPtr;
+
 /* Flags for the 'type' field in virDomainDeviceDef */
 typedef enum {
     VIR_DOMAIN_DEVICE_NONE = 0,
@@ -157,6 +160,7 @@ typedef enum {
     VIR_DOMAIN_DEVICE_MEMBALLOON,
     VIR_DOMAIN_DEVICE_NVRAM,
     VIR_DOMAIN_DEVICE_RNG,
+    VIR_DOMAIN_DEVICE_SHMEM,
 
     VIR_DOMAIN_DEVICE_LAST
 } virDomainDeviceType;
@@ -184,6 +188,7 @@ struct _virDomainDeviceDef {
         virDomainMemballoonDefPtr memballoon;
         virDomainNVRAMDefPtr nvram;
         virDomainRNGDefPtr rng;
+        virDomainShmemDefPtr shmem;
     } data;
 };
 
@@ -303,7 +308,7 @@ struct _virDomainDeviceInfo {
      * to consider the new fields
      */
     char *alias;
-    int type;
+    int type; /* virDomainDeviceAddressType */
     union {
         virDevicePCIAddress pci;
         virDomainDeviceDriveAddress drive;
@@ -880,6 +885,7 @@ struct _virDomainActualNetDef {
     virNetDevVPortProfilePtr virtPortProfile;
     virNetDevBandwidthPtr bandwidth;
     virNetDevVlan vlan;
+    int trustGuestRxFilters; /* enum virTristateBool */
     unsigned int class_id; /* class ID for bandwidth 'floor' */
 };
 
@@ -969,6 +975,7 @@ struct _virDomainNetDef {
     virNWFilterHashTablePtr filterparams;
     virNetDevBandwidthPtr bandwidth;
     virNetDevVlan vlan;
+    int trustGuestRxFilters; /* enum virTristateBool */
     int linkstate;
 };
 
@@ -1503,6 +1510,21 @@ struct _virDomainMemballoonDef {
 };
 
 struct _virDomainNVRAMDef {
+    virDomainDeviceInfo info;
+};
+
+struct _virDomainShmemDef {
+    char *name;
+    unsigned long long size;
+    struct {
+        bool enabled;
+        char *path;
+    } server;
+    struct {
+        bool enabled;
+        unsigned vectors;
+        virTristateSwitch ioeventfd;
+    } msi;
     virDomainDeviceInfo info;
 };
 
@@ -2082,6 +2104,9 @@ struct _virDomainDef {
     size_t nrngs;
     virDomainRNGDefPtr *rngs;
 
+    size_t nshmems;
+    virDomainShmemDefPtr *shmems;
+
     /* Only 1 */
     virDomainWatchdogDefPtr watchdog;
     virDomainMemballoonDefPtr memballoon;
@@ -2279,6 +2304,7 @@ void virDomainHostdevDefFree(virDomainHostdevDefPtr def);
 void virDomainHubDefFree(virDomainHubDefPtr def);
 void virDomainRedirdevDefFree(virDomainRedirdevDefPtr def);
 void virDomainRedirFilterDefFree(virDomainRedirFilterDefPtr def);
+void virDomainShmemDefFree(virDomainShmemDefPtr def);
 void virDomainDeviceDefFree(virDomainDeviceDefPtr def);
 virDomainDeviceDefPtr virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
                                              const virDomainDef *def,
@@ -2486,6 +2512,7 @@ virDomainNetGetActualVirtPortProfile(virDomainNetDefPtr iface);
 virNetDevBandwidthPtr
 virDomainNetGetActualBandwidth(virDomainNetDefPtr iface);
 virNetDevVlanPtr virDomainNetGetActualVlan(virDomainNetDefPtr iface);
+bool virDomainNetGetActualTrustGuestRxFilters(virDomainNetDefPtr iface);
 
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller)
