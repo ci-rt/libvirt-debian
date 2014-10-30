@@ -1,3 +1,15 @@
+libvirt (1.2.10~rc1-1) experimental; urgency=medium
+
+  * Upload to experimental
+  * [360da79] New upstream version 1.2.10-rc1
+  * [aba073c] Rediff patches.
+    Dropped Use-sensible-editor-...patch: Configurable now
+    Dropped qemu-use-systemd-s-TerminateMachine-...patch: Applied upstream
+  * [f739a80] Configure use of sensible-editor via ./configure
+  * [4f5511b] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 30 Oct 2014 09:53:20 +0100
+
 libvirt (1.2.9-3) unstable; urgency=medium
 
   * [28dd361] Remove obsolete conffiles in libvirt-bin too. Depending on the
