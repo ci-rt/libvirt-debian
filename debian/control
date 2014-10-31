@@ -89,6 +89,8 @@ Depends:
 Section: admin
 Replaces: libvirt-bin (<< 1.2.6-1~)
 Conflicts: libvirt-bin (<< 1.2.6-1~)
+Suggests:
+ libvirt-daemon,
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -109,6 +111,8 @@ Recommends:
  qemu-kvm | qemu (>= 0.9.1),
  libxml2-utils,
  netcat-openbsd,
+Suggests:
+ libvirt-daemon-system,
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
