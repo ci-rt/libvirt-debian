@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-10-29 10:40+0800\n"
+"POT-Creation-Date: 2014-10-31 12:22+0800\n"
 "PO-Revision-Date: 2014-10-01 04:14+0000\n"
 "Last-Translator: sandeeps <sshedmak@redhat.com>\n"
 "Language-Team: Marathi (http://www.transifex.com/projects/p/libvirt/language/"
@@ -206,7 +206,7 @@ msgstr ""
 #: daemon/libvirtd.c:1152 src/locking/lock_daemon.c:1152
 #: src/locking/sanlock_helper.c:76 src/lxc/lxc_controller.c:2309
 #: src/network/leaseshelper.c:138 src/network/leaseshelper.c:144
-#: src/security/virt-aa-helper.c:1240 src/storage/parthelper.c:77
+#: src/security/virt-aa-helper.c:1250 src/storage/parthelper.c:77
 #: src/util/iohelper.c:236 src/util/iohelper.c:242
 #, c-format
 msgid "%s: initialization failed\n"
@@ -1067,16 +1067,16 @@ msgstr "क्षेत्र चालू नाही"
 #: src/qemu/qemu_driver.c:15009 src/qemu/qemu_driver.c:15160
 #: src/qemu/qemu_driver.c:15241 src/qemu/qemu_driver.c:15356
 #: src/qemu/qemu_driver.c:15511 src/qemu/qemu_driver.c:15546
-#: src/qemu/qemu_driver.c:15693 src/qemu/qemu_driver.c:15777
-#: src/qemu/qemu_driver.c:15887 src/qemu/qemu_driver.c:16254
-#: src/qemu/qemu_driver.c:16474 src/qemu/qemu_driver.c:16540
-#: src/qemu/qemu_driver.c:17009 src/qemu/qemu_driver.c:17151
-#: src/qemu/qemu_driver.c:17211 src/qemu/qemu_driver.c:17249
-#: src/qemu/qemu_driver.c:17289 src/qemu/qemu_driver.c:17360
-#: src/qemu/qemu_driver.c:17372 src/qemu/qemu_driver.c:17471
-#: src/qemu/qemu_driver.c:17483 src/qemu/qemu_driver.c:17660
-#: src/qemu/qemu_driver.c:17714 src/qemu/qemu_driver.c:17737
-#: src/qemu/qemu_driver.c:17784 src/qemu/qemu_driver.c:17834
+#: src/qemu/qemu_driver.c:15694 src/qemu/qemu_driver.c:15778
+#: src/qemu/qemu_driver.c:15888 src/qemu/qemu_driver.c:16255
+#: src/qemu/qemu_driver.c:16475 src/qemu/qemu_driver.c:16541
+#: src/qemu/qemu_driver.c:17010 src/qemu/qemu_driver.c:17152
+#: src/qemu/qemu_driver.c:17212 src/qemu/qemu_driver.c:17250
+#: src/qemu/qemu_driver.c:17290 src/qemu/qemu_driver.c:17361
+#: src/qemu/qemu_driver.c:17373 src/qemu/qemu_driver.c:17472
+#: src/qemu/qemu_driver.c:17484 src/qemu/qemu_driver.c:17661
+#: src/qemu/qemu_driver.c:17715 src/qemu/qemu_driver.c:17738
+#: src/qemu/qemu_driver.c:17785 src/qemu/qemu_driver.c:17835
 #: src/qemu/qemu_migration.c:2417 src/qemu/qemu_migration.c:4522
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2611
 #: src/xen/xen_driver.c:2663 src/xen/xm_internal.c:677
@@ -1169,7 +1169,7 @@ msgstr "CPU संरचना करिता अवैध गुणधर्�
 msgid "Missing CPU architecture"
 msgstr "न आढळलेली CPU मांडणी"
 
-#: src/conf/cpu_conf.c:273 src/conf/domain_conf.c:13096
+#: src/conf/cpu_conf.c:273 src/conf/domain_conf.c:13103
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "अपरिचीत आर्किटेक्चर %s"
@@ -1770,7 +1770,7 @@ msgid "unsupported element '%s' of 'origstates'"
 msgstr "'origstates' पैकी असमर्थीत घटक '%s'"
 
 #: src/conf/domain_conf.c:4114 src/conf/domain_conf.c:6201
-#: src/conf/domain_conf.c:7199
+#: src/conf/domain_conf.c:7206
 #, c-format
 msgid "Unable to parse devaddr parameter '%s'"
 msgstr "devaddr घटक '%s' वाचण्यास अपयशी"
@@ -2016,7 +2016,7 @@ msgstr "अपरिचीत प्रोटोकॉल प्रकार '%s
 msgid "missing name for disk source"
 msgstr "डिस्क स्रोतकरिता नाव आढळले नाही"
 
-#: src/conf/domain_conf.c:5361 src/util/virstoragefile.c:2173
+#: src/conf/domain_conf.c:5361 src/util/virstoragefile.c:2178
 #, c-format
 msgid "missing volume name or file name in gluster source path '%s'"
 msgstr "gluster स्रोत मार्ग '%s' मध्ये वॉल्युम नाव किंवा फाइल नाव आढळले नाही"
@@ -2299,178 +2299,178 @@ msgstr "नेटवर्क प्रकारच्या डिस्कक�
 msgid "Setting disk 'requisite' is allowed only for cdrom or floppy"
 msgstr "सीडीरॉम किंवा फ्लॉपीकरिता डिस्क 'requisite' सेट करणे स्वीकार्य आहे"
 
-#: src/conf/domain_conf.c:6262 src/conf/domain_conf.c:6733
+#: src/conf/domain_conf.c:6262 src/conf/domain_conf.c:6740
 #, c-format
 msgid "unknown driver format value '%s'"
 msgstr "अपरिचीत ड्राइव्हर रूपण मूल्य '%s'"
-
-#: src/conf/domain_conf.c:6347
-#, c-format
-msgid "could not parse element %s"
-msgstr "घटक %s वाचणे अशक्य आहे"
 
 #: src/conf/domain_conf.c:6351
 #, c-format
 msgid "missing element %s"
 msgstr "घटक %s आढळले नाही"
 
-#: src/conf/domain_conf.c:6447
+#: src/conf/domain_conf.c:6360
+#, fuzzy, c-format
+msgid "Invalid value '%s' for element '%s'"
+msgstr "VMX नोंदणी '%2$s' करिता अवैध मूल्य '%1$s'"
+
+#: src/conf/domain_conf.c:6454
 #, c-format
 msgid "Unknown controller type '%s'"
 msgstr "अपरिचीत कंट्रोलर प्रकार '%s'"
 
-#: src/conf/domain_conf.c:6457
+#: src/conf/domain_conf.c:6464
 #, c-format
 msgid "Cannot parse controller index %s"
 msgstr "कंट्रोलर निर्देशांक '%s' वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:6466
+#: src/conf/domain_conf.c:6473
 #, c-format
 msgid "Unknown model type '%s'"
 msgstr "अपरिचीत मॉडल प्रकार '%s'"
 
-#: src/conf/domain_conf.c:6487
+#: src/conf/domain_conf.c:6494
 #, c-format
 msgid "Malformed 'queues' value '%s'"
 msgstr "सदोषीत 'क्युउज' मूल्य '%s'"
 
-#: src/conf/domain_conf.c:6493
+#: src/conf/domain_conf.c:6500
 #, c-format
 msgid "Malformed 'cmd_per_lun' value '%s'"
 msgstr "सदोषीत 'cmd_per_lun' मूल्य '%s'"
 
-#: src/conf/domain_conf.c:6499
+#: src/conf/domain_conf.c:6506
 #, c-format
 msgid "Malformed 'max_sectors' value %s'"
 msgstr "सदोषीत 'max_sectors' मूल्य '%s'"
 
-#: src/conf/domain_conf.c:6513
+#: src/conf/domain_conf.c:6520
 #, c-format
 msgid "Invalid ports: %s"
 msgstr "अवैध पोर्टस्: %s"
 
-#: src/conf/domain_conf.c:6528
+#: src/conf/domain_conf.c:6535
 #, c-format
 msgid "Invalid vectors: %s"
 msgstr "अवैध वेक्टर्स्: %s"
 
-#: src/conf/domain_conf.c:6567
+#: src/conf/domain_conf.c:6574
 msgid "pci-root and pcie-root controllers should not have an address"
 msgstr "pci-root आणि pcie-root कंट्रोलर्सकडे पत्ता नाही पाहिजे"
 
-#: src/conf/domain_conf.c:6573
+#: src/conf/domain_conf.c:6580
 msgid "pci-root and pcie-root controllers should have index 0"
 msgstr "pci-root आणि pcie-root कंट्रोलर्सकडे इंडेक्स 0 पाहिजे"
 
-#: src/conf/domain_conf.c:6599
+#: src/conf/domain_conf.c:6606
 msgid "Controllers must use the 'pci' address type"
 msgstr "कंट्रोलर्स्ने 'pci' पत्ता प्रकार वापरायला हवे"
 
-#: src/conf/domain_conf.c:6658
+#: src/conf/domain_conf.c:6665
 #, c-format
 msgid "unknown filesystem type '%s'"
 msgstr "अपरिचीत फाइल प्रणाली प्रकार '%s'"
 
-#: src/conf/domain_conf.c:6669
+#: src/conf/domain_conf.c:6676
 #, c-format
 msgid "unknown accessmode '%s'"
 msgstr "अपरिचीत accessmode '%s'"
 
-#: src/conf/domain_conf.c:6725
+#: src/conf/domain_conf.c:6732
 #, c-format
 msgid "unknown fs driver type '%s'"
 msgstr "अपरिचीत fs ड्राइव्हर प्रकार '%s'"
 
-#: src/conf/domain_conf.c:6741
+#: src/conf/domain_conf.c:6748
 #, c-format
 msgid "unknown filesystem write policy '%s'"
 msgstr "अपरिचीत फाइलप्रणाली राइट करार '%s'"
 
-#: src/conf/domain_conf.c:6764
+#: src/conf/domain_conf.c:6771
 msgid "missing 'usage' attribute for RAM filesystem"
 msgstr "RAM फाइलप्रणालीकरिता 'usage' गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:6769
+#: src/conf/domain_conf.c:6776
 #, c-format
 msgid "cannot parse usage '%s' for RAM filesystem"
 msgstr "RAM फाइलप्रणालीकरिता वापर '%s' वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:6832
+#: src/conf/domain_conf.c:6839
 msgid "missing type attribute in interface's <actual> element"
 msgstr "संवादच्या <actual> घटकात प्रकार गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:6837
+#: src/conf/domain_conf.c:6844
 #, c-format
 msgid "unknown type '%s' in interface's <actual> element"
 msgstr "संवादच्या <actual> एलिमेंटमध्ये अपरिचीत प्रकार '%s' आढळले"
 
-#: src/conf/domain_conf.c:6845
+#: src/conf/domain_conf.c:6852
 #, c-format
 msgid "unsupported type '%s' in interface's <actual> element"
 msgstr "संवादच्या <actual> घटकात असमर्थीत प्राकर '%s'"
 
-#: src/conf/domain_conf.c:6855 src/conf/domain_conf.c:7034
+#: src/conf/domain_conf.c:6862 src/conf/domain_conf.c:7041
 #, fuzzy, c-format
 msgid "unknown trustGuestRxFilters value '%s'"
 msgstr "अपरिचीत सुरू करा मूल्य '%s'"
 
-#: src/conf/domain_conf.c:6876
+#: src/conf/domain_conf.c:6883
 #, c-format
 msgid ""
 "<virtualport> element unsupported for type='%s' in interface's <actual> "
 "element"
 msgstr "इंटरफेसच्या <actual> घटकात type='%s' करिता <virtualport> घटक असमर्थीत"
 
-#: src/conf/domain_conf.c:6890
+#: src/conf/domain_conf.c:6897
 #, c-format
 msgid "Unknown mode '%s' in interface <actual> element"
 msgstr "इंटरफेस <actual> घटकातील अपरिचीत मोड '%s'"
 
-#: src/conf/domain_conf.c:6921
+#: src/conf/domain_conf.c:6928
 #, c-format
 msgid "Unable to parse class id '%s'"
 msgstr "क्लास id '%s' वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:6931
+#: src/conf/domain_conf.c:6938
 msgid ""
 "Missing <source> element with bridge name in interface's <actual> element"
 msgstr "संवाद <actual> एलिमेंटच्या ब्रिज नावामध्ये <source> एलिमेंट आढळले नाही"
 
-#: src/conf/domain_conf.c:7022
+#: src/conf/domain_conf.c:7029
 #, c-format
 msgid "unknown interface type '%s'"
 msgstr "अपरिचीत संवाद प्रकार '%s'"
 
-#: src/conf/domain_conf.c:7089
+#: src/conf/domain_conf.c:7096
 #, c-format
 msgid "<virtualport> element unsupported for <interface type='%s'>"
 msgstr "<interface type='%s'> करिता <virtualport> घटक असमर्थीत"
 
-#: src/conf/domain_conf.c:7135
+#: src/conf/domain_conf.c:7142
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "एका <interface> मध्ये एकापेक्षा जास्त <filterref>चे अवैध निर्देशन"
 
-#: src/conf/domain_conf.c:7181 src/qemu/qemu_command.c:10774
+#: src/conf/domain_conf.c:7188 src/qemu/qemu_command.c:10774
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "mac पत्ता '%s' वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:7187
+#: src/conf/domain_conf.c:7194
 #, c-format
 msgid "expected unicast mac address, found multicast '%s'"
 msgstr "अपकेक्षित unicast मॅक पत्ता, मल्टिकास्ट '%s' आढळले"
 
-#: src/conf/domain_conf.c:7220
+#: src/conf/domain_conf.c:7227
 msgid "Network interfaces must use 'pci' address type"
 msgstr "नेटवर्क संवादने 'pci' पत्ता प्रकार वापरायला हवे"
 
-#: src/conf/domain_conf.c:7228
+#: src/conf/domain_conf.c:7235
 msgid ""
 "No <source> 'network' attribute specified with <interface type='network'/>"
 msgstr ""
 "<source> 'network' गुणविशेष निश्चित केले गेले नाही, <interface type='network'/> सह"
 
-#: src/conf/domain_conf.c:7243
+#: src/conf/domain_conf.c:7250
 msgid ""
 "Wrong or no <model> 'type' attribute specified with <interface "
 "type='vhostuser'/>. vhostuser requires the virtio-net* frontend"
@@ -2478,422 +2478,422 @@ msgstr ""
 "<interface type='vhostuser'/> सह चुकिचे किंवा शून्य <model> 'type' गुणधर्म निर्देशीत "
 "केले. vhostuser ला virtio-net* फ्रंटएंड आवश्यक आहे"
 
-#: src/conf/domain_conf.c:7252
+#: src/conf/domain_conf.c:7259
 #, c-format
 msgid "Type='%s' unsupported for <interface type='vhostuser'>"
 msgstr "Type='%s' असमर्थीत, <interface type='vhostuser'> करिता"
 
-#: src/conf/domain_conf.c:7257
+#: src/conf/domain_conf.c:7264
 msgid "No <source> 'type' attribute specified for <interface type='vhostuser'>"
 msgstr ""
 "<interface type='vhostuser'> करिता शून्य <source> 'type' गुणधर्म निर्देशीत केले"
 
-#: src/conf/domain_conf.c:7265
+#: src/conf/domain_conf.c:7272
 msgid ""
 "No <source> 'path' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "<interface type='vhostuser'> करिता शून्य <source> 'path' गुणधर्म निर्देशीत केले"
 
-#: src/conf/domain_conf.c:7273
+#: src/conf/domain_conf.c:7280
 msgid ""
 "No <source> 'mode' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "<interface type='vhostuser'> करिता शून्य <source> 'mode' गुणधर्म निर्देशीत केले"
 
-#: src/conf/domain_conf.c:7292
+#: src/conf/domain_conf.c:7299
 msgid ""
 "Wrong <source> 'mode' attribute specified with <interface type='vhostuser'/>"
 msgstr "<interface type='vhostuser'> सह चकिचे <source> 'mode' गुणधर्म निर्देशीत केले"
 
-#: src/conf/domain_conf.c:7313
+#: src/conf/domain_conf.c:7320
 msgid ""
 "No <source> 'bridge' attribute specified with <interface type='bridge'/>"
 msgstr "<interface type='bridge'/> सह <source> 'bridge' गुणधर्म निर्देशीत केले नाही"
 
-#: src/conf/domain_conf.c:7330
+#: src/conf/domain_conf.c:7337
 msgid "No <source> 'port' attribute specified with socket interface"
 msgstr "सॉकेट संवादसह <source> 'पोर्ट' गुणविशेष निर्देशीत नाही"
 
-#: src/conf/domain_conf.c:7336
+#: src/conf/domain_conf.c:7343
 msgid "Cannot parse <source> 'port' attribute with socket interface"
 msgstr "सॉकेट संवादसह <source> 'पोर्ट' गुणविशेष वाचू शकत नाही"
 
-#: src/conf/domain_conf.c:7345
+#: src/conf/domain_conf.c:7352
 msgid "No <source> 'address' attribute specified with socket interface"
 msgstr "सॉकेट संवादसह <source> 'पत्ता' गुणविशेष निर्देशीत नाही"
 
-#: src/conf/domain_conf.c:7358
+#: src/conf/domain_conf.c:7365
 msgid ""
 "No <source> 'name' attribute specified with <interface type='internal'/>"
 msgstr "<source> 'name' गुणविशेष <interface type='internal'/> सह निश्चित केले नाही"
 
-#: src/conf/domain_conf.c:7369
+#: src/conf/domain_conf.c:7376
 msgid "No <source> 'dev' attribute specified with <interface type='direct'/>"
 msgstr "<interface type='direct'/> सह <source> 'source' गुणधर्म निर्देशीत केले नाही"
 
-#: src/conf/domain_conf.c:7377
+#: src/conf/domain_conf.c:7384
 msgid "Unknown mode has been specified"
 msgstr "अपरिचीत मोड निर्देशीत केले"
 
-#: src/conf/domain_conf.c:7445
+#: src/conf/domain_conf.c:7452
 msgid "Model name contains invalid characters"
 msgstr "प्रारूप नाव अंतर्गत अवैध अक्षर समाविष्टीत आहे"
 
-#: src/conf/domain_conf.c:7458
+#: src/conf/domain_conf.c:7465
 #, c-format
 msgid "Unknown interface <driver name='%s'> has been specified"
 msgstr "अपरिचीत संवाद <driver name='%s'> निर्देशीत केले आहे"
 
-#: src/conf/domain_conf.c:7469
+#: src/conf/domain_conf.c:7476
 #, c-format
 msgid "Unknown interface <driver txmode='%s'> has been specified"
 msgstr "अपरिचीत संवाद <driver txmode='%s'> निर्देशीत केले आहे"
 
-#: src/conf/domain_conf.c:7479
+#: src/conf/domain_conf.c:7486
 #, c-format
 msgid "unknown interface ioeventfd mode '%s'"
 msgstr "अपरिचीत संवाद ioeventfd मोड '%s'"
 
-#: src/conf/domain_conf.c:7488
+#: src/conf/domain_conf.c:7495
 #, c-format
 msgid "unknown interface event_idx mode '%s'"
 msgstr "अपिचीत संवाद event_idx मोड '%s'"
 
-#: src/conf/domain_conf.c:7498
+#: src/conf/domain_conf.c:7505
 #, c-format
 msgid "'queues' attribute must be positive number: %s"
 msgstr "'queues' गुणधर्म पॉजिटिव्ह संख्या पाहिजे: %s"
 
-#: src/conf/domain_conf.c:7507
+#: src/conf/domain_conf.c:7514
 #, c-format
 msgid "unknown host csum mode '%s'"
 msgstr "अपरिचीत यजमान csum मोड '%s'"
 
-#: src/conf/domain_conf.c:7517
+#: src/conf/domain_conf.c:7524
 #, c-format
 msgid "unknown host gso mode '%s'"
 msgstr "अपरिचीत यजमान gso मोड '%s'"
 
-#: src/conf/domain_conf.c:7527
+#: src/conf/domain_conf.c:7534
 #, c-format
 msgid "unknown host tso4 mode '%s'"
 msgstr "अपरिचीत यजमान tso4 मोड '%s'"
 
-#: src/conf/domain_conf.c:7537
+#: src/conf/domain_conf.c:7544
 #, c-format
 msgid "unknown host tso6 mode '%s'"
 msgstr "अपरिचीत यजमान tso6 मोड '%s'"
 
-#: src/conf/domain_conf.c:7547
+#: src/conf/domain_conf.c:7554
 #, c-format
 msgid "unknown host ecn mode '%s'"
 msgstr "अपरिचीत यजमान ecn मोड '%s'"
 
-#: src/conf/domain_conf.c:7557
+#: src/conf/domain_conf.c:7564
 #, c-format
 msgid "unknown host ufo mode '%s'"
 msgstr "अपरिचीत यजमान ufo मोड '%s'"
 
-#: src/conf/domain_conf.c:7567
+#: src/conf/domain_conf.c:7574
 #, c-format
 msgid "unknown guest csum mode '%s'"
 msgstr "अपरिचीत अतिथी csum मोड '%s'"
 
-#: src/conf/domain_conf.c:7577
+#: src/conf/domain_conf.c:7584
 #, c-format
 msgid "unknown guest tso4 mode '%s'"
 msgstr "अपरिचीत अतिथी tso4 मोड '%s'"
 
-#: src/conf/domain_conf.c:7587
+#: src/conf/domain_conf.c:7594
 #, c-format
 msgid "unknown guest tso6 mode '%s'"
 msgstr "अपरिचीत अतिथी tso6 मोड '%s'"
 
-#: src/conf/domain_conf.c:7597
+#: src/conf/domain_conf.c:7604
 #, c-format
 msgid "unknown guest ecn mode '%s'"
 msgstr "अपरिचीत अतिथी ecn मोड '%s'"
 
-#: src/conf/domain_conf.c:7607
+#: src/conf/domain_conf.c:7614
 #, c-format
 msgid "unknown guest ufo mode '%s'"
 msgstr "अपरिचीत अतिथी ufo मोड '%s'"
 
-#: src/conf/domain_conf.c:7619
+#: src/conf/domain_conf.c:7626
 #, c-format
 msgid "unknown interface link state '%s'"
 msgstr "अपरिचीत संवाद लिंक स्तर '%s'"
 
-#: src/conf/domain_conf.c:7645
+#: src/conf/domain_conf.c:7652
 msgid "sndbuf must be a positive integer"
 msgstr "sndbuf पॉजिटिव्ह इंटिजर पाहिजे"
 
-#: src/conf/domain_conf.c:7695
+#: src/conf/domain_conf.c:7702
 #, c-format
 msgid "target type must be specified for %s device"
 msgstr "%s साधनकरिता लक्ष्य प्रकार निर्देशीत करणे आवश्यक"
 
-#: src/conf/domain_conf.c:7763
+#: src/conf/domain_conf.c:7770
 #, c-format
 msgid "unknown target type '%s' specified for character device"
 msgstr "कॅरेक्टर साधनकरिता अपरिचीत लक्ष्य प्रकार '%s' निर्देशीत केले"
 
-#: src/conf/domain_conf.c:7780
+#: src/conf/domain_conf.c:7787
 msgid "guestfwd channel does not define a target address"
 msgstr "guestfwd वाहिनी लक्ष्य पत्ता ठरवत नाही"
 
-#: src/conf/domain_conf.c:7790
+#: src/conf/domain_conf.c:7797
 msgid "guestfwd channel only supports IPv4 addresses"
 msgstr "guestfwd वाहिनी फक्त IPv4 पत्त्यांकरिता समर्थन पुरवते"
 
-#: src/conf/domain_conf.c:7797
+#: src/conf/domain_conf.c:7804
 msgid "guestfwd channel does not define a target port"
 msgstr "guestfwd वाहिनी लक्ष्य पोर्ट ठरवत नाही"
 
-#: src/conf/domain_conf.c:7804 src/conf/domain_conf.c:7828
+#: src/conf/domain_conf.c:7811 src/conf/domain_conf.c:7835
 #: src/conf/storage_conf.c:531
 #, c-format
 msgid "Invalid port number: %s"
 msgstr "अवैध पोर्ट क्रमांक: %s"
 
-#: src/conf/domain_conf.c:7908
+#: src/conf/domain_conf.c:7915
 #, c-format
 msgid "Unknown source mode '%s'"
 msgstr "अपरिचीत स्रोत मोड '%s'"
 
-#: src/conf/domain_conf.c:7976 src/conf/domain_conf.c:8077
+#: src/conf/domain_conf.c:7983 src/conf/domain_conf.c:8084
 msgid "Missing source path attribute for char device"
 msgstr "char साधन करिता स्त्रोत मार्ग गुणविशेष आढळले नाही"
 
-#: src/conf/domain_conf.c:7987
+#: src/conf/domain_conf.c:7994
 msgid "Missing master path attribute for nmdm device"
 msgstr "nmdm साधनकरिता मास्टर path गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:7993
+#: src/conf/domain_conf.c:8000
 msgid "Missing slave path attribute for nmdm device"
 msgstr "nmdm साधनकरिता स्लेव्ह path गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:8007 src/conf/domain_conf.c:8025
+#: src/conf/domain_conf.c:8014 src/conf/domain_conf.c:8032
 msgid "Missing source host attribute for char device"
 msgstr "char साधन करिता स्त्रोत यजमान गुणविशेष आढळले नाही"
 
-#: src/conf/domain_conf.c:8013 src/conf/domain_conf.c:8031
-#: src/conf/domain_conf.c:8056
+#: src/conf/domain_conf.c:8020 src/conf/domain_conf.c:8038
+#: src/conf/domain_conf.c:8063
 msgid "Missing source service attribute for char device"
 msgstr "char साधन करिता स्त्रोत सेवा गुणविशेष आढळले नाही"
 
-#: src/conf/domain_conf.c:8047
+#: src/conf/domain_conf.c:8054
 #, c-format
 msgid "Unknown protocol '%s'"
 msgstr "अपरिचीत प्रोटोकॉल '%s'"
 
-#: src/conf/domain_conf.c:8090
+#: src/conf/domain_conf.c:8097
 msgid "Missing source channel attribute for char device"
 msgstr "char साधनकरिता स्रोत channel गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:8095
+#: src/conf/domain_conf.c:8102
 msgid "Invalid character in source channel for char device"
 msgstr "char साधनकरिता स्रोत वाहिनीमध्ये अवैध अक्षर आढळले"
 
-#: src/conf/domain_conf.c:8200 src/conf/domain_conf.c:8350
+#: src/conf/domain_conf.c:8207 src/conf/domain_conf.c:8357
 #, c-format
 msgid "unknown type presented to host for character device: %s"
 msgstr "कॅरेक्टर साधनकरिता अपरिचीत प्रकार यजमानकरिता प्रस्तुत केले: %s"
 
-#: src/conf/domain_conf.c:8208
+#: src/conf/domain_conf.c:8215
 #, c-format
 msgid "unknown character device type: %s"
 msgstr "अपरिचीत कॅरेक्टर डिव्हास प्रकार: %s"
 
-#: src/conf/domain_conf.c:8236
+#: src/conf/domain_conf.c:8243
 msgid "spicevmc device type only supports virtio"
 msgstr "spicevmc साधन प्रकार फक्त virtio करिता समर्थन पुरवते"
 
-#: src/conf/domain_conf.c:8252 src/qemu/qemu_command.c:9920
+#: src/conf/domain_conf.c:8259 src/qemu/qemu_command.c:9920
 msgid "usb-serial requires address of usb type"
 msgstr "usb-serial ला usb प्रकारचा पत्ता आवश्यक आहे"
 
-#: src/conf/domain_conf.c:8283
+#: src/conf/domain_conf.c:8290
 msgid "missing smartcard device mode"
 msgstr "स्मार्टकार्ड साधन मोड आढळले नाही"
 
-#: src/conf/domain_conf.c:8288
+#: src/conf/domain_conf.c:8295
 #, c-format
 msgid "unknown smartcard device mode: %s"
 msgstr "अपरिचीत स्मार्टकार्ड डिव्हास मोड: %s"
 
-#: src/conf/domain_conf.c:8305 src/conf/domain_conf.c:8334
+#: src/conf/domain_conf.c:8312 src/conf/domain_conf.c:8341
 msgid "host-certificates mode needs exactly three certificates"
 msgstr "होस्ट-सर्टिफिकेटस् मोडला हुबेहुब तीन प्रमाणप्रत्रे पाहिजेत"
 
-#: src/conf/domain_conf.c:8325
+#: src/conf/domain_conf.c:8332
 #, c-format
 msgid "expecting absolute path: %s"
 msgstr "ॲब्सोल्युट मार्ग अपेक्षित: %s"
 
-#: src/conf/domain_conf.c:8344
+#: src/conf/domain_conf.c:8351
 msgid "passthrough mode requires a character device type attribute"
 msgstr "passthrough मोडला कॅरेक्टर डिव्हास प्रकार गुणधर्म आवश्यक"
 
-#: src/conf/domain_conf.c:8369
+#: src/conf/domain_conf.c:8376
 msgid "unknown smartcard mode"
 msgstr "अपरिचीत स्मार्टकार्ड मोड"
 
-#: src/conf/domain_conf.c:8378
+#: src/conf/domain_conf.c:8385
 msgid "Controllers must use the 'ccid' address type"
 msgstr "कंट्रोलर्स्ने 'ccid' पत्ता प्रकार वापरायला हवे"
 
-#: src/conf/domain_conf.c:8426
+#: src/conf/domain_conf.c:8433
 #, c-format
 msgid "Unknown TPM frontend model '%s'"
 msgstr "अपरिचीत TPM फ्रंटएंड प्रतिकृती '%s'"
 
-#: src/conf/domain_conf.c:8439
+#: src/conf/domain_conf.c:8446
 msgid "only one TPM backend is supported"
 msgstr "फक्त एक TPM बॅकएंड समर्थीत आहे"
 
-#: src/conf/domain_conf.c:8445
+#: src/conf/domain_conf.c:8452
 msgid "missing TPM device backend"
 msgstr "TPM साधन बॅकएंड आढळले नाही"
 
-#: src/conf/domain_conf.c:8451
+#: src/conf/domain_conf.c:8458
 msgid "missing TPM device backend type"
 msgstr "TPM साधन बॅकएंड प्रकार आढळले नाही"
 
-#: src/conf/domain_conf.c:8457
+#: src/conf/domain_conf.c:8464
 #, c-format
 msgid "Unknown TPM backend type '%s'"
 msgstr "अपरिचीत TPM बॅकएंड प्रकार '%s'"
 
-#: src/conf/domain_conf.c:8511
+#: src/conf/domain_conf.c:8518
 msgid "missing input device type"
 msgstr "इंपुट साधन प्रकार आढळले नाही"
 
-#: src/conf/domain_conf.c:8517
+#: src/conf/domain_conf.c:8524
 #, c-format
 msgid "unknown input device type '%s'"
 msgstr "अपरिचीत इनपुट साधन प्रकार '%s'"
 
-#: src/conf/domain_conf.c:8524
+#: src/conf/domain_conf.c:8531
 #, c-format
 msgid "unknown input bus type '%s'"
 msgstr "अपरिचीत अधिप्रमाणन प्रकार '%s'"
 
-#: src/conf/domain_conf.c:8533
+#: src/conf/domain_conf.c:8540
 #, c-format
 msgid "ps2 bus does not support %s input device"
 msgstr "ps2 बस %s इंपुट साधन करिता समर्थन पुरवित नाही"
 
-#: src/conf/domain_conf.c:8539 src/conf/domain_conf.c:8546
+#: src/conf/domain_conf.c:8546 src/conf/domain_conf.c:8553
 #, c-format
 msgid "unsupported input bus %s"
 msgstr "असमर्थीत इंपुट साधन %s"
 
-#: src/conf/domain_conf.c:8552
+#: src/conf/domain_conf.c:8559
 #, c-format
 msgid "xen bus does not support %s input device"
 msgstr "xen बस %s इंपुट साधन करिता समर्थन पुरवित नाही"
 
-#: src/conf/domain_conf.c:8578 src/conf/domain_conf.c:10352
+#: src/conf/domain_conf.c:8585 src/conf/domain_conf.c:10359
 msgid "Invalid address for a USB device"
 msgstr "USB साधनकरिता अवैध पत्ता"
 
-#: src/conf/domain_conf.c:8609
+#: src/conf/domain_conf.c:8616
 msgid "missing hub device type"
 msgstr "हब साधन प्रकार आढळले नाही"
 
-#: src/conf/domain_conf.c:8615
+#: src/conf/domain_conf.c:8622
 #, c-format
 msgid "unknown hub device type '%s'"
 msgstr "अपरिचीत हब डिव्हाइस प्रकार '%s'"
 
-#: src/conf/domain_conf.c:8658
+#: src/conf/domain_conf.c:8665
 msgid "missing timer name"
 msgstr "टाइमरचे नाव आढळले नाही"
 
-#: src/conf/domain_conf.c:8663
+#: src/conf/domain_conf.c:8670
 #, c-format
 msgid "unknown timer name '%s'"
 msgstr "अपरिचीत टाइमरचे नाव '%s'"
 
-#: src/conf/domain_conf.c:8675
+#: src/conf/domain_conf.c:8682
 #, c-format
 msgid "unknown timer present value '%s'"
 msgstr "अपरिचीत टाइमर अस्तित्वातील मूल्य '%s'"
 
-#: src/conf/domain_conf.c:8685
+#: src/conf/domain_conf.c:8692
 #, c-format
 msgid "unknown timer tickpolicy '%s'"
 msgstr "अपरिचीत टाइमर टिकपॉलिसि '%s'"
 
-#: src/conf/domain_conf.c:8695
+#: src/conf/domain_conf.c:8702
 #, c-format
 msgid "unknown timer track '%s'"
 msgstr "अपरिचीत टाइमर ट्रॅक '%s'"
 
-#: src/conf/domain_conf.c:8705
+#: src/conf/domain_conf.c:8712
 msgid "invalid timer frequency"
 msgstr "अवैध टाइमर फ्रिक्वेंसि"
 
-#: src/conf/domain_conf.c:8714
+#: src/conf/domain_conf.c:8721
 #, c-format
 msgid "unknown timer mode '%s'"
 msgstr "अपरिचीत टाइमर मोड '%s'"
 
-#: src/conf/domain_conf.c:8727
+#: src/conf/domain_conf.c:8734
 msgid "invalid catchup threshold"
 msgstr "अवैध कॅचअप थ्रेशहोल्ड्"
 
-#: src/conf/domain_conf.c:8736
+#: src/conf/domain_conf.c:8743
 msgid "invalid catchup slew"
 msgstr "अवैध catchup स्लिउ"
 
-#: src/conf/domain_conf.c:8745
+#: src/conf/domain_conf.c:8752
 msgid "invalid catchup limit"
 msgstr "अवैध catchup मर्यादा"
 
-#: src/conf/domain_conf.c:8798
+#: src/conf/domain_conf.c:8805
 #, c-format
 msgid "cannot parse password validity time '%s', expect YYYY-MM-DDTHH:MM:SS"
 msgstr "पासवर्ड वैधता प्रकार '%s' वाचणे अशक्य, YYYY-MM-DDTHH:MM:SS अपेक्षीत"
 
-#: src/conf/domain_conf.c:8817
+#: src/conf/domain_conf.c:8824
 #, c-format
 msgid "unknown connected value %s"
 msgstr "अपरिचीत जोडलेले मूल्य %s"
 
-#: src/conf/domain_conf.c:8828
+#: src/conf/domain_conf.c:8835
 msgid "VNC supports connected='keep' only"
 msgstr "VNC फक्त connected='keep' करिता समर्थन पुरवते"
 
-#: src/conf/domain_conf.c:8852
+#: src/conf/domain_conf.c:8859
 msgid "graphics listen type must be specified"
 msgstr "ग्राफिक्स् लिस्टन प्रकार निर्देशीत पाहिजे"
 
-#: src/conf/domain_conf.c:8858
+#: src/conf/domain_conf.c:8865
 #, c-format
 msgid "unknown graphics listen type '%s'"
 msgstr "अपरिचीत ग्राफिक्स् लिस्टन प्रकार '%s'"
 
-#: src/conf/domain_conf.c:8878
+#: src/conf/domain_conf.c:8885
 msgid "network attribute not allowed when listen type is not network"
 msgstr "लिसन प्रकार नेटवर्क नसल्यास नेटवर्क गुणधर्म करिता परवानगी दिली जात नाही"
 
-#: src/conf/domain_conf.c:8889
+#: src/conf/domain_conf.c:8896
 #, c-format
 msgid "Invalid fromConfig value: %s"
 msgstr "अवैध fromConfig मूल्य: %s"
 
-#: src/conf/domain_conf.c:8930
+#: src/conf/domain_conf.c:8937
 msgid "missing graphics device type"
 msgstr "चित्रलेखीय साधन प्रकार आढळले नाही"
 
-#: src/conf/domain_conf.c:8936
+#: src/conf/domain_conf.c:8943
 #, c-format
 msgid "unknown graphics device type '%s'"
 msgstr "अपरिचीत चित्रलेखीय साधन प्रकार '%s'"
 
-#: src/conf/domain_conf.c:9001
+#: src/conf/domain_conf.c:9008
 #, c-format
 msgid ""
 "graphics listen attribute %s must match address attribute of first listen "
@@ -2901,877 +2901,877 @@ msgid ""
 msgstr ""
 "ग्राफिक्स् लिसन गुणधर्म %s पहिले लिसन एलिमेंटच्या ॲड्रेस गुणधर्मासह जुळले पाहिजे (%s आढळले)"
 
-#: src/conf/domain_conf.c:9019
+#: src/conf/domain_conf.c:9026
 #, c-format
 msgid "cannot parse vnc port %s"
 msgstr "vnc पोर्ट %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:9049
+#: src/conf/domain_conf.c:9056
 #, c-format
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "vnc WebSocket पोर्ट %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:9062 src/qemu/qemu_command.c:11579
+#: src/conf/domain_conf.c:9069 src/qemu/qemu_command.c:11579
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "अपरिचीत vnc डिस्पले शेअरिंग धोरण '%s'"
 
-#: src/conf/domain_conf.c:9087 src/conf/domain_conf.c:9154
+#: src/conf/domain_conf.c:9094 src/conf/domain_conf.c:9161
 #, c-format
 msgid "unknown fullscreen value '%s'"
 msgstr "अपरिचीत पडदाभर मूल्य '%s'"
 
-#: src/conf/domain_conf.c:9106
+#: src/conf/domain_conf.c:9113
 #, c-format
 msgid "cannot parse rdp port %s"
 msgstr "rdp पोर्ट %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:9175
+#: src/conf/domain_conf.c:9182
 #, c-format
 msgid "cannot parse spice port %s"
 msgstr "स्पाइस पोर्ट %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:9188
+#: src/conf/domain_conf.c:9195
 #, c-format
 msgid "cannot parse spice tlsPort %s"
 msgstr "स्पाइस tlsPort %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:9208
+#: src/conf/domain_conf.c:9215
 #, c-format
 msgid "unknown default spice channel mode %s"
 msgstr "अपरिचीत पूर्वनिर्धारित स्पाइस वाहिनी मोड %s"
 
-#: src/conf/domain_conf.c:9244
+#: src/conf/domain_conf.c:9251
 msgid "spice channel missing name/mode"
 msgstr "स्पाइस वाहिनीत नाव/मोड आढळले नाही"
 
-#: src/conf/domain_conf.c:9252
+#: src/conf/domain_conf.c:9259
 #, c-format
 msgid "unknown spice channel name %s"
 msgstr "अपरिचीत स्पाइस वाहिनीचे नाव %s"
 
-#: src/conf/domain_conf.c:9260
+#: src/conf/domain_conf.c:9267
 #, c-format
 msgid "unknown spice channel mode %s"
 msgstr "अपरिचीत स्पाइस वाहिनी मोड %s"
 
-#: src/conf/domain_conf.c:9276
+#: src/conf/domain_conf.c:9283
 msgid "spice image missing compression"
 msgstr "स्पाइस प्रतिमामध्ये कम्प्रेशन आढळले नाही"
 
-#: src/conf/domain_conf.c:9283
+#: src/conf/domain_conf.c:9290
 #, c-format
 msgid "unknown spice image compression %s"
 msgstr "अपरिचीत स्पाइस इमेज कंप्रेशन %s"
 
-#: src/conf/domain_conf.c:9297
+#: src/conf/domain_conf.c:9304
 msgid "spice jpeg missing compression"
 msgstr "स्पाइस jpeg कम्प्रेशन आढळले नाही"
 
-#: src/conf/domain_conf.c:9304
+#: src/conf/domain_conf.c:9311
 #, c-format
 msgid "unknown spice jpeg compression %s"
 msgstr "अपरिचीत स्पाइस jpeg कम्प्रेशन %s"
 
-#: src/conf/domain_conf.c:9318
+#: src/conf/domain_conf.c:9325
 msgid "spice zlib missing compression"
 msgstr "स्पाइस zlib कम्प्रेशन आढळले नाही"
 
-#: src/conf/domain_conf.c:9325
+#: src/conf/domain_conf.c:9332
 #, c-format
 msgid "unknown spice zlib compression %s"
 msgstr "अपरिचीत स्पाइस zlib कंप्रेशन %s"
 
-#: src/conf/domain_conf.c:9339
+#: src/conf/domain_conf.c:9346
 msgid "spice playback missing compression"
 msgstr "स्पाइस प्लेबॅक कम्प्रेशन आढळले नाही"
 
-#: src/conf/domain_conf.c:9346
+#: src/conf/domain_conf.c:9353
 msgid "unknown spice playback compression"
 msgstr "अपरिचीत स्पाइस प्लेबॅक कंप्रेशन"
 
-#: src/conf/domain_conf.c:9360
+#: src/conf/domain_conf.c:9367
 msgid "spice streaming missing mode"
 msgstr "स्पाइल स्ट्रिमिंग मोड आढळले नाही"
 
-#: src/conf/domain_conf.c:9366
+#: src/conf/domain_conf.c:9373
 msgid "unknown spice streaming mode"
 msgstr "अपरिचीत स्पाइस स्ट्रिमिंग मोड"
 
-#: src/conf/domain_conf.c:9380
+#: src/conf/domain_conf.c:9387
 msgid "spice clipboard missing copypaste"
 msgstr "स्पाइस क्लिपबोर्ड कॉपिपेस्ट आढळले नाही"
 
-#: src/conf/domain_conf.c:9387
+#: src/conf/domain_conf.c:9394
 #, c-format
 msgid "unknown copypaste value '%s'"
 msgstr "अपरिचीत copypaste मूल्य '%s'"
 
-#: src/conf/domain_conf.c:9400
+#: src/conf/domain_conf.c:9407
 msgid "spice filetransfer missing enable"
 msgstr "स्पाइस फाइल स्थानांतर आढळले नाही"
 
-#: src/conf/domain_conf.c:9407
+#: src/conf/domain_conf.c:9414
 #, c-format
 msgid "unknown enable value '%s'"
 msgstr "अपरिचीत सुरू करा मूल्य '%s'"
 
-#: src/conf/domain_conf.c:9420
+#: src/conf/domain_conf.c:9427
 msgid "spice mouse missing mode"
 msgstr "स्पाइस माउस मिसिंग मोड"
 
-#: src/conf/domain_conf.c:9426
+#: src/conf/domain_conf.c:9433
 #, c-format
 msgid "unknown mouse mode value '%s'"
 msgstr "अपरिचीत माउस मोडचे मूल्य '%s'"
 
-#: src/conf/domain_conf.c:9467
+#: src/conf/domain_conf.c:9474
 #, c-format
 msgid "unknown codec type '%s'"
 msgstr "अपरिचीत कोडेक प्रकार '%s'"
 
-#: src/conf/domain_conf.c:9500
+#: src/conf/domain_conf.c:9507
 #, c-format
 msgid "unknown sound model '%s'"
 msgstr "अपरिचीत आवाज प्रारूप '%s'"
 
-#: src/conf/domain_conf.c:9567
+#: src/conf/domain_conf.c:9574
 msgid "watchdog must contain model name"
 msgstr "वॉचडॉगमध्ये साच्याचे नाव समाविष्ट असायला नको"
 
-#: src/conf/domain_conf.c:9573
+#: src/conf/domain_conf.c:9580
 #, c-format
 msgid "unknown watchdog model '%s'"
 msgstr "अपरिचीत वॉचडॉग मॉडेल '%s'"
 
-#: src/conf/domain_conf.c:9584
+#: src/conf/domain_conf.c:9591
 #, c-format
 msgid "unknown watchdog action '%s'"
 msgstr "अपरिचीत वॉचडॉग कृती '%s'"
 
-#: src/conf/domain_conf.c:9622
+#: src/conf/domain_conf.c:9629
 msgid "missing RNG device model"
 msgstr "RNG साधन प्रतिकृती आढळली नाही"
 
-#: src/conf/domain_conf.c:9627
+#: src/conf/domain_conf.c:9634
 #, c-format
 msgid "unknown RNG model '%s'"
 msgstr "अपरिचीत RNG प्रतिकृती '%s'"
 
-#: src/conf/domain_conf.c:9635
+#: src/conf/domain_conf.c:9642
 msgid "invalid RNG rate bytes value"
 msgstr "अवैध RNG दर बाट्स मूल्य"
 
-#: src/conf/domain_conf.c:9642
+#: src/conf/domain_conf.c:9649
 msgid "invalid RNG rate period value"
 msgstr "अवैध RNG दर पिरिअड मूल्य"
 
-#: src/conf/domain_conf.c:9651
+#: src/conf/domain_conf.c:9658
 msgid "only one RNG backend is supported"
 msgstr "फक्त एक RNG बॅकएंड समर्थीत आहे"
 
-#: src/conf/domain_conf.c:9657
+#: src/conf/domain_conf.c:9664
 msgid "missing RNG device backend model"
 msgstr "RNG साधन बॅकएंड प्रतिकृती आढळली नाही"
 
-#: src/conf/domain_conf.c:9663
+#: src/conf/domain_conf.c:9670
 #, c-format
 msgid "unknown RNG backend model '%s'"
 msgstr "अपरिचीत RNG बॅकएंड प्रतिकृती '%s'"
 
-#: src/conf/domain_conf.c:9674
+#: src/conf/domain_conf.c:9681
 #, c-format
 msgid "file '%s' is not a supported random source"
 msgstr "फाइल '%s' समर्थीत विनाक्रम सोअर्स आहे"
 
-#: src/conf/domain_conf.c:9683
+#: src/conf/domain_conf.c:9690
 msgid "missing EGD backend type"
 msgstr "EGD बॅकएंड प्रकार आढळले नाही"
 
-#: src/conf/domain_conf.c:9693
+#: src/conf/domain_conf.c:9700
 #, c-format
 msgid "unknown backend type '%s' for egd"
 msgstr "egd करिता अपरिचीत बॅकएंड प्रकार '%s'"
 
-#: src/conf/domain_conf.c:9741
+#: src/conf/domain_conf.c:9748
 msgid "balloon memory must contain model name"
 msgstr "बलून मेमरिमध्ये मॉडलचे नाव समाविष्टीत करणे आवश्यक"
 
-#: src/conf/domain_conf.c:9747
+#: src/conf/domain_conf.c:9754
 #, c-format
 msgid "unknown memory balloon model '%s'"
 msgstr "अपरिचीत मेमरि बलून मॉडेल '%s'"
 
-#: src/conf/domain_conf.c:9754
+#: src/conf/domain_conf.c:9761
 msgid "invalid statistics collection period"
 msgstr "अवैध आकडेवारि चयन अवधि"
 
-#: src/conf/domain_conf.c:9812
+#: src/conf/domain_conf.c:9819
 #, fuzzy
 msgid "shmem element must contain 'name' attribute"
 msgstr "sysinfo मध्ये टाइप गुणधर्म समाविष्टीत पाहिजे"
 
-#: src/conf/domain_conf.c:9834
+#: src/conf/domain_conf.c:9841
 #, fuzzy, c-format
 msgid "invalid number of vectors for shmem: '%s'"
 msgstr "अवैध nvram रूपण: '%s'"
 
-#: src/conf/domain_conf.c:9843
+#: src/conf/domain_conf.c:9850
 #, fuzzy, c-format
 msgid "invalid msi ioeventfd setting for shmem: '%s'"
 msgstr "iothread '%s' करिता अवैध सेटिंग"
 
-#: src/conf/domain_conf.c:9853
+#: src/conf/domain_conf.c:9860
 #, fuzzy
 msgid "msi option is only supported with a server"
 msgstr "नेटवर्क डिस्क्स फक्त -drive सह समर्थीत आहे"
 
-#: src/conf/domain_conf.c:9882
+#: src/conf/domain_conf.c:9889
 msgid "XML does not contain expected 'sysinfo' element"
 msgstr "XML मध्ये अपेक्षीत 'sysinfo' एलिमेंट समाविष्टीत नाही"
 
-#: src/conf/domain_conf.c:9892
+#: src/conf/domain_conf.c:9899
 msgid "sysinfo must contain a type attribute"
 msgstr "sysinfo मध्ये टाइप गुणधर्म समाविष्टीत पाहिजे"
 
-#: src/conf/domain_conf.c:9897
+#: src/conf/domain_conf.c:9904
 #, c-format
 msgid "unknown sysinfo type '%s'"
 msgstr "अपरिचीत sysinfo प्रकार '%s'"
 
-#: src/conf/domain_conf.c:9928
+#: src/conf/domain_conf.c:9935
 msgid "Invalid BIOS 'date' format"
 msgstr "अवैध BIOS 'date' रूपण"
 
-#: src/conf/domain_conf.c:9950
+#: src/conf/domain_conf.c:9957
 msgid "malformed <sysinfo> uuid element"
 msgstr "सदोषीत <sysinfo> uuid घटक"
 
-#: src/conf/domain_conf.c:9957
+#: src/conf/domain_conf.c:9964
 msgid "UUID mismatch between <uuid> and <sysinfo>"
 msgstr "<uuid> व <sysinfo> अंतर्गत UUID जोडणी आढळली नाही"
 
-#: src/conf/domain_conf.c:10137
+#: src/conf/domain_conf.c:10144
 #, c-format
 msgid "unknown video model '%s'"
 msgstr "अपरिचीत चलचित्र मॉडेल '%s'"
 
-#: src/conf/domain_conf.c:10143
+#: src/conf/domain_conf.c:10150
 msgid "missing video model and cannot determine default"
 msgstr "चलचित्र मॉडेल आढळले नाही व पूर्वनिर्धारीत ओळखू शकत नाही"
 
-#: src/conf/domain_conf.c:10151
+#: src/conf/domain_conf.c:10158
 msgid "ram attribute only supported for type of qxl"
 msgstr "qxl प्रकारकरिताच रॅम गुणधर्मकरिता समर्थीत आहे"
 
-#: src/conf/domain_conf.c:10156 src/conf/domain_conf.c:10166
+#: src/conf/domain_conf.c:10163 src/conf/domain_conf.c:10173
 #, c-format
 msgid "cannot parse video ram '%s'"
 msgstr "चलचित्र ram '%s' वाचण्यास अशक्य"
 
-#: src/conf/domain_conf.c:10176
+#: src/conf/domain_conf.c:10183
 #, c-format
 msgid "cannot parse video heads '%s'"
 msgstr "चलचित्र हेड्स् '%s' वाचण्यास अपयशी"
 
-#: src/conf/domain_conf.c:10223
+#: src/conf/domain_conf.c:10230
 #, c-format
 msgid "unknown hostdev mode '%s'"
 msgstr "अपरिचीत hostdev पद्धत '%s'"
 
-#: src/conf/domain_conf.c:10243
+#: src/conf/domain_conf.c:10250
 #, c-format
 msgid "Unexpected hostdev mode %d"
 msgstr "अनपेक्षीत hostdev मोड %d"
 
-#: src/conf/domain_conf.c:10260
+#: src/conf/domain_conf.c:10267
 msgid "PCI host devices must use 'pci' address type"
 msgstr "PCI यजमान उपकरणांनी 'pci' पत्ता प्रकारचा वापर करायला हवा"
 
-#: src/conf/domain_conf.c:10269
+#: src/conf/domain_conf.c:10276
 msgid "SCSI host devices must have address specified"
 msgstr "SCSI यजमान साधनांकडे निर्देशीत पत्ता पाहिजे"
 
-#: src/conf/domain_conf.c:10311
+#: src/conf/domain_conf.c:10318
 #, c-format
 msgid "unknown redirdev bus '%s'"
 msgstr "अपरिचीत redirdev bus '%s'"
 
-#: src/conf/domain_conf.c:10322
+#: src/conf/domain_conf.c:10329
 #, c-format
 msgid "unknown redirdev character device type '%s'"
 msgstr "अपरिचीत redirdev कॅरेक्टर डिव्हाइस प्रकार '%s'"
 
-#: src/conf/domain_conf.c:10327
+#: src/conf/domain_conf.c:10334
 msgid "missing type in redirdev"
 msgstr "redirdev अंतर्गत प्रकार आढळले नाही"
 
-#: src/conf/domain_conf.c:10403
+#: src/conf/domain_conf.c:10410
 #, c-format
 msgid "Incorrect USB version format %s"
 msgstr "अयोग्य USB आवृत्ती रूपण %s"
 
-#: src/conf/domain_conf.c:10413
+#: src/conf/domain_conf.c:10420
 #, c-format
 msgid "Cannot parse USB version %s"
 msgstr "USB आवृत्ती %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:10446
+#: src/conf/domain_conf.c:10453
 #, c-format
 msgid "Cannot parse USB Class code %s"
 msgstr "USB क्लास कोड %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:10452
+#: src/conf/domain_conf.c:10459
 #, c-format
 msgid "Invalid USB Class code %s"
 msgstr "अवैध USB क्लास कोड %s"
 
-#: src/conf/domain_conf.c:10463
+#: src/conf/domain_conf.c:10470
 #, c-format
 msgid "Cannot parse USB vendor ID %s"
 msgstr "USB विक्रेता ID %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:10474
+#: src/conf/domain_conf.c:10481
 #, c-format
 msgid "Cannot parse USB product ID %s"
 msgstr "USB उत्पादन ID %s वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:10499
+#: src/conf/domain_conf.c:10506
 msgid "Invalid allow value, either 'yes' or 'no'"
 msgstr "अवैध स्वीकार्य मूल्य, एकतर 'होय' किंवा 'नाही'"
 
-#: src/conf/domain_conf.c:10504
+#: src/conf/domain_conf.c:10511
 msgid "Missing allow attribute for USB redirection filter"
 msgstr "USB पुनःनिर्देशन फिल्टरकरिता गुणधर्म स्वीकारा"
 
-#: src/conf/domain_conf.c:10577
+#: src/conf/domain_conf.c:10584
 #, c-format
 msgid "unknown %s action: %s"
 msgstr "अपरिचीत %s कृती: %s"
 
-#: src/conf/domain_conf.c:10597
+#: src/conf/domain_conf.c:10604
 #, c-format
 msgid "unknown PM state value %s"
 msgstr "अपरिचीत PM स्तर मूल्य %s"
 
-#: src/conf/domain_conf.c:10620
+#: src/conf/domain_conf.c:10627
 msgid "(device_definition)"
 msgstr "(device_definition)"
 
-#: src/conf/domain_conf.c:10638
+#: src/conf/domain_conf.c:10645
 #, c-format
 msgid "unknown device type '%s'"
 msgstr "अपरिचीत साधन प्रकार '%s'"
 
-#: src/conf/domain_conf.c:10766
+#: src/conf/domain_conf.c:10773
 msgid "(disk_definition)"
 msgstr "(disk_definition)"
 
-#: src/conf/domain_conf.c:10772
+#: src/conf/domain_conf.c:10779
 #, c-format
 msgid "expecting root element of 'disk', not '%s'"
 msgstr "'disk' चे रूट एलिमेंट अपेक्षित, '%s' नाही"
 
-#: src/conf/domain_conf.c:11173
+#: src/conf/domain_conf.c:11180
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "मॅक पत्ता %s सह जुळणारे एकापेक्षाजास्त साधने आढळले"
 
-#: src/conf/domain_conf.c:11194
+#: src/conf/domain_conf.c:11201
 #, c-format
 msgid "no device matching mac address %s found on %.4x:%.2x:%.2x.%.1x"
 msgstr "mac पत्ता %s सह जुळणारे साधन आढळले नाही, %.4x:%.2x:%.2x.%.1x वरील"
 
-#: src/conf/domain_conf.c:11203
+#: src/conf/domain_conf.c:11210
 #, c-format
 msgid "no device matching mac address %s found"
 msgstr "mac पत्ता %s सह जुळणारे साधन आढळले नाही"
 
-#: src/conf/domain_conf.c:11555
+#: src/conf/domain_conf.c:11562
 msgid "unknown virt type"
 msgstr "अपरिचीत virt प्रकार"
 
-#: src/conf/domain_conf.c:11566
+#: src/conf/domain_conf.c:11573
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr "क्षेत्र %s os प्रकार %s करिता, मांडणी %s वरील इम्यूलेटर आढळले नाही"
 
-#: src/conf/domain_conf.c:11592
+#: src/conf/domain_conf.c:11599
 msgid "cannot count boot devices"
 msgstr "बूट साधनांची गणना अशक्य"
 
-#: src/conf/domain_conf.c:11603 src/conf/domain_conf.c:19547
+#: src/conf/domain_conf.c:11610 src/conf/domain_conf.c:19554
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr "पर-डिव्हाइस बूट घटकांचा वापर एकत्रपणे os/boot घटकांसह शक्य नाही"
 
-#: src/conf/domain_conf.c:11613
+#: src/conf/domain_conf.c:11620
 msgid "missing boot device"
 msgstr "न आढळलेले बूट साधन"
 
-#: src/conf/domain_conf.c:11618
+#: src/conf/domain_conf.c:11625
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "अपरिचीत बूट साधन '%s'"
 
-#: src/conf/domain_conf.c:11650
+#: src/conf/domain_conf.c:11657
 msgid "invalid value for boot menu timeout, must be in range [0,65535]"
 msgstr "बूट मेन्यु वेळसमाप्तिकरिता अवैध मूल्य आढळले, व्याप्ति [0,65535] पाहिजे"
 
-#: src/conf/domain_conf.c:11664
+#: src/conf/domain_conf.c:11671
 msgid "need at least one serial port for useserial"
 msgstr "useserial करिता किमान एक सिरिअल पोर्ट आवश्यक आहे"
 
-#: src/conf/domain_conf.c:11682
+#: src/conf/domain_conf.c:11689
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr "rebootTimeout करिता अवैध मूल्य, व्याप्ति [-1,65535] असणे आवश्यक"
 
-#: src/conf/domain_conf.c:11736
+#: src/conf/domain_conf.c:11743
 msgid "invalid idmap start/target/count settings"
 msgstr "अवैध idmap start/target/count सेटिंग्ज"
 
-#: src/conf/domain_conf.c:11748
+#: src/conf/domain_conf.c:11755
 msgid "You must map the root user of container"
 msgstr "कंटेनरच्या रूट वापरकर्त्याला मॅप करणे आवश्यक"
 
-#: src/conf/domain_conf.c:11812
+#: src/conf/domain_conf.c:11819
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr "vcpu id अनसाइंड इंटिजर किंवा -1 असायला हवे"
 
-#: src/conf/domain_conf.c:11816
+#: src/conf/domain_conf.c:11823
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr "vcpupin करिता vcpu id मूल्य -1 स्वीकार्य नाही"
 
-#: src/conf/domain_conf.c:11822
+#: src/conf/domain_conf.c:11829
 msgid "vcpu id must be less than maxvcpus"
 msgstr "vcpu id हे maxvcpus पेक्षा कमी पाहिजे"
 
-#: src/conf/domain_conf.c:11832
+#: src/conf/domain_conf.c:11839
 #, c-format
 msgid "invalid setting for iothread '%s'"
 msgstr "iothread '%s' करिता अवैध सेटिंग"
 
-#: src/conf/domain_conf.c:11839
+#: src/conf/domain_conf.c:11846
 msgid "zero is an invalid iothread id value"
 msgstr "शून्य हे अवैध iothread आयडि मूल्य आहे"
 
-#: src/conf/domain_conf.c:11849
+#: src/conf/domain_conf.c:11856
 msgid "iothread id must not exceed iothreads"
 msgstr "iothread id हे iothreads पेक्षा जास्त नसावे"
 
-#: src/conf/domain_conf.c:11860
+#: src/conf/domain_conf.c:11867
 msgid "missing cpuset for emulatorpin"
 msgstr "emulatorpin करिता cpuset आढळले नाही"
 
-#: src/conf/domain_conf.c:11863
+#: src/conf/domain_conf.c:11870
 msgid "missing cpuset for iothreadpin"
 msgstr "iothreadpin करिता cpuset आढळले नाही"
 
-#: src/conf/domain_conf.c:11866
+#: src/conf/domain_conf.c:11873
 msgid "missing cpuset for vcpupin"
 msgstr "vcpupin करिता cpuset आढळले नाही"
 
-#: src/conf/domain_conf.c:11971
+#: src/conf/domain_conf.c:11978
 msgid "unable to parse size attribute"
 msgstr "size गुणधर्म वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:11982
+#: src/conf/domain_conf.c:11989
 msgid "hugepage size can't be zero"
 msgstr "ह्युजपेज आकार शून्य असू शकत नाही"
 
-#: src/conf/domain_conf.c:12016
+#: src/conf/domain_conf.c:12023
 msgid "missing resource partition attribute"
 msgstr "रिसोअर्स विभाजन गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:12072
+#: src/conf/domain_conf.c:12079
 #, c-format
 msgid "unknown readonly value: %s"
 msgstr "अपरिचीत फक्तवाचनीय मूल्य: %s"
 
-#: src/conf/domain_conf.c:12080
+#: src/conf/domain_conf.c:12087
 #, c-format
 msgid "unknown type value: %s"
 msgstr "अपरिचीत प्रकार मूल्य: %s"
 
-#: src/conf/domain_conf.c:12127
+#: src/conf/domain_conf.c:12134
 msgid "missing domain type attribute"
 msgstr "न आढळलेले क्षेत्र प्रकार गुणविशेष"
 
-#: src/conf/domain_conf.c:12133
+#: src/conf/domain_conf.c:12140
 #, c-format
 msgid "invalid domain type %s"
 msgstr "अवैध क्षेत्र प्रकार %s"
 
-#: src/conf/domain_conf.c:12141
+#: src/conf/domain_conf.c:12148
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr "अनपेक्षित डोमैन प्रकार %s, %s अपेक्षित आहे"
 
-#: src/conf/domain_conf.c:12163
+#: src/conf/domain_conf.c:12170
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr "अनपेक्षित डोमैन प्रकार %s, यापैकी एक अपेक्षित आहे: %s"
 
-#: src/conf/domain_conf.c:12187 src/conf/network_conf.c:2050
+#: src/conf/domain_conf.c:12194 src/conf/network_conf.c:2050
 #: src/conf/secret_conf.c:192 src/openvz/openvz_conf.c:1039
 #: src/xenconfig/xen_common.c:206
 msgid "Failed to generate UUID"
 msgstr "UUID निर्माण करण्यास अपयशी"
 
-#: src/conf/domain_conf.c:12194 src/conf/network_conf.c:2056
+#: src/conf/domain_conf.c:12201 src/conf/network_conf.c:2056
 #: src/conf/nwfilter_conf.c:2647 src/conf/secret_conf.c:198
 #: src/conf/storage_conf.c:853
 msgid "malformed uuid element"
 msgstr "सदोषीत uuid घटक"
 
-#: src/conf/domain_conf.c:12204
+#: src/conf/domain_conf.c:12211
 msgid "Domain title can't contain newlines"
 msgstr "डोमैन शीर्षकात newlines असणे अशक्य"
 
-#: src/conf/domain_conf.c:12229
+#: src/conf/domain_conf.c:12236
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "अवैध मेमरि कोर डम्प गुणधर्म मूल्य '%s'"
 
-#: src/conf/domain_conf.c:12241
+#: src/conf/domain_conf.c:12248
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr "सध्याची मेमरि '%lluk' कमाल '%lluk' पेक्षा जास्त आहे"
 
-#: src/conf/domain_conf.c:12257
+#: src/conf/domain_conf.c:12264
 msgid "cannot extract hugepages nodes"
 msgstr "ह्युजपेजेस नोड्जची प्राप्ति अशक्य"
 
-#: src/conf/domain_conf.c:12277
+#: src/conf/domain_conf.c:12284
 #, c-format
 msgid "nodeset attribute of hugepages of sizes %llu and %llu intersect"
 msgstr "%llu आकाराचे ह्युजपेजेसचे nodeset गुणधर्म आणि %llu छेदीय आहे"
 
-#: src/conf/domain_conf.c:12285
+#: src/conf/domain_conf.c:12292
 #, c-format
 msgid "two master hugepages detected: %llu and %llu"
 msgstr "दोन मास्टर ह्युजपेजेस आढळले: %llu आणि %llu"
 
-#: src/conf/domain_conf.c:12317
+#: src/conf/domain_conf.c:12324
 msgid "cannot extract blkiotune nodes"
 msgstr "blkiotune नोडस् प्राप्त करणे अशक्य"
 
-#: src/conf/domain_conf.c:12332
+#: src/conf/domain_conf.c:12339
 #, c-format
 msgid "duplicate blkio device path '%s'"
 msgstr "हुबेहुब blkio साधन मार्ग '%s'"
 
-#: src/conf/domain_conf.c:12360
+#: src/conf/domain_conf.c:12367
 msgid "maximum vcpus must be an integer"
 msgstr "कमाल vcpus इंटिजर पाहिजे"
 
-#: src/conf/domain_conf.c:12368
+#: src/conf/domain_conf.c:12375
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr "अवैध vCPUS '%lu'ची कमाल संख्या"
 
-#: src/conf/domain_conf.c:12376
+#: src/conf/domain_conf.c:12383
 msgid "current vcpus must be an integer"
 msgstr "सध्याचे vcpus इंटिजर पाहिजे"
 
-#: src/conf/domain_conf.c:12384
+#: src/conf/domain_conf.c:12391
 #, c-format
 msgid "invalid current number of vCPUs '%lu'"
 msgstr "vCPUs '%lu'ची अवैध सध्याची संख्या"
 
-#: src/conf/domain_conf.c:12390
+#: src/conf/domain_conf.c:12397
 #, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr "maxvcpus सध्याच्या vcpus पेक्षा कमी नाही पाहजे (%d < %lu)"
 
-#: src/conf/domain_conf.c:12402
+#: src/conf/domain_conf.c:12409
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr "असमर्थीत CPU प्लेसमेंट मोड '%s'"
 
-#: src/conf/domain_conf.c:12425
+#: src/conf/domain_conf.c:12432
 #, c-format
 msgid "invalid iothreads count '%s'"
 msgstr "अवैध iothreads प्रमाण '%s'"
 
-#: src/conf/domain_conf.c:12434
+#: src/conf/domain_conf.c:12441
 msgid "can't parse cputune shares value"
 msgstr "cputune शेअर्स मूल्य वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:12443
+#: src/conf/domain_conf.c:12450
 msgid "can't parse cputune period value"
 msgstr "cputune पिरिअड मूल्य वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:12450
+#: src/conf/domain_conf.c:12457
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr "cputune पिरिअडचे मूल्य व्याप्ति [1000, 1000000]मध्ये पाहिजे"
 
-#: src/conf/domain_conf.c:12458
+#: src/conf/domain_conf.c:12465
 msgid "can't parse cputune quota value"
 msgstr "cputune कोटा मूल्य वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:12466
+#: src/conf/domain_conf.c:12473
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr "cputune कोटाचे मूल्य व्याप्ति [1000, 18446744073709551]मध्ये पाहिजे"
 
-#: src/conf/domain_conf.c:12474
+#: src/conf/domain_conf.c:12481
 msgid "can't parse cputune emulator period value"
 msgstr "cputune एम्युलेटर पिरिअड मूल्य वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:12482
+#: src/conf/domain_conf.c:12489
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr "cputune emulator_periodचे मूल्य व्याप्ति [1000, 1000000]मध्ये पाहिजे"
 
-#: src/conf/domain_conf.c:12490
+#: src/conf/domain_conf.c:12497
 msgid "can't parse cputune emulator quota value"
 msgstr "cputune एम्युलेटर कोटा मूल्य वाचणे अशक्य"
 
-#: src/conf/domain_conf.c:12498
+#: src/conf/domain_conf.c:12505
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr "cputune emulator_quotaचे मूल्य व्याप्ति[1000, 18446744073709551]मध्ये पाहिजे"
 
-#: src/conf/domain_conf.c:12521
+#: src/conf/domain_conf.c:12528
 msgid "duplicate vcpupin for same vcpu"
 msgstr "समान vcpu करिता हुबेहुब vcpupin"
 
-#: src/conf/domain_conf.c:12570
+#: src/conf/domain_conf.c:12577
 msgid "cannot extract emulatorpin nodes"
 msgstr "emulatorpin नोड्स् प्राप्त करणे अशक्य"
 
-#: src/conf/domain_conf.c:12582
+#: src/conf/domain_conf.c:12589
 msgid "only one emulatorpin is supported"
 msgstr "फक्त एकच emulatorpin समर्थीत आहे"
 
-#: src/conf/domain_conf.c:12602
+#: src/conf/domain_conf.c:12609
 msgid "cannot extract iothreadpin nodes"
 msgstr "iothreadpin नोड्ज प्राप्ति अशक्य"
 
-#: src/conf/domain_conf.c:12627
+#: src/conf/domain_conf.c:12634
 msgid "duplicate iothreadpin for same iothread"
 msgstr "समान iothread करिता हुबेहुब iothreadpin"
 
-#: src/conf/domain_conf.c:12656
+#: src/conf/domain_conf.c:12663
 msgid "Maximum CPUs greater than topology limit"
 msgstr "टोपोलॉजि लिमिटपेक्षा जास्त कमाल CPU"
 
-#: src/conf/domain_conf.c:12662
+#: src/conf/domain_conf.c:12669
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "<numa> मधील CPU ची संख्या <vcpu> प्रमाणपेक्षा जास्त आहे"
 
-#: src/conf/domain_conf.c:12680
+#: src/conf/domain_conf.c:12687
 msgid "cannot extract resource nodes"
 msgstr "रिसोअर्स नोड्स प्राप्त करणे अशक्य"
 
-#: src/conf/domain_conf.c:12686
+#: src/conf/domain_conf.c:12693
 msgid "only one resource element is supported"
 msgstr "फक्त एक रिसोअर्स एलिमेंट समर्थीत आहे"
 
-#: src/conf/domain_conf.c:12702
+#: src/conf/domain_conf.c:12709
 #, c-format
 msgid "unexpected feature '%s'"
 msgstr "अनपेक्षित गुणविशेष '%s'"
 
-#: src/conf/domain_conf.c:12712
+#: src/conf/domain_conf.c:12719
 #, c-format
 msgid "unknown value for attribute eoi: '%s'"
 msgstr "गुणधर्म eoi करिता अपरिचीत मूल्य: '%s'"
 
-#: src/conf/domain_conf.c:12736 src/conf/domain_conf.c:12752
+#: src/conf/domain_conf.c:12743 src/conf/domain_conf.c:12759
 #, c-format
 msgid "unknown state attribute '%s' of feature '%s'"
 msgstr "अपरिचीत state गुणधर्म '%s', गुणविशेष '%s' चे"
 
-#: src/conf/domain_conf.c:12781
+#: src/conf/domain_conf.c:12788
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "असमर्थीत हायपरवी एंलाइटमेंट गुणविशेष: %s"
 
-#: src/conf/domain_conf.c:12793 src/conf/domain_conf.c:12814
+#: src/conf/domain_conf.c:12800 src/conf/domain_conf.c:12821
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr "हायपरवी एंलाइटमेंट गुणविशेष '%s' करिता 'state' गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:12801 src/conf/domain_conf.c:12822
+#: src/conf/domain_conf.c:12808 src/conf/domain_conf.c:12829
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr "हायपरवी एंलाइटमेंट गुणविशेष '%s' करिता स्तर गुणधर्माचे अवैध मूल्य"
 
-#: src/conf/domain_conf.c:12833
+#: src/conf/domain_conf.c:12840
 msgid "invalid HyperV spinlock retry count"
 msgstr "अवैध हायपरव्हि स्पिनलॉक रिट्राय गणन"
 
-#: src/conf/domain_conf.c:12839
+#: src/conf/domain_conf.c:12846
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr "HyperV स्पिनलॉक रिट्राय गणन किमान 4095 पाहिजे"
 
-#: src/conf/domain_conf.c:12867
+#: src/conf/domain_conf.c:12874
 #, c-format
 msgid "unsupported KVM feature: %s"
 msgstr "असमर्थीत KVM गुणविशेष: %s"
 
-#: src/conf/domain_conf.c:12878
+#: src/conf/domain_conf.c:12885
 #, c-format
 msgid "missing 'state' attribute for KVM feature '%s'"
 msgstr "न आढळलेले 'state' गुणधर्म, KVM गुणविशेष '%s' करिता"
 
-#: src/conf/domain_conf.c:12886
+#: src/conf/domain_conf.c:12893
 #, c-format
 msgid "invalid value of state argument for KVM feature '%s'"
 msgstr "KVM गुणविशेष '%s' करिता स्टेट बाबीचे अवैध मूल्य"
 
-#: src/conf/domain_conf.c:12912
+#: src/conf/domain_conf.c:12919
 #, c-format
 msgid "unexpected capability feature '%s'"
 msgstr "अनपेक्षित क्षमता गुणविशेष '%s'"
 
-#: src/conf/domain_conf.c:12923
+#: src/conf/domain_conf.c:12930
 #, c-format
 msgid "unknown state attribute '%s' of feature capability '%s'"
 msgstr "गुणविशेष क्षमता '%2$s' चे अपरिचीत state गुणधर्म '%1$s'"
 
-#: src/conf/domain_conf.c:12977
+#: src/conf/domain_conf.c:12984
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "अपरिचीत क्लॉक ऑफसेट '%s'"
 
-#: src/conf/domain_conf.c:12993
+#: src/conf/domain_conf.c:13000
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "अपरिचीत क्लॉक तडजोड '%s'"
 
-#: src/conf/domain_conf.c:13024
+#: src/conf/domain_conf.c:13031
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "अपरिचीत क्लॉक मुळ '%s'"
 
-#: src/conf/domain_conf.c:13037
+#: src/conf/domain_conf.c:13044
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "offset='timezone' असणाऱ्या घड्याळकरिता 'timezone' गुणधर्म आढळले नाही"
 
-#: src/conf/domain_conf.c:13069
+#: src/conf/domain_conf.c:13076
 msgid "no OS type"
 msgstr "OS प्रकार नाही"
 
-#: src/conf/domain_conf.c:13104
+#: src/conf/domain_conf.c:13111
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr "आर्क '%s' करिता अतिथी पर्याय अनुपलब्ध"
 
-#: src/conf/domain_conf.c:13113
+#: src/conf/domain_conf.c:13120
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr "आर्क '%2$s' करिता os '%1$s' अनुपलब्ध"
 
-#: src/conf/domain_conf.c:13124 src/xenconfig/xen_common.c:1039
+#: src/conf/domain_conf.c:13131 src/xenconfig/xen_common.c:1039
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "os प्रकार '%s' करिता समर्थीत मांडणी आढळली नाही"
 
-#: src/conf/domain_conf.c:13163
+#: src/conf/domain_conf.c:13170
 msgid "No data supplied for <initarg> element"
 msgstr "<initarg> एलिमेंटकरिता डाटा पुरवले नाही"
 
-#: src/conf/domain_conf.c:13247 src/conf/domain_conf.c:13256
+#: src/conf/domain_conf.c:13254 src/conf/domain_conf.c:13263
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr "इतर USB कंट्रोलर समाविष्ट करणे अशक्य: या डोमैनकरिता USB बंद केले आहे"
 
-#: src/conf/domain_conf.c:13273
+#: src/conf/domain_conf.c:13280
 msgid "No master USB controller specified"
 msgstr "मास्टर USB कंट्रोलर निर्देशीत नाही"
 
-#: src/conf/domain_conf.c:13280
+#: src/conf/domain_conf.c:13287
 msgid "cannot extract device leases"
 msgstr "डिव्हाइस लिजेस् प्राप्त करणे अशक्य"
 
-#: src/conf/domain_conf.c:13414
+#: src/conf/domain_conf.c:13421
 msgid "cannot extract console devices"
 msgstr "कंसोल साधने प्राप्त करणे अशक्य"
 
-#: src/conf/domain_conf.c:13491
+#: src/conf/domain_conf.c:13498
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "USB इंपुट साधन समाविष्ट करणे अशक्य. USB बस बंद केले"
 
-#: src/conf/domain_conf.c:13586
+#: src/conf/domain_conf.c:13593
 msgid "Only one primary video device is supported"
 msgstr "फक्त एकच प्राथमिक व्हिडिओ साधन समर्थीत आहे"
 
-#: src/conf/domain_conf.c:13612
+#: src/conf/domain_conf.c:13619
 msgid "cannot determine default video type"
 msgstr "पूर्वनिर्धारीत चलचित्र प्रकार ओळखण्यास अशक्य"
 
-#: src/conf/domain_conf.c:13642
+#: src/conf/domain_conf.c:13649
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr "यजमान USB साधन समाविष्ट करणे अशक्य: ह्या यजमानात USB बंद आहे"
 
-#: src/conf/domain_conf.c:13662
+#: src/conf/domain_conf.c:13669
 msgid "only a single watchdog device is supported"
 msgstr "फक्त एकच वॉचडॉग साधण समर्थीत आहे"
 
-#: src/conf/domain_conf.c:13682
+#: src/conf/domain_conf.c:13689
 msgid "only a single memory balloon device is supported"
 msgstr "फक्त सिंगल मेमरि बलून साधन समर्थीत आहे"
 
-#: src/conf/domain_conf.c:13717
+#: src/conf/domain_conf.c:13724
 msgid "only a single TPM device is supported"
 msgstr "फक्त एक TPM साधन समर्थीत आहे"
 
-#: src/conf/domain_conf.c:13733
+#: src/conf/domain_conf.c:13740
 msgid "only a single nvram device is supported"
 msgstr "फक्त एक nvram साधन समर्थीत आहे"
 
-#: src/conf/domain_conf.c:13758
+#: src/conf/domain_conf.c:13765
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "USB हब समाविष्ट करणे अशक्य: ह्या डोमैनकरिता USB बंद केले आहे"
 
-#: src/conf/domain_conf.c:13782
+#: src/conf/domain_conf.c:13789
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr "पुनःनिर्देशीत USB साधन समाविष्ट करणे अशक्य: ह्या डोमैनकरिता USB बंद केले आहे"
 
-#: src/conf/domain_conf.c:13798
+#: src/conf/domain_conf.c:13805
 msgid "only one set of redirection filter rule is supported"
 msgstr "पुनःनिर्देशन फिल्टर नियमचे फक्त एकच संच समर्थीत आहे"
 
-#: src/conf/domain_conf.c:13819
+#: src/conf/domain_conf.c:13826
 msgid "only a single panic device is supported"
 msgstr "फक्त एकच पॅनिक साधन समर्थीत केले जाते"
 
-#: src/conf/domain_conf.c:13880
+#: src/conf/domain_conf.c:13887
 msgid "uid and gid should be mapped both"
 msgstr "uid व gid दोन्ही मॅप्ड पाहिजे"
 
-#: src/conf/domain_conf.c:13900
+#: src/conf/domain_conf.c:13907
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "अपरिचीत smbios मोड '%s'"
 
-#: src/conf/domain_conf.c:13965
+#: src/conf/domain_conf.c:13972
 msgid "no domain config"
 msgstr "क्षेत्र संरचना नाही"
 
-#: src/conf/domain_conf.c:13979
+#: src/conf/domain_conf.c:13986
 msgid "missing domain state"
 msgstr "क्षेत्राचे स्तर आढळले नाही"
 
-#: src/conf/domain_conf.c:13984
+#: src/conf/domain_conf.c:13991
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "अवैध क्षेत्र स्तर '%s'"
 
-#: src/conf/domain_conf.c:13993
+#: src/conf/domain_conf.c:14000
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "अवैध डोमैन स्तर कारण '%s'"
 
-#: src/conf/domain_conf.c:14004
+#: src/conf/domain_conf.c:14011
 msgid "invalid pid"
 msgstr "अवैध pid"
 
-#: src/conf/domain_conf.c:14018 src/conf/network_conf.c:3082
+#: src/conf/domain_conf.c:14025 src/conf/network_conf.c:3082
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "अपरिचीत टेंट फ्लॅग %s"
 
-#: src/conf/domain_conf.c:14053 src/security/virt-aa-helper.c:659
+#: src/conf/domain_conf.c:14060 src/security/virt-aa-helper.c:669
 #: tools/virsh-domain-monitor.c:95 tools/virsh-domain-monitor.c:489
 #: tools/virsh-domain-monitor.c:604 tools/virsh-domain-monitor.c:726
 #: tools/virsh-domain.c:2744 tools/virsh-domain.c:3410
@@ -3781,42 +3781,42 @@ msgstr "अपरिचीत टेंट फ्लॅग %s"
 msgid "(domain_definition)"
 msgstr "(domain_definition)"
 
-#: src/conf/domain_conf.c:14099
+#: src/conf/domain_conf.c:14106
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "अनपेक्षित रूट घटक <%s>, <domain> अपेक्षित आहे"
 
-#: src/conf/domain_conf.c:14134
+#: src/conf/domain_conf.c:14141
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "अनपेक्षीत रूट घटक <%s>, <domstatus> अपेक्षित आहे"
 
-#: src/conf/domain_conf.c:14183
+#: src/conf/domain_conf.c:14190
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr "लक्ष्य टाइमर %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14191
+#: src/conf/domain_conf.c:14198
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr "लक्ष्य टाइमर प्रेजेंस %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14199
+#: src/conf/domain_conf.c:14206
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr "लक्ष्य TSC फ्रिक्वेंसि %lu स्रोत %lu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14206
+#: src/conf/domain_conf.c:14213
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr "लक्ष्य TSC मोड %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14223
+#: src/conf/domain_conf.c:14230
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "लक्ष्य साधन पत्ता प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14236
+#: src/conf/domain_conf.c:14243
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -3824,757 +3824,757 @@ msgid ""
 msgstr ""
 "लक्ष्य साधन PCI पत्ता %04x:%02x:%02x.%02x स्रोत %04x:%02x:%02x.%02x सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14251
+#: src/conf/domain_conf.c:14258
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "लक्ष्य साधन ड्राइवहर पत्ता %d:%d:%d स्रोत %d:%d:%d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14266
+#: src/conf/domain_conf.c:14273
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr "लक्ष्य साधन virtio सिरिअल पत्ता %d:%d:%d स्रोत %d:%d:%d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14280
+#: src/conf/domain_conf.c:14287
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr "लक्ष्य साधन ccid पत्ता %d:%d स्रोत %d:%d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14294
+#: src/conf/domain_conf.c:14301
 #, c-format
 msgid "Target device isa address %d:%d does not match source %d:%d"
 msgstr "लक्ष्य साधन isa पत्ता %d:%d स्रोत %d:%d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14324
+#: src/conf/domain_conf.c:14331
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "लक्ष्य डिस्क साधन %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14332
+#: src/conf/domain_conf.c:14339
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "लक्ष्य डिस्क बस %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14340
+#: src/conf/domain_conf.c:14347
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "लक्ष्य डिस्क %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14347
+#: src/conf/domain_conf.c:14354
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr "लक्ष्य डिस्क सिरिअल %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14355
+#: src/conf/domain_conf.c:14362
 msgid "Target disk access mode does not match source"
 msgstr "लक्ष्य डिस्क प्रवेश मोड स्रोतसह जुळत नाही"
 
-#: src/conf/domain_conf.c:14372
+#: src/conf/domain_conf.c:14379
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "लक्ष्य कंट्रोलर प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14380
+#: src/conf/domain_conf.c:14387
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "लक्ष्य कंट्रोलर इंडेक्स %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14387
+#: src/conf/domain_conf.c:14394
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "लक्ष्य कंट्रोलर मॉडल %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14395
+#: src/conf/domain_conf.c:14402
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr "लक्ष्य कंट्रोलर पोर्टस् %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14402
+#: src/conf/domain_conf.c:14409
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr "लक्ष्य कंट्रोलर वेक्टर्स् %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14421
+#: src/conf/domain_conf.c:14428
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr "लक्ष्य फाइलप्रणाली अतिथी लक्ष्य %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14428
+#: src/conf/domain_conf.c:14435
 msgid "Target filesystem access mode does not match source"
 msgstr "लक्ष्य फाइलप्रणाली प्रवेश मोड स्रोतसह जुळत नाही"
 
-#: src/conf/domain_conf.c:14448
+#: src/conf/domain_conf.c:14455
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr "लक्ष्य नेटवर्क कार्ड मॅक %s स्रोत %sसह जुळत नाही"
 
-#: src/conf/domain_conf.c:14457
+#: src/conf/domain_conf.c:14464
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "नेटवर्क कार्ड मॉडल %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14475
+#: src/conf/domain_conf.c:14482
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr "लक्ष्य इंपुट साधन प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14483
+#: src/conf/domain_conf.c:14490
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr "लक्ष्य इंपुट साधन बस %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14502
+#: src/conf/domain_conf.c:14509
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "लक्ष्य साउंड कार्ड मॉडल %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14521
+#: src/conf/domain_conf.c:14528
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr "लक्ष्य व्हिडिओ कार्ड मॉडल %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14529
+#: src/conf/domain_conf.c:14536
 #, c-format
 msgid "Target video card ram %u does not match source %u"
 msgstr "लक्ष्य व्हिडीओ कार्ड रॅम %u स्रोत %u सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14536
+#: src/conf/domain_conf.c:14543
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr "लक्ष्य व्हिडिओ कार्ड vram %u स्रोत %u सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14543
+#: src/conf/domain_conf.c:14550
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr "लक्ष्य व्हिडिओ कार्ड हेडस् %u स्रोत %u सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14551
+#: src/conf/domain_conf.c:14558
 msgid "Target video card acceleration does not match source"
 msgstr "लक्ष्य व्हिडिओ कार्ड ॲक्सिलरेशन स्रोत सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14558
+#: src/conf/domain_conf.c:14565
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr "लक्ष्य व्हिडिओ कार्ड 2d ॲक्सेल %u स्रोत %u सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14565
+#: src/conf/domain_conf.c:14572
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr "लक्ष्य व्हिडिओ कार्ड 3d ॲक्सेल %u स्रोत %u सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14584
+#: src/conf/domain_conf.c:14591
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr "लक्ष्य यजमान डिव्हाइस मोड %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14593
+#: src/conf/domain_conf.c:14600
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr "लक्ष्य यजमान साधन उपप्रणाली %s, स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14623
+#: src/conf/domain_conf.c:14630
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "लक्ष्य सिरिअल पोर्ट %d, स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14641
+#: src/conf/domain_conf.c:14648
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr "लक्ष्य पॅरलल पोर्ट %d सोअर्स %dसह जुळत नाही"
 
-#: src/conf/domain_conf.c:14659
+#: src/conf/domain_conf.c:14666
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "लक्ष्य वाहिनी प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14669
+#: src/conf/domain_conf.c:14676
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr "लक्ष्य चॅनलचे नाव %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14678
+#: src/conf/domain_conf.c:14685
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr ""
 "साधन प्रकारला करिता/पासून spicevmc बदलल्यास पूर्वनिर्धारित लक्ष्य वाहिनी नाव बदलते"
 
-#: src/conf/domain_conf.c:14689
+#: src/conf/domain_conf.c:14696
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr "लक्ष्य वाहिनी पत्ता %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14711
+#: src/conf/domain_conf.c:14718
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr "लक्ष्य कंसोल प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14730
+#: src/conf/domain_conf.c:14737
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr "लक्ष्य वॉचडॉग मोड %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14749
+#: src/conf/domain_conf.c:14756
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr "लक्ष्य बलून मोड %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14768
+#: src/conf/domain_conf.c:14775
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "लक्ष्य RNG प्रतिकृती '%s' सोअर्स '%s'सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14787
+#: src/conf/domain_conf.c:14794
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr "लक्ष्य हब डिव्हाइस प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14806
+#: src/conf/domain_conf.c:14813
 #, c-format
 msgid "Target redirected device bus %s does not match source %s"
 msgstr "लक्ष्य पुन्हनिर्देशीत साधन बस %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14817
+#: src/conf/domain_conf.c:14824
 #, c-format
 msgid ""
 "Target redirected device source type %s does not match source device source "
 "type %s"
 msgstr "लक्ष्य पुन्हनिर्देशीत साधन स्रोत प्रकार %s स्रोत साधन स्रोत प्रकार %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14843
+#: src/conf/domain_conf.c:14850
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr "लक्ष्य USB पुनःनिर्देशन फिल्टर नियम प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14854
+#: src/conf/domain_conf.c:14861
 msgid "Target USB Class code does not match source"
 msgstr "लक्ष्य USB क्लास कोड स्रोतसह जुळत नाही"
 
-#: src/conf/domain_conf.c:14860
+#: src/conf/domain_conf.c:14867
 msgid "Target USB vendor ID does not match source"
 msgstr "लक्ष्य USB विक्रेता ID सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14866
+#: src/conf/domain_conf.c:14873
 msgid "Target USB product ID does not match source"
 msgstr "लक्ष्य USB उत्पादन ID सह जुळत नाही"
 
-#: src/conf/domain_conf.c:14872
+#: src/conf/domain_conf.c:14879
 msgid "Target USB version does not match source"
 msgstr "लक्ष्य USB आवृत्तीसह जुळत नाही"
 
-#: src/conf/domain_conf.c:14878
+#: src/conf/domain_conf.c:14885
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr "लक्ष्य USB '%s' ला स्रोत '%s' सह जुळण्यास परवानगी देते"
 
-#: src/conf/domain_conf.c:14898
+#: src/conf/domain_conf.c:14905
 #, c-format
 msgid "State of feature '%s' differs: source: '%s', destination: '%s'"
 msgstr "गुणविशेषचे स्तर '%s' भिन्न आहे: स्रोत: '%s', लक्ष्य: '%s'"
 
-#: src/conf/domain_conf.c:14910
+#: src/conf/domain_conf.c:14917
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr "APIC EOI चे स्तर भिन्न आहेत: स्रोत: '%s', लक्ष्य: '%s'"
 
-#: src/conf/domain_conf.c:14925
+#: src/conf/domain_conf.c:14932
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr "हाइपव्हि एंलाइटमेंट गुणविशेष '%s' चे स्तर भिन्न आहेत: स्रोत: '%s', लक्ष्य: '%s'"
 
-#: src/conf/domain_conf.c:14940
+#: src/conf/domain_conf.c:14947
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr "हायपरव्हि सिपनलॉक पुन्ह प्रयत्न प्रमाण भिन्न आहे: स्रोत: '%u', लक्ष्य: '%u'"
 
-#: src/conf/domain_conf.c:14962
+#: src/conf/domain_conf.c:14969
 #, c-format
 msgid "State of KVM feature '%s' differs: source: '%s', destination: '%s'"
 msgstr "KVM गुणविशेष '%s' चे स्तर भिन्न आहे: स्रोत: '%s', लक्ष्य: '%s'"
 
-#: src/conf/domain_conf.c:14991
+#: src/conf/domain_conf.c:14998
 #, c-format
 msgid "Target domain panic device count '%d' does not match source count '%d'"
 msgstr "लक्ष्य डोमेन पॅनिक साधन प्रमाण '%d' स्रोत प्रमाण '%d' सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15007
+#: src/conf/domain_conf.c:15014
 #, fuzzy, c-format
 msgid "Target shared memory name '%s' does not match source '%s'"
 msgstr "लक्ष्य डोमेन नाव '%s' स्रोत '%s' सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15014
+#: src/conf/domain_conf.c:15021
 #, fuzzy, c-format
 msgid "Target shared memory size '%llu' does not match source size '%llu'"
 msgstr "लक्ष्य डोमेन ह्यज पेजेसचे आकार %llu स्रोत %llu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15021
+#: src/conf/domain_conf.c:15028
 #, fuzzy
 msgid "Target shared memory server usage doesn't match source"
 msgstr "लक्ष्य साउंड कार्ड मॉडल %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15030
+#: src/conf/domain_conf.c:15037
 #, fuzzy
 msgid "Target shared memory MSI configuration doesn't match source"
 msgstr "लक्ष्य व्हिडिओ कार्ड ॲक्सिलरेशन स्रोत सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15054
+#: src/conf/domain_conf.c:15061
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr "लक्ष्य डोमैन virt प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15066
+#: src/conf/domain_conf.c:15073
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr "लक्ष्य डोमैन uuid %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15077
+#: src/conf/domain_conf.c:15084
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "लक्ष्य डोमेन नाव '%s' स्रोत '%s' सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15084
+#: src/conf/domain_conf.c:15091
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr "लक्ष्य डोमैन कमाल मेमरि %lld स्रोत %lld सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15090
+#: src/conf/domain_conf.c:15097
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr "लक्ष्य डोमैन सध्याची मेमरि %lld स्रोत %lld सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15096
+#: src/conf/domain_conf.c:15103
 #, c-format
 msgid "Target domain huge pages count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन ह्यज पेजेसचे प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15106
+#: src/conf/domain_conf.c:15113
 #, c-format
 msgid "Target domain huge page size %llu does not match source %llu"
 msgstr "लक्ष्य डोमेन ह्यज पेजेसचे आकार %llu स्रोत %llu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15115 src/conf/domain_conf.c:15121
+#: src/conf/domain_conf.c:15122 src/conf/domain_conf.c:15128
 msgid "Target huge page nodemask does not match source"
 msgstr "लक्ष्य ह्यज पेज nodemask स्रोतसह जुळत नाही"
 
-#: src/conf/domain_conf.c:15129
+#: src/conf/domain_conf.c:15136
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr "लक्ष्य डोमेन vCPU प्रमाण %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15135
+#: src/conf/domain_conf.c:15142
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr "लक्ष्य डोमेन vCPU कमाल %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15142
+#: src/conf/domain_conf.c:15149
 #, c-format
 msgid "Target domain iothreads count %u does not match source %u"
 msgstr "लक्ष्य डोमेन iothreads चे प्रमाण %u स्रोत %u सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15150 src/conf/domain_conf.c:15163
+#: src/conf/domain_conf.c:15157 src/conf/domain_conf.c:15170
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr "लक्ष्य डोमैन OS प्रकार %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15156
+#: src/conf/domain_conf.c:15163
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr "लक्ष्य डोमेन आर्किटेक्चर %s स्रोत %s जुळत नाही"
 
-#: src/conf/domain_conf.c:15170
+#: src/conf/domain_conf.c:15177
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr "लक्ष्य डोमेन SMBIOS मोड %s स्रोत %s सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15181
+#: src/conf/domain_conf.c:15188
 msgid "Target domain timers do not match source"
 msgstr "लक्ष्य डोमेन टाइमर्स् स्रोतसह जुळत नाही"
 
-#: src/conf/domain_conf.c:15199
+#: src/conf/domain_conf.c:15206
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन डिस्क प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15210
+#: src/conf/domain_conf.c:15217
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन कंट्रोलर प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15223
+#: src/conf/domain_conf.c:15230
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन फाइलप्रणाली प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15235
+#: src/conf/domain_conf.c:15242
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन नेट कार्ड प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15247
+#: src/conf/domain_conf.c:15254
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन इंपुट साधन प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15259
+#: src/conf/domain_conf.c:15266
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन साउंड कार्ड प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15271
+#: src/conf/domain_conf.c:15278
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन व्हिडिओ कार्ड प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15283
+#: src/conf/domain_conf.c:15290
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr "टार्गेट डोमेन यजमान साधन प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15296
+#: src/conf/domain_conf.c:15303
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन स्मार्टकार्ड प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15309
+#: src/conf/domain_conf.c:15316
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन सिरिअल पोर्ट प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15322
+#: src/conf/domain_conf.c:15329
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन पॅरेलल पोर्ट प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15335
+#: src/conf/domain_conf.c:15342
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन वाहिनी प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15348
+#: src/conf/domain_conf.c:15355
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन कंसोल प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15361
+#: src/conf/domain_conf.c:15368
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन हब साधन प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15373
+#: src/conf/domain_conf.c:15380
 #, c-format
 msgid "Target domain redirected devices count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन पुन्हनिर्देशीत साधनांचे प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15388
+#: src/conf/domain_conf.c:15395
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr "लक्ष्य डोमेन USB पुनःनिर्देशन फिल्टर प्रमाण %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15402
+#: src/conf/domain_conf.c:15409
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr "लक्ष्य डोमेन वॉचडॉग प्रमाण %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15415
+#: src/conf/domain_conf.c:15422
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr "लक्ष्य डोमेन मेमरि बलून प्रमाण %d स्रोत %d सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15428
+#: src/conf/domain_conf.c:15435
 #, c-format
 msgid "Target domain RNG device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन RNG साधन प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15442
+#: src/conf/domain_conf.c:15449
 #, fuzzy, c-format
 msgid "Target domain shared memory device count %zu does not match source %zu"
 msgstr "टार्गेट डोमेन यजमान साधन प्रमाण %zu स्रोत %zu सह जुळत नाही"
 
-#: src/conf/domain_conf.c:15808
+#: src/conf/domain_conf.c:15815
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "अनपेक्षीत %s कृती: %d"
 
-#: src/conf/domain_conf.c:16104 src/conf/domain_conf.c:16193
+#: src/conf/domain_conf.c:16111 src/conf/domain_conf.c:16200
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "अनपेक्षीत डिस्क प्रकार %d"
 
-#: src/conf/domain_conf.c:16141
+#: src/conf/domain_conf.c:16148
 #, c-format
 msgid "unexpected disk backing store type %d"
 msgstr "अनपेक्षित डिस्क बॅकिंग साठवणे प्रकार %d"
 
-#: src/conf/domain_conf.c:16149
+#: src/conf/domain_conf.c:16156
 #, c-format
 msgid "unexpected disk backing store format %d"
 msgstr "अनपेक्षित डिस्क बॅकिंग साठवणे प्रकार %d"
 
-#: src/conf/domain_conf.c:16198
+#: src/conf/domain_conf.c:16205
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "अनपेक्षीत डिस्क साधन %d"
 
-#: src/conf/domain_conf.c:16203
+#: src/conf/domain_conf.c:16210
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "अनपेक्षीत डिस्क बस %d"
 
-#: src/conf/domain_conf.c:16208
+#: src/conf/domain_conf.c:16215
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "अनपेक्षीत डिस्क कॅशे पद्धत %d"
 
-#: src/conf/domain_conf.c:16213
+#: src/conf/domain_conf.c:16220
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "अनपेक्षीत डिस्क io मोड %d"
 
-#: src/conf/domain_conf.c:16218
+#: src/conf/domain_conf.c:16225
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "अनपेक्षीत डिस्क sgio मोड '%d'"
 
-#: src/conf/domain_conf.c:16430
+#: src/conf/domain_conf.c:16437
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "अनपेक्षीत कंट्रोलर प्रकार %d"
 
-#: src/conf/domain_conf.c:16439
+#: src/conf/domain_conf.c:16446
 #, c-format
 msgid "unexpected model type %d"
 msgstr "अनपेक्षीत मॉडेल प्रकार %d"
 
-#: src/conf/domain_conf.c:16532
+#: src/conf/domain_conf.c:16539
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "अनपेक्षीत फाइलप्रणाली प्रकार %d"
 
-#: src/conf/domain_conf.c:16538
+#: src/conf/domain_conf.c:16545
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "अनपेक्षीत accessmode %d"
 
-#: src/conf/domain_conf.c:16630
+#: src/conf/domain_conf.c:16637
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "अनपेक्षित pci hostdev ड्राइव्हर नाव प्रकार %d"
 
-#: src/conf/domain_conf.c:16679
+#: src/conf/domain_conf.c:16686
 msgid "PCI address Formatting failed"
 msgstr "PCI पत्ता रूपण अपयशी"
 
-#: src/conf/domain_conf.c:16715 src/conf/domain_conf.c:16755
-#: src/conf/domain_conf.c:18314 src/conf/domain_conf.c:18323
-#: src/libxl/libxl_driver.c:3011 src/qemu/qemu_hotplug.c:3473
+#: src/conf/domain_conf.c:16722 src/conf/domain_conf.c:16762
+#: src/conf/domain_conf.c:18321 src/conf/domain_conf.c:18330
+#: src/libxl/libxl_driver.c:3011 src/qemu/qemu_hotplug.c:3484
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "अनपेक्षीत hostdev प्रकार %d"
 
-#: src/conf/domain_conf.c:16793
+#: src/conf/domain_conf.c:16800
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "अनपेक्षीत स्रोत मोड %d"
 
-#: src/conf/domain_conf.c:16825
+#: src/conf/domain_conf.c:16832
 #, c-format
 msgid "unexpected actual net type %s"
 msgstr "अनपेक्षित प्रत्यक्ष नेट प्रकार %s"
 
-#: src/conf/domain_conf.c:16858 src/conf/domain_conf.c:17018
-#: src/conf/domain_conf.c:18090
+#: src/conf/domain_conf.c:16865 src/conf/domain_conf.c:17025
+#: src/conf/domain_conf.c:18097
 #, c-format
 msgid "unexpected net type %d"
 msgstr "अनपेक्षीत net प्रकार %d"
 
-#: src/conf/domain_conf.c:17010
+#: src/conf/domain_conf.c:17017
 #, c-format
 msgid "unexpected actual net type %d"
 msgstr "अनपेक्षित प्रत्यक्ष नेट प्रकार %d"
 
-#: src/conf/domain_conf.c:17256
+#: src/conf/domain_conf.c:17263
 #, c-format
 msgid "unexpected char type %d"
 msgstr "अनपेक्षीत अक्षर प्रकार %d"
 
-#: src/conf/domain_conf.c:17371
+#: src/conf/domain_conf.c:17378
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "अनपेक्षीत char डिव्हाइस प्रकार %d"
 
-#: src/conf/domain_conf.c:17391
+#: src/conf/domain_conf.c:17398
 msgid "Could not format channel target type"
 msgstr "वाहिनी लक्ष्य प्रकारचे रूपण अशक्य"
 
-#: src/conf/domain_conf.c:17401
+#: src/conf/domain_conf.c:17408
 msgid "Unable to format guestfwd port"
 msgstr "guestfwd पोर्टचे रूपण करण्यास अशक्य"
 
-#: src/conf/domain_conf.c:17471 src/conf/domain_conf.c:17504
+#: src/conf/domain_conf.c:17478 src/conf/domain_conf.c:17511
 #: src/qemu/qemu_command.c:8975
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "अनपेक्षीत स्मार्टकार्ड प्रकार %d"
 
-#: src/conf/domain_conf.c:17522
+#: src/conf/domain_conf.c:17529
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "अनपेक्षीत कोडेक प्रकार %d"
 
-#: src/conf/domain_conf.c:17578 src/xenconfig/xen_sxpr.c:2114
+#: src/conf/domain_conf.c:17585 src/xenconfig/xen_sxpr.c:2114
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "अनपेक्षीत आवाज प्रारूप %d"
 
-#: src/conf/domain_conf.c:17624
+#: src/conf/domain_conf.c:17631
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "अनपेक्षीत balloon मॉडेल %d"
 
-#: src/conf/domain_conf.c:17682
+#: src/conf/domain_conf.c:17689
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "अनपेक्षीत वॉचडॉग मॉडेल %d"
 
-#: src/conf/domain_conf.c:17688
+#: src/conf/domain_conf.c:17695
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "अनपेक्षीत वॉचडॉग कृती %d"
 
-#: src/conf/domain_conf.c:17856
+#: src/conf/domain_conf.c:17863
 #, c-format
 msgid "unexpected video model %d"
 msgstr "अनपेक्षीत चलचित्र मॉडेल %d"
 
-#: src/conf/domain_conf.c:17900 src/xenconfig/xen_sxpr.c:2150
+#: src/conf/domain_conf.c:17907 src/xenconfig/xen_sxpr.c:2150
 #, c-format
 msgid "unexpected input type %d"
 msgstr "अनपेक्षीत इनपुट प्रकार %d"
 
-#: src/conf/domain_conf.c:17905
+#: src/conf/domain_conf.c:17912
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "अनपेक्षीत इनपुट बस प्रकार %d"
 
-#: src/conf/domain_conf.c:17935
+#: src/conf/domain_conf.c:17942
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "अनपेक्षीत टाइमरचे नाव %d"
 
-#: src/conf/domain_conf.c:17951
+#: src/conf/domain_conf.c:17958
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "अनपेक्षीत टाइमर टिकपॉलिसि %d"
 
-#: src/conf/domain_conf.c:17965
+#: src/conf/domain_conf.c:17972
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "अनपेक्षीत टाइमर ट्रॅक %d"
 
-#: src/conf/domain_conf.c:17983
+#: src/conf/domain_conf.c:17990
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "अनपेक्षीत टाइमर मोड %d"
 
-#: src/conf/domain_conf.c:18305 src/conf/domain_conf.c:18330
+#: src/conf/domain_conf.c:18312 src/conf/domain_conf.c:18337
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "अनपेक्षीत hostdev पद्धत %d"
 
-#: src/conf/domain_conf.c:18446
+#: src/conf/domain_conf.c:18453
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "अनपेक्षीत हब प्रकार %d"
 
-#: src/conf/domain_conf.c:18616
+#: src/conf/domain_conf.c:18623
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "अनपेक्षीत क्षेत्र प्रकार %d"
 
-#: src/conf/domain_conf.c:18934
+#: src/conf/domain_conf.c:18941
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "अनपेक्षीत बूट साधन प्रकार %d"
 
-#: src/conf/domain_conf.c:18967
+#: src/conf/domain_conf.c:18974
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "अनपेक्षीत smbios मोड %d"
 
-#: src/conf/domain_conf.c:19014
+#: src/conf/domain_conf.c:19021
 #, c-format
 msgid "unexpected feature %zu"
 msgstr "अनपेक्षित गुणविशेष %zu"
 
-#: src/conf/domain_conf.c:19035
+#: src/conf/domain_conf.c:19042
 #, c-format
 msgid "Unexpected state of feature '%s'"
 msgstr "अनपेक्षित गुणविशेष '%s' चे स्तर"
 
-#: src/conf/domain_conf.c:19518
+#: src/conf/domain_conf.c:19525
 #, c-format
 msgid "boot order %d is already used by another device"
 msgstr "बूट क्रमवारि %d आधीपासूनच इतर साधनातर्फे वापरणीत आहे"
 
-#: src/conf/domain_conf.c:19539
+#: src/conf/domain_conf.c:19546
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "साधन संरचना सहत्व नाही: डोमेनकडे USB बस सपोर्ट नाही"
 
-#: src/conf/domain_conf.c:19577 src/conf/network_conf.c:2948
+#: src/conf/domain_conf.c:19584 src/conf/network_conf.c:2948
 #: src/conf/nwfilter_conf.c:2804 src/util/virdnsmasq.c:550
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "संयोजना डिरेक्ट्री '%s' बनवणे अशक्य"
 
-#: src/conf/domain_conf.c:19716
+#: src/conf/domain_conf.c:19723
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "अनपेक्षीत क्षेत्र %s आधिपासूनच अस्तित्वात आहे"
 
-#: src/conf/domain_conf.c:19757 src/conf/network_conf.c:3195
+#: src/conf/domain_conf.c:19764 src/conf/network_conf.c:3195
 #: src/conf/network_conf.c:3229 src/conf/nwfilter_conf.c:3183
 #: src/conf/storage_conf.c:1848
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "डिरेक्ट्री '%s' उघडण्यास अपयशी"
 
-#: src/conf/domain_conf.c:19827
+#: src/conf/domain_conf.c:19834
 #, c-format
 msgid "cannot remove config %s"
 msgstr "%s संयोजना काढून टाकणे अशक्य"
 
-#: src/conf/domain_conf.c:20193
+#: src/conf/domain_conf.c:20200
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr "बॅकिंग चेन फाइल %s करिता भेट देणे अशक्य"
 
-#: src/conf/domain_conf.c:20305
+#: src/conf/domain_conf.c:20312
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "अवैध डोमैन स्तर: %d"
 
-#: src/conf/domain_conf.c:20773
+#: src/conf/domain_conf.c:20780
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr "'%d' प्रकारच्या वर्णनचे प्रत अजूनही लागू केले नाही."
 
-#: src/conf/domain_conf.c:21029
+#: src/conf/domain_conf.c:21036
 #, c-format
 msgid "no device found with alias %s"
 msgstr "एलियस %s सह साधन आढळले नाही"
 
-#: src/conf/domain_conf.c:21093 src/conf/domain_conf.c:21152
+#: src/conf/domain_conf.c:21100 src/conf/domain_conf.c:21159
 #, c-format
 msgid "unknown metadata type '%d'"
 msgstr "अपरिचीत मेटाडाटा प्रकार '%d'"
 
-#: src/conf/domain_conf.c:21130
+#: src/conf/domain_conf.c:21137
 msgid "Requested metadata element is not present"
 msgstr "विनंतीकृपत metadata एलिमेंट अस्तित्वात नाही"
 
-#: src/conf/domain_conf.c:21176
+#: src/conf/domain_conf.c:21183
 msgid "(metadata_xml)"
 msgstr "(metadata_xml)"
 
@@ -7361,13 +7361,13 @@ msgid "Invalid argument"
 msgstr "अवैध आर्ग्यूमेंट"
 
 #: src/esx/esx_driver.c:669 src/esx/esx_driver.c:790
-#: src/hyperv/hyperv_driver.c:146 src/phyp/phyp_driver.c:929
+#: src/hyperv/hyperv_driver.c:146 src/phyp/phyp_driver.c:931
 #: src/xenapi/xenapi_driver.c:163
 msgid "Username request failed"
 msgstr "वापरकर्तानाव विनंती अपयशी"
 
 #: src/esx/esx_driver.c:677 src/esx/esx_driver.c:798
-#: src/hyperv/hyperv_driver.c:154 src/phyp/phyp_driver.c:1011
+#: src/hyperv/hyperv_driver.c:154 src/phyp/phyp_driver.c:1013
 #: src/xenapi/xenapi_driver.c:172
 msgid "Password request failed"
 msgstr "पासवर्ड विनंती अपयशी"
@@ -7513,7 +7513,7 @@ msgid "Screenshot feature is unsupported"
 msgstr "स्टार्टअप स्क्रिप्ट सेट करणे समर्थीत नाही"
 
 #: src/esx/esx_driver.c:2624 src/esx/esx_driver.c:2708
-#: src/phyp/phyp_driver.c:1391 src/phyp/phyp_driver.c:3634
+#: src/phyp/phyp_driver.c:1393 src/phyp/phyp_driver.c:3636
 #: src/vbox/vbox_common.c:2885 src/vbox/vbox_common.c:2937
 #: src/xenapi/xenapi_driver.c:1160 src/xenapi/xenapi_driver.c:1332
 #, c-format
@@ -10319,7 +10319,8 @@ msgid "setsid failed"
 msgstr "setsid अपयशी"
 
 #: src/lxc/lxc_container.c:284
-msgid "ioctl(TIOCSTTY) failed"
+#, fuzzy
+msgid "ioctl(TIOCSCTTY) failed"
 msgstr "ioctl(TIOCSTTY) अपयशी"
 
 #: src/lxc/lxc_container.c:290
@@ -11115,7 +11116,7 @@ msgstr "लक्ष्य साधन %s नाही"
 
 #: src/lxc/lxc_driver.c:3850 src/libxl/libxl_driver.c:3131
 #: src/qemu/qemu_driver.c:7322 src/qemu/qemu_driver.c:7346
-#: src/qemu/qemu_hotplug.c:1451 src/qemu/qemu_hotplug.c:3701
+#: src/qemu/qemu_hotplug.c:1451 src/qemu/qemu_hotplug.c:3712
 msgid "device not present in domain configuration"
 msgstr "डोमेन संरचनामध्ये साधन अनुपलब्ध"
 
@@ -11200,7 +11201,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "साधन प्रकार '%s' समावेष करणे अशक्य"
 
 #: src/lxc/lxc_driver.c:4587 src/libxl/libxl_driver.c:2711
-#: src/qemu/qemu_hotplug.c:3106 src/uml/uml_driver.c:2316
+#: src/qemu/qemu_hotplug.c:3117 src/uml/uml_driver.c:2316
 #, c-format
 msgid "disk %s not found"
 msgstr "डिस्क %s आढळले नाही"
@@ -11246,7 +11247,7 @@ msgstr "लाइव्ह साधनांना संपादित कर
 msgid "domain is not active"
 msgstr "डोमेन सक्रिय नाही"
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:17157
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:17158
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT कंट्रोलर माउंट अशक्य आहे"
 
@@ -11725,13 +11726,13 @@ msgid "libxenlight failed to attach pci device %.4x:%.2x:%.2x.%.1x"
 msgstr "pci साधन %.4x:%.2x:%.2x.%.1x जोडण्याकरिता libxenlight अपयशी"
 
 #: src/libxl/libxl_driver.c:2673 src/libxl/libxl_driver.c:3000
-#: src/qemu/qemu_hotplug.c:1693 src/qemu/qemu_hotplug.c:3428
+#: src/qemu/qemu_hotplug.c:1693 src/qemu/qemu_hotplug.c:3439
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "hostdev मोड '%s' समर्थीत नाही"
 
 #: src/libxl/libxl_driver.c:2686 src/qemu/qemu_hotplug.c:1719
-#: src/qemu/qemu_hotplug.c:3395
+#: src/qemu/qemu_hotplug.c:3406
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys प्रकार '%s' समर्थीत नाही"
@@ -11764,12 +11765,12 @@ msgstr ""
 "लक्ष्य pci साधन  %.4x:%.2x:%.2x.%.1x                                  आधिपासूनच "
 "अस्तित्वात आहे "
 
-#: src/libxl/libxl_driver.c:2947 src/qemu/qemu_hotplug.c:3439
+#: src/libxl/libxl_driver.c:2947 src/qemu/qemu_hotplug.c:3450
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "यजमान pci उपकरण %.4x:%.2x:%.2x.%.1x आढळले नाही"
 
-#: src/libxl/libxl_driver.c:2955 src/qemu/qemu_hotplug.c:3280
+#: src/libxl/libxl_driver.c:2955 src/qemu/qemu_hotplug.c:3291
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr "मल्टिफंक्शन PCI साधनाला हॉट प्लग अशक्य करणे अशक्य: %.4x:%.2x:%.2x.%.1x"
@@ -11807,7 +11808,7 @@ msgstr "लक्ष्य %s अस्तित्वात नाही."
 msgid "this disk doesn't support update"
 msgstr "हि डिस्क सुधारणाकरिता समर्थन पुरवत नाही"
 
-#: src/libxl/libxl_driver.c:3556 src/libxl/libxl_conf.c:1512
+#: src/libxl/libxl_driver.c:3556 src/libxl/libxl_conf.c:1530
 msgid "libxl_get_physinfo_info failed"
 msgstr "libxl_get_physinfo_info अपयशी"
 
@@ -11894,7 +11895,7 @@ msgstr "libxl_get_cpu_topology अपयशी"
 msgid "Failed to get version info from libxenlight"
 msgstr "libxenlight पासून आवृत्ती माहिती प्राप्त करण्यास अपयशी"
 
-#: src/libxl/libxl_conf.c:326 src/libxl/libxl_conf.c:1264
+#: src/libxl/libxl_conf.c:326 src/libxl/libxl_conf.c:1282
 #: src/storage/storage_backend_logical.c:225 src/util/vircommand.c:2909
 #, c-format
 msgid "Failed to compile regex %s"
@@ -11919,61 +11920,71 @@ msgstr "अपरिचीत chrdev प्रकार"
 msgid "unsupported chardev '%s'"
 msgstr "असमर्थीत chardev '%s'"
 
-#: src/libxl/libxl_conf.c:712
+#: src/libxl/libxl_conf.c:711
+#, fuzzy, c-format
+msgid "emulator '%s' not found"
+msgstr "नेटवर्क '%s' आढळले नाही"
+
+#: src/libxl/libxl_conf.c:718
+#, fuzzy, c-format
+msgid "emulator '%s' is not executable"
+msgstr "QEMU बाइनरि %s चालवण्याजोगी नाही"
+
+#: src/libxl/libxl_conf.c:734
 msgid "Only one serial device is supported by libxl"
 msgstr "libxl तर्फे फक्त एकच सिरिअल साधन समर्थीत आहे"
 
-#: src/libxl/libxl_conf.c:722
+#: src/libxl/libxl_conf.c:744
 msgid "Parallel devices are not supported by libxl"
 msgstr "libxl तर्फे फक्त पॅरलल साधने समर्थीत आहे"
 
-#: src/libxl/libxl_conf.c:793
+#: src/libxl/libxl_conf.c:811
 msgid ""
 "This version of libxenlight does not support disk 'discard' option passing"
 msgstr ""
 "libxenlight ची ही आवृत्ती डिस्क 'discard' पर्याय पासिंगकरिता समर्थन पुरवत नाही"
 
-#: src/libxl/libxl_conf.c:870 src/libxl/libxl_conf.c:895
-#: src/libxl/libxl_conf.c:905 src/libxl/libxl_conf.c:917
+#: src/libxl/libxl_conf.c:888 src/libxl/libxl_conf.c:913
+#: src/libxl/libxl_conf.c:923 src/libxl/libxl_conf.c:935
 #, c-format
 msgid "libxenlight does not support disk format %s with disk driver %s"
 msgstr "libxenlight डिस्क ड्राइव्हर %sसह डिस्क रूपण %sकरिता समर्थन पुरवत नाही"
 
-#: src/libxl/libxl_conf.c:927
+#: src/libxl/libxl_conf.c:945
 #, c-format
 msgid "libxenlight does not support disk driver %s"
 msgstr "libxenlight डिस्क ड्राइव्हर %s करिता समर्थन पुरवत नाही"
 
-#: src/libxl/libxl_conf.c:952
+#: src/libxl/libxl_conf.c:970
 msgid "libxenlight does not support transient disks"
 msgstr "libxenlight ट्रांजिएंट डिस्क्स्करिता समर्थन पुरवत नाही"
 
-#: src/libxl/libxl_conf.c:1003
+#: src/libxl/libxl_conf.c:1021
 msgid ""
 "specifying a script is only supported with interface types bridge and "
 "ethernet"
 msgstr "स्क्रिप्ट निर्देशीत करणे फक्त संवाद प्रकार जसे कि ब्रिज आणि इथरनेटकरिता समर्थन पुरवते"
 
-#: src/libxl/libxl_conf.c:1083
+#: src/libxl/libxl_conf.c:1101
 #, c-format
 msgid "unsupported interface type %s"
 msgstr "असमर्थीत संवाद प्रकार %s"
 
-#: src/libxl/libxl_conf.c:1310
+#: src/libxl/libxl_conf.c:1328
 #, c-format
 msgid "failed to create log dir '%s': %s"
 msgstr "लॉग डिरेक्ट्री '%s': %s निर्माण करण्यास अपयशी"
 
-#: src/libxl/libxl_conf.c:1317
+#: src/libxl/libxl_conf.c:1335
 #, c-format
 msgid "Failed to create log file '%s': %s"
 msgstr "लॉग फाइल '%s': %s निर्माण करण्यास अपयशी"
 
-#: src/libxl/libxl_conf.c:1327
+#: src/libxl/libxl_conf.c:1345
 msgid "cannot create logger for libxenlight, disabling driver"
 msgstr "libxenlight करिता लॉगरचे निर्माण अशक्य, ड्राइव्हर बंद करत आहे"
 
-#: src/libxl/libxl_conf.c:1332
+#: src/libxl/libxl_conf.c:1350
 msgid ""
 "cannot initialize libxenlight context, probably not running in a Xen Dom0, "
 "disabling driver"
@@ -11981,38 +11992,38 @@ msgstr ""
 "libxenlight संदर्भ सुरू करणे अशक्य, कदाचित Xen Dom0 अंतर्गत चालवत नाही, ड्राइव्हर बंद "
 "करत आहे"
 
-#: src/libxl/libxl_conf.c:1338
+#: src/libxl/libxl_conf.c:1356
 msgid "cannot version information from libxenlight, disabling driver"
 msgstr "libxenlight पासून आवृत्ती माहिती प्राप्त करणे अशक्य, ड्राइव्हर बंद करत आहे"
 
-#: src/libxl/libxl_conf.c:1348
+#: src/libxl/libxl_conf.c:1366
 msgid "Unable to configure libxl's memory management parameters"
 msgstr "libxlचे मेमरि मॅनेजमेंट घटक संरचीत करणे अशक्य"
 
-#: src/libxl/libxl_conf.c:1458
+#: src/libxl/libxl_conf.c:1476
 #, fuzzy
 msgid "videoram must be at least 16MB for VGA"
 msgstr "nvram स्ट्रिंग्जची सूची पाहिजे"
 
-#: src/libxl/libxl_conf.c:1464
+#: src/libxl/libxl_conf.c:1482
 #, fuzzy
 msgid "videoram must be at least 8MB for VGA"
 msgstr "nvram स्ट्रिंग्जची सूची पाहिजे"
 
-#: src/libxl/libxl_conf.c:1475
+#: src/libxl/libxl_conf.c:1493
 msgid "videoram must be at least 8MB for CIRRUS"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1481
+#: src/libxl/libxl_conf.c:1499
 msgid "videoram must be at least 4MB for CIRRUS"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1489
+#: src/libxl/libxl_conf.c:1507
 #, fuzzy, c-format
 msgid "video type %s is not supported by libxl"
 msgstr "चलचित्र प्रकार %s QEMU सह समर्थीत नाही"
 
-#: src/libxl/libxl_conf.c:1518
+#: src/libxl/libxl_conf.c:1536
 #, c-format
 msgid "machine type %s too big for destination"
 msgstr "लक्ष्यकरिता मशीन प्रकार %s खूप मोठे आहे"
@@ -13896,87 +13907,87 @@ msgstr "खंड वर्णनसह फाइल निर्माण क�
 msgid "Can't remove file '%s'"
 msgstr "फाइल '%s' काढून टाकणे अशक्य"
 
-#: src/phyp/phyp_driver.c:124 src/phyp/phyp_driver.c:137
-#: src/phyp/phyp_driver.c:162 src/phyp/phyp_driver.c:175
-#: src/phyp/phyp_driver.c:675 src/phyp/phyp_driver.c:714
+#: src/phyp/phyp_driver.c:126 src/phyp/phyp_driver.c:139
+#: src/phyp/phyp_driver.c:164 src/phyp/phyp_driver.c:177
+#: src/phyp/phyp_driver.c:677 src/phyp/phyp_driver.c:716
 msgid "unable to wait on libssh2 socket"
 msgstr "libssh2 सॉकेटकरिता थांबणे अशक्य"
 
-#: src/phyp/phyp_driver.c:403
+#: src/phyp/phyp_driver.c:405
 #, c-format
 msgid "Cannot parse number from '%s'"
 msgstr "'%s' पासून क्रमांक वाचणे अशक्य"
 
-#: src/phyp/phyp_driver.c:434 src/phyp/phyp_driver.c:440
+#: src/phyp/phyp_driver.c:436 src/phyp/phyp_driver.c:442
 msgid "Unable to write information to local file."
 msgstr "स्थानीय फाइलकरिता माहिती लिहणे अशक्य."
 
-#: src/phyp/phyp_driver.c:446 src/phyp/phyp_driver.c:722
+#: src/phyp/phyp_driver.c:448 src/phyp/phyp_driver.c:724
 #, c-format
 msgid "Could not close %s"
 msgstr "%s बंद करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:505
+#: src/phyp/phyp_driver.c:507
 #, c-format
 msgid "Failed to read from %s"
 msgstr "%s पासून वाचणे अशक्य"
 
-#: src/phyp/phyp_driver.c:769
+#: src/phyp/phyp_driver.c:771
 msgid "Unable to determine number of domains."
 msgstr "डोमेन्स्ची संख्या ओळखण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:921 src/phyp/phyp_driver.c:1003
+#: src/phyp/phyp_driver.c:923 src/phyp/phyp_driver.c:1005
 msgid "No authentication callback provided."
 msgstr "ऑथेंटीकेशन कॉलबॅक पुरवले नाही."
 
-#: src/phyp/phyp_driver.c:942
+#: src/phyp/phyp_driver.c:944
 #, c-format
 msgid "Error while getting %s address info"
 msgstr "%s पत्ता माहिती प्राप्त करतेवेळी त्रुटी आढळली"
 
-#: src/phyp/phyp_driver.c:960
+#: src/phyp/phyp_driver.c:962
 #, c-format
 msgid "Failed to connect to %s"
 msgstr "%s सह जुळवणी करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:980
+#: src/phyp/phyp_driver.c:982
 msgid "Failure establishing SSH session."
 msgstr "SSH सत्र स्थापीत करतेवेळी त्रुटी आढळली."
 
-#: src/phyp/phyp_driver.c:1022
+#: src/phyp/phyp_driver.c:1024
 msgid "Authentication failed"
 msgstr "ओळख पटली नाही"
 
-#: src/phyp/phyp_driver.c:1105
+#: src/phyp/phyp_driver.c:1107
 msgid "Missing server name in phyp:// URI"
 msgstr "phyp:// URI मध्ये सर्व्हरचे नाव आढळले नाही"
 
-#: src/phyp/phyp_driver.c:1136
+#: src/phyp/phyp_driver.c:1138
 msgid "Error parsing 'path'. Invalid characters."
 msgstr "'मार्ग' वाचतेवेळी त्रुटी आढळली. अवैध अक्षर."
 
-#: src/phyp/phyp_driver.c:1143
+#: src/phyp/phyp_driver.c:1145
 msgid "Error while opening SSH session."
 msgstr "SSH सत्र उघडतेवेळी त्रुटी."
 
-#: src/phyp/phyp_driver.c:1530 src/phyp/phyp_driver.c:1575
-#: src/phyp/phyp_driver.c:1747
+#: src/phyp/phyp_driver.c:1532 src/phyp/phyp_driver.c:1577
+#: src/phyp/phyp_driver.c:1749
 msgid "Unable to get VIOS profile name."
 msgstr "VIOS प्रोफाइल नाव प्राप्त करण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:1570 src/phyp/phyp_driver.c:1712
+#: src/phyp/phyp_driver.c:1572 src/phyp/phyp_driver.c:1714
 msgid "Unable to get VIOS name"
 msgstr "VIOS नाव प्राप्त करण्यास अशक्य"
 
-#: src/phyp/phyp_driver.c:1580
+#: src/phyp/phyp_driver.c:1582
 msgid "Unable to get free slot number"
 msgstr "मोफत स्लॉट क्रमांक प्राप्त करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:1722 src/phyp/phyp_driver.c:1726
+#: src/phyp/phyp_driver.c:1724 src/phyp/phyp_driver.c:1728
 msgid "Unable to create new virtual adapter"
 msgstr "नवीन वर्च्युअल अडॅप्टर निर्माण करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:1806
+#: src/phyp/phyp_driver.c:1808
 msgid ""
 "Possibly you don't have IBM Tools installed in your LPAR.Contact your "
 "support to enable this feature."
@@ -13984,125 +13995,125 @@ msgstr ""
 "तुमच्याकडे LPAR मध्ये प्रतिष्ठापीत IBM साधने नाही. ह्या गुणविशेषला सुरू करायचे असल्यास "
 "सपोर्टशी संपर्क करा."
 
-#: src/phyp/phyp_driver.c:1937
+#: src/phyp/phyp_driver.c:1939
 #, c-format
 msgid "Unable to create Volume: %s"
 msgstr "खंड: %s निर्माण करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:1987 src/phyp/phyp_driver.c:2240
-#: src/phyp/phyp_driver.c:2681
+#: src/phyp/phyp_driver.c:1989 src/phyp/phyp_driver.c:2242
+#: src/phyp/phyp_driver.c:2683
 msgid "Unable to determine storage pool's name."
 msgstr "स्टोरेज पूलचे नाव ओळखण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:1992 src/phyp/phyp_driver.c:2686
+#: src/phyp/phyp_driver.c:1994 src/phyp/phyp_driver.c:2688
 msgid "Unable to determine storage pool's uuid."
 msgstr "स्टोरेज पूलचे uuid ओळखण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:1998 src/phyp/phyp_driver.c:2692
+#: src/phyp/phyp_driver.c:2000 src/phyp/phyp_driver.c:2694
 msgid "Unable to determine storage pools's size."
 msgstr "स्टोरेज पूलचे आकार ओळखण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:2011 src/phyp/phyp_driver.c:2705
+#: src/phyp/phyp_driver.c:2013 src/phyp/phyp_driver.c:2707
 msgid "Unable to determine storage pools's source adapter."
 msgstr "स्टोरेज पूलचे सोअर्स् अडॅप्टर ओळखणे अशक्य."
 
-#: src/phyp/phyp_driver.c:2016
+#: src/phyp/phyp_driver.c:2018
 msgid "Error parsing volume XML."
 msgstr "खंड XML वाचतेवेळी त्रुटी."
 
-#: src/phyp/phyp_driver.c:2022
+#: src/phyp/phyp_driver.c:2024
 msgid "StoragePool name already exists."
 msgstr "StoragePool नाव आधिपासूनच अस्तित्वात आहे."
 
-#: src/phyp/phyp_driver.c:2031
+#: src/phyp/phyp_driver.c:2033
 msgid "Key must be empty, Power Hypervisor will create one for you."
 msgstr "कि रिकामी असायला पाहिजे, पावर हाइपरवाइजर निर्माण करून देईल."
 
-#: src/phyp/phyp_driver.c:2036
+#: src/phyp/phyp_driver.c:2038
 msgid "Capacity cannot be empty."
 msgstr "क्षमता रिकामे असणे अशक्य."
 
-#: src/phyp/phyp_driver.c:2211
+#: src/phyp/phyp_driver.c:2213
 msgid "Unable to determine storage sp's name."
 msgstr "स्टोरेज spचे नाव ओळखणे अशक्य."
 
-#: src/phyp/phyp_driver.c:2216
+#: src/phyp/phyp_driver.c:2218
 msgid "Unable to determine storage sp's uuid."
 msgstr "स्टोरेज spचे uuid ओळखणे अशक्य."
 
-#: src/phyp/phyp_driver.c:2221
+#: src/phyp/phyp_driver.c:2223
 msgid "Unable to determine storage sps's size."
 msgstr "स्टोरेज spचे आकार ओळखण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:2233
+#: src/phyp/phyp_driver.c:2235
 msgid "Unable to determine storage sps's source adapter."
 msgstr "स्टोरेज spचे सोअर्स् अडॅप्टर ओळखणे अशक्य."
 
-#: src/phyp/phyp_driver.c:2432
+#: src/phyp/phyp_driver.c:2434
 #, c-format
 msgid "Unable to destroy Storage Pool: %s"
 msgstr "स्टोरेज पूल: %s नष्ट करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:2462
+#: src/phyp/phyp_driver.c:2464
 msgid "Only 'scsi_host' adapter is supported"
 msgstr "फक्त 'scsi_host' अडॅप्टर समर्थीत आहे"
 
-#: src/phyp/phyp_driver.c:2478
+#: src/phyp/phyp_driver.c:2480
 #, c-format
 msgid "Unable to create Storage Pool: %s"
 msgstr "स्टोरेज पूल: %s निर्माण करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:3275
+#: src/phyp/phyp_driver.c:3277
 msgid "Unable to determine domain's name."
 msgstr "डोमेनचे नाव ओळखणे अशक्य."
 
-#: src/phyp/phyp_driver.c:3280
+#: src/phyp/phyp_driver.c:3282
 msgid "Unable to generate random uuid."
 msgstr "विनाक्रम uuid निर्माण करणे अशक्य."
 
-#: src/phyp/phyp_driver.c:3286
+#: src/phyp/phyp_driver.c:3288
 msgid "Unable to determine domain's max memory."
 msgstr "डोमेनची कमाल मेमरि ओळखण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:3292
+#: src/phyp/phyp_driver.c:3294
 msgid "Unable to determine domain's memory."
 msgstr "डोमेनची कमाल मेमरि ओळखण्यास अशक्य."
 
-#: src/phyp/phyp_driver.c:3298
+#: src/phyp/phyp_driver.c:3300
 msgid "Unable to determine domain's CPU."
 msgstr "डोमेनचे CPU ओळखणे अशक्य."
 
-#: src/phyp/phyp_driver.c:3501
+#: src/phyp/phyp_driver.c:3503
 msgid "Field <memory> on the domain XML file is missing or has invalid value."
 msgstr "डोमेन XML फाइलवरील क्षेत्र <memory> आढळले नाही किंवा अवैध मूल्य आढळले."
 
-#: src/phyp/phyp_driver.c:3508
+#: src/phyp/phyp_driver.c:3510
 msgid ""
 "Field <currentMemory> on the domain XML file is missing or has invalid value."
 msgstr "डोमेन XML फाइलवरील क्षेत्र <currentMemory> आढळले नाही किंवा अवैध मूल्य आढळले."
 
-#: src/phyp/phyp_driver.c:3515
+#: src/phyp/phyp_driver.c:3517
 msgid "Domain XML must contain at least one <disk> element."
 msgstr "डोमे XML मध्ये किमान एक <disk> एलिमेंट समाविष्टीत असायला हवे."
 
-#: src/phyp/phyp_driver.c:3521
+#: src/phyp/phyp_driver.c:3523
 msgid "Field <src> under <disk> on the domain XML file is missing."
 msgstr "डोमेन XML फाइलवरील क्षेत्र <src>, <disk> अंतर्गत आढळले नाही."
 
-#: src/phyp/phyp_driver.c:3537
+#: src/phyp/phyp_driver.c:3539
 #, c-format
 msgid "Unable to create LPAR. Reason: '%s'"
 msgstr "LPAR निर्माण करण्यास अपयशी. कारण: '%s'"
 
-#: src/phyp/phyp_driver.c:3542
+#: src/phyp/phyp_driver.c:3544
 msgid "Unable to add LPAR to the table"
 msgstr "तक्तामध्ये LPAR समाविष्ट करणे अशक्य"
 
-#: src/phyp/phyp_driver.c:3642
+#: src/phyp/phyp_driver.c:3644
 msgid "You are trying to set a number of CPUs bigger than the max possible."
 msgstr "तुम्ही कमाल संभाव्य पेक्षा जास्त CPU ची संख्या ठरवण्याचा प्रयत्न करत आहात."
 
-#: src/phyp/phyp_driver.c:3667
+#: src/phyp/phyp_driver.c:3669
 msgid ""
 "Possibly you don't have IBM Tools installed in your LPAR. Contact your "
 "support to enable this feature."
@@ -14833,7 +14844,7 @@ msgstr "ह्या QEMU बाइनरितर्फे डिसकार�
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "QEMU बाइनरीसह डिस्क aio मोड समर्थीत नाही"
 
-#: src/qemu/qemu_command.c:3667 src/qemu/qemu_driver.c:16759
+#: src/qemu/qemu_command.c:3667 src/qemu/qemu_driver.c:16760
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "ह्या QEMU बाइनरिसह ब्लॉक I/O थ्रॉटलिंग समर्थीत नाही"
 
@@ -16759,7 +16770,7 @@ msgstr "लक्ष्य आधिपासूनच अस्तित्व�
 msgid "persistent attach of device '%s' is not supported"
 msgstr "साधन '%s' चे दीर्घस्थायी अटॅच समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:7334 src/qemu/qemu_hotplug.c:3675
+#: src/qemu/qemu_driver.c:7334 src/qemu/qemu_hotplug.c:3686
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "लॉकस्पेस् %2$s मध्ये लिज %1$s अस्तित्वात नाही"
@@ -16950,7 +16961,7 @@ msgid "Compressed migration is not supported by QEMU binary"
 msgstr "QEMU बाइनरितर्फे कम्प्रेस्ड् स्थानांतरन समर्थीत नाही"
 
 #: src/qemu/qemu_driver.c:12516 src/qemu/qemu_driver.c:15626
-#: src/qemu/qemu_driver.c:16083 src/qemu/qemu_driver.c:16270
+#: src/qemu/qemu_driver.c:16084 src/qemu/qemu_driver.c:16271
 #: src/qemu/qemu_monitor.c:2105 tools/virsh-domain.c:2014
 #, c-format
 msgid "bandwidth must be less than %llu"
@@ -17005,7 +17016,7 @@ msgstr ""
 msgid "external active snapshots are not supported on '%s' disks"
 msgstr "बाहेरील सक्रीय स्नॅपशॉट्स '%s' डिस्क्सवरील समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:13086 src/qemu/qemu_driver.c:15940
+#: src/qemu/qemu_driver.c:13086 src/qemu/qemu_driver.c:15941
 #, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr "डिस्क %s: %s करिता stat अशक्य"
@@ -17238,7 +17249,7 @@ msgstr "ड्राइव्ह-पुनःउघडल्यास अपय�
 msgid "flag VIR_DOMAIN_BLOCK_REBASE_RELATIVE is valid only with non-null base"
 msgstr "फ्लॅग VIR_DOMAIN_BLOCK_REBASE_RELATIVE फक्त नॉन-नल बेस सह वैध आहे"
 
-#: src/qemu/qemu_driver.c:15527 src/qemu/qemu_driver.c:15768
+#: src/qemu/qemu_driver.c:15527 src/qemu/qemu_driver.c:15769
 msgid "block jobs not supported with this QEMU binary"
 msgstr "ह्या QEMU बाइनरिसह ब्लॉक जॉब्स् समर्थीत नाही"
 
@@ -17251,8 +17262,8 @@ msgid ""
 "setting bandwidth at start of block pull not supported with this QEMU binary"
 msgstr "ह्या QEMU बाइनरिसह ब्लॉक पूलच्या सुरूवातीला बाँडविड्थ् सुरू करणे समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:15557 src/qemu/qemu_driver.c:15898
-#: src/qemu/qemu_driver.c:16314
+#: src/qemu/qemu_driver.c:15557 src/qemu/qemu_driver.c:15899
+#: src/qemu/qemu_driver.c:16315
 #, c-format
 msgid "disk '%s' already in active block job"
 msgstr "डिस्क '%s' आधिपासूनच सक्रीय ब्लॉक जॉब अंतर्गत आहे"
@@ -17266,38 +17277,38 @@ msgstr "डिस्क '%s' वरील इतर जॉब अजूनही
 msgid "this QEMU binary doesn't support relative block pull/rebase"
 msgstr "ही QEMU बाइनरि संबंधित ब्लॉक pull/rebase करिता समर्थन पुरवत नाही"
 
-#: src/qemu/qemu_driver.c:15613 src/qemu/qemu_driver.c:16393
+#: src/qemu/qemu_driver.c:15613 src/qemu/qemu_driver.c:16394
 msgid "can't keep relative backing relationship"
 msgstr "संबंधित बॅकिंग संबंध ठेवणे अशक्य"
 
-#: src/qemu/qemu_driver.c:15801
+#: src/qemu/qemu_driver.c:15802
 #, c-format
 msgid "bandwidth %llu cannot be represented in result"
 msgstr "बँडविड्थ %llu ला परिणाम अंतर्गत प्रस्तु करणे अशक्य"
 
-#: src/qemu/qemu_driver.c:15906
+#: src/qemu/qemu_driver.c:15907
 msgid "block copy is not supported with this QEMU binary"
 msgstr "ह्या QEMU बाइनरीसह ब्लॉक कॉपी समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:15915
+#: src/qemu/qemu_driver.c:15916
 msgid "domain is not transient"
 msgstr "डोमेन ट्रांजिएंट नाही"
 
-#: src/qemu/qemu_driver.c:15926
+#: src/qemu/qemu_driver.c:15927
 #, c-format
 msgid "disk '%s' has backing file, so raw shallow copy is not possible"
 msgstr "डिस्क '%s' कडे बॅकिंग फाइल आहे, त्यामुळे रॉ शॅलो शक्य नाही"
 
-#: src/qemu/qemu_driver.c:15936
+#: src/qemu/qemu_driver.c:15937
 msgid "non-file destination not supported yet"
 msgstr "विना-फाइल लक्ष्य अजूनही समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:15946
+#: src/qemu/qemu_driver.c:15947
 #, c-format
 msgid "missing destination file for disk %s: %s"
 msgstr "डिस्क %s: %s करिता लक्ष्य फाइल आढळली नाही"
 
-#: src/qemu/qemu_driver.c:15953
+#: src/qemu/qemu_driver.c:15954
 #, c-format
 msgid ""
 "external destination file for disk %s already exists and is not a block "
@@ -17305,163 +17316,163 @@ msgid ""
 msgstr ""
 "डिस्क %s करिता बाहेरिल लक्ष्य फाइल आधिपासूनच अस्तित्वात आहे व ब्लॉक साधन नाही: %s"
 
-#: src/qemu/qemu_driver.c:15960
+#: src/qemu/qemu_driver.c:15961
 #, c-format
 msgid ""
 "blockdev flag requested for disk %s, but file '%s' is not a block device"
 msgstr "डिस्क %s करिता blockdev फ्लॅगसाठी विनंती केली, परंतु फाइल '%s' ब्लॉक साधन नाही"
 
-#: src/qemu/qemu_driver.c:16095
+#: src/qemu/qemu_driver.c:16096
 msgid "Relative backing during copy not supported yet"
 msgstr "प्रत बनवतेवेळी संबंधीत बँकिंग समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:16162
+#: src/qemu/qemu_driver.c:16163
 #, c-format
 msgid "bandwidth must be less than %llu bytes"
 msgstr "बँडविड्थ %llu पेक्षा कमी पाहिजे"
 
-#: src/qemu/qemu_driver.c:16262
+#: src/qemu/qemu_driver.c:16263
 msgid "online commit not supported with this QEMU binary"
 msgstr "QEMU बाइनरीसह ऑनलाइन कमीट समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:16284
+#: src/qemu/qemu_driver.c:16285
 #, c-format
 msgid "disk %s has no source file to be committed"
 msgstr "डिस्क %s कडे कमीट करण्यासाठी स्रोत फाइल नाही"
 
-#: src/qemu/qemu_driver.c:16302
+#: src/qemu/qemu_driver.c:16303
 msgid "active commit not supported with this QEMU binary"
 msgstr "या QEMU बाइनरिसह सक्रीय कमीट समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:16308
+#: src/qemu/qemu_driver.c:16309
 #, c-format
 msgid "commit of '%s' active layer requires active flag"
 msgstr "'%s' सक्रीय स्तरकरिता ॲक्टिव्ह फ्लॅग आवश्यक"
 
-#: src/qemu/qemu_driver.c:16320
+#: src/qemu/qemu_driver.c:16321
 #, c-format
 msgid "active commit requested but '%s' is not active"
 msgstr "सक्रीय कमीटकरिता विनंती केली परंतु '%s' सक्रीय नाही"
 
-#: src/qemu/qemu_driver.c:16327
+#: src/qemu/qemu_driver.c:16328
 #, c-format
 msgid "top '%s' in chain for '%s' has no backing file"
 msgstr "'%2$s' करिता चेनमधील top '%1$s'"
 
-#: src/qemu/qemu_driver.c:16342
+#: src/qemu/qemu_driver.c:16343
 #, c-format
 msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr "बेस '%s', चेन '%s' मध्ये परस्पर खाली नाही, '%s' करिता"
 
-#: src/qemu/qemu_driver.c:16383
+#: src/qemu/qemu_driver.c:16384
 msgid "this qemu doesn't support relative blockpull"
 msgstr "हे qemu संबंधीत blockpull करिता समर्थन पुरवत नाही"
 
-#: src/qemu/qemu_driver.c:16482 src/qemu/qemu_driver.c:16548
+#: src/qemu/qemu_driver.c:16483 src/qemu/qemu_driver.c:16549
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr "इंडेक्स् %d सह ग्राफिक्स् बॅकएंड आढळले नाही"
 
-#: src/qemu/qemu_driver.c:16494 src/qemu/qemu_driver.c:16560
+#: src/qemu/qemu_driver.c:16495 src/qemu/qemu_driver.c:16561
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr "फक्त VNC किंवा SPICE ग्राफिक्स् बॅकएंड्स् उघडणे अशक्य, %s आढळले नाही"
 
-#: src/qemu/qemu_driver.c:16672
+#: src/qemu/qemu_driver.c:16673
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr "ब्लॉक I/O थ्रॉटल मर्यादा मूल्य %llu पेक्षा कमी पाहिजे"
 
-#: src/qemu/qemu_driver.c:16736
+#: src/qemu/qemu_driver.c:16737
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr "एकूण व bytes_sec चे रिड/राइट एकाचवेळी ठरवणे अशक्य"
 
-#: src/qemu/qemu_driver.c:16743
+#: src/qemu/qemu_driver.c:16744
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr "एकूण व iops_sec चे रिड/राइट एकाचवेळी सेट करणे अशक्य"
 
-#: src/qemu/qemu_driver.c:16750
+#: src/qemu/qemu_driver.c:16751
 #, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr "डिस्क '%s' करिता न आढळलेली पर्सिस्टंट संरचना"
 
-#: src/qemu/qemu_driver.c:16791
+#: src/qemu/qemu_driver.c:16792
 #, fuzzy
 msgid "Saving live XML config failed"
 msgstr "xm काँफिग वाचण्यास अपयशी"
 
-#: src/qemu/qemu_driver.c:16820
+#: src/qemu/qemu_driver.c:16821
 msgid "Write to config file failed"
 msgstr "काँफिग फाइलकरिता लिहण्यास अपयशी"
 
-#: src/qemu/qemu_driver.c:16905
+#: src/qemu/qemu_driver.c:16906
 #, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr "डोमेन काँफिग अंतर्गत डिस्क '%s' आढळले नाही"
 
-#: src/qemu/qemu_driver.c:17188
+#: src/qemu/qemu_driver.c:17189
 msgid "Duration not supported. Use 0 for now"
 msgstr "कालावधी समर्थीत नाही. याक्षणी 0 चा वापर करा"
 
-#: src/qemu/qemu_driver.c:17196
+#: src/qemu/qemu_driver.c:17197
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "अपरिचीत सस्पेंड लक्ष्य: %u"
 
-#: src/qemu/qemu_driver.c:17219
+#: src/qemu/qemu_driver.c:17220
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr "system_wakeup मॉनिटर आदेश न आढळल्याने डोमेनला सस्पेंड करणे अशक्य"
 
-#: src/qemu/qemu_driver.c:17229
+#: src/qemu/qemu_driver.c:17230
 msgid "S3 state is disabled for this domain"
 msgstr "S3 स्तर ह्या डोमेनकरिता बंद केले आहे"
 
-#: src/qemu/qemu_driver.c:17236
+#: src/qemu/qemu_driver.c:17237
 msgid "S4 state is disabled for this domain"
 msgstr "S4 स्तर ह्या डोमेनकरिता बंद केले आहे"
 
-#: src/qemu/qemu_driver.c:17297
+#: src/qemu/qemu_driver.c:17298
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr "system_wakeup मॉनिटर आदेश न आढळल्याने डोमेनला सुरू करणे अशक्य"
 
-#: src/qemu/qemu_driver.c:17456
+#: src/qemu/qemu_driver.c:17457
 msgid "Specifying mount point is not supported for now"
 msgstr "आता माउंट पॉइंट निर्देशीत करणे समर्थीत आहे"
 
-#: src/qemu/qemu_driver.c:17720
+#: src/qemu/qemu_driver.c:17721
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr "वेळ ठरवणे अशक्य: qemu rtc-reset-reinjection आदेशकरिता समर्थन पुरवत नाही"
 
-#: src/qemu/qemu_driver.c:17819
+#: src/qemu/qemu_driver.c:17820
 msgid "specifying mountpoints is not supported"
 msgstr "mountpoints निर्देशीत करणे समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:17900
+#: src/qemu/qemu_driver.c:17901
 #, c-format
 msgid "unknown virttype: %s"
 msgstr "अपरिचीत virttype: %s"
 
-#: src/qemu/qemu_driver.c:17907
+#: src/qemu/qemu_driver.c:17908
 #, c-format
 msgid "unknown architecture: %s"
 msgstr "अपरिचीत आर्किटेक्चर: %s"
 
-#: src/qemu/qemu_driver.c:17924
+#: src/qemu/qemu_driver.c:17925
 #, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr "एम्युलेटर '%s' पासून आर्किटेक्चर दिलेल्या आर्किटेक्चर '%s' सह जुळत नाही"
 
-#: src/qemu/qemu_driver.c:17934
+#: src/qemu/qemu_driver.c:17935
 #, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr "'%s' आर्किटेक्चरकरिता एम्युलेटर शोधणे अशक्य"
 
-#: src/qemu/qemu_driver.c:17948
+#: src/qemu/qemu_driver.c:17949
 #, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr "मशीन '%s' एम्युलेटर '%s' तर्फे समर्थीत नाही"
 
-#: src/qemu/qemu_driver.c:18395
+#: src/qemu/qemu_driver.c:18396
 #, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr "स्टॅट्स प्रकार बिट्स 0x%x या डिमनतर्फे समर्थीत नाही"
@@ -17619,207 +17630,207 @@ msgstr "%s पासून %s करिता नेटवर्क इंटर
 msgid "cannot modify network device model from %s to %s"
 msgstr "%s पासून %s करिता नेटवर्क साधन मॉडल संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:1986
+#: src/qemu/qemu_hotplug.c:1997
 msgid "cannot modify virtio network device driver attributes"
 msgstr "virtio नेटवर्क साधन ड्राइव्हर गुणधर्म संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2000
+#: src/qemu/qemu_hotplug.c:2011
 msgid "cannot modify network device script attribute"
 msgstr "नेटवर्क साधन स्क्रिप्ट गुणधर्म संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2009
+#: src/qemu/qemu_hotplug.c:2020
 msgid "cannot modify network device tap name"
 msgstr "नेटवर्क साधन टॅप नाव संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2027
+#: src/qemu/qemu_hotplug.c:2038
 msgid "cannot modify network device guest PCI address"
 msgstr "नेटवर्क साधन अतिथी PCI पत्ता संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2036
+#: src/qemu/qemu_hotplug.c:2047
 msgid "cannot modify network device alias"
 msgstr "नेटवर्क साधन अलायस संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2041
+#: src/qemu/qemu_hotplug.c:2052
 msgid "cannot modify network device rom bar setting"
 msgstr "नेटवर्क साधन rombar संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2046
+#: src/qemu/qemu_hotplug.c:2057
 msgid "cannot modify network rom file"
 msgstr "cannot modify network rom file"
 
-#: src/qemu/qemu_hotplug.c:2051
+#: src/qemu/qemu_hotplug.c:2062
 msgid "cannot modify network device boot index setting"
 msgstr "नेटवर्क साधन बूट इंडेक्स् सेटिंग संपादित करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2078
+#: src/qemu/qemu_hotplug.c:2089
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "नेटवर्क इंटरफेस प्रकारला '%s' करिता बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2136 src/qemu/qemu_hotplug.c:2209
+#: src/qemu/qemu_hotplug.c:2147 src/qemu/qemu_hotplug.c:2220
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "'%s' नेटवर्क प्रकारवरील काँफिग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2317
+#: src/qemu/qemu_hotplug.c:2328
 msgid "cannot find existing graphics device to modify"
 msgstr "संपादनकरिता अस्तित्वातील ग्राफिक्स् साधन आढळणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2323
+#: src/qemu/qemu_hotplug.c:2334
 msgid "cannot change the number of listen addresses"
 msgstr "लिसन पत्ताची संख्या बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2333
+#: src/qemu/qemu_hotplug.c:2344
 msgid "cannot change the type of listen address"
 msgstr "लिसन पत्त्याचे प्रकार बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2342
+#: src/qemu/qemu_hotplug.c:2353
 msgid "cannot change listen address setting on vnc graphics"
 msgstr "vnc ग्राफिक्सवर लिसन पत्ता सेटिंग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2343
+#: src/qemu/qemu_hotplug.c:2354
 msgid "cannot change listen address setting on spice graphics"
 msgstr "स्पाइस ग्राफिक्सवर लिसन पत्ता सेटिंग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2352
+#: src/qemu/qemu_hotplug.c:2363
 msgid "cannot change listen network setting on vnc graphics"
 msgstr "vnc ग्राफिक्सवर लिसन नेटवर्क सेटिंग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2353
+#: src/qemu/qemu_hotplug.c:2364
 msgid "cannot change listen network setting on spice graphics"
 msgstr "स्पाइस ग्राफिक्सवर लिसन नेटवर्क सेटिंग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2371
+#: src/qemu/qemu_hotplug.c:2382
 msgid "cannot change port settings on vnc graphics"
 msgstr "vnc ग्राफिक्सवर पोर्ट सेटिंग्स् बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2376
+#: src/qemu/qemu_hotplug.c:2387
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "vnc ग्राफिक्सवर किमॅप सेटिंग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2417
+#: src/qemu/qemu_hotplug.c:2428
 msgid "cannot change port settings on spice graphics"
 msgstr "स्पाइस ग्राफिक्सवर पोर्ट सेटिंग्स् बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2423
+#: src/qemu/qemu_hotplug.c:2434
 msgid "cannot change keymap setting on spice graphics"
 msgstr "स्पाइस ग्राफिक्सवर किमॅप सेटिंग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2465
+#: src/qemu/qemu_hotplug.c:2476
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' ग्राफिक्स् प्रकारवर काँफिग बदलणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2747
+#: src/qemu/qemu_hotplug.c:2758
 msgid "unable to determine original VLAN"
 msgstr "मूळ VLAN ओळखणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2885
+#: src/qemu/qemu_hotplug.c:2896
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr "%s साधनाला कसे काढून टाकायचे ते माहित नाही"
 
-#: src/qemu/qemu_hotplug.c:2938
+#: src/qemu/qemu_hotplug.c:2949
 msgid "Unable to wait on unplug condition"
 msgstr "अनप्लग स्थितीकरिता थांबणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2979 src/qemu/qemu_hotplug.c:3224
+#: src/qemu/qemu_hotplug.c:2990 src/qemu/qemu_hotplug.c:3235
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr "मल्टिफंक्शन PCI साधनाला हॉट प्लग अशक्य करणे अशक्य: %s"
 
-#: src/qemu/qemu_hotplug.c:2989
+#: src/qemu/qemu_hotplug.c:3000
 msgid "device cannot be detached without a valid CCW address"
 msgstr "वैध CCW पत्ताविना साधनाला अलग करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:2996
+#: src/qemu/qemu_hotplug.c:3007
 msgid "device cannot be detached without a valid PCI address"
 msgstr "वैध PCI पत्ताविना साधनाला अलग करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3048
+#: src/qemu/qemu_hotplug.c:3059
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr "अंतर्भुतीय qemu %s डिस्क काढून टाकण्याकरिता समर्थन पुरवत नाही"
 
-#: src/qemu/qemu_hotplug.c:3055
+#: src/qemu/qemu_hotplug.c:3066
 #, c-format
 msgid "disk '%s' is in an active block job"
 msgstr "डिस्क '%s' एक सक्रीय ब्लॉक जॉब आहे"
 
-#: src/qemu/qemu_hotplug.c:3121 src/uml/uml_driver.c:2380
+#: src/qemu/qemu_hotplug.c:3132 src/uml/uml_driver.c:2380
 msgid "This type of disk cannot be hot unplugged"
 msgstr "ह्या प्रकारच्या डिस्कला हॉट प्लग अशक्य करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3125
+#: src/qemu/qemu_hotplug.c:3136
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "डिस्क साधन प्रकार '%s' जोडणी अशक्य करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3197
+#: src/qemu/qemu_hotplug.c:3208
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "कंट्रोलर %s:%d आढळले नाही"
 
-#: src/qemu/qemu_hotplug.c:3209
+#: src/qemu/qemu_hotplug.c:3220
 #, c-format
 msgid "device with '%s' address cannot be detached"
 msgstr "'%s' पत्तासह साधनाची जोडणी खंडीत करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3216
+#: src/qemu/qemu_hotplug.c:3227
 #, c-format
 msgid "device with invalid '%s' address cannot be detached"
 msgstr "'%s' पत्तासह साधनाची जोडणी खंडीत करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3231
+#: src/qemu/qemu_hotplug.c:3242
 msgid "device cannot be detached: device is busy"
 msgstr "साधन जोडणी अशक्य करणे अशक्य: साधन व्यस्थ आहे"
 
-#: src/qemu/qemu_hotplug.c:3289 src/qemu/qemu_hotplug.c:3521
+#: src/qemu/qemu_hotplug.c:3300 src/qemu/qemu_hotplug.c:3532
 msgid "device cannot be detached without a PCI address"
 msgstr "PCI पत्त्याविना उपकरणाला अगल करणे शक्य नाही"
 
-#: src/qemu/qemu_hotplug.c:3316 src/qemu/qemu_hotplug.c:3345
+#: src/qemu/qemu_hotplug.c:3327 src/qemu/qemu_hotplug.c:3356
 msgid "device cannot be detached without a device alias"
 msgstr "साधणाच्या अलायसविना साधण वेगळे करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3322 src/qemu/qemu_hotplug.c:3351
+#: src/qemu/qemu_hotplug.c:3333 src/qemu/qemu_hotplug.c:3362
 msgid "device cannot be detached with this QEMU version"
 msgstr "या QEMU आवृत्तीसह साधणाला वेगळे करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3446
+#: src/qemu/qemu_hotplug.c:3457
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "यजमानाचे usb साधण %03d.%03d आढळले नाही"
 
-#: src/qemu/qemu_hotplug.c:3450
+#: src/qemu/qemu_hotplug.c:3461
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr "host usb device vendor=0x%.4x product=0x%.4x आढळले नाही"
 
-#: src/qemu/qemu_hotplug.c:3459
+#: src/qemu/qemu_hotplug.c:3470
 #, c-format
 msgid "host scsi iSCSI path %s not found"
 msgstr "यजमान scsi iSCSI मार्ग %s आढळले नाही"
 
-#: src/qemu/qemu_hotplug.c:3465
+#: src/qemu/qemu_hotplug.c:3476
 #, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "यजमान scsi साधन %s:%d:%d.%d आढळले नाही"
 
-#: src/qemu/qemu_hotplug.c:3514
+#: src/qemu/qemu_hotplug.c:3525
 msgid "device cannot be detached without a CCW address"
 msgstr "CCW पत्ताविना साधनाला अलग करणे अशक्य"
 
-#: src/qemu/qemu_hotplug.c:3527
+#: src/qemu/qemu_hotplug.c:3538
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr "मल्टिफंक्शन PCI साधनाला हॉट प्लग अशक्य करणे अशक्य: :%s"
 
-#: src/qemu/qemu_hotplug.c:3602
+#: src/qemu/qemu_hotplug.c:3613
 msgid "Graphics password only supported for VNC"
 msgstr "ग्राफिक्स् पासवर्ड फक्त VNC करिता समर्थीत आहे"
 
-#: src/qemu/qemu_hotplug.c:3628
+#: src/qemu/qemu_hotplug.c:3639
 msgid "Expiry of passwords is not supported"
 msgstr "पासवर्डची वेळसमाप्ति समर्थीत नाही"
 
@@ -21721,11 +21732,11 @@ msgid "apparmor_parser exited with error"
 msgstr "apparmor_parser त्रुटीविना बाहेर पडले"
 
 #: src/security/virt-aa-helper.c:280 src/security/virt-aa-helper.c:285
-#: src/security/virt-aa-helper.c:402
+#: src/security/virt-aa-helper.c:412
 msgid "could not allocate memory for profile"
 msgstr "प्रोफाइलकरिता मेमरिचे वाटप अशक्य"
 
-#: src/security/virt-aa-helper.c:292 src/security/virt-aa-helper.c:397
+#: src/security/virt-aa-helper.c:292 src/security/virt-aa-helper.c:407
 msgid "invalid length for new profile"
 msgstr "नवीन प्रोफाइलकरिता अवैध लांबी"
 
@@ -21733,166 +21744,166 @@ msgstr "नवीन प्रोफाइलकरिता अवैध ला
 msgid "failed to create include file"
 msgstr "इंकल्युड फाइल निर्माण करण्यास अपयशी"
 
-#: src/security/virt-aa-helper.c:310 src/security/virt-aa-helper.c:423
+#: src/security/virt-aa-helper.c:310 src/security/virt-aa-helper.c:433
 msgid "failed to write to profile"
 msgstr "प्रोफाइलकरिता लिहण्यास अपयशी"
 
-#: src/security/virt-aa-helper.c:315 src/security/virt-aa-helper.c:428
+#: src/security/virt-aa-helper.c:315 src/security/virt-aa-helper.c:438
 msgid "failed to close or write to profile"
 msgstr "प्रोफाइल बंद करण्यास किंवा लिहण्यास अपयशी"
 
-#: src/security/virt-aa-helper.c:346 src/security/virt-aa-helper.c:1284
+#: src/security/virt-aa-helper.c:347 src/security/virt-aa-helper.c:1294
 msgid "profile exists"
 msgstr "प्रोफाइल अस्तित्वात आहे"
 
-#: src/security/virt-aa-helper.c:353
+#: src/security/virt-aa-helper.c:363
 msgid "template name exceeds maximum length"
 msgstr "साचा नाव कमाल लांबीपेक्षा जास्त आहे"
 
-#: src/security/virt-aa-helper.c:358
+#: src/security/virt-aa-helper.c:368
 msgid "template does not exist"
 msgstr "साचा अस्तित्वात नाही"
 
-#: src/security/virt-aa-helper.c:363
+#: src/security/virt-aa-helper.c:373
 msgid "failed to read AppArmor template"
 msgstr "AppArmor साचा वाचण्यास अपयशी"
 
-#: src/security/virt-aa-helper.c:368 src/security/virt-aa-helper.c:373
+#: src/security/virt-aa-helper.c:378 src/security/virt-aa-helper.c:383
 msgid "no replacement string in template"
 msgstr "साचामध्ये अदलाबदल स्ट्रिंग आढळली नाही"
 
-#: src/security/virt-aa-helper.c:379
+#: src/security/virt-aa-helper.c:389
 msgid "could not allocate memory for profile name"
 msgstr "प्रोफाइल नावकरिता मेमरिचे वाटप अशक्य"
 
-#: src/security/virt-aa-helper.c:386
+#: src/security/virt-aa-helper.c:396
 msgid "could not allocate memory for profile files"
 msgstr "प्रोफाइल फाइल्सकरिता मेमरिचे वाटप अशक्य"
 
-#: src/security/virt-aa-helper.c:417
+#: src/security/virt-aa-helper.c:427
 msgid "failed to create profile"
 msgstr "प्रोफाइल निर्माण करण्यास अपयशी"
 
-#: src/security/virt-aa-helper.c:568
+#: src/security/virt-aa-helper.c:578
 msgid "bad pathname"
 msgstr "अयोग्य मार्गनाव"
 
-#: src/security/virt-aa-helper.c:583
+#: src/security/virt-aa-helper.c:593
 msgid "path does not exist, skipping file type checks"
 msgstr "मार्ग अस्तित्वात नाही, फाइल प्रकार तपासणी वगळत आहे"
 
-#: src/security/virt-aa-helper.c:620
+#: src/security/virt-aa-helper.c:630
 msgid "Invalid context"
 msgstr "अवैध संदर्भ"
 
-#: src/security/virt-aa-helper.c:626
+#: src/security/virt-aa-helper.c:636
 msgid "Could not find <name>"
 msgstr "<name> शोधणे अशक्य"
 
-#: src/security/virt-aa-helper.c:633
+#: src/security/virt-aa-helper.c:643
 msgid "Could not find <uuid>"
 msgstr "<uuid> शोधणे अशक्य"
 
-#: src/security/virt-aa-helper.c:665
+#: src/security/virt-aa-helper.c:675
 msgid "unexpected root element, expecting <domain>"
 msgstr "अनपेक्षित रूट एलिमेंट, <domain> अपेक्षित"
 
-#: src/security/virt-aa-helper.c:675
+#: src/security/virt-aa-helper.c:685
 msgid "os.type is not defined"
 msgstr "os.type ठरविले नाही"
 
-#: src/security/virt-aa-helper.c:710 src/security/virt-aa-helper.c:726
-#: src/security/virt-aa-helper.c:831 src/security/virt-aa-helper.c:840
-#: src/security/virt-aa-helper.c:916 src/security/virt-aa-helper.c:1266
-#: src/security/virt-aa-helper.c:1270 src/security/virt-aa-helper.c:1337
+#: src/security/virt-aa-helper.c:720 src/security/virt-aa-helper.c:736
+#: src/security/virt-aa-helper.c:841 src/security/virt-aa-helper.c:850
+#: src/security/virt-aa-helper.c:926 src/security/virt-aa-helper.c:1276
+#: src/security/virt-aa-helper.c:1280 src/security/virt-aa-helper.c:1347
 msgid "could not allocate memory"
 msgstr "मेमरिचे वाटप अशक्य"
 
-#: src/security/virt-aa-helper.c:715
+#: src/security/virt-aa-helper.c:725
 msgid "Failed to create XML config object"
 msgstr "XML संरचना ऑब्जेक्ट निर्माण अपयशी"
 
-#: src/security/virt-aa-helper.c:734
+#: src/security/virt-aa-helper.c:744
 msgid "could not parse XML"
 msgstr "XML वाचणे अशक्य"
 
-#: src/security/virt-aa-helper.c:739
+#: src/security/virt-aa-helper.c:749
 msgid "could not find name in XML"
 msgstr "XML मध्ये नाव आढळले नाही"
 
-#: src/security/virt-aa-helper.c:744
+#: src/security/virt-aa-helper.c:754
 msgid "bad name"
 msgstr "bad name"
 
-#: src/security/virt-aa-helper.c:770
+#: src/security/virt-aa-helper.c:780
 msgid "skipped non-absolute path"
 msgstr "विना-ॲबसोल्युट मार्ग वगळले"
 
-#: src/security/virt-aa-helper.c:777
+#: src/security/virt-aa-helper.c:787
 msgid "could not find realpath for disk"
 msgstr "डिस्ककरिता मुळमार्ग शोधणे अशक्य"
 
-#: src/security/virt-aa-helper.c:791
+#: src/security/virt-aa-helper.c:801
 msgid "skipped restricted file"
 msgstr "प्रतिबंधित फाइल वगळली"
 
-#: src/security/virt-aa-helper.c:921
+#: src/security/virt-aa-helper.c:931
 msgid "given uuid does not match XML uuid"
 msgstr "दिलेले uuid XML uuid सह जुळत नाही"
 
-#: src/security/virt-aa-helper.c:1112
+#: src/security/virt-aa-helper.c:1122
 msgid "failed to allocate file buffer"
 msgstr "फाइल बफरचे वाटप अपयशी"
 
-#: src/security/virt-aa-helper.c:1161
+#: src/security/virt-aa-helper.c:1171
 msgid "could not allocate memory for disk"
 msgstr "डिस्ककरिता मेमरिचे वाटप अशक्य"
 
-#: src/security/virt-aa-helper.c:1176 src/security/virt-aa-helper.c:1196
+#: src/security/virt-aa-helper.c:1186 src/security/virt-aa-helper.c:1206
 msgid "invalid UUID"
 msgstr "अवैध UUID"
 
-#: src/security/virt-aa-helper.c:1179
+#: src/security/virt-aa-helper.c:1189
 msgid "error copying UUID"
 msgstr "UUID चे प्रत बनवतेवेळी त्रुटी"
 
-#: src/security/virt-aa-helper.c:1188
+#: src/security/virt-aa-helper.c:1198
 msgid "unsupported option"
 msgstr "असमर्थीत पर्याय"
 
-#: src/security/virt-aa-helper.c:1193
+#: src/security/virt-aa-helper.c:1203
 msgid "bad command"
 msgstr "अयोग्य आदेश"
 
-#: src/security/virt-aa-helper.c:1206
+#: src/security/virt-aa-helper.c:1216
 msgid "could not read xml file"
 msgstr "xml फाइल वाचणे अशक्य"
 
-#: src/security/virt-aa-helper.c:1210
+#: src/security/virt-aa-helper.c:1220
 msgid "could not get VM definition"
 msgstr "VM वर्णन प्राप्त करणे अशक्य"
 
-#: src/security/virt-aa-helper.c:1215
+#: src/security/virt-aa-helper.c:1225
 msgid "invalid VM definition"
 msgstr "अवैध VM वर्णन"
 
-#: src/security/virt-aa-helper.c:1247
+#: src/security/virt-aa-helper.c:1257
 msgid "could not set PATH"
 msgstr "PATH ठरवणे अशक्य"
 
-#: src/security/virt-aa-helper.c:1251
+#: src/security/virt-aa-helper.c:1261
 msgid "could not set IFS"
 msgstr "IFS ठरवणे अशक्य"
 
-#: src/security/virt-aa-helper.c:1262
+#: src/security/virt-aa-helper.c:1272
 msgid "could not parse arguments"
 msgstr "आर्ग्युमेंट्स् वाचणे अशक्य"
 
-#: src/security/virt-aa-helper.c:1313
+#: src/security/virt-aa-helper.c:1323
 msgid "failed to allocate buffer"
 msgstr "बफरचे वाटप अपयशी"
 
-#: src/security/virt-aa-helper.c:1348
+#: src/security/virt-aa-helper.c:1358
 msgid "could not create profile"
 msgstr "प्रोफाइल निर्माण करणे अशक्य"
 
@@ -24957,7 +24968,7 @@ msgstr "लॉकस्पेस् रिसोअर्स् '%s' कुल�
 msgid "owner %lld does not hold the resource lock"
 msgstr "मालक %lld कडे रिसोअर्स् कुलूपबंद नाही"
 
-#: src/util/virnetdev.c:101 src/util/virnetdev.c:572
+#: src/util/virnetdev.c:105 src/util/virnetdev.c:576
 #: src/util/virnetdevbridge.c:95 src/util/virnetdevbridge.c:392
 #: src/util/virnetdevbridge.c:462 src/util/virnetdevtap.c:281
 #: src/util/virnetdevtap.c:347
@@ -24965,255 +24976,255 @@ msgstr "मालक %lld कडे रिसोअर्स् कुलूप�
 msgid "Network interface name '%s' is too long"
 msgstr "नेटवर्क इंटरफेस नाव '%s' खूप लांब आहे"
 
-#: src/util/virnetdev.c:109 src/util/virnetdevbridge.c:89
+#: src/util/virnetdev.c:113 src/util/virnetdevbridge.c:89
 msgid "Cannot open network interface control socket"
 msgstr "नेटवर्क इंटरफेस कंट्रोल सॉकेट उघडणे अशक्य"
 
-#: src/util/virnetdev.c:115
+#: src/util/virnetdev.c:119
 msgid "Cannot set close-on-exec flag for socket"
 msgstr "सॉकेटकरिता close-on-exec फ्लॅग ठरवणे अशक्य"
 
-#: src/util/virnetdev.c:136
+#: src/util/virnetdev.c:140
 msgid "Network device configuration is not supported on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर नेटवर्क साधन संरचना समर्थीत नाही"
 
-#: src/util/virnetdev.c:166
+#: src/util/virnetdev.c:170
 #, c-format
 msgid "Unable to check interface flags for %s"
 msgstr "%s करिता इंटरफेस प्लॅग्स् तपासणे अशक्य"
 
-#: src/util/virnetdev.c:180
+#: src/util/virnetdev.c:184
 #, c-format
 msgid "Unable to check interface %s"
 msgstr "इंटरफेस %s तपासणे अशक्य"
 
-#: src/util/virnetdev.c:211 src/util/virnetdev.c:299 src/util/virnetdev.c:317
+#: src/util/virnetdev.c:215 src/util/virnetdev.c:303 src/util/virnetdev.c:321
 #, c-format
 msgid "Cannot get interface MAC on '%s'"
 msgstr "'%s' वर MAC इंटरफेस प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:220 src/util/virnetdev.c:254 src/util/virnetdev.c:270
+#: src/util/virnetdev.c:224 src/util/virnetdev.c:258 src/util/virnetdev.c:274
 #, c-format
 msgid "Cannot set interface MAC on '%s'"
 msgstr "'%s' वर MAC इंटरफेस ठरवणे अशक्य"
 
-#: src/util/virnetdev.c:353
+#: src/util/virnetdev.c:357
 #, c-format
 msgid "Unable to preserve mac for %s"
 msgstr "%s करिता मॅक साठवण्यास अशक्य"
 
-#: src/util/virnetdev.c:396 src/util/virnetdev.c:1774
+#: src/util/virnetdev.c:400 src/util/virnetdev.c:1778
 #, c-format
 msgid "Cannot parse MAC address from '%s'"
 msgstr "'%s' पासून MAC पत्ता वाचणे अशक्य"
 
-#: src/util/virnetdev.c:432 src/util/virnetdev.c:447
+#: src/util/virnetdev.c:436 src/util/virnetdev.c:451
 #, c-format
 msgid "Cannot get interface MTU on '%s'"
 msgstr "'%s' वर MTU इंटरफेस प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:478 src/util/virnetdev.c:493
+#: src/util/virnetdev.c:482 src/util/virnetdev.c:497
 #, c-format
 msgid "Cannot set interface MTU on '%s'"
 msgstr "'%s' वर MTU इंटरफेस ठरवणे अशक्य"
 
-#: src/util/virnetdev.c:582
+#: src/util/virnetdev.c:586
 #, c-format
 msgid "Unable to rename '%s' to '%s'"
 msgstr "'%s' ला '%s' करिता पुनःनामांकीत करणे अशक्य"
 
-#: src/util/virnetdev.c:597
+#: src/util/virnetdev.c:601
 #, c-format
 msgid "Cannot rename interface '%s' to '%s' on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर इंटरफेस '%s' ला '%s' करिता पुनःनामांकीत करणे अशक्य"
 
-#: src/util/virnetdev.c:627 src/util/virnetdev.c:687 src/util/virnetdev.c:704
+#: src/util/virnetdev.c:631 src/util/virnetdev.c:691 src/util/virnetdev.c:708
 #, c-format
 msgid "Cannot get interface flags on '%s'"
 msgstr "'%s' इंटरफेस फ्लॅग्स् प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:641 src/util/virnetdev.c:658
+#: src/util/virnetdev.c:645 src/util/virnetdev.c:662
 #, c-format
 msgid "Cannot set interface flags on '%s'"
 msgstr "'%s' वर इंटरफेस फ्लॅग्स् ठरवणे अशक्य"
 
-#: src/util/virnetdev.c:729 src/util/virnetdev.c:782
+#: src/util/virnetdev.c:733 src/util/virnetdev.c:786
 msgid "Unable to open control socket"
 msgstr "कंट्रोल सॉकेट उघडणे अशक्य"
 
-#: src/util/virnetdev.c:738 src/util/virnetdev.c:788
+#: src/util/virnetdev.c:742 src/util/virnetdev.c:792
 #, c-format
 msgid "invalid interface name %s"
 msgstr "अवैध संवादचे नाव %s"
 
-#: src/util/virnetdev.c:745
+#: src/util/virnetdev.c:749
 #, c-format
 msgid "Unable to get index for interface %s"
 msgstr "इंटरफेस %s करिता इंडेक्स् प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:765
+#: src/util/virnetdev.c:769
 msgid "Unable to get interface index on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर इंटरफेस प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:795
+#: src/util/virnetdev.c:799
 #, c-format
 msgid "Unable to get VLAN for interface %s"
 msgstr "इंटरफेस %s करिता VLAN प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:812
+#: src/util/virnetdev.c:816
 msgid "Unable to get VLAN on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर VLAN प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1000
+#: src/util/virnetdev.c:1004
 #, c-format
 msgid "Unable to get IPv4 address for interface %s"
 msgstr "इंटरफेस %s करिता IPv4 पत्ता प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1020
+#: src/util/virnetdev.c:1024
 msgid "Unable to get IPv4 address on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर IPv4 पत्ता प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1066
+#: src/util/virnetdev.c:1070
 #, c-format
 msgid "could not get MAC address of interface %s"
 msgstr "इंटरफेस %sचे MAC पत्ता प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1099
+#: src/util/virnetdev.c:1103
 msgid "Unable to check interface config on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर इंटरफेस काँफिग तपासणे अशक्य"
 
-#: src/util/virnetdev.c:1171
+#: src/util/virnetdev.c:1175
 msgid "Failed to get PCI Config Address String"
 msgstr "PCI काँफिग पत्ता स्ट्रिंग प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1176
+#: src/util/virnetdev.c:1180
 msgid "Failed to get PCI SYSFS file"
 msgstr "PCI SYSFS फाइल प्राप्त करणे अपयशी"
 
-#: src/util/virnetdev.c:1332
+#: src/util/virnetdev.c:1336
 msgid "Unable to get virtual functions on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर वर्च्युअल फंकशन्स् प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1340
+#: src/util/virnetdev.c:1344
 msgid "Unable to check virtual function status on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर वर्च्युअल फंकशन्स् स्थिती तपासणे अशक्य"
 
-#: src/util/virnetdev.c:1350
+#: src/util/virnetdev.c:1354
 msgid "Unable to get virtual function index on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर वर्च्युअल फंकशन इंडेक्स् प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1359
+#: src/util/virnetdev.c:1363
 msgid "Unable to get physical function status on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर फिजिकल फंकशन्स् स्थिती प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1369
+#: src/util/virnetdev.c:1373
 msgid "Unable to get virtual function info on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर वर्च्युअल फंकशन माहिती प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1465
+#: src/util/virnetdev.c:1469
 #, c-format
 msgid "error dumping %s (%d) interface"
 msgstr "%s (%d) इंटरफेस डम्प करतेवेळी त्रुटी"
 
-#: src/util/virnetdev.c:1492 src/util/virnetdev.c:1614
+#: src/util/virnetdev.c:1496 src/util/virnetdev.c:1618
 #: src/util/virnetdevmacvlan.c:201 src/util/virnetdevmacvlan.c:278
 #: src/util/virnetdevvportprofile.c:757
 msgid "malformed netlink response message"
 msgstr "सदोषीत netlink प्रतिसाद संदेश"
 
-#: src/util/virnetdev.c:1497 src/util/virnetdev.c:1619
+#: src/util/virnetdev.c:1501 src/util/virnetdev.c:1623
 #: src/util/virnetdevmacvlan.c:206 src/util/virnetdevmacvlan.c:283
 #: src/util/virnetdevvportprofile.c:762
 msgid "allocated netlink buffer is too small"
 msgstr "वाटपकेलेले नेटलिंग बफर खूपच लहान आहे"
 
-#: src/util/virnetdev.c:1592
+#: src/util/virnetdev.c:1596
 #, c-format
 msgid "error during set %s of ifindex %d"
 msgstr "ifindex %2$d पैकी %1$s ठरवतेवेळी त्रुटी"
 
-#: src/util/virnetdev.c:1636
+#: src/util/virnetdev.c:1640
 msgid "missing IFLA_VF_INFO in netlink response"
 msgstr "netlink प्रतिसादमध्ये IFLA_VF_INFO आढळले नाही"
 
-#: src/util/virnetdev.c:1647
+#: src/util/virnetdev.c:1651
 msgid "error parsing IFLA_VF_INFO"
 msgstr "IFLA_VF_INFO वाचतेवेळी त्रुटी"
 
-#: src/util/virnetdev.c:1672
+#: src/util/virnetdev.c:1676
 #, c-format
 msgid "couldn't find IFLA_VF_INFO for VF %d in netlink response"
 msgstr "VF %dकरिता netlink प्रतिसादमध्ये IFLA_VF_INFO शोधणे अशक्य"
 
-#: src/util/virnetdev.c:1723
+#: src/util/virnetdev.c:1727
 #, c-format
 msgid "Unable to preserve mac/vlan tag for pf = %s, vf = %d"
 msgstr "pf = %s, vf = %d करिता mac/vlan टॅग सुरक्षित करणे अशक्य"
 
-#: src/util/virnetdev.c:1765
+#: src/util/virnetdev.c:1769
 #, c-format
 msgid "Cannot parse vlan tag from '%s'"
 msgstr "'%s' पासून vlan टॅग वाचणे अशक्य"
 
-#: src/util/virnetdev.c:1843
+#: src/util/virnetdev.c:1847
 msgid "Unable to dump link info on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर दुवा माहिती प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:1855
+#: src/util/virnetdev.c:1859
 msgid "Unable to replace net config on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर नेट काँफिग अदलाबदल करणे अशक्य"
 
-#: src/util/virnetdev.c:1866
+#: src/util/virnetdev.c:1870
 msgid "Unable to restore net config on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर नेट काँफिग पुनःसाठवणे अशक्य"
 
-#: src/util/virnetdev.c:1889 src/util/virnetdev.c:1937
+#: src/util/virnetdev.c:1893 src/util/virnetdev.c:1941
 #, c-format
 msgid "unable to read: %s"
 msgstr ""
 
-#: src/util/virnetdev.c:1896 src/util/virnetdev.c:1907
-#: src/util/virnetdev.c:1945
+#: src/util/virnetdev.c:1900 src/util/virnetdev.c:1911
+#: src/util/virnetdev.c:1949
 #, c-format
 msgid "Unable to parse: %s"
 msgstr ""
 
-#: src/util/virnetdev.c:2001 src/util/virnetdev.c:2049
+#: src/util/virnetdev.c:2006 src/util/virnetdev.c:2055
 #, c-format
 msgid "Cannot add multicast MAC %s on '%s' interface"
 msgstr ""
 
-#: src/util/virnetdev.c:2016
+#: src/util/virnetdev.c:2021
 #, fuzzy
 msgid "Unable to add address to interface multicast list on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर इंटरफेस प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:2064
+#: src/util/virnetdev.c:2070
 #, fuzzy
 msgid "Unable to delete address from interface multicast list on this platform"
 msgstr "ह्या प्लॅटफॉर्मवर इंटरफेस प्राप्त करणे अशक्य"
 
-#: src/util/virnetdev.c:2085
+#: src/util/virnetdev.c:2091
 #, fuzzy, c-format
 msgid "failed to parse multicast address from '%s'"
 msgstr "'%s' पासून uid व gid वाचण्यास अपयशी"
 
-#: src/util/virnetdev.c:2094
+#: src/util/virnetdev.c:2100
 #, fuzzy, c-format
 msgid "Failed to parse interface index from '%s'"
 msgstr "'%s' पासून पॉझिटिव्ह इंटिजर वाचणे अशक्य"
 
-#: src/util/virnetdev.c:2105
+#: src/util/virnetdev.c:2111
 #, fuzzy, c-format
 msgid "Failed to parse network device name from '%s'"
 msgstr "डिरेक्ट्रीचे नाव '%s' वाचण्यास अपयशी"
 
-#: src/util/virnetdev.c:2113 src/util/virnetdev.c:2123
+#: src/util/virnetdev.c:2119 src/util/virnetdev.c:2129
 #, fuzzy, c-format
 msgid "Failed to parse users from '%s'"
 msgstr "वापरकर्ता '%s' वाचण्यास अपयशी"
 
-#: src/util/virnetdev.c:2134
+#: src/util/virnetdev.c:2140
 #, fuzzy, c-format
 msgid "Failed to parse MAC address from '%s'"
 msgstr "'%s' पासून MAC पत्ता वाचणे अशक्य"
@@ -26147,15 +26158,15 @@ msgstr "%2$s मध्ये सुरू वेळ %1$s वाचणे अश�
 msgid "Unable to query process ID start time"
 msgstr "प्रोसेस IDच्या सुरू वेळची चौकशी अशक्य"
 
-#: src/util/virprocess.c:945
+#: src/util/virprocess.c:944
 msgid "Kernel does not provide mount namespace"
 msgstr ""
 
-#: src/util/virprocess.c:951
+#: src/util/virprocess.c:950
 msgid "Unable to enter mount namespace"
 msgstr ""
 
-#: src/util/virprocess.c:987
+#: src/util/virprocess.c:986
 msgid "Cannot create pipe for child"
 msgstr ""
 
@@ -26375,12 +26386,12 @@ msgstr "अपरिचीत अधिप्रमाणन प्रकार 
 msgid "failed to parse backing file location '%s'"
 msgstr ""
 
-#: src/util/virstoragefile.c:2142 src/util/virstoragefile.c:2221
+#: src/util/virstoragefile.c:2147 src/util/virstoragefile.c:2221
 #, c-format
 msgid "invalid backing protocol '%s'"
 msgstr ""
 
-#: src/util/virstoragefile.c:2150
+#: src/util/virstoragefile.c:2155
 #, c-format
 msgid "invalid protocol transport type '%s'"
 msgstr ""
@@ -31102,7 +31113,7 @@ msgstr ""
 msgid "Options --%s and --%s are mutually exclusive"
 msgstr "पर्याय --%s व --%s परस्पर भिन्न आहेत"
 
-#: tools/virsh-console.c:383
+#: tools/virsh-console.c:380
 msgid "unable to wait on console condition"
 msgstr "कंसोल अटिकरिता प्रतिक्षा करणे अशक्य"
 
@@ -38685,6 +38696,9 @@ msgstr "शेल %s exec करण्यास अशक्य"
 
 #~ msgid "Unknown device address type"
 #~ msgstr "अपरिचीत उपकरण पत्ता प्रकार"
+
+#~ msgid "could not parse element %s"
+#~ msgstr "घटक %s वाचणे अशक्य आहे"
 
 #~ msgid "domain is not being migrated"
 #~ msgstr "क्षेत्र स्थानांतरीत झाले नाही"

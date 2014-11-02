@@ -7633,7 +7633,7 @@ or a timeout (via virEventAddTimeout()) before calling this
 function, as it will block forever if there are no
 registered events.
 
-  static bool quit = false;
+  static bool quit;
 
   while (!quit) {
     if (virEventRunDefaultImpl() < 0)

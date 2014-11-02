@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-10-29 10:40+0800\n"
+"POT-Creation-Date: 2014-10-31 12:22+0800\n"
 "PO-Revision-Date: 2013-01-28 14:11+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Vietnamese (http://www.transifex.com/projects/p/fedora/"
@@ -152,7 +152,7 @@ msgstr ""
 #: daemon/libvirtd.c:1152 src/locking/lock_daemon.c:1152
 #: src/locking/sanlock_helper.c:76 src/lxc/lxc_controller.c:2309
 #: src/network/leaseshelper.c:138 src/network/leaseshelper.c:144
-#: src/security/virt-aa-helper.c:1240 src/storage/parthelper.c:77
+#: src/security/virt-aa-helper.c:1250 src/storage/parthelper.c:77
 #: src/util/iohelper.c:236 src/util/iohelper.c:242
 #, c-format
 msgid "%s: initialization failed\n"
@@ -1024,16 +1024,16 @@ msgstr "Miền không đang chạy"
 #: src/qemu/qemu_driver.c:15009 src/qemu/qemu_driver.c:15160
 #: src/qemu/qemu_driver.c:15241 src/qemu/qemu_driver.c:15356
 #: src/qemu/qemu_driver.c:15511 src/qemu/qemu_driver.c:15546
-#: src/qemu/qemu_driver.c:15693 src/qemu/qemu_driver.c:15777
-#: src/qemu/qemu_driver.c:15887 src/qemu/qemu_driver.c:16254
-#: src/qemu/qemu_driver.c:16474 src/qemu/qemu_driver.c:16540
-#: src/qemu/qemu_driver.c:17009 src/qemu/qemu_driver.c:17151
-#: src/qemu/qemu_driver.c:17211 src/qemu/qemu_driver.c:17249
-#: src/qemu/qemu_driver.c:17289 src/qemu/qemu_driver.c:17360
-#: src/qemu/qemu_driver.c:17372 src/qemu/qemu_driver.c:17471
-#: src/qemu/qemu_driver.c:17483 src/qemu/qemu_driver.c:17660
-#: src/qemu/qemu_driver.c:17714 src/qemu/qemu_driver.c:17737
-#: src/qemu/qemu_driver.c:17784 src/qemu/qemu_driver.c:17834
+#: src/qemu/qemu_driver.c:15694 src/qemu/qemu_driver.c:15778
+#: src/qemu/qemu_driver.c:15888 src/qemu/qemu_driver.c:16255
+#: src/qemu/qemu_driver.c:16475 src/qemu/qemu_driver.c:16541
+#: src/qemu/qemu_driver.c:17010 src/qemu/qemu_driver.c:17152
+#: src/qemu/qemu_driver.c:17212 src/qemu/qemu_driver.c:17250
+#: src/qemu/qemu_driver.c:17290 src/qemu/qemu_driver.c:17361
+#: src/qemu/qemu_driver.c:17373 src/qemu/qemu_driver.c:17472
+#: src/qemu/qemu_driver.c:17484 src/qemu/qemu_driver.c:17661
+#: src/qemu/qemu_driver.c:17715 src/qemu/qemu_driver.c:17738
+#: src/qemu/qemu_driver.c:17785 src/qemu/qemu_driver.c:17835
 #: src/qemu/qemu_migration.c:2417 src/qemu/qemu_migration.c:4522
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2611
 #: src/xen/xen_driver.c:2663 src/xen/xm_internal.c:677
@@ -1131,7 +1131,7 @@ msgstr "Thuộc tính khớp không hợp lệ với đặc điểm CPU"
 msgid "Missing CPU architecture"
 msgstr "Thiếu kiến trúc CPU"
 
-#: src/conf/cpu_conf.c:273 src/conf/domain_conf.c:13096
+#: src/conf/cpu_conf.c:273 src/conf/domain_conf.c:13103
 #, c-format
 msgid "Unknown architecture %s"
 msgstr ""
@@ -1725,7 +1725,7 @@ msgid "unsupported element '%s' of 'origstates'"
 msgstr ""
 
 #: src/conf/domain_conf.c:4114 src/conf/domain_conf.c:6201
-#: src/conf/domain_conf.c:7199
+#: src/conf/domain_conf.c:7206
 #, c-format
 msgid "Unable to parse devaddr parameter '%s'"
 msgstr "Không thể phân tích tham số devaddr '%s'"
@@ -1979,7 +1979,7 @@ msgstr ""
 msgid "missing name for disk source"
 msgstr ""
 
-#: src/conf/domain_conf.c:5361 src/util/virstoragefile.c:2173
+#: src/conf/domain_conf.c:5361 src/util/virstoragefile.c:2178
 #, c-format
 msgid "missing volume name or file name in gluster source path '%s'"
 msgstr ""
@@ -2271,14 +2271,9 @@ msgstr ""
 msgid "Setting disk 'requisite' is allowed only for cdrom or floppy"
 msgstr ""
 
-#: src/conf/domain_conf.c:6262 src/conf/domain_conf.c:6733
+#: src/conf/domain_conf.c:6262 src/conf/domain_conf.c:6740
 #, c-format
 msgid "unknown driver format value '%s'"
-msgstr ""
-
-#: src/conf/domain_conf.c:6347
-#, c-format
-msgid "could not parse element %s"
 msgstr ""
 
 #: src/conf/domain_conf.c:6351
@@ -2286,1505 +2281,1510 @@ msgstr ""
 msgid "missing element %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:6447
+#: src/conf/domain_conf.c:6360
+#, fuzzy, c-format
+msgid "Invalid value '%s' for element '%s'"
+msgstr "Giá trị không hợp lệ '%s' cho mục VMX '%s'"
+
+#: src/conf/domain_conf.c:6454
 #, c-format
 msgid "Unknown controller type '%s'"
 msgstr "Kiểu bộ điều khiển không rõ '%s'"
 
-#: src/conf/domain_conf.c:6457
+#: src/conf/domain_conf.c:6464
 #, c-format
 msgid "Cannot parse controller index %s"
 msgstr "Không thể phân tích chỉ mục bộ điều khiển %s"
 
-#: src/conf/domain_conf.c:6466
+#: src/conf/domain_conf.c:6473
 #, c-format
 msgid "Unknown model type '%s'"
 msgstr "Kiểu mẫu không rõ '%s'"
 
-#: src/conf/domain_conf.c:6487
+#: src/conf/domain_conf.c:6494
 #, fuzzy, c-format
 msgid "Malformed 'queues' value '%s'"
 msgstr "tên thiết bị không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:6493
+#: src/conf/domain_conf.c:6500
 #, fuzzy, c-format
 msgid "Malformed 'cmd_per_lun' value '%s'"
 msgstr "tên thiết bị không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:6499
+#: src/conf/domain_conf.c:6506
 #, fuzzy, c-format
 msgid "Malformed 'max_sectors' value %s'"
 msgstr "tên thiết bị không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:6513
+#: src/conf/domain_conf.c:6520
 #, c-format
 msgid "Invalid ports: %s"
 msgstr "Cổng không rõ: %s"
 
-#: src/conf/domain_conf.c:6528
+#: src/conf/domain_conf.c:6535
 #, c-format
 msgid "Invalid vectors: %s"
 msgstr "Véctơ không hợp lệ: %s"
 
-#: src/conf/domain_conf.c:6567
+#: src/conf/domain_conf.c:6574
 #, fuzzy
 msgid "pci-root and pcie-root controllers should not have an address"
 msgstr "Bộ điều khiển IDE chính phải có địa chỉ PCI 0:0:1.1"
 
-#: src/conf/domain_conf.c:6573
+#: src/conf/domain_conf.c:6580
 #, fuzzy
 msgid "pci-root and pcie-root controllers should have index 0"
 msgstr "Bộ điều khiển IDE chính phải có địa chỉ PCI 0:0:1.1"
 
-#: src/conf/domain_conf.c:6599
+#: src/conf/domain_conf.c:6606
 msgid "Controllers must use the 'pci' address type"
 msgstr "Các bộ điều khiển phải sử dụng kiểu địa chỉ 'pci'"
 
-#: src/conf/domain_conf.c:6658
+#: src/conf/domain_conf.c:6665
 #, c-format
 msgid "unknown filesystem type '%s'"
 msgstr "kiểu hệ thống tập tin không rõ '%s'"
 
-#: src/conf/domain_conf.c:6669
+#: src/conf/domain_conf.c:6676
 #, c-format
 msgid "unknown accessmode '%s'"
 msgstr "chế độ truy cập không rõ '%s'"
 
-#: src/conf/domain_conf.c:6725
+#: src/conf/domain_conf.c:6732
 #, c-format
 msgid "unknown fs driver type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6741
+#: src/conf/domain_conf.c:6748
 #, c-format
 msgid "unknown filesystem write policy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6764
+#: src/conf/domain_conf.c:6771
 msgid "missing 'usage' attribute for RAM filesystem"
 msgstr ""
 
-#: src/conf/domain_conf.c:6769
+#: src/conf/domain_conf.c:6776
 #, c-format
 msgid "cannot parse usage '%s' for RAM filesystem"
 msgstr ""
 
-#: src/conf/domain_conf.c:6832
+#: src/conf/domain_conf.c:6839
 msgid "missing type attribute in interface's <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6837
+#: src/conf/domain_conf.c:6844
 #, c-format
 msgid "unknown type '%s' in interface's <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6845
+#: src/conf/domain_conf.c:6852
 #, c-format
 msgid "unsupported type '%s' in interface's <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6855 src/conf/domain_conf.c:7034
+#: src/conf/domain_conf.c:6862 src/conf/domain_conf.c:7041
 #, fuzzy, c-format
 msgid "unknown trustGuestRxFilters value '%s'"
 msgstr "giá trị toàn màn hình không rõ '%s'"
 
-#: src/conf/domain_conf.c:6876
+#: src/conf/domain_conf.c:6883
 #, c-format
 msgid ""
 "<virtualport> element unsupported for type='%s' in interface's <actual> "
 "element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6890
+#: src/conf/domain_conf.c:6897
 #, c-format
 msgid "Unknown mode '%s' in interface <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6921
+#: src/conf/domain_conf.c:6928
 #, c-format
 msgid "Unable to parse class id '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6931
+#: src/conf/domain_conf.c:6938
 msgid ""
 "Missing <source> element with bridge name in interface's <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:7022
+#: src/conf/domain_conf.c:7029
 #, c-format
 msgid "unknown interface type '%s'"
 msgstr "kiểu giao diện không rõ '%s'"
 
-#: src/conf/domain_conf.c:7089
+#: src/conf/domain_conf.c:7096
 #, c-format
 msgid "<virtualport> element unsupported for <interface type='%s'>"
 msgstr ""
 
-#: src/conf/domain_conf.c:7135
+#: src/conf/domain_conf.c:7142
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr ""
 
-#: src/conf/domain_conf.c:7181 src/qemu/qemu_command.c:10774
+#: src/conf/domain_conf.c:7188 src/qemu/qemu_command.c:10774
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "không thể phân tích địa chỉ mac '%s'"
 
-#: src/conf/domain_conf.c:7187
+#: src/conf/domain_conf.c:7194
 #, c-format
 msgid "expected unicast mac address, found multicast '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7220
+#: src/conf/domain_conf.c:7227
 msgid "Network interfaces must use 'pci' address type"
 msgstr "Giao diện mạng phải sử dụng kiểu địa chỉ 'pci'"
 
-#: src/conf/domain_conf.c:7228
+#: src/conf/domain_conf.c:7235
 msgid ""
 "No <source> 'network' attribute specified with <interface type='network'/>"
 msgstr ""
 "Không có thuộc tính <source> 'network' chỉ định với <interface "
 "type='network'/>"
 
-#: src/conf/domain_conf.c:7243
+#: src/conf/domain_conf.c:7250
 msgid ""
 "Wrong or no <model> 'type' attribute specified with <interface "
 "type='vhostuser'/>. vhostuser requires the virtio-net* frontend"
 msgstr ""
 
-#: src/conf/domain_conf.c:7252
+#: src/conf/domain_conf.c:7259
 #, fuzzy, c-format
 msgid "Type='%s' unsupported for <interface type='vhostuser'>"
 msgstr "kiểu giao diện không mong đợi %d"
 
-#: src/conf/domain_conf.c:7257
+#: src/conf/domain_conf.c:7264
 #, fuzzy
 msgid "No <source> 'type' attribute specified for <interface type='vhostuser'>"
 msgstr ""
 "Không có thuộc tính <source> 'name' chỉ định với <interface type='internal'/>"
 
-#: src/conf/domain_conf.c:7265
+#: src/conf/domain_conf.c:7272
 #, fuzzy
 msgid ""
 "No <source> 'path' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "Không có thuộc tính <source> 'name' chỉ định với <interface type='internal'/>"
 
-#: src/conf/domain_conf.c:7273
+#: src/conf/domain_conf.c:7280
 #, fuzzy
 msgid ""
 "No <source> 'mode' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "Không có thuộc tính <source> 'name' chỉ định với <interface type='internal'/>"
 
-#: src/conf/domain_conf.c:7292
+#: src/conf/domain_conf.c:7299
 #, fuzzy
 msgid ""
 "Wrong <source> 'mode' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "Không có thuộc tính <source> 'name' chỉ định với <interface type='internal'/>"
 
-#: src/conf/domain_conf.c:7313
+#: src/conf/domain_conf.c:7320
 msgid ""
 "No <source> 'bridge' attribute specified with <interface type='bridge'/>"
 msgstr ""
 "Không có thuộc tính <source> 'bridge' chỉ định với <interface type='bridge'/>"
 
-#: src/conf/domain_conf.c:7330
+#: src/conf/domain_conf.c:7337
 msgid "No <source> 'port' attribute specified with socket interface"
 msgstr "Không có thuộc tính <source> 'port' chỉ định với giao diện socket"
 
-#: src/conf/domain_conf.c:7336
+#: src/conf/domain_conf.c:7343
 msgid "Cannot parse <source> 'port' attribute with socket interface"
 msgstr "Không thể phân tích thuộc tính <source> 'port' với giao diện socket"
 
-#: src/conf/domain_conf.c:7345
+#: src/conf/domain_conf.c:7352
 msgid "No <source> 'address' attribute specified with socket interface"
 msgstr "Không có thuộc tính <source> 'address' chỉ định với giao diện socket"
 
-#: src/conf/domain_conf.c:7358
+#: src/conf/domain_conf.c:7365
 msgid ""
 "No <source> 'name' attribute specified with <interface type='internal'/>"
 msgstr ""
 "Không có thuộc tính <source> 'name' chỉ định với <interface type='internal'/>"
 
-#: src/conf/domain_conf.c:7369
+#: src/conf/domain_conf.c:7376
 msgid "No <source> 'dev' attribute specified with <interface type='direct'/>"
 msgstr ""
 "Không có thuộc tính <source> 'dev' chỉ định với <interface type='direct'/>"
 
-#: src/conf/domain_conf.c:7377
+#: src/conf/domain_conf.c:7384
 msgid "Unknown mode has been specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:7445
+#: src/conf/domain_conf.c:7452
 msgid "Model name contains invalid characters"
 msgstr "Tên mẫu chứa các ký tự không hợp lệ"
 
-#: src/conf/domain_conf.c:7458
+#: src/conf/domain_conf.c:7465
 #, c-format
 msgid "Unknown interface <driver name='%s'> has been specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:7469
+#: src/conf/domain_conf.c:7476
 #, c-format
 msgid "Unknown interface <driver txmode='%s'> has been specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:7479
+#: src/conf/domain_conf.c:7486
 #, c-format
 msgid "unknown interface ioeventfd mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7488
+#: src/conf/domain_conf.c:7495
 #, c-format
 msgid "unknown interface event_idx mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7498
+#: src/conf/domain_conf.c:7505
 #, c-format
 msgid "'queues' attribute must be positive number: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7507
+#: src/conf/domain_conf.c:7514
 #, fuzzy, c-format
 msgid "unknown host csum mode '%s'"
 msgstr "chế độ hostdev không rõ '%s'"
 
-#: src/conf/domain_conf.c:7517
+#: src/conf/domain_conf.c:7524
 #, fuzzy, c-format
 msgid "unknown host gso mode '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:7527
+#: src/conf/domain_conf.c:7534
 #, fuzzy, c-format
 msgid "unknown host tso4 mode '%s'"
 msgstr "chế độ hostdev không rõ '%s'"
 
-#: src/conf/domain_conf.c:7537
+#: src/conf/domain_conf.c:7544
 #, fuzzy, c-format
 msgid "unknown host tso6 mode '%s'"
 msgstr "chế độ hostdev không rõ '%s'"
 
-#: src/conf/domain_conf.c:7547
+#: src/conf/domain_conf.c:7554
 #, fuzzy, c-format
 msgid "unknown host ecn mode '%s'"
 msgstr "chế độ hostdev không rõ '%s'"
 
-#: src/conf/domain_conf.c:7557
+#: src/conf/domain_conf.c:7564
 #, fuzzy, c-format
 msgid "unknown host ufo mode '%s'"
 msgstr "chế độ hostdev không rõ '%s'"
 
-#: src/conf/domain_conf.c:7567
+#: src/conf/domain_conf.c:7574
 #, fuzzy, c-format
 msgid "unknown guest csum mode '%s'"
 msgstr "chế độ bộ đếm giờ không rõ '%s'"
 
-#: src/conf/domain_conf.c:7577
+#: src/conf/domain_conf.c:7584
 #, fuzzy, c-format
 msgid "unknown guest tso4 mode '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:7587
+#: src/conf/domain_conf.c:7594
 #, fuzzy, c-format
 msgid "unknown guest tso6 mode '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:7597
+#: src/conf/domain_conf.c:7604
 #, fuzzy, c-format
 msgid "unknown guest ecn mode '%s'"
 msgstr "chế độ hostdev không rõ '%s'"
 
-#: src/conf/domain_conf.c:7607
+#: src/conf/domain_conf.c:7614
 #, fuzzy, c-format
 msgid "unknown guest ufo mode '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:7619
+#: src/conf/domain_conf.c:7626
 #, c-format
 msgid "unknown interface link state '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7645
+#: src/conf/domain_conf.c:7652
 msgid "sndbuf must be a positive integer"
 msgstr ""
 
-#: src/conf/domain_conf.c:7695
+#: src/conf/domain_conf.c:7702
 #, c-format
 msgid "target type must be specified for %s device"
 msgstr "kiểu đích phải được ghi rõ cho thiết bị %s"
 
-#: src/conf/domain_conf.c:7763
+#: src/conf/domain_conf.c:7770
 #, c-format
 msgid "unknown target type '%s' specified for character device"
 msgstr ""
 
-#: src/conf/domain_conf.c:7780
+#: src/conf/domain_conf.c:7787
 msgid "guestfwd channel does not define a target address"
 msgstr "kênh guestfwd không định nghĩa một địa chỉ đích"
 
-#: src/conf/domain_conf.c:7790
+#: src/conf/domain_conf.c:7797
 msgid "guestfwd channel only supports IPv4 addresses"
 msgstr "kênh guestfwd chỉ hỗ trợ các địa chỉ IPv4"
 
-#: src/conf/domain_conf.c:7797
+#: src/conf/domain_conf.c:7804
 msgid "guestfwd channel does not define a target port"
 msgstr "kênh guestfwd không định nghĩa cổng đích"
 
-#: src/conf/domain_conf.c:7804 src/conf/domain_conf.c:7828
+#: src/conf/domain_conf.c:7811 src/conf/domain_conf.c:7835
 #: src/conf/storage_conf.c:531
 #, c-format
 msgid "Invalid port number: %s"
 msgstr "Số cổng không hợp lệ: %s"
 
-#: src/conf/domain_conf.c:7908
+#: src/conf/domain_conf.c:7915
 #, c-format
 msgid "Unknown source mode '%s'"
 msgstr "Chế độ nguồn không rõ '%s'"
 
-#: src/conf/domain_conf.c:7976 src/conf/domain_conf.c:8077
+#: src/conf/domain_conf.c:7983 src/conf/domain_conf.c:8084
 msgid "Missing source path attribute for char device"
 msgstr "Thiếu thuộc tính đường dẫn nguồn cho thiết bị ký tự"
 
-#: src/conf/domain_conf.c:7987
+#: src/conf/domain_conf.c:7994
 #, fuzzy
 msgid "Missing master path attribute for nmdm device"
 msgstr "Thiếu thuộc tính đường dẫn nguồn cho thiết bị ký tự"
 
-#: src/conf/domain_conf.c:7993
+#: src/conf/domain_conf.c:8000
 #, fuzzy
 msgid "Missing slave path attribute for nmdm device"
 msgstr "Thiếu thuộc tính đường dẫn nguồn cho thiết bị ký tự"
 
-#: src/conf/domain_conf.c:8007 src/conf/domain_conf.c:8025
+#: src/conf/domain_conf.c:8014 src/conf/domain_conf.c:8032
 msgid "Missing source host attribute for char device"
 msgstr "Thiếu thuộc tính máy chủ nguồn cho thiết bị ký tự"
 
-#: src/conf/domain_conf.c:8013 src/conf/domain_conf.c:8031
-#: src/conf/domain_conf.c:8056
+#: src/conf/domain_conf.c:8020 src/conf/domain_conf.c:8038
+#: src/conf/domain_conf.c:8063
 msgid "Missing source service attribute for char device"
 msgstr "Thiếu thuộc tính dịch vụ nguồn cho thiết bị ký tự"
 
-#: src/conf/domain_conf.c:8047
+#: src/conf/domain_conf.c:8054
 #, c-format
 msgid "Unknown protocol '%s'"
 msgstr "Giao thức không rõ '%s'"
 
-#: src/conf/domain_conf.c:8090
+#: src/conf/domain_conf.c:8097
 #, fuzzy
 msgid "Missing source channel attribute for char device"
 msgstr "Thiếu thuộc tính đường dẫn nguồn cho thiết bị ký tự"
 
-#: src/conf/domain_conf.c:8095
+#: src/conf/domain_conf.c:8102
 #, fuzzy
 msgid "Invalid character in source channel for char device"
 msgstr "Thiếu thuộc tính đường dẫn nguồn cho thiết bị ký tự"
 
-#: src/conf/domain_conf.c:8200 src/conf/domain_conf.c:8350
+#: src/conf/domain_conf.c:8207 src/conf/domain_conf.c:8357
 #, c-format
 msgid "unknown type presented to host for character device: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8208
+#: src/conf/domain_conf.c:8215
 #, c-format
 msgid "unknown character device type: %s"
 msgstr "kiểu thiết bị ký tự không rõ: %s"
 
-#: src/conf/domain_conf.c:8236
+#: src/conf/domain_conf.c:8243
 msgid "spicevmc device type only supports virtio"
 msgstr ""
 
-#: src/conf/domain_conf.c:8252 src/qemu/qemu_command.c:9920
+#: src/conf/domain_conf.c:8259 src/qemu/qemu_command.c:9920
 msgid "usb-serial requires address of usb type"
 msgstr ""
 
-#: src/conf/domain_conf.c:8283
+#: src/conf/domain_conf.c:8290
 msgid "missing smartcard device mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8288
+#: src/conf/domain_conf.c:8295
 #, c-format
 msgid "unknown smartcard device mode: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8305 src/conf/domain_conf.c:8334
+#: src/conf/domain_conf.c:8312 src/conf/domain_conf.c:8341
 msgid "host-certificates mode needs exactly three certificates"
 msgstr ""
 
-#: src/conf/domain_conf.c:8325
+#: src/conf/domain_conf.c:8332
 #, c-format
 msgid "expecting absolute path: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8344
+#: src/conf/domain_conf.c:8351
 msgid "passthrough mode requires a character device type attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:8369
+#: src/conf/domain_conf.c:8376
 msgid "unknown smartcard mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8378
+#: src/conf/domain_conf.c:8385
 msgid "Controllers must use the 'ccid' address type"
 msgstr ""
 
-#: src/conf/domain_conf.c:8426
+#: src/conf/domain_conf.c:8433
 #, fuzzy, c-format
 msgid "Unknown TPM frontend model '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:8439
+#: src/conf/domain_conf.c:8446
 #, fuzzy
 msgid "only one TPM backend is supported"
 msgstr "Chỉ 1 tuyến %s được hỗ trợ"
 
-#: src/conf/domain_conf.c:8445
+#: src/conf/domain_conf.c:8452
 #, fuzzy
 msgid "missing TPM device backend"
 msgstr "Thiếu backend %d"
 
-#: src/conf/domain_conf.c:8451
+#: src/conf/domain_conf.c:8458
 #, fuzzy
 msgid "missing TPM device backend type"
 msgstr "Thiếu backend %d"
 
-#: src/conf/domain_conf.c:8457
+#: src/conf/domain_conf.c:8464
 #, fuzzy, c-format
 msgid "Unknown TPM backend type '%s'"
 msgstr "kiểu giao diện không rõ '%s'"
 
-#: src/conf/domain_conf.c:8511
+#: src/conf/domain_conf.c:8518
 msgid "missing input device type"
 msgstr "thiếu kiểu thiết bị nhập"
 
-#: src/conf/domain_conf.c:8517
+#: src/conf/domain_conf.c:8524
 #, c-format
 msgid "unknown input device type '%s'"
 msgstr "kiểu thiết bị nhập không rõ '%s'"
 
-#: src/conf/domain_conf.c:8524
+#: src/conf/domain_conf.c:8531
 #, c-format
 msgid "unknown input bus type '%s'"
 msgstr "kiểu tuyến nhập không rõ '%s'"
 
-#: src/conf/domain_conf.c:8533
+#: src/conf/domain_conf.c:8540
 #, c-format
 msgid "ps2 bus does not support %s input device"
 msgstr "tuyến ps2 không hỗ trợ thiết bị nhập %s"
 
-#: src/conf/domain_conf.c:8539 src/conf/domain_conf.c:8546
+#: src/conf/domain_conf.c:8546 src/conf/domain_conf.c:8553
 #, c-format
 msgid "unsupported input bus %s"
 msgstr "tuyến nhập không được hỗ trợ %s"
 
-#: src/conf/domain_conf.c:8552
+#: src/conf/domain_conf.c:8559
 #, c-format
 msgid "xen bus does not support %s input device"
 msgstr "tuyến xen không hỗ trợ thiết bị nhập %s"
 
-#: src/conf/domain_conf.c:8578 src/conf/domain_conf.c:10352
+#: src/conf/domain_conf.c:8585 src/conf/domain_conf.c:10359
 msgid "Invalid address for a USB device"
 msgstr ""
 
-#: src/conf/domain_conf.c:8609
+#: src/conf/domain_conf.c:8616
 msgid "missing hub device type"
 msgstr ""
 
-#: src/conf/domain_conf.c:8615
+#: src/conf/domain_conf.c:8622
 #, c-format
 msgid "unknown hub device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8658
+#: src/conf/domain_conf.c:8665
 msgid "missing timer name"
 msgstr "thiếu tên bộ đếm giờ"
 
-#: src/conf/domain_conf.c:8663
+#: src/conf/domain_conf.c:8670
 #, c-format
 msgid "unknown timer name '%s'"
 msgstr "tên bộ đếm giờ không rõ '%s'"
 
-#: src/conf/domain_conf.c:8675
+#: src/conf/domain_conf.c:8682
 #, c-format
 msgid "unknown timer present value '%s'"
 msgstr "giá trị hiện tại của bộ đếm giờ không rõ '%s'"
 
-#: src/conf/domain_conf.c:8685
+#: src/conf/domain_conf.c:8692
 #, c-format
 msgid "unknown timer tickpolicy '%s'"
 msgstr "tickpolicy bộ đếm giờ không rõ '%s'"
 
-#: src/conf/domain_conf.c:8695
+#: src/conf/domain_conf.c:8702
 #, c-format
 msgid "unknown timer track '%s'"
 msgstr "theo dõi bộ đếm giờ không rõ '%s'"
 
-#: src/conf/domain_conf.c:8705
+#: src/conf/domain_conf.c:8712
 msgid "invalid timer frequency"
 msgstr "tần số bộ đếm giờ không hợp lệ"
 
-#: src/conf/domain_conf.c:8714
+#: src/conf/domain_conf.c:8721
 #, c-format
 msgid "unknown timer mode '%s'"
 msgstr "chế độ bộ đếm giờ không rõ '%s'"
 
-#: src/conf/domain_conf.c:8727
+#: src/conf/domain_conf.c:8734
 msgid "invalid catchup threshold"
 msgstr "ngưỡng catchup không hợp lệ"
 
-#: src/conf/domain_conf.c:8736
+#: src/conf/domain_conf.c:8743
 msgid "invalid catchup slew"
 msgstr ""
 
-#: src/conf/domain_conf.c:8745
+#: src/conf/domain_conf.c:8752
 msgid "invalid catchup limit"
 msgstr "giới hạn catchup không hợp lệ"
 
-#: src/conf/domain_conf.c:8798
+#: src/conf/domain_conf.c:8805
 #, c-format
 msgid "cannot parse password validity time '%s', expect YYYY-MM-DDTHH:MM:SS"
 msgstr ""
 
-#: src/conf/domain_conf.c:8817
+#: src/conf/domain_conf.c:8824
 #, c-format
 msgid "unknown connected value %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8828
+#: src/conf/domain_conf.c:8835
 msgid "VNC supports connected='keep' only"
 msgstr ""
 
-#: src/conf/domain_conf.c:8852
+#: src/conf/domain_conf.c:8859
 msgid "graphics listen type must be specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:8858
+#: src/conf/domain_conf.c:8865
 #, c-format
 msgid "unknown graphics listen type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8878
+#: src/conf/domain_conf.c:8885
 msgid "network attribute not allowed when listen type is not network"
 msgstr ""
 
-#: src/conf/domain_conf.c:8889
+#: src/conf/domain_conf.c:8896
 #, fuzzy, c-format
 msgid "Invalid fromConfig value: %s"
 msgstr "Bộ lọc mạng không hợp lệ: %s"
 
-#: src/conf/domain_conf.c:8930
+#: src/conf/domain_conf.c:8937
 msgid "missing graphics device type"
 msgstr "thiếu kiểu thiết bị đồ họa"
 
-#: src/conf/domain_conf.c:8936
+#: src/conf/domain_conf.c:8943
 #, c-format
 msgid "unknown graphics device type '%s'"
 msgstr "kiểu thiết bị đồ họa không rõ '%s'"
 
-#: src/conf/domain_conf.c:9001
+#: src/conf/domain_conf.c:9008
 #, c-format
 msgid ""
 "graphics listen attribute %s must match address attribute of first listen "
 "element (found %s)"
 msgstr ""
 
-#: src/conf/domain_conf.c:9019
+#: src/conf/domain_conf.c:9026
 #, c-format
 msgid "cannot parse vnc port %s"
 msgstr "không thể phân tích cổng vnc %s"
 
-#: src/conf/domain_conf.c:9049
+#: src/conf/domain_conf.c:9056
 #, fuzzy, c-format
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "không thể phân tích cổng vnc %s"
 
-#: src/conf/domain_conf.c:9062 src/qemu/qemu_command.c:11579
+#: src/conf/domain_conf.c:9069 src/qemu/qemu_command.c:11579
 #, fuzzy, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "chính sách lỗi đĩa không rõ '%s'"
 
-#: src/conf/domain_conf.c:9087 src/conf/domain_conf.c:9154
+#: src/conf/domain_conf.c:9094 src/conf/domain_conf.c:9161
 #, c-format
 msgid "unknown fullscreen value '%s'"
 msgstr "giá trị toàn màn hình không rõ '%s'"
 
-#: src/conf/domain_conf.c:9106
+#: src/conf/domain_conf.c:9113
 #, c-format
 msgid "cannot parse rdp port %s"
 msgstr "không thể phân tích cổng rdp %s"
 
-#: src/conf/domain_conf.c:9175
+#: src/conf/domain_conf.c:9182
 #, c-format
 msgid "cannot parse spice port %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9188
+#: src/conf/domain_conf.c:9195
 #, c-format
 msgid "cannot parse spice tlsPort %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9208
+#: src/conf/domain_conf.c:9215
 #, c-format
 msgid "unknown default spice channel mode %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9244
+#: src/conf/domain_conf.c:9251
 msgid "spice channel missing name/mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:9252
+#: src/conf/domain_conf.c:9259
 #, c-format
 msgid "unknown spice channel name %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9260
+#: src/conf/domain_conf.c:9267
 #, c-format
 msgid "unknown spice channel mode %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9276
+#: src/conf/domain_conf.c:9283
 msgid "spice image missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:9283
+#: src/conf/domain_conf.c:9290
 #, c-format
 msgid "unknown spice image compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9297
+#: src/conf/domain_conf.c:9304
 msgid "spice jpeg missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:9304
+#: src/conf/domain_conf.c:9311
 #, c-format
 msgid "unknown spice jpeg compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9318
+#: src/conf/domain_conf.c:9325
 msgid "spice zlib missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:9325
+#: src/conf/domain_conf.c:9332
 #, c-format
 msgid "unknown spice zlib compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9339
+#: src/conf/domain_conf.c:9346
 msgid "spice playback missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:9346
+#: src/conf/domain_conf.c:9353
 msgid "unknown spice playback compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:9360
+#: src/conf/domain_conf.c:9367
 msgid "spice streaming missing mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:9366
+#: src/conf/domain_conf.c:9373
 msgid "unknown spice streaming mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:9380
+#: src/conf/domain_conf.c:9387
 msgid "spice clipboard missing copypaste"
 msgstr ""
 
-#: src/conf/domain_conf.c:9387
+#: src/conf/domain_conf.c:9394
 #, c-format
 msgid "unknown copypaste value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9400
+#: src/conf/domain_conf.c:9407
 msgid "spice filetransfer missing enable"
 msgstr ""
 
-#: src/conf/domain_conf.c:9407
+#: src/conf/domain_conf.c:9414
 #, fuzzy, c-format
 msgid "unknown enable value '%s'"
 msgstr "giá trị toàn màn hình không rõ '%s'"
 
-#: src/conf/domain_conf.c:9420
+#: src/conf/domain_conf.c:9427
 msgid "spice mouse missing mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:9426
+#: src/conf/domain_conf.c:9433
 #, c-format
 msgid "unknown mouse mode value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9467
+#: src/conf/domain_conf.c:9474
 #, c-format
 msgid "unknown codec type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9500
+#: src/conf/domain_conf.c:9507
 #, c-format
 msgid "unknown sound model '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:9567
+#: src/conf/domain_conf.c:9574
 msgid "watchdog must contain model name"
 msgstr "watchdog phải chứa tên mẫu"
 
-#: src/conf/domain_conf.c:9573
+#: src/conf/domain_conf.c:9580
 #, c-format
 msgid "unknown watchdog model '%s'"
 msgstr "mẫu watchdog không rõ '%s'"
 
-#: src/conf/domain_conf.c:9584
+#: src/conf/domain_conf.c:9591
 #, c-format
 msgid "unknown watchdog action '%s'"
 msgstr "hành động watchdog không rõ '%s'"
 
-#: src/conf/domain_conf.c:9622
+#: src/conf/domain_conf.c:9629
 #, fuzzy
 msgid "missing RNG device model"
 msgstr "thiếu thiết bị khởi động"
 
-#: src/conf/domain_conf.c:9627
+#: src/conf/domain_conf.c:9634
 #, fuzzy, c-format
 msgid "unknown RNG model '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:9635
+#: src/conf/domain_conf.c:9642
 #, fuzzy
 msgid "invalid RNG rate bytes value"
 msgstr "Giá trị tiền tố địa chỉ ip không hợp lệ"
 
-#: src/conf/domain_conf.c:9642
+#: src/conf/domain_conf.c:9649
 #, fuzzy
 msgid "invalid RNG rate period value"
 msgstr "Giá trị tiền tố địa chỉ ip không hợp lệ"
 
-#: src/conf/domain_conf.c:9651
+#: src/conf/domain_conf.c:9658
 #, fuzzy
 msgid "only one RNG backend is supported"
 msgstr "Chỉ 1 tuyến %s được hỗ trợ"
 
-#: src/conf/domain_conf.c:9657
+#: src/conf/domain_conf.c:9664
 #, fuzzy
 msgid "missing RNG device backend model"
 msgstr "Thiếu backend %d"
 
-#: src/conf/domain_conf.c:9663
+#: src/conf/domain_conf.c:9670
 #, fuzzy, c-format
 msgid "unknown RNG backend model '%s'"
 msgstr "mẫu âm thanh không rõ '%s'"
 
-#: src/conf/domain_conf.c:9674
+#: src/conf/domain_conf.c:9681
 #, fuzzy, c-format
 msgid "file '%s' is not a supported random source"
 msgstr "kiểu pool '%s' không hỗ trợ khám phá nguồn"
 
-#: src/conf/domain_conf.c:9683
+#: src/conf/domain_conf.c:9690
 #, fuzzy
 msgid "missing EGD backend type"
 msgstr "thiếu backend cho kiểu pool %d"
 
-#: src/conf/domain_conf.c:9693
+#: src/conf/domain_conf.c:9700
 #, fuzzy, c-format
 msgid "unknown backend type '%s' for egd"
 msgstr "kiểu giao diện không rõ '%s'"
 
-#: src/conf/domain_conf.c:9741
+#: src/conf/domain_conf.c:9748
 msgid "balloon memory must contain model name"
 msgstr ""
 
-#: src/conf/domain_conf.c:9747
+#: src/conf/domain_conf.c:9754
 #, c-format
 msgid "unknown memory balloon model '%s'"
 msgstr "mẫu balloon bộ nhớ không rõ '%s'"
 
-#: src/conf/domain_conf.c:9754
+#: src/conf/domain_conf.c:9761
 #, fuzzy
 msgid "invalid statistics collection period"
 msgstr "con trỏ kết nối không hợp lệ trong"
 
-#: src/conf/domain_conf.c:9812
+#: src/conf/domain_conf.c:9819
 #, fuzzy
 msgid "shmem element must contain 'name' attribute"
 msgstr "Không thể phân tích thuộc tính <address> 'bus'"
 
-#: src/conf/domain_conf.c:9834
+#: src/conf/domain_conf.c:9841
 #, fuzzy, c-format
 msgid "invalid number of vectors for shmem: '%s'"
 msgstr "Giá trị không hợp lệ '%s' cho mục VMX '%s'"
 
-#: src/conf/domain_conf.c:9843
+#: src/conf/domain_conf.c:9850
 #, fuzzy, c-format
 msgid "invalid msi ioeventfd setting for shmem: '%s'"
 msgstr "base64 không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:9853
+#: src/conf/domain_conf.c:9860
 #, fuzzy
 msgid "msi option is only supported with a server"
 msgstr "mạng đã hoạt động"
 
-#: src/conf/domain_conf.c:9882
+#: src/conf/domain_conf.c:9889
 msgid "XML does not contain expected 'sysinfo' element"
 msgstr ""
 
-#: src/conf/domain_conf.c:9892
+#: src/conf/domain_conf.c:9899
 msgid "sysinfo must contain a type attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:9897
+#: src/conf/domain_conf.c:9904
 #, c-format
 msgid "unknown sysinfo type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9928
+#: src/conf/domain_conf.c:9935
 #, fuzzy
 msgid "Invalid BIOS 'date' format"
 msgstr "định dạng lưu nén không hợp lệ %d"
 
-#: src/conf/domain_conf.c:9950
+#: src/conf/domain_conf.c:9957
 #, fuzzy
 msgid "malformed <sysinfo> uuid element"
 msgstr "thành phần uuid sai dạng thức"
 
-#: src/conf/domain_conf.c:9957
+#: src/conf/domain_conf.c:9964
 msgid "UUID mismatch between <uuid> and <sysinfo>"
 msgstr ""
 
-#: src/conf/domain_conf.c:10137
+#: src/conf/domain_conf.c:10144
 #, c-format
 msgid "unknown video model '%s'"
 msgstr "mẫu video không rõ '%s'"
 
-#: src/conf/domain_conf.c:10143
+#: src/conf/domain_conf.c:10150
 msgid "missing video model and cannot determine default"
 msgstr "thiếu mẫu video và không thể quyết định mặc định"
 
-#: src/conf/domain_conf.c:10151
+#: src/conf/domain_conf.c:10158
 msgid "ram attribute only supported for type of qxl"
 msgstr ""
 
-#: src/conf/domain_conf.c:10156 src/conf/domain_conf.c:10166
+#: src/conf/domain_conf.c:10163 src/conf/domain_conf.c:10173
 #, c-format
 msgid "cannot parse video ram '%s'"
 msgstr "không thể phân tích video ram '%s'"
 
-#: src/conf/domain_conf.c:10176
+#: src/conf/domain_conf.c:10183
 #, c-format
 msgid "cannot parse video heads '%s'"
 msgstr "không thể phân tích đầu video '%s'"
 
-#: src/conf/domain_conf.c:10223
+#: src/conf/domain_conf.c:10230
 #, c-format
 msgid "unknown hostdev mode '%s'"
 msgstr "chế độ hostdev không rõ '%s'"
 
-#: src/conf/domain_conf.c:10243
+#: src/conf/domain_conf.c:10250
 #, c-format
 msgid "Unexpected hostdev mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:10260
+#: src/conf/domain_conf.c:10267
 msgid "PCI host devices must use 'pci' address type"
 msgstr "Các thiết bị chủ PCI phải sử dụng kiểu địa chỉ 'pci'"
 
-#: src/conf/domain_conf.c:10269
+#: src/conf/domain_conf.c:10276
 #, fuzzy
 msgid "SCSI host devices must have address specified"
 msgstr "Các thiết bị chủ PCI phải sử dụng kiểu địa chỉ 'pci'"
 
-#: src/conf/domain_conf.c:10311
+#: src/conf/domain_conf.c:10318
 #, c-format
 msgid "unknown redirdev bus '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10322
+#: src/conf/domain_conf.c:10329
 #, c-format
 msgid "unknown redirdev character device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10327
+#: src/conf/domain_conf.c:10334
 msgid "missing type in redirdev"
 msgstr ""
 
-#: src/conf/domain_conf.c:10403
+#: src/conf/domain_conf.c:10410
 #, c-format
 msgid "Incorrect USB version format %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10413
+#: src/conf/domain_conf.c:10420
 #, c-format
 msgid "Cannot parse USB version %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10446
+#: src/conf/domain_conf.c:10453
 #, c-format
 msgid "Cannot parse USB Class code %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10452
+#: src/conf/domain_conf.c:10459
 #, c-format
 msgid "Invalid USB Class code %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10463
+#: src/conf/domain_conf.c:10470
 #, c-format
 msgid "Cannot parse USB vendor ID %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10474
+#: src/conf/domain_conf.c:10481
 #, c-format
 msgid "Cannot parse USB product ID %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10499
+#: src/conf/domain_conf.c:10506
 msgid "Invalid allow value, either 'yes' or 'no'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10504
+#: src/conf/domain_conf.c:10511
 msgid "Missing allow attribute for USB redirection filter"
 msgstr ""
 
-#: src/conf/domain_conf.c:10577
+#: src/conf/domain_conf.c:10584
 #, c-format
 msgid "unknown %s action: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10597
+#: src/conf/domain_conf.c:10604
 #, c-format
 msgid "unknown PM state value %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10620
+#: src/conf/domain_conf.c:10627
 msgid "(device_definition)"
 msgstr ""
 
-#: src/conf/domain_conf.c:10638
+#: src/conf/domain_conf.c:10645
 #, fuzzy, c-format
 msgid "unknown device type '%s'"
 msgstr "kiểu thiết bị ký tự '%s' không rõ"
 
-#: src/conf/domain_conf.c:10766
+#: src/conf/domain_conf.c:10773
 msgid "(disk_definition)"
 msgstr ""
 
-#: src/conf/domain_conf.c:10772
+#: src/conf/domain_conf.c:10779
 #, fuzzy, c-format
 msgid "expecting root element of 'disk', not '%s'"
 msgstr "Thành phần gốc không phải 'node'"
 
-#: src/conf/domain_conf.c:11173
+#: src/conf/domain_conf.c:11180
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr ""
 
-#: src/conf/domain_conf.c:11194
+#: src/conf/domain_conf.c:11201
 #, c-format
 msgid "no device matching mac address %s found on %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 
-#: src/conf/domain_conf.c:11203
+#: src/conf/domain_conf.c:11210
 #, fuzzy, c-format
 msgid "no device matching mac address %s found"
 msgstr "không có thiết bị nút khớp tên '%s'"
 
-#: src/conf/domain_conf.c:11555
+#: src/conf/domain_conf.c:11562
 msgid "unknown virt type"
 msgstr "kiểu virt không rõ"
 
-#: src/conf/domain_conf.c:11566
+#: src/conf/domain_conf.c:11573
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr "không có giả lập cho miền %s kiểu os %s trên kiến trúc %s"
 
-#: src/conf/domain_conf.c:11592
+#: src/conf/domain_conf.c:11599
 msgid "cannot count boot devices"
 msgstr ""
 
-#: src/conf/domain_conf.c:11603 src/conf/domain_conf.c:19547
+#: src/conf/domain_conf.c:11610 src/conf/domain_conf.c:19554
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr ""
 
-#: src/conf/domain_conf.c:11613
+#: src/conf/domain_conf.c:11620
 msgid "missing boot device"
 msgstr "thiếu thiết bị khởi động"
 
-#: src/conf/domain_conf.c:11618
+#: src/conf/domain_conf.c:11625
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "thiết bị khởi động không rõ '%s'"
 
-#: src/conf/domain_conf.c:11650
+#: src/conf/domain_conf.c:11657
 msgid "invalid value for boot menu timeout, must be in range [0,65535]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11664
+#: src/conf/domain_conf.c:11671
 msgid "need at least one serial port for useserial"
 msgstr ""
 
-#: src/conf/domain_conf.c:11682
+#: src/conf/domain_conf.c:11689
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11736
+#: src/conf/domain_conf.c:11743
 msgid "invalid idmap start/target/count settings"
 msgstr ""
 
-#: src/conf/domain_conf.c:11748
+#: src/conf/domain_conf.c:11755
 #, fuzzy
 msgid "You must map the root user of container"
 msgstr "Không thể tạo tên eth cho bộ chứa"
 
-#: src/conf/domain_conf.c:11812
+#: src/conf/domain_conf.c:11819
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr ""
 
-#: src/conf/domain_conf.c:11816
+#: src/conf/domain_conf.c:11823
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:11822
+#: src/conf/domain_conf.c:11829
 msgid "vcpu id must be less than maxvcpus"
 msgstr ""
 
-#: src/conf/domain_conf.c:11832
+#: src/conf/domain_conf.c:11839
 #, fuzzy, c-format
 msgid "invalid setting for iothread '%s'"
 msgstr "base64 không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:11839
+#: src/conf/domain_conf.c:11846
 msgid "zero is an invalid iothread id value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11849
+#: src/conf/domain_conf.c:11856
 msgid "iothread id must not exceed iothreads"
 msgstr ""
 
-#: src/conf/domain_conf.c:11860
+#: src/conf/domain_conf.c:11867
 #, fuzzy
 msgid "missing cpuset for emulatorpin"
 msgstr "thiếu thông tin hạt nhân"
 
-#: src/conf/domain_conf.c:11863
+#: src/conf/domain_conf.c:11870
 #, fuzzy
 msgid "missing cpuset for iothreadpin"
 msgstr "thiếu thông tin hạt nhân"
 
-#: src/conf/domain_conf.c:11866
+#: src/conf/domain_conf.c:11873
 msgid "missing cpuset for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:11971
+#: src/conf/domain_conf.c:11978
 #, fuzzy
 msgid "unable to parse size attribute"
 msgstr "Không thể phân tích tham số devaddr '%s'"
 
-#: src/conf/domain_conf.c:11982
+#: src/conf/domain_conf.c:11989
 msgid "hugepage size can't be zero"
 msgstr ""
 
-#: src/conf/domain_conf.c:12016
+#: src/conf/domain_conf.c:12023
 #, fuzzy
 msgid "missing resource partition attribute"
 msgstr "thiếu thuộc tính kiểu miền"
 
-#: src/conf/domain_conf.c:12072
+#: src/conf/domain_conf.c:12079
 #, fuzzy, c-format
 msgid "unknown readonly value: %s"
 msgstr "giá trị toàn màn hình không rõ '%s'"
 
-#: src/conf/domain_conf.c:12080
+#: src/conf/domain_conf.c:12087
 #, fuzzy, c-format
 msgid "unknown type value: %s"
 msgstr "kiểu không rõ '%s'"
 
-#: src/conf/domain_conf.c:12127
+#: src/conf/domain_conf.c:12134
 msgid "missing domain type attribute"
 msgstr "thiếu thuộc tính kiểu miền"
 
-#: src/conf/domain_conf.c:12133
+#: src/conf/domain_conf.c:12140
 #, c-format
 msgid "invalid domain type %s"
 msgstr "kiểu miền không hợp lệ %s"
 
-#: src/conf/domain_conf.c:12141
+#: src/conf/domain_conf.c:12148
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12163
+#: src/conf/domain_conf.c:12170
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12187 src/conf/network_conf.c:2050
+#: src/conf/domain_conf.c:12194 src/conf/network_conf.c:2050
 #: src/conf/secret_conf.c:192 src/openvz/openvz_conf.c:1039
 #: src/xenconfig/xen_common.c:206
 msgid "Failed to generate UUID"
 msgstr "Tạo UUID thất bại"
 
-#: src/conf/domain_conf.c:12194 src/conf/network_conf.c:2056
+#: src/conf/domain_conf.c:12201 src/conf/network_conf.c:2056
 #: src/conf/nwfilter_conf.c:2647 src/conf/secret_conf.c:198
 #: src/conf/storage_conf.c:853
 msgid "malformed uuid element"
 msgstr "thành phần uuid sai dạng thức"
 
-#: src/conf/domain_conf.c:12204
+#: src/conf/domain_conf.c:12211
 msgid "Domain title can't contain newlines"
 msgstr ""
 
-#: src/conf/domain_conf.c:12229
+#: src/conf/domain_conf.c:12236
 #, fuzzy, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "Nhãn bảo mật không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:12241
+#: src/conf/domain_conf.c:12248
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12257
+#: src/conf/domain_conf.c:12264
 #, fuzzy
 msgid "cannot extract hugepages nodes"
 msgstr "không thể trích xuất nhà cung cấp thiết bị PCI '%s'"
 
-#: src/conf/domain_conf.c:12277
+#: src/conf/domain_conf.c:12284
 #, c-format
 msgid "nodeset attribute of hugepages of sizes %llu and %llu intersect"
 msgstr ""
 
-#: src/conf/domain_conf.c:12285
+#: src/conf/domain_conf.c:12292
 #, c-format
 msgid "two master hugepages detected: %llu and %llu"
 msgstr ""
 
-#: src/conf/domain_conf.c:12317
+#: src/conf/domain_conf.c:12324
 msgid "cannot extract blkiotune nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:12332
+#: src/conf/domain_conf.c:12339
 #, fuzzy, c-format
 msgid "duplicate blkio device path '%s'"
 msgstr "tên thiết bị không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:12360
+#: src/conf/domain_conf.c:12367
 msgid "maximum vcpus must be an integer"
 msgstr "Số vcpu lớn nhất phải là một số nguyên"
 
-#: src/conf/domain_conf.c:12368
+#: src/conf/domain_conf.c:12375
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12376
+#: src/conf/domain_conf.c:12383
 msgid "current vcpus must be an integer"
 msgstr "số vcpu hiện tại phải là một số nguyên"
 
-#: src/conf/domain_conf.c:12384
+#: src/conf/domain_conf.c:12391
 #, c-format
 msgid "invalid current number of vCPUs '%lu'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12390
+#: src/conf/domain_conf.c:12397
 #, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr ""
 
-#: src/conf/domain_conf.c:12402
+#: src/conf/domain_conf.c:12409
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12425
+#: src/conf/domain_conf.c:12432
 #, fuzzy, c-format
 msgid "invalid iothreads count '%s'"
 msgstr "base64 không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:12434
+#: src/conf/domain_conf.c:12441
 #, fuzzy
 msgid "can't parse cputune shares value"
 msgstr "không thể đặt chia sẻ cpu điều phối được"
 
-#: src/conf/domain_conf.c:12443
+#: src/conf/domain_conf.c:12450
 #, fuzzy
 msgid "can't parse cputune period value"
 msgstr "không thể phân tích giá trị của thông số typeid"
 
-#: src/conf/domain_conf.c:12450
+#: src/conf/domain_conf.c:12457
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr ""
 
-#: src/conf/domain_conf.c:12458
+#: src/conf/domain_conf.c:12465
 msgid "can't parse cputune quota value"
 msgstr ""
 
-#: src/conf/domain_conf.c:12466
+#: src/conf/domain_conf.c:12473
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr ""
 
-#: src/conf/domain_conf.c:12474
+#: src/conf/domain_conf.c:12481
 msgid "can't parse cputune emulator period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:12482
+#: src/conf/domain_conf.c:12489
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr ""
 
-#: src/conf/domain_conf.c:12490
+#: src/conf/domain_conf.c:12497
 msgid "can't parse cputune emulator quota value"
 msgstr ""
 
-#: src/conf/domain_conf.c:12498
+#: src/conf/domain_conf.c:12505
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 
-#: src/conf/domain_conf.c:12521
+#: src/conf/domain_conf.c:12528
 msgid "duplicate vcpupin for same vcpu"
 msgstr ""
 
-#: src/conf/domain_conf.c:12570
+#: src/conf/domain_conf.c:12577
 msgid "cannot extract emulatorpin nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:12582
+#: src/conf/domain_conf.c:12589
 msgid "only one emulatorpin is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12602
+#: src/conf/domain_conf.c:12609
 #, fuzzy
 msgid "cannot extract iothreadpin nodes"
 msgstr "không thể trích xuất nhà cung cấp thiết bị PCI '%s'"
 
-#: src/conf/domain_conf.c:12627
+#: src/conf/domain_conf.c:12634
 msgid "duplicate iothreadpin for same iothread"
 msgstr ""
 
-#: src/conf/domain_conf.c:12656
+#: src/conf/domain_conf.c:12663
 msgid "Maximum CPUs greater than topology limit"
 msgstr ""
 
-#: src/conf/domain_conf.c:12662
+#: src/conf/domain_conf.c:12669
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr ""
 
-#: src/conf/domain_conf.c:12680
+#: src/conf/domain_conf.c:12687
 #, fuzzy
 msgid "cannot extract resource nodes"
 msgstr "không thể trích xuất nhà cung cấp thiết bị PCI '%s'"
 
-#: src/conf/domain_conf.c:12686
+#: src/conf/domain_conf.c:12693
 #, fuzzy
 msgid "only one resource element is supported"
 msgstr "Chỉ 1 tuyến %s được hỗ trợ"
 
-#: src/conf/domain_conf.c:12702
+#: src/conf/domain_conf.c:12709
 #, fuzzy, c-format
 msgid "unexpected feature '%s'"
 msgstr "tính năng không mong đợi %s"
 
-#: src/conf/domain_conf.c:12712
+#: src/conf/domain_conf.c:12719
 #, fuzzy, c-format
 msgid "unknown value for attribute eoi: '%s'"
 msgstr "kiểu định dạng ổ không rõ %s"
 
-#: src/conf/domain_conf.c:12736 src/conf/domain_conf.c:12752
+#: src/conf/domain_conf.c:12743 src/conf/domain_conf.c:12759
 #, fuzzy, c-format
 msgid "unknown state attribute '%s' of feature '%s'"
 msgstr "kiểu khả năng lưu trữ không rõ '%s' cho '%s'"
 
-#: src/conf/domain_conf.c:12781
+#: src/conf/domain_conf.c:12788
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12793 src/conf/domain_conf.c:12814
+#: src/conf/domain_conf.c:12800 src/conf/domain_conf.c:12821
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12801 src/conf/domain_conf.c:12822
+#: src/conf/domain_conf.c:12808 src/conf/domain_conf.c:12829
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12833
+#: src/conf/domain_conf.c:12840
 #, fuzzy
 msgid "invalid HyperV spinlock retry count"
 msgstr "không thể phân tích cổng rdp %s"
 
-#: src/conf/domain_conf.c:12839
+#: src/conf/domain_conf.c:12846
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr ""
 
-#: src/conf/domain_conf.c:12867
+#: src/conf/domain_conf.c:12874
 #, fuzzy, c-format
 msgid "unsupported KVM feature: %s"
 msgstr "tính năng không mong đợi %s"
 
-#: src/conf/domain_conf.c:12878
+#: src/conf/domain_conf.c:12885
 #, fuzzy, c-format
 msgid "missing 'state' attribute for KVM feature '%s'"
 msgstr "kiểu khả năng lưu trữ không rõ '%s' cho '%s'"
 
-#: src/conf/domain_conf.c:12886
+#: src/conf/domain_conf.c:12893
 #, fuzzy, c-format
 msgid "invalid value of state argument for KVM feature '%s'"
 msgstr "Giá trị không hợp lệ '%s' cho mục VMX '%s'"
 
-#: src/conf/domain_conf.c:12912
+#: src/conf/domain_conf.c:12919
 #, fuzzy, c-format
 msgid "unexpected capability feature '%s'"
 msgstr "tính năng không mong đợi %s"
 
-#: src/conf/domain_conf.c:12923
+#: src/conf/domain_conf.c:12930
 #, fuzzy, c-format
 msgid "unknown state attribute '%s' of feature capability '%s'"
 msgstr "kiểu khả năng lưu trữ không rõ '%s' cho '%s'"
 
-#: src/conf/domain_conf.c:12977
+#: src/conf/domain_conf.c:12984
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "nhánh đồng hồ không rõ '%s'"
 
-#: src/conf/domain_conf.c:12993
+#: src/conf/domain_conf.c:13000
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13024
+#: src/conf/domain_conf.c:13031
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13037
+#: src/conf/domain_conf.c:13044
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "thiếu thuộc tính 'múi-giờ' cho đồng hồ với offset='múi-giờ'"
 
-#: src/conf/domain_conf.c:13069
+#: src/conf/domain_conf.c:13076
 msgid "no OS type"
 msgstr "không có kiểu OS"
 
-#: src/conf/domain_conf.c:13104
+#: src/conf/domain_conf.c:13111
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13113
+#: src/conf/domain_conf.c:13120
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13124 src/xenconfig/xen_common.c:1039
+#: src/conf/domain_conf.c:13131 src/xenconfig/xen_common.c:1039
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "không có kiến trúc hỗ trợ cho kiểu os '%s'"
 
-#: src/conf/domain_conf.c:13163
+#: src/conf/domain_conf.c:13170
 msgid "No data supplied for <initarg> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:13247 src/conf/domain_conf.c:13256
+#: src/conf/domain_conf.c:13254 src/conf/domain_conf.c:13263
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:13273
+#: src/conf/domain_conf.c:13280
 #, fuzzy
 msgid "No master USB controller specified"
 msgstr "không có nhân được chỉ định"
 
-#: src/conf/domain_conf.c:13280
+#: src/conf/domain_conf.c:13287
 msgid "cannot extract device leases"
 msgstr ""
 
-#: src/conf/domain_conf.c:13414
+#: src/conf/domain_conf.c:13421
 msgid "cannot extract console devices"
 msgstr ""
 
-#: src/conf/domain_conf.c:13491
+#: src/conf/domain_conf.c:13498
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr ""
 
-#: src/conf/domain_conf.c:13586
+#: src/conf/domain_conf.c:13593
 msgid "Only one primary video device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:13612
+#: src/conf/domain_conf.c:13619
 msgid "cannot determine default video type"
 msgstr "không thể quyết định kiểu video mặc định"
 
-#: src/conf/domain_conf.c:13642
+#: src/conf/domain_conf.c:13649
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr ""
 
-#: src/conf/domain_conf.c:13662
+#: src/conf/domain_conf.c:13669
 msgid "only a single watchdog device is supported"
 msgstr "chỉ có một thiết bị watchdog đơn được hỗ trợ"
 
-#: src/conf/domain_conf.c:13682
+#: src/conf/domain_conf.c:13689
 msgid "only a single memory balloon device is supported"
 msgstr "chỉ có một thiết bị balloon bộ nhớ đơn được hỗ trợ"
 
-#: src/conf/domain_conf.c:13717
+#: src/conf/domain_conf.c:13724
 #, fuzzy
 msgid "only a single TPM device is supported"
 msgstr "chỉ có một thiết bị watchdog đơn được hỗ trợ"
 
-#: src/conf/domain_conf.c:13733
+#: src/conf/domain_conf.c:13740
 #, fuzzy
 msgid "only a single nvram device is supported"
 msgstr "chỉ có một thiết bị watchdog đơn được hỗ trợ"
 
-#: src/conf/domain_conf.c:13758
+#: src/conf/domain_conf.c:13765
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:13782
+#: src/conf/domain_conf.c:13789
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:13798
+#: src/conf/domain_conf.c:13805
 msgid "only one set of redirection filter rule is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:13819
+#: src/conf/domain_conf.c:13826
 #, fuzzy
 msgid "only a single panic device is supported"
 msgstr "chỉ có một thiết bị watchdog đơn được hỗ trợ"
 
-#: src/conf/domain_conf.c:13880
+#: src/conf/domain_conf.c:13887
 msgid "uid and gid should be mapped both"
 msgstr ""
 
-#: src/conf/domain_conf.c:13900
+#: src/conf/domain_conf.c:13907
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13965
+#: src/conf/domain_conf.c:13972
 msgid "no domain config"
 msgstr "không có cấu hình miền"
 
-#: src/conf/domain_conf.c:13979
+#: src/conf/domain_conf.c:13986
 msgid "missing domain state"
 msgstr "thiếu trạng thái miền"
 
-#: src/conf/domain_conf.c:13984
+#: src/conf/domain_conf.c:13991
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "trạng thái miền không hợp lệ '%s'"
 
-#: src/conf/domain_conf.c:13993
+#: src/conf/domain_conf.c:14000
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14004
+#: src/conf/domain_conf.c:14011
 msgid "invalid pid"
 msgstr "pid không hợp lệ"
 
-#: src/conf/domain_conf.c:14018 src/conf/network_conf.c:3082
+#: src/conf/domain_conf.c:14025 src/conf/network_conf.c:3082
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14053 src/security/virt-aa-helper.c:659
+#: src/conf/domain_conf.c:14060 src/security/virt-aa-helper.c:669
 #: tools/virsh-domain-monitor.c:95 tools/virsh-domain-monitor.c:489
 #: tools/virsh-domain-monitor.c:604 tools/virsh-domain-monitor.c:726
 #: tools/virsh-domain.c:2744 tools/virsh-domain.c:3410
@@ -3794,799 +3794,799 @@ msgstr ""
 msgid "(domain_definition)"
 msgstr ""
 
-#: src/conf/domain_conf.c:14099
+#: src/conf/domain_conf.c:14106
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr ""
 
-#: src/conf/domain_conf.c:14134
+#: src/conf/domain_conf.c:14141
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr ""
 
-#: src/conf/domain_conf.c:14183
+#: src/conf/domain_conf.c:14190
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14191
+#: src/conf/domain_conf.c:14198
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14199
+#: src/conf/domain_conf.c:14206
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr ""
 
-#: src/conf/domain_conf.c:14206
+#: src/conf/domain_conf.c:14213
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14223
+#: src/conf/domain_conf.c:14230
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14236
+#: src/conf/domain_conf.c:14243
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
 "%02x:%02x.%02x"
 msgstr ""
 
-#: src/conf/domain_conf.c:14251
+#: src/conf/domain_conf.c:14258
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14266
+#: src/conf/domain_conf.c:14273
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14280
+#: src/conf/domain_conf.c:14287
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14294
+#: src/conf/domain_conf.c:14301
 #, fuzzy, c-format
 msgid "Target device isa address %d:%d does not match source %d:%d"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:14324
+#: src/conf/domain_conf.c:14331
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14332
+#: src/conf/domain_conf.c:14339
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14340
+#: src/conf/domain_conf.c:14347
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14347
+#: src/conf/domain_conf.c:14354
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14355
+#: src/conf/domain_conf.c:14362
 msgid "Target disk access mode does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:14372
+#: src/conf/domain_conf.c:14379
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14380
+#: src/conf/domain_conf.c:14387
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14387
+#: src/conf/domain_conf.c:14394
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14395
+#: src/conf/domain_conf.c:14402
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14402
+#: src/conf/domain_conf.c:14409
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14421
+#: src/conf/domain_conf.c:14428
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14428
+#: src/conf/domain_conf.c:14435
 msgid "Target filesystem access mode does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:14448
+#: src/conf/domain_conf.c:14455
 #, fuzzy, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:14457
+#: src/conf/domain_conf.c:14464
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14475
+#: src/conf/domain_conf.c:14482
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14483
+#: src/conf/domain_conf.c:14490
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14502
+#: src/conf/domain_conf.c:14509
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14521
+#: src/conf/domain_conf.c:14528
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14529
+#: src/conf/domain_conf.c:14536
 #, fuzzy, c-format
 msgid "Target video card ram %u does not match source %u"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:14536
+#: src/conf/domain_conf.c:14543
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:14543
+#: src/conf/domain_conf.c:14550
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:14551
-msgid "Target video card acceleration does not match source"
-msgstr ""
-
 #: src/conf/domain_conf.c:14558
-#, c-format
-msgid "Target video card 2d accel %u does not match source %u"
+msgid "Target video card acceleration does not match source"
 msgstr ""
 
 #: src/conf/domain_conf.c:14565
 #, c-format
+msgid "Target video card 2d accel %u does not match source %u"
+msgstr ""
+
+#: src/conf/domain_conf.c:14572
+#, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:14584
+#: src/conf/domain_conf.c:14591
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14593
+#: src/conf/domain_conf.c:14600
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14623
+#: src/conf/domain_conf.c:14630
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14641
+#: src/conf/domain_conf.c:14648
 #, fuzzy, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:14659
+#: src/conf/domain_conf.c:14666
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14669
+#: src/conf/domain_conf.c:14676
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14678
+#: src/conf/domain_conf.c:14685
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr ""
 
-#: src/conf/domain_conf.c:14689
+#: src/conf/domain_conf.c:14696
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14711
+#: src/conf/domain_conf.c:14718
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14730
+#: src/conf/domain_conf.c:14737
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14749
+#: src/conf/domain_conf.c:14756
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14768
+#: src/conf/domain_conf.c:14775
 #, fuzzy, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:14787
+#: src/conf/domain_conf.c:14794
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14806
+#: src/conf/domain_conf.c:14813
 #, fuzzy, c-format
 msgid "Target redirected device bus %s does not match source %s"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:14817
+#: src/conf/domain_conf.c:14824
 #, fuzzy, c-format
 msgid ""
 "Target redirected device source type %s does not match source device source "
 "type %s"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:14843
+#: src/conf/domain_conf.c:14850
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:14854
+#: src/conf/domain_conf.c:14861
 msgid "Target USB Class code does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:14860
+#: src/conf/domain_conf.c:14867
 msgid "Target USB vendor ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:14866
+#: src/conf/domain_conf.c:14873
 msgid "Target USB product ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:14872
+#: src/conf/domain_conf.c:14879
 msgid "Target USB version does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:14878
+#: src/conf/domain_conf.c:14885
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14898
+#: src/conf/domain_conf.c:14905
 #, c-format
 msgid "State of feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14910
+#: src/conf/domain_conf.c:14917
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14925
+#: src/conf/domain_conf.c:14932
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14940
+#: src/conf/domain_conf.c:14947
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14962
+#: src/conf/domain_conf.c:14969
 #, c-format
 msgid "State of KVM feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14991
+#: src/conf/domain_conf.c:14998
 #, fuzzy, c-format
 msgid "Target domain panic device count '%d' does not match source count '%d'"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15007
+#: src/conf/domain_conf.c:15014
 #, fuzzy, c-format
 msgid "Target shared memory name '%s' does not match source '%s'"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15014
+#: src/conf/domain_conf.c:15021
 #, fuzzy, c-format
 msgid "Target shared memory size '%llu' does not match source size '%llu'"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15021
+#: src/conf/domain_conf.c:15028
 #, fuzzy
 msgid "Target shared memory server usage doesn't match source"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15030
+#: src/conf/domain_conf.c:15037
 #, fuzzy
 msgid "Target shared memory MSI configuration doesn't match source"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15054
+#: src/conf/domain_conf.c:15061
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15066
+#: src/conf/domain_conf.c:15073
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15077
+#: src/conf/domain_conf.c:15084
 #, fuzzy, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15084
+#: src/conf/domain_conf.c:15091
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:15090
+#: src/conf/domain_conf.c:15097
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:15096
+#: src/conf/domain_conf.c:15103
 #, fuzzy, c-format
 msgid "Target domain huge pages count %zu does not match source %zu"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15106
+#: src/conf/domain_conf.c:15113
 #, fuzzy, c-format
 msgid "Target domain huge page size %llu does not match source %llu"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15115 src/conf/domain_conf.c:15121
+#: src/conf/domain_conf.c:15122 src/conf/domain_conf.c:15128
 #, fuzzy
 msgid "Target huge page nodemask does not match source"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15129
+#: src/conf/domain_conf.c:15136
 #, fuzzy, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15135
+#: src/conf/domain_conf.c:15142
 #, fuzzy, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15142
+#: src/conf/domain_conf.c:15149
 #, fuzzy, c-format
 msgid "Target domain iothreads count %u does not match source %u"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15150 src/conf/domain_conf.c:15163
+#: src/conf/domain_conf.c:15157 src/conf/domain_conf.c:15170
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15156
+#: src/conf/domain_conf.c:15163
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15170
+#: src/conf/domain_conf.c:15177
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15181
+#: src/conf/domain_conf.c:15188
 msgid "Target domain timers do not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:15199
+#: src/conf/domain_conf.c:15206
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15210
+#: src/conf/domain_conf.c:15217
 #, fuzzy, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15223
+#: src/conf/domain_conf.c:15230
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15235
+#: src/conf/domain_conf.c:15242
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15247
+#: src/conf/domain_conf.c:15254
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15259
+#: src/conf/domain_conf.c:15266
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15271
+#: src/conf/domain_conf.c:15278
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15283
+#: src/conf/domain_conf.c:15290
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15296
+#: src/conf/domain_conf.c:15303
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15309
+#: src/conf/domain_conf.c:15316
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15322
+#: src/conf/domain_conf.c:15329
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15335
+#: src/conf/domain_conf.c:15342
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15348
+#: src/conf/domain_conf.c:15355
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15361
+#: src/conf/domain_conf.c:15368
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15373
+#: src/conf/domain_conf.c:15380
 #, fuzzy, c-format
 msgid "Target domain redirected devices count %zu does not match source %zu"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15388
+#: src/conf/domain_conf.c:15395
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15402
+#: src/conf/domain_conf.c:15409
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15415
+#: src/conf/domain_conf.c:15422
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15428
+#: src/conf/domain_conf.c:15435
 #, fuzzy, c-format
 msgid "Target domain RNG device count %zu does not match source %zu"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15442
+#: src/conf/domain_conf.c:15449
 #, fuzzy, c-format
 msgid "Target domain shared memory device count %zu does not match source %zu"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/conf/domain_conf.c:15808
+#: src/conf/domain_conf.c:15815
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16104 src/conf/domain_conf.c:16193
+#: src/conf/domain_conf.c:16111 src/conf/domain_conf.c:16200
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "kiểu đĩa không mong đợi %d"
 
-#: src/conf/domain_conf.c:16141
+#: src/conf/domain_conf.c:16148
 #, fuzzy, c-format
 msgid "unexpected disk backing store type %d"
 msgstr "kiểu đĩa không mong đợi %d"
 
-#: src/conf/domain_conf.c:16149
+#: src/conf/domain_conf.c:16156
 #, fuzzy, c-format
 msgid "unexpected disk backing store format %d"
 msgstr "chế độ đệm đĩa không mong đợi %d"
 
-#: src/conf/domain_conf.c:16198
+#: src/conf/domain_conf.c:16205
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "thiết bị đĩa không mong đợi %d"
 
-#: src/conf/domain_conf.c:16203
+#: src/conf/domain_conf.c:16210
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "tuyến đĩa không mong đợi %d"
 
-#: src/conf/domain_conf.c:16208
+#: src/conf/domain_conf.c:16215
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "chế độ đệm đĩa không mong đợi %d"
 
-#: src/conf/domain_conf.c:16213
+#: src/conf/domain_conf.c:16220
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16218
+#: src/conf/domain_conf.c:16225
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:16430
+#: src/conf/domain_conf.c:16437
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "kiểu bộ điều khiển không mong đợi %d"
 
-#: src/conf/domain_conf.c:16439
+#: src/conf/domain_conf.c:16446
 #, c-format
 msgid "unexpected model type %d"
 msgstr "kiểu mẫu không mong đợi %d"
 
-#: src/conf/domain_conf.c:16532
+#: src/conf/domain_conf.c:16539
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "kiểu tập tin hệ thống không mong đợi %d"
 
-#: src/conf/domain_conf.c:16538
+#: src/conf/domain_conf.c:16545
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "accessmode không mong đợi %d"
 
-#: src/conf/domain_conf.c:16630
+#: src/conf/domain_conf.c:16637
 #, fuzzy, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "kiểu hostdev không mong đợi %d"
 
-#: src/conf/domain_conf.c:16679
+#: src/conf/domain_conf.c:16686
 msgid "PCI address Formatting failed"
 msgstr ""
 
-#: src/conf/domain_conf.c:16715 src/conf/domain_conf.c:16755
-#: src/conf/domain_conf.c:18314 src/conf/domain_conf.c:18323
-#: src/libxl/libxl_driver.c:3011 src/qemu/qemu_hotplug.c:3473
+#: src/conf/domain_conf.c:16722 src/conf/domain_conf.c:16762
+#: src/conf/domain_conf.c:18321 src/conf/domain_conf.c:18330
+#: src/libxl/libxl_driver.c:3011 src/qemu/qemu_hotplug.c:3484
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "kiểu hostdev không mong đợi %d"
 
-#: src/conf/domain_conf.c:16793
+#: src/conf/domain_conf.c:16800
 #, c-format
 msgid "unexpected source mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16825
+#: src/conf/domain_conf.c:16832
 #, fuzzy, c-format
 msgid "unexpected actual net type %s"
 msgstr "kiểu mạng không mong đợi %d"
 
-#: src/conf/domain_conf.c:16858 src/conf/domain_conf.c:17018
-#: src/conf/domain_conf.c:18090
+#: src/conf/domain_conf.c:16865 src/conf/domain_conf.c:17025
+#: src/conf/domain_conf.c:18097
 #, c-format
 msgid "unexpected net type %d"
 msgstr "kiểu mạng không mong đợi %d"
 
-#: src/conf/domain_conf.c:17010
+#: src/conf/domain_conf.c:17017
 #, fuzzy, c-format
 msgid "unexpected actual net type %d"
 msgstr "kiểu mạng không mong đợi %d"
 
-#: src/conf/domain_conf.c:17256
+#: src/conf/domain_conf.c:17263
 #, c-format
 msgid "unexpected char type %d"
 msgstr "kiểu ký tự không mong đợi %d"
 
-#: src/conf/domain_conf.c:17371
+#: src/conf/domain_conf.c:17378
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "kiểu thiết bị ký tự không mong đợi %d"
 
-#: src/conf/domain_conf.c:17391
+#: src/conf/domain_conf.c:17398
 msgid "Could not format channel target type"
 msgstr "Không thể định dạng kiểu đích kênh"
 
-#: src/conf/domain_conf.c:17401
+#: src/conf/domain_conf.c:17408
 msgid "Unable to format guestfwd port"
 msgstr "Không thể định dạng cổng guestfwd"
 
-#: src/conf/domain_conf.c:17471 src/conf/domain_conf.c:17504
+#: src/conf/domain_conf.c:17478 src/conf/domain_conf.c:17511
 #: src/qemu/qemu_command.c:8975
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:17522
+#: src/conf/domain_conf.c:17529
 #, c-format
 msgid "unexpected codec type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:17578 src/xenconfig/xen_sxpr.c:2114
+#: src/conf/domain_conf.c:17585 src/xenconfig/xen_sxpr.c:2114
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "mẫu âm thanh không mong đợi %d"
 
-#: src/conf/domain_conf.c:17624
+#: src/conf/domain_conf.c:17631
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "mẫu memballon không mong đợi %d"
 
-#: src/conf/domain_conf.c:17682
+#: src/conf/domain_conf.c:17689
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "mẫu watchdog không mong đợi %d"
 
-#: src/conf/domain_conf.c:17688
+#: src/conf/domain_conf.c:17695
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "hành động watchdog không mong đợi %d"
 
-#: src/conf/domain_conf.c:17856
+#: src/conf/domain_conf.c:17863
 #, c-format
 msgid "unexpected video model %d"
 msgstr "mẫu video không mong đợi %d"
 
-#: src/conf/domain_conf.c:17900 src/xenconfig/xen_sxpr.c:2150
+#: src/conf/domain_conf.c:17907 src/xenconfig/xen_sxpr.c:2150
 #, c-format
 msgid "unexpected input type %d"
 msgstr "kiểu nhập không mong đợi %d"
 
-#: src/conf/domain_conf.c:17905
+#: src/conf/domain_conf.c:17912
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "kiểu tuyến nhập không mong đợi %d"
 
-#: src/conf/domain_conf.c:17935
+#: src/conf/domain_conf.c:17942
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "tên bộ đếm giờ không mong đợi %d"
 
-#: src/conf/domain_conf.c:17951
+#: src/conf/domain_conf.c:17958
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "tickpolicy bộ đếm giờ không mong đợi %d"
 
-#: src/conf/domain_conf.c:17965
+#: src/conf/domain_conf.c:17972
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "theo dõi bộ đếm giờ không mong đợi %d"
 
-#: src/conf/domain_conf.c:17983
+#: src/conf/domain_conf.c:17990
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "chế độ bộ đếm giờ không mong đợi %d"
 
-#: src/conf/domain_conf.c:18305 src/conf/domain_conf.c:18330
+#: src/conf/domain_conf.c:18312 src/conf/domain_conf.c:18337
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "chế độ hostdev không mong đợi %d"
 
-#: src/conf/domain_conf.c:18446
+#: src/conf/domain_conf.c:18453
 #, c-format
 msgid "unexpected hub type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:18616
+#: src/conf/domain_conf.c:18623
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "kiểu miền không mong đợi %d"
 
-#: src/conf/domain_conf.c:18934
+#: src/conf/domain_conf.c:18941
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "kiểu thiết bị khởi động không mong đợi %d"
 
-#: src/conf/domain_conf.c:18967
+#: src/conf/domain_conf.c:18974
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:19014
+#: src/conf/domain_conf.c:19021
 #, fuzzy, c-format
 msgid "unexpected feature %zu"
 msgstr "tính năng không mong đợi %s"
 
-#: src/conf/domain_conf.c:19035
+#: src/conf/domain_conf.c:19042
 #, fuzzy, c-format
 msgid "Unexpected state of feature '%s'"
 msgstr "tính năng không mong đợi %s"
 
-#: src/conf/domain_conf.c:19518
+#: src/conf/domain_conf.c:19525
 #, fuzzy, c-format
 msgid "boot order %d is already used by another device"
 msgstr "tính năng CPU '%s' được ghi nhiều hơn một lần"
 
-#: src/conf/domain_conf.c:19539
+#: src/conf/domain_conf.c:19546
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr ""
 
-#: src/conf/domain_conf.c:19577 src/conf/network_conf.c:2948
+#: src/conf/domain_conf.c:19584 src/conf/network_conf.c:2948
 #: src/conf/nwfilter_conf.c:2804 src/util/virdnsmasq.c:550
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "không thể tạo thư mục cấu hình '%s'"
 
-#: src/conf/domain_conf.c:19716
+#: src/conf/domain_conf.c:19723
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "miền %s không mong đợi đã tồn tại"
 
-#: src/conf/domain_conf.c:19757 src/conf/network_conf.c:3195
+#: src/conf/domain_conf.c:19764 src/conf/network_conf.c:3195
 #: src/conf/network_conf.c:3229 src/conf/nwfilter_conf.c:3183
 #: src/conf/storage_conf.c:1848
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "Thất bại khi mở thư mục '%s'"
 
-#: src/conf/domain_conf.c:19827
+#: src/conf/domain_conf.c:19834
 #, c-format
 msgid "cannot remove config %s"
 msgstr "không thể xóa bỏ cấu hình %s"
 
-#: src/conf/domain_conf.c:20193
+#: src/conf/domain_conf.c:20200
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:20305
+#: src/conf/domain_conf.c:20312
 #, c-format
 msgid "invalid domain state: %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:20773
+#: src/conf/domain_conf.c:20780
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr ""
 
-#: src/conf/domain_conf.c:21029
+#: src/conf/domain_conf.c:21036
 #, fuzzy, c-format
 msgid "no device found with alias %s"
 msgstr "không tìm thấy đĩa với biệt danh %s"
 
-#: src/conf/domain_conf.c:21093 src/conf/domain_conf.c:21152
+#: src/conf/domain_conf.c:21100 src/conf/domain_conf.c:21159
 #, fuzzy, c-format
 msgid "unknown metadata type '%d'"
 msgstr "kiểu xác thực không rõ '%s'"
 
-#: src/conf/domain_conf.c:21130
+#: src/conf/domain_conf.c:21137
 msgid "Requested metadata element is not present"
 msgstr ""
 
-#: src/conf/domain_conf.c:21176
+#: src/conf/domain_conf.c:21183
 msgid "(metadata_xml)"
 msgstr ""
 
@@ -7319,13 +7319,13 @@ msgid "Invalid argument"
 msgstr "Tham số không hợp lệ"
 
 #: src/esx/esx_driver.c:669 src/esx/esx_driver.c:790
-#: src/hyperv/hyperv_driver.c:146 src/phyp/phyp_driver.c:929
+#: src/hyperv/hyperv_driver.c:146 src/phyp/phyp_driver.c:931
 #: src/xenapi/xenapi_driver.c:163
 msgid "Username request failed"
 msgstr "Yêu cầu tên người dùng thất bại"
 
 #: src/esx/esx_driver.c:677 src/esx/esx_driver.c:798
-#: src/hyperv/hyperv_driver.c:154 src/phyp/phyp_driver.c:1011
+#: src/hyperv/hyperv_driver.c:154 src/phyp/phyp_driver.c:1013
 #: src/xenapi/xenapi_driver.c:172
 msgid "Password request failed"
 msgstr "Yêu cầu tên mật khẩu thất bại"
@@ -7471,7 +7471,7 @@ msgid "Screenshot feature is unsupported"
 msgstr "bộ thời gian pit không được hỗ trợ"
 
 #: src/esx/esx_driver.c:2624 src/esx/esx_driver.c:2708
-#: src/phyp/phyp_driver.c:1391 src/phyp/phyp_driver.c:3634
+#: src/phyp/phyp_driver.c:1393 src/phyp/phyp_driver.c:3636
 #: src/vbox/vbox_common.c:2885 src/vbox/vbox_common.c:2937
 #: src/xenapi/xenapi_driver.c:1160 src/xenapi/xenapi_driver.c:1332
 #, c-format
@@ -10257,7 +10257,8 @@ msgid "setsid failed"
 msgstr "setsid thất bại"
 
 #: src/lxc/lxc_container.c:284
-msgid "ioctl(TIOCSTTY) failed"
+#, fuzzy
+msgid "ioctl(TIOCSCTTY) failed"
 msgstr "ioctl(TIOCSTTY) thất bại"
 
 #: src/lxc/lxc_container.c:290
@@ -11060,7 +11061,7 @@ msgstr ""
 
 #: src/lxc/lxc_driver.c:3850 src/libxl/libxl_driver.c:3131
 #: src/qemu/qemu_driver.c:7322 src/qemu/qemu_driver.c:7346
-#: src/qemu/qemu_hotplug.c:1451 src/qemu/qemu_hotplug.c:3701
+#: src/qemu/qemu_hotplug.c:1451 src/qemu/qemu_hotplug.c:3712
 msgid "device not present in domain configuration"
 msgstr ""
 
@@ -11145,7 +11146,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "kiểu thiết bị '%s' không thể được gắn"
 
 #: src/lxc/lxc_driver.c:4587 src/libxl/libxl_driver.c:2711
-#: src/qemu/qemu_hotplug.c:3106 src/uml/uml_driver.c:2316
+#: src/qemu/qemu_hotplug.c:3117 src/uml/uml_driver.c:2316
 #, c-format
 msgid "disk %s not found"
 msgstr "đĩa %s không thấy"
@@ -11193,7 +11194,7 @@ msgstr "Không thể từ chối tất cả thiết bị cho %s"
 msgid "domain is not active"
 msgstr "miền không hoạt động"
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:17157
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:17158
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr ""
 
@@ -11681,13 +11682,13 @@ msgid "libxenlight failed to attach pci device %.4x:%.2x:%.2x.%.1x"
 msgstr "thiết bị pci chủ %.4x:%.2x:%.2x.%.1x không tìm thấy"
 
 #: src/libxl/libxl_driver.c:2673 src/libxl/libxl_driver.c:3000
-#: src/qemu/qemu_hotplug.c:1693 src/qemu/qemu_hotplug.c:3428
+#: src/qemu/qemu_hotplug.c:1693 src/qemu/qemu_hotplug.c:3439
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "chế độ hostdev '%s' không được hỗ trợ"
 
 #: src/libxl/libxl_driver.c:2686 src/qemu/qemu_hotplug.c:1719
-#: src/qemu/qemu_hotplug.c:3395
+#: src/qemu/qemu_hotplug.c:3406
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "kiểu subsys hostdev '%s' không được hỗ trợ"
@@ -11719,12 +11720,12 @@ msgid ""
 "already exists"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2947 src/qemu/qemu_hotplug.c:3439
+#: src/libxl/libxl_driver.c:2947 src/qemu/qemu_hotplug.c:3450
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "thiết bị pci chủ %.4x:%.2x:%.2x.%.1x không tìm thấy"
 
-#: src/libxl/libxl_driver.c:2955 src/qemu/qemu_hotplug.c:3280
+#: src/libxl/libxl_driver.c:2955 src/qemu/qemu_hotplug.c:3291
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr ""
@@ -11761,7 +11762,7 @@ msgstr ""
 msgid "this disk doesn't support update"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3556 src/libxl/libxl_conf.c:1512
+#: src/libxl/libxl_driver.c:3556 src/libxl/libxl_conf.c:1530
 msgid "libxl_get_physinfo_info failed"
 msgstr ""
 
@@ -11851,7 +11852,7 @@ msgstr ""
 msgid "Failed to get version info from libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:326 src/libxl/libxl_conf.c:1264
+#: src/libxl/libxl_conf.c:326 src/libxl/libxl_conf.c:1282
 #: src/storage/storage_backend_logical.c:225 src/util/vircommand.c:2909
 #, c-format
 msgid "Failed to compile regex %s"
@@ -11877,102 +11878,112 @@ msgstr "kiểu thiết bị không rõ"
 msgid "unsupported chardev '%s'"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:712
+#: src/libxl/libxl_conf.c:711
+#, fuzzy, c-format
+msgid "emulator '%s' not found"
+msgstr "Mạng '%s' không tìm thấy"
+
+#: src/libxl/libxl_conf.c:718
+#, fuzzy, c-format
+msgid "emulator '%s' is not executable"
+msgstr "mạng %s không hoạt động"
+
+#: src/libxl/libxl_conf.c:734
 #, fuzzy
 msgid "Only one serial device is supported by libxl"
 msgstr "chỉ có một thiết bị watchdog đơn được hỗ trợ"
 
-#: src/libxl/libxl_conf.c:722
+#: src/libxl/libxl_conf.c:744
 #, fuzzy
 msgid "Parallel devices are not supported by libxl"
 msgstr "SATA không được hỗ trợ với binary QEMU này"
 
-#: src/libxl/libxl_conf.c:793
+#: src/libxl/libxl_conf.c:811
 #, fuzzy
 msgid ""
 "This version of libxenlight does not support disk 'discard' option passing"
 msgstr "Kiểu thiết bị '%s' không được hỗ trợ"
 
-#: src/libxl/libxl_conf.c:870 src/libxl/libxl_conf.c:895
-#: src/libxl/libxl_conf.c:905 src/libxl/libxl_conf.c:917
+#: src/libxl/libxl_conf.c:888 src/libxl/libxl_conf.c:913
+#: src/libxl/libxl_conf.c:923 src/libxl/libxl_conf.c:935
 #, c-format
 msgid "libxenlight does not support disk format %s with disk driver %s"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:927
+#: src/libxl/libxl_conf.c:945
 #, c-format
 msgid "libxenlight does not support disk driver %s"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:952
+#: src/libxl/libxl_conf.c:970
 msgid "libxenlight does not support transient disks"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1003
+#: src/libxl/libxl_conf.c:1021
 msgid ""
 "specifying a script is only supported with interface types bridge and "
 "ethernet"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1083
+#: src/libxl/libxl_conf.c:1101
 #, fuzzy, c-format
 msgid "unsupported interface type %s"
 msgstr "kiểu giao diện không mong đợi %d"
 
-#: src/libxl/libxl_conf.c:1310
+#: src/libxl/libxl_conf.c:1328
 #, fuzzy, c-format
 msgid "failed to create log dir '%s': %s"
 msgstr "Thất bại khi tạo thư mục lib '%s': %s"
 
-#: src/libxl/libxl_conf.c:1317
+#: src/libxl/libxl_conf.c:1335
 #, fuzzy, c-format
 msgid "Failed to create log file '%s': %s"
 msgstr "Thất bại khi tạo thư mục lib '%s': %s"
 
-#: src/libxl/libxl_conf.c:1327
+#: src/libxl/libxl_conf.c:1345
 #, fuzzy
 msgid "cannot create logger for libxenlight, disabling driver"
 msgstr "không thể đọc cputime cho miền %d"
 
-#: src/libxl/libxl_conf.c:1332
+#: src/libxl/libxl_conf.c:1350
 msgid ""
 "cannot initialize libxenlight context, probably not running in a Xen Dom0, "
 "disabling driver"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1338
+#: src/libxl/libxl_conf.c:1356
 msgid "cannot version information from libxenlight, disabling driver"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1348
+#: src/libxl/libxl_conf.c:1366
 #, fuzzy
 msgid "Unable to configure libxl's memory management parameters"
 msgstr "Không thể thay đổi các thông số bộ nhớ"
 
-#: src/libxl/libxl_conf.c:1458
+#: src/libxl/libxl_conf.c:1476
 #, fuzzy
 msgid "videoram must be at least 16MB for VGA"
 msgstr "cgroup_device_acl phải là một danh sách chuỗi"
 
-#: src/libxl/libxl_conf.c:1464
+#: src/libxl/libxl_conf.c:1482
 #, fuzzy
 msgid "videoram must be at least 8MB for VGA"
 msgstr "cgroup_device_acl phải là một danh sách chuỗi"
 
-#: src/libxl/libxl_conf.c:1475
+#: src/libxl/libxl_conf.c:1493
 msgid "videoram must be at least 8MB for CIRRUS"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1481
+#: src/libxl/libxl_conf.c:1499
 msgid "videoram must be at least 4MB for CIRRUS"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1489
+#: src/libxl/libxl_conf.c:1507
 #, fuzzy, c-format
 msgid "video type %s is not supported by libxl"
 msgstr "kiểu video %s không được hỗ trợ với QEMU"
 
-#: src/libxl/libxl_conf.c:1518
+#: src/libxl/libxl_conf.c:1536
 #, c-format
 msgid "machine type %s too big for destination"
 msgstr ""
@@ -13839,87 +13850,87 @@ msgstr ""
 msgid "Can't remove file '%s'"
 msgstr ""
 
-#: src/phyp/phyp_driver.c:124 src/phyp/phyp_driver.c:137
-#: src/phyp/phyp_driver.c:162 src/phyp/phyp_driver.c:175
-#: src/phyp/phyp_driver.c:675 src/phyp/phyp_driver.c:714
+#: src/phyp/phyp_driver.c:126 src/phyp/phyp_driver.c:139
+#: src/phyp/phyp_driver.c:164 src/phyp/phyp_driver.c:177
+#: src/phyp/phyp_driver.c:677 src/phyp/phyp_driver.c:716
 msgid "unable to wait on libssh2 socket"
 msgstr ""
 
-#: src/phyp/phyp_driver.c:403
+#: src/phyp/phyp_driver.c:405
 #, c-format
 msgid "Cannot parse number from '%s'"
 msgstr "Không thể phân tích số từ '%s'"
 
-#: src/phyp/phyp_driver.c:434 src/phyp/phyp_driver.c:440
+#: src/phyp/phyp_driver.c:436 src/phyp/phyp_driver.c:442
 msgid "Unable to write information to local file."
 msgstr "Không thể ghi thông tin vào tập tin cục bộ"
 
-#: src/phyp/phyp_driver.c:446 src/phyp/phyp_driver.c:722
+#: src/phyp/phyp_driver.c:448 src/phyp/phyp_driver.c:724
 #, c-format
 msgid "Could not close %s"
 msgstr ""
 
-#: src/phyp/phyp_driver.c:505
+#: src/phyp/phyp_driver.c:507
 #, c-format
 msgid "Failed to read from %s"
 msgstr "Thất bại khi đọc từ %s"
 
-#: src/phyp/phyp_driver.c:769
+#: src/phyp/phyp_driver.c:771
 msgid "Unable to determine number of domains."
 msgstr "Không thể quyết định số miền"
 
-#: src/phyp/phyp_driver.c:921 src/phyp/phyp_driver.c:1003
+#: src/phyp/phyp_driver.c:923 src/phyp/phyp_driver.c:1005
 msgid "No authentication callback provided."
 msgstr "Không có callback xác thực được cung cấp"
 
-#: src/phyp/phyp_driver.c:942
+#: src/phyp/phyp_driver.c:944
 #, c-format
 msgid "Error while getting %s address info"
 msgstr "Lỗi khi lấy thông tin địa chỉ %s"
 
-#: src/phyp/phyp_driver.c:960
+#: src/phyp/phyp_driver.c:962
 #, c-format
 msgid "Failed to connect to %s"
 msgstr "Thất bại khi kết nối tới %s"
 
-#: src/phyp/phyp_driver.c:980
+#: src/phyp/phyp_driver.c:982
 msgid "Failure establishing SSH session."
 msgstr "Thành lập phiên SSH thất bại."
 
-#: src/phyp/phyp_driver.c:1022
+#: src/phyp/phyp_driver.c:1024
 msgid "Authentication failed"
 msgstr "Xác thực thất bại"
 
-#: src/phyp/phyp_driver.c:1105
+#: src/phyp/phyp_driver.c:1107
 msgid "Missing server name in phyp:// URI"
 msgstr "Thiếu tên máy phục vụ trong URI phyp://"
 
-#: src/phyp/phyp_driver.c:1136
+#: src/phyp/phyp_driver.c:1138
 msgid "Error parsing 'path'. Invalid characters."
 msgstr "Lỗi phân tích 'path'. Ký tự không hợp lệ."
 
-#: src/phyp/phyp_driver.c:1143
+#: src/phyp/phyp_driver.c:1145
 msgid "Error while opening SSH session."
 msgstr "Lỗi khi mở phiên SSH."
 
-#: src/phyp/phyp_driver.c:1530 src/phyp/phyp_driver.c:1575
-#: src/phyp/phyp_driver.c:1747
+#: src/phyp/phyp_driver.c:1532 src/phyp/phyp_driver.c:1577
+#: src/phyp/phyp_driver.c:1749
 msgid "Unable to get VIOS profile name."
 msgstr "Không thể lấy tên hồ sơ VIOS."
 
-#: src/phyp/phyp_driver.c:1570 src/phyp/phyp_driver.c:1712
+#: src/phyp/phyp_driver.c:1572 src/phyp/phyp_driver.c:1714
 msgid "Unable to get VIOS name"
 msgstr "Không thể lấy tên VIOS"
 
-#: src/phyp/phyp_driver.c:1580
+#: src/phyp/phyp_driver.c:1582
 msgid "Unable to get free slot number"
 msgstr "Không thể lấy số khe rảnh"
 
-#: src/phyp/phyp_driver.c:1722 src/phyp/phyp_driver.c:1726
+#: src/phyp/phyp_driver.c:1724 src/phyp/phyp_driver.c:1728
 msgid "Unable to create new virtual adapter"
 msgstr "Không thể tạo bộ tiếp hợp ảo mới"
 
-#: src/phyp/phyp_driver.c:1806
+#: src/phyp/phyp_driver.c:1808
 msgid ""
 "Possibly you don't have IBM Tools installed in your LPAR.Contact your "
 "support to enable this feature."
@@ -13927,127 +13938,127 @@ msgstr ""
 "Có thể bạn không có IBM Tools cài đặt trong LPAR của bạn. Liên lạc hỗ trợ để "
 "bật tính năng này."
 
-#: src/phyp/phyp_driver.c:1937
+#: src/phyp/phyp_driver.c:1939
 #, c-format
 msgid "Unable to create Volume: %s"
 msgstr "Không thể tạo Ổ: %s"
 
-#: src/phyp/phyp_driver.c:1987 src/phyp/phyp_driver.c:2240
-#: src/phyp/phyp_driver.c:2681
+#: src/phyp/phyp_driver.c:1989 src/phyp/phyp_driver.c:2242
+#: src/phyp/phyp_driver.c:2683
 msgid "Unable to determine storage pool's name."
 msgstr "Không thể quyết định tên pool lưu trữ."
 
-#: src/phyp/phyp_driver.c:1992 src/phyp/phyp_driver.c:2686
+#: src/phyp/phyp_driver.c:1994 src/phyp/phyp_driver.c:2688
 msgid "Unable to determine storage pool's uuid."
 msgstr "Không thể quyết định uuid pool lưu trữ."
 
-#: src/phyp/phyp_driver.c:1998 src/phyp/phyp_driver.c:2692
+#: src/phyp/phyp_driver.c:2000 src/phyp/phyp_driver.c:2694
 msgid "Unable to determine storage pools's size."
 msgstr "Không thể quyết định kích thước pool lưu trữ."
 
-#: src/phyp/phyp_driver.c:2011 src/phyp/phyp_driver.c:2705
+#: src/phyp/phyp_driver.c:2013 src/phyp/phyp_driver.c:2707
 msgid "Unable to determine storage pools's source adapter."
 msgstr "Không thể quyết định bộ tiếp hợp nguồn của pool lưu trữ."
 
-#: src/phyp/phyp_driver.c:2016
+#: src/phyp/phyp_driver.c:2018
 msgid "Error parsing volume XML."
 msgstr "Lỗi phân tích XML ổ."
 
-#: src/phyp/phyp_driver.c:2022
+#: src/phyp/phyp_driver.c:2024
 msgid "StoragePool name already exists."
 msgstr "Tên StoragePool đã tồn tại."
 
-#: src/phyp/phyp_driver.c:2031
+#: src/phyp/phyp_driver.c:2033
 msgid "Key must be empty, Power Hypervisor will create one for you."
 msgstr ""
 "Khóa phải để trống, Trình quản lý máy ảo cấp Power sẽ tạo một cái cho bạn."
 
-#: src/phyp/phyp_driver.c:2036
+#: src/phyp/phyp_driver.c:2038
 msgid "Capacity cannot be empty."
 msgstr "Dung lượng không được để trống."
 
-#: src/phyp/phyp_driver.c:2211
+#: src/phyp/phyp_driver.c:2213
 msgid "Unable to determine storage sp's name."
 msgstr "Không thể quyết định tên sp lưu trữ"
 
-#: src/phyp/phyp_driver.c:2216
+#: src/phyp/phyp_driver.c:2218
 msgid "Unable to determine storage sp's uuid."
 msgstr "Không thể quyết định uuid sp lưu trữ."
 
-#: src/phyp/phyp_driver.c:2221
+#: src/phyp/phyp_driver.c:2223
 msgid "Unable to determine storage sps's size."
 msgstr "Không thể quyết định kích thước sp lưu trữ."
 
-#: src/phyp/phyp_driver.c:2233
+#: src/phyp/phyp_driver.c:2235
 msgid "Unable to determine storage sps's source adapter."
 msgstr "Không thể quyết định bộ tiếp hợp nguồn của sp lưu trữ."
 
-#: src/phyp/phyp_driver.c:2432
+#: src/phyp/phyp_driver.c:2434
 #, c-format
 msgid "Unable to destroy Storage Pool: %s"
 msgstr ""
 
-#: src/phyp/phyp_driver.c:2462
+#: src/phyp/phyp_driver.c:2464
 #, fuzzy
 msgid "Only 'scsi_host' adapter is supported"
 msgstr "Chỉ 1 bộ điều khiển %s được hỗ trợ"
 
-#: src/phyp/phyp_driver.c:2478
+#: src/phyp/phyp_driver.c:2480
 #, c-format
 msgid "Unable to create Storage Pool: %s"
 msgstr "Không thể tạo Pool Lưu trữ: %s"
 
-#: src/phyp/phyp_driver.c:3275
+#: src/phyp/phyp_driver.c:3277
 msgid "Unable to determine domain's name."
 msgstr "Không thể quyết định tên miền."
 
-#: src/phyp/phyp_driver.c:3280
+#: src/phyp/phyp_driver.c:3282
 msgid "Unable to generate random uuid."
 msgstr "Không thể tạo uuid ngẫu nhiên."
 
-#: src/phyp/phyp_driver.c:3286
+#: src/phyp/phyp_driver.c:3288
 msgid "Unable to determine domain's max memory."
 msgstr "Không thể quyết định bộ nhớ lớn nhất của miền."
 
-#: src/phyp/phyp_driver.c:3292
+#: src/phyp/phyp_driver.c:3294
 msgid "Unable to determine domain's memory."
 msgstr "Không thể quyết định bộ nhớ miền."
 
-#: src/phyp/phyp_driver.c:3298
+#: src/phyp/phyp_driver.c:3300
 msgid "Unable to determine domain's CPU."
 msgstr "Không thể quyết định CPU miền."
 
-#: src/phyp/phyp_driver.c:3501
+#: src/phyp/phyp_driver.c:3503
 msgid "Field <memory> on the domain XML file is missing or has invalid value."
 msgstr ""
 
-#: src/phyp/phyp_driver.c:3508
+#: src/phyp/phyp_driver.c:3510
 msgid ""
 "Field <currentMemory> on the domain XML file is missing or has invalid value."
 msgstr ""
 
-#: src/phyp/phyp_driver.c:3515
+#: src/phyp/phyp_driver.c:3517
 msgid "Domain XML must contain at least one <disk> element."
 msgstr ""
 
-#: src/phyp/phyp_driver.c:3521
+#: src/phyp/phyp_driver.c:3523
 msgid "Field <src> under <disk> on the domain XML file is missing."
 msgstr ""
 
-#: src/phyp/phyp_driver.c:3537
+#: src/phyp/phyp_driver.c:3539
 #, c-format
 msgid "Unable to create LPAR. Reason: '%s'"
 msgstr "Không thể tạo Lý do LPAR: '%s'"
 
-#: src/phyp/phyp_driver.c:3542
+#: src/phyp/phyp_driver.c:3544
 msgid "Unable to add LPAR to the table"
 msgstr "Không thể thêm LPAR vào bảng"
 
-#: src/phyp/phyp_driver.c:3642
+#: src/phyp/phyp_driver.c:3644
 msgid "You are trying to set a number of CPUs bigger than the max possible."
 msgstr "Bạn đang cố gắng đặt số CPU cao hơn lớn nhất có thể."
 
-#: src/phyp/phyp_driver.c:3667
+#: src/phyp/phyp_driver.c:3669
 msgid ""
 "Possibly you don't have IBM Tools installed in your LPAR. Contact your "
 "support to enable this feature."
@@ -14797,7 +14808,7 @@ msgstr "SATA không được hỗ trợ với binary QEMU này"
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3667 src/qemu/qemu_driver.c:16759
+#: src/qemu/qemu_command.c:3667 src/qemu/qemu_driver.c:16760
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr ""
 
@@ -16773,7 +16784,7 @@ msgstr ""
 msgid "persistent attach of device '%s' is not supported"
 msgstr "bộ thời gian pit không được hỗ trợ"
 
-#: src/qemu/qemu_driver.c:7334 src/qemu/qemu_hotplug.c:3675
+#: src/qemu/qemu_driver.c:7334 src/qemu/qemu_hotplug.c:3686
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr ""
@@ -16974,7 +16985,7 @@ msgid "Compressed migration is not supported by QEMU binary"
 msgstr "Di trú TCP không hỗ trợ với binary QEMU này"
 
 #: src/qemu/qemu_driver.c:12516 src/qemu/qemu_driver.c:15626
-#: src/qemu/qemu_driver.c:16083 src/qemu/qemu_driver.c:16270
+#: src/qemu/qemu_driver.c:16084 src/qemu/qemu_driver.c:16271
 #: src/qemu/qemu_monitor.c:2105 tools/virsh-domain.c:2014
 #, c-format
 msgid "bandwidth must be less than %llu"
@@ -17028,7 +17039,7 @@ msgstr "SATA không được hỗ trợ với binary QEMU này"
 msgid "external active snapshots are not supported on '%s' disks"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13086 src/qemu/qemu_driver.c:15940
+#: src/qemu/qemu_driver.c:13086 src/qemu/qemu_driver.c:15941
 #, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr ""
@@ -17258,7 +17269,7 @@ msgstr ""
 msgid "flag VIR_DOMAIN_BLOCK_REBASE_RELATIVE is valid only with non-null base"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15527 src/qemu/qemu_driver.c:15768
+#: src/qemu/qemu_driver.c:15527 src/qemu/qemu_driver.c:15769
 msgid "block jobs not supported with this QEMU binary"
 msgstr ""
 
@@ -17271,8 +17282,8 @@ msgid ""
 "setting bandwidth at start of block pull not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15557 src/qemu/qemu_driver.c:15898
-#: src/qemu/qemu_driver.c:16314
+#: src/qemu/qemu_driver.c:15557 src/qemu/qemu_driver.c:15899
+#: src/qemu/qemu_driver.c:16315
 #, fuzzy, c-format
 msgid "disk '%s' already in active block job"
 msgstr "Miền đã hoạt động rồi"
@@ -17287,206 +17298,206 @@ msgstr "ổ '%s' vẫn đang được cấp phát"
 msgid "this QEMU binary doesn't support relative block pull/rebase"
 msgstr "Binary QEMU %s không hỗ trợ kqemu"
 
-#: src/qemu/qemu_driver.c:15613 src/qemu/qemu_driver.c:16393
+#: src/qemu/qemu_driver.c:15613 src/qemu/qemu_driver.c:16394
 msgid "can't keep relative backing relationship"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15801
+#: src/qemu/qemu_driver.c:15802
 #, c-format
 msgid "bandwidth %llu cannot be represented in result"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15906
+#: src/qemu/qemu_driver.c:15907
 msgid "block copy is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15915
+#: src/qemu/qemu_driver.c:15916
 msgid "domain is not transient"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15926
+#: src/qemu/qemu_driver.c:15927
 #, c-format
 msgid "disk '%s' has backing file, so raw shallow copy is not possible"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15936
+#: src/qemu/qemu_driver.c:15937
 #, fuzzy
 msgid "non-file destination not supported yet"
 msgstr "Tạo các ổ không-tập-tin không được hỗ trợ"
 
-#: src/qemu/qemu_driver.c:15946
+#: src/qemu/qemu_driver.c:15947
 #, c-format
 msgid "missing destination file for disk %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15953
+#: src/qemu/qemu_driver.c:15954
 #, c-format
 msgid ""
 "external destination file for disk %s already exists and is not a block "
 "device: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15960
+#: src/qemu/qemu_driver.c:15961
 #, c-format
 msgid ""
 "blockdev flag requested for disk %s, but file '%s' is not a block device"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16095
+#: src/qemu/qemu_driver.c:16096
 #, fuzzy
 msgid "Relative backing during copy not supported yet"
 msgstr "Tạo các ổ không-tập-tin không được hỗ trợ"
 
-#: src/qemu/qemu_driver.c:16162
+#: src/qemu/qemu_driver.c:16163
 #, c-format
 msgid "bandwidth must be less than %llu bytes"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16262
+#: src/qemu/qemu_driver.c:16263
 msgid "online commit not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16284
+#: src/qemu/qemu_driver.c:16285
 #, c-format
 msgid "disk %s has no source file to be committed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16302
+#: src/qemu/qemu_driver.c:16303
 #, fuzzy
 msgid "active commit not supported with this QEMU binary"
 msgstr "SATA không được hỗ trợ với binary QEMU này"
 
-#: src/qemu/qemu_driver.c:16308
+#: src/qemu/qemu_driver.c:16309
 #, c-format
 msgid "commit of '%s' active layer requires active flag"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16320
+#: src/qemu/qemu_driver.c:16321
 #, fuzzy, c-format
 msgid "active commit requested but '%s' is not active"
 msgstr "pool lưu trữ '%s' không hoạt động"
 
-#: src/qemu/qemu_driver.c:16327
+#: src/qemu/qemu_driver.c:16328
 #, c-format
 msgid "top '%s' in chain for '%s' has no backing file"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16342
+#: src/qemu/qemu_driver.c:16343
 #, c-format
 msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16383
+#: src/qemu/qemu_driver.c:16384
 #, fuzzy
 msgid "this qemu doesn't support relative blockpull"
 msgstr "Kiểu thiết bị '%s' không được hỗ trợ"
 
-#: src/qemu/qemu_driver.c:16482 src/qemu/qemu_driver.c:16548
+#: src/qemu/qemu_driver.c:16483 src/qemu/qemu_driver.c:16549
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16494 src/qemu/qemu_driver.c:16560
+#: src/qemu/qemu_driver.c:16495 src/qemu/qemu_driver.c:16561
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16672
+#: src/qemu/qemu_driver.c:16673
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16736
+#: src/qemu/qemu_driver.c:16737
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16743
+#: src/qemu/qemu_driver.c:16744
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16750
+#: src/qemu/qemu_driver.c:16751
 #, fuzzy, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr "thiếu thông tin đích cho thiết bị %s"
 
-#: src/qemu/qemu_driver.c:16791
+#: src/qemu/qemu_driver.c:16792
 #, fuzzy
 msgid "Saving live XML config failed"
 msgstr "pool không có tập tin cấu hình"
 
-#: src/qemu/qemu_driver.c:16820
+#: src/qemu/qemu_driver.c:16821
 msgid "Write to config file failed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16905
+#: src/qemu/qemu_driver.c:16906
 #, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17188
+#: src/qemu/qemu_driver.c:17189
 msgid "Duration not supported. Use 0 for now"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17196
+#: src/qemu/qemu_driver.c:17197
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17219
+#: src/qemu/qemu_driver.c:17220
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17229
+#: src/qemu/qemu_driver.c:17230
 msgid "S3 state is disabled for this domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17236
+#: src/qemu/qemu_driver.c:17237
 msgid "S4 state is disabled for this domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17297
+#: src/qemu/qemu_driver.c:17298
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17456
+#: src/qemu/qemu_driver.c:17457
 msgid "Specifying mount point is not supported for now"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17720
+#: src/qemu/qemu_driver.c:17721
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17819
+#: src/qemu/qemu_driver.c:17820
 #, fuzzy
 msgid "specifying mountpoints is not supported"
 msgstr "ái lực cpu không được hỗ trợ"
 
-#: src/qemu/qemu_driver.c:17900
+#: src/qemu/qemu_driver.c:17901
 #, fuzzy, c-format
 msgid "unknown virttype: %s"
 msgstr "kiểu virt không rõ"
 
-#: src/qemu/qemu_driver.c:17907
+#: src/qemu/qemu_driver.c:17908
 #, fuzzy, c-format
 msgid "unknown architecture: %s"
 msgstr "không thể tìm bản đồ CPU cho kiến trúc %s"
 
-#: src/qemu/qemu_driver.c:17924
+#: src/qemu/qemu_driver.c:17925
 #, fuzzy, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr "Tên tập tin cấu hình mạng '%s' không khớp tên mạng '%s'"
 
-#: src/qemu/qemu_driver.c:17934
+#: src/qemu/qemu_driver.c:17935
 #, fuzzy, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr "không thể tìm bản đồ CPU cho kiến trúc %s"
 
-#: src/qemu/qemu_driver.c:17948
+#: src/qemu/qemu_driver.c:17949
 #, fuzzy, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr "di trú tới '%s' không được hỗ trợ bởi qemu này: %s"
 
-#: src/qemu/qemu_driver.c:18395
+#: src/qemu/qemu_driver.c:18396
 #, fuzzy, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr "chức năng này không được hỗ trợ bởi trình điều khiển kết nối"
@@ -17647,213 +17658,213 @@ msgstr ""
 msgid "cannot modify network device model from %s to %s"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1986
+#: src/qemu/qemu_hotplug.c:1997
 msgid "cannot modify virtio network device driver attributes"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2000
+#: src/qemu/qemu_hotplug.c:2011
 msgid "cannot modify network device script attribute"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2009
+#: src/qemu/qemu_hotplug.c:2020
 msgid "cannot modify network device tap name"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2027
+#: src/qemu/qemu_hotplug.c:2038
 msgid "cannot modify network device guest PCI address"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2036
+#: src/qemu/qemu_hotplug.c:2047
 msgid "cannot modify network device alias"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2041
+#: src/qemu/qemu_hotplug.c:2052
 msgid "cannot modify network device rom bar setting"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2046
+#: src/qemu/qemu_hotplug.c:2057
 msgid "cannot modify network rom file"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2051
+#: src/qemu/qemu_hotplug.c:2062
 msgid "cannot modify network device boot index setting"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2078
+#: src/qemu/qemu_hotplug.c:2089
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2136 src/qemu/qemu_hotplug.c:2209
+#: src/qemu/qemu_hotplug.c:2147 src/qemu/qemu_hotplug.c:2220
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2317
+#: src/qemu/qemu_hotplug.c:2328
 msgid "cannot find existing graphics device to modify"
 msgstr "không thể tìm thiết bị đồ họa có sẵn để thay đổi"
 
-#: src/qemu/qemu_hotplug.c:2323
+#: src/qemu/qemu_hotplug.c:2334
 #, fuzzy
 msgid "cannot change the number of listen addresses"
 msgstr "không thể thay đổi cài đặt địa chỉ nghe trên đồ họa vnc"
 
-#: src/qemu/qemu_hotplug.c:2333
+#: src/qemu/qemu_hotplug.c:2344
 #, fuzzy
 msgid "cannot change the type of listen address"
 msgstr "không thể thay đổi cờ riêng trên bí mật đang có"
 
-#: src/qemu/qemu_hotplug.c:2342
+#: src/qemu/qemu_hotplug.c:2353
 msgid "cannot change listen address setting on vnc graphics"
 msgstr "không thể thay đổi cài đặt địa chỉ nghe trên đồ họa vnc"
 
-#: src/qemu/qemu_hotplug.c:2343
+#: src/qemu/qemu_hotplug.c:2354
 msgid "cannot change listen address setting on spice graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2352
+#: src/qemu/qemu_hotplug.c:2363
 msgid "cannot change listen network setting on vnc graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2353
+#: src/qemu/qemu_hotplug.c:2364
 msgid "cannot change listen network setting on spice graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2371
+#: src/qemu/qemu_hotplug.c:2382
 msgid "cannot change port settings on vnc graphics"
 msgstr "không thể thay đổi cài đặt cổng trên đồ họa vnc"
 
-#: src/qemu/qemu_hotplug.c:2376
+#: src/qemu/qemu_hotplug.c:2387
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "không thể thay đổi cài đặt keymap trên đồ họa vnc"
 
-#: src/qemu/qemu_hotplug.c:2417
+#: src/qemu/qemu_hotplug.c:2428
 msgid "cannot change port settings on spice graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2423
+#: src/qemu/qemu_hotplug.c:2434
 msgid "cannot change keymap setting on spice graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2465
+#: src/qemu/qemu_hotplug.c:2476
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "không thể thay đổi cấu hình trên kiểu đồ họa '%s'"
 
-#: src/qemu/qemu_hotplug.c:2747
+#: src/qemu/qemu_hotplug.c:2758
 msgid "unable to determine original VLAN"
 msgstr "không thể quyết định VLAN gốc"
 
-#: src/qemu/qemu_hotplug.c:2885
+#: src/qemu/qemu_hotplug.c:2896
 #, fuzzy, c-format
 msgid "don't know how to remove a %s device"
 msgstr "Không thể pre-create tập tin chardev '%s'"
 
-#: src/qemu/qemu_hotplug.c:2938
+#: src/qemu/qemu_hotplug.c:2949
 #, fuzzy
 msgid "Unable to wait on unplug condition"
 msgstr "thất bại khi đợi trên điều kiện"
 
-#: src/qemu/qemu_hotplug.c:2979 src/qemu/qemu_hotplug.c:3224
+#: src/qemu/qemu_hotplug.c:2990 src/qemu/qemu_hotplug.c:3235
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2989
+#: src/qemu/qemu_hotplug.c:3000
 #, fuzzy
 msgid "device cannot be detached without a valid CCW address"
 msgstr "thiết bị không thể được tháo mà không có địa chỉ PCI"
 
-#: src/qemu/qemu_hotplug.c:2996
+#: src/qemu/qemu_hotplug.c:3007
 #, fuzzy
 msgid "device cannot be detached without a valid PCI address"
 msgstr "thiết bị không thể được tháo mà không có địa chỉ PCI"
 
-#: src/qemu/qemu_hotplug.c:3048
+#: src/qemu/qemu_hotplug.c:3059
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3055
+#: src/qemu/qemu_hotplug.c:3066
 #, c-format
 msgid "disk '%s' is in an active block job"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3121 src/uml/uml_driver.c:2380
+#: src/qemu/qemu_hotplug.c:3132 src/uml/uml_driver.c:2380
 msgid "This type of disk cannot be hot unplugged"
 msgstr "Kiểu đĩa này không thể tháo nóng được"
 
-#: src/qemu/qemu_hotplug.c:3125
+#: src/qemu/qemu_hotplug.c:3136
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3197
+#: src/qemu/qemu_hotplug.c:3208
 #, fuzzy, c-format
 msgid "controller %s:%d not found"
 msgstr "bộ điều khiển đĩa %s:%d không thấy"
 
-#: src/qemu/qemu_hotplug.c:3209
+#: src/qemu/qemu_hotplug.c:3220
 #, fuzzy, c-format
 msgid "device with '%s' address cannot be detached"
 msgstr "kiểu thiết bị '%s' không thể được gắn"
 
-#: src/qemu/qemu_hotplug.c:3216
+#: src/qemu/qemu_hotplug.c:3227
 #, fuzzy, c-format
 msgid "device with invalid '%s' address cannot be detached"
 msgstr "kiểu thiết bị '%s' không thể được gắn"
 
-#: src/qemu/qemu_hotplug.c:3231
+#: src/qemu/qemu_hotplug.c:3242
 msgid "device cannot be detached: device is busy"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3289 src/qemu/qemu_hotplug.c:3521
+#: src/qemu/qemu_hotplug.c:3300 src/qemu/qemu_hotplug.c:3532
 msgid "device cannot be detached without a PCI address"
 msgstr "thiết bị không thể được tháo mà không có địa chỉ PCI"
 
-#: src/qemu/qemu_hotplug.c:3316 src/qemu/qemu_hotplug.c:3345
+#: src/qemu/qemu_hotplug.c:3327 src/qemu/qemu_hotplug.c:3356
 msgid "device cannot be detached without a device alias"
 msgstr "thiết bị không thể được tháo mà không có tên hiệu thiết bị"
 
-#: src/qemu/qemu_hotplug.c:3322 src/qemu/qemu_hotplug.c:3351
+#: src/qemu/qemu_hotplug.c:3333 src/qemu/qemu_hotplug.c:3362
 msgid "device cannot be detached with this QEMU version"
 msgstr "thiết bị không thể được tháo với phiên bản QEMU này"
 
-#: src/qemu/qemu_hotplug.c:3446
+#: src/qemu/qemu_hotplug.c:3457
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "thiết bị usb chủ %03d.%03d không tìm thấy"
 
-#: src/qemu/qemu_hotplug.c:3450
+#: src/qemu/qemu_hotplug.c:3461
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3459
+#: src/qemu/qemu_hotplug.c:3470
 #, fuzzy, c-format
 msgid "host scsi iSCSI path %s not found"
 msgstr "thiết bị usb chủ %03d.%03d không tìm thấy"
 
-#: src/qemu/qemu_hotplug.c:3465
+#: src/qemu/qemu_hotplug.c:3476
 #, fuzzy, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "thiết bị usb chủ %03d.%03d không tìm thấy"
 
-#: src/qemu/qemu_hotplug.c:3514
+#: src/qemu/qemu_hotplug.c:3525
 #, fuzzy
 msgid "device cannot be detached without a CCW address"
 msgstr "thiết bị không thể được tháo mà không có địa chỉ PCI"
 
-#: src/qemu/qemu_hotplug.c:3527
+#: src/qemu/qemu_hotplug.c:3538
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3602
+#: src/qemu/qemu_hotplug.c:3613
 msgid "Graphics password only supported for VNC"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3628
+#: src/qemu/qemu_hotplug.c:3639
 msgid "Expiry of passwords is not supported"
 msgstr ""
 
@@ -21770,11 +21781,11 @@ msgid "apparmor_parser exited with error"
 msgstr ""
 
 #: src/security/virt-aa-helper.c:280 src/security/virt-aa-helper.c:285
-#: src/security/virt-aa-helper.c:402
+#: src/security/virt-aa-helper.c:412
 msgid "could not allocate memory for profile"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:292 src/security/virt-aa-helper.c:397
+#: src/security/virt-aa-helper.c:292 src/security/virt-aa-helper.c:407
 msgid "invalid length for new profile"
 msgstr ""
 
@@ -21782,168 +21793,168 @@ msgstr ""
 msgid "failed to create include file"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:310 src/security/virt-aa-helper.c:423
+#: src/security/virt-aa-helper.c:310 src/security/virt-aa-helper.c:433
 msgid "failed to write to profile"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:315 src/security/virt-aa-helper.c:428
+#: src/security/virt-aa-helper.c:315 src/security/virt-aa-helper.c:438
 msgid "failed to close or write to profile"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:346 src/security/virt-aa-helper.c:1284
+#: src/security/virt-aa-helper.c:347 src/security/virt-aa-helper.c:1294
 msgid "profile exists"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:353
+#: src/security/virt-aa-helper.c:363
 msgid "template name exceeds maximum length"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:358
+#: src/security/virt-aa-helper.c:368
 msgid "template does not exist"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:363
+#: src/security/virt-aa-helper.c:373
 msgid "failed to read AppArmor template"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:368 src/security/virt-aa-helper.c:373
+#: src/security/virt-aa-helper.c:378 src/security/virt-aa-helper.c:383
 msgid "no replacement string in template"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:379
+#: src/security/virt-aa-helper.c:389
 msgid "could not allocate memory for profile name"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:386
+#: src/security/virt-aa-helper.c:396
 msgid "could not allocate memory for profile files"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:417
+#: src/security/virt-aa-helper.c:427
 msgid "failed to create profile"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:568
+#: src/security/virt-aa-helper.c:578
 msgid "bad pathname"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:583
+#: src/security/virt-aa-helper.c:593
 msgid "path does not exist, skipping file type checks"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:620
+#: src/security/virt-aa-helper.c:630
 msgid "Invalid context"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:626
+#: src/security/virt-aa-helper.c:636
 msgid "Could not find <name>"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:633
+#: src/security/virt-aa-helper.c:643
 msgid "Could not find <uuid>"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:665
+#: src/security/virt-aa-helper.c:675
 msgid "unexpected root element, expecting <domain>"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:675
+#: src/security/virt-aa-helper.c:685
 #, fuzzy
 msgid "os.type is not defined"
 msgstr "Bộ chứa chưa được tạo"
 
-#: src/security/virt-aa-helper.c:710 src/security/virt-aa-helper.c:726
-#: src/security/virt-aa-helper.c:831 src/security/virt-aa-helper.c:840
-#: src/security/virt-aa-helper.c:916 src/security/virt-aa-helper.c:1266
-#: src/security/virt-aa-helper.c:1270 src/security/virt-aa-helper.c:1337
+#: src/security/virt-aa-helper.c:720 src/security/virt-aa-helper.c:736
+#: src/security/virt-aa-helper.c:841 src/security/virt-aa-helper.c:850
+#: src/security/virt-aa-helper.c:926 src/security/virt-aa-helper.c:1276
+#: src/security/virt-aa-helper.c:1280 src/security/virt-aa-helper.c:1347
 msgid "could not allocate memory"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:715
+#: src/security/virt-aa-helper.c:725
 #, fuzzy
 msgid "Failed to create XML config object"
 msgstr "Thất bại khi tạo XML"
 
-#: src/security/virt-aa-helper.c:734
+#: src/security/virt-aa-helper.c:744
 msgid "could not parse XML"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:739
+#: src/security/virt-aa-helper.c:749
 msgid "could not find name in XML"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:744
+#: src/security/virt-aa-helper.c:754
 msgid "bad name"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:770
+#: src/security/virt-aa-helper.c:780
 msgid "skipped non-absolute path"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:777
+#: src/security/virt-aa-helper.c:787
 msgid "could not find realpath for disk"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:791
+#: src/security/virt-aa-helper.c:801
 msgid "skipped restricted file"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:921
+#: src/security/virt-aa-helper.c:931
 msgid "given uuid does not match XML uuid"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1112
+#: src/security/virt-aa-helper.c:1122
 msgid "failed to allocate file buffer"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1161
+#: src/security/virt-aa-helper.c:1171
 msgid "could not allocate memory for disk"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1176 src/security/virt-aa-helper.c:1196
+#: src/security/virt-aa-helper.c:1186 src/security/virt-aa-helper.c:1206
 msgid "invalid UUID"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1179
+#: src/security/virt-aa-helper.c:1189
 msgid "error copying UUID"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1188
+#: src/security/virt-aa-helper.c:1198
 msgid "unsupported option"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1193
+#: src/security/virt-aa-helper.c:1203
 msgid "bad command"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1206
+#: src/security/virt-aa-helper.c:1216
 msgid "could not read xml file"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1210
+#: src/security/virt-aa-helper.c:1220
 msgid "could not get VM definition"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1215
+#: src/security/virt-aa-helper.c:1225
 msgid "invalid VM definition"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1247
+#: src/security/virt-aa-helper.c:1257
 msgid "could not set PATH"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1251
+#: src/security/virt-aa-helper.c:1261
 msgid "could not set IFS"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1262
+#: src/security/virt-aa-helper.c:1272
 msgid "could not parse arguments"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1313
+#: src/security/virt-aa-helper.c:1323
 msgid "failed to allocate buffer"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1348
+#: src/security/virt-aa-helper.c:1358
 msgid "could not create profile"
 msgstr ""
 
@@ -25048,7 +25059,7 @@ msgstr ""
 msgid "owner %lld does not hold the resource lock"
 msgstr ""
 
-#: src/util/virnetdev.c:101 src/util/virnetdev.c:572
+#: src/util/virnetdev.c:105 src/util/virnetdev.c:576
 #: src/util/virnetdevbridge.c:95 src/util/virnetdevbridge.c:392
 #: src/util/virnetdevbridge.c:462 src/util/virnetdevtap.c:281
 #: src/util/virnetdevtap.c:347
@@ -25056,256 +25067,256 @@ msgstr ""
 msgid "Network interface name '%s' is too long"
 msgstr ""
 
-#: src/util/virnetdev.c:109 src/util/virnetdevbridge.c:89
+#: src/util/virnetdev.c:113 src/util/virnetdevbridge.c:89
 msgid "Cannot open network interface control socket"
 msgstr ""
 
-#: src/util/virnetdev.c:115
+#: src/util/virnetdev.c:119
 msgid "Cannot set close-on-exec flag for socket"
 msgstr ""
 
-#: src/util/virnetdev.c:136
+#: src/util/virnetdev.c:140
 #, fuzzy
 msgid "Network device configuration is not supported on this platform"
 msgstr "Ái lực CPU của tiến trình không được hỗ trợ trên nền tảng này"
 
-#: src/util/virnetdev.c:166
+#: src/util/virnetdev.c:170
 #, c-format
 msgid "Unable to check interface flags for %s"
 msgstr ""
 
-#: src/util/virnetdev.c:180
+#: src/util/virnetdev.c:184
 #, c-format
 msgid "Unable to check interface %s"
 msgstr ""
 
-#: src/util/virnetdev.c:211 src/util/virnetdev.c:299 src/util/virnetdev.c:317
+#: src/util/virnetdev.c:215 src/util/virnetdev.c:303 src/util/virnetdev.c:321
 #, c-format
 msgid "Cannot get interface MAC on '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:220 src/util/virnetdev.c:254 src/util/virnetdev.c:270
+#: src/util/virnetdev.c:224 src/util/virnetdev.c:258 src/util/virnetdev.c:274
 #, c-format
 msgid "Cannot set interface MAC on '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:353
+#: src/util/virnetdev.c:357
 #, c-format
 msgid "Unable to preserve mac for %s"
 msgstr ""
 
-#: src/util/virnetdev.c:396 src/util/virnetdev.c:1774
+#: src/util/virnetdev.c:400 src/util/virnetdev.c:1778
 #, c-format
 msgid "Cannot parse MAC address from '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:432 src/util/virnetdev.c:447
+#: src/util/virnetdev.c:436 src/util/virnetdev.c:451
 #, c-format
 msgid "Cannot get interface MTU on '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:478 src/util/virnetdev.c:493
+#: src/util/virnetdev.c:482 src/util/virnetdev.c:497
 #, c-format
 msgid "Cannot set interface MTU on '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:582
+#: src/util/virnetdev.c:586
 #, c-format
 msgid "Unable to rename '%s' to '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:597
+#: src/util/virnetdev.c:601
 #, c-format
 msgid "Cannot rename interface '%s' to '%s' on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:627 src/util/virnetdev.c:687 src/util/virnetdev.c:704
+#: src/util/virnetdev.c:631 src/util/virnetdev.c:691 src/util/virnetdev.c:708
 #, c-format
 msgid "Cannot get interface flags on '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:641 src/util/virnetdev.c:658
+#: src/util/virnetdev.c:645 src/util/virnetdev.c:662
 #, c-format
 msgid "Cannot set interface flags on '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:729 src/util/virnetdev.c:782
+#: src/util/virnetdev.c:733 src/util/virnetdev.c:786
 msgid "Unable to open control socket"
 msgstr ""
 
-#: src/util/virnetdev.c:738 src/util/virnetdev.c:788
+#: src/util/virnetdev.c:742 src/util/virnetdev.c:792
 #, c-format
 msgid "invalid interface name %s"
 msgstr "tên giao diện %s không hợp lệ"
 
-#: src/util/virnetdev.c:745
+#: src/util/virnetdev.c:749
 #, c-format
 msgid "Unable to get index for interface %s"
 msgstr ""
 
-#: src/util/virnetdev.c:765
+#: src/util/virnetdev.c:769
 msgid "Unable to get interface index on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:795
+#: src/util/virnetdev.c:799
 #, c-format
 msgid "Unable to get VLAN for interface %s"
 msgstr ""
 
-#: src/util/virnetdev.c:812
+#: src/util/virnetdev.c:816
 msgid "Unable to get VLAN on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1000
+#: src/util/virnetdev.c:1004
 #, c-format
 msgid "Unable to get IPv4 address for interface %s"
 msgstr ""
 
-#: src/util/virnetdev.c:1020
+#: src/util/virnetdev.c:1024
 msgid "Unable to get IPv4 address on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1066
+#: src/util/virnetdev.c:1070
 #, c-format
 msgid "could not get MAC address of interface %s"
 msgstr ""
 
-#: src/util/virnetdev.c:1099
+#: src/util/virnetdev.c:1103
 msgid "Unable to check interface config on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1171
+#: src/util/virnetdev.c:1175
 msgid "Failed to get PCI Config Address String"
 msgstr ""
 
-#: src/util/virnetdev.c:1176
+#: src/util/virnetdev.c:1180
 msgid "Failed to get PCI SYSFS file"
 msgstr ""
 
-#: src/util/virnetdev.c:1332
+#: src/util/virnetdev.c:1336
 msgid "Unable to get virtual functions on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1340
+#: src/util/virnetdev.c:1344
 msgid "Unable to check virtual function status on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1350
+#: src/util/virnetdev.c:1354
 msgid "Unable to get virtual function index on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1359
+#: src/util/virnetdev.c:1363
 msgid "Unable to get physical function status on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1369
+#: src/util/virnetdev.c:1373
 msgid "Unable to get virtual function info on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1465
+#: src/util/virnetdev.c:1469
 #, c-format
 msgid "error dumping %s (%d) interface"
 msgstr "lỗi dump %s (%d) giao diện"
 
-#: src/util/virnetdev.c:1492 src/util/virnetdev.c:1614
+#: src/util/virnetdev.c:1496 src/util/virnetdev.c:1618
 #: src/util/virnetdevmacvlan.c:201 src/util/virnetdevmacvlan.c:278
 #: src/util/virnetdevvportprofile.c:757
 msgid "malformed netlink response message"
 msgstr "tin nhắn phản hồi netlink sai dạng thức"
 
-#: src/util/virnetdev.c:1497 src/util/virnetdev.c:1619
+#: src/util/virnetdev.c:1501 src/util/virnetdev.c:1623
 #: src/util/virnetdevmacvlan.c:206 src/util/virnetdevmacvlan.c:283
 #: src/util/virnetdevvportprofile.c:762
 msgid "allocated netlink buffer is too small"
 msgstr ""
 
-#: src/util/virnetdev.c:1592
+#: src/util/virnetdev.c:1596
 #, c-format
 msgid "error during set %s of ifindex %d"
 msgstr ""
 
-#: src/util/virnetdev.c:1636
+#: src/util/virnetdev.c:1640
 msgid "missing IFLA_VF_INFO in netlink response"
 msgstr ""
 
-#: src/util/virnetdev.c:1647
+#: src/util/virnetdev.c:1651
 msgid "error parsing IFLA_VF_INFO"
 msgstr ""
 
-#: src/util/virnetdev.c:1672
+#: src/util/virnetdev.c:1676
 #, c-format
 msgid "couldn't find IFLA_VF_INFO for VF %d in netlink response"
 msgstr ""
 
-#: src/util/virnetdev.c:1723
+#: src/util/virnetdev.c:1727
 #, c-format
 msgid "Unable to preserve mac/vlan tag for pf = %s, vf = %d"
 msgstr ""
 
-#: src/util/virnetdev.c:1765
+#: src/util/virnetdev.c:1769
 #, c-format
 msgid "Cannot parse vlan tag from '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:1843
+#: src/util/virnetdev.c:1847
 msgid "Unable to dump link info on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1855
+#: src/util/virnetdev.c:1859
 msgid "Unable to replace net config on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1866
+#: src/util/virnetdev.c:1870
 msgid "Unable to restore net config on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1889 src/util/virnetdev.c:1937
+#: src/util/virnetdev.c:1893 src/util/virnetdev.c:1941
 #, fuzzy, c-format
 msgid "unable to read: %s"
 msgstr "Thất bại khi đọc '%s'"
 
-#: src/util/virnetdev.c:1896 src/util/virnetdev.c:1907
-#: src/util/virnetdev.c:1945
+#: src/util/virnetdev.c:1900 src/util/virnetdev.c:1911
+#: src/util/virnetdev.c:1949
 #, fuzzy, c-format
 msgid "Unable to parse: %s"
 msgstr "không thể mở %s"
 
-#: src/util/virnetdev.c:2001 src/util/virnetdev.c:2049
+#: src/util/virnetdev.c:2006 src/util/virnetdev.c:2055
 #, c-format
 msgid "Cannot add multicast MAC %s on '%s' interface"
 msgstr ""
 
-#: src/util/virnetdev.c:2016
+#: src/util/virnetdev.c:2021
 #, fuzzy
 msgid "Unable to add address to interface multicast list on this platform"
 msgstr "Không thể quyết định tên pool lưu trữ."
 
-#: src/util/virnetdev.c:2064
+#: src/util/virnetdev.c:2070
 #, fuzzy
 msgid "Unable to delete address from interface multicast list on this platform"
 msgstr "Không thể quyết định tên pool lưu trữ."
 
-#: src/util/virnetdev.c:2085
+#: src/util/virnetdev.c:2091
 #, fuzzy, c-format
 msgid "failed to parse multicast address from '%s'"
 msgstr "Thất bại khi phân tính số nguyên dương từ '%s'"
 
-#: src/util/virnetdev.c:2094
+#: src/util/virnetdev.c:2100
 #, fuzzy, c-format
 msgid "Failed to parse interface index from '%s'"
 msgstr "Thất bại khi phân tính số nguyên dương từ '%s'"
 
-#: src/util/virnetdev.c:2105
+#: src/util/virnetdev.c:2111
 #, fuzzy, c-format
 msgid "Failed to parse network device name from '%s'"
 msgstr "Không thể phân tích tên thư mục '%s'"
 
-#: src/util/virnetdev.c:2113 src/util/virnetdev.c:2123
+#: src/util/virnetdev.c:2119 src/util/virnetdev.c:2129
 #, fuzzy, c-format
 msgid "Failed to parse users from '%s'"
 msgstr "Không thể phân tích tên thư mục '%s'"
 
-#: src/util/virnetdev.c:2134
+#: src/util/virnetdev.c:2140
 #, fuzzy, c-format
 msgid "Failed to parse MAC address from '%s'"
 msgstr "Thất bại khi phân tính số nguyên dương từ '%s'"
@@ -26258,17 +26269,17 @@ msgstr "Không thể phân tích địa chỉ socket '%s': %s"
 msgid "Unable to query process ID start time"
 msgstr "Thất bại khi tháo giao diện"
 
-#: src/util/virprocess.c:945
+#: src/util/virprocess.c:944
 #, fuzzy
 msgid "Kernel does not provide mount namespace"
 msgstr "tuyến xen không hỗ trợ thiết bị nhập %s"
 
-#: src/util/virprocess.c:951
+#: src/util/virprocess.c:950
 #, fuzzy
 msgid "Unable to enter mount namespace"
 msgstr "Không thể gửi tin nhắn tiếp tục của bộ chứa"
 
-#: src/util/virprocess.c:987
+#: src/util/virprocess.c:986
 #, fuzzy
 msgid "Cannot create pipe for child"
 msgstr "không thể tạo ống"
@@ -26491,12 +26502,12 @@ msgstr "kiểu xác thực không rõ '%s'"
 msgid "failed to parse backing file location '%s'"
 msgstr "thất bại khi bật bộ lọc mac trong '%s'"
 
-#: src/util/virstoragefile.c:2142 src/util/virstoragefile.c:2221
+#: src/util/virstoragefile.c:2147 src/util/virstoragefile.c:2221
 #, fuzzy, c-format
 msgid "invalid backing protocol '%s'"
 msgstr "Giao thức không rõ '%s'"
 
-#: src/util/virstoragefile.c:2150
+#: src/util/virstoragefile.c:2155
 #, fuzzy, c-format
 msgid "invalid protocol transport type '%s'"
 msgstr "trạng thái miền không hợp lệ '%s'"
@@ -31311,7 +31322,7 @@ msgstr ""
 msgid "Options --%s and --%s are mutually exclusive"
 msgstr ""
 
-#: tools/virsh-console.c:383
+#: tools/virsh-console.c:380
 msgid "unable to wait on console condition"
 msgstr ""
 

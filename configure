@@ -69538,6 +69538,18 @@ _ACEOF
 
 
 fi
+ac_fn_c_check_member "$LINENO" "struct ifreq" "ifr_hwaddr" "ac_cv_member_struct_ifreq_ifr_hwaddr" "#include <sys/socket.h>
+                  #include <net/if.h>
+
+"
+if test "x$ac_cv_member_struct_ifreq_ifr_hwaddr" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_IFREQ_IFR_HWADDR 1
+_ACEOF
+
+
+fi
 
 
 # Check for BSD approach for setting MAC addr

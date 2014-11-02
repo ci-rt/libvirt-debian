@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-10-29 10:40+0800\n"
+"POT-Creation-Date: 2014-10-31 12:22+0800\n"
 "PO-Revision-Date: 2014-09-25 12:28+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/libvirt/"
@@ -212,7 +212,7 @@ msgstr ""
 #: daemon/libvirtd.c:1152 src/locking/lock_daemon.c:1152
 #: src/locking/sanlock_helper.c:76 src/lxc/lxc_controller.c:2309
 #: src/network/leaseshelper.c:138 src/network/leaseshelper.c:144
-#: src/security/virt-aa-helper.c:1240 src/storage/parthelper.c:77
+#: src/security/virt-aa-helper.c:1250 src/storage/parthelper.c:77
 #: src/util/iohelper.c:236 src/util/iohelper.c:242
 #, c-format
 msgid "%s: initialization failed\n"
@@ -1078,16 +1078,16 @@ msgstr "Домен не запущено"
 #: src/qemu/qemu_driver.c:15009 src/qemu/qemu_driver.c:15160
 #: src/qemu/qemu_driver.c:15241 src/qemu/qemu_driver.c:15356
 #: src/qemu/qemu_driver.c:15511 src/qemu/qemu_driver.c:15546
-#: src/qemu/qemu_driver.c:15693 src/qemu/qemu_driver.c:15777
-#: src/qemu/qemu_driver.c:15887 src/qemu/qemu_driver.c:16254
-#: src/qemu/qemu_driver.c:16474 src/qemu/qemu_driver.c:16540
-#: src/qemu/qemu_driver.c:17009 src/qemu/qemu_driver.c:17151
-#: src/qemu/qemu_driver.c:17211 src/qemu/qemu_driver.c:17249
-#: src/qemu/qemu_driver.c:17289 src/qemu/qemu_driver.c:17360
-#: src/qemu/qemu_driver.c:17372 src/qemu/qemu_driver.c:17471
-#: src/qemu/qemu_driver.c:17483 src/qemu/qemu_driver.c:17660
-#: src/qemu/qemu_driver.c:17714 src/qemu/qemu_driver.c:17737
-#: src/qemu/qemu_driver.c:17784 src/qemu/qemu_driver.c:17834
+#: src/qemu/qemu_driver.c:15694 src/qemu/qemu_driver.c:15778
+#: src/qemu/qemu_driver.c:15888 src/qemu/qemu_driver.c:16255
+#: src/qemu/qemu_driver.c:16475 src/qemu/qemu_driver.c:16541
+#: src/qemu/qemu_driver.c:17010 src/qemu/qemu_driver.c:17152
+#: src/qemu/qemu_driver.c:17212 src/qemu/qemu_driver.c:17250
+#: src/qemu/qemu_driver.c:17290 src/qemu/qemu_driver.c:17361
+#: src/qemu/qemu_driver.c:17373 src/qemu/qemu_driver.c:17472
+#: src/qemu/qemu_driver.c:17484 src/qemu/qemu_driver.c:17661
+#: src/qemu/qemu_driver.c:17715 src/qemu/qemu_driver.c:17738
+#: src/qemu/qemu_driver.c:17785 src/qemu/qemu_driver.c:17835
 #: src/qemu/qemu_migration.c:2417 src/qemu/qemu_migration.c:4522
 #: src/test/test_driver.c:6429 src/uml/uml_driver.c:2611
 #: src/xen/xen_driver.c:2663 src/xen/xm_internal.c:677
@@ -1183,7 +1183,7 @@ msgstr "Некоректний атрибут відповідності у сп
 msgid "Missing CPU architecture"
 msgstr "Не вказано архітектуру процесора"
 
-#: src/conf/cpu_conf.c:273 src/conf/domain_conf.c:13096
+#: src/conf/cpu_conf.c:273 src/conf/domain_conf.c:13103
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "Невідома архітектура, %s"
@@ -1804,7 +1804,7 @@ msgid "unsupported element '%s' of 'origstates'"
 msgstr "непідтримуваний елемент, «%s» «origstates»"
 
 #: src/conf/domain_conf.c:4114 src/conf/domain_conf.c:6201
-#: src/conf/domain_conf.c:7199
+#: src/conf/domain_conf.c:7206
 #, c-format
 msgid "Unable to parse devaddr parameter '%s'"
 msgstr "Не вдається розібрати параметр devaddr «%s»"
@@ -2055,7 +2055,7 @@ msgstr "невідомий тип протоколу «%s»"
 msgid "missing name for disk source"
 msgstr "не вказано назви джерела диска"
 
-#: src/conf/domain_conf.c:5361 src/util/virstoragefile.c:2173
+#: src/conf/domain_conf.c:5361 src/util/virstoragefile.c:2178
 #, c-format
 msgid "missing volume name or file name in gluster source path '%s'"
 msgstr ""
@@ -2344,124 +2344,124 @@ msgstr ""
 "Встановлення «requisite» диска дозволено лише для компакт-дисків або "
 "пристроїв читання дискет"
 
-#: src/conf/domain_conf.c:6262 src/conf/domain_conf.c:6733
+#: src/conf/domain_conf.c:6262 src/conf/domain_conf.c:6740
 #, c-format
 msgid "unknown driver format value '%s'"
 msgstr "невідоме значення формату драйвера, «%s»"
-
-#: src/conf/domain_conf.c:6347
-#, c-format
-msgid "could not parse element %s"
-msgstr "не вдалося обробити елемент %s"
 
 #: src/conf/domain_conf.c:6351
 #, c-format
 msgid "missing element %s"
 msgstr "не вистачає елемента %s"
 
-#: src/conf/domain_conf.c:6447
+#: src/conf/domain_conf.c:6360
+#, fuzzy, c-format
+msgid "Invalid value '%s' for element '%s'"
+msgstr "Некоректне значення, «%s», «%s»"
+
+#: src/conf/domain_conf.c:6454
 #, c-format
 msgid "Unknown controller type '%s'"
 msgstr "невідомий тип контролера «%s»"
 
-#: src/conf/domain_conf.c:6457
+#: src/conf/domain_conf.c:6464
 #, c-format
 msgid "Cannot parse controller index %s"
 msgstr "Не вдалося обробити номер контролера %s"
 
-#: src/conf/domain_conf.c:6466
+#: src/conf/domain_conf.c:6473
 #, c-format
 msgid "Unknown model type '%s'"
 msgstr "Невідомий тип моделі «%s»"
 
-#: src/conf/domain_conf.c:6487
+#: src/conf/domain_conf.c:6494
 #, c-format
 msgid "Malformed 'queues' value '%s'"
 msgstr "Помилкове форматування значення «%s» «queues»"
 
-#: src/conf/domain_conf.c:6493
+#: src/conf/domain_conf.c:6500
 #, c-format
 msgid "Malformed 'cmd_per_lun' value '%s'"
 msgstr "Помилкове форматування значення «cmd_per_lun» «%s»"
 
-#: src/conf/domain_conf.c:6499
+#: src/conf/domain_conf.c:6506
 #, c-format
 msgid "Malformed 'max_sectors' value %s'"
 msgstr "Помилкове форматування значення «max_sectors» «%s»"
 
-#: src/conf/domain_conf.c:6513
+#: src/conf/domain_conf.c:6520
 #, c-format
 msgid "Invalid ports: %s"
 msgstr "Некоректні порти: %s"
 
-#: src/conf/domain_conf.c:6528
+#: src/conf/domain_conf.c:6535
 #, c-format
 msgid "Invalid vectors: %s"
 msgstr "Некоректні вектори: %s"
 
-#: src/conf/domain_conf.c:6567
+#: src/conf/domain_conf.c:6574
 msgid "pci-root and pcie-root controllers should not have an address"
 msgstr "Кореневі контролери PCI та PCIE не повинні мати адреси"
 
-#: src/conf/domain_conf.c:6573
+#: src/conf/domain_conf.c:6580
 msgid "pci-root and pcie-root controllers should have index 0"
 msgstr "Кореневі контролери PCI та PCIE повинні мати індекс 0"
 
-#: src/conf/domain_conf.c:6599
+#: src/conf/domain_conf.c:6606
 msgid "Controllers must use the 'pci' address type"
 msgstr "Контролери мають використовувати тип адреси «pci»"
 
-#: src/conf/domain_conf.c:6658
+#: src/conf/domain_conf.c:6665
 #, c-format
 msgid "unknown filesystem type '%s'"
 msgstr "невідомий тип файлової системи «%s»"
 
-#: src/conf/domain_conf.c:6669
+#: src/conf/domain_conf.c:6676
 #, c-format
 msgid "unknown accessmode '%s'"
 msgstr "невідомий режим доступу «%s»"
 
-#: src/conf/domain_conf.c:6725
+#: src/conf/domain_conf.c:6732
 #, c-format
 msgid "unknown fs driver type '%s'"
 msgstr "невідомий тип драйвера файлової системи, «%s»"
 
-#: src/conf/domain_conf.c:6741
+#: src/conf/domain_conf.c:6748
 #, c-format
 msgid "unknown filesystem write policy '%s'"
 msgstr "невідомі правила запису до файлової системи, «%s»"
 
-#: src/conf/domain_conf.c:6764
+#: src/conf/domain_conf.c:6771
 msgid "missing 'usage' attribute for RAM filesystem"
 msgstr ""
 "не вистачає атрибута «usage» для файлової системи у оперативній пам’яті"
 
-#: src/conf/domain_conf.c:6769
+#: src/conf/domain_conf.c:6776
 #, c-format
 msgid "cannot parse usage '%s' for RAM filesystem"
 msgstr ""
 "не вдалося обробити «%s» «usage» для файлової системи у оперативній пам’яті"
 
-#: src/conf/domain_conf.c:6832
+#: src/conf/domain_conf.c:6839
 msgid "missing type attribute in interface's <actual> element"
 msgstr "у елементі інтерфейсу <actual> не вказано атрибута типу"
 
-#: src/conf/domain_conf.c:6837
+#: src/conf/domain_conf.c:6844
 #, c-format
 msgid "unknown type '%s' in interface's <actual> element"
 msgstr "невідомий тип «%s» у елементі інтерфейсу <actual>"
 
-#: src/conf/domain_conf.c:6845
+#: src/conf/domain_conf.c:6852
 #, c-format
 msgid "unsupported type '%s' in interface's <actual> element"
 msgstr "непідтримуваний тип «%s» у елементі інтерфейсу <actual>"
 
-#: src/conf/domain_conf.c:6855 src/conf/domain_conf.c:7034
+#: src/conf/domain_conf.c:6862 src/conf/domain_conf.c:7041
 #, fuzzy, c-format
 msgid "unknown trustGuestRxFilters value '%s'"
 msgstr "невідоме значення вмикання, «%s»"
 
-#: src/conf/domain_conf.c:6876
+#: src/conf/domain_conf.c:6883
 #, c-format
 msgid ""
 "<virtualport> element unsupported for type='%s' in interface's <actual> "
@@ -2470,59 +2470,59 @@ msgstr ""
 "підтримку елемента <virtualport> для type='%s' у елементі <actual> "
 "інтерфейсу не передбачено"
 
-#: src/conf/domain_conf.c:6890
+#: src/conf/domain_conf.c:6897
 #, c-format
 msgid "Unknown mode '%s' in interface <actual> element"
 msgstr "Невідомий режим, «%s» у елементі <actual> інтерфейсу"
 
-#: src/conf/domain_conf.c:6921
+#: src/conf/domain_conf.c:6928
 #, c-format
 msgid "Unable to parse class id '%s'"
 msgstr "Не вдалося обробити ідентифікатор класу «%s»"
 
-#: src/conf/domain_conf.c:6931
+#: src/conf/domain_conf.c:6938
 msgid ""
 "Missing <source> element with bridge name in interface's <actual> element"
 msgstr ""
 "Пропущено елемент <source> з назвою містка у елементі <actual> інтерфейсу"
 
-#: src/conf/domain_conf.c:7022
+#: src/conf/domain_conf.c:7029
 #, c-format
 msgid "unknown interface type '%s'"
 msgstr "невідомий тип інтерфейсу «%s»"
 
-#: src/conf/domain_conf.c:7089
+#: src/conf/domain_conf.c:7096
 #, c-format
 msgid "<virtualport> element unsupported for <interface type='%s'>"
 msgstr ""
 "підтримку елемента <virtualport> для <interface type='%s'> не передбачено"
 
-#: src/conf/domain_conf.c:7135
+#: src/conf/domain_conf.c:7142
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "Некоректна специфікація декількох <filterref> у одному <interface>"
 
-#: src/conf/domain_conf.c:7181 src/qemu/qemu_command.c:10774
+#: src/conf/domain_conf.c:7188 src/qemu/qemu_command.c:10774
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "не вдалося обробити MAC-адресу «%s»"
 
-#: src/conf/domain_conf.c:7187
+#: src/conf/domain_conf.c:7194
 #, c-format
 msgid "expected unicast mac address, found multicast '%s'"
 msgstr ""
 "мало бути вказано MAC-адресу односпрямованої трансляції, вказано адресу "
 "групової трансляції, «%s»"
 
-#: src/conf/domain_conf.c:7220
+#: src/conf/domain_conf.c:7227
 msgid "Network interfaces must use 'pci' address type"
 msgstr "Для інтерфейсів слід використовувати тип адреси «pci»"
 
-#: src/conf/domain_conf.c:7228
+#: src/conf/domain_conf.c:7235
 msgid ""
 "No <source> 'network' attribute specified with <interface type='network'/>"
 msgstr "Немає атрибута <source> 'network' з <interface type='network'/>"
 
-#: src/conf/domain_conf.c:7243
+#: src/conf/domain_conf.c:7250
 msgid ""
 "Wrong or no <model> 'type' attribute specified with <interface "
 "type='vhostuser'/>. vhostuser requires the virtio-net* frontend"
@@ -2531,436 +2531,436 @@ msgstr ""
 "type='vhostuser'/> або атрибут не вказано. Для vhostuser потрібна оболонка "
 "virtio-net*."
 
-#: src/conf/domain_conf.c:7252
+#: src/conf/domain_conf.c:7259
 #, c-format
 msgid "Type='%s' unsupported for <interface type='vhostuser'>"
 msgstr "Підтримки типу «%s» для <interface type='vhostuser'> не передбачено"
 
-#: src/conf/domain_conf.c:7257
+#: src/conf/domain_conf.c:7264
 msgid "No <source> 'type' attribute specified for <interface type='vhostuser'>"
 msgstr ""
 "Для <interface type='vhostuser'> не вказано атрибута «type» елемента <source>"
 
-#: src/conf/domain_conf.c:7265
+#: src/conf/domain_conf.c:7272
 msgid ""
 "No <source> 'path' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "Не вказано атрибута «path» <source> за допомогою <interface type='vhostuser'/"
 ">"
 
-#: src/conf/domain_conf.c:7273
+#: src/conf/domain_conf.c:7280
 msgid ""
 "No <source> 'mode' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "Не вказано атрибута «mode» <source> за допомогою <interface type='vhostuser'/"
 ">"
 
-#: src/conf/domain_conf.c:7292
+#: src/conf/domain_conf.c:7299
 msgid ""
 "Wrong <source> 'mode' attribute specified with <interface type='vhostuser'/>"
 msgstr ""
 "Вказано помилковий атрибут «mode» елемента <source> за допомогою <interface "
 "type='direct'/>"
 
-#: src/conf/domain_conf.c:7313
+#: src/conf/domain_conf.c:7320
 msgid ""
 "No <source> 'bridge' attribute specified with <interface type='bridge'/>"
 msgstr ""
 "Не вказано атрибута «bridge» <source> за допомогою <interface type='bridge'/>"
 
-#: src/conf/domain_conf.c:7330
+#: src/conf/domain_conf.c:7337
 msgid "No <source> 'port' attribute specified with socket interface"
 msgstr "Немає атрибута <source> 'port', вказаний з інтерфейсом сокету"
 
-#: src/conf/domain_conf.c:7336
+#: src/conf/domain_conf.c:7343
 msgid "Cannot parse <source> 'port' attribute with socket interface"
 msgstr ""
 "Неможливо розібрати атрибут <source> 'port', вказаний з інтерфейсом сокету"
 
-#: src/conf/domain_conf.c:7345
+#: src/conf/domain_conf.c:7352
 msgid "No <source> 'address' attribute specified with socket interface"
 msgstr ""
 "Неможливо розібрати атрибут <source> 'address', вказаний з інтерфейсом сокету"
 
-#: src/conf/domain_conf.c:7358
+#: src/conf/domain_conf.c:7365
 msgid ""
 "No <source> 'name' attribute specified with <interface type='internal'/>"
 msgstr ""
 "Неможливо розібрати атрибут <source> 'name', вказаний з інтерфейсом сокету"
 
-#: src/conf/domain_conf.c:7369
+#: src/conf/domain_conf.c:7376
 msgid "No <source> 'dev' attribute specified with <interface type='direct'/>"
 msgstr ""
 "Не вказано атрибута «dev» <source> за допомогою <interface type='direct'/>"
 
-#: src/conf/domain_conf.c:7377
+#: src/conf/domain_conf.c:7384
 msgid "Unknown mode has been specified"
 msgstr "Вказано невідомий програмі режим"
 
-#: src/conf/domain_conf.c:7445
+#: src/conf/domain_conf.c:7452
 msgid "Model name contains invalid characters"
 msgstr "Назва моделі містить неправильні символи"
 
-#: src/conf/domain_conf.c:7458
+#: src/conf/domain_conf.c:7465
 #, c-format
 msgid "Unknown interface <driver name='%s'> has been specified"
 msgstr "Було вказано невідомий інтерфейс <driver name='%s'>"
 
-#: src/conf/domain_conf.c:7469
+#: src/conf/domain_conf.c:7476
 #, c-format
 msgid "Unknown interface <driver txmode='%s'> has been specified"
 msgstr "Було вказано невідомий інтерфейс <driver txmode='%s'>"
 
-#: src/conf/domain_conf.c:7479
+#: src/conf/domain_conf.c:7486
 #, c-format
 msgid "unknown interface ioeventfd mode '%s'"
 msgstr "невідомий режим роботи інтерфейсу ioeventfd «%s»"
 
-#: src/conf/domain_conf.c:7488
+#: src/conf/domain_conf.c:7495
 #, c-format
 msgid "unknown interface event_idx mode '%s'"
 msgstr "невідомий режим інтерфейсу event_idx «%s»"
 
-#: src/conf/domain_conf.c:7498
+#: src/conf/domain_conf.c:7505
 #, c-format
 msgid "'queues' attribute must be positive number: %s"
 msgstr "значенням атрибута «queues» має бути додатне число: %s"
 
-#: src/conf/domain_conf.c:7507
+#: src/conf/domain_conf.c:7514
 #, c-format
 msgid "unknown host csum mode '%s'"
 msgstr "невідомий режим csum основної системи, «%s»"
 
-#: src/conf/domain_conf.c:7517
+#: src/conf/domain_conf.c:7524
 #, c-format
 msgid "unknown host gso mode '%s'"
 msgstr "невідомий режим gso основної системи, «%s»"
 
-#: src/conf/domain_conf.c:7527
+#: src/conf/domain_conf.c:7534
 #, c-format
 msgid "unknown host tso4 mode '%s'"
 msgstr "невідомий режим tso4 основної системи, «%s»"
 
-#: src/conf/domain_conf.c:7537
+#: src/conf/domain_conf.c:7544
 #, c-format
 msgid "unknown host tso6 mode '%s'"
 msgstr "невідомий режим tso6 основної системи, «%s»"
 
-#: src/conf/domain_conf.c:7547
+#: src/conf/domain_conf.c:7554
 #, c-format
 msgid "unknown host ecn mode '%s'"
 msgstr "невідомий режим ecn основної системи, «%s»"
 
-#: src/conf/domain_conf.c:7557
+#: src/conf/domain_conf.c:7564
 #, c-format
 msgid "unknown host ufo mode '%s'"
 msgstr "невідомий режим ufo основної системи, «%s»"
 
-#: src/conf/domain_conf.c:7567
+#: src/conf/domain_conf.c:7574
 #, c-format
 msgid "unknown guest csum mode '%s'"
 msgstr "невідомий режим csum гостьової системи, «%s»"
 
-#: src/conf/domain_conf.c:7577
+#: src/conf/domain_conf.c:7584
 #, c-format
 msgid "unknown guest tso4 mode '%s'"
 msgstr "невідомий режим tso4 гостьової системи, «%s»"
 
-#: src/conf/domain_conf.c:7587
+#: src/conf/domain_conf.c:7594
 #, c-format
 msgid "unknown guest tso6 mode '%s'"
 msgstr "невідомий режим tso6 гостьової системи, «%s»"
 
-#: src/conf/domain_conf.c:7597
+#: src/conf/domain_conf.c:7604
 #, c-format
 msgid "unknown guest ecn mode '%s'"
 msgstr "невідомий режим ecn гостьової системи «%s»"
 
-#: src/conf/domain_conf.c:7607
+#: src/conf/domain_conf.c:7614
 #, c-format
 msgid "unknown guest ufo mode '%s'"
 msgstr "невідомий режим ufo гостьової системи, «%s»"
 
-#: src/conf/domain_conf.c:7619
+#: src/conf/domain_conf.c:7626
 #, c-format
 msgid "unknown interface link state '%s'"
 msgstr "невідомий стан посилання інтерфейсу «%s»"
 
-#: src/conf/domain_conf.c:7645
+#: src/conf/domain_conf.c:7652
 msgid "sndbuf must be a positive integer"
 msgstr "Значенням sndbuf має бути додатне число"
 
-#: src/conf/domain_conf.c:7695
+#: src/conf/domain_conf.c:7702
 #, c-format
 msgid "target type must be specified for %s device"
 msgstr "для пристрою %s має бути тип призначення"
 
-#: src/conf/domain_conf.c:7763
+#: src/conf/domain_conf.c:7770
 #, c-format
 msgid "unknown target type '%s' specified for character device"
 msgstr "для символьного пристрою вказано невідомий тип призначення, «%s»"
 
-#: src/conf/domain_conf.c:7780
+#: src/conf/domain_conf.c:7787
 msgid "guestfwd channel does not define a target address"
 msgstr "для каналу guestfwd не визначено адреси призначення"
 
-#: src/conf/domain_conf.c:7790
+#: src/conf/domain_conf.c:7797
 msgid "guestfwd channel only supports IPv4 addresses"
 msgstr "для каналу guestfwd передбачено підтримку лише адрес IPv4"
 
-#: src/conf/domain_conf.c:7797
+#: src/conf/domain_conf.c:7804
 msgid "guestfwd channel does not define a target port"
 msgstr "для каналу guestfwd не визначено порту призначення"
 
-#: src/conf/domain_conf.c:7804 src/conf/domain_conf.c:7828
+#: src/conf/domain_conf.c:7811 src/conf/domain_conf.c:7835
 #: src/conf/storage_conf.c:531
 #, c-format
 msgid "Invalid port number: %s"
 msgstr "Некоректний номер порту: %s"
 
-#: src/conf/domain_conf.c:7908
+#: src/conf/domain_conf.c:7915
 #, c-format
 msgid "Unknown source mode '%s'"
 msgstr "Невідомий тип джерела «%s»"
 
-#: src/conf/domain_conf.c:7976 src/conf/domain_conf.c:8077
+#: src/conf/domain_conf.c:7983 src/conf/domain_conf.c:8084
 msgid "Missing source path attribute for char device"
 msgstr "Немає атрибута path у source для символьного пристрою"
 
-#: src/conf/domain_conf.c:7987
+#: src/conf/domain_conf.c:7994
 msgid "Missing master path attribute for nmdm device"
 msgstr "Не вистачає атрибута основного шляху для пристрою nmdm"
 
-#: src/conf/domain_conf.c:7993
+#: src/conf/domain_conf.c:8000
 msgid "Missing slave path attribute for nmdm device"
 msgstr "Не вказано атрибута підлеглого шляху для пристрою nmdm"
 
-#: src/conf/domain_conf.c:8007 src/conf/domain_conf.c:8025
+#: src/conf/domain_conf.c:8014 src/conf/domain_conf.c:8032
 msgid "Missing source host attribute for char device"
 msgstr "Відсутній атрибут host у source для символьного пристрою"
 
-#: src/conf/domain_conf.c:8013 src/conf/domain_conf.c:8031
-#: src/conf/domain_conf.c:8056
+#: src/conf/domain_conf.c:8020 src/conf/domain_conf.c:8038
+#: src/conf/domain_conf.c:8063
 msgid "Missing source service attribute for char device"
 msgstr "Відсутній атрибут service у source для символьного пристрою"
 
-#: src/conf/domain_conf.c:8047
+#: src/conf/domain_conf.c:8054
 #, c-format
 msgid "Unknown protocol '%s'"
 msgstr "Невідомий протокол «%s»"
 
-#: src/conf/domain_conf.c:8090
+#: src/conf/domain_conf.c:8097
 msgid "Missing source channel attribute for char device"
 msgstr "Немає атрибута channel у source для символьного пристрою"
 
-#: src/conf/domain_conf.c:8095
+#: src/conf/domain_conf.c:8102
 msgid "Invalid character in source channel for char device"
 msgstr "Некоректний символ у записі каналу джерела для символьного пристрою"
 
-#: src/conf/domain_conf.c:8200 src/conf/domain_conf.c:8350
+#: src/conf/domain_conf.c:8207 src/conf/domain_conf.c:8357
 #, c-format
 msgid "unknown type presented to host for character device: %s"
 msgstr "основній системі вказано невідомий тип для символьного пристрою: %s"
 
-#: src/conf/domain_conf.c:8208
+#: src/conf/domain_conf.c:8215
 #, c-format
 msgid "unknown character device type: %s"
 msgstr "невідомий тип символьного пристрою: «%s»"
 
-#: src/conf/domain_conf.c:8236
+#: src/conf/domain_conf.c:8243
 msgid "spicevmc device type only supports virtio"
 msgstr "для пристроїв типу spicevmc передбачено підтримку лише virtio"
 
-#: src/conf/domain_conf.c:8252 src/qemu/qemu_command.c:9920
+#: src/conf/domain_conf.c:8259 src/qemu/qemu_command.c:9920
 msgid "usb-serial requires address of usb type"
 msgstr "для опису послідовного пристрою usb слід вказати адресу типу usb"
 
-#: src/conf/domain_conf.c:8283
+#: src/conf/domain_conf.c:8290
 msgid "missing smartcard device mode"
 msgstr "не вистачає режиму роботи пристрою смарт-картки"
 
-#: src/conf/domain_conf.c:8288
+#: src/conf/domain_conf.c:8295
 #, c-format
 msgid "unknown smartcard device mode: %s"
 msgstr "невідомий режим роботи пристрою смарт-картки: %s"
 
-#: src/conf/domain_conf.c:8305 src/conf/domain_conf.c:8334
+#: src/conf/domain_conf.c:8312 src/conf/domain_conf.c:8341
 msgid "host-certificates mode needs exactly three certificates"
 msgstr "режим сертифікації основної системи потребує точно трьох сертифікатів"
 
-#: src/conf/domain_conf.c:8325
+#: src/conf/domain_conf.c:8332
 #, c-format
 msgid "expecting absolute path: %s"
 msgstr "мало бути вказано абсолютну адресу: %s"
 
-#: src/conf/domain_conf.c:8344
+#: src/conf/domain_conf.c:8351
 msgid "passthrough mode requires a character device type attribute"
 msgstr ""
 "для роботи у режимі передавання слід вказати атрибути типу символьного "
 "пристрою"
 
-#: src/conf/domain_conf.c:8369
+#: src/conf/domain_conf.c:8376
 msgid "unknown smartcard mode"
 msgstr "невідомий режим роботи смарт-картки"
 
-#: src/conf/domain_conf.c:8378
+#: src/conf/domain_conf.c:8385
 msgid "Controllers must use the 'ccid' address type"
 msgstr "Контролери мають використовувати тип адреси «ccid»"
 
-#: src/conf/domain_conf.c:8426
+#: src/conf/domain_conf.c:8433
 #, c-format
 msgid "Unknown TPM frontend model '%s'"
 msgstr "Невідома модель оболонки TPM «%s»"
 
-#: src/conf/domain_conf.c:8439
+#: src/conf/domain_conf.c:8446
 msgid "only one TPM backend is supported"
 msgstr "передбачено підтримку лише одного модуля TPM"
 
-#: src/conf/domain_conf.c:8445
+#: src/conf/domain_conf.c:8452
 msgid "missing TPM device backend"
 msgstr "не вказано назву модуля пристрою TPM"
 
-#: src/conf/domain_conf.c:8451
+#: src/conf/domain_conf.c:8458
 msgid "missing TPM device backend type"
 msgstr "не вказано тип модуля пристрою TPM"
 
-#: src/conf/domain_conf.c:8457
+#: src/conf/domain_conf.c:8464
 #, c-format
 msgid "Unknown TPM backend type '%s'"
 msgstr "Невідомий тип модуля TPM «%s»"
 
-#: src/conf/domain_conf.c:8511
+#: src/conf/domain_conf.c:8518
 msgid "missing input device type"
 msgstr "не вказано типу пристрою вводу"
 
-#: src/conf/domain_conf.c:8517
+#: src/conf/domain_conf.c:8524
 #, c-format
 msgid "unknown input device type '%s'"
 msgstr "невідомий тип пристрою вводу «%s»"
 
-#: src/conf/domain_conf.c:8524
+#: src/conf/domain_conf.c:8531
 #, c-format
 msgid "unknown input bus type '%s'"
 msgstr "невідомий тип шини вводу «%s»"
 
-#: src/conf/domain_conf.c:8533
+#: src/conf/domain_conf.c:8540
 #, c-format
 msgid "ps2 bus does not support %s input device"
 msgstr "шина ps2 не підтримує пристрій вводу %s"
 
-#: src/conf/domain_conf.c:8539 src/conf/domain_conf.c:8546
+#: src/conf/domain_conf.c:8546 src/conf/domain_conf.c:8553
 #, c-format
 msgid "unsupported input bus %s"
 msgstr "шина вводу %s не підтримується"
 
-#: src/conf/domain_conf.c:8552
+#: src/conf/domain_conf.c:8559
 #, c-format
 msgid "xen bus does not support %s input device"
 msgstr "шина xen не підтримує пристрій вводу %s"
 
-#: src/conf/domain_conf.c:8578 src/conf/domain_conf.c:10352
+#: src/conf/domain_conf.c:8585 src/conf/domain_conf.c:10359
 msgid "Invalid address for a USB device"
 msgstr "Некоректна адреса пристрою USB"
 
-#: src/conf/domain_conf.c:8609
+#: src/conf/domain_conf.c:8616
 msgid "missing hub device type"
 msgstr "не вказано тип основного пристрою"
 
-#: src/conf/domain_conf.c:8615
+#: src/conf/domain_conf.c:8622
 #, c-format
 msgid "unknown hub device type '%s'"
 msgstr "невідомий тип основного пристрою «%s»"
 
-#: src/conf/domain_conf.c:8658
+#: src/conf/domain_conf.c:8665
 msgid "missing timer name"
 msgstr "не вказано назви таймера"
 
-#: src/conf/domain_conf.c:8663
+#: src/conf/domain_conf.c:8670
 #, c-format
 msgid "unknown timer name '%s'"
 msgstr "невідома назва таймера «%s»"
 
-#: src/conf/domain_conf.c:8675
+#: src/conf/domain_conf.c:8682
 #, c-format
 msgid "unknown timer present value '%s'"
 msgstr "невідоме поточне значення таймера «%s»"
 
-#: src/conf/domain_conf.c:8685
+#: src/conf/domain_conf.c:8692
 #, c-format
 msgid "unknown timer tickpolicy '%s'"
 msgstr "невідомі правила відліку таймера «%s»"
 
-#: src/conf/domain_conf.c:8695
+#: src/conf/domain_conf.c:8702
 #, c-format
 msgid "unknown timer track '%s'"
 msgstr "невідомий канал таймера «%s»"
 
-#: src/conf/domain_conf.c:8705
+#: src/conf/domain_conf.c:8712
 msgid "invalid timer frequency"
 msgstr "некоректна частота таймера"
 
-#: src/conf/domain_conf.c:8714
+#: src/conf/domain_conf.c:8721
 #, c-format
 msgid "unknown timer mode '%s'"
 msgstr "невідомий режим роботи таймера «%s»"
 
-#: src/conf/domain_conf.c:8727
+#: src/conf/domain_conf.c:8734
 msgid "invalid catchup threshold"
 msgstr "некоректне порогове значення перехоплення"
 
-#: src/conf/domain_conf.c:8736
+#: src/conf/domain_conf.c:8743
 msgid "invalid catchup slew"
 msgstr "некоректне обернення відліку перехоплення"
 
-#: src/conf/domain_conf.c:8745
+#: src/conf/domain_conf.c:8752
 msgid "invalid catchup limit"
 msgstr "некоректне обмеження перехоплення"
 
-#: src/conf/domain_conf.c:8798
+#: src/conf/domain_conf.c:8805
 #, c-format
 msgid "cannot parse password validity time '%s', expect YYYY-MM-DDTHH:MM:SS"
 msgstr ""
 "не вдалося обробити запис часу чинності пароля «%s», час мало бути вказано у "
 "форматі РРРР-ММ-ДДTГГ:ХХ:СС"
 
-#: src/conf/domain_conf.c:8817
+#: src/conf/domain_conf.c:8824
 #, c-format
 msgid "unknown connected value %s"
 msgstr "невідоме значення connected %s"
 
-#: src/conf/domain_conf.c:8828
+#: src/conf/domain_conf.c:8835
 msgid "VNC supports connected='keep' only"
 msgstr "У VNC передбачено підтримку лише connected='keep'"
 
-#: src/conf/domain_conf.c:8852
+#: src/conf/domain_conf.c:8859
 msgid "graphics listen type must be specified"
 msgstr "має бути визначено тип очікування графічних даних"
 
-#: src/conf/domain_conf.c:8858
+#: src/conf/domain_conf.c:8865
 #, c-format
 msgid "unknown graphics listen type '%s'"
 msgstr "невідомий тип очікування графічних даних «%s»"
 
-#: src/conf/domain_conf.c:8878
+#: src/conf/domain_conf.c:8885
 msgid "network attribute not allowed when listen type is not network"
 msgstr ""
 "атрибут мережі не можна використовувати, якщо типом очікування не є «network»"
 
-#: src/conf/domain_conf.c:8889
+#: src/conf/domain_conf.c:8896
 #, c-format
 msgid "Invalid fromConfig value: %s"
 msgstr "некоректне значення fromConfig: %s"
 
-#: src/conf/domain_conf.c:8930
+#: src/conf/domain_conf.c:8937
 msgid "missing graphics device type"
 msgstr "не вказано тип графічного адаптера"
 
-#: src/conf/domain_conf.c:8936
+#: src/conf/domain_conf.c:8943
 #, c-format
 msgid "unknown graphics device type '%s'"
 msgstr "невідомий тип графічного адаптера «%s»"
 
-#: src/conf/domain_conf.c:9001
+#: src/conf/domain_conf.c:9008
 #, c-format
 msgid ""
 "graphics listen attribute %s must match address attribute of first listen "
@@ -2969,912 +2969,912 @@ msgstr ""
 "атрибути очікування графічних даних %s має відповідати атрибуту адреси "
 "першого елемента очікування (виявлено %s)"
 
-#: src/conf/domain_conf.c:9019
+#: src/conf/domain_conf.c:9026
 #, c-format
 msgid "cannot parse vnc port %s"
 msgstr "не вдається видалити vnc-порт %s"
 
-#: src/conf/domain_conf.c:9049
+#: src/conf/domain_conf.c:9056
 #, c-format
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "не вдалося обробити запис порту WebSocket VNC %s"
 
-#: src/conf/domain_conf.c:9062 src/qemu/qemu_command.c:11579
+#: src/conf/domain_conf.c:9069 src/qemu/qemu_command.c:11579
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "невідомі правила спільного використання дисплея VNC, «%s»"
 
-#: src/conf/domain_conf.c:9087 src/conf/domain_conf.c:9154
+#: src/conf/domain_conf.c:9094 src/conf/domain_conf.c:9161
 #, c-format
 msgid "unknown fullscreen value '%s'"
 msgstr "невідомий параметр повноекранного режиму «%s»"
 
-#: src/conf/domain_conf.c:9106
+#: src/conf/domain_conf.c:9113
 #, c-format
 msgid "cannot parse rdp port %s"
 msgstr "не вдалось розібрати rdp-порт %s"
 
-#: src/conf/domain_conf.c:9175
+#: src/conf/domain_conf.c:9182
 #, c-format
 msgid "cannot parse spice port %s"
 msgstr "не вдалося обробити значення порту SPICE %s"
 
-#: src/conf/domain_conf.c:9188
+#: src/conf/domain_conf.c:9195
 #, c-format
 msgid "cannot parse spice tlsPort %s"
 msgstr "не вдалося обробити значення атрибута «tlsPort» SPICE %s"
 
-#: src/conf/domain_conf.c:9208
+#: src/conf/domain_conf.c:9215
 #, c-format
 msgid "unknown default spice channel mode %s"
 msgstr "невідомий типовий режим каналу spice, %s"
 
-#: src/conf/domain_conf.c:9244
+#: src/conf/domain_conf.c:9251
 msgid "spice channel missing name/mode"
 msgstr "У каналі SPICE не вистачає назви або режиму"
 
-#: src/conf/domain_conf.c:9252
+#: src/conf/domain_conf.c:9259
 #, c-format
 msgid "unknown spice channel name %s"
 msgstr "невідома назва каналу SPICE %s"
 
-#: src/conf/domain_conf.c:9260
+#: src/conf/domain_conf.c:9267
 #, c-format
 msgid "unknown spice channel mode %s"
 msgstr "невідомий режим роботи каналу SPICE %s"
 
-#: src/conf/domain_conf.c:9276
+#: src/conf/domain_conf.c:9283
 msgid "spice image missing compression"
 msgstr "не вказано спосіб стискання образу SPICE"
 
-#: src/conf/domain_conf.c:9283
+#: src/conf/domain_conf.c:9290
 #, c-format
 msgid "unknown spice image compression %s"
 msgstr "невідомий метод стискання образу SPICE %s"
 
-#: src/conf/domain_conf.c:9297
+#: src/conf/domain_conf.c:9304
 msgid "spice jpeg missing compression"
 msgstr "не вказано спосіб стискання JPEG SPICE"
 
-#: src/conf/domain_conf.c:9304
+#: src/conf/domain_conf.c:9311
 #, c-format
 msgid "unknown spice jpeg compression %s"
 msgstr "невідомий спосіб стискання JPEG SPICE %s"
 
-#: src/conf/domain_conf.c:9318
+#: src/conf/domain_conf.c:9325
 msgid "spice zlib missing compression"
 msgstr "не вказано спосіб стискання zlib SPICE"
 
-#: src/conf/domain_conf.c:9325
+#: src/conf/domain_conf.c:9332
 #, c-format
 msgid "unknown spice zlib compression %s"
 msgstr "невідомий спосіб стискання zlib SPICE %s"
 
-#: src/conf/domain_conf.c:9339
+#: src/conf/domain_conf.c:9346
 msgid "spice playback missing compression"
 msgstr "не вказано спосіб стискання playback SPICE"
 
-#: src/conf/domain_conf.c:9346
+#: src/conf/domain_conf.c:9353
 msgid "unknown spice playback compression"
 msgstr "невідомий спосіб стискання playback SPICE %s"
 
-#: src/conf/domain_conf.c:9360
+#: src/conf/domain_conf.c:9367
 msgid "spice streaming missing mode"
 msgstr "не вказано режим передавання SPICE"
 
-#: src/conf/domain_conf.c:9366
+#: src/conf/domain_conf.c:9373
 msgid "unknown spice streaming mode"
 msgstr "невідомий режим передавання SPICE"
 
-#: src/conf/domain_conf.c:9380
+#: src/conf/domain_conf.c:9387
 msgid "spice clipboard missing copypaste"
 msgstr "У буфері SPICE немає даних для копіювання зі вставленням"
 
-#: src/conf/domain_conf.c:9387
+#: src/conf/domain_conf.c:9394
 #, c-format
 msgid "unknown copypaste value '%s'"
 msgstr "Невідоме значення копіювання зі вставленням «%s»"
 
-#: src/conf/domain_conf.c:9400
+#: src/conf/domain_conf.c:9407
 msgid "spice filetransfer missing enable"
 msgstr "у записі передавання файла spice не вистачає enable"
 
-#: src/conf/domain_conf.c:9407
+#: src/conf/domain_conf.c:9414
 #, c-format
 msgid "unknown enable value '%s'"
 msgstr "невідоме значення вмикання, «%s»"
 
-#: src/conf/domain_conf.c:9420
+#: src/conf/domain_conf.c:9427
 msgid "spice mouse missing mode"
 msgstr "не вказано режиму роботи миші у SPICE"
 
-#: src/conf/domain_conf.c:9426
+#: src/conf/domain_conf.c:9433
 #, c-format
 msgid "unknown mouse mode value '%s'"
 msgstr "невідоме значення режиму роботи миші, «%s»"
 
-#: src/conf/domain_conf.c:9467
+#: src/conf/domain_conf.c:9474
 #, c-format
 msgid "unknown codec type '%s'"
 msgstr "невідомий тип кодека, «%s»"
 
-#: src/conf/domain_conf.c:9500
+#: src/conf/domain_conf.c:9507
 #, c-format
 msgid "unknown sound model '%s'"
 msgstr "невідома модель звукового пристрою «%s»"
 
-#: src/conf/domain_conf.c:9567
+#: src/conf/domain_conf.c:9574
 msgid "watchdog must contain model name"
 msgstr "елемент «watchdog» повинен містити назву моделі"
 
-#: src/conf/domain_conf.c:9573
+#: src/conf/domain_conf.c:9580
 #, c-format
 msgid "unknown watchdog model '%s'"
 msgstr "невідома модель сторожового пристрою «%s»"
 
-#: src/conf/domain_conf.c:9584
+#: src/conf/domain_conf.c:9591
 #, c-format
 msgid "unknown watchdog action '%s'"
 msgstr "невідома сторожова дія «%s»"
 
-#: src/conf/domain_conf.c:9622
+#: src/conf/domain_conf.c:9629
 msgid "missing RNG device model"
 msgstr "не вказано моделі пристрою RNG"
 
-#: src/conf/domain_conf.c:9627
+#: src/conf/domain_conf.c:9634
 #, c-format
 msgid "unknown RNG model '%s'"
 msgstr "невідома модель RNG, «%s»"
 
-#: src/conf/domain_conf.c:9635
+#: src/conf/domain_conf.c:9642
 msgid "invalid RNG rate bytes value"
 msgstr "некоректне значення байтів у швидкості RNG"
 
-#: src/conf/domain_conf.c:9642
+#: src/conf/domain_conf.c:9649
 msgid "invalid RNG rate period value"
 msgstr "некоректне значення періоду у швидкості RNG"
 
-#: src/conf/domain_conf.c:9651
+#: src/conf/domain_conf.c:9658
 msgid "only one RNG backend is supported"
 msgstr "передбачено підтримку лише одного модуля RNG"
 
-#: src/conf/domain_conf.c:9657
+#: src/conf/domain_conf.c:9664
 msgid "missing RNG device backend model"
 msgstr "не вказано моделі модуля пристрою RNG"
 
-#: src/conf/domain_conf.c:9663
+#: src/conf/domain_conf.c:9670
 #, c-format
 msgid "unknown RNG backend model '%s'"
 msgstr "невідома модель модуля RNG, «%s»"
 
-#: src/conf/domain_conf.c:9674
+#: src/conf/domain_conf.c:9681
 #, c-format
 msgid "file '%s' is not a supported random source"
 msgstr "файл «%s» не належить до підтримуваних джерел псевдовипадкових даних"
 
-#: src/conf/domain_conf.c:9683
+#: src/conf/domain_conf.c:9690
 msgid "missing EGD backend type"
 msgstr "не вказано тип модуля EGD"
 
-#: src/conf/domain_conf.c:9693
+#: src/conf/domain_conf.c:9700
 #, c-format
 msgid "unknown backend type '%s' for egd"
 msgstr "невідомий тип модуля «%s» для egd"
 
-#: src/conf/domain_conf.c:9741
+#: src/conf/domain_conf.c:9748
 msgid "balloon memory must contain model name"
 msgstr "запис balloon_memory має містити назву моделі"
 
-#: src/conf/domain_conf.c:9747
+#: src/conf/domain_conf.c:9754
 #, c-format
 msgid "unknown memory balloon model '%s'"
 msgstr "невідома модель додаткової пам’яті «%s»"
 
-#: src/conf/domain_conf.c:9754
+#: src/conf/domain_conf.c:9761
 msgid "invalid statistics collection period"
 msgstr "некоректний період збирання статистичних даних"
 
-#: src/conf/domain_conf.c:9812
+#: src/conf/domain_conf.c:9819
 #, fuzzy
 msgid "shmem element must contain 'name' attribute"
 msgstr "sysinfo має містити атрибути типу"
 
-#: src/conf/domain_conf.c:9834
+#: src/conf/domain_conf.c:9841
 #, fuzzy, c-format
 msgid "invalid number of vectors for shmem: '%s'"
 msgstr "некоректне число «%s» у «%s»"
 
-#: src/conf/domain_conf.c:9843
+#: src/conf/domain_conf.c:9850
 #, fuzzy, c-format
 msgid "invalid msi ioeventfd setting for shmem: '%s'"
 msgstr "некоректний параметр iothread, «%s»"
 
-#: src/conf/domain_conf.c:9853
+#: src/conf/domain_conf.c:9860
 #, fuzzy
 msgid "msi option is only supported with a server"
 msgstr ""
 "підтримку дисків у мережі передбачено лише у разі визначення параметра -drive"
 
-#: src/conf/domain_conf.c:9882
+#: src/conf/domain_conf.c:9889
 msgid "XML does not contain expected 'sysinfo' element"
 msgstr "У XML не міститься очікуваного елемента «sysinfo»"
 
-#: src/conf/domain_conf.c:9892
+#: src/conf/domain_conf.c:9899
 msgid "sysinfo must contain a type attribute"
 msgstr "sysinfo має містити атрибути типу"
 
-#: src/conf/domain_conf.c:9897
+#: src/conf/domain_conf.c:9904
 #, c-format
 msgid "unknown sysinfo type '%s'"
 msgstr "невідомий тип sysinfo «%s»"
 
-#: src/conf/domain_conf.c:9928
+#: src/conf/domain_conf.c:9935
 msgid "Invalid BIOS 'date' format"
 msgstr "Некоректний формат запису BIOS «date»"
 
-#: src/conf/domain_conf.c:9950
+#: src/conf/domain_conf.c:9957
 msgid "malformed <sysinfo> uuid element"
 msgstr "помилкове форматування елемента UUID <sysinfo>"
 
-#: src/conf/domain_conf.c:9957
+#: src/conf/domain_conf.c:9964
 msgid "UUID mismatch between <uuid> and <sysinfo>"
 msgstr "невідповідність UUID між <uuid> та <sysinfo>"
 
-#: src/conf/domain_conf.c:10137
+#: src/conf/domain_conf.c:10144
 #, c-format
 msgid "unknown video model '%s'"
 msgstr "невідома модель відеоадаптера «%s»"
 
-#: src/conf/domain_conf.c:10143
+#: src/conf/domain_conf.c:10150
 msgid "missing video model and cannot determine default"
 msgstr "не вказано модель відеоадаптера, неможливо визначити типову"
 
-#: src/conf/domain_conf.c:10151
+#: src/conf/domain_conf.c:10158
 msgid "ram attribute only supported for type of qxl"
 msgstr "підтримку атрибута ram передбачено лише для типу qxl"
 
-#: src/conf/domain_conf.c:10156 src/conf/domain_conf.c:10166
+#: src/conf/domain_conf.c:10163 src/conf/domain_conf.c:10173
 #, c-format
 msgid "cannot parse video ram '%s'"
 msgstr "неможливо розібрати кількість відеопам'яті «%s»"
 
-#: src/conf/domain_conf.c:10176
+#: src/conf/domain_conf.c:10183
 #, c-format
 msgid "cannot parse video heads '%s'"
 msgstr "неможливо розібрати кількість відеоадаптерів «%s»"
 
-#: src/conf/domain_conf.c:10223
+#: src/conf/domain_conf.c:10230
 #, c-format
 msgid "unknown hostdev mode '%s'"
 msgstr "невідомий режим hostdev %s"
 
-#: src/conf/domain_conf.c:10243
+#: src/conf/domain_conf.c:10250
 #, c-format
 msgid "Unexpected hostdev mode %d"
 msgstr "Неочікуваний режим роботи пристрою основної системи, %d"
 
-#: src/conf/domain_conf.c:10260
+#: src/conf/domain_conf.c:10267
 msgid "PCI host devices must use 'pci' address type"
 msgstr "пристрої PCI основної системи мають використовувати тип адреси «pci»"
 
-#: src/conf/domain_conf.c:10269
+#: src/conf/domain_conf.c:10276
 msgid "SCSI host devices must have address specified"
 msgstr "Для пристроїв SCSI основної системи слід вказувати адресу"
 
-#: src/conf/domain_conf.c:10311
+#: src/conf/domain_conf.c:10318
 #, c-format
 msgid "unknown redirdev bus '%s'"
 msgstr "невідомий канал redirdev «%s»"
 
-#: src/conf/domain_conf.c:10322
+#: src/conf/domain_conf.c:10329
 #, c-format
 msgid "unknown redirdev character device type '%s'"
 msgstr "невідомий тип символьного пристрою redirdev «%s»"
 
-#: src/conf/domain_conf.c:10327
+#: src/conf/domain_conf.c:10334
 msgid "missing type in redirdev"
 msgstr "не вказано типу у redirdev"
 
-#: src/conf/domain_conf.c:10403
+#: src/conf/domain_conf.c:10410
 #, c-format
 msgid "Incorrect USB version format %s"
 msgstr "Помилкове форматування версії USB, %s"
 
-#: src/conf/domain_conf.c:10413
+#: src/conf/domain_conf.c:10420
 #, c-format
 msgid "Cannot parse USB version %s"
 msgstr "Не вдалося обробити запис версії USB, %s"
 
-#: src/conf/domain_conf.c:10446
+#: src/conf/domain_conf.c:10453
 #, c-format
 msgid "Cannot parse USB Class code %s"
 msgstr "Не вдалося обробити запис коду класу USB, %s"
 
-#: src/conf/domain_conf.c:10452
+#: src/conf/domain_conf.c:10459
 #, c-format
 msgid "Invalid USB Class code %s"
 msgstr "Некоректний код класу USB, %s"
 
-#: src/conf/domain_conf.c:10463
+#: src/conf/domain_conf.c:10470
 #, c-format
 msgid "Cannot parse USB vendor ID %s"
 msgstr "Не вдалося обробити запис ідентифікатора виробника USB, %s"
 
-#: src/conf/domain_conf.c:10474
+#: src/conf/domain_conf.c:10481
 #, c-format
 msgid "Cannot parse USB product ID %s"
 msgstr "Не вдалося обробити запис ідентифікатора продукту USB, %s"
 
-#: src/conf/domain_conf.c:10499
+#: src/conf/domain_conf.c:10506
 msgid "Invalid allow value, either 'yes' or 'no'"
 msgstr "Некоректне значення allow: мало бути «yes» або «no»"
 
-#: src/conf/domain_conf.c:10504
+#: src/conf/domain_conf.c:10511
 msgid "Missing allow attribute for USB redirection filter"
 msgstr "Не вистачає атрибута allow для фільтра переспрямовування USB"
 
-#: src/conf/domain_conf.c:10577
+#: src/conf/domain_conf.c:10584
 #, c-format
 msgid "unknown %s action: %s"
 msgstr "невідома дія %s: %s"
 
-#: src/conf/domain_conf.c:10597
+#: src/conf/domain_conf.c:10604
 #, c-format
 msgid "unknown PM state value %s"
 msgstr "невідоме значення стану керування живленням, %s"
 
-#: src/conf/domain_conf.c:10620
+#: src/conf/domain_conf.c:10627
 msgid "(device_definition)"
 msgstr "(визначення_пристрою)"
 
-#: src/conf/domain_conf.c:10638
+#: src/conf/domain_conf.c:10645
 #, c-format
 msgid "unknown device type '%s'"
 msgstr "невідомий тип пристрою, «%s»"
 
-#: src/conf/domain_conf.c:10766
+#: src/conf/domain_conf.c:10773
 msgid "(disk_definition)"
 msgstr "(визначення_диска)"
 
-#: src/conf/domain_conf.c:10772
+#: src/conf/domain_conf.c:10779
 #, c-format
 msgid "expecting root element of 'disk', not '%s'"
 msgstr "кореневим елементом мав бути «disk», а не «%s»"
 
-#: src/conf/domain_conf.c:11173
+#: src/conf/domain_conf.c:11180
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "виявлено MAC-адресу %s, що відповідає декільком пристроям"
 
-#: src/conf/domain_conf.c:11194
+#: src/conf/domain_conf.c:11201
 #, c-format
 msgid "no device matching mac address %s found on %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 "не знайдено відповідного пристрою для MAC-адреси %s у %.4x:%.2x:%.2x.%.1x"
 
-#: src/conf/domain_conf.c:11203
+#: src/conf/domain_conf.c:11210
 #, c-format
 msgid "no device matching mac address %s found"
 msgstr "не знайдено пристрою, щоб відповідає MAC-адресі %s"
 
-#: src/conf/domain_conf.c:11555
+#: src/conf/domain_conf.c:11562
 msgid "unknown virt type"
 msgstr "невідомий тип віртуалізації"
 
-#: src/conf/domain_conf.c:11566
+#: src/conf/domain_conf.c:11573
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr "немає емулятора для домену %s, ОС типу %s на архітектурі %s"
 
-#: src/conf/domain_conf.c:11592
+#: src/conf/domain_conf.c:11599
 msgid "cannot count boot devices"
 msgstr "не вдалося полічити пристрої для завантаження"
 
-#: src/conf/domain_conf.c:11603 src/conf/domain_conf.c:19547
+#: src/conf/domain_conf.c:11610 src/conf/domain_conf.c:19554
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr ""
 "окремі елементи завантаження для пристроїв не можна використовувати разом з "
 "елементами ОС або завантаження"
 
-#: src/conf/domain_conf.c:11613
+#: src/conf/domain_conf.c:11620
 msgid "missing boot device"
 msgstr "не вказано завантажувального пристрою"
 
-#: src/conf/domain_conf.c:11618
+#: src/conf/domain_conf.c:11625
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "невідомий завантажувальний пристрій «%s»"
 
-#: src/conf/domain_conf.c:11650
+#: src/conf/domain_conf.c:11657
 msgid "invalid value for boot menu timeout, must be in range [0,65535]"
 msgstr ""
 "некоректне значення часу очікування у меню завантаження, значення має "
 "належати діапазону [0,65535]"
 
-#: src/conf/domain_conf.c:11664
+#: src/conf/domain_conf.c:11671
 msgid "need at least one serial port for useserial"
 msgstr "для useserial слід вказати принаймні один порт"
 
-#: src/conf/domain_conf.c:11682
+#: src/conf/domain_conf.c:11689
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr ""
 "некоректне значення rebootTimeout, значення має належати діапазону [-1,65535]"
 
-#: src/conf/domain_conf.c:11736
+#: src/conf/domain_conf.c:11743
 msgid "invalid idmap start/target/count settings"
 msgstr "некоректні параметри start/target/count idmap"
 
-#: src/conf/domain_conf.c:11748
+#: src/conf/domain_conf.c:11755
 msgid "You must map the root user of container"
 msgstr "Вам слід пов’язати запис кореневого користувача контейнера"
 
-#: src/conf/domain_conf.c:11812
+#: src/conf/domain_conf.c:11819
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr ""
 "ідентифікатором віртуального процесора має бути невід’ємне ціле число або -1"
 
-#: src/conf/domain_conf.c:11816
+#: src/conf/domain_conf.c:11823
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr ""
 "не можна використовувати значення ідентифікатора віртуального процесора -1 "
 "для vcpupin"
 
-#: src/conf/domain_conf.c:11822
+#: src/conf/domain_conf.c:11829
 msgid "vcpu id must be less than maxvcpus"
 msgstr ""
 "значенням ідентифікатора віртуального процесора має бути число, яке є меншим "
 "за максимальну кількість процесорів"
 
-#: src/conf/domain_conf.c:11832
+#: src/conf/domain_conf.c:11839
 #, c-format
 msgid "invalid setting for iothread '%s'"
 msgstr "некоректний параметр iothread, «%s»"
 
-#: src/conf/domain_conf.c:11839
+#: src/conf/domain_conf.c:11846
 msgid "zero is an invalid iothread id value"
 msgstr ""
 "нуль є некоректним значенням ідентифікатора потоку введення-виведення "
 "(iothread)"
 
-#: src/conf/domain_conf.c:11849
+#: src/conf/domain_conf.c:11856
 msgid "iothread id must not exceed iothreads"
 msgstr ""
 "значення ідентифікатора iothread не повинне перевищувати значення iothreads"
 
-#: src/conf/domain_conf.c:11860
+#: src/conf/domain_conf.c:11867
 msgid "missing cpuset for emulatorpin"
 msgstr "пропущено cpuset для emulatorpin"
 
-#: src/conf/domain_conf.c:11863
+#: src/conf/domain_conf.c:11870
 msgid "missing cpuset for iothreadpin"
 msgstr "у iothreadpin пропущено cpuset"
 
-#: src/conf/domain_conf.c:11866
+#: src/conf/domain_conf.c:11873
 msgid "missing cpuset for vcpupin"
 msgstr "не вказано cpuset для запису vcpupin"
 
-#: src/conf/domain_conf.c:11971
+#: src/conf/domain_conf.c:11978
 msgid "unable to parse size attribute"
 msgstr "не вдалося обробити атрибут розміру"
 
-#: src/conf/domain_conf.c:11982
+#: src/conf/domain_conf.c:11989
 msgid "hugepage size can't be zero"
 msgstr "розмір великої сторінки (hugepage) не може бути нульовим"
 
-#: src/conf/domain_conf.c:12016
+#: src/conf/domain_conf.c:12023
 msgid "missing resource partition attribute"
 msgstr "не вказано атрибута розділу ресурсу"
 
-#: src/conf/domain_conf.c:12072
+#: src/conf/domain_conf.c:12079
 #, c-format
 msgid "unknown readonly value: %s"
 msgstr "невідоме значення readonly: %s"
 
-#: src/conf/domain_conf.c:12080
+#: src/conf/domain_conf.c:12087
 #, c-format
 msgid "unknown type value: %s"
 msgstr "невідоме значення type: %s"
 
-#: src/conf/domain_conf.c:12127
+#: src/conf/domain_conf.c:12134
 msgid "missing domain type attribute"
 msgstr "не вказано атрибут типу домену"
 
-#: src/conf/domain_conf.c:12133
+#: src/conf/domain_conf.c:12140
 #, c-format
 msgid "invalid domain type %s"
 msgstr "неправильний тип домену %s"
 
-#: src/conf/domain_conf.c:12141
+#: src/conf/domain_conf.c:12148
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr "неочікуваний тип домену %s, мав бути %s"
 
-#: src/conf/domain_conf.c:12163
+#: src/conf/domain_conf.c:12170
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr "неочікуваний тип домену %s, мав бути одним з цих: %s"
 
-#: src/conf/domain_conf.c:12187 src/conf/network_conf.c:2050
+#: src/conf/domain_conf.c:12194 src/conf/network_conf.c:2050
 #: src/conf/secret_conf.c:192 src/openvz/openvz_conf.c:1039
 #: src/xenconfig/xen_common.c:206
 msgid "Failed to generate UUID"
 msgstr "Помилка при генерації UUID"
 
-#: src/conf/domain_conf.c:12194 src/conf/network_conf.c:2056
+#: src/conf/domain_conf.c:12201 src/conf/network_conf.c:2056
 #: src/conf/nwfilter_conf.c:2647 src/conf/secret_conf.c:198
 #: src/conf/storage_conf.c:853
 msgid "malformed uuid element"
 msgstr "зіпсований елемент UUID"
 
-#: src/conf/domain_conf.c:12204
+#: src/conf/domain_conf.c:12211
 msgid "Domain title can't contain newlines"
 msgstr "У назві домену не повинно міститися символів розриву рядка"
 
-#: src/conf/domain_conf.c:12229
+#: src/conf/domain_conf.c:12236
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "Некоректне значення атрибута дампу пам’яті ядра, «%s»"
 
-#: src/conf/domain_conf.c:12241
+#: src/conf/domain_conf.c:12248
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr "поточний обсяг пам’яті, «%lluК» перевищує максимальний, «%lluК»"
 
-#: src/conf/domain_conf.c:12257
+#: src/conf/domain_conf.c:12264
 msgid "cannot extract hugepages nodes"
 msgstr "не вдалося видобути вузли великих сторінок (hugepages)"
 
-#: src/conf/domain_conf.c:12277
+#: src/conf/domain_conf.c:12284
 #, c-format
 msgid "nodeset attribute of hugepages of sizes %llu and %llu intersect"
 msgstr ""
 "атрибути nodeset великих сторінок (hugepages) розмірів %llu та %llu "
 "перетинаються"
 
-#: src/conf/domain_conf.c:12285
+#: src/conf/domain_conf.c:12292
 #, c-format
 msgid "two master hugepages detected: %llu and %llu"
 msgstr "виявлено дві основні великі сторінки (hugepages): %llu та %llu"
 
-#: src/conf/domain_conf.c:12317
+#: src/conf/domain_conf.c:12324
 msgid "cannot extract blkiotune nodes"
 msgstr "не вдалося видобути вузли blkiotune"
 
-#: src/conf/domain_conf.c:12332
+#: src/conf/domain_conf.c:12339
 #, c-format
 msgid "duplicate blkio device path '%s'"
 msgstr "дублювання шляху до пристрою blkio, «%s»"
 
-#: src/conf/domain_conf.c:12360
+#: src/conf/domain_conf.c:12367
 msgid "maximum vcpus must be an integer"
 msgstr "значення максимальної кількості віртуальних процесорів має бути цілим"
 
-#: src/conf/domain_conf.c:12368
+#: src/conf/domain_conf.c:12375
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr ""
 "некоректне значення максимальної кількості віртуальних процесорів, «%lu»"
 
-#: src/conf/domain_conf.c:12376
+#: src/conf/domain_conf.c:12383
 msgid "current vcpus must be an integer"
 msgstr "значення поточної кількості віртуальних процесорів має бути цілим"
 
-#: src/conf/domain_conf.c:12384
+#: src/conf/domain_conf.c:12391
 #, c-format
 msgid "invalid current number of vCPUs '%lu'"
 msgstr "некоректне значення поточної кількості віртуальних процесорів, «%lu»"
 
-#: src/conf/domain_conf.c:12390
+#: src/conf/domain_conf.c:12397
 #, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr ""
 "максимальна кількість віртуальних процесорів не повинна перевищувати поточну "
 "кількість віртуальних процесорів (%d < %lu)"
 
-#: src/conf/domain_conf.c:12402
+#: src/conf/domain_conf.c:12409
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr "Непідтримуваний режим розташування процесора, «%s»"
 
-#: src/conf/domain_conf.c:12425
+#: src/conf/domain_conf.c:12432
 #, c-format
 msgid "invalid iothreads count '%s'"
 msgstr "некоректна кількість потоків введення-виведення (iothreads), «%s»"
 
-#: src/conf/domain_conf.c:12434
+#: src/conf/domain_conf.c:12441
 msgid "can't parse cputune shares value"
 msgstr "не вдалося обробити значення спільного використання (shares) cputune"
 
-#: src/conf/domain_conf.c:12443
+#: src/conf/domain_conf.c:12450
 msgid "can't parse cputune period value"
 msgstr "не вдалося обробити значення періоду cputune"
 
-#: src/conf/domain_conf.c:12450
+#: src/conf/domain_conf.c:12457
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr "Значенян періоду cputune має належати діапазону [1000, 1000000]"
 
-#: src/conf/domain_conf.c:12458
+#: src/conf/domain_conf.c:12465
 msgid "can't parse cputune quota value"
 msgstr "не вдалося обробити значення квоти cputune"
 
-#: src/conf/domain_conf.c:12466
+#: src/conf/domain_conf.c:12473
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "Значенян квоти cputune має належати діапазону [1000, 18446744073709551]"
 
-#: src/conf/domain_conf.c:12474
+#: src/conf/domain_conf.c:12481
 msgid "can't parse cputune emulator period value"
 msgstr "не вдалося обробити значення періоду емулятора cputune"
 
-#: src/conf/domain_conf.c:12482
+#: src/conf/domain_conf.c:12489
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr ""
 "Значення emulator_period cputune має належати діапазону [1000, 1000000]"
 
-#: src/conf/domain_conf.c:12490
+#: src/conf/domain_conf.c:12497
 msgid "can't parse cputune emulator quota value"
 msgstr "не вдалося обробити значення квоти емулятора cputune"
 
-#: src/conf/domain_conf.c:12498
+#: src/conf/domain_conf.c:12505
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "Значенян emulator_quota cputune має належати діапазону [1000, "
 "18446744073709551]"
 
-#: src/conf/domain_conf.c:12521
+#: src/conf/domain_conf.c:12528
 msgid "duplicate vcpupin for same vcpu"
 msgstr "дублювання запису vcpupin для одного з віртуальних процесорів"
 
-#: src/conf/domain_conf.c:12570
+#: src/conf/domain_conf.c:12577
 msgid "cannot extract emulatorpin nodes"
 msgstr "не вдалося видобути вузли emulatorpin"
 
-#: src/conf/domain_conf.c:12582
+#: src/conf/domain_conf.c:12589
 msgid "only one emulatorpin is supported"
 msgstr "передбачено підтримку лише одного emulatorpin"
 
-#: src/conf/domain_conf.c:12602
+#: src/conf/domain_conf.c:12609
 msgid "cannot extract iothreadpin nodes"
 msgstr "не вдалося видобути вузли iothreadpin"
 
-#: src/conf/domain_conf.c:12627
+#: src/conf/domain_conf.c:12634
 msgid "duplicate iothreadpin for same iothread"
 msgstr "дублювання iothreadpin для одного iothread"
 
-#: src/conf/domain_conf.c:12656
+#: src/conf/domain_conf.c:12663
 msgid "Maximum CPUs greater than topology limit"
 msgstr "Максимальна кількість процесорів перевищує обмеження у топології"
 
-#: src/conf/domain_conf.c:12662
+#: src/conf/domain_conf.c:12669
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "Кількість процесорів у <numa> перевищує кількість <vcpu>"
 
-#: src/conf/domain_conf.c:12680
+#: src/conf/domain_conf.c:12687
 msgid "cannot extract resource nodes"
 msgstr "не вдалося видобути вузли resource"
 
-#: src/conf/domain_conf.c:12686
+#: src/conf/domain_conf.c:12693
 msgid "only one resource element is supported"
 msgstr "передбачено підтримку лише одного елемента resource"
 
-#: src/conf/domain_conf.c:12702
+#: src/conf/domain_conf.c:12709
 #, c-format
 msgid "unexpected feature '%s'"
 msgstr "неочікувана можливість «%s»"
 
-#: src/conf/domain_conf.c:12712
+#: src/conf/domain_conf.c:12719
 #, c-format
 msgid "unknown value for attribute eoi: '%s'"
 msgstr "невідоме значення атрибута eoi: «%s»"
 
-#: src/conf/domain_conf.c:12736 src/conf/domain_conf.c:12752
+#: src/conf/domain_conf.c:12743 src/conf/domain_conf.c:12759
 #, c-format
 msgid "unknown state attribute '%s' of feature '%s'"
 msgstr "невідомий атрибут стану, «%s», можливості «%s»"
 
-#: src/conf/domain_conf.c:12781
+#: src/conf/domain_conf.c:12788
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "непідтримувана можливість HyperV Enlightenment: %s"
 
-#: src/conf/domain_conf.c:12793 src/conf/domain_conf.c:12814
+#: src/conf/domain_conf.c:12800 src/conf/domain_conf.c:12821
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr "не вказано атрибут «state» можливості HyperV Enlightenment «%s»"
 
-#: src/conf/domain_conf.c:12801 src/conf/domain_conf.c:12822
+#: src/conf/domain_conf.c:12808 src/conf/domain_conf.c:12829
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr ""
 "некоректне значення аргументу стану (state) можливості HyperV Enlightenment "
 "«%s»"
 
-#: src/conf/domain_conf.c:12833
+#: src/conf/domain_conf.c:12840
 msgid "invalid HyperV spinlock retry count"
 msgstr ""
 "некоректна кількість повторних спроб блокування перемикання (spinlock retry) "
 "для HyperV"
 
-#: src/conf/domain_conf.c:12839
+#: src/conf/domain_conf.c:12846
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr ""
 "Кількість повторних спроб блокування перемикання (spinlock retry)  для "
 "HyperV має перевищувати 4095"
 
-#: src/conf/domain_conf.c:12867
+#: src/conf/domain_conf.c:12874
 #, c-format
 msgid "unsupported KVM feature: %s"
 msgstr "непідтримувана можливість KVM: %s"
 
-#: src/conf/domain_conf.c:12878
+#: src/conf/domain_conf.c:12885
 #, c-format
 msgid "missing 'state' attribute for KVM feature '%s'"
 msgstr "не вказано атрибут «state» можливості KVM «%s»"
 
-#: src/conf/domain_conf.c:12886
+#: src/conf/domain_conf.c:12893
 #, c-format
 msgid "invalid value of state argument for KVM feature '%s'"
 msgstr "некоректне значення аргументу стану (state) можливості KVM «%s»"
 
-#: src/conf/domain_conf.c:12912
+#: src/conf/domain_conf.c:12919
 #, c-format
 msgid "unexpected capability feature '%s'"
 msgstr "неочікувана властивість можливості «%s»"
 
-#: src/conf/domain_conf.c:12923
+#: src/conf/domain_conf.c:12930
 #, c-format
 msgid "unknown state attribute '%s' of feature capability '%s'"
 msgstr "неочікуваний атрибут стану «%s» або можливість властивості «%s»"
 
-#: src/conf/domain_conf.c:12977
+#: src/conf/domain_conf.c:12984
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "невідоме значення зсуву часу «%s»"
 
-#: src/conf/domain_conf.c:12993
+#: src/conf/domain_conf.c:13000
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "невідоме коригування часу, «%s»"
 
-#: src/conf/domain_conf.c:13024
+#: src/conf/domain_conf.c:13031
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "невідома основа обчислення часу, «%s»"
 
-#: src/conf/domain_conf.c:13037
+#: src/conf/domain_conf.c:13044
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "не вистачає атрибута «timezone» для годинника з відступом=«timezone»"
 
-#: src/conf/domain_conf.c:13069
+#: src/conf/domain_conf.c:13076
 msgid "no OS type"
 msgstr "немає типу ОС"
 
-#: src/conf/domain_conf.c:13104
+#: src/conf/domain_conf.c:13111
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr "Параметрів гостьової системи для архітектури «%s» не передбачено"
 
-#: src/conf/domain_conf.c:13113
+#: src/conf/domain_conf.c:13120
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr "Типу операційної системи «%s» для архітектури «%s» не передбачено"
 
-#: src/conf/domain_conf.c:13124 src/xenconfig/xen_common.c:1039
+#: src/conf/domain_conf.c:13131 src/xenconfig/xen_common.c:1039
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "непідтримувана архітектура для типу ОС «%s»"
 
-#: src/conf/domain_conf.c:13163
+#: src/conf/domain_conf.c:13170
 msgid "No data supplied for <initarg> element"
 msgstr "Не вказано даних для елемента <initarg>"
 
-#: src/conf/domain_conf.c:13247 src/conf/domain_conf.c:13256
+#: src/conf/domain_conf.c:13254 src/conf/domain_conf.c:13263
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr "Не вдалося додати ще один контролер USB: для цього домену USB вимкнено"
 
-#: src/conf/domain_conf.c:13273
+#: src/conf/domain_conf.c:13280
 msgid "No master USB controller specified"
 msgstr "Не вказано основного контролера USB"
 
-#: src/conf/domain_conf.c:13280
+#: src/conf/domain_conf.c:13287
 msgid "cannot extract device leases"
 msgstr "не вдалося визначити надане пристроєм"
 
-#: src/conf/domain_conf.c:13414
+#: src/conf/domain_conf.c:13421
 msgid "cannot extract console devices"
 msgstr "не вдалося видобути дані щодо консольних пристроїв"
 
-#: src/conf/domain_conf.c:13491
+#: src/conf/domain_conf.c:13498
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "Не вдалося додати пристрій введення даних USB. Канал USB вимкнено."
 
-#: src/conf/domain_conf.c:13586
+#: src/conf/domain_conf.c:13593
 msgid "Only one primary video device is supported"
 msgstr "Передбачено підтримку лише одного основного відеопристрою"
 
-#: src/conf/domain_conf.c:13612
+#: src/conf/domain_conf.c:13619
 msgid "cannot determine default video type"
 msgstr "неможливо визначити типовий тип відеоадаптера"
 
-#: src/conf/domain_conf.c:13642
+#: src/conf/domain_conf.c:13649
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr ""
 "Не вдалося додати пристрій USB основної системи: у цій основній системі "
 "вимкнено USB"
 
-#: src/conf/domain_conf.c:13662
+#: src/conf/domain_conf.c:13669
 msgid "only a single watchdog device is supported"
 msgstr "передбачено підтримку лише одного сторожового пристрою"
 
-#: src/conf/domain_conf.c:13682
+#: src/conf/domain_conf.c:13689
 msgid "only a single memory balloon device is supported"
 msgstr "передбачено підтримку лише одного пристрою додаткової пам’яті"
 
-#: src/conf/domain_conf.c:13717
+#: src/conf/domain_conf.c:13724
 msgid "only a single TPM device is supported"
 msgstr "передбачено підтримку лише одного пристрою TPM"
 
-#: src/conf/domain_conf.c:13733
+#: src/conf/domain_conf.c:13740
 msgid "only a single nvram device is supported"
 msgstr "передбачено підтримку лише одного пристрою nvram"
 
-#: src/conf/domain_conf.c:13758
+#: src/conf/domain_conf.c:13765
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "Не вдалося додати вузол USB: для цього домену USB вимкнено"
 
-#: src/conf/domain_conf.c:13782
+#: src/conf/domain_conf.c:13789
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr ""
 "Не вдалося додати переспрямований пристрій USB: для цього домену USB вимкнено"
 
-#: src/conf/domain_conf.c:13798
+#: src/conf/domain_conf.c:13805
 msgid "only one set of redirection filter rule is supported"
 msgstr ""
 "передбачено підтримку лише одного набору правил фільтрування для "
 "переспрямовування"
 
-#: src/conf/domain_conf.c:13819
+#: src/conf/domain_conf.c:13826
 msgid "only a single panic device is supported"
 msgstr "передбачено підтримку лише одного пристрою panic"
 
-#: src/conf/domain_conf.c:13880
+#: src/conf/domain_conf.c:13887
 msgid "uid and gid should be mapped both"
 msgstr "слід пов’язати uid і gid"
 
-#: src/conf/domain_conf.c:13900
+#: src/conf/domain_conf.c:13907
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "невідомий режим smbios «%s»"
 
-#: src/conf/domain_conf.c:13965
+#: src/conf/domain_conf.c:13972
 msgid "no domain config"
 msgstr "немає конфігурації домену"
 
-#: src/conf/domain_conf.c:13979
+#: src/conf/domain_conf.c:13986
 msgid "missing domain state"
 msgstr "немає стану домену"
 
-#: src/conf/domain_conf.c:13984
+#: src/conf/domain_conf.c:13991
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "неправильний стан домену «%s»"
 
-#: src/conf/domain_conf.c:13993
+#: src/conf/domain_conf.c:14000
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "некоректна причина стану домену «%s»"
 
-#: src/conf/domain_conf.c:14004
+#: src/conf/domain_conf.c:14011
 msgid "invalid pid"
 msgstr "неправильний pid"
 
-#: src/conf/domain_conf.c:14018 src/conf/network_conf.c:3082
+#: src/conf/domain_conf.c:14025 src/conf/network_conf.c:3082
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "Невідомий прапорець taint %s"
 
-#: src/conf/domain_conf.c:14053 src/security/virt-aa-helper.c:659
+#: src/conf/domain_conf.c:14060 src/security/virt-aa-helper.c:669
 #: tools/virsh-domain-monitor.c:95 tools/virsh-domain-monitor.c:489
 #: tools/virsh-domain-monitor.c:604 tools/virsh-domain-monitor.c:726
 #: tools/virsh-domain.c:2744 tools/virsh-domain.c:3410
@@ -3884,45 +3884,45 @@ msgstr "Невідомий прапорець taint %s"
 msgid "(domain_definition)"
 msgstr "(визначення_домену)"
 
-#: src/conf/domain_conf.c:14099
+#: src/conf/domain_conf.c:14106
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "неочікуваний кореневий елемент <%s>, мав бути <domain>"
 
-#: src/conf/domain_conf.c:14134
+#: src/conf/domain_conf.c:14141
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "неочікуваний кореневий елемент <%s>, мав бути <domstatus>"
 
-#: src/conf/domain_conf.c:14183
+#: src/conf/domain_conf.c:14190
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr "Таймер призначення %s не відповідає таймеру джерела %s"
 
-#: src/conf/domain_conf.c:14191
+#: src/conf/domain_conf.c:14198
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr ""
 "Стан існування таймера у системі призначення, %d, не відповідає стану у "
 "системі джерела, %d"
 
-#: src/conf/domain_conf.c:14199
+#: src/conf/domain_conf.c:14206
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr ""
 "Частота TSC системи призначення, %lu, не відповідає частоті джерела. %lu"
 
-#: src/conf/domain_conf.c:14206
+#: src/conf/domain_conf.c:14213
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr "Режим TSC призначення, %s, не відповідає таймеру джерела, %s"
 
-#: src/conf/domain_conf.c:14223
+#: src/conf/domain_conf.c:14230
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "Тип адреси пристрою призначення, %s, не збігається з типом джерела, %s"
 
-#: src/conf/domain_conf.c:14236
+#: src/conf/domain_conf.c:14243
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -3931,14 +3931,14 @@ msgstr ""
 "PCI-адреса пристрою у системі призначення %04x:%02x:%02x.%02x не збігається "
 "з адресою у системі джерела %04x:%02x:%02x.%02x"
 
-#: src/conf/domain_conf.c:14251
+#: src/conf/domain_conf.c:14258
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr ""
 "Адреса дискового пристрою призначення, %d:%d:%d, не відповідає адресі "
 "джерела, %d:%d:%d"
 
-#: src/conf/domain_conf.c:14266
+#: src/conf/domain_conf.c:14273
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
@@ -3946,197 +3946,197 @@ msgstr ""
 "Послідовна адреса virtio дискового пристрою призначення, %d:%d:%d, не "
 "відповідає адресі джерела, %d:%d:%d"
 
-#: src/conf/domain_conf.c:14280
+#: src/conf/domain_conf.c:14287
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr ""
 "Адреса ccid дискового пристрою призначення, %d:%d, не відповідає адресі "
 "джерела, %d:%d"
 
-#: src/conf/domain_conf.c:14294
+#: src/conf/domain_conf.c:14301
 #, c-format
 msgid "Target device isa address %d:%d does not match source %d:%d"
 msgstr ""
 "Адреса ISA дискового пристрою призначення, %d:%d, не відповідає адресі "
 "джерела, %d:%d"
 
-#: src/conf/domain_conf.c:14324
+#: src/conf/domain_conf.c:14331
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "Дисковий пристрій призначення, %s, не відповідає пристрою джерела, %s"
 
-#: src/conf/domain_conf.c:14332
+#: src/conf/domain_conf.c:14339
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "Канал пристрою призначення, %s, не збігається з каналом джерела, %s"
 
-#: src/conf/domain_conf.c:14340
+#: src/conf/domain_conf.c:14347
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "Диск призначення, %s, не збігається з диском джерела, %s"
 
-#: src/conf/domain_conf.c:14347
+#: src/conf/domain_conf.c:14354
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr ""
 "Серійний номер диска призначення %s не відповідає серійному номеру диска "
 "джерела %s"
 
-#: src/conf/domain_conf.c:14355
+#: src/conf/domain_conf.c:14362
 msgid "Target disk access mode does not match source"
 msgstr ""
 "Режим доступу до диска призначення не відповідає режиму доступ диска джерела"
 
-#: src/conf/domain_conf.c:14372
+#: src/conf/domain_conf.c:14379
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "Тип контролера призначення, %s, не відповідає типу джерела, %s"
 
-#: src/conf/domain_conf.c:14380
+#: src/conf/domain_conf.c:14387
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "Індекс контролера призначення, %d, не відповідає індексу джерела, %d"
 
-#: src/conf/domain_conf.c:14387
+#: src/conf/domain_conf.c:14394
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "Модель контролера призначення, %d, не відповідає моделі джерела, %d"
 
-#: src/conf/domain_conf.c:14395
+#: src/conf/domain_conf.c:14402
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr "Порти контролера призначення, %d, не відповідають портам джерела, %d"
 
-#: src/conf/domain_conf.c:14402
+#: src/conf/domain_conf.c:14409
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr "Вектори контролера призначення, %d, не відповідають портам джерела, %d"
 
-#: src/conf/domain_conf.c:14421
+#: src/conf/domain_conf.c:14428
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr ""
 "Файлова система гостьової системи призначення, %s, не відповідає файловій "
 "системі джерела, %s"
 
-#: src/conf/domain_conf.c:14428
+#: src/conf/domain_conf.c:14435
 msgid "Target filesystem access mode does not match source"
 msgstr ""
 "Режим доступу до файлової системи призначення не відповідає режиму доступу "
 "джерела"
 
-#: src/conf/domain_conf.c:14448
+#: src/conf/domain_conf.c:14455
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr ""
 "MAC-адреса мережевої картки призначення, %s, не відповідає MAC-адресі "
 "джерела %s"
 
-#: src/conf/domain_conf.c:14457
+#: src/conf/domain_conf.c:14464
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "Модель мережевої картки призначення %s не відповідає моделі джерела %s"
 
-#: src/conf/domain_conf.c:14475
+#: src/conf/domain_conf.c:14482
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr ""
 "Тип пристрою отримання даних призначення, %s, не відповідає типу джерела, %s"
 
-#: src/conf/domain_conf.c:14483
+#: src/conf/domain_conf.c:14490
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr ""
 "Канал пристрою отримання даних призначення, %s, не відповідає каналу "
 "джерела, %s"
 
-#: src/conf/domain_conf.c:14502
+#: src/conf/domain_conf.c:14509
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "Модель звукової картки призначення %s не відповідає моделі джерела %s"
 
-#: src/conf/domain_conf.c:14521
+#: src/conf/domain_conf.c:14528
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr "Модель відеокартки призначення %s не відповідає моделі джерела %s"
 
-#: src/conf/domain_conf.c:14529
+#: src/conf/domain_conf.c:14536
 #, c-format
 msgid "Target video card ram %u does not match source %u"
 msgstr ""
 "Об’єм оперативної пам’яті відеокартки призначення, %u, не відповідає "
 "об’ємові у джерелі, %u"
 
-#: src/conf/domain_conf.c:14536
+#: src/conf/domain_conf.c:14543
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr ""
 "Об’єм віртуальної пам’яті відеокартки призначення, %u, не відповідає "
 "об’ємові у джерелі, %u"
 
-#: src/conf/domain_conf.c:14543
+#: src/conf/domain_conf.c:14550
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr ""
 "Кількість моніторів відеокартки призначення, %u, не відповідає кількості у "
 "джерелі, %u"
 
-#: src/conf/domain_conf.c:14551
+#: src/conf/domain_conf.c:14558
 msgid "Target video card acceleration does not match source"
 msgstr ""
 "Спосіб апаратного прискорення на відеокартці призначення не відповідає "
 "способу на відеокартці джерела"
 
-#: src/conf/domain_conf.c:14558
+#: src/conf/domain_conf.c:14565
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr ""
 "Спосіб прискорення обробки плоских об’єктів відеокартки призначення, %u, не "
 "відповідає способові у джерелі, %u"
 
-#: src/conf/domain_conf.c:14565
+#: src/conf/domain_conf.c:14572
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr ""
 "Спосіб прискорення обробки просторових об’єктів відеокартки призначення, %u, "
 "не відповідає способові у джерелі, %u"
 
-#: src/conf/domain_conf.c:14584
+#: src/conf/domain_conf.c:14591
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr ""
 "Режим основного пристрою призначення, %s, не відповідає режиму джерела, %s"
 
-#: src/conf/domain_conf.c:14593
+#: src/conf/domain_conf.c:14600
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr ""
 "Підсистема основного пристрою призначення, %s, не відповідає підсистемі "
 "джерела, %s"
 
-#: src/conf/domain_conf.c:14623
+#: src/conf/domain_conf.c:14630
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "Послідовний порт призначення, %d, не відповідає порту джерела, %d"
 
-#: src/conf/domain_conf.c:14641
+#: src/conf/domain_conf.c:14648
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr ""
 "Номер паралельного порту призначення, %d, не відповідає номеру паралельного "
 "порту %d"
 
-#: src/conf/domain_conf.c:14659
+#: src/conf/domain_conf.c:14666
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "Тип каналу призначення, %s, не відповідає типу джерела %s"
 
-#: src/conf/domain_conf.c:14669
+#: src/conf/domain_conf.c:14676
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr "Назва каналу призначення, %s, не відповідає назві джерела %s"
 
-#: src/conf/domain_conf.c:14678
+#: src/conf/domain_conf.c:14685
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
@@ -4144,44 +4144,44 @@ msgstr ""
 "Зміна типу пристрою передавання даних до/з spicevmc призведе до змінити "
 "назви типового каналу призначення"
 
-#: src/conf/domain_conf.c:14689
+#: src/conf/domain_conf.c:14696
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr "Адреса каналу призначення, %s, не відповідає адресі джерела %s"
 
-#: src/conf/domain_conf.c:14711
+#: src/conf/domain_conf.c:14718
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr "Тип консолі призначення, %s, не відповідає типові джерела, %s"
 
-#: src/conf/domain_conf.c:14730
+#: src/conf/domain_conf.c:14737
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr "Модель сторожовика призначення, %s, не відповідає моделі джерела, %s"
 
-#: src/conf/domain_conf.c:14749
+#: src/conf/domain_conf.c:14756
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr ""
 "Модель додаткової пам’яті призначення, %s, не відповідає моделі джерела, %s"
 
-#: src/conf/domain_conf.c:14768
+#: src/conf/domain_conf.c:14775
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "Модель RNG призначення, «%s», не відповідає джерелу, «%s»"
 
-#: src/conf/domain_conf.c:14787
+#: src/conf/domain_conf.c:14794
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr "Тип основного пристрою, %s, не відповідає типу джерела, %s"
 
-#: src/conf/domain_conf.c:14806
+#: src/conf/domain_conf.c:14813
 #, c-format
 msgid "Target redirected device bus %s does not match source %s"
 msgstr ""
 "Канал переспрямованого пристрою %s призначення не відповідає джерелу %s"
 
-#: src/conf/domain_conf.c:14817
+#: src/conf/domain_conf.c:14824
 #, c-format
 msgid ""
 "Target redirected device source type %s does not match source device source "
@@ -4190,52 +4190,52 @@ msgstr ""
 "Тип джерела переспрямованого пристрою призначення, %s, не відповідає типу "
 "джерела пристрою джерела %s"
 
-#: src/conf/domain_conf.c:14843
+#: src/conf/domain_conf.c:14850
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr ""
 "Правило фільтрування переспрямовування USB, %zu, не відповідає джерелу, %zu"
 
-#: src/conf/domain_conf.c:14854
+#: src/conf/domain_conf.c:14861
 msgid "Target USB Class code does not match source"
 msgstr "Код класу USB призначення не збігається з кодом джерела"
 
-#: src/conf/domain_conf.c:14860
+#: src/conf/domain_conf.c:14867
 msgid "Target USB vendor ID does not match source"
 msgstr ""
 "Ідентифікатор виробника USB призначення не збігається з ідентифікатором "
 "джерела"
 
-#: src/conf/domain_conf.c:14866
+#: src/conf/domain_conf.c:14873
 msgid "Target USB product ID does not match source"
 msgstr ""
 "Ідентифікатор продукту USB призначення не збігається з ідентифікатором "
 "джерела"
 
-#: src/conf/domain_conf.c:14872
+#: src/conf/domain_conf.c:14879
 msgid "Target USB version does not match source"
 msgstr "Запис версії USB призначення не збігається з записом версії джерела"
 
-#: src/conf/domain_conf.c:14878
+#: src/conf/domain_conf.c:14885
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr ""
 "Запис allow USB призначення, «%s», не збігається з записом джерела «%s»"
 
-#: src/conf/domain_conf.c:14898
+#: src/conf/domain_conf.c:14905
 #, c-format
 msgid "State of feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 "Відмінності у даних щодо стану можливості «%s»: джерело: «%s», призначення: "
 "«%s»"
 
-#: src/conf/domain_conf.c:14910
+#: src/conf/domain_conf.c:14917
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr ""
 "Відмінності у даних щодо стану EOI APIC: джерело: «%s», призначення: «%s»"
 
-#: src/conf/domain_conf.c:14925
+#: src/conf/domain_conf.c:14932
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
@@ -4244,570 +4244,570 @@ msgstr ""
 "Відмінності у даних щодо стану можливості enlightenment HyperV «%s»: "
 "джерело: «%s», призначення: «%s»"
 
-#: src/conf/domain_conf.c:14940
+#: src/conf/domain_conf.c:14947
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr ""
 "Відмінність у даних щодо кількості повторних спроб блокування перемикання "
 "(spinlock retry) для HyperV: джерело: «%u», призначення: «%u»"
 
-#: src/conf/domain_conf.c:14962
+#: src/conf/domain_conf.c:14969
 #, c-format
 msgid "State of KVM feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 "Відмінності у даних щодо стану можливості KVM «%s»: джерело: «%s», "
 "призначення: «%s»"
 
-#: src/conf/domain_conf.c:14991
+#: src/conf/domain_conf.c:14998
 #, c-format
 msgid "Target domain panic device count '%d' does not match source count '%d'"
 msgstr ""
 "Кількість пристроїв panic домену, «%d», не збігається з кількістю джерела "
 "системи, «%d»"
 
-#: src/conf/domain_conf.c:15007
+#: src/conf/domain_conf.c:15014
 #, fuzzy, c-format
 msgid "Target shared memory name '%s' does not match source '%s'"
 msgstr "Назва домену призначення, %s, не відповідає назві джерела, «%s»"
 
-#: src/conf/domain_conf.c:15014
+#: src/conf/domain_conf.c:15021
 #, fuzzy, c-format
 msgid "Target shared memory size '%llu' does not match source size '%llu'"
 msgstr ""
 "Розмір великих сторінок (hugepages) домену призначення, %llu, не відповідає "
 "кількості джерела, %llu"
 
-#: src/conf/domain_conf.c:15021
+#: src/conf/domain_conf.c:15028
 #, fuzzy
 msgid "Target shared memory server usage doesn't match source"
 msgstr "Модель звукової картки призначення %s не відповідає моделі джерела %s"
 
-#: src/conf/domain_conf.c:15030
+#: src/conf/domain_conf.c:15037
 #, fuzzy
 msgid "Target shared memory MSI configuration doesn't match source"
 msgstr ""
 "Спосіб апаратного прискорення на відеокартці призначення не відповідає "
 "способу на відеокартці джерела"
 
-#: src/conf/domain_conf.c:15054
+#: src/conf/domain_conf.c:15061
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr ""
 "Тип віртуалізації домену призначення, %s, не відповідає типу джерела, %s"
 
-#: src/conf/domain_conf.c:15066
+#: src/conf/domain_conf.c:15073
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr "UUID домену призначення, %s, не відповідає UUID джерела, %s"
 
-#: src/conf/domain_conf.c:15077
+#: src/conf/domain_conf.c:15084
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "Назва домену призначення, %s, не відповідає назві джерела, «%s»"
 
-#: src/conf/domain_conf.c:15084
+#: src/conf/domain_conf.c:15091
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr ""
 "Максимальний об’єм пам’яті домену призначення, %lld, не відповідає об’єму "
 "джерела, %lld"
 
-#: src/conf/domain_conf.c:15090
+#: src/conf/domain_conf.c:15097
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr ""
 "Поточний об’єм пам’яті домену призначення, %lld, не відповідає об’єму "
 "джерела, %lld"
 
-#: src/conf/domain_conf.c:15096
+#: src/conf/domain_conf.c:15103
 #, c-format
 msgid "Target domain huge pages count %zu does not match source %zu"
 msgstr ""
 "Кількість великих сторінок (hugepages) домену призначення, %zu, не "
 "відповідає кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15106
+#: src/conf/domain_conf.c:15113
 #, c-format
 msgid "Target domain huge page size %llu does not match source %llu"
 msgstr ""
 "Розмір великих сторінок (hugepages) домену призначення, %llu, не відповідає "
 "кількості джерела, %llu"
 
-#: src/conf/domain_conf.c:15115 src/conf/domain_conf.c:15121
+#: src/conf/domain_conf.c:15122 src/conf/domain_conf.c:15128
 msgid "Target huge page nodemask does not match source"
 msgstr ""
 "Маска вузла великої сторінки (huge page) призначення не відповідає масці "
 "джерела"
 
-#: src/conf/domain_conf.c:15129
+#: src/conf/domain_conf.c:15136
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr ""
 "Кількість віртуальних процесорів домену призначення, %d, не відповідає "
 "кількості джерела, %d"
 
-#: src/conf/domain_conf.c:15135
+#: src/conf/domain_conf.c:15142
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr ""
 "Максимальна кількість віртуальних процесорів домену призначення, %d, не "
 "відповідає кількості джерела, %d"
 
-#: src/conf/domain_conf.c:15142
+#: src/conf/domain_conf.c:15149
 #, c-format
 msgid "Target domain iothreads count %u does not match source %u"
 msgstr ""
 "Кількість потоків введення-виведення домену призначення, %u, не відповідає "
 "кількості джерела, %u"
 
-#: src/conf/domain_conf.c:15150 src/conf/domain_conf.c:15163
+#: src/conf/domain_conf.c:15157 src/conf/domain_conf.c:15170
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr ""
 "Тип операційної системи домену призначення, %s, не відповідає типу джерела, "
 "%s"
 
-#: src/conf/domain_conf.c:15156
+#: src/conf/domain_conf.c:15163
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr ""
 "Архітектура домену призначення, %s, не відповідає архітектурі джерела, %s"
 
-#: src/conf/domain_conf.c:15170
+#: src/conf/domain_conf.c:15177
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr "Режим SMBIOS домену призначення, %s, не відповідає режиму джерела, %s"
 
-#: src/conf/domain_conf.c:15181
+#: src/conf/domain_conf.c:15188
 msgid "Target domain timers do not match source"
 msgstr ""
 "Кількість таймерів домену призначення не відповідає кількості таймерів "
 "джерела"
 
-#: src/conf/domain_conf.c:15199
+#: src/conf/domain_conf.c:15206
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr ""
 "Кількість дисків домену призначення, %zu, не відповідає кількості джерела, "
 "%zu"
 
-#: src/conf/domain_conf.c:15210
+#: src/conf/domain_conf.c:15217
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr ""
 "Кількість контролерів домену призначення, %zu, не відповідає кількості "
 "джерела, %zu"
 
-#: src/conf/domain_conf.c:15223
+#: src/conf/domain_conf.c:15230
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr ""
 "Кількість файлових систем домену призначення, %zu, не відповідає кількості "
 "джерела, %zu"
 
-#: src/conf/domain_conf.c:15235
+#: src/conf/domain_conf.c:15242
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr ""
 "Кількість мережевих карток домену призначення, %zu, не відповідає кількості "
 "джерела, %zu"
 
-#: src/conf/domain_conf.c:15247
+#: src/conf/domain_conf.c:15254
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr ""
 "Кількість пристроїв введення даних домену призначення, %zu, не відповідає "
 "кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15259
+#: src/conf/domain_conf.c:15266
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr ""
 "Кількість звукових карток домену призначення, %zu, не відповідає кількості "
 "джерела, %zu"
 
-#: src/conf/domain_conf.c:15271
+#: src/conf/domain_conf.c:15278
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr ""
 "Кількість відеокарток домену призначення, %zu, не відповідає кількості "
 "джерела, %zu"
 
-#: src/conf/domain_conf.c:15283
+#: src/conf/domain_conf.c:15290
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr ""
 "Кількість основних пристроїв домену призначення, %zu, не відповідає "
 "кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15296
+#: src/conf/domain_conf.c:15303
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr ""
 "Кількість смарткарток домену призначення, %zu, не відповідає кількості "
 "джерела, %zu"
 
-#: src/conf/domain_conf.c:15309
+#: src/conf/domain_conf.c:15316
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr ""
 "Кількість послідовних портів домену призначення, %zu, не відповідає "
 "кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15322
+#: src/conf/domain_conf.c:15329
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr ""
 "Кількість паралельних портів домену призначення, %zu, не відповідає "
 "кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15335
+#: src/conf/domain_conf.c:15342
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr ""
 "Кількість каналів домену призначення, %zu, не відповідає кількості джерела, "
 "%zu"
 
-#: src/conf/domain_conf.c:15348
+#: src/conf/domain_conf.c:15355
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr ""
 "Кількість консолей домену призначення, %zu, не відповідає кількості джерела, "
 "%zu"
 
-#: src/conf/domain_conf.c:15361
+#: src/conf/domain_conf.c:15368
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr ""
 "Кількість основних пристроїв домену призначення, %zu, не відповідає "
 "кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15373
+#: src/conf/domain_conf.c:15380
 #, c-format
 msgid "Target domain redirected devices count %zu does not match source %zu"
 msgstr ""
 "Кількість переспрямованих пристроїв домену призначення, %zu, не відповідає "
 "кількості у джерелі, %zu"
 
-#: src/conf/domain_conf.c:15388
+#: src/conf/domain_conf.c:15395
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr ""
 "Фільтр переспрямовування USB домену призначення, %d, не відповідає джерелу, "
 "%d"
 
-#: src/conf/domain_conf.c:15402
+#: src/conf/domain_conf.c:15409
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr ""
 "Кількість сторожовиків домену призначення, %d, не відповідає кількості "
 "джерела, %d"
 
-#: src/conf/domain_conf.c:15415
+#: src/conf/domain_conf.c:15422
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 "Кількість додаткових об’ємів пам’яті домену призначення, %d, не відповідає "
 "кількості джерела, %d"
 
-#: src/conf/domain_conf.c:15428
+#: src/conf/domain_conf.c:15435
 #, c-format
 msgid "Target domain RNG device count %zu does not match source %zu"
 msgstr ""
 "Кількість пристроїв генератора псевдовипадкових значень (RNG) домену "
 "призначення, %zu, не відповідає кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15442
+#: src/conf/domain_conf.c:15449
 #, fuzzy, c-format
 msgid "Target domain shared memory device count %zu does not match source %zu"
 msgstr ""
 "Кількість основних пристроїв домену призначення, %zu, не відповідає "
 "кількості джерела, %zu"
 
-#: src/conf/domain_conf.c:15808
+#: src/conf/domain_conf.c:15815
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "неочікувана дія %s: %d"
 
-#: src/conf/domain_conf.c:16104 src/conf/domain_conf.c:16193
+#: src/conf/domain_conf.c:16111 src/conf/domain_conf.c:16200
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "неочікуваний тип диска %d"
 
-#: src/conf/domain_conf.c:16141
+#: src/conf/domain_conf.c:16148
 #, c-format
 msgid "unexpected disk backing store type %d"
 msgstr "неочікуваний тип резервного сховища даних на диску, %d"
 
-#: src/conf/domain_conf.c:16149
+#: src/conf/domain_conf.c:16156
 #, c-format
 msgid "unexpected disk backing store format %d"
 msgstr "неочікуваний формат резервного сховища даних на диску, %d"
 
-#: src/conf/domain_conf.c:16198
+#: src/conf/domain_conf.c:16205
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "неочікуваний пристрій диска %d"
 
-#: src/conf/domain_conf.c:16203
+#: src/conf/domain_conf.c:16210
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "неочікувана шина диска %d"
 
-#: src/conf/domain_conf.c:16208
+#: src/conf/domain_conf.c:16215
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "неочікуваний режим кешу диска %d"
 
-#: src/conf/domain_conf.c:16213
+#: src/conf/domain_conf.c:16220
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "неочікуваний режим вводу-виводу диска %d"
 
-#: src/conf/domain_conf.c:16218
+#: src/conf/domain_conf.c:16225
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "Неочікуваний режим sgio диска, «%d»"
 
-#: src/conf/domain_conf.c:16430
+#: src/conf/domain_conf.c:16437
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "неочікуваний тип контролера %d"
 
-#: src/conf/domain_conf.c:16439
+#: src/conf/domain_conf.c:16446
 #, c-format
 msgid "unexpected model type %d"
 msgstr "неочікуваний тип моделі %d"
 
-#: src/conf/domain_conf.c:16532
+#: src/conf/domain_conf.c:16539
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "неочікуваний тип файлової системи %d"
 
-#: src/conf/domain_conf.c:16538
+#: src/conf/domain_conf.c:16545
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "неочікуваний режим доступу %d"
 
-#: src/conf/domain_conf.c:16630
+#: src/conf/domain_conf.c:16637
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "неочікуваний тип назви драйвера пристрою PCI основної системи, %d"
 
-#: src/conf/domain_conf.c:16679
+#: src/conf/domain_conf.c:16686
 msgid "PCI address Formatting failed"
 msgstr "Помилка у форматуванні адреси PCI"
 
-#: src/conf/domain_conf.c:16715 src/conf/domain_conf.c:16755
-#: src/conf/domain_conf.c:18314 src/conf/domain_conf.c:18323
-#: src/libxl/libxl_driver.c:3011 src/qemu/qemu_hotplug.c:3473
+#: src/conf/domain_conf.c:16722 src/conf/domain_conf.c:16762
+#: src/conf/domain_conf.c:18321 src/conf/domain_conf.c:18330
+#: src/libxl/libxl_driver.c:3011 src/qemu/qemu_hotplug.c:3484
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "неочікуваний тип hostdev %d"
 
-#: src/conf/domain_conf.c:16793
+#: src/conf/domain_conf.c:16800
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "неочікуваний режим джерела %d"
 
-#: src/conf/domain_conf.c:16825
+#: src/conf/domain_conf.c:16832
 #, c-format
 msgid "unexpected actual net type %s"
 msgstr "неочікуваний дійсний тип мережі, %s"
 
-#: src/conf/domain_conf.c:16858 src/conf/domain_conf.c:17018
-#: src/conf/domain_conf.c:18090
+#: src/conf/domain_conf.c:16865 src/conf/domain_conf.c:17025
+#: src/conf/domain_conf.c:18097
 #, c-format
 msgid "unexpected net type %d"
 msgstr "неочікуваний тип мережі %d"
 
-#: src/conf/domain_conf.c:17010
+#: src/conf/domain_conf.c:17017
 #, c-format
 msgid "unexpected actual net type %d"
 msgstr "неочікуваний дійсний тип мережі, %d"
 
-#: src/conf/domain_conf.c:17256
+#: src/conf/domain_conf.c:17263
 #, c-format
 msgid "unexpected char type %d"
 msgstr "неочікуваний тип символьного пристрою %d"
 
-#: src/conf/domain_conf.c:17371
+#: src/conf/domain_conf.c:17378
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "неочікуваний тип символьного пристрою %d"
 
-#: src/conf/domain_conf.c:17391
+#: src/conf/domain_conf.c:17398
 msgid "Could not format channel target type"
 msgstr "Не вдалося виконати форматування типу призначення каналу"
 
-#: src/conf/domain_conf.c:17401
+#: src/conf/domain_conf.c:17408
 msgid "Unable to format guestfwd port"
 msgstr "Не вдалося виконати форматування значення порту guestfwd"
 
-#: src/conf/domain_conf.c:17471 src/conf/domain_conf.c:17504
+#: src/conf/domain_conf.c:17478 src/conf/domain_conf.c:17511
 #: src/qemu/qemu_command.c:8975
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "неочікуваний тип смарт-картки %d"
 
-#: src/conf/domain_conf.c:17522
+#: src/conf/domain_conf.c:17529
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "неочікуваний тип кодека, %d"
 
-#: src/conf/domain_conf.c:17578 src/xenconfig/xen_sxpr.c:2114
+#: src/conf/domain_conf.c:17585 src/xenconfig/xen_sxpr.c:2114
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "неочікувана модель звукового пристрою %d"
 
-#: src/conf/domain_conf.c:17624
+#: src/conf/domain_conf.c:17631
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "неочікувана модель додаткової пам’яті %d"
 
-#: src/conf/domain_conf.c:17682
+#: src/conf/domain_conf.c:17689
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "неочікувана модель сторожового пристрою %d"
 
-#: src/conf/domain_conf.c:17688
+#: src/conf/domain_conf.c:17695
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "неочікувана дія сторожового пристрою %d"
 
-#: src/conf/domain_conf.c:17856
+#: src/conf/domain_conf.c:17863
 #, c-format
 msgid "unexpected video model %d"
 msgstr "неочікувана модель відеоадаптера %d"
 
-#: src/conf/domain_conf.c:17900 src/xenconfig/xen_sxpr.c:2150
+#: src/conf/domain_conf.c:17907 src/xenconfig/xen_sxpr.c:2150
 #, c-format
 msgid "unexpected input type %d"
 msgstr "неочікуваний тип пристрою вводу %d"
 
-#: src/conf/domain_conf.c:17905
+#: src/conf/domain_conf.c:17912
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "неочікуваний тип шини пристрою вводу %d"
 
-#: src/conf/domain_conf.c:17935
+#: src/conf/domain_conf.c:17942
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "неочікувана назва таймера %d"
 
-#: src/conf/domain_conf.c:17951
+#: src/conf/domain_conf.c:17958
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "неочікувані правила відліку таймера %d"
 
-#: src/conf/domain_conf.c:17965
+#: src/conf/domain_conf.c:17972
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "неочікуваний канал таймера %d"
 
-#: src/conf/domain_conf.c:17983
+#: src/conf/domain_conf.c:17990
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "неочікуваний режим таймера %d"
 
-#: src/conf/domain_conf.c:18305 src/conf/domain_conf.c:18330
+#: src/conf/domain_conf.c:18312 src/conf/domain_conf.c:18337
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "неочікуваний режим hostdev %d"
 
-#: src/conf/domain_conf.c:18446
+#: src/conf/domain_conf.c:18453
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "неочікуваний тип основного пристрою %d"
 
-#: src/conf/domain_conf.c:18616
+#: src/conf/domain_conf.c:18623
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "неочікуваний тип домену %d"
 
-#: src/conf/domain_conf.c:18934
+#: src/conf/domain_conf.c:18941
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "неочікуваний тип завантажувального пристрою %d"
 
-#: src/conf/domain_conf.c:18967
+#: src/conf/domain_conf.c:18974
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "неочікуваний режим smbios %d"
 
-#: src/conf/domain_conf.c:19014
+#: src/conf/domain_conf.c:19021
 #, c-format
 msgid "unexpected feature %zu"
 msgstr "неочікувана можливість %zu"
 
-#: src/conf/domain_conf.c:19035
+#: src/conf/domain_conf.c:19042
 #, c-format
 msgid "Unexpected state of feature '%s'"
 msgstr "Неочікуваний стан можливості «%s»"
 
-#: src/conf/domain_conf.c:19518
+#: src/conf/domain_conf.c:19525
 #, c-format
 msgid "boot order %d is already used by another device"
 msgstr "порядок завантаження %d вже використано іншим пристроєм"
 
-#: src/conf/domain_conf.c:19539
+#: src/conf/domain_conf.c:19546
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr ""
 "Конфігурація пристрою є несумісною: у домені не передбачено підтримки USB"
 
-#: src/conf/domain_conf.c:19577 src/conf/network_conf.c:2948
+#: src/conf/domain_conf.c:19584 src/conf/network_conf.c:2948
 #: src/conf/nwfilter_conf.c:2804 src/util/virdnsmasq.c:550
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "неможливо створити каталог конфігурації «%s»"
 
-#: src/conf/domain_conf.c:19716
+#: src/conf/domain_conf.c:19723
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "неочікуваний домен %s вже існує"
 
-#: src/conf/domain_conf.c:19757 src/conf/network_conf.c:3195
+#: src/conf/domain_conf.c:19764 src/conf/network_conf.c:3195
 #: src/conf/network_conf.c:3229 src/conf/nwfilter_conf.c:3183
 #: src/conf/storage_conf.c:1848
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "Не вдається відкрити каталог «%s»"
 
-#: src/conf/domain_conf.c:19827
+#: src/conf/domain_conf.c:19834
 #, c-format
 msgid "cannot remove config %s"
 msgstr "неможливо видалити конфігурацію %s"
 
-#: src/conf/domain_conf.c:20193
+#: src/conf/domain_conf.c:20200
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr "не вдалося відвідати файл резервного ланцюжка, %s"
 
-#: src/conf/domain_conf.c:20305
+#: src/conf/domain_conf.c:20312
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "некоректний стан домену: %d"
 
-#: src/conf/domain_conf.c:20773
+#: src/conf/domain_conf.c:20780
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr "Визначення копіювання типу «%d» ще не реалізовано."
 
-#: src/conf/domain_conf.c:21029
+#: src/conf/domain_conf.c:21036
 #, c-format
 msgid "no device found with alias %s"
 msgstr "не знайдено пристрою з псевдонімом %s"
 
-#: src/conf/domain_conf.c:21093 src/conf/domain_conf.c:21152
+#: src/conf/domain_conf.c:21100 src/conf/domain_conf.c:21159
 #, c-format
 msgid "unknown metadata type '%d'"
 msgstr "невідомий тип метаданих, «%d»"
 
-#: src/conf/domain_conf.c:21130
+#: src/conf/domain_conf.c:21137
 msgid "Requested metadata element is not present"
 msgstr "Потрібного елемента метаданих (metadata) не виявлено"
 
-#: src/conf/domain_conf.c:21176
+#: src/conf/domain_conf.c:21183
 msgid "(metadata_xml)"
 msgstr "(metadata_xml)"
 
@@ -7719,13 +7719,13 @@ msgid "Invalid argument"
 msgstr "Некоректний аргумент"
 
 #: src/esx/esx_driver.c:669 src/esx/esx_driver.c:790
-#: src/hyperv/hyperv_driver.c:146 src/phyp/phyp_driver.c:929
+#: src/hyperv/hyperv_driver.c:146 src/phyp/phyp_driver.c:931
 #: src/xenapi/xenapi_driver.c:163
 msgid "Username request failed"
 msgstr "Невдала спроба запиту щодо імені користувача"
 
 #: src/esx/esx_driver.c:677 src/esx/esx_driver.c:798
-#: src/hyperv/hyperv_driver.c:154 src/phyp/phyp_driver.c:1011
+#: src/hyperv/hyperv_driver.c:154 src/phyp/phyp_driver.c:1013
 #: src/xenapi/xenapi_driver.c:172
 msgid "Password request failed"
 msgstr "Невдала спроба запиту щодо пароля"
@@ -7875,7 +7875,7 @@ msgid "Screenshot feature is unsupported"
 msgstr "Можливості встановлення скрипту запуску не передбачено"
 
 #: src/esx/esx_driver.c:2624 src/esx/esx_driver.c:2708
-#: src/phyp/phyp_driver.c:1391 src/phyp/phyp_driver.c:3634
+#: src/phyp/phyp_driver.c:1393 src/phyp/phyp_driver.c:3636
 #: src/vbox/vbox_common.c:2885 src/vbox/vbox_common.c:2937
 #: src/xenapi/xenapi_driver.c:1160 src/xenapi/xenapi_driver.c:1332
 #, c-format
@@ -10796,7 +10796,8 @@ msgid "setsid failed"
 msgstr "помилка у setsid"
 
 #: src/lxc/lxc_container.c:284
-msgid "ioctl(TIOCSTTY) failed"
+#, fuzzy
+msgid "ioctl(TIOCSCTTY) failed"
 msgstr "помилка у ioctl(TIOCSTTY)"
 
 #: src/lxc/lxc_container.c:290
@@ -11605,7 +11606,7 @@ msgstr "немає пристрою призначення %s"
 
 #: src/lxc/lxc_driver.c:3850 src/libxl/libxl_driver.c:3131
 #: src/qemu/qemu_driver.c:7322 src/qemu/qemu_driver.c:7346
-#: src/qemu/qemu_hotplug.c:1451 src/qemu/qemu_hotplug.c:3701
+#: src/qemu/qemu_hotplug.c:1451 src/qemu/qemu_hotplug.c:3712
 msgid "device not present in domain configuration"
 msgstr "пристрою немає у налаштуваннях домену"
 
@@ -11692,7 +11693,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "пристрої типу «%s» не можна з’єднувати"
 
 #: src/lxc/lxc_driver.c:4587 src/libxl/libxl_driver.c:2711
-#: src/qemu/qemu_hotplug.c:3106 src/uml/uml_driver.c:2316
+#: src/qemu/qemu_hotplug.c:3117 src/uml/uml_driver.c:2316
 #, c-format
 msgid "disk %s not found"
 msgstr "не знайдено диска %s"
@@ -11739,7 +11740,7 @@ msgstr "Внесення змін до інтерактивних пристро
 msgid "domain is not active"
 msgstr "домен не є активним"
 
-#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:17157
+#: src/lxc/lxc_driver.c:5653 src/qemu/qemu_driver.c:17158
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "контролер CPUACCT cgroup не змонтовано"
 
@@ -12239,13 +12240,13 @@ msgid "libxenlight failed to attach pci device %.4x:%.2x:%.2x.%.1x"
 msgstr "libxenlight не вдалося долучити пристрій PCI %.4x:%.2x:%.2x.%.1x"
 
 #: src/libxl/libxl_driver.c:2673 src/libxl/libxl_driver.c:3000
-#: src/qemu/qemu_hotplug.c:1693 src/qemu/qemu_hotplug.c:3428
+#: src/qemu/qemu_hotplug.c:1693 src/qemu/qemu_hotplug.c:3439
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "режим роботи пристрою основної системи «%s» не підтримується"
 
 #: src/libxl/libxl_driver.c:2686 src/qemu/qemu_hotplug.c:1719
-#: src/qemu/qemu_hotplug.c:3395
+#: src/qemu/qemu_hotplug.c:3406
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "тип підсистеми основного пристрою «%s» не підтримується"
@@ -12276,12 +12277,12 @@ msgid ""
 "already exists"
 msgstr "пристрій PCI призначення %.4x:%.2x:%.2x.%.1x вже існує"
 
-#: src/libxl/libxl_driver.c:2947 src/qemu/qemu_hotplug.c:3439
+#: src/libxl/libxl_driver.c:2947 src/qemu/qemu_hotplug.c:3450
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "не знайдено пристрою PCI основної системи %.4x:%.2x:%.2x.%.1x"
 
-#: src/libxl/libxl_driver.c:2955 src/qemu/qemu_hotplug.c:3280
+#: src/libxl/libxl_driver.c:2955 src/qemu/qemu_hotplug.c:3291
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr ""
@@ -12319,7 +12320,7 @@ msgstr "призначення %s не існує."
 msgid "this disk doesn't support update"
 msgstr "оновлення не підтримується цим диском"
 
-#: src/libxl/libxl_driver.c:3556 src/libxl/libxl_conf.c:1512
+#: src/libxl/libxl_driver.c:3556 src/libxl/libxl_conf.c:1530
 msgid "libxl_get_physinfo_info failed"
 msgstr "Помилка libxl_get_physinfo_info"
 
@@ -12415,7 +12416,7 @@ msgstr "помилка libxl_get_cpu_topology"
 msgid "Failed to get version info from libxenlight"
 msgstr "Не вдалося отримати щодо версії від libxenlight"
 
-#: src/libxl/libxl_conf.c:326 src/libxl/libxl_conf.c:1264
+#: src/libxl/libxl_conf.c:326 src/libxl/libxl_conf.c:1282
 #: src/storage/storage_backend_logical.c:225 src/util/vircommand.c:2909
 #, c-format
 msgid "Failed to compile regex %s"
@@ -12440,67 +12441,77 @@ msgstr "невідомий тип chrdev"
 msgid "unsupported chardev '%s'"
 msgstr "непідтримуваний символьний пристрій «%s»"
 
-#: src/libxl/libxl_conf.c:712
+#: src/libxl/libxl_conf.c:711
+#, fuzzy, c-format
+msgid "emulator '%s' not found"
+msgstr "Не знайдено мережі «%s»"
+
+#: src/libxl/libxl_conf.c:718
+#, fuzzy, c-format
+msgid "emulator '%s' is not executable"
+msgstr "Виконуваний файл QEMU %s не є виконуваним"
+
+#: src/libxl/libxl_conf.c:734
 msgid "Only one serial device is supported by libxl"
 msgstr "У libxl передбачено підтримку лише одного послідовного пристрою"
 
-#: src/libxl/libxl_conf.c:722
+#: src/libxl/libxl_conf.c:744
 msgid "Parallel devices are not supported by libxl"
 msgstr "У libxl не передбачено підтримки паралельних пристроїв"
 
-#: src/libxl/libxl_conf.c:793
+#: src/libxl/libxl_conf.c:811
 msgid ""
 "This version of libxenlight does not support disk 'discard' option passing"
 msgstr ""
 "У цій версії libxenlight не передбачено підтримки передавання параметра "
 "диска «discard»"
 
-#: src/libxl/libxl_conf.c:870 src/libxl/libxl_conf.c:895
-#: src/libxl/libxl_conf.c:905 src/libxl/libxl_conf.c:917
+#: src/libxl/libxl_conf.c:888 src/libxl/libxl_conf.c:913
+#: src/libxl/libxl_conf.c:923 src/libxl/libxl_conf.c:935
 #, c-format
 msgid "libxenlight does not support disk format %s with disk driver %s"
 msgstr ""
 "у libxenlight не передбачено підтримки формату дисків %s з драйвером дисків "
 "%s"
 
-#: src/libxl/libxl_conf.c:927
+#: src/libxl/libxl_conf.c:945
 #, c-format
 msgid "libxenlight does not support disk driver %s"
 msgstr "libxenlight не підтримується драйвер диска %s"
 
-#: src/libxl/libxl_conf.c:952
+#: src/libxl/libxl_conf.c:970
 msgid "libxenlight does not support transient disks"
 msgstr "libxenlight не підтримує тимчасових дисків"
 
-#: src/libxl/libxl_conf.c:1003
+#: src/libxl/libxl_conf.c:1021
 msgid ""
 "specifying a script is only supported with interface types bridge and "
 "ethernet"
 msgstr ""
 "визначення скрипту передбачено лише для типів інтерфейсу bridge та ethernet"
 
-#: src/libxl/libxl_conf.c:1083
+#: src/libxl/libxl_conf.c:1101
 #, c-format
 msgid "unsupported interface type %s"
 msgstr "непідтримуваний тип інтерфейсу %s"
 
-#: src/libxl/libxl_conf.c:1310
+#: src/libxl/libxl_conf.c:1328
 #, c-format
 msgid "failed to create log dir '%s': %s"
 msgstr "не вдалося створити каталог журналу «%s»: %s"
 
-#: src/libxl/libxl_conf.c:1317
+#: src/libxl/libxl_conf.c:1335
 #, c-format
 msgid "Failed to create log file '%s': %s"
 msgstr "Не вдалося створити файл журналу «%s»: %s"
 
-#: src/libxl/libxl_conf.c:1327
+#: src/libxl/libxl_conf.c:1345
 msgid "cannot create logger for libxenlight, disabling driver"
 msgstr ""
 "не вдалося створити інструмент ведення журналу для libxenlight, вимикаємо "
 "драйвер"
 
-#: src/libxl/libxl_conf.c:1332
+#: src/libxl/libxl_conf.c:1350
 msgid ""
 "cannot initialize libxenlight context, probably not running in a Xen Dom0, "
 "disabling driver"
@@ -12508,39 +12519,39 @@ msgstr ""
 "не вдалося ініціалізувати контекст libxenlight, ймовірно, не запущено у Dom0 "
 "Xen, вимикаємо драйвер"
 
-#: src/libxl/libxl_conf.c:1338
+#: src/libxl/libxl_conf.c:1356
 msgid "cannot version information from libxenlight, disabling driver"
 msgstr ""
 "не вдалося отримати дані щодо версії від libxenlight, вимикаємо драйвер"
 
-#: src/libxl/libxl_conf.c:1348
+#: src/libxl/libxl_conf.c:1366
 msgid "Unable to configure libxl's memory management parameters"
 msgstr "Не вдалося налаштувати параметри керування пам’яттю libxl"
 
-#: src/libxl/libxl_conf.c:1458
+#: src/libxl/libxl_conf.c:1476
 #, fuzzy
 msgid "videoram must be at least 16MB for VGA"
 msgstr "nvram має бути списком рядків"
 
-#: src/libxl/libxl_conf.c:1464
+#: src/libxl/libxl_conf.c:1482
 #, fuzzy
 msgid "videoram must be at least 8MB for VGA"
 msgstr "nvram має бути списком рядків"
 
-#: src/libxl/libxl_conf.c:1475
+#: src/libxl/libxl_conf.c:1493
 msgid "videoram must be at least 8MB for CIRRUS"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1481
+#: src/libxl/libxl_conf.c:1499
 msgid "videoram must be at least 4MB for CIRRUS"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:1489
+#: src/libxl/libxl_conf.c:1507
 #, fuzzy, c-format
 msgid "video type %s is not supported by libxl"
 msgstr "QEMU не підтримує тип відео %s"
 
-#: src/libxl/libxl_conf.c:1518
+#: src/libxl/libxl_conf.c:1536
 #, c-format
 msgid "machine type %s too big for destination"
 msgstr "запис типу комп’ютера %s є занадто великим для призначення"
@@ -14508,87 +14519,87 @@ msgstr "Не вдалося створити файл з описом тому"
 msgid "Can't remove file '%s'"
 msgstr "Не вдалося вилучити файл «%s»"
 
-#: src/phyp/phyp_driver.c:124 src/phyp/phyp_driver.c:137
-#: src/phyp/phyp_driver.c:162 src/phyp/phyp_driver.c:175
-#: src/phyp/phyp_driver.c:675 src/phyp/phyp_driver.c:714
+#: src/phyp/phyp_driver.c:126 src/phyp/phyp_driver.c:139
+#: src/phyp/phyp_driver.c:164 src/phyp/phyp_driver.c:177
+#: src/phyp/phyp_driver.c:677 src/phyp/phyp_driver.c:716
 msgid "unable to wait on libssh2 socket"
 msgstr "чекання на сокеті libssh2 неможливе"
 
-#: src/phyp/phyp_driver.c:403
+#: src/phyp/phyp_driver.c:405
 #, c-format
 msgid "Cannot parse number from '%s'"
 msgstr "Не вдалося обробити число з «%s»"
 
-#: src/phyp/phyp_driver.c:434 src/phyp/phyp_driver.c:440
+#: src/phyp/phyp_driver.c:436 src/phyp/phyp_driver.c:442
 msgid "Unable to write information to local file."
 msgstr "На вдалося виконати запис даних до локального файла."
 
-#: src/phyp/phyp_driver.c:446 src/phyp/phyp_driver.c:722
+#: src/phyp/phyp_driver.c:448 src/phyp/phyp_driver.c:724
 #, c-format
 msgid "Could not close %s"
 msgstr "Не вдалося закрити %s"
 
-#: src/phyp/phyp_driver.c:505
+#: src/phyp/phyp_driver.c:507
 #, c-format
 msgid "Failed to read from %s"
 msgstr "Не вдалося виконати читання з %s"
 
-#: src/phyp/phyp_driver.c:769
+#: src/phyp/phyp_driver.c:771
 msgid "Unable to determine number of domains."
 msgstr "Не вдалося визначити кількість доменів."
 
-#: src/phyp/phyp_driver.c:921 src/phyp/phyp_driver.c:1003
+#: src/phyp/phyp_driver.c:923 src/phyp/phyp_driver.c:1005
 msgid "No authentication callback provided."
 msgstr "Не визначено зворотний виклик аутентифікації."
 
-#: src/phyp/phyp_driver.c:942
+#: src/phyp/phyp_driver.c:944
 #, c-format
 msgid "Error while getting %s address info"
 msgstr "Помилка при отриманні відомостей адреси %s"
 
-#: src/phyp/phyp_driver.c:960
+#: src/phyp/phyp_driver.c:962
 #, c-format
 msgid "Failed to connect to %s"
 msgstr "Не вдалось приєднатись до %s"
 
-#: src/phyp/phyp_driver.c:980
+#: src/phyp/phyp_driver.c:982
 msgid "Failure establishing SSH session."
 msgstr "Не вдалось створити сеанс SSH."
 
-#: src/phyp/phyp_driver.c:1022
+#: src/phyp/phyp_driver.c:1024
 msgid "Authentication failed"
 msgstr "Помилка розпізнавання"
 
-#: src/phyp/phyp_driver.c:1105
+#: src/phyp/phyp_driver.c:1107
 msgid "Missing server name in phyp:// URI"
 msgstr "У посиланні «phyp://» немає назви сервера"
 
-#: src/phyp/phyp_driver.c:1136
+#: src/phyp/phyp_driver.c:1138
 msgid "Error parsing 'path'. Invalid characters."
 msgstr "Помилка при розборі «path». Неприпустимі символи."
 
-#: src/phyp/phyp_driver.c:1143
+#: src/phyp/phyp_driver.c:1145
 msgid "Error while opening SSH session."
 msgstr "Помилка при відкриванні сеансу SSH."
 
-#: src/phyp/phyp_driver.c:1530 src/phyp/phyp_driver.c:1575
-#: src/phyp/phyp_driver.c:1747
+#: src/phyp/phyp_driver.c:1532 src/phyp/phyp_driver.c:1577
+#: src/phyp/phyp_driver.c:1749
 msgid "Unable to get VIOS profile name."
 msgstr "Не вдалося отримати назву профілю VIOS."
 
-#: src/phyp/phyp_driver.c:1570 src/phyp/phyp_driver.c:1712
+#: src/phyp/phyp_driver.c:1572 src/phyp/phyp_driver.c:1714
 msgid "Unable to get VIOS name"
 msgstr "Не вдалося отримати назву VIOS"
 
-#: src/phyp/phyp_driver.c:1580
+#: src/phyp/phyp_driver.c:1582
 msgid "Unable to get free slot number"
 msgstr "Не вдалося отримати номер вільного слота"
 
-#: src/phyp/phyp_driver.c:1722 src/phyp/phyp_driver.c:1726
+#: src/phyp/phyp_driver.c:1724 src/phyp/phyp_driver.c:1728
 msgid "Unable to create new virtual adapter"
 msgstr "Не вдалося створити віртуальний адаптер"
 
-#: src/phyp/phyp_driver.c:1806
+#: src/phyp/phyp_driver.c:1808
 msgid ""
 "Possibly you don't have IBM Tools installed in your LPAR.Contact your "
 "support to enable this feature."
@@ -14596,131 +14607,131 @@ msgstr ""
 "Ймовірно, у вашому LPAR не встановлено IBM Tools. Зв’яжіться зі службою "
 "підтримки для вмикання цієї можливості."
 
-#: src/phyp/phyp_driver.c:1937
+#: src/phyp/phyp_driver.c:1939
 #, c-format
 msgid "Unable to create Volume: %s"
 msgstr "Не вдалося створити том: %s"
 
-#: src/phyp/phyp_driver.c:1987 src/phyp/phyp_driver.c:2240
-#: src/phyp/phyp_driver.c:2681
+#: src/phyp/phyp_driver.c:1989 src/phyp/phyp_driver.c:2242
+#: src/phyp/phyp_driver.c:2683
 msgid "Unable to determine storage pool's name."
 msgstr "Не вдалося визначити назву сховища резервних даних."
 
-#: src/phyp/phyp_driver.c:1992 src/phyp/phyp_driver.c:2686
+#: src/phyp/phyp_driver.c:1994 src/phyp/phyp_driver.c:2688
 msgid "Unable to determine storage pool's uuid."
 msgstr "Не вдалося визначити UUID сховища резервних даних."
 
-#: src/phyp/phyp_driver.c:1998 src/phyp/phyp_driver.c:2692
+#: src/phyp/phyp_driver.c:2000 src/phyp/phyp_driver.c:2694
 msgid "Unable to determine storage pools's size."
 msgstr "Не вдалося визначити розмір сховища резервних даних."
 
-#: src/phyp/phyp_driver.c:2011 src/phyp/phyp_driver.c:2705
+#: src/phyp/phyp_driver.c:2013 src/phyp/phyp_driver.c:2707
 msgid "Unable to determine storage pools's source adapter."
 msgstr "Не вдалося визначити адаптер джерела сховища резервних даних."
 
-#: src/phyp/phyp_driver.c:2016
+#: src/phyp/phyp_driver.c:2018
 msgid "Error parsing volume XML."
 msgstr "Помилка обробки XML тому."
 
-#: src/phyp/phyp_driver.c:2022
+#: src/phyp/phyp_driver.c:2024
 msgid "StoragePool name already exists."
 msgstr "Назва StoragePool вже існує."
 
-#: src/phyp/phyp_driver.c:2031
+#: src/phyp/phyp_driver.c:2033
 msgid "Key must be empty, Power Hypervisor will create one for you."
 msgstr "Ключ має бути порожнім, Power Hypervisor створить такий ключ."
 
-#: src/phyp/phyp_driver.c:2036
+#: src/phyp/phyp_driver.c:2038
 msgid "Capacity cannot be empty."
 msgstr "Запис можливості не може бути порожнім."
 
-#: src/phyp/phyp_driver.c:2211
+#: src/phyp/phyp_driver.c:2213
 msgid "Unable to determine storage sp's name."
 msgstr "Не вдалося визначити назву сховища даних sp."
 
-#: src/phyp/phyp_driver.c:2216
+#: src/phyp/phyp_driver.c:2218
 msgid "Unable to determine storage sp's uuid."
 msgstr "Не вдалося визначити UUID сховища даних sp."
 
-#: src/phyp/phyp_driver.c:2221
+#: src/phyp/phyp_driver.c:2223
 msgid "Unable to determine storage sps's size."
 msgstr "Не вдалося визначити розмір sps сховища."
 
-#: src/phyp/phyp_driver.c:2233
+#: src/phyp/phyp_driver.c:2235
 msgid "Unable to determine storage sps's source adapter."
 msgstr "Не вдалося визначити адаптер джерела sps сховища резервних даних."
 
-#: src/phyp/phyp_driver.c:2432
+#: src/phyp/phyp_driver.c:2434
 #, c-format
 msgid "Unable to destroy Storage Pool: %s"
 msgstr "Не вдалося знищити буфер даних: %s"
 
-#: src/phyp/phyp_driver.c:2462
+#: src/phyp/phyp_driver.c:2464
 msgid "Only 'scsi_host' adapter is supported"
 msgstr "Передбачено підтримку лише адаптерів «scsi_host»"
 
-#: src/phyp/phyp_driver.c:2478
+#: src/phyp/phyp_driver.c:2480
 #, c-format
 msgid "Unable to create Storage Pool: %s"
 msgstr "Не вдалося створити буфер даних: %s"
 
-#: src/phyp/phyp_driver.c:3275
+#: src/phyp/phyp_driver.c:3277
 msgid "Unable to determine domain's name."
 msgstr "Не вдалося визначити назву домену."
 
-#: src/phyp/phyp_driver.c:3280
+#: src/phyp/phyp_driver.c:3282
 msgid "Unable to generate random uuid."
 msgstr "Не вдалося створити випадкове значення uuid."
 
-#: src/phyp/phyp_driver.c:3286
+#: src/phyp/phyp_driver.c:3288
 msgid "Unable to determine domain's max memory."
 msgstr "Не вдалося визначити максимальний об’єм пам’яті домену."
 
-#: src/phyp/phyp_driver.c:3292
+#: src/phyp/phyp_driver.c:3294
 msgid "Unable to determine domain's memory."
 msgstr "Не вдалося визначити об’єм пам’яті домену."
 
-#: src/phyp/phyp_driver.c:3298
+#: src/phyp/phyp_driver.c:3300
 msgid "Unable to determine domain's CPU."
 msgstr "Не вдалося визначити процесор домену."
 
-#: src/phyp/phyp_driver.c:3501
+#: src/phyp/phyp_driver.c:3503
 msgid "Field <memory> on the domain XML file is missing or has invalid value."
 msgstr ""
 "Поле <memory> у файлі XML домену не вказано або це поле містить некоректне "
 "значення."
 
-#: src/phyp/phyp_driver.c:3508
+#: src/phyp/phyp_driver.c:3510
 msgid ""
 "Field <currentMemory> on the domain XML file is missing or has invalid value."
 msgstr ""
 "Поле <currentMemory> у файлі XML домену не вказано або це поле містить "
 "некоректне значення."
 
-#: src/phyp/phyp_driver.c:3515
+#: src/phyp/phyp_driver.c:3517
 msgid "Domain XML must contain at least one <disk> element."
 msgstr "XML домену має містити принаймні один елемент <disk>."
 
-#: src/phyp/phyp_driver.c:3521
+#: src/phyp/phyp_driver.c:3523
 msgid "Field <src> under <disk> on the domain XML file is missing."
 msgstr "У файлі XML домену немає поля <src> у елементі <disk>."
 
-#: src/phyp/phyp_driver.c:3537
+#: src/phyp/phyp_driver.c:3539
 #, c-format
 msgid "Unable to create LPAR. Reason: '%s'"
 msgstr "Не вдалося створити LPAR. Причина: «%s»"
 
-#: src/phyp/phyp_driver.c:3542
+#: src/phyp/phyp_driver.c:3544
 msgid "Unable to add LPAR to the table"
 msgstr "Не вдалося додати LPAR до таблиці"
 
-#: src/phyp/phyp_driver.c:3642
+#: src/phyp/phyp_driver.c:3644
 msgid "You are trying to set a number of CPUs bigger than the max possible."
 msgstr ""
 "Ви намагаєтеся встановити кількість процесорів, яка є більшою за максимально "
 "можливу."
 
-#: src/phyp/phyp_driver.c:3667
+#: src/phyp/phyp_driver.c:3669
 msgid ""
 "Possibly you don't have IBM Tools installed in your LPAR. Contact your "
 "support to enable this feature."
@@ -15491,7 +15502,7 @@ msgid "disk aio mode not supported with this QEMU binary"
 msgstr ""
 "асинхронний режим роботи диска не підтримується цим виконуваним файлом QEMU"
 
-#: src/qemu/qemu_command.c:3667 src/qemu/qemu_driver.c:16759
+#: src/qemu/qemu_command.c:3667 src/qemu/qemu_driver.c:16760
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr ""
 "регулювання введення-виведення блоків не підтримується цим виконуваним "
@@ -17559,7 +17570,7 @@ msgstr "Призначення вже існує"
 msgid "persistent attach of device '%s' is not supported"
 msgstr "підтримки остаточного під’єднання пристрою «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:7334 src/qemu/qemu_hotplug.c:3675
+#: src/qemu/qemu_driver.c:7334 src/qemu/qemu_hotplug.c:3686
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "Зняття %s у просторі блокування %s ще не створено"
@@ -17763,7 +17774,7 @@ msgstr ""
 "У виконуваному файлі QEMU не передбачено можливості перенесення зі стисканням"
 
 #: src/qemu/qemu_driver.c:12516 src/qemu/qemu_driver.c:15626
-#: src/qemu/qemu_driver.c:16083 src/qemu/qemu_driver.c:16270
+#: src/qemu/qemu_driver.c:16084 src/qemu/qemu_driver.c:16271
 #: src/qemu/qemu_monitor.c:2105 tools/virsh-domain.c:2014
 #, c-format
 msgid "bandwidth must be less than %llu"
@@ -17818,7 +17829,7 @@ msgstr ""
 msgid "external active snapshots are not supported on '%s' disks"
 msgstr "підтримки зовнішніх активних знімків для дисків «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:13086 src/qemu/qemu_driver.c:15940
+#: src/qemu/qemu_driver.c:13086 src/qemu/qemu_driver.c:15941
 #, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr "не вдалося отримати дані щодо диска %s: %s"
@@ -18070,7 +18081,7 @@ msgstr ""
 "прапорець VIR_DOMAIN_BLOCK_REBASE_RELATIVE є коректним лише для ненульової "
 "бази"
 
-#: src/qemu/qemu_driver.c:15527 src/qemu/qemu_driver.c:15768
+#: src/qemu/qemu_driver.c:15527 src/qemu/qemu_driver.c:15769
 msgid "block jobs not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки обробки блоків"
@@ -18088,8 +18099,8 @@ msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено встановлення ширини каналу на "
 "початку отримання блоків"
 
-#: src/qemu/qemu_driver.c:15557 src/qemu/qemu_driver.c:15898
-#: src/qemu/qemu_driver.c:16314
+#: src/qemu/qemu_driver.c:15557 src/qemu/qemu_driver.c:15899
+#: src/qemu/qemu_driver.c:16315
 #, c-format
 msgid "disk '%s' already in active block job"
 msgstr "диск «%s» вже є у активному блоковому завданні"
@@ -18105,40 +18116,40 @@ msgstr ""
 "у цьому бінарному файлі QEMU не передбачено підтримки відносного отримання "
 "або перебазування блоків"
 
-#: src/qemu/qemu_driver.c:15613 src/qemu/qemu_driver.c:16393
+#: src/qemu/qemu_driver.c:15613 src/qemu/qemu_driver.c:16394
 msgid "can't keep relative backing relationship"
 msgstr "підтримання відносного зв’язку резервного копіювання є неможливим"
 
-#: src/qemu/qemu_driver.c:15801
+#: src/qemu/qemu_driver.c:15802
 #, c-format
 msgid "bandwidth %llu cannot be represented in result"
 msgstr "у результаті не може бути представлено пропускну здатність %llu"
 
-#: src/qemu/qemu_driver.c:15906
+#: src/qemu/qemu_driver.c:15907
 msgid "block copy is not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки копіювання блоків"
 
-#: src/qemu/qemu_driver.c:15915
+#: src/qemu/qemu_driver.c:15916
 msgid "domain is not transient"
 msgstr "домен не є проміжним"
 
-#: src/qemu/qemu_driver.c:15926
+#: src/qemu/qemu_driver.c:15927
 #, c-format
 msgid "disk '%s' has backing file, so raw shallow copy is not possible"
 msgstr ""
 "диск «%s» містить резервний файл, отже просте бітове копіювання неможливе"
 
-#: src/qemu/qemu_driver.c:15936
+#: src/qemu/qemu_driver.c:15937
 msgid "non-file destination not supported yet"
 msgstr "підтримки нефайлових призначень ще не передбачено"
 
-#: src/qemu/qemu_driver.c:15946
+#: src/qemu/qemu_driver.c:15947
 #, c-format
 msgid "missing destination file for disk %s: %s"
 msgstr "не вистачає файла призначення для диска %s: %s"
 
-#: src/qemu/qemu_driver.c:15953
+#: src/qemu/qemu_driver.c:15954
 #, c-format
 msgid ""
 "external destination file for disk %s already exists and is not a block "
@@ -18147,7 +18158,7 @@ msgstr ""
 "файл зовнішнього призначення для диска %s вже існує, пристрій не є блоковим: "
 "%s"
 
-#: src/qemu/qemu_driver.c:15960
+#: src/qemu/qemu_driver.c:15961
 #, c-format
 msgid ""
 "blockdev flag requested for disk %s, but file '%s' is not a block device"
@@ -18155,169 +18166,169 @@ msgstr ""
 "надіслано запит на прапорець blockdev для диска %s, втім, файл «%s» не є "
 "блоковим пристроєм"
 
-#: src/qemu/qemu_driver.c:16095
+#: src/qemu/qemu_driver.c:16096
 msgid "Relative backing during copy not supported yet"
 msgstr "Підтримки відносного резервування під час копіювання ще не передбачено"
 
-#: src/qemu/qemu_driver.c:16162
+#: src/qemu/qemu_driver.c:16163
 #, c-format
 msgid "bandwidth must be less than %llu bytes"
 msgstr "пропускна здатність (bandwidth) має бути меншою за %llu байтів"
 
-#: src/qemu/qemu_driver.c:16262
+#: src/qemu/qemu_driver.c:16263
 msgid "online commit not supported with this QEMU binary"
 msgstr ""
 "У цьому виконуваному файлі QEMU не передбачено інтерактивного внесення змін"
 
-#: src/qemu/qemu_driver.c:16284
+#: src/qemu/qemu_driver.c:16285
 #, c-format
 msgid "disk %s has no source file to be committed"
 msgstr "диск %s не має початкового файла для внесення змін"
 
-#: src/qemu/qemu_driver.c:16302
+#: src/qemu/qemu_driver.c:16303
 msgid "active commit not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки активних внесків"
 
-#: src/qemu/qemu_driver.c:16308
+#: src/qemu/qemu_driver.c:16309
 #, c-format
 msgid "commit of '%s' active layer requires active flag"
 msgstr "внесення активного шару «%s» потребує параметра active"
 
-#: src/qemu/qemu_driver.c:16320
+#: src/qemu/qemu_driver.c:16321
 #, c-format
 msgid "active commit requested but '%s' is not active"
 msgstr "надіслано запит щодо активного внеску, але «%s» не є активним"
 
-#: src/qemu/qemu_driver.c:16327
+#: src/qemu/qemu_driver.c:16328
 #, c-format
 msgid "top '%s' in chain for '%s' has no backing file"
 msgstr "початок «%s» у ланцюжку «%s» не має резервного файла"
 
-#: src/qemu/qemu_driver.c:16342
+#: src/qemu/qemu_driver.c:16343
 #, c-format
 msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr "основа «%s» перебуває не безпосередньо за «%s» у ланцюжку для «%s»"
 
-#: src/qemu/qemu_driver.c:16383
+#: src/qemu/qemu_driver.c:16384
 msgid "this qemu doesn't support relative blockpull"
 msgstr "у цій версії qemu не передбачено підтримки відносного буфера блоків"
 
-#: src/qemu/qemu_driver.c:16482 src/qemu/qemu_driver.c:16548
+#: src/qemu/qemu_driver.c:16483 src/qemu/qemu_driver.c:16549
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr "Немає графічного сервера з індексом %d"
 
-#: src/qemu/qemu_driver.c:16494 src/qemu/qemu_driver.c:16560
+#: src/qemu/qemu_driver.c:16495 src/qemu/qemu_driver.c:16561
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr "Можливе відкриття лише графічних серверів VNC або SPICE, але не %s"
 
-#: src/qemu/qemu_driver.c:16672
+#: src/qemu/qemu_driver.c:16673
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr ""
 "значення обмеження на введення-виведення для блокових пристроїв має бути "
 "меншим за %llu"
 
-#: src/qemu/qemu_driver.c:16736
+#: src/qemu/qemu_driver.c:16737
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr "Не можна одночасно встановлювати total і read/write bytes_sec"
 
-#: src/qemu/qemu_driver.c:16743
+#: src/qemu/qemu_driver.c:16744
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr "Не можна одночасно встановлювати total і read/write iops_sec"
 
-#: src/qemu/qemu_driver.c:16750
+#: src/qemu/qemu_driver.c:16751
 #, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr "немає сталих налаштувань для диска «%s»"
 
-#: src/qemu/qemu_driver.c:16791
+#: src/qemu/qemu_driver.c:16792
 #, fuzzy
 msgid "Saving live XML config failed"
 msgstr "не вдалося обробити налаштування у форматі XML"
 
-#: src/qemu/qemu_driver.c:16820
+#: src/qemu/qemu_driver.c:16821
 msgid "Write to config file failed"
 msgstr "Спроба запису до файла налаштувань завершилася невдало"
 
-#: src/qemu/qemu_driver.c:16905
+#: src/qemu/qemu_driver.c:16906
 #, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr "у налаштуваннях домену не знайдено диска «%s»"
 
-#: src/qemu/qemu_driver.c:17188
+#: src/qemu/qemu_driver.c:17189
 msgid "Duration not supported. Use 0 for now"
 msgstr "Підтримки тривалості не передбачено. Скористайтеся значенням 0."
 
-#: src/qemu/qemu_driver.c:17196
+#: src/qemu/qemu_driver.c:17197
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "Невідома ціль призупинення: %u"
 
-#: src/qemu/qemu_driver.c:17219
+#: src/qemu/qemu_driver.c:17220
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr ""
 "Не вдалося призупинити домен через те, що не вказано команду монітора "
 "system_wakeup"
 
-#: src/qemu/qemu_driver.c:17229
+#: src/qemu/qemu_driver.c:17230
 msgid "S3 state is disabled for this domain"
 msgstr "на цьому домені стан S3 вимкнено"
 
-#: src/qemu/qemu_driver.c:17236
+#: src/qemu/qemu_driver.c:17237
 msgid "S4 state is disabled for this domain"
 msgstr "на цьому домені стан S4 вимкнено"
 
-#: src/qemu/qemu_driver.c:17297
+#: src/qemu/qemu_driver.c:17298
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr ""
 "Не вдалося пробудити домен через те, що не вказано команду монітора "
 "system_wakeup"
 
-#: src/qemu/qemu_driver.c:17456
+#: src/qemu/qemu_driver.c:17457
 msgid "Specifying mount point is not supported for now"
 msgstr ""
 "У поточній версії ще не передбачено визначення точки монтування користувачем"
 
-#: src/qemu/qemu_driver.c:17720
+#: src/qemu/qemu_driver.c:17721
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 "не вдалося встановити час: у qemu не передбачено підтримки команди rtc-reset-"
 "reinjection"
 
-#: src/qemu/qemu_driver.c:17819
+#: src/qemu/qemu_driver.c:17820
 msgid "specifying mountpoints is not supported"
 msgstr "підтримки визначення точок монтування не передбачно"
 
-#: src/qemu/qemu_driver.c:17900
+#: src/qemu/qemu_driver.c:17901
 #, c-format
 msgid "unknown virttype: %s"
 msgstr "невідоме значення virttype: %s"
 
-#: src/qemu/qemu_driver.c:17907
+#: src/qemu/qemu_driver.c:17908
 #, c-format
 msgid "unknown architecture: %s"
 msgstr "невідома архітектура: %s"
 
-#: src/qemu/qemu_driver.c:17924
+#: src/qemu/qemu_driver.c:17925
 #, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr ""
 "архітектура від емулятора «%s» не збігається із наданою архітектурою, «%s»"
 
-#: src/qemu/qemu_driver.c:17934
+#: src/qemu/qemu_driver.c:17935
 #, c-format
 msgid "unable to find any emulator to serve '%s' architecture"
 msgstr "не знайдено жодного емулятора, здатного обслуговувати архітектуру «%s»"
 
-#: src/qemu/qemu_driver.c:17948
+#: src/qemu/qemu_driver.c:17949
 #, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr "підтримки машини «%s» у емуляторі «%s» не передбачено"
 
-#: src/qemu/qemu_driver.c:18395
+#: src/qemu/qemu_driver.c:18396
 #, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr "Біти типів статистики 0x%x не підтримуються цією фоновою службою"
@@ -18489,214 +18500,214 @@ msgstr "не вдалося змінити MAC-адресу інтерфейсу
 msgid "cannot modify network device model from %s to %s"
 msgstr "не вдалося змінити модель пристрою мережі з %s на %s"
 
-#: src/qemu/qemu_hotplug.c:1986
+#: src/qemu/qemu_hotplug.c:1997
 msgid "cannot modify virtio network device driver attributes"
 msgstr "не вдалося змінити атрибути драйвера пристрою мережі virtio"
 
-#: src/qemu/qemu_hotplug.c:2000
+#: src/qemu/qemu_hotplug.c:2011
 msgid "cannot modify network device script attribute"
 msgstr "не вдалося змінити атрибут скрипту пристрою мережі"
 
-#: src/qemu/qemu_hotplug.c:2009
+#: src/qemu/qemu_hotplug.c:2020
 msgid "cannot modify network device tap name"
 msgstr "неможливо змінити tap-назву пристрою мережі"
 
-#: src/qemu/qemu_hotplug.c:2027
+#: src/qemu/qemu_hotplug.c:2038
 msgid "cannot modify network device guest PCI address"
 msgstr "неможливо змінити адресу PCI пристрою мережі у гостьовій системі"
 
-#: src/qemu/qemu_hotplug.c:2036
+#: src/qemu/qemu_hotplug.c:2047
 msgid "cannot modify network device alias"
 msgstr "неможливо змінити псевдонім пристрою мережі"
 
-#: src/qemu/qemu_hotplug.c:2041
+#: src/qemu/qemu_hotplug.c:2052
 msgid "cannot modify network device rom bar setting"
 msgstr "неможливо змінити параметр запису ROM пристрою мережі"
 
-#: src/qemu/qemu_hotplug.c:2046
+#: src/qemu/qemu_hotplug.c:2057
 msgid "cannot modify network rom file"
 msgstr "неможливо змінити файл ROM пристрою мережі"
 
-#: src/qemu/qemu_hotplug.c:2051
+#: src/qemu/qemu_hotplug.c:2062
 msgid "cannot modify network device boot index setting"
 msgstr "неможливо змінити параметр покажчика завантаження пристрою мережі"
 
-#: src/qemu/qemu_hotplug.c:2078
+#: src/qemu/qemu_hotplug.c:2089
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "неможливо змінити тип мережного інтерфейсу на «%s»"
 
-#: src/qemu/qemu_hotplug.c:2136 src/qemu/qemu_hotplug.c:2209
+#: src/qemu/qemu_hotplug.c:2147 src/qemu/qemu_hotplug.c:2220
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "не вдалося змінити налаштування для типу системи мережі «%s»"
 
-#: src/qemu/qemu_hotplug.c:2317
+#: src/qemu/qemu_hotplug.c:2328
 msgid "cannot find existing graphics device to modify"
 msgstr "не вдалося знайти вже створеного графічного пристрою для внесення змін"
 
-#: src/qemu/qemu_hotplug.c:2323
+#: src/qemu/qemu_hotplug.c:2334
 msgid "cannot change the number of listen addresses"
 msgstr "не вдалося змінити кількість адрес, за якими ведеться спостереження"
 
-#: src/qemu/qemu_hotplug.c:2333
+#: src/qemu/qemu_hotplug.c:2344
 msgid "cannot change the type of listen address"
 msgstr "не вдалося змінити тип адреси, за якою ведеться спостереження"
 
-#: src/qemu/qemu_hotplug.c:2342
+#: src/qemu/qemu_hotplug.c:2353
 msgid "cannot change listen address setting on vnc graphics"
 msgstr ""
 "не вдалося змінити параметри адреси очікування даних графічної системи VNC"
 
-#: src/qemu/qemu_hotplug.c:2343
+#: src/qemu/qemu_hotplug.c:2354
 msgid "cannot change listen address setting on spice graphics"
 msgstr ""
 "не вдалося змінити параметри адреси очікування даних графічної системи SPICE"
 
-#: src/qemu/qemu_hotplug.c:2352
+#: src/qemu/qemu_hotplug.c:2363
 msgid "cannot change listen network setting on vnc graphics"
 msgstr "не можна змінювати параметри мережі очікування даних для графіки vnc"
 
-#: src/qemu/qemu_hotplug.c:2353
+#: src/qemu/qemu_hotplug.c:2364
 msgid "cannot change listen network setting on spice graphics"
 msgstr "не можна змінювати параметри мережі очікування даних для графіки spice"
 
-#: src/qemu/qemu_hotplug.c:2371
+#: src/qemu/qemu_hotplug.c:2382
 msgid "cannot change port settings on vnc graphics"
 msgstr "не вдалося змінити параметри порту графічної системи VNC"
 
-#: src/qemu/qemu_hotplug.c:2376
+#: src/qemu/qemu_hotplug.c:2387
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "не вдалося змінити параметр розкладки графічної системи VNC"
 
-#: src/qemu/qemu_hotplug.c:2417
+#: src/qemu/qemu_hotplug.c:2428
 msgid "cannot change port settings on spice graphics"
 msgstr "не вдалося змінити параметри порту графічної системи SPICE"
 
-#: src/qemu/qemu_hotplug.c:2423
+#: src/qemu/qemu_hotplug.c:2434
 msgid "cannot change keymap setting on spice graphics"
 msgstr "не вдалося змінити параметр розкладки графічної системи SPICE"
 
-#: src/qemu/qemu_hotplug.c:2465
+#: src/qemu/qemu_hotplug.c:2476
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "не вдалося змінити налаштування для типу графічної системи «%s»"
 
-#: src/qemu/qemu_hotplug.c:2747
+#: src/qemu/qemu_hotplug.c:2758
 msgid "unable to determine original VLAN"
 msgstr "не вдалося визначити початкову VLAN"
 
-#: src/qemu/qemu_hotplug.c:2885
+#: src/qemu/qemu_hotplug.c:2896
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr "спосіб вилучення пристрою %s невідомий"
 
-#: src/qemu/qemu_hotplug.c:2938
+#: src/qemu/qemu_hotplug.c:2949
 msgid "Unable to wait on unplug condition"
 msgstr "Не вдалося дочекатися умови від’єднання"
 
-#: src/qemu/qemu_hotplug.c:2979 src/qemu/qemu_hotplug.c:3224
+#: src/qemu/qemu_hotplug.c:2990 src/qemu/qemu_hotplug.c:3235
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr ""
 "не можна від’єднувати багатофункціональний PCI-пристрій у «гарячому» режимі: "
 "%s"
 
-#: src/qemu/qemu_hotplug.c:2989
+#: src/qemu/qemu_hotplug.c:3000
 msgid "device cannot be detached without a valid CCW address"
 msgstr "пристрій не можна від’єднувати без визначення чинної CCW-адреси"
 
-#: src/qemu/qemu_hotplug.c:2996
+#: src/qemu/qemu_hotplug.c:3007
 msgid "device cannot be detached without a valid PCI address"
 msgstr "пристрій не можна від’єднувати без визначення чинної PCI-адреси"
 
-#: src/qemu/qemu_hotplug.c:3048
+#: src/qemu/qemu_hotplug.c:3059
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr "Основною системою qemu не передбачено підтримки вилучення диска %s"
 
-#: src/qemu/qemu_hotplug.c:3055
+#: src/qemu/qemu_hotplug.c:3066
 #, c-format
 msgid "disk '%s' is in an active block job"
 msgstr "диск «%s» включено до активного блокового завдання"
 
-#: src/qemu/qemu_hotplug.c:3121 src/uml/uml_driver.c:2380
+#: src/qemu/qemu_hotplug.c:3132 src/uml/uml_driver.c:2380
 msgid "This type of disk cannot be hot unplugged"
 msgstr "диск такого типу не можна від’єднувати у «гарячому» режимі"
 
-#: src/qemu/qemu_hotplug.c:3125
+#: src/qemu/qemu_hotplug.c:3136
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "дискові пристрої типу «%s» не можна від’єднувати"
 
-#: src/qemu/qemu_hotplug.c:3197
+#: src/qemu/qemu_hotplug.c:3208
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "Контролера %s:%d не знайдено"
 
-#: src/qemu/qemu_hotplug.c:3209
+#: src/qemu/qemu_hotplug.c:3220
 #, c-format
 msgid "device with '%s' address cannot be detached"
 msgstr "пристрій з адресою «%s» не можна від’єднувати"
 
-#: src/qemu/qemu_hotplug.c:3216
+#: src/qemu/qemu_hotplug.c:3227
 #, c-format
 msgid "device with invalid '%s' address cannot be detached"
 msgstr "пристрій із некоректною адресою «%s» не можна від’єднувати"
 
-#: src/qemu/qemu_hotplug.c:3231
+#: src/qemu/qemu_hotplug.c:3242
 msgid "device cannot be detached: device is busy"
 msgstr "не вдалося від’єднати пристрій: пристрій зайнято"
 
-#: src/qemu/qemu_hotplug.c:3289 src/qemu/qemu_hotplug.c:3521
+#: src/qemu/qemu_hotplug.c:3300 src/qemu/qemu_hotplug.c:3532
 msgid "device cannot be detached without a PCI address"
 msgstr "пристрій не можна від’єднувати без визначення PCI-адреси"
 
-#: src/qemu/qemu_hotplug.c:3316 src/qemu/qemu_hotplug.c:3345
+#: src/qemu/qemu_hotplug.c:3327 src/qemu/qemu_hotplug.c:3356
 msgid "device cannot be detached without a device alias"
 msgstr "пристрій не можна від’єднувати без визначення псевдоніма пристрою"
 
-#: src/qemu/qemu_hotplug.c:3322 src/qemu/qemu_hotplug.c:3351
+#: src/qemu/qemu_hotplug.c:3333 src/qemu/qemu_hotplug.c:3362
 msgid "device cannot be detached with this QEMU version"
 msgstr "від’єднання пристрою у цій версії QEMU неможливе"
 
-#: src/qemu/qemu_hotplug.c:3446
+#: src/qemu/qemu_hotplug.c:3457
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "не знайдено пристрою USB %03d.%03d основної системи"
 
-#: src/qemu/qemu_hotplug.c:3450
+#: src/qemu/qemu_hotplug.c:3461
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr ""
 "не знайдено виробника пристрою USB основної системи=0x%.4x продукт=0x%.4x"
 
-#: src/qemu/qemu_hotplug.c:3459
+#: src/qemu/qemu_hotplug.c:3470
 #, c-format
 msgid "host scsi iSCSI path %s not found"
 msgstr "не знайдено шлях iSCSI %s у scsi основної системи"
 
-#: src/qemu/qemu_hotplug.c:3465
+#: src/qemu/qemu_hotplug.c:3476
 #, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "пристрою вузла scsi %s:%d:%d.%d не знайдено"
 
-#: src/qemu/qemu_hotplug.c:3514
+#: src/qemu/qemu_hotplug.c:3525
 msgid "device cannot be detached without a CCW address"
 msgstr "пристрій не можна від’єднувати без визначення CCW-адреси"
 
-#: src/qemu/qemu_hotplug.c:3527
+#: src/qemu/qemu_hotplug.c:3538
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr ""
 "не можна від’єднувати багатофункціональний PCI-пристрій у «гарячому» режимі :"
 "%s"
 
-#: src/qemu/qemu_hotplug.c:3602
+#: src/qemu/qemu_hotplug.c:3613
 msgid "Graphics password only supported for VNC"
 msgstr "Пароль до графічного режиму підтримується лише для VNC"
 
-#: src/qemu/qemu_hotplug.c:3628
+#: src/qemu/qemu_hotplug.c:3639
 msgid "Expiry of passwords is not supported"
 msgstr "Підтримки паролів зі строком дії не передбачено"
 
@@ -22787,11 +22798,11 @@ msgid "apparmor_parser exited with error"
 msgstr "Програма apparmor_parser завершила роботу повідомленням про помилку"
 
 #: src/security/virt-aa-helper.c:280 src/security/virt-aa-helper.c:285
-#: src/security/virt-aa-helper.c:402
+#: src/security/virt-aa-helper.c:412
 msgid "could not allocate memory for profile"
 msgstr "не вдалося розмістити профіль у пам’яті"
 
-#: src/security/virt-aa-helper.c:292 src/security/virt-aa-helper.c:397
+#: src/security/virt-aa-helper.c:292 src/security/virt-aa-helper.c:407
 msgid "invalid length for new profile"
 msgstr "некоректна довжина нового профілю"
 
@@ -22799,166 +22810,166 @@ msgstr "некоректна довжина нового профілю"
 msgid "failed to create include file"
 msgstr "не вдалося створити файл включення"
 
-#: src/security/virt-aa-helper.c:310 src/security/virt-aa-helper.c:423
+#: src/security/virt-aa-helper.c:310 src/security/virt-aa-helper.c:433
 msgid "failed to write to profile"
 msgstr "не вдалося записати дані до профілю"
 
-#: src/security/virt-aa-helper.c:315 src/security/virt-aa-helper.c:428
+#: src/security/virt-aa-helper.c:315 src/security/virt-aa-helper.c:438
 msgid "failed to close or write to profile"
 msgstr "не вдалося закрити або записати дані до профілю"
 
-#: src/security/virt-aa-helper.c:346 src/security/virt-aa-helper.c:1284
+#: src/security/virt-aa-helper.c:347 src/security/virt-aa-helper.c:1294
 msgid "profile exists"
 msgstr "профіль вже існує"
 
-#: src/security/virt-aa-helper.c:353
+#: src/security/virt-aa-helper.c:363
 msgid "template name exceeds maximum length"
 msgstr "довжина назви шаблону перевищує максимальну можливу"
 
-#: src/security/virt-aa-helper.c:358
+#: src/security/virt-aa-helper.c:368
 msgid "template does not exist"
 msgstr "шаблону не існує"
 
-#: src/security/virt-aa-helper.c:363
+#: src/security/virt-aa-helper.c:373
 msgid "failed to read AppArmor template"
 msgstr "не вдалося прочитати дані шаблону AppArmor"
 
-#: src/security/virt-aa-helper.c:368 src/security/virt-aa-helper.c:373
+#: src/security/virt-aa-helper.c:378 src/security/virt-aa-helper.c:383
 msgid "no replacement string in template"
 msgstr "у шаблоні немає рядка заміни"
 
-#: src/security/virt-aa-helper.c:379
+#: src/security/virt-aa-helper.c:389
 msgid "could not allocate memory for profile name"
 msgstr "не вдалося розмістити назву профілю у пам’яті"
 
-#: src/security/virt-aa-helper.c:386
+#: src/security/virt-aa-helper.c:396
 msgid "could not allocate memory for profile files"
 msgstr "не вдалося розмістити файли профілю у пам’яті"
 
-#: src/security/virt-aa-helper.c:417
+#: src/security/virt-aa-helper.c:427
 msgid "failed to create profile"
 msgstr "не вдалося створити профіль"
 
-#: src/security/virt-aa-helper.c:568
+#: src/security/virt-aa-helper.c:578
 msgid "bad pathname"
 msgstr "помилковий шлях"
 
-#: src/security/virt-aa-helper.c:583
+#: src/security/virt-aa-helper.c:593
 msgid "path does not exist, skipping file type checks"
 msgstr "шляху не існує, перевірку типів файлів пропущено"
 
-#: src/security/virt-aa-helper.c:620
+#: src/security/virt-aa-helper.c:630
 msgid "Invalid context"
 msgstr "Некоректний контекст"
 
-#: src/security/virt-aa-helper.c:626
+#: src/security/virt-aa-helper.c:636
 msgid "Could not find <name>"
 msgstr "Не вдалося знайти <name>"
 
-#: src/security/virt-aa-helper.c:633
+#: src/security/virt-aa-helper.c:643
 msgid "Could not find <uuid>"
 msgstr "Не вдалось знайти <uuid>"
 
-#: src/security/virt-aa-helper.c:665
+#: src/security/virt-aa-helper.c:675
 msgid "unexpected root element, expecting <domain>"
 msgstr "неочікуваний кореневий елемент, мав бути <domain>"
 
-#: src/security/virt-aa-helper.c:675
+#: src/security/virt-aa-helper.c:685
 msgid "os.type is not defined"
 msgstr "os.type не визначено"
 
-#: src/security/virt-aa-helper.c:710 src/security/virt-aa-helper.c:726
-#: src/security/virt-aa-helper.c:831 src/security/virt-aa-helper.c:840
-#: src/security/virt-aa-helper.c:916 src/security/virt-aa-helper.c:1266
-#: src/security/virt-aa-helper.c:1270 src/security/virt-aa-helper.c:1337
+#: src/security/virt-aa-helper.c:720 src/security/virt-aa-helper.c:736
+#: src/security/virt-aa-helper.c:841 src/security/virt-aa-helper.c:850
+#: src/security/virt-aa-helper.c:926 src/security/virt-aa-helper.c:1276
+#: src/security/virt-aa-helper.c:1280 src/security/virt-aa-helper.c:1347
 msgid "could not allocate memory"
 msgstr "не вдалося розмістити дані у пам’яті"
 
-#: src/security/virt-aa-helper.c:715
+#: src/security/virt-aa-helper.c:725
 msgid "Failed to create XML config object"
 msgstr "Не вдалося створити об’єкт config XML"
 
-#: src/security/virt-aa-helper.c:734
+#: src/security/virt-aa-helper.c:744
 msgid "could not parse XML"
 msgstr "не вдалося обробити XML"
 
-#: src/security/virt-aa-helper.c:739
+#: src/security/virt-aa-helper.c:749
 msgid "could not find name in XML"
 msgstr "не вдалося знайти назву у XML"
 
-#: src/security/virt-aa-helper.c:744
+#: src/security/virt-aa-helper.c:754
 msgid "bad name"
 msgstr "помилкова назва"
 
-#: src/security/virt-aa-helper.c:770
+#: src/security/virt-aa-helper.c:780
 msgid "skipped non-absolute path"
 msgstr "пропущено неабсолютний шлях"
 
-#: src/security/virt-aa-helper.c:777
+#: src/security/virt-aa-helper.c:787
 msgid "could not find realpath for disk"
 msgstr "не вдалося визначити справжній шлях для диска"
 
-#: src/security/virt-aa-helper.c:791
+#: src/security/virt-aa-helper.c:801
 msgid "skipped restricted file"
 msgstr "пропущено файл з обмеженням доступу"
 
-#: src/security/virt-aa-helper.c:921
+#: src/security/virt-aa-helper.c:931
 msgid "given uuid does not match XML uuid"
 msgstr "вказане значення UUID не відповідає UUID з XML"
 
-#: src/security/virt-aa-helper.c:1112
+#: src/security/virt-aa-helper.c:1122
 msgid "failed to allocate file buffer"
 msgstr "не вдалося розмістити у пам’яті буфер роботи з файлами"
 
-#: src/security/virt-aa-helper.c:1161
+#: src/security/virt-aa-helper.c:1171
 msgid "could not allocate memory for disk"
 msgstr "не вдалося розмістити диск у пам’яті"
 
-#: src/security/virt-aa-helper.c:1176 src/security/virt-aa-helper.c:1196
+#: src/security/virt-aa-helper.c:1186 src/security/virt-aa-helper.c:1206
 msgid "invalid UUID"
 msgstr "некоректне значення UUID"
 
-#: src/security/virt-aa-helper.c:1179
+#: src/security/virt-aa-helper.c:1189
 msgid "error copying UUID"
 msgstr "помилка під час спроби копіювання UUID"
 
-#: src/security/virt-aa-helper.c:1188
+#: src/security/virt-aa-helper.c:1198
 msgid "unsupported option"
 msgstr "непідтримуваний параметр"
 
-#: src/security/virt-aa-helper.c:1193
+#: src/security/virt-aa-helper.c:1203
 msgid "bad command"
 msgstr "помилкова команда"
 
-#: src/security/virt-aa-helper.c:1206
+#: src/security/virt-aa-helper.c:1216
 msgid "could not read xml file"
 msgstr "не вдалося прочитати файл XML"
 
-#: src/security/virt-aa-helper.c:1210
+#: src/security/virt-aa-helper.c:1220
 msgid "could not get VM definition"
 msgstr "не вдалося отримати визначення віртуальної машини"
 
-#: src/security/virt-aa-helper.c:1215
+#: src/security/virt-aa-helper.c:1225
 msgid "invalid VM definition"
 msgstr "некоректне визначення віртуальної машини"
 
-#: src/security/virt-aa-helper.c:1247
+#: src/security/virt-aa-helper.c:1257
 msgid "could not set PATH"
 msgstr "не вдалося встановити значення змінної PATH"
 
-#: src/security/virt-aa-helper.c:1251
+#: src/security/virt-aa-helper.c:1261
 msgid "could not set IFS"
 msgstr "не вдалося встановити значення IFS"
 
-#: src/security/virt-aa-helper.c:1262
+#: src/security/virt-aa-helper.c:1272
 msgid "could not parse arguments"
 msgstr "не вдалося обробити аргументи"
 
-#: src/security/virt-aa-helper.c:1313
+#: src/security/virt-aa-helper.c:1323
 msgid "failed to allocate buffer"
 msgstr "не вдалося розмістити у пам’яті буфер"
 
-#: src/security/virt-aa-helper.c:1348
+#: src/security/virt-aa-helper.c:1358
 msgid "could not create profile"
 msgstr "не вдалося створити профіль"
 
@@ -26136,7 +26147,7 @@ msgstr "Ресурс простору блокування «%s» не забл�
 msgid "owner %lld does not hold the resource lock"
 msgstr "власник %lld не втримує блокування ресурсу"
 
-#: src/util/virnetdev.c:101 src/util/virnetdev.c:572
+#: src/util/virnetdev.c:105 src/util/virnetdev.c:576
 #: src/util/virnetdevbridge.c:95 src/util/virnetdevbridge.c:392
 #: src/util/virnetdevbridge.c:462 src/util/virnetdevtap.c:281
 #: src/util/virnetdevtap.c:347
@@ -26144,257 +26155,257 @@ msgstr "власник %lld не втримує блокування ресур�
 msgid "Network interface name '%s' is too long"
 msgstr "Назва інтерфейсу мережі «%s» є занадто довгою"
 
-#: src/util/virnetdev.c:109 src/util/virnetdevbridge.c:89
+#: src/util/virnetdev.c:113 src/util/virnetdevbridge.c:89
 msgid "Cannot open network interface control socket"
 msgstr "Не вдалося відкрити сокет керування інтерфейсом мережі"
 
-#: src/util/virnetdev.c:115
+#: src/util/virnetdev.c:119
 msgid "Cannot set close-on-exec flag for socket"
 msgstr "Не вдалося встановити ознаку close-on-exec для сокета"
 
-#: src/util/virnetdev.c:136
+#: src/util/virnetdev.c:140
 msgid "Network device configuration is not supported on this platform"
 msgstr ""
 "На цій платформі не передбачено можливостей з налаштовування пристроїв мережі"
 
-#: src/util/virnetdev.c:166
+#: src/util/virnetdev.c:170
 #, c-format
 msgid "Unable to check interface flags for %s"
 msgstr "Не вдалося отримати прапорці інтерфейсу для %s"
 
-#: src/util/virnetdev.c:180
+#: src/util/virnetdev.c:184
 #, c-format
 msgid "Unable to check interface %s"
 msgstr "Не вдалося перевірити інтерфейс %s"
 
-#: src/util/virnetdev.c:211 src/util/virnetdev.c:299 src/util/virnetdev.c:317
+#: src/util/virnetdev.c:215 src/util/virnetdev.c:303 src/util/virnetdev.c:321
 #, c-format
 msgid "Cannot get interface MAC on '%s'"
 msgstr "Не вдалося отримати інтерфейс MAC на «%s»"
 
-#: src/util/virnetdev.c:220 src/util/virnetdev.c:254 src/util/virnetdev.c:270
+#: src/util/virnetdev.c:224 src/util/virnetdev.c:258 src/util/virnetdev.c:274
 #, c-format
 msgid "Cannot set interface MAC on '%s'"
 msgstr "Не вдалося встановити MAC-адресу інтерфейсу на «%s»"
 
-#: src/util/virnetdev.c:353
+#: src/util/virnetdev.c:357
 #, c-format
 msgid "Unable to preserve mac for %s"
 msgstr "Не вдалося зберегти MAC-адресу для %s"
 
-#: src/util/virnetdev.c:396 src/util/virnetdev.c:1774
+#: src/util/virnetdev.c:400 src/util/virnetdev.c:1778
 #, c-format
 msgid "Cannot parse MAC address from '%s'"
 msgstr "Не вдалося визначити MAC-адресу з «%s»"
 
-#: src/util/virnetdev.c:432 src/util/virnetdev.c:447
+#: src/util/virnetdev.c:436 src/util/virnetdev.c:451
 #, c-format
 msgid "Cannot get interface MTU on '%s'"
 msgstr "Не вдалося отримати MTU інтерфейсу на «%s»"
 
-#: src/util/virnetdev.c:478 src/util/virnetdev.c:493
+#: src/util/virnetdev.c:482 src/util/virnetdev.c:497
 #, c-format
 msgid "Cannot set interface MTU on '%s'"
 msgstr "Не вдалося встановити MTU інтерфейсу на «%s»"
 
-#: src/util/virnetdev.c:582
+#: src/util/virnetdev.c:586
 #, c-format
 msgid "Unable to rename '%s' to '%s'"
 msgstr "Не вдалося перейменувати «%s» на «%s»"
 
-#: src/util/virnetdev.c:597
+#: src/util/virnetdev.c:601
 #, c-format
 msgid "Cannot rename interface '%s' to '%s' on this platform"
 msgstr "На цій платформі перейменування інтерфейсу «%s» на «%s» неможливе"
 
-#: src/util/virnetdev.c:627 src/util/virnetdev.c:687 src/util/virnetdev.c:704
+#: src/util/virnetdev.c:631 src/util/virnetdev.c:691 src/util/virnetdev.c:708
 #, c-format
 msgid "Cannot get interface flags on '%s'"
 msgstr "Не вдалося отримати прапорці інтерфейсу на «%s»"
 
-#: src/util/virnetdev.c:641 src/util/virnetdev.c:658
+#: src/util/virnetdev.c:645 src/util/virnetdev.c:662
 #, c-format
 msgid "Cannot set interface flags on '%s'"
 msgstr "Не вдалося встановити прапорці інтерфейсу на «%s»"
 
-#: src/util/virnetdev.c:729 src/util/virnetdev.c:782
+#: src/util/virnetdev.c:733 src/util/virnetdev.c:786
 msgid "Unable to open control socket"
 msgstr "Не вдалося відкрити сокет керування"
 
-#: src/util/virnetdev.c:738 src/util/virnetdev.c:788
+#: src/util/virnetdev.c:742 src/util/virnetdev.c:792
 #, c-format
 msgid "invalid interface name %s"
 msgstr "некоректна назва інтерфейсу %s"
 
-#: src/util/virnetdev.c:745
+#: src/util/virnetdev.c:749
 #, c-format
 msgid "Unable to get index for interface %s"
 msgstr "Не вдалося отримати індекс для інтерфейсу %s"
 
-#: src/util/virnetdev.c:765
+#: src/util/virnetdev.c:769
 msgid "Unable to get interface index on this platform"
 msgstr "Неможливо отримати індекс інтерфейсу на цій платформі"
 
-#: src/util/virnetdev.c:795
+#: src/util/virnetdev.c:799
 #, c-format
 msgid "Unable to get VLAN for interface %s"
 msgstr "Неможливо отримати VLAN інтерфейсу %s"
 
-#: src/util/virnetdev.c:812
+#: src/util/virnetdev.c:816
 msgid "Unable to get VLAN on this platform"
 msgstr "Неможливо отримати VLAN на цій платформі"
 
-#: src/util/virnetdev.c:1000
+#: src/util/virnetdev.c:1004
 #, c-format
 msgid "Unable to get IPv4 address for interface %s"
 msgstr "Неможливо отримати адресу IPv4 для інтерфейсу %s"
 
-#: src/util/virnetdev.c:1020
+#: src/util/virnetdev.c:1024
 msgid "Unable to get IPv4 address on this platform"
 msgstr "Неможливо отримати адресу IPv4 на цій платформі"
 
-#: src/util/virnetdev.c:1066
+#: src/util/virnetdev.c:1070
 #, c-format
 msgid "could not get MAC address of interface %s"
 msgstr "не вдалося отримати MAC-адресу інтерфейсу %s"
 
-#: src/util/virnetdev.c:1099
+#: src/util/virnetdev.c:1103
 msgid "Unable to check interface config on this platform"
 msgstr "Неможливо перевірити налаштування інтерфейсу на цій платформі"
 
-#: src/util/virnetdev.c:1171
+#: src/util/virnetdev.c:1175
 msgid "Failed to get PCI Config Address String"
 msgstr "Не вдалося отримати рядок адреси налаштування PCI"
 
-#: src/util/virnetdev.c:1176
+#: src/util/virnetdev.c:1180
 msgid "Failed to get PCI SYSFS file"
 msgstr "Не вдалося отримати файл SYSFS PCI"
 
-#: src/util/virnetdev.c:1332
+#: src/util/virnetdev.c:1336
 msgid "Unable to get virtual functions on this platform"
 msgstr "Не вдалося отримати віртуальні функції на цій платформі"
 
-#: src/util/virnetdev.c:1340
+#: src/util/virnetdev.c:1344
 msgid "Unable to check virtual function status on this platform"
 msgstr "Неможливо перевірити стан віртуальної функції на цій платформі"
 
-#: src/util/virnetdev.c:1350
+#: src/util/virnetdev.c:1354
 msgid "Unable to get virtual function index on this platform"
 msgstr "Неможливо отримати індекс віртуальної функції на цій платформі"
 
-#: src/util/virnetdev.c:1359
+#: src/util/virnetdev.c:1363
 msgid "Unable to get physical function status on this platform"
 msgstr "Неможливо отримати стан фізичної функції на цій платформі"
 
-#: src/util/virnetdev.c:1369
+#: src/util/virnetdev.c:1373
 msgid "Unable to get virtual function info on this platform"
 msgstr ""
 "Неможливо отримати інформацію щодо віртуальної функції на цій платформі"
 
-#: src/util/virnetdev.c:1465
+#: src/util/virnetdev.c:1469
 #, c-format
 msgid "error dumping %s (%d) interface"
 msgstr "помилка під час створення дампу інтерфейсу %s (%d)"
 
-#: src/util/virnetdev.c:1492 src/util/virnetdev.c:1614
+#: src/util/virnetdev.c:1496 src/util/virnetdev.c:1618
 #: src/util/virnetdevmacvlan.c:201 src/util/virnetdevmacvlan.c:278
 #: src/util/virnetdevvportprofile.c:757
 msgid "malformed netlink response message"
 msgstr "помилкове форматування повідомлення відповіді netlink"
 
-#: src/util/virnetdev.c:1497 src/util/virnetdev.c:1619
+#: src/util/virnetdev.c:1501 src/util/virnetdev.c:1623
 #: src/util/virnetdevmacvlan.c:206 src/util/virnetdevmacvlan.c:283
 #: src/util/virnetdevvportprofile.c:762
 msgid "allocated netlink buffer is too small"
 msgstr "отриманий буфер netlink є занадто малим"
 
-#: src/util/virnetdev.c:1592
+#: src/util/virnetdev.c:1596
 #, c-format
 msgid "error during set %s of ifindex %d"
 msgstr "помилка під час встановлення %s ifindex %d"
 
-#: src/util/virnetdev.c:1636
+#: src/util/virnetdev.c:1640
 msgid "missing IFLA_VF_INFO in netlink response"
 msgstr "у відповіді netlink не вистачає IFLA_VF_INFO"
 
-#: src/util/virnetdev.c:1647
+#: src/util/virnetdev.c:1651
 msgid "error parsing IFLA_VF_INFO"
 msgstr "помилка під час обробки IFLA_VF_INFO"
 
-#: src/util/virnetdev.c:1672
+#: src/util/virnetdev.c:1676
 #, c-format
 msgid "couldn't find IFLA_VF_INFO for VF %d in netlink response"
 msgstr "не вдалося знайти IFLA_VF_INFO для VF %d у відповіді netlink"
 
-#: src/util/virnetdev.c:1723
+#: src/util/virnetdev.c:1727
 #, c-format
 msgid "Unable to preserve mac/vlan tag for pf = %s, vf = %d"
 msgstr "Не вдалося зберегти теґ mac/vlan для pf = %s, vf = %d"
 
-#: src/util/virnetdev.c:1765
+#: src/util/virnetdev.c:1769
 #, c-format
 msgid "Cannot parse vlan tag from '%s'"
 msgstr "Не вдалося обробити теґ vlan з «%s»"
 
-#: src/util/virnetdev.c:1843
+#: src/util/virnetdev.c:1847
 msgid "Unable to dump link info on this platform"
 msgstr "Не вдалося створити дамп даних посилання на цій платформі"
 
-#: src/util/virnetdev.c:1855
+#: src/util/virnetdev.c:1859
 msgid "Unable to replace net config on this platform"
 msgstr "Не вдалося замінити налаштування мережі на цій платформі"
 
-#: src/util/virnetdev.c:1866
+#: src/util/virnetdev.c:1870
 msgid "Unable to restore net config on this platform"
 msgstr "Не вдалося відновити налаштування мережі на цій платформі"
 
-#: src/util/virnetdev.c:1889 src/util/virnetdev.c:1937
+#: src/util/virnetdev.c:1893 src/util/virnetdev.c:1941
 #, c-format
 msgid "unable to read: %s"
 msgstr "не вдалося прочитати %s"
 
-#: src/util/virnetdev.c:1896 src/util/virnetdev.c:1907
-#: src/util/virnetdev.c:1945
+#: src/util/virnetdev.c:1900 src/util/virnetdev.c:1911
+#: src/util/virnetdev.c:1949
 #, c-format
 msgid "Unable to parse: %s"
 msgstr "не вдалося обробити %s"
 
-#: src/util/virnetdev.c:2001 src/util/virnetdev.c:2049
+#: src/util/virnetdev.c:2006 src/util/virnetdev.c:2055
 #, c-format
 msgid "Cannot add multicast MAC %s on '%s' interface"
 msgstr ""
 
-#: src/util/virnetdev.c:2016
+#: src/util/virnetdev.c:2021
 #, fuzzy
 msgid "Unable to add address to interface multicast list on this platform"
 msgstr "Неможливо отримати індекс інтерфейсу на цій платформі"
 
-#: src/util/virnetdev.c:2064
+#: src/util/virnetdev.c:2070
 #, fuzzy
 msgid "Unable to delete address from interface multicast list on this platform"
 msgstr "Не вдалося визначити таблицю монтування на цій платформі"
 
-#: src/util/virnetdev.c:2085
+#: src/util/virnetdev.c:2091
 #, fuzzy, c-format
 msgid "failed to parse multicast address from '%s'"
 msgstr "Не вдалося обробити uid і gid з «%s»"
 
-#: src/util/virnetdev.c:2094
+#: src/util/virnetdev.c:2100
 #, fuzzy, c-format
 msgid "Failed to parse interface index from '%s'"
 msgstr "не вдалося визначити додатне ціле значення на основі «%s»"
 
-#: src/util/virnetdev.c:2105
+#: src/util/virnetdev.c:2111
 #, fuzzy, c-format
 msgid "Failed to parse network device name from '%s'"
 msgstr "Не вдалося обробити назву каталогу «%s»"
 
-#: src/util/virnetdev.c:2113 src/util/virnetdev.c:2123
+#: src/util/virnetdev.c:2119 src/util/virnetdev.c:2129
 #, fuzzy, c-format
 msgid "Failed to parse users from '%s'"
 msgstr "Не вдалося обробити запис користувача «%s»"
 
-#: src/util/virnetdev.c:2134
+#: src/util/virnetdev.c:2140
 #, fuzzy, c-format
 msgid "Failed to parse MAC address from '%s'"
 msgstr "Не вдалося визначити MAC-адресу з «%s»"
@@ -27369,15 +27380,15 @@ msgid "Unable to query process ID start time"
 msgstr ""
 "Не вдалося визначити час початку для процесу з вказаним ідентифікатором"
 
-#: src/util/virprocess.c:945
+#: src/util/virprocess.c:944
 msgid "Kernel does not provide mount namespace"
 msgstr "У ядрі не передбачено простору назв для монтування"
 
-#: src/util/virprocess.c:951
+#: src/util/virprocess.c:950
 msgid "Unable to enter mount namespace"
 msgstr "Не вдалося увійти до простору назв для монтування"
 
-#: src/util/virprocess.c:987
+#: src/util/virprocess.c:986
 msgid "Cannot create pipe for child"
 msgstr "Не вдалося створити канал для дочірнього процесу"
 
@@ -27600,12 +27611,12 @@ msgstr "невідомий тип розпізнавання «%s»"
 msgid "failed to parse backing file location '%s'"
 msgstr "не вдалося обробити запис файла резервної копії «%s»"
 
-#: src/util/virstoragefile.c:2142 src/util/virstoragefile.c:2221
+#: src/util/virstoragefile.c:2147 src/util/virstoragefile.c:2221
 #, c-format
 msgid "invalid backing protocol '%s'"
 msgstr "некоректний протокол резервного копіювання, «%s»"
 
-#: src/util/virstoragefile.c:2150
+#: src/util/virstoragefile.c:2155
 #, c-format
 msgid "invalid protocol transport type '%s'"
 msgstr "некоректний тип протоколу передавання, «%s»"
@@ -32454,7 +32465,7 @@ msgstr ""
 msgid "Options --%s and --%s are mutually exclusive"
 msgstr "Параметри --%s і --%s не можна використовувати одночасно"
 
-#: tools/virsh-console.c:383
+#: tools/virsh-console.c:380
 msgid "unable to wait on console condition"
 msgstr "не вдалося зачекати на виконання умови на консолі"
 
@@ -40273,6 +40284,9 @@ msgstr "Не вдалося виконати оболонку %s"
 
 #~ msgid "Unknown device address type"
 #~ msgstr "Невідомий тип адреси пристрою"
+
+#~ msgid "could not parse element %s"
+#~ msgstr "не вдалося обробити елемент %s"
 
 #~ msgid "domain is not being migrated"
 #~ msgstr "домен не переноситься"

@@ -1518,7 +1518,8 @@ libvirt_driver_vbox_storage_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_DRIVER_MODULES_TRUE@@WITH_VBOX_TRUE@	-rpath $(moddir)
 @WITH_VBOX_TRUE@libvirt_driver_vbox_storage_impl_la_DEPENDENCIES =  \
 @WITH_VBOX_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-@WITH_VBOX_TRUE@	$(am__DEPENDENCIES_1)
+@WITH_VBOX_TRUE@	$(am__DEPENDENCIES_1) \
+@WITH_VBOX_TRUE@	libvirt_driver_vbox_impl.la
 am__libvirt_driver_vbox_storage_impl_la_SOURCES_DIST =  \
 	vbox/vbox_driver.c vbox/vbox_driver.h vbox/vbox_storage.c \
 	vbox/vbox_get_driver.h
@@ -4593,7 +4594,8 @@ GENERATED_SYM_FILES = \
 @WITH_VBOX_TRUE@libvirt_driver_vbox_storage_impl_la_LDFLAGS = $(AM_LDFLAGS)
 @WITH_VBOX_TRUE@libvirt_driver_vbox_storage_impl_la_LIBADD = $(DLOPEN_LIBS)		\
 @WITH_VBOX_TRUE@		$(MSCOM_LIBS)					\
-@WITH_VBOX_TRUE@		$(LIBXML_LIBS)
+@WITH_VBOX_TRUE@		$(LIBXML_LIBS)					\
+@WITH_VBOX_TRUE@		libvirt_driver_vbox_impl.la
 
 @WITH_VBOX_TRUE@libvirt_driver_vbox_storage_impl_la_SOURCES = $(VBOX_STORAGE_DRIVER_SOURCES)
 @WITH_XENAPI_TRUE@libvirt_driver_xenapi_la_CFLAGS = $(LIBXENSERVER_CFLAGS) $(CURL_CFLAGS) \
@@ -10287,7 +10289,6 @@ $(abs_builddir)/cpu/cpu_map.xml:
 %protocol.h: %protocol.x $(srcdir)/rpc/genprotocol.pl
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/genprotocol.pl $(RPCGEN) -h \
 	       $< $(srcdir)/$(subst $(srcdir)/,,$@)
-@WITH_VBOX_TRUE@		libvirt_driver_vbox_impl.la
 
 $(ESX_DRIVER_GENERATED): $(ESX_GENERATED_STAMP)
 
