@@ -43,10 +43,10 @@ typedef enum <a href="#virErrorDomain">virErrorDomain</a>;
 typedef enum <a href="#virErrorLevel">virErrorLevel</a>;
 typedef enum <a href="#virErrorNumber">virErrorNumber</a>;
 typedef <a href="libvirt-virterror.html#virError">virError</a> * <a href="#virErrorPtr">virErrorPtr</a>;
-int	<a href="#virConnCopyLastError">virConnCopyLastError</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> to);
-<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	<a href="#virConnGetLastError">virConnGetLastError</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
-void	<a href="#virConnResetLastError">virConnResetLastError</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
-void	<a href="#virConnSetErrorFunc">virConnSetErrorFunc</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorFunc">virErrorFunc</a> handler);
+int	<a href="#virConnCopyLastError">virConnCopyLastError</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> to);
+<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	<a href="#virConnGetLastError">virConnGetLastError</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+void	<a href="#virConnResetLastError">virConnResetLastError</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+void	<a href="#virConnSetErrorFunc">virConnSetErrorFunc</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorFunc">virErrorFunc</a> handler);
 int	<a href="#virCopyLastError">virCopyLastError</a>		(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> to);
 void	<a href="#virDefaultErrorFunc">virDefaultErrorFunc</a>		(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> err);
 typedef void <a href="#virErrorFunc">virErrorFunc</a>			(void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> error);
@@ -70,14 +70,14 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     int	domain	: What part of the library raised this error
     char *	message	: human-readable informative error message
     <a href="libvirt-virterror.html#virErrorLevel">virErrorLevel</a>	level	: how consequent is the error
-    <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	conn	: connection if available, deprecated see note above
-    <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	dom	: domain if available, deprecated see note above
+    <a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	conn	: connection if available, deprecated see note above
+    <a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a>	dom	: domain if available, deprecated see note above
     char *	str1	: extra string information
     char *	str2	: extra string information
     char *	str3	: extra string information
     int	int1	: extra number information
     int	int2	: extra number information
-    <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	net	: network if available, deprecated see note above
+    <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	net	: network if available, deprecated see note above
 } virError;
 </pre><p/>
 </div>
@@ -262,7 +262,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
 </pre><p>Signature of a function to use when there is an error raised by the library.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>userData</tt></i>:</span></td><td>user provided data for the error callback</td></tr><tr><td><span class="term"><i><tt>error</tt></i>:</span></td><td>the error being raised.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnCopyLastError"/>virConnCopyLastError ()</h3><pre class="programlisting">int	virConnCopyLastError		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> to)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnCopyLastError"/>virConnCopyLastError ()</h3><pre class="programlisting">int	virConnCopyLastError		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> to)<br/>
 </pre><p>Copy the content of the last error caught on that connection
 
 This method is not protected against access from multiple
@@ -282,7 +282,7 @@ remains for backwards compatibility.
 One will need to free the result with virResetError()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>target to receive the copy</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if no error was found and the error code otherwise and -1 in case of parameter error.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnGetLastError"/>virConnGetLastError ()</h3><pre class="programlisting"><a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	virConnGetLastError	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnGetLastError"/>virConnGetLastError ()</h3><pre class="programlisting"><a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	virConnGetLastError	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Provide a pointer to the last error caught on that connection
 
 This method is not protected against access from multiple
@@ -300,14 +300,14 @@ application can always use virGetLastError(). This method
 remains for backwards compatibility.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the last error or NULL if none occurred.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnResetLastError"/>virConnResetLastError ()</h3><pre class="programlisting">void	virConnResetLastError		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnResetLastError"/>virConnResetLastError ()</h3><pre class="programlisting">void	virConnResetLastError		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>The error object is kept in thread local storage, so separate
 threads can safely access this concurrently.
 
 Reset the last error caught on that connection</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnSetErrorFunc"/>virConnSetErrorFunc ()</h3><pre class="programlisting">void	virConnSetErrorFunc		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorFunc">virErrorFunc</a> handler)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnSetErrorFunc"/>virConnSetErrorFunc ()</h3><pre class="programlisting">void	virConnSetErrorFunc		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorFunc">virErrorFunc</a> handler)<br/>
 </pre><p>Set a connection error handling function, if @handler is NULL
 it will reset to default which is to pass error back to the global
 library handler.</p>

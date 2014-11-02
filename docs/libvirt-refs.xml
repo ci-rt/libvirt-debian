@@ -11745,9 +11745,6 @@
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
-        <word name='false'>
-          <ref name='virEventRunDefaultImpl'/>
-        </word>
         <word name='family'>
           <ref name='_virDomainEventGraphicsAddress'/>
         </word>
