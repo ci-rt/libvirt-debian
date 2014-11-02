@@ -1,3 +1,12 @@
+libvirt (1.2.10~rc2-1) experimental; urgency=medium
+
+  * [7e3dbba] New upstream version 1.2.10~rc2
+  * [a0832bc] Check if the directories exist before removing them. rmdir
+    returns nonzero otherwise and this is more strict than just using || true.
+    (Closes: #767672)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 02 Nov 2014 12:10:23 +0100
+
 libvirt (1.2.10~rc1-1) experimental; urgency=medium
 
   * Upload to experimental
