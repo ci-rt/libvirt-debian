@@ -13,3 +13,4 @@ Skip-vircgrouptest.patch
 debian/Use-sensible-editor-as-fallback.patch
 debian/Debianize-virtlockd.patch
 qemu-use-systemd-s-TerminateMachine-to-kill-all-proc.patch
+security/CVE-2014-7823-dumpxml-security-hole-with-migratable-.patch
