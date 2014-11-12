@@ -11,3 +11,4 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 debian/Debianize-virtlockd.patch
+security/CVE-2014-7823-dumpxml-security-hole-with-migratable-.patch
