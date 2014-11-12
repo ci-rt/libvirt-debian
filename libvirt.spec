@@ -363,7 +363,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.2.10
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -372,7 +372,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2285,6 +2285,12 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Mon Nov  3 2014 Daniel Veillard <veillard@redhat.com> - 1.2.10-1
+- vbox: various drivers improvements
+- libxl: various drivers improvements
+- Internal driver refactoring
+- a number of improvements and bug fixes
+
 * Wed Oct  1 2014 Daniel Veillard <veillard@redhat.com> - 1.2.9-1
 - CVE-2014-3657: domain_conf: fix domain deadlock
 - CVE-2014-3633: qemu: blkiotune: Use correct definition when looking up disk
