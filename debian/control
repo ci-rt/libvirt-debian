@@ -123,6 +123,8 @@ Description: programs for the libvirt library
 
 Package: libvirt-daemon-system
 Architecture: any
+# Needed to clean up old libvirt-bin cruft, can be removed post jessie
+Pre-Depends: init-system-helpers (>= 1.18~)
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
