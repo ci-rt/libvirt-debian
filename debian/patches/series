@@ -1,3 +1,4 @@
+debian/Pygrub-path.patch
 debian/remove-RHism.diff.patch
 debian/Don-t-enable-default-network-on-boot.patch
 debian/fix-Debian-specific-path-to-hvm-loader.patch
