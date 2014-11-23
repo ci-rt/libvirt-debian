@@ -1,4 +1,4 @@
-debian/Pygrub-path.patch
+debian/allow-libxl-to-find-default-path-to-pygrub.patch
 debian/remove-RHism.diff.patch
 debian/Don-t-enable-default-network-on-boot.patch
 debian/fix-Debian-specific-path-to-hvm-loader.patch

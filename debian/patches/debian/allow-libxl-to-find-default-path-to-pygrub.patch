@@ -5,7 +5,12 @@ Subject: allow libxl to find default path to pygrub.
 The Xen debian packages relocate pygrub into
 /usr/lib/xen-X.Y/bin/pygrub, not /usr/bin/pygrub. Since libxl knows to
 DTRT with a bare "pygrub" just use that by default.
+---
+ src/libxl/libxl_conf.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
+diff --git a/src/libxl/libxl_conf.h b/src/libxl/libxl_conf.h
+index da66b4e..938a891 100644
 --- a/src/libxl/libxl_conf.h
 +++ b/src/libxl/libxl_conf.h
 @@ -53,7 +53,7 @@
