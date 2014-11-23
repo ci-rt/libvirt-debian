@@ -39,6 +39,7 @@ Build-Depends:
  libapparmor-dev [linux-any],
  libsystemd-daemon-dev [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
+ python,
 # for --with-storage-sheepdog
  sheepdog [linux-any],
 # for --with-storage-rados
