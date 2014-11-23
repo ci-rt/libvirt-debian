@@ -1,3 +1,18 @@
+libvirt (1.2.9-5) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [5c47e64] Pre-Depend on init-system-helpers.
+    Thanks to intrigeri and Bastien ROUCARIES (Closes: #769551, #766362)
+  * [9aa75f7] util: Prepare URI formatting for libxml2 >= 2.9.2
+    (Closes: #769653)
+
+  [ Ian Campbell ]
+  * [bfe835f] Specify "pygrub" by default for libxl backend guests.
+    Using an absolute path prevents libxl from providing the correct
+    default. (Closes: #770485)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 23 Nov 2014 14:57:13 +0100
+
 libvirt (1.2.9-4) unstable; urgency=medium
 
   * [4cdad47] Allow backported versions of dh-systemd
