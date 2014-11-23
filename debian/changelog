@@ -1,3 +1,10 @@
+libvirt (1.2.9-6) unstable; urgency=medium
+
+  * [9779548] Add a python build-dependency for the docs build
+    (Closes: #770775)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 23 Nov 2014 18:47:42 +0100
+
 libvirt (1.2.9-5) unstable; urgency=medium
 
   [ Guido Günther ]
