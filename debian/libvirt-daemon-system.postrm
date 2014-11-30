@@ -37,14 +37,15 @@ case "$1" in
 	rm -rf /var/log/libvirt \
 	       /var/cache/libvirt/qemu/capabilities
 
-	# Clean up created dirs if emtpy, they contain
-	# precious data otherwise
-	rmdir --ignore-fail-on-non-empty   \
-	    /var/lib/libvirt/qemu/save     \
-	    /var/lib/libvirt/qemu/snapshot \
-	    /var/lib/libvirt/qemu/dump     \
-	    /var/lib/libvirt/qemu          \
-	    /var/cache/libvirt/qemu
+	# Clean up created dirs if existend and emtpy, they contain precious
+	# data otherwise
+	for dir in /var/lib/libvirt/qemu/save     \
+		   /var/lib/libvirt/qemu/snapshot \
+		   /var/lib/libvirt/qemu/dump     \
+		   /var/lib/libvirt/qemu          \
+		   /var/cache/libvirt/qemu; do
+	    [ ! -d $dir ] || rmdir --ignore-fail-on-non-empty $dir
+	done
     ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;

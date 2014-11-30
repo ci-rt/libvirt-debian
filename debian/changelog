@@ -1,3 +1,38 @@
+libvirt (1.2.9-6) unstable; urgency=medium
+
+  * [9779548] Add a python build-dependency for the docs build
+    (Closes: #770775)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 23 Nov 2014 18:47:42 +0100
+
+libvirt (1.2.9-5) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [5c47e64] Pre-Depend on init-system-helpers.
+    Thanks to intrigeri and Bastien ROUCARIES (Closes: #769551, #766362)
+  * [9aa75f7] util: Prepare URI formatting for libxml2 >= 2.9.2
+    (Closes: #769653)
+
+  [ Ian Campbell ]
+  * [bfe835f] Specify "pygrub" by default for libxl backend guests.
+    Using an absolute path prevents libxl from providing the correct
+    default. (Closes: #770485)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 23 Nov 2014 14:57:13 +0100
+
+libvirt (1.2.9-4) unstable; urgency=medium
+
+  * [4cdad47] Allow backported versions of dh-systemd
+  * [fb4bf47] Add suggests to libvirt-daemon-system to libvirt-daemon
+    (Closes: #767343)
+  * [e4f03ca] Check if the directories exist before removing them
+    rmdir returns nonzero otherwise and this is more strict than just using
+    || true. (Closes: #767672)
+  * [030fd97] CVE-2014-7823: dumpxml: security hole with migratable flag
+    (Closes: #769149)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 12 Nov 2014 08:11:17 +0100
+
 libvirt (1.2.9-3~bpo70+1) wheezy-backports; urgency=medium
 
   * Rebuild for wheezy-backports.

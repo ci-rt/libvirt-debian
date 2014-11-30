@@ -1,3 +1,4 @@
+debian/allow-libxl-to-find-default-path-to-pygrub.patch
 debian/remove-RHism.diff.patch
 debian/Don-t-enable-default-network-on-boot.patch
 debian/fix-Debian-specific-path-to-hvm-loader.patch
@@ -13,3 +14,5 @@ Skip-vircgrouptest.patch
 debian/Use-sensible-editor-as-fallback.patch
 debian/Debianize-virtlockd.patch
 qemu-use-systemd-s-TerminateMachine-to-kill-all-proc.patch
+security/CVE-2014-7823-dumpxml-security-hole-with-migratable-.patch
+util-Prepare-URI-formatting-for-libxml2-2.9.2.patch

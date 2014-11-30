@@ -38,6 +38,7 @@ Build-Depends:
  libapparmor-dev [linux-any],
  libsystemd-daemon-dev [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
+ python,
 # for lxc fuse support
  libfuse-dev [linux-any],
 # for libssh2 connection URIs
@@ -83,6 +84,8 @@ Depends:
 Section: admin
 Replaces: libvirt-bin (<< 1.2.6-1~)
 Conflicts: libvirt-bin (<< 1.2.6-1~)
+Suggests:
+ libvirt-daemon,
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -103,6 +106,8 @@ Recommends:
  qemu-kvm | qemu (>= 0.9.1),
  libxml2-utils,
  netcat-openbsd,
+Suggests:
+ libvirt-daemon-system,
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -113,6 +118,8 @@ Description: programs for the libvirt library
 
 Package: libvirt-daemon-system
 Architecture: any
+# Needed to clean up old libvirt-bin cruft, can be removed post jessie
+Pre-Depends: init-system-helpers (>= 1.18~)
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
