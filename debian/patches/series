@@ -1,4 +1,3 @@
-debian/allow-libxl-to-find-default-path-to-pygrub.patch
 debian/remove-RHism.diff.patch
 debian/Don-t-enable-default-network-on-boot.patch
 debian/fix-Debian-specific-path-to-hvm-loader.patch
@@ -12,4 +11,3 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 debian/Debianize-virtlockd.patch
-security/CVE-2014-7823-dumpxml-security-hole-with-migratable-.patch
