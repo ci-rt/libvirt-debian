@@ -1,0 +1,44 @@
+From: Martin Kletzander <mkletzan@redhat.com>
+Date: Fri, 3 Oct 2014 18:27:01 +0200
+Subject: util: Prepare URI formatting for libxml2 >= 2.9.2
+
+Since commit 8eb55d782a2b9afacc7938694891cc6fad7b42a5 libxml2 removes
+two slashes from the URI when there is no server part.  This is fixed
+with beb7281055dbf0ed4d041022a67c6c5cfd126f25, but only if the calling
+application calls xmlSaveUri() on URI that xmlURIParse() parsed.  And
+that is not the case in virURIFormat().  virURIFormat() accepts
+virURIPtr that can be created without parsing it and we do that when we
+format network storage paths for gluster for example.  Even though
+virStorageSourceParseBackingURI() uses virURIParse(), it throws that data
+structure right away.
+
+Since we want to format URIs as URIs and not absolute URIs or opaque
+URIs (see RFC 3986), we can specify that with a special hack thanks to
+commit beb7281055dbf0ed4d041022a67c6c5cfd126f25, by setting port to -1.
+
+This fixes qemuxml2argvtest test where the disk-drive-network-gluster
+case was failing.
+
+Signed-off-by: Martin Kletzander <mkletzan@redhat.com>
+---
+ src/util/viruri.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/util/viruri.c b/src/util/viruri.c
+index 69e7649..23d86c5 100644
+--- a/src/util/viruri.c
++++ b/src/util/viruri.c
+@@ -254,6 +254,13 @@ virURIFormat(virURIPtr uri)
+         xmluri.server = tmpserver;
+     }
+ 
++    /*
++     * This helps libxml2 deal with the difference
++     * between uri:/absolute/path and uri:///absolute/path.
++     */
++    if (!xmluri.server && !xmluri.port)
++        xmluri.port = -1;
++
+     ret = (char *)xmlSaveUri(&xmluri);
+     if (!ret) {
+         virReportOOMError();

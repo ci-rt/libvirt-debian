@@ -5,7 +5,7 @@ Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.deb
 Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
 Build-Depends:
  debhelper (>= 7),
- dh-systemd (>= 1.18),
+ dh-systemd (>= 1.18~),
  libxml2-dev,
  libncurses5-dev,
  libreadline-dev,
@@ -39,6 +39,7 @@ Build-Depends:
  libapparmor-dev [linux-any],
  libsystemd-daemon-dev [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
+ python,
 # for --with-storage-sheepdog
  sheepdog [linux-any],
 # for --with-storage-rados
@@ -123,6 +124,8 @@ Description: programs for the libvirt library
 
 Package: libvirt-daemon-system
 Architecture: any
+# Needed to clean up old libvirt-bin cruft, can be removed post jessie
+Pre-Depends: init-system-helpers (>= 1.18~)
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
