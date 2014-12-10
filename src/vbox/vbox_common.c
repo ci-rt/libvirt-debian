@@ -955,9 +955,8 @@ vboxSetBootDeviceOrder(virDomainDefPtr def, vboxGlobalData *data,
     }
 
     /* Clear the defaults first */
-    for (i = 0; i < maxBootPosition; i++) {
+    for (i = 0; i < maxBootPosition; i++)
         gVBoxAPI.UIMachine.SetBootOrder(machine, i+1, DeviceType_Null);
-    }
 
     for (i = 0; (i < def->os.nBootDevs) && (i < maxBootPosition); i++) {
         PRUint32 device = DeviceType_Null;
@@ -2115,9 +2114,8 @@ vboxStartMachine(virDomainPtr dom, int maxDomID, IMachine *machine, vboxIIDUnion
             }
         }
 
-        if (STREQ(valueTypeUtf8, "vrdp")) {
+        if (STREQ(valueTypeUtf8, "vrdp"))
             vrdpPresent = 1;
-        }
 
         if (!vrdpPresent && !sdlPresent && !guiPresent) {
             /* if nothing is selected it means either the machine xml
@@ -2159,9 +2157,8 @@ vboxStartMachine(virDomainPtr dom, int maxDomID, IMachine *machine, vboxIIDUnion
         VBOX_UTF8_TO_UTF16("sdl", &sessionType);
     }
 
-    if (vrdpPresent) {
+    if (vrdpPresent)
         VBOX_UTF8_TO_UTF16("vrdp", &sessionType);
-    }
 
     rc = gVBoxAPI.UIMachine.LaunchVMProcess(data, machine, iid,
                                             sessionType, env,
@@ -2995,9 +2992,8 @@ vboxHostDeviceGetXMLDesc(vboxGlobalData *data, virDomainDefPtr def, IMachine *ma
         IUSBDeviceFilter *deviceFilter = deviceFilters.items[i];
 
         gVBoxAPI.UIUSBDeviceFilter.GetActive(deviceFilter, &active);
-        if (active) {
+        if (active)
             def->nhostdevs++;
-        }
     }
 
     if (def->nhostdevs == 0)
@@ -3222,9 +3218,8 @@ vboxDumpIDEHDDsNew(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 
     /* cleanup on error */
     if (error) {
-        for (i = 0; i < def->ndisks; i++) {
+        for (i = 0; i < def->ndisks; i++)
             VIR_FREE(def->disks[i]);
-        }
         VIR_FREE(def->disks);
         def->ndisks = 0;
     }
@@ -3393,14 +3388,12 @@ vboxDumpDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                 }
 
                 gVBoxAPI.UIVRDxServer.GetAllowMultiConnection(VRDxServer, &allowMultiConnection);
-                if (allowMultiConnection) {
+                if (allowMultiConnection)
                     def->graphics[def->ngraphics]->data.rdp.multiUser = true;
-                }
 
                 gVBoxAPI.UIVRDxServer.GetReuseSingleConnection(VRDxServer, &reuseSingleConnection);
-                if (reuseSingleConnection) {
+                if (reuseSingleConnection)
                     def->graphics[def->ngraphics]->data.rdp.replaceUser = true;
-                }
 
                 def->ngraphics++;
             } else {
@@ -3488,9 +3481,8 @@ vboxDumpNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine, PR
             PRBool enabled = PR_FALSE;
 
             gVBoxAPI.UINetworkAdapter.GetEnabled(adapter, &enabled);
-            if (enabled) {
+            if (enabled)
                 def->nnets++;
-            }
 
             VBOX_RELEASE(adapter);
         }
@@ -3498,9 +3490,8 @@ vboxDumpNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine, PR
 
     /* Allocate memory for the networkcards which are enabled */
     if ((def->nnets > 0) && (VIR_ALLOC_N(def->nets, def->nnets) >= 0)) {
-        for (i = 0; i < def->nnets; i++) {
+        for (i = 0; i < def->nnets; i++)
             ignore_value(VIR_ALLOC(def->nets[i]));
-        }
     }
 
     /* Now get the details about the network cards here */
@@ -3669,9 +3660,8 @@ vboxDumpSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine, PRU
             PRBool enabled = PR_FALSE;
 
             gVBoxAPI.UISerialPort.GetEnabled(serialPort, &enabled);
-            if (enabled) {
+            if (enabled)
                 def->nserials++;
-            }
 
             VBOX_RELEASE(serialPort);
         }
@@ -3679,9 +3669,8 @@ vboxDumpSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine, PRU
 
     /* Allocate memory for the serial ports which are enabled */
     if ((def->nserials > 0) && (VIR_ALLOC_N(def->serials, def->nserials) >= 0)) {
-        for (i = 0; i < def->nserials; i++) {
+        for (i = 0; i < def->nserials; i++)
             ignore_value(VIR_ALLOC(def->serials[i]));
-        }
     }
 
     /* Now get the details about the serial ports here */
@@ -3759,9 +3748,8 @@ vboxDumpParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine, P
             PRBool enabled = PR_FALSE;
 
             gVBoxAPI.UIParallelPort.GetEnabled(parallelPort, &enabled);
-            if (enabled) {
+            if (enabled)
                 def->nparallels++;
-            }
 
             VBOX_RELEASE(parallelPort);
         }
@@ -3769,9 +3757,8 @@ vboxDumpParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine, P
 
     /* Allocate memory for the parallel ports which are enabled */
     if ((def->nparallels > 0) && (VIR_ALLOC_N(def->parallels, def->nparallels) >= 0)) {
-        for (i = 0; i < def->nparallels; i++) {
+        for (i = 0; i < def->nparallels; i++)
             ignore_value(VIR_ALLOC(def->parallels[i]));
-        }
     }
 
     /* Now get the details about the parallel ports here */
@@ -4078,9 +4065,8 @@ static int vboxConnectNumOfDefinedDomains(virConnectPtr conn)
             continue;
 
         gVBoxAPI.UIMachine.GetState(machine, &state);
-        if (gVBoxAPI.machineStateChecker.Inactive(state)) {
+        if (gVBoxAPI.machineStateChecker.Inactive(state))
             ret++;
-        }
     }
 
  cleanup:
@@ -4144,23 +4130,12 @@ static int vboxDomainAttachDeviceImpl(virDomainPtr dom,
                 const char *src = virDomainDiskGetSource(dev->data.disk);
                 int type = virDomainDiskGetType(dev->data.disk);
 
-                if (dev->data.disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
-                    if (type == VIR_STORAGE_TYPE_FILE && src) {
-                        ret = gVBoxAPI.attachDVD(data, machine, src);
-                    } else if (type == VIR_STORAGE_TYPE_BLOCK) {
-                    }
-                } else if (dev->data.disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
-                    if (type == VIR_STORAGE_TYPE_FILE && src) {
-                        ret = gVBoxAPI.attachFloppy(data, machine, src);
-                    } else if (type == VIR_STORAGE_TYPE_BLOCK) {
-                    }
-                }
-            }
-        } else if (dev->type == VIR_DOMAIN_DEVICE_NET) {
-        } else if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
-            if (dev->data.hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
-                if (dev->data.hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
-                }
+                if (dev->data.disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
+                    type == VIR_STORAGE_TYPE_FILE && src)
+                    ret = gVBoxAPI.attachDVD(data, machine, src);
+                else if (dev->data.disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY &&
+                         type == VIR_STORAGE_TYPE_FILE && src)
+                    ret = gVBoxAPI.attachFloppy(data, machine, src);
             }
         } else if (dev->type == VIR_DOMAIN_DEVICE_FS &&
                    dev->data.fs->type == VIR_DOMAIN_FS_TYPE_MOUNT) {
@@ -5776,9 +5751,8 @@ static int vboxSnapshotGetReadWriteDisks(virDomainSnapshotDefPtr def,
     ret = 0;
  cleanup:
     if (ret < 0) {
-        for (i = 0; i < def->ndisks; i++) {
+        for (i = 0; i < def->ndisks; i++)
             VIR_FREE(def->disks[i].src);
-        }
         VIR_FREE(def->disks);
         def->ndisks = 0;
     }
@@ -6064,13 +6038,11 @@ static char *vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
         def->dom->os.arch = virArchFromHost();
         gVBoxAPI.UIMachine.GetCPUCount(machine, &CPUCount);
         def->dom->maxvcpus = def->dom->vcpus = CPUCount;
-        if (vboxSnapshotGetReadWriteDisks(def, snapshot) < 0) {
+        if (vboxSnapshotGetReadWriteDisks(def, snapshot) < 0)
             VIR_DEBUG("Could not get read write disks for snapshot");
-        }
 
-        if (vboxSnapshotGetReadOnlyDisks(snapshot, def) < 0) {
+        if (vboxSnapshotGetReadOnlyDisks(snapshot, def) < 0)
             VIR_DEBUG("Could not get Readonly disks for snapshot");
-        }
     }
 
     rc = gVBoxAPI.UISnapshot.GetDescription(snap, &str16);
@@ -7525,10 +7497,8 @@ vboxConnectListAllDomains(virConnectPtr conn,
 
  cleanup:
     if (doms) {
-        for (i = 0; i < count; i++) {
-            if (doms[i])
-                virDomainFree(doms[i]);
-        }
+        for (i = 0; i < count; i++)
+            virObjectUnref(doms[i]);
     }
     VIR_FREE(doms);
 

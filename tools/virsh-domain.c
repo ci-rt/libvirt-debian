@@ -161,9 +161,8 @@ vshNodeGetCPUCount(virConnectPtr conn)
     if ((ret = virNodeGetCPUMap(conn, NULL, NULL, 0)) < 0) {
         /* fall back to nodeinfo */
         vshResetLibvirtError();
-        if (virNodeGetInfo(conn, &nodeinfo) == 0) {
+        if (virNodeGetInfo(conn, &nodeinfo) == 0)
             ret = VIR_NODEINFO_MAXCPUS(nodeinfo);
-        }
     }
     return ret;
 }
@@ -1111,6 +1110,62 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
      .type = VSH_OT_INT,
      .help = N_("write I/O operations limit per second")
     },
+    {.name = "total_bytes_sec_max",
+     .type = VSH_OT_ALIAS,
+     .help = "total-bytes-sec-max"
+    },
+    {.name = "total-bytes-sec-max",
+     .type = VSH_OT_INT,
+     .help = N_("total max in bytes")
+    },
+    {.name = "read_bytes_sec_max",
+     .type = VSH_OT_ALIAS,
+     .help = "read-bytes-sec-max"
+    },
+    {.name = "read-bytes-sec-max",
+     .type = VSH_OT_INT,
+     .help = N_("read max in bytes")
+    },
+    {.name = "write_bytes_sec_max",
+     .type = VSH_OT_ALIAS,
+     .help = "write-bytes-sec-max"
+    },
+    {.name = "write-bytes-sec-max",
+     .type = VSH_OT_INT,
+     .help = N_("write max in bytes")
+    },
+    {.name = "total_iops_sec_max",
+     .type = VSH_OT_ALIAS,
+     .help = "total-iops-sec-max"
+    },
+    {.name = "total-iops-sec-max",
+     .type = VSH_OT_INT,
+     .help = N_("total I/O operations max")
+    },
+    {.name = "read_iops_sec_max",
+     .type = VSH_OT_ALIAS,
+     .help = "read-iops-sec-max"
+    },
+    {.name = "read-iops-sec-max",
+     .type = VSH_OT_INT,
+     .help = N_("read I/O operations max")
+    },
+    {.name = "write_iops_sec_max",
+     .type = VSH_OT_ALIAS,
+     .help = "write-iops-sec-max"
+    },
+    {.name = "write-iops-sec-max",
+     .type = VSH_OT_INT,
+     .help = N_("write I/O operations max")
+    },
+    {.name = "size_iops_sec",
+     .type = VSH_OT_ALIAS,
+     .help = "size-iops-sec"
+    },
+    {.name = "size-iops-sec",
+     .type = VSH_OT_INT,
+     .help = N_("I/O size in bytes")
+    },
     {.name = "config",
      .type = VSH_OT_BOOL,
      .help = N_("affect next boot")
@@ -1184,6 +1239,33 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
+    if ((rv = vshCommandOptULongLong(cmd, "total-bytes-sec-max", &value)) < 0) {
+        goto interror;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX,
+                                    value) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "read-bytes-sec-max", &value)) < 0) {
+        goto interror;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX,
+                                    value) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "write-bytes-sec-max", &value)) < 0) {
+        goto interror;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX,
+                                    value) < 0)
+            goto save_error;
+    }
+
     if ((rv = vshCommandOptULongLong(cmd, "total-iops-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
@@ -1207,6 +1289,42 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
                                     VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC,
+                                    value) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "write-iops-sec-max", &value)) < 0) {
+        goto interror;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX,
+                                    value) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "read-iops-sec-max", &value)) < 0) {
+        goto interror;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX,
+                                    value) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "total-iops-sec-max", &value)) < 0) {
+        goto interror;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX,
+                                    value) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "size-iops-sec", &value)) < 0) {
+        goto interror;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC,
                                     value) < 0)
             goto save_error;
     }
@@ -1591,6 +1709,17 @@ static void vshCatchInt(int sig ATTRIBUTE_UNUSED,
     intCaught = 1;
 }
 
+static void
+vshBlockJobStatusHandler(virConnectPtr conn ATTRIBUTE_UNUSED,
+                         virDomainPtr dom ATTRIBUTE_UNUSED,
+                         const char *disk ATTRIBUTE_UNUSED,
+                         int type ATTRIBUTE_UNUSED,
+                         int status,
+                         void *opaque)
+{
+    *(int *) opaque = status;
+}
+
 /*
  * "blockcommit" command
  */
@@ -1616,7 +1745,7 @@ static const vshCmdOptDef opts_block_commit[] = {
      .help = N_("fully-qualified path of disk")
     },
     {.name = "bandwidth",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_INT,
      .help = N_("bandwidth limit in MiB/s")
     },
     {.name = "base",
@@ -1690,6 +1819,8 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
     const char *path = NULL;
     bool quit = false;
     int abort_flags = 0;
+    int status = -1;
+    int cb_id = -1;
 
     blocking |= vshCommandOptBool(cmd, "timeout") || pivot || finish;
     if (blocking) {
@@ -1718,6 +1849,17 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, "%s", _("missing --wait option"));
         return false;
     }
+
+    virConnectDomainEventGenericCallback cb =
+        VIR_DOMAIN_EVENT_CALLBACK(vshBlockJobStatusHandler);
+
+    if ((cb_id = virConnectDomainEventRegisterAny(ctl->conn,
+                                                  dom,
+                                                  VIR_DOMAIN_EVENT_ID_BLOCK_JOB,
+                                                  cb,
+                                                  &status,
+                                                  NULL)) < 0)
+        vshResetLibvirtError();
 
     if (!blockJobImpl(ctl, cmd, VSH_CMD_BLOCK_JOB_COMMIT, &dom))
         goto cleanup;
@@ -1760,7 +1902,7 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
                      intCaught ? "interrupted" : "timeout");
             intCaught = 0;
             timeout = 0;
-            quit = true;
+            status = VIR_DOMAIN_BLOCK_JOB_CANCELED;
             if (virDomainBlockJobAbort(dom, path, abort_flags) < 0) {
                 vshError(ctl, _("failed to abort job for disk %s"), path);
                 goto cleanup;
@@ -1771,6 +1913,9 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
             usleep(500 * 1000);
         }
     }
+
+    if (status == VIR_DOMAIN_BLOCK_JOB_CANCELED)
+        quit = true;
 
     if (verbose && !quit) {
         /* printf [100 %] */
@@ -1802,6 +1947,8 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
         virDomainFree(dom);
     if (blocking)
         sigaction(SIGINT, &old_sig_action, NULL);
+    if (cb_id >= 0)
+        virConnectDomainEventDeregisterAny(ctl->conn, cb_id);
     return ret;
 }
 
@@ -1834,7 +1981,7 @@ static const vshCmdOptDef opts_block_copy[] = {
      .help = N_("path of the copy to create")
     },
     {.name = "bandwidth",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_INT,
      .help = N_("bandwidth limit in MiB/s")
     },
     {.name = "shallow",
@@ -1925,6 +2072,8 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
     char *xmlstr = NULL;
     virTypedParameterPtr params = NULL;
     int nparams = 0;
+    int status = -1;
+    int cb_id = -1;
 
     if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
         return false;
@@ -1964,6 +2113,17 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, "%s", _("missing --wait option"));
         return false;
     }
+
+    virConnectDomainEventGenericCallback cb =
+        VIR_DOMAIN_EVENT_CALLBACK(vshBlockJobStatusHandler);
+
+    if ((cb_id = virConnectDomainEventRegisterAny(ctl->conn,
+                                                  dom,
+                                                  VIR_DOMAIN_EVENT_ID_BLOCK_JOB,
+                                                  cb,
+                                                  &status,
+                                                  NULL)) < 0)
+        vshResetLibvirtError();
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         goto cleanup;
@@ -2009,7 +2169,8 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
             if (bandwidth) {
                 /* bandwidth is ulong MiB/s, but the typed parameter is
                  * ullong bytes/s; make sure we don't overflow */
-                if (bandwidth + 0ULL > ULLONG_MAX >> 20) {
+                unsigned long long limit = MIN(ULONG_MAX, ULLONG_MAX >> 20);
+                if (bandwidth > limit) {
                     virReportError(VIR_ERR_OVERFLOW,
                                    _("bandwidth must be less than %llu"),
                                    ULLONG_MAX >> 20);
@@ -2098,7 +2259,7 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
                      intCaught ? "interrupted" : "timeout");
             intCaught = 0;
             timeout = 0;
-            quit = true;
+            status = VIR_DOMAIN_BLOCK_JOB_CANCELED;
             if (virDomainBlockJobAbort(dom, path, abort_flags) < 0) {
                 vshError(ctl, _("failed to abort job for disk %s"), path);
                 goto cleanup;
@@ -2109,6 +2270,9 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
             usleep(500 * 1000);
         }
     }
+
+    if (status == VIR_DOMAIN_BLOCK_JOB_CANCELED)
+        quit = true;
 
     if (!quit && pivot) {
         abort_flags |= VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT;
@@ -2138,6 +2302,8 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
         virDomainFree(dom);
     if (blocking)
         sigaction(SIGINT, &old_sig_action, NULL);
+    if (cb_id >= 0)
+        virConnectDomainEventDeregisterAny(ctl->conn, cb_id);
     return ret;
 }
 
@@ -2190,8 +2356,8 @@ static const vshCmdOptDef opts_block_job[] = {
      .help = N_("implies --info; output details rather than human summary")
     },
     {.name = "bandwidth",
-     .type = VSH_OT_DATA,
-     .help = N_("set the Bandwidth limit in MiB/s")
+     .type = VSH_OT_INT,
+     .help = N_("set the bandwidth limit in MiB/s")
     },
     {.name = NULL}
 };
@@ -2349,7 +2515,7 @@ static const vshCmdOptDef opts_block_pull[] = {
      .help = N_("fully-qualified path of disk")
     },
     {.name = "bandwidth",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_INT,
      .help = N_("bandwidth limit in MiB/s")
     },
     {.name = "base",
@@ -2395,6 +2561,8 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
     const char *path = NULL;
     bool quit = false;
     int abort_flags = 0;
+    int status = -1;
+    int cb_id = -1;
 
     if (blocking) {
         if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
@@ -2419,6 +2587,17 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, "%s", _("missing --wait option"));
         return false;
     }
+
+    virConnectDomainEventGenericCallback cb =
+        VIR_DOMAIN_EVENT_CALLBACK(vshBlockJobStatusHandler);
+
+    if ((cb_id = virConnectDomainEventRegisterAny(ctl->conn,
+                                                  dom,
+                                                  VIR_DOMAIN_EVENT_ID_BLOCK_JOB,
+                                                  cb,
+                                                  &status,
+                                                  NULL)) < 0)
+        vshResetLibvirtError();
 
     if (!blockJobImpl(ctl, cmd, VSH_CMD_BLOCK_JOB_PULL, &dom))
         goto cleanup;
@@ -2456,7 +2635,7 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
                      intCaught ? "interrupted" : "timeout");
             intCaught = 0;
             timeout = 0;
-            quit = true;
+            status = VIR_DOMAIN_BLOCK_JOB_CANCELED;
             if (virDomainBlockJobAbort(dom, path, abort_flags) < 0) {
                 vshError(ctl, _("failed to abort job for disk %s"), path);
                 goto cleanup;
@@ -2467,6 +2646,9 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
             usleep(500 * 1000);
         }
     }
+
+    if (status == VIR_DOMAIN_BLOCK_JOB_CANCELED)
+        quit = true;
 
     if (verbose && !quit) {
         /* printf [100 %] */
@@ -2480,6 +2662,8 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
         virDomainFree(dom);
     if (blocking)
         sigaction(SIGINT, &old_sig_action, NULL);
+    if (cb_id >= 0)
+        virConnectDomainEventDeregisterAny(ctl->conn, cb_id);
     return ret;
 }
 
@@ -2522,7 +2706,7 @@ cmdBlockResize(vshControl *ctl, const vshCmd *cmd)
     const char *path = NULL;
     unsigned long long size = 0;
     unsigned int flags = 0;
-    int ret = false;
+    bool ret = false;
 
     if (vshCommandOptStringReq(ctl, cmd, "path", (const char **) &path) < 0)
         return false;
@@ -3103,17 +3287,17 @@ static const vshCmdOptDef opts_dom_pm_suspend[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("domain name, id or uuid")
     },
-    {.name = "duration",
-     .type = VSH_OT_INT,
-     .flags = VSH_OFLAG_REQ_OPT,
-     .help = N_("duration in seconds")
-    },
     {.name = "target",
-     .type = VSH_OT_STRING,
+     .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
      .help = N_("mem(Suspend-to-RAM), "
                 "disk(Suspend-to-Disk), "
                 "hybrid(Hybrid-Suspend)")
+    },
+    {.name = "duration",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ_OPT,
+     .help = N_("duration in seconds")
     },
     {.name = NULL}
 };
@@ -3327,9 +3511,8 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA;
         snapshots_safe = true;
     }
-    if (nvram) {
+    if (nvram)
         flags |= VIR_DOMAIN_UNDEFINE_NVRAM;
-    }
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
@@ -3379,9 +3562,8 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
         flags &= ~VIR_DOMAIN_UNDEFINE_MANAGED_SAVE;
         managed_save_safe = true;
     }
-    if (has_snapshots == 0) {
+    if (has_snapshots == 0)
         snapshots_safe = true;
-    }
     if (has_snapshots_metadata == 0) {
         flags &= ~VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA;
         snapshots_safe = true;
@@ -3821,10 +4003,6 @@ static const vshCmdInfo info_save[] = {
 };
 
 static const vshCmdOptDef opts_save[] = {
-    {.name = "bypass-cache",
-     .type = VSH_OT_BOOL,
-     .help = N_("avoid file system cache when saving")
-    },
     {.name = "domain",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -3834,6 +4012,10 @@ static const vshCmdOptDef opts_save[] = {
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
      .help = N_("where to save the data")
+    },
+    {.name = "bypass-cache",
+     .type = VSH_OT_BOOL,
+     .help = N_("avoid file system cache when saving")
     },
     {.name = "xml",
      .type = VSH_OT_STRING,
@@ -4149,7 +4331,7 @@ static const vshCmdOptDef opts_save_image_define[] = {
      .help = N_("saved state file to modify")
     },
     {.name = "xml",
-     .type = VSH_OT_STRING,
+     .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
      .help = N_("filename containing updated XML for the target")
     },
@@ -4257,10 +4439,13 @@ cmdSaveImageEdit(vshControl *ctl, const vshCmd *cmd)
 
 #define EDIT_GET_XML \
     virDomainSaveImageGetXMLDesc(ctl->conn, file, getxml_flags)
-#define EDIT_NOT_CHANGED \
-    vshPrint(ctl, _("Saved image %s XML configuration " \
-                    "not changed.\n"), file);           \
-    ret = true; goto edit_cleanup;
+#define EDIT_NOT_CHANGED                                        \
+    do {                                                        \
+        vshPrint(ctl, _("Saved image %s XML configuration "     \
+                        "not changed.\n"), file);               \
+        ret = true;                                             \
+        goto edit_cleanup;                                      \
+    } while (0)
 #define EDIT_DEFINE \
     (virDomainSaveImageDefineXML(ctl->conn, file, doc_edited, define_flags) == 0)
 #include "virsh-edit.c"
@@ -4289,14 +4474,14 @@ static const vshCmdInfo info_managedsave[] = {
 };
 
 static const vshCmdOptDef opts_managedsave[] = {
-    {.name = "bypass-cache",
-     .type = VSH_OT_BOOL,
-     .help = N_("avoid file system cache when saving")
-    },
     {.name = "domain",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
      .help = N_("domain name, id or uuid")
+    },
+    {.name = "bypass-cache",
+     .type = VSH_OT_BOOL,
+     .help = N_("avoid file system cache when saving")
     },
     {.name = "running",
      .type = VSH_OT_BOOL,
@@ -4799,6 +4984,16 @@ static const vshCmdInfo info_dump[] = {
 };
 
 static const vshCmdOptDef opts_dump[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "file",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("where to dump the core")
+    },
     {.name = "live",
      .type = VSH_OT_BOOL,
      .help = N_("perform a live core dump if supported")
@@ -4814,16 +5009,6 @@ static const vshCmdOptDef opts_dump[] = {
     {.name = "reset",
      .type = VSH_OT_BOOL,
      .help = N_("reset the domain after core dump")
-    },
-    {.name = "domain",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("domain name, id or uuid")
-    },
-    {.name = "file",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("where to dump the core")
     },
     {.name = "verbose",
      .type = VSH_OT_BOOL,
@@ -5044,7 +5229,7 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
     virStreamPtr st = NULL;
     unsigned int screen = 0;
     unsigned int flags = 0; /* currently unused */
-    int ret = false;
+    bool ret = false;
     bool created = false;
     bool generated = false;
     char *mime = NULL;
@@ -6061,9 +6246,8 @@ vshPrintPinInfo(unsigned char *cpumaps, size_t cpumaplen,
     int cpu, lastcpu;
     bool bit, lastbit, isInvert;
 
-    if (!cpumaps || cpumaplen <= 0 || maxcpu <= 0 || vcpuindex < 0) {
+    if (!cpumaps || cpumaplen <= 0 || maxcpu <= 0 || vcpuindex < 0)
         return false;
-    }
 
     bit = lastbit = isInvert = false;
     lastcpu = -1;
@@ -6083,9 +6267,8 @@ vshPrintPinInfo(unsigned char *cpumaps, size_t cpumaplen,
             vshPrint(ctl, "-%d", cpu - 1);
         lastbit = bit;
     }
-    if (bit && !isInvert) {
+    if (bit && !isInvert)
         vshPrint(ctl, "-%d", maxcpu - 1);
-    }
 
     return true;
 }
@@ -6242,9 +6425,8 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    if ((maxcpu = vshNodeGetCPUCount(ctl->conn)) < 0) {
+    if ((maxcpu = vshNodeGetCPUCount(ctl->conn)) < 0)
         goto cleanup;
-    }
 
     cpumaplen = VIR_CPU_MAPLEN(maxcpu);
 
@@ -7333,6 +7515,11 @@ static const vshCmdOptDef opts_metadata[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("domain name, id or uuid")
     },
+    {.name = "uri",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("URI of the namespace")
+    },
     {.name = "live",
      .type = VSH_OT_BOOL,
      .help = N_("modify/get running state")
@@ -7348,11 +7535,6 @@ static const vshCmdOptDef opts_metadata[] = {
     {.name = "edit",
      .type = VSH_OT_BOOL,
      .help = N_("use an editor to change the metadata")
-    },
-    {.name = "uri",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("URI of the namespace")
     },
     {.name = "key",
      .type = VSH_OT_DATA,
@@ -7441,10 +7623,13 @@ cmdMetadata(vshControl *ctl, const vshCmd *cmd)
     } else if (edit) {
 #define EDIT_GET_XML \
         vshDomainGetEditMetadata(ctl, dom, uri, flags)
-#define EDIT_NOT_CHANGED                                    \
-        vshPrint(ctl, "%s", _("Metadata not changed"));     \
-        ret = true;                                         \
-        goto edit_cleanup;
+#define EDIT_NOT_CHANGED                                        \
+        do {                                                    \
+            vshPrint(ctl, "%s", _("Metadata not changed"));     \
+            ret = true;                                         \
+            goto edit_cleanup;                                  \
+        } while (0)
+
 #define EDIT_DEFINE                                                         \
         (virDomainSetMetadata(dom, VIR_DOMAIN_METADATA_ELEMENT, doc_edited, \
                               key, uri, flags) == 0)
@@ -7496,7 +7681,7 @@ static bool
 cmdInjectNMI(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
-    int ret = true;
+    bool ret = true;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -7559,7 +7744,7 @@ static bool
 cmdSendKey(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
-    int ret = false;
+    bool ret = false;
     const char *codeset_option;
     int codeset;
     unsigned int holdtime = 0;
@@ -7690,7 +7875,7 @@ static bool
 cmdSendProcessSignal(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
-    int ret = false;
+    bool ret = false;
     const char *pidstr;
     const char *signame;
     long long pid_value;
@@ -7809,13 +7994,11 @@ cmdSetmem(vshControl *ctl, const vshCmd *cmd)
     kibibytes = VIR_DIV_UP(bytes, 1024);
 
     if (flags == -1) {
-        if (virDomainSetMemory(dom, kibibytes) != 0) {
+        if (virDomainSetMemory(dom, kibibytes) != 0)
             ret = false;
-        }
     } else {
-        if (virDomainSetMemoryFlags(dom, kibibytes, flags) < 0) {
+        if (virDomainSetMemoryFlags(dom, kibibytes, flags) < 0)
             ret = false;
-        }
     }
 
     virDomainFree(dom);
@@ -9150,6 +9333,16 @@ static const vshCmdInfo info_migrate[] = {
 };
 
 static const vshCmdOptDef opts_migrate[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "desturi",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("connection URI of the destination host as seen from the client(normal migration) or source(p2p migration)")
+    },
     {.name = "live",
      .type = VSH_OT_BOOL,
      .help = N_("live migration")
@@ -9221,16 +9414,6 @@ static const vshCmdOptDef opts_migrate[] = {
     {.name = "abort-on-error",
      .type = VSH_OT_BOOL,
      .help = N_("abort on soft errors during migration")
-    },
-    {.name = "domain",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("domain name, id or uuid")
-    },
-    {.name = "desturi",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("connection URI of the destination host as seen from the client(normal migration) or source(p2p migration)")
     },
     {.name = "migrateuri",
      .type = VSH_OT_DATA,
@@ -9369,9 +9552,8 @@ doMigrate(void *opaque)
     if (vshCommandOptBool(cmd, "rdma-pin-all"))
         flags |= VIR_MIGRATE_RDMA_PIN_ALL;
 
-    if (vshCommandOptBool(cmd, "offline")) {
+    if (vshCommandOptBool(cmd, "offline"))
         flags |= VIR_MIGRATE_OFFLINE;
-    }
 
     if (vshCommandOptBool(cmd, "abort-on-error"))
         flags |= VIR_MIGRATE_ABORT_ON_ERROR;
@@ -9733,7 +9915,7 @@ static const vshCmdOptDef opts_domdisplay[] = {
     },
     {.name = "type",
      .type = VSH_OT_DATA,
-     .help = N_("select particular graphics display "
+     .help = N_("select particular graphical display "
                 "(e.g. \"vnc\", \"spice\", \"rdp\")")
     },
     {.name = NULL}
@@ -10476,7 +10658,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     int diff_mac;
     size_t i;
     int ret;
-    int functionReturn = false;
+    bool functionReturn = false;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     bool current = vshCommandOptBool(cmd, "current");
     bool config = vshCommandOptBool(cmd, "config");
@@ -10939,10 +11121,13 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
 #define EDIT_GET_XML virDomainGetXMLDesc(dom, flags)
-#define EDIT_NOT_CHANGED \
-    vshPrint(ctl, _("Domain %s XML configuration not changed.\n"),  \
-             virDomainGetName(dom));                                \
-    ret = true; goto edit_cleanup;
+#define EDIT_NOT_CHANGED                                                \
+    do {                                                                \
+        vshPrint(ctl, _("Domain %s XML configuration not changed.\n"),  \
+                 virDomainGetName(dom));                                \
+        ret = true;                                                     \
+        goto edit_cleanup;                                              \
+    } while (0)
 #define EDIT_DEFINE \
     (dom_edited = virDomainDefineXML(ctl->conn, doc_edited))
 #include "virsh-edit.c"
@@ -11487,6 +11672,43 @@ vshEventTunablePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
         vshEventDone(data->ctl);
 }
 
+VIR_ENUM_DECL(vshEventAgentLifecycleState)
+VIR_ENUM_IMPL(vshEventAgentLifecycleState,
+              VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST,
+              N_("unknown"),
+              N_("connected"),
+              N_("disconnected"))
+
+VIR_ENUM_DECL(vshEventAgentLifecycleReason)
+VIR_ENUM_IMPL(vshEventAgentLifecycleReason,
+              VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_LAST,
+              N_("unknown"),
+              N_("domain started"),
+              N_("channel event"))
+
+#define UNKNOWNSTR(str) (str ? str : N_("unsupported value"))
+static void
+vshEventAgentLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
+                            virDomainPtr dom,
+                            int state,
+                            int reason,
+                            void *opaque)
+{
+    vshDomEventData *data = opaque;
+
+    if (!data->loop && *data->count)
+        return;
+    vshPrint(data->ctl,
+             _("event 'agent-lifecycle' for domain %s: state: '%s' reason: '%s'\n"),
+             virDomainGetName(dom),
+             UNKNOWNSTR(vshEventAgentLifecycleStateTypeToString(state)),
+             UNKNOWNSTR(vshEventAgentLifecycleReasonTypeToString(reason)));
+
+    (*data->count)++;
+    if (!data->loop)
+        vshEventDone(data->ctl);
+}
+
 static vshEventCallback vshEventCallbacks[] = {
     { "lifecycle",
       VIR_DOMAIN_EVENT_CALLBACK(vshEventLifecyclePrint), },
@@ -11522,6 +11744,8 @@ static vshEventCallback vshEventCallbacks[] = {
       VIR_DOMAIN_EVENT_CALLBACK(vshEventBlockJobPrint), },
     { "tunable",
       VIR_DOMAIN_EVENT_CALLBACK(vshEventTunablePrint), },
+    { "agent-lifecycle",
+      VIR_DOMAIN_EVENT_CALLBACK(vshEventAgentLifecyclePrint), },
 };
 verify(VIR_DOMAIN_EVENT_ID_LAST == ARRAY_CARDINALITY(vshEventCallbacks));
 
@@ -12001,6 +12225,70 @@ cmdDomFSThaw(vshControl *ctl, const vshCmd *cmd)
     return ret >= 0;
 }
 
+static const vshCmdInfo info_domfsinfo[] = {
+    {.name = "help",
+     .data = N_("Get information of domain's mounted filesystems.")
+    },
+    {.name = "desc",
+     .data = N_("Get information of domain's mounted filesystems.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_domfsinfo[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdDomFSInfo(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    int ret = -1;
+    size_t i, j;
+    virDomainFSInfoPtr *info;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    ret = virDomainGetFSInfo(dom, &info, 0);
+    if (ret < 0) {
+        vshError(ctl, _("Unable to get filesystem information"));
+        goto cleanup;
+    }
+    if (ret == 0) {
+        vshError(ctl, _("No filesystems are mounted in the domain"));
+        goto cleanup;
+    }
+
+    if (info) {
+        vshPrintExtra(ctl, "%-36s %-8s %-8s %s\n",
+                      _("Mountpoint"), _("Name"), _("Type"), _("Target"));
+        vshPrintExtra(ctl, "-------------------------------------------------------------------\n");
+        for (i = 0; i < ret; i++) {
+            vshPrintExtra(ctl, "%-36s %-8s %-8s ",
+                          info[i]->mountpoint, info[i]->name, info[i]->fstype);
+            for (j = 0; j < info[i]->ndevAlias; j++) {
+                vshPrintExtra(ctl, "%s", info[i]->devAlias[j]);
+                if (j != info[i]->ndevAlias - 1)
+                    vshPrint(ctl, ",");
+            }
+            vshPrint(ctl, "\n");
+
+            virDomainFSInfoFree(info[i]);
+        }
+        VIR_FREE(info);
+    }
+
+ cleanup:
+    virDomainFree(dom);
+    return ret >= 0;
+}
+
 const vshCmdDef domManagementCmds[] = {
     {.name = "attach-device",
      .handler = cmdAttachDevice,
@@ -12158,6 +12446,12 @@ const vshCmdDef domManagementCmds[] = {
      .handler = cmdDomFSThaw,
      .opts = opts_domfsthaw,
      .info = info_domfsthaw,
+     .flags = 0
+    },
+    {.name = "domfsinfo",
+     .handler = cmdDomFSInfo,
+     .opts = opts_domfsinfo,
+     .info = info_domfsinfo,
      .flags = 0
     },
     {.name = "domfstrim",

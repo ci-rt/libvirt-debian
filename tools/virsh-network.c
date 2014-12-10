@@ -1105,10 +1105,13 @@ cmdNetworkEdit(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
 #define EDIT_GET_XML vshNetworkGetXMLDesc(network)
-#define EDIT_NOT_CHANGED \
-    vshPrint(ctl, _("Network %s XML configuration not changed.\n"), \
-             virNetworkGetName(network));                           \
-    ret = true; goto edit_cleanup;
+#define EDIT_NOT_CHANGED                                                \
+    do {                                                                \
+        vshPrint(ctl, _("Network %s XML configuration not changed.\n"), \
+                 virNetworkGetName(network));                           \
+        ret = true;                                                     \
+        goto edit_cleanup;                                              \
+    } while (0)
 #define EDIT_DEFINE \
     (network_edited = virNetworkDefineXML(ctl->conn, doc_edited))
 #include "virsh-edit.c"
@@ -1377,10 +1380,10 @@ cmdNetworkDHCPLeases(vshControl *ctl, const vshCmd *cmd)
         ignore_value(virAsprintf(&cidr_format, "%s/%d",
                                  lease->ipaddr, lease->prefix));
 
-        vshPrintExtra(ctl, " %-20s %-18s %-9s %-25s %-15s %s\n",
-                      expirytime, EMPTYSTR(lease->mac),
-                      EMPTYSTR(typestr), cidr_format,
-                      EMPTYSTR(lease->hostname), EMPTYSTR(lease->clientid));
+        vshPrint(ctl, " %-20s %-18s %-9s %-25s %-15s %s\n",
+                 expirytime, EMPTYSTR(lease->mac),
+                 EMPTYSTR(typestr), cidr_format,
+                 EMPTYSTR(lease->hostname), EMPTYSTR(lease->clientid));
 
         VIR_FREE(cidr_format);
     }

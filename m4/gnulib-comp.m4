@@ -84,6 +84,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module configmake:
   # Code from module connect:
   # Code from module connect-tests:
+  # Code from module count-leading-zeros:
+  # Code from module count-leading-zeros-tests:
   # Code from module count-one-bits:
   # Code from module count-one-bits-tests:
   # Code from module crypto/md5:
@@ -574,6 +576,7 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([connect])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
+  gl_COUNT_LEADING_ZEROS
   gl_COUNT_ONE_BITS
   gl_MD5
   gl_SHA256
@@ -1072,8 +1075,8 @@ AC_SUBST([LTALLOCA])
     SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS=1
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([socket])
-  gl_SOCKETLIB
-  gl_SOCKETS
+  AC_REQUIRE([gl_SOCKETLIB])
+  AC_REQUIRE([gl_SOCKETS])
   gl_TYPE_SOCKLEN_T
   gt_TYPE_SSIZE_T
   gl_FUNC_STAT
@@ -1171,7 +1174,7 @@ AC_SUBST([LTALLOCA])
   AC_PROG_MKDIR_P
   gl_HEADER_SYS_SELECT
   AC_PROG_MKDIR_P
-  gl_HEADER_SYS_SOCKET
+  AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   AC_PROG_MKDIR_P
   gl_HEADER_SYS_STAT_H
   AC_PROG_MKDIR_P
@@ -1705,6 +1708,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/close.c
   lib/config.charset
   lib/connect.c
+  lib/count-leading-zeros.c
+  lib/count-leading-zeros.h
   lib/count-one-bits.c
   lib/count-one-bits.h
   lib/dirname-lgpl.c
@@ -1948,6 +1953,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/close.m4
   m4/codeset.m4
   m4/configmake.m4
+  m4/count-leading-zeros.m4
   m4/count-one-bits.m4
   m4/dirname.m4
   m4/double-slash-root.m4
@@ -2212,6 +2218,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-cloexec.c
   tests/test-close.c
   tests/test-connect.c
+  tests/test-count-leading-zeros.c
   tests/test-count-one-bits.c
   tests/test-dup.c
   tests/test-dup2.c

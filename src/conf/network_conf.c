@@ -55,6 +55,10 @@ VIR_ENUM_IMPL(virNetworkForward,
               VIR_NETWORK_FORWARD_LAST,
               "none", "nat", "route", "bridge", "private", "vepa", "passthrough", "hostdev")
 
+VIR_ENUM_IMPL(virNetworkBridgeMACTableManager,
+              VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_LAST,
+              "default", "kernel", "libvirt")
+
 VIR_ENUM_DECL(virNetworkForwardHostdevDevice)
 VIR_ENUM_IMPL(virNetworkForwardHostdevDevice,
               VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_LAST,
@@ -218,14 +222,12 @@ virNetworkForwardDefClear(virNetworkForwardDefPtr def)
 {
     size_t i;
 
-    for (i = 0; i < def->npfs && def->pfs; i++) {
+    for (i = 0; i < def->npfs && def->pfs; i++)
         virNetworkForwardPfDefClear(&def->pfs[i]);
-    }
     VIR_FREE(def->pfs);
 
-    for (i = 0; i < def->nifs && def->ifs; i++) {
+    for (i = 0; i < def->nifs && def->ifs; i++)
         virNetworkForwardIfDefClear(&def->ifs[i]);
-    }
     VIR_FREE(def->ifs);
     def->nifs = def->npfs = 0;
 }
@@ -244,19 +246,16 @@ virNetworkDefFree(virNetworkDefPtr def)
 
     virNetworkForwardDefClear(&def->forward);
 
-    for (i = 0; i < def->nips && def->ips; i++) {
+    for (i = 0; i < def->nips && def->ips; i++)
         virNetworkIpDefClear(&def->ips[i]);
-    }
     VIR_FREE(def->ips);
 
-    for (i = 0; i < def->nroutes && def->routes; i++) {
+    for (i = 0; i < def->nroutes && def->routes; i++)
         virNetworkRouteDefClear(&def->routes[i]);
-    }
     VIR_FREE(def->routes);
 
-    for (i = 0; i < def->nPortGroups && def->portGroups; i++) {
+    for (i = 0; i < def->nPortGroups && def->portGroups; i++)
         virPortGroupDefClear(&def->portGroups[i]);
-    }
     VIR_FREE(def->portGroups);
 
     virNetworkDNSDefClear(&def->dns);
@@ -596,9 +595,8 @@ virNetworkDefGetIpByIndex(const virNetworkDef *def,
     if (!def->ips || n >= def->nips)
         return NULL;
 
-    if (family == AF_UNSPEC) {
+    if (family == AF_UNSPEC)
         return &def->ips[n];
-    }
 
     /* find the nth ip of type "family" */
     for (i = 0; i < def->nips; i++) {
@@ -1363,9 +1361,8 @@ virNetworkIPDefParseXML(const char *networkName,
     result = 0;
 
  cleanup:
-    if (result < 0) {
+    if (result < 0)
         virNetworkIpDefClear(def);
-    }
     VIR_FREE(address);
     VIR_FREE(netmask);
 
@@ -1589,9 +1586,8 @@ virNetworkRouteDefParseXML(const char *networkName,
     result = 0;
 
  cleanup:
-    if (result < 0) {
+    if (result < 0)
         virNetworkRouteDefClear(def);
-    }
     VIR_FREE(address);
     VIR_FREE(netmask);
     VIR_FREE(gateway);
@@ -1663,9 +1659,8 @@ virNetworkPortGroupParseXML(virPortGroupDefPtr def,
 
     result = 0;
  cleanup:
-    if (result < 0) {
+    if (result < 0)
         virPortGroupDefClear(def);
-    }
     VIR_FREE(isDefault);
     VIR_FREE(trustGuestRxFilters);
 
@@ -2117,6 +2112,18 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     }
     VIR_FREE(tmp);
 
+    tmp = virXPathString("string(./bridge[1]/@macTableManager)", ctxt);
+    if (tmp) {
+        if ((def->macTableManager
+             = virNetworkBridgeMACTableManagerTypeFromString(tmp)) <= 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid macTableManager setting '%s' "
+                             "in network '%s'"), tmp, def->name);
+            goto error;
+        }
+        VIR_FREE(tmp);
+    }
+
     tmp = virXPathString("string(./mac[1]/@address)", ctxt);
     if (tmp) {
         if (virMacAddrParse(tmp, &def->mac) < 0) {
@@ -2295,6 +2302,14 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
         if (def->bridge) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("bridge name not allowed in %s mode (network '%s')"),
+                           virNetworkForwardTypeToString(def->forward.type),
+                           def->name);
+            goto error;
+        }
+        if (def->macTableManager) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("bridge macTableManager setting not allowed "
+                             "in %s mode (network '%s')"),
                            virNetworkForwardTypeToString(def->forward.type),
                            def->name);
             goto error;
@@ -2483,9 +2498,8 @@ virNetworkIpDefFormat(virBufferPtr buf,
 
     virBufferAddLit(buf, "<ip");
 
-    if (def->family) {
+    if (def->family)
         virBufferAsprintf(buf, " family='%s'", def->family);
-    }
     if (VIR_SOCKET_ADDR_VALID(&def->address)) {
         char *addr = virSocketAddrFormat(&def->address);
         if (!addr)
@@ -2500,9 +2514,8 @@ virNetworkIpDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf, " netmask='%s'", addr);
         VIR_FREE(addr);
     }
-    if (def->prefix > 0) {
+    if (def->prefix > 0)
         virBufferAsprintf(buf, " prefix='%u'", def->prefix);
-    }
     virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 2);
 
@@ -2580,9 +2593,8 @@ virNetworkRouteDefFormat(virBufferPtr buf,
 
     virBufferAddLit(buf, "<route");
 
-    if (def->family) {
+    if (def->family)
         virBufferAsprintf(buf, " family='%s'", def->family);
-    }
     if (VIR_SOCKET_ADDR_VALID(&def->address)) {
         char *addr = virSocketAddrFormat(&def->address);
 
@@ -2599,9 +2611,8 @@ virNetworkRouteDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf, " netmask='%s'", addr);
         VIR_FREE(addr);
     }
-    if (def->has_prefix) {
+    if (def->has_prefix)
         virBufferAsprintf(buf, " prefix='%u'", def->prefix);
-    }
     if (VIR_SOCKET_ADDR_VALID(&def->gateway)) {
         char *addr = virSocketAddrFormat(&def->gateway);
         if (!addr)
@@ -2609,9 +2620,8 @@ virNetworkRouteDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf, " gateway='%s'", addr);
         VIR_FREE(addr);
     }
-    if (def->has_metric && def->metric > 0) {
+    if (def->has_metric && def->metric > 0)
         virBufferAsprintf(buf, " metric='%u'", def->metric);
-    }
     virBufferAddLit(buf, "/>\n");
 
     result = 0;
@@ -2624,9 +2634,8 @@ virPortGroupDefFormat(virBufferPtr buf,
                       const virPortGroupDef *def)
 {
     virBufferAsprintf(buf, "<portgroup name='%s'", def->name);
-    if (def->isDefault) {
+    if (def->isDefault)
         virBufferAddLit(buf, " default='yes'");
-    }
     if (def->trustGuestRxFilters)
         virBufferAsprintf(buf, " trustGuestRxFilters='%s'",
                           virTristateBoolTypeToString(def->trustGuestRxFilters));
@@ -2703,9 +2712,8 @@ virNetworkDefFormatBuf(virBufferPtr buf,
     bool shortforward;
 
     virBufferAddLit(buf, "<network");
-    if (!(flags & VIR_NETWORK_XML_INACTIVE) && (def->connections > 0)) {
+    if (!(flags & VIR_NETWORK_XML_INACTIVE) && (def->connections > 0))
         virBufferAsprintf(buf, " connections='%d'", def->connections);
-    }
     if (def->ipv6nogw)
         virBufferAddLit(buf, " ipv6='yes'");
     if (def->trustGuestRxFilters)
@@ -2799,21 +2807,26 @@ virNetworkDefFormatBuf(virBufferPtr buf,
             virBufferAddLit(buf, "</forward>\n");
     }
 
+
     if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
-         def->forward.type == VIR_NETWORK_FORWARD_NAT ||
-         def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
+        def->forward.type == VIR_NETWORK_FORWARD_NAT ||
+        def->forward.type == VIR_NETWORK_FORWARD_ROUTE ||
+        def->bridge || def->macTableManager) {
 
         virBufferAddLit(buf, "<bridge");
-        if (def->bridge)
-            virBufferEscapeString(buf, " name='%s'", def->bridge);
-        virBufferAsprintf(buf, " stp='%s' delay='%ld'/>\n",
-                          def->stp ? "on" : "off",
-                          def->delay);
-    } else if (def->forward.type == VIR_NETWORK_FORWARD_BRIDGE &&
-               def->bridge) {
-        virBufferEscapeString(buf, "<bridge name='%s'/>\n", def->bridge);
+        virBufferEscapeString(buf, " name='%s'", def->bridge);
+        if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
+            def->forward.type == VIR_NETWORK_FORWARD_NAT ||
+            def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
+            virBufferAsprintf(buf, " stp='%s' delay='%ld'",
+                              def->stp ? "on" : "off", def->delay);
+        }
+        if (def->macTableManager) {
+            virBufferAsprintf(buf, " macTableManager='%s'",
+                             virNetworkBridgeMACTableManagerTypeToString(def->macTableManager));
+        }
+        virBufferAddLit(buf, "/>\n");
     }
-
 
     if (def->mac_specified) {
         char macaddr[VIR_MAC_STRING_BUFLEN];
@@ -3155,11 +3168,19 @@ virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
         def->forward.type == VIR_NETWORK_FORWARD_NAT ||
         def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
 
+        if (!def->mac_specified) {
+            virNetworkSetBridgeMacAddr(def);
+            virNetworkSaveConfig(configDir, def);
+        }
         /* Generate a bridge if none is specified, but don't check for collisions
          * if a bridge is hardcoded, so the network is at least defined.
          */
         if (virNetworkSetBridgeName(nets, def, 0))
             goto error;
+    } else {
+        /* Throw away MAC address for other forward types,
+         * which could have been generated by older libvirt RPMs */
+        def->mac_specified = false;
     }
 
     if (!(net = virNetworkAssignDef(nets, def, false)))
@@ -3326,9 +3347,8 @@ char *virNetworkAllocateBridge(virNetworkObjListPtr nets,
     do {
         if (virAsprintf(&newname, template, id) < 0)
             return NULL;
-        if (!virNetworkBridgeInUse(nets, newname, NULL)) {
+        if (!virNetworkBridgeInUse(nets, newname, NULL))
             return newname;
-        }
         VIR_FREE(newname);
 
         id++;
@@ -3488,6 +3508,30 @@ virNetworkIpDefByIndex(virNetworkDefPtr def, int parentIndex)
     return ipdef;
 }
 
+
+static int
+virNetworkDefUpdateCheckMultiDHCP(virNetworkDefPtr def,
+                                  virNetworkIpDefPtr ipdef)
+{
+    int family = VIR_SOCKET_ADDR_FAMILY(&ipdef->address);
+    size_t i;
+    virNetworkIpDefPtr ip;
+
+    for (i = 0; (ip = virNetworkDefGetIpByIndex(def, family, i)); i++) {
+        if (ip != ipdef) {
+            if (ip->nranges || ip->nhosts) {
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("dhcp is supported only for a "
+                                 "single %s address on each network"),
+                               (family == AF_INET) ? "IPv4" : "IPv6");
+                return -1;
+            }
+        }
+    }
+    return 0;
+}
+
+
 static int
 virNetworkDefUpdateIPDHCPHost(virNetworkDefPtr def,
                               unsigned int command,
@@ -3552,6 +3596,9 @@ virNetworkDefUpdateIPDHCPHost(virNetworkDefPtr def,
 
     } else if ((command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST) ||
                (command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST)) {
+
+        if (virNetworkDefUpdateCheckMultiDHCP(def, ipdef) < 0)
+            goto cleanup;
 
         /* log error if an entry with same name/address/ip already exists */
         for (i = 0; i < ipdef->nhosts; i++) {
@@ -3659,6 +3706,9 @@ virNetworkDefUpdateIPDHCPRange(virNetworkDefPtr def,
 
     if ((command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST) ||
         (command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST)) {
+
+        if (virNetworkDefUpdateCheckMultiDHCP(def, ipdef) < 0)
+            goto cleanup;
 
         if (i < ipdef->nranges) {
             char *startip = virSocketAddrFormat(&range.start);
@@ -4480,10 +4530,8 @@ virNetworkObjListExport(virConnectPtr conn,
 
  cleanup:
     if (tmp_nets) {
-        for (i = 0; i < nnets; i++) {
-            if (tmp_nets[i])
-                virNetworkFree(tmp_nets[i]);
-        }
+        for (i = 0; i < nnets; i++)
+            virObjectUnref(tmp_nets[i]);
     }
 
     VIR_FREE(tmp_nets);

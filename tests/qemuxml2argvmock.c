@@ -21,6 +21,7 @@
 #include <config.h>
 
 #include "internal.h"
+#include "virnuma.h"
 #include <time.h>
 
 time_t time(time_t *t)
@@ -30,3 +31,23 @@ time_t time(time_t *t)
         *t = ret;
     return ret;
 }
+
+int
+virNumaGetMaxNode(void)
+{
+   const int maxnodesNum = 7;
+
+   return maxnodesNum;
+}
+
+#if WITH_NUMACTL && HAVE_NUMA_BITMASK_ISBITSET
+/*
+ * In case libvirt is compiled with full NUMA support, we need to mock
+ * this function in order to fake what numa nodes are available.
+ */
+bool
+virNumaNodeIsAvailable(int node)
+{
+    return node >= 0 && node <= virNumaGetMaxNode();
+}
+#endif /* WITH_NUMACTL && HAVE_NUMA_BITMASK_ISBITSET */

@@ -35,6 +35,7 @@
 #include "virerror.h"
 #include "virfile.h"
 #include "virnetdev.h"
+#include "virnetdevbridge.h"
 #include "virstring.h"
 #include "virtime.h"
 #include "viruuid.h"
@@ -43,6 +44,7 @@
 #include "domain_addr.h"
 #include "domain_audit.h"
 #include "domain_conf.h"
+#include "netdev_bandwidth_conf.h"
 #include "snapshot_conf.h"
 #include "storage_conf.h"
 #include "secret_conf.h"
@@ -53,6 +55,7 @@
 #include "virstoragefile.h"
 #include "virtpm.h"
 #include "virscsi.h"
+#include "virnuma.h"
 #if defined(__linux__)
 # include <linux/capability.h>
 #endif
@@ -191,7 +194,6 @@ qemuPhysIfaceConnect(virDomainDefPtr def,
         virDomainNetGetActualVirtPortProfile(net),
         &res_ifname,
         vmop, cfg->stateDir,
-        virDomainNetGetActualBandwidth(net),
         macvlan_create_flags);
     if (rc >= 0) {
         virDomainAuditNetDevice(def, net, res_ifname, true);
@@ -275,6 +277,11 @@ static int qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
     return *tapfd < 0 ? -1 : 0;
 }
 
+/* qemuNetworkIfaceConnect - *only* called if actualType is
+ * VIR_DOMAIN_NET_TYPE_NETWORK or VIR_DOMAIN_NET_TYPE_BRIDGE (i.e. if
+ * the connection is made with a tap device connecting to a bridge
+ * device)
+ */
 int
 qemuNetworkIfaceConnect(virDomainDefPtr def,
                         virConnectPtr conn,
@@ -284,45 +291,19 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
                         int *tapfd,
                         int *tapfdSize)
 {
-    char *brname = NULL;
+    const char *brname;
     int ret = -1;
     unsigned int tap_create_flags = VIR_NETDEV_TAP_CREATE_IFUP;
     bool template_ifname = false;
-    int actualType = virDomainNetGetActualType(net);
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     const char *tunpath = "/dev/net/tun";
 
     if (net->backend.tap)
         tunpath = net->backend.tap;
 
-    if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK) {
-        bool fail = false;
-        virErrorPtr errobj;
-        virNetworkPtr network = virNetworkLookupByName(conn,
-                                                       net->data.network.name);
-        if (!network)
-            return ret;
-
-        if (!(brname = virNetworkGetBridgeName(network)))
-           fail = true;
-
-        /* Make sure any above failure is preserved */
-        errobj = virSaveLastError();
-        virNetworkFree(network);
-        virSetError(errobj);
-        virFreeError(errobj);
-
-        if (fail)
-            return ret;
-
-    } else if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-        if (VIR_STRDUP(brname, virDomainNetGetActualBridgeName(net)) < 0)
-            return ret;
-    } else {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Network type %d is not supported"),
-                       virDomainNetGetActualType(net));
-        return ret;
+    if (!(brname = virDomainNetGetActualBridgeName(net))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Missing bridge name"));
+        goto cleanup;
     }
 
     if (!net->ifname ||
@@ -349,6 +330,24 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
             virDomainAuditNetDevice(def, net, tunpath, false);
             goto cleanup;
         }
+        if (virDomainNetGetActualBridgeMACTableManager(net)
+            == VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_LIBVIRT) {
+            /* libvirt is managing the FDB of the bridge this device
+             * is attaching to, so we need to turn off learning and
+             * unicast_flood on the device to prevent the kernel from
+             * adding any FDB entries for it, then add an fdb entry
+             * outselves, using the MAC address from the interface
+             * config.
+             */
+            if (virNetDevBridgePortSetLearning(brname, net->ifname, false) < 0)
+                goto cleanup;
+            if (virNetDevBridgePortSetUnicastFlood(brname, net->ifname, false) < 0)
+                goto cleanup;
+            if (virNetDevBridgeFDBAdd(&net->mac, net->ifname,
+                                      VIR_NETDEVBRIDGE_FDB_FLAG_MASTER |
+                                      VIR_NETDEVBRIDGE_FDB_FLAG_TEMP) < 0)
+                goto cleanup;
+        }
     } else {
         if (qemuCreateInBridgePortWithHelper(cfg, brname,
                                              &net->ifname,
@@ -371,11 +370,6 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
                                   &net->mac) < 0)
         goto cleanup;
 
-    if (virNetDevBandwidthSet(net->ifname,
-                              virDomainNetGetActualBandwidth(net),
-                              false) < 0)
-        goto cleanup;
-
     if (net->filter &&
         virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0) {
         goto cleanup;
@@ -391,7 +385,6 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
         if (template_ifname)
             VIR_FREE(net->ifname);
     }
-    VIR_FREE(brname);
     virObjectUnref(cfg);
 
     return ret;
@@ -713,7 +706,7 @@ qemuSetSCSIControllerModel(virDomainDefPtr def,
             return -1;
         }
     } else {
-        if ((def->os.arch == VIR_ARCH_PPC64) &&
+        if (ARCH_IS_PPC64(def->os.arch) &&
             STRPREFIX(def->os.machine, "pseries")) {
             *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI;
         } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_LSI)) {
@@ -1264,7 +1257,7 @@ int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
 
     for (i = 0; i < def->nserials; i++) {
         if (def->serials[i]->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
-            (def->os.arch == VIR_ARCH_PPC64) &&
+            ARCH_IS_PPC64(def->os.arch) &&
             STRPREFIX(def->os.machine, "pseries"))
             def->serials[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         if (qemuAssignSpaprVIOAddress(def, &def->serials[i]->info,
@@ -1273,7 +1266,7 @@ int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
     }
 
     if (def->nvram) {
-        if (def->os.arch == VIR_ARCH_PPC64 &&
+        if (ARCH_IS_PPC64(def->os.arch) &&
             STRPREFIX(def->os.machine, "pseries"))
             def->nvram->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         if (qemuAssignSpaprVIOAddress(def, &def->nvram->info,
@@ -2539,137 +2532,20 @@ qemuGetSecretString(virConnectPtr conn,
 }
 
 
-static int qemuAddRBDHost(virDomainDiskDefPtr disk, char *hostport)
+static int
+qemuParseRBDString(virDomainDiskDefPtr disk)
 {
-    char *port;
-    size_t skip;
-    char **parts;
+    char *source = disk->src->path;
+    int ret;
 
-    if (VIR_EXPAND_N(disk->src->hosts, disk->src->nhosts, 1) < 0)
-        return -1;
+    disk->src->path = NULL;
 
-    if ((port = strchr(hostport, ']'))) {
-        /* ipv6, strip brackets */
-        hostport += 1;
-        skip = 3;
-    } else {
-        port = strstr(hostport, "\\:");
-        skip = 2;
-    }
+    ret = virStorageSourceParseRBDColonString(source, disk->src);
 
-    if (port) {
-        *port = '\0';
-        port += skip;
-        if (VIR_STRDUP(disk->src->hosts[disk->src->nhosts - 1].port, port) < 0)
-            goto error;
-    } else {
-        if (VIR_STRDUP(disk->src->hosts[disk->src->nhosts - 1].port, "6789") < 0)
-            goto error;
-    }
-
-    parts = virStringSplit(hostport, "\\:", 0);
-    if (!parts)
-        goto error;
-    disk->src->hosts[disk->src->nhosts-1].name = virStringJoin((const char **)parts, ":");
-    virStringFreeList(parts);
-    if (!disk->src->hosts[disk->src->nhosts-1].name)
-        goto error;
-
-    disk->src->hosts[disk->src->nhosts-1].transport = VIR_STORAGE_NET_HOST_TRANS_TCP;
-    disk->src->hosts[disk->src->nhosts-1].socket = NULL;
-
-    return 0;
-
- error:
-    VIR_FREE(disk->src->hosts[disk->src->nhosts-1].port);
-    VIR_FREE(disk->src->hosts[disk->src->nhosts-1].name);
-    return -1;
+    VIR_FREE(source);
+    return ret;
 }
 
-/* disk->src initially has everything after the rbd: prefix */
-static int qemuParseRBDString(virDomainDiskDefPtr disk)
-{
-    char *options = NULL;
-    char *p, *e, *next;
-    virStorageAuthDefPtr authdef = NULL;
-
-    p = strchr(disk->src->path, ':');
-    if (p) {
-        if (VIR_STRDUP(options, p + 1) < 0)
-            goto error;
-        *p = '\0';
-    }
-
-    /* options */
-    if (!options)
-        return 0; /* all done */
-
-    p = options;
-    while (*p) {
-        /* find : delimiter or end of string */
-        for (e = p; *e && *e != ':'; ++e) {
-            if (*e == '\\') {
-                e++;
-                if (*e == '\0')
-                    break;
-            }
-        }
-        if (*e == '\0') {
-            next = e;    /* last kv pair */
-        } else {
-            next = e + 1;
-            *e = '\0';
-        }
-
-        if (STRPREFIX(p, "id=")) {
-            const char *secrettype;
-            /* formulate authdef for disk->src->auth */
-            if (VIR_ALLOC(authdef) < 0)
-                goto error;
-
-            if (VIR_STRDUP(authdef->username, p + strlen("id=")) < 0)
-                goto error;
-            secrettype = virSecretUsageTypeToString(VIR_SECRET_USAGE_TYPE_CEPH);
-            if (VIR_STRDUP(authdef->secrettype, secrettype) < 0)
-                goto error;
-            disk->src->auth = authdef;
-            authdef = NULL;
-
-            /* Cannot formulate a secretType (eg, usage or uuid) given
-             * what is provided.
-             */
-        }
-        if (STRPREFIX(p, "mon_host=")) {
-            char *h, *sep;
-
-            h = p + strlen("mon_host=");
-            while (h < e) {
-                for (sep = h; sep < e; ++sep) {
-                    if (*sep == '\\' && (sep[1] == ',' ||
-                                         sep[1] == ';' ||
-                                         sep[1] == ' ')) {
-                        *sep = '\0';
-                        sep += 2;
-                        break;
-                    }
-                }
-                if (qemuAddRBDHost(disk, h) < 0)
-                    goto error;
-
-                h = sep;
-            }
-        }
-
-        p = next;
-    }
-    VIR_FREE(options);
-    return 0;
-
- error:
-    VIR_FREE(options);
-    virStorageAuthDefFree(authdef);
-    return -1;
-}
 
 static int
 qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
@@ -2940,11 +2816,7 @@ qemuNetworkDriveGetPort(int protocol,
 #define QEMU_DEFAULT_NBD_PORT "10809"
 
 static char *
-qemuBuildNetworkDriveURI(int protocol,
-                         const char *src,
-                         const char *volume,
-                         size_t nhosts,
-                         virStorageNetHostDefPtr hosts,
+qemuBuildNetworkDriveURI(virStorageSourcePtr src,
                          const char *username,
                          const char *secret)
 {
@@ -2953,52 +2825,52 @@ qemuBuildNetworkDriveURI(int protocol,
     virURIPtr uri = NULL;
     size_t i;
 
-    switch ((virStorageNetProtocol) protocol) {
+    switch ((virStorageNetProtocol) src->protocol) {
         case VIR_STORAGE_NET_PROTOCOL_NBD:
-            if (nhosts != 1) {
+            if (src->nhosts != 1) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("protocol '%s' accepts only one host"),
-                               virStorageNetProtocolTypeToString(protocol));
+                               virStorageNetProtocolTypeToString(src->protocol));
                 goto cleanup;
             }
 
-            if (!((hosts->name && strchr(hosts->name, ':')) ||
-                  (hosts->transport == VIR_STORAGE_NET_HOST_TRANS_TCP &&
-                   !hosts->name) ||
-                  (hosts->transport == VIR_STORAGE_NET_HOST_TRANS_UNIX &&
-                   hosts->socket &&
-                   hosts->socket[0] != '/'))) {
+            if (!((src->hosts->name && strchr(src->hosts->name, ':')) ||
+                  (src->hosts->transport == VIR_STORAGE_NET_HOST_TRANS_TCP &&
+                   !src->hosts->name) ||
+                  (src->hosts->transport == VIR_STORAGE_NET_HOST_TRANS_UNIX &&
+                   src->hosts->socket &&
+                   src->hosts->socket[0] != '/'))) {
 
                 virBufferAddLit(&buf, "nbd:");
 
-                switch (hosts->transport) {
+                switch (src->hosts->transport) {
                 case VIR_STORAGE_NET_HOST_TRANS_TCP:
-                    virBufferStrcat(&buf, hosts->name, NULL);
+                    virBufferStrcat(&buf, src->hosts->name, NULL);
                     virBufferAsprintf(&buf, ":%s",
-                                      hosts->port ? hosts->port :
+                                      src->hosts->port ? src->hosts->port :
                                       QEMU_DEFAULT_NBD_PORT);
                     break;
 
                 case VIR_STORAGE_NET_HOST_TRANS_UNIX:
-                    if (!hosts->socket) {
+                    if (!src->hosts->socket) {
                         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                        _("socket attribute required for "
                                          "unix transport"));
                         goto cleanup;
                     }
 
-                    virBufferAsprintf(&buf, "unix:%s", hosts->socket);
+                    virBufferAsprintf(&buf, "unix:%s", src->hosts->socket);
                     break;
 
                 default:
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("nbd does not support transport '%s'"),
-                                   virStorageNetHostTransportTypeToString(hosts->transport));
+                                   virStorageNetHostTransportTypeToString(src->hosts->transport));
                     goto cleanup;
                 }
 
-                if (src)
-                    virBufferAsprintf(&buf, ":exportname=%s", src);
+                if (src->path)
+                    virBufferAsprintf(&buf, ":exportname=%s", src->path);
 
                 if (virBufferCheckError(&buf) < 0)
                     goto cleanup;
@@ -3016,45 +2888,45 @@ qemuBuildNetworkDriveURI(int protocol,
         case VIR_STORAGE_NET_PROTOCOL_TFTP:
         case VIR_STORAGE_NET_PROTOCOL_ISCSI:
         case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
-            if (nhosts != 1) {
+            if (src->nhosts != 1) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("protocol '%s' accepts only one host"),
-                               virStorageNetProtocolTypeToString(protocol));
+                               virStorageNetProtocolTypeToString(src->protocol));
                 goto cleanup;
             }
 
             if (VIR_ALLOC(uri) < 0)
                 goto cleanup;
 
-            if (hosts->transport == VIR_STORAGE_NET_HOST_TRANS_TCP) {
+            if (src->hosts->transport == VIR_STORAGE_NET_HOST_TRANS_TCP) {
                 if (VIR_STRDUP(uri->scheme,
-                               virStorageNetProtocolTypeToString(protocol)) < 0)
+                               virStorageNetProtocolTypeToString(src->protocol)) < 0)
                     goto cleanup;
             } else {
                 if (virAsprintf(&uri->scheme, "%s+%s",
-                                virStorageNetProtocolTypeToString(protocol),
-                                virStorageNetHostTransportTypeToString(hosts->transport)) < 0)
+                                virStorageNetProtocolTypeToString(src->protocol),
+                                virStorageNetHostTransportTypeToString(src->hosts->transport)) < 0)
                     goto cleanup;
             }
 
-            if ((uri->port = qemuNetworkDriveGetPort(protocol, hosts->port)) < 0)
+            if ((uri->port = qemuNetworkDriveGetPort(src->protocol, src->hosts->port)) < 0)
                 goto cleanup;
 
-            if (src) {
-                if (volume) {
+            if (src->path) {
+                if (src->volume) {
                     if (virAsprintf(&uri->path, "/%s%s",
-                                    volume, src) < 0)
+                                    src->volume, src->path) < 0)
                         goto cleanup;
                 } else {
                     if (virAsprintf(&uri->path, "%s%s",
-                                    src[0] == '/' ? "" : "/",
-                                    src) < 0)
+                                    src->path[0] == '/' ? "" : "/",
+                                    src->path) < 0)
                         goto cleanup;
                 }
             }
 
-            if (hosts->socket &&
-                virAsprintf(&uri->query, "socket=%s", hosts->socket) < 0)
+            if (src->hosts->socket &&
+                virAsprintf(&uri->query, "socket=%s", src->hosts->socket) < 0)
                 goto cleanup;
 
             if (username) {
@@ -3067,7 +2939,7 @@ qemuBuildNetworkDriveURI(int protocol,
                 }
             }
 
-            if (VIR_STRDUP(uri->server, hosts->name) < 0)
+            if (VIR_STRDUP(uri->server, src->hosts->name) < 0)
                 goto cleanup;
 
             ret = virURIFormat(uri);
@@ -3075,20 +2947,20 @@ qemuBuildNetworkDriveURI(int protocol,
             break;
 
         case VIR_STORAGE_NET_PROTOCOL_SHEEPDOG:
-            if (!src) {
+            if (!src->path) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("missing disk source for 'sheepdog' protocol"));
                 goto cleanup;
             }
 
-            if (nhosts == 0) {
-                if (virAsprintf(&ret, "sheepdog:%s", src) < 0)
+            if (src->nhosts == 0) {
+                if (virAsprintf(&ret, "sheepdog:%s", src->path) < 0)
                     goto cleanup;
-            } else if (nhosts == 1) {
+            } else if (src->nhosts == 1) {
                 if (virAsprintf(&ret, "sheepdog:%s:%s:%s",
-                                hosts->name,
-                                hosts->port ? hosts->port : "7000",
-                                src) < 0)
+                                src->hosts->name,
+                                src->hosts->port ? src->hosts->port : "7000",
+                                src->path) < 0)
                     goto cleanup;
             } else {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3099,14 +2971,17 @@ qemuBuildNetworkDriveURI(int protocol,
             break;
 
         case VIR_STORAGE_NET_PROTOCOL_RBD:
-            if (strchr(src, ':')) {
+            if (strchr(src->path, ':')) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("':' not allowed in RBD source volume name '%s'"),
-                               src);
+                               src->path);
                 goto cleanup;
             }
 
-            virBufferStrcat(&buf, "rbd:", src, NULL);
+            virBufferStrcat(&buf, "rbd:", src->path, NULL);
+
+            if (src->snapshot)
+                virBufferEscape(&buf, '\\', ":", "@%s", src->snapshot);
 
             if (username) {
                 virBufferEscape(&buf, '\\', ":", ":id=%s", username);
@@ -3117,22 +2992,26 @@ qemuBuildNetworkDriveURI(int protocol,
                 virBufferAddLit(&buf, ":auth_supported=none");
             }
 
-            if (nhosts > 0) {
+            if (src->nhosts > 0) {
                 virBufferAddLit(&buf, ":mon_host=");
-                for (i = 0; i < nhosts; i++) {
+                for (i = 0; i < src->nhosts; i++) {
                     if (i)
                         virBufferAddLit(&buf, "\\;");
 
                     /* assume host containing : is ipv6 */
-                    if (strchr(hosts[i].name, ':'))
-                        virBufferEscape(&buf, '\\', ":", "[%s]", hosts[i].name);
+                    if (strchr(src->hosts[i].name, ':'))
+                        virBufferEscape(&buf, '\\', ":", "[%s]",
+                                        src->hosts[i].name);
                     else
-                        virBufferAsprintf(&buf, "%s", hosts[i].name);
+                        virBufferAsprintf(&buf, "%s", src->hosts[i].name);
 
-                    if (hosts[i].port)
-                        virBufferAsprintf(&buf, "\\:%s", hosts[i].port);
+                    if (src->hosts[i].port)
+                        virBufferAsprintf(&buf, "\\:%s", src->hosts[i].port);
                 }
             }
+
+            if (src->configFile)
+                virBufferEscape(&buf, '\\', ":", ":conf=%s", src->configFile);
 
             if (virBufferCheckError(&buf) < 0)
                 goto cleanup;
@@ -3206,13 +3085,7 @@ qemuGetDriveSourceString(virStorageSourcePtr src,
         break;
 
     case VIR_STORAGE_TYPE_NETWORK:
-        if (!(*source = qemuBuildNetworkDriveURI(src->protocol,
-                                                 src->path,
-                                                 src->volume,
-                                                 src->nhosts,
-                                                 src->hosts,
-                                                 username,
-                                                 secret)))
+        if (!(*source = qemuBuildNetworkDriveURI(src, username, secret)))
             goto cleanup;
         break;
 
@@ -3669,12 +3542,34 @@ qemuBuildDriveStr(virConnectPtr conn,
         goto error;
     }
 
+    /* block I/O throttling 1.7 */
+    if ((disk->blkdeviotune.total_bytes_sec_max ||
+         disk->blkdeviotune.read_bytes_sec_max ||
+         disk->blkdeviotune.write_bytes_sec_max ||
+         disk->blkdeviotune.total_iops_sec_max ||
+         disk->blkdeviotune.read_iops_sec_max ||
+         disk->blkdeviotune.write_iops_sec_max ||
+         disk->blkdeviotune.size_iops_sec) &&
+        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_MAX)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("there are some block I/O throttling parameters "
+                         "that are not supported with this QEMU binary"));
+        goto error;
+    }
+
     if (disk->blkdeviotune.total_bytes_sec > LLONG_MAX ||
         disk->blkdeviotune.read_bytes_sec > LLONG_MAX ||
         disk->blkdeviotune.write_bytes_sec > LLONG_MAX ||
         disk->blkdeviotune.total_iops_sec > LLONG_MAX ||
         disk->blkdeviotune.read_iops_sec > LLONG_MAX ||
-        disk->blkdeviotune.write_iops_sec > LLONG_MAX) {
+        disk->blkdeviotune.write_iops_sec > LLONG_MAX ||
+        disk->blkdeviotune.total_bytes_sec_max > LLONG_MAX ||
+        disk->blkdeviotune.read_bytes_sec_max > LLONG_MAX ||
+        disk->blkdeviotune.write_bytes_sec_max > LLONG_MAX ||
+        disk->blkdeviotune.total_iops_sec_max > LLONG_MAX ||
+        disk->blkdeviotune.read_iops_sec_max > LLONG_MAX ||
+        disk->blkdeviotune.write_iops_sec_max > LLONG_MAX ||
+        disk->blkdeviotune.size_iops_sec > LLONG_MAX) {
         virReportError(VIR_ERR_OVERFLOW,
                       _("block I/O throttle limit must "
                         "be less than %llu using QEMU"), LLONG_MAX);
@@ -3711,6 +3606,41 @@ qemuBuildDriveStr(virConnectPtr conn,
                           disk->blkdeviotune.write_iops_sec);
     }
 
+    if (disk->blkdeviotune.total_bytes_sec_max) {
+        virBufferAsprintf(&opt, ",bps_max=%llu",
+                          disk->blkdeviotune.total_bytes_sec_max);
+    }
+
+    if (disk->blkdeviotune.read_bytes_sec_max) {
+        virBufferAsprintf(&opt, ",bps_rd_max=%llu",
+                          disk->blkdeviotune.read_bytes_sec_max);
+    }
+
+    if (disk->blkdeviotune.write_bytes_sec_max) {
+        virBufferAsprintf(&opt, ",bps_wr_max=%llu",
+                          disk->blkdeviotune.write_bytes_sec_max);
+    }
+
+    if (disk->blkdeviotune.total_iops_sec_max) {
+        virBufferAsprintf(&opt, ",iops_max=%llu",
+                          disk->blkdeviotune.total_iops_sec_max);
+    }
+
+    if (disk->blkdeviotune.read_iops_sec_max) {
+        virBufferAsprintf(&opt, ",iops_rd_max=%llu",
+                          disk->blkdeviotune.read_iops_sec_max);
+    }
+
+    if (disk->blkdeviotune.write_iops_sec_max) {
+        virBufferAsprintf(&opt, ",iops_wr_max=%llu",
+                          disk->blkdeviotune.write_iops_sec_max);
+    }
+
+    if (disk->blkdeviotune.size_iops_sec) {
+        virBufferAsprintf(&opt, ",iops_size=%llu",
+                          disk->blkdeviotune.size_iops_sec);
+    }
+
     if (virBufferCheckError(&opt) < 0)
         goto error;
 
@@ -3736,10 +3666,12 @@ qemuCheckIothreads(virDomainDefPtr def,
     }
 
     /* Right "type" of disk" */
-    if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO &&
-        disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+    if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO ||
+        (disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
+         disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("IOThreads only available for virtio pci disk"));
+                       _("IOThreads only available for virtio pci and "
+                         "virtio ccw disk"));
         return false;
     }
 
@@ -3951,6 +3883,8 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
     case VIR_DOMAIN_DISK_BUS_VIRTIO:
         if (disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
             virBufferAddLit(&opt, "virtio-blk-ccw");
+            if (disk->iothread)
+                virBufferAsprintf(&opt, ",iothread=iothread%u", disk->iothread);
         } else if (disk->info.type ==
                    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
             virBufferAddLit(&opt, "virtio-blk-s390");
@@ -4195,7 +4129,7 @@ qemuBuildUSBControllerDevStr(virDomainDefPtr domainDef,
     model = def->model;
 
     if (model == -1) {
-        if (domainDef->os.arch == VIR_ARCH_PPC64)
+        if ARCH_IS_PPC64(domainDef->os.arch)
             model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI;
         else
             model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI;
@@ -4965,11 +4899,35 @@ qemuBuildDeviceVideoStr(virDomainDefPtr def,
             goto error;
         }
 
-        /* QEMU accepts bytes for ram_size. */
-        virBufferAsprintf(&buf, ",ram_size=%u", video->ram * 1024);
+        if (video->ram) {
+            /* QEMU accepts bytes for ram_size. */
+            virBufferAsprintf(&buf, ",ram_size=%u", video->ram * 1024);
+        }
 
-        /* QEMU accepts bytes for vram_size. */
-        virBufferAsprintf(&buf, ",vram_size=%u", video->vram * 1024);
+        if (video->vram) {
+            /* QEMU accepts bytes for vram_size. */
+            virBufferAsprintf(&buf, ",vram_size=%u", video->vram * 1024);
+        }
+
+        if ((primary && virQEMUCapsGet(qemuCaps, QEMU_CAPS_QXL_VGA_VGAMEM)) ||
+            (!primary && virQEMUCapsGet(qemuCaps, QEMU_CAPS_QXL_VGAMEM))) {
+            /* QEMU accepts mebibytes for vgamem_mb. */
+            virBufferAsprintf(&buf, ",vgamem_mb=%u", video->vgamem / 1024);
+        }
+    } else if (video->vram &&
+        ((video->type == VIR_DOMAIN_VIDEO_TYPE_VGA &&
+          virQEMUCapsGet(qemuCaps, QEMU_CAPS_VGA_VGAMEM)) ||
+         (video->type == VIR_DOMAIN_VIDEO_TYPE_VMVGA &&
+          virQEMUCapsGet(qemuCaps, QEMU_CAPS_VMWARE_SVGA_VGAMEM)))) {
+
+        if (video->vram < 1024) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           "%s", _("value for 'vram' must be at least 1 MiB "
+                                   "(1024 KiB)"));
+            goto error;
+        }
+
+        virBufferAsprintf(&buf, ",vgamem_mb=%u", video->vram / 1024);
     }
 
     if (qemuBuildDeviceAddressStr(&buf, def, &video->info, qemuCaps) < 0)
@@ -5305,6 +5263,10 @@ qemuBuildSCSIiSCSIHostdevDrvStr(virConnectPtr conn,
     char *source = NULL;
     char *secret = NULL;
     char *username = NULL;
+    virStorageSource src;
+
+    memset(&src, 0, sizeof(src));
+
     virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
     virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
 
@@ -5320,13 +5282,13 @@ qemuBuildSCSIiSCSIHostdevDrvStr(virConnectPtr conn,
             goto cleanup;
     }
 
+    src.protocol = VIR_STORAGE_NET_PROTOCOL_ISCSI;
+    src.path = iscsisrc->path;
+    src.hosts = iscsisrc->hosts;
+    src.nhosts = iscsisrc->nhosts;
+
     /* Rather than pull what we think we want - use the network disk code */
-    source = qemuBuildNetworkDriveURI(VIR_STORAGE_NET_PROTOCOL_ISCSI,
-                                      iscsisrc->path,
-                                      NULL, /* volume */
-                                      iscsisrc->nhosts,
-                                      iscsisrc->hosts,
-                                      username, secret);
+    source = qemuBuildNetworkDriveURI(&src, username, secret);
 
  cleanup:
     VIR_FREE(secret);
@@ -6221,7 +6183,9 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
         *hasHwVirt = hasSVM > 0 ? true : false;
     }
 
-    if (cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH) {
+    if ((cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH) ||
+        ((cpu->mode == VIR_CPU_MODE_HOST_MODEL) &&
+          ARCH_IS_PPC64(def->os.arch))) {
         const char *mode = virCPUModeTypeToString(cpu->mode);
         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_CPU_HOST)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -6236,6 +6200,12 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
             goto cleanup;
         }
         virBufferAddLit(buf, "host");
+
+        if (ARCH_IS_PPC64(def->os.arch) &&
+            cpu->mode == VIR_CPU_MODE_HOST_MODEL) {
+            virBufferAsprintf(buf, ",compat=%s", def->cpu->model);
+        }
+
     } else {
         if (VIR_ALLOC(guest) < 0)
             goto cleanup;
@@ -6636,7 +6606,8 @@ static int
 qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
                     const virDomainDef *def,
                     virCommandPtr cmd,
-                    virQEMUCapsPtr qemuCaps)
+                    virQEMUCapsPtr qemuCaps,
+                    virBitmapPtr nodeset)
 {
     size_t i, j;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -6663,6 +6634,9 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
         goto cleanup;
     }
 
+    if (!virDomainNumatuneNodesetIsAvailable(def->numatune, nodeset))
+        goto cleanup;
+
     for (i = 0; i < def->mem.nhugepages; i++) {
         ssize_t next_bit, pos = 0;
 
@@ -6688,7 +6662,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
     }
 
     for (i = 0; i < def->cpu->ncells; i++) {
-        int cellmem = VIR_DIV_UP(def->cpu->cells[i].mem, 1024);
+        unsigned long long cellmem = VIR_DIV_UP(def->cpu->cells[i].mem, 1024);
         def->cpu->cells[i].mem = cellmem * 1024;
         virMemAccess memAccess = def->cpu->cells[i].memAccess;
 
@@ -6794,9 +6768,9 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
                 virBufferAddLit(&buf, "memory-backend-ram");
             }
 
-            virBufferAsprintf(&buf, ",size=%dM,id=ram-node%zu", cellmem, i);
+            virBufferAsprintf(&buf, ",size=%lluM,id=ram-node%zu", cellmem, i);
 
-            if (virDomainNumatuneMaybeFormatNodeset(def->numatune, NULL,
+            if (virDomainNumatuneMaybeFormatNodeset(def->numatune, nodeset,
                                                     &nodemask, i) < 0)
                 goto cleanup;
 
@@ -6844,7 +6818,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
             virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
             virBufferAsprintf(&buf, ",memdev=ram-node%zu", i);
         } else {
-            virBufferAsprintf(&buf, ",mem=%d", cellmem);
+            virBufferAsprintf(&buf, ",mem=%llu", cellmem);
         }
 
         virCommandAddArgBuffer(cmd, &buf);
@@ -7427,6 +7401,13 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
             goto cleanup;
     }
 
+    /* Set Bandwidth */
+    if (virNetDevSupportBandwidth(actualType) &&
+        virNetDevBandwidthSet(net->ifname,
+                              virDomainNetGetActualBandwidth(net),
+                              false) < 0)
+        goto cleanup;
+
     if ((actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
          actualType == VIR_DOMAIN_NET_TYPE_BRIDGE ||
          actualType == VIR_DOMAIN_NET_TYPE_ETHERNET ||
@@ -7559,7 +7540,7 @@ qemuBuildShmemDevCmd(virCommandPtr cmd,
         }
         if (shmem->size < 1024 * 1024) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
-                           _("shmem size must be at least 1 MiB"));
+                           _("shmem size must be at least 1 MiB (1024 KiB)"));
             goto error;
         }
         virBufferAsprintf(&buf, ",size=%llum", shmem->size >> 20);
@@ -7672,14 +7653,6 @@ qemuBuildDomainLoaderCommandLine(virCommandPtr cmd,
         break;
 
     case VIR_DOMAIN_LOADER_TYPE_PFLASH:
-        /* UEFI is supported only for x86_64 currently */
-        if (def->os.arch != VIR_ARCH_X86_64) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("pflash is not supported for %s guest architecture"),
-                           virArchToString(def->os.arch));
-            goto cleanup;
-        }
-
         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DRIVE)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this QEMU binary doesn't support -drive"));
@@ -7764,7 +7737,8 @@ qemuBuildCommandLine(virConnectPtr conn,
                      virNetDevVPortProfileOp vmop,
                      qemuBuildCommandLineCallbacksPtr callbacks,
                      bool standalone,
-                     bool enableFips)
+                     bool enableFips,
+                     virBitmapPtr nodeset)
 {
     virErrorPtr originalError = NULL;
     size_t i, j;
@@ -7834,17 +7808,6 @@ qemuBuildCommandLine(virConnectPtr conn,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("CPU tuning is not available in session mode"));
             goto error;
-        }
-
-        virDomainNetDefPtr *nets = def->nets;
-        virNetDevBandwidthPtr bandwidth = NULL;
-        size_t nnets = def->nnets;
-        for (i = 0; i < nnets; i++) {
-            if ((bandwidth = virDomainNetGetActualBandwidth(nets[i])) != NULL) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                    _("Network bandwidth tuning is not available in session mode"));
-                goto error;
-            }
         }
     }
 
@@ -7992,7 +7955,7 @@ qemuBuildCommandLine(virConnectPtr conn,
     }
 
     if (def->cpu && def->cpu->ncells)
-        if (qemuBuildNumaArgStr(cfg, def, cmd, qemuCaps) < 0)
+        if (qemuBuildNumaArgStr(cfg, def, cmd, qemuCaps, nodeset) < 0)
             goto error;
 
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_UUID))
@@ -8573,7 +8536,7 @@ qemuBuildCommandLine(virConnectPtr conn,
                            !qemuDomainMachineIsQ35(def) &&
                            (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_PIIX3_USB_UHCI) ||
                             (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_PCI_OHCI) &&
-                             def->os.arch == VIR_ARCH_PPC64))) {
+                             ARCH_IS_PPC64(def->os.arch)))) {
                     if (usblegacy) {
                         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                        _("Multiple legacy USB controllers are "
@@ -8800,9 +8763,8 @@ qemuBuildCommandLine(virConnectPtr conn,
                                _("network disks are only supported with -drive"));
                 goto error;
             } else {
-                if (VIR_STRDUP(file, disk->src->path) < 0) {
+                if (VIR_STRDUP(file, disk->src->path) < 0)
                     goto error;
-                }
             }
 
             /* Don't start with source if the tray is open for
@@ -9267,13 +9229,25 @@ qemuBuildCommandLine(virConnectPtr conn,
 
                 virCommandAddArgList(cmd, "-vga", vgastr, NULL);
 
+                /* If we cannot use --device option to specify the video device
+                 * in QEMU we will fallback to the old --vga option. To get the
+                 * correct device name for the --vga option the 'qemuVideo' is
+                 * used, but to set some device attributes we need to use the
+                 * --global option and for that we need to specify the device
+                 * name the same as for --device option and for that we need to
+                 * use 'qemuDeviceVideo'.
+                 *
+                 * See 'Graphics Devices' section in docs/qdev-device-use.txt in
+                 * QEMU repository.
+                 */
+                const char *dev = qemuDeviceVideoTypeToString(primaryVideoType);
+
                 if (def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_QXL &&
                     (def->videos[0]->vram || def->videos[0]->ram) &&
                     virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
-                    const char *dev = (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_QXL_VGA)
-                                       ? "qxl-vga" : "qxl");
-                    int ram = def->videos[0]->ram;
-                    int vram = def->videos[0]->vram;
+                    unsigned int ram = def->videos[0]->ram;
+                    unsigned int vram = def->videos[0]->vram;
+                    unsigned int vgamem = def->videos[0]->vgamem;
 
                     if (vram > (UINT_MAX / 1024)) {
                         virReportError(VIR_ERR_OVERFLOW,
@@ -9298,6 +9272,32 @@ qemuBuildCommandLine(virConnectPtr conn,
                         virCommandAddArgFormat(cmd, "%s.vram_size=%u",
                                                dev, vram * 1024);
                     }
+                    if (vgamem &&
+                        virQEMUCapsGet(qemuCaps, QEMU_CAPS_QXL_VGA_VGAMEM)) {
+                        virCommandAddArg(cmd, "-global");
+                        virCommandAddArgFormat(cmd, "%s.vgamem_mb=%u",
+                                               dev, vgamem / 1024);
+                    }
+                }
+
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE) &&
+                    def->videos[0]->vram &&
+                    ((primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_VGA &&
+                      virQEMUCapsGet(qemuCaps, QEMU_CAPS_VGA_VGAMEM)) ||
+                     (primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_VMVGA &&
+                      virQEMUCapsGet(qemuCaps, QEMU_CAPS_VMWARE_SVGA_VGAMEM)))) {
+                    unsigned int vram = def->videos[0]->vram;
+
+                    if (vram < 1024) {
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                       "%s", _("value for 'vgamem' must be at "
+                                               "least 1 MiB (1024 KiB)"));
+                        goto error;
+                    }
+
+                    virCommandAddArg(cmd, "-global");
+                    virCommandAddArgFormat(cmd, "%s.vgamem_mb=%u",
+                                           dev, vram / 1024);
                 }
             }
 
@@ -9771,7 +9771,7 @@ qemuBuildCommandLine(virConnectPtr conn,
     }
 
     if (def->nvram) {
-        if (def->os.arch == VIR_ARCH_PPC64 &&
+        if (ARCH_IS_PPC64(def->os.arch) &&
             STRPREFIX(def->os.machine, "pseries")) {
             if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_NVRAM)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -9894,7 +9894,7 @@ qemuBuildSerialChrDeviceStr(char **deviceStr,
 {
     virBuffer cmd = VIR_BUFFER_INITIALIZER;
 
-    if ((arch == VIR_ARCH_PPC64) && STRPREFIX(machine, "pseries")) {
+    if (ARCH_IS_PPC64(arch) && STRPREFIX(machine, "pseries")) {
         if (serial->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
             serial->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO) {
             virBufferAsprintf(&cmd, "spapr-vty,chardev=char%s",
@@ -10082,9 +10082,8 @@ static int qemuStringToArgvEnv(const char *args,
 
         start = curr;
         /* accept a space in CEPH_ARGS */
-        if (STRPREFIX(curr, "CEPH_ARGS=-m ")) {
+        if (STRPREFIX(curr, "CEPH_ARGS=-m "))
             start += strlen("CEPH_ARGS=-m ");
-        }
         if (*start == '\'') {
             if (start == curr)
                 curr++;
@@ -10316,7 +10315,7 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
     if (VIR_ALLOC(def->src) < 0)
         goto error;
 
-    if (((dom->os.arch == VIR_ARCH_PPC64) &&
+    if ((ARCH_IS_PPC64(dom->os.arch) &&
         dom->os.machine && STRPREFIX(dom->os.machine, "pseries")))
         def->bus = VIR_DOMAIN_DISK_BUS_SCSI;
     else
@@ -10409,7 +10408,7 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
         } else if (STREQ(keywords[i], "if")) {
             if (STREQ(values[i], "ide")) {
                 def->bus = VIR_DOMAIN_DISK_BUS_IDE;
-                if (((dom->os.arch == VIR_ARCH_PPC64) &&
+                if ((ARCH_IS_PPC64(dom->os.arch) &&
                      dom->os.machine && STRPREFIX(dom->os.machine, "pseries"))) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("pseries systems do not support ide devices '%s'"), val);
@@ -11654,7 +11653,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
             }
             if (STREQ(arg, "-cdrom")) {
                 disk->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
-                if (((def->os.arch == VIR_ARCH_PPC64) &&
+                if ((ARCH_IS_PPC64(def->os.arch) &&
                     def->os.machine && STRPREFIX(def->os.machine, "pseries")))
                     disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
                 if (VIR_STRDUP(disk->dst, "hdc") < 0)
@@ -11670,7 +11669,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
                         disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
                     else
                         disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
-                   if (((def->os.arch == VIR_ARCH_PPC64) &&
+                   if ((ARCH_IS_PPC64(def->os.arch) &&
                        def->os.machine && STRPREFIX(def->os.machine, "pseries")))
                        disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
                 }
@@ -12295,8 +12294,13 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
         else
             vid->type = video;
         vid->vram = virDomainVideoDefaultRAM(def, vid->type);
-        vid->ram = vid->type == VIR_DOMAIN_VIDEO_TYPE_QXL ?
-                       virDomainVideoDefaultRAM(def, vid->type) : 0;
+        if (vid->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
+            vid->ram = virDomainVideoDefaultRAM(def, vid->type);
+            vid->vgamem = 8 * 1024;
+        } else {
+            vid->ram = 0;
+            vid->vgamem = 0;
+        }
         vid->heads = 1;
 
         if (VIR_APPEND_ELEMENT(def->videos, def->nvideos, vid) < 0) {

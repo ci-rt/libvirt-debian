@@ -40,11 +40,8 @@ hypervNodeDeviceOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_HYPERV) {
+    if (conn->driver->no != VIR_DRV_HYPERV)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->nodeDevicePrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -52,10 +49,8 @@ hypervNodeDeviceOpen(virConnectPtr conn,
 
 
 static int
-hypervNodeDeviceClose(virConnectPtr conn)
+hypervNodeDeviceClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->nodeDevicePrivateData = NULL;
-
     return 0;
 }
 

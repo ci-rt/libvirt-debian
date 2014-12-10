@@ -571,12 +571,21 @@ virStorageFileBackendGlusterInit(virStorageSourcePtr src)
 {
     virStorageFileBackendGlusterPrivPtr priv = NULL;
     virStorageNetHostDefPtr host = &(src->hosts[0]);
-    const char *hostname = host->name;
+    const char *hostname;
     int port = 0;
 
-    VIR_DEBUG("initializing gluster storage file %p (gluster://%s:%s/%s%s)",
+    if (src->nhosts != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Expected exactly 1 host for the gluster volume"));
+        return -1;
+    }
+
+    hostname = host->name;
+
+    VIR_DEBUG("initializing gluster storage file %p (gluster://%s:%s/%s%s)[%u:%u]",
               src, hostname, host->port ? host->port : "0",
-              NULLSTR(src->volume), src->path);
+              NULLSTR(src->volume), src->path,
+              (unsigned int)src->drv->uid, (unsigned int)src->drv->gid);
 
     if (!src->volume) {
         virReportError(VIR_ERR_INTERNAL_ERROR,

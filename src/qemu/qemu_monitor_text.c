@@ -123,9 +123,8 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
          */
         if (msg->txLength > 0) {
             char *tmp;
-            if ((tmp = strchr(msg->txBuffer, '\r'))) {
+            if ((tmp = strchr(msg->txBuffer, '\r')))
                 *tmp = '\0';
-            }
         }
 
         /* QEMU echos the command back to us, full of control
@@ -144,9 +143,8 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         skip = strstr(data + used, msg->txBuffer);
 
         /* After the junk we should have a line ending... */
-        if (skip) {
+        if (skip)
             start = strstr(skip + strlen(msg->txBuffer), LINE_ENDING);
-        }
 
         /* ... then our command reply data, following by a (qemu) prompt */
         if (start) {
@@ -2172,10 +2170,11 @@ int qemuMonitorTextRemoveNetdev(qemuMonitorPtr mon,
  * '/dev/pty/7'. The hash will contain only a single value.
  */
 
-int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
-                               virHashTablePtr paths)
+int qemuMonitorTextGetChardevInfo(qemuMonitorPtr mon,
+                                  virHashTablePtr info)
 {
     char *reply = NULL;
+    qemuMonitorChardevInfoPtr entry = NULL;
     int ret = -1;
 
     if (qemuMonitorHMPCommand(mon, "info chardev", &reply) < 0)
@@ -2220,17 +2219,22 @@ int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
 
         /* Path is everything after needle to the end of the line */
         *eol = '\0';
-        char *path;
-        if (VIR_STRDUP(path, needle + strlen(NEEDLE)) < 0)
+
+        if (VIR_ALLOC(entry) < 0)
             goto cleanup;
 
-        if (virHashAddEntry(paths, id, path) < 0) {
+        if (VIR_STRDUP(entry->ptyPath, needle + strlen(NEEDLE)) < 0)
+            goto cleanup;
+
+        if (virHashAddEntry(info, id, entry) < 0) {
             virReportError(VIR_ERR_OPERATION_FAILED,
                            _("failed to save chardev path '%s'"),
-                           path);
-            VIR_FREE(path);
+                           entry->ptyPath);
+            VIR_FREE(entry->ptyPath);
             goto cleanup;
         }
+
+        entry = NULL;
 #undef NEEDLE
     }
 
@@ -2238,6 +2242,7 @@ int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
 
  cleanup:
     VIR_FREE(reply);
+    VIR_FREE(entry);
     return ret;
 }
 

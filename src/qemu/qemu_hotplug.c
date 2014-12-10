@@ -31,6 +31,7 @@
 #include "qemu_command.h"
 #include "qemu_hostdev.h"
 #include "domain_audit.h"
+#include "netdev_bandwidth_conf.h"
 #include "domain_nwfilter.h"
 #include "virlog.h"
 #include "datatypes.h"
@@ -468,9 +469,8 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
-        if (!(devstr = qemuBuildControllerDevStr(vm->def, controller, priv->qemuCaps, NULL))) {
+        if (!(devstr = qemuBuildControllerDevStr(vm->def, controller, priv->qemuCaps, NULL)))
             goto cleanup;
-        }
     }
 
     if (VIR_REALLOC_N(vm->def->controllers, vm->def->ncontrollers+1) < 0)
@@ -947,6 +947,12 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, vhostfd, &vhostfdSize) < 0)
             goto cleanup;
     }
+
+    /* Set Bandwidth */
+    if (virNetDevSupportBandwidth(actualType) &&
+        virNetDevBandwidthSet(net->ifname,
+                              virDomainNetGetActualBandwidth(net), false) < 0)
+        goto cleanup;
 
     for (i = 0; i < tapfdSize; i++) {
         if (virSecurityManagerSetTapFDLabel(driver->securityManager,
@@ -1740,64 +1746,20 @@ static virDomainNetDefPtr *qemuDomainFindNet(virDomainObjPtr vm,
     return NULL;
 }
 
-static char *
-qemuDomainNetGetBridgeName(virConnectPtr conn, virDomainNetDefPtr net)
-{
-    char *brname = NULL;
-    int actualType = virDomainNetGetActualType(net);
-
-    if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-        const char *tmpbr = virDomainNetGetActualBridgeName(net);
-        if (!tmpbr) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("interface is missing bridge name"));
-            goto cleanup;
-        }
-        /* we need a copy, not just a pointer to the original */
-        if (VIR_STRDUP(brname, tmpbr) < 0)
-            goto cleanup;
-    } else if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK) {
-        virErrorPtr errobj;
-        virNetworkPtr network;
-
-        if (!(network = virNetworkLookupByName(conn, net->data.network.name))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Couldn't find network '%s'"),
-                           net->data.network.name);
-            goto cleanup;
-        }
-        brname = virNetworkGetBridgeName(network);
-
-        /* Make sure any above failure is preserved */
-        errobj = virSaveLastError();
-        virNetworkFree(network);
-        virSetError(errobj);
-        virFreeError(errobj);
-
-    } else {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Interface type %d has no bridge name"),
-                       virDomainNetGetActualType(net));
-    }
-
- cleanup:
-    return brname;
-}
 
 static int
-qemuDomainChangeNetBridge(virConnectPtr conn,
-                          virDomainObjPtr vm,
+qemuDomainChangeNetBridge(virDomainObjPtr vm,
                           virDomainNetDefPtr olddev,
                           virDomainNetDefPtr newdev)
 {
     int ret = -1;
-    char *oldbridge = NULL, *newbridge = NULL;
+    const char *oldbridge = virDomainNetGetActualBridgeName(olddev);
+    const char *newbridge = virDomainNetGetActualBridgeName(newdev);
 
-    if (!(oldbridge = qemuDomainNetGetBridgeName(conn, olddev)))
+    if (!oldbridge || !newbridge) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Missing bridge name"));
         goto cleanup;
-
-    if (!(newbridge = qemuDomainNetGetBridgeName(conn, newdev)))
-        goto cleanup;
+    }
 
     VIR_DEBUG("Change bridge for interface %s: %s -> %s",
               olddev->ifname, oldbridge, newbridge);
@@ -1836,8 +1798,6 @@ qemuDomainChangeNetBridge(virConnectPtr conn,
     /* caller will replace entire olddev with newdev in domain nets list */
     ret = 0;
  cleanup:
-    VIR_FREE(oldbridge);
-    VIR_FREE(newbridge);
     return ret;
 }
 
@@ -2231,7 +2191,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
     }
 
     if (needBridgeChange) {
-        if (qemuDomainChangeNetBridge(dom->conn, vm, olddev, newdev) < 0)
+        if (qemuDomainChangeNetBridge(vm, olddev, newdev) < 0)
             goto cleanup;
         /* we successfully switched to the new bridge, and we've
          * determined that the rest of newdev is equivalent to olddev,
@@ -2780,6 +2740,12 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
     qemuDomainReleaseDeviceAddress(vm, &net->info, NULL);
     virDomainConfNWFilterTeardown(net);
 
+    if (cfg->macFilter && (net->ifname != NULL)) {
+        ignore_value(ebtablesRemoveForwardAllowIn(driver->ebtables,
+                                                  net->ifname,
+                                                  &net->mac));
+    }
+
     if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT) {
         ignore_value(virNetDevMacVLanDeleteWithVPortProfile(
                          net->ifname, &net->mac,
@@ -2788,12 +2754,6 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
                          virDomainNetGetActualVirtPortProfile(net),
                          cfg->stateDir));
         VIR_FREE(net->ifname);
-    }
-
-    if (cfg->macFilter && (net->ifname != NULL)) {
-        ignore_value(ebtablesRemoveForwardAllowIn(driver->ebtables,
-                                                  net->ifname,
-                                                  &net->mac));
     }
 
     vport = virDomainNetGetActualVirtPortProfile(net);
@@ -2891,6 +2851,8 @@ qemuDomainRemoveDevice(virQEMUDriverPtr driver,
     case VIR_DOMAIN_DEVICE_NVRAM:
     case VIR_DOMAIN_DEVICE_RNG:
     case VIR_DOMAIN_DEVICE_SHMEM:
+    case VIR_DOMAIN_DEVICE_TPM:
+    case VIR_DOMAIN_DEVICE_PANIC:
     case VIR_DOMAIN_DEVICE_LAST:
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("don't know how to remove a %s device"),
@@ -3095,9 +3057,8 @@ qemuFindDisk(virDomainDefPtr def, const char *dst)
     size_t i;
 
     for (i = 0; i < def->ndisks; i++) {
-        if (STREQ(def->disks[i]->dst, dst)) {
+        if (STREQ(def->disks[i]->dst, dst))
             return i;
-        }
     }
 
     return -1;
@@ -3546,6 +3507,11 @@ qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
         if (qemuAssignDeviceNetAlias(vm->def, detach, -1) < 0)
             goto cleanup;
     }
+
+    if (virNetDevSupportBandwidth(virDomainNetGetActualType(detach)) &&
+        virNetDevBandwidthClear(detach->ifname) < 0)
+        VIR_WARN("cannot clear bandwidth setting for device : %s",
+                 detach->ifname);
 
     qemuDomainMarkDeviceForRemoval(vm, &detach->info);
 

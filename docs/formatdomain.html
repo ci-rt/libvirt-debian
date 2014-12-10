@@ -461,7 +461,10 @@
         started up libvirt copies so called master NVRAM store file defined
         in <code>qemu.conf</code>. If needed, the <code>template</code>
         attribute can be used to per domain override map of master NVRAM stores
-        from the config file. <span class="since">Since 1.2.8</span></dd><dt><code>boot</code></dt><dd>The <code>dev</code> attribute takes one of the values "fd", "hd",
+        from the config file. Note, that for transient domains if the NVRAM file
+        has been created by libvirt it is left behind and it is management
+        application's responsibility to save and remove file (if needed to be
+        persistent). <span class="since">Since 1.2.8</span></dd><dt><code>boot</code></dt><dd>The <code>dev</code> attribute takes one of the values "fd", "hd",
         "cdrom" or "network" and is used to specify the next boot device
         to consider. The <code>boot</code> element can be repeated multiple
         times to setup a priority list of boot devices to try in turn.
@@ -495,7 +498,7 @@
       "emulate" (let the hypervisor generate all values), "host" (copy
       all of Block 0 and Block 1, except for the UUID, from the host's
       SMBIOS values;
-      the <a href="html/libvirt-libvirt.html#virConnectGetSysinfo" shape="rect">
+      the <a href="html/libvirt-libvirt-host.html#virConnectGetSysinfo" shape="rect">
       <code>virConnectGetSysinfo</code></a> call can be
       used to see what values are copied), or "sysinfo" (use the values in
       the <a href="#elementsSysinfo" shape="rect">sysinfo</a> element).  If not
@@ -523,7 +526,9 @@
       a BIOS, and instead the host is responsible to kicking off the
       operating system boot. This may use a pseudo-bootloader in the
       host to provide an interface to choose a kernel for the guest.
-      An example is <code>pygrub</code> with Xen.
+      An example is <code>pygrub</code> with Xen. The Bhyve hypervisor
+      also uses a host bootloader, either <code>bhyveload</code> or
+      <code>grub-bhyve</code>.
     </p>
         <pre xml:space="preserve">
   ...
@@ -735,9 +740,9 @@
         <dl><dt><code>iothreads</code></dt><dd>
         The content of this optional element defines the number
         of IOThreads to be assigned to the domain for use by
-        virtio-blk-pci target storage devices. There should be
-        only 1 or 2 IOThreads per host CPU. There may be more than
-        supported device assigned to each IOThread.
+        virtio-blk-pci and virtio-blk-ccw target storage devices. There
+        should be only 1 or 2 IOThreads per host CPU. There may be more
+        than one supported device assigned to each IOThread.
       </dd></dl>
         <h3>
           <a name="elementsCPUTuning" shape="rect" id="elementsCPUTuning">CPU Tuning</a>
@@ -1190,7 +1195,20 @@
           (such as CPUID level) that don't work. Until these issues are fixed,
           it's a good idea to avoid using <code>host-model</code> and use
           <code>custom</code> mode with just the CPU model from host
-          capabilities XML.</dd><dt><code>host-passthrough</code></dt><dd>With this mode, the CPU visible to the guest should be exactly
+          capabilities XML.
+          <span class="since">(Since 1.2.11)</span>. PowerISA allows
+          processors to run VMs in binary compatibility mode supporting an
+          older version of ISA.  Libvirt on PowerPC architecture uses the
+          <code>host-model</code> to signify a guest mode CPU running in
+          binary compatibility mode. Example:
+          When a user needs a power7 VM to run in compatibility mode
+          on a Power8 host, this can be described in XML as follows :
+<pre xml:space="preserve">
+  &lt;cpu mode='host-model'&gt;
+    &lt;model&gt;power7&lt;/model&gt;
+  &lt;/cpu&gt;
+  ...</pre>
+          </dd><dt><code>host-passthrough</code></dt><dd>With this mode, the CPU visible to the guest should be exactly
           the same as the host CPU even in the aspects that libvirt does not
           understand. Though the downside of this mode is that the guest
           environment cannot be reproduced on different hardware. Thus, if you
@@ -1254,8 +1272,8 @@
   &lt;cpu&gt;
     ...
     &lt;numa&gt;
-      &lt;cell id='0' cpus='0-3' memory='512000'/&gt;
-      &lt;cell id='1' cpus='4-7' memory='512000' memAccess='shared'/&gt;
+      &lt;cell id='0' cpus='0-3' memory='512000' unit='KiB'/&gt;
+      &lt;cell id='1' cpus='4-7' memory='512000' unit='KiB' memAccess='shared'/&gt;
     &lt;/numa&gt;
     ...
   &lt;/cpu&gt;
@@ -1265,6 +1283,8 @@
       <code>cpus</code> specifies the CPU or range of CPUs that are
       part of the node. <code>memory</code> specifies the node memory
       in kibibytes (i.e. blocks of 1024 bytes).
+      <span class="since">Since 1.2.11</span> one can use an additional <a href="#elementsMemoryAllocation" shape="rect"><code>unit</code></a> attribute to
+      define units in which <code>memory</code> is specified.
       <span class="since">Since 1.2.7</span> all cells should
       have <code>id</code> attribute in case referring to some cell is
       necessary in the code, otherwise the cells are
@@ -1288,9 +1308,16 @@
       It is sometimes necessary to override the default actions taken
       on various events. Not all hypervisors support all events and actions.
       The actions may be taken as a result of calls to libvirt APIs
-      <a href="html/libvirt-libvirt.html#virDomainReboot"><code>virDomainReboot</code></a>,
-      <a href="html/libvirt-libvirt.html#virDomainShutdown"><code>virDomainShutdown</code></a>, or
-      <a href="html/libvirt-libvirt.html#virDomainShutdownFlags"><code>virDomainShutdownFlags</code></a>.
+      <a href="html/libvirt-libvirt-domain.html#virDomainReboot" shape="rect">
+        <code>virDomainReboot</code>
+      </a>,
+      <a href="html/libvirt-libvirt-domain.html#virDomainShutdown" shape="rect">
+        <code>virDomainShutdown</code>
+      </a>,
+      or
+      <a href="html/libvirt-libvirt-domain.html#virDomainShutdownFlags" shape="rect">
+        <code>virDomainShutdownFlags</code>
+      </a>.
       Using <code>virsh reboot</code> or <code>virsh shutdown</code> would
       also trigger the event.
     </p>
@@ -1626,6 +1653,8 @@
       &lt;driver name="qemu" type="raw"/&gt;
       &lt;source protocol="rbd" name="image_name2"&gt;
         &lt;host name="hostname" port="7000"/&gt;
+        &lt;snapshot name="snapname"/&gt;
+        &lt;config file="/path/to/file"/&gt;
       &lt;/source&gt;
       &lt;target dev="hdc" bus="ide"/&gt;
       &lt;auth username='myuser'&gt;
@@ -1872,10 +1901,42 @@
         is only valid when the specified storage volume is of 'file' or
         'block' type).
         <p>
-        When the disk <code>type</code> is "network", the <code>source</code>
-        may have zero or more <code>host</code> sub-elements used to
-        specify the hosts to connect.
+        The <code>source</code> element may contain the following sub elements:
         </p>
+
+        <dl><dt><code>host</code></dt><dd>
+            <p>
+            When the disk <code>type</code> is "network", the <code>source</code>
+            may have zero or more <code>host</code> sub-elements used to
+            specify the hosts to connect.
+
+            The <code>host</code> element supports 4 attributes, viz.  "name",
+            "port", "transport" and "socket", which specify the hostname,
+            the port number, transport type and path to socket, respectively.
+            The meaning of this element and the number of the elements depend
+            on the protocol attribute.
+            </p>
+            <table class="top_table"><tr><th rowspan="1" colspan="1"> Protocol </th><th rowspan="1" colspan="1"> Meaning </th><th rowspan="1" colspan="1"> Number of hosts </th><th rowspan="1" colspan="1"> Default port </th></tr><tr><td rowspan="1" colspan="1"> nbd </td><td rowspan="1" colspan="1"> a server running nbd-server </td><td rowspan="1" colspan="1"> only one </td><td rowspan="1" colspan="1"> 10809 </td></tr><tr><td rowspan="1" colspan="1"> iscsi </td><td rowspan="1" colspan="1"> an iSCSI server </td><td rowspan="1" colspan="1"> only one </td><td rowspan="1" colspan="1"> 3260 </td></tr><tr><td rowspan="1" colspan="1"> rbd </td><td rowspan="1" colspan="1"> monitor servers of RBD </td><td rowspan="1" colspan="1"> one or more </td><td rowspan="1" colspan="1"> 6789 </td></tr><tr><td rowspan="1" colspan="1"> sheepdog </td><td rowspan="1" colspan="1"> one of the sheepdog servers (default is localhost:7000) </td><td rowspan="1" colspan="1"> zero or one </td><td rowspan="1" colspan="1"> 7000 </td></tr><tr><td rowspan="1" colspan="1"> gluster </td><td rowspan="1" colspan="1"> a server running glusterd daemon </td><td rowspan="1" colspan="1"> only one </td><td rowspan="1" colspan="1"> 24007 </td></tr></table>
+            <p>
+            gluster supports "tcp", "rdma", "unix" as valid values for the
+            transport attribute.  nbd supports "tcp" and "unix".  Others only
+            support "tcp".  If nothing is specified, "tcp" is assumed. If the
+            transport is "unix", the socket attribute specifies the path to an
+            AF_UNIX socket.
+            </p>
+          </dd><dt><code>snapshot</code></dt><dd>
+            The <code>name</code> attribute of <code>snapshot</code> element can
+            optionally specify an internal snapshot name to be used as the
+            source for storage protocols.
+            Supported for 'rbd' <span class="since">since 1.2.11 (QEMU only).</span>
+          </dd><dt><code>config</code></dt><dd>
+            The <code>file</code> attribute for the <code>config</code> element
+            provides a fully qualified path to a configuration file to be
+            provided as a parameter to the client of a networked storage
+            protocol. Supported for 'rbd' <span class="since">since 1.2.11
+            (QEMU only).</span>
+          </dd></dl>
+
         <p>
         For a "file" or "volume" disk type which represents a cdrom or floppy
         (the <code>device</code> attribute), it is possible to define
@@ -1999,7 +2060,18 @@
             appear with <code>read_iops_sec</code>
             or <code>write_iops_sec</code>.</dd><dt><code>read_iops_sec</code></dt><dd>The optional <code>read_iops_sec</code> element is the
             read I/O operations per second.</dd><dt><code>write_iops_sec</code></dt><dd>The optional <code>write_iops_sec</code> element is the
-            write I/O operations per second.</dd></dl>
+            write I/O operations per second.</dd><dt><code>total_bytes_sec_max</code></dt><dd>The optional <code>total_bytes_sec_max</code> element is the
+            maximum total throughput limit in bytes per second.  This cannot
+            appear with <code>read_bytes_sec_max</code>
+            or <code>write_bytes_sec_max</code>.</dd><dt><code>read_bytes_sec_max</code></dt><dd>The optional <code>read_bytes_sec_max</code> element is the
+            maximum read throughput limit in bytes per second.</dd><dt><code>write_bytes_sec_max</code></dt><dd>The optional <code>write_bytes_sec_max</code> element is the
+            maximum write throughput limit in bytes per second.</dd><dt><code>total_iops_sec_max</code></dt><dd>The optional <code>total_iops_sec_max</code> element is the
+            maximum total I/O operations per second.  This cannot
+            appear with <code>read_iops_sec_max</code>
+            or <code>write_iops_sec_max</code>.</dd><dt><code>read_iops_sec_max</code></dt><dd>The optional <code>read_iops_sec_max</code> element is the
+            maximum read I/O operations per second.</dd><dt><code>write_iops_sec_max</code></dt><dd>The optional <code>write_iops_sec_max</code> element is the
+            maximum write I/O operations per second.</dd><dt><code>size_iops_sec</code></dt><dd>The optional <code>size_iops_sec</code> element is the
+            size of I/O operations per second.</dd></dl>
       </dd><dt><code>driver</code></dt><dd>
         The optional driver element allows specifying further details
         related to the hypervisor driver used to provide the disk.
@@ -2130,17 +2202,6 @@
         disk or CD-ROM device. It must not be longer than 16 printable
         characters.
         <span class="since">Since 1.0.1</span>
-      </dd><dt><code>host</code></dt><dd>The <code>host</code> element supports 4 attributes, viz.  "name",
-        "port", "transport" and "socket", which specify the hostname, the port
-         number, transport type and path to socket, respectively. The meaning
-         of this element and the number of the elements depend on the protocol
-         attribute.
-        <table class="top_table"><tr><th rowspan="1" colspan="1"> Protocol </th><th rowspan="1" colspan="1"> Meaning </th><th rowspan="1" colspan="1"> Number of hosts </th><th rowspan="1" colspan="1"> Default port </th></tr><tr><td rowspan="1" colspan="1"> nbd </td><td rowspan="1" colspan="1"> a server running nbd-server </td><td rowspan="1" colspan="1"> only one </td><td rowspan="1" colspan="1"> 10809 </td></tr><tr><td rowspan="1" colspan="1"> iscsi </td><td rowspan="1" colspan="1"> an iSCSI server </td><td rowspan="1" colspan="1"> only one </td><td rowspan="1" colspan="1"> 3260 </td></tr><tr><td rowspan="1" colspan="1"> rbd </td><td rowspan="1" colspan="1"> monitor servers of RBD </td><td rowspan="1" colspan="1"> one or more </td><td rowspan="1" colspan="1"> 6789 </td></tr><tr><td rowspan="1" colspan="1"> sheepdog </td><td rowspan="1" colspan="1"> one of the sheepdog servers (default is localhost:7000) </td><td rowspan="1" colspan="1"> zero or one </td><td rowspan="1" colspan="1"> 7000 </td></tr><tr><td rowspan="1" colspan="1"> gluster </td><td rowspan="1" colspan="1"> a server running glusterd daemon </td><td rowspan="1" colspan="1"> only one </td><td rowspan="1" colspan="1"> 24007 </td></tr></table>
-        gluster supports "tcp", "rdma", "unix" as valid values for the
-        transport attribute.  nbd supports "tcp" and "unix".  Others only
-        support "tcp".  If nothing is specified, "tcp" is assumed. If the
-        transport is "unix", the socket attribute specifies the path to an
-        AF_UNIX socket.
       </dd><dt><code>address</code></dt><dd>If present, the <code>address</code> element ties the disk
         to a given slot of a controller (the
         actual <code>&lt;controller&gt;</code> device can often be
@@ -3006,7 +3067,7 @@
       setting for the attribute is <code>no</code> for security
       reasons and support depends on the guest network device model as
       well as the type of connection on the host - currently it is
-      only supported for the virtio ddevice model and for macvtap
+      only supported for the virtio device model and for macvtap
       connections on the host.
     </p>
         <p>
@@ -3406,7 +3467,7 @@
       &lt;source&gt;
         &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/&gt;
       &lt;/source&gt;
-      &lt;mac address='52:54:00:6d:90:02'&gt;
+      &lt;mac address='52:54:00:6d:90:02'/&gt;
       &lt;virtualport type='802.1Qbh'&gt;
         &lt;parameters profileid='finance'/&gt;
       &lt;/virtualport&gt;
@@ -3432,7 +3493,7 @@
   ...
   &lt;devices&gt;
     &lt;interface type='mcast'&gt;
-      &lt;mac address='52:54:00:6d:90:01'&gt;
+      &lt;mac address='52:54:00:6d:90:01'/&gt;
       &lt;source address='230.0.0.1' port='5558'/&gt;
     &lt;/interface&gt;
   &lt;/devices&gt;
@@ -4156,37 +4217,58 @@ qemu-kvm -net nic,model=? /dev/null
   ...
   &lt;devices&gt;
     &lt;video&gt;
-      &lt;model type='vga' vram='8192' heads='1'&gt;
+      &lt;model type='vga' vram='16384' heads='1'&gt;
         &lt;acceleration accel3d='yes' accel2d='yes'/&gt;
       &lt;/model&gt;
     &lt;/video&gt;
   &lt;/devices&gt;
   ...</pre>
         <dl><dt><code>video</code></dt><dd>
-        The <code>video</code> element is the container for describing
-        video devices. For backwards compatibility, if no <code>video</code>
-        is set but there is a <code>graphics</code> in domain xml, then libvirt
-        will add a default <code>video</code> according to the guest type.
-        For a guest of type "kvm", the default <code>video</code> for it is:
-        <code>type</code> with value "cirrus", <code>vram</code> with value
-        "9216", and <code>heads</code> with value "1". By default, the first
-        video device in domain xml is the primary one, but the optional
-        attribute <code>primary</code> (<span class="since">since 1.0.2</span>)
-        with value 'yes' can be used to mark the primary in cases of multiple
-        video device. The non-primary must be type of "qxl". The optional
-        attribute <code>ram</code> (<span class="since">since
-        1.0.2</span>) is allowed for "qxl" type only and specifies
-        the size of the primary bar, while <code>vram</code> specifies the
-        secondary bar size.  If "ram" or "vram" are not supplied a default
-        value is used.
+        <p>
+          The <code>video</code> element is the container for describing
+          video devices. For backwards compatibility, if no <code>video</code>
+          is set but there is a <code>graphics</code> in domain xml, then
+          libvirt will add a default <code>video</code> according to the guest
+          type.
+        </p>
+        <p>
+          For a guest of type "kvm", the default <code>video</code> is:
+          <code>type</code> with value "cirrus", <code>vram</code> with value
+          "16384" and <code>heads</code> with value "1". By default, the first
+          video device in domain xml is the primary one, but the optional
+          attribute <code>primary</code> (<span class="since">since 1.0.2</span>)
+          with value 'yes' can be used to mark the primary in cases of multiple
+          video device. The non-primary must be type of "qxl".
+        </p>
       </dd><dt><code>model</code></dt><dd>
-        The <code>model</code> element has a mandatory <code>type</code>
-        attribute which takes the value "vga", "cirrus", "vmvga", "xen",
-        "vbox", or "qxl" (<span class="since">since 0.8.6</span>)
-        depending on the hypervisor features available.
-        You can also provide the amount of video memory in kibibytes
-        (blocks of 1024 bytes) using
-        <code>vram</code> and the number of screen with <code>heads</code>.
+        <p>
+          The <code>model</code> element has a mandatory <code>type</code>
+          attribute which takes the value "vga", "cirrus", "vmvga", "xen",
+          "vbox", or "qxl" (<span class="since">since 0.8.6</span>) depending
+          on the hypervisor features available.
+        </p>
+        <p>
+          You can provide the amount of video memory in kibibytes (blocks of
+          1024 bytes) using <code>vram</code>. This is supported only for guest
+          type of "libxl", "parallels", "qemu", "vbox", "vmx" and "xen". If no
+          value is provided the default is used. If the size is not a power of
+          two it will be rounded to closest one.
+        </p>
+        <p>
+          The number of screen can be set using <code>heads</code>. This is
+          supported only for guests type of "parallels", "kvm", "vbox" and "vmx".
+        </p>
+        <p>
+          For guest type of kvm the optional attribute <code>ram</code>
+          (<span class="since">since 1.0.2</span>) is allowed for "qxl" type
+          only and specifies the size of the primary bar, while the optional
+          attribute <code>vram</code> specifies the secondary bar size.
+          If "ram" or "vram" are not supplied a default value is used. The ram
+          should also be rounded to power of two as vram. There is also optional
+          attribute <code>vgamem</code> (<span class="since">since 1.2.11 (QEMU
+          only)</span>) to set the size of VGA framebuffer for fallback mode of
+          QXL device.
+        </p>
       </dd><dt><code>acceleration</code></dt><dd>
         If acceleration should be enabled (if supported) using the
         <code>accel3d</code> and <code>accel2d</code> attributes in the
@@ -4215,11 +4297,11 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source path='/dev/pts/3'/&gt;
       &lt;target port='0'/&gt;
     &lt;/serial&gt;
-    &lt;serial type='file&gt;
+    &lt;serial type='file'&gt;
       &lt;source path='/tmp/file'&gt;
         &lt;seclabel model='dac' relabel='no'/&gt;
       &lt;/source&gt;
-      &lt;target port='0'&gt;
+      &lt;target port='0'/&gt;
     &lt;/serial&gt;
     &lt;console type='pty'&gt;
       &lt;source path='/dev/pts/4'/&gt;
@@ -4390,7 +4472,7 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;/channel&gt;
     &lt;channel type='unix'&gt;
       &lt;source mode='bind' path='/var/lib/libvirt/qemu/f16x86_64.agent'/&gt;
-      &lt;target type='virtio' name='org.qemu.guest_agent.0'/&gt;
+      &lt;target type='virtio' name='org.qemu.guest_agent.0' state='connected'/&gt;
     &lt;/channel&gt;
     &lt;channel type='spicevmc'&gt;
       &lt;target type='virtio' name='com.redhat.spice.0'/&gt;
@@ -4422,7 +4504,12 @@ qemu-kvm -net nic,model=? /dev/null
         This is very useful in case of a qemu guest agent, where users don't
         usually care about the source path since it's libvirt who talks to
         the guest agent. In case users want to utilize this feature, they should
-        leave <code>&lt;source&gt;</code> element out.
+        leave <code>&lt;source&gt;</code> element out. <span class="since">Since
+        1.2.11</span> the active XML for a virtio channel may contain an optional
+        <code>state</code> attribute that reflects whether a process in the
+        guest is active on the channel. This is an output-only attribute.
+        Possible values for the <code>state</code> attribute are
+        <code>connected</code> and <code>disconnected</code>.
       </dd><dt><code>spicevmc</code></dt><dd>Paravirtualized SPICE channel. The domain must also have a
         SPICE server as a <a href="#elementsGraphics" shape="rect">graphics
         device</a>, at which point the host piggy-backs messages
@@ -4947,7 +5034,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <p>
       The TPM passthrough device type provides access to the host's TPM
-      for one QEMU guest. No other software may be is using the TPM device,
+      for one QEMU guest. No other software may be using the TPM device,
       typically /dev/tpm0, at the time the QEMU guest is started.
       <span class="since">'passthrough' since 1.0.5</span>
     </p>

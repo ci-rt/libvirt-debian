@@ -40,11 +40,8 @@ hypervNWFilterOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_HYPERV) {
+    if (conn->driver->no != VIR_DRV_HYPERV)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->nwfilterPrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -52,10 +49,8 @@ hypervNWFilterOpen(virConnectPtr conn,
 
 
 static int
-hypervNWFilterClose(virConnectPtr conn)
+hypervNWFilterClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->nwfilterPrivateData = NULL;
-
     return 0;
 }
 

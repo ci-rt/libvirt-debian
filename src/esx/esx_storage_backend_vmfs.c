@@ -116,13 +116,12 @@ static int
 esxConnectNumOfStoragePools(virConnectPtr conn)
 {
     int count = 0;
-    esxPrivate *priv = conn->storagePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_ObjectContent *datastoreList = NULL;
     esxVI_ObjectContent *datastore = NULL;
 
-    if (esxVI_LookupDatastoreList(priv->primary, NULL, &datastoreList) < 0) {
+    if (esxVI_LookupDatastoreList(priv->primary, NULL, &datastoreList) < 0)
         return -1;
-    }
 
     for (datastore = datastoreList; datastore;
          datastore = datastore->_next) {
@@ -141,7 +140,7 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names,
                            const int maxnames)
 {
     bool success = false;
-    esxPrivate *priv = conn->storagePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
     esxVI_ObjectContent *datastoreList = NULL;
@@ -149,9 +148,8 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names,
     int count = 0;
     size_t i;
 
-    if (maxnames == 0) {
+    if (maxnames == 0)
         return 0;
-    }
 
     if (esxVI_String_AppendValueToList(&propertyNameList,
                                        "summary.name") < 0 ||
@@ -185,9 +183,8 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names,
 
  cleanup:
     if (! success) {
-        for (i = 0; i < count; ++i) {
+        for (i = 0; i < count; ++i)
             VIR_FREE(names[i]);
-        }
 
         count = -1;
     }
@@ -204,7 +201,7 @@ static virStoragePoolPtr
 esxStoragePoolLookupByName(virConnectPtr conn,
                            const char *name)
 {
-    esxPrivate *priv = conn->storagePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_ObjectContent *datastore = NULL;
     esxVI_DatastoreHostMount *hostMount = NULL;
     /* MD5_DIGEST_SIZE = VIR_UUID_BUFLEN = 16 */
@@ -257,7 +254,7 @@ static virStoragePoolPtr
 esxStoragePoolLookupByUUID(virConnectPtr conn,
                            const unsigned char *uuid)
 {
-    esxPrivate *priv = conn->storagePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *datastoreList = NULL;
     esxVI_ObjectContent *datastore = NULL;
@@ -295,9 +292,8 @@ esxStoragePoolLookupByUUID(virConnectPtr conn,
         md5_buffer(hostMount->mountInfo->path,
                    strlen(hostMount->mountInfo->path), md5);
 
-        if (memcmp(uuid, md5, VIR_UUID_BUFLEN) == 0) {
+        if (memcmp(uuid, md5, VIR_UUID_BUFLEN) == 0)
             break;
-        }
     }
 
     if (!datastore) {
@@ -326,7 +322,7 @@ static int
 esxStoragePoolRefresh(virStoragePoolPtr pool, unsigned int flags)
 {
     int result = -1;
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     esxVI_ObjectContent *datastore = NULL;
 
     virCheckFlags(0, -1);
@@ -352,7 +348,7 @@ esxStoragePoolGetInfo(virStoragePoolPtr pool,
                       virStoragePoolInfoPtr info)
 {
     int result = -1;
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *datastore = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -411,7 +407,7 @@ esxStoragePoolGetInfo(virStoragePoolPtr pool,
 static char *
 esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
 {
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *datastore = NULL;
     esxVI_DatastoreHostMount *hostMount = NULL;
@@ -531,7 +527,7 @@ static int
 esxStoragePoolNumOfVolumes(virStoragePoolPtr pool)
 {
     bool success = false;
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     esxVI_HostDatastoreBrowserSearchResults *searchResultsList = NULL;
     esxVI_HostDatastoreBrowserSearchResults *searchResults = NULL;
     esxVI_FileInfo *fileInfo = NULL;
@@ -566,7 +562,7 @@ esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
                           int maxnames)
 {
     bool success = false;
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     esxVI_HostDatastoreBrowserSearchResults *searchResultsList = NULL;
     esxVI_HostDatastoreBrowserSearchResults *searchResults = NULL;
     esxVI_FileInfo *fileInfo = NULL;
@@ -580,9 +576,8 @@ esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
         return -1;
     }
 
-    if (maxnames == 0) {
+    if (maxnames == 0)
         return 0;
-    }
 
     if (esxVI_LookupDatastoreContentByDatastoreName(priv->primary, pool->name,
                                                     &searchResultsList) < 0) {
@@ -626,9 +621,8 @@ esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
 
  cleanup:
     if (! success) {
-        for (i = 0; i < count; ++i) {
+        for (i = 0; i < count; ++i)
             VIR_FREE(names[i]);
-        }
 
         count = -1;
     }
@@ -646,7 +640,7 @@ esxStorageVolLookupByName(virStoragePoolPtr pool,
                           const char *name)
 {
     virStorageVolPtr volume = NULL;
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     char *datastorePath = NULL;
     char *key = NULL;
 
@@ -674,7 +668,7 @@ static virStorageVolPtr
 esxStorageVolLookupByPath(virConnectPtr conn, const char *path)
 {
     virStorageVolPtr volume = NULL;
-    esxPrivate *priv = conn->storagePrivateData;
+    esxPrivate *priv = conn->privateData;
     char *datastoreName = NULL;
     char *directoryAndFileName = NULL;
     char *key = NULL;
@@ -706,7 +700,7 @@ static virStorageVolPtr
 esxStorageVolLookupByKey(virConnectPtr conn, const char *key)
 {
     virStorageVolPtr volume = NULL;
-    esxPrivate *priv = conn->storagePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *datastoreList = NULL;
     esxVI_ObjectContent *datastore = NULL;
@@ -807,9 +801,8 @@ esxStorageVolLookupByKey(virConnectPtr conn, const char *key)
                     goto cleanup;
                 }
 
-                if (esxUtil_ReformatUuid(uuid_string, key_candidate) < 0) {
+                if (esxUtil_ReformatUuid(uuid_string, key_candidate) < 0)
                     goto cleanup;
-                }
 
                 if (STREQ(key, key_candidate)) {
                     /* Found matching UUID */
@@ -842,7 +835,7 @@ esxStorageVolCreateXML(virStoragePoolPtr pool,
                        unsigned int flags)
 {
     virStorageVolPtr volume = NULL;
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     virStoragePoolDef poolDef;
     virStorageVolDefPtr def = NULL;
     char *tmp;
@@ -873,9 +866,8 @@ esxStorageVolCreateXML(virStoragePoolPtr pool,
     /* Parse config */
     def = virStorageVolDefParseString(&poolDef, xmldesc);
 
-    if (!def) {
+    if (!def)
         goto cleanup;
-    }
 
     if (def->type != VIR_STORAGE_VOL_FILE) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -914,16 +906,14 @@ esxStorageVolCreateXML(virStoragePoolPtr pool,
 
         directoryName = esxUtil_EscapeDatastoreItem(unescapedDirectoryName);
 
-        if (!directoryName) {
+        if (!directoryName)
             goto cleanup;
-        }
 
         fileName = esxUtil_EscapeDatastoreItem(unescapedDirectoryAndFileName +
                                                strlen(unescapedDirectoryName) + 1);
 
-        if (!fileName) {
+        if (!fileName)
             goto cleanup;
-        }
 
         if (virAsprintf(&datastorePathWithoutFileName, "[%s] %s", pool->name,
                         directoryName) < 0)
@@ -1012,14 +1002,12 @@ esxStorageVolCreateXML(virStoragePoolPtr pool,
                 goto cleanup;
             }
 
-            if (esxUtil_ReformatUuid(uuid_string, key) < 0) {
+            if (esxUtil_ReformatUuid(uuid_string, key) < 0)
                 goto cleanup;
-            }
         } else {
             /* Fall back to the path as key */
-            if (VIR_STRDUP(key, datastorePath) < 0) {
+            if (VIR_STRDUP(key, datastorePath) < 0)
                 goto cleanup;
-            }
         }
     } else {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1064,7 +1052,7 @@ esxStorageVolCreateXMLFrom(virStoragePoolPtr pool,
                            unsigned int flags)
 {
     virStorageVolPtr volume = NULL;
-    esxPrivate *priv = pool->conn->storagePrivateData;
+    esxPrivate *priv = pool->conn->privateData;
     virStoragePoolDef poolDef;
     char *sourceDatastorePath = NULL;
     virStorageVolDefPtr def = NULL;
@@ -1099,9 +1087,8 @@ esxStorageVolCreateXMLFrom(virStoragePoolPtr pool,
     /* Parse config */
     def = virStorageVolDefParseString(&poolDef, xmldesc);
 
-    if (!def) {
+    if (!def)
         goto cleanup;
-    }
 
     if (def->type != VIR_STORAGE_VOL_FILE) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1140,16 +1127,14 @@ esxStorageVolCreateXMLFrom(virStoragePoolPtr pool,
 
         directoryName = esxUtil_EscapeDatastoreItem(unescapedDirectoryName);
 
-        if (!directoryName) {
+        if (!directoryName)
             goto cleanup;
-        }
 
         fileName = esxUtil_EscapeDatastoreItem(unescapedDirectoryAndFileName +
                                                strlen(unescapedDirectoryName) + 1);
 
-        if (!fileName) {
+        if (!fileName)
             goto cleanup;
-        }
 
         if (virAsprintf(&datastorePathWithoutFileName, "[%s] %s", pool->name,
                         directoryName) < 0)
@@ -1204,14 +1189,12 @@ esxStorageVolCreateXMLFrom(virStoragePoolPtr pool,
                 goto cleanup;
             }
 
-            if (esxUtil_ReformatUuid(uuid_string, key) < 0) {
+            if (esxUtil_ReformatUuid(uuid_string, key) < 0)
                 goto cleanup;
-            }
         } else {
             /* Fall back to the path as key */
-            if (VIR_STRDUP(key, datastorePath) < 0) {
+            if (VIR_STRDUP(key, datastorePath) < 0)
                 goto cleanup;
-            }
         }
     } else {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1248,7 +1231,7 @@ static int
 esxStorageVolDelete(virStorageVolPtr volume, unsigned int flags)
 {
     int result = -1;
-    esxPrivate *priv = volume->conn->storagePrivateData;
+    esxPrivate *priv = volume->conn->privateData;
     char *datastorePath = NULL;
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
@@ -1291,7 +1274,7 @@ static int
 esxStorageVolWipe(virStorageVolPtr volume, unsigned int flags)
 {
     int result = -1;
-    esxPrivate *priv = volume->conn->storagePrivateData;
+    esxPrivate *priv = volume->conn->privateData;
     char *datastorePath = NULL;
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
@@ -1335,7 +1318,7 @@ esxStorageVolGetInfo(virStorageVolPtr volume,
                      virStorageVolInfoPtr info)
 {
     int result = -1;
-    esxPrivate *priv = volume->conn->storagePrivateData;
+    esxPrivate *priv = volume->conn->privateData;
     char *datastorePath = NULL;
     esxVI_FileInfo *fileInfo = NULL;
     esxVI_VmDiskFileInfo *vmDiskFileInfo = NULL;
@@ -1379,7 +1362,7 @@ static char *
 esxStorageVolGetXMLDesc(virStorageVolPtr volume,
                         unsigned int flags)
 {
-    esxPrivate *priv = volume->conn->storagePrivateData;
+    esxPrivate *priv = volume->conn->privateData;
     virStoragePoolDef pool;
     char *datastorePath = NULL;
     esxVI_FileInfo *fileInfo = NULL;

@@ -1400,6 +1400,20 @@ qemuMonitorEmitNicRxFilterChanged(qemuMonitorPtr mon,
 }
 
 
+int
+qemuMonitorEmitSerialChange(qemuMonitorPtr mon,
+                            const char *devAlias,
+                            bool connected)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p, devAlias='%s', connected=%d", mon, devAlias, connected);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainSerialChange, mon->vm, devAlias, connected);
+
+    return ret;
+}
+
+
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     int ret;
@@ -2968,24 +2982,50 @@ qemuMonitorQueryRxFilter(qemuMonitorPtr mon, const char *alias,
 }
 
 
-int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
-                           virHashTablePtr paths)
+static void
+qemuMonitorChardevInfoFree(void *data,
+                           const void *name ATTRIBUTE_UNUSED)
+{
+    qemuMonitorChardevInfoPtr info = data;
+
+    VIR_FREE(info->ptyPath);
+    VIR_FREE(info);
+}
+
+
+int
+qemuMonitorGetChardevInfo(qemuMonitorPtr mon,
+                          virHashTablePtr *retinfo)
 {
     int ret;
-    VIR_DEBUG("mon=%p",
-          mon);
+    virHashTablePtr info = NULL;
+
+    VIR_DEBUG("mon=%p retinfo=%p", mon, retinfo);
 
     if (!mon) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("monitor must not be NULL"));
-        return -1;
+        goto error;
     }
 
+    if (!(info = virHashCreate(10, qemuMonitorChardevInfoFree)))
+        goto error;
+
     if (mon->json)
-        ret = qemuMonitorJSONGetPtyPaths(mon, paths);
+        ret = qemuMonitorJSONGetChardevInfo(mon, info);
     else
-        ret = qemuMonitorTextGetPtyPaths(mon, paths);
-    return ret;
+        ret = qemuMonitorTextGetChardevInfo(mon, info);
+
+    if (ret < 0)
+        goto error;
+
+    *retinfo = info;
+    return 0;
+
+ error:
+    virHashFree(info);
+    *retinfo = NULL;
+    return -1;
 }
 
 
@@ -3514,14 +3554,15 @@ qemuMonitorBlockJobInfo(qemuMonitorPtr mon,
 
 int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
-                                  virDomainBlockIoTuneInfoPtr info)
+                                  virDomainBlockIoTuneInfoPtr info,
+                                  bool supportMaxOptions)
 {
     int ret;
 
     VIR_DEBUG("mon=%p, device=%p, info=%p", mon, device, info);
 
     if (mon->json) {
-        ret = qemuMonitorJSONSetBlockIoThrottle(mon, device, info);
+        ret = qemuMonitorJSONSetBlockIoThrottle(mon, device, info, supportMaxOptions);
     } else {
         ret = qemuMonitorTextSetBlockIoThrottle(mon, device, info);
     }
@@ -3530,14 +3571,15 @@ int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
 
 int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
-                                  virDomainBlockIoTuneInfoPtr reply)
+                                  virDomainBlockIoTuneInfoPtr reply,
+                                  bool supportMaxOptions)
 {
     int ret;
 
     VIR_DEBUG("mon=%p, device=%p, reply=%p", mon, device, reply);
 
     if (mon->json) {
-        ret = qemuMonitorJSONGetBlockIoThrottle(mon, device, reply);
+        ret = qemuMonitorJSONGetBlockIoThrottle(mon, device, reply, supportMaxOptions);
     } else {
         ret = qemuMonitorTextGetBlockIoThrottle(mon, device, reply);
     }
@@ -3928,7 +3970,8 @@ int qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
 }
 
 int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationCaps capability)
+                                      qemuMonitorMigrationCaps capability,
+                                      bool state)
 {
     VIR_DEBUG("mon=%p capability=%d", mon, capability);
 
@@ -3944,7 +3987,7 @@ int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
         return -1;
     }
 
-    return qemuMonitorJSONSetMigrationCapability(mon, capability);
+    return qemuMonitorJSONSetMigrationCapability(mon, capability, state);
 }
 
 int qemuMonitorNBDServerStart(qemuMonitorPtr mon,

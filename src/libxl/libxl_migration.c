@@ -35,6 +35,7 @@
 #include "vircommand.h"
 #include "virstring.h"
 #include "virobject.h"
+#include "virthread.h"
 #include "rpc/virnetsocket.h"
 #include "libxl_domain.h"
 #include "libxl_driver.h"
@@ -48,6 +49,7 @@ VIR_LOG_INIT("libxl.libxl_migration");
 typedef struct _libxlMigrationDstArgs {
     virObject parent;
 
+    int recvfd;
     virConnectPtr conn;
     virDomainObjPtr vm;
     unsigned int flags;
@@ -82,39 +84,80 @@ libxlMigrationDstArgsOnceInit(void)
 VIR_ONCE_GLOBAL_INIT(libxlMigrationDstArgs)
 
 static void
-libxlDoMigrateReceive(virNetSocketPtr sock,
-                      int events ATTRIBUTE_UNUSED,
-                      void *opaque)
+libxlDoMigrateReceive(void *opaque)
 {
     libxlMigrationDstArgs *args = opaque;
-    virConnectPtr conn = args->conn;
     virDomainObjPtr vm = args->vm;
     virNetSocketPtr *socks = args->socks;
     size_t nsocks = args->nsocks;
-    bool paused = args->flags & VIR_MIGRATE_PAUSED;
-    libxlDriverPrivatePtr driver = conn->privateData;
-    virNetSocketPtr client_sock;
-    int recvfd = -1;
+    libxlDriverPrivatePtr driver = args->conn->privateData;
+    int recvfd = args->recvfd;
     size_t i;
     int ret;
 
-    if (virNetSocketAccept(sock, &client_sock) < 0) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("Fail to accept migration connection"));
-        goto cleanup;
-    }
-    VIR_DEBUG("Accepted migration connection\n");
-    recvfd = virNetSocketDupFD(client_sock, true);
-    virObjectUnref(client_sock);
-
+    /*
+     * Always start the domain paused.  If needed, unpause in the
+     * finish phase, after transfer of the domain is complete.
+     */
     virObjectLock(vm);
-    ret = libxlDomainStart(driver, vm, paused, recvfd);
+    ret = libxlDomainStart(driver, vm, true, recvfd);
     virObjectUnlock(vm);
 
     if (ret < 0 && !vm->persistent)
         virDomainObjListRemove(driver->domains, vm);
 
- cleanup:
+    /* Remove all listen socks from event handler, and close them. */
+    for (i = 0; i < nsocks; i++) {
+        virNetSocketUpdateIOCallback(socks[i], 0);
+        virNetSocketRemoveIOCallback(socks[i]);
+        virNetSocketClose(socks[i]);
+        virObjectUnref(socks[i]);
+        socks[i] = NULL;
+    }
+    args->nsocks = 0;
+    VIR_FORCE_CLOSE(recvfd);
+}
+
+
+static void
+libxlMigrateReceive(virNetSocketPtr sock,
+                    int events ATTRIBUTE_UNUSED,
+                    void *opaque)
+{
+    libxlMigrationDstArgs *args = opaque;
+    virNetSocketPtr *socks = args->socks;
+    size_t nsocks = args->nsocks;
+    virNetSocketPtr client_sock;
+    int recvfd = -1;
+    virThread thread;
+    size_t i;
+
+    /* Accept migration connection */
+    if (virNetSocketAccept(sock, &client_sock) < 0 || !client_sock) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Failed to accept migration connection"));
+        goto fail;
+    }
+    VIR_DEBUG("Accepted migration connection."
+              "  Spawing thread to process migration data");
+    recvfd = virNetSocketDupFD(client_sock, true);
+    virObjectUnref(client_sock);
+
+    /*
+     * Avoid blocking the event loop.  Start a thread to receive
+     * the migration data
+     */
+    args->recvfd = recvfd;
+    if (virThreadCreate(&thread, false,
+                        libxlDoMigrateReceive, args) < 0) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Failed to create thread for receiving migration data"));
+        goto fail;
+    }
+
+    return;
+
+ fail:
     /* Remove all listen socks from event handler, and close them. */
     for (i = 0; i < nsocks; i++) {
         virNetSocketUpdateIOCallback(socks[i], 0);
@@ -376,7 +419,7 @@ libxlDomainMigrationPrepare(virConnectPtr dconn,
 
         if (virNetSocketAddIOCallback(socks[i],
                                       VIR_EVENT_HANDLE_READABLE,
-                                      libxlDoMigrateReceive,
+                                      libxlMigrateReceive,
                                       args,
                                       virObjectFreeCallback) < 0)
             continue;
@@ -493,6 +536,16 @@ libxlDomainMigrationFinish(virConnectPtr dconn,
     if (cancelled)
         goto cleanup;
 
+    /* Check if domain is alive */
+    if (!virDomainObjIsActive(vm)) {
+        /* Migration failed if domain is inactive */
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       "%s", _("Migration failed. Domain is not running "
+                               "on destination host"));
+        goto cleanup;
+    }
+
+    /* Unpause if requested */
     if (!(flags & VIR_MIGRATE_PAUSED)) {
         if (libxl_domain_unpause(priv->ctx, vm->def->id) != 0) {
             virReportError(VIR_ERR_OPERATION_FAILED, "%s",
@@ -512,27 +565,28 @@ libxlDomainMigrationFinish(virConnectPtr dconn,
                                          VIR_DOMAIN_EVENT_SUSPENDED_PAUSED);
     }
 
-    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
-        goto cleanup;
-
     if (event) {
         libxlDomainEventQueue(driver, event);
         event = NULL;
     }
 
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
+        goto cleanup;
+
     dom = virGetDomain(dconn, vm->def->name, vm->def->uuid);
 
+ cleanup:
     if (dom == NULL) {
         libxl_domain_destroy(priv->ctx, vm->def->id, NULL);
         libxlDomainCleanup(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
         event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
                                          VIR_DOMAIN_EVENT_STOPPED_FAILED);
+        if (!vm->persistent)
+            virDomainObjListRemove(driver->domains, vm);
     }
 
- cleanup:
     if (event)
         libxlDomainEventQueue(driver, event);
-    virObjectUnlock(vm);
     virObjectUnref(cfg);
     return dom;
 }

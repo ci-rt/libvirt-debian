@@ -115,15 +115,16 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-c-strcasecmp$(EXEEXT) test-c-strncasecmp$(EXEEXT) \
 	test-c-strcasestr$(EXEEXT) test-canonicalize-lgpl$(EXEEXT) \
 	test-chown$(EXEEXT) test-cloexec$(EXEEXT) test-close$(EXEEXT) \
-	test-connect$(EXEEXT) test-count-one-bits$(EXEEXT) \
-	test-md5$(EXEEXT) test-dup$(EXEEXT) test-dup2$(EXEEXT) \
-	test-environ$(EXEEXT) test-errno$(EXEEXT) test-fclose$(EXEEXT) \
-	test-fcntl-h$(EXEEXT) test-fcntl$(EXEEXT) \
-	test-fdatasync$(EXEEXT) test-fdopen$(EXEEXT) \
-	test-fflush$(EXEEXT) test-fflush2$(EXEEXT) test-ffs$(EXEEXT) \
-	test-ffsl$(EXEEXT) test-fgetc$(EXEEXT) test-float$(EXEEXT) \
-	test-fnmatch$(EXEEXT) test-fpurge$(EXEEXT) test-fputc$(EXEEXT) \
-	test-fread$(EXEEXT) test-freading$(EXEEXT) test-fseek$(EXEEXT) \
+	test-connect$(EXEEXT) test-count-leading-zeros$(EXEEXT) \
+	test-count-one-bits$(EXEEXT) test-md5$(EXEEXT) \
+	test-dup$(EXEEXT) test-dup2$(EXEEXT) test-environ$(EXEEXT) \
+	test-errno$(EXEEXT) test-fclose$(EXEEXT) test-fcntl-h$(EXEEXT) \
+	test-fcntl$(EXEEXT) test-fdatasync$(EXEEXT) \
+	test-fdopen$(EXEEXT) test-fflush$(EXEEXT) \
+	test-fflush2$(EXEEXT) test-ffs$(EXEEXT) test-ffsl$(EXEEXT) \
+	test-fgetc$(EXEEXT) test-float$(EXEEXT) test-fnmatch$(EXEEXT) \
+	test-fpurge$(EXEEXT) test-fputc$(EXEEXT) test-fread$(EXEEXT) \
+	test-freading$(EXEEXT) test-fseek$(EXEEXT) \
 	test-fseeko$(EXEEXT) test-fseeko3$(EXEEXT) \
 	test-fseeko4$(EXEEXT) test-fstat$(EXEEXT) test-fsync$(EXEEXT) \
 	test-ftell$(EXEEXT) test-ftell3$(EXEEXT) test-ftello$(EXEEXT) \
@@ -218,6 +219,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/chown.m4 $(top_srcdir)/m4/clock_time.m4 \
 	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/configmake.m4 \
+	$(top_srcdir)/m4/count-leading-zeros.m4 \
 	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/dirname.m4 \
 	$(top_srcdir)/m4/double-slash-root.m4 $(top_srcdir)/m4/dup.m4 \
 	$(top_srcdir)/m4/dup2.m4 $(top_srcdir)/m4/eealloc.m4 \
@@ -482,6 +484,11 @@ test_connect_SOURCES = test-connect.c
 test_connect_OBJECTS = test-connect.$(OBJEXT)
 test_connect_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 	$(am__DEPENDENCIES_1)
+test_count_leading_zeros_SOURCES = test-count-leading-zeros.c
+test_count_leading_zeros_OBJECTS = test-count-leading-zeros.$(OBJEXT)
+test_count_leading_zeros_LDADD = $(LDADD)
+test_count_leading_zeros_DEPENDENCIES = libtests.a \
+	../../gnulib/lib/libgnu.la libtests.a $(am__DEPENDENCIES_1)
 test_count_one_bits_SOURCES = test-count-one-bits.c
 test_count_one_bits_OBJECTS = test-count-one-bits.$(OBJEXT)
 test_count_one_bits_LDADD = $(LDADD)
@@ -1325,29 +1332,29 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-bitrotate.c test-btowc.c test-byteswap.c test-c-ctype.c \
 	test-c-strcasecmp.c test-c-strcasestr.c test-c-strncasecmp.c \
 	test-canonicalize-lgpl.c test-chown.c test-cloexec.c \
-	test-close.c test-connect.c test-count-one-bits.c test-dup.c \
-	test-dup2.c test-environ.c test-errno.c test-fclose.c \
-	test-fcntl.c test-fcntl-h.c test-fdatasync.c test-fdopen.c \
-	test-fflush.c test-fflush2.c test-ffs.c test-ffsl.c \
-	test-fgetc.c test-float.c test-fnmatch.c test-fpurge.c \
-	test-fputc.c test-fread.c test-freading.c test-fseek.c \
-	test-fseeko.c test-fseeko3.c test-fseeko4.c test-fstat.c \
-	test-fsync.c test-ftell.c test-ftell3.c test-ftello.c \
-	test-ftello3.c test-ftello4.c test-ftruncate.c test-func.c \
-	test-fwrite.c test-getaddrinfo.c test-getcwd-lgpl.c \
-	test-getdelim.c test-getdtablesize.c test-getgroups.c \
-	test-gethostname.c test-getline.c test-getpeername.c \
-	test-getsockname.c test-getsockopt.c test-gettimeofday.c \
-	test-grantpt.c test-ignore-value.c test-inet_ntop.c \
-	test-inet_pton.c test-intprops.c test-inttypes.c test-ioctl.c \
-	test-isatty.c test-isnand-nolibm.c test-isnanf-nolibm.c \
-	test-isnanl-nolibm.c test-langinfo.c $(test_ldexp_SOURCES) \
-	test-listen.c test-locale.c test-localeconv.c \
-	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
-	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
-	test-mbsrtowcs.c test-md5.c test-memchr.c test-nanosleep.c \
-	test-net_if.c test-netdb.c test-netinet_in.c \
-	test-nl_langinfo.c test-nonblocking.c \
+	test-close.c test-connect.c test-count-leading-zeros.c \
+	test-count-one-bits.c test-dup.c test-dup2.c test-environ.c \
+	test-errno.c test-fclose.c test-fcntl.c test-fcntl-h.c \
+	test-fdatasync.c test-fdopen.c test-fflush.c test-fflush2.c \
+	test-ffs.c test-ffsl.c test-fgetc.c test-float.c \
+	test-fnmatch.c test-fpurge.c test-fputc.c test-fread.c \
+	test-freading.c test-fseek.c test-fseeko.c test-fseeko3.c \
+	test-fseeko4.c test-fstat.c test-fsync.c test-ftell.c \
+	test-ftell3.c test-ftello.c test-ftello3.c test-ftello4.c \
+	test-ftruncate.c test-func.c test-fwrite.c test-getaddrinfo.c \
+	test-getcwd-lgpl.c test-getdelim.c test-getdtablesize.c \
+	test-getgroups.c test-gethostname.c test-getline.c \
+	test-getpeername.c test-getsockname.c test-getsockopt.c \
+	test-gettimeofday.c test-grantpt.c test-ignore-value.c \
+	test-inet_ntop.c test-inet_pton.c test-intprops.c \
+	test-inttypes.c test-ioctl.c test-isatty.c \
+	test-isnand-nolibm.c test-isnanf-nolibm.c test-isnanl-nolibm.c \
+	test-langinfo.c $(test_ldexp_SOURCES) test-listen.c \
+	test-locale.c test-localeconv.c test-localename.c test-lseek.c \
+	test-lstat.c test-malloca.c test-math.c test-mbrtowc.c \
+	test-mbrtowc-w32.c test-mbsinit.c test-mbsrtowcs.c test-md5.c \
+	test-memchr.c test-nanosleep.c test-net_if.c test-netdb.c \
+	test-netinet_in.c test-nl_langinfo.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
 	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
 	test-open.c test-openpty.c test-passfd.c test-pathmax.c \
@@ -1385,29 +1392,29 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-bitrotate.c test-btowc.c test-byteswap.c test-c-ctype.c \
 	test-c-strcasecmp.c test-c-strcasestr.c test-c-strncasecmp.c \
 	test-canonicalize-lgpl.c test-chown.c test-cloexec.c \
-	test-close.c test-connect.c test-count-one-bits.c test-dup.c \
-	test-dup2.c test-environ.c test-errno.c test-fclose.c \
-	test-fcntl.c test-fcntl-h.c test-fdatasync.c test-fdopen.c \
-	test-fflush.c test-fflush2.c test-ffs.c test-ffsl.c \
-	test-fgetc.c test-float.c test-fnmatch.c test-fpurge.c \
-	test-fputc.c test-fread.c test-freading.c test-fseek.c \
-	test-fseeko.c test-fseeko3.c test-fseeko4.c test-fstat.c \
-	test-fsync.c test-ftell.c test-ftell3.c test-ftello.c \
-	test-ftello3.c test-ftello4.c test-ftruncate.c test-func.c \
-	test-fwrite.c test-getaddrinfo.c test-getcwd-lgpl.c \
-	test-getdelim.c test-getdtablesize.c test-getgroups.c \
-	test-gethostname.c test-getline.c test-getpeername.c \
-	test-getsockname.c test-getsockopt.c test-gettimeofday.c \
-	test-grantpt.c test-ignore-value.c test-inet_ntop.c \
-	test-inet_pton.c test-intprops.c test-inttypes.c test-ioctl.c \
-	test-isatty.c test-isnand-nolibm.c test-isnanf-nolibm.c \
-	test-isnanl-nolibm.c test-langinfo.c $(test_ldexp_SOURCES) \
-	test-listen.c test-locale.c test-localeconv.c \
-	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
-	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
-	test-mbsrtowcs.c test-md5.c test-memchr.c test-nanosleep.c \
-	test-net_if.c test-netdb.c test-netinet_in.c \
-	test-nl_langinfo.c test-nonblocking.c \
+	test-close.c test-connect.c test-count-leading-zeros.c \
+	test-count-one-bits.c test-dup.c test-dup2.c test-environ.c \
+	test-errno.c test-fclose.c test-fcntl.c test-fcntl-h.c \
+	test-fdatasync.c test-fdopen.c test-fflush.c test-fflush2.c \
+	test-ffs.c test-ffsl.c test-fgetc.c test-float.c \
+	test-fnmatch.c test-fpurge.c test-fputc.c test-fread.c \
+	test-freading.c test-fseek.c test-fseeko.c test-fseeko3.c \
+	test-fseeko4.c test-fstat.c test-fsync.c test-ftell.c \
+	test-ftell3.c test-ftello.c test-ftello3.c test-ftello4.c \
+	test-ftruncate.c test-func.c test-fwrite.c test-getaddrinfo.c \
+	test-getcwd-lgpl.c test-getdelim.c test-getdtablesize.c \
+	test-getgroups.c test-gethostname.c test-getline.c \
+	test-getpeername.c test-getsockname.c test-getsockopt.c \
+	test-gettimeofday.c test-grantpt.c test-ignore-value.c \
+	test-inet_ntop.c test-inet_pton.c test-intprops.c \
+	test-inttypes.c test-ioctl.c test-isatty.c \
+	test-isnand-nolibm.c test-isnanf-nolibm.c test-isnanl-nolibm.c \
+	test-langinfo.c $(test_ldexp_SOURCES) test-listen.c \
+	test-locale.c test-localeconv.c test-localename.c test-lseek.c \
+	test-lstat.c test-malloca.c test-math.c test-mbrtowc.c \
+	test-mbrtowc-w32.c test-mbsinit.c test-mbsrtowcs.c test-md5.c \
+	test-memchr.c test-nanosleep.c test-net_if.c test-netdb.c \
+	test-netinet_in.c test-nl_langinfo.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
 	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
 	test-open.c test-openpty.c test-passfd.c test-pathmax.c \
@@ -1670,33 +1677,34 @@ am__EXEEXT_2 = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-byteswap$(EXEEXT) test-c-ctype$(EXEEXT) test-c-strcase.sh \
 	test-c-strcasestr$(EXEEXT) test-canonicalize-lgpl$(EXEEXT) \
 	test-chown$(EXEEXT) test-cloexec$(EXEEXT) test-close$(EXEEXT) \
-	test-connect$(EXEEXT) test-count-one-bits$(EXEEXT) \
-	test-md5$(EXEEXT) test-dup$(EXEEXT) test-dup2$(EXEEXT) \
-	test-environ$(EXEEXT) test-errno$(EXEEXT) test-fclose$(EXEEXT) \
-	test-fcntl-h$(EXEEXT) test-fcntl$(EXEEXT) \
-	test-fdatasync$(EXEEXT) test-fdopen$(EXEEXT) \
-	test-fflush$(EXEEXT) test-fflush2.sh test-ffs$(EXEEXT) \
-	test-ffsl$(EXEEXT) test-fgetc$(EXEEXT) test-float$(EXEEXT) \
-	test-fnmatch$(EXEEXT) test-fpurge$(EXEEXT) test-fputc$(EXEEXT) \
-	test-fread$(EXEEXT) test-freading$(EXEEXT) test-fseek.sh \
-	test-fseek2.sh test-fseeko.sh test-fseeko2.sh test-fseeko3.sh \
-	test-fseeko4.sh test-fstat$(EXEEXT) test-fsync$(EXEEXT) \
-	test-ftell.sh test-ftell2.sh test-ftell3$(EXEEXT) \
-	test-ftello.sh test-ftello2.sh test-ftello3$(EXEEXT) \
-	test-ftello4.sh test-ftruncate.sh test-func$(EXEEXT) \
-	test-fwrite$(EXEEXT) test-getaddrinfo$(EXEEXT) \
-	test-getcwd-lgpl$(EXEEXT) test-getdelim$(EXEEXT) \
-	test-getdtablesize$(EXEEXT) test-getgroups$(EXEEXT) \
-	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
-	test-getpeername$(EXEEXT) test-getsockname$(EXEEXT) \
-	test-getsockopt$(EXEEXT) test-gettimeofday$(EXEEXT) \
-	test-grantpt$(EXEEXT) test-ignore-value$(EXEEXT) \
-	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
-	test-intprops$(EXEEXT) test-inttypes$(EXEEXT) \
-	test-ioctl$(EXEEXT) test-isatty$(EXEEXT) \
-	test-isnand-nolibm$(EXEEXT) test-isnanf-nolibm$(EXEEXT) \
-	test-isnanl-nolibm$(EXEEXT) test-langinfo$(EXEEXT) \
-	test-ldexp$(EXEEXT) test-listen$(EXEEXT) test-locale$(EXEEXT) \
+	test-connect$(EXEEXT) test-count-leading-zeros$(EXEEXT) \
+	test-count-one-bits$(EXEEXT) test-md5$(EXEEXT) \
+	test-dup$(EXEEXT) test-dup2$(EXEEXT) test-environ$(EXEEXT) \
+	test-errno$(EXEEXT) test-fclose$(EXEEXT) test-fcntl-h$(EXEEXT) \
+	test-fcntl$(EXEEXT) test-fdatasync$(EXEEXT) \
+	test-fdopen$(EXEEXT) test-fflush$(EXEEXT) test-fflush2.sh \
+	test-ffs$(EXEEXT) test-ffsl$(EXEEXT) test-fgetc$(EXEEXT) \
+	test-float$(EXEEXT) test-fnmatch$(EXEEXT) test-fpurge$(EXEEXT) \
+	test-fputc$(EXEEXT) test-fread$(EXEEXT) test-freading$(EXEEXT) \
+	test-fseek.sh test-fseek2.sh test-fseeko.sh test-fseeko2.sh \
+	test-fseeko3.sh test-fseeko4.sh test-fstat$(EXEEXT) \
+	test-fsync$(EXEEXT) test-ftell.sh test-ftell2.sh \
+	test-ftell3$(EXEEXT) test-ftello.sh test-ftello2.sh \
+	test-ftello3$(EXEEXT) test-ftello4.sh test-ftruncate.sh \
+	test-func$(EXEEXT) test-fwrite$(EXEEXT) \
+	test-getaddrinfo$(EXEEXT) test-getcwd-lgpl$(EXEEXT) \
+	test-getdelim$(EXEEXT) test-getdtablesize$(EXEEXT) \
+	test-getgroups$(EXEEXT) test-gethostname$(EXEEXT) \
+	test-getline$(EXEEXT) test-getpeername$(EXEEXT) \
+	test-getsockname$(EXEEXT) test-getsockopt$(EXEEXT) \
+	test-gettimeofday$(EXEEXT) test-grantpt$(EXEEXT) \
+	test-ignore-value$(EXEEXT) test-inet_ntop$(EXEEXT) \
+	test-inet_pton$(EXEEXT) test-intprops$(EXEEXT) \
+	test-inttypes$(EXEEXT) test-ioctl$(EXEEXT) \
+	test-isatty$(EXEEXT) test-isnand-nolibm$(EXEEXT) \
+	test-isnanf-nolibm$(EXEEXT) test-isnanl-nolibm$(EXEEXT) \
+	test-langinfo$(EXEEXT) test-ldexp$(EXEEXT) \
+	test-listen$(EXEEXT) test-locale$(EXEEXT) \
 	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
 	test-lseek.sh test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
 	test-math$(EXEEXT) test-mbrtowc1.sh test-mbrtowc2.sh \
@@ -3037,6 +3045,7 @@ REPLACE_RAISE = @REPLACE_RAISE@
 REPLACE_RANDOM_R = @REPLACE_RANDOM_R@
 REPLACE_READ = @REPLACE_READ@
 REPLACE_READLINK = @REPLACE_READLINK@
+REPLACE_READLINKAT = @REPLACE_READLINKAT@
 REPLACE_REALLOC = @REPLACE_REALLOC@
 REPLACE_REALPATH = @REPLACE_REALPATH@
 REPLACE_REMAINDER = @REPLACE_REMAINDER@
@@ -3079,6 +3088,7 @@ REPLACE_STRTOUMAX = @REPLACE_STRTOUMAX@
 REPLACE_STRUCT_LCONV = @REPLACE_STRUCT_LCONV@
 REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
+REPLACE_SYMLINKAT = @REPLACE_SYMLINKAT@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
@@ -3249,35 +3259,36 @@ GNULIB_TESTS = test-accept test-alloca-opt test-areadlink \
 	test-bitrotate test-btowc1.sh test-btowc2.sh test-byteswap \
 	test-c-ctype test-c-strcase.sh test-c-strcasestr \
 	test-canonicalize-lgpl test-chown test-cloexec test-close \
-	test-connect test-count-one-bits test-md5 test-dup test-dup2 \
-	test-environ test-errno test-fclose test-fcntl-h test-fcntl \
-	test-fdatasync test-fdopen test-fflush test-fflush2.sh \
-	test-ffs test-ffsl test-fgetc test-float test-fnmatch \
-	test-fpurge test-fputc test-fread test-freading test-fseek.sh \
-	test-fseek2.sh test-fseeko.sh test-fseeko2.sh test-fseeko3.sh \
-	test-fseeko4.sh test-fstat test-fsync test-ftell.sh \
-	test-ftell2.sh test-ftell3 test-ftello.sh test-ftello2.sh \
-	test-ftello3 test-ftello4.sh test-ftruncate.sh test-func \
-	test-fwrite test-getaddrinfo test-getcwd-lgpl test-getdelim \
-	test-getdtablesize test-getgroups test-gethostname \
-	test-getline test-getpeername test-getsockname test-getsockopt \
-	test-gettimeofday test-grantpt test-ignore-value \
-	test-inet_ntop test-inet_pton test-intprops test-inttypes \
-	test-ioctl test-isatty test-isnand-nolibm test-isnanf-nolibm \
-	test-isnanl-nolibm test-langinfo test-ldexp test-listen \
-	test-locale test-localeconv test-localename test-lseek.sh \
-	test-lstat test-malloca test-math test-mbrtowc1.sh \
-	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
-	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
-	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
-	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
-	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
-	test-memchr test-nanosleep test-net_if test-netdb \
-	test-netinet_in test-nl_langinfo.sh test-nonblocking-pipe.sh \
-	test-nonblocking-socket.sh test-nonblocking test-open \
-	test-openpty test-passfd test-pathmax test-perror.sh \
-	test-perror2 test-pipe test-pipe2 test-poll-h test-poll \
-	test-posix_openpt test-posix_spawn_file_actions_addclose \
+	test-connect test-count-leading-zeros test-count-one-bits \
+	test-md5 test-dup test-dup2 test-environ test-errno \
+	test-fclose test-fcntl-h test-fcntl test-fdatasync test-fdopen \
+	test-fflush test-fflush2.sh test-ffs test-ffsl test-fgetc \
+	test-float test-fnmatch test-fpurge test-fputc test-fread \
+	test-freading test-fseek.sh test-fseek2.sh test-fseeko.sh \
+	test-fseeko2.sh test-fseeko3.sh test-fseeko4.sh test-fstat \
+	test-fsync test-ftell.sh test-ftell2.sh test-ftell3 \
+	test-ftello.sh test-ftello2.sh test-ftello3 test-ftello4.sh \
+	test-ftruncate.sh test-func test-fwrite test-getaddrinfo \
+	test-getcwd-lgpl test-getdelim test-getdtablesize \
+	test-getgroups test-gethostname test-getline test-getpeername \
+	test-getsockname test-getsockopt test-gettimeofday \
+	test-grantpt test-ignore-value test-inet_ntop test-inet_pton \
+	test-intprops test-inttypes test-ioctl test-isatty \
+	test-isnand-nolibm test-isnanf-nolibm test-isnanl-nolibm \
+	test-langinfo test-ldexp test-listen test-locale \
+	test-localeconv test-localename test-lseek.sh test-lstat \
+	test-malloca test-math test-mbrtowc1.sh test-mbrtowc2.sh \
+	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc-w32-1.sh \
+	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
+	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbsinit.sh \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-memchr test-nanosleep test-net_if \
+	test-netdb test-netinet_in test-nl_langinfo.sh \
+	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
+	test-nonblocking test-open test-openpty test-passfd \
+	test-pathmax test-perror.sh test-perror2 test-pipe test-pipe2 \
+	test-poll-h test-poll test-posix_openpt \
+	test-posix_spawn_file_actions_addclose \
 	test-posix_spawn_file_actions_adddup2 \
 	test-posix_spawn_file_actions_addopen $(am__append_1) \
 	test-pthread_sigmask1 test-pthread_sigmask2 test-ptsname \
@@ -3330,23 +3341,24 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-canonicalize-lgpl.c signature.h macros.h nap.h \
 	test-chown.h test-chown.c signature.h macros.h test-cloexec.c \
 	macros.h test-close.c signature.h macros.h test-connect.c \
-	signature.h macros.h test-count-one-bits.c macros.h test-md5.c \
-	dup.c test-dup.c signature.h macros.h test-dup2.c signature.h \
-	macros.h test-environ.c test-errno.c error.c error.h \
-	exitfail.h test-fclose.c test-fcntl-h.c test-fcntl.c \
-	signature.h macros.h test-fdatasync.c signature.h macros.h \
-	fdopen.c test-fdopen.c signature.h macros.h test-fflush.c \
-	test-fflush2.sh test-fflush2.c signature.h macros.h test-ffs.c \
-	macros.h signature.h test-ffsl.c macros.h signature.h \
-	test-fgetc.c signature.h macros.h test-float.c macros.h \
-	test-fnmatch.c signature.h macros.h fpucw.h test-fpurge.c \
-	macros.h test-fputc.c signature.h macros.h test-fread.c \
-	signature.h macros.h test-freading.c macros.h test-fseek.c \
-	test-fseek.sh test-fseek2.sh signature.h macros.h \
-	test-fseeko.c test-fseeko.sh test-fseeko2.sh test-fseeko3.c \
-	test-fseeko3.sh test-fseeko4.c test-fseeko4.sh signature.h \
-	macros.h test-fstat.c signature.h macros.h test-fsync.c \
-	signature.h macros.h test-ftell.c test-ftell.sh test-ftell2.sh \
+	signature.h macros.h test-count-leading-zeros.c macros.h \
+	test-count-one-bits.c macros.h test-md5.c dup.c test-dup.c \
+	signature.h macros.h test-dup2.c signature.h macros.h \
+	test-environ.c test-errno.c error.c error.h exitfail.h \
+	test-fclose.c test-fcntl-h.c test-fcntl.c signature.h macros.h \
+	test-fdatasync.c signature.h macros.h fdopen.c test-fdopen.c \
+	signature.h macros.h test-fflush.c test-fflush2.sh \
+	test-fflush2.c signature.h macros.h test-ffs.c macros.h \
+	signature.h test-ffsl.c macros.h signature.h test-fgetc.c \
+	signature.h macros.h test-float.c macros.h test-fnmatch.c \
+	signature.h macros.h fpucw.h test-fpurge.c macros.h \
+	test-fputc.c signature.h macros.h test-fread.c signature.h \
+	macros.h test-freading.c macros.h test-fseek.c test-fseek.sh \
+	test-fseek2.sh signature.h macros.h test-fseeko.c \
+	test-fseeko.sh test-fseeko2.sh test-fseeko3.c test-fseeko3.sh \
+	test-fseeko4.c test-fseeko4.sh signature.h macros.h \
+	test-fstat.c signature.h macros.h test-fsync.c signature.h \
+	macros.h test-ftell.c test-ftell.sh test-ftell2.sh \
 	test-ftell3.c signature.h macros.h test-ftello.c \
 	test-ftello.sh test-ftello2.sh test-ftello3.c test-ftello4.c \
 	test-ftello4.sh signature.h macros.h ftruncate.c \
@@ -3722,6 +3734,10 @@ test-close$(EXEEXT): $(test_close_OBJECTS) $(test_close_DEPENDENCIES) $(EXTRA_te
 test-connect$(EXEEXT): $(test_connect_OBJECTS) $(test_connect_DEPENDENCIES) $(EXTRA_test_connect_DEPENDENCIES) 
 	@rm -f test-connect$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_connect_OBJECTS) $(test_connect_LDADD) $(LIBS)
+
+test-count-leading-zeros$(EXEEXT): $(test_count_leading_zeros_OBJECTS) $(test_count_leading_zeros_DEPENDENCIES) $(EXTRA_test_count_leading_zeros_DEPENDENCIES) 
+	@rm -f test-count-leading-zeros$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_count_leading_zeros_OBJECTS) $(test_count_leading_zeros_LDADD) $(LIBS)
 
 test-count-one-bits$(EXEEXT): $(test_count_one_bits_OBJECTS) $(test_count_one_bits_DEPENDENCIES) $(EXTRA_test_count_one_bits_DEPENDENCIES) 
 	@rm -f test-count-one-bits$(EXEEXT)
@@ -4475,6 +4491,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-cloexec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-close.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-connect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-count-leading-zeros.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-count-one-bits.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-dup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-dup2.Po@am__quote@
@@ -5056,6 +5073,13 @@ test-close.log: test-close$(EXEEXT)
 test-connect.log: test-connect$(EXEEXT)
 	@p='test-connect$(EXEEXT)'; \
 	b='test-connect'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-count-leading-zeros.log: test-count-leading-zeros$(EXEEXT)
+	@p='test-count-leading-zeros$(EXEEXT)'; \
+	b='test-count-leading-zeros'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

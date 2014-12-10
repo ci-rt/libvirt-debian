@@ -362,8 +362,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.10
-Release: 1%{?dist}%{?extra_release}
+Version: 1.2.11
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -372,7 +372,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -425,7 +425,9 @@ BuildRequires: gettext-devel
 BuildRequires: libtool
 BuildRequires: /usr/bin/pod2man
 %endif
+BuildRequires: git
 BuildRequires: perl
+BuildRequires: perl-XML-XPath
 BuildRequires: python
 %if %{with_systemd}
 BuildRequires: systemd-units
@@ -1198,6 +1200,41 @@ driver
 %prep
 %setup -q
 
+# Patches have to be stored in a temporary file because RPM has
+# a limit on the length of the result of any macro expansion;
+# if the string is longer, it's silently cropped
+%{lua:
+    tmp = os.tmpname();
+    f = io.open(tmp, "w+");
+    count = 0;
+    for i, p in ipairs(patches) do
+        f:write(p.."\n");
+        count = count + 1;
+    end;
+    f:close();
+    print("PATCHCOUNT="..count.."\n")
+    print("PATCHLIST="..tmp.."\n")
+}
+
+git init -q
+git config user.name rpm-build
+git config user.email rpm-build
+git config gc.auto 0
+git add .
+git commit -q -a --author 'rpm-build <rpm-build>' \
+           -m '%{name}-%{version} base'
+
+COUNT=$(grep '\.patch$' $PATCHLIST | wc -l)
+if [ $COUNT -ne $PATCHCOUNT ]; then
+    echo "Found $COUNT patches in $PATCHLIST, expected $PATCHCOUNT"
+    exit 1
+fi
+if [ $COUNT -gt 0 ]; then
+    xargs git am <$PATCHLIST || exit 1
+fi
+echo "Applied $COUNT patches"
+rm -f $PATCHLIST
+
 %build
 %if ! %{with_xen}
     %define _without_xen --without-xen
@@ -1605,48 +1642,6 @@ exit 0
     %endif
 
 %post daemon
-
-    %if %{with_network}
-# All newly defined networks will have a mac address for the bridge
-# auto-generated, but networks already existing at the time of upgrade
-# will not. We need to go through all the network configs, look for
-# those that don't have a mac address, and add one.
-
-network_files=$( (cd %{_localstatedir}/lib/libvirt/network && \
-                  grep -L "mac address" *.xml; \
-                  cd %{_sysconfdir}/libvirt/qemu/networks && \
-                  grep -L "mac address" *.xml) 2>/dev/null \
-                | sort -u)
-
-for file in $network_files
-do
-   # each file exists in either the config or state directory (or both) and
-   # does not have a mac address specified in either. We add the same mac
-   # address to both files (or just one, if the other isn't there)
-
-   mac4=`printf '%X' $(($RANDOM % 256))`
-   mac5=`printf '%X' $(($RANDOM % 256))`
-   mac6=`printf '%X' $(($RANDOM % 256))`
-   for dir in %{_localstatedir}/lib/libvirt/network \
-              %{_sysconfdir}/libvirt/qemu/networks
-   do
-      if test -f $dir/$file
-      then
-         sed -i.orig -e \
-           "s|\(<bridge.*$\)|\0\n  <mac address='52:54:00:$mac4:$mac5:$mac6'/>|" \
-           $dir/$file
-         if test $? != 0
-         then
-             echo "failed to add <mac address='52:54:00:$mac4:$mac5:$mac6'/>" \
-                  "to $dir/$file"
-             mv -f $dir/$file.orig $dir/$file
-         else
-             rm -f $dir/$file.orig
-         fi
-      fi
-   done
-done
-    %endif
 
     %if %{with_systemd}
         %if %{with_systemd_macros}

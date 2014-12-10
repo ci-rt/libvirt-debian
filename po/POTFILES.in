@@ -11,6 +11,7 @@ src/access/viraccessmanager.c
 src/bhyve/bhyve_command.c
 src/bhyve/bhyve_device.c
 src/bhyve/bhyve_driver.c
+src/bhyve/bhyve_monitor.c
 src/bhyve/bhyve_process.c
 src/conf/capabilities.c
 src/conf/cpu_conf.c
@@ -92,7 +93,6 @@ src/network/bridge_driver_linux.c
 src/network/leaseshelper.c
 src/node_device/node_device_driver.c
 src/node_device/node_device_hal.c
-src/node_device/node_device_linux_sysfs.c
 src/node_device/node_device_udev.c
 src/nodeinfo.c
 src/nwfilter/nwfilter_dhcpsnoop.c

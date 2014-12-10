@@ -4,6 +4,8 @@ use strict;
 use warnings;
 
 use File::Find;
+use XML::XPath;
+use XML::XPath::XMLParser;
 
 die "syntax: $0 SRCDIR\n" unless int(@ARGV) == 1;
 
@@ -12,7 +14,17 @@ my $srcdir = shift @ARGV;
 my $symslibvirt = "$srcdir/libvirt_public.syms";
 my $symsqemu = "$srcdir/libvirt_qemu.syms";
 my $symslxc = "$srcdir/libvirt_lxc.syms";
-my $drivertable = "$srcdir/driver.h";
+my @drivertable = (
+    "$srcdir/driver-hypervisor.h",
+    "$srcdir/driver-interface.h",
+    "$srcdir/driver-network.h",
+    "$srcdir/driver-nodedev.h",
+    "$srcdir/driver-nwfilter.h",
+    "$srcdir/driver-secret.h",
+    "$srcdir/driver-state.h",
+    "$srcdir/driver-storage.h",
+    "$srcdir/driver-stream.h",
+    );
 
 my %groupheaders = (
     "virHypervisorDriver" => "Hypervisor APIs",
@@ -42,6 +54,7 @@ open FILE, "<$symslibvirt"
 
 my $vers;
 my $prevvers;
+my $apixpath = XML::XPath->new(filename => "$srcdir/../docs/libvirt-api.xml");
 while (defined($line = <FILE>)) {
     chomp $line;
     next if $line =~ /^\s*#/;
@@ -65,7 +78,10 @@ while (defined($line = <FILE>)) {
         $prevvers = $vers;
         $vers = undef;
     } elsif ($line =~ /\s*(\w+)\s*;\s*$/) {
-        $apis{$1} = $vers;
+        my $file = $apixpath->find("/api/symbols/function[\@name='$1']/\@file");
+        $apis{$1} = {};
+        $apis{$1}->{vers} = $vers;
+        $apis{$1}->{file} = $file;
     } else {
         die "unexpected data $line\n";
     }
@@ -81,6 +97,7 @@ open FILE, "<$symsqemu"
 
 $prevvers = undef;
 $vers = undef;
+$apixpath = XML::XPath->new(filename => "$srcdir/../docs/libvirt-qemu-api.xml");
 while (defined($line = <FILE>)) {
     chomp $line;
     next if $line =~ /^\s*#/;
@@ -104,7 +121,10 @@ while (defined($line = <FILE>)) {
         $prevvers = $vers;
         $vers = undef;
     } elsif ($line =~ /\s*(\w+)\s*;\s*$/) {
-        $apis{$1} = $vers;
+        my $file = $apixpath->find("/api/symbols/function[\@name='$1']/\@file");
+        $apis{$1} = {};
+        $apis{$1}->{vers} = $vers;
+        $apis{$1}->{file} = $file;
     } else {
         die "unexpected data $line\n";
     }
@@ -120,6 +140,7 @@ open FILE, "<$symslxc"
 
 $prevvers = undef;
 $vers = undef;
+$apixpath = XML::XPath->new(filename => "$srcdir/../docs/libvirt-lxc-api.xml");
 while (defined($line = <FILE>)) {
     chomp $line;
     next if $line =~ /^\s*#/;
@@ -143,7 +164,10 @@ while (defined($line = <FILE>)) {
         $prevvers = $vers;
         $vers = undef;
     } elsif ($line =~ /\s*(\w+)\s*;\s*$/) {
-        $apis{$1} = $vers;
+        my $file = $apixpath->find("/api/symbols/function[\@name='$1']/\@file");
+        $apis{$1} = {};
+        $apis{$1}->{vers} = $vers;
+        $apis{$1}->{file} = $file;
     } else {
         die "unexpected data $line\n";
     }
@@ -154,27 +178,27 @@ close FILE;
 
 # Some special things which aren't public APIs,
 # but we want to report
-$apis{virConnectSupportsFeature} = "0.3.2";
-$apis{virDomainMigratePrepare} = "0.3.2";
-$apis{virDomainMigratePerform} = "0.3.2";
-$apis{virDomainMigrateFinish} = "0.3.2";
-$apis{virDomainMigratePrepare2} = "0.5.0";
-$apis{virDomainMigrateFinish2} = "0.5.0";
-$apis{virDomainMigratePrepareTunnel} = "0.7.2";
+$apis{virConnectSupportsFeature}->{vers} = "0.3.2";
+$apis{virDomainMigratePrepare}->{vers} = "0.3.2";
+$apis{virDomainMigratePerform}->{vers} = "0.3.2";
+$apis{virDomainMigrateFinish}->{vers} = "0.3.2";
+$apis{virDomainMigratePrepare2}->{vers} = "0.5.0";
+$apis{virDomainMigrateFinish2}->{vers} = "0.5.0";
+$apis{virDomainMigratePrepareTunnel}->{vers} = "0.7.2";
 
-$apis{virDomainMigrateBegin3} = "0.9.2";
-$apis{virDomainMigratePrepare3} = "0.9.2";
-$apis{virDomainMigratePrepareTunnel3} = "0.9.2";
-$apis{virDomainMigratePerform3} = "0.9.2";
-$apis{virDomainMigrateFinish3} = "0.9.2";
-$apis{virDomainMigrateConfirm3} = "0.9.2";
+$apis{virDomainMigrateBegin3}->{vers} = "0.9.2";
+$apis{virDomainMigratePrepare3}->{vers} = "0.9.2";
+$apis{virDomainMigratePrepareTunnel3}->{vers} = "0.9.2";
+$apis{virDomainMigratePerform3}->{vers} = "0.9.2";
+$apis{virDomainMigrateFinish3}->{vers} = "0.9.2";
+$apis{virDomainMigrateConfirm3}->{vers} = "0.9.2";
 
-$apis{virDomainMigrateBegin3Params} = "1.1.0";
-$apis{virDomainMigratePrepare3Params} = "1.1.0";
-$apis{virDomainMigratePrepareTunnel3Params} = "1.1.0";
-$apis{virDomainMigratePerform3Params} = "1.1.0";
-$apis{virDomainMigrateFinish3Params} = "1.1.0";
-$apis{virDomainMigrateConfirm3Params} = "1.1.0";
+$apis{virDomainMigrateBegin3Params}->{vers} = "1.1.0";
+$apis{virDomainMigratePrepare3Params}->{vers} = "1.1.0";
+$apis{virDomainMigratePrepareTunnel3Params}->{vers} = "1.1.0";
+$apis{virDomainMigratePerform3Params}->{vers} = "1.1.0";
+$apis{virDomainMigrateFinish3Params}->{vers} = "1.1.0";
+$apis{virDomainMigrateConfirm3Params}->{vers} = "1.1.0";
 
 
 
@@ -182,41 +206,43 @@ $apis{virDomainMigrateConfirm3Params} = "1.1.0";
 # and driver struct fields. This lets us later match
 # update the driver impls with the public APis.
 
-open FILE, "<$drivertable"
-    or die "cannot read $drivertable: $!";
-
 # Group name -> hash of APIs { fields -> api name }
 my %groups;
 my $ingrp;
-while (defined($line = <FILE>)) {
-    if ($line =~ /struct _(vir\w*Driver)/) {
-        my $grp = $1;
-        if ($grp ne "virStateDriver" &&
-            $grp ne "virStreamDriver") {
-            $ingrp = $grp;
-            $groups{$ingrp} = { apis => {}, drivers => {} };
-        }
-    } elsif ($ingrp) {
-        if ($line =~ /^\s*vir(?:Drv)(\w+)\s+(\w+);\s*$/) {
-            my $field = $2;
-            my $name = $1;
+foreach my $drivertable (@drivertable) {
+    open FILE, "<$drivertable"
+        or die "cannot read $drivertable: $!";
 
-            my $api;
-            if (exists $apis{"vir$name"}) {
-                $api = "vir$name";
-            } elsif ($name =~ /\w+(Open|Close)/) {
-                next;
-            } else {
-                die "driver $name does not have a public API";
+    while (defined($line = <FILE>)) {
+        if ($line =~ /struct _(vir\w*Driver)/) {
+            my $grp = $1;
+            if ($grp ne "virStateDriver" &&
+                $grp ne "virStreamDriver") {
+                $ingrp = $grp;
+                $groups{$ingrp} = { apis => {}, drivers => {} };
             }
-            $groups{$ingrp}->{apis}->{$field} = $api;
-        } elsif ($line =~ /};/) {
-            $ingrp = undef;
+        } elsif ($ingrp) {
+            if ($line =~ /^\s*vir(?:Drv)(\w+)\s+(\w+);\s*$/) {
+                my $field = $2;
+                my $name = $1;
+
+                my $api;
+                if (exists $apis{"vir$name"}) {
+                    $api = "vir$name";
+                } elsif ($name =~ /\w+(Open|Close)/) {
+                    next;
+                } else {
+                    die "driver $name does not have a public API";
+                }
+                $groups{$ingrp}->{apis}->{$field} = $api;
+            } elsif ($line =~ /};/) {
+                $ingrp = undef;
+            }
         }
     }
-}
 
-close FILE;
+    close FILE;
+}
 
 
 # Finally, we read all the primary driver files and extract
@@ -290,43 +316,43 @@ foreach my $src (@srcs) {
 # have a bit of manual fixup todo with the per-driver versioning
 # and support matrix
 
-$groups{virDriver}->{apis}->{"openAuth"} = "virConnectOpenAuth";
-$groups{virDriver}->{apis}->{"openReadOnly"} = "virConnectOpenReadOnly";
-$groups{virDriver}->{apis}->{"domainMigrate"} = "virDomainMigrate";
+$groups{virHypervisorDriver}->{apis}->{"openAuth"} = "virConnectOpenAuth";
+$groups{virHypervisorDriver}->{apis}->{"openReadOnly"} = "virConnectOpenReadOnly";
+$groups{virHypervisorDriver}->{apis}->{"domainMigrate"} = "virDomainMigrate";
 
 my $openAuthVers = (0 * 1000 * 1000) + (4 * 1000) + 0;
 
-foreach my $drv (keys %{$groups{"virDriver"}->{drivers}}) {
-    my $openVersStr = $groups{"virDriver"}->{drivers}->{$drv}->{"connectOpen"};
+foreach my $drv (keys %{$groups{"virHypervisorDriver"}->{drivers}}) {
+    my $openVersStr = $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"connectOpen"};
     my $openVers;
     if ($openVersStr =~ /(\d+)\.(\d+)\.(\d+)/) {
         $openVers = ($1 * 1000 * 1000) + ($2 * 1000) + $3;
     }
 
     # virConnectOpenReadOnly always matches virConnectOpen version
-    $groups{"virDriver"}->{drivers}->{$drv}->{"connectOpenReadOnly"} =
-        $groups{"virDriver"}->{drivers}->{$drv}->{"connectOpen"};
+    $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"connectOpenReadOnly"} =
+        $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"connectOpen"};
 
     # virConnectOpenAuth is always 0.4.0 if the driver existed
     # before this time, otherwise it matches the version of
     # the driver's virConnectOpen entry
     if ($openVersStr eq "Y" ||
         $openVers >= $openAuthVers) {
-        $groups{"virDriver"}->{drivers}->{$drv}->{"connectOpenAuth"} = $openVersStr;
+        $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"connectOpenAuth"} = $openVersStr;
     } else {
-        $groups{"virDriver"}->{drivers}->{$drv}->{"connectOpenAuth"} = "0.4.0";
+        $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"connectOpenAuth"} = "0.4.0";
     }
 }
 
 
 # Another special case for the virDomainCreateLinux which was replaced
 # with virDomainCreateXML
-$groups{virDriver}->{apis}->{"domainCreateLinux"} = "virDomainCreateLinux";
+$groups{virHypervisorDriver}->{apis}->{"domainCreateLinux"} = "virDomainCreateLinux";
 
 my $createAPIVers = (0 * 1000 * 1000) + (0 * 1000) + 3;
 
-foreach my $drv (keys %{$groups{"virDriver"}->{drivers}}) {
-    my $createVersStr = $groups{"virDriver"}->{drivers}->{$drv}->{"domainCreateXML"};
+foreach my $drv (keys %{$groups{"virHypervisorDriver"}->{drivers}}) {
+    my $createVersStr = $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"domainCreateXML"};
     next unless defined $createVersStr;
     my $createVers;
     if ($createVersStr =~ /(\d+)\.(\d+)\.(\d+)/) {
@@ -338,9 +364,9 @@ foreach my $drv (keys %{$groups{"virDriver"}->{drivers}}) {
     # the driver's virCreateXML entry
     if ($createVersStr eq "Y" ||
         $createVers >= $createAPIVers) {
-        $groups{"virDriver"}->{drivers}->{$drv}->{"domainCreateLinux"} = $createVersStr;
+        $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"domainCreateLinux"} = $createVersStr;
     } else {
-        $groups{"virDriver"}->{drivers}->{$drv}->{"domainCreateLinux"} = "0.0.3";
+        $groups{"virHypervisorDriver"}->{drivers}->{$drv}->{"domainCreateLinux"} = "0.0.3";
     }
 }
 
@@ -367,7 +393,7 @@ in.
 
 EOF
 
-foreach my $grp (sort { $a cmp $b } keys %groups) {
+    foreach my $grp (sort { $a cmp $b } keys %groups) {
     print "<h2><a name=\"$grp\">", $groupheaders{$grp}, "</a></h2>\n";
     print <<EOF;
 <table class="top_table">
@@ -394,10 +420,23 @@ EOF
         $groups{$grp}->{apis}->{$b}
         } keys %{$groups{$grp}->{apis}}) {
         my $api = $groups{$grp}->{apis}->{$field};
-        my $vers = $apis{$api};
+        my $vers = $apis{$api}->{vers};
+        my $htmlgrp = $apis{$api}->{file};
         print <<EOF;
 <tr>
-<td><a href=\"html/libvirt-libvirt.html#$api\">$api</a></td>
+<td>
+EOF
+
+        if (defined $htmlgrp) {
+            print <<EOF;
+<a href=\"html/libvirt-$htmlgrp.html#$api\">$api</a>
+EOF
+
+        } else {
+            print $api;
+        }
+        print <<EOF;
+</td>
 <td>$vers</td>
 EOF
 

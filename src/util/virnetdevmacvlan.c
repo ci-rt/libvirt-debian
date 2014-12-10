@@ -682,9 +682,8 @@ virNetDevMacVLanVPortProfileCallback(struct nlmsghdr *hdr,
         }
     }
 
-    if (!indicate) {
+    if (!indicate)
         return;
-    }
 
     VIR_INFO("Re-send 802.1qbg associate request:");
     VIR_INFO("  if: %s", calld->cr_ifname);
@@ -811,7 +810,6 @@ int virNetDevMacVLanCreateWithVPortProfile(const char *tgifname,
                                            char **res_ifname,
                                            virNetDevVPortProfileOp vmOp,
                                            char *stateDir,
-                                           virNetDevBandwidthPtr bandwidth,
                                            unsigned int flags)
 {
     const char *type = (flags & VIR_NETDEV_MACVLAN_CREATE_WITH_TAP) ?
@@ -851,9 +849,8 @@ int virNetDevMacVLanCreateWithVPortProfile(const char *tgifname,
             return -1;
 
         if (ret) {
-            if (STRPREFIX(tgifname, prefix)) {
+            if (STRPREFIX(tgifname, prefix))
                 goto create_name;
-            }
             virReportSystemError(EEXIST,
                                  _("Unable to create macvlan device %s"), tgifname);
             return -1;
@@ -925,14 +922,6 @@ int virNetDevMacVLanCreateWithVPortProfile(const char *tgifname,
         rc = 0;
     }
 
-    if (virNetDevBandwidthSet(cr_ifname, bandwidth, false) < 0) {
-        if (flags & VIR_NETDEV_MACVLAN_CREATE_WITH_TAP)
-            VIR_FORCE_CLOSE(rc); /* sets rc to -1 */
-        else
-            rc = -1;
-        goto disassociate_exit;
-    }
-
     if (vmOp == VIR_NETDEV_VPORT_PROFILE_OP_CREATE ||
         vmOp == VIR_NETDEV_VPORT_PROFILE_OP_RESTORE) {
         /* Only directly register upon a create or restore (restarting
@@ -983,9 +972,8 @@ int virNetDevMacVLanDeleteWithVPortProfile(const char *ifname,
     int ret = 0;
     int vf = -1;
 
-    if (mode == VIR_NETDEV_MACVLAN_MODE_PASSTHRU) {
+    if (mode == VIR_NETDEV_MACVLAN_MODE_PASSTHRU)
         ignore_value(virNetDevRestoreMacAddress(linkdev, stateDir));
-    }
 
     if (ifname) {
         if (virNetDevVPortProfileDisassociate(ifname,
@@ -1076,7 +1064,6 @@ int virNetDevMacVLanCreateWithVPortProfile(const char *ifname ATTRIBUTE_UNUSED,
                                            char **res_ifname ATTRIBUTE_UNUSED,
                                            virNetDevVPortProfileOp vmop ATTRIBUTE_UNUSED,
                                            char *stateDir ATTRIBUTE_UNUSED,
-                                           virNetDevBandwidthPtr bandwidth ATTRIBUTE_UNUSED,
                                            unsigned int flags)
 {
     virCheckFlags(0, -1);

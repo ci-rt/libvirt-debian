@@ -1965,6 +1965,60 @@ int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
  */
 # define VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC "write_iops_sec"
 
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX:
+ *
+ * Macro for the BlockIoTune tunable weight: it represents the maximum total
+ * bytes per second permitted through a block device, as a ullong.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX "total_bytes_sec_max"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX:
+ *
+ * Macro for the BlockIoTune tunable weight: it represents the maximum read
+ * bytes per second permitted through a block device, as a ullong.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX "read_bytes_sec_max"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX:
+ *
+ * Macro for the BlockIoTune tunable weight: it represents the maximum write
+ * bytes per second permitted through a block device, as a ullong.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX "write_bytes_sec_max"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX:
+ *
+ * Macro for the BlockIoTune tunable weight: it represents the maximum
+ * I/O operations per second permitted through a block device, as a ullong.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX "total_iops_sec_max"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX:
+ *
+ * Macro for the BlockIoTune tunable weight: it represents the maximum read
+ * I/O operations per second permitted through a block device, as a ullong.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX "read_iops_sec_max"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX:
+ * Macro for the BlockIoTune tunable weight: it represents the maximum write
+ * I/O operations per second permitted through a block device, as a ullong.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX "write_iops_sec_max"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC:
+ * Macro for the BlockIoTune tunable weight: it represents the size
+ * I/O operations per second permitted through a block device, as a ullong.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC "size_iops_sec"
+
 int
 virDomainSetBlockIoTune(virDomainPtr dom,
                         const char *disk,
@@ -3197,6 +3251,62 @@ typedef void (*virConnectDomainEventDeviceRemovedCallback)(virConnectPtr conn,
 # define VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC "blkdeviotune.write_iops_sec"
 
 /**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX:
+ *
+ * Marco represents the total throughput limit in maximum bytes per second,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX "blkdeviotune.total_bytes_sec_max"
+
+/**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX:
+ *
+ * Marco represents the read throughput limit in maximum bytes per second,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX "blkdeviotune.read_bytes_sec_max"
+
+/**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX:
+ *
+ * Macro represents the write throughput limit in maximum bytes per second,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX "blkdeviotune.write_bytes_sec_max"
+
+/**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX:
+ *
+ * Macro represents the total maximum I/O operations per second,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX "blkdeviotune.total_iops_sec_max"
+
+/**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX:
+ *
+ * Macro represents the read maximum I/O operations per second,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX "blkdeviotune.read_iops_sec_max"
+
+/**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX:
+ *
+ * Macro represents the write maximum I/O operations per second,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX "blkdeviotune.write_iops_sec_max"
+
+/**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC:
+ *
+ * Macro represents the size maximum I/O operations per second,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC "blkdeviotune.size_iops_sec"
+
+/**
  * virConnectDomainEventTunableCallback:
  * @conn: connection object
  * @dom: domain on which the event occurred
@@ -3220,6 +3330,46 @@ typedef void (*virConnectDomainEventTunableCallback)(virConnectPtr conn,
                                                      virTypedParameterPtr params,
                                                      int nparams,
                                                      void *opaque);
+
+
+typedef enum {
+    VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_CONNECTED = 1, /* agent connected */
+    VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED = 2, /* agent disconnected */
+
+# ifdef VIR_ENUM_SENTINELS
+    VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST
+# endif
+} virConnectDomainEventAgentLifecycleState;
+
+typedef enum {
+    VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_UNKNOWN = 0, /* unknown state change reason */
+    VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_DOMAIN_STARTED = 1, /* state changed due to domain start */
+    VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_CHANNEL = 2, /* channel state changed */
+
+# ifdef VIR_ENUM_SENTINELS
+    VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_LAST
+# endif
+} virConnectDomainEventAgentLifecycleReason;
+
+/**
+ * virConnectDomainEventAgentLifecycleCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @state: new state of the guest agent, one of virConnectDomainEventAgentLifecycleState
+ * @reason: reason for state change; one of virConnectDomainEventAgentLifecycleReason
+ * @opaque: application specified data
+ *
+ * This callback occurs when libvirt detects a change in the state of a guest
+ * agent.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventAgentLifecycleCallback)(virConnectPtr conn,
+                                                            virDomainPtr dom,
+                                                            int state,
+                                                            int reason,
+                                                            void *opaque);
 
 
 /**
@@ -3257,6 +3407,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED = 15, /* virConnectDomainEventDeviceRemovedCallback */
     VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2 = 16,    /* virConnectDomainEventBlockJobCallback */
     VIR_DOMAIN_EVENT_ID_TUNABLE = 17,        /* virConnectDomainEventTunableCallback */
+    VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE = 18,/* virConnectDomainEventAgentLifecycleCallback */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST
@@ -3345,6 +3496,28 @@ int virDomainFSThaw(virDomainPtr dom,
                     const char **mountpoints,
                     unsigned int nmountpoints,
                     unsigned int flags);
+
+/**
+ * virDomainFSInfo:
+ *
+ * The data structure containing mounted file systems within a guset
+ *
+ */
+typedef struct _virDomainFSInfo virDomainFSInfo;
+typedef virDomainFSInfo *virDomainFSInfoPtr;
+struct _virDomainFSInfo {
+    char *mountpoint; /* path to mount point */
+    char *name;       /* device name in the guest (e.g. "sda1") */
+    char *fstype;     /* filesystem type */
+    size_t ndevAlias; /* number of elements in devAlias */
+    char **devAlias;  /* array of disk device aliases */
+};
+
+void virDomainFSInfoFree(virDomainFSInfoPtr info);
+
+int virDomainGetFSInfo(virDomainPtr dom,
+                       virDomainFSInfoPtr **info,
+                       unsigned int flags);
 
 int virDomainGetTime(virDomainPtr dom,
                      long long *seconds,

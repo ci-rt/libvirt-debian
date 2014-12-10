@@ -107,8 +107,8 @@ following fields:</p>
         <ul><li>code: an error number from the <a href="html/libvirt-virterror.html#virErrorNumber" shape="rect">virErrorNumber</a>
   enum</li><li>domain: an enum indicating which part of libvirt raised the error see
     <a href="html/libvirt-virterror.html#virErrorDomain" shape="rect">virErrorDomain</a></li><li>level: the error level, usually VIR_ERR_ERROR, though there is room for
-    warnings like VIR_ERR_WARNING</li><li>message: the full human-readable formatted string of the error</li><li>conn: if available a pointer to the <a href="html/libvirt-libvirt.html#virConnectPtr" shape="rect">virConnectPtr</a>
-    connection to the hypervisor where this happened</li><li>dom: if available a pointer to the <a href="html/libvirt-libvirt.html#virDomainPtr" shape="rect">virDomainPtr</a> domain
+    warnings like VIR_ERR_WARNING</li><li>message: the full human-readable formatted string of the error</li><li>conn: if available a pointer to the <a href="html/libvirt-libvirt-host.html#virConnectPtr" shape="rect">virConnectPtr</a>
+    connection to the hypervisor where this happened</li><li>dom: if available a pointer to the <a href="html/libvirt-libvirt-domain.html#virDomainPtr" shape="rect">virDomainPtr</a> domain
     targeted in the operation</li></ul>
         <p>and then extra raw information about the error which may be initialized
 to 0 or NULL if unused</p>

@@ -225,8 +225,7 @@ static int virStorageBackendRBDOpenRADOSConn(virStorageBackendRBDStatePtr ptr,
     VIR_FREE(secret_value);
     VIR_FREE(rados_key);
 
-    if (secret != NULL)
-        virSecretFree(secret);
+    virObjectUnref(secret);
 
     virBufferFreeAndReset(&mon_host);
     VIR_FREE(mon_buff);
@@ -330,13 +329,11 @@ static int virStorageBackendRBDRefreshPool(virConnectPtr conn,
     ptr.cluster = NULL;
     ptr.ioctx = NULL;
 
-    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0) {
+    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0)
         goto cleanup;
-    }
 
-    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0) {
+    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0)
         goto cleanup;
-    }
 
     struct rados_cluster_stat_t clusterstat;
     r = rados_cluster_stat(ptr.cluster, &clusterstat);
@@ -428,17 +425,14 @@ static int virStorageBackendRBDDeleteVol(virConnectPtr conn,
 
     VIR_DEBUG("Removing RBD image %s/%s", pool->def->source.name, vol->name);
 
-    if (flags & VIR_STORAGE_VOL_DELETE_ZEROED) {
+    if (flags & VIR_STORAGE_VOL_DELETE_ZEROED)
         VIR_WARN("%s", _("This storage backend does not supported zeroed removal of volumes"));
-    }
 
-    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0) {
+    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0)
         goto cleanup;
-    }
 
-    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0) {
+    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0)
         goto cleanup;
-    }
 
     r = rbd_remove(ptr.ioctx, vol->name);
     if (r < 0) {
@@ -555,17 +549,14 @@ static int virStorageBackendRBDRefreshVol(virConnectPtr conn,
     ptr.ioctx = NULL;
     int ret = -1;
 
-    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0) {
+    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0)
         goto cleanup;
-    }
 
-    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0) {
+    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0)
         goto cleanup;
-    }
 
-    if (volStorageBackendRBDRefreshVolInfo(vol, pool, &ptr) < 0) {
+    if (volStorageBackendRBDRefreshVolInfo(vol, pool, &ptr) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 
@@ -589,13 +580,11 @@ static int virStorageBackendRBDResizeVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     virCheckFlags(0, -1);
 
-    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0) {
+    if (virStorageBackendRBDOpenRADOSConn(&ptr, conn, &pool->def->source) < 0)
         goto cleanup;
-    }
 
-    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0) {
+    if (virStorageBackendRBDOpenIoCTX(&ptr, pool) < 0)
         goto cleanup;
-    }
 
     r = rbd_open(ptr.ioctx, vol->name, &image, NULL);
     if (r < 0) {

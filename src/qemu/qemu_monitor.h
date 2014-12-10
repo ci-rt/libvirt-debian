@@ -176,6 +176,12 @@ typedef int (*qemuMonitorDomainNicRxFilterChangedCallback)(qemuMonitorPtr mon,
                                                            const char *devAlias,
                                                            void *opaque);
 
+typedef int (*qemuMonitorDomainSerialChangeCallback)(qemuMonitorPtr mon,
+                                                     virDomainObjPtr vm,
+                                                     const char *devAlias,
+                                                     bool connected,
+                                                     void *opaque);
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -202,6 +208,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainGuestPanicCallback domainGuestPanic;
     qemuMonitorDomainDeviceDeletedCallback domainDeviceDeleted;
     qemuMonitorDomainNicRxFilterChangedCallback domainNicRxFilterChanged;
+    qemuMonitorDomainSerialChangeCallback domainSerialChange;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -292,6 +299,9 @@ int qemuMonitorEmitDeviceDeleted(qemuMonitorPtr mon,
                                  const char *devAlias);
 int qemuMonitorEmitNicRxFilterChanged(qemuMonitorPtr mon,
                                       const char *devAlias);
+int qemuMonitorEmitSerialChange(qemuMonitorPtr mon,
+                                const char *devAlias,
+                                bool connected);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -506,7 +516,8 @@ int qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
 int qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
                                       qemuMonitorMigrationCaps capability);
 int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationCaps capability);
+                                      qemuMonitorMigrationCaps capability,
+                                      bool state);
 
 typedef enum {
   QEMU_MONITOR_MIGRATE_BACKGROUND	= 1 << 0,
@@ -638,8 +649,14 @@ int qemuMonitorRemoveNetdev(qemuMonitorPtr mon,
 int qemuMonitorQueryRxFilter(qemuMonitorPtr mon, const char *alias,
                              virNetDevRxFilterPtr *filter);
 
-int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
-                           virHashTablePtr paths);
+typedef struct _qemuMonitorChardevInfo qemuMonitorChardevInfo;
+typedef qemuMonitorChardevInfo *qemuMonitorChardevInfoPtr;
+struct _qemuMonitorChardevInfo {
+    char *ptyPath;
+    virDomainChrDeviceState state;
+};
+int qemuMonitorGetChardevInfo(qemuMonitorPtr mon,
+                              virHashTablePtr *retinfo);
 
 int qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
                                        const char *bus,
@@ -771,11 +788,13 @@ int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
 
 int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
-                                  virDomainBlockIoTuneInfoPtr info);
+                                  virDomainBlockIoTuneInfoPtr info,
+                                  bool supportMaxOptions);
 
 int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
-                                  virDomainBlockIoTuneInfoPtr reply);
+                                  virDomainBlockIoTuneInfoPtr reply,
+                                  bool supportMaxOptions);
 
 int qemuMonitorSystemWakeup(qemuMonitorPtr mon);
 

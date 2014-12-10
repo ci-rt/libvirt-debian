@@ -185,16 +185,6 @@ qemuDomainObjRestoreJob(virDomainObjPtr obj,
     qemuDomainObjResetAsyncJob(priv);
 }
 
-void
-qemuDomainObjTransferJob(virDomainObjPtr obj)
-{
-    qemuDomainObjPrivatePtr priv = obj->privateData;
-
-    VIR_DEBUG("Changing job owner from %llu to %llu",
-              priv->job.owner, virThreadSelfID());
-    priv->job.owner = virThreadSelfID();
-}
-
 static void
 qemuDomainObjFreeJob(qemuDomainObjPrivatePtr priv)
 {
@@ -258,6 +248,7 @@ int
 qemuDomainJobInfoToInfo(qemuDomainJobInfoPtr jobInfo,
                         virDomainJobInfoPtr info)
 {
+    info->type = jobInfo->type;
     info->timeElapsed = jobInfo->timeElapsed;
     info->timeRemaining = jobInfo->timeRemaining;
 
@@ -495,9 +486,8 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
         size_t i;
         virBufferAddLit(buf, "<vcpus>\n");
         virBufferAdjustIndent(buf, 2);
-        for (i = 0; i < priv->nvcpupids; i++) {
+        for (i = 0; i < priv->nvcpupids; i++)
             virBufferAsprintf(buf, "<vcpu pid='%d'/>\n", priv->vcpupids[i]);
-        }
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</vcpus>\n");
     }
@@ -562,9 +552,6 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</devices>\n");
     }
-
-    if (priv->quiesced)
-        virBufferAddLit(buf, "<quiesced/>\n");
 
     return 0;
 }
@@ -749,8 +736,6 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
         }
     }
     VIR_FREE(nodes);
-
-    priv->quiesced = virXPathBoolean("boolean(./quiesced)", ctxt) == 1;
 
     return 0;
 
@@ -980,6 +965,7 @@ qemuDomainDefPostParse(virDomainDefPtr def,
        break;
 
     case VIR_ARCH_PPC64:
+    case VIR_ARCH_PPC64LE:
         addPCIRoot = true;
         addDefaultUSBKBD = true;
         addDefaultUSBMouse = true;
@@ -1174,6 +1160,25 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                          "supported in %s"),
                        virDomainVirtTypeToString(def->virtType));
         goto cleanup;
+    }
+
+    if (dev->type == VIR_DOMAIN_DEVICE_VIDEO &&
+        dev->data.video->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
+        if (dev->data.video->vgamem) {
+            if (dev->data.video->vgamem < 1024) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("value for 'vgamem' must be at least 1 MiB "
+                                 "(1024 KiB)"));
+                goto cleanup;
+            }
+            if (dev->data.video->vgamem != VIR_ROUND_UP_POWER_OF_TWO(dev->data.video->vgamem)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("value for 'vgamem' must be power of two"));
+                goto cleanup;
+            }
+        } else {
+            dev->data.video->vgamem = 8 * 1024;
+        }
     }
 
     ret = 0;
@@ -2392,8 +2397,12 @@ void
 qemuDomainRemoveInactive(virQEMUDriverPtr driver,
                          virDomainObjPtr vm)
 {
+    bool haveJob = true;
     char *snapDir;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+
+    if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
+        haveJob = false;
 
     /* Remove any snapshot metadata prior to removing the domain */
     if (qemuDomainSnapshotDiscardAllMetadata(driver, vm) < 0) {
@@ -2411,6 +2420,9 @@ qemuDomainRemoveInactive(virQEMUDriverPtr driver,
     }
     virDomainObjListRemove(driver->domains, vm);
     virObjectUnref(cfg);
+
+    if (haveJob)
+        ignore_value(qemuDomainObjEndJob(driver, vm));
 }
 
 void
