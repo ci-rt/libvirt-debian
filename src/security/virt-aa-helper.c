@@ -571,7 +571,8 @@ valid_path(const char *path, const bool readonly)
     };
     /* override the above with these */
     const char * const override[] = {
-        "/sys/devices/pci"	/* for hostdev pci devices */
+        "/sys/devices/pci",              /* for hostdev pci devices */
+        "/etc/libvirt-sandbox/services/" /* for virt-sandbox service config */
     };
 
     if (path == NULL) {
@@ -1251,15 +1252,20 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    /* clear the environment */
-    environ = NULL;
-    if (setenv("PATH", "/sbin:/usr/sbin", 1) != 0) {
-        vah_error(ctl, 1, _("could not set PATH"));
+    if (virThreadInitialize() < 0 ||
+        virErrorInitialize() < 0) {
+        fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
+        exit(EXIT_FAILURE);
     }
 
-    if (setenv("IFS", " \t\n", 1) != 0) {
+    /* clear the environment */
+    environ = NULL;
+    if (setenv("PATH", "/sbin:/usr/sbin", 1) != 0)
+        vah_error(ctl, 1, _("could not set PATH"));
+
+    /* ensure the traditional IFS setting */
+    if (setenv("IFS", " \t\n", 1) != 0)
         vah_error(ctl, 1, _("could not set IFS"));
-    }
 
     if (!(progname = strrchr(argv[0], '/')))
         progname = argv[0];
@@ -1290,9 +1296,8 @@ main(int argc, char **argv)
     } else if (ctl->cmd == 'c' || ctl->cmd == 'r') {
         char *included_files = NULL;
 
-        if (ctl->cmd == 'c' && virFileExists(profile)) {
+        if (ctl->cmd == 'c' && virFileExists(profile))
             vah_error(ctl, 1, _("profile exists"));
-        }
 
         if (ctl->append && ctl->newfile) {
             if (vah_add_file(&buf, ctl->newfile, "rw") != 0)

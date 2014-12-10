@@ -405,8 +405,8 @@ openvzReadFSConf(virDomainDefPtr def,
             /* Ensure that we can multiply by 1024 without overflowing. */
             if (barrier > ULLONG_MAX / 1024 ||
                 limit > ULLONG_MAX / 1024) {
-                virReportSystemError(VIR_ERR_OVERFLOW, "%s",
-                                     _("Unable to parse quota"));
+                virReportError(VIR_ERR_OVERFLOW, "%s",
+                               _("Unable to parse quota"));
                 goto error;
             }
             fs->space_soft_limit = barrier * 1024; /* unit is bytes */
@@ -660,9 +660,8 @@ openvzWriteConfigParam(const char * conf_file, const char *param, const char *va
     if (fp == NULL)
         goto error;
     temp_fd = open(temp_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (temp_fd == -1) {
+    if (temp_fd == -1)
         goto error;
-    }
 
     while (1) {
         if (getline(&line, &line_size, fp) <= 0)

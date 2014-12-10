@@ -132,6 +132,7 @@ extern int virDomainGetControlInfoEnsureACL(virConnectPtr conn, virDomainDefPtr 
 extern int virDomainGetCPUStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetDiskErrorsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetEmulatorPinInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetFSInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetHostnameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInterfaceParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

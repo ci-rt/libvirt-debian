@@ -171,7 +171,7 @@
     manipulated through the API is the <code>virConnectPtr</code>, which
     represents the connection to a hypervisor. Any application using libvirt
     is likely to start using the
-    API by calling one of <a href="html/libvirt-libvirt.html#virConnectOpen" shape="rect">the virConnectOpen functions</a>. You will note that those functions take
+    API by calling one of <a href="html/libvirt-libvirt-host.html#virConnectOpen" shape="rect">the virConnectOpen functions</a>. You will note that those functions take
     a name argument which is actually a <a href="uri.html" shape="rect">connection URI</a>
     to select the right hypervisor to open.
     A URI is needed to allow remote connections and also select between
@@ -180,7 +180,10 @@
     name will default to a preselected hypervisor, but it's probably not a
     wise thing to do in most cases. See the <a href="uri.html" shape="rect">connection
     URI</a> page for a full descriptions of the values allowed.</p>
-        <p> Once the application obtains a <a href="html/libvirt-libvirt.html#virConnectPtr"><code>virConnectPtr</code></a>
+        <p> OnDevice the application obtains a
+      <a href="/html/libvirt-libvirt-host.html#virConnectPtr" shape="rect">
+        <code>virConnectPtr</code>
+      </a>
     connection to the hypervisor it can then use it to manage the hypervisor's
     available domains and related virtualization
     resources, such as storage and networking. All those are
@@ -190,29 +193,57 @@
       <img alt="first class objects exposed by the API" src="libvirt-object-model.png" />
     </p>
         <p> The figure above shows the five main objects exported by the API:</p>
-        <ul><li><a href="html/libvirt-libvirt.html#virConnectPtr"><code>virConnectPtr</code></a>
+        <ul><li>
+        <a href="html/libvirt-libvirt-host.html#virConnectPtr" shape="rect">
+          <code>virConnectPtr</code>
+        </a>
       <p>Represents the connection to a hypervisor. Use one of the
-      <a href="html/libvirt-libvirt.html#virConnectOpen" shape="rect">virConnectOpen</a>
+      <a href="html/libvirt-libvirt-host.html#virConnectOpen" shape="rect">virConnectOpen</a>
       functions to obtain connection to the hypervisor which is then used
-      as a parameter to other connection API's.</p></li><li><a href="html/libvirt-libvirt.html#virDomainPtr"><code>virDomainPtr</code></a>
+      as a parameter to other connection API's.</p></li><li>
+        <a href="html/libvirt-libvirt-domain.html#virDomainPtr" shape="rect">
+          <code>virDomainPtr</code>
+        </a>
       <p>Represents one domain either active or defined (i.e. existing as
       permanent config file and storage but not currently running on that
-      node). The function <a href="html/libvirt-libvirt.html#virConnectListAllDomains"><code>virConnectListAllDomains</code></a>
-      lists all the domains for the hypervisor.</p></li><li><a href="html/libvirt-libvirt.html#virNetworkPtr"><code>virNetworkPtr</code></a>
+      node). The function
+        <a href="html/libvirt-libvirt-domain.html#virConnectListAllDomains" shape="rect">
+          <code>virConnectListAllDomains</code>
+        </a>
+      lists all the domains for the hypervisor.</p></li><li>
+        <a href="html/libvirt-libvirt-network.html#virNetworkPtr" shape="rect">
+          <code>virNetworkPtr</code>
+        </a>
       <p>Represents one network either active or defined (i.e. existing
       as permanent config file and storage but not currently activated).
-      The function <a href="html/libvirt-libvirt.html#virConnectListAllNetworks"><code>virConnectListAllNetworks</code></a>
-      lists all the virtualization networks for the hypervisor.</p></li><li><a href="html/libvirt-libvirt.html#virStorageVolPtr"><code>virStorageVolPtr</code></a>
+      The function
+        <a href="html/libvirt-libvirt-network.html#virConnectListAllNetworks" shape="rect">
+          <code>virConnectListAllNetworks</code>
+        </a>
+      lists all the virtualization networks for the hypervisor.</p></li><li>
+        <a href="html/libvirt-libvirt-storage.html#virStorageVolPtr" shape="rect">
+          <code>virStorageVolPtr</code>
+        </a>
       <p>Represents one storage volume generally used
       as a block device available to one of the domains. The function
-      <a href="html/libvirt-libvirt.html#virStorageVolLookupByPath"><code>virStorageVolLookupByPath</code></a> finds
-      the storage volume object based on its path on the node.</p></li><li><a href="html/libvirt-libvirt.html#virStoragePoolPtr"><code>virStoragePoolPtr</code></a>
+        <a href="html/libvirt-libvirt-storage.html#virStorageVolLookupByPath" shape="rect">
+          <code>virStorageVolLookupByPath</code>
+        </a>
+      finds the storage volume object based on its path on the node.</p></li><li>
+        <a href="html/libvirt-libvirt-storage.html#virStoragePoolPtr" shape="rect">
+          <code>virStoragePoolPtr</code>
+        </a>
       <p>Represents a storage pool, which is a logical area
       used to allocate and store storage volumes. The function
-      <a href="html/libvirt-libvirt.html#virConnectListAllStoragePools"><code>virConnectListAllStoragePools</code></a> lists
-      all of the virtualization storage pools on the hypervisor. The function
-      <a href="html/libvirt-libvirt.html#virStoragePoolLookupByVolume"><code>virStoragePoolLookupByVolume</code></a> finds
-      the storage pool containing a given storage volume.</p></li></ul>
+        <a href="html/libvirt-libvirt-storage.html#virConnectListAllStoragePools" shape="rect">
+          <code>virConnectListAllStoragePools</code>
+        </a>
+      lists all of the virtualization storage pools on the hypervisor.
+      The function
+        <a href="html/libvirt-libvirt-storage.html#virStoragePoolLookupByVolume" shape="rect">
+          <code>virStoragePoolLookupByVolume</code>
+        </a>
+      finds the storage pool containing a given storage volume.</p></li></ul>
         <p> Most objects manipulated by the library can also be represented using
       XML descriptions. This is used primarily to create those object, but is
       also helpful to modify or save their description back.</p>
@@ -244,27 +275,127 @@
         <ul><li><b>Lookup</b> [...LookupBy...]
       <p>Used to perform lookups on objects by some type of identifier,
       such as:</p>
-          <ul><li><a href="html/libvirt-libvirt.html#virDomainLookupByID"><code>virDomainLookupByID</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainLookupByName"><code>virDomainLookupByName</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainLookupByUUID"><code>virDomainLookupByUUID</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainLookupByUUIDString"><code>virDomainLookupByUUIDString</code></a></li></ul>
+          <ul><li>
+              <a href="html/libvirt-libvirt-domain.html#virDomainLookupByID" shape="rect">
+                <code>virDomainLookupByID</code>
+              </a>
+            </li><li>
+              <a href="html/libvirt-libvirt-domain.html#virDomainLookupByName" shape="rect">
+                <code>virDomainLookupByName</code>
+              </a>
+            </li><li>
+              <a href="html/libvirt-libvirt-domain.html#virDomainLookupByUUID" shape="rect">
+                <code>virDomainLookupByUUID</code>
+              </a>
+            </li><li>
+              <a href="html/libvirt-libvirt-domain.html#virDomainLookupByUUIDString" shape="rect">
+                <code>virDomainLookupByUUIDString</code>
+              </a>
+            </li></ul>
       </li><li><b>Enumeration</b> [virConnectList..., virConnectNumOf...]
       <p>Used to enumerate a set of object available to an given
       hypervisor connection such as:</p>
-          <ul><li><a href="html/libvirt-libvirt.html#virConnectListDomains"><code>virConnectListDomains</code></a></li><li><a href="html/libvirt-libvirt.html#virConnectNumOfDomains"><code>virConnectNumOfDomains</code></a></li><li><a href="html/libvirt-libvirt.html#virConnectListNetworks"><code>virConnectListNetworks</code></a></li><li><a href="html/libvirt-libvirt.html#virConnectListStoragePools"><code>virConnectListStoragePools</code></a></li></ul>
+          <ul><li>
+              <a href="html/libvirt-libvirt-domain.html#virConnectListDomains" shape="rect">
+                <code>virConnectListDomains</code>
+              </a>
+            </li><li>
+              <a href="html/libvirt-libvirt-domain.html#virConnectNumOfDomains" shape="rect">
+                <code>virConnectNumOfDomains</code>
+              </a>
+            </li><li>
+              <a href="html/libvirt-libvirt-network.html#virConnectListNetworks" shape="rect">
+                <code>virConnectListNetworks</code>
+              </a>
+            </li><li>
+              <a href="html/libvirt-libvirt-storage.html#virConnectListStoragePools" shape="rect">
+                <code>virConnectListStoragePools</code>
+              </a>
+            </li></ul>
       </li><li><b>Description</b> [...GetInfo]
       <p>Generic accessor providing a set of generic information about an
       object, such as: </p>
-        <ul><li><a href="html/libvirt-libvirt.html#virNodeGetInfo"><code>virNodeGetInfo</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainGetInfo"><code>virDomainGetInfo</code></a></li><li><a href="html/libvirt-libvirt.html#virStoragePoolGetInfo"><code>virStoragePoolGetInfo</code></a></li><li><a href="html/libvirt-libvirt.html#virStorageVolGetInfo"><code>virStorageVolGetInfo</code></a></li></ul>
+        <ul><li>
+            <a href="html/libvirt-libvirt-host.html#virNodeGetInfo" shape="rect">
+              <code>virNodeGetInfo</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-domain.html#virDomainGetInfo" shape="rect">
+              <code>virDomainGetInfo</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-storage.html#virStoragePoolGetInfo" shape="rect">
+              <code>virStoragePoolGetInfo</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-storage.html#virStorageVolGetInfo" shape="rect">
+              <code>virStorageVolGetInfo</code>
+            </a>
+          </li></ul>
       </li><li><b>Accessors</b> [...Get..., ...Set...]
       <p>Specific accessors used to query or modify data for the given object,
       such as: </p>
-        <ul><li><a href="html/libvirt-libvirt.html#virConnectGetType"><code>virConnectGetType</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainGetMaxMemory"><code>virDomainGetMaxMemory</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainSetMemory"><code>virDomainSetMemory</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainGetVcpus"><code>virDomainGetVcpus</code></a></li><li><a href="html/libvirt-libvirt.html#virStoragePoolSetAutostart"><code>virStoragePoolSetAutostart</code></a></li><li><a href="html/libvirt-libvirt.html#virNetworkGetBridgeName"><code>virNetworkGetBridgeName</code></a></li></ul>
+        <ul><li>
+            <a href="html/libvirt-libvirt-host.html#virConnectGetType" shape="rect">
+              <code>virConnectGetType</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-domain.html#virDomainGetMaxMemory" shape="rect">
+              <code>virDomainGetMaxMemory</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-domain.html#virDomainSetMemory" shape="rect">
+              <code>virDomainSetMemory</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-domain.html#virDomainGetVcpus" shape="rect">
+              <code>virDomainGetVcpus</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-storage.html#virStoragePoolSetAutostart" shape="rect">
+              <code>virStoragePoolSetAutostart</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-network.html#virNetworkGetBridgeName" shape="rect">
+              <code>virNetworkGetBridgeName</code>
+            </a>
+          </li></ul>
       </li><li><b>Creation</b> [...Create, ...CreateXML]
       <p>Used to create and start objects.  The ...CreateXML APIs will create
       the object based on an XML description, while the ...Create APIs will
       create the object based on existing object pointer, such as: </p>
-        <ul><li><a href="html/libvirt-libvirt.html#virDomainCreate"><code>virDomainCreate</code></a></li><li><a href="html/libvirt-libvirt.html#virDomainCreateXML"><code>virDomainCreateXML</code></a></li><li><a href="html/libvirt-libvirt.html#virNetworkCreate"><code>virNetworkCreate</code></a></li><li><a href="html/libvirt-libvirt.html#virNetworkCreateXML"><code>virNetworkCreateXML</code></a></li></ul>
+        <ul><li>
+            <a href="html/libvirt-libvirt-domain.html#virDomainCreate" shape="rect">
+              <code>virDomainCreate</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-domain.html#virDomainCreateXML" shape="rect">
+              <code>virDomainCreateXML</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-network.html#virNetworkCreate" shape="rect">
+              <code>virNetworkCreate</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-network.html#virNetworkCreateXML" shape="rect">
+              <code>virNetworkCreateXML</code>
+            </a>
+          </li></ul>
       </li><li><b>Destruction</b> [...Destroy]
       <p>Used to shutdown or deactivate and destroy objects, such as: </p>
-        <ul><li><a href="html/libvirt-libvirt.html#virDomainDestroy"><code>virDomainDestroy</code></a></li><li><a href="html/libvirt-libvirt.html#virNetworkDestroy"><code>virNetworkDestroy</code></a></li><li><a href="html/libvirt-libvirt.html#virStoragePoolDestroy"><code>virStoragePoolDestroy</code></a></li></ul>
+        <ul><li>
+            <a href="html/libvirt-libvirt-domain.html#virDomainDestroy" shape="rect">
+              <code>virDomainDestroy</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-network.html#virNetworkDestroy" shape="rect">
+              <code>virNetworkDestroy</code>
+            </a>
+          </li><li>
+            <a href="html/libvirt-libvirt-storage.html#virStoragePoolDestroy" shape="rect">
+              <code>virStoragePoolDestroy</code>
+            </a>
+          </li></ul>
       </li></ul>
         <p>Note: functions returning vir*Ptr (like the virDomainLookup functions)
     allocate memory which needs to be freed by the caller by the corresponding
@@ -280,7 +411,11 @@
         <p>Drivers are the basic building block for libvirt functionality
     to support the capability to handle specific hypervisor driver calls.
     Drivers are discovered and registered during connection processing as
-    part of the <a href="html/libvirt-libvirt.html#virInitialize"><code>virInitialize</code></a> API. Each driver
+    part of the
+      <a href="html/libvirt-libvirt-host.html#virInitialize" shape="rect">
+        <code>virInitialize</code>
+      </a>
+    API. Each driver
     has a registration API which loads up the driver specific function
     references for the libvirt APIs to call. The following is a simplistic
     view of the hypervisor driver mechanism. Consider the stacked list of
@@ -311,7 +446,10 @@
     The libvirtd daemon service is started on the host at system boot
     time and can also be restarted at any time by a properly privileged
     user, such as root. The libvirtd daemon uses the same libvirt API
-    <a href="html/libvirt-libvirt.html#virInitialize"><code>virInitialize</code></a> sequence as applications
+    <a href="html/libvirt-libvirt-host.html#virInitialize" shape="rect">
+      <code>virInitialize</code>
+    </a>
+    sequence as applications
     for client-side driver registrations, but then extends the registered
     driver list to encompass all known drivers supported for all driver
     types supported on the host. </p>

@@ -40,11 +40,8 @@ hypervNetworkOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_HYPERV) {
+    if (conn->driver->no != VIR_DRV_HYPERV)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->networkPrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -52,10 +49,8 @@ hypervNetworkOpen(virConnectPtr conn,
 
 
 static int
-hypervNetworkClose(virConnectPtr conn)
+hypervNetworkClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->networkPrivateData = NULL;
-
     return 0;
 }
 

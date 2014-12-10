@@ -216,7 +216,15 @@ documents libvirt URIs.
           <a class="headerlink" href="#URI_libvirt" title="Permalink to this headline">¶</a>
         </h2>
         <p>
-The URI is passed as the <code>name</code> parameter to <a href="html/libvirt-libvirt.html#virConnectOpen" shape="rect"><code>virConnectOpen</code></a> or <a href="html/libvirt-libvirt.html#virConnectOpenReadOnly" shape="rect"><code>virConnectOpenReadOnly</code></a>.  For example:
+      The URI is passed as the <code>name</code> parameter to
+      <a href="html/libvirt-libvirt-host.html#virConnectOpen" shape="rect">
+        <code>virConnectOpen</code>
+      </a>
+      or
+      <a href="html/libvirt-libvirt-host.html#virConnectOpenReadOnly" shape="rect">
+        <code>virConnectOpenReadOnly</code>
+      </a>.
+      For example:
 </p>
         <pre xml:space="preserve">
 virConnectPtr conn = virConnectOpenReadOnly (<b>"test:///default"</b>);
@@ -446,7 +454,7 @@ recommended for production use.  Instead use <a href="remote.html" shape="rect">
 Notes:
 </p>
         <ol><li> The HTTP client does not fully support IPv6. </li><li> Many features do not work as expected across HTTP connections, in
- particular, <a href="html/libvirt-libvirt.html#virConnectGetCapabilities" shape="rect">virConnectGetCapabilities</a>.
+ particular, <a href="html/libvirt-libvirt-host.html#virConnectGetCapabilities" shape="rect">virConnectGetCapabilities</a>.
  The <a href="remote.html" shape="rect">remote support</a> however does work
  correctly. </li><li> XenD's new-style XMLRPC interface is not supported by
  libvirt, only the old-style sexpr interface known in the Xen

@@ -231,7 +231,7 @@ bhyveConnectClose(virConnectPtr conn)
 }
 
 static char *
-bhyveConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+bhyveConnectGetHostname(virConnectPtr conn)
 {
     if (virConnectGetHostnameEnsureACL(conn) < 0)
         return NULL;
@@ -265,7 +265,7 @@ bhyveConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 }
 
 static int
-bhyveConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *version)
+bhyveConnectGetVersion(virConnectPtr conn, unsigned long *version)
 {
     struct utsname ver;
 
@@ -689,7 +689,8 @@ bhyveConnectDomainXMLToNative(virConnectPtr conn,
     if (bhyveDomainAssignAddresses(def, NULL) < 0)
         goto cleanup;
 
-    if (!(loadcmd = virBhyveProcessBuildLoadCmd(conn, def)))
+    if (!(loadcmd = virBhyveProcessBuildLoadCmd(conn, def, "<device.map>",
+                                                NULL)))
         goto cleanup;
 
     if (!(cmd = virBhyveProcessBuildBhyveCmd(conn, def, true)))
@@ -1142,7 +1143,7 @@ bhyveStateCleanup(void)
 }
 
 static int
-bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
+bhyveStateInitialize(bool priveleged,
                      virStateInhibitCallback callback ATTRIBUTE_UNUSED,
                      void *opaque ATTRIBUTE_UNUSED)
 {
@@ -1153,9 +1154,8 @@ bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
         return 0;
     }
 
-    if (VIR_ALLOC(bhyve_driver) < 0) {
+    if (VIR_ALLOC(bhyve_driver) < 0)
         return -1;
-    }
 
     if (virMutexInit(&bhyve_driver->lock) < 0) {
         VIR_FREE(bhyve_driver);
@@ -1166,6 +1166,9 @@ bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
         goto cleanup;
 
     if (!(bhyve_driver->caps = virBhyveCapsBuild()))
+        goto cleanup;
+
+    if (virBhyveProbeGrubCaps(&bhyve_driver->grubcaps) < 0)
         goto cleanup;
 
     if (!(bhyve_driver->xmlopt = virDomainXMLOptionNew(&virBhyveDriverDomainDefParserConfig,
@@ -1225,6 +1228,16 @@ bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
     return -1;
 }
 
+unsigned
+bhyveDriverGetGrubCaps(virConnectPtr conn)
+{
+    bhyveConnPtr driver = conn->privateData;
+
+    if (driver != NULL)
+        return driver->grubcaps;
+    return 0;
+}
+
 static void
 bhyveStateAutoStart(void)
 {
@@ -1235,7 +1248,7 @@ bhyveStateAutoStart(void)
 }
 
 static int
-bhyveConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED,
+bhyveConnectGetMaxVcpus(virConnectPtr conn,
                         const char *type)
 {
     if (virConnectGetMaxVcpusEnsureACL(conn) < 0)
@@ -1303,7 +1316,7 @@ bhyveNodeSetMemoryParameters(virConnectPtr conn,
 }
 
 static char *
-bhyveConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
+bhyveConnectBaselineCPU(virConnectPtr conn,
                         const char **xmlCPUs,
                         unsigned int ncpus,
                         unsigned int flags)

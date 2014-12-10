@@ -640,14 +640,58 @@ virBitmapNextSetBit(virBitmapPtr bitmap, ssize_t pos)
 
     bits = bitmap->map[nl] & ~((1UL << nb) - 1);
 
-    while (bits == 0 && ++nl < bitmap->map_len) {
+    while (bits == 0 && ++nl < bitmap->map_len)
         bits = bitmap->map[nl];
-    }
 
     if (bits == 0)
         return -1;
 
     return ffsl(bits) - 1 + nl * VIR_BITMAP_BITS_PER_UNIT;
+}
+
+/**
+ * virBitmapLastSetBit:
+ * @bitmap: the bitmap
+ *
+ * Search for the last set bit in bitmap @bitmap.
+ *
+ * Returns the position of the found bit, or -1 if no bit is set.
+ */
+ssize_t
+virBitmapLastSetBit(virBitmapPtr bitmap)
+{
+    ssize_t i;
+    int unusedBits;
+    ssize_t sz;
+    unsigned long bits;
+
+    unusedBits = bitmap->map_len * VIR_BITMAP_BITS_PER_UNIT - bitmap->max_bit;
+
+    sz = bitmap->map_len - 1;
+    if (unusedBits > 0) {
+        bits = bitmap->map[sz] & (VIR_BITMAP_BIT(VIR_BITMAP_BITS_PER_UNIT - unusedBits) - 1);
+        if (bits != 0)
+            goto found;
+
+        sz--;
+    }
+
+    for (; sz >= 0; sz--) {
+        bits = bitmap->map[sz];
+        if (bits != 0)
+            goto found;
+    }
+
+    if (bits == 0)
+        return -1;
+
+ found:
+    for (i = VIR_BITMAP_BITS_PER_UNIT - 1; i >= 0; i--) {
+        if (bits & 1UL << i)
+            return i + sz * VIR_BITMAP_BITS_PER_UNIT;
+    }
+
+    return -1;
 }
 
 /**
@@ -681,9 +725,8 @@ virBitmapNextClearBit(virBitmapPtr bitmap, ssize_t pos)
 
     bits = ~bitmap->map[nl] & ~((1UL << nb) - 1);
 
-    while (bits == 0 && ++nl < bitmap->map_len) {
+    while (bits == 0 && ++nl < bitmap->map_len)
         bits = ~bitmap->map[nl];
-    }
 
     if (nl == bitmap->map_len - 1) {
         /* Ensure tail bits are ignored.  */

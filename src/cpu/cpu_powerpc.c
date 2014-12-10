@@ -38,7 +38,7 @@
 
 VIR_LOG_INIT("cpu.cpu_powerpc");
 
-static const virArch archs[] = { VIR_ARCH_PPC64 };
+static const virArch archs[] = { VIR_ARCH_PPC64, VIR_ARCH_PPC64LE };
 
 struct ppc_vendor {
     char *name;
@@ -98,6 +98,14 @@ ppcModelFindPVR(const struct ppc_map *map,
 
         model = model->next;
     }
+
+    /* PowerPC Processor Version Register is interpreted as follows :
+     * Higher order 16 bits : Power ISA generation.
+     * Lower order 16 bits : CPU chip version number.
+     * If the exact CPU isnt found, return the nearest matching CPU generation
+     */
+    if (pvr & 0x0000FFFFul)
+        return ppcModelFindPVR(map, (pvr & 0xFFFF0000ul));
 
     return NULL;
 }
@@ -562,8 +570,8 @@ ppcUpdate(virCPUDefPtr guest,
 static virCPUDefPtr
 ppcBaseline(virCPUDefPtr *cpus,
             unsigned int ncpus,
-            const char **models,
-            unsigned int nmodels,
+            const char **models ATTRIBUTE_UNUSED,
+            unsigned int nmodels ATTRIBUTE_UNUSED,
             unsigned int flags)
 {
     struct ppc_map *map = NULL;
@@ -580,13 +588,6 @@ ppcBaseline(virCPUDefPtr *cpus,
     if (!(model = ppcModelFind(map, cpus[0]->model))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unknown CPU model %s"), cpus[0]->model);
-        goto error;
-    }
-
-    if (!cpuModelIsAllowed(model->name, models, nmodels)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                        _("CPU model %s is not supported by hypervisor"),
-                        model->name);
         goto error;
     }
 
@@ -649,6 +650,49 @@ ppcBaseline(virCPUDefPtr *cpus,
     goto cleanup;
 }
 
+static int
+ppcGetModels(char ***models)
+{
+    struct ppc_map *map;
+    struct ppc_model *model;
+    char *name;
+    size_t nmodels = 0;
+
+    if (!(map = ppcLoadMap()))
+        goto error;
+
+    if (models && VIR_ALLOC_N(*models, 0) < 0)
+        goto error;
+
+    model = map->models;
+    while (model != NULL) {
+        if (models) {
+            if (VIR_STRDUP(name, model->name) < 0)
+                goto error;
+
+            if (VIR_APPEND_ELEMENT(*models, nmodels, name) < 0)
+                goto error;
+        } else {
+            nmodels++;
+        }
+
+        model = model->next;
+    }
+
+ cleanup:
+    ppcMapFree(map);
+
+    return nmodels;
+
+ error:
+    if (models) {
+        virStringFreeList(*models);
+        *models = NULL;
+    }
+    nmodels = -1;
+    goto cleanup;
+}
+
 struct cpuArchDriver cpuDriverPowerPC = {
     .name = "ppc64",
     .arch = archs,
@@ -662,4 +706,5 @@ struct cpuArchDriver cpuDriverPowerPC = {
     .baseline   = ppcBaseline,
     .update     = ppcUpdate,
     .hasFeature = NULL,
+    .getModels  = ppcGetModels,
 };

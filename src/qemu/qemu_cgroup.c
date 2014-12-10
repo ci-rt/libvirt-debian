@@ -611,6 +611,7 @@ static int
 qemuSetupCpusetMems(virDomainObjPtr vm,
                     virBitmapPtr nodemask)
 {
+    virCgroupPtr cgroup_temp = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *mem_mask = NULL;
     int ret = -1;
@@ -618,18 +619,25 @@ qemuSetupCpusetMems(virDomainObjPtr vm,
     if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
         return 0;
 
+    if (virDomainNumatuneGetMode(vm->def->numatune, -1) !=
+        VIR_DOMAIN_NUMATUNE_MEM_STRICT)
+        return 0;
+
     if (virDomainNumatuneMaybeFormatNodeset(vm->def->numatune,
                                             nodemask,
                                             &mem_mask, -1) < 0)
         goto cleanup;
 
-    if (mem_mask &&
-        virCgroupSetCpusetMems(priv->cgroup, mem_mask) < 0)
-        goto cleanup;
+    if (mem_mask)
+        if (virCgroupNewEmulator(priv->cgroup, false, &cgroup_temp) < 0 ||
+            virCgroupSetCpusetMems(cgroup_temp, mem_mask) < 0 ||
+            virCgroupSetCpusetMems(priv->cgroup, mem_mask) < 0)
+            goto cleanup;
 
     ret = 0;
  cleanup:
     VIR_FREE(mem_mask);
+    virCgroupFree(&cgroup_temp);
     return ret;
 }
 
@@ -912,9 +920,8 @@ qemuSetupCgroupVcpuPin(virCgroupPtr cgroup,
     size_t i;
 
     for (i = 0; i < nvcpupin; i++) {
-        if (vcpuid == vcpupin[i]->vcpuid) {
+        if (vcpuid == vcpupin[i]->vcpuid)
             return qemuSetupCgroupEmulatorPin(cgroup, vcpupin[i]->cpumask);
-        }
     }
 
     return -1;
@@ -929,9 +936,8 @@ qemuSetupCgroupIOThreadsPin(virCgroupPtr cgroup,
     size_t i;
 
     for (i = 0; i < niothreadspin; i++) {
-        if (iothreadid == iothreadspin[i]->vcpuid) {
+        if (iothreadid == iothreadspin[i]->vcpuid)
             return qemuSetupCgroupEmulatorPin(cgroup, iothreadspin[i]->cpumask);
-        }
     }
 
     return -1;

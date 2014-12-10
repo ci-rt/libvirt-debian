@@ -1915,7 +1915,7 @@ xenFormatSxprNet(virConnectPtr conn,
         }
 
         bridge = virNetworkGetBridgeName(network);
-        virNetworkFree(network);
+        virObjectUnref(network);
         if (!bridge) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("network %s is not active"),
@@ -1959,16 +1959,14 @@ xenFormatSxprNet(virConnectPtr conn,
         if (def->model != NULL && STREQ(def->model, "netfront")) {
             virBufferAddLit(buf, "(type netfront)");
         } else {
-            if (def->model != NULL) {
+            if (def->model != NULL)
                 virBufferEscapeSexpr(buf, "(model '%s')", def->model);
-            }
             /*
              * apparently (type ioemu) breaks paravirt drivers on HVM so skip
              * this from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
              */
-            if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU) {
+            if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
                 virBufferAddLit(buf, "(type ioemu)");
-            }
         }
     }
 

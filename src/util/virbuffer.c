@@ -368,9 +368,8 @@ virBufferVasprintf(virBufferPtr buf, const char *format, va_list argptr)
         buf->content[buf->use] = 0;
 
         grow_size = (count + 1 > 1000) ? count + 1 : 1000;
-        if (virBufferGrow(buf, grow_size) < 0) {
+        if (virBufferGrow(buf, grow_size) < 0)
             return;
-        }
 
         size = buf->size - buf->use;
         if ((count = vsnprintf(&buf->content[buf->use],
@@ -506,8 +505,9 @@ virBufferEscapeSexpr(virBufferPtr buf,
  * @str: the string argument which needs to be escaped
  *
  * Do a formatted print with a single string to a buffer.  Any characters
- * in the provided list are escaped with the given escape.  Auto indentation
- * may be applied.
+ * in the provided list that are contained in @str are escaped with the
+ * given escape.  Escaping is not applied to characters specified in @format.
+ * Auto indentation may be applied.
  */
 void
 virBufferEscape(virBufferPtr buf, char escape, const char *toescape,

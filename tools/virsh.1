@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2014-10-29" "libvirt-1.2.10" "Virtualization Support"
+.TH VIRSH 1 "2014-12-09" "libvirt-1.2.11" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -889,7 +889,7 @@ statistics groups flags are: \fI\-\-state\fR, \fI\-\-cpu\-total\fR, \fI\-\-ballo
 .Sp
 When selecting the \fI\-\-state\fR group the following fields are returned:
 \&\*(L"state.state\*(R" \- state of the \s-1VM,\s0 returned as number from virDomainState enum,
-\&\*(L"state.reason\*(R" \- reason for entering given state, returned as int from,
+\&\*(L"state.reason\*(R" \- reason for entering given state, returned as int from
 virDomain*Reason enum corresponding to given state.
 .Sp
 \&\fI\-\-cpu\-total\fR returns:
@@ -918,11 +918,13 @@ from virVcpuState enum,
 \&\*(L"net.<num>.tx.bytes\*(R" \- number of bytes transmitted,
 \&\*(L"net.<num>.tx.pkts\*(R" \- number of packets transmitted,
 \&\*(L"net.<num>.tx.errs\*(R" \- number of transmission errors,
-\&\*(L"net.<num>.tx.drop\*(R" \- number of transmit packets dropped,
+\&\*(L"net.<num>.tx.drop\*(R" \- number of transmit packets dropped
 .Sp
-\&\fIblock\fR returns:
+\&\fI\-\-block\fR returns:
 \&\*(L"block.count\*(R" \- number of block devices on this domain,
 \&\*(L"block.<num>.name\*(R" \- name of the target of the block device <num>,
+\&\*(L"block.<num>.path\*(R" \- file source of block device <num>, if it is a
+local file or block device,
 \&\*(L"block.<num>.rd.reqs\*(R" \- number of read requests,
 \&\*(L"block.<num>.rd.bytes\*(R" \- number of read bytes,
 \&\*(L"block.<num>.rd.times\*(R" \- total time (ns) spent on reads,
@@ -932,6 +934,9 @@ from virVcpuState enum,
 \&\*(L"block.<num>.fl.reqs\*(R" \- total flush requests,
 \&\*(L"block.<num>.fl.times\*(R" \- total time (ns) spent on cache flushing,
 \&\*(L"block.<num>.errors\*(R" \- Xen only: the 'oo_req' value,
+\&\*(L"block.<num>.allocation\*(R" \- offset of highest written sector in bytes,
+\&\*(L"block.<num>.capacity\*(R" \- logical size of source file in bytes,
+\&\*(L"block.<num>.physical\*(R" \- physical size of source file in bytes
 .Sp
 Selecting a specific statistics groups doesn't guarantee that the
 daemon supports the selected group of stats. Flag \fI\-\-enforce\fR
@@ -1075,8 +1080,8 @@ also \fBdomblklist\fR for listing these names).
 value is interpreted as an unsigned long long value or essentially
 unlimited. The hypervisor can choose whether to reject the value or
 convert it to the maximum value allowed.
-.IP "\fBblkdeviotune\fR \fIdomain\fR \fIdevice\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [[\fItotal-bytes-sec\fR] | [\fIread-bytes-sec\fR] [\fIwrite-bytes-sec\fR]] [[\fItotal-iops-sec\fR] | [\fIread-iops-sec\fR] [\fIwrite-iops-sec\fR]]" 4
-.IX Item "blkdeviotune domain device [[--config] [--live] | [--current]] [[total-bytes-sec] | [read-bytes-sec] [write-bytes-sec]] [[total-iops-sec] | [read-iops-sec] [write-iops-sec]]"
+.IP "\fBblkdeviotune\fR \fIdomain\fR \fIdevice\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [[\fItotal-bytes-sec\fR] | [\fIread-bytes-sec\fR] [\fIwrite-bytes-sec\fR]] [[\fItotal-iops-sec\fR] | [\fIread-iops-sec\fR] [\fIwrite-iops-sec\fR]] [[\fItotal-bytes-sec-max\fR] | [\fIread-bytes-sec-max\fR] [\fIwrite-bytes-sec-max\fR]] [[\fItotal-iops-sec-max\fR] | [\fIread-iops-sec-max\fR] [\fIwrite-iops-sec-max\fR]] [\fIsize-iops-sec\fR]" 4
+.IX Item "blkdeviotune domain device [[--config] [--live] | [--current]] [[total-bytes-sec] | [read-bytes-sec] [write-bytes-sec]] [[total-iops-sec] | [read-iops-sec] [write-iops-sec]] [[total-bytes-sec-max] | [read-bytes-sec-max] [write-bytes-sec-max]] [[total-iops-sec-max] | [read-iops-sec-max] [write-iops-sec-max]] [size-iops-sec]"
 Set or query the block disk io parameters for a block device of \fIdomain\fR.
 \&\fIdevice\fR specifies a unique target name (<target dev='name'/>) or source
 file (<source file='name'/>) for one of the disk devices attached to
@@ -1090,6 +1095,13 @@ Otherwise, alter the limits with these flags:
 \&\fI\-\-total\-iops\-sec\fR specifies total I/O operations limit per second.
 \&\fI\-\-read\-iops\-sec\fR specifies read I/O operations limit per second.
 \&\fI\-\-write\-iops\-sec\fR specifies write I/O operations limit per second.
+\&\fI\-\-total\-bytes\-sec\-max\fR specifies maximum total throughput limit in bytes per second.
+\&\fI\-\-read\-bytes\-sec\-max\fR specifies maximum read throughput limit in bytes per second.
+\&\fI\-\-write\-bytes\-sec\-max\fR specifies maximum write throughput limit in bytes per second.
+\&\fI\-\-total\-iops\-sec\-max\fR specifies maximum total I/O operations limit per second.
+\&\fI\-\-read\-iops\-sec\-max\fR specifies maximum read I/O operations limit per second.
+\&\fI\-\-write\-iops\-sec\-max\fR specifies maximum write I/O operations limit per second.
+\&\fI\-\-size\-iops\-sec\fR specifies size I/O operations limit per second.
 .Sp
 Older versions of virsh only accepted these options with underscore
 instead of dash, as in \fI\-\-total_bytes_sec\fR.
@@ -1148,11 +1160,21 @@ also \fBdomblklist\fR for listing these names).
 (blocks of 1024 bytes) if there is no suffix.  You must use a suffix of
 \&\*(L"B\*(R" to get bytes (note that for historical reasons, this differs from
 \&\fBvol-resize\fR which defaults to bytes without a suffix).
-.IP "\fBdomdisplay\fR \fIdomain\fR [\fI\-\-include\-password\fR]" 4
-.IX Item "domdisplay domain [--include-password]"
+.IP "\fBdomdisplay\fR \fIdomain\fR [\fI\-\-include\-password\fR] [[\fI\-\-type\fR] \fBtype\fR]" 4
+.IX Item "domdisplay domain [--include-password] [[--type] type]"
 Output a \s-1URI\s0 which can be used to connect to the graphical display of the
-domain via \s-1VNC, SPICE\s0 or \s-1RDP.\s0 If \fI\-\-include\-password\fR is specified, the
-\&\s-1SPICE\s0 channel password will be included in the \s-1URI.\s0
+domain via \s-1VNC, SPICE\s0 or \s-1RDP. \s0 The particular graphical display type can
+be selected using the \fBtype\fR parameter (e.g. \*(L"vnc\*(R", \*(L"spice\*(R", \*(L"rdp\*(R").  If
+\&\fI\-\-include\-password\fR is specified, the \s-1SPICE\s0 channel password will be
+included in the \s-1URI.\s0
+.IP "\fBdomfsinfo\fR \fIdomain\fR" 4
+.IX Item "domfsinfo domain"
+Show a list of mounted filesystems within the running domain. The list contains
+mountpoints, names of a mounted device in the guest, filesystem types, and
+unique target names used in the domain \s-1XML \s0(<target dev='name'/>).
+.Sp
+Note that this command requires a guest agent configured and running in the
+domain's guest \s-1OS.\s0
 .IP "\fBdomfsfreeze\fR \fIdomain\fR [[\fI\-\-mountpoint\fR] \fBmountpoint\fR...]" 4
 .IX Item "domfsfreeze domain [[--mountpoint] mountpoint...]"
 Freeze mounted filesystems within a running domain to prepare for consistent
@@ -2763,21 +2785,55 @@ data on the target device is overwritten unconditionally.
 .IP "\fBpool-create\fR \fIfile\fR" 4
 .IX Item "pool-create file"
 Create and start a pool object from the \s-1XML \s0\fIfile\fR.
-.IP "\fBpool-create-as\fR \fIname\fR \fI\-\-print\-xml\fR \fItype\fR [\fIsource-host\fR] [\fIsource-path\fR] [\fIsource-dev\fR] [\fIsource-name\fR] [<target>] [\fI\-\-source\-format format\fR]" 4
-.IX Item "pool-create-as name --print-xml type [source-host] [source-path] [source-dev] [source-name] [<target>] [--source-format format]"
+.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-print\-xml\fR] [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]]" 4
+.IX Item "pool-create-as name type [--print-xml] [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username --secret-usage usage] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]]"
 Create and start a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without creating the pool.  Otherwise, the pool has the specified
 \&\fItype\fR.
+.Sp
+[\fI\-\-source\-host hostname\fR] provides the source hostname for pools backed
+by storage from a remote server (pool types netfs, iscsi, rbd, sheepdog,
+gluster).
+.Sp
+[\fI\-\-source\-path path\fR] provides the source directory path for pools backed
+by directories (pool type dir).
+.Sp
+[\fI\-\-source\-dev path\fR] provides the source path for pools backed by physical
+devices (pool types fs, logical, disk, iscsi, zfs).
+.Sp
+[\fI\-\-source\-name name\fR] provides the source name for pools backed by storage
+from a named element (pool types logical, rbd, sheepdog, gluster).
+.Sp
+[\fI\-\-target path\fR] is the path for the mapping of the storage pool into
+the host file system.
+.Sp
+[\fI\-\-source\-format format\fR] provides information about the format of the
+pool (pool types fs, netfs, disk, logical).
+.Sp
+[\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR]
+provides the elements required to generate authentication credentials for
+the storage pool. The \fIauthtype\fR is either chap for iscsi \fItype\fR pools or
+ceph for rbd \fItype\fR pools.
+.Sp
+[\fI\-\-adapter\-name name\fR] defines the scsi_hostN adapter name to be used for
+the scsi_host adapter type pool.
+.Sp
+[\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR [\fI\-\-adapter\-parent parent\fR]] defines
+the wwnn and wwpn to be used for the fc_host adapter type pool. The parent
+optionally provides the name of the scsi_hostN node device to be used for
+the vHBA.
 .IP "\fBpool-define\fR \fIfile\fR" 4
 .IX Item "pool-define file"
 Create, but do not start, a pool object from the \s-1XML \s0\fIfile\fR.
-.IP "\fBpool-define-as\fR \fIname\fR \fI\-\-print\-xml\fR \fItype\fR [\fIsource-host\fR] [\fIsource-path\fR] [\fIsource-dev\fR] [\fIsource-name\fR] [<target>] [\fI\-\-source\-format format\fR]" 4
-.IX Item "pool-define-as name --print-xml type [source-host] [source-path] [source-dev] [source-name] [<target>] [--source-format format]"
+.IP "\fBpool-define-as\fR \fIname\fR \fItype\fR [\fI\-\-print\-xml\fR] [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]]" 4
+.IX Item "pool-define-as name type [--print-xml] [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username --secret-usage usage] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]]"
 Create, but do not start, a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without defining the pool.  Otherwise, the pool has the specified
 \&\fItype\fR.
+.Sp
+Use the same arguments as \fBpool-define-as\fR.
 .IP "\fBpool-destroy\fR \fIpool-or-uuid\fR" 4
 .IX Item "pool-destroy pool-or-uuid"
 Destroy (stop) a given \fIpool\fR object. Libvirt will no longer manage the

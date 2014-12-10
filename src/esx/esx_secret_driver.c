@@ -41,11 +41,8 @@ esxSecretOpen(virConnectPtr conn, virConnectAuthPtr auth ATTRIBUTE_UNUSED,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_ESX) {
+    if (conn->driver->no != VIR_DRV_ESX)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->secretPrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -53,10 +50,8 @@ esxSecretOpen(virConnectPtr conn, virConnectAuthPtr auth ATTRIBUTE_UNUSED,
 
 
 static int
-esxSecretClose(virConnectPtr conn)
+esxSecretClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->secretPrivateData = NULL;
-
     return 0;
 }
 

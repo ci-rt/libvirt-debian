@@ -142,7 +142,8 @@ int qemuMonitorJSONGetMigrationCapabilities(qemuMonitorPtr mon,
 int qemuMonitorJSONGetMigrationCapability(qemuMonitorPtr mon,
                                           qemuMonitorMigrationCaps capability);
 int qemuMonitorJSONSetMigrationCapability(qemuMonitorPtr mon,
-                                          qemuMonitorMigrationCaps capability);
+                                          qemuMonitorMigrationCaps capability,
+                                          bool state);
 
 int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
                            unsigned int flags,
@@ -213,8 +214,8 @@ int qemuMonitorJSONRemoveNetdev(qemuMonitorPtr mon,
 int qemuMonitorJSONQueryRxFilter(qemuMonitorPtr mon, const char *alias,
                                  virNetDevRxFilterPtr *filter);
 
-int qemuMonitorJSONGetPtyPaths(qemuMonitorPtr mon,
-                               virHashTablePtr paths);
+int qemuMonitorJSONGetChardevInfo(qemuMonitorPtr mon,
+                                  virHashTablePtr info);
 
 int qemuMonitorJSONAttachPCIDiskController(qemuMonitorPtr mon,
                                            const char *bus,
@@ -325,11 +326,13 @@ int qemuMonitorJSONOpenGraphics(qemuMonitorPtr mon,
 
 int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
                                       const char *device,
-                                      virDomainBlockIoTuneInfoPtr info);
+                                      virDomainBlockIoTuneInfoPtr info,
+                                      bool supportMaxOptions);
 
 int qemuMonitorJSONGetBlockIoThrottle(qemuMonitorPtr mon,
                                       const char *device,
-                                      virDomainBlockIoTuneInfoPtr reply);
+                                      virDomainBlockIoTuneInfoPtr reply,
+                                      bool supportMaxOptions);
 
 int qemuMonitorJSONSystemWakeup(qemuMonitorPtr mon);
 

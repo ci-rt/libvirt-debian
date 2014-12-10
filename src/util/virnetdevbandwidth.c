@@ -21,12 +21,14 @@
  */
 
 #include <config.h>
+#include <unistd.h>
 
 #include "virnetdevbandwidth.h"
 #include "vircommand.h"
 #include "viralloc.h"
 #include "virerror.h"
 #include "virstring.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -72,6 +74,13 @@ virNetDevBandwidthSet(const char *ifname,
         /* nothing to be enabled */
         ret = 0;
         goto cleanup;
+    }
+
+    if (geteuid() != 0) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("Network bandwidth tuning is not available"
+                         " in session mode"));
+        return -1;
     }
 
     virNetDevBandwidthClear(ifname);

@@ -107,6 +107,7 @@ void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def)
 
 static int
 virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
+                                 xmlXPathContextPtr ctxt,
                                  virDomainSnapshotDiskDefPtr def)
 {
     int ret = -1;
@@ -154,7 +155,7 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
         if (!def->src->path &&
             xmlStrEqual(cur->name, BAD_CAST "source")) {
 
-            if (virDomainDiskSourceParse(cur, def->src) < 0)
+            if (virDomainDiskSourceParse(cur, ctxt, def->src) < 0)
                 goto cleanup;
 
         } else if (!def->src->format &&
@@ -352,7 +353,8 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
             goto cleanup;
         def->ndisks = n;
         for (i = 0; i < def->ndisks; i++) {
-            if (virDomainSnapshotDiskDefParseXML(nodes[i], &def->disks[i]) < 0)
+            if (virDomainSnapshotDiskDefParseXML(nodes[i], ctxt,
+                                                 &def->disks[i]) < 0)
                 goto cleanup;
         }
         VIR_FREE(nodes);
@@ -1182,7 +1184,7 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
     virDomainSnapshotDefPtr def = *defptr;
     int ret = -1;
     int align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
-    int align_match = true;
+    bool align_match = true;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainSnapshotObjPtr other;
 

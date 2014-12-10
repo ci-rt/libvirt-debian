@@ -396,9 +396,8 @@ int lxcContainerSendContinue(int control)
 
     VIR_DEBUG("Send continue on fd %d", control);
     writeCount = safewrite(control, &msg, sizeof(msg));
-    if (writeCount != sizeof(msg)) {
+    if (writeCount != sizeof(msg))
         goto error_out;
-    }
 
     rc = 0;
  error_out:
@@ -609,6 +608,48 @@ static int lxcContainerUnmountSubtree(const char *prefix,
     return ret;
 }
 
+static int lxcContainerResolveSymlinks(virDomainFSDefPtr fs, bool gentle)
+{
+    char *newroot;
+
+    if (!fs->src || fs->symlinksResolved)
+        return 0;
+
+    if (access(fs->src, F_OK)) {
+        if (gentle) {
+            /* Just ignore the error for the while, we'll try again later */
+            VIR_DEBUG("Skipped unaccessible '%s'", fs->src);
+            return 0;
+        } else {
+            virReportSystemError(errno,
+                                 _("Failed to access '%s'"), fs->src);
+            return -1;
+        }
+    }
+
+    VIR_DEBUG("Resolving '%s'", fs->src);
+    if (virFileResolveAllLinks(fs->src, &newroot) < 0) {
+        if (gentle) {
+            VIR_DEBUG("Skipped non-resolvable '%s'", fs->src);
+            return 0;
+        } else {
+            virReportSystemError(errno,
+                                 _("Failed to resolve symlink at %s"),
+                                 fs->src);
+        }
+        return -1;
+    }
+
+    /* Mark it resolved to skip it the next time */
+    fs->symlinksResolved = true;
+
+    VIR_DEBUG("Resolved '%s' to %s", fs->src, newroot);
+
+    VIR_FREE(fs->src);
+    fs->src = newroot;
+
+    return 0;
+}
 
 static int lxcContainerPrepareRoot(virDomainDefPtr def,
                                    virDomainFSDefPtr root,
@@ -634,6 +675,9 @@ static int lxcContainerPrepareRoot(virDomainDefPtr def,
                        virDomainFSTypeToString(root->type));
         return -1;
     }
+
+    if (lxcContainerResolveSymlinks(root, false) < 0)
+        return -1;
 
     if (virAsprintf(&dst, "%s/%s.root",
                     LXC_STATE_DIR, def->name) < 0)
@@ -858,14 +902,12 @@ static int lxcContainerMountBasicFS(bool userns_enabled,
          */
         if (userns_enabled && netns_disabled &&
             STREQ(mnt->src, "sysfs")) {
-            if (VIR_STRDUP(mnt_src, "/sys") < 0) {
+            if (VIR_STRDUP(mnt_src, "/sys") < 0)
                 goto cleanup;
-            }
             mnt_mflags = MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY|MS_BIND;
         } else {
-            if (VIR_STRDUP(mnt_src, mnt->src) < 0) {
+            if (VIR_STRDUP(mnt_src, mnt->src) < 0)
                 goto cleanup;
-            }
             mnt_mflags = mnt->mflags;
         }
 
@@ -1555,8 +1597,15 @@ static int lxcContainerMountAllFS(virDomainDefPtr vmDef,
         if (STREQ(vmDef->fss[i]->dst, "/"))
             continue;
 
-        if (lxcContainerUnmountSubtree(vmDef->fss[i]->dst,
-                                       false) < 0)
+        VIR_DEBUG("Mounting '%s' -> '%s'", vmDef->fss[i]->src, vmDef->fss[i]->dst);
+
+        if (lxcContainerResolveSymlinks(vmDef->fss[i], false) < 0)
+            return -1;
+
+
+        if (!(vmDef->fss[i]->src &&
+              STRPREFIX(vmDef->fss[i]->src, vmDef->fss[i]->dst)) &&
+            lxcContainerUnmountSubtree(vmDef->fss[i]->dst, false) < 0)
             return -1;
 
         if (lxcContainerMountFS(vmDef->fss[i], sec_mount_options) < 0)
@@ -1738,37 +1787,18 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
     return ret;
 }
 
-
-static int lxcContainerResolveSymlinks(virDomainDefPtr vmDef)
+static int lxcContainerResolveAllSymlinks(virDomainDefPtr vmDef)
 {
-    char *newroot;
     size_t i;
 
     VIR_DEBUG("Resolving symlinks");
 
     for (i = 0; i < vmDef->nfss; i++) {
         virDomainFSDefPtr fs = vmDef->fss[i];
-        if (!fs->src)
-            continue;
-
-        if (access(fs->src, F_OK)) {
-            virReportSystemError(errno,
-                                 _("Failed to access '%s'"), fs->src);
+        /* In the first pass, be gentle as some files may
+           depend on other filesystems to be mounted */
+        if (lxcContainerResolveSymlinks(fs, true) < 0)
             return -1;
-        }
-
-        VIR_DEBUG("Resolving '%s'", fs->src);
-        if (virFileResolveAllLinks(fs->src, &newroot) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to resolve symlink at %s"),
-                                 fs->src);
-            return -1;
-        }
-
-        VIR_DEBUG("Resolved '%s' to %s", fs->src, newroot);
-
-        VIR_FREE(fs->src);
-        fs->src = newroot;
     }
     VIR_DEBUG("Resolved all filesystem symlinks");
 
@@ -2093,8 +2123,10 @@ static int lxcContainerChild(void *data)
         if (virAsprintf(&ttyPath, "%s/%s.devpts/%s",
                         LXC_STATE_DIR, vmDef->name, tty) < 0)
             goto cleanup;
-    } else if (VIR_STRDUP(ttyPath, "/dev/null") < 0) {
-            goto cleanup;
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("At least one tty is required"));
+        goto cleanup;
     }
 
     VIR_DEBUG("Container TTY path: %s", ttyPath);
@@ -2107,7 +2139,7 @@ static int lxcContainerChild(void *data)
         goto cleanup;
     }
 
-    if (lxcContainerResolveSymlinks(vmDef) < 0)
+    if (lxcContainerResolveAllSymlinks(vmDef) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting up pivot");
@@ -2277,8 +2309,8 @@ int lxcContainerStart(virDomainDefPtr def,
             VIR_DEBUG("Enable user namespace");
             cflags |= CLONE_NEWUSER;
         } else {
-            virReportSystemError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                 _("Kernel doesn't support user namespace"));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Kernel doesn't support user namespace"));
             VIR_FREE(stack);
             return -1;
         }

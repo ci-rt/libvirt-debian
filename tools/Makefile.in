@@ -106,6 +106,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/chown.m4 $(top_srcdir)/m4/clock_time.m4 \
 	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/configmake.m4 \
+	$(top_srcdir)/m4/count-leading-zeros.m4 \
 	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/dirname.m4 \
 	$(top_srcdir)/m4/double-slash-root.m4 $(top_srcdir)/m4/dup.m4 \
 	$(top_srcdir)/m4/dup2.m4 $(top_srcdir)/m4/eealloc.m4 \
@@ -1644,6 +1645,7 @@ REPLACE_RAISE = @REPLACE_RAISE@
 REPLACE_RANDOM_R = @REPLACE_RANDOM_R@
 REPLACE_READ = @REPLACE_READ@
 REPLACE_READLINK = @REPLACE_READLINK@
+REPLACE_READLINKAT = @REPLACE_READLINKAT@
 REPLACE_REALLOC = @REPLACE_REALLOC@
 REPLACE_REALPATH = @REPLACE_REALPATH@
 REPLACE_REMAINDER = @REPLACE_REMAINDER@
@@ -1686,6 +1688,7 @@ REPLACE_STRTOUMAX = @REPLACE_STRTOUMAX@
 REPLACE_STRUCT_LCONV = @REPLACE_STRUCT_LCONV@
 REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
+REPLACE_SYMLINKAT = @REPLACE_SYMLINKAT@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@

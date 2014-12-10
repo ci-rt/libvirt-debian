@@ -381,6 +381,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/chown.m4 $(top_srcdir)/m4/clock_time.m4 \
 	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/configmake.m4 \
+	$(top_srcdir)/m4/count-leading-zeros.m4 \
 	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/dirname.m4 \
 	$(top_srcdir)/m4/double-slash-root.m4 $(top_srcdir)/m4/dup.m4 \
 	$(top_srcdir)/m4/dup2.m4 $(top_srcdir)/m4/eealloc.m4 \
@@ -856,6 +857,7 @@ am__libvirt_driver_bhyve_impl_la_SOURCES_DIST =  \
 	bhyve/bhyve_command.c bhyve/bhyve_command.h \
 	bhyve/bhyve_device.c bhyve/bhyve_device.h bhyve/bhyve_domain.c \
 	bhyve/bhyve_domain.h bhyve/bhyve_driver.h bhyve/bhyve_driver.c \
+	bhyve/bhyve_monitor.c bhyve/bhyve_monitor.h \
 	bhyve/bhyve_process.c bhyve/bhyve_process.h \
 	bhyve/bhyve_utils.h
 am__objects_29 =  \
@@ -864,6 +866,7 @@ am__objects_29 =  \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_device.lo \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_domain.lo \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_driver.lo \
+	bhyve/libvirt_driver_bhyve_impl_la-bhyve_monitor.lo \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_process.lo
 @WITH_BHYVE_TRUE@am_libvirt_driver_bhyve_impl_la_OBJECTS =  \
 @WITH_BHYVE_TRUE@	$(am__objects_29)
@@ -3312,6 +3315,7 @@ REPLACE_RAISE = @REPLACE_RAISE@
 REPLACE_RANDOM_R = @REPLACE_RANDOM_R@
 REPLACE_READ = @REPLACE_READ@
 REPLACE_READLINK = @REPLACE_READLINK@
+REPLACE_READLINKAT = @REPLACE_READLINKAT@
 REPLACE_REALLOC = @REPLACE_REALLOC@
 REPLACE_REALPATH = @REPLACE_REALPATH@
 REPLACE_REMAINDER = @REPLACE_REMAINDER@
@@ -3354,6 +3358,7 @@ REPLACE_STRTOUMAX = @REPLACE_STRTOUMAX@
 REPLACE_STRUCT_LCONV = @REPLACE_STRUCT_LCONV@
 REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
+REPLACE_SYMLINKAT = @REPLACE_SYMLINKAT@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
@@ -4255,6 +4260,8 @@ BHYVE_DRIVER_SOURCES = \
 		bhyve/bhyve_domain.h				\
 		bhyve/bhyve_driver.h				\
 		bhyve/bhyve_driver.c				\
+		bhyve/bhyve_monitor.c				\
+		bhyve/bhyve_monitor.h				\
 		bhyve/bhyve_process.c				\
 		bhyve/bhyve_process.h				\
 		bhyve/bhyve_utils.h				\
@@ -5613,6 +5620,8 @@ bhyve/libvirt_driver_bhyve_impl_la-bhyve_domain.lo:  \
 	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
 bhyve/libvirt_driver_bhyve_impl_la-bhyve_driver.lo:  \
 	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
+bhyve/libvirt_driver_bhyve_impl_la-bhyve_monitor.lo:  \
+	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
 bhyve/libvirt_driver_bhyve_impl_la-bhyve_process.lo:  \
 	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
 
@@ -6581,6 +6590,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_device.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_domain.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_driver.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_monitor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_process.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-capabilities.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-cpu_conf.Plo@am__quote@
@@ -7873,6 +7883,13 @@ bhyve/libvirt_driver_bhyve_impl_la-bhyve_driver.lo: bhyve/bhyve_driver.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bhyve/bhyve_driver.c' object='bhyve/libvirt_driver_bhyve_impl_la-bhyve_driver.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_driver.lo `test -f 'bhyve/bhyve_driver.c' || echo '$(srcdir)/'`bhyve/bhyve_driver.c
+
+bhyve/libvirt_driver_bhyve_impl_la-bhyve_monitor.lo: bhyve/bhyve_monitor.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -MT bhyve/libvirt_driver_bhyve_impl_la-bhyve_monitor.lo -MD -MP -MF bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_monitor.Tpo -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_monitor.lo `test -f 'bhyve/bhyve_monitor.c' || echo '$(srcdir)/'`bhyve/bhyve_monitor.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_monitor.Tpo bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_monitor.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bhyve/bhyve_monitor.c' object='bhyve/libvirt_driver_bhyve_impl_la-bhyve_monitor.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_monitor.lo `test -f 'bhyve/bhyve_monitor.c' || echo '$(srcdir)/'`bhyve/bhyve_monitor.c
 
 bhyve/libvirt_driver_bhyve_impl_la-bhyve_process.lo: bhyve/bhyve_process.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -MT bhyve/libvirt_driver_bhyve_impl_la-bhyve_process.lo -MD -MP -MF bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_process.Tpo -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_process.lo `test -f 'bhyve/bhyve_process.c' || echo '$(srcdir)/'`bhyve/bhyve_process.c

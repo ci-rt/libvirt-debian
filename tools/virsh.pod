@@ -849,7 +849,7 @@ I<--vcpu>, I<--interface>, I<--block>.
 
 When selecting the I<--state> group the following fields are returned:
 "state.state" - state of the VM, returned as number from virDomainState enum,
-"state.reason" - reason for entering given state, returned as int from,
+"state.reason" - reason for entering given state, returned as int from
 virDomain*Reason enum corresponding to given state.
 
 I<--cpu-total> returns:
@@ -878,11 +878,13 @@ I<--interface> returns:
 "net.<num>.tx.bytes" - number of bytes transmitted,
 "net.<num>.tx.pkts" - number of packets transmitted,
 "net.<num>.tx.errs" - number of transmission errors,
-"net.<num>.tx.drop" - number of transmit packets dropped,
+"net.<num>.tx.drop" - number of transmit packets dropped
 
-I<block> returns:
+I<--block> returns:
 "block.count" - number of block devices on this domain,
 "block.<num>.name" - name of the target of the block device <num>,
+"block.<num>.path" - file source of block device <num>, if it is a
+local file or block device,
 "block.<num>.rd.reqs" - number of read requests,
 "block.<num>.rd.bytes" - number of read bytes,
 "block.<num>.rd.times" - total time (ns) spent on reads,
@@ -892,6 +894,9 @@ I<block> returns:
 "block.<num>.fl.reqs" - total flush requests,
 "block.<num>.fl.times" - total time (ns) spent on cache flushing,
 "block.<num>.errors" - Xen only: the 'oo_req' value,
+"block.<num>.allocation" - offset of highest written sector in bytes,
+"block.<num>.capacity" - logical size of source file in bytes,
+"block.<num>.physical" - physical size of source file in bytes
 
 Selecting a specific statistics groups doesn't guarantee that the
 daemon supports the selected group of stats. Flag I<--enforce>
@@ -1052,6 +1057,9 @@ convert it to the maximum value allowed.
 [[I<--config>] [I<--live>] | [I<--current>]]
 [[I<total-bytes-sec>] | [I<read-bytes-sec>] [I<write-bytes-sec>]]
 [[I<total-iops-sec>] | [I<read-iops-sec>] [I<write-iops-sec>]]
+[[I<total-bytes-sec-max>] | [I<read-bytes-sec-max>] [I<write-bytes-sec-max>]]
+[[I<total-iops-sec-max>] | [I<read-iops-sec-max>] [I<write-iops-sec-max>]]
+[I<size-iops-sec>]
 
 Set or query the block disk io parameters for a block device of I<domain>.
 I<device> specifies a unique target name (<target dev='name'/>) or source
@@ -1066,6 +1074,13 @@ I<--write-bytes-sec> specifies write throughput limit in bytes per second.
 I<--total-iops-sec> specifies total I/O operations limit per second.
 I<--read-iops-sec> specifies read I/O operations limit per second.
 I<--write-iops-sec> specifies write I/O operations limit per second.
+I<--total-bytes-sec-max> specifies maximum total throughput limit in bytes per second.
+I<--read-bytes-sec-max> specifies maximum read throughput limit in bytes per second.
+I<--write-bytes-sec-max> specifies maximum write throughput limit in bytes per second.
+I<--total-iops-sec-max> specifies maximum total I/O operations limit per second.
+I<--read-iops-sec-max> specifies maximum read I/O operations limit per second.
+I<--write-iops-sec-max> specifies maximum write I/O operations limit per second.
+I<--size-iops-sec> specifies size I/O operations limit per second.
 
 Older versions of virsh only accepted these options with underscore
 instead of dash, as in I<--total_bytes_sec>.
@@ -1128,11 +1143,22 @@ I<size> is a scaled integer (see B<NOTES> above) which defaults to KiB
 "B" to get bytes (note that for historical reasons, this differs from
 B<vol-resize> which defaults to bytes without a suffix).
 
-=item B<domdisplay> I<domain> [I<--include-password>]
+=item B<domdisplay> I<domain> [I<--include-password>] [[I<--type>] B<type>]
 
 Output a URI which can be used to connect to the graphical display of the
-domain via VNC, SPICE or RDP. If I<--include-password> is specified, the
-SPICE channel password will be included in the URI.
+domain via VNC, SPICE or RDP.  The particular graphical display type can
+be selected using the B<type> parameter (e.g. "vnc", "spice", "rdp").  If
+I<--include-password> is specified, the SPICE channel password will be
+included in the URI.
+
+=item B<domfsinfo> I<domain>
+
+Show a list of mounted filesystems within the running domain. The list contains
+mountpoints, names of a mounted device in the guest, filesystem types, and
+unique target names used in the domain XML (<target dev='name'/>).
+
+Note that this command requires a guest agent configured and running in the
+domain's guest OS.
 
 =item B<domfsfreeze> I<domain> [[I<--mountpoint>] B<mountpoint>...]
 
@@ -2932,27 +2958,68 @@ data on the target device is overwritten unconditionally.
 
 Create and start a pool object from the XML I<file>.
 
-=item B<pool-create-as> I<name> I<--print-xml> I<type> [I<source-host>]
-[I<source-path>] [I<source-dev>] [I<source-name>] [<target>]
-[I<--source-format format>]
+=item B<pool-create-as> I<name> I<type> [I<--print-xml>]
+[I<--source-host hostname>] [I<--source-path path>] [I<--source-dev path>]
+[I<--source-name name>] [I<--target path>] [I<--source-format format>]
+[I<--auth-type authtype> I<--auth-username username> I<--secret-usage usage>]
+[[I<--adapter-name name>] | [I<--adapter-wwnn> I<--adapter-wwpn>]
+[I<--adapter-parent parent>]]
+
 
 Create and start a pool object I<name> from the raw parameters.  If
 I<--print-xml> is specified, then print the XML of the pool object
 without creating the pool.  Otherwise, the pool has the specified
 I<type>.
 
+[I<--source-host hostname>] provides the source hostname for pools backed
+by storage from a remote server (pool types netfs, iscsi, rbd, sheepdog,
+gluster).
+
+[I<--source-path path>] provides the source directory path for pools backed
+by directories (pool type dir).
+
+[I<--source-dev path>] provides the source path for pools backed by physical
+devices (pool types fs, logical, disk, iscsi, zfs).
+
+[I<--source-name name>] provides the source name for pools backed by storage
+from a named element (pool types logical, rbd, sheepdog, gluster).
+
+[I<--target path>] is the path for the mapping of the storage pool into
+the host file system.
+
+[I<--source-format format>] provides information about the format of the
+pool (pool types fs, netfs, disk, logical).
+
+[I<--auth-type authtype> I<--auth-username username> I<--secret-usage usage>]
+provides the elements required to generate authentication credentials for
+the storage pool. The I<authtype> is either chap for iscsi I<type> pools or
+ceph for rbd I<type> pools.
+
+[I<--adapter-name name>] defines the scsi_hostN adapter name to be used for
+the scsi_host adapter type pool.
+
+[I<--adapter-wwnn> I<--adapter-wwpn> [I<--adapter-parent parent>]] defines
+the wwnn and wwpn to be used for the fc_host adapter type pool. The parent
+optionally provides the name of the scsi_hostN node device to be used for
+the vHBA.
+
 =item B<pool-define> I<file>
 
 Create, but do not start, a pool object from the XML I<file>.
 
-=item B<pool-define-as> I<name> I<--print-xml> I<type> [I<source-host>]
-[I<source-path>] [I<source-dev>] [I<source-name>] [<target>]
-[I<--source-format format>]
+=item B<pool-define-as> I<name> I<type> [I<--print-xml>]
+[I<--source-host hostname>] [I<--source-path path>] [I<--source-dev path>]
+[I<--source-name name>] [I<--target path>] [I<--source-format format>]
+[I<--auth-type authtype> I<--auth-username username> I<--secret-usage usage>]
+[[I<--adapter-name name>] | [I<--adapter-wwnn> I<--adapter-wwpn>]
+[I<--adapter-parent parent>]]
 
 Create, but do not start, a pool object I<name> from the raw parameters.  If
 I<--print-xml> is specified, then print the XML of the pool object
 without defining the pool.  Otherwise, the pool has the specified
 I<type>.
+
+Use the same arguments as B<pool-define-as>.
 
 =item B<pool-destroy> I<pool-or-uuid>
 

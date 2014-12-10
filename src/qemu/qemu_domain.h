@@ -187,8 +187,6 @@ struct _qemuDomainObjPrivate {
     char **qemuDevices; /* NULL-terminated list of devices aliases known to QEMU */
 
     bool hookRun;  /* true if there was a hook run over this domain */
-
-    bool quiesced; /* true if filesystems are quiesced */
 };
 
 typedef enum {
@@ -196,6 +194,7 @@ typedef enum {
     QEMU_PROCESS_EVENT_GUESTPANIC,
     QEMU_PROCESS_EVENT_DEVICE_DELETED,
     QEMU_PROCESS_EVENT_NIC_RX_FILTER_CHANGED,
+    QEMU_PROCESS_EVENT_SERIAL_CHANGED,
 
     QEMU_PROCESS_EVENT_LAST
 } qemuProcessEventType;
@@ -240,7 +239,6 @@ void qemuDomainObjSetAsyncJobMask(virDomainObjPtr obj,
                                   unsigned long long allowedJobs);
 void qemuDomainObjRestoreJob(virDomainObjPtr obj,
                              struct qemuDomainJobObj *job);
-void qemuDomainObjTransferJob(virDomainObjPtr obj);
 void qemuDomainObjDiscardAsyncJob(virQEMUDriverPtr driver,
                                   virDomainObjPtr obj);
 void qemuDomainObjReleaseAsyncJob(virDomainObjPtr obj);

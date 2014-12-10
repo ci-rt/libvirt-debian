@@ -2607,7 +2607,8 @@ virDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     virCheckDomainReturn(domain, NULL);
     conn = domain->conn;
 
-    if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
+    if ((conn->flags & VIR_CONNECT_RO) &&
+        (flags & (VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_MIGRATABLE))) {
         virReportError(VIR_ERR_OPERATION_DENIED, "%s",
                        _("virDomainGetXMLDesc with secure flag"));
         goto error;
@@ -4311,6 +4312,9 @@ virDomainMigrateToURI(virDomainPtr domain,
  * If you want to copy non-shared storage within migration you
  * can use either VIR_MIGRATE_NON_SHARED_DISK or
  * VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+ * As of 1.2.11 disks of some types ('file' and 'volume') are
+ * precreated automatically, if there's a pool defined on the
+ * destination for the disk path.
  *
  * If a hypervisor supports changing the configuration of the guest
  * during migration, the @dxml parameter specifies the new config
@@ -10906,6 +10910,9 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  * "block.<num>.name" - name of the block device <num> as string.
  *                      matches the target name (vda/sda/hda) of the
  *                      block device.
+ * "block.<num>.path" - string describing the source of block device <num>,
+ *                      if it is a file or block device (omitted for network
+ *                      sources and drives with no media inserted).
  * "block.<num>.rd.reqs" - number of read requests as unsigned long long.
  * "block.<num>.rd.bytes" - number of read bytes as unsigned long long.
  * "block.<num>.rd.times" - total time (ns) spent on reads as
@@ -10936,7 +10943,11 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  *
  * Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
  * the function return error in case some of the stat types in @stats were
- * not recognized by the daemon.
+ * not recognized by the daemon.  However, even with this flag, a hypervisor
+ * may omit individual fields within a known group if the information is not
+ * available; as an extreme example, a supported group may produce zero
+ * fields for offline domains if the statistics are meaningful only for a
+ * running domain.
  *
  * Similarly to virConnectListAllDomains, @flags can contain various flags to
  * filter the list of domains to provide stats for.
@@ -11016,9 +11027,13 @@ virConnectGetAllDomainStats(virConnectPtr conn,
  *
  * Specifying VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS as @flags makes
  * the function return error in case some of the stat types in @stats were
- * not recognized by the daemon.
+ * not recognized by the daemon.  However, even with this flag, a hypervisor
+ * may omit individual fields within a known group if the information is not
+ * available; as an extreme example, a supported group may produce zero
+ * fields for offline domains if the statistics are meaningful only for a
+ * running domain.
  *
- * Note that any of the domain list filtering flags in @flags will be rejected
+ * Note that any of the domain list filtering flags in @flags may be rejected
  * by this function.
  *
  * Returns the count of returned statistics structures on success, -1 on error.
@@ -11109,4 +11124,71 @@ virDomainStatsRecordListFree(virDomainStatsRecordPtr *stats)
     }
 
     VIR_FREE(stats);
+}
+
+
+/**
+ * virDomainGetFSInfo:
+ * @dom: a domain object
+ * @info: a pointer to a variable to store an array of mount points information
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Get a list of mapping information for each mounted file systems within the
+ * specified guest and the disks.
+ *
+ * Returns the number of returned mount points, or -1 in case of error.
+ * On success, the array of the information is stored into @info. The caller is
+ * responsible for calling virDomainFSInfoFree() on each array element, then
+ * calling free() on @info. On error, @info is set to NULL.
+ */
+int
+virDomainGetFSInfo(virDomainPtr dom,
+                   virDomainFSInfoPtr **info,
+                   unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "info=%p, flags=%x", info, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+    virCheckNonNullArgGoto(info, error);
+    *info = NULL;
+
+    if (dom->conn->driver->domainGetFSInfo) {
+        int ret = dom->conn->driver->domainGetFSInfo(dom, info, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainFSInfoFree:
+ * @info: pointer to a FSInfo object
+ *
+ * Frees all the memory occupied by @info.
+ */
+void
+virDomainFSInfoFree(virDomainFSInfoPtr info)
+{
+    size_t i;
+
+    if (!info)
+        return;
+
+    VIR_FREE(info->mountpoint);
+    VIR_FREE(info->name);
+    VIR_FREE(info->fstype);
+
+    for (i = 0; i < info->ndevAlias; i++)
+        VIR_FREE(info->devAlias[i]);
+    VIR_FREE(info->devAlias);
 }

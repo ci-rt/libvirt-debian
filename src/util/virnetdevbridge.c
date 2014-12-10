@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,6 +37,9 @@
 #include <netinet/in.h>
 
 #ifdef __linux__
+# if defined(HAVE_LIBNL)
+#  include "virnetlink.h"
+# endif
 # include <linux/sockios.h>
 # include <linux/param.h>     /* HZ                 */
 # if NETINET_LINUX_WORKAROUND
@@ -219,6 +222,170 @@ static int virNetDevBridgeGet(const char *brname,
 }
 #endif /* __linux__ */
 
+#if defined(__linux__)
+static int
+virNetDevBridgePortSet(const char *brname,
+                       const char *ifname,
+                       const char *paramname,
+                       unsigned long value)
+{
+    char *path = NULL;
+    char valuestr[INT_BUFSIZE_BOUND(value)];
+    int ret = -1;
+
+    snprintf(valuestr, sizeof(valuestr), "%lu", value);
+
+    if (virAsprintf(&path, "%s/%s/brif/%s/%s",
+                    SYSFS_NET_DIR, brname, ifname, paramname) < 0)
+        return -1;
+
+    if (!virFileExists(path))
+        errno = EINVAL;
+    else
+        ret = virFileWriteStr(path, valuestr, 0);
+
+    if (ret < 0) {
+        virReportSystemError(errno,
+                             _("Unable to set bridge %s port %s %s to %s"),
+                             brname, ifname, paramname, valuestr);
+    }
+
+    VIR_FREE(path);
+    return ret;
+}
+
+
+static int
+virNetDevBridgePortGet(const char *brname,
+                       const char *ifname,
+                       const char *paramname,
+                       unsigned long *value)
+{
+    char *path = NULL;
+    char *valuestr = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&path, "%s/%s/brif/%s/%s",
+                    SYSFS_NET_DIR, brname, ifname, paramname) < 0)
+        return -1;
+
+    if (virFileReadAll(path, INT_BUFSIZE_BOUND(unsigned long), &valuestr) < 0)
+        goto cleanup;
+
+    if (virStrToLong_ul(valuestr, NULL, 10, value) < 0) {
+        virReportSystemError(EINVAL,
+                             _("Unable to get bridge %s port %s %s"),
+                             brname, ifname, paramname);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(valuestr);
+    return ret;
+}
+
+
+int
+virNetDevBridgePortGetLearning(const char *brname,
+                               const char *ifname,
+                               bool *enable)
+{
+    int ret = -1;
+    unsigned long value;
+
+    if (virNetDevBridgePortGet(brname, ifname, "learning", &value) < 0)
+       goto cleanup;
+
+    *enable = !!value;
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+int
+virNetDevBridgePortSetLearning(const char *brname,
+                               const char *ifname,
+                               bool enable)
+{
+    return virNetDevBridgePortSet(brname, ifname, "learning", enable ? 1 : 0);
+}
+
+
+int
+virNetDevBridgePortGetUnicastFlood(const char *brname,
+                                   const char *ifname,
+                                   bool *enable)
+{
+    int ret = -1;
+    unsigned long value;
+
+    if (virNetDevBridgePortGet(brname, ifname, "unicast_flood", &value) < 0)
+       goto cleanup;
+
+    *enable = !!value;
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+int
+virNetDevBridgePortSetUnicastFlood(const char *brname,
+                                   const char *ifname,
+                                   bool enable)
+{
+    return virNetDevBridgePortSet(brname, ifname, "unicast_flood", enable ? 1 : 0);
+}
+
+
+#else
+int
+virNetDevBridgePortGetLearning(const char *brname ATTRIBUTE_UNUSED,
+                               const char *ifname ATTRIBUTE_UNUSED,
+                               bool *enable ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Unable to get bridge port learning on this platform"));
+    return -1;
+}
+
+
+int
+virNetDevBridgePortSetLearning(const char *brname ATTRIBUTE_UNUSED,
+                               const char *ifname ATTRIBUTE_UNUSED,
+                               bool enable ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Unable to set bridge port learning on this platform"));
+    return -1;
+}
+
+
+int
+virNetDevBridgePortGetUnicastFlood(const char *brname ATTRIBUTE_UNUSED,
+                                   const char *ifname ATTRIBUTE_UNUSED,
+                                   bool *enable ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Unable to get bridge port unicast_flood on this platform"));
+    return -1;
+}
+
+
+int
+virNetDevBridgePortSetUnicastFlood(const char *brname ATTRIBUTE_UNUSED,
+                                   const char *ifname ATTRIBUTE_UNUSED,
+                                   bool enable ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Unable to set bridge port unicast_flood on this platform"));
+    return -1;
+}
+#endif
+
 
 /**
  * virNetDevBridgeCreate:
@@ -265,9 +432,8 @@ int virNetDevBridgeCreate(const char *brname)
         goto cleanup;
     }
 
-    if (virNetDevSetName(ifr.ifr_name, brname) == -1) {
+    if (virNetDevSetName(ifr.ifr_name, brname) == -1)
         goto cleanup;
-    }
 
     ret = 0;
  cleanup:
@@ -518,7 +684,7 @@ int virNetDevBridgeSetSTPDelay(const char *brname,
  * @brname: the bridge device name
  * @delayms: the forward delay in milliseconds
  *
- * Retrives the forward delay for the bridge device @brname
+ * Retrieves the forward delay for the bridge device @brname
  * storing it in @delayms. The forward delay is only meaningful
  * if STP is enabled
  *
@@ -683,3 +849,214 @@ int virNetDevBridgeGetSTP(const char *brname,
     return -1;
 }
 #endif
+
+#if defined(HAVE_STRUCT_IFREQ) && defined(__linux__)
+/**
+ * virNetDevBridgeGetVlanFiltering:
+ * @brname: the bridge device name
+ * @enable: true or false
+ *
+ * Retrieves the vlan_filtering setting for the bridge device @brname
+ * storing it in @enable.
+ *
+ * Returns 0 on success, -1 on error
+ */
+int
+virNetDevBridgeGetVlanFiltering(const char *brname,
+                                bool *enable)
+{
+    int ret = -1;
+    unsigned long value;
+
+    if (virNetDevBridgeGet(brname, "vlan_filtering", &value, -1, NULL) < 0)
+        goto cleanup;
+
+    *enable = !!value;
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+/**
+ * virNetDevBridgeSetVlanFiltering:
+ * @brname: the bridge name
+ * @enable: true or false
+ *
+ * Set the bridge vlan_filtering mode
+ *
+ * Returns 0 in case of success or -1 on failure
+ */
+
+int
+virNetDevBridgeSetVlanFiltering(const char *brname,
+                                bool enable)
+{
+    return virNetDevBridgeSet(brname, "vlan_filtering", enable ? 1 : 0, -1, NULL);
+}
+
+
+#else
+int
+virNetDevBridgeGetVlanFiltering(const char *brname ATTRIBUTE_UNUSED,
+                                bool *enable ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Unable to get bridge vlan_filtering on this platform"));
+    return -1;
+}
+
+
+int
+virNetDevBridgeSetVlanFiltering(const char *brname ATTRIBUTE_UNUSED,
+                                bool enable ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Unable to set bridge vlan_filtering on this platform"));
+    return -1;
+}
+#endif
+
+
+#if defined(__linux__) && defined(HAVE_LIBNL)
+/* virNetDevBridgeFDBAddDel:
+ * @mac: the MAC address being added to the table
+ * @ifname: name of the port (interface) of the bridge that wants this MAC
+ * @flags: any of virNetDevBridgeFDBFlags ORed together.
+ * @isAdd: true if adding the entry, fals if deleting
+ *
+ * Use netlink RTM_NEWNEIGH and RTM_DELNEIGH messages to add and
+ * delete entries from a bridge's fdb. The bridge itself is not
+ * referenced in the arguments to the function, only the name of the
+ * device that is attached to the bridge (since a device can only be
+ * attached to one bridge at a time, and must be attached for this
+ * function to make sense, the kernel easily infers which bridge's fdb
+ * is being modified by looking at the device name/index).
+ *
+ * Attempting to add an existing entry, or delete a non-existing entry
+ * *is* an error.
+ *
+ * returns 0 on success, -1 on failure.
+ */
+static int
+virNetDevBridgeFDBAddDel(const virMacAddr *mac, const char *ifname,
+                         unsigned int flags, bool isAdd)
+{
+    int ret = -1;
+    struct nlmsghdr *resp = NULL;
+    struct nlmsgerr *err;
+    unsigned int recvbuflen;
+    struct nl_msg *nl_msg;
+    struct ndmsg ndm = { .ndm_family = PF_BRIDGE, .ndm_state = NUD_NOARP };
+
+    if (virNetDevGetIndex(ifname, &ndm.ndm_ifindex) < 0)
+        return -1;
+
+    if (flags & VIR_NETDEVBRIDGE_FDB_FLAG_ROUTER)
+        ndm.ndm_flags |= NTF_ROUTER;
+    if (flags & VIR_NETDEVBRIDGE_FDB_FLAG_SELF)
+        ndm.ndm_flags |= NTF_SELF;
+    if (flags & VIR_NETDEVBRIDGE_FDB_FLAG_MASTER)
+        ndm.ndm_flags |= NTF_MASTER;
+    /* default self (same as iproute2's bridge command */
+    if (!(ndm.ndm_flags & (NTF_MASTER | NTF_SELF)))
+        ndm.ndm_flags |= NTF_SELF;
+
+    if (flags & VIR_NETDEVBRIDGE_FDB_FLAG_PERMANENT)
+        ndm.ndm_state |= NUD_PERMANENT;
+    if (flags & VIR_NETDEVBRIDGE_FDB_FLAG_TEMP)
+        ndm.ndm_state |= NUD_REACHABLE;
+    /* default permanent, same as iproute2's bridge command */
+    if (!(ndm.ndm_state & (NUD_PERMANENT | NUD_REACHABLE)))
+        ndm.ndm_state |= NUD_PERMANENT;
+
+    nl_msg = nlmsg_alloc_simple(isAdd ? RTM_NEWNEIGH : RTM_DELNEIGH,
+                                NLM_F_REQUEST |
+                                (isAdd ? (NLM_F_CREATE | NLM_F_EXCL) : 0));
+    if (!nl_msg) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (nlmsg_append(nl_msg, &ndm, sizeof(ndm), NLMSG_ALIGNTO) < 0)
+        goto buffer_too_small;
+    if (nla_put(nl_msg, NDA_LLADDR, VIR_MAC_BUFLEN, mac) < 0)
+        goto buffer_too_small;
+
+    /* NB: this message can also accept a Destination IP, a port, a
+     * vlan tag, and a via (see iproute2/bridge/fdb.c:fdb_modify()),
+     * but those aren't required for our application
+     */
+
+    if (virNetlinkCommand(nl_msg, &resp, &recvbuflen, 0, 0,
+                          NETLINK_ROUTE, 0) < 0) {
+        goto cleanup;
+    }
+    if (recvbuflen < NLMSG_LENGTH(0) || resp == NULL)
+        goto malformed_resp;
+
+    switch (resp->nlmsg_type) {
+    case NLMSG_ERROR:
+        err = (struct nlmsgerr *)NLMSG_DATA(resp);
+        if (resp->nlmsg_len < NLMSG_LENGTH(sizeof(*err)))
+            goto malformed_resp;
+        if (err->error) {
+            virReportSystemError(-err->error,
+                                 _("error adding fdb entry for %s"), ifname);
+            goto cleanup;
+        }
+        break;
+    case NLMSG_DONE:
+        break;
+
+    default:
+        goto malformed_resp;
+    }
+
+    ret = 0;
+ cleanup:
+    nlmsg_free(nl_msg);
+    VIR_FREE(resp);
+    return ret;
+
+ malformed_resp:
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("malformed netlink response message"));
+    goto cleanup;
+
+ buffer_too_small:
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("allocated netlink buffer is too small"));
+    goto cleanup;
+}
+
+
+#else
+static int
+virNetDevBridgeFDBAddDel(const virMacAddr *mac ATTRIBUTE_UNUSED,
+                         const char *ifname ATTRIBUTE_UNUSED,
+                         unsigned int fdbFlags ATTRIBUTE_UNUSED,
+                         bool isAdd ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Unable to add/delete fdb entries on this platform"));
+    return -1;
+}
+
+
+#endif
+
+int
+virNetDevBridgeFDBAdd(const virMacAddr *mac, const char *ifname,
+                      unsigned int flags)
+{
+    return virNetDevBridgeFDBAddDel(mac, ifname, flags, true);
+}
+
+
+int
+virNetDevBridgeFDBDel(const virMacAddr *mac, const char *ifname,
+                      unsigned int flags)
+{
+    return virNetDevBridgeFDBAddDel(mac, ifname, flags, false);
+}

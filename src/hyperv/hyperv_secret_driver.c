@@ -40,11 +40,8 @@ hypervSecretOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_HYPERV) {
+    if (conn->driver->no != VIR_DRV_HYPERV)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->secretPrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -52,10 +49,8 @@ hypervSecretOpen(virConnectPtr conn,
 
 
 static int
-hypervSecretClose(virConnectPtr conn)
+hypervSecretClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->secretPrivateData = NULL;
-
     return 0;
 }
 

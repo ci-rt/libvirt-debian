@@ -102,8 +102,7 @@ cleanup:
         virNetMessageSaveError(rerr);
         VIR_FREE(result_p);
     }
-    if (dom)
-        virDomainFree(dom);
+    virObjectUnref(dom);
     VIR_FREE(result);
     return rv;
 }
@@ -155,8 +154,7 @@ static int qemuDispatchDomainAttach(
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (dom)
-        virDomainFree(dom);
+    virObjectUnref(dom);
     return rv;
 }
 

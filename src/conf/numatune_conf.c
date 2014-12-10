@@ -26,6 +26,7 @@
 
 #include "domain_conf.h"
 #include "viralloc.h"
+#include "virnuma.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
@@ -611,4 +612,55 @@ virDomainNumatuneHasPerNodeBinding(virDomainNumatunePtr numatune)
     }
 
     return false;
+}
+
+int
+virDomainNumatuneSpecifiedMaxNode(virDomainNumatunePtr numatune)
+{
+    int ret = -1;
+    virBitmapPtr nodemask = NULL;
+    size_t i;
+    int bit;
+
+    if (!numatune)
+        return ret;
+
+    nodemask = virDomainNumatuneGetNodeset(numatune, NULL, -1);
+    if (nodemask)
+        ret = virBitmapLastSetBit(nodemask);
+
+    for (i = 0; i < numatune->nmem_nodes; i++) {
+        nodemask = numatune->mem_nodes[i].nodeset;
+        if (!nodemask)
+            continue;
+
+        bit = virBitmapLastSetBit(nodemask);
+        if (bit > ret)
+            ret = bit;
+    }
+
+    return ret;
+}
+
+bool
+virDomainNumatuneNodesetIsAvailable(virDomainNumatunePtr numatune,
+                                    virBitmapPtr auto_nodeset)
+{
+    size_t i = 0;
+    virBitmapPtr b = NULL;
+
+    if (!numatune)
+        return true;
+
+    b = virDomainNumatuneGetNodeset(numatune, auto_nodeset, -1);
+    if (!virNumaNodesetIsAvailable(b))
+        return false;
+
+    for (i = 0; i < numatune->nmem_nodes; i++) {
+        b = virDomainNumatuneGetNodeset(numatune, auto_nodeset, i);
+        if (!virNumaNodesetIsAvailable(b))
+            return false;
+    }
+
+    return true;
 }

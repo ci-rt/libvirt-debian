@@ -1400,6 +1400,7 @@ virConnectOpenAuth(const char *name,
 }
 
 
+
 /**
  * virConnectClose:
  * @conn: pointer to the hypervisor connection

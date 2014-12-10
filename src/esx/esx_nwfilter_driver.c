@@ -43,11 +43,8 @@ esxNWFilterOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_ESX) {
+    if (conn->driver->no != VIR_DRV_ESX)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->nwfilterPrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -55,10 +52,8 @@ esxNWFilterOpen(virConnectPtr conn,
 
 
 static int
-esxNWFilterClose(virConnectPtr conn)
+esxNWFilterClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->nwfilterPrivateData = NULL;
-
     return 0;
 }
 

@@ -74,7 +74,7 @@ virNumaGetAutoPlacementAdvice(unsigned short vcpus,
     virCommandFree(cmd);
     return output;
 }
-#else
+#else /* !HAVE_NUMAD */
 char *
 virNumaGetAutoPlacementAdvice(unsigned short vcpus ATTRIBUTE_UNUSED,
                               unsigned long long balloon ATTRIBUTE_UNUSED)
@@ -83,12 +83,12 @@ virNumaGetAutoPlacementAdvice(unsigned short vcpus ATTRIBUTE_UNUSED,
                    _("numad is not available on this host"));
     return NULL;
 }
-#endif
+#endif /* !HAVE_NUMAD */
 
 #if WITH_NUMACTL
 int
-virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
-                         virBitmapPtr nodemask)
+virNumaSetupMemoryPolicy(virDomainNumatuneMemMode mode,
+                         virBitmapPtr nodeset)
 {
     nodemask_t mask;
     int node = -1;
@@ -96,17 +96,12 @@ virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
     int bit = 0;
     size_t i;
     int maxnode = 0;
-    virBitmapPtr tmp_nodemask = NULL;
 
-    tmp_nodemask = virDomainNumatuneGetNodeset(numatune, nodemask, -1);
-    if (!tmp_nodemask)
+    if (!nodeset)
         return 0;
 
-    if (numa_available() < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("Host kernel is not aware of NUMA."));
+    if (!virNumaNodesetIsAvailable(nodeset))
         return -1;
-    }
 
     maxnode = numa_max_node();
     maxnode = maxnode < NUMA_NUM_NODES ? maxnode : NUMA_NUM_NODES;
@@ -114,7 +109,7 @@ virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
     /* Convert nodemask to NUMA bitmask. */
     nodemask_zero(&mask);
     bit = -1;
-    while ((bit = virBitmapNextSetBit(tmp_nodemask, bit)) >= 0) {
+    while ((bit = virBitmapNextSetBit(nodeset, bit)) >= 0) {
         if (bit > maxnode) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("NUMA node %d is out of range"), bit);
@@ -123,7 +118,7 @@ virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
         nodemask_set(&mask, bit);
     }
 
-    switch (virDomainNumatuneGetMode(numatune, -1)) {
+    switch (mode) {
     case VIR_DOMAIN_NUMATUNE_MEM_STRICT:
         numa_set_bind_policy(1);
         numa_set_membind(&mask);
@@ -164,7 +159,6 @@ virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
  cleanup:
     return ret;
 }
-
 
 bool
 virNumaIsAvailable(void)
@@ -315,21 +309,17 @@ virNumaGetNodeCPUs(int node,
 # undef MASK_CPU_ISSET
 # undef n_bits
 
-#else
-int
-virNumaSetupMemoryPolicy(virDomainNumatunePtr numatune,
-                         virBitmapPtr nodemask ATTRIBUTE_UNUSED)
-{
-    if (virDomainNumatuneGetNodeset(numatune, NULL, -1)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("libvirt is compiled without NUMA tuning support"));
+#else /* !WITH_NUMACTL */
 
+int
+virNumaSetupMemoryPolicy(virDomainNumatuneMemMode mode ATTRIBUTE_UNUSED,
+                         virBitmapPtr nodeset)
+{
+    if (!virNumaNodesetIsAvailable(nodeset))
         return -1;
-    }
 
     return 0;
 }
-
 
 bool
 virNumaIsAvailable(void)
@@ -373,8 +363,7 @@ virNumaGetNodeCPUs(int node ATTRIBUTE_UNUSED,
                    _("NUMA isn't available on this host"));
     return -1;
 }
-#endif
-
+#endif /* !WITH_NUMACTL */
 
 /**
  * virNumaGetMaxCPUs:
@@ -463,8 +452,8 @@ virNumaGetDistances(int node,
     return ret;
 }
 
+#else /* !(WITH_NUMACTL && HAVE_NUMA_BITMASK_ISBITSET) */
 
-#else
 bool
 virNumaNodeIsAvailable(int node)
 {
@@ -474,7 +463,7 @@ virNumaNodeIsAvailable(int node)
         return false;
 
     /* Do we have anything better? */
-    return (node >= 0) && (node < max_node);
+    return (node >= 0) && (node <= max_node);
 }
 
 
@@ -488,7 +477,7 @@ virNumaGetDistances(int node ATTRIBUTE_UNUSED,
     VIR_DEBUG("NUMA distance information isn't available on this host");
     return 0;
 }
-#endif
+#endif /* !(WITH_NUMACTL && HAVE_NUMA_BITMASK_ISBITSET) */
 
 
 /* currently all the huge page stuff below is linux only */
@@ -975,3 +964,22 @@ virNumaSetPagePoolSize(int node ATTRIBUTE_UNUSED,
     return -1;
 }
 #endif /* #ifdef __linux__ */
+
+bool
+virNumaNodesetIsAvailable(virBitmapPtr nodeset)
+{
+    ssize_t bit = -1;
+
+    if (!nodeset)
+        return true;
+
+    while ((bit = virBitmapNextSetBit(nodeset, bit)) >= 0) {
+        if (virNumaNodeIsAvailable(bit))
+            continue;
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("NUMA node %zd is unavailable"), bit);
+        return false;
+    }
+    return true;
+}

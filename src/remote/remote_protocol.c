@@ -6530,12 +6530,68 @@ xdr_remote_connect_get_all_domain_stats_args (XDR *xdrs, remote_connect_get_all_
 }
 
 bool_t
+xdr_remote_domain_event_callback_agent_lifecycle_msg (XDR *xdrs, remote_domain_event_callback_agent_lifecycle_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->state))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_connect_get_all_domain_stats_ret (XDR *xdrs, remote_connect_get_all_domain_stats_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->retStats.retStats_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->retStats.retStats_len, REMOTE_DOMAIN_LIST_MAX,
                 sizeof (remote_domain_stats_record), (xdrproc_t) xdr_remote_domain_stats_record))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_fsinfo (XDR *xdrs, remote_domain_fsinfo *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->dev_aliases.dev_aliases_val;
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->mountpoint))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->name))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->fstype))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->dev_aliases.dev_aliases_len, REMOTE_DOMAIN_FSINFO_DISKS_MAX,
+                sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_fsinfo_args (XDR *xdrs, remote_domain_get_fsinfo_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_fsinfo_ret (XDR *xdrs, remote_domain_get_fsinfo_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->info.info_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->info.info_len, REMOTE_DOMAIN_FSINFO_MAX,
+                sizeof (remote_domain_fsinfo), (xdrproc_t) xdr_remote_domain_fsinfo))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
                  return FALSE;
         return TRUE;
 }

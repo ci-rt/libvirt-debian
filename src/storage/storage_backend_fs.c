@@ -639,9 +639,8 @@ virStorageBackendFileSystemProbe(const char *device,
  error:
     VIR_FREE(libblkid_format);
 
-    if (probe != NULL) {
+    if (probe != NULL)
         blkid_free_probe(probe);
-    }
 
     return ret;
 }
@@ -737,9 +736,8 @@ virStorageBackendMakeFileSystem(virStoragePoolObjPtr pool,
         ok_to_mkfs = true;
     }
 
-    if (ok_to_mkfs) {
+    if (ok_to_mkfs)
         ret = virStorageBackendExecuteMKFS(device, format);
-    }
 
  error:
     return ret;
@@ -1203,7 +1201,7 @@ virStorageBackendFileSystemVolRefresh(virConnectPtr conn,
             if (VIR_ALLOC_N(vol->target.encryption->secrets, 1) < 0 ||
                 VIR_ALLOC(encsec) < 0) {
                 VIR_FREE(vol->target.encryption->secrets);
-                virSecretFree(sec);
+                virObjectUnref(sec);
                 return -1;
             }
 
@@ -1212,7 +1210,7 @@ virStorageBackendFileSystemVolRefresh(virConnectPtr conn,
 
             encsec->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
             virSecretGetUUID(sec, encsec->uuid);
-            virSecretFree(sec);
+            virObjectUnref(sec);
         }
     }
 
@@ -1372,9 +1370,10 @@ virStorageFileBackendFileInit(virStorageSourcePtr src)
 {
     virStorageFileBackendFsPrivPtr priv = NULL;
 
-    VIR_DEBUG("initializing FS storage file %p (%s:%s)", src,
+    VIR_DEBUG("initializing FS storage file %p (%s:%s)[%u:%u]", src,
               virStorageTypeToString(virStorageSourceGetActualType(src)),
-              src->path);
+              src->path,
+              (unsigned int)src->drv->uid, (unsigned int)src->drv->gid);
 
     if (VIR_ALLOC(priv) < 0)
         return -1;

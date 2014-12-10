@@ -40,11 +40,8 @@ hypervStorageOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_HYPERV) {
+    if (conn->driver->no != VIR_DRV_HYPERV)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->storagePrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -52,10 +49,8 @@ hypervStorageOpen(virConnectPtr conn,
 
 
 static int
-hypervStorageClose(virConnectPtr conn)
+hypervStorageClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->storagePrivateData = NULL;
-
     return 0;
 }
 

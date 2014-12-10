@@ -246,9 +246,8 @@ libxlDriverShouldLoad(bool privileged)
      * xenfs to /proc/xen.
      */
     status = virFileReadAll(HYPERVISOR_CAPABILITIES, 10, &output);
-    if (status >= 0) {
+    if (status >= 0)
         status = strncmp(output, "control_d", 9);
-    }
     VIR_FREE(output);
     if (status) {
         VIR_INFO("No Xen capabilities detected, probably not running "
@@ -1792,9 +1791,8 @@ libxlDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
         goto endjob;
     }
 
-    if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM) && vm->def->maxvcpus < max) {
+    if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM) && vm->def->maxvcpus < max)
         max = vm->def->maxvcpus;
-    }
 
     if (nvcpus > max) {
         virReportError(VIR_ERR_INVALID_ARG,
@@ -1964,9 +1962,8 @@ libxlDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu,
                                         &flags, &targetDef) < 0)
         goto endjob;
 
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+    if (flags & VIR_DOMAIN_AFFECT_LIVE)
         targetDef = vm->def;
-    }
 
     /* Make sure coverity knows targetDef is valid at this point. */
     sa_assert(targetDef);
@@ -2066,9 +2063,8 @@ libxlDomainGetVcpuPinInfo(virDomainPtr dom, int ncpumaps,
                                         &flags, &targetDef) < 0)
         goto cleanup;
 
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+    if (flags & VIR_DOMAIN_AFFECT_LIVE)
         targetDef = vm->def;
-    }
 
     /* Make sure coverity knows targetDef is valid at this point. */
     sa_assert(targetDef);
@@ -4654,6 +4650,7 @@ libxlDomainMigrateFinish3Params(virConnectPtr dconn,
     libxlDriverPrivatePtr driver = dconn->privateData;
     virDomainObjPtr vm = NULL;
     const char *dname = NULL;
+    virDomainPtr ret = NULL;
 
 #ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
     virReportUnsupportedError();
@@ -4684,16 +4681,20 @@ libxlDomainMigrateFinish3Params(virConnectPtr dconn,
         return NULL;
     }
 
-    if (!virDomainObjIsActive(vm)) {
-        /* Migration failed if domain is inactive */
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       "%s", _("Migration failed. Domain is not running "
-                               "on destination host"));
+    if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_MODIFY) < 0) {
         virObjectUnlock(vm);
         return NULL;
     }
 
-    return libxlDomainMigrationFinish(dconn, vm, flags, cancelled);
+    ret = libxlDomainMigrationFinish(dconn, vm, flags, cancelled);
+
+    if (!libxlDomainObjEndJob(driver, vm))
+        vm = NULL;
+
+    if (vm)
+        virObjectUnlock(vm);
+
+    return ret;
 }
 
 static int

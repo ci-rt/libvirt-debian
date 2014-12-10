@@ -43,11 +43,8 @@ esxNodeDeviceOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->driver->no != VIR_DRV_ESX) {
+    if (conn->driver->no != VIR_DRV_ESX)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->nodeDevicePrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -55,10 +52,8 @@ esxNodeDeviceOpen(virConnectPtr conn,
 
 
 static int
-esxNodeDeviceClose(virConnectPtr conn)
+esxNodeDeviceClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    conn->nodeDevicePrivateData = NULL;
-
     return 0;
 }
 

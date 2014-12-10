@@ -228,14 +228,19 @@ typedef virStorageDriverData *virStorageDriverDataPtr;
 typedef struct _virStorageSource virStorageSource;
 typedef virStorageSource *virStorageSourcePtr;
 
-/* Stores information related to a host resource.  In the case of
- * backing chains, multiple source disks join to form a single guest
- * view.  */
+/* Stores information related to a host resource.  In the case of backing
+ * chains, multiple source disks join to form a single guest view.
+ *
+ * IMPORTANT: When adding fields to this struct it's also necessary to add
+ * appropriate code to the virStorageSourceCopy deep copy function */
 struct _virStorageSource {
     int type; /* virStorageType */
     char *path;
     int protocol; /* virStorageNetProtocol */
     char *volume; /* volume name for remote storage */
+    char *snapshot; /* for storage systems supporting internal snapshots */
+    char *configFile; /* some storage systems use config file as part of
+                         the source definition */
     size_t nhosts;
     virStorageNetHostDefPtr hosts;
     virStorageSourcePoolDefPtr srcpool;
@@ -360,6 +365,10 @@ virStorageSourcePtr virStorageSourceNewFromBacking(virStorageSourcePtr parent);
 virStorageSourcePtr virStorageSourceCopy(const virStorageSource *src,
                                          bool backingChain)
     ATTRIBUTE_NONNULL(1);
+
+int virStorageSourceParseRBDColonString(const char *rbdstr,
+                                        virStorageSourcePtr src)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 typedef int
 (*virStorageFileSimplifyPathReadlinkCallback)(const char *path,

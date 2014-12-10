@@ -584,6 +584,12 @@ sc_prohibit_loop_var_decl:
 	halt='declare loop iterators outside the for statement'		\
 	  $(_sc_search_regexp)
 
+# Use 'bool', not 'int', when assigning true or false
+sc_prohibit_int_assign_bool:
+	@prohibit='\<int\>.*= *(true|false)'				\
+	halt='use bool type for boolean values'				\
+	  $(_sc_search_regexp)
+
 # Many of the function names below came from this filter:
 # git grep -B2 '\<_('|grep -E '\.c- *[[:alpha:]_][[:alnum:]_]* ?\(.*[,;]$' \
 # |sed 's/.*\.c-  *//'|perl -pe 's/ ?\(.*//'|sort -u \
@@ -977,6 +983,20 @@ sc_prohibit_devname:
 	halt='avoid using 'devname' as FreeBSD exports the symbol' \
 	  $(_sc_search_regexp)
 
+sc_prohibit_system_error_with_vir_err:
+	@prohibit='\bvirReportSystemError *\(VIR_ERR_' \
+	halt='do not use virReportSystemError with VIR_ERR_* error codes' \
+	  $(_sc_search_regexp)
+
+# Rule to prohibit usage of virXXXFree within library, daemon, remote, etc.
+# functions. There's a corresponding exclude to allow usage within tests,
+# docs, examples, tools, src/libvirt-*.c, and include/libvirt/libvirt-*.h
+sc_prohibit_virXXXFree:
+	@prohibit='\bvir(Domain|Network|NodeDevice|StorageVol|StoragePool|Stream|Secret|NWFilter|Interface|DomainSnapshot)Free\b'	\
+	exclude='sc_prohibit_virXXXFree' \
+	halt='avoid using 'virXXXFree', use 'virObjectUnref' instead' \
+	  $(_sc_search_regexp)
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -1030,7 +1050,7 @@ endif
 bracket-spacing-check:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.c$$'`; \
 	$(PERL) $(top_srcdir)/build-aux/bracket-spacing.pl $$files || \
-	  { echo '$(ME): incorrect whitespace, see HACKING for rules' 1>&2; \
+	  { echo '$(ME): incorrect formatting, see HACKING for rules' 1>&2; \
 	    exit 1; }
 
 # sc_po_check can fail if generated files are not built first
@@ -1078,7 +1098,7 @@ exclude_file_name_regexp--sc_prohibit_strdup = \
   ^(docs/|examples/|src/util/virstring\.c|tests/virnetserverclientmock.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
-  (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt-stream\.c|tests/vir(cgroup|pci)mock\.c)$$)
+  (\.p[yl]$$|\.spec\.in$$|^docs/|^(src/util/virfile\.c|src/libvirt-stream\.c|tests/vir(cgroup|pci)mock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
   (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.diff$$)
@@ -1164,3 +1184,6 @@ exclude_file_name_regexp--sc_prohibit_useless_translation = \
 
 exclude_file_name_regexp--sc_prohibit_devname = \
   ^(tools/virsh.pod|cfg.mk|docs/.*)$$
+
+exclude_file_name_regexp--sc_prohibit_virXXXFree = \
+  ^(docs/|tests/|examples/|tools/|cfg.mk|src/test/test_driver.c|src/libvirt_public.syms|include/libvirt/libvirt-(domain|network|nodedev|storage|stream|secret|nwfilter|interface|domain-snapshot).h|src/libvirt-(domain|qemu|network|nodedev|storage|stream|secret|nwfilter|interface|domain-snapshot).c$$)
