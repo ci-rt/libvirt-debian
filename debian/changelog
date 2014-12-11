@@ -1,3 +1,14 @@
+libvirt (1.2.11~rc1-1) experimental; urgency=medium
+
+  * [8c5ba09] Rediff patches.
+    Dropped
+         allow-libxl-to-find-default-path-to-pygrub.patch: fixed upstram
+         CVE-2014-7823-dumpxml-security-....patch: fixed upstream
+         util-Prepare-URI-formatting-for-libxml2-2.9.2.patch: fixed upstream
+  * [bdb5692] Bump symbol versions
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 11 Dec 2014 08:15:24 +0100
+
 libvirt (1.2.10-1) experimental; urgency=medium
 
   * [87bcfc8] New upstream version 1.2.10
