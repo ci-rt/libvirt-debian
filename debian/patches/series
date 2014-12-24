@@ -20,3 +20,4 @@ security/CVE-2014-8131-Fix-possible-deadlock-and-segfault-in-.patch
 qemu-bulk-stats-Fix-logic-in-monitor-handling.patch
 security/CVE-2014-8135-storage-fix-crash-caused-by-no-check-r.patch
 security/CVE-2014-8136-qemu-migration-Unlock-vm-on-failed-ACL.patch
+upstream/qemu-Fix-crash-in-tunnelled-migration.patch
