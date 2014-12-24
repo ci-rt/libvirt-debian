@@ -1,3 +1,24 @@
+libvirt (1.2.9-7) unstable; urgency=medium
+
+  * [d7df883] CVE-2014-8131: Fix possible deadlock and segfault in
+    qemuConnectGetAllDomainStats()
+    (Closes: #773858)
+  * [d0085e0] qemu: bulk stats: Fix logic in monitor handling
+  * [b5e081c] CVE-2014-8135: storage: fix crash caused by no check return
+    before set close
+    (Closes: #773855)
+  * [a5452de] CVE-2014-8136: qemu: migration: Unlock vm on failed ACL check in
+    protocol v2 APIs
+    (Closes: #773856)
+  * [5aaafc9] qemu: Fix crash in tunnelled migration (Closes: #773503)
+  * [87b3713] lxc: Fix crash when using interface type 'direct'
+    Thanks to Bastian Blank for the patch (Closes: #769600)
+  * [17807c0] Document surprises on CPU microcode updates (Closes: #773706)
+  * [66a3ca6] Install lock drivers (Closes: #773706)
+  * [f6ffda7] vbox: fix a bug in _machineStateInactive (Closes: #770202)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 24 Dec 2014 10:33:31 +0100
+
 libvirt (1.2.9-6) unstable; urgency=medium
 
   * [9779548] Add a python build-dependency for the docs build
