@@ -16,3 +16,4 @@ debian/Debianize-virtlockd.patch
 qemu-use-systemd-s-TerminateMachine-to-kill-all-proc.patch
 security/CVE-2014-7823-dumpxml-security-hole-with-migratable-.patch
 util-Prepare-URI-formatting-for-libxml2-2.9.2.patch
+security/CVE-2014-8131-Fix-possible-deadlock-and-segfault-in-.patch
