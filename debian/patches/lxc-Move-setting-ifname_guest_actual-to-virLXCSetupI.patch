@@ -1,0 +1,32 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 19 Dec 2014 10:08:38 +0100
+Subject: lxc: Move setting ifname_guest_actual to virLXCSetupInterfaces
+
+so it applies to interfaces of type 'direct' too.
+---
+ src/lxc/lxc_process.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/lxc/lxc_process.c b/src/lxc/lxc_process.c
+index ed30c37..d15c215 100644
+--- a/src/lxc/lxc_process.c
++++ b/src/lxc/lxc_process.c
+@@ -259,8 +259,6 @@ char *virLXCProcessSetupInterfaceBridged(virConnectPtr conn,
+ 
+     if (virNetDevSetMAC(containerVeth, &net->mac) < 0)
+         goto cleanup;
+-    if (VIR_STRDUP(net->ifname_guest_actual, containerVeth) < 0)
+-        goto cleanup;
+ 
+     if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
+         if (virNetDevOpenvswitchAddPort(brname, parentVeth, &net->mac,
+@@ -452,6 +450,9 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
+ 
+         (*veths)[(*nveths)-1] = veth;
+ 
++        if (VIR_STRDUP(def->nets[i]->ifname_guest_actual, veth) < 0)
++            goto cleanup;
++
+         /* Make sure all net definitions will have a name in the container */
+         if (!def->nets[i]->ifname_guest) {
+             if (virAsprintf(&def->nets[i]->ifname_guest, "eth%zu", niface) < 0)

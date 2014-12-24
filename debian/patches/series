@@ -21,3 +21,5 @@ qemu-bulk-stats-Fix-logic-in-monitor-handling.patch
 security/CVE-2014-8135-storage-fix-crash-caused-by-no-check-r.patch
 security/CVE-2014-8136-qemu-migration-Unlock-vm-on-failed-ACL.patch
 upstream/qemu-Fix-crash-in-tunnelled-migration.patch
+lxc-Move-setting-ifname_guest_actual-to-virLXCSetupI.patch
+lxc-Don-t-crash-on-NULL-ifname_guest_actual.patch
