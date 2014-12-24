@@ -84,4 +84,32 @@ for a complete explanation:
   <http://bugs.debian.org/453627>
   <http://bugs.debian.org/614291>
 
- -- Guido Günther <agx@sigxcpu.org>  Sun, 28 Sep 2014 09:50:41 +0200
+Libvirt CPU models and microcode updates
+========================================
+CPU microcode updates (e.g. via the intel-microcode package) might change the
+available CPU flags. One example is version 3.20140913.1 of the intel-microcode
+removing TSX-NI which results in the kernel no longer reporting the *hle* flag.
+
+In this case if you hard coded the CPU model in your virtual machine
+configuration via:
+
+   <cpu mode='custom' match='exact'>
+     <model fallback='forbid'>Haswell</model>
+     <vendor>Intel</vendor>
+     ...
+   </cpu>
+
+and update the CPU microcode the VM might fail to start with errors like
+
+  error: Failed to start domain foo
+  error: unsupported configuration: guest and host CPU are not compatible: Host CPU does not provide required features: hle
+
+since libvirt doesn't differentiate between microcode versions. It is therefore
+recommended to copy over the needed CPU flags instead of hard coding the CPU
+model. See
+
+  <https://www.redhat.com/archives/libvir-list/2014-December/msg00950.html>
+
+for further details.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wen, 24 Dec 2014 09:55:41 +0200
