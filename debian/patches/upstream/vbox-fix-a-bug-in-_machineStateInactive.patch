@@ -1,0 +1,28 @@
+From: Yohan BELLEGUIC <yohan.belleguic@diateam.net>
+Date: Wed, 19 Nov 2014 09:53:15 +0100
+Subject: vbox: fix a bug in _machineStateInactive
+
+This function returned non-inactive domains instead of active
+domains.  This broke virConnectNumOfDefinedDomains() and
+virConnectListDefinedDomains() functions.
+
+Closes: #770202
+---
+ src/vbox/vbox_tmpl.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/vbox/vbox_tmpl.c b/src/vbox/vbox_tmpl.c
+index e5d6d66..c42e186 100644
+--- a/src/vbox/vbox_tmpl.c
++++ b/src/vbox/vbox_tmpl.c
+@@ -6081,8 +6081,8 @@ static bool _machineStateOnline(PRUint32 state)
+ 
+ static bool _machineStateInactive(PRUint32 state)
+ {
+-    return ((state > MachineState_FirstOnline) &&
+-            (state < MachineState_LastOnline));
++    return ((state < MachineState_FirstOnline) ||
++            (state > MachineState_LastOnline));
+ }
+ 
+ static bool _machineStateNotStart(PRUint32 state)
