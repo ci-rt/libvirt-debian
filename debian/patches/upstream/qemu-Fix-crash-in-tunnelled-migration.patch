@@ -1,0 +1,32 @@
+From: Jiri Denemark <jdenemar@redhat.com>
+Date: Thu, 20 Nov 2014 13:09:16 +0100
+Subject: qemu: Fix crash in tunnelled migration
+
+Any attempt to start a tunnelled migration with libvirtd that supports
+RDMA migration (specifically commit v1.2.8-226-ged22a47) crashes
+libvirtd on the destination host.
+
+The crash is inevitable because qemuMigrationPrepareAny is always called
+with NULL protocol in case of tunnelled migration.
+
+https://bugzilla.redhat.com/show_bug.cgi?id=1147331
+Signed-off-by: Jiri Denemark <jdenemar@redhat.com>
+
+Closes: #773503
+---
+ src/qemu/qemu_migration.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/qemu/qemu_migration.c b/src/qemu/qemu_migration.c
+index 284cd5a..e18556f 100644
+--- a/src/qemu/qemu_migration.c
++++ b/src/qemu/qemu_migration.c
+@@ -2696,7 +2696,7 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
+                                        QEMU_MIGRATION_COOKIE_NBD)))
+         goto cleanup;
+ 
+-    if (STREQ(protocol, "rdma") && !vm->def->mem.hard_limit) {
++    if (STREQ_NULLABLE(protocol, "rdma") && !vm->def->mem.hard_limit) {
+         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("cannot start RDMA migration with no memory hard "
+                          "limit set"));
