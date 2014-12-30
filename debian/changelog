@@ -1,3 +1,20 @@
+libvirt (1.2.9-7~bpo70+1) wheezy-backports; urgency=medium
+
+  [ Guido Günther ]
+  * Rebuild for wheezy-backports.
+  * Remaining changes:
+    * [b46b754] Drop sheepdog support not available in Wheezy
+    * [31a2113] Use libnl1 since libnetcf1 is linked against libnl1 in Wheezy.
+      Also make sure we don't pickup up libnetcf-dev using libnl3.
+    * [4ca4854] Make sure the cgroup update notice is also shown in backports
+    * [c5a59dd] Drop version in polkit-1 dependency.  This reintroduces
+      CVE-2013-4311 since we don't have a recent enough polkit-1 in wheezy.
+    * [4db6aaa] Disable xenlight support not available in wheezy
+    * [773a305] Allow backported versions of dh-systemd
+    * [314c4aa] Use libgcrpt/gnutls versions from wheezy
+  
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 30 Dec 2014 13:50:12 +0100
+
 libvirt (1.2.9-7) unstable; urgency=medium
 
   * [d7df883] CVE-2014-8131: Fix possible deadlock and segfault in
