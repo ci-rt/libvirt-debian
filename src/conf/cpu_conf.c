@@ -366,6 +366,11 @@ virCPUDefParseXML(xmlNodePtr node,
         goto error;
 
     if (n > 0) {
+        if (!def->model && def->mode == VIR_CPU_MODE_HOST_PASSTHROUGH) {
+            /* silently ignore incorrectly formatted features generated
+             * by older libvirt */
+            goto cleanup;
+        }
         if (!def->model && def->mode != VIR_CPU_MODE_HOST_MODEL) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("Non-empty feature list specified without "
@@ -658,7 +663,7 @@ virCPUDefFormatBuf(virBufferPtr buf,
         virBufferAddLit(buf, "/>\n");
     }
 
-    for (i = 0; i < def->nfeatures; i++) {
+    for (i = 0; formatModel && i < def->nfeatures; i++) {
         virCPUFeatureDefPtr feature = def->features + i;
 
         if (!feature->name) {
