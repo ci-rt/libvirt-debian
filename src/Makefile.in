@@ -1246,7 +1246,8 @@ am__libvirt_driver_qemu_impl_la_SOURCES_DIST = qemu/qemu_agent.c \
 	qemu/qemu_migration.h qemu/qemu_monitor.c qemu/qemu_monitor.h \
 	qemu/qemu_monitor_text.c qemu/qemu_monitor_text.h \
 	qemu/qemu_monitor_json.c qemu/qemu_monitor_json.h \
-	qemu/qemu_driver.c qemu/qemu_driver.h
+	qemu/qemu_driver.c qemu/qemu_driver.h qemu/qemu_interface.c \
+	qemu/qemu_interface.h
 am__objects_50 = qemu/libvirt_driver_qemu_impl_la-qemu_agent.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_capabilities.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_command.lo \
@@ -1260,7 +1261,8 @@ am__objects_50 = qemu/libvirt_driver_qemu_impl_la-qemu_agent.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_monitor.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_monitor_text.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_monitor_json.lo \
-	qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo
+	qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo \
+	qemu/libvirt_driver_qemu_impl_la-qemu_interface.lo
 @WITH_QEMU_TRUE@am_libvirt_driver_qemu_impl_la_OBJECTS =  \
 @WITH_QEMU_TRUE@	$(am__objects_50)
 libvirt_driver_qemu_impl_la_OBJECTS =  \
@@ -4160,7 +4162,8 @@ QEMU_DRIVER_SOURCES = \
 		qemu/qemu_monitor_text.h				\
 		qemu/qemu_monitor_json.c				\
 		qemu/qemu_monitor_json.h				\
-		qemu/qemu_driver.c qemu/qemu_driver.h
+		qemu/qemu_driver.c qemu/qemu_driver.h	\
+		qemu/qemu_interface.c qemu/qemu_interface.h
 
 XENAPI_DRIVER_SOURCES = \
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
@@ -5903,6 +5906,8 @@ qemu/libvirt_driver_qemu_impl_la-qemu_monitor_json.lo:  \
 	qemu/$(am__dirstamp) qemu/$(DEPDIR)/$(am__dirstamp)
 qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo: qemu/$(am__dirstamp) \
 	qemu/$(DEPDIR)/$(am__dirstamp)
+qemu/libvirt_driver_qemu_impl_la-qemu_interface.lo:  \
+	qemu/$(am__dirstamp) qemu/$(DEPDIR)/$(am__dirstamp)
 
 libvirt_driver_qemu_impl.la: $(libvirt_driver_qemu_impl_la_OBJECTS) $(libvirt_driver_qemu_impl_la_DEPENDENCIES) $(EXTRA_libvirt_driver_qemu_impl_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libvirt_driver_qemu_impl_la_LINK) $(am_libvirt_driver_qemu_impl_la_rpath) $(libvirt_driver_qemu_impl_la_OBJECTS) $(libvirt_driver_qemu_impl_la_LIBADD) $(LIBS)
@@ -6718,6 +6723,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_hostdev.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_hotplug.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_interface.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_migration.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_monitor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_monitor_json.Plo@am__quote@
@@ -8429,6 +8435,13 @@ qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo: qemu/qemu_driver.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='qemu/qemu_driver.c' object='qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_impl_la_CFLAGS) $(CFLAGS) -c -o qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo `test -f 'qemu/qemu_driver.c' || echo '$(srcdir)/'`qemu/qemu_driver.c
+
+qemu/libvirt_driver_qemu_impl_la-qemu_interface.lo: qemu/qemu_interface.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_impl_la_CFLAGS) $(CFLAGS) -MT qemu/libvirt_driver_qemu_impl_la-qemu_interface.lo -MD -MP -MF qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_interface.Tpo -c -o qemu/libvirt_driver_qemu_impl_la-qemu_interface.lo `test -f 'qemu/qemu_interface.c' || echo '$(srcdir)/'`qemu/qemu_interface.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_interface.Tpo qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_interface.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='qemu/qemu_interface.c' object='qemu/libvirt_driver_qemu_impl_la-qemu_interface.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_impl_la_CFLAGS) $(CFLAGS) -c -o qemu/libvirt_driver_qemu_impl_la-qemu_interface.lo `test -f 'qemu/qemu_interface.c' || echo '$(srcdir)/'`qemu/qemu_interface.c
 
 remote/libvirt_driver_remote_la-remote_driver.lo: remote/remote_driver.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_remote_la_CFLAGS) $(CFLAGS) -MT remote/libvirt_driver_remote_la-remote_driver.lo -MD -MP -MF remote/$(DEPDIR)/libvirt_driver_remote_la-remote_driver.Tpo -c -o remote/libvirt_driver_remote_la-remote_driver.lo `test -f 'remote/remote_driver.c' || echo '$(srcdir)/'`remote/remote_driver.c

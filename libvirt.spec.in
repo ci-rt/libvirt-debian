@@ -363,7 +363,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -372,7 +372,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -427,7 +427,6 @@ BuildRequires: /usr/bin/pod2man
 %endif
 BuildRequires: git
 BuildRequires: perl
-BuildRequires: perl-XML-XPath
 BuildRequires: python
 %if %{with_systemd}
 BuildRequires: systemd-units
@@ -2280,6 +2279,13 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Sat Dec 13 2014 Daniel Veillard <veillard@redhat.com> - 1.2.11-1
+- CVE-2014-8131: Fix possible deadlock and segfault in qemuConnectGetAllDomainStats()
+- CVE-2014-7823: dumpxml: security hole with migratable flag
+- Implement public API for virDomainGetFSInfo
+- Add define support for the new throttle options
+- a number of improvements and bug fixes
+
 * Mon Nov  3 2014 Daniel Veillard <veillard@redhat.com> - 1.2.10-1
 - vbox: various drivers improvements
 - libxl: various drivers improvements

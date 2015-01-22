@@ -30,6 +30,7 @@
 #include "qemu_domain.h"
 #include "qemu_command.h"
 #include "qemu_hostdev.h"
+#include "qemu_interface.h"
 #include "domain_audit.h"
 #include "netdev_bandwidth_conf.h"
 #include "domain_nwfilter.h"
@@ -758,7 +759,6 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
 {
     virDomainDiskDefPtr disk = dev->data.disk;
     virDomainDiskDefPtr orig_disk = NULL;
-    virCapsPtr caps = NULL;
     int ret = -1;
     const char *driverName = virDomainDiskGetDriver(disk);
     const char *src = virDomainDiskGetSource(disk);
@@ -795,9 +795,6 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
                            disk->dst);
             goto end;
         }
-
-        if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
-            goto end;
 
         if (qemuDomainChangeEjectableMedia(driver, conn, vm, orig_disk,
                                            disk->src, false) < 0)
@@ -837,7 +834,6 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
  end:
     if (ret != 0)
         ignore_value(qemuRemoveSharedDevice(driver, dev, vm->def->name));
-    virObjectUnref(caps);
     return ret;
 }
 
@@ -947,6 +943,10 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, vhostfd, &vhostfdSize) < 0)
             goto cleanup;
     }
+
+    /* Set device online immediately */
+    if (qemuInterfaceStartDevice(net) < 0)
+       goto cleanup;
 
     /* Set Bandwidth */
     if (virNetDevSupportBandwidth(actualType) &&
