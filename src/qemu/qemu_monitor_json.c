@@ -1300,6 +1300,75 @@ int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
 }
 
 
+/**
+ * Loads correct video memory size values from QEMU and update the video
+ * definition.
+ *
+ * Return 0 on success, -1 on failure and set proper error message.
+ */
+int
+qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
+                                     virDomainVideoDefPtr video,
+                                     char *path)
+{
+    qemuMonitorJSONObjectProperty prop = {
+        QEMU_MONITOR_OBJECT_PROPERTY_ULONG,
+        {0}
+    };
+
+    switch (video->type) {
+    case VIR_DOMAIN_VIDEO_TYPE_VGA:
+        if (qemuMonitorJSONGetObjectProperty(mon, path, "vgamem_mb", &prop) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("QOM Objext '%s' has no property 'vgamem_mb'"),
+                           path);
+            return -1;
+        }
+        video->vram = prop.val.ul * 1024;
+        break;
+    case VIR_DOMAIN_VIDEO_TYPE_QXL:
+        if (qemuMonitorJSONGetObjectProperty(mon, path, "vram_size", &prop) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("QOM Objext '%s' has no property 'vram_size'"),
+                           path);
+            return -1;
+        }
+        video->vram = prop.val.ul / 1024;
+        if (qemuMonitorJSONGetObjectProperty(mon, path, "ram_size", &prop) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("QOM Objext '%s' has no property 'ram_size'"),
+                           path);
+            return -1;
+        }
+        video->ram = prop.val.ul / 1024;
+        if (qemuMonitorJSONGetObjectProperty(mon, path, "vgamem_mb", &prop) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("QOM Objext '%s' has no property 'vgamem_mb'"),
+                           path);
+            return -1;
+        }
+        video->vgamem = prop.val.ul * 1024;
+        break;
+    case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
+        if (qemuMonitorJSONGetObjectProperty(mon, path, "vgamem_mb", &prop) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("QOM Objext '%s' has no property 'vgamem_mb'"),
+                           path);
+            return -1;
+        }
+        video->vram = prop.val.ul * 1024;
+        break;
+    case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+    case VIR_DOMAIN_VIDEO_TYPE_XEN:
+    case VIR_DOMAIN_VIDEO_TYPE_VBOX:
+    case VIR_DOMAIN_VIDEO_TYPE_LAST:
+        break;
+    }
+
+    return 0;
+}
+
+
 /*
  * Returns: 0 if balloon not supported, +1 if balloon query worked
  * or -1 on failure
@@ -1627,7 +1696,7 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
     if (flush_total_times)
         *flush_total_times = -1;
 
-    if (qemuMonitorJSONGetAllBlockStatsInfo(mon, &blockstats) < 0)
+    if (qemuMonitorJSONGetAllBlockStatsInfo(mon, &blockstats, false) < 0)
         goto cleanup;
 
     if (!(stats = virHashLookup(blockstats, dev_name))) {
@@ -1693,8 +1762,118 @@ qemuMonitorJSONDevGetBlockExtent(virJSONValuePtr dev,
 }
 
 
-int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
-                                        virHashTablePtr *ret_stats)
+static int
+qemuMonitorJSONGetOneBlockStatsInfo(virJSONValuePtr dev,
+                                    const char *dev_name,
+                                    int depth,
+                                    virHashTablePtr hash,
+                                    bool backingChain)
+{
+    qemuBlockStatsPtr bstats = NULL;
+    virJSONValuePtr stats;
+    int ret = -1;
+    char *entry_name = qemuDomainStorageAlias(dev_name, depth);
+    virJSONValuePtr backing;
+
+    if (!entry_name)
+        goto cleanup;
+    if (VIR_ALLOC(bstats) < 0)
+        goto cleanup;
+
+    if ((stats = virJSONValueObjectGet(dev, "stats")) == NULL ||
+        stats->type != VIR_JSON_TYPE_OBJECT) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("blockstats stats entry was not "
+                         "in expected format"));
+        goto cleanup;
+    }
+
+    if (virJSONValueObjectGetNumberLong(stats, "rd_bytes",
+                                        &bstats->rd_bytes) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "rd_bytes");
+        goto cleanup;
+    }
+    if (virJSONValueObjectGetNumberLong(stats, "rd_operations",
+                                        &bstats->rd_req) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "rd_operations");
+        goto cleanup;
+    }
+    if (virJSONValueObjectHasKey(stats, "rd_total_time_ns") &&
+        (virJSONValueObjectGetNumberLong(stats, "rd_total_time_ns",
+                                         &bstats->rd_total_times) < 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "rd_total_time_ns");
+        goto cleanup;
+    }
+    if (virJSONValueObjectGetNumberLong(stats, "wr_bytes",
+                                        &bstats->wr_bytes) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "wr_bytes");
+        goto cleanup;
+    }
+    if (virJSONValueObjectGetNumberLong(stats, "wr_operations",
+                                        &bstats->wr_req) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "wr_operations");
+        goto cleanup;
+    }
+    if (virJSONValueObjectHasKey(stats, "wr_total_time_ns") &&
+        (virJSONValueObjectGetNumberLong(stats, "wr_total_time_ns",
+                                         &bstats->wr_total_times) < 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "wr_total_time_ns");
+        goto cleanup;
+    }
+    if (virJSONValueObjectHasKey(stats, "flush_operations") &&
+        (virJSONValueObjectGetNumberLong(stats, "flush_operations",
+                                         &bstats->flush_req) < 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "flush_operations");
+        goto cleanup;
+    }
+    if (virJSONValueObjectHasKey(stats, "flush_total_time_ns") &&
+        (virJSONValueObjectGetNumberLong(stats, "flush_total_time_ns",
+                                         &bstats->flush_total_times) < 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot read %s statistic"),
+                       "flush_total_time_ns");
+        goto cleanup;
+    }
+
+    /* it's ok to not have this information here. Just skip silently. */
+    qemuMonitorJSONDevGetBlockExtent(dev, &bstats->wr_highest_offset);
+
+    if (virHashAddEntry(hash, entry_name, bstats) < 0)
+        goto cleanup;
+    bstats = NULL;
+
+    if (backingChain &&
+        (backing = virJSONValueObjectGet(dev, "backing")) &&
+        qemuMonitorJSONGetOneBlockStatsInfo(backing, dev_name, depth + 1,
+                                            hash, true) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(bstats);
+    VIR_FREE(entry_name);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
+                                    virHashTablePtr *ret_stats,
+                                    bool backingChain)
 {
     int ret = -1;
     int rc;
@@ -1702,7 +1881,6 @@ int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr devices;
-    qemuBlockStatsPtr bstats = NULL;
     virHashTablePtr hash = NULL;
 
     if (!(cmd = qemuMonitorJSONMakeCommand("query-blockstats", NULL)))
@@ -1726,11 +1904,7 @@ int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
 
     for (i = 0; i < virJSONValueArraySize(devices); i++) {
         virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
-        virJSONValuePtr stats;
         const char *dev_name;
-
-        if (VIR_ALLOC(bstats) < 0)
-            goto cleanup;
 
         if (!dev || dev->type != VIR_JSON_TYPE_OBJECT) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1746,84 +1920,10 @@ int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (STRPREFIX(dev_name, QEMU_DRIVE_HOST_PREFIX))
-            dev_name += strlen(QEMU_DRIVE_HOST_PREFIX);
+        if (qemuMonitorJSONGetOneBlockStatsInfo(dev, dev_name, 0, hash,
+                                                backingChain) < 0)
+            goto cleanup;
 
-        if ((stats = virJSONValueObjectGet(dev, "stats")) == NULL ||
-            stats->type != VIR_JSON_TYPE_OBJECT) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("blockstats stats entry was not "
-                             "in expected format"));
-            goto cleanup;
-        }
-
-        if (virJSONValueObjectGetNumberLong(stats, "rd_bytes",
-                                            &bstats->rd_bytes) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                           "rd_bytes");
-            goto cleanup;
-        }
-        if (virJSONValueObjectGetNumberLong(stats, "rd_operations",
-                                            &bstats->rd_req) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                            "rd_operations");
-            goto cleanup;
-        }
-        if (virJSONValueObjectHasKey(stats, "rd_total_time_ns") &&
-            (virJSONValueObjectGetNumberLong(stats, "rd_total_time_ns",
-                                             &bstats->rd_total_times) < 0)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                           "rd_total_time_ns");
-            goto cleanup;
-        }
-        if (virJSONValueObjectGetNumberLong(stats, "wr_bytes",
-                                            &bstats->wr_bytes) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                           "wr_bytes");
-            goto cleanup;
-        }
-        if (virJSONValueObjectGetNumberLong(stats, "wr_operations",
-                                            &bstats->wr_req) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                           "wr_operations");
-            goto cleanup;
-        }
-        if (virJSONValueObjectHasKey(stats, "wr_total_time_ns") &&
-            (virJSONValueObjectGetNumberLong(stats, "wr_total_time_ns",
-                                             &bstats->wr_total_times) < 0)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                           "wr_total_time_ns");
-            goto cleanup;
-        }
-        if (virJSONValueObjectHasKey(stats, "flush_operations") &&
-            (virJSONValueObjectGetNumberLong(stats, "flush_operations",
-                                             &bstats->flush_req) < 0)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                           "flush_operations");
-            goto cleanup;
-        }
-        if (virJSONValueObjectHasKey(stats, "flush_total_time_ns") &&
-            (virJSONValueObjectGetNumberLong(stats, "flush_total_time_ns",
-                                             &bstats->flush_total_times) < 0)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot read %s statistic"),
-                           "flush_total_time_ns");
-            goto cleanup;
-        }
-
-        /* it's ok to not have this information here. Just skip silently. */
-        qemuMonitorJSONDevGetBlockExtent(dev, &bstats->wr_highest_offset);
-
-        if (virHashAddEntry(hash, dev_name, bstats) < 0)
-            goto cleanup;
-        bstats = NULL;
     }
 
     *ret_stats = hash;
@@ -1831,7 +1931,6 @@ int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
     ret = 0;
 
  cleanup:
-    VIR_FREE(bstats);
     virHashFree(hash);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
@@ -1839,8 +1938,59 @@ int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
 }
 
 
-int qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
-                                            virHashTablePtr stats)
+static int
+qemuMonitorJSONBlockStatsUpdateCapacityOne(virJSONValuePtr image,
+                                           const char *dev_name,
+                                           int depth,
+                                           virHashTablePtr stats,
+                                           bool backingChain)
+{
+    qemuBlockStatsPtr bstats;
+    int ret = -1;
+    char *entry_name = qemuDomainStorageAlias(dev_name, depth);
+    virJSONValuePtr backing;
+
+    if (!(bstats = virHashLookup(stats, entry_name))) {
+        if (VIR_ALLOC(bstats) < 0)
+            goto cleanup;
+
+        if (virHashAddEntry(stats, entry_name, bstats) < 0) {
+            VIR_FREE(bstats);
+            goto cleanup;
+        }
+    }
+
+    /* After this point, we ignore failures; the stats were
+     * zero-initialized when created which is a sane fallback.  */
+    ret = 0;
+    if (virJSONValueObjectGetNumberUlong(image, "virtual-size",
+                                         &bstats->capacity) < 0)
+        goto cleanup;
+
+    /* if actual-size is missing, image is not thin provisioned */
+    if (virJSONValueObjectGetNumberUlong(image, "actual-size",
+                                         &bstats->physical) < 0)
+        bstats->physical = bstats->capacity;
+
+    if (backingChain &&
+        (backing = virJSONValueObjectGet(image, "backing-image"))) {
+        ret = qemuMonitorJSONBlockStatsUpdateCapacityOne(backing,
+                                                         dev_name,
+                                                         depth + 1,
+                                                         stats,
+                                                         true);
+    }
+
+ cleanup:
+    VIR_FREE(entry_name);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
+                                        virHashTablePtr stats,
+                                        bool backingChain)
 {
     int ret = -1;
     int rc;
@@ -1869,7 +2019,6 @@ int qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
         virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
         virJSONValuePtr inserted;
         virJSONValuePtr image;
-        qemuBlockStatsPtr bstats;
         const char *dev_name;
 
         if (!dev || dev->type != VIR_JSON_TYPE_OBJECT) {
@@ -1886,32 +2035,15 @@ int qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (STRPREFIX(dev_name, QEMU_DRIVE_HOST_PREFIX))
-            dev_name += strlen(QEMU_DRIVE_HOST_PREFIX);
-
         /* drive may be empty */
         if (!(inserted = virJSONValueObjectGet(dev, "inserted")) ||
             !(image = virJSONValueObjectGet(inserted, "image")))
             continue;
 
-        if (!(bstats = virHashLookup(stats, dev_name))) {
-            if (VIR_ALLOC(bstats) < 0)
-                goto cleanup;
-
-            if (virHashAddEntry(stats, dev_name, bstats) < 0) {
-                VIR_FREE(bstats);
-                goto cleanup;
-            }
-        }
-
-        if (virJSONValueObjectGetNumberUlong(image, "virtual-size",
-                                             &bstats->capacity) < 0)
-            continue;
-
-        /* if actual-size is missing, image is not thin provisioned */
-        if (virJSONValueObjectGetNumberUlong(image, "actual-size",
-                                             &bstats->physical) < 0)
-            bstats->physical = bstats->capacity;
+        if (qemuMonitorJSONBlockStatsUpdateCapacityOne(image, dev_name, 0,
+                                                       stats,
+                                                       backingChain) < 0)
+            goto cleanup;
     }
 
     ret = 0;

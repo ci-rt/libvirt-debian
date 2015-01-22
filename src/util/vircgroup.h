@@ -1,7 +1,7 @@
 /*
  * vircgroup.h: methods for managing control cgroups
  *
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * This library is free software; you can redistribute it and/or
@@ -100,6 +100,8 @@ int virCgroupNewMachine(const char *name,
                         const char *rootdir,
                         pid_t pidleader,
                         bool isContainer,
+                        size_t nnicindexes,
+                        int *nicindexes,
                         const char *partition,
                         int controllers,
                         virCgroupPtr *group)
@@ -269,5 +271,7 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
                       uid_t uid,
                       gid_t gid,
                       int controllers);
+
+int virCgroupHasEmptyTasks(virCgroupPtr cgroup, int controller);
 
 #endif /* __VIR_CGROUP_H__ */

@@ -195,6 +195,7 @@
      <exports symbol='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED' type='enum'/>
      <exports symbol='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER' type='enum'/>
@@ -277,6 +278,7 @@
      <exports symbol='VIR_DOMAIN_CRASHED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED_PANICKED' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED_UNKNOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DEFINE_VALIDATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_DESTROY_DEFAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_DESTROY_GRACEFUL' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' type='enum'/>
@@ -557,6 +559,7 @@
      <exports symbol='VIR_DOMAIN_START_BYPASS_CACHE' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_FORCE_BOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_PAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_START_VALIDATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_BALLOON' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_BLOCK' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_CPU_TOTAL' type='enum'/>
@@ -649,6 +652,7 @@
      <exports symbol='virDomainCoreDumpFormat' type='typedef'/>
      <exports symbol='virDomainCrashedReason' type='typedef'/>
      <exports symbol='virDomainCreateFlags' type='typedef'/>
+     <exports symbol='virDomainDefineFlags' type='typedef'/>
      <exports symbol='virDomainDestroyFlagsValues' type='typedef'/>
      <exports symbol='virDomainDeviceModifyFlags' type='typedef'/>
      <exports symbol='virDomainDiskError' type='typedef'/>
@@ -793,6 +797,7 @@
      <exports symbol='virDomainCreateXML' type='function'/>
      <exports symbol='virDomainCreateXMLWithFiles' type='function'/>
      <exports symbol='virDomainDefineXML' type='function'/>
+     <exports symbol='virDomainDefineXMLFlags' type='function'/>
      <exports symbol='virDomainDestroy' type='function'/>
      <exports symbol='virDomainDestroyFlags' type='function'/>
      <exports symbol='virDomainDetachDevice' type='function'/>
@@ -1580,6 +1585,7 @@
      <exports symbol='VIR_ERR_XEN_CALL' type='enum'/>
      <exports symbol='VIR_ERR_XML_DETAIL' type='enum'/>
      <exports symbol='VIR_ERR_XML_ERROR' type='enum'/>
+     <exports symbol='VIR_ERR_XML_INVALID_SCHEMA' type='enum'/>
      <exports symbol='VIR_FROM_ACCESS' type='enum'/>
      <exports symbol='VIR_FROM_AUDIT' type='enum'/>
      <exports symbol='VIR_FROM_AUTH' type='enum'/>
@@ -2158,6 +2164,7 @@ CPUs as failure'/>
     <enum name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED' file='libvirt-domain' value='2' type='virConnectDomainEventAgentLifecycleState' info='agent disconnected'/>
     <enum name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST' file='libvirt-domain' value='3' type='virConnectDomainEventAgentLifecycleState'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_ACTIVE' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING' file='libvirt-domain' value='1073741824' type='virConnectGetAllDomainStatsFlags' info='include backing chain for block stats'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS' file='libvirt-domain' value='2147483648' type='virConnectGetAllDomainStatsFlags' info='enforce requested stats'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_INACTIVE' type='virConnectGetAllDomainStatsFlags'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_OTHER' type='virConnectGetAllDomainStatsFlags'/>
@@ -2336,6 +2343,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_CRASHED_LAST' file='libvirt-domain' value='2' type='virDomainCrashedReason'/>
     <enum name='VIR_DOMAIN_CRASHED_PANICKED' file='libvirt-domain' value='1' type='virDomainCrashedReason' info='domain panicked'/>
     <enum name='VIR_DOMAIN_CRASHED_UNKNOWN' file='libvirt-domain' value='0' type='virDomainCrashedReason' info='crashed for unknown reason'/>
+    <enum name='VIR_DOMAIN_DEFINE_VALIDATE' file='libvirt-domain' value='1' type='virDomainDefineFlags' info='Validate the XML document against schema'/>
     <enum name='VIR_DOMAIN_DESTROY_DEFAULT' file='libvirt-domain' value='0' type='virDomainDestroyFlagsValues' info='Default behavior - could lead to data loss!!'/>
     <enum name='VIR_DOMAIN_DESTROY_GRACEFUL' file='libvirt-domain' value='1' type='virDomainDestroyFlagsValues' info='only SIGTERM, no SIGKILL'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainDeviceModifyFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
@@ -2693,6 +2701,7 @@ listing a domain'/>
     <enum name='VIR_DOMAIN_START_BYPASS_CACHE' file='libvirt-domain' value='4' type='virDomainCreateFlags' info='Avoid file system cache pollution'/>
     <enum name='VIR_DOMAIN_START_FORCE_BOOT' file='libvirt-domain' value='8' type='virDomainCreateFlags' info='Boot, discarding any managed save'/>
     <enum name='VIR_DOMAIN_START_PAUSED' file='libvirt-domain' value='1' type='virDomainCreateFlags' info='Launch guest in paused state'/>
+    <enum name='VIR_DOMAIN_START_VALIDATE' file='libvirt-domain' value='16' type='virDomainCreateFlags' info='Validate the XML document against schema'/>
     <enum name='VIR_DOMAIN_STATS_BALLOON' file='libvirt-domain' value='4' type='virDomainStatsTypes' info='return domain balloon info'/>
     <enum name='VIR_DOMAIN_STATS_BLOCK' file='libvirt-domain' value='32' type='virDomainStatsTypes' info='return domain block info'/>
     <enum name='VIR_DOMAIN_STATS_CPU_TOTAL' file='libvirt-domain' value='2' type='virDomainStatsTypes' info='return domain CPU info'/>
@@ -2828,6 +2837,7 @@ risky domain snapshot revert'/>
     <enum name='VIR_ERR_XML_DETAIL' file='virterror' value='35' type='virErrorNumber' info='detail of an XML error'/>
     <enum name='VIR_ERR_XML_ERROR' file='virterror' value='27' type='virErrorNumber' info='an XML description is not well
 formed or broken'/>
+    <enum name='VIR_ERR_XML_INVALID_SCHEMA' file='virterror' value='92' type='virErrorNumber' info='XML document doens&apos;t validate against schema'/>
     <enum name='VIR_EVENT_HANDLE_ERROR' file='libvirt-event' value='4' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_HANGUP' file='libvirt-event' value='8' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt-event' value='1' type='virEventHandleType'/>
@@ -3113,9 +3123,16 @@ Cryptography&quot; (1996)'/>
     <typedef name='virDomainBlockCommitFlags' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainBlockCopyFlags' file='libvirt-domain' type='enum'/>
     <struct name='virDomainBlockInfo' file='libvirt-domain' type='struct _virDomainBlockInfo'>
-      <field name='capacity' type='unsigned long long' info='logical size in bytes of the block device backing image'/>
-      <field name='allocation' type='unsigned long long' info='highest allocated extent in bytes of the block device backing image'/>
-      <field name='physical' type='unsigned long long' info='physical size in bytes of the container of the backing image'/>
+      <field name='capacity' type='unsigned long long' info='logical size in bytes of the
+ image (how much storage the
+ guest will see)'/>
+      <field name='allocation' type='unsigned long long' info='host storage in bytes occupied
+ by the image (such as highest
+ allocated extent if there are no
+ holes, similar to &apos;du&apos;)'/>
+      <field name='physical' type='unsigned long long' info='host physical size in bytes of
+ the image container (last
+ offset, similar to &apos;ls&apos;'/>
     </struct>
     <typedef name='virDomainBlockInfoPtr' file='libvirt-domain' type='virDomainBlockInfo *'/>
     <typedef name='virDomainBlockJobAbortFlags' file='libvirt-domain' type='enum'/>
@@ -3164,6 +3181,7 @@ and ERROR states)'/>
     <typedef name='virDomainCoreDumpFormat' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainCrashedReason' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainCreateFlags' file='libvirt-domain' type='enum'/>
+    <typedef name='virDomainDefineFlags' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainDestroyFlagsValues' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainDeviceModifyFlags' file='libvirt-domain' type='enum'/>
     <struct name='virDomainDiskError' file='libvirt-domain' type='struct _virDomainDiskError'>
@@ -3444,11 +3462,17 @@ unusual numa topology'/>
     <struct name='virSecret' file='libvirt-secret' type='struct _virSecret'/>
     <typedef name='virSecretPtr' file='libvirt-secret' type='virSecret *'/>
     <typedef name='virSecretUsageType' file='libvirt-secret' type='enum'/>
-    <struct name='virSecurityLabel' file='libvirt-host' type='struct _virSecurityLabel'/>
+    <struct name='virSecurityLabel' file='libvirt-host' type='struct _virSecurityLabel'>
+      <field name='label' type='char label[VIR_SECURITY_LABEL_BUFLEN]' info='security label string'/>
+      <field name='enforcing' type='int' info='1 if security policy is being enforced for domain'/>
+    </struct>
     <typedef name='virSecurityLabelPtr' file='libvirt-host' type='virSecurityLabel *'>
       <info><![CDATA[a virSecurityLabelPtr is a pointer to a virSecurityLabel.]]></info>
     </typedef>
-    <struct name='virSecurityModel' file='libvirt-host' type='struct _virSecurityModel'/>
+    <struct name='virSecurityModel' file='libvirt-host' type='struct _virSecurityModel'>
+      <field name='model' type='char model[VIR_SECURITY_MODEL_BUFLEN]' info='security model string'/>
+      <field name='doi' type='char doi[VIR_SECURITY_DOI_BUFLEN]' info='domain of interpretation'/>
+    </struct>
     <typedef name='virSecurityModelPtr' file='libvirt-host' type='virSecurityModel *'>
       <info><![CDATA[a virSecurityModelPtr is a pointer to a virSecurityModel.]]></info>
     </typedef>
@@ -4013,13 +4037,22 @@ The typed parameter keys are in this format:
 "net.<num>.tx.errs" - transmission errors as unsigned long long.
 "net.<num>.tx.drop" - transmit packets dropped as unsigned long long.
 
-VIR_DOMAIN_STATS_BLOCK: Return block devices statistics.
+VIR_DOMAIN_STATS_BLOCK: Return block devices statistics.  By default,
+this information is limited to the active layer of each <disk> of the
+domain (where block.count is equal to the number of disks), but adding
+VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING to @flags will expand the
+array to cover backing chains (block.count corresponds to the number
+of host resources used together to provide the guest disks).
 The typed parameter keys are in this format:
-"block.count" - number of block devices on this domain
+"block.count" - number of block devices in the subsequent list,
                 as unsigned int.
 "block.<num>.name" - name of the block device <num> as string.
                      matches the target name (vda/sda/hda) of the
-                     block device.
+                     block device.  If the backing chain is listed,
+                     this name is the same for all host resources tied
+                     to the same guest device.
+"block.<num>.backingIndex" - unsigned int giving the <backingStore> index,
+                             only used when backing images are listed.
 "block.<num>.path" - string describing the source of block device <num>,
                      if it is a file or block device (omitted for network
                      sources and drives with no media inserted).
@@ -5492,6 +5525,24 @@ domain object is no longer needed.]]></info>
       <return type='virDomainPtr' info='NULL in case of error, a pointer to the domain otherwise'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='xml' type='const char *' info='the XML description for the domain, preferably in UTF-8'/>
+    </function>
+    <function name='virDomainDefineXMLFlags' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Defines a domain, but does not start it.
+This definition is persistent, until explicitly undefined with
+virDomainUndefine(). A previous definition for this domain would be
+overridden if it already exists.
+
+Some hypervisors may prevent this operation if there is a current
+block copy operation on a transient domain with the same id as the
+domain being defined; in that case, use virDomainBlockJobAbort() to
+stop the block copy first.
+
+virDomainFree should be used to free the resources after the
+domain object is no longer needed.]]></info>
+      <return type='virDomainPtr' info='NULL in case of error, a pointer to the domain otherwise'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='xml' type='const char *' info='the XML description for the domain, preferably in UTF-8'/>
+      <arg name='flags' type='unsigned int' info='bitwise OR of the virDomainDefineFlags constants'/>
     </function>
     <function name='virDomainDestroy' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Destroy the domain object. The running instance is shutdown if not down

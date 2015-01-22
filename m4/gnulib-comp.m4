@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2014 Free Software Foundation, Inc.
+# Copyright (C) 2002-2015 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,6 +50,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module areadlink-tests:
   # Code from module arpa_inet:
   # Code from module arpa_inet-tests:
+  # Code from module assure:
   # Code from module autobuild:
   AB_INIT
   # Code from module base64:
@@ -1681,6 +1682,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/arpa_inet.in.h
   lib/asnprintf.c
   lib/asprintf.c
+  lib/assure.h
   lib/base64.c
   lib/base64.h
   lib/basename-lgpl.c

@@ -2751,7 +2751,8 @@ esxDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
         if (powerState != esxVI_VirtualMachinePowerState_PoweredOff)
             def->id = id;
 
-        xml = virDomainDefFormat(def, flags);
+        xml = virDomainDefFormat(def,
+                                 virDomainDefFormatConvertXMLFlags(flags));
     }
 
  cleanup:
@@ -2805,7 +2806,7 @@ esxConnectDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
     def = virVMXParseConfig(&ctx, priv->xmlopt, nativeConfig);
 
     if (def)
-        xml = virDomainDefFormat(def, VIR_DOMAIN_XML_INACTIVE);
+        xml = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_INACTIVE);
 
     virDomainDefFree(def);
 
@@ -2844,7 +2845,7 @@ esxConnectDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
 
     def = virDomainDefParseString(domainXml, priv->caps, priv->xmlopt,
                                   1 << VIR_DOMAIN_VIRT_VMWARE,
-                                  VIR_DOMAIN_XML_INACTIVE);
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE);
 
     if (!def)
         return NULL;
@@ -3019,7 +3020,7 @@ esxDomainCreate(virDomainPtr domain)
 
 
 static virDomainPtr
-esxDomainDefineXML(virConnectPtr conn, const char *xml)
+esxDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     esxPrivate *priv = conn->privateData;
     virDomainDefPtr def = NULL;
@@ -3044,6 +3045,12 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     char *taskInfoErrorMessage = NULL;
     virDomainPtr domain = NULL;
     const char *src;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     memset(&data, 0, sizeof(data));
 
@@ -3053,7 +3060,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     /* Parse domain XML */
     def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                   1 << VIR_DOMAIN_VIRT_VMWARE,
-                                  VIR_DOMAIN_XML_INACTIVE);
+                                  parse_flags);
 
     if (!def)
         return NULL;
@@ -3239,7 +3246,11 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     return domain;
 }
 
-
+static virDomainPtr
+esxDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return esxDomainDefineXMLFlags(conn, xml, 0);
+}
 
 static int
 esxDomainUndefineFlags(virDomainPtr domain,
@@ -4296,7 +4307,9 @@ esxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(snapshot->domain->uuid, uuid_string);
 
-    xml = virDomainSnapshotDefFormat(uuid_string, &def, flags, 0);
+    xml = virDomainSnapshotDefFormat(uuid_string, &def,
+                                     virDomainDefFormatConvertXMLFlags(flags),
+                                     0);
 
  cleanup:
     esxVI_VirtualMachineSnapshotTree_Free(&rootSnapshotList);
@@ -5183,6 +5196,7 @@ static virHypervisorDriver esxDriver = {
     .domainCreate = esxDomainCreate, /* 0.7.0 */
     .domainCreateWithFlags = esxDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = esxDomainDefineXML, /* 0.7.2 */
+    .domainDefineXMLFlags = esxDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = esxDomainUndefine, /* 0.7.1 */
     .domainUndefineFlags = esxDomainUndefineFlags, /* 0.9.4 */
     .domainGetAutostart = esxDomainGetAutostart, /* 0.9.0 */

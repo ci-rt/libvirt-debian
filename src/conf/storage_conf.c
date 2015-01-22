@@ -734,7 +734,7 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
                         int defaultmode)
 {
     char *mode;
-    long val;
+    long long val;
     int ret = -1;
     xmlNodePtr relnode;
     xmlNodePtr node;
@@ -771,7 +771,7 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
     if (virXPathNode("./owner", ctxt) == NULL) {
         perms->uid = (uid_t) -1;
     } else {
-        if (virXPathLong("number(./owner)", ctxt, &val) < 0 ||
+        if (virXPathLongLong("number(./owner)", ctxt, &val) < 0 ||
             ((uid_t)val != val &&
              val != -1)) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
@@ -785,7 +785,7 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
     if (virXPathNode("./group", ctxt) == NULL) {
         perms->gid = (gid_t) -1;
     } else {
-        if (virXPathLong("number(./group)", ctxt, &val) < 0 ||
+        if (virXPathLongLong("number(./group)", ctxt, &val) < 0 ||
             ((gid_t) val != val &&
              val != -1)) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
@@ -1203,7 +1203,6 @@ virStoragePoolDefFormat(virStoragePoolDefPtr def)
                           (int) def->target.perms.uid);
         virBufferAsprintf(&buf, "<group>%d</group>\n",
                           (int) def->target.perms.gid);
-
         virBufferEscapeString(&buf, "<label>%s</label>\n",
                               def->target.perms.label);
 
@@ -1527,10 +1526,10 @@ virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
 
         virBufferAsprintf(buf, "<mode>0%o</mode>\n",
                           def->perms->mode);
-        virBufferAsprintf(buf, "<owner>%u</owner>\n",
-                          (unsigned int) def->perms->uid);
-        virBufferAsprintf(buf, "<group>%u</group>\n",
-                          (unsigned int) def->perms->gid);
+        virBufferAsprintf(buf, "<owner>%d</owner>\n",
+                          (int) def->perms->uid);
+        virBufferAsprintf(buf, "<group>%d</group>\n",
+                          (int) def->perms->gid);
 
 
         virBufferEscapeString(buf, "<label>%s</label>\n",

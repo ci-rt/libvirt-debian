@@ -287,7 +287,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
-                                        VIR_DOMAIN_XML_INACTIVE))) {
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE))) {
         if (!virtTestOOMActive() &&
             (flags & FLAG_EXPECT_PARSE_ERROR))
             goto ok;
@@ -698,6 +698,9 @@ mymain(void)
     DO_TEST("kvm-features", NONE);
     DO_TEST("kvm-features-off", NONE);
 
+    DO_TEST("pmu-feature", NONE);
+    DO_TEST("pmu-feature-off", NONE);
+
     DO_TEST("hugepages", QEMU_CAPS_MEM_PATH);
     DO_TEST_LINUX("hugepages-pages", QEMU_CAPS_MEM_PATH,
                   QEMU_CAPS_OBJECT_MEMORY_RAM,
@@ -713,6 +716,7 @@ mymain(void)
     DO_TEST_FAILURE("hugepages-pages4", QEMU_CAPS_MEM_PATH,
             QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST("hugepages-pages5", QEMU_CAPS_MEM_PATH);
+    DO_TEST("hugepages-pages6", NONE);
     DO_TEST("nosharepages", QEMU_CAPS_MACHINE_OPT, QEMU_CAPS_MEM_MERGE);
     DO_TEST("disk-cdrom", NONE);
     DO_TEST("disk-cdrom-network-http", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
@@ -1408,6 +1412,8 @@ mymain(void)
 
     DO_TEST("pci-autoadd-addr", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST("pci-autoadd-idx", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+    DO_TEST("pci-many",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST("pci-bridge-many-disks",
             QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST("pcie-root",
@@ -1523,7 +1529,7 @@ mymain(void)
     DO_TEST_FAILURE("shmem-small-size", QEMU_CAPS_PCIDEVICE,
                     QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_IVSHMEM);
     DO_TEST_PARSE_ERROR("shmem-msi-only", NONE);
-    DO_TEST("cpu-host-passthrough-features-invalid", QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST);
+    DO_TEST("cpu-host-passthrough-features", QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

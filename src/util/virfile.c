@@ -42,6 +42,9 @@
 #if HAVE_MMAP
 # include <sys/mman.h>
 #endif
+#if HAVE_SYS_SYSCALL_H
+# include <sys/syscall.h>
+#endif
 
 #ifdef __linux__
 # if HAVE_LINUX_MAGIC_H
@@ -1035,8 +1038,8 @@ safewrite(int fd, const void *buf, size_t count)
 }
 
 #ifdef HAVE_POSIX_FALLOCATE
-int
-safezero(int fd, off_t offset, off_t len)
+static int
+safezero_posix_fallocate(int fd, off_t offset, off_t len)
 {
     int ret = posix_fallocate(fd, offset, len);
     if (ret == 0)
@@ -1044,16 +1047,40 @@ safezero(int fd, off_t offset, off_t len)
     errno = ret;
     return -1;
 }
+#else /* !HAVE_POSIX_FALLOCATE */
+static int
+safezero_posix_fallocate(int fd ATTRIBUTE_UNUSED,
+                         off_t offset ATTRIBUTE_UNUSED,
+                         off_t len ATTRIBUTE_UNUSED)
+{
+    return -2;
+}
+#endif /* !HAVE_POSIX_FALLOCATE */
 
-#else
+#if HAVE_SYS_SYSCALL_H && defined(SYS_fallocate)
+static int
+safezero_sys_fallocate(int fd,
+                       off_t offset,
+                       off_t len)
+{
+    return syscall(SYS_fallocate, fd, 0, offset, len);
+}
+#else /* !HAVE_SYS_SYSCALL_H || !defined(SYS_fallocate) */
+static int
+safezero_sys_fallocate(int fd ATTRIBUTE_UNUSED,
+                       off_t offset ATTRIBUTE_UNUSED,
+                       off_t len ATTRIBUTE_UNUSED)
+{
+    return -2;
+}
+#endif /* !HAVE_SYS_SYSCALL_H || !defined(SYS_fallocate) */
 
-int
-safezero(int fd, off_t offset, off_t len)
+#ifdef HAVE_MMAP
+static int
+safezero_mmap(int fd, off_t offset, off_t len)
 {
     int r;
     char *buf;
-    unsigned long long remain, bytes;
-# ifdef HAVE_MMAP
     static long pagemask;
     off_t map_skip;
 
@@ -1080,7 +1107,24 @@ safezero(int fd, off_t offset, off_t len)
 
     /* fall back to writing zeroes using safewrite if mmap fails (for
      * example because of virtual memory limits) */
-# endif /* HAVE_MMAP */
+    return -2;
+}
+#else /* !HAVE_MMAP */
+static int
+safezero_mmap(int fd ATTRIBUTE_UNUSED,
+              off_t offset ATTRIBUTE_UNUSED,
+              off_t len ATTRIBUTE_UNUSED)
+{
+    return -2;
+}
+#endif /* !HAVE_MMAP */
+
+static int
+safezero_slow(int fd, off_t offset, off_t len)
+{
+    int r;
+    char *buf;
+    unsigned long long remain, bytes;
 
     if (lseek(fd, offset, SEEK_SET) < 0)
         return -1;
@@ -1111,8 +1155,23 @@ safezero(int fd, off_t offset, off_t len)
     VIR_FREE(buf);
     return 0;
 }
-#endif /* HAVE_POSIX_FALLOCATE */
 
+int safezero(int fd, off_t offset, off_t len)
+{
+    int ret;
+
+    ret = safezero_posix_fallocate(fd, offset, len);
+    if (ret != -2)
+        return ret;
+
+    if (safezero_sys_fallocate(fd, offset, len) == 0)
+        return 0;
+
+    ret = safezero_mmap(fd, offset, len);
+    if (ret != -2)
+        return ret;
+    return safezero_slow(fd, offset, len);
+}
 
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 /* search /proc/mounts for mount point of *type; return pointer to

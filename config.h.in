@@ -190,6 +190,10 @@
    whether the gnulib module nonblocking shall be considered present. */
 #undef GNULIB_NONBLOCKING
 
+/* Define to 1 if printf and friends should be labeled with attribute
+   "__gnu_printf__" instead of "__printf__" */
+#undef GNULIB_PRINTF_ATTRIBUTE_FLAVOR_GNU
+
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module pthread shall be considered present. */
 #undef GNULIB_PTHREAD
@@ -1189,6 +1193,9 @@
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
 
+/* Define to 1 if you have the <libxlutil.h> header file. */
+#undef HAVE_LIBXLUTIL_H
+
 /* Define to 1 if you have the `yajl' library (-lyajl). */
 #undef HAVE_LIBYAJL
 
@@ -1675,6 +1682,9 @@
 /* Define to 1 if the system has the type `struct utsname'. */
 #undef HAVE_STRUCT_UTSNAME
 
+/* Whether -Wsuggest-attribute=format works */
+#undef HAVE_SUGGEST_ATTRIBUTE_FORMAT
+
 /* Define to 1 if you have the 'symlink' function. */
 #undef HAVE_SYMLINK
 
@@ -1800,6 +1810,9 @@
 
 /* Define to 1 if you have the `ttyname_r' function. */
 #undef HAVE_TTYNAME_R
+
+/* whether libudev logging can be used */
+#undef HAVE_UDEV_LOGGING
 
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME
@@ -2056,9 +2069,6 @@
    compilation errors when mixed with glibc netinet headers */
 #undef NETINET_LINUX_WORKAROUND
 
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-#undef NO_MINUS_C_MINUS_O
-
 /* Location or name of the numad program */
 #undef NUMAD
 
@@ -2276,6 +2286,10 @@
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
 # undef _GNU_SOURCE
+#endif
+/* Use GNU style printf and scanf.  */
+#ifndef __USE_MINGW_ANSI_STDIO
+# undef __USE_MINGW_ANSI_STDIO
 #endif
 /* Enable threading extensions on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS

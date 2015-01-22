@@ -273,6 +273,7 @@ typedef enum {
     VIR_DOMAIN_START_AUTODESTROY  = 1 << 1, /* Automatically kill guest when virConnectPtr is closed */
     VIR_DOMAIN_START_BYPASS_CACHE = 1 << 2, /* Avoid file system cache pollution */
     VIR_DOMAIN_START_FORCE_BOOT   = 1 << 3, /* Boot, discarding any managed save */
+    VIR_DOMAIN_START_VALIDATE     = 1 << 4, /* Validate the XML document against schema */
 } virDomainCreateFlags;
 
 
@@ -1356,7 +1357,7 @@ int                     virDomainBlockResize (virDomainPtr dom,
 /** virDomainBlockInfo:
  *
  * This struct provides information about the size of a block device
- * backing store
+ * backing store.
  *
  * Examples:
  *
@@ -1364,13 +1365,13 @@ int                     virDomainBlockResize (virDomainPtr dom,
  *       * capacity, allocation, physical: All the same
  *
  *  - Sparse raw file in filesystem:
- *       * capacity: logical size of the file
- *       * allocation, physical: number of blocks allocated to file
+ *       * capacity, size: logical size of the file
+ *       * allocation: disk space occupied by file
  *
  *  - qcow2 file in filesystem
  *       * capacity: logical size from qcow2 header
- *       * allocation, physical: logical size of the file /
- *                               highest qcow extent (identical)
+ *       * allocation: disk space occupied by file
+ *       * physical: reported size of qcow2 file
  *
  *  - qcow2 file in a block device
  *       * capacity: logical size from qcow2 header
@@ -1380,9 +1381,16 @@ int                     virDomainBlockResize (virDomainPtr dom,
 typedef struct _virDomainBlockInfo virDomainBlockInfo;
 typedef virDomainBlockInfo *virDomainBlockInfoPtr;
 struct _virDomainBlockInfo {
-    unsigned long long capacity;   /* logical size in bytes of the block device backing image */
-    unsigned long long allocation; /* highest allocated extent in bytes of the block device backing image */
-    unsigned long long physical;   /* physical size in bytes of the container of the backing image */
+    unsigned long long capacity;   /* logical size in bytes of the
+                                    * image (how much storage the
+                                    * guest will see) */
+    unsigned long long allocation; /* host storage in bytes occupied
+                                    * by the image (such as highest
+                                    * allocated extent if there are no
+                                    * holes, similar to 'du') */
+    unsigned long long physical;   /* host physical size in bytes of
+                                    * the image container (last
+                                    * offset, similar to 'ls')*/
 };
 
 int                     virDomainGetBlockInfo(virDomainPtr dom,
@@ -1410,11 +1418,19 @@ int                     virDomainMemoryPeek (virDomainPtr dom,
                                              void *buffer,
                                              unsigned int flags);
 
+typedef enum {
+    VIR_DOMAIN_DEFINE_VALIDATE = (1 << 0), /* Validate the XML document against schema */
+} virDomainDefineFlags;
+
 /*
  * defined but not running domains
  */
 virDomainPtr            virDomainDefineXML      (virConnectPtr conn,
                                                  const char *xml);
+
+virDomainPtr            virDomainDefineXMLFlags (virConnectPtr conn,
+                                                 const char *xml,
+                                                 unsigned int flags);
 int                     virDomainUndefine       (virDomainPtr domain);
 
 typedef enum {
@@ -1698,6 +1714,7 @@ typedef enum {
     VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF = VIR_CONNECT_LIST_DOMAINS_SHUTOFF,
     VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER = VIR_CONNECT_LIST_DOMAINS_OTHER,
 
+    VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING = 1 << 30, /* include backing chain for block stats */
     VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS = 1 << 31, /* enforce requested stats */
 } virConnectGetAllDomainStatsFlags;
 

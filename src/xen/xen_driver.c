@@ -770,12 +770,16 @@ xenUnifiedDomainCreateXML(virConnectPtr conn,
     xenUnifiedPrivatePtr priv = conn->privateData;
     virDomainDefPtr def = NULL;
     virDomainPtr ret = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
 
-    virCheckFlags(0, NULL);
+    virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!(def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
     if (virDomainCreateXMLEnsureACL(conn, def) < 0)
@@ -1596,7 +1600,8 @@ xenUnifiedDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     }
 
     if (def)
-        ret = virDomainDefFormat(def, flags);
+        ret = virDomainDefFormat(def,
+                                 virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
     virDomainDefFree(def);
@@ -1686,7 +1691,7 @@ xenUnifiedConnectDomainXMLToNative(virConnectPtr conn,
 
     if (!(def = virDomainDefParseString(xmlData, priv->caps, priv->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
     if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
@@ -1882,18 +1887,24 @@ xenUnifiedDomainCreate(virDomainPtr dom)
 }
 
 static virDomainPtr
-xenUnifiedDomainDefineXML(virConnectPtr conn, const char *xml)
+xenUnifiedDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     xenUnifiedPrivatePtr priv = conn->privateData;
     virDomainDefPtr def = NULL;
     virDomainPtr ret = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!(def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
-    if (virDomainDefineXMLEnsureACL(conn, def) < 0)
+    if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
         goto cleanup;
 
     if (priv->xendConfigVersion < XEND_CONFIG_VERSION_3_0_4) {
@@ -1913,6 +1924,12 @@ xenUnifiedDomainDefineXML(virConnectPtr conn, const char *xml)
  cleanup:
     virDomainDefFree(def);
     return ret;
+}
+
+static virDomainPtr
+xenUnifiedDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return xenUnifiedDomainDefineXMLFlags(conn, xml, 0);
 }
 
 static int
@@ -2796,6 +2813,7 @@ static virHypervisorDriver xenUnifiedDriver = {
     .domainCreate = xenUnifiedDomainCreate, /* 0.1.1 */
     .domainCreateWithFlags = xenUnifiedDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = xenUnifiedDomainDefineXML, /* 0.1.1 */
+    .domainDefineXMLFlags = xenUnifiedDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = xenUnifiedDomainUndefine, /* 0.1.1 */
     .domainUndefineFlags = xenUnifiedDomainUndefineFlags, /* 0.9.4 */
     .domainAttachDevice = xenUnifiedDomainAttachDevice, /* 0.1.9 */

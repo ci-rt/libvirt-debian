@@ -10,7 +10,7 @@ The primary maintainers and people with commit access rights:
 Alex Jia <ajia@redhat.com>
 Cédric Bosdonnat <cbosdonnat@suse.com>
 Christophe Fergeau <cfergeau@redhat.com>
-Claudio Bley <cbley@av-test.de>
+Claudio Bley <claudio.bley@gmail.com>
 Cole Robinson <crobinso@redhat.com>
 Daniel Berrange <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
@@ -101,6 +101,7 @@ Andres Lagar-Cavilla <andres@lagarcavilla.org>
 Anirban Chakraborty <abchak@juniper.net>
 Ansis Atteka <aatteka@nicira.com>
 Anthony Liguori <aliguori@us.ibm.com>
+Anthony PERARD <anthony.perard@citrix.com>
 Antoni S. Puimedon <asegurap@redhat.com>
 Aron Griffis <aron.griffis@hp.com>
 Asad Saeed <asad.saeed@acidseed.com>
@@ -118,6 +119,7 @@ Bogdan Purcareata <bogdan.purcareata@freescale.com>
 Boris Fiuczynski <fiuczy@linux.vnet.ibm.com>
 Brian Candler <b.candler@pobox.com>
 Bryan Kearney <bkearney@redhat.com>
+Cedric Bosdonnat <cbosdonnat@suse.com>
 Chang Liu <lingjiao.lc@taobao.com>
 Charles Duffy <charles_duffy@messageone.com>
 Chegu Vinod <chegu_vinod@hp.com>
@@ -135,7 +137,7 @@ Chuck Short <zulcss@gmail.com>
 Chunhe Li <lichunhe@huawei.com>
 Chunyan Liu <cyliu@suse.com>
 Clark Laughlin <clark.laughlin@linaro.org>
-Claudio Bley <cbley@av-test.de>
+Claudio Bley <claudio.bley@gmail.com>
 Cole Robinson <crobinso@redhat.com>
 Conrad Meyer <cse.cem@gmail.com>
 Cédric Bosdonnat <cbosdonnat@suse.com>
@@ -198,6 +200,7 @@ Frido Roose <frido.roose@gmail.com>
 Fritz Elfert <fritz@fritz-elfert.de>
 Gao feng <gaofeng@cn.fujitsu.com>
 Garry Dolley <gdolley@arpnetworks.com>
+Gary R Hook <grhookatwork@gmail.com>
 Gene Czarcinski <gene@czarc.net>
 Geoff Hickey <ghickey@datagravity.com>
 Gerd Hoffmann <kraxel@redhat.com>
@@ -250,6 +253,7 @@ John Williams <john.williams@petalogix.com>
 Jonas Eriksson <jonas.j.eriksson@ericsson.com>
 Jonathan Lebon <jlebon@redhat.com>
 Josh Durgin <josh.durgin@inktank.com>
+Josh Stone <jistone@redhat.com>
 Juerg Haefliger <juerg.haefliger@hp.com>
 Julio Faracco <jcfaracco@gmail.com>
 Jun Koi <junkoi2004@gmail.com>
@@ -434,6 +438,7 @@ Václav Pavlín <vpavlin@redhat.com>
 Wang Rui <moon.wangrui@huawei.com>
 Wang Yufei (James) <james.wangyufei@huawei.com>
 Wangrui (K) <moon.wangrui@huawei.com>
+Wei Liu <wei.liu2@citrix.com>
 Weiwei Li <nuonuoli@tencent.com>
 Wen Congyang <wency@cn.fujitsu.com>
 Wido den Hollander <wido@widodh.nl>

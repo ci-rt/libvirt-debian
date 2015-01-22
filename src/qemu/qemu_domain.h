@@ -187,6 +187,7 @@ struct _qemuDomainObjPrivate {
     char **qemuDevices; /* NULL-terminated list of devices aliases known to QEMU */
 
     bool hookRun;  /* true if there was a hook run over this domain */
+    virBitmapPtr autoNodeset;
 };
 
 typedef enum {
@@ -225,12 +226,10 @@ int qemuDomainObjBeginAsyncJob(virQEMUDriverPtr driver,
                                qemuDomainAsyncJob asyncJob)
     ATTRIBUTE_RETURN_CHECK;
 
-bool qemuDomainObjEndJob(virQEMUDriverPtr driver,
-                         virDomainObjPtr obj)
-    ATTRIBUTE_RETURN_CHECK;
-bool qemuDomainObjEndAsyncJob(virQEMUDriverPtr driver,
-                              virDomainObjPtr obj)
-    ATTRIBUTE_RETURN_CHECK;
+void qemuDomainObjEndJob(virQEMUDriverPtr driver,
+                         virDomainObjPtr obj);
+void qemuDomainObjEndAsyncJob(virQEMUDriverPtr driver,
+                              virDomainObjPtr obj);
 void qemuDomainObjAbortAsyncJob(virDomainObjPtr obj);
 void qemuDomainObjSetJobPhase(virQEMUDriverPtr driver,
                               virDomainObjPtr obj,
@@ -246,9 +245,10 @@ void qemuDomainObjReleaseAsyncJob(virDomainObjPtr obj);
 void qemuDomainObjEnterMonitor(virQEMUDriverPtr driver,
                                virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-void qemuDomainObjExitMonitor(virQEMUDriverPtr driver,
-                              virDomainObjPtr obj)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+int qemuDomainObjExitMonitor(virQEMUDriverPtr driver,
+                             virDomainObjPtr obj)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+    ATTRIBUTE_RETURN_CHECK;
 int qemuDomainObjEnterMonitorAsync(virQEMUDriverPtr driver,
                                    virDomainObjPtr obj,
                                    qemuDomainAsyncJob asyncJob)
@@ -375,6 +375,7 @@ int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
 int qemuDomainStorageFileInit(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virStorageSourcePtr src);
+char *qemuDomainStorageAlias(const char *device, int depth);
 
 int qemuDomainCleanupAdd(virDomainObjPtr vm,
                          qemuDomainCleanupCallback cb);
@@ -410,5 +411,7 @@ int qemuDomainJobInfoToParams(qemuDomainJobInfoPtr jobInfo,
                               int *nparams)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
+
+void qemuDomObjEndAPI(virDomainObjPtr *vm);
 
 #endif /* __QEMU_DOMAIN_H__ */

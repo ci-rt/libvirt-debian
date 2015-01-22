@@ -57,6 +57,9 @@ int qemuMonitorJSONGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
 int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
                                int *virtType);
+int qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
+                                         virDomainVideoDefPtr video,
+                                         char *path);
 int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long long *currmem);
 int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
@@ -80,9 +83,11 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
                                      long long *flush_total_times,
                                      long long *errs);
 int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
-                                        virHashTablePtr *ret_stats);
+                                        virHashTablePtr *ret_stats,
+                                        bool backingChain);
 int qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
-                                            virHashTablePtr stats);
+                                            virHashTablePtr stats,
+                                            bool backingChain);
 int qemuMonitorJSONGetBlockStatsParamsNumber(qemuMonitorPtr mon,
                                              int *nparams);
 int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,

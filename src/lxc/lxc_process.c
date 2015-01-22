@@ -260,8 +260,6 @@ char *virLXCProcessSetupInterfaceBridged(virConnectPtr conn,
 
     if (virNetDevSetMAC(containerVeth, &net->mac) < 0)
         goto cleanup;
-    if (VIR_STRDUP(net->ifname_guest_actual, containerVeth) < 0)
-        goto cleanup;
 
     if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
         if (virNetDevOpenvswitchAddPort(brname, parentVeth, &net->mac,
@@ -371,6 +369,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
 
     for (i = 0; i < def->nnets; i++) {
         char *veth = NULL;
+        virNetDevBandwidthPtr actualBandwidth;
         /* If appropriate, grab a physical device from the configured
          * network's pool of devices, or resolve bridge device name
          * to the one defined in the network definition.
@@ -424,13 +423,23 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
 
         }
 
-        /* set network bandwidth */
-        if (virNetDevSupportBandwidth(type) &&
-            virNetDevBandwidthSet(net->ifname,
-                                  virDomainNetGetActualBandwidth(net), false) < 0)
-            goto cleanup;
+        /* Set bandwidth or warn if requested and not supported. */
+        actualBandwidth = virDomainNetGetActualBandwidth(net);
+        if (actualBandwidth) {
+            if (virNetDevSupportBandwidth(type)) {
+                if (virNetDevBandwidthSet(net->ifname, actualBandwidth, false) < 0)
+                    goto cleanup;
+            } else {
+                VIR_WARN("setting bandwidth on interfaces of "
+                         "type '%s' is not implemented yet",
+                         virDomainNetTypeToString(type));
+            }
+        }
 
         (*veths)[(*nveths)-1] = veth;
+
+        if (VIR_STRDUP(def->nets[i]->ifname_guest_actual, veth) < 0)
+            goto cleanup;
 
         /* Make sure all net definitions will have a name in the container */
         if (!net->ifname_guest) {
@@ -1372,6 +1381,7 @@ int virLXCProcessStart(virConnectPtr conn,
             VIR_FREE(vm->def->seclabels[0]->model);
             VIR_FREE(vm->def->seclabels[0]->label);
             VIR_FREE(vm->def->seclabels[0]->imagelabel);
+            VIR_DELETE_ELEMENT(vm->def->seclabels, 0, vm->def->nseclabels);
         }
     }
     for (i = 0; i < nttyFDs; i++)

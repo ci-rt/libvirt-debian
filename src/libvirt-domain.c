@@ -6476,6 +6476,54 @@ virDomainDefineXML(virConnectPtr conn, const char *xml)
 
 
 /**
+ * virDomainDefineXMLFlags:
+ * @conn: pointer to the hypervisor connection
+ * @xml: the XML description for the domain, preferably in UTF-8
+ * @flags: bitwise OR of the virDomainDefineFlags constants
+ *
+ * Defines a domain, but does not start it.
+ * This definition is persistent, until explicitly undefined with
+ * virDomainUndefine(). A previous definition for this domain would be
+ * overridden if it already exists.
+ *
+ * Some hypervisors may prevent this operation if there is a current
+ * block copy operation on a transient domain with the same id as the
+ * domain being defined; in that case, use virDomainBlockJobAbort() to
+ * stop the block copy first.
+ *
+ * virDomainFree should be used to free the resources after the
+ * domain object is no longer needed.
+ *
+ * Returns NULL in case of error, a pointer to the domain otherwise
+ */
+virDomainPtr
+virDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, xml=%s flags=%x", conn, xml, flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, NULL);
+    virCheckReadOnlyGoto(conn->flags, error);
+    virCheckNonNullArgGoto(xml, error);
+
+    if (conn->driver->domainDefineXMLFlags) {
+        virDomainPtr ret;
+        ret = conn->driver->domainDefineXMLFlags(conn, xml, flags);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+
+/**
  * virDomainUndefine:
  * @domain: pointer to a defined domain
  *
@@ -10903,13 +10951,22 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  * "net.<num>.tx.errs" - transmission errors as unsigned long long.
  * "net.<num>.tx.drop" - transmit packets dropped as unsigned long long.
  *
- * VIR_DOMAIN_STATS_BLOCK: Return block devices statistics.
+ * VIR_DOMAIN_STATS_BLOCK: Return block devices statistics.  By default,
+ * this information is limited to the active layer of each <disk> of the
+ * domain (where block.count is equal to the number of disks), but adding
+ * VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING to @flags will expand the
+ * array to cover backing chains (block.count corresponds to the number
+ * of host resources used together to provide the guest disks).
  * The typed parameter keys are in this format:
- * "block.count" - number of block devices on this domain
+ * "block.count" - number of block devices in the subsequent list,
  *                 as unsigned int.
  * "block.<num>.name" - name of the block device <num> as string.
  *                      matches the target name (vda/sda/hda) of the
- *                      block device.
+ *                      block device.  If the backing chain is listed,
+ *                      this name is the same for all host resources tied
+ *                      to the same guest device.
+ * "block.<num>.backingIndex" - unsigned int giving the <backingStore> index,
+ *                              only used when backing images are listed.
  * "block.<num>.path" - string describing the source of block device <num>,
  *                      if it is a file or block device (omitted for network
  *                      sources and drives with no media inserted).

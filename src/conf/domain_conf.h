@@ -1,8 +1,9 @@
 /*
  * domain_conf.h: domain XML processing
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
+ * Copyright (c) 2015 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,6 +36,7 @@
 # include "virthread.h"
 # include "virhash.h"
 # include "virsocketaddr.h"
+# include "networkcommon_conf.h"
 # include "nwfilter_params.h"
 # include "numatune_conf.h"
 # include "virnetdevmacvlan.h"
@@ -478,6 +480,13 @@ typedef enum {
     VIR_DOMAIN_HOSTDEV_CAPS_TYPE_LAST
 } virDomainHostdevCapsType;
 
+typedef struct _virDomainNetIpDef virDomainNetIpDef;
+typedef virDomainNetIpDef *virDomainNetIpDefPtr;
+struct _virDomainNetIpDef {
+    virSocketAddr address;       /* ipv4 or ipv6 address */
+    unsigned int prefix; /* number of 1 bits in the net mask */
+};
+
 typedef struct _virDomainHostdevCaps virDomainHostdevCaps;
 typedef virDomainHostdevCaps *virDomainHostdevCapsPtr;
 struct _virDomainHostdevCaps {
@@ -491,6 +500,10 @@ struct _virDomainHostdevCaps {
         } misc;
         struct {
             char *iface;
+            size_t nips;
+            virDomainNetIpDefPtr *ips;
+            size_t nroutes;
+            virNetworkRouteDefPtr *routes;
         } net;
     } u;
 };
@@ -791,6 +804,7 @@ typedef enum {
     VIR_DOMAIN_FS_DRIVER_TYPE_HANDLE,
     VIR_DOMAIN_FS_DRIVER_TYPE_LOOP,
     VIR_DOMAIN_FS_DRIVER_TYPE_NBD,
+    VIR_DOMAIN_FS_DRIVER_TYPE_PLOOP,
 
     VIR_DOMAIN_FS_DRIVER_TYPE_LAST
 } virDomainFSDriverType;
@@ -941,7 +955,6 @@ struct _virDomainNetDef {
     union {
         struct {
             char *dev;
-            char *ipaddr;
         } ethernet;
         virDomainChrSourceDefPtr vhostuser;
         struct {
@@ -963,7 +976,6 @@ struct _virDomainNetDef {
         } network;
         struct {
             char *brname;
-            char *ipaddr;
         } bridge;
         struct {
             char *name;
@@ -993,6 +1005,10 @@ struct _virDomainNetDef {
     virNetDevVlan vlan;
     int trustGuestRxFilters; /* enum virTristateBool */
     int linkstate;
+    size_t nips;
+    virDomainNetIpDefPtr *ips;
+    size_t nroutes;
+    virNetworkRouteDefPtr *routes;
 };
 
 /* Used for prefix of ifname of any network name generated dynamically
@@ -1590,6 +1606,7 @@ typedef enum {
     VIR_DOMAIN_FEATURE_KVM,
     VIR_DOMAIN_FEATURE_PVSPINLOCK,
     VIR_DOMAIN_FEATURE_CAPABILITIES,
+    VIR_DOMAIN_FEATURE_PMU,
 
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
@@ -2187,6 +2204,7 @@ struct _virDomainObj {
     unsigned int autostart : 1;
     unsigned int persistent : 1;
     unsigned int updated : 1;
+    unsigned int removing : 1;
 
     virDomainDefPtr def; /* The current definition */
     virDomainDefPtr newDef; /* New definition to activate at shutdown */
@@ -2286,6 +2304,8 @@ virDomainObjPtr virDomainObjListFindByID(virDomainObjListPtr doms,
                                          int id);
 virDomainObjPtr virDomainObjListFindByUUID(virDomainObjListPtr doms,
                                            const unsigned char *uuid);
+virDomainObjPtr virDomainObjListFindByUUIDRef(virDomainObjListPtr doms,
+                                              const unsigned char *uuid);
 virDomainObjPtr virDomainObjListFindByName(virDomainObjListPtr doms,
                                            const char *name);
 
@@ -2412,6 +2432,38 @@ void virDomainObjListRemove(virDomainObjListPtr doms,
 void virDomainObjListRemoveLocked(virDomainObjListPtr doms,
                                   virDomainObjPtr dom);
 
+typedef enum {
+    /* parse internal domain status information */
+    VIR_DOMAIN_DEF_PARSE_STATUS          = 1 << 0,
+    VIR_DOMAIN_DEF_PARSE_INACTIVE        = 1 << 1,
+    /* parse <actual> element */
+    VIR_DOMAIN_DEF_PARSE_ACTUAL_NET      = 1 << 2,
+    /* parse original states of host PCI device */
+    VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES = 1 << 3,
+    VIR_DOMAIN_DEF_PARSE_ALLOW_ROM       = 1 << 4,
+    VIR_DOMAIN_DEF_PARSE_ALLOW_BOOT      = 1 << 5,
+    VIR_DOMAIN_DEF_PARSE_CLOCK_ADJUST    = 1 << 6,
+    /* parse only source half of <disk> */
+    VIR_DOMAIN_DEF_PARSE_DISK_SOURCE     = 1 << 7,
+    VIR_DOMAIN_DEF_PARSE_VALIDATE        = 1 << 8,
+} virDomainDefParseFlags;
+
+typedef enum {
+    VIR_DOMAIN_DEF_FORMAT_SECURE          = 1 << 0,
+    VIR_DOMAIN_DEF_FORMAT_INACTIVE        = 1 << 1,
+    VIR_DOMAIN_DEF_FORMAT_UPDATE_CPU      = 1 << 2,
+    VIR_DOMAIN_DEF_FORMAT_MIGRATABLE      = 1 << 3,
+    /* format internal domain status information */
+    VIR_DOMAIN_DEF_FORMAT_STATUS          = 1 << 4,
+    /* format <actual> element */
+    VIR_DOMAIN_DEF_FORMAT_ACTUAL_NET      = 1 << 5,
+    /* format original states of host PCI device */
+    VIR_DOMAIN_DEF_FORMAT_PCI_ORIG_STATES = 1 << 6,
+    VIR_DOMAIN_DEF_FORMAT_ALLOW_ROM       = 1 << 7,
+    VIR_DOMAIN_DEF_FORMAT_ALLOW_BOOT      = 1 << 8,
+    VIR_DOMAIN_DEF_FORMAT_CLOCK_ADJUST    = 1 << 9,
+} virDomainDefFormatFlags;
+
 virDomainDeviceDefPtr virDomainDeviceDefParse(const char *xmlStr,
                                               const virDomainDef *def,
                                               virCapsPtr caps,
@@ -2442,6 +2494,8 @@ bool virDomainDefCheckABIStability(virDomainDefPtr src,
                                    virDomainDefPtr dst);
 
 int virDomainDefAddImplicitControllers(virDomainDefPtr def);
+
+unsigned int virDomainDefFormatConvertXMLFlags(unsigned int flags);
 
 char *virDomainDefFormat(virDomainDefPtr def,
                          unsigned int flags);
@@ -2551,6 +2605,10 @@ virNetDevBandwidthPtr
 virDomainNetGetActualBandwidth(virDomainNetDefPtr iface);
 virNetDevVlanPtr virDomainNetGetActualVlan(virDomainNetDefPtr iface);
 bool virDomainNetGetActualTrustGuestRxFilters(virDomainNetDefPtr iface);
+int virDomainNetAppendIpAddress(virDomainNetDefPtr def,
+                                const char *address,
+                                int family,
+                                unsigned int prefix);
 
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller)

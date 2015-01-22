@@ -3388,6 +3388,57 @@ cleanup:
 
 
 
+static int remoteDispatchDomainDefineXMLFlags(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_define_xml_flags_args *args,
+    remote_domain_define_xml_flags_ret *ret);
+static int remoteDispatchDomainDefineXMLFlagsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainDefineXMLFlags(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainDefineXMLFlags(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_define_xml_flags_args *args,
+    remote_domain_define_xml_flags_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((dom = virDomainDefineXMLFlags(priv->conn, args->xml, args->flags)) == NULL)
+        goto cleanup;
+
+    make_nonnull_domain(&ret->dom, dom);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainDestroy(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -17521,6 +17572,15 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_fsinfo_ret,
    true,
    0
+},
+{ /* Method DomainDefineXMLFlags => 350 */
+   remoteDispatchDomainDefineXMLFlagsHelper,
+   sizeof(remote_domain_define_xml_flags_args),
+   (xdrproc_t)xdr_remote_domain_define_xml_flags_args,
+   sizeof(remote_domain_define_xml_flags_ret),
+   (xdrproc_t)xdr_remote_domain_define_xml_flags_ret,
+   true,
+   1
 },
 };
 size_t remoteNProcs = ARRAY_CARDINALITY(remoteProcs);

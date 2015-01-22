@@ -476,7 +476,8 @@ bhyveDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     if (virDomainGetXMLDescEnsureACL(domain->conn, vm->def, flags) < 0)
         goto cleanup;
 
-    ret = virDomainDefFormat(vm->def, flags);
+    ret = virDomainDefFormat(vm->def,
+                             virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
     if (vm)
@@ -485,7 +486,7 @@ bhyveDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 }
 
 static virDomainPtr
-bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
+bhyveDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     bhyveConnPtr privconn = conn->privateData;
     virDomainPtr dom = NULL;
@@ -494,6 +495,12 @@ bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
     virDomainObjPtr vm = NULL;
     virObjectEventPtr event = NULL;
     virCapsPtr caps = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     caps = bhyveDriverGetCapabilities(privconn);
     if (!caps)
@@ -501,10 +508,10 @@ bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
 
     if ((def = virDomainDefParseString(xml, caps, privconn->xmlopt,
                                        1 << VIR_DOMAIN_VIRT_BHYVE,
-                                       VIR_DOMAIN_XML_INACTIVE)) == NULL)
+                                       parse_flags)) == NULL)
         goto cleanup;
 
-    if (virDomainDefineXMLEnsureACL(conn, def) < 0)
+    if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
         goto cleanup;
 
     if (bhyveDomainAssignAddresses(def, NULL) < 0)
@@ -544,6 +551,12 @@ bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
         virObjectEventStateQueue(privconn->domainEventState, event);
 
     return dom;
+}
+
+static virDomainPtr
+bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return bhyveDomainDefineXMLFlags(conn, xml, 0);
 }
 
 static int
@@ -683,7 +696,7 @@ bhyveConnectDomainXMLToNative(virConnectPtr conn,
 
     if (!(def = virDomainDefParseString(xmlData, caps, privconn->xmlopt,
                                   1 << VIR_DOMAIN_VIRT_BHYVE,
-                                  VIR_DOMAIN_XML_INACTIVE)))
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
     if (bhyveDomainAssignAddresses(def, NULL) < 0)
@@ -882,9 +895,13 @@ bhyveDomainCreateXML(virConnectPtr conn,
     virObjectEventPtr event = NULL;
     virCapsPtr caps = NULL;
     unsigned int start_flags = 0;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
 
-    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, NULL);
+    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY |
+                  VIR_DOMAIN_START_VALIDATE, NULL);
 
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
     if (flags & VIR_DOMAIN_START_AUTODESTROY)
         start_flags |= VIR_BHYVE_PROCESS_START_AUTODESTROY;
 
@@ -894,7 +911,7 @@ bhyveDomainCreateXML(virConnectPtr conn,
 
     if ((def = virDomainDefParseString(xml, caps, privconn->xmlopt,
                                        1 << VIR_DOMAIN_VIRT_BHYVE,
-                                       VIR_DOMAIN_XML_INACTIVE)) == NULL)
+                                       parse_flags)) == NULL)
         goto cleanup;
 
     if (virDomainCreateXMLEnsureACL(conn, def) < 0)
@@ -1438,6 +1455,7 @@ static virHypervisorDriver bhyveDriver = {
     .domainLookupByName = bhyveDomainLookupByName, /* 1.2.2 */
     .domainLookupByID = bhyveDomainLookupByID, /* 1.2.3 */
     .domainDefineXML = bhyveDomainDefineXML, /* 1.2.2 */
+    .domainDefineXMLFlags = bhyveDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = bhyveDomainUndefine, /* 1.2.2 */
     .domainGetXMLDesc = bhyveDomainGetXMLDesc, /* 1.2.2 */
     .domainIsActive = bhyveDomainIsActive, /* 1.2.2 */

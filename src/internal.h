@@ -235,10 +235,20 @@
     _Pragma ("GCC diagnostic push") \
     _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
 
+#  if HAVE_SUGGEST_ATTRIBUTE_FORMAT
+#   define VIR_WARNINGS_NO_PRINTF \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=format\"")
+#  else
+#   define VIR_WARNINGS_NO_PRINTF \
+    _Pragma ("GCC diagnostic push")
+#  endif
+
 #  define VIR_WARNINGS_RESET \
     _Pragma ("GCC diagnostic pop")
 # else
 #  define VIR_WARNINGS_NO_CAST_ALIGN
+#  define VIR_WARNINGS_NO_PRINTF
 #  define VIR_WARNINGS_RESET
 # endif
 
