@@ -1,3 +1,18 @@
+libvirt (1.2.12~rc1-1) experimental; urgency=medium
+
+  * [994d31d] Bump standards version to 3.9.6
+    no changes required
+  * [7b59a26] New upstream version 1.2.12~rc1
+  * [0a755e3] Dropped patches applied upstram.
+        lxc-Don-t-crash-on-NULL-ifname_guest_actual.patch
+        lxc-Move-setting-ifname_guest_actual-to-virLXCSetupI.patch
+    Rediff remaining patches.
+  * [9511acf] Document surprises on CPU microcode updates (Closes: #773706)
+  * [3e325df] Install lock drivers (Closes: #773706)
+  * [970de51] Bump symbol versions
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 22 Jan 2015 12:26:54 +0100
+
 libvirt (1.2.11-1) experimental; urgency=medium
 
   * [1377d56] lxc: Fix crash when using interface type 'direct'
