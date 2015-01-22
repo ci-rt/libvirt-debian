@@ -25,6 +25,7 @@ src/conf/netdev_bandwidth_conf.c
 src/conf/netdev_vlan_conf.c
 src/conf/netdev_vport_profile_conf.c
 src/conf/network_conf.c
+src/conf/networkcommon_conf.c
 src/conf/node_device_conf.c
 src/conf/numatune_conf.c
 src/conf/nwfilter_conf.c
@@ -216,6 +217,7 @@ src/util/virstorageencryption.c
 src/util/virstoragefile.c
 src/util/virstring.c
 src/util/virsysinfo.c
+src/util/virsystemd.c
 src/util/virerror.c
 src/util/virerror.h
 src/util/virtime.c
@@ -247,6 +249,7 @@ src/xenapi/xenapi_driver.c
 src/xenapi/xenapi_utils.c
 src/xenconfig/xen_common.c
 src/xenconfig/xen_sxpr.c
+src/xenconfig/xen_xl.c
 src/xenconfig/xen_xm.c
 tests/virpolkittest.c
 tools/libvirt-guests.sh.in

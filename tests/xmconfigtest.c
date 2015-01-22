@@ -74,7 +74,7 @@ testCompareParseXML(const char *xmcfg, const char *xml, int xendConfigVersion)
 
     if (!(def = virDomainDefParseString(xmlData, caps, xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto fail;
 
     if (!virDomainDefCheckABIStability(def, def)) {
@@ -140,7 +140,7 @@ testCompareFormatXML(const char *xmcfg, const char *xml, int xendConfigVersion)
     if (!(def = xenParseXM(conf, priv.xendConfigVersion, priv.caps)))
         goto fail;
 
-    if (!(gotxml = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE)))
+    if (!(gotxml = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_SECURE)))
         goto fail;
 
     if (STRNEQ(xmlData, gotxml)) {
@@ -176,6 +176,7 @@ testCompareHelper(const void *data)
     const struct testInfo *info = data;
     char *xml = NULL;
     char *cfg = NULL;
+    char *cfgout = NULL;
 
     if (virAsprintf(&xml, "%s/xmconfigdata/test-%s.xml",
                     abs_srcdir, info->name) < 0 ||
@@ -191,6 +192,7 @@ testCompareHelper(const void *data)
  cleanup:
     VIR_FREE(xml);
     VIR_FREE(cfg);
+    VIR_FREE(cfgout);
 
     return result;
 }
@@ -207,16 +209,28 @@ mymain(void)
     if (!(xmlopt = xenDomainXMLConfInit()))
         return EXIT_FAILURE;
 
-#define DO_TEST(name, version)                                          \
+#define DO_TEST_PARSE(name, version)                                    \
     do {                                                                \
         struct testInfo info0 = { name, version, 0 };                   \
-        struct testInfo info1 = { name, version, 1 };                   \
         if (virtTestRun("Xen XM-2-XML Parse  " name,                    \
                         testCompareHelper, &info0) < 0)                 \
             ret = -1;                                                   \
+    } while (0)
+
+
+#define DO_TEST_FORMAT(name, version)                                   \
+    do {                                                                \
+        struct testInfo info1 = { name, version, 1 };                   \
         if (virtTestRun("Xen XM-2-XML Format " name,                    \
                         testCompareHelper, &info1) < 0)                 \
             ret = -1;                                                   \
+    } while (0)
+
+
+#define DO_TEST(name, version)                                          \
+    do {                                                                \
+        DO_TEST_PARSE(name, version);                                   \
+        DO_TEST_FORMAT(name, version);                                  \
     } while (0)
 
     DO_TEST("paravirt-old-pvfb", 1);
@@ -253,6 +267,8 @@ mymain(void)
 
     DO_TEST("fullvirt-net-ioemu", 2);
     DO_TEST("fullvirt-net-netfront", 2);
+
+    DO_TEST_FORMAT("fullvirt-default-feature", 2);
 
     DO_TEST("escape-paths", 2);
     DO_TEST("no-source-cdrom", 2);

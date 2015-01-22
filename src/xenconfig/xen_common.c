@@ -43,7 +43,7 @@
 /*
  * Convenience method to grab a long int from the config file object
  */
-static int
+int
 xenConfigGetBool(virConfPtr conf,
                  const char *name,
                  int *value,
@@ -57,7 +57,7 @@ xenConfigGetBool(virConfPtr conf,
         return 0;
     }
 
-    if (val->type == VIR_CONF_LONG) {
+    if (val->type == VIR_CONF_ULONG) {
         *value = val->l ? 1 : 0;
     } else if (val->type == VIR_CONF_STRING) {
         *value = STREQ(val->str, "1") ? 1 : 0;
@@ -73,7 +73,7 @@ xenConfigGetBool(virConfPtr conf,
 /*
  * Convenience method to grab a int from the config file object
  */
-static int
+int
 xenConfigGetULong(virConfPtr conf,
                   const char *name,
                   unsigned long *value,
@@ -87,7 +87,7 @@ xenConfigGetULong(virConfPtr conf,
         return 0;
     }
 
-    if (val->type == VIR_CONF_LONG) {
+    if (val->type == VIR_CONF_ULONG) {
         *value = val->l;
     } else if (val->type == VIR_CONF_STRING) {
         if (virStrToLong_ul(val->str, NULL, 10, value) < 0) {
@@ -121,7 +121,7 @@ xenConfigGetULongLong(virConfPtr conf,
         return 0;
     }
 
-    if (val->type == VIR_CONF_LONG) {
+    if (val->type == VIR_CONF_ULONG) {
         *value = val->l;
     } else if (val->type == VIR_CONF_STRING) {
         if (virStrToLong_ull(val->str, NULL, 10, value) < 0) {
@@ -179,7 +179,7 @@ xenConfigCopyString(virConfPtr conf, const char *name, char **value)
 }
 
 
-static int
+int
 xenConfigCopyStringOpt(virConfPtr conf, const char *name, char **value)
 {
     return xenConfigCopyStringInternal(conf, name, value, 1);
@@ -262,8 +262,8 @@ xenConfigGetString(virConfPtr conf,
 }
 
 
-static int
-xenXMConfigSetInt(virConfPtr conf, const char *setting, long long l)
+int
+xenConfigSetInt(virConfPtr conf, const char *setting, long long l)
 {
     virConfValuePtr value = NULL;
 
@@ -283,8 +283,8 @@ xenXMConfigSetInt(virConfPtr conf, const char *setting, long long l)
 }
 
 
-static int
-xenXMConfigSetString(virConfPtr conf, const char *setting, const char *str)
+int
+xenConfigSetString(virConfPtr conf, const char *setting, const char *str)
 {
     virConfValuePtr value = NULL;
 
@@ -512,17 +512,17 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
         return -1;
 
     if (STREQ(def->os.type, "hvm")) {
-        if (xenConfigGetBool(conf, "pae", &val, 0) < 0)
+        if (xenConfigGetBool(conf, "pae", &val, 1) < 0)
             return -1;
 
         else if (val)
             def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_TRISTATE_SWITCH_ON;
-        if (xenConfigGetBool(conf, "acpi", &val, 0) < 0)
+        if (xenConfigGetBool(conf, "acpi", &val, 1) < 0)
             return -1;
 
         else if (val)
             def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_TRISTATE_SWITCH_ON;
-        if (xenConfigGetBool(conf, "apic", &val, 0) < 0)
+        if (xenConfigGetBool(conf, "apic", &val, 1) < 0)
             return -1;
 
         else if (val)
@@ -920,12 +920,9 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def)
             if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
                 if (bridge[0] && VIR_STRDUP(net->data.bridge.brname, bridge) < 0)
                     goto cleanup;
-                if (ip[0] && VIR_STRDUP(net->data.bridge.ipaddr, ip) < 0)
-                    goto cleanup;
-            } else {
-                if (ip[0] && VIR_STRDUP(net->data.ethernet.ipaddr, ip) < 0)
-                    goto cleanup;
             }
+            if (ip[0] && virDomainNetAppendIpAddress(net, ip, AF_INET, 0) < 0)
+                goto cleanup;
 
             if (script && script[0] &&
                 VIR_STRDUP(net->script, script) < 0)
@@ -1071,7 +1068,7 @@ xenParseOS(virConfPtr conf, virDomainDefPtr def)
             return -1;
 
         for (i = 0; i < VIR_DOMAIN_BOOT_LAST && boot[i]; i++) {
-            switch (*boot) {
+            switch (boot[i]) {
             case 'a':
                 def->os.bootDevs[i] = VIR_DOMAIN_BOOT_FLOPPY;
                 break;
@@ -1223,16 +1220,30 @@ xenFormatNet(virConnectPtr conn,
     switch (net->type) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
         virBufferAsprintf(&buf, ",bridge=%s", net->data.bridge.brname);
-        if (net->data.bridge.ipaddr)
-            virBufferAsprintf(&buf, ",ip=%s", net->data.bridge.ipaddr);
+        if (net->nips == 1) {
+            char *ipStr = virSocketAddrFormat(&net->ips[0]->address);
+            virBufferAsprintf(&buf, ",ip=%s", ipStr);
+            VIR_FREE(ipStr);
+        } else if (net->nips > 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Driver does not support setting multiple IP addresses"));
+            goto cleanup;
+        }
         virBufferAsprintf(&buf, ",script=%s", DEFAULT_VIF_SCRIPT);
         break;
 
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
         if (net->script)
             virBufferAsprintf(&buf, ",script=%s", net->script);
-        if (net->data.ethernet.ipaddr)
-            virBufferAsprintf(&buf, ",ip=%s", net->data.ethernet.ipaddr);
+        if (net->nips == 1) {
+            char *ipStr = virSocketAddrFormat(&net->ips[0]->address);
+            virBufferAsprintf(&buf, ",ip=%s", ipStr);
+            VIR_FREE(ipStr);
+        } else if (net->nips > 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Driver does not support setting multiple IP addresses"));
+            goto cleanup;
+        }
         break;
 
     case VIR_DOMAIN_NET_TYPE_NETWORK:
@@ -1384,11 +1395,11 @@ xenFormatGeneralMeta(virConfPtr conf, virDomainDefPtr def)
 {
     char uuid[VIR_UUID_STRING_BUFLEN];
 
-    if (xenXMConfigSetString(conf, "name", def->name) < 0)
+    if (xenConfigSetString(conf, "name", def->name) < 0)
         return -1;
 
     virUUIDFormat(def->uuid, uuid);
-    if (xenXMConfigSetString(conf, "uuid", uuid) < 0)
+    if (xenConfigSetString(conf, "uuid", uuid) < 0)
         return -1;
 
     return 0;
@@ -1398,12 +1409,12 @@ xenFormatGeneralMeta(virConfPtr conf, virDomainDefPtr def)
 static int
 xenFormatMem(virConfPtr conf, virDomainDefPtr def)
 {
-    if (xenXMConfigSetInt(conf, "maxmem",
-                          VIR_DIV_UP(def->mem.max_balloon, 1024)) < 0)
+    if (xenConfigSetInt(conf, "maxmem",
+                        VIR_DIV_UP(def->mem.max_balloon, 1024)) < 0)
         return -1;
 
-    if (xenXMConfigSetInt(conf, "memory",
-                          VIR_DIV_UP(def->mem.cur_balloon, 1024)) < 0)
+    if (xenConfigSetInt(conf, "memory",
+                        VIR_DIV_UP(def->mem.cur_balloon, 1024)) < 0)
         return -1;
 
     return 0;
@@ -1465,7 +1476,7 @@ xenFormatTimeOffset(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
                                virDomainClockOffsetTypeToString(def->clock.offset));
                 return -1;
             }
-            if (xenXMConfigSetInt(conf, "rtc_timeoffset", rtc_timeoffset) < 0)
+            if (xenConfigSetInt(conf, "rtc_timeoffset", rtc_timeoffset) < 0)
                 return -1;
 
         } else {
@@ -1486,7 +1497,7 @@ xenFormatTimeOffset(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
         } /* !hvm */
     }
 
-    if (xenXMConfigSetInt(conf, "localtime", vmlocaltime) < 0)
+    if (xenConfigSetInt(conf, "localtime", vmlocaltime) < 0)
         return -1;
 
     return 0;
@@ -1503,7 +1514,7 @@ xenFormatEventActions(virConfPtr conf, virDomainDefPtr def)
                        _("unexpected lifecycle action %d"), def->onPoweroff);
         return -1;
     }
-    if (xenXMConfigSetString(conf, "on_poweroff", lifecycle) < 0)
+    if (xenConfigSetString(conf, "on_poweroff", lifecycle) < 0)
         return -1;
 
 
@@ -1512,7 +1523,7 @@ xenFormatEventActions(virConfPtr conf, virDomainDefPtr def)
                        _("unexpected lifecycle action %d"), def->onReboot);
         return -1;
     }
-    if (xenXMConfigSetString(conf, "on_reboot", lifecycle) < 0)
+    if (xenConfigSetString(conf, "on_reboot", lifecycle) < 0)
         return -1;
 
 
@@ -1521,7 +1532,7 @@ xenFormatEventActions(virConfPtr conf, virDomainDefPtr def)
                        _("unexpected lifecycle action %d"), def->onCrash);
         return -1;
     }
-    if (xenXMConfigSetString(conf, "on_crash", lifecycle) < 0)
+    if (xenConfigSetString(conf, "on_crash", lifecycle) < 0)
         return -1;
 
     return 0;
@@ -1542,12 +1553,12 @@ xenFormatCharDev(virConfPtr conf, virDomainDefPtr def)
             ret = xenFormatSxprChr(def->parallels[0], &buf);
             str = virBufferContentAndReset(&buf);
             if (ret == 0)
-                ret = xenXMConfigSetString(conf, "parallel", str);
+                ret = xenConfigSetString(conf, "parallel", str);
             VIR_FREE(str);
             if (ret < 0)
                 return -1;
         } else {
-            if (xenXMConfigSetString(conf, "parallel", "none") < 0)
+            if (xenConfigSetString(conf, "parallel", "none") < 0)
                 return -1;
         }
 
@@ -1560,7 +1571,7 @@ xenFormatCharDev(virConfPtr conf, virDomainDefPtr def)
                 ret = xenFormatSxprChr(def->serials[0], &buf);
                 str = virBufferContentAndReset(&buf);
                 if (ret == 0)
-                    ret = xenXMConfigSetString(conf, "serial", str);
+                    ret = xenConfigSetString(conf, "serial", str);
                 VIR_FREE(str);
                 if (ret < 0)
                     return -1;
@@ -1605,7 +1616,7 @@ xenFormatCharDev(virConfPtr conf, virDomainDefPtr def)
                 VIR_FREE(serialVal);
             }
         } else {
-            if (xenXMConfigSetString(conf, "serial", "none") < 0)
+            if (xenConfigSetString(conf, "serial", "none") < 0)
                 return -1;
         }
     }
@@ -1620,13 +1631,13 @@ xenFormatCPUAllocation(virConfPtr conf, virDomainDefPtr def)
     int ret = -1;
     char *cpus = NULL;
 
-    if (xenXMConfigSetInt(conf, "vcpus", def->maxvcpus) < 0)
+    if (xenConfigSetInt(conf, "vcpus", def->maxvcpus) < 0)
         goto cleanup;
 
     /* Computing the vcpu_avail bitmask works because MAX_VIRT_CPUS is
        either 32, or 64 on a platform where long is big enough.  */
     if (def->vcpus < def->maxvcpus &&
-        xenXMConfigSetInt(conf, "vcpu_avail", (1UL << def->vcpus) - 1) < 0)
+        xenConfigSetInt(conf, "vcpu_avail", (1UL << def->vcpus) - 1) < 0)
         goto cleanup;
 
     if ((def->cpumask != NULL) &&
@@ -1635,7 +1646,7 @@ xenFormatCPUAllocation(virConfPtr conf, virDomainDefPtr def)
     }
 
     if (cpus &&
-        xenXMConfigSetString(conf, "cpus", cpus) < 0)
+        xenConfigSetString(conf, "cpus", cpus) < 0)
         goto cleanup;
 
     ret = 0;
@@ -1652,37 +1663,37 @@ xenFormatCPUFeatures(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion
     size_t i;
 
     if (STREQ(def->os.type, "hvm")) {
-        if (xenXMConfigSetInt(conf, "pae",
-                              (def->features[VIR_DOMAIN_FEATURE_PAE] ==
-                               VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
+        if (xenConfigSetInt(conf, "pae",
+                            (def->features[VIR_DOMAIN_FEATURE_PAE] ==
+                            VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             return -1;
 
-        if (xenXMConfigSetInt(conf, "acpi",
-                              (def->features[VIR_DOMAIN_FEATURE_ACPI] ==
-                               VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
+        if (xenConfigSetInt(conf, "acpi",
+                            (def->features[VIR_DOMAIN_FEATURE_ACPI] ==
+                            VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             return -1;
 
-        if (xenXMConfigSetInt(conf, "apic",
-                              (def->features[VIR_DOMAIN_FEATURE_APIC] ==
-                               VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
+        if (xenConfigSetInt(conf, "apic",
+                            (def->features[VIR_DOMAIN_FEATURE_APIC] ==
+                            VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             return -1;
 
         if (xendConfigVersion >= XEND_CONFIG_VERSION_3_0_4) {
-            if (xenXMConfigSetInt(conf, "hap",
-                                  (def->features[VIR_DOMAIN_FEATURE_HAP] ==
-                                   VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
+            if (xenConfigSetInt(conf, "hap",
+                                (def->features[VIR_DOMAIN_FEATURE_HAP] ==
+                                VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
                 return -1;
 
-            if (xenXMConfigSetInt(conf, "viridian",
-                                  (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] ==
-                                   VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
+            if (xenConfigSetInt(conf, "viridian",
+                                (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] ==
+                                VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
                 return -1;
         }
 
         for (i = 0; i < def->clock.ntimers; i++) {
             if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_HPET &&
                 def->clock.timers[i]->present != -1 &&
-                xenXMConfigSetInt(conf, "hpet", def->clock.timers[i]->present) < 0)
+                xenConfigSetInt(conf, "hpet", def->clock.timers[i]->present) < 0)
                 return -1;
         }
     }
@@ -1695,7 +1706,7 @@ static int
 xenFormatEmulator(virConfPtr conf, virDomainDefPtr def)
 {
     if (def->emulator &&
-        xenXMConfigSetString(conf, "device_model", def->emulator) < 0)
+        xenConfigSetString(conf, "device_model", def->emulator) < 0)
         return -1;
 
     return 0;
@@ -1714,8 +1725,8 @@ xenFormatCDROM(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
                     def->disks[i]->dst &&
                     STREQ(def->disks[i]->dst, "hdc") &&
                     virDomainDiskGetSource(def->disks[i])) {
-                    if (xenXMConfigSetString(conf, "cdrom",
-                                             virDomainDiskGetSource(def->disks[i])) < 0)
+                    if (xenConfigSetString(conf, "cdrom",
+                                           virDomainDiskGetSource(def->disks[i])) < 0)
                         return -1;
                     break;
                 }
@@ -1734,11 +1745,11 @@ xenFormatOS(virConfPtr conf, virDomainDefPtr def)
 
     if (STREQ(def->os.type, "hvm")) {
         char boot[VIR_DOMAIN_BOOT_LAST+1];
-        if (xenXMConfigSetString(conf, "builder", "hvm") < 0)
+        if (xenConfigSetString(conf, "builder", "hvm") < 0)
             return -1;
 
         if (def->os.loader && def->os.loader->path &&
-            xenXMConfigSetString(conf, "kernel", def->os.loader->path) < 0)
+            xenConfigSetString(conf, "kernel", def->os.loader->path) < 0)
             return -1;
 
         for (i = 0; i < def->os.nBootDevs; i++) {
@@ -1766,29 +1777,29 @@ xenFormatOS(virConfPtr conf, virDomainDefPtr def)
             boot[def->os.nBootDevs] = '\0';
         }
 
-        if (xenXMConfigSetString(conf, "boot", boot) < 0)
+        if (xenConfigSetString(conf, "boot", boot) < 0)
             return -1;
 
         /* XXX floppy disks */
     } else {
         if (def->os.bootloader &&
-             xenXMConfigSetString(conf, "bootloader", def->os.bootloader) < 0)
+             xenConfigSetString(conf, "bootloader", def->os.bootloader) < 0)
             return -1;
 
          if (def->os.bootloaderArgs &&
-             xenXMConfigSetString(conf, "bootargs", def->os.bootloaderArgs) < 0)
+             xenConfigSetString(conf, "bootargs", def->os.bootloaderArgs) < 0)
             return -1;
 
          if (def->os.kernel &&
-             xenXMConfigSetString(conf, "kernel", def->os.kernel) < 0)
+             xenConfigSetString(conf, "kernel", def->os.kernel) < 0)
             return -1;
 
          if (def->os.initrd &&
-             xenXMConfigSetString(conf, "ramdisk", def->os.initrd) < 0)
+             xenConfigSetString(conf, "ramdisk", def->os.initrd) < 0)
             return -1;
 
          if (def->os.cmdline &&
-             xenXMConfigSetString(conf, "extra", def->os.cmdline) < 0)
+             xenConfigSetString(conf, "extra", def->os.cmdline) < 0)
             return -1;
      } /* !hvm */
 
@@ -1801,55 +1812,56 @@ xenFormatVfb(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
 {
     int hvm = STREQ(def->os.type, "hvm") ? 1 : 0;
 
-    if (def->ngraphics == 1) {
+    if (def->ngraphics == 1 &&
+        def->graphics[0]->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
         if (hvm || (xendConfigVersion < XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
             if (def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
-                if (xenXMConfigSetInt(conf, "sdl", 1) < 0)
+                if (xenConfigSetInt(conf, "sdl", 1) < 0)
                     return -1;
 
-                if (xenXMConfigSetInt(conf, "vnc", 0) < 0)
+                if (xenConfigSetInt(conf, "vnc", 0) < 0)
                     return -1;
 
                 if (def->graphics[0]->data.sdl.display &&
-                    xenXMConfigSetString(conf, "display",
-                                     def->graphics[0]->data.sdl.display) < 0)
+                    xenConfigSetString(conf, "display",
+                                       def->graphics[0]->data.sdl.display) < 0)
                     return -1;
 
                 if (def->graphics[0]->data.sdl.xauth &&
-                    xenXMConfigSetString(conf, "xauthority",
-                                         def->graphics[0]->data.sdl.xauth) < 0)
+                    xenConfigSetString(conf, "xauthority",
+                                       def->graphics[0]->data.sdl.xauth) < 0)
                     return -1;
             } else {
                 const char *listenAddr;
 
-                if (xenXMConfigSetInt(conf, "sdl", 0) < 0)
+                if (xenConfigSetInt(conf, "sdl", 0) < 0)
                     return -1;
 
-                if (xenXMConfigSetInt(conf, "vnc", 1) < 0)
+                if (xenConfigSetInt(conf, "vnc", 1) < 0)
                     return -1;
 
-                if (xenXMConfigSetInt(conf, "vncunused",
+                if (xenConfigSetInt(conf, "vncunused",
                               def->graphics[0]->data.vnc.autoport ? 1 : 0) < 0)
                     return -1;
 
                 if (!def->graphics[0]->data.vnc.autoport &&
-                    xenXMConfigSetInt(conf, "vncdisplay",
-                                  def->graphics[0]->data.vnc.port - 5900) < 0)
+                    xenConfigSetInt(conf, "vncdisplay",
+                                    def->graphics[0]->data.vnc.port - 5900) < 0)
                     return -1;
 
                 listenAddr = virDomainGraphicsListenGetAddress(def->graphics[0], 0);
                 if (listenAddr &&
-                    xenXMConfigSetString(conf, "vnclisten", listenAddr) < 0)
+                    xenConfigSetString(conf, "vnclisten", listenAddr) < 0)
                     return -1;
 
                 if (def->graphics[0]->data.vnc.auth.passwd &&
-                    xenXMConfigSetString(conf, "vncpasswd",
-                                        def->graphics[0]->data.vnc.auth.passwd) < 0)
+                    xenConfigSetString(conf, "vncpasswd",
+                                       def->graphics[0]->data.vnc.auth.passwd) < 0)
                     return -1;
 
                 if (def->graphics[0]->data.vnc.keymap &&
-                    xenXMConfigSetString(conf, "keymap",
-                                        def->graphics[0]->data.vnc.keymap) < 0)
+                    xenConfigSetString(conf, "keymap",
+                                       def->graphics[0]->data.vnc.keymap) < 0)
                     return -1;
             }
         } else {
@@ -1925,7 +1937,7 @@ xenFormatSound(virConfPtr conf, virDomainDefPtr def)
 
             str = virBufferContentAndReset(&buf);
             if (ret == 0)
-                ret = xenXMConfigSetString(conf, "soundhw", str);
+                ret = xenConfigSetString(conf, "soundhw", str);
 
             VIR_FREE(str);
             if (ret < 0)
@@ -1945,22 +1957,22 @@ xenFormatInputDevs(virConfPtr conf, virDomainDefPtr def)
     if (STREQ(def->os.type, "hvm")) {
         for (i = 0; i < def->ninputs; i++) {
             if (def->inputs[i]->bus == VIR_DOMAIN_INPUT_BUS_USB) {
-                if (xenXMConfigSetInt(conf, "usb", 1) < 0)
+                if (xenConfigSetInt(conf, "usb", 1) < 0)
                     return -1;
 
                 switch (def->inputs[i]->type) {
                     case VIR_DOMAIN_INPUT_TYPE_MOUSE:
-                        if (xenXMConfigSetString(conf, "usbdevice", "mouse") < 0)
+                        if (xenConfigSetString(conf, "usbdevice", "mouse") < 0)
                             return -1;
 
                         break;
                     case VIR_DOMAIN_INPUT_TYPE_TABLET:
-                        if (xenXMConfigSetString(conf, "usbdevice", "tablet") < 0)
+                        if (xenConfigSetString(conf, "usbdevice", "tablet") < 0)
                             return -1;
 
                         break;
                     case VIR_DOMAIN_INPUT_TYPE_KBD:
-                        if (xenXMConfigSetString(conf, "usbdevice", "keyboard") < 0)
+                        if (xenConfigSetString(conf, "usbdevice", "keyboard") < 0)
                             return -1;
 
                         break;

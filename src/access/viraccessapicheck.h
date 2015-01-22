@@ -116,6 +116,7 @@ extern int virDomainCreateWithFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr
 extern int virDomainCreateXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateXMLWithFilesEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainDefineXMLFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDestroyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDestroyFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDetachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

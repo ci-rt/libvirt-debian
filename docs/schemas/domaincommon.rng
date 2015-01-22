@@ -2003,6 +2003,7 @@
             <value>handle</value>
             <value>loop</value>
             <value>nbd</value>
+            <value>ploop</value>
           </choice>
         </attribute>
       </optional>
@@ -2311,14 +2312,27 @@
           <empty/>
         </element>
       </optional>
-      <optional>
+      <zeroOrMore>
         <element name="ip">
           <attribute name="address">
-            <ref name="ipv4Addr"/>
+            <ref name="ipAddr"/>
           </attribute>
+          <optional>
+            <attribute name="family">
+              <ref name="addr-family"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="prefix">
+              <ref name="ipPrefix"/>
+            </attribute>
+          </optional>
           <empty/>
         </element>
-      </optional>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="route"/>
+      </zeroOrMore>
       <optional>
         <element name="script">
           <attribute name="path">
@@ -3798,11 +3812,34 @@
     <attribute name="type">
       <value>net</value>
     </attribute>
-    <element name="source">
-      <element name="interface">
-        <ref name="deviceName"/>
+    <interleave>
+      <element name="source">
+        <element name="interface">
+          <ref name="deviceName"/>
+        </element>
       </element>
-    </element>
+      <zeroOrMore>
+        <element name="ip">
+          <attribute name="address">
+            <ref name="ipAddr"/>
+          </attribute>
+          <optional>
+            <attribute name="family">
+              <ref name="addr-family"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="prefix">
+              <ref name="ipPrefix"/>
+            </attribute>
+          </optional>
+          <empty/>
+        </element>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="route"/>
+      </zeroOrMore>
+    </interleave>
   </define>
 
   <define name="usbproduct">
@@ -4018,6 +4055,9 @@
           <optional>
             <ref name="capabilities"/>
           </optional>
+          <optional>
+            <ref name="pmu"/>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -4027,50 +4067,29 @@
       -->
   <define name="cpu">
     <element name="cpu">
-      <choice>
-        <group>
-          <interleave>
-            <optional>
-              <ref name="cpuTopology"/>
-            </optional>
-            <optional>
-              <ref name="cpuNuma"/>
-            </optional>
-          </interleave>
-        </group>
-        <group>
-          <ref name="cpuMode"/>
-          <interleave>
-            <optional>
-              <ref name="cpuModel"/>
-            </optional>
-            <optional>
-              <ref name="cpuNuma"/>
-            </optional>
-          </interleave>
-        </group>
-        <group>
-          <optional>
-            <ref name="cpuMode"/>
-          </optional>
-          <ref name="cpuMatch"/>
-          <interleave>
-            <ref name="cpuModel"/>
-            <optional>
-              <ref name="cpuVendor"/>
-            </optional>
-            <optional>
-              <ref name="cpuTopology"/>
-            </optional>
-            <zeroOrMore>
-              <ref name="cpuFeature"/>
-            </zeroOrMore>
-            <optional>
-              <ref name="cpuNuma"/>
-            </optional>
-          </interleave>
-        </group>
-      </choice>
+      <optional>
+        <ref name="cpuMode"/>
+      </optional>
+      <optional>
+        <ref name="cpuMatch"/>
+      </optional>
+      <interleave>
+        <optional>
+          <ref name="cpuModel"/>
+        </optional>
+        <optional>
+          <ref name="cpuVendor"/>
+        </optional>
+        <optional>
+          <ref name="cpuTopology"/>
+        </optional>
+        <zeroOrMore>
+          <ref name="cpuFeature"/>
+        </zeroOrMore>
+        <optional>
+          <ref name="cpuNuma"/>
+        </optional>
+      </interleave>
     </element>
   </define>
 
@@ -4861,6 +4880,14 @@
           </element>
         </optional>
       </interleave>
+    </element>
+  </define>
+
+  <define name="pmu">
+    <element name="pmu">
+      <optional>
+        <ref name="featurestate"/>
+      </optional>
     </element>
   </define>
 

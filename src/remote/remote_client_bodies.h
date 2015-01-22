@@ -1529,6 +1529,35 @@ done:
     return rv;
 }
 
+static virDomainPtr
+remoteDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
+{
+    virDomainPtr rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_domain_define_xml_flags_args args;
+    remote_domain_define_xml_flags_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.xml = (char *)xml;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_DEFINE_XML_FLAGS,
+             (xdrproc_t)xdr_remote_domain_define_xml_flags_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_define_xml_flags_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_domain(conn, ret.dom);
+    xdr_free((xdrproc_t)xdr_remote_domain_define_xml_flags_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static int
 remoteDomainDestroy(virDomainPtr dom)
 {

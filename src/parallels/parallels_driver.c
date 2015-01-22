@@ -658,21 +658,24 @@ parallelsDomainGetAutostart(virDomainPtr domain, int *autostart)
 }
 
 static virDomainPtr
-parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
+parallelsDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     parallelsConnPtr privconn = conn->privateData;
     virDomainPtr retdom = NULL;
     virDomainDefPtr def;
     virDomainObjPtr olddom = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     parallelsDriverLock(privconn);
     if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
                                        1 << VIR_DOMAIN_VIRT_PARALLELS,
-                                       VIR_DOMAIN_XML_INACTIVE)) == NULL) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("Can't parse XML desc"));
+                                       parse_flags)) == NULL)
         goto cleanup;
-    }
 
     olddom = virDomainObjListFindByUUID(privconn->domains, def->uuid);
     if (olddom == NULL) {
@@ -711,6 +714,13 @@ parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
     parallelsDriverUnlock(privconn);
     return retdom;
 }
+
+static virDomainPtr
+parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return parallelsDomainDefineXMLFlags(conn, xml, 0);
+}
+
 
 static int
 parallelsNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -973,6 +983,7 @@ static virHypervisorDriver parallelsDriver = {
     .domainCreate = parallelsDomainCreate,    /* 0.10.0 */
     .domainCreateWithFlags = parallelsDomainCreateWithFlags, /* 1.2.10 */
     .domainDefineXML = parallelsDomainDefineXML,      /* 0.10.0 */
+    .domainDefineXMLFlags = parallelsDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = parallelsDomainUndefine, /* 1.2.10 */
     .domainUndefineFlags = parallelsDomainUndefineFlags, /* 1.2.10 */
     .domainIsActive = parallelsDomainIsActive, /* 1.2.10 */

@@ -444,7 +444,8 @@ static int lxcConnectNumOfDefinedDomains(virConnectPtr conn)
 
 
 
-static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
+static virDomainPtr
+lxcDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     virLXCDriverPtr driver = conn->privateData;
     virDomainDefPtr def = NULL;
@@ -454,16 +455,22 @@ static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
     virDomainDefPtr oldDef = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCapsPtr caps = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!(caps = virLXCDriverGetCapabilities(driver, false)))
         goto cleanup;
 
     if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_LXC,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
-    if (virDomainDefineXMLEnsureACL(conn, def) < 0)
+    if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
         goto cleanup;
 
     if (virSecurityManagerVerify(driver->securityManager, def) < 0)
@@ -509,6 +516,12 @@ static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
     virObjectUnref(caps);
     virObjectUnref(cfg);
     return dom;
+}
+
+static virDomainPtr
+lxcDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return lxcDomainDefineXMLFlags(conn, xml, 0);
 }
 
 static int lxcDomainUndefineFlags(virDomainPtr dom,
@@ -1031,7 +1044,7 @@ static char *lxcDomainGetXMLDesc(virDomainPtr dom,
 
     ret = virDomainDefFormat((flags & VIR_DOMAIN_XML_INACTIVE) &&
                              vm->newDef ? vm->newDef : vm->def,
-                             flags);
+                             virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
     if (vm)
@@ -1187,8 +1200,14 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
     virObjectEventPtr event = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCapsPtr caps = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
 
-    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, NULL);
+    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY |
+                  VIR_DOMAIN_START_VALIDATE, NULL);
+
+
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     virNWFilterReadLockFilterUpdates();
 
@@ -1197,7 +1216,7 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
 
     if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_LXC,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
     if (virDomainCreateXMLWithFilesEnsureACL(conn, def) < 0)
@@ -4139,6 +4158,7 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
     virLXCDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
     int actualType;
+    virNetDevBandwidthPtr actualBandwidth;
     char *veth = NULL;
 
     if (!priv->initpid) {
@@ -4186,11 +4206,18 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
                        _("Network device type is not supported"));
         goto cleanup;
     }
-    /* set network bandwidth */
-    if (virNetDevSupportBandwidth(actualType) &&
-        virNetDevBandwidthSet(net->ifname,
-                              virDomainNetGetActualBandwidth(net), false) < 0)
-        goto cleanup;
+    /* Set bandwidth or warn if requested and not supported. */
+    actualBandwidth = virDomainNetGetActualBandwidth(net);
+    if (actualBandwidth) {
+        if (virNetDevSupportBandwidth(actualType)) {
+            if (virNetDevBandwidthSet(net->ifname, actualBandwidth, false) < 0)
+                goto cleanup;
+        } else {
+            VIR_WARN("setting bandwidth on interfaces of "
+                     "type '%s' is not implemented yet",
+                     virDomainNetTypeToString(actualType));
+        }
+    }
 
     if (virNetDevSetNamespace(veth, priv->initpid) < 0) {
         virDomainAuditNet(vm, NULL, net, "attach", false);
@@ -4980,7 +5007,7 @@ static int lxcDomainAttachDeviceFlags(virDomainPtr dom,
 
     dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
                                              caps, driver->xmlopt,
-                                             VIR_DOMAIN_XML_INACTIVE);
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -5109,7 +5136,7 @@ static int lxcDomainUpdateDeviceFlags(virDomainPtr dom,
 
     dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
                                              caps, driver->xmlopt,
-                                             VIR_DOMAIN_XML_INACTIVE);
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -5222,7 +5249,7 @@ static int lxcDomainDetachDeviceFlags(virDomainPtr dom,
 
     dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
                                              caps, driver->xmlopt,
-                                             VIR_DOMAIN_XML_INACTIVE);
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -5745,6 +5772,7 @@ static virHypervisorDriver lxcDriver = {
     .domainCreateWithFlags = lxcDomainCreateWithFlags, /* 0.8.2 */
     .domainCreateWithFiles = lxcDomainCreateWithFiles, /* 1.1.1 */
     .domainDefineXML = lxcDomainDefineXML, /* 0.4.2 */
+    .domainDefineXMLFlags = lxcDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = lxcDomainUndefine, /* 0.4.2 */
     .domainUndefineFlags = lxcDomainUndefineFlags, /* 0.9.4 */
     .domainAttachDevice = lxcDomainAttachDevice, /* 1.0.1 */

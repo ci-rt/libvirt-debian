@@ -928,6 +928,11 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     }
 
     if (network->def->domain) {
+        if (network->def->domainLocalOnly == VIR_TRISTATE_BOOL_YES) {
+            virBufferAsprintf(&configbuf,
+                              "local=/%s/\n",
+                              network->def->domain);
+        }
         virBufferAsprintf(&configbuf,
                           "domain=%s\n"
                           "expand-hosts\n",
@@ -1899,8 +1904,8 @@ networkAddAddrToBridge(virNetworkObjPtr network,
         return -1;
     }
 
-    if (virNetDevSetIPv4Address(network->def->bridge,
-                                &ipdef->address, prefix) < 0)
+    if (virNetDevSetIPAddress(network->def->bridge,
+                              &ipdef->address, prefix) < 0)
         return -1;
 
     return 0;
@@ -1934,29 +1939,10 @@ static int
 networkAddRouteToBridge(virNetworkObjPtr network,
                         virNetworkRouteDefPtr routedef)
 {
-    int prefix = 0;
-    unsigned int metric;
-    virSocketAddrPtr addr = &routedef->address;
-    virSocketAddrPtr mask = &routedef->netmask;
-    virSocketAddr zero;
-
-    /* this creates an all-0 address of the appropriate family */
-    ignore_value(virSocketAddrParse(&zero,
-                                    (VIR_SOCKET_ADDR_IS_FAMILY(addr, AF_INET)
-                                     ? "0.0.0.0" : "::"),
-                                    VIR_SOCKET_ADDR_FAMILY(addr)));
-
-    if (virSocketAddrEqual(addr, &zero)) {
-        if (routedef->has_prefix && routedef->prefix == 0)
-            prefix = 0;
-        else if ((VIR_SOCKET_ADDR_IS_FAMILY(mask, AF_INET) &&
-                  virSocketAddrEqual(mask, &zero)))
-            prefix = 0;
-        else
-            prefix = virSocketAddrGetIpPrefix(addr, mask, routedef->prefix);
-    } else {
-        prefix = virSocketAddrGetIpPrefix(addr, mask, routedef->prefix);
-    }
+    int prefix = virNetworkRouteDefGetPrefix(routedef);
+    unsigned int metric = virNetworkRouteDefGetMetric(routedef);
+    virSocketAddrPtr addr = virNetworkRouteDefGetAddress(routedef);
+    virSocketAddrPtr gateway = virNetworkRouteDefGetGateway(routedef);
 
     if (prefix < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1966,13 +1952,8 @@ networkAddRouteToBridge(virNetworkObjPtr network,
         return -1;
     }
 
-    if (routedef->has_metric && routedef->metric > 0)
-        metric = routedef->metric;
-    else
-        metric = 1;
-
-    if (virNetDevAddRoute(network->def->bridge, &routedef->address,
-                          prefix, &routedef->gateway, metric) < 0) {
+    if (virNetDevAddRoute(network->def->bridge, addr,
+                          prefix, gateway, metric) < 0) {
         return -1;
     }
     return 0;
@@ -2063,11 +2044,15 @@ networkStartNetworkVirtual(virNetworkObjPtr network)
         goto err2;
 
     for (i = 0; i < network->def->nroutes; i++) {
-        routedef = &network->def->routes[i];
+        virSocketAddrPtr gateway = NULL;
+
+        routedef = network->def->routes[i];
+        gateway = virNetworkRouteDefGetGateway(routedef);
+
         /* Add the IP route to the bridge */
         /* ignore errors, error msg will be generated */
         /* but libvirt will not know and net-destroy will work. */
-        if (VIR_SOCKET_ADDR_VALID(&routedef->gateway)) {
+        if (VIR_SOCKET_ADDR_VALID(gateway)) {
             if (networkAddRouteToBridge(network, routedef) < 0) {
                 /* an error occurred adding the static route */
                 continue; /* for now, do nothing */
@@ -3652,12 +3637,6 @@ networkGetDHCPLeases(virNetworkPtr network,
         }
 
         VIR_FREE(lease);
-    }
-
-    if (need_results && mac && !leases_ret) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("no lease with matching MAC address: %s"), mac);
-        goto error;
     }
 
     if (leases_ret) {

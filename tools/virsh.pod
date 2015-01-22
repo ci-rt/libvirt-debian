@@ -825,7 +825,7 @@ that require a block device name (such as I<domblkinfo> or
 I<snapshot-create> for disk snapshots) will accept either target
 or unique source names printed by this command.
 
-=item B<domstats> [I<--raw>] [I<--enforce>] [I<--state>]
+=item B<domstats> [I<--raw>] [I<--enforce>] [I<--backing>] [I<--state>]
 [I<--cpu-total>] [I<--balloon>] [I<--vcpu>] [I<--interface>] [I<--block>]
 [[I<--list-active>] [I<--list-inactive>] [I<--list-persistent>]
 [I<--list-transient>] [I<--list-running>] [I<--list-paused>]
@@ -880,9 +880,16 @@ I<--interface> returns:
 "net.<num>.tx.errs" - number of transmission errors,
 "net.<num>.tx.drop" - number of transmit packets dropped
 
-I<--block> returns:
-"block.count" - number of block devices on this domain,
-"block.<num>.name" - name of the target of the block device <num>,
+I<--block> returns information about disks associated with each
+domain.  Using the I<--backing> flag extends this information to
+cover all resources in the backing chain, rather than the default
+of limiting information to the active layer for each guest disk.
+Information listed includes:
+"block.count" - number of block devices being listed,
+"block.<num>.name" - name of the target of the block device <num> (the
+same name for multiple entries if I<--backing> is present),
+"block.<num>.backingIndex" - when I<--backing> is present, matches up
+with the <backingStore> index listed in domain XML for backing files,
 "block.<num>.path" - file source of block device <num>, if it is a
 local file or block device,
 "block.<num>.rd.reqs" - number of read requests,
@@ -1265,16 +1272,16 @@ in order to get or set the guest time.
 Convert the file I<config> in the native guest configuration format
 named by I<format> to a domain XML format. For QEMU/KVM hypervisor,
 the I<format> argument must be B<qemu-argv>. For Xen hypervisor, the
-I<format> argument may be B<xen-xm> or B<xen-sxpr>. For LXC hypervisor,
-the I<format> argument must be B<lxc-tools>.
+I<format> argument may be B<xen-xm>, B<xen-xl>, or B<xen-sxpr>. For
+LXC hypervisor, the I<format> argument must be B<lxc-tools>.
 
 =item B<domxml-to-native> I<format> I<xml>
 
 Convert the file I<xml> in domain XML format to the native guest
 configuration format named by I<format>. For QEMU/KVM hypervisor,
 the I<format> argument must be B<qemu-argv>. For Xen hypervisor, the
-I<format> argument may be B<xen-xm> or B<xen-sxpr>. For LXC hypervisor,
-the I<format> argument must be B<lxc-tools>.
+I<format> argument may be B<xen-xm>, B<xen-xl>, or B<xen-sxpr>. For
+LXC hypervisor, the I<format> argument must be B<lxc-tools>.
 
 =item B<dump> I<domain> I<corefilepath> [I<--bypass-cache>]
 { [I<--live>] | [I<--crash>] | [I<--reset>] } [I<--verbose>] [I<--memory-only>]
@@ -2946,13 +2953,20 @@ Configure whether I<pool> should automatically start at boot.
 Build a given pool.
 
 Options I<--overwrite> and I<--no-overwrite> can only be used for
-B<pool-build> a filesystem pool. If neither of them is specified,
-B<pool-build> on a filesystem pool only makes the directory; If
+B<pool-build> a filesystem or disk pool. For a file system pool if
+neither of them is specified, B<pool-build> makes the directory. If
 I<--no-overwrite> is specified, it probes to determine if a
 filesystem already exists on the target device, returning an error
-if exists, or using mkfs to format the target device if not; If
-I<--overwrite> is specified, mkfs is always executed, any existed
-data on the target device is overwritten unconditionally.
+if exists, or using mkfs to format the target device if not. If
+I<--overwrite> is specified, mkfs is always executed and any existing
+data on the target device is overwritten unconditionally. For a disk
+pool, if neither of them is specified or I<--no-overwrite> is specified,
+B<pool-build> will use 'parted --print' in order to determine if the
+disk already has a label before attempting to create one. Only if a disk
+does not already have one will a label be created. If I<--overwrite> is
+specified or it's been determined that the disk doesn't already have one,
+'parted mklabel' will be used to create a label of the format specified
+by the pool source format type or "dos" if not specified for the pool.
 
 =item B<pool-create> I<file>
 
@@ -3932,7 +3946,7 @@ Alternatively report bugs to your software distributor / vendor.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2005, 2007-2014 Red Hat, Inc., and the authors listed in the
+Copyright (C) 2005, 2007-2015 Red Hat, Inc., and the authors listed in the
 libvirt AUTHORS file.
 
 =head1 LICENSE

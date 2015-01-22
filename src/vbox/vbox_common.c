@@ -1254,7 +1254,7 @@ vboxAttachSound(virDomainDefPtr def, IMachine *machine)
     VBOX_RELEASE(audioAdapter);
 }
 
-static void
+static int
 vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
     ISystemProperties *systemProperties = NULL;
@@ -1306,7 +1306,15 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
             VIR_DEBUG("NIC(%zu): brname: %s", i, def->nets[i]->data.bridge.brname);
             VIR_DEBUG("NIC(%zu): script: %s", i, def->nets[i]->script);
-            VIR_DEBUG("NIC(%zu): ipaddr: %s", i, def->nets[i]->data.bridge.ipaddr);
+            if (def->nets[i]->nips == 1) {
+                char *ipStr = virSocketAddrFormat(&def->nets[i]->ips[0]->address);
+                VIR_DEBUG("NIC(%zu): ipaddr: %s", i, ipStr);
+                VIR_FREE(ipStr);
+            } else if (def->nets[i]->nips > 1) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Driver does not support setting multiple IP addresses"));
+                return -1;
+            }
         }
 
         gVBoxAPI.UIMachine.GetNetworkAdapter(machine, i, &adapter);
@@ -1389,6 +1397,7 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         gVBoxAPI.UINetworkAdapter.SetMACAddress(adapter, MACAddress);
         VBOX_UTF16_FREE(MACAddress);
     }
+    return 0;
 }
 
 static void
@@ -1831,7 +1840,8 @@ vboxAttachSharedFolder(virDomainDefPtr def, vboxGlobalData *data, IMachine *mach
     }
 }
 
-static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml)
+static virDomainPtr
+vboxDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     vboxGlobalData *data = conn->privateData;
     IMachine       *machine     = NULL;
@@ -1841,6 +1851,12 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml)
     nsresult rc;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainPtr ret = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!data->vboxObj)
         return ret;
@@ -1848,7 +1864,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml)
     VBOX_IID_INITIALIZE(&mchiid);
     if (!(def = virDomainDefParseString(xml, data->caps, data->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_VBOX,
-                                        VIR_DOMAIN_XML_INACTIVE))) {
+                                        parse_flags))) {
         goto cleanup;
     }
 
@@ -1934,7 +1950,8 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml)
     vboxSetBootDeviceOrder(def, data, machine);
     vboxAttachDrives(def, data, machine);
     vboxAttachSound(def, machine);
-    vboxAttachNetwork(def, data, machine);
+    if (vboxAttachNetwork(def, data, machine) < 0)
+        goto cleanup;
     vboxAttachSerial(def, data, machine);
     vboxAttachParallel(def, data, machine);
     vboxAttachVideo(def, machine);
@@ -1966,6 +1983,12 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml)
     VBOX_RELEASE(machine);
     virDomainDefFree(def);
     return NULL;
+}
+
+static virDomainPtr
+vboxDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return vboxDomainDefineXMLFlags(conn, xml, 0);
 }
 
 static void
@@ -3959,7 +3982,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     /* dump USB devices/filters if active */
     vboxHostDeviceGetXMLDesc(data, def, machine);
 
-    ret = virDomainDefFormat(def, flags);
+    ret = virDomainDefFormat(def, virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
     VBOX_RELEASE(machine);
@@ -4098,7 +4121,7 @@ static int vboxDomainAttachDeviceImpl(virDomainPtr dom,
         goto cleanup;
 
     dev = virDomainDeviceDefParse(xml, def, data->caps, data->xmlopt,
-                                  VIR_DOMAIN_XML_INACTIVE);
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -4230,7 +4253,7 @@ static int vboxDomainDetachDevice(virDomainPtr dom, const char *xml)
         goto cleanup;
 
     dev = virDomainDeviceDefParse(xml, def, data->caps, data->xmlopt,
-                                  VIR_DOMAIN_XML_INACTIVE);
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -5190,7 +5213,7 @@ vboxSnapshotRedefine(virDomainPtr dom,
         VIR_FREE(currentSnapshotXmlFilePath);
         if (virAsprintf(&currentSnapshotXmlFilePath, "%s%s.xml", machineLocationPath, snapshotMachineDesc->currentSnapshot) < 0)
             goto cleanup;
-        char *snapshotContent = virDomainSnapshotDefFormat(NULL, def, VIR_DOMAIN_XML_SECURE, 0);
+        char *snapshotContent = virDomainSnapshotDefFormat(NULL, def, VIR_DOMAIN_DEF_FORMAT_SECURE, 0);
         if (snapshotContent == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Unable to get snapshot content"));
@@ -6110,7 +6133,9 @@ static char *vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(dom->uuid, uuidstr);
     memcpy(def->dom->uuid, dom->uuid, VIR_UUID_BUFLEN);
-    ret = virDomainSnapshotDefFormat(uuidstr, def, flags, 0);
+    ret = virDomainSnapshotDefFormat(uuidstr, def,
+                                      virDomainDefFormatConvertXMLFlags(flags),
+                                      0);
 
  cleanup:
     virDomainSnapshotDefFree(def);
@@ -7607,6 +7632,7 @@ virHypervisorDriver vboxCommonDriver = {
     .domainCreate = vboxDomainCreate, /* 0.6.3 */
     .domainCreateWithFlags = vboxDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = vboxDomainDefineXML, /* 0.6.3 */
+    .domainDefineXMLFlags = vboxDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = vboxDomainUndefine, /* 0.6.3 */
     .domainUndefineFlags = vboxDomainUndefineFlags, /* 0.9.5 */
     .domainAttachDevice = vboxDomainAttachDevice, /* 0.6.3 */

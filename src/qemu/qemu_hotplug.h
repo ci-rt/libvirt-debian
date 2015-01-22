@@ -55,6 +55,8 @@ int qemuDomainAttachHostDevice(virConnectPtr conn,
                                virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr hostdev);
+int qemuDomainFindGraphicsIndex(virDomainDefPtr def,
+                                virDomainGraphicsDefPtr dev);
 int qemuDomainChangeGraphics(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              virDomainGraphicsDefPtr dev);
@@ -105,9 +107,9 @@ virDomainChrDefPtr
 qemuDomainChrRemove(virDomainDefPtr vmdef,
                     virDomainChrDefPtr chr);
 
-void qemuDomainRemoveDevice(virQEMUDriverPtr driver,
-                            virDomainObjPtr vm,
-                            virDomainDeviceDefPtr dev);
+int qemuDomainRemoveDevice(virQEMUDriverPtr driver,
+                           virDomainObjPtr vm,
+                           virDomainDeviceDefPtr dev);
 
 bool qemuDomainSignalDeviceRemoval(virDomainObjPtr vm,
                                    const char *devAlias);

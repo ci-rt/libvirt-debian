@@ -35,6 +35,7 @@
 #include "virstring.h"
 #include "virfile.h"
 #include "virtypedparam.h"
+#include "virnuma.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -607,9 +608,8 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
 }
 
 
-static int
-qemuSetupCpusetMems(virDomainObjPtr vm,
-                    virBitmapPtr nodemask)
+int
+qemuSetupCpusetMems(virDomainObjPtr vm)
 {
     virCgroupPtr cgroup_temp = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
@@ -624,14 +624,13 @@ qemuSetupCpusetMems(virDomainObjPtr vm,
         return 0;
 
     if (virDomainNumatuneMaybeFormatNodeset(vm->def->numatune,
-                                            nodemask,
+                                            priv->autoNodeset,
                                             &mem_mask, -1) < 0)
         goto cleanup;
 
     if (mem_mask)
         if (virCgroupNewEmulator(priv->cgroup, false, &cgroup_temp) < 0 ||
-            virCgroupSetCpusetMems(cgroup_temp, mem_mask) < 0 ||
-            virCgroupSetCpusetMems(priv->cgroup, mem_mask) < 0)
+            virCgroupSetCpusetMems(cgroup_temp, mem_mask) < 0)
             goto cleanup;
 
     ret = 0;
@@ -644,7 +643,6 @@ qemuSetupCpusetMems(virDomainObjPtr vm,
 
 static int
 qemuSetupCpusetCgroup(virDomainObjPtr vm,
-                      virBitmapPtr nodemask,
                       virCapsPtr caps)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
@@ -659,7 +657,7 @@ qemuSetupCpusetCgroup(virDomainObjPtr vm,
 
         if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) {
             virBitmapPtr cpumap;
-            if (!(cpumap = virCapabilitiesGetCpusForNodemask(caps, nodemask)))
+            if (!(cpumap = virCapabilitiesGetCpusForNodemask(caps, priv->autoNodeset)))
                 goto cleanup;
             cpu_mask = virBitmapFormat(cpumap);
             virBitmapFree(cpumap);
@@ -771,6 +769,7 @@ qemuInitCgroup(virQEMUDriverPtr driver,
                             NULL,
                             vm->pid,
                             false,
+                            0, NULL,
                             vm->def->resource->partition,
                             cfg->cgroupControllers,
                             &priv->cgroup) < 0) {
@@ -787,6 +786,37 @@ qemuInitCgroup(virQEMUDriverPtr driver,
     return ret;
 }
 
+static void
+qemuRestoreCgroupState(virDomainObjPtr vm)
+{
+    char *mem_mask;
+    int empty = -1;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virBitmapPtr all_nodes;
+
+    if (!(all_nodes = virNumaGetHostNodeset()))
+        goto error;
+
+    if (!(mem_mask = virBitmapFormat(all_nodes)))
+        goto error;
+
+    if ((empty = virCgroupHasEmptyTasks(priv->cgroup,
+                                        VIR_CGROUP_CONTROLLER_CPUSET)) <= 0)
+        goto error;
+
+    if (virCgroupSetCpusetMems(priv->cgroup, mem_mask) < 0)
+        goto error;
+
+ cleanup:
+    VIR_FREE(mem_mask);
+    virBitmapFree(all_nodes);
+    return;
+
+ error:
+    virResetLastError();
+    VIR_DEBUG("Couldn't restore cgroups to meaningful state");
+    goto cleanup;
+}
 
 int
 qemuConnectCgroup(virQEMUDriverPtr driver,
@@ -814,6 +844,8 @@ qemuConnectCgroup(virQEMUDriverPtr driver,
                                   &priv->cgroup) < 0)
         goto cleanup;
 
+    qemuRestoreCgroupState(vm);
+
  done:
     ret = 0;
  cleanup:
@@ -823,8 +855,7 @@ qemuConnectCgroup(virQEMUDriverPtr driver,
 
 int
 qemuSetupCgroup(virQEMUDriverPtr driver,
-                virDomainObjPtr vm,
-                virBitmapPtr nodemask)
+                virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virCapsPtr caps = NULL;
@@ -857,20 +888,13 @@ qemuSetupCgroup(virQEMUDriverPtr driver,
     if (qemuSetupCpuCgroup(driver, vm) < 0)
         goto cleanup;
 
-    if (qemuSetupCpusetCgroup(vm, nodemask, caps) < 0)
+    if (qemuSetupCpusetCgroup(vm, caps) < 0)
         goto cleanup;
 
     ret = 0;
  cleanup:
     virObjectUnref(caps);
     return ret;
-}
-
-int
-qemuSetupCgroupPostInit(virDomainObjPtr vm,
-                        virBitmapPtr nodemask)
-{
-    return qemuSetupCpusetMems(vm, nodemask);
 }
 
 int
@@ -971,6 +995,7 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
     size_t i, j;
     unsigned long long period = vm->def->cputune.period;
     long long quota = vm->def->cputune.quota;
+    char *mem_mask = NULL;
 
     if ((period || quota) &&
         !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
@@ -1002,12 +1027,23 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
         return 0;
     }
 
+    if (virDomainNumatuneGetMode(vm->def->numatune, -1) ==
+        VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
+        virDomainNumatuneMaybeFormatNodeset(vm->def->numatune,
+                                            priv->autoNodeset,
+                                            &mem_mask, -1) < 0)
+        goto cleanup;
+
     for (i = 0; i < priv->nvcpupids; i++) {
         if (virCgroupNewVcpu(priv->cgroup, i, true, &cgroup_vcpu) < 0)
             goto cleanup;
 
         /* move the thread for vcpu to sub dir */
         if (virCgroupAddTask(cgroup_vcpu, priv->vcpupids[i]) < 0)
+            goto cleanup;
+
+        if (mem_mask &&
+            virCgroupSetCpusetMems(cgroup_vcpu, mem_mask) < 0)
             goto cleanup;
 
         if (period || quota) {
@@ -1035,6 +1071,7 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
 
         virCgroupFree(&cgroup_vcpu);
     }
+    VIR_FREE(mem_mask);
 
     return 0;
 
@@ -1043,14 +1080,14 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
         virCgroupRemove(cgroup_vcpu);
         virCgroupFree(&cgroup_vcpu);
     }
+    VIR_FREE(mem_mask);
 
     return -1;
 }
 
 int
 qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
-                           virDomainObjPtr vm,
-                           virBitmapPtr nodemask)
+                           virDomainObjPtr vm)
 {
     virBitmapPtr cpumask = NULL;
     virBitmapPtr cpumap = NULL;
@@ -1086,7 +1123,7 @@ qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
         goto cleanup;
 
     if (def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) {
-        if (!(cpumap = qemuPrepareCpumap(driver, nodemask)))
+        if (!(cpumap = qemuPrepareCpumap(driver, priv->autoNodeset)))
             goto cleanup;
         cpumask = cpumap;
     } else if (def->cputune.emulatorpin) {
@@ -1132,6 +1169,7 @@ qemuSetupCgroupForIOThreads(virDomainObjPtr vm)
     size_t i, j;
     unsigned long long period = vm->def->cputune.period;
     long long quota = vm->def->cputune.quota;
+    char *mem_mask = NULL;
 
     if ((period || quota) &&
         !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
@@ -1160,6 +1198,13 @@ qemuSetupCgroupForIOThreads(virDomainObjPtr vm)
         return 0;
     }
 
+    if (virDomainNumatuneGetMode(vm->def->numatune, -1) ==
+        VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
+        virDomainNumatuneMaybeFormatNodeset(vm->def->numatune,
+                                            priv->autoNodeset,
+                                            &mem_mask, -1) < 0)
+        goto cleanup;
+
     for (i = 0; i < priv->niothreadpids; i++) {
         /* IOThreads are numbered 1..n, although the array is 0..n-1,
          * so we will account for that here
@@ -1176,6 +1221,10 @@ qemuSetupCgroupForIOThreads(virDomainObjPtr vm)
             if (qemuSetupCgroupVcpuBW(cgroup_iothread, period, quota) < 0)
                 goto cleanup;
         }
+
+        if (mem_mask &&
+            virCgroupSetCpusetMems(cgroup_iothread, mem_mask) < 0)
+            goto cleanup;
 
         /* Set iothreadpin in cgroup if iothreadpin xml is provided */
         if (virCgroupHasController(priv->cgroup,
@@ -1199,6 +1248,7 @@ qemuSetupCgroupForIOThreads(virDomainObjPtr vm)
 
         virCgroupFree(&cgroup_iothread);
     }
+    VIR_FREE(mem_mask);
 
     return 0;
 
@@ -1207,6 +1257,7 @@ qemuSetupCgroupForIOThreads(virDomainObjPtr vm)
         virCgroupRemove(cgroup_iothread);
         virCgroupFree(&cgroup_iothread);
     }
+    VIR_FREE(mem_mask);
 
     return -1;
 }

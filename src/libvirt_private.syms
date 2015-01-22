@@ -192,6 +192,7 @@ virDomainDefCompatibleDevice;
 virDomainDefCopy;
 virDomainDefFindDevice;
 virDomainDefFormat;
+virDomainDefFormatConvertXMLFlags;
 virDomainDefFormatInternal;
 virDomainDefFree;
 virDomainDefGetDefaultEmulator;
@@ -322,6 +323,7 @@ virDomainLockFailureTypeFromString;
 virDomainLockFailureTypeToString;
 virDomainMemballoonModelTypeFromString;
 virDomainMemballoonModelTypeToString;
+virDomainNetAppendIpAddress;
 virDomainNetDefFormat;
 virDomainNetDefFree;
 virDomainNetFind;
@@ -353,6 +355,7 @@ virDomainObjListExport;
 virDomainObjListFindByID;
 virDomainObjListFindByName;
 virDomainObjListFindByUUID;
+virDomainObjListFindByUUIDRef;
 virDomainObjListForEach;
 virDomainObjListGetActiveIDs;
 virDomainObjListGetInactiveNames;
@@ -577,6 +580,17 @@ virPortGroupFindByName;
 # conf/network_event.h
 virNetworkEventLifecycleNew;
 virNetworkEventStateRegisterID;
+
+
+# conf/networkcommon_conf.h
+virNetworkRouteDefCreate;
+virNetworkRouteDefFormat;
+virNetworkRouteDefFree;
+virNetworkRouteDefGetAddress;
+virNetworkRouteDefGetGateway;
+virNetworkRouteDefGetMetric;
+virNetworkRouteDefGetPrefix;
+virNetworkRouteDefParseXML;
 
 
 # conf/node_device_conf.h
@@ -1096,6 +1110,7 @@ virCgroupGetMemSwapHardLimit;
 virCgroupGetMemSwapUsage;
 virCgroupGetPercpuStats;
 virCgroupHasController;
+virCgroupHasEmptyTasks;
 virCgroupIsolateMount;
 virCgroupKill;
 virCgroupKillPainfully;
@@ -1211,6 +1226,8 @@ virConfNew;
 virConfReadFile;
 virConfReadMem;
 virConfSetValue;
+virConfTypeFromString;
+virConfTypeToString;
 virConfWalk;
 virConfWriteFile;
 virConfWriteMem;
@@ -1366,6 +1383,7 @@ virFirewallRuleAddArgList;
 virFirewallRuleAddArgSet;
 virFirewallRuleGetArgCount;
 virFirewallSetBackend;
+virFirewallSetLockOverride;
 virFirewallStartRollback;
 virFirewallStartTransaction;
 
@@ -1613,7 +1631,7 @@ virMacAddrSetRaw;
 # util/virnetdev.h
 virNetDevAddMulti;
 virNetDevAddRoute;
-virNetDevClearIPv4Address;
+virNetDevClearIPAddress;
 virNetDevDelMulti;
 virNetDevExists;
 virNetDevGetIndex;
@@ -1638,7 +1656,7 @@ virNetDevRxFilterFree;
 virNetDevRxFilterModeTypeFromString;
 virNetDevRxFilterModeTypeToString;
 virNetDevRxFilterNew;
-virNetDevSetIPv4Address;
+virNetDevSetIPAddress;
 virNetDevSetMAC;
 virNetDevSetMTU;
 virNetDevSetMTUFromDevice;
@@ -1735,6 +1753,7 @@ virNetlinkEventServiceLocalPid;
 virNetlinkEventServiceStart;
 virNetlinkEventServiceStop;
 virNetlinkEventServiceStopAll;
+virNetlinkGetErrorCode;
 virNetlinkShutdown;
 virNetlinkStartup;
 
@@ -1747,6 +1766,7 @@ virNodeSuspendGetTargetMask;
 # util/virnuma.h
 virNumaGetAutoPlacementAdvice;
 virNumaGetDistances;
+virNumaGetHostNodeset;
 virNumaGetMaxNode;
 virNumaGetNodeMemory;
 virNumaGetPageInfo;
@@ -2243,6 +2263,7 @@ virXMLParseHelper;
 virXMLPickShellSafeComment;
 virXMLPropString;
 virXMLSaveFile;
+virXMLValidateAgainstSchema;
 virXPathBoolean;
 virXPathInt;
 virXPathLong;

@@ -16,6 +16,7 @@
     <reference name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED' href='html/libvirt-libvirt-domain.html#VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED'/>
     <reference name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST' href='html/libvirt-libvirt-domain.html#VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST'/>
     <reference name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE' href='html/libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE'/>
+    <reference name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING' href='html/libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING'/>
     <reference name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS' href='html/libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS'/>
     <reference name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE' href='html/libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE'/>
     <reference name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER' href='html/libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER'/>
@@ -204,6 +205,7 @@
     <reference name='VIR_DOMAIN_CRASHED_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_CRASHED_LAST'/>
     <reference name='VIR_DOMAIN_CRASHED_PANICKED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_CRASHED_PANICKED'/>
     <reference name='VIR_DOMAIN_CRASHED_UNKNOWN' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_CRASHED_UNKNOWN'/>
+    <reference name='VIR_DOMAIN_DEFINE_VALIDATE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_DEFINE_VALIDATE'/>
     <reference name='VIR_DOMAIN_DESTROY_DEFAULT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_DESTROY_DEFAULT'/>
     <reference name='VIR_DOMAIN_DESTROY_GRACEFUL' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_DESTROY_GRACEFUL'/>
     <reference name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_DEVICE_MODIFY_CONFIG'/>
@@ -554,6 +556,7 @@
     <reference name='VIR_DOMAIN_START_BYPASS_CACHE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_START_BYPASS_CACHE'/>
     <reference name='VIR_DOMAIN_START_FORCE_BOOT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_START_FORCE_BOOT'/>
     <reference name='VIR_DOMAIN_START_PAUSED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_START_PAUSED'/>
+    <reference name='VIR_DOMAIN_START_VALIDATE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_START_VALIDATE'/>
     <reference name='VIR_DOMAIN_STATS_BALLOON' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_BALLOON'/>
     <reference name='VIR_DOMAIN_STATS_BLOCK' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_BLOCK'/>
     <reference name='VIR_DOMAIN_STATS_CPU_TOTAL' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_CPU_TOTAL'/>
@@ -689,6 +692,7 @@
     <reference name='VIR_ERR_XEN_CALL' href='html/libvirt-virterror.html#VIR_ERR_XEN_CALL'/>
     <reference name='VIR_ERR_XML_DETAIL' href='html/libvirt-virterror.html#VIR_ERR_XML_DETAIL'/>
     <reference name='VIR_ERR_XML_ERROR' href='html/libvirt-virterror.html#VIR_ERR_XML_ERROR'/>
+    <reference name='VIR_ERR_XML_INVALID_SCHEMA' href='html/libvirt-virterror.html#VIR_ERR_XML_INVALID_SCHEMA'/>
     <reference name='VIR_EVENT_HANDLE_ERROR' href='html/libvirt-libvirt-event.html#VIR_EVENT_HANDLE_ERROR'/>
     <reference name='VIR_EVENT_HANDLE_HANGUP' href='html/libvirt-libvirt-event.html#VIR_EVENT_HANDLE_HANGUP'/>
     <reference name='VIR_EVENT_HANDLE_READABLE' href='html/libvirt-libvirt-event.html#VIR_EVENT_HANDLE_READABLE'/>
@@ -1119,7 +1123,9 @@
     <reference name='virDomainCreateWithFlags' href='html/libvirt-libvirt-domain.html#virDomainCreateWithFlags'/>
     <reference name='virDomainCreateXML' href='html/libvirt-libvirt-domain.html#virDomainCreateXML'/>
     <reference name='virDomainCreateXMLWithFiles' href='html/libvirt-libvirt-domain.html#virDomainCreateXMLWithFiles'/>
+    <reference name='virDomainDefineFlags' href='html/libvirt-libvirt-domain.html#virDomainDefineFlags'/>
     <reference name='virDomainDefineXML' href='html/libvirt-libvirt-domain.html#virDomainDefineXML'/>
+    <reference name='virDomainDefineXMLFlags' href='html/libvirt-libvirt-domain.html#virDomainDefineXMLFlags'/>
     <reference name='virDomainDestroy' href='html/libvirt-libvirt-domain.html#virDomainDestroy'/>
     <reference name='virDomainDestroyFlags' href='html/libvirt-libvirt-domain.html#virDomainDestroyFlags'/>
     <reference name='virDomainDestroyFlagsValues' href='html/libvirt-libvirt-domain.html#virDomainDestroyFlagsValues'/>
@@ -1626,6 +1632,7 @@
       <ref name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED'/>
       <ref name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE'/>
+      <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER'/>
@@ -1814,6 +1821,7 @@
       <ref name='VIR_DOMAIN_CRASHED_LAST'/>
       <ref name='VIR_DOMAIN_CRASHED_PANICKED'/>
       <ref name='VIR_DOMAIN_CRASHED_UNKNOWN'/>
+      <ref name='VIR_DOMAIN_DEFINE_VALIDATE'/>
       <ref name='VIR_DOMAIN_DESTROY_DEFAULT'/>
       <ref name='VIR_DOMAIN_DESTROY_GRACEFUL'/>
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG'/>
@@ -2164,6 +2172,7 @@
       <ref name='VIR_DOMAIN_START_BYPASS_CACHE'/>
       <ref name='VIR_DOMAIN_START_FORCE_BOOT'/>
       <ref name='VIR_DOMAIN_START_PAUSED'/>
+      <ref name='VIR_DOMAIN_START_VALIDATE'/>
       <ref name='VIR_DOMAIN_STATS_BALLOON'/>
       <ref name='VIR_DOMAIN_STATS_BLOCK'/>
       <ref name='VIR_DOMAIN_STATS_CPU_TOTAL'/>
@@ -2299,6 +2308,7 @@
       <ref name='VIR_ERR_XEN_CALL'/>
       <ref name='VIR_ERR_XML_DETAIL'/>
       <ref name='VIR_ERR_XML_ERROR'/>
+      <ref name='VIR_ERR_XML_INVALID_SCHEMA'/>
       <ref name='VIR_EVENT_HANDLE_ERROR'/>
       <ref name='VIR_EVENT_HANDLE_HANGUP'/>
       <ref name='VIR_EVENT_HANDLE_READABLE'/>
@@ -2733,7 +2743,9 @@
       <ref name='virDomainCreateWithFlags'/>
       <ref name='virDomainCreateXML'/>
       <ref name='virDomainCreateXMLWithFiles'/>
+      <ref name='virDomainDefineFlags'/>
       <ref name='virDomainDefineXML'/>
+      <ref name='virDomainDefineXMLFlags'/>
       <ref name='virDomainDestroy'/>
       <ref name='virDomainDestroyFlags'/>
       <ref name='virDomainDestroyFlagsValues'/>
@@ -3254,6 +3266,7 @@
       <ref name='virDomainCreateXML'/>
       <ref name='virDomainCreateXMLWithFiles'/>
       <ref name='virDomainDefineXML'/>
+      <ref name='virDomainDefineXMLFlags'/>
       <ref name='virDomainLookupByID'/>
       <ref name='virDomainLookupByName'/>
       <ref name='virDomainLookupByUUID'/>
@@ -3482,6 +3495,7 @@
       <ref name='virDomainCreateWithFlags'/>
       <ref name='virDomainCreateXML'/>
       <ref name='virDomainCreateXMLWithFiles'/>
+      <ref name='virDomainDefineXMLFlags'/>
       <ref name='virDomainDestroyFlags'/>
       <ref name='virDomainDetachDeviceFlags'/>
       <ref name='virDomainFSFreeze'/>
@@ -3776,6 +3790,7 @@
       <ref name='virDomainCreateXML'/>
       <ref name='virDomainCreateXMLWithFiles'/>
       <ref name='virDomainDefineXML'/>
+      <ref name='virDomainDefineXMLFlags'/>
       <ref name='virDomainLookupByID'/>
       <ref name='virDomainLookupByName'/>
       <ref name='virDomainLookupByUUID'/>
@@ -4452,6 +4467,7 @@
       <ref name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED'/>
       <ref name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE'/>
+      <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE'/>
       <ref name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER'/>
@@ -4581,6 +4597,7 @@
       <ref name='VIR_DOMAIN_CRASHED_LAST'/>
       <ref name='VIR_DOMAIN_CRASHED_PANICKED'/>
       <ref name='VIR_DOMAIN_CRASHED_UNKNOWN'/>
+      <ref name='VIR_DOMAIN_DEFINE_VALIDATE'/>
       <ref name='VIR_DOMAIN_DESTROY_DEFAULT'/>
       <ref name='VIR_DOMAIN_DESTROY_GRACEFUL'/>
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG'/>
@@ -4905,6 +4922,7 @@
       <ref name='VIR_DOMAIN_START_BYPASS_CACHE'/>
       <ref name='VIR_DOMAIN_START_FORCE_BOOT'/>
       <ref name='VIR_DOMAIN_START_PAUSED'/>
+      <ref name='VIR_DOMAIN_START_VALIDATE'/>
       <ref name='VIR_DOMAIN_STATS_BALLOON'/>
       <ref name='VIR_DOMAIN_STATS_BLOCK'/>
       <ref name='VIR_DOMAIN_STATS_CPU_TOTAL'/>
@@ -5096,7 +5114,9 @@
       <ref name='virDomainCreateWithFlags'/>
       <ref name='virDomainCreateXML'/>
       <ref name='virDomainCreateXMLWithFiles'/>
+      <ref name='virDomainDefineFlags'/>
       <ref name='virDomainDefineXML'/>
+      <ref name='virDomainDefineXMLFlags'/>
       <ref name='virDomainDestroy'/>
       <ref name='virDomainDestroyFlags'/>
       <ref name='virDomainDestroyFlagsValues'/>
@@ -5931,6 +5951,7 @@
       <ref name='VIR_ERR_XEN_CALL'/>
       <ref name='VIR_ERR_XML_DETAIL'/>
       <ref name='VIR_ERR_XML_ERROR'/>
+      <ref name='VIR_ERR_XML_INVALID_SCHEMA'/>
       <ref name='VIR_FROM_ACCESS'/>
       <ref name='VIR_FROM_AUDIT'/>
       <ref name='VIR_FROM_AUTH'/>
@@ -6379,6 +6400,9 @@
           <ref name='virNWFilterDefineXML'/>
           <ref name='virNetworkDefineXML'/>
           <ref name='virStoragePoolDefineXML'/>
+        </word>
+        <word name='Defines'>
+          <ref name='virDomainDefineXMLFlags'/>
         </word>
         <word name='Delete'>
           <ref name='virDomainSnapshotDelete'/>
@@ -7547,6 +7571,7 @@
           <ref name='virDomainBlockStats'/>
           <ref name='virDomainBlockStatsFlags'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainMigrate'/>
@@ -7731,6 +7756,7 @@
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainSaveImageGetXMLDesc'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
@@ -7806,6 +7832,9 @@
           <ref name='virConnectCompareCPU'/>
         </word>
         <word name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING'>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS'>
@@ -9058,6 +9087,7 @@
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='adding'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectListAllDomains'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virEventAddTimeoutFunc'/>
@@ -9314,6 +9344,7 @@
         <word name='already'>
           <ref name='virConnectOpen'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
@@ -9747,7 +9778,11 @@
           <ref name='virDomainGetJobInfo'/>
           <ref name='virDomainGetJobStats'/>
         </word>
+        <word name='backingIndex'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='backingStore'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
         </word>
@@ -9841,11 +9876,13 @@
         </word>
         <word name='being'>
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_SHARED'/>
+          <ref name='_virSecurityLabel'/>
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainManagedSave'/>
@@ -9937,6 +9974,7 @@
           <ref name='virStreamEventCallback'/>
         </word>
         <word name='bitwise'>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virNetworkUpdate'/>
         </word>
         <word name='bitwise-or'>
@@ -10361,9 +10399,13 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='chain'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainBlockRebase'/>
+        </word>
+        <word name='chains'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='challenge'>
           <ref name='_virConnectCredential'/>
@@ -10905,6 +10947,7 @@
         </word>
         <word name='constants'>
           <ref name='_virConnectCredential'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virEventAddHandle'/>
           <ref name='virEventHandleCallback'/>
           <ref name='virEventUpdateHandle'/>
@@ -11158,6 +11201,7 @@
           <ref name='virNodeGetFreePages'/>
         </word>
         <word name='cover'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectListAllDomains'/>
           <ref name='virDomainSnapshotListAllChildren'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
@@ -11386,6 +11430,7 @@
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDetachDevice'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
@@ -11768,6 +11813,7 @@
         </word>
         <word name='disks'>
           <ref name='VIR_DOMAIN_JOB_DISK_BPS'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainGetBlockIoTune'/>
           <ref name='virDomainGetDiskErrors'/>
@@ -12154,6 +12200,7 @@
         </word>
         <word name='enforced'>
           <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
+          <ref name='_virSecurityLabel'/>
           <ref name='virDomainSetMetadata'/>
         </word>
         <word name='enforcement'>
@@ -12244,6 +12291,7 @@
         <word name='equal'>
           <ref name='VIR_DOMAIN_JOB_DATA_TOTAL'/>
           <ref name='_virDomainJobInfo'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainDestroyFlags'/>
@@ -12432,6 +12480,7 @@
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainHasCurrentSnapshot'/>
           <ref name='virDomainMigrate'/>
@@ -12451,6 +12500,7 @@
           <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='expand'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainSnapshotListAllChildren'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotNumChildren'/>
@@ -12508,6 +12558,7 @@
           <ref name='virConnectClose'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceUndefine'/>
           <ref name='virSecretGetUsageType'/>
@@ -13141,6 +13192,7 @@
         </word>
         <word name='giving'>
           <ref name='virConnectDomainEventBlockJobCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='global'>
           <ref name='virConnCopyLastError'/>
@@ -13453,6 +13505,9 @@
           <ref name='virStoragePoolRef'/>
           <ref name='virStorageVolRef'/>
         </word>
+        <word name='holes'>
+          <ref name='_virDomainBlockInfo'/>
+        </word>
         <word name='host-specific'>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainRestoreFlags'/>
@@ -13641,6 +13696,7 @@
           <ref name='virDomainGetBlockInfo'/>
         </word>
         <word name='images'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainListAllSnapshots'/>
@@ -13841,6 +13897,7 @@
           <ref name='virDomainCreateLinux'/>
         </word>
         <word name='index'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainOpenGraphics'/>
@@ -14118,6 +14175,9 @@
         </word>
         <word name='internally'>
           <ref name='virConnectDomainEventTunableCallback'/>
+        </word>
+        <word name='interpretation'>
+          <ref name='_virSecurityModel'/>
         </word>
         <word name='interpreted'>
           <ref name='virDomainCoreDump'/>
@@ -14411,6 +14471,7 @@
       <letter name='l'>
         <word name='label'>
           <ref name='VIR_SECURITY_LABEL_BUFLEN'/>
+          <ref name='_virSecurityLabel'/>
           <ref name='virDomainGetSecurityLabel'/>
           <ref name='virDomainGetSecurityLabelList'/>
         </word>
@@ -14462,6 +14523,7 @@
           <ref name='virStorageVolResize'/>
         </word>
         <word name='last'>
+          <ref name='_virDomainBlockInfo'/>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
           <ref name='virConnResetLastError'/>
@@ -14512,6 +14574,7 @@
         </word>
         <word name='layer'>
           <ref name='virConnectDomainEventBlockJobCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virStoragePoolRefresh'/>
@@ -14682,6 +14745,7 @@
           <ref name='virDomainReboot'/>
         </word>
         <word name='limited'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetInfo'/>
           <ref name='virDomainGetJobInfo'/>
           <ref name='virDomainSetVcpus'/>
@@ -14700,6 +14764,7 @@
         </word>
         <word name='listed'>
           <ref name='virConnectBaselineCPU'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectListDefinedDomains'/>
           <ref name='virConnectListDefinedInterfaces'/>
           <ref name='virConnectListDefinedNetworks'/>
@@ -15327,6 +15392,7 @@
         <word name='model'>
           <ref name='VIR_SECURITY_MODEL_BUFLEN'/>
           <ref name='_virNodeInfo'/>
+          <ref name='_virSecurityModel'/>
           <ref name='virConnectBaselineCPU'/>
           <ref name='virDomainGetSecurityLabel'/>
           <ref name='virDomainGetSecurityLabelList'/>
@@ -15437,6 +15503,7 @@
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE'/>
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_SHARING'/>
+          <ref name='_virDomainBlockInfo'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainScreenshot'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -15904,6 +15971,7 @@
           <ref name='virNetworkGetDHCPLeases'/>
         </word>
         <word name='occupied'>
+          <ref name='_virDomainBlockInfo'/>
           <ref name='virDomainFSInfoFree'/>
           <ref name='virNetworkDHCPLeaseFree'/>
           <ref name='virTypedParamsClear'/>
@@ -15980,6 +16048,7 @@
           <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='offset'>
+          <ref name='_virDomainBlockInfo'/>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockPeek'/>
@@ -16219,6 +16288,7 @@
         </word>
         <word name='overridden'>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
         </word>
         <word name='override'>
           <ref name='virDomainManagedSave'/>
@@ -16613,6 +16683,9 @@
           <ref name='virTypedParamsAddULLong'/>
           <ref name='virTypedParamsGetString'/>
         </word>
+        <word name='policy'>
+          <ref name='_virSecurityLabel'/>
+        </word>
         <word name='poll'>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virEventRegisterDefaultImpl'/>
@@ -16746,6 +16819,7 @@
         </word>
         <word name='preferably'>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virNetworkDefineXML'/>
           <ref name='virNetworkUpdate'/>
@@ -16809,6 +16883,7 @@
         </word>
         <word name='prevent'>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainListAllSnapshots'/>
@@ -16828,6 +16903,7 @@
           <ref name='virConnectDomainEventDeregisterAny'/>
           <ref name='virConnectNetworkEventDeregisterAny'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virInterfaceChangeRollback'/>
         </word>
@@ -18435,6 +18511,8 @@
           <ref name='virConnectIsSecure'/>
         </word>
         <word name='security'>
+          <ref name='_virSecurityLabel'/>
+          <ref name='_virSecurityModel'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainGetSecurityLabel'/>
@@ -18765,6 +18843,7 @@
           <ref name='virDomainSnapshotDelete'/>
         </word>
         <word name='similar'>
+          <ref name='_virDomainBlockInfo'/>
           <ref name='virConnectGetURI'/>
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
@@ -19124,6 +19203,7 @@
           <ref name='virDomainCreateWithFiles'/>
           <ref name='virDomainCreateXMLWithFiles'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainMemoryPeek'/>
@@ -19256,6 +19336,7 @@
         </word>
         <word name='stop'>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -19337,6 +19418,7 @@
         </word>
         <word name='subsequent'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainScreenshot'/>
           <ref name='virNodeAllocPages'/>
@@ -19827,6 +19909,7 @@
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virNetworkGetXMLDesc'/>
         </word>
         <word name='till'>
@@ -19877,6 +19960,7 @@
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
         </word>
         <word name='together'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetConnect'/>
           <ref name='virDomainSnapshotGetConnect'/>
           <ref name='virDomainSnapshotGetDomain'/>
@@ -19986,6 +20070,7 @@
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainIsPersistent'/>
@@ -20263,6 +20348,7 @@
         </word>
         <word name='undefined'>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainReboot'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virInterfaceCreate'/>
@@ -20419,6 +20505,7 @@
           <ref name='virConnectRef'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
@@ -21010,6 +21097,7 @@
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -21099,6 +21187,9 @@
           <ref name='virDomainCreateLinux'/>
           <ref name='virDomainGetXMLDesc'/>
         </word>
+        <word name='virDomainDefineFlags'>
+          <ref name='virDomainDefineXMLFlags'/>
+        </word>
         <word name='virDomainDefineXML'>
           <ref name='virConnectGetDomainCapabilities'/>
           <ref name='virDomainCreateXML'/>
@@ -21148,6 +21239,7 @@
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
           <ref name='virDomainLookupByID'/>
           <ref name='virDomainLookupByName'/>
           <ref name='virDomainLookupByUUID'/>
@@ -21556,6 +21648,7 @@
         </word>
         <word name='virDomainUndefine'>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDefineXMLFlags'/>
         </word>
         <word name='virDomainUndefineFlags'>
           <ref name='virDomainUndefine'/>

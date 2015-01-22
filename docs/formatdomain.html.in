@@ -174,6 +174,31 @@
         elements are mutually exclusive. <span class="since">Since 0.1.3,
         per-device boot since 0.8.8</span>
       </dd>
+      <dt><code>smbios</code></dt>
+      <dd>How to populate SMBIOS information visible in the guest.
+        The <code>mode</code> attribute must be specified, and is either
+        "emulate" (let the hypervisor generate all values), "host" (copy
+        all of Block 0 and Block 1, except for the UUID, from the host's
+        SMBIOS values;
+        the <a href="html/libvirt-libvirt-host.html#virConnectGetSysinfo">
+        <code>virConnectGetSysinfo</code></a> call can be
+        used to see what values are copied), or "sysinfo" (use the values in
+        the <a href="#elementsSysinfo">sysinfo</a> element).  If not
+        specified, the hypervisor default is used. <span class="since">
+        Since 0.8.7</span>
+      </dd>
+  </dl>
+      <p>Up till here the BIOS/UEFI configuration knobs are generic enough to
+      be implemented by majority (if not all) firmwares out there. However,
+      from now on not every single setting makes sense to all firmwares. For
+      instance, <code>rebootTimeout</code> doesn't make sense for UEFI,
+      <code>useserial</code> might not be usable with a BIOS firmware that
+      doesn't produce any output onto serial line, etc. Moreover, firmwares
+      don't usually export their capabilities for libvirt (or users) to check.
+      And the set of their capabilities can change with every new release.
+      Hence users are advised to try the settings they use before relying on
+      them in production.</p>
+  <dl>
       <dt><code>bootmenu</code></dt>
       <dd> Whether or not to enable an interactive boot menu prompt on guest
       startup. The <code>enable</code> attribute can be either "yes" or "no".
@@ -183,19 +208,6 @@
       the boot menu should wait until it times out.  Allowed values are numbers
       in range [0, 65535] inclusive and it is ignored unless <code>enable</code>
       is set to "yes". <span class="since">Since 1.2.8</span>
-      </dd>
-      <dt><code>smbios</code></dt>
-      <dd>How to populate SMBIOS information visible in the guest.
-      The <code>mode</code> attribute must be specified, and is either
-      "emulate" (let the hypervisor generate all values), "host" (copy
-      all of Block 0 and Block 1, except for the UUID, from the host's
-      SMBIOS values;
-      the <a href="html/libvirt-libvirt-host.html#virConnectGetSysinfo">
-      <code>virConnectGetSysinfo</code></a> call can be
-      used to see what values are copied), or "sysinfo" (use the values in
-      the <a href="#elementsSysinfo">sysinfo</a> element).  If not
-      specified, the hypervisor default is used. <span class="since">
-      Since 0.8.7</span>
       </dd>
       <dt><code>bios</code></dt>
       <dd>This element has attribute <code>useserial</code> with possible
@@ -970,6 +982,7 @@
 
 <pre>
   &lt;cpu mode='host-passthrough'/&gt;
+    &lt;feature policy='disable' name='lahf_lm'/&gt;
   ...</pre>
 
     <p>
@@ -1071,8 +1084,8 @@
           the same as the host CPU even in the aspects that libvirt does not
           understand. Though the downside of this mode is that the guest
           environment cannot be reproduced on different hardware. Thus, if you
-          hit any bugs, you are on your own. Neither <code>model</code> nor
-          <code>feature</code> elements are allowed in this mode.</dd>
+          hit any bugs, you are on your own. Further details of that CPU can
+          be changed using <code>feature</code> elements.</dd>
         </dl>
 
         In both <code>host-model</code> and <code>host-passthrough</code>
@@ -1442,6 +1455,12 @@
           <td><span class="since">2.1.0 (QEMU only)</span></td>
         </tr>
       </table>
+      </dd>
+      <dt><code>pmu</code></dt>
+      <dd>Depending on the <code>state</code> attribute (values <code>on</code>,
+        <code>off</code>, default <code>on</code>) enable or disable the
+        performance monitoring unit for the guest.
+        <span class="since">Since 1.2.12</span>
       </dd>
     </dl>
 
@@ -2607,7 +2626,8 @@
             attribute provides the format type. For example, LXC
             supports a type of "loop", with a format of "raw" or
             "nbd" with any format. QEMU supports a type of "path"
-            or "handle", but no formats.
+            or "handle", but no formats. Parallels driver supports
+            a type of "ploop" with a format of "ploop".
           </li>
         </ul>
       </dd>
@@ -4319,6 +4339,49 @@ qemu-kvm -net nic,model=? /dev/null
       behaves as if it had the network cable disconnected. Default behavior if this
       element is unspecified is to have the link state <code>up</code>.
       <span class="since">Since 0.9.5</span>
+    </p>
+
+    <h5><a name="ipconfig">IP configuration</a></h5>
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='network'&gt;
+      &lt;source network='default'/&gt;
+      &lt;target dev='vnet0'/&gt;
+      <b>&lt;ip address='192.168.122.5' prefix='24'/&gt;</b>
+      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' via='192.168.122.1'/&gt;</b>
+      <b>&lt;route family='ipv4' via='192.168.122.1'/&gt;</b>
+    &lt;/interface&gt;
+    ...
+    &lt;hostdev mode='capabilities' type='net'&gt;
+      &lt;source&gt;
+        &lt;interface&gt;eth0&lt;/interface&gt;
+      &lt;/source&gt;
+      <b>&lt;ip address='192.168.122.6' prefix='24'/&gt;</b>
+      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' via='192.168.122.1'/&gt;</b>
+      <b>&lt;route family='ipv4' via='192.168.122.1'/&gt;</b>
+    &lt;/hostdev&gt;
+
+  &lt;/devices&gt;
+  ...
+</pre>
+
+    <p>
+    <span class="since">Since 1.2.12</span> the network devices and host devices
+    with network capabilities can be provided zero or more IP addresses to set
+    on the target device. Note that some hypervisors or network device types
+    will simply ignore them or only use the first one. The <code>family</code>
+    attribute can be set to either <code>ipv4</code> or <code>ipv6</code>, the
+    <code>address</code> attribute holds the IP address. The <code>prefix</code>
+    is not mandatory since some hypervisors do not handle it.
+    </p>
+
+    <p>
+    <span class="since">Since 1.2.12</span> route elements can also be added
+    to define the network routes to use for the network device. The attributes
+    of this element are described in the documentation for the <code>route</code>
+    element in <a href="formatnetwork.html#elementsStaticroute">network definitions</a>.
+    This is only used by the LXC driver.
     </p>
 
     <h5><a name="elementVhostuser">vhost-user interface</a></h5>

@@ -2,7 +2,7 @@
  * lxc_native.c: LXC native configuration import
  *
  * Copyright (c) 2014 Red Hat, Inc.
- * Copyright (c) 2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
+ * Copyright (c) 2013-2015 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -413,66 +413,6 @@ lxcCreateHostdevDef(int mode, int type, const char *data)
     return hostdev;
 }
 
-static int
-lxcAddNetworkDefinition(virDomainDefPtr def,
-                        const char *type,
-                        const char *linkdev,
-                        const char *mac,
-                        const char *flag,
-                        const char *macvlanmode,
-                        const char *vlanid,
-                        const char *name)
-{
-    virDomainNetDefPtr net = NULL;
-    virDomainHostdevDefPtr hostdev = NULL;
-    bool isPhys, isVlan = false;
-
-    if ((type == NULL) || STREQ(type, "empty") || STREQ(type, "") ||
-            STREQ(type, "none"))
-        return 0;
-
-    isPhys = STREQ(type, "phys");
-    isVlan = STREQ(type, "vlan");
-    if (type != NULL && (isPhys || isVlan)) {
-        if (!linkdev) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Missing 'link' attribute for NIC"));
-            goto error;
-        }
-        if (!(hostdev = lxcCreateHostdevDef(VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES,
-                                            VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET,
-                                            linkdev)))
-            goto error;
-
-        /* This still requires the user to manually setup the vlan interface
-         * on the host */
-        if (isVlan && vlanid) {
-            VIR_FREE(hostdev->source.caps.u.net.iface);
-            if (virAsprintf(&hostdev->source.caps.u.net.iface,
-                            "%s.%s", linkdev, vlanid) < 0)
-                goto error;
-        }
-
-        if (VIR_EXPAND_N(def->hostdevs, def->nhostdevs, 1) < 0)
-            goto error;
-        def->hostdevs[def->nhostdevs - 1] = hostdev;
-    } else {
-        if (!(net = lxcCreateNetDef(type, linkdev, mac, flag, macvlanmode, name)))
-            goto error;
-
-        if (VIR_EXPAND_N(def->nets, def->nnets, 1) < 0)
-            goto error;
-        def->nets[def->nnets - 1] = net;
-    }
-
-    return 1;
-
- error:
-    virDomainNetDefFree(net);
-    virDomainHostdevDefFree(hostdev);
-    return -1;
-}
-
 typedef struct {
     virDomainDefPtr def;
     char *type;
@@ -482,9 +422,139 @@ typedef struct {
     char *macvlanmode;
     char *vlanid;
     char *name;
+    virDomainNetIpDefPtr *ips;
+    size_t nips;
+    char *gateway_ipv4;
+    char *gateway_ipv6;
     bool privnet;
     size_t networks;
 } lxcNetworkParseData;
+
+static int
+lxcAddNetworkRouteDefinition(const char *address,
+                             int family,
+                             virNetworkRouteDefPtr **routes,
+                             size_t *nroutes)
+{
+    virNetworkRouteDefPtr route = NULL;
+    char *familyStr = NULL;
+    char *zero = NULL;
+
+    if (VIR_STRDUP(zero, family == AF_INET ? VIR_SOCKET_ADDR_IPV4_ALL
+                   : VIR_SOCKET_ADDR_IPV6_ALL) < 0)
+        goto error;
+
+    if (VIR_STRDUP(familyStr, family == AF_INET ? "ipv4" : "ipv6") < 0)
+        goto error;
+
+    if (!(route = virNetworkRouteDefCreate(_("Domain interface"), familyStr,
+                                          zero, NULL, address, 0, false,
+                                          0, false)))
+        goto error;
+
+    if (VIR_APPEND_ELEMENT(*routes, *nroutes, route) < 0)
+        goto error;
+
+    VIR_FREE(familyStr);
+    VIR_FREE(zero);
+
+    return 0;
+
+ error:
+    VIR_FREE(familyStr);
+    VIR_FREE(zero);
+    virNetworkRouteDefFree(route);
+    return -1;
+}
+
+static int
+lxcAddNetworkDefinition(lxcNetworkParseData *data)
+{
+    virDomainNetDefPtr net = NULL;
+    virDomainHostdevDefPtr hostdev = NULL;
+    bool isPhys, isVlan = false;
+    size_t i;
+
+    if ((data->type == NULL) || STREQ(data->type, "empty") ||
+         STREQ(data->type, "") ||  STREQ(data->type, "none"))
+        return 0;
+
+    isPhys = STREQ(data->type, "phys");
+    isVlan = STREQ(data->type, "vlan");
+    if (data->type != NULL && (isPhys || isVlan)) {
+        if (!data->link) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Missing 'link' attribute for NIC"));
+            goto error;
+        }
+        if (!(hostdev = lxcCreateHostdevDef(VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES,
+                                            VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET,
+                                            data->link)))
+            goto error;
+
+        /* This still requires the user to manually setup the vlan interface
+         * on the host */
+        if (isVlan && data->vlanid) {
+            VIR_FREE(hostdev->source.caps.u.net.iface);
+            if (virAsprintf(&hostdev->source.caps.u.net.iface,
+                            "%s.%s", data->link, data->vlanid) < 0)
+                goto error;
+        }
+
+        hostdev->source.caps.u.net.ips = data->ips;
+        hostdev->source.caps.u.net.nips = data->nips;
+
+        if (data->gateway_ipv4 &&
+            lxcAddNetworkRouteDefinition(data->gateway_ipv4, AF_INET,
+                                         &hostdev->source.caps.u.net.routes,
+                                         &hostdev->source.caps.u.net.nroutes) < 0)
+                goto error;
+
+        if (data->gateway_ipv6 &&
+            lxcAddNetworkRouteDefinition(data->gateway_ipv6, AF_INET6,
+                                         &hostdev->source.caps.u.net.routes,
+                                         &hostdev->source.caps.u.net.nroutes) < 0)
+                goto error;
+
+        if (VIR_EXPAND_N(data->def->hostdevs, data->def->nhostdevs, 1) < 0)
+            goto error;
+        data->def->hostdevs[data->def->nhostdevs - 1] = hostdev;
+    } else {
+        if (!(net = lxcCreateNetDef(data->type, data->link, data->mac,
+                                    data->flag, data->macvlanmode,
+                                    data->name)))
+            goto error;
+
+        net->ips = data->ips;
+        net->nips = data->nips;
+
+        if (data->gateway_ipv4 &&
+            lxcAddNetworkRouteDefinition(data->gateway_ipv4, AF_INET,
+                                         &net->routes,
+                                         &net->nroutes) < 0)
+                goto error;
+
+        if (data->gateway_ipv6 &&
+            lxcAddNetworkRouteDefinition(data->gateway_ipv6, AF_INET6,
+                                         &net->routes,
+                                         &net->nroutes) < 0)
+                goto error;
+
+        if (VIR_EXPAND_N(data->def->nets, data->def->nnets, 1) < 0)
+            goto error;
+        data->def->nets[data->def->nnets - 1] = net;
+    }
+
+    return 1;
+
+ error:
+    for (i = 0; i < data->nips; i++)
+        VIR_FREE(data->ips[i]);
+    VIR_FREE(data->ips);
+    virDomainNetDefFree(net);
+    virDomainHostdevDefFree(hostdev);
+    return -1;
+}
 
 static int
 lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
@@ -494,12 +564,7 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
 
     if (STREQ(name, "lxc.network.type")) {
         /* Store the previous NIC */
-        status = lxcAddNetworkDefinition(parseData->def, parseData->type,
-                                         parseData->link, parseData->mac,
-                                         parseData->flag,
-                                         parseData->macvlanmode,
-                                         parseData->vlanid,
-                                         parseData->name);
+        status = lxcAddNetworkDefinition(parseData);
 
         if (status < 0)
             return -1;
@@ -517,6 +582,9 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
         parseData->vlanid = NULL;
         parseData->name = NULL;
 
+        parseData->ips = NULL;
+        parseData->nips = 0;
+
         /* Keep the new value */
         parseData->type = value->str;
     }
@@ -532,10 +600,46 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
         parseData->vlanid = value->str;
     else if (STREQ(name, "lxc.network.name"))
         parseData->name = value->str;
-    else if (STRPREFIX(name, "lxc.network"))
+    else if (STREQ(name, "lxc.network.ipv4") ||
+             STREQ(name, "lxc.network.ipv6")) {
+        int family = AF_INET;
+        char **ipparts = NULL;
+        virDomainNetIpDefPtr ip = NULL;
+
+        if (VIR_ALLOC(ip) < 0)
+            return -1;
+
+        if (STREQ(name, "lxc.network.ipv6"))
+            family = AF_INET6;
+
+        ipparts = virStringSplit(value->str, "/", 2);
+        if (virStringListLength(ipparts) != 2 ||
+            virSocketAddrParse(&ip->address, ipparts[0], family) < 0 ||
+            virStrToLong_ui(ipparts[1], NULL, 10, &ip->prefix) < 0) {
+
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Invalid CIDR address: '%s'"), value->str);
+
+            virStringFreeList(ipparts);
+            VIR_FREE(ip);
+            return -1;
+        }
+
+        virStringFreeList(ipparts);
+
+        if (VIR_APPEND_ELEMENT(parseData->ips, parseData->nips, ip) < 0) {
+            VIR_FREE(ip);
+            return -1;
+        }
+    } else if (STREQ(name, "lxc.network.ipv4.gateway")) {
+        parseData->gateway_ipv4 = value->str;
+    } else if (STREQ(name, "lxc.network.ipv6.gateway")) {
+        parseData->gateway_ipv6 = value->str;
+    } else if (STRPREFIX(name, "lxc.network")) {
         VIR_WARN("Unhandled network property: %s = %s",
                  name,
                  value->str);
+    }
 
     return 0;
 }
@@ -544,19 +648,21 @@ static int
 lxcConvertNetworkSettings(virDomainDefPtr def, virConfPtr properties)
 {
     int status;
+    int result = -1;
+    size_t i;
     lxcNetworkParseData data = {def, NULL, NULL, NULL, NULL,
-                                NULL, NULL, NULL, true, 0};
+                                NULL, NULL, NULL, NULL, 0,
+                                NULL, NULL, true, 0};
 
-    virConfWalk(properties, lxcNetworkWalkCallback, &data);
+    if (virConfWalk(properties, lxcNetworkWalkCallback, &data) < 0)
+        goto error;
+
 
     /* Add the last network definition found */
-    status = lxcAddNetworkDefinition(def, data.type, data.link,
-                                     data.mac, data.flag,
-                                     data.macvlanmode,
-                                     data.vlanid,
-                                     data.name);
+    status = lxcAddNetworkDefinition(&data);
+
     if (status < 0)
-        return -1;
+        goto error;
     else if (status > 0)
         data.networks++;
     else if (data.type != NULL && STREQ(data.type, "none"))
@@ -566,8 +672,15 @@ lxcConvertNetworkSettings(virDomainDefPtr def, virConfPtr properties)
         /* When no network type is provided LXC only adds loopback */
         def->features[VIR_DOMAIN_FEATURE_PRIVNET] = VIR_TRISTATE_SWITCH_ON;
     }
+    result = 0;
 
-    return 0;
+    return result;
+
+ error:
+    for (i = 0; i < data.nips; i++)
+        VIR_FREE(data.ips[i]);
+    VIR_FREE(data.ips);
+    return -1;
 }
 
 static int

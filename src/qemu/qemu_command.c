@@ -1,7 +1,7 @@
 /*
  * qemu_command.c: QEMU command generation
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -151,6 +151,7 @@ VIR_ENUM_IMPL(qemuDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
               "local",
               "handle",
               NULL,
+              NULL,
               NULL);
 
 VIR_ENUM_DECL(qemuNumaPolicy)
@@ -289,7 +290,7 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
                         virDomainNetDefPtr net,
                         virQEMUCapsPtr qemuCaps,
                         int *tapfd,
-                        int *tapfdSize)
+                        size_t *tapfdSize)
 {
     const char *brname;
     int ret = -1;
@@ -335,17 +336,13 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
             /* libvirt is managing the FDB of the bridge this device
              * is attaching to, so we need to turn off learning and
              * unicast_flood on the device to prevent the kernel from
-             * adding any FDB entries for it, then add an fdb entry
-             * outselves, using the MAC address from the interface
-             * config.
+             * adding any FDB entries for it. We will add add an fdb
+             * entry ourselves (during qemuInterfaceStartDevices(),
+             * using the MAC address from the interface config.
              */
             if (virNetDevBridgePortSetLearning(brname, net->ifname, false) < 0)
                 goto cleanup;
             if (virNetDevBridgePortSetUnicastFlood(brname, net->ifname, false) < 0)
-                goto cleanup;
-            if (virNetDevBridgeFDBAdd(&net->mac, net->ifname,
-                                      VIR_NETDEVBRIDGE_FDB_FLAG_MASTER |
-                                      VIR_NETDEVBRIDGE_FDB_FLAG_TEMP) < 0)
                 goto cleanup;
         }
     } else {
@@ -437,7 +434,7 @@ qemuOpenVhostNet(virDomainDefPtr def,
                  virDomainNetDefPtr net,
                  virQEMUCapsPtr qemuCaps,
                  int *vhostfd,
-                 int *vhostfdSize)
+                 size_t *vhostfdSize)
 {
     size_t i;
     const char *vhostnet_path = net->backend.vhost;
@@ -494,7 +491,7 @@ qemuOpenVhostNet(virDomainDefPtr def,
                                        "but is unavailable"));
                 goto error;
             }
-            VIR_WARN("Unable to open vhost-net. Opened so far %zu, requested %d",
+            VIR_WARN("Unable to open vhost-net. Opened so far %zu, requested %zu",
                      i, *vhostfdSize);
             *vhostfdSize = i;
             break;
@@ -1449,6 +1446,18 @@ qemuDomainSupportsPCI(virDomainDefPtr def)
     return false;
 }
 
+static bool
+qemuDomainPCIBusFullyReserved(virDomainPCIAddressBusPtr bus)
+{
+    size_t i;
+
+    for (i = bus->minSlot; i <= bus->maxSlot; i++)
+        if (!bus->slots[i])
+            return false;
+
+    return true;
+}
+
 int
 qemuDomainAssignPCIAddresses(virDomainDefPtr def,
                              virQEMUCapsPtr qemuCaps,
@@ -1483,9 +1492,15 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
                 goto cleanup;
             if (qemuAssignDevicePCISlots(def, qemuCaps, addrs) < 0)
                 goto cleanup;
-            /* Reserve 1 extra slot for a (potential) bridge */
-            if (virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
-                goto cleanup;
+
+            for (i = 0; i < addrs->nbuses; i++) {
+                if (!qemuDomainPCIBusFullyReserved(&addrs->buses[i])) {
+
+                    /* Reserve 1 extra slot for a (potential) bridge */
+                    if (virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
+                        goto cleanup;
+                }
+            }
 
             for (i = 1; i < addrs->nbuses; i++) {
                 virDomainPCIAddressBusPtr bus = &addrs->buses[i];
@@ -1495,9 +1510,9 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
                          i, bus->model)) < 0)
                     goto cleanup;
                 /* If we added a new bridge, we will need one more address */
-                if (rv > 0 && virDomainPCIAddressReserveNextSlot(addrs, &info,
-                                                                 flags) < 0)
-                        goto cleanup;
+                if (rv == 0 &&
+                    virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
+                    goto cleanup;
             }
             nbuses = addrs->nbuses;
             virDomainPCIAddressSetFree(addrs);
@@ -4357,7 +4372,7 @@ qemuBuildNicDevStr(virDomainDefPtr def,
                    virDomainNetDefPtr net,
                    int vlan,
                    int bootindex,
-                   int vhostfdSize,
+                   size_t vhostfdSize,
                    virQEMUCapsPtr qemuCaps)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -4459,7 +4474,7 @@ qemuBuildNicDevStr(virDomainDefPtr def,
     if (usingVirtio && vhostfdSize > 1) {
         /* As advised at http://www.linux-kvm.org/page/Multiqueue
          * we should add vectors=2*N+2 where N is the vhostfdSize */
-        virBufferAsprintf(&buf, ",mq=on,vectors=%d", 2 * vhostfdSize + 2);
+        virBufferAsprintf(&buf, ",mq=on,vectors=%zu", 2 * vhostfdSize + 2);
     }
     if (vlan == -1)
         virBufferAsprintf(&buf, ",netdev=host%s", net->info.alias);
@@ -4492,9 +4507,9 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
                     char type_sep,
                     int vlan,
                     char **tapfd,
-                    int tapfdSize,
+                    size_t tapfdSize,
                     char **vhostfd,
-                    int vhostfdSize)
+                    size_t vhostfdSize)
 {
     bool is_tap = false;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -6119,6 +6134,7 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
     virCPUDefPtr host = NULL;
     virCPUDefPtr guest = NULL;
     virCPUDefPtr cpu = NULL;
+    virCPUDefPtr featCpu = NULL;
     size_t ncpus = 0;
     char **cpus = NULL;
     virCPUDataPtr data = NULL;
@@ -6126,8 +6142,9 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
     virCPUCompareResult cmp;
     const char *preferred;
     virCapsPtr caps = NULL;
-    bool compareAgainstHost = (def->virtType == VIR_DOMAIN_VIRT_KVM ||
-        def->cpu->mode != VIR_CPU_MODE_CUSTOM);
+    bool compareAgainstHost = ((def->virtType == VIR_DOMAIN_VIRT_KVM ||
+                                def->cpu->mode != VIR_CPU_MODE_CUSTOM) &&
+                               def->cpu->mode != VIR_CPU_MODE_HOST_PASSTHROUGH);
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
@@ -6145,7 +6162,7 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
     if (!(cpu = virCPUDefCopy(def->cpu)))
         goto cleanup;
 
-    if (cpu->mode != VIR_CPU_MODE_CUSTOM &&
+    if (cpu->mode == VIR_CPU_MODE_HOST_MODEL &&
         !migrating &&
         cpuUpdate(cpu, host) < 0)
         goto cleanup;
@@ -6204,6 +6221,8 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
         if (ARCH_IS_PPC64(def->os.arch) &&
             cpu->mode == VIR_CPU_MODE_HOST_MODEL) {
             virBufferAsprintf(buf, ",compat=%s", def->cpu->model);
+        } else {
+            featCpu = cpu;
         }
 
     } else {
@@ -6229,18 +6248,21 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
             if (VIR_STRDUP(guest->model, cpu->model) < 0)
                 goto cleanup;
         }
-
         virBufferAdd(buf, guest->model, -1);
         if (guest->vendor_id)
             virBufferAsprintf(buf, ",vendor=%s", guest->vendor_id);
-        for (i = 0; i < guest->nfeatures; i++) {
+        featCpu = guest;
+    }
+
+    if (featCpu) {
+        for (i = 0; i < featCpu->nfeatures; i++) {
             char sign;
-            if (guest->features[i].policy == VIR_CPU_FEATURE_DISABLE)
+            if (featCpu->features[i].policy == VIR_CPU_FEATURE_DISABLE)
                 sign = '-';
             else
                 sign = '+';
 
-            virBufferAsprintf(buf, ",%c%s", sign, guest->features[i].name);
+            virBufferAsprintf(buf, ",%c%s", sign, featCpu->features[i].name);
         }
     }
 
@@ -6397,6 +6419,16 @@ qemuBuildCpuArgStr(virQEMUDriverPtr driver,
                 break;
             }
         }
+    }
+
+    if (def->features[VIR_DOMAIN_FEATURE_PMU]) {
+        virTristateSwitch pmu = def->features[VIR_DOMAIN_FEATURE_PMU];
+        if (!have_cpu)
+            virBufferAdd(&buf, default_model, -1);
+
+        virBufferAsprintf(&buf, ",pmu=%s",
+                          virTristateSwitchTypeToString(pmu));
+        have_cpu = true;
     }
 
     if (virBufferCheckError(&buf) < 0)
@@ -6616,6 +6648,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
     char *nodemask = NULL;
     char *mem_path = NULL;
     int ret = -1;
+    const long system_page_size = sysconf(_SC_PAGESIZE) / 1024;
 
     if (virDomainNumatuneHasPerNodeBinding(def->numatune) &&
         !(virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM) ||
@@ -6626,7 +6659,8 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
         goto cleanup;
     }
 
-    if (def->mem.nhugepages && def->mem.hugepages[0].size &&
+    if (def->mem.nhugepages &&
+        def->mem.hugepages[0].size != system_page_size &&
         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("huge pages per NUMA node are not "
@@ -6662,6 +6696,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
     }
 
     for (i = 0; i < def->cpu->ncells; i++) {
+        virDomainHugePagePtr hugepage = NULL;
         unsigned long long cellmem = VIR_DIV_UP(def->cpu->cells[i].mem, 1024);
         def->cpu->cells[i].mem = cellmem * 1024;
         virMemAccess memAccess = def->cpu->cells[i].memAccess;
@@ -6683,7 +6718,6 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM) ||
             virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
             virDomainNumatuneMemMode mode;
-            virDomainHugePagePtr hugepage = NULL;
             const char *policy = NULL;
 
             mode = virDomainNumatuneGetMode(def->numatune, i);
@@ -6718,6 +6752,13 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
                  * NUMA node. Use the generic setting then (<page/> without any
                  * @nodemask) if possible. */
                 hugepage = master_hugepage;
+            }
+
+            if (hugepage && hugepage->size == system_page_size) {
+                /* However, if user specified to use "huge" page
+                 * of regular system page size, it's as if they
+                 * hasn't specified any huge pages at all. */
+                hugepage = NULL;
             }
 
             if (hugepage) {
@@ -6793,8 +6834,12 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
                 virBufferAsprintf(&buf, ",policy=%s", policy);
             }
 
-            virCommandAddArg(cmd, "-object");
-            virCommandAddArgBuffer(cmd, &buf);
+            if (hugepage || nodemask) {
+                virCommandAddArg(cmd, "-object");
+                virCommandAddArgBuffer(cmd, &buf);
+            } else {
+                virBufferFreeAndReset(&buf);
+            }
         } else {
             if (memAccess) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -6814,12 +6859,10 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
             virBufferAdd(&buf, tmpmask, -1);
         }
 
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM) ||
-            virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
+        if (hugepage || nodemask)
             virBufferAsprintf(&buf, ",memdev=ram-node%zu", i);
-        } else {
+        else
             virBufferAsprintf(&buf, ",mem=%llu", cellmem);
-        }
 
         virCommandAddArgBuffer(cmd, &buf);
     }
@@ -7345,12 +7388,13 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
     int ret = -1;
     char *nic = NULL, *host = NULL;
     int *tapfd = NULL;
-    int tapfdSize = 0;
+    size_t tapfdSize = 0;
     int *vhostfd = NULL;
-    int vhostfdSize = 0;
+    size_t vhostfdSize = 0;
     char **tapfdName = NULL;
     char **vhostfdName = NULL;
     int actualType = virDomainNetGetActualType(net);
+    virNetDevBandwidthPtr actualBandwidth;
     size_t i;
 
     if (actualType == VIR_DOMAIN_NET_TYPE_VHOSTUSER)
@@ -7401,12 +7445,18 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
             goto cleanup;
     }
 
-    /* Set Bandwidth */
-    if (virNetDevSupportBandwidth(actualType) &&
-        virNetDevBandwidthSet(net->ifname,
-                              virDomainNetGetActualBandwidth(net),
-                              false) < 0)
-        goto cleanup;
+    /* Set bandwidth or warn if requested and not supported. */
+    actualBandwidth = virDomainNetGetActualBandwidth(net);
+    if (actualBandwidth) {
+        if (virNetDevSupportBandwidth(actualType)) {
+            if (virNetDevBandwidthSet(net->ifname, actualBandwidth, false) < 0)
+                goto cleanup;
+        } else {
+            VIR_WARN("setting bandwidth on interfaces of "
+                     "type '%s' is not implemented yet",
+                     virDomainNetTypeToString(actualType));
+        }
+    }
 
     if ((actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
          actualType == VIR_DOMAIN_NET_TYPE_BRIDGE ||
@@ -7882,44 +7932,51 @@ qemuBuildCommandLine(virConnectPtr conn,
     def->mem.max_balloon = VIR_DIV_UP(def->mem.max_balloon, 1024) * 1024;
     virCommandAddArgFormat(cmd, "%llu", def->mem.max_balloon / 1024);
     if (def->mem.nhugepages && (!def->cpu || !def->cpu->ncells)) {
-        char *mem_path;
+        const long system_page_size = sysconf(_SC_PAGESIZE) / 1024;
+        char *mem_path = NULL;
 
-        if (!cfg->nhugetlbfs) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("hugetlbfs filesystem is not mounted "
-                                   "or disabled by administrator config"));
-            goto error;
-        }
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MEM_PATH)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("hugepage backing not supported by '%s'"),
-                           def->emulator);
-            goto error;
-        }
-
-        if (def->mem.hugepages[0].size) {
-            for (j = 0; j < cfg->nhugetlbfs; j++) {
-                if (cfg->hugetlbfs[j].size == def->mem.hugepages[0].size)
-                    break;
-            }
-
-            if (j == cfg->nhugetlbfs) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Unable to find any usable hugetlbfs mount for %llu KiB"),
-                               def->mem.hugepages[0].size);
-                goto error;
-            }
-
-            if (!(mem_path = qemuGetHugepagePath(&cfg->hugetlbfs[j])))
-                goto error;
+        if (def->mem.hugepages[0].size == system_page_size) {
+            /* There is one special case: if user specified "huge"
+             * pages of regular system pages size. */
         } else {
-            if (!(mem_path = qemuGetDefaultHugepath(cfg->hugetlbfs,
-                                                    cfg->nhugetlbfs)))
+            if (!cfg->nhugetlbfs) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               "%s", _("hugetlbfs filesystem is not mounted "
+                                       "or disabled by administrator config"));
                 goto error;
+            }
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MEM_PATH)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("hugepage backing not supported by '%s'"),
+                               def->emulator);
+                goto error;
+            }
+
+            if (def->mem.hugepages[0].size) {
+                for (j = 0; j < cfg->nhugetlbfs; j++) {
+                    if (cfg->hugetlbfs[j].size == def->mem.hugepages[0].size)
+                        break;
+                }
+
+                if (j == cfg->nhugetlbfs) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Unable to find any usable hugetlbfs mount for %llu KiB"),
+                                   def->mem.hugepages[0].size);
+                    goto error;
+                }
+
+                if (!(mem_path = qemuGetHugepagePath(&cfg->hugetlbfs[j])))
+                    goto error;
+            } else {
+                if (!(mem_path = qemuGetDefaultHugepath(cfg->hugetlbfs,
+                                                        cfg->nhugetlbfs)))
+                    goto error;
+            }
         }
 
-        virCommandAddArgList(cmd, "-mem-prealloc", "-mem-path",
-                             mem_path, NULL);
+        virCommandAddArg(cmd, "-mem-prealloc");
+        if (mem_path)
+            virCommandAddArgList(cmd, "-mem-path", mem_path, NULL);
         VIR_FREE(mem_path);
     }
 
@@ -9500,8 +9557,12 @@ qemuBuildCommandLine(virConnectPtr conn,
         virCommandAddArg(cmd, devstr);
         VIR_FREE(devstr);
 
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("redirected devices are not supported by this QEMU"));
             goto error;
+        }
+
 
         virCommandAddArg(cmd, "-device");
         if (!(devstr = qemuBuildRedirdevDevStr(def, redirdev, qemuCaps)))
@@ -12296,7 +12357,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
         vid->vram = virDomainVideoDefaultRAM(def, vid->type);
         if (vid->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
             vid->ram = virDomainVideoDefaultRAM(def, vid->type);
-            vid->vgamem = 8 * 1024;
+            vid->vgamem = QEMU_QXL_VGAMEM_DEFAULT;
         } else {
             vid->ram = 0;
             vid->vgamem = 0;

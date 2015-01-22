@@ -471,11 +471,12 @@ prlsdkGetDiskInfo(PRL_HANDLE prldisk,
     if (emulatedType == PDT_USE_IMAGE_FILE) {
         virDomainDiskSetType(disk, VIR_STORAGE_TYPE_FILE);
         if (isCdrom)
-            virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_AUTO);
+            virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
         else
             virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_PLOOP);
     } else {
         virDomainDiskSetType(disk, VIR_STORAGE_TYPE_BLOCK);
+        virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
     }
 
     if (isCdrom)
@@ -534,6 +535,55 @@ prlsdkGetDiskInfo(PRL_HANDLE prldisk,
 }
 
 static int
+prlsdkGetFSInfo(PRL_HANDLE prldisk,
+                virDomainFSDefPtr fs)
+{
+    char *buf = NULL;
+    PRL_UINT32 buflen = 0;
+    PRL_RESULT pret;
+    int ret = -1;
+
+    fs->type = VIR_DOMAIN_FS_TYPE_FILE;
+    fs->fsdriver = VIR_DOMAIN_FS_DRIVER_TYPE_PLOOP;
+    fs->accessmode = VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH;
+    fs->wrpolicy = VIR_DOMAIN_FS_WRPOLICY_DEFAULT;
+    fs->format = VIR_STORAGE_FILE_PLOOP;
+
+    fs->readonly = false;
+    fs->symlinksResolved = false;
+
+    pret = PrlVmDev_GetImagePath(prldisk, NULL, &buflen);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (VIR_ALLOC_N(buf, buflen) < 0)
+        goto cleanup;
+
+    pret = PrlVmDev_GetImagePath(prldisk, buf, &buflen);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    fs->src = buf;
+    buf = NULL;
+
+    pret = PrlVmDevHd_GetMountPoint(prldisk, NULL, &buflen);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (VIR_ALLOC_N(buf, buflen) < 0)
+        goto cleanup;
+
+    pret = PrlVmDevHd_GetMountPoint(prldisk, buf, &buflen);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    fs->dst = buf;
+    buf = NULL;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(buf);
+    return ret;
+}
+
+static int
 prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     PRL_RESULT pret;
@@ -541,6 +591,7 @@ prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
     PRL_UINT32 i;
     PRL_HANDLE hdd = PRL_INVALID_HANDLE;
     virDomainDiskDefPtr disk = NULL;
+    virDomainFSDefPtr fs = NULL;
 
     pret = PrlVmCfg_GetHardDisksCount(sdkdom, &hddCount);
     prlsdkCheckRetGoto(pret, error);
@@ -550,10 +601,17 @@ prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
         prlsdkCheckRetGoto(pret, error);
 
         if (IS_CT(def)) {
-            /* TODO: convert info about disks in container
-             * to virDomainFSDef structs */
-            VIR_WARN("Skipping disk information for container");
 
+            if (VIR_ALLOC(fs) < 0)
+                goto error;
+
+            if (prlsdkGetFSInfo(hdd, fs) < 0)
+                goto error;
+
+            if (virDomainFSInsert(def, fs) < 0)
+                goto error;
+
+            fs = NULL;
             PrlHandle_Free(hdd);
             hdd = PRL_INVALID_HANDLE;
         } else {
@@ -563,11 +621,12 @@ prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
             if (prlsdkGetDiskInfo(hdd, disk, false) < 0)
                 goto error;
 
-            PrlHandle_Free(hdd);
-            hdd = PRL_INVALID_HANDLE;
-
             if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0)
                 goto error;
+
+            disk = NULL;
+            PrlHandle_Free(hdd);
+            hdd = PRL_INVALID_HANDLE;
         }
     }
 
@@ -576,6 +635,7 @@ prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
  error:
     PrlHandle_Free(hdd);
     virDomainDiskDefFree(disk);
+    virDomainFSDefFree(fs);
     return -1;
 }
 
@@ -1861,8 +1921,14 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (def->nfss != 0 ||
-        def->nsounds != 0 || def->nhostdevs != 0 ||
+    if (!IS_CT(def) && def->nfss != 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Filesystems in VMs are not supported "
+                         "by parallels driver"));
+        return -1;
+    }
+
+    if (def->nsounds != 0 || def->nhostdevs != 0 ||
         def->nredirdevs != 0 || def->nsmartcards != 0 ||
         def->nparallels || def->nchannels != 0 ||
         def->nleases != 0 || def->nhubs != 0) {
@@ -1928,7 +1994,7 @@ static int prlsdkCheckGraphicsUnsupportedParams(virDomainDefPtr def)
     if (def->ngraphics == 0)
         return 0;
 
-    if (def->ngraphics >1) {
+    if (def->ngraphics > 1) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Parallels Cloud Server supports only "
                          "one VNC per domain."));
@@ -1987,6 +2053,20 @@ static int prlsdkCheckGraphicsUnsupportedParams(virDomainDefPtr def)
         return -1;
     }
 
+    if (gr->nListens > 1) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Parallels driver doesn't support more than "
+                         "one listening VNC server per domain"));
+        return -1;
+    }
+
+    if (gr->nListens == 1 &&
+        virDomainGraphicsListenGetType(gr, 0) != VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Parallels driver supports only address-based VNC listening"));
+        return -1;
+    }
+
     return 0;
 }
 
@@ -2029,7 +2109,7 @@ static int prlsdkCheckVideoUnsupportedParams(virDomainDefPtr def)
         return -1;
     }
 
-    if (v->accel == NULL || v->accel->support2d || v->accel->support3d) {
+    if (v->accel != NULL && (v->accel->support2d || v->accel->support3d)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Parallels Cloud Server doesn't support "
                          "setting video acceleration parameters."));
@@ -2280,11 +2360,66 @@ static int prlsdkCheckDiskUnsupportedParams(virDomainDiskDefPtr disk)
     return 0;
 }
 
+static int prlsdkCheckFSUnsupportedParams(virDomainFSDefPtr fs)
+{
+    if (fs->type != VIR_DOMAIN_FS_TYPE_FILE) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Only file based filesystems are "
+                         "supported by parallels driver."));
+        return -1;
+    }
+
+    if (fs->fsdriver != VIR_DOMAIN_FS_DRIVER_TYPE_PLOOP) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Only ploop fs driver is "
+                         "supported by parallels driver."));
+        return -1;
+    }
+
+    if (fs->accessmode != VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Changing fs access mode is not "
+                         "supported by parallels driver."));
+        return -1;
+    }
+
+    if (fs->wrpolicy != VIR_DOMAIN_FS_WRPOLICY_DEFAULT) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Changing fs write policy is not "
+                         "supported by parallels driver."));
+        return -1;
+    }
+
+    if (fs->format != VIR_STORAGE_FILE_PLOOP) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Only ploop disk images are "
+                         "supported by parallels driver."));
+        return -1;
+    }
+
+    if (fs->readonly) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Setting readonly for filesystems is "
+                         "supported by parallels driver."));
+        return -1;
+    }
+
+    if (fs->space_hard_limit || fs->space_soft_limit) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Setting fs quotas is not "
+                         "supported by parallels driver."));
+        return -1;
+    }
+
+    return 0;
+}
+
 static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     virDomainGraphicsDefPtr gr;
     PRL_RESULT pret;
     int ret  = -1;
+    const char *listenAddr = NULL;
 
     if (prlsdkCheckGraphicsUnsupportedParams(def))
         return -1;
@@ -2302,6 +2437,14 @@ static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         prlsdkCheckRetGoto(pret, cleanup);
 
         pret = PrlVmCfg_SetVNCPort(sdkdom, gr->data.vnc.port);
+        prlsdkCheckRetGoto(pret, cleanup);
+    }
+
+    if (gr->nListens == 1) {
+        listenAddr = virDomainGraphicsListenGetAddress(gr, 0);
+        if (!listenAddr)
+            goto cleanup;
+        pret = PrlVmCfg_SetVNCHostName(sdkdom, listenAddr);
         prlsdkCheckRetGoto(pret, cleanup);
     }
 
@@ -2466,6 +2609,8 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
     int ret = -1;
     PRL_VM_DEV_EMULATION_TYPE emutype;
     PRL_MASS_STORAGE_INTERFACE_TYPE sdkbus;
+    int idx;
+    virDomainDeviceDriveAddressPtr drive;
 
     if (prlsdkCheckDiskUnsupportedParams(disk) < 0)
         return -1;
@@ -2486,13 +2631,24 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
         if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
             virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_PLOOP) {
 
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Invalid disk format: %d"), disk->src->type);
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid format of "
+                           "disk %s, Parallels Cloud Server supports only "
+                           "images in ploop format."), disk->src->path);
             goto cleanup;
         }
 
         emutype = PDT_USE_IMAGE_FILE;
     } else {
+        if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
+            (virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_RAW &&
+             virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_NONE &&
+             virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_AUTO)) {
+
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid format "
+                           "of disk %s, it should be either not set, or set "
+                           "to raw or auto."), disk->src->path);
+            goto cleanup;
+        }
         emutype = PDT_USE_REAL_DEVICE;
     }
 
@@ -2505,15 +2661,27 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
     pret = PrlVmDev_SetFriendlyName(sdkdisk, disk->src->path);
     prlsdkCheckRetGoto(pret, cleanup);
 
+    drive = &disk->info.addr.drive;
+    if (drive->controller > 0) {
+        /* We have only one controller of each type */
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid drive "
+                       "address of disk %s, Parallels Cloud Server has "
+                       "only one controller."), disk->src->path);
+        goto cleanup;
+    }
+
     switch (disk->bus) {
     case VIR_DOMAIN_DISK_BUS_IDE:
         sdkbus = PMS_IDE_DEVICE;
+        idx = 2 * drive->bus + drive->unit;
         break;
     case VIR_DOMAIN_DISK_BUS_SCSI:
         sdkbus = PMS_SCSI_DEVICE;
+        idx = drive->unit;
         break;
     case VIR_DOMAIN_DISK_BUS_SATA:
         sdkbus = PMS_SATA_DEVICE;
+        idx = drive->unit;
         break;
     default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -2525,7 +2693,7 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
     pret = PrlVmDev_SetIfaceType(sdkdisk, sdkbus);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    pret = PrlVmDev_SetStackIndex(sdkdisk, disk->info.addr.drive.target);
+    pret = PrlVmDev_SetStackIndex(sdkdisk, idx);
     prlsdkCheckRetGoto(pret, cleanup);
 
     switch (disk->cachemode) {
@@ -2552,6 +2720,46 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
     return ret;
 }
 
+static int
+prlsdkAddFS(PRL_HANDLE sdkdom, virDomainFSDefPtr fs)
+{
+    PRL_RESULT pret;
+    PRL_HANDLE sdkdisk = PRL_INVALID_HANDLE;
+    int ret = -1;
+
+    if (prlsdkCheckFSUnsupportedParams(fs) < 0)
+        return -1;
+
+    pret = PrlVmCfg_CreateVmDev(sdkdom, PDE_HARD_DISK, &sdkdisk);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDev_SetEnabled(sdkdisk, 1);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDev_SetConnected(sdkdisk, 1);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDev_SetEmulatedType(sdkdisk, PDT_USE_IMAGE_FILE);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDev_SetSysName(sdkdisk, fs->src);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDev_SetImagePath(sdkdisk, fs->src);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDev_SetFriendlyName(sdkdisk, fs->src);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDevHd_SetMountPoint(sdkdisk, fs->dst);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    ret = 0;
+
+ cleanup:
+    PrlHandle_Free(sdkdisk);
+    return ret;
+}
 static int
 prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
                     virDomainDefPtr def)
@@ -2610,6 +2818,11 @@ prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
            goto error;
     }
 
+    for (i = 0; i < def->nfss; i++) {
+       if (prlsdkAddFS(sdkdom, def->fss[i]) < 0)
+           goto error;
+    }
+
     return 0;
 
  error:
@@ -2637,7 +2850,7 @@ prlsdkApplyConfig(virConnectPtr conn,
     ret = prlsdkDoApplyConfig(sdkdom, new);
 
     if (ret == 0) {
-        job = PrlVm_Commit(sdkdom);
+        job = PrlVm_CommitEx(sdkdom, PVCF_DETACH_HDD_BUNDLE);
         if (PRL_FAILED(waitJob(job, privconn->jobTimeout)))
             ret = -1;
     }
@@ -2694,14 +2907,26 @@ prlsdkCreateCt(virConnectPtr conn, virDomainDefPtr def)
     PRL_HANDLE result = PRL_INVALID_HANDLE;
     PRL_RESULT pret;
     int ret = -1;
+    int useTemplate = 0;
+    size_t i;
 
-    if (def->nfss  && (def->nfss > 1 ||
-            def->fss[0]->type != VIR_DOMAIN_FS_TYPE_TEMPLATE)) {
-
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("There must be no more than 1 template FS for "
-                         "container creation"));
-        return -1;
+    if (def->nfss > 1) {
+        /* Check all filesystems */
+        for (i = 0; i < def->nfss; i++) {
+            if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_FILE) {
+                virReportError(VIR_ERR_INVALID_ARG, "%s",
+                               _("Unsupported filesystem type."));
+                return -1;
+            }
+        }
+    } else if (def->nfss == 1) {
+        if (def->fss[0]->type == VIR_DOMAIN_FS_TYPE_TEMPLATE) {
+            useTemplate = 1;
+        } else if (def->fss[0]->type != VIR_DOMAIN_FS_TYPE_FILE) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("Unsupported filesystem type."));
+            return -1;
+        }
     }
 
     confParam.nVmType = PVT_CT;
@@ -2715,22 +2940,24 @@ prlsdkCreateCt(virConnectPtr conn, virDomainDefPtr def)
     pret = PrlResult_GetParamByIndex(result, 0, &sdkdom);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    if (def->nfss == 1) {
+    if (useTemplate) {
         pret = PrlVmCfg_SetOsTemplate(sdkdom, def->fss[0]->src);
         prlsdkCheckRetGoto(pret, cleanup);
+
     }
 
     ret = prlsdkDoApplyConfig(sdkdom, def);
     if (ret)
         goto cleanup;
 
-    job = PrlVm_RegEx(sdkdom, "", PACF_NON_INTERACTIVE_MODE);
+    job = PrlVm_RegEx(sdkdom, "",
+                      PACF_NON_INTERACTIVE_MODE | PRNVM_PRESERVE_DISK);
     if (PRL_FAILED(waitJob(job, privconn->jobTimeout)))
         ret = -1;
 
  cleanup:
     PrlHandle_Free(sdkdom);
-    return -1;
+    return ret;
 }
 
 int

@@ -1584,6 +1584,8 @@ virCgroupNewMachineSystemd(const char *name,
                            const char *rootdir,
                            pid_t pidleader,
                            bool isContainer,
+                           size_t nnicindexes,
+                           int *nicindexes,
                            const char *partition,
                            int controllers,
                            virCgroupPtr *group)
@@ -1602,6 +1604,8 @@ virCgroupNewMachineSystemd(const char *name,
                                       rootdir,
                                       pidleader,
                                       isContainer,
+                                      nnicindexes,
+                                      nicindexes,
                                       partition)) < 0)
         return rv;
 
@@ -1747,6 +1751,8 @@ virCgroupNewMachine(const char *name,
                     const char *rootdir,
                     pid_t pidleader,
                     bool isContainer,
+                    size_t nnicindexes,
+                    int *nicindexes,
                     const char *partition,
                     int controllers,
                     virCgroupPtr *group)
@@ -1762,6 +1768,8 @@ virCgroupNewMachine(const char *name,
                                          rootdir,
                                          pidleader,
                                          isContainer,
+                                         nnicindexes,
+                                         nicindexes,
                                          partition,
                                          controllers,
                                          group)) == 0)
@@ -3926,6 +3934,23 @@ virCgroupSupportsCpuBW(virCgroupPtr cgroup)
     return ret;
 }
 
+int
+virCgroupHasEmptyTasks(virCgroupPtr cgroup, int controller)
+{
+    int ret = -1;
+    char *content = NULL;
+
+    if (!cgroup)
+        return -1;
+
+    ret = virCgroupGetValueStr(cgroup, controller, "tasks", &content);
+
+    if (ret == 0 && content[0] == '\0')
+        ret = 1;
+
+    VIR_FREE(content);
+    return ret;
+}
 
 #else /* !VIR_CGROUP_SUPPORTED */
 
@@ -4048,6 +4073,8 @@ virCgroupNewMachine(const char *name ATTRIBUTE_UNUSED,
                     const char *rootdir ATTRIBUTE_UNUSED,
                     pid_t pidleader ATTRIBUTE_UNUSED,
                     bool isContainer ATTRIBUTE_UNUSED,
+                    size_t nnicindexes ATTRIBUTE_UNUSED,
+                    int *nicindexes ATTRIBUTE_UNUSED,
                     const char *partition ATTRIBUTE_UNUSED,
                     int controllers ATTRIBUTE_UNUSED,
                     virCgroupPtr *group ATTRIBUTE_UNUSED)
@@ -4649,6 +4676,15 @@ virCgroupSetOwner(virCgroupPtr cgroup ATTRIBUTE_UNUSED,
                   uid_t uid ATTRIBUTE_UNUSED,
                   gid_t gid ATTRIBUTE_UNUSED,
                   int controllers ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+int
+virCgroupHasEmptyTasks(virCgroupPtr cgroup ATTRIBUTE_UNUSED,
+                       int controller ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));

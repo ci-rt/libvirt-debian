@@ -1720,7 +1720,7 @@ phypDomainAttachDevice(virDomainPtr domain, const char *xml)
         goto cleanup;
 
     dev = virDomainDeviceDefParse(xml, def, phyp_driver->caps, NULL,
-                                  VIR_DOMAIN_XML_INACTIVE);
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (!dev)
         goto cleanup;
 
@@ -3291,7 +3291,8 @@ phypDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         goto err;
     }
 
-    return virDomainDefFormat(&def, flags);
+    return virDomainDefFormat(&def,
+                              virDomainDefFormatConvertXMLFlags(flags));
 
  err:
     return NULL;
@@ -3552,13 +3553,17 @@ phypDomainCreateXML(virConnectPtr conn,
     lparPtr *lpars = uuid_table->lpars;
     size_t i = 0;
     char *managed_system = phyp_driver->managed_system;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
 
-    virCheckFlags(0, NULL);
+    virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!(def = virDomainDefParseString(xml, phyp_driver->caps,
                                         phyp_driver->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_PHYP,
-                                        VIR_DOMAIN_XML_SECURE)))
+                                        parse_flags)))
         goto err;
 
     /* checking if this name already exists on this system */

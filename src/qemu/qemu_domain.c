@@ -451,6 +451,7 @@ qemuDomainObjPrivateFree(void *data)
         qemuAgentClose(priv->agent);
     }
     VIR_FREE(priv->cleanupCallbacks);
+    virBitmapFree(priv->autoNodeset);
     VIR_FREE(priv);
 }
 
@@ -1177,7 +1178,7 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                 goto cleanup;
             }
         } else {
-            dev->data.video->vgamem = 8 * 1024;
+            dev->data.video->vgamem = QEMU_QXL_VGAMEM_DEFAULT;
         }
     }
 
@@ -1318,8 +1319,6 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
     priv->jobs_queued++;
     then = now + QEMU_JOB_WAIT_TIME;
 
-    virObjectRef(obj);
-
  retry:
     if (cfg->maxQueuedJobs &&
         priv->jobs_queued > cfg->maxQueuedJobs) {
@@ -1398,7 +1397,6 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
 
  cleanup:
     priv->jobs_queued--;
-    virObjectUnref(obj);
     virObjectUnref(cfg);
     return ret;
 }
@@ -1409,8 +1407,7 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
  * This must be called by anything that will change the VM state
  * in any way, or anything that will use the QEMU monitor.
  *
- * Upon successful return, the object will have its ref count increased,
- * successful calls must be followed by EndJob eventually
+ * Successful calls must be followed by EndJob eventually
  */
 int qemuDomainObjBeginJob(virQEMUDriverPtr driver,
                           virDomainObjPtr obj,
@@ -1459,15 +1456,13 @@ qemuDomainObjBeginNestedJob(virQEMUDriverPtr driver,
 
 
 /*
- * obj must be locked before calling
+ * obj must be locked and have a reference before calling
  *
  * To be called after completing the work associated with the
  * earlier qemuDomainBeginJob() call
- *
- * Returns true if @obj was still referenced, false if it was
- * disposed of.
  */
-bool qemuDomainObjEndJob(virQEMUDriverPtr driver, virDomainObjPtr obj)
+void
+qemuDomainObjEndJob(virQEMUDriverPtr driver, virDomainObjPtr obj)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
     qemuDomainJob job = priv->job.active;
@@ -1483,11 +1478,9 @@ bool qemuDomainObjEndJob(virQEMUDriverPtr driver, virDomainObjPtr obj)
     if (qemuDomainTrackJob(job))
         qemuDomainObjSaveJob(driver, obj);
     virCondSignal(&priv->job.cond);
-
-    return virObjectUnref(obj);
 }
 
-bool
+void
 qemuDomainObjEndAsyncJob(virQEMUDriverPtr driver, virDomainObjPtr obj)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
@@ -1501,8 +1494,6 @@ qemuDomainObjEndAsyncJob(virQEMUDriverPtr driver, virDomainObjPtr obj)
     qemuDomainObjResetAsyncJob(priv);
     qemuDomainObjSaveJob(driver, obj);
     virCondBroadcast(&priv->job.asyncCond);
-
-    return virObjectUnref(obj);
 }
 
 void
@@ -1540,8 +1531,7 @@ qemuDomainObjEnterMonitorInternal(virQEMUDriverPtr driver,
         if (!virDomainObjIsActive(obj)) {
             virReportError(VIR_ERR_OPERATION_FAILED, "%s",
                            _("domain is no longer running"));
-            /* Still referenced by the containing async job.  */
-            ignore_value(qemuDomainObjEndJob(driver, obj));
+            qemuDomainObjEndJob(driver, obj);
             return -1;
         }
     } else if (priv->job.asyncOwner == virThreadSelfID()) {
@@ -1583,8 +1573,6 @@ qemuDomainObjExitMonitorInternal(virQEMUDriverPtr driver,
         qemuDomainObjResetJob(priv);
         qemuDomainObjSaveJob(driver, obj);
         virCondSignal(&priv->job.cond);
-
-        virObjectUnref(obj);
     }
 }
 
@@ -1598,11 +1586,23 @@ void qemuDomainObjEnterMonitor(virQEMUDriverPtr driver,
 /* obj must NOT be locked before calling
  *
  * Should be paired with an earlier qemuDomainObjEnterMonitor() call
+ *
+ * Returns -1 if the domain is no longer alive after exiting the monitor.
+ * In that case, the caller should be careful when using obj's data,
+ * e.g. the live definition in vm->def has been freed by qemuProcessStop
+ * and replaced by the persistent definition, so pointers stolen
+ * from the live definition could no longer be valid.
  */
-void qemuDomainObjExitMonitor(virQEMUDriverPtr driver,
-                              virDomainObjPtr obj)
+int qemuDomainObjExitMonitor(virQEMUDriverPtr driver,
+                             virDomainObjPtr obj)
 {
     qemuDomainObjExitMonitorInternal(driver, obj);
+    if (!virDomainObjIsActive(obj)) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("domain is no longer running"));
+        return -1;
+    }
+    return 0;
 }
 
 /*
@@ -1680,7 +1680,6 @@ void qemuDomainObjEnterRemote(virDomainObjPtr obj)
 {
     VIR_DEBUG("Entering remote (vm=%p name=%s)",
               obj, obj->def->name);
-    virObjectRef(obj);
     virObjectUnlock(obj);
 }
 
@@ -1689,7 +1688,6 @@ void qemuDomainObjExitRemote(virDomainObjPtr obj)
     virObjectLock(obj);
     VIR_DEBUG("Exited remote (vm=%p name=%s)",
               obj, obj->def->name);
-    virObjectUnref(obj);
 }
 
 
@@ -1713,7 +1711,7 @@ qemuDomainDefCopy(virQEMUDriverPtr driver,
 
     if (!(ret = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
  cleanup:
@@ -1821,7 +1819,9 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
 
     }
 
-    ret = virDomainDefFormatInternal(def, flags, buf);
+    ret = virDomainDefFormatInternal(def,
+                                     virDomainDefFormatConvertXMLFlags(flags),
+                                     buf);
 
  cleanup:
     def->cpu = def_cpu;
@@ -2173,8 +2173,10 @@ qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
     char uuidstr[VIR_UUID_STRING_BUFLEN];
 
     virUUIDFormat(vm->def->uuid, uuidstr);
-    newxml = virDomainSnapshotDefFormat(uuidstr, snapshot->def,
-                                        QEMU_DOMAIN_FORMAT_LIVE_FLAGS, 1);
+    newxml = virDomainSnapshotDefFormat(
+        uuidstr, snapshot->def,
+        virDomainDefFormatConvertXMLFlags(QEMU_DOMAIN_FORMAT_LIVE_FLAGS),
+        1);
     if (newxml == NULL)
         return -1;
 
@@ -2315,7 +2317,7 @@ qemuDomainSnapshotDiscard(virQEMUDriverPtr driver,
             qemuDomainObjEnterMonitor(driver, vm);
             /* we continue on even in the face of error */
             qemuMonitorDeleteSnapshot(priv->mon, snap->def->name);
-            qemuDomainObjExitMonitor(driver, vm);
+            ignore_value(qemuDomainObjExitMonitor(driver, vm));
         }
     }
 
@@ -2390,8 +2392,7 @@ qemuDomainSnapshotDiscardAllMetadata(virQEMUDriverPtr driver,
 }
 
 /*
- * The caller must hold a lock the vm and there must
- * be no remaining references to vm.
+ * The caller must hold a lock the vm.
  */
 void
 qemuDomainRemoveInactive(virQEMUDriverPtr driver,
@@ -2422,7 +2423,7 @@ qemuDomainRemoveInactive(virQEMUDriverPtr driver,
     virObjectUnref(cfg);
 
     if (haveJob)
-        ignore_value(qemuDomainObjEndJob(driver, vm));
+        qemuDomainObjEndJob(driver, vm);
 }
 
 void
@@ -2693,6 +2694,22 @@ qemuDomainStorageFileInit(virQEMUDriverPtr driver,
 }
 
 
+char *
+qemuDomainStorageAlias(const char *device, int depth)
+{
+    char *alias;
+
+    if (STRPREFIX(device, QEMU_DRIVE_HOST_PREFIX))
+        device += strlen(QEMU_DRIVE_HOST_PREFIX);
+
+    if (!depth)
+        ignore_value(VIR_STRDUP(alias, device));
+    else
+        ignore_value(virAsprintf(&alias, "%s.%d", device, depth));
+    return alias;
+}
+
+
 int
 qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
@@ -2735,17 +2752,18 @@ qemuDomainUpdateDeviceList(virQEMUDriverPtr driver,
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char **aliases;
+    int rc;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_DEL_EVENT))
         return 0;
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         return -1;
-    if (qemuMonitorGetDeviceAliases(priv->mon, &aliases) < 0) {
-        qemuDomainObjExitMonitor(driver, vm);
+    rc = qemuMonitorGetDeviceAliases(priv->mon, &aliases);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
         return -1;
-    }
-    qemuDomainObjExitMonitor(driver, vm);
+    if (rc < 0)
+        return -1;
 
     virStringFreeList(priv->qemuDevices);
     priv->qemuDevices = aliases;
@@ -2794,4 +2812,23 @@ qemuDomainAgentAvailable(qemuDomainObjPrivatePtr priv,
         return false;
     }
     return true;
+}
+
+/*
+ * Finish working with a domain object in an API.  This function
+ * clears whatever was left of a domain that was gathered using
+ * qemuDomObjFromDomain().  Currently that means only unlocking and
+ * decrementing the reference counter of that domain.  And in order to
+ * make sure the caller does not access the domain, the pointer is
+ * cleared.
+ */
+void
+qemuDomObjEndAPI(virDomainObjPtr *vm)
+{
+    if (!*vm)
+        return;
+
+    virObjectUnlock(*vm);
+    virObjectUnref(*vm);
+    *vm = NULL;
 }

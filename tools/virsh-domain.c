@@ -133,6 +133,28 @@ vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
     return vshLookupDomainInternal(ctl, cmd->def->name, n, flags);
 }
 
+static virDomainPtr
+vshDomainDefine(virConnectPtr conn, const char *xml, unsigned int flags)
+{
+    virDomainPtr dom;
+    if (flags) {
+        dom = virDomainDefineXMLFlags(conn, xml, flags);
+        /* If validate is the only flag, just drop it and
+         * try again.
+         */
+        if (!dom) {
+            virErrorPtr err = virGetLastError();
+            if (err &&
+                (err->code == VIR_ERR_NO_SUPPORT) &&
+                (flags == VIR_DOMAIN_DEFINE_VALIDATE))
+                dom = virDomainDefineXML(conn, xml);
+        }
+    } else {
+        dom = virDomainDefineXML(conn, xml);
+    }
+    return dom;
+}
+
 VIR_ENUM_DECL(vshDomainVcpuState)
 VIR_ENUM_IMPL(vshDomainVcpuState,
               VIR_VCPU_LAST,
@@ -755,27 +777,27 @@ static const vshCmdOptDef opts_attach_interface[] = {
      .help = N_("source of network interface")
     },
     {.name = "target",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("target network name")
     },
     {.name = "mac",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("MAC address")
     },
     {.name = "script",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("script used to bridge network interface")
     },
     {.name = "model",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("model type")
     },
     {.name = "inbound",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("control domain's incoming traffics")
     },
     {.name = "outbound",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("control domain's outgoing traffics")
     },
     {.name = "persistent",
@@ -1749,7 +1771,7 @@ static const vshCmdOptDef opts_block_commit[] = {
      .help = N_("bandwidth limit in MiB/s")
     },
     {.name = "base",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("path of base file to commit into (default bottom of chain)")
     },
     {.name = "shallow",
@@ -1757,7 +1779,7 @@ static const vshCmdOptDef opts_block_commit[] = {
      .help = N_("use backing file of top as base")
     },
     {.name = "top",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("path of top file to commit from (default top of chain)")
     },
     {.name = "active",
@@ -1977,7 +1999,7 @@ static const vshCmdOptDef opts_block_copy[] = {
      .help = N_("fully-qualified path of source disk")
     },
     {.name = "dest",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("path of the copy to create")
     },
     {.name = "bandwidth",
@@ -2025,11 +2047,11 @@ static const vshCmdOptDef opts_block_copy[] = {
      .help = N_("with --wait, don't wait for cancel to finish")
     },
     {.name = "xml",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("filename containing XML description of the copy destination")
     },
     {.name = "format",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("format of the destination file")
     },
     {.name = "granularity",
@@ -2519,7 +2541,7 @@ static const vshCmdOptDef opts_block_pull[] = {
      .help = N_("bandwidth limit in MiB/s")
     },
     {.name = "base",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("path of backing file in chain for a partial pull")
     },
     {.name = "wait",
@@ -3046,11 +3068,11 @@ static const vshCmdOptDef opts_domiftune[] = {
      .help = N_("interface device (MAC Address)")
     },
     {.name = "inbound",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("control domain's incoming traffics")
     },
     {.name = "outbound",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("control domain's outgoing traffics")
     },
     {.name = "config",
@@ -3425,7 +3447,7 @@ static const vshCmdOptDef opts_undefine[] = {
      .help = N_("remove domain managed state file")
     },
     {.name = "storage",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("remove associated storage volumes (comma separated list of "
                 "targets or source paths) (see domblklist)")
     },
@@ -5019,7 +5041,7 @@ static const vshCmdOptDef opts_dump[] = {
      .help = N_("dump domain's memory only")
     },
     {.name = "format",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("specify the format of memory-only dump")
     },
     {.name = NULL}
@@ -5173,7 +5195,7 @@ static const vshCmdOptDef opts_screenshot[] = {
      .help = N_("domain name, id or uuid")
     },
     {.name = "file",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("where to store the screenshot")
     },
     {.name = "screen",
@@ -6217,7 +6239,7 @@ static const vshCmdOptDef opts_vcpupin[] = {
      .help = N_("vcpu number")
     },
     {.name = "cpulist",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_EMPTY_OK,
      .help = N_("host cpu number(s) to set, or omit option to query")
     },
@@ -6498,7 +6520,7 @@ static const vshCmdOptDef opts_emulatorpin[] = {
      .help = N_("domain name, id or uuid")
     },
     {.name = "cpulist",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_EMPTY_OK,
      .help = N_("host cpu number(s) to set, or omit option to query")
     },
@@ -7154,6 +7176,10 @@ static const vshCmdOptDef opts_create[] = {
      .type = VSH_OT_STRING,
      .help = N_("pass file descriptors N,M,... to the guest")
     },
+    {.name = "validate",
+     .type = VSH_OT_BOOL,
+     .help = N_("validate the XML against the schema")
+    },
     {.name = NULL}
 };
 
@@ -7167,7 +7193,7 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
 #ifndef WIN32
     bool console = vshCommandOptBool(cmd, "console");
 #endif
-    unsigned int flags = VIR_DOMAIN_NONE;
+    unsigned int flags = 0;
     size_t nfds = 0;
     int *fds = NULL;
 
@@ -7184,6 +7210,8 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_START_PAUSED;
     if (vshCommandOptBool(cmd, "autodestroy"))
         flags |= VIR_DOMAIN_START_AUTODESTROY;
+    if (vshCommandOptBool(cmd, "validate"))
+        flags |= VIR_DOMAIN_START_VALIDATE;
 
     if (nfds)
         dom = virDomainCreateXMLWithFiles(ctl->conn, buffer, nfds, fds, flags);
@@ -7229,6 +7257,10 @@ static const vshCmdOptDef opts_define[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("file containing an XML domain description")
     },
+    {.name = "validate",
+     .type = VSH_OT_BOOL,
+     .help = N_("validate the XML against the schema")
+    },
     {.name = NULL}
 };
 
@@ -7239,14 +7271,21 @@ cmdDefine(vshControl *ctl, const vshCmd *cmd)
     const char *from = NULL;
     bool ret = true;
     char *buffer;
+    unsigned int flags = 0;
 
     if (vshCommandOptStringReq(ctl, cmd, "file", &from) < 0)
         return false;
 
+    if (vshCommandOptBool(cmd, "validate"))
+        flags |= VIR_DOMAIN_DEFINE_VALIDATE;
+
     if (virFileReadAll(from, VSH_MAX_XML_FILE, &buffer) < 0)
         return false;
 
-    dom = virDomainDefineXML(ctl->conn, buffer);
+    if (flags)
+        dom = virDomainDefineXMLFlags(ctl->conn, buffer, flags);
+    else
+        dom = virDomainDefineXML(ctl->conn, buffer);
     VIR_FREE(buffer);
 
     if (dom != NULL) {
@@ -7537,11 +7576,11 @@ static const vshCmdOptDef opts_metadata[] = {
      .help = N_("use an editor to change the metadata")
     },
     {.name = "key",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("key to be used as a namespace identifier"),
     },
     {.name = "set",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("new metadata to set"),
     },
     {.name = "remove",
@@ -8326,12 +8365,12 @@ static const vshCmdOptDef opts_numatune[] = {
      .help = N_("domain name, id or uuid")
     },
     {.name = "mode",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("NUMA mode, one of strict, preferred and interleave \n"
                 "or a number from the virDomainNumatuneMemMode enum")
     },
     {.name = "nodeset",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("NUMA node selections to set")
     },
     {.name = "config",
@@ -8602,11 +8641,11 @@ static const vshCmdInfo info_qemu_monitor_event[] = {
 
 static const vshCmdOptDef opts_qemu_monitor_event[] = {
     {.name = "domain",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("filter by domain name, id or uuid")
     },
     {.name = "event",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("filter by event name")
     },
     {.name = "pretty",
@@ -9416,19 +9455,19 @@ static const vshCmdOptDef opts_migrate[] = {
      .help = N_("abort on soft errors during migration")
     },
     {.name = "migrateuri",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("migration URI, usually can be omitted")
     },
     {.name = "graphicsuri",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("graphics URI to be used for seamless graphics migration")
     },
     {.name = "listen-address",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("listen address that destination should bind to for incoming migration")
     },
     {.name = "dname",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("rename to new name during migration (if supported)")
     },
     {.name = "timeout",
@@ -9914,7 +9953,7 @@ static const vshCmdOptDef opts_domdisplay[] = {
      .help = N_("includes the password into the connection URI if available")
     },
     {.name = "type",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("select particular graphical display "
                 "(e.g. \"vnc\", \"spice\", \"rdp\")")
     },
@@ -11105,6 +11144,10 @@ static const vshCmdOptDef opts_edit[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("domain name, id or uuid")
     },
+    {.name = "skip-validate",
+     .type = VSH_OT_BOOL,
+     .help = N_("skip validation of the XML against the schema")
+    },
     {.name = NULL}
 };
 
@@ -11114,13 +11157,17 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
     bool ret = false;
     virDomainPtr dom = NULL;
     virDomainPtr dom_edited = NULL;
-    unsigned int flags = VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_INACTIVE;
+    unsigned int query_flags = VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_INACTIVE;
+    unsigned int define_flags = VIR_DOMAIN_DEFINE_VALIDATE;
 
     dom = vshCommandOptDomain(ctl, cmd, NULL);
     if (dom == NULL)
         goto cleanup;
 
-#define EDIT_GET_XML virDomainGetXMLDesc(dom, flags)
+    if (vshCommandOptBool(cmd, "skip-validate"))
+        define_flags &= ~VIR_DOMAIN_DEFINE_VALIDATE;
+
+#define EDIT_GET_XML virDomainGetXMLDesc(dom, query_flags)
 #define EDIT_NOT_CHANGED                                                \
     do {                                                                \
         vshPrint(ctl, _("Domain %s XML configuration not changed.\n"),  \
@@ -11129,7 +11176,7 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
         goto edit_cleanup;                                              \
     } while (0)
 #define EDIT_DEFINE \
-    (dom_edited = virDomainDefineXML(ctl->conn, doc_edited))
+    (dom_edited = vshDomainDefine(ctl->conn, doc_edited, define_flags))
 #include "virsh-edit.c"
 
     vshPrint(ctl, _("Domain %s XML configuration edited.\n"),
@@ -11761,11 +11808,11 @@ static const vshCmdInfo info_event[] = {
 
 static const vshCmdOptDef opts_event[] = {
     {.name = "domain",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("filter by domain name, id, or uuid")
     },
     {.name = "event",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("which event type to wait for")
     },
     {.name = "all",
@@ -11923,7 +11970,7 @@ static const vshCmdOptDef opts_change_media[] = {
      .help = N_("Fully-qualified path or target of disk device")
     },
     {.name = "source",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("source of the media")
     },
     {.name = "eject",
@@ -12074,7 +12121,7 @@ static const vshCmdOptDef opts_domfstrim[] = {
                 "free ranges smaller than this (Bytes)")
     },
     {.name = "mountpoint",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("which mount point to trim")
     },
     {.name = NULL}
