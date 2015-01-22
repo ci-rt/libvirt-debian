@@ -11,5 +11,3 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 debian/Debianize-virtlockd.patch
-lxc-Move-setting-ifname_guest_actual-to-virLXCSetupI.patch
-lxc-Don-t-crash-on-NULL-ifname_guest_actual.patch

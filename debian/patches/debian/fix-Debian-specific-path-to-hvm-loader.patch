@@ -25,63 +25,63 @@ index 2473532..39e6a02 100644
                                               1,
                                               machines)) == NULL) {
 diff --git a/tests/xencapsdata/xen-i686-pae-hvm.xml b/tests/xencapsdata/xen-i686-pae-hvm.xml
-index 872e5f6..7cde6df 100644
+index cf6a1de..435c141 100644
 --- a/tests/xencapsdata/xen-i686-pae-hvm.xml
 +++ b/tests/xencapsdata/xen-i686-pae-hvm.xml
-@@ -35,7 +35,7 @@
+@@ -34,7 +34,7 @@
      <arch name='i686'>
        <wordsize>32</wordsize>
        <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
 -      <loader>/usr/lib/xen/boot/hvmloader</loader>
 +      <loader>/usr/lib/xen-default/boot/hvmloader</loader>
        <machine>xenfv</machine>
-       <domain type='xen'>
-       </domain>
+       <domain type='xen'/>
+     </arch>
 diff --git a/tests/xencapsdata/xen-ia64-be-hvm.xml b/tests/xencapsdata/xen-ia64-be-hvm.xml
-index 222de1d..e56e306 100644
+index 19d23e9..5d60dc2 100644
 --- a/tests/xencapsdata/xen-ia64-be-hvm.xml
 +++ b/tests/xencapsdata/xen-ia64-be-hvm.xml
-@@ -32,7 +32,7 @@
+@@ -31,7 +31,7 @@
      <arch name='ia64'>
        <wordsize>64</wordsize>
        <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
 -      <loader>/usr/lib/xen/boot/hvmloader</loader>
 +      <loader>/usr/lib/xen-default/boot/hvmloader</loader>
        <machine>xenfv</machine>
-       <domain type='xen'>
-       </domain>
+       <domain type='xen'/>
+     </arch>
 diff --git a/tests/xencapsdata/xen-ia64-hvm.xml b/tests/xencapsdata/xen-ia64-hvm.xml
-index 33c4946..25617fc 100644
+index 6e22372..b6f788e 100644
 --- a/tests/xencapsdata/xen-ia64-hvm.xml
 +++ b/tests/xencapsdata/xen-ia64-hvm.xml
-@@ -29,7 +29,7 @@
+@@ -28,7 +28,7 @@
      <arch name='ia64'>
        <wordsize>64</wordsize>
        <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
 -      <loader>/usr/lib/xen/boot/hvmloader</loader>
 +      <loader>/usr/lib/xen-default/boot/hvmloader</loader>
        <machine>xenfv</machine>
-       <domain type='xen'>
-       </domain>
+       <domain type='xen'/>
+     </arch>
 diff --git a/tests/xencapsdata/xen-x86_64-hvm.xml b/tests/xencapsdata/xen-x86_64-hvm.xml
-index 8de8cf4..493d1ea 100644
+index 7458f0b..6371e86 100644
 --- a/tests/xencapsdata/xen-x86_64-hvm.xml
 +++ b/tests/xencapsdata/xen-x86_64-hvm.xml
-@@ -32,7 +32,7 @@
+@@ -31,7 +31,7 @@
      <arch name='i686'>
        <wordsize>32</wordsize>
        <emulator>/usr/lib64/xen/bin/qemu-dm</emulator>
 -      <loader>/usr/lib/xen/boot/hvmloader</loader>
 +      <loader>/usr/lib/xen-default/boot/hvmloader</loader>
        <machine>xenfv</machine>
-       <domain type='xen'>
-       </domain>
-@@ -50,7 +50,7 @@
+       <domain type='xen'/>
+     </arch>
+@@ -48,7 +48,7 @@
      <arch name='x86_64'>
        <wordsize>64</wordsize>
        <emulator>/usr/lib64/xen/bin/qemu-dm</emulator>
 -      <loader>/usr/lib/xen/boot/hvmloader</loader>
 +      <loader>/usr/lib/xen-default/boot/hvmloader</loader>
        <machine>xenfv</machine>
-       <domain type='xen'>
-       </domain>
+       <domain type='xen'/>
+     </arch>
