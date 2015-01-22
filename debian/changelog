@@ -1,3 +1,13 @@
+libvirt (1.2.11-1) experimental; urgency=medium
+
+  * [1377d56] lxc: Fix crash when using interface type 'direct'
+    (Closes: #769600) Thanks to Bastian Blank for the patch
+  * [88f9426] Adjust gbp.conf for experimental
+  * [0b196d9] New upstream version 1.2.11
+  * [113b58b] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 22 Jan 2015 10:29:41 +0100
+
 libvirt (1.2.11~rc1-1) experimental; urgency=medium
 
   * [8c5ba09] Rediff patches.
