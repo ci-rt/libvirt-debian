@@ -8,7 +8,7 @@ so it applies to interfaces of type 'direct' too.
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/src/lxc/lxc_process.c b/src/lxc/lxc_process.c
-index 632fc17..d09a890 100644
+index 1c0d4e5..c3818a5 100644
 --- a/src/lxc/lxc_process.c
 +++ b/src/lxc/lxc_process.c
 @@ -260,8 +260,6 @@ char *virLXCProcessSetupInterfaceBridged(virConnectPtr conn,
@@ -20,7 +20,7 @@ index 632fc17..d09a890 100644
  
      if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
          if (virNetDevOpenvswitchAddPort(brname, parentVeth, &net->mac,
-@@ -430,6 +428,9 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
+@@ -432,6 +430,9 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
  
          (*veths)[(*nveths)-1] = veth;
  
