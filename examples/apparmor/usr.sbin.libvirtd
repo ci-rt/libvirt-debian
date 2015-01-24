@@ -13,6 +13,7 @@
   capability sys_admin,
   capability sys_module,
   capability sys_ptrace,
+  capability sys_pacct,
   capability sys_nice,
   capability sys_chroot,
   capability setuid,
@@ -24,6 +25,7 @@
   capability mknod,
   capability fsetid,
   capability audit_write,
+  capability ipc_lock,
 
   # Needed for vfio
   capability sys_resource,
@@ -33,6 +35,7 @@
   network inet6 stream,
   network inet6 dgram,
   network packet dgram,
+  network packet raw,
 
   # Very lenient profile for libvirtd since we want to first focus on confining
   # the guests. Guests will have a very restricted profile.
@@ -45,6 +48,7 @@
   /usr/sbin/* PUx,
   /lib/udev/scsi_id PUx,
   /usr/{lib,lib64}/xen-common/bin/xen-toolstack PUx,
+  /usr/{lib,lib64}/xen/bin/* Ux,
 
   # force the use of virt-aa-helper
   audit deny /sbin/apparmor_parser rwxl,
@@ -54,6 +58,8 @@
   audit deny /sys/kernel/security/apparmor/.* rwxl,
   /sys/kernel/security/apparmor/profiles r,
   /usr/{lib,lib64}/libvirt/* PUxr,
+  /usr/{lib,lib64}/libvirt/libvirt_parthelper ix,
+  /usr/{lib,lib64}/libvirt/libvirt_iohelper ix,
   /etc/libvirt/hooks/** rmix,
   /etc/xen/scripts/** rmix,
 

@@ -184,6 +184,7 @@
     <function name="VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED" link="libvirt-libvirt-domain.html#VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED"/>
     <function name="VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST" link="libvirt-libvirt-domain.html#VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE"/>
+    <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER"/>
@@ -325,6 +326,7 @@
     <function name="VIR_DOMAIN_CRASHED_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_CRASHED_LAST"/>
     <function name="VIR_DOMAIN_CRASHED_PANICKED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_CRASHED_PANICKED"/>
     <function name="VIR_DOMAIN_CRASHED_UNKNOWN" link="libvirt-libvirt-domain.html#VIR_DOMAIN_CRASHED_UNKNOWN"/>
+    <function name="VIR_DOMAIN_DEFINE_VALIDATE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_DEFINE_VALIDATE"/>
     <function name="VIR_DOMAIN_DESTROY_DEFAULT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_DESTROY_DEFAULT"/>
     <function name="VIR_DOMAIN_DESTROY_GRACEFUL" link="libvirt-libvirt-domain.html#VIR_DOMAIN_DESTROY_GRACEFUL"/>
     <function name="VIR_DOMAIN_DEVICE_MODIFY_CONFIG" link="libvirt-libvirt-domain.html#VIR_DOMAIN_DEVICE_MODIFY_CONFIG"/>
@@ -631,6 +633,7 @@
     <function name="VIR_DOMAIN_START_BYPASS_CACHE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_START_BYPASS_CACHE"/>
     <function name="VIR_DOMAIN_START_FORCE_BOOT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_START_FORCE_BOOT"/>
     <function name="VIR_DOMAIN_START_PAUSED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_START_PAUSED"/>
+    <function name="VIR_DOMAIN_START_VALIDATE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_START_VALIDATE"/>
     <function name="VIR_DOMAIN_STATS_BALLOON" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_BALLOON"/>
     <function name="VIR_DOMAIN_STATS_BLOCK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_BLOCK"/>
     <function name="VIR_DOMAIN_STATS_CPU_TOTAL" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_CPU_TOTAL"/>
@@ -745,6 +748,7 @@
     <function name="VIR_ERR_XEN_CALL" link="libvirt-virterror.html#VIR_ERR_XEN_CALL"/>
     <function name="VIR_ERR_XML_DETAIL" link="libvirt-virterror.html#VIR_ERR_XML_DETAIL"/>
     <function name="VIR_ERR_XML_ERROR" link="libvirt-virterror.html#VIR_ERR_XML_ERROR"/>
+    <function name="VIR_ERR_XML_INVALID_SCHEMA" link="libvirt-virterror.html#VIR_ERR_XML_INVALID_SCHEMA"/>
     <function name="VIR_EVENT_HANDLE_ERROR" link="libvirt-libvirt-event.html#VIR_EVENT_HANDLE_ERROR"/>
     <function name="VIR_EVENT_HANDLE_HANGUP" link="libvirt-libvirt-event.html#VIR_EVENT_HANDLE_HANGUP"/>
     <function name="VIR_EVENT_HANDLE_READABLE" link="libvirt-libvirt-event.html#VIR_EVENT_HANDLE_READABLE"/>
@@ -990,6 +994,7 @@
     <function name="virDomainCoreDumpFormat" link="libvirt-libvirt-domain.html#virDomainCoreDumpFormat"/>
     <function name="virDomainCrashedReason" link="libvirt-libvirt-domain.html#virDomainCrashedReason"/>
     <function name="virDomainCreateFlags" link="libvirt-libvirt-domain.html#virDomainCreateFlags"/>
+    <function name="virDomainDefineFlags" link="libvirt-libvirt-domain.html#virDomainDefineFlags"/>
     <function name="virDomainDestroyFlagsValues" link="libvirt-libvirt-domain.html#virDomainDestroyFlagsValues"/>
     <function name="virDomainDeviceModifyFlags" link="libvirt-libvirt-domain.html#virDomainDeviceModifyFlags"/>
     <function name="virDomainDiskErrorCode" link="libvirt-libvirt-domain.html#virDomainDiskErrorCode"/>
@@ -1271,6 +1276,7 @@
     <function name="virDomainCreateXML ()" link="libvirt-libvirt-domain.html#virDomainCreateXML"/>
     <function name="virDomainCreateXMLWithFiles ()" link="libvirt-libvirt-domain.html#virDomainCreateXMLWithFiles"/>
     <function name="virDomainDefineXML ()" link="libvirt-libvirt-domain.html#virDomainDefineXML"/>
+    <function name="virDomainDefineXMLFlags ()" link="libvirt-libvirt-domain.html#virDomainDefineXMLFlags"/>
     <function name="virDomainDestroy ()" link="libvirt-libvirt-domain.html#virDomainDestroy"/>
     <function name="virDomainDestroyFlags ()" link="libvirt-libvirt-domain.html#virDomainDestroyFlags"/>
     <function name="virDomainDetachDevice ()" link="libvirt-libvirt-domain.html#virDomainDetachDevice"/>
