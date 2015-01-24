@@ -1158,7 +1158,8 @@ qemuDomainAssignARMVirtioMMIOAddresses(virDomainDefPtr def,
     if (((def->os.arch == VIR_ARCH_ARMV7L) ||
         (def->os.arch == VIR_ARCH_AARCH64)) &&
         (STRPREFIX(def->os.machine, "vexpress-") ||
-            STREQ(def->os.machine, "virt")) &&
+            STREQ(def->os.machine, "virt") ||
+            STRPREFIX(def->os.machine, "virt-")) &&
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_MMIO)) {
         qemuDomainPrimeVirtioDeviceAddresses(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO);
@@ -1458,102 +1459,6 @@ qemuDomainPCIBusFullyReserved(virDomainPCIAddressBusPtr bus)
     return true;
 }
 
-int
-qemuDomainAssignPCIAddresses(virDomainDefPtr def,
-                             virQEMUCapsPtr qemuCaps,
-                             virDomainObjPtr obj)
-{
-    int ret = -1;
-    virDomainPCIAddressSetPtr addrs = NULL;
-    qemuDomainObjPrivatePtr priv = NULL;
-
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
-        int max_idx = -1;
-        int nbuses = 0;
-        size_t i;
-        int rv;
-        virDomainPCIConnectFlags flags = VIR_PCI_CONNECT_TYPE_PCI;
-
-        for (i = 0; i < def->ncontrollers; i++) {
-            if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) {
-                if ((int) def->controllers[i]->idx > max_idx)
-                    max_idx = def->controllers[i]->idx;
-            }
-        }
-
-        nbuses = max_idx + 1;
-
-        if (nbuses > 0 &&
-            virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PCI_BRIDGE)) {
-            virDomainDeviceInfo info;
-
-            /* 1st pass to figure out how many PCI bridges we need */
-            if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, true)))
-                goto cleanup;
-            if (qemuAssignDevicePCISlots(def, qemuCaps, addrs) < 0)
-                goto cleanup;
-
-            for (i = 0; i < addrs->nbuses; i++) {
-                if (!qemuDomainPCIBusFullyReserved(&addrs->buses[i])) {
-
-                    /* Reserve 1 extra slot for a (potential) bridge */
-                    if (virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
-                        goto cleanup;
-                }
-            }
-
-            for (i = 1; i < addrs->nbuses; i++) {
-                virDomainPCIAddressBusPtr bus = &addrs->buses[i];
-
-                if ((rv = virDomainDefMaybeAddController(
-                         def, VIR_DOMAIN_CONTROLLER_TYPE_PCI,
-                         i, bus->model)) < 0)
-                    goto cleanup;
-                /* If we added a new bridge, we will need one more address */
-                if (rv == 0 &&
-                    virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
-                    goto cleanup;
-            }
-            nbuses = addrs->nbuses;
-            virDomainPCIAddressSetFree(addrs);
-            addrs = NULL;
-
-        } else if (max_idx > 0) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("PCI bridges are not supported "
-                             "by this QEMU binary"));
-            goto cleanup;
-        }
-
-        if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, false)))
-            goto cleanup;
-
-        if (qemuDomainSupportsPCI(def)) {
-            if (qemuAssignDevicePCISlots(def, qemuCaps, addrs) < 0)
-                goto cleanup;
-        }
-    }
-
-    if (obj && obj->privateData) {
-        priv = obj->privateData;
-        if (addrs) {
-            /* if this is the live domain object, we persist the PCI addresses*/
-            virDomainPCIAddressSetFree(priv->pciaddrs);
-            priv->persistentAddrs = 1;
-            priv->pciaddrs = addrs;
-            addrs = NULL;
-        } else {
-            priv->persistentAddrs = 0;
-        }
-    }
-
-    ret = 0;
-
- cleanup:
-    virDomainPCIAddressSetFree(addrs);
-
-    return ret;
-}
 
 int qemuDomainAssignAddresses(virDomainDefPtr def,
                               virQEMUCapsPtr qemuCaps,
@@ -1970,6 +1875,156 @@ qemuDomainValidateDevicePCISlotsQ35(virDomainDefPtr def,
     return ret;
 }
 
+static int
+qemuValidateDevicePCISlotsChipsets(virDomainDefPtr def,
+                                   virQEMUCapsPtr qemuCaps,
+                                   virDomainPCIAddressSetPtr addrs)
+{
+    if ((STRPREFIX(def->os.machine, "pc-0.") ||
+        STRPREFIX(def->os.machine, "pc-1.") ||
+        STRPREFIX(def->os.machine, "pc-i440") ||
+        STREQ(def->os.machine, "pc") ||
+        STRPREFIX(def->os.machine, "rhel")) &&
+        qemuValidateDevicePCISlotsPIIX3(def, qemuCaps, addrs) < 0) {
+        return -1;
+    }
+
+    if (qemuDomainMachineIsQ35(def) &&
+        qemuDomainValidateDevicePCISlotsQ35(def, qemuCaps, addrs) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+qemuDomainAssignPCIAddresses(virDomainDefPtr def,
+                             virQEMUCapsPtr qemuCaps,
+                             virDomainObjPtr obj)
+{
+    int ret = -1;
+    virDomainPCIAddressSetPtr addrs = NULL;
+    qemuDomainObjPrivatePtr priv = NULL;
+
+    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
+        int max_idx = -1;
+        int nbuses = 0;
+        size_t i;
+        int rv;
+        bool buses_reserved = true;
+
+        virDomainPCIConnectFlags flags = VIR_PCI_CONNECT_TYPE_PCI;
+
+        for (i = 0; i < def->ncontrollers; i++) {
+            if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) {
+                if ((int) def->controllers[i]->idx > max_idx)
+                    max_idx = def->controllers[i]->idx;
+            }
+        }
+
+        nbuses = max_idx + 1;
+
+        if (nbuses > 0 &&
+            virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PCI_BRIDGE)) {
+            virDomainDeviceInfo info;
+
+            /* 1st pass to figure out how many PCI bridges we need */
+            if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, true)))
+                goto cleanup;
+
+            if (qemuValidateDevicePCISlotsChipsets(def, qemuCaps, addrs) < 0)
+                goto cleanup;
+
+            for (i = 0; i < addrs->nbuses; i++) {
+                if (!qemuDomainPCIBusFullyReserved(&addrs->buses[i]))
+                    buses_reserved = false;
+            }
+
+            /* Reserve 1 extra slot for a (potential) bridge only if buses
+             * are not fully reserved yet
+             */
+            if (!buses_reserved &&
+                virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
+                goto cleanup;
+
+            if (qemuAssignDevicePCISlots(def, addrs) < 0)
+                goto cleanup;
+
+            for (i = 1; i < addrs->nbuses; i++) {
+                virDomainPCIAddressBusPtr bus = &addrs->buses[i];
+
+                if ((rv = virDomainDefMaybeAddController(
+                         def, VIR_DOMAIN_CONTROLLER_TYPE_PCI,
+                         i, bus->model)) < 0)
+                    goto cleanup;
+                /* If we added a new bridge, we will need one more address */
+                if (rv > 0 &&
+                    virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
+                    goto cleanup;
+            }
+            nbuses = addrs->nbuses;
+            virDomainPCIAddressSetFree(addrs);
+            addrs = NULL;
+
+        } else if (max_idx > 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("PCI bridges are not supported "
+                             "by this QEMU binary"));
+            goto cleanup;
+        }
+
+        if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, false)))
+            goto cleanup;
+
+        if (qemuDomainSupportsPCI(def)) {
+            if (qemuValidateDevicePCISlotsChipsets(def, qemuCaps, addrs) < 0)
+                goto cleanup;
+
+            if (qemuAssignDevicePCISlots(def, addrs) < 0)
+                goto cleanup;
+
+            for (i = 0; i < def->ncontrollers; i++) {
+                /* check if every PCI bridge controller's ID is greater than
+                 * the bus it is placed onto
+                 */
+                virDomainControllerDefPtr cont = def->controllers[i];
+                int idx = cont->idx;
+                int bus = cont->info.addr.pci.bus;
+                if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI &&
+                    cont->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE &&
+                    idx <= bus) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   _("failed to create PCI bridge "
+                                     "on bus %d: too many devices with fixed "
+                                     "addresses"),
+                                   bus);
+                    goto cleanup;
+                }
+            }
+        }
+    }
+
+    if (obj && obj->privateData) {
+        priv = obj->privateData;
+        if (addrs) {
+            /* if this is the live domain object, we persist the PCI addresses*/
+            virDomainPCIAddressSetFree(priv->pciaddrs);
+            priv->persistentAddrs = 1;
+            priv->pciaddrs = addrs;
+            addrs = NULL;
+        } else {
+            priv->persistentAddrs = 0;
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    virDomainPCIAddressSetFree(addrs);
+
+    return ret;
+}
+
 
 /*
  * This assigns static PCI slots to all configured devices.
@@ -1988,6 +2043,9 @@ qemuDomainValidateDevicePCISlotsQ35(virDomainDefPtr def,
  *  - PIIX3 ISA bridge, IDE controller, something else unknown, USB controller (slot 1)
  *  - Video (slot 2)
  *
+ *  - These integrated devices were already added by
+ *    qemuValidateDevicePCISlotsChipsets invoked right before this function
+ *
  * Incrementally assign slots from 3 onwards:
  *
  *  - Net
@@ -2005,26 +2063,11 @@ qemuDomainValidateDevicePCISlotsQ35(virDomainDefPtr def,
  */
 int
 qemuAssignDevicePCISlots(virDomainDefPtr def,
-                         virQEMUCapsPtr qemuCaps,
                          virDomainPCIAddressSetPtr addrs)
 {
     size_t i, j;
     virDomainPCIConnectFlags flags;
     virDevicePCIAddress tmp_addr;
-
-    if ((STRPREFIX(def->os.machine, "pc-0.") ||
-        STRPREFIX(def->os.machine, "pc-1.") ||
-        STRPREFIX(def->os.machine, "pc-i440") ||
-        STREQ(def->os.machine, "pc") ||
-        STRPREFIX(def->os.machine, "rhel")) &&
-        qemuValidateDevicePCISlotsPIIX3(def, qemuCaps, addrs) < 0) {
-        goto error;
-    }
-
-    if (qemuDomainMachineIsQ35(def) &&
-        qemuDomainValidateDevicePCISlotsQ35(def, qemuCaps, addrs) < 0) {
-        goto error;
-    }
 
     /* PCI controllers */
     for (i = 0; i < def->ncontrollers; i++) {
@@ -4576,7 +4619,8 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
     case VIR_DOMAIN_NET_TYPE_SERVER:
        virBufferAsprintf(&buf, "socket%clisten=%s:%d",
                          type_sep,
-                         net->data.socket.address,
+                         net->data.socket.address ? net->data.socket.address
+                                                  : "",
                          net->data.socket.port);
        type_sep = ',';
        break;
@@ -6636,7 +6680,7 @@ qemuBuildSmpArgStr(const virDomainDef *def,
 
 static int
 qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
-                    const virDomainDef *def,
+                    virDomainDefPtr def,
                     virCommandPtr cmd,
                     virQEMUCapsPtr qemuCaps,
                     virBitmapPtr nodeset)
@@ -10067,13 +10111,18 @@ qemuBuildConsoleChrDeviceStr(char **deviceStr,
         break;
 
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL:
+        break;
+
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_NONE:
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN:
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML:
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LXC:
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_OPENVZ:
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LAST:
-        break;
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unsupported console target type %s"),
+                       NULLSTR(virDomainChrConsoleTargetTypeToString(chr->targetType)));
+        goto cleanup;
     }
 
     ret = 0;

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-01-21 11:25+0800\n"
+"POT-Creation-Date: 2015-01-24 10:25+0800\n"
 "PO-Revision-Date: 2014-10-29 03:16+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Telugu (http://www.transifex.com/projects/p/libvirt/language/"
@@ -752,7 +752,7 @@ msgstr "సంకేతం ద్వారా ఆటంకపరచబడెన�
 msgid "Parameter string not correctly encoded"
 msgstr "పారామితి స్ట్రింగ్ సరిగా ఎన్కోడ్ అవలేదు"
 
-#: gnulib/lib/gai_strerror.c:87 src/esx/esx_vi.c:4584
+#: gnulib/lib/gai_strerror.c:87 src/esx/esx_vi.c:4583
 #: src/hyperv/hyperv_wmi.c:318 src/rpc/virnetclientprogram.c:186
 #: src/rpc/virnetclientstream.c:199
 msgid "Unknown error"
@@ -934,7 +934,7 @@ msgid "bhyve state driver is not active"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:255 src/lxc/lxc_driver.c:5386
-#: src/libxl/libxl_driver.c:544 src/qemu/qemu_command.c:8054
+#: src/libxl/libxl_driver.c:544 src/qemu/qemu_command.c:8098
 #: src/qemu/qemu_driver.c:1252 src/xen/xen_driver.c:675
 msgid "Host SMBIOS information is not available"
 msgstr "అతిధేయ SMBIOS సమాచారం అందుబాటులో లేదు"
@@ -2500,7 +2500,7 @@ msgstr "డొమైన్ క్రియాశీలంగా లేదు"
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "ఒంటరి <interface> నందు బహుళ <filterref>s యొక్క చెల్లని విశదీకరణ"
 
-#: src/conf/domain_conf.c:7564 src/qemu/qemu_command.c:10834
+#: src/conf/domain_conf.c:7564 src/qemu/qemu_command.c:10883
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "mac చిరునామాను పార్శ్ చేయలేక పోయింది '%s'"
@@ -2758,7 +2758,7 @@ msgstr "తెలియని అక్షర పరికరం రకం: %s"
 msgid "spicevmc device type only supports virtio"
 msgstr "spicevmc పరికరం రకం virtio మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/conf/domain_conf.c:8658 src/qemu/qemu_command.c:9981
+#: src/conf/domain_conf.c:8658 src/qemu/qemu_command.c:10025
 msgid "usb-serial requires address of usb type"
 msgstr "usb రకం యొక్క usb-serial ప్రశ్నల చిరునామా"
 
@@ -2960,7 +2960,7 @@ msgstr "vnc పోర్టు %sను పార్శ్ చేయలేదు
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "vnc WebSocket పోర్ట్ %s పార్స్ చేయలేదు"
 
-#: src/conf/domain_conf.c:9484 src/qemu/qemu_command.c:11639
+#: src/conf/domain_conf.c:9484 src/qemu/qemu_command.c:11688
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "తెలియని vnc ప్రదర్శన భాగస్వామ్య విధానం '%s'"
@@ -4492,7 +4492,7 @@ msgid "Unable to format guestfwd port"
 msgstr "guestfwd పోర్టును ఫార్మాట్ చేయలేదు"
 
 #: src/conf/domain_conf.c:18126 src/conf/domain_conf.c:18159
-#: src/qemu/qemu_command.c:8994
+#: src/qemu/qemu_command.c:9038
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "అనుకోని స్మార్టుకార్డ్ రకం %d"
@@ -7417,14 +7417,14 @@ msgstr ""
 #: src/esx/esx_vi.c:2455 src/esx/esx_vi.c:2492 src/esx/esx_vi.c:2597
 #: src/esx/esx_vi.c:2762 src/esx/esx_vi.c:2806 src/esx/esx_vi.c:2871
 #: src/esx/esx_vi.c:2926 src/esx/esx_vi.c:3059 src/esx/esx_vi.c:3126
-#: src/esx/esx_vi.c:3212 src/esx/esx_vi.c:3276 src/esx/esx_vi.c:3325
-#: src/esx/esx_vi.c:3431 src/esx/esx_vi.c:3486 src/esx/esx_vi.c:3583
-#: src/esx/esx_vi.c:3779 src/esx/esx_vi.c:3891 src/esx/esx_vi.c:3945
-#: src/esx/esx_vi.c:4002 src/esx/esx_vi.c:4053 src/esx/esx_vi.c:4097
-#: src/esx/esx_vi.c:4144 src/esx/esx_vi.c:4191 src/esx/esx_vi.c:4235
-#: src/esx/esx_vi.c:4286 src/esx/esx_vi.c:4348 src/esx/esx_vi.c:4463
-#: src/esx/esx_vi.c:4914 src/esx/esx_vi.c:5008 src/esx/esx_vi.c:5140
-#: src/esx/esx_vi.c:5220 src/esx/esx_vi_methods.c:42
+#: src/esx/esx_vi.c:3212 src/esx/esx_vi.c:3276 src/esx/esx_vi.c:3324
+#: src/esx/esx_vi.c:3430 src/esx/esx_vi.c:3485 src/esx/esx_vi.c:3582
+#: src/esx/esx_vi.c:3778 src/esx/esx_vi.c:3890 src/esx/esx_vi.c:3944
+#: src/esx/esx_vi.c:4001 src/esx/esx_vi.c:4052 src/esx/esx_vi.c:4096
+#: src/esx/esx_vi.c:4143 src/esx/esx_vi.c:4190 src/esx/esx_vi.c:4234
+#: src/esx/esx_vi.c:4285 src/esx/esx_vi.c:4347 src/esx/esx_vi.c:4462
+#: src/esx/esx_vi.c:4913 src/esx/esx_vi.c:5007 src/esx/esx_vi.c:5139
+#: src/esx/esx_vi.c:5219 src/esx/esx_vi_methods.c:42
 #: src/esx/esx_vi_methods.c:236 src/esx/esx_vi_types.c:46
 #: src/esx/esx_vi_types.c:105 src/esx/esx_vi_types.c:199
 #: src/esx/esx_vi_types.c:250 src/esx/esx_vi_types.c:292
@@ -8438,49 +8438,49 @@ msgstr "ఆబ్సొల్యూట్ పాత్ '%s' కలిపివ�
 msgid "Could not lookup datastore host mount"
 msgstr "దత్తాంశకేంద్ర అతిధేయ మౌంట్ లుకప్ చేయలేక పోయింది"
 
-#: src/esx/esx_vi.c:3523
+#: src/esx/esx_vi.c:3522
 msgid "Domain has no current snapshot"
 msgstr "డొమైన్ ప్రస్తుత స్నాప్‌షాట్ కలిగిలేదు"
 
-#: src/esx/esx_vi.c:3530
+#: src/esx/esx_vi.c:3529
 msgid "Could not lookup root snapshot list"
 msgstr "స్నాప్‌షాట్ జాబితాను చూడలేక పోయింది"
 
-#: src/esx/esx_vi.c:3613
+#: src/esx/esx_vi.c:3612
 #, c-format
 msgid "Datastore path '%s' doesn't reference a file"
 msgstr "డాటాస్టోర్ పాత్ '%s' ఫైలును పరామర్శించలేక పోతోంది"
 
-#: src/esx/esx_vi.c:3701 src/esx/esx_vi.c:3850
+#: src/esx/esx_vi.c:3700 src/esx/esx_vi.c:3849
 #, c-format
 msgid "Could not search in datastore '%s': %s"
 msgstr "దత్తాంశకేంద్రం '%s' నందు అన్వేషించలేక పోయింది: %s"
 
-#: src/esx/esx_vi.c:3720
+#: src/esx/esx_vi.c:3719
 #, c-format
 msgid "No storage volume with key or path '%s'"
 msgstr "కీ లేదా పాత్ '%s' తో నిల్వ వాల్యూమ్ లేదు"
 
-#: src/esx/esx_vi.c:3977
+#: src/esx/esx_vi.c:3976
 msgid "Could not retrieve the AutoStartDefaults object"
 msgstr "AutoStartDefaults ఆబ్జక్టు వెలికితీయలేక పోయింది"
 
-#: src/esx/esx_vi.c:4120
+#: src/esx/esx_vi.c:4119
 #, c-format
 msgid "Could not find physical NIC with name '%s'"
 msgstr "భౌతిక NIC పేరు '%s' తో కనుగొనలేక పోయింది"
 
-#: src/esx/esx_vi.c:4167
+#: src/esx/esx_vi.c:4166
 #, c-format
 msgid "Could not find physical NIC with MAC address '%s'"
 msgstr "MAC చిరునామా '%s' తో భౌతిక NIC కనుగొనలేక పోయింది"
 
-#: src/esx/esx_vi.c:4261
+#: src/esx/esx_vi.c:4260
 #, c-format
 msgid "Could not find HostVirtualSwitch with name '%s'"
 msgstr "HostVirtualSwitch ను పేరు '%s' తో కనుగొనలేక పోయింది"
 
-#: src/esx/esx_vi.c:4381 src/esx/esx_vi.c:4415
+#: src/esx/esx_vi.c:4380 src/esx/esx_vi.c:4414
 #, c-format
 msgid ""
 "Pending question blocks virtual machine execution, question is '%s', no "
@@ -8488,7 +8488,7 @@ msgid ""
 msgstr ""
 "వాయిదాలో వున్న ప్రశ్న వర్చ్యువల్ మిషన్ నిర్వర్తనంను నిరోధిస్తోంది, ప్రశ్న '%s', సాధ్యమైన సమాధానాలు లేవు"
 
-#: src/esx/esx_vi.c:4389
+#: src/esx/esx_vi.c:4388
 #, c-format
 msgid ""
 "Pending question blocks virtual machine execution, question is '%s', "
@@ -8497,7 +8497,7 @@ msgstr ""
 "వాయిదాలో వున్న ప్రశ్న వర్చ్యువల్ మిషన్ నిర్వర్తనంను నిరోధిస్తోంది, ప్రశ్న '%s', సాధ్యమగు సమాధానాలు %s, "
 "అయితే అప్రమేయ సమాధానం తెలుపలేదు"
 
-#: src/esx/esx_vi.c:4410
+#: src/esx/esx_vi.c:4409
 #, c-format
 msgid ""
 "Pending question blocks virtual machine execution, question is '%s', "
@@ -8505,54 +8505,54 @@ msgid ""
 msgstr ""
 "వాయిదాలో వున్న ప్రశ్న వర్చ్యువల్ మిషన్ నిర్వర్తనంను నిరోధిస్తోంది, ప్రశ్న '%s', సాధ్యమగు సమాధానాలు %s"
 
-#: src/esx/esx_vi.c:4521
+#: src/esx/esx_vi.c:4520
 msgid ""
 "Cancelable task is blocked by an unanswered question but cancellation failed"
 msgstr "కర్తవ్య రద్దుచేయుట సమాధానంలేని ప్రశ్న చేత నిరోధించబడెను అయితే రద్దుచేయుట విఫలమైంది"
 
-#: src/esx/esx_vi.c:4526
+#: src/esx/esx_vi.c:4525
 msgid "Non-cancelable task is blocked by an unanswered question"
 msgstr "రద్దు-చేయలేని కర్తవ్యం సమాధానంలేని ప్రశ్న చేత నిరోధించబడెను"
 
-#: src/esx/esx_vi.c:4646
+#: src/esx/esx_vi.c:4645
 #, c-format
 msgid "HostCpuIdInfo register '%s' has an unexpected length"
 msgstr "HostCpuIdInfo రిజిస్టర్  '%s' అనుకోని పొడవు కలిగివుంది"
 
-#: src/esx/esx_vi.c:4660
+#: src/esx/esx_vi.c:4659
 #, c-format
 msgid "HostCpuIdInfo register '%s' has an unexpected format"
 msgstr "HostCpuIdInfo రిజిస్టర్  '%s' అనుకోని ఫార్మాట్ కలిగివుంది"
 
-#: src/esx/esx_vi.c:4743
+#: src/esx/esx_vi.c:4742
 #, fuzzy
 msgid "Unexpected product line"
 msgstr "అనుకోని వుత్పత్తి వర్షన్"
 
-#: src/esx/esx_vi.c:4761
+#: src/esx/esx_vi.c:4760
 msgid "Unable to obtain hostInternetScsiHba"
 msgstr "hostInternetScsiHba పొందలేక పోయింది"
 
-#: src/esx/esx_vi.c:4779
+#: src/esx/esx_vi.c:4778
 #, c-format
 msgid "Could not find storage pool with name: %s"
 msgstr "ఈ పేరుతో నిల్వ పూల్ కనుగొనలేక పోయింది: %s"
 
-#: src/esx/esx_vi.c:4970
+#: src/esx/esx_vi.c:4969
 msgid "Target not found"
 msgstr "లక్ష్యం కనబడలేదు"
 
-#: src/esx/esx_vi.c:5226
+#: src/esx/esx_vi.c:5225
 #, c-format
 msgid "Missing 'name' property in %s lookup"
 msgstr "%s లుకప్ నందు దొరకని 'పేరు' లక్షణం"
 
-#: src/esx/esx_vi.c:5260
+#: src/esx/esx_vi.c:5259
 #, c-format
 msgid "Could not find %s with name '%s'"
 msgstr "%s ను పేరు '%s' తో కనుగొనలేక పోయింది"
 
-#: src/esx/esx_vi.c:5263
+#: src/esx/esx_vi.c:5262
 #, c-format
 msgid "Could not find %s"
 msgstr "%s కనుగొనలేక పోయింది"
@@ -9981,7 +9981,7 @@ msgstr "లాక్‌స్పేస్ %s సృష్టించలేద�
 
 #: src/locking/lock_driver_sanlock.c:262 src/locking/lock_driver_sanlock.c:317
 #: src/locking/lock_driver_sanlock.c:671 src/storage/storage_backend.c:321
-#: src/util/vircgroup.c:3875 src/util/vircgroup.c:3887 src/util/virfile.c:2008
+#: src/util/vircgroup.c:3887 src/util/vircgroup.c:3899 src/util/virfile.c:2008
 #: src/util/virfile.c:2295
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
@@ -10226,7 +10226,7 @@ msgstr "మెమొరీ cgroup నియంత్రిక యొక్క �
 msgid "Resource partition '%s' must start with '/'"
 msgstr "వనరు విభజన '%s' తప్పక '/' తో ప్రారంభం కావాలి"
 
-#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3531
+#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3543
 #, c-format
 msgid "Cannot open %s"
 msgstr "%s తెరువలేదు"
@@ -10326,7 +10326,7 @@ msgstr ""
 msgid "failed to parse write_iops_device: '%s'"
 msgstr ""
 
-#: src/lxc/lxc_native.c:1010 src/qemu/qemu_command.c:11463
+#: src/lxc/lxc_native.c:1010 src/qemu/qemu_command.c:11512
 msgid "failed to generate uuid"
 msgstr "uuid జనియింపచేయుటలో విఫలమైంది"
 
@@ -11874,8 +11874,8 @@ msgstr "libxl_get_physinfo_info విఫలమైంది"
 msgid "libxl_get_numainfo failed"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3622 src/nodeinfo.c:1673 src/nodeinfo.c:1965
-#: src/nodeinfo.c:2038 src/nodeinfo.c:2085
+#: src/libxl/libxl_driver.c:3622 src/nodeinfo.c:1690 src/nodeinfo.c:1982
+#: src/nodeinfo.c:2055 src/nodeinfo.c:2102
 #, c-format
 msgid "start cell %d out of range (0-%d)"
 msgstr "ప్రారంభ అర %d విస్తృతి (0-%d) దాటివుంది"
@@ -11969,7 +11969,7 @@ msgstr "libxenlight అనునది UUID '%s' పార్స్ చేయు
 msgid "unknown chrdev type"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:618 src/qemu/qemu_command.c:5524
+#: src/libxl/libxl_conf.c:618 src/qemu/qemu_command.c:5568
 #, c-format
 msgid "unsupported chardev '%s'"
 msgstr "తోడ్పాటులేని chardev '%s'"
@@ -12829,7 +12829,7 @@ msgstr "గమ్యం కొరకు కెర్నల్ మెమొరీ
 msgid "no available memory line found"
 msgstr "అందుబాటులోని మెమొరీ వరుస కనబడలేదు"
 
-#: src/nodeinfo.c:980 src/nodeinfo.c:1429
+#: src/nodeinfo.c:980 src/nodeinfo.c:1446
 #, c-format
 msgid "failed to parse %s"
 msgstr "%s పార్స్ చేయుటకు విఫలమైంది"
@@ -12863,45 +12863,50 @@ msgstr "అతిధేయ cpu లెక్కించుట యీ నోడ�
 msgid "host cpu counting not implemented on this platform"
 msgstr "ఈ ప్లాట్‌ఫాం పైన అతిధేయ cpu లెక్క యింప్లిమెంట్ కాలేదు"
 
-#: src/nodeinfo.c:1278
+#: src/nodeinfo.c:1257
+#, fuzzy
+msgid "non-continuous host cpu numbers not implemented on this platform"
+msgstr "ఈ ప్లాట్‌ఫాం పైన అతిధేయ cpu లెక్క యింప్లిమెంట్ కాలేదు"
+
+#: src/nodeinfo.c:1295
 msgid "node cpumap not implemented on this platform"
 msgstr "నోడ్ cpumap యీ ప్లాట్‌ఫాం పైన యింప్లిమెంట్ చేయలేదు"
 
-#: src/nodeinfo.c:1307 src/util/virutil.c:1646
+#: src/nodeinfo.c:1324 src/util/virutil.c:1646
 #, c-format
 msgid "failed to set %s"
 msgstr "%s అమర్చుటకు విఫలమైంది"
 
-#: src/nodeinfo.c:1337
+#: src/nodeinfo.c:1354
 #, c-format
 msgid "Parameter '%s' is not supported by this kernel"
 msgstr "పారామితి '%s' యీ కెర్నల్‌చే తోడ్పాటునీయదు"
 
-#: src/nodeinfo.c:1384
+#: src/nodeinfo.c:1401
 msgid "node set memory parameters not implemented on this platform"
 msgstr "ఈ ప్లాట్‌ఫాం పైన నోడ్ సెట్ మెమొరీ పారామితులు యింప్లిమెంట్ కాలేదు"
 
-#: src/nodeinfo.c:1579
+#: src/nodeinfo.c:1596
 msgid "node get memory parameters not implemented on this platform"
 msgstr "ఈ ప్లాట్‌ఫాం పైన నోడ్ గెట్ మెమొరీ పారామితులు యింప్లిమెంట్ కాలేదు"
 
-#: src/nodeinfo.c:1682 src/nodeinfo.c:1726 src/nodeinfo.c:1738
+#: src/nodeinfo.c:1699 src/nodeinfo.c:1743 src/nodeinfo.c:1755
 msgid "Cannot determine free memory"
 msgstr "ఖాళీ మెమొరీ నిర్ణయించలేదు"
 
-#: src/nodeinfo.c:1704
+#: src/nodeinfo.c:1721
 msgid "sysctl failed for vm.stats.vm.v_page_count"
 msgstr ""
 
-#: src/nodeinfo.c:1714
+#: src/nodeinfo.c:1731
 msgid "sysctl failed for vm.stats.vm.v_free_count"
 msgstr ""
 
-#: src/nodeinfo.c:1778
+#: src/nodeinfo.c:1795
 msgid "node cpu info not implemented on this platform"
 msgstr ""
 
-#: src/nodeinfo.c:2059
+#: src/nodeinfo.c:2076
 msgid "no suitable info found"
 msgstr ""
 
@@ -14849,7 +14854,7 @@ msgstr "QEMU అనునది virtio scsi నియంత్రికకు �
 msgid "This QEMU doesn't support the LSI SAS1078 controller"
 msgstr "ఈ QEMU అనునది LSI SAS1078 నియంత్రికకు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:701 src/qemu/qemu_command.c:4234
+#: src/qemu/qemu_command.c:701 src/qemu/qemu_command.c:4277
 #, c-format
 msgid "Unsupported controller model: %s"
 msgstr "తోడ్పాటులేని నియంత్రిక రకం: %s"
@@ -14874,522 +14879,528 @@ msgstr "రీడైరెక్టెడ్ పరికరం కొరకు 
 msgid "Unable to determine device index for character device"
 msgstr "కారెక్టర్ పరికరం కొరకు పరికర విషయసూచి నిర్ణయించలేదు"
 
-#: src/qemu/qemu_command.c:1209
+#: src/qemu/qemu_command.c:1210
 #, c-format
 msgid "spapr-vio address %#llx already in use"
 msgstr "spapr-vio చిరునామా %#llx యిప్పటికే వుపయోగంలో వుంది"
 
-#: src/qemu/qemu_command.c:1416
+#: src/qemu/qemu_command.c:1417
 msgid "Bus 0 must be PCI for integrated PIIX3 USB or IDE controllers"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1523
-msgid "PCI bridges are not supported by this QEMU binary"
-msgstr "PCI బ్రిడ్జెస్ ఈ QEMU బైనరీచే తోడ్పాటునీయబడుటలేదు"
-
-#: src/qemu/qemu_command.c:1617
+#: src/qemu/qemu_command.c:1522
 #, c-format
 msgid "Inappropriate new pci controller index %zu not found in addrs"
 msgstr "చిరునామా నందు సరికాని కొత్త pci నియంత్రిక విషయసూచి %zu కనబడలేదు"
 
-#: src/qemu/qemu_command.c:1694
+#: src/qemu/qemu_command.c:1599
 msgid "Primary IDE controller must have PCI address 0:0:1.1"
 msgstr "ప్రాధమిక IDE నియంత్రణి తప్పక PCI చిరునామా 0:0:1.1 ను కలిగివుండాలి"
 
-#: src/qemu/qemu_command.c:1714
+#: src/qemu/qemu_command.c:1619
 msgid "PIIX3 USB controller must have PCI address 0:0:1.2"
 msgstr "PIIX3 USB నియంత్రిక తప్పక PCI చిరునామా 0:0:1.2 కలిగివుండాలి"
 
-#: src/qemu/qemu_command.c:1763
+#: src/qemu/qemu_command.c:1668
 msgid "PCI address 0:0:2.0 is in use, QEMU needs it for primary video"
 msgstr "PCI చిరునామా 0:0:2.0 వుపయోగంలో వుంది, QEMU కు అది ప్రాధమిక వీడియో కొరకు కావాలి"
 
-#: src/qemu/qemu_command.c:1779
+#: src/qemu/qemu_command.c:1684
 msgid "Primary video card must have PCI address 0:0:2.0"
 msgstr "ప్రాధమిక వీడియో కార్డు తప్పనిసరిగా PCI చిరునామా 0:0:2.0 కలిగివుండాలి"
 
-#: src/qemu/qemu_command.c:1849
+#: src/qemu/qemu_command.c:1754
 msgid "Primary SATA controller must have PCI address 0:0:1f.2"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1932
+#: src/qemu/qemu_command.c:1837
 msgid "PCI address 0:0:1.0 is in use, QEMU needs it for primary video"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1948
+#: src/qemu/qemu_command.c:1853
 msgid "Primary video card must have PCI address 0:0:1.0"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2205
+#: src/qemu/qemu_command.c:1971
+msgid "PCI bridges are not supported by this QEMU binary"
+msgstr "PCI బ్రిడ్జెస్ ఈ QEMU బైనరీచే తోడ్పాటునీయబడుటలేదు"
+
+#: src/qemu/qemu_command.c:1997
+#, c-format
+msgid ""
+"failed to create PCI bridge on bus %d: too many devices with fixed addresses"
+msgstr ""
+
+#: src/qemu/qemu_command.c:2248
 msgid "virtio only support device address type 'PCI'"
 msgstr "వర్టియో పరికర చిరునామా రకం 'PCI' మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:2270 src/qemu/qemu_command.c:4888
+#: src/qemu/qemu_command.c:2313 src/qemu/qemu_command.c:4932
 msgid "non-primary video device must be type of 'qxl'"
 msgstr "ప్రాధమికం-కాని వీడియో పరికరం తప్పక 'qxl' రకం కావాలి"
 
-#: src/qemu/qemu_command.c:2333
+#: src/qemu/qemu_command.c:2376
 #, c-format
 msgid ""
 "Device alias was not set for PCI controller with index %u required for "
 "device at address %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2344
+#: src/qemu/qemu_command.c:2387
 #, c-format
 msgid ""
 "Could not find PCI controller with index %u required for device at address %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2354
+#: src/qemu/qemu_command.c:2397
 msgid ""
 "Only PCI device addresses with function=0 are supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత function=0 తో చిరునామాలోవున్న PCI పరికరం మాత్రమే తోడ్పాటునీయబడును"
 
-#: src/qemu/qemu_command.c:2360
+#: src/qemu/qemu_command.c:2403
 msgid "'multifunction=on' is not supported with this QEMU binary"
 msgstr "'multifunction=on' ఈ QEMU బైనరీ చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:2379
+#: src/qemu/qemu_command.c:2422
 msgid "Multiple PCI buses are not supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత బహుళ PCI బస్‌లు తోడ్పాటునీయబడవు"
 
-#: src/qemu/qemu_command.c:2426
+#: src/qemu/qemu_command.c:2469
 msgid "rombar and romfile are supported only for PCI devices"
 msgstr "rombar మరియు romfile అనునది PCI పరికరాల కొరకు మాత్రమే తోడ్పాటునీయబడును"
 
-#: src/qemu/qemu_command.c:2431
+#: src/qemu/qemu_command.c:2474
 msgid "rombar and romfile not supported in this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత rombar మరియు romfile తోడ్పాటునీయబడవు"
 
-#: src/qemu/qemu_command.c:2470
+#: src/qemu/qemu_command.c:2513
 #, c-format
 msgid "driver serial '%s' contains unsafe characters"
 msgstr "డ్రైవర్ వరుససంఖ్య '%s' సురక్షితముకాని అక్షరములను కలిగివుంది"
 
-#: src/qemu/qemu_command.c:2505
+#: src/qemu/qemu_command.c:2548
 #, c-format
 msgid "%s no secret matches uuid '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2509
+#: src/qemu/qemu_command.c:2552
 #, c-format
 msgid "%s no secret matches usage value '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2520
+#: src/qemu/qemu_command.c:2563
 #, c-format
 msgid "could not get value of the secret for username '%s' using uuid '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2525
+#: src/qemu/qemu_command.c:2568
 #, c-format
 msgid ""
 "could not get value of the secret for username '%s' using usage value '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2585
+#: src/qemu/qemu_command.c:2628
 #, c-format
 msgid "Invalid transport/scheme '%s'"
 msgstr "చెల్లని బదిలీ/స్కీమ్ '%s'"
 
-#: src/qemu/qemu_command.c:2595
+#: src/qemu/qemu_command.c:2638
 #, c-format
 msgid "Invalid %s transport type '%s'"
 msgstr "చెల్లని %s బదిలీ రకం '%s'"
 
-#: src/qemu/qemu_command.c:2617
+#: src/qemu/qemu_command.c:2660
 #, c-format
 msgid "Invalid query parameter '%s'"
 msgstr "చెల్లని క్వరీ పారామితి '%s'"
 
-#: src/qemu/qemu_command.c:2700
+#: src/qemu/qemu_command.c:2743
 #, c-format
 msgid "invalid name '%s' for iSCSI disk"
 msgstr "చెల్లని పేరు '%s' iSCSI డిస్కు కొరకు"
 
-#: src/qemu/qemu_command.c:2741
+#: src/qemu/qemu_command.c:2784
 #, c-format
 msgid "cannot parse nbd filename '%s'"
 msgstr "nbd ఫైలుపేరు '%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:2786 src/storage/storage_backend_gluster.c:603
+#: src/qemu/qemu_command.c:2829 src/storage/storage_backend_gluster.c:603
 #, c-format
 msgid "failed to parse port number '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2847 src/qemu/qemu_command.c:2908
+#: src/qemu/qemu_command.c:2890 src/qemu/qemu_command.c:2951
 #, c-format
 msgid "protocol '%s' accepts only one host"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2872
+#: src/qemu/qemu_command.c:2915
 msgid "socket attribute required for unix transport"
 msgstr "సాకెట్ యాట్రిబ్యూట్ యునిక్స్ బదిలీకొరకు మాత్రమే అవసరం"
 
-#: src/qemu/qemu_command.c:2882
+#: src/qemu/qemu_command.c:2925
 #, c-format
 msgid "nbd does not support transport '%s'"
 msgstr "nbd బదిలీ '%s' కు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:2967
+#: src/qemu/qemu_command.c:3010
 msgid "missing disk source for 'sheepdog' protocol"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2982
+#: src/qemu/qemu_command.c:3025
 msgid "protocol 'sheepdog' accepts up to one host"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2991
+#: src/qemu/qemu_command.c:3034
 #, c-format
 msgid "':' not allowed in RBD source volume name '%s'"
 msgstr "':' అనునది RBD మూలపు వాల్యూమ్ పేరు '%s' నందు అనుమతించబడదు"
 
-#: src/qemu/qemu_command.c:3127 src/qemu/qemu_command.c:3234
-#: src/qemu/qemu_command.c:8792 src/uml/uml_conf.c:411
+#: src/qemu/qemu_command.c:3170 src/qemu/qemu_command.c:3277
+#: src/qemu/qemu_command.c:8836 src/uml/uml_conf.c:411
 #, c-format
 msgid "unsupported disk type '%s'"
 msgstr "మద్దతీయని డిస్కురకము '%s'"
 
-#: src/qemu/qemu_command.c:3135
+#: src/qemu/qemu_command.c:3178
 msgid "Only ide and scsi disk support wwn"
 msgstr "ide మరియు scsi డిస్కు మాత్రమే wwn తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:3143
+#: src/qemu/qemu_command.c:3186
 msgid "Only scsi disk supports vendor and product"
 msgstr "scsi డిస్కు మాత్రమే అమ్మకందారి మరియు వుత్పత్తి తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:3152
+#: src/qemu/qemu_command.c:3195
 #, c-format
 msgid "disk device='lun' is not supported for bus='%s'"
 msgstr "డిస్కు device='lun' అనునది bus='%s' కొరకు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3159
+#: src/qemu/qemu_command.c:3202
 #, c-format
 msgid "disk device='lun' is not supported for protocol='%s'"
 msgstr "డిస్కు device='lun' అనునది protocol='%s' కొరకు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3166
+#: src/qemu/qemu_command.c:3209
 msgid "disk device='lun' is only valid for block type disk source"
 msgstr "డిస్కు device='lun' అనునది నిరోధక రకం డిస్కు ములంకు మాత్రమే చెల్లును"
 
-#: src/qemu/qemu_command.c:3172
+#: src/qemu/qemu_command.c:3215
 msgid "Setting wwn is not supported for lun device"
 msgstr "wwn ను అమర్చుట lun పరికరం చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:3177
+#: src/qemu/qemu_command.c:3220
 msgid "Setting vendor or product is not supported for lun device"
 msgstr "lun పరికరం కొరకు అమ్మకందారి లేదా వుత్పత్తి అమర్చుట తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:3242
+#: src/qemu/qemu_command.c:3285
 msgid "unexpected address type for scsi disk"
 msgstr "scsi డిస్కు కొరకు మద్దతించని చిరునామా రకము"
 
-#: src/qemu/qemu_command.c:3251
+#: src/qemu/qemu_command.c:3294
 msgid "SCSI controller only supports 1 bus"
 msgstr "SCSI నియంత్రణి 1 బస్‌ను మాత్రమే మద్దతించును"
 
-#: src/qemu/qemu_command.c:3261
+#: src/qemu/qemu_command.c:3304
 msgid "unexpected address type for ide disk"
 msgstr "ide డిస్కు కొరకు అనుకోని చిరునామా రకము"
 
-#: src/qemu/qemu_command.c:3267 src/qemu/qemu_command.c:3283
+#: src/qemu/qemu_command.c:3310 src/qemu/qemu_command.c:3326
 #, c-format
 msgid "Only 1 %s controller is supported"
 msgstr "1 %s నియంత్రణి మాత్రమే మద్దతిస్తుంది"
 
-#: src/qemu/qemu_command.c:3277
+#: src/qemu/qemu_command.c:3320
 msgid "unexpected address type for fdc disk"
 msgstr "fdc డిస్కు కొరకు అనుకోని చిరునామా రకము"
 
-#: src/qemu/qemu_command.c:3289
+#: src/qemu/qemu_command.c:3332
 #, c-format
 msgid "Only 1 %s bus is supported"
 msgstr "1 %s బస్ మాత్రమే మద్దతిస్తుంది"
 
-#: src/qemu/qemu_command.c:3294
+#: src/qemu/qemu_command.c:3337
 msgid "target must be 0 for controller fdc"
 msgstr "నియంత్రిక fdc కొరకు లక్ష్యం అనునది 0 కావాలి"
 
-#: src/qemu/qemu_command.c:3328 src/qemu/qemu_command.c:8802
+#: src/qemu/qemu_command.c:3371 src/qemu/qemu_command.c:8846
 #, c-format
 msgid "unsupported disk driver type for '%s'"
 msgstr "'%s' కొరకు మద్దతించని డిస్కు డ్రైవర్ రకము"
 
-#: src/qemu/qemu_command.c:3335 src/qemu/qemu_command.c:8808
+#: src/qemu/qemu_command.c:3378 src/qemu/qemu_command.c:8852
 msgid "cannot create virtual FAT disks in read-write mode"
 msgstr "రీడ్-వ్రైట్ రీతినందు వర్చ్యువల్ FAT డిస్కులను సృష్టించలేము"
 
-#: src/qemu/qemu_command.c:3350
+#: src/qemu/qemu_command.c:3393
 msgid "tray status 'open' is invalid for block type volume"
 msgstr "నిరోధించు రకం వాల్యూమ్ కొరకు ట్రే స్థితి 'open' చెల్లనిది"
 
-#: src/qemu/qemu_command.c:3351 src/qemu/qemu_command.c:8761
+#: src/qemu/qemu_command.c:3394 src/qemu/qemu_command.c:8805
 msgid "tray status 'open' is invalid for block type disk"
 msgstr "నిరోధక రకం డిస్కు కొరకు ట్రే స్థితి 'open' అనునది చెల్లనిది"
 
-#: src/qemu/qemu_command.c:3406
+#: src/qemu/qemu_command.c:3449
 msgid "readonly ide disks are not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3411
+#: src/qemu/qemu_command.c:3454
 msgid "readonly sata disks are not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3419 src/xenconfig/xen_sxpr.c:1832
+#: src/qemu/qemu_command.c:3462 src/xenconfig/xen_sxpr.c:1832
 #: src/xenconfig/xen_xl.c:364 src/xenconfig/xen_xm.c:295
 msgid "transient disks not supported yet"
 msgstr "అస్థిర డిస్కులు యింకా తోడ్పాటునీయవు"
 
-#: src/qemu/qemu_command.c:3458
+#: src/qemu/qemu_command.c:3501
 msgid "disk cache mode 'directsync' is not supported by this QEMU"
 msgstr "డిస్కు క్యాచీ రీతి 'directsync' యింకా QEMU చేత తోడ్పాటునీయవు"
 
-#: src/qemu/qemu_command.c:3464
+#: src/qemu/qemu_command.c:3507
 msgid "disk cache mode 'unsafe' is not supported by this QEMU"
 msgstr "డిస్కు క్యాచీ రీతి 'unsafe' ఈ QEMU చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:3476
+#: src/qemu/qemu_command.c:3519
 msgid ""
 "native I/O needs either no disk cache or directsync cache mode, QEMU will "
 "fallback to aio=threads"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3493
+#: src/qemu/qemu_command.c:3536
 msgid "copy_on_read is not supported by this QEMU binary"
 msgstr "copy_on_read ఈ QEMU బైనరీ చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:3504
+#: src/qemu/qemu_command.c:3547
 msgid "discard is not supported by this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత డిస్కార్డ్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3540
+#: src/qemu/qemu_command.c:3583
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత డిస్కు aio రీతి తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3555 src/qemu/qemu_driver.c:16876
+#: src/qemu/qemu_command.c:3598 src/qemu/qemu_driver.c:16876
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీతో నిరోధక I/O త్రొట్లింగ్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3570
+#: src/qemu/qemu_command.c:3613
 #, fuzzy
 msgid ""
 "there are some block I/O throttling parameters that are not supported with "
 "this QEMU binary"
 msgstr "ఈ QEMU బైనరీతో నిరోధక I/O త్రొట్లింగ్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3589
+#: src/qemu/qemu_command.c:3632
 #, c-format
 msgid "block I/O throttle limit must be less than %llu using QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3679
+#: src/qemu/qemu_command.c:3722
 msgid "IOThreads not supported for this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3688
+#: src/qemu/qemu_command.c:3731
 msgid "IOThreads only available for virtio pci and virtio ccw disk"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3696
+#: src/qemu/qemu_command.c:3739
 #, c-format
 msgid "Disk iothread '%u' invalid only %u IOThreads"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3723
+#: src/qemu/qemu_command.c:3766
 msgid "disk device='lun' is not supported by this QEMU"
 msgstr "డిస్కు device='lun' అనునది QEMU చేత తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3736 src/qemu/qemu_command.c:3867
+#: src/qemu/qemu_command.c:3779 src/qemu/qemu_command.c:3910
 msgid "target must be 0 for ide controller"
 msgstr "ide నియంత్రిక కొరకు లక్ష్యం 0 కావాలి"
 
-#: src/qemu/qemu_command.c:3743
+#: src/qemu/qemu_command.c:3786
 msgid "Setting wwn for ide disk is not supported by this QEMU"
 msgstr "ide డిస్కు కొరకు wwn ను అమర్చుట ఈ QEMU చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:3765
+#: src/qemu/qemu_command.c:3808
 msgid "This QEMU doesn't support scsi-block for lun passthrough"
 msgstr "ఈ QEMU అనునది lun passthrough కొరకు scsi-block తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3774
+#: src/qemu/qemu_command.c:3817
 msgid "Setting wwn for scsi disk is not supported by this QEMU"
 msgstr "scsi డిస్కు కొరకు wwn ను అమర్చుట ఈ QEMU చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:3785
+#: src/qemu/qemu_command.c:3828
 msgid "Setting vendor or product for scsi disk is not supported by this QEMU"
 msgstr "scsi డిస్కు కొరకు అమ్మకందారి లేదా వుత్పత్తి ను అమర్చుట ఈ QEMU చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:3799
+#: src/qemu/qemu_command.c:3842
 msgid "target must be 0 for controller model 'lsilogic'"
 msgstr "నియంత్రిక రీతి 'lsilogic' కొరకు లక్ష్యం 0 కావాలి"
 
-#: src/qemu/qemu_command.c:3825
+#: src/qemu/qemu_command.c:3868
 msgid "This QEMU doesn't support target greater than 7"
 msgstr "7 కన్నా పెద్దదైన లక్ష్యం QEMU తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:3833
+#: src/qemu/qemu_command.c:3876
 msgid "This QEMU only supports both bus and unit equal to 0"
 msgstr "ఈ QEMU అనునది 0 సమానమైన బస్ మరియు యూనిట్‌కు తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:3862
+#: src/qemu/qemu_command.c:3905
 msgid "bus must be 0 for ide controller"
 msgstr "ide నియంత్రిక కొరకు బస్ తప్పక 0 కావాలి"
 
-#: src/qemu/qemu_command.c:3934
+#: src/qemu/qemu_command.c:3977
 msgid "This QEMU doesn't support '-device usb-storage'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3946
+#: src/qemu/qemu_command.c:3989
 #, c-format
 msgid "unsupported disk bus '%s' with device setup"
 msgstr "పరికరపు అమర్పుతో మద్దతించని డిస్కు బస్ '%s'"
 
-#: src/qemu/qemu_command.c:3984
+#: src/qemu/qemu_command.c:4027
 msgid ""
 "This QEMU doesn't support setting the removable flag of USB storage devices"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4011
+#: src/qemu/qemu_command.c:4054
 msgid "only supports mount filesystem type"
 msgstr "ఫైల్‌సిస్టమ్ రకం మౌంట్ మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:4017
+#: src/qemu/qemu_command.c:4060
 msgid "Filesystem driver type not supported"
 msgstr "ఫైల్‌సిస్టమ్ డ్రైవర్ రకం తోడ్పాటులేదు"
 
-#: src/qemu/qemu_command.c:4036
+#: src/qemu/qemu_command.c:4079
 msgid "only supports passthrough accessmode"
 msgstr "పాస్‌త్రూ ఏక్సెస్‌మెడ్ మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:4046
+#: src/qemu/qemu_command.c:4089
 msgid "filesystem writeout not supported"
 msgstr "ఫైల్‌సిస్టమ్ వ్రైట్‌అవుట్ తోడ్పాటులేదు"
 
-#: src/qemu/qemu_command.c:4059
+#: src/qemu/qemu_command.c:4102
 msgid "readonly filesystem is not supported by this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత చదువుటకు మాత్రమే ఫైల్‌సిస్టమ్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:4085
+#: src/qemu/qemu_command.c:4128
 msgid "can only passthrough directories"
 msgstr "సంచయాలు మాత్రమే పాస్‌త్రూ కాగలవు"
 
-#: src/qemu/qemu_command.c:4158 src/qemu/qemu_command.c:4854
+#: src/qemu/qemu_command.c:4201 src/qemu/qemu_command.c:4898
 #, c-format
 msgid "%s not supported in this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత %s తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:4189
+#: src/qemu/qemu_command.c:4232
 msgid "'queues' is only supported by virtio-scsi controller"
 msgstr "'queues' మాత్రమే virtio-scsi నియంత్రిక చేత తోడ్పాటునీయబడును"
 
-#: src/qemu/qemu_command.c:4194
+#: src/qemu/qemu_command.c:4237
 msgid "'cmd_per_lun' is only supported by virtio-scsi controller"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4199
+#: src/qemu/qemu_command.c:4242
 msgid "'max_sectors' is only supported by virtio-scsi controller"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4289
+#: src/qemu/qemu_command.c:4332
 msgid "PCI bridge index should be > 0"
 msgstr "PCI బ్రిడ్జ్ విషయసూచి > 0"
 
-#: src/qemu/qemu_command.c:4298
+#: src/qemu/qemu_command.c:4341
 msgid ""
 "The dmi-to-pci-bridge (i82801b11-bridge) controller is not supported in this "
 "QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4304
+#: src/qemu/qemu_command.c:4347
 msgid "dmi-to-pci-bridge index should be > 0"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4312
+#: src/qemu/qemu_command.c:4355
 msgid "wrong function called for pci-root/pcie-root"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4321
+#: src/qemu/qemu_command.c:4364
 #, c-format
 msgid "Unknown controller type: %s"
 msgstr "తెలియని నియంత్రిక రకం: %s"
 
-#: src/qemu/qemu_command.c:4413
+#: src/qemu/qemu_command.c:4456
 msgid "unrecognized virtio-net-pci 'tx' option"
 msgstr "గుర్తించని virtio-net-pci 'tx' ఐచ్చికం"
 
-#: src/qemu/qemu_command.c:4418
+#: src/qemu/qemu_command.c:4461
 msgid "virtio-net-pci 'tx' option not supported in this QEMU binary"
 msgstr "virtio-net-pci 'tx' ఐచ్చికం ఈ QEMU బైనరీ చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:4522 src/xenconfig/xen_sxpr.c:1882
+#: src/qemu/qemu_command.c:4565 src/xenconfig/xen_sxpr.c:1882
 #, c-format
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "%s రకం యొక్క ఇంటర్ఫేసులపై స్క్రిప్ట్స్ తోడ్పాటునీయబడవు"
 
-#: src/qemu/qemu_command.c:4645 src/qemu/qemu_command.c:9523
+#: src/qemu/qemu_command.c:4689 src/qemu/qemu_command.c:9567
 msgid "missing watchdog model"
 msgstr "తప్పిపోయిన watchdog మోడల్"
 
-#: src/qemu/qemu_command.c:4683
+#: src/qemu/qemu_command.c:4727
 #, c-format
 msgid "memballoon unsupported with address type '%s'"
 msgstr "memballon అనునది చిరునామా రకం '%s' తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:4713
+#: src/qemu/qemu_command.c:4757
 msgid "nvram address type must be spaprvio"
 msgstr "nvram చిరునామా రకం తప్పక spaprvio కావాలి"
 
-#: src/qemu/qemu_command.c:4785
+#: src/qemu/qemu_command.c:4829
 msgid "usb-audio controller is not supported by this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4794
+#: src/qemu/qemu_command.c:4838
 msgid ""
 "The ich9-intel-hda audio controller is not supported in this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4805
+#: src/qemu/qemu_command.c:4849
 #, c-format
 msgid "sound card model '%s' is not supported by qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4881 src/qemu/qemu_command.c:9282
+#: src/qemu/qemu_command.c:4925 src/qemu/qemu_command.c:9326
 #, c-format
 msgid "video type %s is not supported with QEMU"
 msgstr "వీడియో రకము %s QEMUతో మద్దతిచ్చునది కాదు"
 
-#: src/qemu/qemu_command.c:4894 src/qemu/qemu_command.c:9382
-#: src/qemu/qemu_command.c:9411
+#: src/qemu/qemu_command.c:4938 src/qemu/qemu_command.c:9426
+#: src/qemu/qemu_command.c:9455
 msgid "only one video card is currently supported"
 msgstr "ఒక వీడియో కార్డు మాత్రమే ప్రస్తుతం మద్దతిచ్చునది"
 
-#: src/qemu/qemu_command.c:4906 src/qemu/qemu_command.c:9311
+#: src/qemu/qemu_command.c:4950 src/qemu/qemu_command.c:9355
 #, c-format
 msgid "value for 'vram' must be less than '%u'"
 msgstr "'vram' కొరకు విలువ అనునది తప్పక '%u' కన్నా తక్కువ వుండాలి"
 
-#: src/qemu/qemu_command.c:4912 src/qemu/qemu_command.c:9317
+#: src/qemu/qemu_command.c:4956 src/qemu/qemu_command.c:9361
 #, c-format
 msgid "value for 'ram' must be less than '%u'"
 msgstr "'ram' కొరకు విలువ తప్పక '%u' కన్నా తక్కువ కావాలి"
 
-#: src/qemu/qemu_command.c:4940
+#: src/qemu/qemu_command.c:4984
 #, fuzzy
 msgid "value for 'vram' must be at least 1 MiB (1024 KiB)"
 msgstr "'vram' కొరకు విలువ అనునది తప్పక '%u' కన్నా తక్కువ వుండాలి"
 
-#: src/qemu/qemu_command.c:4977
+#: src/qemu/qemu_command.c:5021
 #, c-format
 msgid "Failed opening %s"
 msgstr "%s తెరుచుటకు విఫలమైంది"
 
-#: src/qemu/qemu_command.c:5008
+#: src/qemu/qemu_command.c:5052
 #, c-format
 msgid "invalid PCI passthrough type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5017 src/qemu/qemu_command.c:5056
+#: src/qemu/qemu_command.c:5061 src/qemu/qemu_command.c:5100
 #: src/qemu/qemu_hotplug.c:1310
 #, c-format
 msgid ""
@@ -15397,907 +15408,907 @@ msgid ""
 "binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5085
+#: src/qemu/qemu_command.c:5129
 #, c-format
 msgid "Redirection bus %s is not supported by QEMU"
 msgstr "రీడైరెక్షన్ బస్ %s QEMU చేత తోడ్పాటునీయబడును"
 
-#: src/qemu/qemu_command.c:5092
+#: src/qemu/qemu_command.c:5136
 msgid "USB redirection is not supported by this version of QEMU"
 msgstr "USB రీడైరెక్షన్ అనునది ఈ QEMU వర్షన్ చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:5104
+#: src/qemu/qemu_command.c:5148
 msgid "USB redirection filter is not supported by this version of QEMU"
 msgstr "USB రీడైరెక్షన్ వడపోత అనునది ఈ QEMU వర్షన్ చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:5142
+#: src/qemu/qemu_command.c:5186
 msgid "USB redirection booting is not supported by this version of QEMU"
 msgstr "USB రీడైరెక్షన్ బూటింగ్ అనునది ఈ QEMU వర్షన్ చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:5172 src/qemu/qemu_command.c:5249
+#: src/qemu/qemu_command.c:5216 src/qemu/qemu_command.c:5293
 msgid "USB host device is missing bus/device information"
 msgstr "USB హోస్టు పరికరము bus/device సమాచారమును తప్పిపోవుచున్నది"
 
-#: src/qemu/qemu_command.c:5208
+#: src/qemu/qemu_command.c:5252
 #, c-format
 msgid "hub type %s not supported"
 msgstr "హబ్ రకం %s తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:5215
+#: src/qemu/qemu_command.c:5259
 msgid "usb-hub not supported by QEMU binary"
 msgstr "usb-hub అనునది QEMU బైనరీ చేత తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:5243
+#: src/qemu/qemu_command.c:5287
 msgid "This QEMU doesn't not support missing USB devices"
 msgstr "ఈ QEMU అనునది తప్పిపోయిన USB పరికరాలకు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:5342
+#: src/qemu/qemu_command.c:5386
 msgid "this qemu doesn't support 'readonly' for -drive"
 msgstr "ఈ qemu అనునది 'readonly' ను -drive కొరకు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:5376
+#: src/qemu/qemu_command.c:5420
 msgid ""
 "target must be 0 for scsi host device if its controller model is 'lsilogic'"
 msgstr "నియంత్రిక రకం 'lsilogic' అయితే scsi అతిధేయ పరికరం కొరకు లక్ష్యం తప్పక 0 కావాలి"
 
-#: src/qemu/qemu_command.c:5383
+#: src/qemu/qemu_command.c:5427
 msgid ""
 "unit must be not more than 7 for scsi host device if its controller model is "
 "'lsilogic'"
 msgstr "నియంత్రిక రకం 'lsilogic' అయితే scsi అతిధేయ పరికరం కొరకు యూనిట్ 7 కన్నా యెక్కువ కాకూడదు"
 
-#: src/qemu/qemu_command.c:5505
+#: src/qemu/qemu_command.c:5549
 msgid "spicevmc not supported in this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత spicevmc తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:5515
+#: src/qemu/qemu_command.c:5559
 msgid "spiceport not supported in this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5654
+#: src/qemu/qemu_command.c:5698
 msgid "Cannot use virtio serial for parallel/serial devices"
 msgstr "పార్లల్/సీరియల్ పరికరాల కొరకు virtio సీరియల్ వుపయోగించలేదు"
 
-#: src/qemu/qemu_command.c:5666
+#: src/qemu/qemu_command.c:5710
 msgid "virtio serial device has invalid address type"
 msgstr "virtio వరుస పరికరము చెల్లని చిరునామా రకమును కలిగివున్నది"
 
-#: src/qemu/qemu_command.c:5684
+#: src/qemu/qemu_command.c:5728
 #, c-format
 msgid "Unsupported spicevmc target name '%s'"
 msgstr "తోడ్పాటులేని spicevmc లక్ష్యం పేరు '%s'"
 
-#: src/qemu/qemu_command.c:5726
+#: src/qemu/qemu_command.c:5770
 msgid "Cannot use slcp with devices other than console"
 msgstr "కన్సోల్ కన్నా వేరే పరికరాలతో slcp వుపయోగించలేము"
 
-#: src/qemu/qemu_command.c:5755
+#: src/qemu/qemu_command.c:5799
 msgid "this qemu doesn't support the rng-random backend"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5771
+#: src/qemu/qemu_command.c:5815
 msgid "this qemu doesn't support the rng-egd backend"
 msgstr "ఈ qemu అనునది rng-egd బ్యాకెండ్‌కు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:5812
+#: src/qemu/qemu_command.c:5856
 #, c-format
 msgid "this qemu doesn't support RNG device type '%s'"
 msgstr "ఈ qemu అనునది RNG పరికర రకం '%s' కు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:5888
+#: src/qemu/qemu_command.c:5932
 #, c-format
 msgid "The QEMU executable %s does not support TPM backend type %s"
 msgstr "QEMU నిర్వర్తించదగు %s అనునది TPM బ్యాకెండ్ రకం %s తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:5908
+#: src/qemu/qemu_command.c:5952
 #, c-format
 msgid "The QEMU executable %s does not support TPM model %s"
 msgstr "QEMU నిర్వర్తించదగు %s అనునది TPM రకం %s తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:6068 src/qemu/qemu_command.c:8180
+#: src/qemu/qemu_command.c:6112 src/qemu/qemu_command.c:8224
 #, c-format
 msgid "unsupported clock offset '%s'"
 msgstr "మద్దతీయని క్లాక్ ఆఫ్‌సెట్ '%s'"
 
-#: src/qemu/qemu_command.c:6082
+#: src/qemu/qemu_command.c:6126
 #, c-format
 msgid "unsupported rtc timer track '%s'"
 msgstr "తోడ్పాటునీయని rtc టైమర్ ట్రాక్ '%s'"
 
-#: src/qemu/qemu_command.c:6106
+#: src/qemu/qemu_command.c:6150
 #, c-format
 msgid "unsupported rtc timer tickpolicy '%s'"
 msgstr "తోడ్పాటులేని rtc టైమర్ టిక్‌పాలసీ '%s'"
 
-#: src/qemu/qemu_command.c:6158
+#: src/qemu/qemu_command.c:6202
 msgid "CPU specification not supported by hypervisor"
 msgstr "CPU విశదీకరణ హైపర్విజర్ చేత తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:6177
+#: src/qemu/qemu_command.c:6221
 #, c-format
 msgid "guest and host CPU are not compatible: %s"
 msgstr "అతిథి మరియు అతిధేయ CPU అనునది సారూప్యమైనది కాదు: %s"
 
-#: src/qemu/qemu_command.c:6181
+#: src/qemu/qemu_command.c:6225
 msgid "guest CPU is not compatible with host CPU"
 msgstr "గెస్టు CPU అనునది హోస్టు CPUతో సారూప్యమైంది కాదు"
 
-#: src/qemu/qemu_command.c:6209
+#: src/qemu/qemu_command.c:6253
 #, c-format
 msgid "CPU mode '%s' is not supported by QEMU binary"
 msgstr "CPU రీతి '%s' అనునది QEMU బైనరీ చేత తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:6215
+#: src/qemu/qemu_command.c:6259
 #, c-format
 msgid "CPU mode '%s' is only supported with kvm"
 msgstr "CPU రీతి '%s' అనునది kvm తో మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:6471
+#: src/qemu/qemu_command.c:6515
 msgid "the QEMU binary does not support kqemu"
 msgstr "QEMU బైనరీ అనునది kqemu తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:6484
+#: src/qemu/qemu_command.c:6528
 msgid "the QEMU binary does not support kvm"
 msgstr "QEMU బైనరీ అనునది kvm తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:6495
+#: src/qemu/qemu_command.c:6539
 #, c-format
 msgid "the QEMU binary does not support %s"
 msgstr "QEMU బైనరీ అనునది %s తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:6533 src/qemu/qemu_command.c:6568
+#: src/qemu/qemu_command.c:6577 src/qemu/qemu_command.c:6612
 msgid "dump-guest-core is not available with this QEMU binary"
 msgstr "dump-guest-core అనునది ఈ QEMU బైనరీ తో అందుబాటులోలేదు"
 
-#: src/qemu/qemu_command.c:6540 src/qemu/qemu_command.c:6583
+#: src/qemu/qemu_command.c:6584 src/qemu/qemu_command.c:6627
 msgid "disable shared memory is not available with this QEMU binary"
 msgstr "ఈ QEMU బైనరీ తో అచేతనమైన భాగస్వామ్య మెమొరీ అందుబాటులోలేదు"
 
-#: src/qemu/qemu_command.c:6626
+#: src/qemu/qemu_command.c:6670
 msgid ""
 "setting current vcpu count less than maximum is not supported with this QEMU "
 "binary"
 msgstr "ప్రస్తుత vcpu లెక్క‌ను గరిష్టంకన్నా తక్కువకు అమర్చుట ఈ QEMU బైనరీ చేత తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:6657
+#: src/qemu/qemu_command.c:6701
 msgid "Per-node memory binding is not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6666
+#: src/qemu/qemu_command.c:6710
 msgid "huge pages per NUMA node are not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6692
+#: src/qemu/qemu_command.c:6736
 #, c-format
 msgid "hugepages: node %zd not found"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6713
+#: src/qemu/qemu_command.c:6757
 msgid "disjoint NUMA cpu ranges are not supported with this QEMU"
 msgstr "ఈ QEMU తో డిస్‌జాయింట్ NUMA cpu విస్తృతులు తోడ్పాటునీయబడవు"
 
-#: src/qemu/qemu_command.c:6775 src/qemu/qemu_command.c:7963
+#: src/qemu/qemu_command.c:6819 src/qemu/qemu_command.c:8007
 #, c-format
 msgid "Unable to find any usable hugetlbfs mount for %llu KiB"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6805
+#: src/qemu/qemu_command.c:6849
 msgid "Shared memory mapping is supported only with hugepages"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6822
+#: src/qemu/qemu_command.c:6866
 msgid "disjoint NUMA node ranges are not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6846
+#: src/qemu/qemu_command.c:6890
 msgid "Shared memory mapping is not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6896
+#: src/qemu/qemu_command.c:6940
 msgid "vnc graphics are not supported with this QEMU"
 msgstr "ఈ QEMU తో vnc గ్రాఫిక్స్ తోడ్పాటు నీయవు"
 
-#: src/qemu/qemu_command.c:6921 src/qemu/qemu_command.c:7085
+#: src/qemu/qemu_command.c:6965 src/qemu/qemu_command.c:7129
 msgid "network-based listen not possible, network driver not present"
 msgstr "నెట్వర్కు-ఆధారిత లిజన్ సాధ్యంకాదు, నెట్వర్కు డ్రైవర్ లేదు"
 
-#: src/qemu/qemu_command.c:6927 src/qemu/qemu_command.c:7091
+#: src/qemu/qemu_command.c:6971 src/qemu/qemu_command.c:7135
 #, c-format
 msgid "listen network '%s' had no usable address"
 msgstr "లిజన్ నెట్వర్కు '%s' వాడదగ్గ చిరునామా కలిగిలేదు"
 
-#: src/qemu/qemu_command.c:6962
+#: src/qemu/qemu_command.c:7006
 msgid "VNC WebSockets are not supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీ తో VNC వెబ్‌సాకెట్లు తోడ్పాటునీయవు"
 
-#: src/qemu/qemu_command.c:6972
+#: src/qemu/qemu_command.c:7016
 msgid "vnc display sharing policy is not supported with this QEMU"
 msgstr "ఈ QEMU తో vnc ప్రదర్శన బాగస్వామ్య విధానం తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:7044
+#: src/qemu/qemu_command.c:7088
 msgid "spice graphics are not supported with this QEMU"
 msgstr "ఈ QEMU చేత స్పైస్ గ్రాఫిక్స్ తోడ్పాటునీయబడదు"
 
-#: src/qemu/qemu_command.c:7054
+#: src/qemu/qemu_command.c:7098
 msgid ""
 "spice TLS port set in XML configuration, but TLS is disabled in qemu.conf"
 msgstr ""
 "spice TLS పోర్టు XML ఆకృతీకరణనందు అమర్చబడివుంది, అయితే qemu.conf నందు TLS అచేతనమైవుంది"
 
-#: src/qemu/qemu_command.c:7151
+#: src/qemu/qemu_command.c:7195
 msgid ""
 "spice secure channels set in XML configuration, but TLS port is not provided"
 msgstr "స్పైస్ రక్షణ చానల్స్ XML ఆకృతీకరణనందు అమర్చబడెను, అయితే TLS పోర్ట్ అందించబడలేదు"
 
-#: src/qemu/qemu_command.c:7162
+#: src/qemu/qemu_command.c:7206
 msgid ""
 "spice insecure channels set in XML configuration, but plain port is not "
 "provided"
 msgstr "స్పైస్ రక్షణలేని చానల్స్ XML ఆకృతీకరణనందు అమర్చబడెను, అయితే ప్లెయిన్ పోర్ట్ అందించబడలేదు"
 
-#: src/qemu/qemu_command.c:7175
+#: src/qemu/qemu_command.c:7219
 msgid ""
 "spice defaultMode secure requested in XML configuration but TLS port not "
 "provided"
 msgstr "స్పైస్ అప్రమేయరీతి రక్షణ XML ఆకృతీకరణనందు అభ్యర్ధించబడెను అయితే TLS పోర్ట్ అందించబడలేదు"
 
-#: src/qemu/qemu_command.c:7184
+#: src/qemu/qemu_command.c:7228
 msgid ""
 "spice defaultMode insecure requested in XML configuration but plain port not "
 "provided"
 msgstr "స్పైస్ అప్రమేయరీతి రక్షణలేని XML ఆకృతీకరణనందు అభ్యర్ధించబడెను అయితే ప్లెయిన్ పోర్ట్ అందించబడలేదు"
 
-#: src/qemu/qemu_command.c:7217
+#: src/qemu/qemu_command.c:7261
 msgid "This QEMU can't disable file transfers through spice"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7262
+#: src/qemu/qemu_command.c:7306
 #, c-format
 msgid "sdl not supported by '%s'"
 msgstr "'%s' చేత sdl తోడ్పాటులేదు"
 
-#: src/qemu/qemu_command.c:7298
+#: src/qemu/qemu_command.c:7342
 #, c-format
 msgid "unsupported graphics type '%s'"
 msgstr "తోడ్పాటులేని గ్రాఫిక్స్ రకం '%s'"
 
-#: src/qemu/qemu_command.c:7318
+#: src/qemu/qemu_command.c:7362
 msgid "Netdev support unavailable"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7343
+#: src/qemu/qemu_command.c:7387
 #, c-format
 msgid "vhost-user type '%s' not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7359
+#: src/qemu/qemu_command.c:7403
 msgid "Error generating NIC -device string"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7418 src/qemu/qemu_hotplug.c:901
+#: src/qemu/qemu_command.c:7462 src/qemu/qemu_hotplug.c:901
 #, c-format
 msgid "Multiqueue network is not supported for: %s"
 msgstr "మల్టీక్యూ నెట్వర్కు దీని కొరకు తోడ్పాటునీయదు: %s"
 
-#: src/qemu/qemu_command.c:7573
+#: src/qemu/qemu_command.c:7617
 msgid "ivshmem device is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7588
+#: src/qemu/qemu_command.c:7632
 msgid "shmem size must be a power of two"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7593
+#: src/qemu/qemu_command.c:7637
 msgid "shmem size must be at least 1 MiB (1024 KiB)"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7708
+#: src/qemu/qemu_command.c:7752
 msgid "this QEMU binary doesn't support -drive"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7713
+#: src/qemu/qemu_command.c:7757
 msgid "this QEMU binary doesn't support passing drive format"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7720
+#: src/qemu/qemu_command.c:7764
 msgid "ACPI must be enabled in order to use UEFI"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7732
+#: src/qemu/qemu_command.c:7776
 msgid "this qemu doesn't support passing readonly attribute"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7845 src/qemu/qemu_driver.c:8972
+#: src/qemu/qemu_command.c:7889 src/qemu/qemu_driver.c:8972
 #: src/qemu/qemu_driver.c:9103
 msgid "Memory tuning is not available in session mode"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7851 src/qemu/qemu_driver.c:8349
+#: src/qemu/qemu_command.c:7895 src/qemu/qemu_driver.c:8349
 #: src/qemu/qemu_driver.c:8549
 msgid "Block I/O tuning is not available in session mode"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7859 src/qemu/qemu_driver.c:8092
+#: src/qemu/qemu_command.c:7903 src/qemu/qemu_driver.c:8092
 #: src/qemu/qemu_driver.c:9628 src/qemu/qemu_driver.c:9933
 msgid "CPU tuning is not available in session mode"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7944
+#: src/qemu/qemu_command.c:7988
 msgid "hugetlbfs filesystem is not mounted or disabled by administrator config"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7950
+#: src/qemu/qemu_command.c:7994
 #, c-format
 msgid "hugepage backing not supported by '%s'"
 msgstr "పెద్దపేజీ బ్యాకింగ్ '%s' చేత మద్దతించబడుటలేదు"
 
-#: src/qemu/qemu_command.c:7985
+#: src/qemu/qemu_command.c:8029
 msgid "memory locking not supported by QEMU binary"
 msgstr "QEMU బైనరీ చేత మెమొరీ లాకింగ్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:8032
+#: src/qemu/qemu_command.c:8076
 #, c-format
 msgid "qemu emulator '%s' does not support xen"
 msgstr "qemu ఎమ్యులేటర్ '%s' xenను మద్దతించుటలేదు"
 
-#: src/qemu/qemu_command.c:8045
+#: src/qemu/qemu_command.c:8089
 #, c-format
 msgid "the QEMU binary %s does not support smbios settings"
 msgstr "QEMU బైనరీ %s అనునది smbios అమరికలను తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:8063
+#: src/qemu/qemu_command.c:8107
 #, c-format
 msgid "Domain '%s' sysinfo are not available"
 msgstr "డొమైన్ '%s' sysinfo అందుబాటులో లేదు"
 
-#: src/qemu/qemu_command.c:8115 src/qemu/qemu_hotplug.c:1490
+#: src/qemu/qemu_command.c:8159 src/qemu/qemu_hotplug.c:1490
 #: src/qemu/qemu_hotplug.c:3754
 msgid "qemu does not support -device"
 msgstr "qemu అనునది -device కు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:8120
+#: src/qemu/qemu_command.c:8164
 msgid "qemu does not support SGA"
 msgstr "qemu అనునది SGA కు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:8125
+#: src/qemu/qemu_command.c:8169
 msgid "need at least one serial port to use SGA"
 msgstr "SGA ఉపయోగించుటకు కనీసం వొక వరుస పోర్టు కావాలి"
 
-#: src/qemu/qemu_command.c:8195
+#: src/qemu/qemu_command.c:8239
 #, c-format
 msgid "unsupported timer type (name) '%s'"
 msgstr "తోడ్పాటులేని టైమర్ రకం (పేరు) '%s'"
 
-#: src/qemu/qemu_command.c:8221 src/qemu/qemu_command.c:8232
+#: src/qemu/qemu_command.c:8265 src/qemu/qemu_command.c:8276
 #, c-format
 msgid "unsupported rtc tickpolicy '%s'"
 msgstr "తోడ్పాటులేని rtc టిక్‌పాలసీ '%s'"
 
-#: src/qemu/qemu_command.c:8260 src/qemu/qemu_command.c:8269
+#: src/qemu/qemu_command.c:8304 src/qemu/qemu_command.c:8313
 #, c-format
 msgid "unsupported pit tickpolicy '%s'"
 msgstr "తోడ్పాటులేని పిట్ టిక్‌పాలసీ '%s'"
 
-#: src/qemu/qemu_command.c:8291
+#: src/qemu/qemu_command.c:8335
 msgid "hpet timer is not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8326
+#: src/qemu/qemu_command.c:8370
 msgid "setting ACPI S3 not supported"
 msgstr "ACPI S3 అమర్చుటకు తోడ్పాటులేదు"
 
-#: src/qemu/qemu_command.c:8337
+#: src/qemu/qemu_command.c:8381
 msgid "setting ACPI S4 not supported"
 msgstr "ACPI S4 అమర్చుటకు తోడ్పాటులేదు"
 
-#: src/qemu/qemu_command.c:8359
+#: src/qemu/qemu_command.c:8403
 msgid "hypervisor lacks deviceboot feature"
 msgstr "deviceboot విశేషణం లేని hypervisor"
 
-#: src/qemu/qemu_command.c:8417
+#: src/qemu/qemu_command.c:8461
 msgid "reboot timeout is not supported by this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత పునఃప్రారంభ సమయముగింపు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:8434
+#: src/qemu/qemu_command.c:8478
 msgid "splash timeout is not supported by this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8481
+#: src/qemu/qemu_command.c:8525
 msgid "dtb is not supported with this QEMU binary"
 msgstr "dtb అనునది ఈ QEMU బైనరీతో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:8512
+#: src/qemu/qemu_command.c:8556
 msgid "64-bit PCI hole setting is only for root PCI controllers"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8519
+#: src/qemu/qemu_command.c:8563
 #, c-format
 msgid "Setting the 64-bit PCI hole size is not supported for machine '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8525
+#: src/qemu/qemu_command.c:8569
 msgid "64-bit PCI hole size setting is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8542 src/qemu/qemu_hotplug.c:767
+#: src/qemu/qemu_command.c:8586 src/qemu/qemu_hotplug.c:767
 #, c-format
 msgid "unsupported driver name '%s' for disk '%s'"
 msgstr "మద్దతీయని డ్రైవర్ నామము '%s' డిస్కు '%s' కొరకు"
 
-#: src/qemu/qemu_command.c:8574
+#: src/qemu/qemu_command.c:8618
 msgid "SATA is not supported with this QEMU binary"
 msgstr "SATA ఈ QEMU బైనరీతో మద్దతించబడదు"
 
-#: src/qemu/qemu_command.c:8599
+#: src/qemu/qemu_command.c:8643
 msgid "Multiple legacy USB controllers are not supported"
 msgstr "బహుళ లెగసీ USB నియంత్రికలు తోడ్పాటునీయవు"
 
-#: src/qemu/qemu_command.c:8671 src/qemu/qemu_command.c:8772
+#: src/qemu/qemu_command.c:8715 src/qemu/qemu_command.c:8816
 #, c-format
 msgid "unsupported usb disk type for '%s'"
 msgstr "మద్దతీయని usb డిస్కు రకము '%s' కొరకు"
 
-#: src/qemu/qemu_command.c:8820
+#: src/qemu/qemu_command.c:8864
 msgid "network disks are only supported with -drive"
 msgstr "నెట్వర్కు డిస్కులు -drive తో మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:8858
+#: src/qemu/qemu_command.c:8902
 msgid "filesystem passthrough not supported by this QEMU"
 msgstr "ఫైల్‌సిస్టమ్ పాస్‌త్రూ అనునది ఈ QEMU తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:8914
+#: src/qemu/qemu_command.c:8958
 msgid "this QEMU binary lacks multiple smartcard support"
 msgstr "ఈ QEMU బైనరీ అనునది బహుళ స్మార్టుకార్ట్ తోడ్పాటు కలిగిలేదు"
 
-#: src/qemu/qemu_command.c:8925 src/qemu/qemu_command.c:8937
+#: src/qemu/qemu_command.c:8969 src/qemu/qemu_command.c:8981
 msgid "this QEMU binary lacks smartcard host mode support"
 msgstr "ఈ QEMU బైనరీ స్మార్టుకార్డు అతిధేయ రీతి తోడ్పాటు కలిగిలేదు"
 
-#: src/qemu/qemu_command.c:8947
+#: src/qemu/qemu_command.c:8991
 #, c-format
 msgid "invalid certificate name: %s"
 msgstr "చెల్లని ధృవీకరణపత్రం పేరు: %s"
 
-#: src/qemu/qemu_command.c:8958
+#: src/qemu/qemu_command.c:9002
 #, c-format
 msgid "invalid database name: %s"
 msgstr "చెల్లని డాటాబేస్ పేరు: %s"
 
-#: src/qemu/qemu_command.c:8973
+#: src/qemu/qemu_command.c:9017
 msgid "this QEMU binary lacks smartcard passthrough mode support"
 msgstr "ఈ QEMU బైనరీ స్మార్టుకార్డ్ పాస్‌త్రూ రీతి తోడ్పాటు కలిగిలేదు"
 
-#: src/qemu/qemu_command.c:9078
+#: src/qemu/qemu_command.c:9122
 msgid "guestfwd requires QEMU to support -chardev & -device"
 msgstr "guestfwd కు QEMU కావాలి  -chardev & -device మద్దతించుటకు"
 
-#: src/qemu/qemu_command.c:9099 src/qemu/qemu_command.c:9159
+#: src/qemu/qemu_command.c:9143 src/qemu/qemu_command.c:9203
 msgid "virtio channel requires QEMU to support -device"
 msgstr "virtio చానల్‌కు -device మద్దతించుటకు QEMU అవసరము"
 
-#: src/qemu/qemu_command.c:9135
+#: src/qemu/qemu_command.c:9179
 msgid "sclp console requires QEMU to support -device"
 msgstr "sclp కన్సోల్‌కు QEMU అనునది -device కు తోడ్పాటునిచ్చుట కావాలి"
 
-#: src/qemu/qemu_command.c:9140
+#: src/qemu/qemu_command.c:9184
 msgid "sclp console requires QEMU to support s390-sclp"
 msgstr "sclp కన్సోల్‌కు QEMU అనునది s390-sclp కు తోడ్పాటునిచ్చుట కావాలి"
 
-#: src/qemu/qemu_command.c:9180
+#: src/qemu/qemu_command.c:9224 src/qemu/qemu_command.c:10123
 #, c-format
 msgid "unsupported console target type %s"
 msgstr "తోడ్పాటునీయని కన్సోల్ లక్ష్యం రకం %s"
 
-#: src/qemu/qemu_command.c:9231
+#: src/qemu/qemu_command.c:9275
 msgid "only 1 graphics device is supported"
 msgstr "1 గ్రాఫిక్స్ పరికరం మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:9236
+#: src/qemu/qemu_command.c:9280
 msgid "only 1 graphics device of each type (sdl, vnc, spice) is supported"
 msgstr "ప్రతి (sdl, vnc, spice) రకంలో 1 గ్రాఫిక్స్ పరికరం మాత్రమే తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:9275
+#: src/qemu/qemu_command.c:9319
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr "ఈ QEMU అనునది QXL గ్రాఫిక్స్ యెడాప్టర్లకు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9350 src/qemu/qemu_domain.c:1171
+#: src/qemu/qemu_command.c:9394 src/qemu/qemu_domain.c:1171
 #, fuzzy
 msgid "value for 'vgamem' must be at least 1 MiB (1024 KiB)"
 msgstr "'vram' కొరకు విలువ అనునది తప్పక '%u' కన్నా తక్కువ వుండాలి"
 
-#: src/qemu/qemu_command.c:9367
+#: src/qemu/qemu_command.c:9411
 #, c-format
 msgid "video type %s is only valid as primary video card"
 msgstr "వీడియో రకం %s అనునది ప్రాధమిక వీడియో కార్డు వలే మాత్రమే చెల్లునది"
 
-#: src/qemu/qemu_command.c:9404
+#: src/qemu/qemu_command.c:9448
 #, c-format
 msgid "video type %s is not supported with this QEMU"
 msgstr "వీడియో రకం %s అనునది ఈ QEMU తో తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9484
+#: src/qemu/qemu_command.c:9528
 msgid "invalid sound model"
 msgstr "సరికాని ధ్వని మోడల్"
 
-#: src/qemu/qemu_command.c:9492
+#: src/qemu/qemu_command.c:9536
 msgid "this QEMU binary lacks hda support"
 msgstr "ఈ QEMU బైనరీ అనునది hda తోడ్పాటు కలిగిలేదు"
 
-#: src/qemu/qemu_command.c:9539
+#: src/qemu/qemu_command.c:9583
 msgid "invalid watchdog action"
 msgstr "చెల్లని watchdog చర్య"
 
-#: src/qemu/qemu_command.c:9562 src/qemu/qemu_hotplug.c:1370
+#: src/qemu/qemu_command.c:9606 src/qemu/qemu_hotplug.c:1370
 #, fuzzy
 msgid "redirected devices are not supported by this QEMU"
 msgstr "డిస్కు device='lun' అనునది QEMU చేత తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9585
+#: src/qemu/qemu_command.c:9629
 msgid ""
 "booting from assigned devices is only supported for PCI, USB and SCSI devices"
 msgstr ""
 "అప్పగించిన పరికరాలనుండి బూట్ అగుట PCI, USB మరియు SCSI పరికరాలకు మాత్రమే తోడ్పాటునిచ్చును "
 
-#: src/qemu/qemu_command.c:9594
+#: src/qemu/qemu_command.c:9638
 msgid ""
 "booting from PCI devices assigned with VFIO is not supported with this "
 "version of qemu"
 msgstr "qemu యొక్క ఈ వర్షన్‌తో VFIO తో అప్పగించిన PCI పరికరాలనుండి బూట్ అగుట తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9601
+#: src/qemu/qemu_command.c:9645
 msgid ""
 "booting from assigned PCI devices is not supported with this version of qemu"
 msgstr "qemu యొక్క ఈ వర్షన్‌తో అప్పగించిన PCI పరికరాలనుండి బూట్ అగుట తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9610
+#: src/qemu/qemu_command.c:9654
 msgid ""
 "booting from assigned USB devices is not supported with this version of qemu"
 msgstr "qemu యొక్క ఈ వర్షన్‌తో అప్పగించిన USB పరికరాలనుండి బూట్ అగుట తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9617
+#: src/qemu/qemu_command.c:9661
 msgid ""
 "booting from assigned SCSI devices is not supported with this version of qemu"
 msgstr "qemu యొక్క ఈ వర్షన్‌తో అప్పగించిన SCSI పరికరాలనుండి బూట్ అగుట తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9651 src/qemu/qemu_hotplug.c:1240
+#: src/qemu/qemu_command.c:9695 src/qemu/qemu_hotplug.c:1240
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "qemu యొక్క ఈ వర్షన్‌ చేత VFIO PCI పరికర అప్పగింత తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9691 src/qemu/qemu_monitor_text.c:1844
+#: src/qemu/qemu_command.c:9735 src/qemu/qemu_monitor_text.c:1844
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "PCI పరికర అప్పగింత qemu యొక్క వర్షన్‌తో మద్దతించ బడదు"
 
-#: src/qemu/qemu_command.c:9717 src/qemu/qemu_hotplug.c:1631
+#: src/qemu/qemu_command.c:9761 src/qemu/qemu_hotplug.c:1631
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "qemu యొక్క ఈ వర్షన్ చేత SCSI పాస్‌త్రూ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9731
+#: src/qemu/qemu_command.c:9775
 msgid "TCP migration is not supported with this QEMU binary"
 msgstr "TCP వలసవిధానం అనునది ఈ QEMU బైనరీతో మద్దతించబడదు"
 
-#: src/qemu/qemu_command.c:9739
+#: src/qemu/qemu_command.c:9783
 msgid "incoming RDMA migration is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9756
+#: src/qemu/qemu_command.c:9800
 msgid "STDIO migration is not supported with this QEMU binary"
 msgstr "STDIO వలసవిధానం అనునది ఈ QEMU బైనరీతో మద్దతీయబడదు"
 
-#: src/qemu/qemu_command.c:9763
+#: src/qemu/qemu_command.c:9807
 msgid "EXEC migration is not supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీ తో EXEC మైగ్రేషన్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9771
+#: src/qemu/qemu_command.c:9815
 msgid "FD migration is not supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీతో FD మైగ్రేషన్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9780
+#: src/qemu/qemu_command.c:9824
 msgid "UNIX migration is not supported with this QEMU binary"
 msgstr "ఈ QEMU బైనరీచేత UNIX మైగ్రేషన్ తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9787
+#: src/qemu/qemu_command.c:9831
 msgid "unknown migration protocol"
 msgstr "తెలియని మైగ్రేషన్ ప్రొటోకాల్"
 
-#: src/qemu/qemu_command.c:9806
+#: src/qemu/qemu_command.c:9850
 #, c-format
 msgid ""
 "Memory balloon device type '%s' is not supported by this version of qemu"
 msgstr "qemu యొక్క ఈ వర్షన్‌ చేత మెమొరీ బెలూల్ పరికర రకం '%s' తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9839
+#: src/qemu/qemu_command.c:9883
 msgid "nvram device is not supported by this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత nvram పరికరం తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9854
+#: src/qemu/qemu_command.c:9898
 msgid "nvram device is only supported for PPC64"
 msgstr "PPC64 కొరకు మాత్రమే nvram పరికరం తోడ్పాటునిచ్చును"
 
-#: src/qemu/qemu_command.c:9880
+#: src/qemu/qemu_command.c:9924
 msgid "QEMU does not support seccomp sandboxes"
 msgstr "QEMU అనునది seccomp సాండ్‌బాక్సులు తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:9895
+#: src/qemu/qemu_command.c:9939
 msgid "panic is supported only with ISA address type"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9901
+#: src/qemu/qemu_command.c:9945
 msgid "your QEMU is too old to support pvpanic"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9974
+#: src/qemu/qemu_command.c:10018
 msgid "usb-serial is not supported in this QEMU binary"
 msgstr "ఈ QEMU బైనరీ చేత usb-serial తోడ్పాటునీయదు"
 
-#: src/qemu/qemu_command.c:10285
+#: src/qemu/qemu_command.c:10334
 #, c-format
 msgid "malformed keyword arguments in '%s'"
 msgstr "'%s' నందు తప్పుగా ఫాంమైన కీపదపు ఆర్గుమెంట్లు"
 
-#: src/qemu/qemu_command.c:10446 src/qemu/qemu_command.c:11766
+#: src/qemu/qemu_command.c:10495 src/qemu/qemu_command.c:11815
 #, c-format
 msgid "cannot parse sheepdog filename '%s'"
 msgstr "sheepdog ఫైల్‌పేరు '%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10475
+#: src/qemu/qemu_command.c:10524
 #, c-format
 msgid "pseries systems do not support ide devices '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10530
+#: src/qemu/qemu_command.c:10579
 #, c-format
 msgid "cannot parse drive index '%s'"
 msgstr "డ్రైవ్ విషయసూచిక '%s'ను పార్శ్ చేయలేక పోయింది"
 
-#: src/qemu/qemu_command.c:10536
+#: src/qemu/qemu_command.c:10585
 #, c-format
 msgid "cannot parse drive bus '%s'"
 msgstr "డ్రైవ్ బస్ '%s'ను పార్శ్ చేయలేము"
 
-#: src/qemu/qemu_command.c:10542
+#: src/qemu/qemu_command.c:10591
 #, c-format
 msgid "cannot parse drive unit '%s'"
 msgstr "డ్రైవ్ యూనిట్ '%s'ను పార్శ్ చేయలేము"
 
-#: src/qemu/qemu_command.c:10551
+#: src/qemu/qemu_command.c:10600
 #, c-format
 msgid "cannot parse io mode '%s'"
 msgstr "io రీతి '%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10560
+#: src/qemu/qemu_command.c:10609
 #, c-format
 msgid "cannot parse cylinders value'%s'"
 msgstr "సిలండర్స్ విలువ'%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10570
+#: src/qemu/qemu_command.c:10619
 #, c-format
 msgid "cannot parse heads value'%s'"
 msgstr "హెడ్స్ విలువ'%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10580
+#: src/qemu/qemu_command.c:10629
 #, c-format
 msgid "cannot parse sectors value'%s'"
 msgstr "సెక్టార్స్ విలువ'%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10592
+#: src/qemu/qemu_command.c:10641
 #, c-format
 msgid "cannot parse translation value '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10606
+#: src/qemu/qemu_command.c:10655
 #, c-format
 msgid "missing file parameter in drive '%s'"
 msgstr "డ్రైవ్ '%s' నందు ఫైలు పారామితి తప్పిపోయినది"
 
-#: src/qemu/qemu_command.c:10617
+#: src/qemu/qemu_command.c:10666
 #, c-format
 msgid "missing index/unit/bus parameter in drive '%s'"
 msgstr "index/unit/bus పారామితి డ్రైవ్ '%s' నందు తప్పిపోయింది"
 
-#: src/qemu/qemu_command.c:10662
+#: src/qemu/qemu_command.c:10711
 #, c-format
 msgid "invalid device name '%s'"
 msgstr "చెల్లని పరికరం పేరు '%s'"
 
-#: src/qemu/qemu_command.c:10703
+#: src/qemu/qemu_command.c:10752
 #, c-format
 msgid "cannot parse NIC vlan in '%s'"
 msgstr "'%s' నందు NIC vlan పార్శ్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10715
+#: src/qemu/qemu_command.c:10764
 #, c-format
 msgid "cannot find NIC definition for vlan %d"
 msgstr "vlan %d కొరకు NIC నిర్వచనమును కనుగొనలేదు"
 
-#: src/qemu/qemu_command.c:10772
+#: src/qemu/qemu_command.c:10821
 #, c-format
 msgid "cannot parse vlan in '%s'"
 msgstr "'%s' నందు vlanను పార్శ్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10802
+#: src/qemu/qemu_command.c:10851
 #, c-format
 msgid "cannot parse NIC definition '%s'"
 msgstr "NIC నిర్వచనము '%s'ను పార్శ్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10852
+#: src/qemu/qemu_command.c:10901
 #, c-format
 msgid "cannot parse sndbuf size in '%s'"
 msgstr "'%s' నందు sndbuf పరిమాణం పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:10891
+#: src/qemu/qemu_command.c:10940
 #, c-format
 msgid "unknown PCI device syntax '%s'"
 msgstr "తెలియని PCI పరికరము సిన్టాక్స్ '%s'"
 
-#: src/qemu/qemu_command.c:10898
+#: src/qemu/qemu_command.c:10947
 #, c-format
 msgid "cannot extract PCI device bus '%s'"
 msgstr "PCI పరికరము bus '%s'ను వెలికితీయలేదు"
 
-#: src/qemu/qemu_command.c:10904
+#: src/qemu/qemu_command.c:10953
 #, c-format
 msgid "cannot extract PCI device slot '%s'"
 msgstr "PCI పరికరము స్లాట్ '%s'ను వెలికితీయలేక పోయింది"
 
-#: src/qemu/qemu_command.c:10910
+#: src/qemu/qemu_command.c:10959
 #, c-format
 msgid "cannot extract PCI device function '%s'"
 msgstr "PCI పరికరము కార్యక్రమము '%s'ను వెలికితీయలేము"
 
-#: src/qemu/qemu_command.c:10946
+#: src/qemu/qemu_command.c:10995
 #, c-format
 msgid "unknown USB device syntax '%s'"
 msgstr "తెలియని USB పరికర సిన్టాక్స్ '%s'"
 
-#: src/qemu/qemu_command.c:10954
+#: src/qemu/qemu_command.c:11003
 #, c-format
 msgid "cannot extract USB device vendor '%s'"
 msgstr "USB పరికరము అమ్మకందారి '%s'ను వెలికితీయలేము"
 
-#: src/qemu/qemu_command.c:10960
+#: src/qemu/qemu_command.c:11009
 #, c-format
 msgid "cannot extract USB device product '%s'"
 msgstr "USB పరికర వుత్పత్తి '%s'ను వెలికితీయలేదు"
 
-#: src/qemu/qemu_command.c:10966
+#: src/qemu/qemu_command.c:11015
 #, c-format
 msgid "cannot extract USB device bus '%s'"
 msgstr "USB పరికర బస్ '%s'ను వెలికితీయలేదు"
 
-#: src/qemu/qemu_command.c:10972
+#: src/qemu/qemu_command.c:11021
 #, c-format
 msgid "cannot extract USB device address '%s'"
 msgstr "USB పరికర చిరునామా '%s'ను వెలికితీయలేదు"
 
-#: src/qemu/qemu_command.c:11064
+#: src/qemu/qemu_command.c:11113
 #, c-format
 msgid "cannot find port number in character device %s"
 msgstr "కారెక్టర్ పరికరము %s నందు పోర్టు సంఖ్యను కనుగొనలేక పోయింది"
 
-#: src/qemu/qemu_command.c:11090
+#: src/qemu/qemu_command.c:11139
 #, c-format
 msgid "unknown character device syntax %s"
 msgstr "తెలియని కారెక్టర్ పరికరము సిన్టాక్స్ %s"
 
-#: src/qemu/qemu_command.c:11166
+#: src/qemu/qemu_command.c:11215
 #, c-format
 msgid "%s platform doesn't support CPU features'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11196
+#: src/qemu/qemu_command.c:11245
 msgid "conflicting occurrences of kvmclock feature"
 msgstr "kvmclock విశేషణం యొక్క విభేదిస్తున్న సంభవాలు"
 
-#: src/qemu/qemu_command.c:11237
+#: src/qemu/qemu_command.c:11286
 #, c-format
 msgid "unsupported HyperV Enlightenment feature '%s'"
 msgstr "తోడ్పాటులేని HyperV ఎంటర్‌టైన్మెంట్ విశేషణం '%s'"
 
-#: src/qemu/qemu_command.c:11247
+#: src/qemu/qemu_command.c:11296
 #, c-format
 msgid "HyperV feature '%s' should not have a value"
 msgstr "HyperV విశేషణం '%s' విలువ కలిగివుండ కూడదు"
 
-#: src/qemu/qemu_command.c:11258
+#: src/qemu/qemu_command.c:11307
 msgid "missing HyperV spinlock retry count"
 msgstr "HyperV స్పిన్‌లాక్ పునఃప్రయత్న లెక్క దొరకలేదు"
 
-#: src/qemu/qemu_command.c:11264
+#: src/qemu/qemu_command.c:11313
 msgid "cannot parse HyperV spinlock retry count"
 msgstr "HyperV స్పిన్‌లాక్ పునఃప్రయత్న లెక్కింపు పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:11312
+#: src/qemu/qemu_command.c:11361
 #, c-format
 msgid "unknown CPU syntax '%s'"
 msgstr "తెలియని CPU సిన్టాక్స్ '%s'"
 
-#: src/qemu/qemu_command.c:11386
+#: src/qemu/qemu_command.c:11435
 #, c-format
 msgid "cannot parse CPU topology '%s'"
 msgstr "CPU టోపాలజీ '%s'ను పార్శ్ చేయలేము"
 
-#: src/qemu/qemu_command.c:11450
+#: src/qemu/qemu_command.c:11499
 msgid "no emulator path found"
 msgstr "ఎటువంటి యెమ్యులేటర్ పాత్ కనబడలేదు"
 
-#: src/qemu/qemu_command.c:11511
+#: src/qemu/qemu_command.c:11560
 #, c-format
 msgid "missing value for %s argument"
 msgstr "%s ఆర్గుమెంట్ కొరకు తప్పిపోయిన విలువ"
 
-#: src/qemu/qemu_command.c:11571
+#: src/qemu/qemu_command.c:11620
 #, c-format
 msgid "missing VNC port number in '%s'"
 msgstr "VNC పోర్టు సంఖ్య '%s' నందు దొరకలేదు"
 
-#: src/qemu/qemu_command.c:11579
+#: src/qemu/qemu_command.c:11628
 #, c-format
 msgid "cannot parse VNC port '%s'"
 msgstr "VNC పోర్ట్ '%s'ను పార్శ్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:11617
+#: src/qemu/qemu_command.c:11666
 #, c-format
 msgid "cannot parse VNC WebSocket port '%s'"
 msgstr "VNC వెబ్‌సాకెట్ పోర్ట్ '%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:11649
+#: src/qemu/qemu_command.c:11698
 msgid "missing vnc sharing policy"
 msgstr "vnc భాగస్వామ్య విధానం దొరకలేదు"
 
-#: src/qemu/qemu_command.c:11673
+#: src/qemu/qemu_command.c:11722
 #, c-format
 msgid "cannot parse memory level '%s'"
 msgstr "మెమొరీ స్థాయి '%s'ను పార్శ్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:11685
+#: src/qemu/qemu_command.c:11734
 #, c-format
 msgid "cannot parse UUID '%s'"
 msgstr "UUID '%s'ను పార్శ్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:11804
+#: src/qemu/qemu_command.c:11853
 #, c-format
 msgid "Cannot assign address for device name '%s'"
 msgstr "పరికర పేరు '%s' కొరకు చిరునామా అప్పగించలేదు"
 
-#: src/qemu/qemu_command.c:11867
+#: src/qemu/qemu_command.c:11916
 msgid "cannot parse reboot-timeout value"
 msgstr "పునఃప్రారంభ-గడువుముగింపు విలువ పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:12113
+#: src/qemu/qemu_command.c:12162
 #, c-format
 msgid "unknown video adapter type '%s'"
 msgstr "తెలియని వీడియో ఎడాప్టర్ రకము '%s'"
 
-#: src/qemu/qemu_command.c:12172
+#: src/qemu/qemu_command.c:12221
 #, c-format
 msgid "invalid value for disable_s3 parameter: '%s'"
 msgstr "disable_s3 పారామితి కొరకు చెల్లని విలువ: '%s'"
 
-#: src/qemu/qemu_command.c:12189
+#: src/qemu/qemu_command.c:12238
 #, c-format
 msgid "invalid value for disable_s4 parameter: '%s'"
 msgstr "disable_s4 పారామితి కొరకు చెల్లని విలువ: '%s'"
 
-#: src/qemu/qemu_command.c:12208
+#: src/qemu/qemu_command.c:12257
 #, c-format
 msgid "cannot parse nvram's address '%s'"
 msgstr "nvram యొక్క చిరునామా '%s' పార్స్ చేయలేదు"
 
-#: src/qemu/qemu_command.c:12266
+#: src/qemu/qemu_command.c:12315
 msgid "CEPH_ARGS was set without an rbd disk"
 msgstr "CEPH_ARGS అనునది rbd డిస్కు లేకుండా అమర్చబడెను"
 
-#: src/qemu/qemu_command.c:12273
+#: src/qemu/qemu_command.c:12322
 #, c-format
 msgid "could not parse CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' పార్స్ చేయలేక పోయింది"
 
-#: src/qemu/qemu_command.c:12310
+#: src/qemu/qemu_command.c:12359
 #, c-format
 msgid "found no rbd hosts in CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' నందు rbd అతిధేయాలు కనుగొనలేదు"
 
-#: src/qemu/qemu_command.c:12518
+#: src/qemu/qemu_command.c:12567
 #, c-format
 msgid "Unable to resolve %s for pid %u"
 msgstr "%s ను pid %u కొరకు రిజాల్వ్ చేయలేదు"
@@ -24152,135 +24163,135 @@ msgstr ""
 msgid "Memory '%llu' must be less than %llu"
 msgstr "మెమొరీ '%llu' తప్పక %llu కన్నా తక్కువ కావాలి"
 
-#: src/util/vircgroup.c:3010 src/util/vircgroup.c:3082
+#: src/util/vircgroup.c:3013 src/util/vircgroup.c:3092
 msgid "cpuacct parse error"
 msgstr "cpuacct పార్స్ దోషం"
 
-#: src/util/vircgroup.c:3063
+#: src/util/vircgroup.c:3069
 #, c-format
 msgid "start_cpu %d larger than maximum of %d"
 msgstr "start_cpu %d అనునది గరిష్ట %d కన్నా పెద్దది"
 
-#: src/util/vircgroup.c:3135 src/util/vircgroup.c:3149
+#: src/util/vircgroup.c:3147 src/util/vircgroup.c:3161
 msgid "unable to get cpu account"
 msgstr "cpu ఖాతా పొందలేక పోయింది"
 
-#: src/util/vircgroup.c:3205
+#: src/util/vircgroup.c:3217
 #, c-format
 msgid "cfs_period '%llu' must be in range (1000, 1000000)"
 msgstr "cfs_period '%llu' తప్పక (1000, 1000000) విస్తృతి నందు వుండాలి"
 
-#: src/util/vircgroup.c:3250
+#: src/util/vircgroup.c:3262
 #, c-format
 msgid "cfs_quota '%lld' must be in range (1000, %llu)"
 msgstr "cfs_quota '%lld' తప్పక (1000, %llu) విస్తృతి నందు వుండాలి"
 
-#: src/util/vircgroup.c:3282
+#: src/util/vircgroup.c:3294
 #, c-format
 msgid "Unable to open %s (%d)"
 msgstr "%s (%d) తెరువలేక పోయింది"
 
-#: src/util/vircgroup.c:3305
+#: src/util/vircgroup.c:3317
 #, c-format
 msgid "Failed to readdir for %s (%d)"
 msgstr "%s (%d) కొరకు readdir విఫలమైంది"
 
-#: src/util/vircgroup.c:3313
+#: src/util/vircgroup.c:3325
 #, c-format
 msgid "Unable to remove %s (%d)"
 msgstr "%s (%d) తీసివేయలేక పోయింది"
 
-#: src/util/vircgroup.c:3400 src/util/vircgroup.c:3410 src/util/virfile.c:1816
+#: src/util/vircgroup.c:3412 src/util/vircgroup.c:3422 src/util/virfile.c:1816
 #, c-format
 msgid "Failed to read %s"
 msgstr "%s చదువుటకు విఫలమైంది"
 
-#: src/util/vircgroup.c:3422
+#: src/util/vircgroup.c:3434
 #, c-format
 msgid "Failed to kill process %lu"
 msgstr "ప్రోసెస్ %lu అంతం చేయుటకు విఫలమైంది"
 
-#: src/util/vircgroup.c:3635
+#: src/util/vircgroup.c:3647
 #, c-format
 msgid "Could not find directory separator in %s"
 msgstr "%s నందు డైరెక్టరీ విచ్చేదని కనుగొనలేక పోయింది"
 
-#: src/util/vircgroup.c:3647
+#: src/util/vircgroup.c:3659
 msgid "Could not find any mounted controllers"
 msgstr "మౌంటైన నియంత్రికలు కనుగొనలేక పోయింది"
 
-#: src/util/vircgroup.c:3695
+#: src/util/vircgroup.c:3707
 #, c-format
 msgid "Cannot parse user stat '%s'"
 msgstr "వాడుకరి గణాంకం '%s' పార్స్ చేయలేదు"
 
-#: src/util/vircgroup.c:3702
+#: src/util/vircgroup.c:3714
 #, c-format
 msgid "Cannot parse sys stat '%s'"
 msgstr "వ్యవస్థ గణాంకం '%s' పార్స్ చేయలేదు"
 
-#: src/util/vircgroup.c:3713
+#: src/util/vircgroup.c:3725
 msgid "Cannot determine system clock HZ"
 msgstr "వ్యవస్థ క్లాక్ HZ నిర్ణయించలేదు"
 
-#: src/util/vircgroup.c:3762 src/util/vircgroup.c:3794
+#: src/util/vircgroup.c:3774 src/util/vircgroup.c:3806
 #, c-format
 msgid "Unable to create directory %s"
 msgstr "డైరెక్టరీ %s సృష్టించలేక పోయింది"
 
-#: src/util/vircgroup.c:3773
+#: src/util/vircgroup.c:3785
 #, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "%s ను %s రకం %s పైన మౌంట్ చేయుటకు విఫలమైంది"
 
-#: src/util/vircgroup.c:3803
+#: src/util/vircgroup.c:3815
 #, c-format
 msgid "Failed to bind cgroup '%s' on '%s'"
 msgstr "cgroup '%s' ను '%s' పై బందనం చేయుటకు విఫలమైంది"
 
-#: src/util/vircgroup.c:3819
+#: src/util/vircgroup.c:3831
 #, c-format
 msgid "Unable to symlink directory %s to %s"
 msgstr "డైరెక్టరీ %s ను %s కు సిమ్‌లింక్ చేయలేదు"
 
-#: src/util/vircgroup.c:3861
+#: src/util/vircgroup.c:3873
 #, c-format
 msgid "Unable to open dir '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:3971 src/util/vircgroup.c:3980
-#: src/util/vircgroup.c:3993 src/util/vircgroup.c:4005
-#: src/util/vircgroup.c:4016 src/util/vircgroup.c:4028
-#: src/util/vircgroup.c:4039 src/util/vircgroup.c:4053
-#: src/util/vircgroup.c:4063 src/util/vircgroup.c:4083
-#: src/util/vircgroup.c:4100 src/util/vircgroup.c:4119
-#: src/util/vircgroup.c:4129 src/util/vircgroup.c:4140
-#: src/util/vircgroup.c:4150 src/util/vircgroup.c:4163
-#: src/util/vircgroup.c:4177 src/util/vircgroup.c:4187
-#: src/util/vircgroup.c:4197 src/util/vircgroup.c:4208
-#: src/util/vircgroup.c:4218 src/util/vircgroup.c:4228
-#: src/util/vircgroup.c:4238 src/util/vircgroup.c:4248
-#: src/util/vircgroup.c:4258 src/util/vircgroup.c:4268
-#: src/util/vircgroup.c:4278 src/util/vircgroup.c:4288
-#: src/util/vircgroup.c:4298 src/util/vircgroup.c:4308
-#: src/util/vircgroup.c:4318 src/util/vircgroup.c:4328
-#: src/util/vircgroup.c:4338 src/util/vircgroup.c:4348
-#: src/util/vircgroup.c:4358 src/util/vircgroup.c:4368
-#: src/util/vircgroup.c:4378 src/util/vircgroup.c:4387
-#: src/util/vircgroup.c:4395 src/util/vircgroup.c:4408
-#: src/util/vircgroup.c:4420 src/util/vircgroup.c:4431
-#: src/util/vircgroup.c:4444 src/util/vircgroup.c:4456
-#: src/util/vircgroup.c:4467 src/util/vircgroup.c:4477
-#: src/util/vircgroup.c:4487 src/util/vircgroup.c:4497
-#: src/util/vircgroup.c:4507 src/util/vircgroup.c:4517
-#: src/util/vircgroup.c:4526 src/util/vircgroup.c:4535
-#: src/util/vircgroup.c:4545 src/util/vircgroup.c:4555
-#: src/util/vircgroup.c:4564 src/util/vircgroup.c:4574
-#: src/util/vircgroup.c:4584 src/util/vircgroup.c:4594
-#: src/util/vircgroup.c:4605 src/util/vircgroup.c:4616
-#: src/util/vircgroup.c:4626 src/util/vircgroup.c:4636
-#: src/util/vircgroup.c:4647 src/util/vircgroup.c:4669
-#: src/util/vircgroup.c:4681 src/util/vircgroup.c:4690
+#: src/util/vircgroup.c:3983 src/util/vircgroup.c:3992
+#: src/util/vircgroup.c:4005 src/util/vircgroup.c:4017
+#: src/util/vircgroup.c:4028 src/util/vircgroup.c:4040
+#: src/util/vircgroup.c:4051 src/util/vircgroup.c:4065
+#: src/util/vircgroup.c:4075 src/util/vircgroup.c:4095
+#: src/util/vircgroup.c:4112 src/util/vircgroup.c:4131
+#: src/util/vircgroup.c:4141 src/util/vircgroup.c:4152
+#: src/util/vircgroup.c:4162 src/util/vircgroup.c:4175
+#: src/util/vircgroup.c:4189 src/util/vircgroup.c:4199
+#: src/util/vircgroup.c:4209 src/util/vircgroup.c:4220
+#: src/util/vircgroup.c:4230 src/util/vircgroup.c:4240
+#: src/util/vircgroup.c:4250 src/util/vircgroup.c:4260
+#: src/util/vircgroup.c:4270 src/util/vircgroup.c:4280
+#: src/util/vircgroup.c:4290 src/util/vircgroup.c:4300
+#: src/util/vircgroup.c:4310 src/util/vircgroup.c:4320
+#: src/util/vircgroup.c:4330 src/util/vircgroup.c:4340
+#: src/util/vircgroup.c:4350 src/util/vircgroup.c:4360
+#: src/util/vircgroup.c:4370 src/util/vircgroup.c:4380
+#: src/util/vircgroup.c:4390 src/util/vircgroup.c:4399
+#: src/util/vircgroup.c:4407 src/util/vircgroup.c:4420
+#: src/util/vircgroup.c:4432 src/util/vircgroup.c:4443
+#: src/util/vircgroup.c:4456 src/util/vircgroup.c:4468
+#: src/util/vircgroup.c:4479 src/util/vircgroup.c:4489
+#: src/util/vircgroup.c:4499 src/util/vircgroup.c:4509
+#: src/util/vircgroup.c:4519 src/util/vircgroup.c:4529
+#: src/util/vircgroup.c:4538 src/util/vircgroup.c:4547
+#: src/util/vircgroup.c:4557 src/util/vircgroup.c:4567
+#: src/util/vircgroup.c:4576 src/util/vircgroup.c:4586
+#: src/util/vircgroup.c:4596 src/util/vircgroup.c:4606
+#: src/util/vircgroup.c:4617 src/util/vircgroup.c:4628
+#: src/util/vircgroup.c:4638 src/util/vircgroup.c:4648
+#: src/util/vircgroup.c:4659 src/util/vircgroup.c:4681
+#: src/util/vircgroup.c:4693 src/util/vircgroup.c:4702
 msgid "Control groups not supported on this platform"
 msgstr "ఈ ప్లాట్‌ఫాం పైన నియంత్రిక సమూహాలు తోడ్పాటునీయవు"
 
