@@ -1,3 +1,10 @@
+libvirt (1.2.12~rc2-1) experimental; urgency=medium
+
+  * [67f2b22] New upstream version 1.2.12~rc2
+    (Closes: #776065)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 25 Jan 2015 13:02:59 +0100
+
 libvirt (1.2.12~rc1-1) experimental; urgency=medium
 
   * [994d31d] Bump standards version to 3.9.6
