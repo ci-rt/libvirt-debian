@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-01-24 10:25+0800\n"
+"POT-Creation-Date: 2015-01-27 15:49+0800\n"
 "PO-Revision-Date: 2014-12-10 18:40+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/libvirt/"
@@ -508,7 +508,7 @@ msgstr "клієнт намагався виконати неприпустим�
 
 #: daemon/remote.c:2945 daemon/remote.c:3096 daemon/remote.c:3194
 #: daemon/remote.c:3210 daemon/remote.c:3224 daemon/remote.c:3238
-#: src/util/virpolkit.c:227 src/util/virpolkit.c:250 src/util/virerror.c:1008
+#: src/util/virpolkit.c:227 src/util/virpolkit.c:250 src/util/virerror.c:1068
 msgid "authentication failed"
 msgstr "помилка при розпізнаванні"
 
@@ -951,9 +951,9 @@ msgstr "Не вдалося запустити віртуальну машину
 #: src/bhyve/bhyve_driver.c:95 src/libxl/libxl_driver.c:125
 #: src/qemu/qemu_capabilities.c:2940 src/qemu/qemu_driver.c:291
 #: src/qemu/qemu_driver.c:299 src/secret/secret_driver.c:500
-#: src/uml/uml_driver.c:197 src/util/virdbus.c:1558 src/util/virhook.c:304
+#: src/uml/uml_driver.c:197 src/util/virdbus.c:1566 src/util/virhook.c:304
 #: src/util/virhostdev.c:748 src/util/virhostdev.c:779
-#: src/util/virhostdev.c:830 src/util/virsystemd.c:297 src/util/virerror.c:265
+#: src/util/virhostdev.c:830 src/util/virerror.c:265
 #: src/xenapi/xenapi_utils.c:269 tools/virsh.c:306
 #: tools/virsh-domain-monitor.c:54
 msgid "unknown error"
@@ -7788,7 +7788,7 @@ msgstr "Не знайдено виробника процесорів %s"
 msgid "failed to load module %s %s"
 msgstr "не вдалося завантажити модуль %s %s"
 
-#: src/driver.c:78 src/util/virerror.c:761 tools/virsh.c:739
+#: src/driver.c:78 src/util/virerror.c:821 tools/virsh.c:739
 msgid "out of memory"
 msgstr "недостатньо пам'яті"
 
@@ -10553,7 +10553,7 @@ msgstr "Не вдалося створити простір блокувань %
 
 #: src/locking/lock_driver_sanlock.c:262 src/locking/lock_driver_sanlock.c:317
 #: src/locking/lock_driver_sanlock.c:671 src/storage/storage_backend.c:321
-#: src/util/vircgroup.c:3887 src/util/vircgroup.c:3899 src/util/virfile.c:2008
+#: src/util/vircgroup.c:3889 src/util/vircgroup.c:3901 src/util/virfile.c:2008
 #: src/util/virfile.c:2295
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
@@ -10803,7 +10803,7 @@ msgstr "не вдалося отримати шлях до контролера 
 msgid "Resource partition '%s' must start with '/'"
 msgstr "Назва розділу ресурсів «%s» має починатися з «/»"
 
-#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3543
+#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3545
 #, c-format
 msgid "Cannot open %s"
 msgstr "Не вдалося відкрити %s"
@@ -13305,7 +13305,7 @@ msgstr "Помилка libhal_get_all_devices"
 #: src/node_device/node_device_hal.c:720 src/qemu/qemu_migration.c:1785
 #: src/qemu/qemu_migration.c:2308 src/qemu/qemu_migration.c:2314
 #: src/qemu/qemu_migration.c:2320 src/qemu/qemu_migration.c:2372
-#: src/qemu/qemu_migration.c:3888 src/util/virdbus.c:1557
+#: src/qemu/qemu_migration.c:3888 src/util/virdbus.c:1565
 #, c-format
 msgid "%s: %s"
 msgstr "%s: %s"
@@ -22450,7 +22450,7 @@ msgstr ""
 msgid "failed to retrieve password"
 msgstr "не вдалося отримати пароль"
 
-#: src/rpc/virnetsshsession.c:746 src/util/virerror.c:1010
+#: src/rpc/virnetsshsession.c:746 src/util/virerror.c:1070
 #, c-format
 msgid "authentication failed: %s"
 msgstr "помилка розпізнавання: %s"
@@ -25503,135 +25503,135 @@ msgstr ""
 msgid "Memory '%llu' must be less than %llu"
 msgstr "Об’єм пам’яті «%llu» має бути меншим за %llu"
 
-#: src/util/vircgroup.c:3013 src/util/vircgroup.c:3092
+#: src/util/vircgroup.c:3013 src/util/vircgroup.c:3094
 msgid "cpuacct parse error"
 msgstr "помилка обробки cpuacct"
 
-#: src/util/vircgroup.c:3069
+#: src/util/vircgroup.c:3071
 #, c-format
 msgid "start_cpu %d larger than maximum of %d"
 msgstr "значення start_cpu, %d, перевищує максимум — %d"
 
-#: src/util/vircgroup.c:3147 src/util/vircgroup.c:3161
+#: src/util/vircgroup.c:3149 src/util/vircgroup.c:3163
 msgid "unable to get cpu account"
 msgstr "не вдалося отримати обліковий запис процесора"
 
-#: src/util/vircgroup.c:3217
+#: src/util/vircgroup.c:3219
 #, c-format
 msgid "cfs_period '%llu' must be in range (1000, 1000000)"
 msgstr "cfs_period «%llu» має належати до діапазону (1000, 1000000)"
 
-#: src/util/vircgroup.c:3262
+#: src/util/vircgroup.c:3264
 #, c-format
 msgid "cfs_quota '%lld' must be in range (1000, %llu)"
 msgstr "cfs_quota «%lld» має належати до діапазону (1000, %llu)"
 
-#: src/util/vircgroup.c:3294
+#: src/util/vircgroup.c:3296
 #, c-format
 msgid "Unable to open %s (%d)"
 msgstr "Не вдалося відкрити %s (%d)"
 
-#: src/util/vircgroup.c:3317
+#: src/util/vircgroup.c:3319
 #, c-format
 msgid "Failed to readdir for %s (%d)"
 msgstr "Не вдалося прочитати каталог для %s (%d)"
 
-#: src/util/vircgroup.c:3325
+#: src/util/vircgroup.c:3327
 #, c-format
 msgid "Unable to remove %s (%d)"
 msgstr "Не вдалося вилучити %s (%d)"
 
-#: src/util/vircgroup.c:3412 src/util/vircgroup.c:3422 src/util/virfile.c:1816
+#: src/util/vircgroup.c:3414 src/util/vircgroup.c:3424 src/util/virfile.c:1816
 #, c-format
 msgid "Failed to read %s"
 msgstr "Не вдалося прочитати %s"
 
-#: src/util/vircgroup.c:3434
+#: src/util/vircgroup.c:3436
 #, c-format
 msgid "Failed to kill process %lu"
 msgstr "Не вдалося вбити процес %lu"
 
-#: src/util/vircgroup.c:3647
+#: src/util/vircgroup.c:3649
 #, c-format
 msgid "Could not find directory separator in %s"
 msgstr "У %s не вдалося знайти роздільника каталогу"
 
-#: src/util/vircgroup.c:3659
+#: src/util/vircgroup.c:3661
 msgid "Could not find any mounted controllers"
 msgstr "Не вдалося знайти жодного змонтованого контролера"
 
-#: src/util/vircgroup.c:3707
+#: src/util/vircgroup.c:3709
 #, c-format
 msgid "Cannot parse user stat '%s'"
 msgstr "Не вдалося обробити статистичні дані щодо користувача «%s»"
 
-#: src/util/vircgroup.c:3714
+#: src/util/vircgroup.c:3716
 #, c-format
 msgid "Cannot parse sys stat '%s'"
 msgstr "Не вдалося обробити статистичні дані щодо системи «%s»"
 
-#: src/util/vircgroup.c:3725
+#: src/util/vircgroup.c:3727
 msgid "Cannot determine system clock HZ"
 msgstr "Не вдалося визначити частоту системного годинника"
 
-#: src/util/vircgroup.c:3774 src/util/vircgroup.c:3806
+#: src/util/vircgroup.c:3776 src/util/vircgroup.c:3808
 #, c-format
 msgid "Unable to create directory %s"
 msgstr "Не вдалося створити каталог %s"
 
-#: src/util/vircgroup.c:3785
+#: src/util/vircgroup.c:3787
 #, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "Не вдалося змонтувати %s на %s, тип %s"
 
-#: src/util/vircgroup.c:3815
+#: src/util/vircgroup.c:3817
 #, c-format
 msgid "Failed to bind cgroup '%s' on '%s'"
 msgstr "Не вдалося прив’язати cgroup «%s» на «%s»"
 
-#: src/util/vircgroup.c:3831
+#: src/util/vircgroup.c:3833
 #, c-format
 msgid "Unable to symlink directory %s to %s"
 msgstr "Не вдалося створити символічне посилання %s на каталог %s"
 
-#: src/util/vircgroup.c:3873
+#: src/util/vircgroup.c:3875
 #, c-format
 msgid "Unable to open dir '%s'"
 msgstr "Не вдалося відкрити каталог «%s»"
 
-#: src/util/vircgroup.c:3983 src/util/vircgroup.c:3992
-#: src/util/vircgroup.c:4005 src/util/vircgroup.c:4017
-#: src/util/vircgroup.c:4028 src/util/vircgroup.c:4040
-#: src/util/vircgroup.c:4051 src/util/vircgroup.c:4065
-#: src/util/vircgroup.c:4075 src/util/vircgroup.c:4095
-#: src/util/vircgroup.c:4112 src/util/vircgroup.c:4131
-#: src/util/vircgroup.c:4141 src/util/vircgroup.c:4152
-#: src/util/vircgroup.c:4162 src/util/vircgroup.c:4175
-#: src/util/vircgroup.c:4189 src/util/vircgroup.c:4199
-#: src/util/vircgroup.c:4209 src/util/vircgroup.c:4220
-#: src/util/vircgroup.c:4230 src/util/vircgroup.c:4240
-#: src/util/vircgroup.c:4250 src/util/vircgroup.c:4260
-#: src/util/vircgroup.c:4270 src/util/vircgroup.c:4280
-#: src/util/vircgroup.c:4290 src/util/vircgroup.c:4300
-#: src/util/vircgroup.c:4310 src/util/vircgroup.c:4320
-#: src/util/vircgroup.c:4330 src/util/vircgroup.c:4340
-#: src/util/vircgroup.c:4350 src/util/vircgroup.c:4360
-#: src/util/vircgroup.c:4370 src/util/vircgroup.c:4380
-#: src/util/vircgroup.c:4390 src/util/vircgroup.c:4399
-#: src/util/vircgroup.c:4407 src/util/vircgroup.c:4420
-#: src/util/vircgroup.c:4432 src/util/vircgroup.c:4443
-#: src/util/vircgroup.c:4456 src/util/vircgroup.c:4468
-#: src/util/vircgroup.c:4479 src/util/vircgroup.c:4489
-#: src/util/vircgroup.c:4499 src/util/vircgroup.c:4509
-#: src/util/vircgroup.c:4519 src/util/vircgroup.c:4529
-#: src/util/vircgroup.c:4538 src/util/vircgroup.c:4547
-#: src/util/vircgroup.c:4557 src/util/vircgroup.c:4567
-#: src/util/vircgroup.c:4576 src/util/vircgroup.c:4586
-#: src/util/vircgroup.c:4596 src/util/vircgroup.c:4606
-#: src/util/vircgroup.c:4617 src/util/vircgroup.c:4628
-#: src/util/vircgroup.c:4638 src/util/vircgroup.c:4648
-#: src/util/vircgroup.c:4659 src/util/vircgroup.c:4681
-#: src/util/vircgroup.c:4693 src/util/vircgroup.c:4702
+#: src/util/vircgroup.c:3985 src/util/vircgroup.c:3994
+#: src/util/vircgroup.c:4007 src/util/vircgroup.c:4019
+#: src/util/vircgroup.c:4030 src/util/vircgroup.c:4042
+#: src/util/vircgroup.c:4053 src/util/vircgroup.c:4067
+#: src/util/vircgroup.c:4077 src/util/vircgroup.c:4097
+#: src/util/vircgroup.c:4114 src/util/vircgroup.c:4133
+#: src/util/vircgroup.c:4143 src/util/vircgroup.c:4154
+#: src/util/vircgroup.c:4164 src/util/vircgroup.c:4177
+#: src/util/vircgroup.c:4191 src/util/vircgroup.c:4201
+#: src/util/vircgroup.c:4211 src/util/vircgroup.c:4222
+#: src/util/vircgroup.c:4232 src/util/vircgroup.c:4242
+#: src/util/vircgroup.c:4252 src/util/vircgroup.c:4262
+#: src/util/vircgroup.c:4272 src/util/vircgroup.c:4282
+#: src/util/vircgroup.c:4292 src/util/vircgroup.c:4302
+#: src/util/vircgroup.c:4312 src/util/vircgroup.c:4322
+#: src/util/vircgroup.c:4332 src/util/vircgroup.c:4342
+#: src/util/vircgroup.c:4352 src/util/vircgroup.c:4362
+#: src/util/vircgroup.c:4372 src/util/vircgroup.c:4382
+#: src/util/vircgroup.c:4392 src/util/vircgroup.c:4401
+#: src/util/vircgroup.c:4409 src/util/vircgroup.c:4422
+#: src/util/vircgroup.c:4434 src/util/vircgroup.c:4445
+#: src/util/vircgroup.c:4458 src/util/vircgroup.c:4470
+#: src/util/vircgroup.c:4481 src/util/vircgroup.c:4491
+#: src/util/vircgroup.c:4501 src/util/vircgroup.c:4511
+#: src/util/vircgroup.c:4521 src/util/vircgroup.c:4531
+#: src/util/vircgroup.c:4540 src/util/vircgroup.c:4549
+#: src/util/vircgroup.c:4559 src/util/vircgroup.c:4569
+#: src/util/vircgroup.c:4578 src/util/vircgroup.c:4588
+#: src/util/vircgroup.c:4598 src/util/vircgroup.c:4608
+#: src/util/vircgroup.c:4619 src/util/vircgroup.c:4630
+#: src/util/vircgroup.c:4640 src/util/vircgroup.c:4650
+#: src/util/vircgroup.c:4661 src/util/vircgroup.c:4683
+#: src/util/vircgroup.c:4695 src/util/vircgroup.c:4704
 msgid "Control groups not supported on this platform"
 msgstr "На цій платформі не передбачено підтримки груп керування (cgroup)"
 
@@ -26057,14 +26057,14 @@ msgstr "У повідомленні занадто багато полів дл�
 msgid "No args present for signature %s"
 msgstr "Немає аргументів для підпису %s"
 
-#: src/util/virdbus.c:1700
+#: src/util/virdbus.c:1707
 msgid "Reply message incorrect"
 msgstr "Повідомлення відповіді є некоректним"
 
-#: src/util/virdbus.c:1767 src/util/virdbus.c:1787 src/util/virdbus.c:1799
-#: src/util/virdbus.c:1812 src/util/virdbus.c:1821 src/util/virdbus.c:1829
-#: src/util/virdbus.c:1843 src/util/virdbus.c:1851 src/util/virdbus.c:1860
-#: src/util/virdbus.c:1869
+#: src/util/virdbus.c:1774 src/util/virdbus.c:1794 src/util/virdbus.c:1806
+#: src/util/virdbus.c:1819 src/util/virdbus.c:1828 src/util/virdbus.c:1836
+#: src/util/virdbus.c:1850 src/util/virdbus.c:1858 src/util/virdbus.c:1867
+#: src/util/virdbus.c:1876
 msgid "DBus support not compiled into this binary"
 msgstr "цей виконуваний файл зібрано без підтримки DBus"
 
@@ -26352,42 +26352,31 @@ msgstr "%s не знайдено у %s"
 msgid "Unable to parse %s %s"
 msgstr "Не вдалося обробити %s %s"
 
-#: src/util/virfirewall.c:169
+#: src/util/virfirewall.c:168
 msgid "firewalld firewall backend requested, but service is not running"
 msgstr ""
 "надіслано запит щодо модуля брандмауера firewalld, але ця служба не працює"
 
-#: src/util/virfirewall.c:189
-msgid "firewalld firewall backend requested, but DBus support disabled"
-msgstr ""
-"надіслано запит щодо модуля брандмауера firewalld, але підтримку DBus "
-"вимкнено"
-
-#: src/util/virfirewall.c:203
+#: src/util/virfirewall.c:192
 #, c-format
 msgid "direct firewall backend requested, but %s is not available"
 msgstr "надіслано запит щодо модуля брандмауера direct, але %s є недоступним"
 
-#: src/util/virfirewall.c:720 src/util/virfirewall.c:777
+#: src/util/virfirewall.c:709 src/util/virfirewall.c:765
 #, c-format
 msgid "Unknown firewall layer %d"
 msgstr "Невідомий шар брандмауера %d"
 
-#: src/util/virfirewall.c:742
+#: src/util/virfirewall.c:731
 #, c-format
 msgid "Failed to apply firewall rules %s: %s"
 msgstr "Не вдалося застосувати правила брандмауера %s: %s"
 
-#: src/util/virfirewall.c:826
-#, c-format
-msgid "Unable to apply rule '%s'"
-msgstr "Не вдалося застосувати правило «%s»"
-
-#: src/util/virfirewall.c:873
+#: src/util/virfirewall.c:856
 msgid "Unexpected firewall engine backend"
 msgstr "Неочікуваний модуль рушія брандмауера"
 
-#: src/util/virfirewall.c:891 src/util/virfirewall.c:958
+#: src/util/virfirewall.c:874 src/util/virfirewall.c:941
 msgid "Unable to create rule"
 msgstr "Не вдалося створити правило"
 
@@ -28121,7 +28110,7 @@ msgstr "/proc/net/dev: не знайдено інтерфейсу"
 msgid "Could not get interface list"
 msgstr "Не вдалося отримати список інтерфейсів"
 
-#: src/util/virstats.c:163 src/util/virerror.c:1104
+#: src/util/virstats.c:163 src/util/virerror.c:1164
 msgid "Interface not found"
 msgstr "Не знайдено інтерфейсу"
 
@@ -28368,11 +28357,6 @@ msgstr "Системна інформація призначення %s не в�
 msgid "Target sysinfo %s %s does not match source %s"
 msgstr "Системна інформація призначення %s %s не відповідає даним джерела %s"
 
-#: src/util/virsystemd.c:296
-#, fuzzy, c-format
-msgid "CreateMachineWithNetwork: %s"
-msgstr "Створити мережу."
-
 #: src/util/virerror.c:179
 msgid "An error occurred, but the cause is unknown"
 msgstr "Сталася помилка, але її причина невідома"
@@ -28389,809 +28373,809 @@ msgstr "попередження"
 msgid "error"
 msgstr "помилка"
 
-#: src/util/virerror.c:687
+#: src/util/virerror.c:719
 msgid "No error message provided"
 msgstr "Не вказано повідомлення про помилку"
 
-#: src/util/virerror.c:756
+#: src/util/virerror.c:816
 #, c-format
 msgid "internal error: %s"
 msgstr "внутрішня помилка: %s"
 
-#: src/util/virerror.c:758
+#: src/util/virerror.c:818
 msgid "internal error"
 msgstr "внутрішня помилка"
 
-#: src/util/virerror.c:765
+#: src/util/virerror.c:825
 msgid "this function is not supported by the connection driver"
 msgstr "ця функція не підтримується драйвером з’єднання"
 
-#: src/util/virerror.c:767
+#: src/util/virerror.c:827
 #, c-format
 msgid "this function is not supported by the connection driver: %s"
 msgstr "ця функція не підтримується драйвером з’єднання: %s"
 
-#: src/util/virerror.c:771
+#: src/util/virerror.c:831
 msgid "no connection driver available"
 msgstr "драйвер з’єднання недоступний"
 
-#: src/util/virerror.c:773
+#: src/util/virerror.c:833
 #, c-format
 msgid "no connection driver available for %s"
 msgstr "драйвер з’єднання для %s недоступний"
 
-#: src/util/virerror.c:777
+#: src/util/virerror.c:837
 msgid "invalid connection pointer in"
 msgstr "неправильний вказівник з'єднання у"
 
-#: src/util/virerror.c:779
+#: src/util/virerror.c:839
 #, c-format
 msgid "invalid connection pointer in %s"
 msgstr "неправильний вказівник з'єднання у %s"
 
-#: src/util/virerror.c:783
+#: src/util/virerror.c:843
 msgid "invalid domain pointer in"
 msgstr "неправильний вказівник домену у"
 
-#: src/util/virerror.c:785
+#: src/util/virerror.c:845
 #, c-format
 msgid "invalid domain pointer in %s"
 msgstr "неправильний вказівник домену у %s"
 
-#: src/util/virerror.c:789 src/xen/xen_hypervisor.c:2914
+#: src/util/virerror.c:849 src/xen/xen_hypervisor.c:2914
 msgid "invalid argument"
 msgstr "некоректний аргумент"
 
-#: src/util/virerror.c:791
+#: src/util/virerror.c:851
 #, c-format
 msgid "invalid argument: %s"
 msgstr "помилковий аргумент: %s"
 
-#: src/util/virerror.c:795
+#: src/util/virerror.c:855
 #, c-format
 msgid "operation failed: %s"
 msgstr "помилка дії: %s"
 
-#: src/util/virerror.c:797
+#: src/util/virerror.c:857
 msgid "operation failed"
 msgstr "помилка дії"
 
-#: src/util/virerror.c:801
+#: src/util/virerror.c:861
 #, c-format
 msgid "GET operation failed: %s"
 msgstr "Помилка дії GET: %s"
 
-#: src/util/virerror.c:803
+#: src/util/virerror.c:863
 msgid "GET operation failed"
 msgstr "Помилка дії GET"
 
-#: src/util/virerror.c:807
+#: src/util/virerror.c:867
 #, c-format
 msgid "POST operation failed: %s"
 msgstr "Помилка дії POST: %s"
 
-#: src/util/virerror.c:809
+#: src/util/virerror.c:869
 msgid "POST operation failed"
 msgstr "Помилка дії POST"
 
-#: src/util/virerror.c:812
+#: src/util/virerror.c:872
 #, c-format
 msgid "got unknown HTTP error code %d"
 msgstr "невідомий код помилки HTTP %d"
 
-#: src/util/virerror.c:816
+#: src/util/virerror.c:876
 #, c-format
 msgid "unknown host %s"
 msgstr "невідомий вузол %s"
 
-#: src/util/virerror.c:818
+#: src/util/virerror.c:878
 msgid "unknown host"
 msgstr "невідомий вузол"
 
-#: src/util/virerror.c:822
+#: src/util/virerror.c:882
 #, c-format
 msgid "failed to serialize S-Expr: %s"
 msgstr "помилка перетворення S-Expr: %s"
 
-#: src/util/virerror.c:824
+#: src/util/virerror.c:884
 msgid "failed to serialize S-Expr"
 msgstr "помилка перетворення S-Expr"
 
-#: src/util/virerror.c:828
+#: src/util/virerror.c:888
 msgid "could not use Xen hypervisor entry"
 msgstr "неможливо використати запис гіпервізора Xen"
 
-#: src/util/virerror.c:830
+#: src/util/virerror.c:890
 #, c-format
 msgid "could not use Xen hypervisor entry %s"
 msgstr "неможливо використати запис гіпервізора Xen %s"
 
-#: src/util/virerror.c:834
+#: src/util/virerror.c:894
 msgid "could not connect to Xen Store"
 msgstr "не вдається з'єднатись зі сховищем Xen"
 
-#: src/util/virerror.c:836
+#: src/util/virerror.c:896
 #, c-format
 msgid "could not connect to Xen Store %s"
 msgstr "не вдається з'єднатись зі сховищем Xen %s"
 
-#: src/util/virerror.c:839
+#: src/util/virerror.c:899
 #, c-format
 msgid "failed Xen syscall %s"
 msgstr "помилка системного виклику Xen %s"
 
-#: src/util/virerror.c:843
+#: src/util/virerror.c:903
 msgid "unknown OS type"
 msgstr "невідомий тип ОС"
 
-#: src/util/virerror.c:845
+#: src/util/virerror.c:905
 #, c-format
 msgid "unknown OS type %s"
 msgstr "невідомий тип ОС %s"
 
-#: src/util/virerror.c:848
+#: src/util/virerror.c:908
 msgid "missing kernel information"
 msgstr "не вказано даних щодо ядра"
 
-#: src/util/virerror.c:852
+#: src/util/virerror.c:912
 msgid "missing root device information"
 msgstr "немає даних про кореневий пристрій"
 
-#: src/util/virerror.c:854
+#: src/util/virerror.c:914
 #, c-format
 msgid "missing root device information in %s"
 msgstr "немає даних про кореневий пристрій у %s"
 
-#: src/util/virerror.c:858
+#: src/util/virerror.c:918
 msgid "missing source information for device"
 msgstr "немає даних щодо джерела для пристрою"
 
-#: src/util/virerror.c:860
+#: src/util/virerror.c:920
 #, c-format
 msgid "missing source information for device %s"
 msgstr "немає даних щодо джерела для пристрою %s"
 
-#: src/util/virerror.c:864
+#: src/util/virerror.c:924
 msgid "missing target information for device"
 msgstr "немає цільових даних для пристрою"
 
-#: src/util/virerror.c:866
+#: src/util/virerror.c:926
 #, c-format
 msgid "missing target information for device %s"
 msgstr "немає цільових даних для пристрою %s"
 
-#: src/util/virerror.c:870
+#: src/util/virerror.c:930
 msgid "missing name information"
 msgstr "не вистачає даних щодо назви"
 
-#: src/util/virerror.c:872
+#: src/util/virerror.c:932
 #, c-format
 msgid "missing name information in %s"
 msgstr "у %s не вистачає даних щодо назви"
 
-#: src/util/virerror.c:876
+#: src/util/virerror.c:936
 msgid "missing operating system information"
 msgstr "немає даних щодо ОС"
 
-#: src/util/virerror.c:878
+#: src/util/virerror.c:938
 #, c-format
 msgid "missing operating system information for %s"
 msgstr "немає даних щодо операційної системи %s"
 
-#: src/util/virerror.c:882
+#: src/util/virerror.c:942
 msgid "missing devices information"
 msgstr "немає даних щодо пристроїв"
 
-#: src/util/virerror.c:884
+#: src/util/virerror.c:944
 #, c-format
 msgid "missing devices information for %s"
 msgstr "немає даних щодо пристроїв %s"
 
-#: src/util/virerror.c:888
+#: src/util/virerror.c:948
 msgid "too many drivers registered"
 msgstr "зареєстровано надто багато драйверів"
 
-#: src/util/virerror.c:890
+#: src/util/virerror.c:950
 #, c-format
 msgid "too many drivers registered in %s"
 msgstr "зареєстровано надто багато драйверів %s"
 
-#: src/util/virerror.c:894
+#: src/util/virerror.c:954
 msgid "library call failed, possibly not supported"
 msgstr "помилка звернення до бібліотеки, можливо не підтримується"
 
-#: src/util/virerror.c:896
+#: src/util/virerror.c:956
 #, c-format
 msgid "library call %s failed, possibly not supported"
 msgstr "помилка звернення %s до бібліотеки, можливо не підтримується"
 
-#: src/util/virerror.c:900
+#: src/util/virerror.c:960
 msgid "XML description is invalid or not well formed"
 msgstr "Опис XML є некоректним або має помилкове форматування"
 
-#: src/util/virerror.c:902
+#: src/util/virerror.c:962
 #, c-format
 msgid "XML error: %s"
 msgstr "Помилка XML: %s"
 
-#: src/util/virerror.c:906
+#: src/util/virerror.c:966
 msgid "this domain exists already"
 msgstr "домен вже існує"
 
-#: src/util/virerror.c:908
+#: src/util/virerror.c:968
 #, c-format
 msgid "domain %s exists already"
 msgstr "домен %s вже існує"
 
-#: src/util/virerror.c:912
+#: src/util/virerror.c:972
 msgid "operation forbidden for read only access"
 msgstr "операція заборонена в режимі лише для читання"
 
-#: src/util/virerror.c:914
+#: src/util/virerror.c:974
 #, c-format
 msgid "operation forbidden: %s"
 msgstr "заборонена дія: %s"
 
-#: src/util/virerror.c:918
+#: src/util/virerror.c:978
 msgid "failed to open configuration file for reading"
 msgstr "помилка відкривання конфігураційного файла для читання"
 
-#: src/util/virerror.c:920
+#: src/util/virerror.c:980
 #, c-format
 msgid "failed to open %s for reading"
 msgstr "помилка при спробі відкрити %s для читання"
 
-#: src/util/virerror.c:924
+#: src/util/virerror.c:984
 msgid "failed to read configuration file"
 msgstr "помилка читання конфігураційного файла"
 
-#: src/util/virerror.c:926
+#: src/util/virerror.c:986
 #, c-format
 msgid "failed to read configuration file %s"
 msgstr "помилка читання конфігураційного файла %s"
 
-#: src/util/virerror.c:930
+#: src/util/virerror.c:990
 msgid "failed to parse configuration file"
 msgstr "помилка розбору конфігураційного файла"
 
-#: src/util/virerror.c:932
+#: src/util/virerror.c:992
 #, c-format
 msgid "failed to parse configuration file %s"
 msgstr "помилка розбору конфігураційного файла %s"
 
-#: src/util/virerror.c:936
+#: src/util/virerror.c:996
 msgid "configuration file syntax error"
 msgstr "синтаксична помилка у конфігураційному файлі"
 
-#: src/util/virerror.c:938
+#: src/util/virerror.c:998
 #, c-format
 msgid "configuration file syntax error: %s"
 msgstr "синтаксична помилка у конфігураційному файлі: %s"
 
-#: src/util/virerror.c:942
+#: src/util/virerror.c:1002
 msgid "failed to write configuration file"
 msgstr "помилка запису конфігураційного файла"
 
-#: src/util/virerror.c:944
+#: src/util/virerror.c:1004
 #, c-format
 msgid "failed to write configuration file: %s"
 msgstr "помилка запису конфігураційного файла: %s"
 
-#: src/util/virerror.c:948
+#: src/util/virerror.c:1008
 msgid "parser error"
 msgstr "помилка розбору"
 
-#: src/util/virerror.c:954
+#: src/util/virerror.c:1014
 msgid "invalid network pointer in"
 msgstr "неправильний вказівник мережі у"
 
-#: src/util/virerror.c:956
+#: src/util/virerror.c:1016
 #, c-format
 msgid "invalid network pointer in %s"
 msgstr "неправильний вказівник мережі у %s"
 
-#: src/util/virerror.c:960
+#: src/util/virerror.c:1020
 msgid "this network exists already"
 msgstr "ця мережа вже існує"
 
-#: src/util/virerror.c:962
+#: src/util/virerror.c:1022
 #, c-format
 msgid "network %s exists already"
 msgstr "мережа %s вже існує"
 
-#: src/util/virerror.c:966
+#: src/util/virerror.c:1026
 msgid "system call error"
 msgstr "помилка системного виклику"
 
-#: src/util/virerror.c:972
+#: src/util/virerror.c:1032
 msgid "RPC error"
 msgstr "помилка RPC"
 
-#: src/util/virerror.c:978
+#: src/util/virerror.c:1038
 msgid "GNUTLS call error"
 msgstr "помилка виклику GNUTLS"
 
-#: src/util/virerror.c:984
+#: src/util/virerror.c:1044
 msgid "Failed to find the network"
 msgstr "Не вдається знайти мережу"
 
-#: src/util/virerror.c:986
+#: src/util/virerror.c:1046
 #, c-format
 msgid "Failed to find the network: %s"
 msgstr "Не вдається знайти мережу: %s"
 
-#: src/util/virerror.c:990
+#: src/util/virerror.c:1050
 msgid "Domain not found"
 msgstr "Домен не знайдено"
 
-#: src/util/virerror.c:992
+#: src/util/virerror.c:1052
 #, c-format
 msgid "Domain not found: %s"
 msgstr "Домен не знайдено: %s"
 
-#: src/util/virerror.c:996
+#: src/util/virerror.c:1056
 msgid "Network not found"
 msgstr "Мережа не існує"
 
-#: src/util/virerror.c:998
+#: src/util/virerror.c:1058
 #, c-format
 msgid "Network not found: %s"
 msgstr "Мережа не існує: %s"
 
-#: src/util/virerror.c:1002
+#: src/util/virerror.c:1062
 msgid "invalid MAC address"
 msgstr "некоректна MAC-адреса"
 
-#: src/util/virerror.c:1004
+#: src/util/virerror.c:1064
 #, c-format
 msgid "invalid MAC address: %s"
 msgstr "некоректна MAC-адреса: %s"
 
-#: src/util/virerror.c:1014
+#: src/util/virerror.c:1074
 msgid "authentication cancelled"
 msgstr "розпізнавання скасовано"
 
-#: src/util/virerror.c:1016
+#: src/util/virerror.c:1076
 #, c-format
 msgid "authentication cancelled: %s"
 msgstr "розпізнавання скасовано: %s"
 
-#: src/util/virerror.c:1020
+#: src/util/virerror.c:1080
 msgid "Storage pool not found"
 msgstr "Резервного сховища даних не знайдено"
 
-#: src/util/virerror.c:1022
+#: src/util/virerror.c:1082
 #, c-format
 msgid "Storage pool not found: %s"
 msgstr "Резервного сховища даних не знайдено: %s"
 
-#: src/util/virerror.c:1026
+#: src/util/virerror.c:1086
 msgid "Storage volume not found"
 msgstr "Не знайдено тому сховища"
 
-#: src/util/virerror.c:1028
+#: src/util/virerror.c:1088
 #, c-format
 msgid "Storage volume not found: %s"
 msgstr "Не знайдено тому сховища: %s"
 
-#: src/util/virerror.c:1032
+#: src/util/virerror.c:1092
 msgid "this storage volume exists already"
 msgstr "цей том сховища даних вже існує"
 
-#: src/util/virerror.c:1034
+#: src/util/virerror.c:1094
 #, c-format
 msgid "storage volume %s exists already"
 msgstr "том сховища даних %s вже існує"
 
-#: src/util/virerror.c:1038
+#: src/util/virerror.c:1098
 msgid "Storage pool probe failed"
 msgstr "Помилка перевірки буфера даних"
 
-#: src/util/virerror.c:1040
+#: src/util/virerror.c:1100
 #, c-format
 msgid "Storage pool probe failed: %s"
 msgstr "Помилка перевірки буфера даних: %s"
 
-#: src/util/virerror.c:1044
+#: src/util/virerror.c:1104
 msgid "Storage pool already built"
 msgstr "Резервне сховище даних вже побудовано"
 
-#: src/util/virerror.c:1046
+#: src/util/virerror.c:1106
 #, c-format
 msgid "Storage pool already built: %s"
 msgstr "Резервне сховище даних вже побудовано: %s"
 
-#: src/util/virerror.c:1050
+#: src/util/virerror.c:1110
 msgid "invalid storage pool pointer in"
 msgstr "некоректний вказівник на буфер даних у"
 
-#: src/util/virerror.c:1052
+#: src/util/virerror.c:1112
 #, c-format
 msgid "invalid storage pool pointer in %s"
 msgstr "некоректний вказівник на буфер даних у %s"
 
-#: src/util/virerror.c:1056
+#: src/util/virerror.c:1116
 msgid "invalid storage volume pointer in"
 msgstr "некоректний вказівник на том сховища даних у"
 
-#: src/util/virerror.c:1058
+#: src/util/virerror.c:1118
 #, c-format
 msgid "invalid storage volume pointer in %s"
 msgstr "некоректний вказівник на том сховища даних у %s"
 
-#: src/util/virerror.c:1062
+#: src/util/virerror.c:1122
 msgid "Failed to find a storage driver"
 msgstr "Не вдалося знайти драйвер сховища даних"
 
-#: src/util/virerror.c:1064
+#: src/util/virerror.c:1124
 #, c-format
 msgid "Failed to find a storage driver: %s"
 msgstr "Не вдалося знайти драйвер сховища даних: %s"
 
-#: src/util/virerror.c:1068
+#: src/util/virerror.c:1128
 msgid "Failed to find a node driver"
 msgstr "Не вдалося знайти драйвер вузла"
 
-#: src/util/virerror.c:1070
+#: src/util/virerror.c:1130
 #, c-format
 msgid "Failed to find a node driver: %s"
 msgstr "Не вдалося знайти драйвер вузла: %s"
 
-#: src/util/virerror.c:1074
+#: src/util/virerror.c:1134
 msgid "invalid node device pointer"
 msgstr "некоректний вказівник на пристрій вузла"
 
-#: src/util/virerror.c:1076
+#: src/util/virerror.c:1136
 #, c-format
 msgid "invalid node device pointer in %s"
 msgstr "некоректний вказівник на пристрій вузла у %s"
 
-#: src/util/virerror.c:1080
+#: src/util/virerror.c:1140
 msgid "Node device not found"
 msgstr "Не знайдено пристрою вузла"
 
-#: src/util/virerror.c:1082
+#: src/util/virerror.c:1142
 #, c-format
 msgid "Node device not found: %s"
 msgstr "Не знайдено пристрою вузла: %s"
 
-#: src/util/virerror.c:1086
+#: src/util/virerror.c:1146
 msgid "Security model not found"
 msgstr "Не знайдено моделі захисту"
 
-#: src/util/virerror.c:1088
+#: src/util/virerror.c:1148
 #, c-format
 msgid "Security model not found: %s"
 msgstr "Не знайдено моделі захисту: %s"
 
-#: src/util/virerror.c:1092
+#: src/util/virerror.c:1152
 msgid "Requested operation is not valid"
 msgstr "Запитана дія є некоректною"
 
-#: src/util/virerror.c:1094
+#: src/util/virerror.c:1154
 #, c-format
 msgid "Requested operation is not valid: %s"
 msgstr "Запитана дія є некоректною: %s"
 
-#: src/util/virerror.c:1098
+#: src/util/virerror.c:1158
 msgid "Failed to find the interface"
 msgstr "Не вдалося знайти інтерфейс"
 
-#: src/util/virerror.c:1100
+#: src/util/virerror.c:1160
 #, c-format
 msgid "Failed to find the interface: %s"
 msgstr "Не вдалося знайти інтерфейс: %s"
 
-#: src/util/virerror.c:1106
+#: src/util/virerror.c:1166
 #, c-format
 msgid "Interface not found: %s"
 msgstr "Не знайдено інтерфейсу: %s"
 
-#: src/util/virerror.c:1110
+#: src/util/virerror.c:1170
 msgid "invalid interface pointer in"
 msgstr "некоректний вказівник на інтерфейс у"
 
-#: src/util/virerror.c:1112
+#: src/util/virerror.c:1172
 #, c-format
 msgid "invalid interface pointer in %s"
 msgstr "некоректний вказівник на інтерфейс у %s"
 
-#: src/util/virerror.c:1116
+#: src/util/virerror.c:1176
 msgid "multiple matching interfaces found"
 msgstr "знайдено декілька відповідних інтерфейсів"
 
-#: src/util/virerror.c:1118
+#: src/util/virerror.c:1178
 #, c-format
 msgid "multiple matching interfaces found: %s"
 msgstr "знайдено декілька відповідних інтерфейсів: %s"
 
-#: src/util/virerror.c:1122
+#: src/util/virerror.c:1182
 msgid "Failed to find a secret storage driver"
 msgstr "Не вдалося знайти драйвер сховища ключів"
 
-#: src/util/virerror.c:1124
+#: src/util/virerror.c:1184
 #, c-format
 msgid "Failed to find a secret storage driver: %s"
 msgstr "Не вдалося знайти драйвер сховища ключів: %s"
 
-#: src/util/virerror.c:1128
+#: src/util/virerror.c:1188
 msgid "Invalid secret"
 msgstr "Некоректний ключ"
 
-#: src/util/virerror.c:1130
+#: src/util/virerror.c:1190
 #, c-format
 msgid "Invalid secret: %s"
 msgstr "Некоректний ключ: %s"
 
-#: src/util/virerror.c:1134
+#: src/util/virerror.c:1194
 msgid "Secret not found"
 msgstr "Не знайдено ключа"
 
-#: src/util/virerror.c:1136
+#: src/util/virerror.c:1196
 #, c-format
 msgid "Secret not found: %s"
 msgstr "Не знайдено ключа: %s"
 
-#: src/util/virerror.c:1140
+#: src/util/virerror.c:1200
 msgid "Failed to start the nwfilter driver"
 msgstr "Не вдалося запустити драйвер фільтрування мережі"
 
-#: src/util/virerror.c:1142
+#: src/util/virerror.c:1202
 #, c-format
 msgid "Failed to start the nwfilter driver: %s"
 msgstr "Не вдалося запустити драйвер фільтрування мережі: %s"
 
-#: src/util/virerror.c:1146
+#: src/util/virerror.c:1206
 msgid "Invalid network filter"
 msgstr "Некоректний мережевий фільтр"
 
-#: src/util/virerror.c:1148
+#: src/util/virerror.c:1208
 #, c-format
 msgid "Invalid network filter: %s"
 msgstr "Некоректний мережевий фільтр: %s"
 
-#: src/util/virerror.c:1152
+#: src/util/virerror.c:1212
 msgid "Network filter not found"
 msgstr "Не знайдено фільтра мережі"
 
-#: src/util/virerror.c:1154
+#: src/util/virerror.c:1214
 #, c-format
 msgid "Network filter not found: %s"
 msgstr "Не знайдено фільтра мережі: %s"
 
-#: src/util/virerror.c:1158
+#: src/util/virerror.c:1218
 msgid "Error while building firewall"
 msgstr "Помилка під час збирання брандмауера"
 
-#: src/util/virerror.c:1160
+#: src/util/virerror.c:1220
 #, c-format
 msgid "Error while building firewall: %s"
 msgstr "Помилка під час збирання брандмауера: %s"
 
-#: src/util/virerror.c:1164
+#: src/util/virerror.c:1224
 msgid "unsupported configuration"
 msgstr "непідтримувана конфігурація"
 
-#: src/util/virerror.c:1166
+#: src/util/virerror.c:1226
 #, c-format
 msgid "unsupported configuration: %s"
 msgstr "непідтримувана конфігурація: %s"
 
-#: src/util/virerror.c:1170
+#: src/util/virerror.c:1230
 msgid "Timed out during operation"
 msgstr "Перевищення часу очікування на завершення дії"
 
-#: src/util/virerror.c:1172
+#: src/util/virerror.c:1232
 #, c-format
 msgid "Timed out during operation: %s"
 msgstr "Перевищення часу очікування на завершення дії: %s"
 
-#: src/util/virerror.c:1176
+#: src/util/virerror.c:1236
 msgid "Failed to make domain persistent after migration"
 msgstr "Не вдалося зробити домен постійним після перенесення"
 
-#: src/util/virerror.c:1178
+#: src/util/virerror.c:1238
 #, c-format
 msgid "Failed to make domain persistent after migration: %s"
 msgstr "Не вдалося зробити домен постійним після перенесення: %s"
 
-#: src/util/virerror.c:1182
+#: src/util/virerror.c:1242
 msgid "Hook script execution failed"
 msgstr "Помилка під час виконання додаткового скрипту"
 
-#: src/util/virerror.c:1184
+#: src/util/virerror.c:1244
 #, c-format
 msgid "Hook script execution failed: %s"
 msgstr "Помилка під час виконання додаткового скрипту: %s"
 
-#: src/util/virerror.c:1188
+#: src/util/virerror.c:1248
 msgid "Invalid snapshot"
 msgstr "Некоректний знімок"
 
-#: src/util/virerror.c:1190
+#: src/util/virerror.c:1250
 #, c-format
 msgid "Invalid snapshot: %s"
 msgstr "Некоректний знімок: %s"
 
-#: src/util/virerror.c:1194
+#: src/util/virerror.c:1254
 msgid "Domain snapshot not found"
 msgstr "Не знайдено знімка домену"
 
-#: src/util/virerror.c:1196
+#: src/util/virerror.c:1256
 #, c-format
 msgid "Domain snapshot not found: %s"
 msgstr "Не знайдено знімка домену: %s"
 
-#: src/util/virerror.c:1200
+#: src/util/virerror.c:1260
 msgid "invalid stream pointer"
 msgstr "некоректний вказівник на потік"
 
-#: src/util/virerror.c:1202
+#: src/util/virerror.c:1262
 #, c-format
 msgid "invalid stream pointer in %s"
 msgstr "некоректний вказівник на потік у %s"
 
-#: src/util/virerror.c:1206
+#: src/util/virerror.c:1266
 msgid "argument unsupported"
 msgstr "підтримки аргументу не передбачено"
 
-#: src/util/virerror.c:1208
+#: src/util/virerror.c:1268
 #, c-format
 msgid "argument unsupported: %s"
 msgstr "підтримки аргументу не передбачено: %s"
 
-#: src/util/virerror.c:1212
+#: src/util/virerror.c:1272
 msgid "revert requires force"
 msgstr "повернення має бути виконано у примусовому режимі"
 
-#: src/util/virerror.c:1214
+#: src/util/virerror.c:1274
 #, c-format
 msgid "revert requires force: %s"
 msgstr "повернення має бути виконано у примусовому режимі: %s"
 
-#: src/util/virerror.c:1218
+#: src/util/virerror.c:1278
 msgid "operation aborted"
 msgstr "виконання дії перервано"
 
-#: src/util/virerror.c:1220
+#: src/util/virerror.c:1280
 #, c-format
 msgid "operation aborted: %s"
 msgstr "виконання дії перервано: %s"
 
-#: src/util/virerror.c:1224
+#: src/util/virerror.c:1284
 msgid "metadata not found"
 msgstr "метадані не знайдено"
 
-#: src/util/virerror.c:1226
+#: src/util/virerror.c:1286
 #, c-format
 msgid "metadata not found: %s"
 msgstr "метадані не знайдено: %s"
 
-#: src/util/virerror.c:1230
+#: src/util/virerror.c:1290
 msgid "Unsafe migration"
 msgstr "Небезпечне перенесення"
 
-#: src/util/virerror.c:1232
+#: src/util/virerror.c:1292
 #, c-format
 msgid "Unsafe migration: %s"
 msgstr "Небезпечне перенесення: %s"
 
-#: src/util/virerror.c:1236
+#: src/util/virerror.c:1296
 msgid "numerical overflow"
 msgstr "числове переповнення"
 
-#: src/util/virerror.c:1238
+#: src/util/virerror.c:1298
 #, c-format
 msgid "numerical overflow: %s"
 msgstr "числове переповнення: %s"
 
-#: src/util/virerror.c:1242
+#: src/util/virerror.c:1302
 msgid "block copy still active"
 msgstr "не завершено копіювання блоків"
 
-#: src/util/virerror.c:1244
+#: src/util/virerror.c:1304
 #, c-format
 msgid "block copy still active: %s"
 msgstr "не завершено копіювання блоків: %s"
 
-#: src/util/virerror.c:1248
+#: src/util/virerror.c:1308
 msgid "Operation not supported"
 msgstr "Підтримки дії не передбачено"
 
-#: src/util/virerror.c:1250
+#: src/util/virerror.c:1310
 #, c-format
 msgid "Operation not supported: %s"
 msgstr "Підтримки дії не передбачено: %s"
 
-#: src/util/virerror.c:1254
+#: src/util/virerror.c:1314
 msgid "SSH transport error"
 msgstr "Помилка передавання даних SSH"
 
-#: src/util/virerror.c:1256
+#: src/util/virerror.c:1316
 #, c-format
 msgid "SSH transport error: %s"
 msgstr "Помилка передавання даних SSH: %s"
 
-#: src/util/virerror.c:1260
+#: src/util/virerror.c:1320
 msgid "Guest agent is not responding"
 msgstr "Агент гостьової системи не відповідає"
 
-#: src/util/virerror.c:1262
+#: src/util/virerror.c:1322
 #, c-format
 msgid "Guest agent is not responding: %s"
 msgstr "Агент гостьової системи не відповідає: %s"
 
-#: src/util/virerror.c:1266
+#: src/util/virerror.c:1326
 msgid "resource busy"
 msgstr "ресурс зайнято"
 
-#: src/util/virerror.c:1268
+#: src/util/virerror.c:1328
 #, c-format
 msgid "resource busy %s"
 msgstr "ресурс зайнято, %s"
 
-#: src/util/virerror.c:1272
+#: src/util/virerror.c:1332
 msgid "access denied"
 msgstr "доступ заборонено"
 
-#: src/util/virerror.c:1274
+#: src/util/virerror.c:1334
 #, c-format
 msgid "access denied: %s"
 msgstr "доступ заборонено: %s"
 
-#: src/util/virerror.c:1278
+#: src/util/virerror.c:1338
 msgid "error from service"
 msgstr "повідомлення про помилку від служби"
 
-#: src/util/virerror.c:1280
+#: src/util/virerror.c:1340
 #, c-format
 msgid "error from service: %s"
 msgstr "повідомлення про помилку від служби: %s"
 
-#: src/util/virerror.c:1284
+#: src/util/virerror.c:1344
 msgid "the CPU is incompatible with host CPU"
 msgstr "процесор не є сумісним з процесором основної системи"
 
-#: src/util/virerror.c:1286
+#: src/util/virerror.c:1346
 #, c-format
 msgid "the CPU is incompatible with host CPU: %s"
 msgstr "процесор не є сумісним з процесором основної системи: %s"
 
-#: src/util/virerror.c:1290
+#: src/util/virerror.c:1350
 msgid "XML document failed to validate against schema"
 msgstr ""
 
-#: src/util/virerror.c:1292
+#: src/util/virerror.c:1352
 #, fuzzy, c-format
 msgid "XML document failed to validate against schema: %s"
 msgstr "Наш власний сертифікат %s не пройшов перевірки за допомогою %s: %s"
 
-#: src/util/virerror.h:80
+#: src/util/virerror.h:85
 #, c-format
 msgid "%s in %s must be NULL"
 msgstr "%s у %s має бути порожнім"
 
-#: src/util/virerror.h:91
+#: src/util/virerror.h:96
 #, c-format
 msgid "%s in %s must not be NULL"
 msgstr "%s у %s має бути непорожнім"
 
-#: src/util/virerror.h:102
+#: src/util/virerror.h:107
 #, c-format
 msgid "%s in %s must be greater than zero"
 msgstr "%s у %s має перевищувати нуль"
 
-#: src/util/virerror.h:113
+#: src/util/virerror.h:118
 #, c-format
 msgid "%s in %s must not be zero"
 msgstr "%s у %s має бути ненульовим"
 
-#: src/util/virerror.h:124
+#: src/util/virerror.h:129
 #, c-format
 msgid "%s in %s must be zero"
 msgstr "%s у %s має дорівнювати нулю"
 
-#: src/util/virerror.h:135
+#: src/util/virerror.h:140
 #, c-format
 msgid "%s in %s must be zero or greater"
 msgstr "%s у %s має бути невід’ємним"
@@ -41111,6 +41095,18 @@ msgstr "Не вдалося змінити каталог на %s"
 #, c-format
 msgid "Unable to exec shell %s"
 msgstr "Не вдалося виконати оболонку %s"
+
+#~ msgid "firewalld firewall backend requested, but DBus support disabled"
+#~ msgstr ""
+#~ "надіслано запит щодо модуля брандмауера firewalld, але підтримку DBus "
+#~ "вимкнено"
+
+#~ msgid "Unable to apply rule '%s'"
+#~ msgstr "Не вдалося застосувати правило «%s»"
+
+#, fuzzy
+#~ msgid "CreateMachineWithNetwork: %s"
+#~ msgstr "Створити мережу."
 
 #~ msgid "no lease with matching MAC address: %s"
 #~ msgstr "немає надання з відповідною MAC-адресою: %s"

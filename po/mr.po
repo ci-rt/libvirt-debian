@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-01-24 10:25+0800\n"
+"POT-Creation-Date: 2015-01-27 15:49+0800\n"
 "PO-Revision-Date: 2014-10-29 03:16+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Marathi (http://www.transifex.com/projects/p/libvirt/language/"
@@ -501,7 +501,7 @@ msgstr "क्लाएंटने अवैध SASL init विनंती �
 
 #: daemon/remote.c:2945 daemon/remote.c:3096 daemon/remote.c:3194
 #: daemon/remote.c:3210 daemon/remote.c:3224 daemon/remote.c:3238
-#: src/util/virpolkit.c:227 src/util/virpolkit.c:250 src/util/virerror.c:1008
+#: src/util/virpolkit.c:227 src/util/virpolkit.c:250 src/util/virerror.c:1068
 msgid "authentication failed"
 msgstr "अधिप्रमाणन अपयशी"
 
@@ -940,9 +940,9 @@ msgstr "VM '%s' स्वयंसुरू करण्यास अपयश�
 #: src/bhyve/bhyve_driver.c:95 src/libxl/libxl_driver.c:125
 #: src/qemu/qemu_capabilities.c:2940 src/qemu/qemu_driver.c:291
 #: src/qemu/qemu_driver.c:299 src/secret/secret_driver.c:500
-#: src/uml/uml_driver.c:197 src/util/virdbus.c:1558 src/util/virhook.c:304
+#: src/uml/uml_driver.c:197 src/util/virdbus.c:1566 src/util/virhook.c:304
 #: src/util/virhostdev.c:748 src/util/virhostdev.c:779
-#: src/util/virhostdev.c:830 src/util/virsystemd.c:297 src/util/virerror.c:265
+#: src/util/virhostdev.c:830 src/util/virerror.c:265
 #: src/xenapi/xenapi_utils.c:269 tools/virsh.c:306
 #: tools/virsh-domain-monitor.c:54
 msgid "unknown error"
@@ -7427,7 +7427,7 @@ msgstr "CPU विक्रेता %s आढळले नाही"
 msgid "failed to load module %s %s"
 msgstr "मॉड्युल %s %s लोड करणे अशक्य"
 
-#: src/driver.c:78 src/util/virerror.c:761 tools/virsh.c:739
+#: src/driver.c:78 src/util/virerror.c:821 tools/virsh.c:739
 msgid "out of memory"
 msgstr "स्मृतीबाहेर"
 
@@ -10083,7 +10083,7 @@ msgstr "लॉकस्पेस् %s निर्माण करण्या�
 
 #: src/locking/lock_driver_sanlock.c:262 src/locking/lock_driver_sanlock.c:317
 #: src/locking/lock_driver_sanlock.c:671 src/storage/storage_backend.c:321
-#: src/util/vircgroup.c:3887 src/util/vircgroup.c:3899 src/util/virfile.c:2008
+#: src/util/vircgroup.c:3889 src/util/vircgroup.c:3901 src/util/virfile.c:2008
 #: src/util/virfile.c:2295
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
@@ -10328,7 +10328,7 @@ msgstr "MEMORY cgroup कंट्रोलरचे मार्ग प्र�
 msgid "Resource partition '%s' must start with '/'"
 msgstr "रिसोअर्स विभाजन '%s' '/'सह सुरू पाहिजे"
 
-#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3543
+#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3545
 #, c-format
 msgid "Cannot open %s"
 msgstr "%s उघडणे अशक्य"
@@ -12755,7 +12755,7 @@ msgstr "libhal_get_all_devices अपयशी"
 #: src/node_device/node_device_hal.c:720 src/qemu/qemu_migration.c:1785
 #: src/qemu/qemu_migration.c:2308 src/qemu/qemu_migration.c:2314
 #: src/qemu/qemu_migration.c:2320 src/qemu/qemu_migration.c:2372
-#: src/qemu/qemu_migration.c:3888 src/util/virdbus.c:1557
+#: src/qemu/qemu_migration.c:3888 src/util/virdbus.c:1565
 #, c-format
 msgid "%s: %s"
 msgstr "%s: %s"
@@ -21360,7 +21360,7 @@ msgstr "ओळख पटवणे अशक्य: ऑथेंटिकेश�
 msgid "failed to retrieve password"
 msgstr "पासवर्ड पुन्हप्राप्ति अपयशी"
 
-#: src/rpc/virnetsshsession.c:746 src/util/virerror.c:1010
+#: src/rpc/virnetsshsession.c:746 src/util/virerror.c:1070
 #, c-format
 msgid "authentication failed: %s"
 msgstr "अधिप्रमाणन अपयशी: %s"
@@ -24315,135 +24315,135 @@ msgstr "विनंती %sstats अशक्य, ब्लॉक साधन
 msgid "Memory '%llu' must be less than %llu"
 msgstr "मेमरि '%llu', %llu पेक्षा कमी पाहिजे"
 
-#: src/util/vircgroup.c:3013 src/util/vircgroup.c:3092
+#: src/util/vircgroup.c:3013 src/util/vircgroup.c:3094
 msgid "cpuacct parse error"
 msgstr "cpuacct वाचन त्रुटी"
 
-#: src/util/vircgroup.c:3069
+#: src/util/vircgroup.c:3071
 #, c-format
 msgid "start_cpu %d larger than maximum of %d"
 msgstr "start_cpu %d कमाल %d पेक्षा मोठे आहे"
 
-#: src/util/vircgroup.c:3147 src/util/vircgroup.c:3161
+#: src/util/vircgroup.c:3149 src/util/vircgroup.c:3163
 msgid "unable to get cpu account"
 msgstr "cpu खाते प्राप्त करण्यास अशक्य"
 
-#: src/util/vircgroup.c:3217
+#: src/util/vircgroup.c:3219
 #, c-format
 msgid "cfs_period '%llu' must be in range (1000, 1000000)"
 msgstr "cfs_period '%llu' ची व्याप्ति (1000, 1000000) पाहिजे"
 
-#: src/util/vircgroup.c:3262
+#: src/util/vircgroup.c:3264
 #, c-format
 msgid "cfs_quota '%lld' must be in range (1000, %llu)"
 msgstr "cfs_quota '%lld' ची व्याप्ति (1000, %llu) पाहिजे"
 
-#: src/util/vircgroup.c:3294
+#: src/util/vircgroup.c:3296
 #, c-format
 msgid "Unable to open %s (%d)"
 msgstr "%s (%d) उघडण्यास अशक्य"
 
-#: src/util/vircgroup.c:3317
+#: src/util/vircgroup.c:3319
 #, c-format
 msgid "Failed to readdir for %s (%d)"
 msgstr "%s (%d) करिता डिरेक्ट्री पुनःसमाविष्ट करण्यास अपयशी"
 
-#: src/util/vircgroup.c:3325
+#: src/util/vircgroup.c:3327
 #, c-format
 msgid "Unable to remove %s (%d)"
 msgstr "%s (%d) काढून टाकणे अशक्य"
 
-#: src/util/vircgroup.c:3412 src/util/vircgroup.c:3422 src/util/virfile.c:1816
+#: src/util/vircgroup.c:3414 src/util/vircgroup.c:3424 src/util/virfile.c:1816
 #, c-format
 msgid "Failed to read %s"
 msgstr "%s वाचण्यास अपयशी"
 
-#: src/util/vircgroup.c:3434
+#: src/util/vircgroup.c:3436
 #, c-format
 msgid "Failed to kill process %lu"
 msgstr "प्रोसेस %lu नष्ट करण्यास अपयशी"
 
-#: src/util/vircgroup.c:3647
+#: src/util/vircgroup.c:3649
 #, c-format
 msgid "Could not find directory separator in %s"
 msgstr "%sमध्ये डिरेक्ट्रि सपरेटर शोधणे अशक्य"
 
-#: src/util/vircgroup.c:3659
+#: src/util/vircgroup.c:3661
 msgid "Could not find any mounted controllers"
 msgstr "कोणतेही माऊंटेड कंट्रोलर्स शोधणे अशक्य"
 
-#: src/util/vircgroup.c:3707
+#: src/util/vircgroup.c:3709
 #, c-format
 msgid "Cannot parse user stat '%s'"
 msgstr "वापरकर्ता stat '%s' वाचणे अशक्य"
 
-#: src/util/vircgroup.c:3714
+#: src/util/vircgroup.c:3716
 #, c-format
 msgid "Cannot parse sys stat '%s'"
 msgstr "sys stat '%s' वाचणे अशक्य"
 
-#: src/util/vircgroup.c:3725
+#: src/util/vircgroup.c:3727
 msgid "Cannot determine system clock HZ"
 msgstr "सिस्टम क्लॉक HZ ओळखणे अशक्य"
 
-#: src/util/vircgroup.c:3774 src/util/vircgroup.c:3806
+#: src/util/vircgroup.c:3776 src/util/vircgroup.c:3808
 #, c-format
 msgid "Unable to create directory %s"
 msgstr "डिरेक्ट्री %s निर्माण करण्यास अशक्य"
 
-#: src/util/vircgroup.c:3785
+#: src/util/vircgroup.c:3787
 #, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "%s ला %s वर प्रकार %s म्हणून माउंट करण्यास अपयशी"
 
-#: src/util/vircgroup.c:3815
+#: src/util/vircgroup.c:3817
 #, c-format
 msgid "Failed to bind cgroup '%s' on '%s'"
 msgstr "cgroup '%s'ची बांधणी अपयशी, '%s' वरील"
 
-#: src/util/vircgroup.c:3831
+#: src/util/vircgroup.c:3833
 #, c-format
 msgid "Unable to symlink directory %s to %s"
 msgstr "डिरेक्ट्री %s ला %s करिता symlink अशक्य"
 
-#: src/util/vircgroup.c:3873
+#: src/util/vircgroup.c:3875
 #, c-format
 msgid "Unable to open dir '%s'"
 msgstr "डिरेक्ट्री '%s' उघडणे अशक्य"
 
-#: src/util/vircgroup.c:3983 src/util/vircgroup.c:3992
-#: src/util/vircgroup.c:4005 src/util/vircgroup.c:4017
-#: src/util/vircgroup.c:4028 src/util/vircgroup.c:4040
-#: src/util/vircgroup.c:4051 src/util/vircgroup.c:4065
-#: src/util/vircgroup.c:4075 src/util/vircgroup.c:4095
-#: src/util/vircgroup.c:4112 src/util/vircgroup.c:4131
-#: src/util/vircgroup.c:4141 src/util/vircgroup.c:4152
-#: src/util/vircgroup.c:4162 src/util/vircgroup.c:4175
-#: src/util/vircgroup.c:4189 src/util/vircgroup.c:4199
-#: src/util/vircgroup.c:4209 src/util/vircgroup.c:4220
-#: src/util/vircgroup.c:4230 src/util/vircgroup.c:4240
-#: src/util/vircgroup.c:4250 src/util/vircgroup.c:4260
-#: src/util/vircgroup.c:4270 src/util/vircgroup.c:4280
-#: src/util/vircgroup.c:4290 src/util/vircgroup.c:4300
-#: src/util/vircgroup.c:4310 src/util/vircgroup.c:4320
-#: src/util/vircgroup.c:4330 src/util/vircgroup.c:4340
-#: src/util/vircgroup.c:4350 src/util/vircgroup.c:4360
-#: src/util/vircgroup.c:4370 src/util/vircgroup.c:4380
-#: src/util/vircgroup.c:4390 src/util/vircgroup.c:4399
-#: src/util/vircgroup.c:4407 src/util/vircgroup.c:4420
-#: src/util/vircgroup.c:4432 src/util/vircgroup.c:4443
-#: src/util/vircgroup.c:4456 src/util/vircgroup.c:4468
-#: src/util/vircgroup.c:4479 src/util/vircgroup.c:4489
-#: src/util/vircgroup.c:4499 src/util/vircgroup.c:4509
-#: src/util/vircgroup.c:4519 src/util/vircgroup.c:4529
-#: src/util/vircgroup.c:4538 src/util/vircgroup.c:4547
-#: src/util/vircgroup.c:4557 src/util/vircgroup.c:4567
-#: src/util/vircgroup.c:4576 src/util/vircgroup.c:4586
-#: src/util/vircgroup.c:4596 src/util/vircgroup.c:4606
-#: src/util/vircgroup.c:4617 src/util/vircgroup.c:4628
-#: src/util/vircgroup.c:4638 src/util/vircgroup.c:4648
-#: src/util/vircgroup.c:4659 src/util/vircgroup.c:4681
-#: src/util/vircgroup.c:4693 src/util/vircgroup.c:4702
+#: src/util/vircgroup.c:3985 src/util/vircgroup.c:3994
+#: src/util/vircgroup.c:4007 src/util/vircgroup.c:4019
+#: src/util/vircgroup.c:4030 src/util/vircgroup.c:4042
+#: src/util/vircgroup.c:4053 src/util/vircgroup.c:4067
+#: src/util/vircgroup.c:4077 src/util/vircgroup.c:4097
+#: src/util/vircgroup.c:4114 src/util/vircgroup.c:4133
+#: src/util/vircgroup.c:4143 src/util/vircgroup.c:4154
+#: src/util/vircgroup.c:4164 src/util/vircgroup.c:4177
+#: src/util/vircgroup.c:4191 src/util/vircgroup.c:4201
+#: src/util/vircgroup.c:4211 src/util/vircgroup.c:4222
+#: src/util/vircgroup.c:4232 src/util/vircgroup.c:4242
+#: src/util/vircgroup.c:4252 src/util/vircgroup.c:4262
+#: src/util/vircgroup.c:4272 src/util/vircgroup.c:4282
+#: src/util/vircgroup.c:4292 src/util/vircgroup.c:4302
+#: src/util/vircgroup.c:4312 src/util/vircgroup.c:4322
+#: src/util/vircgroup.c:4332 src/util/vircgroup.c:4342
+#: src/util/vircgroup.c:4352 src/util/vircgroup.c:4362
+#: src/util/vircgroup.c:4372 src/util/vircgroup.c:4382
+#: src/util/vircgroup.c:4392 src/util/vircgroup.c:4401
+#: src/util/vircgroup.c:4409 src/util/vircgroup.c:4422
+#: src/util/vircgroup.c:4434 src/util/vircgroup.c:4445
+#: src/util/vircgroup.c:4458 src/util/vircgroup.c:4470
+#: src/util/vircgroup.c:4481 src/util/vircgroup.c:4491
+#: src/util/vircgroup.c:4501 src/util/vircgroup.c:4511
+#: src/util/vircgroup.c:4521 src/util/vircgroup.c:4531
+#: src/util/vircgroup.c:4540 src/util/vircgroup.c:4549
+#: src/util/vircgroup.c:4559 src/util/vircgroup.c:4569
+#: src/util/vircgroup.c:4578 src/util/vircgroup.c:4588
+#: src/util/vircgroup.c:4598 src/util/vircgroup.c:4608
+#: src/util/vircgroup.c:4619 src/util/vircgroup.c:4630
+#: src/util/vircgroup.c:4640 src/util/vircgroup.c:4650
+#: src/util/vircgroup.c:4661 src/util/vircgroup.c:4683
+#: src/util/vircgroup.c:4695 src/util/vircgroup.c:4704
 msgid "Control groups not supported on this platform"
 msgstr "कंट्रोल गट ह्या प्लॅटफॉर्मवर समर्थीत नाही"
 
@@ -24850,14 +24850,14 @@ msgstr "स्वाक्षरिकरिता संदेशमध्य�
 msgid "No args present for signature %s"
 msgstr "स्वाक्षरि %s करिता बाब उपस्थीत नाही"
 
-#: src/util/virdbus.c:1700
+#: src/util/virdbus.c:1707
 msgid "Reply message incorrect"
 msgstr "प्रतिसाद संदेश अयोग्य"
 
-#: src/util/virdbus.c:1767 src/util/virdbus.c:1787 src/util/virdbus.c:1799
-#: src/util/virdbus.c:1812 src/util/virdbus.c:1821 src/util/virdbus.c:1829
-#: src/util/virdbus.c:1843 src/util/virdbus.c:1851 src/util/virdbus.c:1860
-#: src/util/virdbus.c:1869
+#: src/util/virdbus.c:1774 src/util/virdbus.c:1794 src/util/virdbus.c:1806
+#: src/util/virdbus.c:1819 src/util/virdbus.c:1828 src/util/virdbus.c:1836
+#: src/util/virdbus.c:1850 src/util/virdbus.c:1858 src/util/virdbus.c:1867
+#: src/util/virdbus.c:1876
 msgid "DBus support not compiled into this binary"
 msgstr "DBus सपोर्ट बाइनरिमध्ये कंपाइल केले जात नाही"
 
@@ -25142,39 +25142,30 @@ msgstr "%s आढळले नाही, %s अंतर्गत"
 msgid "Unable to parse %s %s"
 msgstr "%s %s वाचणे अशक्य"
 
-#: src/util/virfirewall.c:169
+#: src/util/virfirewall.c:168
 msgid "firewalld firewall backend requested, but service is not running"
 msgstr "firewalld firewall बॅकएंडकरिता विनंती केली, परंतु सर्व्हिस कार्यरत नाही"
 
-#: src/util/virfirewall.c:189
-msgid "firewalld firewall backend requested, but DBus support disabled"
-msgstr "firewalld firewall बॅकएंडकरिता विनंती केली, परंतु DBus समर्थन बंद केले"
-
-#: src/util/virfirewall.c:203
+#: src/util/virfirewall.c:192
 #, c-format
 msgid "direct firewall backend requested, but %s is not available"
 msgstr "प्रत्यक्ष firewall बॅकएंडकरिता विनंती केली, परंतु %s उपलब्ध नाही"
 
-#: src/util/virfirewall.c:720 src/util/virfirewall.c:777
+#: src/util/virfirewall.c:709 src/util/virfirewall.c:765
 #, c-format
 msgid "Unknown firewall layer %d"
 msgstr "अपरिचीत firewall स्तर %d"
 
-#: src/util/virfirewall.c:742
+#: src/util/virfirewall.c:731
 #, c-format
 msgid "Failed to apply firewall rules %s: %s"
 msgstr "firewall नियम %s: %s लागू करण्यास अपयशी"
 
-#: src/util/virfirewall.c:826
-#, c-format
-msgid "Unable to apply rule '%s'"
-msgstr "नियम '%s' लागू करण्यास अशक्य"
-
-#: src/util/virfirewall.c:873
+#: src/util/virfirewall.c:856
 msgid "Unexpected firewall engine backend"
 msgstr "अपेक्षित firewall इंजिन बॅकएंड"
 
-#: src/util/virfirewall.c:891 src/util/virfirewall.c:958
+#: src/util/virfirewall.c:874 src/util/virfirewall.c:941
 msgid "Unable to create rule"
 msgstr "नियम निर्माण अशक्य"
 
@@ -26858,7 +26849,7 @@ msgstr "/proc/net/dev: इंटरफेस आढळले नाही"
 msgid "Could not get interface list"
 msgstr "इंटरफेस सूचीची प्राप्ति अशक्य"
 
-#: src/util/virstats.c:163 src/util/virerror.c:1104
+#: src/util/virstats.c:163 src/util/virerror.c:1164
 msgid "Interface not found"
 msgstr "संवाद आढळले नाही"
 
@@ -27097,11 +27088,6 @@ msgstr "लक्ष्य sysinfo %s स्रोत %s सह जुळत न
 msgid "Target sysinfo %s %s does not match source %s"
 msgstr "लक्ष्य sysinfo %s %s स्रोत %s सह जुळत नाही"
 
-#: src/util/virsystemd.c:296
-#, fuzzy, c-format
-msgid "CreateMachineWithNetwork: %s"
-msgstr "नेटवर्क निर्माण करा."
-
 #: src/util/virerror.c:179
 msgid "An error occurred, but the cause is unknown"
 msgstr "त्रुटी आढळली, परंतु कारण अपरिचीत आहे"
@@ -27118,809 +27104,809 @@ msgstr "सुचना"
 msgid "error"
 msgstr "चूक"
 
-#: src/util/virerror.c:687
+#: src/util/virerror.c:719
 msgid "No error message provided"
 msgstr "चूक संदेश पुरवला नाही"
 
-#: src/util/virerror.c:756
+#: src/util/virerror.c:816
 #, c-format
 msgid "internal error: %s"
 msgstr "आंतरिक त्रुटी: %s"
 
-#: src/util/virerror.c:758
+#: src/util/virerror.c:818
 msgid "internal error"
 msgstr "अंतर्गत चूक "
 
-#: src/util/virerror.c:765
+#: src/util/virerror.c:825
 msgid "this function is not supported by the connection driver"
 msgstr "हे फंक्शन जोडणी ड्राइव्हरतर्फे समर्थीत नाही"
 
-#: src/util/virerror.c:767
+#: src/util/virerror.c:827
 #, c-format
 msgid "this function is not supported by the connection driver: %s"
 msgstr "हे फंक्शन जोडणी ड्राइव्हरतर्फे समर्थीत नाही: %s"
 
-#: src/util/virerror.c:771
+#: src/util/virerror.c:831
 msgid "no connection driver available"
 msgstr "जोडणी ड्राइव्हर अनुपलब्ध"
 
-#: src/util/virerror.c:773
+#: src/util/virerror.c:833
 #, c-format
 msgid "no connection driver available for %s"
 msgstr "%s करिता जोडणी ड्राइव्हर अनुपलब्ध"
 
-#: src/util/virerror.c:777
+#: src/util/virerror.c:837
 msgid "invalid connection pointer in"
 msgstr "अवैध जोडणी निर्देशक यात"
 
-#: src/util/virerror.c:779
+#: src/util/virerror.c:839
 #, c-format
 msgid "invalid connection pointer in %s"
 msgstr "अवैध जोडणी निर्देशक %s मध्ये"
 
-#: src/util/virerror.c:783
+#: src/util/virerror.c:843
 msgid "invalid domain pointer in"
 msgstr "अवैध डोमेन निर्देशक यात"
 
-#: src/util/virerror.c:785
+#: src/util/virerror.c:845
 #, c-format
 msgid "invalid domain pointer in %s"
 msgstr "अवैध डोमेन निर्देशक %s मध्ये"
 
-#: src/util/virerror.c:789 src/xen/xen_hypervisor.c:2914
+#: src/util/virerror.c:849 src/xen/xen_hypervisor.c:2914
 msgid "invalid argument"
 msgstr "अवैध घटक"
 
-#: src/util/virerror.c:791
+#: src/util/virerror.c:851
 #, c-format
 msgid "invalid argument: %s"
 msgstr "अवैध घटक: %s"
 
-#: src/util/virerror.c:795
+#: src/util/virerror.c:855
 #, c-format
 msgid "operation failed: %s"
 msgstr "कार्य असफल: %s"
 
-#: src/util/virerror.c:797
+#: src/util/virerror.c:857
 msgid "operation failed"
 msgstr "कार्य असफल"
 
-#: src/util/virerror.c:801
+#: src/util/virerror.c:861
 #, c-format
 msgid "GET operation failed: %s"
 msgstr "GET कार्य असफल: %s"
 
-#: src/util/virerror.c:803
+#: src/util/virerror.c:863
 msgid "GET operation failed"
 msgstr "GET कार्य असफल"
 
-#: src/util/virerror.c:807
+#: src/util/virerror.c:867
 #, c-format
 msgid "POST operation failed: %s"
 msgstr "POST कार्य असफल: %s"
 
-#: src/util/virerror.c:809
+#: src/util/virerror.c:869
 msgid "POST operation failed"
 msgstr "POST कार्य असफल"
 
-#: src/util/virerror.c:812
+#: src/util/virerror.c:872
 #, c-format
 msgid "got unknown HTTP error code %d"
 msgstr "अपरिचीत HTTP चूक संकेत %d मिळाला"
 
-#: src/util/virerror.c:816
+#: src/util/virerror.c:876
 #, c-format
 msgid "unknown host %s"
 msgstr "अपरिचीत यजमान %s"
 
-#: src/util/virerror.c:818
+#: src/util/virerror.c:878
 msgid "unknown host"
 msgstr "अपरिचीत यजमान"
 
-#: src/util/virerror.c:822
+#: src/util/virerror.c:882
 #, c-format
 msgid "failed to serialize S-Expr: %s"
 msgstr "S-Expr ला सिरीयलाइज करण्यात अपयशी: %s"
 
-#: src/util/virerror.c:824
+#: src/util/virerror.c:884
 msgid "failed to serialize S-Expr"
 msgstr "S-Expr ला सिरीयलाइज करण्यात अपयशी"
 
-#: src/util/virerror.c:828
+#: src/util/virerror.c:888
 msgid "could not use Xen hypervisor entry"
 msgstr "Xen हायपरवाइजर प्रविष्ट वापरू शकलो नाही"
 
-#: src/util/virerror.c:830
+#: src/util/virerror.c:890
 #, c-format
 msgid "could not use Xen hypervisor entry %s"
 msgstr "Xen हायपरवाइजर प्रविष्ट %s वापरू शकलो नाही"
 
-#: src/util/virerror.c:834
+#: src/util/virerror.c:894
 msgid "could not connect to Xen Store"
 msgstr "Xen स्टोरला जोडता आले नाही"
 
-#: src/util/virerror.c:836
+#: src/util/virerror.c:896
 #, c-format
 msgid "could not connect to Xen Store %s"
 msgstr "Xen स्टोर %s ला जोडता आले नाही"
 
-#: src/util/virerror.c:839
+#: src/util/virerror.c:899
 #, c-format
 msgid "failed Xen syscall %s"
 msgstr "Xen syscall %s अपयशी"
 
-#: src/util/virerror.c:843
+#: src/util/virerror.c:903
 msgid "unknown OS type"
 msgstr "अपरिचीत OS प्रकार"
 
-#: src/util/virerror.c:845
+#: src/util/virerror.c:905
 #, c-format
 msgid "unknown OS type %s"
 msgstr "अपरिचीत OS प्रकार %s"
 
-#: src/util/virerror.c:848
+#: src/util/virerror.c:908
 msgid "missing kernel information"
 msgstr "हरवलेली कर्नल माहिती"
 
-#: src/util/virerror.c:852
+#: src/util/virerror.c:912
 msgid "missing root device information"
 msgstr "हरवलेली रूट यंत्र माहिती"
 
-#: src/util/virerror.c:854
+#: src/util/virerror.c:914
 #, c-format
 msgid "missing root device information in %s"
 msgstr "हरवलेली रूट यंत्र माहिती %s मध्ये"
 
-#: src/util/virerror.c:858
+#: src/util/virerror.c:918
 msgid "missing source information for device"
 msgstr "हरवलेली स्त्रोत माहिती यंत्रासाठी"
 
-#: src/util/virerror.c:860
+#: src/util/virerror.c:920
 #, c-format
 msgid "missing source information for device %s"
 msgstr "हरवलेली स्त्रोत माहिती यंत्र %s साठी"
 
-#: src/util/virerror.c:864
+#: src/util/virerror.c:924
 msgid "missing target information for device"
 msgstr "हरवलेली लक्ष्य माहिती यंत्रासाठी"
 
-#: src/util/virerror.c:866
+#: src/util/virerror.c:926
 #, c-format
 msgid "missing target information for device %s"
 msgstr "हरवलेली लक्ष्य माहिती यंत्र %s साठी"
 
-#: src/util/virerror.c:870
+#: src/util/virerror.c:930
 msgid "missing name information"
 msgstr "नाव माहिती आढळली नाही"
 
-#: src/util/virerror.c:872
+#: src/util/virerror.c:932
 #, c-format
 msgid "missing name information in %s"
 msgstr "%s मध्ये नाव माहिती आढळली नाही"
 
-#: src/util/virerror.c:876
+#: src/util/virerror.c:936
 msgid "missing operating system information"
 msgstr "हरवलेली कार्यकारी प्रणाली माहिती"
 
-#: src/util/virerror.c:878
+#: src/util/virerror.c:938
 #, c-format
 msgid "missing operating system information for %s"
 msgstr "हरवलेली कार्यकारी प्रणाली माहिती %s मध्ये"
 
-#: src/util/virerror.c:882
+#: src/util/virerror.c:942
 msgid "missing devices information"
 msgstr "हरवलेली यंत्र माहिती"
 
-#: src/util/virerror.c:884
+#: src/util/virerror.c:944
 #, c-format
 msgid "missing devices information for %s"
 msgstr "हरवलेली यंत्र माहिती %s मध्ये"
 
-#: src/util/virerror.c:888
+#: src/util/virerror.c:948
 msgid "too many drivers registered"
 msgstr "खूप ड्राइवर नोंदवलेले"
 
-#: src/util/virerror.c:890
+#: src/util/virerror.c:950
 #, c-format
 msgid "too many drivers registered in %s"
 msgstr "खूप ड्राइवर नोंदवलेले %s मध्ये"
 
-#: src/util/virerror.c:894
+#: src/util/virerror.c:954
 msgid "library call failed, possibly not supported"
 msgstr "लायब्ररी कॉल अपयशी, बहुदा समर्थित नसावा"
 
-#: src/util/virerror.c:896
+#: src/util/virerror.c:956
 #, c-format
 msgid "library call %s failed, possibly not supported"
 msgstr "लायब्ररी कॉल %s अपयशी, बहुदा समर्थित नसावा"
 
-#: src/util/virerror.c:900
+#: src/util/virerror.c:960
 msgid "XML description is invalid or not well formed"
 msgstr "XML वर्णन अवैध किंवा योग्य रूपण नाही"
 
-#: src/util/virerror.c:902
+#: src/util/virerror.c:962
 #, c-format
 msgid "XML error: %s"
 msgstr "XML त्रुटी: %s"
 
-#: src/util/virerror.c:906
+#: src/util/virerror.c:966
 msgid "this domain exists already"
 msgstr "ही डोमेन आधीच अस्तित्वात"
 
-#: src/util/virerror.c:908
+#: src/util/virerror.c:968
 #, c-format
 msgid "domain %s exists already"
 msgstr "डोमेन %s आधीच अस्तित्वात"
 
-#: src/util/virerror.c:912
+#: src/util/virerror.c:972
 msgid "operation forbidden for read only access"
 msgstr "कार्य फक्त वाचण्याजोग्या प्रवेशासाठी निषिद्ध"
 
-#: src/util/virerror.c:914
+#: src/util/virerror.c:974
 #, c-format
 msgid "operation forbidden: %s"
 msgstr "कार्य प्रतिबंधीत: %s"
 
-#: src/util/virerror.c:918
+#: src/util/virerror.c:978
 msgid "failed to open configuration file for reading"
 msgstr "संयोजना फाइल वाचण्यासाठी उघडण्यास अपयशी"
 
-#: src/util/virerror.c:920
+#: src/util/virerror.c:980
 #, c-format
 msgid "failed to open %s for reading"
 msgstr "%s वाचण्यासाठी उघडण्यास अपयशी"
 
-#: src/util/virerror.c:924
+#: src/util/virerror.c:984
 msgid "failed to read configuration file"
 msgstr "संयोजना फाइल वाचण्यास अपयशी"
 
-#: src/util/virerror.c:926
+#: src/util/virerror.c:986
 #, c-format
 msgid "failed to read configuration file %s"
 msgstr "संयोजना फाइल %s वाचण्यास अपयशी "
 
-#: src/util/virerror.c:930
+#: src/util/virerror.c:990
 msgid "failed to parse configuration file"
 msgstr "संयोजना फाइल विश्लेषित करण्यात अपयश"
 
-#: src/util/virerror.c:932
+#: src/util/virerror.c:992
 #, c-format
 msgid "failed to parse configuration file %s"
 msgstr "संयोजना फाइल %s विश्लेषित करण्यात अपयश"
 
-#: src/util/virerror.c:936
+#: src/util/virerror.c:996
 msgid "configuration file syntax error"
 msgstr "संयोजना फाइल वाक्यरचना चूक"
 
-#: src/util/virerror.c:938
+#: src/util/virerror.c:998
 #, c-format
 msgid "configuration file syntax error: %s"
 msgstr "संयोजना फाइल वाक्यरचना चूक: %s"
 
-#: src/util/virerror.c:942
+#: src/util/virerror.c:1002
 msgid "failed to write configuration file"
 msgstr "संयोजना फाइल लिहीण्यास असमर्थ"
 
-#: src/util/virerror.c:944
+#: src/util/virerror.c:1004
 #, c-format
 msgid "failed to write configuration file: %s"
 msgstr "संयोजना फाइल लिहीण्यास असमर्थ: %s"
 
-#: src/util/virerror.c:948
+#: src/util/virerror.c:1008
 msgid "parser error"
 msgstr "वाचकाकडून त्रूटी"
 
-#: src/util/virerror.c:954
+#: src/util/virerror.c:1014
 msgid "invalid network pointer in"
 msgstr "यातील अवैध नेटवर्क निर्देशक"
 
-#: src/util/virerror.c:956
+#: src/util/virerror.c:1016
 #, c-format
 msgid "invalid network pointer in %s"
 msgstr "%s मधील अवैध नेटवर्क निर्देशक"
 
-#: src/util/virerror.c:960
+#: src/util/virerror.c:1020
 msgid "this network exists already"
 msgstr "हा नेटवर्क पहिलेपासूनच अस्तीत्वात आहे"
 
-#: src/util/virerror.c:962
+#: src/util/virerror.c:1022
 #, c-format
 msgid "network %s exists already"
 msgstr "%s नेटवर्क पहिलेपासूनच अस्तीत्वात आहे"
 
-#: src/util/virerror.c:966
+#: src/util/virerror.c:1026
 msgid "system call error"
 msgstr "प्रणालीकडून हाक देतेवेळी त्रूटी"
 
-#: src/util/virerror.c:972
+#: src/util/virerror.c:1032
 msgid "RPC error"
 msgstr "RPC त्रूटी"
 
-#: src/util/virerror.c:978
+#: src/util/virerror.c:1038
 msgid "GNUTLS call error"
 msgstr "GNUTLS तर्फे हाक देतेवेळी त्रूटी"
 
-#: src/util/virerror.c:984
+#: src/util/virerror.c:1044
 msgid "Failed to find the network"
 msgstr "नेटवर्क शोधतेवेळी अपयश"
 
-#: src/util/virerror.c:986
+#: src/util/virerror.c:1046
 #, c-format
 msgid "Failed to find the network: %s"
 msgstr "नेटवर्क शोधतेवेळी अपयश: %s"
 
-#: src/util/virerror.c:990
+#: src/util/virerror.c:1050
 msgid "Domain not found"
 msgstr "क्षेत्र आढळले नाही"
 
-#: src/util/virerror.c:992
+#: src/util/virerror.c:1052
 #, c-format
 msgid "Domain not found: %s"
 msgstr "क्षेत्र आढळले नाही: %s"
 
-#: src/util/virerror.c:996
+#: src/util/virerror.c:1056
 msgid "Network not found"
 msgstr "नेटवर्क आढळले नाही"
 
-#: src/util/virerror.c:998
+#: src/util/virerror.c:1058
 #, c-format
 msgid "Network not found: %s"
 msgstr "नेटवर्क आढळले नाही: %s"
 
-#: src/util/virerror.c:1002
+#: src/util/virerror.c:1062
 msgid "invalid MAC address"
 msgstr "अवैध MAC पत्ता"
 
-#: src/util/virerror.c:1004
+#: src/util/virerror.c:1064
 #, c-format
 msgid "invalid MAC address: %s"
 msgstr "अवैध MAC पत्ता: %s"
 
-#: src/util/virerror.c:1014
+#: src/util/virerror.c:1074
 msgid "authentication cancelled"
 msgstr "ओळखपटवणे रद्द केले"
 
-#: src/util/virerror.c:1016
+#: src/util/virerror.c:1076
 #, c-format
 msgid "authentication cancelled: %s"
 msgstr "ओळखपटवणे रद्द केले: %s"
 
-#: src/util/virerror.c:1020
+#: src/util/virerror.c:1080
 msgid "Storage pool not found"
 msgstr "संचयन संग्रह आढळले नाही"
 
-#: src/util/virerror.c:1022
+#: src/util/virerror.c:1082
 #, c-format
 msgid "Storage pool not found: %s"
 msgstr "संचयन संग्रह आढळले नाही: %s"
 
-#: src/util/virerror.c:1026
+#: src/util/virerror.c:1086
 msgid "Storage volume not found"
 msgstr "संचयन खंड आढळले नाही"
 
-#: src/util/virerror.c:1028
+#: src/util/virerror.c:1088
 #, c-format
 msgid "Storage volume not found: %s"
 msgstr "संचयन खंड आढळले नाही: %s"
 
-#: src/util/virerror.c:1032
+#: src/util/virerror.c:1092
 msgid "this storage volume exists already"
 msgstr "हे स्टोरेज वॉल्युम आधिपासूनच अस्तित्वात आहे"
 
-#: src/util/virerror.c:1034
+#: src/util/virerror.c:1094
 #, c-format
 msgid "storage volume %s exists already"
 msgstr "स्टोरेज वॉल्युम %s आधिपासूनच अस्तित्वात आहे"
 
-#: src/util/virerror.c:1038
+#: src/util/virerror.c:1098
 msgid "Storage pool probe failed"
 msgstr "स्टोरेज पूल शोध अपयशी"
 
-#: src/util/virerror.c:1040
+#: src/util/virerror.c:1100
 #, c-format
 msgid "Storage pool probe failed: %s"
 msgstr "स्टोरेज पूल शोध अपयशी: %s"
 
-#: src/util/virerror.c:1044
+#: src/util/virerror.c:1104
 msgid "Storage pool already built"
 msgstr "स्टोरेज पूल आधिपासून बिल्ट केले"
 
-#: src/util/virerror.c:1046
+#: src/util/virerror.c:1106
 #, c-format
 msgid "Storage pool already built: %s"
 msgstr "स्टोरेज पूल आधिपासून लिल्ट केले: %s"
 
-#: src/util/virerror.c:1050
+#: src/util/virerror.c:1110
 msgid "invalid storage pool pointer in"
 msgstr "अवैध संचयन संग्रह पॉईन्टर"
 
-#: src/util/virerror.c:1052
+#: src/util/virerror.c:1112
 #, c-format
 msgid "invalid storage pool pointer in %s"
 msgstr "%s अंतर्गत अवैध संचयन संग्रह पॉईन्टर"
 
-#: src/util/virerror.c:1056
+#: src/util/virerror.c:1116
 msgid "invalid storage volume pointer in"
 msgstr "अवैध संचयन खंड पॉईन्टर"
 
-#: src/util/virerror.c:1058
+#: src/util/virerror.c:1118
 #, c-format
 msgid "invalid storage volume pointer in %s"
 msgstr "%s अंतर्गत अवैध संचयन खंड पॉईन्टर"
 
-#: src/util/virerror.c:1062
+#: src/util/virerror.c:1122
 msgid "Failed to find a storage driver"
 msgstr "संग्रह ड्राइवर शोधण्यास अपयशी"
 
-#: src/util/virerror.c:1064
+#: src/util/virerror.c:1124
 #, c-format
 msgid "Failed to find a storage driver: %s"
 msgstr "संग्रह ड्राइवर शोधण्यास अपयशी: %s"
 
-#: src/util/virerror.c:1068
+#: src/util/virerror.c:1128
 msgid "Failed to find a node driver"
 msgstr "नोड ड्राइवर शोधण्यास अपयशी"
 
-#: src/util/virerror.c:1070
+#: src/util/virerror.c:1130
 #, c-format
 msgid "Failed to find a node driver: %s"
 msgstr "संग्रह ड्राइवर शोधण्यास अपयशी: %s"
 
-#: src/util/virerror.c:1074
+#: src/util/virerror.c:1134
 msgid "invalid node device pointer"
 msgstr "अवैध नोड साधन पॉईन्टर"
 
-#: src/util/virerror.c:1076
+#: src/util/virerror.c:1136
 #, c-format
 msgid "invalid node device pointer in %s"
 msgstr "%s अंतर्गत अवैध नोड साधन पॉईन्टर"
 
-#: src/util/virerror.c:1080
+#: src/util/virerror.c:1140
 msgid "Node device not found"
 msgstr "नोड साधन आढळले नाही"
 
-#: src/util/virerror.c:1082
+#: src/util/virerror.c:1142
 #, c-format
 msgid "Node device not found: %s"
 msgstr "नोड साधन आढळले नाही: %s"
 
-#: src/util/virerror.c:1086
+#: src/util/virerror.c:1146
 msgid "Security model not found"
 msgstr "सुरक्षा प्रारूप आढळले नाही"
 
-#: src/util/virerror.c:1088
+#: src/util/virerror.c:1148
 #, c-format
 msgid "Security model not found: %s"
 msgstr "सुरक्षा प्रारूप आढळले नाही: %s"
 
-#: src/util/virerror.c:1092
+#: src/util/virerror.c:1152
 msgid "Requested operation is not valid"
 msgstr "विनंतीकृत कार्यपद्धती वैध नाही"
 
-#: src/util/virerror.c:1094
+#: src/util/virerror.c:1154
 #, c-format
 msgid "Requested operation is not valid: %s"
 msgstr "विनंतीकृत कार्यपद्धती वैध नाही: %s"
 
-#: src/util/virerror.c:1098
+#: src/util/virerror.c:1158
 msgid "Failed to find the interface"
 msgstr "संवाद शोधण्यास अपयशी"
 
-#: src/util/virerror.c:1100
+#: src/util/virerror.c:1160
 #, c-format
 msgid "Failed to find the interface: %s"
 msgstr "संवाद शोधण्यास अपयशी: %s"
 
-#: src/util/virerror.c:1106
+#: src/util/virerror.c:1166
 #, c-format
 msgid "Interface not found: %s"
 msgstr "संवाद आढळले नाही: %s"
 
-#: src/util/virerror.c:1110
+#: src/util/virerror.c:1170
 msgid "invalid interface pointer in"
 msgstr "मधील अवैध संवाद पॉईन्टर"
 
-#: src/util/virerror.c:1112
+#: src/util/virerror.c:1172
 #, c-format
 msgid "invalid interface pointer in %s"
 msgstr "%s मधील अवैध संवाद पॉईन्टर"
 
-#: src/util/virerror.c:1116
+#: src/util/virerror.c:1176
 msgid "multiple matching interfaces found"
 msgstr "एकापेक्षा जास्त संवाद जुळवणी आढळले"
 
-#: src/util/virerror.c:1118
+#: src/util/virerror.c:1178
 #, c-format
 msgid "multiple matching interfaces found: %s"
 msgstr "एकापेक्षा जास्त संवाद जुळवणी आढळले: %s"
 
-#: src/util/virerror.c:1122
+#: src/util/virerror.c:1182
 msgid "Failed to find a secret storage driver"
 msgstr "गोपणीयता स्टोरेज ड्राइव्हर शोधण्यास अपयशी"
 
-#: src/util/virerror.c:1124
+#: src/util/virerror.c:1184
 #, c-format
 msgid "Failed to find a secret storage driver: %s"
 msgstr "गोपणीयता स्टोरेज ड्राइव्हर शोधण्यास अपयशी: %s"
 
-#: src/util/virerror.c:1128
+#: src/util/virerror.c:1188
 msgid "Invalid secret"
 msgstr "अवैध गोपणीयता"
 
-#: src/util/virerror.c:1130
+#: src/util/virerror.c:1190
 #, c-format
 msgid "Invalid secret: %s"
 msgstr "अवैध गोपणीयता: %s"
 
-#: src/util/virerror.c:1134
+#: src/util/virerror.c:1194
 msgid "Secret not found"
 msgstr "गोपणीयता आढळली नाही"
 
-#: src/util/virerror.c:1136
+#: src/util/virerror.c:1196
 #, c-format
 msgid "Secret not found: %s"
 msgstr "गोपणीयता आढळली नाही: %s"
 
-#: src/util/virerror.c:1140
+#: src/util/virerror.c:1200
 msgid "Failed to start the nwfilter driver"
 msgstr "nwfilter ड्राइवर सुरू करण्यास अपयशी"
 
-#: src/util/virerror.c:1142
+#: src/util/virerror.c:1202
 #, c-format
 msgid "Failed to start the nwfilter driver: %s"
 msgstr "nwfilter ड्राइवर सुरू करण्यास अपयशी: %s"
 
-#: src/util/virerror.c:1146
+#: src/util/virerror.c:1206
 msgid "Invalid network filter"
 msgstr "अवैध नेटवर्क फिल्टर"
 
-#: src/util/virerror.c:1148
+#: src/util/virerror.c:1208
 #, c-format
 msgid "Invalid network filter: %s"
 msgstr "अवैध नेटवर्क फिल्टर: %s"
 
-#: src/util/virerror.c:1152
+#: src/util/virerror.c:1212
 msgid "Network filter not found"
 msgstr "नेटवर्क फिल्टर आढळले नाही"
 
-#: src/util/virerror.c:1154
+#: src/util/virerror.c:1214
 #, c-format
 msgid "Network filter not found: %s"
 msgstr "नेटवर्क फिल्टर आढळले नाही: %s"
 
-#: src/util/virerror.c:1158
+#: src/util/virerror.c:1218
 msgid "Error while building firewall"
 msgstr "फायरवॉल बिल्डकरतेवेळी त्रुटी"
 
-#: src/util/virerror.c:1160
+#: src/util/virerror.c:1220
 #, c-format
 msgid "Error while building firewall: %s"
 msgstr "फायरवॉल बिल्डकरतेवेळी त्रुटी: %s"
 
-#: src/util/virerror.c:1164
+#: src/util/virerror.c:1224
 msgid "unsupported configuration"
 msgstr "असमर्थीत संरचना"
 
-#: src/util/virerror.c:1166
+#: src/util/virerror.c:1226
 #, c-format
 msgid "unsupported configuration: %s"
 msgstr "असमर्थीत संरचना: %s"
 
-#: src/util/virerror.c:1170
+#: src/util/virerror.c:1230
 msgid "Timed out during operation"
 msgstr "कार्य करतेवेळी वेळ समाप्ती आढळली"
 
-#: src/util/virerror.c:1172
+#: src/util/virerror.c:1232
 #, c-format
 msgid "Timed out during operation: %s"
 msgstr "कार्य करतेवेळी वेळ समाप्ती आढळली: %s"
 
-#: src/util/virerror.c:1176
+#: src/util/virerror.c:1236
 msgid "Failed to make domain persistent after migration"
 msgstr "स्थानांतरननंतर क्षेत्र पर्सिस्टंट करण्यास अपयशी"
 
-#: src/util/virerror.c:1178
+#: src/util/virerror.c:1238
 #, c-format
 msgid "Failed to make domain persistent after migration: %s"
 msgstr "स्थानांतरननंतर क्षेत्र पर्सिस्टंट करण्यास अपयशी: %s"
 
-#: src/util/virerror.c:1182
+#: src/util/virerror.c:1242
 msgid "Hook script execution failed"
 msgstr "हूक स्क्रिप्ट एक्जिक्युशन अपयशी"
 
-#: src/util/virerror.c:1184
+#: src/util/virerror.c:1244
 #, c-format
 msgid "Hook script execution failed: %s"
 msgstr "हूक स्क्रिप्ट एक्जिक्युशन अपयशी: %s"
 
-#: src/util/virerror.c:1188
+#: src/util/virerror.c:1248
 msgid "Invalid snapshot"
 msgstr "अवैध स्नॅपशॉट"
 
-#: src/util/virerror.c:1190
+#: src/util/virerror.c:1250
 #, c-format
 msgid "Invalid snapshot: %s"
 msgstr "अवैध स्नॅपशॉट: %s"
 
-#: src/util/virerror.c:1194
+#: src/util/virerror.c:1254
 msgid "Domain snapshot not found"
 msgstr "डोमेन स्नॅपशॉट आढळले नाही"
 
-#: src/util/virerror.c:1196
+#: src/util/virerror.c:1256
 #, c-format
 msgid "Domain snapshot not found: %s"
 msgstr "डोमेन स्नॅपशॉट आढळले नाही: %s"
 
-#: src/util/virerror.c:1200
+#: src/util/virerror.c:1260
 msgid "invalid stream pointer"
 msgstr "अवैध स्ट्रिम पॉइंटर"
 
-#: src/util/virerror.c:1202
+#: src/util/virerror.c:1262
 #, c-format
 msgid "invalid stream pointer in %s"
 msgstr "%s मधील अवैध स्ट्रिम पॉइंटर"
 
-#: src/util/virerror.c:1206
+#: src/util/virerror.c:1266
 msgid "argument unsupported"
 msgstr "घटक असमर्थीत"
 
-#: src/util/virerror.c:1208
+#: src/util/virerror.c:1268
 #, c-format
 msgid "argument unsupported: %s"
 msgstr "घटक असमर्थीत: %s"
 
-#: src/util/virerror.c:1212
+#: src/util/virerror.c:1272
 msgid "revert requires force"
 msgstr "जबरनपणे पूर्वस्थितीत आणा"
 
-#: src/util/virerror.c:1214
+#: src/util/virerror.c:1274
 #, c-format
 msgid "revert requires force: %s"
 msgstr "पूर्वस्थितीतकरिता फोर्स् आवश्यक: %s"
 
-#: src/util/virerror.c:1218
+#: src/util/virerror.c:1278
 msgid "operation aborted"
 msgstr "कार्य रद्द केले"
 
-#: src/util/virerror.c:1220
+#: src/util/virerror.c:1280
 #, c-format
 msgid "operation aborted: %s"
 msgstr "कार्य रद्द केले: %s"
 
-#: src/util/virerror.c:1224
+#: src/util/virerror.c:1284
 msgid "metadata not found"
 msgstr "मेटाडाटा आढळले नाही"
 
-#: src/util/virerror.c:1226
+#: src/util/virerror.c:1286
 #, c-format
 msgid "metadata not found: %s"
 msgstr "मेटाडाटा आढळले नाही: %s"
 
-#: src/util/virerror.c:1230
+#: src/util/virerror.c:1290
 msgid "Unsafe migration"
 msgstr "असुरक्षित माइग्रेशन"
 
-#: src/util/virerror.c:1232
+#: src/util/virerror.c:1292
 #, c-format
 msgid "Unsafe migration: %s"
 msgstr "असुरक्षित माइग्रेशन: %s"
 
-#: src/util/virerror.c:1236
+#: src/util/virerror.c:1296
 msgid "numerical overflow"
 msgstr "न्युमेरिकल ओव्हरफ्लो"
 
-#: src/util/virerror.c:1238
+#: src/util/virerror.c:1298
 #, c-format
 msgid "numerical overflow: %s"
 msgstr "न्युमेरिकल ओव्हरफ्लो: %s"
 
-#: src/util/virerror.c:1242
+#: src/util/virerror.c:1302
 msgid "block copy still active"
 msgstr "ब्लॉक कॉपी अजूनही सक्रिय"
 
-#: src/util/virerror.c:1244
+#: src/util/virerror.c:1304
 #, c-format
 msgid "block copy still active: %s"
 msgstr "ब्लॉक कॉपी अजूनही सक्रिय: %s"
 
-#: src/util/virerror.c:1248
+#: src/util/virerror.c:1308
 msgid "Operation not supported"
 msgstr "कार्य समर्थीत नाही"
 
-#: src/util/virerror.c:1250
+#: src/util/virerror.c:1310
 #, c-format
 msgid "Operation not supported: %s"
 msgstr "कार्य समर्थीत नाही: %s"
 
-#: src/util/virerror.c:1254
+#: src/util/virerror.c:1314
 msgid "SSH transport error"
 msgstr "SSH ट्रांस्पोर्ट त्रुटी"
 
-#: src/util/virerror.c:1256
+#: src/util/virerror.c:1316
 #, c-format
 msgid "SSH transport error: %s"
 msgstr "SSH ट्रांस्पोर्ट त्रुटी: %s"
 
-#: src/util/virerror.c:1260
+#: src/util/virerror.c:1320
 msgid "Guest agent is not responding"
 msgstr "अतिथी एजंट प्रतिसाद देत नाही"
 
-#: src/util/virerror.c:1262
+#: src/util/virerror.c:1322
 #, c-format
 msgid "Guest agent is not responding: %s"
 msgstr "अतिथी एजंट प्रतिसाद देत नाही: %s"
 
-#: src/util/virerror.c:1266
+#: src/util/virerror.c:1326
 msgid "resource busy"
 msgstr "रिसोअर्स् व्यस्थ"
 
-#: src/util/virerror.c:1268
+#: src/util/virerror.c:1328
 #, c-format
 msgid "resource busy %s"
 msgstr "रिसोअर्स् व्यस्थ %s"
 
-#: src/util/virerror.c:1272
+#: src/util/virerror.c:1332
 msgid "access denied"
 msgstr "प्रवेश प्रतिबंधीत"
 
-#: src/util/virerror.c:1274
+#: src/util/virerror.c:1334
 #, c-format
 msgid "access denied: %s"
 msgstr "प्रवेश नकारले: %s"
 
-#: src/util/virerror.c:1278
+#: src/util/virerror.c:1338
 msgid "error from service"
 msgstr "सर्व्हिस पासून त्रुटी"
 
-#: src/util/virerror.c:1280
+#: src/util/virerror.c:1340
 #, c-format
 msgid "error from service: %s"
 msgstr "सर्व्हिस पासून त्रुटी: %s"
 
-#: src/util/virerror.c:1284
+#: src/util/virerror.c:1344
 msgid "the CPU is incompatible with host CPU"
 msgstr "CPU यजमान CPU सह असहत्व आहे"
 
-#: src/util/virerror.c:1286
+#: src/util/virerror.c:1346
 #, c-format
 msgid "the CPU is incompatible with host CPU: %s"
 msgstr "CPU यजमान CPU: %s सह असहत्व आहे"
 
-#: src/util/virerror.c:1290
+#: src/util/virerror.c:1350
 msgid "XML document failed to validate against schema"
 msgstr ""
 
-#: src/util/virerror.c:1292
+#: src/util/virerror.c:1352
 #, fuzzy, c-format
 msgid "XML document failed to validate against schema: %s"
 msgstr "स्वतःचे सर्टिफिकेट %s ची तपासणी अपयशी, %s: %s विरूद्ध"
 
-#: src/util/virerror.h:80
+#: src/util/virerror.h:85
 #, c-format
 msgid "%s in %s must be NULL"
 msgstr "%2$s मधील %1$s NULL असावे"
 
-#: src/util/virerror.h:91
+#: src/util/virerror.h:96
 #, c-format
 msgid "%s in %s must not be NULL"
 msgstr "%2$s मधील %1$s NULL नसावे"
 
-#: src/util/virerror.h:102
+#: src/util/virerror.h:107
 #, c-format
 msgid "%s in %s must be greater than zero"
 msgstr "%s, %s अंतर्गत शून्यपेक्षा मोठे पाहिजे"
 
-#: src/util/virerror.h:113
+#: src/util/virerror.h:118
 #, c-format
 msgid "%s in %s must not be zero"
 msgstr "%2$s मधील %1$s शून्य नसावे"
 
-#: src/util/virerror.h:124
+#: src/util/virerror.h:129
 #, c-format
 msgid "%s in %s must be zero"
 msgstr "%s, %s अंतर्गत शून्य पाहिजे"
 
-#: src/util/virerror.h:135
+#: src/util/virerror.h:140
 #, c-format
 msgid "%s in %s must be zero or greater"
 msgstr "%2$s मधील %1$s शून्य किंवा त्यापेक्षा जास्त असावे"
@@ -39548,6 +39534,16 @@ msgstr "chdir(%s) अशक्य"
 #, c-format
 msgid "Unable to exec shell %s"
 msgstr "शेल %s exec करण्यास अशक्य"
+
+#~ msgid "firewalld firewall backend requested, but DBus support disabled"
+#~ msgstr "firewalld firewall बॅकएंडकरिता विनंती केली, परंतु DBus समर्थन बंद केले"
+
+#~ msgid "Unable to apply rule '%s'"
+#~ msgstr "नियम '%s' लागू करण्यास अशक्य"
+
+#, fuzzy
+#~ msgid "CreateMachineWithNetwork: %s"
+#~ msgstr "नेटवर्क निर्माण करा."
 
 #~ msgid "no lease with matching MAC address: %s"
 #~ msgstr "जुळण्याजोगी MAC पत्ता: %s सह लिज आढळले नाही"
