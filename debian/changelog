@@ -1,3 +1,10 @@
+libvirt (1.2.12-1) experimental; urgency=medium
+
+  * [06f42f7] New upstream version 1.2.12
+  * [26b55b3] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 29 Jan 2015 11:02:21 +0100
+
 libvirt (1.2.12~rc2-1) experimental; urgency=medium
 
   * [67f2b22] New upstream version 1.2.12~rc2
