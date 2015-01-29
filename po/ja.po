@@ -19,7 +19,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-01-24 10:25+0800\n"
+"POT-Creation-Date: 2015-01-27 15:49+0800\n"
 "PO-Revision-Date: 2014-10-29 03:16+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/libvirt/"
@@ -510,7 +510,7 @@ msgstr "クライアントは無効な SASL init 要求を試行しました"
 
 #: daemon/remote.c:2945 daemon/remote.c:3096 daemon/remote.c:3194
 #: daemon/remote.c:3210 daemon/remote.c:3224 daemon/remote.c:3238
-#: src/util/virpolkit.c:227 src/util/virpolkit.c:250 src/util/virerror.c:1008
+#: src/util/virpolkit.c:227 src/util/virpolkit.c:250 src/util/virerror.c:1068
 msgid "authentication failed"
 msgstr "認証に失敗しました"
 
@@ -949,9 +949,9 @@ msgstr "仮想マシン '%s' の自動起動に失敗しました: %s"
 #: src/bhyve/bhyve_driver.c:95 src/libxl/libxl_driver.c:125
 #: src/qemu/qemu_capabilities.c:2940 src/qemu/qemu_driver.c:291
 #: src/qemu/qemu_driver.c:299 src/secret/secret_driver.c:500
-#: src/uml/uml_driver.c:197 src/util/virdbus.c:1558 src/util/virhook.c:304
+#: src/uml/uml_driver.c:197 src/util/virdbus.c:1566 src/util/virhook.c:304
 #: src/util/virhostdev.c:748 src/util/virhostdev.c:779
-#: src/util/virhostdev.c:830 src/util/virsystemd.c:297 src/util/virerror.c:265
+#: src/util/virhostdev.c:830 src/util/virerror.c:265
 #: src/xenapi/xenapi_utils.c:269 tools/virsh.c:306
 #: tools/virsh-domain-monitor.c:54
 msgid "unknown error"
@@ -7582,7 +7582,7 @@ msgstr "CPU ベンダー %s が見つかりません"
 msgid "failed to load module %s %s"
 msgstr "モジュール %s の読み込みに失敗しました %s"
 
-#: src/driver.c:78 src/util/virerror.c:761 tools/virsh.c:739
+#: src/driver.c:78 src/util/virerror.c:821 tools/virsh.c:739
 msgid "out of memory"
 msgstr "メモリー不足"
 
@@ -10302,7 +10302,7 @@ msgstr "ロック空間 %s を作成できません"
 
 #: src/locking/lock_driver_sanlock.c:262 src/locking/lock_driver_sanlock.c:317
 #: src/locking/lock_driver_sanlock.c:671 src/storage/storage_backend.c:321
-#: src/util/vircgroup.c:3887 src/util/vircgroup.c:3899 src/util/virfile.c:2008
+#: src/util/vircgroup.c:3889 src/util/vircgroup.c:3901 src/util/virfile.c:2008
 #: src/util/virfile.c:2295
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
@@ -10548,7 +10548,7 @@ msgstr "MEMORY cgroup controller のパスを取得できません"
 msgid "Resource partition '%s' must start with '/'"
 msgstr "リソースパーティション '%s' は '/' から始まらなければなりません"
 
-#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3543
+#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3545
 #, c-format
 msgid "Cannot open %s"
 msgstr "%s を開けません"
@@ -13009,7 +13009,7 @@ msgstr "libhal_get_all_devices に失敗しました"
 #: src/node_device/node_device_hal.c:720 src/qemu/qemu_migration.c:1785
 #: src/qemu/qemu_migration.c:2308 src/qemu/qemu_migration.c:2314
 #: src/qemu/qemu_migration.c:2320 src/qemu/qemu_migration.c:2372
-#: src/qemu/qemu_migration.c:3888 src/util/virdbus.c:1557
+#: src/qemu/qemu_migration.c:3888 src/util/virdbus.c:1565
 #, c-format
 msgid "%s: %s"
 msgstr "%s: %s"
@@ -21811,7 +21811,7 @@ msgstr "認証を実行できません: 認証のコールバックが指定さ�
 msgid "failed to retrieve password"
 msgstr "パスワードの取得に失敗しました"
 
-#: src/rpc/virnetsshsession.c:746 src/util/virerror.c:1010
+#: src/rpc/virnetsshsession.c:746 src/util/virerror.c:1070
 #, c-format
 msgid "authentication failed: %s"
 msgstr "認証に失敗しました: %s"
@@ -24788,135 +24788,135 @@ msgstr ""
 msgid "Memory '%llu' must be less than %llu"
 msgstr "メモリ '%llu' は %llu より小さくなければいけません"
 
-#: src/util/vircgroup.c:3013 src/util/vircgroup.c:3092
+#: src/util/vircgroup.c:3013 src/util/vircgroup.c:3094
 msgid "cpuacct parse error"
 msgstr "cpuacct 解析エラー"
 
-#: src/util/vircgroup.c:3069
+#: src/util/vircgroup.c:3071
 #, c-format
 msgid "start_cpu %d larger than maximum of %d"
 msgstr "start_cpu %d が %d の最大値よりも大きいです"
 
-#: src/util/vircgroup.c:3147 src/util/vircgroup.c:3161
+#: src/util/vircgroup.c:3149 src/util/vircgroup.c:3163
 msgid "unable to get cpu account"
 msgstr "cpu account を取得できません"
 
-#: src/util/vircgroup.c:3217
+#: src/util/vircgroup.c:3219
 #, c-format
 msgid "cfs_period '%llu' must be in range (1000, 1000000)"
 msgstr "cfs_period '%llu' は (1000, 1000000) の範囲にある必要があります"
 
-#: src/util/vircgroup.c:3262
+#: src/util/vircgroup.c:3264
 #, c-format
 msgid "cfs_quota '%lld' must be in range (1000, %llu)"
 msgstr "cfs_quota '%lld' は (1000, %llu) の範囲にある必要があります"
 
-#: src/util/vircgroup.c:3294
+#: src/util/vircgroup.c:3296
 #, c-format
 msgid "Unable to open %s (%d)"
 msgstr "%s (%d) を開けません"
 
-#: src/util/vircgroup.c:3317
+#: src/util/vircgroup.c:3319
 #, c-format
 msgid "Failed to readdir for %s (%d)"
 msgstr "%s (%d) のディレクトリー読み込みに失敗しました"
 
-#: src/util/vircgroup.c:3325
+#: src/util/vircgroup.c:3327
 #, c-format
 msgid "Unable to remove %s (%d)"
 msgstr "%s (%d) を削除できません"
 
-#: src/util/vircgroup.c:3412 src/util/vircgroup.c:3422 src/util/virfile.c:1816
+#: src/util/vircgroup.c:3414 src/util/vircgroup.c:3424 src/util/virfile.c:1816
 #, c-format
 msgid "Failed to read %s"
 msgstr "%s の読み込みに失敗しました"
 
-#: src/util/vircgroup.c:3434
+#: src/util/vircgroup.c:3436
 #, c-format
 msgid "Failed to kill process %lu"
 msgstr "プロセス %lu のキルに失敗しました"
 
-#: src/util/vircgroup.c:3647
+#: src/util/vircgroup.c:3649
 #, c-format
 msgid "Could not find directory separator in %s"
 msgstr "%s にディレクトリのセパレーターを見つけられませんでした"
 
-#: src/util/vircgroup.c:3659
+#: src/util/vircgroup.c:3661
 msgid "Could not find any mounted controllers"
 msgstr "マウントされたコントローラーを何も見つけられませんでした"
 
-#: src/util/vircgroup.c:3707
+#: src/util/vircgroup.c:3709
 #, c-format
 msgid "Cannot parse user stat '%s'"
 msgstr "user 統計情報 '%s' を構文解析できません"
 
-#: src/util/vircgroup.c:3714
+#: src/util/vircgroup.c:3716
 #, c-format
 msgid "Cannot parse sys stat '%s'"
 msgstr "sys 統計情報 '%s' を構文解析できません"
 
-#: src/util/vircgroup.c:3725
+#: src/util/vircgroup.c:3727
 msgid "Cannot determine system clock HZ"
 msgstr "システムのクロック周波数がわかりません"
 
-#: src/util/vircgroup.c:3774 src/util/vircgroup.c:3806
+#: src/util/vircgroup.c:3776 src/util/vircgroup.c:3808
 #, c-format
 msgid "Unable to create directory %s"
 msgstr "ディレクトリー %s を作成できません"
 
-#: src/util/vircgroup.c:3785
+#: src/util/vircgroup.c:3787
 #, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "%s を %s に %s 形式でマウントできませんでした"
 
-#: src/util/vircgroup.c:3815
+#: src/util/vircgroup.c:3817
 #, c-format
 msgid "Failed to bind cgroup '%s' on '%s'"
 msgstr "cgroup '%s' を '%s' にバインドできませんでした"
 
-#: src/util/vircgroup.c:3831
+#: src/util/vircgroup.c:3833
 #, c-format
 msgid "Unable to symlink directory %s to %s"
 msgstr "ディレクトリー %s を %s にシンボリックリンクできません"
 
-#: src/util/vircgroup.c:3873
+#: src/util/vircgroup.c:3875
 #, c-format
 msgid "Unable to open dir '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:3983 src/util/vircgroup.c:3992
-#: src/util/vircgroup.c:4005 src/util/vircgroup.c:4017
-#: src/util/vircgroup.c:4028 src/util/vircgroup.c:4040
-#: src/util/vircgroup.c:4051 src/util/vircgroup.c:4065
-#: src/util/vircgroup.c:4075 src/util/vircgroup.c:4095
-#: src/util/vircgroup.c:4112 src/util/vircgroup.c:4131
-#: src/util/vircgroup.c:4141 src/util/vircgroup.c:4152
-#: src/util/vircgroup.c:4162 src/util/vircgroup.c:4175
-#: src/util/vircgroup.c:4189 src/util/vircgroup.c:4199
-#: src/util/vircgroup.c:4209 src/util/vircgroup.c:4220
-#: src/util/vircgroup.c:4230 src/util/vircgroup.c:4240
-#: src/util/vircgroup.c:4250 src/util/vircgroup.c:4260
-#: src/util/vircgroup.c:4270 src/util/vircgroup.c:4280
-#: src/util/vircgroup.c:4290 src/util/vircgroup.c:4300
-#: src/util/vircgroup.c:4310 src/util/vircgroup.c:4320
-#: src/util/vircgroup.c:4330 src/util/vircgroup.c:4340
-#: src/util/vircgroup.c:4350 src/util/vircgroup.c:4360
-#: src/util/vircgroup.c:4370 src/util/vircgroup.c:4380
-#: src/util/vircgroup.c:4390 src/util/vircgroup.c:4399
-#: src/util/vircgroup.c:4407 src/util/vircgroup.c:4420
-#: src/util/vircgroup.c:4432 src/util/vircgroup.c:4443
-#: src/util/vircgroup.c:4456 src/util/vircgroup.c:4468
-#: src/util/vircgroup.c:4479 src/util/vircgroup.c:4489
-#: src/util/vircgroup.c:4499 src/util/vircgroup.c:4509
-#: src/util/vircgroup.c:4519 src/util/vircgroup.c:4529
-#: src/util/vircgroup.c:4538 src/util/vircgroup.c:4547
-#: src/util/vircgroup.c:4557 src/util/vircgroup.c:4567
-#: src/util/vircgroup.c:4576 src/util/vircgroup.c:4586
-#: src/util/vircgroup.c:4596 src/util/vircgroup.c:4606
-#: src/util/vircgroup.c:4617 src/util/vircgroup.c:4628
-#: src/util/vircgroup.c:4638 src/util/vircgroup.c:4648
-#: src/util/vircgroup.c:4659 src/util/vircgroup.c:4681
-#: src/util/vircgroup.c:4693 src/util/vircgroup.c:4702
+#: src/util/vircgroup.c:3985 src/util/vircgroup.c:3994
+#: src/util/vircgroup.c:4007 src/util/vircgroup.c:4019
+#: src/util/vircgroup.c:4030 src/util/vircgroup.c:4042
+#: src/util/vircgroup.c:4053 src/util/vircgroup.c:4067
+#: src/util/vircgroup.c:4077 src/util/vircgroup.c:4097
+#: src/util/vircgroup.c:4114 src/util/vircgroup.c:4133
+#: src/util/vircgroup.c:4143 src/util/vircgroup.c:4154
+#: src/util/vircgroup.c:4164 src/util/vircgroup.c:4177
+#: src/util/vircgroup.c:4191 src/util/vircgroup.c:4201
+#: src/util/vircgroup.c:4211 src/util/vircgroup.c:4222
+#: src/util/vircgroup.c:4232 src/util/vircgroup.c:4242
+#: src/util/vircgroup.c:4252 src/util/vircgroup.c:4262
+#: src/util/vircgroup.c:4272 src/util/vircgroup.c:4282
+#: src/util/vircgroup.c:4292 src/util/vircgroup.c:4302
+#: src/util/vircgroup.c:4312 src/util/vircgroup.c:4322
+#: src/util/vircgroup.c:4332 src/util/vircgroup.c:4342
+#: src/util/vircgroup.c:4352 src/util/vircgroup.c:4362
+#: src/util/vircgroup.c:4372 src/util/vircgroup.c:4382
+#: src/util/vircgroup.c:4392 src/util/vircgroup.c:4401
+#: src/util/vircgroup.c:4409 src/util/vircgroup.c:4422
+#: src/util/vircgroup.c:4434 src/util/vircgroup.c:4445
+#: src/util/vircgroup.c:4458 src/util/vircgroup.c:4470
+#: src/util/vircgroup.c:4481 src/util/vircgroup.c:4491
+#: src/util/vircgroup.c:4501 src/util/vircgroup.c:4511
+#: src/util/vircgroup.c:4521 src/util/vircgroup.c:4531
+#: src/util/vircgroup.c:4540 src/util/vircgroup.c:4549
+#: src/util/vircgroup.c:4559 src/util/vircgroup.c:4569
+#: src/util/vircgroup.c:4578 src/util/vircgroup.c:4588
+#: src/util/vircgroup.c:4598 src/util/vircgroup.c:4608
+#: src/util/vircgroup.c:4619 src/util/vircgroup.c:4630
+#: src/util/vircgroup.c:4640 src/util/vircgroup.c:4650
+#: src/util/vircgroup.c:4661 src/util/vircgroup.c:4683
+#: src/util/vircgroup.c:4695 src/util/vircgroup.c:4704
 msgid "Control groups not supported on this platform"
 msgstr "Control groups がこのプラットフォームにおいてサポートされません"
 
@@ -25324,14 +25324,14 @@ msgstr "シグネチャー用のメッセージにフィールドが多すぎま
 msgid "No args present for signature %s"
 msgstr "シグネチャー %s 用の引数が存在しません"
 
-#: src/util/virdbus.c:1700
+#: src/util/virdbus.c:1707
 msgid "Reply message incorrect"
 msgstr "応答メッセージが不正です"
 
-#: src/util/virdbus.c:1767 src/util/virdbus.c:1787 src/util/virdbus.c:1799
-#: src/util/virdbus.c:1812 src/util/virdbus.c:1821 src/util/virdbus.c:1829
-#: src/util/virdbus.c:1843 src/util/virdbus.c:1851 src/util/virdbus.c:1860
-#: src/util/virdbus.c:1869
+#: src/util/virdbus.c:1774 src/util/virdbus.c:1794 src/util/virdbus.c:1806
+#: src/util/virdbus.c:1819 src/util/virdbus.c:1828 src/util/virdbus.c:1836
+#: src/util/virdbus.c:1850 src/util/virdbus.c:1858 src/util/virdbus.c:1867
+#: src/util/virdbus.c:1876
 msgid "DBus support not compiled into this binary"
 msgstr "DBus サポートはこのバイナリーの中にコンパイルされていません"
 
@@ -25616,39 +25616,30 @@ msgstr ""
 msgid "Unable to parse %s %s"
 msgstr ""
 
-#: src/util/virfirewall.c:169
+#: src/util/virfirewall.c:168
 msgid "firewalld firewall backend requested, but service is not running"
 msgstr ""
 
-#: src/util/virfirewall.c:189
-msgid "firewalld firewall backend requested, but DBus support disabled"
-msgstr ""
-
-#: src/util/virfirewall.c:203
+#: src/util/virfirewall.c:192
 #, c-format
 msgid "direct firewall backend requested, but %s is not available"
 msgstr ""
 
-#: src/util/virfirewall.c:720 src/util/virfirewall.c:777
+#: src/util/virfirewall.c:709 src/util/virfirewall.c:765
 #, c-format
 msgid "Unknown firewall layer %d"
 msgstr ""
 
-#: src/util/virfirewall.c:742
+#: src/util/virfirewall.c:731
 #, c-format
 msgid "Failed to apply firewall rules %s: %s"
 msgstr ""
 
-#: src/util/virfirewall.c:826
-#, c-format
-msgid "Unable to apply rule '%s'"
-msgstr ""
-
-#: src/util/virfirewall.c:873
+#: src/util/virfirewall.c:856
 msgid "Unexpected firewall engine backend"
 msgstr ""
 
-#: src/util/virfirewall.c:891 src/util/virfirewall.c:958
+#: src/util/virfirewall.c:874 src/util/virfirewall.c:941
 msgid "Unable to create rule"
 msgstr ""
 
@@ -27370,7 +27361,7 @@ msgstr "/proc/net/dev: インターフェースが見つかりません"
 msgid "Could not get interface list"
 msgstr ""
 
-#: src/util/virstats.c:163 src/util/virerror.c:1104
+#: src/util/virstats.c:163 src/util/virerror.c:1164
 msgid "Interface not found"
 msgstr "インターフェースが見つかりません"
 
@@ -27610,11 +27601,6 @@ msgstr "ターゲットのシステム情報 %s がソースの %s と一致し�
 msgid "Target sysinfo %s %s does not match source %s"
 msgstr "ターゲットのシステム情報 %s %s がソースの %s と一致しません"
 
-#: src/util/virsystemd.c:296
-#, fuzzy, c-format
-msgid "CreateMachineWithNetwork: %s"
-msgstr "ネットワークを作成します。"
-
 #: src/util/virerror.c:179
 msgid "An error occurred, but the cause is unknown"
 msgstr "エラーが発生しましたが、原因がわかりません"
@@ -27631,810 +27617,810 @@ msgstr "警告"
 msgid "error"
 msgstr "エラー"
 
-#: src/util/virerror.c:687
+#: src/util/virerror.c:719
 msgid "No error message provided"
 msgstr "エラーメッセージはありませんでした"
 
-#: src/util/virerror.c:756
+#: src/util/virerror.c:816
 #, c-format
 msgid "internal error: %s"
 msgstr "内部エラー: %s"
 
-#: src/util/virerror.c:758
+#: src/util/virerror.c:818
 msgid "internal error"
 msgstr "内部エラー"
 
-#: src/util/virerror.c:765
+#: src/util/virerror.c:825
 msgid "this function is not supported by the connection driver"
 msgstr "この関数は接続ドライバーによりサポートされません"
 
-#: src/util/virerror.c:767
+#: src/util/virerror.c:827
 #, c-format
 msgid "this function is not supported by the connection driver: %s"
 msgstr "この関数は接続ドライバーによりサポートされません: %s"
 
-#: src/util/virerror.c:771
+#: src/util/virerror.c:831
 msgid "no connection driver available"
 msgstr "利用可能な接続ドライバーがありません"
 
-#: src/util/virerror.c:773
+#: src/util/virerror.c:833
 #, c-format
 msgid "no connection driver available for %s"
 msgstr "%s に対して利用可能な接続ドライバーがありません"
 
-#: src/util/virerror.c:777
+#: src/util/virerror.c:837
 msgid "invalid connection pointer in"
 msgstr "無効な接続ポインター"
 
-#: src/util/virerror.c:779
+#: src/util/virerror.c:839
 #, c-format
 msgid "invalid connection pointer in %s"
 msgstr "%s で無効な接続ポインターです"
 
-#: src/util/virerror.c:783
+#: src/util/virerror.c:843
 msgid "invalid domain pointer in"
 msgstr "無効なドメインポインター"
 
-#: src/util/virerror.c:785
+#: src/util/virerror.c:845
 #, c-format
 msgid "invalid domain pointer in %s"
 msgstr "%s で無効なドメインポインターです"
 
-#: src/util/virerror.c:789 src/xen/xen_hypervisor.c:2914
+#: src/util/virerror.c:849 src/xen/xen_hypervisor.c:2914
 msgid "invalid argument"
 msgstr "無効な引数"
 
-#: src/util/virerror.c:791
+#: src/util/virerror.c:851
 #, c-format
 msgid "invalid argument: %s"
 msgstr "無効な引数: %s"
 
-#: src/util/virerror.c:795
+#: src/util/virerror.c:855
 #, c-format
 msgid "operation failed: %s"
 msgstr "操作は失敗しました: %s"
 
-#: src/util/virerror.c:797
+#: src/util/virerror.c:857
 msgid "operation failed"
 msgstr "操作は失敗しました"
 
-#: src/util/virerror.c:801
+#: src/util/virerror.c:861
 #, c-format
 msgid "GET operation failed: %s"
 msgstr "GET 操作は失敗しました: %s"
 
-#: src/util/virerror.c:803
+#: src/util/virerror.c:863
 msgid "GET operation failed"
 msgstr "GET 操作は失敗しました"
 
-#: src/util/virerror.c:807
+#: src/util/virerror.c:867
 #, c-format
 msgid "POST operation failed: %s"
 msgstr "POST 操作は失敗しました: %s"
 
-#: src/util/virerror.c:809
+#: src/util/virerror.c:869
 msgid "POST operation failed"
 msgstr "POST 操作は失敗しました"
 
-#: src/util/virerror.c:812
+#: src/util/virerror.c:872
 #, c-format
 msgid "got unknown HTTP error code %d"
 msgstr "不明な HTTP エラーコード %d を取得しました"
 
-#: src/util/virerror.c:816
+#: src/util/virerror.c:876
 #, c-format
 msgid "unknown host %s"
 msgstr "不明なホスト %s"
 
-#: src/util/virerror.c:818
+#: src/util/virerror.c:878
 msgid "unknown host"
 msgstr "不明なホスト"
 
-#: src/util/virerror.c:822
+#: src/util/virerror.c:882
 #, c-format
 msgid "failed to serialize S-Expr: %s"
 msgstr "S 式のシリアライズに失敗しました: %s"
 
-#: src/util/virerror.c:824
+#: src/util/virerror.c:884
 msgid "failed to serialize S-Expr"
 msgstr "S 式のシリアライズに失敗しました"
 
-#: src/util/virerror.c:828
+#: src/util/virerror.c:888
 msgid "could not use Xen hypervisor entry"
 msgstr "Xen ハイパーバイザーエントリーを使用できませんでした"
 
-#: src/util/virerror.c:830
+#: src/util/virerror.c:890
 #, c-format
 msgid "could not use Xen hypervisor entry %s"
 msgstr "Xen ハイパーバイザーエントリー %s を使用できませんでした"
 
-#: src/util/virerror.c:834
+#: src/util/virerror.c:894
 msgid "could not connect to Xen Store"
 msgstr "Xen Store に接続できませんでした"
 
-#: src/util/virerror.c:836
+#: src/util/virerror.c:896
 #, c-format
 msgid "could not connect to Xen Store %s"
 msgstr "Xen Store %s に接続できませんでした"
 
-#: src/util/virerror.c:839
+#: src/util/virerror.c:899
 #, c-format
 msgid "failed Xen syscall %s"
 msgstr "Xen システムコール %s に失敗しました"
 
-#: src/util/virerror.c:843
+#: src/util/virerror.c:903
 msgid "unknown OS type"
 msgstr "不明な OS タイプ"
 
-#: src/util/virerror.c:845
+#: src/util/virerror.c:905
 #, c-format
 msgid "unknown OS type %s"
 msgstr "不明な OS タイプ %s"
 
-#: src/util/virerror.c:848
+#: src/util/virerror.c:908
 msgid "missing kernel information"
 msgstr "カーネル情報が不足しています"
 
-#: src/util/virerror.c:852
+#: src/util/virerror.c:912
 msgid "missing root device information"
 msgstr "root 装置の情報が不足しています"
 
-#: src/util/virerror.c:854
+#: src/util/virerror.c:914
 #, c-format
 msgid "missing root device information in %s"
 msgstr "%s の root 装置の情報が不足しています"
 
-#: src/util/virerror.c:858
+#: src/util/virerror.c:918
 msgid "missing source information for device"
 msgstr "装置のソース情報が不足しています"
 
-#: src/util/virerror.c:860
+#: src/util/virerror.c:920
 #, c-format
 msgid "missing source information for device %s"
 msgstr "装置 %s のソース情報が不足しています"
 
-#: src/util/virerror.c:864
+#: src/util/virerror.c:924
 msgid "missing target information for device"
 msgstr "装置のターゲット情報が不足しています"
 
-#: src/util/virerror.c:866
+#: src/util/virerror.c:926
 #, c-format
 msgid "missing target information for device %s"
 msgstr "装置 %s のターゲット情報が不足しています"
 
-#: src/util/virerror.c:870
+#: src/util/virerror.c:930
 msgid "missing name information"
 msgstr "名前の情報がありません"
 
-#: src/util/virerror.c:872
+#: src/util/virerror.c:932
 #, c-format
 msgid "missing name information in %s"
 msgstr "%s に名前の情報がありません"
 
-#: src/util/virerror.c:876
+#: src/util/virerror.c:936
 msgid "missing operating system information"
 msgstr "オペレーティングシステム情報が不足しています"
 
-#: src/util/virerror.c:878
+#: src/util/virerror.c:938
 #, c-format
 msgid "missing operating system information for %s"
 msgstr "%s のオペレーティングシステム情報が不足しています"
 
-#: src/util/virerror.c:882
+#: src/util/virerror.c:942
 msgid "missing devices information"
 msgstr "装置の情報が不足しています"
 
-#: src/util/virerror.c:884
+#: src/util/virerror.c:944
 #, c-format
 msgid "missing devices information for %s"
 msgstr "%s の装置情報が不足しています"
 
-#: src/util/virerror.c:888
+#: src/util/virerror.c:948
 msgid "too many drivers registered"
 msgstr "登録しているドライバーが多すぎます"
 
-#: src/util/virerror.c:890
+#: src/util/virerror.c:950
 #, c-format
 msgid "too many drivers registered in %s"
 msgstr "%s に登録しているドライバーが多すぎます"
 
-#: src/util/virerror.c:894
+#: src/util/virerror.c:954
 msgid "library call failed, possibly not supported"
 msgstr "ライブラリー呼出しが失敗しました、サポートされていない可能性があります"
 
-#: src/util/virerror.c:896
+#: src/util/virerror.c:956
 #, c-format
 msgid "library call %s failed, possibly not supported"
 msgstr ""
 "ライブラリー呼出し %s が失敗しました、サポートされていない可能性があります"
 
-#: src/util/virerror.c:900
+#: src/util/virerror.c:960
 msgid "XML description is invalid or not well formed"
 msgstr "XML 記述が無効です、または十分な形式ではありません"
 
-#: src/util/virerror.c:902
+#: src/util/virerror.c:962
 #, c-format
 msgid "XML error: %s"
 msgstr "XML エラー: %s"
 
-#: src/util/virerror.c:906
+#: src/util/virerror.c:966
 msgid "this domain exists already"
 msgstr "このドメインはすでに存在しています"
 
-#: src/util/virerror.c:908
+#: src/util/virerror.c:968
 #, c-format
 msgid "domain %s exists already"
 msgstr "ドメイン %s はすでに存在しています"
 
-#: src/util/virerror.c:912
+#: src/util/virerror.c:972
 msgid "operation forbidden for read only access"
 msgstr "読み込み専用アクセスに対して操作は禁止されています"
 
-#: src/util/virerror.c:914
+#: src/util/virerror.c:974
 #, c-format
 msgid "operation forbidden: %s"
 msgstr "操作が許可されませんでした: %s"
 
-#: src/util/virerror.c:918
+#: src/util/virerror.c:978
 msgid "failed to open configuration file for reading"
 msgstr "読み込みのため設定ファイルを開くのに失敗しました"
 
-#: src/util/virerror.c:920
+#: src/util/virerror.c:980
 #, c-format
 msgid "failed to open %s for reading"
 msgstr "読み込みのため %s を開くのに失敗しました"
 
-#: src/util/virerror.c:924
+#: src/util/virerror.c:984
 msgid "failed to read configuration file"
 msgstr "設定ファイルの読み込みに失敗しました"
 
-#: src/util/virerror.c:926
+#: src/util/virerror.c:986
 #, c-format
 msgid "failed to read configuration file %s"
 msgstr "設定ファイル %s の読み込みに失敗しました"
 
-#: src/util/virerror.c:930
+#: src/util/virerror.c:990
 msgid "failed to parse configuration file"
 msgstr "設定ファイルの解析に失敗しました"
 
-#: src/util/virerror.c:932
+#: src/util/virerror.c:992
 #, c-format
 msgid "failed to parse configuration file %s"
 msgstr "設定ファイル %s の解析に失敗しました"
 
-#: src/util/virerror.c:936
+#: src/util/virerror.c:996
 msgid "configuration file syntax error"
 msgstr "設定ファイルの構文エラー"
 
-#: src/util/virerror.c:938
+#: src/util/virerror.c:998
 #, c-format
 msgid "configuration file syntax error: %s"
 msgstr "設定ファイルの構文エラー: %s"
 
-#: src/util/virerror.c:942
+#: src/util/virerror.c:1002
 msgid "failed to write configuration file"
 msgstr "設定ファイルの書き込みに失敗しました"
 
-#: src/util/virerror.c:944
+#: src/util/virerror.c:1004
 #, c-format
 msgid "failed to write configuration file: %s"
 msgstr "設定ファイルの書き込みに失敗しました: %s"
 
-#: src/util/virerror.c:948
+#: src/util/virerror.c:1008
 msgid "parser error"
 msgstr "構文解析エラー"
 
-#: src/util/virerror.c:954
+#: src/util/virerror.c:1014
 msgid "invalid network pointer in"
 msgstr "無効なネットワークポインター"
 
-#: src/util/virerror.c:956
+#: src/util/virerror.c:1016
 #, c-format
 msgid "invalid network pointer in %s"
 msgstr "%s で無効なネットワークポインターです"
 
-#: src/util/virerror.c:960
+#: src/util/virerror.c:1020
 msgid "this network exists already"
 msgstr "このネットワークはすでに存在しています"
 
-#: src/util/virerror.c:962
+#: src/util/virerror.c:1022
 #, c-format
 msgid "network %s exists already"
 msgstr "ネットワーク %s はすでに存在しています"
 
-#: src/util/virerror.c:966
+#: src/util/virerror.c:1026
 msgid "system call error"
 msgstr "システムコールエラー"
 
-#: src/util/virerror.c:972
+#: src/util/virerror.c:1032
 msgid "RPC error"
 msgstr "RPC エラー"
 
-#: src/util/virerror.c:978
+#: src/util/virerror.c:1038
 msgid "GNUTLS call error"
 msgstr "GNUTLS 呼び出しエラー"
 
-#: src/util/virerror.c:984
+#: src/util/virerror.c:1044
 msgid "Failed to find the network"
 msgstr "ネットワークを見つけられませんでした"
 
-#: src/util/virerror.c:986
+#: src/util/virerror.c:1046
 #, c-format
 msgid "Failed to find the network: %s"
 msgstr "ネットワーク %s を見つけられませんでした"
 
-#: src/util/virerror.c:990
+#: src/util/virerror.c:1050
 msgid "Domain not found"
 msgstr "ドメインが見つかりません"
 
-#: src/util/virerror.c:992
+#: src/util/virerror.c:1052
 #, c-format
 msgid "Domain not found: %s"
 msgstr "ドメインは見つかりませんでした: %s "
 
-#: src/util/virerror.c:996
+#: src/util/virerror.c:1056
 msgid "Network not found"
 msgstr "ネットワークが見つかりません"
 
-#: src/util/virerror.c:998
+#: src/util/virerror.c:1058
 #, c-format
 msgid "Network not found: %s"
 msgstr "ネットワークが見つかりませんでした: %s "
 
-#: src/util/virerror.c:1002
+#: src/util/virerror.c:1062
 msgid "invalid MAC address"
 msgstr "無効な MAC アドレス"
 
-#: src/util/virerror.c:1004
+#: src/util/virerror.c:1064
 #, c-format
 msgid "invalid MAC address: %s"
 msgstr "無効な MAC アドレス: %s"
 
-#: src/util/virerror.c:1014
+#: src/util/virerror.c:1074
 msgid "authentication cancelled"
 msgstr "認証が取り消されました"
 
-#: src/util/virerror.c:1016
+#: src/util/virerror.c:1076
 #, c-format
 msgid "authentication cancelled: %s"
 msgstr "認証が取り消されました: %s"
 
-#: src/util/virerror.c:1020
+#: src/util/virerror.c:1080
 msgid "Storage pool not found"
 msgstr "ストレージプールが見つかりません"
 
-#: src/util/virerror.c:1022
+#: src/util/virerror.c:1082
 #, c-format
 msgid "Storage pool not found: %s"
 msgstr "ストレージプールが見つかりません: %s "
 
-#: src/util/virerror.c:1026
+#: src/util/virerror.c:1086
 msgid "Storage volume not found"
 msgstr "ストレージボリュームが見つかりません"
 
-#: src/util/virerror.c:1028
+#: src/util/virerror.c:1088
 #, c-format
 msgid "Storage volume not found: %s"
 msgstr "ストレージボリュームが見つかりません: %s "
 
-#: src/util/virerror.c:1032
+#: src/util/virerror.c:1092
 msgid "this storage volume exists already"
 msgstr "このストレージボリュームはすでに存在します"
 
-#: src/util/virerror.c:1034
+#: src/util/virerror.c:1094
 #, c-format
 msgid "storage volume %s exists already"
 msgstr "ストレージボリューム %s がすでに存在します"
 
-#: src/util/virerror.c:1038
+#: src/util/virerror.c:1098
 msgid "Storage pool probe failed"
 msgstr "ストレージプールのプローブに失敗しました"
 
-#: src/util/virerror.c:1040
+#: src/util/virerror.c:1100
 #, c-format
 msgid "Storage pool probe failed: %s"
 msgstr "ストレージプールのプローブに失敗しました: %s"
 
-#: src/util/virerror.c:1044
+#: src/util/virerror.c:1104
 msgid "Storage pool already built"
 msgstr "ストレージプールがすでに構築されています"
 
-#: src/util/virerror.c:1046
+#: src/util/virerror.c:1106
 #, c-format
 msgid "Storage pool already built: %s"
 msgstr "ストレージプールがすでに構築されています: %s"
 
-#: src/util/virerror.c:1050
+#: src/util/virerror.c:1110
 msgid "invalid storage pool pointer in"
 msgstr "無効なストレージプールポインターがあります"
 
-#: src/util/virerror.c:1052
+#: src/util/virerror.c:1112
 #, c-format
 msgid "invalid storage pool pointer in %s"
 msgstr "%s に無効なストレージプールポインターがあります"
 
-#: src/util/virerror.c:1056
+#: src/util/virerror.c:1116
 msgid "invalid storage volume pointer in"
 msgstr "無効なストレージボリュームポインターがあります"
 
-#: src/util/virerror.c:1058
+#: src/util/virerror.c:1118
 #, c-format
 msgid "invalid storage volume pointer in %s"
 msgstr "%s に無効なストレージボリュームポインターがあります"
 
-#: src/util/virerror.c:1062
+#: src/util/virerror.c:1122
 msgid "Failed to find a storage driver"
 msgstr "ストレージドライバーの検出に失敗しました"
 
-#: src/util/virerror.c:1064
+#: src/util/virerror.c:1124
 #, c-format
 msgid "Failed to find a storage driver: %s"
 msgstr "ストレージドライバーの検出に失敗しました: %s"
 
-#: src/util/virerror.c:1068
+#: src/util/virerror.c:1128
 msgid "Failed to find a node driver"
 msgstr "ノードドライバーの検索に失敗しました"
 
-#: src/util/virerror.c:1070
+#: src/util/virerror.c:1130
 #, c-format
 msgid "Failed to find a node driver: %s"
 msgstr "ノードドライバーを見つけられませんでした: %s"
 
-#: src/util/virerror.c:1074
+#: src/util/virerror.c:1134
 msgid "invalid node device pointer"
 msgstr "無効なノードデバイスポインターがあります"
 
-#: src/util/virerror.c:1076
+#: src/util/virerror.c:1136
 #, c-format
 msgid "invalid node device pointer in %s"
 msgstr "%s に無効なノードデバイスポインターがあります"
 
-#: src/util/virerror.c:1080
+#: src/util/virerror.c:1140
 msgid "Node device not found"
 msgstr "ノードデバイスが見つかりませんでした"
 
-#: src/util/virerror.c:1082
+#: src/util/virerror.c:1142
 #, c-format
 msgid "Node device not found: %s"
 msgstr "ノードデバイスが見つかりませんでした: %s"
 
-#: src/util/virerror.c:1086
+#: src/util/virerror.c:1146
 msgid "Security model not found"
 msgstr "セキュリティモデルが見つかりません"
 
-#: src/util/virerror.c:1088
+#: src/util/virerror.c:1148
 #, c-format
 msgid "Security model not found: %s"
 msgstr "セキュリティモデルが見つかりません: %s"
 
-#: src/util/virerror.c:1092
+#: src/util/virerror.c:1152
 msgid "Requested operation is not valid"
 msgstr "要求された操作は有効ではありません"
 
-#: src/util/virerror.c:1094
+#: src/util/virerror.c:1154
 #, c-format
 msgid "Requested operation is not valid: %s"
 msgstr "要求された操作は有効ではありません: %s"
 
-#: src/util/virerror.c:1098
+#: src/util/virerror.c:1158
 msgid "Failed to find the interface"
 msgstr "インターフェースを見つけられませんでした"
 
-#: src/util/virerror.c:1100
+#: src/util/virerror.c:1160
 #, c-format
 msgid "Failed to find the interface: %s"
 msgstr "インターフェースを見つけられませんでした: %s"
 
-#: src/util/virerror.c:1106
+#: src/util/virerror.c:1166
 #, c-format
 msgid "Interface not found: %s"
 msgstr "インターフェースが見つかりません: %s"
 
-#: src/util/virerror.c:1110
+#: src/util/virerror.c:1170
 msgid "invalid interface pointer in"
 msgstr "無効なインターフェースポインター"
 
-#: src/util/virerror.c:1112
+#: src/util/virerror.c:1172
 #, c-format
 msgid "invalid interface pointer in %s"
 msgstr "%s における無効なインターフェースポインター"
 
-#: src/util/virerror.c:1116
+#: src/util/virerror.c:1176
 msgid "multiple matching interfaces found"
 msgstr "一致するインターフェースが複数見つかりました"
 
-#: src/util/virerror.c:1118
+#: src/util/virerror.c:1178
 #, c-format
 msgid "multiple matching interfaces found: %s"
 msgstr "一致するインターフェースが複数見つかりました: %s"
 
-#: src/util/virerror.c:1122
+#: src/util/virerror.c:1182
 msgid "Failed to find a secret storage driver"
 msgstr "シークレットストレージドライバーの検出に失敗しました"
 
-#: src/util/virerror.c:1124
+#: src/util/virerror.c:1184
 #, c-format
 msgid "Failed to find a secret storage driver: %s"
 msgstr "シークレットストレージドライバーの検出に失敗しました: %s"
 
-#: src/util/virerror.c:1128
+#: src/util/virerror.c:1188
 msgid "Invalid secret"
 msgstr "無効なシークレット"
 
-#: src/util/virerror.c:1130
+#: src/util/virerror.c:1190
 #, c-format
 msgid "Invalid secret: %s"
 msgstr "無効なシークレット: %s"
 
-#: src/util/virerror.c:1134
+#: src/util/virerror.c:1194
 msgid "Secret not found"
 msgstr "シークレットが見つかりませんでした"
 
-#: src/util/virerror.c:1136
+#: src/util/virerror.c:1196
 #, c-format
 msgid "Secret not found: %s"
 msgstr "シークレットが見つかりませんでした: %s"
 
-#: src/util/virerror.c:1140
+#: src/util/virerror.c:1200
 msgid "Failed to start the nwfilter driver"
 msgstr "ネットワークフィルタードライバーの開始に失敗しました"
 
-#: src/util/virerror.c:1142
+#: src/util/virerror.c:1202
 #, c-format
 msgid "Failed to start the nwfilter driver: %s"
 msgstr "ネットワークフィルタードライバーの開始に失敗しました: %s"
 
-#: src/util/virerror.c:1146
+#: src/util/virerror.c:1206
 msgid "Invalid network filter"
 msgstr "無効なネットワークフィルター"
 
-#: src/util/virerror.c:1148
+#: src/util/virerror.c:1208
 #, c-format
 msgid "Invalid network filter: %s"
 msgstr "無効なネットワークフィルター: %s"
 
-#: src/util/virerror.c:1152
+#: src/util/virerror.c:1212
 msgid "Network filter not found"
 msgstr "ネットワークフィルターが見つかりませんでした"
 
-#: src/util/virerror.c:1154
+#: src/util/virerror.c:1214
 #, c-format
 msgid "Network filter not found: %s"
 msgstr "ネットワークフィルターが見つかりませんでした: %s"
 
-#: src/util/virerror.c:1158
+#: src/util/virerror.c:1218
 msgid "Error while building firewall"
 msgstr "ファイアウォールの構築中にエラーが発生しました"
 
-#: src/util/virerror.c:1160
+#: src/util/virerror.c:1220
 #, c-format
 msgid "Error while building firewall: %s"
 msgstr "ファイアウォールの構築中にエラーが発生しました: %s"
 
-#: src/util/virerror.c:1164
+#: src/util/virerror.c:1224
 msgid "unsupported configuration"
 msgstr "サポートされない設定"
 
-#: src/util/virerror.c:1166
+#: src/util/virerror.c:1226
 #, c-format
 msgid "unsupported configuration: %s"
 msgstr "サポートされない設定: %s"
 
-#: src/util/virerror.c:1170
+#: src/util/virerror.c:1230
 msgid "Timed out during operation"
 msgstr "操作中にタイムアウトしました"
 
-#: src/util/virerror.c:1172
+#: src/util/virerror.c:1232
 #, c-format
 msgid "Timed out during operation: %s"
 msgstr "オペレーション中にタイムアウトが発生しました: %s"
 
-#: src/util/virerror.c:1176
+#: src/util/virerror.c:1236
 msgid "Failed to make domain persistent after migration"
 msgstr "マイグレーション後にドメインの永続化に失敗しました"
 
-#: src/util/virerror.c:1178
+#: src/util/virerror.c:1238
 #, c-format
 msgid "Failed to make domain persistent after migration: %s"
 msgstr "マイグレーション後にドメインの永続化に失敗しました: %s"
 
-#: src/util/virerror.c:1182
+#: src/util/virerror.c:1242
 msgid "Hook script execution failed"
 msgstr "フックスクリプトの実行に失敗しました"
 
-#: src/util/virerror.c:1184
+#: src/util/virerror.c:1244
 #, c-format
 msgid "Hook script execution failed: %s"
 msgstr "フックスクリプトの実行に失敗しました: %s"
 
-#: src/util/virerror.c:1188
+#: src/util/virerror.c:1248
 msgid "Invalid snapshot"
 msgstr "無効なスナップショット"
 
-#: src/util/virerror.c:1190
+#: src/util/virerror.c:1250
 #, c-format
 msgid "Invalid snapshot: %s"
 msgstr "無効なスナップショット: %s"
 
-#: src/util/virerror.c:1194
+#: src/util/virerror.c:1254
 msgid "Domain snapshot not found"
 msgstr "ドメインのスナップショットが見つかりません"
 
-#: src/util/virerror.c:1196
+#: src/util/virerror.c:1256
 #, c-format
 msgid "Domain snapshot not found: %s"
 msgstr "ドメインのスナップショットが見つかりません: %s"
 
-#: src/util/virerror.c:1200
+#: src/util/virerror.c:1260
 msgid "invalid stream pointer"
 msgstr "無効なストリームポインター"
 
-#: src/util/virerror.c:1202
+#: src/util/virerror.c:1262
 #, c-format
 msgid "invalid stream pointer in %s"
 msgstr "%s において無効なストリームポインター"
 
-#: src/util/virerror.c:1206
+#: src/util/virerror.c:1266
 msgid "argument unsupported"
 msgstr "サポートされない"
 
-#: src/util/virerror.c:1208
+#: src/util/virerror.c:1268
 #, c-format
 msgid "argument unsupported: %s"
 msgstr "サポートされない引数: %s"
 
-#: src/util/virerror.c:1212
+#: src/util/virerror.c:1272
 msgid "revert requires force"
 msgstr "復元するには強制が必要です"
 
-#: src/util/virerror.c:1214
+#: src/util/virerror.c:1274
 #, c-format
 msgid "revert requires force: %s"
 msgstr "復元するには強制が必要です: %s"
 
-#: src/util/virerror.c:1218
+#: src/util/virerror.c:1278
 msgid "operation aborted"
 msgstr "操作が中断されました"
 
-#: src/util/virerror.c:1220
+#: src/util/virerror.c:1280
 #, c-format
 msgid "operation aborted: %s"
 msgstr "操作が中断されました: %s"
 
-#: src/util/virerror.c:1224
+#: src/util/virerror.c:1284
 msgid "metadata not found"
 msgstr "メタ情報がありません"
 
-#: src/util/virerror.c:1226
+#: src/util/virerror.c:1286
 #, c-format
 msgid "metadata not found: %s"
 msgstr "メタ情報がありません: %s"
 
-#: src/util/virerror.c:1230
+#: src/util/virerror.c:1290
 msgid "Unsafe migration"
 msgstr "安全ではないマイグレーション"
 
-#: src/util/virerror.c:1232
+#: src/util/virerror.c:1292
 #, c-format
 msgid "Unsafe migration: %s"
 msgstr "安全ではないマイグレーション: %s"
 
-#: src/util/virerror.c:1236
+#: src/util/virerror.c:1296
 msgid "numerical overflow"
 msgstr "数値のオーバーフロー"
 
-#: src/util/virerror.c:1238
+#: src/util/virerror.c:1298
 #, c-format
 msgid "numerical overflow: %s"
 msgstr "数値のオーバーフロー: %s"
 
-#: src/util/virerror.c:1242
+#: src/util/virerror.c:1302
 msgid "block copy still active"
 msgstr "ブロックコピーがまだ動作中です"
 
-#: src/util/virerror.c:1244
+#: src/util/virerror.c:1304
 #, c-format
 msgid "block copy still active: %s"
 msgstr "ブロックコピーがまだ動作中です: %s"
 
-#: src/util/virerror.c:1248
+#: src/util/virerror.c:1308
 msgid "Operation not supported"
 msgstr "この操作はサポートされていません"
 
-#: src/util/virerror.c:1250
+#: src/util/virerror.c:1310
 #, c-format
 msgid "Operation not supported: %s"
 msgstr "この操作はサポートされていません: %s"
 
-#: src/util/virerror.c:1254
+#: src/util/virerror.c:1314
 msgid "SSH transport error"
 msgstr "SSH 転送エラー"
 
-#: src/util/virerror.c:1256
+#: src/util/virerror.c:1316
 #, c-format
 msgid "SSH transport error: %s"
 msgstr "SSH 転送エラー: %s"
 
-#: src/util/virerror.c:1260
+#: src/util/virerror.c:1320
 msgid "Guest agent is not responding"
 msgstr "ゲストエージェントが応答しません"
 
-#: src/util/virerror.c:1262
+#: src/util/virerror.c:1322
 #, c-format
 msgid "Guest agent is not responding: %s"
 msgstr "ゲストエージェントが応答しません: %s"
 
-#: src/util/virerror.c:1266
+#: src/util/virerror.c:1326
 msgid "resource busy"
 msgstr "リソースが使用中です"
 
-#: src/util/virerror.c:1268
+#: src/util/virerror.c:1328
 #, c-format
 msgid "resource busy %s"
 msgstr "リソースが使用中です %s"
 
-#: src/util/virerror.c:1272
+#: src/util/virerror.c:1332
 msgid "access denied"
 msgstr "アクセスが拒否されました"
 
-#: src/util/virerror.c:1274
+#: src/util/virerror.c:1334
 #, c-format
 msgid "access denied: %s"
 msgstr "アクセスが拒否されました: %s"
 
-#: src/util/virerror.c:1278
+#: src/util/virerror.c:1338
 msgid "error from service"
 msgstr "サービスからのエラー"
 
-#: src/util/virerror.c:1280
+#: src/util/virerror.c:1340
 #, c-format
 msgid "error from service: %s"
 msgstr "サービスからのエラー: %s"
 
-#: src/util/virerror.c:1284
+#: src/util/virerror.c:1344
 msgid "the CPU is incompatible with host CPU"
 msgstr ""
 
-#: src/util/virerror.c:1286
+#: src/util/virerror.c:1346
 #, c-format
 msgid "the CPU is incompatible with host CPU: %s"
 msgstr ""
 
-#: src/util/virerror.c:1290
+#: src/util/virerror.c:1350
 msgid "XML document failed to validate against schema"
 msgstr ""
 
-#: src/util/virerror.c:1292
+#: src/util/virerror.c:1352
 #, fuzzy, c-format
 msgid "XML document failed to validate against schema: %s"
 msgstr "自己の証明書 %s が %s に対する検証に失敗しました: %s"
 
-#: src/util/virerror.h:80
+#: src/util/virerror.h:85
 #, c-format
 msgid "%s in %s must be NULL"
 msgstr "%s (%s) は NULL である必要があります"
 
-#: src/util/virerror.h:91
+#: src/util/virerror.h:96
 #, c-format
 msgid "%s in %s must not be NULL"
 msgstr "%s (%s) は NULL 以外である必要があります"
 
-#: src/util/virerror.h:102
+#: src/util/virerror.h:107
 #, c-format
 msgid "%s in %s must be greater than zero"
 msgstr ""
 
-#: src/util/virerror.h:113
+#: src/util/virerror.h:118
 #, c-format
 msgid "%s in %s must not be zero"
 msgstr "%s (%s) は 0 以外である必要があります"
 
-#: src/util/virerror.h:124
+#: src/util/virerror.h:129
 #, c-format
 msgid "%s in %s must be zero"
 msgstr "%s (%s) は 0 である必要があります"
 
-#: src/util/virerror.h:135
+#: src/util/virerror.h:140
 #, c-format
 msgid "%s in %s must be zero or greater"
 msgstr "%s (%s) は 0 または 0 より大きい必要があります"
@@ -40143,6 +40129,10 @@ msgstr "chdir(%s) できません"
 #, c-format
 msgid "Unable to exec shell %s"
 msgstr "シェル %s を実行できません"
+
+#, fuzzy
+#~ msgid "CreateMachineWithNetwork: %s"
+#~ msgstr "ネットワークを作成します。"
 
 #~ msgid "Can't parse XML desc"
 #~ msgstr "XML 記述を構文解析できません"

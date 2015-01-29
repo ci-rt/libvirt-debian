@@ -28,7 +28,7 @@
 # else
 #  define DBusConnection void
 #  define DBusMessage void
-#  define DBusError void
+#  define dbus_message_unref(m) do {} while (0)
 # endif
 # include "internal.h"
 
@@ -62,7 +62,7 @@ int virDBusCreateReplyV(DBusMessage **reply,
 
 int virDBusCallMethod(DBusConnection *conn,
                       DBusMessage **reply,
-                      DBusError *error,
+                      virErrorPtr error,
                       const char *destination,
                       const char *path,
                       const char *iface,
@@ -74,4 +74,6 @@ void virDBusMessageUnref(DBusMessage *msg);
 
 int virDBusIsServiceEnabled(const char *name);
 int virDBusIsServiceRegistered(const char *name);
+
+bool virDBusErrorIsUnknownMethod(virErrorPtr err);
 #endif /* __VIR_DBUS_H__ */
