@@ -26,3 +26,4 @@ lxc-Don-t-crash-on-NULL-ifname_guest_actual.patch
 upstream/vbox-fix-a-bug-in-_machineStateInactive.patch
 security/CVE-2015-0236-qemu-Check-ACLs-when-dumping-security-.patch
 security/CVE-2015-0236-qemu-Check-ACLs-when-dumping-securi-14.patch
+Description-qemu-Don-t-try-to-parse-help-for-new-QEM.patch
