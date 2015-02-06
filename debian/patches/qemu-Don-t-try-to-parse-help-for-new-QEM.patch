@@ -9,7 +9,7 @@ the output, which was guaranteed to fail because the output changed.
 Let's just refuse parsing -help for QEMU >= 1.2.0.
 
 Author: Jiri Denemark <jdenemar redhat com>
-Bug-Debian: https://bugs.debian.org/776065
+Bug-Debian: https://bugs.debian.org/777138
 Origin: upstream, https://www.redhat.com/archives/libvir-list/2014-November/msg00407.html
 Reviewed-By: Mathieu Malaterre <malat@debian.org>
 ---
