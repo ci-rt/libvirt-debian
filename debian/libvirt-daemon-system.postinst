@@ -108,6 +108,9 @@ case "$1" in
         if [ -d /run/systemd/system ] && systemctl status virtlockd.service >/dev/null; then
            systemctl reload virtlockd.service
         fi
+
+        # Force refresh of capabilties (#731815)
+        rm -f /var/cache/libvirt/qemu/capabilities/*.xml
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
