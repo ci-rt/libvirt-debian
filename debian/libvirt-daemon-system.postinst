@@ -36,7 +36,7 @@ add_users_groups()
             --disabled-password \
             --home /var/lib/libvirt \
             --no-create-home \
-            -gecos "Libvirt Qemu" \
+            --gecos "Libvirt Qemu" \
             libvirt-qemu
     fi
     if ! getent group libvirt-qemu >/dev/null; then
