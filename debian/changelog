@@ -1,3 +1,14 @@
+libvirt (1.2.9-9) unstable; urgency=medium
+
+  * [4c14b83] qemu: Don't try to parse -help for new QEMU.
+    Closes: #777138, #775773
+    Thanks to Mathieu Malaterre for the debugging
+  * [1addae5] Force capability refresh on upgrades. This makes sure we
+    refresh the capabilities at least once when upgrading from Wheezy.
+    (Closes: #731815)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 06 Feb 2015 15:40:21 +0100
+
 libvirt (1.2.9-8~bpo70+1) wheezy-backports; urgency=medium
 
   * Rebuild for wheezy-backports.

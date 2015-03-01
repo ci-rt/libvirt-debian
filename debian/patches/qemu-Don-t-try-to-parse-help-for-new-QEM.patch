@@ -1,0 +1,39 @@
+From: Mathieu Malaterre <malat@debian.org>
+Date: Thu, 5 Feb 2015 16:05:49 +0100
+Subject: Description: qemu: Don't try to parse -help for new QEMU
+
+Since QEMU 1.2.0, we switched to QMP probing instead of parsing -help
+(and other commands, such as -cpu ?) output. However, if QMP probing
+failed, we still tried starting QEMU with various options and parsing
+the output, which was guaranteed to fail because the output changed.
+Let's just refuse parsing -help for QEMU >= 1.2.0.
+
+Author: Jiri Denemark <jdenemar redhat com>
+Bug-Debian: https://bugs.debian.org/777138
+Origin: upstream, https://www.redhat.com/archives/libvir-list/2014-November/msg00407.html
+Reviewed-By: Mathieu Malaterre <malat@debian.org>
+---
+ src/qemu/qemu_capabilities.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/src/qemu/qemu_capabilities.c b/src/qemu/qemu_capabilities.c
+index a409aaf..9e0158c 100644
+--- a/src/qemu/qemu_capabilities.c
++++ b/src/qemu/qemu_capabilities.c
+@@ -1382,6 +1382,16 @@ int virQEMUCapsParseHelpStr(const char *qemu,
+ 
+     *version = (major * 1000 * 1000) + (minor * 1000) + micro;
+ 
++    /* Refuse to parse -help output for QEMU releases >= 1.2.0 that should be
++     * using QMP probing.
++     */
++    if (*version > 1002000) {
++        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
++                       _("QEMU %u.%u.%u is too new for help parsing"),
++                       major, minor, micro);
++        goto cleanup;
++    }
++
+     if (virQEMUCapsComputeCmdFlags(help, *version, *is_kvm, *kvm_version,
+                                    qemuCaps, check_yajl) < 0)
+         goto cleanup;
