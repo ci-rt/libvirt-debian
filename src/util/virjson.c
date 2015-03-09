@@ -64,12 +64,11 @@ struct _virJSONParser {
 
 
 /**
- * virJSONValueObjectCreateVArgs:
- * @obj: returns the created JSON object
- * @...: a key-value argument pairs, terminated by NULL
+ * virJSONValueObjectAddVArgs:
+ * @obj: JSON object to add the values to
+ * @args: a key-value argument pairs, terminated by NULL
  *
- * Creates a JSON value object filled with key-value pairs supplied as variable
- * argument list.
+ * Adds the key-value pairs supplied as variable argument list to @obj.
  *
  * Keys look like   s:name  the first letter is a type code:
  * Explanation of type codes:
@@ -100,25 +99,22 @@ struct _virJSONParser {
  *
  * a: json object, must be non-NULL
  * A: json object, omitted if NULL
+ * m: a bitmap represented as a JSON array, must be non-NULL
+ * M: a bitmap represented as a JSON array, omitted if NULL
  *
  * The value corresponds to the selected type.
  *
  * Returns -1 on error. 1 on success, if at least one key:pair was valid 0
- * in case of no error but nothing was filled (@obj will be NULL).
+ * in case of no error but nothing was filled.
  */
 int
-virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
+virJSONValueObjectAddVArgs(virJSONValuePtr obj,
+                           va_list args)
 {
-    virJSONValuePtr jargs = NULL;
     char type;
     char *key;
     int ret = -1;
     int rc;
-
-    *obj = NULL;
-
-    if (!(jargs = virJSONValueNewObject()))
-        goto cleanup;
 
     while ((key = va_arg(args, char *)) != NULL) {
 
@@ -146,7 +142,7 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
                                key);
                 goto cleanup;
             }
-            rc = virJSONValueObjectAppendString(jargs, key, val);
+            rc = virJSONValueObjectAppendString(obj, key, val);
         }   break;
 
         case 'z':
@@ -165,7 +161,7 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
             if (!val && (type == 'z' || type == 'y'))
                 continue;
 
-            rc = virJSONValueObjectAppendNumberInt(jargs, key, val);
+            rc = virJSONValueObjectAppendNumberInt(obj, key, val);
         }   break;
 
         case 'p':
@@ -175,7 +171,7 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
             if (!val && type == 'p')
                 continue;
 
-            rc = virJSONValueObjectAppendNumberUint(jargs, key, val);
+            rc = virJSONValueObjectAppendNumberUint(obj, key, val);
         }   break;
 
         case 'Z':
@@ -194,7 +190,7 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
             if (!val && (type == 'Z' || type == 'Y'))
                 continue;
 
-            rc = virJSONValueObjectAppendNumberLong(jargs, key, val);
+            rc = virJSONValueObjectAppendNumberLong(obj, key, val);
         }   break;
 
         case 'P':
@@ -209,12 +205,12 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
             if (!val && type == 'P')
                 continue;
 
-            rc = virJSONValueObjectAppendNumberLong(jargs, key, val);
+            rc = virJSONValueObjectAppendNumberLong(obj, key, val);
         }   break;
 
         case 'd': {
             double val = va_arg(args, double);
-            rc = virJSONValueObjectAppendNumberDouble(jargs, key, val);
+            rc = virJSONValueObjectAppendNumberDouble(obj, key, val);
         }   break;
 
         case 'B':
@@ -224,11 +220,11 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
             if (!val && type == 'B')
                 continue;
 
-            rc = virJSONValueObjectAppendBoolean(jargs, key, val);
+            rc = virJSONValueObjectAppendBoolean(obj, key, val);
         }   break;
 
         case 'n': {
-            rc = virJSONValueObjectAppendNull(jargs, key);
+            rc = virJSONValueObjectAppendNull(obj, key);
         }   break;
 
         case 'A':
@@ -245,8 +241,30 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
                 goto cleanup;
             }
 
-            rc = virJSONValueObjectAppend(jargs, key, val);
+            rc = virJSONValueObjectAppend(obj, key, val);
         }   break;
+
+        case 'M':
+        case 'm': {
+            virBitmapPtr map = va_arg(args, virBitmapPtr);
+            virJSONValuePtr jsonMap;
+
+            if (!map) {
+                if (type == 'M')
+                    continue;
+
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("argument key '%s' must not have null value"),
+                               key);
+                goto cleanup;
+            }
+
+            if (!(jsonMap = virJSONValueNewArrayFromBitmap(map)))
+                goto cleanup;
+
+            if ((rc = virJSONValueObjectAppend(obj, key, jsonMap)) < 0)
+                virJSONValueFree(jsonMap);
+        } break;
 
         default:
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -259,17 +277,47 @@ virJSONValueObjectCreateVArgs(virJSONValuePtr *obj, va_list args)
     }
 
     /* verify that we added at least one key-value pair */
-    if (virJSONValueObjectKeysNumber(jargs) == 0) {
+    if (virJSONValueObjectKeysNumber(obj) == 0) {
         ret = 0;
         goto cleanup;
     }
 
-    *obj = jargs;
-    jargs = NULL;
     ret = 1;
 
  cleanup:
-    virJSONValueFree(jargs);
+    return ret;
+}
+
+
+int
+virJSONValueObjectAdd(virJSONValuePtr obj, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, obj);
+    ret = virJSONValueObjectAddVArgs(obj, args);
+    va_end(args);
+
+    return ret;
+}
+
+
+int
+virJSONValueObjectCreateVArgs(virJSONValuePtr *obj,
+                              va_list args)
+{
+    int ret;
+
+    if (!(*obj = virJSONValueNewObject()))
+        return -1;
+
+    /* free the object on error, or if no value objects were added */
+    if ((ret = virJSONValueObjectAddVArgs(*obj, args)) <= 0) {
+        virJSONValueFree(*obj);
+        *obj = NULL;
+    }
+
     return ret;
 }
 
@@ -919,6 +967,95 @@ virJSONValueGetBoolean(virJSONValuePtr val,
 }
 
 
+/**
+ * virJSONValueGetArrayAsBitmap:
+ * @val: JSON array to convert to bitmap
+ * @bitmap: New bitmap is allocated filled and returned via this argument
+ *
+ * Attempts a conversion of a JSON array to a bitmap. The members of the array
+ * must be non-negative integers for the conversion to succeed. This function
+ * does not report libvirt errors so that it can be used to probe that the
+ * array can be represented as a bitmap.
+ *
+ * Returns 0 on success and fills @bitmap; -1 on error and  @bitmap is set to
+ * NULL.
+ */
+int
+virJSONValueGetArrayAsBitmap(const virJSONValue *val,
+                             virBitmapPtr *bitmap)
+{
+    int ret = -1;
+    virJSONValuePtr elem;
+    size_t i;
+    unsigned long long *elems = NULL;
+    unsigned long long maxelem = 0;
+
+    *bitmap = NULL;
+
+    if (val->type != VIR_JSON_TYPE_ARRAY)
+        return -1;
+
+    if (VIR_ALLOC_N_QUIET(elems, val->data.array.nvalues) < 0)
+        return -1;
+
+    /* first pass converts array members to numbers and finds the maximum */
+    for (i = 0; i < val->data.array.nvalues; i++) {
+        elem = val->data.array.values[i];
+
+        if (elem->type != VIR_JSON_TYPE_NUMBER ||
+            virStrToLong_ullp(elem->data.number, NULL, 10, &elems[i]) < 0)
+            goto cleanup;
+
+        if (elems[i] > maxelem)
+            maxelem = elems[i];
+    }
+
+    if (!(*bitmap = virBitmapNewQuiet(maxelem + 1)))
+        goto cleanup;
+
+    /* second pass sets the correct bits in the map */
+    for (i = 0; i < val->data.array.nvalues; i++)
+        ignore_value(virBitmapSetBit(*bitmap, elems[i]));
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(elems);
+
+    return ret;
+}
+
+
+virJSONValuePtr
+virJSONValueNewArrayFromBitmap(virBitmapPtr bitmap)
+{
+    virJSONValuePtr ret;
+    ssize_t pos = -1;
+
+    if (!(ret = virJSONValueNewArray()))
+        return NULL;
+
+    if (!bitmap)
+        return ret;
+
+    while ((pos = virBitmapNextSetBit(bitmap, pos)) > -1) {
+        virJSONValuePtr newelem;
+
+        if (!(newelem = virJSONValueNewNumberLong(pos)) ||
+            virJSONValueArrayAppend(ret, newelem) < 0) {
+            virJSONValueFree(newelem);
+            goto error;
+        }
+    }
+
+    return ret;
+
+ error:
+    virJSONValueFree(ret);
+    return NULL;
+}
+
+
 int
 virJSONValueIsNull(virJSONValuePtr val)
 {
@@ -1060,6 +1197,39 @@ virJSONValueObjectIsNull(virJSONValuePtr object,
         return -1;
 
     return virJSONValueIsNull(val);
+}
+
+
+/**
+ * virJSONValueObjectForeachKeyValue:
+ * @object: JSON object to iterate
+ * @cb: callback to call on key-value pairs contained in the object
+ * @opaque: generic data for the callback
+ *
+ * Iterates all key=value pairs in @object. Iteration breaks if @cb returns
+ * negative value.
+ *
+ * Returns 0 if all elements were iterated, -2 if @cb returned negative value
+ * during iteration and -1 on generic errors.
+ */
+int
+virJSONValueObjectForeachKeyValue(virJSONValuePtr object,
+                                  virJSONValueObjectIteratorFunc cb,
+                                  void *opaque)
+{
+    size_t i;
+
+    if (object->type != VIR_JSON_TYPE_OBJECT)
+        return -1;
+
+    for (i = 0; i < object->data.object.npairs; i++) {
+        virJSONObjectPairPtr elem = object->data.object.pairs + i;
+
+        if (cb(elem->key, elem->value, opaque) < 0)
+            return -2;
+    }
+
+    return 0;
 }
 
 

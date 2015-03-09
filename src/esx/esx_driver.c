@@ -1,7 +1,7 @@
 /*
  * esx_driver.c: core driver functions for managing VMware ESX hosts
  *
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright (C) 2009-2014 Matthias Bolte <matthias.bolte@googlemail.com>
  * Copyright (C) 2009 Maximilian Wilhelm <max@rfc2324.org>
  *
@@ -37,9 +37,6 @@
 #include "esx_interface_driver.h"
 #include "esx_network_driver.h"
 #include "esx_storage_driver.h"
-#include "esx_device_monitor.h"
-#include "esx_secret_driver.h"
-#include "esx_nwfilter_driver.h"
 #include "esx_private.h"
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
@@ -5150,9 +5147,44 @@ esxConnectListAllDomains(virConnectPtr conn,
 }
 #undef MATCH
 
+static int
+esxDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
+{
+    int result = -1;
+    esxPrivate *priv = domain->conn->privateData;
+    esxVI_ManagedObjectReference *managedObjectReference = NULL;
+    char uuid_string[VIR_UUID_STRING_BUFLEN] = "";
 
-static virHypervisorDriver esxDriver = {
-    .no = VIR_DRV_ESX,
+    virCheckFlags(0, -1);
+
+    if (esxVI_EnsureSession(priv->primary) < 0)
+        return -1;
+
+    virUUIDFormat(domain->uuid, uuid_string);
+
+    if (esxVI_FindByUuid(priv->primary, priv->primary->datacenter->_reference,
+                         uuid_string, esxVI_Boolean_True,
+                         esxVI_Boolean_Undefined,
+                         &managedObjectReference) < 0) {
+        return -1;
+    }
+
+    if (!managedObjectReference) {
+        virReportError(VIR_ERR_NO_DOMAIN,
+                       _("Could not find domain with UUID '%s'"),
+                       uuid_string);
+        goto cleanup;
+    }
+
+    result = 0;
+
+ cleanup:
+    esxVI_ManagedObjectReference_Free(&managedObjectReference);
+    return result;
+}
+
+
+static virHypervisorDriver esxHypervisorDriver = {
     .name = "ESX",
     .connectOpen = esxConnectOpen, /* 0.7.0 */
     .connectClose = esxConnectClose, /* 0.7.0 */
@@ -5230,22 +5262,20 @@ static virHypervisorDriver esxDriver = {
     .domainSnapshotHasMetadata = esxDomainSnapshotHasMetadata, /* 0.9.13 */
     .domainSnapshotDelete = esxDomainSnapshotDelete, /* 0.8.0 */
     .connectIsAlive = esxConnectIsAlive, /* 0.9.8 */
+    .domainHasManagedSaveImage = esxDomainHasManagedSaveImage, /* 1.2.13 */
 };
 
 
+static virConnectDriver esxConnectDriver = {
+    .hypervisorDriver = &esxHypervisorDriver,
+    .interfaceDriver = &esxInterfaceDriver,
+    .networkDriver = &esxNetworkDriver,
+    .storageDriver = &esxStorageDriver,
+};
 
 int
 esxRegister(void)
 {
-    if (virRegisterHypervisorDriver(&esxDriver) < 0 ||
-        esxInterfaceRegister() < 0 ||
-        esxNetworkRegister() < 0 ||
-        esxStorageRegister() < 0 ||
-        esxDeviceRegister() < 0 ||
-        esxSecretRegister() < 0 ||
-        esxNWFilterRegister() < 0) {
-        return -1;
-    }
-
-    return 0;
+    return virRegisterConnectDriver(&esxConnectDriver,
+                                    false);
 }

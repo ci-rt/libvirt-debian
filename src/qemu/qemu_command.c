@@ -285,7 +285,6 @@ static int qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
  */
 int
 qemuNetworkIfaceConnect(virDomainDefPtr def,
-                        virConnectPtr conn,
                         virQEMUDriverPtr driver,
                         virDomainNetDefPtr net,
                         virQEMUCapsPtr qemuCaps,
@@ -299,8 +298,14 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     const char *tunpath = "/dev/net/tun";
 
-    if (net->backend.tap)
+    if (net->backend.tap) {
         tunpath = net->backend.tap;
+        if (!cfg->privileged) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cannot use custom tap device in session mode"));
+            goto cleanup;
+        }
+    }
 
     if (!(brname = virDomainNetGetActualBridgeName(net))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Missing bridge name"));
@@ -368,7 +373,7 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
         goto cleanup;
 
     if (net->filter &&
-        virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0) {
+        virDomainConfNWFilterInstantiate(def->uuid, net) < 0) {
         goto cleanup;
     }
 
@@ -413,6 +418,117 @@ qemuDomainSupportsNetdev(virDomainDefPtr def,
         return false;
     return virQEMUCapsGet(qemuCaps, QEMU_CAPS_NETDEV);
 }
+
+
+static int
+qemuBuildObjectCommandLinePropsInternal(const char *key,
+                                        const virJSONValue *value,
+                                        virBufferPtr buf,
+                                        bool nested)
+{
+    virJSONValuePtr elem;
+    virBitmapPtr bitmap = NULL;
+    ssize_t pos = -1;
+    ssize_t end;
+    size_t i;
+
+    switch ((virJSONType) value->type) {
+    case VIR_JSON_TYPE_STRING:
+        virBufferAsprintf(buf, ",%s=%s", key, value->data.string);
+        break;
+
+    case VIR_JSON_TYPE_NUMBER:
+        virBufferAsprintf(buf, ",%s=%s", key, value->data.number);
+        break;
+
+    case VIR_JSON_TYPE_BOOLEAN:
+        if (value->data.boolean)
+            virBufferAsprintf(buf, ",%s=yes", key);
+        else
+            virBufferAsprintf(buf, ",%s=no", key);
+
+        break;
+
+    case VIR_JSON_TYPE_ARRAY:
+        if (nested) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("nested -object property arrays are not supported"));
+            return -1;
+        }
+
+        if (virJSONValueGetArrayAsBitmap(value, &bitmap) == 0) {
+            while ((pos = virBitmapNextSetBit(bitmap, pos)) > -1) {
+                if ((end = virBitmapNextClearBit(bitmap, pos)) < 0)
+                    end = virBitmapLastSetBit(bitmap) + 1;
+
+                if (end - 1 > pos) {
+                    virBufferAsprintf(buf, ",%s=%zd-%zd", key, pos, end - 1);
+                    pos = end;
+                } else {
+                    virBufferAsprintf(buf, ",%s=%zd", key, pos);
+                }
+            }
+        } else {
+            /* fallback, treat the array as a non-bitmap, adding the key
+             * for each member */
+            for (i = 0; i < virJSONValueArraySize(value); i++) {
+                elem = virJSONValueArrayGet((virJSONValuePtr)value, i);
+
+                /* recurse to avoid duplicating code */
+                if (qemuBuildObjectCommandLinePropsInternal(key, elem, buf,
+                                                            true) < 0)
+                    return -1;
+            }
+        }
+        break;
+
+    case VIR_JSON_TYPE_OBJECT:
+    case VIR_JSON_TYPE_NULL:
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("NULL and OBJECT JSON types can't be converted to "
+                         "commandline string"));
+        return -1;
+    }
+
+    virBitmapFree(bitmap);
+    return 0;
+}
+
+
+static int
+qemuBuildObjectCommandLineProps(const char *key,
+                                const virJSONValue *value,
+                                void *opaque)
+{
+    return qemuBuildObjectCommandLinePropsInternal(key, value, opaque, false);
+}
+
+
+char *
+qemuBuildObjectCommandlineFromJSON(const char *type,
+                                   const char *alias,
+                                   virJSONValuePtr props)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *ret = NULL;
+
+    virBufferAsprintf(&buf, "%s,id=%s", type, alias);
+
+    if (virJSONValueObjectForeachKeyValue(props,
+                                          qemuBuildObjectCommandLineProps,
+                                          &buf) < 0)
+        goto cleanup;
+
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    ret = virBufferContentAndReset(&buf);
+
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    return ret;
+}
+
 
 /**
  * qemuOpenVhostNet:
@@ -912,6 +1028,17 @@ qemuGetNextChrDevIndex(virDomainDefPtr def,
 
 
 int
+qemuAssignDeviceRNGAlias(virDomainRNGDefPtr rng,
+                         size_t idx)
+{
+    if (virAsprintf(&rng->info.alias, "rng%zu", idx) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+int
 qemuAssignDeviceChrAlias(virDomainDefPtr def,
                          virDomainChrDefPtr chr,
                          ssize_t idx)
@@ -1036,7 +1163,7 @@ qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
             return -1;
     }
     for (i = 0; i < def->nrngs; i++) {
-        if (virAsprintf(&def->rngs[i]->info.alias, "rng%zu", i) < 0)
+        if (qemuAssignDeviceRNGAlias(def->rngs[i], i) < 0)
             return -1;
     }
     if (def->tpm) {
@@ -4223,10 +4350,15 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
                           int *nusbcontroller)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int model;
+    int model = def->model;
+
+    if (def->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
+        if ((qemuSetSCSIControllerModel(domainDef, qemuCaps, &model)) < 0)
+            return NULL;
+    }
 
     if (!(def->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI &&
-          def->model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI)) {
+          model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI)) {
         if (def->queues) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("'queues' is only supported by virtio-scsi controller"));
@@ -4246,10 +4378,6 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
 
     switch (def->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        model = def->model;
-        if ((qemuSetSCSIControllerModel(domainDef, qemuCaps, &model)) < 0)
-            return NULL;
-
         switch (model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
             if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
@@ -4389,6 +4517,256 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
 }
 
 
+/**
+ * qemuBuildMemoryBackendStr:
+ * @size: size of the memory device in kibibytes
+ * @pagesize: size of the requested memory page in KiB, 0 for default
+ * @guestNode: NUMA node in the guest that the memory object will be attached to
+ * @hostNodes: map of host nodes to alloc the memory in, NULL for default
+ * @autoNodeset: fallback nodeset in case of automatic numa placement
+ * @def: domain definition object
+ * @qemuCaps: qemu capabilities object
+ * @cfg: qemu driver config object
+ * @aliasPrefix: prefix string of the alias (to allow for multiple frontents)
+ * @id: index of the device (to construct the alias)
+ * @backendStr: returns the object string
+ *
+ * Formats the configuration string for the memory device backend according
+ * to the configuration. @pagesize and @hostNodes can be used to override the
+ * default source configuration, both are optional.
+ *
+ * Returns 0 on success, 1 if only the implicit memory-device-ram with no
+ * other configuration was used (to detect legacy configurations). Returns
+ * -1 in case of an error.
+ */
+static int
+qemuBuildMemoryBackendStr(unsigned long long size,
+                          unsigned long long pagesize,
+                          int guestNode,
+                          virBitmapPtr userNodeset,
+                          virBitmapPtr autoNodeset,
+                          virDomainDefPtr def,
+                          virQEMUCapsPtr qemuCaps,
+                          virQEMUDriverConfigPtr cfg,
+                          const char **backendType,
+                          virJSONValuePtr *backendProps,
+                          bool force)
+{
+    virDomainHugePagePtr master_hugepage = NULL;
+    virDomainHugePagePtr hugepage = NULL;
+    virDomainNumatuneMemMode mode;
+    const long system_page_size = virGetSystemPageSizeKB();
+    virNumaMemAccess memAccess = virDomainNumaGetNodeMemoryAccessMode(def->numa, guestNode);
+
+    size_t i;
+    char *mem_path = NULL;
+    virBitmapPtr nodemask = NULL;
+    int ret = -1;
+    virJSONValuePtr props = NULL;
+
+    *backendProps = NULL;
+    *backendType = NULL;
+
+    if (!(props = virJSONValueNewObject()))
+        return -1;
+
+    mode = virDomainNumatuneGetMode(def->numa, guestNode);
+
+    if (pagesize == 0 || pagesize != system_page_size) {
+        /* Find the huge page size we want to use */
+        for (i = 0; i < def->mem.nhugepages; i++) {
+            bool thisHugepage = false;
+
+            hugepage = &def->mem.hugepages[i];
+
+            if (!hugepage->nodemask) {
+                master_hugepage = hugepage;
+                continue;
+            }
+
+            if (virBitmapGetBit(hugepage->nodemask, guestNode,
+                                &thisHugepage) < 0) {
+                /* Ignore this error. It's not an error after all. Well,
+                 * the nodemask for this <page/> can contain lower NUMA
+                 * nodes than we are querying in here. */
+                continue;
+            }
+
+            if (thisHugepage) {
+                /* Hooray, we've found the page size */
+                break;
+            }
+        }
+
+        if (i == def->mem.nhugepages) {
+            /* We have not found specific huge page to be used with this
+             * NUMA node. Use the generic setting then (<page/> without any
+             * @nodemask) if possible. */
+            hugepage = master_hugepage;
+        }
+
+        if (hugepage)
+            pagesize = hugepage->size;
+
+        if (hugepage && hugepage->size == system_page_size) {
+            /* However, if user specified to use "huge" page
+             * of regular system page size, it's as if they
+             * hasn't specified any huge pages at all. */
+            hugepage = NULL;
+        }
+    }
+
+    if (hugepage) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("this qemu doesn't support hugepage memory backing"));
+            goto cleanup;
+        }
+
+        /* Now lets see, if the huge page we want to use is even mounted
+         * and ready to use */
+        for (i = 0; i < cfg->nhugetlbfs; i++) {
+            if (cfg->hugetlbfs[i].size == hugepage->size)
+                break;
+        }
+
+        if (i == cfg->nhugetlbfs) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to find any usable hugetlbfs mount for %llu KiB"),
+                           pagesize);
+            goto cleanup;
+        }
+
+        VIR_FREE(mem_path);
+        if (!(mem_path = qemuGetHugepagePath(&cfg->hugetlbfs[i])))
+            goto cleanup;
+
+        *backendType = "memory-backend-file";
+
+        if (virJSONValueObjectAdd(props,
+                                  "b:prealloc", true,
+                                  "s:mem-path", mem_path,
+                                  NULL) < 0)
+            goto cleanup;
+
+        switch (memAccess) {
+        case VIR_NUMA_MEM_ACCESS_SHARED:
+            if (virJSONValueObjectAdd(props, "b:share", true, NULL) < 0)
+                goto cleanup;
+            break;
+
+        case VIR_NUMA_MEM_ACCESS_PRIVATE:
+            if (virJSONValueObjectAdd(props, "b:share", false, NULL) < 0)
+                goto cleanup;
+            break;
+
+        case VIR_NUMA_MEM_ACCESS_DEFAULT:
+        case VIR_NUMA_MEM_ACCESS_LAST:
+            break;
+        }
+    } else {
+        if (memAccess) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Shared memory mapping is supported "
+                             "only with hugepages"));
+            goto cleanup;
+        }
+
+        *backendType = "memory-backend-ram";
+    }
+
+    if (virJSONValueObjectAdd(props, "U:size", size * 1024, NULL) < 0)
+        goto cleanup;
+
+    if (userNodeset) {
+        nodemask = userNodeset;
+    } else {
+        if (virDomainNumatuneMaybeGetNodeset(def->numa, autoNodeset,
+                                             &nodemask, guestNode) < 0)
+            goto cleanup;
+    }
+
+    if (nodemask) {
+        if (virJSONValueObjectAdd(props,
+                                  "m:host-nodes", nodemask,
+                                  "S:policy", qemuNumaPolicyTypeToString(mode),
+                                  NULL) < 0)
+            goto cleanup;
+    }
+
+    *backendProps = props;
+    props = NULL;
+
+    if (!hugepage) {
+        bool nodeSpecified = virDomainNumatuneNodeSpecified(def->numa, guestNode);
+
+        if ((userNodeset || nodeSpecified || force) &&
+            !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("this qemu doesn't support the "
+                             "memory-backend-ram object"));
+                goto cleanup;
+        }
+
+        /* report back that using the new backend is not necessary to achieve
+         * the desired configuration */
+        if (!userNodeset && !nodeSpecified) {
+            ret = 1;
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(props);
+    VIR_FREE(mem_path);
+
+    return ret;
+}
+
+
+static int
+qemuBuildMemoryCellBackendStr(virDomainDefPtr def,
+                              virQEMUCapsPtr qemuCaps,
+                              virQEMUDriverConfigPtr cfg,
+                              size_t cell,
+                              virBitmapPtr auto_nodeset,
+                              char **backendStr)
+{
+    virJSONValuePtr props = NULL;
+    char *alias = NULL;
+    const char *backendType;
+    int ret = -1;
+    int rc;
+
+    *backendStr = NULL;
+
+    if (virAsprintf(&alias, "ram-node%zu", cell) < 0)
+        goto cleanup;
+
+    if ((rc = qemuBuildMemoryBackendStr(virDomainNumaGetNodeMemorySize(def->numa, cell),
+                                        0, cell,
+                                        NULL, auto_nodeset,
+                                        def, qemuCaps, cfg,
+                                        &backendType, &props, false)) < 0)
+        goto cleanup;
+
+    if (!(*backendStr = qemuBuildObjectCommandlineFromJSON(backendType,
+                                                           alias,
+                                                           props)))
+        goto cleanup;
+
+    ret = rc;
+
+ cleanup:
+    VIR_FREE(alias);
+    virJSONValueFree(props);
+
+    return ret;
+}
+
+
 char *
 qemuBuildNicStr(virDomainNetDefPtr net,
                 const char *prefix,
@@ -4492,6 +4870,10 @@ qemuBuildNicDevStr(virDomainDefPtr def,
         if (net->driver.virtio.host.ufo) {
             virBufferAsprintf(&buf, ",host_ufo=%s",
                               virTristateSwitchTypeToString(net->driver.virtio.host.ufo));
+        }
+        if (net->driver.virtio.host.mrg_rxbuf) {
+            virBufferAsprintf(&buf, ",mrg_rxbuf=%s",
+                              virTristateSwitchTypeToString(net->driver.virtio.host.mrg_rxbuf));
         }
         if (net->driver.virtio.guest.csum) {
             virBufferAsprintf(&buf, ",guest_csum=%s",
@@ -5784,15 +6166,38 @@ qemuBuildSclpDevStr(virDomainChrDefPtr dev)
 
 
 static int
-qemuBuildRNGBackendArgs(virCommandPtr cmd,
-                        virDomainRNGDefPtr dev,
-                        virQEMUCapsPtr qemuCaps)
+qemuBuildRNGBackendChrdevStr(virDomainRNGDefPtr rng,
+                             virQEMUCapsPtr qemuCaps,
+                             char **chr)
 {
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *backend = NULL;
+    *chr = NULL;
+
+    switch ((virDomainRNGBackend) rng->backend) {
+    case VIR_DOMAIN_RNG_BACKEND_RANDOM:
+    case VIR_DOMAIN_RNG_BACKEND_LAST:
+        /* no chardev backend is needed */
+        return 0;
+
+    case VIR_DOMAIN_RNG_BACKEND_EGD:
+        if (!(*chr = qemuBuildChrChardevStr(rng->source.chardev,
+                                            rng->info.alias, qemuCaps)))
+            return -1;
+    }
+
+    return 0;
+}
+
+
+int
+qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
+                         virQEMUCapsPtr qemuCaps,
+                         const char **type,
+                         virJSONValuePtr *props)
+{
+    char *charBackendAlias = NULL;
     int ret = -1;
 
-    switch ((virDomainRNGBackend) dev->backend) {
+    switch ((virDomainRNGBackend) rng->backend) {
     case VIR_DOMAIN_RNG_BACKEND_RANDOM:
         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_RNG_RANDOM)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -5801,15 +6206,14 @@ qemuBuildRNGBackendArgs(virCommandPtr cmd,
             goto cleanup;
         }
 
-        virBufferAsprintf(&buf, "rng-random,id=%s,filename=%s",
-                          dev->info.alias, dev->source.file);
+        *type = "rng-random";
 
-        virCommandAddArg(cmd, "-object");
-        virCommandAddArgBuffer(cmd, &buf);
+        if (virJSONValueObjectCreate(props, "s:filename", rng->source.file,
+                                     NULL) < 0)
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_RNG_BACKEND_EGD:
-
         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_RNG_EGD)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this qemu doesn't support the rng-egd "
@@ -5817,15 +6221,15 @@ qemuBuildRNGBackendArgs(virCommandPtr cmd,
             goto cleanup;
         }
 
-        if (!(backend = qemuBuildChrChardevStr(dev->source.chardev,
-                                               dev->info.alias, qemuCaps)))
+        *type = "rng-egd";
+
+        if (virAsprintf(&charBackendAlias, "char%s", rng->info.alias) < 0)
             goto cleanup;
 
-        virCommandAddArgList(cmd, "-chardev", backend, NULL);
+        if (virJSONValueObjectCreate(props, "s:chardev", charBackendAlias,
+                                     NULL) < 0)
+            goto cleanup;
 
-        virCommandAddArg(cmd, "-object");
-        virCommandAddArgFormat(cmd, "rng-egd,chardev=char%s,id=%s",
-                               dev->info.alias, dev->info.alias);
         break;
 
     case VIR_DOMAIN_RNG_BACKEND_LAST:
@@ -5835,37 +6239,62 @@ qemuBuildRNGBackendArgs(virCommandPtr cmd,
     ret = 0;
 
  cleanup:
-    virBufferFreeAndReset(&buf);
-    VIR_FREE(backend);
+    VIR_FREE(charBackendAlias);
     return ret;
 }
 
 
-static int
-qemuBuildRNGDeviceArgs(virCommandPtr cmd,
-                       virDomainDefPtr def,
-                       virDomainRNGDefPtr dev,
+static char *
+qemuBuildRNGBackendStr(virDomainRNGDefPtr rng,
                        virQEMUCapsPtr qemuCaps)
 {
+    const char *type = NULL;
+    char *alias = NULL;
+    virJSONValuePtr props = NULL;
+    char *ret = NULL;
+
+    if (virAsprintf(&alias, "obj%s", rng->info.alias) < 0)
+        goto cleanup;
+
+    if (qemuBuildRNGBackendProps(rng, qemuCaps, &type, &props) < 0)
+        goto cleanup;
+
+    ret = qemuBuildObjectCommandlineFromJSON(type, alias, props);
+
+ cleanup:
+    VIR_FREE(alias);
+    virJSONValueFree(props);
+    return ret;
+}
+
+
+char *
+qemuBuildRNGDevStr(virDomainDefPtr def,
+                   virDomainRNGDefPtr dev,
+                   virQEMUCapsPtr qemuCaps)
+{
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int ret = -1;
 
     if (dev->model != VIR_DOMAIN_RNG_MODEL_VIRTIO ||
         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_RNG)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("this qemu doesn't support RNG device type '%s'"),
                        virDomainRNGModelTypeToString(dev->model));
-        goto cleanup;
+        goto error;
     }
 
     if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
-        virBufferAsprintf(&buf, "virtio-rng-ccw,rng=%s", dev->info.alias);
+        virBufferAsprintf(&buf, "virtio-rng-ccw,rng=obj%s,id=%s",
+                          dev->info.alias, dev->info.alias);
     else if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390)
-        virBufferAsprintf(&buf, "virtio-rng-s390,rng=%s", dev->info.alias);
+        virBufferAsprintf(&buf, "virtio-rng-s390,rng=obj%s,id=%s",
+                          dev->info.alias, dev->info.alias);
     else if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO)
-        virBufferAsprintf(&buf, "virtio-rng-device,rng=%s", dev->info.alias);
+        virBufferAsprintf(&buf, "virtio-rng-device,rng=obj%s,id=%s",
+                          dev->info.alias, dev->info.alias);
     else
-        virBufferAsprintf(&buf, "virtio-rng-pci,rng=%s", dev->info.alias);
+        virBufferAsprintf(&buf, "virtio-rng-pci,rng=obj%s,id=%s",
+                          dev->info.alias, dev->info.alias);
 
     if (dev->rate > 0) {
         virBufferAsprintf(&buf, ",max-bytes=%u", dev->rate);
@@ -5876,16 +6305,15 @@ qemuBuildRNGDeviceArgs(virCommandPtr cmd,
     }
 
     if (qemuBuildDeviceAddressStr(&buf, def, &dev->info, qemuCaps) < 0)
-        goto cleanup;
+        goto error;
+    if (virBufferCheckError(&buf) < 0)
+        goto error;
 
-    virCommandAddArg(cmd, "-device");
-    virCommandAddArgBuffer(cmd, &buf);
+    return virBufferContentAndReset(&buf);
 
-    ret = 0;
-
- cleanup:
+ error:
     virBufferFreeAndReset(&buf);
-    return ret;
+    return NULL;
 }
 
 
@@ -6263,7 +6691,8 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
         virBufferAddLit(buf, "host");
 
         if (ARCH_IS_PPC64(def->os.arch) &&
-            cpu->mode == VIR_CPU_MODE_HOST_MODEL) {
+            cpu->mode == VIR_CPU_MODE_HOST_MODEL &&
+            def->cpu->model != NULL) {
             virBufferAsprintf(buf, ",compat=%s", def->cpu->model);
         } else {
             featCpu = cpu;
@@ -6683,18 +7112,19 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
                     virDomainDefPtr def,
                     virCommandPtr cmd,
                     virQEMUCapsPtr qemuCaps,
-                    virBitmapPtr nodeset)
+                    virBitmapPtr auto_nodeset)
 {
-    size_t i, j;
+    size_t i;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    virDomainHugePagePtr master_hugepage = NULL;
     char *cpumask = NULL, *tmpmask = NULL, *next = NULL;
-    char *nodemask = NULL;
-    char *mem_path = NULL;
+    char **nodeBackends = NULL;
+    bool needBackend = false;
+    int rc;
     int ret = -1;
-    const long system_page_size = sysconf(_SC_PAGESIZE) / 1024;
+    size_t ncells = virDomainNumaGetNodeCount(def->numa);
+    const long system_page_size = virGetSystemPageSizeKB();
 
-    if (virDomainNumatuneHasPerNodeBinding(def->numatune) &&
+    if (virDomainNumatuneHasPerNodeBinding(def->numa) &&
         !(virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM) ||
           virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE))) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -6712,7 +7142,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
         goto cleanup;
     }
 
-    if (!virDomainNumatuneNodesetIsAvailable(def->numatune, nodeset))
+    if (!virDomainNumatuneNodesetIsAvailable(def->numa, auto_nodeset))
         goto cleanup;
 
     for (i = 0; i < def->mem.nhugepages; i++) {
@@ -6724,10 +7154,10 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
             continue;
         }
 
-        if (def->cpu->ncells) {
+        if (ncells) {
             /* Fortunately, we allow only guest NUMA nodes to be continuous
              * starting from zero. */
-            pos = def->cpu->ncells - 1;
+            pos = ncells - 1;
         }
 
         next_bit = virBitmapNextSetBit(def->mem.hugepages[i].nodemask, pos);
@@ -6739,16 +7169,37 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
         }
     }
 
-    for (i = 0; i < def->cpu->ncells; i++) {
-        virDomainHugePagePtr hugepage = NULL;
-        unsigned long long cellmem = VIR_DIV_UP(def->cpu->cells[i].mem, 1024);
-        def->cpu->cells[i].mem = cellmem * 1024;
-        virMemAccess memAccess = def->cpu->cells[i].memAccess;
+    if (VIR_ALLOC_N(nodeBackends, ncells) < 0)
+        goto cleanup;
 
+    /* using of -numa memdev= cannot be combined with -numa mem=, thus we
+     * need to check which approach to use */
+    for (i = 0; i < ncells; i++) {
+        unsigned long long cellmem = virDomainNumaGetNodeMemorySize(def->numa, i);
+        virDomainNumaSetNodeMemorySize(def->numa, i, VIR_ROUND_UP(cellmem, 1024));
+
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM) ||
+            virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
+            if ((rc = qemuBuildMemoryCellBackendStr(def, qemuCaps, cfg, i,
+                                                    auto_nodeset,
+                                                    &nodeBackends[i])) < 0)
+                goto cleanup;
+
+            if (rc == 0)
+                needBackend = true;
+        } else {
+            if (virDomainNumaGetNodeMemoryAccessMode(def->numa, i)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Shared memory mapping is not supported "
+                                 "with this QEMU"));
+                goto cleanup;
+            }
+        }
+    }
+
+    for (i = 0; i < ncells; i++) {
         VIR_FREE(cpumask);
-        VIR_FREE(nodemask);
-
-        if (!(cpumask = virBitmapFormat(def->cpu->cells[i].cpumask)))
+        if (!(cpumask = virBitmapFormat(virDomainNumaGetNodeCpumask(def->numa, i))))
             goto cleanup;
 
         if (strchr(cpumask, ',') &&
@@ -6759,139 +7210,8 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
             goto cleanup;
         }
 
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM) ||
-            virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
-            virDomainNumatuneMemMode mode;
-            const char *policy = NULL;
-
-            mode = virDomainNumatuneGetMode(def->numatune, i);
-            policy = qemuNumaPolicyTypeToString(mode);
-
-            /* Find the huge page size we want to use */
-            for (j = 0; j < def->mem.nhugepages; j++) {
-                bool thisHugepage = false;
-
-                hugepage = &def->mem.hugepages[j];
-
-                if (!hugepage->nodemask) {
-                    master_hugepage = hugepage;
-                    continue;
-                }
-
-                if (virBitmapGetBit(hugepage->nodemask, i, &thisHugepage) < 0) {
-                    /* Ignore this error. It's not an error after all. Well,
-                     * the nodemask for this <page/> can contain lower NUMA
-                     * nodes than we are querying in here. */
-                    continue;
-                }
-
-                if (thisHugepage) {
-                    /* Hooray, we've found the page size */
-                    break;
-                }
-            }
-
-            if (j == def->mem.nhugepages) {
-                /* We have not found specific huge page to be used with this
-                 * NUMA node. Use the generic setting then (<page/> without any
-                 * @nodemask) if possible. */
-                hugepage = master_hugepage;
-            }
-
-            if (hugepage && hugepage->size == system_page_size) {
-                /* However, if user specified to use "huge" page
-                 * of regular system page size, it's as if they
-                 * hasn't specified any huge pages at all. */
-                hugepage = NULL;
-            }
-
-            if (hugepage) {
-                /* Now lets see, if the huge page we want to use is even mounted
-                 * and ready to use */
-
-                for (j = 0; j < cfg->nhugetlbfs; j++) {
-                    if (cfg->hugetlbfs[j].size == hugepage->size)
-                        break;
-                }
-
-                if (j == cfg->nhugetlbfs) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Unable to find any usable hugetlbfs mount for %llu KiB"),
-                                   hugepage->size);
-                    goto cleanup;
-                }
-
-                VIR_FREE(mem_path);
-                if (!(mem_path = qemuGetHugepagePath(&cfg->hugetlbfs[j])))
-                    goto cleanup;
-
-                virBufferAsprintf(&buf,
-                                  "memory-backend-file,prealloc=yes,mem-path=%s",
-                                  mem_path);
-
-                switch (memAccess) {
-                case VIR_MEM_ACCESS_SHARED:
-                    virBufferAddLit(&buf, ",share=on");
-                    break;
-
-                case VIR_MEM_ACCESS_PRIVATE:
-                    virBufferAddLit(&buf, ",share=off");
-                    break;
-
-                case VIR_MEM_ACCESS_DEFAULT:
-                case VIR_MEM_ACCESS_LAST:
-                    break;
-                }
-
-            } else {
-                if (memAccess) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("Shared memory mapping is supported "
-                                     "only with hugepages"));
-                    goto cleanup;
-                }
-                virBufferAddLit(&buf, "memory-backend-ram");
-            }
-
-            virBufferAsprintf(&buf, ",size=%lluM,id=ram-node%zu", cellmem, i);
-
-            if (virDomainNumatuneMaybeFormatNodeset(def->numatune, nodeset,
-                                                    &nodemask, i) < 0)
-                goto cleanup;
-
-            if (nodemask) {
-                if (strchr(nodemask, ',') &&
-                    !virQEMUCapsGet(qemuCaps, QEMU_CAPS_NUMA)) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("disjoint NUMA node ranges are not supported "
-                                     "with this QEMU"));
-                    goto cleanup;
-                }
-
-                for (tmpmask = nodemask; tmpmask; tmpmask = next) {
-                    if ((next = strchr(tmpmask, ',')))
-                        *(next++) = '\0';
-                    virBufferAddLit(&buf, ",host-nodes=");
-                    virBufferAdd(&buf, tmpmask, -1);
-                }
-
-                virBufferAsprintf(&buf, ",policy=%s", policy);
-            }
-
-            if (hugepage || nodemask) {
-                virCommandAddArg(cmd, "-object");
-                virCommandAddArgBuffer(cmd, &buf);
-            } else {
-                virBufferFreeAndReset(&buf);
-            }
-        } else {
-            if (memAccess) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("Shared memory mapping is not supported "
-                                 "with this QEMU"));
-                goto cleanup;
-            }
-        }
+        if (needBackend)
+            virCommandAddArgList(cmd, "-object", nodeBackends[i], NULL);
 
         virCommandAddArg(cmd, "-numa");
         virBufferAsprintf(&buf, "node,nodeid=%zu", i);
@@ -6903,10 +7223,11 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
             virBufferAdd(&buf, tmpmask, -1);
         }
 
-        if (hugepage || nodemask)
+        if (needBackend)
             virBufferAsprintf(&buf, ",memdev=ram-node%zu", i);
         else
-            virBufferAsprintf(&buf, ",mem=%llu", cellmem);
+            virBufferAsprintf(&buf, ",mem=%llu",
+                              virDomainNumaGetNodeMemorySize(def->numa, i) / 1024);
 
         virCommandAddArgBuffer(cmd, &buf);
     }
@@ -6914,8 +7235,14 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
 
  cleanup:
     VIR_FREE(cpumask);
-    VIR_FREE(nodemask);
-    VIR_FREE(mem_path);
+
+    if (nodeBackends) {
+        for (i = 0; i < ncells; i++)
+            VIR_FREE(nodeBackends[i]);
+
+        VIR_FREE(nodeBackends);
+    }
+
     virBufferFreeAndReset(&buf);
     return ret;
 }
@@ -7420,14 +7747,15 @@ qemuBuildVhostuserCommandLine(virCommandPtr cmd,
 static int
 qemuBuildInterfaceCommandLine(virCommandPtr cmd,
                               virQEMUDriverPtr driver,
-                              virConnectPtr conn,
                               virDomainDefPtr def,
                               virDomainNetDefPtr net,
                               virQEMUCapsPtr qemuCaps,
                               int vlan,
                               int bootindex,
                               virNetDevVPortProfileOp vmop,
-                              bool standalone)
+                              bool standalone,
+                              size_t *nnicindexes,
+                              int **nicindexes)
 {
     int ret = -1;
     char *nic = NULL, *host = NULL;
@@ -7464,6 +7792,15 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
         return -1;
     }
 
+    if (net->backend.tap &&
+        !(actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
+          actualType == VIR_DOMAIN_NET_TYPE_BRIDGE)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Custom tap device path is not supported for: %s"),
+                       virDomainNetTypeToString(actualType));
+        return -1;
+    }
+
     if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
         actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
         tapfdSize = net->driver.virtio.queues;
@@ -7476,8 +7813,9 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
 
         memset(tapfd, -1, tapfdSize * sizeof(tapfd[0]));
 
-        if (qemuNetworkIfaceConnect(def, conn, driver, net,
-                                    qemuCaps, tapfd, &tapfdSize) < 0)
+        if (qemuNetworkIfaceConnect(def, driver, net,
+                                    qemuCaps, tapfd,
+                                    &tapfdSize) < 0)
             goto cleanup;
     } else if (actualType == VIR_DOMAIN_NET_TYPE_DIRECT) {
         if (VIR_ALLOC(tapfd) < 0 || VIR_ALLOC(tapfdName) < 0)
@@ -7487,6 +7825,49 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
                                         qemuCaps, vmop);
         if (tapfd[0] < 0)
             goto cleanup;
+    }
+
+    /* For types whose implementations use a netdev on the host, add
+     * an entry to nicindexes for passing on to systemd.
+    */
+    switch ((virDomainNetType)actualType) {
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
+    case VIR_DOMAIN_NET_TYPE_NETWORK:
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+    case VIR_DOMAIN_NET_TYPE_DIRECT:
+    {
+        int nicindex;
+
+        /* network and bridge use a tap device, and direct uses a
+         * macvtap device
+         */
+        if (nicindexes && nnicindexes && net->ifname) {
+            if (virNetDevGetIndex(net->ifname, &nicindex) < 0 ||
+                VIR_APPEND_ELEMENT(*nicindexes, *nnicindexes, nicindex) < 0)
+                goto cleanup;
+        }
+        break;
+    }
+
+    case VIR_DOMAIN_NET_TYPE_USER:
+    case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+    case VIR_DOMAIN_NET_TYPE_SERVER:
+    case VIR_DOMAIN_NET_TYPE_CLIENT:
+    case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_INTERNAL:
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+    case VIR_DOMAIN_NET_TYPE_LAST:
+       /* These types don't use a network device on the host, but
+        * instead use some other type of connection to the emulated
+        * device in the qemu process.
+        *
+        * (Note that hostdev can't be considered as "using a network
+        * device", because by the time it is being used, it has been
+        * detached from the hostside network driver so it doesn't show
+        * up in the list of interfaces on the host - it's just some
+        * PCI device.)
+        */
+       break;
     }
 
     /* Set bandwidth or warn if requested and not supported. */
@@ -7832,7 +8213,9 @@ qemuBuildCommandLine(virConnectPtr conn,
                      qemuBuildCommandLineCallbacksPtr callbacks,
                      bool standalone,
                      bool enableFips,
-                     virBitmapPtr nodeset)
+                     virBitmapPtr nodeset,
+                     size_t *nnicindexes,
+                     int **nicindexes)
 {
     virErrorPtr originalError = NULL;
     size_t i, j;
@@ -7975,8 +8358,8 @@ qemuBuildCommandLine(virConnectPtr conn,
     virCommandAddArg(cmd, "-m");
     def->mem.max_balloon = VIR_DIV_UP(def->mem.max_balloon, 1024) * 1024;
     virCommandAddArgFormat(cmd, "%llu", def->mem.max_balloon / 1024);
-    if (def->mem.nhugepages && (!def->cpu || !def->cpu->ncells)) {
-        const long system_page_size = sysconf(_SC_PAGESIZE) / 1024;
+    if (def->mem.nhugepages && !virDomainNumaGetNodeCount(def->numa)) {
+        const long system_page_size = virGetSystemPageSizeKB();
         char *mem_path = NULL;
 
         if (def->mem.hugepages[0].size == system_page_size) {
@@ -8055,7 +8438,7 @@ qemuBuildCommandLine(virConnectPtr conn,
         }
     }
 
-    if (def->cpu && def->cpu->ncells)
+    if (virDomainNumaGetNodeCount(def->numa))
         if (qemuBuildNumaArgStr(cfg, def, cmd, qemuCaps, nodeset) < 0)
             goto error;
 
@@ -8660,7 +9043,9 @@ qemuBuildCommandLine(virConnectPtr conn,
         }
     }
 
-    if (usbcontroller == 0 && !qemuDomainMachineIsQ35(def))
+    if (usbcontroller == 0 &&
+        !qemuDomainMachineIsQ35(def) &&
+        !ARCH_IS_S390(def->os.arch))
         virCommandAddArg(cmd, "-usb");
 
     for (i = 0; i < def->nhubs; i++) {
@@ -8933,10 +9318,11 @@ qemuBuildCommandLine(virConnectPtr conn,
             else
                 vlan = i;
 
-            if (qemuBuildInterfaceCommandLine(cmd, driver, conn, def, net,
+            if (qemuBuildInterfaceCommandLine(cmd, driver, def, net,
                                               qemuCaps, vlan, bootNet, vmop,
-                                              standalone) < 0)
+                                              standalone, nnicindexes, nicindexes) < 0)
                 goto error;
+
             last_good_net = i;
             bootNet = 0;
         }
@@ -9866,13 +10252,36 @@ qemuBuildCommandLine(virConnectPtr conn,
     }
 
     for (i = 0; i < def->nrngs; i++) {
-        /* add the RNG source backend */
-        if (qemuBuildRNGBackendArgs(cmd, def->rngs[i], qemuCaps) < 0)
+        virDomainRNGDefPtr rng = def->rngs[i];
+        char *tmp;
+
+        if (!rng->info.alias) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("RNG device is missing alias"));
+            goto error;
+        }
+
+        /* possibly add character device for backend */
+        if (qemuBuildRNGBackendChrdevStr(rng, qemuCaps, &tmp) < 0)
             goto error;
 
-        /* add the device */
-        if (qemuBuildRNGDeviceArgs(cmd, def, def->rngs[i], qemuCaps) < 0)
+        if (tmp) {
+            virCommandAddArgList(cmd, "-chardev", tmp, NULL);
+            VIR_FREE(tmp);
+        }
+
+        /* add the RNG source backend */
+        if (!(tmp = qemuBuildRNGBackendStr(rng, qemuCaps)))
             goto error;
+
+        virCommandAddArgList(cmd, "-object", tmp, NULL);
+        VIR_FREE(tmp);
+
+        /* add the device */
+        if (!(tmp = qemuBuildRNGDevStr(def, rng, qemuCaps)))
+            goto error;
+        virCommandAddArgList(cmd, "-device", tmp, NULL);
+        VIR_FREE(tmp);
     }
 
     if (def->nvram) {
@@ -11500,7 +11909,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
         return NULL;
     }
 
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         goto error;
 
     /* allocate the cmdlinedef up-front; if it's unused, we'll free it later */

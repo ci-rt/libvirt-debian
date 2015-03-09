@@ -223,6 +223,7 @@ typedef enum {
     QEMU_CAPS_VMWARE_SVGA_VGAMEM = 181, /* -device vmware-svga.vgamem_mb */
     QEMU_CAPS_QXL_VGAMEM         = 182, /* -device qxl.vgamem_mb */
     QEMU_CAPS_QXL_VGA_VGAMEM     = 183, /* -device qxl-vga.vgamem_mb */
+    QEMU_CAPS_DEVICE_PC_DIMM     = 184, /* pc-dimm device */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -266,6 +267,7 @@ char *virQEMUCapsFlagsString(virQEMUCapsPtr qemuCaps);
 const char *virQEMUCapsGetBinary(virQEMUCapsPtr qemuCaps);
 virArch virQEMUCapsGetArch(virQEMUCapsPtr qemuCaps);
 unsigned int virQEMUCapsGetVersion(virQEMUCapsPtr qemuCaps);
+const char *virQEMUCapsGetPackage(virQEMUCapsPtr qemuCaps);
 unsigned int virQEMUCapsGetKVMVersion(virQEMUCapsPtr qemuCaps);
 int virQEMUCapsAddCPUDefinition(virQEMUCapsPtr qemuCaps,
                                 const char *name);
@@ -283,6 +285,8 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
 
 bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps);
 
+void virQEMUCapsFilterByMachineType(virQEMUCapsPtr qemuCaps,
+                                    const char *machineType);
 
 virQEMUCapsCachePtr virQEMUCapsCacheNew(const char *libDir,
                                         const char *cacheDir,
@@ -290,7 +294,8 @@ virQEMUCapsCachePtr virQEMUCapsCacheNew(const char *libDir,
 virQEMUCapsPtr virQEMUCapsCacheLookup(virQEMUCapsCachePtr cache,
                                       const char *binary);
 virQEMUCapsPtr virQEMUCapsCacheLookupCopy(virQEMUCapsCachePtr cache,
-                                          const char *binary);
+                                          const char *binary,
+                                          const char *machineType);
 virQEMUCapsPtr virQEMUCapsCacheLookupByArch(virQEMUCapsCachePtr cache,
                                             virArch arch);
 void virQEMUCapsCacheFree(virQEMUCapsCachePtr cache);

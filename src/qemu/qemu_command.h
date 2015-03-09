@@ -1,7 +1,7 @@
 /*
  * qemu_command.h: QEMU command generation
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -69,6 +69,10 @@ struct _qemuBuildCommandLineCallbacks {
 
 extern qemuBuildCommandLineCallbacks buildCommandLineCallbacks;
 
+char *qemuBuildObjectCommandlineFromJSON(const char *type,
+                                         const char *alias,
+                                         virJSONValuePtr props);
+
 virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    virQEMUDriverPtr driver,
                                    virDomainDefPtr def,
@@ -82,7 +86,9 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    qemuBuildCommandLineCallbacksPtr callbacks,
                                    bool forXMLToArgv,
                                    bool enableFips,
-                                   virBitmapPtr nodeset)
+                                   virBitmapPtr nodeset,
+                                   size_t *nnicindexes,
+                                   int **nicindexes)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(11);
 
 /* Generate '-device' string for chardev device */
@@ -165,6 +171,14 @@ char *qemuBuildPCIHostdevDevStr(virDomainDefPtr def,
                                 const char *configfd,
                                 virQEMUCapsPtr qemuCaps);
 
+char *qemuBuildRNGDevStr(virDomainDefPtr def,
+                         virDomainRNGDefPtr dev,
+                         virQEMUCapsPtr qemuCaps);
+int qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
+                             virQEMUCapsPtr qemuCaps,
+                             const char **type,
+                             virJSONValuePtr *props);
+
 int qemuOpenPCIConfig(virDomainHostdevDefPtr dev);
 
 /* Legacy, pre device support */
@@ -190,7 +204,6 @@ char *qemuBuildRedirdevDevStr(virDomainDefPtr def,
                               virDomainRedirdevDefPtr dev,
                               virQEMUCapsPtr qemuCaps);
 int qemuNetworkIfaceConnect(virDomainDefPtr def,
-                            virConnectPtr conn,
                             virQEMUDriverPtr driver,
                             virDomainNetDefPtr net,
                             virQEMUCapsPtr qemuCaps,
@@ -263,6 +276,7 @@ int qemuAssignDeviceRedirdevAlias(virDomainDefPtr def, virDomainRedirdevDefPtr r
 int qemuAssignDeviceChrAlias(virDomainDefPtr def,
                              virDomainChrDefPtr chr,
                              ssize_t idx);
+int qemuAssignDeviceRNGAlias(virDomainRNGDefPtr rng, size_t idx);
 
 int
 qemuParseKeywords(const char *str,

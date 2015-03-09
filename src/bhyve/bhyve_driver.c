@@ -2,7 +2,7 @@
  * bhyve_driver.c: core driver methods for managing bhyve guests
  *
  * Copyright (C) 2014 Roman Bogorodskiy
- * Copyright (C) 2014 Red Hat, Inc.
+ * Copyright (C) 2014-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1430,8 +1430,29 @@ bhyveConnectDomainEventDeregisterAny(virConnectPtr conn,
     return 0;
 }
 
-static virHypervisorDriver bhyveDriver = {
-    .no = VIR_DRV_BHYVE,
+static int
+bhyveDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = bhyveDomObjFromDomain(domain)))
+        goto cleanup;
+
+    if (virDomainHasManagedSaveImageEnsureACL(domain->conn, vm->def) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+static virHypervisorDriver bhyveHypervisorDriver = {
     .name = "bhyve",
     .connectOpen = bhyveConnectOpen, /* 1.2.2 */
     .connectClose = bhyveConnectClose, /* 1.2.2 */
@@ -1477,8 +1498,13 @@ static virHypervisorDriver bhyveDriver = {
     .connectCompareCPU = bhyveConnectCompareCPU, /* 1.2.4 */
     .connectDomainEventRegisterAny = bhyveConnectDomainEventRegisterAny, /* 1.2.5 */
     .connectDomainEventDeregisterAny = bhyveConnectDomainEventDeregisterAny, /* 1.2.5 */
+    .domainHasManagedSaveImage = bhyveDomainHasManagedSaveImage, /* 1.2.13 */
 };
 
+
+static virConnectDriver bhyveConnectDriver = {
+    .hypervisorDriver = &bhyveHypervisorDriver,
+};
 
 static virStateDriver bhyveStateDriver = {
     .name = "bhyve",
@@ -1490,9 +1516,10 @@ static virStateDriver bhyveStateDriver = {
 int
 bhyveRegister(void)
 {
-     if (virRegisterHypervisorDriver(&bhyveDriver) < 0)
+    if (virRegisterConnectDriver(&bhyveConnectDriver,
+                                 true) < 0)
         return -1;
-     if (virRegisterStateDriver(&bhyveStateDriver) < 0)
+    if (virRegisterStateDriver(&bhyveStateDriver) < 0)
         return -1;
-     return 0;
+    return 0;
 }

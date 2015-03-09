@@ -1147,6 +1147,7 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Incoming cookie data had unexpected UUID %s vs %s"),
                        tmp, uuidstr);
+        goto error;
     }
     VIR_FREE(tmp);
 
@@ -1738,7 +1739,6 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
 
     for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
-        virDomainBlockJobInfo info;
 
         /* skip shared, RO and source-less disks */
         if (disk->src->shared || disk->src->readonly ||
@@ -1771,38 +1771,36 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
             /* Poll every 500ms for progress & to allow cancellation */
             struct timespec ts = { .tv_sec = 0, .tv_nsec = 500 * 1000 * 1000ull };
 
-            memset(&info, 0, sizeof(info));
-
-            if (qemuDomainObjEnterMonitorAsync(driver, vm,
-                                               QEMU_ASYNC_JOB_MIGRATION_OUT) < 0)
+            /* Explicitly check if domain is still alive. Maybe qemu
+             * died meanwhile so we won't see any event at all. */
+            if (!virDomainObjIsActive(vm)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("guest unexpectedly quit"));
                 goto error;
+            }
+
+            /* The following check should be race free as long as the variable
+             * is set only with domain object locked. And here we have the
+             * domain object locked too. */
             if (priv->job.asyncAbort) {
-                /* explicitly do this *after* we entered the monitor,
-                 * as this is a critical section so we are guaranteed
-                 * priv->job.asyncAbort will not change */
-                ignore_value(qemuDomainObjExitMonitor(driver, vm));
                 priv->job.current->type = VIR_DOMAIN_JOB_CANCELLED;
                 virReportError(VIR_ERR_OPERATION_ABORTED, _("%s: %s"),
                                qemuDomainAsyncJobTypeToString(priv->job.asyncJob),
                                _("canceled by client"));
                 goto error;
             }
-            mon_ret = qemuMonitorBlockJobInfo(priv->mon, diskAlias, &info,
-                                              NULL);
-            if (qemuDomainObjExitMonitor(driver, vm) < 0)
-                goto error;
 
-            if (mon_ret < 0)
-                goto error;
-
-            if (info.cur == info.end) {
+            if (disk->mirrorState == VIR_DOMAIN_DISK_MIRROR_STATE_READY) {
                 VIR_DEBUG("Drive mirroring of '%s' completed", diskAlias);
                 break;
+            } else if (disk->mirrorState == VIR_DOMAIN_DISK_MIRROR_STATE_ABORT) {
+                virReportError(VIR_ERR_OPERATION_FAILED,
+                               _("migration of disk %s failed"),
+                               disk->dst);
+                goto error;
             }
 
-            /* XXX Frankly speaking, we should listen to the events,
-             * instead of doing this. But this works for now and we
-             * are doing something similar in migration itself anyway */
+            /* XXX Turn this into virCond someday. */
 
             virObjectUnlock(vm);
 
@@ -2917,7 +2915,8 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
             hostIPv6Capable = true;
         }
         if (!(qemuCaps = virQEMUCapsCacheLookupCopy(driver->qemuCapsCache,
-                                                    (*def)->emulator)))
+                                                    (*def)->emulator,
+                                                    (*def)->os.machine)))
             goto cleanup;
 
         qemuIPv6Capable = virQEMUCapsGet(qemuCaps, QEMU_CAPS_IPV6_MIGRATION);
@@ -3279,6 +3278,13 @@ qemuMigrationPrepareDirect(virQEMUDriverPtr driver,
 
         if (!(uri = qemuMigrationParseURI(uri_in, &well_formed_uri)))
             goto cleanup;
+
+        if (uri->scheme == NULL) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("missing scheme in migration URI: %s"),
+                           uri_in);
+            goto cleanup;
+        }
 
         if (STRNEQ(uri->scheme, "tcp") &&
             STRNEQ(uri->scheme, "rdma")) {
@@ -4081,6 +4087,13 @@ static int doNativeMigrate(virQEMUDriverPtr driver,
 
     if (!(uribits = qemuMigrationParseURI(uri, NULL)))
         return -1;
+
+    if (uribits->scheme == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("missing scheme in migration URI: %s"),
+                       uri);
+        goto cleanup;
+    }
 
     if (STREQ(uribits->scheme, "rdma")) {
         if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_RDMA)) {

@@ -1,6 +1,6 @@
 /*
  * xenapi_driver.c: Xen API driver.
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Citrix Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -1977,9 +1977,32 @@ xenapiConnectIsAlive(virConnectPtr conn)
         return 0;
 }
 
+static int
+xenapiDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    struct xen_vm_set *vms;
+    xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
+
+    virCheckFlags(0, -1);
+
+    if (xen_vm_get_by_name_label(session, &vms, dom->name) && vms->size > 0) {
+        if (vms->size != 1) {
+            xenapiSessionErrorHandler(dom->conn, VIR_ERR_INTERNAL_ERROR,
+                                      _("Domain name is not unique"));
+            xen_vm_set_free(vms);
+            return -1;
+        }
+        xen_vm_set_free(vms);
+        return 0;
+    }
+    if (vms)
+        xen_vm_set_free(vms);
+    xenapiSessionErrorHandler(dom->conn, VIR_ERR_NO_DOMAIN, NULL);
+    return -1;
+}
+
 /* The interface which we export upwards to libvirt.c. */
-static virHypervisorDriver xenapiDriver = {
-    .no = VIR_DRV_XENAPI,
+static virHypervisorDriver xenapiHypervisorDriver = {
     .name = "XenAPI",
     .connectOpen = xenapiConnectOpen, /* 0.8.0 */
     .connectClose = xenapiConnectClose, /* 0.8.0 */
@@ -2030,6 +2053,12 @@ static virHypervisorDriver xenapiDriver = {
     .nodeGetFreeMemory = xenapiNodeGetFreeMemory, /* 0.8.0 */
     .domainIsUpdated = xenapiDomainIsUpdated, /* 0.8.6 */
     .connectIsAlive = xenapiConnectIsAlive, /* 0.9.8 */
+    .domainHasManagedSaveImage = xenapiDomainHasManagedSaveImage, /* 1.2.13 */
+};
+
+
+static virConnectDriver xenapiConnectDriver = {
+    .hypervisorDriver = &xenapiHypervisorDriver,
 };
 
 /**
@@ -2041,7 +2070,8 @@ static virHypervisorDriver xenapiDriver = {
 int
 xenapiRegister(void)
 {
-    return virRegisterHypervisorDriver(&xenapiDriver);
+    return virRegisterConnectDriver(&xenapiConnectDriver,
+                                    false);
 }
 
 /*

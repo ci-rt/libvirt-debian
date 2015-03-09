@@ -1186,7 +1186,7 @@ prlsdkLoadDomain(parallelsConnPtr privconn,
     virCheckNonNullArgGoto(privconn, error);
     virCheckNonNullArgGoto(sdkdom, error);
 
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         goto error;
 
     if (!olddom) {
@@ -1825,7 +1825,7 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (def->numatune) {
+    if (def->numa) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                         _("numa parameters are not supported "
                           "by parallels driver"));
@@ -1865,8 +1865,8 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (!(vmType == PVT_VM && STREQ(def->os.type, "hvm")) &&
-        !(vmType == PVT_CT && STREQ(def->os.type, "exe"))) {
+    if (!(vmType == PVT_VM && !IS_CT(def)) &&
+        !(vmType == PVT_CT && IS_CT(def))) {
 
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing OS type is not supported "
@@ -1874,7 +1874,7 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (!IS_CT(def)) {
         if (def->os.nBootDevs != 1 ||
             def->os.bootDevs[0] != VIR_DOMAIN_BOOT_DISK ||
             def->os.init != NULL || def->os.initargv != NULL) {
@@ -1987,6 +1987,69 @@ static int prlsdkClearDevices(PRL_HANDLE sdkdom)
     return ret;
 }
 
+static int
+prlsdkRemoveBootDevices(PRL_HANDLE sdkdom)
+{
+    PRL_RESULT pret;
+    PRL_UINT32 i, devCount;
+    PRL_HANDLE dev = PRL_INVALID_HANDLE;
+    PRL_DEVICE_TYPE devType;
+
+    pret = PrlVmCfg_GetBootDevCount(sdkdom, &devCount);
+    prlsdkCheckRetGoto(pret, error);
+
+    for (i = 0; i < devCount; i++) {
+
+        /* always get device by index 0, because device list resort after delete */
+        pret = PrlVmCfg_GetBootDev(sdkdom, 0, &dev);
+        prlsdkCheckRetGoto(pret, error);
+
+        pret = PrlBootDev_GetType(dev, &devType);
+        prlsdkCheckRetGoto(pret, error);
+
+        pret = PrlBootDev_Remove(dev);
+        prlsdkCheckRetGoto(pret, error);
+    }
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+static int
+prlsdkAddDeviceToBootList(PRL_HANDLE sdkdom,
+                          PRL_UINT32 devIndex,
+                          PRL_DEVICE_TYPE devType,
+                          PRL_UINT32 bootSequence)
+{
+    PRL_RESULT pret;
+    PRL_HANDLE bootDev = PRL_INVALID_HANDLE;
+
+    pret = PrlVmCfg_CreateBootDev(sdkdom, &bootDev);
+    prlsdkCheckRetGoto(pret, error);
+
+    pret = PrlBootDev_SetIndex(bootDev, devIndex);
+    prlsdkCheckRetGoto(pret, error);
+
+    pret = PrlBootDev_SetType(bootDev, devType);
+    prlsdkCheckRetGoto(pret, error);
+
+    pret = PrlBootDev_SetSequenceIndex(bootDev, bootSequence);
+    prlsdkCheckRetGoto(pret, error);
+
+    pret = PrlBootDev_SetInUse(bootDev, PRL_TRUE);
+    prlsdkCheckRetGoto(pret, error);
+
+    return 0;
+
+ error:
+    if (bootDev != PRL_INVALID_HANDLE)
+        PrlBootDev_Remove(bootDev);
+
+    return -1;
+}
+
 static int prlsdkCheckGraphicsUnsupportedParams(virDomainDefPtr def)
 {
     virDomainGraphicsDefPtr gr;
@@ -2072,10 +2135,9 @@ static int prlsdkCheckGraphicsUnsupportedParams(virDomainDefPtr def)
 
 static int prlsdkCheckVideoUnsupportedParams(virDomainDefPtr def)
 {
-    bool isCt = STREQ(def->os.type, "exe");
     virDomainVideoDefPtr v;
 
-    if (isCt) {
+    if (IS_CT(def)) {
         if (def->nvideos == 0) {
             return 0;
         } else {
@@ -2245,7 +2307,7 @@ static int prlsdkCheckDiskUnsupportedParams(virDomainDiskDefPtr disk)
 
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Only hard disks and cdroms are supported "
-                         "supported by parallels driver."));
+                         "by parallels driver."));
         return -1;
     }
 
@@ -2602,7 +2664,7 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom, virDomainNetDefPtr net)
     return ret;
 }
 
-static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
+static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk, bool bootDisk)
 {
     PRL_RESULT pret;
     PRL_HANDLE sdkdisk = PRL_INVALID_HANDLE;
@@ -2611,14 +2673,18 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
     PRL_MASS_STORAGE_INTERFACE_TYPE sdkbus;
     int idx;
     virDomainDeviceDriveAddressPtr drive;
+    PRL_UINT32 devIndex;
+    PRL_DEVICE_TYPE devType;
 
     if (prlsdkCheckDiskUnsupportedParams(disk) < 0)
         return -1;
 
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
-        pret = PrlVmCfg_CreateVmDev(sdkdom, PDE_HARD_DISK, &sdkdisk);
+        devType = PDE_HARD_DISK;
     else
-        pret = PrlVmCfg_CreateVmDev(sdkdom, PDE_OPTICAL_DISK, &sdkdisk);
+        devType = PDE_OPTICAL_DISK;
+
+    pret = PrlVmCfg_CreateVmDev(sdkdom, devType, &sdkdisk);
     prlsdkCheckRetGoto(pret, cleanup);
 
     pret = PrlVmDev_SetEnabled(sdkdisk, 1);
@@ -2714,6 +2780,14 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk)
         goto cleanup;
     }
 
+    if (bootDisk == true) {
+        pret = PrlVmDev_GetIndex(sdkdisk, &devIndex);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        if (prlsdkAddDeviceToBootList(sdkdom, devIndex, devType, 0) < 0)
+            goto cleanup;
+    }
+
     return 0;
  cleanup:
     PrlHandle_Free(sdkdisk);
@@ -2767,6 +2841,7 @@ prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
     PRL_RESULT pret;
     size_t i;
     char uuidstr[VIR_UUID_STRING_BUFLEN + 2];
+    bool needBoot = true;
 
     if (prlsdkCheckUnsupportedParams(sdkdom, def) < 0)
         return -1;
@@ -2797,6 +2872,9 @@ prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
     if (prlsdkClearDevices(sdkdom) < 0)
         goto error;
 
+    if (prlsdkRemoveBootDevices(sdkdom) < 0)
+        goto error;
+
     if (prlsdkApplyGraphicsParams(sdkdom, def) < 0)
         goto error;
 
@@ -2804,23 +2882,31 @@ prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
         goto error;
 
     for (i = 0; i < def->nserials; i++) {
-       if (prlsdkAddSerial(sdkdom, def->serials[i]) < 0)
-           goto error;
+        if (prlsdkAddSerial(sdkdom, def->serials[i]) < 0)
+            goto error;
     }
 
     for (i = 0; i < def->nnets; i++) {
-       if (prlsdkAddNet(sdkdom, def->nets[i]) < 0)
-           goto error;
+        if (prlsdkAddNet(sdkdom, def->nets[i]) < 0)
+            goto error;
     }
 
     for (i = 0; i < def->ndisks; i++) {
-       if (prlsdkAddDisk(sdkdom, def->disks[i]) < 0)
-           goto error;
+        bool bootDisk = false;
+
+        if (needBoot == true &&
+            def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
+
+            needBoot = false;
+            bootDisk = true;
+        }
+        if (prlsdkAddDisk(sdkdom, def->disks[i], bootDisk) < 0)
+            goto error;
     }
 
     for (i = 0; i < def->nfss; i++) {
-       if (prlsdkAddFS(sdkdom, def->fss[i]) < 0)
-           goto error;
+        if (prlsdkAddFS(sdkdom, def->fss[i]) < 0)
+            goto error;
     }
 
     return 0;

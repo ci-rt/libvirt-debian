@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-01-23" "libvirt-1.2.12" "Virtualization Support"
+.TH VIRSH 1 "2015-02-26" "libvirt-1.2.13" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -514,9 +514,6 @@ State is the run state (see below).
 The State field lists 8 states for a domain, and which ones the
 current domain is in.
 .RS 4
-.IP "\fBcpu-models\fR \fIarch\fR" 4
-.IX Item "cpu-models arch"
-Print the list of \s-1CPU\s0 models known for the specified architecture.
 .IP "\fBrunning\fR" 4
 .IX Item "running"
 The domain is currently running on a \s-1CPU\s0
@@ -666,6 +663,9 @@ definition. For more information on guest \s-1CPU\s0 definition see:
 specified, the command will return an error when the given \s-1CPU\s0 is
 incompatible with host \s-1CPU\s0 and a message providing more details about the
 incompatibility will be printed out.
+.IP "\fBcpu-models\fR \fIarch\fR" 4
+.IX Item "cpu-models arch"
+Print the list of \s-1CPU\s0 models known for the specified architecture.
 .IP "\fBecho\fR [\fI\-\-shell\fR] [\fI\-\-xml\fR] [\fIarg\fR...]" 4
 .IX Item "echo [--shell] [--xml] [arg...]"
 Echo back each \fIarg\fR, separated by space.  If \fI\-\-shell\fR is
@@ -791,7 +791,7 @@ Get network interface stats for a running domain.
 .IP "\fBdomif-setlink\fR \fIdomain\fR \fIinterface-device\fR \fIstate\fR [\fI\-\-config\fR]" 4
 .IX Item "domif-setlink domain interface-device state [--config]"
 Modify link state of the domain's virtual interface. Possible values for
-state are \*(L"up\*(R" and "down. If \fI\-\-config\fR is specified, only the persistent
+state are \*(L"up\*(R" and \*(L"down\*(R". If \fI\-\-config\fR is specified, only the persistent
 configuration of the domain is modified, for compatibility purposes,
 \&\fI\-\-persistent\fR is alias of \fI\-\-config\fR.
 \&\fIinterface-device\fR can be the interface's target name or the \s-1MAC\s0 address.
@@ -1121,9 +1121,10 @@ cannot be mixed with non-zero values for read or write.
 If \fI\-\-live\fR is specified, affect a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
 If \fI\-\-current\fR is specified, affect the current guest state.
-Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
-exclusive. If no flag is specified, behavior is different depending
-on hypervisor.
+When setting the disk io parameters both \fI\-\-live\fR and \fI\-\-config\fR flags may be
+given, but \fI\-\-current\fR is exclusive. For querying only one of \fI\-\-live\fR,
+\&\fI\-\-config\fR or \fI\-\-current\fR can be specified. If no flag is specified, behavior
+is different depending on hypervisor.
 .IP "\fBblockjob\fR \fIdomain\fR \fIpath\fR { [\fI\-\-abort\fR] [\fI\-\-async\fR] [\fI\-\-pivot\fR] | [\fI\-\-info\fR] [\fI\-\-raw\fR] [\fI\-\-bytes\fR] | [\fIbandwidth\fR] }" 4
 .IX Item "blockjob domain path { [--abort] [--async] [--pivot] | [--info] [--raw] [--bytes] | [bandwidth] }"
 Manage active block operations.  There are three mutually-exclusive modes:
@@ -2271,7 +2272,8 @@ this disk may be attached (\s-1QEMU\s0 only).
 \&\fIserial\fR is the serial of disk device. \fIwwn\fR is the wwn of disk device.
 \&\fIrawio\fR indicates the disk needs rawio capability.
 \&\fIaddress\fR is the address of disk device in the form of pci:domain.bus.slot.function,
-scsi:controller.bus.unit or ide:controller.bus.unit.
+scsi:controller.bus.unit, ide:controller.bus.unit or ccw:cssid.ssid.devno.
+Virtio-ccw devices must have their cssid set to 0xfe.
 \&\fImultifunction\fR indicates specified pci address is a multifunction pci device
 address.
 .Sp
@@ -2290,12 +2292,14 @@ an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain
 Likewise, \fI\-\-shareable\fR is an alias for \fI\-\-mode shareable\fR.
 .IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-config\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
 .IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--config] [--inbound average,peak,burst] [--outbound average,peak,burst]"
-Attach a new network interface to the domain.  \fItype\fR can be either
-\&\fInetwork\fR to indicate connection via a libvirt virtual network or
-\&\fIbridge\fR to indicate connection via a bridge device on the host.
-\&\fIsource\fR indicates the source of the connection (either the name of a
-network, or of a bridge device).  \fItarget\fR is used to specify the
-tap/macvtap device to be used to connect the domain to the
+Attach a new network interface to the domain.  \fItype\fR can be
+\&\fInetwork\fR to indicate connection via a libvirt virtual network, or
+\&\fIbridge\fR to indicate connection via a bridge device on the host, or
+\&\fIdirect\fR to indicate connection directly to one of the host's network
+interfaces or bridges.  \fIsource\fR indicates the source of the
+connection (the name of a network, or of a bridge device, or the
+host's network interfaces or bridges).  \fItarget\fR is used to specify
+the tap/macvtap device to be used to connect the domain to the
 source. Names starting with 'vnet' are considered as auto-generated
 and are blanked out/regenerated each time the interface is attached.
 \&\fImac\fR specifies the \s-1MAC\s0 address of the network interface; if a \s-1MAC\s0
@@ -2334,9 +2338,12 @@ as command \fBattach-device\fR.
 For passthrough host devices, see also \fBnodedev-reattach\fR, needed if
 the device does not use managed mode.
 .Sp
-\&\fBNote\fR: using of partial device definition \s-1XML\s0 files may lead to unexpected
-results as some fields may be autogenerated and thus match devices other than
-expected.
+\&\fBNote\fR: The supplied \s-1XML\s0 description of the device should be as specific
+as its definition in the domain \s-1XML.\s0 The set of attributes used
+to match the device are internal to the drivers. Using a partial definition,
+or attempting to detach a device that is not present in the domain \s-1XML,\s0
+but shares some specific attributes with one that is present,
+may lead to unexpected results.
 .Sp
 If \fI\-\-live\fR is specified, affect a running domain.
 If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.
@@ -2804,7 +2811,11 @@ Create and start a pool object from the \s-1XML \s0\fIfile\fR.
 Create and start a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without creating the pool.  Otherwise, the pool has the specified
-\&\fItype\fR.
+\&\fItype\fR. When using \fBpool-create-as\fR for a pool of \fItype\fR \*(L"disk\*(R",
+the existing partitions found on the \fI\-\-source\-dev path\fR will be used
+to populate the disk pool. Therefore, it is suggested to use
+\&\fBpool-define-as\fR and \fBpool-build\fR with the \fI\-\-overwrite\fR in order
+to properly initialize the disk pool.
 .Sp
 [\fI\-\-source\-host hostname\fR] provides the source hostname for pools backed
 by storage from a remote server (pool types netfs, iscsi, rbd, sheepdog,
@@ -2951,8 +2962,8 @@ only slightly higher initial disk space usage.
 \& vi newvolume.xml (or make changes with your other text editor)
 \& virsh vol\-create differentstoragepool newvolume.xml
 .Ve
-.IP "\fBvol-create-from\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-inputpool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-prealloc\-metadata\fR]" 4
-.IX Item "vol-create-from pool-or-uuid FILE [--inputpool pool-or-uuid] vol-name-or-key-or-path [--prealloc-metadata]"
+.IP "\fBvol-create-from\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-inputpool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-prealloc\-metadata\fR] [\fI\-\-reflink\fR]" 4
+.IX Item "vol-create-from pool-or-uuid FILE [--inputpool pool-or-uuid] vol-name-or-key-or-path [--prealloc-metadata] [--reflink]"
 Create a volume, using another volume as input.
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume in.
 \&\fI\s-1FILE\s0\fR is the \s-1XML\s0 <file> with the volume definition.
@@ -2963,18 +2974,28 @@ source volume is in.
 support full allocation). This option creates a sparse image file with metadata,
 resulting in higher performance compared to images with no preallocation and
 only slightly higher initial disk space usage.
+When \fI\-\-reflink\fR is specified, perform a \s-1COW\s0 lightweight copy,
+where the data blocks are copied only when modified.
+If this is not possible, the copy fails.
 .IP "\fBvol-create-as\fR \fIpool-or-uuid\fR \fIname\fR \fIcapacity\fR [\fI\-\-allocation\fR \fIsize\fR] [\fI\-\-format\fR \fIstring\fR] [\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR] [\fI\-\-backing\-vol\-format\fR \fIstring\fR] [\fI\-\-prealloc\-metadata\fR]" 4
 .IX Item "vol-create-as pool-or-uuid name capacity [--allocation size] [--format string] [--backing-vol vol-name-or-key-or-path] [--backing-vol-format string] [--prealloc-metadata]"
 Create a volume from a set of arguments.
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume
 in.
-\&\fIname\fR is the name of the new volume.
+\&\fIname\fR is the name of the new volume. For a disk pool, this must match the
+partition name as determined from the pool's source device path and the next
+available partition. For example, a source device path of /dev/sdb and there
+are no partitions on the disk, then the name must be sdb1 with the next
+name being sdb2 and so on.
 \&\fIcapacity\fR is the size of the volume to be created, as a scaled integer
 (see \fB\s-1NOTES\s0\fR above), defaulting to bytes if there is no suffix.
 \&\fI\-\-allocation\fR \fIsize\fR is the initial size to be allocated in the volume,
 also as a scaled integer defaulting to bytes.
 \&\fI\-\-format\fR \fIstring\fR is used in file based storage pools to specify the volume
-file format to use; raw, bochs, qcow, qcow2, vmdk, qed.
+file format to use; raw, bochs, qcow, qcow2, vmdk, qed. Use extended for disk
+storage pools in order to create an extended partition (other values are
+validity checked but not preserved when libvirtd is restarted or the pool
+is refreshed).
 \&\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR is the source backing
 volume to be used if taking a snapshot of an existing volume.
 \&\fI\-\-backing\-vol\-format\fR \fIstring\fR is the format of the snapshot backing volume;
@@ -2984,8 +3005,8 @@ file based storage pools.
 support full allocation). This option creates a sparse image file with metadata,
 resulting in higher performance compared to images with no preallocation and
 only slightly higher initial disk space usage.
-.IP "\fBvol-clone\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR \fIname\fR [\fI\-\-prealloc\-metadata\fR]" 4
-.IX Item "vol-clone [--pool pool-or-uuid] vol-name-or-key-or-path name [--prealloc-metadata]"
+.IP "\fBvol-clone\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR \fIname\fR [\fI\-\-prealloc\-metadata\fR] [\fI\-\-reflink\fR]" 4
+.IX Item "vol-clone [--pool pool-or-uuid] vol-name-or-key-or-path name [--prealloc-metadata] [--reflink]"
 Clone an existing volume.  Less powerful, but easier to type, version of
 \&\fBvol-create-from\fR.
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create
@@ -2996,6 +3017,9 @@ the volume in.
 support full allocation). This option creates a sparse image file with metadata,
 resulting in higher performance compared to images with no preallocation and
 only slightly higher initial disk space usage.
+When \fI\-\-reflink\fR is specified, perform a \s-1COW\s0 lightweight copy,
+where the data blocks are copied only when modified.
+If this is not possible, the copy fails.
 .IP "\fBvol-delete\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
 .IX Item "vol-delete [--pool pool-or-uuid] vol-name-or-key-or-path"
 Delete a given volume.

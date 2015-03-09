@@ -248,7 +248,7 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
     }
 
     if (!(iohelper_path = virFileFindResource("libvirt_iohelper",
-                                              "src",
+                                              abs_topbuilddir "/src",
                                               LIBEXECDIR)))
         goto error;
 
@@ -1086,7 +1086,7 @@ safezero_mmap(int fd, off_t offset, off_t len)
 
     /* align offset and length, rounding offset down and length up */
     if (pagemask == 0)
-        pagemask = ~(sysconf(_SC_PAGESIZE) - 1);
+        pagemask = ~(virGetSystemPageSize() - 1);
     map_skip = offset - (offset & pagemask);
 
     /* memset wants the mmap'ed file to be present on disk so create a
@@ -1618,7 +1618,8 @@ static bool useDirOverride;
  * @filename: libvirt distributed filename without any path
  * @prefix: optional string to prepend to filename
  * @suffix: optional string to append to filename
- * @builddir: location of the binary in the source tree build tree
+ * @builddir: location of the filename in the build tree including
+ *            abs_topsrcdir or abs_topbuilddir prefix
  * @installdir: location of the installed binary
  * @envname: environment variable used to override all dirs
  *
@@ -1628,7 +1629,7 @@ static bool useDirOverride;
  * path in the installed location.
  *
  * If @envname is non-NULL it will override all other
- * directory lookup
+ * directory lookup.
  *
  * Only use this with @filename files that are part of
  * the libvirt tree, not 3rd party binaries/files.
@@ -1645,22 +1646,22 @@ virFileFindResourceFull(const char *filename,
 {
     char *ret = NULL;
     const char *envval = envname ? virGetEnvBlockSUID(envname) : NULL;
+    const char *path;
 
     if (!prefix)
         prefix = "";
     if (!suffix)
         suffix = "";
 
-    if (envval) {
-        if (virAsprintf(&ret, "%s/%s%s%s", envval, prefix, filename, suffix) < 0)
-            return NULL;
-    } else if (useDirOverride) {
-        if (virAsprintf(&ret, "%s/%s/%s%s%s", abs_topbuilddir, builddir, prefix, filename, suffix) < 0)
-            return NULL;
-    } else {
-        if (virAsprintf(&ret, "%s/%s%s%s", installdir, prefix, filename, suffix) < 0)
-            return NULL;
-    }
+    if (envval)
+        path = envval;
+    else if (useDirOverride)
+        path = builddir;
+    else
+        path = installdir;
+
+    if (virAsprintf(&ret, "%s/%s%s%s", path, prefix, filename, suffix) < 0)
+        return NULL;
 
     VIR_DEBUG("Resolved '%s' to '%s'", filename, ret);
     return ret;
@@ -2034,6 +2035,7 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
 {
     pid_t pid;
     int waitret, status, ret = 0;
+    int recvfd_errno = 0;
     int fd = -1;
     int pair[2] = { -1, -1 };
     gid_t *groups;
@@ -2124,14 +2126,12 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
         fd = recvfd(pair[0], 0);
     } while (fd < 0 && errno == EINTR);
     VIR_FORCE_CLOSE(pair[0]); /* NB: this preserves errno */
+    if (fd < 0)
+        recvfd_errno = errno;
 
-    if (fd < 0 && errno != EACCES) {
-        ret = -errno;
-        while (waitpid(pid, NULL, 0) == -1 && errno == EINTR);
-        return ret;
-    }
-
-    /* wait for child to complete, and retrieve its exit code */
+    /* wait for child to complete, and retrieve its exit code
+     * if waitpid fails, use that status
+     */
     while ((waitret = waitpid(pid, &status, 0)) == -1 && errno == EINTR);
     if (waitret == -1) {
         ret = -errno;
@@ -2141,28 +2141,41 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
         VIR_FORCE_CLOSE(fd);
         return ret;
     }
-    if (!WIFEXITED(status) || (ret = -WEXITSTATUS(status)) == -EACCES ||
-        fd == -1) {
-        /* fall back to the simpler method, which works better in
-         * some cases */
+
+    /*
+     * If waitpid succeeded, but if the child exited abnormally or
+     * reported non-zero status, report failure.
+     */
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        char *msg = virProcessTranslateStatus(status);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("child failed to create '%s': %s"),
+                       path, msg);
         VIR_FORCE_CLOSE(fd);
-        if (flags & VIR_FILE_OPEN_NOFORK) {
-            /* If we had already tried opening w/o fork+setuid and
-             * failed, no sense trying again. Just set return the
-             * original errno that we got at that time (by
-             * definition, always either EACCES or EPERM - EACCES
-             * is close enough).
-             */
-            return -EACCES;
-        }
-        if ((fd = open(path, openflags, mode)) < 0)
-            return -errno;
-        ret = virFileOpenForceOwnerMode(path, fd, mode, uid, gid, flags);
-        if (ret < 0) {
-            VIR_FORCE_CLOSE(fd);
-            return ret;
-        }
+        VIR_FREE(msg);
+        /* Use child exit status if possible; otherwise,
+         * just use -EACCES, since by our original failure in
+         * the non fork+setuid path would have been EACCES or
+         * EPERM by definition (see qemuOpenFileAs after the
+         * first virFileOpenAs failure), but EACCES is close enough.
+         * Besides -EPERM is like returning fd == -1.
+         */
+        if (WIFEXITED(status))
+            ret = -WEXITSTATUS(status);
+        else
+            ret = -EACCES;
+        return ret;
     }
+
+    /* if waitpid succeeded, but recvfd failed, report recvfd_errno */
+    if (recvfd_errno != 0) {
+        virReportSystemError(recvfd_errno,
+                             _("failed recvfd for child creating '%s'"),
+                             path);
+        return -recvfd_errno;
+    }
+
+    /* otherwise, waitpid and recvfd succeeded, return the fd */
     return fd;
 }
 

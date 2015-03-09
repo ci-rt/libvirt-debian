@@ -1,7 +1,7 @@
 /*
  * network_conf.c: network XML handling
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -717,6 +717,7 @@ virNetworkDHCPHostDefParseXML(const char *networkName,
             virReportError(VIR_ERR_XML_ERROR,
                            _("Invalid character '%c' in id '%s' of network '%s'"),
                            *cp, id, networkName);
+            goto cleanup;
         }
     }
 
@@ -745,6 +746,7 @@ virNetworkDHCPHostDefParseXML(const char *networkName,
                              "must be specified for static host definition "
                              "in network '%s' "),
                            networkName);
+            goto cleanup;
         }
     } else {
         /* normal usage - you need at least name (IPv6) or one of MAC
@@ -1057,15 +1059,17 @@ virNetworkDNSTxtDefParseXML(const char *networkName,
                             virNetworkDNSTxtDefPtr def,
                             bool partialOkay)
 {
+    const char *bad = " ,";
+
     if (!(def->name = virXMLPropString(node, "name"))) {
         virReportError(VIR_ERR_XML_DETAIL,
                        _("missing required name attribute in DNS TXT record "
                          "of network %s"), networkName);
         goto error;
     }
-    if (strchr(def->name, ' ') != NULL) {
+    if (strcspn(def->name, bad) != strlen(def->name)) {
         virReportError(VIR_ERR_XML_DETAIL,
-                       _("prohibited space character in DNS TXT record "
+                       _("prohibited character in DNS TXT record "
                          "name '%s' of network %s"), def->name, networkName);
         goto error;
     }
@@ -1636,14 +1640,6 @@ virNetworkForwardDefParseXML(const char *networkName,
                                             *forwardNatNodes,
                                             ctxt, def) < 0)
             goto cleanup;
-    }
-
-    if (((nForwardIfs > 0) + (nForwardAddrs > 0) + (nForwardPfs > 0)) > 1) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       _("<address>, <interface>, and <pf> elements in <forward> "
-                         "of network %s are mutually exclusive"),
-                       networkName);
-        goto cleanup;
     }
 
     forwardDev = virXPathString("string(./@dev)", ctxt);

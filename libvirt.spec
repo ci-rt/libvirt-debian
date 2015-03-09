@@ -364,7 +364,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.12
+Version: 1.2.13
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -2117,8 +2117,6 @@ exit 0
 %files daemon-driver-vbox
 %defattr(-, root, root)
 %{_libdir}/%{name}/connection-driver/libvirt_driver_vbox.so
-%{_libdir}/%{name}/connection-driver/libvirt_driver_vbox_network.so
-%{_libdir}/%{name}/connection-driver/libvirt_driver_vbox_storage.so
         %endif
     %endif # %{with_driver_modules}
 
@@ -2281,6 +2279,10 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Mon Mar  2 2015 Daniel Veillard <veillard@redhat.com> - 1.2.13-1
+- lot of improvements around NUMA code
+- a lot of improvement and bug fixes
+
 * Tue Jan 27 2015 Daniel Veillard <veillard@redhat.com> - 1.2.12-1
 - CVE-2015-0236: qemu: Check ACLs when dumping security info from snapshots
 - CVE-2015-0236: qemu: Check ACLs when dumping security info from save image

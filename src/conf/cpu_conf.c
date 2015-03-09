@@ -56,12 +56,6 @@ VIR_ENUM_IMPL(virCPUFeaturePolicy, VIR_CPU_FEATURE_LAST,
               "disable",
               "forbid")
 
-VIR_ENUM_IMPL(virMemAccess, VIR_MEM_ACCESS_LAST,
-              "default",
-              "shared",
-              "private")
-
-
 void ATTRIBUTE_NONNULL(1)
 virCPUDefFreeModel(virCPUDefPtr def)
 {
@@ -79,18 +73,11 @@ virCPUDefFreeModel(virCPUDefPtr def)
 void
 virCPUDefFree(virCPUDefPtr def)
 {
-    size_t i;
-
     if (!def)
         return;
 
     virCPUDefFreeModel(def);
 
-    for (i = 0; i < def->ncells; i++) {
-        virBitmapFree(def->cells[i].cpumask);
-        VIR_FREE(def->cells[i].cpustr);
-    }
-    VIR_FREE(def->cells);
     VIR_FREE(def->vendor_id);
 
     VIR_FREE(def);
@@ -134,7 +121,6 @@ virCPUDefPtr
 virCPUDefCopy(const virCPUDef *cpu)
 {
     virCPUDefPtr copy;
-    size_t i;
 
     if (!cpu || VIR_ALLOC(copy) < 0)
         return NULL;
@@ -150,25 +136,6 @@ virCPUDefCopy(const virCPUDef *cpu)
 
     if (virCPUDefCopyModel(copy, cpu, false) < 0)
         goto error;
-
-    if (cpu->ncells) {
-        if (VIR_ALLOC_N(copy->cells, cpu->ncells) < 0)
-            goto error;
-        copy->ncells_max = copy->ncells = cpu->ncells;
-
-        for (i = 0; i < cpu->ncells; i++) {
-            copy->cells[i].mem = cpu->cells[i].mem;
-
-            copy->cells[i].cpumask = virBitmapNewCopy(cpu->cells[i].cpumask);
-
-            if (!copy->cells[i].cpumask)
-                goto error;
-
-            if (VIR_STRDUP(copy->cells[i].cpustr, cpu->cells[i].cpustr) < 0)
-                goto error;
-        }
-        copy->cells_cpus = cpu->cells_cpus;
-    }
 
     return copy;
 
@@ -426,96 +393,6 @@ virCPUDefParseXML(xmlNodePtr node,
         def->features[i].policy = policy;
     }
 
-    if (virXPathNode("./numa[1]", ctxt)) {
-        VIR_FREE(nodes);
-        n = virXPathNodeSet("./numa[1]/cell", ctxt, &nodes);
-        if (n <= 0) {
-            virReportError(VIR_ERR_XML_ERROR, "%s",
-                           _("NUMA topology defined without NUMA cells"));
-            goto error;
-        }
-
-        if (VIR_RESIZE_N(def->cells, def->ncells_max,
-                         def->ncells, n) < 0)
-            goto error;
-
-        def->ncells = n;
-
-        for (i = 0; i < n; i++) {
-            char *cpus, *memAccessStr;
-            int ret, ncpus = 0;
-            unsigned int cur_cell;
-            char *tmp = NULL;
-
-            tmp = virXMLPropString(nodes[i], "id");
-            if (!tmp) {
-                cur_cell = i;
-            } else {
-                ret  = virStrToLong_ui(tmp, NULL, 10, &cur_cell);
-                if (ret == -1) {
-                    virReportError(VIR_ERR_XML_ERROR,
-                                   _("Invalid 'id' attribute in NUMA cell: %s"),
-                                   tmp);
-                    VIR_FREE(tmp);
-                    goto error;
-                }
-                VIR_FREE(tmp);
-            }
-
-            if (cur_cell >= n) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("Exactly one 'cell' element per guest "
-                                 "NUMA cell allowed, non-contiguous ranges or "
-                                 "ranges not starting from 0 are not allowed"));
-                goto error;
-            }
-
-            if (def->cells[cur_cell].cpustr) {
-                virReportError(VIR_ERR_XML_ERROR,
-                               _("Duplicate NUMA cell info for cell id '%u'"),
-                               cur_cell);
-                goto error;
-            }
-
-            cpus = virXMLPropString(nodes[i], "cpus");
-            if (!cpus) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("Missing 'cpus' attribute in NUMA cell"));
-                goto error;
-            }
-            def->cells[cur_cell].cpustr = cpus;
-
-            ncpus = virBitmapParse(cpus, 0, &def->cells[cur_cell].cpumask,
-                                   VIR_DOMAIN_CPUMASK_LEN);
-            if (ncpus <= 0)
-                goto error;
-            def->cells_cpus += ncpus;
-
-            ctxt->node = nodes[i];
-            if (virDomainParseMemory("./@memory", "./@unit", ctxt,
-                                     &def->cells[cur_cell].mem, true, false) < 0)
-                goto cleanup;
-
-            memAccessStr = virXMLPropString(nodes[i], "memAccess");
-            if (memAccessStr) {
-                int rc = virMemAccessTypeFromString(memAccessStr);
-
-                if (rc <= 0) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                   _("Invalid 'memAccess' attribute "
-                                     "value '%s'"),
-                                   memAccessStr);
-                    VIR_FREE(memAccessStr);
-                    goto error;
-                }
-
-                def->cells[cur_cell].memAccess = rc;
-
-                VIR_FREE(memAccessStr);
-            }
-        }
-    }
-
  cleanup:
     ctxt->node = oldnode;
     VIR_FREE(fallback);
@@ -532,11 +409,12 @@ virCPUDefParseXML(xmlNodePtr node,
 
 char *
 virCPUDefFormat(virCPUDefPtr def,
+                virDomainNumaPtr numa,
                 bool updateCPU)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (virCPUDefFormatBufFull(&buf, def, updateCPU) < 0)
+    if (virCPUDefFormatBufFull(&buf, def, numa, updateCPU) < 0)
         goto cleanup;
 
     if (virBufferCheckError(&buf) < 0)
@@ -553,8 +431,13 @@ virCPUDefFormat(virCPUDefPtr def,
 int
 virCPUDefFormatBufFull(virBufferPtr buf,
                        virCPUDefPtr def,
+                       virDomainNumaPtr numa,
                        bool updateCPU)
 {
+    int ret = -1;
+    virBuffer childrenBuf = VIR_BUFFER_INITIALIZER;
+    int indent = virBufferGetIndent(buf, false);
+
     if (!def)
         return 0;
 
@@ -566,7 +449,7 @@ virCPUDefFormatBufFull(virBufferPtr buf,
             if (!(tmp = virCPUModeTypeToString(def->mode))) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("Unexpected CPU mode %d"), def->mode);
-                return -1;
+                goto cleanup;
             }
             virBufferAsprintf(buf, " mode='%s'", tmp);
         }
@@ -578,24 +461,34 @@ virCPUDefFormatBufFull(virBufferPtr buf,
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("Unexpected CPU match policy %d"),
                                def->match);
-                return -1;
+                goto cleanup;
             }
             virBufferAsprintf(buf, " match='%s'", tmp);
         }
     }
-    virBufferAddLit(buf, ">\n");
-    virBufferAdjustIndent(buf, 2);
 
+    virBufferAdjustIndent(&childrenBuf, indent + 2);
     if (def->arch)
-        virBufferAsprintf(buf, "<arch>%s</arch>\n",
+        virBufferAsprintf(&childrenBuf, "<arch>%s</arch>\n",
                           virArchToString(def->arch));
-    if (virCPUDefFormatBuf(buf, def, updateCPU) < 0)
-        return -1;
-    virBufferAdjustIndent(buf, -2);
+    if (virCPUDefFormatBuf(&childrenBuf, def, updateCPU) < 0)
+        goto cleanup;
 
-    virBufferAddLit(buf, "</cpu>\n");
+    if (virDomainNumaDefCPUFormat(&childrenBuf, numa) < 0)
+        goto cleanup;
 
-    return 0;
+    if (virBufferUse(&childrenBuf)) {
+        virBufferAddLit(buf, ">\n");
+        virBufferAddBuffer(buf, &childrenBuf);
+        virBufferAddLit(buf, "</cpu>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
+
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&childrenBuf);
+    return ret;
 }
 
 int
@@ -687,25 +580,6 @@ virCPUDefFormatBuf(virBufferPtr buf,
         }
     }
 
-    if (def->ncells) {
-        virBufferAddLit(buf, "<numa>\n");
-        virBufferAdjustIndent(buf, 2);
-        for (i = 0; i < def->ncells; i++) {
-            virMemAccess memAccess = def->cells[i].memAccess;
-
-            virBufferAddLit(buf, "<cell");
-            virBufferAsprintf(buf, " id='%zu'", i);
-            virBufferAsprintf(buf, " cpus='%s'", def->cells[i].cpustr);
-            virBufferAsprintf(buf, " memory='%llu'", def->cells[i].mem);
-            virBufferAddLit(buf, " unit='KiB'");
-            if (memAccess)
-                virBufferAsprintf(buf, " memAccess='%s'",
-                                  virMemAccessTypeToString(memAccess));
-            virBufferAddLit(buf, "/>\n");
-        }
-        virBufferAdjustIndent(buf, -2);
-        virBufferAddLit(buf, "</numa>\n");
-    }
     return 0;
 }
 

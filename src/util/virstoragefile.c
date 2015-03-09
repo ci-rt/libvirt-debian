@@ -1030,12 +1030,12 @@ virStorageFileGetMetadataFromFD(const char *path,
     }
 
     if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
-        virReportSystemError(errno, _("cannot seek to start of '%s'"), meta->relPath);
+        virReportSystemError(errno, _("cannot seek to start of '%s'"), meta->path);
         goto cleanup;
     }
 
     if ((len = virFileReadHeaderFD(fd, len, &buf)) < 0) {
-        virReportSystemError(errno, _("cannot read header '%s'"), meta->relPath);
+        virReportSystemError(errno, _("cannot read header '%s'"), meta->path);
         goto cleanup;
     }
 
@@ -2156,15 +2156,23 @@ virStorageSourceParseBackingURI(virStorageSourcePtr src,
     /* XXX We currently don't support auth, so don't bother parsing it */
 
     /* possibly skip the leading slash */
-    if (VIR_STRDUP(src->path,
+    if (uri->path &&
+        VIR_STRDUP(src->path,
                    *uri->path == '/' ? uri->path + 1 : uri->path) < 0)
         goto cleanup;
 
     if (src->protocol == VIR_STORAGE_NET_PROTOCOL_GLUSTER) {
         char *tmp;
+
+        if (!src->path) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("missing volume name and path for gluster volume"));
+            goto cleanup;
+        }
+
         if (!(tmp = strchr(src->path, '/')) ||
             tmp == src->path) {
-            virReportError(VIR_ERR_XML_ERROR,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("missing volume name or file name in "
                              "gluster source path '%s'"), src->path);
             goto cleanup;

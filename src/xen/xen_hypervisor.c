@@ -2634,9 +2634,9 @@ xenHypervisorLookupDomainByID(virConnectPtr conn, int id)
     if (!name)
         return NULL;
 
-    ret = virDomainDefNew(name,
-                          XEN_GETDOMAININFO_UUID(dominfo),
-                          id);
+    ret = virDomainDefNewFull(name,
+                              XEN_GETDOMAININFO_UUID(dominfo),
+                              id);
     VIR_FREE(name);
     return ret;
 }
@@ -2699,7 +2699,7 @@ xenHypervisorLookupDomainByUUID(virConnectPtr conn, const unsigned char *uuid)
     if (!name)
         return NULL;
 
-    ret = virDomainDefNew(name, uuid, id);
+    ret = virDomainDefNewFull(name, uuid, id);
     if (ret)
         ret->id = id;
     VIR_FREE(name);
@@ -2736,7 +2736,7 @@ xenHypervisorGetMaxMemory(virConnectPtr conn,
     int ret;
 
     if (kb_per_pages == 0) {
-        kb_per_pages = sysconf(_SC_PAGESIZE) / 1024;
+        kb_per_pages = virGetSystemPageSizeKB();
         if (kb_per_pages <= 0)
             kb_per_pages = 4;
     }
@@ -2771,7 +2771,7 @@ xenHypervisorGetDomInfo(virConnectPtr conn, int id, virDomainInfoPtr info)
     uint32_t domain_flags, domain_state, domain_shutdown_cause;
 
     if (kb_per_pages == 0) {
-        kb_per_pages = sysconf(_SC_PAGESIZE) / 1024;
+        kb_per_pages = virGetSystemPageSizeKB();
         if (kb_per_pages <= 0)
             kb_per_pages = 4;
     }

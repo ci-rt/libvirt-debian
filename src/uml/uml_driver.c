@@ -1,7 +1,7 @@
 /*
  * uml_driver.c: core driver methods for managing UML guests
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -2943,8 +2943,37 @@ umlNodeAllocPages(virConnectPtr conn,
 }
 
 
-static virHypervisorDriver umlDriver = {
-    .no = VIR_DRV_UML,
+static int
+umlDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    struct uml_driver *driver = dom->conn->privateData;
+    int ret = -1;
+    virDomainObjPtr vm;
+
+    virCheckFlags(0, -1);
+
+    umlDriverLock(driver);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    umlDriverUnlock(driver);
+
+    if (!vm) {
+        virReportError(VIR_ERR_NO_DOMAIN, NULL);
+        goto cleanup;
+    }
+
+    if (virDomainHasManagedSaveImageEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+
+static virHypervisorDriver umlHypervisorDriver = {
     .name = "UML",
     .connectOpen = umlConnectOpen, /* 0.5.0 */
     .connectClose = umlConnectClose, /* 0.5.0 */
@@ -3007,6 +3036,11 @@ static virHypervisorDriver umlDriver = {
     .nodeSetMemoryParameters = umlNodeSetMemoryParameters, /* 0.10.2 */
     .nodeGetFreePages = umlNodeGetFreePages, /* 1.2.6 */
     .nodeAllocPages = umlNodeAllocPages, /* 1.2.9 */
+    .domainHasManagedSaveImage = umlDomainHasManagedSaveImage, /* 1.2.13 */
+};
+
+static virConnectDriver umlConnectDriver = {
+    .hypervisorDriver = &umlHypervisorDriver,
 };
 
 static virStateDriver umlStateDriver = {
@@ -3019,7 +3053,8 @@ static virStateDriver umlStateDriver = {
 
 int umlRegister(void)
 {
-    if (virRegisterHypervisorDriver(&umlDriver) < 0)
+    if (virRegisterConnectDriver(&umlConnectDriver,
+                                 true) < 0)
         return -1;
     if (virRegisterStateDriver(&umlStateDriver) < 0)
         return -1;

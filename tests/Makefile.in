@@ -108,7 +108,8 @@ host_triplet = @host@
 @WITH_QEMU_TRUE@am__append_14 = qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 @WITH_QEMU_TRUE@	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 @WITH_QEMU_TRUE@	qemumonitortest qemumonitorjsontest qemuhotplugtest \
-@WITH_QEMU_TRUE@	qemuagenttest qemucapabilitiestest qemucaps2xmltest
+@WITH_QEMU_TRUE@	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
+@WITH_QEMU_TRUE@	qemucommandutiltest
 
 @WITH_LXC_TRUE@am__append_15 = lxcxml2xmltest lxcconf2xmltest
 @WITH_OPENVZ_TRUE@am__append_16 = openvzutilstest
@@ -205,7 +206,7 @@ TESTS = $(am__EXEEXT_30) $(am__EXEEXT_33)
 @WITH_QEMU_FALSE@	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_FALSE@	qemumonitorjsontest.c qemuhotplugtest.c \
 @WITH_QEMU_FALSE@	qemuagenttest.c qemucapabilitiestest.c \
-@WITH_QEMU_FALSE@	qemucaps2xmltest.c \
+@WITH_QEMU_FALSE@	qemucaps2xmltest.c qemucommandutiltest.c \
 @WITH_QEMU_FALSE@	$(QEMUMONITORTESTUTILS_SOURCES)
 
 @WITH_LXC_TRUE@@WITH_NETWORK_TRUE@am__append_46 = ../src/libvirt_driver_network_impl.la
@@ -575,7 +576,8 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_QEMU_TRUE@	qemuhotplugtest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuagenttest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemucapabilitiestest$(EXEEXT) \
-@WITH_QEMU_TRUE@	qemucaps2xmltest$(EXEEXT)
+@WITH_QEMU_TRUE@	qemucaps2xmltest$(EXEEXT) \
+@WITH_QEMU_TRUE@	qemucommandutiltest$(EXEEXT)
 @WITH_LXC_TRUE@am__EXEEXT_13 = lxcxml2xmltest$(EXEEXT) \
 @WITH_LXC_TRUE@	lxcconf2xmltest$(EXEEXT)
 @WITH_OPENVZ_TRUE@am__EXEEXT_14 = openvzutilstest$(EXEEXT)
@@ -847,6 +849,15 @@ am__qemucaps2xmltest_SOURCES_DIST = qemucaps2xmltest.c testutils.c \
 @WITH_QEMU_TRUE@	qemucaps2xmltest.$(OBJEXT) testutils.$(OBJEXT)
 qemucaps2xmltest_OBJECTS = $(am_qemucaps2xmltest_OBJECTS)
 @WITH_QEMU_TRUE@qemucaps2xmltest_DEPENDENCIES = $(qemu_LDADDS) \
+@WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
+am__qemucommandutiltest_SOURCES_DIST = qemucommandutiltest.c \
+	testutils.c testutils.h testutilsqemu.c testutilsqemu.h
+@WITH_QEMU_TRUE@am_qemucommandutiltest_OBJECTS =  \
+@WITH_QEMU_TRUE@	qemucommandutiltest.$(OBJEXT) \
+@WITH_QEMU_TRUE@	testutils.$(OBJEXT) testutilsqemu.$(OBJEXT)
+qemucommandutiltest_OBJECTS = $(am_qemucommandutiltest_OBJECTS)
+@WITH_QEMU_TRUE@qemucommandutiltest_DEPENDENCIES =  \
+@WITH_QEMU_TRUE@	libqemumonitortestutils.la $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemuhelptest_SOURCES_DIST = qemuhelptest.c testutils.c testutils.h
 @WITH_QEMU_TRUE@am_qemuhelptest_OBJECTS = qemuhelptest.$(OBJEXT) \
@@ -1307,12 +1318,12 @@ SOURCES = $(bhyvexml2argvmock_la_SOURCES) \
 	$(objectlocking_SOURCES) $(openvzutilstest_SOURCES) \
 	$(qemuagenttest_SOURCES) $(qemuargv2xmltest_SOURCES) \
 	$(qemucapabilitiestest_SOURCES) $(qemucaps2xmltest_SOURCES) \
-	$(qemuhelptest_SOURCES) $(qemuhotplugtest_SOURCES) \
-	$(qemumonitorjsontest_SOURCES) $(qemumonitortest_SOURCES) \
-	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
-	$(qemuxmlnstest_SOURCES) $(reconnect_SOURCES) \
-	$(scsihosttest_SOURCES) $(seclabeltest_SOURCES) \
-	$(secretxml2xmltest_SOURCES) \
+	$(qemucommandutiltest_SOURCES) $(qemuhelptest_SOURCES) \
+	$(qemuhotplugtest_SOURCES) $(qemumonitorjsontest_SOURCES) \
+	$(qemumonitortest_SOURCES) $(qemuxml2argvtest_SOURCES) \
+	$(qemuxml2xmltest_SOURCES) $(qemuxmlnstest_SOURCES) \
+	$(reconnect_SOURCES) $(scsihosttest_SOURCES) \
+	$(seclabeltest_SOURCES) $(secretxml2xmltest_SOURCES) \
 	$(securityselinuxlabeltest_SOURCES) \
 	$(securityselinuxtest_SOURCES) $(sexpr2xmltest_SOURCES) \
 	$(shunloadtest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
@@ -1381,6 +1392,7 @@ DIST_SOURCES = $(am__bhyvexml2argvmock_la_SOURCES_DIST) \
 	$(am__qemuargv2xmltest_SOURCES_DIST) \
 	$(am__qemucapabilitiestest_SOURCES_DIST) \
 	$(am__qemucaps2xmltest_SOURCES_DIST) \
+	$(am__qemucommandutiltest_SOURCES_DIST) \
 	$(am__qemuhelptest_SOURCES_DIST) \
 	$(am__qemuhotplugtest_SOURCES_DIST) \
 	$(am__qemumonitorjsontest_SOURCES_DIST) \
@@ -3356,6 +3368,15 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_QEMU_TRUE@qemucapabilitiestest_LDADD = libqemumonitortestutils.la \
 @WITH_QEMU_TRUE@	$(qemu_LDADDS) $(LDADDS)
 
+@WITH_QEMU_TRUE@qemucommandutiltest_SOURCES = \
+@WITH_QEMU_TRUE@	qemucommandutiltest.c \
+@WITH_QEMU_TRUE@	testutils.c testutils.h \
+@WITH_QEMU_TRUE@	testutilsqemu.c testutilsqemu.h \
+@WITH_QEMU_TRUE@	$(NULL)
+
+@WITH_QEMU_TRUE@qemucommandutiltest_LDADD = libqemumonitortestutils.la \
+@WITH_QEMU_TRUE@	$(qemu_LDADDS) $(LDADDS)
+
 @WITH_QEMU_TRUE@qemucaps2xmltest_SOURCES = \
 @WITH_QEMU_TRUE@	qemucaps2xmltest.c \
 @WITH_QEMU_TRUE@	testutils.c testutils.h \
@@ -4120,6 +4141,10 @@ qemucaps2xmltest$(EXEEXT): $(qemucaps2xmltest_OBJECTS) $(qemucaps2xmltest_DEPEND
 	@rm -f qemucaps2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qemucaps2xmltest_OBJECTS) $(qemucaps2xmltest_LDADD) $(LIBS)
 
+qemucommandutiltest$(EXEEXT): $(qemucommandutiltest_OBJECTS) $(qemucommandutiltest_DEPENDENCIES) $(EXTRA_qemucommandutiltest_DEPENDENCIES) 
+	@rm -f qemucommandutiltest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(qemucommandutiltest_OBJECTS) $(qemucommandutiltest_LDADD) $(LIBS)
+
 qemuhelptest$(EXEEXT): $(qemuhelptest_OBJECTS) $(qemuhelptest_DEPENDENCIES) $(EXTRA_qemuhelptest_DEPENDENCIES) 
 	@rm -f qemuhelptest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qemuhelptest_OBJECTS) $(qemuhelptest_LDADD) $(LIBS)
@@ -4454,6 +4479,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuargv2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemucapabilitiestest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemucaps2xmltest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemucommandutiltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuhelptest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuhotplugtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemumonitorjsontest.Po@am__quote@
@@ -5482,6 +5508,13 @@ qemucapabilitiestest.log: qemucapabilitiestest$(EXEEXT)
 qemucaps2xmltest.log: qemucaps2xmltest$(EXEEXT)
 	@p='qemucaps2xmltest$(EXEEXT)'; \
 	b='qemucaps2xmltest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+qemucommandutiltest.log: qemucommandutiltest$(EXEEXT)
+	@p='qemucommandutiltest$(EXEEXT)'; \
+	b='qemucommandutiltest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

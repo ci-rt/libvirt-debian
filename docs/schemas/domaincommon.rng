@@ -238,8 +238,8 @@
       <ref name="bootloader"/>
     </optional>
     <element name="os">
-      <ref name="ostypehvm"/>
       <interleave>
+        <ref name="ostypehvm"/>
         <optional>
           <element name="loader">
             <optional>
@@ -815,8 +815,52 @@
             </attribute>
           </element>
         </zeroOrMore>
+        <zeroOrMore>
+          <element name="vcpusched">
+            <optional>
+              <attribute name="vcpus">
+                <ref name='cpuset'/>
+              </attribute>
+            </optional>
+            <ref name="schedparam"/>
+          </element>
+        </zeroOrMore>
+        <zeroOrMore>
+          <element name="iothreadsched">
+            <optional>
+              <attribute name="iothreads">
+                <ref name='cpuset'/>
+              </attribute>
+            </optional>
+            <ref name="schedparam"/>
+          </element>
+        </zeroOrMore>
       </interleave>
     </element>
+  </define>
+
+  <define name="schedparam">
+    <choice>
+      <group>
+        <attribute name="scheduler">
+          <choice>
+            <value>batch</value>
+            <value>idle</value>
+          </choice>
+        </attribute>
+      </group>
+      <group>
+        <attribute name="scheduler">
+          <choice>
+            <value>fifo</value>
+            <value>rr</value>
+          </choice>
+        </attribute>
+        <attribute name="priority">
+          <ref name="unsignedShort"/>
+        </attribute>
+      </group>
+    </choice>
   </define>
 
   <!-- All the NUMA related tunables would go in the numatune -->
@@ -1130,6 +1174,14 @@
         <ref name="deviceBoot"/>
       </optional>
       <optional>
+        <element name="backenddomain">
+          <attribute name="name">
+            <ref name="domainName"/>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="readonly">
           <empty/>
         </element>
@@ -1344,9 +1396,9 @@
           <optional>
             <ref name="storageStartupPolicy"/>
           </optional>
-          <optional>
+          <zeroOrMore>
             <ref name='devSeclabel'/>
-          </optional>
+          </zeroOrMore>
         </element>
       </optional>
     </interleave>
@@ -1367,9 +1419,9 @@
           <optional>
             <ref name="storageStartupPolicy"/>
           </optional>
-          <optional>
+          <zeroOrMore>
             <ref name='devSeclabel'/>
-          </optional>
+          </zeroOrMore>
         </element>
       </optional>
     </interleave>
@@ -1497,9 +1549,9 @@
           <optional>
             <ref name="storageStartupPolicy"/>
           </optional>
-          <optional>
+          <zeroOrMore>
             <ref name='devSeclabel'/>
-          </optional>
+          </zeroOrMore>
         </element>
       </optional>
     </interleave>
@@ -2173,14 +2225,7 @@
               </attribute>
               <empty/>
             </element>
-            <optional>
-              <element name="mac">
-                <attribute name="address">
-                  <ref name="uniMacAddr"/>
-                </attribute>
-                <empty/>
-              </element>
-            </optional>
+            <ref name="interface-options"/>
           </interleave>
         </group>
         <group>
@@ -2199,24 +2244,7 @@
               </attribute>
               <empty/>
             </element>
-            <optional>
-              <element name="mac">
-                <attribute name="address">
-                  <ref name="uniMacAddr"/>
-                </attribute>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="model">
-                <attribute name="type">
-                  <data type="string">
-                    <param name='pattern'>[a-zA-Z0-9\-_]+</param>
-                  </data>
-                </attribute>
-                <empty/>
-              </element>
-            </optional>
+            <ref name="interface-options"/>
           </interleave>
         </group>
         <group>
@@ -2352,6 +2380,14 @@
         </element>
       </optional>
       <optional>
+        <element name="backenddomain">
+          <attribute name="name">
+            <ref name="domainName"/>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="model">
           <attribute name="type">
             <data type="string">
@@ -2446,6 +2482,11 @@
                 </optional>
                 <optional>
                   <attribute name='ufo'>
+                    <ref name="virOnOff"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name='mrg_rxbuf'>
                     <ref name="virOnOff"/>
                   </attribute>
                 </optional>
@@ -3219,9 +3260,9 @@
         <optional>
           <attribute name="slave"/>
         </optional>
-        <optional>
+        <zeroOrMore>
           <ref name='devSeclabel'/>
-        </optional>
+        </zeroOrMore>
       </element>
     </zeroOrMore>
     <optional>
@@ -4373,6 +4414,11 @@
             <value>isa</value>
           </attribute>
           <ref name="isaaddress"/>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>virtio-mmio</value>
+          </attribute>
         </group>
       </choice>
     </element>

@@ -70,7 +70,7 @@ extern "C" {
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-# define LIBVIR_VERSION_NUMBER 1002012
+# define LIBVIR_VERSION_NUMBER 1002013
 
 /**
  * LIBVIR_CHECK_VERSION:
