@@ -10,7 +10,7 @@ Closes: #663931
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/util/virutil.c b/src/util/virutil.c
-index 3037293..05e0cca 100644
+index 4a95292..18938c2 100644
 --- a/src/util/virutil.c
 +++ b/src/util/virutil.c
 @@ -1490,7 +1490,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
