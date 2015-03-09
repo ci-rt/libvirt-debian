@@ -745,6 +745,10 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
             return -1;
         }
 
+        /* Disable VNC and SDL until explicitly enabled */
+        libxl_defbool_set(&b_info->u.hvm.vnc.enable, 0);
+        libxl_defbool_set(&b_info->u.hvm.sdl.enable, 0);
+
         /*
          * The following comment and calculation were taken directly from
          * libxenlight's internal function libxl_get_required_shadow_memory():
@@ -971,6 +975,18 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
         return -1;
     }
 
+    if (l_disk->domain_name) {
+#ifdef LIBXL_HAVE_DEVICE_BACKEND_DOMNAME
+        if (VIR_STRDUP(x_disk->backend_domname, l_disk->domain_name) < 0)
+            return -1;
+#else
+        virReportError(VIR_ERR_XML_DETAIL, "%s",
+                _("this version of libxenlight does not "
+                  "support backend domain name"));
+        return -1;
+#endif
+    }
+
     return 0;
 }
 
@@ -1051,6 +1067,11 @@ libxlMakeNic(virDomainDefPtr def,
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
             if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
                 return -1;
+            if (l_nic->nips > 0) {
+                x_nic->ip = virSocketAddrFormat(&l_nic->ips[0]->address);
+                if (!x_nic->ip)
+                    return -1;
+            }
             break;
         case VIR_DOMAIN_NET_TYPE_NETWORK:
         {
@@ -1066,6 +1087,12 @@ libxlMakeNic(virDomainDefPtr def,
                   virNetworkLookupByName(conn, l_nic->data.network.name))) {
                 virObjectUnref(conn);
                 return -1;
+            }
+
+            if (l_nic->nips > 0) {
+                x_nic->ip = virSocketAddrFormat(&l_nic->ips[0]->address);
+                if (!x_nic->ip)
+                    return -1;
             }
 
             if ((brname = virNetworkGetBridgeName(network))) {
@@ -1096,6 +1123,18 @@ libxlMakeNic(virDomainDefPtr def,
                     _("unsupported interface type %s"),
                     virDomainNetTypeToString(l_nic->type));
             return -1;
+    }
+
+    if (l_nic->domain_name) {
+#ifdef LIBXL_HAVE_DEVICE_BACKEND_DOMNAME
+        if (VIR_STRDUP(x_nic->backend_domname, l_nic->domain_name) < 0)
+            return -1;
+#else
+        virReportError(VIR_ERR_XML_DETAIL, "%s",
+                _("this version of libxenlight does not "
+                  "support backend domain name"));
+        return -1;
+#endif
     }
 
     return 0;

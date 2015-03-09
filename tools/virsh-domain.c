@@ -1,7 +1,7 @@
 /*
  * virsh-domain.c: Commands to manage domain
  *
- * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -404,6 +404,7 @@ enum {
     DISK_ADDR_TYPE_PCI,
     DISK_ADDR_TYPE_SCSI,
     DISK_ADDR_TYPE_IDE,
+    DISK_ADDR_TYPE_CCW,
 };
 
 struct PCIAddress {
@@ -425,12 +426,19 @@ struct IDEAddress {
     unsigned int unit;
 };
 
+struct CCWAddress {
+    unsigned int cssid;
+    unsigned int ssid;
+    unsigned int devno;
+};
+
 struct DiskAddress {
     int type;
     union {
         struct PCIAddress pci;
         struct SCSIAddress scsi;
         struct IDEAddress ide;
+        struct CCWAddress ccw;
     } addr;
 };
 
@@ -513,9 +521,35 @@ static int str2IDEAddress(const char *str, struct IDEAddress *ideAddr)
     return 0;
 }
 
+static int str2CCWAddress(const char *str, struct CCWAddress *ccwAddr)
+{
+    char *cssid, *ssid, *devno;
+
+    if (!ccwAddr)
+        return -1;
+    if (!str)
+        return -1;
+
+    cssid = (char *)str;
+
+    if (virStrToLong_ui(cssid, &ssid, 0, &ccwAddr->cssid) != 0)
+        return -1;
+
+    ssid++;
+    if (virStrToLong_ui(ssid, &devno, 0, &ccwAddr->ssid) != 0)
+        return -1;
+
+    devno++;
+    if (virStrToLong_ui(devno, NULL, 0, &ccwAddr->devno) != 0)
+        return -1;
+
+    return 0;
+}
+
 /* pci address pci:0000.00.0x0a.0 (domain:bus:slot:function)
  * ide disk address: ide:00.00.0 (controller:bus:unit)
  * scsi disk address: scsi:00.00.0 (controller:bus:unit)
+ * ccw disk address: ccw:0xfe.0.0000 (cssid:ssid:devno)
  */
 
 static int str2DiskAddress(const char *str, struct DiskAddress *diskAddr)
@@ -541,6 +575,9 @@ static int str2DiskAddress(const char *str, struct DiskAddress *diskAddr)
     } else if (STREQLEN(type, "ide", addr - type)) {
         diskAddr->type = DISK_ADDR_TYPE_IDE;
         return str2IDEAddress(addr + 1, &diskAddr->addr.ide);
+    } else if (STREQLEN(type, "ccw", addr - type)) {
+        diskAddr->type = DISK_ADDR_TYPE_CCW;
+        return str2CCWAddress(addr + 1, &diskAddr->addr.ccw);
     }
 
     return -1;
@@ -675,8 +712,15 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
                 if (vshCommandOptBool(cmd, "multifunction"))
                     virBufferAddLit(&buf, " multifunction='on'");
                 virBufferAddLit(&buf, "/>\n");
+            } else if (diskAddr.type == DISK_ADDR_TYPE_CCW) {
+                virBufferAsprintf(&buf,
+                                  "<address type='ccw' cssid='0x%02x'"
+                                  " ssid='0x%01x' devno='0x%04x' />\n",
+                                  diskAddr.addr.ccw.cssid, diskAddr.addr.ccw.ssid,
+                                  diskAddr.addr.ccw.devno);
             } else {
-                vshError(ctl, "%s", _("expecting a pci:0000.00.00.00 address."));
+                vshError(ctl, "%s",
+                         _("expecting a pci:0000.00.00.00 or ccw:00.0.0000 address."));
                 goto cleanup;
             }
         } else if (STRPREFIX((const char *)target, "sd")) {
@@ -862,7 +906,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
                 *type = NULL, *source = NULL, *model = NULL,
                 *inboundStr = NULL, *outboundStr = NULL;
     virNetDevBandwidthRate inbound, outbound;
-    int typ;
+    virDomainNetType typ;
     int ret;
     bool functionReturn = false;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -901,11 +945,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
     /* check interface type */
-    if (STREQ(type, "network")) {
-        typ = 1;
-    } else if (STREQ(type, "bridge")) {
-        typ = 2;
-    } else {
+    if ((int)(typ = virDomainNetTypeFromString(type)) < 0) {
         vshError(ctl, _("No support for %s in command 'attach-interface'"),
                  type);
         goto cleanup;
@@ -938,10 +978,30 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     virBufferAsprintf(&buf, "<interface type='%s'>\n", type);
     virBufferAdjustIndent(&buf, 2);
 
-    if (typ == 1)
-        virBufferAsprintf(&buf, "<source network='%s'/>\n", source);
-    else if (typ == 2)
-        virBufferAsprintf(&buf, "<source bridge='%s'/>\n", source);
+    switch (typ) {
+    case VIR_DOMAIN_NET_TYPE_NETWORK:
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+        virBufferAsprintf(&buf, "<source %s='%s'/>\n",
+                          virDomainNetTypeToString(typ), source);
+        break;
+    case VIR_DOMAIN_NET_TYPE_DIRECT:
+        virBufferAsprintf(&buf, "<source dev='%s'/>\n", source);
+        break;
+
+    case VIR_DOMAIN_NET_TYPE_USER:
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
+    case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+    case VIR_DOMAIN_NET_TYPE_SERVER:
+    case VIR_DOMAIN_NET_TYPE_CLIENT:
+    case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_INTERNAL:
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+    case VIR_DOMAIN_NET_TYPE_LAST:
+        vshError(ctl, _("No support for %s in command 'attach-interface'"),
+                 type);
+        goto cleanup;
+        break;
+    }
 
     if (target != NULL)
         virBufferAsprintf(&buf, "<target dev='%s'/>\n", target);
@@ -6390,20 +6450,17 @@ vshParseCPUList(vshControl *ctl, const char *cpulist,
 static bool
 cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
 {
-    virDomainInfo info;
     virDomainPtr dom;
     unsigned int vcpu = 0;
     const char *cpulist = NULL;
     bool ret = false;
     unsigned char *cpumap = NULL;
-    unsigned char *cpumaps = NULL;
     size_t cpumaplen;
     int maxcpu, ncpus;
     size_t i;
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
-    bool query = false; /* Query mode if no cpulist */
     int got_vcpu;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
@@ -6421,48 +6478,47 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "cpulist", &cpulist) < 0)
         return false;
 
-    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
-    query = !cpulist;
+    if (!cpulist)
+        VSH_EXCLUSIVE_OPTIONS_VAR(live, config);
 
     if ((got_vcpu = vshCommandOptUInt(cmd, "vcpu", &vcpu)) < 0) {
         vshError(ctl, "%s", _("vcpupin: Invalid vCPU number."));
-        goto cleanup;
+        return false;
     }
 
     /* In pin mode, "vcpu" is necessary */
-    if (!query && got_vcpu == 0) {
+    if (cpulist && got_vcpu == 0) {
         vshError(ctl, "%s", _("vcpupin: Missing vCPU number in pin mode."));
-        goto cleanup;
-    }
-
-    if (virDomainGetInfo(dom, &info) != 0) {
-        vshError(ctl, "%s", _("vcpupin: failed to get domain information."));
-        goto cleanup;
-    }
-
-    if (vcpu >= info.nrVirtCpu) {
-        vshError(ctl, "%s", _("vcpupin: vCPU index out of range."));
-        goto cleanup;
+        return false;
     }
 
     if ((maxcpu = vshNodeGetCPUCount(ctl->conn)) < 0)
-        goto cleanup;
-
+        return false;
     cpumaplen = VIR_CPU_MAPLEN(maxcpu);
 
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
     /* Query mode: show CPU affinity information then exit.*/
-    if (query) {
+    if (!cpulist) {
         /* When query mode and neither "live", "config" nor "current"
          * is specified, set VIR_DOMAIN_AFFECT_CURRENT as flags */
         if (flags == -1)
             flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-        cpumaps = vshMalloc(ctl, info.nrVirtCpu * cpumaplen);
-        if ((ncpus = virDomainGetVcpuPinInfo(dom, info.nrVirtCpu,
-                                             cpumaps, cpumaplen, flags)) >= 0) {
+        if ((ncpus = vshCPUCountCollect(ctl, dom, flags, true)) < 0) {
+            if (ncpus == -1) {
+                if (flags & VIR_DOMAIN_AFFECT_LIVE)
+                    vshError(ctl, "%s", _("cannot get vcpupin for offline domain"));
+                else
+                    vshError(ctl, "%s", _("cannot get vcpupin for transient domain"));
+            }
+            goto cleanup;
+        }
 
+        cpumap = vshMalloc(ctl, ncpus * cpumaplen);
+        if ((ncpus = virDomainGetVcpuPinInfo(dom, ncpus, cpumap,
+                                             cpumaplen, flags)) >= 0) {
             vshPrintExtra(ctl, "%s %s\n", _("VCPU:"), _("CPU Affinity"));
             vshPrintExtra(ctl, "----------------------------------\n");
             for (i = 0; i < ncpus; i++) {
@@ -6470,30 +6526,27 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
                    continue;
 
                vshPrint(ctl, "%4zu: ", i);
-               ret = vshPrintPinInfo(cpumaps, cpumaplen, maxcpu, i);
+               ret = vshPrintPinInfo(cpumap, cpumaplen, maxcpu, i);
                vshPrint(ctl, "\n");
                if (!ret)
                    break;
             }
         }
-
-        VIR_FREE(cpumaps);
-        goto cleanup;
-    }
-
-    /* Pin mode: pinning specified vcpu to specified physical cpus*/
-    if (!(cpumap = vshParseCPUList(ctl, cpulist, maxcpu, cpumaplen)))
-        goto cleanup;
-
-    if (flags == -1) {
-        if (virDomainPinVcpu(dom, vcpu, cpumap, cpumaplen) != 0)
-            goto cleanup;
     } else {
-        if (virDomainPinVcpuFlags(dom, vcpu, cpumap, cpumaplen, flags) != 0)
+        /* Pin mode: pinning specified vcpu to specified physical cpus*/
+        if (!(cpumap = vshParseCPUList(ctl, cpulist, maxcpu, cpumaplen)))
             goto cleanup;
+
+        if (flags == -1) {
+            if (virDomainPinVcpu(dom, vcpu, cpumap, cpumaplen) != 0)
+                goto cleanup;
+        } else {
+            if (virDomainPinVcpuFlags(dom, vcpu, cpumap, cpumaplen, flags) != 0)
+                goto cleanup;
+        }
+        ret = true;
     }
 
-    ret = true;
  cleanup:
     VIR_FREE(cpumap);
     virDomainFree(dom);
@@ -9980,7 +10033,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
     int tmp;
     int flags = 0;
     bool params = false;
-    const char *xpath_fmt = "string(/domain/devices/graphics[@type='%s']/@%s)";
+    const char *xpath_fmt = "string(/domain/devices/graphics[@type='%s']/%s)";
     virSocketAddr addr;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
@@ -10010,7 +10063,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
             continue;
 
         /* Create our XPATH lookup for the current display's port */
-        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "port") < 0)
+        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "@port") < 0)
             goto cleanup;
 
         /* Attempt to get the port number for the current graphics scheme */
@@ -10024,7 +10077,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
 
         /* Create our XPATH lookup for TLS Port (automatically skipped
          * for unsupported schemes */
-        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "tlsPort") < 0)
+        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "@tlsPort") < 0)
             goto cleanup;
 
         /* Attempt to get the TLS port number */
@@ -10037,7 +10090,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
             continue;
 
         /* Create our XPATH lookup for the current display's address */
-        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "listen") < 0)
+        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "@listen") < 0)
             goto cleanup;
 
         /* Attempt to get the listening addr if set for the current
@@ -10045,13 +10098,29 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         listen_addr = virXPathString(xpath, ctxt);
         VIR_FREE(xpath);
 
+        if (!listen_addr) {
+            /* The subelement address - <listen address='xyz'/> -
+             * *should* have been automatically backfilled into its
+             * parent <graphics listen='xyz'> (which we just tried to
+             * retrieve into listen_addr above) but in some cases it
+             * isn't, so we also do an explicit check for the
+             * subelement (which, by the way, doesn't exist on libvirt
+             * < 0.9.4, so we really do need to check both places)
+             */
+            if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "listen/@address") < 0)
+                goto cleanup;
+
+            listen_addr = virXPathString(xpath, ctxt);
+            VIR_FREE(xpath);
+        }
+
         /* We can query this info for all the graphics types since we'll
          * get nothing for the unsupported ones (just rdp for now).
          * Also the parameter '--include-password' was already taken
          * care of when getting the XML */
 
         /* Create our XPATH lookup for the password */
-        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "passwd") < 0)
+        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "@passwd") < 0)
             goto cleanup;
 
         /* Attempt to get the password */
@@ -10193,6 +10262,18 @@ cmdVNCDisplay(vshControl *ctl, const vshCmd *cmd)
 
     listen_addr = virXPathString("string(/domain/devices/graphics"
                                  "[@type='vnc']/@listen)", ctxt);
+    if (!listen_addr) {
+        /* The subelement address - <listen address='xyz'/> -
+         * *should* have been automatically backfilled into its
+         * parent <graphics listen='xyz'> (which we just tried to
+         * retrieve into listen_addr above) but in some cases it
+         * isn't, so we also do an explicit check for the
+         * subelement (which, by the way, doesn't exist on libvirt
+         * < 0.9.4, so we really do need to check both places)
+         */
+        listen_addr = virXPathString("string(/domain/devices/graphics"
+                                     "[@type='vnc']/listen/@address)", ctxt);
+    }
     if (listen_addr == NULL || STREQ(listen_addr, "0.0.0.0"))
         vshPrint(ctl, ":%d\n", port-5900);
     else
@@ -11177,7 +11258,13 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
     } while (0)
 #define EDIT_DEFINE \
     (dom_edited = vshDomainDefine(ctl->conn, doc_edited, define_flags))
+#define EDIT_RELAX                                      \
+    do {                                                \
+        define_flags &= ~VIR_DOMAIN_DEFINE_VALIDATE;    \
+    } while (0);
+
 #include "virsh-edit.c"
+#undef EDIT_RELAX
 
     vshPrint(ctl, _("Domain %s XML configuration edited.\n"),
              virDomainGetName(dom_edited));

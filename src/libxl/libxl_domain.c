@@ -482,6 +482,18 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         STRNEQ(def->os.type, "hvm"))
         dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
 
+    if (dev->type == VIR_DOMAIN_DEVICE_NET &&
+            (dev->data.net->type == VIR_DOMAIN_NET_TYPE_BRIDGE ||
+             dev->data.net->type == VIR_DOMAIN_NET_TYPE_ETHERNET ||
+             dev->data.net->type == VIR_DOMAIN_NET_TYPE_NETWORK)) {
+        if (dev->data.net->nips > 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                    _("multiple IP addresses not supported on device type %s"),
+                    virDomainNetTypeToString(dev->data.net->type));
+            return -1;
+        }
+    }
+
     if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV ||
         (dev->type == VIR_DOMAIN_DEVICE_NET &&
          dev->data.net->type == VIR_DOMAIN_NET_TYPE_HOSTDEV)) {
@@ -673,7 +685,11 @@ libxlDomainShutdownThread(void *opaque)
     }
     libxl_domain_destroy(ctx, vm->def->id, NULL);
     libxlDomainCleanupJob(driver, vm, VIR_DOMAIN_SHUTOFF_SHUTDOWN);
-    libxlDomainStart(driver, vm, 0, -1);
+    if (libxlDomainStart(driver, vm, false, -1) < 0) {
+        virErrorPtr err = virGetLastError();
+        VIR_ERROR(_("Failed to restart VM '%s': %s"),
+                  vm->def->name, err ? err->message : _("unknown error"));
+    }
 
  cleanup:
     if (vm)

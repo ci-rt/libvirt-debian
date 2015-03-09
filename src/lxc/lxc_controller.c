@@ -100,6 +100,7 @@ typedef struct _virLXCController virLXCController;
 typedef virLXCController *virLXCControllerPtr;
 struct _virLXCController {
     char *name;
+    virDomainObjPtr vm;
     virDomainDefPtr def;
 
     int handshakeFd;
@@ -108,6 +109,9 @@ struct _virLXCController {
 
     size_t nveths;
     char **veths;
+
+    size_t nnicindexes;
+    int *nicindexes;
 
     size_t npassFDs;
     int *passFDs;
@@ -175,11 +179,12 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
                                           ctrl->name)) == NULL)
         goto error;
 
-    if ((ctrl->def = virDomainDefParseFile(configFile,
-                                           caps, xmlopt,
-                                           1 << VIR_DOMAIN_VIRT_LXC,
-                                           0)) == NULL)
+    if ((ctrl->vm = virDomainObjParseFile(configFile,
+                                          caps, xmlopt,
+                                          1 << VIR_DOMAIN_VIRT_LXC,
+                                          0)) == NULL)
         goto error;
+    ctrl->def = ctrl->vm->def;
 
     if ((ctrl->timerShutdown = virEventAddTimeout(-1,
                                                   virLXCControllerQuitTimer, ctrl,
@@ -258,6 +263,7 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
     for (i = 0; i < ctrl->nveths; i++)
         VIR_FREE(ctrl->veths[i]);
     VIR_FREE(ctrl->veths);
+    VIR_FREE(ctrl->nicindexes);
 
     for (i = 0; i < ctrl->npassFDs; i++)
         VIR_FORCE_CLOSE(ctrl->passFDs[i]);
@@ -269,7 +275,7 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
 
     VIR_FREE(ctrl->devptmx);
 
-    virDomainDefFree(ctrl->def);
+    virObjectUnref(ctrl->vm);
     VIR_FREE(ctrl->name);
 
     if (ctrl->timerShutdown != -1)
@@ -339,6 +345,51 @@ static int virLXCControllerValidateNICs(virLXCControllerPtr ctrl)
     }
 
     return 0;
+}
+
+
+static int virLXCControllerGetNICIndexes(virLXCControllerPtr ctrl)
+{
+    size_t i;
+    int ret = -1;
+
+    VIR_DEBUG("Getting nic indexes");
+    for (i = 0; i < ctrl->def->nnets; i++) {
+        int nicindex = -1;
+        switch (ctrl->def->nets[i]->type) {
+        case VIR_DOMAIN_NET_TYPE_BRIDGE:
+        case VIR_DOMAIN_NET_TYPE_NETWORK:
+            if (ctrl->def->nets[i]->ifname == NULL)
+                continue;
+            if (virNetDevGetIndex(ctrl->def->nets[i]->ifname,
+                                  &nicindex) < 0)
+                goto cleanup;
+            if (VIR_EXPAND_N(ctrl->nicindexes,
+                             ctrl->nnicindexes,
+                             1) < 0)
+                goto cleanup;
+            VIR_DEBUG("Index %d for %s", nicindex,
+                      ctrl->def->nets[i]->ifname);
+            ctrl->nicindexes[ctrl->nnicindexes-1] = nicindex;
+            break;
+
+        case VIR_DOMAIN_NET_TYPE_USER:
+        case VIR_DOMAIN_NET_TYPE_ETHERNET:
+        case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+        case VIR_DOMAIN_NET_TYPE_SERVER:
+        case VIR_DOMAIN_NET_TYPE_CLIENT:
+        case VIR_DOMAIN_NET_TYPE_MCAST:
+        case VIR_DOMAIN_NET_TYPE_INTERNAL:
+        case VIR_DOMAIN_NET_TYPE_DIRECT:
+        case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+        default:
+            break;
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    return ret;
 }
 
 
@@ -678,8 +729,9 @@ static int virLXCControllerGetNumadAdvice(virLXCControllerPtr ctrl,
  * virLXCControllerSetupResourceLimits
  * @ctrl: the controller state
  *
- * Creates a cgroup for the container, moves the task inside,
- * and sets resource limits
+ * Sets up the non-cgroup based resource limits that need
+ * to be inherited by the child process across clone()/exec().
+ * The cgroup limits are setup later
  *
  * Returns 0 on success or -1 in case of error
  */
@@ -690,16 +742,51 @@ static int virLXCControllerSetupResourceLimits(virLXCControllerPtr ctrl)
     virBitmapPtr nodeset = NULL;
     virDomainNumatuneMemMode mode;
 
+    VIR_DEBUG("Setting up process resource limits");
+
     if (virLXCControllerGetNumadAdvice(ctrl, &auto_nodeset) < 0)
         goto cleanup;
 
-    nodeset = virDomainNumatuneGetNodeset(ctrl->def->numatune, auto_nodeset, -1);
-    mode = virDomainNumatuneGetMode(ctrl->def->numatune, -1);
+    nodeset = virDomainNumatuneGetNodeset(ctrl->def->numa, auto_nodeset, -1);
+    mode = virDomainNumatuneGetMode(ctrl->def->numa, -1);
 
     if (virNumaSetupMemoryPolicy(mode, nodeset) < 0)
         goto cleanup;
 
     if (virLXCControllerSetupCpuAffinity(ctrl) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virBitmapFree(auto_nodeset);
+    return ret;
+}
+
+
+/*
+ * Creates the cgroup and sets up the various limits associated
+ * with it
+ */
+static int virLXCControllerSetupCgroupLimits(virLXCControllerPtr ctrl)
+{
+    virBitmapPtr auto_nodeset = NULL;
+    int ret = -1;
+    virBitmapPtr nodeset = NULL;
+
+    VIR_DEBUG("Setting up cgroup resource limits");
+
+    if (virLXCControllerGetNumadAdvice(ctrl, &auto_nodeset) < 0)
+        goto cleanup;
+
+    nodeset = virDomainNumatuneGetNodeset(ctrl->def->numa, auto_nodeset, -1);
+
+    if (!(ctrl->cgroup = virLXCCgroupCreate(ctrl->def,
+                                            ctrl->initpid,
+                                            ctrl->nnicindexes,
+                                            ctrl->nicindexes)))
+        goto cleanup;
+
+    if (virCgroupAddTask(ctrl->cgroup, getpid()) < 0)
         goto cleanup;
 
     if (virLXCCgroupSetup(ctrl->def, ctrl->cgroup, nodeset) < 0)
@@ -1229,9 +1316,12 @@ static int virLXCControllerSetupUserns(virLXCControllerPtr ctrl)
     int ret = -1;
 
     /* User namespace is disabled for container */
-    if (ctrl->def->idmap.nuidmap == 0)
+    if (ctrl->def->idmap.nuidmap == 0) {
+        VIR_DEBUG("No uid map, skipping userns setup");
         return 0;
+    }
 
+    VIR_DEBUG("Setting up userns maps");
     if (virAsprintf(&uid_map, "/proc/%d/uid_map", ctrl->initpid) < 0)
         goto cleanup;
 
@@ -1832,9 +1922,12 @@ static int lxcSetPersonality(virDomainDefPtr def)
 {
     virArch altArch;
 
+    VIR_DEBUG("Checking for 32-bit personality");
     altArch = lxcContainerGetAlt32bitArch(virArchFromHost());
     if (altArch &&
         (def->os.arch == altArch)) {
+        VIR_DEBUG("Setting personality to %s",
+                  virArchToString(altArch));
         if (personality(PER_LINUX32) < 0) {
             virReportSystemError(errno, _("Unable to request personality for %s on %s"),
                                  virArchToString(altArch),
@@ -2222,6 +2315,9 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
     for (i = 0; i < ctrl->npassFDs; i++)
         VIR_FORCE_CLOSE(ctrl->passFDs[i]);
 
+    if (virLXCControllerSetupCgroupLimits(ctrl) < 0)
+        goto cleanup;
+
     if (virLXCControllerSetupUserns(ctrl) < 0)
         goto cleanup;
 
@@ -2449,10 +2545,10 @@ int main(int argc, char *argv[])
     if (virLXCControllerValidateNICs(ctrl) < 0)
         goto cleanup;
 
-    if (virLXCControllerValidateConsoles(ctrl) < 0)
+    if (virLXCControllerGetNICIndexes(ctrl) < 0)
         goto cleanup;
 
-    if (!(ctrl->cgroup = virLXCCgroupCreate(ctrl->def)))
+    if (virLXCControllerValidateConsoles(ctrl) < 0)
         goto cleanup;
 
     if (virLXCControllerSetupServer(ctrl) < 0)

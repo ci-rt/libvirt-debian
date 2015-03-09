@@ -22,6 +22,7 @@
 # include "cpu/cpu_map.h"
 # include "virstring.h"
 # include "storage/storage_driver.h"
+# include "virmock.h"
 
 # include "testutilsqemu.h"
 
@@ -58,16 +59,7 @@ fakeSecretLookupByUsage(virConnectPtr conn,
     return virGetSecret(conn, uuid, usageType, usageID);
 }
 
-static int
-fakeSecretClose(virConnectPtr conn ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
 static virSecretDriver fakeSecretDriver = {
-    .name = "fake_secret",
-    .secretOpen = NULL,
-    .secretClose = fakeSecretClose,
     .connectNumOfSecrets = NULL,
     .connectListSecrets = NULL,
     .secretLookupByUUID = NULL,
@@ -213,12 +205,6 @@ fakeStoragePoolGetXMLDesc(virStoragePoolPtr pool,
 }
 
 static int
-fakeStorageClose(virConnectPtr conn ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
-static int
 fakeStoragePoolIsActive(virStoragePoolPtr pool)
 {
     if (STREQ(pool->name, "inactive"))
@@ -244,8 +230,6 @@ fakeStoragePoolIsActive(virStoragePoolPtr pool)
  * type is assumed.
  */
 static virStorageDriver fakeStorageDriver = {
-    .name = "fake_storage",
-    .storageClose = fakeStorageClose,
     .storagePoolLookupByName = fakeStoragePoolLookupByName,
     .storageVolLookupByName = fakeStorageVolLookupByName,
     .storagePoolGetXMLDesc = fakeStoragePoolGetXMLDesc,
@@ -279,11 +263,15 @@ static int testCompareXMLToArgvFiles(const char *xml,
     char *log = NULL;
     virCommandPtr cmd = NULL;
     size_t i;
+    virBitmapPtr nodeset = NULL;
 
     if (!(conn = virGetConnect()))
         goto out;
     conn->secretDriver = &fakeSecretDriver;
     conn->storageDriver = &fakeStorageDriver;
+
+    if (virBitmapParse("0-3", '\0', &nodeset, 4) < 0)
+        goto out;
 
     if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
@@ -321,6 +309,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
         if (VIR_STRDUP(vmdef->os.machine, "pc-0.11") < 0)
             goto out;
     }
+
+    virQEMUCapsFilterByMachineType(extraFlags, vmdef->os.machine);
 
     if (virQEMUCapsGet(extraFlags, QEMU_CAPS_DEVICE)) {
         if (qemuDomainAssignAddresses(vmdef, extraFlags, NULL)) {
@@ -363,7 +353,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      VIR_NETDEV_VPORT_PROFILE_OP_NO_OP,
                                      &testCallbacks, false,
                                      (flags & FLAG_FIPS),
-                                     NULL))) {
+                                     nodeset, NULL, NULL))) {
         if (!virtTestOOMActive() &&
             (flags & FLAG_EXPECT_FAILURE)) {
             ret = 0;
@@ -416,6 +406,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     virCommandFree(cmd);
     virDomainDefFree(vmdef);
     virObjectUnref(conn);
+    virBitmapFree(nodeset);
     return ret;
 }
 
@@ -1266,6 +1257,12 @@ mymain(void)
     DO_TEST("blkiotune-device", QEMU_CAPS_NAME);
     DO_TEST("cputune", QEMU_CAPS_NAME);
     DO_TEST("cputune-zero-shares", QEMU_CAPS_NAME);
+    DO_TEST_PARSE_ERROR("cputune-iothreadsched-toomuch", QEMU_CAPS_NAME);
+    DO_TEST_PARSE_ERROR("cputune-vcpusched-overlap", QEMU_CAPS_NAME);
+    DO_TEST("cputune-numatune", QEMU_CAPS_SMP_TOPOLOGY,
+            QEMU_CAPS_KVM,
+            QEMU_CAPS_OBJECT_MEMORY_RAM,
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
 
     DO_TEST("numatune-memory", NONE);
     DO_TEST_PARSE_ERROR("numatune-memory-invalid-nodeset", NONE);
@@ -1278,6 +1275,8 @@ mymain(void)
     DO_TEST_FAILURE("numatune-memnode-no-memory", NONE);
 
     DO_TEST("numatune-auto-nodeset-invalid", NONE);
+    DO_TEST("numatune-auto-prefer", QEMU_CAPS_OBJECT_MEMORY_RAM,
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST_FAILURE("numatune-static-nodeset-exceed-hostnode",
                     QEMU_CAPS_OBJECT_MEMORY_RAM);
     DO_TEST_PARSE_ERROR("numatune-memnode-nocpu", NONE);
@@ -1315,6 +1314,7 @@ mymain(void)
     DO_TEST("seclabel-none", QEMU_CAPS_NAME);
     DO_TEST("seclabel-dac-none", QEMU_CAPS_NAME);
     DO_TEST_PARSE_ERROR("seclabel-multiple", QEMU_CAPS_NAME);
+    DO_TEST_PARSE_ERROR("seclabel-device-duplicates", QEMU_CAPS_NAME);
 
     DO_TEST("pseries-basic",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
@@ -1375,6 +1375,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_QXL_VGA, QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY, QEMU_CAPS_QXL_VGA_VGAMEM,
             QEMU_CAPS_QXL_VGAMEM);
+    DO_TEST_PARSE_ERROR("video-invalid", NONE);
 
     DO_TEST("virtio-rng-default", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_RANDOM);

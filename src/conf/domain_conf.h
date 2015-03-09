@@ -38,7 +38,7 @@
 # include "virsocketaddr.h"
 # include "networkcommon_conf.h"
 # include "nwfilter_params.h"
-# include "numatune_conf.h"
+# include "numa_conf.h"
 # include "virnetdevmacvlan.h"
 # include "virsysinfo.h"
 # include "virnetdevvportprofile.h"
@@ -700,6 +700,7 @@ struct _virDomainDiskDef {
     int sgio; /* enum virDomainDeviceSGIO */
     int discard; /* enum virDomainDiskDiscard */
     unsigned int iothread; /* unused = 0, > 0 specific thread # */
+    char *domain_name; /* backend domain name */
 };
 
 
@@ -938,6 +939,7 @@ struct _virDomainNetDef {
                 virTristateSwitch tso6;
                 virTristateSwitch ecn;
                 virTristateSwitch ufo;
+                virTristateSwitch mrg_rxbuf;
             } host;
             struct {
                 virTristateSwitch csum;
@@ -995,6 +997,7 @@ struct _virDomainNetDef {
         unsigned long sndbuf;
     } tune;
     char *script;
+    char *domain_name; /* backend domain name */
     char *ifname;
     char *ifname_guest;
     char *ifname_guest_actual;
@@ -1810,6 +1813,24 @@ typedef enum {
     VIR_DOMAIN_CPU_PLACEMENT_MODE_LAST
 } virDomainCpuPlacementMode;
 
+typedef enum {
+    VIR_DOMAIN_THREAD_SCHED_OTHER = 0,
+    VIR_DOMAIN_THREAD_SCHED_BATCH,
+    VIR_DOMAIN_THREAD_SCHED_IDLE,
+    VIR_DOMAIN_THREAD_SCHED_FIFO,
+    VIR_DOMAIN_THREAD_SCHED_RR,
+
+    VIR_DOMAIN_THREAD_SCHED_LAST
+} virDomainThreadSched;
+
+typedef struct _virDomainThreadSchedParam virDomainThreadSchedParam;
+typedef virDomainThreadSchedParam *virDomainThreadSchedParamPtr;
+struct _virDomainThreadSchedParam {
+    virBitmapPtr ids;
+    virDomainThreadSched scheduler;
+    int priority;
+};
+
 typedef struct _virDomainTimerCatchupDef virDomainTimerCatchupDef;
 typedef virDomainTimerCatchupDef *virDomainTimerCatchupDefPtr;
 struct _virDomainTimerCatchupDef {
@@ -1997,6 +2018,11 @@ struct _virDomainCputune {
     virDomainVcpuPinDefPtr emulatorpin;
     size_t niothreadspin;
     virDomainVcpuPinDefPtr *iothreadspin;
+
+    size_t nvcpusched;
+    virDomainThreadSchedParamPtr vcpusched;
+    size_t niothreadsched;
+    virDomainThreadSchedParamPtr iothreadsched;
 };
 
 typedef struct _virDomainBlkiotune virDomainBlkiotune;
@@ -2067,7 +2093,7 @@ struct _virDomainDef {
 
     virDomainCputune cputune;
 
-    virDomainNumatunePtr numatune;
+    virDomainNumaPtr numa;
     virDomainResourceDefPtr resource;
     virDomainIdMapDef idmap;
 
@@ -2382,13 +2408,18 @@ int virDomainDeviceInfoIterate(virDomainDefPtr def,
                                virDomainDeviceInfoCallback cb,
                                void *opaque);
 
+bool virDomainDefHasDeviceAddress(virDomainDefPtr def,
+                                  virDomainDeviceInfoPtr info)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
 void virDomainDefFree(virDomainDefPtr vm);
 
 virDomainChrDefPtr virDomainChrDefNew(void);
 
-virDomainDefPtr virDomainDefNew(const char *name,
-                                const unsigned char *uuid,
-                                int id);
+virDomainDefPtr virDomainDefNew(void);
+virDomainDefPtr virDomainDefNewFull(const char *name,
+                                    const unsigned char *uuid,
+                                    int id);
 
 enum {
     VIR_DOMAIN_OBJ_LIST_ADD_LIVE = (1 << 0),
@@ -2485,6 +2516,11 @@ virDomainDefPtr virDomainDefParseFile(const char *filename,
                                       unsigned int flags);
 virDomainDefPtr virDomainDefParseNode(xmlDocPtr doc,
                                       xmlNodePtr root,
+                                      virCapsPtr caps,
+                                      virDomainXMLOptionPtr xmlopt,
+                                      unsigned int expectedVirtTypes,
+                                      unsigned int flags);
+virDomainObjPtr virDomainObjParseFile(const char *filename,
                                       virCapsPtr caps,
                                       virDomainXMLOptionPtr xmlopt,
                                       unsigned int expectedVirtTypes,
@@ -2647,11 +2683,20 @@ bool
 virDomainChrEquals(virDomainChrDefPtr src,
                    virDomainChrDefPtr tgt);
 int
-virDomainChrInsert(virDomainDefPtr vmdef,
-                   virDomainChrDefPtr chr);
+virDomainChrPreAlloc(virDomainDefPtr vmdef,
+                     virDomainChrDefPtr chr);
+void
+virDomainChrInsertPreAlloced(virDomainDefPtr vmdef,
+                             virDomainChrDefPtr chr);
 virDomainChrDefPtr
 virDomainChrRemove(virDomainDefPtr vmdef,
                    virDomainChrDefPtr chr);
+
+int virDomainRNGInsert(virDomainDefPtr def,
+                       virDomainRNGDefPtr rng,
+                       bool inplace);
+ssize_t virDomainRNGFind(virDomainDefPtr def, virDomainRNGDefPtr rng);
+virDomainRNGDefPtr virDomainRNGRemove(virDomainDefPtr def, size_t idx);
 
 int virDomainSaveXML(const char *configDir,
                      virDomainDefPtr def,
@@ -2836,6 +2881,7 @@ VIR_ENUM_DECL(virDomainRNGModel)
 VIR_ENUM_DECL(virDomainRNGBackend)
 VIR_ENUM_DECL(virDomainTPMModel)
 VIR_ENUM_DECL(virDomainTPMBackend)
+VIR_ENUM_DECL(virDomainThreadSched)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
 VIR_ENUM_DECL(virDomainNostateReason)

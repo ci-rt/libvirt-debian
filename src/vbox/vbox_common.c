@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014, Taowei Luo (uaedante@gmail.com)
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -3860,7 +3860,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     if (openSessionForMachine(data, dom->uuid, &iid, &machine, false) < 0)
         goto cleanup;
 
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         goto cleanup;
 
     gVBoxAPI.UIMachine.GetAccessible(machine, &accessible);
@@ -4114,7 +4114,7 @@ static int vboxDomainAttachDeviceImpl(virDomainPtr dom,
         return ret;
 
     VBOX_IID_INITIALIZE(&iid);
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         return ret;
 
     if (VIR_STRDUP(def->os.type, "hvm") < 0)
@@ -4246,7 +4246,7 @@ static int vboxDomainDetachDevice(virDomainPtr dom, const char *xml)
         return ret;
 
     VBOX_IID_INITIALIZE(&iid);
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         return ret;
 
     if (VIR_STRDUP(def->os.type, "hvm") < 0)
@@ -6032,7 +6032,7 @@ static char *vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     if (!(snap = vboxDomainSnapshotGet(data, dom, machine, snapshot->name)))
         goto cleanup;
 
-    if (VIR_ALLOC(def) < 0 || VIR_ALLOC(def->dom) < 0)
+    if (VIR_ALLOC(def) < 0 || !(def->dom = virDomainDefNew()))
         goto cleanup;
     if (VIR_STRDUP(def->name, snapshot->name) < 0)
         goto cleanup;
@@ -7588,13 +7588,82 @@ vboxNodeAllocPages(virConnectPtr conn ATTRIBUTE_UNUSED,
                           startCell, cellCount, add);
 }
 
+static int
+vboxDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    vboxGlobalData *data = dom->conn->privateData;
+    vboxArray machines = VBOX_ARRAY_INITIALIZER;
+    vboxIIDUnion iid;
+    char *machineNameUtf8  = NULL;
+    PRUnichar *machineNameUtf16 = NULL;
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    size_t i;
+    bool matched = false;
+    nsresult rc;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!data->vboxObj)
+        return ret;
+
+    VBOX_IID_INITIALIZE(&iid);
+    rc = gVBoxAPI.UArray.vboxArrayGet(&machines, data->vboxObj, ARRAY_GET_MACHINES);
+    if (NS_FAILED(rc)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not get list of machines, rc=%08x"), (unsigned)rc);
+        return ret;
+    }
+
+    for (i = 0; i < machines.count; ++i) {
+        IMachine *machine = machines.items[i];
+        PRBool isAccessible = PR_FALSE;
+
+        if (!machine)
+            continue;
+
+        gVBoxAPI.UIMachine.GetAccessible(machine, &isAccessible);
+        if (!isAccessible)
+            continue;
+
+        gVBoxAPI.UIMachine.GetId(machine, &iid);
+        if (NS_FAILED(rc))
+            continue;
+        vboxIIDToUUID(&iid, uuid);
+        vboxIIDUnalloc(&iid);
+
+        if (memcmp(dom->uuid, uuid, VIR_UUID_BUFLEN) == 0) {
+
+            PRUint32 state;
+
+            matched = true;
+
+            gVBoxAPI.UIMachine.GetName(machine, &machineNameUtf16);
+            VBOX_UTF16_TO_UTF8(machineNameUtf16, &machineNameUtf8);
+
+            gVBoxAPI.UIMachine.GetState(machine, &state);
+
+            ret = 0;
+        }
+
+        if (matched)
+            break;
+    }
+
+    /* Do the cleanup and take care you dont leak any memory */
+    VBOX_UTF8_FREE(machineNameUtf8);
+    VBOX_COM_UNALLOC_MEM(machineNameUtf16);
+    gVBoxAPI.UArray.vboxArrayRelease(&machines);
+
+    return ret;
+}
+
 
 /**
  * Function Tables
  */
 
 virHypervisorDriver vboxCommonDriver = {
-    .no = VIR_DRV_VBOX,
     .name = "VBOX",
     .connectOpen = vboxConnectOpen, /* 0.6.3 */
     .connectClose = vboxConnectClose, /* 0.6.3 */
@@ -7662,6 +7731,7 @@ virHypervisorDriver vboxCommonDriver = {
     .connectIsAlive = vboxConnectIsAlive, /* 0.9.8 */
     .nodeGetFreePages = vboxNodeGetFreePages, /* 1.2.6 */
     .nodeAllocPages = vboxNodeAllocPages, /* 1.2.9 */
+    .domainHasManagedSaveImage = vboxDomainHasManagedSaveImage, /* 1.2.13 */
 };
 
 static void updateDriver(void)

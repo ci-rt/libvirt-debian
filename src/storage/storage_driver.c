@@ -125,6 +125,7 @@ storageDriverAutostart(void)
         }
 
         if (started) {
+            virStoragePoolObjClearVols(pool);
             if (backend->refreshPool(conn, pool) < 0) {
                 virErrorPtr err = virGetLastError();
                 if (backend->stopPool)
@@ -353,25 +354,6 @@ storagePoolLookupByVolume(virStorageVolPtr vol)
  cleanup:
     virStoragePoolObjUnlock(pool);
     return ret;
-}
-
-static virDrvOpenStatus
-storageOpen(virConnectPtr conn ATTRIBUTE_UNUSED,
-            virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-            unsigned int flags)
-{
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (!driver)
-        return VIR_DRV_OPEN_DECLINED;
-
-    return VIR_DRV_OPEN_SUCCESS;
-}
-
-static int
-storageClose(virConnectPtr conn ATTRIBUTE_UNUSED)
-{
-    return 0;
 }
 
 static int
@@ -1775,7 +1757,9 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
     unsigned long long allocation;
     int buildret;
 
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, NULL);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
+                  VIR_STORAGE_VOL_CREATE_REFLINK,
+                  NULL);
 
     storageDriverLock();
     pool = virStoragePoolObjFindByUUID(&driver->pools, obj->uuid);
@@ -2389,8 +2373,6 @@ storageConnectListAllStoragePools(virConnectPtr conn,
 
 static virStorageDriver storageDriver = {
     .name = "storage",
-    .storageOpen = storageOpen, /* 0.4.0 */
-    .storageClose = storageClose, /* 0.4.0 */
     .connectNumOfStoragePools = storageConnectNumOfStoragePools, /* 0.4.0 */
     .connectListStoragePools = storageConnectListStoragePools, /* 0.4.0 */
     .connectNumOfDefinedStoragePools = storageConnectNumOfDefinedStoragePools, /* 0.4.0 */
@@ -2437,7 +2419,7 @@ static virStorageDriver storageDriver = {
 
 
 static virStateDriver stateDriver = {
-    .name = "Storage",
+    .name = "storage",
     .stateInitialize = storageStateInitialize,
     .stateAutoStart = storageStateAutoStart,
     .stateCleanup = storageStateCleanup,
@@ -2446,7 +2428,7 @@ static virStateDriver stateDriver = {
 
 int storageRegister(void)
 {
-    if (virRegisterStorageDriver(&storageDriver) < 0)
+    if (virSetSharedStorageDriver(&storageDriver) < 0)
         return -1;
     if (virRegisterStateDriver(&stateDriver) < 0)
         return -1;

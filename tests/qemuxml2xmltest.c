@@ -310,6 +310,9 @@ mymain(void)
     DO_TEST("blkiotune-device");
     DO_TEST("cputune");
     DO_TEST("cputune-zero-shares");
+    DO_TEST_DIFFERENT("cputune-iothreadsched");
+    DO_TEST("cputune-numatune");
+    DO_TEST("vcpu-placement-static");
 
     DO_TEST("smp");
     DO_TEST("iothreads");
@@ -320,6 +323,7 @@ mymain(void)
     DO_TEST("event_idx");
     DO_TEST("vhost_queues");
     DO_TEST("interface-driver");
+    DO_TEST("interface-server");
     DO_TEST("virtio-lun");
 
     DO_TEST("usb-redir");
@@ -334,6 +338,7 @@ mymain(void)
     DO_TEST_DIFFERENT("seclabel-none");
     DO_TEST("seclabel-dac-none");
     DO_TEST("seclabel-dynamic-none");
+    DO_TEST("seclabel-device-multiple");
     DO_TEST_FULL("seclabel-dynamic-none-relabel", true, WHEN_INACTIVE);
     DO_TEST("numad-static-vcpu-no-numatune");
     DO_TEST("disk-scsi-lun-passthrough-sgio");
@@ -414,6 +419,7 @@ mymain(void)
     DO_TEST("bios-nvram");
 
     DO_TEST("tap-vhost");
+    DO_TEST_DIFFERENT("tap-vhost-incorrect");
     DO_TEST("shmem");
     DO_TEST("smbios");
 

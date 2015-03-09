@@ -79,6 +79,9 @@
 /* Default editor to use */
 #undef DEFAULT_EDITOR
 
+/* List of laoder:nvram pairs */
+#undef DEFAULT_LOADER_NVRAM
+
 /* Location or name of the dmidecode program */
 #undef DMIDECODE
 
@@ -1199,6 +1202,9 @@
 /* Define to 1 if you have the `yajl' library (-lyajl). */
 #undef HAVE_LIBYAJL
 
+/* Define to 1 if you have the <linux/btrfs.h> header file. */
+#undef HAVE_LINUX_BTRFS_H
+
 /* Define to 1 if you have the <linux/if_bridge.h> header file. */
 #undef HAVE_LINUX_IF_BRIDGE_H
 
@@ -1469,7 +1475,7 @@
 /* Define to 1 if you have the `sched_setparam' function. */
 #undef HAVE_SCHED_SETPARAM
 
-/* Define to 1 if you have the `sched_setscheduler' function. */
+/* Define to 1 if you have the 'sched_setscheduler' function. */
 #undef HAVE_SCHED_SETSCHEDULER
 
 /* Define to 1 if you have the `sd_notify' function. */

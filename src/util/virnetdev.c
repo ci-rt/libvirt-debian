@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2007-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -65,6 +65,18 @@ VIR_LOG_INIT("util.netdev");
 #define VIR_MCAST_NAME_LEN (IFNAMSIZ + 1)
 #define VIR_MCAST_TOKEN_DELIMS " \n"
 #define VIR_MCAST_ADDR_LEN (VIR_MAC_HEXLEN + 1)
+
+#if defined(SIOCSIFFLAGS) && defined(HAVE_STRUCT_IFREQ)
+# define VIR_IFF_UP IFF_UP
+# define VIR_IFF_PROMISC IFF_PROMISC
+# define VIR_IFF_MULTICAST IFF_MULTICAST
+# define VIR_IFF_ALLMULTI IFF_ALLMULTI
+#else
+# define VIR_IFF_UP 0
+# define VIR_IFF_PROMISC 0
+# define VIR_IFF_MULTICAST 0
+# define VIR_IFF_ALLMULTI 0
+#endif
 
 typedef enum {
     VIR_MCAST_TYPE_INDEX_TOKEN,
@@ -610,17 +622,8 @@ int virNetDevSetName(const char* ifname, const char *newifname)
 
 
 #if defined(SIOCSIFFLAGS) && defined(HAVE_STRUCT_IFREQ)
-/**
- * virNetDevSetOnline:
- * @ifname: the interface name
- * @online: true for up, false for down
- *
- * Function to control if an interface is activated (up, true) or not (down, false)
- *
- * Returns 0 in case of success or -1 on error.
- */
-int virNetDevSetOnline(const char *ifname,
-                       bool online)
+static int
+virNetDevSetIFFlag(const char *ifname, int flag, bool val)
 {
     int fd = -1;
     int ret = -1;
@@ -637,10 +640,10 @@ int virNetDevSetOnline(const char *ifname,
         goto cleanup;
     }
 
-    if (online)
-        ifflags = ifr.ifr_flags | IFF_UP;
+    if (val)
+        ifflags = ifr.ifr_flags | flag;
     else
-        ifflags = ifr.ifr_flags & ~IFF_UP;
+        ifflags = ifr.ifr_flags & ~flag;
 
     if (ifr.ifr_flags != ifflags) {
         ifr.ifr_flags = ifflags;
@@ -659,8 +662,10 @@ int virNetDevSetOnline(const char *ifname,
     return ret;
 }
 #else
-int virNetDevSetOnline(const char *ifname,
-                       bool online ATTRIBUTE_UNUSED)
+static int
+virNetDevSetIFFlag(const char *ifname,
+                   int flag ATTRIBUTE_UNUSED,
+                   bool val ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS,
                          _("Cannot set interface flags on '%s'"),
@@ -670,18 +675,82 @@ int virNetDevSetOnline(const char *ifname,
 #endif
 
 
-#if defined(SIOCGIFFLAGS) && defined(HAVE_STRUCT_IFREQ)
+
 /**
- * virNetDevIsOnline:
+ * virNetDevSetOnline:
  * @ifname: the interface name
- * @online: where to store the status
+ * @online: true for up, false for down
  *
- * Function to query if an interface is activated (true) or not (false)
+ * Function to control if an interface is activated (up, true) or not (down, false)
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 in case of success or -1 on error.
  */
-int virNetDevIsOnline(const char *ifname,
-                      bool *online)
+int
+virNetDevSetOnline(const char *ifname,
+                   bool online)
+{
+
+    return virNetDevSetIFFlag(ifname, VIR_IFF_UP, online);
+}
+
+/**
+ * virNetDevSetPromiscuous:
+ * @ifname: the interface name
+ * @promiscuous: true for receive all packets, false for do not receive
+ *               all packets
+ *
+ * Function to control if an interface is to receive all
+ * packets (receive all, true) or not (do not receive all, false)
+ *
+ * Returns 0 in case of success or -1 on error.
+ */
+int
+virNetDevSetPromiscuous(const char *ifname,
+                        bool promiscuous)
+{
+    return virNetDevSetIFFlag(ifname, VIR_IFF_PROMISC, promiscuous);
+}
+
+/**
+ * virNetDevSetRcvMulti:
+ * @ifname: the interface name
+ * @:receive true for receive multicast packets, false for do not receive
+ *           multicast packets
+ *
+ * Function to control if an interface is to receive multicast
+ * packets in which it is interested (receive, true)
+ * or not (do not receive, false)
+ *
+ * Returns 0 in case of success or -1 on error.
+ */
+int
+virNetDevSetRcvMulti(const char *ifname,
+                     bool receive)
+{
+    return virNetDevSetIFFlag(ifname, VIR_IFF_MULTICAST, receive);
+}
+
+/**
+ * virNetDevSetRcvAllMulti:
+ * @ifname: the interface name
+ * @:receive true for receive all packets, false for do not receive all packets
+ *
+ * Function to control if an interface is to receive all multicast
+ * packets (receive, true) or not (do not receive, false)
+ *
+ * Returns 0 in case of success or -1 on error.
+ */
+int
+virNetDevSetRcvAllMulti(const char *ifname,
+                        bool receive)
+{
+    return virNetDevSetIFFlag(ifname, VIR_IFF_ALLMULTI, receive);
+}
+
+
+#if defined(SIOCGIFFLAGS) && defined(HAVE_STRUCT_IFREQ)
+static int
+virNetDevGetIFFlag(const char *ifname, int flag, bool *val)
 {
     int fd = -1;
     int ret = -1;
@@ -697,7 +766,7 @@ int virNetDevIsOnline(const char *ifname,
         goto cleanup;
     }
 
-    *online = (ifr.ifr_flags & IFF_UP) ? true : false;
+    *val = (ifr.ifr_flags & flag) ? true : false;
     ret = 0;
 
  cleanup:
@@ -705,8 +774,10 @@ int virNetDevIsOnline(const char *ifname,
     return ret;
 }
 #else
-int virNetDevIsOnline(const char *ifname,
-                      bool *online ATTRIBUTE_UNUSED)
+static int
+virNetDevGetIFFlag(const char *ifname,
+                   int flag ATTRIBUTE_UNUSED,
+                   bool *val ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS,
                          _("Cannot get interface flags on '%s'"),
@@ -714,6 +785,74 @@ int virNetDevIsOnline(const char *ifname,
     return -1;
 }
 #endif
+
+
+/**
+ * virNetDevGetOnline:
+ * @ifname: the interface name
+ * @online: where to store the status
+ *
+ * Function to query if an interface is activated (true) or not (false)
+ *
+ * Returns 0 in case of success or an errno code in case of failure.
+ */
+int
+virNetDevGetOnline(const char *ifname,
+                   bool *online)
+{
+    return virNetDevGetIFFlag(ifname, VIR_IFF_UP, online);
+}
+
+/**
+ * virNetDevIsPromiscuous:
+ * @ifname: the interface name
+ * @promiscuous: where to store the status
+ *
+ * Function to query if an interface is receiving all packets (true) or
+ * not (false)
+ *
+ * Returns 0 in case of success or an errno code in case of failure.
+ */
+int
+virNetDevGetPromiscuous(const char *ifname,
+                        bool *promiscuous)
+{
+    return virNetDevGetIFFlag(ifname, VIR_IFF_PROMISC, promiscuous);
+}
+
+/**
+ * virNetDevIsRcvMulti:
+ * @ifname: the interface name
+ * @receive where to store the status
+ *
+ * Function to query whether an interface is receiving multicast packets (true)
+ * in which it is interested, or not (false)
+ *
+ * Returns 0 in case of success or -1 on error.
+ */
+int
+virNetDevGetRcvMulti(const char *ifname,
+                     bool *receive)
+{
+    return virNetDevGetIFFlag(ifname, VIR_IFF_MULTICAST, receive);
+}
+
+/**
+ * virNetDevIsRcvAllMulti:
+ * @ifname: the interface name
+ * @:receive where to store the status
+ *
+ * Function to query whether an interface is receiving all multicast
+ * packets (receiving, true) or not (is not receiving, false)
+ *
+ * Returns 0 in case of success or -1 on error.
+ */
+int
+virNetDevGetRcvAllMulti(const char *ifname,
+                        bool *receive)
+{
+    return virNetDevGetIFFlag(ifname, VIR_IFF_ALLMULTI, receive);
+}
 
 
 /**
@@ -2549,6 +2688,7 @@ int virNetDevGetRxFilter(const char *ifname,
                          virNetDevRxFilterPtr *filter)
 {
     int ret = -1;
+    bool receive = false;
     virNetDevRxFilterPtr fil = virNetDevRxFilterNew();
 
     if (!fil)
@@ -2559,6 +2699,24 @@ int virNetDevGetRxFilter(const char *ifname,
 
     if (virNetDevGetMulticastTable(ifname, fil))
         goto cleanup;
+
+    if (virNetDevGetPromiscuous(ifname, &fil->promiscuous))
+        goto cleanup;
+
+    if (virNetDevGetRcvAllMulti(ifname, &receive))
+        goto cleanup;
+
+    if (receive) {
+        fil->multicast.mode = VIR_NETDEV_RX_FILTER_MODE_ALL;
+    } else {
+        if (virNetDevGetRcvMulti(ifname, &receive))
+            goto cleanup;
+
+        if (receive)
+            fil->multicast.mode = VIR_NETDEV_RX_FILTER_MODE_NORMAL;
+        else
+            fil->multicast.mode = VIR_NETDEV_RX_FILTER_MODE_NONE;
+    }
 
     ret = 0;
  cleanup:

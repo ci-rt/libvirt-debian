@@ -277,6 +277,7 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "vmware-svga.vgamem_mb",
               "qxl.vgamem_mb",
               "qxl-vga.vgamem_mb",
+              "pc-dimm",
     );
 
 
@@ -299,6 +300,7 @@ struct _virQEMUCaps {
 
     unsigned int version;
     unsigned int kvmVersion;
+    char *package;
 
     virArch arch;
 
@@ -672,8 +674,13 @@ virQEMUCapsFindBinaryForArch(virArch hostarch,
                              virArch guestarch)
 {
     char *ret;
-    const char *archstr = virQEMUCapsArchToString(guestarch);
+    const char *archstr;
     char *binary;
+
+    if (ARCH_IS_PPC64(guestarch))
+        archstr = virQEMUCapsArchToString(VIR_ARCH_PPC64);
+    else
+        archstr = virQEMUCapsArchToString(guestarch);
 
     if (virAsprintf(&binary, "qemu-system-%s", archstr) < 0)
         return NULL;
@@ -1524,6 +1531,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "usb-audio", QEMU_CAPS_OBJECT_USB_AUDIO },
     { "iothread", QEMU_CAPS_OBJECT_IOTHREAD},
     { "ivshmem", QEMU_CAPS_DEVICE_IVSHMEM },
+    { "pc-dimm", QEMU_CAPS_DEVICE_PC_DIMM },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
@@ -1941,6 +1949,10 @@ virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps)
     ret->usedQMP = qemuCaps->usedQMP;
     ret->version = qemuCaps->version;
     ret->kvmVersion = qemuCaps->kvmVersion;
+
+    if (VIR_STRDUP(ret->package, qemuCaps->package) < 0)
+        goto error;
+
     ret->arch = qemuCaps->arch;
 
     if (VIR_ALLOC_N(ret->cpuDefinitions, qemuCaps->ncpuDefinitions) < 0)
@@ -1992,6 +2004,7 @@ void virQEMUCapsDispose(void *obj)
 
     virBitmapFree(qemuCaps->flags);
 
+    VIR_FREE(qemuCaps->package);
     VIR_FREE(qemuCaps->binary);
 }
 
@@ -2113,6 +2126,12 @@ unsigned int virQEMUCapsGetVersion(virQEMUCapsPtr qemuCaps)
 unsigned int virQEMUCapsGetKVMVersion(virQEMUCapsPtr qemuCaps)
 {
     return qemuCaps->kvmVersion;
+}
+
+
+const char *virQEMUCapsGetPackage(virQEMUCapsPtr qemuCaps)
+{
+    return qemuCaps->package;
 }
 
 
@@ -2672,6 +2691,9 @@ virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps, const char *filename,
         goto cleanup;
     }
 
+    /* Don't check for NULL, since it is optional and thus may be missing */
+    qemuCaps->package = virXPathString("string(./package)", ctxt);
+
     if (!(str = virXPathString("string(./arch)", ctxt))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("missing arch in QEMU capabilities cache"));
@@ -2783,6 +2805,10 @@ virQEMUCapsSaveCache(virQEMUCapsPtr qemuCaps, const char *filename)
     virBufferAsprintf(&buf, "<kvmVersion>%d</kvmVersion>\n",
                       qemuCaps->kvmVersion);
 
+    if (qemuCaps->package)
+        virBufferAsprintf(&buf, "<package>%s</package>\n",
+                          qemuCaps->package);
+
     virBufferAsprintf(&buf, "<arch>%s</arch>\n",
                       virArchToString(qemuCaps->arch));
 
@@ -2872,6 +2898,7 @@ virQEMUCapsReset(virQEMUCapsPtr qemuCaps)
 
     virBitmapClearAll(qemuCaps->flags);
     qemuCaps->version = qemuCaps->kvmVersion = 0;
+    VIR_FREE(qemuCaps->package);
     qemuCaps->arch = VIR_ARCH_NONE;
     qemuCaps->usedQMP = false;
 
@@ -3204,6 +3231,7 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
     }
 
     qemuCaps->version = major * 1000000 + minor * 1000 + micro;
+    qemuCaps->package = package;
     qemuCaps->usedQMP = true;
 
     virQEMUCapsInitQMPBasic(qemuCaps);
@@ -3249,7 +3277,6 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
 
     ret = 0;
  cleanup:
-    VIR_FREE(package);
     return ret;
 }
 
@@ -3491,6 +3518,42 @@ bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps)
 }
 
 
+struct virQEMUCapsMachineTypeFilter {
+    const char *machineType;
+    virQEMUCapsFlags *flags;
+    size_t nflags;
+};
+
+static const struct virQEMUCapsMachineTypeFilter virQEMUCapsMachineFilter[] = {
+    /* { "blah", virQEMUCapsMachineBLAHFilter,
+         ARRAY_CARDINALITY(virQEMUCapsMachineBLAHFilter) }, */
+    { "", NULL, 0 },
+};
+
+
+void
+virQEMUCapsFilterByMachineType(virQEMUCapsPtr qemuCaps,
+                               const char *machineType)
+{
+    size_t i;
+
+    if (!machineType)
+        return;
+
+    for (i = 0; i < ARRAY_CARDINALITY(virQEMUCapsMachineFilter); i++) {
+        const struct virQEMUCapsMachineTypeFilter *filter = &virQEMUCapsMachineFilter[i];
+        size_t j;
+
+        if (STRNEQ(filter->machineType, machineType))
+            continue;
+
+        for (j = 0; j < filter->nflags; j++)
+            virQEMUCapsClear(qemuCaps, filter->flags[j]);
+    }
+
+}
+
+
 virQEMUCapsCachePtr
 virQEMUCapsCacheNew(const char *libDir,
                     const char *cacheDir,
@@ -3563,7 +3626,9 @@ virQEMUCapsCacheLookup(virQEMUCapsCachePtr cache, const char *binary)
 
 
 virQEMUCapsPtr
-virQEMUCapsCacheLookupCopy(virQEMUCapsCachePtr cache, const char *binary)
+virQEMUCapsCacheLookupCopy(virQEMUCapsCachePtr cache,
+                           const char *binary,
+                           const char *machineType)
 {
     virQEMUCapsPtr qemuCaps = virQEMUCapsCacheLookup(cache, binary);
     virQEMUCapsPtr ret;
@@ -3573,6 +3638,7 @@ virQEMUCapsCacheLookupCopy(virQEMUCapsCachePtr cache, const char *binary)
 
     ret = virQEMUCapsNewCopy(qemuCaps);
     virObjectUnref(qemuCaps);
+    virQEMUCapsFilterByMachineType(ret, machineType);
     return ret;
 }
 

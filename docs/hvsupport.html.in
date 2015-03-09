@@ -2298,22 +2298,22 @@ virConnectSupportsFeature</td>
 <a href="html/libvirt-libvirt-domain.html#virDomainHasManagedSaveImage">virDomainHasManagedSaveImage</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
+<td>1.2.13</td>
+<td>1.2.13</td>
 <td>0.9.5</td>
 <td>0.9.2</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
+<td>1.2.13</td>
+<td>1.2.13</td>
+<td>1.2.13</td>
+<td>1.2.13</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
-<td></td>
-<td></td>
-<td></td>
+<td>1.2.13</td>
+<td>1.2.13</td>
+<td>1.2.13</td>
 <td>1.0.1</td>
-<td></td>
+<td>1.2.13</td>
 </tr>
 <tr>
 <td>
@@ -4974,7 +4974,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
-  <th>hyperv</th>
   <th>interface</th>
   <th>phyp</th>
   <th>remote</th>
@@ -4988,7 +4987,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.10.2</td>
 <td></td>
-<td></td>
 <td>1.0.0</td>
 <td></td>
 <td>0.10.2</td>
@@ -5000,7 +4998,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.7.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td></td>
 <td>0.7.2</td>
@@ -5012,7 +5009,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.6.4</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -5024,7 +5020,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.7.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td></td>
 <td>0.7.2</td>
@@ -5036,7 +5031,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.6.4</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -5047,7 +5041,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-interface.html#virInterfaceChangeBegin">virInterfaceChangeBegin</a>
 </td>
 <td>0.9.2</td>
-<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -5062,7 +5055,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 </tr>
@@ -5071,7 +5063,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-interface.html#virInterfaceChangeRollback">virInterfaceChangeRollback</a>
 </td>
 <td>0.9.2</td>
-<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -5086,7 +5077,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.7.2</td>
 <td>0.7.0</td>
 </tr>
@@ -5095,7 +5085,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-interface.html#virInterfaceDefineXML">virInterfaceDefineXML</a>
 </td>
 <td>0.6.4</td>
-<td></td>
 <td></td>
 <td></td>
 <td>0.9.1</td>
@@ -5109,7 +5098,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.6.4</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.1</td>
 <td>0.7.2</td>
 <td>0.7.0</td>
@@ -5120,7 +5108,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.6.4</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td></td>
 <td>0.7.2</td>
@@ -5132,7 +5119,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.7.3</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td>0.9.1</td>
 <td>0.7.3</td>
@@ -5144,7 +5130,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.6.4</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td></td>
 <td>0.7.2</td>
@@ -5156,7 +5141,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.6.4</td>
 <td>0.10.0</td>
-<td></td>
 <td>1.0.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -5166,7 +5150,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
-  <th>hyperv</th>
   <th>interface</th>
   <th>phyp</th>
   <th>remote</th>
@@ -5177,7 +5160,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-interface.html#virInterfaceUndefine">virInterfaceUndefine</a>
 </td>
 <td>0.6.4</td>
-<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -5192,11 +5174,8 @@ virDomainMigratePrepareTunnel3Params</td>
 <tr>
 <th>API</th>
 <th>Version</th>
-  <th>esx</th>
-  <th>hyperv</th>
   <th>nwfilter</th>
   <th>remote</th>
-  <th>test</th>
 </tr>
 </thead>
 <tbody>
@@ -5205,88 +5184,64 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nwfilter.html#virConnectListAllNWFilters">virConnectListAllNWFilters</a>
 </td>
 <td>0.10.2</td>
-<td></td>
-<td></td>
 <td>0.10.2</td>
 <td>0.10.2</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-nwfilter.html#virConnectListNWFilters">virConnectListNWFilters</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-nwfilter.html#virConnectNumOfNWFilters">virConnectNumOfNWFilters</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-nwfilter.html#virNWFilterDefineXML">virNWFilterDefineXML</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-nwfilter.html#virNWFilterGetXMLDesc">virNWFilterGetXMLDesc</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-nwfilter.html#virNWFilterLookupByName">virNWFilterLookupByName</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-nwfilter.html#virNWFilterLookupByUUID">virNWFilterLookupByUUID</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-nwfilter.html#virNWFilterUndefine">virNWFilterUndefine</a>
 </td>
 <td>0.8.0</td>
-<td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
 </tr>
 </tbody>
 </table>
@@ -5298,7 +5253,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <th>Version</th>
   <th>bridge</th>
   <th>esx</th>
-  <th>hyperv</th>
   <th>remote</th>
   <th>test</th>
 </tr>
@@ -5311,7 +5265,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.10.2</td>
 <td>0.10.2</td>
 <td></td>
-<td></td>
 <td>0.10.2</td>
 <td>0.10.2</td>
 </tr>
@@ -5322,7 +5275,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5333,7 +5285,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5343,7 +5294,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>1.2.1</td>
 <td>1.2.1</td>
-<td></td>
 <td></td>
 <td>1.2.1</td>
 <td>1.2.1</td>
@@ -5355,7 +5305,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.2.1</td>
 <td>1.2.1</td>
 <td></td>
-<td></td>
 <td>1.2.1</td>
 <td>1.2.1</td>
 </tr>
@@ -5366,7 +5315,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5377,7 +5325,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5387,7 +5334,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.2.0</td>
 <td>0.2.0</td>
-<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -5399,7 +5345,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td></td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5410,7 +5355,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5420,7 +5364,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.2.0</td>
 <td>0.2.0</td>
-<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -5432,7 +5375,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.1</td>
 <td>0.2.1</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5442,7 +5384,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.2.0</td>
 <td>0.2.0</td>
-<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -5454,7 +5395,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.2.6</td>
 <td>1.2.6</td>
 <td></td>
-<td></td>
 <td>1.2.6</td>
 <td></td>
 </tr>
@@ -5465,7 +5405,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5474,7 +5413,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <th>Version</th>
   <th>bridge</th>
   <th>esx</th>
-  <th>hyperv</th>
   <th>remote</th>
   <th>test</th>
 </tr>
@@ -5485,7 +5423,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 </tr>
@@ -5496,7 +5433,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 </tr>
@@ -5507,7 +5443,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5518,7 +5453,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5529,7 +5463,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.1</td>
 <td>0.2.1</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5540,7 +5473,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td>0.10.0</td>
-<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 </tr>
@@ -5550,7 +5482,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.10.2</td>
 <td>0.10.2</td>
-<td></td>
 <td></td>
 <td>0.10.2</td>
 <td>0.10.2</td>
@@ -5563,9 +5494,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <tr>
 <th>API</th>
 <th>Version</th>
-  <th>esx</th>
   <th>hal</th>
-  <th>hyperv</th>
   <th>remote</th>
   <th>test</th>
   <th>udev</th>
@@ -5577,9 +5506,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virConnectListAllNodeDevices">virConnectListAllNodeDevices</a>
 </td>
 <td>0.10.2</td>
-<td></td>
 <td>0.10.2</td>
-<td></td>
 <td>0.10.2</td>
 <td></td>
 <td>0.10.2</td>
@@ -5589,9 +5516,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceCreateXML">virNodeDeviceCreateXML</a>
 </td>
 <td>0.6.3</td>
-<td></td>
 <td>0.6.5</td>
-<td></td>
 <td>0.6.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -5601,9 +5526,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceDestroy">virNodeDeviceDestroy</a>
 </td>
 <td>0.6.3</td>
-<td></td>
 <td>0.6.5</td>
-<td></td>
 <td>0.6.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -5613,9 +5536,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceGetParent">virNodeDeviceGetParent</a>
 </td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -5625,9 +5546,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceGetXMLDesc">virNodeDeviceGetXMLDesc</a>
 </td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -5637,9 +5556,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceListCaps">virNodeDeviceListCaps</a>
 </td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -5649,9 +5566,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceLookupByName">virNodeDeviceLookupByName</a>
 </td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -5661,9 +5576,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceLookupSCSIHostByWWN">virNodeDeviceLookupSCSIHostByWWN</a>
 </td>
 <td>1.0.3</td>
-<td></td>
 <td>1.0.2</td>
-<td></td>
 <td>1.0.2</td>
 <td></td>
 <td>1.0.2</td>
@@ -5673,9 +5586,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceNumOfCaps">virNodeDeviceNumOfCaps</a>
 </td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -5685,9 +5596,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeListDevices">virNodeListDevices</a>
 </td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -5697,9 +5606,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeNumOfDevices">virNodeNumOfDevices</a>
 </td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
-<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -5712,11 +5619,8 @@ virDomainMigratePrepareTunnel3Params</td>
 <tr>
 <th>API</th>
 <th>Version</th>
-  <th>esx</th>
-  <th>hyperv</th>
   <th>remote</th>
   <th>secret</th>
-  <th>test</th>
 </tr>
 </thead>
 <tbody>
@@ -5725,110 +5629,80 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-secret.html#virConnectListAllSecrets">virConnectListAllSecrets</a>
 </td>
 <td>0.10.2</td>
-<td></td>
-<td></td>
 <td>0.10.2</td>
 <td>0.10.2</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virConnectListSecrets">virConnectListSecrets</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virConnectNumOfSecrets">virConnectNumOfSecrets</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virSecretDefineXML">virSecretDefineXML</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virSecretGetValue">virSecretGetValue</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virSecretGetXMLDesc">virSecretGetXMLDesc</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virSecretLookupByUUID">virSecretLookupByUUID</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virSecretLookupByUsage">virSecretLookupByUsage</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virSecretSetValue">virSecretSetValue</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 <tr>
 <td>
 <a href="html/libvirt-libvirt-secret.html#virSecretUndefine">virSecretUndefine</a>
 </td>
 <td>0.7.1</td>
-<td></td>
-<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
-<td></td>
 </tr>
 </tbody>
 </table>
@@ -5839,7 +5713,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
-  <th>hyperv</th>
   <th>phyp</th>
   <th>remote</th>
   <th>storage</th>
@@ -5854,7 +5727,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.5</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.5</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -5864,7 +5736,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-storage.html#virConnectListAllStoragePools">virConnectListAllStoragePools</a>
 </td>
 <td>0.10.2</td>
-<td></td>
 <td></td>
 <td></td>
 <td>0.10.2</td>
@@ -5878,7 +5749,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -5889,7 +5759,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.2</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -5902,7 +5771,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -5913,7 +5781,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.2</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -5924,7 +5791,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-storage.html#virStoragePoolBuild">virStoragePoolBuild</a>
 </td>
 <td>0.4.1</td>
-<td></td>
 <td></td>
 <td></td>
 <td>0.4.1</td>
@@ -5938,7 +5804,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -5948,7 +5813,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-storage.html#virStoragePoolCreateXML">virStoragePoolCreateXML</a>
 </td>
 <td>0.4.1</td>
-<td></td>
 <td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
@@ -5962,7 +5826,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -5974,7 +5837,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -5984,7 +5846,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-storage.html#virStoragePoolDestroy">virStoragePoolDestroy</a>
 </td>
 <td>0.4.1</td>
-<td></td>
 <td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
@@ -5998,7 +5859,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -6010,7 +5870,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -6021,7 +5880,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.2</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6031,7 +5889,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
-  <th>hyperv</th>
   <th>phyp</th>
   <th>remote</th>
   <th>storage</th>
@@ -6044,7 +5901,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.7.3</td>
 <td>0.8.2</td>
 <td></td>
-<td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -6055,7 +5911,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.7.3</td>
 <td>0.8.2</td>
-<td></td>
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -6068,7 +5923,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.10.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.10.0</td>
 <td>0.10.2</td>
 <td>0.10.2</td>
@@ -6079,7 +5933,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.4</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6091,7 +5944,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.2</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6103,7 +5955,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.2</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6116,7 +5967,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.4</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -6127,7 +5977,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.4</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6140,7 +5989,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -6151,7 +5999,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.2</td>
-<td></td>
 <td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6164,7 +6011,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -6175,7 +6021,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.4</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6188,7 +6033,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.6.4</td>
 <td>0.8.7</td>
 <td></td>
-<td></td>
 <td>0.6.4</td>
 <td>0.6.4</td>
 <td>0.6.4</td>
@@ -6199,7 +6043,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.7</td>
-<td></td>
 <td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6212,7 +6055,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.0</td>
 <td>0.9.0</td>
 <td></td>
@@ -6221,7 +6063,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
-  <th>hyperv</th>
   <th>phyp</th>
   <th>remote</th>
   <th>storage</th>
@@ -6234,7 +6075,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.4</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -6245,7 +6085,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.4</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6257,7 +6096,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.4</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6270,7 +6108,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.8.4</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -6281,7 +6118,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.4</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6293,7 +6129,6 @@ virDomainMigratePrepareTunnel3Params</td>
 </td>
 <td>0.4.1</td>
 <td>0.8.4</td>
-<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -6304,7 +6139,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-storage.html#virStorageVolResize">virStorageVolResize</a>
 </td>
 <td>0.9.10</td>
-<td></td>
 <td></td>
 <td></td>
 <td>0.9.10</td>
@@ -6318,7 +6152,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.0</td>
 <td>0.9.0</td>
 <td></td>
@@ -6330,7 +6163,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.8.0</td>
 <td>0.8.7</td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -6340,7 +6172,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <a href="html/libvirt-libvirt-storage.html#virStorageVolWipePattern">virStorageVolWipePattern</a>
 </td>
 <td>0.9.10</td>
-<td></td>
 <td></td>
 <td></td>
 <td>0.9.10</td>

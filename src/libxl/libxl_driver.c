@@ -2375,6 +2375,9 @@ libxlDomainCreateWithFlags(virDomainPtr dom,
     }
 
     ret = libxlDomainStart(driver, vm, (flags & VIR_DOMAIN_START_PAUSED) != 0, -1);
+    if (ret < 0)
+        goto cleanup;
+    dom->id = vm->def->id;
 
  cleanup:
     if (vm)
@@ -4749,8 +4752,7 @@ libxlDomainMigrateConfirm3Params(virDomainPtr domain,
 }
 
 
-static virHypervisorDriver libxlDriver = {
-    .no = VIR_DRV_LIBXL,
+static virHypervisorDriver libxlHypervisorDriver = {
     .name = LIBXL_DRIVER_NAME,
     .connectOpen = libxlConnectOpen, /* 0.9.0 */
     .connectClose = libxlConnectClose, /* 0.9.0 */
@@ -4846,6 +4848,10 @@ static virHypervisorDriver libxlDriver = {
     .domainMigrateConfirm3Params = libxlDomainMigrateConfirm3Params, /* 1.2.6 */
 };
 
+static virConnectDriver libxlConnectDriver = {
+    .hypervisorDriver = &libxlHypervisorDriver,
+};
+
 static virStateDriver libxlStateDriver = {
     .name = "LIBXL",
     .stateInitialize = libxlStateInitialize,
@@ -4858,7 +4864,8 @@ static virStateDriver libxlStateDriver = {
 int
 libxlRegister(void)
 {
-    if (virRegisterHypervisorDriver(&libxlDriver) < 0)
+    if (virRegisterConnectDriver(&libxlConnectDriver,
+                                 true) < 0)
         return -1;
     if (virRegisterStateDriver(&libxlStateDriver) < 0)
         return -1;

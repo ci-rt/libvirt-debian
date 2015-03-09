@@ -46,6 +46,10 @@
 # include <selinux/selinux.h>
 #endif
 
+#if HAVE_LINUX_BTRFS_H
+# include <linux/btrfs.h>
+#endif
+
 #include "datatypes.h"
 #include "virerror.h"
 #include "viralloc.h"
@@ -156,12 +160,33 @@ enum {
 #define READ_BLOCK_SIZE_DEFAULT  (1024 * 1024)
 #define WRITE_BLOCK_SIZE_DEFAULT (4 * 1024)
 
+/*
+ * Perform the O(1) btrfs clone operation, if possible.
+ * Upon success, return 0.  Otherwise, return -1 and set errno.
+ */
+#if HAVE_LINUX_BTRFS_H
+static inline int
+btrfsCloneFile(int dest_fd, int src_fd)
+{
+    return ioctl(dest_fd, BTRFS_IOC_CLONE, src_fd);
+}
+#else
+static inline int
+btrfsCloneFile(int dest_fd ATTRIBUTE_UNUSED,
+               int src_fd ATTRIBUTE_UNUSED)
+{
+    errno = ENOTSUP;
+    return -1;
+}
+#endif
+
 static int ATTRIBUTE_NONNULL(2)
 virStorageBackendCopyToFD(virStorageVolDefPtr vol,
                           virStorageVolDefPtr inputvol,
                           int fd,
                           unsigned long long *total,
-                          bool want_sparse)
+                          bool want_sparse,
+                          bool reflink_copy)
 {
     int inputfd = -1;
     int amtread = -1;
@@ -198,6 +223,19 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     if (VIR_ALLOC_N(buf, rbytes) < 0) {
         ret = -errno;
         goto cleanup;
+    }
+
+    if (reflink_copy) {
+        if (btrfsCloneFile(fd, inputfd) < 0) {
+            ret = -errno;
+            virReportSystemError(errno,
+                                 _("failed to clone files from '%s'"),
+                                 inputvol->target.path);
+            goto cleanup;
+        } else {
+            VIR_DEBUG("btrfs clone finished.");
+            goto cleanup;
+        }
     }
 
     while (amtread != 0) {
@@ -280,8 +318,11 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
     struct stat st;
     gid_t gid;
     uid_t uid;
+    bool reflink_copy = false;
 
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
+                  VIR_STORAGE_VOL_CREATE_REFLINK,
+                  -1);
 
     if (flags & VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -289,6 +330,9 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
                          "volumes"));
         goto cleanup;
     }
+
+    if (flags & VIR_STORAGE_VOL_CREATE_REFLINK)
+        reflink_copy = true;
 
     if ((fd = open(vol->target.path, O_RDWR)) < 0) {
         virReportSystemError(errno,
@@ -301,7 +345,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (inputvol) {
         int res = virStorageBackendCopyToFD(vol, inputvol,
-                                            fd, &remain, false);
+                                            fd, &remain, false, reflink_copy);
         if (res < 0)
             goto cleanup;
     }
@@ -346,7 +390,8 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 static int
 createRawFile(int fd, virStorageVolDefPtr vol,
-              virStorageVolDefPtr inputvol)
+              virStorageVolDefPtr inputvol,
+              bool reflink_copy)
 {
     bool need_alloc = true;
     int ret = 0;
@@ -393,7 +438,8 @@ createRawFile(int fd, virStorageVolDefPtr vol,
         bool want_sparse = !need_alloc ||
             (vol->target.allocation < inputvol->target.capacity);
 
-        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain, want_sparse);
+        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain,
+                                        want_sparse, reflink_copy);
         if (ret < 0)
             goto cleanup;
     }
@@ -428,8 +474,11 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
     int ret = -1;
     int fd = -1;
     int operation_flags;
+    bool reflink_copy = false;
 
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
+                  VIR_STORAGE_VOL_CREATE_REFLINK,
+                  -1);
 
     if (flags & VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -437,6 +486,10 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
                          "volumes"));
         goto cleanup;
     }
+
+    if (flags & VIR_STORAGE_VOL_CREATE_REFLINK)
+        reflink_copy = true;
+
 
     if (vol->target.encryption != NULL) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -480,7 +533,7 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
 #endif
     }
 
-    if ((ret = createRawFile(fd, vol, inputvol)) < 0)
+    if ((ret = createRawFile(fd, vol, inputvol, reflink_copy)) < 0)
         /* createRawFile already reported the exact error. */
         ret = -1;
 
@@ -1383,6 +1436,10 @@ virStorageBackendVolOpen(const char *path, struct stat *sb,
         }
         if (errno == ENOENT && noerror) {
             VIR_WARN("ignoring missing file '%s'", path);
+            return -2;
+        }
+        if (errno == ENXIO && noerror) {
+            VIR_WARN("ignoring missing fifo '%s'", path);
             return -2;
         }
 

@@ -576,33 +576,15 @@ virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
                            virDomainDefPtr vm)
 {
     int ret = -1;
-    size_t i, j;
+    size_t i;
     virSecurityManagerPtr* sec_managers = NULL;
     virSecurityLabelDefPtr seclabel;
     bool generated = false;
-
-    if (mgr == NULL || mgr->drv == NULL)
-        return ret;
 
     if ((sec_managers = virSecurityManagerGetNested(mgr)) == NULL)
         return ret;
 
     virObjectLock(mgr);
-    for (i = 0; i < vm->nseclabels; i++) {
-        if (!vm->seclabels[i]->model)
-            continue;
-
-        for (j = 0; sec_managers[j]; j++)
-            if (STREQ(vm->seclabels[i]->model, sec_managers[j]->drv->name))
-                break;
-
-        if (!sec_managers[j]) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Unable to find security driver for label %s"),
-                           vm->seclabels[i]->model);
-            goto cleanup;
-        }
-    }
 
     for (i = 0; sec_managers[i]; i++) {
         generated = false;
@@ -700,6 +682,113 @@ virSecurityManagerReleaseLabel(virSecurityManagerPtr mgr,
 
     virReportUnsupportedError();
     return -1;
+}
+
+
+static int virSecurityManagerCheckModel(virSecurityManagerPtr mgr,
+                                        char *secmodel)
+{
+    int ret = -1;
+    size_t i;
+    virSecurityManagerPtr *sec_managers = NULL;
+
+    if (STREQ_NULLABLE(secmodel, "none"))
+        return 0;
+
+    if ((sec_managers = virSecurityManagerGetNested(mgr)) == NULL)
+        return -1;
+
+    for (i = 0; sec_managers[i]; i++) {
+        if (STREQ_NULLABLE(secmodel, sec_managers[i]->drv->name)) {
+            ret = 0;
+            goto cleanup;
+        }
+    }
+
+    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                   _("Unable to find security driver for model %s"),
+                   secmodel);
+ cleanup:
+    VIR_FREE(sec_managers);
+    return ret;
+}
+
+
+static int
+virSecurityManagerCheckDomainLabel(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr def)
+{
+    size_t i;
+
+    for (i = 0; i < def->nseclabels; i++) {
+        if (virSecurityManagerCheckModel(mgr, def->seclabels[i]->model) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+virSecurityManagerCheckDiskLabel(virSecurityManagerPtr mgr,
+                                 virDomainDiskDefPtr disk)
+{
+    size_t i;
+
+    for (i = 0; i < disk->src->nseclabels; i++) {
+        if (virSecurityManagerCheckModel(mgr, disk->src->seclabels[i]->model) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+virSecurityManagerCheckChardevLabel(virSecurityManagerPtr mgr,
+                                    virDomainChrDefPtr dev)
+{
+    size_t i;
+
+    for (i = 0; i < dev->nseclabels; i++) {
+        if (virSecurityManagerCheckModel(mgr, dev->seclabels[i]->model) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+virSecurityManagerCheckChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                       virDomainChrDefPtr dev,
+                                       void *opaque)
+{
+    virSecurityManagerPtr mgr = opaque;
+    return virSecurityManagerCheckChardevLabel(mgr, dev);
+}
+
+
+int virSecurityManagerCheckAllLabel(virSecurityManagerPtr mgr,
+                                    virDomainDefPtr vm)
+{
+    size_t i;
+
+    if (virSecurityManagerCheckDomainLabel(mgr, vm) < 0)
+        return -1;
+
+    for (i = 0; i < vm->ndisks; i++) {
+        if (virSecurityManagerCheckDiskLabel(mgr, vm->disks[i]) < 0)
+            return -1;
+    }
+
+    if (virDomainChrDefForeach(vm,
+                               true,
+                               virSecurityManagerCheckChardevCallback,
+                               mgr) < 0)
+        return -1;
+
+    return 0;
 }
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_driver.c: linux container driver functions
@@ -4189,8 +4189,7 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
                            _("No bridge name specified"));
             goto cleanup;
         }
-        if (!(veth = virLXCProcessSetupInterfaceBridged(conn,
-                                                        vm->def,
+        if (!(veth = virLXCProcessSetupInterfaceBridged(vm->def,
                                                         net,
                                                         brname)))
             goto cleanup;
@@ -4651,7 +4650,8 @@ lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
     actualType = virDomainNetGetActualType(detach);
 
     /* clear network bandwidth */
-    if (virNetDevSupportBandwidth(actualType) &&
+    if (virDomainNetGetActualBandwidth(detach) &&
+        virNetDevSupportBandwidth(actualType) &&
         virNetDevBandwidthClear(detach->ifname))
         goto cleanup;
 
@@ -5727,9 +5727,31 @@ lxcNodeAllocPages(virConnectPtr conn,
 }
 
 
+static int
+lxcDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = lxcDomObjFromDomain(dom)))
+        return ret;
+
+    if (virDomainHasManagedSaveImageEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+
 /* Function Tables */
-static virHypervisorDriver lxcDriver = {
-    .no = VIR_DRV_LXC,
+static virHypervisorDriver lxcHypervisorDriver = {
     .name = LXC_DRIVER_NAME,
     .connectOpen = lxcConnectOpen, /* 0.4.2 */
     .connectClose = lxcConnectClose, /* 0.4.2 */
@@ -5820,6 +5842,11 @@ static virHypervisorDriver lxcDriver = {
     .domainLxcOpenNamespace = lxcDomainLxcOpenNamespace, /* 1.0.2 */
     .nodeGetFreePages = lxcNodeGetFreePages, /* 1.2.6 */
     .nodeAllocPages = lxcNodeAllocPages, /* 1.2.9 */
+    .domainHasManagedSaveImage = lxcDomainHasManagedSaveImage, /* 1.2.13 */
+};
+
+static virConnectDriver lxcConnectDriver = {
+    .hypervisorDriver = &lxcHypervisorDriver,
 };
 
 static virStateDriver lxcStateDriver = {
@@ -5832,7 +5859,8 @@ static virStateDriver lxcStateDriver = {
 
 int lxcRegister(void)
 {
-    if (virRegisterHypervisorDriver(&lxcDriver) < 0)
+    if (virRegisterConnectDriver(&lxcConnectDriver,
+                                 true) < 0)
         return -1;
     if (virRegisterStateDriver(&lxcStateDriver) < 0)
         return -1;

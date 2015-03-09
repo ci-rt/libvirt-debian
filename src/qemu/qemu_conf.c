@@ -107,8 +107,52 @@ void qemuDomainCmdlineDefFree(qemuDomainCmdlineDefPtr def)
     VIR_FREE(def);
 }
 
-#define VIR_QEMU_LOADER_FILE_PATH "/usr/share/OVMF/OVMF_CODE.fd"
-#define VIR_QEMU_NVRAM_FILE_PATH "/usr/share/OVMF/OVMF_VARS.fd"
+
+static int ATTRIBUTE_UNUSED
+virQEMUDriverConfigLoaderNVRAMParse(virQEMUDriverConfigPtr cfg,
+                                    const char *list)
+{
+    int ret = -1;
+    char **token;
+    size_t i, j;
+
+    if (!(token = virStringSplit(list, ":", 0)))
+        goto cleanup;
+
+    for (i = 0; token[i]; i += 2) {
+        if (!token[i] || !token[i + 1] ||
+            STREQ(token[i], "") || STREQ(token[i + 1], "")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid --with-loader-nvram list: %s"),
+                           list);
+            goto cleanup;
+        }
+    }
+
+    if (i) {
+        if (VIR_ALLOC_N(cfg->loader, i / 2) < 0 ||
+            VIR_ALLOC_N(cfg->nvram, i / 2) < 0)
+            goto cleanup;
+        cfg->nloader = i / 2;
+
+        for (j = 0; j < i / 2; j++) {
+            if (VIR_STRDUP(cfg->loader[j], token[2 * j]) < 0 ||
+                VIR_STRDUP(cfg->nvram[j], token[2 * j + 1]) < 0)
+                goto cleanup;
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    virStringFreeList(token);
+    return ret;
+}
+
+
+#define VIR_QEMU_OVMF_LOADER_PATH "/usr/share/OVMF/OVMF_CODE.fd"
+#define VIR_QEMU_OVMF_NVRAM_PATH "/usr/share/OVMF/OVMF_VARS.fd"
+#define VIR_QEMU_AAVMF_LOADER_PATH "/usr/share/AAVMF/AAVMF_CODE.fd"
+#define VIR_QEMU_AAVMF_NVRAM_PATH "/usr/share/AAVMF/AAVMF_VARS.fd"
 
 virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
 {
@@ -258,14 +302,23 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
 
     cfg->logTimestamp = true;
 
-    if (VIR_ALLOC_N(cfg->loader, 1) < 0 ||
-        VIR_ALLOC_N(cfg->nvram, 1) < 0)
+#ifdef DEFAULT_LOADER_NVRAM
+    if (virQEMUDriverConfigLoaderNVRAMParse(cfg, DEFAULT_LOADER_NVRAM) < 0)
         goto error;
-    cfg->nloader = 1;
 
-    if (VIR_STRDUP(cfg->loader[0], VIR_QEMU_LOADER_FILE_PATH) < 0 ||
-        VIR_STRDUP(cfg->nvram[0], VIR_QEMU_NVRAM_FILE_PATH) < 0)
+#else
+
+    if (VIR_ALLOC_N(cfg->loader, 2) < 0 ||
+        VIR_ALLOC_N(cfg->nvram, 2) < 0)
         goto error;
+    cfg->nloader = 2;
+
+    if (VIR_STRDUP(cfg->loader[0], VIR_QEMU_AAVMF_LOADER_PATH) < 0 ||
+        VIR_STRDUP(cfg->nvram[0], VIR_QEMU_AAVMF_NVRAM_PATH) < 0  ||
+        VIR_STRDUP(cfg->loader[1], VIR_QEMU_OVMF_LOADER_PATH) < 0 ||
+        VIR_STRDUP(cfg->nvram[1], VIR_QEMU_OVMF_NVRAM_PATH) < 0)
+        goto error;
+#endif
 
     return cfg;
 

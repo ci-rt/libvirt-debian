@@ -29,6 +29,7 @@
 # include "virxml.h"
 # include "virbitmap.h"
 # include "virarch.h"
+# include "numa_conf.h"
 
 # define VIR_CPU_VENDOR_ID_LENGTH 12
 
@@ -83,16 +84,6 @@ typedef enum {
 
 VIR_ENUM_DECL(virCPUFeaturePolicy)
 
-typedef enum {
-    VIR_MEM_ACCESS_DEFAULT,
-    VIR_MEM_ACCESS_SHARED,
-    VIR_MEM_ACCESS_PRIVATE,
-
-    VIR_MEM_ACCESS_LAST,
-} virMemAccess;
-
-VIR_ENUM_DECL(virMemAccess)
-
 typedef struct _virCPUFeatureDef virCPUFeatureDef;
 typedef virCPUFeatureDef *virCPUFeatureDefPtr;
 struct _virCPUFeatureDef {
@@ -100,14 +91,6 @@ struct _virCPUFeatureDef {
     int policy;         /* enum virCPUFeaturePolicy */
 };
 
-typedef struct _virCellDef virCellDef;
-typedef virCellDef *virCellDefPtr;
-struct _virCellDef {
-    virBitmapPtr cpumask; /* CPUs that are part of this node */
-    char *cpustr;         /* CPUs stored in string form for dumpxml */
-    unsigned long long mem;     /* Node memory in kB */
-    virMemAccess memAccess;
-};
 
 typedef struct _virCPUDef virCPUDef;
 typedef virCPUDef *virCPUDefPtr;
@@ -126,10 +109,6 @@ struct _virCPUDef {
     size_t nfeatures;
     size_t nfeatures_max;
     virCPUFeatureDefPtr features;
-    size_t ncells;
-    size_t ncells_max;
-    virCellDefPtr cells;
-    unsigned int cells_cpus;
 };
 
 
@@ -158,6 +137,7 @@ virCPUDefIsEqual(virCPUDefPtr src,
 
 char *
 virCPUDefFormat(virCPUDefPtr def,
+                virDomainNumaPtr numa,
                 bool updateCPU);
 
 int
@@ -167,6 +147,7 @@ virCPUDefFormatBuf(virBufferPtr buf,
 int
 virCPUDefFormatBufFull(virBufferPtr buf,
                        virCPUDefPtr def,
+                       virDomainNumaPtr numa,
                        bool updateCPU);
 
 int

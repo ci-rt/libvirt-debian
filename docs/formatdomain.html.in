@@ -550,6 +550,8 @@
     &lt;quota&gt;-1&lt;/quota&gt;
     &lt;emulator_period&gt;1000000&lt;/emulator_period&gt;
     &lt;emulator_quota&gt;-1&lt;/emulator_quota&gt;
+    &lt;vcpusched vcpus='0-4,^3' scheduler='fifo' priority='1'/&gt;
+    &lt;iothreadsched iothreads='2' scheduler='batch'/&gt;
   &lt;/cputune&gt;
   ...
 &lt;/domain&gt;
@@ -577,14 +579,12 @@
        <dt><code>emulatorpin</code></dt>
        <dd>
          The optional <code>emulatorpin</code> element specifies which of host
-         physical CPUs the "emulator", a subset of a domain not including vcpu,
-         will be pinned to. If this is omitted, and attribute
+         physical CPUs the "emulator", a subset of a domain not including vcpu
+         or iothreads will be pinned to. If this is omitted, and attribute
          <code>cpuset</code> of element <code>vcpu</code> is not specified,
          "emulator" is pinned to all the physical CPUs by default. It contains
          one required attribute <code>cpuset</code> specifying which physical
-         CPUs to pin to. NB, <code>emulatorpin</code> is not allowed if
-         attribute <code>placement</code> of element <code>vcpu</code> is
-         "auto".
+         CPUs to pin to.
        </dd>
        <dt><code>iothreadpin</code></dt>
        <dd>
@@ -598,8 +598,6 @@
          <code>iothread</code> value begins at "1" through the number of
           <a href="#elementsIOThreadsAllocation"><code>iothreads</code></a>
          allocated to the domain. A value of "0" is not permitted.
-         NB, <code>iothreadpin</code> is not allowed if attribute
-         <code>placement</code> of element <code>vcpu</code> is "auto".
         <span class="since">Since 1.2.9</span>
        </dd>
       <dt><code>shares</code></dt>
@@ -654,6 +652,19 @@
         The value should be in range [1000, 18446744073709551] or less than 0. A
         quota with value 0 means no value.
         <span class="since">Only QEMU driver support since 0.10.0</span>
+      </dd>
+
+      <dt><code>vcpusched</code> and <code>iothreadsched</code></dt>
+      <dd>
+        The optional <code>vcpusched</code> elements specifies the scheduler
+        type (values <code>batch</code>, <code>idle</code>, <code>fifo</code>,
+        <code>rr</code>) for particular vCPU/IOThread threads (based on
+        <code>vcpus</code> and <code>iothreads</code>, leaving out
+        <code>vcpus</code>/<code>iothreads</code> sets the default).  For
+        real-time schedulers (<code>fifo</code>, <code>rr</code>), priority must
+        be specified as well (and is ignored for non-real-time ones). The value
+        range for the priority depends on the host kernel (usually 1-99).
+        <span class="since">Since 1.2.13</span>
       </dd>
 
     </dl>
@@ -2361,6 +2372,12 @@
           </li>
         </ul>
       </dd>
+      <dt><code>backenddomain</code></dt>
+      <dd>The optional <code>backenddomain</code> element allows specifying a
+          backend domain (aka driver domain) hosting the disk.  Use the
+          <code>name</code> attribute to specify the backend domain name.
+          <span class="since">Since 1.2.13 (Xen only)</span>
+      </dd>
       <dt><code>boot</code></dt>
       <dd>Specifies that the disk is bootable. The <code>order</code>
         attribute determines the order in which devices will be tried during
@@ -2759,9 +2776,8 @@
         <code>devno</code> (a hex value between 0 and 0xffff, inclusive).
         Partially specified bus addresses are not allowed.
         If omitted, libvirt will assign a free bus address with
-        cssid=0xfe and ssid=0. Virtio devices for s390 must have their
-        cssid set to 0xfe in order to be recognized by the guest
-        operating system.
+        cssid=0xfe and ssid=0. Virtio-ccw devices must have their cssid
+        set to 0xfe.
         <span class="since">Since 1.0.4</span>
       </dd>
       <dt><code>type='isa'</code></dt>
@@ -4002,7 +4018,7 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;target dev='vnet1'/&gt;
       &lt;model type='virtio'/&gt;
       <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5'&gt;
-        &lt;host csum='off' gso='off' tso4='off' tso6='off' ecn='off' ufo='off'/&gt;
+        &lt;host csum='off' gso='off' tso4='off' tso6='off' ecn='off' ufo='off' mrg_rxbuf='off'/&gt;
         &lt;guest csum='off' tso4='off' tso6='off' ecn='off' ufo='off'/&gt;
       &lt;/driver&gt;
       </b>
@@ -4117,6 +4133,10 @@ qemu-kvm -net nic,model=? /dev/null
         and <code>off</code> can be used to turn off host offloading options.
         By default, the supported offloads are enabled by QEMU.
         <span class="since">Since 1.2.9 (QEMU only)</span>
+        The <code>mrg_rxbuf</code> attribute can be used to control
+        mergeable rx buffers on the host side. Possible values are
+        <code>on</code> (default) and <code>off</code>.
+        <span class="since">Since 1.2.13 (QEMU only)</span>
       </dd>
       <dt><code>guest</code> offloading options</dt>
       <dd>
@@ -4146,8 +4166,11 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       For tuning the backend of the network, the <code>backend</code> element
-      can be used. Supported attributes are <code>tap</code> and <code>vhost</code>,
-      allowing to override the default devices for creating tap and vhost devices.
+      can be used. The <code>vhost</code> attribute can override the default vhost
+      device path (<code>/dev/vhost-net</code>) for devices with <code>virtio</code> model.
+      The <code>tap</code> attribute overrides the tun/tap device path (default:
+      <code>/dev/net/tun</code>) for network and bridge interfaces. This does not work
+      in session mode.
     </p>
     <h5><a name="elementsNICSTargetOverride">Overriding the target element</a></h5>
 
@@ -4238,6 +4261,29 @@ qemu-kvm -net nic,model=? /dev/null
       BIOS. This can be useful to provide an alternative boot ROM for a
       network device.
       <span class="since">Since 0.9.10 (QEMU and KVM only)</span>.
+    </p>
+    <h5><a name="elementDomain">Setting up a network backend in a driver domain</a></h5>
+<pre>
+  ...
+  &lt;devices&gt;
+    ...
+    &lt;interface type='bridge'&gt;
+      &lt;source bridge='br0'/&gt;
+      <b>&lt;backenddomain name='netvm'/&gt;</b>
+    &lt;/interface&gt;
+    ...
+  &lt;/devices&gt;
+  ...</pre>
+
+    <p>
+      The optional <code>backenddomain</code> element allows specifying a
+      backend domain (aka driver domain) for the interface. Use the
+      <code>name</code> attribute to specify the backend domain name. You
+      can use it to create a direct network link between domains (so data
+      will not go through host system). Use with type 'ethernet' to create
+      plain network link, or with type 'bridge' to connect to a bridge inside
+      the backend domain.
+      <span class="since">Since 1.2.13 (Xen only)</span>
     </p>
 
     <h5><a name="elementQoS">Quality of service</a></h5>

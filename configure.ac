@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-dnl Copyright (C) 2005-2014 Red Hat, Inc.
+dnl Copyright (C) 2005-2015 Red Hat, Inc.
 dnl
 dnl This library is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.12], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.13], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -275,7 +275,7 @@ dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
   getmntent_r getpwuid_r getuid kill mmap newlocale posix_fallocate \
   posix_memalign prlimit regexec sched_getaffinity setgroups setns \
-  setrlimit symlink sysctlbyname getifaddrs])
+  setrlimit symlink sysctlbyname getifaddrs sched_setscheduler])
 
 dnl Availability of pthread functions. Because of $LIB_PTHREAD, we
 dnl cannot use AC_CHECK_FUNCS_ONCE. LIB_PTHREAD and LIBMULTITHREAD
@@ -2175,6 +2175,13 @@ fi
 AM_CONDITIONAL([WITH_HYPERV], [test "$with_hyperv" = "yes"])
 
 
+dnl
+dnl check for kernel headers required by btrfs ioctl
+dnl
+if test "$with_linux" = "yes"; then
+    AC_CHECK_HEADERS([linux/btrfs.h])
+fi
+
 dnl Allow perl/python overrides
 AC_PATH_PROGS([PYTHON], [python2 python])
 AC_PATH_PROG([PERL], [perl])
@@ -2788,6 +2795,23 @@ AC_ARG_WITH([default-editor],
   [DEFAULT_EDITOR=${withval}],
   [DEFAULT_EDITOR=vi])
 AC_DEFINE_UNQUOTED([DEFAULT_EDITOR], ["$DEFAULT_EDITOR"], [Default editor to use])
+
+AC_ARG_WITH([loader-nvram],
+  [AS_HELP_STRING([--with-loader-nvram],
+    [Pass list of pairs of <loader>:<nvram> paths. Both
+     pairs and list items are separated by a colon.
+     @<:default=paths to OVMF and its clones@:>@])],
+     [if test "$withval" = "no"; then
+        withval=""
+      else
+        l=`echo $withval | tr ':' '\n' | wc -l`
+        if test "`expr $l % 2`" -ne 0; then
+            AC_MSG_ERROR([Malformed --with-loader-nvram argument])
+        fi
+      fi
+      AC_DEFINE_UNQUOTED([DEFAULT_LOADER_NVRAM],
+                          ["$withval"],
+                          [List of laoder:nvram pairs])])
 
 # Some GNULIB base64 symbols clash with a kerberos library
 AC_DEFINE_UNQUOTED([isbase64],[libvirt_gl_isbase64],[Hack to avoid symbol clash])

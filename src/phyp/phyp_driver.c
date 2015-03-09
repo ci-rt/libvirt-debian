@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2009
  *
  * phyp_driver.c: ssh layer to access Power Hypervisors
@@ -1708,7 +1708,7 @@ phypDomainAttachDevice(virDomainPtr domain, const char *xml)
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *domain_name = NULL;
 
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         goto cleanup;
 
     domain_name = escape_specialcharacters(domain->name);
@@ -3669,46 +3669,33 @@ phypDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
     return phypDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
 }
 
-static virDrvOpenStatus
-phypStorageOpen(virConnectPtr conn,
-                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                unsigned int flags)
-{
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (conn->driver->no != VIR_DRV_PHYP)
-        return VIR_DRV_OPEN_DECLINED;
-
-    return VIR_DRV_OPEN_SUCCESS;
-}
-
 static int
-phypStorageClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+phypDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
 {
-    return 0;
+
+    phyp_driverPtr phyp_driver = dom->conn->privateData;
+    LIBSSH2_SESSION *session = phyp_driver->session;
+    char *managed_system = phyp_driver->managed_system;
+    char *lpar_name = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    lpar_name = phypGetLparNAME(session, managed_system, dom->id, dom->conn);
+
+    if (lpar_name == NULL) {
+        VIR_ERROR(_("Unable to determine domain's name."));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(lpar_name);
+    return ret;
 }
 
-static virDrvOpenStatus
-phypInterfaceOpen(virConnectPtr conn,
-                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                unsigned int flags)
-{
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (conn->driver->no != VIR_DRV_PHYP)
-        return VIR_DRV_OPEN_DECLINED;
-
-    return VIR_DRV_OPEN_SUCCESS;
-}
-
-static int
-phypInterfaceClose(virConnectPtr conn ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
-static virHypervisorDriver phypDriver = {
-    .no = VIR_DRV_PHYP,
+static virHypervisorDriver phypHypervisorDriver = {
     .name = "PHYP",
     .connectOpen = phypConnectOpen, /* 0.7.0 */
     .connectClose = phypConnectClose, /* 0.7.0 */
@@ -3737,13 +3724,10 @@ static virHypervisorDriver phypDriver = {
     .connectIsSecure = phypConnectIsSecure, /* 0.7.3 */
     .domainIsUpdated = phypDomainIsUpdated, /* 0.8.6 */
     .connectIsAlive = phypConnectIsAlive, /* 0.9.8 */
+    .domainHasManagedSaveImage = phypDomainHasManagedSaveImage, /* 1.2.13 */
 };
 
 static virStorageDriver phypStorageDriver = {
-    .name = "PHYP",
-    .storageOpen = phypStorageOpen, /* 0.8.2 */
-    .storageClose = phypStorageClose, /* 0.8.2 */
-
     .connectNumOfStoragePools = phypConnectNumOfStoragePools, /* 0.8.2 */
     .connectListStoragePools = phypConnectListStoragePools, /* 0.8.2 */
     .storagePoolLookupByName = phypStoragePoolLookupByName, /* 0.8.2 */
@@ -3762,9 +3746,6 @@ static virStorageDriver phypStorageDriver = {
 };
 
 static virInterfaceDriver phypInterfaceDriver = {
-    .name = "PHYP",
-    .interfaceOpen = phypInterfaceOpen, /* 0.9.1 */
-    .interfaceClose = phypInterfaceClose, /* 0.9.1 */
     .connectNumOfInterfaces = phypConnectNumOfInterfaces, /* 0.9.1 */
     .connectListInterfaces = phypConnectListInterfaces, /* 0.9.1 */
     .interfaceLookupByName = phypInterfaceLookupByName, /* 0.9.1 */
@@ -3773,15 +3754,15 @@ static virInterfaceDriver phypInterfaceDriver = {
     .interfaceIsActive = phypInterfaceIsActive /* 0.9.1 */
 };
 
+static virConnectDriver phypConnectDriver = {
+    .hypervisorDriver = &phypHypervisorDriver,
+    .interfaceDriver = &phypInterfaceDriver,
+    .storageDriver = &phypStorageDriver,
+};
+
 int
 phypRegister(void)
 {
-    if (virRegisterHypervisorDriver(&phypDriver) < 0)
-        return -1;
-    if (virRegisterStorageDriver(&phypStorageDriver) < 0)
-        return -1;
-    if (virRegisterInterfaceDriver(&phypInterfaceDriver) < 0)
-        return -1;
-
-    return 0;
+    return virRegisterConnectDriver(&phypConnectDriver,
+                                    false);
 }

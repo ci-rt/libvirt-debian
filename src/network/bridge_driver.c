@@ -1,7 +1,7 @@
 /*
  * bridge_driver.c: core driver methods for managing network
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -1289,7 +1289,7 @@ networkBuildDhcpDaemonCommandLine(virNetworkObjPtr network,
 
     /* This helper is used to create custom leases file for libvirt */
     if (!(leaseshelper_path = virFileFindResource("libvirt_leaseshelper",
-                                                  "src",
+                                                  abs_topbuilddir "/src",
                                                   LIBEXECDIR)))
         goto cleanup;
 
@@ -2096,7 +2096,8 @@ networkStartNetworkVirtual(virNetworkObjPtr network)
     return 0;
 
  err5:
-    virNetDevBandwidthClear(network->def->bridge);
+    if (network->def->bandwidth)
+       virNetDevBandwidthClear(network->def->bridge);
 
  err4:
     if (!save_err)
@@ -2142,7 +2143,8 @@ networkStartNetworkVirtual(virNetworkObjPtr network)
 
 static int networkShutdownNetworkVirtual(virNetworkObjPtr network)
 {
-    virNetDevBandwidthClear(network->def->bridge);
+    if (network->def->bandwidth)
+        virNetDevBandwidthClear(network->def->bridge);
 
     if (network->radvdPid > 0) {
         char *radvdpidbase;
@@ -2514,23 +2516,6 @@ static virNetworkPtr networkLookupByName(virConnectPtr conn,
     return ret;
 }
 
-static virDrvOpenStatus networkOpen(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                    virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                    unsigned int flags)
-{
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (!driver)
-        return VIR_DRV_OPEN_DECLINED;
-
-    return VIR_DRV_OPEN_SUCCESS;
-}
-
-static int networkClose(virConnectPtr conn ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-
 static int networkConnectNumOfNetworks(virConnectPtr conn)
 {
     int nactive = 0;
@@ -2745,12 +2730,13 @@ static int
 networkValidate(virNetworkDefPtr def,
                 bool check_active)
 {
-    size_t i;
+    size_t i, j;
     bool vlanUsed, vlanAllowed, badVlanUse = false;
     virPortGroupDefPtr defaultPortGroup = NULL;
     virNetworkIpDefPtr ipdef;
     bool ipv4def = false, ipv6def = false;
     bool bandwidthAllowed = true;
+    bool usesInterface = false, usesAddress = false;
 
     /* check for duplicate networks */
     if (virNetworkObjIsDuplicate(&driver->networks, def, check_active) < 0)
@@ -2813,6 +2799,40 @@ networkValidate(virNetworkDefPtr def,
             return -1;
         }
         bandwidthAllowed = false;
+    }
+
+    /* we support configs with a single PF defined:
+     *   <pf dev='eth0'/>
+     * or with a list of netdev names:
+     *   <interface dev='eth9'/>
+     * OR a list of PCI addresses
+     *   <address type='pci' domain='0' bus='4' slot='0' function='1'/>
+     * but not any combination of those.
+     *
+     * Since <interface> and <address> are for some strange reason
+     * stored in the same array, we need to cycle through it and check
+     * the type of each.
+     */
+    for (i = 0; i < def->forward.nifs; i++) {
+        switch ((virNetworkForwardHostdevDeviceType)
+                def->forward.ifs[i].type) {
+        case VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV:
+            usesInterface = true;
+            break;
+        case VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI:
+            usesAddress = true;
+            break;
+        case VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NONE:
+        case VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_LAST:
+            break;
+        }
+    }
+    if ((def->forward.npfs > 0) + usesInterface + usesAddress > 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("<address>, <interface>, and <pf> elements of "
+                         "<forward> in network %s are mutually exclusive"),
+                       def->name);
+        return -1;
     }
 
     /* We only support dhcp on one IPv4 address and
@@ -2891,7 +2911,15 @@ networkValidate(virNetworkDefPtr def,
             }
             defaultPortGroup = &def->portGroups[i];
         }
-
+        for (j = i + 1; j < def->nPortGroups; j++) {
+            if (STREQ(def->portGroups[i].name, def->portGroups[j].name)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("multiple <portgroup> elements with the "
+                                 "same name (%s) in network '%s'"),
+                               def->portGroups[i].name, def->name);
+                return -1;
+            }
+        }
         if (def->portGroups[i].bandwidth && !bandwidthAllowed) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unsupported <bandwidth> element in network '%s' "
@@ -3670,9 +3698,7 @@ networkGetDHCPLeases(virNetworkPtr network,
 
 
 static virNetworkDriver networkDriver = {
-    "Network",
-    .networkOpen = networkOpen, /* 0.2.0 */
-    .networkClose = networkClose, /* 0.2.0 */
+    .name = "bridge",
     .connectNumOfNetworks = networkConnectNumOfNetworks, /* 0.2.0 */
     .connectListNetworks = networkConnectListNetworks, /* 0.2.0 */
     .connectNumOfDefinedNetworks = networkConnectNumOfDefinedNetworks, /* 0.2.0 */
@@ -3698,7 +3724,7 @@ static virNetworkDriver networkDriver = {
 };
 
 static virStateDriver networkStateDriver = {
-    .name = "Network",
+    .name = "bridge",
     .stateInitialize  = networkStateInitialize,
     .stateAutoStart  = networkStateAutoStart,
     .stateCleanup = networkStateCleanup,
@@ -3707,7 +3733,7 @@ static virStateDriver networkStateDriver = {
 
 int networkRegister(void)
 {
-    if (virRegisterNetworkDriver(&networkDriver) < 0)
+    if (virSetSharedNetworkDriver(&networkDriver) < 0)
         return -1;
     if (virRegisterStateDriver(&networkStateDriver) < 0)
         return -1;
