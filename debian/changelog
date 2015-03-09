@@ -1,3 +1,12 @@
+libvirt (1.2.13-1) experimental; urgency=medium
+
+  * [5a5a046] New upstream version 1.2.13
+  * [6c65940] Bump symbol versions
+  * [5755363] Rediff patches
+    This reverts commit 35a256363958bd452cafdfcadec9626b2ce6df45.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 10 Mar 2015 00:01:52 +0100
+
 libvirt (1.2.12-1) experimental; urgency=medium
 
   * [06f42f7] New upstream version 1.2.12
