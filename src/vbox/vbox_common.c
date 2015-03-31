@@ -249,10 +249,14 @@ static char *vboxGenerateMediumName(PRUint32  storageBus,
 }
 
 static int
-vboxDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+vboxDomainDefPostParse(virDomainDefPtr def,
                        virCapsPtr caps ATTRIBUTE_UNUSED,
                        void *opaque ATTRIBUTE_UNUSED)
 {
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -3894,7 +3898,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
      * reading and while dumping xml
      */
     /* def->mem.max_balloon = maxMemorySize * 1024; */
-    def->mem.max_balloon = memorySize * 1024;
+    virDomainDefSetMemoryInitial(def, memorySize * 1024);
 
     gVBoxAPI.UIMachine.GetCPUCount(machine, &CPUCount);
     def->maxvcpus = def->vcpus = CPUCount;
@@ -6055,7 +6059,7 @@ static char *vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
          * the notation here seems to be inconsistent while
          * reading and while dumping xml
          */
-        def->dom->mem.max_balloon = memorySize * 1024;
+        virDomainDefSetMemoryInitial(def->dom, memorySize * 1024);
         if (VIR_STRDUP(def->dom->os.type, "hvm") < 0)
             goto cleanup;
         def->dom->os.arch = virArchFromHost();
@@ -7254,8 +7258,10 @@ vboxDomainScreenshot(virDomainPtr dom,
     IMachine *machine = NULL;
     nsresult rc;
     char *tmp;
+    char *cacheDir;
     int tmp_fd = -1;
     unsigned int max_screen;
+    bool privileged = geteuid() == 0;
     char *ret = NULL;
 
     if (!data->vboxObj)
@@ -7288,8 +7294,15 @@ vboxDomainScreenshot(virDomainPtr dom,
         return NULL;
     }
 
-    if (virAsprintf(&tmp, "%s/cache/libvirt/vbox.screendump.XXXXXX", LOCALSTATEDIR) < 0) {
+    if ((privileged && virAsprintf(&cacheDir, "%s/cache/libvirt", LOCALSTATEDIR) < 0) ||
+        (!privileged && !(cacheDir = virGetUserCacheDirectory()))) {
         VBOX_RELEASE(machine);
+        return NULL;
+    }
+
+    if (virAsprintf(&tmp, "%s/vbox.screendump.XXXXXX", cacheDir) < 0) {
+        VBOX_RELEASE(machine);
+        VIR_FREE(cacheDir);
         return NULL;
     }
 
@@ -7368,6 +7381,7 @@ vboxDomainScreenshot(virDomainPtr dom,
     VIR_FORCE_CLOSE(tmp_fd);
     unlink(tmp);
     VIR_FREE(tmp);
+    VIR_FREE(cacheDir);
     VBOX_RELEASE(machine);
     vboxIIDUnalloc(&iid);
     return ret;
@@ -7403,7 +7417,7 @@ vboxConnectListAllDomains(virConnectPtr conn,
     /* filter out flag options that will produce 0 results in vbox driver:
      * - managed save: vbox guests don't have managed save images
      * - autostart: vbox doesn't support autostarting guests
-     * - persistance: vbox doesn't support transient guests
+     * - persistence: vbox doesn't support transient guests
      */
     if ((MATCH(VIR_CONNECT_LIST_DOMAINS_TRANSIENT) &&
          !MATCH(VIR_CONNECT_LIST_DOMAINS_PERSISTENT)) ||

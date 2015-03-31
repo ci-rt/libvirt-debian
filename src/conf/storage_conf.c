@@ -1245,7 +1245,8 @@ virStorageSize(const char *unit,
 
 static virStorageVolDefPtr
 virStorageVolDefParseXML(virStoragePoolDefPtr pool,
-                         xmlXPathContextPtr ctxt)
+                         xmlXPathContextPtr ctxt,
+                         unsigned int flags)
 {
     virStorageVolDefPtr ret;
     virStorageVolOptionsPtr options;
@@ -1258,6 +1259,9 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
     xmlNodePtr *nodes = NULL;
     size_t i;
     int n;
+
+    virCheckFlags(VIR_VOL_XML_PARSE_NO_CAPACITY |
+                  VIR_VOL_XML_PARSE_OPT_CAPACITY, NULL);
 
     options = virStorageVolOptionsForPoolType(pool->type);
     if (options == NULL)
@@ -1286,15 +1290,47 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
         }
     }
 
+    if ((backingStore = virXPathString("string(./backingStore/path)", ctxt))) {
+        if (VIR_ALLOC(ret->target.backingStore) < 0)
+            goto error;
+
+        ret->target.backingStore->path = backingStore;
+        backingStore = NULL;
+
+        if (options->formatFromString) {
+            char *format = virXPathString("string(./backingStore/format/@type)", ctxt);
+            if (format == NULL)
+                ret->target.backingStore->format = options->defaultFormat;
+            else
+                ret->target.backingStore->format = (options->formatFromString)(format);
+
+            if (ret->target.backingStore->format < 0) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("unknown volume format type %s"), format);
+                VIR_FREE(format);
+                goto error;
+            }
+            VIR_FREE(format);
+        }
+
+        if (VIR_ALLOC(ret->target.backingStore->perms) < 0)
+            goto error;
+        if (virStorageDefParsePerms(ctxt, ret->target.backingStore->perms,
+                                    "./backingStore/permissions",
+                                    DEFAULT_VOL_PERM_MODE) < 0)
+            goto error;
+    }
+
     capacity = virXPathString("string(./capacity)", ctxt);
     unit = virXPathString("string(./capacity/@unit)", ctxt);
-    if (capacity == NULL) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("missing capacity element"));
+    if (capacity) {
+        if (virStorageSize(unit, capacity, &ret->target.capacity) < 0)
+            goto error;
+    } else if (!(flags & VIR_VOL_XML_PARSE_NO_CAPACITY) &&
+               !((flags & VIR_VOL_XML_PARSE_OPT_CAPACITY) && ret->target.backingStore)) {
+        virReportError(VIR_ERR_XML_ERROR, "%s", _("missing capacity element"));
         goto error;
     }
-    if (virStorageSize(unit, capacity, &ret->target.capacity) < 0)
-        goto error;
     VIR_FREE(unit);
 
     allocation = virXPathString("string(./allocation)", ctxt);
@@ -1335,37 +1371,6 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
         ret->target.encryption = virStorageEncryptionParseNode(ctxt->doc,
                                                                node);
         if (ret->target.encryption == NULL)
-            goto error;
-    }
-
-    if ((backingStore = virXPathString("string(./backingStore/path)", ctxt))) {
-        if (VIR_ALLOC(ret->target.backingStore) < 0)
-            goto error;
-
-        ret->target.backingStore->path = backingStore;
-        backingStore = NULL;
-
-        if (options->formatFromString) {
-            char *format = virXPathString("string(./backingStore/format/@type)", ctxt);
-            if (format == NULL)
-                ret->target.backingStore->format = options->defaultFormat;
-            else
-                ret->target.backingStore->format = (options->formatFromString)(format);
-
-            if (ret->target.backingStore->format < 0) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("unknown volume format type %s"), format);
-                VIR_FREE(format);
-                goto error;
-            }
-            VIR_FREE(format);
-        }
-
-        if (VIR_ALLOC(ret->target.backingStore->perms) < 0)
-            goto error;
-        if (virStorageDefParsePerms(ctxt, ret->target.backingStore->perms,
-                                    "./backingStore/permissions",
-                                    DEFAULT_VOL_PERM_MODE) < 0)
             goto error;
     }
 
@@ -1429,7 +1434,8 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
 virStorageVolDefPtr
 virStorageVolDefParseNode(virStoragePoolDefPtr pool,
                           xmlDocPtr xml,
-                          xmlNodePtr root)
+                          xmlNodePtr root,
+                          unsigned int flags)
 {
     xmlXPathContextPtr ctxt = NULL;
     virStorageVolDefPtr def = NULL;
@@ -1449,7 +1455,7 @@ virStorageVolDefParseNode(virStoragePoolDefPtr pool,
     }
 
     ctxt->node = root;
-    def = virStorageVolDefParseXML(pool, ctxt);
+    def = virStorageVolDefParseXML(pool, ctxt, flags);
  cleanup:
     xmlXPathFreeContext(ctxt);
     return def;
@@ -1458,13 +1464,14 @@ virStorageVolDefParseNode(virStoragePoolDefPtr pool,
 static virStorageVolDefPtr
 virStorageVolDefParse(virStoragePoolDefPtr pool,
                       const char *xmlStr,
-                      const char *filename)
+                      const char *filename,
+                      unsigned int flags)
 {
     virStorageVolDefPtr ret = NULL;
     xmlDocPtr xml;
 
     if ((xml = virXMLParse(filename, xmlStr, _("(storage_volume_definition)")))) {
-        ret = virStorageVolDefParseNode(pool, xml, xmlDocGetRootElement(xml));
+        ret = virStorageVolDefParseNode(pool, xml, xmlDocGetRootElement(xml), flags);
         xmlFreeDoc(xml);
     }
 
@@ -1473,16 +1480,18 @@ virStorageVolDefParse(virStoragePoolDefPtr pool,
 
 virStorageVolDefPtr
 virStorageVolDefParseString(virStoragePoolDefPtr pool,
-                            const char *xmlStr)
+                            const char *xmlStr,
+                            unsigned int flags)
 {
-    return virStorageVolDefParse(pool, xmlStr, NULL);
+    return virStorageVolDefParse(pool, xmlStr, NULL, flags);
 }
 
 virStorageVolDefPtr
 virStorageVolDefParseFile(virStoragePoolDefPtr pool,
-                          const char *filename)
+                          const char *filename,
+                          unsigned int flags)
 {
-    return virStorageVolDefParse(pool, NULL, filename);
+    return virStorageVolDefParse(pool, NULL, filename, flags);
 }
 
 static void
@@ -1558,7 +1567,6 @@ virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
 
     if (options->featureToString && def->features) {
         size_t i;
-        bool b;
         bool empty = virBitmapIsAllClear(def->features);
 
         if (empty) {
@@ -1569,8 +1577,7 @@ virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
         }
 
         for (i = 0; i < VIR_STORAGE_FILE_FEATURE_LAST; i++) {
-            ignore_value(virBitmapGetBit(def->features, i, &b));
-            if (b)
+            if (virBitmapIsBitSet(def->features, i))
                 virBufferAsprintf(buf, "<%s/>\n",
                                   options->featureToString(i));
         }

@@ -18,7 +18,7 @@
 
 static int
 testCompareXMLToXMLFiles(const char *poolxml, const char *inxml,
-                         const char *outxml)
+                         const char *outxml, unsigned int flags)
 {
     char *poolXmlData = NULL;
     char *inXmlData = NULL;
@@ -38,7 +38,7 @@ testCompareXMLToXMLFiles(const char *poolxml, const char *inxml,
     if (!(pool = virStoragePoolDefParseString(poolXmlData)))
         goto fail;
 
-    if (!(dev = virStorageVolDefParseString(pool, inXmlData)))
+    if (!(dev = virStorageVolDefParseString(pool, inXmlData, flags)))
         goto fail;
 
     if (!(actual = virStorageVolDefFormat(pool, dev)))
@@ -64,6 +64,7 @@ testCompareXMLToXMLFiles(const char *poolxml, const char *inxml,
 struct testInfo {
     const char *pool;
     const char *name;
+    unsigned int flags;
 };
 
 static int
@@ -84,7 +85,7 @@ testCompareXMLToXMLHelper(const void *data)
         goto cleanup;
     }
 
-    result = testCompareXMLToXMLFiles(poolxml, inxml, outxml);
+    result = testCompareXMLToXMLFiles(poolxml, inxml, outxml, info->flags);
 
  cleanup:
     VIR_FREE(poolxml);
@@ -100,14 +101,16 @@ mymain(void)
 {
     int ret = 0;
 
-#define DO_TEST(pool, name)                                     \
+#define DO_TEST_FULL(pool, name, flags)                         \
     do {                                                        \
-        struct testInfo info = { pool, name };                  \
+        struct testInfo info = { pool, name, flags };           \
         if (virtTestRun("Storage Vol XML-2-XML " name,          \
                         testCompareXMLToXMLHelper, &info) < 0)  \
             ret = -1;                                           \
     }                                                           \
     while (0);
+
+#define DO_TEST(pool, name) DO_TEST_FULL(pool, name, 0)
 
     DO_TEST("pool-dir", "vol-file");
     DO_TEST("pool-dir", "vol-file-naming");
@@ -123,6 +126,8 @@ mymain(void)
     DO_TEST("pool-sheepdog", "vol-sheepdog");
     DO_TEST("pool-gluster", "vol-gluster-dir");
     DO_TEST("pool-gluster", "vol-gluster-dir-neg-uid");
+    DO_TEST_FULL("pool-dir", "vol-qcow2-nocapacity",
+                 VIR_VOL_XML_PARSE_NO_CAPACITY);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

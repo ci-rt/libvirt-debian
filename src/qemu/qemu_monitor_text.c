@@ -838,204 +838,142 @@ int qemuMonitorTextGetBlockInfo(qemuMonitorPtr mon,
     return ret;
 }
 
-int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
-                                     const char *dev_name,
-                                     long long *rd_req,
-                                     long long *rd_bytes,
-                                     long long *rd_total_times,
-                                     long long *wr_req,
-                                     long long *wr_bytes,
-                                     long long *wr_total_times,
-                                     long long *flush_req,
-                                     long long *flush_total_times,
-                                     long long *errs)
+
+int
+qemuMonitorTextGetAllBlockStatsInfo(qemuMonitorPtr mon,
+                                    virHashTablePtr hash)
 {
+    qemuBlockStatsPtr stats = NULL;
     char *info = NULL;
+    char *dev_name;
+    char **lines = NULL;
+    char **values = NULL;
+    char *line;
+    char *value;
+    char *key;
+    size_t i;
+    size_t j;
     int ret = -1;
-    char *dummy;
-    const char *p, *eol;
-    int devnamelen = strlen(dev_name);
+    int nstats;
+    int maxstats = 0;
 
     if (qemuMonitorHMPCommand(mon, "info blockstats", &info) < 0)
         goto cleanup;
 
-    /* If the command isn't supported then qemu prints the supported
-     * info commands, so the output starts "info ".  Since this is
-     * unlikely to be the name of a block device, we can use this
-     * to detect if qemu supports the command.
-     */
+    /* If the command isn't supported then qemu prints the supported info
+     * commands, so the output starts "info ".  Since this is unlikely to be
+     * the name of a block device, we can use this to detect if qemu supports
+     * the command. */
     if (strstr(info, "\ninfo ")) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s",
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("'info blockstats' not supported by this qemu"));
         goto cleanup;
     }
-
-    *rd_req = *rd_bytes = -1;
-    *wr_req = *wr_bytes = *errs = -1;
-
-    if (rd_total_times)
-        *rd_total_times = -1;
-    if (wr_total_times)
-        *wr_total_times = -1;
-    if (flush_req)
-        *flush_req = -1;
-    if (flush_total_times)
-        *flush_total_times = -1;
 
     /* The output format for both qemu & KVM is:
      *   blockdevice: rd_bytes=% wr_bytes=% rd_operations=% wr_operations=%
      *   (repeated for each block device)
      * where '%' is a 64 bit number.
      */
-    p = info;
+    if (!(lines = virStringSplit(info, "\n", 0)))
+        goto cleanup;
 
-    while (*p) {
-        /* New QEMU has separate names for host & guest side of the disk
-         * and libvirt gives the host side a 'drive-' prefix. The passed
-         * in dev_name is the guest side though
-         */
-        if (STRPREFIX(p, QEMU_DRIVE_HOST_PREFIX))
-            p += strlen(QEMU_DRIVE_HOST_PREFIX);
+    for (i = 0; lines[i] && *lines[i]; i++) {
+        line = lines[i];
 
-        if (STREQLEN(p, dev_name, devnamelen)
-            && p[devnamelen] == ':' && p[devnamelen+1] == ' ') {
+        if (VIR_ALLOC(stats) < 0)
+            goto cleanup;
 
-            eol = strchr(p, '\n');
-            if (!eol)
-                eol = p + strlen(p);
+        /* set the entries to -1, the JSON monitor enforces them, but it would
+         * be overly complex to achieve this here */
+        stats->rd_req = -1;
+        stats->rd_bytes = -1;
+        stats->wr_req = -1;
+        stats->wr_bytes = -1;
+        stats->rd_total_times = -1;
+        stats->wr_total_times = -1;
+        stats->flush_req = -1;
+        stats->flush_total_times = -1;
 
-            p += devnamelen+2;         /* Skip to first label. */
-
-            while (*p) {
-                if (STRPREFIX(p, "rd_bytes=")) {
-                    p += strlen("rd_bytes=");
-                    if (virStrToLong_ll(p, &dummy, 10, rd_bytes) == -1)
-                        VIR_DEBUG("error reading rd_bytes: %s", p);
-                } else if (STRPREFIX(p, "wr_bytes=")) {
-                    p += strlen("wr_bytes=");
-                    if (virStrToLong_ll(p, &dummy, 10, wr_bytes) == -1)
-                        VIR_DEBUG("error reading wr_bytes: %s", p);
-                } else if (STRPREFIX(p, "rd_operations=")) {
-                    p += strlen("rd_operations=");
-                    if (virStrToLong_ll(p, &dummy, 10, rd_req) == -1)
-                        VIR_DEBUG("error reading rd_req: %s", p);
-                } else if (STRPREFIX(p, "wr_operations=")) {
-                    p += strlen("wr_operations=");
-                    if (virStrToLong_ll(p, &dummy, 10, wr_req) == -1)
-                        VIR_DEBUG("error reading wr_req: %s", p);
-                } else if (rd_total_times &&
-                           STRPREFIX(p, "rd_total_time_ns=")) {
-                    p += strlen("rd_total_time_ns=");
-                    if (virStrToLong_ll(p, &dummy, 10, rd_total_times) == -1)
-                        VIR_DEBUG("error reading rd_total_times: %s", p);
-                } else if (wr_total_times &&
-                           STRPREFIX(p, "wr_total_time_ns=")) {
-                    p += strlen("wr_total_time_ns=");
-                    if (virStrToLong_ll(p, &dummy, 10, wr_total_times) == -1)
-                        VIR_DEBUG("error reading wr_total_times: %s", p);
-                } else if (flush_req &&
-                           STRPREFIX(p, "flush_operations=")) {
-                    p += strlen("flush_operations=");
-                    if (virStrToLong_ll(p, &dummy, 10, flush_req) == -1)
-                        VIR_DEBUG("error reading flush_req: %s", p);
-                } else if (flush_total_times &&
-                           STRPREFIX(p, "flush_total_time_ns=")) {
-                    p += strlen("flush_total_time_ns=");
-                    if (virStrToLong_ll(p, &dummy, 10, flush_total_times) == -1)
-                        VIR_DEBUG("error reading flush_total_times: %s", p);
-                } else {
-                    VIR_DEBUG("unknown block stat near %s", p);
-                }
-
-                /* Skip to next label. */
-                p = strchr(p, ' ');
-                if (!p || p >= eol) break;
-                p++;
-            }
-            ret = 0;
+        /* extract device name and make sure that it's followed by
+         * a colon and space */
+        dev_name = line;
+        if (!(line = strchr(line, ':')) && line[1] != ' ') {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("info blockstats reply was malformed"));
             goto cleanup;
         }
 
-        /* Skip to next line. */
-        p = strchr(p, '\n');
-        if (!p) break;
-        p++;
-    }
+        *line = '\0';
+        line += 2;
 
-    /* If we reach here then the device was not found. */
-    virReportError(VIR_ERR_INVALID_ARG,
-                   _("no stats found for device %s"), dev_name);
+        if (STRPREFIX(dev_name, QEMU_DRIVE_HOST_PREFIX))
+            dev_name += strlen(QEMU_DRIVE_HOST_PREFIX);
 
- cleanup:
-    VIR_FREE(info);
-    return ret;
-}
+        if (!(values = virStringSplit(line, " ", 0)))
+            goto cleanup;
 
-int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
-                                             int *nparams)
-{
-    char *info = NULL;
-    int ret = -1;
-    int num = 0;
-    const char *p, *eol;
+        nstats = 0;
 
-    if (qemuMonitorHMPCommand(mon, "info blockstats", &info) < 0)
-        goto cleanup;
+        for (j = 0; values[j] && *values[j]; j++) {
+            key = values[j];
 
-    /* If the command isn't supported then qemu prints the supported
-     * info commands, so the output starts "info ".  Since this is
-     * unlikely to be the name of a block device, we can use this
-     * to detect if qemu supports the command.
-     */
-    if (strstr(info, "\ninfo ")) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s",
-                       _("'info blockstats' not supported by this qemu"));
-        goto cleanup;
-    }
+            if (!(value = strchr(key, '='))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("info blockstats entry was malformed"));
+                goto cleanup;
+            }
 
-    /* The output format for both qemu & KVM is:
-     *   blockdevice: rd_bytes=% wr_bytes=% rd_operations=% wr_operations=%
-     *   (repeated for each block device)
-     * where '%' is a 64 bit number.
-     */
-    p = info;
+            *value = '\0';
+            value++;
 
-    eol = strchr(p, '\n');
-    if (!eol)
-        eol = p + strlen(p);
+#define QEMU_MONITOR_TEXT_READ_BLOCK_STAT(NAME, VAR)                           \
+            if (STREQ(key, NAME)) {                                            \
+                nstats++;                                                      \
+                if (virStrToLong_ll(value, NULL, 10, &VAR) < 0) {              \
+                    virReportError(VIR_ERR_INTERNAL_ERROR,                     \
+                                   _("'info blockstats' contains malformed "   \
+                                     "parameter '%s' value '%s'"), NAME, value);\
+                    goto cleanup;                                              \
+                }                                                              \
+                continue;                                                      \
+            }
 
-    /* Skip the device name and following ":", and spaces (e.g.
-     * "floppy0: ")
-     */
-    p = strchr(p, ' ');
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("rd_bytes", stats->rd_bytes);
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("wr_bytes", stats->wr_bytes);
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("rd_operations", stats->rd_req);
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("wr_operations", stats->wr_req);
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("rd_total_time_ns", stats->rd_total_times);
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("wr_total_time_ns", stats->wr_total_times);
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("flush_operations", stats->flush_req);
+            QEMU_MONITOR_TEXT_READ_BLOCK_STAT("flush_total_time_ns", stats->flush_total_times);
+#undef QEMU_MONITOR_TEXT_READ_BLOCK_STAT
 
-    while (p && p < eol) {
-        if (STRPREFIX(p, " rd_bytes=") ||
-            STRPREFIX(p, " wr_bytes=") ||
-            STRPREFIX(p, " rd_operations=") ||
-            STRPREFIX(p, " wr_operations=") ||
-            STRPREFIX(p, " rd_total_time_ns=") ||
-            STRPREFIX(p, " wr_total_time_ns=") ||
-            STRPREFIX(p, " flush_operations=") ||
-            STRPREFIX(p, " flush_total_time_ns=")) {
-            num++;
-        } else {
-            VIR_DEBUG("unknown block stat near %s", p);
+            /* log if we get statistic element different from the above */
+            VIR_DEBUG("unknown block stat field '%s'", key);
         }
 
-        /* Skip to next label. */
-        p = strchr(p + 1, ' ');
+        if (nstats > maxstats)
+            maxstats = nstats;
+
+        if (virHashAddEntry(hash, dev_name, stats) < 0)
+            goto cleanup;
+        stats = NULL;
+
+        virStringFreeList(values);
+        values = NULL;
     }
 
-    *nparams = num;
-    ret = 0;
+    ret = maxstats;
 
  cleanup:
+    virStringFreeList(lines);
+    virStringFreeList(values);
+    VIR_FREE(stats);
     VIR_FREE(info);
     return ret;
 }
+
 
 int qemuMonitorTextGetBlockExtent(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                                   const char *dev_name ATTRIBUTE_UNUSED,

@@ -96,8 +96,15 @@ openvzDomainDefPostParse(virDomainDefPtr def,
                          void *opaque ATTRIBUTE_UNUSED)
 {
     /* fill the init path */
-    if (STREQ(def->os.type, "exe") && !def->os.init)
-        return VIR_STRDUP(def->os.init, "/sbin/init") < 0 ? -1 : 0;
+    if (STREQ(def->os.type, "exe") && !def->os.init) {
+        if (VIR_STRDUP(def->os.init, "/sbin/init") < 0)
+            return -1;
+    }
+
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -122,6 +129,9 @@ openvzDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                        virDomainVirtTypeToString(def->virtType));
         return -1;
     }
+
+    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
+        return -1;
 
     return 0;
 }
@@ -458,7 +468,7 @@ static int openvzDomainGetInfo(virDomainPtr dom,
         }
     }
 
-    info->maxMem = vm->def->mem.max_balloon;
+    info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->memory = vm->def->mem.cur_balloon;
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
@@ -1850,7 +1860,7 @@ openvzDomainGetMemoryParameters(virDomainPtr domain,
             if (openvzDomainGetBarrierLimit(domain, name, &barrier, &limit) < 0)
                 goto cleanup;
 
-            val = (limit == LONG_MAX) ? 0ull : limit * kb_per_pages;
+            val = (limit == LONG_MAX) ? VIR_DOMAIN_MEMORY_PARAM_UNLIMITED : limit * kb_per_pages;
             if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_HARD_LIMIT,
                                         VIR_TYPED_PARAM_ULLONG, val) < 0)
                 goto cleanup;
@@ -1861,7 +1871,7 @@ openvzDomainGetMemoryParameters(virDomainPtr domain,
             if (openvzDomainGetBarrierLimit(domain, name, &barrier, &limit) < 0)
                 goto cleanup;
 
-            val = (barrier == LONG_MAX) ? 0ull : barrier * kb_per_pages;
+            val = (barrier == LONG_MAX) ? VIR_DOMAIN_MEMORY_PARAM_UNLIMITED : barrier * kb_per_pages;
             if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_SOFT_LIMIT,
                                         VIR_TYPED_PARAM_ULLONG, val) < 0)
                 goto cleanup;

@@ -47,6 +47,8 @@
 #include "virnetdev.h"
 #include "virnetdevbridge.h"
 #include "virnetdevtap.h"
+#include "virnetdevopenvswitch.h"
+#include "virnetdevmidonet.h"
 #include "device_conf.h"
 #include "virstoragefile.h"
 #include "virstring.h"
@@ -222,7 +224,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
         goto error;
     }
 
-    if (!virStorageSourceIsLocalStorage(newsrc) || newsrc->path) {
+    if (!virStorageSourceIsEmpty(newsrc)) {
         if (qemuGetDriveSourceString(newsrc, conn, &sourcestr) < 0)
             goto error;
 
@@ -1139,9 +1141,15 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
             }
 
             vport = virDomainNetGetActualVirtPortProfile(net);
-            if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
-               ignore_value(virNetDevOpenvswitchRemovePort(
-                               virDomainNetGetActualBridgeName(net), net->ifname));
+            if (vport) {
+                if (vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_MIDONET) {
+                    ignore_value(virNetDevMidonetUnbindPort(vport));
+                } else if (vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
+                    ignore_value(virNetDevOpenvswitchRemovePort(
+                                     virDomainNetGetActualBridgeName(net),
+                                     net->ifname));
+                }
+            }
         }
 
         virDomainNetRemoveHostdev(vm->def, net);
@@ -1250,9 +1258,11 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
          * Kibibytes, but virProcessSetMaxMemLock expects the value in
          * bytes.
          */
-        memKB = vm->def->mem.hard_limit
-            ? vm->def->mem.hard_limit
-            : vm->def->mem.max_balloon + (1024 * 1024);
+        if (virMemoryLimitIsSet(vm->def->mem.hard_limit))
+            memKB = vm->def->mem.hard_limit;
+        else
+            memKB = virDomainDefGetMemoryActual(vm->def) + (1024 * 1024);
+
         virProcessSetMaxMemLock(vm->pid, memKB * 1024);
         break;
 
@@ -1667,6 +1677,101 @@ qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
     }
 
     goto audit;
+}
+
+
+/**
+ * qemuDomainAttachMemory:
+ * @driver: qemu driver data
+ * @vm: VM object
+ * @mem: Definition of the memory device to be attached. @mem is always consumed
+ *
+ * Attaches memory device described by @mem to domain @vm.
+ *
+ * Returns 0 on success -1 on error.
+ */
+int
+qemuDomainAttachMemory(virQEMUDriverPtr driver,
+                       virDomainObjPtr vm,
+                       virDomainMemoryDefPtr mem)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    char *devstr = NULL;
+    char *objalias = NULL;
+    const char *backendType;
+    virJSONValuePtr props = NULL;
+    int id;
+    int ret = -1;
+
+    if (virAsprintf(&mem->info.alias, "dimm%zu", vm->def->nmems) < 0)
+        goto cleanup;
+
+    if (virAsprintf(&objalias, "mem%s", mem->info.alias) < 0)
+        goto cleanup;
+
+    if (!(devstr = qemuBuildMemoryDeviceStr(mem, priv->qemuCaps)))
+        goto cleanup;
+
+    qemuDomainMemoryDeviceAlignSize(mem);
+
+    if (qemuBuildMemoryBackendStr(mem->size, mem->pagesize,
+                                  mem->targetNode, mem->sourceNodes, NULL,
+                                  vm->def, priv->qemuCaps, cfg,
+                                  &backendType, &props, true) < 0)
+        goto cleanup;
+
+    if (virDomainMemoryInsert(vm->def, mem) < 0) {
+        virJSONValueFree(props);
+        goto cleanup;
+    }
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    if (qemuMonitorAddObject(priv->mon, backendType, objalias, props) < 0)
+        goto removedef;
+
+    if (qemuMonitorAddDevice(priv->mon, devstr) < 0) {
+        virErrorPtr err = virSaveLastError();
+        ignore_value(qemuMonitorDelObject(priv->mon, objalias));
+        virSetError(err);
+        virFreeError(err);
+        goto removedef;
+    }
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0) {
+        /* we shouldn't touch mem now, as the def might be freed */
+        mem = NULL;
+        goto cleanup;
+    }
+
+    /* mem is consumed by vm->def */
+    mem = NULL;
+
+    /* this step is best effort, removing the device would be so much trouble */
+    ignore_value(qemuDomainUpdateMemoryDeviceInfo(driver, vm,
+                                                  QEMU_ASYNC_JOB_NONE));
+
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(cfg);
+    VIR_FREE(devstr);
+    VIR_FREE(objalias);
+    virDomainMemoryDefFree(mem);
+    return ret;
+
+ removedef:
+    if (qemuDomainObjExitMonitor(driver, vm) < 0) {
+        mem = NULL;
+        goto cleanup;
+    }
+
+    if ((id = virDomainMemoryFindByDef(vm->def, mem)) >= 0)
+        mem = virDomainMemoryRemove(vm->def, id);
+    else
+        mem = NULL;
+
+    goto cleanup;
 }
 
 
@@ -2731,6 +2836,44 @@ qemuDomainRemoveControllerDevice(virQEMUDriverPtr driver,
 }
 
 
+static int
+qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             virDomainMemoryDefPtr mem)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virObjectEventPtr event;
+    char *backendAlias = NULL;
+    int rc;
+    int idx;
+
+    VIR_DEBUG("Removing memory device %s from domain %p %s",
+              mem->info.alias, vm, vm->def->name);
+
+    if ((event = virDomainEventDeviceRemovedNewFromObj(vm, mem->info.alias)))
+        qemuDomainEventQueue(driver, event);
+
+    if (virAsprintf(&backendAlias, "mem%s", mem->info.alias) < 0)
+        goto error;
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    rc = qemuMonitorDelObject(priv->mon, backendAlias);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0 || rc < 0)
+        goto error;
+
+    if ((idx = virDomainMemoryFindByDef(vm->def, mem)) >= 0)
+        virDomainMemoryRemove(vm->def, idx);
+
+    virDomainMemoryDefFree(mem);
+    VIR_FREE(backendAlias);
+    return 0;
+
+ error:
+    VIR_FREE(backendAlias);
+    return -1;
+}
+
+
 static void
 qemuDomainRemovePCIHostDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
@@ -2932,10 +3075,15 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
     }
 
     vport = virDomainNetGetActualVirtPortProfile(net);
-    if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
-        ignore_value(virNetDevOpenvswitchRemovePort(
-                        virDomainNetGetActualBridgeName(net),
-                        net->ifname));
+    if (vport) {
+        if (vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_MIDONET) {
+            ignore_value(virNetDevMidonetUnbindPort(vport));
+        } else if (vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
+            ignore_value(virNetDevOpenvswitchRemovePort(
+                             virDomainNetGetActualBridgeName(net),
+                             net->ifname));
+        }
+    }
 
     networkReleaseActualDevice(vm->def, net);
     virDomainNetDefFree(net);
@@ -3066,6 +3214,10 @@ qemuDomainRemoveDevice(virQEMUDriverPtr driver,
         break;
     case VIR_DOMAIN_DEVICE_RNG:
         qemuDomainRemoveRNGDevice(driver, vm, dev->data.rng);
+        break;
+
+    case VIR_DOMAIN_DEVICE_MEMORY:
+        ret = qemuDomainRemoveMemoryDevice(driver, vm, dev->data.memory);
         break;
 
     case VIR_DOMAIN_DEVICE_NONE:
@@ -4011,6 +4163,58 @@ qemuDomainDetachRNGDevice(virQEMUDriverPtr driver,
     rc = qemuDomainWaitForDeviceRemoval(vm);
     if (rc == 0 || rc == 1)
         ret = qemuDomainRemoveRNGDevice(driver, vm, tmpRNG);
+    else
+        ret = 0;
+
+ cleanup:
+    qemuDomainResetDeviceRemoval(vm);
+    return ret;
+}
+
+
+int
+qemuDomainDetachMemoryDevice(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             virDomainMemoryDefPtr memdef)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainMemoryDefPtr mem;
+    int idx;
+    int rc;
+    int ret = -1;
+
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("qemu does not support -device"));
+        return -1;
+    }
+
+    qemuDomainMemoryDeviceAlignSize(memdef);
+
+    if ((idx = virDomainMemoryFindByDef(vm->def, memdef)) < 0) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("device not present in domain configuration"));
+        return -1;
+    }
+
+    mem = vm->def->mems[idx];
+
+    if (!mem->info.alias) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("alias for the memory device was not found"));
+        return -1;
+    }
+
+    qemuDomainMarkDeviceForRemoval(vm, &mem->info);
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    rc = qemuMonitorDelDevice(priv->mon, mem->info.alias);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0 || rc < 0)
+        goto cleanup;
+
+    rc = qemuDomainWaitForDeviceRemoval(vm);
+    if (rc == 0 || rc == 1)
+        ret = qemuDomainRemoveMemoryDevice(driver, vm, mem);
     else
         ret = 0;
 

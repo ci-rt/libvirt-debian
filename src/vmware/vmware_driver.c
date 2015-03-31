@@ -83,10 +83,14 @@ vmwareDataFreeFunc(void *data)
 }
 
 static int
-vmwareDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+vmwareDomainDefPostParse(virDomainDefPtr def,
                          virCapsPtr caps ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -1126,7 +1130,7 @@ vmwareDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
 
     info->state = virDomainObjGetState(vm, NULL);
     info->cpuTime = 0;
-    info->maxMem = vm->def->mem.max_balloon;
+    info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->memory = vm->def->mem.cur_balloon;
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;

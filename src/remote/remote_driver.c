@@ -2,7 +2,7 @@
  * remote_driver.c: driver to provide access to libvirtd running
  *   on a remote machine
  *
- * Copyright (C) 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2007-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -2309,6 +2309,84 @@ remoteDomainGetVcpus(virDomainPtr domain,
 
  cleanup:
     xdr_free((xdrproc_t) xdr_remote_domain_get_vcpus_ret, (char *) &ret);
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainGetIOThreadInfo(virDomainPtr dom,
+                            virDomainIOThreadInfoPtr **info,
+                            unsigned int flags)
+{
+    int rv = -1;
+    size_t i;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_iothread_info_args args;
+    remote_domain_get_iothread_info_ret ret;
+    remote_domain_iothread_info *src;
+    virDomainIOThreadInfoPtr *info_ret = NULL;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_IOTHREAD_INFO,
+             (xdrproc_t)xdr_remote_domain_get_iothread_info_args,
+             (char *)&args,
+             (xdrproc_t)xdr_remote_domain_get_iothread_info_ret,
+             (char *)&ret) == -1)
+        goto done;
+
+    if (ret.info.info_len > REMOTE_IOTHREAD_INFO_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Too many IOThreads in info: %d for limit %d"),
+                       ret.info.info_len, REMOTE_IOTHREAD_INFO_MAX);
+        goto cleanup;
+    }
+
+    if (info) {
+        if (!ret.info.info_len) {
+            *info = NULL;
+            rv = ret.ret;
+            goto cleanup;
+        }
+
+        if (VIR_ALLOC_N(info_ret, ret.info.info_len) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.info.info_len; i++) {
+            src = &ret.info.info_val[i];
+
+            if (VIR_ALLOC(info_ret[i]) < 0)
+                goto cleanup;
+
+            info_ret[i]->iothread_id = src->iothread_id;
+            if (VIR_ALLOC_N(info_ret[i]->cpumap, src->cpumap.cpumap_len) < 0)
+                goto cleanup;
+            memcpy(info_ret[i]->cpumap, src->cpumap.cpumap_val,
+                   src->cpumap.cpumap_len);
+            info_ret[i]->cpumaplen = src->cpumap.cpumap_len;
+        }
+        *info = info_ret;
+        info_ret = NULL;
+    }
+
+    rv = ret.ret;
+
+ cleanup:
+    if (info_ret) {
+        for (i = 0; i < ret.info.info_len; i++)
+            virDomainIOThreadInfoFree(info_ret[i]);
+        VIR_FREE(info_ret);
+    }
+    xdr_free((xdrproc_t)xdr_remote_domain_get_iothread_info_ret,
+             (char *) &ret);
 
  done:
     remoteDriverUnlock(priv);
@@ -7831,6 +7909,109 @@ remoteDomainGetFSInfo(virDomainPtr dom,
 }
 
 
+static int
+remoteDomainInterfaceAddresses(virDomainPtr dom,
+                               virDomainInterfacePtr **ifaces,
+                               unsigned int source,
+                               unsigned int flags)
+{
+    int rv = -1;
+    size_t i, j;
+
+    virDomainInterfacePtr *ifaces_ret = NULL;
+    remote_domain_interface_addresses_args args;
+    remote_domain_interface_addresses_ret ret;
+
+    struct private_data *priv = dom->conn->privateData;
+
+    args.source = source;
+    args.flags = flags;
+    make_nonnull_domain(&args.dom, dom);
+
+    remoteDriverLock(priv);
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_INTERFACE_ADDRESSES,
+             (xdrproc_t)xdr_remote_domain_interface_addresses_args,
+             (char *)&args,
+             (xdrproc_t)xdr_remote_domain_interface_addresses_ret,
+             (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.ifaces.ifaces_len > REMOTE_DOMAIN_INTERFACE_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Number of interfaces, %d exceeds the max limit: %d"),
+                       ret.ifaces.ifaces_len, REMOTE_DOMAIN_INTERFACE_MAX);
+        goto cleanup;
+    }
+
+    if (ret.ifaces.ifaces_len &&
+        VIR_ALLOC_N(ifaces_ret, ret.ifaces.ifaces_len) < 0)
+        goto cleanup;
+
+    for (i = 0; i < ret.ifaces.ifaces_len; i++) {
+        virDomainInterfacePtr iface;
+        remote_domain_interface *iface_ret = &(ret.ifaces.ifaces_val[i]);
+
+        if (VIR_ALLOC(ifaces_ret[i]) < 0)
+            goto cleanup;
+
+        iface = ifaces_ret[i];
+
+        if (VIR_STRDUP(iface->name, iface_ret->name) < 0)
+            goto cleanup;
+
+        if (iface_ret->hwaddr &&
+            VIR_STRDUP(iface->hwaddr, *iface_ret->hwaddr) < 0)
+            goto cleanup;
+
+        if (iface_ret->addrs.addrs_len > REMOTE_DOMAIN_IP_ADDR_MAX) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Number of interfaces, %d exceeds the max limit: %d"),
+                           iface_ret->addrs.addrs_len, REMOTE_DOMAIN_IP_ADDR_MAX);
+            goto cleanup;
+        }
+
+        iface->naddrs = iface_ret->addrs.addrs_len;
+
+        if (iface->naddrs) {
+            if (VIR_ALLOC_N(iface->addrs, iface->naddrs) < 0)
+                goto cleanup;
+
+           for (j = 0; j < iface->naddrs; j++) {
+                virDomainIPAddressPtr ip_addr = &(iface->addrs[j]);
+                remote_domain_ip_addr *ip_addr_ret =
+                    &(iface_ret->addrs.addrs_val[j]);
+
+                if (VIR_STRDUP(ip_addr->addr, ip_addr_ret->addr) < 0)
+                    goto cleanup;
+
+                ip_addr->prefix = ip_addr_ret->prefix;
+                ip_addr->type = ip_addr_ret->type;
+            }
+        }
+    }
+    *ifaces = ifaces_ret;
+    ifaces_ret = NULL;
+
+    rv = ret.ifaces.ifaces_len;
+
+ cleanup:
+    if (ifaces_ret) {
+        for (i = 0; i < ret.ifaces.ifaces_len; i++)
+            virDomainInterfaceFree(ifaces_ret[i]);
+        VIR_FREE(ifaces_ret);
+    }
+    xdr_free((xdrproc_t)xdr_remote_domain_interface_addresses_ret,
+             (char *) &ret);
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
  * These can return NULL if underlying memory allocations fail,
@@ -8027,6 +8208,8 @@ static virHypervisorDriver hypervisor_driver = {
     .domainGetEmulatorPinInfo = remoteDomainGetEmulatorPinInfo, /* 0.10.0 */
     .domainGetVcpus = remoteDomainGetVcpus, /* 0.3.0 */
     .domainGetMaxVcpus = remoteDomainGetMaxVcpus, /* 0.3.0 */
+    .domainGetIOThreadInfo = remoteDomainGetIOThreadInfo, /* 1.2.14 */
+    .domainPinIOThread = remoteDomainPinIOThread, /* 1.2.14 */
     .domainGetSecurityLabel = remoteDomainGetSecurityLabel, /* 0.6.1 */
     .domainGetSecurityLabelList = remoteDomainGetSecurityLabelList, /* 0.10.0 */
     .nodeGetSecurityModel = remoteNodeGetSecurityModel, /* 0.6.1 */
@@ -8174,6 +8357,7 @@ static virHypervisorDriver hypervisor_driver = {
     .connectGetAllDomainStats = remoteConnectGetAllDomainStats, /* 1.2.8 */
     .nodeAllocPages = remoteNodeAllocPages, /* 1.2.9 */
     .domainGetFSInfo = remoteDomainGetFSInfo, /* 1.2.11 */
+    .domainInterfaceAddresses = remoteDomainInterfaceAddresses, /* 1.2.14 */
 };
 
 static virNetworkDriver network_driver = {

@@ -152,14 +152,14 @@ virStorageBackendDiskMakeDataVol(virStoragePoolObjPtr pool,
      * -1 was returned indicating some other error than an open error.
      */
     if (vol->source.partType == VIR_STORAGE_VOL_DISK_TYPE_EXTENDED) {
-        if (virStorageBackendUpdateVolInfo(vol, true, false,
+        if (virStorageBackendUpdateVolInfo(vol, false,
                                            VIR_STORAGE_VOL_OPEN_DEFAULT |
                                            VIR_STORAGE_VOL_OPEN_NOERROR) == -1)
             return -1;
         vol->target.allocation = vol->target.capacity =
             (vol->source.extents[0].end - vol->source.extents[0].start);
     } else {
-        if (virStorageBackendUpdateVolInfo(vol, true, false,
+        if (virStorageBackendUpdateVolInfo(vol, false,
                                            VIR_STORAGE_VOL_OPEN_DEFAULT) < 0)
             return -1;
     }
@@ -468,13 +468,20 @@ virStorageBackendDiskBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     if (ok_to_mklabel) {
-        /* eg parted /dev/sda mklabel msdos */
+        /* eg parted /dev/sda mklabel --script msdos */
+        int format = pool->def->source.format;
+        const char *fmt;
+        if (format == VIR_STORAGE_POOL_DISK_UNKNOWN ||
+            format == VIR_STORAGE_POOL_DISK_DOS)
+            fmt = "msdos";
+        else
+            fmt = virStoragePoolFormatDiskTypeToString(format);
+
         cmd = virCommandNewArgList(PARTED,
                                    pool->def->source.devices[0].path,
                                    "mklabel",
                                    "--script",
-                                   ((pool->def->source.format == VIR_STORAGE_POOL_DISK_DOS) ? "msdos" :
-                                   virStoragePoolFormatDiskTypeToString(pool->def->source.format)),
+                                   fmt,
                                    NULL);
         ret = virCommandRun(cmd, NULL);
     }

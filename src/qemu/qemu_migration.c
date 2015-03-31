@@ -1,7 +1,7 @@
 /*
  * qemu_migration.c: QEMU migration handling
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -45,6 +45,7 @@
 #include "virerror.h"
 #include "viralloc.h"
 #include "virfile.h"
+#include "virnetdevopenvswitch.h"
 #include "datatypes.h"
 #include "fdstream.h"
 #include "viruuid.h"
@@ -1507,9 +1508,13 @@ qemuMigrationPrecreateDisk(virConnectPtr conn,
             flags |= VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA;
         break;
 
+    case VIR_STORAGE_TYPE_NETWORK:
+        VIR_DEBUG("Skipping creation of network disk '%s'",
+                  disk->dst);
+        return 0;
+
     case VIR_STORAGE_TYPE_BLOCK:
     case VIR_STORAGE_TYPE_DIR:
-    case VIR_STORAGE_TYPE_NETWORK:
     case VIR_STORAGE_TYPE_NONE:
     case VIR_STORAGE_TYPE_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2016,6 +2021,20 @@ qemuMigrationIsAllowed(virQEMUDriverPtr driver, virDomainObjPtr vm,
         }
     }
 
+    /* Verify that memory device config can be transferred reliably */
+    for (i = 0; i < def->nmems; i++) {
+        virDomainMemoryDefPtr mem = def->mems[i];
+
+        if (mem->model == VIR_DOMAIN_MEMORY_MODEL_DIMM &&
+            mem->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DIMM) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("domain's dimm info lacks slot ID "
+                             "or base address"));
+
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -2297,6 +2316,7 @@ qemuMigrationUpdateJobStatus(virQEMUDriverPtr driver,
         /* fall through */
     case QEMU_MONITOR_MIGRATION_STATUS_SETUP:
     case QEMU_MONITOR_MIGRATION_STATUS_ACTIVE:
+    case QEMU_MONITOR_MIGRATION_STATUS_CANCELLING:
         ret = 0;
         break;
 
@@ -2986,7 +3006,8 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
                                        QEMU_MIGRATION_COOKIE_NBD)))
         goto cleanup;
 
-    if (STREQ_NULLABLE(protocol, "rdma") && !vm->def->mem.hard_limit) {
+    if (STREQ_NULLABLE(protocol, "rdma") &&
+        !virMemoryLimitIsSet(vm->def->mem.hard_limit)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot start RDMA migration with no memory hard "
                          "limit set"));
@@ -4102,7 +4123,7 @@ static int doNativeMigrate(virQEMUDriverPtr driver,
                              "with this QEMU binary"));
             goto cleanup;
         }
-        if (!vm->def->mem.hard_limit) {
+        if (!virMemoryLimitIsSet(vm->def->mem.hard_limit)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("cannot start RDMA migration with no memory hard "
                              "limit set"));

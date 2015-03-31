@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.13], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.14], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -247,6 +247,7 @@ LIBVIRT_CHECK_SELINUX
 LIBVIRT_CHECK_SSH2
 LIBVIRT_CHECK_SYSTEMD_DAEMON
 LIBVIRT_CHECK_UDEV
+LIBVIRT_CHECK_WIRESHARK
 LIBVIRT_CHECK_YAJL
 
 AC_MSG_CHECKING([for CPUID instruction])
@@ -383,6 +384,11 @@ AC_CHECK_TYPE([struct ifreq],
         #include <net/if.h>
   ]])
 
+AC_CHECK_DECLS([ETH_FLAG_TXVLAN, ETH_FLAG_NTUPLE, ETH_FLAG_RXHASH, ETH_FLAG_LRO,
+                ETHTOOL_GGSO, ETHTOOL_GGRO, ETHTOOL_GFLAGS],
+  [], [], [[#include <linux/ethtool.h>
+  ]])
+
 dnl Our only use of libtasn1.h is in the testsuite, and can be skipped
 dnl if the header is not present.  Assume -ltasn1 is present if the
 dnl header could be found.
@@ -425,6 +431,8 @@ AC_PATH_PROG([MODPROBE], [modprobe], [modprobe],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([RMMOD], [rmmod], [rmmod],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([MMCTL], [mm-ctl], [mm-ctl],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([OVSVSCTL], [ovs-vsctl], [ovs-vsctl],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([SCRUB], [scrub], [scrub],
@@ -440,6 +448,8 @@ AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
         [Location or name of the radvd program])
 AC_DEFINE_UNQUOTED([TC],["$TC"],
         [Location or name of the tc program (see iproute2)])
+AC_DEFINE_UNQUOTED([MMCTL],["$MMCTL"],
+        [Location or name of the mm-ctl program])
 AC_DEFINE_UNQUOTED([OVSVSCTL],["$OVSVSCTL"],
         [Location or name of the ovs-vsctl program])
 
@@ -863,24 +873,37 @@ old_LIBS="$LIBS"
 old_CFLAGS="$CFLAGS"
 LIBXL_LIBS=""
 LIBXL_CFLAGS=""
+LIBXL_FIRMWARE_DIR=""
+LIBXL_EXECBIN_DIR=""
+
 dnl search for libxl, aka libxenlight
+dnl Xen > 4.5 introduced a pkgconfig file, check for it first
 fail=0
 if test "$with_libxl" != "no" ; then
-    if test "$with_libxl" != "yes" && test "$with_libxl" != "check" ; then
-        LIBXL_CFLAGS="-I$with_libxl/include"
-        LIBXL_LIBS="-L$with_libxl"
-    fi
-    CFLAGS="$CFLAGS $LIBXL_CFLAGS"
-    LIBS="$LIBS $LIBXL_LIBS"
-    AC_CHECK_LIB([xenlight], [libxl_ctx_alloc], [
-        with_libxl=yes
-        LIBXL_LIBS="$LIBXL_LIBS -lxenlight -lxenctrl"
-    ],[
-        if test "$with_libxl" = "yes"; then
-            fail=1
+    PKG_CHECK_MODULES([LIBXL], [xenlight], [
+     LIBXL_FIRMWARE_DIR=`$PKG_CONFIG --variable xenfirmwaredir xenlight`
+     LIBXL_EXECBIN_DIR=`$PKG_CONFIG --variable libexec_bin xenlight`
+     LIBXL_LIBS="$LIBXL_LIBS -lxenctrl"
+     with_libxl=yes
+    ], [LIBXL_FOUND=no])
+    if test "$LIBXL_FOUND" = "no"; then
+        dnl No xenlight pkg-config file
+        if test "$with_libxl" != "yes" && test "$with_libxl" != "check" ; then
+            LIBXL_CFLAGS="-I$with_libxl/include"
+            LIBXL_LIBS="-L$with_libxl"
         fi
-        with_libxl=no
-    ])
+        CFLAGS="$CFLAGS $LIBXL_CFLAGS"
+        LIBS="$LIBS $LIBXL_LIBS"
+        AC_CHECK_LIB([xenlight], [libxl_ctx_alloc], [
+            with_libxl=yes
+            LIBXL_LIBS="$LIBXL_LIBS -lxenlight -lxenctrl"
+        ],[
+            if test "$with_libxl" = "yes"; then
+                fail=1
+            fi
+            with_libxl=no
+        ])
+    fi
 fi
 
 LIBS="$old_LIBS"
@@ -895,6 +918,12 @@ if test "$with_libxl" = "yes"; then
     AC_CHECK_HEADERS([libxlutil.h])
     LIBXL_LIBS="$LIBXL_LIBS -lxlutil"
     AC_DEFINE_UNQUOTED([WITH_LIBXL], 1, [whether libxenlight driver is enabled])
+    if test "x$LIBXL_FIRMWARE_DIR" != "x"; then
+        AC_DEFINE_UNQUOTED([LIBXL_FIRMWARE_DIR], ["$LIBXL_FIRMWARE_DIR"], [directory containing Xen firmware blobs])
+    fi
+    if test "x$LIBXL_EXECBIN_DIR" != "x"; then
+        AC_DEFINE_UNQUOTED([LIBXL_EXECBIN_DIR], ["$LIBXL_EXECBIN_DIR"], [directory containing Xen libexec binaries])
+    fi
 fi
 AM_CONDITIONAL([WITH_LIBXL], [test "$with_libxl" = "yes"])
 
@@ -2637,70 +2666,6 @@ AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
 
-dnl wireshark dissector
-
-AC_ARG_WITH([wireshark-dissector],
-  [AS_HELP_STRING([--with-wireshark-dissector],
-    [enable wireshark dissector plugin support @<:@default=check@:>@])],
-  [ with_wireshark_dissector=$withval ],
-  [ with_wireshark_dissector=check ])
-
-AC_DEFUN([LIBVIRT_WS_HANDLE_ERROR], [
-  if test "$with_wireshark_dissector" = "yes"; then
-    AC_MSG_ERROR([$1])
-  else
-    with_wireshark_dissector=no
-  fi
-])
-if test "$with_wireshark_dissector" != "no"; then
-    dnl Check for XDR headers existence
-    AC_CHECK_HEADERS([rpc/types.h])
-
-    dnl Check for glib-2.0 existence
-    PKG_CHECK_MODULES([GLIB], [glib-2.0], [
-      WS_DISSECTOR_CPPFLAGS="$WS_DISSECTOR_CPPFLAGS `$PKG_CONFIG --cflags glib-2.0`"
-    ], [
-      LIBVIRT_WS_HANDLE_ERROR([pkg-config 'glib-2.0' is required for wireshark-dissector support])
-    ])
-
-    dnl Search for wireshark(or tshark) command
-    AC_PATH_PROG([WIRESHARK], [wireshark])
-    AC_PATH_PROG([WIRESHARK], [tshark])
-    if test -z "$WIRESHARK"; then
-        LIBVIRT_WS_HANDLE_ERROR([command not found wireshark or tshark])
-    else
-        dnl Check for wireshark headers
-        save_CPPFLAGS="$CPPFLAGS"
-        WS_DISSECTOR_CPPFLAGS="$WS_DISSECTOR_CPPFLAGS -I`dirname $WIRESHARK`/../include/wireshark"
-        CPPFLAGS="$CPPFLAGS $WS_DISSECTOR_CPPFLAGS"
-        AC_CHECK_HEADERS([wireshark/config.h],, [
-            LIBVIRT_WS_HANDLE_ERROR([wireshark/config.h is required for wireshark-dissector support])
-        ])
-        AC_CHECK_HEADERS([wireshark/epan/packet.h wireshark/epan/dissectors/packet-tcp.h],, [
-            LIBVIRT_WS_HANDLE_ERROR([wireshark/epan/{packet,packet-tcp}.h are required for wireshark-dissector support])
-        ], [
-          #include <wireshark/config.h>
-        ])
-        CPPFLAGS="$save_CPPFLAGS"
-    fi
-    if test "$with_wireshark_dissector" != "no"; then
-        with_wireshark_dissector=yes
-    fi
-fi
-AC_SUBST([WS_DISSECTOR_CPPFLAGS])
-AM_CONDITIONAL([WITH_WIRESHARK_DISSECTOR], [test "$with_wireshark_dissector" = "yes"])
-
-AC_ARG_WITH([ws-plugindir],
-  [AS_HELP_STRING([--with-ws-plugindir],
-    [wireshark plugins directory for use when installing wireshark plugin])],
-  [ws_plugindir=$withval])
-
-if test "$with_wireshark_dissector" != "no" && test -z "$ws_plugindir"; then
-    ws_version=`$WIRESHARK -v | head -1 | cut -f 2 -d' '`
-    ws_plugindir="$libdir/wireshark/plugins/$ws_version"
-fi
-AC_SUBST([ws_plugindir])
-
 # Check for Linux vs. BSD ifreq members
 AC_CHECK_MEMBERS([struct ifreq.ifr_newname,
                   struct ifreq.ifr_ifindex,
@@ -2932,6 +2897,7 @@ LIBVIRT_RESULT_SELINUX
 LIBVIRT_RESULT_SSH2
 LIBVIRT_RESULT_SYSTEMD_DAEMON
 LIBVIRT_RESULT_UDEV
+LIBVIRT_RESULT_WIRESHARK
 LIBVIRT_RESULT_YAJL
 AC_MSG_NOTICE([  libxml: $LIBXML_CFLAGS $LIBXML_LIBS])
 AC_MSG_NOTICE([  dlopen: $DLOPEN_LIBS])

@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -117,7 +117,8 @@ VIR_ONCE_GLOBAL_INIT(qemuMonitor)
 
 VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               QEMU_MONITOR_MIGRATION_STATUS_LAST,
-              "inactive", "active", "completed", "failed", "cancelled", "setup")
+              "inactive", "active", "completed", "failed", "cancelling",
+              "cancelled", "setup")
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
@@ -1709,27 +1710,40 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
     return ret;
 }
 
+/**
+ * qemuMonitorSetMemoryStatsPeriod:
+ *
+ * This function sets balloon stats update period.
+ *
+ * Returns 0 on success and -1 on error, but does *not* set an error.
+ */
 int qemuMonitorSetMemoryStatsPeriod(qemuMonitorPtr mon,
                                     int period)
 {
     int ret = -1;
     VIR_DEBUG("mon=%p period=%d", mon, period);
 
-    if (!mon) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("monitor must not be NULL"));
+    if (!mon)
         return -1;
-    }
 
-    if (!mon->json) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                       _("JSON monitor is required"));
+    if (!mon->json)
         return -1;
-    }
+
+    if (period < 0)
+        return -1;
 
     if (qemuMonitorFindBalloonObjectPath(mon, "/") == 0) {
         ret = qemuMonitorJSONSetMemoryStatsPeriod(mon, mon->balloonpath,
                                                   period);
+
+        /*
+         * Most of the calls to this function are supposed to be
+         * non-fatal and the only one that should be fatal wants its
+         * own error message.  More details for debugging will be in
+         * the log file.
+         */
+        if (ret < 0)
+            virResetLastError();
     }
     mon->ballooninit = true;
     return ret;
@@ -1808,57 +1822,25 @@ qemuMonitorBlockInfoLookup(virHashTablePtr blockInfo,
     return info;
 }
 
-int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
-                                 const char *dev_name,
-                                 long long *rd_req,
-                                 long long *rd_bytes,
-                                 long long *rd_total_times,
-                                 long long *wr_req,
-                                 long long *wr_bytes,
-                                 long long *wr_total_times,
-                                 long long *flush_req,
-                                 long long *flush_total_times,
-                                 long long *errs)
-{
-    int ret;
-    VIR_DEBUG("mon=%p dev=%s", mon, dev_name);
 
-    if (!mon) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("monitor must not be NULL"));
-        return -1;
-    }
-
-    if (mon->json)
-        ret = qemuMonitorJSONGetBlockStatsInfo(mon, dev_name,
-                                               rd_req, rd_bytes,
-                                               rd_total_times,
-                                               wr_req, wr_bytes,
-                                               wr_total_times,
-                                               flush_req,
-                                               flush_total_times,
-                                               errs);
-    else
-        ret = qemuMonitorTextGetBlockStatsInfo(mon, dev_name,
-                                               rd_req, rd_bytes,
-                                               rd_total_times,
-                                               wr_req, wr_bytes,
-                                               wr_total_times,
-                                               flush_req,
-                                               flush_total_times,
-                                               errs);
-    return ret;
-}
-
-
-/* Creates a hash table in 'ret_stats' with all block stats.
- * Returns <0 on error, 0 on success.
+/**
+ * qemuMonitorGetAllBlockStatsInfo:
+ * @mon: monitor object
+ * @ret_stats: pointer that is filled with a hash table containing the stats
+ * @backingChain: recurse into the backing chain of devices
+ *
+ * Creates a hash table in @ret_stats with block stats of all devices. In case
+ * @backingChain is true @ret_stats will additionally contain stats for
+ * backing chain members of block devices.
+ *
+ * Returns < 0 on error, count of supported block stats fields on success.
  */
 int
 qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
                                 virHashTablePtr *ret_stats,
                                 bool backingChain)
 {
+    int ret = -1;
     VIR_DEBUG("mon=%p ret_stats=%p, backing=%d", mon, ret_stats, backingChain);
 
     if (!mon->json) {
@@ -1867,7 +1849,32 @@ qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
         return -1;
     }
 
-    return qemuMonitorJSONGetAllBlockStatsInfo(mon, ret_stats, backingChain);
+    if (!(*ret_stats = virHashCreate(10, virHashValueFree)))
+        goto error;
+
+    if (mon->json) {
+        ret = qemuMonitorJSONGetAllBlockStatsInfo(mon, *ret_stats,
+                                                  backingChain);
+    } else {
+         if (backingChain) {
+             virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                            _("text monitor doesn't support block stats for "
+                              "backing chain members"));
+             goto error;
+         }
+
+         ret = qemuMonitorTextGetAllBlockStatsInfo(mon, *ret_stats);
+    }
+
+    if (ret < 0)
+        goto error;
+
+    return ret;
+
+ error:
+    virHashFree(*ret_stats);
+    *ret_stats = NULL;
+    return -1;
 }
 
 
@@ -1888,29 +1895,6 @@ qemuMonitorBlockStatsUpdateCapacity(qemuMonitorPtr mon,
     return qemuMonitorJSONBlockStatsUpdateCapacity(mon, stats, backingChain);
 }
 
-
-/* Return 0 and update @nparams with the number of block stats
- * QEMU supports if success. Return -1 if failure.
- */
-int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
-                                         int *nparams)
-{
-    int ret;
-    VIR_DEBUG("mon=%p nparams=%p", mon, nparams);
-
-    if (!mon) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("monitor must not be NULL"));
-        return -1;
-    }
-
-    if (mon->json)
-        ret = qemuMonitorJSONGetBlockStatsParamsNumber(mon, nparams);
-    else
-        ret = qemuMonitorTextGetBlockStatsParamsNumber(mon, nparams);
-
-    return ret;
-}
 
 int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
                               const char *dev_name,
@@ -3262,11 +3246,13 @@ qemuMonitorAddObject(qemuMonitorPtr mon,
               mon, type, objalias, props);
     int ret = -1;
 
-    if (mon->json)
+    if (mon->json) {
         ret = qemuMonitorJSONAddObject(mon, type, objalias, props);
-    else
+    } else {
+        virJSONValueFree(props);
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("object adding requires JSON monitor"));
+    }
 
     return ret;
 }
@@ -3485,6 +3471,24 @@ qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon)
         return false;
 
     return qemuMonitorJSONBlockCommit(mon, "bogus", NULL, NULL, NULL, 0) == -2;
+}
+
+
+/* Determine the name that qemu is using for tracking the backing
+ * element TARGET within the chain starting at TOP.  */
+char *
+qemuMonitorDiskNameLookup(qemuMonitorPtr mon,
+                          const char *device,
+                          virStorageSourcePtr top,
+                          virStorageSourcePtr target)
+{
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return NULL;
+    }
+
+    return qemuMonitorJSONDiskNameLookup(mon, device, top, target);
 }
 
 
@@ -4332,7 +4336,7 @@ qemuMonitorRTCResetReinjection(qemuMonitorPtr mon)
  */
 int
 qemuMonitorGetIOThreads(qemuMonitorPtr mon,
-                        qemuMonitorIOThreadsInfoPtr **iothreads)
+                        qemuMonitorIOThreadInfoPtr **iothreads)
 {
 
     VIR_DEBUG("mon=%p iothreads=%p", mon, iothreads);
@@ -4352,10 +4356,52 @@ qemuMonitorGetIOThreads(qemuMonitorPtr mon,
     return qemuMonitorJSONGetIOThreads(mon, iothreads);
 }
 
-void qemuMonitorIOThreadsInfoFree(qemuMonitorIOThreadsInfoPtr iothread)
+void qemuMonitorIOThreadInfoFree(qemuMonitorIOThreadInfoPtr iothread)
 {
     if (!iothread)
         return;
     VIR_FREE(iothread->name);
     VIR_FREE(iothread);
+}
+
+
+/**
+ * qemuMonitorGetMemoryDeviceInfo:
+ * @mon: pointer to the monitor
+ * @info: Location to return the hash of qemuMonitorMemoryDeviceInfo
+ *
+ * Retrieve state and addresses of frontend memory devices present in
+ * the guest.
+ *
+ * Returns 0 on success and fills @info with a newly allocated struct; if the
+ * data can't be retrieved due to lack of support in qemu, returns -2. On
+ * other errors returns -1.
+ */
+int
+qemuMonitorGetMemoryDeviceInfo(qemuMonitorPtr mon,
+                               virHashTablePtr *info)
+{
+    VIR_DEBUG("mon=%p info=%p", mon, info);
+    int ret;
+
+    *info = NULL;
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json)
+        return -2;
+
+    if (!(*info = virHashCreate(10, virHashValueFree)))
+        return -1;
+
+    if ((ret = qemuMonitorJSONGetMemoryDeviceInfo(mon, *info)) < 0) {
+        virHashFree(*info);
+        *info = NULL;
+    }
+
+    return ret;
 }

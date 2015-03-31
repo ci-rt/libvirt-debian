@@ -210,8 +210,6 @@ char *virGetFCHostNameByWWN(const char *sysfs_prefix,
 
 char *virFindFCHostCapableVport(const char *sysfs_prefix);
 
-int virCompareLimitUlong(unsigned long long a, unsigned long long b);
-
 int virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr);
 
 const char *virGetEnvBlockSUID(const char *name);
@@ -246,5 +244,8 @@ unsigned int virGetListenFDs(void);
 
 long virGetSystemPageSize(void);
 long virGetSystemPageSizeKB(void);
+
+unsigned long long virMemoryLimitTruncate(unsigned long long value);
+bool virMemoryLimitIsSet(unsigned long long value);
 
 #endif /* __VIR_UTIL_H__ */

@@ -62,7 +62,7 @@
     <file name='libvirt-domain'>
      <summary>APIs for management of domains</summary>
      <description>Provides APIs for the management of domains</description>
-     <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
+     <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2015 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
      <exports symbol='VIR_COPY_CPUMAP' type='macro'/>
      <exports symbol='VIR_CPU_MAPLEN' type='macro'/>
      <exports symbol='VIR_CPU_USABLE' type='macro'/>
@@ -172,6 +172,7 @@
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' type='macro'/>
@@ -265,6 +266,11 @@
      <exports symbol='VIR_DOMAIN_CONSOLE_FORCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONSOLE_SAFE' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_ERROR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CONTROL_ERROR_REASON_INTERNAL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CONTROL_ERROR_REASON_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CONTROL_ERROR_REASON_MONITOR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CONTROL_ERROR_REASON_NONE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CONTROL_ERROR_REASON_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_JOB' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_OCCUPIED' type='enum'/>
@@ -382,6 +388,9 @@
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_RESET' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_BOUNDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_CANCELLED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPLETED' type='enum'/>
@@ -434,6 +443,7 @@
      <exports symbol='VIR_DOMAIN_PAUSED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PAUSED_STARTING_UP' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_USER' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_WATCHDOG' type='enum'/>
@@ -645,6 +655,7 @@
      <exports symbol='virDomainBlockedReason' type='typedef'/>
      <exports symbol='virDomainChannelFlags' type='typedef'/>
      <exports symbol='virDomainConsoleFlags' type='typedef'/>
+     <exports symbol='virDomainControlErrorReason' type='typedef'/>
      <exports symbol='virDomainControlInfo' type='typedef'/>
      <exports symbol='virDomainControlInfoPtr' type='typedef'/>
      <exports symbol='virDomainControlState' type='typedef'/>
@@ -683,8 +694,15 @@
      <exports symbol='virDomainFSInfo' type='typedef'/>
      <exports symbol='virDomainFSInfoPtr' type='typedef'/>
      <exports symbol='virDomainGetJobStatsFlags' type='typedef'/>
+     <exports symbol='virDomainIOThreadInfo' type='typedef'/>
+     <exports symbol='virDomainIOThreadInfoPtr' type='typedef'/>
+     <exports symbol='virDomainIPAddress' type='typedef'/>
+     <exports symbol='virDomainIPAddressPtr' type='typedef'/>
      <exports symbol='virDomainInfo' type='typedef'/>
      <exports symbol='virDomainInfoPtr' type='typedef'/>
+     <exports symbol='virDomainInterface' type='typedef'/>
+     <exports symbol='virDomainInterfaceAddressesSource' type='typedef'/>
+     <exports symbol='virDomainInterfacePtr' type='typedef'/>
      <exports symbol='virDomainInterfaceStatsPtr' type='typedef'/>
      <exports symbol='virDomainInterfaceStatsStruct' type='typedef'/>
      <exports symbol='virDomainJobInfo' type='typedef'/>
@@ -739,7 +757,10 @@
      <exports symbol='_virDomainEventGraphicsSubject' type='struct'/>
      <exports symbol='_virDomainEventGraphicsSubjectIdentity' type='struct'/>
      <exports symbol='_virDomainFSInfo' type='struct'/>
+     <exports symbol='_virDomainIOThreadInfo' type='struct'/>
      <exports symbol='_virDomainInfo' type='struct'/>
+     <exports symbol='_virDomainInterface' type='struct'/>
+     <exports symbol='_virDomainInterfaceIPAddress' type='struct'/>
      <exports symbol='_virDomainInterfaceStats' type='struct'/>
      <exports symbol='_virDomainJobInfo' type='struct'/>
      <exports symbol='_virDomainMemoryStat' type='struct'/>
@@ -820,6 +841,7 @@
      <exports symbol='virDomainGetFSInfo' type='function'/>
      <exports symbol='virDomainGetHostname' type='function'/>
      <exports symbol='virDomainGetID' type='function'/>
+     <exports symbol='virDomainGetIOThreadInfo' type='function'/>
      <exports symbol='virDomainGetInfo' type='function'/>
      <exports symbol='virDomainGetInterfaceParameters' type='function'/>
      <exports symbol='virDomainGetJobInfo' type='function'/>
@@ -845,7 +867,10 @@
      <exports symbol='virDomainGetVcpusFlags' type='function'/>
      <exports symbol='virDomainGetXMLDesc' type='function'/>
      <exports symbol='virDomainHasManagedSaveImage' type='function'/>
+     <exports symbol='virDomainIOThreadInfoFree' type='function'/>
      <exports symbol='virDomainInjectNMI' type='function'/>
+     <exports symbol='virDomainInterfaceAddresses' type='function'/>
+     <exports symbol='virDomainInterfaceFree' type='function'/>
      <exports symbol='virDomainInterfaceStats' type='function'/>
      <exports symbol='virDomainIsActive' type='function'/>
      <exports symbol='virDomainIsPersistent' type='function'/>
@@ -877,6 +902,7 @@
      <exports symbol='virDomainPMSuspendForDuration' type='function'/>
      <exports symbol='virDomainPMWakeup' type='function'/>
      <exports symbol='virDomainPinEmulator' type='function'/>
+     <exports symbol='virDomainPinIOThread' type='function'/>
      <exports symbol='virDomainPinVcpu' type='function'/>
      <exports symbol='virDomainPinVcpuFlags' type='function'/>
      <exports symbol='virDomainReboot' type='function'/>
@@ -975,6 +1001,7 @@
      <exports symbol='VIR_UUID_BUFLEN' type='macro'/>
      <exports symbol='VIR_UUID_STRING_BUFLEN' type='macro'/>
      <exports symbol='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' type='enum'/>
+     <exports symbol='VIR_CONNECT_BASELINE_CPU_MIGRATABLE' type='enum'/>
      <exports symbol='VIR_CONNECT_CLOSE_REASON_CLIENT' type='enum'/>
      <exports symbol='VIR_CONNECT_CLOSE_REASON_EOF' type='enum'/>
      <exports symbol='VIR_CONNECT_CLOSE_REASON_ERROR' type='enum'/>
@@ -1637,6 +1664,7 @@
      <exports symbol='VIR_FROM_SYSINFO' type='enum'/>
      <exports symbol='VIR_FROM_SYSTEMD' type='enum'/>
      <exports symbol='VIR_FROM_TEST' type='enum'/>
+     <exports symbol='VIR_FROM_THREAD' type='enum'/>
      <exports symbol='VIR_FROM_UML' type='enum'/>
      <exports symbol='VIR_FROM_URI' type='enum'/>
      <exports symbol='VIR_FROM_VBOX' type='enum'/>
@@ -2015,6 +2043,9 @@
     <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' file='libvirt-domain'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' file='libvirt-domain'>
+      <info><![CDATA[Macro represents formatted pinning for one IOThread specified by id which is appended to the parameter name, for example "cputune.iothreadpin1", as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' file='libvirt-domain'>
       <info><![CDATA[Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
@@ -2150,6 +2181,7 @@
     <macro name='_virSchedParameter' file='libvirt-domain'>
     </macro>
     <enum name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' file='libvirt-host' value='1' type='virConnectBaselineCPUFlags' info='show all features'/>
+    <enum name='VIR_CONNECT_BASELINE_CPU_MIGRATABLE' file='libvirt-host' value='2' type='virConnectBaselineCPUFlags' info='filter out non-migratable features'/>
     <enum name='VIR_CONNECT_CLOSE_REASON_CLIENT' file='libvirt-host' value='3' type='virConnectCloseReason' info='Client requested it'/>
     <enum name='VIR_CONNECT_CLOSE_REASON_EOF' file='libvirt-host' value='1' type='virConnectCloseReason' info='End-of-file from server'/>
     <enum name='VIR_CONNECT_CLOSE_REASON_ERROR' file='libvirt-host' value='0' type='virConnectCloseReason' info='Misc I/O error'/>
@@ -2323,7 +2355,18 @@ connection to force a new
 connection'/>
     <enum name='VIR_DOMAIN_CONSOLE_SAFE' file='libvirt-domain' value='2' type='virDomainConsoleFlags' info='check if the console driver supports
 safe console operations'/>
-    <enum name='VIR_DOMAIN_CONTROL_ERROR' file='libvirt-domain' value='3' type='virDomainControlState' info='unusable, domain cannot be fully operated'/>
+    <enum name='VIR_DOMAIN_CONTROL_ERROR' file='libvirt-domain' value='3' type='virDomainControlState' info='unusable, domain cannot be fully
+operated, possible reason is provided
+in the details field'/>
+    <enum name='VIR_DOMAIN_CONTROL_ERROR_REASON_INTERNAL' file='libvirt-domain' value='3' type='virDomainControlErrorReason' info='error caused due to
+internal failure in libvirt'/>
+    <enum name='VIR_DOMAIN_CONTROL_ERROR_REASON_LAST' file='libvirt-domain' value='4' type='virDomainControlErrorReason'/>
+    <enum name='VIR_DOMAIN_CONTROL_ERROR_REASON_MONITOR' file='libvirt-domain' value='2' type='virDomainControlErrorReason' info='monitor connection is
+broken'/>
+    <enum name='VIR_DOMAIN_CONTROL_ERROR_REASON_NONE' file='libvirt-domain' value='0' type='virDomainControlErrorReason' info='server didn&apos;t provide a
+reason'/>
+    <enum name='VIR_DOMAIN_CONTROL_ERROR_REASON_UNKNOWN' file='libvirt-domain' value='1' type='virDomainControlErrorReason' info='unknown reason for the
+error'/>
     <enum name='VIR_DOMAIN_CONTROL_JOB' file='libvirt-domain' value='1' type='virDomainControlState' info='background job is running (can be
 monitored by virDomainGetJobInfo); only
 limited set of commands may be allowed'/>
@@ -2451,6 +2494,9 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' file='libvirt-domain' value='3' type='virDomainEventWatchdogAction' info='Guest is forcibly powered off'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_RESET' file='libvirt-domain' value='2' type='virDomainEventWatchdogAction' info='Guest CPUs are reset'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN' file='libvirt-domain' value='4' type='virDomainEventWatchdogAction' info='Guest is requested to gracefully shutdown'/>
+    <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT' file='libvirt-domain' value='1' type='virDomainInterfaceAddressesSource' info='Query qemu guest agent'/>
+    <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST' file='libvirt-domain' value='2' type='virDomainInterfaceAddressesSource'/>
+    <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE' file='libvirt-domain' value='0' type='virDomainInterfaceAddressesSource' info='Parse DHCP lease file'/>
     <enum name='VIR_DOMAIN_JOB_BOUNDED' file='libvirt-domain' value='1' type='virDomainJobType' info='Job with a finite completion time'/>
     <enum name='VIR_DOMAIN_JOB_CANCELLED' file='libvirt-domain' value='5' type='virDomainJobType' info='Job was aborted, but isn&apos;t cleaned up'/>
     <enum name='VIR_DOMAIN_JOB_COMPLETED' file='libvirt-domain' value='3' type='virDomainJobType' info='Job has finished, but isn&apos;t cleaned up'/>
@@ -2511,11 +2557,12 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PAUSED_DUMP' file='libvirt-domain' value='4' type='virDomainPausedReason' info='paused for offline core dump'/>
     <enum name='VIR_DOMAIN_PAUSED_FROM_SNAPSHOT' file='libvirt-domain' value='7' type='virDomainPausedReason' info='paused after restoring from snapshot'/>
     <enum name='VIR_DOMAIN_PAUSED_IOERROR' file='libvirt-domain' value='5' type='virDomainPausedReason' info='paused due to a disk I/O error'/>
-    <enum name='VIR_DOMAIN_PAUSED_LAST' file='libvirt-domain' value='11' type='virDomainPausedReason'/>
+    <enum name='VIR_DOMAIN_PAUSED_LAST' file='libvirt-domain' value='12' type='virDomainPausedReason'/>
     <enum name='VIR_DOMAIN_PAUSED_MIGRATION' file='libvirt-domain' value='2' type='virDomainPausedReason' info='paused for offline migration'/>
     <enum name='VIR_DOMAIN_PAUSED_SAVE' file='libvirt-domain' value='3' type='virDomainPausedReason' info='paused for save'/>
     <enum name='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' file='libvirt-domain' value='8' type='virDomainPausedReason' info='paused during shutdown process'/>
     <enum name='VIR_DOMAIN_PAUSED_SNAPSHOT' file='libvirt-domain' value='9' type='virDomainPausedReason' info='paused while creating a snapshot'/>
+    <enum name='VIR_DOMAIN_PAUSED_STARTING_UP' file='libvirt-domain' value='11' type='virDomainPausedReason' info='the domain is being started'/>
     <enum name='VIR_DOMAIN_PAUSED_UNKNOWN' file='libvirt-domain' value='0' type='virDomainPausedReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_PAUSED_USER' file='libvirt-domain' value='1' type='virDomainPausedReason' info='paused on user request'/>
     <enum name='VIR_DOMAIN_PAUSED_WATCHDOG' file='libvirt-domain' value='6' type='virDomainPausedReason' info='paused due to a watchdog event'/>
@@ -2750,7 +2797,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='61' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='62' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2838,7 +2885,7 @@ risky domain snapshot revert'/>
     <enum name='VIR_ERR_XML_DETAIL' file='virterror' value='35' type='virErrorNumber' info='detail of an XML error'/>
     <enum name='VIR_ERR_XML_ERROR' file='virterror' value='27' type='virErrorNumber' info='an XML description is not well
 formed or broken'/>
-    <enum name='VIR_ERR_XML_INVALID_SCHEMA' file='virterror' value='92' type='virErrorNumber' info='XML document doens&apos;t validate against schema'/>
+    <enum name='VIR_ERR_XML_INVALID_SCHEMA' file='virterror' value='92' type='virErrorNumber' info='XML document doesn&apos;t validate against schema'/>
     <enum name='VIR_EVENT_HANDLE_ERROR' file='libvirt-event' value='4' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_HANGUP' file='libvirt-event' value='8' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt-event' value='1' type='virEventHandleType'/>
@@ -2895,6 +2942,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_FROM_SYSINFO' file='virterror' value='37' type='virErrorDomain' info='Error from sysinfo/SMBIOS'/>
     <enum name='VIR_FROM_SYSTEMD' file='virterror' value='56' type='virErrorDomain' info='Error from systemd code'/>
     <enum name='VIR_FROM_TEST' file='virterror' value='12' type='virErrorDomain' info='Error from test driver'/>
+    <enum name='VIR_FROM_THREAD' file='virterror' value='61' type='virErrorDomain' info='Error from thread utils'/>
     <enum name='VIR_FROM_UML' file='virterror' value='21' type='virErrorDomain' info='Error at the UML driver'/>
     <enum name='VIR_FROM_URI' file='virterror' value='45' type='virErrorDomain' info='Error from URI handling'/>
     <enum name='VIR_FROM_VBOX' file='virterror' value='25' type='virErrorDomain' info='Error from VirtualBox driver'/>
@@ -3168,9 +3216,11 @@ Cryptography&quot; (1996)'/>
     <typedef name='virDomainBlockedReason' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainChannelFlags' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainConsoleFlags' file='libvirt-domain' type='enum'/>
+    <typedef name='virDomainControlErrorReason' file='libvirt-domain' type='enum'/>
     <struct name='virDomainControlInfo' file='libvirt-domain' type='struct _virDomainControlInfo'>
       <field name='state' type='unsigned int' info='control state, one of virDomainControlState'/>
-      <field name='details' type='unsigned int' info='state details, currently 0'/>
+      <field name='details' type='unsigned int' info='state details, currently 0 except for ERROR
+state (one of virDomainControlErrorReason)'/>
       <field name='stateTime' type='unsigned long long' info='for how long (in msec) control interface
 has been in current state (except for OK
 and ERROR states)'/>
@@ -3233,6 +3283,18 @@ and ERROR states)'/>
     </struct>
     <typedef name='virDomainFSInfoPtr' file='libvirt-domain' type='virDomainFSInfo *'/>
     <typedef name='virDomainGetJobStatsFlags' file='libvirt-domain' type='enum'/>
+    <struct name='virDomainIOThreadInfo' file='libvirt-domain' type='struct _virDomainIOThreadInfo'>
+      <field name='iothread_id' type='unsigned int' info='IOThread ID'/>
+      <field name='cpumap' type='unsigned char *' info='CPU map for thread. A pointer to an array of real CPUs (in 8-bit bytes)'/>
+      <field name='cpumaplen' type='int' info='cpumap size'/>
+    </struct>
+    <typedef name='virDomainIOThreadInfoPtr' file='libvirt-domain' type='virDomainIOThreadInfo *'/>
+    <struct name='virDomainIPAddress' file='libvirt-domain' type='struct _virDomainInterfaceIPAddress'>
+      <field name='type' type='int' info='virIPAddrType'/>
+      <field name='addr' type='char *' info='IP address'/>
+      <field name='prefix' type='unsigned int' info='IP address prefix'/>
+    </struct>
+    <typedef name='virDomainIPAddressPtr' file='libvirt-domain' type='virDomainIPAddress *'/>
     <struct name='virDomainInfo' file='libvirt-domain' type='struct _virDomainInfo'>
       <field name='state' type='unsigned char' info='the running state, one of virDomainState'/>
       <field name='maxMem' type='unsigned long' info='the maximum memory in KBytes allowed'/>
@@ -3243,6 +3305,14 @@ and ERROR states)'/>
     <typedef name='virDomainInfoPtr' file='libvirt-domain' type='virDomainInfo *'>
       <info><![CDATA[a virDomainInfoPtr is a pointer to a virDomainInfo structure.]]></info>
     </typedef>
+    <struct name='virDomainInterface' file='libvirt-domain' type='struct _virDomainInterface'>
+      <field name='name' type='char *' info='interface name'/>
+      <field name='hwaddr' type='char *' info='hardware address, may be NULL'/>
+      <field name='naddrs' type='unsigned int' info='number of items in @addrs'/>
+      <field name='addrs' type='virDomainIPAddressPtr' info='array of IP addresses'/>
+    </struct>
+    <typedef name='virDomainInterfaceAddressesSource' file='libvirt-domain' type='enum'/>
+    <typedef name='virDomainInterfacePtr' file='libvirt-domain' type='virDomainInterface *'/>
     <typedef name='virDomainInterfaceStatsPtr' file='libvirt-domain' type='virDomainInterfaceStatsStruct *'>
       <info><![CDATA[A pointer to a virDomainInterfaceStats structure]]></info>
     </typedef>
@@ -3618,7 +3688,10 @@ host CPUs.
 If @flags includes VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES then libvirt
 will explicitly list all CPU features that are part of the host CPU,
 without this flag features that are part of the CPU model will not be
-listed.]]></info>
+listed.
+
+If @flags includes VIR_CONNECT_BASELINE_CPU_MIGRATABLE, the resulting
+CPU will not include features that block migration.]]></info>
       <return type='char *' info='XML description of the computed CPU (caller frees) or NULL on error.'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='xmlCPUs' type='const char **' info='array of XML descriptions of host CPUs'/>
@@ -5598,7 +5671,14 @@ having hot-unplug semantics, is only allowed on an active domain.
 
 Be aware that hotplug changes might not persist across a domain going
 into S4 state (also known as hibernation) unless you also modify the
-persistent domain definition.]]></info>
+persistent domain definition.
+
+The supplied XML description of the device should be as specific
+as its definition in the domain XML. The set of attributes used
+to match the device are internal to the drivers. Using a partial definition,
+or attempting to detach a device that is not present in the domain XML,
+but shares some specific attributes with one that is present,
+may lead to unexpected results.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
@@ -5638,7 +5718,14 @@ removal to complete in case it was not synchronous.
 
 Be aware that hotplug changes might not persist across a domain going
 into S4 state (also known as hibernation) unless you also modify the
-persistent domain definition.]]></info>
+persistent domain definition.
+
+The supplied XML description of the device should be as specific
+as its definition in the domain XML. The set of attributes used
+to match the device are internal to the drivers. Using a partial definition,
+or attempting to detach a device that is not present in the domain XML,
+but shares some specific attributes with one that is present,
+may lead to unexpected results.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
@@ -5975,6 +6062,14 @@ available.]]></info>
       <info><![CDATA[Get the hypervisor ID number for the domain]]></info>
       <return type='unsigned int' info='the domain ID number or (unsigned int) -1 in case of error'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
+    </function>
+    <function name='virDomainGetIOThreadInfo' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Fetch IOThreads of an active domain including the cpumap information to
+determine on which CPU the IOThread has affinity to run.]]></info>
+      <return type='int' info='the number of IOThreads or -1 in case of error. On success, the array of information is stored into @info. The caller is responsible for calling virDomainIOThreadInfoFree() on each array element, then calling free() on @info. On error, @info is set to NULL.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='info' type='virDomainIOThreadInfoPtr **' info='pointer to an array of virDomainIOThreadInfo structures (OUT)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact Must not be VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CONFIG concurrently.'/>
     </function>
     <function name='virDomainGetInfo' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Extract information about a domain. Note that if the connection
@@ -6314,11 +6409,82 @@ such an image, as it should have been removed on restart.]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
+    <function name='virDomainIOThreadInfoFree' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Frees the memory used by @info.]]></info>
+      <return type='void'/>
+      <arg name='info' type='virDomainIOThreadInfoPtr' info='pointer to a virDomainIOThreadInfo object'/>
+    </function>
     <function name='virDomainInjectNMI' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Send NMI to the guest]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainInterfaceAddresses' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Return a pointer to the allocated array of pointers to interfaces
+present in given domain along with their IP and MAC addresses. Note that
+single interface can have multiple or even 0 IP addresses.
+
+This API dynamically allocates the virDomainInterfacePtr struct based on
+how many interfaces domain @dom has, usually there's 1:1 correlation. The
+count of the interfaces is returned as the return value.
+
+If @source is VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE, the DHCP lease
+file associated with any virtual networks will be examined to obtain
+the interface addresses. This only returns data for interfaces which
+are connected to virtual networks managed by libvirt.
+
+If @source is VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, a configured
+guest agent is needed for successful return from this API. Moreover, if
+guest agent is used then the interface name is the one seen by guest OS.
+To match such interface with the one from @dom XML use MAC address or IP
+range.
+
+@ifaces->name and @ifaces->hwaddr are never NULL.
+
+The caller *must* free @ifaces when no longer needed. Usual use case
+looks like this:
+
+ virDomainInterfacePtr *ifaces = NULL;
+ int ifaces_count = 0;
+ size_t i, j;
+ virDomainPtr dom = ... obtain a domain here ...;
+
+ if ((ifaces_count = virDomainInterfaceAddresses(dom, &ifaces,
+          VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)) < 0)
+     goto cleanup;
+
+ ... do something with returned values, for example:
+ for (i = 0; i < ifaces_count; i++) {
+     printf("name: %s", ifaces[i]->name);
+     if (ifaces[i]->hwaddr)
+         printf(" hwaddr: %s", ifaces[i]->hwaddr);
+
+     for (j = 0; j < ifaces[i]->naddrs; j++) {
+         virDomainIPAddressPtr ip_addr = ifaces[i]->addrs + j;
+         printf("[addr: %s prefix: %d type: %d]",
+                ip_addr->addr, ip_addr->prefix, ip_addr->type);
+     }
+     printf("\n");
+ }
+
+ cleanup:
+     if (ifaces && ifaces_count > 0)
+         for (i = 0; i < ifaces_count; i++)
+             virDomainInterfaceFree(ifaces[i]);
+     free(ifaces);]]></info>
+      <return type='int' info='the number of interfaces on success, -1 in case of error.'/>
+      <arg name='dom' type='virDomainPtr' info='domain object'/>
+      <arg name='ifaces' type='virDomainInterfacePtr **' info='pointer to an array of pointers pointing to interface objects'/>
+      <arg name='source' type='unsigned int' info='one of the virDomainInterfaceAddressesSource constants'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass zero'/>
+    </function>
+    <function name='virDomainInterfaceFree' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Free the interface object. The data structure is
+freed and should not be used thereafter. If @iface
+is NULL, then this method has no effect.]]></info>
+      <return type='void'/>
+      <arg name='iface' type='virDomainInterfacePtr' info='an interface object'/>
     </function>
     <function name='virDomainInterfaceStats' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[This function returns network interface stats for interfaces
@@ -7118,6 +7284,29 @@ See also virDomainGetEmulatorPinInfo for querying this information.]]></info>
       <arg name='maplen' type='int' info='number of bytes in cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). If maplen &lt; size, missing bytes are set to zero. If maplen &gt; size, failure code is returned.'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
+    <function name='virDomainPinIOThread' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Dynamically change the real CPUs which can be allocated to an IOThread.
+This function may require privileged access to the hypervisor.
+
+@flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
+Both flags may be set.
+If VIR_DOMAIN_AFFECT_LIVE is set, the change affects a running domain
+and may fail if domain is not alive.
+If VIR_DOMAIN_AFFECT_CONFIG is set, the change affects persistent state,
+and will fail for transient domains. If neither flag is specified (that is,
+@flags is VIR_DOMAIN_AFFECT_CURRENT), then an inactive domain modifies
+persistent setup, while an active domain is hypervisor-dependent on whether
+just live or both live and persistent state is changed.
+Not all hypervisors can support all flag combinations.
+
+See also virDomainGetIOThreadInfo for querying this information.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='iothread_id' type='unsigned int' info='the IOThread ID to set the CPU affinity'/>
+      <arg name='cpumap' type='unsigned char *' info='pointer to a bit map of real CPUs (in 8-bit bytes) (IN) Each bit set to 1 means that corresponding CPU is usable. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit.'/>
+      <arg name='maplen' type='int' info='number of bytes in cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). If maplen &lt; size, missing bytes are set to zero. If maplen &gt; size, failure code is returned.'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
     <function name='virDomainPinVcpu' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Dynamically change the real CPUs which can be allocated to a virtual CPU.
 This function may require privileged access to the hypervisor.
@@ -7527,7 +7716,10 @@ Not all hypervisors can support all flag combinations.]]></info>
     </function>
     <function name='virDomainSetMemoryParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Change all or a subset of the memory tunables.
-This function may require privileged access to the hypervisor.]]></info>
+This function may require privileged access to the hypervisor.
+
+Possible values for all *_limit memory tunables are in range from 0 to
+VIR_DOMAIN_MEMORY_PARAM_UNLIMITED.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to memory parameter objects'/>
@@ -8542,7 +8734,8 @@ undefined) if virInterfaceChangeRollback() is called.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virInterfaceDefineXML' file='libvirt-interface' module='libvirt-interface'>
-      <info><![CDATA[Define an interface (or modify existing interface configuration).
+      <info><![CDATA[Define an inactive persistent physical host interface or modify an existing
+persistent one from the XML description.
 
 Normally this change in the interface configuration is immediately
 permanent/persistent, but if virInterfaceChangeBegin() has been
@@ -8781,7 +8974,8 @@ network object is no longer needed.]]></info>
       <arg name='lease' type='virNetworkDHCPLeasePtr' info='pointer to a leases object'/>
     </function>
     <function name='virNetworkDefineXML' file='libvirt-network' module='libvirt-network'>
-      <info><![CDATA[Define a network, but does not create it
+      <info><![CDATA[Define an inactive persistent virtual network or modify an existing
+persistent one from the XML description.
 
 virNetworkFree should be used to free the resources after the
 network object is no longer needed.]]></info>
@@ -9594,8 +9788,8 @@ storage pool object is no longer needed.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStoragePoolDefineXML' file='libvirt-storage' module='libvirt-storage'>
-      <info><![CDATA[Define a new inactive storage pool based on its XML description. The
-pool is persistent, until explicitly undefined.
+      <info><![CDATA[Define an inactive persistent storage pool or modify an existing persistent
+one from the XML description.
 
 virStoragePoolFree should be used to free the resources after the
 storage pool object is no longer needed.]]></info>

@@ -51,6 +51,12 @@
 /* currently, /sbin/tc implementation allows up to 16 bits for minor class size */
 #define CLASS_ID_BITMAP_SIZE (1<<16)
 
+struct _virNetworkObjList {
+    virObjectLockable parent;
+
+    virHashTablePtr objs;
+};
+
 VIR_ENUM_IMPL(virNetworkForward,
               VIR_NETWORK_FORWARD_LAST,
               "none", "nat", "route", "bridge", "private", "vepa", "passthrough", "hostdev")
@@ -73,6 +79,193 @@ VIR_ENUM_IMPL(virNetworkForwardDriverName,
 VIR_ENUM_IMPL(virNetworkTaint, VIR_NETWORK_TAINT_LAST,
               "hook-script");
 
+static virClassPtr virNetworkObjClass;
+static virClassPtr virNetworkObjListClass;
+static void virNetworkObjDispose(void *obj);
+static void virNetworkObjListDispose(void *obj);
+
+static int virNetworkObjOnceInit(void)
+{
+    if (!(virNetworkObjClass = virClassNew(virClassForObjectLockable(),
+                                           "virNetworkObj",
+                                           sizeof(virNetworkObj),
+                                           virNetworkObjDispose)))
+        return -1;
+
+    if (!(virNetworkObjListClass = virClassNew(virClassForObjectLockable(),
+                                               "virNetworkObjList",
+                                               sizeof(virNetworkObjList),
+                                               virNetworkObjListDispose)))
+        return -1;
+    return 0;
+}
+
+
+VIR_ONCE_GLOBAL_INIT(virNetworkObj)
+
+virNetworkObjPtr
+virNetworkObjNew(void)
+{
+    virNetworkObjPtr net;
+
+    if (virNetworkObjInitialize() < 0)
+        return NULL;
+
+    if (!(net = virObjectLockableNew(virNetworkObjClass)))
+        return NULL;
+
+    if (!(net->class_id = virBitmapNew(CLASS_ID_BITMAP_SIZE)))
+        goto error;
+
+    /* The first three class IDs are already taken */
+    ignore_value(virBitmapSetBit(net->class_id, 0));
+    ignore_value(virBitmapSetBit(net->class_id, 1));
+    ignore_value(virBitmapSetBit(net->class_id, 2));
+
+    return net;
+
+ error:
+    virObjectUnref(net);
+    return NULL;
+}
+
+void
+virNetworkObjEndAPI(virNetworkObjPtr *net)
+{
+    if (!*net)
+        return;
+
+    virObjectUnlock(*net);
+    virObjectUnref(*net);
+    *net = NULL;
+}
+
+virNetworkObjListPtr virNetworkObjListNew(void)
+{
+    virNetworkObjListPtr nets;
+
+    if (virNetworkObjInitialize() < 0)
+        return NULL;
+
+    if (!(nets = virObjectLockableNew(virNetworkObjListClass)))
+        return NULL;
+
+    if (!(nets->objs = virHashCreate(50, virObjectFreeHashData))) {
+        virObjectUnref(nets);
+        return NULL;
+    }
+
+    return nets;
+}
+
+/**
+ * virNetworkObjFindByUUIDLocked:
+ * @nets: list of network objects
+ * @uuid: network uuid to find
+ *
+ * This functions requires @nets to be locked already!
+ *
+ * Returns: not locked, but ref'd network object.
+ */
+virNetworkObjPtr
+virNetworkObjFindByUUIDLocked(virNetworkObjListPtr nets,
+                              const unsigned char *uuid)
+{
+    virNetworkObjPtr ret = NULL;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+    virUUIDFormat(uuid, uuidstr);
+
+    ret = virHashLookup(nets->objs, uuidstr);
+    if (ret)
+        virObjectRef(ret);
+    return ret;
+}
+
+/**
+ * virNetworkObjFindByUUID:
+ * @nets: list of network objects
+ * @uuid: network uuid to find
+ *
+ * This functions locks @nets and find network object which
+ * corresponds to @uuid.
+ *
+ * Returns: locked and ref'd network object.
+ */
+virNetworkObjPtr
+virNetworkObjFindByUUID(virNetworkObjListPtr nets,
+                        const unsigned char *uuid)
+{
+    virNetworkObjPtr ret;
+
+    virObjectLock(nets);
+    ret = virNetworkObjFindByUUIDLocked(nets, uuid);
+    virObjectUnlock(nets);
+    if (ret)
+        virObjectLock(ret);
+    return ret;
+}
+
+static int
+virNetworkObjSearchName(const void *payload,
+                        const void *name ATTRIBUTE_UNUSED,
+                        const void *data)
+{
+    virNetworkObjPtr net = (virNetworkObjPtr) payload;
+    int want = 0;
+
+    virObjectLock(net);
+    if (STREQ(net->def->name, (const char *)data))
+        want = 1;
+    virObjectUnlock(net);
+    return want;
+}
+
+/*
+ * virNetworkObjFindByNameLocked:
+ * @nets: list of network objects
+ * @name: network name to find
+ *
+ * This functions requires @nets to be locked already!
+ *
+ * Returns: not locked, but ref'd network object.
+ */
+virNetworkObjPtr
+virNetworkObjFindByNameLocked(virNetworkObjListPtr nets,
+                              const char *name)
+{
+    virNetworkObjPtr ret = NULL;
+
+    ret = virHashSearch(nets->objs, virNetworkObjSearchName, name);
+    if (ret)
+        virObjectRef(ret);
+    return ret;
+}
+
+/**
+ * virNetworkObjFindByName:
+ * @nets: list of network objects
+ * @name: network name to find
+ *
+ * This functions locks @nets and find network object which
+ * corresponds to @name.
+ *
+ * Returns: locked and ref'd network object.
+ */
+virNetworkObjPtr
+virNetworkObjFindByName(virNetworkObjListPtr nets,
+                        const char *name)
+{
+    virNetworkObjPtr ret;
+
+    virObjectLock(nets);
+    ret = virNetworkObjFindByNameLocked(nets, name);
+    virObjectUnlock(nets);
+    if (ret)
+        virObjectLock(ret);
+    return ret;
+}
+
 bool
 virNetworkObjTaint(virNetworkObjPtr obj,
                    virNetworkTaintFlags taint)
@@ -84,36 +277,6 @@ virNetworkObjTaint(virNetworkObjPtr obj,
 
     obj->taint |= flag;
     return true;
-}
-
-virNetworkObjPtr virNetworkFindByUUID(virNetworkObjListPtr nets,
-                                      const unsigned char *uuid)
-{
-    size_t i;
-
-    for (i = 0; i < nets->count; i++) {
-        virNetworkObjLock(nets->objs[i]);
-        if (!memcmp(nets->objs[i]->def->uuid, uuid, VIR_UUID_BUFLEN))
-            return nets->objs[i];
-        virNetworkObjUnlock(nets->objs[i]);
-    }
-
-    return NULL;
-}
-
-virNetworkObjPtr virNetworkFindByName(virNetworkObjListPtr nets,
-                                      const char *name)
-{
-    size_t i;
-
-    for (i = 0; i < nets->count; i++) {
-        virNetworkObjLock(nets->objs[i]);
-        if (STREQ(nets->objs[i]->def->name, name))
-            return nets->objs[i];
-        virNetworkObjUnlock(nets->objs[i]);
-    }
-
-    return NULL;
 }
 
 
@@ -261,29 +424,22 @@ virNetworkDefFree(virNetworkDefPtr def)
     VIR_FREE(def);
 }
 
-void virNetworkObjFree(virNetworkObjPtr net)
+static void
+virNetworkObjDispose(void *obj)
 {
-    if (!net)
-        return;
+    virNetworkObjPtr net = obj;
 
     virNetworkDefFree(net->def);
     virNetworkDefFree(net->newDef);
     virBitmapFree(net->class_id);
-
-    virMutexDestroy(&net->lock);
-
-    VIR_FREE(net);
 }
 
-void virNetworkObjListFree(virNetworkObjListPtr nets)
+static void
+virNetworkObjListDispose(void *obj)
 {
-    size_t i;
+    virNetworkObjListPtr nets = obj;
 
-    for (i = 0; i < nets->count; i++)
-        virNetworkObjFree(nets->objs[i]);
-
-    VIR_FREE(nets->objs);
-    nets->count = 0;
+    virHashFree(nets->objs);
 }
 
 /*
@@ -348,58 +504,108 @@ virNetworkObjAssignDef(virNetworkObjPtr network,
 }
 
 /*
+ * If flags & VIR_NETWORK_OBJ_LIST_ADD_CHECK_LIVE then this will
+ * refuse updating an existing def if the current def is live
+ *
+ * If flags & VIR_NETWORK_OBJ_LIST_ADD_LIVE then the @def being
+ * added is assumed to represent a live config, not a future
+ * inactive config
+ *
+ * If flags is zero, network is considered as inactive and persistent.
+ */
+static virNetworkObjPtr
+virNetworkAssignDefLocked(virNetworkObjListPtr nets,
+                          virNetworkDefPtr def,
+                          unsigned int flags)
+{
+    virNetworkObjPtr network;
+    virNetworkObjPtr ret = NULL;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+    /* See if a network with matching UUID already exists */
+    if ((network = virNetworkObjFindByUUIDLocked(nets, def->uuid))) {
+        virObjectLock(network);
+        /* UUID matches, but if names don't match, refuse it */
+        if (STRNEQ(network->def->name, def->name)) {
+            virUUIDFormat(network->def->uuid, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("network '%s' is already defined with uuid %s"),
+                           network->def->name, uuidstr);
+            goto cleanup;
+        }
+
+        if (flags & VIR_NETWORK_OBJ_LIST_ADD_CHECK_LIVE) {
+            /* UUID & name match, but if network is already active, refuse it */
+            if (virNetworkObjIsActive(network)) {
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("network is already active as '%s'"),
+                               network->def->name);
+                goto cleanup;
+            }
+        }
+
+        virNetworkObjAssignDef(network,
+                               def,
+                               !!(flags & VIR_NETWORK_OBJ_LIST_ADD_LIVE));
+    } else {
+        /* UUID does not match, but if a name matches, refuse it */
+        if ((network = virNetworkObjFindByNameLocked(nets, def->name))) {
+            virObjectLock(network);
+            virUUIDFormat(network->def->uuid, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("network '%s' already exists with uuid %s"),
+                           def->name, uuidstr);
+            goto cleanup;
+        }
+
+        if (!(network = virNetworkObjNew()))
+              goto cleanup;
+
+        virObjectLock(network);
+
+        virUUIDFormat(def->uuid, uuidstr);
+        if (virHashAddEntry(nets->objs, uuidstr, network) < 0)
+            goto cleanup;
+
+        network->def = def;
+        network->persistent = !(flags & VIR_NETWORK_OBJ_LIST_ADD_LIVE);
+        virObjectRef(network);
+    }
+
+    ret = network;
+    network = NULL;
+
+ cleanup:
+    virNetworkObjEndAPI(&network);
+    return ret;
+}
+
+/*
  * virNetworkAssignDef:
  * @nets: list of all networks
  * @def: the new NetworkDef (will be consumed by this function iff successful)
- * @live: is this new def the "live" version, or the "persistent" version
+ * @flags: bitwise-OR of VIR_NETWORK_OBJ_LIST_ADD_* flags
  *
  * Either replace the appropriate copy of the NetworkDef with name
  * matching def->name or, if not found, create a new NetworkObj with
  * def. For an existing network, use "live" and current state of the
  * network to determine which to replace.
  *
+ * Look at virNetworkAssignDefLocked() for @flags description.
+ *
  * Returns NULL on error, virNetworkObjPtr on success.
  */
 virNetworkObjPtr
 virNetworkAssignDef(virNetworkObjListPtr nets,
                     virNetworkDefPtr def,
-                    bool live)
+                    unsigned int flags)
 {
     virNetworkObjPtr network;
 
-    if ((network = virNetworkFindByName(nets, def->name))) {
-        virNetworkObjAssignDef(network, def, live);
-        return network;
-    }
-
-    if (VIR_ALLOC(network) < 0)
-        return NULL;
-    if (virMutexInit(&network->lock) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("cannot initialize mutex"));
-        VIR_FREE(network);
-        return NULL;
-    }
-    virNetworkObjLock(network);
-
-    if (VIR_APPEND_ELEMENT_COPY(nets->objs, nets->count, network) < 0 ||
-        !(network->class_id = virBitmapNew(CLASS_ID_BITMAP_SIZE)))
-        goto error;
-
-    /* The first three class IDs are already taken */
-    ignore_value(virBitmapSetBit(network->class_id, 0));
-    ignore_value(virBitmapSetBit(network->class_id, 1));
-    ignore_value(virBitmapSetBit(network->class_id, 2));
-
-    network->def = def;
-    network->persistent = !live;
+    virObjectLock(nets);
+    network = virNetworkAssignDefLocked(nets, def, flags);
+    virObjectUnlock(nets);
     return network;
-
- error:
-    virNetworkObjUnlock(network);
-    virNetworkObjFree(network);
-    return NULL;
-
 }
 
 /*
@@ -563,20 +769,16 @@ virNetworkConfigChangeSetup(virNetworkObjPtr network, unsigned int flags)
 void virNetworkRemoveInactive(virNetworkObjListPtr nets,
                               virNetworkObjPtr net)
 {
-    size_t i;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    virNetworkObjUnlock(net);
-    for (i = 0; i < nets->count; i++) {
-        virNetworkObjLock(nets->objs[i]);
-        if (nets->objs[i] == net) {
-            virNetworkObjUnlock(nets->objs[i]);
-            virNetworkObjFree(nets->objs[i]);
-
-            VIR_DELETE_ELEMENT(nets->objs, i, nets->count);
-            break;
-        }
-        virNetworkObjUnlock(nets->objs[i]);
-    }
+    virUUIDFormat(net->def->uuid, uuidstr);
+    virObjectRef(net);
+    virObjectUnlock(net);
+    virObjectLock(nets);
+    virObjectLock(net);
+    virHashRemoveEntry(nets->objs, uuidstr);
+    virObjectUnlock(nets);
+    virObjectUnref(net);
 }
 
 /* return ips[index], or NULL if there aren't enough ips */
@@ -2856,7 +3058,7 @@ virNetworkLoadState(virNetworkObjListPtr nets,
     }
 
     /* create the object */
-    if (!(net = virNetworkAssignDef(nets, def, true)))
+    if (!(net = virNetworkAssignDef(nets, def, VIR_NETWORK_OBJ_LIST_ADD_LIVE)))
         goto error;
     /* do not put any "goto error" below this comment */
 
@@ -2933,7 +3135,7 @@ virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
         def->mac_specified = false;
     }
 
-    if (!(net = virNetworkAssignDef(nets, def, false)))
+    if (!(net = virNetworkAssignDef(nets, def, 0)))
         goto error;
 
     net->autostart = autostart;
@@ -2976,8 +3178,8 @@ virNetworkLoadAllState(virNetworkObjListPtr nets,
         if (!virFileStripSuffix(entry->d_name, ".xml"))
             continue;
 
-        if ((net = virNetworkLoadState(nets, stateDir, entry->d_name)))
-            virNetworkObjUnlock(net);
+        net = virNetworkLoadState(nets, stateDir, entry->d_name);
+        virNetworkObjEndAPI(&net);
     }
 
     closedir(dir);
@@ -3017,8 +3219,7 @@ int virNetworkLoadAllConfigs(virNetworkObjListPtr nets,
                                    configDir,
                                    autostartDir,
                                    entry->d_name);
-        if (net)
-            virNetworkObjUnlock(net);
+        virNetworkObjEndAPI(&net);
     }
 
     closedir(dir);
@@ -3040,6 +3241,7 @@ int virNetworkDeleteConfig(const char *configDir,
 
     /* Not fatal if this doesn't work */
     unlink(autostartLink);
+    net->autostart = 0;
 
     if (unlink(configFile) < 0) {
         virReportSystemError(errno,
@@ -3065,23 +3267,41 @@ char *virNetworkConfigFile(const char *dir,
     return ret;
 }
 
+struct virNetworkBridgeInUseHelperData {
+    const char *bridge;
+    const char *skipname;
+};
+
+static int
+virNetworkBridgeInUseHelper(const void *payload,
+                            const void *name ATTRIBUTE_UNUSED,
+                            const void *opaque)
+{
+    int ret = 0;
+    virNetworkObjPtr net = (virNetworkObjPtr) payload;
+    const struct virNetworkBridgeInUseHelperData *data = opaque;
+
+    virObjectLock(net);
+    if (net->def->bridge &&
+        STREQ(net->def->bridge, data->bridge) &&
+        !(data->skipname && STREQ(net->def->name, data->skipname)))
+        ret = 1;
+    virObjectUnlock(net);
+    return ret;
+}
+
 int virNetworkBridgeInUse(virNetworkObjListPtr nets,
                           const char *bridge,
                           const char *skipname)
 {
-    size_t i;
-    unsigned int ret = 0;
+    virNetworkObjPtr obj;
+    struct virNetworkBridgeInUseHelperData data = {bridge, skipname};
 
-    for (i = 0; i < nets->count; i++) {
-        virNetworkObjLock(nets->objs[i]);
-        if (nets->objs[i]->def->bridge &&
-            STREQ(nets->objs[i]->def->bridge, bridge) &&
-            !(skipname && STREQ(nets->objs[i]->def->name, skipname)))
-                ret = 1;
-        virNetworkObjUnlock(nets->objs[i]);
-    }
+    virObjectLock(nets);
+    obj = virHashSearch(nets->objs, virNetworkBridgeInUseHelper, &data);
+    virObjectUnlock(nets);
 
-    return ret;
+    return obj != NULL;
 }
 
 char *virNetworkAllocateBridge(virNetworkObjListPtr nets,
@@ -4128,79 +4348,6 @@ virNetworkObjUpdate(virNetworkObjPtr network,
     return ret;
 }
 
-/*
- * virNetworkObjIsDuplicate:
- * @doms : virNetworkObjListPtr to search
- * @def  : virNetworkDefPtr definition of network to lookup
- * @check_active: If true, ensure that network is not active
- *
- * Returns: -1 on error
- *          0 if network is new
- *          1 if network is a duplicate
- */
-int
-virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
-                         virNetworkDefPtr def,
-                         bool check_active)
-{
-    int ret = -1;
-    virNetworkObjPtr vm = NULL;
-
-    /* See if a VM with matching UUID already exists */
-    vm = virNetworkFindByUUID(doms, def->uuid);
-    if (vm) {
-        /* UUID matches, but if names don't match, refuse it */
-        if (STRNEQ(vm->def->name, def->name)) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("network '%s' is already defined with uuid %s"),
-                           vm->def->name, uuidstr);
-            goto cleanup;
-        }
-
-        if (check_active) {
-            /* UUID & name match, but if VM is already active, refuse it */
-            if (virNetworkObjIsActive(vm)) {
-                virReportError(VIR_ERR_OPERATION_INVALID,
-                               _("network is already active as '%s'"),
-                               vm->def->name);
-                goto cleanup;
-            }
-        }
-
-        ret = 1;
-    } else {
-        /* UUID does not match, but if a name matches, refuse it */
-        vm = virNetworkFindByName(doms, def->name);
-        if (vm) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("network '%s' already exists with uuid %s"),
-                           def->name, uuidstr);
-            goto cleanup;
-        }
-        ret = 0;
-    }
-
- cleanup:
-    if (vm)
-        virNetworkObjUnlock(vm);
-    return ret;
-}
-
-
-void virNetworkObjLock(virNetworkObjPtr obj)
-{
-    virMutexLock(&obj->lock);
-}
-
-void virNetworkObjUnlock(virNetworkObjPtr obj)
-{
-    virMutexUnlock(&obj->lock);
-}
-
 #define MATCH(FLAG) (flags & (FLAG))
 static bool
 virNetworkMatch(virNetworkObjPtr netobj,
@@ -4234,56 +4381,254 @@ virNetworkMatch(virNetworkObjPtr netobj,
 }
 #undef MATCH
 
+struct virNetworkObjListData {
+    virConnectPtr conn;
+    virNetworkPtr *nets;
+    virNetworkObjListFilter filter;
+    unsigned int flags;
+    int nnets;
+    bool error;
+};
+
+static void
+virNetworkObjListPopulate(void *payload,
+                          const void *name ATTRIBUTE_UNUSED,
+                          void *opaque)
+{
+    struct virNetworkObjListData *data = opaque;
+    virNetworkObjPtr obj = payload;
+    virNetworkPtr net = NULL;
+
+    if (data->error)
+        return;
+
+    virObjectLock(obj);
+
+    if (data->filter &&
+        !data->filter(data->conn, obj->def))
+        goto cleanup;
+
+    if (!virNetworkMatch(obj, data->flags))
+        goto cleanup;
+
+    if (!data->nets) {
+        data->nnets++;
+        goto cleanup;
+    }
+
+    if (!(net = virGetNetwork(data->conn, obj->def->name, obj->def->uuid))) {
+        data->error = true;
+        goto cleanup;
+    }
+
+    data->nets[data->nnets++] = net;
+
+ cleanup:
+    virObjectUnlock(obj);
+}
+
 int
 virNetworkObjListExport(virConnectPtr conn,
-                        virNetworkObjList netobjs,
+                        virNetworkObjListPtr netobjs,
                         virNetworkPtr **nets,
                         virNetworkObjListFilter filter,
                         unsigned int flags)
 {
-    virNetworkPtr *tmp_nets = NULL;
-    virNetworkPtr net = NULL;
-    int nnets = 0;
     int ret = -1;
-    size_t i;
+    struct virNetworkObjListData data = { conn, NULL, filter, flags, 0, false};
 
-    if (nets && VIR_ALLOC_N(tmp_nets, netobjs.count + 1) < 0)
+    virObjectLock(netobjs);
+    if (nets && VIR_ALLOC_N(data.nets, virHashSize(netobjs->objs) + 1) < 0)
         goto cleanup;
 
-    for (i = 0; i < netobjs.count; i++) {
-        virNetworkObjPtr netobj = netobjs.objs[i];
-        virNetworkObjLock(netobj);
-        if ((!filter || filter(conn, netobj->def)) &&
-            virNetworkMatch(netobj, flags)) {
-            if (nets) {
-                if (!(net = virGetNetwork(conn,
-                                          netobj->def->name,
-                                          netobj->def->uuid))) {
-                    virNetworkObjUnlock(netobj);
-                    goto cleanup;
-                }
-                tmp_nets[nnets] = net;
-            }
-            nnets++;
-        }
-        virNetworkObjUnlock(netobj);
-    }
+    virHashForEach(netobjs->objs, virNetworkObjListPopulate, &data);
 
-    if (tmp_nets) {
+    if (data.error)
+        goto cleanup;
+
+    if (data.nets) {
         /* trim the array to the final size */
-        ignore_value(VIR_REALLOC_N(tmp_nets, nnets + 1));
-        *nets = tmp_nets;
-        tmp_nets = NULL;
+        ignore_value(VIR_REALLOC_N(data.nets, data.nnets + 1));
+        *nets = data.nets;
+        data.nets = NULL;
     }
 
-    ret = nnets;
+    ret = data.nnets;
+ cleanup:
+    virObjectUnlock(netobjs);
+    while (data.nets && data.nnets)
+        virObjectUnref(data.nets[--data.nnets]);
+
+    VIR_FREE(data.nets);
+    return ret;
+}
+
+struct virNetworkObjListForEachHelperData {
+    virNetworkObjListIterator callback;
+    void *opaque;
+    int ret;
+};
+
+static void
+virNetworkObjListForEachHelper(void *payload,
+                               const void *name ATTRIBUTE_UNUSED,
+                               void *opaque)
+{
+    struct virNetworkObjListForEachHelperData *data = opaque;
+
+    if (data->callback(payload, data->opaque) < 0)
+        data->ret = -1;
+}
+
+/**
+ * virNetworkObjListForEach:
+ * @nets: a list of network objects
+ * @callback: function to call over each of object in the list
+ * @opaque: pointer to pass to the @callback
+ *
+ * Function iterates over the list of network objects and calls
+ * passed callback over each one of them. You should avoid
+ * calling those virNetworkObjList APIs, which lock the list
+ * again in favor of their virNetworkObj*Locked variants.
+ *
+ * Returns: 0 on success, -1 otherwise.
+ */
+int
+virNetworkObjListForEach(virNetworkObjListPtr nets,
+                         virNetworkObjListIterator callback,
+                         void *opaque)
+{
+    struct virNetworkObjListForEachHelperData data = {callback, opaque, 0};
+    virObjectLock(nets);
+    virHashForEach(nets->objs, virNetworkObjListForEachHelper, &data);
+    virObjectUnlock(nets);
+    return data.ret;
+}
+
+struct virNetworkObjListGetHelperData {
+    virConnectPtr conn;
+    virNetworkObjListFilter filter;
+    char **names;
+    int nnames;
+    bool active;
+    int got;
+    bool error;
+};
+
+static void
+virNetworkObjListGetHelper(void *payload,
+                           const void *name ATTRIBUTE_UNUSED,
+                           void *opaque)
+{
+    struct virNetworkObjListGetHelperData *data = opaque;
+    virNetworkObjPtr obj = payload;
+
+    if (data->error)
+        return;
+
+    if (data->nnames >= 0 &&
+        data->got == data->nnames)
+        return;
+
+    virObjectLock(obj);
+
+    if (data->filter &&
+        !data->filter(data->conn, obj->def))
+        goto cleanup;
+
+    if ((data->active && virNetworkObjIsActive(obj)) ||
+        (!data->active && !virNetworkObjIsActive(obj))) {
+        if (data->names &&
+            VIR_STRDUP(data->names[data->got], obj->def->name) < 0) {
+            data->error = true;
+            goto cleanup;
+        }
+        data->got++;
+    }
 
  cleanup:
-    if (tmp_nets) {
-        for (i = 0; i < nnets; i++)
-            virObjectUnref(tmp_nets[i]);
-    }
+    virObjectUnlock(obj);
+}
 
-    VIR_FREE(tmp_nets);
+int
+virNetworkObjListGetNames(virNetworkObjListPtr nets,
+                          bool active,
+                          char **names,
+                          int nnames,
+                          virNetworkObjListFilter filter,
+                          virConnectPtr conn)
+{
+    int ret = -1;
+
+    struct virNetworkObjListGetHelperData data = {
+        conn, filter, names, nnames, active, 0, false};
+
+    virObjectLock(nets);
+    virHashForEach(nets->objs, virNetworkObjListGetHelper, &data);
+    virObjectUnlock(nets);
+
+    if (data.error)
+        goto cleanup;
+
+    ret = data.got;
+ cleanup:
+    if (ret < 0) {
+        while (data.got)
+            VIR_FREE(data.names[--data.got]);
+    }
     return ret;
+}
+
+int
+virNetworkObjListNumOfNetworks(virNetworkObjListPtr nets,
+                               bool active,
+                               virNetworkObjListFilter filter,
+                               virConnectPtr conn)
+{
+    struct virNetworkObjListGetHelperData data = {
+        conn, filter, NULL, -1, active, 0, false};
+
+    virObjectLock(nets);
+    virHashForEach(nets->objs, virNetworkObjListGetHelper, &data);
+    virObjectUnlock(nets);
+
+    return data.got;
+}
+
+struct virNetworkObjListPruneHelperData {
+    unsigned int flags;
+};
+
+static int
+virNetworkObjListPruneHelper(const void *payload,
+                             const void *name ATTRIBUTE_UNUSED,
+                             const void *opaque)
+{
+    const struct virNetworkObjListPruneHelperData *data = opaque;
+    virNetworkObjPtr obj = (virNetworkObjPtr) payload;
+    int want = 0;
+
+    virObjectLock(obj);
+    want = virNetworkMatch(obj, data->flags);
+    virObjectUnlock(obj);
+    return want;
+}
+
+/**
+ * virNetworkObjListPrune:
+ * @nets: a list of network objects
+ * @flags: bitwise-OR of virConnectListAllNetworksFlags
+ *
+ * Iterate over list of network objects and remove the desired
+ * ones from it.
+ */
+void
+virNetworkObjListPrune(virNetworkObjListPtr nets,
+                       unsigned int flags)
+{
+    struct virNetworkObjListPruneHelperData data = {flags};
+
+    virObjectLock(nets);
+    virHashRemoveSet(nets->objs, virNetworkObjListPruneHelper, &data);
+    virObjectUnlock(nets);
 }

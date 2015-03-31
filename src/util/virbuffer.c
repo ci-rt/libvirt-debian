@@ -1,7 +1,7 @@
 /*
  * virbuffer.c: buffers for libvirt
  *
- * Copyright (C) 2005-2008, 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2005-2008, 2010-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -188,23 +188,27 @@ virBufferAddBuffer(virBufferPtr buf, virBufferPtr toadd)
 {
     unsigned int needSize;
 
-    if (!buf || !toadd)
+    if (!toadd)
         return;
+
+    if (!buf)
+        goto done;
 
     if (buf->error || toadd->error) {
         if (!buf->error)
             buf->error = toadd->error;
-        virBufferFreeAndReset(toadd);
-        return;
+        goto done;
     }
 
     needSize = buf->use + toadd->use;
     if (virBufferGrow(buf, needSize - buf->use) < 0)
-        return;
+        goto done;
 
     memcpy(&buf->content[buf->use], toadd->content, toadd->use);
     buf->use += toadd->use;
     buf->content[buf->use] = '\0';
+
+ done:
     virBufferFreeAndReset(toadd);
 }
 
@@ -751,4 +755,33 @@ virBufferTrim(virBufferPtr buf, const char *str, int len)
     }
     buf->use -= len < 0 ? len2 : len;
     buf->content[buf->use] = '\0';
+}
+
+
+/**
+ * virBufferAddStr:
+ * @buf: the buffer to append to
+ * @str: string to append
+ *
+ * Appends @str to @buffer. Applies autoindentation on the separate lines of
+ * @str.
+ */
+void
+virBufferAddStr(virBufferPtr buf,
+                const char *str)
+{
+    const char *end;
+
+    if (!buf || !str || buf->error)
+        return;
+
+    while (*str) {
+        if ((end = strchr(str, '\n'))) {
+            virBufferAdd(buf, str, (end - str) + 1);
+            str = end + 1;
+        } else {
+            virBufferAdd(buf, str, -1);
+            break;
+        }
+    }
 }

@@ -1,7 +1,7 @@
 /*
  * libvirt-domain.c: entry points for virDomainPtr APIs
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -2074,6 +2074,9 @@ virDomainSetMemoryStatsPeriod(virDomainPtr domain, int period,
  *
  * Change all or a subset of the memory tunables.
  * This function may require privileged access to the hypervisor.
+ *
+ * Possible values for all *_limit memory tunables are in range from 0 to
+ * VIR_DOMAIN_MEMORY_PARAM_UNLIMITED.
  *
  * Returns -1 in case of error, 0 in case of success.
  */
@@ -7891,6 +7894,154 @@ virDomainGetMaxVcpus(virDomainPtr domain)
 
 
 /**
+ * virDomainGetIOThreadInfo:
+ * @dom: a domain object
+ * @info: pointer to an array of virDomainIOThreadInfo structures (OUT)
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *     Must not be VIR_DOMAIN_AFFECT_LIVE and
+ *     VIR_DOMAIN_AFFECT_CONFIG concurrently.
+ *
+ * Fetch IOThreads of an active domain including the cpumap information to
+ * determine on which CPU the IOThread has affinity to run.
+ *
+ * Returns the number of IOThreads or -1 in case of error.
+ * On success, the array of information is stored into @info. The caller is
+ * responsible for calling virDomainIOThreadInfoFree() on each array element,
+ * then calling free() on @info. On error, @info is set to NULL.
+ */
+int
+virDomainGetIOThreadInfo(virDomainPtr dom,
+                         virDomainIOThreadInfoPtr **info,
+                         unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "info=%p flags=%x", info, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(dom, -1);
+    virCheckNonNullArgGoto(info, error);
+    *info = NULL;
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s "
+                              "are mutually exclusive"),
+                            __FUNCTION__);
+        goto error;
+    }
+
+    if (dom->conn->driver->domainGetIOThreadInfo) {
+        int ret;
+        ret = dom->conn->driver->domainGetIOThreadInfo(dom, info, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainIOThreadInfoFree:
+ * @info: pointer to a virDomainIOThreadInfo object
+ *
+ * Frees the memory used by @info.
+ */
+void
+virDomainIOThreadInfoFree(virDomainIOThreadInfoPtr info)
+{
+    if (!info)
+        return;
+
+    VIR_FREE(info->cpumap);
+    VIR_FREE(info);
+}
+
+
+/**
+ * virDomainPinIOThread:
+ * @domain: a domain object
+ * @iothread_id: the IOThread ID to set the CPU affinity
+ * @cpumap: pointer to a bit map of real CPUs (in 8-bit bytes) (IN)
+ *      Each bit set to 1 means that corresponding CPU is usable.
+ *      Bytes are stored in little-endian order: CPU0-7, 8-15...
+ *      In each byte, lowest CPU number is least significant bit.
+ * @maplen: number of bytes in cpumap, from 1 up to size of CPU map in
+ *      underlying virtualization system (Xen...).
+ *      If maplen < size, missing bytes are set to zero.
+ *      If maplen > size, failure code is returned.
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *
+ * Dynamically change the real CPUs which can be allocated to an IOThread.
+ * This function may require privileged access to the hypervisor.
+ *
+ * @flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
+ * Both flags may be set.
+ * If VIR_DOMAIN_AFFECT_LIVE is set, the change affects a running domain
+ * and may fail if domain is not alive.
+ * If VIR_DOMAIN_AFFECT_CONFIG is set, the change affects persistent state,
+ * and will fail for transient domains. If neither flag is specified (that is,
+ * @flags is VIR_DOMAIN_AFFECT_CURRENT), then an inactive domain modifies
+ * persistent setup, while an active domain is hypervisor-dependent on whether
+ * just live or both live and persistent state is changed.
+ * Not all hypervisors can support all flag combinations.
+ *
+ * See also virDomainGetIOThreadInfo for querying this information.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+int
+virDomainPinIOThread(virDomainPtr domain,
+                     unsigned int iothread_id,
+                     unsigned char *cpumap,
+                     int maplen,
+                     unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "iothread_id=%u, cpumap=%p, maplen=%d",
+                     iothread_id, cpumap, maplen);
+
+    virResetLastError();
+
+    virCheckDomainReturn(domain, -1);
+    conn = domain->conn;
+
+    virCheckReadOnlyGoto(conn->flags, error);
+    if ((unsigned short) iothread_id != iothread_id) {
+        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"),
+                       iothread_id);
+        goto error;
+    }
+    virCheckPositiveArgGoto(iothread_id, error);
+    virCheckNonNullArgGoto(cpumap, error);
+    virCheckPositiveArgGoto(maplen, error);
+
+    if (conn->driver->domainPinIOThread) {
+        int ret;
+        ret = conn->driver->domainPinIOThread(domain, iothread_id,
+                                              cpumap, maplen, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+
+/**
  * virDomainGetSecurityLabel:
  * @domain: a domain object
  * @seclabel: pointer to a virSecurityLabel structure
@@ -11262,4 +11413,126 @@ virDomainFSInfoFree(virDomainFSInfoPtr info)
     for (i = 0; i < info->ndevAlias; i++)
         VIR_FREE(info->devAlias[i]);
     VIR_FREE(info->devAlias);
+
+    VIR_FREE(info);
+}
+
+/**
+ * virDomainInterfaceAddresses:
+ * @dom: domain object
+ * @ifaces: pointer to an array of pointers pointing to interface objects
+ * @source: one of the virDomainInterfaceAddressesSource constants
+ * @flags: currently unused, pass zero
+ *
+ * Return a pointer to the allocated array of pointers to interfaces
+ * present in given domain along with their IP and MAC addresses. Note that
+ * single interface can have multiple or even 0 IP addresses.
+ *
+ * This API dynamically allocates the virDomainInterfacePtr struct based on
+ * how many interfaces domain @dom has, usually there's 1:1 correlation. The
+ * count of the interfaces is returned as the return value.
+ *
+ * If @source is VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE, the DHCP lease
+ * file associated with any virtual networks will be examined to obtain
+ * the interface addresses. This only returns data for interfaces which
+ * are connected to virtual networks managed by libvirt.
+ *
+ * If @source is VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, a configured
+ * guest agent is needed for successful return from this API. Moreover, if
+ * guest agent is used then the interface name is the one seen by guest OS.
+ * To match such interface with the one from @dom XML use MAC address or IP
+ * range.
+ *
+ * @ifaces->name and @ifaces->hwaddr are never NULL.
+ *
+ * The caller *must* free @ifaces when no longer needed. Usual use case
+ * looks like this:
+ *
+ *  virDomainInterfacePtr *ifaces = NULL;
+ *  int ifaces_count = 0;
+ *  size_t i, j;
+ *  virDomainPtr dom = ... obtain a domain here ...;
+ *
+ *  if ((ifaces_count = virDomainInterfaceAddresses(dom, &ifaces,
+ *           VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)) < 0)
+ *      goto cleanup;
+ *
+ *  ... do something with returned values, for example:
+ *  for (i = 0; i < ifaces_count; i++) {
+ *      printf("name: %s", ifaces[i]->name);
+ *      if (ifaces[i]->hwaddr)
+ *          printf(" hwaddr: %s", ifaces[i]->hwaddr);
+ *
+ *      for (j = 0; j < ifaces[i]->naddrs; j++) {
+ *          virDomainIPAddressPtr ip_addr = ifaces[i]->addrs + j;
+ *          printf("[addr: %s prefix: %d type: %d]",
+ *                 ip_addr->addr, ip_addr->prefix, ip_addr->type);
+ *      }
+ *      printf("\n");
+ *  }
+ *
+ *  cleanup:
+ *      if (ifaces && ifaces_count > 0)
+ *          for (i = 0; i < ifaces_count; i++)
+ *              virDomainInterfaceFree(ifaces[i]);
+ *      free(ifaces);
+ *
+ * Returns the number of interfaces on success, -1 in case of error.
+ */
+int
+virDomainInterfaceAddresses(virDomainPtr dom,
+                            virDomainInterfacePtr **ifaces,
+                            unsigned int source,
+                            unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "ifaces=%p, source=%d, flags=%x", ifaces, source, flags);
+
+    virResetLastError();
+
+    if (ifaces)
+        *ifaces = NULL;
+    virCheckDomainReturn(dom, -1);
+    virCheckNonNullArgGoto(ifaces, error);
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+
+    if (dom->conn->driver->domainInterfaceAddresses) {
+        int ret;
+        ret = dom->conn->driver->domainInterfaceAddresses(dom, ifaces, source, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainInterfaceFree:
+ * @iface: an interface object
+ *
+ * Free the interface object. The data structure is
+ * freed and should not be used thereafter. If @iface
+ * is NULL, then this method has no effect.
+ */
+void
+virDomainInterfaceFree(virDomainInterfacePtr iface)
+{
+    size_t i;
+
+    if (!iface)
+        return;
+
+    VIR_FREE(iface->name);
+    VIR_FREE(iface->hwaddr);
+
+    for (i = 0; i < iface->naddrs; i++)
+        VIR_FREE(iface->addrs[i].addr);
+    VIR_FREE(iface->addrs);
+
+    VIR_FREE(iface);
 }

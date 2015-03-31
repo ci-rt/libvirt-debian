@@ -1,7 +1,7 @@
 /*
  * virsh-domain-monitor.c: Commands to monitor domain status
  *
- * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -128,6 +128,21 @@ vshDomainControlStateToString(int state)
     return str ? _(str) : _("unknown");
 }
 
+VIR_ENUM_DECL(vshDomainControlErrorReason)
+VIR_ENUM_IMPL(vshDomainControlErrorReason,
+              VIR_DOMAIN_CONTROL_ERROR_REASON_LAST,
+              "",
+              N_("unknown"),
+              N_("monitor failure"),
+              N_("internal (locking) error"))
+
+static const char *
+vshDomainControlErrorReasonToString(int reason)
+{
+    const char *ret = vshDomainControlErrorReasonTypeToString(reason);
+    return ret ? _(ret) : _("unknown");
+}
+
 VIR_ENUM_DECL(vshDomainState)
 VIR_ENUM_IMPL(vshDomainState,
               VIR_DOMAIN_LAST,
@@ -184,7 +199,8 @@ VIR_ENUM_IMPL(vshDomainPausedReason,
               N_("from snapshot"),
               N_("shutting down"),
               N_("creating snapshot"),
-              N_("crashed"))
+              N_("crashed"),
+              N_("starting up"))
 
 VIR_ENUM_DECL(vshDomainShutdownReason)
 VIR_ENUM_IMPL(vshDomainShutdownReason,
@@ -531,7 +547,8 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
         source = virXPathString("string(./source/@file"
                                 "|./source/@dev"
                                 "|./source/@dir"
-                                "|./source/@name)", ctxt);
+                                "|./source/@name"
+                                "|./source/@volume)", ctxt);
         if (details) {
             vshPrint(ctl, "%-10s %-10s %-10s %s\n", type, device,
                      target, source ? source : "-");
@@ -756,7 +773,7 @@ cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
     if ((state = virXPathString("string(./link/@state)", ctxt)))
         vshPrint(ctl, "%s %s", iface, state);
     else
-        vshPrint(ctl, "%s default", iface);
+        vshPrint(ctl, "%s up", iface);
 
     ret = true;
 
@@ -814,6 +831,10 @@ cmdDomControl(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, "%s (%0.3fs)\n",
                  vshDomainControlStateToString(info.state),
                  info.stateTime / 1000.0);
+    } else if (info.state == VIR_DOMAIN_CONTROL_ERROR && info.details > 0) {
+        vshPrint(ctl, "%s: %s\n",
+                 vshDomainControlStateToString(info.state),
+                 vshDomainControlErrorReasonToString(info.details));
     } else {
         vshPrint(ctl, "%s\n",
                  vshDomainControlStateToString(info.state));
@@ -2177,6 +2198,146 @@ cmdDomstats(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
+/* "domifaddr" command
+ */
+static const vshCmdInfo info_domifaddr[] = {
+    {"help", N_("Get network interfaces' addresses for a running domain")},
+    {"desc", N_("Get network interfaces' addresses for a running domain")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_domifaddr[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")},
+    {.name = "interface",
+     .type = VSH_OT_STRING,
+     .flags = VSH_OFLAG_NONE,
+     .help = N_("network interface name")},
+    {.name = "full",
+     .type = VSH_OT_BOOL,
+     .flags = VSH_OFLAG_NONE,
+     .help = N_("display full fields")},
+    {.name = "source",
+     .type = VSH_OT_STRING,
+     .flags = VSH_OFLAG_NONE,
+     .help = N_("address source: 'lease' or 'agent'")},
+    {.name = NULL}
+};
+
+static bool
+cmdDomIfAddr(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    const char *ifacestr = NULL;
+    virDomainInterfacePtr *ifaces = NULL;
+    size_t i, j;
+    int ifaces_count = 0;
+    bool ret = false;
+    bool full = vshCommandOptBool(cmd, "full");
+    const char *sourcestr = NULL;
+    int source = VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (vshCommandOptString(cmd, "interface", &ifacestr) < 0)
+        goto cleanup;
+    if (vshCommandOptString(cmd, "source", &sourcestr) < 0)
+        goto cleanup;
+
+    if (sourcestr) {
+        if (STREQ(sourcestr, "lease")) {
+            source = VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE;
+        } else if (STREQ(sourcestr, "agent")) {
+            source = VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT;
+        } else {
+            vshError(ctl, _("Unknown data source '%s'"), sourcestr);
+            goto cleanup;
+        }
+    }
+
+    if ((ifaces_count = virDomainInterfaceAddresses(dom, &ifaces, source, 0)) < 0) {
+        vshError(ctl, _("Failed to query for interfaces addresses"));
+        goto cleanup;
+    }
+
+    vshPrintExtra(ctl, " %-10s %-20s %-8s     %s\n%s%s\n", _("Name"),
+                  _("MAC address"), _("Protocol"), _("Address"),
+                  _("-------------------------------------------------"),
+                  _("------------------------------"));
+
+    for (i = 0; i < ifaces_count; i++) {
+        virDomainInterfacePtr iface = ifaces[i];
+        char *ip_addr_str = NULL;
+        const char *type = NULL;
+
+        if (ifacestr && STRNEQ(ifacestr, iface->name))
+            continue;
+
+        /* When the interface has no IP address */
+        if (!iface->naddrs) {
+            vshPrintExtra(ctl, " %-10s %-17s    %-12s %s\n",
+                          iface->name,
+                          iface->hwaddr ? iface->hwaddr : "N/A", "N/A", "N/A");
+            continue;
+        }
+
+        for (j = 0; j < iface->naddrs; j++) {
+            virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+            switch (iface->addrs[j].type) {
+            case VIR_IP_ADDR_TYPE_IPV4:
+                type = "ipv4";
+                break;
+            case VIR_IP_ADDR_TYPE_IPV6:
+                type = "ipv6";
+                break;
+            }
+
+            virBufferAsprintf(&buf, "%-12s %s/%d",
+                              type, iface->addrs[j].addr,
+                              iface->addrs[j].prefix);
+
+            if (virBufferError(&buf)) {
+                virBufferFreeAndReset(&buf);
+                virReportOOMError();
+                goto cleanup;
+            }
+
+            ip_addr_str = virBufferContentAndReset(&buf);
+
+            if (!ip_addr_str)
+                ip_addr_str = vshStrdup(ctl, "");
+
+            /* Don't repeat interface name */
+            if (full || !j)
+                vshPrintExtra(ctl, " %-10s %-17s    %s\n",
+                              iface->name,
+                              iface->hwaddr ? iface->hwaddr : "", ip_addr_str);
+            else
+                vshPrintExtra(ctl, " %-10s %-17s    %s\n",
+                              "-", "-", ip_addr_str);
+
+            virBufferFreeAndReset(&buf);
+            VIR_FREE(ip_addr_str);
+        }
+    }
+
+    ret = true;
+
+ cleanup:
+    if (ifaces && ifaces_count > 0) {
+        for (i = 0; i < ifaces_count; i++)
+            virDomainInterfaceFree(ifaces[i]);
+    }
+    VIR_FREE(ifaces);
+
+    virDomainFree(dom);
+    return ret;
+}
+
 const vshCmdDef domMonitoringCmds[] = {
     {.name = "domblkerror",
      .handler = cmdDomBlkError,
@@ -2212,6 +2373,12 @@ const vshCmdDef domMonitoringCmds[] = {
      .handler = cmdDomIfGetLink,
      .opts = opts_domif_getlink,
      .info = info_domif_getlink,
+     .flags = 0
+    },
+    {.name = "domifaddr",
+     .handler = cmdDomIfAddr,
+     .opts = opts_domifaddr,
+     .info = info_domifaddr,
      .flags = 0
     },
     {.name = "domiflist",

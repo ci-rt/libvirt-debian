@@ -287,10 +287,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
         goto out;
     }
 
-    if (virQEMUCapsGet(extraFlags, QEMU_CAPS_DOMID))
-        vmdef->id = 6;
-    else
-        vmdef->id = -1;
+    vmdef->id = -1;
 
     memset(&monitor_chr, 0, sizeof(monitor_chr));
     monitor_chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
@@ -457,6 +454,7 @@ testAddCPUModels(virQEMUCapsPtr caps, bool skipLegacy)
     const char *newModels[] = {
         "Opteron_G3", "Opteron_G2", "Opteron_G1",
         "Nehalem", "Penryn", "Conroe",
+        "Haswell-noTSX", "Haswell",
     };
     const char *legacyModels[] = {
         "n270", "athlon", "pentium3", "pentium2", "pentium",
@@ -597,6 +595,7 @@ mymain(void)
     unsetenv("SDL_AUDIODRIVER");
 
     DO_TEST("minimal", QEMU_CAPS_NAME);
+    DO_TEST_PARSE_ERROR("minimal-no-memory", NONE);
     DO_TEST("minimal-msg-timestamp", QEMU_CAPS_NAME, QEMU_CAPS_MSG_TIMESTAMP);
     DO_TEST("minimal-s390", QEMU_CAPS_NAME);
     DO_TEST("machine-aliases1", NONE);
@@ -647,7 +646,6 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT,
             QEMU_CAPS_BOOTINDEX, QEMU_CAPS_BOOT_STRICT,
             QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
-    DO_TEST("bootloader", QEMU_CAPS_DOMID, QEMU_CAPS_KVM);
 
     DO_TEST("reboot-timeout-disabled", QEMU_CAPS_REBOOT_TIMEOUT);
     DO_TEST("reboot-timeout-enabled", QEMU_CAPS_REBOOT_TIMEOUT);
@@ -710,6 +708,7 @@ mymain(void)
     DO_TEST("hugepages-pages6", NONE);
     DO_TEST("nosharepages", QEMU_CAPS_MACHINE_OPT, QEMU_CAPS_MEM_MERGE);
     DO_TEST("disk-cdrom", NONE);
+    DO_TEST("disk-iscsi", NONE);
     DO_TEST("disk-cdrom-network-http", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
             QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-network-https", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
@@ -901,6 +900,11 @@ mymain(void)
             QEMU_CAPS_DEVICE,
             QEMU_CAPS_SCSI_BLOCK, QEMU_CAPS_VIRTIO_BLK_SG_IO,
             QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("disk-serial",
+            QEMU_CAPS_KVM,
+            QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DRIVE_SERIAL);
 
     DO_TEST("graphics-vnc", QEMU_CAPS_VNC);
     DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC);
@@ -970,7 +974,6 @@ mymain(void)
 
     DO_TEST("input-usbmouse", NONE);
     DO_TEST("input-usbtablet", NONE);
-    DO_TEST("input-xen", QEMU_CAPS_DOMID, QEMU_CAPS_KVM, QEMU_CAPS_VNC);
     DO_TEST("misc-acpi", NONE);
     DO_TEST("misc-disable-s3", QEMU_CAPS_DISABLE_S3);
     DO_TEST("misc-disable-suspends", QEMU_CAPS_DISABLE_S3, QEMU_CAPS_DISABLE_S4);
@@ -1235,6 +1238,7 @@ mymain(void)
     DO_TEST("cpu-strict1", QEMU_CAPS_KVM);
     DO_TEST("cpu-numa1", NONE);
     DO_TEST("cpu-numa2", QEMU_CAPS_SMP_TOPOLOGY);
+    DO_TEST("cpu-numa-no-memory-element", QEMU_CAPS_SMP_TOPOLOGY);
     DO_TEST_PARSE_ERROR("cpu-numa3", NONE);
     DO_TEST_FAILURE("cpu-numa-disjoint", NONE);
     DO_TEST("cpu-numa-disjoint", QEMU_CAPS_NUMA);
@@ -1250,6 +1254,13 @@ mymain(void)
     DO_TEST_FAILURE("cpu-host-passthrough", NONE);
     DO_TEST_FAILURE("cpu-qemu-host-passthrough",
                     QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST);
+
+    driver.caps->host.cpu = cpuHaswell;
+    DO_TEST("cpu-Haswell", QEMU_CAPS_KVM);
+    DO_TEST("cpu-Haswell2", QEMU_CAPS_KVM);
+    DO_TEST("cpu-Haswell3", QEMU_CAPS_KVM);
+    DO_TEST("cpu-Haswell-noTSX", QEMU_CAPS_KVM);
+    driver.caps->host.cpu = cpuDefault;
 
     DO_TEST("memtune", QEMU_CAPS_NAME);
     DO_TEST("memtune-unlimited", QEMU_CAPS_NAME);
@@ -1339,6 +1350,8 @@ mymain(void)
     DO_TEST("pseries-cpu-exact", QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE,
             QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-cpu-compat", QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-cpu-le",  QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-ide-drive-split",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
@@ -1508,6 +1521,10 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
+    DO_TEST("aarch64-aavmf-virtio-mmio",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
     DO_TEST("aarch64-virt-default-nic",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_DEVICE_VIRTIO_MMIO);
@@ -1518,6 +1535,9 @@ mymain(void)
             QEMU_CAPS_KVM_PIT_TICK_POLICY);
 
     DO_TEST("panic", QEMU_CAPS_DEVICE_PANIC,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+
+    DO_TEST("panic-no-address", QEMU_CAPS_DEVICE_PANIC,
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
 
     DO_TEST("fips-enabled", QEMU_CAPS_ENABLE_FIPS);
@@ -1531,6 +1551,14 @@ mymain(void)
                     QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_IVSHMEM);
     DO_TEST_PARSE_ERROR("shmem-msi-only", NONE);
     DO_TEST("cpu-host-passthrough-features", QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST);
+
+    DO_TEST_FAILURE("memory-hotplug-nonuma", QEMU_CAPS_DEVICE_PC_DIMM);
+    DO_TEST_FAILURE("memory-hotplug", NONE);
+    DO_TEST("memory-hotplug", QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_NUMA);
+    DO_TEST("memory-hotplug-dimm", QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_NUMA,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_OBJECT_MEMORY_RAM);
+    DO_TEST("memory-hotplug-dimm-addr", QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_NUMA,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_OBJECT_MEMORY_RAM);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

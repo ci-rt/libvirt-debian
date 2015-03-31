@@ -1,7 +1,7 @@
 /*
  * remote.c: handlers for RPC method calls
  *
- * Copyright (C) 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2007-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -51,6 +51,7 @@
 #include "viraccessapicheck.h"
 #include "viraccessapicheckqemu.h"
 #include "virpolkit.h"
+#include "virthreadjob.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -150,6 +151,7 @@ remoteRelayDomainEventCheckACL(virNetServerClientPtr client,
     /* For now, we just create a virDomainDef with enough contents to
      * satisfy what viraccessdriverpolkit.c references.  This is a bit
      * fragile, but I don't know of anything better.  */
+    memset(&def, 0, sizeof(def));
     def.name = dom->name;
     memcpy(def.uuid, dom->uuid, VIR_UUID_BUFLEN);
 
@@ -1609,11 +1611,10 @@ remoteDispatchConnectListAllDomains(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (doms && ndomains > 0) {
+    if (doms && ndomains > 0)
         for (i = 0; i < ndomains; i++)
             virObjectUnref(doms[i]);
-        VIR_FREE(doms);
-    }
+    VIR_FREE(doms);
     return rv;
 }
 
@@ -2265,6 +2266,78 @@ remoteDispatchDomainGetVcpus(virNetServerPtr server ATTRIBUTE_UNUSED,
     VIR_FREE(cpumaps);
     VIR_FREE(info);
     virObjectUnref(dom);
+    return rv;
+}
+
+static int
+remoteDispatchDomainGetIOThreadInfo(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                    virNetServerClientPtr client,
+                                    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                    virNetMessageErrorPtr rerr,
+                                    remote_domain_get_iothread_info_args *args,
+                                    remote_domain_get_iothread_info_ret *ret)
+{
+    int rv = -1;
+    size_t i;
+    struct daemonClientPrivate *priv = virNetServerClientGetPrivateData(client);
+    virDomainIOThreadInfoPtr *info = NULL;
+    virDomainPtr dom = NULL;
+    remote_domain_iothread_info *dst;
+    int ninfo = 0;
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((ninfo = virDomainGetIOThreadInfo(dom, &info, args->flags)) < 0)
+        goto cleanup;
+
+    if (ninfo > REMOTE_IOTHREAD_INFO_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many IOThreads in info: %d for limit %d"),
+                       ninfo, REMOTE_IOTHREAD_INFO_MAX);
+        goto cleanup;
+    }
+
+    if (ninfo) {
+        if (VIR_ALLOC_N(ret->info.info_val, ninfo) < 0)
+            goto cleanup;
+
+        ret->info.info_len = ninfo;
+
+        for (i = 0; i < ninfo; i++) {
+            dst = &ret->info.info_val[i];
+            dst->iothread_id = info[i]->iothread_id;
+
+            /* No need to allocate/copy the cpumap if we make the reasonable
+             * assumption that unsigned char and char are the same size.
+             */
+            dst->cpumap.cpumap_len = info[i]->cpumaplen;
+            dst->cpumap.cpumap_val = (char *)info[i]->cpumap;
+            info[i]->cpumap = NULL;
+        }
+    } else {
+        ret->info.info_len = 0;
+        ret->info.info_val = NULL;
+    }
+
+    ret->ret = ninfo;
+
+    rv = 0;
+
+ cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    if (ninfo >= 0)
+        for (i = 0; i < ninfo; i++)
+            virDomainIOThreadInfoFree(info[i]);
+    VIR_FREE(info);
+
     return rv;
 }
 
@@ -4533,11 +4606,10 @@ remoteDispatchDomainListAllSnapshots(virNetServerPtr server ATTRIBUTE_UNUSED,
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virObjectUnref(dom);
-    if (snaps && nsnaps > 0) {
+    if (snaps && nsnaps > 0)
         for (i = 0; i < nsnaps; i++)
             virObjectUnref(snaps[i]);
-        VIR_FREE(snaps);
-    }
+    VIR_FREE(snaps);
     return rv;
 }
 
@@ -4602,11 +4674,10 @@ remoteDispatchDomainSnapshotListAllChildren(virNetServerPtr server ATTRIBUTE_UNU
         virNetMessageSaveError(rerr);
     virObjectUnref(snapshot);
     virObjectUnref(dom);
-    if (snaps && nsnaps > 0) {
+    if (snaps && nsnaps > 0)
         for (i = 0; i < nsnaps; i++)
             virObjectUnref(snaps[i]);
-        VIR_FREE(snaps);
-    }
+    VIR_FREE(snaps);
     return rv;
 }
 
@@ -4661,11 +4732,10 @@ remoteDispatchConnectListAllStoragePools(virNetServerPtr server ATTRIBUTE_UNUSED
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (pools && npools > 0) {
+    if (pools && npools > 0)
         for (i = 0; i < npools; i++)
             virObjectUnref(pools[i]);
-        VIR_FREE(pools);
-    }
+    VIR_FREE(pools);
     return rv;
 }
 
@@ -4724,11 +4794,10 @@ remoteDispatchStoragePoolListAllVolumes(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (vols && nvols > 0) {
+    if (vols && nvols > 0)
         for (i = 0; i < nvols; i++)
             virObjectUnref(vols[i]);
-        VIR_FREE(vols);
-    }
+    VIR_FREE(vols);
     virObjectUnref(pool);
     return rv;
 }
@@ -4784,11 +4853,10 @@ remoteDispatchConnectListAllNetworks(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (nets && nnets > 0) {
+    if (nets && nnets > 0)
         for (i = 0; i < nnets; i++)
             virObjectUnref(nets[i]);
-        VIR_FREE(nets);
-    }
+    VIR_FREE(nets);
     return rv;
 }
 
@@ -4843,11 +4911,10 @@ remoteDispatchConnectListAllInterfaces(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (ifaces && nifaces > 0) {
+    if (ifaces && nifaces > 0)
         for (i = 0; i < nifaces; i++)
             virObjectUnref(ifaces[i]);
-        VIR_FREE(ifaces);
-    }
+    VIR_FREE(ifaces);
     return rv;
 }
 
@@ -4902,11 +4969,10 @@ remoteDispatchConnectListAllNodeDevices(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (devices && ndevices > 0) {
+    if (devices && ndevices > 0)
         for (i = 0; i < ndevices; i++)
             virObjectUnref(devices[i]);
-        VIR_FREE(devices);
-    }
+    VIR_FREE(devices);
     return rv;
 }
 
@@ -4961,11 +5027,10 @@ remoteDispatchConnectListAllNWFilters(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (filters && nfilters > 0) {
+    if (filters && nfilters > 0)
         for (i = 0; i < nfilters; i++)
             virObjectUnref(filters[i]);
-        VIR_FREE(filters);
-    }
+    VIR_FREE(filters);
     return rv;
 }
 
@@ -5020,11 +5085,10 @@ remoteDispatchConnectListAllSecrets(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (secrets && nsecrets > 0) {
+    if (secrets && nsecrets > 0)
         for (i = 0; i < nsecrets; i++)
             virObjectUnref(secrets[i]);
-        VIR_FREE(secrets);
-    }
+    VIR_FREE(secrets);
     return rv;
 }
 
@@ -6192,11 +6256,10 @@ remoteDispatchNetworkGetDHCPLeases(virNetServerPtr server ATTRIBUTE_UNUSED,
  cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    if (leases && nleases > 0) {
+    if (leases && nleases > 0)
         for (i = 0; i < nleases; i++)
             virNetworkDHCPLeaseFree(leases[i]);
-        VIR_FREE(leases);
-    }
+    VIR_FREE(leases);
     virObjectUnref(net);
     return rv;
 }
@@ -6433,6 +6496,135 @@ remoteDispatchDomainGetFSInfo(virNetServerPtr server ATTRIBUTE_UNUSED,
         for (i = 0; i < ninfo; i++)
             virDomainFSInfoFree(info[i]);
     VIR_FREE(info);
+
+    return rv;
+}
+
+
+static int
+remoteSerializeDomainInterface(virDomainInterfacePtr *ifaces,
+                               unsigned int ifaces_count,
+                               remote_domain_interface_addresses_ret *ret)
+{
+    size_t i, j;
+
+    if (ifaces_count > REMOTE_DOMAIN_INTERFACE_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Number of interfaces, %d exceeds the max limit: %d"),
+                       ifaces_count, REMOTE_DOMAIN_INTERFACE_MAX);
+        return -1;
+    }
+
+    if (VIR_ALLOC_N(ret->ifaces.ifaces_val, ifaces_count) < 0)
+        return -1;
+
+    ret->ifaces.ifaces_len = ifaces_count;
+
+    for (i = 0; i < ifaces_count; i++) {
+        virDomainInterfacePtr iface = ifaces[i];
+        remote_domain_interface *iface_ret = &(ret->ifaces.ifaces_val[i]);
+
+        if ((VIR_STRDUP(iface_ret->name, iface->name)) < 0)
+            goto cleanup;
+
+        if (iface->hwaddr &&
+            (VIR_ALLOC(iface_ret->hwaddr) < 0 ||
+             VIR_STRDUP(*iface_ret->hwaddr, iface->hwaddr) < 0))
+            goto cleanup;
+
+        if (iface->naddrs > REMOTE_DOMAIN_IP_ADDR_MAX) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Number of interfaces, %d exceeds the max limit: %d"),
+                           iface->naddrs, REMOTE_DOMAIN_IP_ADDR_MAX);
+            goto cleanup;
+        }
+
+        if (VIR_ALLOC_N(iface_ret->addrs.addrs_val,
+                        iface->naddrs) < 0)
+            goto cleanup;
+
+        iface_ret->addrs.addrs_len = iface->naddrs;
+
+        for (j = 0; j < iface->naddrs; j++) {
+            virDomainIPAddressPtr ip_addr = &(iface->addrs[j]);
+            remote_domain_ip_addr *ip_addr_ret =
+                &(iface_ret->addrs.addrs_val[j]);
+
+            if (VIR_STRDUP(ip_addr_ret->addr, ip_addr->addr) < 0)
+                goto cleanup;
+
+            ip_addr_ret->prefix = ip_addr->prefix;
+            ip_addr_ret->type = ip_addr->type;
+        }
+    }
+
+    return 0;
+
+ cleanup:
+    if (ret->ifaces.ifaces_val) {
+        for (i = 0; i < ifaces_count; i++) {
+            remote_domain_interface *iface_ret = &(ret->ifaces.ifaces_val[i]);
+            VIR_FREE(iface_ret->name);
+            if (iface_ret->hwaddr) {
+                VIR_FREE(*iface_ret->hwaddr);
+                VIR_FREE(iface_ret->hwaddr);
+            }
+            for (j = 0; j < iface_ret->addrs.addrs_len; j++) {
+                remote_domain_ip_addr *ip_addr =
+                    &(iface_ret->addrs.addrs_val[j]);
+                VIR_FREE(ip_addr->addr);
+            }
+        }
+        VIR_FREE(ret->ifaces.ifaces_val);
+    }
+
+    return -1;
+}
+
+
+static int
+remoteDispatchDomainInterfaceAddresses(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                       virNetServerClientPtr client,
+                                       virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                       virNetMessageErrorPtr rerr,
+                                       remote_domain_interface_addresses_args *args,
+                                       remote_domain_interface_addresses_ret *ret)
+{
+    size_t i;
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainInterfacePtr *ifaces = NULL;
+    int ifaces_count = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((ifaces_count = virDomainInterfaceAddresses(dom, &ifaces, args->source, args->flags)) < 0)
+        goto cleanup;
+
+    if (remoteSerializeDomainInterface(ifaces, ifaces_count, ret) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+ cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+
+    virObjectUnref(dom);
+
+    if (ifaces && ifaces_count > 0) {
+        for (i = 0; i < ifaces_count; i++)
+            virDomainInterfaceFree(ifaces[i]);
+    }
+    VIR_FREE(ifaces);
 
     return rv;
 }

@@ -303,7 +303,7 @@ bhyveDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     }
 
     info->state = virDomainObjGetState(vm, NULL);
-    info->maxMem = vm->def->mem.max_balloon;
+    info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
@@ -1160,14 +1160,14 @@ bhyveStateCleanup(void)
 }
 
 static int
-bhyveStateInitialize(bool priveleged,
+bhyveStateInitialize(bool privileged,
                      virStateInhibitCallback callback ATTRIBUTE_UNUSED,
                      void *opaque ATTRIBUTE_UNUSED)
 {
     virConnectPtr conn = NULL;
 
-    if (!priveleged) {
-        VIR_INFO("Not running priveleged, disabling driver");
+    if (!privileged) {
+        VIR_INFO("Not running privileged, disabling driver");
         return 0;
     }
 
@@ -1340,7 +1340,8 @@ bhyveConnectBaselineCPU(virConnectPtr conn,
 {
     char *cpu = NULL;
 
-    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, NULL);
+    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES |
+                  VIR_CONNECT_BASELINE_CPU_MIGRATABLE, NULL);
 
     if (virConnectBaselineCPUEnsureACL(conn) < 0)
         goto cleanup;

@@ -131,6 +131,7 @@ EXTRA_DIST =		\
 	vircaps2xmldata \
 	vboxsnapshotxmldata \
 	virsh-uriprecedence \
+	vircgroupdata \
 	virfiledata \
 	virpcitestdata \
 	virscsidata \
@@ -405,6 +406,7 @@ test_libraries = libshunload.la \
 if WITH_QEMU
 test_libraries += libqemumonitortestutils.la \
 		qemuxml2argvmock.la \
+		qemucaps2xmlmock.la \
 		$(NULL)
 endif WITH_QEMU
 
@@ -568,8 +570,12 @@ qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 qemuhelptest_SOURCES = qemuhelptest.c testutils.c testutils.h
 qemuhelptest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
-qemumonitortest_SOURCES = qemumonitortest.c testutils.c testutils.h
-qemumonitortest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemumonitortest_SOURCES = \
+	qemumonitortest.c \
+	testutils.c testutils.h \
+	testutilsqemu.c testutilsqemu.h
+qemumonitortest_LDADD = libqemumonitortestutils.la \
+	$(qemu_LDADDS) $(LDADDS)
 
 qemumonitorjsontest_SOURCES = \
 	qemumonitorjsontest.c \
@@ -600,6 +606,12 @@ qemucaps2xmltest_SOURCES = \
 	testutils.c testutils.h \
 	$(NULL)
 qemucaps2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
+
+qemucaps2xmlmock_la_SOURCES = \
+	qemucaps2xmlmock.c
+qemucaps2xmlmock_la_CFLAGS = $(AM_CFLAGS)
+qemucaps2xmlmock_la_LDFLAGS = -module -avoid-version \
+		-rpath /evil/libtool/hack/to/force/shared/lib/creation
 
 qemuagenttest_SOURCES = \
 	qemuagenttest.c \

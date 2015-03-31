@@ -15,8 +15,12 @@ static int qemuDispatchConnectDomainMonitorEventDeregisterHelper(
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
+  int rv;
+  virThreadJobSet("qemuDispatchConnectDomainMonitorEventDeregister");
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return qemuDispatchConnectDomainMonitorEventDeregister(server, client, msg, rerr, args);
+  rv = qemuDispatchConnectDomainMonitorEventDeregister(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
 }
 /* qemuDispatchConnectDomainMonitorEventDeregister body has to be implemented manually */
 
@@ -37,8 +41,12 @@ static int qemuDispatchConnectDomainMonitorEventRegisterHelper(
     void *args,
     void *ret)
 {
+  int rv;
+  virThreadJobSet("qemuDispatchConnectDomainMonitorEventRegister");
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return qemuDispatchConnectDomainMonitorEventRegister(server, client, msg, rerr, args, ret);
+  rv = qemuDispatchConnectDomainMonitorEventRegister(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
 }
 /* qemuDispatchConnectDomainMonitorEventRegister body has to be implemented manually */
 
@@ -59,8 +67,12 @@ static int qemuDispatchDomainAgentCommandHelper(
     void *args,
     void *ret)
 {
+  int rv;
+  virThreadJobSet("qemuDispatchDomainAgentCommand");
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return qemuDispatchDomainAgentCommand(server, client, msg, rerr, args, ret);
+  rv = qemuDispatchDomainAgentCommand(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
 }
 static int qemuDispatchDomainAgentCommand(
     virNetServerPtr server ATTRIBUTE_UNUSED,
@@ -124,8 +136,12 @@ static int qemuDispatchDomainAttachHelper(
     void *args,
     void *ret)
 {
+  int rv;
+  virThreadJobSet("qemuDispatchDomainAttach");
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return qemuDispatchDomainAttach(server, client, msg, rerr, args, ret);
+  rv = qemuDispatchDomainAttach(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
 }
 static int qemuDispatchDomainAttach(
     virNetServerPtr server ATTRIBUTE_UNUSED,
@@ -175,8 +191,12 @@ static int qemuDispatchDomainMonitorCommandHelper(
     void *args,
     void *ret)
 {
+  int rv;
+  virThreadJobSet("qemuDispatchDomainMonitorCommand");
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return qemuDispatchDomainMonitorCommand(server, client, msg, rerr, args, ret);
+  rv = qemuDispatchDomainMonitorCommand(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
 }
 /* qemuDispatchDomainMonitorCommand body has to be implemented manually */
 

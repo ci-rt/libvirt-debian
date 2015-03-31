@@ -72,8 +72,14 @@ parallelsStorageClose(virConnectPtr conn)
 {
     parallelsConnPtr privconn = conn->privateData;
 
+    if (!privconn)
+        return 0;
+
     virStorageDriverStatePtr storageState = privconn->storageState;
     privconn->storageState = NULL;
+
+    if (!storageState)
+        return 0;
 
     parallelsStorageLock(storageState);
     virStoragePoolObjListFree(&privconn->pools);
@@ -1208,9 +1214,9 @@ parallelsStorageVolDefineXML(virStoragePoolObjPtr pool,
     char *xml_path = NULL;
 
     if (xmlfile)
-        privvol = virStorageVolDefParseFile(pool->def, xmlfile);
+        privvol = virStorageVolDefParseFile(pool->def, xmlfile, 0);
     else
-        privvol = virStorageVolDefParseString(pool->def, xmldesc);
+        privvol = virStorageVolDefParseString(pool->def, xmldesc, 0);
 
     if (privvol == NULL)
         goto cleanup;
@@ -1335,7 +1341,7 @@ parallelsStorageVolCreateXMLFrom(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    privvol = virStorageVolDefParseString(privpool->def, xmldesc);
+    privvol = virStorageVolDefParseString(privpool->def, xmldesc, 0);
     if (privvol == NULL)
         goto cleanup;
 

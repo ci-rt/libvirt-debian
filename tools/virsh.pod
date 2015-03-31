@@ -569,7 +569,7 @@ I<cellno> modifier can be used to narrow the modification down to
 a single host NUMA cell. On the other end of spectrum lies
 I<--all> which executes the modification on all NUMA cells.
 
-=item B<cpu-baseline> I<FILE> [I<--features>]
+=item B<cpu-baseline> I<FILE> [I<--features>] [I<--migratable>]
 
 Compute baseline CPU which will be supported by all host CPUs given in <file>.
 The list of host CPUs is built by extracting all <cpu> elements from the
@@ -578,7 +578,8 @@ by new lines or even a set of complete <capabilities> elements printed by
 B<capabilities> command.  If I<--features> is specified then the
 resulting XML description will explicitly include all features that make
 up the CPU, without this option features that are part of the CPU model
-will not be listed in the XML description.
+will not be listed in the XML description.   If I<--migratable> is specified,
+features that block migration will not be included in the resulting CPU.
 
 =item B<cpu-compare> I<FILE> [I<--error>]
 
@@ -708,8 +709,9 @@ return an error instead.
 Get device block stats for a running domain.  A I<block-device> corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
-also B<domblklist> for listing these names). On a lxc domain, omitting the
-I<block-device> yields device block stats summarily for the entire domain.
+also B<domblklist> for listing these names). On a lxc or qemu domain,
+omitting the I<block-device> yields device block stats summarily for the
+entire domain.
 
 Use I<--human> for a more human readable output.
 
@@ -728,6 +730,22 @@ B<Explanation of fields> (fields appear in the following order):
   wr_total_times    - total time write operations took (ns)
   flush_total_times - total time flush operations took (ns)
     <-- other fields provided by hypervisor -->
+
+
+=item B<domifaddr> I<domain> [I<interface>] [I<--full>]
+              [I<--source lease|agent>]
+
+Get a list of interfaces of a running domain along with their IP and MAC
+addresses, or limited output just for one interface if I<interface> is
+specified. Note that I<interface> can be driver dependent, it can be the name
+within guest OS or the name you would see in domain XML. Moreover, the whole
+command may require a guest agent to be configured for the queried domain under
+some drivers, notably qemu. If I<--full> is specified, the interface name is
+always displayed when the interface has multiple addresses or alias, otherwise
+it only displays the interface name for the first address, and "-" for the
+others. The I<--source> argument specifies what data source to use for the
+addresses, currently one of 'lease' to read DHCP leases, or 'agent' to query
+the guest OS via an agent. If unspecified, 'lease' is the default.
 
 =item B<domifstat> I<domain> I<interface-device>
 
@@ -1360,6 +1378,44 @@ If I<--timeout> is specified, the command gives up waiting for events
 after I<seconds> have elapsed.   With I<--loop>, the command prints all
 events until a timeout or interrupt key.
 
+=item B<iothreadinfo> I<domain> [[I<--live>] [I<--config>] | [I<--current>]]
+
+Display basic domain IOThreads information including the IOThread ID and
+the CPU Affinity for each IOThread.
+
+If I<--live> is specified, get the IOThreads data from the running guest. If
+the guest is not running, an error is returned.
+If I<--config> is specified, get the IOThreads data from the next boot of
+a persistent guest.
+If I<--current> is specified or I<--live> and I<--config> are not specified,
+then get the IOThread data based on the current guest state.
+
+=item B<iothreadpin> I<domain> I<iothread> I<cpulist>
+[[I<--live>] [I<--config>] | [I<--current>]]
+
+Change the pinning of a domain IOThread to host physical CPUs. In order
+to retrieve a list of all IOThreads, use B<iothreadinfo>. To pin an
+I<iothread> specify the I<cpulist> desired for the IOThread ID as listed
+in the B<iothreadinfo> output.
+
+I<cpulist> is a list of physical CPU numbers. Its syntax is a comma
+separated list and a special markup using '-' and '^' (ex. '0-4', '0-3,^2') can
+also be allowed. The '-' denotes the range and the '^' denotes exclusive.
+If you want to reset iothreadpin setting, that is, to pin an I<iothread>
+to all physical cpus, simply specify 'r' as a I<cpulist>.
+
+If I<--live> is specified, affect a running guest. If the guest is not running,
+an error is returned.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified or I<--live> and I<--config> are not specified,
+affect the current guest state.
+Both I<--live> and I<--config> flags may be given if I<cpulist> is present,
+but I<--current> is exclusive.
+If no flag is specified, behavior is different depending on hypervisor.
+
+B<Note>: The expression is sequentially evaluated, so "0-15,^8" is
+identical to "9-14,0-7,15" but not identical to "^8,0-15".
+
 =item B<managedsave> I<domain> [I<--bypass-cache>]
 [{I<--running> | I<--paused>}] [I<--verbose>]
 
@@ -1925,6 +1981,13 @@ For example, vSphere/ESX rounds the parameter up to mebibytes (1024 kibibytes).
 For Xen, you can only adjust the memory of a running domain if the domain is
 paravirtualized or running the PV balloon driver.
 
+For LXC, the value being set is the cgroups value for limit_in_bytes or the
+maximum amount of user memory (including file cache). When viewing memory
+inside the container, this is the /proc/meminfo "MemTotal" value. When viewing
+the value from the host, use the B<virsh memtune> command. In order to view
+the current memory in use and the maximum value allowed to set memory, use
+the B<virsh dominfo> command.
+
 =item B<setmaxmem> I<domain> B<size> [[I<--config>] [I<--live>] |
 [I<--current>]]
 
@@ -1937,7 +2000,10 @@ exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
 Some hypervisors such as QEMU/KVM don't support live changes (especially
-increasing) of the maximum memory limit.
+increasing) of the maximum memory limit.  Even persistent configuration changes
+might not be performed with some hypervisors/configuration (e.g. on NUMA enabled
+domains on QEMU).  For complex configuration changes use command B<edit>
+instead).
 
 I<size> is a scaled integer (see B<NOTES> above); it defaults to kibibytes
 (blocks of 1024 bytes) unless you provide a suffix (and the older option
@@ -1972,6 +2038,9 @@ For QEMU/KVM, the parameters are applied to the QEMU process as a whole.
 Thus, when counting them, one needs to add up guest RAM, guest video RAM, and
 some memory overhead of QEMU itself.  The last piece is hard to determine so
 one needs guess and try.
+
+For LXC, the displayed hard_limit value is the current memory setting
+from the XML or the results from a B<virsh setmem> command.
 
 =over 4
 
@@ -2258,8 +2327,8 @@ I<vcpu> or omit I<vcpu> to list all at once.
 I<cpulist> is a list of physical CPU numbers. Its syntax is a comma
 separated list and a special markup using '-' and '^' (ex. '0-4', '0-3,^2') can
 also be allowed. The '-' denotes the range and the '^' denotes exclusive.
-If you want to reset vcpupin setting, that is, to pin vcpu all physical cpus,
-simply specify 'r' as a cpulist.
+If you want to reset vcpupin setting, that is, to pin the I<vcpu> to all
+physical cpus, simply specify 'r' as a I<cpulist>.
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
 If I<--current> is specified, affect the current guest state.
@@ -2316,7 +2385,7 @@ attach taking effect the next time libvirt starts the domain.
 For cdrom and floppy devices, this command only replaces the media
 within an existing device; consider using B<update-device> for this
 usage.  For passthrough host devices, see also B<nodedev-detach>,
-needed if the device does not use managed mode.
+needed if the PCI device does not use managed mode.
 
 If I<--live> is specified, affect a running domain.
 If I<--config> is specified, affect the next startup of a persistent domain.
@@ -2528,10 +2597,13 @@ expected.
 
 =item B<change-media> I<domain> I<path> [I<--eject>] [I<--insert>]
 [I<--update>] [I<source>] [I<--force>] [[I<--live>] [I<--config>] | [I<--current>]]
+[I<--print-xml>] [I<--block>]
 
 Change media of CDROM or floppy drive. I<path> can be the fully-qualified path
 or the unique target name (<target dev='hdc'>) of the disk device. I<source>
-specifies the path of the media to be inserted or updated.
+specifies the path of the media to be inserted or updated. Flag I<--block>
+allows to set the backing type in case a block device is used as media for the
+CDROM or floppy drive instead of a file.
 
 I<--eject> indicates the media will be ejected.
 I<--insert> indicates the media will be inserted. I<source> must be specified.
@@ -2551,6 +2623,8 @@ the hypervisor's implementation.
 Both I<--live> and I<--config> flags may be given, but I<--current> is
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
+If I<--print-xml> is specified, the XML that would be used to change media is
+printed instead of changing the media.
 
 =back
 
@@ -2572,15 +2646,14 @@ L<http://libvirt.org/formatnode.html>.
 
 Passthrough devices cannot be simultaneously used by the host and its
 guest domains, nor by multiple active guests at once.  If the
-<hostdev> description includes the attribute B<managed='yes'>, and the
-hypervisor driver supports it, then the device is in managed mode, and
+<hostdev> description of a PCI device includes the attribute B<managed='yes'>,
+and the hypervisor driver supports it, then the device is in managed mode, and
 attempts to use that passthrough device in an active guest will
 automatically behave as if B<nodedev-detach> (guest start, device
 hot-plug) and B<nodedev-reattach> (guest stop, device hot-unplug) were
-called at the right points (currently, qemu does this for PCI devices,
-but not USB).  If a device is not marked as managed, then it must
-manually be detached before guests can use it, and manually reattached
-to be returned to the host.  Also, if a device is manually detached,
+called at the right points.  If a PCI device is not marked as managed,
+then it must manually be detached before guests can use it, and manually
+reattached to be returned to the host.  Also, if a device is manually detached,
 then the host does not regain control of the device without a matching
 reattach, even if the guests use the device in managed mode.
 
@@ -2638,8 +2711,8 @@ I<cap> and I<--tree> are mutually exclusive.
 
 Declare that I<nodedev> is no longer in use by any guests, and that
 the host can resume normal use of the device.  This is done
-automatically for devices in managed mode, but must be done explicitly
-to match any explicit B<nodedev-detach>.
+automatically for PCI devices in managed mode and USB devices, but
+must be done explicitly to match any explicit B<nodedev-detach>.
 
 =item B<nodedev-reset> I<nodedev>
 
@@ -2675,8 +2748,8 @@ to get a description of the XML network format used by libvirt.
 
 =item B<net-define> I<file>
 
-Define a persistent virtual network from an XML I<file>, the network is just
-defined but not instantiated (started).
+Define an inactive persistent virtual network or modify an existing persistent
+one from the XML I<file>.
 
 =item B<net-destroy> I<network>
 
@@ -2835,8 +2908,8 @@ See also B<iface-unbridge> for undoing this operation.
 
 =item B<iface-define> I<file>
 
-Define a host interface from an XML I<file>, the interface is just defined but
-not started.
+Define an inactive persistent physical host interface or modify an existing
+persistent one from the XML I<file>.
 
 =item B<iface-destroy> I<interface>
 
@@ -2940,16 +3013,49 @@ pools are similar to the ones used for domains.
 
 =item B<find-storage-pool-sources> I<type> [I<srcSpec>]
 
-Returns XML describing all storage pools of a given I<type> that could
-be found.  If I<srcSpec> is provided, it is a file that contains XML
-to further restrict the query for pools.
+Returns XML describing all possible available storage pool sources that
+could be used to create or define a storage pool of a given I<type>. If
+I<srcSpec> is provided, it is a file that contains XML to further restrict
+the query for pools.
+
+Not all storage pools support discovery in this manner. Furthermore, for
+those that do support discovery, only specific XML elements are required
+in order to return valid data, while other elements and even attributes
+of some elements are ignored since they are not necessary to find the pool
+based on the search criteria. The following lists the supported I<type>
+options and the expected minimal XML elements used to perform the search.
+
+For a "netfs" or "gluster" pool, the minimal expected XML required is the
+<host> element with a "name" attribute describing the IP address or hostname
+to be used to find the pool. The "port" attribute will be ignored as will
+any other provided XML elements in I<srcSpec>.
+
+For a "logical" pool, the contents of the I<srcSpec> file are ignored,
+although if provided the file must at least exist.
+
+For an "iscsi" pool, the minimal expect XML required is the <host> element
+with a "name" attribute describing the IP address or hostname to be used to
+find the pool (the iSCSI server address). Optionally, the "port" attribute
+may be provided, although it will default to 3260. Optionally, an <initiator>
+XML element with a "name" attribute may be provided to further restrict the
+iSCSI target search to a specific initiator for multi-iqn iSCSI storage pools.
 
 =item B<find-storage-pool-sources-as> I<type> [I<host>] [I<port>]
 [I<initiator>]
 
-Returns XML describing all storage pools of a given I<type> that could
-be found.  If I<host>, I<port>, or I<initiator> are provided, they control
-where the query is performed.
+Rather than providing I<srcSpec> XML file for B<find-storage-pool-sources>
+use this command option in order to have virsh generate the query XML file
+using the optional arguments. The command will return the same output
+XML as B<find-storage-pool-sources>.
+
+Use I<host> to describe a specific host to use for networked storage, such
+as netfs, gluster, and iscsi I<type> pools.
+
+Use I<port> to further restrict which networked port to utilize for the
+connection if required by the specific storage backend, such as iscsi.
+
+Use I<initiator> to further restrict the iscsi I<type> pool searches to
+specific target initiators.
 
 =item B<pool-autostart> I<pool-or-uuid> [I<--disable>]
 
@@ -3030,7 +3136,8 @@ the vHBA.
 
 =item B<pool-define> I<file>
 
-Create, but do not start, a pool object from the XML I<file>.
+Define an inactive persistent storage pool or modify an existing persistent one
+from the XML I<file>.
 
 =item B<pool-define-as> I<name> I<type> [I<--print-xml>]
 [I<--source-host hostname>] [I<--source-path path>] [I<--source-dev path>]

@@ -108,7 +108,7 @@
 %define with_storage_iscsi    0%{!?_without_storage_iscsi:%{server_drivers}}
 %define with_storage_disk     0%{!?_without_storage_disk:%{server_drivers}}
 %define with_storage_mpath    0%{!?_without_storage_mpath:%{server_drivers}}
-%if 0%{?fedora} >= 16
+%if 0%{?fedora} >= 16 || 0%{?rhel} >= 7
     %define with_storage_rbd      0%{!?_without_storage_rbd:%{server_drivers}}
 %else
     %define with_storage_rbd      0
@@ -179,6 +179,13 @@
 %ifnarch x86_64
     %if 0%{?rhel} >= 6
         %define with_storage_gluster 0
+    %endif
+%endif
+
+# librados and librbd are built only on x86_64 on rhel
+%ifnarch x86_64
+    %if 0%{?rhel} >= 7
+        %define with_storage_rbd 0
     %endif
 %endif
 
@@ -365,7 +372,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc2%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -374,7 +381,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -566,7 +573,12 @@ BuildRequires: device-mapper-devel
     %endif
 %endif
 %if %{with_storage_rbd}
+    %if 0%{?rhel} >= 7
+BuildRequires: librados2-devel
+BuildRequires: librbd1-devel
+    %else
 BuildRequires: ceph-devel
+    %endif
 %endif
 %if %{with_storage_gluster}
     %if 0%{?rhel} >= 6

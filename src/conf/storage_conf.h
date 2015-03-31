@@ -345,16 +345,25 @@ virStoragePoolDefPtr virStoragePoolDefParseNode(xmlDocPtr xml,
                                                 xmlNodePtr root);
 char *virStoragePoolDefFormat(virStoragePoolDefPtr def);
 
+typedef enum {
+    /* do not require volume capacity at all */
+    VIR_VOL_XML_PARSE_NO_CAPACITY  = 1 << 0,
+    /* do not require volume capacity if the volume has a backing store */
+    VIR_VOL_XML_PARSE_OPT_CAPACITY = 1 << 1,
+} virStorageVolDefParseFlags;
 virStorageVolDefPtr
 virStorageVolDefParseString(virStoragePoolDefPtr pool,
-                            const char *xml);
+                            const char *xml,
+                            unsigned int flags);
 virStorageVolDefPtr
 virStorageVolDefParseFile(virStoragePoolDefPtr pool,
-                          const char *filename);
+                          const char *filename,
+                          unsigned int flags);
 virStorageVolDefPtr
 virStorageVolDefParseNode(virStoragePoolDefPtr pool,
                           xmlDocPtr xml,
-                          xmlNodePtr root);
+                          xmlNodePtr root,
+                          unsigned int flags);
 char *virStorageVolDefFormat(virStoragePoolDefPtr pool,
                              virStorageVolDefPtr def);
 
