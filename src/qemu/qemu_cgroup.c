@@ -1,7 +1,7 @@
 /*
  * qemu_cgroup.c: QEMU cgroup management
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -471,9 +471,9 @@ qemuSetupMemoryCgroup(virDomainObjPtr vm)
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
     if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
-        if (vm->def->mem.hard_limit != 0 ||
-            vm->def->mem.soft_limit != 0 ||
-            vm->def->mem.swap_hard_limit != 0) {
+        if (virMemoryLimitIsSet(vm->def->mem.hard_limit) ||
+            virMemoryLimitIsSet(vm->def->mem.soft_limit) ||
+            virMemoryLimitIsSet(vm->def->mem.swap_hard_limit)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Memory cgroup is not available on this host"));
             return -1;
@@ -482,17 +482,17 @@ qemuSetupMemoryCgroup(virDomainObjPtr vm)
         }
     }
 
-    if (vm->def->mem.hard_limit != 0 &&
-        virCgroupSetMemoryHardLimit(priv->cgroup, vm->def->mem.hard_limit) < 0)
-        return -1;
+    if (virMemoryLimitIsSet(vm->def->mem.hard_limit))
+        if (virCgroupSetMemoryHardLimit(priv->cgroup, vm->def->mem.hard_limit) < 0)
+            return -1;
 
-    if (vm->def->mem.soft_limit != 0 &&
-        virCgroupSetMemorySoftLimit(priv->cgroup, vm->def->mem.soft_limit) < 0)
-        return -1;
+    if (virMemoryLimitIsSet(vm->def->mem.soft_limit))
+        if (virCgroupSetMemorySoftLimit(priv->cgroup, vm->def->mem.soft_limit) < 0)
+            return -1;
 
-    if (vm->def->mem.swap_hard_limit != 0 &&
-        virCgroupSetMemSwapHardLimit(priv->cgroup, vm->def->mem.swap_hard_limit) < 0)
-        return -1;
+    if (virMemoryLimitIsSet(vm->def->mem.swap_hard_limit))
+        if (virCgroupSetMemSwapHardLimit(priv->cgroup, vm->def->mem.swap_hard_limit) < 0)
+            return -1;
 
     return 0;
 }
@@ -652,6 +652,9 @@ qemuSetupCpusetCgroup(virDomainObjPtr vm,
     if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
         return 0;
 
+    if (virCgroupSetCpusetMemoryMigrate(priv->cgroup, true) < 0)
+        return -1;
+
     if (vm->def->cpumask ||
         (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO)) {
 
@@ -792,9 +795,12 @@ static void
 qemuRestoreCgroupState(virDomainObjPtr vm)
 {
     char *mem_mask = NULL;
+    char *nodeset = NULL;
     int empty = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    size_t i = 0;
     virBitmapPtr all_nodes;
+    virCgroupPtr cgroup_temp = NULL;
 
     if (!(all_nodes = virNumaGetHostNodeset()))
         goto error;
@@ -809,9 +815,37 @@ qemuRestoreCgroupState(virDomainObjPtr vm)
     if (virCgroupSetCpusetMems(priv->cgroup, mem_mask) < 0)
         goto error;
 
+    for (i = 0; i < priv->nvcpupids; i++) {
+        if (virCgroupNewVcpu(priv->cgroup, i, false, &cgroup_temp) < 0 ||
+            virCgroupSetCpusetMemoryMigrate(cgroup_temp, true) < 0 ||
+            virCgroupGetCpusetMems(cgroup_temp, &nodeset) < 0 ||
+            virCgroupSetCpusetMems(cgroup_temp, nodeset) < 0)
+            goto cleanup;
+
+        virCgroupFree(&cgroup_temp);
+    }
+
+    for (i = 0; i < priv->niothreadpids; i++) {
+        if (virCgroupNewIOThread(priv->cgroup, i + 1, false, &cgroup_temp) < 0 ||
+            virCgroupSetCpusetMemoryMigrate(cgroup_temp, true) < 0 ||
+            virCgroupGetCpusetMems(cgroup_temp, &nodeset) < 0 ||
+            virCgroupSetCpusetMems(cgroup_temp, nodeset) < 0)
+            goto cleanup;
+
+        virCgroupFree(&cgroup_temp);
+    }
+
+    if (virCgroupNewEmulator(priv->cgroup, false, &cgroup_temp) < 0 ||
+        virCgroupSetCpusetMemoryMigrate(cgroup_temp, true) < 0 ||
+        virCgroupGetCpusetMems(cgroup_temp, &nodeset) < 0 ||
+        virCgroupSetCpusetMems(cgroup_temp, nodeset) < 0)
+        goto cleanup;
+
  cleanup:
     VIR_FREE(mem_mask);
+    VIR_FREE(nodeset);
     virBitmapFree(all_nodes);
+    virCgroupFree(&cgroup_temp);
     return;
 
  error:
@@ -941,14 +975,14 @@ qemuSetupCgroupVcpuBW(virCgroupPtr cgroup,
 
 int
 qemuSetupCgroupVcpuPin(virCgroupPtr cgroup,
-                       virDomainVcpuPinDefPtr *vcpupin,
+                       virDomainPinDefPtr *vcpupin,
                        int nvcpupin,
                        int vcpuid)
 {
     size_t i;
 
     for (i = 0; i < nvcpupin; i++) {
-        if (vcpuid == vcpupin[i]->vcpuid)
+        if (vcpuid == vcpupin[i]->id)
             return qemuSetupCgroupEmulatorPin(cgroup, vcpupin[i]->cpumask);
     }
 
@@ -957,14 +991,14 @@ qemuSetupCgroupVcpuPin(virCgroupPtr cgroup,
 
 int
 qemuSetupCgroupIOThreadsPin(virCgroupPtr cgroup,
-                            virDomainVcpuPinDefPtr *iothreadspin,
+                            virDomainPinDefPtr *iothreadspin,
                             int niothreadspin,
                             int iothreadid)
 {
     size_t i;
 
     for (i = 0; i < niothreadspin; i++) {
-        if (iothreadid == iothreadspin[i]->vcpuid)
+        if (iothreadid == iothreadspin[i]->id)
             return qemuSetupCgroupEmulatorPin(cgroup, iothreadspin[i]->cpumask);
     }
 
@@ -1059,7 +1093,7 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
             /* find the right CPU to pin, otherwise
              * qemuSetupCgroupVcpuPin will fail. */
             for (j = 0; j < def->cputune.nvcpupin; j++) {
-                if (def->cputune.vcpupin[j]->vcpuid != i)
+                if (def->cputune.vcpupin[j]->id != i)
                     continue;
 
                 if (qemuSetupCgroupVcpuPin(cgroup_vcpu,
@@ -1236,7 +1270,7 @@ qemuSetupCgroupForIOThreads(virDomainObjPtr vm)
              * qemuSetupCgroupIOThreadsPin will fail. */
             for (j = 0; j < def->cputune.niothreadspin; j++) {
                 /* IOThreads are numbered/named 1..n */
-                if (def->cputune.iothreadspin[j]->vcpuid != i + 1)
+                if (def->cputune.iothreadspin[j]->id != i + 1)
                     continue;
 
                 if (qemuSetupCgroupIOThreadsPin(cgroup_iothread,

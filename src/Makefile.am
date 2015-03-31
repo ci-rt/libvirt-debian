@@ -131,6 +131,7 @@ UTIL_SOURCES =							\
 		util/virnetdevbandwidth.h util/virnetdevbandwidth.c \
 		util/virnetdevbridge.h util/virnetdevbridge.c	\
 		util/virnetdevmacvlan.c util/virnetdevmacvlan.h	\
+		util/virnetdevmidonet.h util/virnetdevmidonet.c \
 		util/virnetdevopenvswitch.h util/virnetdevopenvswitch.c \
 		util/virnetdevtap.h util/virnetdevtap.c		\
 		util/virnetdevveth.h util/virnetdevveth.c	\
@@ -159,6 +160,7 @@ UTIL_SOURCES =							\
 		util/virsysinfo.c util/virsysinfo.h		\
 		util/virsystemd.c util/virsystemd.h		\
 		util/virthread.c util/virthread.h		\
+		util/virthreadjob.c util/virthreadjob.h		\
 		util/virthreadpool.c util/virthreadpool.h	\
 		util/virtime.h util/virtime.c			\
 		util/virtpm.h util/virtpm.c			\
@@ -1035,10 +1037,6 @@ libvirt_la_BUILT_LIBADD += libvirt_cpu.la
 libvirt_cpu_la_CFLAGS = \
 		-I$(srcdir)/conf $(AM_CFLAGS)
 libvirt_cpu_la_SOURCES = $(CPU_SOURCES)
-libvirt_cpu_la_DEPENDENCIES = $(abs_builddir)/cpu/cpu_map.xml
-
-$(abs_builddir)/cpu/cpu_map.xml:
-	$(AM_V_GEN)ln -s $(abs_srcdir)/cpu/cpu_map.xml $@
 
 if WITH_VMX
 noinst_LTLIBRARIES += libvirt_vmx.la
@@ -1456,12 +1454,11 @@ libvirt_driver_interface_la_LIBADD =
 if WITH_NETCF
 libvirt_driver_interface_la_CFLAGS += $(NETCF_CFLAGS)
 libvirt_driver_interface_la_LIBADD += $(NETCF_LIBS)
-else ! WITH_NETCF
+endif WITH_NETCF
 if WITH_UDEV
 libvirt_driver_interface_la_CFLAGS += $(UDEV_CFLAGS)
 libvirt_driver_interface_la_LIBADD += $(UDEV_LIBS)
 endif WITH_UDEV
-endif ! WITH_NETCF
 if WITH_DRIVER_MODULES
 libvirt_driver_interface_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_interface_la_LDFLAGS += -module -avoid-version
@@ -2147,6 +2144,7 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/virstring.c		\
 		util/virtime.c			\
 		util/virthread.c		\
+		util/virthreadjob.c		\
 		util/virtypedparam.c		\
 		util/viruri.c			\
 		util/virutil.c			\

@@ -99,6 +99,13 @@ parallelsBuildCapabilities(void)
                                          NULL, 0, NULL)) == NULL)
         goto error;
 
+    if ((guest = virCapabilitiesAddGuest(caps, "hvm",
+                                         VIR_ARCH_I686,
+                                         "parallels",
+                                         NULL, 0, NULL)) == NULL)
+        goto error;
+
+
     if (virCapabilitiesAddGuestDomain(guest,
                                       "parallels", NULL, NULL, 0, NULL) == NULL)
         goto error;
@@ -154,21 +161,35 @@ parallelsConnectGetCapabilities(virConnectPtr conn)
 }
 
 static int
-parallelsDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+parallelsDomainDefPostParse(virDomainDefPtr def,
                             virCapsPtr caps ATTRIBUTE_UNUSED,
                             void *opaque ATTRIBUTE_UNUSED)
 {
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
     return 0;
 }
 
-
 static int
-parallelsDomainDeviceDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+parallelsDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                                   const virDomainDef *def ATTRIBUTE_UNUSED,
                                   virCapsPtr caps ATTRIBUTE_UNUSED,
                                   void *opaque ATTRIBUTE_UNUSED)
 {
-    return 0;
+    int ret = -1;
+
+    if (dev->type == VIR_DOMAIN_DEVICE_NET &&
+        (dev->data.net->type == VIR_DOMAIN_NET_TYPE_NETWORK ||
+         dev->data.net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) &&
+        !dev->data.net->model &&
+        VIR_STRDUP(dev->data.net->model, "e1000") < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    return ret;
 }
 
 
@@ -264,8 +285,10 @@ parallelsConnectOpen(virConnectPtr conn,
 
     if ((ret = parallelsOpenDefault(conn)) != VIR_DRV_OPEN_SUCCESS ||
         (ret = parallelsStorageOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS ||
-        (ret = parallelsNetworkOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS)
+        (ret = parallelsNetworkOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS) {
+        parallelsConnectClose(conn);
         return ret;
+    }
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -274,6 +297,9 @@ static int
 parallelsConnectClose(virConnectPtr conn)
 {
     parallelsConnPtr privconn = conn->privateData;
+
+    if (!privconn)
+        return 0;
 
     parallelsNetworkClose(conn);
     parallelsStorageClose(conn);
@@ -522,7 +548,7 @@ parallelsDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 
     info->state = virDomainObjGetState(privdom, NULL);
     info->memory = privdom->def->mem.cur_balloon;
-    info->maxMem = privdom->def->mem.max_balloon;
+    info->maxMem = virDomainDefGetMemoryActual(privdom->def);
     info->nrVirtCpu = privdom->def->vcpus;
     info->cpuTime = 0;
     ret = 0;
@@ -772,7 +798,6 @@ parallelsDomainGetVcpus(virDomainPtr domain,
                         int maplen)
 {
     parallelsConnPtr privconn = domain->conn->privateData;
-    parallelsDomObjPtr privdomdata = NULL;
     virDomainObjPtr privdom = NULL;
     size_t i;
     int v, maxcpu, hostcpus;
@@ -794,7 +819,6 @@ parallelsDomainGetVcpus(virDomainPtr domain,
         goto cleanup;
     }
 
-    privdomdata = privdom->privateData;
     if ((hostcpus = nodeGetCPUCount()) < 0)
         goto cleanup;
 
@@ -815,7 +839,7 @@ parallelsDomainGetVcpus(virDomainPtr domain,
             int tmpmapLen = 0;
 
             memset(cpumaps, 0, maplen * maxinfo);
-            virBitmapToData(privdomdata->cpumask, &tmpmap, &tmpmapLen);
+            virBitmapToData(privdom->def->cpumask, &tmpmap, &tmpmapLen);
             if (tmpmapLen > maplen)
                 tmpmapLen = maplen;
 
@@ -938,6 +962,7 @@ parallelsDomainUndefineFlags(virDomainPtr domain,
 {
     parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr dom = NULL;
+    int ret;
 
     virCheckFlags(0, -1);
 
@@ -947,7 +972,11 @@ parallelsDomainUndefineFlags(virDomainPtr domain,
         return -1;
     }
 
-    return prlsdkUnregisterDomain(privconn, dom);
+    ret = prlsdkUnregisterDomain(privconn, dom);
+    if (ret)
+         virObjectUnlock(dom);
+
+    return ret;
 }
 
 static int
@@ -969,6 +998,8 @@ parallelsDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
         parallelsDomNotFoundError(domain);
         return -1;
     }
+
+    virObjectUnlock(dom);
 
     return 0;
 }

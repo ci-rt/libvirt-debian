@@ -663,10 +663,10 @@ virDomainNumaDefCPUParseXML(virDomainNumaPtr def,
     int ret = -1;
 
     /* check if NUMA definition is present */
-    if (!virXPathNode("/domain/cpu/numa[1]", ctxt))
+    if (!virXPathNode("./cpu/numa[1]", ctxt))
         return 0;
 
-    if ((n = virXPathNodeSet("/domain/cpu/numa[1]/cell", ctxt, &nodes)) <= 0) {
+    if ((n = virXPathNodeSet("./cpu/numa[1]/cell", ctxt, &nodes)) <= 0) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("NUMA topology defined without NUMA cells"));
         goto cleanup;
@@ -893,4 +893,17 @@ virDomainNumaSetNodeMemorySize(virDomainNumaPtr numa,
                                unsigned long long size)
 {
     numa->mem_nodes[node].mem = size;
+}
+
+
+unsigned long long
+virDomainNumaGetMemorySize(virDomainNumaPtr numa)
+{
+    size_t i;
+    unsigned long long ret = 0;
+
+    for (i = 0; i < numa->nmem_nodes; i++)
+        ret += numa->mem_nodes[i].mem;
+
+    return ret;
 }

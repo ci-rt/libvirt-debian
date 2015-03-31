@@ -40,7 +40,8 @@ testCompareXMLToArgvFiles(bool shouldFail,
                           const char *inputvolxml,
                           const char *cmdline,
                           unsigned int flags,
-                          int imgformat)
+                          int imgformat,
+                          unsigned long parse_flags)
 {
     char *volXmlData = NULL;
     char *poolXmlData = NULL;
@@ -84,11 +85,14 @@ testCompareXMLToArgvFiles(bool shouldFail,
             goto cleanup;
     }
 
-    if (!(vol = virStorageVolDefParseString(pool, volXmlData)))
+    if (inputvolxml)
+        parse_flags |= VIR_VOL_XML_PARSE_NO_CAPACITY;
+
+    if (!(vol = virStorageVolDefParseString(pool, volXmlData, parse_flags)))
         goto cleanup;
 
     if (inputvolxml &&
-        !(inputvol = virStorageVolDefParseString(inputpool, inputvolXmlData)))
+        !(inputvol = virStorageVolDefParseString(inputpool, inputvolXmlData, 0)))
         goto cleanup;
 
     testSetVolumeType(vol, pool);
@@ -145,6 +149,7 @@ struct testInfo {
     const char *cmdline;
     unsigned int flags;
     int imgformat;
+    unsigned long parseflags;
 };
 
 static int
@@ -179,7 +184,7 @@ testCompareXMLToArgvHelper(const void *data)
     result = testCompareXMLToArgvFiles(info->shouldFail, poolxml, volxml,
                                        inputpoolxml, inputvolxml,
                                        cmdline, info->flags,
-                                       info->imgformat);
+                                       info->imgformat, info->parseflags);
 
  cleanup:
     VIR_FREE(poolxml);
@@ -206,11 +211,11 @@ mymain(void)
     int ret = 0;
     unsigned int flags = VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA;
 
-#define DO_TEST_FULL(shouldFail, pool, vol, inputpool, inputvol, cmdline,    \
-                     flags, imgformat)                                       \
+#define DO_TEST_FULL(shouldFail, parseflags, pool, vol, inputpool, inputvol, \
+                     cmdline, flags, imgformat)                              \
     do {                                                                     \
         struct testInfo info = { shouldFail, pool, vol, inputpool, inputvol, \
-                                 cmdline, flags, imgformat };                \
+                                 cmdline, flags, imgformat, parseflags };    \
         if (virtTestRun("Storage Vol XML-2-argv " cmdline,                   \
                         testCompareXMLToArgvHelper, &info) < 0)              \
             ret = -1;                                                        \
@@ -218,10 +223,10 @@ mymain(void)
     while (0);
 
 #define DO_TEST(pool, ...)                                                 \
-    DO_TEST_FULL(false, pool, __VA_ARGS__)
+    DO_TEST_FULL(false, 0, pool, __VA_ARGS__)
 
 #define DO_TEST_FAIL(pool, ...)                                            \
-    DO_TEST_FULL(true, pool, __VA_ARGS__)
+    DO_TEST_FULL(true, 0, pool, __VA_ARGS__)
 
     DO_TEST("pool-dir", "vol-qcow2",
             NULL, NULL,
@@ -305,6 +310,12 @@ mymain(void)
     DO_TEST("pool-dir", "vol-qcow2-nocow",
             NULL, NULL,
             "qcow2-nocow-compat", 0, FMT_COMPAT);
+    DO_TEST("pool-dir", "vol-qcow2-nocapacity",
+            "pool-dir", "vol-file",
+            "qcow2-nocapacity-convert-prealloc", flags, FMT_OPTIONS);
+    DO_TEST_FULL(false, VIR_VOL_XML_PARSE_OPT_CAPACITY,
+                 "pool-dir", "vol-qcow2-nocapacity-backing", NULL, NULL,
+                 "qcow2-nocapacity", 0, FMT_OPTIONS);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

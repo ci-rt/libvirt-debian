@@ -338,6 +338,8 @@
                     <a href="#elementsPanic">panic device</a>
                   </li><li>
                     <a href="#elementsShmem">Shared memory device</a>
+                  </li><li>
+                    <a href="#elementsMemory">Memory devices</a>
                   </li></ul>
               </li><li>
                 <a href="#seclabel">Security label</a>
@@ -879,12 +881,15 @@
         <pre xml:space="preserve">
 &lt;domain&gt;
   ...
+  &lt;maxMemory slots='16' unit='KiB'&gt;1524288&lt;/maxMemory&gt;
   &lt;memory unit='KiB'&gt;524288&lt;/memory&gt;
   &lt;currentMemory unit='KiB'&gt;524288&lt;/currentMemory&gt;
   ...
 &lt;/domain&gt;
 </pre>
-        <dl><dt><code>memory</code></dt><dd>The maximum allocation of memory for the guest at boot time.
+        <dl><dt><code>memory</code></dt><dd>The maximum allocation of memory for the guest at boot time. The
+        memory allocation includes possible additional memory devices specified
+        at start or hotplugged later.
         The units for this value are determined by the optional
         attribute <code>unit</code>, which defaults to "KiB"
         (kibibytes, 2<sup>10</sup> or blocks of 1024 bytes).  Valid
@@ -902,13 +907,32 @@
         supported by the hypervisor.  Some hypervisors also enforce a
         minimum, such as 4000KiB.
 
+        In case <a href="#elementsCPU" shape="rect">NUMA</a> is configured for the guest the
+        <code>memory</code> element can be omitted.
+
         In the case of crash, optional attribute <code>dumpCore</code>
         can be used to control whether the guest memory should be
         included in the generated coredump or not (values "on", "off").
 
         <span class="since"><code>unit</code> since 0.9.11</span>,
         <span class="since"><code>dumpCore</code> since 0.10.2
-        (QEMU only)</span></dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value can
+        (QEMU only)</span></dd><dt><code>maxMemory</code></dt><dd>The run time maximum memory allocation of the guest. The initial
+        memory specified by either the <code>&lt;memory&gt;</code> element or
+        the NUMA cell size configuration can be increased by hot-plugging of
+        memory to the limit specified by this element.
+
+        The <code>unit</code> attribute behaves the same as for
+        <code>&lt;memory&gt;</code>.
+
+        The <code>slots</code> attribute specifies the number of slots
+        available for adding memory to the guest. The bounds are hypervisor
+        specific.
+
+        Note that due to alignment of the memory chunks added via memory
+        hotplug the full size allocation specified by this element may be
+        impossible to achieve.
+        <span class="since">Since 1.2.14 supported by the QEMU driver.</span>
+      </dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value can
         be less than the maximum allocation, to allow for ballooning
         up the guests memory on the fly. If this is omitted, it defaults
         to the same value as the <code>memory</code> element.
@@ -984,7 +1008,9 @@
         for <code>&lt;memory&gt;</code>.  For backwards
         compatibility, output is always in
         KiB.  <span class="since"><code>unit</code>
-        since 0.9.11</span></dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
+        since 0.9.11</span>
+        Possible values for all *_limit parameters are in range from 0 to
+        VIR_DOMAIN_MEMORY_PARAM_UNLIMITED.</dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
         the guest can use. The units for this value are kibibytes (i.e. blocks
         of 1024 bytes). <strong>However, users of QEMU and KVM are strongly
         advised not to set this limit as domain may get killed by the kernel
@@ -1985,14 +2011,22 @@
         This feature doesn't support migration currently.
         </p>
         </dd><dt><code>backingStore</code></dt><dd>
-        This element describes the backing store used by the disk specified by
-        sibling <code>source</code> element. It is currently ignored on input
-        and only used for output to describe the detected backing chains.
-        <span class="since">Since 1.2.4</span>. An empty
-        <code>backingStore</code> element means the sibling source is
-        self-contained and is not based on any backing store. The following
-        attributes and sub-elements are supported in
-        <code>backingStore</code>:
+        This element describes the backing store used by the disk
+        specified by sibling <code>source</code> element. It is
+        currently ignored on input and only used for output to
+        describe the detected backing chains of running
+        domains <span class="since">since 1.2.4</span> (although a
+        future version of libvirt may start accepting chains on input,
+        or output information for offline domains). An
+        empty <code>backingStore</code> element means the sibling
+        source is self-contained and is not based on any backing
+        store. For backing chain information to be accurate, the
+        backing format must be correctly specified in the metadata of
+        each file of the chain (files created by libvirt satisfy this
+        property, but using existing external files for snapshot or
+        block copy operations requires the end user to pre-create the
+        file correctly). The following attributes and sub-elements are
+        supported in <code>backingStore</code>:
         <dl><dt><code>type</code> attribute</dt><dd>
             The <code>type</code> attribute represents the type of disk used
             by the backing store, see disk type attribute above for more
@@ -2766,19 +2800,18 @@
         host devices. For each device, the <code>mode</code> is always
         "subsystem" and the <code>type</code> is one of the following values
         with additional attributes noted.
-        <dl><dt>usb</dt><dd>For USB devices, the user is responsible to call
-            <code>virNodeDeviceDettach</code> (or
-            <code>virsh nodedev-detach</code>) before starting the guest
-            or hot-plugging the device and <code>virNodeDeviceReAttach</code>
-            (or <code>virsh nodedev-reattach</code>) after hot-unplug or
-            stopping the guest.
+        <dl><dt>usb</dt><dd>USB devices are detached from the host on guest startup
+            and reattached after the guest exits or the device is
+            hot-unplugged.
           </dd><dt>pci</dt><dd>For PCI devices, when <code>managed</code> is "yes" it is
             detached from the host before being passed on to the guest
             and reattached to the host after the guest exits. If
-            <code>managed</code> is omitted or "no", follow the steps
-            described for a USB device to detach before starting the
-            guest or hot-plugging and reattach after stopping the guest
-            or hot-unplug.
+            <code>managed</code> is omitted or "no", the user is
+            responsible to call <code>virNodeDeviceDetachFlags</code>
+            (or <code>virsh nodedev-detach</code> before starting the guest
+            or hot-plugging the device and <code>virNodeDeviceReAttach</code>
+            (or <code>virsh nodedev-reattach</code>) after hot-unplug or
+            stopping the guest.
           </dd><dt>scsi</dt><dd>For SCSI devices, user is responsible to make sure the device
             is not used by host. The optional <code>sgio</code>
             (<span class="since">since 1.0.6</span>) attribute indicates
@@ -2792,6 +2825,12 @@
             If a disk lun in the domain already has the rawio capability,
             then this setting not required.
           </dd></dl>
+        <p>
+          Note: The <code>managed</code> attribute is only used with PCI devices
+          and is ignored by all the other device types, thus setting
+          <code>managed</code> explicitly with other than PCI device has the same
+          effect as omitting it.
+        </p>
       </dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host using
         the following mechanism to describe:
         <dl><dt>usb</dt><dd>The USB device can either be addressed by vendor / product id
@@ -2948,7 +2987,7 @@
       &lt;boot order='1'/&gt;
     &lt;/redirdev&gt;
     &lt;redirfilter&gt;
-      &lt;usbdev class='0x08' vendor='0x1234' product='0xbeef' version='2.00' allow='yes'/&gt;
+      &lt;usbdev class='0x08' vendor='0x1234' product='0xbeef' version='2.56' allow='yes'/&gt;
       &lt;usbdev allow='no'/&gt;
     &lt;/redirfilter&gt;
   &lt;/devices&gt;
@@ -2983,7 +3022,8 @@
         <code>class</code> attribute is the USB Class code, for example,
         0x08 represents mass storage devices. The USB device can be addressed by
         vendor / product id using the <code>vendor</code> and <code>product</code> attributes.
-        <code>version</code> is the bcdDevice value of USB device, such as 1.00, 1.10 and 2.00.
+        <code>version</code> is the device revision from the bcdDevice field (not
+        the version of the USB protocol).
         These four attributes are optional and <code>-1</code> can be used to allow
         any value for them. <code>allow</code> attribute is mandatory,
         'yes' means allow, 'no' for deny.
@@ -3266,6 +3306,39 @@
       &lt;source bridge='ovsbr'/&gt;
       &lt;virtualport type='openvswitch'&gt;
         &lt;parameters profileid='menial' interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+      &lt;/virtualport&gt;
+    &lt;/interface&gt;
+    ...
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      On hosts that support Open vSwitch on the kernel side and have the
+      Midonet Host Agent configured, it is also possible to connect to the
+      'midonet' bridge device by adding a
+      <code>&lt;virtualport type='midonet'/&gt;</code> to the
+      interface definition.  (<span class="since">Since
+      1.2.13</span>). The Midonet virtualport type requires an
+      <code>interfaceid</code> attribute in its
+      <code>&lt;parameters&gt;</code> element. This interface id is the UUID
+      that specifies which port in the virtual network topology will be bound
+      to the interface.
+    </p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    ...
+    &lt;interface type='bridge'&gt;
+      &lt;source bridge='br0'/&gt;
+    &lt;/interface&gt;
+    &lt;interface type='bridge'&gt;
+      &lt;source bridge='br1'/&gt;
+      &lt;target dev='vnet7'/&gt;
+      &lt;mac address="00:11:22:33:44:55"/&gt;
+    &lt;/interface&gt;
+    &lt;interface type='bridge'&gt;
+      &lt;source bridge='midonet'/&gt;
+      &lt;virtualport type='midonet'&gt;
+        &lt;parameters interfaceid='0b2d64da-3d0e-431e-afdd-804415d6ebbb'/&gt;
       &lt;/virtualport&gt;
     &lt;/interface&gt;
     ...
@@ -3961,8 +4034,8 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source network='default'/&gt;
       &lt;target dev='vnet0'/&gt;
       <b>&lt;ip address='192.168.122.5' prefix='24'/&gt;</b>
-      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' via='192.168.122.1'/&gt;</b>
-      <b>&lt;route family='ipv4' via='192.168.122.1'/&gt;</b>
+      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
+      <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
     &lt;/interface&gt;
     ...
     &lt;hostdev mode='capabilities' type='net'&gt;
@@ -3970,8 +4043,8 @@ qemu-kvm -net nic,model=? /dev/null
         &lt;interface&gt;eth0&lt;/interface&gt;
       &lt;/source&gt;
       <b>&lt;ip address='192.168.122.6' prefix='24'/&gt;</b>
-      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' via='192.168.122.1'/&gt;</b>
-      <b>&lt;route family='ipv4' via='192.168.122.1'/&gt;</b>
+      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
+      <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
     &lt;/hostdev&gt;
 
   &lt;/devices&gt;
@@ -4861,6 +4934,11 @@ qemu-kvm -net nic,model=? /dev/null
       under a channel name specified in the <code>channel</code>
       attribute.  <span class="since">Since 1.2.2</span>
     </p>
+        <p>
+      Note: depending on the hypervisor, spiceports might (or might not)
+      be enabled on domains with or without <a href="#elementsGraphics" shape="rect">spice
+      graphics</a>.
+    </p>
         <pre xml:space="preserve">
   ...
   &lt;devices&gt;
@@ -5049,18 +5127,17 @@ qemu-kvm -net nic,model=? /dev/null
         <ul><li>'virtio' — default with QEMU/KVM</li><li>'xen' — default with Xen</li></ul>
       </dd><dt><code>period</code></dt><dd>
         <p>
-          The optional <code>period</code> allows the QEMU virtio memory
-          balloon driver to provide statistics through the <code>virsh
-          dommemstat [domain]</code> command. By default, collection is
-          not enabled. In order to enable, use the <code>virsh dommemstat
-          [domain] --period [number]</code> command or <code>virsh edit</code>
-          command to add the option to the XML definition.
-          The <code>virsh dommemstat</code> will accept the options
-          <code>--live</code>, <code>--current</code>, or <code>--config</code>.
-          If an option is not provided, the change for a running domain will
-          only be made to the active guest.
-          If the QEMU driver is not at the right
-          revision, the attempt to set the period will fail.
+          The optional <code>period</code> allows the QEMU virtio memory balloon
+          driver to provide statistics through the <code>virsh dommemstat
+          [domain]</code> command. By default, collection is not enabled. In
+          order to enable, use the <code>virsh dommemstat [domain] --period
+          [number]</code> command or <code>virsh edit</code> command to add the
+          option to the XML definition.  The <code>virsh dommemstat</code> will
+          accept the options <code>--live</code>, <code>--current</code>,
+          or <code>--config</code>.  If an option is not provided, the change
+          for a running domain will only be made to the active guest.  If the
+          QEMU driver is not at the right revision, the attempt to set the
+          period will fail.  Large values (e.g. many years) might be ignored.
           <span class="since">Since 1.1.1, requires QEMU 1.5</span>
         </p>
       </dd></dl>
@@ -5280,6 +5357,82 @@ qemu-kvm -net nic,model=? /dev/null
       vectors. The <code>ioeventd</code> attribute enables/disables (values
       "on"/"off", respectively) ioeventfd.
     </dd></dl>
+        <h4>
+          <a name="elementsMemory" shape="rect" id="elementsMemory">Memory devices</a>
+          <a class="headerlink" href="#elementsMemory" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>
+        In addition to the initial memory assigned to the guest, memory devices
+        allow additional memory to be assigned to the guest in the form of
+        memory modules.
+
+        A memory device can be hot-plugged or hot-unplugged depending on the
+        guests' memory resource needs.
+
+        Some hypervisors may require NUMA configured for the guest.
+      <span class="since">Since 1.2.14</span>
+    </p>
+        <p>
+      Example: usage of the memory devices
+    </p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;memory model='dimm'&gt;
+      &lt;target&gt;
+        &lt;size unit='KiB'&gt;524287&lt;/size&gt;
+        &lt;node&gt;0&lt;/node&gt;
+      &lt;/target&gt;
+    &lt;/memory&gt;
+    &lt;memory model='dimm'&gt;
+      &lt;source&gt;
+        &lt;pagesize unit='KiB'&gt;4096&lt;/pagesize&gt;
+        &lt;nodemask&gt;1-3&lt;/nodemask&gt;
+      &lt;/source&gt;
+      &lt;target&gt;
+        &lt;size unit='KiB'&gt;524287&lt;/size&gt;
+        &lt;node&gt;1&lt;/node&gt;
+      &lt;/target&gt;
+    &lt;/memory&gt;
+  &lt;/devices&gt;
+  ...
+</pre>
+        <dl><dt><code>model</code></dt><dd>
+        <p>
+          Currently only the <code>dimm</code> model is supported in order to
+          add a virtual DIMM module to the guest.
+        </p>
+      </dd><dt><code>source</code></dt><dd>
+        <p>
+          The optional source element allows to fine tune the source of the
+          memory used for the given memory device. If the element is not
+          provided defaults configured via <code>numatune</code> are used.
+        </p>
+        <p>
+          <code>pagesize</code> can optionally be used to override the default
+          host page size used for backing the memory device.
+
+          The configured value must correspond to a page size supported by the
+          host.
+        </p>
+        <p>
+          <code>nodemask</code> can optionally be used to override the default
+          set of NUMA nodes where the memory would be allocated.
+        </p>
+      </dd><dt><code>target</code></dt><dd>
+        <p>
+          The mandatory <code>target</code> element configures the placement and
+          sizing of the added memory from the perspective of the guest.
+        </p>
+        <p>
+          The mandatory <code>size</code> subelement configures the size of the
+          added memory as a scaled integer.
+        </p>
+        <p>
+          The mandatory <code>node</code> subelement configures the guest NUMA
+          node to attach the memory to.
+        </p>
+      </dd></dl>
         <h3>
           <a name="seclabel" shape="rect" id="seclabel">Security label</a>
           <a class="headerlink" href="#seclabel" title="Permalink to this headline">¶</a>

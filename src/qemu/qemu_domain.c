@@ -39,6 +39,7 @@
 #include "virtime.h"
 #include "virstoragefile.h"
 #include "virstring.h"
+#include "virthreadjob.h"
 
 #include "storage/storage_driver.h"
 
@@ -152,6 +153,8 @@ qemuDomainObjResetJob(qemuDomainObjPrivatePtr priv)
 
     job->active = QEMU_JOB_NONE;
     job->owner = 0;
+    job->ownerAPI = NULL;
+    job->started = 0;
 }
 
 static void
@@ -161,6 +164,8 @@ qemuDomainObjResetAsyncJob(qemuDomainObjPrivatePtr priv)
 
     job->asyncJob = QEMU_ASYNC_JOB_NONE;
     job->asyncOwner = 0;
+    job->asyncOwnerAPI = NULL;
+    job->asyncStarted = 0;
     job->phase = 0;
     job->mask = QEMU_JOB_DEFAULT_MASK;
     job->dump_memory_only = false;
@@ -439,6 +444,7 @@ qemuDomainObjPrivateFree(void *data)
     VIR_FREE(priv->origname);
 
     virCondDestroy(&priv->unplugFinished);
+    virStringFreeList(priv->qemuDevices);
     virChrdevFree(priv->devs);
 
     /* This should never be non-NULL if we get here, but just in case... */
@@ -925,6 +931,12 @@ qemuDomainDefPostParse(virDomainDefPtr def,
     bool addDefaultUSBKBD = false;
     bool addDefaultUSBMouse = false;
 
+    if (def->os.bootloader || def->os.bootloaderArgs) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("bootloader is not supported by QEMU"));
+        return -1;
+    }
+
     /* check for emulator and create a default one if needed */
     if (!def->emulator &&
         !(def->emulator = virDomainDefGetDefaultEmulator(def, caps)))
@@ -1142,6 +1154,13 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         ARCH_IS_S390(def->os.arch))
         dev->data.controller->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE;
 
+    /* set the default SCSI controller model for S390 arches */
+    if (dev->type == VIR_DOMAIN_DEVICE_CONTROLLER &&
+        dev->data.controller->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI &&
+        dev->data.controller->model == -1 &&
+        ARCH_IS_S390(def->os.arch))
+        dev->data.controller->model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI;
+
     /* auto generate unix socket path */
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
         dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
@@ -1185,6 +1204,14 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         } else {
             dev->data.video->vgamem = QEMU_QXL_VGAMEM_DEFAULT;
         }
+    }
+
+    if (dev->type == VIR_DOMAIN_DEVICE_MEMORY &&
+        def->mem.max_memory == 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("maxMemory has to be specified when using memory "
+                         "devices "));
+        goto cleanup;
     }
 
     ret = 0;
@@ -1308,7 +1335,10 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
     unsigned long long then;
     bool nested = job == QEMU_JOB_ASYNC_NESTED;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    const char *blocker = NULL;
     int ret = -1;
+    unsigned long long duration = 0;
+    unsigned long long asyncDuration = 0;
 
     VIR_DEBUG("Starting %s: %s (async=%s vm=%p name=%s)",
               job == QEMU_JOB_ASYNC ? "async job" : "job",
@@ -1349,6 +1379,8 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
 
     qemuDomainObjResetJob(priv);
 
+    ignore_value(virTimeMillisNow(&now));
+
     if (job != QEMU_JOB_ASYNC) {
         VIR_DEBUG("Started job: %s (async=%s vm=%p name=%s)",
                    qemuDomainJobTypeToString(job),
@@ -1356,6 +1388,8 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
                   obj, obj->def->name);
         priv->job.active = job;
         priv->job.owner = virThreadSelfID();
+        priv->job.ownerAPI = virThreadJobGet();
+        priv->job.started = now;
     } else {
         VIR_DEBUG("Started async job: %s (vm=%p name=%s)",
                   qemuDomainAsyncJobTypeToString(asyncJob),
@@ -1365,6 +1399,8 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
             goto cleanup;
         priv->job.asyncJob = asyncJob;
         priv->job.asyncOwner = virThreadSelfID();
+        priv->job.asyncOwnerAPI = virThreadJobGet();
+        priv->job.asyncStarted = now;
         priv->job.current->started = now;
     }
 
@@ -1375,29 +1411,55 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
     return 0;
 
  error:
-    VIR_WARN("Cannot start job (%s, %s) for domain %s;"
-             " current job is (%s, %s) owned by (%llu, %llu)",
+    ignore_value(virTimeMillisNow(&now));
+    if (priv->job.active && priv->job.started)
+        duration = now - priv->job.started;
+    if (priv->job.asyncJob && priv->job.asyncStarted)
+        asyncDuration = now - priv->job.asyncStarted;
+
+    VIR_WARN("Cannot start job (%s, %s) for domain %s; "
+             "current job is (%s, %s) owned by (%llu %s, %llu %s) "
+             "for (%llus, %llus)",
              qemuDomainJobTypeToString(job),
              qemuDomainAsyncJobTypeToString(asyncJob),
              obj->def->name,
              qemuDomainJobTypeToString(priv->job.active),
              qemuDomainAsyncJobTypeToString(priv->job.asyncJob),
-             priv->job.owner, priv->job.asyncOwner);
+             priv->job.owner, NULLSTR(priv->job.ownerAPI),
+             priv->job.asyncOwner, NULLSTR(priv->job.asyncOwnerAPI),
+             duration / 1000, asyncDuration / 1000);
+
+    if (nested || qemuDomainNestedJobAllowed(priv, job))
+        blocker = priv->job.ownerAPI;
+    else
+        blocker = priv->job.asyncOwnerAPI;
 
     ret = -1;
     if (errno == ETIMEDOUT) {
-        virReportError(VIR_ERR_OPERATION_TIMEOUT,
-                       "%s", _("cannot acquire state change lock"));
+        if (blocker) {
+            virReportError(VIR_ERR_OPERATION_TIMEOUT,
+                           _("cannot acquire state change lock (held by %s)"),
+                           blocker);
+        } else {
+            virReportError(VIR_ERR_OPERATION_TIMEOUT, "%s",
+                           _("cannot acquire state change lock"));
+        }
         ret = -2;
     } else if (cfg->maxQueuedJobs &&
                priv->jobs_queued > cfg->maxQueuedJobs) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       "%s", _("cannot acquire state change lock "
-                               "due to max_queued limit"));
+        if (blocker) {
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("cannot acquire state change lock (held by %s) "
+                             "due to max_queued limit"),
+                           blocker);
+        } else {
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("cannot acquire state change lock "
+                             "due to max_queued limit"));
+        }
         ret = -2;
     } else {
-        virReportSystemError(errno,
-                             "%s", _("cannot acquire job mutex"));
+        virReportSystemError(errno, "%s", _("cannot acquire job mutex"));
     }
 
  cleanup:
@@ -1603,8 +1665,9 @@ int qemuDomainObjExitMonitor(virQEMUDriverPtr driver,
 {
     qemuDomainObjExitMonitorInternal(driver, obj);
     if (!virDomainObjIsActive(obj)) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                       _("domain is no longer running"));
+        if (!virGetLastError())
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("domain is no longer running"));
         return -1;
     }
     return 0;
@@ -2750,6 +2813,29 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
     return ret;
 }
 
+
+bool
+qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk)
+{
+    if (disk->mirror) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE,
+                       _("disk '%s' already in active block job"),
+                       disk->dst);
+
+        return true;
+    }
+
+    if (disk->blockjob) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("disk '%s' already in active block job"),
+                       disk->dst);
+        return true;
+    }
+
+    return false;
+}
+
+
 int
 qemuDomainUpdateDeviceList(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
@@ -2775,6 +2861,55 @@ qemuDomainUpdateDeviceList(virQEMUDriverPtr driver,
     return 0;
 }
 
+
+int
+qemuDomainUpdateMemoryDeviceInfo(virQEMUDriverPtr driver,
+                                 virDomainObjPtr vm,
+                                 int asyncJob)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virHashTablePtr meminfo = NULL;
+    int rc;
+    size_t i;
+
+    if (vm->def->nmems == 0)
+        return 0;
+
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        return -1;
+
+    rc = qemuMonitorGetMemoryDeviceInfo(priv->mon, &meminfo);
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        return -1;
+
+    /* if qemu doesn't support the info request, just carry on */
+    if (rc == -2)
+        return 0;
+
+    if (rc < 0)
+        return -1;
+
+    for (i = 0; i < vm->def->nmems; i++) {
+        virDomainMemoryDefPtr mem = vm->def->mems[i];
+        qemuMonitorMemoryDeviceInfoPtr dimm;
+
+        if (!mem->info.alias)
+            continue;
+
+        if (!(dimm = virHashLookup(meminfo, mem->info.alias)))
+            continue;
+
+        mem->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DIMM;
+        mem->info.addr.dimm.slot = dimm->slot;
+        mem->info.addr.dimm.base = dimm->address;
+    }
+
+    virHashFree(meminfo);
+    return 0;
+}
+
+
 bool
 qemuDomainDefCheckABIStability(virQEMUDriverPtr driver,
                                virDomainDefPtr src,
@@ -2798,9 +2933,11 @@ qemuDomainDefCheckABIStability(virQEMUDriverPtr driver,
 }
 
 bool
-qemuDomainAgentAvailable(qemuDomainObjPrivatePtr priv,
+qemuDomainAgentAvailable(virDomainObjPtr vm,
                          bool reportError)
 {
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+
     if (priv->agentError) {
         if (reportError) {
             virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
@@ -2813,6 +2950,13 @@ qemuDomainAgentAvailable(qemuDomainObjPrivatePtr priv,
         if (reportError) {
             virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                            _("QEMU guest agent is not configured"));
+        }
+        return false;
+    }
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
+        if (reportError) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("domain is not running"));
         }
         return false;
     }
@@ -2836,4 +2980,48 @@ qemuDomObjEndAPI(virDomainObjPtr *vm)
     virObjectUnlock(*vm);
     virObjectUnref(*vm);
     *vm = NULL;
+}
+
+
+int
+qemuDomainAlignMemorySizes(virDomainDefPtr def)
+{
+    unsigned long long mem;
+    size_t ncells = virDomainNumaGetNodeCount(def->numa);
+    size_t i;
+
+    /* align NUMA cell sizes if relevant */
+    for (i = 0; i < ncells; i++) {
+        mem = virDomainNumaGetNodeMemorySize(def->numa, i);
+        virDomainNumaSetNodeMemorySize(def->numa, i, VIR_ROUND_UP(mem, 1024));
+    }
+
+    /* align initial memory size */
+    mem = virDomainDefGetMemoryInitial(def);
+    virDomainDefSetMemoryInitial(def, VIR_ROUND_UP(mem, 1024));
+
+    /* Align maximum memory size. QEMU requires rounding to next 4KiB block.
+     * We'll take the "traditional" path and round it to 1MiB*/
+    def->mem.max_memory = VIR_ROUND_UP(def->mem.max_memory, 1024);
+
+    /* Align memory module sizes */
+    for (i = 0; i < def->nmems; i++)
+        qemuDomainMemoryDeviceAlignSize(def->mems[i]);
+
+    return 0;
+}
+
+
+/**
+ * qemuDomainMemoryDeviceAlignSize:
+ * @mem: memory device definition object
+ *
+ * Aligns the size of the memory module as qemu enforces it. The size is updated
+ * inplace. Default rounding is now to 1 MiB (qemu requires rouding to page,
+ * size so this should be safe).
+ */
+void
+qemuDomainMemoryDeviceAlignSize(virDomainMemoryDefPtr mem)
+{
+    mem->size = VIR_ROUND_UP(mem->size, 1024);
 }

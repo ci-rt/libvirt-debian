@@ -49,6 +49,7 @@
 #include "viralloc.h"
 #include "virnetdevbridge.h"
 #include "virnetdevveth.h"
+#include "virnetdevopenvswitch.h"
 #include "nodeinfo.h"
 #include "viruuid.h"
 #include "virstats.h"
@@ -617,7 +618,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
         }
     }
 
-    info->maxMem = vm->def->mem.max_balloon;
+    info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
@@ -686,7 +687,7 @@ lxcDomainGetMaxMemory(virDomainPtr dom)
     if (virDomainGetMaxMemoryEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    ret = vm->def->mem.max_balloon;
+    ret = virDomainDefGetMemoryActual(vm->def);
 
  cleanup:
     if (vm)
@@ -735,7 +736,7 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
         }
 
         if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-            persistentDef->mem.max_balloon = newmem;
+            virDomainDefSetMemoryInitial(persistentDef, newmem);
             if (persistentDef->mem.cur_balloon > newmem)
                 persistentDef->mem.cur_balloon = newmem;
             if (virDomainSaveConfig(cfg->configDir, persistentDef) < 0)
@@ -745,10 +746,10 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
         unsigned long oldmax = 0;
 
         if (flags & VIR_DOMAIN_AFFECT_LIVE)
-            oldmax = vm->def->mem.max_balloon;
+            oldmax = virDomainDefGetMemoryActual(vm->def);
         if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-            if (!oldmax || oldmax > persistentDef->mem.max_balloon)
-                oldmax = persistentDef->mem.max_balloon;
+            if (!oldmax || oldmax > virDomainDefGetMemoryActual(persistentDef))
+                oldmax = virDomainDefGetMemoryActual(persistentDef);
         }
 
         if (newmem > oldmax) {
@@ -874,7 +875,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
         if (set_hard_limit)
             mem_limit = hard_limit;
 
-        if (virCompareLimitUlong(mem_limit, swap_limit) > 0) {
+        if (mem_limit > swap_limit) {
             virReportError(VIR_ERR_INVALID_ARG, "%s",
                            _("memory hard_limit tunable value must be lower "
                              "than or equal to swap_hard_limit"));
@@ -902,7 +903,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
     LXC_SET_MEM_PARAMETER(virCgroupSetMemorySoftLimit, soft_limit);
 
     /* set hard limit before swap hard limit if decreasing it */
-    if (virCompareLimitUlong(vm->def->mem.hard_limit, hard_limit) > 0) {
+    if (vm->def->mem.hard_limit > hard_limit) {
         LXC_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
         /* inhibit changing the limit a second time */
         set_hard_limit = false;
@@ -983,7 +984,6 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
         case 0: /* fill memory hard limit here */
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
                 val = vmdef->mem.hard_limit;
-                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
             } else if (virCgroupGetMemoryHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -994,7 +994,6 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
         case 1: /* fill memory soft limit here */
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
                 val = vmdef->mem.soft_limit;
-                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
             } else if (virCgroupGetMemorySoftLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -1005,7 +1004,6 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
         case 2: /* fill swap hard limit here */
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
                 val = vmdef->mem.swap_hard_limit;
-                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
             } else if (virCgroupGetMemSwapHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }

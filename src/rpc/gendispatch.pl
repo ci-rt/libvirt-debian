@@ -67,6 +67,7 @@ sub fixup_name {
     $name =~ s/Fsfreeze$/FSFreeze/;
     $name =~ s/Fsthaw$/FSThaw/;
     $name =~ s/Fsinfo$/FSInfo/;
+    $name =~ s/Iothread$/IOThread/;
     $name =~ s/Scsi/SCSI/;
     $name =~ s/Wwn$/WWN/;
     $name =~ s/Dhcp$/DHCP/;
@@ -426,8 +427,10 @@ elsif ($mode eq "server") {
         print "    void *args$argann,\n";
         print "    void *ret$retann)\n";
         print "{\n";
+        print "  int rv;\n";
+        print "  virThreadJobSet(\"$name\");\n";
         print "  VIR_DEBUG(\"server=%p client=%p msg=%p rerr=%p args=%p ret=%p\", server, client, msg, rerr, args, ret);\n";
-        print "  return $name(server, client, msg, rerr";
+        print "  rv = $name(server, client, msg, rerr";
         if ($argtype ne "void") {
             print ", args";
         }
@@ -435,6 +438,8 @@ elsif ($mode eq "server") {
             print ", ret";
         }
         print ");\n";
+        print "  virThreadJobClear(rv);\n";
+        print "  return rv;\n";
         print "}\n";
 
         # Finally we print out the dispatcher method body impl

@@ -1,7 +1,7 @@
 /*
  * vircgroup.c: methods for managing control cgroups
  *
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * This library is free software; you can redistribute it and/or
@@ -338,18 +338,19 @@ virCgroupCopyMounts(virCgroupPtr group,
  * Process /proc/mounts figuring out what controllers are
  * mounted and where
  */
-static int
-virCgroupDetectMounts(virCgroupPtr group)
+int
+virCgroupDetectMountsFromFile(virCgroupPtr group,
+                              const char *path,
+                              bool checkLinks)
 {
     size_t i;
     FILE *mounts = NULL;
     struct mntent entry;
     char buf[CGROUP_MAX_VAL];
 
-    mounts = fopen("/proc/mounts", "r");
+    mounts = fopen(path, "r");
     if (mounts == NULL) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to open /proc/mounts"));
+        virReportSystemError(errno, _("Unable to open %s"), path);
         return -1;
     }
 
@@ -394,7 +395,7 @@ virCgroupDetectMounts(virCgroupPtr group)
 
                     /* If it is a co-mount it has a filename like "cpu,cpuacct"
                      * and we must identify the symlink path */
-                    if (strchr(tmp2 + 1, ',')) {
+                    if (checkLinks && strchr(tmp2 + 1, ',')) {
                         *tmp2 = '\0';
                         if (virAsprintf(&linksrc, "%s/%s",
                                         entry.mnt_dir, typestr) < 0)
@@ -434,6 +435,12 @@ virCgroupDetectMounts(virCgroupPtr group)
  error:
     VIR_FORCE_FCLOSE(mounts);
     return -1;
+}
+
+static int
+virCgroupDetectMounts(virCgroupPtr group)
+{
+    return virCgroupDetectMountsFromFile(group, "/proc/mounts", true);
 }
 
 
@@ -872,6 +879,7 @@ virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
     const char *inherit_values[] = {
         "cpuset.cpus",
         "cpuset.mems",
+        "cpuset.memory_migrate",
     };
 
     VIR_DEBUG("Setting up inheritance %s -> %s", parent->path, group->path);
@@ -1042,8 +1050,8 @@ virCgroupNew(pid_t pid,
              int controllers,
              virCgroupPtr *group)
 {
-    VIR_DEBUG("parent=%p path=%s controllers=%d",
-              parent, path, controllers);
+    VIR_DEBUG("pid=%lld path=%s parent=%p controllers=%d group=%p",
+              (long long) pid, path, parent, controllers, group);
     *group = NULL;
 
     if (VIR_ALLOC((*group)) < 0)
@@ -1282,7 +1290,7 @@ virCgroupSetPartitionSuffix(const char *path, char **res)
  * @controllers: mask of controllers to create
  *
  * Creates a new cgroup to represent the resource
- * partition path identified by @name.
+ * partition path identified by @path.
  *
  * Returns 0 on success, -1 on failure
  */
@@ -2671,6 +2679,45 @@ virCgroupGetCpusetMems(virCgroupPtr group, char **mems)
 
 
 /**
+ * virCgroupSetCpusetMemoryMigrate:
+ *
+ * @group: The cgroup to set cpuset.memory_migrate for
+ * @migrate: Whether to migrate the memory on change or not
+ *
+ * Returns: 0 on success
+ */
+int
+virCgroupSetCpusetMemoryMigrate(virCgroupPtr group, bool migrate)
+{
+    return virCgroupSetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.memory_migrate",
+                                migrate ? "1" : "0");
+}
+
+
+/**
+ * virCgroupGetCpusetMemoryMigrate:
+ *
+ * @group: The cgroup to get cpuset.memory_migrate for
+ * @migrate: Migration setting
+ *
+ * Returns: 0 on success
+ */
+int
+virCgroupGetCpusetMemoryMigrate(virCgroupPtr group, bool *migrate)
+{
+    unsigned long long value = 0;
+    int ret = virCgroupGetValueU64(group,
+                                   VIR_CGROUP_CONTROLLER_CPUSET,
+                                   "cpuset.memory_migrate",
+                                   &value);
+    *migrate = !!value;
+    return ret;
+}
+
+
+/**
  * virCgroupSetCpusetCpus:
  *
  * @group: The cgroup to set cpuset.cpus for
@@ -3085,9 +3132,7 @@ virCgroupGetPercpuStats(virCgroupPtr group,
     need_cpus = MIN(total_cpus, start_cpu + ncpus);
 
     for (i = 0; i < need_cpus; i++) {
-        bool present;
-        ignore_value(virBitmapGetBit(cpumap, i, &present));
-        if (!present) {
+        if (!virBitmapIsBitSet(cpumap, i)) {
             cpu_time = 0;
         } else if (virStrToLong_ull(pos, &pos, 10, &cpu_time) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3976,6 +4021,17 @@ virCgroupAvailable(void)
 
 
 int
+virCgroupDetectMountsFromFile(virCgroupPtr group ATTRIBUTE_UNUSED,
+                              const char *path ATTRIBUTE_UNUSED,
+                              bool checkLinks ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENXIO, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
 virCgroupNewPartition(const char *path ATTRIBUTE_UNUSED,
                       bool create ATTRIBUTE_UNUSED,
                       int controllers ATTRIBUTE_UNUSED,
@@ -4367,6 +4423,26 @@ virCgroupSetCpusetMems(virCgroupPtr group ATTRIBUTE_UNUSED,
 int
 virCgroupGetCpusetMems(virCgroupPtr group ATTRIBUTE_UNUSED,
                        char **mems ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
+virCgroupSetCpusetMemoryMigrate(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                bool migrate ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
+virCgroupGetCpusetMemoryMigrate(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                bool *migrate ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));

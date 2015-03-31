@@ -1,7 +1,7 @@
 /*
  * driver-hypervisor.h: entry points for hypervisor drivers
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -379,6 +379,18 @@ typedef int
 
 typedef int
 (*virDrvDomainGetMaxVcpus)(virDomainPtr domain);
+
+typedef int
+(*virDrvDomainGetIOThreadInfo)(virDomainPtr domain,
+                               virDomainIOThreadInfoPtr **info,
+                               unsigned int flags);
+
+typedef int
+(*virDrvDomainPinIOThread)(virDomainPtr domain,
+                           unsigned int iothread_id,
+                           unsigned char *cpumap,
+                           int maplen,
+                           unsigned int flags);
 
 typedef int
 (*virDrvDomainGetSecurityLabel)(virDomainPtr domain,
@@ -1173,6 +1185,11 @@ typedef int
                         unsigned int cellCount,
                         unsigned int flags);
 
+typedef int
+(*virDrvDomainInterfaceAddresses)(virDomainPtr dom,
+                                  virDomainInterfacePtr **ifaces,
+                                  unsigned int source,
+                                  unsigned int flags);
 
 typedef struct _virHypervisorDriver virHypervisorDriver;
 typedef virHypervisorDriver *virHypervisorDriverPtr;
@@ -1254,6 +1271,8 @@ struct _virHypervisorDriver {
     virDrvDomainGetEmulatorPinInfo domainGetEmulatorPinInfo;
     virDrvDomainGetVcpus domainGetVcpus;
     virDrvDomainGetMaxVcpus domainGetMaxVcpus;
+    virDrvDomainGetIOThreadInfo domainGetIOThreadInfo;
+    virDrvDomainPinIOThread domainPinIOThread;
     virDrvDomainGetSecurityLabel domainGetSecurityLabel;
     virDrvDomainGetSecurityLabelList domainGetSecurityLabelList;
     virDrvNodeGetSecurityModel nodeGetSecurityModel;
@@ -1398,6 +1417,7 @@ struct _virHypervisorDriver {
     virDrvConnectGetAllDomainStats connectGetAllDomainStats;
     virDrvNodeAllocPages nodeAllocPages;
     virDrvDomainGetFSInfo domainGetFSInfo;
+    virDrvDomainInterfaceAddresses domainInterfaceAddresses;
 };
 
 

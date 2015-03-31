@@ -523,7 +523,7 @@ xend_op_ext(virConnectPtr xend, const char *path, const char *key, va_list ap)
  * @ap: input values to pass to the operation
  * @...: input values to pass to the operation
  *
- * internal routine to run a POST RPC operation to the Xen Daemon targetting
+ * internal routine to run a POST RPC operation to the Xen Daemon targeting
  * a given domain.
  *
  * Returns 0 in case of success, -1 in case of failure.
@@ -1089,10 +1089,7 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
         }
 
         for (n = 0, cpu = 0; cpu < numCpus; cpu++) {
-            bool used;
-
-            ignore_value(virBitmapGetBit(cpuset, cpu, &used));
-            if (used)
+            if (virBitmapIsBitSet(cpuset, cpu))
                 cpuInfo[n++].id = cpu;
         }
         virBitmapFree(cpuset);
@@ -1900,11 +1897,11 @@ xenDaemonDomainPinVcpu(virConnectPtr conn,
                 goto cleanup;
             def->cputune.nvcpupin = 0;
         }
-        if (virDomainVcpuPinAdd(&def->cputune.vcpupin,
-                                &def->cputune.nvcpupin,
-                                cpumap,
-                                maplen,
-                                vcpu) < 0) {
+        if (virDomainPinAdd(&def->cputune.vcpupin,
+                            &def->cputune.nvcpupin,
+                            cpumap,
+                            maplen,
+                            vcpu) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("failed to add vcpupin xml entry"));
             return -1;

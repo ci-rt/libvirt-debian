@@ -412,7 +412,6 @@ prlsdkDomObjFreePrivate(void *p)
         return;
 
     PrlHandle_Free(pdom->sdkdom);
-    virBitmapFree(pdom->cpumask);
     VIR_FREE(pdom->uuid);
     VIR_FREE(pdom->home);
     VIR_FREE(p);
@@ -692,9 +691,6 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
 
     /* use device name, shown by prlctl as target device
      * for identifying network adapter in virDomainDefineXML */
-    pret = PrlVmDev_GetIndex(netAdapter, &netAdapterIndex);
-    prlsdkCheckRetGoto(pret, cleanup);
-
     pret = PrlVmDevNet_GetHostInterfaceName(netAdapter, NULL, &buflen);
     prlsdkCheckRetGoto(pret, cleanup);
 
@@ -702,14 +698,17 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
         goto cleanup;
 
     pret = PrlVmDevNet_GetHostInterfaceName(netAdapter, net->ifname, &buflen);
-        prlsdkCheckRetGoto(pret, cleanup);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDev_GetIndex(netAdapter, &netAdapterIndex);
+    prlsdkCheckRetGoto(pret, cleanup);
 
     if (isCt && netAdapterIndex == (PRL_UINT32) -1) {
         /* venet devices don't have mac address and
          * always up */
         net->linkstate = VIR_DOMAIN_NET_INTERFACE_LINK_STATE_UP;
         if (VIR_STRDUP(net->data.network.name,
-                       PARALLELS_ROUTED_NETWORK_NAME) < 0)
+                       PARALLELS_DOMAIN_ROUTED_NETWORK_NAME) < 0)
             goto cleanup;
         return 0;
     }
@@ -728,7 +727,7 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
 
     if (emulatedType == PNA_ROUTED) {
         if (VIR_STRDUP(net->data.network.name,
-                       PARALLELS_ROUTED_NETWORK_NAME) < 0)
+                       PARALLELS_DOMAIN_ROUTED_NETWORK_NAME) < 0)
             goto cleanup;
     } else {
         pret = PrlVmDevNet_GetVirtualNetworkId(netAdapter, NULL, &buflen);
@@ -741,6 +740,16 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
                                                net->data.network.name,
                                                &buflen);
         prlsdkCheckRetGoto(pret, cleanup);
+
+        /*
+         * We use VIR_DOMAIN_NET_TYPE_NETWORK for all network adapters
+         * except those whose Virtual Network Id differ from Parallels
+         * predefined ones such as PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME
+         * and PARALLELS_DONAIN_ROUTED_NETWORK_NAME
+         */
+        if (STRNEQ(net->data.network.name, PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME))
+            net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
+
     }
 
     pret = PrlVmDev_IsConnected(netAdapter, &isConnected);
@@ -1053,8 +1062,7 @@ prlsdkConvertDomainState(VIRTUAL_MACHINE_STATE domainState,
 
 static int
 prlsdkConvertCpuInfo(PRL_HANDLE sdkdom,
-                     virDomainDefPtr def,
-                     parallelsDomObjPtr pdom)
+                     virDomainDefPtr def)
 {
     char *buf;
     PRL_UINT32 buflen = 0;
@@ -1085,11 +1093,11 @@ prlsdkConvertCpuInfo(PRL_HANDLE sdkdom,
     pret = PrlVmCfg_GetCpuMask(sdkdom, buf, &buflen);
 
     if (strlen(buf) == 0) {
-        if (!(pdom->cpumask = virBitmapNew(hostcpus)))
+        if (!(def->cpumask = virBitmapNew(hostcpus)))
             goto cleanup;
-        virBitmapSetAll(pdom->cpumask);
+        virBitmapSetAll(def->cpumask);
     } else {
-        if (virBitmapParse(buf, 0, &pdom->cpumask, hostcpus) < 0)
+        if (virBitmapParse(buf, 0, &def->cpumask, hostcpus) < 0)
             goto cleanup;
     }
 
@@ -1213,11 +1221,11 @@ prlsdkLoadDomain(parallelsConnPtr privconn,
     /* get RAM parameters */
     pret = PrlVmCfg_GetRamSize(sdkdom, &ram);
     prlsdkCheckRetGoto(pret, error);
-    def->mem.max_balloon = ram << 10; /* RAM size obtained in Mbytes,
-                                         convert to Kbytes */
-    def->mem.cur_balloon = def->mem.max_balloon;
+    virDomainDefSetMemoryInitial(def, ram << 10); /* RAM size obtained in Mbytes,
+                                                     convert to Kbytes */
+    def->mem.cur_balloon = ram << 10;
 
-    if (prlsdkConvertCpuInfo(sdkdom, def, pdom) < 0)
+    if (prlsdkConvertCpuInfo(sdkdom, def) < 0)
         goto error;
 
     if (prlsdkConvertCpuMode(sdkdom, def) < 0)
@@ -1246,6 +1254,14 @@ prlsdkLoadDomain(parallelsConnPtr privconn,
 
     pret = PrlVmCfg_GetHomePath(sdkdom, pdom->home, &buflen);
     prlsdkCheckRetGoto(pret, error);
+
+    /* For VMs pdom->home is actually /directory/config.pvs */
+    if (!IS_CT(def)) {
+        /* Get rid of /config.pvs in path string */
+        char *s = strrchr(pdom->home, '/');
+        if (s)
+            *s = '\0';
+    }
 
     if (olddom) {
         /* assign new virDomainDef without any checks */
@@ -1344,7 +1360,6 @@ prlsdkLoadDomains(parallelsConnPtr privconn)
 
  error:
     PrlHandle_Free(result);
-    PrlHandle_Free(job);
     return -1;
 }
 
@@ -1724,8 +1739,6 @@ prlsdkDomainChangeState(virDomainPtr domain,
 
     pdom = dom->privateData;
     pret = chstate(privconn, pdom->sdkdom);
-    virReportError(VIR_ERR_OPERATION_FAILED,
-                   _("Can't change domain state: %d"), pret);
     if (PRL_FAILED(pret)) {
         virResetLastError();
 
@@ -1769,24 +1782,24 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (def->mem.max_balloon != def->mem.cur_balloon) {
+    if (virDomainDefGetMemoryActual(def) != def->mem.cur_balloon) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                    _("changing balloon parameters is not supported "
                      "by parallels driver"));
        return -1;
     }
 
-    if (def->mem.max_balloon % (1 << 10) != 0) {
+    if (virDomainDefGetMemoryActual(def) % (1 << 10) != 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                    _("Memory size should be multiple of 1Mb."));
         return -1;
     }
 
     if (def->mem.nhugepages ||
-        def->mem.hard_limit ||
-        def->mem.soft_limit ||
+        virMemoryLimitIsSet(def->mem.hard_limit) ||
+        virMemoryLimitIsSet(def->mem.soft_limit) ||
         def->mem.min_guarantee ||
-        def->mem.swap_hard_limit) {
+        virMemoryLimitIsSet(def->mem.swap_hard_limit)) {
 
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Memory parameter is not supported "
@@ -1807,25 +1820,36 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (def->cpumask != NULL) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("changing cpu mask is not supported "
-                         "by parallels driver"));
-        return -1;
-    }
-
     if (def->cputune.shares ||
         def->cputune.sharesSpecified ||
         def->cputune.period ||
-        def->cputune.quota ||
-        def->cputune.nvcpupin) {
+        def->cputune.quota) {
 
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("cputune is not supported by parallels driver"));
         return -1;
     }
 
-    if (def->numa) {
+    if (def->cputune.vcpupin) {
+       for (i = 0; i < def->vcpus; i++) {
+            if (!virBitmapEqual(def->cpumask,
+                                def->cputune.vcpupin[i]->cpumask)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               "%s", _("vcpupin cpumask differs from default cpumask"));
+                return -1;
+            }
+        }
+    }
+
+
+    /*
+     * Though we don't support NUMA configuration at the moment
+     * virDomainDefPtr always contain non zero NUMA configuration
+     * So, just make sure this configuration does't differ from auto generated.
+     */
+    if ((virDomainNumatuneGetMode(def->numa, -1) !=
+         VIR_DOMAIN_NUMATUNE_MEM_STRICT) ||
+         virDomainNumatuneHasPerNodeBinding(def->numa)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                         _("numa parameters are not supported "
                           "by parallels driver"));
@@ -2227,7 +2251,8 @@ static int prlsdkCheckSerialUnsupportedParams(virDomainChrDefPtr chr)
 
 static int prlsdkCheckNetUnsupportedParams(virDomainNetDefPtr net)
 {
-    if (net->type != VIR_DOMAIN_NET_TYPE_NETWORK) {
+    if (net->type != VIR_DOMAIN_NET_TYPE_NETWORK &&
+        net->type != VIR_DOMAIN_NET_TYPE_BRIDGE) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Specified network adapter type is not "
                          "supported by Parallels Cloud Server."));
@@ -2616,10 +2641,14 @@ static const char * prlsdkFormatMac(virMacAddrPtr mac, char *macstr)
     return macstr;
 }
 
-static int prlsdkAddNet(PRL_HANDLE sdkdom, virDomainNetDefPtr net)
+static int prlsdkAddNet(PRL_HANDLE sdkdom,
+                        parallelsConnPtr privconn,
+                        virDomainNetDefPtr net)
 {
     PRL_RESULT pret;
     PRL_HANDLE sdknet = PRL_INVALID_HANDLE;
+    PRL_HANDLE vnet = PRL_INVALID_HANDLE;
+    PRL_HANDLE job = PRL_INVALID_HANDLE;
     int ret = -1;
     char macstr[PRL_MAC_STRING_BUFNAME];
 
@@ -2632,7 +2661,9 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom, virDomainNetDefPtr net)
     pret = PrlVmDev_SetEnabled(sdknet, 1);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    pret = PrlVmDev_SetConnected(sdknet, net->linkstate);
+    pret = PrlVmDev_SetConnected(sdknet, net->linkstate !=
+                                 VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN);
+
     prlsdkCheckRetGoto(pret, cleanup);
 
     if (net->ifname) {
@@ -2644,10 +2675,53 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom, virDomainNetDefPtr net)
     pret = PrlVmDevNet_SetMacAddress(sdknet, macstr);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    if (STREQ(net->data.network.name, PARALLELS_ROUTED_NETWORK_NAME)) {
-        pret = PrlVmDev_SetEmulatedType(sdknet, PNA_ROUTED);
-        prlsdkCheckRetGoto(pret, cleanup);
+    if (STREQ(net->model, "rtl8139")) {
+        pret = PrlVmDevNet_SetAdapterType(sdknet, PNT_RTL);
+    } else if (STREQ(net->model, "e1000")) {
+        pret = PrlVmDevNet_SetAdapterType(sdknet, PNT_E1000);
+    } else if (STREQ(net->model, "virtio")) {
+        pret = PrlVmDevNet_SetAdapterType(sdknet, PNT_VIRTIO);
     } else {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Specified network adapter model is not "
+                         "supported by Parallels Cloud Server."));
+        goto cleanup;
+    }
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+        if (STREQ(net->data.network.name, PARALLELS_DOMAIN_ROUTED_NETWORK_NAME)) {
+            pret = PrlVmDev_SetEmulatedType(sdknet, PNA_ROUTED);
+            prlsdkCheckRetGoto(pret, cleanup);
+        } else if (STREQ(net->data.network.name, PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME)) {
+            pret = PrlVmDev_SetEmulatedType(sdknet, PNA_BRIDGED_ETHERNET);
+            prlsdkCheckRetGoto(pret, cleanup);
+
+            pret = PrlVmDevNet_SetVirtualNetworkId(sdknet, net->data.network.name);
+            prlsdkCheckRetGoto(pret, cleanup);
+        }
+    } else if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
+        /*
+         * For this type of adapter we create a new
+         * Virtual Network assuming that bridge with given name exists
+         * Failing creating this means domain creation failure
+         */
+        pret = PrlVirtNet_Create(&vnet);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        pret = PrlVirtNet_SetNetworkId(vnet, net->data.network.name);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        pret = PrlVirtNet_SetNetworkType(vnet, PVN_BRIDGED_ETHERNET);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        job = PrlSrv_AddVirtualNetwork(privconn->server, vnet, 0);
+        if (PRL_FAILED(pret = waitJob(job, privconn->jobTimeout)))
+            goto cleanup;
+
+        pret = PrlVmDev_SetEmulatedType(sdknet, PNA_BRIDGED_ETHERNET);
+        prlsdkCheckRetGoto(pret, cleanup);
+
         pret = PrlVmDevNet_SetVirtualNetworkId(sdknet, net->data.network.name);
         prlsdkCheckRetGoto(pret, cleanup);
     }
@@ -2660,8 +2734,32 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom, virDomainNetDefPtr net)
 
     ret = 0;
  cleanup:
+    PrlHandle_Free(vnet);
     PrlHandle_Free(sdknet);
     return ret;
+}
+
+static void prlsdkDelNet(parallelsConnPtr privconn, virDomainNetDefPtr net)
+{
+    PRL_RESULT pret;
+    PRL_HANDLE vnet = PRL_INVALID_HANDLE;
+    PRL_HANDLE job = PRL_INVALID_HANDLE;
+
+    if (net->type != VIR_DOMAIN_NET_TYPE_BRIDGE)
+        return;
+
+    pret = PrlVirtNet_Create(&vnet);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVirtNet_SetNetworkId(vnet, net->data.network.name);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    PrlSrv_DeleteVirtualNetwork(privconn->server, vnet, 0);
+    if (PRL_FAILED(pret = waitJob(job, privconn->jobTimeout)))
+        goto cleanup;
+
+ cleanup:
+    PrlHandle_Free(vnet);
 }
 
 static int prlsdkAddDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk, bool bootDisk)
@@ -2835,13 +2933,15 @@ prlsdkAddFS(PRL_HANDLE sdkdom, virDomainFSDefPtr fs)
     return ret;
 }
 static int
-prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
+prlsdkDoApplyConfig(virConnectPtr conn,
+                    PRL_HANDLE sdkdom,
                     virDomainDefPtr def)
 {
     PRL_RESULT pret;
     size_t i;
     char uuidstr[VIR_UUID_STRING_BUFLEN + 2];
     bool needBoot = true;
+    char *mask = NULL;
 
     if (prlsdkCheckUnsupportedParams(sdkdom, def) < 0)
         return -1;
@@ -2863,10 +2963,32 @@ prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
         prlsdkCheckRetGoto(pret, error);
     }
 
-    pret = PrlVmCfg_SetRamSize(sdkdom, def->mem.max_balloon >> 10);
+    pret = PrlVmCfg_SetRamSize(sdkdom, virDomainDefGetMemoryActual(def) >> 10);
     prlsdkCheckRetGoto(pret, error);
 
     pret = PrlVmCfg_SetCpuCount(sdkdom, def->vcpus);
+    prlsdkCheckRetGoto(pret, error);
+
+    if (!(mask = virBitmapFormat(def->cpumask)))
+        goto error;
+
+    pret = PrlVmCfg_SetCpuMask(sdkdom, mask);
+    prlsdkCheckRetGoto(pret, error);
+    VIR_FREE(mask);
+
+    switch (def->os.arch) {
+        case VIR_ARCH_X86_64:
+            pret = PrlVmCfg_SetCpuMode(sdkdom, PCM_CPU_MODE_64);
+            break;
+        case VIR_ARCH_I686:
+            pret = PrlVmCfg_SetCpuMode(sdkdom, PCM_CPU_MODE_32);
+            break;
+        default:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown CPU mode: %s"),
+                           virArchToString(def->os.arch));
+            goto error;
+    }
     prlsdkCheckRetGoto(pret, error);
 
     if (prlsdkClearDevices(sdkdom) < 0)
@@ -2887,8 +3009,8 @@ prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
     }
 
     for (i = 0; i < def->nnets; i++) {
-        if (prlsdkAddNet(sdkdom, def->nets[i]) < 0)
-            goto error;
+        if (prlsdkAddNet(sdkdom, conn->privateData, def->nets[i]) < 0)
+           goto error;
     }
 
     for (i = 0; i < def->ndisks; i++) {
@@ -2912,7 +3034,12 @@ prlsdkDoApplyConfig(PRL_HANDLE sdkdom,
     return 0;
 
  error:
-    return -1;
+    VIR_FREE(mask);
+
+    for (i = 0; i < def->nnets; i++)
+        prlsdkDelNet(conn->privateData, def->nets[i]);
+
+   return -1;
 }
 
 int
@@ -2933,7 +3060,7 @@ prlsdkApplyConfig(virConnectPtr conn,
     if (PRL_FAILED(waitJob(job, privconn->jobTimeout)))
         return -1;
 
-    ret = prlsdkDoApplyConfig(sdkdom, new);
+    ret = prlsdkDoApplyConfig(conn, sdkdom, new);
 
     if (ret == 0) {
         job = PrlVm_CommitEx(sdkdom, PVCF_DETACH_HDD_BUNDLE);
@@ -2970,7 +3097,10 @@ prlsdkCreateVm(virConnectPtr conn, virDomainDefPtr def)
     pret = PrlVmCfg_SetDefaultConfig(sdkdom, srvconf, PVS_GUEST_VER_LIN_REDHAT, 0);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    ret = prlsdkDoApplyConfig(sdkdom, def);
+    pret = PrlVmCfg_SetOfflineManagementEnabled(sdkdom, 0);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    ret = prlsdkDoApplyConfig(conn, sdkdom, def);
     if (ret)
         goto cleanup;
 
@@ -3032,7 +3162,7 @@ prlsdkCreateCt(virConnectPtr conn, virDomainDefPtr def)
 
     }
 
-    ret = prlsdkDoApplyConfig(sdkdom, def);
+    ret = prlsdkDoApplyConfig(conn, sdkdom, def);
     if (ret)
         goto cleanup;
 
@@ -3051,6 +3181,10 @@ prlsdkUnregisterDomain(parallelsConnPtr privconn, virDomainObjPtr dom)
 {
     parallelsDomObjPtr privdom = dom->privateData;
     PRL_HANDLE job;
+    size_t i;
+
+    for (i = 0; i < dom->def->nnets; i++)
+       prlsdkDelNet(privconn, dom->def->nets[i]);
 
     job = PrlVm_Unreg(privdom->sdkdom);
     if (PRL_FAILED(waitJob(job, privconn->jobTimeout)))

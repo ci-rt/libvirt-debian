@@ -305,7 +305,6 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
     regmatch_t subs[4];
     char *saveptr = NULL;
     size_t i;
-    virArch hostarch = caps->host.arch;
 
     struct guest_arch guest_archs[32];
     int nr_guest_archs = 0;
@@ -428,11 +427,9 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
         if ((guest = virCapabilitiesAddGuest(caps,
                                              guest_archs[i].hvm ? "hvm" : "xen",
                                              guest_archs[i].arch,
-                                             ((hostarch == VIR_ARCH_X86_64) ?
-                                              "/usr/lib64/xen/bin/qemu-dm" :
-                                              "/usr/lib/xen/bin/qemu-dm"),
+                                             LIBXL_EXECBIN_DIR "/qemu-system-i386",
                                              (guest_archs[i].hvm ?
-                                              "/usr/lib/xen/boot/hvmloader" :
+                                              LIBXL_FIRMWARE_DIR "/hvmloader" :
                                               NULL),
                                              1,
                                              machines)) == NULL) {
@@ -659,7 +656,7 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         }
     }
     b_info->sched_params.weight = 1000;
-    b_info->max_memkb = def->mem.max_balloon;
+    b_info->max_memkb = virDomainDefGetMemoryInitial(def);
     b_info->target_memkb = def->mem.cur_balloon;
     if (hvm) {
         char bootorder[VIR_DOMAIN_BOOT_LAST + 1];
@@ -748,6 +745,47 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         /* Disable VNC and SDL until explicitly enabled */
         libxl_defbool_set(&b_info->u.hvm.vnc.enable, 0);
         libxl_defbool_set(&b_info->u.hvm.sdl.enable, 0);
+
+        if (def->ninputs) {
+#ifdef LIBXL_HAVE_BUILDINFO_USBDEVICE_LIST
+            if (VIR_ALLOC_N(b_info->u.hvm.usbdevice_list, def->ninputs+1) < 0)
+                return -1;
+#else
+            if (def->ninputs > 1) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                        _("libxenlight supports only one input device"));
+                return -1;
+            }
+#endif
+            for (i = 0; i < def->ninputs; i++) {
+                char **usbdevice;
+
+                if (def->inputs[i]->bus != VIR_DOMAIN_INPUT_BUS_USB)
+                    continue;
+
+#ifdef LIBXL_HAVE_BUILDINFO_USBDEVICE_LIST
+                usbdevice = &b_info->u.hvm.usbdevice_list[i];
+#else
+                usbdevice = &b_info->u.hvm.usbdevice;
+#endif
+                switch (def->inputs[i]->type) {
+                    case VIR_DOMAIN_INPUT_TYPE_MOUSE:
+                        VIR_FREE(*usbdevice);
+                        if (VIR_STRDUP(*usbdevice, "mouse") < 0)
+                            return -1;
+                        break;
+                    case VIR_DOMAIN_INPUT_TYPE_TABLET:
+                        VIR_FREE(*usbdevice);
+                        if (VIR_STRDUP(*usbdevice, "tablet") < 0)
+                            return -1;
+                        break;
+                    default:
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                _("Unknown input device type"));
+                        return -1;
+                }
+            }
+        }
 
         /*
          * The following comment and calculation were taken directly from

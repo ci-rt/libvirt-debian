@@ -65,15 +65,22 @@ xenapiDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         return -1;
     }
 
+    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
+        return -1;
+
     return 0;
 }
 
 
 static int
-xenapiDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+xenapiDomainDefPostParse(virDomainDefPtr def,
                          virCapsPtr caps ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -560,6 +567,8 @@ xenapiDomainCreateXML(virConnectPtr conn,
                                                      priv->caps, priv->xmlopt,
                                                      1 << VIR_DOMAIN_VIRT_XEN,
                                                      parse_flags);
+    if (!defPtr)
+        return NULL;
     createVMRecordFromXml(conn, defPtr, &record, &vm);
     virDomainDefFree(defPtr);
     if (record) {
@@ -1490,7 +1499,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         VIR_FREE(val);
     }
     memory = xenapiDomainGetMaxMemory(dom);
-    defPtr->mem.max_balloon = memory;
+    virDomainDefSetMemoryInitial(defPtr, memory);
     if (xen_vm_get_memory_dynamic_max(session, &dynamic_mem, vm)) {
         defPtr->mem.cur_balloon = (unsigned long) (dynamic_mem / 1024);
     } else {
@@ -1561,8 +1570,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         }
         xen_vif_set_free(vif_set);
     }
-    if (vms)
-        xen_vm_set_free(vms);
+    xen_vm_set_free(vms);
     xml = virDomainDefFormat(defPtr, flags);
     virDomainDefFree(defPtr);
     return xml;
@@ -1646,9 +1654,11 @@ xenapiConnectNumOfDefinedDomains(virConnectPtr conn)
                 xen_vm_set_free(result);
                 return -1;
             }
-            if (record->is_a_template == 0)
-                DomNum++;
-            xen_vm_record_free(record);
+            if (record) {
+                if (record->is_a_template == 0)
+                    DomNum++;
+                xen_vm_record_free(record);
+            }
         }
         xen_vm_set_free(result);
         return DomNum;

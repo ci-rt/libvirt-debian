@@ -137,6 +137,7 @@ extern int virDomainGetFSInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domai
 extern int virDomainGetHostnameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInterfaceParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetIOThreadInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetJobInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetJobStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetMaxMemoryEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -159,6 +160,7 @@ extern int virDomainGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr doma
 extern int virDomainHasCurrentSnapshotEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainHasManagedSaveImageEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainInjectNMIEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainInterfaceAddressesEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainInterfaceStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainIsActiveEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainIsPersistentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -199,6 +201,7 @@ extern int virDomainOpenConsoleEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainOpenGraphicsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainOpenGraphicsFdEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPinEmulatorEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainPinIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainPinVcpuEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPinVcpuFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainPMSuspendForDurationEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

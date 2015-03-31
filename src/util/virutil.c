@@ -2365,29 +2365,6 @@ virFindFCHostCapableVport(const char *sysfs_prefix ATTRIBUTE_UNUSED)
 #endif /* __linux__ */
 
 /**
- * virCompareLimitUlong:
- *
- * Compare two unsigned long long numbers. Value '0' of the arguments has a
- * special meaning of 'unlimited' and thus greater than any other value.
- *
- * Returns 0 if the numbers are equal, -1 if b is greater, 1 if a is greater.
- */
-int
-virCompareLimitUlong(unsigned long long a, unsigned long long b)
-{
-    if (a == b)
-        return 0;
-
-    if (!b)
-        return -1;
-
-    if (a == 0 || a > b)
-        return 1;
-
-    return -1;
-}
-
-/**
  * virParseOwnershipIds:
  *
  * Parse the usual "uid:gid" ownership specification into uid_t and
@@ -2597,4 +2574,28 @@ long virGetSystemPageSizeKB(void)
     if (val < 0)
         return val;
     return val / 1024;
+}
+
+/**
+ * virMemoryLimitTruncate
+ *
+ * Return truncated memory limit to VIR_DOMAIN_MEMORY_PARAM_UNLIMITED as maximum
+ * which means that the limit is not set => unlimited.
+ */
+unsigned long long
+virMemoryLimitTruncate(unsigned long long value)
+{
+    return value < VIR_DOMAIN_MEMORY_PARAM_UNLIMITED ? value :
+        VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+}
+
+/**
+ * virMemoryLimitIsSet
+ *
+ * Returns true if the limit is set and false for unlimited value.
+ */
+bool
+virMemoryLimitIsSet(unsigned long long value)
+{
+    return value < VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
 }

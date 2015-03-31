@@ -218,7 +218,7 @@ typedef enum {
  *
  * The types virSchedParameter, virBlkioParameter, and
  * virMemoryParameter are aliases of this type, for use when
- * targetting libvirt earlier than 0.9.2.
+ * targeting libvirt earlier than 0.9.2.
  */
 typedef struct _virTypedParameter virTypedParameter;
 
@@ -862,6 +862,7 @@ int virConnectGetCPUModelNames(virConnectPtr conn,
  */
 typedef enum {
     VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES  = (1 << 0),  /* show all features */
+    VIR_CONNECT_BASELINE_CPU_MIGRATABLE = (1 << 1),  /* filter out non-migratable features */
 } virConnectBaselineCPUFlags;
 
 char *virConnectBaselineCPU(virConnectPtr conn,

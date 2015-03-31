@@ -720,6 +720,34 @@
    if you don't. */
 #undef HAVE_DECL_CPUSET_GETAFFINITY
 
+/* Define to 1 if you have the declaration of `ETHTOOL_GFLAGS', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETHTOOL_GFLAGS
+
+/* Define to 1 if you have the declaration of `ETHTOOL_GGRO', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ETHTOOL_GGRO
+
+/* Define to 1 if you have the declaration of `ETHTOOL_GGSO', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ETHTOOL_GGSO
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_LRO', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ETH_FLAG_LRO
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_NTUPLE', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETH_FLAG_NTUPLE
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_RXHASH', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETH_FLAG_RXHASH
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_TXVLAN', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETH_FLAG_TXVLAN
+
 /* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
    don't. */
 #undef HAVE_DECL_FDATASYNC
@@ -775,6 +803,10 @@
 /* Define to 1 if you have the declaration of `getdelim', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETDELIM
+
+/* Define to 1 if you have the declaration of `getdtablesize', and to 0 if you
+   don't. */
+#undef HAVE_DECL_GETDTABLESIZE
 
 /* Define to 1 if you have the declaration of `getline', and to 0 if you
    don't. */
@@ -1451,9 +1483,6 @@
 /* Define to 1 if you have the `revoke' function. */
 #undef HAVE_REVOKE
 
-/* Define to 1 if you have the <rpc/types.h> header file. */
-#undef HAVE_RPC_TYPES_H
-
 /* Define to 1 if 'long double' and 'double' have the same representation. */
 #undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
@@ -1886,16 +1915,6 @@
 /* Define if you have the 'wint_t' type. */
 #undef HAVE_WINT_T
 
-/* Define to 1 if you have the <wireshark/config.h> header file. */
-#undef HAVE_WIRESHARK_CONFIG_H
-
-/* Define to 1 if you have the <wireshark/epan/dissectors/packet-tcp.h> header
-   file. */
-#undef HAVE_WIRESHARK_EPAN_DISSECTORS_PACKET_TCP_H
-
-/* Define to 1 if you have the <wireshark/epan/packet.h> header file. */
-#undef HAVE_WIRESHARK_EPAN_PACKET_H
-
 /* Define to 1 if you have the 'wmemchr' function. */
 #undef HAVE_WMEMCHR
 
@@ -2017,6 +2036,12 @@
 /* Define as the word index where to find the sign of 'long double'. */
 #undef LDBL_SIGNBIT_WORD
 
+/* directory containing Xen libexec binaries */
+#undef LIBXL_EXECBIN_DIR
+
+/* directory containing Xen firmware blobs */
+#undef LIBXL_FIRMWARE_DIR
+
 /* Define to 1 if lseek does not detect pipes. */
 #undef LSEEK_PIPE_BROKEN
 
@@ -2064,6 +2089,9 @@
 
 /* Location or name of the mkfs program */
 #undef MKFS
+
+/* Location or name of the mm-ctl program */
+#undef MMCTL
 
 /* Location or name of the modprobe program */
 #undef MODPROBE
@@ -2584,6 +2612,9 @@
 
 /* whether VMware VMX config handling is enabled */
 #undef WITH_VMX
+
+/* whether wireshark >= 1.11.3 is available */
+#undef WITH_WIRESHARK_DISSECTOR
 
 /* whether Xen driver is enabled */
 #undef WITH_XEN

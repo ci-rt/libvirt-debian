@@ -524,10 +524,14 @@ VIR_ENUM_IMPL(virVMXControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
  * Helpers
  */
 static int
-vmxDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+vmxDomainDefPostParse(virDomainDefPtr def,
                       virCapsPtr caps ATTRIBUTE_UNUSED,
                       void *opaque ATTRIBUTE_UNUSED)
 {
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -1375,7 +1379,7 @@ virVMXParseConfig(virVMXContext *ctx,
         goto cleanup;
     }
 
-    def->mem.max_balloon = memsize * 1024; /* Scale from megabytes to kilobytes */
+    virDomainDefSetMemoryInitial(def, memsize * 1024); /* Scale from megabytes to kilobytes */
 
     /* vmx:sched.mem.max -> def:mem.cur_balloon */
     if (virVMXGetConfigLong(conf, "sched.mem.max", &sched_mem_max, memsize,
@@ -1388,8 +1392,8 @@ virVMXParseConfig(virVMXContext *ctx,
 
     def->mem.cur_balloon = sched_mem_max * 1024; /* Scale from megabytes to kilobytes */
 
-    if (def->mem.cur_balloon > def->mem.max_balloon)
-        def->mem.cur_balloon = def->mem.max_balloon;
+    if (def->mem.cur_balloon > virDomainDefGetMemoryActual(def))
+        def->mem.cur_balloon = virDomainDefGetMemoryActual(def);
 
     /* vmx:sched.mem.minsize -> def:mem.min_guarantee */
     if (virVMXGetConfigLong(conf, "sched.mem.minsize", &sched_mem_minsize, 0,
@@ -1402,8 +1406,8 @@ virVMXParseConfig(virVMXContext *ctx,
 
     def->mem.min_guarantee = sched_mem_minsize * 1024; /* Scale from megabytes to kilobytes */
 
-    if (def->mem.min_guarantee > def->mem.max_balloon)
-        def->mem.min_guarantee = def->mem.max_balloon;
+    if (def->mem.min_guarantee > virDomainDefGetMemoryActual(def))
+        def->mem.min_guarantee = virDomainDefGetMemoryActual(def);
 
     /* vmx:numvcpus -> def:vcpus */
     if (virVMXGetConfigLong(conf, "numvcpus", &numvcpus, 1, true) < 0)
@@ -2536,10 +2540,11 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         if (STRCASENEQ(virtualDev, "vlance") &&
             STRCASENEQ(virtualDev, "vmxnet") &&
             STRCASENEQ(virtualDev, "vmxnet3") &&
-            STRCASENEQ(virtualDev, "e1000")) {
+            STRCASENEQ(virtualDev, "e1000") &&
+            STRCASENEQ(virtualDev, "e1000e")) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
-                             "'vmxnet3' or 'e1000' but found '%s'"), virtualDev_name,
+                             "'vmxnet3' or 'e1000e' or 'e1000e' but found '%s'"), virtualDev_name,
                            virtualDev);
             goto cleanup;
         }
@@ -3083,7 +3088,7 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
 
     /* def:mem.max_balloon -> vmx:memsize */
     /* max-memory must be a multiple of 4096 kilobyte */
-    max_balloon = VIR_DIV_UP(def->mem.max_balloon, 4096) * 4096;
+    max_balloon = VIR_DIV_UP(virDomainDefGetMemoryActual(def), 4096) * 4096;
 
     virBufferAsprintf(&buffer, "memsize = \"%llu\"\n",
                       max_balloon / 1024); /* Scale from kilobytes to megabytes */
@@ -3592,11 +3597,12 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
             STRCASENEQ(def->model, "vmxnet") &&
             STRCASENEQ(def->model, "vmxnet2") &&
             STRCASENEQ(def->model, "vmxnet3") &&
-            STRCASENEQ(def->model, "e1000")) {
+            STRCASENEQ(def->model, "e1000") &&
+            STRCASENEQ(def->model, "e1000e")) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting domain XML entry 'devices/interface/model' "
                              "to be 'vlance' or 'vmxnet' or 'vmxnet2' or 'vmxnet3' "
-                             "or 'e1000' but found '%s'"), def->model);
+                             "or 'e1000' or 'e1000e' but found '%s'"), def->model);
             return -1;
         }
 

@@ -1649,9 +1649,17 @@ storageVolCreateXML(virStoragePoolPtr obj,
     if ((backend = virStorageBackendForType(pool->def->type)) == NULL)
         goto cleanup;
 
-    voldef = virStorageVolDefParseString(pool->def, xmldesc);
+    voldef = virStorageVolDefParseString(pool->def, xmldesc,
+                                         VIR_VOL_XML_PARSE_OPT_CAPACITY);
     if (voldef == NULL)
         goto cleanup;
+
+    if (!voldef->target.capacity && !backend->buildVol) {
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       "%s", _("volume capacity required for this "
+                               "storage pool"));
+        goto cleanup;
+    }
 
     if (virStorageVolCreateXMLEnsureACL(obj->conn, pool->def, voldef) < 0)
         goto cleanup;
@@ -1724,6 +1732,10 @@ storageVolCreateXML(virStoragePoolPtr obj,
         }
 
     }
+
+    if (backend->refreshVol &&
+        backend->refreshVol(obj->conn, pool, voldef) < 0)
+        goto cleanup;
 
     /* Update pool metadata */
     pool->def->allocation += buildvoldef->target.allocation;
@@ -1810,7 +1822,8 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    newvol = virStorageVolDefParseString(pool->def, xmldesc);
+    newvol = virStorageVolDefParseString(pool->def, xmldesc,
+                                         VIR_VOL_XML_PARSE_NO_CAPACITY);
     if (newvol == NULL)
         goto cleanup;
 
@@ -1824,7 +1837,8 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    /* Is there ever a valid case for this? */
+    /* Use the original volume's capacity in case the new capacity
+     * is less than that, or it was omitted */
     if (newvol->target.capacity < origvol->target.capacity)
         newvol->target.capacity = origvol->target.capacity;
 
