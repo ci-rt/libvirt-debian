@@ -1,3 +1,11 @@
+libvirt (1.2.14~rc2-1) experimental; urgency=medium
+
+  * [46cb100] New upstream version 1.2.14-rc2
+  * [e4fcc35] Bump symbol versions
+  * [e55a86f] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Apr 2015 21:27:52 +0200
+
 libvirt (1.2.13-1) experimental; urgency=medium
 
   * [5a5a046] New upstream version 1.2.13
