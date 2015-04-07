@@ -1,3 +1,11 @@
+libvirt (1.2.9-10) unstable; urgency=medium
+
+  * [f5e46fb] postinst: Use '--' for all adduser options
+  * [a8fee3f] Don't validata filesystem target type.  Since 'virsh' validates
+    XML this can lead to uneditable (but perfectly valid) configs.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 07 Apr 2015 11:29:47 +0200
+
 libvirt (1.2.9-9) unstable; urgency=medium
 
   * [4c14b83] qemu: Don't try to parse -help for new QEMU.
