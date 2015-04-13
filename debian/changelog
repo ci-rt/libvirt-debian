@@ -1,3 +1,10 @@
+libvirt (1.2.14-2) experimental; urgency=medium
+
+  * [51ba06c] Allow testsuite to output to stderr
+    since we run the script with -x.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 13 Apr 2015 13:17:19 +0200
+
 libvirt (1.2.14-1) experimental; urgency=medium
 
   * [0a436be] New upstream version 1.2.14
