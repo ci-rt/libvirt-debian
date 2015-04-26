@@ -1,7 +1,7 @@
 /*
  * vircgroup.h: methods for managing control cgroups
  *
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * This library is free software; you can redistribute it and/or
@@ -46,6 +46,11 @@ enum {
 };
 
 VIR_ENUM_DECL(virCgroupController);
+/* Items of this enum are used later in virCgroupNew to create
+ * bit array stored in int. Like this:
+ *   1 << VIR_CGROUP_CONTROLLER_CPU
+ * Make sure we will not overflow */
+verify(VIR_CGROUP_CONTROLLER_LAST < 8 * sizeof(int));
 
 bool virCgroupAvailable(void);
 
@@ -100,11 +105,18 @@ int virCgroupNewMachine(const char *name,
                         const char *rootdir,
                         pid_t pidleader,
                         bool isContainer,
+                        size_t nnicindexes,
+                        int *nicindexes,
                         const char *partition,
                         int controllers,
                         virCgroupPtr *group)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
     ATTRIBUTE_NONNULL(4);
+
+int virCgroupTerminateMachine(const char *name,
+                              const char *drivername,
+                              bool privileged)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 bool virCgroupNewIgnoreError(void);
 
@@ -244,6 +256,9 @@ int virCgroupGetFreezerState(virCgroupPtr group, char **state);
 int virCgroupSetCpusetMems(virCgroupPtr group, const char *mems);
 int virCgroupGetCpusetMems(virCgroupPtr group, char **mems);
 
+int virCgroupSetCpusetMemoryMigrate(virCgroupPtr group, bool migrate);
+int virCgroupGetCpusetMemoryMigrate(virCgroupPtr group, bool *migrate);
+
 int virCgroupSetCpusetCpus(virCgroupPtr group, const char *cpus);
 int virCgroupGetCpusetCpus(virCgroupPtr group, char **cpus);
 
@@ -264,5 +279,7 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
                       uid_t uid,
                       gid_t gid,
                       int controllers);
+
+int virCgroupHasEmptyTasks(virCgroupPtr cgroup, int controller);
 
 #endif /* __VIR_CGROUP_H__ */

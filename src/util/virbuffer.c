@@ -1,7 +1,7 @@
 /*
  * virbuffer.c: buffers for libvirt
  *
- * Copyright (C) 2005-2008, 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2005-2008, 2010-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -162,14 +162,54 @@ virBufferAdd(virBufferPtr buf, const char *str, int len)
         len = strlen(str);
 
     needSize = buf->use + indent + len + 2;
-    if (needSize > buf->size &&
-        virBufferGrow(buf, needSize - buf->use) < 0)
+    if (virBufferGrow(buf, needSize - buf->use) < 0)
         return;
 
     memset(&buf->content[buf->use], ' ', indent);
     memcpy(&buf->content[buf->use + indent], str, len);
     buf->use += indent + len;
     buf->content[buf->use] = '\0';
+}
+
+/**
+ * virBufferAddBuffer:
+ * @buf: the buffer to append to
+ * @toadd: the buffer to append
+ *
+ * Add a buffer into another buffer without need to go through:
+ * virBufferContentAndReset(), virBufferAdd(). Auto indentation
+ * is (intentionally) NOT applied!
+ *
+ * Moreover, be aware that @toadd is eaten with hair. IOW, the
+ * @toadd buffer is reset after this.
+ */
+void
+virBufferAddBuffer(virBufferPtr buf, virBufferPtr toadd)
+{
+    unsigned int needSize;
+
+    if (!toadd)
+        return;
+
+    if (!buf)
+        goto done;
+
+    if (buf->error || toadd->error) {
+        if (!buf->error)
+            buf->error = toadd->error;
+        goto done;
+    }
+
+    needSize = buf->use + toadd->use;
+    if (virBufferGrow(buf, needSize - buf->use) < 0)
+        goto done;
+
+    memcpy(&buf->content[buf->use], toadd->content, toadd->use);
+    buf->use += toadd->use;
+    buf->content[buf->use] = '\0';
+
+ done:
+    virBufferFreeAndReset(toadd);
 }
 
 /**
@@ -368,9 +408,8 @@ virBufferVasprintf(virBufferPtr buf, const char *format, va_list argptr)
         buf->content[buf->use] = 0;
 
         grow_size = (count + 1 > 1000) ? count + 1 : 1000;
-        if (virBufferGrow(buf, grow_size) < 0) {
+        if (virBufferGrow(buf, grow_size) < 0)
             return;
-        }
 
         size = buf->size - buf->use;
         if ((count = vsnprintf(&buf->content[buf->use],
@@ -506,8 +545,9 @@ virBufferEscapeSexpr(virBufferPtr buf,
  * @str: the string argument which needs to be escaped
  *
  * Do a formatted print with a single string to a buffer.  Any characters
- * in the provided list are escaped with the given escape.  Auto indentation
- * may be applied.
+ * in the provided list that are contained in @str are escaped with the
+ * given escape.  Escaping is not applied to characters specified in @format.
+ * Auto indentation may be applied.
  */
 void
 virBufferEscape(virBufferPtr buf, char escape, const char *toescape,
@@ -715,4 +755,33 @@ virBufferTrim(virBufferPtr buf, const char *str, int len)
     }
     buf->use -= len < 0 ? len2 : len;
     buf->content[buf->use] = '\0';
+}
+
+
+/**
+ * virBufferAddStr:
+ * @buf: the buffer to append to
+ * @str: string to append
+ *
+ * Appends @str to @buffer. Applies autoindentation on the separate lines of
+ * @str.
+ */
+void
+virBufferAddStr(virBufferPtr buf,
+                const char *str)
+{
+    const char *end;
+
+    if (!buf || !str || buf->error)
+        return;
+
+    while (*str) {
+        if ((end = strchr(str, '\n'))) {
+            virBufferAdd(buf, str, (end - str) + 1);
+            str = end + 1;
+        } else {
+            virBufferAdd(buf, str, -1);
+            break;
+        }
+    }
 }

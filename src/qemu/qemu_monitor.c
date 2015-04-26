@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -117,7 +117,8 @@ VIR_ONCE_GLOBAL_INIT(qemuMonitor)
 
 VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               QEMU_MONITOR_MIGRATION_STATUS_LAST,
-              "inactive", "active", "completed", "failed", "cancelled", "setup")
+              "inactive", "active", "completed", "failed", "cancelling",
+              "cancelled", "setup")
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
@@ -127,7 +128,7 @@ VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
               "debug", "inmigrate", "internal-error", "io-error", "paused",
               "postmigrate", "prelaunch", "finish-migrate", "restore-vm",
-              "running", "save-vm", "shutdown", "watchdog", "guest-panic")
+              "running", "save-vm", "shutdown", "watchdog", "guest-panicked")
 
 typedef enum {
     QEMU_MONITOR_BLOCK_IO_STATUS_OK,
@@ -1008,38 +1009,107 @@ qemuMonitorSetOptions(qemuMonitorPtr mon, virJSONValuePtr options)
     mon->options = options;
 }
 
-/* Search the qom objects for the balloon driver object by it's known name
- * of "virtio-balloon-pci".  The entry for the driver will be found in the
- * returned 'type' field using the syntax "child<virtio-balloon-pci>".
- *
- * Once found, check the entry to ensure it has the correct property listed.
- * If it does not, then obtaining statistics from qemu will not be possible.
- * This feature was added to qemu 1.5.
+
+/**
+ * Search the qom objects by it's known name.  The name is compared against
+ * filed 'type' formatted as 'link<%name>'.
  *
  * This procedure will be call recursively until found or the qom-list is
  * exhausted.
  *
  * Returns:
  *
- *   1  - Found
- *   0  - Not found still looking
+ *   0  - Found
  *  -1  - Error bail out
+ *  -2  - Not found
+ *
+ * NOTE: This assumes we have already called qemuDomainObjEnterMonitor()
+ */
+static int
+qemuMonitorFindObjectPath(qemuMonitorPtr mon,
+                          const char *curpath,
+                          const char *name,
+                          char **path)
+{
+    ssize_t i, npaths = 0;
+    int ret = -2;
+    char *nextpath = NULL;
+    char *type = NULL;
+    qemuMonitorJSONListPathPtr *paths = NULL;
+
+    if (virAsprintf(&type, "link<%s>", name) < 0)
+        return -1;
+
+    VIR_DEBUG("Searching for '%s' Object Path starting at '%s'", type, curpath);
+
+    npaths = qemuMonitorJSONGetObjectListPaths(mon, curpath, &paths);
+    if (npaths < 0)
+        goto cleanup;
+
+    for (i = 0; i < npaths && ret == -2; i++) {
+
+        if (STREQ_NULLABLE(paths[i]->type, type)) {
+            VIR_DEBUG("Path to '%s' is '%s/%s'", type, curpath, paths[i]->name);
+            ret = 0;
+            if (virAsprintf(path, "%s/%s", curpath, paths[i]->name) < 0) {
+                *path = NULL;
+                ret = -1;
+            }
+            goto cleanup;
+        }
+
+        /* Type entries that begin with "child<" are a branch that can be
+         * traversed looking for more entries
+         */
+        if (paths[i]->type && STRPREFIX(paths[i]->type, "child<")) {
+            if (virAsprintf(&nextpath, "%s/%s", curpath, paths[i]->name) < 0) {
+                ret = -1;
+                goto cleanup;
+            }
+
+            ret = qemuMonitorFindObjectPath(mon, nextpath, name, path);
+            VIR_FREE(nextpath);
+        }
+    }
+
+ cleanup:
+    for (i = 0; i < npaths; i++)
+        qemuMonitorJSONListPathFree(paths[i]);
+    VIR_FREE(paths);
+    VIR_FREE(nextpath);
+    VIR_FREE(type);
+    return ret;
+}
+
+
+/**
+ * Search the qom objects for the balloon driver object by it's known name
+ * of "virtio-balloon-pci".  The entry for the driver will be found by using
+ * function "qemuMonitorFindObjectPath".
+ *
+ * Once found, check the entry to ensure it has the correct property listed.
+ * If it does not, then obtaining statistics from QEMU will not be possible.
+ * This feature was added to QEMU 1.5.
+ *
+ * Returns:
+ *
+ *   0  - Found
+ *  -1  - Not found or error
  *
  * NOTE: This assumes we have already called qemuDomainObjEnterMonitor()
  */
 static int
 qemuMonitorFindBalloonObjectPath(qemuMonitorPtr mon,
-                                 virDomainObjPtr vm,
                                  const char *curpath)
 {
-    ssize_t i, j, npaths = 0, nprops = 0;
-    int ret = 0;
-    char *nextpath = NULL;
-    qemuMonitorJSONListPathPtr *paths = NULL;
+    ssize_t i, nprops = 0;
+    int ret = -1;
+    char *path = NULL;
     qemuMonitorJSONListPathPtr *bprops = NULL;
+    virDomainObjPtr vm = mon->vm;
 
     if (mon->balloonpath) {
-        return 1;
+        return 0;
     } else if (mon->ballooninit) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Cannot determine balloon device path"));
@@ -1055,72 +1125,70 @@ qemuMonitorFindBalloonObjectPath(qemuMonitorPtr mon,
         return -1;
     }
 
-    VIR_DEBUG("Searching for Balloon Object Path starting at %s", curpath);
-
-    npaths = qemuMonitorJSONGetObjectListPaths(mon, curpath, &paths);
-    if (npaths < 0)
+    if (qemuMonitorFindObjectPath(mon, curpath, "virtio-balloon-pci", &path) < 0)
         return -1;
 
-    for (i = 0; i < npaths && ret == 0; i++) {
+    nprops = qemuMonitorJSONGetObjectListPaths(mon, path, &bprops);
+    if (nprops < 0)
+        goto cleanup;
 
-        if (STREQ_NULLABLE(paths[i]->type, "link<virtio-balloon-pci>")) {
-            VIR_DEBUG("Path to <virtio-balloon-pci> is '%s/%s'",
-                      curpath, paths[i]->name);
-            if (virAsprintf(&nextpath, "%s/%s", curpath, paths[i]->name) < 0) {
-                ret = -1;
-                goto cleanup;
-            }
-
-            /* Now look at the each of the property entries to determine
-             * whether "guest-stats-polling-interval" exists.  If not,
-             * then this version of qemu/kvm does not support the feature.
-             */
-            nprops = qemuMonitorJSONGetObjectListPaths(mon, nextpath, &bprops);
-            if (nprops < 0) {
-                ret = -1;
-                goto cleanup;
-            }
-
-            for (j = 0; j < nprops; j++) {
-                if (STREQ(bprops[j]->name, "guest-stats-polling-interval")) {
-                    VIR_DEBUG("Found Balloon Object Path %s", nextpath);
-                    mon->balloonpath = nextpath;
-                    nextpath = NULL;
-                    ret = 1;
-                    goto cleanup;
-                }
-            }
-
-            /* If we get here, we found the path, but not the property */
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Property 'guest-stats-polling-interval' "
-                             "not found on memory balloon driver."));
-            ret = -1;
+    for (i = 0; i < nprops; i++) {
+        if (STREQ(bprops[i]->name, "guest-stats-polling-interval")) {
+            VIR_DEBUG("Found Balloon Object Path %s", path);
+            mon->balloonpath = path;
+            path = NULL;
+            ret = 0;
             goto cleanup;
-        }
-
-        /* Type entries that begin with "child<" are a branch that can be
-         * traversed looking for more entries
-         */
-        if (paths[i]->type && STRPREFIX(paths[i]->type, "child<")) {
-            if (virAsprintf(&nextpath, "%s/%s", curpath, paths[i]->name) < 0) {
-                ret = -1;
-                goto cleanup;
-            }
-            ret = qemuMonitorFindBalloonObjectPath(mon, vm, nextpath);
         }
     }
 
+
+    /* If we get here, we found the path, but not the property */
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("Property 'guest-stats-polling-interval' "
+                     "not found on memory balloon driver."));
+
  cleanup:
-    for (i = 0; i < npaths; i++)
-        qemuMonitorJSONListPathFree(paths[i]);
-    VIR_FREE(paths);
-    for (j = 0; j < nprops; j++)
-        qemuMonitorJSONListPathFree(bprops[j]);
+    for (i = 0; i < nprops; i++)
+        qemuMonitorJSONListPathFree(bprops[i]);
     VIR_FREE(bprops);
-    VIR_FREE(nextpath);
+    VIR_FREE(path);
     return ret;
 }
+
+
+/**
+ * To update video memory size in status XML we need to load correct values from
+ * QEMU.  This is supported only with JSON monitor.
+ *
+ * Returns 0 on success, -1 on failure and sets proper error message.
+ */
+int
+qemuMonitorUpdateVideoMemorySize(qemuMonitorPtr mon,
+                                 virDomainVideoDefPtr video,
+                                 const char *videoName)
+{
+    int ret = -1;
+    char *path = NULL;
+
+    if (mon->json) {
+        ret = qemuMonitorFindObjectPath(mon, "/", videoName, &path);
+        if (ret < 0) {
+            if (ret == -2)
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to find QOM Object path for "
+                                 "device '%s'"), videoName);
+            return -1;
+        }
+
+        ret = qemuMonitorJSONUpdateVideoMemorySize(mon, video, path);
+        VIR_FREE(path);
+        return ret;
+    }
+
+    return 0;
+}
+
 
 int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
                                 const char *cmd,
@@ -1387,6 +1455,33 @@ qemuMonitorEmitDeviceDeleted(qemuMonitorPtr mon,
 }
 
 
+int
+qemuMonitorEmitNicRxFilterChanged(qemuMonitorPtr mon,
+                                  const char *devAlias)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainNicRxFilterChanged, mon->vm, devAlias);
+
+    return ret;
+}
+
+
+int
+qemuMonitorEmitSerialChange(qemuMonitorPtr mon,
+                            const char *devAlias,
+                            bool connected)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p, devAlias='%s', connected=%d", mon, devAlias, connected);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainSerialChange, mon->vm, devAlias, connected);
+
+    return ret;
+}
+
+
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     int ret;
@@ -1605,7 +1700,7 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
     }
 
     if (mon->json) {
-        ignore_value(qemuMonitorFindBalloonObjectPath(mon, mon->vm, "/"));
+        ignore_value(qemuMonitorFindBalloonObjectPath(mon, "/"));
         mon->ballooninit = true;
         ret = qemuMonitorJSONGetMemoryStats(mon, mon->balloonpath,
                                             stats, nr_stats);
@@ -1615,27 +1710,40 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
     return ret;
 }
 
+/**
+ * qemuMonitorSetMemoryStatsPeriod:
+ *
+ * This function sets balloon stats update period.
+ *
+ * Returns 0 on success and -1 on error, but does *not* set an error.
+ */
 int qemuMonitorSetMemoryStatsPeriod(qemuMonitorPtr mon,
                                     int period)
 {
     int ret = -1;
     VIR_DEBUG("mon=%p period=%d", mon, period);
 
-    if (!mon) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("monitor must not be NULL"));
+    if (!mon)
         return -1;
-    }
 
-    if (!mon->json) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                       _("JSON monitor is required"));
+    if (!mon->json)
         return -1;
-    }
 
-    if (qemuMonitorFindBalloonObjectPath(mon, mon->vm, "/") == 1) {
+    if (period < 0)
+        return -1;
+
+    if (qemuMonitorFindBalloonObjectPath(mon, "/") == 0) {
         ret = qemuMonitorJSONSetMemoryStatsPeriod(mon, mon->balloonpath,
                                                   period);
+
+        /*
+         * Most of the calls to this function are supposed to be
+         * non-fatal and the only one that should be fatal wants its
+         * own error message.  More details for debugging will be in
+         * the log file.
+         */
+        if (ret < 0)
+            virResetLastError();
     }
     mon->ballooninit = true;
     return ret;
@@ -1714,58 +1822,26 @@ qemuMonitorBlockInfoLookup(virHashTablePtr blockInfo,
     return info;
 }
 
-int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
-                                 const char *dev_name,
-                                 long long *rd_req,
-                                 long long *rd_bytes,
-                                 long long *rd_total_times,
-                                 long long *wr_req,
-                                 long long *wr_bytes,
-                                 long long *wr_total_times,
-                                 long long *flush_req,
-                                 long long *flush_total_times,
-                                 long long *errs)
-{
-    int ret;
-    VIR_DEBUG("mon=%p dev=%s", mon, dev_name);
 
-    if (!mon) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("monitor must not be NULL"));
-        return -1;
-    }
-
-    if (mon->json)
-        ret = qemuMonitorJSONGetBlockStatsInfo(mon, dev_name,
-                                               rd_req, rd_bytes,
-                                               rd_total_times,
-                                               wr_req, wr_bytes,
-                                               wr_total_times,
-                                               flush_req,
-                                               flush_total_times,
-                                               errs);
-    else
-        ret = qemuMonitorTextGetBlockStatsInfo(mon, dev_name,
-                                               rd_req, rd_bytes,
-                                               rd_total_times,
-                                               wr_req, wr_bytes,
-                                               wr_total_times,
-                                               flush_req,
-                                               flush_total_times,
-                                               errs);
-    return ret;
-}
-
-/* Fills the first 'nstats' block stats. 'stats' must be an array.
- * Returns <0 on error, otherwise the number of block stats retrieved.
- * if 'dev_name' is != NULL, look for this device only and skip
- * any other. In that case return value cannot be greater than 1.
+/**
+ * qemuMonitorGetAllBlockStatsInfo:
+ * @mon: monitor object
+ * @ret_stats: pointer that is filled with a hash table containing the stats
+ * @backingChain: recurse into the backing chain of devices
+ *
+ * Creates a hash table in @ret_stats with block stats of all devices. In case
+ * @backingChain is true @ret_stats will additionally contain stats for
+ * backing chain members of block devices.
+ *
+ * Returns < 0 on error, count of supported block stats fields on success.
  */
 int
 qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
-                                virHashTablePtr *ret_stats)
+                                virHashTablePtr *ret_stats,
+                                bool backingChain)
 {
-    VIR_DEBUG("mon=%p ret_stats=%p", mon, ret_stats);
+    int ret = -1;
+    VIR_DEBUG("mon=%p ret_stats=%p, backing=%d", mon, ret_stats, backingChain);
 
     if (!mon->json) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1773,38 +1849,59 @@ qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
         return -1;
     }
 
-    return qemuMonitorJSONGetAllBlockStatsInfo(mon, ret_stats);
+    if (!(*ret_stats = virHashCreate(10, virHashValueFree)))
+        goto error;
+
+    if (mon->json) {
+        ret = qemuMonitorJSONGetAllBlockStatsInfo(mon, *ret_stats,
+                                                  backingChain);
+    } else {
+         if (backingChain) {
+             virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                            _("text monitor doesn't support block stats for "
+                              "backing chain members"));
+             goto error;
+         }
+
+         ret = qemuMonitorTextGetAllBlockStatsInfo(mon, *ret_stats);
+    }
+
+    if (ret < 0)
+        goto error;
+
+    return ret;
+
+ error:
+    virHashFree(*ret_stats);
+    *ret_stats = NULL;
+    return -1;
 }
 
-/* Return 0 and update @nparams with the number of block stats
- * QEMU supports if success. Return -1 if failure.
- */
-int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
-                                         int *nparams)
-{
-    int ret;
-    VIR_DEBUG("mon=%p nparams=%p", mon, nparams);
 
-    if (!mon) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("monitor must not be NULL"));
+/* Updates "stats" to fill virtual and physical size of the image */
+int
+qemuMonitorBlockStatsUpdateCapacity(qemuMonitorPtr mon,
+                                    virHashTablePtr stats,
+                                    bool backingChain)
+{
+    VIR_DEBUG("mon=%p, stats=%p, backing=%d", mon, stats, backingChain);
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("block capacity/size info requires JSON monitor"));
         return -1;
     }
 
-    if (mon->json)
-        ret = qemuMonitorJSONGetBlockStatsParamsNumber(mon, nparams);
-    else
-        ret = qemuMonitorTextGetBlockStatsParamsNumber(mon, nparams);
-
-    return ret;
+    return qemuMonitorJSONBlockStatsUpdateCapacity(mon, stats, backingChain);
 }
+
 
 int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
                               const char *dev_name,
                               unsigned long long *extent)
 {
     int ret;
-    VIR_DEBUG("mon=%p, dev_name=%p", mon, dev_name);
+    VIR_DEBUG("mon=%p, dev_name=%s", mon, dev_name);
 
     if (mon->json)
         ret = qemuMonitorJSONGetBlockExtent(mon, dev_name, extent);
@@ -1819,7 +1916,7 @@ int qemuMonitorBlockResize(qemuMonitorPtr mon,
                            unsigned long long size)
 {
     int ret;
-    VIR_DEBUG("mon=%p, devname=%p size=%llu", mon, device, size);
+    VIR_DEBUG("mon=%p, device=%s size=%llu", mon, device, size);
 
     if (mon->json)
         ret = qemuMonitorJSONBlockResize(mon, device, size);
@@ -2912,12 +3009,13 @@ int qemuMonitorRemoveNetdev(qemuMonitorPtr mon,
 }
 
 
-int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
-                           virHashTablePtr paths)
+int
+qemuMonitorQueryRxFilter(qemuMonitorPtr mon, const char *alias,
+                         virNetDevRxFilterPtr *filter)
 {
-    int ret;
-    VIR_DEBUG("mon=%p",
-          mon);
+    int ret = -1;
+    VIR_DEBUG("mon=%p alias=%s filter=%p",
+              mon, alias, filter);
 
     if (!mon) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -2925,11 +3023,62 @@ int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
         return -1;
     }
 
+
+    VIR_DEBUG("mon=%p, alias=%s", mon, alias);
+
     if (mon->json)
-        ret = qemuMonitorJSONGetPtyPaths(mon, paths);
+        ret = qemuMonitorJSONQueryRxFilter(mon, alias, filter);
     else
-        ret = qemuMonitorTextGetPtyPaths(mon, paths);
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("query-rx-filter requires JSON monitor"));
     return ret;
+}
+
+
+static void
+qemuMonitorChardevInfoFree(void *data,
+                           const void *name ATTRIBUTE_UNUSED)
+{
+    qemuMonitorChardevInfoPtr info = data;
+
+    VIR_FREE(info->ptyPath);
+    VIR_FREE(info);
+}
+
+
+int
+qemuMonitorGetChardevInfo(qemuMonitorPtr mon,
+                          virHashTablePtr *retinfo)
+{
+    int ret;
+    virHashTablePtr info = NULL;
+
+    VIR_DEBUG("mon=%p retinfo=%p", mon, retinfo);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        goto error;
+    }
+
+    if (!(info = virHashCreate(10, qemuMonitorChardevInfoFree)))
+        goto error;
+
+    if (mon->json)
+        ret = qemuMonitorJSONGetChardevInfo(mon, info);
+    else
+        ret = qemuMonitorTextGetChardevInfo(mon, info);
+
+    if (ret < 0)
+        goto error;
+
+    *retinfo = info;
+    return 0;
+
+ error:
+    virHashFree(info);
+    *retinfo = NULL;
+    return -1;
 }
 
 
@@ -3075,6 +3224,56 @@ int qemuMonitorAddDevice(qemuMonitorPtr mon,
 {
     return qemuMonitorAddDeviceWithFd(mon, devicestr, -1, NULL);
 }
+
+
+/**
+ * qemuMonitorAddObject:
+ * @mon: Pointer to monitor object
+ * @type: Type name of object to add
+ * @objalias: Alias of the new object
+ * @props: Optional arguments for the given type. The object is consumed and
+ *         should not be referenced by the caller after this function returns.
+ *
+ * Returns 0 on success -1 on error.
+ */
+int
+qemuMonitorAddObject(qemuMonitorPtr mon,
+                     const char *type,
+                     const char *objalias,
+                     virJSONValuePtr props)
+{
+    VIR_DEBUG("mon=%p type=%s objalias=%s props=%p",
+              mon, type, objalias, props);
+    int ret = -1;
+
+    if (mon->json) {
+        ret = qemuMonitorJSONAddObject(mon, type, objalias, props);
+    } else {
+        virJSONValueFree(props);
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("object adding requires JSON monitor"));
+    }
+
+    return ret;
+}
+
+
+int
+qemuMonitorDelObject(qemuMonitorPtr mon,
+                     const char *objalias)
+{
+    VIR_DEBUG("mon=%p objalias=%s", mon, objalias);
+    int ret = -1;
+
+    if (mon->json)
+        ret = qemuMonitorJSONDelObject(mon, objalias);
+    else
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("object deletion requires JSON monitor"));
+
+    return ret;
+}
+
 
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
                         const char *drivestr)
@@ -3275,6 +3474,24 @@ qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon)
 }
 
 
+/* Determine the name that qemu is using for tracking the backing
+ * element TARGET within the chain starting at TOP.  */
+char *
+qemuMonitorDiskNameLookup(qemuMonitorPtr mon,
+                          const char *device,
+                          virStorageSourcePtr top,
+                          virStorageSourcePtr target)
+{
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return NULL;
+    }
+
+    return qemuMonitorJSONDiskNameLookup(mon, device, top, target);
+}
+
+
 /* Use the block-job-complete monitor command to pivot a block copy
  * job.  */
 int
@@ -3410,14 +3627,15 @@ qemuMonitorBlockJobInfo(qemuMonitorPtr mon,
 
 int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
-                                  virDomainBlockIoTuneInfoPtr info)
+                                  virDomainBlockIoTuneInfoPtr info,
+                                  bool supportMaxOptions)
 {
     int ret;
 
     VIR_DEBUG("mon=%p, device=%p, info=%p", mon, device, info);
 
     if (mon->json) {
-        ret = qemuMonitorJSONSetBlockIoThrottle(mon, device, info);
+        ret = qemuMonitorJSONSetBlockIoThrottle(mon, device, info, supportMaxOptions);
     } else {
         ret = qemuMonitorTextSetBlockIoThrottle(mon, device, info);
     }
@@ -3426,14 +3644,15 @@ int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
 
 int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
-                                  virDomainBlockIoTuneInfoPtr reply)
+                                  virDomainBlockIoTuneInfoPtr reply,
+                                  bool supportMaxOptions)
 {
     int ret;
 
     VIR_DEBUG("mon=%p, device=%p, reply=%p", mon, device, reply);
 
     if (mon->json) {
-        ret = qemuMonitorJSONGetBlockIoThrottle(mon, device, reply);
+        ret = qemuMonitorJSONGetBlockIoThrottle(mon, device, reply, supportMaxOptions);
     } else {
         ret = qemuMonitorTextGetBlockIoThrottle(mon, device, reply);
     }
@@ -3824,7 +4043,8 @@ int qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
 }
 
 int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationCaps capability)
+                                      qemuMonitorMigrationCaps capability,
+                                      bool state)
 {
     VIR_DEBUG("mon=%p capability=%d", mon, capability);
 
@@ -3840,7 +4060,7 @@ int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
         return -1;
     }
 
-    return qemuMonitorJSONSetMigrationCapability(mon, capability);
+    return qemuMonitorJSONSetMigrationCapability(mon, capability, state);
 }
 
 int qemuMonitorNBDServerStart(qemuMonitorPtr mon,
@@ -4116,7 +4336,7 @@ qemuMonitorRTCResetReinjection(qemuMonitorPtr mon)
  */
 int
 qemuMonitorGetIOThreads(qemuMonitorPtr mon,
-                        qemuMonitorIOThreadsInfoPtr **iothreads)
+                        qemuMonitorIOThreadInfoPtr **iothreads)
 {
 
     VIR_DEBUG("mon=%p iothreads=%p", mon, iothreads);
@@ -4136,10 +4356,52 @@ qemuMonitorGetIOThreads(qemuMonitorPtr mon,
     return qemuMonitorJSONGetIOThreads(mon, iothreads);
 }
 
-void qemuMonitorIOThreadsInfoFree(qemuMonitorIOThreadsInfoPtr iothread)
+void qemuMonitorIOThreadInfoFree(qemuMonitorIOThreadInfoPtr iothread)
 {
     if (!iothread)
         return;
     VIR_FREE(iothread->name);
     VIR_FREE(iothread);
+}
+
+
+/**
+ * qemuMonitorGetMemoryDeviceInfo:
+ * @mon: pointer to the monitor
+ * @info: Location to return the hash of qemuMonitorMemoryDeviceInfo
+ *
+ * Retrieve state and addresses of frontend memory devices present in
+ * the guest.
+ *
+ * Returns 0 on success and fills @info with a newly allocated struct; if the
+ * data can't be retrieved due to lack of support in qemu, returns -2. On
+ * other errors returns -1.
+ */
+int
+qemuMonitorGetMemoryDeviceInfo(qemuMonitorPtr mon,
+                               virHashTablePtr *info)
+{
+    VIR_DEBUG("mon=%p info=%p", mon, info);
+    int ret;
+
+    *info = NULL;
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json)
+        return -2;
+
+    if (!(*info = virHashCreate(10, virHashValueFree)))
+        return -1;
+
+    if ((ret = qemuMonitorJSONGetMemoryDeviceInfo(mon, *info)) < 0) {
+        virHashFree(*info);
+        *info = NULL;
+    }
+
+    return ret;
 }

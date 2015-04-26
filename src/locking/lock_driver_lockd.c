@@ -1,7 +1,7 @@
 /*
  * lock_driver_lockd.c: A lock driver which locks nothing
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2011, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -79,7 +79,7 @@ struct _virLockManagerLockDaemonDriver {
     char *scsiLockSpaceDir;
 };
 
-static virLockManagerLockDaemonDriverPtr driver = NULL;
+static virLockManagerLockDaemonDriverPtr driver;
 
 static int virLockManagerLockDaemonLoadConfig(const char *configFile)
 {
@@ -108,7 +108,7 @@ static int virLockManagerLockDaemonLoadConfig(const char *configFile)
     }
 
     p = virConfGetValue(conf, "auto_disk_leases");
-    CHECK_TYPE("auto_disk_leases", VIR_CONF_LONG);
+    CHECK_TYPE("auto_disk_leases", VIR_CONF_ULONG);
     if (p) driver->autoDiskLease = p->l;
 
     p = virConfGetValue(conf, "file_lockspace_dir");
@@ -142,7 +142,7 @@ static int virLockManagerLockDaemonLoadConfig(const char *configFile)
     }
 
     p = virConfGetValue(conf, "require_lease_for_disks");
-    CHECK_TYPE("require_lease_for_disks", VIR_CONF_LONG);
+    CHECK_TYPE("require_lease_for_disks", VIR_CONF_ULONG);
     if (p)
         driver->requireLeaseForDisks = p->l;
     else
@@ -253,7 +253,7 @@ static virNetClientPtr virLockManagerLockDaemonConnectionNew(bool privileged,
     if (!privileged &&
         !(daemonPath = virFileFindResourceFull("virtlockd",
                                                NULL, NULL,
-                                               "src",
+                                               abs_topbuilddir "/src",
                                                SBINDIR,
                                                "VIRTLOCKD_PATH")))
         goto error;
@@ -439,7 +439,7 @@ static int virLockManagerLockDaemonNew(virLockManagerPtr lock,
     virLockManagerLockDaemonPrivatePtr priv;
     size_t i;
 
-    virCheckFlags(VIR_LOCK_MANAGER_USES_STATE, -1);
+    virCheckFlags(VIR_LOCK_MANAGER_NEW_STARTED, -1);
 
     if (VIR_ALLOC(priv) < 0)
         return -1;

@@ -287,7 +287,7 @@ freebsdNodeGetMemoryStats(virNodeMemoryStatsPtr params,
 # define PROCSTAT_PATH "/proc/stat"
 # define MEMINFO_PATH "/proc/meminfo"
 # define SYSFS_MEMORY_SHARED_PATH "/sys/kernel/mm/ksm"
-# define SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX 1024
+# define SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX 8192
 
 # define LINUX_NB_CPU_STATS 4
 # define LINUX_NB_MEMORY_STATS_ALL 4
@@ -345,7 +345,7 @@ virNodeCountThreadSiblings(const char *dir, unsigned int cpu)
     unsigned long ret = 0;
     char *path;
     FILE *pathfp;
-    char str[1024];
+    char *str = NULL;
     size_t i;
 
     if (virAsprintf(&path, "%s/cpu%u/topology/thread_siblings",
@@ -365,7 +365,10 @@ virNodeCountThreadSiblings(const char *dir, unsigned int cpu)
         return 0;
     }
 
-    if (fgets(str, sizeof(str), pathfp) == NULL) {
+    if (VIR_ALLOC_N(str, SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX) < 0)
+        goto cleanup;
+
+    if (fgets(str, SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX, pathfp) == NULL) {
         virReportSystemError(errno, _("cannot read from %s"), path);
         goto cleanup;
     }
@@ -382,6 +385,7 @@ virNodeCountThreadSiblings(const char *dir, unsigned int cpu)
     }
 
  cleanup:
+    VIR_FREE(str);
     VIR_FORCE_FCLOSE(pathfp);
     VIR_FREE(path);
 
@@ -1242,6 +1246,23 @@ nodeGetCPUCount(void)
 }
 
 virBitmapPtr
+nodeGetPresentCPUBitmap(void)
+{
+    int max_present;
+
+    if ((max_present = nodeGetCPUCount()) < 0)
+        return NULL;
+
+#ifdef __linux__
+    if (virFileExists(SYSFS_SYSTEM_PATH "/cpu/present"))
+        return linuxParseCPUmap(max_present, SYSFS_SYSTEM_PATH "/cpu/present");
+#endif
+    virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                   _("non-continuous host cpu numbers not implemented on this platform"));
+    return NULL;
+}
+
+virBitmapPtr
 nodeGetCPUBitmap(int *max_id ATTRIBUTE_UNUSED)
 {
 #ifdef __linux__
@@ -1374,8 +1395,7 @@ nodeSetMemoryParameters(virTypedParameterPtr params ATTRIBUTE_UNUSED,
     for (i = 0; i < nparams; i++) {
         rc = nodeSetMemoryParameterValue(&params[i]);
 
-        /* Out of memory */
-        if (rc == -2)
+        if (rc < 0)
             return -1;
     }
 
@@ -1895,11 +1915,7 @@ nodeCapsInitNUMA(virCapsPtr caps)
         cpu = 0;
 
         for (i = 0; i < virBitmapSize(cpumap); i++) {
-            bool cpustate;
-            if (virBitmapGetBit(cpumap, i, &cpustate) < 0)
-                continue;
-
-            if (cpustate) {
+            if (virBitmapIsBitSet(cpumap, i)) {
                 if (virNodeCapsFillCPUInfo(i, cpus + cpu++) < 0) {
                     topology_failed = true;
                     virResetLastError();

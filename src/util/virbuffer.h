@@ -72,6 +72,7 @@ int virBufferCheckErrorInternal(const virBuffer *buf,
     __LINE__)
 unsigned int virBufferUse(const virBuffer *buf);
 void virBufferAdd(virBufferPtr buf, const char *str, int len);
+void virBufferAddBuffer(virBufferPtr buf, virBufferPtr toadd);
 void virBufferAddChar(virBufferPtr buf, char c);
 void virBufferAsprintf(virBufferPtr buf, const char *format, ...)
   ATTRIBUTE_FMT_PRINTF(2, 3);
@@ -95,5 +96,6 @@ void virBufferAdjustIndent(virBufferPtr buf, int indent);
 int virBufferGetIndent(const virBuffer *buf, bool dynamic);
 
 void virBufferTrim(virBufferPtr buf, const char *trim, int len);
+void virBufferAddStr(virBufferPtr buf, const char *str);
 
 #endif /* __VIR_BUFFER_H__ */

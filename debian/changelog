@@ -1,3 +1,112 @@
+libvirt (1.2.14-2) experimental; urgency=medium
+
+  * [51ba06c] Allow testsuite to output to stderr
+    since we run the script with -x.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 13 Apr 2015 13:17:19 +0200
+
+libvirt (1.2.14-1) experimental; urgency=medium
+
+  * [0a436be] New upstream version 1.2.14
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 03 Apr 2015 13:11:20 +0200
+
+libvirt (1.2.14~rc2-1) experimental; urgency=medium
+
+  * [46cb100] New upstream version 1.2.14-rc2
+  * [e4fcc35] Bump symbol versions
+  * [e55a86f] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Apr 2015 21:27:52 +0200
+
+libvirt (1.2.13-1) experimental; urgency=medium
+
+  * [5a5a046] New upstream version 1.2.13
+  * [6c65940] Bump symbol versions
+  * [5755363] Rediff patches
+    This reverts commit 35a256363958bd452cafdfcadec9626b2ce6df45.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 10 Mar 2015 00:01:52 +0100
+
+libvirt (1.2.12-1) experimental; urgency=medium
+
+  * [06f42f7] New upstream version 1.2.12
+  * [26b55b3] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 29 Jan 2015 11:02:21 +0100
+
+libvirt (1.2.12~rc2-1) experimental; urgency=medium
+
+  * [67f2b22] New upstream version 1.2.12~rc2
+    (Closes: #776065)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 25 Jan 2015 13:02:59 +0100
+
+libvirt (1.2.12~rc1-1) experimental; urgency=medium
+
+  * [994d31d] Bump standards version to 3.9.6
+    no changes required
+  * [7b59a26] New upstream version 1.2.12~rc1
+  * [0a755e3] Dropped patches applied upstram.
+        lxc-Don-t-crash-on-NULL-ifname_guest_actual.patch
+        lxc-Move-setting-ifname_guest_actual-to-virLXCSetupI.patch
+    Rediff remaining patches.
+  * [9511acf] Document surprises on CPU microcode updates (Closes: #773706)
+  * [3e325df] Install lock drivers (Closes: #773706)
+  * [970de51] Bump symbol versions
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 22 Jan 2015 12:26:54 +0100
+
+libvirt (1.2.11-1) experimental; urgency=medium
+
+  * [1377d56] lxc: Fix crash when using interface type 'direct'
+    (Closes: #769600) Thanks to Bastian Blank for the patch
+  * [88f9426] Adjust gbp.conf for experimental
+  * [0b196d9] New upstream version 1.2.11
+  * [113b58b] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 22 Jan 2015 10:29:41 +0100
+
+libvirt (1.2.11~rc1-1) experimental; urgency=medium
+
+  * [8c5ba09] Rediff patches.
+    Dropped
+         allow-libxl-to-find-default-path-to-pygrub.patch: fixed upstram
+         CVE-2014-7823-dumpxml-security-....patch: fixed upstream
+         util-Prepare-URI-formatting-for-libxml2-2.9.2.patch: fixed upstream
+  * [bdb5692] Bump symbol versions
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 11 Dec 2014 08:15:24 +0100
+
+libvirt (1.2.10-1) experimental; urgency=medium
+
+  * [87bcfc8] New upstream version 1.2.10
+  * [214d446] CVE-2014-7823: dumpxml: security hole with migratable flag
+    (Closes: #769149)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 12 Nov 2014 07:44:24 +0100
+
+libvirt (1.2.10~rc2-1) experimental; urgency=medium
+
+  * [7e3dbba] New upstream version 1.2.10~rc2
+  * [a0832bc] Check if the directories exist before removing them. rmdir
+    returns nonzero otherwise and this is more strict than just using || true.
+    (Closes: #767672)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 02 Nov 2014 12:10:23 +0100
+
+libvirt (1.2.10~rc1-1) experimental; urgency=medium
+
+  * Upload to experimental
+  * [360da79] New upstream version 1.2.10-rc1
+  * [aba073c] Rediff patches.
+    Dropped Use-sensible-editor-...patch: Configurable now
+    Dropped qemu-use-systemd-s-TerminateMachine-...patch: Applied upstream
+  * [f739a80] Configure use of sensible-editor via ./configure
+  * [4f5511b] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 30 Oct 2014 09:53:20 +0100
+
 libvirt (1.2.9-10) unstable; urgency=medium
 
   * [f5e46fb] postinst: Use '--' for all adduser options

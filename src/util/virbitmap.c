@@ -54,31 +54,29 @@ struct _virBitmap {
 
 
 /**
- * virBitmapNew:
+ * virBitmapNewQuiet:
  * @size: number of bits
  *
  * Allocate a bitmap capable of containing @size bits.
  *
- * Returns a pointer to the allocated bitmap or NULL if
- * memory cannot be allocated.
+ * Returns a pointer to the allocated bitmap or NULL if memory cannot be
+ * allocated. Does not report libvirt errors.
  */
-virBitmapPtr virBitmapNew(size_t size)
+virBitmapPtr
+virBitmapNewQuiet(size_t size)
 {
     virBitmapPtr bitmap;
     size_t sz;
 
-    if (SIZE_MAX - VIR_BITMAP_BITS_PER_UNIT < size || size == 0) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    sz = (size + VIR_BITMAP_BITS_PER_UNIT - 1) /
-          VIR_BITMAP_BITS_PER_UNIT;
-
-    if (VIR_ALLOC(bitmap) < 0)
+    if (SIZE_MAX - VIR_BITMAP_BITS_PER_UNIT < size || size == 0)
         return NULL;
 
-    if (VIR_ALLOC_N(bitmap->map, sz) < 0) {
+    sz = (size + VIR_BITMAP_BITS_PER_UNIT - 1) / VIR_BITMAP_BITS_PER_UNIT;
+
+    if (VIR_ALLOC_QUIET(bitmap) < 0)
+        return NULL;
+
+    if (VIR_ALLOC_N_QUIET(bitmap->map, sz) < 0) {
         VIR_FREE(bitmap);
         return NULL;
     }
@@ -87,6 +85,28 @@ virBitmapPtr virBitmapNew(size_t size)
     bitmap->map_len = sz;
     return bitmap;
 }
+
+
+/**
+ * virBitmapNew:
+ * @size: number of bits
+ *
+ * Allocate a bitmap capable of containing @size bits.
+ *
+ * Returns a pointer to the allocated bitmap or NULL if memory cannot be
+ * allocated. Reports libvirt errors.
+ */
+virBitmapPtr
+virBitmapNew(size_t size)
+{
+    virBitmapPtr ret;
+
+    if (!(ret = virBitmapNewQuiet(size)))
+        virReportOOMError();
+
+    return ret;
+}
+
 
 /**
  * virBitmapFree:
@@ -156,6 +176,24 @@ int virBitmapClearBit(virBitmapPtr bitmap, size_t b)
 static bool virBitmapIsSet(virBitmapPtr bitmap, size_t b)
 {
     return !!(bitmap->map[VIR_BITMAP_UNIT_OFFSET(b)] & VIR_BITMAP_BIT(b));
+}
+
+/**
+ * virBitmapIsBitSet:
+ * @bitmap: Pointer to bitmap
+ * @b: bit position to get
+ *
+ * Get setting of bit position @b in @bitmap.
+ *
+ * If @b is in the range of @bitmap, returns the value of the bit.
+ * Otherwise false is returned.
+ */
+bool virBitmapIsBitSet(virBitmapPtr bitmap, size_t b)
+{
+    if (bitmap->max_bit <= b)
+        return false;
+
+    return virBitmapIsSet(bitmap, b);
 }
 
 /**
@@ -504,6 +542,12 @@ bool virBitmapEqual(virBitmapPtr b1, virBitmapPtr b2)
     virBitmapPtr tmp;
     size_t i;
 
+    if (!b1 && !b2)
+        return true;
+
+    if (!b1 || !b2)
+        return false;
+
     if (b1->max_bit > b2->max_bit) {
         tmp = b1;
         b1 = b2;
@@ -640,14 +684,58 @@ virBitmapNextSetBit(virBitmapPtr bitmap, ssize_t pos)
 
     bits = bitmap->map[nl] & ~((1UL << nb) - 1);
 
-    while (bits == 0 && ++nl < bitmap->map_len) {
+    while (bits == 0 && ++nl < bitmap->map_len)
         bits = bitmap->map[nl];
-    }
 
     if (bits == 0)
         return -1;
 
     return ffsl(bits) - 1 + nl * VIR_BITMAP_BITS_PER_UNIT;
+}
+
+/**
+ * virBitmapLastSetBit:
+ * @bitmap: the bitmap
+ *
+ * Search for the last set bit in bitmap @bitmap.
+ *
+ * Returns the position of the found bit, or -1 if no bit is set.
+ */
+ssize_t
+virBitmapLastSetBit(virBitmapPtr bitmap)
+{
+    ssize_t i;
+    int unusedBits;
+    ssize_t sz;
+    unsigned long bits;
+
+    unusedBits = bitmap->map_len * VIR_BITMAP_BITS_PER_UNIT - bitmap->max_bit;
+
+    sz = bitmap->map_len - 1;
+    if (unusedBits > 0) {
+        bits = bitmap->map[sz] & (VIR_BITMAP_BIT(VIR_BITMAP_BITS_PER_UNIT - unusedBits) - 1);
+        if (bits != 0)
+            goto found;
+
+        sz--;
+    }
+
+    for (; sz >= 0; sz--) {
+        bits = bitmap->map[sz];
+        if (bits != 0)
+            goto found;
+    }
+
+    if (bits == 0)
+        return -1;
+
+ found:
+    for (i = VIR_BITMAP_BITS_PER_UNIT - 1; i >= 0; i--) {
+        if (bits & 1UL << i)
+            return i + sz * VIR_BITMAP_BITS_PER_UNIT;
+    }
+
+    return -1;
 }
 
 /**
@@ -681,9 +769,8 @@ virBitmapNextClearBit(virBitmapPtr bitmap, ssize_t pos)
 
     bits = ~bitmap->map[nl] & ~((1UL << nb) - 1);
 
-    while (bits == 0 && ++nl < bitmap->map_len) {
+    while (bits == 0 && ++nl < bitmap->map_len)
         bits = ~bitmap->map[nl];
-    }
 
     if (nl == bitmap->map_len - 1) {
         /* Ensure tail bits are ignored.  */

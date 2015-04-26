@@ -37,7 +37,23 @@
     virReportErrorHelper(VIR_FROM_TEST, VIR_ERR_OPERATION_FAILED, __FILE__,    \
                      __FUNCTION__, __LINE__, _("Can't parse prlctl output"))
 
-# define PARALLELS_ROUTED_NETWORK_NAME   "Routed"
+# define IS_CT(def)  (STREQ_NULLABLE(def->os.type, "exe"))
+
+# define parallelsDomNotFoundError(domain)                               \
+    do {                                                                 \
+        char uuidstr[VIR_UUID_STRING_BUFLEN];                            \
+        virUUIDFormat(domain->uuid, uuidstr);                            \
+        virReportError(VIR_ERR_NO_DOMAIN,                                \
+                       _("no domain with matching uuid '%s'"), uuidstr); \
+    } while (0)
+
+# define PARALLELS_DOMAIN_ROUTED_NETWORK_NAME   "Routed"
+# define PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME  "Bridged"
+
+# define PARALLELS_REQUIRED_HOSTONLY_NETWORK "Host-Only"
+# define PARALLELS_HOSTONLY_NETWORK_TYPE "host-only"
+# define PARALLELS_REQUIRED_BRIDGED_NETWORK  "Bridged"
+# define PARALLELS_BRIDGED_NETWORK_TYPE  "bridged"
 
 struct _parallelsConn {
     virMutex lock;
@@ -45,10 +61,11 @@ struct _parallelsConn {
     PRL_HANDLE server;
     PRL_UINT32 jobTimeout;
     virStoragePoolObjList pools;
-    virNetworkObjList networks;
+    virNetworkObjListPtr networks;
     virCapsPtr caps;
     virDomainXMLOptionPtr xmlopt;
     virObjectEventStatePtr domainEventState;
+    virStorageDriverStatePtr storageState;
 };
 
 typedef struct _parallelsConn parallelsConn;
@@ -58,13 +75,18 @@ struct parallelsDomObj {
     int id;
     char *uuid;
     char *home;
-    virBitmapPtr cpumask;
+    PRL_HANDLE sdkdom;
 };
 
 typedef struct parallelsDomObj *parallelsDomObjPtr;
 
-int parallelsStorageRegister(void);
-int parallelsNetworkRegister(void);
+virDrvOpenStatus parallelsStorageOpen(virConnectPtr conn, unsigned int flags);
+int parallelsStorageClose(virConnectPtr conn);
+extern virStorageDriver parallelsStorageDriver;
+
+virDrvOpenStatus parallelsNetworkOpen(virConnectPtr conn, unsigned int flags);
+int parallelsNetworkClose(virConnectPtr conn);
+extern virNetworkDriver parallelsNetworkDriver;
 
 virJSONValuePtr parallelsParseOutput(const char *binary, ...)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_SENTINEL;

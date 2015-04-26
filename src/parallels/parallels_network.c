@@ -180,10 +180,11 @@ static int parallelsGetHostOnlyNetInfo(virNetworkDefPtr def, const char *name)
     return ret;
 }
 
-static virNetworkObjPtr
+static int
 parallelsLoadNetwork(parallelsConnPtr privconn, virJSONValuePtr jobj)
 {
-    virNetworkObjPtr net;
+    int ret = -1;
+    virNetworkObjPtr net = NULL;
     virNetworkDefPtr def;
     const char *tmp;
     /* MD5_DIGEST_SIZE = VIR_UUID_BUFLEN = 16 */
@@ -211,37 +212,50 @@ parallelsLoadNetwork(parallelsConnPtr privconn, virJSONValuePtr jobj)
         goto cleanup;
     }
 
-    if (STREQ(tmp, "bridged")) {
+    if (STREQ(tmp, PARALLELS_BRIDGED_NETWORK_TYPE)) {
         def->forward.type = VIR_NETWORK_FORWARD_BRIDGE;
 
-        if (parallelsGetBridgedNetInfo(def, jobj) < 0)
+        if (parallelsGetBridgedNetInfo(def, jobj) < 0) {
+
+            /* Only mandatory networks are required to be configured completely */
+            if (STRNEQ(def->name, PARALLELS_REQUIRED_BRIDGED_NETWORK))
+                ret = 0;
+
             goto cleanup;
-    } else if (STREQ(tmp, "host-only")) {
+        }
+    } else if (STREQ(tmp, PARALLELS_HOSTONLY_NETWORK_TYPE)) {
         def->forward.type = VIR_NETWORK_FORWARD_NONE;
 
-        if (parallelsGetHostOnlyNetInfo(def, def->name) < 0)
+        if (parallelsGetHostOnlyNetInfo(def, def->name) < 0) {
+
+            /* Only mandatory networks are required to be configured completely */
+            if (STRNEQ(def->name, PARALLELS_REQUIRED_HOSTONLY_NETWORK))
+                ret = 0;
+
             goto cleanup;
+        }
     } else {
         parallelsParseError();
         goto cleanup;
     }
 
-    if (!(net = virNetworkAssignDef(&privconn->networks, def, false)))
+    if (!(net = virNetworkAssignDef(privconn->networks, def, 0)))
         goto cleanup;
+    def = NULL;
     net->active = 1;
     net->autostart = 1;
-    virNetworkObjUnlock(net);
-    return net;
+    ret = 0;
 
  cleanup:
+    virNetworkObjEndAPI(&net);
     virNetworkDefFree(def);
-    return NULL;
+    return ret;
 }
 
-static virNetworkObjPtr
+static int
 parallelsAddRoutedNetwork(parallelsConnPtr privconn)
 {
-    virNetworkObjPtr net;
+    virNetworkObjPtr net = NULL;
     virNetworkDefPtr def;
 
     if (VIR_ALLOC(def) < 0)
@@ -249,7 +263,7 @@ parallelsAddRoutedNetwork(parallelsConnPtr privconn)
 
     def->forward.type = VIR_NETWORK_FORWARD_ROUTE;
 
-    if (VIR_STRDUP(def->name, PARALLELS_ROUTED_NETWORK_NAME) < 0)
+    if (VIR_STRDUP(def->name, PARALLELS_DOMAIN_ROUTED_NETWORK_NAME) < 0)
         goto cleanup;
 
     if (virUUIDParse(PARALLELS_ROUTED_NETWORK_UUID, def->uuid) < 0) {
@@ -259,25 +273,23 @@ parallelsAddRoutedNetwork(parallelsConnPtr privconn)
     }
     def->uuid_specified = 1;
 
-    if (!(net = virNetworkAssignDef(&privconn->networks, def, false))) {
-        virNetworkDefFree(def);
+    if (!(net = virNetworkAssignDef(privconn->networks, def, 0)))
         goto cleanup;
-    }
+
     net->active = 1;
     net->autostart = 1;
-    virNetworkObjUnlock(net);
+    virNetworkObjEndAPI(&net);
 
-    return net;
+    return 0;
 
  cleanup:
     virNetworkDefFree(def);
-    return NULL;
+    return -1;
 }
 
 static int parallelsLoadNetworks(parallelsConnPtr privconn)
 {
     virJSONValuePtr jobj, jobj2;
-    virNetworkObjPtr net;
     int ret = -1;
     int count;
     size_t i;
@@ -302,13 +314,11 @@ static int parallelsLoadNetworks(parallelsConnPtr privconn)
             goto cleanup;
         }
 
-        net = parallelsLoadNetwork(privconn, jobj2);
-        if (!net)
+        if (parallelsLoadNetwork(privconn, jobj2) < 0)
             goto cleanup;
-
     }
 
-    if (!parallelsAddRoutedNetwork(privconn))
+    if (parallelsAddRoutedNetwork(privconn) < 0)
         goto cleanup;
 
     ret = 0;
@@ -318,48 +328,48 @@ static int parallelsLoadNetworks(parallelsConnPtr privconn)
     return ret;
 }
 
-static virDrvOpenStatus
+virDrvOpenStatus
 parallelsNetworkOpen(virConnectPtr conn,
-                     virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                      unsigned int flags)
 {
+    parallelsConnPtr privconn = conn->privateData;
+
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (STRNEQ(conn->driver->name, "Parallels"))
         return VIR_DRV_OPEN_DECLINED;
 
-    conn->networkPrivateData = conn->privateData;
+    if (!(privconn->networks = virNetworkObjListNew()))
+        goto error;
 
     if (parallelsLoadNetworks(conn->privateData) < 0)
-        return VIR_DRV_OPEN_DECLINED;
+        goto error;
 
     return VIR_DRV_OPEN_SUCCESS;
+ error:
+    virObjectUnref(privconn->networks);
+    privconn->networks = NULL;
+    return VIR_DRV_OPEN_DECLINED;
 }
 
-static int parallelsNetworkClose(virConnectPtr conn)
+int parallelsNetworkClose(virConnectPtr conn)
 {
     parallelsConnPtr privconn = conn->privateData;
-    parallelsDriverLock(privconn);
-    virNetworkObjListFree(&privconn->networks);
-    parallelsDriverUnlock(privconn);
+
+    if (!privconn)
+        return 0;
+
+    virObjectUnref(privconn->networks);
     return 0;
 }
 
 static int parallelsConnectNumOfNetworks(virConnectPtr conn)
 {
-    int nactive = 0;
-    size_t i;
+    int nactive;
     parallelsConnPtr privconn = conn->privateData;
 
-    parallelsDriverLock(privconn);
-    for (i = 0; i < privconn->networks.count; i++) {
-        virNetworkObjLock(privconn->networks.objs[i]);
-        if (virNetworkObjIsActive(privconn->networks.objs[i]))
-            nactive++;
-        virNetworkObjUnlock(privconn->networks.objs[i]);
-    }
-    parallelsDriverUnlock(privconn);
-
+    nactive = virNetworkObjListNumOfNetworks(privconn->networks,
+                                             true, NULL, conn);
     return nactive;
 }
 
@@ -368,47 +378,20 @@ static int parallelsConnectListNetworks(virConnectPtr conn,
                                         int nnames)
 {
     parallelsConnPtr privconn = conn->privateData;
-    int got = 0;
-    size_t i;
+    int got;
 
-    parallelsDriverLock(privconn);
-    for (i = 0; i < privconn->networks.count && got < nnames; i++) {
-        virNetworkObjLock(privconn->networks.objs[i]);
-        if (virNetworkObjIsActive(privconn->networks.objs[i])) {
-            if (VIR_STRDUP(names[got], privconn->networks.objs[i]->def->name) < 0) {
-                virNetworkObjUnlock(privconn->networks.objs[i]);
-                goto cleanup;
-            }
-            got++;
-        }
-        virNetworkObjUnlock(privconn->networks.objs[i]);
-    }
-    parallelsDriverUnlock(privconn);
-
+    got = virNetworkObjListGetNames(privconn->networks,
+                                    true, names, nnames, NULL, conn);
     return got;
-
- cleanup:
-    parallelsDriverUnlock(privconn);
-    for (i = 0; i < got; i++)
-        VIR_FREE(names[i]);
-    return -1;
 }
 
 static int parallelsConnectNumOfDefinedNetworks(virConnectPtr conn)
 {
-    int ninactive = 0;
-    size_t i;
+    int ninactive;
     parallelsConnPtr privconn = conn->privateData;
 
-    parallelsDriverLock(privconn);
-    for (i = 0; i < privconn->networks.count; i++) {
-        virNetworkObjLock(privconn->networks.objs[i]);
-        if (!virNetworkObjIsActive(privconn->networks.objs[i]))
-            ninactive++;
-        virNetworkObjUnlock(privconn->networks.objs[i]);
-    }
-    parallelsDriverUnlock(privconn);
-
+    ninactive = virNetworkObjListNumOfNetworks(privconn->networks,
+                                               false, NULL, conn);
     return ninactive;
 }
 
@@ -417,29 +400,11 @@ static int parallelsConnectListDefinedNetworks(virConnectPtr conn,
                                                int nnames)
 {
     parallelsConnPtr privconn = conn->privateData;
-    int got = 0;
-    size_t i;
+    int got;
 
-    parallelsDriverLock(privconn);
-    for (i = 0; i < privconn->networks.count && got < nnames; i++) {
-        virNetworkObjLock(privconn->networks.objs[i]);
-        if (!virNetworkObjIsActive(privconn->networks.objs[i])) {
-            if (VIR_STRDUP(names[got], privconn->networks.objs[i]->def->name) < 0) {
-                virNetworkObjUnlock(privconn->networks.objs[i]);
-                goto cleanup;
-            }
-            got++;
-        }
-        virNetworkObjUnlock(privconn->networks.objs[i]);
-    }
-    parallelsDriverUnlock(privconn);
+    got = virNetworkObjListGetNames(privconn->networks,
+                                    false, names, nnames, NULL, conn);
     return got;
-
- cleanup:
-    parallelsDriverUnlock(privconn);
-    for (i = 0; i < got; i++)
-        VIR_FREE(names[i]);
-    return -1;
 }
 
 static int parallelsConnectListAllNetworks(virConnectPtr conn,
@@ -447,15 +412,10 @@ static int parallelsConnectListAllNetworks(virConnectPtr conn,
                                            unsigned int flags)
 {
     parallelsConnPtr privconn = conn->privateData;
-    int ret = -1;
 
     virCheckFlags(VIR_CONNECT_LIST_NETWORKS_FILTERS_ALL, -1);
 
-    parallelsDriverLock(privconn);
-    ret = virNetworkObjListExport(conn, privconn->networks, nets, NULL, flags);
-    parallelsDriverUnlock(privconn);
-
-    return ret;
+    return virNetworkObjListExport(conn, privconn->networks, nets, NULL, flags);
 }
 
 static virNetworkPtr parallelsNetworkLookupByUUID(virConnectPtr conn,
@@ -465,9 +425,7 @@ static virNetworkPtr parallelsNetworkLookupByUUID(virConnectPtr conn,
     virNetworkObjPtr network;
     virNetworkPtr ret = NULL;
 
-    parallelsDriverLock(privconn);
-    network = virNetworkFindByUUID(&privconn->networks, uuid);
-    parallelsDriverUnlock(privconn);
+    network = virNetworkObjFindByUUID(privconn->networks, uuid);
     if (!network) {
         virReportError(VIR_ERR_NO_NETWORK,
                        "%s", _("no network with matching uuid"));
@@ -477,8 +435,7 @@ static virNetworkPtr parallelsNetworkLookupByUUID(virConnectPtr conn,
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
  cleanup:
-    if (network)
-        virNetworkObjUnlock(network);
+    virNetworkObjEndAPI(&network);
     return ret;
 }
 
@@ -489,9 +446,7 @@ static virNetworkPtr parallelsNetworkLookupByName(virConnectPtr conn,
     virNetworkObjPtr network;
     virNetworkPtr ret = NULL;
 
-    parallelsDriverLock(privconn);
-    network = virNetworkFindByName(&privconn->networks, name);
-    parallelsDriverUnlock(privconn);
+    network = virNetworkObjFindByName(privconn->networks, name);
     if (!network) {
         virReportError(VIR_ERR_NO_NETWORK,
                        _("no network with matching name '%s'"), name);
@@ -501,8 +456,7 @@ static virNetworkPtr parallelsNetworkLookupByName(virConnectPtr conn,
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
  cleanup:
-    if (network)
-        virNetworkObjUnlock(network);
+    virNetworkObjEndAPI(&network);
     return ret;
 }
 
@@ -515,10 +469,7 @@ static char *parallelsNetworkGetXMLDesc(virNetworkPtr net,
 
     virCheckFlags(VIR_NETWORK_XML_INACTIVE, NULL);
 
-    parallelsDriverLock(privconn);
-    network = virNetworkFindByUUID(&privconn->networks, net->uuid);
-    parallelsDriverUnlock(privconn);
-
+    network = virNetworkObjFindByUUID(privconn->networks, net->uuid);
     if (!network) {
         virReportError(VIR_ERR_NO_NETWORK,
                        "%s", _("no network with matching uuid"));
@@ -528,8 +479,7 @@ static char *parallelsNetworkGetXMLDesc(virNetworkPtr net,
     ret = virNetworkDefFormat(network->def, flags);
 
  cleanup:
-    if (network)
-        virNetworkObjUnlock(network);
+    virNetworkObjEndAPI(&network);
     return ret;
 }
 
@@ -539,9 +489,7 @@ static int parallelsNetworkIsActive(virNetworkPtr net)
     virNetworkObjPtr obj;
     int ret = -1;
 
-    parallelsDriverLock(privconn);
-    obj = virNetworkFindByUUID(&privconn->networks, net->uuid);
-    parallelsDriverUnlock(privconn);
+    obj = virNetworkObjFindByUUID(privconn->networks, net->uuid);
     if (!obj) {
         virReportError(VIR_ERR_NO_NETWORK, NULL);
         goto cleanup;
@@ -549,8 +497,7 @@ static int parallelsNetworkIsActive(virNetworkPtr net)
     ret = virNetworkObjIsActive(obj);
 
  cleanup:
-    if (obj)
-        virNetworkObjUnlock(obj);
+    virNetworkObjEndAPI(&obj);
     return ret;
 }
 
@@ -560,9 +507,7 @@ static int parallelsNetworkIsPersistent(virNetworkPtr net)
     virNetworkObjPtr obj;
     int ret = -1;
 
-    parallelsDriverLock(privconn);
-    obj = virNetworkFindByUUID(&privconn->networks, net->uuid);
-    parallelsDriverUnlock(privconn);
+    obj = virNetworkObjFindByUUID(privconn->networks, net->uuid);
     if (!obj) {
         virReportError(VIR_ERR_NO_NETWORK, NULL);
         goto cleanup;
@@ -570,8 +515,7 @@ static int parallelsNetworkIsPersistent(virNetworkPtr net)
     ret = obj->persistent;
 
  cleanup:
-    if (obj)
-        virNetworkObjUnlock(obj);
+    virNetworkObjEndAPI(&obj);
     return ret;
 }
 
@@ -582,9 +526,7 @@ static int parallelsNetworkGetAutostart(virNetworkPtr net,
     virNetworkObjPtr network;
     int ret = -1;
 
-    parallelsDriverLock(privconn);
-    network = virNetworkFindByUUID(&privconn->networks, net->uuid);
-    parallelsDriverUnlock(privconn);
+    network = virNetworkObjFindByUUID(privconn->networks, net->uuid);
     if (!network) {
         virReportError(VIR_ERR_NO_NETWORK,
                        "%s", _("no network with matching uuid"));
@@ -595,14 +537,12 @@ static int parallelsNetworkGetAutostart(virNetworkPtr net,
     ret = 0;
 
  cleanup:
-    if (network)
-        virNetworkObjUnlock(network);
+    virNetworkObjEndAPI(&network);
     return ret;
 }
-static virNetworkDriver parallelsNetworkDriver = {
-    "Parallels",
-    .networkOpen = parallelsNetworkOpen, /* 1.0.1 */
-    .networkClose = parallelsNetworkClose, /* 1.0.1 */
+
+virNetworkDriver parallelsNetworkDriver = {
+    .name = "Parallels",
     .connectNumOfNetworks = parallelsConnectNumOfNetworks, /* 1.0.1 */
     .connectListNetworks = parallelsConnectListNetworks, /* 1.0.1 */
     .connectNumOfDefinedNetworks = parallelsConnectNumOfDefinedNetworks, /* 1.0.1 */
@@ -615,12 +555,3 @@ static virNetworkDriver parallelsNetworkDriver = {
     .networkIsActive = parallelsNetworkIsActive, /* 1.0.1 */
     .networkIsPersistent = parallelsNetworkIsPersistent, /* 1.0.1 */
 };
-
-int
-parallelsNetworkRegister(void)
-{
-    if (virRegisterNetworkDriver(&parallelsNetworkDriver) < 0)
-        return -1;
-
-    return 0;
-}

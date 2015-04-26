@@ -1,7 +1,7 @@
 /*
  * virsh-network.c: Commands to manage network
  *
- * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -189,10 +189,11 @@ cmdNetworkCreate(vshControl *ctl, const vshCmd *cmd)
  */
 static const vshCmdInfo info_network_define[] = {
     {.name = "help",
-     .data = N_("define (but don't start) a network from an XML file")
+     .data = N_("define an inactive persistent virtual network or modify "
+                "an existing persistent one from an XML file")
     },
     {.name = "desc",
-     .data = N_("Define a network.")
+     .data = N_("Define or modify a persistent virtual network.")
     },
     {.name = NULL}
 };
@@ -1105,10 +1106,13 @@ cmdNetworkEdit(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
 #define EDIT_GET_XML vshNetworkGetXMLDesc(network)
-#define EDIT_NOT_CHANGED \
-    vshPrint(ctl, _("Network %s XML configuration not changed.\n"), \
-             virNetworkGetName(network));                           \
-    ret = true; goto edit_cleanup;
+#define EDIT_NOT_CHANGED                                                \
+    do {                                                                \
+        vshPrint(ctl, _("Network %s XML configuration not changed.\n"), \
+                 virNetworkGetName(network));                           \
+        ret = true;                                                     \
+        goto edit_cleanup;                                              \
+    } while (0)
 #define EDIT_DEFINE \
     (network_edited = virNetworkDefineXML(ctl->conn, doc_edited))
 #include "virsh-edit.c"
@@ -1188,11 +1192,11 @@ static const vshCmdInfo info_network_event[] = {
 
 static const vshCmdOptDef opts_network_event[] = {
     {.name = "network",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("filter by network name or uuid")
     },
     {.name = "event",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("which event type to wait for")
     },
     {.name = "loop",
@@ -1302,7 +1306,7 @@ static const vshCmdOptDef opts_network_dhcp_leases[] = {
      .help = N_("network name or uuid")
     },
     {.name = "mac",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_NONE,
      .help = N_("MAC address")
     },
@@ -1377,10 +1381,12 @@ cmdNetworkDHCPLeases(vshControl *ctl, const vshCmd *cmd)
         ignore_value(virAsprintf(&cidr_format, "%s/%d",
                                  lease->ipaddr, lease->prefix));
 
-        vshPrintExtra(ctl, " %-20s %-18s %-9s %-25s %-15s %s\n",
-                      expirytime, EMPTYSTR(lease->mac),
-                      EMPTYSTR(typestr), cidr_format,
-                      EMPTYSTR(lease->hostname), EMPTYSTR(lease->clientid));
+        vshPrint(ctl, " %-20s %-18s %-9s %-25s %-15s %s\n",
+                 expirytime, EMPTYSTR(lease->mac),
+                 EMPTYSTR(typestr), cidr_format,
+                 EMPTYSTR(lease->hostname), EMPTYSTR(lease->clientid));
+
+        VIR_FREE(cidr_format);
     }
 
     ret = true;

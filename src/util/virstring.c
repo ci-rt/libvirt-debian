@@ -633,6 +633,22 @@ virSkipSpacesBackwards(const char *str, char **endp)
         *endp = NULL;
 }
 
+/**
+ * virStringIsEmpty:
+ * @str: string to check
+ *
+ * Returns true if string is empty (may contain only whitespace) or NULL.
+ */
+bool
+virStringIsEmpty(const char *str)
+{
+    if (!str)
+        return true;
+
+    virSkipSpaces(&str);
+    return str[0] == '\0';
+}
+
 char *
 virArgvToString(const char *const *argv)
 {
@@ -928,4 +944,27 @@ virStringReplace(const char *haystack,
         return NULL;
 
     return virBufferContentAndReset(&buf);
+}
+
+
+/**
+ * virStringStripIPv6Brackets:
+ * @str: the string to strip
+ *
+ * Modify the string in-place to remove the leading and closing brackets
+ * from an IPv6 address.
+ */
+void
+virStringStripIPv6Brackets(char *str)
+{
+    size_t len;
+
+    if (!str)
+        return;
+
+    len = strlen(str);
+    if (str[0] == '[' && str[len - 1] == ']' && strchr(str, ':')) {
+        memmove(&str[0], &str[1], len - 2);
+        str[len - 2] = '\0';
+    }
 }

@@ -1,6 +1,6 @@
 /*
  * xenapi_driver.c: Xen API driver.
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Citrix Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -65,12 +65,29 @@ xenapiDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         return -1;
     }
 
+    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int
+xenapiDomainDefPostParse(virDomainDefPtr def,
+                         virCapsPtr caps ATTRIBUTE_UNUSED,
+                         void *opaque ATTRIBUTE_UNUSED)
+{
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
     return 0;
 }
 
 
 virDomainDefParserConfig xenapiDomainDefParserConfig = {
     .devicesPostParseCallback = xenapiDomainDeviceDefPostParse,
+    .domainPostParseCallback = xenapiDomainDefPostParse,
 };
 
 
@@ -536,15 +553,22 @@ xenapiDomainCreateXML(virConnectPtr conn,
     xen_vm_record *record = NULL;
     xen_vm vm = NULL;
     virDomainPtr domP = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
     if (!priv->caps)
         return NULL;
 
-    virCheckFlags(0, NULL);
+    virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     virDomainDefPtr defPtr = virDomainDefParseString(xmlDesc,
                                                      priv->caps, priv->xmlopt,
                                                      1 << VIR_DOMAIN_VIRT_XEN,
-                                                     flags);
+                                                     parse_flags);
+    if (!defPtr)
+        return NULL;
     createVMRecordFromXml(conn, defPtr, &record, &vm);
     virDomainDefFree(defPtr);
     if (record) {
@@ -1475,7 +1499,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         VIR_FREE(val);
     }
     memory = xenapiDomainGetMaxMemory(dom);
-    defPtr->mem.max_balloon = memory;
+    virDomainDefSetMemoryInitial(defPtr, memory);
     if (xen_vm_get_memory_dynamic_max(session, &dynamic_mem, vm)) {
         defPtr->mem.cur_balloon = (unsigned long) (dynamic_mem / 1024);
     } else {
@@ -1483,16 +1507,13 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     }
     defPtr->maxvcpus = defPtr->vcpus = xenapiDomainGetMaxVcpus(dom);
     enum xen_on_normal_exit action;
-    if (xen_vm_get_actions_after_shutdown(session, &action, vm)) {
+    if (xen_vm_get_actions_after_shutdown(session, &action, vm))
         defPtr->onPoweroff = xenapiNormalExitEnum2virDomainLifecycle(action);
-    }
-    if (xen_vm_get_actions_after_reboot(session, &action, vm)) {
+    if (xen_vm_get_actions_after_reboot(session, &action, vm))
         defPtr->onReboot = xenapiNormalExitEnum2virDomainLifecycle(action);
-    }
     enum xen_on_crash_behaviour crash;
-    if (xen_vm_get_actions_after_crash(session, &crash, vm)) {
-        defPtr->onCrash = xenapiCrashExitEnum2virDomainLifecycle(action);
-    }
+    if (xen_vm_get_actions_after_crash(session, &crash, vm))
+        defPtr->onCrash = xenapiCrashExitEnum2virDomainLifecycle(crash);
     xen_vm_get_platform(session, &result, vm);
     if (result != NULL) {
         size_t i;
@@ -1549,8 +1570,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         }
         xen_vif_set_free(vif_set);
     }
-    if (vms)
-        xen_vm_set_free(vms);
+    xen_vm_set_free(vms);
     xml = virDomainDefFormat(defPtr, flags);
     virDomainDefFree(defPtr);
     return xml;
@@ -1634,9 +1654,11 @@ xenapiConnectNumOfDefinedDomains(virConnectPtr conn)
                 xen_vm_set_free(result);
                 return -1;
             }
-            if (record->is_a_template == 0)
-                DomNum++;
-            xen_vm_record_free(record);
+            if (record) {
+                if (record->is_a_template == 0)
+                    DomNum++;
+                xen_vm_record_free(record);
+            }
         }
         xen_vm_set_free(result);
         return DomNum;
@@ -1707,18 +1729,25 @@ xenapiDomainCreate(virDomainPtr dom)
  * Returns 0 on success or -1 in case of error
  */
 static virDomainPtr
-xenapiDomainDefineXML(virConnectPtr conn, const char *xml)
+xenapiDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     struct _xenapiPrivate *priv = conn->privateData;
     xen_vm_record *record = NULL;
     xen_vm vm = NULL;
     virDomainPtr domP = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+
     if (!priv->caps)
         return NULL;
     virDomainDefPtr defPtr = virDomainDefParseString(xml,
                                                      priv->caps, priv->xmlopt,
                                                      1 << VIR_DOMAIN_VIRT_XEN,
-                                                     0);
+                                                     parse_flags);
     if (!defPtr)
         return NULL;
 
@@ -1743,6 +1772,12 @@ xenapiDomainDefineXML(virConnectPtr conn, const char *xml)
         xen_vm_free(vm);
     virDomainDefFree(defPtr);
     return domP;
+}
+
+static virDomainPtr
+xenapiDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return xenapiDomainDefineXMLFlags(conn, xml, 0);
 }
 
 /*
@@ -1952,9 +1987,32 @@ xenapiConnectIsAlive(virConnectPtr conn)
         return 0;
 }
 
+static int
+xenapiDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    struct xen_vm_set *vms;
+    xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
+
+    virCheckFlags(0, -1);
+
+    if (xen_vm_get_by_name_label(session, &vms, dom->name) && vms->size > 0) {
+        if (vms->size != 1) {
+            xenapiSessionErrorHandler(dom->conn, VIR_ERR_INTERNAL_ERROR,
+                                      _("Domain name is not unique"));
+            xen_vm_set_free(vms);
+            return -1;
+        }
+        xen_vm_set_free(vms);
+        return 0;
+    }
+    if (vms)
+        xen_vm_set_free(vms);
+    xenapiSessionErrorHandler(dom->conn, VIR_ERR_NO_DOMAIN, NULL);
+    return -1;
+}
+
 /* The interface which we export upwards to libvirt.c. */
-static virDriver xenapiDriver = {
-    .no = VIR_DRV_XENAPI,
+static virHypervisorDriver xenapiHypervisorDriver = {
     .name = "XenAPI",
     .connectOpen = xenapiConnectOpen, /* 0.8.0 */
     .connectClose = xenapiConnectClose, /* 0.8.0 */
@@ -1995,6 +2053,7 @@ static virDriver xenapiDriver = {
     .domainCreate = xenapiDomainCreate, /* 0.8.0 */
     .domainCreateWithFlags = xenapiDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = xenapiDomainDefineXML, /* 0.8.0 */
+    .domainDefineXMLFlags = xenapiDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = xenapiDomainUndefine, /* 0.8.0 */
     .domainUndefineFlags = xenapiDomainUndefineFlags, /* 0.9.5 */
     .domainGetAutostart = xenapiDomainGetAutostart, /* 0.8.0 */
@@ -2004,6 +2063,12 @@ static virDriver xenapiDriver = {
     .nodeGetFreeMemory = xenapiNodeGetFreeMemory, /* 0.8.0 */
     .domainIsUpdated = xenapiDomainIsUpdated, /* 0.8.6 */
     .connectIsAlive = xenapiConnectIsAlive, /* 0.9.8 */
+    .domainHasManagedSaveImage = xenapiDomainHasManagedSaveImage, /* 1.2.13 */
+};
+
+
+static virConnectDriver xenapiConnectDriver = {
+    .hypervisorDriver = &xenapiHypervisorDriver,
 };
 
 /**
@@ -2015,7 +2080,8 @@ static virDriver xenapiDriver = {
 int
 xenapiRegister(void)
 {
-    return virRegisterDriver(&xenapiDriver);
+    return virRegisterConnectDriver(&xenapiConnectDriver,
+                                    false);
 }
 
 /*
@@ -2050,9 +2116,8 @@ call_func(const void *data, size_t len, void *user_handle,
     fflush(stdout);
 #endif
     CURL *curl = curl_easy_init();
-    if (!curl) {
+    if (!curl)
       return -1;
-    }
     xen_comms comms = {
      .func = result_func,
      .handle = result_handle

@@ -1,7 +1,7 @@
 /*
  * virfirewall.c: integration with firewalls
  *
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -104,11 +104,58 @@ virFirewallOnceInit(void)
 
 VIR_ONCE_GLOBAL_INIT(virFirewall)
 
+static bool iptablesUseLock;
+static bool ip6tablesUseLock;
+static bool ebtablesUseLock;
+static bool lockOverride; /* true to avoid lock probes */
+
+void
+virFirewallSetLockOverride(bool avoid)
+{
+    lockOverride = avoid;
+}
+
+static void
+virFirewallCheckUpdateLock(bool *lockflag,
+                           const char *const*args)
+{
+    int status; /* Ignore failed commands without logging them */
+    virCommandPtr cmd = virCommandNewArgs(args);
+    if (virCommandRun(cmd, &status) < 0 || status) {
+        VIR_INFO("locking not supported by %s", args[0]);
+    } else {
+        VIR_INFO("using locking for %s", args[0]);
+        *lockflag = true;
+    }
+    virCommandFree(cmd);
+}
+
+static void
+virFirewallCheckUpdateLocking(void)
+{
+    const char *iptablesArgs[] = {
+        IPTABLES_PATH, "-w", "-L", "-n", NULL,
+    };
+    const char *ip6tablesArgs[] = {
+        IP6TABLES_PATH, "-w", "-L", "-n", NULL,
+    };
+    const char *ebtablesArgs[] = {
+        EBTABLES_PATH, "--concurrent", "-L", NULL,
+    };
+    if (lockOverride)
+        return;
+    virFirewallCheckUpdateLock(&iptablesUseLock,
+                               iptablesArgs);
+    virFirewallCheckUpdateLock(&ip6tablesUseLock,
+                               ip6tablesArgs);
+    virFirewallCheckUpdateLock(&ebtablesUseLock,
+                               ebtablesArgs);
+}
+
 static int
 virFirewallValidateBackend(virFirewallBackend backend)
 {
     VIR_DEBUG("Validating backend %d", backend);
-#if WITH_DBUS
     if (backend == VIR_FIREWALL_BACKEND_AUTOMATIC ||
         backend == VIR_FIREWALL_BACKEND_FIREWALLD) {
         int rv = virDBusIsServiceRegistered(VIR_FIREWALL_FIREWALLD_SERVICE);
@@ -132,16 +179,6 @@ virFirewallValidateBackend(virFirewallBackend backend)
             backend = VIR_FIREWALL_BACKEND_FIREWALLD;
         }
     }
-#else
-    if (backend == VIR_FIREWALL_BACKEND_AUTOMATIC) {
-        VIR_DEBUG("DBus support disabled, trying direct backend");
-        backend = VIR_FIREWALL_BACKEND_DIRECT;
-    } else if (backend == VIR_FIREWALL_BACKEND_FIREWALLD) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("firewalld firewall backend requested, but DBus support disabled"));
-        return -1;
-    }
-#endif
 
     if (backend == VIR_FIREWALL_BACKEND_DIRECT) {
         const char *commands[] = {
@@ -161,6 +198,9 @@ virFirewallValidateBackend(virFirewallBackend backend)
     }
 
     currentBackend = backend;
+
+    virFirewallCheckUpdateLocking();
+
     return 0;
 }
 
@@ -200,6 +240,9 @@ virFirewallGroupNew(void)
 virFirewallPtr virFirewallNew(void)
 {
     virFirewallPtr firewall;
+
+    if (virFirewallInitialize() < 0)
+        return NULL;
 
     if (VIR_ALLOC(firewall) < 0)
         return NULL;
@@ -321,9 +364,25 @@ virFirewallAddRuleFullV(virFirewallPtr firewall,
     rule->queryOpaque = opaque;
     rule->ignoreErrors = ignoreErrors;
 
-    while ((str = va_arg(args, char *)) != NULL) {
-        ADD_ARG(rule, str);
+    switch (rule->layer) {
+    case VIR_FIREWALL_LAYER_ETHERNET:
+        if (ebtablesUseLock)
+            ADD_ARG(rule, "--concurrent");
+        break;
+    case VIR_FIREWALL_LAYER_IPV4:
+        if (iptablesUseLock)
+            ADD_ARG(rule, "-w");
+        break;
+    case VIR_FIREWALL_LAYER_IPV6:
+        if (ip6tablesUseLock)
+            ADD_ARG(rule, "-w");
+        break;
+    case VIR_FIREWALL_LAYER_LAST:
+        break;
     }
+
+    while ((str = va_arg(args, char *)) != NULL)
+        ADD_ARG(rule, str);
 
     if (group->addingRollback) {
         if (VIR_APPEND_ELEMENT_COPY(group->rollback,
@@ -529,9 +588,8 @@ void virFirewallRuleAddArgList(virFirewallPtr firewall,
 
     va_start(list, rule);
 
-    while ((str = va_arg(list, char *)) != NULL) {
+    while ((str = va_arg(list, char *)) != NULL)
         ADD_ARG(rule, str);
-    }
 
     va_end(list);
 
@@ -686,7 +744,6 @@ virFirewallApplyRuleDirect(virFirewallRulePtr rule,
 }
 
 
-#ifdef WITH_DBUS
 static int
 virFirewallApplyRuleFirewallD(virFirewallRulePtr rule,
                               bool ignoreErrors,
@@ -695,13 +752,13 @@ virFirewallApplyRuleFirewallD(virFirewallRulePtr rule,
     const char *ipv = virFirewallLayerFirewallDTypeToString(rule->layer);
     DBusConnection *sysbus = virDBusGetSystemBus();
     DBusMessage *reply = NULL;
-    DBusError error;
+    virError error;
     int ret = -1;
 
     if (!sysbus)
         return -1;
 
-    dbus_error_init(&error);
+    memset(&error, 0, sizeof(error));
 
     if (!ipv) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -723,7 +780,7 @@ virFirewallApplyRuleFirewallD(virFirewallRulePtr rule,
                           rule->args) < 0)
         goto cleanup;
 
-    if (dbus_error_is_set(&error)) {
+    if (error.level == VIR_ERR_ERROR) {
         /*
          * As of firewalld-0.3.9.3-1.fc20.noarch the name and
          * message fields in the error look like
@@ -751,11 +808,9 @@ virFirewallApplyRuleFirewallD(virFirewallRulePtr rule,
          */
         if (ignoreErrors) {
             VIR_DEBUG("Ignoring error '%s': '%s'",
-                      error.name, error.message);
+                      error.str1, error.message);
         } else {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unable to apply rule '%s'"),
-                           error.message);
+            virReportErrorObject(&error);
             goto cleanup;
         }
     } else {
@@ -766,12 +821,11 @@ virFirewallApplyRuleFirewallD(virFirewallRulePtr rule,
     ret = 0;
 
  cleanup:
-    dbus_error_free(&error);
+    virResetError(&error);
     if (reply)
         dbus_message_unref(reply);
     return ret;
 }
-#endif
 
 static int
 virFirewallApplyRule(virFirewallPtr firewall,
@@ -793,12 +847,10 @@ virFirewallApplyRule(virFirewallPtr firewall,
         if (virFirewallApplyRuleDirect(rule, ignoreErrors, &output) < 0)
             return -1;
         break;
-#if WITH_DBUS
     case VIR_FIREWALL_BACKEND_FIREWALLD:
         if (virFirewallApplyRuleFirewallD(rule, ignoreErrors, &output) < 0)
             return -1;
         break;
-#endif
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Unexpected firewall engine backend"));
@@ -840,8 +892,8 @@ virFirewallApplyGroup(virFirewallPtr firewall,
     bool ignoreErrors = (group->actionFlags & VIR_FIREWALL_TRANSACTION_IGNORE_ERRORS);
     size_t i;
 
-    VIR_INFO("Starting transaction for %p flags=%x",
-             group, group->actionFlags);
+    VIR_INFO("Starting transaction for firewall=%p group=%p flags=%x",
+             firewall, group, group->actionFlags);
     firewall->currentGroup = idx;
     group->addingRollback = false;
     for (i = 0; i < group->naction; i++) {
@@ -879,8 +931,6 @@ virFirewallApply(virFirewallPtr firewall)
     int ret = -1;
 
     virMutexLock(&ruleLock);
-    if (virFirewallInitialize() < 0)
-        goto cleanup;
 
     if (!firewall || firewall->err == ENOMEM) {
         virReportOOMError();
@@ -895,7 +945,7 @@ virFirewallApply(virFirewallPtr firewall)
     VIR_DEBUG("Applying groups for %p", firewall);
     for (i = 0; i < firewall->ngroups; i++) {
         if (virFirewallApplyGroup(firewall, i) < 0) {
-            VIR_DEBUG("Rolling back groups upto %zu for %p", i, firewall);
+            VIR_DEBUG("Rolling back groups up to %zu for %p", i, firewall);
             size_t first = i;
             virErrorPtr saved_error = virSaveLastError();
 

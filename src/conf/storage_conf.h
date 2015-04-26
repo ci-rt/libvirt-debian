@@ -30,6 +30,7 @@
 # include "virbitmap.h"
 # include "virthread.h"
 # include "device_conf.h"
+# include "node_device_conf.h"
 
 # include <libxml/tree.h>
 
@@ -177,6 +178,7 @@ typedef enum {
 VIR_ENUM_DECL(virStoragePoolSourceAdapter)
 
 typedef struct _virStoragePoolSourceAdapter virStoragePoolSourceAdapter;
+typedef virStoragePoolSourceAdapter *virStoragePoolSourceAdapterPtr;
 struct _virStoragePoolSourceAdapter {
     int type; /* virStoragePoolSourceAdapterType */
 
@@ -191,6 +193,7 @@ struct _virStoragePoolSourceAdapter {
             char *parent;
             char *wwnn;
             char *wwpn;
+            int managed;        /* enum virTristateSwitch */
         } fchost;
     } data;
 };
@@ -342,16 +345,25 @@ virStoragePoolDefPtr virStoragePoolDefParseNode(xmlDocPtr xml,
                                                 xmlNodePtr root);
 char *virStoragePoolDefFormat(virStoragePoolDefPtr def);
 
+typedef enum {
+    /* do not require volume capacity at all */
+    VIR_VOL_XML_PARSE_NO_CAPACITY  = 1 << 0,
+    /* do not require volume capacity if the volume has a backing store */
+    VIR_VOL_XML_PARSE_OPT_CAPACITY = 1 << 1,
+} virStorageVolDefParseFlags;
 virStorageVolDefPtr
 virStorageVolDefParseString(virStoragePoolDefPtr pool,
-                            const char *xml);
+                            const char *xml,
+                            unsigned int flags);
 virStorageVolDefPtr
 virStorageVolDefParseFile(virStoragePoolDefPtr pool,
-                          const char *filename);
+                          const char *filename,
+                          unsigned int flags);
 virStorageVolDefPtr
 virStorageVolDefParseNode(virStoragePoolDefPtr pool,
                           xmlDocPtr xml,
-                          xmlNodePtr root);
+                          xmlNodePtr root,
+                          unsigned int flags);
 char *virStorageVolDefFormat(virStoragePoolDefPtr pool,
                              virStorageVolDefPtr def);
 
@@ -359,6 +371,8 @@ virStoragePoolObjPtr
 virStoragePoolObjAssignDef(virStoragePoolObjListPtr pools,
                            virStoragePoolDefPtr def);
 
+int virStoragePoolSaveConfig(const char *configDir,
+                             virStoragePoolDefPtr def);
 int virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
                              virStoragePoolObjPtr pool,
                              virStoragePoolDefPtr def);
@@ -385,7 +399,12 @@ int virStoragePoolObjIsDuplicate(virStoragePoolObjListPtr pools,
                                  virStoragePoolDefPtr def,
                                  unsigned int check_active);
 
-int virStoragePoolSourceFindDuplicate(virStoragePoolObjListPtr pools,
+char *virStoragePoolGetVhbaSCSIHostParent(virConnectPtr conn,
+                                          const char *name)
+    ATTRIBUTE_NONNULL(1);
+
+int virStoragePoolSourceFindDuplicate(virConnectPtr conn,
+                                      virStoragePoolObjListPtr pools,
                                       virStoragePoolDefPtr def);
 
 void virStoragePoolObjLock(virStoragePoolObjPtr obj);

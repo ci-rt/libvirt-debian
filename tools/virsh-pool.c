@@ -1,7 +1,7 @@
 /*
  * virsh-pool.c: Commands to manage storage pool
  *
- * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -190,38 +190,66 @@ static const vshCmdOptDef opts_pool_X_as[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("name of the pool")
     },
-    {.name = "print-xml",
-     .type = VSH_OT_BOOL,
-     .help = N_("print XML document, but don't define/create")
-    },
     {.name = "type",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
      .help = N_("type of the pool")
     },
+    {.name = "print-xml",
+     .type = VSH_OT_BOOL,
+     .help = N_("print XML document, but don't define/create")
+    },
     {.name = "source-host",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("source-host for underlying storage")
     },
     {.name = "source-path",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("source path for underlying storage")
     },
     {.name = "source-dev",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("source device for underlying storage")
     },
     {.name = "source-name",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("source name for underlying storage")
     },
     {.name = "target",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("target for underlying storage")
     },
     {.name = "source-format",
      .type = VSH_OT_STRING,
      .help = N_("format for underlying storage")
+    },
+    {.name = "auth-type",
+     .type = VSH_OT_STRING,
+     .help = N_("auth type to be used for underlying storage")
+    },
+    {.name = "auth-username",
+     .type = VSH_OT_STRING,
+     .help = N_("auth username to be used for underlying storage")
+    },
+    {.name = "secret-usage",
+     .type = VSH_OT_STRING,
+     .help = N_("auth secret usage to be used for underlying storage")
+    },
+    {.name = "adapter-name",
+     .type = VSH_OT_STRING,
+     .help = N_("adapter name to be used for underlying storage")
+    },
+    {.name = "adapter-wwnn",
+     .type = VSH_OT_STRING,
+     .help = N_("adapter wwnn to be used for underlying storage")
+    },
+    {.name = "adapter-wwpn",
+     .type = VSH_OT_STRING,
+     .help = N_("adapter wwpn to be used for underlying storage")
+    },
+    {.name = "adapter-parent",
+     .type = VSH_OT_STRING,
+     .help = N_("adapter parent to be used for underlying storage")
     },
     {.name = NULL}
 };
@@ -234,7 +262,9 @@ vshBuildPoolXML(vshControl *ctl,
 {
     const char *name = NULL, *type = NULL, *srcHost = NULL, *srcPath = NULL,
                *srcDev = NULL, *srcName = NULL, *srcFormat = NULL,
-               *target = NULL;
+               *target = NULL, *authType = NULL, *authUsername = NULL,
+               *secretUsage = NULL, *adapterName = NULL, *adapterParent = NULL,
+               *adapterWwnn = NULL, *adapterWwpn = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (vshCommandOptStringReq(ctl, cmd, "name", &name) < 0)
@@ -247,7 +277,14 @@ vshBuildPoolXML(vshControl *ctl,
         vshCommandOptStringReq(ctl, cmd, "source-dev", &srcDev) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "source-name", &srcName) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "source-format", &srcFormat) < 0 ||
-        vshCommandOptStringReq(ctl, cmd, "target", &target) < 0)
+        vshCommandOptStringReq(ctl, cmd, "target", &target) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "auth-type", &authType) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "auth-username", &authUsername) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "secret-usage", &secretUsage) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "adapter-name", &adapterName) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "adapter-wwnn", &adapterWwnn) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "adapter-wwpn", &adapterWwpn) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "adapter-parent", &adapterParent) < 0)
         goto cleanup;
 
     virBufferAsprintf(&buf, "<pool type='%s'>\n", type);
@@ -263,6 +300,24 @@ vshBuildPoolXML(vshControl *ctl,
             virBufferAsprintf(&buf, "<dir path='%s'/>\n", srcPath);
         if (srcDev)
             virBufferAsprintf(&buf, "<device path='%s'/>\n", srcDev);
+        if (adapterWwnn && adapterWwpn) {
+            virBufferAddLit(&buf, "<adapter type='fc_host'");
+            if (adapterParent)
+                virBufferAsprintf(&buf, " parent='%s'", adapterParent);
+            virBufferAsprintf(&buf, " wwnn='%s' wwpn='%s'/>\n",
+                              adapterWwnn, adapterWwpn);
+        } else if (adapterName) {
+            virBufferAsprintf(&buf, "<adapter type='scsi_host' name='%s'/>\n",
+                              adapterName);
+        }
+        if (authType && authUsername && secretUsage) {
+            virBufferAsprintf(&buf, "<auth type='%s' username='%s'>\n",
+                              authType, authUsername);
+            virBufferAdjustIndent(&buf, 2);
+            virBufferAsprintf(&buf, "<secret usage='%s'/>\n", secretUsage);
+            virBufferAdjustIndent(&buf, -2);
+            virBufferAddLit(&buf, "</auth>\n");
+        }
         if (srcFormat)
             virBufferAsprintf(&buf, "<format type='%s'/>\n", srcFormat);
         if (srcName)
@@ -342,10 +397,11 @@ cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
  */
 static const vshCmdInfo info_pool_define[] = {
     {.name = "help",
-     .data = N_("define (but don't start) a pool from an XML file")
+     .data = N_("define an inactive persistent storage pool or modify "
+                "an existing persistent one from an XML file")
     },
     {.name = "desc",
-     .data = N_("Define a pool.")
+     .data = N_("Define or modify a persistent storage pool.")
     },
     {.name = NULL}
 };
@@ -470,13 +526,11 @@ cmdPoolBuild(vshControl *ctl, const vshCmd *cmd)
     if (!(pool = vshCommandOptPool(ctl, cmd, "pool", &name)))
         return false;
 
-    if (vshCommandOptBool(cmd, "no-overwrite")) {
+    if (vshCommandOptBool(cmd, "no-overwrite"))
         flags |= VIR_STORAGE_POOL_BUILD_NO_OVERWRITE;
-    }
 
-    if (vshCommandOptBool(cmd, "overwrite")) {
+    if (vshCommandOptBool(cmd, "overwrite"))
         flags |= VIR_STORAGE_POOL_BUILD_OVERWRITE;
-    }
 
     if (virStoragePoolBuild(pool, flags) == 0) {
         vshPrint(ctl, _("Pool %s built\n"), name);
@@ -1346,15 +1400,15 @@ static const vshCmdOptDef opts_find_storage_pool_sources_as[] = {
      .help = N_("type of storage pool sources to find")
     },
     {.name = "host",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("optional host to query")
     },
     {.name = "port",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("optional port to query")
     },
     {.name = "initiator",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("optional initiator IQN to use for query")
     },
     {.name = NULL}
@@ -1436,7 +1490,7 @@ static const vshCmdOptDef opts_find_storage_pool_sources[] = {
      .help = N_("type of storage pool sources to discover")
     },
     {.name = "srcSpec",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .help = N_("optional file of source xml to query for pools")
     },
     {.name = NULL}
@@ -1761,10 +1815,13 @@ cmdPoolEdit(vshControl *ctl, const vshCmd *cmd)
     }
 
 #define EDIT_GET_XML virStoragePoolGetXMLDesc(pool, flags)
-#define EDIT_NOT_CHANGED \
-    vshPrint(ctl, _("Pool %s XML configuration not changed.\n"),    \
-             virStoragePoolGetName(pool));                          \
-    ret = true; goto edit_cleanup;
+#define EDIT_NOT_CHANGED                                                \
+    do {                                                                \
+        vshPrint(ctl, _("Pool %s XML configuration not changed.\n"),    \
+                 virStoragePoolGetName(pool));                          \
+        ret = true;                                                     \
+        goto edit_cleanup;                                              \
+    } while (0)
 #define EDIT_DEFINE \
     (pool_edited = virStoragePoolDefineXML(ctl->conn, doc_edited, 0))
 #include "virsh-edit.c"

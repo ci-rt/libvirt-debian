@@ -108,7 +108,7 @@
 %define with_storage_iscsi    0%{!?_without_storage_iscsi:%{server_drivers}}
 %define with_storage_disk     0%{!?_without_storage_disk:%{server_drivers}}
 %define with_storage_mpath    0%{!?_without_storage_mpath:%{server_drivers}}
-%if 0%{?fedora} >= 16
+%if 0%{?fedora} >= 16 || 0%{?rhel} >= 7
     %define with_storage_rbd      0%{!?_without_storage_rbd:%{server_drivers}}
 %else
     %define with_storage_rbd      0
@@ -179,6 +179,13 @@
 %ifnarch x86_64
     %if 0%{?rhel} >= 6
         %define with_storage_gluster 0
+    %endif
+%endif
+
+# librados and librbd are built only on x86_64 on rhel
+%ifnarch x86_64
+    %if 0%{?rhel} >= 7
+        %define with_storage_rbd 0
     %endif
 %endif
 
@@ -357,6 +364,8 @@
 # changes in reported warnings
 %if 0%{?rhel}
     %define enable_werror --enable-werror
+%else
+    %define enable_werror --disable-werror
 %endif
 
 
@@ -425,6 +434,7 @@ BuildRequires: gettext-devel
 BuildRequires: libtool
 BuildRequires: /usr/bin/pod2man
 %endif
+BuildRequires: git
 BuildRequires: perl
 BuildRequires: python
 %if %{with_systemd}
@@ -563,7 +573,12 @@ BuildRequires: device-mapper-devel
     %endif
 %endif
 %if %{with_storage_rbd}
+    %if 0%{?rhel} >= 7
+BuildRequires: librados2-devel
+BuildRequires: librbd1-devel
+    %else
 BuildRequires: ceph-devel
+    %endif
 %endif
 %if %{with_storage_gluster}
     %if 0%{?rhel} >= 6
@@ -1198,6 +1213,41 @@ driver
 %prep
 %setup -q
 
+# Patches have to be stored in a temporary file because RPM has
+# a limit on the length of the result of any macro expansion;
+# if the string is longer, it's silently cropped
+%{lua:
+    tmp = os.tmpname();
+    f = io.open(tmp, "w+");
+    count = 0;
+    for i, p in ipairs(patches) do
+        f:write(p.."\n");
+        count = count + 1;
+    end;
+    f:close();
+    print("PATCHCOUNT="..count.."\n")
+    print("PATCHLIST="..tmp.."\n")
+}
+
+git init -q
+git config user.name rpm-build
+git config user.email rpm-build
+git config gc.auto 0
+git add .
+git commit -q -a --author 'rpm-build <rpm-build>' \
+           -m '%{name}-%{version} base'
+
+COUNT=$(grep '\.patch$' $PATCHLIST | wc -l)
+if [ $COUNT -ne $PATCHCOUNT ]; then
+    echo "Found $COUNT patches in $PATCHLIST, expected $PATCHCOUNT"
+    exit 1
+fi
+if [ $COUNT -gt 0 ]; then
+    xargs git am <$PATCHLIST || exit 1
+fi
+echo "Applied $COUNT patches"
+rm -f $PATCHLIST
+
 %build
 %if ! %{with_xen}
     %define _without_xen --without-xen
@@ -1605,48 +1655,6 @@ exit 0
     %endif
 
 %post daemon
-
-    %if %{with_network}
-# All newly defined networks will have a mac address for the bridge
-# auto-generated, but networks already existing at the time of upgrade
-# will not. We need to go through all the network configs, look for
-# those that don't have a mac address, and add one.
-
-network_files=$( (cd %{_localstatedir}/lib/libvirt/network && \
-                  grep -L "mac address" *.xml; \
-                  cd %{_sysconfdir}/libvirt/qemu/networks && \
-                  grep -L "mac address" *.xml) 2>/dev/null \
-                | sort -u)
-
-for file in $network_files
-do
-   # each file exists in either the config or state directory (or both) and
-   # does not have a mac address specified in either. We add the same mac
-   # address to both files (or just one, if the other isn't there)
-
-   mac4=`printf '%X' $(($RANDOM % 256))`
-   mac5=`printf '%X' $(($RANDOM % 256))`
-   mac6=`printf '%X' $(($RANDOM % 256))`
-   for dir in %{_localstatedir}/lib/libvirt/network \
-              %{_sysconfdir}/libvirt/qemu/networks
-   do
-      if test -f $dir/$file
-      then
-         sed -i.orig -e \
-           "s|\(<bridge.*$\)|\0\n  <mac address='52:54:00:$mac4:$mac5:$mac6'/>|" \
-           $dir/$file
-         if test $? != 0
-         then
-             echo "failed to add <mac address='52:54:00:$mac4:$mac5:$mac6'/>" \
-                  "to $dir/$file"
-             mv -f $dir/$file.orig $dir/$file
-         else
-             rm -f $dir/$file.orig
-         fi
-      fi
-   done
-done
-    %endif
 
     %if %{with_systemd}
         %if %{with_systemd_macros}
@@ -2121,8 +2129,6 @@ exit 0
 %files daemon-driver-vbox
 %defattr(-, root, root)
 %{_libdir}/%{name}/connection-driver/libvirt_driver_vbox.so
-%{_libdir}/%{name}/connection-driver/libvirt_driver_vbox_network.so
-%{_libdir}/%{name}/connection-driver/libvirt_driver_vbox_storage.so
         %endif
     %endif # %{with_driver_modules}
 
@@ -2251,6 +2257,17 @@ exit 0
 %dir %{_includedir}/libvirt
 %{_includedir}/libvirt/virterror.h
 %{_includedir}/libvirt/libvirt.h
+%{_includedir}/libvirt/libvirt-domain.h
+%{_includedir}/libvirt/libvirt-domain-snapshot.h
+%{_includedir}/libvirt/libvirt-event.h
+%{_includedir}/libvirt/libvirt-host.h
+%{_includedir}/libvirt/libvirt-interface.h
+%{_includedir}/libvirt/libvirt-network.h
+%{_includedir}/libvirt/libvirt-nodedev.h
+%{_includedir}/libvirt/libvirt-nwfilter.h
+%{_includedir}/libvirt/libvirt-secret.h
+%{_includedir}/libvirt/libvirt-storage.h
+%{_includedir}/libvirt/libvirt-stream.h
 %{_includedir}/libvirt/libvirt-qemu.h
 %{_includedir}/libvirt/libvirt-lxc.h
 %{_libdir}/pkgconfig/libvirt.pc
@@ -2274,6 +2291,35 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Thu Apr  2 2015 Daniel Veillard <veillard@redhat.com> - 1.2.14-1
+- qemu: Implement memory device hotplug
+- Implement public API for virDomainPinIOThread
+- Implement public API for virDomainGetIOThreadsInfo
+- SRIOV NIC offload feature discovery
+- a lot of improvement and bug fixes
+
+* Mon Mar  2 2015 Daniel Veillard <veillard@redhat.com> - 1.2.13-1
+- lot of improvements around NUMA code
+- a lot of improvement and bug fixes
+
+* Tue Jan 27 2015 Daniel Veillard <veillard@redhat.com> - 1.2.12-1
+- CVE-2015-0236: qemu: Check ACLs when dumping security info from snapshots
+- CVE-2015-0236: qemu: Check ACLs when dumping security info from save image
+- a lot of improvement and bug fixes
+
+* Sat Dec 13 2014 Daniel Veillard <veillard@redhat.com> - 1.2.11-1
+- CVE-2014-8131: Fix possible deadlock and segfault in qemuConnectGetAllDomainStats()
+- CVE-2014-7823: dumpxml: security hole with migratable flag
+- Implement public API for virDomainGetFSInfo
+- Add define support for the new throttle options
+- a number of improvements and bug fixes
+
+* Mon Nov  3 2014 Daniel Veillard <veillard@redhat.com> - 1.2.10-1
+- vbox: various drivers improvements
+- libxl: various drivers improvements
+- Internal driver refactoring
+- a number of improvements and bug fixes
+
 * Wed Oct  1 2014 Daniel Veillard <veillard@redhat.com> - 1.2.9-1
 - CVE-2014-3657: domain_conf: fix domain deadlock
 - CVE-2014-3633: qemu: blkiotune: Use correct definition when looking up disk

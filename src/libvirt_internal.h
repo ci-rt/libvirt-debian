@@ -30,14 +30,12 @@
 typedef void (*virStateInhibitCallback)(bool inhibit,
                                         void *opaque);
 
-# ifdef WITH_LIBVIRTD
 int virStateInitialize(bool privileged,
                        virStateInhibitCallback inhibit,
                        void *opaque);
 int virStateCleanup(void);
 int virStateReload(void);
 int virStateStop(void);
-# endif
 
 /* Feature detection.  This is a libvirt-private interface for determining
  * what features are supported by the driver.
@@ -285,4 +283,10 @@ int virDomainMigrateConfirm3Params(virDomainPtr domain,
                                    int cookieinlen,
                                    unsigned int flags,
                                    int cancelled);
+
+int
+virTypedParameterValidateSet(virConnectPtr conn,
+                             virTypedParameterPtr params,
+                             int nparams);
+
 #endif

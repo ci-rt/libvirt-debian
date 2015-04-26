@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_process.c: LXC process lifecycle management
@@ -37,6 +37,7 @@
 #include "virnetdev.h"
 #include "virnetdevveth.h"
 #include "virnetdevbridge.h"
+#include "virnetdevopenvswitch.h"
 #include "virtime.h"
 #include "domain_nwfilter.h"
 #include "network/bridge_driver.h"
@@ -51,6 +52,7 @@
 #include "viratomic.h"
 #include "virprocess.h"
 #include "virsystemd.h"
+#include "netdev_bandwidth_conf.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -153,7 +155,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
     virNetDevVPortProfilePtr vport = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
 
-    VIR_DEBUG("Stopping VM name=%s pid=%d reason=%d",
+    VIR_DEBUG("Cleanup VM name=%s pid=%d reason=%d",
               vm->def->name, (int)vm->pid, (int)reason);
 
     /* now that we know it's stopped call the hook if present */
@@ -238,8 +240,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
 }
 
 
-char *virLXCProcessSetupInterfaceBridged(virConnectPtr conn,
-                                         virDomainDefPtr vm,
+char *virLXCProcessSetupInterfaceBridged(virDomainDefPtr vm,
                                          virDomainNetDefPtr net,
                                          const char *brname)
 {
@@ -259,8 +260,6 @@ char *virLXCProcessSetupInterfaceBridged(virConnectPtr conn,
 
     if (virNetDevSetMAC(containerVeth, &net->mac) < 0)
         goto cleanup;
-    if (VIR_STRDUP(net->ifname_guest_actual, containerVeth) < 0)
-        goto cleanup;
 
     if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
         if (virNetDevOpenvswitchAddPort(brname, parentVeth, &net->mac,
@@ -274,13 +273,8 @@ char *virLXCProcessSetupInterfaceBridged(virConnectPtr conn,
     if (virNetDevSetOnline(parentVeth, true) < 0)
         goto cleanup;
 
-    if (virNetDevBandwidthSet(net->ifname,
-                              virDomainNetGetActualBandwidth(net),
-                              false) < 0)
-        goto cleanup;
-
     if (net->filter &&
-        virDomainConfNWFilterInstantiate(conn, vm->uuid, net) < 0)
+        virDomainConfNWFilterInstantiate(vm->uuid, net) < 0)
         goto cleanup;
 
     ret = containerVeth;
@@ -300,6 +294,8 @@ char *virLXCProcessSetupInterfaceDirect(virConnectPtr conn,
     virNetDevBandwidthPtr bw;
     virNetDevVPortProfilePtr prof;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
+    const char *linkdev = virDomainNetGetActualDirectDev(net);
+    unsigned int macvlan_create_flags = VIR_NETDEV_MACVLAN_CREATE_IFUP;
 
     /* XXX how todo bandwidth controls ?
      * Since the 'net-ifname' is about to be moved to a different
@@ -329,14 +325,14 @@ char *virLXCProcessSetupInterfaceDirect(virConnectPtr conn,
 
     if (virNetDevMacVLanCreateWithVPortProfile(
             net->ifname, &net->mac,
-            virDomainNetGetActualDirectDev(net),
+            linkdev,
             virDomainNetGetActualDirectMode(net),
             false, def->uuid,
-            virDomainNetGetActualVirtPortProfile(net),
+            prof,
             &res_ifname,
             VIR_NETDEV_VPORT_PROFILE_OP_CREATE,
             cfg->stateDir,
-            virDomainNetGetActualBandwidth(net), 0) < 0)
+            macvlan_create_flags) < 0)
         goto cleanup;
 
     ret = res_ifname;
@@ -368,61 +364,35 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
     int ret = -1;
     size_t i;
     size_t niface = 0;
+    virDomainNetDefPtr net;
+    virDomainNetType type;
 
     for (i = 0; i < def->nnets; i++) {
         char *veth = NULL;
+        virNetDevBandwidthPtr actualBandwidth;
         /* If appropriate, grab a physical device from the configured
          * network's pool of devices, or resolve bridge device name
          * to the one defined in the network definition.
          */
-        if (networkAllocateActualDevice(def, def->nets[i]) < 0)
+        net = def->nets[i];
+        if (networkAllocateActualDevice(def, net) < 0)
             goto cleanup;
 
         if (VIR_EXPAND_N(*veths, *nveths, 1) < 0)
             goto cleanup;
 
-        switch (virDomainNetGetActualType(def->nets[i])) {
-        case VIR_DOMAIN_NET_TYPE_NETWORK: {
-            virNetworkPtr network;
-            char *brname = NULL;
-            bool fail = false;
-            virErrorPtr errobj;
-
-            if (!(network = virNetworkLookupByName(conn,
-                                                   def->nets[i]->data.network.name)))
-                goto cleanup;
-            if (!(brname = virNetworkGetBridgeName(network)))
-               fail = true;
-
-            /* Make sure any above failure is preserved */
-            errobj = virSaveLastError();
-            virNetworkFree(network);
-            virSetError(errobj);
-            virFreeError(errobj);
-
-            if (fail)
-                goto cleanup;
-
-            if (!(veth = virLXCProcessSetupInterfaceBridged(conn,
-                                                            def,
-                                                            def->nets[i],
-                                                            brname))) {
-                VIR_FREE(brname);
-                goto cleanup;
-            }
-            VIR_FREE(brname);
-            break;
-        }
+        type = virDomainNetGetActualType(net);
+        switch (type) {
+        case VIR_DOMAIN_NET_TYPE_NETWORK:
         case VIR_DOMAIN_NET_TYPE_BRIDGE: {
-            const char *brname = virDomainNetGetActualBridgeName(def->nets[i]);
+            const char *brname = virDomainNetGetActualBridgeName(net);
             if (!brname) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("No bridge name specified"));
                 goto cleanup;
             }
-            if (!(veth = virLXCProcessSetupInterfaceBridged(conn,
-                                                            def,
-                                                            def->nets[i],
+            if (!(veth = virLXCProcessSetupInterfaceBridged(def,
+                                                            net,
                                                             brname)))
                 goto cleanup;
         }   break;
@@ -430,31 +400,49 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
         case VIR_DOMAIN_NET_TYPE_DIRECT:
             if (!(veth = virLXCProcessSetupInterfaceDirect(conn,
                                                            def,
-                                                           def->nets[i])))
+                                                           net)))
                 goto cleanup;
             break;
 
-        case VIR_DOMAIN_NET_TYPE_USER:
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
+            break;
+
+        case VIR_DOMAIN_NET_TYPE_USER:
         case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
         case VIR_DOMAIN_NET_TYPE_SERVER:
         case VIR_DOMAIN_NET_TYPE_CLIENT:
         case VIR_DOMAIN_NET_TYPE_MCAST:
         case VIR_DOMAIN_NET_TYPE_INTERNAL:
         case VIR_DOMAIN_NET_TYPE_LAST:
+        case VIR_DOMAIN_NET_TYPE_HOSTDEV:
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Unsupported network type %s"),
-                           virDomainNetTypeToString(
-                               virDomainNetGetActualType(def->nets[i])
-                               ));
+                           virDomainNetTypeToString(type));
             goto cleanup;
+
+        }
+
+        /* Set bandwidth or warn if requested and not supported. */
+        actualBandwidth = virDomainNetGetActualBandwidth(net);
+        if (actualBandwidth) {
+            if (virNetDevSupportBandwidth(type)) {
+                if (virNetDevBandwidthSet(net->ifname, actualBandwidth, false) < 0)
+                    goto cleanup;
+            } else {
+                VIR_WARN("setting bandwidth on interfaces of "
+                         "type '%s' is not implemented yet",
+                         virDomainNetTypeToString(type));
+            }
         }
 
         (*veths)[(*nveths)-1] = veth;
 
+        if (VIR_STRDUP(def->nets[i]->ifname_guest_actual, veth) < 0)
+            goto cleanup;
+
         /* Make sure all net definitions will have a name in the container */
-        if (!def->nets[i]->ifname_guest) {
-            if (virAsprintf(&def->nets[i]->ifname_guest, "eth%zu", niface) < 0)
+        if (!net->ifname_guest) {
+            if (virAsprintf(&net->ifname_guest, "eth%zu", niface) < 0)
                 return -1;
             niface++;
         }
@@ -536,9 +524,8 @@ static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
 
     if (vm)
         virObjectUnlock(vm);
-    if (event) {
+    if (event)
         virObjectEventStateQueue(driver->domainEventState, event);
-    }
 }
 
 static void virLXCProcessMonitorExitNotify(virLXCMonitorPtr mon ATTRIBUTE_UNUSED,
@@ -762,7 +749,9 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
                                 size_t nttyFDs,
                                 int *files,
                                 size_t nfiles,
-                                int handshakefd)
+                                int handshakefd,
+                                int logfd,
+                                const char *pidfile)
 {
     size_t i;
     char *filterstr;
@@ -824,13 +813,18 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
 
     virCommandAddArg(cmd, "--handshake");
     virCommandAddArgFormat(cmd, "%d", handshakefd);
-    virCommandAddArg(cmd, "--background");
 
-    for (i = 0; i < nveths; i++) {
+    for (i = 0; i < nveths; i++)
         virCommandAddArgList(cmd, "--veth", veths[i], NULL);
-    }
 
     virCommandPassFD(cmd, handshakefd, 0);
+    virCommandDaemonize(cmd);
+    virCommandSetPidFile(cmd, pidfile);
+    virCommandSetOutputFD(cmd, &logfd);
+    virCommandSetErrorFD(cmd, &logfd);
+    /* So we can pause before exec'ing the controller to
+     * write the live domain status XML with the PID */
+    virCommandRequireHandshake(cmd);
 
     return cmd;
  cleanup:
@@ -1028,6 +1022,9 @@ int virLXCProcessStart(virConnectPtr conn,
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCgroupPtr selfcgroup;
     int status;
+    char *pidfile = NULL;
+    bool clearSeclabel = false;
+    bool need_stop = false;
 
     if (virCgroupNewSelf(&selfcgroup) < 0)
         return -1;
@@ -1055,6 +1052,20 @@ int virLXCProcessStart(virConnectPtr conn,
     }
     virCgroupFree(&selfcgroup);
 
+    if (vm->def->nconsoles == 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("At least one PTY console is required"));
+        return -1;
+    }
+
+    for (i = 0; i < vm->def->nconsoles; i++) {
+        if (vm->def->consoles[i]->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Only PTY console types are supported"));
+            return -1;
+        }
+    }
+
     if (virFileMakePath(cfg->logDir) < 0) {
         virReportSystemError(errno,
                              _("Cannot create log directory '%s'"),
@@ -1078,7 +1089,10 @@ int virLXCProcessStart(virConnectPtr conn,
 
     if (virAsprintf(&logfile, "%s/%s.log",
                     cfg->logDir, vm->def->name) < 0)
-        return -1;
+        goto cleanup;
+
+    if (!(pidfile = virPidFileBuildPath(cfg->stateDir, vm->def->name)))
+        goto cleanup;
 
     if (!(caps = virLXCDriverGetCapabilities(driver, false)))
         goto cleanup;
@@ -1129,9 +1143,16 @@ int virLXCProcessStart(virConnectPtr conn,
     /* If you are using a SecurityDriver with dynamic labelling,
        then generate a security label for isolation */
     VIR_DEBUG("Generating domain security label (if required)");
+
+    clearSeclabel = vm->def->nseclabels == 0 ||
+                    vm->def->seclabels[0]->type == VIR_DOMAIN_SECLABEL_DEFAULT;
+
     if (vm->def->nseclabels &&
         vm->def->seclabels[0]->type == VIR_DOMAIN_SECLABEL_DEFAULT)
         vm->def->seclabels[0]->type = VIR_DOMAIN_SECLABEL_NONE;
+
+    if (virSecurityManagerCheckAllLabel(driver->securityManager, vm->def) < 0)
+        goto cleanup;
 
     if (virSecurityManagerGenLabel(driver->securityManager, vm->def) < 0) {
         virDomainAuditSecurityLabel(vm, false);
@@ -1144,13 +1165,9 @@ int virLXCProcessStart(virConnectPtr conn,
                                       vm->def, NULL) < 0)
         goto cleanup;
 
+    VIR_DEBUG("Setting up consoles");
     for (i = 0; i < vm->def->nconsoles; i++) {
         char *ttyPath;
-        if (vm->def->consoles[i]->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Only PTY console types are supported"));
-            goto cleanup;
-        }
 
         if (virFileOpenTty(&ttyFDs[i], &ttyPath, 1) < 0) {
             virReportSystemError(errno, "%s",
@@ -1166,13 +1183,11 @@ int virLXCProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
+    VIR_DEBUG("Setting up Interfaces");
     if (virLXCProcessSetupInterfaces(conn, vm->def, &nveths, &veths) < 0)
         goto cleanup;
 
-    /* Save the configuration for the controller */
-    if (virDomainSaveConfig(cfg->stateDir, vm->def) < 0)
-        goto cleanup;
-
+    VIR_DEBUG("Preparing to launch");
     if ((logfd = open(logfile, O_WRONLY | O_APPEND | O_CREAT,
              S_IRUSR|S_IWUSR)) < 0) {
         virReportSystemError(errno,
@@ -1192,10 +1207,10 @@ int virLXCProcessStart(virConnectPtr conn,
                                                 nveths, veths,
                                                 ttyFDs, nttyFDs,
                                                 files, nfiles,
-                                                handshakefds[1])))
+                                                handshakefds[1],
+                                                logfd,
+                                                pidfile)))
         goto cleanup;
-    virCommandSetOutputFD(cmd, &logfd);
-    virCommandSetErrorFD(cmd, &logfd);
 
     /* now that we know it is about to start call the hook if present */
     if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
@@ -1230,6 +1245,7 @@ int virLXCProcessStart(virConnectPtr conn,
         VIR_WARN("Unable to seek to end of logfile: %s",
                  virStrerror(errno, ebuf, sizeof(ebuf)));
 
+    VIR_DEBUG("Launching container");
     virCommandRawStatus(cmd);
     if (virCommandRun(cmd, &status) < 0)
         goto cleanup;
@@ -1248,58 +1264,41 @@ int virLXCProcessStart(virConnectPtr conn,
         goto cleanup;
     }
 
+    /* It has started running, so get its pid */
+    if ((r = virPidFileReadPath(pidfile, &vm->pid)) < 0) {
+        if (virLXCProcessReadLogOutput(vm, logfile, pos, ebuf, sizeof(ebuf)) > 0)
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("guest failed to start: %s"), ebuf);
+        else
+            virReportSystemError(-r,
+                                 _("Failed to read pid file %s"),
+                                 pidfile);
+        goto cleanup;
+    }
+
+    need_stop = true;
+    priv->stopReason = VIR_DOMAIN_EVENT_STOPPED_FAILED;
+    priv->wantReboot = false;
+    vm->def->id = vm->pid;
+    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
+    priv->doneStopEvent = false;
 
     if (VIR_CLOSE(handshakefds[1]) < 0) {
         virReportSystemError(errno, "%s", _("could not close handshake fd"));
         goto cleanup;
     }
 
-    /* Connect to the controller as a client *first* because
-     * this will block until the child has written their
-     * pid file out to disk & created their cgroup */
-    if (!(priv->monitor = virLXCProcessConnectMonitor(driver, vm))) {
-        /* Intentionally overwrite the real monitor error message,
-         * since a better one is almost always found in the logs
-         */
-        if (virLXCProcessReadLogOutput(vm, logfile, pos, ebuf, sizeof(ebuf)) > 0) {
-            virResetLastError();
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("guest failed to start: %s"), ebuf);
-        }
+    if (virCommandHandshakeWait(cmd) < 0)
         goto cleanup;
-    }
 
-    /* And get its pid */
-    if ((r = virPidFileRead(cfg->stateDir, vm->def->name, &vm->pid)) < 0) {
-        if (virLXCProcessReadLogOutput(vm, logfile, pos, ebuf, sizeof(ebuf)) > 0)
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("guest failed to start: %s"), ebuf);
-        else
-            virReportSystemError(-r,
-                                 _("Failed to read pid file %s/%s.pid"),
-                                 cfg->stateDir, vm->def->name);
+    /* Write domain status to disk for the controller to
+     * read when it starts */
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         goto cleanup;
-    }
 
-    if (virCgroupNewDetectMachine(vm->def->name, "lxc", vm->pid,
-                                  vm->def->resource ?
-                                  vm->def->resource->partition :
-                                  NULL,
-                                  -1, &priv->cgroup) < 0)
-        goto error;
-
-    if (!priv->cgroup) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No valid cgroup for machine %s"),
-                       vm->def->name);
-        goto error;
-    }
-
-    priv->stopReason = VIR_DOMAIN_EVENT_STOPPED_FAILED;
-    priv->wantReboot = false;
-    vm->def->id = vm->pid;
-    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
-    priv->doneStopEvent = false;
+    /* Allow the child to exec the controller */
+    if (virCommandHandshakeNotify(cmd) < 0)
+        goto cleanup;
 
     if (virAtomicIntInc(&driver->nactive) == 1 && driver->inhibitCallback)
         driver->inhibitCallback(true, driver->inhibitOpaque);
@@ -1312,29 +1311,51 @@ int virLXCProcessStart(virConnectPtr conn,
                            _("guest failed to start: %s"), out);
         }
 
-        goto error;
+        goto cleanup;
+    }
+
+    /* We know the cgroup must exist by this synchronization
+     * point so lets detect that first, since it gives us a
+     * more reliable way to kill everything off if something
+     * goes wrong from here onwards ... */
+    if (virCgroupNewDetectMachine(vm->def->name, "lxc", vm->pid,
+                                  vm->def->resource ?
+                                  vm->def->resource->partition :
+                                  NULL,
+                                  -1, &priv->cgroup) < 0)
+        goto cleanup;
+
+    if (!priv->cgroup) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("No valid cgroup for machine %s"),
+                       vm->def->name);
+        goto cleanup;
+    }
+
+    /* And we can get the first monitor connection now too */
+    if (!(priv->monitor = virLXCProcessConnectMonitor(driver, vm))) {
+        /* Intentionally overwrite the real monitor error message,
+         * since a better one is almost always found in the logs
+         */
+        if (virLXCProcessReadLogOutput(vm, logfile, pos, ebuf, sizeof(ebuf)) > 0) {
+            virResetLastError();
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("guest failed to start: %s"), ebuf);
+        }
+        goto cleanup;
     }
 
     if (autoDestroy &&
         virCloseCallbacksSet(driver->closeCallbacks, vm,
                              conn, lxcProcessAutoDestroy) < 0)
-        goto error;
+        goto cleanup;
 
     if (virDomainObjSetDefTransient(caps, driver->xmlopt,
                                     vm, false) < 0)
-        goto error;
+        goto cleanup;
 
     /* We don't need the temporary NIC names anymore, clear them */
     virLXCProcessCleanInterfaces(vm->def);
-
-    /* Write domain status to disk.
-     *
-     * XXX: Earlier we wrote the plain "live" domain XML to this
-     * location for the benefit of libvirt_lxc. We're now overwriting
-     * it with the live status XML instead. This is a (currently
-     * harmless) inconsistency we should fix one day */
-    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
-        goto error;
 
     /* finally we can call the 'started' hook script if any */
     if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
@@ -1350,51 +1371,45 @@ int virLXCProcessStart(virConnectPtr conn,
          * If the script raised an error abort the launch
          */
         if (hookret < 0)
-            goto error;
+            goto cleanup;
     }
 
     rc = 0;
 
  cleanup:
-    if (rc != 0 && !err)
-        err = virSaveLastError();
-    virCommandFree(cmd);
     if (VIR_CLOSE(logfd) < 0) {
         virReportSystemError(errno, "%s", _("could not close logfile"));
         rc = -1;
     }
-    for (i = 0; i < nveths; i++) {
-        if (rc != 0 && veths[i])
-            ignore_value(virNetDevVethDelete(veths[i]));
-        VIR_FREE(veths[i]);
-    }
     if (rc != 0) {
-        if (vm->newDef) {
-            virDomainDefFree(vm->newDef);
-            vm->newDef = NULL;
-        }
-        if (priv->monitor) {
-            virObjectUnref(priv->monitor);
-            priv->monitor = NULL;
-        }
-        virDomainConfVMNWFilterTeardown(vm);
-
-        virSecurityManagerRestoreAllLabel(driver->securityManager,
-                                          vm->def, false);
-        virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
-        /* Clear out dynamically assigned labels */
-        if (vm->def->nseclabels &&
-            vm->def->seclabels[0]->type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
-            VIR_FREE(vm->def->seclabels[0]->model);
-            VIR_FREE(vm->def->seclabels[0]->label);
-            VIR_FREE(vm->def->seclabels[0]->imagelabel);
+        err = virSaveLastError();
+        if (need_stop) {
+            virLXCProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
+        } else {
+            virSecurityManagerRestoreAllLabel(driver->securityManager,
+                                              vm->def, false);
+            virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
+            /* Clear out dynamically assigned labels */
+            if (vm->def->nseclabels &&
+                (vm->def->seclabels[0]->type == VIR_DOMAIN_SECLABEL_DYNAMIC ||
+                clearSeclabel)) {
+                VIR_FREE(vm->def->seclabels[0]->model);
+                VIR_FREE(vm->def->seclabels[0]->label);
+                VIR_FREE(vm->def->seclabels[0]->imagelabel);
+                VIR_DELETE_ELEMENT(vm->def->seclabels, 0, vm->def->nseclabels);
+            }
+            virLXCProcessCleanup(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
         }
     }
+    virCommandFree(cmd);
+    for (i = 0; i < nveths; i++)
+        VIR_FREE(veths[i]);
     for (i = 0; i < nttyFDs; i++)
         VIR_FORCE_CLOSE(ttyFDs[i]);
     VIR_FREE(ttyFDs);
     VIR_FORCE_CLOSE(handshakefds[0]);
     VIR_FORCE_CLOSE(handshakefds[1]);
+    VIR_FREE(pidfile);
     VIR_FREE(logfile);
     virObjectUnref(cfg);
     virObjectUnref(caps);
@@ -1405,11 +1420,6 @@ int virLXCProcessStart(virConnectPtr conn,
     }
 
     return rc;
-
- error:
-    err = virSaveLastError();
-    virLXCProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
-    goto cleanup;
 }
 
 struct virLXCProcessAutostartData {

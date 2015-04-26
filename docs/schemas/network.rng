@@ -24,6 +24,11 @@
           <ref name="virYesNo"/>
         </attribute>
       </optional>
+      <optional>
+        <attribute name="trustGuestRxFilters">
+          <ref name="virYesNo"/>
+        </attribute>
+      </optional>
       <interleave>
 
         <!-- The name of the network, used to refer to it through the API
@@ -57,6 +62,15 @@
             <optional>
               <attribute name="delay">
                 <data type="unsignedLong"/>
+              </attribute>
+            </optional>
+
+            <optional>
+              <attribute name="macTableManager">
+                <choice>
+                  <value>kernel</value>
+                  <value>libvirt</value>
+                </choice>
               </attribute>
             </optional>
 
@@ -197,6 +211,11 @@
                 <ref name="virYesNo"/>
               </attribute>
             </optional>
+            <optional>
+              <attribute name="trustGuestRxFilters">
+                <ref name="virYesNo"/>
+              </attribute>
+            </optional>
             <interleave>
               <optional>
                 <ref name="virtualPortProfile"/>
@@ -215,6 +234,9 @@
         <optional>
           <element name="domain">
             <attribute name="name"><ref name="dnsName"/></attribute>
+            <optional>
+              <attribute name="localOnly"><ref name="virYesNo"/></attribute>
+            </optional>
           </element>
         </optional>
 
@@ -276,17 +298,6 @@
         </optional>
         <optional>
          <ref name="vlan"/>
-        </optional>
-        <optional>
-          <element name="link">
-            <attribute name="state">
-              <choice>
-                <value>up</value>
-                <value>down</value>
-              </choice>
-            </attribute>
-            <empty/>
-          </element>
         </optional>
 
         <!-- <ip> element -->
@@ -352,25 +363,7 @@
         </zeroOrMore>
         <!-- <route> element -->
         <zeroOrMore>
-          <!-- The (static) route element specifies a network address and gateway
-               address to access that network. Both the network address and
-               the gateway address must be specified. -->
-          <element name="route">
-            <optional>
-              <attribute name="family"><ref name="addr-family"/></attribute>
-            </optional>
-            <attribute name="address"><ref name="ipAddr"/></attribute>
-            <optional>
-              <choice>
-                <attribute name="netmask"><ref name="ipv4Addr"/></attribute>
-                <attribute name="prefix"><ref name="ipPrefix"/></attribute>
-              </choice>
-            </optional>
-            <attribute name="gateway"><ref name="ipAddr"/></attribute>
-            <optional>
-              <attribute name="metric"><ref name="unsignedInt"/></attribute>
-            </optional>
-          </element>
+          <ref name="route"/>
         </zeroOrMore>
       </interleave>
     </element>

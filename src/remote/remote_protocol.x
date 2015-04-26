@@ -3,7 +3,7 @@
  *   remote_internal driver and libvirtd.  This protocol is
  *   internal and may change at any time.
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -84,6 +84,9 @@ const REMOTE_VCPUINFO_MAX = 16384;
 
 /* Upper limit on cpumaps (bytes) passed to virDomainGetVcpus. */
 const REMOTE_CPUMAPS_MAX = 8388608;
+
+/* Upper limit on number of info fields returned by virDomainGetIOThreads. */
+const REMOTE_IOTHREAD_INFO_MAX = 16384;
 
 /* Upper limit on migrate cookie. */
 const REMOTE_MIGRATE_COOKIE_MAX = 4194304;
@@ -249,6 +252,18 @@ const REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX = 4096;
 
 /* Upper limit of message size for tunable event. */
 const REMOTE_DOMAIN_EVENT_TUNABLE_MAX = 2048;
+
+/* Upper limit on number of mountpoints in fsinfo */
+const REMOTE_DOMAIN_FSINFO_MAX = 256;
+
+/* Upper limit on number of disks per mountpoint in fsinfo */
+const REMOTE_DOMAIN_FSINFO_DISKS_MAX = 256;
+
+/* Upper limit on number of interfaces per domain */
+const REMOTE_DOMAIN_INTERFACE_MAX = 2048;
+
+/* Upper limit on number of IP addresses per interface */
+const REMOTE_DOMAIN_IP_ADDR_MAX = 2048;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -1056,6 +1071,15 @@ struct remote_domain_define_xml_ret {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_define_xml_flags_args {
+    remote_nonnull_string xml;
+    unsigned int flags;
+};
+
+struct remote_domain_define_xml_flags_ret {
+    remote_nonnull_domain dom;
+};
+
 struct remote_domain_undefine_args {
     remote_nonnull_domain dom;
 };
@@ -1164,6 +1188,28 @@ struct remote_domain_get_max_vcpus_args {
 
 struct remote_domain_get_max_vcpus_ret {
     int num;
+};
+
+struct remote_domain_iothread_info {
+    unsigned int iothread_id;
+    opaque cpumap<REMOTE_CPUMAP_MAX>;
+};
+
+struct remote_domain_get_iothread_info_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_iothread_info_ret {
+    remote_domain_iothread_info info<REMOTE_IOTHREAD_INFO_MAX>;
+    unsigned int ret;
+};
+
+struct remote_domain_pin_iothread_args {
+    remote_nonnull_domain dom;
+    unsigned int iothreads_id;
+    opaque cpumap<REMOTE_CPUMAP_MAX>; /* (unsigned char *) */
+    unsigned int flags;
 };
 
 struct remote_domain_get_security_label_args {
@@ -3108,9 +3154,58 @@ struct remote_connect_get_all_domain_stats_args {
     unsigned int flags;
 };
 
+struct remote_domain_event_callback_agent_lifecycle_msg {
+    int callbackID;
+    remote_nonnull_domain dom;
+
+    int state;
+    int reason;
+};
+
 struct remote_connect_get_all_domain_stats_ret {
     remote_domain_stats_record retStats<REMOTE_DOMAIN_LIST_MAX>;
 };
+
+struct remote_domain_fsinfo {
+    remote_nonnull_string mountpoint;
+    remote_nonnull_string name;
+    remote_nonnull_string fstype;
+    remote_nonnull_string dev_aliases<REMOTE_DOMAIN_FSINFO_DISKS_MAX>; /* (const char **) */
+};
+
+struct remote_domain_get_fsinfo_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_fsinfo_ret {
+    remote_domain_fsinfo info<REMOTE_DOMAIN_FSINFO_MAX>;
+    unsigned int ret;
+};
+
+struct remote_domain_ip_addr {
+    int type;
+    remote_nonnull_string addr;
+    unsigned int prefix;
+};
+
+struct remote_domain_interface {
+    remote_nonnull_string name;
+    remote_string hwaddr;
+    remote_domain_ip_addr addrs<REMOTE_DOMAIN_IP_ADDR_MAX>;
+};
+
+struct remote_domain_interface_addresses_args {
+    remote_nonnull_domain dom;
+    unsigned int source;
+    unsigned int flags;
+};
+
+struct remote_domain_interface_addresses_ret {
+    remote_domain_interface ifaces<REMOTE_DOMAIN_INTERFACE_MAX>;
+};
+
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -3255,6 +3350,7 @@ enum remote_procedure {
      * @generate: both
      * @acl: domain:read
      * @acl: domain:read_secure:VIR_DOMAIN_XML_SECURE
+     * @acl: domain:read_secure:VIR_DOMAIN_XML_MIGRATABLE
      */
     REMOTE_PROC_DOMAIN_GET_XML_DESC = 14,
 
@@ -4447,6 +4543,7 @@ enum remote_procedure {
      * @generate: both
      * @priority: high
      * @acl: domain:read
+     * @acl: domain:read_secure:VIR_DOMAIN_XML_SECURE
      */
     REMOTE_PROC_DOMAIN_SNAPSHOT_GET_XML_DESC = 186,
 
@@ -4777,6 +4874,7 @@ enum remote_procedure {
      * @generate: both
      * @priority: high
      * @acl: domain:read
+     * @acl: domain:read_secure:VIR_DOMAIN_XML_SECURE
      */
     REMOTE_PROC_DOMAIN_SAVE_IMAGE_GET_XML_DESC = 235,
 
@@ -5505,5 +5603,45 @@ enum remote_procedure {
      * @generate: none
      * @acl: connect:write
      */
-    REMOTE_PROC_NODE_ALLOC_PAGES = 347
+    REMOTE_PROC_NODE_ALLOC_PAGES = 347,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_CALLBACK_AGENT_LIFECYCLE = 348,
+
+    /**
+     * @generate: none
+     * @acl: domain:fs_freeze
+     */
+    REMOTE_PROC_DOMAIN_GET_FSINFO = 349,
+
+    /**
+     * @priority: high
+     * @generate: both
+     * @acl: domain:write
+     * @acl: domain:save
+     */
+    REMOTE_PROC_DOMAIN_DEFINE_XML_FLAGS = 350,
+
+    /**
+     * @generate: none
+     * @acl: domain:read
+     */
+    REMOTE_PROC_DOMAIN_GET_IOTHREAD_INFO = 351,
+
+    /**
+     * @generate: both
+     * @acl: domain:write
+     * @acl: domain:save:!VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE
+     * @acl: domain:save:VIR_DOMAIN_AFFECT_CONFIG
+     */
+    REMOTE_PROC_DOMAIN_PIN_IOTHREAD = 352,
+
+    /**
+     * @generate: none
+     * @acl: domain:read
+     */
+    REMOTE_PROC_DOMAIN_INTERFACE_ADDRESSES = 353
 };

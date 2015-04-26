@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2014 Red Hat, Inc.
+ * Copyright (C) 2009-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,6 @@
 #include "netdev_bandwidth_conf.h"
 #include "virerror.h"
 #include "viralloc.h"
-#include "domain_conf.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -103,6 +102,7 @@ virNetDevBandwidthParseRate(xmlNodePtr node, virNetDevBandwidthRatePtr rate)
 
 /**
  * virNetDevBandwidthParse:
+ * @bandwidth: parsed bandwidth
  * @node: XML node
  * @net_type: one of virDomainNetType
  *
@@ -112,21 +112,23 @@ virNetDevBandwidthParseRate(xmlNodePtr node, virNetDevBandwidthRatePtr rate)
  *
  * Returns !NULL on success, NULL on error.
  */
-virNetDevBandwidthPtr
-virNetDevBandwidthParse(xmlNodePtr node,
+int
+virNetDevBandwidthParse(virNetDevBandwidthPtr *bandwidth,
+                        xmlNodePtr node,
                         int net_type)
 {
+    int ret = -1;
     virNetDevBandwidthPtr def = NULL;
     xmlNodePtr cur;
     xmlNodePtr in = NULL, out = NULL;
 
     if (VIR_ALLOC(def) < 0)
-        return NULL;
+        return ret;
 
     if (!node || !xmlStrEqual(node->name, BAD_CAST "bandwidth")) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("invalid argument supplied"));
-        goto error;
+        goto cleanup;
     }
 
     cur = node->children;
@@ -138,7 +140,7 @@ virNetDevBandwidthParse(xmlNodePtr node,
                     virReportError(VIR_ERR_XML_DETAIL, "%s",
                                    _("Only one child <inbound> "
                                      "element allowed"));
-                    goto error;
+                    goto cleanup;
                 }
                 in = cur;
             } else if (xmlStrEqual(cur->name, BAD_CAST "outbound")) {
@@ -146,7 +148,7 @@ virNetDevBandwidthParse(xmlNodePtr node,
                     virReportError(VIR_ERR_XML_DETAIL, "%s",
                                    _("Only one child <outbound> "
                                      "element allowed"));
-                    goto error;
+                    goto cleanup;
                 }
                 out = cur;
             }
@@ -157,11 +159,11 @@ virNetDevBandwidthParse(xmlNodePtr node,
 
     if (in) {
         if (VIR_ALLOC(def->in) < 0)
-            goto error;
+            goto cleanup;
 
         if (virNetDevBandwidthParseRate(in, def->in) < 0) {
             /* helper reported error for us */
-            goto error;
+            goto cleanup;
         }
 
         if (def->in->floor && net_type != VIR_DOMAIN_NET_TYPE_NETWORK) {
@@ -175,32 +177,37 @@ virNetDevBandwidthParse(xmlNodePtr node,
                                _("floor attribute is supported only for "
                                  "interfaces of type network"));
             }
-            goto error;
+            goto cleanup;
         }
     }
 
     if (out) {
         if (VIR_ALLOC(def->out) < 0)
-            goto error;
+            goto cleanup;
 
         if (virNetDevBandwidthParseRate(out, def->out) < 0) {
             /* helper reported error for us */
-            goto error;
+            goto cleanup;
         }
 
         if (def->out->floor) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("'floor' attribute allowed "
                              "only in <inbound> element"));
-            goto error;
+            goto cleanup;
         }
     }
 
-    return def;
+    if (!def->in && !def->out)
+        VIR_FREE(def);
 
- error:
+    *bandwidth = def;
+    def = NULL;
+    ret = 0;
+
+ cleanup:
     virNetDevBandwidthFree(def);
-    return NULL;
+    return ret;
 }
 
 static int
@@ -268,4 +275,18 @@ virNetDevBandwidthFormat(virNetDevBandwidthPtr def, virBufferPtr buf)
 
  cleanup:
     return ret;
+}
+
+void
+virDomainClearNetBandwidth(virDomainObjPtr vm)
+{
+    size_t i;
+    virDomainNetType type;
+
+    for (i = 0; i < vm->def->nnets; i++) {
+        type = virDomainNetGetActualType(vm->def->nets[i]);
+        if (virDomainNetGetActualBandwidth(vm->def->nets[i]) &&
+            virNetDevSupportBandwidth(type))
+            virNetDevBandwidthClear(vm->def->nets[i]->ifname);
+    }
 }

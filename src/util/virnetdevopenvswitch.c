@@ -30,8 +30,11 @@
 #include "virerror.h"
 #include "virmacaddr.h"
 #include "virstring.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.netdevopenvswitch");
 
 /**
  * virNetDevOpenvswitchAddPort:
@@ -147,9 +150,9 @@ int virNetDevOpenvswitchAddPort(const char *brname, const char *ifname,
     }
 
     if (virCommandRun(cmd, NULL) < 0) {
-        virReportSystemError(VIR_ERR_INTERNAL_ERROR,
-                             _("Unable to add port %s to OVS bridge %s"),
-                             ifname, brname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to add port %s to OVS bridge %s"),
+                       ifname, brname);
         goto cleanup;
     }
 
@@ -181,8 +184,8 @@ int virNetDevOpenvswitchRemovePort(const char *brname ATTRIBUTE_UNUSED, const ch
     virCommandAddArgList(cmd, "--timeout=5", "--", "--if-exists", "del-port", ifname, NULL);
 
     if (virCommandRun(cmd, NULL) < 0) {
-        virReportSystemError(VIR_ERR_INTERNAL_ERROR,
-                             _("Unable to delete port %s from OVS"), ifname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to delete port %s from OVS"), ifname);
         goto cleanup;
     }
 
@@ -206,16 +209,16 @@ int virNetDevOpenvswitchGetMigrateData(char **migrate, const char *ifname)
     virCommandPtr cmd = NULL;
     int ret = -1;
 
-    cmd = virCommandNewArgList(OVSVSCTL, "--timeout=5", "get", "Interface",
+    cmd = virCommandNewArgList(OVSVSCTL, "--timeout=5", "--if-exists", "get", "Interface",
                                ifname, "external_ids:PortData", NULL);
 
     virCommandSetOutputBuffer(cmd, migrate);
 
     /* Run the command */
     if (virCommandRun(cmd, NULL) < 0) {
-        virReportSystemError(VIR_ERR_INTERNAL_ERROR,
-                             _("Unable to run command to get OVS port data for "
-                             "interface %s"), ifname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to run command to get OVS port data for "
+                         "interface %s"), ifname);
         goto cleanup;
     }
 
@@ -241,15 +244,20 @@ int virNetDevOpenvswitchSetMigrateData(char *migrate, const char *ifname)
     virCommandPtr cmd = NULL;
     int ret = -1;
 
+    if (!migrate) {
+        VIR_DEBUG("No OVS port data for interface %s", ifname);
+        return 0;
+    }
+
     cmd = virCommandNewArgList(OVSVSCTL, "--timeout=5", "set",
                                "Interface", ifname, NULL);
     virCommandAddArgFormat(cmd, "external_ids:PortData=%s", migrate);
 
     /* Run the command */
     if (virCommandRun(cmd, NULL) < 0) {
-        virReportSystemError(VIR_ERR_INTERNAL_ERROR,
-                             _("Unable to run command to set OVS port data for "
-                             "interface %s"), ifname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to run command to set OVS port data for "
+                         "interface %s"), ifname);
         goto cleanup;
     }
 

@@ -40,6 +40,7 @@
 #include "viralloc.h"
 #include "viruuid.h"
 #include "capabilities.h"
+#include "vircommand.h"
 #include "libxl_domain.h"
 #include "libxl_conf.h"
 #include "libxl_utils.h"
@@ -304,7 +305,6 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
     regmatch_t subs[4];
     char *saveptr = NULL;
     size_t i;
-    virArch hostarch = caps->host.arch;
 
     struct guest_arch guest_archs[32];
     int nr_guest_archs = 0;
@@ -427,11 +427,9 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
         if ((guest = virCapabilitiesAddGuest(caps,
                                              guest_archs[i].hvm ? "hvm" : "xen",
                                              guest_archs[i].arch,
-                                             ((hostarch == VIR_ARCH_X86_64) ?
-                                              "/usr/lib64/xen/bin/qemu-dm" :
-                                              "/usr/lib/xen/bin/qemu-dm"),
+                                             LIBXL_EXECBIN_DIR "/qemu-system-i386",
                                              (guest_archs[i].hvm ?
-                                              "/usr/lib/xen/boot/hvmloader" :
+                                              LIBXL_FIRMWARE_DIR "/hvmloader" :
                                               NULL),
                                              1,
                                              machines)) == NULL) {
@@ -639,7 +637,7 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
 
     b_info->max_vcpus = def->maxvcpus;
     if (libxl_cpu_bitmap_alloc(ctx, &b_info->avail_vcpus, def->maxvcpus))
-        goto error;
+        return -1;
     libxl_bitmap_set_none(&b_info->avail_vcpus);
     for (i = 0; i < def->vcpus; i++)
         libxl_bitmap_set((&b_info->avail_vcpus), i);
@@ -658,7 +656,7 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         }
     }
     b_info->sched_params.weight = 1000;
-    b_info->max_memkb = def->mem.max_balloon;
+    b_info->max_memkb = virDomainDefGetMemoryInitial(def);
     b_info->target_memkb = def->mem.cur_balloon;
     if (hvm) {
         char bootorder[VIR_DOMAIN_BOOT_LAST + 1];
@@ -702,24 +700,91 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
             bootorder[def->os.nBootDevs] = '\0';
         }
         if (VIR_STRDUP(b_info->u.hvm.boot, bootorder) < 0)
-            goto error;
+            return -1;
+
+        if (def->emulator) {
+            if (!virFileExists(def->emulator)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("emulator '%s' not found"),
+                               def->emulator);
+                return -1;
+            }
+
+            if (!virFileIsExecutable(def->emulator)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("emulator '%s' is not executable"),
+                               def->emulator);
+                return -1;
+            }
+
+            VIR_FREE(b_info->device_model);
+            if (VIR_STRDUP(b_info->device_model, def->emulator) < 0)
+                return -1;
+
+            b_info->device_model_version = libxlDomainGetEmulatorType(def);
+        }
 
         if (def->nserials) {
             if (def->nserials > 1) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                "%s",
                                _("Only one serial device is supported by libxl"));
-                goto error;
+                return -1;
             }
             if (libxlMakeChrdevStr(def->serials[0], &b_info->u.hvm.serial) < 0)
-                goto error;
+                return -1;
         }
 
         if (def->nparallels) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            "%s",
                            _("Parallel devices are not supported by libxl"));
-            goto error;
+            return -1;
+        }
+
+        /* Disable VNC and SDL until explicitly enabled */
+        libxl_defbool_set(&b_info->u.hvm.vnc.enable, 0);
+        libxl_defbool_set(&b_info->u.hvm.sdl.enable, 0);
+
+        if (def->ninputs) {
+#ifdef LIBXL_HAVE_BUILDINFO_USBDEVICE_LIST
+            if (VIR_ALLOC_N(b_info->u.hvm.usbdevice_list, def->ninputs+1) < 0)
+                return -1;
+#else
+            if (def->ninputs > 1) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                        _("libxenlight supports only one input device"));
+                return -1;
+            }
+#endif
+            for (i = 0; i < def->ninputs; i++) {
+                char **usbdevice;
+
+                if (def->inputs[i]->bus != VIR_DOMAIN_INPUT_BUS_USB)
+                    continue;
+
+#ifdef LIBXL_HAVE_BUILDINFO_USBDEVICE_LIST
+                usbdevice = &b_info->u.hvm.usbdevice_list[i];
+#else
+                usbdevice = &b_info->u.hvm.usbdevice;
+#endif
+                switch (def->inputs[i]->type) {
+                    case VIR_DOMAIN_INPUT_TYPE_MOUSE:
+                        VIR_FREE(*usbdevice);
+                        if (VIR_STRDUP(*usbdevice, "mouse") < 0)
+                            return -1;
+                        break;
+                    case VIR_DOMAIN_INPUT_TYPE_TABLET:
+                        VIR_FREE(*usbdevice);
+                        if (VIR_STRDUP(*usbdevice, "tablet") < 0)
+                            return -1;
+                        break;
+                    default:
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                _("Unknown input device type"));
+                        return -1;
+                }
+            }
         }
 
         /*
@@ -738,33 +803,29 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
          */
         if (def->os.bootloader) {
             if (VIR_STRDUP(b_info->u.pv.bootloader, def->os.bootloader) < 0)
-                goto error;
+                return -1;
         } else if (def->os.kernel == NULL) {
             if (VIR_STRDUP(b_info->u.pv.bootloader, LIBXL_BOOTLOADER_PATH) < 0)
-                goto error;
+                return -1;
         }
         if (def->os.bootloaderArgs) {
             if (!(b_info->u.pv.bootloader_args =
                   virStringSplit(def->os.bootloaderArgs, " \t\n", 0)))
-                goto error;
+                return -1;
         }
         if (VIR_STRDUP(b_info->u.pv.cmdline, def->os.cmdline) < 0)
-            goto error;
+            return -1;
         if (def->os.kernel) {
             /* libxl_init_build_info() sets VIR_STRDUP(kernel.path, "hvmloader") */
             VIR_FREE(b_info->u.pv.kernel);
             if (VIR_STRDUP(b_info->u.pv.kernel, def->os.kernel) < 0)
-                goto error;
+                return -1;
         }
         if (VIR_STRDUP(b_info->u.pv.ramdisk, def->os.initrd) < 0)
-            goto error;
+            return -1;
     }
 
     return 0;
-
- error:
-    libxl_domain_build_info_dispose(b_info);
-    return -1;
 }
 
 static int
@@ -793,6 +854,37 @@ libxlDiskSetDiscard(libxl_device_disk *x_disk, int discard)
                      "disk 'discard' option passing"));
     return -1;
 #endif
+}
+
+
+#define LIBXL_QEMU_DM_STR  "Options specific to the Xen version:"
+
+int
+libxlDomainGetEmulatorType(const virDomainDef *def)
+{
+    int ret = LIBXL_DEVICE_MODEL_VERSION_QEMU_XEN;
+    virCommandPtr cmd = NULL;
+    char *output = NULL;
+
+    if (STREQ(def->os.type, "hvm")) {
+        if (def->emulator) {
+            cmd = virCommandNew(def->emulator);
+
+            virCommandAddArgList(cmd, "-help", NULL);
+            virCommandSetOutputBuffer(cmd, &output);
+
+            if (virCommandRun(cmd, NULL) < 0)
+                goto cleanup;
+
+            if (strstr(output, LIBXL_QEMU_DM_STR))
+                ret = LIBXL_DEVICE_MODEL_VERSION_QEMU_XEN_TRADITIONAL;
+        }
+    }
+
+ cleanup:
+    VIR_FREE(output);
+    virCommandFree(cmd);
+    return ret;
 }
 
 
@@ -921,6 +1013,18 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
         return -1;
     }
 
+    if (l_disk->domain_name) {
+#ifdef LIBXL_HAVE_DEVICE_BACKEND_DOMNAME
+        if (VIR_STRDUP(x_disk->backend_domname, l_disk->domain_name) < 0)
+            return -1;
+#else
+        virReportError(VIR_ERR_XML_DETAIL, "%s",
+                _("this version of libxenlight does not "
+                  "support backend domain name"));
+        return -1;
+#endif
+    }
+
     return 0;
 }
 
@@ -1001,6 +1105,11 @@ libxlMakeNic(virDomainDefPtr def,
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
             if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
                 return -1;
+            if (l_nic->nips > 0) {
+                x_nic->ip = virSocketAddrFormat(&l_nic->ips[0]->address);
+                if (!x_nic->ip)
+                    return -1;
+            }
             break;
         case VIR_DOMAIN_NET_TYPE_NETWORK:
         {
@@ -1008,7 +1117,6 @@ libxlMakeNic(virDomainDefPtr def,
             char *brname = NULL;
             virNetworkPtr network;
             virConnectPtr conn;
-            virErrorPtr errobj;
 
             if (!(conn = virConnectOpen("xen:///system")))
                 return -1;
@@ -1017,6 +1125,12 @@ libxlMakeNic(virDomainDefPtr def,
                   virNetworkLookupByName(conn, l_nic->data.network.name))) {
                 virObjectUnref(conn);
                 return -1;
+            }
+
+            if (l_nic->nips > 0) {
+                x_nic->ip = virSocketAddrFormat(&l_nic->ips[0]->address);
+                if (!x_nic->ip)
+                    return -1;
             }
 
             if ((brname = virNetworkGetBridgeName(network))) {
@@ -1028,11 +1142,7 @@ libxlMakeNic(virDomainDefPtr def,
 
             VIR_FREE(brname);
 
-            /* Preserve any previous failure */
-            errobj = virSaveLastError();
-            virNetworkFree(network);
-            virSetError(errobj);
-            virFreeError(errobj);
+            virObjectUnref(network);
             virObjectUnref(conn);
             if (fail)
                 return -1;
@@ -1051,6 +1161,18 @@ libxlMakeNic(virDomainDefPtr def,
                     _("unsupported interface type %s"),
                     virDomainNetTypeToString(l_nic->type));
             return -1;
+    }
+
+    if (l_nic->domain_name) {
+#ifdef LIBXL_HAVE_DEVICE_BACKEND_DOMNAME
+        if (VIR_STRDUP(x_nic->backend_domname, l_nic->domain_name) < 0)
+            return -1;
+#else
+        virReportError(VIR_ERR_XML_DETAIL, "%s",
+                _("this version of libxenlight does not "
+                  "support backend domain name"));
+        return -1;
+#endif
     }
 
     return 0;
@@ -1200,6 +1322,9 @@ libxlMakeVfbList(virPortAllocatorPtr graphicsports,
             if (VIR_STRDUP(b_info->u.hvm.sdl.xauthority, vfb.sdl.xauthority) < 0)
                 goto error;
         }
+
+        if (VIR_STRDUP(b_info->u.hvm.keymap, vfb.keymap) < 0)
+            goto error;
     }
 
     return 0;
@@ -1398,6 +1523,72 @@ libxlMakePCIList(virDomainDefPtr def, libxl_domain_config *d_config)
     return -1;
 }
 
+static int
+libxlMakeVideo(virDomainDefPtr def, libxl_domain_config *d_config)
+
+{
+    libxl_domain_build_info *b_info = &d_config->b_info;
+    int dm_type = libxlDomainGetEmulatorType(def);
+
+    if (d_config->c_info.type != LIBXL_DOMAIN_TYPE_HVM)
+        return 0;
+
+    /*
+     * Take the first defined video device (graphics card) to display
+     * on the first graphics device (display).
+     */
+    if (def->nvideos) {
+        switch (def->videos[0]->type) {
+        case VIR_DOMAIN_VIDEO_TYPE_VGA:
+        case VIR_DOMAIN_VIDEO_TYPE_XEN:
+            b_info->u.hvm.vga.kind = LIBXL_VGA_INTERFACE_TYPE_STD;
+            if (dm_type == LIBXL_DEVICE_MODEL_VERSION_QEMU_XEN) {
+                if (def->videos[0]->vram < 16 * 1024) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("videoram must be at least 16MB for VGA"));
+                    return -1;
+                }
+            } else {
+                if (def->videos[0]->vram < 8 * 1024) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("videoram must be at least 8MB for VGA"));
+                    return -1;
+                }
+            }
+            break;
+
+        case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+            b_info->u.hvm.vga.kind = LIBXL_VGA_INTERFACE_TYPE_CIRRUS;
+            if (dm_type == LIBXL_DEVICE_MODEL_VERSION_QEMU_XEN) {
+                if (def->videos[0]->vram < 8 * 1024) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("videoram must be at least 8MB for CIRRUS"));
+                    return -1;
+                }
+            } else {
+                if (def->videos[0]->vram < 4 * 1024) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("videoram must be at least 4MB for CIRRUS"));
+                    return -1;
+                }
+            }
+            break;
+
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("video type %s is not supported by libxl"),
+                           virDomainVideoTypeToString(def->videos[0]->type));
+            return -1;
+        }
+        /* vram validated for each video type, now set it */
+        b_info->video_memkb = def->videos[0]->vram;
+    } else {
+        libxl_defbool_set(&b_info->u.hvm.nographic, 1);
+    }
+
+    return 0;
+}
+
 int
 libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
 {
@@ -1486,6 +1677,14 @@ libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
         return -1;
 
     if (libxlMakePCIList(def, d_config) < 0)
+        return -1;
+
+    /*
+     * Now that any potential VFBs are defined, update the build info with
+     * the data of the primary display. Some day libxl might implicitely do
+     * so but as it does not right now, better be explicit.
+     */
+    if (libxlMakeVideo(def, d_config) < 0)
         return -1;
 
     d_config->on_reboot = libxlActionFromVirLifecycle(def->onReboot);

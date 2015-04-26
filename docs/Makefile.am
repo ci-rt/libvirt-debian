@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2013 Red Hat, Inc.
+## Copyright (C) 2005-2014 Red Hat, Inc.
 ##
 ## This library is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU Lesser General Public
@@ -25,9 +25,22 @@ DOC_SOURCE_DIR=../src
 
 DEVHELP_DIR=$(datadir)/gtk-doc/html/libvirt
 
-apihtml =			\
-  html/index.html		\
-  html/libvirt-libvirt.html	\
+apihtml =					\
+  html/index.html				\
+  $(apihtml_generated)
+
+apihtml_generated = \
+  html/libvirt-libvirt-domain.html		\
+  html/libvirt-libvirt-domain-snapshot.html	\
+  html/libvirt-libvirt-event.html		\
+  html/libvirt-libvirt-host.html		\
+  html/libvirt-libvirt-interface.html		\
+  html/libvirt-libvirt-network.html		\
+  html/libvirt-libvirt-nodedev.html		\
+  html/libvirt-libvirt-nwfilter.html		\
+  html/libvirt-libvirt-secret.html		\
+  html/libvirt-libvirt-storage.html		\
+  html/libvirt-libvirt-stream.html		\
   html/libvirt-virterror.html
 
 apipng =	\
@@ -40,7 +53,6 @@ devhelphtml =			\
   devhelp/libvirt.devhelp	\
   devhelp/index.html		\
   devhelp/general.html		\
-  devhelp/libvirt-libvirt.html	\
   devhelp/libvirt-virterror.html
 
 css =         \
@@ -186,7 +198,7 @@ todo:
 
 hvsupport.html:: $(srcdir)/hvsupport.html.in
 
-$(srcdir)/hvsupport.html.in: $(srcdir)/hvsupport.pl \
+$(srcdir)/hvsupport.html.in: $(srcdir)/hvsupport.pl $(api_DATA) \
 		$(srcdir)/../src/libvirt_public.syms \
 	$(srcdir)/../src/libvirt_qemu.syms $(srcdir)/../src/libvirt_lxc.syms \
 	$(srcdir)/../src/driver.h
@@ -223,7 +235,7 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
 	  $(XMLLINT) --catalogs --nonet --format --valid $< > $(srcdir)/$@ \
 	  || { rm $(srcdir)/$@ && exit 1; }; \
-	  else echo "missing XHTML1 DTD" ; fi ; fi
+	  else echo "missing XHTML1 DTD"; cat $< > $(srcdir)/$@ ; fi ; fi
 
 %.php.tmp: %.php.in site.xsl page.xsl sitemap.html.in
 	@if [ -x $(XSLTPROC) ] ; then \
@@ -239,6 +251,8 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	    -e /php_placeholder/d < $@.tmp > $(srcdir)/$@ \
 	    || { rm $(srcdir)/$@ && exit 1; }; fi
 
+$(apihtml_generated): html/index.html
+
 html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
 	  $(XSLTPROC) --nonet -o $(srcdir)/ \
@@ -249,7 +263,7 @@ html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	    > /dev/null ; then \
 	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
 	  $(XMLLINT) --catalogs --nonet --valid --noout $(srcdir)/html/*.html ; \
-	  else echo "missing XHTML1 DTD" ; fi ; fi
+	  else echo "missing XHTML1 DTD"; cat $< > $(srcdir)/$@ ; fi ; fi
 
 $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
 	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
@@ -258,7 +272,6 @@ $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
 
 
 python_generated_files = \
-		$(srcdir)/html/libvirt-libvirt.html \
 		$(srcdir)/html/libvirt-libvirt-lxc.html \
 		$(srcdir)/html/libvirt-libvirt-qemu.html \
 		$(srcdir)/html/libvirt-virterror.html \
@@ -278,6 +291,17 @@ $(python_generated_files): $(APIBUILD_STAMP)
 
 $(APIBUILD_STAMP): $(srcdir)/apibuild.py \
 		$(srcdir)/../include/libvirt/libvirt.h.in \
+		$(srcdir)/../include/libvirt/libvirt-domain-snapshot.h \
+		$(srcdir)/../include/libvirt/libvirt-domain.h \
+		$(srcdir)/../include/libvirt/libvirt-event.h \
+		$(srcdir)/../include/libvirt/libvirt-host.h \
+		$(srcdir)/../include/libvirt/libvirt-interface.h \
+		$(srcdir)/../include/libvirt/libvirt-network.h \
+		$(srcdir)/../include/libvirt/libvirt-nodedev.h \
+		$(srcdir)/../include/libvirt/libvirt-nwfilter.h \
+		$(srcdir)/../include/libvirt/libvirt-secret.h \
+		$(srcdir)/../include/libvirt/libvirt-storage.h \
+		$(srcdir)/../include/libvirt/libvirt-stream.h \
 		$(srcdir)/../include/libvirt/libvirt-lxc.h \
 		$(srcdir)/../include/libvirt/libvirt-qemu.h \
 		$(srcdir)/../include/libvirt/virterror.h \

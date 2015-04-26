@@ -42,9 +42,8 @@ testReadConfigParam(const void *data ATTRIBUTE_UNUSED)
     char *conf = NULL;
     char *value = NULL;
 
-    if (virAsprintf(&conf, "%s/openvzutilstest.conf", abs_srcdir) < 0) {
+    if (virAsprintf(&conf, "%s/openvzutilstest.conf", abs_srcdir) < 0)
         return -1;
-    }
 
     for (i = 0; i < ARRAY_CARDINALITY(configParams); ++i) {
         if (openvzReadConfigParam(conf, configParams[i].param,
@@ -52,9 +51,8 @@ testReadConfigParam(const void *data ATTRIBUTE_UNUSED)
             goto cleanup;
         }
 
-        if (configParams[i].ret != 1) {
+        if (configParams[i].ret != 1)
             continue;
-        }
 
         if (STRNEQ(configParams[i].value, value)) {
             virtTestDifference(stderr, configParams[i].value, value);
@@ -95,7 +93,7 @@ testReadNetworkConf(const void *data ATTRIBUTE_UNUSED)
         "  <devices>\n"
         "    <interface type='ethernet'>\n"
         "      <mac address='00:00:00:00:00:00'/>\n"
-        "      <ip address='194.44.18.88'/>\n"
+        "      <ip address='194.44.18.88' family='ipv4'/>\n"
         "    </interface>\n"
         "    <interface type='bridge'>\n"
         "      <mac address='00:18:51:c1:05:ee'/>\n"
@@ -104,7 +102,7 @@ testReadNetworkConf(const void *data ATTRIBUTE_UNUSED)
         "  </devices>\n"
         "</domain>\n";
 
-    if (VIR_ALLOC(def) < 0 ||
+    if (!(def = virDomainDefNew()) ||
         VIR_STRDUP(def->os.type, "exe") < 0 ||
         VIR_STRDUP(def->os.init, "/sbin/init") < 0)
         goto cleanup;
@@ -117,7 +115,7 @@ testReadNetworkConf(const void *data ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    actual = virDomainDefFormat(def, VIR_DOMAIN_XML_INACTIVE);
+    actual = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_INACTIVE);
 
     if (actual == NULL) {
         err = virGetLastError();

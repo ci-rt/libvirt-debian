@@ -1,7 +1,7 @@
 /*
  * qemu_command.h: QEMU command generation
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -55,6 +55,8 @@
 # define QEMU_MIGRATION_PORT_MIN 49152
 # define QEMU_MIGRATION_PORT_MAX 49215
 
+# define QEMU_QXL_VGAMEM_DEFAULT 16 * 1024
+
 typedef struct _qemuBuildCommandLineCallbacks qemuBuildCommandLineCallbacks;
 typedef qemuBuildCommandLineCallbacks *qemuBuildCommandLineCallbacksPtr;
 struct _qemuBuildCommandLineCallbacks {
@@ -66,6 +68,10 @@ struct _qemuBuildCommandLineCallbacks {
 };
 
 extern qemuBuildCommandLineCallbacks buildCommandLineCallbacks;
+
+char *qemuBuildObjectCommandlineFromJSON(const char *type,
+                                         const char *alias,
+                                         virJSONValuePtr props);
 
 virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    virQEMUDriverPtr driver,
@@ -79,7 +85,10 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    virNetDevVPortProfileOp vmop,
                                    qemuBuildCommandLineCallbacksPtr callbacks,
                                    bool forXMLToArgv,
-                                   bool enableFips)
+                                   bool enableFips,
+                                   virBitmapPtr nodeset,
+                                   size_t *nnicindexes,
+                                   int **nicindexes)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(11);
 
 /* Generate '-device' string for chardev device */
@@ -95,9 +104,9 @@ char *qemuBuildHostNetStr(virDomainNetDefPtr net,
                           char type_sep,
                           int vlan,
                           char **tapfd,
-                          int tapfdSize,
+                          size_t tapfdSize,
                           char **vhostfd,
-                          int vhostfdSize);
+                          size_t vhostfdSize);
 
 /* Legacy, pre device support */
 char *qemuBuildNicStr(virDomainNetDefPtr net,
@@ -109,7 +118,7 @@ char *qemuBuildNicDevStr(virDomainDefPtr def,
                          virDomainNetDefPtr net,
                          int vlan,
                          int bootindex,
-                         int vhostfdSize,
+                         size_t vhostfdSize,
                          virQEMUCapsPtr qemuCaps);
 
 char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
@@ -153,6 +162,21 @@ char *qemuBuildSoundDevStr(virDomainDefPtr domainDef,
                            virDomainSoundDefPtr sound,
                            virQEMUCapsPtr qemuCaps);
 
+int qemuBuildMemoryBackendStr(unsigned long long size,
+                              unsigned long long pagesize,
+                              int guestNode,
+                              virBitmapPtr userNodeset,
+                              virBitmapPtr autoNodeset,
+                              virDomainDefPtr def,
+                              virQEMUCapsPtr qemuCaps,
+                              virQEMUDriverConfigPtr cfg,
+                              const char **backendType,
+                              virJSONValuePtr *backendProps,
+                              bool force);
+
+char *qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem,
+                               virQEMUCapsPtr qemuCaps);
+
 /* Legacy, pre device support */
 char *qemuBuildPCIHostdevPCIDevStr(virDomainHostdevDefPtr dev,
                                    virQEMUCapsPtr qemuCaps);
@@ -161,6 +185,14 @@ char *qemuBuildPCIHostdevDevStr(virDomainDefPtr def,
                                 virDomainHostdevDefPtr dev,
                                 const char *configfd,
                                 virQEMUCapsPtr qemuCaps);
+
+char *qemuBuildRNGDevStr(virDomainDefPtr def,
+                         virDomainRNGDefPtr dev,
+                         virQEMUCapsPtr qemuCaps);
+int qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
+                             virQEMUCapsPtr qemuCaps,
+                             const char **type,
+                             virJSONValuePtr *props);
 
 int qemuOpenPCIConfig(virDomainHostdevDefPtr dev);
 
@@ -187,12 +219,11 @@ char *qemuBuildRedirdevDevStr(virDomainDefPtr def,
                               virDomainRedirdevDefPtr dev,
                               virQEMUCapsPtr qemuCaps);
 int qemuNetworkIfaceConnect(virDomainDefPtr def,
-                            virConnectPtr conn,
                             virQEMUDriverPtr driver,
                             virDomainNetDefPtr net,
                             virQEMUCapsPtr qemuCaps,
                             int *tapfd,
-                            int *tapfdSize)
+                            size_t *tapfdSize)
     ATTRIBUTE_NONNULL(2);
 
 int qemuPhysIfaceConnect(virDomainDefPtr def,
@@ -205,7 +236,7 @@ int qemuOpenVhostNet(virDomainDefPtr def,
                      virDomainNetDefPtr net,
                      virQEMUCapsPtr qemuCaps,
                      int *vhostfd,
-                     int *vhostfdSize);
+                     size_t *vhostfdSize);
 
 int qemuNetworkPrepareDevices(virDomainDefPtr def);
 
@@ -246,7 +277,6 @@ virDomainPCIAddressSetPtr qemuDomainPCIAddressSetCreate(virDomainDefPtr def,
                                                         bool dryRun);
 
 int qemuAssignDevicePCISlots(virDomainDefPtr def,
-                             virQEMUCapsPtr qemuCaps,
                              virDomainPCIAddressSetPtr addrs);
 
 int qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps);
@@ -261,6 +291,7 @@ int qemuAssignDeviceRedirdevAlias(virDomainDefPtr def, virDomainRedirdevDefPtr r
 int qemuAssignDeviceChrAlias(virDomainDefPtr def,
                              virDomainChrDefPtr chr,
                              ssize_t idx);
+int qemuAssignDeviceRNGAlias(virDomainRNGDefPtr rng, size_t idx);
 
 int
 qemuParseKeywords(const char *str,

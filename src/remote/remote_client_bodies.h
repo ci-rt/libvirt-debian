@@ -371,7 +371,7 @@ static int
 remoteConnectListDefinedInterfaces(virConnectPtr conn, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = conn->interfacePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_defined_interfaces_args args;
     remote_connect_list_defined_interfaces_ret ret;
     size_t i;
@@ -431,7 +431,7 @@ static int
 remoteConnectListDefinedNetworks(virConnectPtr conn, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_defined_networks_args args;
     remote_connect_list_defined_networks_ret ret;
     size_t i;
@@ -491,7 +491,7 @@ static int
 remoteConnectListDefinedStoragePools(virConnectPtr conn, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_defined_storage_pools_args args;
     remote_connect_list_defined_storage_pools_ret ret;
     size_t i;
@@ -551,7 +551,7 @@ static int
 remoteConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = conn->interfacePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_interfaces_args args;
     remote_connect_list_interfaces_ret ret;
     size_t i;
@@ -611,7 +611,7 @@ static int
 remoteConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_networks_args args;
     remote_connect_list_networks_ret ret;
     size_t i;
@@ -671,7 +671,7 @@ static int
 remoteConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = conn->nwfilterPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_nwfilters_args args;
     remote_connect_list_nwfilters_ret ret;
     size_t i;
@@ -731,7 +731,7 @@ static int
 remoteConnectListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
 {
     int rv = -1;
-    struct private_data *priv = conn->secretPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_secrets_args args;
     remote_connect_list_secrets_ret ret;
     size_t i;
@@ -791,7 +791,7 @@ static int
 remoteConnectListStoragePools(virConnectPtr conn, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_list_storage_pools_args args;
     remote_connect_list_storage_pools_ret ret;
     size_t i;
@@ -875,7 +875,7 @@ static int
 remoteConnectNumOfDefinedInterfaces(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->interfacePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_defined_interfaces_ret ret;
 
     remoteDriverLock(priv);
@@ -899,7 +899,7 @@ static int
 remoteConnectNumOfDefinedNetworks(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_defined_networks_ret ret;
 
     remoteDriverLock(priv);
@@ -923,7 +923,7 @@ static int
 remoteConnectNumOfDefinedStoragePools(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_defined_storage_pools_ret ret;
 
     remoteDriverLock(priv);
@@ -971,7 +971,7 @@ static int
 remoteConnectNumOfInterfaces(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->interfacePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_interfaces_ret ret;
 
     remoteDriverLock(priv);
@@ -995,7 +995,7 @@ static int
 remoteConnectNumOfNetworks(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_networks_ret ret;
 
     remoteDriverLock(priv);
@@ -1019,7 +1019,7 @@ static int
 remoteConnectNumOfNWFilters(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->nwfilterPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_nwfilters_ret ret;
 
     remoteDriverLock(priv);
@@ -1043,7 +1043,7 @@ static int
 remoteConnectNumOfSecrets(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->secretPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_secrets_ret ret;
 
     remoteDriverLock(priv);
@@ -1067,7 +1067,7 @@ static int
 remoteConnectNumOfStoragePools(virConnectPtr conn)
 {
     int rv = -1;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_connect_num_of_storage_pools_ret ret;
 
     remoteDriverLock(priv);
@@ -1523,6 +1523,35 @@ remoteDomainDefineXML(virConnectPtr conn, const char *xml)
 
     rv = get_nonnull_domain(conn, ret.dom);
     xdr_free((xdrproc_t)xdr_remote_domain_define_xml_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virDomainPtr
+remoteDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
+{
+    virDomainPtr rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_domain_define_xml_flags_args args;
+    remote_domain_define_xml_flags_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.xml = (char *)xml;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_DEFINE_XML_FLAGS,
+             (xdrproc_t)xdr_remote_domain_define_xml_flags_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_define_xml_flags_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_domain(conn, ret.dom);
+    xdr_free((xdrproc_t)xdr_remote_domain_define_xml_flags_ret, (char *)&ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -2864,6 +2893,41 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *dev_name, virStreamPtr st,
         virObjectUnref(netst);
         st->driver = NULL;
         st->privateData = NULL;
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainPinIOThread(virDomainPtr dom, unsigned int iothreads_id, unsigned char *cpumap, int cpumaplen, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_pin_iothread_args args;
+
+    remoteDriverLock(priv);
+
+    if (cpumaplen > REMOTE_CPUMAP_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "cpumap", (int)cpumaplen, REMOTE_CPUMAP_MAX);
+        goto done;
+    }
+
+    make_nonnull_domain(&args.dom, dom);
+    args.iothreads_id = iothreads_id;
+    args.cpumap.cpumap_val = (char *)cpumap;
+    args.cpumap.cpumap_len = cpumaplen;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_PIN_IOTHREAD,
+             (xdrproc_t)xdr_remote_domain_pin_iothread_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
 
@@ -4442,7 +4506,7 @@ static int
 remoteInterfaceCreate(virInterfacePtr iface, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = iface->conn->interfacePrivateData;
+    struct private_data *priv = iface->conn->privateData;
     remote_interface_create_args args;
 
     remoteDriverLock(priv);
@@ -4467,7 +4531,7 @@ static virInterfacePtr
 remoteInterfaceDefineXML(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     virInterfacePtr rv = NULL;
-    struct private_data *priv = conn->interfacePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_interface_define_xml_args args;
     remote_interface_define_xml_ret ret;
 
@@ -4496,7 +4560,7 @@ static int
 remoteInterfaceDestroy(virInterfacePtr iface, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = iface->conn->interfacePrivateData;
+    struct private_data *priv = iface->conn->privateData;
     remote_interface_destroy_args args;
 
     remoteDriverLock(priv);
@@ -4521,7 +4585,7 @@ static char *
 remoteInterfaceGetXMLDesc(virInterfacePtr iface, unsigned int flags)
 {
     char *rv = NULL;
-    struct private_data *priv = iface->conn->interfacePrivateData;
+    struct private_data *priv = iface->conn->privateData;
     remote_interface_get_xml_desc_args args;
     remote_interface_get_xml_desc_ret ret;
 
@@ -4549,7 +4613,7 @@ static int
 remoteInterfaceIsActive(virInterfacePtr iface)
 {
     int rv = -1;
-    struct private_data *priv = iface->conn->interfacePrivateData;
+    struct private_data *priv = iface->conn->privateData;
     remote_interface_is_active_args args;
     remote_interface_is_active_ret ret;
 
@@ -4576,7 +4640,7 @@ static virInterfacePtr
 remoteInterfaceLookupByMACString(virConnectPtr conn, const char *mac)
 {
     virInterfacePtr rv = NULL;
-    struct private_data *priv = conn->interfacePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_interface_lookup_by_mac_string_args args;
     remote_interface_lookup_by_mac_string_ret ret;
 
@@ -4604,7 +4668,7 @@ static virInterfacePtr
 remoteInterfaceLookupByName(virConnectPtr conn, const char *name)
 {
     virInterfacePtr rv = NULL;
-    struct private_data *priv = conn->interfacePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_interface_lookup_by_name_args args;
     remote_interface_lookup_by_name_ret ret;
 
@@ -4632,7 +4696,7 @@ static int
 remoteInterfaceUndefine(virInterfacePtr iface)
 {
     int rv = -1;
-    struct private_data *priv = iface->conn->interfacePrivateData;
+    struct private_data *priv = iface->conn->privateData;
     remote_interface_undefine_args args;
 
     remoteDriverLock(priv);
@@ -4656,7 +4720,7 @@ static int
 remoteNetworkCreate(virNetworkPtr net)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_create_args args;
 
     remoteDriverLock(priv);
@@ -4680,7 +4744,7 @@ static virNetworkPtr
 remoteNetworkCreateXML(virConnectPtr conn, const char *xml)
 {
     virNetworkPtr rv = NULL;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_network_create_xml_args args;
     remote_network_create_xml_ret ret;
 
@@ -4708,7 +4772,7 @@ static virNetworkPtr
 remoteNetworkDefineXML(virConnectPtr conn, const char *xml)
 {
     virNetworkPtr rv = NULL;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_network_define_xml_args args;
     remote_network_define_xml_ret ret;
 
@@ -4736,7 +4800,7 @@ static int
 remoteNetworkDestroy(virNetworkPtr net)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_destroy_args args;
 
     remoteDriverLock(priv);
@@ -4760,7 +4824,7 @@ static int
 remoteNetworkGetAutostart(virNetworkPtr net, int *autostart)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_get_autostart_args args;
     remote_network_get_autostart_ret ret;
 
@@ -4788,7 +4852,7 @@ static char *
 remoteNetworkGetBridgeName(virNetworkPtr net)
 {
     char *rv = NULL;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_get_bridge_name_args args;
     remote_network_get_bridge_name_ret ret;
 
@@ -4815,7 +4879,7 @@ static char *
 remoteNetworkGetXMLDesc(virNetworkPtr net, unsigned int flags)
 {
     char *rv = NULL;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_get_xml_desc_args args;
     remote_network_get_xml_desc_ret ret;
 
@@ -4843,7 +4907,7 @@ static int
 remoteNetworkIsActive(virNetworkPtr net)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_is_active_args args;
     remote_network_is_active_ret ret;
 
@@ -4870,7 +4934,7 @@ static int
 remoteNetworkIsPersistent(virNetworkPtr net)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_is_persistent_args args;
     remote_network_is_persistent_ret ret;
 
@@ -4897,7 +4961,7 @@ static virNetworkPtr
 remoteNetworkLookupByName(virConnectPtr conn, const char *name)
 {
     virNetworkPtr rv = NULL;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_network_lookup_by_name_args args;
     remote_network_lookup_by_name_ret ret;
 
@@ -4925,7 +4989,7 @@ static virNetworkPtr
 remoteNetworkLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
     virNetworkPtr rv = NULL;
-    struct private_data *priv = conn->networkPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_network_lookup_by_uuid_args args;
     remote_network_lookup_by_uuid_ret ret;
 
@@ -4953,7 +5017,7 @@ static int
 remoteNetworkSetAutostart(virNetworkPtr net, int autostart)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_set_autostart_args args;
 
     remoteDriverLock(priv);
@@ -4978,7 +5042,7 @@ static int
 remoteNetworkUndefine(virNetworkPtr net)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_undefine_args args;
 
     remoteDriverLock(priv);
@@ -5002,7 +5066,7 @@ static int
 remoteNetworkUpdate(virNetworkPtr net, unsigned int command, unsigned int section, int parentIndex, const char *xml, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = net->conn->networkPrivateData;
+    struct private_data *priv = net->conn->privateData;
     remote_network_update_args args;
 
     remoteDriverLock(priv);
@@ -5031,7 +5095,7 @@ static virNodeDevicePtr
 remoteNodeDeviceCreateXML(virConnectPtr conn, const char *xml_desc, unsigned int flags)
 {
     virNodeDevicePtr rv = NULL;
-    struct private_data *priv = conn->nodeDevicePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_node_device_create_xml_args args;
     remote_node_device_create_xml_ret ret;
 
@@ -5060,7 +5124,7 @@ static int
 remoteNodeDeviceDestroy(virNodeDevicePtr dev)
 {
     int rv = -1;
-    struct private_data *priv = dev->conn->nodeDevicePrivateData;
+    struct private_data *priv = dev->conn->privateData;
     remote_node_device_destroy_args args;
 
     remoteDriverLock(priv);
@@ -5084,7 +5148,7 @@ static char *
 remoteNodeDeviceGetParent(virNodeDevicePtr dev)
 {
     char *rv = NULL;
-    struct private_data *priv = dev->conn->nodeDevicePrivateData;
+    struct private_data *priv = dev->conn->privateData;
     remote_node_device_get_parent_args args;
     remote_node_device_get_parent_ret ret;
 
@@ -5112,7 +5176,7 @@ static char *
 remoteNodeDeviceGetXMLDesc(virNodeDevicePtr dev, unsigned int flags)
 {
     char *rv = NULL;
-    struct private_data *priv = dev->conn->nodeDevicePrivateData;
+    struct private_data *priv = dev->conn->privateData;
     remote_node_device_get_xml_desc_args args;
     remote_node_device_get_xml_desc_ret ret;
 
@@ -5140,7 +5204,7 @@ static int
 remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = dev->conn->nodeDevicePrivateData;
+    struct private_data *priv = dev->conn->privateData;
     remote_node_device_list_caps_args args;
     remote_node_device_list_caps_ret ret;
     size_t i;
@@ -5201,7 +5265,7 @@ static virNodeDevicePtr
 remoteNodeDeviceLookupByName(virConnectPtr conn, const char *name)
 {
     virNodeDevicePtr rv = NULL;
-    struct private_data *priv = conn->nodeDevicePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_node_device_lookup_by_name_args args;
     remote_node_device_lookup_by_name_ret ret;
 
@@ -5229,7 +5293,7 @@ static virNodeDevicePtr
 remoteNodeDeviceLookupSCSIHostByWWN(virConnectPtr conn, const char *wwnn, const char *wwpn, unsigned int flags)
 {
     virNodeDevicePtr rv = NULL;
-    struct private_data *priv = conn->nodeDevicePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_node_device_lookup_scsi_host_by_wwn_args args;
     remote_node_device_lookup_scsi_host_by_wwn_ret ret;
 
@@ -5259,7 +5323,7 @@ static int
 remoteNodeDeviceNumOfCaps(virNodeDevicePtr dev)
 {
     int rv = -1;
-    struct private_data *priv = dev->conn->nodeDevicePrivateData;
+    struct private_data *priv = dev->conn->privateData;
     remote_node_device_num_of_caps_args args;
     remote_node_device_num_of_caps_ret ret;
 
@@ -5342,7 +5406,7 @@ static int
 remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, int maxnames, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = conn->nodeDevicePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_node_list_devices_args args;
     remote_node_list_devices_ret ret;
     size_t i;
@@ -5404,7 +5468,7 @@ static int
 remoteNodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = conn->nodeDevicePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_node_num_of_devices_args args;
     remote_node_num_of_devices_ret ret;
 
@@ -5432,7 +5496,7 @@ static int
 remoteNodeSetMemoryParameters(virConnectPtr conn, virTypedParameterPtr params, int nparams, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = conn->nodeDevicePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_node_set_memory_parameters_args args;
 
     remoteDriverLock(priv);
@@ -5462,7 +5526,7 @@ static int
 remoteNodeSuspendForDuration(virConnectPtr conn, unsigned int target, unsigned long long duration, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = conn->nodeDevicePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_node_suspend_for_duration_args args;
 
     remoteDriverLock(priv);
@@ -5488,7 +5552,7 @@ static virNWFilterPtr
 remoteNWFilterDefineXML(virConnectPtr conn, const char *xml)
 {
     virNWFilterPtr rv = NULL;
-    struct private_data *priv = conn->nwfilterPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_nwfilter_define_xml_args args;
     remote_nwfilter_define_xml_ret ret;
 
@@ -5516,7 +5580,7 @@ static char *
 remoteNWFilterGetXMLDesc(virNWFilterPtr nwfilter, unsigned int flags)
 {
     char *rv = NULL;
-    struct private_data *priv = nwfilter->conn->nwfilterPrivateData;
+    struct private_data *priv = nwfilter->conn->privateData;
     remote_nwfilter_get_xml_desc_args args;
     remote_nwfilter_get_xml_desc_ret ret;
 
@@ -5544,7 +5608,7 @@ static virNWFilterPtr
 remoteNWFilterLookupByName(virConnectPtr conn, const char *name)
 {
     virNWFilterPtr rv = NULL;
-    struct private_data *priv = conn->nwfilterPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_nwfilter_lookup_by_name_args args;
     remote_nwfilter_lookup_by_name_ret ret;
 
@@ -5572,7 +5636,7 @@ static virNWFilterPtr
 remoteNWFilterLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
     virNWFilterPtr rv = NULL;
-    struct private_data *priv = conn->nwfilterPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_nwfilter_lookup_by_uuid_args args;
     remote_nwfilter_lookup_by_uuid_ret ret;
 
@@ -5600,7 +5664,7 @@ static int
 remoteNWFilterUndefine(virNWFilterPtr nwfilter)
 {
     int rv = -1;
-    struct private_data *priv = nwfilter->conn->nwfilterPrivateData;
+    struct private_data *priv = nwfilter->conn->privateData;
     remote_nwfilter_undefine_args args;
 
     remoteDriverLock(priv);
@@ -5624,7 +5688,7 @@ static virSecretPtr
 remoteSecretDefineXML(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     virSecretPtr rv = NULL;
-    struct private_data *priv = conn->secretPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_secret_define_xml_args args;
     remote_secret_define_xml_ret ret;
 
@@ -5653,7 +5717,7 @@ static char *
 remoteSecretGetXMLDesc(virSecretPtr secret, unsigned int flags)
 {
     char *rv = NULL;
-    struct private_data *priv = secret->conn->secretPrivateData;
+    struct private_data *priv = secret->conn->privateData;
     remote_secret_get_xml_desc_args args;
     remote_secret_get_xml_desc_ret ret;
 
@@ -5681,7 +5745,7 @@ static virSecretPtr
 remoteSecretLookupByUsage(virConnectPtr conn, int usageType, const char *usageID)
 {
     virSecretPtr rv = NULL;
-    struct private_data *priv = conn->secretPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_secret_lookup_by_usage_args args;
     remote_secret_lookup_by_usage_ret ret;
 
@@ -5710,7 +5774,7 @@ static virSecretPtr
 remoteSecretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
     virSecretPtr rv = NULL;
-    struct private_data *priv = conn->secretPrivateData;
+    struct private_data *priv = conn->privateData;
     remote_secret_lookup_by_uuid_args args;
     remote_secret_lookup_by_uuid_ret ret;
 
@@ -5738,7 +5802,7 @@ static int
 remoteSecretSetValue(virSecretPtr secret, const unsigned char *value, size_t valuelen, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = secret->conn->secretPrivateData;
+    struct private_data *priv = secret->conn->privateData;
     remote_secret_set_value_args args;
 
     remoteDriverLock(priv);
@@ -5772,7 +5836,7 @@ static int
 remoteSecretUndefine(virSecretPtr secret)
 {
     int rv = -1;
-    struct private_data *priv = secret->conn->secretPrivateData;
+    struct private_data *priv = secret->conn->privateData;
     remote_secret_undefine_args args;
 
     remoteDriverLock(priv);
@@ -5796,7 +5860,7 @@ static int
 remoteStoragePoolBuild(virStoragePoolPtr pool, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_build_args args;
 
     remoteDriverLock(priv);
@@ -5821,7 +5885,7 @@ static int
 remoteStoragePoolCreate(virStoragePoolPtr pool, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_create_args args;
 
     remoteDriverLock(priv);
@@ -5846,7 +5910,7 @@ static virStoragePoolPtr
 remoteStoragePoolCreateXML(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     virStoragePoolPtr rv = NULL;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_storage_pool_create_xml_args args;
     remote_storage_pool_create_xml_ret ret;
 
@@ -5875,7 +5939,7 @@ static virStoragePoolPtr
 remoteStoragePoolDefineXML(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     virStoragePoolPtr rv = NULL;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_storage_pool_define_xml_args args;
     remote_storage_pool_define_xml_ret ret;
 
@@ -5904,7 +5968,7 @@ static int
 remoteStoragePoolDelete(virStoragePoolPtr pool, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_delete_args args;
 
     remoteDriverLock(priv);
@@ -5929,7 +5993,7 @@ static int
 remoteStoragePoolDestroy(virStoragePoolPtr pool)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_destroy_args args;
 
     remoteDriverLock(priv);
@@ -5953,7 +6017,7 @@ static int
 remoteStoragePoolGetAutostart(virStoragePoolPtr pool, int *autostart)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_get_autostart_args args;
     remote_storage_pool_get_autostart_ret ret;
 
@@ -5981,7 +6045,7 @@ static int
 remoteStoragePoolGetInfo(virStoragePoolPtr pool, virStoragePoolInfoPtr result)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_get_info_args args;
     remote_storage_pool_get_info_ret ret;
 
@@ -6012,7 +6076,7 @@ static char *
 remoteStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
 {
     char *rv = NULL;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_get_xml_desc_args args;
     remote_storage_pool_get_xml_desc_ret ret;
 
@@ -6040,7 +6104,7 @@ static int
 remoteStoragePoolIsActive(virStoragePoolPtr pool)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_is_active_args args;
     remote_storage_pool_is_active_ret ret;
 
@@ -6067,7 +6131,7 @@ static int
 remoteStoragePoolIsPersistent(virStoragePoolPtr pool)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_is_persistent_args args;
     remote_storage_pool_is_persistent_ret ret;
 
@@ -6094,7 +6158,7 @@ static int
 remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int maxnames)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_list_volumes_args args;
     remote_storage_pool_list_volumes_ret ret;
     size_t i;
@@ -6155,7 +6219,7 @@ static virStoragePoolPtr
 remoteStoragePoolLookupByName(virConnectPtr conn, const char *name)
 {
     virStoragePoolPtr rv = NULL;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_storage_pool_lookup_by_name_args args;
     remote_storage_pool_lookup_by_name_ret ret;
 
@@ -6183,7 +6247,7 @@ static virStoragePoolPtr
 remoteStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
     virStoragePoolPtr rv = NULL;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_storage_pool_lookup_by_uuid_args args;
     remote_storage_pool_lookup_by_uuid_ret ret;
 
@@ -6211,7 +6275,7 @@ static virStoragePoolPtr
 remoteStoragePoolLookupByVolume(virStorageVolPtr vol)
 {
     virStoragePoolPtr rv = NULL;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_pool_lookup_by_volume_args args;
     remote_storage_pool_lookup_by_volume_ret ret;
 
@@ -6239,7 +6303,7 @@ static int
 remoteStoragePoolNumOfVolumes(virStoragePoolPtr pool)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_num_of_volumes_args args;
     remote_storage_pool_num_of_volumes_ret ret;
 
@@ -6266,7 +6330,7 @@ static int
 remoteStoragePoolRefresh(virStoragePoolPtr pool, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_refresh_args args;
 
     remoteDriverLock(priv);
@@ -6291,7 +6355,7 @@ static int
 remoteStoragePoolSetAutostart(virStoragePoolPtr pool, int autostart)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_set_autostart_args args;
 
     remoteDriverLock(priv);
@@ -6316,7 +6380,7 @@ static int
 remoteStoragePoolUndefine(virStoragePoolPtr pool)
 {
     int rv = -1;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_pool_undefine_args args;
 
     remoteDriverLock(priv);
@@ -6340,7 +6404,7 @@ static virStorageVolPtr
 remoteStorageVolCreateXML(virStoragePoolPtr pool, const char *xml, unsigned int flags)
 {
     virStorageVolPtr rv = NULL;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_vol_create_xml_args args;
     remote_storage_vol_create_xml_ret ret;
 
@@ -6370,7 +6434,7 @@ static virStorageVolPtr
 remoteStorageVolCreateXMLFrom(virStoragePoolPtr pool, const char *xml, virStorageVolPtr clonevol, unsigned int flags)
 {
     virStorageVolPtr rv = NULL;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_vol_create_xml_from_args args;
     remote_storage_vol_create_xml_from_ret ret;
 
@@ -6401,7 +6465,7 @@ static int
 remoteStorageVolDelete(virStorageVolPtr vol, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_delete_args args;
 
     remoteDriverLock(priv);
@@ -6426,7 +6490,7 @@ static int
 remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long long offset, unsigned long long length, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_download_args args;
     virNetClientStreamPtr netst = NULL;
 
@@ -6468,7 +6532,7 @@ static int
 remoteStorageVolGetInfo(virStorageVolPtr vol, virStorageVolInfoPtr result)
 {
     int rv = -1;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_get_info_args args;
     remote_storage_vol_get_info_ret ret;
 
@@ -6498,7 +6562,7 @@ static char *
 remoteStorageVolGetPath(virStorageVolPtr vol)
 {
     char *rv = NULL;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_get_path_args args;
     remote_storage_vol_get_path_ret ret;
 
@@ -6525,7 +6589,7 @@ static char *
 remoteStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
 {
     char *rv = NULL;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_get_xml_desc_args args;
     remote_storage_vol_get_xml_desc_ret ret;
 
@@ -6553,7 +6617,7 @@ static virStorageVolPtr
 remoteStorageVolLookupByKey(virConnectPtr conn, const char *key)
 {
     virStorageVolPtr rv = NULL;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_storage_vol_lookup_by_key_args args;
     remote_storage_vol_lookup_by_key_ret ret;
 
@@ -6581,7 +6645,7 @@ static virStorageVolPtr
 remoteStorageVolLookupByName(virStoragePoolPtr pool, const char *name)
 {
     virStorageVolPtr rv = NULL;
-    struct private_data *priv = pool->conn->storagePrivateData;
+    struct private_data *priv = pool->conn->privateData;
     remote_storage_vol_lookup_by_name_args args;
     remote_storage_vol_lookup_by_name_ret ret;
 
@@ -6610,7 +6674,7 @@ static virStorageVolPtr
 remoteStorageVolLookupByPath(virConnectPtr conn, const char *path)
 {
     virStorageVolPtr rv = NULL;
-    struct private_data *priv = conn->storagePrivateData;
+    struct private_data *priv = conn->privateData;
     remote_storage_vol_lookup_by_path_args args;
     remote_storage_vol_lookup_by_path_ret ret;
 
@@ -6638,7 +6702,7 @@ static int
 remoteStorageVolResize(virStorageVolPtr vol, unsigned long long capacity, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_resize_args args;
 
     remoteDriverLock(priv);
@@ -6664,7 +6728,7 @@ static int
 remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long offset, unsigned long long length, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_upload_args args;
     virNetClientStreamPtr netst = NULL;
 
@@ -6706,7 +6770,7 @@ static int
 remoteStorageVolWipe(virStorageVolPtr vol, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_wipe_args args;
 
     remoteDriverLock(priv);
@@ -6731,7 +6795,7 @@ static int
 remoteStorageVolWipePattern(virStorageVolPtr vol, unsigned int algorithm, unsigned int flags)
 {
     int rv = -1;
-    struct private_data *priv = vol->conn->storagePrivateData;
+    struct private_data *priv = vol->conn->privateData;
     remote_storage_vol_wipe_pattern_args args;
 
     remoteDriverLock(priv);

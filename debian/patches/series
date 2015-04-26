@@ -1,4 +1,3 @@
-debian/allow-libxl-to-find-default-path-to-pygrub.patch
 debian/remove-RHism.diff.patch
 debian/Don-t-enable-default-network-on-boot.patch
 debian/fix-Debian-specific-path-to-hvm-loader.patch
@@ -11,20 +10,4 @@ Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
-debian/Use-sensible-editor-as-fallback.patch
 debian/Debianize-virtlockd.patch
-qemu-use-systemd-s-TerminateMachine-to-kill-all-proc.patch
-security/CVE-2014-7823-dumpxml-security-hole-with-migratable-.patch
-util-Prepare-URI-formatting-for-libxml2-2.9.2.patch
-security/CVE-2014-8131-Fix-possible-deadlock-and-segfault-in-.patch
-qemu-bulk-stats-Fix-logic-in-monitor-handling.patch
-security/CVE-2014-8135-storage-fix-crash-caused-by-no-check-r.patch
-security/CVE-2014-8136-qemu-migration-Unlock-vm-on-failed-ACL.patch
-upstream/qemu-Fix-crash-in-tunnelled-migration.patch
-lxc-Move-setting-ifname_guest_actual-to-virLXCSetupI.patch
-lxc-Don-t-crash-on-NULL-ifname_guest_actual.patch
-upstream/vbox-fix-a-bug-in-_machineStateInactive.patch
-security/CVE-2015-0236-qemu-Check-ACLs-when-dumping-security-.patch
-security/CVE-2015-0236-qemu-Check-ACLs-when-dumping-securi-14.patch
-qemu-Don-t-try-to-parse-help-for-new-QEM.patch
-Don-t-validata-filesystem-target-type.patch

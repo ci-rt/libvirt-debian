@@ -79,6 +79,18 @@
         </element>
       </group>
       <group>
+        <element name="virtualport">
+          <attribute name="type">
+            <value>midonet</value>
+          </attribute>
+          <element name="parameters">
+            <attribute name="interfaceid">
+              <ref name="UUID"/>
+            </attribute>
+          </element>
+        </element>
+      </group>
+      <group>
         <!-- use this when no type attribute is present -->
         <element name="virtualport">
           <optional>
@@ -223,5 +235,27 @@
       <param name='minInclusive'>1</param>
       <param name='maxInclusive'>65535</param>
     </data>
+  </define>
+
+  <!-- The (static) route element specifies a network address and gateway
+       address to access that network. Both the network address and
+       the gateway address must be specified. -->
+  <define name='route'>
+    <element name="route">
+      <optional>
+        <attribute name="family"><ref name="addr-family"/></attribute>
+      </optional>
+      <attribute name="address"><ref name="ipAddr"/></attribute>
+      <optional>
+        <choice>
+          <attribute name="netmask"><ref name="ipv4Addr"/></attribute>
+          <attribute name="prefix"><ref name="ipPrefix"/></attribute>
+        </choice>
+      </optional>
+      <attribute name="gateway"><ref name="ipAddr"/></attribute>
+      <optional>
+        <attribute name="metric"><ref name="unsignedInt"/></attribute>
+      </optional>
+    </element>
   </define>
 </grammar>

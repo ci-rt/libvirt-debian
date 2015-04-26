@@ -38,9 +38,8 @@ static int testBufInfiniteLoop(const void *data)
      * which was the case after the above addchar at the time of the bug.
      * This test is a bit fragile, since it relies on virBuffer internals.
      */
-    if (virAsprintf(&addstr, "%*s", buf->a - buf->b - 1, "a") < 0) {
+    if (virAsprintf(&addstr, "%*s", buf->a - buf->b - 1, "a") < 0)
         goto out;
-    }
 
     if (info->doEscape)
         virBufferEscapeString(buf, "%s", addstr);
@@ -200,6 +199,154 @@ static int testBufTrim(const void *data ATTRIBUTE_UNUSED)
     return ret;
 }
 
+static int testBufAddBuffer(const void *data ATTRIBUTE_UNUSED)
+{
+    virBuffer buf1 = VIR_BUFFER_INITIALIZER;
+    virBuffer buf2 = VIR_BUFFER_INITIALIZER;
+    virBuffer buf3 = VIR_BUFFER_INITIALIZER;
+    int ret = -1;
+    char *result = NULL;
+    const char *expected = \
+"  A long time ago, in a galaxy far,\n" \
+"  far away...\n"                       \
+"    It is a period of civil war.\n"    \
+"    Rebel spaceships, striking\n"      \
+"    from a hidden base, have won\n"    \
+"    their first victory against\n"     \
+"    the evil Galactic Empire.\n"       \
+"  During the battle, rebel\n"          \
+"  spies managed to steal secret\n"     \
+"  plans to the Empire's\n"             \
+"  ultimate weapon, the DEATH\n"        \
+"  STAR, an armored space\n"            \
+"  station with enough power to\n"      \
+"  destroy an entire planet.\n";
+
+    if (virBufferUse(&buf1)) {
+        TEST_ERROR("buf1 already in use");
+        goto cleanup;
+    }
+
+    if (virBufferUse(&buf2)) {
+        TEST_ERROR("buf2 already in use");
+        goto cleanup;
+    }
+
+    if (virBufferUse(&buf3)) {
+        TEST_ERROR("buf3 already in use");
+        goto cleanup;
+    }
+
+    virBufferAdjustIndent(&buf1, 2);
+    virBufferAddLit(&buf1, "A long time ago, in a galaxy far,\n");
+    virBufferAddLit(&buf1, "far away...\n");
+
+    virBufferAdjustIndent(&buf2, 4);
+    virBufferAddLit(&buf2, "It is a period of civil war.\n");
+    virBufferAddLit(&buf2, "Rebel spaceships, striking\n");
+    virBufferAddLit(&buf2, "from a hidden base, have won\n");
+    virBufferAddLit(&buf2, "their first victory against\n");
+    virBufferAddLit(&buf2, "the evil Galactic Empire.\n");
+
+    virBufferAdjustIndent(&buf3, 2);
+    virBufferAddLit(&buf3, "During the battle, rebel\n");
+    virBufferAddLit(&buf3, "spies managed to steal secret\n");
+    virBufferAddLit(&buf3, "plans to the Empire's\n");
+    virBufferAddLit(&buf3, "ultimate weapon, the DEATH\n");
+    virBufferAddLit(&buf3, "STAR, an armored space\n");
+    virBufferAddLit(&buf3, "station with enough power to\n");
+    virBufferAddLit(&buf3, "destroy an entire planet.\n");
+
+    if (!virBufferUse(&buf1)) {
+        TEST_ERROR("Error adding to buf1");
+        goto cleanup;
+    }
+
+    if (!virBufferUse(&buf2)) {
+        TEST_ERROR("Error adding to buf2");
+        goto cleanup;
+    }
+
+    if (!virBufferUse(&buf3)) {
+        TEST_ERROR("Error adding to buf3");
+        goto cleanup;
+    }
+
+    virBufferAddBuffer(&buf2, &buf3);
+
+    if (!virBufferUse(&buf2)) {
+        TEST_ERROR("buf2 cleared mistakenly");
+        goto cleanup;
+    }
+
+    if (virBufferUse(&buf3)) {
+        TEST_ERROR("buf3 is not clear even though it should be");
+        goto cleanup;
+    }
+
+    virBufferAddBuffer(&buf1, &buf2);
+
+    if (!virBufferUse(&buf1)) {
+        TEST_ERROR("buf1 cleared mistakenly");
+        goto cleanup;
+    }
+
+    if (virBufferUse(&buf2)) {
+        TEST_ERROR("buf2 is not clear even though it should be");
+        goto cleanup;
+    }
+
+    result = virBufferContentAndReset(&buf1);
+    if (STRNEQ_NULLABLE(result, expected)) {
+        virtTestDifference(stderr, expected, result);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&buf1);
+    virBufferFreeAndReset(&buf2);
+    VIR_FREE(result);
+    return ret;
+}
+
+struct testBufAddStrData {
+    const char *data;
+    const char *expect;
+};
+
+static int
+testBufAddStr(const void *opaque ATTRIBUTE_UNUSED)
+{
+    const struct testBufAddStrData *data = opaque;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *actual;
+    int ret = -1;
+
+    virBufferAddLit(&buf, "<c>\n");
+    virBufferAdjustIndent(&buf, 2);
+    virBufferAddStr(&buf, data->data);
+    virBufferAdjustIndent(&buf, -2);
+    virBufferAddLit(&buf, "</c>");
+
+    if (!(actual = virBufferContentAndReset(&buf))) {
+        TEST_ERROR("buf is empty");
+        goto cleanup;
+    }
+
+    if (STRNEQ_NULLABLE(actual, data->expect)) {
+        TEST_ERROR("testBufAddStr(): Strings don't match:\n");
+        virtTestDifference(stderr, data->expect, actual);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(actual);
+    return ret;
+}
+
 
 static int
 mymain(void)
@@ -218,6 +365,19 @@ mymain(void)
     DO_TEST("VSprintf infinite loop", testBufInfiniteLoop, 0);
     DO_TEST("Auto-indentation", testBufAutoIndent, 0);
     DO_TEST("Trim", testBufTrim, 0);
+    DO_TEST("AddBuffer", testBufAddBuffer, 0);
+
+#define DO_TEST_ADD_STR(DATA, EXPECT)                                  \
+    do {                                                               \
+        struct testBufAddStrData info = { DATA, EXPECT };              \
+        if (virtTestRun("Buf: AddStr", testBufAddStr, &info) < 0)      \
+            ret = -1;                                                  \
+    } while (0)
+
+    DO_TEST_ADD_STR("", "<c>\n</c>");
+    DO_TEST_ADD_STR("<a/>", "<c>\n  <a/></c>");
+    DO_TEST_ADD_STR("<a/>\n", "<c>\n  <a/>\n</c>");
+    DO_TEST_ADD_STR("<b>\n  <a/>\n</b>\n", "<c>\n  <b>\n    <a/>\n  </b>\n</c>");
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

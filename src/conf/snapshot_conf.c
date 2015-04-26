@@ -107,6 +107,7 @@ void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def)
 
 static int
 virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
+                                 xmlXPathContextPtr ctxt,
                                  virDomainSnapshotDiskDefPtr def)
 {
     int ret = -1;
@@ -154,7 +155,7 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
         if (!def->src->path &&
             xmlStrEqual(cur->name, BAD_CAST "source")) {
 
-            if (virDomainDiskSourceParse(cur, def->src) < 0)
+            if (virDomainDiskSourceParse(cur, ctxt, def->src) < 0)
                 goto cleanup;
 
         } else if (!def->src->format &&
@@ -286,8 +287,7 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
             def->dom = virDomainDefParseNode(ctxt->node->doc, domainNode,
                                              caps, xmlopt,
                                              expectedVirtTypes,
-                                             (VIR_DOMAIN_XML_INACTIVE |
-                                              VIR_DOMAIN_XML_SECURE));
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
             if (!def->dom)
                 goto cleanup;
         } else {
@@ -352,7 +352,8 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
             goto cleanup;
         def->ndisks = n;
         for (i = 0; i < def->ndisks; i++) {
-            if (virDomainSnapshotDiskDefParseXML(nodes[i], &def->disks[i]) < 0)
+            if (virDomainSnapshotDiskDefParseXML(nodes[i], ctxt,
+                                                 &def->disks[i]) < 0)
                 goto cleanup;
         }
         VIR_FREE(nodes);
@@ -464,7 +465,6 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
     virBitmapPtr map = NULL;
     size_t i;
     int ndisks;
-    bool inuse;
 
     if (!def->dom) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -499,7 +499,7 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
             goto cleanup;
         }
 
-        if (virBitmapGetBit(map, idx, &inuse) < 0 || inuse) {
+        if (virBitmapIsBitSet(map, idx)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("disk '%s' specified twice"),
                            disk->name);
@@ -552,8 +552,7 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
     for (i = 0; i < def->dom->ndisks; i++) {
         virDomainSnapshotDiskDefPtr disk;
 
-        ignore_value(virBitmapGetBit(map, i, &inuse));
-        if (inuse)
+        if (virBitmapIsBitSet(map, i))
             continue;
         disk = &def->disks[ndisks++];
         if (VIR_ALLOC(disk->src) < 0)
@@ -676,10 +675,10 @@ char *virDomainSnapshotDefFormat(const char *domain_uuid,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     size_t i;
 
-    virCheckFlags(VIR_DOMAIN_XML_SECURE |
-                  VIR_DOMAIN_XML_UPDATE_CPU, NULL);
+    virCheckFlags(VIR_DOMAIN_DEF_FORMAT_SECURE |
+                  VIR_DOMAIN_DEF_FORMAT_UPDATE_CPU, NULL);
 
-    flags |= VIR_DOMAIN_XML_INACTIVE;
+    flags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE;
 
     virBufferAddLit(&buf, "<domainsnapshot>\n");
     virBufferAdjustIndent(&buf, 2);
@@ -1182,7 +1181,7 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
     virDomainSnapshotDefPtr def = *defptr;
     int ret = -1;
     int align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
-    int align_match = true;
+    bool align_match = true;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainSnapshotObjPtr other;
 

@@ -67,13 +67,19 @@ parallelsStorageUnlock(virStorageDriverStatePtr driver)
     virMutexUnlock(&driver->lock);
 }
 
-static int
+int
 parallelsStorageClose(virConnectPtr conn)
 {
     parallelsConnPtr privconn = conn->privateData;
 
-    virStorageDriverStatePtr storageState = conn->storagePrivateData;
-    conn->storagePrivateData = NULL;
+    if (!privconn)
+        return 0;
+
+    virStorageDriverStatePtr storageState = privconn->storageState;
+    privconn->storageState = NULL;
+
+    if (!storageState)
+        return 0;
 
     parallelsStorageLock(storageState);
     virStoragePoolObjListFree(&privconn->pools);
@@ -189,7 +195,7 @@ parallelsPoolCreateByPath(virConnectPtr conn, const char *path)
     if (!(pool = virStoragePoolObjAssignDef(pools, def)))
         goto error;
 
-    if (virStoragePoolObjSaveDef(conn->storagePrivateData, pool, def) < 0) {
+    if (virStoragePoolObjSaveDef(privconn->storageState, pool, def) < 0) {
         virStoragePoolObjRemove(pools, pool);
         goto error;
     }
@@ -404,7 +410,7 @@ parallelsPoolsAdd(virDomainObjPtr dom,
 static int parallelsLoadPools(virConnectPtr conn)
 {
     parallelsConnPtr privconn = conn->privateData;
-    virStorageDriverStatePtr storageState = conn->storagePrivateData;
+    virStorageDriverStatePtr storageState = privconn->storageState;
     char *base = NULL;
     size_t i;
 
@@ -456,11 +462,11 @@ static int parallelsLoadPools(virConnectPtr conn)
     return -1;
 }
 
-static virDrvOpenStatus
+virDrvOpenStatus
 parallelsStorageOpen(virConnectPtr conn,
-                     virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                      unsigned int flags)
 {
+    parallelsConnPtr privconn = conn->privateData;
     virStorageDriverStatePtr storageState;
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
@@ -475,7 +481,7 @@ parallelsStorageOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_ERROR;
     }
 
-    conn->storagePrivateData = storageState;
+    privconn->storageState = storageState;
     parallelsStorageLock(storageState);
 
     if (parallelsLoadPools(conn))
@@ -719,7 +725,7 @@ parallelsStoragePoolDefineXML(virConnectPtr conn,
     if (virStoragePoolObjIsDuplicate(&privconn->pools, def, 0) < 0)
         goto cleanup;
 
-    if (virStoragePoolSourceFindDuplicate(&privconn->pools, def) < 0)
+    if (virStoragePoolSourceFindDuplicate(conn, &privconn->pools, def) < 0)
         goto cleanup;
 
     if (parallelsStoragePoolGetAlloc(def))
@@ -728,7 +734,7 @@ parallelsStoragePoolDefineXML(virConnectPtr conn,
     if (!(pool = virStoragePoolObjAssignDef(&privconn->pools, def)))
         goto cleanup;
 
-    if (virStoragePoolObjSaveDef(conn->storagePrivateData, pool, def) < 0) {
+    if (virStoragePoolObjSaveDef(privconn->storageState, pool, def) < 0) {
         virStoragePoolObjRemove(&privconn->pools, pool);
         def = NULL;
         goto cleanup;
@@ -1208,9 +1214,9 @@ parallelsStorageVolDefineXML(virStoragePoolObjPtr pool,
     char *xml_path = NULL;
 
     if (xmlfile)
-        privvol = virStorageVolDefParseFile(pool->def, xmlfile);
+        privvol = virStorageVolDefParseFile(pool->def, xmlfile, 0);
     else
-        privvol = virStorageVolDefParseString(pool->def, xmldesc);
+        privvol = virStorageVolDefParseString(pool->def, xmldesc, 0);
 
     if (privvol == NULL)
         goto cleanup;
@@ -1335,7 +1341,7 @@ parallelsStorageVolCreateXMLFrom(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    privvol = virStorageVolDefParseString(privpool->def, xmldesc);
+    privvol = virStorageVolDefParseString(privpool->def, xmldesc, 0);
     if (privvol == NULL)
         goto cleanup;
 
@@ -1611,10 +1617,8 @@ parallelsStorageVolGetPath(virStorageVolPtr vol)
     return ret;
 }
 
-static virStorageDriver parallelsStorageDriver = {
+virStorageDriver parallelsStorageDriver = {
     .name = "Parallels",
-    .storageOpen = parallelsStorageOpen,     /* 0.10.0 */
-    .storageClose = parallelsStorageClose,   /* 0.10.0 */
 
     .connectNumOfStoragePools = parallelsConnectNumOfStoragePools,   /* 0.10.0 */
     .connectListStoragePools = parallelsConnectListStoragePools,   /* 0.10.0 */
@@ -1647,12 +1651,3 @@ static virStorageDriver parallelsStorageDriver = {
     .storagePoolIsActive = parallelsStoragePoolIsActive,     /* 0.10.0 */
     .storagePoolIsPersistent = parallelsStoragePoolIsPersistent,     /* 0.10.0 */
 };
-
-int
-parallelsStorageRegister(void)
-{
-    if (virRegisterStorageDriver(&parallelsStorageDriver) < 0)
-        return -1;
-
-    return 0;
-}

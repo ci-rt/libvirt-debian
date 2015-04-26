@@ -32,8 +32,9 @@
 #include <net/if_tap.h>
 
 #include "bhyve_device.h"
-#include "bhyve_process.h"
 #include "bhyve_command.h"
+#include "bhyve_monitor.h"
+#include "bhyve_process.h"
 #include "datatypes.h"
 #include "virerror.h"
 #include "virlog.h"
@@ -88,6 +89,14 @@ bhyveNetCleanup(virDomainObjPtr vm)
     }
 }
 
+static int
+virBhyveFormatDevMapFile(const char *vm_name, char **fn_out)
+{
+
+    return virAsprintf(fn_out, "%s/grub_bhyve-%s-device.map", BHYVE_STATE_DIR,
+                       vm_name);
+}
+
 int
 virBhyveProcessStart(virConnectPtr conn,
                      bhyveConnPtr driver,
@@ -95,6 +104,8 @@ virBhyveProcessStart(virConnectPtr conn,
                      virDomainRunningReason reason,
                      unsigned int flags)
 {
+    char *devmap_file = NULL;
+    char *devicemap = NULL;
     char *logfile = NULL;
     int logfd = -1;
     off_t pos = -1;
@@ -102,7 +113,7 @@ virBhyveProcessStart(virConnectPtr conn,
     virCommandPtr cmd = NULL;
     virCommandPtr load_cmd = NULL;
     bhyveConnPtr privconn = conn->privateData;
-    int ret = -1;
+    int ret = -1, rc;
 
     if (virAsprintf(&logfile, "%s/%s.log",
                     BHYVE_LOG_DIR, vm->def->name) < 0)
@@ -151,10 +162,25 @@ virBhyveProcessStart(virConnectPtr conn,
     /* Now bhyve command is constructed, meaning the
      * domain is ready to be started, so we can build
      * and execute bhyveload command */
-    if (!(load_cmd = virBhyveProcessBuildLoadCmd(conn, vm->def)))
+    rc = virBhyveFormatDevMapFile(vm->def->name, &devmap_file);
+    if (rc < 0)
+        goto cleanup;
+
+    if (!(load_cmd = virBhyveProcessBuildLoadCmd(conn, vm->def, devmap_file,
+                                                 &devicemap)))
         goto cleanup;
     virCommandSetOutputFD(load_cmd, &logfd);
     virCommandSetErrorFD(load_cmd, &logfd);
+
+    if (devicemap != NULL) {
+        rc = virFileWriteStr(devmap_file, devicemap, 0644);
+        if (rc) {
+            virReportSystemError(errno,
+                                 _("Cannot write device.map '%s'"),
+                                 devmap_file);
+            goto cleanup;
+        }
+    }
 
     /* Log generated command line */
     virCommandWriteArgLog(load_cmd, logfd);
@@ -184,6 +210,7 @@ virBhyveProcessStart(virConnectPtr conn,
 
     vm->def->id = vm->pid;
     virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
+    vm->privateData = bhyveMonitorOpen(vm, driver);
 
     if (virDomainSaveStatus(driver->xmlopt,
                             BHYVE_STATE_DIR,
@@ -193,6 +220,15 @@ virBhyveProcessStart(virConnectPtr conn,
     ret = 0;
 
  cleanup:
+    if (devicemap != NULL) {
+        rc = unlink(devmap_file);
+        if (rc < 0 && errno != ENOENT)
+            virReportSystemError(errno, _("cannot unlink file '%s'"),
+                                 devmap_file);
+        VIR_FREE(devicemap);
+    }
+    VIR_FREE(devmap_file);
+
     if (ret < 0) {
         int exitstatus; /* Needed to avoid logging non-zero status */
         virCommandPtr destroy_cmd;
@@ -217,7 +253,7 @@ virBhyveProcessStart(virConnectPtr conn,
 int
 virBhyveProcessStop(bhyveConnPtr driver,
                     virDomainObjPtr vm,
-                    virDomainShutoffReason reason ATTRIBUTE_UNUSED)
+                    virDomainShutoffReason reason)
 {
     int ret = -1;
     virCommandPtr cmd = NULL;
@@ -233,6 +269,9 @@ virBhyveProcessStop(bhyveConnPtr driver,
                        (int)vm->pid);
         return -1;
     }
+
+    if (vm->privateData != NULL)
+        bhyveMonitorClose((bhyveMonitorPtr)vm->privateData);
 
     /* First, try to kill 'bhyve' process */
     if (virProcessKillPainfully(vm->pid, true) != 0)
@@ -337,9 +376,12 @@ virBhyveProcessReconnect(virDomainObjPtr vm,
         goto cleanup;
 
     proc_argv = kvm_getargv(data->kd, kp, 0);
-    if (proc_argv && proc_argv[0])
-         if (STREQ(expected_proctitle, proc_argv[0]))
+    if (proc_argv && proc_argv[0]) {
+         if (STREQ(expected_proctitle, proc_argv[0])) {
              ret = 0;
+             vm->privateData = bhyveMonitorOpen(vm, data->driver);
+         }
+    }
 
  cleanup:
     if (ret < 0) {

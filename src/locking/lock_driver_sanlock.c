@@ -79,7 +79,7 @@ struct _virLockManagerSanlockDriver {
     gid_t group;
 };
 
-static virLockManagerSanlockDriver *driver = NULL;
+static virLockManagerSanlockDriver *driver;
 
 struct _virLockManagerSanlockPrivate {
     const char *vm_uri;
@@ -127,7 +127,7 @@ static int virLockManagerSanlockLoadConfig(const char *configFile)
     }
 
     p = virConfGetValue(conf, "auto_disk_leases");
-    CHECK_TYPE("auto_disk_leases", VIR_CONF_LONG);
+    CHECK_TYPE("auto_disk_leases", VIR_CONF_ULONG);
     if (p) driver->autoDiskLease = p->l;
 
     p = virConfGetValue(conf, "disk_lease_dir");
@@ -141,11 +141,11 @@ static int virLockManagerSanlockLoadConfig(const char *configFile)
     }
 
     p = virConfGetValue(conf, "host_id");
-    CHECK_TYPE("host_id", VIR_CONF_LONG);
+    CHECK_TYPE("host_id", VIR_CONF_ULONG);
     if (p) driver->hostID = p->l;
 
     p = virConfGetValue(conf, "require_lease_for_disks");
-    CHECK_TYPE("require_lease_for_disks", VIR_CONF_LONG);
+    CHECK_TYPE("require_lease_for_disks", VIR_CONF_ULONG);
     if (p)
         driver->requireLeaseForDisks = p->l;
     else
@@ -455,7 +455,7 @@ static int virLockManagerSanlockNew(virLockManagerPtr lock,
     size_t i;
     int resCount = 0;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_LOCK_MANAGER_NEW_STARTED, -1);
 
     if (!driver) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -497,8 +497,11 @@ static int virLockManagerSanlockNew(virLockManagerPtr lock,
      * if it returns any other error (rv < 0), then we cannot fail due
      * to back-compat.  So this whole call is non-fatal, because it's
      * called from all over the place (it will usually fail).  It merely
-     * updates privateData. */
-    if (sanlock_inquire(-1, priv->vm_pid, 0, &resCount, NULL) >= 0)
+     * updates privateData.
+     * If the process has just been started, we are pretty sure it is not
+     * registered. */
+    if (!(flags & VIR_LOCK_MANAGER_NEW_STARTED) &&
+        sanlock_inquire(-1, priv->vm_pid, 0, &resCount, NULL) >= 0)
         priv->registered = true;
 
     lock->privateData = priv;
@@ -1008,9 +1011,8 @@ static int virLockManagerSanlockAcquire(virLockManagerPtr lock,
     VIR_DEBUG("Acquire completed fd=%d", sock);
 
     if (res_free) {
-        for (i = 0; i < res_count; i++) {
+        for (i = 0; i < res_count; i++)
             VIR_FREE(res_args[i]);
-        }
         VIR_FREE(res_args);
     }
 
@@ -1021,9 +1023,8 @@ static int virLockManagerSanlockAcquire(virLockManagerPtr lock,
 
  error:
     if (res_free) {
-        for (i = 0; i < res_count; i++) {
+        for (i = 0; i < res_count; i++)
             VIR_FREE(res_args[i]);
-        }
         VIR_FREE(res_args);
     }
     VIR_FREE(opt);

@@ -35,6 +35,7 @@ AM_CFLAGS = \
 	-Dabs_builddir="\"$(abs_builddir)\"" \
 	-Dabs_srcdir="\"$(abs_srcdir)\"" \
 	$(LIBXML_CFLAGS) \
+	$(LIBNL_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
@@ -102,6 +103,7 @@ EXTRA_DIST =		\
 	nwfilterxml2xmlin \
 	nwfilterxml2xmlout \
 	oomtrace.pl \
+	qemuagentdata \
 	qemucapabilitiesdata \
 	qemucaps2xmldata \
 	qemuhelpdata \
@@ -129,6 +131,7 @@ EXTRA_DIST =		\
 	vircaps2xmldata \
 	vboxsnapshotxmldata \
 	virsh-uriprecedence \
+	vircgroupdata \
 	virfiledata \
 	virpcitestdata \
 	virscsidata \
@@ -136,6 +139,7 @@ EXTRA_DIST =		\
 	vmx2xmldata \
 	xencapsdata \
 	xmconfigdata \
+	xlconfigdata \
 	xml2sexprdata \
 	xml2vmxdata \
 	vmwareverdata \
@@ -166,7 +170,6 @@ test_programs = virshtest sockettest \
 	virstringtest \
 	virportallocatortest \
 	sysinfotest \
-	virnetdevbandwidthtest \
 	virkmodtest \
 	vircapstest \
 	domaincapstest \
@@ -226,11 +229,17 @@ if WITH_XEN
 test_programs += xml2sexprtest sexpr2xmltest \
 	xmconfigtest xencapstest statstest reconnect
 endif WITH_XEN
+
+if WITH_LIBXL
+test_programs += xlconfigtest
+endif WITH_LIBXL
+
 if WITH_QEMU
 test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 	qemumonitortest qemumonitorjsontest qemuhotplugtest \
-	qemuagenttest qemucapabilitiestest qemucaps2xmltest
+	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
+	qemucommandutiltest
 endif WITH_QEMU
 
 if WITH_LXC
@@ -317,7 +326,9 @@ test_programs += metadatatest
 test_programs += secretxml2xmltest
 
 if WITH_LINUX
-test_programs += virusbtest
+test_programs += virusbtest \
+	virnetdevbandwidthtest \
+	$(NULL)
 endif WITH_LINUX
 
 test_scripts = \
@@ -395,6 +406,7 @@ test_libraries = libshunload.la \
 if WITH_QEMU
 test_libraries += libqemumonitortestutils.la \
 		qemuxml2argvmock.la \
+		qemucaps2xmlmock.la \
 		$(NULL)
 endif WITH_QEMU
 
@@ -408,7 +420,9 @@ test_libraries += \
 endif WITH_DBUS
 
 if WITH_LINUX
-test_libraries += virusbmock.la
+test_libraries += virusbmock.la \
+		virnetdevbandwidthmock.la \
+		$(NULL)
 endif WITH_LINUX
 
 if WITH_TESTS
@@ -495,6 +509,18 @@ EXTRA_DIST += xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 	testutilsxen.c testutilsxen.h
 endif ! WITH_XEN
 
+if WITH_LIBXL
+libxl_LDADDS = ../src/libvirt_driver_libxl_impl.la
+libxl_LDADDS += $(LDADDS)
+
+xlconfigtest_SOURCES = \
+	xlconfigtest.c testutilsxen.c testutilsxen.h \
+	testutils.c testutils.h
+xlconfigtest_LDADD =$(libxl_LDADDS)
+else ! WITH_LIBXL
+EXTRA_DIST += xlconfigtest.c
+endif ! WITH_LIBXL
+
 QEMUMONITORTESTUTILS_SOURCES = \
 	qemumonitortestutils.c \
 	qemumonitortestutils.h \
@@ -544,8 +570,12 @@ qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 qemuhelptest_SOURCES = qemuhelptest.c testutils.c testutils.h
 qemuhelptest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
-qemumonitortest_SOURCES = qemumonitortest.c testutils.c testutils.h
-qemumonitortest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemumonitortest_SOURCES = \
+	qemumonitortest.c \
+	testutils.c testutils.h \
+	testutilsqemu.c testutilsqemu.h
+qemumonitortest_LDADD = libqemumonitortestutils.la \
+	$(qemu_LDADDS) $(LDADDS)
 
 qemumonitorjsontest_SOURCES = \
 	qemumonitorjsontest.c \
@@ -563,11 +593,25 @@ qemucapabilitiestest_SOURCES = \
 qemucapabilitiestest_LDADD = libqemumonitortestutils.la \
 	$(qemu_LDADDS) $(LDADDS)
 
+qemucommandutiltest_SOURCES = \
+	qemucommandutiltest.c \
+	testutils.c testutils.h \
+	testutilsqemu.c testutilsqemu.h \
+	$(NULL)
+qemucommandutiltest_LDADD = libqemumonitortestutils.la \
+	$(qemu_LDADDS) $(LDADDS)
+
 qemucaps2xmltest_SOURCES = \
 	qemucaps2xmltest.c \
 	testutils.c testutils.h \
 	$(NULL)
 qemucaps2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
+
+qemucaps2xmlmock_la_SOURCES = \
+	qemucaps2xmlmock.c
+qemucaps2xmlmock_la_CFLAGS = $(AM_CFLAGS)
+qemucaps2xmlmock_la_LDFLAGS = -module -avoid-version \
+		-rpath /evil/libtool/hack/to/force/shared/lib/creation
 
 qemuagenttest_SOURCES = \
 	qemuagenttest.c \
@@ -593,7 +637,7 @@ EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
 	qemuagenttest.c qemucapabilitiestest.c \
-	qemucaps2xmltest.c \
+	qemucaps2xmltest.c qemucommandutiltest.c \
 	$(QEMUMONITORTESTUTILS_SOURCES)
 endif ! WITH_QEMU
 
@@ -824,9 +868,6 @@ commandhelper_LDADD = \
 
 commandhelper_LDFLAGS = -static
 
-virnetdevbandwidthtest_SOURCES = \
-	virnetdevbandwidthtest.c testutils.h testutils.c
-virnetdevbandwidthtest_LDADD = $(LDADDS) $(LIBXML_LIBS)
 
 virkmodtest_SOURCES = \
 	virkmodtest.c testutils.h testutils.c
@@ -927,6 +968,7 @@ viridentitytest_SOURCES = \
 	viridentitytest.c testutils.h testutils.c
 viridentitytest_LDADD = $(LDADDS)
 if WITH_SELINUX
+viridentitytest_LDADD += $(SELINUX_LIBS)
 viridentitytest_DEPENDENCIES = libsecurityselinuxhelper.la \
 	../src/libvirt.la
 endif WITH_SELINUX
@@ -992,12 +1034,24 @@ virusbtest_SOURCES = \
 	virusbtest.c testutils.h testutils.c
 virusbtest_LDADD = $(LDADDS)
 
+virnetdevbandwidthtest_SOURCES = \
+	virnetdevbandwidthtest.c testutils.h testutils.c
+virnetdevbandwidthtest_LDADD = $(LDADDS) $(LIBXML_LIBS)
+
 virusbmock_la_SOURCES = virusbmock.c
 virusbmock_la_CFLAGS = $(AM_CFLAGS)
 virusbmock_la_LDFLAGS = -module -avoid-version \
         -rpath /evil/libtool/hack/to/force/shared/lib/creation
+
+virnetdevbandwidthmock_la_SOURCES = \
+	virnetdevbandwidthmock.c
+virnetdevbandwidthmock_la_CFLAGS = $(AM_CFLAGS)
+virnetdevbandwidthmock_la_LDFLAGS = -module -avoid-version \
+        -rpath /evil/libtool/hack/to/force/shared/lib/creation
+
 else ! WITH_LINUX
-	EXTRA_DIST += virusbtest.c virusbmock.c
+	EXTRA_DIST += virusbtest.c virusbmock.c \
+		virnetdevbandwidthtest.c virnetdevbandwidthmock.c
 endif ! WITH_LINUX
 
 if WITH_DBUS

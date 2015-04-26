@@ -1,7 +1,7 @@
 /*
  * qemu_process.h: QEMU process management
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2012, 2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -103,5 +103,16 @@ virBitmapPtr qemuPrepareCpumap(virQEMUDriverPtr driver,
                                virBitmapPtr nodemask);
 
 int qemuProcessReadLog(int fd, char *buf, int buflen, int off, bool skipchar);
+
+int qemuProcessSetSchedParams(int id, pid_t pid, size_t nsp,
+                              virDomainThreadSchedParamPtr sp);
+
+int qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
+                                  virQEMUDriverConfigPtr cfg,
+                                  virDomainGraphicsDefPtr graphics,
+                                  bool allocate);
+
+virDomainDiskDefPtr qemuProcessFindDomainDiskByAlias(virDomainObjPtr vm,
+                                                     const char *alias);
 
 #endif /* __QEMU_PROCESS_H__ */

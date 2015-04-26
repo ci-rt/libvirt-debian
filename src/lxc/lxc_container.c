@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008-2014 Red Hat, Inc.
  * Copyright (C) 2008 IBM Corp.
+ * Copyright (c) 2015 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * lxc_container.c: file description
  *
@@ -273,6 +274,10 @@ static int lxcContainerSetupFDs(int *ttyfd,
     size_t i;
     size_t j;
 
+    VIR_DEBUG("Logging from the container init will now cease "
+              "as the FDs are about to be closed for exec of "
+              "the container init process");
+
     if (setsid() < 0) {
         virReportSystemError(errno, "%s",
                              _("setsid failed"));
@@ -281,7 +286,7 @@ static int lxcContainerSetupFDs(int *ttyfd,
 
     if (ioctl(*ttyfd, TIOCSCTTY, NULL) < 0) {
         virReportSystemError(errno, "%s",
-                             _("ioctl(TIOCSTTY) failed"));
+                             _("ioctl(TIOCSCTTY) failed"));
         goto cleanup;
     }
 
@@ -396,9 +401,8 @@ int lxcContainerSendContinue(int control)
 
     VIR_DEBUG("Send continue on fd %d", control);
     writeCount = safewrite(control, &msg, sizeof(msg));
-    if (writeCount != sizeof(msg)) {
+    if (writeCount != sizeof(msg))
         goto error_out;
-    }
 
     rc = 0;
  error_out:
@@ -473,7 +477,7 @@ lxcContainerGetNetDef(virDomainDefPtr vmDef, const char *devName)
 
     for (i = 0; i < vmDef->nnets; i++) {
         netDef = vmDef->nets[i];
-        if (STREQ(netDef->ifname_guest_actual, devName))
+        if (STREQ_NULLABLE(netDef->ifname_guest_actual, devName))
             return netDef;
     }
 
@@ -496,8 +500,10 @@ static int lxcContainerRenameAndEnableInterfaces(virDomainDefPtr vmDef,
                                                  char **veths)
 {
     int rc = 0;
-    size_t i;
+    size_t i, j;
     char *newname = NULL;
+    char *toStr = NULL;
+    char *viaStr = NULL;
     virDomainNetDefPtr netDef;
     bool privNet = vmDef->features[VIR_DOMAIN_FEATURE_PRIVNET] ==
                    VIR_TRISTATE_SWITCH_ON;
@@ -517,10 +523,45 @@ static int lxcContainerRenameAndEnableInterfaces(virDomainDefPtr vmDef,
         if (rc < 0)
             goto error_out;
 
-        VIR_DEBUG("Enabling %s", newname);
-        rc = virNetDevSetOnline(newname, true);
-        if (rc < 0)
-            goto error_out;
+        for (j = 0; j < netDef->nips; j++) {
+            virDomainNetIpDefPtr ip = netDef->ips[j];
+            unsigned int prefix = (ip->prefix > 0) ? ip->prefix :
+                                  VIR_SOCKET_ADDR_DEFAULT_PREFIX;
+            char *ipStr = virSocketAddrFormat(&ip->address);
+
+            VIR_DEBUG("Adding IP address '%s/%u' to '%s'",
+                      ipStr, ip->prefix, newname);
+            if (virNetDevSetIPAddress(newname, &ip->address, prefix) < 0) {
+                virReportError(VIR_ERR_SYSTEM_ERROR,
+                               _("Failed to set IP address '%s' on %s"),
+                               ipStr, newname);
+                VIR_FREE(ipStr);
+                goto error_out;
+            }
+            VIR_FREE(ipStr);
+        }
+
+        if (netDef->linkstate != VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN) {
+            VIR_DEBUG("Enabling %s", newname);
+            rc = virNetDevSetOnline(newname, true);
+            if (rc < 0)
+                goto error_out;
+
+            /* Set the routes */
+            for (j = 0; j < netDef->nroutes; j++) {
+                virNetworkRouteDefPtr route = netDef->routes[j];
+
+                if (virNetDevAddRoute(newname,
+                                      virNetworkRouteDefGetAddress(route),
+                                      virNetworkRouteDefGetPrefix(route),
+                                      virNetworkRouteDefGetGateway(route),
+                                      virNetworkRouteDefGetMetric(route)) < 0) {
+                    goto error_out;
+                }
+                VIR_FREE(toStr);
+                VIR_FREE(viaStr);
+            }
+        }
 
         VIR_FREE(newname);
     }
@@ -530,6 +571,8 @@ static int lxcContainerRenameAndEnableInterfaces(virDomainDefPtr vmDef,
         rc = virNetDevSetOnline("lo", true);
 
  error_out:
+    VIR_FREE(toStr);
+    VIR_FREE(viaStr);
     VIR_FREE(newname);
     return rc;
 }
@@ -609,6 +652,48 @@ static int lxcContainerUnmountSubtree(const char *prefix,
     return ret;
 }
 
+static int lxcContainerResolveSymlinks(virDomainFSDefPtr fs, bool gentle)
+{
+    char *newroot;
+
+    if (!fs->src || fs->symlinksResolved)
+        return 0;
+
+    if (access(fs->src, F_OK)) {
+        if (gentle) {
+            /* Just ignore the error for the while, we'll try again later */
+            VIR_DEBUG("Skipped unaccessible '%s'", fs->src);
+            return 0;
+        } else {
+            virReportSystemError(errno,
+                                 _("Failed to access '%s'"), fs->src);
+            return -1;
+        }
+    }
+
+    VIR_DEBUG("Resolving '%s'", fs->src);
+    if (virFileResolveAllLinks(fs->src, &newroot) < 0) {
+        if (gentle) {
+            VIR_DEBUG("Skipped non-resolvable '%s'", fs->src);
+            return 0;
+        } else {
+            virReportSystemError(errno,
+                                 _("Failed to resolve symlink at %s"),
+                                 fs->src);
+        }
+        return -1;
+    }
+
+    /* Mark it resolved to skip it the next time */
+    fs->symlinksResolved = true;
+
+    VIR_DEBUG("Resolved '%s' to %s", fs->src, newroot);
+
+    VIR_FREE(fs->src);
+    fs->src = newroot;
+
+    return 0;
+}
 
 static int lxcContainerPrepareRoot(virDomainDefPtr def,
                                    virDomainFSDefPtr root,
@@ -634,6 +719,9 @@ static int lxcContainerPrepareRoot(virDomainDefPtr def,
                        virDomainFSTypeToString(root->type));
         return -1;
     }
+
+    if (lxcContainerResolveSymlinks(root, false) < 0)
+        return -1;
 
     if (virAsprintf(&dst, "%s/%s.root",
                     LXC_STATE_DIR, def->name) < 0)
@@ -756,15 +844,18 @@ typedef struct {
     int mflags;
     bool skipUserNS;
     bool skipUnmounted;
+    bool skipNoNetns;
 } virLXCBasicMountInfo;
 
 static const virLXCBasicMountInfo lxcBasicMounts[] = {
-    { "proc", "/proc", "proc", MS_NOSUID|MS_NOEXEC|MS_NODEV, false, false },
-    { "/proc/sys", "/proc/sys", NULL, MS_BIND|MS_RDONLY, false, false },
-    { "sysfs", "/sys", "sysfs", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY, false, false },
-    { "securityfs", "/sys/kernel/security", "securityfs", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY, true, true },
+    { "proc", "/proc", "proc", MS_NOSUID|MS_NOEXEC|MS_NODEV, false, false, false },
+    { "/proc/sys", "/proc/sys", NULL, MS_BIND|MS_RDONLY, false, false, false },
+    { "/.oldroot/proc/sys/net/ipv4", "/proc/sys/net/ipv4", NULL, MS_BIND, false, false, true },
+    { "/.oldroot/proc/sys/net/ipv6", "/proc/sys/net/ipv6", NULL, MS_BIND, false, false, true },
+    { "sysfs", "/sys", "sysfs", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY, false, false, false },
+    { "securityfs", "/sys/kernel/security", "securityfs", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY, true, true, false },
 #if WITH_SELINUX
-    { SELINUX_MOUNT, SELINUX_MOUNT, "selinuxfs", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY, true, true },
+    { SELINUX_MOUNT, SELINUX_MOUNT, "selinuxfs", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY, true, true, false },
 #endif
 };
 
@@ -858,14 +949,12 @@ static int lxcContainerMountBasicFS(bool userns_enabled,
          */
         if (userns_enabled && netns_disabled &&
             STREQ(mnt->src, "sysfs")) {
-            if (VIR_STRDUP(mnt_src, "/sys") < 0) {
+            if (VIR_STRDUP(mnt_src, "/sys") < 0)
                 goto cleanup;
-            }
             mnt_mflags = MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_RDONLY|MS_BIND;
         } else {
-            if (VIR_STRDUP(mnt_src, mnt->src) < 0) {
+            if (VIR_STRDUP(mnt_src, mnt->src) < 0)
                 goto cleanup;
-            }
             mnt_mflags = mnt->mflags;
         }
 
@@ -898,10 +987,24 @@ static int lxcContainerMountBasicFS(bool userns_enabled,
             continue;
         }
 
+        /* Skip mounts with missing source without shouting: it may be a
+         * missing folder in /proc due to the absence of a kernel feature */
+        if (STRPREFIX(mnt_src, "/") && !virFileExists(mnt_src)) {
+            VIR_DEBUG("Skipping due to missing source: %s", mnt_src);
+            VIR_FREE(mnt_src);
+            continue;
+        }
+
+        if (mnt->skipNoNetns && netns_disabled) {
+            VIR_DEBUG("Skipping due to absence of network namespace");
+            VIR_FREE(mnt_src);
+            continue;
+        }
+
         if (virFileMakePath(mnt->dst) < 0) {
             virReportSystemError(errno,
                                  _("Failed to mkdir %s"),
-                                 mnt_src);
+                                 mnt->dst);
             goto cleanup;
         }
 
@@ -1555,8 +1658,15 @@ static int lxcContainerMountAllFS(virDomainDefPtr vmDef,
         if (STREQ(vmDef->fss[i]->dst, "/"))
             continue;
 
-        if (lxcContainerUnmountSubtree(vmDef->fss[i]->dst,
-                                       false) < 0)
+        VIR_DEBUG("Mounting '%s' -> '%s'", vmDef->fss[i]->src, vmDef->fss[i]->dst);
+
+        if (lxcContainerResolveSymlinks(vmDef->fss[i], false) < 0)
+            return -1;
+
+
+        if (!(vmDef->fss[i]->src &&
+              STRPREFIX(vmDef->fss[i]->src, vmDef->fss[i]->dst)) &&
+            lxcContainerUnmountSubtree(vmDef->fss[i]->dst, false) < 0)
             return -1;
 
         if (lxcContainerMountFS(vmDef->fss[i], sec_mount_options) < 0)
@@ -1648,6 +1758,23 @@ static int lxcContainerUnmountForSharedRoot(const char *stateDir,
 }
 
 
+static bool
+lxcNeedNetworkNamespace(virDomainDefPtr def)
+{
+    size_t i;
+    if (def->nets != NULL)
+        return true;
+    if (def->features[VIR_DOMAIN_FEATURE_PRIVNET] == VIR_TRISTATE_SWITCH_ON)
+        return true;
+    for (i = 0; i < def->nhostdevs; i++) {
+        if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES &&
+            def->hostdevs[i]->source.caps.type == VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET)
+            return true;
+    }
+    return false;
+}
+
+
 /* Got a FS mapped to /, we're going the pivot_root
  * approach to do a better-chroot-than-chroot
  * this is based on this thread http://lkml.org/lkml/2008/3/5/29
@@ -1692,7 +1819,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
 
     /* Mounts the core /proc, /sys, etc filesystems */
     if (lxcContainerMountBasicFS(vmDef->idmap.nuidmap,
-                                 !vmDef->nnets) < 0)
+                                 !lxcNeedNetworkNamespace(vmDef)) < 0)
         goto cleanup;
 
     /* Ensure entire root filesystem (except /.oldroot) is readonly */
@@ -1738,37 +1865,18 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
     return ret;
 }
 
-
-static int lxcContainerResolveSymlinks(virDomainDefPtr vmDef)
+static int lxcContainerResolveAllSymlinks(virDomainDefPtr vmDef)
 {
-    char *newroot;
     size_t i;
 
     VIR_DEBUG("Resolving symlinks");
 
     for (i = 0; i < vmDef->nfss; i++) {
         virDomainFSDefPtr fs = vmDef->fss[i];
-        if (!fs->src)
-            continue;
-
-        if (access(fs->src, F_OK)) {
-            virReportSystemError(errno,
-                                 _("Failed to access '%s'"), fs->src);
+        /* In the first pass, be gentle as some files may
+           depend on other filesystems to be mounted */
+        if (lxcContainerResolveSymlinks(fs, true) < 0)
             return -1;
-        }
-
-        VIR_DEBUG("Resolving '%s'", fs->src);
-        if (virFileResolveAllLinks(fs->src, &newroot) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to resolve symlink at %s"),
-                                 fs->src);
-            return -1;
-        }
-
-        VIR_DEBUG("Resolved '%s' to %s", fs->src, newroot);
-
-        VIR_FREE(fs->src);
-        fs->src = newroot;
     }
     VIR_DEBUG("Resolved all filesystem symlinks");
 
@@ -2093,8 +2201,10 @@ static int lxcContainerChild(void *data)
         if (virAsprintf(&ttyPath, "%s/%s.devpts/%s",
                         LXC_STATE_DIR, vmDef->name, tty) < 0)
             goto cleanup;
-    } else if (VIR_STRDUP(ttyPath, "/dev/null") < 0) {
-            goto cleanup;
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("At least one tty is required"));
+        goto cleanup;
     }
 
     VIR_DEBUG("Container TTY path: %s", ttyPath);
@@ -2107,7 +2217,7 @@ static int lxcContainerChild(void *data)
         goto cleanup;
     }
 
-    if (lxcContainerResolveSymlinks(vmDef) < 0)
+    if (lxcContainerResolveAllSymlinks(vmDef) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting up pivot");
@@ -2144,6 +2254,7 @@ static int lxcContainerChild(void *data)
     if (virSecurityManagerSetProcessLabel(argv->securityDriver, vmDef) < 0)
         goto cleanup;
 
+    VIR_DEBUG("Setting up inherited FDs");
     VIR_FORCE_CLOSE(argv->handshakefd);
     VIR_FORCE_CLOSE(argv->monitor);
     if (lxcContainerSetupFDs(&ttyfd,
@@ -2158,11 +2269,13 @@ static int lxcContainerChild(void *data)
     VIR_FORCE_CLOSE(argv->handshakefd);
 
     if (ret == 0) {
+        VIR_DEBUG("Executing init binary");
         /* this function will only return if an error occurred */
         ret = virCommandExec(cmd);
     }
 
     if (ret != 0) {
+        VIR_DEBUG("Tearing down container");
         virErrorPtr err = virGetLastError();
         if (err && err->message)
             fprintf(stderr, "%s\n", err->message);
@@ -2207,22 +2320,6 @@ virArch lxcContainerGetAlt32bitArch(virArch arch)
     return VIR_ARCH_NONE;
 }
 
-
-static bool
-lxcNeedNetworkNamespace(virDomainDefPtr def)
-{
-    size_t i;
-    if (def->nets != NULL)
-        return true;
-    if (def->features[VIR_DOMAIN_FEATURE_PRIVNET] == VIR_TRISTATE_SWITCH_ON)
-        return true;
-    for (i = 0; i < def->nhostdevs; i++) {
-        if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES &&
-            def->hostdevs[i]->source.caps.type == VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET)
-            return true;
-    }
-    return false;
-}
 
 /**
  * lxcContainerStart:
@@ -2277,8 +2374,8 @@ int lxcContainerStart(virDomainDefPtr def,
             VIR_DEBUG("Enable user namespace");
             cflags |= CLONE_NEWUSER;
         } else {
-            virReportSystemError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                 _("Kernel doesn't support user namespace"));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Kernel doesn't support user namespace"));
             VIR_FREE(stack);
             return -1;
         }
@@ -2289,6 +2386,7 @@ int lxcContainerStart(virDomainDefPtr def,
         cflags |= CLONE_NEWNET;
     }
 
+    VIR_DEBUG("Cloning container init process");
     pid = clone(lxcContainerChild, stacktop, cflags, &args);
     VIR_FREE(stack);
     VIR_DEBUG("clone() completed, new container PID is %d", pid);

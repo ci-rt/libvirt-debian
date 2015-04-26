@@ -173,6 +173,16 @@ char *
 virFindSCSIHostByPCI(const char *sysfs_prefix,
                      const char *parentaddr,
                      unsigned int unique_id);
+int
+virGetSCSIHostNumber(const char *adapter_name,
+                     unsigned int *result)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+char *
+virGetSCSIHostNameByParentaddr(unsigned int domain,
+                               unsigned int bus,
+                               unsigned int slot,
+                               unsigned int function,
+                               unsigned int unique_id);
 int virReadFCHost(const char *sysfs_prefix,
                   int host,
                   const char *entry,
@@ -199,8 +209,6 @@ char *virGetFCHostNameByWWN(const char *sysfs_prefix,
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 char *virFindFCHostCapableVport(const char *sysfs_prefix);
-
-int virCompareLimitUlong(unsigned long long a, unsigned long long b);
 
 int virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr);
 
@@ -233,5 +241,11 @@ VIR_ENUM_DECL(virTristateBool)
 VIR_ENUM_DECL(virTristateSwitch)
 
 unsigned int virGetListenFDs(void);
+
+long virGetSystemPageSize(void);
+long virGetSystemPageSizeKB(void);
+
+unsigned long long virMemoryLimitTruncate(unsigned long long value);
+bool virMemoryLimitIsSet(unsigned long long value);
 
 #endif /* __VIR_UTIL_H__ */

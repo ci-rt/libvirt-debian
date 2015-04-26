@@ -39,6 +39,8 @@
 # include "virmacaddr.h"
 # include "device_conf.h"
 # include "virbitmap.h"
+# include "networkcommon_conf.h"
+# include "virobject.h"
 
 typedef enum {
     VIR_NETWORK_FORWARD_NONE   = 0,
@@ -52,6 +54,16 @@ typedef enum {
 
     VIR_NETWORK_FORWARD_LAST,
 } virNetworkForwardType;
+
+typedef enum {
+   VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_DEFAULT = 0,
+   VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_KERNEL,
+   VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_LIBVIRT,
+
+   VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_LAST,
+} virNetworkBridgeMACTableManagerType;
+
+VIR_ENUM_DECL(virNetworkBridgeMACTableManager)
 
 typedef enum {
     VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NONE = 0,
@@ -152,25 +164,6 @@ struct _virNetworkIpDef {
     virSocketAddr bootserver;
    };
 
-typedef struct _virNetworkRouteDef virNetworkRouteDef;
-typedef virNetworkRouteDef *virNetworkRouteDefPtr;
-struct _virNetworkRouteDef {
-    char *family;               /* ipv4 or ipv6 - default is ipv4 */
-    virSocketAddr address;      /* Routed Network IP address */
-
-    /* One or the other of the following two will be used for a given
-     * Network address, but never both. The parser guarantees this.
-     * The virSocketAddrGetIpPrefix() can be used to get a
-     * valid prefix.
-     */
-    virSocketAddr netmask;      /* ipv4 - either netmask or prefix specified */
-    unsigned int prefix;        /* ipv6 - only prefix allowed */
-    bool has_prefix;            /* prefix= was specified */
-    unsigned int metric;        /* value for metric (defaults to 1) */
-    bool has_metric;            /* metric= was specified */
-    virSocketAddr gateway;      /* gateway IP address for ip-route */
-   };
-
 typedef struct _virNetworkForwardIfDef virNetworkForwardIfDef;
 typedef virNetworkForwardIfDef *virNetworkForwardIfDefPtr;
 struct _virNetworkForwardIfDef {
@@ -219,6 +212,7 @@ struct _virPortGroupDef {
     virNetDevVPortProfilePtr virtPortProfile;
     virNetDevBandwidthPtr bandwidth;
     virNetDevVlan vlan;
+    int trustGuestRxFilters; /* enum virTristateBool */
 };
 
 typedef struct _virNetworkDef virNetworkDef;
@@ -230,7 +224,9 @@ struct _virNetworkDef {
     int   connections; /* # of guest interfaces connected to this network */
 
     char *bridge;       /* Name of bridge device */
+    int  macTableManager; /* enum virNetworkBridgeMACTableManager */
     char *domain;
+    int domainLocalOnly; /* enum virTristateBool: yes disables dns forwarding */
     unsigned long delay;   /* Bridge forward delay (ms) */
     bool stp; /* Spanning tree protocol */
     virMacAddr mac; /* mac address of bridge device */
@@ -247,7 +243,7 @@ struct _virNetworkDef {
     virNetworkIpDefPtr ips; /* ptr to array of IP addresses on this network */
 
     size_t nroutes;
-    virNetworkRouteDefPtr routes; /* ptr to array of static routes on this interface */
+    virNetworkRouteDefPtr *routes; /* ptr to array of static routes on this interface */
 
     virNetworkDNSDef dns;   /* dns related configuration */
     virNetDevVPortProfilePtr virtPortProfile;
@@ -256,12 +252,13 @@ struct _virNetworkDef {
     virPortGroupDefPtr portGroups;
     virNetDevBandwidthPtr bandwidth;
     virNetDevVlan vlan;
+    int trustGuestRxFilters; /* enum virTristateBool */
 };
 
 typedef struct _virNetworkObj virNetworkObj;
 typedef virNetworkObj *virNetworkObjPtr;
 struct _virNetworkObj {
-    virMutex lock;
+    virObjectLockable parent;
 
     pid_t dnsmasqPid;
     pid_t radvdPid;
@@ -278,12 +275,11 @@ struct _virNetworkObj {
     unsigned int taint;
 };
 
+virNetworkObjPtr virNetworkObjNew(void);
+void virNetworkObjEndAPI(virNetworkObjPtr *net);
+
 typedef struct _virNetworkObjList virNetworkObjList;
 typedef virNetworkObjList *virNetworkObjListPtr;
-struct _virNetworkObjList {
-    size_t count;
-    virNetworkObjPtr *objs;
-};
 
 typedef enum {
     VIR_NETWORK_TAINT_HOOK,                 /* Hook script was executed over
@@ -302,26 +298,31 @@ virNetworkObjIsActive(const virNetworkObj *net)
     return net->active;
 }
 
+virNetworkObjListPtr virNetworkObjListNew(void);
+
+virNetworkObjPtr virNetworkObjFindByUUIDLocked(virNetworkObjListPtr nets,
+                                               const unsigned char *uuid);
+virNetworkObjPtr virNetworkObjFindByUUID(virNetworkObjListPtr nets,
+                                         const unsigned char *uuid);
+virNetworkObjPtr virNetworkObjFindByNameLocked(virNetworkObjListPtr nets,
+                                               const char *name);
+virNetworkObjPtr virNetworkObjFindByName(virNetworkObjListPtr nets,
+                                         const char *name);
 bool virNetworkObjTaint(virNetworkObjPtr obj,
                         virNetworkTaintFlags taint);
 
-virNetworkObjPtr virNetworkFindByUUID(virNetworkObjListPtr nets,
-                                      const unsigned char *uuid);
-virNetworkObjPtr virNetworkFindByName(virNetworkObjListPtr nets,
-                                      const char *name);
-
-
 void virNetworkDefFree(virNetworkDefPtr def);
-void virNetworkObjFree(virNetworkObjPtr net);
-void virNetworkObjListFree(virNetworkObjListPtr vms);
-
 
 typedef bool (*virNetworkObjListFilter)(virConnectPtr conn,
                                         virNetworkDefPtr def);
 
+enum {
+    VIR_NETWORK_OBJ_LIST_ADD_LIVE = (1 << 0),
+    VIR_NETWORK_OBJ_LIST_ADD_CHECK_LIVE = (1 << 1),
+};
 virNetworkObjPtr virNetworkAssignDef(virNetworkObjListPtr nets,
                                      virNetworkDefPtr def,
-                                     bool live);
+                                     unsigned int flags);
 void virNetworkObjAssignDef(virNetworkObjPtr network,
                             virNetworkDefPtr def,
                             bool live);
@@ -417,13 +418,6 @@ virNetworkObjUpdate(virNetworkObjPtr obj,
                     const char *xml,
                     unsigned int flags);  /* virNetworkUpdateFlags */
 
-int virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
-                             virNetworkDefPtr def,
-                             bool check_active);
-
-void virNetworkObjLock(virNetworkObjPtr obj);
-void virNetworkObjUnlock(virNetworkObjPtr obj);
-
 VIR_ENUM_DECL(virNetworkForward)
 
 # define VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE   \
@@ -444,9 +438,31 @@ VIR_ENUM_DECL(virNetworkForward)
                  VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART)
 
 int virNetworkObjListExport(virConnectPtr conn,
-                            virNetworkObjList netobjs,
+                            virNetworkObjListPtr netobjs,
                             virNetworkPtr **nets,
                             virNetworkObjListFilter filter,
+                            unsigned int flags);
+
+typedef int (*virNetworkObjListIterator)(virNetworkObjPtr net,
+                                         void *opaque);
+
+int virNetworkObjListForEach(virNetworkObjListPtr nets,
+                             virNetworkObjListIterator callback,
+                             void *opaque);
+
+int virNetworkObjListGetNames(virNetworkObjListPtr nets,
+                              bool active,
+                              char **names,
+                              int nnames,
+                              virNetworkObjListFilter filter,
+                              virConnectPtr conn);
+
+int virNetworkObjListNumOfNetworks(virNetworkObjListPtr nets,
+                                   bool active,
+                                   virNetworkObjListFilter filter,
+                                   virConnectPtr conn);
+
+void virNetworkObjListPrune(virNetworkObjListPtr nets,
                             unsigned int flags);
 
 /* for testing */

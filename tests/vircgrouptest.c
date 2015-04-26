@@ -32,6 +32,7 @@
 # include "virerror.h"
 # include "virlog.h"
 # include "virfile.h"
+# include "virbuffer.h"
 # include "testutilslxc.h"
 # include "nodeinfo.h"
 
@@ -156,6 +157,58 @@ const char *linksLogind[VIR_CGROUP_CONTROLLER_LAST] = {
     [VIR_CGROUP_CONTROLLER_BLKIO] = NULL,
     [VIR_CGROUP_CONTROLLER_SYSTEMD] = NULL,
 };
+
+
+static int
+testCgroupDetectMounts(const void *args)
+{
+    int result = -1;
+    const char *file = args;
+    char *mounts = NULL;
+    char *parsed = NULL;
+    char *expected = NULL;
+    const char *actual;
+    virCgroupPtr group = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t i;
+
+    if (virAsprintf(&mounts, "%s/vircgroupdata/%s.mounts",
+                    abs_srcdir, file) < 0 ||
+        virAsprintf(&parsed, "%s/vircgroupdata/%s.parsed",
+                    abs_srcdir, file) < 0 ||
+        VIR_ALLOC(group) < 0)
+        goto cleanup;
+
+    if (virCgroupDetectMountsFromFile(group, mounts, false) < 0)
+        goto cleanup;
+
+    if (virtTestLoadFile(parsed, &expected) < 0)
+        goto cleanup;
+
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
+        virBufferAsprintf(&buf, "%-12s %s\n",
+                          virCgroupControllerTypeToString(i),
+                          NULLSTR(group->controllers[i].mountPoint));
+    }
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    actual = virBufferCurrentContent(&buf);
+    if (STRNEQ(expected, actual)) {
+        virtTestDifference(stderr, expected, actual);
+        goto cleanup;
+    }
+
+    result = 0;
+
+ cleanup:
+    VIR_FREE(mounts);
+    VIR_FREE(parsed);
+    VIR_FREE(expected);
+    virCgroupFree(&group);
+    virBufferFreeAndReset(&buf);
+    return result;
+}
 
 
 static int testCgroupNewForSelf(const void *args ATTRIBUTE_UNUSED)
@@ -538,12 +591,34 @@ static int testCgroupGetPercpuStats(const void *args ATTRIBUTE_UNUSED)
     virCgroupPtr cgroup = NULL;
     size_t i;
     int rv, ret = -1;
-    virTypedParameter params[2];
+    virTypedParameterPtr params = NULL;
+# define EXPECTED_NCPUS 160
 
-    // TODO: mock nodeGetCPUCount() as well & check 2nd cpu, too
-    unsigned long long expected[] = {
-        1413142688153030ULL
+    unsigned long long expected[EXPECTED_NCPUS] = {
+        0, 0, 0, 0, 0, 0, 0, 0,
+        7059492996, 0, 0, 0, 0, 0, 0, 0,
+        4180532496, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        1957541268, 0, 0, 0, 0, 0, 0, 0,
+        2065932204, 0, 0, 0, 0, 0, 0, 0,
+        18228689414, 0, 0, 0, 0, 0, 0, 0,
+        4245525148, 0, 0, 0, 0, 0, 0, 0,
+        2911161568, 0, 0, 0, 0, 0, 0, 0,
+        1407758136, 0, 0, 0, 0, 0, 0, 0,
+        1836807700, 0, 0, 0, 0, 0, 0, 0,
+        1065296618, 0, 0, 0, 0, 0, 0, 0,
+        2046213266, 0, 0, 0, 0, 0, 0, 0,
+        747889778, 0, 0, 0, 0, 0, 0, 0,
+        709566900, 0, 0, 0, 0, 0, 0, 0,
+        444777342, 0, 0, 0, 0, 0, 0, 0,
+        5683512916, 0, 0, 0, 0, 0, 0, 0,
+        635751356, 0, 0, 0, 0, 0, 0, 0,
     };
+
+    if (VIR_ALLOC_N(params, EXPECTED_NCPUS) < 0)
+        goto cleanup;
 
     if ((rv = virCgroupNewPartition("/virtualmachines", true,
                                     (1 << VIR_CGROUP_CONTROLLER_CPU) |
@@ -553,37 +628,37 @@ static int testCgroupGetPercpuStats(const void *args ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    if (nodeGetCPUCount() < 1) {
+    if (nodeGetCPUCount() != EXPECTED_NCPUS) {
         fprintf(stderr, "Unexpected: nodeGetCPUCount() yields: %d\n", nodeGetCPUCount());
         goto cleanup;
     }
 
     if ((rv = virCgroupGetPercpuStats(cgroup,
                                       params,
-                                      2, 0, 1, 0)) < 0) {
+                                      1, 0, EXPECTED_NCPUS, 0)) < 0) {
         fprintf(stderr, "Failed call to virCgroupGetPercpuStats for /virtualmachines cgroup: %d\n", -rv);
         goto cleanup;
     }
 
-    for (i = 0; i < ARRAY_CARDINALITY(expected); i++) {
+    for (i = 0; i < EXPECTED_NCPUS; i++) {
         if (!STREQ(params[i].field, VIR_DOMAIN_CPU_STATS_CPUTIME)) {
             fprintf(stderr,
-                    "Wrong parameter name value from virCgroupGetPercpuStats (is: %s)\n",
-                    params[i].field);
+                    "Wrong parameter name value from virCgroupGetPercpuStats at %zu (is: %s)\n",
+                    i, params[i].field);
             goto cleanup;
         }
 
         if (params[i].type != VIR_TYPED_PARAM_ULLONG) {
             fprintf(stderr,
-                    "Wrong parameter value type from virCgroupGetPercpuStats (is: %d)\n",
-                    params[i].type);
+                    "Wrong parameter value type from virCgroupGetPercpuStats at %zu (is: %d)\n",
+                    i, params[i].type);
             goto cleanup;
         }
 
         if (params[i].value.ul != expected[i]) {
             fprintf(stderr,
-                    "Wrong value from virCgroupGetMemoryUsage (expected %llu)\n",
-                    params[i].value.ul);
+                    "Wrong value from virCgroupGetMemoryUsage at %zu (expected %llu)\n",
+                    i, params[i].value.ul);
             goto cleanup;
         }
     }
@@ -592,6 +667,7 @@ static int testCgroupGetPercpuStats(const void *args ATTRIBUTE_UNUSED)
 
  cleanup:
     virCgroupFree(&cgroup);
+    VIR_FREE(params);
     return ret;
 }
 
@@ -769,6 +845,25 @@ mymain(void)
     }
 
     setenv("LIBVIRT_FAKE_SYSFS_DIR", fakesysfsdir, 1);
+
+# define DETECT_MOUNTS(file)                                            \
+    do {                                                                \
+        if (virtTestRun("Detect cgroup mounts for " file,               \
+                        testCgroupDetectMounts,                         \
+                        file) < 0)                                      \
+            ret = -1;                                                   \
+    } while (0)
+
+    DETECT_MOUNTS("ovirt-node-6.6");
+    DETECT_MOUNTS("ovirt-node-7.1");
+    DETECT_MOUNTS("fedora-18");
+    DETECT_MOUNTS("fedora-21");
+    DETECT_MOUNTS("rhel-7.1");
+    DETECT_MOUNTS("cgroups1");
+    DETECT_MOUNTS("cgroups2");
+    DETECT_MOUNTS("cgroups3");
+    DETECT_MOUNTS("all-in-one");
+    DETECT_MOUNTS("no-cgroups");
 
     if (virtTestRun("New cgroup for self", testCgroupNewForSelf, NULL) < 0)
         ret = -1;

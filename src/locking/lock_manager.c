@@ -142,7 +142,7 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
         if (!(modfile = virFileFindResourceFull(name,
                                                 NULL,
                                                 ".so",
-                                                "src/.libs",
+                                                abs_topbuilddir "/src/.libs",
                                                 LIBDIR "/libvirt/lock-driver",
                                                 "LIBVIRT_LOCK_MANAGER_PLUGIN_DIR")))
             goto cleanup;
@@ -287,7 +287,7 @@ virLockDriverPtr virLockManagerPluginGetDriver(virLockManagerPluginPtr plugin)
  * virLockManagerNew:
  * @driver: the lock manager implementation to use
  * @type: the type of process to be supervised
- * @flags: optional flags, currently unused
+ * @flags: bitwise-OR of virLockManagerNewFlags
  *
  * Create a new context to supervise a process, usually
  * a virtual machine.

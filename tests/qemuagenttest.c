@@ -164,6 +164,149 @@ testQemuAgentFSTrim(const void *data)
 
 
 static int
+testQemuAgentGetFSInfo(const void *data)
+{
+    virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    virCapsPtr caps = testQemuCapsInit();
+    qemuMonitorTestPtr test = qemuMonitorTestNewAgent(xmlopt);
+    char *domain_filename = NULL;
+    char *domain_xml = NULL;
+    virDomainDefPtr def = NULL;
+    virDomainFSInfoPtr *info = NULL;
+    int ret = -1, ninfo = 0, i;
+
+    if (!test)
+        return -1;
+
+    if (virAsprintf(&domain_filename, "%s/qemuagentdata/qemuagent-fsinfo.xml",
+                    abs_srcdir) < 0)
+        goto cleanup;
+
+    if (virtTestLoadFile(domain_filename, &domain_xml) < 0)
+        goto cleanup;
+
+    if (!(def = virDomainDefParseString(domain_xml, caps, xmlopt,
+                                        QEMU_EXPECTED_VIRT_TYPES,
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+        goto cleanup;
+
+    if (qemuMonitorTestAddAgentSyncResponse(test) < 0)
+        goto cleanup;
+
+    if (qemuMonitorTestAddItem(test, "guest-get-fsinfo",
+                               "{\"return\": ["
+                               "  {\"name\": \"sda1\", \"mountpoint\": \"/\","
+                               "   \"disk\": ["
+                               "     {\"bus-type\": \"ide\","
+                               "      \"bus\": 1, \"unit\": 0,"
+                               "      \"pci-controller\": {"
+                               "        \"bus\": 0, \"slot\": 1,"
+                               "        \"domain\": 0, \"function\": 1},"
+                               "      \"target\": 0}],"
+                               "   \"type\": \"ext4\"},"
+                               "  {\"name\": \"dm-1\","
+                               "   \"mountpoint\": \"/opt\","
+                               "   \"disk\": ["
+                               "     {\"bus-type\": \"virtio\","
+                               "      \"bus\": 0, \"unit\": 0,"
+                               "      \"pci-controller\": {"
+                               "        \"bus\": 0, \"slot\": 6,"
+                               "        \"domain\": 0, \"function\": 0},"
+                               "      \"target\": 0},"
+                               "     {\"bus-type\": \"virtio\","
+                               "      \"bus\": 0, \"unit\": 0,"
+                               "      \"pci-controller\": {"
+                               "        \"bus\": 0, \"slot\": 7,"
+                               "        \"domain\": 0, \"function\": 0},"
+                               "      \"target\": 0}],"
+                               "   \"type\": \"vfat\"},"
+                               "  {\"name\": \"sdb1\","
+                               "   \"mountpoint\": \"/mnt/disk\","
+                               "   \"disk\": [], \"type\": \"xfs\"}]}") < 0)
+        goto cleanup;
+
+    if ((ninfo = qemuAgentGetFSInfo(qemuMonitorTestGetAgent(test),
+                                    &info, def)) < 0)
+        goto cleanup;
+
+    if (ninfo != 3) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "expected 3 filesystems information, got %d", ninfo);
+        ret = -1;
+        goto cleanup;
+    }
+    if (STRNEQ(info[2]->name, "sda1") ||
+        STRNEQ(info[2]->mountpoint, "/") ||
+        STRNEQ(info[2]->fstype, "ext4") ||
+        info[2]->ndevAlias != 1 ||
+        !info[2]->devAlias || !info[2]->devAlias[0] ||
+        STRNEQ(info[2]->devAlias[0], "hdc")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+            "unexpected filesystems information returned for sda1 (%s,%s)",
+            info[2]->name, info[2]->devAlias ? info[2]->devAlias[0] : "null");
+        ret = -1;
+        goto cleanup;
+    }
+    if (STRNEQ(info[1]->name, "dm-1") ||
+        STRNEQ(info[1]->mountpoint, "/opt") ||
+        STRNEQ(info[1]->fstype, "vfat") ||
+        info[1]->ndevAlias != 2 ||
+        !info[1]->devAlias || !info[1]->devAlias[0] || !info[1]->devAlias[1] ||
+        STRNEQ(info[1]->devAlias[0], "vda") ||
+        STRNEQ(info[1]->devAlias[1], "vdb")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+            "unexpected filesystems information returned for dm-1 (%s,%s)",
+            info[0]->name, info[0]->devAlias ? info[0]->devAlias[0] : "null");
+        ret = -1;
+        goto cleanup;
+    }
+    if (STRNEQ(info[0]->name, "sdb1") ||
+        STRNEQ(info[0]->mountpoint, "/mnt/disk") ||
+        STRNEQ(info[0]->fstype, "xfs") ||
+        info[0]->ndevAlias != 0 || info[0]->devAlias) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+            "unexpected filesystems information returned for sdb1 (%s,%s)",
+            info[0]->name, info[0]->devAlias ? info[0]->devAlias[0] : "null");
+        ret = -1;
+        goto cleanup;
+    }
+
+    if (qemuMonitorTestAddAgentSyncResponse(test) < 0)
+        goto cleanup;
+
+    if (qemuMonitorTestAddItem(test, "guest-get-fsinfo",
+                               "{\"error\":"
+                               "    {\"class\":\"CommandDisabled\","
+                               "     \"desc\":\"The command guest-get-fsinfo "
+                                               "has been disabled for "
+                                               "this instance\","
+                               "     \"data\":{\"name\":\"guest-get-fsinfo\"}"
+                               "    }"
+                               "}") < 0)
+        goto cleanup;
+
+    if (qemuAgentGetFSInfo(qemuMonitorTestGetAgent(test), &info, def) != -1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "agent get-fsinfo command should have failed");
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    for (i = 0; i < ninfo; i++)
+        virDomainFSInfoFree(info[i]);
+    VIR_FREE(info);
+    VIR_FREE(domain_filename);
+    VIR_FREE(domain_xml);
+    virObjectUnref(caps);
+    virDomainDefFree(def);
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
+
+static int
 testQemuAgentSuspend(const void *data)
 {
     virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
@@ -580,6 +723,193 @@ testQemuAgentTimeout(const void *data)
     return ret;
 }
 
+static const char testQemuAgentGetInterfacesResponse[] =
+    "{\"return\": "
+    "    ["
+    "       {\"name\":\"eth2\","
+    "        \"hardware-address\":\"52:54:00:36:2a:e5\""
+    "       },"
+    "       {\"name\":\"eth1:0\","
+    "        \"ip-addresses\":"
+    "          ["
+    "             {\"ip-address-type\":\"ipv4\","
+    "              \"ip-address\":\"192.168.10.91\","
+    "              \"prefix\":24"
+    "             },"
+    "             {\"ip-address-type\":\"ipv6\","
+    "              \"ip-address\":\"fe80::fc54:ff:fefe:4c4f\","
+    "              \"prefix\":64"
+    "             }"
+    "          ],"
+    "        \"hardware-address\":\"52:54:00:d3:39:ee\""
+    "       },"
+    "       {\"name\":\"eth0\","
+    "        \"ip-addresses\":"
+    "          ["
+    "             {\"ip-address-type\":\"ipv6\","
+    "              \"ip-address\":\"fe80::5054:ff:fe89:ad35\","
+    "              \"prefix\":64"
+    "             },"
+    "             {\"ip-address-type\":\"ipv4\","
+    "              \"ip-address\":\"192.168.102.142\","
+    "              \"prefix\":24"
+    "             },"
+    "             {\"ip-address-type\":\"ipv4\","
+    "              \"ip-address\":\"192.168.234.152\","
+    "              \"prefix\":16"
+    "             },"
+    "             {\"ip-address-type\":\"ipv6\","
+    "              \"ip-address\":\"fe80::5054:ff:fec3:68bb\","
+    "              \"prefix\":64"
+    "             }"
+    "          ],"
+    "        \"hardware-address\":\"52:54:00:89:ad:35\""
+    "       },"
+    "       {\"name\":\"eth1\","
+    "        \"ip-addresses\":"
+    "          ["
+    "             {\"ip-address-type\":\"ipv4\","
+    "              \"ip-address\":\"192.168.103.83\","
+    "              \"prefix\":32"
+    "             },"
+    "             {\"ip-address-type\":\"ipv6\","
+    "              \"ip-address\":\"fe80::5054:ff:fed3:39ee\","
+    "              \"prefix\":64"
+    "             }"
+    "          ],"
+    "        \"hardware-address\":\"52:54:00:d3:39:ee\""
+    "       },"
+    "       {\"name\":\"lo\","
+    "        \"ip-addresses\":"
+    "          ["
+    "             {\"ip-address-type\":\"ipv4\","
+    "              \"ip-address\":\"127.0.0.1\","
+    "              \"prefix\":8"
+    "             },"
+    "             {\"ip-address-type\":\"ipv6\","
+    "              \"ip-address\":\"::1\","
+    "              \"prefix\":128"
+    "             }"
+    "          ],"
+    "        \"hardware-address\":\"00:00:00:00:00:00\""
+    "       }"
+    "    ]"
+    "}";
+
+static int
+testQemuAgentGetInterfaces(const void *data)
+{
+    virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNewAgent(xmlopt);
+    size_t i;
+    int ret = -1;
+    int ifaces_count = 0;
+    virDomainInterfacePtr *ifaces = NULL;
+
+    if (!test)
+        return -1;
+
+    if (qemuMonitorTestAddAgentSyncResponse(test) < 0)
+        goto cleanup;
+
+    if (qemuMonitorTestAddItem(test, "guest-network-get-interfaces",
+                               testQemuAgentGetInterfacesResponse) < 0)
+        goto cleanup;
+
+    if ((ifaces_count = qemuAgentGetInterfaces(qemuMonitorTestGetAgent(test),
+                                               &ifaces)) < 0)
+        goto cleanup;
+
+    if (ifaces_count != 4) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "expected 4 interfaces, got %d", ret);
+        goto cleanup;
+    }
+
+    if (STRNEQ(ifaces[0]->name, "eth2") ||
+        STRNEQ(ifaces[1]->name, "eth1") ||
+        STRNEQ(ifaces[2]->name, "eth0") ||
+        STRNEQ(ifaces[3]->name, "lo")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "unexpected return values for interface names");
+        goto cleanup;
+    }
+
+    if (STRNEQ(ifaces[0]->hwaddr, "52:54:00:36:2a:e5") ||
+        STRNEQ(ifaces[1]->hwaddr, "52:54:00:d3:39:ee") ||
+        STRNEQ(ifaces[2]->hwaddr, "52:54:00:89:ad:35") ||
+        STRNEQ(ifaces[3]->hwaddr, "00:00:00:00:00:00")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "unexpected return values for MAC addresses");
+        goto cleanup;
+    }
+
+    if (ifaces[0]->naddrs != 0 ||
+        ifaces[1]->naddrs != 4 ||
+        ifaces[2]->naddrs != 4 ||
+        ifaces[3]->naddrs != 2) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "unexpected return values for number of IP addresses");
+        goto cleanup;
+    }
+
+    if (ifaces[1]->addrs[0].type != VIR_IP_ADDR_TYPE_IPV4 ||
+        ifaces[1]->addrs[1].type != VIR_IP_ADDR_TYPE_IPV6 ||
+        ifaces[1]->addrs[2].type != VIR_IP_ADDR_TYPE_IPV4 ||
+        ifaces[1]->addrs[3].type != VIR_IP_ADDR_TYPE_IPV6 ||
+        ifaces[2]->addrs[0].type != VIR_IP_ADDR_TYPE_IPV6 ||
+        ifaces[2]->addrs[1].type != VIR_IP_ADDR_TYPE_IPV4 ||
+        ifaces[2]->addrs[2].type != VIR_IP_ADDR_TYPE_IPV4 ||
+        ifaces[2]->addrs[3].type != VIR_IP_ADDR_TYPE_IPV6 ||
+        ifaces[3]->addrs[0].type != VIR_IP_ADDR_TYPE_IPV4 ||
+        ifaces[3]->addrs[1].type != VIR_IP_ADDR_TYPE_IPV6) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "unexpected return values for IP address types");
+        goto cleanup;
+    }
+
+    if (ifaces[1]->addrs[0].prefix != 24 ||
+        ifaces[1]->addrs[1].prefix != 64 ||
+        ifaces[1]->addrs[2].prefix != 32 ||
+        ifaces[1]->addrs[3].prefix != 64 ||
+        ifaces[2]->addrs[0].prefix != 64 ||
+        ifaces[2]->addrs[1].prefix != 24 ||
+        ifaces[2]->addrs[2].prefix != 16 ||
+        ifaces[2]->addrs[3].prefix != 64 ||
+        ifaces[3]->addrs[0].prefix != 8 ||
+        ifaces[3]->addrs[1].prefix != 128) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "unexpected return values for IP address prefix");
+        goto cleanup;
+    }
+
+    if (STRNEQ(ifaces[1]->addrs[0].addr, "192.168.10.91") ||
+        STRNEQ(ifaces[1]->addrs[1].addr, "fe80::fc54:ff:fefe:4c4f") ||
+        STRNEQ(ifaces[1]->addrs[2].addr, "192.168.103.83") ||
+        STRNEQ(ifaces[1]->addrs[3].addr, "fe80::5054:ff:fed3:39ee") ||
+        STRNEQ(ifaces[2]->addrs[0].addr, "fe80::5054:ff:fe89:ad35") ||
+        STRNEQ(ifaces[2]->addrs[1].addr, "192.168.102.142") ||
+        STRNEQ(ifaces[2]->addrs[2].addr, "192.168.234.152") ||
+        STRNEQ(ifaces[2]->addrs[3].addr, "fe80::5054:ff:fec3:68bb") ||
+        STRNEQ(ifaces[3]->addrs[0].addr, "127.0.0.1") ||
+        STRNEQ(ifaces[3]->addrs[1].addr, "::1")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "unexpected return values for IP address values");
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    qemuMonitorTestFree(test);
+    if (ifaces) {
+        for (i = 0; i < ifaces_count; i++)
+            virDomainInterfaceFree(ifaces[i]);
+    }
+    VIR_FREE(ifaces);
+
+    return ret;
+}
 
 static int
 mymain(void)
@@ -605,10 +935,12 @@ mymain(void)
     DO_TEST(FSFreeze);
     DO_TEST(FSThaw);
     DO_TEST(FSTrim);
+    DO_TEST(GetFSInfo);
     DO_TEST(Suspend);
     DO_TEST(Shutdown);
     DO_TEST(CPU);
     DO_TEST(ArbitraryCommand);
+    DO_TEST(GetInterfaces);
 
     DO_TEST(Timeout); /* Timeout should always be called last */
 

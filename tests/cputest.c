@@ -122,8 +122,10 @@ cpuTestLoadMultiXML(const char *arch,
         goto cleanup;
 
     n = virXPathNodeSet("/cpuTest/cpu", ctxt, &nodes);
-    if (n <= 0 || (VIR_ALLOC_N(cpus, n) < 0))
+    if (n <= 0 || (VIR_ALLOC_N(cpus, n) < 0)) {
+        fprintf(stderr, "\nNo /cpuTest/cpu elements found in %s\n", xml);
         goto cleanup;
+    }
 
     for (i = 0; i < n; i++) {
         ctxt->node = nodes[i];
@@ -153,7 +155,7 @@ static int
 cpuTestCompareXML(const char *arch,
                   virCPUDef *cpu,
                   const char *name,
-                  unsigned int flags)
+                  bool updateCPU)
 {
     char *xml = NULL;
     char *expected = NULL;
@@ -167,7 +169,7 @@ cpuTestCompareXML(const char *arch,
     if (virtTestLoadFile(xml, &expected) < 0)
         goto cleanup;
 
-    if (!(actual = virCPUDefFormat(cpu, flags)))
+    if (!(actual = virCPUDefFormat(cpu, NULL, updateCPU)))
         goto cleanup;
 
     if (STRNEQ(expected, actual)) {
@@ -303,7 +305,7 @@ cpuTestGuestData(const void *arg)
     }
     result = virBufferContentAndReset(&buf);
 
-    ret = cpuTestCompareXML(data->arch, guest, result, 0);
+    ret = cpuTestCompareXML(data->arch, guest, result, false);
 
  cleanup:
     VIR_FREE(result);
@@ -346,12 +348,14 @@ cpuTestBaseline(const void *arg)
 
     if (data->flags & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES)
         suffix = "expanded";
+    else if (data->flags & VIR_CONNECT_BASELINE_CPU_MIGRATABLE)
+        suffix = "migratable";
     else
         suffix = "result";
     if (virAsprintf(&result, "%s-%s", data->name, suffix) < 0)
         goto cleanup;
 
-    if (cpuTestCompareXML(data->arch, baseline, result, 0) < 0)
+    if (cpuTestCompareXML(data->arch, baseline, result, false) < 0)
         goto cleanup;
 
     for (i = 0; i < ncpus; i++) {
@@ -403,8 +407,7 @@ cpuTestUpdate(const void *arg)
     if (virAsprintf(&result, "%s+%s", data->host, data->name) < 0)
         goto cleanup;
 
-    ret = cpuTestCompareXML(data->arch, cpu, result,
-                            VIR_DOMAIN_XML_UPDATE_CPU);
+    ret = cpuTestCompareXML(data->arch, cpu, result, true);
 
  cleanup:
     virCPUDefFree(host);
@@ -496,6 +499,7 @@ cpuTestRun(const char *name, const struct data *data)
 static const char *model486[]   = { "486" };
 static const char *nomodel[]    = { "nomodel" };
 static const char *models[]     = { "qemu64", "core2duo", "Nehalem" };
+static const char *haswell[]    = { "SandyBridge", "Haswell" };
 static const char *ppc_models[]     = { "POWER7", "POWER7_v2.1", "POWER8_v1.0"};
 
 static int
@@ -534,6 +538,8 @@ mymain(void)
         char *label;                                                    \
         if ((flags) & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES)         \
             suffix = " (expanded)";                                     \
+        if ((flags) & VIR_CONNECT_BASELINE_CPU_MIGRATABLE)              \
+            suffix = " (migratable)";                                   \
         if (virAsprintf(&label, "%s%s", name, suffix) < 0) {            \
             ret = -1;                                                   \
         } else {                                                        \
@@ -613,6 +619,10 @@ mymain(void)
     DO_TEST_BASELINE("x86", "4", VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, 0);
     DO_TEST_BASELINE("x86", "5", 0, 0);
     DO_TEST_BASELINE("x86", "5", VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, 0);
+    DO_TEST_BASELINE("x86", "6", 0, 0);
+    DO_TEST_BASELINE("x86", "6", VIR_CONNECT_BASELINE_CPU_MIGRATABLE, 0);
+    DO_TEST_BASELINE("x86", "7", 0, 0);
+    DO_TEST_BASELINE("x86", "8", 0, 0);
 
     DO_TEST_BASELINE("ppc64", "incompatible-vendors", 0, -1);
     DO_TEST_BASELINE("ppc64", "no-vendor", 0, 0);
@@ -641,6 +651,14 @@ mymain(void)
     DO_TEST_GUESTDATA("x86", "host", "host+host-model", models, "Penryn", 0);
     DO_TEST_GUESTDATA("x86", "host", "host+host-model-nofallback",
                       models, "Penryn", -1);
+    DO_TEST_GUESTDATA("x86", "host-Haswell-noTSX", "Haswell",
+                      haswell, "Haswell", 0);
+    DO_TEST_GUESTDATA("x86", "host-Haswell-noTSX", "Haswell-noTSX",
+                      haswell, "Haswell-noTSX", 0);
+    DO_TEST_GUESTDATA("x86", "host-Haswell-noTSX", "Haswell-noTSX-nofallback",
+                      haswell, "Haswell-noTSX", -1);
+    DO_TEST_GUESTDATA("x86", "host-Haswell-noTSX", "Haswell-noTSX",
+                      NULL, "Haswell-noTSX", 0);
 
     DO_TEST_GUESTDATA("ppc64", "host", "guest", ppc_models, NULL, 0);
     DO_TEST_GUESTDATA("ppc64", "host", "guest-nofallback", ppc_models, "POWER7_v2.1", -1);

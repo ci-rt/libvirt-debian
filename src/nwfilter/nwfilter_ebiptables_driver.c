@@ -1826,6 +1826,7 @@ ebtablesCreateRuleInstance(virFirewallPtr fw,
     bool hasMask = false;
     virFirewallRulePtr fwrule;
     int ret = -1;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (STREQ(chainSuffix,
               virNWFilterChainSuffixTypeToString(
@@ -2342,6 +2343,83 @@ ebtablesCreateRuleInstance(virFirewallPtr fw,
                 virFirewallRuleAddArg(fw, fwrule, number);
             }
         }
+
+        if (HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPTypeStart)  ||
+            HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPTypeEnd) ||
+            HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPCodeStart) ||
+            HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPCodeEnd)) {
+            bool lo = false;
+            char *r;
+
+            virFirewallRuleAddArg(fw, fwrule,
+                                  "--ip6-icmp-type");
+
+            if (HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPTypeStart)) {
+                if (printDataType(vars,
+                                  number, sizeof(number),
+                                  &rule->p.ipv6HdrFilter.dataICMPTypeStart) < 0)
+                    goto cleanup;
+                lo = true;
+            } else {
+                ignore_value(virStrcpyStatic(number, "0"));
+            }
+
+            virBufferStrcat(&buf, number, ":", NULL);
+
+            if (HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPTypeEnd)) {
+                if (printDataType(vars,
+                                  numberalt, sizeof(numberalt),
+                                  &rule->p.ipv6HdrFilter.dataICMPTypeEnd) < 0)
+                    goto cleanup;
+            } else {
+                if (lo)
+                    ignore_value(virStrcpyStatic(numberalt, number));
+                else
+                    ignore_value(virStrcpyStatic(numberalt, "255"));
+            }
+
+            virBufferStrcat(&buf, numberalt, "/", NULL);
+
+            lo = false;
+
+            if (HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPCodeStart)) {
+                if (printDataType(vars,
+                                  number, sizeof(number),
+                                  &rule->p.ipv6HdrFilter.dataICMPCodeStart) < 0)
+                    goto cleanup;
+                lo = true;
+            } else {
+                ignore_value(virStrcpyStatic(number, "0"));
+            }
+
+            virBufferStrcat(&buf, number, ":", NULL);
+
+            if (HAS_ENTRY_ITEM(&rule->p.ipv6HdrFilter.dataICMPCodeEnd)) {
+                if (printDataType(vars,
+                                  numberalt, sizeof(numberalt),
+                                  &rule->p.ipv6HdrFilter.dataICMPCodeEnd) < 0)
+                    goto cleanup;
+            } else {
+                if (lo)
+                    ignore_value(virStrcpyStatic(numberalt, number));
+                else
+                    ignore_value(virStrcpyStatic(numberalt, "255"));
+            }
+
+            virBufferStrcat(&buf, numberalt, NULL);
+
+            if (ENTRY_WANT_NEG_SIGN(&rule->p.ipv6HdrFilter.dataICMPTypeStart))
+                virFirewallRuleAddArg(fw, fwrule, "!");
+
+            if (virBufferCheckError(&buf) < 0)
+                 goto cleanup;
+
+            r = virBufferContentAndReset(&buf);
+
+            virFirewallRuleAddArg(fw, fwrule, r);
+
+            VIR_FREE(r);
+        }
         break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_NONE:
@@ -2376,6 +2454,8 @@ ebtablesCreateRuleInstance(virFirewallPtr fw,
 
     ret = 0;
  cleanup:
+    virBufferFreeAndReset(&buf);
+
     return ret;
 }
 
@@ -3084,14 +3164,12 @@ virNWFilterRuleInstSort(const void *a, const void *b)
     /* ensure root chain commands appear before all others since
        we will need them to create the child chains */
     if (root_a) {
-        if (root_b) {
+        if (root_b)
             goto normal;
-        }
         return -1; /* a before b */
     }
-    if (root_b) {
+    if (root_b)
         return 1; /* b before a */
-    }
  normal:
     /* priorities are limited to range [-1000, 1000] */
     return insta->priority - instb->priority;
@@ -3165,9 +3243,8 @@ ebtablesGetProtoIdxByFiltername(const char *filtername)
     enum l3_proto_idx idx;
 
     for (idx = 0; idx < L3_PROTO_LAST_IDX; idx++) {
-        if (STRPREFIX(filtername, l3_protocols[idx].val)) {
+        if (STRPREFIX(filtername, l3_protocols[idx].val))
             return idx;
-        }
     }
 
     return -1;
@@ -3303,9 +3380,8 @@ ebtablesGetSubChainInsts(virHashTablePtr chains,
  cleanup:
     VIR_FREE(filter_names);
     if (ret < 0) {
-        for (i = 0; i < *ninsts; i++) {
+        for (i = 0; i < *ninsts; i++)
             VIR_FREE(*insts[i]);
-        }
         VIR_FREE(*insts);
         *ninsts = 0;
     }

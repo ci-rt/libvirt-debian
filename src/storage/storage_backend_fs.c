@@ -80,7 +80,7 @@ virStorageBackendProbeTarget(virStorageSourcePtr target,
         return rc; /* Take care to propagate rc, it is not always -1 */
     fd = rc;
 
-    if (virStorageBackendUpdateVolTargetInfoFD(target, fd, &sb, true) < 0)
+    if (virStorageBackendUpdateVolTargetInfoFD(target, fd, &sb) < 0)
         goto cleanup;
 
     if (S_ISDIR(sb.st_mode)) {
@@ -639,9 +639,8 @@ virStorageBackendFileSystemProbe(const char *device,
  error:
     VIR_FREE(libblkid_format);
 
-    if (probe != NULL) {
+    if (probe != NULL)
         blkid_free_probe(probe);
-    }
 
     return ret;
 }
@@ -737,9 +736,8 @@ virStorageBackendMakeFileSystem(virStoragePoolObjPtr pool,
         ok_to_mkfs = true;
     }
 
-    if (ok_to_mkfs) {
+    if (ok_to_mkfs)
         ret = virStorageBackendExecuteMKFS(device, format);
-    }
 
  error:
     return ret;
@@ -904,7 +902,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
 
         if (vol->target.backingStore) {
             ignore_value(virStorageBackendUpdateVolTargetInfo(vol->target.backingStore,
-                                                              true, false,
+                                                              false,
                                                               VIR_STORAGE_VOL_OPEN_DEFAULT));
             /* If this failed, the backing file is currently unavailable,
              * the capacity, allocation, owner, group and mode are unknown.
@@ -1039,6 +1037,13 @@ static int createFileDir(virConnectPtr conn ATTRIBUTE_UNUSED,
         return -1;
     }
 
+    if (vol->target.backingStore) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("backing storage not supported for directories volumes"));
+        return -1;
+    }
+
+
     if ((err = virDirCreate(vol->target.path, vol->target.perms->mode,
                             vol->target.perms->uid,
                             vol->target.perms->gid,
@@ -1107,7 +1112,9 @@ virStorageBackendFileSystemVolBuild(virConnectPtr conn,
                                     virStorageVolDefPtr vol,
                                     unsigned int flags)
 {
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
+                  VIR_STORAGE_VOL_CREATE_REFLINK,
+                  -1);
 
     return _virStorageBackendFileSystemVolBuild(conn, pool, vol, NULL, flags);
 }
@@ -1122,7 +1129,9 @@ virStorageBackendFileSystemVolBuildFrom(virConnectPtr conn,
                                         virStorageVolDefPtr inputvol,
                                         unsigned int flags)
 {
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
+                  VIR_STORAGE_VOL_CREATE_REFLINK,
+                  -1);
 
     return _virStorageBackendFileSystemVolBuild(conn, pool, vol, inputvol, flags);
 }
@@ -1181,10 +1190,8 @@ virStorageBackendFileSystemVolRefresh(virConnectPtr conn,
 {
     int ret;
 
-    /* Refresh allocation / permissions info in case its changed
-     * don't update the capacity value for this pass
-     */
-    ret = virStorageBackendUpdateVolInfo(vol, false, false,
+    /* Refresh allocation / capacity / permissions info in case its changed */
+    ret = virStorageBackendUpdateVolInfo(vol, false,
                                          VIR_STORAGE_VOL_FS_OPEN_FLAGS);
     if (ret < 0)
         return ret;
@@ -1203,7 +1210,7 @@ virStorageBackendFileSystemVolRefresh(virConnectPtr conn,
             if (VIR_ALLOC_N(vol->target.encryption->secrets, 1) < 0 ||
                 VIR_ALLOC(encsec) < 0) {
                 VIR_FREE(vol->target.encryption->secrets);
-                virSecretFree(sec);
+                virObjectUnref(sec);
                 return -1;
             }
 
@@ -1212,7 +1219,7 @@ virStorageBackendFileSystemVolRefresh(virConnectPtr conn,
 
             encsec->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
             virSecretGetUUID(sec, encsec->uuid);
-            virSecretFree(sec);
+            virObjectUnref(sec);
         }
     }
 
@@ -1264,7 +1271,8 @@ virStorageBackendFileSystemVolResize(virConnectPtr conn ATTRIBUTE_UNUSED,
                                      unsigned long long capacity,
                                      unsigned int flags)
 {
-    virCheckFlags(VIR_STORAGE_VOL_RESIZE_ALLOCATE, -1);
+    virCheckFlags(VIR_STORAGE_VOL_RESIZE_ALLOCATE |
+                  VIR_STORAGE_VOL_RESIZE_SHRINK, -1);
 
     bool pre_allocate = flags & VIR_STORAGE_VOL_RESIZE_ALLOCATE;
 
@@ -1372,9 +1380,10 @@ virStorageFileBackendFileInit(virStorageSourcePtr src)
 {
     virStorageFileBackendFsPrivPtr priv = NULL;
 
-    VIR_DEBUG("initializing FS storage file %p (%s:%s)", src,
+    VIR_DEBUG("initializing FS storage file %p (%s:%s)[%u:%u]", src,
               virStorageTypeToString(virStorageSourceGetActualType(src)),
-              src->path);
+              src->path,
+              (unsigned int)src->drv->uid, (unsigned int)src->drv->gid);
 
     if (VIR_ALLOC(priv) < 0)
         return -1;

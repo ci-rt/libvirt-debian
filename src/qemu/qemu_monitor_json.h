@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_json.h: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2009, 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2009, 2011-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -57,6 +57,9 @@ int qemuMonitorJSONGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
 int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
                                int *virtType);
+int qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
+                                         virDomainVideoDefPtr video,
+                                         char *path);
 int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long long *currmem);
 int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
@@ -68,21 +71,12 @@ int qemuMonitorJSONSetMemoryStatsPeriod(qemuMonitorPtr mon,
                                         int period);
 int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
                                 virHashTablePtr table);
-int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
-                                     const char *dev_name,
-                                     long long *rd_req,
-                                     long long *rd_bytes,
-                                     long long *rd_total_times,
-                                     long long *wr_req,
-                                     long long *wr_bytes,
-                                     long long *wr_total_times,
-                                     long long *flush_req,
-                                     long long *flush_total_times,
-                                     long long *errs);
 int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
-                                        virHashTablePtr *ret_stats);
-int qemuMonitorJSONGetBlockStatsParamsNumber(qemuMonitorPtr mon,
-                                             int *nparams);
+                                        virHashTablePtr hash,
+                                        bool backingChain);
+int qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
+                                            virHashTablePtr stats,
+                                            bool backingChain);
 int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
                                   const char *dev_name,
                                   unsigned long long *extent);
@@ -140,7 +134,8 @@ int qemuMonitorJSONGetMigrationCapabilities(qemuMonitorPtr mon,
 int qemuMonitorJSONGetMigrationCapability(qemuMonitorPtr mon,
                                           qemuMonitorMigrationCaps capability);
 int qemuMonitorJSONSetMigrationCapability(qemuMonitorPtr mon,
-                                          qemuMonitorMigrationCaps capability);
+                                          qemuMonitorMigrationCaps capability,
+                                          bool state);
 
 int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
                            unsigned int flags,
@@ -208,8 +203,11 @@ int qemuMonitorJSONAddNetdev(qemuMonitorPtr mon,
 int qemuMonitorJSONRemoveNetdev(qemuMonitorPtr mon,
                                 const char *alias);
 
-int qemuMonitorJSONGetPtyPaths(qemuMonitorPtr mon,
-                               virHashTablePtr paths);
+int qemuMonitorJSONQueryRxFilter(qemuMonitorPtr mon, const char *alias,
+                                 virNetDevRxFilterPtr *filter);
+
+int qemuMonitorJSONGetChardevInfo(qemuMonitorPtr mon,
+                                  virHashTablePtr info);
 
 int qemuMonitorJSONAttachPCIDiskController(qemuMonitorPtr mon,
                                            const char *bus,
@@ -223,6 +221,14 @@ int qemuMonitorJSONAddDevice(qemuMonitorPtr mon,
 
 int qemuMonitorJSONDelDevice(qemuMonitorPtr mon,
                              const char *devalias);
+
+int qemuMonitorJSONAddObject(qemuMonitorPtr mon,
+                             const char *type,
+                             const char *objalias,
+                             virJSONValuePtr props);
+
+int qemuMonitorJSONDelObject(qemuMonitorPtr mon,
+                             const char *objalias);
 
 int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
                             const char *drivestr);
@@ -271,6 +277,13 @@ int qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
                                unsigned long long bandwidth)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+char *qemuMonitorJSONDiskNameLookup(qemuMonitorPtr mon,
+                                    const char *device,
+                                    virStorageSourcePtr top,
+                                    virStorageSourcePtr target)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4);
+
 int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,
                                     char **reply_str,
@@ -312,11 +325,13 @@ int qemuMonitorJSONOpenGraphics(qemuMonitorPtr mon,
 
 int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
                                       const char *device,
-                                      virDomainBlockIoTuneInfoPtr info);
+                                      virDomainBlockIoTuneInfoPtr info,
+                                      bool supportMaxOptions);
 
 int qemuMonitorJSONGetBlockIoThrottle(qemuMonitorPtr mon,
                                       const char *device,
-                                      virDomainBlockIoTuneInfoPtr reply);
+                                      virDomainBlockIoTuneInfoPtr reply,
+                                      bool supportMaxOptions);
 
 int qemuMonitorJSONSystemWakeup(qemuMonitorPtr mon);
 
@@ -452,6 +467,11 @@ int qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
 int qemuMonitorJSONRTCResetReinjection(qemuMonitorPtr mon);
 
 int qemuMonitorJSONGetIOThreads(qemuMonitorPtr mon,
-                                qemuMonitorIOThreadsInfoPtr **iothreads)
+                                qemuMonitorIOThreadInfoPtr **iothreads)
     ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONGetMemoryDeviceInfo(qemuMonitorPtr mon,
+                                       virHashTablePtr info)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
 #endif /* QEMU_MONITOR_JSON_H */

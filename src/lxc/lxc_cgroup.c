@@ -79,7 +79,11 @@ static int virLXCCgroupSetupCpusetTune(virDomainDefPtr def,
             goto cleanup;
     }
 
-    if (virDomainNumatuneMaybeFormatNodeset(def->numatune, nodemask,
+    if (virDomainNumatuneGetMode(def->numa, -1) !=
+        VIR_DOMAIN_NUMATUNE_MEM_STRICT)
+        goto cleanup;
+
+    if (virDomainNumatuneMaybeFormatNodeset(def->numa, nodemask,
                                             &mask, -1) < 0)
         goto cleanup;
 
@@ -142,20 +146,20 @@ static int virLXCCgroupSetupMemTune(virDomainDefPtr def,
 {
     int ret = -1;
 
-    if (virCgroupSetMemory(cgroup, def->mem.max_balloon) < 0)
+    if (virCgroupSetMemory(cgroup, virDomainDefGetMemoryInitial(def)) < 0)
         goto cleanup;
 
-    if (def->mem.hard_limit &&
-        virCgroupSetMemoryHardLimit(cgroup, def->mem.hard_limit) < 0)
-        goto cleanup;
+    if (virMemoryLimitIsSet(def->mem.hard_limit))
+        if (virCgroupSetMemoryHardLimit(cgroup, def->mem.hard_limit) < 0)
+            goto cleanup;
 
-    if (def->mem.soft_limit &&
-        virCgroupSetMemorySoftLimit(cgroup, def->mem.soft_limit) < 0)
-        goto cleanup;
+    if (virMemoryLimitIsSet(def->mem.soft_limit))
+        if (virCgroupSetMemorySoftLimit(cgroup, def->mem.soft_limit) < 0)
+            goto cleanup;
 
-    if (def->mem.swap_hard_limit &&
-        virCgroupSetMemSwapHardLimit(cgroup, def->mem.swap_hard_limit) < 0)
-        goto cleanup;
+    if (virMemoryLimitIsSet(def->mem.swap_hard_limit))
+        if (virCgroupSetMemSwapHardLimit(cgroup, def->mem.swap_hard_limit) < 0)
+            goto cleanup;
 
     ret = 0;
  cleanup:
@@ -458,7 +462,10 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
 }
 
 
-virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def)
+virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def,
+                                pid_t initpid,
+                                size_t nnicindexes,
+                                int *nicindexes)
 {
     virCgroupPtr cgroup = NULL;
 
@@ -469,19 +476,14 @@ virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def)
         goto cleanup;
     }
 
-    /*
-     * XXX
-     * We should pass the PID of the LXC init process
-     * not ourselves, but this requires some more
-     * refactoring. We should also pass the root dir
-     */
     if (virCgroupNewMachine(def->name,
                             "lxc",
                             true,
                             def->uuid,
                             NULL,
-                            getpid(),
+                            initpid,
                             true,
+                            nnicindexes, nicindexes,
                             def->resource->partition,
                             -1,
                             &cgroup) < 0)

@@ -67,9 +67,26 @@ bhyveDomainDefPostParse(virDomainDefPtr def,
                                        VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT) < 0)
         return -1;
 
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
+
+    return 0;
+}
+
+static int
+bhyveDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
+                              const virDomainDef *def ATTRIBUTE_UNUSED,
+                              virCapsPtr caps ATTRIBUTE_UNUSED,
+                              void *opaque ATTRIBUTE_UNUSED)
+{
+    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
+        return -1;
+
     return 0;
 }
 
 virDomainDefParserConfig virBhyveDriverDomainDefParserConfig = {
+    .devicesPostParseCallback = bhyveDomainDeviceDefPostParse,
     .domainPostParseCallback = bhyveDomainDefPostParse,
 };

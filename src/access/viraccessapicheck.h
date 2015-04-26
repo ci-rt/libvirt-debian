@@ -116,6 +116,7 @@ extern int virDomainCreateWithFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr
 extern int virDomainCreateXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateXMLWithFilesEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainDefineXMLFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDestroyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDestroyFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDetachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -132,9 +133,11 @@ extern int virDomainGetControlInfoEnsureACL(virConnectPtr conn, virDomainDefPtr 
 extern int virDomainGetCPUStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetDiskErrorsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetEmulatorPinInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetFSInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetHostnameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInterfaceParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetIOThreadInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetJobInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetJobStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetMaxMemoryEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -157,6 +160,7 @@ extern int virDomainGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr doma
 extern int virDomainHasCurrentSnapshotEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainHasManagedSaveImageEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainInjectNMIEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainInterfaceAddressesEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainInterfaceStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainIsActiveEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainIsPersistentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -197,6 +201,7 @@ extern int virDomainOpenConsoleEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainOpenGraphicsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainOpenGraphicsFdEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPinEmulatorEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainPinIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainPinVcpuEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPinVcpuFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainPMSuspendForDurationEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -210,7 +215,7 @@ extern int virDomainRevertToSnapshotEnsureACL(virConnectPtr conn, virDomainDefPt
 extern int virDomainSaveEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSaveFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSaveImageDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
-extern int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainScreenshotEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSendKeyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSendProcessSignalEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -236,7 +241,7 @@ extern int virDomainSnapshotCreateXMLEnsureACL(virConnectPtr conn, virDomainDefP
 extern int virDomainSnapshotCurrentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSnapshotDeleteEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSnapshotGetParentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
-extern int virDomainSnapshotGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainSnapshotGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSnapshotHasMetadataEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSnapshotIsCurrentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSnapshotListAllChildrenEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

@@ -500,28 +500,38 @@
       <feature name='rdtscp'/>
     </model>
 
-    <model name='Haswell'>
+    <model name='Haswell-noTSX'>
       <model name='SandyBridge'/>
       <feature name='fma'/>
       <feature name='pcid'/>
       <feature name='movbe'/>
       <feature name='fsgsbase'/>
       <feature name='bmi1'/>
-      <feature name='hle'/>
       <feature name='avx2'/>
       <feature name='smep'/>
       <feature name='bmi2'/>
       <feature name='erms'/>
       <feature name='invpcid'/>
+    </model>
+
+    <model name='Haswell'>
+      <model name='Haswell-noTSX'/>
+      <feature name='hle'/>
       <feature name='rtm'/>
     </model>
 
-    <model name='Broadwell'>
-      <model name='Haswell'/>
+    <model name='Broadwell-noTSX'>
+      <model name='Haswell-noTSX'/>
       <feature name='3dnowprefetch'/>
       <feature name='rdseed'/>
       <feature name='adx'/>
       <feature name='smap'/>
+    </model>
+
+    <model name='Broadwell'>
+      <model name='Broadwell-noTSX'/>
+      <feature name='hle'/>
+      <feature name='rtm'/>
     </model>
 
     <!-- AMD CPUs -->
@@ -600,6 +610,7 @@
   <arch name='ppc64'>
     <!-- vendor definitions -->
     <vendor name='IBM'/>
+    <vendor name='Freescale'/>
 
     <!-- IBM-based CPU models -->
     <model name='POWER7'>
@@ -625,6 +636,47 @@
     <model name='POWER8_v1.0'>
       <vendor name='IBM'/>
       <pvr value='0x004b0100'/>
+    </model>
+
+    <model name='power6'>
+      <vendor name='IBM'/>
+      <compat isa='2.05'/>
+      <pvr value='0x003e0000'/>
+    </model>
+
+    <model name='power7'>
+      <vendor name='IBM'/>
+      <compat isa='2.06'/>
+      <pvr value='0x003f0000'/>
+    </model>
+
+    <model name='power7+'>
+      <vendor name='IBM'/>
+      <compat isa='2.06B'/>
+      <pvr value='0x004a0000'/>
+    </model>
+
+    <model name='power8e'>
+      <vendor name='IBM'/>
+      <compat isa='2.07'/>
+      <pvr value='0x004b0000'/>
+    </model>
+
+    <model name='power8'>
+      <vendor name='IBM'/>
+      <compat isa='2.07'/>
+      <pvr value='0x004d0000'/>
+    </model>
+
+<!-- Freescale-based CPU models -->
+    <model name='POWERPC_e5500'>
+      <vendor name='Freescale'/>
+      <pvr value='0x80240000'/>
+    </model>
+
+    <model name='POWERPC_e6500'>
+      <vendor name='Freescale'/>
+      <pvr value='0x80400000'/>
     </model>
 
   </arch>

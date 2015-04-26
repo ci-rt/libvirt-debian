@@ -38,39 +38,10 @@
 #define VIR_FROM_THIS VIR_FROM_ESX
 
 
-
-static virDrvOpenStatus
-esxInterfaceOpen(virConnectPtr conn,
-                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                 unsigned int flags)
-{
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (conn->driver->no != VIR_DRV_ESX) {
-        return VIR_DRV_OPEN_DECLINED;
-    }
-
-    conn->interfacePrivateData = conn->privateData;
-
-    return VIR_DRV_OPEN_SUCCESS;
-}
-
-
-
-static int
-esxInterfaceClose(virConnectPtr conn)
-{
-    conn->interfacePrivateData = NULL;
-
-    return 0;
-}
-
-
-
 static int
 esxConnectNumOfInterfaces(virConnectPtr conn)
 {
-    esxPrivate *priv = conn->interfacePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_PhysicalNic *physicalNicList = NULL;
     esxVI_PhysicalNic *physicalNic = NULL;
     int count = 0;
@@ -96,15 +67,14 @@ static int
 esxConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 {
     bool success = false;
-    esxPrivate *priv = conn->interfacePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_PhysicalNic *physicalNicList = NULL;
     esxVI_PhysicalNic *physicalNic = NULL;
     int count = 0;
     size_t i;
 
-    if (maxnames == 0) {
+    if (maxnames == 0)
         return 0;
-    }
 
     if (esxVI_EnsureSession(priv->primary) < 0 ||
         esxVI_LookupPhysicalNicList(priv->primary, &physicalNicList) < 0) {
@@ -123,9 +93,8 @@ esxConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 
  cleanup:
     if (! success) {
-        for (i = 0; i < count; ++i) {
+        for (i = 0; i < count; ++i)
             VIR_FREE(names[i]);
-        }
 
         count = -1;
     }
@@ -161,7 +130,7 @@ static virInterfacePtr
 esxInterfaceLookupByName(virConnectPtr conn, const char *name)
 {
     virInterfacePtr iface = NULL;
-    esxPrivate *priv = conn->interfacePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_PhysicalNic *physicalNic = NULL;
 
     if (esxVI_EnsureSession(priv->primary) < 0 ||
@@ -183,7 +152,7 @@ static virInterfacePtr
 esxInterfaceLookupByMACString(virConnectPtr conn, const char *mac)
 {
     virInterfacePtr iface = NULL;
-    esxPrivate *priv = conn->interfacePrivateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_PhysicalNic *physicalNic = NULL;
 
     if (esxVI_EnsureSession(priv->primary) < 0 ||
@@ -205,7 +174,7 @@ static char *
 esxInterfaceGetXMLDesc(virInterfacePtr iface, unsigned int flags)
 {
     char *xml = NULL;
-    esxPrivate *priv = iface->conn->interfacePrivateData;
+    esxPrivate *priv = iface->conn->privateData;
     esxVI_PhysicalNic *physicalNic = NULL;
     virInterfaceDef def;
     bool hasAddress = false;
@@ -238,9 +207,8 @@ esxInterfaceGetXMLDesc(virInterfacePtr iface, unsigned int flags)
     if (physicalNic->spec->ip) {
         protocol.family = (char *)"ipv4";
 
-        if (physicalNic->spec->ip->dhcp == esxVI_Boolean_True) {
+        if (physicalNic->spec->ip->dhcp == esxVI_Boolean_True)
             protocol.dhcp = 1;
-        }
 
         if (physicalNic->spec->ip->ipAddress &&
             physicalNic->spec->ip->subnetMask &&
@@ -290,10 +258,7 @@ esxInterfaceIsActive(virInterfacePtr iface ATTRIBUTE_UNUSED)
 
 
 
-static virInterfaceDriver esxInterfaceDriver = {
-    .name = "ESX",
-    .interfaceOpen = esxInterfaceOpen, /* 0.7.6 */
-    .interfaceClose = esxInterfaceClose, /* 0.7.6 */
+virInterfaceDriver esxInterfaceDriver = {
     .connectNumOfInterfaces = esxConnectNumOfInterfaces, /* 0.10.0 */
     .connectListInterfaces = esxConnectListInterfaces, /* 0.10.0 */
     .connectNumOfDefinedInterfaces = esxConnectNumOfDefinedInterfaces, /* 0.10.0 */
@@ -303,11 +268,3 @@ static virInterfaceDriver esxInterfaceDriver = {
     .interfaceGetXMLDesc = esxInterfaceGetXMLDesc, /* 0.10.0 */
     .interfaceIsActive = esxInterfaceIsActive, /* 0.10.0 */
 };
-
-
-
-int
-esxInterfaceRegister(void)
-{
-    return virRegisterInterfaceDriver(&esxInterfaceDriver);
-}

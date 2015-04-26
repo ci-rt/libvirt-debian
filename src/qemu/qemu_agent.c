@@ -381,9 +381,8 @@ static int qemuAgentIOProcessData(qemuAgentPtr mon,
             int got = nl - (data + used);
             for (i = 0; i < strlen(LINE_ENDING); i++)
                 data[used + got + i] = '\0';
-            if (qemuAgentIOProcessLine(mon, data + used, msg) < 0) {
+            if (qemuAgentIOProcessLine(mon, data + used, msg) < 0)
                 return -1;
-            }
             used += got + strlen(LINE_ENDING);
         } else {
             break;
@@ -1009,14 +1008,12 @@ static const char *
 qemuAgentStringifyError(virJSONValuePtr error)
 {
     const char *klass = virJSONValueObjectGetString(error, "class");
-    const char *detail = NULL;
+    const char *detail = virJSONValueObjectGetString(error, "desc");
 
     /* The QMP 'desc' field is usually sufficient for our generic
-     * error reporting needs.
+     * error reporting needs. However, if not present, translate
+     * the class into something readable.
      */
-    if (klass)
-        detail = virJSONValueObjectGetString(error, "desc");
-
     if (!detail)
         detail = qemuAgentStringifyErrorClass(klass);
 
@@ -1779,4 +1776,376 @@ qemuAgentSetTime(qemuAgentPtr mon,
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
+}
+
+
+int
+qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
+                   virDomainDefPtr vmdef)
+{
+    size_t i, j, k;
+    int ret = -1;
+    int ndata = 0, ndisk;
+    char **alias;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data;
+    virDomainFSInfoPtr *info_ret = NULL;
+    virDevicePCIAddress pci_address;
+
+    cmd = qemuAgentMakeCommand("guest-get-fsinfo", NULL);
+    if (!cmd)
+        return ret;
+
+    if (qemuAgentCommand(mon, cmd, &reply, true,
+                         VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
+        goto cleanup;
+
+    if (!(data = virJSONValueObjectGet(reply, "return"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest-get-fsinfo reply was missing return data"));
+        goto cleanup;
+    }
+
+    if (data->type != VIR_JSON_TYPE_ARRAY) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest-get-fsinfo return information was not "
+                         "an array"));
+        goto cleanup;
+    }
+
+    ndata = virJSONValueArraySize(data);
+    if (!ndata) {
+        ret = 0;
+        goto cleanup;
+    }
+    if (VIR_ALLOC_N(info_ret, ndata) < 0)
+        goto cleanup;
+
+    for (i = 0; i < ndata; i++) {
+        /* Reverse the order to arrange in mount order */
+        virJSONValuePtr entry = virJSONValueArrayGet(data, ndata - 1 - i);
+
+        if (!entry) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("array element '%zd' of '%d' missing in "
+                             "guest-get-fsinfo return data"),
+                           i, ndata);
+            goto cleanup;
+        }
+
+        if (VIR_ALLOC(info_ret[i]) < 0)
+            goto cleanup;
+
+        if (VIR_STRDUP(info_ret[i]->mountpoint,
+                       virJSONValueObjectGetString(entry, "mountpoint")) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("'mountpoint' missing in reply of "
+                             "guest-get-fsinfo"));
+            goto cleanup;
+        }
+
+        if (VIR_STRDUP(info_ret[i]->name,
+                       virJSONValueObjectGetString(entry, "name")) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("'name' missing in reply of guest-get-fsinfo"));
+            goto cleanup;
+        }
+
+        if (VIR_STRDUP(info_ret[i]->fstype,
+                       virJSONValueObjectGetString(entry, "type")) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("'type' missing in reply of guest-get-fsinfo"));
+            goto cleanup;
+        }
+
+        if (!(entry = virJSONValueObjectGet(entry, "disk"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("'disk' missing in reply of guest-get-fsinfo"));
+            goto cleanup;
+        }
+
+        if (entry->type != VIR_JSON_TYPE_ARRAY) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("guest-get-fsinfo 'disk' data was not an array"));
+            goto cleanup;
+        }
+
+        ndisk = virJSONValueArraySize(entry);
+        if (!ndisk)
+            continue;
+        if (VIR_ALLOC_N(info_ret[i]->devAlias, ndisk) < 0)
+            goto cleanup;
+
+        alias = info_ret[i]->devAlias;
+        info_ret[i]->ndevAlias = 0;
+        for (j = 0; j < ndisk; j++) {
+            virJSONValuePtr disk = virJSONValueArrayGet(entry, j);
+            virJSONValuePtr pci;
+            int diskaddr[3], pciaddr[4], idx;
+            const char *diskaddr_comp[] = {"bus", "target", "unit"};
+            const char *pciaddr_comp[] = {"domain", "bus", "slot", "function"};
+
+            if (!disk) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("array element '%zd' of '%d' missing in "
+                                 "guest-get-fsinfo 'disk' data"),
+                               j, ndisk);
+                goto cleanup;
+            }
+
+            if (!(pci = virJSONValueObjectGet(disk, "pci-controller"))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("'pci-controller' missing in guest-get-fsinfo "
+                                 "'disk' data"));
+                goto cleanup;
+            }
+
+            for (k = 0; k < 3; k++) {
+                if (virJSONValueObjectGetNumberInt(
+                        disk, diskaddr_comp[k], &diskaddr[k]) < 0) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("'%s' missing in guest-get-fsinfo "
+                                     "'disk' data"), diskaddr_comp[k]);
+                    goto cleanup;
+                }
+            }
+            for (k = 0; k < 4; k++) {
+                if (virJSONValueObjectGetNumberInt(
+                        pci, pciaddr_comp[k], &pciaddr[k]) < 0) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("'%s' missing in guest-get-fsinfo "
+                                     "'pci-address' data"), pciaddr_comp[k]);
+                    goto cleanup;
+                }
+            }
+
+            pci_address.domain = pciaddr[0];
+            pci_address.bus = pciaddr[1];
+            pci_address.slot = pciaddr[2];
+            pci_address.function = pciaddr[3];
+            if ((idx = virDomainDiskIndexByAddress(
+                     vmdef, &pci_address,
+                     diskaddr[0], diskaddr[1], diskaddr[2])) < 0)
+                continue;
+
+            if (VIR_STRDUP(*alias, vmdef->disks[idx]->dst) < 0)
+                goto cleanup;
+
+            if (*alias) {
+                alias++;
+                info_ret[i]->ndevAlias++;
+            }
+        }
+    }
+
+    *info = info_ret;
+    info_ret = NULL;
+    ret = ndata;
+
+ cleanup:
+    if (info_ret) {
+        for (i = 0; i < ndata; i++)
+            virDomainFSInfoFree(info_ret[i]);
+        VIR_FREE(info_ret);
+    }
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+/*
+ * qemuAgentGetInterfaces:
+ * @mon: Agent monitor
+ * @ifaces: pointer to an array of pointers pointing to interface objects
+ *
+ * Issue guest-network-get-interfaces to guest agent, which returns a
+ * list of interfaces of a running domain along with their IP and MAC
+ * addresses.
+ *
+ * Returns: number of interfaces on success, -1 on error.
+ */
+int
+qemuAgentGetInterfaces(qemuAgentPtr mon,
+                       virDomainInterfacePtr **ifaces)
+{
+    int ret = -1;
+    size_t i, j;
+    int size = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr ret_array = NULL;
+    size_t ifaces_count = 0;
+    size_t addrs_count = 0;
+    virDomainInterfacePtr *ifaces_ret = NULL;
+    virHashTablePtr ifaces_store = NULL;
+    char **ifname = NULL;
+
+    /* Hash table to handle the interface alias */
+    if (!(ifaces_store = virHashCreate(ifaces_count, NULL))) {
+        virHashFree(ifaces_store);
+        return -1;
+    }
+
+    if (!(cmd = qemuAgentMakeCommand("guest-network-get-interfaces", NULL)))
+        goto cleanup;
+
+    if (qemuAgentCommand(mon, cmd, &reply, false, VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0 ||
+        qemuAgentCheckError(cmd, reply) < 0) {
+        goto cleanup;
+    }
+
+    if (!(ret_array = virJSONValueObjectGet(reply, "return"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("qemu agent didn't provide 'return' field"));
+        goto cleanup;
+    }
+
+    if ((size = virJSONValueArraySize(ret_array)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("qemu agent didn't return an array of interfaces"));
+        goto cleanup;
+    }
+
+    for (i = 0; i < size; i++) {
+        virJSONValuePtr tmp_iface = virJSONValueArrayGet(ret_array, i);
+        virJSONValuePtr ip_addr_arr = NULL;
+        const char *hwaddr, *ifname_s, *name = NULL;
+        int ip_addr_arr_size;
+        virDomainInterfacePtr iface = NULL;
+
+        /* Shouldn't happen but doesn't hurt to check neither */
+        if (!tmp_iface) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("qemu agent reply missing interface entry in array"));
+            goto error;
+        }
+
+        /* interface name is required to be presented */
+        name = virJSONValueObjectGetString(tmp_iface, "name");
+        if (!name) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("qemu agent didn't provide 'name' field"));
+            goto error;
+        }
+
+        /* Handle interface alias (<ifname>:<alias>) */
+        ifname = virStringSplit(name, ":", 2);
+        ifname_s = ifname[0];
+
+        iface = virHashLookup(ifaces_store, ifname_s);
+
+        /* If the hash table doesn't contain this iface, add it */
+        if (!iface) {
+            if (VIR_EXPAND_N(ifaces_ret, ifaces_count, 1) < 0)
+                goto error;
+
+            if (VIR_ALLOC(ifaces_ret[ifaces_count - 1]) < 0)
+                goto error;
+
+            if (virHashAddEntry(ifaces_store, ifname_s,
+                                ifaces_ret[ifaces_count - 1]) < 0)
+                goto error;
+
+            iface = ifaces_ret[ifaces_count - 1];
+            iface->naddrs = 0;
+
+            if (VIR_STRDUP(iface->name, ifname_s) < 0)
+                goto error;
+
+            hwaddr = virJSONValueObjectGetString(tmp_iface, "hardware-address");
+            if (VIR_STRDUP(iface->hwaddr, hwaddr) < 0)
+                goto error;
+        }
+
+        /* Has to be freed for each interface. */
+        virStringFreeList(ifname);
+
+        /* as well as IP address which - moreover -
+         * can be presented multiple times */
+        ip_addr_arr = virJSONValueObjectGet(tmp_iface, "ip-addresses");
+        if (!ip_addr_arr)
+            continue;
+
+        if ((ip_addr_arr_size = virJSONValueArraySize(ip_addr_arr)) < 0)
+            /* Mmm, empty 'ip-address'? */
+            goto error;
+
+        /* If current iface already exists, continue with the count */
+        addrs_count = iface->naddrs;
+
+        for (j = 0; j < ip_addr_arr_size; j++) {
+            const char *type, *addr;
+            virJSONValuePtr ip_addr_obj = virJSONValueArrayGet(ip_addr_arr, j);
+            virDomainIPAddressPtr ip_addr;
+
+            if (VIR_EXPAND_N(iface->addrs, addrs_count, 1)  < 0)
+                goto error;
+
+            ip_addr = &iface->addrs[addrs_count - 1];
+
+            /* Shouldn't happen but doesn't hurt to check neither */
+            if (!ip_addr_obj) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("qemu agent reply missing IP addr in array"));
+                goto error;
+            }
+
+            type = virJSONValueObjectGetString(ip_addr_obj, "ip-address-type");
+            if (!type) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("qemu agent didn't provide 'ip-address-type'"
+                                 " field for interface '%s'"), name);
+                goto error;
+            } else if (STREQ(type, "ipv4")) {
+                ip_addr->type = VIR_IP_ADDR_TYPE_IPV4;
+            } else if (STREQ(type, "ipv6")) {
+                ip_addr->type = VIR_IP_ADDR_TYPE_IPV6;
+            } else {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unknown ip address type '%s'"),
+                               type);
+                goto error;
+            }
+
+            addr = virJSONValueObjectGetString(ip_addr_obj, "ip-address");
+            if (!addr) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("qemu agent didn't provide 'ip-address'"
+                                 " field for interface '%s'"), name);
+                goto error;
+            }
+            if (VIR_STRDUP(ip_addr->addr, addr) < 0)
+                goto error;
+
+            if (virJSONValueObjectGetNumberUint(ip_addr_obj, "prefix",
+                                                &ip_addr->prefix) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("malformed 'prefix' field"));
+                goto error;
+            }
+        }
+
+        iface->naddrs = addrs_count;
+    }
+
+    *ifaces = ifaces_ret;
+    ifaces_ret = NULL;
+    ret = ifaces_count;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    virHashFree(ifaces_store);
+    return ret;
+
+ error:
+    if (ifaces_ret) {
+        for (i = 0; i < ifaces_count; i++)
+            virDomainInterfaceFree(ifaces_ret[i]);
+    }
+    VIR_FREE(ifaces_ret);
+    virStringFreeList(ifname);
+
+    goto cleanup;
 }

@@ -79,6 +79,7 @@ endif
 DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--with-packager="$(DEB_BUILDUSER) $(DEB_BUILDDATE) $(DEB_BUILDHOST)" \
 	--with-packager-version="$(DEB_RELEASE)" \
+	--with-default-editor="sensible-editor" \
 	--disable-silent-rules   \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \

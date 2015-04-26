@@ -82,7 +82,9 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
         VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
 
-    if (virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
+    /* Only probe for power management capabilities in the driver,
+     * not in the emulator */
+    if (driver && virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
         VIR_WARN("Failed to get host power management capabilities");
 
     if (virGetHostUUID(caps->host.host_uuid)) {
@@ -92,7 +94,7 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
     }
 
     if (!(lxc_path = virFileFindResource("libvirt_lxc",
-                                         "src",
+                                         abs_topbuilddir "/src",
                                          LIBEXECDIR)))
         goto error;
 
@@ -268,7 +270,7 @@ virLXCLoadDriverConfig(virLXCDriverConfigPtr cfg,
     }
 
     p = virConfGetValue(conf, "log_with_libvirtd");
-    CHECK_TYPE("log_with_libvirtd", VIR_CONF_LONG);
+    CHECK_TYPE("log_with_libvirtd", VIR_CONF_ULONG);
     if (p) cfg->log_libvirtd = p->l;
 
     p = virConfGetValue(conf, "security_driver");
@@ -281,11 +283,11 @@ virLXCLoadDriverConfig(virLXCDriverConfigPtr cfg,
     }
 
     p = virConfGetValue(conf, "security_default_confined");
-    CHECK_TYPE("security_default_confined", VIR_CONF_LONG);
+    CHECK_TYPE("security_default_confined", VIR_CONF_ULONG);
     if (p) cfg->securityDefaultConfined = p->l;
 
     p = virConfGetValue(conf, "security_require_confined");
-    CHECK_TYPE("security_require_confined", VIR_CONF_LONG);
+    CHECK_TYPE("security_require_confined", VIR_CONF_ULONG);
     if (p) cfg->securityRequireConfined = p->l;
 
 

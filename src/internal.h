@@ -62,6 +62,7 @@
 
 # include "c-strcase.h"
 # include "ignore-value.h"
+# include "count-leading-zeros.h"
 
 /* On architectures which lack these limits, define them (ie. Cygwin).
  * Note that the libvirt code should be robust enough to handle the
@@ -234,10 +235,20 @@
     _Pragma ("GCC diagnostic push") \
     _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
 
+#  if HAVE_SUGGEST_ATTRIBUTE_FORMAT
+#   define VIR_WARNINGS_NO_PRINTF \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=format\"")
+#  else
+#   define VIR_WARNINGS_NO_PRINTF \
+    _Pragma ("GCC diagnostic push")
+#  endif
+
 #  define VIR_WARNINGS_RESET \
     _Pragma ("GCC diagnostic pop")
 # else
 #  define VIR_WARNINGS_NO_CAST_ALIGN
+#  define VIR_WARNINGS_NO_PRINTF
 #  define VIR_WARNINGS_RESET
 # endif
 
@@ -381,6 +392,12 @@
 
 /* round up value to the closest multiple of size */
 # define VIR_ROUND_UP(value, size) (VIR_DIV_UP(value, size) * (size))
+
+/* Round up to the next closest power of 2. It will return rounded number or 0
+ * for 0 or number more than 2^31 (for 32bit unsigned int). */
+# define VIR_ROUND_UP_POWER_OF_TWO(value)                                   \
+    ((value) > 0 && (value) <= 1U << (sizeof(unsigned int) * 8 - 1) ?       \
+     1U << (sizeof(unsigned int) * 8 - count_leading_zeros((value) - 1)) : 0)
 
 
 /* Specific error values for use in forwarding programs such as

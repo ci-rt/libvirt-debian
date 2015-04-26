@@ -334,12 +334,7 @@ static void daemonInitialize(void)
      * priority when calling virStateInitialize. We must register the
      * network, storage and nodedev drivers before any stateful domain
      * driver, since their resources must be auto-started before any
-     * domains can be auto-started. Moreover, some stateless drivers
-     * implement their own subdrivers (e.g. the vbox driver has its
-     * own network and storage subdriers) which need to have higher
-     * priority. Otherwise, when connecting to such driver the generic
-     * subdriver may be opened instead of the one corresponding to the
-     * stateless driver.
+     * domains can be auto-started.
      */
 #ifdef WITH_DRIVER_MODULES
     /* We don't care if any of these fail, because the whole point
@@ -347,17 +342,11 @@ static void daemonInitialize(void)
      * If they try to open a connection for a module that
      * is not loaded they'll get a suitable error at that point
      */
-# ifdef WITH_VBOX
-    virDriverLoadModule("vbox_network");
-# endif
 # ifdef WITH_NETWORK
     virDriverLoadModule("network");
 # endif
 # ifdef WITH_INTERFACE
     virDriverLoadModule("interface");
-# endif
-# ifdef WITH_VBOX
-    virDriverLoadModule("vbox_storage");
 # endif
 # ifdef WITH_STORAGE
     virDriverLoadModule("storage");
@@ -393,17 +382,11 @@ static void daemonInitialize(void)
     virDriverLoadModule("bhyve");
 # endif
 #else
-# ifdef WITH_VBOX
-    vboxNetworkRegister();
-# endif
 # ifdef WITH_NETWORK
     networkRegister();
 # endif
 # ifdef WITH_INTERFACE
     interfaceRegister();
-# endif
-# ifdef WITH_VBOX
-    vboxStorageRegister();
 # endif
 # ifdef WITH_STORAGE
     storageRegister();
@@ -744,13 +727,13 @@ daemonSetupAccessManager(struct daemonConfig *config)
 {
     virAccessManagerPtr mgr;
     const char *none[] = { "none", NULL };
-    const char **driver = (const char **)config->access_drivers;
+    const char **drv = (const char **)config->access_drivers;
 
-    if (!driver ||
-        !driver[0])
-        driver = none;
+    if (!drv ||
+        !drv[0])
+        drv = none;
 
-    if (!(mgr = virAccessManagerNewStack(driver)))
+    if (!(mgr = virAccessManagerNewStack(drv)))
         return -1;
 
     virAccessManagerSetDefault(mgr);
@@ -802,6 +785,11 @@ static void daemonReloadHandler(virNetServerPtr srv ATTRIBUTE_UNUSED,
                                 siginfo_t *sig ATTRIBUTE_UNUSED,
                                 void *opaque ATTRIBUTE_UNUSED)
 {
+    if (!driversInitialized) {
+        VIR_WARN("Drivers are not initialized, reload ignored");
+        return;
+    }
+
     VIR_INFO("Reloading configuration on SIGHUP");
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
                 VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL, NULL);
@@ -981,9 +969,8 @@ static int migrateProfile(void)
     if (!(home = virGetUserDirectory()))
         goto cleanup;
 
-    if (virAsprintf(&old_base, "%s/.libvirt", home) < 0) {
+    if (virAsprintf(&old_base, "%s/.libvirt", home) < 0)
         goto cleanup;
-    }
 
     /* if the new directory is there or the old one is not: do nothing */
     if (!(config_dir = virGetUserConfigDirectory()))
@@ -998,21 +985,18 @@ static int migrateProfile(void)
     }
 
     /* test if we already attempted to migrate first */
-    if (virAsprintf(&updated, "%s/DEPRECATED-DIRECTORY", old_base) < 0) {
+    if (virAsprintf(&updated, "%s/DEPRECATED-DIRECTORY", old_base) < 0)
         goto cleanup;
-    }
-    if (virFileExists(updated)) {
+    if (virFileExists(updated))
         goto cleanup;
-    }
 
     config_home = virGetEnvBlockSUID("XDG_CONFIG_HOME");
     if (config_home && config_home[0] != '\0') {
         if (VIR_STRDUP(xdg_dir, config_home) < 0)
             goto cleanup;
     } else {
-        if (virAsprintf(&xdg_dir, "%s/.config", home) < 0) {
+        if (virAsprintf(&xdg_dir, "%s/.config", home) < 0)
             goto cleanup;
-        }
     }
 
     old_umask = umask(077);
@@ -1164,9 +1148,8 @@ int main(int argc, char **argv) {
 
         c = getopt_long(argc, argv, "ldf:p:t:vVh", opts, &optidx);
 
-        if (c == -1) {
+        if (c == -1)
             break;
-        }
 
         switch (c) {
         case 0:
@@ -1443,7 +1426,7 @@ int main(int argc, char **argv) {
             VIR_DEBUG("Proceeding without auditing");
         }
     }
-    virAuditLog(config->audit_logging);
+    virAuditLog(config->audit_logging > 0);
 
     /* setup the hooks if any */
     if (virHookInitialize() < 0) {
@@ -1541,8 +1524,10 @@ int main(int argc, char **argv) {
 
     daemonConfigFree(config);
 
-    if (driversInitialized)
+    if (driversInitialized) {
+        driversInitialized = false;
         virStateCleanup();
+    }
 
     return ret;
 }

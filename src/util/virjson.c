@@ -63,6 +63,279 @@ struct _virJSONParser {
 };
 
 
+/**
+ * virJSONValueObjectAddVArgs:
+ * @obj: JSON object to add the values to
+ * @args: a key-value argument pairs, terminated by NULL
+ *
+ * Adds the key-value pairs supplied as variable argument list to @obj.
+ *
+ * Keys look like   s:name  the first letter is a type code:
+ * Explanation of type codes:
+ * s: string value, must be non-null
+ * S: string value, omitted if null
+ *
+ * i: signed integer value
+ * j: signed integer value, error if negative
+ * z: signed integer value, omitted if zero
+ * y: signed integer value, omitted if zero, error if negative
+ *
+ * I: signed long integer value
+ * J: signed long integer value, error if negative
+ * Z: signed long integer value, omitted if zero
+ * Y: signed long integer value, omitted if zero, error if negative
+ *
+ * u: unsigned integer value
+ * p: unsigned integer value, omitted if zero
+ *
+ * U: unsigned long integer value (see below for quirks)
+ * P: unsigned long integer value, omitted if zero
+ *
+ * b: boolean value
+ * B: boolean value, omitted if false
+ *
+ * d: double precision floating point number
+ * n: json null value
+ *
+ * a: json object, must be non-NULL
+ * A: json object, omitted if NULL
+ * m: a bitmap represented as a JSON array, must be non-NULL
+ * M: a bitmap represented as a JSON array, omitted if NULL
+ *
+ * The value corresponds to the selected type.
+ *
+ * Returns -1 on error. 1 on success, if at least one key:pair was valid 0
+ * in case of no error but nothing was filled.
+ */
+int
+virJSONValueObjectAddVArgs(virJSONValuePtr obj,
+                           va_list args)
+{
+    char type;
+    char *key;
+    int ret = -1;
+    int rc;
+
+    while ((key = va_arg(args, char *)) != NULL) {
+
+        if (strlen(key) < 3) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("argument key '%s' is too short, missing type prefix"),
+                           key);
+            goto cleanup;
+        }
+
+        type = key[0];
+        key += 2;
+
+        /* This doesn't support maps, but no command uses those.  */
+        switch (type) {
+        case 'S':
+        case 's': {
+            char *val = va_arg(args, char *);
+            if (!val) {
+                if (type == 'S')
+                    continue;
+
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("argument key '%s' must not have null value"),
+                               key);
+                goto cleanup;
+            }
+            rc = virJSONValueObjectAppendString(obj, key, val);
+        }   break;
+
+        case 'z':
+        case 'y':
+        case 'j':
+        case 'i': {
+            int val = va_arg(args, int);
+
+            if (val < 0 && (type == 'j' || type == 'y')) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("argument key '%s' must not be negative"),
+                               key);
+                goto cleanup;
+            }
+
+            if (!val && (type == 'z' || type == 'y'))
+                continue;
+
+            rc = virJSONValueObjectAppendNumberInt(obj, key, val);
+        }   break;
+
+        case 'p':
+        case 'u': {
+            unsigned int val = va_arg(args, unsigned int);
+
+            if (!val && type == 'p')
+                continue;
+
+            rc = virJSONValueObjectAppendNumberUint(obj, key, val);
+        }   break;
+
+        case 'Z':
+        case 'Y':
+        case 'J':
+        case 'I': {
+            long long val = va_arg(args, long long);
+
+            if (val < 0 && (type == 'J' || type == 'Y')) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("argument key '%s' must not be negative"),
+                               key);
+                goto cleanup;
+            }
+
+            if (!val && (type == 'Z' || type == 'Y'))
+                continue;
+
+            rc = virJSONValueObjectAppendNumberLong(obj, key, val);
+        }   break;
+
+        case 'P':
+        case 'U': {
+            /* qemu silently truncates numbers larger than LLONG_MAX,
+             * so passing the full range of unsigned 64 bit integers
+             * is not safe here.  Pass them as signed 64 bit integers
+             * instead.
+             */
+            long long val = va_arg(args, long long);
+
+            if (!val && type == 'P')
+                continue;
+
+            rc = virJSONValueObjectAppendNumberLong(obj, key, val);
+        }   break;
+
+        case 'd': {
+            double val = va_arg(args, double);
+            rc = virJSONValueObjectAppendNumberDouble(obj, key, val);
+        }   break;
+
+        case 'B':
+        case 'b': {
+            int val = va_arg(args, int);
+
+            if (!val && type == 'B')
+                continue;
+
+            rc = virJSONValueObjectAppendBoolean(obj, key, val);
+        }   break;
+
+        case 'n': {
+            rc = virJSONValueObjectAppendNull(obj, key);
+        }   break;
+
+        case 'A':
+        case 'a': {
+            virJSONValuePtr val = va_arg(args, virJSONValuePtr);
+
+            if (!val) {
+                if (type == 'A')
+                    continue;
+
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("argument key '%s' must not have null value"),
+                               key);
+                goto cleanup;
+            }
+
+            rc = virJSONValueObjectAppend(obj, key, val);
+        }   break;
+
+        case 'M':
+        case 'm': {
+            virBitmapPtr map = va_arg(args, virBitmapPtr);
+            virJSONValuePtr jsonMap;
+
+            if (!map) {
+                if (type == 'M')
+                    continue;
+
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("argument key '%s' must not have null value"),
+                               key);
+                goto cleanup;
+            }
+
+            if (!(jsonMap = virJSONValueNewArrayFromBitmap(map)))
+                goto cleanup;
+
+            if ((rc = virJSONValueObjectAppend(obj, key, jsonMap)) < 0)
+                virJSONValueFree(jsonMap);
+        } break;
+
+        default:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unsupported data type '%c' for arg '%s'"), type, key - 2);
+            goto cleanup;
+        }
+
+        if (rc < 0)
+            goto cleanup;
+    }
+
+    /* verify that we added at least one key-value pair */
+    if (virJSONValueObjectKeysNumber(obj) == 0) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    ret = 1;
+
+ cleanup:
+    return ret;
+}
+
+
+int
+virJSONValueObjectAdd(virJSONValuePtr obj, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, obj);
+    ret = virJSONValueObjectAddVArgs(obj, args);
+    va_end(args);
+
+    return ret;
+}
+
+
+int
+virJSONValueObjectCreateVArgs(virJSONValuePtr *obj,
+                              va_list args)
+{
+    int ret;
+
+    if (!(*obj = virJSONValueNewObject()))
+        return -1;
+
+    /* free the object on error, or if no value objects were added */
+    if ((ret = virJSONValueObjectAddVArgs(*obj, args)) <= 0) {
+        virJSONValueFree(*obj);
+        *obj = NULL;
+    }
+
+    return ret;
+}
+
+
+int
+virJSONValueObjectCreate(virJSONValuePtr *obj, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, obj);
+    ret = virJSONValueObjectCreateVArgs(obj, args);
+    va_end(args);
+
+    return ret;
+}
+
+
 void
 virJSONValueFree(virJSONValuePtr value)
 {
@@ -572,7 +845,7 @@ virJSONValueIsArray(virJSONValuePtr array)
 
 
 int
-virJSONValueArraySize(virJSONValuePtr array)
+virJSONValueArraySize(const virJSONValue *array)
 {
     if (array->type != VIR_JSON_TYPE_ARRAY)
         return -1;
@@ -691,6 +964,95 @@ virJSONValueGetBoolean(virJSONValuePtr val,
 
     *value = val->data.boolean;
     return 0;
+}
+
+
+/**
+ * virJSONValueGetArrayAsBitmap:
+ * @val: JSON array to convert to bitmap
+ * @bitmap: New bitmap is allocated filled and returned via this argument
+ *
+ * Attempts a conversion of a JSON array to a bitmap. The members of the array
+ * must be non-negative integers for the conversion to succeed. This function
+ * does not report libvirt errors so that it can be used to probe that the
+ * array can be represented as a bitmap.
+ *
+ * Returns 0 on success and fills @bitmap; -1 on error and  @bitmap is set to
+ * NULL.
+ */
+int
+virJSONValueGetArrayAsBitmap(const virJSONValue *val,
+                             virBitmapPtr *bitmap)
+{
+    int ret = -1;
+    virJSONValuePtr elem;
+    size_t i;
+    unsigned long long *elems = NULL;
+    unsigned long long maxelem = 0;
+
+    *bitmap = NULL;
+
+    if (val->type != VIR_JSON_TYPE_ARRAY)
+        return -1;
+
+    if (VIR_ALLOC_N_QUIET(elems, val->data.array.nvalues) < 0)
+        return -1;
+
+    /* first pass converts array members to numbers and finds the maximum */
+    for (i = 0; i < val->data.array.nvalues; i++) {
+        elem = val->data.array.values[i];
+
+        if (elem->type != VIR_JSON_TYPE_NUMBER ||
+            virStrToLong_ullp(elem->data.number, NULL, 10, &elems[i]) < 0)
+            goto cleanup;
+
+        if (elems[i] > maxelem)
+            maxelem = elems[i];
+    }
+
+    if (!(*bitmap = virBitmapNewQuiet(maxelem + 1)))
+        goto cleanup;
+
+    /* second pass sets the correct bits in the map */
+    for (i = 0; i < val->data.array.nvalues; i++)
+        ignore_value(virBitmapSetBit(*bitmap, elems[i]));
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(elems);
+
+    return ret;
+}
+
+
+virJSONValuePtr
+virJSONValueNewArrayFromBitmap(virBitmapPtr bitmap)
+{
+    virJSONValuePtr ret;
+    ssize_t pos = -1;
+
+    if (!(ret = virJSONValueNewArray()))
+        return NULL;
+
+    if (!bitmap)
+        return ret;
+
+    while ((pos = virBitmapNextSetBit(bitmap, pos)) > -1) {
+        virJSONValuePtr newelem;
+
+        if (!(newelem = virJSONValueNewNumberLong(pos)) ||
+            virJSONValueArrayAppend(ret, newelem) < 0) {
+            virJSONValueFree(newelem);
+            goto error;
+        }
+    }
+
+    return ret;
+
+ error:
+    virJSONValueFree(ret);
+    return NULL;
 }
 
 
@@ -835,6 +1197,39 @@ virJSONValueObjectIsNull(virJSONValuePtr object,
         return -1;
 
     return virJSONValueIsNull(val);
+}
+
+
+/**
+ * virJSONValueObjectForeachKeyValue:
+ * @object: JSON object to iterate
+ * @cb: callback to call on key-value pairs contained in the object
+ * @opaque: generic data for the callback
+ *
+ * Iterates all key=value pairs in @object. Iteration breaks if @cb returns
+ * negative value.
+ *
+ * Returns 0 if all elements were iterated, -2 if @cb returned negative value
+ * during iteration and -1 on generic errors.
+ */
+int
+virJSONValueObjectForeachKeyValue(virJSONValuePtr object,
+                                  virJSONValueObjectIteratorFunc cb,
+                                  void *opaque)
+{
+    size_t i;
+
+    if (object->type != VIR_JSON_TYPE_OBJECT)
+        return -1;
+
+    for (i = 0; i < object->data.object.npairs; i++) {
+        virJSONObjectPairPtr elem = object->data.object.pairs + i;
+
+        if (cb(elem->key, elem->value, opaque) < 0)
+            return -2;
+    }
+
+    return 0;
 }
 
 

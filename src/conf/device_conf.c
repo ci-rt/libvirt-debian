@@ -39,6 +39,20 @@ VIR_ENUM_IMPL(virInterfaceState,
               "down", "lowerlayerdown",
               "testing", "dormant", "up")
 
+VIR_ENUM_IMPL(virNetDevFeature,
+              VIR_NET_DEV_FEAT_LAST,
+              "rx",
+              "tx",
+              "sg",
+              "tso",
+              "gso",
+              "gro",
+              "lro",
+              "rxvlan",
+              "txvlan",
+              "ntuple",
+              "rxhash")
+
 int virDevicePCIAddressIsValid(virDevicePCIAddressPtr addr)
 {
     /* PCI bus has 32 slots and 8 functions per slot */
@@ -64,28 +78,28 @@ virDevicePCIAddressParseXML(xmlNodePtr node,
     multi    = virXMLPropString(node, "multifunction");
 
     if (domain &&
-        virStrToLong_ui(domain, NULL, 0, &addr->domain) < 0) {
+        virStrToLong_uip(domain, NULL, 0, &addr->domain) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Cannot parse <address> 'domain' attribute"));
         goto cleanup;
     }
 
     if (bus &&
-        virStrToLong_ui(bus, NULL, 0, &addr->bus) < 0) {
+        virStrToLong_uip(bus, NULL, 0, &addr->bus) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Cannot parse <address> 'bus' attribute"));
         goto cleanup;
     }
 
     if (slot &&
-        virStrToLong_ui(slot, NULL, 0, &addr->slot) < 0) {
+        virStrToLong_uip(slot, NULL, 0, &addr->slot) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Cannot parse <address> 'slot' attribute"));
         goto cleanup;
     }
 
     if (function &&
-        virStrToLong_ui(function, NULL, 0, &addr->function) < 0) {
+        virStrToLong_uip(function, NULL, 0, &addr->function) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Cannot parse <address> 'function' attribute"));
         goto cleanup;

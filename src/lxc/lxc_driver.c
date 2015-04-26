@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_driver.c: linux container driver functions
@@ -49,6 +49,7 @@
 #include "viralloc.h"
 #include "virnetdevbridge.h"
 #include "virnetdevveth.h"
+#include "virnetdevopenvswitch.h"
 #include "nodeinfo.h"
 #include "viruuid.h"
 #include "virstats.h"
@@ -72,6 +73,7 @@
 #include "viraccessapicheck.h"
 #include "viraccessapichecklxc.h"
 #include "virhostdev.h"
+#include "netdev_bandwidth_conf.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -443,7 +445,8 @@ static int lxcConnectNumOfDefinedDomains(virConnectPtr conn)
 
 
 
-static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
+static virDomainPtr
+lxcDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     virLXCDriverPtr driver = conn->privateData;
     virDomainDefPtr def = NULL;
@@ -453,16 +456,22 @@ static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
     virDomainDefPtr oldDef = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCapsPtr caps = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!(caps = virLXCDriverGetCapabilities(driver, false)))
         goto cleanup;
 
     if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_LXC,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
-    if (virDomainDefineXMLEnsureACL(conn, def) < 0)
+    if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
         goto cleanup;
 
     if (virSecurityManagerVerify(driver->securityManager, def) < 0)
@@ -508,6 +517,12 @@ static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
     virObjectUnref(caps);
     virObjectUnref(cfg);
     return dom;
+}
+
+static virDomainPtr
+lxcDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return lxcDomainDefineXMLFlags(conn, xml, 0);
 }
 
 static int lxcDomainUndefineFlags(virDomainPtr dom,
@@ -603,7 +618,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
         }
     }
 
-    info->maxMem = vm->def->mem.max_balloon;
+    info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
@@ -672,7 +687,7 @@ lxcDomainGetMaxMemory(virDomainPtr dom)
     if (virDomainGetMaxMemoryEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    ret = vm->def->mem.max_balloon;
+    ret = virDomainDefGetMemoryActual(vm->def);
 
  cleanup:
     if (vm)
@@ -721,7 +736,7 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
         }
 
         if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-            persistentDef->mem.max_balloon = newmem;
+            virDomainDefSetMemoryInitial(persistentDef, newmem);
             if (persistentDef->mem.cur_balloon > newmem)
                 persistentDef->mem.cur_balloon = newmem;
             if (virDomainSaveConfig(cfg->configDir, persistentDef) < 0)
@@ -731,10 +746,10 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
         unsigned long oldmax = 0;
 
         if (flags & VIR_DOMAIN_AFFECT_LIVE)
-            oldmax = vm->def->mem.max_balloon;
+            oldmax = virDomainDefGetMemoryActual(vm->def);
         if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-            if (!oldmax || oldmax > persistentDef->mem.max_balloon)
-                oldmax = persistentDef->mem.max_balloon;
+            if (!oldmax || oldmax > virDomainDefGetMemoryActual(persistentDef))
+                oldmax = virDomainDefGetMemoryActual(persistentDef);
         }
 
         if (newmem > oldmax) {
@@ -749,6 +764,10 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
                                "%s", _("Failed to set memory for domain"));
                 goto cleanup;
             }
+
+            vm->def->mem.cur_balloon = newmem;
+            if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
+                goto cleanup;
         }
 
         if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
@@ -856,7 +875,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
         if (set_hard_limit)
             mem_limit = hard_limit;
 
-        if (virCompareLimitUlong(mem_limit, swap_limit) > 0) {
+        if (mem_limit > swap_limit) {
             virReportError(VIR_ERR_INVALID_ARG, "%s",
                            _("memory hard_limit tunable value must be lower "
                              "than or equal to swap_hard_limit"));
@@ -884,7 +903,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
     LXC_SET_MEM_PARAMETER(virCgroupSetMemorySoftLimit, soft_limit);
 
     /* set hard limit before swap hard limit if decreasing it */
-    if (virCompareLimitUlong(vm->def->mem.hard_limit, hard_limit) > 0) {
+    if (vm->def->mem.hard_limit > hard_limit) {
         LXC_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
         /* inhibit changing the limit a second time */
         set_hard_limit = false;
@@ -965,7 +984,6 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
         case 0: /* fill memory hard limit here */
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
                 val = vmdef->mem.hard_limit;
-                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
             } else if (virCgroupGetMemoryHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -976,7 +994,6 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
         case 1: /* fill memory soft limit here */
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
                 val = vmdef->mem.soft_limit;
-                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
             } else if (virCgroupGetMemorySoftLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -987,7 +1004,6 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
         case 2: /* fill swap hard limit here */
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
                 val = vmdef->mem.swap_hard_limit;
-                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
             } else if (virCgroupGetMemSwapHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -1026,7 +1042,7 @@ static char *lxcDomainGetXMLDesc(virDomainPtr dom,
 
     ret = virDomainDefFormat((flags & VIR_DOMAIN_XML_INACTIVE) &&
                              vm->newDef ? vm->newDef : vm->def,
-                             flags);
+                             virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
     if (vm)
@@ -1182,8 +1198,14 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
     virObjectEventPtr event = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCapsPtr caps = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
 
-    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, NULL);
+    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY |
+                  VIR_DOMAIN_START_VALIDATE, NULL);
+
+
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     virNWFilterReadLockFilterUpdates();
 
@@ -1192,7 +1214,7 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
 
     if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_LXC,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
     if (virDomainCreateXMLWithFilesEnsureACL(conn, def) < 0)
@@ -1582,9 +1604,8 @@ static int lxcStateInitialize(bool privileged,
         return 0;
     }
 
-    if (VIR_ALLOC(lxc_driver) < 0) {
+    if (VIR_ALLOC(lxc_driver) < 0)
         return -1;
-    }
     if (virMutexInit(&lxc_driver->lock) < 0) {
         VIR_FREE(lxc_driver);
         return -1;
@@ -1968,9 +1989,8 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
                     vm->def->cputune.period = params[i].value.ul;
             }
 
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG)
                 vmdef->cputune.period = params[i].value.ul;
-            }
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA)) {
             if (flags & VIR_DOMAIN_AFFECT_LIVE) {
                 rc = lxcSetVcpuBWLive(priv->cgroup, 0, params[i].value.l);
@@ -1981,9 +2001,8 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
                     vm->def->cputune.quota = params[i].value.l;
             }
 
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG)
                 vmdef->cputune.quota = params[i].value.l;
-            }
         }
     }
 
@@ -2158,7 +2177,7 @@ lxcDomainParseBlkioDeviceStr(char *blkioDeviceStr, const char *type,
     /* A valid string must have even number of fields, hence an odd
      * number of commas.  */
     if (!(nsep & 1))
-        goto error;
+        goto parse_error;
 
     ndevices = (nsep + 1) / 2;
 
@@ -2173,7 +2192,7 @@ lxcDomainParseBlkioDeviceStr(char *blkioDeviceStr, const char *type,
         /* device path */
         p = strchr(p, ',');
         if (!p)
-            goto error;
+            goto parse_error;
 
         if (VIR_STRNDUP(result[i].path, temp, p - temp) < 0)
             goto cleanup;
@@ -2183,21 +2202,23 @@ lxcDomainParseBlkioDeviceStr(char *blkioDeviceStr, const char *type,
 
         if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
             if (virStrToLong_uip(temp, &p, 10, &result[i].weight) < 0)
-                goto error;
+                goto number_error;
         } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS)) {
             if (virStrToLong_uip(temp, &p, 10, &result[i].riops) < 0)
-                goto error;
+                goto number_error;
         } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS)) {
             if (virStrToLong_uip(temp, &p, 10, &result[i].wiops) < 0)
-                goto error;
+                goto number_error;
         } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS)) {
             if (virStrToLong_ullp(temp, &p, 10, &result[i].rbps) < 0)
-                goto error;
+                goto number_error;
         } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS)) {
             if (virStrToLong_ullp(temp, &p, 10, &result[i].wbps) < 0)
-                goto error;
+                goto number_error;
         } else {
-            goto error;
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("unknown parameter '%s'"), type);
+            goto cleanup;
         }
 
         i++;
@@ -2205,7 +2226,7 @@ lxcDomainParseBlkioDeviceStr(char *blkioDeviceStr, const char *type,
         if (*p == '\0')
             break;
         else if (*p != ',')
-            goto error;
+            goto parse_error;
         temp = p + 1;
     }
 
@@ -2217,10 +2238,17 @@ lxcDomainParseBlkioDeviceStr(char *blkioDeviceStr, const char *type,
 
     return 0;
 
- error:
+ parse_error:
     virReportError(VIR_ERR_INVALID_ARG,
                    _("unable to parse blkio device '%s' '%s'"),
                    type, blkioDeviceStr);
+    goto cleanup;
+
+ number_error:
+    virReportError(VIR_ERR_INVALID_ARG,
+                   _("invalid value '%s' for parameter '%s' of device '%s'"),
+                   temp, type, result[i].path);
+
  cleanup:
     if (result) {
         virBlkioDeviceArrayClear(result, ndevices);
@@ -4128,6 +4156,7 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
     virLXCDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
     int actualType;
+    virNetDevBandwidthPtr actualBandwidth;
     char *veth = NULL;
 
     if (!priv->initpid) {
@@ -4150,47 +4179,18 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
     actualType = virDomainNetGetActualType(net);
 
     switch (actualType) {
-    case VIR_DOMAIN_NET_TYPE_BRIDGE: {
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+    case VIR_DOMAIN_NET_TYPE_NETWORK: {
         const char *brname = virDomainNetGetActualBridgeName(net);
         if (!brname) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("No bridge name specified"));
             goto cleanup;
         }
-        if (!(veth = virLXCProcessSetupInterfaceBridged(conn,
-                                                        vm->def,
+        if (!(veth = virLXCProcessSetupInterfaceBridged(vm->def,
                                                         net,
                                                         brname)))
             goto cleanup;
-    }   break;
-    case VIR_DOMAIN_NET_TYPE_NETWORK: {
-        virNetworkPtr network;
-        char *brname = NULL;
-        bool fail = false;
-        virErrorPtr errobj;
-
-        if (!(network = virNetworkLookupByName(conn, net->data.network.name)))
-            goto cleanup;
-        if (!(brname = virNetworkGetBridgeName(network)))
-           fail = true;
-
-        /* Make sure any above failure is preserved */
-        errobj = virSaveLastError();
-        virNetworkFree(network);
-        virSetError(errobj);
-        virFreeError(errobj);
-
-        if (fail)
-            goto cleanup;
-
-        if (!(veth = virLXCProcessSetupInterfaceBridged(conn,
-                                                        vm->def,
-                                                        net,
-                                                        brname))) {
-            VIR_FREE(brname);
-            goto cleanup;
-        }
-        VIR_FREE(brname);
     }   break;
     case VIR_DOMAIN_NET_TYPE_DIRECT: {
         if (!(veth = virLXCProcessSetupInterfaceDirect(conn,
@@ -4202,6 +4202,18 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Network device type is not supported"));
         goto cleanup;
+    }
+    /* Set bandwidth or warn if requested and not supported. */
+    actualBandwidth = virDomainNetGetActualBandwidth(net);
+    if (actualBandwidth) {
+        if (virNetDevSupportBandwidth(actualType)) {
+            if (virNetDevBandwidthSet(net->ifname, actualBandwidth, false) < 0)
+                goto cleanup;
+        } else {
+            VIR_WARN("setting bandwidth on interfaces of "
+                     "type '%s' is not implemented yet",
+                     virDomainNetTypeToString(actualType));
+        }
     }
 
     if (virNetDevSetNamespace(veth, priv->initpid) < 0) {
@@ -4625,7 +4637,7 @@ static int
 lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
                              virDomainDeviceDefPtr dev)
 {
-    int detachidx, ret = -1;
+    int detachidx, actualType, ret = -1;
     virDomainNetDefPtr detach = NULL;
     virNetDevVPortProfilePtr vport = NULL;
 
@@ -4633,8 +4645,15 @@ lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
         goto cleanup;
 
     detach = vm->def->nets[detachidx];
+    actualType = virDomainNetGetActualType(detach);
 
-    switch (virDomainNetGetActualType(detach)) {
+    /* clear network bandwidth */
+    if (virDomainNetGetActualBandwidth(detach) &&
+        virNetDevSupportBandwidth(actualType) &&
+        virNetDevBandwidthClear(detach->ifname))
+        goto cleanup;
+
+    switch (actualType) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
     case VIR_DOMAIN_NET_TYPE_NETWORK:
         if (virNetDevVethDelete(detach->ifname) < 0) {
@@ -4986,7 +5005,7 @@ static int lxcDomainAttachDeviceFlags(virDomainPtr dom,
 
     dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
                                              caps, driver->xmlopt,
-                                             VIR_DOMAIN_XML_INACTIVE);
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -5115,7 +5134,7 @@ static int lxcDomainUpdateDeviceFlags(virDomainPtr dom,
 
     dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
                                              caps, driver->xmlopt,
-                                             VIR_DOMAIN_XML_INACTIVE);
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -5228,7 +5247,7 @@ static int lxcDomainDetachDeviceFlags(virDomainPtr dom,
 
     dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
                                              caps, driver->xmlopt,
-                                             VIR_DOMAIN_XML_INACTIVE);
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (dev == NULL)
         goto cleanup;
 
@@ -5706,9 +5725,31 @@ lxcNodeAllocPages(virConnectPtr conn,
 }
 
 
+static int
+lxcDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = lxcDomObjFromDomain(dom)))
+        return ret;
+
+    if (virDomainHasManagedSaveImageEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+
 /* Function Tables */
-static virDriver lxcDriver = {
-    .no = VIR_DRV_LXC,
+static virHypervisorDriver lxcHypervisorDriver = {
     .name = LXC_DRIVER_NAME,
     .connectOpen = lxcConnectOpen, /* 0.4.2 */
     .connectClose = lxcConnectClose, /* 0.4.2 */
@@ -5751,6 +5792,7 @@ static virDriver lxcDriver = {
     .domainCreateWithFlags = lxcDomainCreateWithFlags, /* 0.8.2 */
     .domainCreateWithFiles = lxcDomainCreateWithFiles, /* 1.1.1 */
     .domainDefineXML = lxcDomainDefineXML, /* 0.4.2 */
+    .domainDefineXMLFlags = lxcDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = lxcDomainUndefine, /* 0.4.2 */
     .domainUndefineFlags = lxcDomainUndefineFlags, /* 0.9.4 */
     .domainAttachDevice = lxcDomainAttachDevice, /* 1.0.1 */
@@ -5798,6 +5840,11 @@ static virDriver lxcDriver = {
     .domainLxcOpenNamespace = lxcDomainLxcOpenNamespace, /* 1.0.2 */
     .nodeGetFreePages = lxcNodeGetFreePages, /* 1.2.6 */
     .nodeAllocPages = lxcNodeAllocPages, /* 1.2.9 */
+    .domainHasManagedSaveImage = lxcDomainHasManagedSaveImage, /* 1.2.13 */
+};
+
+static virConnectDriver lxcConnectDriver = {
+    .hypervisorDriver = &lxcHypervisorDriver,
 };
 
 static virStateDriver lxcStateDriver = {
@@ -5810,7 +5857,8 @@ static virStateDriver lxcStateDriver = {
 
 int lxcRegister(void)
 {
-    if (virRegisterDriver(&lxcDriver) < 0)
+    if (virRegisterConnectDriver(&lxcConnectDriver,
+                                 true) < 0)
         return -1;
     if (virRegisterStateDriver(&lxcStateDriver) < 0)
         return -1;

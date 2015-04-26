@@ -1,7 +1,7 @@
 /*
  * vircgroup.c: methods for managing control cgroups
  *
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * This library is free software; you can redistribute it and/or
@@ -338,18 +338,19 @@ virCgroupCopyMounts(virCgroupPtr group,
  * Process /proc/mounts figuring out what controllers are
  * mounted and where
  */
-static int
-virCgroupDetectMounts(virCgroupPtr group)
+int
+virCgroupDetectMountsFromFile(virCgroupPtr group,
+                              const char *path,
+                              bool checkLinks)
 {
     size_t i;
     FILE *mounts = NULL;
     struct mntent entry;
     char buf[CGROUP_MAX_VAL];
 
-    mounts = fopen("/proc/mounts", "r");
+    mounts = fopen(path, "r");
     if (mounts == NULL) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to open /proc/mounts"));
+        virReportSystemError(errno, _("Unable to open %s"), path);
         return -1;
     }
 
@@ -394,7 +395,7 @@ virCgroupDetectMounts(virCgroupPtr group)
 
                     /* If it is a co-mount it has a filename like "cpu,cpuacct"
                      * and we must identify the symlink path */
-                    if (strchr(tmp2 + 1, ',')) {
+                    if (checkLinks && strchr(tmp2 + 1, ',')) {
                         *tmp2 = '\0';
                         if (virAsprintf(&linksrc, "%s/%s",
                                         entry.mnt_dir, typestr) < 0)
@@ -434,6 +435,12 @@ virCgroupDetectMounts(virCgroupPtr group)
  error:
     VIR_FORCE_FCLOSE(mounts);
     return -1;
+}
+
+static int
+virCgroupDetectMounts(virCgroupPtr group)
+{
+    return virCgroupDetectMountsFromFile(group, "/proc/mounts", true);
 }
 
 
@@ -872,6 +879,7 @@ virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
     const char *inherit_values[] = {
         "cpuset.cpus",
         "cpuset.mems",
+        "cpuset.memory_migrate",
     };
 
     VIR_DEBUG("Setting up inheritance %s -> %s", parent->path, group->path);
@@ -1042,8 +1050,8 @@ virCgroupNew(pid_t pid,
              int controllers,
              virCgroupPtr *group)
 {
-    VIR_DEBUG("parent=%p path=%s controllers=%d",
-              parent, path, controllers);
+    VIR_DEBUG("pid=%lld path=%s parent=%p controllers=%d group=%p",
+              (long long) pid, path, parent, controllers, group);
     *group = NULL;
 
     if (VIR_ALLOC((*group)) < 0)
@@ -1282,7 +1290,7 @@ virCgroupSetPartitionSuffix(const char *path, char **res)
  * @controllers: mask of controllers to create
  *
  * Creates a new cgroup to represent the resource
- * partition path identified by @name.
+ * partition path identified by @path.
  *
  * Returns 0 on success, -1 on failure
  */
@@ -1584,6 +1592,8 @@ virCgroupNewMachineSystemd(const char *name,
                            const char *rootdir,
                            pid_t pidleader,
                            bool isContainer,
+                           size_t nnicindexes,
+                           int *nicindexes,
                            const char *partition,
                            int controllers,
                            virCgroupPtr *group)
@@ -1602,6 +1612,8 @@ virCgroupNewMachineSystemd(const char *name,
                                       rootdir,
                                       pidleader,
                                       isContainer,
+                                      nnicindexes,
+                                      nicindexes,
                                       partition)) < 0)
         return rv;
 
@@ -1680,6 +1692,17 @@ virCgroupNewMachineSystemd(const char *name,
 }
 
 
+/*
+ * Returns 0 on success, -1 on fatal error
+ */
+int virCgroupTerminateMachine(const char *name,
+                              const char *drivername,
+                              bool privileged)
+{
+    return virSystemdTerminateMachine(name, drivername, privileged);
+}
+
+
 static int
 virCgroupNewMachineManual(const char *name,
                           const char *drivername,
@@ -1736,6 +1759,8 @@ virCgroupNewMachine(const char *name,
                     const char *rootdir,
                     pid_t pidleader,
                     bool isContainer,
+                    size_t nnicindexes,
+                    int *nicindexes,
                     const char *partition,
                     int controllers,
                     virCgroupPtr *group)
@@ -1751,6 +1776,8 @@ virCgroupNewMachine(const char *name,
                                          rootdir,
                                          pidleader,
                                          isContainer,
+                                         nnicindexes,
+                                         nicindexes,
                                          partition,
                                          controllers,
                                          group)) == 0)
@@ -2652,6 +2679,45 @@ virCgroupGetCpusetMems(virCgroupPtr group, char **mems)
 
 
 /**
+ * virCgroupSetCpusetMemoryMigrate:
+ *
+ * @group: The cgroup to set cpuset.memory_migrate for
+ * @migrate: Whether to migrate the memory on change or not
+ *
+ * Returns: 0 on success
+ */
+int
+virCgroupSetCpusetMemoryMigrate(virCgroupPtr group, bool migrate)
+{
+    return virCgroupSetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.memory_migrate",
+                                migrate ? "1" : "0");
+}
+
+
+/**
+ * virCgroupGetCpusetMemoryMigrate:
+ *
+ * @group: The cgroup to get cpuset.memory_migrate for
+ * @migrate: Migration setting
+ *
+ * Returns: 0 on success
+ */
+int
+virCgroupGetCpusetMemoryMigrate(virCgroupPtr group, bool *migrate)
+{
+    unsigned long long value = 0;
+    int ret = virCgroupGetValueU64(group,
+                                   VIR_CGROUP_CONTROLLER_CPUSET,
+                                   "cpuset.memory_migrate",
+                                   &value);
+    *migrate = !!value;
+    return ret;
+}
+
+
+/**
  * virCgroupSetCpusetCpus:
  *
  * @group: The cgroup to set cpuset.cpus for
@@ -2756,11 +2822,11 @@ virCgroupAllowDevice(virCgroupPtr group, char type, int major, int minor,
     char *minorstr = NULL;
 
     if ((major < 0 && VIR_STRDUP(majorstr, "*") < 0) ||
-            virAsprintf(&majorstr, "%i", major) < 0)
+        (major >= 0 && virAsprintf(&majorstr, "%i", major) < 0))
         goto cleanup;
 
     if ((minor < 0 && VIR_STRDUP(minorstr, "*") < 0) ||
-            virAsprintf(&minorstr, "%i", minor) < 0)
+        (minor >= 0 && virAsprintf(&minorstr, "%i", minor) < 0))
         goto cleanup;
 
     if (virAsprintf(&devstr, "%c %s:%s %s", type, majorstr, minorstr,
@@ -2966,7 +3032,8 @@ static int
 virCgroupGetPercpuVcpuSum(virCgroupPtr group,
                           unsigned int nvcpupids,
                           unsigned long long *sum_cpu_time,
-                          unsigned int num)
+                          size_t nsum,
+                          virBitmapPtr cpumap)
 {
     int ret = -1;
     size_t i;
@@ -2976,7 +3043,7 @@ virCgroupGetPercpuVcpuSum(virCgroupPtr group,
     for (i = 0; i < nvcpupids; i++) {
         char *pos;
         unsigned long long tmp;
-        size_t j;
+        ssize_t j;
 
         if (virCgroupNewVcpu(group, i, false, &group_vcpu) < 0)
             goto cleanup;
@@ -2985,7 +3052,9 @@ virCgroupGetPercpuVcpuSum(virCgroupPtr group,
             goto cleanup;
 
         pos = buf;
-        for (j = 0; j < num; j++) {
+        for (j = virBitmapNextSetBit(cpumap, -1);
+             j >= 0 && j < nsum;
+             j = virBitmapNextSetBit(cpumap, j)) {
             if (virStrToLong_ull(pos, &pos, 10, &tmp) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("cpuacct parse error"));
@@ -3023,6 +3092,7 @@ virCgroupGetPercpuStats(virCgroupPtr group,
     virTypedParameterPtr ent;
     int param_idx;
     unsigned long long cpu_time;
+    virBitmapPtr cpumap = NULL;
 
     /* return the number of supported params */
     if (nparams == 0 && ncpus != 0) {
@@ -3033,11 +3103,15 @@ virCgroupGetPercpuStats(virCgroupPtr group,
     }
 
     /* To parse account file, we need to know how many cpus are present.  */
-    if ((total_cpus = nodeGetCPUCount()) < 0)
+    if (!(cpumap = nodeGetPresentCPUBitmap()))
         return rv;
 
-    if (ncpus == 0)
-        return total_cpus;
+    total_cpus = virBitmapSize(cpumap);
+
+    if (ncpus == 0) {
+        rv = total_cpus;
+        goto cleanup;
+    }
 
     if (start_cpu >= total_cpus) {
         virReportError(VIR_ERR_INVALID_ARG,
@@ -3058,7 +3132,9 @@ virCgroupGetPercpuStats(virCgroupPtr group,
     need_cpus = MIN(total_cpus, start_cpu + ncpus);
 
     for (i = 0; i < need_cpus; i++) {
-        if (virStrToLong_ull(pos, &pos, 10, &cpu_time) < 0) {
+        if (!virBitmapIsBitSet(cpumap, i)) {
+            cpu_time = 0;
+        } else if (virStrToLong_ull(pos, &pos, 10, &cpu_time) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("cpuacct parse error"));
             goto cleanup;
@@ -3078,7 +3154,8 @@ virCgroupGetPercpuStats(virCgroupPtr group,
 
     if (VIR_ALLOC_N(sum_cpu_time, need_cpus) < 0)
         goto cleanup;
-    if (virCgroupGetPercpuVcpuSum(group, nvcpupids, sum_cpu_time, need_cpus) < 0)
+    if (virCgroupGetPercpuVcpuSum(group, nvcpupids, sum_cpu_time, need_cpus,
+                                  cpumap) < 0)
         goto cleanup;
 
     for (i = start_cpu; i < need_cpus; i++) {
@@ -3094,6 +3171,7 @@ virCgroupGetPercpuStats(virCgroupPtr group,
     rv = param_idx + 1;
 
  cleanup:
+    virBitmapFree(cpumap);
     VIR_FREE(sum_cpu_time);
     VIR_FREE(buf);
     return rv;
@@ -3897,7 +3975,7 @@ bool
 virCgroupSupportsCpuBW(virCgroupPtr cgroup)
 {
     char *path = NULL;
-    int ret = false;
+    bool ret = false;
 
     if (!cgroup)
         return false;
@@ -3915,6 +3993,23 @@ virCgroupSupportsCpuBW(virCgroupPtr cgroup)
     return ret;
 }
 
+int
+virCgroupHasEmptyTasks(virCgroupPtr cgroup, int controller)
+{
+    int ret = -1;
+    char *content = NULL;
+
+    if (!cgroup)
+        return -1;
+
+    ret = virCgroupGetValueStr(cgroup, controller, "tasks", &content);
+
+    if (ret == 0 && content[0] == '\0')
+        ret = 1;
+
+    VIR_FREE(content);
+    return ret;
+}
 
 #else /* !VIR_CGROUP_SUPPORTED */
 
@@ -3922,6 +4017,17 @@ bool
 virCgroupAvailable(void)
 {
     return false;
+}
+
+
+int
+virCgroupDetectMountsFromFile(virCgroupPtr group ATTRIBUTE_UNUSED,
+                              const char *path ATTRIBUTE_UNUSED,
+                              bool checkLinks ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENXIO, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
 }
 
 
@@ -4018,6 +4124,17 @@ virCgroupNewDetectMachine(const char *name ATTRIBUTE_UNUSED,
     return -1;
 }
 
+
+int virCgroupTerminateMachine(const char *name ATTRIBUTE_UNUSED,
+                              const char *drivername ATTRIBUTE_UNUSED,
+                              bool privileged ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENXIO, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
 int
 virCgroupNewMachine(const char *name ATTRIBUTE_UNUSED,
                     const char *drivername ATTRIBUTE_UNUSED,
@@ -4026,6 +4143,8 @@ virCgroupNewMachine(const char *name ATTRIBUTE_UNUSED,
                     const char *rootdir ATTRIBUTE_UNUSED,
                     pid_t pidleader ATTRIBUTE_UNUSED,
                     bool isContainer ATTRIBUTE_UNUSED,
+                    size_t nnicindexes ATTRIBUTE_UNUSED,
+                    int *nicindexes ATTRIBUTE_UNUSED,
                     const char *partition ATTRIBUTE_UNUSED,
                     int controllers ATTRIBUTE_UNUSED,
                     virCgroupPtr *group ATTRIBUTE_UNUSED)
@@ -4304,6 +4423,26 @@ virCgroupSetCpusetMems(virCgroupPtr group ATTRIBUTE_UNUSED,
 int
 virCgroupGetCpusetMems(virCgroupPtr group ATTRIBUTE_UNUSED,
                        char **mems ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
+virCgroupSetCpusetMemoryMigrate(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                bool migrate ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
+virCgroupGetCpusetMemoryMigrate(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                bool *migrate ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));
@@ -4627,6 +4766,15 @@ virCgroupSetOwner(virCgroupPtr cgroup ATTRIBUTE_UNUSED,
                   uid_t uid ATTRIBUTE_UNUSED,
                   gid_t gid ATTRIBUTE_UNUSED,
                   int controllers ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+int
+virCgroupHasEmptyTasks(virCgroupPtr cgroup ATTRIBUTE_UNUSED,
+                       int controller ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));

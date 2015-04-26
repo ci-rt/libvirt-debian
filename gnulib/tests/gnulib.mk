@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2014 Free Software Foundation, Inc.
+# Copyright (C) 2002-2015 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -212,6 +212,14 @@ test_connect_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 EXTRA_DIST += test-connect.c signature.h macros.h
 
 ## end   gnulib module connect-tests
+
+## begin gnulib module count-leading-zeros-tests
+
+GNULIB_TESTS += test-count-leading-zeros
+check_PROGRAMS += test-count-leading-zeros
+EXTRA_DIST += test-count-leading-zeros.c macros.h
+
+## end   gnulib module count-leading-zeros-tests
 
 ## begin gnulib module count-one-bits-tests
 

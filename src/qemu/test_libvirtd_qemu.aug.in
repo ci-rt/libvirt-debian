@@ -69,11 +69,12 @@ module Test_libvirtd_qemu =
 { "keepalive_interval" = "5" }
 { "keepalive_count" = "5" }
 { "seccomp_sandbox" = "1" }
-{ "migration_address" = "127.0.0.1" }
+{ "migration_address" = "0.0.0.0" }
 { "migration_host" = "host.example.com" }
 { "migration_port_min" = "49152" }
 { "migration_port_max" = "49215" }
 { "log_timestamp" = "0" }
 { "nvram"
     { "1" = "/usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd" }
+    { "2" = "/usr/share/AAVMF/AAVMF_CODE.fd:/usr/share/AAVMF/AAVMF_VARS.fd" }
 }

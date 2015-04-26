@@ -80,6 +80,13 @@ struct _virConfParserCtxt {
  *									*
  ************************************************************************/
 
+VIR_ENUM_IMPL(virConf, VIR_CONF_LAST,
+              "*unexpected*",
+              "long",
+              "unsigned long",
+              "string",
+              "list");
+
 typedef struct _virConfEntry virConfEntry;
 typedef virConfEntry *virConfEntryPtr;
 
@@ -267,6 +274,7 @@ virConfSaveValue(virBufferPtr buf, virConfValuePtr val)
         case VIR_CONF_NONE:
             return -1;
         case VIR_CONF_LONG:
+        case VIR_CONF_ULONG:
             virBufferAsprintf(buf, "%ld", val->l);
             break;
         case VIR_CONF_STRING:
@@ -502,9 +510,8 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
             }
             NEXT;
             SKIP_BLANKS_AND_EOL;
-            if (CUR == ']') {
+            if (CUR == ']')
                 break;
-            }
             tmp = virConfParseValue(ctxt);
             if (tmp == NULL) {
                 virConfFreeList(lst);
@@ -529,10 +536,9 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
                          _("numbers not allowed in VMX format"));
             return NULL;
         }
-        if (virConfParseLong(ctxt, &l) < 0) {
+        type = (c_isdigit(CUR) || CUR == '+') ? VIR_CONF_ULONG : VIR_CONF_LONG;
+        if (virConfParseLong(ctxt, &l) < 0)
             return NULL;
-        }
-        type = VIR_CONF_LONG;
     } else {
         virConfError(ctxt, VIR_ERR_CONF_SYNTAX, _("expecting a value"));
         return NULL;
@@ -654,9 +660,8 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
     char *comm = NULL;
 
     SKIP_BLANKS_AND_EOL;
-    if (CUR == '#') {
+    if (CUR == '#')
         return virConfParseComment(ctxt);
-    }
     name = virConfParseName(ctxt);
     if (name == NULL)
         return -1;
@@ -768,9 +773,8 @@ virConfReadFile(const char *filename, unsigned int flags)
         return NULL;
     }
 
-    if ((len = virFileReadAll(filename, MAX_CONFIG_FILE_SIZE, &content)) < 0) {
+    if ((len = virFileReadAll(filename, MAX_CONFIG_FILE_SIZE, &content)) < 0)
         return NULL;
-    }
 
     conf = virConfParse(filename, content, len, flags);
 
@@ -883,14 +887,15 @@ virConfSetValue(virConfPtr conf,
 {
     virConfEntryPtr cur, prev = NULL;
 
-    if (value && value->type == VIR_CONF_STRING && value->str == NULL)
+    if (value && value->type == VIR_CONF_STRING && value->str == NULL) {
+        virConfFreeValue(value);
         return -1;
+    }
 
     cur = conf->entries;
     while (cur != NULL) {
-        if ((cur->name != NULL) && (STREQ(cur->name, setting))) {
+        if (STREQ_NULLABLE(cur->name, setting))
             break;
-        }
         prev = cur;
         cur = cur->next;
     }

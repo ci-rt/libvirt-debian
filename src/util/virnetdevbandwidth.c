@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2014 Red Hat, Inc.
+ * Copyright (C) 2009-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,12 +21,14 @@
  */
 
 #include <config.h>
+#include <unistd.h>
 
 #include "virnetdevbandwidth.h"
 #include "vircommand.h"
 #include "viralloc.h"
 #include "virerror.h"
 #include "virstring.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -72,6 +74,20 @@ virNetDevBandwidthSet(const char *ifname,
         /* nothing to be enabled */
         ret = 0;
         goto cleanup;
+    }
+
+    if (geteuid() != 0) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("Network bandwidth tuning is not available"
+                         " in session mode"));
+        return -1;
+    }
+
+    if (!ifname) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("Unable to set bandwidth for interface because "
+                         "device name is unknown"));
+        return -1;
     }
 
     virNetDevBandwidthClear(ifname);
@@ -258,6 +274,9 @@ virNetDevBandwidthClear(const char *ifname)
     int ret = 0;
     int dummy; /* for ignoring the exit status */
     virCommandPtr cmd = NULL;
+
+    if (!ifname)
+       return 0;
 
     cmd = virCommandNew(TC);
     virCommandAddArgList(cmd, "qdisc", "del", "dev", ifname, "root", NULL);

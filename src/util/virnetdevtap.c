@@ -26,6 +26,7 @@
 #include "virnetdevtap.h"
 #include "virnetdev.h"
 #include "virnetdevbridge.h"
+#include "virnetdevmidonet.h"
 #include "virnetdevopenvswitch.h"
 #include "virerror.h"
 #include "virfile.h"
@@ -108,9 +109,8 @@ virNetDevTapGetRealDeviceName(char *ifname ATTRIBUTE_UNUSED)
     while (virDirRead(dirp, &dp, "/dev") > 0) {
         if (STRPREFIX(dp->d_name, "tap")) {
             struct ifreq ifr;
-            if (virAsprintf(&devpath, "/dev/%s", dp->d_name) < 0) {
+            if (virAsprintf(&devpath, "/dev/%s", dp->d_name) < 0)
                 goto cleanup;
-            }
             if ((fd = open(devpath, O_RDWR)) < 0) {
                 if (errno == EBUSY) {
                     VIR_FREE(devpath);
@@ -236,7 +236,7 @@ virNetDevProbeVnetHdr(int tapfd)
 int virNetDevTapCreate(char **ifname,
                        const char *tunpath,
                        int *tapfd,
-                       int tapfdSize,
+                       size_t tapfdSize,
                        unsigned int flags)
 {
     size_t i;
@@ -371,7 +371,7 @@ int virNetDevTapDelete(const char *ifname,
 int virNetDevTapCreate(char **ifname,
                        const char *tunpath ATTRIBUTE_UNUSED,
                        int *tapfd,
-                       int tapfdSize,
+                       size_t tapfdSize,
                        unsigned int flags ATTRIBUTE_UNUSED)
 {
     int s;
@@ -444,9 +444,8 @@ int virNetDevTapCreate(char **ifname,
         VIR_FREE(dev_path);
     }
 
-    if (virNetDevSetName(ifr.ifr_name, *ifname) == -1) {
+    if (virNetDevSetName(ifr.ifr_name, *ifname) == -1)
         goto cleanup;
-    }
 
 
     ret = 0;
@@ -483,7 +482,7 @@ int virNetDevTapDelete(const char *ifname,
 int virNetDevTapCreate(char **ifname ATTRIBUTE_UNUSED,
                        const char *tunpath ATTRIBUTE_UNUSED,
                        int *tapfd ATTRIBUTE_UNUSED,
-                       int tapfdSize ATTRIBUTE_UNUSED,
+                       size_t tapfdSize ATTRIBUTE_UNUSED,
                        unsigned int flags ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
@@ -536,7 +535,7 @@ int virNetDevTapCreateInBridgePort(const char *brname,
                                    const unsigned char *vmuuid,
                                    const char *tunpath,
                                    int *tapfd,
-                                   int tapfdSize,
+                                   size_t tapfdSize,
                                    virNetDevVPortProfilePtr virtPortProfile,
                                    virNetDevVlanPtr virtVlan,
                                    unsigned int flags)
@@ -582,9 +581,13 @@ int virNetDevTapCreateInBridgePort(const char *brname,
         goto error;
 
     if (virtPortProfile) {
-        if (virNetDevOpenvswitchAddPort(brname, *ifname, macaddr, vmuuid,
-                                        virtPortProfile, virtVlan) < 0) {
-            goto error;
+        if (virtPortProfile->virtPortType == VIR_NETDEV_VPORT_PROFILE_MIDONET) {
+            if (virNetDevMidonetBindPort(*ifname, virtPortProfile) < 0)
+                goto error;
+        } else if (virtPortProfile->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
+            if (virNetDevOpenvswitchAddPort(brname, *ifname, macaddr, vmuuid,
+                                            virtPortProfile, virtVlan) < 0)
+                goto error;
         }
     } else {
         if (virNetDevBridgeAddPort(brname, *ifname) < 0)

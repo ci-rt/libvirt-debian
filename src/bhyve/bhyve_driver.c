@@ -2,7 +2,7 @@
  * bhyve_driver.c: core driver methods for managing bhyve guests
  *
  * Copyright (C) 2014 Roman Bogorodskiy
- * Copyright (C) 2014 Red Hat, Inc.
+ * Copyright (C) 2014-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -231,7 +231,7 @@ bhyveConnectClose(virConnectPtr conn)
 }
 
 static char *
-bhyveConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+bhyveConnectGetHostname(virConnectPtr conn)
 {
     if (virConnectGetHostnameEnsureACL(conn) < 0)
         return NULL;
@@ -265,7 +265,7 @@ bhyveConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 }
 
 static int
-bhyveConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *version)
+bhyveConnectGetVersion(virConnectPtr conn, unsigned long *version)
 {
     struct utsname ver;
 
@@ -303,7 +303,7 @@ bhyveDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     }
 
     info->state = virDomainObjGetState(vm, NULL);
-    info->maxMem = vm->def->mem.max_balloon;
+    info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
@@ -476,7 +476,8 @@ bhyveDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     if (virDomainGetXMLDescEnsureACL(domain->conn, vm->def, flags) < 0)
         goto cleanup;
 
-    ret = virDomainDefFormat(vm->def, flags);
+    ret = virDomainDefFormat(vm->def,
+                             virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
     if (vm)
@@ -485,7 +486,7 @@ bhyveDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 }
 
 static virDomainPtr
-bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
+bhyveDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     bhyveConnPtr privconn = conn->privateData;
     virDomainPtr dom = NULL;
@@ -494,6 +495,12 @@ bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
     virDomainObjPtr vm = NULL;
     virObjectEventPtr event = NULL;
     virCapsPtr caps = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     caps = bhyveDriverGetCapabilities(privconn);
     if (!caps)
@@ -501,10 +508,10 @@ bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
 
     if ((def = virDomainDefParseString(xml, caps, privconn->xmlopt,
                                        1 << VIR_DOMAIN_VIRT_BHYVE,
-                                       VIR_DOMAIN_XML_INACTIVE)) == NULL)
+                                       parse_flags)) == NULL)
         goto cleanup;
 
-    if (virDomainDefineXMLEnsureACL(conn, def) < 0)
+    if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
         goto cleanup;
 
     if (bhyveDomainAssignAddresses(def, NULL) < 0)
@@ -544,6 +551,12 @@ bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
         virObjectEventStateQueue(privconn->domainEventState, event);
 
     return dom;
+}
+
+static virDomainPtr
+bhyveDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return bhyveDomainDefineXMLFlags(conn, xml, 0);
 }
 
 static int
@@ -683,13 +696,14 @@ bhyveConnectDomainXMLToNative(virConnectPtr conn,
 
     if (!(def = virDomainDefParseString(xmlData, caps, privconn->xmlopt,
                                   1 << VIR_DOMAIN_VIRT_BHYVE,
-                                  VIR_DOMAIN_XML_INACTIVE)))
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
     if (bhyveDomainAssignAddresses(def, NULL) < 0)
         goto cleanup;
 
-    if (!(loadcmd = virBhyveProcessBuildLoadCmd(conn, def)))
+    if (!(loadcmd = virBhyveProcessBuildLoadCmd(conn, def, "<device.map>",
+                                                NULL)))
         goto cleanup;
 
     if (!(cmd = virBhyveProcessBuildBhyveCmd(conn, def, true)))
@@ -881,9 +895,13 @@ bhyveDomainCreateXML(virConnectPtr conn,
     virObjectEventPtr event = NULL;
     virCapsPtr caps = NULL;
     unsigned int start_flags = 0;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
 
-    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, NULL);
+    virCheckFlags(VIR_DOMAIN_START_AUTODESTROY |
+                  VIR_DOMAIN_START_VALIDATE, NULL);
 
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
     if (flags & VIR_DOMAIN_START_AUTODESTROY)
         start_flags |= VIR_BHYVE_PROCESS_START_AUTODESTROY;
 
@@ -893,7 +911,7 @@ bhyveDomainCreateXML(virConnectPtr conn,
 
     if ((def = virDomainDefParseString(xml, caps, privconn->xmlopt,
                                        1 << VIR_DOMAIN_VIRT_BHYVE,
-                                       VIR_DOMAIN_XML_INACTIVE)) == NULL)
+                                       parse_flags)) == NULL)
         goto cleanup;
 
     if (virDomainCreateXMLEnsureACL(conn, def) < 0)
@@ -1142,20 +1160,19 @@ bhyveStateCleanup(void)
 }
 
 static int
-bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
+bhyveStateInitialize(bool privileged,
                      virStateInhibitCallback callback ATTRIBUTE_UNUSED,
                      void *opaque ATTRIBUTE_UNUSED)
 {
     virConnectPtr conn = NULL;
 
-    if (!priveleged) {
-        VIR_INFO("Not running priveleged, disabling driver");
+    if (!privileged) {
+        VIR_INFO("Not running privileged, disabling driver");
         return 0;
     }
 
-    if (VIR_ALLOC(bhyve_driver) < 0) {
+    if (VIR_ALLOC(bhyve_driver) < 0)
         return -1;
-    }
 
     if (virMutexInit(&bhyve_driver->lock) < 0) {
         VIR_FREE(bhyve_driver);
@@ -1166,6 +1183,9 @@ bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
         goto cleanup;
 
     if (!(bhyve_driver->caps = virBhyveCapsBuild()))
+        goto cleanup;
+
+    if (virBhyveProbeGrubCaps(&bhyve_driver->grubcaps) < 0)
         goto cleanup;
 
     if (!(bhyve_driver->xmlopt = virDomainXMLOptionNew(&virBhyveDriverDomainDefParserConfig,
@@ -1225,6 +1245,16 @@ bhyveStateInitialize(bool priveleged ATTRIBUTE_UNUSED,
     return -1;
 }
 
+unsigned
+bhyveDriverGetGrubCaps(virConnectPtr conn)
+{
+    bhyveConnPtr driver = conn->privateData;
+
+    if (driver != NULL)
+        return driver->grubcaps;
+    return 0;
+}
+
 static void
 bhyveStateAutoStart(void)
 {
@@ -1235,7 +1265,7 @@ bhyveStateAutoStart(void)
 }
 
 static int
-bhyveConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED,
+bhyveConnectGetMaxVcpus(virConnectPtr conn,
                         const char *type)
 {
     if (virConnectGetMaxVcpusEnsureACL(conn) < 0)
@@ -1303,14 +1333,15 @@ bhyveNodeSetMemoryParameters(virConnectPtr conn,
 }
 
 static char *
-bhyveConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
+bhyveConnectBaselineCPU(virConnectPtr conn,
                         const char **xmlCPUs,
                         unsigned int ncpus,
                         unsigned int flags)
 {
     char *cpu = NULL;
 
-    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, NULL);
+    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES |
+                  VIR_CONNECT_BASELINE_CPU_MIGRATABLE, NULL);
 
     if (virConnectBaselineCPUEnsureACL(conn) < 0)
         goto cleanup;
@@ -1400,8 +1431,29 @@ bhyveConnectDomainEventDeregisterAny(virConnectPtr conn,
     return 0;
 }
 
-static virDriver bhyveDriver = {
-    .no = VIR_DRV_BHYVE,
+static int
+bhyveDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = bhyveDomObjFromDomain(domain)))
+        goto cleanup;
+
+    if (virDomainHasManagedSaveImageEnsureACL(domain->conn, vm->def) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+static virHypervisorDriver bhyveHypervisorDriver = {
     .name = "bhyve",
     .connectOpen = bhyveConnectOpen, /* 1.2.2 */
     .connectClose = bhyveConnectClose, /* 1.2.2 */
@@ -1425,6 +1477,7 @@ static virDriver bhyveDriver = {
     .domainLookupByName = bhyveDomainLookupByName, /* 1.2.2 */
     .domainLookupByID = bhyveDomainLookupByID, /* 1.2.3 */
     .domainDefineXML = bhyveDomainDefineXML, /* 1.2.2 */
+    .domainDefineXMLFlags = bhyveDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = bhyveDomainUndefine, /* 1.2.2 */
     .domainGetXMLDesc = bhyveDomainGetXMLDesc, /* 1.2.2 */
     .domainIsActive = bhyveDomainIsActive, /* 1.2.2 */
@@ -1446,8 +1499,13 @@ static virDriver bhyveDriver = {
     .connectCompareCPU = bhyveConnectCompareCPU, /* 1.2.4 */
     .connectDomainEventRegisterAny = bhyveConnectDomainEventRegisterAny, /* 1.2.5 */
     .connectDomainEventDeregisterAny = bhyveConnectDomainEventDeregisterAny, /* 1.2.5 */
+    .domainHasManagedSaveImage = bhyveDomainHasManagedSaveImage, /* 1.2.13 */
 };
 
+
+static virConnectDriver bhyveConnectDriver = {
+    .hypervisorDriver = &bhyveHypervisorDriver,
+};
 
 static virStateDriver bhyveStateDriver = {
     .name = "bhyve",
@@ -1459,9 +1517,10 @@ static virStateDriver bhyveStateDriver = {
 int
 bhyveRegister(void)
 {
-     if (virRegisterDriver(&bhyveDriver) < 0)
+    if (virRegisterConnectDriver(&bhyveConnectDriver,
+                                 true) < 0)
         return -1;
-     if (virRegisterStateDriver(&bhyveStateDriver) < 0)
+    if (virRegisterStateDriver(&bhyveStateDriver) < 0)
         return -1;
-     return 0;
+    return 0;
 }

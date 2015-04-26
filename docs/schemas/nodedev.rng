@@ -275,8 +275,22 @@
     <ref name="link-speed-state"/>
 
     <zeroOrMore>
+      <element name='feature'>
+        <attribute name='name'>
+          <ref name='netfeaturename'/>
+        </attribute>
+      </element>
+    </zeroOrMore>
+
+    <zeroOrMore>
       <ref name='subcapnet'/>
     </zeroOrMore>
+  </define>
+
+  <define name='netfeaturename'>
+    <data type='string'>
+      <param name='pattern'>[a-zA-Z\-_]+</param>
+    </data>
   </define>
 
   <define name='subcapnet'>
@@ -465,12 +479,6 @@
       <attribute name='slot'><ref name='hexuint'/></attribute>
       <attribute name='function'><ref name='hexuint'/></attribute>
     </element>
-  </define>
-
-  <define name='hexuint'>
-    <data type='string'>
-      <param name="pattern">(0x)?[0-9a-f]+</param>
-    </data>
   </define>
 
   <define name='mac'>

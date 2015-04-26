@@ -376,9 +376,8 @@ cmdFreepages(vshControl *ctl, const vshCmd *cmd)
                 goto cleanup;
 
             vshPrint(ctl, _("Node %d:\n"), cell);
-            for (j = 0; j < npages; j++) {
+            for (j = 0; j < npages; j++)
                 vshPrint(ctl, "%uKiB: %lld\n", pagesize[j], counts[j]);
-            }
             vshPrint(ctl, "%c", '\n');
         }
 
@@ -497,7 +496,7 @@ cmdAllocpages(vshControl *ctl, const vshCmd *cmd)
     pageSizes[0] = VIR_DIV_UP(tmp, 1024);
 
     if (vshCommandOptULongLong(cmd, "pagecount", &pageCounts[0]) < 0) {
-        vshError(ctl, "%s", _("pagecount hat to be a number"));
+        vshError(ctl, "%s", _("pagecount has to be a number"));
         return false;
     }
 

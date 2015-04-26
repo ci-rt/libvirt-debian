@@ -138,18 +138,6 @@ virConnectDispose(void *obj)
 {
     virConnectPtr conn = obj;
 
-    if (conn->networkDriver)
-        conn->networkDriver->networkClose(conn);
-    if (conn->interfaceDriver)
-        conn->interfaceDriver->interfaceClose(conn);
-    if (conn->storageDriver)
-        conn->storageDriver->storageClose(conn);
-    if (conn->nodeDeviceDriver)
-        conn->nodeDeviceDriver->nodeDeviceClose(conn);
-    if (conn->secretDriver)
-        conn->secretDriver->secretClose(conn);
-    if (conn->nwfilterDriver)
-        conn->nwfilterDriver->nwfilterClose(conn);
     if (conn->driver)
         conn->driver->connectClose(conn);
 
@@ -389,7 +377,7 @@ virInterfaceDispose(void *obj)
  * @name: pointer to the storage pool name
  * @uuid: pointer to the uuid
  * @privateData: pointer to driver specific private data
- * @freeFunc: private data cleanup function pointer specfic to driver
+ * @freeFunc: private data cleanup function pointer specific to driver
  *
  * Allocates a new storage pool object. When the object is no longer needed,
  * virObjectUnref() must be called in order to not leak data.
@@ -450,9 +438,8 @@ virStoragePoolDispose(void *obj)
     virUUIDFormat(pool->uuid, uuidstr);
     VIR_DEBUG("release pool %p %s %s", pool, pool->name, uuidstr);
 
-    if (pool->privateDataFreeFunc) {
+    if (pool->privateDataFreeFunc)
         pool->privateDataFreeFunc(pool->privateData);
-    }
 
     VIR_FREE(pool->name);
     virObjectUnref(pool->conn);
@@ -466,7 +453,7 @@ virStoragePoolDispose(void *obj)
  * @name: pointer to the storage vol name
  * @key: pointer to unique key of the volume
  * @privateData: pointer to driver specific private data
- * @freeFunc: private data cleanup function pointer specfic to driver
+ * @freeFunc: private data cleanup function pointer specific to driver
  *
  * Allocates a new storage volume object. When the object is no longer needed,
  * virObjectUnref() must be called in order to not leak data.
@@ -525,9 +512,8 @@ virStorageVolDispose(void *obj)
     virStorageVolPtr vol = obj;
     VIR_DEBUG("release vol %p %s", vol, vol->name);
 
-    if (vol->privateDataFreeFunc) {
+    if (vol->privateDataFreeFunc)
         vol->privateDataFreeFunc(vol->privateData);
-    }
 
     VIR_FREE(vol->key);
     VIR_FREE(vol->name);

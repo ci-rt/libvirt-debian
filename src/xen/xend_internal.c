@@ -147,14 +147,12 @@ wr_sync(int fd, void *buffer, size_t size, int do_read)
         }
 
         /* recoverable error, retry  */
-        if ((len == -1) && ((errno == EAGAIN) || (errno == EINTR))) {
+        if ((len == -1) && ((errno == EAGAIN) || (errno == EINTR)))
             continue;
-        }
 
         /* eof */
-        if (len == 0) {
+        if (len == 0)
             break;
-        }
 
         /* unrecoverable error */
         if (len == -1) {
@@ -525,7 +523,7 @@ xend_op_ext(virConnectPtr xend, const char *path, const char *key, va_list ap)
  * @ap: input values to pass to the operation
  * @...: input values to pass to the operation
  *
- * internal routine to run a POST RPC operation to the Xen Daemon targetting
+ * internal routine to run a POST RPC operation to the Xen Daemon targeting
  * a given domain.
  *
  * Returns 0 in case of success, -1 in case of failure.
@@ -1091,10 +1089,7 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
         }
 
         for (n = 0, cpu = 0; cpu < numCpus; cpu++) {
-            bool used;
-
-            ignore_value(virBitmapGetBit(cpuset, cpu, &used));
-            if (used)
+            if (virBitmapIsBitSet(cpuset, cpu))
                 cpuInfo[n++].id = cpu;
         }
         virBitmapFree(cpuset);
@@ -1154,7 +1149,7 @@ sexpr_to_domain(virConnectPtr conn, const struct sexpr *root)
     if (tmp)
         id = sexpr_int(root, "domain/domid");
 
-    return virDomainDefNew(name, uuid, id);
+    return virDomainDefNewFull(name, uuid, id);
 
  error:
     virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1759,9 +1754,8 @@ xenDaemonNodeGetTopology(virConnectPtr conn, virCapsPtr caps)
     struct sexpr *root;
 
     root = sexpr_get(conn, "/xend/node/");
-    if (root == NULL) {
+    if (root == NULL)
         return -1;
-    }
 
     ret = sexpr_to_xend_topology(root, caps);
     sexpr_free(root);
@@ -1903,11 +1897,11 @@ xenDaemonDomainPinVcpu(virConnectPtr conn,
                 goto cleanup;
             def->cputune.nvcpupin = 0;
         }
-        if (virDomainVcpuPinAdd(&def->cputune.vcpupin,
-                                &def->cputune.nvcpupin,
-                                cpumap,
-                                maplen,
-                                vcpu) < 0) {
+        if (virDomainPinAdd(&def->cputune.vcpupin,
+                            &def->cputune.nvcpupin,
+                            cpumap,
+                            maplen,
+                            vcpu) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("failed to add vcpupin xml entry"));
             return -1;
@@ -2078,9 +2072,8 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         names = xenDaemonListDomainsOld(conn);
         tmp = names;
 
-        if (names == NULL) {
+        if (names == NULL)
             return NULL;
-        }
         while (*tmp != NULL) {
             id = xenDaemonDomainLookupByName_ids(conn, *tmp, &ident[0]);
             if (id >= 0) {
@@ -2121,7 +2114,7 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     if (name == NULL)
         return NULL;
 
-    ret = virDomainDefNew(name, uuid, id);
+    ret = virDomainDefNewFull(name, uuid, id);
 
     VIR_FREE(name);
     return ret;
@@ -2160,9 +2153,8 @@ xenDaemonCreateXML(virConnectPtr conn, virDomainDefPtr def)
 
     ret = xenDaemonDomainCreateXML(conn, sexpr);
     VIR_FREE(sexpr);
-    if (ret != 0) {
+    if (ret != 0)
         goto error;
-    }
 
     /* This comes before wait_for_devices, to ensure that latter
        cleanup will destroy the domain upon failure */
@@ -2261,7 +2253,7 @@ xenDaemonAttachDeviceFlags(virConnectPtr conn,
         goto cleanup;
 
     if (!(dev = virDomainDeviceDefParse(xml, def, priv->caps, priv->xmlopt,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
 
@@ -2409,7 +2401,7 @@ xenDaemonUpdateDeviceFlags(virConnectPtr conn,
         goto cleanup;
 
     if (!(dev = virDomainDeviceDefParse(xml, def, priv->caps, priv->xmlopt,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
 
@@ -2511,7 +2503,7 @@ xenDaemonDetachDeviceFlags(virConnectPtr conn,
         goto cleanup;
 
     if (!(dev = virDomainDeviceDefParse(xml, def, priv->caps, priv->xmlopt,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
     if (virDomainXMLDevID(conn, minidef, dev, class, ref, sizeof(ref)))
@@ -2562,9 +2554,8 @@ xenDaemonDomainGetAutostart(virConnectPtr conn,
     *autostart = 0;
 
     tmp = sexpr_node(root, "domain/on_xend_start");
-    if (tmp && STREQ(tmp, "start")) {
+    if (tmp && STREQ(tmp, "start"))
         *autostart = 1;
-    }
 
     sexpr_free(root);
     return 0;
@@ -3335,9 +3326,10 @@ virDomainXMLDevID(virConnectPtr conn,
     xenUnifiedPrivatePtr priv = conn->privateData;
     char *xref;
     char *tmp;
-    const char *driver = virDomainDiskGetDriver(dev->data.disk);
 
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
+        const char *driver = virDomainDiskGetDriver(dev->data.disk);
+
         if (STREQ_NULLABLE(driver, "tap") || STREQ_NULLABLE(driver, "tap2"))
             strcpy(class, driver);
         else

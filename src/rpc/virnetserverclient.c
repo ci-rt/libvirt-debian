@@ -496,9 +496,8 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
                            _("Missing privateData field in JSON state document"));
             goto error;
         }
-        if (!(client->privateData = privNew(client, child, privOpaque))) {
+        if (!(client->privateData = privNew(client, child, privOpaque)))
             goto error;
-        }
         client->privateDataFreeFunc = privFree;
         client->privateDataPreExecRestart = privPreExecRestart;
     }
@@ -722,7 +721,7 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
 
  error:
     virObjectUnref(ret);
-    ret = 0;
+    ret = NULL;
     goto cleanup;
 }
 
@@ -851,11 +850,11 @@ void virNetServerClientDispose(void *obj)
     PROBE(RPC_SERVER_CLIENT_DISPOSE,
           "client=%p", client);
 
-    virObjectUnref(client->identity);
-
     if (client->privateData &&
         client->privateDataFreeFunc)
         client->privateDataFreeFunc(client->privateData);
+
+    virObjectUnref(client->identity);
 
 #if WITH_SASL
     virObjectUnref(client->sasl);
@@ -867,7 +866,6 @@ void virNetServerClientDispose(void *obj)
     virObjectUnref(client->tlsCtxt);
 #endif
     virObjectUnref(client->sock);
-    virObjectUnlock(client);
 }
 
 

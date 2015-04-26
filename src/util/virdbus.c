@@ -27,6 +27,7 @@
 #include "virlog.h"
 #include "virthread.h"
 #include "virstring.h"
+#include "virprobe.h"
 
 #define VIR_FROM_THIS VIR_FROM_DBUS
 
@@ -35,8 +36,8 @@ VIR_LOG_INIT("util.dbus");
 #ifdef WITH_DBUS
 
 static bool sharedBus = true;
-static DBusConnection *systembus = NULL;
-static DBusConnection *sessionbus = NULL;
+static DBusConnection *systembus;
+static DBusConnection *sessionbus;
 static virOnceControl systemonce = VIR_ONCE_CONTROL_INITIALIZER;
 static virOnceControl sessiononce = VIR_ONCE_CONTROL_INITIALIZER;
 static DBusError systemdbuserr;
@@ -546,9 +547,8 @@ static void virDBusTypeStackFree(virDBusTypeStack **stack,
     /* The iter in the first level of the stack is the
      * root iter which must not be freed
      */
-    for (i = 1; i < *nstack; i++) {
+    for (i = 1; i < *nstack; i++)
         VIR_FREE((*stack)[i].iter);
-    }
     VIR_FREE(*stack);
 }
 
@@ -575,11 +575,11 @@ virDBusIsAllowedRefType(const char *sig)
 }
 
 
-# define SET_NEXT_VAL(dbustype, vargtype, sigtype, fmt)                 \
+# define SET_NEXT_VAL(dbustype, vargtype, arrtype, sigtype, fmt)        \
     do {                                                                \
         dbustype x;                                                     \
         if (arrayref) {                                                 \
-            vargtype *valarray = arrayptr;                              \
+            arrtype valarray = arrayptr;                                \
             x = (dbustype)*valarray;                                    \
             valarray++;                                                 \
             arrayptr = valarray;                                        \
@@ -667,45 +667,48 @@ virDBusMessageIterEncode(DBusMessageIter *rootiter,
 
         switch (*t) {
         case DBUS_TYPE_BYTE:
-            SET_NEXT_VAL(unsigned char, int, *t, "%d");
+            SET_NEXT_VAL(unsigned char, int, unsigned char *, *t, "%d");
             break;
 
         case DBUS_TYPE_BOOLEAN:
-            SET_NEXT_VAL(dbus_bool_t, int, *t, "%d");
+            SET_NEXT_VAL(dbus_bool_t, int, bool *, *t, "%d");
             break;
 
         case DBUS_TYPE_INT16:
-            SET_NEXT_VAL(dbus_int16_t, int, *t, "%d");
+            SET_NEXT_VAL(dbus_int16_t, int, short *, *t, "%d");
             break;
 
         case DBUS_TYPE_UINT16:
-            SET_NEXT_VAL(dbus_uint16_t, unsigned int, *t, "%d");
+            SET_NEXT_VAL(dbus_uint16_t, unsigned int, unsigned short *,
+                         *t, "%d");
             break;
 
         case DBUS_TYPE_INT32:
-            SET_NEXT_VAL(dbus_int32_t, int, *t, "%d");
+            SET_NEXT_VAL(dbus_int32_t, int, int *, *t, "%d");
             break;
 
         case DBUS_TYPE_UINT32:
-            SET_NEXT_VAL(dbus_uint32_t, unsigned int, *t, "%u");
+            SET_NEXT_VAL(dbus_uint32_t, unsigned int, unsigned int *,
+                         *t, "%u");
             break;
 
         case DBUS_TYPE_INT64:
-            SET_NEXT_VAL(dbus_int64_t, long long, *t, "%lld");
+            SET_NEXT_VAL(dbus_int64_t, long long, long long *, *t, "%lld");
             break;
 
         case DBUS_TYPE_UINT64:
-            SET_NEXT_VAL(dbus_uint64_t, unsigned long long, *t, "%llu");
+            SET_NEXT_VAL(dbus_uint64_t, unsigned long long,
+                         unsigned long long *, *t, "%llu");
             break;
 
         case DBUS_TYPE_DOUBLE:
-            SET_NEXT_VAL(double, double, *t, "%lf");
+            SET_NEXT_VAL(double, double, double *, *t, "%lf");
             break;
 
         case DBUS_TYPE_STRING:
         case DBUS_TYPE_OBJECT_PATH:
         case DBUS_TYPE_SIGNATURE:
-            SET_NEXT_VAL(char *, char *, *t, "%s");
+            SET_NEXT_VAL(char *, char *, char **, *t, "%s");
             break;
 
         case DBUS_TYPE_ARRAY:
@@ -847,22 +850,25 @@ virDBusMessageIterEncode(DBusMessageIter *rootiter,
 # undef SET_NEXT_VAL
 
 
-# define GET_NEXT_VAL(dbustype, vargtype, fmt)                          \
+# define GET_NEXT_VAL(dbustype, member, vargtype, fmt)                  \
     do {                                                                \
-        dbustype *x;                                                    \
+        DBusBasicValue v;                                               \
+        dbustype *x = (dbustype *)&v.member;                            \
+        vargtype *y;                                                    \
         if (arrayref) {                                                 \
             VIR_DEBUG("Use arrayref");                                  \
             vargtype **xptrptr = arrayptr;                              \
             if (VIR_EXPAND_N(*xptrptr, *narrayptr, 1) < 0)              \
                 goto cleanup;                                           \
-            x = (dbustype *)(*xptrptr + (*narrayptr - 1));              \
+            y = (*xptrptr + (*narrayptr - 1));                          \
             VIR_DEBUG("Expanded to %zu", *narrayptr);                   \
         } else {                                                        \
-            x = (dbustype *)va_arg(args, vargtype *);                   \
+            y = va_arg(args, vargtype *);                               \
         }                                                               \
         dbus_message_iter_get_basic(iter, x);                           \
+        *y = *x;                                                        \
         VIR_DEBUG("Read basic type '" #dbustype "' varg '" #vargtype    \
-                  "' val '" fmt "'", (vargtype)*x);                     \
+                  "' val '" fmt "'", (vargtype)*y);                     \
     } while (0)
 
 
@@ -947,39 +953,39 @@ virDBusMessageIterDecode(DBusMessageIter *rootiter,
 
         switch (*t) {
         case DBUS_TYPE_BYTE:
-            GET_NEXT_VAL(unsigned char, unsigned char, "%d");
+            GET_NEXT_VAL(unsigned char, byt, unsigned char, "%d");
             break;
 
         case DBUS_TYPE_BOOLEAN:
-            GET_NEXT_VAL(dbus_bool_t, int, "%d");
+            GET_NEXT_VAL(dbus_bool_t, bool_val, bool, "%d");
             break;
 
         case DBUS_TYPE_INT16:
-            GET_NEXT_VAL(dbus_int16_t, short, "%d");
+            GET_NEXT_VAL(dbus_int16_t, i16, short, "%d");
             break;
 
         case DBUS_TYPE_UINT16:
-            GET_NEXT_VAL(dbus_uint16_t, unsigned short, "%d");
+            GET_NEXT_VAL(dbus_uint16_t, u16, unsigned short, "%d");
             break;
 
         case DBUS_TYPE_INT32:
-            GET_NEXT_VAL(dbus_uint32_t, int, "%d");
+            GET_NEXT_VAL(dbus_uint32_t, i32, int, "%d");
             break;
 
         case DBUS_TYPE_UINT32:
-            GET_NEXT_VAL(dbus_uint32_t, unsigned int, "%u");
+            GET_NEXT_VAL(dbus_uint32_t, u32, unsigned int, "%u");
             break;
 
         case DBUS_TYPE_INT64:
-            GET_NEXT_VAL(dbus_uint64_t, long long, "%lld");
+            GET_NEXT_VAL(dbus_uint64_t, i64, long long, "%lld");
             break;
 
         case DBUS_TYPE_UINT64:
-            GET_NEXT_VAL(dbus_uint64_t, unsigned long long, "%llu");
+            GET_NEXT_VAL(dbus_uint64_t, u64, unsigned long long, "%llu");
             break;
 
         case DBUS_TYPE_DOUBLE:
-            GET_NEXT_VAL(double, double, "%lf");
+            GET_NEXT_VAL(double, dbl, double, "%lf");
             break;
 
         case DBUS_TYPE_STRING:
@@ -1516,21 +1522,44 @@ static int
 virDBusCall(DBusConnection *conn,
             DBusMessage *call,
             DBusMessage **replyout,
-            DBusError *error,
-            const char *member)
+            virErrorPtr error)
+
 {
     DBusMessage *reply = NULL;
     DBusError localerror;
     int ret = -1;
+    const char *iface, *member, *path, *dest;
 
-    if (!error)
-        dbus_error_init(&localerror);
+    dbus_error_init(&localerror);
+    if (error)
+        memset(error, 0, sizeof(*error));
+
+    iface = dbus_message_get_interface(call);
+    member = dbus_message_get_member(call);
+    path = dbus_message_get_path(call);
+    dest = dbus_message_get_destination(call);
+
+    PROBE(DBUS_METHOD_CALL,
+          "'%s.%s' on '%s' at '%s'",
+          iface, member, path, dest);
 
     if (!(reply = dbus_connection_send_with_reply_and_block(conn,
                                                             call,
                                                             VIR_DBUS_METHOD_CALL_TIMEOUT_MILLIS,
-                                                            error ? error : &localerror))) {
+                                                            &localerror))) {
+        PROBE(DBUS_METHOD_ERROR,
+              "'%s.%s' on '%s' at '%s' error %s: %s",
+              iface, member, path, dest,
+              localerror.name,
+              localerror.message);
         if (error) {
+            error->level = VIR_ERR_ERROR;
+            error->code = VIR_ERR_DBUS_SERVICE;
+            error->domain = VIR_FROM_DBUS;
+            if (VIR_STRDUP(error->message, localerror.message) < 0)
+                goto cleanup;
+            if (VIR_STRDUP(error->str1, localerror.name) < 0)
+                goto cleanup;
             ret = 0;
         } else {
             virReportError(VIR_ERR_DBUS_SERVICE, _("%s: %s"), member,
@@ -1539,11 +1568,16 @@ virDBusCall(DBusConnection *conn,
         goto cleanup;
     }
 
+    PROBE(DBUS_METHOD_REPLY,
+          "'%s.%s' on '%s' at '%s'",
+          iface, member, path, dest);
+
     ret = 0;
 
  cleanup:
-    if (!error)
-        dbus_error_free(&localerror);
+    if (ret < 0 && error)
+        virResetError(error);
+    dbus_error_free(&localerror);
     if (reply) {
         if (ret == 0 && replyout)
             *replyout = reply;
@@ -1591,7 +1625,7 @@ virDBusCall(DBusConnection *conn,
  */
 int virDBusCallMethod(DBusConnection *conn,
                       DBusMessage **replyout,
-                      DBusError *error,
+                      virErrorPtr error,
                       const char *destination,
                       const char *path,
                       const char *iface,
@@ -1609,9 +1643,7 @@ int virDBusCallMethod(DBusConnection *conn,
     if (ret < 0)
         goto cleanup;
 
-    ret = -1;
-
-    ret = virDBusCall(conn, call, replyout, error, member);
+    ret = virDBusCall(conn, call, replyout, error);
 
  cleanup:
     if (call)
@@ -1807,7 +1839,7 @@ int virDBusCreateReply(DBusMessage **reply ATTRIBUTE_UNUSED,
 
 int virDBusCallMethod(DBusConnection *conn ATTRIBUTE_UNUSED,
                       DBusMessage **reply ATTRIBUTE_UNUSED,
-                      DBusError *error ATTRIBUTE_UNUSED,
+                      virErrorPtr error ATTRIBUTE_UNUSED,
                       const char *destination ATTRIBUTE_UNUSED,
                       const char *path ATTRIBUTE_UNUSED,
                       const char *iface ATTRIBUTE_UNUSED,
@@ -1862,3 +1894,12 @@ void virDBusMessageUnref(DBusMessage *msg ATTRIBUTE_UNUSED)
     /* nothing */
 }
 #endif /* ! WITH_DBUS */
+
+bool virDBusErrorIsUnknownMethod(virErrorPtr err)
+{
+    return err->domain == VIR_FROM_DBUS &&
+        err->code == VIR_ERR_DBUS_SERVICE &&
+        err->level == VIR_ERR_ERROR &&
+        STREQ_NULLABLE("org.freedesktop.DBus.Error.UnknownMethod",
+                       err->str1);
+}

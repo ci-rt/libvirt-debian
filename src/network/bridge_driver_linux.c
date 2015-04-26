@@ -74,9 +74,8 @@ int networkCheckRouteCollision(virNetworkDefPtr def)
 
         /* NUL-terminate the line, so sscanf doesn't go beyond a newline.  */
         char *nl = strchr(cur, '\n');
-        if (nl) {
+        if (nl)
             *nl++ = '\0';
-        }
 
         num = sscanf(cur, "%16s %127s %*s %*s %*s %*s %*s %127s",
                      iface, dest, mask);
@@ -451,7 +450,7 @@ networkRemoveGeneralIPv4FirewallRules(virFirewallPtr fw,
 
 /* Add all once/network rules required for IPv6.
  * If no IPv6 addresses are defined and <network ipv6='yes'> is
- * specified, then allow IPv6 commuinications between virtual systems.
+ * specified, then allow IPv6 communications between virtual systems.
  * If any IPv6 addresses are defined, then add the rules for regular operation.
  */
 static void

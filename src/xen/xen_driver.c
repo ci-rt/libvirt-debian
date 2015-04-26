@@ -91,8 +91,8 @@ xenUnifiedDomainGetVcpusInternal(virDomainPtr dom,
                                  int maplen);
 
 
-static bool is_privileged = false;
-static virSysinfoDefPtr hostsysinfo = NULL;
+static bool is_privileged;
+static virSysinfoDefPtr hostsysinfo;
 
 static virDomainDefPtr xenGetDomainDefForID(virConnectPtr conn, int id)
 {
@@ -232,9 +232,7 @@ xenDomainUsedCpus(virDomainPtr dom, virDomainDefPtr def)
                                                   cpumap, cpumaplen)) >= 0) {
         for (n = 0; n < ncpus; n++) {
             for (m = 0; m < priv->nbNodeCpus; m++) {
-                bool used;
-                ignore_value(virBitmapGetBit(cpulist, m, &used));
-                if ((!used) &&
+                if (!virBitmapIsBitSet(cpulist, m) &&
                     (VIR_CPU_USABLE(cpumap, cpumaplen, n, m))) {
                     ignore_value(virBitmapSetBit(cpulist, m));
                     nb++;
@@ -353,6 +351,28 @@ xenDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         return -1;
     }
 
+    if (dev->type == VIR_DOMAIN_DEVICE_VIDEO && dev->data.video->vram == 0) {
+        switch (dev->data.video->type) {
+        case VIR_DOMAIN_VIDEO_TYPE_VGA:
+        case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+        case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
+            dev->data.video->vram = 16 * 1024;
+        break;
+
+        case VIR_DOMAIN_VIDEO_TYPE_XEN:
+            /* Original Xen PVFB hardcoded to 4 MB */
+            dev->data.video->vram = 4 * 1024;
+            break;
+
+        case VIR_DOMAIN_VIDEO_TYPE_QXL:
+            /* Use 64M as the minimal video video memory for qxl device */
+            return 64 * 1024;
+        }
+    }
+
+    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -370,6 +390,10 @@ xenDomainDefPostParse(virDomainDefPtr def,
         memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_XEN;
         def->memballoon = memballoon;
     }
+
+    /* memory hotplug tunables are not supported by this driver */
+    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+        return -1;
 
     return 0;
 }
@@ -751,12 +775,16 @@ xenUnifiedDomainCreateXML(virConnectPtr conn,
     xenUnifiedPrivatePtr priv = conn->privateData;
     virDomainDefPtr def = NULL;
     virDomainPtr ret = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
 
-    virCheckFlags(0, NULL);
+    virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_START_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!(def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
     if (virDomainCreateXMLEnsureACL(conn, def) < 0)
@@ -1577,7 +1605,8 @@ xenUnifiedDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     }
 
     if (def)
-        ret = virDomainDefFormat(def, flags);
+        ret = virDomainDefFormat(def,
+                                 virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
     virDomainDefFree(def);
@@ -1667,7 +1696,7 @@ xenUnifiedConnectDomainXMLToNative(virConnectPtr conn,
 
     if (!(def = virDomainDefParseString(xmlData, priv->caps, priv->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
     if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
@@ -1863,18 +1892,24 @@ xenUnifiedDomainCreate(virDomainPtr dom)
 }
 
 static virDomainPtr
-xenUnifiedDomainDefineXML(virConnectPtr conn, const char *xml)
+xenUnifiedDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
     xenUnifiedPrivatePtr priv = conn->privateData;
     virDomainDefPtr def = NULL;
     virDomainPtr ret = NULL;
+    unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE;
+
+    virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
     if (!(def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_XML_INACTIVE)))
+                                        parse_flags)))
         goto cleanup;
 
-    if (virDomainDefineXMLEnsureACL(conn, def) < 0)
+    if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
         goto cleanup;
 
     if (priv->xendConfigVersion < XEND_CONFIG_VERSION_3_0_4) {
@@ -1894,6 +1929,12 @@ xenUnifiedDomainDefineXML(virConnectPtr conn, const char *xml)
  cleanup:
     virDomainDefFree(def);
     return ret;
+}
+
+static virDomainPtr
+xenUnifiedDomainDefineXML(virConnectPtr conn, const char *xml)
+{
+    return xenUnifiedDomainDefineXMLFlags(conn, xml, 0);
 }
 
 static int
@@ -2531,15 +2572,13 @@ xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
 
     /* Get active domains */
     numdomains = xenUnifiedConnectNumOfDomains(conn);
-    if (numdomains < 0) {
+    if (numdomains < 0)
         return ret;
-    }
     if (numdomains > 0) {
         if (VIR_ALLOC_N(ids, numdomains) < 0)
             goto out;
-        if ((numdomains = xenUnifiedConnectListDomains(conn, &ids[0], numdomains)) < 0) {
+        if ((numdomains = xenUnifiedConnectListDomains(conn, &ids[0], numdomains)) < 0)
             goto out;
-        }
     }
 
     /* Get pci bdf */
@@ -2725,8 +2764,7 @@ xenUnifiedNodeSuspendForDuration(virConnectPtr conn,
 /*----- Register with libvirt.c, and initialize Xen drivers. -----*/
 
 /* The interface which we export upwards to libvirt.c. */
-static virDriver xenUnifiedDriver = {
-    .no = VIR_DRV_XEN_UNIFIED,
+static virHypervisorDriver xenUnifiedHypervisorDriver = {
     .name = "Xen",
     .connectOpen = xenUnifiedConnectOpen, /* 0.0.3 */
     .connectClose = xenUnifiedConnectClose, /* 0.0.3 */
@@ -2779,6 +2817,7 @@ static virDriver xenUnifiedDriver = {
     .domainCreate = xenUnifiedDomainCreate, /* 0.1.1 */
     .domainCreateWithFlags = xenUnifiedDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = xenUnifiedDomainDefineXML, /* 0.1.1 */
+    .domainDefineXMLFlags = xenUnifiedDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = xenUnifiedDomainUndefine, /* 0.1.1 */
     .domainUndefineFlags = xenUnifiedDomainUndefineFlags, /* 0.9.4 */
     .domainAttachDevice = xenUnifiedDomainAttachDevice, /* 0.1.9 */
@@ -2821,6 +2860,11 @@ static virDriver xenUnifiedDriver = {
     .nodeSetMemoryParameters = xenUnifiedNodeSetMemoryParameters, /* 0.10.2 */
 };
 
+
+static virConnectDriver xenUnifiedConnectDriver = {
+    .hypervisorDriver = &xenUnifiedHypervisorDriver,
+};
+
 /**
  * xenRegister:
  *
@@ -2833,7 +2877,8 @@ xenRegister(void)
 {
     if (virRegisterStateDriver(&state_driver) == -1) return -1;
 
-    return virRegisterDriver(&xenUnifiedDriver);
+    return virRegisterConnectDriver(&xenUnifiedConnectDriver,
+                                    true);
 }
 
 /**

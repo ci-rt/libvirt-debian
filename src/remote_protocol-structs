@@ -686,6 +686,13 @@ struct remote_domain_define_xml_args {
 struct remote_domain_define_xml_ret {
         remote_nonnull_domain      dom;
 };
+struct remote_domain_define_xml_flags_args {
+        remote_nonnull_string      xml;
+        u_int                      flags;
+};
+struct remote_domain_define_xml_flags_ret {
+        remote_nonnull_domain      dom;
+};
 struct remote_domain_undefine_args {
         remote_nonnull_domain      dom;
 };
@@ -799,6 +806,33 @@ struct remote_domain_get_max_vcpus_args {
 };
 struct remote_domain_get_max_vcpus_ret {
         int                        num;
+};
+struct remote_domain_iothread_info {
+        u_int                      iothread_id;
+        struct {
+                u_int              cpumap_len;
+                char *             cpumap_val;
+        } cpumap;
+};
+struct remote_domain_get_iothread_info_args {
+        remote_nonnull_domain      dom;
+        u_int                      flags;
+};
+struct remote_domain_get_iothread_info_ret {
+        struct {
+                u_int              info_len;
+                remote_domain_iothread_info * info_val;
+        } info;
+        u_int                      ret;
+};
+struct remote_domain_pin_iothread_args {
+        remote_nonnull_domain      dom;
+        u_int                      iothreads_id;
+        struct {
+                u_int              cpumap_len;
+                char *             cpumap_val;
+        } cpumap;
+        u_int                      flags;
 };
 struct remote_domain_get_security_label_args {
         remote_nonnull_domain      dom;
@@ -2573,11 +2607,61 @@ struct remote_connect_get_all_domain_stats_args {
         u_int                      stats;
         u_int                      flags;
 };
+struct remote_domain_event_callback_agent_lifecycle_msg {
+        int                        callbackID;
+        remote_nonnull_domain      dom;
+        int                        state;
+        int                        reason;
+};
 struct remote_connect_get_all_domain_stats_ret {
         struct {
                 u_int              retStats_len;
                 remote_domain_stats_record * retStats_val;
         } retStats;
+};
+struct remote_domain_fsinfo {
+        remote_nonnull_string      mountpoint;
+        remote_nonnull_string      name;
+        remote_nonnull_string      fstype;
+        struct {
+                u_int              dev_aliases_len;
+                remote_nonnull_string * dev_aliases_val;
+        } dev_aliases;
+};
+struct remote_domain_get_fsinfo_args {
+        remote_nonnull_domain      dom;
+        u_int                      flags;
+};
+struct remote_domain_get_fsinfo_ret {
+        struct {
+                u_int              info_len;
+                remote_domain_fsinfo * info_val;
+        } info;
+        u_int                      ret;
+};
+struct remote_domain_ip_addr {
+        int                        type;
+        remote_nonnull_string      addr;
+        u_int                      prefix;
+};
+struct remote_domain_interface {
+        remote_nonnull_string      name;
+        remote_string              hwaddr;
+        struct {
+                u_int              addrs_len;
+                remote_domain_ip_addr * addrs_val;
+        } addrs;
+};
+struct remote_domain_interface_addresses_args {
+        remote_nonnull_domain      dom;
+        u_int                      source;
+        u_int                      flags;
+};
+struct remote_domain_interface_addresses_ret {
+        struct {
+                u_int              ifaces_len;
+                remote_domain_interface * ifaces_val;
+        } ifaces;
 };
 enum remote_procedure {
         REMOTE_PROC_CONNECT_OPEN = 1,
@@ -2927,4 +3011,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_BLOCK_COPY = 345,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_TUNABLE = 346,
         REMOTE_PROC_NODE_ALLOC_PAGES = 347,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_AGENT_LIFECYCLE = 348,
+        REMOTE_PROC_DOMAIN_GET_FSINFO = 349,
+        REMOTE_PROC_DOMAIN_DEFINE_XML_FLAGS = 350,
+        REMOTE_PROC_DOMAIN_GET_IOTHREAD_INFO = 351,
+        REMOTE_PROC_DOMAIN_PIN_IOTHREAD = 352,
+        REMOTE_PROC_DOMAIN_INTERFACE_ADDRESSES = 353,
 };

@@ -46,6 +46,10 @@
 # include <selinux/selinux.h>
 #endif
 
+#if HAVE_LINUX_BTRFS_H
+# include <linux/btrfs.h>
+#endif
+
 #include "datatypes.h"
 #include "virerror.h"
 #include "viralloc.h"
@@ -156,12 +160,33 @@ enum {
 #define READ_BLOCK_SIZE_DEFAULT  (1024 * 1024)
 #define WRITE_BLOCK_SIZE_DEFAULT (4 * 1024)
 
+/*
+ * Perform the O(1) btrfs clone operation, if possible.
+ * Upon success, return 0.  Otherwise, return -1 and set errno.
+ */
+#if HAVE_LINUX_BTRFS_H
+static inline int
+btrfsCloneFile(int dest_fd, int src_fd)
+{
+    return ioctl(dest_fd, BTRFS_IOC_CLONE, src_fd);
+}
+#else
+static inline int
+btrfsCloneFile(int dest_fd ATTRIBUTE_UNUSED,
+               int src_fd ATTRIBUTE_UNUSED)
+{
+    errno = ENOTSUP;
+    return -1;
+}
+#endif
+
 static int ATTRIBUTE_NONNULL(2)
 virStorageBackendCopyToFD(virStorageVolDefPtr vol,
                           virStorageVolDefPtr inputvol,
                           int fd,
                           unsigned long long *total,
-                          bool want_sparse)
+                          bool want_sparse,
+                          bool reflink_copy)
 {
     int inputfd = -1;
     int amtread = -1;
@@ -182,9 +207,8 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     }
 
 #ifdef __linux__
-    if (ioctl(fd, BLKBSZGET, &wbytes) < 0) {
+    if (ioctl(fd, BLKBSZGET, &wbytes) < 0)
         wbytes = 0;
-    }
 #endif
     if ((wbytes == 0) && fstat(fd, &st) == 0)
         wbytes = st.st_blksize;
@@ -199,6 +223,19 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     if (VIR_ALLOC_N(buf, rbytes) < 0) {
         ret = -errno;
         goto cleanup;
+    }
+
+    if (reflink_copy) {
+        if (btrfsCloneFile(fd, inputfd) < 0) {
+            ret = -errno;
+            virReportSystemError(errno,
+                                 _("failed to clone files from '%s'"),
+                                 inputvol->target.path);
+            goto cleanup;
+        } else {
+            VIR_DEBUG("btrfs clone finished.");
+            goto cleanup;
+        }
     }
 
     while (amtread != 0) {
@@ -281,8 +318,11 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
     struct stat st;
     gid_t gid;
     uid_t uid;
+    bool reflink_copy = false;
 
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
+                  VIR_STORAGE_VOL_CREATE_REFLINK,
+                  -1);
 
     if (flags & VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -290,6 +330,9 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
                          "volumes"));
         goto cleanup;
     }
+
+    if (flags & VIR_STORAGE_VOL_CREATE_REFLINK)
+        reflink_copy = true;
 
     if ((fd = open(vol->target.path, O_RDWR)) < 0) {
         virReportSystemError(errno,
@@ -302,7 +345,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (inputvol) {
         int res = virStorageBackendCopyToFD(vol, inputvol,
-                                            fd, &remain, false);
+                                            fd, &remain, false, reflink_copy);
         if (res < 0)
             goto cleanup;
     }
@@ -347,7 +390,8 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 static int
 createRawFile(int fd, virStorageVolDefPtr vol,
-              virStorageVolDefPtr inputvol)
+              virStorageVolDefPtr inputvol,
+              bool reflink_copy)
 {
     bool need_alloc = true;
     int ret = 0;
@@ -394,10 +438,10 @@ createRawFile(int fd, virStorageVolDefPtr vol,
         bool want_sparse = !need_alloc ||
             (vol->target.allocation < inputvol->target.capacity);
 
-        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain, want_sparse);
-        if (ret < 0) {
+        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain,
+                                        want_sparse, reflink_copy);
+        if (ret < 0)
             goto cleanup;
-        }
     }
 
     if (remain && need_alloc) {
@@ -430,8 +474,11 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
     int ret = -1;
     int fd = -1;
     int operation_flags;
+    bool reflink_copy = false;
 
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
+                  VIR_STORAGE_VOL_CREATE_REFLINK,
+                  -1);
 
     if (flags & VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -439,6 +486,16 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
                          "volumes"));
         goto cleanup;
     }
+
+    if (vol->target.backingStore) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("backing storage not supported for raw volumes"));
+        goto cleanup;
+    }
+
+    if (flags & VIR_STORAGE_VOL_CREATE_REFLINK)
+        reflink_copy = true;
+
 
     if (vol->target.encryption != NULL) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -482,7 +539,7 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
 #endif
     }
 
-    if ((ret = createRawFile(fd, vol, inputvol)) < 0)
+    if ((ret = createRawFile(fd, vol, inputvol, reflink_copy)) < 0)
         /* createRawFile already reported the exact error. */
         ret = -1;
 
@@ -508,7 +565,7 @@ virStorageGenerateSecretUUID(virConnectPtr conn,
         if (tmp == NULL)
             return 0;
 
-        virSecretFree(tmp);
+        virObjectUnref(tmp);
     }
 
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -591,7 +648,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
         if (ret != 0 &&
             conn->secretDriver->secretUndefine != NULL)
             conn->secretDriver->secretUndefine(secret);
-        virSecretFree(secret);
+        virObjectUnref(secret);
     }
     virBufferFreeAndReset(&buf);
     virSecretDefFree(def);
@@ -631,9 +688,8 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
     virCommandSetGID(cmd, -1);
 
     if (!filecreated) {
-        if (virCommandRun(cmd, NULL) < 0) {
+        if (virCommandRun(cmd, NULL) < 0)
             return -1;
-        }
         if (stat(vol->target.path, &st) < 0) {
             virReportSystemError(errno,
                                  _("failed to create %s"), vol->target.path);
@@ -751,7 +807,6 @@ virStorageBackendCreateQemuImgOpts(char **opts,
                                    virBitmapPtr features)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    bool b;
     size_t i;
 
     if (backingType)
@@ -767,8 +822,7 @@ virStorageBackendCreateQemuImgOpts(char **opts,
         virBufferAsprintf(&buf, "compat=%s,", compat);
     if (features && format == VIR_STORAGE_FILE_QCOW2) {
         for (i = 0; i < VIR_STORAGE_FILE_FEATURE_LAST; i++) {
-            ignore_value(virBitmapGetBit(features, i, &b));
-            if (b) {
+            if (virBitmapIsBitSet(features, i)) {
                 switch ((virStorageFileFeature) i) {
                 case VIR_STORAGE_FILE_FEATURE_LAZY_REFCOUNTS:
                     if (STREQ_NULLABLE(compat, "0.10")) {
@@ -1005,7 +1059,7 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
     if (convert)
         virCommandAddArg(cmd, inputPath);
     virCommandAddArg(cmd, vol->target.path);
-    if (!convert)
+    if (!convert && size_arg)
         virCommandAddArgFormat(cmd, "%lluK", size_arg);
 
     return cmd;
@@ -1388,6 +1442,10 @@ virStorageBackendVolOpen(const char *path, struct stat *sb,
             VIR_WARN("ignoring missing file '%s'", path);
             return -2;
         }
+        if (errno == ENXIO && noerror) {
+            VIR_WARN("ignoring missing fifo '%s'", path);
+            return -2;
+        }
 
         virReportSystemError(errno, _("cannot open volume '%s'"), path);
         return -1;
@@ -1454,20 +1512,47 @@ virStorageBackendVolOpen(const char *path, struct stat *sb,
 
 int
 virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
-                                     bool updateCapacity,
                                      bool withBlockVolFormat,
                                      unsigned int openflags)
 {
     int ret, fd = -1;
     struct stat sb;
+    virStorageSourcePtr meta = NULL;
+    char *buf = NULL;
+    ssize_t len = VIR_STORAGE_MAX_HEADER;
 
     if ((ret = virStorageBackendVolOpen(target->path, &sb, openflags)) < 0)
         goto cleanup;
     fd = ret;
 
-    if ((ret = virStorageBackendUpdateVolTargetInfoFD(target, fd, &sb,
-                                                      updateCapacity)) < 0)
+    if ((ret = virStorageBackendUpdateVolTargetInfoFD(target, fd, &sb)) < 0)
         goto cleanup;
+
+    if (target->type == VIR_STORAGE_VOL_FILE &&
+        target->format != VIR_STORAGE_FILE_NONE) {
+        if (S_ISDIR(sb.st_mode)) {
+            ret = 0;
+            goto cleanup;
+        }
+
+        if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
+            virReportSystemError(errno, _("cannot seek to start of '%s'"), target->path);
+            goto cleanup;
+        }
+
+        if ((len = virFileReadHeaderFD(fd, len, &buf)) < 0) {
+            virReportSystemError(errno, _("cannot read header '%s'"), target->path);
+            goto cleanup;
+        }
+
+        if (!(meta = virStorageFileGetMetadataFromBuf(target->path, buf, len, target->format,
+                                                      NULL))) {
+            goto cleanup;
+        }
+
+        if (meta->capacity)
+            target->capacity = meta->capacity;
+    }
 
     if (withBlockVolFormat) {
         if ((ret = virStorageBackendDetectBlockVolFormatFD(target, fd)) < 0)
@@ -1475,28 +1560,26 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
     }
 
  cleanup:
+    virStorageSourceFree(meta);
     VIR_FORCE_CLOSE(fd);
-
+    VIR_FREE(buf);
     return ret;
 }
 
 int
 virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
-                               bool updateCapacity,
                                bool withBlockVolFormat,
                                unsigned int openflags)
 {
     int ret;
 
     if ((ret = virStorageBackendUpdateVolTargetInfo(&vol->target,
-                                                    updateCapacity,
                                                     withBlockVolFormat,
                                                     openflags)) < 0)
         return ret;
 
     if (vol->target.backingStore &&
         (ret = virStorageBackendUpdateVolTargetInfo(vol->target.backingStore,
-                                                    updateCapacity,
                                                     withBlockVolFormat,
                                                     VIR_STORAGE_VOL_OPEN_DEFAULT |
                                                     VIR_STORAGE_VOL_OPEN_NOERROR) < 0))
@@ -1510,15 +1593,13 @@ virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
  * @target: target definition ptr of volume to update
  * @fd: fd of storage volume to update, via virStorageBackendOpenVol*, or -1
  * @sb: details about file (must match @fd, if that is provided)
- * @updateCapacity: If true, updated capacity info will be stored
  *
  * Returns 0 for success, -1 on a legitimate error condition.
  */
 int
 virStorageBackendUpdateVolTargetInfoFD(virStorageSourcePtr target,
                                        int fd,
-                                       struct stat *sb,
-                                       bool updateCapacity)
+                                       struct stat *sb)
 {
 #if WITH_SELINUX
     security_context_t filecon = NULL;
@@ -1534,12 +1615,10 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageSourcePtr target,
         /* Regular files may be sparse, so logical size (capacity) is not same
          * as actual allocation above
          */
-        if (updateCapacity)
-            target->capacity = sb->st_size;
+        target->capacity = sb->st_size;
     } else if (S_ISDIR(sb->st_mode)) {
         target->allocation = 0;
-        if (updateCapacity)
-            target->capacity = 0;
+        target->capacity = 0;
     } else if (fd >= 0) {
         off_t end;
         /* XXX this is POSIX compliant, but doesn't work for CHAR files,
@@ -1555,8 +1634,7 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageSourcePtr target,
             return -1;
         }
         target->allocation = end;
-        if (updateCapacity)
-            target->capacity = end;
+        target->capacity = end;
     }
 
     if (!target->perms && VIR_ALLOC(target->perms) < 0)

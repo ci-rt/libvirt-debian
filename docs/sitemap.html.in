@@ -101,6 +101,16 @@
               <li>
                 <a href="locking.html">Disk locking</a>
                 <span>Ensuring exclusive guest access to disks</span>
+                <ul>
+                  <li>
+                    <a href="locking-lockd.html">virtlockd</a>
+                    <span>virtlockd lock manager plugin</span>
+                  </li>
+                  <li>
+                    <a href="locking-sanlock.html">Sanlock</a>
+                    <span>Sanlock lock manager plugin</span>
+                  </li>
+                </ul>
               </li>
               <li>
                 <a href="cgroups.html">CGroups</a>
@@ -291,12 +301,52 @@
             -->
             <ul>
               <li>
-                <a href="html/libvirt-libvirt.html">libvirt</a>
-                <span>core interfaces for the libvirt library</span>
+                <a href="html/libvirt-libvirt-domain.html">Domain</a>
+                <span>domain APIs for the libvirt library</span>
               </li>
               <li>
-                <a href="html/libvirt-virterror.html">virterror</a>
-                <span>error handling interfaces for the libvirt library</span>
+                <a href="html/libvirt-libvirt-domain-snapshot.html">Domain snapshot</a>
+                <span>domain snapshot APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-virterror.html">Error</a>
+                <span>error handling APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-event.html">Event</a>
+                <span>event APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-host.html">Host</a>
+                <span>host APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-interface.html">Interface</a>
+                <span>interface APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-network.html">Network</a>
+                <span>network APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-nodedev.html">Node device</a>
+                <span>node device APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-nwfilter.html">Network filter</a>
+                <span>network filter APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-secret.html">Secret</a>
+                <span>secret APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-storage.html">Storage</a>
+                <span>storage APIs for the libvirt library</span>
+              </li>
+              <li>
+                <a href="html/libvirt-libvirt-stream.html">Stream</a>
+                <span>stream APIs for the libvirt library</span>
               </li>
               <li>
                 <a href="hvsupport.html">Driver support</a>

@@ -2,7 +2,7 @@
  * esx_vi.h: client for the VMware VI API 2.5 to manage ESX hosts
  *
  * Copyright (C) 2011 Red Hat, Inc.
- * Copyright (C) 2009-2012 Matthias Bolte <matthias.bolte@googlemail.com>
+ * Copyright (C) 2009-2012, 2014 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,10 @@
 # include "datatypes.h"
 # include "esx_vi_types.h"
 # include "esx_util.h"
+
+/* curl_multi_wait was added in libcurl 7.28.0, emulate it on older versions */
+# define ESX_EMULATE_CURL_MULTI_WAIT (LIBCURL_VERSION_NUM < 0x071C00)
+
 
 
 # define ESX_VI__SOAP__REQUEST_HEADER                                         \
@@ -71,8 +75,7 @@
 
 
 
-typedef enum _esxVI_APIVersion esxVI_APIVersion;
-typedef enum _esxVI_ProductVersion esxVI_ProductVersion;
+typedef enum _esxVI_ProductLine esxVI_ProductLine;
 typedef enum _esxVI_Occurrence esxVI_Occurrence;
 typedef struct _esxVI_ParsedHostCpuIdInfo esxVI_ParsedHostCpuIdInfo;
 typedef struct _esxVI_CURL esxVI_CURL;
@@ -86,45 +89,10 @@ typedef struct _esxVI_List esxVI_List;
 
 
 
-enum _esxVI_APIVersion {
-    esxVI_APIVersion_Undefined = 0,
-    esxVI_APIVersion_Unknown,
-    esxVI_APIVersion_25,
-    esxVI_APIVersion_40,
-    esxVI_APIVersion_41,
-    esxVI_APIVersion_4x, /* > 4.1 */
-    esxVI_APIVersion_50,
-    esxVI_APIVersion_51,
-    esxVI_APIVersion_5x  /* > 5.1 */
-};
-
-/*
- * AAAABBBB: where AAAA0000 is the product and BBBB the version. this format
- * allows simple bitmask testing for a product independent of the version
- */
-enum _esxVI_ProductVersion {
-    esxVI_ProductVersion_Undefined = 0,
-
-    esxVI_ProductVersion_GSX   = (1 << 0) << 16,
-    esxVI_ProductVersion_GSX20 = esxVI_ProductVersion_GSX | 1,
-
-    esxVI_ProductVersion_ESX   = (1 << 1) << 16,
-    esxVI_ProductVersion_ESX35 = esxVI_ProductVersion_ESX | 1,
-    esxVI_ProductVersion_ESX40 = esxVI_ProductVersion_ESX | 2,
-    esxVI_ProductVersion_ESX41 = esxVI_ProductVersion_ESX | 3,
-    esxVI_ProductVersion_ESX4x = esxVI_ProductVersion_ESX | 4, /* > 4.1 */
-    esxVI_ProductVersion_ESX50 = esxVI_ProductVersion_ESX | 5,
-    esxVI_ProductVersion_ESX51 = esxVI_ProductVersion_ESX | 6,
-    esxVI_ProductVersion_ESX5x = esxVI_ProductVersion_ESX | 7, /* > 5.1 */
-
-    esxVI_ProductVersion_VPX   = (1 << 2) << 16,
-    esxVI_ProductVersion_VPX25 = esxVI_ProductVersion_VPX | 1,
-    esxVI_ProductVersion_VPX40 = esxVI_ProductVersion_VPX | 2,
-    esxVI_ProductVersion_VPX41 = esxVI_ProductVersion_VPX | 3,
-    esxVI_ProductVersion_VPX4x = esxVI_ProductVersion_VPX | 4, /* > 4.1 */
-    esxVI_ProductVersion_VPX50 = esxVI_ProductVersion_VPX | 5,
-    esxVI_ProductVersion_VPX51 = esxVI_ProductVersion_VPX | 6,
-    esxVI_ProductVersion_VPX5x = esxVI_ProductVersion_VPX | 7  /* > 5.1 */
+enum _esxVI_ProductLine {
+    esxVI_ProductLine_GSX = 0,
+    esxVI_ProductLine_ESX,
+    esxVI_ProductLine_VPX
 };
 
 enum _esxVI_Occurrence {
@@ -175,7 +143,7 @@ int esxVI_CURL_Upload(esxVI_CURL *curl, const char *url, const char *content);
 struct _esxVI_SharedCURL {
     CURLSH *handle;
     virMutex locks[3]; /* share, cookie, dns */
-    size_t count;
+    size_t count; /* number of added easy handle */
 };
 
 int esxVI_SharedCURL_Alloc(esxVI_SharedCURL **shared);
@@ -191,13 +159,22 @@ int esxVI_SharedCURL_Remove(esxVI_SharedCURL *shared, esxVI_CURL *curl);
 
 struct _esxVI_MultiCURL {
     CURLM *handle;
-    size_t count;
+    size_t count; /* number of added easy handle */
+# if ESX_EMULATE_CURL_MULTI_WAIT
+    struct pollfd *pollfds;
+    size_t npollfds;
+    bool timeoutPending;
+# endif
 };
 
 int esxVI_MultiCURL_Alloc(esxVI_MultiCURL **multi);
 void esxVI_MultiCURL_Free(esxVI_MultiCURL **multi);
 int esxVI_MultiCURL_Add(esxVI_MultiCURL *multi, esxVI_CURL *curl);
 int esxVI_MultiCURL_Remove(esxVI_MultiCURL *multi, esxVI_CURL *curl);
+int esxVI_MultiCURL_Wait(esxVI_MultiCURL *multi, int *runningHandles);
+int esxVI_MultiCURL_Perform(esxVI_MultiCURL *multi, int *runningHandles);
+int esxVI_MultiCURL_CheckFirstMessage(esxVI_MultiCURL *multi, long *responseCode,
+                                      CURLcode *errorCode);
 
 
 
@@ -213,8 +190,9 @@ struct _esxVI_Context {
     char *username;
     char *password;
     esxVI_ServiceContent *service;
-    esxVI_APIVersion apiVersion;
-    esxVI_ProductVersion productVersion;
+    unsigned long apiVersion; /* = 1000000 * major + 1000 * minor + micro */
+    esxVI_ProductLine productLine;
+    unsigned long productVersion; /* = 1000000 * major + 1000 * minor + micro */
     esxVI_UserSession *session; /* ... except the session ... */
     virMutexPtr sessionLock; /* ... that is protected by this mutex */
     esxVI_Datacenter *datacenter;
@@ -523,8 +501,10 @@ int esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
 int esxVI_ParseHostCpuIdInfo(esxVI_ParsedHostCpuIdInfo *parsedHostCpuIdInfo,
                              esxVI_HostCpuIdInfo *hostCpuIdInfo);
 
+const char *esxVI_ProductLineToDisplayName(esxVI_ProductLine productLine);
+
 int esxVI_ProductVersionToDefaultVirtualHWVersion
-      (esxVI_ProductVersion productVersion);
+      (esxVI_ProductLine productLine, unsigned long productVersion);
 
 int esxVI_LookupHostInternetScsiHbaStaticTargetByName
       (esxVI_Context *ctx, const char *name,

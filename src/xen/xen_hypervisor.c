@@ -126,7 +126,7 @@ typedef privcmd_hypercall_t hypercall_t;
 # define SYS_IFACE_MIN_VERS_NUMA 4
 #endif
 
-static int xen_ioctl_hypercall_cmd = 0;
+static int xen_ioctl_hypercall_cmd;
 static struct xenHypervisorVersions hv_versions = {
     .hv = 0,
     .hypervisor = 2,
@@ -134,7 +134,7 @@ static struct xenHypervisorVersions hv_versions = {
     .dom_interface = -1,
 };
 
-static int kb_per_pages = 0;
+static int kb_per_pages;
 
 /* Regular expressions used by xenHypervisorGetCapabilities, and
  * compiled once by xenHypervisorInit.  Note that these are POSIX.2
@@ -2258,9 +2258,8 @@ get_cpu_flags(virConnectPtr conn, const char **hvm, int *pae, int *longmode)
     if (STREQLEN((const char *)&regs.r_ebx, "AuthcAMDenti", 12)) {
         if (pread(fd, &regs, sizeof(regs), 0x80000001) == sizeof(regs)) {
             /* Read secure virtual machine bit (bit 2 of ECX feature ID) */
-            if ((regs.r_ecx >> 2) & 1) {
+            if ((regs.r_ecx >> 2) & 1)
                 *hvm = "svm";
-            }
             if ((regs.r_edx >> 6) & 1)
                 *pae = 1;
         }
@@ -2635,9 +2634,9 @@ xenHypervisorLookupDomainByID(virConnectPtr conn, int id)
     if (!name)
         return NULL;
 
-    ret = virDomainDefNew(name,
-                          XEN_GETDOMAININFO_UUID(dominfo),
-                          id);
+    ret = virDomainDefNewFull(name,
+                              XEN_GETDOMAININFO_UUID(dominfo),
+                              id);
     VIR_FREE(name);
     return ret;
 }
@@ -2700,7 +2699,7 @@ xenHypervisorLookupDomainByUUID(virConnectPtr conn, const unsigned char *uuid)
     if (!name)
         return NULL;
 
-    ret = virDomainDefNew(name, uuid, id);
+    ret = virDomainDefNewFull(name, uuid, id);
     if (ret)
         ret->id = id;
     VIR_FREE(name);
@@ -2737,7 +2736,7 @@ xenHypervisorGetMaxMemory(virConnectPtr conn,
     int ret;
 
     if (kb_per_pages == 0) {
-        kb_per_pages = sysconf(_SC_PAGESIZE) / 1024;
+        kb_per_pages = virGetSystemPageSizeKB();
         if (kb_per_pages <= 0)
             kb_per_pages = 4;
     }
@@ -2772,7 +2771,7 @@ xenHypervisorGetDomInfo(virConnectPtr conn, int id, virDomainInfoPtr info)
     uint32_t domain_flags, domain_state, domain_shutdown_cause;
 
     if (kb_per_pages == 0) {
-        kb_per_pages = sysconf(_SC_PAGESIZE) / 1024;
+        kb_per_pages = virGetSystemPageSizeKB();
         if (kb_per_pages <= 0)
             kb_per_pages = 4;
     }
@@ -2935,9 +2934,8 @@ xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn,
         else
             op_sys.u.availheap.node = cell;
         ret = xenHypervisorDoV2Sys(priv->handle, &op_sys);
-        if (ret < 0) {
+        if (ret < 0)
             return -1;
-        }
         if (hv_versions.sys_interface >= 5)
             freeMems[i] = op_sys.u.availheap5.avail_bytes;
         else

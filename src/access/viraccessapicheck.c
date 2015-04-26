@@ -2162,6 +2162,32 @@ int virDomainDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virDomainDefineXMLFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_SAVE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainDestroyEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
@@ -2496,6 +2522,26 @@ int virDomainGetEmulatorPinInfoEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virDomainGetFSInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_FS_FREEZE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainGetHostnameEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
@@ -2537,6 +2583,26 @@ int virDomainGetInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 
 /* Returns: -1 on error/denied, 0 on allowed */
 int virDomainGetInterfaceParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainGetIOThreadInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
     int rv;
@@ -2945,6 +3011,13 @@ int virDomainGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, uns
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
         return -1;
     }
+    if (((flags & (VIR_DOMAIN_XML_MIGRATABLE)) == (VIR_DOMAIN_XML_MIGRATABLE)) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ_SECURE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
     virObjectUnref(mgr);
     return 0;
 }
@@ -3000,6 +3073,26 @@ int virDomainInjectNMIEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
     }
 
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_INJECT_NMI)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainInterfaceAddressesEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -3908,6 +4001,40 @@ int virDomainPinEmulatorEnsureACL(virConnectPtr conn, virDomainDefPtr domain, un
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virDomainPinIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE)) == 0) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_SAVE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_AFFECT_CONFIG)) == (VIR_DOMAIN_AFFECT_CONFIG)) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_SAVE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainPinVcpuEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
@@ -4207,7 +4334,7 @@ int virDomainSaveImageDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
-int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
 {
     virAccessManagerPtr mgr;
     int rv;
@@ -4217,6 +4344,13 @@ int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr do
     }
 
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_XML_SECURE)) == (VIR_DOMAIN_XML_SECURE)) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ_SECURE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -4888,7 +5022,7 @@ int virDomainSnapshotGetParentEnsureACL(virConnectPtr conn, virDomainDefPtr doma
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
-int virDomainSnapshotGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+int virDomainSnapshotGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
 {
     virAccessManagerPtr mgr;
     int rv;
@@ -4898,6 +5032,13 @@ int virDomainSnapshotGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr dom
     }
 
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_XML_SECURE)) == (VIR_DOMAIN_XML_SECURE)) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ_SECURE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);

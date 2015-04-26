@@ -76,6 +76,12 @@
 /* Define as the word index where to find the sign of 'double'. */
 #undef DBL_SIGNBIT_WORD
 
+/* Default editor to use */
+#undef DEFAULT_EDITOR
+
+/* List of laoder:nvram pairs */
+#undef DEFAULT_LOADER_NVRAM
+
 /* Location or name of the dmidecode program */
 #undef DMIDECODE
 
@@ -186,6 +192,10 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module nonblocking shall be considered present. */
 #undef GNULIB_NONBLOCKING
+
+/* Define to 1 if printf and friends should be labeled with attribute
+   "__gnu_printf__" instead of "__printf__" */
+#undef GNULIB_PRINTF_ATTRIBUTE_FLAVOR_GNU
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module pthread shall be considered present. */
@@ -668,6 +678,9 @@
 /* whether CPUID instruction is supported */
 #undef HAVE_CPUID
 
+/* Define to 1 if the system has the type `DBusBasicValue'. */
+#undef HAVE_DBUSBASICVALUE
+
 /* Define to 1 if you have the `dbus_watch_get_unix_fd' function. */
 #undef HAVE_DBUS_WATCH_GET_UNIX_FD
 
@@ -706,6 +719,34 @@
 /* Define to 1 if you have the declaration of `cpuset_getaffinity', and to 0
    if you don't. */
 #undef HAVE_DECL_CPUSET_GETAFFINITY
+
+/* Define to 1 if you have the declaration of `ETHTOOL_GFLAGS', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETHTOOL_GFLAGS
+
+/* Define to 1 if you have the declaration of `ETHTOOL_GGRO', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ETHTOOL_GGRO
+
+/* Define to 1 if you have the declaration of `ETHTOOL_GGSO', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ETHTOOL_GGSO
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_LRO', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ETH_FLAG_LRO
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_NTUPLE', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETH_FLAG_NTUPLE
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_RXHASH', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETH_FLAG_RXHASH
+
+/* Define to 1 if you have the declaration of `ETH_FLAG_TXVLAN', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETH_FLAG_TXVLAN
 
 /* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
    don't. */
@@ -762,6 +803,10 @@
 /* Define to 1 if you have the declaration of `getdelim', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETDELIM
+
+/* Define to 1 if you have the declaration of `getdtablesize', and to 0 if you
+   don't. */
+#undef HAVE_DECL_GETDTABLESIZE
 
 /* Define to 1 if you have the declaration of `getline', and to 0 if you
    don't. */
@@ -1183,8 +1228,14 @@
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
 
+/* Define to 1 if you have the <libxlutil.h> header file. */
+#undef HAVE_LIBXLUTIL_H
+
 /* Define to 1 if you have the `yajl' library (-lyajl). */
 #undef HAVE_LIBYAJL
+
+/* Define to 1 if you have the <linux/btrfs.h> header file. */
+#undef HAVE_LINUX_BTRFS_H
 
 /* Define to 1 if you have the <linux/if_bridge.h> header file. */
 #undef HAVE_LINUX_IF_BRIDGE_H
@@ -1432,9 +1483,6 @@
 /* Define to 1 if you have the `revoke' function. */
 #undef HAVE_REVOKE
 
-/* Define to 1 if you have the <rpc/types.h> header file. */
-#undef HAVE_RPC_TYPES_H
-
 /* Define to 1 if 'long double' and 'double' have the same representation. */
 #undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
@@ -1456,7 +1504,7 @@
 /* Define to 1 if you have the `sched_setparam' function. */
 #undef HAVE_SCHED_SETPARAM
 
-/* Define to 1 if you have the `sched_setscheduler' function. */
+/* Define to 1 if you have the 'sched_setscheduler' function. */
 #undef HAVE_SCHED_SETSCHEDULER
 
 /* Define to 1 if you have the `sd_notify' function. */
@@ -1606,6 +1654,9 @@
 /* Defined if struct ifreq exists in net/if.h */
 #undef HAVE_STRUCT_IFREQ
 
+/* Define to 1 if `ifr_hwaddr' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_HWADDR
+
 /* Define to 1 if `ifr_ifindex' is a member of `struct ifreq'. */
 #undef HAVE_STRUCT_IFREQ_IFR_IFINDEX
 
@@ -1665,6 +1716,9 @@
 
 /* Define to 1 if the system has the type `struct utsname'. */
 #undef HAVE_STRUCT_UTSNAME
+
+/* Whether -Wsuggest-attribute=format works */
+#undef HAVE_SUGGEST_ATTRIBUTE_FORMAT
 
 /* Define to 1 if you have the 'symlink' function. */
 #undef HAVE_SYMLINK
@@ -1792,6 +1846,9 @@
 /* Define to 1 if you have the `ttyname_r' function. */
 #undef HAVE_TTYNAME_R
 
+/* whether libudev logging can be used */
+#undef HAVE_UDEV_LOGGING
+
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME
 
@@ -1857,16 +1914,6 @@
 
 /* Define if you have the 'wint_t' type. */
 #undef HAVE_WINT_T
-
-/* Define to 1 if you have the <wireshark/config.h> header file. */
-#undef HAVE_WIRESHARK_CONFIG_H
-
-/* Define to 1 if you have the <wireshark/epan/dissectors/packet-tcp.h> header
-   file. */
-#undef HAVE_WIRESHARK_EPAN_DISSECTORS_PACKET_TCP_H
-
-/* Define to 1 if you have the <wireshark/epan/packet.h> header file. */
-#undef HAVE_WIRESHARK_EPAN_PACKET_H
 
 /* Define to 1 if you have the 'wmemchr' function. */
 #undef HAVE_WMEMCHR
@@ -1989,6 +2036,12 @@
 /* Define as the word index where to find the sign of 'long double'. */
 #undef LDBL_SIGNBIT_WORD
 
+/* directory containing Xen libexec binaries */
+#undef LIBXL_EXECBIN_DIR
+
+/* directory containing Xen firmware blobs */
+#undef LIBXL_FIRMWARE_DIR
+
 /* Define to 1 if lseek does not detect pipes. */
 #undef LSEEK_PIPE_BROKEN
 
@@ -2037,6 +2090,9 @@
 /* Location or name of the mkfs program */
 #undef MKFS
 
+/* Location or name of the mm-ctl program */
+#undef MMCTL
+
 /* Location or name of the modprobe program */
 #undef MODPROBE
 
@@ -2046,9 +2102,6 @@
 /* define to 1 if Linux kernel headers require a workaround to avoid
    compilation errors when mixed with glibc netinet headers */
 #undef NETINET_LINUX_WORKAROUND
-
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-#undef NO_MINUS_C_MINUS_O
 
 /* Location or name of the numad program */
 #undef NUMAD
@@ -2267,6 +2320,10 @@
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
 # undef _GNU_SOURCE
+#endif
+/* Use GNU style printf and scanf.  */
+#ifndef __USE_MINGW_ANSI_STDIO
+# undef __USE_MINGW_ANSI_STDIO
 #endif
 /* Enable threading extensions on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
@@ -2556,6 +2613,9 @@
 /* whether VMware VMX config handling is enabled */
 #undef WITH_VMX
 
+/* whether wireshark >= 1.11.3 is available */
+#undef WITH_WIRESHARK_DISSECTOR
+
 /* whether Xen driver is enabled */
 #undef WITH_XEN
 
@@ -2733,6 +2793,11 @@
 # define _GL_EXTERN_INLINE static _GL_UNUSED
 #endif
 
+/* In GCC, suppress bogus "no previous prototype for 'FOO'"
+   and "no previous declaration for 'FOO'" diagnostics,
+   when FOO is an inline function in the header; see
+   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113> and
+   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63877>.  */
 #if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)
 # if defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__
 #  define _GL_INLINE_HEADER_CONST_PRAGMA
@@ -2740,10 +2805,6 @@
 #  define _GL_INLINE_HEADER_CONST_PRAGMA \
      _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=const\"")
 # endif
-  /* Suppress GCC's bogus "no previous prototype for 'FOO'"
-     and "no previous declaration for 'FOO'"  diagnostics,
-     when FOO is an inline function in the header; see
-     <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.  */
 # define _GL_INLINE_HEADER_BEGIN \
     _Pragma ("GCC diagnostic push") \
     _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \

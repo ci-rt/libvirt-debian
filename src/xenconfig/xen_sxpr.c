@@ -565,14 +565,14 @@ xenParseSxprNets(virDomainDefPtr def,
                     VIR_STRDUP(net->script, tmp2) < 0)
                     goto cleanup;
                 tmp = sexpr_node(node, "device/vif/ip");
-                if (VIR_STRDUP(net->data.bridge.ipaddr, tmp) < 0)
+                if (tmp && virDomainNetAppendIpAddress(net, tmp, AF_UNSPEC, 0) < 0)
                     goto cleanup;
             } else {
                 net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
                 if (VIR_STRDUP(net->script, tmp2) < 0)
                     goto cleanup;
                 tmp = sexpr_node(node, "device/vif/ip");
-                if (VIR_STRDUP(net->data.ethernet.ipaddr, tmp) < 0)
+                if (tmp && virDomainNetAppendIpAddress(net, tmp, AF_UNSPEC, 0) < 0)
                     goto cleanup;
             }
 
@@ -1093,7 +1093,7 @@ xenParseSxpr(const struct sexpr *root,
     virDomainDefPtr def;
     int hvm = 0, vmlocaltime;
 
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         goto error;
 
     tmp = sexpr_node(root, "domain/domid");
@@ -1155,10 +1155,11 @@ xenParseSxpr(const struct sexpr *root,
         }
     }
 
-    def->mem.max_balloon = (sexpr_u64(root, "domain/maxmem") << 10);
+    virDomainDefSetMemoryInitial(def, (sexpr_u64(root, "domain/maxmem") << 10));
     def->mem.cur_balloon = (sexpr_u64(root, "domain/memory") << 10);
-    if (def->mem.cur_balloon > def->mem.max_balloon)
-        def->mem.cur_balloon = def->mem.max_balloon;
+
+    if (def->mem.cur_balloon > virDomainDefGetMemoryActual(def))
+        def->mem.cur_balloon = virDomainDefGetMemoryActual(def);
 
     if (cpus != NULL) {
         if (virBitmapParse(cpus, 0, &def->cpumask,
@@ -1898,8 +1899,15 @@ xenFormatSxprNet(virConnectPtr conn,
             script = def->script;
 
         virBufferEscapeSexpr(buf, "(script '%s')", script);
-        if (def->data.bridge.ipaddr != NULL)
-            virBufferEscapeSexpr(buf, "(ip '%s')", def->data.bridge.ipaddr);
+        if (def->nips == 1) {
+            char *ipStr = virSocketAddrFormat(&def->ips[0]->address);
+            virBufferEscapeSexpr(buf, "(ip '%s')", ipStr);
+            VIR_FREE(ipStr);
+        } else if (def->nips > 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Driver does not support setting multiple IP addresses"));
+            return -1;
+        }
         break;
 
     case VIR_DOMAIN_NET_TYPE_NETWORK:
@@ -1915,7 +1923,7 @@ xenFormatSxprNet(virConnectPtr conn,
         }
 
         bridge = virNetworkGetBridgeName(network);
-        virNetworkFree(network);
+        virObjectUnref(network);
         if (!bridge) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("network %s is not active"),
@@ -1932,8 +1940,15 @@ xenFormatSxprNet(virConnectPtr conn,
         if (def->script)
             virBufferEscapeSexpr(buf, "(script '%s')",
                                  def->script);
-        if (def->data.ethernet.ipaddr != NULL)
-            virBufferEscapeSexpr(buf, "(ip '%s')", def->data.ethernet.ipaddr);
+        if (def->nips == 1) {
+            char *ipStr = virSocketAddrFormat(&def->ips[0]->address);
+            virBufferEscapeSexpr(buf, "(ip '%s')", ipStr);
+            VIR_FREE(ipStr);
+        } else if (def->nips > 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Driver does not support setting multiple IP addresses"));
+            return -1;
+        }
         break;
 
     case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
@@ -1959,16 +1974,14 @@ xenFormatSxprNet(virConnectPtr conn,
         if (def->model != NULL && STREQ(def->model, "netfront")) {
             virBufferAddLit(buf, "(type netfront)");
         } else {
-            if (def->model != NULL) {
+            if (def->model != NULL)
                 virBufferEscapeSexpr(buf, "(model '%s')", def->model);
-            }
             /*
              * apparently (type ioemu) breaks paravirt drivers on HVM so skip
              * this from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
              */
-            if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU) {
+            if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
                 virBufferAddLit(buf, "(type ioemu)");
-            }
         }
     }
 
@@ -2201,7 +2214,7 @@ xenFormatSxpr(virConnectPtr conn,
     virBufferEscapeSexpr(&buf, "(name '%s')", def->name);
     virBufferAsprintf(&buf, "(memory %llu)(maxmem %llu)",
                       VIR_DIV_UP(def->mem.cur_balloon, 1024),
-                      VIR_DIV_UP(def->mem.max_balloon, 1024));
+                      VIR_DIV_UP(virDomainDefGetMemoryActual(def), 1024));
     virBufferAsprintf(&buf, "(vcpus %u)", def->maxvcpus);
     /* Computing the vcpu_avail bitmask works because MAX_VIRT_CPUS is
        either 32, or 64 on a platform where long is big enough.  */

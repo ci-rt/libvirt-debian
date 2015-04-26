@@ -204,6 +204,7 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool(cmd, "prealloc-metadata"))
         flags |= VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA;
+
     if (!(pool = vshCommandOptPool(ctl, cmd, "pool", NULL)))
         return false;
 
@@ -378,6 +379,7 @@ cmdVolCreate(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool(cmd, "prealloc-metadata"))
         flags |= VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA;
+
     if (!(pool = vshCommandOptPool(ctl, cmd, "pool", NULL)))
         return false;
 
@@ -441,6 +443,10 @@ static const vshCmdOptDef opts_vol_create_from[] = {
      .type = VSH_OT_BOOL,
      .help = N_("preallocate metadata (for qcow2 instead of full allocation)")
     },
+    {.name = "reflink",
+     .type = VSH_OT_BOOL,
+     .help = N_("use btrfs COW lightweight copy")
+    },
     {.name = NULL}
 };
 
@@ -459,6 +465,9 @@ cmdVolCreateFrom(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool(cmd, "prealloc-metadata"))
         flags |= VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA;
+
+    if (vshCommandOptBool(cmd, "reflink"))
+        flags |= VIR_STORAGE_VOL_CREATE_REFLINK;
 
     if (vshCommandOptStringReq(ctl, cmd, "file", &from) < 0)
         goto cleanup;
@@ -554,6 +563,10 @@ static const vshCmdOptDef opts_vol_clone[] = {
      .type = VSH_OT_BOOL,
      .help = N_("preallocate metadata (for qcow2 instead of full allocation)")
     },
+    {.name = "reflink",
+     .type = VSH_OT_BOOL,
+     .help = N_("use btrfs COW lightweight copy")
+    },
     {.name = NULL}
 };
 
@@ -573,6 +586,9 @@ cmdVolClone(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool(cmd, "prealloc-metadata"))
         flags |= VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA;
+
+    if (vshCommandOptBool(cmd, "reflink"))
+        flags |= VIR_STORAGE_VOL_CREATE_REFLINK;
 
     origpool = virStoragePoolLookupByVolume(origvol);
     if (!origpool) {
@@ -677,19 +693,18 @@ cmdVolUpload(vshControl *ctl, const vshCmd *cmd)
     const char *name = NULL;
     unsigned long long offset = 0, length = 0;
 
-    if (vshCommandOptULongLongWrap(cmd, "offset", &offset) < 0) {
-        vshError(ctl, _("Unable to parse integer"));
+    if (vshCommandOptULongLong(cmd, "offset", &offset) < 0) {
+        vshError(ctl, _("Unable to parse offset value"));
         return false;
     }
 
     if (vshCommandOptULongLongWrap(cmd, "length", &length) < 0) {
-        vshError(ctl, _("Unable to parse integer"));
+        vshError(ctl, _("Unable to parse length value"));
         return false;
     }
 
-    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name))) {
+    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name)))
         return false;
-    }
 
     if (vshCommandOptStringReq(ctl, cmd, "file", &file) < 0)
         goto cleanup;
@@ -885,9 +900,8 @@ cmdVolDelete(vshControl *ctl, const vshCmd *cmd)
     bool ret = true;
     const char *name;
 
-    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name))) {
+    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name)))
         return false;
-    }
 
     if (virStorageVolDelete(vol, 0) == 0) {
         vshPrint(ctl, _("Vol %s deleted\n"), name);
@@ -945,9 +959,8 @@ cmdVolWipe(vshControl *ctl, const vshCmd *cmd)
     int algorithm = VIR_STORAGE_VOL_WIPE_ALG_ZERO;
     int funcRet;
 
-    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name))) {
+    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name)))
         return false;
-    }
 
     if (vshCommandOptStringReq(ctl, cmd, "algorithm", &algorithm_str) < 0)
         goto out;
@@ -1621,14 +1634,14 @@ static const vshCmdInfo info_vol_pool[] = {
 };
 
 static const vshCmdOptDef opts_vol_pool[] = {
-    {.name = "uuid",
-     .type = VSH_OT_BOOL,
-     .help = N_("return the pool uuid rather than pool name")
-    },
     {.name = "vol",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
      .help = N_("volume key or path")
+    },
+    {.name = "uuid",
+     .type = VSH_OT_BOOL,
+     .help = N_("return the pool uuid rather than pool name")
     },
     {.name = NULL}
 };
@@ -1741,9 +1754,8 @@ cmdVolPath(vshControl *ctl, const vshCmd *cmd)
     virStorageVolPtr vol;
     char * StorageVolPath;
 
-    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", NULL))) {
+    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", NULL)))
         return false;
-    }
 
     if ((StorageVolPath = virStorageVolGetPath(vol)) == NULL) {
         virStorageVolFree(vol);
