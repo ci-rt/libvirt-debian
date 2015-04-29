@@ -1615,6 +1615,12 @@ int                  virDomainPinIOThread(virDomainPtr domain,
                                           unsigned char *cpumap,
                                           int maplen,
                                           unsigned int flags);
+int                  virDomainAddIOThread(virDomainPtr domain,
+                                          unsigned int iothread_id,
+                                          unsigned int flags);
+int                  virDomainDelIOThread(virDomainPtr domain,
+                                          unsigned int iothread_id,
+                                          unsigned int flags);
 
 /**
  * VIR_USE_CPU:
@@ -2548,6 +2554,16 @@ int virDomainAbortJob(virDomainPtr dom);
 # define VIR_DOMAIN_JOB_TIME_ELAPSED             "time_elapsed"
 
 /**
+ * VIR_DOMAIN_JOB_TIME_ELAPSED_NET:
+ *
+ * virDomainGetJobStats field: time (ms) since the beginning of the
+ * migration job NOT including the time required to transfer control
+ * flow from the source host to the destination host,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_JOB_TIME_ELAPSED_NET         "time_elapsed_net"
+
+/**
  * VIR_DOMAIN_JOB_TIME_REMAINING:
  *
  * virDomainGetJobStats field: remaining time (ms) for VIR_DOMAIN_JOB_BOUNDED
@@ -2561,9 +2577,20 @@ int virDomainAbortJob(virDomainPtr dom);
  * VIR_DOMAIN_JOB_DOWNTIME:
  *
  * virDomainGetJobStats field: downtime (ms) that is expected to happen
- * during migration, as VIR_TYPED_PARAM_ULLONG.
+ * during migration, as VIR_TYPED_PARAM_ULLONG. The real computed downtime
+ * between the time guest CPUs were paused and the time they were resumed
+ * is reported for completed migration.
  */
 # define VIR_DOMAIN_JOB_DOWNTIME                 "downtime"
+
+/**
+ * VIR_DOMAIN_JOB_DOWNTIME_NET:
+ *
+ * virDomainGetJobStats field: real measured downtime (ms) NOT including
+ * the time required to transfer control flow from the source host to the
+ * destination host, as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_JOB_DOWNTIME_NET             "downtime_net"
 
 /**
  * VIR_DOMAIN_JOB_SETUP_TIME:
@@ -3202,6 +3229,23 @@ typedef void (*virConnectDomainEventDeviceRemovedCallback)(virConnectPtr conn,
                                                            void *opaque);
 
 /**
+ * virConnectDomainEventDeviceAddedCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @devAlias: device alias
+ * @opaque: application specified data
+ *
+ * This callback occurs when a device is added to the domain.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_DEVICE_ADDED with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventDeviceAddedCallback)(virConnectPtr conn,
+                                                         virDomainPtr dom,
+                                                         const char *devAlias,
+                                                         void *opaque);
+
+/**
  * VIR_DOMAIN_TUNABLE_CPU_VCPUPIN:
  *
  * Macro represents formatted pinning for one vcpu specified by id which is
@@ -3483,6 +3527,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2 = 16,    /* virConnectDomainEventBlockJobCallback */
     VIR_DOMAIN_EVENT_ID_TUNABLE = 17,        /* virConnectDomainEventTunableCallback */
     VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE = 18,/* virConnectDomainEventAgentLifecycleCallback */
+    VIR_DOMAIN_EVENT_ID_DEVICE_ADDED = 19,   /* virConnectDomainEventDeviceAddedCallback */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST

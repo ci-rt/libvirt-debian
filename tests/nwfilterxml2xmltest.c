@@ -23,20 +23,13 @@ static int
 testCompareXMLToXMLFiles(const char *inxml, const char *outxml,
                          bool expect_error)
 {
-    char *inXmlData = NULL;
-    char *outXmlData = NULL;
     char *actual = NULL;
     int ret = -1;
     virNWFilterDefPtr dev = NULL;
 
-    if (virtTestLoadFile(inxml, &inXmlData) < 0)
-        goto fail;
-    if (virtTestLoadFile(outxml, &outXmlData) < 0)
-        goto fail;
-
     virResetLastError();
 
-    if (!(dev = virNWFilterDefParseString(inXmlData))) {
+    if (!(dev = virNWFilterDefParseFile(inxml))) {
         if (expect_error) {
             virResetLastError();
             goto done;
@@ -47,17 +40,13 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml,
     if (!(actual = virNWFilterDefFormat(dev)))
         goto fail;
 
-    if (STRNEQ(outXmlData, actual)) {
-        virtTestDifference(stderr, outXmlData, actual);
+    if (virtTestCompareToFile(actual, outxml) < 0)
         goto fail;
-    }
 
  done:
     ret = 0;
 
  fail:
-    VIR_FREE(inXmlData);
-    VIR_FREE(outXmlData);
     VIR_FREE(actual);
     virNWFilterDefFree(dev);
     return ret;

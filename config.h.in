@@ -79,7 +79,7 @@
 /* Default editor to use */
 #undef DEFAULT_EDITOR
 
-/* List of laoder:nvram pairs */
+/* List of loader:nvram pairs */
 #undef DEFAULT_LOADER_NVRAM
 
 /* Location or name of the dmidecode program */

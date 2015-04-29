@@ -352,6 +352,16 @@ virHostdevNetDevice(virDomainHostdevDefPtr hostdev, char **linkdev,
 
 
 static int
+virHostdevIsPCINetDevice(virDomainHostdevDefPtr hostdev)
+{
+    return hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+        hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+        hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
+        hostdev->parent.data.net;
+}
+
+
+static int
 virHostdevNetConfigVirtPortProfile(const char *linkdev, int vf,
                                    virNetDevVPortProfilePtr virtPort,
                                    const virMacAddr *macaddr,
@@ -481,10 +491,7 @@ virHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
     /* This is only needed for PCI devices that have been defined
      * using <interface type='hostdev'>. For all others, it is a NOP.
      */
-    if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
-        hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI ||
-        hostdev->parent.type != VIR_DOMAIN_DEVICE_NET ||
-        !hostdev->parent.data.net)
+    if (!virHostdevIsPCINetDevice(hostdev))
        return 0;
 
     isvf = virHostdevIsVirtualFunction(hostdev);
@@ -604,16 +611,11 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
      * the network device, set the netdev config */
     for (i = 0; i < nhostdevs; i++) {
          virDomainHostdevDefPtr hostdev = hostdevs[i];
-         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+         if (!virHostdevIsPCINetDevice(hostdev))
              continue;
-         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
-             continue;
-         if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
-             hostdev->parent.data.net) {
-             if (virHostdevNetConfigReplace(hostdev, uuid,
-                                            hostdev_mgr->stateDir) < 0) {
-                 goto resetvfnetconfig;
-             }
+         if (virHostdevNetConfigReplace(hostdev, uuid,
+                                        hostdev_mgr->stateDir) < 0) {
+             goto resetvfnetconfig;
          }
          last_processed_hostdev_vf = i;
     }
@@ -693,7 +695,7 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
 
  resetvfnetconfig:
     for (i = 0;
-         last_processed_hostdev_vf != -1 && i < last_processed_hostdev_vf; i++)
+         last_processed_hostdev_vf != -1 && i <= last_processed_hostdev_vf; i++)
         virHostdevNetConfigRestore(hostdevs[i], hostdev_mgr->stateDir, NULL);
 
  reattachdevs:
@@ -781,18 +783,21 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
         goto cleanup;
     }
 
-    /* Again 4 loops; mark all devices as inactive before reset
-     * them and reset all the devices before re-attach.
-     * Attach mac and port profile parameters to devices
+    /* Loop through the assigned devices 4 times: 1) delete them all from
+     * activePCIHostdevs, 2) restore network config of SRIOV netdevs, 3) Do a
+     * PCI reset on each device, 4) reattach the devices to their host drivers
+     * (managed) or add them to inactivePCIHostdevs (!managed).
      */
-    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+
+    /*
+     * Loop 1: verify that each device in the hostdevs list really was in use
+     * by this domain, and remove them all from the activePCIHostdevs list.
+     */
+    i = 0;
+    while (i < virPCIDeviceListCount(pcidevs)) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
         virPCIDevicePtr activeDev = NULL;
 
-        /* delete the copy of the dev from pcidevs if it's used by
-         * other domain. Or delete it from activePCIHostDevs if it had
-         * been used by this domain.
-         */
         activeDev = virPCIDeviceListFind(hostdev_mgr->activePCIHostdevs, dev);
         if (activeDev) {
             const char *usedby_drvname;
@@ -806,6 +811,7 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
         }
 
         virPCIDeviceListDel(hostdev_mgr->activePCIHostdevs, dev);
+        i++;
     }
 
     /* At this point, any device that had been used by the guest is in
@@ -813,13 +819,28 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
      */
 
     /*
-     * For SRIOV net host devices, unset mac and port profile before
-     * reset and reattach device
+     * Loop 2: restore original network config of hostdevs that used
+     * <interface type='hostdev'>
      */
-    for (i = 0; i < nhostdevs; i++)
-        virHostdevNetConfigRestore(hostdevs[i], hostdev_mgr->stateDir,
-                                   oldStateDir);
+    for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = hostdevs[i];
 
+        if (virHostdevIsPCINetDevice(hostdev)) {
+            virDomainHostdevSubsysPCIPtr pcisrc = &hostdev->source.subsys.u.pci;
+            virPCIDevicePtr dev = NULL;
+            dev = virPCIDeviceNew(pcisrc->addr.domain, pcisrc->addr.bus,
+                                  pcisrc->addr.slot, pcisrc->addr.function);
+            if (dev) {
+                if (virPCIDeviceListFind(pcidevs, dev)) {
+                    virHostdevNetConfigRestore(hostdev, hostdev_mgr->stateDir,
+                                               oldStateDir);
+                }
+            }
+            virPCIDeviceFree(dev);
+        }
+    }
+
+    /* Loop 3: perform a PCI Reset on all devices */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
 
@@ -832,6 +853,9 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
         }
     }
 
+    /* Loop 4: reattach devices to their host drivers (if managed) or place
+     * them on the inactive list (if not managed)
+     */
     while (virPCIDeviceListCount(pcidevs) > 0) {
         virPCIDevicePtr dev = virPCIDeviceListStealIndex(pcidevs, 0);
         virHostdevReattachPCIDevice(dev, hostdev_mgr);
@@ -1519,10 +1543,17 @@ int
 virHostdevPCINodeDeviceDetach(virHostdevManagerPtr hostdev_mgr,
                               virPCIDevicePtr pci)
 {
+    virPCIDeviceAddressPtr devAddr = NULL;
     int ret = -1;
 
     virObjectLock(hostdev_mgr->activePCIHostdevs);
     virObjectLock(hostdev_mgr->inactivePCIHostdevs);
+
+    if (!(devAddr = virPCIDeviceGetAddress(pci)))
+        goto out;
+
+    if (virHostdevIsPCINodeDeviceUsed(devAddr, hostdev_mgr))
+        goto out;
 
     if (virPCIDeviceDetach(pci, hostdev_mgr->activePCIHostdevs,
                            hostdev_mgr->inactivePCIHostdevs) < 0) {
@@ -1533,6 +1564,7 @@ virHostdevPCINodeDeviceDetach(virHostdevManagerPtr hostdev_mgr,
  out:
     virObjectUnlock(hostdev_mgr->inactivePCIHostdevs);
     virObjectUnlock(hostdev_mgr->activePCIHostdevs);
+    VIR_FREE(devAddr);
     return ret;
 }
 

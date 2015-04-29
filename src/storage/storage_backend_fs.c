@@ -533,8 +533,7 @@ virStorageBackendFileSystemUnmount(virStoragePoolObjPtr pool)
 
 
 static int
-virStorageBackendFileSystemCheck(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                 virStoragePoolObjPtr pool,
+virStorageBackendFileSystemCheck(virStoragePoolObjPtr pool,
                                  bool *isActive)
 {
     if (pool->def->type == VIR_STORAGE_POOL_DIR) {
@@ -860,6 +859,12 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     while ((direrr = virDirRead(dir, &ent, pool->def->target.path)) > 0) {
         int ret;
+
+        if (virStringHasControlChars(ent->d_name)) {
+            VIR_WARN("Ignoring file with control characters under '%s'",
+                     pool->def->target.path);
+            continue;
+        }
 
         if (VIR_ALLOC(vol) < 0)
             goto error;

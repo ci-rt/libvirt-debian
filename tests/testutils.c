@@ -1,7 +1,7 @@
 /*
  * testutils.c: basic test utils
  *
- * Copyright (C) 2005-2014 Red Hat, Inc.
+ * Copyright (C) 2005-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -62,11 +62,6 @@
 
 VIR_LOG_INIT("tests.testutils");
 
-#define GETTIMEOFDAY(T) gettimeofday(T, NULL)
-#define DIFF_MSEC(T, U)                                 \
-    ((((int) ((T)->tv_sec - (U)->tv_sec)) * 1000000.0 + \
-      ((int) ((T)->tv_usec - (U)->tv_usec))) / 1000.0)
-
 #include "virfile.h"
 
 static unsigned int testDebug = -1;
@@ -94,6 +89,21 @@ char *progname;
 bool virtTestOOMActive(void)
 {
     return testOOMActive;
+}
+
+static unsigned int
+virTestGetFlag(const char *name)
+{
+    char *flagStr;
+    unsigned int flag;
+
+    if ((flagStr = getenv(name)) == NULL)
+        return 0;
+
+    if (virStrToLong_ui(flagStr, NULL, 10, &flag) < 0)
+        return 0;
+
+    return flag;
 }
 
 #ifdef TEST_OOM_TRACE
@@ -601,6 +611,48 @@ int virtTestDifferenceBin(FILE *stream,
     return 0;
 }
 
+/*
+ * @param strcontent: String input content
+ * @param filename: File to compare strcontent against
+ */
+int
+virtTestCompareToFile(const char *strcontent,
+                      const char *filename)
+{
+    int ret = -1;
+    char *filecontent = NULL;
+    char *fixedcontent = NULL;
+    bool regenerate = !!virTestGetFlag("VIR_TEST_REGENERATE_OUTPUT");
+
+    if (virtTestLoadFile(filename, &filecontent) < 0 && !regenerate)
+        goto failure;
+
+    if (filecontent &&
+        filecontent[strlen(filecontent) - 1] == '\n' &&
+        strcontent[strlen(strcontent) - 1] != '\n') {
+        if (virAsprintf(&fixedcontent, "%s\n", strcontent) < 0)
+            goto failure;
+    }
+
+    if (STRNEQ_NULLABLE(fixedcontent ? fixedcontent : strcontent,
+                        filecontent)) {
+        if (regenerate) {
+            if (virFileWriteStr(filename, strcontent, 0666) < 0)
+                goto failure;
+            goto out;
+        }
+        virtTestDifference(stderr, filecontent, strcontent);
+        goto failure;
+    }
+
+ out:
+    ret = 0;
+ failure:
+    VIR_FREE(fixedcontent);
+    VIR_FREE(filecontent);
+    return ret;
+}
+
 static void
 virtTestErrorFuncQuiet(void *data ATTRIBUTE_UNUSED,
                        virErrorPtr err ATTRIBUTE_UNUSED)
@@ -663,21 +715,6 @@ virtTestLogContentAndReset(void)
     return ret;
 }
 
-
-static unsigned int
-virTestGetFlag(const char *name)
-{
-    char *flagStr;
-    unsigned int flag;
-
-    if ((flagStr = getenv(name)) == NULL)
-        return 0;
-
-    if (virStrToLong_ui(flagStr, NULL, 10, &flag) < 0)
-        return 0;
-
-    return flag;
-}
 
 unsigned int
 virTestGetDebug(void)
@@ -940,21 +977,21 @@ virCapsPtr virTestGenericCapsInit(void)
                                    false, false)) == NULL)
         return NULL;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm", VIR_ARCH_I686,
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_I686,
                                          "/usr/bin/acme-virt", NULL,
                                          0, NULL)) == NULL)
         goto error;
 
-    if (!virCapabilitiesAddGuestDomain(guest, "test", NULL, NULL, 0, NULL))
+    if (!virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_TEST, NULL, NULL, 0, NULL))
         goto error;
 
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm", VIR_ARCH_X86_64,
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_X86_64,
                                          "/usr/bin/acme-virt", NULL,
                                          0, NULL)) == NULL)
         goto error;
 
-    if (!virCapabilitiesAddGuestDomain(guest, "test", NULL, NULL, 0, NULL))
+    if (!virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_TEST, NULL, NULL, 0, NULL))
         goto error;
 
 
@@ -965,7 +1002,7 @@ virCapsPtr virTestGenericCapsInit(void)
         if (!caps_str)
             goto error;
 
-        fprintf(stderr, "Generic driver capabilities:\n%s", caps_str);
+        VIR_TEST_DEBUG("Generic driver capabilities:\n%s", caps_str);
 
         VIR_FREE(caps_str);
     }

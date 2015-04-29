@@ -1212,6 +1212,18 @@ struct remote_domain_pin_iothread_args {
     unsigned int flags;
 };
 
+struct remote_domain_add_iothread_args {
+    remote_nonnull_domain dom;
+    unsigned int iothread_id;
+    unsigned int flags;
+};
+
+struct remote_domain_del_iothread_args {
+    remote_nonnull_domain dom;
+    unsigned int iothread_id;
+    unsigned int flags;
+};
+
 struct remote_domain_get_security_label_args {
     remote_nonnull_domain dom;
 };
@@ -3043,6 +3055,12 @@ struct remote_domain_event_callback_tunable_msg {
     int callbackID;
     remote_nonnull_domain dom;
     remote_typed_param params<REMOTE_DOMAIN_EVENT_TUNABLE_MAX>;
+};
+
+struct remote_domain_event_callback_device_added_msg {
+    int callbackID;
+    remote_nonnull_domain dom;
+    remote_nonnull_string devAlias;
 };
 
 struct remote_connect_get_cpu_model_names_args {
@@ -5643,5 +5661,27 @@ enum remote_procedure {
      * @generate: none
      * @acl: domain:read
      */
-    REMOTE_PROC_DOMAIN_INTERFACE_ADDRESSES = 353
+    REMOTE_PROC_DOMAIN_INTERFACE_ADDRESSES = 353,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_ADDED = 354,
+
+    /**
+     * @generate:both
+     * @acl: domain:write
+     * @acl: domain:save:!VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE
+     * @acl: domain:save:VIR_DOMAIN_AFFECT_CONFIG
+     */
+    REMOTE_PROC_DOMAIN_ADD_IOTHREAD = 355,
+
+    /**
+     * @generate:both
+     * @acl: domain:write
+     * @acl: domain:save:!VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE
+     * @acl: domain:save:VIR_DOMAIN_AFFECT_CONFIG
+     */
+    REMOTE_PROC_DOMAIN_DEL_IOTHREAD = 356
 };

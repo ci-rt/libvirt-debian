@@ -182,7 +182,6 @@ static virDomainDefPtr
 testSELinuxLoadDef(const char *testname)
 {
     char *xmlfile = NULL;
-    char *xmlstr = NULL;
     virDomainDefPtr def = NULL;
     size_t i;
 
@@ -190,12 +189,7 @@ testSELinuxLoadDef(const char *testname)
                     abs_srcdir, testname) < 0)
         goto cleanup;
 
-    if (virFileReadAll(xmlfile, 1024*1024, &xmlstr) < 0)
-        goto cleanup;
-
-    if (!(def = virDomainDefParseString(xmlstr, caps, xmlopt,
-                                        QEMU_EXPECTED_VIRT_TYPES,
-                                        0)))
+    if (!(def = virDomainDefParseFile(xmlfile, caps, xmlopt, 0)))
         goto cleanup;
 
     for (i = 0; i < def->ndisks; i++) {
@@ -232,7 +226,6 @@ testSELinuxLoadDef(const char *testname)
 
  cleanup:
     VIR_FREE(xmlfile);
-    VIR_FREE(xmlstr);
     return def;
 }
 
@@ -338,9 +331,9 @@ testSELinuxLabeling(const void *opaque)
         VIR_FREE(files[i].context);
     }
     VIR_FREE(files);
-    if (ret < 0 && virTestGetVerbose()) {
+    if (ret < 0) {
         virErrorPtr err = virGetLastError();
-        fprintf(stderr, "%s\n", err ? err->message : "<unknown>");
+        VIR_TEST_VERBOSE("%s\n", err ? err->message : "<unknown>");
     }
     return ret;
 }
@@ -360,7 +353,7 @@ mymain(void)
 
     if (!(mgr = virSecurityManagerNew("selinux", "QEMU", false, true, false))) {
         virErrorPtr err = virGetLastError();
-        fprintf(stderr, "Unable to initialize security driver: %s\n",
+        VIR_TEST_VERBOSE("Unable to initialize security driver: %s\n",
                 err->message);
         return EXIT_FAILURE;
     }

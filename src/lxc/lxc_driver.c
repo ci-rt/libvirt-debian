@@ -321,8 +321,7 @@ static virDomainPtr lxcDomainLookupByName(virConnectPtr conn,
         dom->id = vm->def->id;
 
  cleanup:
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
     return dom;
 }
 
@@ -467,7 +466,6 @@ lxcDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
         goto cleanup;
 
     if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_LXC,
                                         parse_flags)))
         goto cleanup;
 
@@ -665,7 +663,7 @@ static char *lxcDomainGetOSType(virDomainPtr dom)
     if (virDomainGetOSTypeEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (VIR_STRDUP(ret, vm->def->os.type) < 0)
+    if (VIR_STRDUP(ret, virDomainOSTypeToString(vm->def->os.type)) < 0)
         goto cleanup;
 
  cleanup:
@@ -1213,7 +1211,6 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
         goto cleanup;
 
     if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_LXC,
                                         parse_flags)))
         goto cleanup;
 
@@ -1648,13 +1645,19 @@ static int lxcStateInitialize(bool privileged,
     if (!(caps = virLXCDriverGetCapabilities(lxc_driver, false)))
         goto cleanup;
 
+    if (virFileMakePath(cfg->stateDir) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to mkdir %s"),
+                             cfg->stateDir);
+        goto cleanup;
+    }
+
     /* Get all the running persistent or transient configs first */
     if (virDomainObjListLoadAllConfigs(lxc_driver->domains,
                                        cfg->stateDir,
                                        NULL, 1,
                                        caps,
                                        lxc_driver->xmlopt,
-                                       1 << VIR_DOMAIN_VIRT_LXC,
                                        NULL, NULL) < 0)
         goto cleanup;
 
@@ -1666,7 +1669,6 @@ static int lxcStateInitialize(bool privileged,
                                        cfg->autostartDir, 0,
                                        caps,
                                        lxc_driver->xmlopt,
-                                       1 << VIR_DOMAIN_VIRT_LXC,
                                        NULL, NULL) < 0)
         goto cleanup;
 
@@ -1731,7 +1733,6 @@ lxcStateReload(void)
                                    cfg->autostartDir, 0,
                                    caps,
                                    lxc_driver->xmlopt,
-                                   1 << VIR_DOMAIN_VIRT_LXC,
                                    lxcNotifyLoadDomain, lxc_driver);
     virObjectUnref(caps);
     virObjectUnref(cfg);

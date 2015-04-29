@@ -2512,21 +2512,21 @@ uninstall-man: uninstall-man8
 	uninstall-man8 uninstall-sbinPROGRAMS
 
 
-remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+remote_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl \
+	$(AM_V_GEN)$(PERL) -w $(top_srcdir)/src/rpc/gendispatch.pl \
 	  --mode=server remote REMOTE $(REMOTE_PROTOCOL) \
 	  > $(srcdir)/remote_dispatch.h
 
-lxc_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+lxc_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 		$(LXC_PROTOCOL)
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl \
+	$(AM_V_GEN)$(PERL) -w $(top_srcdir)/src/rpc/gendispatch.pl \
 	  --mode=server lxc LXC $(LXC_PROTOCOL) \
 	  > $(srcdir)/lxc_dispatch.h
 
-qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+qemu_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl \
+	$(AM_V_GEN)$(PERL) -w $(top_srcdir)/src/rpc/gendispatch.pl \
 	  --mode=server qemu QEMU $(QEMU_PROTOCOL) \
 	  > $(srcdir)/qemu_dispatch.h
 
@@ -2632,10 +2632,10 @@ qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@install-sysctl:
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	$(MKDIR_P) $(DESTDIR)$(prefix)/lib/sysctl.d
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sysctl \
-@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	  $(DESTDIR)$(prefix)/lib/sysctl.d/libvirtd.conf
+@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	  $(DESTDIR)$(prefix)/lib/sysctl.d/60-libvirtd.conf
 
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@uninstall-sysctl:
-@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rm -f $(DESTDIR)$(prefix)/lib/sysctl.d/libvirtd.conf
+@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rm -f $(DESTDIR)$(prefix)/lib/sysctl.d/60-libvirtd.conf
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rmdir $(DESTDIR)$(prefix)/lib/sysctl.d || :
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_FALSE@install-sysctl:
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_FALSE@uninstall-sysctl:

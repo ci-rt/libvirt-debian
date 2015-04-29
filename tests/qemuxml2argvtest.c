@@ -253,8 +253,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      int migrateFd,
                                      virQemuXML2ArgvTestFlags flags)
 {
-    char *expectargv = NULL;
-    int len;
     char *actualargv = NULL;
     int ret = -1;
     virDomainDefPtr vmdef = NULL;
@@ -274,7 +272,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
         goto out;
 
     if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
-                                        QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_DEF_PARSE_INACTIVE))) {
         if (!virtTestOOMActive() &&
             (flags & FLAG_EXPECT_PARSE_ERROR))
@@ -283,7 +280,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     }
 
     if (!virDomainDefCheckABIStability(vmdef, vmdef)) {
-        fprintf(stderr, "ABI stability check failed on %s", xml);
+        VIR_TEST_DEBUG("ABI stability check failed on %s", xml);
         goto out;
     }
 
@@ -354,38 +351,28 @@ static int testCompareXMLToArgvFiles(const char *xml,
         if (!virtTestOOMActive() &&
             (flags & FLAG_EXPECT_FAILURE)) {
             ret = 0;
-            if (virTestGetDebug() > 1)
-                fprintf(stderr, "Got expected error: %s\n",
-                        virGetLastErrorMessage());
+            VIR_TEST_DEBUG("Got expected error: %s\n",
+                    virGetLastErrorMessage());
             virResetLastError();
         }
         goto out;
     } else if (flags & FLAG_EXPECT_FAILURE) {
-        if (virTestGetDebug())
-            fprintf(stderr, "qemuBuildCommandLine should have failed\n");
+        VIR_TEST_DEBUG("qemuBuildCommandLine should have failed\n");
         goto out;
     }
 
     if (!virtTestOOMActive() &&
         (!!virGetLastError() != !!(flags & FLAG_EXPECT_ERROR))) {
-        if (virTestGetDebug() && (log = virtTestLogContentAndReset()))
-            fprintf(stderr, "\n%s", log);
+        if ((log = virtTestLogContentAndReset()))
+            VIR_TEST_DEBUG("\n%s", log);
         goto out;
     }
 
     if (!(actualargv = virCommandToString(cmd)))
         goto out;
 
-    len = virtTestLoadFile(cmdline, &expectargv);
-    if (len < 0)
+    if (virtTestCompareToFile(actualargv, cmdline) < 0)
         goto out;
-    if (len && expectargv[len - 1] == '\n')
-        expectargv[len - 1] = '\0';
-
-    if (STRNEQ(expectargv, actualargv)) {
-        virtTestDifference(stderr, expectargv, actualargv);
-        goto out;
-    }
 
  ok:
     if (!virtTestOOMActive() &&
@@ -398,7 +385,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
  out:
     VIR_FREE(log);
-    VIR_FREE(expectargv);
     VIR_FREE(actualargv);
     virCommandFree(cmd);
     virDomainDefFree(vmdef);
@@ -817,6 +803,8 @@ mymain(void)
                     QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-no-boot",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_BOOTINDEX);
+    DO_TEST_FAILURE("disk-device-lun-type-invalid",
+                    QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-usb",  NONE);
     DO_TEST("disk-usb-device",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_USB_STORAGE,
@@ -1072,6 +1060,10 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("channel-virtio-auto",
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("channel-virtio-autoassign",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("channel-virtio-autoadd",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("console-virtio",
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("console-virtio-many",
@@ -1149,6 +1141,11 @@ mymain(void)
             QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_USB_REDIR,
             QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC,
             QEMU_CAPS_USB_REDIR_FILTER);
+    DO_TEST("usb-redir-filter-version",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_USB_REDIR,
+            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC,
+            QEMU_CAPS_USB_REDIR_FILTER);
     DO_TEST("usb1-usb2",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_PIIX3_USB_UHCI,
@@ -1220,6 +1217,8 @@ mymain(void)
     DO_TEST("smp", QEMU_CAPS_SMP_TOPOLOGY);
 
     DO_TEST("iothreads", QEMU_CAPS_OBJECT_IOTHREAD);
+    DO_TEST("iothreads-ids", QEMU_CAPS_OBJECT_IOTHREAD);
+    DO_TEST("iothreads-ids-partial", QEMU_CAPS_OBJECT_IOTHREAD);
     DO_TEST("iothreads-disk", QEMU_CAPS_OBJECT_IOTHREAD, QEMU_CAPS_DEVICE,
             QEMU_CAPS_DRIVE);
     DO_TEST("iothreads-disk-virtio-ccw", QEMU_CAPS_OBJECT_IOTHREAD, QEMU_CAPS_DEVICE,
@@ -1528,6 +1527,12 @@ mymain(void)
     DO_TEST("aarch64-virt-default-nic",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_DEVICE_VIRTIO_MMIO);
+    DO_TEST("aarch64-cpu-passthrough", QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_CPU_HOST, QEMU_CAPS_KVM);
+    DO_TEST("aarch64-cpu-model-host", QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_CPU_HOST, QEMU_CAPS_KVM);
 
     DO_TEST("kvm-pit-device", QEMU_CAPS_KVM_PIT_TICK_POLICY);
     DO_TEST("kvm-pit-delay", QEMU_CAPS_NO_KVM_PIT);

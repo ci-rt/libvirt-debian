@@ -22,19 +22,15 @@ testCompareXMLToXMLFiles(const char *netxml, const char *updatexml,
                          unsigned int command, unsigned int section,
                          int parentIndex, bool expectFailure)
 {
-    char *netXmlData = NULL;
     char *updateXmlData = NULL;
-    char *outXmlData = NULL;
     char *actual = NULL;
     int ret = -1;
     virNetworkDefPtr def = NULL;
 
-    if (virtTestLoadFile(netxml, &netXmlData) < 0)
-        goto error;
     if (virtTestLoadFile(updatexml, &updateXmlData) < 0)
         goto error;
 
-    if (!(def = virNetworkDefParseString(netXmlData)))
+    if (!(def = virNetworkDefParseFile(netxml)))
         goto fail;
 
     if (virNetworkDefUpdateSection(def, command, section, parentIndex,
@@ -45,13 +41,8 @@ testCompareXMLToXMLFiles(const char *netxml, const char *updatexml,
         goto fail;
 
     if (!expectFailure) {
-        if (virtTestLoadFile(outxml, &outXmlData) < 0)
+        if (virtTestCompareToFile(actual, outxml) < 0)
             goto error;
-
-        if (STRNEQ(outXmlData, actual)) {
-            virtTestDifference(stderr, outXmlData, actual);
-            goto fail;
-        }
     }
 
     ret = 0;
@@ -67,9 +58,7 @@ testCompareXMLToXMLFiles(const char *netxml, const char *updatexml,
         }
     }
  error:
-    VIR_FREE(netXmlData);
     VIR_FREE(updateXmlData);
-    VIR_FREE(outXmlData);
     VIR_FREE(actual);
     virNetworkDefFree(def);
     return ret;

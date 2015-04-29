@@ -14,36 +14,23 @@ static bhyveConn driver;
 static int
 testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
 {
-    char *inXmlData = NULL;
-    char *outXmlData = NULL;
     char *actual = NULL;
     virDomainDefPtr def = NULL;
     int ret = -1;
 
-    if (virtTestLoadFile(inxml, &inXmlData) < 0)
-        goto fail;
-
-    if (virtTestLoadFile(outxml, &outXmlData) < 0)
-        goto fail;
-
-    if (!(def = virDomainDefParseString(inXmlData, driver.caps, driver.xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_BHYVE,
-                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+    if (!(def = virDomainDefParseFile(inxml, driver.caps, driver.xmlopt,
+                                      VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto fail;
 
     if (!(actual = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_INACTIVE)))
         goto fail;
 
-    if (STRNEQ(outXmlData, actual)) {
-        virtTestDifference(stderr, outXmlData, actual);
+    if (virtTestCompareToFile(actual, outxml) < 0)
         goto fail;
-    }
 
     ret = 0;
 
  fail:
-    VIR_FREE(inXmlData);
-    VIR_FREE(outXmlData);
     VIR_FREE(actual);
     virDomainDefFree(def);
     return ret;

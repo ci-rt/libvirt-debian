@@ -707,7 +707,7 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
 static int
 get_definition(vahControl * ctl, const char *xmlStr)
 {
-    int rc = -1;
+    int rc = -1, ostype;
     virCapsGuestPtr guest;  /* this is freed when caps is freed */
 
     /*
@@ -727,8 +727,13 @@ get_definition(vahControl * ctl, const char *xmlStr)
         goto exit;
     }
 
+    if ((ostype = virDomainOSTypeFromString(ctl->hvm)) < 0) {
+        vah_error(ctl, 0, _("unknown OS type"));
+        goto exit;
+    }
+
     if ((guest = virCapabilitiesAddGuest(ctl->caps,
-                                         ctl->hvm,
+                                         ostype,
                                          ctl->arch,
                                          NULL,
                                          NULL,
@@ -740,7 +745,6 @@ get_definition(vahControl * ctl, const char *xmlStr)
 
     ctl->def = virDomainDefParseString(xmlStr,
                                        ctl->caps, ctl->xmlopt,
-                                       -1,
                                        VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (ctl->def == NULL) {
         vah_error(ctl, 0, _("could not parse XML"));
@@ -998,8 +1002,10 @@ get_files(vahControl * ctl)
             (ctl->def->channels[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY ||
              ctl->def->channels[i]->source.type == VIR_DOMAIN_CHR_TYPE_DEV ||
              ctl->def->channels[i]->source.type == VIR_DOMAIN_CHR_TYPE_FILE ||
+             ctl->def->channels[i]->source.type == VIR_DOMAIN_CHR_TYPE_UNIX ||
              ctl->def->channels[i]->source.type == VIR_DOMAIN_CHR_TYPE_PIPE) &&
-            ctl->def->channels[i]->source.data.file.path)
+            ctl->def->channels[i]->source.data.file.path &&
+            ctl->def->channels[i]->source.data.file.path[0] != '\0')
             if (vah_add_file_chardev(&buf,
                                      ctl->def->channels[i]->source.data.file.path,
                                      "rw",

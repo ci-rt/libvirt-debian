@@ -96,6 +96,7 @@ extern bool virConnectNumOfStoragePoolsCheckACL(virConnectPtr conn, virStoragePo
 extern int virConnectOpenEnsureACL(virConnectPtr conn);
 extern int virConnectSupportsFeatureEnsureACL(virConnectPtr conn);
 extern int virDomainAbortJobEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainAddIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainAttachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainAttachDeviceFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainBlockCommitEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -117,6 +118,7 @@ extern int virDomainCreateXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domai
 extern int virDomainCreateXMLWithFilesEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDefineXMLFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainDelIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainDestroyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDestroyFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDetachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

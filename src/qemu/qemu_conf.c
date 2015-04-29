@@ -192,21 +192,23 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
                       "%s/run/libvirt/qemu", LOCALSTATEDIR) < 0)
             goto error;
 
-        if (virAsprintf(&cfg->libDir,
-                      "%s/lib/libvirt/qemu", LOCALSTATEDIR) < 0)
-            goto error;
-
         if (virAsprintf(&cfg->cacheDir,
                       "%s/cache/libvirt/qemu", LOCALSTATEDIR) < 0)
             goto error;
-        if (virAsprintf(&cfg->saveDir,
-                      "%s/lib/libvirt/qemu/save", LOCALSTATEDIR) < 0)
+
+        if (virAsprintf(&cfg->libDir,
+                      "%s/lib/libvirt/qemu", LOCALSTATEDIR) < 0)
             goto error;
-        if (virAsprintf(&cfg->snapshotDir,
-                        "%s/lib/libvirt/qemu/snapshot", LOCALSTATEDIR) < 0)
+        if (virAsprintf(&cfg->saveDir, "%s/save", cfg->libDir) < 0)
             goto error;
-        if (virAsprintf(&cfg->autoDumpPath,
-                        "%s/lib/libvirt/qemu/dump", LOCALSTATEDIR) < 0)
+        if (virAsprintf(&cfg->snapshotDir, "%s/snapshot", cfg->libDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->autoDumpPath, "%s/dump", cfg->libDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->channelTargetDir,
+                        "%s/channel/target", cfg->libDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->nvramDir, "%s/nvram", cfg->libDir) < 0)
             goto error;
     } else {
         char *rundir;
@@ -246,6 +248,12 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         if (virAsprintf(&cfg->snapshotDir, "%s/qemu/snapshot", cfg->configBaseDir) < 0)
             goto error;
         if (virAsprintf(&cfg->autoDumpPath, "%s/qemu/dump", cfg->configBaseDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->channelTargetDir,
+                        "%s/qemu/channel/target", cfg->configBaseDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->nvramDir,
+                        "%s/qemu/nvram", cfg->configBaseDir) < 0)
             goto error;
     }
 
@@ -345,6 +353,8 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->cacheDir);
     VIR_FREE(cfg->saveDir);
     VIR_FREE(cfg->snapshotDir);
+    VIR_FREE(cfg->channelTargetDir);
+    VIR_FREE(cfg->nvramDir);
 
     VIR_FREE(cfg->vncTLSx509certdir);
     VIR_FREE(cfg->vncListen);
@@ -963,6 +973,13 @@ virCapsPtr virQEMUDriverGetCapabilities(virQEMUDriverPtr driver,
         driver->caps = caps;
     } else {
         qemuDriverLock(driver);
+    }
+
+    if (driver->caps->nguests == 0 && !refresh) {
+        VIR_DEBUG("Capabilities didn't detect any guests. Forcing a "
+            "refresh.");
+        qemuDriverUnlock(driver);
+        return virQEMUDriverGetCapabilities(driver, true);
     }
 
     ret = virObjectRef(driver->caps);

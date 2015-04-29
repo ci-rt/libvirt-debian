@@ -19,8 +19,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *ldcmdline,
                                      const char *dmcmdline)
 {
-    char *expectargv = NULL, *expectld = NULL, *expectdm = NULL;
-    int len;
     char *actualargv = NULL, *actualld = NULL, *actualdm = NULL;
     virDomainDefPtr vmdef = NULL;
     virDomainObj vm;
@@ -32,7 +30,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
         goto out;
 
     if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_BHYVE,
                                         VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto out;
 
@@ -55,51 +52,20 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(actualld = virCommandToString(ldcmd)))
         goto out;
 
-    len = virtTestLoadFile(cmdline, &expectargv);
-    if (len < 0)
+    if (virtTestCompareToFile(actualargv, cmdline) < 0)
         goto out;
 
-    if (len && expectargv[len - 1] == '\n')
-        expectargv[len - 1] = '\0';
-
-    len = virtTestLoadFile(ldcmdline, &expectld);
-    if (len < 0)
+    if (virtTestCompareToFile(actualld, ldcmdline) < 0)
         goto out;
 
-    if (len && expectld[len - 1] == '\n')
-        expectld[len - 1] = '\0';
-
-    len = virFileReadAllQuiet(dmcmdline, 1000, &expectdm);
-    if (len < 0) {
-        if (actualdm != NULL) {
-            virtTestDifference(stderr, "", actualdm);
+    if (virFileExists(dmcmdline) || actualdm) {
+        if (virtTestCompareToFile(actualdm, dmcmdline) < 0)
             goto out;
-        }
-    } else if (len && expectdm[len - 1] == '\n') {
-        expectdm[len - 1] = '\0';
-    }
-
-    if (STRNEQ(expectargv, actualargv)) {
-        virtTestDifference(stderr, expectargv, actualargv);
-        goto out;
-    }
-
-    if (STRNEQ(expectld, actualld)) {
-        virtTestDifference(stderr, expectld, actualld);
-        goto out;
-    }
-
-    if (expectdm && STRNEQ(expectdm, actualdm)) {
-        virtTestDifference(stderr, expectdm, actualdm);
-        goto out;
     }
 
     ret = 0;
 
  out:
-    VIR_FREE(expectargv);
-    VIR_FREE(expectld);
-    VIR_FREE(expectdm);
     VIR_FREE(actualargv);
     VIR_FREE(actualld);
     VIR_FREE(actualdm);

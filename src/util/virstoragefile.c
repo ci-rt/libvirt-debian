@@ -1338,6 +1338,15 @@ virStorageFileChainLookup(virStorageSourcePtr chain,
             chain = chain->backingStore;
             i++;
         }
+
+        if (idx && idx < i) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("requested backing store index %u is above '%s' "
+                             "in chain for '%s'"),
+                           idx, NULLSTR(startFrom->path), NULLSTR(start));
+            return NULL;
+        }
+
         *parent = startFrom;
     }
 
@@ -1390,21 +1399,23 @@ virStorageFileChainLookup(virStorageSourcePtr chain,
  error:
     if (idx) {
         virReportError(VIR_ERR_INVALID_ARG,
-                       _("could not find backing store %u in chain for '%s'"),
-                       idx, start);
+                       _("could not find backing store index %u in chain "
+                         "for '%s'"),
+                       idx, NULLSTR(start));
     } else if (name) {
         if (startFrom)
             virReportError(VIR_ERR_INVALID_ARG,
                            _("could not find image '%s' beneath '%s' in "
-                             "chain for '%s'"), name, startFrom->path, start);
+                             "chain for '%s'"), name, NULLSTR(startFrom->path),
+                           NULLSTR(start));
         else
             virReportError(VIR_ERR_INVALID_ARG,
                            _("could not find image '%s' in chain for '%s'"),
-                           name, start);
+                           name, NULLSTR(start));
     } else {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("could not find base image in chain for '%s'"),
-                       start);
+                       NULLSTR(start));
     }
     *parent = NULL;
     return NULL;
@@ -2027,6 +2038,8 @@ virStorageSourceClear(virStorageSourcePtr def)
 
     VIR_FREE(def->path);
     VIR_FREE(def->volume);
+    VIR_FREE(def->snapshot);
+    VIR_FREE(def->configFile);
     virStorageSourcePoolDefFree(def->srcpool);
     VIR_FREE(def->driverName);
     virBitmapFree(def->features);
@@ -2871,5 +2884,34 @@ virStorageFileGetRelativeBackingPath(virStorageSourcePtr top,
  cleanup:
     VIR_FREE(path);
     VIR_FREE(tmp);
+    return ret;
+}
+
+
+/*
+ * virStorageFileCheckCompat
+ */
+int
+virStorageFileCheckCompat(const char *compat)
+{
+    char **version;
+    unsigned int result;
+    int ret = -1;
+
+    if (!compat)
+        return 0;
+
+    version = virStringSplit(compat, ".", 2);
+    if (!version || !version[1] ||
+        virStrToLong_ui(version[0], NULL, 10, &result) < 0 ||
+        virStrToLong_ui(version[1], NULL, 10, &result) < 0) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("forbidden characters in 'compat' attribute"));
+        goto cleanup;
+    }
+    ret = 0;
+
+ cleanup:
+    virStringFreeList(version);
     return ret;
 }

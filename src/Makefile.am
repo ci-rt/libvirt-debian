@@ -20,7 +20,7 @@
 abs_builddir = $(shell pwd)
 abs_topbuilddir = $(shell cd .. && pwd)
 abs_srcdir = $(shell cd $(srcdir) && pwd)
-abs_topsrcdir = $(shell cd $(srcdir)/.. && pwd)
+abs_topsrcdir = $(shell cd $(top_srcdir) && pwd)
 
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
@@ -1222,7 +1222,15 @@ libvirt_driver_libxl_impl_la_CFLAGS = 		\
 libvirt_driver_libxl_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_libxl_impl_la_LIBADD = $(LIBXL_LIBS) libvirt_xenconfig.la
 libvirt_driver_libxl_impl_la_SOURCES = $(LIBXL_DRIVER_SOURCES)
+
+conf_DATA += libxl/libxl.conf
+augeas_DATA += libxl/libvirtd_libxl.aug
+augeastest_DATA += test_libvirtd_libxl.aug
+CLEANFILES += test_libvirtd_libxl.aug
+
 endif WITH_LIBXL
+EXTRA_DIST += libxl/libxl.conf libxl/libvirtd_libxl.aug \
+		libxl/test_libvirtd_libxl.aug.in
 
 if WITH_QEMU
 noinst_LTLIBRARIES += libvirt_driver_qemu_impl.la
@@ -1383,8 +1391,8 @@ noinst_LTLIBRARIES += libvirt_driver_parallels.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_parallels.la
 libvirt_driver_parallels_la_CFLAGS = \
 		-I$(srcdir)/conf $(AM_CFLAGS) \
-		$(PARALLELS_SDK_CFLAGS)
-libvirt_driver_parallels_la_LIBADD = $(PARALLELS_SDK_LIBS)
+		$(PARALLELS_SDK_CFLAGS) $(LIBNL_CFLAGS)
+libvirt_driver_parallels_la_LIBADD = $(PARALLELS_SDK_LIBS) $(LIBNL_LIBS)
 libvirt_driver_parallels_la_SOURCES = $(PARALLELS_DRIVER_SOURCES)
 endif WITH_PARALLELS
 
@@ -1785,10 +1793,11 @@ check-local: check-augeas
 	check-augeas-lxc \
 	check-augeas-sanlock \
 	check-augeas-lockd \
+	check-augeas-libxl \
 	$(NULL)
 
 check-augeas: check-augeas-qemu check-augeas-lxc check-augeas-sanlock \
-	check-augeas-lockd check-augeas-virtlockd
+	check-augeas-lockd check-augeas-virtlockd check-augeas-libxl
 
 AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
 EXTRA_DIST += $(top_srcdir)/build-aux/augeas-gentest.pl
@@ -1857,6 +1866,19 @@ check-augeas-virtlockd: test_virtlockd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
 	    '$(AUGPARSE)' -I $(srcdir)/locking test_virtlockd.aug; \
 	fi
+
+if WITH_LIBXL
+test_libvirtd_libxl.aug: libxl/test_libvirtd_libxl.aug.in \
+		$(srcdir)/libxl/libxl.conf $(AUG_GENTEST)
+	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/libxl/libxl.conf $< $@
+
+check-augeas-libxl: test_libvirtd_libxl.aug
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+	    '$(AUGPARSE)' -I $(srcdir)/libxl test_libvirtd_libxl.aug; \
+	fi
+else ! WITH_LIBXL
+check-augeas-libxl:
+endif ! WITH_LIBXL
 
 #
 # Build our version script.  This is composed of three parts:
@@ -2683,8 +2705,6 @@ if WITH_SANLOCK
 endif WITH_SANLOCK
 if WITH_QEMU
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
-	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu/channel/target"
-	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu/nvram"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/log/libvirt/qemu"

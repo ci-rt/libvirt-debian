@@ -1262,6 +1262,20 @@ struct remote_domain_pin_iothread_args {
 };
 typedef struct remote_domain_pin_iothread_args remote_domain_pin_iothread_args;
 
+struct remote_domain_add_iothread_args {
+        remote_nonnull_domain dom;
+        u_int iothread_id;
+        u_int flags;
+};
+typedef struct remote_domain_add_iothread_args remote_domain_add_iothread_args;
+
+struct remote_domain_del_iothread_args {
+        remote_nonnull_domain dom;
+        u_int iothread_id;
+        u_int flags;
+};
+typedef struct remote_domain_del_iothread_args remote_domain_del_iothread_args;
+
 struct remote_domain_get_security_label_args {
         remote_nonnull_domain dom;
 };
@@ -3644,6 +3658,13 @@ struct remote_domain_event_callback_tunable_msg {
 };
 typedef struct remote_domain_event_callback_tunable_msg remote_domain_event_callback_tunable_msg;
 
+struct remote_domain_event_callback_device_added_msg {
+        int callbackID;
+        remote_nonnull_domain dom;
+        remote_nonnull_string devAlias;
+};
+typedef struct remote_domain_event_callback_device_added_msg remote_domain_event_callback_device_added_msg;
+
 struct remote_connect_get_cpu_model_names_args {
         remote_nonnull_string arch;
         int need_results;
@@ -4232,6 +4253,9 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_GET_IOTHREAD_INFO = 351,
         REMOTE_PROC_DOMAIN_PIN_IOTHREAD = 352,
         REMOTE_PROC_DOMAIN_INTERFACE_ADDRESSES = 353,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_ADDED = 354,
+        REMOTE_PROC_DOMAIN_ADD_IOTHREAD = 355,
+        REMOTE_PROC_DOMAIN_DEL_IOTHREAD = 356,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4413,6 +4437,8 @@ extern  bool_t xdr_remote_domain_iothread_info (XDR *, remote_domain_iothread_in
 extern  bool_t xdr_remote_domain_get_iothread_info_args (XDR *, remote_domain_get_iothread_info_args*);
 extern  bool_t xdr_remote_domain_get_iothread_info_ret (XDR *, remote_domain_get_iothread_info_ret*);
 extern  bool_t xdr_remote_domain_pin_iothread_args (XDR *, remote_domain_pin_iothread_args*);
+extern  bool_t xdr_remote_domain_add_iothread_args (XDR *, remote_domain_add_iothread_args*);
+extern  bool_t xdr_remote_domain_del_iothread_args (XDR *, remote_domain_del_iothread_args*);
 extern  bool_t xdr_remote_domain_get_security_label_args (XDR *, remote_domain_get_security_label_args*);
 extern  bool_t xdr_remote_domain_get_security_label_ret (XDR *, remote_domain_get_security_label_ret*);
 extern  bool_t xdr_remote_domain_get_security_label_list_args (XDR *, remote_domain_get_security_label_list_args*);
@@ -4777,6 +4803,7 @@ extern  bool_t xdr_remote_domain_event_device_removed_msg (XDR *, remote_domain_
 extern  bool_t xdr_remote_domain_event_callback_device_removed_msg (XDR *, remote_domain_event_callback_device_removed_msg*);
 extern  bool_t xdr_remote_domain_event_block_job_2_msg (XDR *, remote_domain_event_block_job_2_msg*);
 extern  bool_t xdr_remote_domain_event_callback_tunable_msg (XDR *, remote_domain_event_callback_tunable_msg*);
+extern  bool_t xdr_remote_domain_event_callback_device_added_msg (XDR *, remote_domain_event_callback_device_added_msg*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_args (XDR *, remote_connect_get_cpu_model_names_args*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_ret (XDR *, remote_connect_get_cpu_model_names_ret*);
 extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote_connect_network_event_register_any_args*);
@@ -4983,6 +5010,8 @@ extern bool_t xdr_remote_domain_iothread_info ();
 extern bool_t xdr_remote_domain_get_iothread_info_args ();
 extern bool_t xdr_remote_domain_get_iothread_info_ret ();
 extern bool_t xdr_remote_domain_pin_iothread_args ();
+extern bool_t xdr_remote_domain_add_iothread_args ();
+extern bool_t xdr_remote_domain_del_iothread_args ();
 extern bool_t xdr_remote_domain_get_security_label_args ();
 extern bool_t xdr_remote_domain_get_security_label_ret ();
 extern bool_t xdr_remote_domain_get_security_label_list_args ();
@@ -5347,6 +5376,7 @@ extern bool_t xdr_remote_domain_event_device_removed_msg ();
 extern bool_t xdr_remote_domain_event_callback_device_removed_msg ();
 extern bool_t xdr_remote_domain_event_block_job_2_msg ();
 extern bool_t xdr_remote_domain_event_callback_tunable_msg ();
+extern bool_t xdr_remote_domain_event_callback_device_added_msg ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_args ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_ret ();
 extern bool_t xdr_remote_connect_network_event_register_any_args ();

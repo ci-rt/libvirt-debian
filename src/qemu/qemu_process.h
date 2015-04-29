@@ -99,8 +99,6 @@ int qemuProcessAutoDestroyRemove(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm);
 bool qemuProcessAutoDestroyActive(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm);
-virBitmapPtr qemuPrepareCpumap(virQEMUDriverPtr driver,
-                               virBitmapPtr nodemask);
 
 int qemuProcessReadLog(int fd, char *buf, int buflen, int off, bool skipchar);
 
@@ -114,5 +112,7 @@ int qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
 
 virDomainDiskDefPtr qemuProcessFindDomainDiskByAlias(virDomainObjPtr vm,
                                                      const char *alias);
+
+int qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm);
 
 #endif /* __QEMU_PROCESS_H__ */

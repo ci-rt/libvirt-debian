@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-03-27" "libvirt-1.2.14" "Virtualization Support"
+.TH VIRSH 1 "2015-04-28" "libvirt-1.2.15" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1067,10 +1067,10 @@ unlimited, but more likely would overflow; it is safer to use 0 for that
 purpose.  Specifying \fIgranularity\fR allows fine-tuning of the granularity that
 will be copied when a dirty region is detected; larger values trigger less
 I/O overhead but may end up copying more data overall (the default value is
-usually correct); this value must be a power of two.  Specifying \fIbuf-size\fR
-will control how much data can be simultaneously in-flight during the copy;
-larger values use more memory but may allow faster completion (the default
-value is usually correct).
+usually correct); hypervisors may restrict this to be a power of two or fall
+within a certain range. Specifying \fIbuf-size\fR will control how much data can
+be simultaneously in-flight during the copy; larger values use more memory but
+may allow faster completion (the default value is usually correct).
 .IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]] [\fI\-\-keep\-relative\fR]" 4
 .IX Item "blockpull domain path [bandwidth] [base] [--wait [--verbose] [--timeout seconds] [--async]] [--keep-relative]"
 Populate a disk from its backing image chain. By default, this command
@@ -1402,6 +1402,29 @@ If no flag is specified, behavior is different depending on hypervisor.
 .Sp
 \&\fBNote\fR: The expression is sequentially evaluated, so \*(L"0\-15,^8\*(R" is
 identical to \*(L"9\-14,0\-7,15\*(R" but not identical to \*(L"^8,0\-15\*(R".
+.IP "\fBiothreadadd\fR \fIdomain\fR \fIiothread_id\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "iothreadadd domain iothread_id [[--config] [--live] | [--current]]"
+Add a new IOThread to the domain using the specified \fIiothread_id\fR.
+If the \fIiothread_id\fR already exists, the command will fail. The
+\&\fIiothread_id\fR must be greater than zero.
+.Sp
+If \fI\-\-live\fR is specified, affect a running guest. If the guest is not
+running an error is returned.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified or \fI\-\-live\fR and \fI\-\-config\fR are not specified,
+affect the current guest state.
+.IP "\fBiothreaddel\fR \fIdomain\fR \fIiothread_id\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "iothreaddel domain iothread_id [[--config] [--live] | [--current]]"
+Delete an IOThread from the domain using the specified \fIiothread_id\fR.
+If an IOThread is currently assigned to a disk resource such as via the
+\&\fBattach-disk\fR command, then the attempt to remove the IOThread will fail.
+If the \fIiothread_id\fR does not exist an error will occur.
+.Sp
+If \fI\-\-live\fR is specified, affect a running guest. If the guest is not
+running an error is returned.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified or \fI\-\-live\fR and \fI\-\-config\fR are not specified,
+affect the current guest state.
 .IP "\fBmanagedsave\fR \fIdomain\fR [\fI\-\-bypass\-cache\fR] [{\fI\-\-running\fR | \fI\-\-paused\fR}] [\fI\-\-verbose\fR]" 4
 .IX Item "managedsave domain [--bypass-cache] [{--running | --paused}] [--verbose]"
 Save and destroy (stop) a running domain, so it can be restarted from the same
@@ -2353,8 +2376,8 @@ on the hypervisor driver.
 For compatibility purposes, \fI\-\-persistent\fR behaves like \fI\-\-config\fR for
 an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain.
 Likewise, \fI\-\-shareable\fR is an alias for \fI\-\-mode shareable\fR.
-.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-config\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
-.IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--config] [--inbound average,peak,burst] [--outbound average,peak,burst]"
+.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
+.IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--inbound average,peak,burst] [--outbound average,peak,burst]"
 Attach a new network interface to the domain.  \fItype\fR can be
 \&\fInetwork\fR to indicate connection via a libvirt virtual network, or
 \&\fIbridge\fR to indicate connection via a bridge device on the host, or
@@ -3032,7 +3055,7 @@ Start the storage \fIpool\fR, which is previously defined but inactive.
 times in order to have all the volumes detected (see \fBpool-refresh\fR).
 This is because the corresponding volume devices may not be present in
 the host's filesystem during the initial pool startup or the current
-refresh attempt. The number of refresh retries is dependant upon the
+refresh attempt. The number of refresh retries is dependent upon the
 network connection and the time the host takes to export the
 corresponding devices.
 .IP "\fBpool-undefine\fR \fIpool-or-uuid\fR" 4

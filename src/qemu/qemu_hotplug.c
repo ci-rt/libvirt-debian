@@ -437,6 +437,7 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
     char *devstr = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     bool releaseaddr = false;
+    bool addedToAddrSet = false;
 
     if (virDomainControllerFind(vm->def, controller->type, controller->idx) >= 0) {
         virReportError(VIR_ERR_OPERATION_FAILED,
@@ -475,6 +476,12 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
+        if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL &&
+            virDomainVirtioSerialAddrSetAddController(priv->vioserialaddrs,
+                                                      controller) < 0)
+            goto cleanup;
+        addedToAddrSet = true;
+
         if (!(devstr = qemuBuildControllerDevStr(vm->def, controller, priv->qemuCaps, NULL)))
             goto cleanup;
     }
@@ -503,6 +510,9 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
     }
 
  cleanup:
+    if (ret != 0 && addedToAddrSet)
+        virDomainVirtioSerialAddrSetRemoveController(priv->vioserialaddrs,
+                                                     controller);
     if (ret != 0 && releaseaddr)
         qemuDomainReleaseDeviceAddress(vm, &controller->info, NULL);
 
@@ -1531,6 +1541,8 @@ int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
     virDomainDefPtr vmdef = vm->def;
     char *devstr = NULL;
     char *charAlias = NULL;
+    bool need_release = false;
+    bool allowZero = false;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
@@ -1540,6 +1552,17 @@ int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
 
     if (qemuAssignDeviceChrAlias(vmdef, chr, -1) < 0)
         goto cleanup;
+
+    if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+        chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO)
+        allowZero = true;
+
+    if (virDomainVirtioSerialAddrAutoAssign(NULL,
+                                            priv->vioserialaddrs,
+                                            &chr->info,
+                                            allowZero) < 0)
+        goto cleanup;
+    need_release = true;
 
     if (qemuBuildChrDeviceStr(&devstr, vm->def, chr, priv->qemuCaps) < 0)
         goto cleanup;
@@ -1572,6 +1595,8 @@ int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
  cleanup:
     if (ret < 0 && virDomainObjIsActive(vm))
         qemuDomainChrInsertPreAllocCleanup(vm->def, chr);
+    if (ret < 0 && need_release)
+        virDomainVirtioSerialAddrRelease(priv->vioserialaddrs, &chr->info);
     VIR_FREE(charAlias);
     VIR_FREE(devstr);
     return ret;
@@ -1701,6 +1726,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     char *objalias = NULL;
     const char *backendType;
     virJSONValuePtr props = NULL;
+    virObjectEventPtr event;
     int id;
     int ret = -1;
 
@@ -1743,6 +1769,10 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
         mem = NULL;
         goto cleanup;
     }
+
+    event = virDomainEventDeviceAddedNewFromObj(vm, objalias);
+    if (event)
+        qemuDomainEventQueue(driver, event);
 
     /* mem is consumed by vm->def */
     mem = NULL;
@@ -3906,11 +3936,9 @@ qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
         VIR_WARN("cannot clear bandwidth setting for device : %s",
                  detach->ifname);
 
-    /* deactivate the tap/macvtap device on the host (currently this
-     * isn't necessary, as everything done in
-     * qemuInterfaceStopDevice() is made meaningless when the device
-     * is deleted anyway, but in the future it may be important, and
-     * doesn't hurt anything for now)
+    /* deactivate the tap/macvtap device on the host, which could also
+     * affect the parent device (e.g. macvtap passthrough mode sets
+     * the parent device offline)
      */
     ignore_value(qemuInterfaceStopDevice(detach));
 
@@ -4110,10 +4138,13 @@ int qemuDomainDetachChrDevice(virQEMUDriverPtr driver,
         goto cleanup;
 
     rc = qemuDomainWaitForDeviceRemoval(vm);
-    if (rc == 0 || rc == 1)
+    if (rc == 0 || rc == 1) {
+        virDomainVirtioSerialAddrRelease(priv->vioserialaddrs, &tmpChr->info);
         ret = qemuDomainRemoveChrDevice(driver, vm, tmpChr);
-    else
+    } else {
         ret = 0;
+    }
+
 
  cleanup:
     qemuDomainResetDeviceRemoval(vm);

@@ -342,13 +342,13 @@ phypCapsInit(void)
     }
 
     if ((guest = virCapabilitiesAddGuest(caps,
-                                         "linux",
+                                         VIR_DOMAIN_OSTYPE_LINUX,
                                          caps->host.arch,
                                          NULL, NULL, 0, NULL)) == NULL)
         goto no_memory;
 
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      "phyp", NULL, NULL, 0, NULL) == NULL)
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_PHYP,
+                                      NULL, NULL, 0, NULL) == NULL)
         goto no_memory;
 
     return caps;
@@ -1720,8 +1720,7 @@ phypDomainAttachDevice(virDomainPtr domain, const char *xml)
     if (domain_name == NULL)
         goto cleanup;
 
-    if (VIR_STRDUP(def->os.type, "aix") < 0)
-        goto cleanup;
+    def->os.type = VIR_DOMAIN_OSTYPE_AIX;
 
     dev = virDomainDeviceDefParse(xml, def, phyp_driver->caps, NULL,
                                   VIR_DOMAIN_DEF_PARSE_INACTIVE);
@@ -3569,7 +3568,6 @@ phypDomainCreateXML(virConnectPtr conn,
 
     if (!(def = virDomainDefParseString(xml, phyp_driver->caps,
                                         phyp_driver->xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_PHYP,
                                         parse_flags)))
         goto err;
 

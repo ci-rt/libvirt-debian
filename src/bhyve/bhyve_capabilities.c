@@ -86,14 +86,14 @@ virBhyveCapsBuild(void)
                                    false, false)) == NULL)
         return NULL;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm",
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
                                          VIR_ARCH_X86_64,
                                          "bhyve",
                                          NULL, 0, NULL)) == NULL)
         goto error;
 
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      "bhyve", NULL, NULL, 0, NULL) == NULL)
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_BHYVE,
+                                      NULL, NULL, 0, NULL) == NULL)
         goto error;
 
     if (virBhyveCapsInitCPU(caps, virArchFromHost()) < 0)

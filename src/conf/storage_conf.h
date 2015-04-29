@@ -293,6 +293,7 @@ struct _virStorageDriverState {
 
     char *configDir;
     char *autostartDir;
+    char *stateDir;
     bool privileged;
 };
 
@@ -317,6 +318,13 @@ int virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
                                  const char *configDir,
                                  const char *autostartDir);
 
+int virStoragePoolLoadAllState(virStoragePoolObjListPtr pools,
+                               const char *stateDir);
+
+virStoragePoolObjPtr
+virStoragePoolLoadState(virStoragePoolObjListPtr pools,
+                        const char *stateDir,
+                        const char *name);
 virStoragePoolObjPtr
 virStoragePoolObjFindByUUID(virStoragePoolObjListPtr pools,
                             const unsigned char *uuid);
@@ -371,7 +379,9 @@ virStoragePoolObjPtr
 virStoragePoolObjAssignDef(virStoragePoolObjListPtr pools,
                            virStoragePoolDefPtr def);
 
-int virStoragePoolSaveConfig(const char *configDir,
+int virStoragePoolSaveState(const char *stateFile,
+                            virStoragePoolDefPtr def);
+int virStoragePoolSaveConfig(const char *configFile,
                              virStoragePoolDefPtr def);
 int virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
                              virStoragePoolObjPtr pool,

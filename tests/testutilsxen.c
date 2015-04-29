@@ -30,14 +30,14 @@ virCapsPtr testXenCapsInit(void)
     if ((machines = virCapabilitiesAllocMachines(x86_machines, nmachines)) == NULL)
         goto cleanup;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm", VIR_ARCH_I686,
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_I686,
                                          "/usr/lib/xen/bin/qemu-dm", NULL,
                                          nmachines, machines)) == NULL)
         goto cleanup;
     machines = NULL;
 
     if (virCapabilitiesAddGuestDomain(guest,
-                                      "xen",
+                                      VIR_DOMAIN_VIRT_XEN,
                                       NULL,
                                       NULL,
                                       0,
@@ -48,14 +48,14 @@ virCapsPtr testXenCapsInit(void)
     if ((machines = virCapabilitiesAllocMachines(xen_machines, nmachines)) == NULL)
         goto cleanup;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "xen", VIR_ARCH_I686,
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_XEN, VIR_ARCH_I686,
                                          "/usr/lib/xen/bin/qemu-dm", NULL,
                                          nmachines, machines)) == NULL)
         goto cleanup;
     machines = NULL;
 
     if (virCapabilitiesAddGuestDomain(guest,
-                                      "xen",
+                                      VIR_DOMAIN_VIRT_XEN,
                                       NULL,
                                       NULL,
                                       0,
@@ -91,25 +91,29 @@ testXLInitCaps(void)
     nmachines = ARRAY_CARDINALITY(x86_machines);
     if ((machines = virCapabilitiesAllocMachines(x86_machines, nmachines)) == NULL)
         goto cleanup;
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm", VIR_ARCH_X86_64,
-                                         "/usr/lib/xen/bin/qemu-dm", NULL,
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
+                                         VIR_ARCH_X86_64,
+                                         "/usr/lib/xen/bin/qemu-system-i386",
+                                         "/usr/lib/xen/boot/hvmloader",
                                          nmachines, machines)) == NULL)
         goto cleanup;
     machines = NULL;
-    if (virCapabilitiesAddGuestDomain(guest, "xen", NULL,
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_XEN, NULL,
                                       NULL, 0, NULL) == NULL)
         goto cleanup;
     nmachines = ARRAY_CARDINALITY(xen_machines);
     if ((machines = virCapabilitiesAllocMachines(xen_machines, nmachines)) == NULL)
         goto cleanup;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "xen", VIR_ARCH_X86_64,
-                                        "/usr/lib/xen/bin/qemu-dm", NULL,
-                                        nmachines, machines)) == NULL)
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_XEN,
+                                         VIR_ARCH_X86_64,
+                                         "/usr/lib/xen/bin/qemu-system-i386",
+                                         NULL,
+                                         nmachines, machines)) == NULL)
         goto cleanup;
     machines = NULL;
 
-    if (virCapabilitiesAddGuestDomain(guest, "xen", NULL,
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_XEN, NULL,
                                       NULL, 0, NULL) == NULL)
         goto cleanup;
     return caps;

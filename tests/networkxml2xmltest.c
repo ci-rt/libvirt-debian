@@ -20,33 +20,22 @@ static int
 testCompareXMLToXMLFiles(const char *inxml, const char *outxml,
                          unsigned int flags)
 {
-    char *inXmlData = NULL;
-    char *outXmlData = NULL;
     char *actual = NULL;
     int ret = -1;
     virNetworkDefPtr dev = NULL;
 
-    if (virtTestLoadFile(inxml, &inXmlData) < 0)
-        goto fail;
-    if (virtTestLoadFile(outxml, &outXmlData) < 0)
-        goto fail;
-
-    if (!(dev = virNetworkDefParseString(inXmlData)))
+    if (!(dev = virNetworkDefParseFile(inxml)))
         goto fail;
 
     if (!(actual = virNetworkDefFormat(dev, flags)))
         goto fail;
 
-    if (STRNEQ(outXmlData, actual)) {
-        virtTestDifference(stderr, outXmlData, actual);
+    if (virtTestCompareToFile(actual, outxml) < 0)
         goto fail;
-    }
 
     ret = 0;
 
  fail:
-    VIR_FREE(inXmlData);
-    VIR_FREE(outXmlData);
     VIR_FREE(actual);
     virNetworkDefFree(dev);
     return ret;

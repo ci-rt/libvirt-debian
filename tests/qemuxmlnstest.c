@@ -34,8 +34,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      bool json,
                                      bool expectError)
 {
-    char *expectargv = NULL;
-    int len;
     char *actualargv = NULL;
     int ret = -1;
     virDomainDefPtr vmdef = NULL;
@@ -48,19 +46,12 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(conn = virGetConnect()))
         goto fail;
 
-    len = virtTestLoadFile(cmdline, &expectargv);
-    if (len < 0)
-        goto fail;
-    if (len && expectargv[len - 1] == '\n')
-        expectargv[len - 1] = '\0';
-
     if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
-                                        QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto fail;
 
     if (!virDomainDefCheckABIStability(vmdef, vmdef)) {
-        fprintf(stderr, "ABI stability check failed on %s", xml);
+        VIR_TEST_DEBUG("ABI stability check failed on %s", xml);
         goto fail;
     }
 
@@ -122,8 +113,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     if (!virtTestOOMActive()) {
         if (!!virGetLastError() != expectError) {
-            if (virTestGetDebug() && (log = virtTestLogContentAndReset()))
-                fprintf(stderr, "\n%s", log);
+            if ((log = virtTestLogContentAndReset()))
+                VIR_TEST_DEBUG("\n%s", log);
             goto fail;
         }
 
@@ -145,17 +136,14 @@ static int testCompareXMLToArgvFiles(const char *xml,
         memmove(start_skip, end_skip, strlen(end_skip) + 1);
     }
 
-    if (STRNEQ(expectargv, actualargv)) {
-        virtTestDifference(stderr, expectargv, actualargv);
+    if (virtTestCompareToFile(actualargv, cmdline) < 0)
         goto fail;
-    }
 
     ret = 0;
 
  fail:
     VIR_FREE(log);
     VIR_FREE(emulator);
-    VIR_FREE(expectargv);
     VIR_FREE(actualargv);
     virCommandFree(cmd);
     virDomainDefFree(vmdef);

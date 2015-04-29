@@ -63,10 +63,6 @@
 
 VIR_LOG_INIT("openvz.openvz_driver");
 
-#define OPENVZ_MAX_ARG 28
-#define CMDBUF_LEN 1488
-#define CMDOP_LEN 288
-
 #define OPENVZ_NB_MEM_PARAM 3
 
 static int openvzGetProcessInfo(unsigned long long *cpuTime, int vpsid);
@@ -96,7 +92,7 @@ openvzDomainDefPostParse(virDomainDefPtr def,
                          void *opaque ATTRIBUTE_UNUSED)
 {
     /* fill the init path */
-    if (STREQ(def->os.type, "exe") && !def->os.init) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_EXE && !def->os.init) {
         if (VIR_STRDUP(def->os.init, "/sbin/init") < 0)
             return -1;
     }
@@ -375,7 +371,7 @@ static char *openvzDomainGetOSType(virDomainPtr dom)
         goto cleanup;
     }
 
-    ignore_value(VIR_STRDUP(ret, vm->def->os.type));
+    ignore_value(VIR_STRDUP(ret, virDomainOSTypeToString(vm->def->os.type)));
 
  cleanup:
     if (vm)
@@ -431,8 +427,7 @@ static virDomainPtr openvzDomainLookupByName(virConnectPtr conn,
         dom->id = vm->def->id;
 
  cleanup:
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
     return dom;
 }
 
@@ -1003,17 +998,9 @@ openvzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
 
     openvzDriverLock(driver);
     if ((vmdef = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
-                                         1 << VIR_DOMAIN_VIRT_OPENVZ,
                                          parse_flags)) == NULL)
         goto cleanup;
 
-    vm = virDomainObjListFindByName(driver->domains, vmdef->name);
-    if (vm) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("Already an OPENVZ VM active with the id '%s'"),
-                       vmdef->name);
-        goto cleanup;
-    }
     if (!(vm = virDomainObjListAdd(driver->domains, vmdef,
                                    driver->xmlopt,
                                    0, NULL)))
@@ -1100,17 +1087,9 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
 
     openvzDriverLock(driver);
     if ((vmdef = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
-                                         1 << VIR_DOMAIN_VIRT_OPENVZ,
                                          parse_flags)) == NULL)
         goto cleanup;
 
-    vm = virDomainObjListFindByName(driver->domains, vmdef->name);
-    if (vm) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("Already an OPENVZ VM defined with the id '%s'"),
-                       vmdef->name);
-        goto cleanup;
-    }
     if (!(vm = virDomainObjListAdd(driver->domains,
                                    vmdef,
                                    driver->xmlopt,
@@ -1214,8 +1193,7 @@ openvzDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
     ret = 0;
 
  cleanup:
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
     return ret;
 }
 
@@ -2335,7 +2313,6 @@ openvzDomainMigratePrepare3Params(virConnectPtr dconn,
     }
 
     if (!(def = virDomainDefParseString(dom_xml, driver->caps, driver->xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_OPENVZ,
                                         VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto error;
 
@@ -2515,8 +2492,7 @@ openvzDomainMigrateFinish3Params(virConnectPtr dconn,
         dom->id = vm->def->id;
 
  cleanup:
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
     return dom;
 }
 

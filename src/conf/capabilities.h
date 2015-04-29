@@ -61,7 +61,7 @@ struct _virCapsGuestDomainInfo {
 typedef struct _virCapsGuestDomain virCapsGuestDomain;
 typedef virCapsGuestDomain *virCapsGuestDomainPtr;
 struct _virCapsGuestDomain {
-    char *type;
+    int type;
     virCapsGuestDomainInfo info;
 };
 
@@ -79,7 +79,7 @@ struct _virCapsGuestArch {
 typedef struct _virCapsGuest virCapsGuest;
 typedef virCapsGuest *virCapsGuestPtr;
 struct _virCapsGuest {
-    char *ostype;
+    int ostype;
     virCapsGuestArch arch;
     size_t nfeatures;
     size_t nfeatures_max;
@@ -192,6 +192,16 @@ struct _virCaps {
     virCapsGuestPtr *guests;
 };
 
+typedef struct _virCapsDomainData virCapsDomainData;
+typedef virCapsDomainData *virCapsDomainDataPtr;
+struct _virCapsDomainData {
+    int ostype;
+    int arch;
+    int domaintype;
+    const char *emulator;
+    const char *machinetype;
+};
+
 
 extern virCapsPtr
 virCapabilitiesNew(virArch hostarch,
@@ -236,7 +246,7 @@ virCapabilitiesFreeMachines(virCapsGuestMachinePtr *machines,
 
 extern virCapsGuestPtr
 virCapabilitiesAddGuest(virCapsPtr caps,
-                        const char *ostype,
+                        int ostype,
                         virArch arch,
                         const char *emulator,
                         const char *loader,
@@ -245,7 +255,7 @@ virCapabilitiesAddGuest(virCapsPtr caps,
 
 extern virCapsGuestDomainPtr
 virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
-                              const char *hvtype,
+                              int hvtype,
                               const char *emulator,
                               const char *loader,
                               int nmachines,
@@ -262,35 +272,17 @@ virCapabilitiesHostSecModelAddBaseLabel(virCapsHostSecModelPtr secmodel,
                                         const char *type,
                                         const char *label);
 
-extern int
-virCapabilitiesSupportsGuestArch(virCapsPtr caps,
-                                 virArch arch);
-extern int
-virCapabilitiesSupportsGuestOSType(virCapsPtr caps,
-                                   const char *ostype);
-extern int
-virCapabilitiesSupportsGuestOSTypeArch(virCapsPtr caps,
-                                       const char *ostype,
-                                       virArch arch);
+virCapsDomainDataPtr
+virCapabilitiesDomainDataLookup(virCapsPtr caps,
+                                int ostype,
+                                virArch arch,
+                                int domaintype,
+                                const char *emulator,
+                                const char *machinetype);
 
 void
 virCapabilitiesClearHostNUMACellCPUTopology(virCapsHostNUMACellCPUPtr cpu,
                                             size_t ncpus);
-
-extern virArch
-virCapabilitiesDefaultGuestArch(virCapsPtr caps,
-                                const char *ostype,
-                                const char *domain);
-extern const char *
-virCapabilitiesDefaultGuestMachine(virCapsPtr caps,
-                                   const char *ostype,
-                                   virArch arch,
-                                   const char *domain);
-extern const char *
-virCapabilitiesDefaultGuestEmulator(virCapsPtr caps,
-                                    const char *ostype,
-                                    virArch arch,
-                                    const char *domain);
 
 extern char *
 virCapabilitiesFormatXML(virCapsPtr caps);

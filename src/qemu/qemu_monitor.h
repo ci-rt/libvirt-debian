@@ -233,7 +233,8 @@ int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
 
 int qemuMonitorSetLink(qemuMonitorPtr mon,
                        const char *name,
-                       virDomainNetInterfaceLinkState state);
+                       virDomainNetInterfaceLinkState state)
+    ATTRIBUTE_NONNULL(2);
 
 /* These APIs are for use by the internal Text/JSON monitor impl code only */
 char *qemuMonitorNextCommandID(qemuMonitorPtr mon);
@@ -334,7 +335,8 @@ int qemuMonitorVMStatusToPausedReason(const char *status);
 
 int qemuMonitorGetStatus(qemuMonitorPtr mon,
                          bool *running,
-                         virDomainPausedReason *reason);
+                         virDomainPausedReason *reason)
+    ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorSystemReset(qemuMonitorPtr mon);
 int qemuMonitorSystemPowerdown(qemuMonitorPtr mon);
@@ -710,7 +712,7 @@ int qemuMonitorDiskSnapshot(qemuMonitorPtr mon,
                             const char *format,
                             bool reuse);
 int qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+    ATTRIBUTE_NONNULL(2);
 int qemuMonitorDriveMirror(qemuMonitorPtr mon,
                            const char *device,
                            const char *file,
@@ -719,12 +721,10 @@ int qemuMonitorDriveMirror(qemuMonitorPtr mon,
                            unsigned int granularity,
                            unsigned long long buf_size,
                            unsigned int flags)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 int qemuMonitorDrivePivot(qemuMonitorPtr mon,
-                          const char *device,
-                          const char *file,
-                          const char *format)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+                          const char *device)
+    ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorBlockCommit(qemuMonitorPtr mon,
                            const char *device,
@@ -732,15 +732,13 @@ int qemuMonitorBlockCommit(qemuMonitorPtr mon,
                            const char *base,
                            const char *backingName,
                            unsigned long long bandwidth)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
-    ATTRIBUTE_NONNULL(4);
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 bool qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon);
 char *qemuMonitorDiskNameLookup(qemuMonitorPtr mon,
                                 const char *device,
                                 virStorageSourcePtr top,
                                 virStorageSourcePtr target)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
-    ATTRIBUTE_NONNULL(4);
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
 int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
                                 const char *cmd,
@@ -757,26 +755,29 @@ int qemuMonitorSendKey(qemuMonitorPtr mon,
                        unsigned int *keycodes,
                        unsigned int nkeycodes);
 
-typedef enum {
-    BLOCK_JOB_ABORT,
-    BLOCK_JOB_SPEED,
-    BLOCK_JOB_PULL,
-} qemuMonitorBlockJobCmd;
+int qemuMonitorBlockStream(qemuMonitorPtr mon,
+                           const char *device,
+                           const char *base,
+                           const char *backingName,
+                           unsigned long long bandwidth,
+                           bool modern)
+    ATTRIBUTE_NONNULL(2);
 
-int qemuMonitorBlockJob(qemuMonitorPtr mon,
-                        const char *device,
-                        const char *base,
-                        const char *backingName,
-                        unsigned long long bandwidth,
-                        qemuMonitorBlockJobCmd mode,
-                        bool modern)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+int qemuMonitorBlockJobCancel(qemuMonitorPtr mon,
+                              const char *device,
+                              bool modern)
+    ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorBlockJobSetSpeed(qemuMonitorPtr mon,
+                                const char *device,
+                                unsigned long long bandwidth,
+                                bool modern);
 
 int qemuMonitorBlockJobInfo(qemuMonitorPtr mon,
                             const char *device,
                             virDomainBlockJobInfoPtr info,
                             unsigned long long *bandwidth)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
                             const char *protocol,

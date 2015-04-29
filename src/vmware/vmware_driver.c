@@ -385,7 +385,6 @@ vmwareDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
 
     vmwareDriverLock(driver);
     if ((vmdef = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
-                                         1 << VIR_DOMAIN_VIRT_VMWARE,
                                          parse_flags)) == NULL)
         goto cleanup;
 
@@ -677,7 +676,6 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
     vmwareDriverLock(driver);
 
     if ((vmdef = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
-                                         1 << VIR_DOMAIN_VIRT_VMWARE,
                                          parse_flags)) == NULL)
         goto cleanup;
 
@@ -870,7 +868,7 @@ vmwareDomainGetOSType(virDomainPtr dom)
         goto cleanup;
     }
 
-    ignore_value(VIR_STRDUP(ret, vm->def->os.type));
+    ignore_value(VIR_STRDUP(ret, virDomainOSTypeToString(vm->def->os.type)));
 
  cleanup:
     if (vm)

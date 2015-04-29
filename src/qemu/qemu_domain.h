@@ -35,12 +35,6 @@
 # include "qemu_capabilities.h"
 # include "virchrdev.h"
 
-# define QEMU_EXPECTED_VIRT_TYPES      \
-    ((1 << VIR_DOMAIN_VIRT_QEMU) |     \
-     (1 << VIR_DOMAIN_VIRT_KQEMU) |    \
-     (1 << VIR_DOMAIN_VIRT_KVM) |      \
-     (1 << VIR_DOMAIN_VIRT_XEN))
-
 # define QEMU_DOMAIN_FORMAT_LIVE_FLAGS      \
     (VIR_DOMAIN_XML_SECURE |                \
      VIR_DOMAIN_XML_UPDATE_CPU)
@@ -106,9 +100,19 @@ struct _qemuDomainJobInfo {
     virDomainJobType type;
     unsigned long long started; /* When the async job started */
     unsigned long long stopped; /* When the domain's CPUs were stopped */
+    unsigned long long sent; /* When the source sent status info to the
+                                destination (only for migrations). */
+    unsigned long long received; /* When the destination host received status
+                                    info from the source (migrations only). */
     /* Computed values */
     unsigned long long timeElapsed;
     unsigned long long timeRemaining;
+    long long timeDelta; /* delta = received - sent, i.e., the difference
+                            between the source and the destination time plus
+                            the time between the end of Perform phase on the
+                            source and the beginning of Finish phase on the
+                            destination. */
+    bool timeDeltaSet;
     /* Raw values from QEMU */
     qemuMonitorMigrationStatus status;
 };
@@ -158,11 +162,9 @@ struct _qemuDomainObjPrivate {
     int nvcpupids;
     int *vcpupids;
 
-    int niothreadpids;
-    int *iothreadpids;
-
     virDomainPCIAddressSetPtr pciaddrs;
     virDomainCCWAddressSetPtr ccwaddrs;
+    virDomainVirtioSerialAddrSetPtr vioserialaddrs;
     int persistentAddrs;
 
     virQEMUCapsPtr qemuCaps;
@@ -191,7 +193,10 @@ struct _qemuDomainObjPrivate {
     char **qemuDevices; /* NULL-terminated list of devices aliases known to QEMU */
 
     bool hookRun;  /* true if there was a hook run over this domain */
+
+    /* Bitmaps below hold data from the auto NUMA feature */
     virBitmapPtr autoNodeset;
+    virBitmapPtr autoCpuset;
 };
 
 typedef enum {
@@ -248,6 +253,8 @@ void qemuDomainObjDiscardAsyncJob(virQEMUDriverPtr driver,
                                   virDomainObjPtr obj);
 void qemuDomainObjReleaseAsyncJob(virDomainObjPtr obj);
 
+qemuMonitorPtr qemuDomainGetMonitor(virDomainObjPtr vm)
+    ATTRIBUTE_NONNULL(1);
 void qemuDomainObjEnterMonitor(virQEMUDriverPtr driver,
                                virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -422,11 +429,13 @@ int qemuDomainJobInfoToParams(qemuDomainJobInfoPtr jobInfo,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
+int qemuDomainSupportsBlockJobs(virDomainObjPtr vm, bool *modern)
+    ATTRIBUTE_NONNULL(1);
 bool qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk);
-
-void qemuDomObjEndAPI(virDomainObjPtr *vm);
 
 int qemuDomainAlignMemorySizes(virDomainDefPtr def);
 void qemuDomainMemoryDeviceAlignSize(virDomainMemoryDefPtr mem);
+
+virDomainChrSourceDefPtr qemuFindAgentConfig(virDomainDefPtr def);
 
 #endif /* __QEMU_DOMAIN_H__ */
