@@ -81,7 +81,8 @@ libvirt.so.0 libvirt0 #MINVER#
  *@LIBVIRT_1.2.12 1.2.12~rc1
  *@LIBVIRT_1.2.13 1.2.13
  *@LIBVIRT_1.2.14 1.2.14~rc2
- *@LIBVIRT_PRIVATE_1.2.14 1.2.14~rc2
+ *@LIBVIRT_1.2.15 1.2.15~rc1
+ *@LIBVIRT_PRIVATE_1.2.15 1.2.15~rc1
 libvirt-qemu.so.0 libvirt0 #MINVER#
  *@LIBVIRT_QEMU_0.8.3 0.8.3
 #MISSING: 0.8.8-1# (symver|optional)LIBVIRT_QEMU_0.8.4 0.8.4
