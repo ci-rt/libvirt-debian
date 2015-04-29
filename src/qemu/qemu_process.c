@@ -201,28 +201,8 @@ static qemuAgentCallbacks agentCallbacks = {
     .errorNotify = qemuProcessHandleAgentError,
 };
 
-static virDomainChrSourceDefPtr
-qemuFindAgentConfig(virDomainDefPtr def)
-{
-    virDomainChrSourceDefPtr config = NULL;
-    size_t i;
 
-    for (i = 0; i < def->nchannels; i++) {
-        virDomainChrDefPtr channel = def->channels[i];
-
-        if (channel->targetType != VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO)
-            continue;
-
-        if (STREQ_NULLABLE(channel->target.name, "org.qemu.guest_agent.0")) {
-            config = &channel->source;
-            break;
-        }
-    }
-
-    return config;
-}
-
-static int
+int
 qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
@@ -623,7 +603,7 @@ qemuProcessFakeReboot(void *opaque)
  cleanup:
     if (ret == -1)
         ignore_value(qemuProcessKill(vm, VIR_QEMU_PROCESS_KILL_FORCE));
-    qemuDomObjEndAPI(&vm);
+    virDomainObjEndAPI(&vm);
     if (event)
         qemuDomainEventQueue(driver, event);
     virObjectUnref(cfg);
@@ -2267,12 +2247,21 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(priv->iothreadpids, niothreads) < 0)
-        goto cleanup;
-    priv->niothreadpids = niothreads;
+    for (i = 0; i < niothreads; i++) {
+        unsigned int iothread_id;
+        virDomainIOThreadIDDefPtr iothrid;
 
-    for (i = 0; i < priv->niothreadpids; i++)
-        priv->iothreadpids[i] = iothreads[i]->thread_id;
+        if (qemuDomainParseIOThreadAlias(iothreads[i]->name,
+                                         &iothread_id) < 0)
+            goto cleanup;
+
+        if (!(iothrid = virDomainIOThreadIDFind(vm->def, iothread_id))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("iothread %d not found"), iothread_id);
+            goto cleanup;
+        }
+        iothrid->thread_id = iothreads[i]->thread_id;
+    }
 
     ret = 0;
 
@@ -2285,67 +2274,12 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
     return ret;
 }
 
-/* Helper to prepare cpumap for affinity setting, convert
- * NUMA nodeset into cpuset if @nodemask is not NULL, otherwise
- * just return a new allocated bitmap.
- */
-virBitmapPtr
-qemuPrepareCpumap(virQEMUDriverPtr driver,
-                  virBitmapPtr nodemask)
-{
-    size_t i;
-    int hostcpus, maxcpu = QEMUD_CPUMASK_LEN;
-    virBitmapPtr cpumap = NULL;
-    virCapsPtr caps = NULL;
-
-    /* setaffinity fails if you set bits for CPUs which
-     * aren't present, so we have to limit ourselves */
-    if ((hostcpus = nodeGetCPUCount()) < 0)
-        return NULL;
-
-    if (maxcpu > hostcpus)
-        maxcpu = hostcpus;
-
-    if (!(cpumap = virBitmapNew(maxcpu)))
-        return NULL;
-
-    if (nodemask) {
-        if (!(caps = virQEMUDriverGetCapabilities(driver, false))) {
-            virBitmapFree(cpumap);
-            cpumap = NULL;
-            goto cleanup;
-        }
-
-        for (i = 0; i < caps->host.nnumaCell; i++) {
-            size_t j;
-            int cur_ncpus = caps->host.numaCell[i]->ncpus;
-            bool result;
-            if (virBitmapGetBit(nodemask, caps->host.numaCell[i]->num, &result) < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("Failed to convert nodeset to cpuset"));
-                virBitmapFree(cpumap);
-                cpumap = NULL;
-                goto cleanup;
-            }
-            if (result) {
-                for (j = 0; j < cur_ncpus; j++)
-                    ignore_value(virBitmapSetBit(cpumap,
-                                                 caps->host.numaCell[i]->cpus[j].id));
-            }
-        }
-    }
-
- cleanup:
-    virObjectUnref(caps);
-    return cpumap;
-}
 
 /*
  * To be run between fork/exec of QEMU only
  */
 static int
-qemuProcessInitCpuAffinity(virQEMUDriverPtr driver,
-                           virDomainObjPtr vm)
+qemuProcessInitCpuAffinity(virDomainObjPtr vm)
 {
     int ret = -1;
     virBitmapPtr cpumap = NULL;
@@ -2358,23 +2292,34 @@ qemuProcessInitCpuAffinity(virQEMUDriverPtr driver,
         return -1;
     }
 
-    if (!(cpumap = qemuPrepareCpumap(driver, priv->autoNodeset)))
-        return -1;
-
     if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) {
         VIR_DEBUG("Set CPU affinity with advisory nodeset from numad");
-        cpumapToSet = cpumap;
+        cpumapToSet = priv->autoCpuset;
     } else {
         VIR_DEBUG("Set CPU affinity with specified cpuset");
         if (vm->def->cpumask) {
             cpumapToSet = vm->def->cpumask;
         } else {
-            cpumapToSet = cpumap;
             /* You may think this is redundant, but we can't assume libvirtd
              * itself is running on all pCPUs, so we need to explicitly set
              * the spawned QEMU instance to all pCPUs if no map is given in
              * its config file */
+            int hostcpus;
+
+            /* setaffinity fails if you set bits for CPUs which
+             * aren't present, so we have to limit ourselves */
+            if ((hostcpus = nodeGetCPUCount()) < 0)
+                goto cleanup;
+
+            if (hostcpus > QEMUD_CPUMASK_LEN)
+                hostcpus = QEMUD_CPUMASK_LEN;
+
+            if (!(cpumap = virBitmapNew(hostcpus)))
+                goto cleanup;
+
             virBitmapSetAll(cpumap);
+
+            cpumapToSet = cpumap;
         }
     }
 
@@ -2399,6 +2344,12 @@ qemuProcessSetLinkStates(virDomainObjPtr vm)
 
     for (i = 0; i < def->nnets; i++) {
         if (def->nets[i]->linkstate == VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN) {
+            if (!def->nets[i]->info.alias) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing alias for network device"));
+                return -1;
+            }
+
             VIR_DEBUG("Setting link state: %s", def->nets[i]->info.alias);
 
             if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV)) {
@@ -2491,29 +2442,17 @@ qemuProcessSetEmulatorAffinity(virDomainObjPtr vm)
 static int
 qemuProcessSetIOThreadsAffinity(virDomainObjPtr vm)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainDefPtr def = vm->def;
-    virDomainPinDefPtr pininfo;
     size_t i;
     int ret = -1;
 
-    if (!def->cputune.niothreadspin)
-        return 0;
-
-    if (priv->iothreadpids == NULL) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("IOThread affinity is not supported"));
-        return -1;
-    }
-
-    for (i = 0; i < def->iothreads; i++) {
-        /* set affinity only for existing vcpus */
-        if (!(pininfo = virDomainPinFind(def->cputune.iothreadspin,
-                                         def->cputune.niothreadspin,
-                                         i + 1)))
+    for (i = 0; i < def->niothreadids; i++) {
+        /* set affinity only for existing iothreads */
+        if (!def->iothreadids[i]->cpumask)
             continue;
 
-        if (virProcessSetAffinity(priv->iothreadpids[i], pininfo->cpumask) < 0)
+        if (virProcessSetAffinity(def->iothreadids[i]->thread_id,
+                                  def->iothreadids[i]->cpumask) < 0)
             goto cleanup;
     }
     ret = 0;
@@ -2563,8 +2502,9 @@ qemuProcessSetSchedulers(virDomainObjPtr vm)
             return -1;
     }
 
-    for (i = 0; i < priv->niothreadpids; i++) {
-        if (qemuProcessSetSchedParams(i + 1, priv->iothreadpids[i],
+    for (i = 0; i < vm->def->niothreadids; i++) {
+        if (qemuProcessSetSchedParams(vm->def->iothreadids[i]->iothread_id,
+                                      vm->def->iothreadids[i]->thread_id,
                                       vm->def->cputune.niothreadsched,
                                       vm->def->cputune.iothreadsched) < 0)
             return -1;
@@ -3197,11 +3137,21 @@ static int qemuProcessHook(void *data)
         goto cleanup;
 
     mode = virDomainNumatuneGetMode(h->vm->def->numa, -1);
-    nodeset = virDomainNumatuneGetNodeset(h->vm->def->numa,
-                                          priv->autoNodeset, -1);
 
-    if (virNumaSetupMemoryPolicy(mode, nodeset) < 0)
-        goto cleanup;
+    if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
+        h->cfg->cgroupControllers & (1 << VIR_CGROUP_CONTROLLER_CPUSET) &&
+        virCgroupControllerAvailable(VIR_CGROUP_CONTROLLER_CPUSET)) {
+        /* Use virNuma* API iff necessary. Once set and child is exec()-ed,
+         * there's no way for us to change it. Rely on cgroups (if available
+         * and enabled in the config) rather than virNuma*. */
+        VIR_DEBUG("Relying on CGroups for memory binding");
+    } else {
+        nodeset = virDomainNumatuneGetNodeset(h->vm->def->numa,
+                                              priv->autoNodeset, -1);
+
+        if (virNumaSetupMemoryPolicy(mode, nodeset) < 0)
+            goto cleanup;
+    }
 
     ret = 0;
 
@@ -3873,7 +3823,7 @@ qemuProcessReconnect(void *opaque)
         qemuDomainRemoveInactive(driver, obj);
 
  cleanup:
-    qemuDomObjEndAPI(&obj);
+    virDomainObjEndAPI(&obj);
     virObjectUnref(conn);
     virObjectUnref(cfg);
     virNWFilterUnlockFilterUpdates();
@@ -3917,7 +3867,7 @@ qemuProcessReconnectHelper(virDomainObjPtr obj,
         if (!obj->persistent)
             qemuDomainRemoveInactive(src->driver, obj);
 
-        qemuDomObjEndAPI(&obj);
+        virDomainObjEndAPI(&obj);
         virObjectUnref(data->conn);
         VIR_FREE(data);
         return -1;
@@ -4172,8 +4122,8 @@ qemuPrepareNVRAM(virQEMUDriverConfigPtr cfg,
     /* Autogenerate nvram path if needed.*/
     if (!loader->nvram) {
         if (virAsprintf(&loader->nvram,
-                        "%s/lib/libvirt/qemu/nvram/%s_VARS.fd",
-                        LOCALSTATEDIR, vm->def->name) < 0)
+                        "%s/%s_VARS.fd",
+                        cfg->nvramDir, vm->def->name) < 0)
             goto cleanup;
 
         generated = true;
@@ -4333,7 +4283,6 @@ int qemuProcessStart(virConnectPtr conn,
     size_t i;
     bool rawio_set = false;
     char *nodeset = NULL;
-    virBitmapPtr nodemask = NULL;
     unsigned int stop_flags;
     virQEMUDriverConfigPtr cfg;
     virCapsPtr caps = NULL;
@@ -4594,10 +4543,17 @@ int qemuProcessStart(virConnectPtr conn,
 
         VIR_DEBUG("Nodeset returned from numad: %s", nodeset);
 
-        if (virBitmapParse(nodeset, 0, &nodemask, VIR_DOMAIN_CPUMASK_LEN) < 0)
+        if (virBitmapParse(nodeset, 0, &priv->autoNodeset,
+                           VIR_DOMAIN_CPUMASK_LEN) < 0)
+            goto cleanup;
+
+        if (!(priv->autoCpuset = virCapabilitiesGetCpusForNodemask(caps,
+                                                                   priv->autoNodeset)))
             goto cleanup;
     }
-    priv->autoNodeset = nodemask;
+
+    if (virDomainDefCheckDuplicateDiskWWN(vm->def) < 0)
+        goto cleanup;
 
     /* "volume" type disk's source must be translated before
      * cgroup and security setting.
@@ -4664,7 +4620,7 @@ int qemuProcessStart(virConnectPtr conn,
                                      migrateFrom, stdin_fd, snapshot, vmop,
                                      &buildCommandLineCallbacks, false,
                                      qemuCheckFips(),
-                                     nodemask,
+                                     priv->autoNodeset,
                                      &nnicindexes, &nicindexes)))
         goto cleanup;
 
@@ -4796,7 +4752,7 @@ int qemuProcessStart(virConnectPtr conn,
     /* This must be done after cgroup placement to avoid resetting CPU
      * affinity */
     if (!vm->def->cputune.emulatorpin &&
-        qemuProcessInitCpuAffinity(driver, vm) < 0)
+        qemuProcessInitCpuAffinity(vm) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting domain security labels");
@@ -4843,7 +4799,7 @@ int qemuProcessStart(virConnectPtr conn,
         goto cleanup;
 
     VIR_DEBUG("Setting cgroup for emulator (if required)");
-    if (qemuSetupCgroupForEmulator(driver, vm) < 0)
+    if (qemuSetupCgroupForEmulator(vm) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting affinity of emulator threads");
@@ -5229,6 +5185,8 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         virDomainDefClearCCWAddresses(vm->def);
         virDomainCCWAddressSetFree(priv->ccwaddrs);
         priv->ccwaddrs = NULL;
+        virDomainVirtioSerialAddrSetFree(priv->vioserialaddrs);
+        priv->vioserialaddrs = NULL;
     }
 
     qemuDomainReAttachHostDevices(driver, vm->def);
@@ -5334,8 +5292,8 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
     VIR_FREE(priv->vcpupids);
     priv->nvcpupids = 0;
-    VIR_FREE(priv->iothreadpids);
-    priv->niothreadpids = 0;
+    for (i = 0; i < vm->def->niothreadids; i++)
+        vm->def->iothreadids[i]->thread_id = 0;
     virObjectUnref(priv->qemuCaps);
     priv->qemuCaps = NULL;
     VIR_FREE(priv->pidfile);
@@ -5654,8 +5612,10 @@ qemuProcessAutoDestroy(virDomainObjPtr dom,
 
     qemuDomainObjEndJob(driver, dom);
 
-    if (!dom->persistent)
+    if (!dom->persistent) {
         qemuDomainRemoveInactive(driver, dom);
+        dom = NULL;
+    }
 
     if (event)
         qemuDomainEventQueue(driver, event);

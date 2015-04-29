@@ -31,14 +31,11 @@
 # include <stdarg.h>
 # include <unistd.h>
 # include <sys/stat.h>
-# include <inttypes.h>
 # include <termios.h>
 
 # include "internal.h"
 # include "virerror.h"
 # include "virthread.h"
-# include "virnetdevbandwidth.h"
-# include "virstring.h"
 
 # define VSH_MAX_XML_FILE (10*1024*1024)
 
@@ -319,8 +316,6 @@ int vshCommandOptScaledInt(const vshCmd *cmd, const char *name,
 bool vshCommandOptBool(const vshCmd *cmd, const char *name);
 const vshCmdOpt *vshCommandOptArgv(const vshCmd *cmd,
                                    const vshCmdOpt *opt);
-bool vshCmdHasOption(vshControl *ctl, const vshCmd *cmd, const char *optname);
-
 int vshCommandOptTimeoutToMs(vshControl *ctl, const vshCmd *cmd, int *timeout);
 
 /* Filter flags for various vshCommandOpt*By() functions */

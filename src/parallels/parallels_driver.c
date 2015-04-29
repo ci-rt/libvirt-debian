@@ -93,31 +93,31 @@ parallelsBuildCapabilities(void)
     if (nodeCapsInitNUMA(caps) < 0)
         goto error;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm",
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
                                          VIR_ARCH_X86_64,
                                          "parallels",
                                          NULL, 0, NULL)) == NULL)
         goto error;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm",
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
                                          VIR_ARCH_I686,
                                          "parallels",
                                          NULL, 0, NULL)) == NULL)
         goto error;
 
 
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      "parallels", NULL, NULL, 0, NULL) == NULL)
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_PARALLELS,
+                                      NULL, NULL, 0, NULL) == NULL)
         goto error;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "exe",
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_EXE,
                                          VIR_ARCH_X86_64,
                                          "parallels",
                                          NULL, 0, NULL)) == NULL)
         goto error;
 
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      "parallels", NULL, NULL, 0, NULL) == NULL)
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_PARALLELS,
+                                      NULL, NULL, 0, NULL) == NULL)
         goto error;
 
     if (nodeGetInfo(&nodeinfo))
@@ -174,7 +174,7 @@ parallelsDomainDefPostParse(virDomainDefPtr def,
 
 static int
 parallelsDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
-                                  const virDomainDef *def ATTRIBUTE_UNUSED,
+                                  const virDomainDef *def,
                                   virCapsPtr caps ATTRIBUTE_UNUSED,
                                   void *opaque ATTRIBUTE_UNUSED)
 {
@@ -184,6 +184,7 @@ parallelsDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         (dev->data.net->type == VIR_DOMAIN_NET_TYPE_NETWORK ||
          dev->data.net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) &&
         !dev->data.net->model &&
+        def->os.type == VIR_DOMAIN_OSTYPE_HVM &&
         VIR_STRDUP(dev->data.net->model, "e1000") < 0)
         goto cleanup;
 
@@ -525,26 +526,18 @@ parallelsDomainLookupByName(virConnectPtr conn, const char *name)
         ret->id = dom->def->id;
 
  cleanup:
-    if (dom)
-        virObjectUnlock(dom);
+    virDomainObjEndAPI(&dom);
     return ret;
 }
 
 static int
 parallelsDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     int ret = -1;
 
-    parallelsDriverLock(privconn);
-    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    parallelsDriverUnlock(privconn);
-
-    if (privdom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(privdom = parallelsDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     info->state = virDomainObjGetState(privdom, NULL);
     info->memory = privdom->def->mem.cur_balloon;
@@ -562,47 +555,35 @@ parallelsDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 static char *
 parallelsDomainGetOSType(virDomainPtr domain)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
 
     char *ret = NULL;
 
-    parallelsDriverLock(privconn);
-    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    if (privdom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(privdom = parallelsDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
-    ignore_value(VIR_STRDUP(ret, privdom->def->os.type));
+    ignore_value(VIR_STRDUP(ret, virDomainOSTypeToString(privdom->def->os.type)));
 
  cleanup:
     if (privdom)
         virObjectUnlock(privdom);
-    parallelsDriverUnlock(privconn);
     return ret;
 }
 
 static int
 parallelsDomainIsPersistent(virDomainPtr domain)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     int ret = -1;
 
-    parallelsDriverLock(privconn);
-    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    if (privdom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(privdom = parallelsDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     ret = 1;
 
  cleanup:
     if (privdom)
         virObjectUnlock(privdom);
-    parallelsDriverUnlock(privconn);
     return ret;
 }
 
@@ -610,19 +591,12 @@ static int
 parallelsDomainGetState(virDomainPtr domain,
                   int *state, int *reason, unsigned int flags)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     int ret = -1;
     virCheckFlags(0, -1);
 
-    parallelsDriverLock(privconn);
-    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    parallelsDriverUnlock(privconn);
-
-    if (privdom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(privdom = parallelsDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     *state = virDomainObjGetState(privdom, reason);
     ret = 0;
@@ -636,21 +610,14 @@ parallelsDomainGetState(virDomainPtr domain,
 static char *
 parallelsDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainDefPtr def;
     virDomainObjPtr privdom;
     char *ret = NULL;
 
     /* Flags checked by virDomainDefFormat */
 
-    parallelsDriverLock(privconn);
-    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    parallelsDriverUnlock(privconn);
-
-    if (privdom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(privdom = parallelsDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     def = (flags & VIR_DOMAIN_XML_INACTIVE) &&
         privdom->newDef ? privdom->newDef : privdom->def;
@@ -666,18 +633,11 @@ parallelsDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 static int
 parallelsDomainGetAutostart(virDomainPtr domain, int *autostart)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     int ret = -1;
 
-    parallelsDriverLock(privconn);
-    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    parallelsDriverUnlock(privconn);
-
-    if (privdom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(privdom = parallelsDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     *autostart = privdom->autostart;
     ret = 0;
@@ -704,22 +664,22 @@ parallelsDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int 
 
     parallelsDriverLock(privconn);
     if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
-                                       1 << VIR_DOMAIN_VIRT_PARALLELS,
                                        parse_flags)) == NULL)
         goto cleanup;
 
     olddom = virDomainObjListFindByUUID(privconn->domains, def->uuid);
     if (olddom == NULL) {
         virResetLastError();
-        if (STREQ(def->os.type, "hvm")) {
+        if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
             if (prlsdkCreateVm(conn, def))
                 goto cleanup;
-        } else if (STREQ(def->os.type, "exe")) {
+        } else if (def->os.type == VIR_DOMAIN_OSTYPE_EXE) {
             if (prlsdkCreateCt(conn, def))
                 goto cleanup;
         } else {
             virReportError(VIR_ERR_INVALID_ARG,
-                           _("Unsupported OS type: %s"), def->os.type);
+                           _("Unsupported OS type: %s"),
+                           virDomainOSTypeToString(def->os.type));
             goto cleanup;
         }
 
@@ -727,11 +687,35 @@ parallelsDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int 
         if (!olddom)
             goto cleanup;
     } else {
-        if (prlsdkApplyConfig(conn, olddom, def))
-            goto cleanup;
+        int state, reason;
 
-        if (prlsdkUpdateDomain(privconn, olddom))
-            goto cleanup;
+        state = virDomainObjGetState(olddom, &reason);
+
+        if (state == VIR_DOMAIN_SHUTOFF &&
+            reason == VIR_DOMAIN_SHUTOFF_SAVED) {
+
+            /* PCS doesn't store domain config in managed save state file.
+             * It's forbidden to change config for VMs in this state.
+             * It's possible to change config for containers, but after
+             * restoring domain will have that new config, not a config,
+             * which domain had at the moment of virDomainManagedSave.
+             *
+             * So forbid this operation, if config is changed. If it's
+             * not changed - just do nothing. */
+
+            if (!virDomainDefCheckABIStability(olddom->def, def)) {
+                virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                               _("Can't change domain configuration "
+                                 "in managed save state"));
+                goto cleanup;
+            }
+        } else {
+            if (prlsdkApplyConfig(conn, olddom, def))
+                goto cleanup;
+
+            if (prlsdkUpdateDomain(privconn, olddom))
+                goto cleanup;
+        }
     }
 
     retdom = virGetDomain(conn, def->name, def->uuid);
@@ -797,20 +781,13 @@ parallelsDomainGetVcpus(virDomainPtr domain,
                         unsigned char *cpumaps,
                         int maplen)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom = NULL;
     size_t i;
     int v, maxcpu, hostcpus;
     int ret = -1;
 
-    parallelsDriverLock(privconn);
-    privdom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    parallelsDriverUnlock(privconn);
-
-    if (privdom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(privdom = parallelsDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     if (!virDomainObjIsActive(privdom)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -931,15 +908,11 @@ static int parallelsDomainShutdown(virDomainPtr domain)
 
 static int parallelsDomainIsActive(virDomainPtr domain)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr dom = NULL;
     int ret = -1;
 
-    dom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    if (dom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(dom = parallelsDomObjFromDomain(domain)))
         return -1;
-    }
 
     ret = virDomainObjIsActive(dom);
     virObjectUnlock(dom);
@@ -966,11 +939,8 @@ parallelsDomainUndefineFlags(virDomainPtr domain,
 
     virCheckFlags(0, -1);
 
-    dom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    if (dom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(dom = parallelsDomObjFromDomain(domain)))
         return -1;
-    }
 
     ret = prlsdkUnregisterDomain(privconn, dom);
     if (ret)
@@ -988,20 +958,157 @@ parallelsDomainUndefine(virDomainPtr domain)
 static int
 parallelsDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr dom = NULL;
+    int state, reason;
+    int ret = 0;
 
     virCheckFlags(0, -1);
 
-    dom = virDomainObjListFindByUUID(privconn->domains, domain->uuid);
-    if (dom == NULL) {
-        parallelsDomNotFoundError(domain);
+    if (!(dom = parallelsDomObjFromDomain(domain)))
         return -1;
-    }
 
+    state = virDomainObjGetState(dom, &reason);
+    if (state == VIR_DOMAIN_SHUTOFF && reason == VIR_DOMAIN_SHUTOFF_SAVED)
+        ret = 1;
     virObjectUnlock(dom);
 
-    return 0;
+    return ret;
+}
+
+static int
+parallelsDomainManagedSave(virDomainPtr domain, unsigned int flags)
+{
+    parallelsConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom = NULL;
+    int state, reason;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_SAVE_RUNNING |
+                  VIR_DOMAIN_SAVE_PAUSED, -1);
+
+    if (!(dom = parallelsDomObjFromDomain(domain)))
+        return -1;
+
+    state = virDomainObjGetState(dom, &reason);
+
+    if (state == VIR_DOMAIN_RUNNING && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
+        ret = prlsdkDomainChangeStateLocked(privconn, dom, prlsdkPause);
+        if (ret)
+            goto cleanup;
+    }
+
+    ret = prlsdkDomainChangeStateLocked(privconn, dom, prlsdkSuspend);
+
+ cleanup:
+    virObjectUnlock(dom);
+    return ret;
+}
+
+static int
+parallelsDomainManagedSaveRemove(virDomainPtr domain, unsigned int flags)
+{
+    parallelsConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom = NULL;
+    int state, reason;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(dom = parallelsDomObjFromDomain(domain)))
+        return -1;
+
+    state = virDomainObjGetState(dom, &reason);
+
+    if (!(state == VIR_DOMAIN_SHUTOFF && reason == VIR_DOMAIN_SHUTOFF_SAVED))
+        goto cleanup;
+
+    ret = prlsdkDomainManagedSaveRemove(privconn, dom);
+
+ cleanup:
+    virObjectUnlock(dom);
+    return ret;
+}
+
+static int parallelsDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
+                                            unsigned int flags)
+{
+    int ret = -1;
+    parallelsConnPtr privconn = dom->conn->privateData;
+    virDomainDeviceDefPtr dev = NULL;
+    virDomainObjPtr privdom = NULL;
+    bool domactive = false;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (!(privdom = parallelsDomObjFromDomain(dom)))
+        return -1;
+
+    if (!(flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("device attach needs VIR_DOMAIN_AFFECT_CONFIG "
+                         "flag to be set"));
+        goto cleanup;
+    }
+
+    domactive = virDomainObjIsActive(privdom);
+    if (!domactive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("cannot do live update a device on "
+                         "inactive domain"));
+        goto cleanup;
+    }
+    if (domactive && !(flags & VIR_DOMAIN_AFFECT_LIVE)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Updates on a running domain need "
+                         "VIR_DOMAIN_AFFECT_LIVE flag"));
+    }
+
+    dev = virDomainDeviceDefParse(xml, privdom->def, privconn->caps,
+                                  privconn->xmlopt, VIR_DOMAIN_XML_INACTIVE);
+    if (dev == NULL)
+        goto cleanup;
+
+    switch (dev->type) {
+    case VIR_DOMAIN_DEVICE_DISK:
+        ret = prlsdkAttachVolume(dom->conn, privdom, dev->data.disk);
+        if (ret) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("disk attach failed"));
+            goto cleanup;
+        }
+        break;
+    default:
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("device type '%s' cannot be attached"),
+                       virDomainDeviceTypeToString(dev->type));
+        break;
+    }
+
+    ret = 0;
+ cleanup:
+    virObjectUnlock(privdom);
+    return ret;
+}
+
+static int parallelsDomainAttachDevice(virDomainPtr dom, const char *xml)
+{
+    return parallelsDomainAttachDeviceFlags(dom, xml,
+                                            VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
+}
+
+static unsigned long long
+parallelsDomainGetMaxMemory(virDomainPtr domain)
+{
+    virDomainObjPtr dom = NULL;
+    int ret = -1;
+
+    if (!(dom = parallelsDomObjFromDomain(domain)))
+        return -1;
+
+    ret = dom->def->mem.max_balloon;
+    virObjectUnlock(dom);
+    return ret;
 }
 
 static virHypervisorDriver parallelsDriver = {
@@ -1038,6 +1145,8 @@ static virHypervisorDriver parallelsDriver = {
     .domainDefineXMLFlags = parallelsDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = parallelsDomainUndefine, /* 1.2.10 */
     .domainUndefineFlags = parallelsDomainUndefineFlags, /* 1.2.10 */
+    .domainAttachDevice = parallelsDomainAttachDevice, /* 1.2.15 */
+    .domainAttachDeviceFlags = parallelsDomainAttachDeviceFlags, /* 1.2.15 */
     .domainIsActive = parallelsDomainIsActive, /* 1.2.10 */
     .connectDomainEventRegisterAny = parallelsConnectDomainEventRegisterAny, /* 1.2.10 */
     .connectDomainEventDeregisterAny = parallelsConnectDomainEventDeregisterAny, /* 1.2.10 */
@@ -1046,6 +1155,9 @@ static virHypervisorDriver parallelsDriver = {
     .connectIsSecure = parallelsConnectIsSecure, /* 1.2.5 */
     .connectIsAlive = parallelsConnectIsAlive, /* 1.2.5 */
     .domainHasManagedSaveImage = parallelsDomainHasManagedSaveImage, /* 1.2.13 */
+    .domainManagedSave = parallelsDomainManagedSave, /* 1.2.14 */
+    .domainManagedSaveRemove = parallelsDomainManagedSaveRemove, /* 1.2.14 */
+    .domainGetMaxMemory = parallelsDomainGetMaxMemory, /* 1.2.15 */
 };
 
 static virConnectDriver parallelsConnectDriver = {

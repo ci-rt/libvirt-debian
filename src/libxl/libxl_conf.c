@@ -35,6 +35,7 @@
 #include "virlog.h"
 #include "virerror.h"
 #include "datatypes.h"
+#include "virconf.h"
 #include "virfile.h"
 #include "virstring.h"
 #include "viralloc.h"
@@ -425,7 +426,7 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
             return -1;
 
         if ((guest = virCapabilitiesAddGuest(caps,
-                                             guest_archs[i].hvm ? "hvm" : "xen",
+                                             guest_archs[i].hvm ? VIR_DOMAIN_OSTYPE_HVM : VIR_DOMAIN_OSTYPE_XEN,
                                              guest_archs[i].arch,
                                              LIBXL_EXECBIN_DIR "/qemu-system-i386",
                                              (guest_archs[i].hvm ?
@@ -439,7 +440,7 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
         machines = NULL;
 
         if (virCapabilitiesAddGuestDomain(guest,
-                                          "xen",
+                                          VIR_DOMAIN_VIRT_XEN,
                                           NULL,
                                           NULL,
                                           0,
@@ -499,7 +500,7 @@ libxlMakeDomCreateInfo(libxl_ctx *ctx,
 
     libxl_domain_create_info_init(c_info);
 
-    if (STREQ(def->os.type, "hvm"))
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM)
         c_info->type = LIBXL_DOMAIN_TYPE_HVM;
     else
         c_info->type = LIBXL_DOMAIN_TYPE_PV;
@@ -625,7 +626,7 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
                       libxl_domain_config *d_config)
 {
     libxl_domain_build_info *b_info = &d_config->b_info;
-    int hvm = STREQ(def->os.type, "hvm");
+    int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
     size_t i;
 
     libxl_domain_build_info_init(b_info);
@@ -701,6 +702,15 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         }
         if (VIR_STRDUP(b_info->u.hvm.boot, bootorder) < 0)
             return -1;
+
+#ifdef LIBXL_HAVE_BUILDINFO_KERNEL
+        if (VIR_STRDUP(b_info->cmdline, def->os.cmdline) < 0)
+            return -1;
+        if (VIR_STRDUP(b_info->kernel, def->os.kernel) < 0)
+            return -1;
+        if (VIR_STRDUP(b_info->ramdisk, def->os.initrd) < 0)
+            return -1;
+#endif
 
         if (def->emulator) {
             if (!virFileExists(def->emulator)) {
@@ -866,7 +876,7 @@ libxlDomainGetEmulatorType(const virDomainDef *def)
     virCommandPtr cmd = NULL;
     char *output = NULL;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (def->emulator) {
             cmd = virCommandNew(def->emulator);
 
@@ -1061,7 +1071,7 @@ libxlMakeNic(virDomainDefPtr def,
              virDomainNetDefPtr l_nic,
              libxl_device_nic *x_nic)
 {
-    bool ioemu_nic = STREQ(def->os.type, "hvm");
+    bool ioemu_nic = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
     virDomainNetType actual_type = virDomainNetGetActualType(l_nic);
 
     /* TODO: Where is mtu stored?
@@ -1232,6 +1242,8 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
     switch (l_vfb->type) {
         case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
             libxl_defbool_set(&x_vfb->sdl.enable, 1);
+            libxl_defbool_set(&x_vfb->vnc.enable, 0);
+            libxl_defbool_set(&x_vfb->sdl.opengl, 0);
             if (VIR_STRDUP(x_vfb->sdl.display, l_vfb->data.sdl.display) < 0)
                 return -1;
             if (VIR_STRDUP(x_vfb->sdl.xauthority, l_vfb->data.sdl.xauth) < 0)
@@ -1239,6 +1251,7 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
             break;
         case  VIR_DOMAIN_GRAPHICS_TYPE_VNC:
             libxl_defbool_set(&x_vfb->vnc.enable, 1);
+            libxl_defbool_set(&x_vfb->sdl.enable, 0);
             /* driver handles selection of free port */
             libxl_defbool_set(&x_vfb->vnc.findunused, 0);
             if (l_vfb->data.vnc.autoport) {
@@ -1300,7 +1313,7 @@ libxlMakeVfbList(virPortAllocatorPtr graphicsports,
      * VNC or SDL info must also be set in libxl_domain_build_info
      * for HVM domains.  Use the first vfb device.
      */
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         libxl_domain_build_info *b_info = &d_config->b_info;
         libxl_device_vfb vfb = d_config->vfbs[0];
 
@@ -1339,11 +1352,32 @@ libxlMakeVfbList(virPortAllocatorPtr graphicsports,
     return -1;
 }
 
+/*
+ * Get domain0 autoballoon configuration.  Honor user-specified
+ * setting in libxl.conf first.  If not specified, autoballooning
+ * is disabled when domain0's memory is set with 'dom0_mem'.
+ * Otherwise autoballooning is enabled.
+ */
 static int
-libxlGetAutoballoonConf(libxlDriverConfigPtr cfg, bool *autoballoon)
+libxlGetAutoballoonConf(libxlDriverConfigPtr cfg,
+                        virConfPtr conf)
 {
+    virConfValuePtr p;
     regex_t regex;
     int res;
+
+    p = virConfGetValue(conf, "autoballoon");
+    if (p) {
+        if (p->type != VIR_CONF_ULONG) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s",
+                           _("Unexpected type for 'autoballoon' setting"));
+
+            return -1;
+        }
+        cfg->autoballoon = p->l != 0;
+        return 0;
+    }
 
     if ((res = regcomp(&regex,
                       "(^| )dom0_mem=((|min:|max:)[0-9]+[bBkKmMgG]?,?)+($| )",
@@ -1359,7 +1393,7 @@ libxlGetAutoballoonConf(libxlDriverConfigPtr cfg, bool *autoballoon)
 
     res = regexec(&regex, cfg->verInfo->commandline, 0, NULL, 0);
     regfree(&regex);
-    *autoballoon = res == REG_NOMATCH;
+    cfg->autoballoon = res == REG_NOMATCH;
     return 0;
 }
 
@@ -1377,6 +1411,8 @@ libxlDriverConfigNew(void)
     if (!(cfg = virObjectNew(libxlDriverConfigClass)))
         return NULL;
 
+    if (VIR_STRDUP(cfg->configBaseDir, LIBXL_CONFIG_BASE_DIR) < 0)
+        goto error;
     if (VIR_STRDUP(cfg->configDir, LIBXL_CONFIG_DIR) < 0)
         goto error;
     if (VIR_STRDUP(cfg->autostartDir, LIBXL_AUTOSTART_DIR) < 0)
@@ -1439,10 +1475,6 @@ libxlDriverConfigNew(void)
         goto error;
     }
 
-    /* setup autoballoon */
-    if (libxlGetAutoballoonConf(cfg, &cfg->autoballoon) < 0)
-        goto error;
-
     return cfg;
 
  error:
@@ -1460,6 +1492,35 @@ libxlDriverConfigGet(libxlDriverPrivatePtr driver)
     cfg = virObjectRef(driver->config);
     libxlDriverUnlock(driver);
     return cfg;
+}
+
+int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
+                              const char *filename)
+{
+    virConfPtr conf = NULL;
+    int ret = -1;
+
+    /* Check the file is readable before opening it, otherwise
+     * libvirt emits an error.
+     */
+    if (access(filename, R_OK) == -1) {
+        VIR_INFO("Could not read libxl config file %s", filename);
+        return 0;
+    }
+
+    if (!(conf = virConfReadFile(filename, 0)))
+        goto cleanup;
+
+    /* setup autoballoon */
+    if (libxlGetAutoballoonConf(cfg, conf) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virConfFree(conf);
+    return ret;
+
 }
 
 int

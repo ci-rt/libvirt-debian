@@ -37,7 +37,7 @@
     virReportErrorHelper(VIR_FROM_TEST, VIR_ERR_OPERATION_FAILED, __FILE__,    \
                      __FUNCTION__, __LINE__, _("Can't parse prlctl output"))
 
-# define IS_CT(def)  (STREQ_NULLABLE(def->os.type, "exe"))
+# define IS_CT(def)  (def->os.type == VIR_DOMAIN_OSTYPE_EXE)
 
 # define parallelsDomNotFoundError(domain)                               \
     do {                                                                 \
@@ -57,7 +57,10 @@
 
 struct _parallelsConn {
     virMutex lock;
+
+    /* Immutable pointer, self-locking APIs */
     virDomainObjListPtr domains;
+
     PRL_HANDLE server;
     PRL_UINT32 jobTimeout;
     virStoragePoolObjList pools;
@@ -87,6 +90,8 @@ extern virStorageDriver parallelsStorageDriver;
 virDrvOpenStatus parallelsNetworkOpen(virConnectPtr conn, unsigned int flags);
 int parallelsNetworkClose(virConnectPtr conn);
 extern virNetworkDriver parallelsNetworkDriver;
+
+virDomainObjPtr parallelsDomObjFromDomain(virDomainPtr domain);
 
 virJSONValuePtr parallelsParseOutput(const char *binary, ...)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_SENTINEL;

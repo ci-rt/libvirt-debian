@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.14], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.15], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -2776,7 +2776,7 @@ AC_ARG_WITH([loader-nvram],
       fi
       AC_DEFINE_UNQUOTED([DEFAULT_LOADER_NVRAM],
                           ["$withval"],
-                          [List of laoder:nvram pairs])])
+                          [List of loader:nvram pairs])])
 
 # Some GNULIB base64 symbols clash with a kerberos library
 AC_DEFINE_UNQUOTED([isbase64],[libvirt_gl_isbase64],[Hack to avoid symbol clash])
@@ -2966,8 +2966,8 @@ AC_MSG_NOTICE([pm-utils: $with_pm_utils])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([   Coverage: $enable_coverage])
-AC_MSG_NOTICE([  Alloc OOM: $enable_oom])
+AC_MSG_NOTICE([         Coverage: $enable_coverage])
+AC_MSG_NOTICE([        Alloc OOM: $enable_oom])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Miscellaneous])
 AC_MSG_NOTICE([])
@@ -2980,6 +2980,7 @@ AC_MSG_NOTICE([      XML Catalog: $XML_CATALOG_FILE])
 AC_MSG_NOTICE([      Init script: $with_init_script])
 AC_MSG_NOTICE([Char device locks: $with_chrdev_lock_files])
 AC_MSG_NOTICE([   Default Editor: $DEFAULT_EDITOR])
+AC_MSG_NOTICE([     Loader/NVRAM: $with_loader_nvram])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Developer Tools])
 AC_MSG_NOTICE([])

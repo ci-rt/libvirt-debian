@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2014 Red Hat, Inc.
+ * Copyright (C) 2012-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -967,4 +967,56 @@ virStringStripIPv6Brackets(char *str)
         memmove(&str[0], &str[1], len - 2);
         str[len - 2] = '\0';
     }
+}
+
+
+static const char control_chars[] =
+    "\x01\x02\x03\x04\x05\x06\x07"
+    "\x08" /* \t \n */ "\x0B\x0C" /* \r */ "\x0E\x0F"
+    "\x10\x11\x12\x13\x14\x15\x16\x17"
+    "\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F";
+
+bool
+virStringHasControlChars(const char *str)
+{
+    if (!str)
+        return false;
+
+    return str[strcspn(str, control_chars)] != '\0';
+}
+
+
+/* Work around spurious strchr() diagnostics given by -Wlogical-op
+ * for gcc < 4.6.  Doing it via a local pragma keeps the damage
+ * smaller than disabling it on the package level.  Unfortunately, the
+ * affected GCCs don't allow diagnostic push/pop which would have
+ * further reduced the impact. */
+#if BROKEN_GCC_WLOGICALOP
+# pragma GCC diagnostic ignored "-Wlogical-op"
+#endif
+
+
+/**
+ * virStringStripControlChars:
+ * @str: the string to strip
+ *
+ * Modify the string in-place to remove the control characters
+ * in the interval: [0x01, 0x20)
+ */
+void
+virStringStripControlChars(char *str)
+{
+    size_t len, i, j;
+
+    if (!str)
+        return;
+
+    len = strlen(str);
+    for (i = 0, j = 0; i < len; i++) {
+        if (strchr(control_chars, str[i]))
+            continue;
+
+        str[j++] = str[i];
+    }
+    str[j] = '\0';
 }

@@ -2688,6 +2688,61 @@ cleanup:
 
 
 
+static int remoteDispatchDomainAddIOThread(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_add_iothread_args *args);
+static int remoteDispatchDomainAddIOThreadHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainAddIOThread");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainAddIOThread(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainAddIOThread(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_add_iothread_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainAddIOThread(dom, args->iothread_id, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainAttachDevice(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3756,6 +3811,61 @@ static int remoteDispatchDomainDefineXMLFlags(
         goto cleanup;
 
     make_nonnull_domain(&ret->dom, dom);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainDelIOThread(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_del_iothread_args *args);
+static int remoteDispatchDomainDelIOThreadHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainDelIOThread");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainDelIOThread(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainDelIOThread(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_del_iothread_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainDelIOThread(dom, args->iothread_id, args->flags) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -18969,6 +19079,33 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_interface_addresses_args,
    sizeof(remote_domain_interface_addresses_ret),
    (xdrproc_t)xdr_remote_domain_interface_addresses_ret,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackDeviceAdded => 354 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainAddIOThread => 355 */
+   remoteDispatchDomainAddIOThreadHelper,
+   sizeof(remote_domain_add_iothread_args),
+   (xdrproc_t)xdr_remote_domain_add_iothread_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainDelIOThread => 356 */
+   remoteDispatchDomainDelIOThreadHelper,
+   sizeof(remote_domain_del_iothread_args),
+   (xdrproc_t)xdr_remote_domain_del_iothread_args,
+   0,
+   (xdrproc_t)xdr_void,
    true,
    0
 },

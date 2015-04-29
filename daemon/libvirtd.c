@@ -105,7 +105,6 @@
 #include "configmake.h"
 
 #include "virdbus.h"
-#include "cpu/cpu_map.h"
 
 VIR_LOG_INIT("daemon.libvirtd");
 
@@ -1097,7 +1096,6 @@ daemonUsage(const char *argv0, bool privileged)
     }
 }
 
-#define MAX_LISTEN 5
 int main(int argc, char **argv) {
     virNetServerPtr srv = NULL;
     char *remote_config_file = NULL;

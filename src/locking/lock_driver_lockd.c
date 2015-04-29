@@ -38,10 +38,6 @@
 
 VIR_LOG_INIT("locking.lock_driver_lockd");
 
-#define virLockError(code, ...)                                     \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,             \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
 typedef struct _virLockManagerLockDaemonPrivate virLockManagerLockDaemonPrivate;
 typedef virLockManagerLockDaemonPrivate *virLockManagerLockDaemonPrivatePtr;
 
@@ -470,11 +466,8 @@ static int virLockManagerLockDaemonNew(virLockManagerPtr lock,
                            _("Missing ID parameter for domain object"));
             return -1;
         }
-        if (priv->pid == 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Missing PID parameter for domain object"));
-            return -1;
-        }
+        if (priv->pid == 0)
+            VIR_DEBUG("Missing PID parameter for domain object");
         if (!priv->name) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Missing name parameter for domain object"));

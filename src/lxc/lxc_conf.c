@@ -99,7 +99,7 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
         goto error;
 
     if ((guest = virCapabilitiesAddGuest(caps,
-                                         "exe",
+                                         VIR_DOMAIN_OSTYPE_EXE,
                                          caps->host.arch,
                                          lxc_path,
                                          NULL,
@@ -108,7 +108,7 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
         goto error;
 
     if (virCapabilitiesAddGuestDomain(guest,
-                                      "lxc",
+                                      VIR_DOMAIN_VIRT_LXC,
                                       NULL,
                                       NULL,
                                       0,
@@ -118,7 +118,7 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
     /* On 64-bit hosts, we can use personality() to request a 32bit process */
     if ((altArch = lxcContainerGetAlt32bitArch(caps->host.arch)) != VIR_ARCH_NONE) {
         if ((guest = virCapabilitiesAddGuest(caps,
-                                             "exe",
+                                             VIR_DOMAIN_OSTYPE_EXE,
                                              altArch,
                                              lxc_path,
                                              NULL,
@@ -127,7 +127,7 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
             goto error;
 
         if (virCapabilitiesAddGuestDomain(guest,
-                                          "lxc",
+                                          VIR_DOMAIN_VIRT_LXC,
                                           NULL,
                                           NULL,
                                           0,

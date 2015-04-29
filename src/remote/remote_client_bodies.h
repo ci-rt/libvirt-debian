@@ -1139,6 +1139,32 @@ done:
 }
 
 static int
+remoteDomainAddIOThread(virDomainPtr dom, unsigned int iothread_id, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_add_iothread_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.iothread_id = iothread_id;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_ADD_IOTHREAD,
+             (xdrproc_t)xdr_remote_domain_add_iothread_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainAttachDevice(virDomainPtr dom, const char *xml)
 {
     int rv = -1;
@@ -1552,6 +1578,32 @@ remoteDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
 
     rv = get_nonnull_domain(conn, ret.dom);
     xdr_free((xdrproc_t)xdr_remote_domain_define_xml_flags_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainDelIOThread(virDomainPtr dom, unsigned int iothread_id, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_del_iothread_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.iothread_id = iothread_id;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_DEL_IOTHREAD,
+             (xdrproc_t)xdr_remote_domain_del_iothread_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
 
 done:
     remoteDriverUnlock(priv);

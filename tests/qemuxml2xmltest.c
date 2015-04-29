@@ -55,7 +55,7 @@ testXML2XMLHelper(const char *inxml,
         format_flags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE;
 
     if (!(def = virDomainDefParseString(inXmlData, driver.caps, driver.xmlopt,
-                                        QEMU_EXPECTED_VIRT_TYPES, parse_flags)))
+                                        parse_flags)))
         goto fail;
 
     if (!virDomainDefCheckABIStability(def, def)) {
@@ -177,7 +177,6 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
     if (!(xml = virXMLParseString(source, "(domain_status_test_XML)")) ||
         !(obj = virDomainObjParseNode(xml, xmlDocGetRootElement(xml),
                                       driver.caps, driver.xmlopt,
-                                      QEMU_EXPECTED_VIRT_TYPES,
                                       VIR_DOMAIN_DEF_PARSE_STATUS |
                                       VIR_DOMAIN_DEF_PARSE_ACTUAL_NET |
                                       VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES |
@@ -361,6 +360,7 @@ mymain(void)
 
     DO_TEST("clock-utc");
     DO_TEST("clock-localtime");
+    DO_TEST_DIFFERENT("cpu-empty");
     DO_TEST("cpu-kvmclock");
     DO_TEST("cpu-host-kvmclock");
     DO_TEST("cpu-host-passthrough-features");
@@ -455,6 +455,7 @@ mymain(void)
     DO_TEST("sound");
     DO_TEST("sound-device");
     DO_TEST("net-bandwidth");
+    DO_TEST("net-bandwidth2");
 
     DO_TEST("serial-vc");
     DO_TEST("serial-pty");
@@ -492,6 +493,8 @@ mymain(void)
 
     DO_TEST("smp");
     DO_TEST("iothreads");
+    DO_TEST("iothreads-ids");
+    DO_TEST("iothreads-ids-partial");
     DO_TEST_DIFFERENT("cputune-iothreads");
     DO_TEST("iothreads-disk");
     DO_TEST("iothreads-disk-virtio-ccw");
@@ -503,6 +506,8 @@ mymain(void)
     DO_TEST("virtio-lun");
 
     DO_TEST("usb-redir");
+    DO_TEST_DIFFERENT("usb-redir-filter");
+    DO_TEST_DIFFERENT("usb-redir-filter-version");
     DO_TEST("blkdeviotune");
 
     DO_TEST_FULL("seclabel-dynamic-baselabel", false, WHEN_INACTIVE);
@@ -608,6 +613,8 @@ mymain(void)
     DO_TEST("memory-hotplug");
     DO_TEST("memory-hotplug-nonuma");
     DO_TEST("memory-hotplug-dimm");
+
+    DO_TEST("aarch64-cpu-model-host");
 
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);

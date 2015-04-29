@@ -34,8 +34,7 @@
 typedef char * (*virStorageBackendFindPoolSources)(virConnectPtr conn,
                                                    const char *srcSpec,
                                                    unsigned int flags);
-typedef int (*virStorageBackendCheckPool)(virConnectPtr conn,
-                                          virStoragePoolObjPtr pool,
+typedef int (*virStorageBackendCheckPool)(virStoragePoolObjPtr pool,
                                           bool *active);
 typedef int (*virStorageBackendStartPool)(virConnectPtr conn,
                                           virStoragePoolObjPtr pool);
@@ -188,18 +187,19 @@ int virStorageBackendUpdateVolTargetInfoFD(virStorageSourcePtr target,
                                            int fd,
                                            struct stat *sb);
 
+bool virStorageBackendPoolPathIsStable(const char *path);
 char *virStorageBackendStablePath(virStoragePoolObjPtr pool,
                                   const char *devpath,
                                   bool loop);
 
 virCommandPtr
-virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
-                                  virStoragePoolObjPtr pool,
-                                  virStorageVolDefPtr vol,
-                                  virStorageVolDefPtr inputvol,
-                                  unsigned int flags,
-                                  const char *create_tool,
-                                  int imgformat);
+virStorageBackendCreateQemuImgCmdFromVol(virConnectPtr conn,
+                                         virStoragePoolObjPtr pool,
+                                         virStorageVolDefPtr vol,
+                                         virStorageVolDefPtr inputvol,
+                                         unsigned int flags,
+                                         const char *create_tool,
+                                         int imgformat);
 
 /* ------- virStorageFile backends ------------ */
 typedef struct _virStorageFileBackend virStorageFileBackend;

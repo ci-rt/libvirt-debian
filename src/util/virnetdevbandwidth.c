@@ -43,6 +43,108 @@ virNetDevBandwidthFree(virNetDevBandwidthPtr def)
     VIR_FREE(def);
 }
 
+/**
+ * virNetDevBandwidthManipulateFilter:
+ * @ifname: interface to operate on
+ * @ifmac_ptr: MAC of the interface to create filter over
+ * @id: filter ID
+ * @class_id: where to place traffic
+ * @remove_old: whether to remove the filter
+ * @create_new: whether to create the filter
+ *
+ * TC filters are as crucial for traffic shaping as QDiscs. While
+ * QDiscs act like black boxes deciding which packets should be
+ * held up and which should be sent immediately, it's the filter
+ * that places a packet into the box. So, we may end up
+ * constructing a set of filters on a single device (e.g. a
+ * bridge) and filter the traffic into QDiscs based on the
+ * originating vNET device.
+ *
+ * Long story short, @ifname is the interface where the filter
+ * should be created. The @ifmac_ptr is the MAC address for which
+ * the filter should be created (usually different to the MAC
+ * address of @ifname). Then, like everything - even filters have
+ * an @id which should be unique (per @ifname). And @class_id
+ * tells into which QDisc should filter place the traffic.
+ *
+ * This function can be used for both, removing stale filter
+ * (@remove_old set to true) and creating new one (@create_new
+ * set to true). Both at once for the same price!
+ *
+ * Returns: 0 on success,
+ *         -1 otherwise (with error reported).
+ */
+static int ATTRIBUTE_NONNULL(1)
+virNetDevBandwidthManipulateFilter(const char *ifname,
+                                   const virMacAddr *ifmac_ptr,
+                                   unsigned int id,
+                                   const char *class_id,
+                                   bool remove_old,
+                                   bool create_new)
+{
+    int ret = -1;
+    char *filter_id = NULL;
+    virCommandPtr cmd = NULL;
+    unsigned char ifmac[VIR_MAC_BUFLEN];
+    char *mac[2] = {NULL, NULL};
+
+    if (!(remove_old || create_new)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("filter creation API error"));
+        goto cleanup;
+    }
+
+    /* u32 filters must have 800:: prefix. Don't ask. */
+    if (virAsprintf(&filter_id, "800::%u", id) < 0)
+        goto cleanup;
+
+    if (remove_old) {
+        int cmd_ret = 0;
+
+        cmd = virCommandNew(TC);
+        virCommandAddArgList(cmd, "filter", "del", "dev", ifname,
+                             "prio", "2", "handle",  filter_id, "u32", NULL);
+
+        if (virCommandRun(cmd, &cmd_ret) < 0)
+            goto cleanup;
+
+    }
+
+    if (create_new) {
+        virMacAddrGetRaw(ifmac_ptr, ifmac);
+
+        if (virAsprintf(&mac[0], "0x%02x%02x%02x%02x", ifmac[2],
+                        ifmac[3], ifmac[4], ifmac[5]) < 0 ||
+            virAsprintf(&mac[1], "0x%02x%02x", ifmac[0], ifmac[1]) < 0)
+            goto cleanup;
+
+        virCommandFree(cmd);
+        cmd = virCommandNew(TC);
+        /* Okay, this not nice. But since libvirt does not necessarily track
+         * interface IP address(es), and tc fw filter simply refuse to use
+         * ebtables marks, we need to use u32 selector to match MAC address.
+         * If libvirt will ever know something, remove this FIXME
+         */
+        virCommandAddArgList(cmd, "filter", "add", "dev", ifname, "protocol", "ip",
+                             "prio", "2", "handle", filter_id, "u32",
+                             "match", "u16", "0x0800", "0xffff", "at", "-2",
+                             "match", "u32", mac[0], "0xffffffff", "at", "-12",
+                             "match", "u16", mac[1], "0xffff", "at", "-14",
+                             "flowid", class_id, NULL);
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(mac[1]);
+    VIR_FREE(mac[0]);
+    VIR_FREE(filter_id);
+    virCommandFree(cmd);
+    return ret;
+}
+
 
 /**
  * virNetDevBandwidthSet:
@@ -209,8 +311,8 @@ virNetDevBandwidthSet(const char *ifname,
         virCommandFree(cmd);
         cmd = virCommandNew(TC);
         virCommandAddArgList(cmd, "filter", "add", "dev", ifname, "parent",
-                             "1:0", "protocol", "all", "handle", "1", "fw",
-                             "flowid", "1", NULL);
+                             "1:0", "protocol", "all", "prio", "1", "handle",
+                             "1", "fw", "flowid", "1", NULL);
 
         if (virCommandRun(cmd, NULL) < 0)
             goto cleanup;
@@ -389,7 +491,7 @@ virNetDevBandwidthEqual(virNetDevBandwidthPtr a,
  * virNetDevBandwidthPlug:
  * @brname: name of the bridge
  * @net_bandwidth: QoS settings on @brname
- * @ifmac: MAC of interface
+ * @ifmac_ptr: MAC of interface
  * @bandwidth: QoS settings for interface
  * @id: unique ID (MUST be greater than 2)
  *
@@ -416,19 +518,15 @@ virNetDevBandwidthPlug(const char *brname,
     virCommandPtr cmd = NULL;
     char *class_id = NULL;
     char *qdisc_id = NULL;
-    char *filter_id = NULL;
     char *floor = NULL;
     char *ceil = NULL;
-    unsigned char ifmac[VIR_MAC_BUFLEN];
     char ifmacStr[VIR_MAC_STRING_BUFLEN];
-    char *mac[2] = {NULL, NULL};
 
     if (id <= 2) {
         virReportError(VIR_ERR_INTERNAL_ERROR, _("Invalid class ID %d"), id);
         return -1;
     }
 
-    virMacAddrGetRaw(ifmac_ptr, ifmac);
     virMacAddrFormat(ifmac_ptr, ifmacStr);
 
     if (!net_bandwidth || !net_bandwidth->in) {
@@ -441,10 +539,6 @@ virNetDevBandwidthPlug(const char *brname,
 
     if (virAsprintf(&class_id, "1:%x", id) < 0 ||
         virAsprintf(&qdisc_id, "%x:", id) < 0 ||
-        virAsprintf(&filter_id, "%u", id) < 0 ||
-        virAsprintf(&mac[0], "0x%02x%02x%02x%02x", ifmac[2],
-                    ifmac[3], ifmac[4], ifmac[5]) < 0 ||
-        virAsprintf(&mac[1], "0x%02x%02x", ifmac[0], ifmac[1]) < 0 ||
         virAsprintf(&floor, "%llukbps", bandwidth->in->floor) < 0 ||
         virAsprintf(&ceil, "%llukbps", net_bandwidth->in->peak ?
                     net_bandwidth->in->peak :
@@ -468,31 +562,15 @@ virNetDevBandwidthPlug(const char *brname,
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    virCommandFree(cmd);
-    cmd = virCommandNew(TC);
-    /* Okay, this not nice. But since libvirt does not know anything about
-     * interface IP address(es), and tc fw filter simply refuse to use ebtables
-     * marks, we need to use u32 selector to match MAC address.
-     * If libvirt will ever know something, remove this FIXME
-     */
-    virCommandAddArgList(cmd, "filter", "add", "dev", brname, "protocol", "ip",
-                         "prio", filter_id, "u32",
-                         "match", "u16", "0x0800", "0xffff", "at", "-2",
-                         "match", "u32", mac[0], "0xffffffff", "at", "-12",
-                         "match", "u16", mac[1], "0xffff", "at", "-14",
-                         "flowid", class_id, NULL);
-
-    if (virCommandRun(cmd, NULL) < 0)
+    if (virNetDevBandwidthManipulateFilter(brname, ifmac_ptr, id,
+                                           class_id, false, true) < 0)
         goto cleanup;
 
     ret = 0;
 
  cleanup:
-    VIR_FREE(mac[1]);
-    VIR_FREE(mac[0]);
     VIR_FREE(ceil);
     VIR_FREE(floor);
-    VIR_FREE(filter_id);
     VIR_FREE(qdisc_id);
     VIR_FREE(class_id);
     virCommandFree(cmd);
@@ -517,7 +595,6 @@ virNetDevBandwidthUnplug(const char *brname,
     virCommandPtr cmd = NULL;
     char *class_id = NULL;
     char *qdisc_id = NULL;
-    char *filter_id = NULL;
 
     if (id <= 2) {
         virReportError(VIR_ERR_INTERNAL_ERROR, _("Invalid class ID %d"), id);
@@ -525,8 +602,7 @@ virNetDevBandwidthUnplug(const char *brname,
     }
 
     if (virAsprintf(&class_id, "1:%x", id) < 0 ||
-        virAsprintf(&qdisc_id, "%x:", id) < 0 ||
-        virAsprintf(&filter_id, "%u", id) < 0)
+        virAsprintf(&qdisc_id, "%x:", id) < 0)
         goto cleanup;
 
     cmd = virCommandNew(TC);
@@ -538,12 +614,8 @@ virNetDevBandwidthUnplug(const char *brname,
     if (virCommandRun(cmd, &cmd_ret) < 0)
         goto cleanup;
 
-    virCommandFree(cmd);
-    cmd = virCommandNew(TC);
-    virCommandAddArgList(cmd, "filter", "del", "dev", brname,
-                         "prio", filter_id, NULL);
-
-    if (virCommandRun(cmd, &cmd_ret) < 0)
+    if (virNetDevBandwidthManipulateFilter(brname, NULL, id,
+                                           NULL, true, false) < 0)
         goto cleanup;
 
     virCommandFree(cmd);
@@ -557,7 +629,6 @@ virNetDevBandwidthUnplug(const char *brname,
     ret = 0;
 
  cleanup:
-    VIR_FREE(filter_id);
     VIR_FREE(qdisc_id);
     VIR_FREE(class_id);
     virCommandFree(cmd);
@@ -608,5 +679,43 @@ virNetDevBandwidthUpdateRate(const char *ifname,
     virCommandFree(cmd);
     VIR_FREE(rate);
     VIR_FREE(ceil);
+    return ret;
+}
+
+/**
+ * virNetDevBandwidthUpdateFilter:
+ * @ifname: interface to operate on
+ * @ifmac_ptr: new MAC to update the filter with
+ * @id: filter ID
+ *
+ * Sometimes the host environment is so dynamic, that even a
+ * guest's MAC addresses change on the fly. When that happens we
+ * must update our QoS hierarchy so that the guest's traffic is
+ * placed into the correct QDiscs.  This function updates the
+ * filter for the interface @ifname with the unique identifier
+ * @id so that it uses the new MAC address of the guest interface
+ * @ifmac_ptr.
+ *
+ * Returns: 0 on success,
+ *         -1 on failure (with error reported).
+ */
+int
+virNetDevBandwidthUpdateFilter(const char *ifname,
+                               const virMacAddr *ifmac_ptr,
+                               unsigned int id)
+{
+    int ret = -1;
+    char *class_id = NULL;
+
+    if (virAsprintf(&class_id, "1:%x", id) < 0)
+        goto cleanup;
+
+    if (virNetDevBandwidthManipulateFilter(ifname, ifmac_ptr, id,
+                                           class_id, true, true) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(class_id);
     return ret;
 }

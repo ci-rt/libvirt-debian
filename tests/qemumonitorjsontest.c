@@ -1186,7 +1186,7 @@ GEN_TEST_FUNC(qemuMonitorJSONSetDrivePassphrase, "vda", "secret_passhprase")
 GEN_TEST_FUNC(qemuMonitorJSONDriveMirror, "vdb", "/foo/bar", NULL, 1024, 0, 0,
               VIR_DOMAIN_BLOCK_REBASE_SHALLOW | VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT)
 GEN_TEST_FUNC(qemuMonitorJSONBlockCommit, "vdb", "/foo/bar1", "/foo/bar2", NULL, 1024)
-GEN_TEST_FUNC(qemuMonitorJSONDrivePivot, "vdb", NULL, NULL)
+GEN_TEST_FUNC(qemuMonitorJSONDrivePivot, "vdb")
 GEN_TEST_FUNC(qemuMonitorJSONScreendump, "/foo/bar")
 GEN_TEST_FUNC(qemuMonitorJSONOpenGraphics, "spice", "spicefd", false)
 GEN_TEST_FUNC(qemuMonitorJSONNBDServerStart, "localhost", 12345)
@@ -2129,7 +2129,6 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
     char *jsonFile = NULL;
     char *dataFile = NULL;
     char *jsonStr = NULL;
-    char *expected = NULL;
     char *actual = NULL;
     int ret = -1;
 
@@ -2144,8 +2143,7 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
                     abs_srcdir, data->name) < 0)
         goto cleanup;
 
-    if (virtTestLoadFile(jsonFile, &jsonStr) < 0 ||
-        virtTestLoadFile(dataFile, &expected) < 0)
+    if (virtTestLoadFile(jsonFile, &jsonStr) < 0)
         goto cleanup;
 
     if (qemuMonitorTestAddItem(test, "qom-list",
@@ -2175,17 +2173,14 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
     if (!(actual = cpuDataFormat(cpuData)))
         goto cleanup;
 
-    if (STRNEQ(expected, actual)) {
-        virtTestDifference(stderr, expected, actual);
+    if (virtTestCompareToFile(actual, dataFile) < 0)
         goto cleanup;
-    }
 
     ret = 0;
  cleanup:
     VIR_FREE(jsonFile);
     VIR_FREE(dataFile);
     VIR_FREE(jsonStr);
-    VIR_FREE(expected);
     VIR_FREE(actual);
     cpuDataFree(cpuData);
     qemuMonitorTestFree(test);

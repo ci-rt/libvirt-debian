@@ -1145,8 +1145,7 @@ xenParseSxpr(const struct sexpr *root,
             goto error;
     }
 
-    if (VIR_STRDUP(def->os.type, hvm ? "hvm" : "linux") < 0)
-        goto error;
+    def->os.type = (hvm ? VIR_DOMAIN_OSTYPE_HVM : VIR_DOMAIN_OSTYPE_LINUX);
 
     if (def->id != 0) {
         if (sexpr_lookup(root, "domain/image")) {
@@ -1165,6 +1164,13 @@ xenParseSxpr(const struct sexpr *root,
         if (virBitmapParse(cpus, 0, &def->cpumask,
                            VIR_DOMAIN_CPUMASK_LEN) < 0)
             goto error;
+
+        if (virBitmapIsAllClear(def->cpumask)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Invalid value of 'cpumask': %s"),
+                           cpus);
+            goto error;
+        }
     }
 
     def->maxvcpus = sexpr_int(root, "domain/vcpus");
@@ -2266,7 +2272,7 @@ xenFormatSxpr(virConnectPtr conn,
     }
     virBufferAsprintf(&buf, "(on_crash '%s')", tmp);
 
-    if (STREQ(def->os.type, "hvm"))
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM)
         hvm = 1;
 
     if (!def->os.bootloader) {

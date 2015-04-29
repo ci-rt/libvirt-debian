@@ -35,28 +35,28 @@ testCapsInit(void)
 
     /* i686 guest */
     guest =
-      virCapabilitiesAddGuest(caps, "hvm",
+      virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
                               VIR_ARCH_I686,
                               NULL, NULL, 0, NULL);
 
     if (guest == NULL)
         goto failure;
 
-    if (virCapabilitiesAddGuestDomain(guest, "vmware", NULL, NULL, 0,
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_VMWARE, NULL, NULL, 0,
                                       NULL) == NULL) {
         goto failure;
     }
 
     /* x86_64 guest */
     guest =
-      virCapabilitiesAddGuest(caps, "hvm",
+      virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
                               VIR_ARCH_X86_64,
                               NULL, NULL, 0, NULL);
 
     if (guest == NULL)
         goto failure;
 
-    if (virCapabilitiesAddGuestDomain(guest, "vmware", NULL, NULL, 0,
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_VMWARE, NULL, NULL, 0,
                                       NULL) == NULL) {
         goto failure;
     }
@@ -73,20 +73,11 @@ static int
 testCompareFiles(const char *xml, const char *vmx, int virtualHW_version)
 {
     int result = -1;
-    char *xmlData = NULL;
-    char *vmxData = NULL;
     char *formatted = NULL;
     virDomainDefPtr def = NULL;
 
-    if (virtTestLoadFile(xml, &xmlData) < 0)
-        goto failure;
-
-    if (virtTestLoadFile(vmx, &vmxData) < 0)
-        goto failure;
-
-    def = virDomainDefParseString(xmlData, caps, xmlopt,
-                                  1 << VIR_DOMAIN_VIRT_VMWARE,
-                                  VIR_DOMAIN_DEF_PARSE_INACTIVE);
+    def = virDomainDefParseFile(xml, caps, xmlopt,
+                                VIR_DOMAIN_DEF_PARSE_INACTIVE);
 
     if (def == NULL)
         goto failure;
@@ -97,20 +88,15 @@ testCompareFiles(const char *xml, const char *vmx, int virtualHW_version)
     }
 
     formatted = virVMXFormatConfig(&ctx, xmlopt, def, virtualHW_version);
-
     if (formatted == NULL)
         goto failure;
 
-    if (STRNEQ(vmxData, formatted)) {
-        virtTestDifference(stderr, vmxData, formatted);
+    if (virtTestCompareToFile(formatted, vmx) < 0)
         goto failure;
-    }
 
     result = 0;
 
  failure:
-    VIR_FREE(xmlData);
-    VIR_FREE(vmxData);
     VIR_FREE(formatted);
     virDomainDefFree(def);
 

@@ -264,9 +264,7 @@ int qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
                                unsigned int flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 int qemuMonitorJSONDrivePivot(qemuMonitorPtr mon,
-                              const char *device,
-                              const char *file,
-                              const char *format)
+                              const char *device)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
@@ -299,13 +297,23 @@ int qemuMonitorJSONSendKey(qemuMonitorPtr mon,
 int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
                               const char *file);
 
-int qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
-                            const char *device,
-                            const char *base,
-                            const char *backingName,
-                            unsigned long long speed,
-                            qemuMonitorBlockJobCmd mode,
-                            bool modern)
+int qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
+                               const char *device,
+                               const char *base,
+                               const char *backingName,
+                               unsigned long long speed,
+                               bool modern)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockJobCancel(qemuMonitorPtr mon,
+                                  const char *device,
+                                  bool modern)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockJobSetSpeed(qemuMonitorPtr mon,
+                                    const char *device,
+                                    unsigned long long speed,
+                                    bool modern)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorJSONBlockJobInfo(qemuMonitorPtr mon,

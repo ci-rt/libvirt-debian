@@ -45,8 +45,6 @@ static virDomainXMLOptionPtr xmlopt;
 static int
 testCompareParseXML(const char *xmcfg, const char *xml, int xendConfigVersion)
 {
-    char *xmlData = NULL;
-    char *xmcfgData = NULL;
     char *gotxmcfgData = NULL;
     virConfPtr conf = NULL;
     int ret = -1;
@@ -61,20 +59,13 @@ testCompareParseXML(const char *xmcfg, const char *xml, int xendConfigVersion)
     conn = virGetConnect();
     if (!conn) goto fail;
 
-    if (virtTestLoadFile(xml, &xmlData) < 0)
-        goto fail;
-
-    if (virtTestLoadFile(xmcfg, &xmcfgData) < 0)
-        goto fail;
-
     /* Many puppies died to bring you this code. */
     priv.xendConfigVersion = xendConfigVersion;
     priv.caps = caps;
     conn->privateData = &priv;
 
-    if (!(def = virDomainDefParseString(xmlData, caps, xmlopt,
-                                        1 << VIR_DOMAIN_VIRT_XEN,
-                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+    if (!(def = virDomainDefParseFile(xml, caps, xmlopt,
+                                      VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto fail;
 
     if (!virDomainDefCheckABIStability(def, def)) {
@@ -89,16 +80,12 @@ testCompareParseXML(const char *xmcfg, const char *xml, int xendConfigVersion)
         goto fail;
     gotxmcfgData[wrote] = '\0';
 
-    if (STRNEQ(xmcfgData, gotxmcfgData)) {
-        virtTestDifference(stderr, xmcfgData, gotxmcfgData);
+    if (virtTestCompareToFile(gotxmcfgData, xmcfg) < 0)
         goto fail;
-    }
 
     ret = 0;
 
  fail:
-    VIR_FREE(xmlData);
-    VIR_FREE(xmcfgData);
     VIR_FREE(gotxmcfgData);
     if (conf)
         virConfFree(conf);
@@ -111,7 +98,6 @@ testCompareParseXML(const char *xmcfg, const char *xml, int xendConfigVersion)
 static int
 testCompareFormatXML(const char *xmcfg, const char *xml, int xendConfigVersion)
 {
-    char *xmlData = NULL;
     char *xmcfgData = NULL;
     char *gotxml = NULL;
     virConfPtr conf = NULL;
@@ -122,9 +108,6 @@ testCompareFormatXML(const char *xmcfg, const char *xml, int xendConfigVersion)
 
     conn = virGetConnect();
     if (!conn) goto fail;
-
-    if (virtTestLoadFile(xml, &xmlData) < 0)
-        goto fail;
 
     if (virtTestLoadFile(xmcfg, &xmcfgData) < 0)
         goto fail;
@@ -143,17 +126,14 @@ testCompareFormatXML(const char *xmcfg, const char *xml, int xendConfigVersion)
     if (!(gotxml = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_SECURE)))
         goto fail;
 
-    if (STRNEQ(xmlData, gotxml)) {
-        virtTestDifference(stderr, xmlData, gotxml);
+    if (virtTestCompareToFile(gotxml, xml) < 0)
         goto fail;
-    }
 
     ret = 0;
 
  fail:
     if (conf)
         virConfFree(conf);
-    VIR_FREE(xmlData);
     VIR_FREE(xmcfgData);
     VIR_FREE(gotxml);
     virDomainDefFree(def);

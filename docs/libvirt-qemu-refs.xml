@@ -7,6 +7,7 @@
     <reference name='VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT' href='html/libvirt-qemu-libvirt-qemu.html#VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT'/>
     <reference name='VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN' href='html/libvirt-qemu-libvirt-qemu.html#VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN'/>
     <reference name='VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT' href='html/libvirt-qemu-libvirt-qemu.html#VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT'/>
+    <reference name='VIR_DOMAIN_QEMU_AGENT_COMMAND_SHUTDOWN' href='html/libvirt-qemu-libvirt-qemu.html#VIR_DOMAIN_QEMU_AGENT_COMMAND_SHUTDOWN'/>
     <reference name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT' href='html/libvirt-qemu-libvirt-qemu.html#VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT'/>
     <reference name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP' href='html/libvirt-qemu-libvirt-qemu.html#VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP'/>
     <reference name='virConnectDomainQemuMonitorEventCallback' href='html/libvirt-qemu-libvirt-qemu.html#virConnectDomainQemuMonitorEventCallback'/>
@@ -27,6 +28,7 @@
       <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT'/>
       <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN'/>
       <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT'/>
+      <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_SHUTDOWN'/>
       <ref name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT'/>
       <ref name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP'/>
     </letter>
@@ -92,6 +94,7 @@
       <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT'/>
       <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN'/>
       <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT'/>
+      <ref name='VIR_DOMAIN_QEMU_AGENT_COMMAND_SHUTDOWN'/>
       <ref name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT'/>
       <ref name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP'/>
       <ref name='virConnectDomainQemuMonitorEventCallback'/>

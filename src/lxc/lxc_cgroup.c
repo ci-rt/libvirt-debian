@@ -77,11 +77,15 @@ static int virLXCCgroupSetupCpusetTune(virDomainDefPtr def,
 
         if (virCgroupSetCpusetCpus(cgroup, mask) < 0)
             goto cleanup;
+        /* free mask to make sure we won't use it in a wrong way later */
+        VIR_FREE(mask);
     }
 
     if (virDomainNumatuneGetMode(def->numa, -1) !=
-        VIR_DOMAIN_NUMATUNE_MEM_STRICT)
+        VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
+        ret = 0;
         goto cleanup;
+    }
 
     if (virDomainNumatuneMaybeFormatNodeset(def->numa, nodemask,
                                             &mask, -1) < 0)

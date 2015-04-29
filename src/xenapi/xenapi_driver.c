@@ -52,7 +52,7 @@ xenapiDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
         dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
         dev->data.chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_NONE &&
-        STRNEQ(def->os.type, "hvm"))
+        def->os.type != VIR_DOMAIN_OSTYPE_HVM)
         dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
 
     /* forbid capabilities mode hostdev in this kind of hypervisor */
@@ -106,16 +106,16 @@ getCapsObject(void)
 
     if (!caps)
         return NULL;
-    guest1 = virCapabilitiesAddGuest(caps, "hvm", VIR_ARCH_X86_64, "", "", 0, NULL);
+    guest1 = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_X86_64, "", "", 0, NULL);
     if (!guest1)
         goto error_cleanup;
-    domain1 = virCapabilitiesAddGuestDomain(guest1, "xen", "", "", 0, NULL);
+    domain1 = virCapabilitiesAddGuestDomain(guest1, VIR_DOMAIN_VIRT_XEN, "", "", 0, NULL);
     if (!domain1)
         goto error_cleanup;
-    guest2 = virCapabilitiesAddGuest(caps, "xen", VIR_ARCH_X86_64, "", "", 0, NULL);
+    guest2 = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_XEN, VIR_ARCH_X86_64, "", "", 0, NULL);
     if (!guest2)
         goto error_cleanup;
-    domain2 = virCapabilitiesAddGuestDomain(guest2, "xen", "", "", 0, NULL);
+    domain2 = virCapabilitiesAddGuestDomain(guest2, VIR_DOMAIN_VIRT_XEN, "", "", 0, NULL);
     if (!domain2)
         goto error_cleanup;
 
@@ -565,7 +565,6 @@ xenapiDomainCreateXML(virConnectPtr conn,
 
     virDomainDefPtr defPtr = virDomainDefParseString(xmlDesc,
                                                      priv->caps, priv->xmlopt,
-                                                     1 << VIR_DOMAIN_VIRT_XEN,
                                                      parse_flags);
     if (!defPtr)
         return NULL;
@@ -1427,10 +1426,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         goto error;
     xen_vm_get_hvm_boot_policy(session, &boot_policy, vm);
     if (STREQ(boot_policy, "BIOS order")) {
-        if (VIR_STRDUP(defPtr->os.type, "hvm") < 0) {
-            VIR_FREE(boot_policy);
-            goto error;
-        }
+        defPtr->os.type = VIR_DOMAIN_OSTYPE_HVM;
         xen_vm_get_hvm_boot_params(session, &result, vm);
         if (result != NULL) {
             size_t i;
@@ -1450,10 +1446,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         VIR_FREE(boot_policy);
     } else {
         char *value = NULL;
-        if (VIR_STRDUP(defPtr->os.type, "xen") < 0) {
-            VIR_FREE(boot_policy);
-            goto error;
-        }
+        defPtr->os.type = VIR_DOMAIN_OSTYPE_XEN;
         if (VIR_ALLOC(defPtr->os.loader) < 0 ||
             VIR_STRDUP(defPtr->os.loader->path, "pygrub") < 0) {
             VIR_FREE(boot_policy);
@@ -1746,7 +1739,6 @@ xenapiDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
         return NULL;
     virDomainDefPtr defPtr = virDomainDefParseString(xml,
                                                      priv->caps, priv->xmlopt,
-                                                     1 << VIR_DOMAIN_VIRT_XEN,
                                                      parse_flags);
     if (!defPtr)
         return NULL;

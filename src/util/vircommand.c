@@ -919,17 +919,13 @@ virCommandNewArgs(const char *const*args)
 virCommandPtr
 virCommandNewArgList(const char *binary, ...)
 {
-    virCommandPtr cmd = virCommandNew(binary);
+    virCommandPtr cmd;
     va_list list;
-    const char *arg;
-
-    if (!cmd || cmd->has_error)
-        return cmd;
 
     va_start(list, binary);
-    while ((arg = va_arg(list, const char *)) != NULL)
-        virCommandAddArg(cmd, arg);
+    cmd = virCommandNewVAList(binary, list);
     va_end(list);
+
     return cmd;
 }
 
@@ -2097,7 +2093,7 @@ virCommandProcessIO(virCommandPtr cmd)
                 }
             }
 
-            if (fds[i].revents & (POLLOUT | POLLERR) &&
+            if (fds[i].revents & (POLLOUT | POLLHUP | POLLERR) &&
                 fds[i].fd == cmd->inpipe) {
                 int done;
 

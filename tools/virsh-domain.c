@@ -47,6 +47,7 @@
 #include "virjson.h"
 #include "virkeycode.h"
 #include "virmacaddr.h"
+#include "virnetdevbandwidth.h"
 #include "virprocess.h"
 #include "virstring.h"
 #include "virsh-console.h"
@@ -117,9 +118,6 @@ vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
 {
     const char *n = NULL;
     const char *optname = "domain";
-
-    if (!vshCmdHasOption(ctl, cmd, optname))
-        return NULL;
 
     if (vshCommandOptStringReq(ctl, cmd, optname, &n) < 0)
         return NULL;
@@ -5766,6 +5764,15 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
     }
 
     vshPrint(ctl, "%-17s %-12llu ms\n", _("Time elapsed:"), info.timeElapsed);
+    if ((rc = virTypedParamsGetULLong(params, nparams,
+                                      VIR_DOMAIN_JOB_TIME_ELAPSED_NET,
+                                      &value)) < 0) {
+        goto save_error;
+    } else if (rc) {
+        vshPrint(ctl, "%-17s %-12llu ms\n", _("Time elapsed w/o network:"),
+                 value);
+    }
+
     if (info.type == VIR_DOMAIN_JOB_BOUNDED)
         vshPrint(ctl, "%-17s %-12llu ms\n", _("Time remaining:"),
                  info.timeRemaining);
@@ -5853,6 +5860,13 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
                      _("Expected downtime:"), value);
         }
     }
+
+    if ((rc = virTypedParamsGetULLong(params, nparams,
+                                      VIR_DOMAIN_JOB_DOWNTIME_NET,
+                                      &value)) < 0)
+        goto save_error;
+    else if (rc)
+        vshPrint(ctl, "%-17s %-12llu ms\n", _("Downtime w/o network:"), value);
 
     if ((rc = virTypedParamsGetULLong(params, nparams,
                                       VIR_DOMAIN_JOB_SETUP_TIME,
@@ -6321,129 +6335,39 @@ static const vshCmdOptDef opts_vcpupin[] = {
  * Helper function to print vcpupin info.
  */
 static bool
-vshPrintPinInfo(unsigned char *cpumaps, size_t cpumaplen,
-                int maxcpu, int vcpuindex)
+vshPrintPinInfo(unsigned char *cpumap, size_t cpumaplen)
 {
-    int cpu, lastcpu;
-    bool bit, lastbit, isInvert;
+    char *str = NULL;
 
-    if (!cpumaps || cpumaplen <= 0 || maxcpu <= 0 || vcpuindex < 0)
+    if (!(str = virBitmapDataToString(cpumap, cpumaplen)))
         return false;
 
-    bit = lastbit = isInvert = false;
-    lastcpu = -1;
-
-    for (cpu = 0; cpu < maxcpu; cpu++) {
-        bit = VIR_CPU_USABLE(cpumaps, cpumaplen, vcpuindex, cpu);
-
-        isInvert = (bit ^ lastbit);
-        if (bit && isInvert) {
-            if (lastcpu == -1)
-                vshPrint(ctl, "%d", cpu);
-            else
-                vshPrint(ctl, ",%d", cpu);
-            lastcpu = cpu;
-        }
-        if (!bit && isInvert && lastcpu != cpu - 1)
-            vshPrint(ctl, "-%d", cpu - 1);
-        lastbit = bit;
-    }
-    if (bit && !isInvert)
-        vshPrint(ctl, "-%d", maxcpu - 1);
-
+    vshPrint(ctl, "%s", str);
+    VIR_FREE(str);
     return true;
 }
 
 static unsigned char *
-vshParseCPUList(vshControl *ctl, const char *cpulist,
-                int maxcpu, size_t cpumaplen)
+vshParseCPUList(int *cpumaplen, const char *cpulist, int maxcpu)
 {
     unsigned char *cpumap = NULL;
-    const char *cur;
-    bool unuse = false;
-    int cpu, lastcpu;
-    size_t i;
+    virBitmapPtr map = NULL;
 
-    cpumap = vshCalloc(ctl, cpumaplen, sizeof(*cpumap));
-
-    /* Parse cpulist */
-    cur = cpulist;
-    if (*cur == 'r') {
-        for (cpu = 0; cpu < maxcpu; cpu++)
-            VIR_USE_CPU(cpumap, cpu);
-        return cpumap;
-    } else if (*cur == 0) {
-        goto error;
+    if (cpulist[0] == 'r') {
+        if (!(map = virBitmapNew(maxcpu)))
+            return NULL;
+        virBitmapSetAll(map);
+    } else {
+        if (virBitmapParse(cpulist, '\0', &map, maxcpu) < 0)
+            return NULL;
     }
 
-    while (*cur != 0) {
-        /* The char '^' denotes exclusive */
-        if (*cur == '^') {
-            cur++;
-            unuse = true;
-        }
+    if (virBitmapToData(map, &cpumap, cpumaplen) < 0)
+        goto cleanup;
 
-        /* Parse physical CPU number */
-        if (!c_isdigit(*cur))
-            goto error;
-
-        if ((cpu = virParseNumber(&cur)) < 0)
-            goto error;
-
-        if (cpu >= maxcpu) {
-            vshError(ctl, _("Physical CPU %d doesn't exist."), cpu);
-            goto cleanup;
-        }
-
-        virSkipSpaces(&cur);
-
-        if (*cur == ',' || *cur == 0) {
-            if (unuse)
-                VIR_UNUSE_CPU(cpumap, cpu);
-            else
-                VIR_USE_CPU(cpumap, cpu);
-        } else if (*cur == '-') {
-            /* The char '-' denotes range */
-            if (unuse)
-                goto error;
-            cur++;
-            virSkipSpaces(&cur);
-
-            /* Parse the end of range */
-            lastcpu = virParseNumber(&cur);
-
-            if (lastcpu < cpu)
-                goto error;
-
-            if (lastcpu >= maxcpu) {
-                vshError(ctl, _("Physical CPU %d doesn't exist."), lastcpu);
-                goto cleanup;
-            }
-
-            for (i = cpu; i <= lastcpu; i++)
-                VIR_USE_CPU(cpumap, i);
-
-            virSkipSpaces(&cur);
-        }
-
-        if (*cur == ',') {
-            cur++;
-            virSkipSpaces(&cur);
-            unuse = false;
-        } else if (*cur == 0) {
-            break;
-        } else {
-            goto error;
-        }
-    }
-
-    return cpumap;
-
- error:
-    vshError(ctl, "%s", _("cpulist: Invalid format."));
  cleanup:
-    VIR_FREE(cpumap);
-    return NULL;
+    virBitmapFree(map);
+    return cpumap;
 }
 
 static bool
@@ -6454,7 +6378,7 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
     const char *cpulist = NULL;
     bool ret = false;
     unsigned char *cpumap = NULL;
-    size_t cpumaplen;
+    int cpumaplen;
     int maxcpu, ncpus;
     size_t i;
     bool config = vshCommandOptBool(cmd, "config");
@@ -6493,7 +6417,6 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
 
     if ((maxcpu = vshNodeGetCPUCount(ctl->conn)) < 0)
         return false;
-    cpumaplen = VIR_CPU_MAPLEN(maxcpu);
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -6515,25 +6438,27 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
         }
 
+        cpumaplen = VIR_CPU_MAPLEN(maxcpu);
         cpumap = vshMalloc(ctl, ncpus * cpumaplen);
         if ((ncpus = virDomainGetVcpuPinInfo(dom, ncpus, cpumap,
                                              cpumaplen, flags)) >= 0) {
             vshPrintExtra(ctl, "%s %s\n", _("VCPU:"), _("CPU Affinity"));
             vshPrintExtra(ctl, "----------------------------------\n");
             for (i = 0; i < ncpus; i++) {
-               if (got_vcpu && i != vcpu)
-                   continue;
+                if (got_vcpu && i != vcpu)
+                    continue;
 
-               vshPrint(ctl, "%4zu: ", i);
-               ret = vshPrintPinInfo(cpumap, cpumaplen, maxcpu, i);
-               vshPrint(ctl, "\n");
-               if (!ret)
-                   break;
+                vshPrint(ctl, "%4zu: ", i);
+                ret = vshPrintPinInfo(VIR_GET_CPUMAP(cpumap, cpumaplen, i),
+                                      cpumaplen);
+                vshPrint(ctl, "\n");
+                if (!ret)
+                    break;
             }
         }
     } else {
         /* Pin mode: pinning specified vcpu to specified physical cpus*/
-        if (!(cpumap = vshParseCPUList(ctl, cpulist, maxcpu, cpumaplen)))
+        if (!(cpumap = vshParseCPUList(&cpumaplen, cpulist, maxcpu)))
             goto cleanup;
 
         if (flags == -1) {
@@ -6598,8 +6523,7 @@ cmdEmulatorPin(vshControl *ctl, const vshCmd *cmd)
     const char *cpulist = NULL;
     bool ret = false;
     unsigned char *cpumap = NULL;
-    unsigned char *cpumaps = NULL;
-    size_t cpumaplen;
+    int cpumaplen;
     int maxcpu;
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
@@ -6632,8 +6556,6 @@ cmdEmulatorPin(vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
-    cpumaplen = VIR_CPU_MAPLEN(maxcpu);
-
     /* Query mode: show CPU affinity information then exit.*/
     if (query) {
         /* When query mode and neither "live", "config" nor "current"
@@ -6641,21 +6563,21 @@ cmdEmulatorPin(vshControl *ctl, const vshCmd *cmd)
         if (flags == -1)
             flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-        cpumaps = vshMalloc(ctl, cpumaplen);
-        if (virDomainGetEmulatorPinInfo(dom, cpumaps,
+        cpumaplen = VIR_CPU_MAPLEN(maxcpu);
+        cpumap = vshMalloc(ctl, cpumaplen);
+        if (virDomainGetEmulatorPinInfo(dom, cpumap,
                                         cpumaplen, flags) >= 0) {
             vshPrintExtra(ctl, "%s %s\n", _("emulator:"), _("CPU Affinity"));
             vshPrintExtra(ctl, "----------------------------------\n");
             vshPrintExtra(ctl, "       *: ");
-            ret = vshPrintPinInfo(cpumaps, cpumaplen, maxcpu, 0);
+            ret = vshPrintPinInfo(cpumap, cpumaplen);
             vshPrint(ctl, "\n");
         }
-        VIR_FREE(cpumaps);
         goto cleanup;
     }
 
     /* Pin mode: pinning emulator threads to specified physical cpus*/
-    if (!(cpumap = vshParseCPUList(ctl, cpulist, maxcpu, cpumaplen)))
+    if (!(cpumap = vshParseCPUList(&cpumaplen, cpulist, maxcpu)))
         goto cleanup;
 
     if (flags == -1)
@@ -6864,8 +6786,7 @@ cmdIOThreadInfo(vshControl *ctl, const vshCmd *cmd)
     for (i = 0; i < niothreads; i++) {
 
         vshPrint(ctl, " %-15u ", info[i]->iothread_id);
-        ignore_value(vshPrintPinInfo(info[i]->cpumap, info[i]->cpumaplen,
-                                     maxcpu, 0));
+        ignore_value(vshPrintPinInfo(info[i]->cpumap, info[i]->cpumaplen));
         vshPrint(ctl, "\n");
         virDomainIOThreadInfoFree(info[i]);
     }
@@ -6932,7 +6853,7 @@ cmdIOThreadPin(vshControl *ctl, const vshCmd *cmd)
     int maxcpu;
     bool ret = false;
     unsigned char *cpumap = NULL;
-    size_t cpumaplen;
+    int cpumaplen;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
     VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
@@ -6958,10 +6879,8 @@ cmdIOThreadPin(vshControl *ctl, const vshCmd *cmd)
 
     if ((maxcpu = vshNodeGetCPUCount(ctl->conn)) < 0)
         goto cleanup;
-    cpumaplen = VIR_CPU_MAPLEN(maxcpu);
 
-    /* Pin mode: pinning specified vcpu to specified physical cpus*/
-    if (!(cpumap = vshParseCPUList(ctl, cpulist, maxcpu, cpumaplen)))
+    if (!(cpumap = vshParseCPUList(&cpumaplen, cpulist, maxcpu)))
         goto cleanup;
 
     if (virDomainPinIOThread(dom, iothread_id,
@@ -6972,6 +6891,166 @@ cmdIOThreadPin(vshControl *ctl, const vshCmd *cmd)
 
  cleanup:
     VIR_FREE(cpumap);
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "iothreadadd" command
+ */
+static const vshCmdInfo info_iothreadadd[] = {
+    {.name = "help",
+     .data = N_("add an IOThread to the guest domain")
+    },
+    {.name = "desc",
+     .data = N_("Add an IOThread to the guest domain.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_iothreadadd[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "id",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("iothread for the new IOThread")
+    },
+    {.name = "config",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect next boot")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect running domain")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect current domain")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdIOThreadAdd(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    int iothread_id = 0;
+    bool ret = false;
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool current = vshCommandOptBool(cmd, "current");
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (vshCommandOptInt(cmd, "id", &iothread_id) < 0) {
+        vshError(ctl, "%s", _("Unable to parse integer parameter"));
+        goto cleanup;
+    }
+    if (iothread_id <= 0) {
+        vshError(ctl, _("Invalid IOThread id value: '%d'"), iothread_id);
+        goto cleanup;
+    }
+
+    if (virDomainAddIOThread(dom, iothread_id, flags) < 0)
+        goto cleanup;
+
+    ret = true;
+
+ cleanup:
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "iothreaddel" command
+ */
+static const vshCmdInfo info_iothreaddel[] = {
+    {.name = "help",
+     .data = N_("delete an IOThread from the guest domain")
+    },
+    {.name = "desc",
+     .data = N_("Delete an IOThread from the guest domain.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_iothreaddel[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "id",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("iothread_id for the IOThread to delete")
+    },
+    {.name = "config",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect next boot")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect running domain")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect current domain")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdIOThreadDel(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    int iothread_id = 0;
+    bool ret = false;
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool current = vshCommandOptBool(cmd, "current");
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (vshCommandOptInt(cmd, "id", &iothread_id) < 0) {
+        vshError(ctl, "%s", _("Unable to parse integer parameter"));
+        goto cleanup;
+    }
+    if (iothread_id <= 0) {
+        vshError(ctl, _("Invalid IOThread id value: '%d'"), iothread_id);
+        goto cleanup;
+    }
+
+    if (virDomainDelIOThread(dom, iothread_id, flags) < 0)
+        goto cleanup;
+
+    ret = true;
+
+ cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -8511,7 +8590,7 @@ cmdMemtune(vshControl *ctl, const vshCmd *cmd)
 
 #define PARSE_MEMTUNE_PARAM(NAME, FIELD)                                    \
     if ((rc = vshMemtuneGetSize(cmd, NAME, &tmpVal)) < 0) {                 \
-        vshError(ctl, "%s", _("Unable to parse integer parameter 'NAME'")); \
+        vshError(ctl, _("Unable to parse integer parameter %s"), NAME);     \
         goto cleanup;                                                       \
     }                                                                       \
     if (rc == 1) {                                                          \
@@ -11959,6 +12038,24 @@ vshEventDeviceRemovedPrint(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 static void
+vshEventDeviceAddedPrint(virConnectPtr conn ATTRIBUTE_UNUSED,
+                           virDomainPtr dom,
+                           const char *alias,
+                           void *opaque)
+{
+    vshDomEventData *data = opaque;
+
+    if (!data->loop && *data->count)
+        return;
+    vshPrint(data->ctl,
+             _("event 'device-added' for domain %s: %s\n"),
+             virDomainGetName(dom), alias);
+    (*data->count)++;
+    if (!data->loop)
+        vshEventDone(data->ctl);
+}
+
+static void
 vshEventTunablePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
                      virDomainPtr dom,
                      virTypedParameterPtr params,
@@ -12063,6 +12160,8 @@ static vshEventCallback vshEventCallbacks[] = {
       VIR_DOMAIN_EVENT_CALLBACK(vshEventTunablePrint), },
     { "agent-lifecycle",
       VIR_DOMAIN_EVENT_CALLBACK(vshEventAgentLifecyclePrint), },
+    { "device-added",
+      VIR_DOMAIN_EVENT_CALLBACK(vshEventDeviceAddedPrint), },
 };
 verify(VIR_DOMAIN_EVENT_ID_LAST == ARRAY_CARDINALITY(vshEventCallbacks));
 
@@ -12295,6 +12394,7 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
     bool ret = false;
     vshUpdateDiskXMLType update_type;
     const char *action = NULL;
+    const char *success_msg = NULL;
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
@@ -12314,16 +12414,19 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
     if (eject) {
         update_type = VSH_UPDATE_DISK_XML_EJECT;
         action = "eject";
+        success_msg = _("Successfully ejected media.");
     }
 
     if (insert) {
         update_type = VSH_UPDATE_DISK_XML_INSERT;
         action = "insert";
+        success_msg = _("Successfully inserted media.");
     }
 
     if (update || (!eject && !insert)) {
         update_type = VSH_UPDATE_DISK_XML_UPDATE;
         action = "update";
+        success_msg = _("Successfully updated media.");
     }
 
     VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
@@ -12367,7 +12470,7 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
         }
 
-        vshPrint(ctl, _("succeeded to complete action %s on media\n"), action);
+        vshPrint(ctl, "%s", success_msg);
     }
 
     ret = true;
@@ -12900,6 +13003,18 @@ const vshCmdDef domManagementCmds[] = {
      .handler = cmdIOThreadPin,
      .opts = opts_iothreadpin,
      .info = info_iothreadpin,
+     .flags = 0
+    },
+    {.name = "iothreadadd",
+     .handler = cmdIOThreadAdd,
+     .opts = opts_iothreadadd,
+     .info = info_iothreadadd,
+     .flags = 0
+    },
+    {.name = "iothreaddel",
+     .handler = cmdIOThreadDel,
+     .opts = opts_iothreaddel,
+     .info = info_iothreaddel,
      .flags = 0
     },
     {.name = "send-key",

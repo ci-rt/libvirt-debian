@@ -124,6 +124,7 @@
      <exports symbol='VIR_DOMAIN_JOB_DISK_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DISK_TOTAL' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_DOWNTIME' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DOWNTIME_NET' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_BPS' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_CONSTANT' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_NORMAL' type='macro'/>
@@ -133,6 +134,7 @@
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_TOTAL' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_SETUP_TIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED_NET' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_HARD_LIMIT' type='macro'/>
@@ -318,6 +320,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_BLOCK_JOB' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_DEVICE_ADDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DISK_CHANGE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_GRAPHICS' type='enum'/>
@@ -772,6 +775,7 @@
      <exports symbol='virConnectDomainEventCallback' type='function'/>
      <exports symbol='virConnectDomainEventDeregister' type='function'/>
      <exports symbol='virConnectDomainEventDeregisterAny' type='function'/>
+     <exports symbol='virConnectDomainEventDeviceAddedCallback' type='function'/>
      <exports symbol='virConnectDomainEventDeviceRemovedCallback' type='function'/>
      <exports symbol='virConnectDomainEventDiskChangeCallback' type='function'/>
      <exports symbol='virConnectDomainEventGenericCallback' type='function'/>
@@ -797,6 +801,7 @@
      <exports symbol='virConnectNumOfDefinedDomains' type='function'/>
      <exports symbol='virConnectNumOfDomains' type='function'/>
      <exports symbol='virDomainAbortJob' type='function'/>
+     <exports symbol='virDomainAddIOThread' type='function'/>
      <exports symbol='virDomainAttachDevice' type='function'/>
      <exports symbol='virDomainAttachDeviceFlags' type='function'/>
      <exports symbol='virDomainBlockCommit' type='function'/>
@@ -819,6 +824,7 @@
      <exports symbol='virDomainCreateXMLWithFiles' type='function'/>
      <exports symbol='virDomainDefineXML' type='function'/>
      <exports symbol='virDomainDefineXMLFlags' type='function'/>
+     <exports symbol='virDomainDelIOThread' type='function'/>
      <exports symbol='virDomainDestroy' type='function'/>
      <exports symbol='virDomainDestroyFlags' type='function'/>
      <exports symbol='virDomainDetachDevice' type='function'/>
@@ -1897,7 +1903,10 @@
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileTotal field in virDomainJobInfo.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_JOB_DOWNTIME' file='libvirt-domain'>
-      <info><![CDATA[virDomainGetJobStats field: downtime (ms) that is expected to happen during migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[virDomainGetJobStats field: downtime (ms) that is expected to happen during migration, as VIR_TYPED_PARAM_ULLONG. The real computed downtime between the time guest CPUs were paused and the time they were resumed is reported for completed migration.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DOWNTIME_NET' file='libvirt-domain'>
+      <info><![CDATA[virDomainGetJobStats field: real measured downtime (ms) NOT including the time required to transfer control flow from the source host to the destination host, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_JOB_MEMORY_BPS' file='libvirt-domain'>
       <info><![CDATA[virDomainGetJobStats field: network throughput used while migrating memory in Bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
@@ -1925,6 +1934,9 @@
     </macro>
     <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED' file='libvirt-domain'>
       <info><![CDATA[virDomainGetJobStats field: time (ms) since the beginning of the job, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeElapsed field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED_NET' file='libvirt-domain'>
+      <info><![CDATA[virDomainGetJobStats field: time (ms) since the beginning of the migration job NOT including the time required to transfer control flow from the source host to the destination host, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_JOB_TIME_REMAINING' file='libvirt-domain'>
       <info><![CDATA[virDomainGetJobStats field: remaining time (ms) for VIR_DOMAIN_JOB_BOUNDED jobs, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeRemaining field in virDomainJobInfo.]]></info>
@@ -2422,12 +2434,13 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_JOB' file='libvirt-domain' value='8' type='virDomainEventID' info='virConnectDomainEventBlockJobCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2' file='libvirt-domain' value='16' type='virDomainEventID' info='virConnectDomainEventBlockJobCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' file='libvirt-domain' value='7' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_DEVICE_ADDED' file='libvirt-domain' value='19' type='virDomainEventID' info='virConnectDomainEventDeviceAddedCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED' file='libvirt-domain' value='15' type='virDomainEventID' info='virConnectDomainEventDeviceRemovedCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DISK_CHANGE' file='libvirt-domain' value='9' type='virDomainEventID' info='virConnectDomainEventDiskChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_GRAPHICS' file='libvirt-domain' value='5' type='virDomainEventID' info='virConnectDomainEventGraphicsCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt-domain' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt-domain' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='19' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='20' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt-domain' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
@@ -3800,6 +3813,17 @@ value obtained from a previous virConnectDomainEventRegisterAny() method.]]></in
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='callbackID' type='int' info='the callback identifier'/>
     </function>
+    <functype name='virConnectDomainEventDeviceAddedCallback' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[This callback occurs when a device is added to the domain.
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_DEVICE_ADDED with virConnectDomainEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='devAlias' type='const char *' info='device alias'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
     <functype name='virConnectDomainEventDeviceRemovedCallback' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[This callback occurs when a device is removed from the domain.
 
@@ -4019,7 +4043,7 @@ VIR_DOMAIN_EVENT_ID_WATCHDOG with virConnectDomainEventRegisterAny()]]></info>
     <function name='virConnectDomainXMLFromNative' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Reads native configuration data  describing a domain, and
 generates libvirt domain XML. The format of the native
-data is hypervisor dependant.]]></info>
+data is hypervisor dependent.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='conn' type='virConnectPtr' info='a connection object'/>
       <arg name='nativeFormat' type='const char *' info='configuration format importing from'/>
@@ -4029,7 +4053,7 @@ data is hypervisor dependant.]]></info>
     <function name='virConnectDomainXMLToNative' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Reads a domain XML configuration document, and generates
 a native configuration file describing the domain.
-The format of the native data is hypervisor dependant.]]></info>
+The format of the native data is hypervisor dependent.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded native config datafile, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='conn' type='virConnectPtr' info='a connection object'/>
       <arg name='nativeFormat' type='const char *' info='configuration format exporting to'/>
@@ -4846,6 +4870,29 @@ soonest opportunity.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
+    <function name='virDomainAddIOThread' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Dynamically add an IOThread to the domain. If @iothread_id is a positive
+non-zero value, then attempt to add the specific IOThread ID and error
+out if the iothread id already exists.
+
+Note that this call can fail if the underlying virtualization hypervisor
+does not support it or if growing the number is arbitrarily limited.
+This function requires privileged access to the hypervisor.
+
+@flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
+Both flags may be set.
+If VIR_DOMAIN_AFFECT_LIVE is set, the change affects a running domain
+and may fail if domain is not alive.
+If VIR_DOMAIN_AFFECT_CONFIG is set, the change affects persistent state,
+and will fail for transient domains. If neither flag is specified (that is,
+@flags is VIR_DOMAIN_AFFECT_CURRENT), then an inactive domain modifies
+persistent setup, while an active domain is hypervisor-dependent on whether
+just live or both live and persistent state is changed.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='iothread_id' type='unsigned int' info='the specific IOThread ID value to add'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
     <function name='virDomainAttachDevice' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Create a virtual device attachment to backend.  This function,
 having hotplug semantics, is only allowed on an active domain.
@@ -5619,6 +5666,29 @@ domain object is no longer needed.]]></info>
       <arg name='xml' type='const char *' info='the XML description for the domain, preferably in UTF-8'/>
       <arg name='flags' type='unsigned int' info='bitwise OR of the virDomainDefineFlags constants'/>
     </function>
+    <function name='virDomainDelIOThread' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Dynamically delete an IOThread from the domain. The @iothread_id to be
+deleted must not have a resource associated with it and can be any of
+the currently valid IOThread ID's.
+
+Note that this call can fail if the underlying virtualization hypervisor
+does not support it or if reducing the number is arbitrarily limited.
+This function requires privileged access to the hypervisor.
+
+@flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
+Both flags may be set.
+If VIR_DOMAIN_AFFECT_LIVE is set, the change affects a running domain
+and may fail if domain is not alive.
+If VIR_DOMAIN_AFFECT_CONFIG is set, the change affects persistent state,
+and will fail for transient domains. If neither flag is specified (that is,
+@flags is VIR_DOMAIN_AFFECT_CURRENT), then an inactive domain modifies
+persistent setup, while an active domain is hypervisor-dependent on whether
+just live or both live and persistent state is changed.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='iothread_id' type='unsigned int' info='the specific IOThread ID value to delete'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
     <function name='virDomainDestroy' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Destroy the domain object. The running instance is shutdown if not down
 already and all resources used by it are given back to the hypervisor. This
@@ -5708,7 +5778,7 @@ this fact was ignored and the device could have been removed from domain
 configuration before it was actually removed by the hypervisor causing
 various failures on subsequent operations. To check whether the device was
 successfully removed, either recheck domain configuration using
-virDomainGetXMLDesc() or add handler for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED
+virDomainGetXMLDesc() or add a handler for the VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED
 event. In case the device is already gone when virDomainDetachDeviceFlags
 returns, the event is delivered before this API call ends. To help existing
 clients work better in most cases, this API will try to transform an
@@ -7989,8 +8059,9 @@ then the destination files must be pre-created manually with
 the correct image format and metadata including backing store path
 (this allows a management app to pre-create files with relative backing
 file names, rather than the default of creating with absolute backing
-file names). Note that setting incorrect metadata in the pre-created
-image may lead to the VM being unable to start.
+file names). Note that only the file specified in the snapshot XML is
+inserted as a snapshot thus setting incorrect metadata in the pre-created
+image may lead to the VM being unable to start or other block jobs may fail.
 
 Be aware that although libvirt prefers to report errors up front with
 no other effect, some hypervisors have certain types of failures where
@@ -9662,7 +9733,7 @@ UUID see RFC4122.]]></info>
     <function name='virSecretGetUsageID' file='libvirt-secret' module='libvirt-secret'>
       <info><![CDATA[Get the unique identifier of the object with which this
 secret is to be used. The format of the identifier is
-dependant on the usage type of the secret. For a secret
+dependent on the usage type of the secret. For a secret
 with a usage type of VIR_SECRET_USAGE_TYPE_VOLUME the
 identifier will be a fully qualfied path name. The
 identifiers are intended to be unique within the set of

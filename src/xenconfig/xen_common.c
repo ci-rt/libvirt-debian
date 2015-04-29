@@ -172,7 +172,7 @@ xenConfigCopyStringInternal(virConfPtr conf,
 }
 
 
-static int
+int
 xenConfigCopyString(virConfPtr conf, const char *name, char **value)
 {
     return xenConfigCopyStringInternal(conf, name, value, 0);
@@ -331,7 +331,7 @@ xenParseTimeOffset(virConfPtr conf, virDomainDefPtr def,
     if (xenConfigGetBool(conf, "localtime", &vmlocaltime, 0) < 0)
         return -1;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         /* only managed HVM domains since 3.1.0 have persistent rtc_timeoffset */
         if (xendConfigVersion < XEND_CONFIG_VERSION_3_1_0) {
             if (vmlocaltime)
@@ -513,7 +513,7 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
     if (str && (virBitmapParse(str, 0, &def->cpumask, 4096) < 0))
         return -1;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (xenConfigGetBool(conf, "pae", &val, 1) < 0)
             return -1;
 
@@ -570,7 +570,7 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
 {
     int val;
     char *listenAddr = NULL;
-    int hvm = STREQ(def->os.type, "hvm");
+    int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
     virConfValuePtr list;
     virDomainGraphicsDefPtr graphics = NULL;
 
@@ -724,7 +724,7 @@ xenParseCharDev(virConfPtr conf, virDomainDefPtr def)
     virConfValuePtr value = NULL;
     virDomainChrDefPtr chr = NULL;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (xenConfigGetString(conf, "parallel", &str, NULL) < 0)
             goto cleanup;
         if (str && STRNEQ(str, "none") &&
@@ -967,7 +967,7 @@ xenParseEmulatedDevices(virConfPtr conf, virDomainDefPtr def)
 {
     const char *str;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (xenConfigGetString(conf, "soundhw", &str, NULL) < 0)
             return -1;
 
@@ -983,113 +983,34 @@ xenParseEmulatedDevices(virConfPtr conf, virDomainDefPtr def)
 static int
 xenParseGeneralMeta(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
 {
-    const char *defaultMachine;
+    virCapsDomainDataPtr capsdata = NULL;
     const char *str;
-    int hvm = 0;
+    int hvm = 0, ret = -1;
 
     if (xenConfigCopyString(conf, "name", &def->name) < 0)
-        return -1;
+        goto out;
 
     if (xenConfigGetUUID(conf, "uuid", def->uuid) < 0)
-        return -1;
+        goto out;
 
     if ((xenConfigGetString(conf, "builder", &str, "linux") == 0) &&
         STREQ(str, "hvm"))
         hvm = 1;
 
-    if (VIR_STRDUP(def->os.type, hvm ? "hvm" : "xen") < 0)
-        return -1;
+    def->os.type = (hvm ? VIR_DOMAIN_OSTYPE_HVM : VIR_DOMAIN_OSTYPE_XEN);
 
-    def->os.arch =
-        virCapabilitiesDefaultGuestArch(caps,
-                                        def->os.type,
-                                        virDomainVirtTypeToString(def->virtType));
-    if (!def->os.arch) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("no supported architecture for os type '%s'"),
-                       def->os.type);
-        return -1;
-    }
+    if (!(capsdata = virCapabilitiesDomainDataLookup(caps, def->os.type,
+            VIR_ARCH_NONE, def->virtType, NULL, NULL)))
+        goto out;
 
-    defaultMachine = virCapabilitiesDefaultGuestMachine(caps,
-                                                        def->os.type,
-                                                        def->os.arch,
-                                                        virDomainVirtTypeToString(def->virtType));
-    if (defaultMachine != NULL) {
-        if (VIR_STRDUP(def->os.machine, defaultMachine) < 0)
-            return -1;
-    }
+    def->os.arch = capsdata->arch;
+    if (VIR_STRDUP(def->os.machine, capsdata->machinetype) < 0)
+        goto out;
 
-    return 0;
-}
-
-
-static int
-xenParseOS(virConfPtr conf, virDomainDefPtr def)
-{
-    size_t i;
-
-    if (xenConfigCopyStringOpt(conf, "device_model", &def->emulator) < 0)
-        return -1;
-
-    if (STREQ(def->os.type, "hvm")) {
-        const char *boot;
-
-        if (VIR_ALLOC(def->os.loader) < 0 ||
-            xenConfigCopyString(conf, "kernel", &def->os.loader->path) < 0)
-            return -1;
-
-        if (xenConfigGetString(conf, "boot", &boot, "c") < 0)
-            return -1;
-
-        for (i = 0; i < VIR_DOMAIN_BOOT_LAST && boot[i]; i++) {
-            switch (boot[i]) {
-            case 'a':
-                def->os.bootDevs[i] = VIR_DOMAIN_BOOT_FLOPPY;
-                break;
-            case 'd':
-                def->os.bootDevs[i] = VIR_DOMAIN_BOOT_CDROM;
-                break;
-            case 'n':
-                def->os.bootDevs[i] = VIR_DOMAIN_BOOT_NET;
-                break;
-            case 'c':
-            default:
-                def->os.bootDevs[i] = VIR_DOMAIN_BOOT_DISK;
-                break;
-            }
-            def->os.nBootDevs++;
-        }
-    } else {
-        const char *extra, *root;
-
-        if (xenConfigCopyStringOpt(conf, "bootloader", &def->os.bootloader) < 0)
-            return -1;
-        if (xenConfigCopyStringOpt(conf, "bootargs", &def->os.bootloaderArgs) < 0)
-            return -1;
-
-        if (xenConfigCopyStringOpt(conf, "kernel", &def->os.kernel) < 0)
-            return -1;
-
-        if (xenConfigCopyStringOpt(conf, "ramdisk", &def->os.initrd) < 0)
-            return -1;
-
-        if (xenConfigGetString(conf, "extra", &extra, NULL) < 0)
-            return -1;
-
-        if (xenConfigGetString(conf, "root", &root, NULL) < 0)
-            return -1;
-
-        if (root) {
-            if (virAsprintf(&def->os.cmdline, "root=%s %s", root, extra) < 0)
-                return -1;
-        } else {
-            if (VIR_STRDUP(def->os.cmdline, extra) < 0)
-                return -1;
-        }
-    }
-
-    return 0;
+    ret = 0;
+ out:
+    VIR_FREE(capsdata);
+    return ret;
 }
 
 
@@ -1103,9 +1024,6 @@ xenParseConfigCommon(virConfPtr conf,
                      int xendConfigVersion)
 {
     if (xenParseGeneralMeta(conf, def, caps) < 0)
-        return -1;
-
-    if (xenParseOS(conf, def) < 0)
         return -1;
 
     if (xenParseMem(conf, def) < 0)
@@ -1418,7 +1336,7 @@ xenFormatTimeOffset(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
         }
 
     } else {
-        if (STREQ(def->os.type, "hvm")) {
+        if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
             /* >=3.1 HV: VARIABLE */
             int rtc_timeoffset;
 
@@ -1519,7 +1437,7 @@ xenFormatCharDev(virConfPtr conf, virDomainDefPtr def)
 {
     size_t i;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (def->nparallels) {
             virBuffer buf = VIR_BUFFER_INITIALIZER;
             char *str;
@@ -1637,7 +1555,7 @@ xenFormatCPUFeatures(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion
 {
     size_t i;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (xenConfigSetInt(conf, "pae",
                             (def->features[VIR_DOMAIN_FEATURE_PAE] ==
                             VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
@@ -1693,7 +1611,7 @@ xenFormatCDROM(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
 {
     size_t i;
 
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
             for (i = 0; i < def->ndisks; i++) {
                 if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
@@ -1714,78 +1632,9 @@ xenFormatCDROM(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
 
 
 static int
-xenFormatOS(virConfPtr conf, virDomainDefPtr def)
-{
-    size_t i;
-
-    if (STREQ(def->os.type, "hvm")) {
-        char boot[VIR_DOMAIN_BOOT_LAST+1];
-        if (xenConfigSetString(conf, "builder", "hvm") < 0)
-            return -1;
-
-        if (def->os.loader && def->os.loader->path &&
-            xenConfigSetString(conf, "kernel", def->os.loader->path) < 0)
-            return -1;
-
-        for (i = 0; i < def->os.nBootDevs; i++) {
-            switch (def->os.bootDevs[i]) {
-            case VIR_DOMAIN_BOOT_FLOPPY:
-                boot[i] = 'a';
-                break;
-            case VIR_DOMAIN_BOOT_CDROM:
-                boot[i] = 'd';
-                break;
-            case VIR_DOMAIN_BOOT_NET:
-                boot[i] = 'n';
-                break;
-            case VIR_DOMAIN_BOOT_DISK:
-            default:
-                boot[i] = 'c';
-                break;
-            }
-        }
-
-        if (!def->os.nBootDevs) {
-            boot[0] = 'c';
-            boot[1] = '\0';
-        } else {
-            boot[def->os.nBootDevs] = '\0';
-        }
-
-        if (xenConfigSetString(conf, "boot", boot) < 0)
-            return -1;
-
-        /* XXX floppy disks */
-    } else {
-        if (def->os.bootloader &&
-             xenConfigSetString(conf, "bootloader", def->os.bootloader) < 0)
-            return -1;
-
-         if (def->os.bootloaderArgs &&
-             xenConfigSetString(conf, "bootargs", def->os.bootloaderArgs) < 0)
-            return -1;
-
-         if (def->os.kernel &&
-             xenConfigSetString(conf, "kernel", def->os.kernel) < 0)
-            return -1;
-
-         if (def->os.initrd &&
-             xenConfigSetString(conf, "ramdisk", def->os.initrd) < 0)
-            return -1;
-
-         if (def->os.cmdline &&
-             xenConfigSetString(conf, "extra", def->os.cmdline) < 0)
-            return -1;
-     } /* !hvm */
-
-    return 0;
-}
-
-
-static int
 xenFormatVfb(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
 {
-    int hvm = STREQ(def->os.type, "hvm") ? 1 : 0;
+    int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM ? 1 : 0;
 
     if (def->ngraphics == 1 &&
         def->graphics[0]->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
@@ -1904,7 +1753,7 @@ xenFormatVfb(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
 static int
 xenFormatSound(virConfPtr conf, virDomainDefPtr def)
 {
-    if (STREQ(def->os.type, "hvm")) {
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (def->sounds) {
             virBuffer buf = VIR_BUFFER_INITIALIZER;
             char *str = NULL;
@@ -1933,7 +1782,7 @@ xenFormatVif(virConfPtr conf,
 {
    virConfValuePtr netVal = NULL;
    size_t i;
-   int hvm = STREQ(def->os.type, "hvm");
+   int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
 
    if (VIR_ALLOC(netVal) < 0)
         goto cleanup;
@@ -1978,9 +1827,6 @@ xenFormatConfigCommon(virConfPtr conf,
         return -1;
 
     if (xenFormatCPUAllocation(conf, def) < 0)
-        return -1;
-
-    if (xenFormatOS(conf, def) < 0)
         return -1;
 
     if (xenFormatCPUFeatures(conf, def, xendConfigVersion) < 0)

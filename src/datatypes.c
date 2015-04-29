@@ -1,7 +1,7 @@
 /*
  * datatypes.c: management of structs for public data types
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -73,7 +73,7 @@ virDataTypesOnceInit(void)
 #define DECLARE_CLASS_LOCKABLE(basename)                         \
     DECLARE_CLASS_COMMON(basename, virClassForObjectLockable())
 
-    DECLARE_CLASS(virConnect);
+    DECLARE_CLASS_LOCKABLE(virConnect);
     DECLARE_CLASS_LOCKABLE(virConnectCloseCallbackData);
     DECLARE_CLASS(virDomain);
     DECLARE_CLASS(virDomainSnapshot);
@@ -110,13 +110,10 @@ virGetConnect(void)
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!(ret = virObjectNew(virConnectClass)))
+    if (!(ret = virObjectLockableNew(virConnectClass)))
         return NULL;
 
-    if (!(ret->closeCallback = virObjectNew(virConnectCloseCallbackDataClass)))
-        goto error;
-
-    if (virMutexInit(&ret->lock) < 0)
+    if (!(ret->closeCallback = virObjectLockableNew(virConnectCloseCallbackDataClass)))
         goto error;
 
     return ret;
@@ -141,8 +138,6 @@ virConnectDispose(void *obj)
     if (conn->driver)
         conn->driver->connectClose(conn);
 
-    virMutexLock(&conn->lock);
-
     virResetError(&conn->err);
 
     virURIFree(conn->uri);
@@ -154,9 +149,6 @@ virConnectDispose(void *obj)
 
         virObjectUnref(conn->closeCallback);
     }
-
-    virMutexUnlock(&conn->lock);
-    virMutexDestroy(&conn->lock);
 }
 
 

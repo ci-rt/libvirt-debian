@@ -68,7 +68,6 @@ qemuHotplugCreateObjects(virDomainXMLOptionPtr xmlopt,
     if (!((*vm)->def = virDomainDefParseString(domxml,
                                                driver.caps,
                                                driver.xmlopt,
-                                               QEMU_EXPECTED_VIRT_TYPES,
                                                VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
@@ -86,7 +85,7 @@ qemuHotplugCreateObjects(virDomainXMLOptionPtr xmlopt,
     if (event)
         virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_DEL_EVENT);
 
-    if (qemuDomainAssignPCIAddresses((*vm)->def, priv->qemuCaps, *vm) < 0)
+    if (qemuDomainAssignAddresses((*vm)->def, priv->qemuCaps, *vm) < 0)
         goto cleanup;
 
     if (qemuAssignDeviceAliases((*vm)->def, priv->qemuCaps) < 0)
@@ -116,9 +115,8 @@ testQemuHotplugAttach(virDomainObjPtr vm,
         ret = qemuDomainAttachChrDevice(&driver, vm, dev->data.chr);
         break;
     default:
-        if (virTestGetVerbose())
-            fprintf(stderr, "device type '%s' cannot be attached\n",
-                    virDomainDeviceTypeToString(dev->type));
+        VIR_TEST_VERBOSE("device type '%s' cannot be attached\n",
+                virDomainDeviceTypeToString(dev->type));
         break;
     }
 
@@ -139,9 +137,8 @@ testQemuHotplugDetach(virDomainObjPtr vm,
         ret = qemuDomainDetachChrDevice(&driver, vm, dev->data.chr);
         break;
     default:
-        if (virTestGetVerbose())
-            fprintf(stderr, "device type '%s' cannot be detached\n",
-                    virDomainDeviceTypeToString(dev->type));
+        VIR_TEST_VERBOSE("device type '%s' cannot be detached\n",
+                virDomainDeviceTypeToString(dev->type));
         break;
     }
 
@@ -164,9 +161,8 @@ testQemuHotplugUpdate(virDomainObjPtr vm,
         ret = qemuDomainChangeGraphics(&driver, vm, dev->data.graphics);
         break;
     default:
-        if (virTestGetVerbose())
-            fprintf(stderr, "device type '%s' cannot be updated\n",
-                    virDomainDeviceTypeToString(dev->type));
+        VIR_TEST_VERBOSE("device type '%s' cannot be updated\n",
+                virDomainDeviceTypeToString(dev->type));
         break;
     }
 
@@ -188,8 +184,8 @@ testQemuHotplugCheckResult(virDomainObjPtr vm,
     vm->def->id = QEMU_HOTPLUG_TEST_DOMAIN_ID;
 
     if (STREQ(expected, actual)) {
-        if (fail && virTestGetVerbose())
-            fprintf(stderr, "domain XML should not match the expected result\n");
+        if (fail)
+            VIR_TEST_VERBOSE("domain XML should not match the expected result\n");
         ret = 0;
     } else {
         if (!fail)

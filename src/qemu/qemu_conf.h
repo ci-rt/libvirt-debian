@@ -104,6 +104,8 @@ struct _virQEMUDriverConfig {
     char *cacheDir;
     char *saveDir;
     char *snapshotDir;
+    char *channelTargetDir;
+    char *nvramDir;
 
     bool vncAutoUnixSocket;
     bool vncTLS;
@@ -288,7 +290,7 @@ typedef qemuSharedDeviceEntry *qemuSharedDeviceEntryPtr;
 
 bool qemuSharedDeviceEntryDomainExists(qemuSharedDeviceEntryPtr entry,
                                        const char *name,
-                                       int *index)
+                                       int *idx)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 char *qemuGetSharedDeviceKey(const char *disk_path)

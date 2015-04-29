@@ -14,6 +14,7 @@ Claudio Bley <claudio.bley@gmail.com>
 Cole Robinson <crobinso@redhat.com>
 Daniel Berrange <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
+Dmitry Guryanov <dguryanov@parallels.com>
 Doug Goldstein <cardoe@gentoo.org>
 Eric Blake <eblake@redhat.com>
 Erik Skultety <eskultet@redhat.com>
@@ -99,6 +100,7 @@ Alon Levy <alevy@redhat.com>
 Alvaro Polo <apoloval@gmail.com>
 Amy Fong <amy.fong@windriver.com>
 Amy Griffis <amy.griffis@hp.com>
+Andrea Bolognani <abologna@redhat.com>
 Andres Lagar-Cavilla <andres@lagarcavilla.org>
 Anirban Chakraborty <abchak@juniper.net>
 Ansis Atteka <aatteka@nicira.com>
@@ -228,6 +230,7 @@ Hongbin Lu <hongbin034@gmail.com>
 Hongwei Bi <hwbi2008@gmail.com>
 Hu Jianwei <jiahu@redhat.com>
 Hu Tao <hutao@cn.fujitsu.com>
+Huanle Han <hanxueluo@gmail.com>
 Ian Campbell <Ian.Campbell@citrix.com>
 Ian Campbell <ian.campbell@citrix.com>
 Ian Main <imain@redhat.com>
@@ -339,8 +342,10 @@ Nehal J Wani <nehaljw.kkd1@gmail.com>
 Neil Wilson <neil@aldur.co.uk>
 Nguyen Anh Quynh <aquynh@gmail.com>
 Niels de Vos <ndevos@redhat.com>
+Nikolay Shirokovskiy <nshirokovskiy@parallels.com>
 Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 Nishank Trivedi <nistrive@cisco.com>
+Noella Ashu <ashu.noella207@gmail.com>
 Ohad Levy <ohadlevy@gmail.com>
 Olaf Hering <olaf@aepfle.de>
 Oleg Strikov <oleg.strikov@canonical.com>
@@ -354,6 +359,7 @@ Paolo Smiraglia <paolo.smiraglia@gmail.com>
 Patrice LACHANCE <patlachance@gmail.com>
 Patrick Dignan <pat_dignan@dell.com>
 Paul Eggert <eggert@cs.ucla.edu>
+Pavel Fedin <p.fedin@samsung.com>
 Pavel Hrdina <phrdina@redhat.com>
 Pavel Raiskup <praiskup@redhat.com>
 Paweł Krześniak <pawel.krzesniak@gmail.com>
@@ -459,6 +465,7 @@ Wojciech Macek <wma@semihalf.com>
 Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 Wout Mertens <Wout.Mertens@gmail.com>
 Wout Mertens <wout.mertens@gmail.com>
+Xing Lin <xinglin@cs.utah.edu>
 Xu He Jie <xuhj@linux.vnet.ibm.com>
 Xuesong Zhang <xuzhang@redhat.com>
 Yanbing Du <ydu@redhat.com>

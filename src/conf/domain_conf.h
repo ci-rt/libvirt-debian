@@ -228,6 +228,19 @@ typedef enum {
 } virDomainVirtType;
 
 typedef enum {
+    VIR_DOMAIN_OSTYPE_HVM,
+    VIR_DOMAIN_OSTYPE_XEN,
+    VIR_DOMAIN_OSTYPE_LINUX,
+    VIR_DOMAIN_OSTYPE_EXE,
+    VIR_DOMAIN_OSTYPE_UML,
+    VIR_DOMAIN_OSTYPE_AIX,
+
+    VIR_DOMAIN_OSTYPE_LAST
+} virDomainOSType;
+VIR_ENUM_DECL(virDomainOS)
+
+
+typedef enum {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE,
@@ -1252,6 +1265,7 @@ typedef enum {
     VIR_DOMAIN_INPUT_BUS_PS2,
     VIR_DOMAIN_INPUT_BUS_USB,
     VIR_DOMAIN_INPUT_BUS_XEN,
+    VIR_DOMAIN_INPUT_BUS_PARALLELS, /* pseudo device for VNC in containers */
 
     VIR_DOMAIN_INPUT_BUS_LAST
 } virDomainInputBus;
@@ -1326,6 +1340,7 @@ typedef enum {
     VIR_DOMAIN_VIDEO_TYPE_XEN,
     VIR_DOMAIN_VIDEO_TYPE_VBOX,
     VIR_DOMAIN_VIDEO_TYPE_QXL,
+    VIR_DOMAIN_VIDEO_TYPE_PARALLELS, /* pseudo device for VNC in containers */
 
     VIR_DOMAIN_VIDEO_TYPE_LAST
 } virDomainVideoType;
@@ -1768,7 +1783,7 @@ void virDomainLoaderDefFree(virDomainLoaderDefPtr loader);
 typedef struct _virDomainOSDef virDomainOSDef;
 typedef virDomainOSDef *virDomainOSDefPtr;
 struct _virDomainOSDef {
-    char *type;
+    int type;
     virArch arch;
     char *machine;
     size_t nBootDevs;
@@ -1932,10 +1947,6 @@ void virDomainPinDefArrayFree(virDomainPinDefPtr *def, int npin);
 virDomainPinDefPtr *virDomainPinDefCopy(virDomainPinDefPtr *src,
                                         int npin);
 
-int virDomainPinIsDuplicate(virDomainPinDefPtr *def,
-                            int npin,
-                            int id);
-
 virDomainPinDefPtr virDomainPinFind(virDomainPinDefPtr *def,
                                     int npin,
                                     int id);
@@ -2039,6 +2050,18 @@ struct _virDomainHugePage {
     unsigned long long size;    /* hugepage size in KiB */
 };
 
+typedef struct _virDomainIOThreadIDDef virDomainIOThreadIDDef;
+typedef virDomainIOThreadIDDef *virDomainIOThreadIDDefPtr;
+
+struct _virDomainIOThreadIDDef {
+    bool autofill;
+    unsigned int iothread_id;
+    int thread_id;
+    virBitmapPtr cpumask;
+};
+
+void virDomainIOThreadIDDefFree(virDomainIOThreadIDDefPtr def);
+
 typedef struct _virDomainCputune virDomainCputune;
 typedef virDomainCputune *virDomainCputunePtr;
 
@@ -2052,8 +2075,6 @@ struct _virDomainCputune {
     size_t nvcpupin;
     virDomainPinDefPtr *vcpupin;
     virDomainPinDefPtr emulatorpin;
-    size_t niothreadspin;
-    virDomainPinDefPtr *iothreadspin;
 
     size_t nvcpusched;
     virDomainThreadSchedParamPtr vcpusched;
@@ -2130,6 +2151,8 @@ struct _virDomainDef {
     virBitmapPtr cpumask;
 
     unsigned int iothreads;
+    size_t niothreadids;
+    virDomainIOThreadIDDefPtr *iothreadids;
 
     virDomainCputune cputune;
 
@@ -2382,6 +2405,8 @@ virDomainObjPtr virDomainObjListFindByUUIDRef(virDomainObjListPtr doms,
 virDomainObjPtr virDomainObjListFindByName(virDomainObjListPtr doms,
                                            const char *name);
 
+void virDomainObjEndAPI(virDomainObjPtr *vm);
+
 bool virDomainObjTaint(virDomainObjPtr obj,
                        virDomainTaintFlags taint);
 
@@ -2528,6 +2553,10 @@ typedef enum {
     /* parse only source half of <disk> */
     VIR_DOMAIN_DEF_PARSE_DISK_SOURCE     = 1 << 7,
     VIR_DOMAIN_DEF_PARSE_VALIDATE        = 1 << 8,
+    /* don't validate os.type and arch against capabilities. Prevents
+     * VMs from disappearing when qemu is removed and libvirtd is restarted
+     */
+    VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS = 1 << 9,
 } virDomainDefParseFlags;
 
 typedef enum {
@@ -2558,35 +2587,37 @@ virStorageSourcePtr virDomainDiskDefSourceParse(const char *xmlStr,
 virDomainDefPtr virDomainDefParseString(const char *xmlStr,
                                         virCapsPtr caps,
                                         virDomainXMLOptionPtr xmlopt,
-                                        unsigned int expectedVirtTypes,
                                         unsigned int flags);
 virDomainDefPtr virDomainDefParseFile(const char *filename,
                                       virCapsPtr caps,
                                       virDomainXMLOptionPtr xmlopt,
-                                      unsigned int expectedVirtTypes,
                                       unsigned int flags);
 virDomainDefPtr virDomainDefParseNode(xmlDocPtr doc,
                                       xmlNodePtr root,
                                       virCapsPtr caps,
                                       virDomainXMLOptionPtr xmlopt,
-                                      unsigned int expectedVirtTypes,
                                       unsigned int flags);
 virDomainObjPtr virDomainObjParseNode(xmlDocPtr xml,
                                       xmlNodePtr root,
                                       virCapsPtr caps,
                                       virDomainXMLOptionPtr xmlopt,
-                                      unsigned int expectedVirtTypes,
                                       unsigned int flags);
 virDomainObjPtr virDomainObjParseFile(const char *filename,
                                       virCapsPtr caps,
                                       virDomainXMLOptionPtr xmlopt,
-                                      unsigned int expectedVirtTypes,
                                       unsigned int flags);
 
 bool virDomainDefCheckABIStability(virDomainDefPtr src,
                                    virDomainDefPtr dst);
 
 int virDomainDefAddImplicitControllers(virDomainDefPtr def);
+
+virDomainIOThreadIDDefPtr virDomainIOThreadIDFind(virDomainDefPtr def,
+                                                  unsigned int iothread_id);
+virDomainIOThreadIDDefPtr virDomainIOThreadIDAdd(virDomainDefPtr def,
+                                                 unsigned int iothread_id);
+void virDomainIOThreadIDDel(virDomainDefPtr def, unsigned int iothread_id);
+void virDomainIOThreadSchedDelId(virDomainDefPtr def, unsigned int iothread_id);
 
 unsigned int virDomainDefFormatConvertXMLFlags(unsigned int flags);
 
@@ -2660,7 +2691,8 @@ int virDomainDiskSourceParse(xmlNodePtr node,
                              xmlXPathContextPtr ctxt,
                              virStorageSourcePtr src);
 
-bool virDomainHasDiskMirror(virDomainObjPtr vm);
+bool virDomainHasBlockjob(virDomainObjPtr vm,
+                          bool copy_only);
 
 int virDomainNetFindIdx(virDomainDefPtr def, virDomainNetDefPtr net);
 virDomainNetDefPtr virDomainNetFind(virDomainDefPtr def, const char *device);
@@ -2716,6 +2748,7 @@ int virDomainControllerInsert(virDomainDefPtr def,
 void virDomainControllerInsertPreAlloced(virDomainDefPtr def,
                                          virDomainControllerDefPtr controller);
 int virDomainControllerFind(virDomainDefPtr def, int type, int idx);
+int virDomainControllerFindByType(virDomainDefPtr def, int type);
 int virDomainControllerFindByPCIAddress(virDomainDefPtr def,
                                         virDevicePCIAddressPtr addr);
 virDomainControllerDefPtr virDomainControllerRemove(virDomainDefPtr def, size_t i);
@@ -2782,7 +2815,6 @@ int virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
                                    int liveStatus,
                                    virCapsPtr caps,
                                    virDomainXMLOptionPtr xmlopt,
-                                   unsigned int expectedVirtTypes,
                                    virDomainLoadConfigNotify notify,
                                    void *opaque);
 
@@ -3074,6 +3106,9 @@ virDomainParseMemory(const char *xpath,
                      bool capped);
 
 bool virDomainDefNeedsPlacementAdvice(virDomainDefPtr def)
+    ATTRIBUTE_NONNULL(1);
+
+int virDomainDefCheckDuplicateDiskWWN(virDomainDefPtr def)
     ATTRIBUTE_NONNULL(1);
 
 #endif /* __DOMAIN_CONF_H */

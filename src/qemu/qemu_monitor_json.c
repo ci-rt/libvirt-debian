@@ -400,30 +400,26 @@ qemuMonitorJSONCheckError(virJSONValuePtr cmd,
 }
 
 
-static int
+static bool
+qemuMonitorJSONErrorIsClass(virJSONValuePtr error,
+                            const char *klass)
+{
+    return STREQ_NULLABLE(virJSONValueObjectGetString(error, "class"), klass);
+}
+
+
+static bool
 qemuMonitorJSONHasError(virJSONValuePtr reply,
                         const char *klass)
 {
     virJSONValuePtr error;
-    const char *thisklass;
 
-    if (!virJSONValueObjectHasKey(reply, "error"))
-        return 0;
+    if (!(error = virJSONValueObjectGet(reply, "error")))
+        return false;
 
-    error = virJSONValueObjectGet(reply, "error");
-    if (!error)
-        return 0;
-
-    if (!virJSONValueObjectHasKey(error, "class"))
-        return 0;
-
-    thisklass = virJSONValueObjectGetString(error, "class");
-
-    if (!thisklass)
-        return 0;
-
-    return STREQ(klass, thisklass);
+    return qemuMonitorJSONErrorIsClass(error, klass);
 }
+
 
 /* Top-level commands and nested transaction list elements share a
  * common structure for everything except the dictionary names.  */
@@ -3859,9 +3855,8 @@ qemuMonitorJSONBlockCommit(qemuMonitorPtr mon, const char *device,
 }
 
 int
-qemuMonitorJSONDrivePivot(qemuMonitorPtr mon, const char *device,
-                          const char *file ATTRIBUTE_UNUSED,
-                          const char *format ATTRIBUTE_UNUSED)
+qemuMonitorJSONDrivePivot(qemuMonitorPtr mon,
+                          const char *device)
 {
     int ret;
     virJSONValuePtr cmd;
@@ -4252,108 +4247,137 @@ qemuMonitorJSONBlockJobInfo(qemuMonitorPtr mon,
 }
 
 
+static int
+qemuMonitorJSONBlockJobError(virJSONValuePtr reply,
+                             const char *cmd_name,
+                             const char *device)
+{
+    virJSONValuePtr error;
+
+    if (!(error = virJSONValueObjectGet(reply, "error")))
+        return 0;
+
+    if (qemuMonitorJSONErrorIsClass(error, "DeviceNotActive")) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("No active operation on device: %s"), device);
+    } else if (qemuMonitorJSONErrorIsClass(error, "DeviceInUse")) {
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("Device %s in use"), device);
+    } else if (qemuMonitorJSONErrorIsClass(error, "NotSupported")) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("Operation is not supported for device: %s"), device);
+    } else if (qemuMonitorJSONErrorIsClass(error, "CommandNotFound")) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("Command '%s' is not found"), cmd_name);
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unexpected error: (%s) '%s'"),
+                       NULLSTR(virJSONValueObjectGetString(error, "class")),
+                       NULLSTR(virJSONValueObjectGetString(error, "desc")));
+    }
+
+    return -1;
+}
+
+
 /* speed is in bytes/sec */
 int
-qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
-                        const char *device,
-                        const char *base,
-                        const char *backingName,
-                        unsigned long long speed,
-                        qemuMonitorBlockJobCmd mode,
-                        bool modern)
+qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
+                           const char *device,
+                           const char *base,
+                           const char *backingName,
+                           unsigned long long speed,
+                           bool modern)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
-    const char *cmd_name = NULL;
+    const char *cmd_name = modern ? "block-stream" : "block_stream";
 
-    if (base && (mode != BLOCK_JOB_PULL || !modern)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("only modern block pull supports base: %s"), base);
-        return -1;
-    }
-
-    if (backingName && mode != BLOCK_JOB_PULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("backing name is supported only for block pull"));
-        return -1;
-    }
-
-    if (backingName && !base) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("backing name requires a base image"));
-        return -1;
-    }
-
-    if (speed && mode == BLOCK_JOB_PULL && !modern) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("only modern block pull supports speed: %llu"),
-                       speed);
-        return -1;
-    }
-
-    switch (mode) {
-    case BLOCK_JOB_ABORT:
-        cmd_name = modern ? "block-job-cancel" : "block_job_cancel";
-        cmd = qemuMonitorJSONMakeCommand(cmd_name,
-                                         "s:device", device,
-                                         NULL);
-        break;
-
-    case BLOCK_JOB_SPEED:
-        cmd_name = modern ? "block-job-set-speed" : "block_job_set_speed";
-        cmd = qemuMonitorJSONMakeCommand(cmd_name,
-                                         "s:device", device,
-                                         modern ? "J:speed" : "J:value", speed,
-                                         NULL);
-        break;
-
-    case BLOCK_JOB_PULL:
-        cmd_name = modern ? "block-stream" : "block_stream";
-        cmd = qemuMonitorJSONMakeCommand(cmd_name,
-                                         "s:device", device,
-                                         "Y:speed", speed,
-                                         "S:base", base,
-                                         "S:backing-file", backingName,
-                                         NULL);
-        break;
-    }
-
-    if (!cmd)
+    if (!(cmd = qemuMonitorJSONMakeCommand(cmd_name,
+                                           "s:device", device,
+                                           "Y:speed", speed,
+                                           "S:base", base,
+                                           "S:backing-file", backingName,
+                                           NULL)))
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
 
-    if (ret == 0 && virJSONValueObjectHasKey(reply, "error")) {
-        ret = -1;
-        if (qemuMonitorJSONHasError(reply, "DeviceNotActive")) {
-            virReportError(VIR_ERR_OPERATION_INVALID,
-                           _("No active operation on device: %s"),
-                           device);
-        } else if (qemuMonitorJSONHasError(reply, "DeviceInUse")) {
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("Device %s in use"), device);
-        } else if (qemuMonitorJSONHasError(reply, "NotSupported")) {
-            virReportError(VIR_ERR_OPERATION_INVALID,
-                           _("Operation is not supported for device: %s"),
-                           device);
-        } else if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
-            virReportError(VIR_ERR_OPERATION_INVALID,
-                           _("Command '%s' is not found"), cmd_name);
-        } else {
-            virJSONValuePtr error = virJSONValueObjectGet(reply, "error");
+    if (qemuMonitorJSONBlockJobError(reply, cmd_name, device) < 0)
+        goto cleanup;
 
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unexpected error: (%s) '%s'"),
-                           NULLSTR(virJSONValueObjectGetString(error, "class")),
-                           NULLSTR(virJSONValueObjectGetString(error, "desc")));
-        }
-    }
+    ret = 0;
 
+ cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
 }
+
+
+int
+qemuMonitorJSONBlockJobCancel(qemuMonitorPtr mon,
+                              const char *device,
+                              bool modern)
+{
+    int ret = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    const char *cmd_name = modern ? "block-job-cancel" : "block_job_cancel";
+
+    if (!(cmd = qemuMonitorJSONMakeCommand(cmd_name,
+                                           "s:device", device,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONBlockJobError(reply, cmd_name, device) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONBlockJobSetSpeed(qemuMonitorPtr mon,
+                                const char *device,
+                                unsigned long long speed,
+                                bool modern)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    const char *cmd_name = modern ? "block-job-set-speed" : "block_job_set_speed";
+
+    if (!(cmd = qemuMonitorJSONMakeCommand(cmd_name,
+                                           "s:device", device,
+                                           modern ? "J:speed" : "J:value", speed,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONBlockJobError(reply, cmd_name, device) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
 
 int qemuMonitorJSONOpenGraphics(qemuMonitorPtr mon,
                                 const char *protocol,

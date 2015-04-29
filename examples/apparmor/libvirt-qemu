@@ -59,6 +59,7 @@
   # access to firmware's etc
   /usr/share/kvm/** r,
   /usr/share/qemu/** r,
+  /usr/share/qemu-kvm/** r,
   /usr/share/bochs/** r,
   /usr/share/openbios/** r,
   /usr/share/openhackware/** r,
@@ -73,6 +74,7 @@
   # the various binaries
   /usr/bin/kvm rmix,
   /usr/bin/qemu rmix,
+  /usr/bin/qemu-kvm rmix,
   /usr/bin/qemu-system-arm rmix,
   /usr/bin/qemu-system-cris rmix,
   /usr/bin/qemu-system-i386 rmix,
@@ -112,11 +114,15 @@
   /usr/bin/qemu-sparc64 rmix,
   /usr/bin/qemu-x86_64 rmix,
   /usr/{lib,lib64}/qemu/block-curl.so mr,
+  /usr/{lib,lib64}/qemu/block-rbd.so mr,
 
   # for save and resume
   /bin/dash rmix,
   /bin/dd rmix,
   /bin/cat rmix,
+
+  # for restore
+  /bin/bash rmix,
 
   # for usb access
   /dev/bus/usb/ r,

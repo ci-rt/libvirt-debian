@@ -829,7 +829,7 @@ virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
     /* We register kvm as the base emulator too, since we can
      * just give -no-kvm to disable acceleration if required */
     if ((guest = virCapabilitiesAddGuest(caps,
-                                         "hvm",
+                                         VIR_DOMAIN_OSTYPE_HVM,
                                          guestarch,
                                          binary,
                                          NULL,
@@ -858,7 +858,7 @@ virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
         goto cleanup;
 
     if (virCapabilitiesAddGuestDomain(guest,
-                                      "qemu",
+                                      VIR_DOMAIN_VIRT_QEMU,
                                       NULL,
                                       NULL,
                                       0,
@@ -867,7 +867,7 @@ virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
 
     if (haskqemu &&
         virCapabilitiesAddGuestDomain(guest,
-                                      "kqemu",
+                                      VIR_DOMAIN_VIRT_KQEMU,
                                       NULL,
                                       NULL,
                                       0,
@@ -882,7 +882,7 @@ virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
             goto cleanup;
 
         if ((dom = virCapabilitiesAddGuestDomain(guest,
-                                                 "kvm",
+                                                 VIR_DOMAIN_VIRT_KVM,
                                                  kvmbin ? kvmbin : binary,
                                                  NULL,
                                                  nmachines,
@@ -1499,6 +1499,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-scsi-pci", QEMU_CAPS_VIRTIO_SCSI },
     { "virtio-scsi-s390", QEMU_CAPS_VIRTIO_SCSI },
     { "virtio-scsi-ccw", QEMU_CAPS_VIRTIO_SCSI },
+    { "virtio-scsi-device", QEMU_CAPS_VIRTIO_SCSI },
     { "megasas", QEMU_CAPS_SCSI_MEGASAS },
     { "spicevmc", QEMU_CAPS_DEVICE_SPICEVMC },
     { "qxl-vga", QEMU_CAPS_DEVICE_QXL_VGA },
@@ -1515,6 +1516,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-rng-pci", QEMU_CAPS_DEVICE_VIRTIO_RNG },
     { "virtio-rng-s390", QEMU_CAPS_DEVICE_VIRTIO_RNG },
     { "virtio-rng-ccw", QEMU_CAPS_DEVICE_VIRTIO_RNG },
+    { "virtio-rng-device", QEMU_CAPS_DEVICE_VIRTIO_RNG },
     { "rng-random", QEMU_CAPS_OBJECT_RNG_RANDOM },
     { "rng-egd", QEMU_CAPS_OBJECT_RNG_EGD },
     { "spapr-nvram", QEMU_CAPS_DEVICE_NVRAM },
@@ -1886,25 +1888,26 @@ int virQEMUCapsGetDefaultVersion(virCapsPtr caps,
                                  virQEMUCapsCachePtr capsCache,
                                  unsigned int *version)
 {
-    const char *binary;
     virQEMUCapsPtr qemucaps;
     virArch hostarch;
+    virCapsDomainDataPtr capsdata;
 
     if (*version > 0)
         return 0;
 
     hostarch = virArchFromHost();
-    if ((binary = virCapabilitiesDefaultGuestEmulator(caps,
-                                                      "hvm",
-                                                      hostarch,
-                                                      "qemu")) == NULL) {
+    if (!(capsdata = virCapabilitiesDomainDataLookup(caps,
+            VIR_DOMAIN_OSTYPE_HVM, hostarch, VIR_DOMAIN_VIRT_QEMU,
+            NULL, NULL))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot find suitable emulator for %s"),
                        virArchToString(hostarch));
         return -1;
     }
 
-    if (!(qemucaps = virQEMUCapsCacheLookup(capsCache, binary)))
+    qemucaps = virQEMUCapsCacheLookup(capsCache, capsdata->emulator);
+    VIR_FREE(capsdata);
+    if (!qemucaps)
         return -1;
 
     *version = virQEMUCapsGetVersion(qemucaps);
@@ -3390,7 +3393,7 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
     if (monpath)
         ignore_value(unlink(monpath));
     VIR_FREE(monpath);
-    qemuDomObjEndAPI(&vm);
+    virDomainObjEndAPI(&vm);
     virObjectUnref(xmlopt);
 
     if (pid != 0) {

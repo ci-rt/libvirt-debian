@@ -26,16 +26,11 @@
 #include <config.h>
 #include "virsh-network.h"
 
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
-#include <libxml/xmlsave.h>
-
 #include "internal.h"
 #include "virbuffer.h"
 #include "viralloc.h"
 #include "virfile.h"
-#include "virxml.h"
+#include "virstring.h"
 #include "conf/network_conf.h"
 
 virNetworkPtr
@@ -46,9 +41,6 @@ vshCommandOptNetworkBy(vshControl *ctl, const vshCmd *cmd,
     const char *n = NULL;
     const char *optname = "network";
     virCheckFlags(VSH_BYUUID | VSH_BYNAME, NULL);
-
-    if (!vshCmdHasOption(ctl, cmd, optname))
-        return NULL;
 
     if (vshCommandOptStringReq(ctl, cmd, optname, &n) < 0)
         return NULL;

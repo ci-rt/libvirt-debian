@@ -112,7 +112,8 @@ VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "vmware",
               "", /* no arg needed for xen */
               "", /* don't support vbox */
-              "qxl");
+              "qxl",
+              "" /* don't support parallels */);
 
 VIR_ENUM_DECL(qemuDeviceVideo)
 
@@ -122,7 +123,8 @@ VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "vmware-svga",
               "", /* no device for xen */
               "", /* don't support vbox */
-              "qxl-vga");
+              "qxl-vga",
+              "" /* don't support parallels */);
 
 VIR_ENUM_DECL(qemuSoundCodec)
 
@@ -673,6 +675,24 @@ qemuOpenVhostNet(virDomainDefPtr def,
         VIR_FORCE_CLOSE(vhostfd[i]);
 
     return -1;
+}
+
+int
+qemuDomainParseIOThreadAlias(char *alias,
+                             unsigned int *iothread_id)
+{
+    unsigned int idval;
+
+    if (virStrToLong_ui(alias + strlen("iothread"),
+                        NULL, 10, &idval) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("failed to find iothread id for '%s'"),
+                       alias);
+        return -1;
+    }
+
+    *iothread_id = idval;
+    return 0;
 }
 
 int
@@ -1403,6 +1423,65 @@ qemuAssignSpaprVIOAddress(virDomainDefPtr def, virDomainDeviceInfoPtr info,
     return 0;
 }
 
+
+static int
+qemuDomainAssignVirtioSerialAddresses(virDomainDefPtr def,
+                                      virDomainObjPtr obj)
+{
+    int ret = -1;
+    size_t i;
+    virDomainVirtioSerialAddrSetPtr addrs = NULL;
+    qemuDomainObjPrivatePtr priv = NULL;
+
+    if (virDomainControllerFindByType(def, VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL) == -1)
+        return 0;
+
+    if (!(addrs = virDomainVirtioSerialAddrSetCreate()))
+        goto cleanup;
+
+    if (virDomainVirtioSerialAddrSetAddControllers(addrs, def) < 0)
+        goto cleanup;
+
+    if (virDomainDeviceInfoIterate(def, virDomainVirtioSerialAddrReserve,
+                                   addrs) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Finished reserving existing ports");
+
+    for (i = 0; i < def->nconsoles; i++) {
+        virDomainChrDefPtr chr = def->consoles[i];
+        if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+            chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO &&
+            !virDomainVirtioSerialAddrIsComplete(&chr->info) &&
+            virDomainVirtioSerialAddrAutoAssign(def, addrs, &chr->info, true) < 0)
+            goto cleanup;
+    }
+
+    for (i = 0; i < def->nchannels; i++) {
+        virDomainChrDefPtr chr = def->channels[i];
+        if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
+            chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
+            !virDomainVirtioSerialAddrIsComplete(&chr->info) &&
+            virDomainVirtioSerialAddrAutoAssign(def, addrs, &chr->info, false) < 0)
+            goto cleanup;
+    }
+
+    if (obj && obj->privateData) {
+        priv = obj->privateData;
+        /* if this is the live domain object, we persist the addresses */
+        virDomainVirtioSerialAddrSetFree(priv->vioserialaddrs);
+        priv->persistentAddrs = 1;
+        priv->vioserialaddrs = addrs;
+        addrs = NULL;
+    }
+    ret = 0;
+
+ cleanup:
+    virDomainVirtioSerialAddrSetFree(addrs);
+    return ret;
+}
+
+
 int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
                                       virQEMUCapsPtr qemuCaps)
 {
@@ -1648,6 +1727,10 @@ int qemuDomainAssignAddresses(virDomainDefPtr def,
                               virDomainObjPtr obj)
 {
     int rc;
+
+    rc = qemuDomainAssignVirtioSerialAddresses(def, obj);
+    if (rc)
+        return rc;
 
     rc = qemuDomainAssignSpaprVIOAddresses(def, qemuCaps);
     if (rc)
@@ -3899,7 +3982,7 @@ qemuBuildDriveStr(virConnectPtr conn,
 
 
 static bool
-qemuCheckIothreads(virDomainDefPtr def,
+qemuCheckIOThreads(virDomainDefPtr def,
                    virQEMUCapsPtr qemuCaps,
                    virDomainDiskDefPtr disk)
 {
@@ -3920,11 +4003,11 @@ qemuCheckIothreads(virDomainDefPtr def,
         return false;
     }
 
-    /* Value larger than iothreads available? */
-    if (disk->iothread > def->iothreads) {
+    /* Can we find the disk iothread in the iothreadid list? */
+    if (!virDomainIOThreadIDFind(def, disk->iothread)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Disk iothread '%u' invalid only %u IOThreads"),
-                       disk->iothread, def->iothreads);
+                       _("Disk iothread '%u' not defined in iothreadid"),
+                       disk->iothread);
         return false;
     }
 
@@ -3959,7 +4042,7 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
         }
     }
 
-    if (disk->iothread && !qemuCheckIothreads(def, qemuCaps, disk))
+    if (disk->iothread && !qemuCheckIOThreads(def, qemuCaps, disk))
         goto error;
 
     switch (disk->bus) {
@@ -7988,7 +8071,7 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
     char **tapfdName = NULL;
     char **vhostfdName = NULL;
     int actualType = virDomainNetGetActualType(net);
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    virQEMUDriverConfigPtr cfg = NULL;
     virNetDevBandwidthPtr actualBandwidth;
     size_t i;
 
@@ -8024,6 +8107,8 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
                        virDomainNetTypeToString(actualType));
         return -1;
     }
+
+    cfg = virQEMUDriverGetConfig(driver);
 
     if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
         actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
@@ -8206,6 +8291,7 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
     VIR_FREE(host);
     VIR_FREE(tapfdName);
     VIR_FREE(vhostfdName);
+    virObjectUnref(cfg);
     return ret;
 }
 
@@ -8726,14 +8812,15 @@ qemuBuildCommandLine(virConnectPtr conn,
 
     if (def->iothreads > 0 &&
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
-        /* Create named iothread objects starting with 1. These may be used
+        /* Create iothread objects using the defined iothreadids list
+         * and the defined id and name from the list. These may be used
          * by a disk definition which will associate to an iothread by
-         * supplying a value of 1 up to the number of iothreads available
-         * (since 0 would indicate to not use the feature).
+         * supplying a value of an id from the list
          */
-        for (i = 1; i <= def->iothreads; i++) {
+        for (i = 0; i < def->niothreadids; i++) {
             virCommandAddArg(cmd, "-object");
-            virCommandAddArgFormat(cmd, "iothread,id=iothread%zu", i);
+            virCommandAddArgFormat(cmd, "iothread,id=iothread%u",
+                                   def->iothreadids[i]->iothread_id);
         }
     }
 
@@ -8766,8 +8853,8 @@ qemuBuildCommandLine(virConnectPtr conn,
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_UUID))
         virCommandAddArgList(cmd, "-uuid", uuid, NULL);
     if (def->virtType == VIR_DOMAIN_VIRT_XEN ||
-        STREQ(def->os.type, "xen") ||
-        STREQ(def->os.type, "linux")) {
+        def->os.type == VIR_DOMAIN_OSTYPE_XEN ||
+        def->os.type == VIR_DOMAIN_OSTYPE_LINUX) {
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_XEN_DOMID)) {
             virCommandAddArg(cmd, "-xen-attach");
             virCommandAddArg(cmd, "-xen-domid");
@@ -9198,6 +9285,7 @@ qemuBuildCommandLine(virConnectPtr conn,
         }
     }
     VIR_FREE(boot_opts_str);
+    VIR_FREE(boot_order_str);
 
     if (def->os.kernel)
         virCommandAddArgList(cmd, "-kernel", def->os.kernel, NULL);
@@ -10678,6 +10766,7 @@ qemuBuildCommandLine(virConnectPtr conn,
 
  error:
     VIR_FREE(boot_order_str);
+    VIR_FREE(boot_opts_str);
     virBufferFreeAndReset(&boot_buf);
     virObjectUnref(cfg);
     /* free up any resources in the network driver
@@ -12247,11 +12336,9 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
 
     if (strstr(path, "xenner")) {
         def->virtType = VIR_DOMAIN_VIRT_KVM;
-        if (VIR_STRDUP(def->os.type, "xen") < 0)
-            goto error;
+        def->os.type = VIR_DOMAIN_OSTYPE_XEN;
     } else {
-        if (VIR_STRDUP(def->os.type, "hvm") < 0)
-            goto error;
+        def->os.type = VIR_DOMAIN_OSTYPE_HVM;
         if (strstr(path, "kvm")) {
             def->virtType = VIR_DOMAIN_VIRT_KVM;
             def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_TRISTATE_SWITCH_ON;
@@ -13079,14 +13166,17 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
     }
 
     if (!def->os.machine) {
-        const char *defaultMachine =
-                        virCapabilitiesDefaultGuestMachine(qemuCaps,
-                                                           def->os.type,
-                                                           def->os.arch,
-                                                           virDomainVirtTypeToString(def->virtType));
-        if (defaultMachine != NULL)
-            if (VIR_STRDUP(def->os.machine, defaultMachine) < 0)
-                goto error;
+        virCapsDomainDataPtr capsdata;
+
+        if (!(capsdata = virCapabilitiesDomainDataLookup(qemuCaps, def->os.type,
+                def->os.arch, def->virtType, NULL, NULL)))
+            goto error;
+
+        if (VIR_STRDUP(def->os.machine, capsdata->machinetype) < 0) {
+            VIR_FREE(capsdata);
+            goto error;
+        }
+        VIR_FREE(capsdata);
     }
 
     if (!nographics && def->ngraphics == 0) {

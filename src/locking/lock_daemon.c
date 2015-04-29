@@ -678,7 +678,7 @@ virLockDaemonClientFree(void *opaque)
                     signum = SIGKILL;
                 else
                     signum = 0;
-                if (virProcessKill(priv->clientPid, signum) < 0) {
+                if (priv->clientPid != 0 && virProcessKill(priv->clientPid, signum) < 0) {
                     if (errno == ESRCH)
                         break;
 
@@ -1111,7 +1111,6 @@ virLockDaemonUsage(const char *argv0, bool privileged)
     }
 }
 
-#define MAX_LISTEN 5
 int main(int argc, char **argv) {
     virNetServerProgramPtr lockProgram = NULL;
     char *remote_config_file = NULL;

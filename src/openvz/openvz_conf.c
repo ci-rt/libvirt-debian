@@ -179,7 +179,7 @@ virCapsPtr openvzCapsInit(void)
         goto no_memory;
 
     if ((guest = virCapabilitiesAddGuest(caps,
-                                         "exe",
+                                         VIR_DOMAIN_OSTYPE_EXE,
                                          caps->host.arch,
                                          NULL,
                                          NULL,
@@ -188,7 +188,7 @@ virCapsPtr openvzCapsInit(void)
         goto no_memory;
 
     if (virCapabilitiesAddGuestDomain(guest,
-                                      "openvz",
+                                      VIR_DOMAIN_VIRT_OPENVZ,
                                       NULL,
                                       NULL,
                                       0,
@@ -564,8 +564,7 @@ int openvzLoadDomains(struct openvz_driver *driver)
             goto cleanup;
         }
 
-        if (VIR_STRDUP(def->os.type, "exe") < 0)
-            goto cleanup;
+        def->os.type = VIR_DOMAIN_OSTYPE_EXE;
         if (VIR_STRDUP(def->os.init, "/sbin/init") < 0)
             goto cleanup;
 
