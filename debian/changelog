@@ -1,4 +1,4 @@
-libvirt (1.2.15~rc1-1) unstable; urgency=medium
+libvirt (1.2.15~rc1-1) experimental; urgency=medium
 
   * [a544fac] New upstream version 1.2.15~rc1
   * [a40d4d3] Bump symbol versions
