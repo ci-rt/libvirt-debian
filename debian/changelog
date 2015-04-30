@@ -1,3 +1,12 @@
+libvirt (1.2.15~rc1-1) unstable; urgency=medium
+
+  * [a544fac] New upstream version 1.2.15~rc1
+  * [a40d4d3] Bump symbol versions
+  * [7d4f947] Rediff patches
+  * [39deec1] Update gbp.conf for experimental
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 30 Apr 2015 08:41:46 +0200
+
 libvirt (1.2.14-3) unstable; urgency=medium
 
   * Upload to unstable
