@@ -2233,12 +2233,6 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
     if (niothreads < 0)
         goto cleanup;
 
-    /* Nothing to do */
-    if (niothreads == 0) {
-        ret = 0;
-        goto cleanup;
-    }
-
     if (niothreads != vm->def->iothreads) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("got wrong number of IOThread pids from QEMU monitor. "
@@ -2247,17 +2241,20 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
+    /* Nothing to do */
+    if (niothreads == 0) {
+        ret = 0;
+        goto cleanup;
+    }
+
     for (i = 0; i < niothreads; i++) {
-        unsigned int iothread_id;
         virDomainIOThreadIDDefPtr iothrid;
 
-        if (qemuDomainParseIOThreadAlias(iothreads[i]->name,
-                                         &iothread_id) < 0)
-            goto cleanup;
-
-        if (!(iothrid = virDomainIOThreadIDFind(vm->def, iothread_id))) {
+        if (!(iothrid = virDomainIOThreadIDFind(vm->def,
+                                                iothreads[i]->iothread_id))) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("iothread %d not found"), iothread_id);
+                           _("iothread %d not found"),
+                           iothreads[i]->iothread_id);
             goto cleanup;
         }
         iothrid->thread_id = iothreads[i]->thread_id;
@@ -2268,7 +2265,7 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
  cleanup:
     if (iothreads) {
         for (i = 0; i < niothreads; i++)
-            qemuMonitorIOThreadInfoFree(iothreads[i]);
+            VIR_FREE(iothreads[i]);
         VIR_FREE(iothreads);
     }
     return ret;
@@ -5063,6 +5060,13 @@ void qemuProcessStop(virQEMUDriverPtr driver,
 
     if (virAtomicIntDecAndTest(&driver->nactive) && driver->inhibitCallback)
         driver->inhibitCallback(false, driver->inhibitOpaque);
+
+    /* Wake up anything waiting on synchronous block jobs */
+    for (i = 0; i < vm->def->ndisks; i++) {
+        virDomainDiskDefPtr disk = vm->def->disks[i];
+        if (disk->blockJobSync && disk->blockJobStatus == -1)
+            virCondSignal(&disk->blockJobSyncCond);
+    }
 
     if ((logfile = qemuDomainCreateLog(driver, vm, true)) < 0) {
         /* To not break the normal domain shutdown process, skip the

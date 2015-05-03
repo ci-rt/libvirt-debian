@@ -55,6 +55,7 @@
 #include "qemu_monitor.h"
 #include "qemu_process.h"
 #include "qemu_migration.h"
+#include "qemu_blockjob.h"
 
 #include "virerror.h"
 #include "virlog.h"
@@ -4535,123 +4536,6 @@ processSerialChangedEvent(virQEMUDriverPtr driver,
 
 
 static void
-qemuBlockJobEventProcess(virQEMUDriverPtr driver,
-                         virDomainObjPtr vm,
-                         virDomainDiskDefPtr disk,
-                         int type,
-                         int status)
-{
-    virObjectEventPtr event = NULL;
-    virObjectEventPtr event2 = NULL;
-    const char *path;
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
-    virDomainDiskDefPtr persistDisk = NULL;
-    bool save = false;
-
-    /* Have to generate two variants of the event for old vs. new
-     * client callbacks */
-    if (type == VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT &&
-        disk->mirrorJob == VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT)
-        type = disk->mirrorJob;
-    path = virDomainDiskGetSource(disk);
-    event = virDomainEventBlockJobNewFromObj(vm, path, type, status);
-    event2 = virDomainEventBlockJob2NewFromObj(vm, disk->dst, type, status);
-
-    /* If we completed a block pull or commit, then update the XML
-     * to match.  */
-    switch ((virConnectDomainEventBlockJobStatus) status) {
-    case VIR_DOMAIN_BLOCK_JOB_COMPLETED:
-        if (disk->mirrorState == VIR_DOMAIN_DISK_MIRROR_STATE_PIVOT) {
-            if (vm->newDef) {
-                int indx = virDomainDiskIndexByName(vm->newDef, disk->dst, false);
-                virStorageSourcePtr copy = NULL;
-
-                if (indx >= 0) {
-                    persistDisk = vm->newDef->disks[indx];
-                    copy = virStorageSourceCopy(disk->mirror, false);
-                    if (virStorageSourceInitChainElement(copy,
-                                                         persistDisk->src,
-                                                         true) < 0) {
-                        VIR_WARN("Unable to update persistent definition "
-                                 "on vm %s after block job",
-                                 vm->def->name);
-                        virStorageSourceFree(copy);
-                        copy = NULL;
-                        persistDisk = NULL;
-                    }
-                }
-                if (copy) {
-                    virStorageSourceFree(persistDisk->src);
-                    persistDisk->src = copy;
-                }
-            }
-
-            /* XXX We want to revoke security labels and disk
-             * lease, as well as audit that revocation, before
-             * dropping the original source.  But it gets tricky
-             * if both source and mirror share common backing
-             * files (we want to only revoke the non-shared
-             * portion of the chain); so for now, we leak the
-             * access to the original.  */
-            virStorageSourceFree(disk->src);
-            disk->src = disk->mirror;
-        } else {
-            virStorageSourceFree(disk->mirror);
-        }
-
-        /* Recompute the cached backing chain to match our
-         * updates.  Better would be storing the chain ourselves
-         * rather than reprobing, but we haven't quite completed
-         * that conversion to use our XML tracking. */
-        disk->mirror = NULL;
-        save = disk->mirrorState != VIR_DOMAIN_DISK_MIRROR_STATE_NONE;
-        disk->mirrorState = VIR_DOMAIN_DISK_MIRROR_STATE_NONE;
-        disk->mirrorJob = VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN;
-        ignore_value(qemuDomainDetermineDiskChain(driver, vm, disk,
-                                                  true, true));
-        disk->blockjob = false;
-        break;
-
-    case VIR_DOMAIN_BLOCK_JOB_READY:
-        disk->mirrorState = VIR_DOMAIN_DISK_MIRROR_STATE_READY;
-        save = true;
-        break;
-
-    case VIR_DOMAIN_BLOCK_JOB_FAILED:
-    case VIR_DOMAIN_BLOCK_JOB_CANCELED:
-        virStorageSourceFree(disk->mirror);
-        disk->mirror = NULL;
-        disk->mirrorState = status == VIR_DOMAIN_BLOCK_JOB_FAILED ?
-            VIR_DOMAIN_DISK_MIRROR_STATE_ABORT : VIR_DOMAIN_DISK_MIRROR_STATE_NONE;
-        disk->mirrorJob = VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN;
-        save = true;
-        disk->blockjob = false;
-        break;
-
-    case VIR_DOMAIN_BLOCK_JOB_LAST:
-        break;
-    }
-
-    if (save) {
-        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
-            VIR_WARN("Unable to save status on vm %s after block job",
-                     vm->def->name);
-        if (persistDisk && virDomainSaveConfig(cfg->configDir,
-                                               vm->newDef) < 0)
-            VIR_WARN("Unable to update persistent definition on vm %s "
-                     "after block job", vm->def->name);
-    }
-
-    if (event)
-        qemuDomainEventQueue(driver, event);
-    if (event2)
-        qemuDomainEventQueue(driver, event2);
-
-    virObjectUnref(cfg);
-}
-
-
-static void
 processBlockJobEvent(virQEMUDriverPtr driver,
                      virDomainObjPtr vm,
                      char *diskAlias,
@@ -5918,16 +5802,11 @@ qemuDomainGetIOThreadsLive(virQEMUDriverPtr driver,
         goto endjob;
 
     for (i = 0; i < niothreads; i++) {
-        unsigned int iothread_id;
         virBitmapPtr map = NULL;
-
-        if (qemuDomainParseIOThreadAlias(iothreads[i]->name,
-                                         &iothread_id) < 0)
-            goto endjob;
 
         if (VIR_ALLOC(info_ret[i]) < 0)
             goto endjob;
-        info_ret[i]->iothread_id = iothread_id;
+        info_ret[i]->iothread_id = iothreads[i]->iothread_id;
 
         if (virProcessGetAffinity(iothreads[i]->thread_id, &map, hostcpus) < 0)
             goto endjob;
@@ -5955,7 +5834,7 @@ qemuDomainGetIOThreadsLive(virQEMUDriverPtr driver,
     }
     if (iothreads) {
         for (i = 0; i < niothreads; i++)
-            qemuMonitorIOThreadInfoFree(iothreads[i]);
+            VIR_FREE(iothreads[i]);
         VIR_FREE(iothreads);
     }
 
@@ -6292,7 +6171,7 @@ qemuDomainHotplugAddIOThread(virQEMUDriverPtr driver,
      * in the QEMU IOThread list, so we can add it to our iothreadids list
      */
     for (idx = 0; idx < new_niothreads; idx++) {
-        if (STREQ(new_iothreads[idx]->name, alias))
+        if (new_iothreads[idx]->iothread_id == iothread_id)
             break;
     }
 
@@ -6335,7 +6214,7 @@ qemuDomainHotplugAddIOThread(virQEMUDriverPtr driver,
  cleanup:
     if (new_iothreads) {
         for (idx = 0; idx < new_niothreads; idx++)
-            qemuMonitorIOThreadInfoFree(new_iothreads[idx]);
+            VIR_FREE(new_iothreads[idx]);
         VIR_FREE(new_iothreads);
     }
     VIR_FREE(mem_mask);
@@ -6421,7 +6300,7 @@ qemuDomainHotplugDelIOThread(virQEMUDriverPtr driver,
  cleanup:
     if (new_iothreads) {
         for (idx = 0; idx < new_niothreads; idx++)
-            qemuMonitorIOThreadInfoFree(new_iothreads[idx]);
+            VIR_FREE(new_iothreads[idx]);
         VIR_FREE(new_iothreads);
     }
     virDomainAuditIOThread(vm, orig_niothreads, new_niothreads,
@@ -8494,6 +8373,12 @@ qemuDomainAttachDeviceConfig(virQEMUCapsPtr qemuCaps,
         break;
 
     case VIR_DOMAIN_DEVICE_MEMORY:
+        if (vmdef->nmems == vmdef->mem.memory_slots) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("no free memory device slot available"));
+            return -1;
+        }
+
         if (virDomainMemoryInsert(vmdef, dev->data.memory) < 0)
             return -1;
         dev->data.memory = NULL;
@@ -16670,25 +16555,6 @@ qemuDomainBlockPullCommon(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (qemuDomainSupportsBlockJobs(vm, &modern) < 0)
-        goto cleanup;
-
-    if (!modern) {
-        if (base) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("partial block pull not supported with this "
-                             "QEMU binary"));
-            goto cleanup;
-        }
-
-        if (bandwidth) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("setting bandwidth at start of block pull not "
-                             "supported with this QEMU binary"));
-            goto cleanup;
-        }
-    }
-
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
@@ -16696,6 +16562,25 @@ qemuDomainBlockPullCommon(virQEMUDriverPtr driver,
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("domain is not running"));
         goto endjob;
+    }
+
+    if (qemuDomainSupportsBlockJobs(vm, &modern) < 0)
+        goto endjob;
+
+    if (!modern) {
+        if (base) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("partial block pull not supported with this "
+                             "QEMU binary"));
+            goto endjob;
+        }
+
+        if (bandwidth) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("setting bandwidth at start of block pull not "
+                             "supported with this QEMU binary"));
+            goto endjob;
+        }
     }
 
     if (!(device = qemuDiskPathToAlias(vm, path, &idx)))
@@ -16778,7 +16663,7 @@ qemuDomainBlockJobAbort(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     char *device = NULL;
-    virDomainDiskDefPtr disk;
+    virDomainDiskDefPtr disk = NULL;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     bool save = false;
     int idx;
@@ -16797,9 +16682,6 @@ qemuDomainBlockJobAbort(virDomainPtr dom,
     if (virDomainBlockJobAbortEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (qemuDomainSupportsBlockJobs(vm, &modern) < 0)
-        goto cleanup;
-
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
@@ -16809,17 +16691,12 @@ qemuDomainBlockJobAbort(virDomainPtr dom,
         goto endjob;
     }
 
+    if (qemuDomainSupportsBlockJobs(vm, &modern) < 0)
+        goto endjob;
+
     if (!(device = qemuDiskPathToAlias(vm, path, &idx)))
         goto endjob;
     disk = vm->def->disks[idx];
-
-    if (modern && !async) {
-        /* prepare state for event delivery. Since qemuDomainBlockPivot is
-         * synchronous, but the event is delivered asynchronously we need to
-         * wait too */
-        disk->blockJobStatus = -1;
-        disk->blockJobSync = true;
-    }
 
     if (disk->mirrorState != VIR_DOMAIN_DISK_MIRROR_STATE_NONE &&
         disk->mirrorState != VIR_DOMAIN_DISK_MIRROR_STATE_READY) {
@@ -16829,11 +16706,14 @@ qemuDomainBlockJobAbort(virDomainPtr dom,
         goto endjob;
     }
 
+    if (modern && !async) {
+        /* prepare state for event delivery */
+        qemuBlockJobSyncBegin(disk);
+    }
+
     if (pivot) {
-        if ((ret = qemuDomainBlockPivot(driver, vm, device, disk)) < 0) {
-            disk->blockJobSync = false;
+        if ((ret = qemuDomainBlockPivot(driver, vm, device, disk)) < 0)
             goto endjob;
-        }
     } else {
         if (disk->mirror) {
             disk->mirrorState = VIR_DOMAIN_DISK_MIRROR_STATE_ABORT;
@@ -16873,36 +16753,25 @@ qemuDomainBlockJobAbort(virDomainPtr dom,
              * blockcopy and active commit, so we can hardcode the
              * event to pull and let qemuBlockJobEventProcess() handle
              * the rest as usual */
-            disk->blockJobType = VIR_DOMAIN_BLOCK_JOB_TYPE_PULL;
-            disk->blockJobStatus = VIR_DOMAIN_BLOCK_JOB_CANCELED;
+            qemuBlockJobEventProcess(driver, vm, disk,
+                                     VIR_DOMAIN_BLOCK_JOB_TYPE_PULL,
+                                     VIR_DOMAIN_BLOCK_JOB_CANCELED);
         } else {
-            while (disk->blockJobStatus == -1 && disk->blockJobSync) {
-                if (virCondWait(&disk->blockJobSyncCond, &vm->parent.lock) < 0) {
-                    virReportSystemError(errno, "%s",
-                                         _("Unable to wait on block job sync "
-                                           "condition"));
-                    disk->blockJobSync = false;
-                    goto endjob;
-                }
+            virConnectDomainEventBlockJobStatus status = -1;
+            if (qemuBlockJobSyncWait(driver, vm, disk, &status) < 0) {
+                ret = -1;
+            } else if (status == VIR_DOMAIN_BLOCK_JOB_FAILED) {
+                virReportError(VIR_ERR_OPERATION_FAILED,
+                               _("failed to terminate block job on disk '%s'"),
+                               disk->dst);
+                ret = -1;
             }
         }
-
-        qemuBlockJobEventProcess(driver, vm, disk,
-                                 disk->blockJobType,
-                                 disk->blockJobStatus);
-
-        /* adjust the return code if we've got an explicit failure */
-        if (disk->blockJobStatus == VIR_DOMAIN_BLOCK_JOB_FAILED) {
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("failed to terminate block job on disk '%s'"),
-                           disk->dst);
-           ret = -1;
-        }
-
-        disk->blockJobSync = false;
     }
 
  endjob:
+    if (disk && disk->blockJobSync)
+        qemuBlockJobSyncEnd(driver, vm, disk, NULL);
     qemuDomainObjEndJob(driver, vm);
 
  cleanup:
@@ -17027,9 +16896,6 @@ qemuDomainBlockJobSetSpeed(virDomainPtr dom,
     if (virDomainBlockJobSetSpeedEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (qemuDomainSupportsBlockJobs(vm, &modern) < 0)
-        goto cleanup;
-
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
@@ -17038,6 +16904,9 @@ qemuDomainBlockJobSetSpeed(virDomainPtr dom,
                        _("domain is not running"));
         goto endjob;
     }
+
+    if (qemuDomainSupportsBlockJobs(vm, &modern) < 0)
+        goto endjob;
 
     if (!(device = qemuDiskPathToAlias(vm, path, NULL)))
         goto endjob;
@@ -17127,11 +16996,17 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
     if (qemuDomainDetermineDiskChain(driver, vm, disk, false, true) < 0)
         goto endjob;
 
+    /* clear the _SHALLOW flag if there is only one layer */
+    if (!disk->src->backingStore)
+        flags &= ~VIR_DOMAIN_BLOCK_COPY_SHALLOW;
+
+    /* unless the user provides a pre-created file, shallow copy into a raw
+     * file is not possible */
     if ((flags & VIR_DOMAIN_BLOCK_COPY_SHALLOW) &&
-        mirror->format == VIR_STORAGE_FILE_RAW &&
-        disk->src->backingStore->path) {
+        !(flags & VIR_DOMAIN_BLOCK_COPY_REUSE_EXT) &&
+        mirror->format == VIR_STORAGE_FILE_RAW) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("disk '%s' has backing file, so raw shallow copy "
+                       _("shallow copy of disk '%s' into a raw file "
                          "is not possible"),
                        disk->dst);
         goto endjob;

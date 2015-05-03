@@ -28,7 +28,7 @@
 #include "virerror.h"
 #include "virstring.h"
 #include "cpu/cpu.h"
-
+#include "qemu/qemu_monitor.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -1782,7 +1782,7 @@ testQemuMonitorJSONqemuMonitorJSONGetChardevInfo(const void *data)
     if (!test)
         return -1;
 
-    if (!(info = virHashCreate(32, (virHashDataFree) free)) ||
+    if (!(info = virHashCreate(32, qemuMonitorChardevInfoFree)) ||
         !(expectedInfo = virHashCreate(32, NULL)))
         goto cleanup;
 
@@ -2269,12 +2269,12 @@ testQemuMonitorJSONGetIOThreads(const void *data)
         goto cleanup;
     }
 
-#define CHECK(i, wantname, wantthread_id)                               \
+#define CHECK(i, wantiothread_id, wantthread_id)                        \
     do {                                                                \
-        if (STRNEQ(info[i]->name, (wantname))) {                        \
+        if (info[i]->iothread_id != (wantiothread_id)) {                \
             virReportError(VIR_ERR_INTERNAL_ERROR,                      \
-                           "name %s is not %s",                         \
-                           info[i]->name, (wantname));                  \
+                           "iothread_id %u is not %u",                  \
+                           info[i]->iothread_id, (wantiothread_id));    \
             goto cleanup;                                               \
         }                                                               \
         if (info[i]->thread_id != (wantthread_id)) {                    \
@@ -2285,8 +2285,8 @@ testQemuMonitorJSONGetIOThreads(const void *data)
         }                                                               \
     } while (0)
 
-    CHECK(0, "iothread1", 30992);
-    CHECK(1, "iothread2", 30993);
+    CHECK(0, 1, 30992);
+    CHECK(1, 2, 30993);
 
 #undef CHECK
 
@@ -2295,7 +2295,7 @@ testQemuMonitorJSONGetIOThreads(const void *data)
  cleanup:
     qemuMonitorTestFree(test);
     for (i = 0; i < ninfo; i++)
-        qemuMonitorIOThreadInfoFree(info[i]);
+        VIR_FREE(info[i]);
     VIR_FREE(info);
 
     return ret;

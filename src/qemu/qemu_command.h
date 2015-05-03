@@ -175,6 +175,7 @@ int qemuBuildMemoryBackendStr(unsigned long long size,
                               bool force);
 
 char *qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem,
+                               virDomainDefPtr def,
                                virQEMUCapsPtr qemuCaps);
 
 /* Legacy, pre device support */
@@ -237,9 +238,6 @@ int qemuOpenVhostNet(virDomainDefPtr def,
                      virQEMUCapsPtr qemuCaps,
                      int *vhostfd,
                      size_t *vhostfdSize);
-
-int qemuDomainParseIOThreadAlias(char *alias,
-                                 unsigned int *iothread_id);
 
 int qemuNetworkPrepareDevices(virDomainDefPtr def);
 

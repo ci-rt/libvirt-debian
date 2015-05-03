@@ -649,6 +649,7 @@ struct _qemuMonitorChardevInfo {
     char *ptyPath;
     virDomainChrDeviceState state;
 };
+void qemuMonitorChardevInfoFree(void *data, const void *name);
 int qemuMonitorGetChardevInfo(qemuMonitorPtr mon,
                               virHashTablePtr *retinfo);
 
@@ -877,13 +878,11 @@ typedef struct _qemuMonitorIOThreadInfo qemuMonitorIOThreadInfo;
 typedef qemuMonitorIOThreadInfo *qemuMonitorIOThreadInfoPtr;
 
 struct _qemuMonitorIOThreadInfo {
-    char *name;
+    unsigned int iothread_id;
     int thread_id;
 };
 int qemuMonitorGetIOThreads(qemuMonitorPtr mon,
                             qemuMonitorIOThreadInfoPtr **iothreads);
-
-void qemuMonitorIOThreadInfoFree(qemuMonitorIOThreadInfoPtr iothread);
 
 typedef struct _qemuMonitorMemoryDeviceInfo qemuMonitorMemoryDeviceInfo;
 typedef qemuMonitorMemoryDeviceInfo *qemuMonitorMemoryDeviceInfoPtr;
