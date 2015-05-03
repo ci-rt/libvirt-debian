@@ -540,7 +540,7 @@ virnetdevmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(virnetdevmock_la_LDFLAGS) $(LDFLAGS) -o $@
 @WITH_TESTS_FALSE@am_virnetdevmock_la_rpath =
 @WITH_TESTS_TRUE@am_virnetdevmock_la_rpath =
-virnetserverclientmock_la_LIBADD =
+virnetserverclientmock_la_DEPENDENCIES = $(GNULIB_LIBS)
 am_virnetserverclientmock_la_OBJECTS =  \
 	virnetserverclientmock_la-virnetserverclientmock.lo
 virnetserverclientmock_la_OBJECTS =  \
@@ -3675,6 +3675,7 @@ virnetserverclientmock_la_SOURCES = \
 
 virnetserverclientmock_la_CFLAGS = $(AM_CFLAGS)
 virnetserverclientmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+virnetserverclientmock_la_LIBADD = $(GNULIB_LIBS)
 @WITH_GNUTLS_TRUE@virnettlscontexttest_SOURCES =  \
 @WITH_GNUTLS_TRUE@	virnettlscontexttest.c virnettlshelpers.h \
 @WITH_GNUTLS_TRUE@	virnettlshelpers.c testutils.h testutils.c \

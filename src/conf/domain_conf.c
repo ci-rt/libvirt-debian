@@ -124,8 +124,7 @@ VIR_ENUM_IMPL(virDomainOS, VIR_DOMAIN_OSTYPE_LAST,
               "xen",
               "linux",
               "exe",
-              "uml",
-              "aix")
+              "uml")
 
 VIR_ENUM_IMPL(virDomainBoot, VIR_DOMAIN_BOOT_LAST,
               "fd",
@@ -13253,6 +13252,7 @@ virDomainIOThreadIDDefParseXML(xmlNodePtr node,
 
  error:
     virDomainIOThreadIDDefFree(iothrid);
+    iothrid = NULL;
     goto cleanup;
 }
 
@@ -13342,7 +13342,7 @@ virDomainIOThreadPinDefParseXML(xmlNodePtr node,
 {
     int ret = -1;
     virDomainIOThreadIDDefPtr iothrid;
-    virBitmapPtr cpumask;
+    virBitmapPtr cpumask = NULL;
     xmlNodePtr oldnode = ctxt->node;
     unsigned int iothreadid;
     char *tmp = NULL;
@@ -13372,6 +13372,7 @@ virDomainIOThreadPinDefParseXML(xmlNodePtr node,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Cannot find 'iothread' : %u"),
                        iothreadid);
+        goto cleanup;
     }
 
     if (!(tmp = virXMLPropString(node, "cpuset"))) {
@@ -21657,6 +21658,17 @@ virDomainDefCompatibleDevice(virDomainDefPtr def,
                                        virDomainDeviceInfoCheckBootIndex,
                                        info) < 0)
             return -1;
+    }
+
+    if (dev->type == VIR_DOMAIN_DEVICE_MEMORY) {
+        unsigned long long sz = dev->data.memory->size;
+
+        if ((virDomainDefGetMemoryActual(def) + sz) > def->mem.max_memory) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Attaching memory device with size '%llu' would "
+                             "exceed domain's maxMemory config"), sz);
+            return -1;
+        }
     }
 
     return 0;

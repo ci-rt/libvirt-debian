@@ -2812,7 +2812,7 @@ qemuMonitorQueryRxFilter(qemuMonitorPtr mon, const char *alias,
 }
 
 
-static void
+void
 qemuMonitorChardevInfoFree(void *data,
                            const void *name ATTRIBUTE_UNUSED)
 {
@@ -3810,16 +3810,6 @@ qemuMonitorGetIOThreads(qemuMonitorPtr mon,
     }
 
     return qemuMonitorJSONGetIOThreads(mon, iothreads);
-}
-
-
-void
-qemuMonitorIOThreadInfoFree(qemuMonitorIOThreadInfoPtr iothread)
-{
-    if (!iothread)
-        return;
-    VIR_FREE(iothread->name);
-    VIR_FREE(iothread);
 }
 
 
