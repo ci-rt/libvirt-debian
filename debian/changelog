@@ -1,3 +1,10 @@
+libvirt (1.2.15-1) experimental; urgency=medium
+
+  * [bf201a6] New upstream version 1.2.15
+  * [84ae1fc] Switch gbp.conf to sid
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 05 May 2015 19:26:21 +0200
+
 libvirt (1.2.15~rc2-1) experimental; urgency=medium
 
   * [852e3c3] New upstream version 1.2.15~rc2
