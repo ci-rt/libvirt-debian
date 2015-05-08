@@ -1,3 +1,11 @@
+libvirt (1.2.15-2) unstable; urgency=medium
+
+  * Upload to unstable
+  * [2b23d7f] Add missing "Testsuite: autopkgtest"
+  * [57a9e63] caps: Fix regression defaulting to host arch
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 May 2015 18:27:06 +0200
+
 libvirt (1.2.15-1) experimental; urgency=medium
 
   * [bf201a6] New upstream version 1.2.15
