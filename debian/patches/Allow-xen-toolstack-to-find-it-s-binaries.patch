@@ -19,10 +19,10 @@ Closes: #685749
  12 files changed, 24 insertions(+), 26 deletions(-)
 
 diff --git a/docs/schemas/capability.rng b/docs/schemas/capability.rng
-index 5f3ec70..3b5fade 100644
+index 88e08d2..bfbc8c9 100644
 --- a/docs/schemas/capability.rng
 +++ b/docs/schemas/capability.rng
-@@ -293,13 +293,13 @@
+@@ -294,13 +294,13 @@
  
    <define name='emulator'>
      <element name='emulator'>

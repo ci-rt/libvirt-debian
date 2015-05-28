@@ -9,7 +9,7 @@ Origin: vendor
  2 files changed, 30 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index 9aa06fa..25e226d 100644
+index 7f74b85..40f8501 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
 @@ -1,5 +1,17 @@
@@ -66,9 +66,9 @@ index 9aa06fa..25e226d 100644
  SHUTDOWN_TIMEOUT=300
  PARALLEL_SHUTDOWN=0
  START_DELAY=0
-@@ -40,11 +52,11 @@ BYPASS_CACHE=0
- CONNECT_RETRIES=10
+@@ -41,11 +53,11 @@ CONNECT_RETRIES=10
  RETRIES_SLEEP=1
+ SYNC_TIME=0
  
 -test -f "$sysconfdir"/sysconfig/libvirt-guests &&
 -    . "$sysconfdir"/sysconfig/libvirt-guests
@@ -81,7 +81,7 @@ index 9aa06fa..25e226d 100644
  
  RETVAL=0
  
-@@ -545,8 +557,7 @@ gueststatus() {
+@@ -546,8 +558,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start
