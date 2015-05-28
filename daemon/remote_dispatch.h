@@ -17,7 +17,8 @@ static int remoteDispatchAuthListHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchAuthList");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchAuthList(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -42,7 +43,8 @@ static int remoteDispatchAuthPolkitHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchAuthPolkit");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchAuthPolkit(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -67,7 +69,8 @@ static int remoteDispatchAuthSaslInitHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchAuthSaslInit");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchAuthSaslInit(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -93,7 +96,8 @@ static int remoteDispatchAuthSaslStartHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchAuthSaslStart");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchAuthSaslStart(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -119,7 +123,8 @@ static int remoteDispatchAuthSaslStepHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchAuthSaslStep");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchAuthSaslStep(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -145,7 +150,8 @@ static int remoteDispatchConnectBaselineCPUHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectBaselineCPU");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectBaselineCPU(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -197,7 +203,8 @@ static int remoteDispatchConnectCloseHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectClose");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectClose(server, client, msg, rerr);
   virThreadJobClear(rv);
   return rv;
@@ -223,7 +230,8 @@ static int remoteDispatchConnectCompareCPUHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectCompareCPU");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectCompareCPU(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -276,7 +284,8 @@ static int remoteDispatchConnectDomainEventCallbackDeregisterAnyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainEventCallbackDeregisterAny");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainEventCallbackDeregisterAny(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -302,7 +311,8 @@ static int remoteDispatchConnectDomainEventCallbackRegisterAnyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainEventCallbackRegisterAny");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainEventCallbackRegisterAny(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -327,7 +337,8 @@ static int remoteDispatchConnectDomainEventDeregisterHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainEventDeregister");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainEventDeregister(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -352,7 +363,8 @@ static int remoteDispatchConnectDomainEventDeregisterAnyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainEventDeregisterAny");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainEventDeregisterAny(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -377,7 +389,8 @@ static int remoteDispatchConnectDomainEventRegisterHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainEventRegister");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainEventRegister(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -402,7 +415,8 @@ static int remoteDispatchConnectDomainEventRegisterAnyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainEventRegisterAny");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainEventRegisterAny(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -428,7 +442,8 @@ static int remoteDispatchConnectDomainXMLFromNativeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainXMLFromNative");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainXMLFromNative(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -482,7 +497,8 @@ static int remoteDispatchConnectDomainXMLToNativeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectDomainXMLToNative");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectDomainXMLToNative(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -536,7 +552,8 @@ static int remoteDispatchConnectFindStoragePoolSourcesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectFindStoragePoolSources");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectFindStoragePoolSources(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -593,7 +610,8 @@ static int remoteDispatchConnectGetAllDomainStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetAllDomainStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetAllDomainStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -618,7 +636,8 @@ static int remoteDispatchConnectGetCapabilitiesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetCapabilities");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetCapabilities(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -671,7 +690,8 @@ static int remoteDispatchConnectGetCPUModelNamesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetCPUModelNames");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetCPUModelNames(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -697,7 +717,8 @@ static int remoteDispatchConnectGetDomainCapabilitiesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetDomainCapabilities");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetDomainCapabilities(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -759,7 +780,8 @@ static int remoteDispatchConnectGetHostnameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetHostname");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetHostname(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -811,7 +833,8 @@ static int remoteDispatchConnectGetLibVersionHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetLibVersion");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetLibVersion(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -864,7 +887,8 @@ static int remoteDispatchConnectGetMaxVcpusHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetMaxVcpus");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetMaxVcpus(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -921,7 +945,8 @@ static int remoteDispatchConnectGetSysinfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetSysinfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetSysinfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -974,7 +999,8 @@ static int remoteDispatchConnectGetTypeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetType");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetType(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1029,7 +1055,8 @@ static int remoteDispatchConnectGetURIHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetURI");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetURI(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1081,7 +1108,8 @@ static int remoteDispatchConnectGetVersionHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectGetVersion");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectGetVersion(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1133,7 +1161,8 @@ static int remoteDispatchConnectIsSecureHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectIsSecure");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectIsSecure(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1186,7 +1215,8 @@ static int remoteDispatchConnectListAllDomainsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListAllDomains");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListAllDomains(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1212,7 +1242,8 @@ static int remoteDispatchConnectListAllInterfacesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListAllInterfaces");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListAllInterfaces(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1238,7 +1269,8 @@ static int remoteDispatchConnectListAllNetworksHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListAllNetworks");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListAllNetworks(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1264,7 +1296,8 @@ static int remoteDispatchConnectListAllNodeDevicesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListAllNodeDevices");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListAllNodeDevices(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1290,7 +1323,8 @@ static int remoteDispatchConnectListAllNWFiltersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListAllNWFilters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListAllNWFilters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1316,7 +1350,8 @@ static int remoteDispatchConnectListAllSecretsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListAllSecrets");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListAllSecrets(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1342,7 +1377,8 @@ static int remoteDispatchConnectListAllStoragePoolsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListAllStoragePools");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListAllStoragePools(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1368,7 +1404,8 @@ static int remoteDispatchConnectListDefinedDomainsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListDefinedDomains");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListDefinedDomains(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1434,7 +1471,8 @@ static int remoteDispatchConnectListDefinedInterfacesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListDefinedInterfaces");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListDefinedInterfaces(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1500,7 +1538,8 @@ static int remoteDispatchConnectListDefinedNetworksHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListDefinedNetworks");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListDefinedNetworks(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1566,7 +1605,8 @@ static int remoteDispatchConnectListDefinedStoragePoolsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListDefinedStoragePools");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListDefinedStoragePools(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1632,7 +1672,8 @@ static int remoteDispatchConnectListDomainsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListDomains");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListDomains(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1698,7 +1739,8 @@ static int remoteDispatchConnectListInterfacesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListInterfaces");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListInterfaces(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1764,7 +1806,8 @@ static int remoteDispatchConnectListNetworksHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListNetworks");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListNetworks(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1830,7 +1873,8 @@ static int remoteDispatchConnectListNWFiltersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListNWFilters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListNWFilters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1896,7 +1940,8 @@ static int remoteDispatchConnectListSecretsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListSecrets");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListSecrets(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -1962,7 +2007,8 @@ static int remoteDispatchConnectListStoragePoolsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectListStoragePools");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectListStoragePools(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2027,7 +2073,8 @@ static int remoteDispatchConnectNetworkEventDeregisterAnyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNetworkEventDeregisterAny");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNetworkEventDeregisterAny(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2053,7 +2100,8 @@ static int remoteDispatchConnectNetworkEventRegisterAnyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNetworkEventRegisterAny");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNetworkEventRegisterAny(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2078,7 +2126,8 @@ static int remoteDispatchConnectNumOfDefinedDomainsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfDefinedDomains");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfDefinedDomains(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2130,7 +2179,8 @@ static int remoteDispatchConnectNumOfDefinedInterfacesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfDefinedInterfaces");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfDefinedInterfaces(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2182,7 +2232,8 @@ static int remoteDispatchConnectNumOfDefinedNetworksHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfDefinedNetworks");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfDefinedNetworks(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2234,7 +2285,8 @@ static int remoteDispatchConnectNumOfDefinedStoragePoolsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfDefinedStoragePools");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfDefinedStoragePools(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2286,7 +2338,8 @@ static int remoteDispatchConnectNumOfDomainsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfDomains");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfDomains(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2338,7 +2391,8 @@ static int remoteDispatchConnectNumOfInterfacesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfInterfaces");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfInterfaces(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2390,7 +2444,8 @@ static int remoteDispatchConnectNumOfNetworksHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfNetworks");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfNetworks(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2442,7 +2497,8 @@ static int remoteDispatchConnectNumOfNWFiltersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfNWFilters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfNWFilters(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2494,7 +2550,8 @@ static int remoteDispatchConnectNumOfSecretsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfSecrets");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfSecrets(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2546,7 +2603,8 @@ static int remoteDispatchConnectNumOfStoragePoolsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectNumOfStoragePools");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectNumOfStoragePools(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2598,7 +2656,8 @@ static int remoteDispatchConnectOpenHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectOpen");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectOpen(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2624,7 +2683,8 @@ static int remoteDispatchConnectSupportsFeatureHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchConnectSupportsFeature");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchConnectSupportsFeature(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -2649,7 +2709,8 @@ static int remoteDispatchDomainAbortJobHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainAbortJob");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainAbortJob(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2704,7 +2765,8 @@ static int remoteDispatchDomainAddIOThreadHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainAddIOThread");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainAddIOThread(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2759,7 +2821,8 @@ static int remoteDispatchDomainAttachDeviceHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainAttachDevice");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainAttachDevice(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2814,7 +2877,8 @@ static int remoteDispatchDomainAttachDeviceFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainAttachDeviceFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainAttachDeviceFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2869,7 +2933,8 @@ static int remoteDispatchDomainBlockCommitHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockCommit");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockCommit(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2932,7 +2997,8 @@ static int remoteDispatchDomainBlockCopyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockCopy");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockCopy(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -2996,7 +3062,8 @@ static int remoteDispatchDomainBlockJobAbortHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockJobAbort");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockJobAbort(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3051,7 +3118,8 @@ static int remoteDispatchDomainBlockJobSetSpeedHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockJobSetSpeed");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockJobSetSpeed(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3110,7 +3178,8 @@ static int remoteDispatchDomainBlockPeekHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockPeek");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockPeek(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3135,7 +3204,8 @@ static int remoteDispatchDomainBlockPullHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockPull");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockPull(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3193,7 +3263,8 @@ static int remoteDispatchDomainBlockRebaseHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockRebase");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockRebase(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3254,7 +3325,8 @@ static int remoteDispatchDomainBlockResizeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockResize");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockResize(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3310,7 +3382,8 @@ static int remoteDispatchDomainBlockStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3373,7 +3446,8 @@ static int remoteDispatchDomainBlockStatsFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainBlockStatsFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainBlockStatsFlags(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3398,7 +3472,8 @@ static int remoteDispatchDomainCoreDumpHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainCoreDump");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainCoreDump(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3453,7 +3528,8 @@ static int remoteDispatchDomainCoreDumpWithFormatHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainCoreDumpWithFormat");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainCoreDumpWithFormat(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3508,7 +3584,8 @@ static int remoteDispatchDomainCreateHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainCreate");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainCreate(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3564,7 +3641,8 @@ static int remoteDispatchDomainCreateWithFilesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainCreateWithFiles");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainCreateWithFiles(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3590,7 +3668,8 @@ static int remoteDispatchDomainCreateWithFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainCreateWithFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainCreateWithFlags(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3648,7 +3727,8 @@ static int remoteDispatchDomainCreateXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainCreateXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainCreateXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3703,7 +3783,8 @@ static int remoteDispatchDomainCreateXMLWithFilesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainCreateXMLWithFiles");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainCreateXMLWithFiles(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3729,7 +3810,8 @@ static int remoteDispatchDomainDefineXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainDefineXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainDefineXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3784,7 +3866,8 @@ static int remoteDispatchDomainDefineXMLFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainDefineXMLFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainDefineXMLFlags(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -3838,7 +3921,8 @@ static int remoteDispatchDomainDelIOThreadHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainDelIOThread");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainDelIOThread(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3893,7 +3977,8 @@ static int remoteDispatchDomainDestroyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainDestroy");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainDestroy(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -3948,7 +4033,8 @@ static int remoteDispatchDomainDestroyFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainDestroyFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainDestroyFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -4003,7 +4089,8 @@ static int remoteDispatchDomainDetachDeviceHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainDetachDevice");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainDetachDevice(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -4058,7 +4145,8 @@ static int remoteDispatchDomainDetachDeviceFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainDetachDeviceFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainDetachDeviceFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -4114,7 +4202,8 @@ static int remoteDispatchDomainFSFreezeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainFSFreeze");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainFSFreeze(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4173,7 +4262,8 @@ static int remoteDispatchDomainFSThawHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainFSThaw");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainFSThaw(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4231,7 +4321,8 @@ static int remoteDispatchDomainFSTrimHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainFSTrim");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainFSTrim(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -4290,7 +4381,8 @@ static int remoteDispatchDomainGetAutostartHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetAutostart");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetAutostart(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4349,7 +4441,8 @@ static int remoteDispatchDomainGetBlkioParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetBlkioParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetBlkioParameters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4375,7 +4468,8 @@ static int remoteDispatchDomainGetBlockInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetBlockInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetBlockInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4436,7 +4530,8 @@ static int remoteDispatchDomainGetBlockIoTuneHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetBlockIoTune");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetBlockIoTune(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4462,7 +4557,8 @@ static int remoteDispatchDomainGetBlockJobInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetBlockJobInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetBlockJobInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4488,7 +4584,8 @@ static int remoteDispatchDomainGetControlInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetControlInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetControlInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4549,7 +4646,8 @@ static int remoteDispatchDomainGetCPUStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetCPUStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetCPUStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4575,7 +4673,8 @@ static int remoteDispatchDomainGetDiskErrorsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetDiskErrors");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetDiskErrors(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4601,7 +4700,8 @@ static int remoteDispatchDomainGetEmulatorPinInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetEmulatorPinInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetEmulatorPinInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4627,7 +4727,8 @@ static int remoteDispatchDomainGetFSInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetFSInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetFSInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4653,7 +4754,8 @@ static int remoteDispatchDomainGetHostnameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetHostname");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetHostname(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4712,7 +4814,8 @@ static int remoteDispatchDomainGetInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4775,7 +4878,8 @@ static int remoteDispatchDomainGetInterfaceParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetInterfaceParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetInterfaceParameters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4801,7 +4905,8 @@ static int remoteDispatchDomainGetIOThreadInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetIOThreadInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetIOThreadInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4827,7 +4932,8 @@ static int remoteDispatchDomainGetJobInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetJobInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetJobInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4897,7 +5003,8 @@ static int remoteDispatchDomainGetJobStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetJobStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetJobStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4923,7 +5030,8 @@ static int remoteDispatchDomainGetMaxMemoryHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetMaxMemory");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetMaxMemory(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -4982,7 +5090,8 @@ static int remoteDispatchDomainGetMaxVcpusHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetMaxVcpus");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetMaxVcpus(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5041,7 +5150,8 @@ static int remoteDispatchDomainGetMemoryParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetMemoryParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetMemoryParameters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5067,7 +5177,8 @@ static int remoteDispatchDomainGetMetadataHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetMetadata");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetMetadata(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5129,7 +5240,8 @@ static int remoteDispatchDomainGetNumaParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetNumaParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetNumaParameters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5155,7 +5267,8 @@ static int remoteDispatchDomainGetOSTypeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetOSType");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetOSType(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5214,7 +5327,8 @@ static int remoteDispatchDomainGetSchedulerParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetSchedulerParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetSchedulerParameters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5240,7 +5354,8 @@ static int remoteDispatchDomainGetSchedulerParametersFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetSchedulerParametersFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetSchedulerParametersFlags(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5266,7 +5381,8 @@ static int remoteDispatchDomainGetSchedulerTypeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetSchedulerType");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetSchedulerType(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5292,7 +5408,8 @@ static int remoteDispatchDomainGetSecurityLabelHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetSecurityLabel");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetSecurityLabel(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5318,7 +5435,8 @@ static int remoteDispatchDomainGetSecurityLabelListHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetSecurityLabelList");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetSecurityLabelList(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5344,7 +5462,8 @@ static int remoteDispatchDomainGetStateHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetState");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetState(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5370,7 +5489,8 @@ static int remoteDispatchDomainGetTimeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetTime");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetTime(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5396,7 +5516,8 @@ static int remoteDispatchDomainGetVcpuPinInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetVcpuPinInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetVcpuPinInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5422,7 +5543,8 @@ static int remoteDispatchDomainGetVcpusHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetVcpus");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetVcpus(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5448,7 +5570,8 @@ static int remoteDispatchDomainGetVcpusFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetVcpusFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetVcpusFlags(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5507,7 +5630,8 @@ static int remoteDispatchDomainGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5566,7 +5690,8 @@ static int remoteDispatchDomainHasCurrentSnapshotHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainHasCurrentSnapshot");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainHasCurrentSnapshot(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5625,7 +5750,8 @@ static int remoteDispatchDomainHasManagedSaveImageHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainHasManagedSaveImage");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainHasManagedSaveImage(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5683,7 +5809,8 @@ static int remoteDispatchDomainInjectNMIHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainInjectNMI");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainInjectNMI(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -5739,7 +5866,8 @@ static int remoteDispatchDomainInterfaceAddressesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainInterfaceAddresses");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainInterfaceAddresses(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5765,7 +5893,8 @@ static int remoteDispatchDomainInterfaceStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainInterfaceStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainInterfaceStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5831,7 +5960,8 @@ static int remoteDispatchDomainIsActiveHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainIsActive");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainIsActive(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5890,7 +6020,8 @@ static int remoteDispatchDomainIsPersistentHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainIsPersistent");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainIsPersistent(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -5949,7 +6080,8 @@ static int remoteDispatchDomainIsUpdatedHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainIsUpdated");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainIsUpdated(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6008,7 +6140,8 @@ static int remoteDispatchDomainListAllSnapshotsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainListAllSnapshots");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainListAllSnapshots(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6034,7 +6167,8 @@ static int remoteDispatchDomainLookupByIDHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainLookupByID");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainLookupByID(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6089,7 +6223,8 @@ static int remoteDispatchDomainLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6144,7 +6279,8 @@ static int remoteDispatchDomainLookupByUUIDHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainLookupByUUID");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainLookupByUUID(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6198,7 +6334,8 @@ static int remoteDispatchDomainManagedSaveHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainManagedSave");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainManagedSave(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -6253,7 +6390,8 @@ static int remoteDispatchDomainManagedSaveRemoveHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainManagedSaveRemove");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainManagedSaveRemove(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -6309,7 +6447,8 @@ static int remoteDispatchDomainMemoryPeekHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMemoryPeek");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMemoryPeek(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6335,7 +6474,8 @@ static int remoteDispatchDomainMemoryStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMemoryStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMemoryStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6361,7 +6501,8 @@ static int remoteDispatchDomainMigrateBegin3Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateBegin3");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateBegin3(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6387,7 +6528,8 @@ static int remoteDispatchDomainMigrateBegin3ParamsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateBegin3Params");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateBegin3Params(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6412,7 +6554,8 @@ static int remoteDispatchDomainMigrateConfirm3Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateConfirm3");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateConfirm3(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -6437,7 +6580,8 @@ static int remoteDispatchDomainMigrateConfirm3ParamsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateConfirm3Params");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateConfirm3Params(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -6463,7 +6607,8 @@ static int remoteDispatchDomainMigrateFinishHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateFinish");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateFinish(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6521,7 +6666,8 @@ static int remoteDispatchDomainMigrateFinish2Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateFinish2");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateFinish2(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6579,7 +6725,8 @@ static int remoteDispatchDomainMigrateFinish3Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateFinish3");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateFinish3(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6605,7 +6752,8 @@ static int remoteDispatchDomainMigrateFinish3ParamsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateFinish3Params");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateFinish3Params(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6631,7 +6779,8 @@ static int remoteDispatchDomainMigrateGetCompressionCacheHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateGetCompressionCache");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateGetCompressionCache(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6690,7 +6839,8 @@ static int remoteDispatchDomainMigrateGetMaxSpeedHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateGetMaxSpeed");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateGetMaxSpeed(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6748,7 +6898,8 @@ static int remoteDispatchDomainMigratePerformHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePerform");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePerform(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -6813,7 +6964,8 @@ static int remoteDispatchDomainMigratePerform3Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePerform3");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePerform3(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6839,7 +6991,8 @@ static int remoteDispatchDomainMigratePerform3ParamsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePerform3Params");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePerform3Params(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6865,7 +7018,8 @@ static int remoteDispatchDomainMigratePrepareHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePrepare");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePrepare(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6891,7 +7045,8 @@ static int remoteDispatchDomainMigratePrepare2Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePrepare2");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePrepare2(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6917,7 +7072,8 @@ static int remoteDispatchDomainMigratePrepare3Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePrepare3");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePrepare3(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6943,7 +7099,8 @@ static int remoteDispatchDomainMigratePrepare3ParamsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePrepare3Params");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePrepare3Params(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -6968,7 +7125,8 @@ static int remoteDispatchDomainMigratePrepareTunnelHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePrepareTunnel");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePrepareTunnel(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7046,7 +7204,8 @@ static int remoteDispatchDomainMigratePrepareTunnel3Helper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePrepareTunnel3");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePrepareTunnel3(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -7130,7 +7289,8 @@ static int remoteDispatchDomainMigratePrepareTunnel3ParamsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigratePrepareTunnel3Params");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigratePrepareTunnel3Params(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -7155,7 +7315,8 @@ static int remoteDispatchDomainMigrateSetCompressionCacheHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateSetCompressionCache");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateSetCompressionCache(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7210,7 +7371,8 @@ static int remoteDispatchDomainMigrateSetMaxDowntimeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateSetMaxDowntime");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateSetMaxDowntime(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7265,7 +7427,8 @@ static int remoteDispatchDomainMigrateSetMaxSpeedHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainMigrateSetMaxSpeed");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainMigrateSetMaxSpeed(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7323,7 +7486,8 @@ static int remoteDispatchDomainOpenChannelHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainOpenChannel");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainOpenChannel(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7399,7 +7563,8 @@ static int remoteDispatchDomainOpenConsoleHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainOpenConsole");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainOpenConsole(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7475,7 +7640,8 @@ static int remoteDispatchDomainOpenGraphicsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainOpenGraphics");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainOpenGraphics(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7500,7 +7666,8 @@ static int remoteDispatchDomainOpenGraphicsFdHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainOpenGraphicsFd");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainOpenGraphicsFd(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7525,7 +7692,8 @@ static int remoteDispatchDomainPinEmulatorHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainPinEmulator");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainPinEmulator(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7550,7 +7718,8 @@ static int remoteDispatchDomainPinIOThreadHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainPinIOThread");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainPinIOThread(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7605,7 +7774,8 @@ static int remoteDispatchDomainPinVcpuHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainPinVcpu");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainPinVcpu(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7660,7 +7830,8 @@ static int remoteDispatchDomainPinVcpuFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainPinVcpuFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainPinVcpuFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7715,7 +7886,8 @@ static int remoteDispatchDomainPMSuspendForDurationHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainPMSuspendForDuration");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainPMSuspendForDuration(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7770,7 +7942,8 @@ static int remoteDispatchDomainPMWakeupHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainPMWakeup");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainPMWakeup(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7825,7 +7998,8 @@ static int remoteDispatchDomainRebootHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainReboot");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainReboot(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7880,7 +8054,8 @@ static int remoteDispatchDomainResetHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainReset");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainReset(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7935,7 +8110,8 @@ static int remoteDispatchDomainRestoreHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainRestore");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainRestore(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -7985,7 +8161,8 @@ static int remoteDispatchDomainRestoreFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainRestoreFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainRestoreFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8038,7 +8215,8 @@ static int remoteDispatchDomainResumeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainResume");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainResume(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8093,7 +8271,8 @@ static int remoteDispatchDomainRevertToSnapshotHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainRevertToSnapshot");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainRevertToSnapshot(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8153,7 +8332,8 @@ static int remoteDispatchDomainSaveHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSave");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSave(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8208,7 +8388,8 @@ static int remoteDispatchDomainSaveFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSaveFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSaveFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8266,7 +8447,8 @@ static int remoteDispatchDomainSaveImageDefineXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSaveImageDefineXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSaveImageDefineXML(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8317,7 +8499,8 @@ static int remoteDispatchDomainSaveImageGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSaveImageGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSaveImageGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -8371,7 +8554,8 @@ static int remoteDispatchDomainScreenshotHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainScreenshot");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainScreenshot(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -8456,7 +8640,8 @@ static int remoteDispatchDomainSendKeyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSendKey");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSendKey(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8511,7 +8696,8 @@ static int remoteDispatchDomainSendProcessSignalHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSendProcessSignal");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSendProcessSignal(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8566,7 +8752,8 @@ static int remoteDispatchDomainSetAutostartHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetAutostart");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetAutostart(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8621,7 +8808,8 @@ static int remoteDispatchDomainSetBlkioParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetBlkioParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetBlkioParameters(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8685,7 +8873,8 @@ static int remoteDispatchDomainSetBlockIoTuneHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetBlockIoTune");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetBlockIoTune(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8749,7 +8938,8 @@ static int remoteDispatchDomainSetInterfaceParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetInterfaceParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetInterfaceParameters(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8813,7 +9003,8 @@ static int remoteDispatchDomainSetMaxMemoryHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetMaxMemory");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetMaxMemory(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8871,7 +9062,8 @@ static int remoteDispatchDomainSetMemoryHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetMemory");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetMemory(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8929,7 +9121,8 @@ static int remoteDispatchDomainSetMemoryFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetMemoryFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetMemoryFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -8987,7 +9180,8 @@ static int remoteDispatchDomainSetMemoryParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetMemoryParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetMemoryParameters(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9051,7 +9245,8 @@ static int remoteDispatchDomainSetMemoryStatsPeriodHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetMemoryStatsPeriod");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetMemoryStatsPeriod(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9106,7 +9301,8 @@ static int remoteDispatchDomainSetMetadataHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetMetadata");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetMetadata(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9168,7 +9364,8 @@ static int remoteDispatchDomainSetNumaParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetNumaParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetNumaParameters(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9232,7 +9429,8 @@ static int remoteDispatchDomainSetSchedulerParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetSchedulerParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetSchedulerParameters(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9296,7 +9494,8 @@ static int remoteDispatchDomainSetSchedulerParametersFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetSchedulerParametersFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetSchedulerParametersFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9360,7 +9559,8 @@ static int remoteDispatchDomainSetTimeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetTime");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetTime(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9399,6 +9599,67 @@ cleanup:
 
 
 
+static int remoteDispatchDomainSetUserPassword(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_user_password_args *args);
+static int remoteDispatchDomainSetUserPasswordHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainSetUserPassword");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainSetUserPassword(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainSetUserPassword(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_user_password_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *user;
+    char *password;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    user = args->user ? *args->user : NULL;
+    password = args->password ? *args->password : NULL;
+
+    if (virDomainSetUserPassword(dom, user, password, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainSetVcpus(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -9415,7 +9676,8 @@ static int remoteDispatchDomainSetVcpusHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetVcpus");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetVcpus(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9470,7 +9732,8 @@ static int remoteDispatchDomainSetVcpusFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSetVcpusFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSetVcpusFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9525,7 +9788,8 @@ static int remoteDispatchDomainShutdownHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainShutdown");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainShutdown(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9580,7 +9844,8 @@ static int remoteDispatchDomainShutdownFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainShutdownFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainShutdownFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9636,7 +9901,8 @@ static int remoteDispatchDomainSnapshotCreateXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotCreateXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotCreateXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -9696,7 +9962,8 @@ static int remoteDispatchDomainSnapshotCurrentHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotCurrent");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotCurrent(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -9755,7 +10022,8 @@ static int remoteDispatchDomainSnapshotDeleteHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotDelete");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotDelete(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -9816,7 +10084,8 @@ static int remoteDispatchDomainSnapshotGetParentHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotGetParent");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotGetParent(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -9881,7 +10150,8 @@ static int remoteDispatchDomainSnapshotGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -9945,7 +10215,8 @@ static int remoteDispatchDomainSnapshotHasMetadataHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotHasMetadata");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotHasMetadata(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10009,7 +10280,8 @@ static int remoteDispatchDomainSnapshotIsCurrentHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotIsCurrent");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotIsCurrent(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10073,7 +10345,8 @@ static int remoteDispatchDomainSnapshotListAllChildrenHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotListAllChildren");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotListAllChildren(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10099,7 +10372,8 @@ static int remoteDispatchDomainSnapshotListChildrenNamesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotListChildrenNames");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotListChildrenNames(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10175,7 +10449,8 @@ static int remoteDispatchDomainSnapshotListNamesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotListNames");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotListNames(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10246,7 +10521,8 @@ static int remoteDispatchDomainSnapshotLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10306,7 +10582,8 @@ static int remoteDispatchDomainSnapshotNumHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotNum");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotNum(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10365,7 +10642,8 @@ static int remoteDispatchDomainSnapshotNumChildrenHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSnapshotNumChildren");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSnapshotNumChildren(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10428,7 +10706,8 @@ static int remoteDispatchDomainSuspendHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainSuspend");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainSuspend(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10483,7 +10762,8 @@ static int remoteDispatchDomainUndefineHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainUndefine");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainUndefine(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10538,7 +10818,8 @@ static int remoteDispatchDomainUndefineFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainUndefineFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainUndefineFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10593,7 +10874,8 @@ static int remoteDispatchDomainUpdateDeviceFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchDomainUpdateDeviceFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchDomainUpdateDeviceFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10648,7 +10930,8 @@ static int remoteDispatchInterfaceChangeBeginHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceChangeBegin");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceChangeBegin(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10698,7 +10981,8 @@ static int remoteDispatchInterfaceChangeCommitHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceChangeCommit");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceChangeCommit(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10748,7 +11032,8 @@ static int remoteDispatchInterfaceChangeRollbackHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceChangeRollback");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceChangeRollback(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10798,7 +11083,8 @@ static int remoteDispatchInterfaceCreateHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceCreate");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceCreate(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10854,7 +11140,8 @@ static int remoteDispatchInterfaceDefineXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceDefineXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceDefineXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -10908,7 +11195,8 @@ static int remoteDispatchInterfaceDestroyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceDestroy");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceDestroy(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -10964,7 +11252,8 @@ static int remoteDispatchInterfaceGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11023,7 +11312,8 @@ static int remoteDispatchInterfaceIsActiveHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceIsActive");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceIsActive(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11082,7 +11372,8 @@ static int remoteDispatchInterfaceLookupByMACStringHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceLookupByMACString");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceLookupByMACString(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11137,7 +11428,8 @@ static int remoteDispatchInterfaceLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11191,7 +11483,8 @@ static int remoteDispatchInterfaceUndefineHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchInterfaceUndefine");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchInterfaceUndefine(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -11246,7 +11539,8 @@ static int remoteDispatchNetworkCreateHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkCreate");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkCreate(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -11302,7 +11596,8 @@ static int remoteDispatchNetworkCreateXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkCreateXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkCreateXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11357,7 +11652,8 @@ static int remoteDispatchNetworkDefineXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkDefineXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkDefineXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11411,7 +11707,8 @@ static int remoteDispatchNetworkDestroyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkDestroy");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkDestroy(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -11467,7 +11764,8 @@ static int remoteDispatchNetworkGetAutostartHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkGetAutostart");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkGetAutostart(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11526,7 +11824,8 @@ static int remoteDispatchNetworkGetBridgeNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkGetBridgeName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkGetBridgeName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11585,7 +11884,8 @@ static int remoteDispatchNetworkGetDHCPLeasesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkGetDHCPLeases");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkGetDHCPLeases(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11611,7 +11911,8 @@ static int remoteDispatchNetworkGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11670,7 +11971,8 @@ static int remoteDispatchNetworkIsActiveHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkIsActive");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkIsActive(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11729,7 +12031,8 @@ static int remoteDispatchNetworkIsPersistentHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkIsPersistent");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkIsPersistent(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11788,7 +12091,8 @@ static int remoteDispatchNetworkLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11843,7 +12147,8 @@ static int remoteDispatchNetworkLookupByUUIDHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkLookupByUUID");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkLookupByUUID(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -11897,7 +12202,8 @@ static int remoteDispatchNetworkSetAutostartHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkSetAutostart");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkSetAutostart(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -11952,7 +12258,8 @@ static int remoteDispatchNetworkUndefineHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkUndefine");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkUndefine(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -12007,7 +12314,8 @@ static int remoteDispatchNetworkUpdateHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNetworkUpdate");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNetworkUpdate(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -12063,7 +12371,8 @@ static int remoteDispatchNodeAllocPagesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeAllocPages");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeAllocPages(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12089,7 +12398,8 @@ static int remoteDispatchNodeDeviceCreateXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceCreateXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceCreateXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12143,7 +12453,8 @@ static int remoteDispatchNodeDeviceDestroyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceDestroy");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceDestroy(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -12198,7 +12509,8 @@ static int remoteDispatchNodeDeviceDetachFlagsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceDetachFlags");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceDetachFlags(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -12256,7 +12568,8 @@ static int remoteDispatchNodeDeviceDettachHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceDettach");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceDettach(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -12312,7 +12625,8 @@ static int remoteDispatchNodeDeviceGetParentHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceGetParent");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceGetParent(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12338,7 +12652,8 @@ static int remoteDispatchNodeDeviceGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12397,7 +12712,8 @@ static int remoteDispatchNodeDeviceListCapsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceListCaps");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceListCaps(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12468,7 +12784,8 @@ static int remoteDispatchNodeDeviceLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12523,7 +12840,8 @@ static int remoteDispatchNodeDeviceLookupSCSIHostByWWNHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceLookupSCSIHostByWWN");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceLookupSCSIHostByWWN(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12578,7 +12896,8 @@ static int remoteDispatchNodeDeviceNumOfCapsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceNumOfCaps");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceNumOfCaps(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12636,7 +12955,8 @@ static int remoteDispatchNodeDeviceReAttachHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceReAttach");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceReAttach(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -12691,7 +13011,8 @@ static int remoteDispatchNodeDeviceResetHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeDeviceReset");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeDeviceReset(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -12747,7 +13068,8 @@ static int remoteDispatchNodeGetCellsFreeMemoryHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetCellsFreeMemory");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetCellsFreeMemory(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12813,7 +13135,8 @@ static int remoteDispatchNodeGetCPUMapHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetCPUMap");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetCPUMap(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12839,7 +13162,8 @@ static int remoteDispatchNodeGetCPUStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetCPUStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetCPUStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12864,7 +13188,8 @@ static int remoteDispatchNodeGetFreeMemoryHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetFreeMemory");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetFreeMemory(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12917,7 +13242,8 @@ static int remoteDispatchNodeGetFreePagesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetFreePages");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetFreePages(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -12942,7 +13268,8 @@ static int remoteDispatchNodeGetInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetInfo(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13002,7 +13329,8 @@ static int remoteDispatchNodeGetMemoryParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetMemoryParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetMemoryParameters(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13028,7 +13356,8 @@ static int remoteDispatchNodeGetMemoryStatsHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetMemoryStats");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetMemoryStats(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13053,7 +13382,8 @@ static int remoteDispatchNodeGetSecurityModelHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeGetSecurityModel");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeGetSecurityModel(server, client, msg, rerr, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13079,7 +13409,8 @@ static int remoteDispatchNodeListDevicesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeListDevices");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeListDevices(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13148,7 +13479,8 @@ static int remoteDispatchNodeNumOfDevicesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeNumOfDevices");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeNumOfDevices(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13204,7 +13536,8 @@ static int remoteDispatchNodeSetMemoryParametersHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeSetMemoryParameters");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeSetMemoryParameters(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -13263,7 +13596,8 @@ static int remoteDispatchNodeSuspendForDurationHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNodeSuspendForDuration");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNodeSuspendForDuration(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -13314,7 +13648,8 @@ static int remoteDispatchNWFilterDefineXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNWFilterDefineXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNWFilterDefineXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13369,7 +13704,8 @@ static int remoteDispatchNWFilterGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNWFilterGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNWFilterGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13428,7 +13764,8 @@ static int remoteDispatchNWFilterLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNWFilterLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNWFilterLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13483,7 +13820,8 @@ static int remoteDispatchNWFilterLookupByUUIDHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNWFilterLookupByUUID");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNWFilterLookupByUUID(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13537,7 +13875,8 @@ static int remoteDispatchNWFilterUndefineHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchNWFilterUndefine");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchNWFilterUndefine(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -13593,7 +13932,8 @@ static int remoteDispatchSecretDefineXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchSecretDefineXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchSecretDefineXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13648,7 +13988,8 @@ static int remoteDispatchSecretGetValueHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchSecretGetValue");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchSecretGetValue(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13674,7 +14015,8 @@ static int remoteDispatchSecretGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchSecretGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchSecretGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13733,7 +14075,8 @@ static int remoteDispatchSecretLookupByUsageHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchSecretLookupByUsage");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchSecretLookupByUsage(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13788,7 +14131,8 @@ static int remoteDispatchSecretLookupByUUIDHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchSecretLookupByUUID");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchSecretLookupByUUID(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -13842,7 +14186,8 @@ static int remoteDispatchSecretSetValueHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchSecretSetValue");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchSecretSetValue(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -13897,7 +14242,8 @@ static int remoteDispatchSecretUndefineHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchSecretUndefine");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchSecretUndefine(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -13952,7 +14298,8 @@ static int remoteDispatchStoragePoolBuildHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolBuild");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolBuild(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -14007,7 +14354,8 @@ static int remoteDispatchStoragePoolCreateHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolCreate");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolCreate(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -14063,7 +14411,8 @@ static int remoteDispatchStoragePoolCreateXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolCreateXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolCreateXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14118,7 +14467,8 @@ static int remoteDispatchStoragePoolDefineXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolDefineXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolDefineXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14172,7 +14522,8 @@ static int remoteDispatchStoragePoolDeleteHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolDelete");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolDelete(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -14227,7 +14578,8 @@ static int remoteDispatchStoragePoolDestroyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolDestroy");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolDestroy(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -14283,7 +14635,8 @@ static int remoteDispatchStoragePoolGetAutostartHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolGetAutostart");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolGetAutostart(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14342,7 +14695,8 @@ static int remoteDispatchStoragePoolGetInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolGetInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolGetInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14404,7 +14758,8 @@ static int remoteDispatchStoragePoolGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14463,7 +14818,8 @@ static int remoteDispatchStoragePoolIsActiveHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolIsActive");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolIsActive(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14522,7 +14878,8 @@ static int remoteDispatchStoragePoolIsPersistentHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolIsPersistent");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolIsPersistent(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14581,7 +14938,8 @@ static int remoteDispatchStoragePoolListAllVolumesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolListAllVolumes");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolListAllVolumes(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14607,7 +14965,8 @@ static int remoteDispatchStoragePoolListVolumesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolListVolumes");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolListVolumes(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14678,7 +15037,8 @@ static int remoteDispatchStoragePoolLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14733,7 +15093,8 @@ static int remoteDispatchStoragePoolLookupByUUIDHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolLookupByUUID");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolLookupByUUID(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14788,7 +15149,8 @@ static int remoteDispatchStoragePoolLookupByVolumeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolLookupByVolume");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolLookupByVolume(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14848,7 +15210,8 @@ static int remoteDispatchStoragePoolNumOfVolumesHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolNumOfVolumes");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolNumOfVolumes(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -14906,7 +15269,8 @@ static int remoteDispatchStoragePoolRefreshHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolRefresh");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolRefresh(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -14961,7 +15325,8 @@ static int remoteDispatchStoragePoolSetAutostartHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolSetAutostart");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolSetAutostart(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -15016,7 +15381,8 @@ static int remoteDispatchStoragePoolUndefineHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStoragePoolUndefine");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStoragePoolUndefine(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -15072,7 +15438,8 @@ static int remoteDispatchStorageVolCreateXMLHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolCreateXML");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolCreateXML(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15132,7 +15499,8 @@ static int remoteDispatchStorageVolCreateXMLFromHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolCreateXMLFrom");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolCreateXMLFrom(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15196,7 +15564,8 @@ static int remoteDispatchStorageVolDeleteHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolDelete");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolDelete(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -15251,7 +15620,8 @@ static int remoteDispatchStorageVolDownloadHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolDownload");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolDownload(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -15325,7 +15695,8 @@ static int remoteDispatchStorageVolGetInfoHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolGetInfo");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolGetInfo(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15386,7 +15757,8 @@ static int remoteDispatchStorageVolGetPathHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolGetPath");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolGetPath(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15445,7 +15817,8 @@ static int remoteDispatchStorageVolGetXMLDescHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolGetXMLDesc");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolGetXMLDesc(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15504,7 +15877,8 @@ static int remoteDispatchStorageVolLookupByKeyHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolLookupByKey");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolLookupByKey(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15559,7 +15933,8 @@ static int remoteDispatchStorageVolLookupByNameHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolLookupByName");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolLookupByName(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15619,7 +15994,8 @@ static int remoteDispatchStorageVolLookupByPathHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolLookupByPath");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolLookupByPath(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -15673,7 +16049,8 @@ static int remoteDispatchStorageVolResizeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolResize");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolResize(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -15728,7 +16105,8 @@ static int remoteDispatchStorageVolUploadHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolUpload");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolUpload(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -15801,7 +16179,8 @@ static int remoteDispatchStorageVolWipeHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolWipe");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolWipe(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -15856,7 +16235,8 @@ static int remoteDispatchStorageVolWipePatternHelper(
 {
   int rv;
   virThreadJobSet("remoteDispatchStorageVolWipePattern");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = remoteDispatchStorageVolWipePattern(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -19104,6 +19484,15 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainDelIOThreadHelper,
    sizeof(remote_domain_del_iothread_args),
    (xdrproc_t)xdr_remote_domain_del_iothread_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSetUserPassword => 357 */
+   remoteDispatchDomainSetUserPasswordHelper,
+   sizeof(remote_domain_set_user_password_args),
+   (xdrproc_t)xdr_remote_domain_set_user_password_args,
    0,
    (xdrproc_t)xdr_void,
    true,

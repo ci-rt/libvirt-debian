@@ -3877,6 +3877,33 @@ done:
 }
 
 static int
+remoteDomainSetUserPassword(virDomainPtr dom, const char *user, const char *password, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_user_password_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.user = user ? (char **)&user : NULL;
+    args.password = password ? (char **)&password : NULL;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_USER_PASSWORD,
+             (xdrproc_t)xdr_remote_domain_set_user_password_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
 {
     int rv = -1;

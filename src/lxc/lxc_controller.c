@@ -454,7 +454,7 @@ static int virLXCControllerSetupLoopDeviceDisk(virDomainDiskDefPtr disk)
  cleanup:
     VIR_FREE(loname);
     if (ret < 0)
-         VIR_FORCE_CLOSE(lofd);
+        VIR_FORCE_CLOSE(lofd);
 
     return lofd;
 
@@ -741,25 +741,25 @@ static int virLXCControllerSetupResourceLimits(virLXCControllerPtr ctrl)
     virBitmapPtr nodeset = NULL;
     virDomainNumatuneMemMode mode;
 
-    mode = virDomainNumatuneGetMode(ctrl->def->numa, -1);
+    if (virDomainNumatuneGetMode(ctrl->def->numa, -1, &mode) == 0) {
+        if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
+            virCgroupControllerAvailable(VIR_CGROUP_CONTROLLER_CPUSET)) {
+            /* Use virNuma* API iff necessary. Once set and child is exec()-ed,
+             * there's no way for us to change it. Rely on cgroups (if available
+             * and enabled in the config) rather than virNuma*. */
+            VIR_DEBUG("Relying on CGroups for memory binding");
+        } else {
 
-    if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
-        virCgroupControllerAvailable(VIR_CGROUP_CONTROLLER_CPUSET)) {
-        /* Use virNuma* API iff necessary. Once set and child is exec()-ed,
-         * there's no way for us to change it. Rely on cgroups (if available
-         * and enabled in the config) rather than virNuma*. */
-        VIR_DEBUG("Relying on CGroups for memory binding");
-    } else {
+            VIR_DEBUG("Setting up process resource limits");
 
-        VIR_DEBUG("Setting up process resource limits");
+            if (virLXCControllerGetNumadAdvice(ctrl, &auto_nodeset) < 0)
+                goto cleanup;
 
-        if (virLXCControllerGetNumadAdvice(ctrl, &auto_nodeset) < 0)
-            goto cleanup;
+            nodeset = virDomainNumatuneGetNodeset(ctrl->def->numa, auto_nodeset, -1);
 
-        nodeset = virDomainNumatuneGetNodeset(ctrl->def->numa, auto_nodeset, -1);
-
-        if (virNumaSetupMemoryPolicy(mode, nodeset) < 0)
-            goto cleanup;
+            if (virNumaSetupMemoryPolicy(mode, nodeset) < 0)
+                goto cleanup;
+        }
     }
 
     if (virLXCControllerSetupCpuAffinity(ctrl) < 0)
@@ -1126,7 +1126,7 @@ static void virLXCControllerConsoleIO(int watch, int fd, int events, void *opaqu
             len = &console->fromContLen;
             avail = sizeof(console->fromContBuf) - *len;
         }
-    reread:
+     reread:
         done = read(fd, buf + *len, avail);
         if (done == -1 && errno == EINTR)
             goto reread;
@@ -1154,7 +1154,7 @@ static void virLXCControllerConsoleIO(int watch, int fd, int events, void *opaqu
             len = &console->fromHostLen;
         }
 
-    rewrite:
+     rewrite:
         done = write(fd, buf, *len);
         if (done == -1 && errno == EINTR)
             goto rewrite;
@@ -1895,7 +1895,7 @@ static int virLXCControllerMoveInterfaces(virLXCControllerPtr ctrl)
         virDomainHostdevCaps hdcaps = hdev->source.caps;
 
         if (hdcaps.type != VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET)
-           continue;
+            continue;
 
         if (virNetDevSetNamespace(hdcaps.u.net.iface, ctrl->initpid) < 0)
             return -1;
@@ -1985,7 +1985,7 @@ lxcCreateTty(virLXCControllerPtr ctrl, int *ttymaster,
      * anything other than 0, but let's play it safe.  */
     if ((virAsprintf(ttyName, "/dev/pts/%d", ptyno) < 0) ||
         (virAsprintf(ttyHostPath, "/%s/%s.devpts/%d", LXC_STATE_DIR,
-                    ctrl->def->name, ptyno) < 0)) {
+                     ctrl->def->name, ptyno) < 0)) {
         errno = ENOMEM;
         goto cleanup;
     }
@@ -2101,7 +2101,7 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
 
     if ((lxcContainerChown(ctrl->def, ctrl->devptmx) < 0) ||
         (lxcContainerChown(ctrl->def, devpts) < 0))
-         goto cleanup;
+        goto cleanup;
 
     ret = 0;
 
@@ -2139,7 +2139,7 @@ virLXCControllerSetupConsoles(virLXCControllerPtr ctrl,
                          &ctrl->consoles[i].contFd,
                          &containerTTYPaths[i], &ttyHostPath) < 0) {
             virReportSystemError(errno, "%s",
-                                     _("Failed to allocate tty"));
+                                 _("Failed to allocate tty"));
             goto cleanup;
         }
 
@@ -2429,7 +2429,7 @@ int main(int argc, char *argv[])
         int c;
 
         c = getopt_long(argc, argv, "dn:v:p:m:c:s:h:S:",
-                       options, NULL);
+                        options, NULL);
 
         if (c == -1)
             break;

@@ -289,16 +289,15 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
     virSysinfoProcessorDefPtr processor;
     char *processor_type = NULL;
 
-    if (!(tmp_base = strstr(base, "Processor")))
+    if (!(tmp_base = strstr(base, "model name")) &&
+        !(tmp_base = strstr(base, "Processor")))
         return 0;
 
-    base = tmp_base;
-    eol = strchr(base, '\n');
-    cur = strchr(base, ':') + 1;
+    eol = strchr(tmp_base, '\n');
+    cur = strchr(tmp_base, ':') + 1;
     virSkipSpaces(&cur);
     if (eol && VIR_STRNDUP(processor_type, cur, eol - cur) < 0)
         goto error;
-    base = cur;
 
     while ((tmp_base = strstr(base, "processor")) != NULL) {
         base = tmp_base;
@@ -315,8 +314,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
                         cur, eol - cur) < 0)
             goto error;
 
-        if (processor_type &&
-            VIR_STRDUP(processor->processor_type, processor_type) < 0)
+        if (VIR_STRDUP(processor->processor_type, processor_type) < 0)
             goto error;
 
         base = cur;
@@ -1042,31 +1040,42 @@ virSysinfoMemoryFormat(virBufferPtr buf, virSysinfoDefPtr def)
 int
 virSysinfoFormat(virBufferPtr buf, virSysinfoDefPtr def)
 {
+    virBuffer childrenBuf = VIR_BUFFER_INITIALIZER;
     const char *type = virSysinfoTypeToString(def->type);
+    int indent = virBufferGetIndent(buf, false);
+    int ret = -1;
 
     if (!type) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected sysinfo type model %d"),
                        def->type);
         virBufferFreeAndReset(buf);
-        return -1;
+        goto cleanup;
     }
 
-    virBufferAsprintf(buf, "<sysinfo type='%s'>\n", type);
-    virBufferAdjustIndent(buf, 2);
+    virBufferAdjustIndent(&childrenBuf, indent + 2);
 
-    virSysinfoBIOSFormat(buf, def);
-    virSysinfoSystemFormat(buf, def);
-    virSysinfoProcessorFormat(buf, def);
-    virSysinfoMemoryFormat(buf, def);
+    virSysinfoBIOSFormat(&childrenBuf, def);
+    virSysinfoSystemFormat(&childrenBuf, def);
+    virSysinfoProcessorFormat(&childrenBuf, def);
+    virSysinfoMemoryFormat(&childrenBuf, def);
 
-    virBufferAdjustIndent(buf, -2);
-    virBufferAddLit(buf, "</sysinfo>\n");
+    virBufferAsprintf(buf, "<sysinfo type='%s'", type);
+    if (virBufferUse(&childrenBuf)) {
+        virBufferAddLit(buf, ">\n");
+        virBufferAddBuffer(buf, &childrenBuf);
+        virBufferAddLit(buf, "</sysinfo>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
 
     if (virBufferCheckError(buf) < 0)
-        return -1;
+        goto cleanup;
 
-    return 0;
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&childrenBuf);
+    return ret;
 }
 
 bool virSysinfoIsEqual(virSysinfoDefPtr src,

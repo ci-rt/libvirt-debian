@@ -1,7 +1,7 @@
 /*
  * node_device_driver.c: node device enumeration
  *
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -35,8 +35,9 @@
 #include "virfile.h"
 #include "virstring.h"
 #include "node_device_conf.h"
-#include "node_device_hal.h"
 #include "node_device_driver.h"
+#include "node_device_hal.h"
+#include "node_device_linux_sysfs.h"
 #include "virutil.h"
 #include "viraccessapicheck.h"
 #include "virnetdev.h"
@@ -50,12 +51,35 @@ static int update_caps(virNodeDeviceObjPtr dev)
     virNodeDevCapsDefPtr cap = dev->def->caps;
 
     while (cap) {
-        if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST)
-            detect_scsi_host_caps(&dev->def->caps->data);
-        if (cap->type == VIR_NODE_DEV_CAP_NET &&
-            virNetDevGetLinkInfo(cap->data.net.ifname, &cap->data.net.lnk) < 0)
-            return -1;
+        switch (cap->data.type) {
+        case VIR_NODE_DEV_CAP_SCSI_HOST:
+            nodeDeviceSysfsGetSCSIHostCaps(&dev->def->caps->data);
+            break;
+        case VIR_NODE_DEV_CAP_NET:
+            if (virNetDevGetLinkInfo(cap->data.net.ifname, &cap->data.net.lnk) < 0)
+                return -1;
+            break;
+        case VIR_NODE_DEV_CAP_PCI_DEV:
+           if (nodeDeviceSysfsGetPCIRelatedDevCaps(dev->def->sysfs_path,
+                                                   &dev->def->caps->data) < 0)
+              return -1;
+           break;
 
+        /* all types that (supposedly) don't require any updates
+         * relative to what's in the cache.
+         */
+        case VIR_NODE_DEV_CAP_SYSTEM:
+        case VIR_NODE_DEV_CAP_USB_DEV:
+        case VIR_NODE_DEV_CAP_USB_INTERFACE:
+        case VIR_NODE_DEV_CAP_SCSI_TARGET:
+        case VIR_NODE_DEV_CAP_SCSI:
+        case VIR_NODE_DEV_CAP_STORAGE:
+        case VIR_NODE_DEV_CAP_FC_HOST:
+        case VIR_NODE_DEV_CAP_VPORTS:
+        case VIR_NODE_DEV_CAP_SCSI_GENERIC:
+        case VIR_NODE_DEV_CAP_LAST:
+            break;
+        }
         cap = cap->next;
     }
 
@@ -262,8 +286,8 @@ nodeDeviceLookupSCSIHostByWWN(virConnectPtr conn,
         cap = obj->def->caps;
 
         while (cap) {
-            if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
-                detect_scsi_host_caps(&cap->data);
+            if (cap->data.type == VIR_NODE_DEV_CAP_SCSI_HOST) {
+                nodeDeviceSysfsGetSCSIHostCaps(&cap->data);
                 if (cap->data.scsi_host.flags &
                     VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
                     if (STREQ(cap->data.scsi_host.wwnn, wwnn) &&
@@ -386,7 +410,7 @@ nodeDeviceNumOfCaps(virNodeDevicePtr dev)
     for (caps = obj->def->caps; caps; caps = caps->next) {
         ++ncaps;
 
-        if (caps->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
+        if (caps->data.type == VIR_NODE_DEV_CAP_SCSI_HOST) {
             if (caps->data.scsi_host.flags &
                 VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST)
                 ncaps++;
@@ -429,10 +453,10 @@ nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
         goto cleanup;
 
     for (caps = obj->def->caps; caps && ncaps < maxnames; caps = caps->next) {
-        if (VIR_STRDUP(names[ncaps++], virNodeDevCapTypeToString(caps->type)) < 0)
+        if (VIR_STRDUP(names[ncaps++], virNodeDevCapTypeToString(caps->data.type)) < 0)
             goto cleanup;
 
-        if (caps->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
+        if (caps->data.type == VIR_NODE_DEV_CAP_SCSI_HOST) {
             if (ncaps < maxnames &&
                 caps->data.scsi_host.flags &
                 VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {

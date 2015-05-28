@@ -357,21 +357,6 @@ qemuProcessHandleMonitorError(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 }
 
 
-static virDomainDiskDefPtr
-qemuProcessFindDomainDiskByPath(virDomainObjPtr vm,
-                                const char *path)
-{
-    int idx = virDomainDiskIndexByName(vm->def, path, true);
-
-    if (idx >= 0)
-        return vm->def->disks[idx];
-
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("no disk found with path %s"),
-                   path);
-    return NULL;
-}
-
 virDomainDiskDefPtr
 qemuProcessFindDomainDiskByAlias(virDomainObjPtr vm,
                                  const char *alias)
@@ -492,10 +477,12 @@ qemuProcessFindVolumeQcowPassphrase(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     int ret = -1;
 
     virObjectLock(vm);
-    disk = qemuProcessFindDomainDiskByPath(vm, path);
-
-    if (!disk)
+    if (!(disk = virDomainDiskByName(vm->def, path, true))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("no disk found with path %s"),
+                       path);
         goto cleanup;
+    }
 
     ret = qemuProcessGetVolumeQcowPassphrase(conn, disk, secretRet, secretLen);
 
@@ -1001,6 +988,7 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     virQEMUDriverPtr driver = opaque;
     struct qemuProcessEvent *processEvent = NULL;
     virDomainDiskDefPtr disk;
+    qemuDomainDiskPrivatePtr diskPriv;
     char *data = NULL;
 
     virObjectLock(vm);
@@ -1010,12 +998,13 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 
     if (!(disk = qemuProcessFindDomainDiskByAlias(vm, diskAlias)))
         goto error;
+    diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
-    if (disk->blockJobSync) {
-        disk->blockJobType = type;
-        disk->blockJobStatus = status;
+    if (diskPriv->blockJobSync) {
+        diskPriv->blockJobType = type;
+        diskPriv->blockJobStatus = status;
         /* We have an SYNC API waiting for this event, dispatch it back */
-        virCondSignal(&disk->blockJobSyncCond);
+        virCondSignal(&diskPriv->blockJobSyncCond);
     } else {
         /* there is no waiting SYNC API, dispatch the update to a thread */
         if (VIR_ALLOC(processEvent) < 0)
@@ -3133,21 +3122,21 @@ static int qemuProcessHook(void *data)
     if (virSecurityManagerClearSocketLabel(h->driver->securityManager, h->vm->def) < 0)
         goto cleanup;
 
-    mode = virDomainNumatuneGetMode(h->vm->def->numa, -1);
+    if (virDomainNumatuneGetMode(h->vm->def->numa, -1, &mode) == 0) {
+        if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
+            h->cfg->cgroupControllers & (1 << VIR_CGROUP_CONTROLLER_CPUSET) &&
+            virCgroupControllerAvailable(VIR_CGROUP_CONTROLLER_CPUSET)) {
+            /* Use virNuma* API iff necessary. Once set and child is exec()-ed,
+             * there's no way for us to change it. Rely on cgroups (if available
+             * and enabled in the config) rather than virNuma*. */
+            VIR_DEBUG("Relying on CGroups for memory binding");
+        } else {
+            nodeset = virDomainNumatuneGetNodeset(h->vm->def->numa,
+                                                  priv->autoNodeset, -1);
 
-    if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
-        h->cfg->cgroupControllers & (1 << VIR_CGROUP_CONTROLLER_CPUSET) &&
-        virCgroupControllerAvailable(VIR_CGROUP_CONTROLLER_CPUSET)) {
-        /* Use virNuma* API iff necessary. Once set and child is exec()-ed,
-         * there's no way for us to change it. Rely on cgroups (if available
-         * and enabled in the config) rather than virNuma*. */
-        VIR_DEBUG("Relying on CGroups for memory binding");
-    } else {
-        nodeset = virDomainNumatuneGetNodeset(h->vm->def->numa,
-                                              priv->autoNodeset, -1);
-
-        if (virNumaSetupMemoryPolicy(mode, nodeset) < 0)
-            goto cleanup;
+            if (virNumaSetupMemoryPolicy(mode, nodeset) < 0)
+                goto cleanup;
+        }
     }
 
     ret = 0;
@@ -3746,6 +3735,12 @@ qemuProcessReconnect(void *opaque)
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE))
         if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps, obj)) < 0)
             goto error;
+
+    /* if domain requests security driver we haven't loaded, report error, but
+     * do not kill the domain
+     */
+    ignore_value(virSecurityManagerCheckAllLabel(driver->securityManager,
+                                                 obj->def));
 
     if (virSecurityManagerReserveLabel(driver->securityManager, obj->def, obj->pid) < 0)
         goto error;
@@ -5063,9 +5058,10 @@ void qemuProcessStop(virQEMUDriverPtr driver,
 
     /* Wake up anything waiting on synchronous block jobs */
     for (i = 0; i < vm->def->ndisks; i++) {
-        virDomainDiskDefPtr disk = vm->def->disks[i];
-        if (disk->blockJobSync && disk->blockJobStatus == -1)
-            virCondSignal(&disk->blockJobSyncCond);
+        qemuDomainDiskPrivatePtr diskPriv =
+            QEMU_DOMAIN_DISK_PRIVATE(vm->def->disks[i]);
+        if (diskPriv->blockJobSync && diskPriv->blockJobStatus == -1)
+            virCondSignal(&diskPriv->blockJobSyncCond);
     }
 
     if ((logfile = qemuDomainCreateLog(driver, vm, true)) < 0) {

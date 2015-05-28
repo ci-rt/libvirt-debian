@@ -235,6 +235,7 @@ extern int virDomainSetNumaParametersEnsureACL(virConnectPtr conn, virDomainDefP
 extern int virDomainSetSchedulerParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetSchedulerParametersFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSetTimeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainSetUserPasswordEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetVcpusFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainShutdownEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

@@ -3896,6 +3896,14 @@ struct remote_domain_interface_addresses_ret {
         } ifaces;
 };
 typedef struct remote_domain_interface_addresses_ret remote_domain_interface_addresses_ret;
+
+struct remote_domain_set_user_password_args {
+        remote_nonnull_domain dom;
+        remote_string user;
+        remote_string password;
+        u_int flags;
+};
+typedef struct remote_domain_set_user_password_args remote_domain_set_user_password_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4256,6 +4264,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_ADDED = 354,
         REMOTE_PROC_DOMAIN_ADD_IOTHREAD = 355,
         REMOTE_PROC_DOMAIN_DEL_IOTHREAD = 356,
+        REMOTE_PROC_DOMAIN_SET_USER_PASSWORD = 357,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4832,6 +4841,7 @@ extern  bool_t xdr_remote_domain_ip_addr (XDR *, remote_domain_ip_addr*);
 extern  bool_t xdr_remote_domain_interface (XDR *, remote_domain_interface*);
 extern  bool_t xdr_remote_domain_interface_addresses_args (XDR *, remote_domain_interface_addresses_args*);
 extern  bool_t xdr_remote_domain_interface_addresses_ret (XDR *, remote_domain_interface_addresses_ret*);
+extern  bool_t xdr_remote_domain_set_user_password_args (XDR *, remote_domain_set_user_password_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5405,6 +5415,7 @@ extern bool_t xdr_remote_domain_ip_addr ();
 extern bool_t xdr_remote_domain_interface ();
 extern bool_t xdr_remote_domain_interface_addresses_args ();
 extern bool_t xdr_remote_domain_interface_addresses_ret ();
+extern bool_t xdr_remote_domain_set_user_password_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

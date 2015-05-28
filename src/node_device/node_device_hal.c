@@ -1,7 +1,7 @@
 /*
  * node_device_hal.c: node device enumeration - HAL-based implementation
  *
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -29,7 +29,9 @@
 #include <libhal.h>
 
 #include "node_device_conf.h"
+#include "node_device_driver.h"
 #include "node_device_hal.h"
+#include "node_device_linux_sysfs.h"
 #include "virerror.h"
 #include "driver.h"
 #include "datatypes.h"
@@ -37,7 +39,6 @@
 #include "viruuid.h"
 #include "virpci.h"
 #include "virlog.h"
-#include "node_device_driver.h"
 #include "virdbus.h"
 #include "virstring.h"
 
@@ -139,7 +140,7 @@ get_uint64_prop(LibHalContext *ctxt, const char *udi,
 
 static int
 gather_pci_cap(LibHalContext *ctx, const char *udi,
-               union _virNodeDevCapData *d)
+               virNodeDevCapDataPtr d)
 {
     char *sysfs_path;
 
@@ -152,20 +153,10 @@ gather_pci_cap(LibHalContext *ctx, const char *udi,
             ignore_value(virStrToLong_ui(p+1, &p, 16, &d->pci_dev.function));
         }
 
-        if (!virPCIGetPhysicalFunction(sysfs_path,
-                                       &d->pci_dev.physical_function))
-            d->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
-
-        int ret = virPCIGetVirtualFunctions(sysfs_path,
-                                            &d->pci_dev.virtual_functions,
-                                            &d->pci_dev.num_virtual_functions);
-        if (ret < 0) {
+        if (nodeDeviceSysfsGetPCIRelatedDevCaps(sysfs_path, d) < 0) {
             VIR_FREE(sysfs_path);
             return -1;
         }
-
-        if (d->pci_dev.num_virtual_functions > 0)
-            d->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
         VIR_FREE(sysfs_path);
     }
 
@@ -182,7 +173,7 @@ gather_pci_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_usb_cap(LibHalContext *ctx, const char *udi,
-               union _virNodeDevCapData *d)
+               virNodeDevCapDataPtr d)
 {
     (void)get_int_prop(ctx, udi, "usb.interface.number",
                        (int *)&d->usb_if.number);
@@ -200,7 +191,7 @@ gather_usb_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_usb_device_cap(LibHalContext *ctx, const char *udi,
-                      union _virNodeDevCapData *d)
+                      virNodeDevCapDataPtr d)
 {
     (void)get_int_prop(ctx, udi, "usb_device.bus_number",
                        (int *)&d->usb_dev.bus);
@@ -222,7 +213,7 @@ gather_usb_device_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_net_cap(LibHalContext *ctx, const char *udi,
-               union _virNodeDevCapData *d)
+               virNodeDevCapDataPtr d)
 {
     unsigned long long dummy;
     (void)get_str_prop(ctx, udi, "net.interface", &d->net.ifname);
@@ -242,13 +233,13 @@ gather_net_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_scsi_host_cap(LibHalContext *ctx, const char *udi,
-                     union _virNodeDevCapData *d)
+                     virNodeDevCapDataPtr d)
 {
     int retval = 0;
 
     (void)get_int_prop(ctx, udi, "scsi_host.host", (int *)&d->scsi_host.host);
 
-    retval = detect_scsi_host_caps(d);
+    retval = nodeDeviceSysfsGetSCSIHostCaps(d);
 
     if (retval == -1)
         goto out;
@@ -260,7 +251,7 @@ gather_scsi_host_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_scsi_cap(LibHalContext *ctx, const char *udi,
-                union _virNodeDevCapData *d)
+                virNodeDevCapDataPtr d)
 {
     (void)get_int_prop(ctx, udi, "scsi.host", (int *)&d->scsi.host);
     (void)get_int_prop(ctx, udi, "scsi.bus", (int *)&d->scsi.bus);
@@ -273,7 +264,7 @@ gather_scsi_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_storage_cap(LibHalContext *ctx, const char *udi,
-                   union _virNodeDevCapData *d)
+                   virNodeDevCapDataPtr d)
 {
     int val;
     (void)get_str_prop(ctx, udi, "block.device", &d->storage.block);
@@ -301,7 +292,7 @@ gather_storage_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_scsi_generic_cap(LibHalContext *ctx, const char *udi,
-                        union _virNodeDevCapData *d)
+                        virNodeDevCapDataPtr d)
 {
     (void)get_str_prop(ctx, udi, "scsi_generic.device", &d->sg.path);
     return 0;
@@ -310,7 +301,7 @@ gather_scsi_generic_cap(LibHalContext *ctx, const char *udi,
 
 static int
 gather_system_cap(LibHalContext *ctx, const char *udi,
-                  union _virNodeDevCapData *d)
+                  virNodeDevCapDataPtr d)
 {
     char *uuidstr;
 
@@ -340,7 +331,7 @@ struct _caps_tbl_entry {
     virNodeDevCapType type;
     int (*gather_fn)(LibHalContext *ctx,
                      const char *udi,
-                     union _virNodeDevCapData *data);
+                     virNodeDevCapDataPtr data);
 };
 
 typedef struct _caps_tbl_entry caps_tbl_entry;
@@ -381,7 +372,7 @@ gather_capability(LibHalContext *ctx, const char *udi,
         virNodeDevCapsDefPtr caps;
         if (VIR_ALLOC(caps) < 0)
             return ENOMEM;
-        caps->type = entry->type;
+        caps->data.type = entry->type;
         if (entry->gather_fn) {
             int rv = (*entry->gather_fn)(ctx, udi, &caps->data);
             if (rv != 0) {

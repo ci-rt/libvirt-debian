@@ -1895,6 +1895,7 @@ EXTRA_DIST = \
 	libvirtd.init.in				\
 	libvirtd.upstart				\
 	libvirtd.policy.in				\
+	libvirt.rules					\
 	libvirtd.sasl					\
 	libvirtd.service.in				\
 	libvirtd.socket.in				\
@@ -1904,6 +1905,7 @@ EXTRA_DIST = \
 	libvirtd.logrotate.in                           \
 	libvirtd.qemu.logrotate.in                      \
 	libvirtd.lxc.logrotate.in                       \
+	libvirtd.libxl.logrotate.in                     \
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug.in                             \
 	THREADS.txt					\
@@ -1981,8 +1983,11 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_TRUE@@WITH_POLKIT_TRUE@policydir = $(datadir)/PolicyKit/policy
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policyauth = auth_admin_keep
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_TRUE@@WITH_POLKIT_TRUE@policyauth = auth_admin_keep_session
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@rulesdir = $(datadir)/polkit-1/rules.d
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@rulesfile = libvirt.rules
 @WITH_LIBVIRTD_TRUE@LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
-@WITH_LIBVIRTD_TRUE@		  libvirtd.uml.logrotate libvirtd.logrotate
+@WITH_LIBVIRTD_TRUE@		  libvirtd.libxl.logrotate libvirtd.uml.logrotate \
+@WITH_LIBVIRTD_TRUE@		  libvirtd.logrotate
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_LIBVIRTD_TRUE@AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
@@ -2562,9 +2567,15 @@ qemu_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@install-data-polkit::
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(rulesdir)
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/50-libvirt.rules
+
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-data-polkit::
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(policydir) || :
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(rulesdir)/50-libvirt.rules
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(rulesdir) || :
+
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_FALSE@install-data-polkit::
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_FALSE@uninstall-data-polkit::
 
@@ -2589,6 +2600,12 @@ qemu_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
+@WITH_LIBVIRTD_TRUE@libvirtd.libxl.logrotate: libvirtd.libxl.logrotate.in
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	    mv $@-t $@
+
 @WITH_LIBVIRTD_TRUE@libvirtd.uml.logrotate: libvirtd.uml.logrotate.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
 @WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
@@ -2606,6 +2623,8 @@ qemu_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.lxc.logrotate \
 @WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc
+@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.libxl.logrotate \
+@WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.libxl
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.uml.logrotate \
 @WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
@@ -2613,6 +2632,7 @@ qemu_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd \
 @WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu \
 @WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc \
+@WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.libxl \
 @WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/qemu || :
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/lxc || :

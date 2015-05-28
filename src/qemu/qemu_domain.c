@@ -412,6 +412,53 @@ qemuDomainJobInfoToParams(qemuDomainJobInfoPtr jobInfo,
 }
 
 
+static virClassPtr qemuDomainDiskPrivateClass;
+static void qemuDomainDiskPrivateDispose(void *obj);
+
+static int
+qemuDomainDiskPrivateOnceInit(void)
+{
+    qemuDomainDiskPrivateClass = virClassNew(virClassForObject(),
+                                             "qemuDomainDiskPrivate",
+                                             sizeof(qemuDomainDiskPrivate),
+                                             qemuDomainDiskPrivateDispose);
+    if (!qemuDomainDiskPrivateClass)
+        return -1;
+    else
+        return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(qemuDomainDiskPrivate)
+
+static virObjectPtr
+qemuDomainDiskPrivateNew(void)
+{
+    qemuDomainDiskPrivatePtr priv;
+
+    if (qemuDomainDiskPrivateInitialize() < 0)
+        return NULL;
+
+    if (!(priv = virObjectNew(qemuDomainDiskPrivateClass)))
+        return NULL;
+
+    if (virCondInit(&priv->blockJobSyncCond) < 0) {
+        virReportSystemError(errno, "%s", _("Failed to initialize condition"));
+        virObjectUnref(priv);
+        return NULL;
+    }
+
+    return (virObjectPtr) priv;
+}
+
+static void
+qemuDomainDiskPrivateDispose(void *obj)
+{
+    qemuDomainDiskPrivatePtr priv = obj;
+
+    virCondDestroy(&priv->blockJobSyncCond);
+}
+
+
 static void *
 qemuDomainObjPrivateAlloc(void)
 {
@@ -741,6 +788,7 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
 virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks = {
     .alloc = qemuDomainObjPrivateAlloc,
     .free = qemuDomainObjPrivateFree,
+    .diskNew = qemuDomainDiskPrivateNew,
     .parse = qemuDomainObjPrivateXMLParse,
     .format = qemuDomainObjPrivateXMLFormat,
 };
@@ -2031,6 +2079,12 @@ void qemuDomainObjCheckDiskTaint(virQEMUDriverPtr driver,
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HIGH_PRIVILEGES,
                            logFD);
 
+    if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
+        virStorageSourceGetActualType(disk->src) == VIR_STORAGE_TYPE_BLOCK &&
+        disk->src->path)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_CDROM_PASSTHROUGH,
+                           logFD);
+
     virObjectUnref(cfg);
 }
 
@@ -2809,6 +2863,8 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
 bool
 qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk)
 {
+    qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
+
     if (disk->mirror) {
         virReportError(VIR_ERR_BLOCK_COPY_ACTIVE,
                        _("disk '%s' already in active block job"),
@@ -2817,11 +2873,40 @@ qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk)
         return true;
     }
 
-    if (disk->blockjob) {
+    if (diskPriv->blockjob) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("disk '%s' already in active block job"),
                        disk->dst);
         return true;
+    }
+
+    return false;
+}
+
+
+/**
+ * qemuDomainHasBlockjob:
+ * @vm: domain object
+ * @copy_only: Reject only block copy job
+ *
+ * Return true if @vm has at least one disk involved in a current block
+ * copy/commit/pull job. If @copy_only is true this returns true only if the
+ * disk is involved in a block copy.
+ * */
+bool
+qemuDomainHasBlockjob(virDomainObjPtr vm,
+                      bool copy_only)
+{
+    size_t i;
+    for (i = 0; i < vm->def->ndisks; i++) {
+        virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
+
+        if (!copy_only && diskPriv->blockjob)
+            return true;
+
+        if (disk->mirror && disk->mirrorJob == VIR_DOMAIN_BLOCK_JOB_TYPE_COPY)
+            return true;
     }
 
     return false;
@@ -3077,4 +3162,23 @@ qemuFindAgentConfig(virDomainDefPtr def)
     }
 
     return config;
+}
+
+
+bool
+qemuDomainMachineIsQ35(const virDomainDef *def)
+{
+    return (STRPREFIX(def->os.machine, "pc-q35") ||
+            STREQ(def->os.machine, "q35"));
+}
+
+
+bool
+qemuDomainMachineIsI440FX(const virDomainDef *def)
+{
+    return (STREQ(def->os.machine, "pc") ||
+            STRPREFIX(def->os.machine, "pc-0.") ||
+            STRPREFIX(def->os.machine, "pc-1.") ||
+            STRPREFIX(def->os.machine, "pc-i440") ||
+            STRPREFIX(def->os.machine, "rhel"));
 }

@@ -17,7 +17,8 @@ static int qemuDispatchConnectDomainMonitorEventDeregisterHelper(
 {
   int rv;
   virThreadJobSet("qemuDispatchConnectDomainMonitorEventDeregister");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = qemuDispatchConnectDomainMonitorEventDeregister(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;
@@ -43,7 +44,8 @@ static int qemuDispatchConnectDomainMonitorEventRegisterHelper(
 {
   int rv;
   virThreadJobSet("qemuDispatchConnectDomainMonitorEventRegister");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = qemuDispatchConnectDomainMonitorEventRegister(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -69,7 +71,8 @@ static int qemuDispatchDomainAgentCommandHelper(
 {
   int rv;
   virThreadJobSet("qemuDispatchDomainAgentCommand");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = qemuDispatchDomainAgentCommand(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -138,7 +141,8 @@ static int qemuDispatchDomainAttachHelper(
 {
   int rv;
   virThreadJobSet("qemuDispatchDomainAttach");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = qemuDispatchDomainAttach(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;
@@ -193,7 +197,8 @@ static int qemuDispatchDomainMonitorCommandHelper(
 {
   int rv;
   virThreadJobSet("qemuDispatchDomainMonitorCommand");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = qemuDispatchDomainMonitorCommand(server, client, msg, rerr, args, ret);
   virThreadJobClear(rv);
   return rv;

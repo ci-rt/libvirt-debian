@@ -67,6 +67,9 @@
         <optional>
           <ref name='qemucmdline'/>
         </optional>
+        <optional>
+          <ref name='keywrap'/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -379,6 +382,24 @@
           </element>
         </zeroOrMore>
       </interleave>
+    </element>
+  </define>
+
+  <define name="keywrap">
+    <element name="keywrap">
+      <oneOrMore>
+        <element name="cipher">
+          <attribute name="name">
+            <choice>
+              <value>aes</value>
+              <value>dea</value>
+            </choice>
+          </attribute>
+          <attribute name="state">
+            <ref name='virOnOff'/>
+          </attribute>
+        </element>
+      </oneOrMore>
     </element>
   </define>
 
@@ -3055,6 +3076,7 @@
       <choice>
         <value>isa-serial</value>
         <value>usb-serial</value>
+        <value>pci-serial</value>
       </choice>
     </attribute>
   </define>
@@ -3965,7 +3987,7 @@
     </element>
   </define>
   <!--
-      A set of optional features: PAE, APIC, ACPI,
+      A set of optional features: PAE, APIC, ACPI, GIC,
       HyperV Enlightenment, KVM features, paravirtual spinlocks and HAP support
     -->
   <define name="features">
@@ -4025,6 +4047,24 @@
           </optional>
           <optional>
             <ref name="pmu"/>
+          </optional>
+          <optional>
+            <element name="vmport">
+              <optional>
+                <attribute name="state">
+                  <ref name="virOnOff"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="gic">
+              <optional>
+                <attribute name="version">
+                  <ref name="positiveInteger"/>
+                </attribute>
+              </optional>
+            </element>
           </optional>
         </interleave>
       </element>

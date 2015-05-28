@@ -42,6 +42,7 @@
 #include "virtime.h"
 #include "virobject.h"
 #include "virstring.h"
+#include "base64.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -92,6 +93,7 @@ struct _qemuAgent {
     int watch;
 
     bool connectPending;
+    bool running;
 
     virDomainObjPtr vm;
 
@@ -772,6 +774,7 @@ qemuAgentOpen(virDomainObjPtr vm,
         goto cleanup;
     }
 
+    mon->running = true;
     VIR_DEBUG("New mon %p fd =%d watch=%d", mon, mon->fd, mon->watch);
 
     return mon;
@@ -785,6 +788,36 @@ qemuAgentOpen(virDomainObjPtr vm,
     mon->cb = NULL;
     qemuAgentClose(mon);
     return NULL;
+}
+
+
+static void
+qemuAgentNotifyCloseLocked(qemuAgentPtr mon)
+{
+    if (mon) {
+        mon->running = false;
+
+        /* If there is somebody waiting for a message
+         * wake him up. No message will arrive anyway. */
+        if (mon->msg && !mon->msg->finished) {
+            mon->msg->finished = 1;
+            virCondSignal(&mon->notify);
+        }
+    }
+}
+
+
+void
+qemuAgentNotifyClose(qemuAgentPtr mon)
+{
+    if (!mon)
+        return;
+
+    VIR_DEBUG("mon=%p", mon);
+
+    virObjectLock(mon);
+    qemuAgentNotifyCloseLocked(mon);
+    virObjectUnlock(mon);
 }
 
 
@@ -803,12 +836,7 @@ void qemuAgentClose(qemuAgentPtr mon)
         VIR_FORCE_CLOSE(mon->fd);
     }
 
-    /* If there is somebody waiting for a message
-     * wake him up. No message will arrive anyway. */
-    if (mon->msg && !mon->msg->finished) {
-        mon->msg->finished = 1;
-        virCondSignal(&mon->notify);
-    }
+    qemuAgentNotifyCloseLocked(mon);
     virObjectUnlock(mon);
 
     virObjectUnref(mon);
@@ -1087,6 +1115,12 @@ qemuAgentCommand(qemuAgentPtr mon,
 
     *reply = NULL;
 
+    if (!mon->running) {
+        virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
+                       _("Guest agent disappeared while executing command"));
+        return -1;
+    }
+
     if (qemuAgentGuestSync(mon) < 0)
         return -1;
 
@@ -1112,8 +1146,12 @@ qemuAgentCommand(qemuAgentPtr mon,
             if (await_event && !needReply) {
                 VIR_DEBUG("Woken up by event %d", await_event);
             } else {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("Missing monitor reply object"));
+                if (mon->running)
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("Missing monitor reply object"));
+                else
+                    virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
+                                   _("Guest agent disappeared while executing command"));
                 ret = -1;
             }
         } else {
@@ -1813,9 +1851,10 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
         for (j = 0; j < ndisk; j++) {
             virJSONValuePtr disk = virJSONValueArrayGet(entry, j);
             virJSONValuePtr pci;
-            int diskaddr[3], pciaddr[4], idx;
+            int diskaddr[3], pciaddr[4];
             const char *diskaddr_comp[] = {"bus", "target", "unit"};
             const char *pciaddr_comp[] = {"domain", "bus", "slot", "function"};
+            virDomainDiskDefPtr diskDef;
 
             if (!disk) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1855,12 +1894,12 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
             pci_address.bus = pciaddr[1];
             pci_address.slot = pciaddr[2];
             pci_address.function = pciaddr[3];
-            if ((idx = virDomainDiskIndexByAddress(
+            if (!(diskDef = virDomainDiskByAddress(
                      vmdef, &pci_address,
-                     diskaddr[0], diskaddr[1], diskaddr[2])) < 0)
+                     diskaddr[0], diskaddr[1], diskaddr[2])))
                 continue;
 
-            if (VIR_STRDUP(*alias, vmdef->disks[idx]->dst) < 0)
+            if (VIR_STRDUP(*alias, diskDef->dst) < 0)
                 goto cleanup;
 
             if (*alias) {
@@ -2079,4 +2118,42 @@ qemuAgentGetInterfaces(qemuAgentPtr mon,
     virStringFreeList(ifname);
 
     goto cleanup;
+}
+
+
+int
+qemuAgentSetUserPassword(qemuAgentPtr mon,
+                         const char *user,
+                         const char *password,
+                         bool crypted)
+{
+    int ret = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    char *password64 = NULL;
+
+    base64_encode_alloc(password, strlen(password), &password64);
+    if (!password64) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!(cmd = qemuAgentMakeCommand("guest-set-user-password",
+                                     "b:crypted", crypted,
+                                     "s:username", user,
+                                     "s:password", password64,
+                                     NULL)))
+        goto cleanup;
+
+    if (qemuAgentCommand(mon, cmd, &reply, true,
+                         VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    VIR_FREE(password64);
+    return ret;
 }

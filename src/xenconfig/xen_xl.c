@@ -192,23 +192,29 @@ xenParseXLSpice(virConfPtr conf, virDomainDefPtr def)
 
             if (xenConfigGetBool(conf, "spicedisable_ticketing", &val, 0) < 0)
                 goto cleanup;
-            if (val) {
-                if (xenConfigCopyStringOpt(conf, "spicepasswd",
-                                           &graphics->data.spice.auth.passwd) < 0)
+            if (!val) {
+                if (xenConfigCopyString(conf, "spicepasswd",
+                                        &graphics->data.spice.auth.passwd) < 0)
                     goto cleanup;
             }
 
             if (xenConfigGetBool(conf, "spiceagent_mouse",
-                                 &graphics->data.spice.mousemode, 0) < 0)
-                goto cleanup;
-            if (xenConfigGetBool(conf, "spicedvagent", &val, 0) < 0)
+                                 &val, 0) < 0)
                 goto cleanup;
             if (val) {
-                if (xenConfigGetBool(conf, "spice_clipboard_sharing",
-                                     &graphics->data.spice.copypaste,
-                                     0) < 0)
-                    goto cleanup;
+                graphics->data.spice.mousemode =
+                    VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_CLIENT;
+            } else {
+                graphics->data.spice.mousemode =
+                    VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_SERVER;
             }
+
+            if (xenConfigGetBool(conf, "spice_clipboard_sharing", &val, 0) < 0)
+                goto cleanup;
+            if (val)
+                graphics->data.spice.copypaste = VIR_TRISTATE_BOOL_YES;
+            else
+                graphics->data.spice.copypaste = VIR_TRISTATE_BOOL_NO;
 
             if (VIR_ALLOC_N(def->graphics, 1) < 0)
                 goto cleanup;
@@ -286,7 +292,7 @@ xenParseXLDisk(virConfPtr conf, virDomainDefPtr def)
             if (xlu_disk_parse(xluconf, 1, &disk_spec, libxldisk))
                 goto fail;
 
-            if (!(disk = virDomainDiskDefNew()))
+            if (!(disk = virDomainDiskDefNew(NULL)))
                 goto fail;
 
             if (VIR_STRDUP(disk->dst, libxldisk->vdev) < 0)
@@ -667,9 +673,12 @@ static int
 xenFormatXLSpice(virConfPtr conf, virDomainDefPtr def)
 {
     const char *listenAddr = NULL;
+    virDomainGraphicsDefPtr graphics;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
-        if (def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
+        graphics = def->graphics[0];
+
+        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
             /* set others to false but may not be necessary */
             if (xenConfigSetInt(conf, "sdl", 0) < 0)
                 return -1;
@@ -680,39 +689,61 @@ xenFormatXLSpice(virConfPtr conf, virDomainDefPtr def)
             if (xenConfigSetInt(conf, "spice", 1) < 0)
                 return -1;
 
-            if (xenConfigSetInt(conf, "spiceport",
-                                def->graphics[0]->data.spice.port) < 0)
-                return -1;
-
-            if (xenConfigSetInt(conf, "spicetls_port",
-                                def->graphics[0]->data.spice.tlsPort) < 0)
-                return -1;
-
-            if (def->graphics[0]->data.spice.auth.passwd) {
-                if (xenConfigSetInt(conf, "spicedisable_ticketing", 1) < 0)
-                    return -1;
-
-                if (def->graphics[0]->data.spice.auth.passwd &&
-                    xenConfigSetString(conf, "spicepasswd",
-                                def->graphics[0]->data.spice.auth.passwd) < 0)
-                    return -1;
-            }
-
-            listenAddr = virDomainGraphicsListenGetAddress(def->graphics[0], 0);
+            listenAddr = virDomainGraphicsListenGetAddress(graphics, 0);
             if (listenAddr &&
                 xenConfigSetString(conf, "spicehost", listenAddr) < 0)
                 return -1;
 
-            if (xenConfigSetInt(conf, "spiceagent_mouse",
-                                def->graphics[0]->data.spice.mousemode) < 0)
+            if (xenConfigSetInt(conf, "spiceport",
+                                graphics->data.spice.port) < 0)
                 return -1;
 
-            if (def->graphics[0]->data.spice.copypaste) {
-                if (xenConfigSetInt(conf, "spicedvagent", 1) < 0)
-                    return -1;
-                if (xenConfigSetInt(conf, "spice_clipboard_sharing",
-                                def->graphics[0]->data.spice.copypaste) < 0)
+            if (xenConfigSetInt(conf, "spicetls_port",
+                                graphics->data.spice.tlsPort) < 0)
                 return -1;
+
+            if (graphics->data.spice.auth.passwd) {
+                if (xenConfigSetInt(conf, "spicedisable_ticketing", 0) < 0)
+                    return -1;
+
+                if (xenConfigSetString(conf, "spicepasswd",
+                                       graphics->data.spice.auth.passwd) < 0)
+                    return -1;
+            } else {
+                if (xenConfigSetInt(conf, "spicedisable_ticketing", 1) < 0)
+                    return -1;
+            }
+
+            if (graphics->data.spice.mousemode) {
+                switch (graphics->data.spice.mousemode) {
+                case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_SERVER:
+                    if (xenConfigSetInt(conf, "spiceagent_mouse", 0) < 0)
+                        return -1;
+                    break;
+                case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_CLIENT:
+                    if (xenConfigSetInt(conf, "spiceagent_mouse", 1) < 0)
+                        return -1;
+                    /*
+                     * spicevdagent must be enabled if using client
+                     * mode mouse
+                     */
+                    if (xenConfigSetInt(conf, "spicevdagent", 1) < 0)
+                        return -1;
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            if (graphics->data.spice.copypaste == VIR_TRISTATE_BOOL_YES) {
+                if (xenConfigSetInt(conf, "spice_clipboard_sharing", 1) < 0)
+                    return -1;
+                /*
+                 * spicevdagent must be enabled if spice_clipboard_sharing
+                 * is enabled
+                 */
+                if (xenConfigSetInt(conf, "spicevdagent", 1) < 0)
+                    return -1;
             }
         }
     }

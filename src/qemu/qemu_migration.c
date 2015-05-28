@@ -1392,6 +1392,14 @@ qemuMigrationEatCookie(virQEMUDriverPtr driver,
                                        flags) < 0)
         goto error;
 
+    if (flags & QEMU_MIGRATION_COOKIE_PERSISTENT &&
+        mig->persistent &&
+        STRNEQ(dom->def->name, mig->persistent->name)) {
+        VIR_FREE(mig->persistent->name);
+        if (VIR_STRDUP(mig->persistent->name, dom->def->name) < 0)
+            goto error;
+    }
+
     if (mig->flags & QEMU_MIGRATION_COOKIE_LOCKSTATE) {
         if (!mig->lockDriver) {
             if (virLockManagerPluginUsesState(driver->lockManager)) {
@@ -1586,21 +1594,19 @@ qemuMigrationPrecreateStorage(virConnectPtr conn,
 
     for (i = 0; i < nbd->ndisks; i++) {
         virDomainDiskDefPtr disk;
-        int indx;
         const char *diskSrcPath;
 
         VIR_DEBUG("Looking up disk target '%s' (capacity=%llu)",
                   nbd->disks[i].target, nbd->disks[i].capacity);
 
-        if ((indx = virDomainDiskIndexByName(vm->def,
-                                             nbd->disks[i].target, false)) < 0) {
+        if (!(disk = virDomainDiskByName(vm->def, nbd->disks[i].target,
+                                         false))) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unable to find disk by target: %s"),
                            nbd->disks[i].target);
             goto cleanup;
         }
 
-        disk = vm->def->disks[indx];
         diskSrcPath = virDomainDiskGetSource(disk);
 
         if (disk->src->shared || disk->src->readonly ||
@@ -1735,14 +1741,9 @@ qemuMigrationCheckDriveMirror(virQEMUDriverPtr driver,
 
     for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
-        /* skip shared, RO and source-less disks */
-        if (disk->src->shared || disk->src->readonly ||
-            !virDomainDiskGetSource(disk))
-            continue;
-
-        /* skip disks that didn't start mirroring */
-        if (!disk->blockJobSync)
+        if (!diskPriv->migrating || !diskPriv->blockJobSync)
             continue;
 
         /* process any pending event */
@@ -1859,25 +1860,31 @@ static int
 qemuMigrationCancelDriveMirror(virQEMUDriverPtr driver,
                                virDomainObjPtr vm)
 {
+    virErrorPtr err = NULL;
+    int ret = 0;
     size_t i;
 
     for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
-        /* skip shared, RO and source-less disks */
-        if (disk->src->shared || disk->src->readonly ||
-            !virDomainDiskGetSource(disk))
+        if (!diskPriv->migrating || !diskPriv->blockJobSync)
             continue;
 
-        /* skip disks that didn't start mirroring */
-        if (!disk->blockJobSync)
-            continue;
+        if (qemuMigrationCancelOneDriveMirror(driver, vm, disk) < 0) {
+            ret = -1;
+            if (!err)
+                err = virSaveLastError();
+        }
 
-        if (qemuMigrationCancelOneDriveMirror(driver, vm, disk) < 0)
-            return -1;
+        diskPriv->migrating = false;
     }
 
-    return 0;
+    if (err) {
+        virSetError(err);
+        virFreeError(err);
+    }
+    return ret;
 }
 
 
@@ -1935,6 +1942,7 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
 
     for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
         int mon_ret;
 
         /* skip shared, RO and source-less disks */
@@ -1965,16 +1973,16 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
             qemuBlockJobSyncEnd(driver, vm, disk, NULL);
             goto cleanup;
         }
+        diskPriv->migrating = true;
     }
 
     /* Wait for each disk to become ready in turn, but check the status
      * for *all* mirrors to determine if any have aborted. */
     for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
-        /* skip shared, RO and source-less disks */
-        if (disk->src->shared || disk->src->readonly ||
-            !virDomainDiskGetSource(disk))
+        if (!diskPriv->migrating)
             continue;
 
         while (disk->mirrorState != VIR_DOMAIN_DISK_MIRROR_STATE_READY) {
@@ -2059,7 +2067,7 @@ qemuMigrationIsAllowed(virQEMUDriverPtr driver, virDomainObjPtr vm,
 
         }
 
-        if (virDomainHasBlockjob(vm, false)) {
+        if (qemuDomainHasBlockjob(vm, false)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("domain has an active block job"));
             return false;
@@ -2905,7 +2913,6 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
     int ret = -1;
     int dataFD[2] = { -1, -1 };
     qemuDomainObjPrivatePtr priv = NULL;
-    unsigned long long now;
     qemuMigrationCookiePtr mig = NULL;
     bool tunnel = !!st;
     char *xmlout = NULL;
@@ -2914,9 +2921,6 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
     char *migrateFrom = NULL;
     bool abort_on_error = !!(flags & VIR_MIGRATE_ABORT_ON_ERROR);
     bool taint_hook = false;
-
-    if (virTimeMillisNow(&now) < 0)
-        return -1;
 
     virNWFilterReadLockFilterUpdates();
 
@@ -4814,6 +4818,20 @@ static int doPeer2PeerMigrate(virQEMUDriverPtr driver,
               NULLSTR(uri), NULLSTR(graphicsuri), NULLSTR(listenAddress),
               flags, NULLSTR(dname), resource);
 
+    if (flags & VIR_MIGRATE_TUNNELLED && uri) {
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("migration URI is not supported by tunnelled "
+                         "migration"));
+        goto cleanup;
+    }
+
+    if (flags & VIR_MIGRATE_TUNNELLED && listenAddress) {
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("listen address is not supported by tunnelled "
+                         "migration"));
+        goto cleanup;
+    }
+
     /* the order of operations is important here; we make sure the
      * destination side is completely setup before we touch the source
      */
@@ -4857,7 +4875,7 @@ static int doPeer2PeerMigrate(virQEMUDriverPtr driver,
 
     /* Only xmlin, dname, uri, and bandwidth parameters can be used with
      * old-style APIs. */
-    if (!useParams && graphicsuri) {
+    if (!useParams && (graphicsuri || listenAddress)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Migration APIs with extensible parameters are not "
                          "supported but extended parameters were passed"));

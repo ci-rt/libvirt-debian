@@ -167,6 +167,10 @@
       <td>Send domain signal</td>
     </tr>
     <tr>
+      <td><a name="perm_domain_set_password">set-password</a></td>
+      <td>Set password of the domain's account</td>
+    </tr>
+    <tr>
       <td><a name="perm_domain_set_time">set-time</a></td>
       <td>Write domain time</td>
     </tr>
