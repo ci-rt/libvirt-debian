@@ -395,6 +395,7 @@
     <reference name='VIR_DOMAIN_NUMA_MODE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_NUMA_MODE'/>
     <reference name='VIR_DOMAIN_NUMA_NODESET' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_NUMA_NODESET'/>
     <reference name='VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH'/>
+    <reference name='VIR_DOMAIN_PASSWORD_ENCRYPTED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_PASSWORD_ENCRYPTED'/>
     <reference name='VIR_DOMAIN_PAUSED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_PAUSED'/>
     <reference name='VIR_DOMAIN_PAUSED_CRASHED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_PAUSED_CRASHED'/>
     <reference name='VIR_DOMAIN_PAUSED_DUMP' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_PAUSED_DUMP'/>
@@ -1329,6 +1330,8 @@
     <reference name='virDomainSetSchedulerParametersFlags' href='html/libvirt-libvirt-domain.html#virDomainSetSchedulerParametersFlags'/>
     <reference name='virDomainSetTime' href='html/libvirt-libvirt-domain.html#virDomainSetTime'/>
     <reference name='virDomainSetTimeFlags' href='html/libvirt-libvirt-domain.html#virDomainSetTimeFlags'/>
+    <reference name='virDomainSetUserPassword' href='html/libvirt-libvirt-domain.html#virDomainSetUserPassword'/>
+    <reference name='virDomainSetUserPasswordFlags' href='html/libvirt-libvirt-domain.html#virDomainSetUserPasswordFlags'/>
     <reference name='virDomainSetVcpus' href='html/libvirt-libvirt-domain.html#virDomainSetVcpus'/>
     <reference name='virDomainSetVcpusFlags' href='html/libvirt-libvirt-domain.html#virDomainSetVcpusFlags'/>
     <reference name='virDomainShutdown' href='html/libvirt-libvirt-domain.html#virDomainShutdown'/>
@@ -2046,6 +2049,7 @@
       <ref name='VIR_DOMAIN_NUMA_MODE'/>
       <ref name='VIR_DOMAIN_NUMA_NODESET'/>
       <ref name='VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH'/>
+      <ref name='VIR_DOMAIN_PASSWORD_ENCRYPTED'/>
       <ref name='VIR_DOMAIN_PAUSED'/>
       <ref name='VIR_DOMAIN_PAUSED_CRASHED'/>
       <ref name='VIR_DOMAIN_PAUSED_DUMP'/>
@@ -2984,6 +2988,8 @@
       <ref name='virDomainSetSchedulerParametersFlags'/>
       <ref name='virDomainSetTime'/>
       <ref name='virDomainSetTimeFlags'/>
+      <ref name='virDomainSetUserPassword'/>
+      <ref name='virDomainSetUserPasswordFlags'/>
       <ref name='virDomainSetVcpus'/>
       <ref name='virDomainSetVcpusFlags'/>
       <ref name='virDomainShutdown'/>
@@ -3643,6 +3649,7 @@
       <ref name='virDomainSetNumaParameters'/>
       <ref name='virDomainSetSchedulerParametersFlags'/>
       <ref name='virDomainSetTime'/>
+      <ref name='virDomainSetUserPassword'/>
       <ref name='virDomainSetVcpus'/>
       <ref name='virDomainSetVcpusFlags'/>
       <ref name='virDomainShutdownFlags'/>
@@ -4112,6 +4119,7 @@
       <ref name='virDomainSetSchedulerParameters'/>
       <ref name='virDomainSetSchedulerParametersFlags'/>
       <ref name='virDomainSetTime'/>
+      <ref name='virDomainSetUserPassword'/>
       <ref name='virDomainSetVcpus'/>
       <ref name='virDomainSetVcpusFlags'/>
       <ref name='virDomainShutdown'/>
@@ -4882,6 +4890,7 @@
       <ref name='VIR_DOMAIN_NUMA_MODE'/>
       <ref name='VIR_DOMAIN_NUMA_NODESET'/>
       <ref name='VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH'/>
+      <ref name='VIR_DOMAIN_PASSWORD_ENCRYPTED'/>
       <ref name='VIR_DOMAIN_PAUSED'/>
       <ref name='VIR_DOMAIN_PAUSED_CRASHED'/>
       <ref name='VIR_DOMAIN_PAUSED_DUMP'/>
@@ -5410,6 +5419,8 @@
       <ref name='virDomainSetSchedulerParametersFlags'/>
       <ref name='virDomainSetTime'/>
       <ref name='virDomainSetTimeFlags'/>
+      <ref name='virDomainSetUserPassword'/>
+      <ref name='virDomainSetUserPasswordFlags'/>
       <ref name='virDomainSetVcpus'/>
       <ref name='virDomainSetVcpusFlags'/>
       <ref name='virDomainShutdown'/>
@@ -7362,6 +7373,7 @@
           <ref name='virConnectDomainEventDiskChangeCallback'/>
           <ref name='virDomainGetTime'/>
           <ref name='virDomainSetTime'/>
+          <ref name='virDomainSetUserPassword'/>
         </word>
         <word name='Pointer'>
           <ref name='virConnectGetAllDomainStats'/>
@@ -7692,6 +7704,7 @@
           <ref name='virDomainMigrateSetCompressionCache'/>
           <ref name='virDomainMigrateSetMaxDowntime'/>
           <ref name='virDomainSetMetadata'/>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virSecretSetValue'/>
           <ref name='virStoragePoolSetAutostart'/>
         </word>
@@ -8503,6 +8516,9 @@
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainOpenGraphicsFD'/>
         </word>
+        <word name='VIR_DOMAIN_PASSWORD_ENCRYPTED'>
+          <ref name='virDomainSetUserPassword'/>
+        </word>
         <word name='VIR_DOMAIN_PMSUSPENDED'>
           <ref name='virDomainResume'/>
           <ref name='virDomainSuspend'/>
@@ -9121,6 +9137,7 @@
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetTime'/>
+          <ref name='virDomainSetUserPassword'/>
         </word>
         <word name='abnormally'>
           <ref name='virStreamAbort'/>
@@ -9432,6 +9449,7 @@
           <ref name='virDomainReboot'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetTime'/>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -9750,6 +9768,9 @@
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainMigrateToURI3'/>
         </word>
+        <word name='architectures'>
+          <ref name='_virNodeInfo'/>
+        </word>
         <word name='archives'>
           <ref name='virConnectGetType'/>
         </word>
@@ -9820,6 +9841,7 @@
           <ref name='virConnectClose'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
+          <ref name='virDomainSetUserPassword'/>
         </word>
         <word name='asynchronous'>
           <ref name='virDomainBlockCommit'/>
@@ -11087,6 +11109,7 @@
           <ref name='virDomainOpenGraphicsFD'/>
           <ref name='virDomainReboot'/>
           <ref name='virDomainSetTime'/>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virEventRegisterImpl'/>
@@ -11235,6 +11258,7 @@
           <ref name='virDomainGetMemoryParameters'/>
           <ref name='virDomainGetNumaParameters'/>
           <ref name='virDomainSaveImageGetXMLDesc'/>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
           <ref name='virNetworkGetDHCPLeases'/>
           <ref name='virNodeGetMemoryParameters'/>
@@ -12432,6 +12456,7 @@
         <word name='encrypted'>
           <ref name='virConnectIsEncrypted'/>
           <ref name='virConnectIsSecure'/>
+          <ref name='virDomainSetUserPassword'/>
         </word>
         <word name='end'>
           <ref name='virDomainBlockCommit'/>
@@ -13400,6 +13425,7 @@
           <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virGetVersion'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
@@ -14745,6 +14771,7 @@
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='known'>
+          <ref name='_virNodeInfo'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainAttachDevice'/>
@@ -16203,6 +16230,7 @@
           <ref name='virDomainGetBlockIoTune'/>
           <ref name='virDomainGetTime'/>
           <ref name='virDomainSetTime'/>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='notes'>
@@ -16565,6 +16593,7 @@
           <ref name='virDomainRestoreFlags'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSetTime'/>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virNetworkGetBridgeName'/>
@@ -16778,6 +16807,7 @@
           <ref name='virConnectGetDomainCapabilities'/>
         </word>
         <word name='password'>
+          <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainUpdateDeviceFlags'/>
         </word>
         <word name='paths'>
@@ -18687,6 +18717,7 @@
           <ref name='virDomainGetIOThreadInfo'/>
           <ref name='virDomainGetTime'/>
           <ref name='virDomainSetTime'/>
+          <ref name='virDomainSetUserPassword'/>
         </word>
         <word name='runs'>
           <ref name='virDomainGetMaxMemory'/>
@@ -20983,6 +21014,9 @@
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virEventUpdateHandleFunc'/>
         </word>
+        <word name='username'>
+          <ref name='virDomainSetUserPassword'/>
+        </word>
         <word name='uses'>
           <ref name='virDomainBlockPeek'/>
           <ref name='virSecretGetUsageType'/>
@@ -21931,6 +21965,9 @@
         </word>
         <word name='virDomainSetTimeFlags'>
           <ref name='virDomainSetTime'/>
+        </word>
+        <word name='virDomainSetUserPasswordFlags'>
+          <ref name='virDomainSetUserPassword'/>
         </word>
         <word name='virDomainSetVcpusFlags'>
           <ref name='virDomainSetVcpus'/>

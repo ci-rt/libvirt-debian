@@ -1552,7 +1552,9 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
         return false;
 
     if ((rv = vshCommandOptInt(cmd, "weight", &weight)) < 0) {
-        vshError(ctl, "%s", _("Unable to parse integer parameter"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "weight");
         goto cleanup;
     } else if (rv > 0) {
         if (weight <= 0) {
@@ -1691,7 +1693,9 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
         goto cleanup;
 
     if (vshCommandOptULWrap(cmd, "bandwidth", &bandwidth) < 0) {
-        vshError(ctl, "%s", _("bandwidth must be a number"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "bandwidth");
         goto cleanup;
     }
 
@@ -2213,15 +2217,21 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
      * than trying to guess which value will work well across both
      * APIs with their different sizes and scales.  */
     if (vshCommandOptULWrap(cmd, "bandwidth", &bandwidth) < 0) {
-        vshError(ctl, "%s", _("bandwidth must be a number"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "bandwidth");
         goto cleanup;
     }
     if (vshCommandOptUInt(cmd, "granularity", &granularity) < 0) {
-        vshError(ctl, "%s", _("granularity must be a number"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "granularity");
         goto cleanup;
     }
     if (vshCommandOptULongLong(cmd, "buf-size", &buf_size) < 0) {
-        vshError(ctl, "%s", _("buf-size must be a number"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "buf-size");
         goto cleanup;
     }
 
@@ -2791,7 +2801,9 @@ cmdBlockResize(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptScaledInt(cmd, "size", &size, 1024, ULLONG_MAX) < 0) {
-        vshError(ctl, "%s", _("Unable to parse integer"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "size");
         return false;
     }
 
@@ -3395,7 +3407,9 @@ cmdDomPMSuspend(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptULongLong(cmd, "duration", &duration) < 0) {
-        vshError(ctl, _("Invalid duration argument"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "duration");
         goto cleanup;
     }
 
@@ -5317,7 +5331,9 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptUInt(cmd, "screen", &screen) < 0) {
-        vshError(ctl, "%s", _("invalid screen ID"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "screen");
         return false;
     }
 
@@ -5380,6 +5396,74 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
+/*
+ * "set-user-password" command
+ */
+static const vshCmdInfo info_set_user_password[] = {
+    {.name = "help",
+     .data = N_("set the user password inside the domain")
+    },
+    {.name = "desc",
+     .data = N_("changes the password of the specified user inside the domain")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_set_user_password[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "user",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("the username")
+    },
+    {.name = "password",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("the new password")
+    },
+    {.name = "encrypted",
+     .type = VSH_OT_BOOL,
+     .help = N_("the password is already encrypted")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdSetUserPassword(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    const char *name;
+    const char *password = NULL;
+    const char *user = NULL;
+    unsigned int flags = 0;
+    bool ret = false;
+
+    if (vshCommandOptBool(cmd, "encrypted"))
+        flags = VIR_DOMAIN_PASSWORD_ENCRYPTED;
+
+    if (vshCommandOptStringReq(ctl, cmd, "user", &user) < 0)
+        return false;
+
+    if (vshCommandOptStringReq(ctl, cmd, "password", &password) < 0)
+        return false;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
+        return false;
+
+    if (virDomainSetUserPassword(dom, user, password, flags) < 0)
+        goto cleanup;
+
+    vshPrint(ctl, _("Password set successfully for %s in %s"), user, name);
+    ret = true;
+
+ cleanup:
+    virDomainFree(dom);
+    return ret;
+}
 /*
  * "resume" command
  */
@@ -6348,7 +6432,7 @@ vshPrintPinInfo(unsigned char *cpumap, size_t cpumaplen)
 }
 
 static unsigned char *
-vshParseCPUList(int *cpumaplen, const char *cpulist, int maxcpu)
+vshParseCPUList(vshControl *ctl, int *cpumaplen, const char *cpulist, int maxcpu)
 {
     unsigned char *cpumap = NULL;
     virBitmapPtr map = NULL;
@@ -6358,8 +6442,17 @@ vshParseCPUList(int *cpumaplen, const char *cpulist, int maxcpu)
             return NULL;
         virBitmapSetAll(map);
     } else {
-        if (virBitmapParse(cpulist, '\0', &map, maxcpu) < 0)
-            return NULL;
+        if ((virBitmapParse(cpulist, '\0', &map, 1024) < 0) ||
+            virBitmapIsAllClear(map)) {
+            vshError(ctl, _("Invalid cpulist '%s'"), cpulist);
+            goto cleanup;
+        }
+        int lastcpu = virBitmapLastSetBit(map);
+        if (lastcpu >= maxcpu) {
+            vshError(ctl, _("CPU %d in cpulist '%s' exceed the maxcpu %d"),
+                     lastcpu, cpulist, maxcpu);
+            goto cleanup;
+        }
     }
 
     if (virBitmapToData(map, &cpumap, cpumaplen) < 0)
@@ -6405,7 +6498,9 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
         VSH_EXCLUSIVE_OPTIONS_VAR(live, config);
 
     if ((got_vcpu = vshCommandOptUInt(cmd, "vcpu", &vcpu)) < 0) {
-        vshError(ctl, "%s", _("vcpupin: Invalid vCPU number."));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "vcpu");
         return false;
     }
 
@@ -6458,7 +6553,7 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
         }
     } else {
         /* Pin mode: pinning specified vcpu to specified physical cpus*/
-        if (!(cpumap = vshParseCPUList(&cpumaplen, cpulist, maxcpu)))
+        if (!(cpumap = vshParseCPUList(ctl, &cpumaplen, cpulist, maxcpu)))
             goto cleanup;
 
         if (flags == -1) {
@@ -6577,7 +6672,7 @@ cmdEmulatorPin(vshControl *ctl, const vshCmd *cmd)
     }
 
     /* Pin mode: pinning emulator threads to specified physical cpus*/
-    if (!(cpumap = vshParseCPUList(&cpumaplen, cpulist, maxcpu)))
+    if (!(cpumap = vshParseCPUList(ctl, &cpumaplen, cpulist, maxcpu)))
         goto cleanup;
 
     if (flags == -1)
@@ -6657,48 +6752,32 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
     VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
     VSH_EXCLUSIVE_OPTIONS_VAR(guest, config);
 
+    VSH_REQUIRE_OPTION_VAR(maximum, config);
+
     if (config)
         flags |= VIR_DOMAIN_AFFECT_CONFIG;
     if (live)
         flags |= VIR_DOMAIN_AFFECT_LIVE;
     if (guest)
         flags |= VIR_DOMAIN_VCPU_GUEST;
-    /* none of the options were specified */
-    if (!current && flags == 0)
-        flags = -1;
+    if (maximum)
+        flags |= VIR_DOMAIN_VCPU_MAXIMUM;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
     if (vshCommandOptInt(cmd, "count", &count) < 0 || count <= 0) {
-        vshError(ctl, "%s", _("Invalid number of virtual CPUs"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "count");
         goto cleanup;
     }
 
-    if (flags == -1) {
+    /* none of the options were specified */
+    if (!current && flags == 0) {
         if (virDomainSetVcpus(dom, count) != 0)
             goto cleanup;
     } else {
-        /* If the --maximum flag was given, we need to ensure only the
-           --config flag is in effect as well */
-        if (maximum) {
-            vshDebug(ctl, VSH_ERR_DEBUG, "--maximum flag was given\n");
-
-            flags |= VIR_DOMAIN_VCPU_MAXIMUM;
-
-            /* If neither the --config nor --live flags were given, OR
-               if just the --live flag was given, we need to error out
-               warning the user that the --maximum flag can only be used
-               with the --config flag */
-            if (live || !config) {
-
-                /* Warn the user about the invalid flag combination */
-                vshError(ctl, _("--maximum must be used with --config only"));
-                goto cleanup;
-            }
-        }
-
-        /* Apply the virtual cpu changes */
         if (virDomainSetVcpusFlags(dom, count, flags) < 0)
             goto cleanup;
     }
@@ -6868,7 +6947,9 @@ cmdIOThreadPin(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptUInt(cmd, "iothread", &iothread_id) < 0) {
-        vshError(ctl, "%s", _("iothreadpin: Invalid IOThread number."));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "iothread");
         goto cleanup;
     }
 
@@ -6880,7 +6961,7 @@ cmdIOThreadPin(vshControl *ctl, const vshCmd *cmd)
     if ((maxcpu = vshNodeGetCPUCount(ctl->conn)) < 0)
         goto cleanup;
 
-    if (!(cpumap = vshParseCPUList(&cpumaplen, cpulist, maxcpu)))
+    if (!(cpumap = vshParseCPUList(ctl, &cpumaplen, cpulist, maxcpu)))
         goto cleanup;
 
     if (virDomainPinIOThread(dom, iothread_id,
@@ -6957,7 +7038,9 @@ cmdIOThreadAdd(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptInt(cmd, "id", &iothread_id) < 0) {
-        vshError(ctl, "%s", _("Unable to parse integer parameter"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "id");
         goto cleanup;
     }
     if (iothread_id <= 0) {
@@ -7037,7 +7120,9 @@ cmdIOThreadDel(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptInt(cmd, "id", &iothread_id) < 0) {
-        vshError(ctl, "%s", _("Unable to parse integer parameter"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "id");
         goto cleanup;
     }
     if (iothread_id <= 0) {
@@ -7324,7 +7409,9 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
     show_total = vshCommandOptBool(cmd, "total");
 
     if ((rv = vshCommandOptInt(cmd, "start", &cpu)) < 0) {
-        vshError(ctl, "%s", _("Unable to parse integer parameter for start"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "start");
         goto cleanup;
     } else if (rv > 0) {
         if (cpu < 0) {
@@ -7335,8 +7422,9 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
     }
 
     if ((rv = vshCommandOptInt(cmd, "count", &show_count)) < 0) {
-        vshError(ctl, "%s",
-                 _("Unable to parse integer parameter for CPUs to show"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "count");
         goto cleanup;
     } else if (rv > 0) {
         if (show_count < 0) {
@@ -8124,7 +8212,9 @@ cmdSendKey(vshControl *ctl, const vshCmd *cmd)
         codeset_option = "linux";
 
     if (vshCommandOptUInt(cmd, "holdtime", &holdtime) < 0) {
-        vshError(ctl, _("invalid value of --holdtime"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "holdtime");
         goto cleanup;
     }
 
@@ -8240,7 +8330,6 @@ cmdSendProcessSignal(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     bool ret = false;
-    const char *pidstr;
     const char *signame;
     long long pid_value;
     int signum;
@@ -8248,16 +8337,15 @@ cmdSendProcessSignal(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptStringReq(ctl, cmd, "pid", &pidstr) < 0)
+    if (vshCommandOptLongLong(cmd, "pid", &pid_value) < 0) {
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "pid");
         goto cleanup;
+    }
 
     if (vshCommandOptStringReq(ctl, cmd, "signame", &signame) < 0)
         goto cleanup;
-
-    if (virStrToLong_ll(pidstr, NULL, 10, &pid_value) < 0) {
-        vshError(ctl, _("malformed PID value: %s"), pidstr);
-        goto cleanup;
-    }
 
     if ((signum = getSignalNumber(ctl, signame)) < 0) {
         vshError(ctl, _("malformed signal name: %s"), signame);
@@ -8351,7 +8439,9 @@ cmdSetmem(vshControl *ctl, const vshCmd *cmd)
     else
         max = ULONG_MAX;
     if (vshCommandOptScaledInt(cmd, "size", &bytes, 1024, max) < 0) {
-        vshError(ctl, "%s", _("memory size has to be a number"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "size");
         virDomainFree(dom);
         return false;
     }
@@ -8446,7 +8536,9 @@ cmdSetmaxmem(vshControl *ctl, const vshCmd *cmd)
     else
         max = ULONG_MAX;
     if (vshCommandOptScaledInt(cmd, "size", &bytes, 1024, max) < 0) {
-        vshError(ctl, "%s", _("memory size has to be a number"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "size");
         virDomainFree(dom);
         return false;
     }
@@ -9080,7 +9172,9 @@ cmdQemuAttach(vshControl *ctl, const vshCmd *cmd)
     unsigned int pid_value; /* API uses unsigned int, not pid_t */
 
     if (vshCommandOptUInt(cmd, "pid", &pid_value) <= 0) {
-        vshError(ctl, "%s", _("missing pid value"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "pid");
         goto cleanup;
     }
 
@@ -9175,7 +9269,9 @@ cmdQemuAgentCommand(vshControl *ctl, const vshCmd *cmd)
 
     judge = vshCommandOptInt(cmd, "timeout", &timeout);
     if (judge < 0) {
-        vshError(ctl, "%s", _("timeout number has to be a number"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "timeout");
         goto cleanup;
     } else if (judge > 0) {
         judge = 1;
@@ -9912,18 +10008,7 @@ doMigrate(void *opaque)
     if (vshCommandOptBool(cmd, "abort-on-error"))
         flags |= VIR_MIGRATE_ABORT_ON_ERROR;
 
-    if ((flags & VIR_MIGRATE_PEER2PEER) ||
-        vshCommandOptBool(cmd, "direct")) {
-
-        /* migrateuri doesn't make sense for tunnelled migration */
-        if (flags & VIR_MIGRATE_TUNNELLED &&
-            virTypedParamsGetString(params, nparams,
-                                    VIR_MIGRATE_PARAM_URI, NULL) == 1) {
-            vshError(ctl, "%s", _("migrate: Unexpected migrateuri for "
-                                  "peer2peer/direct migration"));
-            goto out;
-        }
-
+    if (flags & VIR_MIGRATE_PEER2PEER || vshCommandOptBool(cmd, "direct")) {
         if (virDomainMigrateToURI3(dom, desturi, params, nparams, flags) == 0)
             ret = '0';
     } else {
@@ -10068,8 +10153,13 @@ cmdMigrateSetMaxDowntime(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptLongLong(cmd, "downtime", &downtime) < 0 ||
-        downtime < 1) {
+    if (vshCommandOptLongLong(cmd, "downtime", &downtime) < 0) {
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "downtime");
+        goto done;
+    }
+    if (downtime < 1) {
         vshError(ctl, "%s", _("migrate: Invalid downtime"));
         goto done;
     }
@@ -10127,7 +10217,9 @@ cmdMigrateCompCache(vshControl *ctl, const vshCmd *cmd)
 
     rc = vshCommandOptULongLong(cmd, "size", &size);
     if (rc < 0) {
-        vshError(ctl, "%s", _("Unable to parse size parameter"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "size");
         goto cleanup;
     } else if (rc != 0) {
         if (virDomainMigrateSetCompressionCache(dom, size, 0) < 0)
@@ -10185,7 +10277,9 @@ cmdMigrateSetMaxSpeed(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptULWrap(cmd, "bandwidth", &bandwidth) < 0) {
-        vshError(ctl, "%s", _("migrate: Invalid bandwidth"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "bandwidth");
         goto done;
     }
 
@@ -12523,7 +12617,9 @@ cmdDomFSTrim(vshControl *ctl, const vshCmd *cmd)
         return ret;
 
     if (vshCommandOptULongLong(cmd, "minimum", &minimum) < 0) {
-        vshError(ctl, _("Unable to parse integer parameter minimum"));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "minimum");
         goto cleanup;
     }
 
@@ -13177,6 +13273,12 @@ const vshCmdDef domManagementCmds[] = {
      .handler = cmdScreenshot,
      .opts = opts_screenshot,
      .info = info_screenshot,
+     .flags = 0
+    },
+    {.name = "set-user-password",
+     .handler = cmdSetUserPassword,
+     .opts = opts_set_user_password,
+     .info = info_set_user_password,
      .flags = 0
     },
     {.name = "setmaxmem",

@@ -17,7 +17,8 @@ static int lxcDispatchDomainOpenNamespaceHelper(
 {
   int rv;
   virThreadJobSet("lxcDispatchDomainOpenNamespace");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
   rv = lxcDispatchDomainOpenNamespace(server, client, msg, rerr, args);
   virThreadJobClear(rv);
   return rv;

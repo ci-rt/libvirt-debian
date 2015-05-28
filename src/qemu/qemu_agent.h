@@ -49,6 +49,8 @@ qemuAgentPtr qemuAgentOpen(virDomainObjPtr vm,
 
 void qemuAgentClose(qemuAgentPtr mon);
 
+void qemuAgentNotifyClose(qemuAgentPtr mon);
+
 typedef enum {
     QEMU_AGENT_EVENT_NONE = 0,
     QEMU_AGENT_EVENT_SHUTDOWN,
@@ -112,4 +114,8 @@ int qemuAgentSetTime(qemuAgentPtr mon,
 int qemuAgentGetInterfaces(qemuAgentPtr mon,
                            virDomainInterfacePtr **ifaces);
 
+int qemuAgentSetUserPassword(qemuAgentPtr mon,
+                             const char *user,
+                             const char *password,
+                             bool crypted);
 #endif /* __QEMU_AGENT_H__ */

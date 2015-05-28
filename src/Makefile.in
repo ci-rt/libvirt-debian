@@ -1088,6 +1088,7 @@ am__libvirt_driver_nodedev_la_SOURCES_DIST =  \
 	node_device/node_device_driver.c \
 	node_device/node_device_driver.h \
 	node_device/node_device_linux_sysfs.c \
+	node_device/node_device_linux_sysfs.h \
 	node_device/node_device_hal.c node_device/node_device_hal.h \
 	node_device/node_device_udev.c node_device/node_device_udev.h
 am__objects_41 =  \
@@ -4307,7 +4308,8 @@ ACCESS_DRIVER_POLKIT_POLICY = \
 NODE_DEVICE_DRIVER_SOURCES = \
 		node_device/node_device_driver.c		\
 		node_device/node_device_driver.h		\
-		node_device/node_device_linux_sysfs.c
+		node_device/node_device_linux_sysfs.c           \
+		node_device/node_device_linux_sysfs.h
 
 NODE_DEVICE_DRIVER_HAL_SOURCES = \
 		node_device/node_device_hal.c			\
@@ -4540,7 +4542,7 @@ GENERATED_SYM_FILES = \
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_lxc.la
 @WITH_LXC_TRUE@libvirt_driver_lxc_impl_la_CFLAGS = $(LIBNL_CFLAGS) \
-@WITH_LXC_TRUE@	$(FUSE_CFLAGS) -I$(srcdir)/access \
+@WITH_LXC_TRUE@	$(FUSE_CFLAGS) $(XDR_CFLAGS) -I$(srcdir)/access \
 @WITH_LXC_TRUE@	-I$(srcdir)/conf $(AM_CFLAGS) $(am__append_56)
 @WITH_LXC_TRUE@libvirt_driver_lxc_impl_la_LIBADD = $(CAPNG_LIBS) \
 @WITH_LXC_TRUE@	$(LIBNL_LIBS) $(FUSE_LIBS) $(am__append_57) \
@@ -4828,6 +4830,7 @@ libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 @WITH_LXC_TRUE@		-I$(srcdir)/rpc			\
 @WITH_LXC_TRUE@		$(AM_CFLAGS)			\
 @WITH_LXC_TRUE@		$(SECDRIVER_CFLAGS)		\
+@WITH_LXC_TRUE@		$(XDR_CFLAGS)			\
 @WITH_LXC_TRUE@		$(NULL)
 
 lockdriverdir = $(libdir)/libvirt/lock-driver
@@ -5028,7 +5031,8 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(AM_CFLAGS) $(PIE_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(LIBNL_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(FUSE_CFLAGS) \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(DBUS_CFLAGS) $(NULL) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(DBUS_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(XDR_CFLAGS) $(NULL) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_213) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(SECDRIVER_CFLAGS)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_SOURCES = $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)

@@ -287,7 +287,7 @@ static const vshCmdOptDef opts_dommemstat[] = {
      .help = N_("domain name, id or uuid")
     },
     {.name = "period",
-     .type = VSH_OT_STRING,
+     .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ_OPT,
      .help = N_("period in seconds to set collection")
     },
@@ -341,8 +341,9 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
      * This is not really an unsigned long, but it
      */
     if ((rv = vshCommandOptInt(cmd, "period", &period)) < 0) {
-        vshError(ctl, "%s",
-                 _("Unable to parse integer parameter."));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "period");
         goto cleanup;
     }
     if (rv > 0) {
@@ -1439,8 +1440,9 @@ cmdDomTime(vshControl *ctl, const vshCmd *cmd)
 
     if (rv < 0) {
         /* invalid integer format */
-        vshError(ctl, "%s",
-                 _("Unable to parse integer parameter to --time."));
+        vshError(ctl,
+                 _("Numeric value for <%s> option is malformed or out of range"),
+                 "time");
         goto cleanup;
     } else if (rv > 0) {
         /* valid integer to set */
@@ -2193,7 +2195,7 @@ cmdDomstats(vshControl *ctl, const vshCmd *cmd)
     ret = true;
  cleanup:
     virDomainStatsRecordListFree(records);
-    virDomainListFree(domlist);
+    virObjectListFree(domlist);
 
     return ret;
 }

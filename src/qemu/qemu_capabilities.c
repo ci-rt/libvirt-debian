@@ -279,6 +279,11 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "qxl.vgamem_mb",
               "qxl-vga.vgamem_mb",
               "pc-dimm",
+
+              "machine-vmport-opt", /* 185 */
+              "aes-key-wrap",
+              "dea-key-wrap",
+              "pci-serial",
     );
 
 
@@ -1535,6 +1540,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "iothread", QEMU_CAPS_OBJECT_IOTHREAD},
     { "ivshmem", QEMU_CAPS_DEVICE_IVSHMEM },
     { "pc-dimm", QEMU_CAPS_DEVICE_PC_DIMM },
+    { "pci-serial", QEMU_CAPS_DEVICE_PCI_SERIAL },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
@@ -1700,6 +1706,8 @@ virQEMUCapsFreeStringList(size_t len,
                           char **values)
 {
     size_t i;
+    if (!values)
+        return;
     for (i = 0; i < len; i++)
         VIR_FREE(values[i]);
     VIR_FREE(values);
@@ -1792,7 +1800,7 @@ virQEMUCapsParseDeviceStrObjectProps(const char *str,
     ret = nproplist;
 
  cleanup:
-    if (ret < 0 && proplist)
+    if (ret < 0)
         virQEMUCapsFreeStringList(nproplist, proplist);
     return ret;
 }
@@ -2509,6 +2517,7 @@ struct virQEMUCapsCommandLineProps {
 
 static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "machine", "mem-merge", QEMU_CAPS_MEM_MERGE },
+    { "machine", "vmport", QEMU_CAPS_MACHINE_VMPORT_OPT },
     { "drive", "discard", QEMU_CAPS_DRIVE_DISCARD },
     { "realtime", "mlock", QEMU_CAPS_MLOCK },
     { "boot-opts", "strict", QEMU_CAPS_BOOT_STRICT },
@@ -2518,6 +2527,8 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "msg", "timestamp", QEMU_CAPS_MSG_TIMESTAMP },
     { "numa", NULL, QEMU_CAPS_NUMA },
     { "drive", "throttling.bps-total-max", QEMU_CAPS_DRIVE_IOTUNE_MAX},
+    { "machine", "aes-key-wrap", QEMU_CAPS_AES_KEY_WRAP },
+    { "machine", "dea-key-wrap", QEMU_CAPS_DEA_KEY_WRAP },
 };
 
 static int
@@ -2594,6 +2605,7 @@ int virQEMUCapsProbeQMP(virQEMUCapsPtr qemuCaps,
  * <qemuCaps>
  *   <qemuctime>234235253</qemuctime>
  *   <selfctime>234235253</selfctime>
+ *   <selfvers>1002016</selfvers>
  *   <usedQMP/>
  *   <flag name='foo'/>
  *   <flag name='bar'/>
@@ -2606,7 +2618,8 @@ int virQEMUCapsProbeQMP(virQEMUCapsPtr qemuCaps,
  */
 static int
 virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps, const char *filename,
-                     time_t *qemuctime, time_t *selfctime)
+                     time_t *qemuctime, time_t *selfctime,
+                     unsigned long *selfvers)
 {
     xmlDocPtr doc = NULL;
     int ret = -1;
@@ -2616,6 +2629,7 @@ virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps, const char *filename,
     xmlXPathContextPtr ctxt = NULL;
     char *str = NULL;
     long long int l;
+    unsigned long lu;
 
     if (!(doc = virXMLParseFile(filename)))
         goto cleanup;
@@ -2648,6 +2662,10 @@ virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps, const char *filename,
         goto cleanup;
     }
     *selfctime = (time_t)l;
+
+    *selfvers = 0;
+    if (virXPathULong("string(./selfvers)", ctxt, &lu) == 0)
+        *selfvers = lu;
 
     qemuCaps->usedQMP = virXPathBoolean("count(./usedQMP) > 0",
                                         ctxt) > 0;
@@ -2787,6 +2805,8 @@ virQEMUCapsSaveCache(virQEMUCapsPtr qemuCaps, const char *filename)
                       (long long)qemuCaps->ctime);
     virBufferAsprintf(&buf, "<selfctime>%llu</selfctime>\n",
                       (long long)virGetSelfLastChanged());
+    virBufferAsprintf(&buf, "<selfvers>%lu</selfvers>\n",
+                      (unsigned long)LIBVIR_VERSION_NUMBER);
 
     if (qemuCaps->usedQMP)
         virBufferAddLit(&buf, "<usedQMP/>\n");
@@ -2927,6 +2947,7 @@ virQEMUCapsInitCached(virQEMUCapsPtr qemuCaps, const char *cacheDir)
     struct stat sb;
     time_t qemuctime;
     time_t selfctime;
+    unsigned long selfvers;
 
     if (virAsprintf(&capsdir, "%s/capabilities", cacheDir) < 0)
         goto cleanup;
@@ -2959,7 +2980,8 @@ virQEMUCapsInitCached(virQEMUCapsPtr qemuCaps, const char *cacheDir)
         goto cleanup;
     }
 
-    if (virQEMUCapsLoadCache(qemuCaps, capsfile, &qemuctime, &selfctime) < 0) {
+    if (virQEMUCapsLoadCache(qemuCaps, capsfile, &qemuctime, &selfctime,
+                             &selfvers) < 0) {
         virErrorPtr err = virGetLastError();
         VIR_WARN("Failed to load cached caps from '%s' for '%s': %s",
                  capsfile, qemuCaps->binary, err ? NULLSTR(err->message) :
@@ -2970,14 +2992,16 @@ virQEMUCapsInitCached(virQEMUCapsPtr qemuCaps, const char *cacheDir)
         goto cleanup;
     }
 
-    /* Discard if cache is older that QEMU binary */
+    /* Discard cache if QEMU binary or libvirtd changed */
     if (qemuctime != qemuCaps->ctime ||
-        selfctime < virGetSelfLastChanged()) {
+        selfctime != virGetSelfLastChanged() ||
+        selfvers != LIBVIR_VERSION_NUMBER) {
         VIR_DEBUG("Outdated cached capabilities '%s' for '%s' "
-                  "(%lld vs %lld, %lld vs %lld)",
+                  "(%lld vs %lld, %lld vs %lld, %lu vs %lu)",
                   capsfile, qemuCaps->binary,
                   (long long)qemuctime, (long long)qemuCaps->ctime,
-                  (long long)selfctime, (long long)virGetSelfLastChanged());
+                  (long long)selfctime, (long long)virGetSelfLastChanged(),
+                  selfvers, (unsigned long)LIBVIR_VERSION_NUMBER);
         ignore_value(unlink(capsfile));
         virQEMUCapsReset(qemuCaps);
         ret = 0;
@@ -3254,6 +3278,10 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
 
     if (qemuCaps->version >= 1006000)
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
+
+    /* vmport option is supported v2.2.0 onwards */
+    if (qemuCaps->version >= 2002000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_VMPORT_OPT);
 
     if (virQEMUCapsProbeQMPCommands(qemuCaps, mon) < 0)
         goto cleanup;
@@ -3714,6 +3742,19 @@ virQEMUCapsSupportsChardev(virDomainDefPtr def,
     return (chr->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO ||
             (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
              chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO));
+}
+
+
+bool
+virQEMUCapsSupportsVmport(virQEMUCapsPtr qemuCaps,
+                          const virDomainDef *def)
+{
+    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_VMPORT_OPT))
+        return false;
+
+    return qemuDomainMachineIsI440FX(def) ||
+        qemuDomainMachineIsQ35(def) ||
+        STREQ(def->os.machine, "isapc");
 }
 
 

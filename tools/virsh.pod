@@ -2015,6 +2015,16 @@ the value from the host, use the B<virsh memtune> command. In order to view
 the current memory in use and the maximum value allowed to set memory, use
 the B<virsh dominfo> command.
 
+=item B<set-user-password> I<domain> I<user> I<password> [I<--encrypted>]
+
+Set the password for the I<user> account in the guest domain.
+
+If I<--encrypted> is specified, the password is assumed to be already
+encrypted by the method required by the guest OS.
+
+For QEMU/KVM, this requires the guest agent to be configured
+and running.
+
 =item B<setmaxmem> I<domain> B<size> [[I<--config>] [I<--live>] |
 [I<--current>]]
 
@@ -2181,7 +2191,8 @@ and may require guest agent to be configured in the guest.
 
 The I<--maximum> flag controls the maximum number of virtual cpus that can
 be hot-plugged the next time the domain is booted.  As such, it must only be
-used with the I<--config> flag, and not with the I<--live> flag.
+used with the I<--config> flag, and not with the I<--live> or the I<--current>
+flag.
 
 =item B<shutdown> I<domain> [I<--mode MODE-LIST>]
 

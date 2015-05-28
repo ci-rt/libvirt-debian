@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-04-28" "libvirt-1.2.15" "Virtualization Support"
+.TH VIRSH 1 "2015-05-23" "libvirt-1.2.16" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1960,6 +1960,15 @@ inside the container, this is the /proc/meminfo \*(L"MemTotal\*(R" value. When v
 the value from the host, use the \fBvirsh memtune\fR command. In order to view
 the current memory in use and the maximum value allowed to set memory, use
 the \fBvirsh dominfo\fR command.
+.IP "\fBset-user-password\fR \fIdomain\fR \fIuser\fR \fIpassword\fR [\fI\-\-encrypted\fR]" 4
+.IX Item "set-user-password domain user password [--encrypted]"
+Set the password for the \fIuser\fR account in the guest domain.
+.Sp
+If \fI\-\-encrypted\fR is specified, the password is assumed to be already
+encrypted by the method required by the guest \s-1OS.\s0
+.Sp
+For \s-1QEMU/KVM,\s0 this requires the guest agent to be configured
+and running.
 .IP "\fBsetmaxmem\fR \fIdomain\fR \fBsize\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "setmaxmem domain size [[--config] [--live] | [--current]]"
 Change the maximum memory allocation limit for a guest domain.
@@ -2109,7 +2118,8 @@ and may require guest agent to be configured in the guest.
 .Sp
 The \fI\-\-maximum\fR flag controls the maximum number of virtual cpus that can
 be hot-plugged the next time the domain is booted.  As such, it must only be
-used with the \fI\-\-config\fR flag, and not with the \fI\-\-live\fR flag.
+used with the \fI\-\-config\fR flag, and not with the \fI\-\-live\fR or the \fI\-\-current\fR
+flag.
 .IP "\fBshutdown\fR \fIdomain\fR [\fI\-\-mode MODE-LIST\fR]" 4
 .IX Item "shutdown domain [--mode MODE-LIST]"
 Gracefully shuts down a domain.  This coordinates with the domain \s-1OS\s0

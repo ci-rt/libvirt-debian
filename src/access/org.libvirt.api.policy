@@ -328,6 +328,15 @@
       <allow_active>no</allow_active>
     </defaults>
   </action>
+  <action id="org.libvirt.api.domain.set-password">
+    <description>Set password of the domain's account</description>
+    <message>Setting the domain accounts' password requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
   <action id="org.libvirt.api.domain.set-time">
     <description>Write domain time</description>
     <message>Setting the domain time requires authorization</message>

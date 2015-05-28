@@ -53,6 +53,7 @@ EXTRA_DIST =						\
 	libvirtd.init.in				\
 	libvirtd.upstart				\
 	libvirtd.policy.in				\
+	libvirt.rules					\
 	libvirtd.sasl					\
 	libvirtd.service.in				\
 	libvirtd.socket.in				\
@@ -62,6 +63,7 @@ EXTRA_DIST =						\
 	libvirtd.logrotate.in                           \
 	libvirtd.qemu.logrotate.in                      \
 	libvirtd.lxc.logrotate.in                       \
+	libvirtd.libxl.logrotate.in                     \
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug.in                             \
 	THREADS.txt					\
@@ -233,6 +235,8 @@ policyauth = auth_admin_keep_session
 else ! WITH_POLKIT0
 policydir = $(datadir)/polkit-1/actions
 policyauth = auth_admin_keep
+rulesdir = $(datadir)/polkit-1/rules.d
+rulesfile = libvirt.rules
 endif ! WITH_POLKIT0
 endif WITH_POLKIT
 
@@ -263,9 +267,19 @@ if WITH_POLKIT
 install-data-polkit::
 	$(MKDIR_P) $(DESTDIR)$(policydir)
 	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+if ! WITH_POLKIT0
+	$(MKDIR_P) $(DESTDIR)$(rulesdir)
+	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/50-libvirt.rules
+endif ! WITH_POLKIT0
+
 uninstall-data-polkit::
 	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 	rmdir $(DESTDIR)$(policydir) || :
+if ! WITH_POLKIT0
+	rm -f $(DESTDIR)$(rulesdir)/50-libvirt.rules
+	rmdir $(DESTDIR)$(rulesdir) || :
+endif ! WITH_POLKIT0
+
 else ! WITH_POLKIT
 install-data-polkit::
 uninstall-data-polkit::
@@ -275,7 +289,8 @@ remote.c: $(DAEMON_GENERATED)
 remote.h: $(DAEMON_GENERATED)
 
 LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
-		  libvirtd.uml.logrotate libvirtd.logrotate
+		  libvirtd.libxl.logrotate libvirtd.uml.logrotate \
+		  libvirtd.logrotate
 
 BUILT_SOURCES += $(LOGROTATE_CONFS)
 
@@ -292,6 +307,12 @@ libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
 	mv $@-t $@
 
 libvirtd.lxc.logrotate: libvirtd.lxc.logrotate.in
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+	    < $< > $@-t &&					\
+	    mv $@-t $@
+
+libvirtd.libxl.logrotate: libvirtd.libxl.logrotate.in
 	$(AM_V_GEN)sed						\
 	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 	    < $< > $@-t &&					\
@@ -314,6 +335,8 @@ install-logrotate: $(LOGROTATE_CONFS)
 		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu
 	$(INSTALL_DATA) libvirtd.lxc.logrotate \
 		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc
+	$(INSTALL_DATA) libvirtd.libxl.logrotate \
+		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.libxl
 	$(INSTALL_DATA) libvirtd.uml.logrotate \
 		$(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
@@ -321,6 +344,7 @@ uninstall-logrotate:
 	rm -f $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd \
 	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu \
 	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc \
+	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.libxl \
 	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/qemu || :
 	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/lxc || :

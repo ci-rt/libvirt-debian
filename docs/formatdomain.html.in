@@ -1058,7 +1058,7 @@
   ...</pre>
 
 <pre>
-  &lt;cpu mode='host-passthrough'/&gt;
+  &lt;cpu mode='host-passthrough'&gt;
     &lt;feature policy='disable' name='lahf_lm'/&gt;
   ...</pre>
 
@@ -1439,6 +1439,7 @@
       &lt;hidden state='on'/&gt;
     &lt;/kvm&gt;
     &lt;pvspinlock/&gt;
+    &lt;gic version='2'/&gt;
 
   &lt;/features&gt;
   ...</pre>
@@ -1538,6 +1539,21 @@
         <code>off</code>, default <code>on</code>) enable or disable the
         performance monitoring unit for the guest.
         <span class="since">Since 1.2.12</span>
+      </dd>
+      <dt><code>vmport</code></dt>
+      <dd>Depending on the <code>state</code> attribute (values <code>on</code>,
+        <code>off</code>, default <code>on</code>) enable or disable
+        the emulation of VMWare IO port, for vmmouse etc.
+        <span class="since">Since 1.2.16</span>
+      </dd>
+      <dt><code>gic</code></dt>
+      <dd>Enable for architectures using a General Interrupt
+          Controller instead of APIC in order to handle interrupts.
+          For example, the 'aarch64' architecture uses
+          <code>gic</code> instead of <code>apic</code>. The optional
+          attribute <code>version</code> specifies the GIC version;
+          however, it may not be supported by all hypervisors. <span
+          class="since">Since 1.2.16</span>
       </dd>
     </dl>
 
@@ -5091,12 +5107,16 @@ qemu-kvm -net nic,model=? /dev/null
       specifies the port number. Ports are numbered starting from 0. There are
       usually 0, 1 or 2 serial ports. There is also an optional
       <code>type</code> attribute <span class="since">since 1.0.2</span>
-      which has two choices for its value, one is <code>isa-serial</code>,
-      the other is <code>usb-serial</code>. If <code>type</code> is missing,
-      <code>isa-serial</code> will be used by default. For <code>usb-serial</code>
-      an optional sub-element <code>&lt;address&gt;</code> with
-      <code>type='usb'</code> can tie the device to a particular controller,
-      <a href="#elementsAddress">documented above</a>.
+      which has three choices for its value, one is <code>isa-serial</code>,
+      then <code>usb-serial</code> and last one is <code>pci-serial</code>.
+      If <code>type</code> is missing, <code>isa-serial</code> will be used by
+      default. For <code>usb-serial</code> an optional sub-element
+      <code>&lt;address/&gt;</code> with <code>type='usb'</code> can tie the
+      device to a particular controller, <a href="#elementsAddress">documented above</a>.
+      Similarly, <code>pci-serial</code> can be used to attach the device to
+      the pci bus (<span class="since">since 1.2.16</span>). Again, it has
+      optional sub-element <code>&lt;address/&gt;</code> with
+      <code>type='pci'</code> to select desired location on the PCI bus.
     </p>
 
     <h6><a name="elementCharConsole">Console</a></h6>
@@ -6210,6 +6230,45 @@ qemu-kvm -net nic,model=? /dev/null
       domains on disks where labeling was skipped due to the image
       being on a file system that lacks security labeling.
     </p>
+
+    <h3><a name="keywrap">Key Wrap</a></h3>
+
+       <p>The content of the optional <code>keywrap</code> element specifies
+        whether the guest will be allowed to perform the S390 cryptographic key
+        management operations. A clear key can be protected by encrypting it
+        under a unique wrapping key that is generated for each guest VM running
+        on the host. Two variations of wrapping keys are generated: one version
+        for encrypting protected keys using the DEA/TDEA algorithm, and another
+        version for keys encrypted using the AES algorithm. If a
+        <code>keywrap</code> element is not included, the guest will be granted
+        access to both AES and DEA/TDEA key wrapping by default.</p>
+
+        <pre>
+&lt;domain&gt;
+  ...
+  &lt;keywrap&gt;
+    &lt;cipher name='aes' state='off'/&gt;
+  &lt;/keywrap&gt;
+  ...
+&lt;/domain&gt;
+</pre>
+    <p>
+      At least one <code>cipher</code> element must be nested within the
+      <code>keywrap</code> element.
+    </p>
+    <dl>
+      <dt><code>cipher</code></dt>
+      <dd>The <code>name</code> attribute identifies the algorithm
+        for encrypting a protected key. The values supported for this attribute
+        are <code>aes</code> for encryption under the AES wrapping key, or
+        <code>dea</code> for encryption under the DEA/TDEA wrapping key. The
+        <code>state</code> attribute indicates whether the cryptographic key
+        management operations should be turned on for the specified encryption
+        algorithm. The value can be set to <code>on</code> or <code>off</code>.
+      </dd>
+    </dl>
+
+    <p>Note: DEA/TDEA is synonymous with DES/TDES.</p>
 
     <h2><a name="examples">Example configs</a></h2>
 

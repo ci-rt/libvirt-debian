@@ -101,7 +101,8 @@ VIR_ENUM_IMPL(virDomainTaint, VIR_DOMAIN_TAINT_LAST,
               "disk-probing",
               "external-launch",
               "host-cpu",
-              "hook-script");
+              "hook-script",
+              "cdrom-passthrough");
 
 VIR_ENUM_IMPL(virDomainVirt, VIR_DOMAIN_VIRT_LAST,
               "qemu",
@@ -143,7 +144,9 @@ VIR_ENUM_IMPL(virDomainFeature, VIR_DOMAIN_FEATURE_LAST,
               "kvm",
               "pvspinlock",
               "capabilities",
-              "pmu")
+              "pmu",
+              "vmport",
+              "gic")
 
 VIR_ENUM_IMPL(virDomainCapabilitiesPolicy, VIR_DOMAIN_CAPABILITIES_POLICY_LAST,
               "default",
@@ -405,7 +408,8 @@ VIR_ENUM_IMPL(virDomainChrDeviceState, VIR_DOMAIN_CHR_DEVICE_STATE_LAST,
 VIR_ENUM_IMPL(virDomainChrSerialTarget,
               VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_LAST,
               "isa-serial",
-              "usb-serial")
+              "usb-serial",
+              "pci-serial")
 
 VIR_ENUM_IMPL(virDomainChrChannelTarget,
               VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST,
@@ -474,6 +478,11 @@ VIR_ENUM_IMPL(virDomainSoundModel, VIR_DOMAIN_SOUND_MODEL_LAST,
               "ich6",
               "ich9",
               "usb")
+
+VIR_ENUM_IMPL(virDomainKeyWrapCipherName,
+              VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_LAST,
+              "aes",
+              "dea")
 
 VIR_ENUM_IMPL(virDomainMemballoonModel, VIR_DOMAIN_MEMBALLOON_MODEL_LAST,
               "virtio",
@@ -830,6 +839,131 @@ virDomainXMLOptionClassDispose(void *obj)
 
     if (xmlopt->config.privFree)
         (xmlopt->config.privFree)(xmlopt->config.priv);
+}
+
+/**
+ * virDomainKeyWrapCipherDefParseXML:
+ *
+ * @def  Domain definition
+ * @node An XML cipher node
+ * @ctxt The XML context
+ *
+ * Parse the attributes from the cipher node and store the state
+ * attribute in @def.
+ *
+ * A cipher node has the form of
+ *
+ *   <cipher name='aes|dea' state='on|off'/>
+ *
+ * Returns: 0 if the parse succeeded
+ *         -1 otherwise
+ */
+static int
+virDomainKeyWrapCipherDefParseXML(virDomainKeyWrapDefPtr keywrap,
+                                  xmlNodePtr node,
+                                  xmlXPathContextPtr ctxt)
+{
+
+    char *name = NULL;
+    char *state = NULL;
+    int state_type;
+    int name_type;
+    int ret = -1;
+    xmlNodePtr oldnode = ctxt->node;
+
+    ctxt->node = node;
+    if (!(name = virXPathString("string(./@name)", ctxt))) {
+        virReportError(VIR_ERR_CONF_SYNTAX, "%s",
+                       _("missing name for cipher"));
+        goto cleanup;
+    }
+
+    if ((name_type = virDomainKeyWrapCipherNameTypeFromString(name)) < 0) {
+        virReportError(VIR_ERR_CONF_SYNTAX,
+                       _("%s is not a supported cipher name"), name);
+        goto cleanup;
+    }
+
+    if (!(state = virXPathString("string(./@state)", ctxt))) {
+        virReportError(VIR_ERR_CONF_SYNTAX,
+                       _("missing state for cipher named %s"), name);
+        goto cleanup;
+    }
+
+    if ((state_type = virTristateSwitchTypeFromString(state)) < 0) {
+        virReportError(VIR_ERR_CONF_SYNTAX,
+                       _("%s is not a supported cipher state"), state);
+        goto cleanup;
+    }
+
+    switch ((virDomainKeyWrapCipherName) name_type) {
+    case VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_AES:
+        if (keywrap->aes != VIR_TRISTATE_SWITCH_ABSENT) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("A domain definition can have no more than "
+                             "one cipher node with name %s"),
+                           virDomainKeyWrapCipherNameTypeToString(name_type));
+
+            goto cleanup;
+        }
+        keywrap->aes = state_type;
+        break;
+
+    case VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_DEA:
+        if (keywrap->dea != VIR_TRISTATE_SWITCH_ABSENT) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("A domain definition can have no more than "
+                             "one cipher node with name %s"),
+                           virDomainKeyWrapCipherNameTypeToString(name_type));
+
+            goto cleanup;
+        }
+        keywrap->dea = state_type;
+        break;
+
+    case VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_LAST:
+        break;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(name);
+    VIR_FREE(state);
+    ctxt->node = oldnode;
+    return ret;
+}
+
+static int
+virDomainKeyWrapDefParseXML(virDomainDefPtr def, xmlXPathContextPtr ctxt)
+{
+    size_t i;
+    int ret = -1;
+    xmlNodePtr *nodes = NULL;
+    int n;
+
+    if ((n = virXPathNodeSet("./keywrap/cipher", ctxt, &nodes)) < 0)
+        return n;
+
+    if (VIR_ALLOC(def->keywrap) < 0)
+        goto cleanup;
+
+    for (i = 0; i < n; i++) {
+        if (virDomainKeyWrapCipherDefParseXML(def->keywrap, nodes[i], ctxt) < 0)
+            goto cleanup;
+    }
+
+    if (!def->keywrap->aes &&
+        !def->keywrap->dea)
+        VIR_FREE(def->keywrap);
+
+    ret = 0;
+
+ cleanup:
+    if (ret < 0)
+        VIR_FREE(def->keywrap);
+    VIR_FREE(nodes);
+    return ret;
 }
 
 
@@ -1273,7 +1407,7 @@ void virDomainLeaseDefFree(virDomainLeaseDefPtr def)
 
 
 virDomainDiskDefPtr
-virDomainDiskDefNew(void)
+virDomainDiskDefNew(virDomainXMLOptionPtr xmlopt)
 {
     virDomainDiskDefPtr ret;
 
@@ -1283,17 +1417,15 @@ virDomainDiskDefNew(void)
     if (VIR_ALLOC(ret->src) < 0)
         goto error;
 
-    if (virCondInit(&ret->blockJobSyncCond) < 0) {
-        virReportSystemError(errno, "%s", _("Failed to initialize condition"));
+    if (xmlopt &&
+        xmlopt->privateData.diskNew &&
+        !(ret->privateData = xmlopt->privateData.diskNew()))
         goto error;
-    }
 
     return ret;
 
  error:
-    virStorageSourceFree(ret->src);
-    VIR_FREE(ret);
-
+    virDomainDiskDefFree(ret);
     return NULL;
 }
 
@@ -1313,7 +1445,7 @@ virDomainDiskDefFree(virDomainDiskDefPtr def)
     VIR_FREE(def->product);
     VIR_FREE(def->domain_name);
     virDomainDeviceInfoClear(&def->info);
-    virCondDestroy(&def->blockJobSyncCond);
+    virObjectUnref(def->privateData);
 
     VIR_FREE(def);
 }
@@ -2361,6 +2493,8 @@ void virDomainDefFree(virDomainDefPtr def)
         virDomainShmemDefFree(def->shmems[i]);
     VIR_FREE(def->shmems);
 
+    VIR_FREE(def->keywrap);
+
     if (def->namespaceData && def->ns.free)
         (def->ns.free)(def->namespaceData);
 
@@ -3364,27 +3498,9 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
         return -1;
     }
 
-    if (def->mem.cur_balloon > virDomainDefGetMemoryActual(def)) {
-        /* Older libvirt could get into this situation due to
-         * rounding; if the discrepancy is less than 4MiB, we silently
-         * round down, otherwise we flag the issue.  */
-        if (VIR_DIV_UP(def->mem.cur_balloon, 4096) >
-            VIR_DIV_UP(virDomainDefGetMemoryActual(def), 4096)) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("current memory '%lluk' exceeds "
-                             "maximum '%lluk'"),
-                           def->mem.cur_balloon,
-                           virDomainDefGetMemoryActual(def));
-            return -1;
-        } else {
-            VIR_DEBUG("Truncating current %lluk to maximum %lluk",
-                      def->mem.cur_balloon,
-                      virDomainDefGetMemoryActual(def));
-            def->mem.cur_balloon = virDomainDefGetMemoryActual(def);
-        }
-    } else if (def->mem.cur_balloon == 0) {
+    if (def->mem.cur_balloon > virDomainDefGetMemoryActual(def) ||
+        def->mem.cur_balloon == 0)
         def->mem.cur_balloon = virDomainDefGetMemoryActual(def);
-    }
 
     if ((def->mem.max_memory || def->mem.memory_slots) &&
         !(def->mem.max_memory && def->mem.memory_slots)) {
@@ -3740,7 +3856,7 @@ virDomainDeviceInfoFormat(virBufferPtr buf,
             virBufferAsprintf(buf, " bar='%s'", rombar);
         }
         if (info->romfile)
-            virBufferAsprintf(buf, " file='%s'", info->romfile);
+            virBufferEscapeString(buf, " file='%s'", info->romfile);
         virBufferAddLit(buf, "/>\n");
     }
 
@@ -6137,7 +6253,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     int auth_secret_usage = -1;
     int ret = 0;
 
-    if (!(def = virDomainDiskDefNew()))
+    if (!(def = virDomainDiskDefNew(xmlopt)))
         return NULL;
 
     def->geometry.cylinders = 0;
@@ -7114,12 +7230,7 @@ virDomainParseMemory(const char *xpath,
     int ret = -1;
     unsigned long long bytes, max;
 
-    /* On 32-bit machines, our bound is 0xffffffff * KiB. On 64-bit
-     * machines, our bound is off_t (2^63).  */
-    if (capped && sizeof(unsigned long) < sizeof(long long))
-        max = 1024ull * ULONG_MAX;
-    else
-        max = LLONG_MAX;
+    max = virMemoryMaxValue(capped);
 
     ret = virDomainParseScaledValue(xpath, units_xpath, ctxt,
                                     &bytes, 1024, max, required);
@@ -7128,6 +7239,13 @@ virDomainParseMemory(const char *xpath,
 
     /* Yes, we really do use kibibytes for our internal sizing.  */
     *mem = VIR_DIV_UP(bytes, 1024);
+
+    if (*mem >= VIR_DIV_UP(max, 1024)) {
+        virReportError(VIR_ERR_OVERFLOW, "%s", _("size value too large"));
+        ret = -1;
+        goto cleanup;
+    }
+
     ret = 0;
  cleanup:
     return ret;
@@ -10845,12 +10963,16 @@ virDomainShmemDefParseXML(xmlNodePtr node,
         }
         VIR_FREE(tmp);
 
-        if ((tmp = virXMLPropString(msi, "ioeventfd")) &&
-            (def->msi.ioeventfd = virTristateSwitchTypeFromString(tmp)) <= 0) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("invalid msi ioeventfd setting for shmem: '%s'"),
-                           tmp);
-            goto cleanup;
+        if ((tmp = virXMLPropString(msi, "ioeventfd"))) {
+            int val;
+
+            if ((val = virTristateSwitchTypeFromString(tmp)) <= 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("invalid msi ioeventfd setting for shmem: '%s'"),
+                               tmp);
+                goto cleanup;
+            }
+            def->msi.ioeventfd = val;
         }
         VIR_FREE(tmp);
     }
@@ -11715,6 +11837,7 @@ virDomainMemoryDefParseXML(xmlNodePtr memdevNode,
     if (virDomainDeviceInfoParseXML(memdevNode, NULL, &def->info, flags) < 0)
         goto error;
 
+    ctxt->node = save;
     return def;
 
  error:
@@ -12227,6 +12350,17 @@ virDomainDiskIndexByAddress(virDomainDefPtr def,
     return -1;
 }
 
+virDomainDiskDefPtr
+virDomainDiskByAddress(virDomainDefPtr def,
+                       virDevicePCIAddressPtr pci_address,
+                       unsigned int bus,
+                       unsigned int target,
+                       unsigned int unit)
+{
+    int idx = virDomainDiskIndexByAddress(def, pci_address, bus, target, unit);
+    return idx < 0 ? NULL : def->disks[idx];
+}
+
 int
 virDomainDiskIndexByName(virDomainDefPtr def, const char *name,
                          bool allow_ambiguous)
@@ -12264,6 +12398,15 @@ virDomainDiskPathByName(virDomainDefPtr def, const char *name)
     int idx = virDomainDiskIndexByName(def, name, true);
 
     return idx < 0 ? NULL : virDomainDiskGetSource(def->disks[idx]);
+}
+
+virDomainDiskDefPtr
+virDomainDiskByName(virDomainDefPtr def,
+                    const char *name,
+                    bool allow_ambiguous)
+{
+    int idx = virDomainDiskIndexByName(def, name, allow_ambiguous);
+    return idx < 0 ? NULL : def->disks[idx];
 }
 
 int virDomainDiskInsert(virDomainDefPtr def,
@@ -12328,33 +12471,6 @@ virDomainDiskRemoveByName(virDomainDefPtr def, const char *name)
     if (idx < 0)
         return NULL;
     return virDomainDiskRemove(def, idx);
-}
-
-/**
- * virDomainHasBlockjob:
- * @vm: domain object
- * @copy_only: Reject only block copy job
- *
- * Return true if @vm has at least one disk involved in a current block
- * copy/commit/pull job. If @copy_only is true this returns true only if the
- * disk is involved in a block copy.
- * */
-bool
-virDomainHasBlockjob(virDomainObjPtr vm,
-                     bool copy_only)
-{
-    size_t i;
-    for (i = 0; i < vm->def->ndisks; i++) {
-        if (!copy_only &&
-            vm->def->disks[i]->blockjob)
-            return true;
-
-        if (vm->def->disks[i]->mirror &&
-            vm->def->disks[i]->mirrorJob == VIR_DOMAIN_BLOCK_JOB_TYPE_COPY)
-            return true;
-    }
-
-    return false;
 }
 
 int virDomainNetInsert(virDomainDefPtr def, virDomainNetDefPtr net)
@@ -12551,6 +12667,40 @@ virDomainControllerFind(virDomainDefPtr def,
 
     return -1;
 }
+
+
+const char *
+virDomainControllerAliasFind(virDomainDefPtr def,
+                             int type, int idx)
+{
+    int contIndex;
+    const char *contTypeStr = virDomainControllerTypeToString(type);
+
+    if (!contTypeStr) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unknown controller type %d"),
+                       type);
+        return NULL;
+    }
+
+    contIndex = virDomainControllerFind(def, type, idx);
+    if (contIndex < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not find %s controller with index %d "
+                         "required for device"),
+                       contTypeStr, idx);
+        return NULL;
+    }
+    if (!def->controllers[contIndex]->info.alias) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Device alias was not set for %s controller "
+                         "with index %d "),
+                       contTypeStr, idx);
+        return NULL;
+    }
+    return def->controllers[contIndex]->info.alias;
+}
+
 
 int
 virDomainControllerFindByType(virDomainDefPtr def,
@@ -13004,6 +13154,11 @@ virDomainMemoryRemove(virDomainDefPtr def,
 {
     virDomainMemoryDefPtr ret = def->mems[idx];
     VIR_DELETE_ELEMENT(def->mems, idx, def->nmems);
+
+    /* fix up balloon size */
+    if (def->mem.cur_balloon > virDomainDefGetMemoryActual(def))
+        def->mem.cur_balloon = virDomainDefGetMemoryActual(def);
+
     return ret;
 }
 
@@ -14493,6 +14648,7 @@ virDomainDefParseXML(xmlDocPtr xml,
 
         case VIR_DOMAIN_FEATURE_PMU:
         case VIR_DOMAIN_FEATURE_PVSPINLOCK:
+        case VIR_DOMAIN_FEATURE_VMPORT:
             node = ctxt->node;
             ctxt->node = nodes[i];
             if ((tmp = virXPathString("string(./@state)", ctxt))) {
@@ -14506,6 +14662,22 @@ virDomainDefParseXML(xmlDocPtr xml,
             } else {
                 def->features[val] = VIR_TRISTATE_SWITCH_ON;
             }
+            ctxt->node = node;
+            break;
+
+        case VIR_DOMAIN_FEATURE_GIC:
+            node = ctxt->node;
+            ctxt->node = nodes[i];
+            if ((tmp = virXPathString("string(./@version)", ctxt))) {
+                if (virStrToLong_uip(tmp, NULL, 10, &def->gic_version) < 0 ||
+                    def->gic_version == 0) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("malformed gic version: %s"), tmp);
+                    goto error;
+                }
+                VIR_FREE(tmp);
+            }
+            def->features[val] = VIR_TRISTATE_SWITCH_ON;
             ctxt->node = node;
             break;
 
@@ -15559,6 +15731,9 @@ virDomainDefParseXML(xmlDocPtr xml,
         VIR_FREE(tmp);
     }
 
+    if (virDomainKeyWrapDefParseXML(def, ctxt) < 0)
+        goto error;
+
     /* Extract custom metadata */
     if ((node = virXPathNode("./metadata[1]", ctxt)) != NULL)
         def->metadata = xmlCopyNode(node, 1);
@@ -16591,6 +16766,14 @@ virDomainDefFeaturesCheckABIStability(virDomainDefPtr src,
         return false;
     }
 
+    /* GIC version */
+    if (src->gic_version != dst->gic_version) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Source GIC version '%u' does not match destination '%u'"),
+                       src->gic_version, dst->gic_version);
+        return false;
+    }
+
     /* hyperv */
     if (src->features[VIR_DOMAIN_FEATURE_HYPERV] == VIR_TRISTATE_SWITCH_ON) {
         for (i = 0; i < VIR_DOMAIN_HYPERV_LAST; i++) {
@@ -17458,12 +17641,21 @@ void
 virDomainIOThreadIDDel(virDomainDefPtr def,
                        unsigned int iothread_id)
 {
-    int n;
+    size_t i, j;
 
-    for (n = 0; n < def->niothreadids; n++) {
-        if (def->iothreadids[n]->iothread_id == iothread_id) {
-            virDomainIOThreadIDDefFree(def->iothreadids[n]);
-            VIR_DELETE_ELEMENT(def->iothreadids, n, def->niothreadids);
+    for (i = 0; i < def->niothreadids; i++) {
+        if (def->iothreadids[i]->iothread_id == iothread_id) {
+            /* If we were sequential and removed a threadid in the
+             * beginning or middle of the list, then unconditionally
+             * clear the autofill flag so we don't lose these
+             * definitions for XML formatting.
+             */
+            for (j = i + 1; j < def->niothreadids; j++)
+                def->iothreadids[j]->autofill = false;
+
+            virDomainIOThreadIDDefFree(def->iothreadids[i]);
+            VIR_DELETE_ELEMENT(def->iothreadids, i, def->niothreadids);
+
             return;
         }
     }
@@ -17698,7 +17890,7 @@ virSecurityDeviceLabelDefFormat(virBufferPtr buf,
     virBufferAddLit(buf, "<seclabel");
 
     if (def->model)
-        virBufferAsprintf(buf, " model='%s'", def->model);
+        virBufferEscapeString(buf, " model='%s'", def->model);
 
     if (def->labelskip)
         virBufferAddLit(buf, " labelskip='yes'");
@@ -19232,50 +19424,46 @@ virDomainChrSourceDefFormat(virBufferPtr buf,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_NMDM:
-        virBufferAsprintf(buf, "<source master='%s' slave='%s'/>\n",
-                          def->data.nmdm.master,
-                          def->data.nmdm.slave);
+        virBufferEscapeString(buf, "<source master='%s' ",
+                              def->data.nmdm.master);
+        virBufferEscapeString(buf, "slave='%s'/>\n", def->data.nmdm.slave);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
         if (def->data.udp.bindService &&
             def->data.udp.bindHost) {
-            virBufferAsprintf(buf,
-                              "<source mode='bind' host='%s' "
-                              "service='%s'/>\n",
-                              def->data.udp.bindHost,
-                              def->data.udp.bindService);
+            virBufferEscapeString(buf, "<source mode='bind' host='%s' ",
+                                  def->data.udp.bindHost);
+            virBufferEscapeString(buf, "service='%s'/>\n",
+                                  def->data.udp.bindService);
         } else if (def->data.udp.bindHost) {
-            virBufferAsprintf(buf, "<source mode='bind' host='%s'/>\n",
-                              def->data.udp.bindHost);
+            virBufferEscapeString(buf, "<source mode='bind' host='%s'/>\n",
+                                  def->data.udp.bindHost);
         } else if (def->data.udp.bindService) {
-            virBufferAsprintf(buf, "<source mode='bind' service='%s'/>\n",
-                              def->data.udp.bindService);
+            virBufferEscapeString(buf, "<source mode='bind' service='%s'/>\n",
+                                  def->data.udp.bindService);
         }
 
         if (def->data.udp.connectService &&
             def->data.udp.connectHost) {
-            virBufferAsprintf(buf,
-                              "<source mode='connect' host='%s' "
-                              "service='%s'/>\n",
-                              def->data.udp.connectHost,
-                              def->data.udp.connectService);
+            virBufferEscapeString(buf, "<source mode='connect' host='%s' ",
+                                  def->data.udp.connectHost);
+            virBufferEscapeString(buf, "service='%s'/>\n",
+                                  def->data.udp.connectService);
         } else if (def->data.udp.connectHost) {
-            virBufferAsprintf(buf, "<source mode='connect' host='%s'/>\n",
-                              def->data.udp.connectHost);
+            virBufferEscapeString(buf, "<source mode='connect' host='%s'/>\n",
+                                  def->data.udp.connectHost);
         } else if (def->data.udp.connectService) {
-            virBufferAsprintf(buf,
-                              "<source mode='connect' service='%s'/>\n",
-                              def->data.udp.connectService);
+            virBufferEscapeString(buf, "<source mode='connect' service='%s'/>\n",
+                                  def->data.udp.connectService);
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_TCP:
-        virBufferAsprintf(buf,
-                          "<source mode='%s' host='%s' service='%s'/>\n",
-                          def->data.tcp.listen ? "bind" : "connect",
-                          def->data.tcp.host,
-                          def->data.tcp.service);
+        virBufferAsprintf(buf, "<source mode='%s' ",
+                          def->data.tcp.listen ? "bind" : "connect");
+        virBufferEscapeString(buf, "host='%s' ", def->data.tcp.host);
+        virBufferEscapeString(buf, "service='%s'/>\n", def->data.tcp.service);
         virBufferAsprintf(buf, "<protocol type='%s'/>\n",
                           virDomainChrTcpProtocolTypeToString(
                               def->data.tcp.protocol));
@@ -19289,8 +19477,8 @@ virDomainChrSourceDefFormat(virBufferPtr buf,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
-        virBufferAsprintf(buf, "<source channel='%s'/>\n",
-                          def->data.spiceport.channel);
+        virBufferEscapeString(buf, "<source channel='%s'/>\n",
+                              def->data.spiceport.channel);
         break;
 
     }
@@ -20438,6 +20626,10 @@ virDomainRedirFilterDefFormat(virBufferPtr buf,
 {
     size_t i;
 
+    /* no need format an empty redirfilter */
+    if (filter->nusbdevs == 0)
+        return 0;
+
     virBufferAddLit(buf, "<redirfilter>\n");
     virBufferAdjustIndent(buf, 2);
     for (i = 0; i < filter->nusbdevs; i++) {
@@ -20597,6 +20789,24 @@ virDomainLoaderDefFormat(virBufferPtr buf,
         else
             virBufferAddLit(buf, "/>\n");
     }
+}
+
+static void
+virDomainKeyWrapDefFormat(virBufferPtr buf, virDomainKeyWrapDefPtr keywrap)
+{
+    virBufferAddLit(buf, "<keywrap>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    if (keywrap->aes)
+        virBufferAsprintf(buf, "<cipher name='aes' state='%s'/>\n",
+                          virTristateSwitchTypeToString(keywrap->aes));
+
+    if (keywrap->dea)
+        virBufferAsprintf(buf, "<cipher name='dea' state='%s'/>\n",
+                          virTristateSwitchTypeToString(keywrap->dea));
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</keywrap>\n");
 }
 
 static bool
@@ -21119,6 +21329,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
             case VIR_DOMAIN_FEATURE_PMU:
             case VIR_DOMAIN_FEATURE_PVSPINLOCK:
+            case VIR_DOMAIN_FEATURE_VMPORT:
                 switch ((virTristateSwitch) def->features[i]) {
                 case VIR_TRISTATE_SWITCH_LAST:
                 case VIR_TRISTATE_SWITCH_ABSENT:
@@ -21227,6 +21438,16 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                 }
                 virBufferAdjustIndent(buf, -2);
                 virBufferAddLit(buf, "</capabilities>\n");
+                break;
+
+            case VIR_DOMAIN_FEATURE_GIC:
+                if (def->features[i] == VIR_TRISTATE_SWITCH_ON) {
+                    virBufferAddLit(buf, "<gic");
+                    if (def->gic_version)
+                        virBufferAsprintf(buf, " version='%u'",
+                                          def->gic_version);
+                    virBufferAddLit(buf, "/>\n");
+                }
                 break;
 
             /* coverity[dead_error_begin] */
@@ -21489,6 +21710,9 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         if ((def->ns.format)(buf, def->namespaceData) < 0)
             goto error;
     }
+
+    if (def->keywrap)
+        virDomainKeyWrapDefFormat(buf, def->keywrap);
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</domain>\n");
@@ -22043,7 +22267,7 @@ virDomainGetFilesystemForTarget(virDomainDefPtr def,
 
 
 struct virDomainObjListData {
-    virDomainObjListFilter filter;
+    virDomainObjListACLFilter filter;
     virConnectPtr conn;
     bool active;
     int count;
@@ -22074,7 +22298,7 @@ virDomainObjListCount(void *payload,
 int
 virDomainObjListNumOfDomains(virDomainObjListPtr doms,
                              bool active,
-                             virDomainObjListFilter filter,
+                             virDomainObjListACLFilter filter,
                              virConnectPtr conn)
 {
     struct virDomainObjListData data = { filter, conn, active, 0 };
@@ -22085,7 +22309,7 @@ virDomainObjListNumOfDomains(virDomainObjListPtr doms,
 }
 
 struct virDomainIDData {
-    virDomainObjListFilter filter;
+    virDomainObjListACLFilter filter;
     virConnectPtr conn;
     int numids;
     int maxids;
@@ -22113,7 +22337,7 @@ int
 virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
                              int *ids,
                              int maxids,
-                             virDomainObjListFilter filter,
+                             virDomainObjListACLFilter filter,
                              virConnectPtr conn)
 {
     struct virDomainIDData data = { filter, conn,
@@ -22125,7 +22349,7 @@ virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
 }
 
 struct virDomainNameData {
-    virDomainObjListFilter filter;
+    virDomainObjListACLFilter filter;
     virConnectPtr conn;
     int oom;
     int numnames;
@@ -22163,7 +22387,7 @@ int
 virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
                                  char **const names,
                                  int maxnames,
-                                 virDomainObjListFilter filter,
+                                 virDomainObjListACLFilter filter,
                                  virConnectPtr conn)
 {
     struct virDomainNameData data = { filter, conn,
@@ -22927,43 +23151,19 @@ virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
     return ret;
 }
 
-struct virDomainListData {
-    virConnectPtr conn;
-    virDomainPtr *domains;
-    virDomainObjListFilter filter;
-    unsigned int flags;
-    int ndomains;
-    bool error;
-};
 
-#define MATCH(FLAG) (data->flags & (FLAG))
-static void
-virDomainListPopulate(void *payload,
-                      const void *name ATTRIBUTE_UNUSED,
-                      void *opaque)
+#define MATCH(FLAG) (filter & (FLAG))
+static bool
+virDomainObjMatchFilter(virDomainObjPtr vm,
+                        unsigned int filter)
 {
-    struct virDomainListData *data = opaque;
-    virDomainObjPtr vm = payload;
-    virDomainPtr dom;
-
-    if (data->error)
-        return;
-
-    virObjectLock(vm);
-    /* check if the domain matches the filter */
-
-    /* filter by the callback function (access control checks) */
-    if (data->filter != NULL &&
-        !data->filter(data->conn, vm->def))
-        goto cleanup;
-
     /* filter by active state */
     if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_ACTIVE) &&
         !((MATCH(VIR_CONNECT_LIST_DOMAINS_ACTIVE) &&
            virDomainObjIsActive(vm)) ||
           (MATCH(VIR_CONNECT_LIST_DOMAINS_INACTIVE) &&
            !virDomainObjIsActive(vm))))
-        goto cleanup;
+        return false;
 
     /* filter by persistence */
     if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_PERSISTENT) &&
@@ -22971,7 +23171,7 @@ virDomainListPopulate(void *payload,
            vm->persistent) ||
           (MATCH(VIR_CONNECT_LIST_DOMAINS_TRANSIENT) &&
            !vm->persistent)))
-        goto cleanup;
+        return false;
 
     /* filter by domain state */
     if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_STATE)) {
@@ -22986,7 +23186,7 @@ virDomainListPopulate(void *payload,
                (st != VIR_DOMAIN_RUNNING &&
                 st != VIR_DOMAIN_PAUSED &&
                 st != VIR_DOMAIN_SHUTOFF))))
-            goto cleanup;
+            return false;
     }
 
     /* filter by existence of managed save state */
@@ -22995,105 +23195,213 @@ virDomainListPopulate(void *payload,
            vm->hasManagedSave) ||
           (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE) &&
            !vm->hasManagedSave)))
-            goto cleanup;
+        return false;
 
     /* filter by autostart option */
     if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_AUTOSTART) &&
         !((MATCH(VIR_CONNECT_LIST_DOMAINS_AUTOSTART) && vm->autostart) ||
           (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART) && !vm->autostart)))
-        goto cleanup;
+        return false;
 
     /* filter by snapshot existence */
     if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_SNAPSHOT)) {
         int nsnap = virDomainSnapshotObjListNum(vm->snapshots, NULL, 0);
         if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT) && nsnap > 0) ||
               (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT) && nsnap <= 0)))
-            goto cleanup;
+            return false;
     }
 
-    /* just count the machines */
-    if (!data->domains) {
-        data->ndomains++;
-        goto cleanup;
-    }
-
-    if (!(dom = virGetDomain(data->conn, vm->def->name, vm->def->uuid))) {
-        data->error = true;
-        goto cleanup;
-    }
-
-    dom->id = vm->def->id;
-
-    data->domains[data->ndomains++] = dom;
-
- cleanup:
-    virObjectUnlock(vm);
-    return;
+    return true;
 }
 #undef MATCH
 
 
-/**
- * virDomainListFree:
- * @list: list of domains to free
- *
- * Frees a NULL-terminated list of domains without messing with currently
- * set libvirt errors.
- */
-void
-virDomainListFree(virDomainPtr *list)
+struct virDomainListData {
+    virDomainObjPtr *vms;
+    size_t nvms;
+};
+
+
+static void
+virDomainObjListCollectIterator(void *payload,
+                                const void *name ATTRIBUTE_UNUSED,
+                                void *opaque)
 {
-    virDomainPtr *next;
+    struct virDomainListData *data = opaque;
 
-    if (!list)
-        return;
+    data->vms[data->nvms++] = virObjectRef(payload);
+}
 
-    for (next = list; *next; next++)
-        virObjectUnref(*next);
 
-    VIR_FREE(list);
+static void
+virDomainObjListFilter(virDomainObjPtr **list,
+                       size_t *nvms,
+                       virConnectPtr conn,
+                       virDomainObjListACLFilter filter,
+                       unsigned int flags)
+{
+    size_t i = 0;
+
+    while (i < *nvms) {
+        virDomainObjPtr vm = (*list)[i];
+
+        virObjectLock(vm);
+
+        /* do not list the object if:
+         * 1) it's being removed.
+         * 2) connection does not have ACL to see it
+         * 3) it doesn't match the filter
+         */
+        if (vm->removing ||
+            (filter && !filter(conn, vm->def)) ||
+            !virDomainObjMatchFilter(vm, flags)) {
+            virObjectUnlock(vm);
+            virObjectUnref(vm);
+            VIR_DELETE_ELEMENT(*list, i, *nvms);
+            continue;
+        }
+
+        virObjectUnlock(vm);
+        i++;
+    }
 }
 
 
 int
-virDomainObjListExport(virDomainObjListPtr doms,
-                       virConnectPtr conn,
-                       virDomainPtr **domains,
-                       virDomainObjListFilter filter,
-                       unsigned int flags)
+virDomainObjListCollect(virDomainObjListPtr domlist,
+                        virConnectPtr conn,
+                        virDomainObjPtr **vms,
+                        size_t *nvms,
+                        virDomainObjListACLFilter filter,
+                        unsigned int flags)
 {
-    int ret = -1;
+    struct virDomainListData data = { NULL, 0 };
 
-    struct virDomainListData data = {
-        conn, NULL,
-        filter,
-        flags, 0, false
-    };
-
-    virObjectLock(doms);
-    if (domains &&
-        VIR_ALLOC_N(data.domains, virHashSize(doms->objs) + 1) < 0)
-        goto cleanup;
-
-    virHashForEach(doms->objs, virDomainListPopulate, &data);
-
-    if (data.error)
-        goto cleanup;
-
-    if (data.domains) {
-        /* trim the array to the final size */
-        ignore_value(VIR_REALLOC_N(data.domains, data.ndomains + 1));
-        *domains = data.domains;
-        data.domains = NULL;
+    virObjectLock(domlist);
+    sa_assert(domlist->objs);
+    if (VIR_ALLOC_N(data.vms, virHashSize(domlist->objs)) < 0) {
+        virObjectUnlock(domlist);
+        return -1;
     }
 
-    ret = data.ndomains;
+    virHashForEach(domlist->objs, virDomainObjListCollectIterator, &data);
+    virObjectUnlock(domlist);
+
+    virDomainObjListFilter(&data.vms, &data.nvms, conn, filter, flags);
+
+    *nvms = data.nvms;
+    *vms = data.vms;
+
+    return 0;
+}
+
+
+int
+virDomainObjListConvert(virDomainObjListPtr domlist,
+                        virConnectPtr conn,
+                        virDomainPtr *doms,
+                        size_t ndoms,
+                        virDomainObjPtr **vms,
+                        size_t *nvms,
+                        virDomainObjListACLFilter filter,
+                        unsigned int flags,
+                        bool skip_missing)
+{
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    virDomainObjPtr vm;
+    size_t i;
+
+    *nvms = 0;
+    *vms = NULL;
+
+    virObjectLock(domlist);
+    for (i = 0; i < ndoms; i++) {
+        virDomainPtr dom = doms[i];
+
+        virUUIDFormat(dom->uuid, uuidstr);
+
+        if (!(vm = virHashLookup(domlist->objs, uuidstr))) {
+            if (skip_missing)
+                continue;
+
+            virObjectUnlock(domlist);
+            virReportError(VIR_ERR_NO_DOMAIN,
+                           _("no domain with matching uuid '%s' (%s)"),
+                           uuidstr, dom->name);
+            goto error;
+        }
+
+        virObjectRef(vm);
+
+        if (VIR_APPEND_ELEMENT(*vms, *nvms, vm) < 0) {
+            virObjectUnlock(domlist);
+            virObjectUnref(vm);
+            goto error;
+        }
+    }
+    virObjectUnlock(domlist);
+
+    sa_assert(*vms);
+    virDomainObjListFilter(vms, nvms, conn, filter, flags);
+
+    return 0;
+
+ error:
+    virObjectListFreeCount(*vms, *nvms);
+    *vms = NULL;
+    *nvms = 0;
+
+    return -1;
+}
+
+
+int
+virDomainObjListExport(virDomainObjListPtr domlist,
+                       virConnectPtr conn,
+                       virDomainPtr **domains,
+                       virDomainObjListACLFilter filter,
+                       unsigned int flags)
+{
+    virDomainObjPtr *vms = NULL;
+    virDomainPtr *doms = NULL;
+    size_t nvms = 0;
+    size_t i;
+    int ret = -1;
+
+    if (virDomainObjListCollect(domlist, conn, &vms, &nvms, filter, flags) < 0)
+        return -1;
+
+    if (domains) {
+        if (VIR_ALLOC_N(doms, nvms + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < nvms; i++) {
+            virDomainObjPtr vm = vms[i];
+
+            virObjectLock(vm);
+
+            if (!(doms[i] = virGetDomain(conn, vm->def->name, vm->def->uuid))) {
+                virObjectUnlock(vm);
+                goto cleanup;
+            }
+
+            doms[i]->id = vm->def->id;
+
+            virObjectUnlock(vm);
+        }
+
+        *domains = doms;
+        doms = NULL;
+    }
+
+    ret = nvms;
 
  cleanup:
-    virDomainListFree(data.domains);
-    virObjectUnlock(doms);
+    virObjectListFree(doms);
+    virObjectListFreeCount(vms, nvms);
     return ret;
 }
+
 
 virSecurityLabelDefPtr
 virDomainDefGetSecurityLabelDef(virDomainDefPtr def, const char *model)

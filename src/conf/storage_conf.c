@@ -50,9 +50,6 @@
 
 VIR_LOG_INIT("conf.storage_conf");
 
-#define DEFAULT_POOL_PERM_MODE 0755
-#define DEFAULT_VOL_PERM_MODE  0600
-
 VIR_ENUM_IMPL(virStorageVol,
               VIR_STORAGE_VOL_LAST,
               "file", "block", "dir", "network", "netdir")
@@ -718,8 +715,7 @@ virStoragePoolDefParseSourceString(const char *srcSpec,
 static int
 virStorageDefParsePerms(xmlXPathContextPtr ctxt,
                         virStoragePermsPtr perms,
-                        const char *permxpath,
-                        int defaultmode)
+                        const char *permxpath)
 {
     char *mode;
     long long val;
@@ -730,7 +726,7 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
     node = virXPathNode(permxpath, ctxt);
     if (node == NULL) {
         /* Set default values if there is not <permissions> element */
-        perms->mode = defaultmode;
+        perms->mode = (mode_t) -1;
         perms->uid = (uid_t) -1;
         perms->gid = (gid_t) -1;
         perms->label = NULL;
@@ -740,10 +736,7 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
     relnode = ctxt->node;
     ctxt->node = node;
 
-    mode = virXPathString("string(./mode)", ctxt);
-    if (!mode) {
-        perms->mode = defaultmode;
-    } else {
+    if ((mode = virXPathString("string(./mode)", ctxt))) {
         int tmp;
 
         if (virStrToLong_i(mode, NULL, 8, &tmp) < 0 || (tmp & ~0777)) {
@@ -754,11 +747,14 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
         }
         perms->mode = tmp;
         VIR_FREE(mode);
+    } else {
+        perms->mode = (mode_t) -1;
     }
 
     if (virXPathNode("./owner", ctxt) == NULL) {
         perms->uid = (uid_t) -1;
     } else {
+        /* We previously could output -1, so continue to parse it */
         if (virXPathLongLong("number(./owner)", ctxt, &val) < 0 ||
             ((uid_t)val != val &&
              val != -1)) {
@@ -773,6 +769,7 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
     if (virXPathNode("./group", ctxt) == NULL) {
         perms->gid = (gid_t) -1;
     } else {
+        /* We previously could output -1, so continue to parse it */
         if (virXPathLongLong("number(./group)", ctxt, &val) < 0 ||
             ((gid_t) val != val &&
              val != -1)) {
@@ -947,8 +944,7 @@ virStoragePoolDefParseXML(xmlXPathContextPtr ctxt)
             goto error;
 
         if (virStorageDefParsePerms(ctxt, &ret->target.perms,
-                                    "./target/permissions",
-                                    DEFAULT_POOL_PERM_MODE) < 0)
+                                    "./target/permissions") < 0)
             goto error;
     }
 
@@ -1183,19 +1179,28 @@ virStoragePoolDefFormatBuf(virBufferPtr buf,
 
         virBufferEscapeString(buf, "<path>%s</path>\n", def->target.path);
 
-        virBufferAddLit(buf, "<permissions>\n");
-        virBufferAdjustIndent(buf, 2);
-        virBufferAsprintf(buf, "<mode>0%o</mode>\n",
-                          def->target.perms.mode);
-        virBufferAsprintf(buf, "<owner>%d</owner>\n",
-                          (int) def->target.perms.uid);
-        virBufferAsprintf(buf, "<group>%d</group>\n",
-                          (int) def->target.perms.gid);
-        virBufferEscapeString(buf, "<label>%s</label>\n",
-                              def->target.perms.label);
+        if (def->target.perms.mode != (mode_t) -1 ||
+            def->target.perms.uid != (uid_t) -1 ||
+            def->target.perms.gid != (gid_t) -1 ||
+            def->target.perms.label) {
+            virBufferAddLit(buf, "<permissions>\n");
+            virBufferAdjustIndent(buf, 2);
+            if (def->target.perms.mode != (mode_t) -1)
+                virBufferAsprintf(buf, "<mode>0%o</mode>\n",
+                                  def->target.perms.mode);
+            if (def->target.perms.uid != (uid_t) -1)
+                virBufferAsprintf(buf, "<owner>%d</owner>\n",
+                                  (int) def->target.perms.uid);
+            if (def->target.perms.gid != (gid_t) -1)
+                virBufferAsprintf(buf, "<group>%d</group>\n",
+                                  (int) def->target.perms.gid);
+            virBufferEscapeString(buf, "<label>%s</label>\n",
+                                  def->target.perms.label);
 
-        virBufferAdjustIndent(buf, -2);
-        virBufferAddLit(buf, "</permissions>\n");
+            virBufferAdjustIndent(buf, -2);
+            virBufferAddLit(buf, "</permissions>\n");
+        }
+
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</target>\n");
     }
@@ -1315,8 +1320,7 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
         if (VIR_ALLOC(ret->target.backingStore->perms) < 0)
             goto error;
         if (virStorageDefParsePerms(ctxt, ret->target.backingStore->perms,
-                                    "./backingStore/permissions",
-                                    DEFAULT_VOL_PERM_MODE) < 0)
+                                    "./backingStore/permissions") < 0)
             goto error;
     }
 
@@ -1361,8 +1365,7 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
     if (VIR_ALLOC(ret->target.perms) < 0)
         goto error;
     if (virStorageDefParsePerms(ctxt, ret->target.perms,
-                                "./target/permissions",
-                                DEFAULT_VOL_PERM_MODE) < 0)
+                                "./target/permissions") < 0)
         goto error;
 
     node = virXPathNode("./target/encryption", ctxt);
@@ -1516,17 +1519,23 @@ virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
         virBufferAsprintf(buf, "<format type='%s'/>\n", format);
     }
 
-    if (def->perms) {
+    if (def->perms &&
+        (def->perms->mode != (mode_t) -1 ||
+         def->perms->uid != (uid_t) -1 ||
+         def->perms->gid != (gid_t) -1 ||
+         def->perms->label)) {
         virBufferAddLit(buf, "<permissions>\n");
         virBufferAdjustIndent(buf, 2);
 
-        virBufferAsprintf(buf, "<mode>0%o</mode>\n",
-                          def->perms->mode);
-        virBufferAsprintf(buf, "<owner>%d</owner>\n",
-                          (int) def->perms->uid);
-        virBufferAsprintf(buf, "<group>%d</group>\n",
-                          (int) def->perms->gid);
-
+        if (def->perms->mode != (mode_t) -1)
+            virBufferAsprintf(buf, "<mode>0%o</mode>\n",
+                              def->perms->mode);
+        if (def->perms->uid != (uid_t) -1)
+            virBufferAsprintf(buf, "<owner>%d</owner>\n",
+                              (int) def->perms->uid);
+        if (def->perms->gid != (gid_t) -1)
+            virBufferAsprintf(buf, "<group>%d</group>\n",
+                              (int) def->perms->gid);
 
         virBufferEscapeString(buf, "<label>%s</label>\n",
                               def->perms->label);
@@ -2412,7 +2421,8 @@ virStoragePoolSourceMatchSingleHost(virStoragePoolSourcePtr poolsrc,
     if (poolsrc->nhost != 1 && defsrc->nhost != 1)
         return false;
 
-    if (poolsrc->hosts[0].port != defsrc->hosts[0].port)
+    if (defsrc->hosts[0].port &&
+        poolsrc->hosts[0].port != defsrc->hosts[0].port)
         return false;
 
     return STREQ(poolsrc->hosts[0].name, defsrc->hosts[0].name);
@@ -2426,9 +2436,7 @@ virStoragePoolSourceISCSIMatch(virStoragePoolObjPtr matchpool,
     virStoragePoolSourcePtr poolsrc = &matchpool->def->source;
     virStoragePoolSourcePtr defsrc = &def->source;
 
-    if (!virStoragePoolSourceMatchSingleHost(poolsrc, defsrc))
-        return false;
-
+    /* NB: Do not check the source host name */
     if (STRNEQ_NULLABLE(poolsrc->initiator.iqn, defsrc->initiator.iqn))
         return false;
 

@@ -377,8 +377,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.15
-Release: 1%{?dist}%{?extra_release}
+Version: 1.2.16
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -387,7 +387,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1601,6 +1601,7 @@ rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.lxc
 %endif
 %if ! %{with_libxl}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/libxl.conf
+rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.libxl
 rm -f $RPM_BUILD_ROOT%{_datadir}/augeas/lenses/libvirtd_libxl.aug
 rm -f $RPM_BUILD_ROOT%{_datadir}/augeas/lenses/tests/test_libvirtd_libxl.aug
 %endif
@@ -1645,9 +1646,9 @@ then
 fi
 
 %if %{with_libvirtd}
+%pre daemon
     %if ! %{with_driver_modules}
         %if %{with_qemu}
-%pre daemon
             %if 0%{?fedora} || 0%{?rhel} >= 6
 # We want soft static allocation of well-known ids, as disk images
 # are commonly shared across NFS mounts by id rather than name; see
@@ -1661,10 +1662,20 @@ if ! getent passwd qemu >/dev/null; then
     useradd -r -g qemu -G kvm -d / -s /sbin/nologin -c "qemu user" qemu
   fi
 fi
-exit 0
             %endif
         %endif
     %endif
+
+    %if %{with_polkit}
+        %if 0%{?fedora} || 0%{?rhel} >= 6
+# 'libvirt' group is just to allow password-less polkit access to
+# libvirtd. The uid number is irrelevant, so we use dynamic allocation
+# described at the above link.
+getent group libvirt >/dev/null || groupadd -r libvirt
+        %endif
+    %endif
+
+exit 0
 
 %post daemon
 
@@ -1939,6 +1950,7 @@ exit 0
         %if 0%{?fedora} || 0%{?rhel} >= 6
 %{_datadir}/polkit-1/actions/org.libvirt.unix.policy
 %{_datadir}/polkit-1/actions/org.libvirt.api.policy
+%{_datadir}/polkit-1/rules.d/50-libvirt.rules
         %else
 %{_datadir}/PolicyKit/policy/org.libvirt.unix.policy
         %endif
@@ -2007,6 +2019,7 @@ exit 0
         %endif
         %if %{with_libxl}
 %config(noreplace) %{_sysconfdir}/libvirt/libxl.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.libxl
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/libxl/
 %ghost %dir %{_localstatedir}/run/libvirt/libxl/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/libxl/
@@ -2129,6 +2142,7 @@ exit 0
 %files daemon-driver-libxl
 %defattr(-, root, root)
 %config(noreplace) %{_sysconfdir}/libvirt/libxl.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.libxl
 %config(noreplace) %{_sysconfdir}/libvirt/libxl-lockd.conf
 %config(noreplace) %{_sysconfdir}/libvirt/libxl-sanlock.conf
 %{_datadir}/augeas/lenses/libvirtd_libxl.aug

@@ -683,25 +683,17 @@ typedef enum {
 struct _virDomainDiskDef {
     virStorageSourcePtr src; /* non-NULL.  XXX Allow NULL for empty cdrom? */
 
+    virObjectPtr privateData;
+
     int device; /* enum virDomainDiskDevice */
     int bus; /* enum virDomainDiskBus */
     char *dst;
     int tray_status; /* enum virDomainDiskTray */
     int removable; /* enum virTristateSwitch */
 
-    /* ideally we want a smarter way to interlock block jobs on single qemu disk
-     * in the future, but for now we just disallow any concurrent job on a
-     * single disk */
-    bool blockjob;
     virStorageSourcePtr mirror;
     int mirrorState; /* enum virDomainDiskMirrorState */
     int mirrorJob; /* virDomainBlockJobType */
-
-    /* for some synchronous block jobs, we need to notify the owner */
-    virCond blockJobSyncCond;
-    int blockJobType;   /* type of the block job from the event */
-    int blockJobStatus; /* status of the finished block job */
-    bool blockJobSync; /* the block job needs synchronized termination */
 
     struct {
         unsigned int cylinders;
@@ -1076,6 +1068,7 @@ typedef enum {
 typedef enum {
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_ISA = 0,
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_PCI,
 
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_LAST
 } virDomainChrSerialTargetType;
@@ -1648,6 +1641,8 @@ typedef enum {
     VIR_DOMAIN_FEATURE_PVSPINLOCK,
     VIR_DOMAIN_FEATURE_CAPABILITIES,
     VIR_DOMAIN_FEATURE_PMU,
+    VIR_DOMAIN_FEATURE_VMPORT,
+    VIR_DOMAIN_FEATURE_GIC,
 
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
@@ -2125,6 +2120,13 @@ struct _virDomainPowerManagement {
     int s4;
 };
 
+typedef struct _virDomainKeyWrapDef virDomainKeyWrapDef;
+typedef virDomainKeyWrapDef *virDomainKeyWrapDefPtr;
+struct _virDomainKeyWrapDef {
+    int aes; /* enum virTristateSwitch */
+    int dea; /* enum virTristateSwitch */
+};
+
 /*
  * Guest VM main configuration
  *
@@ -2178,6 +2180,7 @@ struct _virDomainDef {
     int hyperv_features[VIR_DOMAIN_HYPERV_LAST];
     int kvm_features[VIR_DOMAIN_KVM_LAST];
     unsigned int hyperv_spinlocks;
+    unsigned int gic_version;
 
     /* These options are of type virTristateSwitch: ON = keep, OFF = drop */
     int caps_features[VIR_DOMAIN_CAPS_FEATURE_LAST];
@@ -2260,6 +2263,8 @@ struct _virDomainDef {
     void *namespaceData;
     virDomainXMLNamespace ns;
 
+    virDomainKeyWrapDefPtr keywrap;
+
     /* Application-specific custom metadata */
     xmlNodePtr metadata;
 };
@@ -2267,6 +2272,13 @@ struct _virDomainDef {
 unsigned long long virDomainDefGetMemoryInitial(virDomainDefPtr def);
 void virDomainDefSetMemoryInitial(virDomainDefPtr def, unsigned long long size);
 unsigned long long virDomainDefGetMemoryActual(virDomainDefPtr def);
+
+typedef enum {
+    VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_AES,
+    VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_DEA,
+
+    VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_LAST
+} virDomainKeyWrapCipherName;
 
 typedef enum {
     VIR_DOMAIN_TAINT_CUSTOM_ARGV,      /* Custom ARGV passthrough from XML */
@@ -2277,6 +2289,7 @@ typedef enum {
     VIR_DOMAIN_TAINT_EXTERNAL_LAUNCH,  /* Externally launched guest domain */
     VIR_DOMAIN_TAINT_HOST_CPU,         /* Host CPU passthrough in use */
     VIR_DOMAIN_TAINT_HOOK,             /* Domain (possibly) changed via hook script */
+    VIR_DOMAIN_TAINT_CDROM_PASSTHROUGH,/* CDROM passthrough */
 
     VIR_DOMAIN_TAINT_LAST
 } virDomainTaintFlags;
@@ -2318,8 +2331,8 @@ struct _virDomainObj {
 typedef struct _virDomainObjList virDomainObjList;
 typedef virDomainObjList *virDomainObjListPtr;
 
-typedef bool (*virDomainObjListFilter)(virConnectPtr conn,
-                                       virDomainDefPtr def);
+typedef bool (*virDomainObjListACLFilter)(virConnectPtr conn,
+                                          virDomainDefPtr def);
 
 
 /* This structure holds various callbacks and data needed
@@ -2329,6 +2342,7 @@ typedef virDomainXMLOption *virDomainXMLOptionPtr;
 
 typedef void *(*virDomainXMLPrivateDataAllocFunc)(void);
 typedef void (*virDomainXMLPrivateDataFreeFunc)(void *);
+typedef virObjectPtr (*virDomainXMLPrivateDataNewFunc)(void);
 typedef int (*virDomainXMLPrivateDataFormatFunc)(virBufferPtr, void *);
 typedef int (*virDomainXMLPrivateDataParseFunc)(xmlXPathContextPtr, void *);
 
@@ -2365,6 +2379,7 @@ typedef virDomainXMLPrivateDataCallbacks *virDomainXMLPrivateDataCallbacksPtr;
 struct _virDomainXMLPrivateDataCallbacks {
     virDomainXMLPrivateDataAllocFunc  alloc;
     virDomainXMLPrivateDataFreeFunc   free;
+    virDomainXMLPrivateDataNewFunc    diskNew;
     virDomainXMLPrivateDataFormatFunc format;
     virDomainXMLPrivateDataParseFunc  parse;
 };
@@ -2417,7 +2432,7 @@ void virDomainPanicDefFree(virDomainPanicDefPtr panic);
 void virDomainResourceDefFree(virDomainResourceDefPtr resource);
 void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
 void virDomainInputDefFree(virDomainInputDefPtr def);
-virDomainDiskDefPtr virDomainDiskDefNew(void);
+virDomainDiskDefPtr virDomainDiskDefNew(virDomainXMLOptionPtr xmlopt);
 void virDomainDiskDefFree(virDomainDiskDefPtr def);
 void virDomainLeaseDefFree(virDomainLeaseDefPtr def);
 int virDomainDiskGetType(virDomainDiskDefPtr def);
@@ -2671,8 +2686,16 @@ int virDomainDiskIndexByAddress(virDomainDefPtr def,
                                 virDevicePCIAddressPtr pci_controller,
                                 unsigned int bus, unsigned int target,
                                 unsigned int unit);
+virDomainDiskDefPtr virDomainDiskByAddress(virDomainDefPtr def,
+                                           virDevicePCIAddressPtr pci_controller,
+                                           unsigned int bus,
+                                           unsigned int target,
+                                           unsigned int unit);
 int virDomainDiskIndexByName(virDomainDefPtr def, const char *name,
                              bool allow_ambiguous);
+virDomainDiskDefPtr virDomainDiskByName(virDomainDefPtr def,
+                                        const char *name,
+                                        bool allow_ambiguous);
 const char *virDomainDiskPathByName(virDomainDefPtr, const char *name);
 int virDomainDiskInsert(virDomainDefPtr def,
                         virDomainDiskDefPtr disk)
@@ -2689,9 +2712,6 @@ virDomainDiskRemoveByName(virDomainDefPtr def, const char *name);
 int virDomainDiskSourceParse(xmlNodePtr node,
                              xmlXPathContextPtr ctxt,
                              virStorageSourcePtr src);
-
-bool virDomainHasBlockjob(virDomainObjPtr vm,
-                          bool copy_only);
 
 int virDomainNetFindIdx(virDomainDefPtr def, virDomainNetDefPtr net);
 virDomainNetDefPtr virDomainNetFind(virDomainDefPtr def, const char *device);
@@ -2751,6 +2771,9 @@ int virDomainControllerFindByType(virDomainDefPtr def, int type);
 int virDomainControllerFindByPCIAddress(virDomainDefPtr def,
                                         virDevicePCIAddressPtr addr);
 virDomainControllerDefPtr virDomainControllerRemove(virDomainDefPtr def, size_t i);
+const char *virDomainControllerAliasFind(virDomainDefPtr def,
+                                         int type, int idx)
+    ATTRIBUTE_NONNULL(1);
 
 int virDomainLeaseIndex(virDomainDefPtr def,
                         virDomainLeaseDefPtr lease);
@@ -2840,18 +2863,18 @@ unsigned int virDomainVideoDefaultRAM(const virDomainDef *def,
 
 int virDomainObjListNumOfDomains(virDomainObjListPtr doms,
                                  bool active,
-                                 virDomainObjListFilter filter,
+                                 virDomainObjListACLFilter filter,
                                  virConnectPtr conn);
 
 int virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
                                  int *ids,
                                  int maxids,
-                                 virDomainObjListFilter filter,
+                                 virDomainObjListACLFilter filter,
                                  virConnectPtr conn);
 int virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
                                      char **const names,
                                      int maxnames,
-                                     virDomainObjListFilter filter,
+                                     virDomainObjListACLFilter filter,
                                      virConnectPtr conn);
 
 typedef int (*virDomainObjListIterator)(virDomainObjPtr dom,
@@ -2957,6 +2980,7 @@ VIR_ENUM_DECL(virDomainChrTcpProtocol)
 VIR_ENUM_DECL(virDomainChrSpicevmc)
 VIR_ENUM_DECL(virDomainSoundCodec)
 VIR_ENUM_DECL(virDomainSoundModel)
+VIR_ENUM_DECL(virDomainKeyWrapCipherName)
 VIR_ENUM_DECL(virDomainMemballoonModel)
 VIR_ENUM_DECL(virDomainSmbiosMode)
 VIR_ENUM_DECL(virDomainWatchdogModel)
@@ -3048,13 +3072,26 @@ VIR_ENUM_DECL(virDomainStartupPolicy)
                  VIR_CONNECT_LIST_DOMAINS_FILTERS_AUTOSTART   | \
                  VIR_CONNECT_LIST_DOMAINS_FILTERS_SNAPSHOT)
 
+int virDomainObjListCollect(virDomainObjListPtr doms,
+                            virConnectPtr conn,
+                            virDomainObjPtr **vms,
+                            size_t *nvms,
+                            virDomainObjListACLFilter filter,
+                            unsigned int flags);
 int virDomainObjListExport(virDomainObjListPtr doms,
                            virConnectPtr conn,
                            virDomainPtr **domains,
-                           virDomainObjListFilter filter,
+                           virDomainObjListACLFilter filter,
                            unsigned int flags);
-
-void virDomainListFree(virDomainPtr *list);
+int virDomainObjListConvert(virDomainObjListPtr domlist,
+                            virConnectPtr conn,
+                            virDomainPtr *doms,
+                            size_t ndoms,
+                            virDomainObjPtr **vms,
+                            size_t *nvms,
+                            virDomainObjListACLFilter filter,
+                            unsigned int flags,
+                            bool skip_missing);
 
 int
 virDomainDefMaybeAddController(virDomainDefPtr def,
