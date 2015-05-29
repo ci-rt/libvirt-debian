@@ -1,3 +1,15 @@
+libvirt (1.2.16~rc1-1) experimental; urgency=medium
+
+  * [d17b3cb] Add libxl configuration files
+  * [24520fd] Update gbp.conf for experimental
+  * [29c488b] New upstream version 1.2.16~rc1
+  * [281585c] Rediff patches.
+    Dropped patches fixed upstream:
+        caps-Fix-regression-defaulting-to-host-arch.patch
+  * [5e4d9b7] Bump symbol versions
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 29 May 2015 10:43:34 +0200
+
 libvirt (1.2.15-2) unstable; urgency=medium
 
   * Upload to unstable
