@@ -1634,7 +1634,6 @@ storageVolDeleteInternal(virStorageVolPtr obj,
 {
     size_t i;
     int ret = -1;
-    unsigned long long orig_pool_available, orig_pool_allocation;
 
     if (!backend->deleteVol) {
         virReportError(VIR_ERR_NO_SUPPORT,
@@ -1643,20 +1642,18 @@ storageVolDeleteInternal(virStorageVolPtr obj,
         goto cleanup;
     }
 
-    orig_pool_available = pool->def->available;
-    orig_pool_allocation = pool->def->allocation;
-
     if (backend->deleteVol(obj->conn, pool, vol, flags) < 0)
         goto cleanup;
 
     /* Update pool metadata - don't update meta data from error paths
-     * in this module since the allocation/available weren't adjusted yet
+     * in this module since the allocation/available weren't adjusted yet.
+     * Ignore the disk backend since it updates the pool values.
      */
     if (updateMeta) {
-        if (orig_pool_allocation == pool->def->allocation)
+        if (pool->def->type != VIR_STORAGE_POOL_DISK) {
             pool->def->allocation -= vol->target.allocation;
-        if (orig_pool_available == pool->def->available)
             pool->def->available += vol->target.allocation;
+        }
     }
 
     for (i = 0; i < pool->volumes.count; i++) {
@@ -1775,7 +1772,6 @@ storageVolCreateXML(virStoragePoolPtr obj,
     virStorageVolDefPtr voldef = NULL;
     virStorageVolPtr ret = NULL, volobj = NULL;
     virStorageVolDefPtr buildvoldef = NULL;
-    unsigned long long orig_pool_available, orig_pool_allocation;
 
     virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, NULL);
 
@@ -1822,9 +1818,6 @@ storageVolCreateXML(virStoragePoolPtr obj,
                                "creation"));
         goto cleanup;
     }
-
-    orig_pool_available = pool->def->available;
-    orig_pool_allocation = pool->def->allocation;
 
     /* Wipe any key the user may have suggested, as volume creation
      * will generate the canonical key.  */
@@ -1882,11 +1875,13 @@ storageVolCreateXML(virStoragePoolPtr obj,
         backend->refreshVol(obj->conn, pool, voldef) < 0)
         goto cleanup;
 
-    /* Update pool metadata */
-    if (orig_pool_allocation == pool->def->allocation)
+    /* Update pool metadata ignoring the disk backend since
+     * it updates the pool values.
+     */
+    if (pool->def->type != VIR_STORAGE_POOL_DISK) {
         pool->def->allocation += buildvoldef->target.allocation;
-    if (orig_pool_available == pool->def->available)
         pool->def->available -= buildvoldef->target.allocation;
+    }
 
     VIR_INFO("Creating volume '%s' in storage pool '%s'",
              volobj->name, pool->def->name);
@@ -1914,7 +1909,6 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
     virStorageVolDefPtr origvol = NULL, newvol = NULL;
     virStorageVolPtr ret = NULL, volobj = NULL;
     unsigned long long allocation;
-    unsigned long long orig_pool_available, orig_pool_allocation;
     int buildret;
 
     virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA |
@@ -2017,9 +2011,6 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
                       pool->volumes.count+1) < 0)
         goto cleanup;
 
-    orig_pool_available = pool->def->available;
-    orig_pool_allocation = pool->def->allocation;
-
     /* 'Define' the new volume so we get async progress reporting.
      * Wipe any key the user may have suggested, as volume creation
      * will generate the canonical key.  */
@@ -2072,11 +2063,13 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
     }
     newvol = NULL;
 
-    /* Updating pool metadata */
-    if (orig_pool_allocation == pool->def->allocation)
+    /* Updating pool metadata ignoring the disk backend since
+     * it updates the pool values
+     */
+    if (pool->def->type != VIR_STORAGE_POOL_DISK) {
         pool->def->allocation += allocation;
-    if (orig_pool_available == pool->def->available)
         pool->def->available -= allocation;
+    }
 
     VIR_INFO("Creating volume '%s' in storage pool '%s'",
              volobj->name, pool->def->name);
@@ -2292,7 +2285,7 @@ storageVolResize(virStorageVolPtr obj,
     virStorageBackendPtr backend;
     virStoragePoolObjPtr pool = NULL;
     virStorageVolDefPtr vol = NULL;
-    unsigned long long abs_capacity, delta;
+    unsigned long long abs_capacity, delta = 0;
     int ret = -1;
 
     virCheckFlags(VIR_STORAGE_VOL_RESIZE_ALLOCATE |
@@ -2320,7 +2313,10 @@ storageVolResize(virStorageVolPtr obj,
     }
 
     if (flags & VIR_STORAGE_VOL_RESIZE_DELTA) {
-        abs_capacity = vol->target.capacity + capacity;
+        if (flags & VIR_STORAGE_VOL_RESIZE_SHRINK)
+            abs_capacity = vol->target.capacity - MIN(capacity, vol->target.capacity);
+        else
+            abs_capacity = vol->target.capacity + capacity;
         flags &= ~VIR_STORAGE_VOL_RESIZE_DELTA;
     } else {
         abs_capacity = capacity;
@@ -2341,18 +2337,10 @@ storageVolResize(virStorageVolPtr obj,
         goto cleanup;
     }
 
-    if (flags & VIR_STORAGE_VOL_RESIZE_SHRINK)
-        delta = vol->target.allocation - abs_capacity;
-    else
+    if (flags & VIR_STORAGE_VOL_RESIZE_ALLOCATE)
         delta = abs_capacity - vol->target.allocation;
 
-    /* If the operation is going to increase the allocation value and not
-     * just the capacity value, then let's make sure there's enough space
-     * in the pool in order to perform that operation
-     */
-    if (flags & VIR_STORAGE_VOL_RESIZE_ALLOCATE &&
-        !(flags & VIR_STORAGE_VOL_RESIZE_SHRINK) &&
-        delta > pool->def->available) {
+    if (delta > pool->def->available) {
         virReportError(VIR_ERR_OPERATION_FAILED, "%s",
                        _("Not enough space left in storage pool"));
         goto cleanup;
@@ -2375,15 +2363,8 @@ storageVolResize(virStorageVolPtr obj,
      */
     if (flags & VIR_STORAGE_VOL_RESIZE_ALLOCATE) {
         vol->target.allocation = abs_capacity;
-
-        /* Update pool metadata */
-        if (flags & VIR_STORAGE_VOL_RESIZE_SHRINK) {
-           pool->def->allocation -= delta;
-           pool->def->available += delta;
-        } else {
-           pool->def->allocation += delta;
-           pool->def->available -= delta;
-        }
+        pool->def->allocation += delta;
+        pool->def->available -= delta;
     }
 
     ret = 0;

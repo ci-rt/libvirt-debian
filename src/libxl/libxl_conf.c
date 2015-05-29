@@ -1325,37 +1325,6 @@ libxlMakeVfbList(virPortAllocatorPtr graphicsports,
     d_config->vkbs = x_vkbs;
     d_config->num_vfbs = d_config->num_vkbs = nvfbs;
 
-    /*
-     * VNC or SDL info must also be set in libxl_domain_build_info
-     * for HVM domains.  Use the first vfb device.
-     */
-    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
-        libxl_domain_build_info *b_info = &d_config->b_info;
-        libxl_device_vfb vfb = d_config->vfbs[0];
-
-        if (libxl_defbool_val(vfb.vnc.enable)) {
-            libxl_defbool_set(&b_info->u.hvm.vnc.enable, true);
-            if (VIR_STRDUP(b_info->u.hvm.vnc.listen, vfb.vnc.listen) < 0)
-                goto error;
-            if (VIR_STRDUP(b_info->u.hvm.vnc.passwd, vfb.vnc.passwd) < 0)
-                goto error;
-            b_info->u.hvm.vnc.display = vfb.vnc.display;
-            libxl_defbool_set(&b_info->u.hvm.vnc.findunused,
-                              libxl_defbool_val(vfb.vnc.findunused));
-        } else if (libxl_defbool_val(vfb.sdl.enable)) {
-            libxl_defbool_set(&b_info->u.hvm.sdl.enable, true);
-            libxl_defbool_set(&b_info->u.hvm.sdl.opengl,
-                              libxl_defbool_val(vfb.sdl.opengl));
-            if (VIR_STRDUP(b_info->u.hvm.sdl.display, vfb.sdl.display) < 0)
-                goto error;
-            if (VIR_STRDUP(b_info->u.hvm.sdl.xauthority, vfb.sdl.xauthority) < 0)
-                goto error;
-        }
-
-        if (VIR_STRDUP(b_info->u.hvm.keymap, vfb.keymap) < 0)
-            goto error;
-    }
-
     return 0;
 
  error:
@@ -1366,6 +1335,114 @@ libxlMakeVfbList(virPortAllocatorPtr graphicsports,
     VIR_FREE(x_vfbs);
     VIR_FREE(x_vkbs);
     return -1;
+}
+
+/*
+ * Populate vfb info in libxl_domain_build_info struct for HVM domains.
+ * Prior to calling this function, libxlMakeVfbList must be called to
+ * populate libxl_domain_config->vfbs.
+ */
+static int
+libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
+                      virDomainDefPtr def,
+                      libxl_domain_config *d_config)
+{
+    libxl_domain_build_info *b_info = &d_config->b_info;
+    libxl_device_vfb x_vfb;
+    size_t i;
+
+    if (def->os.type != VIR_DOMAIN_OSTYPE_HVM)
+        return 0;
+
+    if (def->ngraphics == 0)
+        return 0;
+
+    /*
+     * Prefer SPICE, otherwise use first libxl_device_vfb device in
+     * libxl_domain_config->vfbs. Prior to calling this function,
+     */
+    for (i = 0; i < def->ngraphics; i++) {
+        virDomainGraphicsDefPtr l_vfb = def->graphics[i];
+        unsigned short port;
+        const char *listenAddr;
+
+        if (l_vfb->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE)
+            continue;
+
+        libxl_defbool_set(&b_info->u.hvm.spice.enable, true);
+
+        if (l_vfb->data.spice.autoport) {
+            if (virPortAllocatorAcquire(graphicsports, &port) < 0)
+                return -1;
+            l_vfb->data.spice.port = port;
+        }
+        b_info->u.hvm.spice.port = l_vfb->data.spice.port;
+
+        listenAddr = virDomainGraphicsListenGetAddress(l_vfb, 0);
+        if (VIR_STRDUP(b_info->u.hvm.spice.host, listenAddr) < 0)
+            return -1;
+
+        if (VIR_STRDUP(b_info->u.hvm.keymap, l_vfb->data.spice.keymap) < 0)
+            return -1;
+
+        if (l_vfb->data.spice.auth.passwd) {
+            if (VIR_STRDUP(b_info->u.hvm.spice.passwd,
+                           l_vfb->data.spice.auth.passwd) < 0)
+                return -1;
+            libxl_defbool_set(&b_info->u.hvm.spice.disable_ticketing, false);
+        } else {
+            libxl_defbool_set(&b_info->u.hvm.spice.disable_ticketing, true);
+        }
+
+        switch (l_vfb->data.spice.mousemode) {
+            /* client mouse mode is default in xl.cfg */
+        case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_DEFAULT:
+        case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_CLIENT:
+            libxl_defbool_set(&b_info->u.hvm.spice.agent_mouse, true);
+            break;
+        case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_SERVER:
+            libxl_defbool_set(&b_info->u.hvm.spice.agent_mouse, false);
+            break;
+        }
+
+#ifdef LIBXL_HAVE_SPICE_VDAGENT
+        if (l_vfb->data.spice.copypaste == VIR_TRISTATE_BOOL_YES) {
+            libxl_defbool_set(&b_info->u.hvm.spice.vdagent, true);
+            libxl_defbool_set(&b_info->u.hvm.spice.clipboard_sharing, true);
+        } else {
+            libxl_defbool_set(&b_info->u.hvm.spice.vdagent, false);
+            libxl_defbool_set(&b_info->u.hvm.spice.clipboard_sharing, false);
+        }
+#endif
+
+        return 0;
+    }
+
+    x_vfb = d_config->vfbs[0];
+
+    if (libxl_defbool_val(x_vfb.vnc.enable)) {
+        libxl_defbool_set(&b_info->u.hvm.vnc.enable, true);
+        if (VIR_STRDUP(b_info->u.hvm.vnc.listen, x_vfb.vnc.listen) < 0)
+            return -1;
+        if (VIR_STRDUP(b_info->u.hvm.vnc.passwd, x_vfb.vnc.passwd) < 0)
+            return -1;
+        b_info->u.hvm.vnc.display = x_vfb.vnc.display;
+        libxl_defbool_set(&b_info->u.hvm.vnc.findunused,
+                          libxl_defbool_val(x_vfb.vnc.findunused));
+    } else if (libxl_defbool_val(x_vfb.sdl.enable)) {
+        libxl_defbool_set(&b_info->u.hvm.sdl.enable, true);
+        libxl_defbool_set(&b_info->u.hvm.sdl.opengl,
+                          libxl_defbool_val(x_vfb.sdl.opengl));
+        if (VIR_STRDUP(b_info->u.hvm.sdl.display, x_vfb.sdl.display) < 0)
+            return -1;
+        if (VIR_STRDUP(b_info->u.hvm.sdl.xauthority, x_vfb.sdl.xauthority) < 0)
+            return -1;
+    }
+
+    if (VIR_STRDUP(b_info->u.hvm.keymap, x_vfb.keymap) < 0)
+        return -1;
+
+    return 0;
 }
 
 /*
@@ -1664,6 +1741,17 @@ libxlMakeVideo(virDomainDefPtr def, libxl_domain_config *d_config)
             }
             break;
 
+#ifdef LIBXL_HAVE_QXL
+        case VIR_DOMAIN_VIDEO_TYPE_QXL:
+            b_info->u.hvm.vga.kind = LIBXL_VGA_INTERFACE_TYPE_QXL;
+            if (def->videos[0]->vram < 128 * 1024) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("videoram must be at least 128MB for QXL"));
+                return -1;
+            }
+            break;
+#endif
+
         default:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("video type %s is not supported by libxl"),
@@ -1764,6 +1852,9 @@ libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
         return -1;
 
     if (libxlMakeVfbList(graphicsports, def, d_config) < 0)
+        return -1;
+
+    if (libxlMakeBuildInfoVfb(graphicsports, def, d_config) < 0)
         return -1;
 
     if (libxlMakePCIList(def, d_config) < 0)

@@ -324,6 +324,10 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                     dev->data.video->vram = 4 * 1024;
             }
             break;
+        case VIR_DOMAIN_VIDEO_TYPE_QXL:
+            if (dev->data.video->vram == 0)
+                dev->data.video->vram = 128 * 1024;
+            break;
         }
     }
 
@@ -715,7 +719,7 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
         vm->def->graphics[0]->data.vnc.autoport) {
         vnc_port = vm->def->graphics[0]->data.vnc.port;
         if (vnc_port >= LIBXL_VNC_PORT_MIN) {
-            if (virPortAllocatorRelease(driver->reservedVNCPorts,
+            if (virPortAllocatorRelease(driver->reservedGraphicsPorts,
                                         vnc_port) < 0)
                 VIR_DEBUG("Could not mark port %d as unused", vnc_port);
         }
@@ -979,7 +983,7 @@ libxlDomainStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
         VIR_FREE(managed_save_path);
     }
 
-    if (libxlBuildDomainConfig(driver->reservedVNCPorts, vm->def,
+    if (libxlBuildDomainConfig(driver->reservedGraphicsPorts, vm->def,
                                cfg->ctx, &d_config) < 0)
         goto cleanup;
 
