@@ -10524,6 +10524,7 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
     size_t i;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
+    virDomainNumatuneMemMode tmpmode = VIR_DOMAIN_NUMATUNE_MEM_STRICT;
     char *nodeset = NULL;
     int ret = -1;
     virCapsPtr caps = NULL;
@@ -10567,12 +10568,12 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
 
         switch (i) {
         case 0: /* fill numa mode here */
+            ignore_value(virDomainNumatuneGetMode(def->numa, -1, &tmpmode));
+
             if (virTypedParameterAssign(param, VIR_DOMAIN_NUMA_MODE,
-                                        VIR_TYPED_PARAM_INT, 0) < 0)
+                                        VIR_TYPED_PARAM_INT, tmpmode) < 0)
                 goto cleanup;
 
-            virDomainNumatuneGetMode(def->numa, -1,
-                                     (virDomainNumatuneMemMode *) &param->value.i);
             break;
 
         case 1: /* fill numa nodeset here */
@@ -18945,7 +18946,12 @@ qemuDomainSetTime(virDomainPtr dom,
         goto endjob;
     }
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_RTC_RESET_REINJECTION)) {
+    /* On x86, the rtc-reset-reinjection QMP command must be called after
+     * setting the time to avoid trouble down the line. If the command is
+     * not available, don't set the time at all and report an error */
+    if (ARCH_IS_X86(vm->def->os.arch) &&
+        !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_RTC_RESET_REINJECTION))
+    {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("cannot set time: qemu doesn't support "
                          "rtc-reset-reinjection command"));
@@ -18968,13 +18974,16 @@ qemuDomainSetTime(virDomainPtr dom,
         goto endjob;
     }
 
-    qemuDomainObjEnterMonitor(driver, vm);
-    rv = qemuMonitorRTCResetReinjection(priv->mon);
-    if (qemuDomainObjExitMonitor(driver, vm) < 0)
-        goto endjob;
+    /* Don't try to call rtc-reset-reinjection if it's not available */
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_RTC_RESET_REINJECTION)) {
+        qemuDomainObjEnterMonitor(driver, vm);
+        rv = qemuMonitorRTCResetReinjection(priv->mon);
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
+            goto endjob;
 
-    if (rv < 0)
-        goto endjob;
+        if (rv < 0)
+            goto endjob;
+    }
 
     ret = 0;
 

@@ -485,6 +485,7 @@
     <function name="VIR_DOMAIN_NUMATUNE_MEM_PREFERRED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_NUMATUNE_MEM_PREFERRED"/>
     <function name="VIR_DOMAIN_NUMATUNE_MEM_STRICT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_NUMATUNE_MEM_STRICT"/>
     <function name="VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH"/>
+    <function name="VIR_DOMAIN_PASSWORD_ENCRYPTED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_PASSWORD_ENCRYPTED"/>
     <function name="VIR_DOMAIN_PAUSED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_PAUSED"/>
     <function name="VIR_DOMAIN_PAUSED_CRASHED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_PAUSED_CRASHED"/>
     <function name="VIR_DOMAIN_PAUSED_DUMP" link="libvirt-libvirt-domain.html#VIR_DOMAIN_PAUSED_DUMP"/>
@@ -1064,6 +1065,7 @@
     <function name="virDomainRunningReason" link="libvirt-libvirt-domain.html#virDomainRunningReason"/>
     <function name="virDomainSaveRestoreFlags" link="libvirt-libvirt-domain.html#virDomainSaveRestoreFlags"/>
     <function name="virDomainSetTimeFlags" link="libvirt-libvirt-domain.html#virDomainSetTimeFlags"/>
+    <function name="virDomainSetUserPasswordFlags" link="libvirt-libvirt-domain.html#virDomainSetUserPasswordFlags"/>
     <function name="virDomainShutdownFlagValues" link="libvirt-libvirt-domain.html#virDomainShutdownFlagValues"/>
     <function name="virDomainShutdownReason" link="libvirt-libvirt-domain.html#virDomainShutdownReason"/>
     <function name="virDomainShutoffReason" link="libvirt-libvirt-domain.html#virDomainShutoffReason"/>
@@ -1420,6 +1422,7 @@
     <function name="virDomainSetSchedulerParameters ()" link="libvirt-libvirt-domain.html#virDomainSetSchedulerParameters"/>
     <function name="virDomainSetSchedulerParametersFlags ()" link="libvirt-libvirt-domain.html#virDomainSetSchedulerParametersFlags"/>
     <function name="virDomainSetTime ()" link="libvirt-libvirt-domain.html#virDomainSetTime"/>
+    <function name="virDomainSetUserPassword ()" link="libvirt-libvirt-domain.html#virDomainSetUserPassword"/>
     <function name="virDomainSetVcpus ()" link="libvirt-libvirt-domain.html#virDomainSetVcpus"/>
     <function name="virDomainSetVcpusFlags ()" link="libvirt-libvirt-domain.html#virDomainSetVcpusFlags"/>
     <function name="virDomainShutdown ()" link="libvirt-libvirt-domain.html#virDomainShutdown"/>
