@@ -11,6 +11,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
     WITH_LIBXL = --with-libxl
     WITH_VBOX = --with-vbox
     MAKE_CHECK = 1
+    XEN_ENABLED = 1
   else
     WITH_XEN            = --without-xen
     WITH_LIBXL          = --without-libxl
@@ -169,6 +170,10 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu/networks/
 	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/
 	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
+endif
+ifeq ($(XEN_ENABLED), 1)
+	dh_install -p libvirt-daemon-system etc/libvirt/libxl.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/libxl-lockd.conf
 endif
 
 	for l in $(LOGROTATE); do \
