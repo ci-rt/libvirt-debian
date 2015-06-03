@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.2.13\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-05-29 15:14+0800\n"
+"POT-Creation-Date: 2015-06-01 10:23+0800\n"
 "PO-Revision-Date: 2014-12-10 01:40-0500\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/libvirt/"
@@ -999,7 +999,7 @@ msgid "bhyve state driver is not active"
 msgstr "драйвер стану bhyve є неактивним"
 
 #: src/bhyve/bhyve_driver.c:255 src/lxc/lxc_driver.c:5383
-#: src/libxl/libxl_driver.c:790 src/qemu/qemu_command.c:9009
+#: src/libxl/libxl_driver.c:790 src/qemu/qemu_command.c:9006
 #: src/qemu/qemu_driver.c:1299 src/xen/xen_driver.c:680
 msgid "Host SMBIOS information is not available"
 msgstr "Дані SMBIOS основної системи недоступні"
@@ -2703,7 +2703,7 @@ msgstr "Інтерфейс домену"
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "Некоректна специфікація декількох <filterref> у одному <interface>"
 
-#: src/conf/domain_conf.c:8212 src/qemu/qemu_command.c:11817
+#: src/conf/domain_conf.c:8212 src/qemu/qemu_command.c:11814
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "не вдалося обробити MAC-адресу «%s»"
@@ -2983,7 +2983,7 @@ msgstr "невідомий тип символьного пристрою: «%s�
 msgid "spicevmc device type only supports virtio"
 msgstr "для пристроїв типу spicevmc передбачено підтримку лише virtio"
 
-#: src/conf/domain_conf.c:9325 src/qemu/qemu_command.c:10930
+#: src/conf/domain_conf.c:9325 src/qemu/qemu_command.c:10927
 msgid "usb-serial requires address of usb type"
 msgstr "для опису послідовного пристрою usb слід вказати адресу типу usb"
 
@@ -3206,7 +3206,7 @@ msgstr "не вдається видалити vnc-порт %s"
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "не вдалося обробити запис порту WebSocket VNC %s"
 
-#: src/conf/domain_conf.c:10183 src/qemu/qemu_command.c:12622
+#: src/conf/domain_conf.c:10183 src/qemu/qemu_command.c:12619
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "невідомі правила спільного використання дисплея VNC, «%s»"
@@ -5063,7 +5063,7 @@ msgid "Unable to format guestfwd port"
 msgstr "Не вдалося виконати форматування значення порту guestfwd"
 
 #: src/conf/domain_conf.c:19607 src/conf/domain_conf.c:19640
-#: src/qemu/qemu_command.c:9924
+#: src/qemu/qemu_command.c:9921
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "неочікуваний тип смарт-картки %d"
@@ -11206,7 +11206,7 @@ msgstr "не вдалося обробити read_iops_device: «%s»"
 msgid "failed to parse write_iops_device: '%s'"
 msgstr "не вдалося обробити write_iops_device: «%s»"
 
-#: src/lxc/lxc_native.c:1008 src/qemu/qemu_command.c:12447
+#: src/lxc/lxc_native.c:1008 src/qemu/qemu_command.c:12444
 msgid "failed to generate uuid"
 msgstr "не вдалося створити uuid"
 
@@ -12888,7 +12888,7 @@ msgstr "libxenlight не вдалося обробити UUID «%s»"
 msgid "unknown chrdev type"
 msgstr "невідомий тип chrdev"
 
-#: src/libxl/libxl_conf.c:617 src/qemu/qemu_command.c:6212
+#: src/libxl/libxl_conf.c:617 src/qemu/qemu_command.c:6209
 #, c-format
 msgid "unsupported chardev '%s'"
 msgstr "непідтримуваний символьний пристрій «%s»"
@@ -16124,7 +16124,7 @@ msgstr "У цьому QEMU не передбачено підтримки кон
 msgid "This QEMU doesn't support the LSI SAS1078 controller"
 msgstr "У цьому QEMU не передбачено підтримки контролера LSI SAS1078"
 
-#: src/qemu/qemu_command.c:872 src/qemu/qemu_command.c:4524
+#: src/qemu/qemu_command.c:872 src/qemu/qemu_command.c:4521
 #, c-format
 msgid "Unsupported controller model: %s"
 msgstr "Непідтримувана модель контролера: %s"
@@ -16154,54 +16154,54 @@ msgstr "Не вдалося визначити індекс пристрою д�
 msgid "spapr-vio address %#llx already in use"
 msgstr "адресу spapr-vio %#llx вже використано"
 
-#: src/qemu/qemu_command.c:1693
+#: src/qemu/qemu_command.c:1690
 msgid "Bus 0 must be PCI for integrated PIIX3 USB or IDE controllers"
 msgstr ""
 "Для інтегрованих контролерів PIIX3 USB або IDE канал 0 має бути каналом PCI"
 
-#: src/qemu/qemu_command.c:1802
+#: src/qemu/qemu_command.c:1799
 #, c-format
 msgid "Inappropriate new pci controller index %zu not found in addrs"
 msgstr ""
 "Невідповідний новий індекс контролера PCI, %zu, не знайдено серед адрес"
 
-#: src/qemu/qemu_command.c:1879
+#: src/qemu/qemu_command.c:1876
 msgid "Primary IDE controller must have PCI address 0:0:1.1"
 msgstr "Основний контролер IDE повинен мати PCI-адресу 0:0:1.1"
 
-#: src/qemu/qemu_command.c:1899
+#: src/qemu/qemu_command.c:1896
 msgid "PIIX3 USB controller must have PCI address 0:0:1.2"
 msgstr "Контролер PIIX3 USB повинен мати PCI-адресу 0:0:1.2"
 
-#: src/qemu/qemu_command.c:1948
+#: src/qemu/qemu_command.c:1945
 msgid "PCI address 0:0:2.0 is in use, QEMU needs it for primary video"
 msgstr ""
 "Адресу PCI 0:0:2.0 вже використано, QEMU потрібна ця адреса для роботи з "
 "основним відеопристроєм"
 
-#: src/qemu/qemu_command.c:1964
+#: src/qemu/qemu_command.c:1961
 msgid "Primary video card must have PCI address 0:0:2.0"
 msgstr "Основна відеокартка повинна мати PCI-адресу 0:0:2.0"
 
-#: src/qemu/qemu_command.c:2015
+#: src/qemu/qemu_command.c:2012
 msgid "Primary SATA controller must have PCI address 0:0:1f.2"
 msgstr "Основний контролер SATA повинен мати PCI-адресу 0:0:1f.2"
 
-#: src/qemu/qemu_command.c:2098
+#: src/qemu/qemu_command.c:2095
 msgid "PCI address 0:0:1.0 is in use, QEMU needs it for primary video"
 msgstr ""
 "Адресу PCI 0:0:1.0 вже використано, QEMU потрібна ця адреса для роботи з "
 "основним відеопристроєм"
 
-#: src/qemu/qemu_command.c:2114
+#: src/qemu/qemu_command.c:2111
 msgid "Primary video card must have PCI address 0:0:1.0"
 msgstr "Основна відеокартка повинна мати PCI-адресу 0:0:1.0"
 
-#: src/qemu/qemu_command.c:2228
+#: src/qemu/qemu_command.c:2225
 msgid "PCI bridges are not supported by this QEMU binary"
 msgstr "Роботу з містками PCI у цьому виконуваному файлі QEMU не передбачено"
 
-#: src/qemu/qemu_command.c:2254
+#: src/qemu/qemu_command.c:2251
 #, c-format
 msgid ""
 "failed to create PCI bridge on bus %d: too many devices with fixed addresses"
@@ -16209,16 +16209,16 @@ msgstr ""
 "не вдалося створити місток PCI на каналі %d: забагато пристроїв із "
 "фіксованими адресами"
 
-#: src/qemu/qemu_command.c:2506
+#: src/qemu/qemu_command.c:2503
 #, fuzzy, c-format
 msgid "virtio disk cannot have an address of type '%s'"
 msgstr "У virtio передбачено підтримку лише адрес пристроїв типу «PCI»"
 
-#: src/qemu/qemu_command.c:2572 src/qemu/qemu_command.c:5572
+#: src/qemu/qemu_command.c:2569 src/qemu/qemu_command.c:5569
 msgid "non-primary video device must be type of 'qxl'"
 msgstr "неосновний відеопристрій має належати до типу «qxl»"
 
-#: src/qemu/qemu_command.c:2635
+#: src/qemu/qemu_command.c:2632
 #, c-format
 msgid ""
 "Device alias was not set for PCI controller with index %u required for "
@@ -16227,7 +16227,7 @@ msgstr ""
 "Не встановлено альтернативну назву (псевдонім) для контролера PCI з індексом "
 "%u. Встановлення цієї назви необхідне для роботи з пристроєм за адресою %s."
 
-#: src/qemu/qemu_command.c:2646
+#: src/qemu/qemu_command.c:2643
 #, c-format
 msgid ""
 "Could not find PCI controller with index %u required for device at address %s"
@@ -16235,55 +16235,55 @@ msgstr ""
 "Не вдалося знайти контролер PCI з індексом %u. Цей контролер потрібен для "
 "роботи з пристроєм за адресою %s."
 
-#: src/qemu/qemu_command.c:2656
+#: src/qemu/qemu_command.c:2653
 msgid ""
 "Only PCI device addresses with function=0 are supported with this QEMU binary"
 msgstr ""
 "У цьому виконуваному компоненті QEMU передбачено підтримку лише PCI-адреси "
 "пристроїв з функцією=0"
 
-#: src/qemu/qemu_command.c:2662
+#: src/qemu/qemu_command.c:2659
 msgid "'multifunction=on' is not supported with this QEMU binary"
 msgstr "«multifunction=on» не підтримуються цим виконуваним компонентом QEMU"
 
-#: src/qemu/qemu_command.c:2671
+#: src/qemu/qemu_command.c:2668
 msgid "Multiple PCI buses are not supported with this QEMU binary"
 msgstr ""
 "Визначення декількох каналів PCI для цього виконуваного файла QEMU не "
 "передбачено"
 
-#: src/qemu/qemu_command.c:2715
+#: src/qemu/qemu_command.c:2712
 msgid "rombar and romfile are supported only for PCI devices"
 msgstr "підтримку rombar і romfile передбачено лише для пристроїв PCI"
 
-#: src/qemu/qemu_command.c:2720
+#: src/qemu/qemu_command.c:2717
 msgid "rombar and romfile not supported in this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки rombar і romfile"
 
-#: src/qemu/qemu_command.c:2759
+#: src/qemu/qemu_command.c:2756
 #, c-format
 msgid "driver serial '%s' contains unsafe characters"
 msgstr "«%s» містить небезпечні символи"
 
-#: src/qemu/qemu_command.c:2794
+#: src/qemu/qemu_command.c:2791
 #, c-format
 msgid "%s no secret matches uuid '%s'"
 msgstr "%s UUID «%s» не відповідає жоден ключ"
 
-#: src/qemu/qemu_command.c:2798
+#: src/qemu/qemu_command.c:2795
 #, c-format
 msgid "%s no secret matches usage value '%s'"
 msgstr "%s значенню використання «%s» не відповідає жоден ключ"
 
-#: src/qemu/qemu_command.c:2809
+#: src/qemu/qemu_command.c:2806
 #, c-format
 msgid "could not get value of the secret for username '%s' using uuid '%s'"
 msgstr ""
 "не вдалося отримати значення пароля для користувача «%s» за допомогою UUID "
 "«%s»"
 
-#: src/qemu/qemu_command.c:2814
+#: src/qemu/qemu_command.c:2811
 #, c-format
 msgid ""
 "could not get value of the secret for username '%s' using usage value '%s'"
@@ -16291,179 +16291,179 @@ msgstr ""
 "не вдалося отримати значення пароля для користувача «%s» за допомогою "
 "значення «%s»"
 
-#: src/qemu/qemu_command.c:2874
+#: src/qemu/qemu_command.c:2871
 #, c-format
 msgid "Invalid transport/scheme '%s'"
 msgstr "Некоректний канал або схема передавання «%s»"
 
-#: src/qemu/qemu_command.c:2884
+#: src/qemu/qemu_command.c:2881
 #, c-format
 msgid "Invalid %s transport type '%s'"
 msgstr "Некоректний тип передавання %s, «%s»"
 
-#: src/qemu/qemu_command.c:2906
+#: src/qemu/qemu_command.c:2903
 #, c-format
 msgid "Invalid query parameter '%s'"
 msgstr "Некоректний параметр запиту «%s»"
 
-#: src/qemu/qemu_command.c:2989
+#: src/qemu/qemu_command.c:2986
 #, c-format
 msgid "invalid name '%s' for iSCSI disk"
 msgstr "некоректна назва, «%s», для диска iSCSI"
 
-#: src/qemu/qemu_command.c:3030
+#: src/qemu/qemu_command.c:3027
 #, c-format
 msgid "cannot parse nbd filename '%s'"
 msgstr "не вдалося обробити назву файла nbd «%s»"
 
-#: src/qemu/qemu_command.c:3075 src/storage/storage_backend_gluster.c:603
+#: src/qemu/qemu_command.c:3072 src/storage/storage_backend_gluster.c:603
 #, c-format
 msgid "failed to parse port number '%s'"
 msgstr "не вдалося обробити номер порту: «%s»"
 
-#: src/qemu/qemu_command.c:3136 src/qemu/qemu_command.c:3197
+#: src/qemu/qemu_command.c:3133 src/qemu/qemu_command.c:3194
 #, c-format
 msgid "protocol '%s' accepts only one host"
 msgstr "протоколом «%s» передбачено лише один вузол"
 
-#: src/qemu/qemu_command.c:3161
+#: src/qemu/qemu_command.c:3158
 msgid "socket attribute required for unix transport"
 msgstr "для передавання у режимі UNIX слід вказати атрибут сокета (socket)"
 
-#: src/qemu/qemu_command.c:3171
+#: src/qemu/qemu_command.c:3168
 #, c-format
 msgid "nbd does not support transport '%s'"
 msgstr "у nbd не передбачено підтримки передавання «%s»"
 
-#: src/qemu/qemu_command.c:3256
+#: src/qemu/qemu_command.c:3253
 msgid "missing disk source for 'sheepdog' protocol"
 msgstr "не вказано джерело диска для протоколу «sheepdog»"
 
-#: src/qemu/qemu_command.c:3271
+#: src/qemu/qemu_command.c:3268
 msgid "protocol 'sheepdog' accepts up to one host"
 msgstr "протоколом «sheepdog» передбачено до одного вузла"
 
-#: src/qemu/qemu_command.c:3280
+#: src/qemu/qemu_command.c:3277
 #, c-format
 msgid "':' not allowed in RBD source volume name '%s'"
 msgstr "Не можна використовувати «:» у назви тому джерела RBD «%s»"
 
-#: src/qemu/qemu_command.c:3330
+#: src/qemu/qemu_command.c:3327
 #, fuzzy, c-format
 msgid "Unexpected network protocol '%s'"
 msgstr "Неочікуваний протокол правила, %d"
 
-#: src/qemu/qemu_command.c:3418 src/qemu/qemu_command.c:3525
-#: src/qemu/qemu_command.c:9721 src/uml/uml_conf.c:410
+#: src/qemu/qemu_command.c:3415 src/qemu/qemu_command.c:3522
+#: src/qemu/qemu_command.c:9718 src/uml/uml_conf.c:410
 #, c-format
 msgid "unsupported disk type '%s'"
 msgstr "тип диска «%s» не підтримується"
 
-#: src/qemu/qemu_command.c:3426
+#: src/qemu/qemu_command.c:3423
 msgid "Only ide and scsi disk support wwn"
 msgstr "Підтримку wwn передбачено лише для дисків IDE та SCSI"
 
-#: src/qemu/qemu_command.c:3434
+#: src/qemu/qemu_command.c:3431
 msgid "Only scsi disk supports vendor and product"
 msgstr ""
 "Підтримку записів виробника та торговельної назви передбачено лише для "
 "дисків SCSI"
 
-#: src/qemu/qemu_command.c:3443
+#: src/qemu/qemu_command.c:3440
 #, c-format
 msgid "disk device='lun' is not supported for bus='%s'"
 msgstr "підтримки дискового пристрою «lun» не передбачено для bus='%s'"
 
-#: src/qemu/qemu_command.c:3450
+#: src/qemu/qemu_command.c:3447
 #, c-format
 msgid "disk device='lun' is not supported for protocol='%s'"
 msgstr "підтримки дискового пристрою «lun» не передбачено для protocol='%s'"
 
-#: src/qemu/qemu_command.c:3457
+#: src/qemu/qemu_command.c:3454
 msgid "disk device='lun' is only valid for block type disk source"
 msgstr ""
 "визначення дискового пристрою «lun» є коректним лише для дискових джерел "
 "дати блокового типу"
 
-#: src/qemu/qemu_command.c:3463
+#: src/qemu/qemu_command.c:3460
 msgid "Setting wwn is not supported for lun device"
 msgstr "Встановлення wwn для пристрою lun не передбачено"
 
-#: src/qemu/qemu_command.c:3468
+#: src/qemu/qemu_command.c:3465
 msgid "Setting vendor or product is not supported for lun device"
 msgstr ""
 "Підтримки записів виробника та торговельної назви для пристроїв lun не "
 "передбачено"
 
-#: src/qemu/qemu_command.c:3533
+#: src/qemu/qemu_command.c:3530
 msgid "unexpected address type for scsi disk"
 msgstr "неочікуваний тип адреси для диска SCSI"
 
-#: src/qemu/qemu_command.c:3542
+#: src/qemu/qemu_command.c:3539
 msgid "SCSI controller only supports 1 bus"
 msgstr "Контролером SCSI підтримується лише один канал"
 
-#: src/qemu/qemu_command.c:3552
+#: src/qemu/qemu_command.c:3549
 msgid "unexpected address type for ide disk"
 msgstr "неочікуваний тип адреси для диска IDE"
 
-#: src/qemu/qemu_command.c:3558 src/qemu/qemu_command.c:3574
+#: src/qemu/qemu_command.c:3555 src/qemu/qemu_command.c:3571
 #, c-format
 msgid "Only 1 %s controller is supported"
 msgstr "Передбачено підтримку лише одного контролера %s"
 
-#: src/qemu/qemu_command.c:3568
+#: src/qemu/qemu_command.c:3565
 msgid "unexpected address type for fdc disk"
 msgstr "неочікуваний тип адреси для диска FDC"
 
-#: src/qemu/qemu_command.c:3580
+#: src/qemu/qemu_command.c:3577
 #, c-format
 msgid "Only 1 %s bus is supported"
 msgstr "Передбачено підтримку лише одного каналу %s"
 
-#: src/qemu/qemu_command.c:3585
+#: src/qemu/qemu_command.c:3582
 msgid "target must be 0 for controller fdc"
 msgstr "для контролера fdc призначенням має бути 0"
 
-#: src/qemu/qemu_command.c:3619 src/qemu/qemu_command.c:9731
+#: src/qemu/qemu_command.c:3616 src/qemu/qemu_command.c:9728
 #, c-format
 msgid "unsupported disk driver type for '%s'"
 msgstr "непідтримуваний тип драйвера дисків для «%s»"
 
-#: src/qemu/qemu_command.c:3626 src/qemu/qemu_command.c:9737
+#: src/qemu/qemu_command.c:3623 src/qemu/qemu_command.c:9734
 msgid "cannot create virtual FAT disks in read-write mode"
 msgstr "не можна створювати віртуальні диски FAT у режимі читання-запису"
 
-#: src/qemu/qemu_command.c:3641
+#: src/qemu/qemu_command.c:3638
 msgid "tray status 'open' is invalid for block type volume"
 msgstr "для тому блокового типу стан лотка «відкрито» («open») не має сенсу"
 
-#: src/qemu/qemu_command.c:3642 src/qemu/qemu_command.c:9690
+#: src/qemu/qemu_command.c:3639 src/qemu/qemu_command.c:9687
 msgid "tray status 'open' is invalid for block type disk"
 msgstr "для диска блокового типу стан лотка «відкрито» («open») не має сенсу"
 
-#: src/qemu/qemu_command.c:3697
+#: src/qemu/qemu_command.c:3694
 msgid "readonly ide disks are not supported"
 msgstr "підтримки придатних лише до читання дисків IDE не передбачено"
 
-#: src/qemu/qemu_command.c:3702
+#: src/qemu/qemu_command.c:3699
 msgid "readonly sata disks are not supported"
 msgstr "підтримки дисків SATA, призначених лише для читання, не передбачено"
 
-#: src/qemu/qemu_command.c:3710 src/xenconfig/xen_sxpr.c:1839
+#: src/qemu/qemu_command.c:3707 src/xenconfig/xen_sxpr.c:1839
 #: src/xenconfig/xen_xl.c:602 src/xenconfig/xen_xm.c:361
 msgid "transient disks not supported yet"
 msgstr "підтримки тимчасових дисків не передбачено"
 
-#: src/qemu/qemu_command.c:3750
+#: src/qemu/qemu_command.c:3747
 msgid "disk cache mode 'directsync' is not supported by this QEMU"
 msgstr "режим кешування диска «directsync» не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:3756
+#: src/qemu/qemu_command.c:3753
 msgid "disk cache mode 'unsafe' is not supported by this QEMU"
 msgstr "режим кешування диска «unsafe» не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:3768
+#: src/qemu/qemu_command.c:3765
 msgid ""
 "native I/O needs either no disk cache or directsync cache mode, QEMU will "
 "fallback to aio=threads"
@@ -16472,27 +16472,27 @@ msgstr ""
 "режиму безпосередньої синхронізації кешування, QEMU повернеться до "
 "резервного режиму aio=threads"
 
-#: src/qemu/qemu_command.c:3785
+#: src/qemu/qemu_command.c:3782
 msgid "copy_on_read is not supported by this QEMU binary"
 msgstr "підтримки copy_on_read у цьому виконуваному файлі QEMU не передбачено"
 
-#: src/qemu/qemu_command.c:3796
+#: src/qemu/qemu_command.c:3793
 msgid "discard is not supported by this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки відкидання (discard)"
 
-#: src/qemu/qemu_command.c:3832
+#: src/qemu/qemu_command.c:3829
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr ""
 "асинхронний режим роботи диска не підтримується цим виконуваним файлом QEMU"
 
-#: src/qemu/qemu_command.c:3847 src/qemu/qemu_driver.c:17920
+#: src/qemu/qemu_command.c:3844 src/qemu/qemu_driver.c:17920
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr ""
 "регулювання введення-виведення блоків не підтримується цим виконуваним "
 "файлом QEMU"
 
-#: src/qemu/qemu_command.c:3862
+#: src/qemu/qemu_command.c:3859
 msgid ""
 "there are some block I/O throttling parameters that are not supported with "
 "this QEMU binary"
@@ -16500,144 +16500,144 @@ msgstr ""
 "виявлено деякі параметри регулювання введення-виведення блоків, підтримку "
 "яких не передбачено у цьому виконуваному файлі QEMU"
 
-#: src/qemu/qemu_command.c:3881
+#: src/qemu/qemu_command.c:3878
 #, c-format
 msgid "block I/O throttle limit must be less than %llu using QEMU"
 msgstr ""
 "значення обмеження на введення-виведення для блокових пристроїв має бути "
 "меншим за %llu, якщо використовується QEMU"
 
-#: src/qemu/qemu_command.c:3971
+#: src/qemu/qemu_command.c:3968
 msgid "IOThreads not supported for this QEMU"
 msgstr "у цій версії QEMU не передбачено IOThreads"
 
-#: src/qemu/qemu_command.c:3980
+#: src/qemu/qemu_command.c:3977
 msgid "IOThreads only available for virtio pci and virtio ccw disk"
 msgstr "IOThreads доступне лише для дисків PCI та CCW virtio"
 
-#: src/qemu/qemu_command.c:3988
+#: src/qemu/qemu_command.c:3985
 #, fuzzy, c-format
 msgid "Disk iothread '%u' not defined in iothreadid"
 msgstr "Некоректне значення iothread «%u» диска, лише %u IOThread"
 
-#: src/qemu/qemu_command.c:4019
+#: src/qemu/qemu_command.c:4016
 msgid "disk device='lun' is not supported by this QEMU"
 msgstr "підтримки дискового пристрою «lun» не передбачено для цього QEMU"
 
-#: src/qemu/qemu_command.c:4032 src/qemu/qemu_command.c:4160
+#: src/qemu/qemu_command.c:4029 src/qemu/qemu_command.c:4157
 msgid "target must be 0 for ide controller"
 msgstr "для контролера ide призначенням має бути 0"
 
-#: src/qemu/qemu_command.c:4039
+#: src/qemu/qemu_command.c:4036
 msgid "Setting wwn for ide disk is not supported by this QEMU"
 msgstr "Цим екземпляром QEMU не передбачено встановлення wwn для дисків IDE"
 
-#: src/qemu/qemu_command.c:4066
+#: src/qemu/qemu_command.c:4063
 msgid "This QEMU doesn't support scsi-block for lun passthrough"
 msgstr ""
 "У цій версії QEMU не передбачено підтримки scsi-блоку для передавання lun"
 
-#: src/qemu/qemu_command.c:4075
+#: src/qemu/qemu_command.c:4072
 msgid "Setting wwn for scsi disk is not supported by this QEMU"
 msgstr "Цим екземпляром QEMU не передбачено встановлення wwn для дисків SCSI"
 
-#: src/qemu/qemu_command.c:4086
+#: src/qemu/qemu_command.c:4083
 msgid "Setting vendor or product for scsi disk is not supported by this QEMU"
 msgstr ""
 "У цій версії QEMU не передбачено встановлення назв виробника та торговельних "
 "назв для дисків SCSI"
 
-#: src/qemu/qemu_command.c:4117
+#: src/qemu/qemu_command.c:4114
 msgid "target must be 0 for controller model 'lsilogic'"
 msgstr "для моделі контролера «lsilogic» призначенням має бути 0"
 
-#: src/qemu/qemu_command.c:4130
+#: src/qemu/qemu_command.c:4127
 msgid "This QEMU doesn't support target greater than 7"
 msgstr "У цій версії QEMU не передбачено підтримки призначення більшого за 7"
 
-#: src/qemu/qemu_command.c:4138
+#: src/qemu/qemu_command.c:4135
 msgid "This QEMU only supports both bus and unit equal to 0"
 msgstr ""
 "У цій версії QEMU передбачено лише підтримку одночасної рівності bus і unit "
 "нулю"
 
-#: src/qemu/qemu_command.c:4155
+#: src/qemu/qemu_command.c:4152
 msgid "bus must be 0 for ide controller"
 msgstr "для контролера IDE bus має дорівнювати 0"
 
-#: src/qemu/qemu_command.c:4219
+#: src/qemu/qemu_command.c:4216
 #, fuzzy
 msgid "unexpected address type for usb disk"
 msgstr "неочікуваний тип адреси для диска SCSI"
 
-#: src/qemu/qemu_command.c:4224
+#: src/qemu/qemu_command.c:4221
 msgid "This QEMU doesn't support '-device usb-storage'"
 msgstr "У цьому варіанті QEMU не передбачено підтримки «-device usb-storage»"
 
-#: src/qemu/qemu_command.c:4237
+#: src/qemu/qemu_command.c:4234
 #, c-format
 msgid "unsupported disk bus '%s' with device setup"
 msgstr "непідтримуваний канал диска «%s» з налаштуванням пристрою"
 
-#: src/qemu/qemu_command.c:4276
+#: src/qemu/qemu_command.c:4273
 msgid ""
 "This QEMU doesn't support setting the removable flag of USB storage devices"
 msgstr ""
 "У цьому варіанті QEMU не передбачено підтримки прапорця портативного "
 "пристрою для пристроїв зберігання даних USB"
 
-#: src/qemu/qemu_command.c:4303
+#: src/qemu/qemu_command.c:4300
 msgid "only supports mount filesystem type"
 msgstr "передбачено лише підтримку типів файлових систем mount"
 
-#: src/qemu/qemu_command.c:4309
+#: src/qemu/qemu_command.c:4306
 msgid "Filesystem driver type not supported"
 msgstr "Підтримки типу драйвера файлової системи не передбачено"
 
-#: src/qemu/qemu_command.c:4328
+#: src/qemu/qemu_command.c:4325
 msgid "only supports passthrough accessmode"
 msgstr "передбачено підтримку лише режиму доступ з передаванням даних"
 
-#: src/qemu/qemu_command.c:4338
+#: src/qemu/qemu_command.c:4335
 msgid "filesystem writeout not supported"
 msgstr "підтримки режиму файлової системи writeout не передбачено"
 
-#: src/qemu/qemu_command.c:4351
+#: src/qemu/qemu_command.c:4348
 msgid "readonly filesystem is not supported by this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки файлових систем, "
 "призначених лише для читання"
 
-#: src/qemu/qemu_command.c:4377
+#: src/qemu/qemu_command.c:4374
 msgid "can only passthrough directories"
 msgstr "каталоги можна лише передавати"
 
-#: src/qemu/qemu_command.c:4450 src/qemu/qemu_command.c:5538
+#: src/qemu/qemu_command.c:4447 src/qemu/qemu_command.c:5535
 #, c-format
 msgid "%s not supported in this QEMU binary"
 msgstr "у цьому виконуваному файлі QEMU не передбачено підтримки %s"
 
-#: src/qemu/qemu_command.c:4483
+#: src/qemu/qemu_command.c:4480
 msgid "'queues' is only supported by virtio-scsi controller"
 msgstr "підтримку «queues» передбачено лише для контролерів virtio-scsi"
 
-#: src/qemu/qemu_command.c:4488
+#: src/qemu/qemu_command.c:4485
 msgid "'cmd_per_lun' is only supported by virtio-scsi controller"
 msgstr "підтримку «cmd_per_lun» передбачено лише для контролерів virtio-scsi"
 
-#: src/qemu/qemu_command.c:4493
+#: src/qemu/qemu_command.c:4490
 msgid "'max_sectors' is only supported by virtio-scsi controller"
 msgstr "підтримку «max_sectors» передбачено лише для контролерів virtio-scsi"
 
-#: src/qemu/qemu_command.c:4563
+#: src/qemu/qemu_command.c:4560
 msgid "SATA is not supported with this QEMU binary"
 msgstr "SATA не підтримуються цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:4584
+#: src/qemu/qemu_command.c:4581
 msgid "PCI bridge index should be > 0"
 msgstr "Індекс містка PCI має бути значенням більшим за 0"
 
-#: src/qemu/qemu_command.c:4593
+#: src/qemu/qemu_command.c:4590
 msgid ""
 "The dmi-to-pci-bridge (i82801b11-bridge) controller is not supported in this "
 "QEMU binary"
@@ -16645,166 +16645,166 @@ msgstr ""
 "У цьому виконуваному файлі QEMU не передбачено підтримки контролерів dmi-to-"
 "pci-bridge (i82801b11-bridge)"
 
-#: src/qemu/qemu_command.c:4599
+#: src/qemu/qemu_command.c:4596
 msgid "dmi-to-pci-bridge index should be > 0"
 msgstr "Індекс dmi-to-pci-bridge має бути значенням більшим за 0"
 
-#: src/qemu/qemu_command.c:4607
+#: src/qemu/qemu_command.c:4604
 msgid "wrong function called for pci-root/pcie-root"
 msgstr "викликано помилкову функцію кореневого пристрою PCI або PCIE"
 
-#: src/qemu/qemu_command.c:4620
+#: src/qemu/qemu_command.c:4617
 #, fuzzy
 msgid "Only a single IDE controller is unsupported for this machine type"
 msgstr "Передбачено підтримку лише одного контролера %s"
 
-#: src/qemu/qemu_command.c:4624
+#: src/qemu/qemu_command.c:4621
 #, fuzzy
 msgid "IDE controllers are unsupported for this QEMU binary or machine type"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено вмикання контролера USB у "
 "«гарячому» режимі"
 
-#: src/qemu/qemu_command.c:4630
+#: src/qemu/qemu_command.c:4627
 #, fuzzy, c-format
 msgid "Unsupported controller type: %s"
 msgstr "Непідтримувана модель контролера: %s"
 
-#: src/qemu/qemu_command.c:4710
+#: src/qemu/qemu_command.c:4707
 #, c-format
 msgid ""
 "can't add memory backend for guest node '%d' as the guest has only '%zu' "
 "NUMA nodes configured"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4771
+#: src/qemu/qemu_command.c:4768
 msgid "this qemu doesn't support hugepage memory backing"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4784 src/qemu/qemu_command.c:8890
+#: src/qemu/qemu_command.c:4781 src/qemu/qemu_command.c:8887
 #, c-format
 msgid "Unable to find any usable hugetlbfs mount for %llu KiB"
 msgstr ""
 "Не вдалося знайти жодного придатного до користування монтування hugetlbfs "
 "для %llu КіБ"
 
-#: src/qemu/qemu_command.c:4819
+#: src/qemu/qemu_command.c:4816
 msgid "Shared memory mapping is supported only with hugepages"
 msgstr "Підтримку прив’язки спільної пам’яті передбачено лише з hugepages"
 
-#: src/qemu/qemu_command.c:4854
+#: src/qemu/qemu_command.c:4851
 msgid "this qemu doesn't support the memory-backend-ram object"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4935
+#: src/qemu/qemu_command.c:4932
 #, fuzzy
 msgid "memory device alias is not assigned"
 msgstr "Пристрій PCI %s не призначено для прив’язування"
 
-#: src/qemu/qemu_command.c:4967
+#: src/qemu/qemu_command.c:4964
 #, fuzzy
 msgid "missing alias for memory device"
 msgstr "не вистачає пристрою джерела"
 
-#: src/qemu/qemu_command.c:4975
+#: src/qemu/qemu_command.c:4972
 #, fuzzy
 msgid "this qemu doesn't support the pc-dimm device"
 msgstr "у цьому варіанті qemu не передбачено підтримки модуля rng-egd"
 
-#: src/qemu/qemu_command.c:4982
+#: src/qemu/qemu_command.c:4979
 #, fuzzy
 msgid "only 'dimm' addresses are supported for the pc-dimm device"
 msgstr "для символьного пристрою підтримується лише TCP-прослуховування"
 
-#: src/qemu/qemu_command.c:4990
+#: src/qemu/qemu_command.c:4987
 #, c-format
 msgid "memory device slot '%u' exceeds slots count '%u'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5008
+#: src/qemu/qemu_command.c:5005
 #, fuzzy
 msgid "invalid memory device type"
 msgstr "некоректний вказівник на пристрій вузла"
 
-#: src/qemu/qemu_command.c:5084
+#: src/qemu/qemu_command.c:5081
 msgid "unrecognized virtio-net-pci 'tx' option"
 msgstr "невідомий параметр virtio-net-pci «tx»"
 
-#: src/qemu/qemu_command.c:5089
+#: src/qemu/qemu_command.c:5086
 msgid "virtio-net-pci 'tx' option not supported in this QEMU binary"
 msgstr "параметр virtio-net-pci «tx» не підтримується цим бінарним файлом QEMU"
 
-#: src/qemu/qemu_command.c:5205 src/xenconfig/xen_sxpr.c:1889
+#: src/qemu/qemu_command.c:5202 src/xenconfig/xen_sxpr.c:1889
 #, c-format
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "підтримки скриптів на інтерфейсах типу %s не передбачено"
 
-#: src/qemu/qemu_command.c:5329 src/qemu/qemu_command.c:10442
+#: src/qemu/qemu_command.c:5326 src/qemu/qemu_command.c:10439
 msgid "missing watchdog model"
 msgstr "не вказано моделі сторожового пристрою"
 
-#: src/qemu/qemu_command.c:5367
+#: src/qemu/qemu_command.c:5364
 #, c-format
 msgid "memballoon unsupported with address type '%s'"
 msgstr "додаткова пам’ять не підтримується з типом адреси «%s»"
 
-#: src/qemu/qemu_command.c:5397
+#: src/qemu/qemu_command.c:5394
 msgid "nvram address type must be spaprvio"
 msgstr "адреса nvram має належати до типу spaprvio"
 
-#: src/qemu/qemu_command.c:5469
+#: src/qemu/qemu_command.c:5466
 msgid "usb-audio controller is not supported by this QEMU binary"
 msgstr ""
 "У цьому виконуваному файлі QEMU не передбачено підтримки звукових "
 "контролерів USB"
 
-#: src/qemu/qemu_command.c:5478
+#: src/qemu/qemu_command.c:5475
 msgid ""
 "The ich9-intel-hda audio controller is not supported in this QEMU binary"
 msgstr ""
 "У цьому виконуваному файлі QEMU не передбачено підтримки звукових "
 "контролерів ich9-intel-hda"
 
-#: src/qemu/qemu_command.c:5489
+#: src/qemu/qemu_command.c:5486
 #, c-format
 msgid "sound card model '%s' is not supported by qemu"
 msgstr "у QEMU не передбачено підтримки моделі звукової картки «%s»"
 
-#: src/qemu/qemu_command.c:5565 src/qemu/qemu_command.c:10201
+#: src/qemu/qemu_command.c:5562 src/qemu/qemu_command.c:10198
 #, c-format
 msgid "video type %s is not supported with QEMU"
 msgstr "QEMU не підтримує тип відео %s"
 
-#: src/qemu/qemu_command.c:5578 src/qemu/qemu_command.c:10301
-#: src/qemu/qemu_command.c:10330
+#: src/qemu/qemu_command.c:5575 src/qemu/qemu_command.c:10298
+#: src/qemu/qemu_command.c:10327
 msgid "only one video card is currently supported"
 msgstr "наразі підтримується лише одна відеокарта"
 
-#: src/qemu/qemu_command.c:5590 src/qemu/qemu_command.c:10230
+#: src/qemu/qemu_command.c:5587 src/qemu/qemu_command.c:10227
 #, c-format
 msgid "value for 'vram' must be less than '%u'"
 msgstr "значенням для «vram» має бути число, менше за «%u»"
 
-#: src/qemu/qemu_command.c:5596 src/qemu/qemu_command.c:10236
+#: src/qemu/qemu_command.c:5593 src/qemu/qemu_command.c:10233
 #, c-format
 msgid "value for 'ram' must be less than '%u'"
 msgstr "значення параметра «ram» має бути меншим за «%u»"
 
-#: src/qemu/qemu_command.c:5624
+#: src/qemu/qemu_command.c:5621
 msgid "value for 'vram' must be at least 1 MiB (1024 KiB)"
 msgstr "значенням «vram» має бути принаймні 1 МіБ (1024 КіБ)"
 
-#: src/qemu/qemu_command.c:5661
+#: src/qemu/qemu_command.c:5658
 #, c-format
 msgid "Failed opening %s"
 msgstr "Не вдалося відкрити %s"
 
-#: src/qemu/qemu_command.c:5692
+#: src/qemu/qemu_command.c:5689
 #, c-format
 msgid "invalid PCI passthrough type '%s'"
 msgstr "некоректний тип пропускання PCI «%s»"
 
-#: src/qemu/qemu_command.c:5701 src/qemu/qemu_command.c:5740
+#: src/qemu/qemu_command.c:5698 src/qemu/qemu_command.c:5737
 #: src/qemu/qemu_hotplug.c:1329
 #, c-format
 msgid ""
@@ -16814,55 +16814,55 @@ msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки ненульового "
 "домену=«%.4x» у адреси пристрою PCI основної системи"
 
-#: src/qemu/qemu_command.c:5769
+#: src/qemu/qemu_command.c:5766
 #, c-format
 msgid "Redirection bus %s is not supported by QEMU"
 msgstr "Канал переспрямування %s не підтримується QEMU"
 
-#: src/qemu/qemu_command.c:5776
+#: src/qemu/qemu_command.c:5773
 msgid "USB redirection is not supported by this version of QEMU"
 msgstr "Переспрямування USB не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:5787
+#: src/qemu/qemu_command.c:5784
 msgid "USB redirection filter is not supported by this version of QEMU"
 msgstr "Фільтри переспрямовування USB не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:5825
+#: src/qemu/qemu_command.c:5822
 msgid "USB redirection booting is not supported by this version of QEMU"
 msgstr ""
 "Завантаження з переспрямовуванням USB не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:5855 src/qemu/qemu_command.c:5932
+#: src/qemu/qemu_command.c:5852 src/qemu/qemu_command.c:5929
 msgid "USB host device is missing bus/device information"
 msgstr "Не вказано інформації щодо каналу і назв пристрою USB основної системи"
 
-#: src/qemu/qemu_command.c:5891
+#: src/qemu/qemu_command.c:5888
 #, c-format
 msgid "hub type %s not supported"
 msgstr "підтримки основного пристрою типу %s не передбачено"
 
-#: src/qemu/qemu_command.c:5898
+#: src/qemu/qemu_command.c:5895
 msgid "usb-hub not supported by QEMU binary"
 msgstr ""
 "підтримки основного пристрою usb не передбачено у виконуваному файлі QEMU"
 
-#: src/qemu/qemu_command.c:5926
+#: src/qemu/qemu_command.c:5923
 msgid "This QEMU doesn't not support missing USB devices"
 msgstr "У цьому QEMU не передбачено підтримки пристроїв USB, який не вистачає"
 
-#: src/qemu/qemu_command.c:6025
+#: src/qemu/qemu_command.c:6022
 msgid "this qemu doesn't support 'readonly' for -drive"
 msgstr ""
 "у цьому варіанті qemu не передбачено підтримки атрибута «readonly» для -drive"
 
-#: src/qemu/qemu_command.c:6060
+#: src/qemu/qemu_command.c:6057
 msgid ""
 "target must be 0 for scsi host device if its controller model is 'lsilogic'"
 msgstr ""
 "якщо моделлю контролера вузла пристроїв scsi є «lsilogic», призначення "
 "(target) має бути рівним 0"
 
-#: src/qemu/qemu_command.c:6067
+#: src/qemu/qemu_command.c:6064
 msgid ""
 "unit must be not more than 7 for scsi host device if its controller model is "
 "'lsilogic'"
@@ -16870,165 +16870,165 @@ msgstr ""
 "якщо моделлю контролера пристрою-вузла scsi є «lsilogic», значенням «unit» "
 "має бути число більше за 7"
 
-#: src/qemu/qemu_command.c:6193
+#: src/qemu/qemu_command.c:6190
 msgid "spicevmc not supported in this QEMU binary"
 msgstr "У цьому виконуваному файлі QEMU не передбачено підтримки spicevmc"
 
-#: src/qemu/qemu_command.c:6203
+#: src/qemu/qemu_command.c:6200
 msgid "spiceport not supported in this QEMU binary"
 msgstr "у цьому виконуваному файлі QEMU не передбачено підтримки spiceport"
 
-#: src/qemu/qemu_command.c:6345
+#: src/qemu/qemu_command.c:6342
 msgid "Cannot use virtio serial for parallel/serial devices"
 msgstr ""
 "Не можна використовувати послідовний порт virtio для пристроїв з паралельним/"
 "послідовним зв’язком"
 
-#: src/qemu/qemu_command.c:6357
+#: src/qemu/qemu_command.c:6354
 msgid "virtio serial device has invalid address type"
 msgstr "Тип адреси послідовного пристрою virtio є некоректним"
 
-#: src/qemu/qemu_command.c:6376
+#: src/qemu/qemu_command.c:6373
 #, c-format
 msgid "Unsupported spicevmc target name '%s'"
 msgstr "Непідтримуване назва призначення spicevmc «%s»"
 
-#: src/qemu/qemu_command.c:6418
+#: src/qemu/qemu_command.c:6415
 msgid "Cannot use slcp with devices other than console"
 msgstr "Не можна використовувати slcp на пристроях, які не є консолями"
 
-#: src/qemu/qemu_command.c:6470
+#: src/qemu/qemu_command.c:6467
 msgid "this qemu doesn't support the rng-random backend"
 msgstr "у цьому варіанті qemu не передбачено підтримки модуля rng-random"
 
-#: src/qemu/qemu_command.c:6485
+#: src/qemu/qemu_command.c:6482
 msgid "this qemu doesn't support the rng-egd backend"
 msgstr "у цьому варіанті qemu не передбачено підтримки модуля rng-egd"
 
-#: src/qemu/qemu_command.c:6503
+#: src/qemu/qemu_command.c:6500
 msgid "unknown rng-random backend"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6549
+#: src/qemu/qemu_command.c:6546
 #, c-format
 msgid "this qemu doesn't support RNG device type '%s'"
 msgstr "у цьому варіанті qemu не передбачено підтримки пристроїв RNG типу «%s»"
 
-#: src/qemu/qemu_command.c:6617
+#: src/qemu/qemu_command.c:6614
 #, c-format
 msgid "Could not open TPM device %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6631
+#: src/qemu/qemu_command.c:6628
 #, c-format
 msgid "Could not open TPM device's cancel path %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6664
+#: src/qemu/qemu_command.c:6661
 #, c-format
 msgid "The QEMU executable %s does not support TPM backend type %s"
 msgstr ""
 "У виконуваному файлі QEMU %s не передбачено підтримки типу модулів TPM %s"
 
-#: src/qemu/qemu_command.c:6687
+#: src/qemu/qemu_command.c:6684
 #, c-format
 msgid "The QEMU executable %s does not support TPM model %s"
 msgstr "У виконуваному файлі QEMU %s не передбачено підтримки моделі TPM %s"
 
-#: src/qemu/qemu_command.c:6847 src/qemu/qemu_command.c:9135
+#: src/qemu/qemu_command.c:6844 src/qemu/qemu_command.c:9132
 #, c-format
 msgid "unsupported clock offset '%s'"
 msgstr "непідтримуваний зсув часу годинника «%s»"
 
-#: src/qemu/qemu_command.c:6861
+#: src/qemu/qemu_command.c:6858
 #, c-format
 msgid "unsupported rtc timer track '%s'"
 msgstr "непідтримуваний канал таймера RTC «%s»"
 
-#: src/qemu/qemu_command.c:6885
+#: src/qemu/qemu_command.c:6882
 #, c-format
 msgid "unsupported rtc timer tickpolicy '%s'"
 msgstr "непідтримувані правила відліку таймера RTC «%s»"
 
-#: src/qemu/qemu_command.c:6938
+#: src/qemu/qemu_command.c:6935
 msgid "CPU specification not supported by hypervisor"
 msgstr "Специфікація процесора не підтримується гіпервізором"
 
-#: src/qemu/qemu_command.c:6968
+#: src/qemu/qemu_command.c:6965
 #, fuzzy, c-format
 msgid ""
 "guest and host CPU are not compatible: %s; try using '%s-noTSX' CPU model"
 msgstr "процесори гостьової і основної системи є несумісними: %s"
 
-#: src/qemu/qemu_command.c:6973
+#: src/qemu/qemu_command.c:6970
 #, c-format
 msgid "guest and host CPU are not compatible: %s"
 msgstr "процесори гостьової і основної системи є несумісними: %s"
 
-#: src/qemu/qemu_command.c:6980
+#: src/qemu/qemu_command.c:6977
 #, fuzzy, c-format
 msgid ""
 "guest CPU is not compatible with host CPU; try using '%s-noTSX' CPU model"
 msgstr "процесор гостьової системи несумісний з процесором основної системи"
 
-#: src/qemu/qemu_command.c:6985
+#: src/qemu/qemu_command.c:6982
 msgid "guest CPU is not compatible with host CPU"
 msgstr "процесор гостьової системи несумісний з процесором основної системи"
 
-#: src/qemu/qemu_command.c:7015
+#: src/qemu/qemu_command.c:7012
 #, c-format
 msgid "CPU mode '%s' is not supported by QEMU binary"
 msgstr "Режим процесора «%s» не підтримується виконуваним файлом QEMU"
 
-#: src/qemu/qemu_command.c:7021
+#: src/qemu/qemu_command.c:7018
 #, c-format
 msgid "CPU mode '%s' is only supported with kvm"
 msgstr "Режим процесора «%s» підтримується лише з kvm"
 
-#: src/qemu/qemu_command.c:7245
+#: src/qemu/qemu_command.c:7242
 #, fuzzy, c-format
 msgid "gic version '%u' is not supported"
 msgstr "підтримки драйвера диска %s не передбачено"
 
-#: src/qemu/qemu_command.c:7292
+#: src/qemu/qemu_command.c:7289
 msgid "the QEMU binary does not support kqemu"
 msgstr "виконуваний файл QEMU не підтримує роботу з kqemu"
 
-#: src/qemu/qemu_command.c:7305
+#: src/qemu/qemu_command.c:7302
 msgid "the QEMU binary does not support kvm"
 msgstr "виконуваний файл QEMU не підтримує роботу з kvm"
 
-#: src/qemu/qemu_command.c:7316
+#: src/qemu/qemu_command.c:7313
 #, c-format
 msgid "the QEMU binary does not support %s"
 msgstr "виконуваний файл QEMU не підтримує роботу з %s"
 
-#: src/qemu/qemu_command.c:7340
+#: src/qemu/qemu_command.c:7337
 #, fuzzy, c-format
 msgid "%s is not available with this QEMU binary"
 msgstr "З цим виконуваним файлом QEMU параметр dump-guest-core є недоступним"
 
-#: src/qemu/qemu_command.c:7387 src/qemu/qemu_command.c:7443
+#: src/qemu/qemu_command.c:7384 src/qemu/qemu_command.c:7440
 msgid "dump-guest-core is not available with this QEMU binary"
 msgstr "З цим виконуваним файлом QEMU параметр dump-guest-core є недоступним"
 
-#: src/qemu/qemu_command.c:7394 src/qemu/qemu_command.c:7458
+#: src/qemu/qemu_command.c:7391 src/qemu/qemu_command.c:7455
 msgid "disable shared memory is not available with this QEMU binary"
 msgstr ""
 "З цим виконуваним файлом QEMU вимикання спільного використання пам’яті "
 "неможливе"
 
-#: src/qemu/qemu_command.c:7403
+#: src/qemu/qemu_command.c:7400
 #, fuzzy
 msgid "key wrap support is not available with this QEMU binary"
 msgstr "З цим виконуваним файлом QEMU параметр dump-guest-core є недоступним"
 
-#: src/qemu/qemu_command.c:7430
+#: src/qemu/qemu_command.c:7427
 #, fuzzy
 msgid "vmport is not available with this QEMU binary"
 msgstr "З цим виконуваним файлом QEMU параметр dump-guest-core є недоступним"
 
-#: src/qemu/qemu_command.c:7507
+#: src/qemu/qemu_command.c:7504
 msgid ""
 "setting current vcpu count less than maximum is not supported with this QEMU "
 "binary"
@@ -17036,72 +17036,72 @@ msgstr ""
 "встановлення поточної кількості віртуальних процесорів понад максимальну не "
 "підтримується цим виконуваним файлом QEMU"
 
-#: src/qemu/qemu_command.c:7539
+#: src/qemu/qemu_command.c:7536
 msgid "Per-node memory binding is not supported with this QEMU"
 msgstr "У цій версії QEMU не передбачено прив’язки пам’яті до окремих вузлів"
 
-#: src/qemu/qemu_command.c:7548
+#: src/qemu/qemu_command.c:7545
 msgid "huge pages per NUMA node are not supported with this QEMU"
 msgstr ""
 "у цій версії QEMU не передбачено підтримки окремих великих сторінок для "
 "кожного вузла NUMA"
 
-#: src/qemu/qemu_command.c:7574
+#: src/qemu/qemu_command.c:7571
 #, c-format
 msgid "hugepages: node %zd not found"
 msgstr "hugepages: не знайдено вузол %zd"
 
-#: src/qemu/qemu_command.c:7598
+#: src/qemu/qemu_command.c:7595
 msgid "Shared memory mapping is not supported with this QEMU"
 msgstr "У цій версії QEMU не передбачено підтримки прив’язки спільної пам’яті"
 
-#: src/qemu/qemu_command.c:7613
+#: src/qemu/qemu_command.c:7610
 msgid "disjoint NUMA cpu ranges are not supported with this QEMU"
 msgstr "У цьому QEMU не передбачено відокремлених діапазонів процесорів NUMA"
 
-#: src/qemu/qemu_command.c:7672
+#: src/qemu/qemu_command.c:7669
 msgid "vnc graphics are not supported with this QEMU"
 msgstr "У цьому QEMU не передбачено графічних можливостей VNC"
 
-#: src/qemu/qemu_command.c:7689
+#: src/qemu/qemu_command.c:7686
 #, fuzzy
 msgid "vnc port must be in range [5900,65535]"
 msgstr ""
 "некоректне значення часу очікування у меню завантаження, значення має "
 "належати діапазону [0,65535]"
 
-#: src/qemu/qemu_command.c:7706 src/qemu/qemu_command.c:7868
+#: src/qemu/qemu_command.c:7703 src/qemu/qemu_command.c:7865
 msgid "network-based listen not possible, network driver not present"
 msgstr "очікування мережевих даних неможливе, немає драйвера мережі"
 
-#: src/qemu/qemu_command.c:7745
+#: src/qemu/qemu_command.c:7742
 msgid "VNC WebSockets are not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки WebSocket-ів для VNC"
 
-#: src/qemu/qemu_command.c:7755
+#: src/qemu/qemu_command.c:7752
 msgid "vnc display sharing policy is not supported with this QEMU"
 msgstr ""
 "У цьому QEMU не передбачено підтримки спільного використання дисплеїв VNC"
 
-#: src/qemu/qemu_command.c:7827
+#: src/qemu/qemu_command.c:7824
 msgid "spice graphics are not supported with this QEMU"
 msgstr "графічний режим SPICE не підтримується цим QEMU"
 
-#: src/qemu/qemu_command.c:7837
+#: src/qemu/qemu_command.c:7834
 msgid ""
 "spice TLS port set in XML configuration, but TLS is disabled in qemu.conf"
 msgstr ""
 "порт TLS spice встановлено у налаштуваннях XML, але TLS вимкнено у qemu.conf"
 
-#: src/qemu/qemu_command.c:7931
+#: src/qemu/qemu_command.c:7928
 msgid ""
 "spice secure channels set in XML configuration, but TLS port is not provided"
 msgstr ""
 "безпечні канали spice встановлено у налаштуваннях XML, але порт TLS не "
 "вказано"
 
-#: src/qemu/qemu_command.c:7942
+#: src/qemu/qemu_command.c:7939
 msgid ""
 "spice insecure channels set in XML configuration, but plain port is not "
 "provided"
@@ -17109,7 +17109,7 @@ msgstr ""
 "незахищені канали spice встановлено у налаштуваннях XML, але порт plain не "
 "вказано"
 
-#: src/qemu/qemu_command.c:7955
+#: src/qemu/qemu_command.c:7952
 msgid ""
 "spice defaultMode secure requested in XML configuration but TLS port not "
 "provided"
@@ -17117,7 +17117,7 @@ msgstr ""
 "у налаштуваннях XML визначено типовий захищений режим роботи spice "
 "(defaultMode=secure), але порт TLS не вказано"
 
-#: src/qemu/qemu_command.c:7964
+#: src/qemu/qemu_command.c:7961
 msgid ""
 "spice defaultMode insecure requested in XML configuration but plain port not "
 "provided"
@@ -17125,340 +17125,340 @@ msgstr ""
 "у налаштуваннях XML визначено типовий незахищений режим роботи spice, але "
 "порт plain не вказано"
 
-#: src/qemu/qemu_command.c:7997
+#: src/qemu/qemu_command.c:7994
 msgid "This QEMU can't disable file transfers through spice"
 msgstr ""
 "Ця версія QEMU не здатна вимикати перенесення файлів за допомогою spice"
 
-#: src/qemu/qemu_command.c:8042
+#: src/qemu/qemu_command.c:8039
 #, c-format
 msgid "sdl not supported by '%s'"
 msgstr "sdl не підтримується «%s»"
 
-#: src/qemu/qemu_command.c:8078
+#: src/qemu/qemu_command.c:8075
 #, c-format
 msgid "unsupported graphics type '%s'"
 msgstr "непідтримуваний тип графіки «%s»"
 
-#: src/qemu/qemu_command.c:8099
+#: src/qemu/qemu_command.c:8096
 msgid "Netdev support unavailable"
 msgstr "Підтримка netdev недоступна"
 
-#: src/qemu/qemu_command.c:8124
+#: src/qemu/qemu_command.c:8121
 #, c-format
 msgid "vhost-user type '%s' not supported"
 msgstr "підтримки типу vhost-user «%s» не передбачено"
 
-#: src/qemu/qemu_command.c:8140
+#: src/qemu/qemu_command.c:8137
 msgid "Error generating NIC -device string"
 msgstr "Помилка під час створення рядка NIC -device"
 
-#: src/qemu/qemu_command.c:8202 src/qemu/qemu_hotplug.c:913
+#: src/qemu/qemu_command.c:8199 src/qemu/qemu_hotplug.c:913
 #, c-format
 msgid "Multiqueue network is not supported for: %s"
 msgstr "Мережі з декількома чергами не підтримуються для %s"
 
-#: src/qemu/qemu_command.c:8211
+#: src/qemu/qemu_command.c:8208
 #, c-format
 msgid "Custom tap device path is not supported for: %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8413
+#: src/qemu/qemu_command.c:8410
 msgid "ivshmem device is not supported with this QEMU binary"
 msgstr "пристрій ivshmem підтримується цим бінарним компонентом QEMU"
 
-#: src/qemu/qemu_command.c:8428
+#: src/qemu/qemu_command.c:8425
 msgid "shmem size must be a power of two"
 msgstr "розмір shmem має бути степенем двійки"
 
-#: src/qemu/qemu_command.c:8433
+#: src/qemu/qemu_command.c:8430
 msgid "shmem size must be at least 1 MiB (1024 KiB)"
 msgstr "розмір shmem має дорівнювати принаймні 1 МіБ (1024 КіБ)"
 
-#: src/qemu/qemu_command.c:8548
+#: src/qemu/qemu_command.c:8545
 msgid "this QEMU binary doesn't support -drive"
 msgstr "у цьому виконуваному файлі QEMU не передбачено підтримки -drive"
 
-#: src/qemu/qemu_command.c:8553
+#: src/qemu/qemu_command.c:8550
 msgid "this QEMU binary doesn't support passing drive format"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки передавання формату "
 "диска"
 
-#: src/qemu/qemu_command.c:8560
+#: src/qemu/qemu_command.c:8557
 msgid "ACPI must be enabled in order to use UEFI"
 msgstr "Щоб користуватися UEFI, слід увімкнути ACPI"
 
-#: src/qemu/qemu_command.c:8572
+#: src/qemu/qemu_command.c:8569
 msgid "this qemu doesn't support passing readonly attribute"
 msgstr ""
 "у цій версії qemu не передбачено підтримки передавання атрибута readonly"
 
-#: src/qemu/qemu_command.c:8747 src/qemu/qemu_driver.c:10070
+#: src/qemu/qemu_command.c:8744 src/qemu/qemu_driver.c:10070
 #: src/qemu/qemu_driver.c:10210
 msgid "Memory tuning is not available in session mode"
 msgstr "У режимі сеансу визначення параметрів пам’яті недоступне"
 
-#: src/qemu/qemu_command.c:8753 src/qemu/qemu_driver.c:9447
+#: src/qemu/qemu_command.c:8750 src/qemu/qemu_driver.c:9447
 #: src/qemu/qemu_driver.c:9647
 msgid "Block I/O tuning is not available in session mode"
 msgstr "У режимі сеансу визначення блоків введення-виведення недоступне"
 
-#: src/qemu/qemu_command.c:8761 src/qemu/qemu_driver.c:9190
+#: src/qemu/qemu_command.c:8758 src/qemu/qemu_driver.c:9190
 #: src/qemu/qemu_driver.c:10728 src/qemu/qemu_driver.c:11040
 msgid "CPU tuning is not available in session mode"
 msgstr "У режимі сеансу визначення параметрів процесора недоступне"
 
-#: src/qemu/qemu_command.c:8836
+#: src/qemu/qemu_command.c:8833
 #, fuzzy
 msgid "memory hotplug isn't supported by this QEMU binary"
 msgstr "у цьому виконуваному файлі QEMU не передбачено блокування пам’яті"
 
-#: src/qemu/qemu_command.c:8846
+#: src/qemu/qemu_command.c:8843
 msgid ""
 "At least one numa node has to be configured when enabling memory hotplug"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8871
+#: src/qemu/qemu_command.c:8868
 msgid "hugetlbfs filesystem is not mounted or disabled by administrator config"
 msgstr ""
 "файлову систему hugetlbfs не змонтовано або вимкнено адміністратором за "
 "допомогою налаштувань"
 
-#: src/qemu/qemu_command.c:8877
+#: src/qemu/qemu_command.c:8874
 #, c-format
 msgid "hugepage backing not supported by '%s'"
 msgstr "дуже великі сторінки не підтримуються «%s»"
 
-#: src/qemu/qemu_command.c:8912
+#: src/qemu/qemu_command.c:8909
 msgid "memory locking not supported by QEMU binary"
 msgstr "у цьому виконуваному файлі QEMU не передбачено блокування пам’яті"
 
-#: src/qemu/qemu_command.c:8951
+#: src/qemu/qemu_command.c:8948
 #, fuzzy, c-format
 msgid "memory device count '%zu' exceeds slots count '%u'"
 msgstr ""
 "Кількість пристроїв спільної пам’яті домену призначення, %zu, не відповідає "
 "кількості джерела, %zu"
 
-#: src/qemu/qemu_command.c:8987
+#: src/qemu/qemu_command.c:8984
 #, c-format
 msgid "qemu emulator '%s' does not support xen"
 msgstr "Емулятором QEMU «%s» не підтримується xen"
 
-#: src/qemu/qemu_command.c:9000
+#: src/qemu/qemu_command.c:8997
 #, c-format
 msgid "the QEMU binary %s does not support smbios settings"
 msgstr "виконуваний файл QEMU %s не підтримує параметрів SMBIOS"
 
-#: src/qemu/qemu_command.c:9018
+#: src/qemu/qemu_command.c:9015
 #, c-format
 msgid "Domain '%s' sysinfo are not available"
 msgstr "Системна інформація щодо домену «%s» недоступна"
 
-#: src/qemu/qemu_command.c:9070 src/qemu/qemu_hotplug.c:1548
+#: src/qemu/qemu_command.c:9067 src/qemu/qemu_hotplug.c:1548
 #: src/qemu/qemu_hotplug.c:4143 src/qemu/qemu_hotplug.c:4208
 #: src/qemu/qemu_hotplug.c:4250
 msgid "qemu does not support -device"
 msgstr "У qemu не передбачено підтримки -device"
 
-#: src/qemu/qemu_command.c:9075
+#: src/qemu/qemu_command.c:9072
 msgid "qemu does not support SGA"
 msgstr "У qemu не передбачено підтримки SGA"
 
-#: src/qemu/qemu_command.c:9080
+#: src/qemu/qemu_command.c:9077
 msgid "need at least one serial port to use SGA"
 msgstr "для використання SGA потрібен принаймні один послідовний порт"
 
-#: src/qemu/qemu_command.c:9150
+#: src/qemu/qemu_command.c:9147
 #, c-format
 msgid "unsupported timer type (name) '%s'"
 msgstr "непідтримуваний тип таймера (назва) «%s»"
 
-#: src/qemu/qemu_command.c:9176 src/qemu/qemu_command.c:9187
+#: src/qemu/qemu_command.c:9173 src/qemu/qemu_command.c:9184
 #, c-format
 msgid "unsupported rtc tickpolicy '%s'"
 msgstr "непідтримувані правила відліку RTC «%s»"
 
-#: src/qemu/qemu_command.c:9215 src/qemu/qemu_command.c:9224
+#: src/qemu/qemu_command.c:9212 src/qemu/qemu_command.c:9221
 #, c-format
 msgid "unsupported pit tickpolicy '%s'"
 msgstr "непідтримувані правила відліку PIT «%s»"
 
-#: src/qemu/qemu_command.c:9246
+#: src/qemu/qemu_command.c:9243
 msgid "hpet timer is not supported"
 msgstr "підтримки таймера hpet не передбачено"
 
-#: src/qemu/qemu_command.c:9281
+#: src/qemu/qemu_command.c:9278
 msgid "setting ACPI S3 not supported"
 msgstr "підтримки встановлення S3 ACPI не передбачено"
 
-#: src/qemu/qemu_command.c:9292
+#: src/qemu/qemu_command.c:9289
 msgid "setting ACPI S4 not supported"
 msgstr "підтримки встановлення S4 ACPI не передбачено"
 
-#: src/qemu/qemu_command.c:9311
+#: src/qemu/qemu_command.c:9308
 msgid "hypervisor lacks deviceboot feature"
 msgstr "у гіпервізорі не передбачено можливості deviceboot"
 
-#: src/qemu/qemu_command.c:9368
+#: src/qemu/qemu_command.c:9365
 msgid "reboot timeout is not supported by this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки часу очікування на "
 "перезавантаження"
 
-#: src/qemu/qemu_command.c:9381
+#: src/qemu/qemu_command.c:9378
 msgid "splash timeout is not supported by this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки часу очікування "
 "вікна вітання"
 
-#: src/qemu/qemu_command.c:9424
+#: src/qemu/qemu_command.c:9421
 msgid "dtb is not supported with this QEMU binary"
 msgstr "dtb не підтримуються цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:9452
+#: src/qemu/qemu_command.c:9449
 msgid "64-bit PCI hole setting is only for root PCI controllers"
 msgstr ""
 "Параметр 64-бітового обмеження PCI встановлюється лише для кореневих "
 "контролерів PCI"
 
-#: src/qemu/qemu_command.c:9459
+#: src/qemu/qemu_command.c:9456
 #, c-format
 msgid "Setting the 64-bit PCI hole size is not supported for machine '%s'"
 msgstr ""
 "Для архітектури «%s» не передбачено можливості встановлення розміру 64-"
 "бітового обмеження PCI"
 
-#: src/qemu/qemu_command.c:9465
+#: src/qemu/qemu_command.c:9462
 msgid "64-bit PCI hole size setting is not supported with this QEMU binary"
 msgstr ""
 "У цьому виконуваному файлі QEMU не передбачено можливості встановлення 64-"
 "бітового обмеження PCI"
 
-#: src/qemu/qemu_command.c:9482 src/qemu/qemu_hotplug.c:779
+#: src/qemu/qemu_command.c:9479 src/qemu/qemu_hotplug.c:779
 #, c-format
 msgid "unsupported driver name '%s' for disk '%s'"
 msgstr "назва драйвера «%s» для диска «%s» не підтримується"
 
-#: src/qemu/qemu_command.c:9528
+#: src/qemu/qemu_command.c:9525
 msgid "Multiple legacy USB controllers are not supported"
 msgstr "Підтримки декількох застарілих контролерів USB не передбачено"
 
-#: src/qemu/qemu_command.c:9600 src/qemu/qemu_command.c:9701
+#: src/qemu/qemu_command.c:9597 src/qemu/qemu_command.c:9698
 #, c-format
 msgid "unsupported usb disk type for '%s'"
 msgstr "тип диска USB «%s» не підтримується"
 
-#: src/qemu/qemu_command.c:9749
+#: src/qemu/qemu_command.c:9746
 msgid "network disks are only supported with -drive"
 msgstr ""
 "підтримку дисків у мережі передбачено лише у разі визначення параметра -drive"
 
-#: src/qemu/qemu_command.c:9787
+#: src/qemu/qemu_command.c:9784
 msgid "filesystem passthrough not supported by this QEMU"
 msgstr "передавання файлової системи не підтримується цим QEMU"
 
-#: src/qemu/qemu_command.c:9844
+#: src/qemu/qemu_command.c:9841
 msgid "this QEMU binary lacks multiple smartcard support"
 msgstr ""
 "у цьому бінарному файлі QEMU не передбачено підтримки декількох смарт-карток"
 
-#: src/qemu/qemu_command.c:9855 src/qemu/qemu_command.c:9867
+#: src/qemu/qemu_command.c:9852 src/qemu/qemu_command.c:9864
 msgid "this QEMU binary lacks smartcard host mode support"
 msgstr ""
 "у цьому виконуваному файлі QEMU немає підтримки режиму провідного вузла "
 "смарт-картки"
 
-#: src/qemu/qemu_command.c:9877
+#: src/qemu/qemu_command.c:9874
 #, c-format
 msgid "invalid certificate name: %s"
 msgstr "некоректна назва сертифікату: %s"
 
-#: src/qemu/qemu_command.c:9888
+#: src/qemu/qemu_command.c:9885
 #, c-format
 msgid "invalid database name: %s"
 msgstr "некоректна назва бази даних: %s"
 
-#: src/qemu/qemu_command.c:9903
+#: src/qemu/qemu_command.c:9900
 msgid "this QEMU binary lacks smartcard passthrough mode support"
 msgstr ""
 "у цьому виконуваному файлі QEMU немає підтримки режиму передавання даних "
 "смарт-картки"
 
-#: src/qemu/qemu_command.c:10008
+#: src/qemu/qemu_command.c:10005
 msgid "guestfwd requires QEMU to support -chardev & -device"
 msgstr "guestfwd потрібна підтримка у QEMU параметрів «-chardev» та «-device»"
 
-#: src/qemu/qemu_command.c:10029 src/qemu/qemu_command.c:10089
+#: src/qemu/qemu_command.c:10026 src/qemu/qemu_command.c:10086
 msgid "virtio channel requires QEMU to support -device"
 msgstr "для роботи каналу virtio потрібна підтримка -device у QEMU"
 
-#: src/qemu/qemu_command.c:10065
+#: src/qemu/qemu_command.c:10062
 msgid "sclp console requires QEMU to support -device"
 msgstr "sclp-консолі потрібна підтримка -device з боку QEMU"
 
-#: src/qemu/qemu_command.c:10070
+#: src/qemu/qemu_command.c:10067
 msgid "sclp console requires QEMU to support s390-sclp"
 msgstr "sclp-консолі потрібна підтримка s390-sclp з боку QEMU"
 
-#: src/qemu/qemu_command.c:10110 src/qemu/qemu_command.c:11057
+#: src/qemu/qemu_command.c:10107 src/qemu/qemu_command.c:11054
 #, c-format
 msgid "unsupported console target type %s"
 msgstr "непідтримуваний тип консолі призначення %s"
 
-#: src/qemu/qemu_command.c:10150
+#: src/qemu/qemu_command.c:10147
 msgid "only 1 graphics device is supported"
 msgstr "передбачено підтримку лише одного графічного пристрою"
 
-#: src/qemu/qemu_command.c:10155
+#: src/qemu/qemu_command.c:10152
 msgid "only 1 graphics device of each type (sdl, vnc, spice) is supported"
 msgstr ""
 "передбачено підтримку лише одного графічного пристрою кожного типу (sdl, "
 "vnc, spice)"
 
-#: src/qemu/qemu_command.c:10194
+#: src/qemu/qemu_command.c:10191
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr "У цьому QEMU не передбачено підтримки графічних адаптерів QXL"
 
-#: src/qemu/qemu_command.c:10269 src/qemu/qemu_domain.c:1231
+#: src/qemu/qemu_command.c:10266 src/qemu/qemu_domain.c:1231
 msgid "value for 'vgamem' must be at least 1 MiB (1024 KiB)"
 msgstr "значенням «vgamem» має бути принаймні 1 МіБ (1024 КіБ)"
 
-#: src/qemu/qemu_command.c:10286
+#: src/qemu/qemu_command.c:10283
 #, c-format
 msgid "video type %s is only valid as primary video card"
 msgstr "тип відео %s може бути використано лише для основної відеокартки"
 
-#: src/qemu/qemu_command.c:10323
+#: src/qemu/qemu_command.c:10320
 #, c-format
 msgid "video type %s is not supported with this QEMU"
 msgstr "цей QEMU не підтримує тип відео %s"
 
-#: src/qemu/qemu_command.c:10403
+#: src/qemu/qemu_command.c:10400
 msgid "invalid sound model"
 msgstr "неприпустима модель звукового пристрою"
 
-#: src/qemu/qemu_command.c:10411
+#: src/qemu/qemu_command.c:10408
 msgid "this QEMU binary lacks hda support"
 msgstr "у цьому виконуваному компоненті QEMU не передбачено підтримки hda"
 
-#: src/qemu/qemu_command.c:10458
+#: src/qemu/qemu_command.c:10455
 msgid "invalid watchdog action"
 msgstr "некоректна дія сторожового пристрою"
 
-#: src/qemu/qemu_command.c:10481 src/qemu/qemu_hotplug.c:1389
+#: src/qemu/qemu_command.c:10478 src/qemu/qemu_hotplug.c:1389
 msgid "redirected devices are not supported by this QEMU"
 msgstr "у цьому QEMU не передбачено підтримки переспрямованих пристроїв"
 
-#: src/qemu/qemu_command.c:10504
+#: src/qemu/qemu_command.c:10501
 msgid ""
 "booting from assigned devices is only supported for PCI, USB and SCSI devices"
 msgstr ""
 "завантаження з призначених пристроїв підтримується лише для пристроїв PCI, "
 "USB та SCSI"
 
-#: src/qemu/qemu_command.c:10513
+#: src/qemu/qemu_command.c:10510
 msgid ""
 "booting from PCI devices assigned with VFIO is not supported with this "
 "version of qemu"
@@ -17466,400 +17466,400 @@ msgstr ""
 "у цій версії qemu не передбачено підтримки завантаження з пристроїв PCI, "
 "пов’язаних з VFIO"
 
-#: src/qemu/qemu_command.c:10520
+#: src/qemu/qemu_command.c:10517
 msgid ""
 "booting from assigned PCI devices is not supported with this version of qemu"
 msgstr ""
 "завантаження з призначених PCI-пристроїв не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:10529
+#: src/qemu/qemu_command.c:10526
 msgid ""
 "booting from assigned USB devices is not supported with this version of qemu"
 msgstr ""
 "завантаження з призначених USB-пристроїв не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:10536
+#: src/qemu/qemu_command.c:10533
 msgid ""
 "booting from assigned SCSI devices is not supported with this version of qemu"
 msgstr ""
 "завантаження з призначених SCSI-пристроїв не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:10570 src/qemu/qemu_hotplug.c:1257
+#: src/qemu/qemu_command.c:10567 src/qemu/qemu_hotplug.c:1257
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "Ця версія QEMU не підтримує призначення PCI-пристроїв VFIO"
 
-#: src/qemu/qemu_command.c:10610 src/qemu/qemu_monitor_text.c:1779
+#: src/qemu/qemu_command.c:10607 src/qemu/qemu_monitor_text.c:1779
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "Ця версія QEMU не підтримує призначення PCI-пристроїв"
 
-#: src/qemu/qemu_command.c:10636 src/qemu/qemu_hotplug.c:1922
+#: src/qemu/qemu_command.c:10633 src/qemu/qemu_hotplug.c:1922
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "у цій версії QEMU не передбачено режиму passthrough для SCSI"
 
-#: src/qemu/qemu_command.c:10650
+#: src/qemu/qemu_command.c:10647
 msgid "TCP migration is not supported with this QEMU binary"
 msgstr "TCP-перенесення не підтримуються цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:10658
+#: src/qemu/qemu_command.c:10655
 msgid "incoming RDMA migration is not supported with this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки вхідного "
 "перенесення RDMA"
 
-#: src/qemu/qemu_command.c:10675
+#: src/qemu/qemu_command.c:10672
 msgid "STDIO migration is not supported with this QEMU binary"
 msgstr "STDIO-перенесення не підтримуються цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:10682
+#: src/qemu/qemu_command.c:10679
 msgid "EXEC migration is not supported with this QEMU binary"
 msgstr "EXEC-перенесення не підтримуються цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:10690
+#: src/qemu/qemu_command.c:10687
 msgid "FD migration is not supported with this QEMU binary"
 msgstr "FD-перенесення не підтримуються цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:10699
+#: src/qemu/qemu_command.c:10696
 msgid "UNIX migration is not supported with this QEMU binary"
 msgstr "UNIX-перенесення не підтримується цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:10706
+#: src/qemu/qemu_command.c:10703
 msgid "unknown migration protocol"
 msgstr "невідомий протокол перенесення"
 
-#: src/qemu/qemu_command.c:10725
+#: src/qemu/qemu_command.c:10722
 #, c-format
 msgid ""
 "Memory balloon device type '%s' is not supported by this version of qemu"
 msgstr ""
 "Тип пристрою додаткової пам’яті «%s» не підтримується цією версією QEMU"
 
-#: src/qemu/qemu_command.c:10749
+#: src/qemu/qemu_command.c:10746
 msgid "RNG device is missing alias"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10781
+#: src/qemu/qemu_command.c:10778
 msgid "nvram device is not supported by this QEMU binary"
 msgstr ""
 "у цьому виконуваному файлі QEMU не передбачено підтримки пристроїв nvram"
 
-#: src/qemu/qemu_command.c:10796
+#: src/qemu/qemu_command.c:10793
 msgid "nvram device is only supported for PPC64"
 msgstr "підтримку пристроїв nvram передбачено лише для архітектури PPC64"
 
-#: src/qemu/qemu_command.c:10822
+#: src/qemu/qemu_command.c:10819
 msgid "QEMU does not support seccomp sandboxes"
 msgstr "У QEMU не передбачено підтримки пісочниць seccomp"
 
-#: src/qemu/qemu_command.c:10837
+#: src/qemu/qemu_command.c:10834
 msgid "panic is supported only with ISA address type"
 msgstr "підтримку panic передбачно лише з типом адрес ISA"
 
-#: src/qemu/qemu_command.c:10843
+#: src/qemu/qemu_command.c:10840
 msgid "your QEMU is too old to support pvpanic"
 msgstr "ваша версія QEMU є надто застарілою для підтримки pvpanic"
 
-#: src/qemu/qemu_command.c:10923
+#: src/qemu/qemu_command.c:10920
 msgid "usb-serial is not supported in this QEMU binary"
 msgstr "у цьому виконуваному файлі QEMU не передбачено підтримки usb-serial"
 
-#: src/qemu/qemu_command.c:10941
+#: src/qemu/qemu_command.c:10938
 #, fuzzy
 msgid "no addresses are supported for isa-serial"
 msgstr "підтримки IP-адреси для інтерфейсу ethernet не передбачено"
 
-#: src/qemu/qemu_command.c:10949
+#: src/qemu/qemu_command.c:10946
 #, fuzzy
 msgid "pci-serial is not supported with this QEMU binary"
 msgstr "у цьому виконуваному файлі QEMU не передбачено підтримки usb-serial"
 
-#: src/qemu/qemu_command.c:10956
+#: src/qemu/qemu_command.c:10953
 #, fuzzy
 msgid "pci-serial requires address of pci type"
 msgstr "для опису послідовного пристрою usb слід вказати адресу типу usb"
 
-#: src/qemu/qemu_command.c:11268
+#: src/qemu/qemu_command.c:11265
 #, c-format
 msgid "malformed keyword arguments in '%s'"
 msgstr "неправильно сформовані аргументи у «%s»"
 
-#: src/qemu/qemu_command.c:11429 src/qemu/qemu_command.c:12750
+#: src/qemu/qemu_command.c:11426 src/qemu/qemu_command.c:12747
 #, c-format
 msgid "cannot parse sheepdog filename '%s'"
 msgstr "не вдалося обробити назву файла образу sheepdog «%s»"
 
-#: src/qemu/qemu_command.c:11458
+#: src/qemu/qemu_command.c:11455
 #, c-format
 msgid "pseries systems do not support ide devices '%s'"
 msgstr "У системах pseries не передбачено підтримки пристроїв IDE «%s»"
 
-#: src/qemu/qemu_command.c:11513
+#: src/qemu/qemu_command.c:11510
 #, c-format
 msgid "cannot parse drive index '%s'"
 msgstr "не вдалось розібрати значення «index» для диска «%s»"
 
-#: src/qemu/qemu_command.c:11519
+#: src/qemu/qemu_command.c:11516
 #, c-format
 msgid "cannot parse drive bus '%s'"
 msgstr "не вдалося обробити канал диска «%s»"
 
-#: src/qemu/qemu_command.c:11525
+#: src/qemu/qemu_command.c:11522
 #, c-format
 msgid "cannot parse drive unit '%s'"
 msgstr "не вдалося обробити значення «unit» диска «%s»"
 
-#: src/qemu/qemu_command.c:11534
+#: src/qemu/qemu_command.c:11531
 #, c-format
 msgid "cannot parse io mode '%s'"
 msgstr "не вдалося обробити дані щодо режиму вводу-виводу «%s»"
 
-#: src/qemu/qemu_command.c:11543
+#: src/qemu/qemu_command.c:11540
 #, c-format
 msgid "cannot parse cylinders value'%s'"
 msgstr "не вдалося обробити значення для циліндрів, «%s»"
 
-#: src/qemu/qemu_command.c:11553
+#: src/qemu/qemu_command.c:11550
 #, c-format
 msgid "cannot parse heads value'%s'"
 msgstr "не вдалося обробити значення для голівок, «%s»"
 
-#: src/qemu/qemu_command.c:11563
+#: src/qemu/qemu_command.c:11560
 #, c-format
 msgid "cannot parse sectors value'%s'"
 msgstr "не вдалося обробити значення для секторів, «%s»"
 
-#: src/qemu/qemu_command.c:11575
+#: src/qemu/qemu_command.c:11572
 #, c-format
 msgid "cannot parse translation value '%s'"
 msgstr "не вдалося обробити значення для перенесення, «%s»"
 
-#: src/qemu/qemu_command.c:11589
+#: src/qemu/qemu_command.c:11586
 #, c-format
 msgid "missing file parameter in drive '%s'"
 msgstr "немає параметра файла для диска «%s»"
 
-#: src/qemu/qemu_command.c:11600
+#: src/qemu/qemu_command.c:11597
 #, c-format
 msgid "missing index/unit/bus parameter in drive '%s'"
 msgstr "не вказано параметр індекса/модуля/каналу для диска «%s»"
 
-#: src/qemu/qemu_command.c:11645
+#: src/qemu/qemu_command.c:11642
 #, c-format
 msgid "invalid device name '%s'"
 msgstr "некоректна назва пристрою «%s»"
 
-#: src/qemu/qemu_command.c:11686
+#: src/qemu/qemu_command.c:11683
 #, c-format
 msgid "cannot parse NIC vlan in '%s'"
 msgstr "не вдалось розібрати vlan NIC в «%s»"
 
-#: src/qemu/qemu_command.c:11698
+#: src/qemu/qemu_command.c:11695
 #, c-format
 msgid "cannot find NIC definition for vlan %d"
 msgstr "визначення NIC для vlan %d не знайдено"
 
-#: src/qemu/qemu_command.c:11755
+#: src/qemu/qemu_command.c:11752
 #, c-format
 msgid "cannot parse vlan in '%s'"
 msgstr "не вдалось розібрати vlan в «%s»"
 
-#: src/qemu/qemu_command.c:11785
+#: src/qemu/qemu_command.c:11782
 #, c-format
 msgid "cannot parse NIC definition '%s'"
 msgstr "не вдалось розібрати визначення NIC «%s»"
 
-#: src/qemu/qemu_command.c:11835
+#: src/qemu/qemu_command.c:11832
 #, c-format
 msgid "cannot parse sndbuf size in '%s'"
 msgstr "не вдалося обробити запис розміру звукового буфера у «%s»"
 
-#: src/qemu/qemu_command.c:11874
+#: src/qemu/qemu_command.c:11871
 #, c-format
 msgid "unknown PCI device syntax '%s'"
 msgstr "невідомий синтаксис PCI-пристрою: «%s»"
 
-#: src/qemu/qemu_command.c:11881
+#: src/qemu/qemu_command.c:11878
 #, c-format
 msgid "cannot extract PCI device bus '%s'"
 msgstr "не вдалось отримати інформацію про шину PCI-пристрою «%s»"
 
-#: src/qemu/qemu_command.c:11887
+#: src/qemu/qemu_command.c:11884
 #, c-format
 msgid "cannot extract PCI device slot '%s'"
 msgstr "не вдалось отримати інформацію про слот PCI-пристрою «%s»"
 
-#: src/qemu/qemu_command.c:11893
+#: src/qemu/qemu_command.c:11890
 #, c-format
 msgid "cannot extract PCI device function '%s'"
 msgstr "не вдалось отримати інформацію про функції PCI-пристрою «%s»"
 
-#: src/qemu/qemu_command.c:11929
+#: src/qemu/qemu_command.c:11926
 #, c-format
 msgid "unknown USB device syntax '%s'"
 msgstr "невідомий синтаксис запису пристрою USB «%s»"
 
-#: src/qemu/qemu_command.c:11937
+#: src/qemu/qemu_command.c:11934
 #, c-format
 msgid "cannot extract USB device vendor '%s'"
 msgstr "не вдалось отримати відомості про виробника USB-пристрою «%s»"
 
-#: src/qemu/qemu_command.c:11943
+#: src/qemu/qemu_command.c:11940
 #, c-format
 msgid "cannot extract USB device product '%s'"
 msgstr "не вдалося видобути дані щодо продукту пристрою USB «%s»"
 
-#: src/qemu/qemu_command.c:11949
+#: src/qemu/qemu_command.c:11946
 #, c-format
 msgid "cannot extract USB device bus '%s'"
 msgstr "не вдалося видобути дані щодо каналу пристрою USB «%s»"
 
-#: src/qemu/qemu_command.c:11955
+#: src/qemu/qemu_command.c:11952
 #, c-format
 msgid "cannot extract USB device address '%s'"
 msgstr "не вдалося видобути адресу пристрою USB «%s»"
 
-#: src/qemu/qemu_command.c:12047
+#: src/qemu/qemu_command.c:12044
 #, c-format
 msgid "cannot find port number in character device %s"
 msgstr "не знайдено номер порту у символьному пристрої %s"
 
-#: src/qemu/qemu_command.c:12073
+#: src/qemu/qemu_command.c:12070
 #, c-format
 msgid "unknown character device syntax %s"
 msgstr "невідомий синтаксис символьного пристрою %s"
 
-#: src/qemu/qemu_command.c:12149
+#: src/qemu/qemu_command.c:12146
 #, c-format
 msgid "%s platform doesn't support CPU features'"
 msgstr "На платформі %s не передбачено підтримки можливостей процесора"
 
-#: src/qemu/qemu_command.c:12179
+#: src/qemu/qemu_command.c:12176
 msgid "conflicting occurrences of kvmclock feature"
 msgstr "конфлікт екземплярів можливості kvmclock"
 
-#: src/qemu/qemu_command.c:12220
+#: src/qemu/qemu_command.c:12217
 #, c-format
 msgid "unsupported HyperV Enlightenment feature '%s'"
 msgstr "непідтримувана можливість HyperV Enlightenment: «%s»"
 
-#: src/qemu/qemu_command.c:12230
+#: src/qemu/qemu_command.c:12227
 #, c-format
 msgid "HyperV feature '%s' should not have a value"
 msgstr "Запис можливості HyperV «%s» не повинен містити значення"
 
-#: src/qemu/qemu_command.c:12241
+#: src/qemu/qemu_command.c:12238
 msgid "missing HyperV spinlock retry count"
 msgstr ""
 "не вказано кількості повторних спроб блокування перемикання (spinlock retry) "
 "для HyperV"
 
-#: src/qemu/qemu_command.c:12247
+#: src/qemu/qemu_command.c:12244
 msgid "cannot parse HyperV spinlock retry count"
 msgstr ""
 "не вдалося обробити значення кількості повторних спроб блокування "
 "перемикання (spinlock retry) для HyperV"
 
-#: src/qemu/qemu_command.c:12295
+#: src/qemu/qemu_command.c:12292
 #, c-format
 msgid "unknown CPU syntax '%s'"
 msgstr "невідомий синтаксис запису процесора «%s»"
 
-#: src/qemu/qemu_command.c:12369
+#: src/qemu/qemu_command.c:12366
 #, c-format
 msgid "cannot parse CPU topology '%s'"
 msgstr "не вдалося обробити значення топології процесора «%s»"
 
-#: src/qemu/qemu_command.c:12434
+#: src/qemu/qemu_command.c:12431
 msgid "no emulator path found"
 msgstr "не знайдено шлях до емулятора"
 
-#: src/qemu/qemu_command.c:12494
+#: src/qemu/qemu_command.c:12491
 #, c-format
 msgid "missing value for %s argument"
 msgstr "немає значення аргументу %s"
 
-#: src/qemu/qemu_command.c:12554
+#: src/qemu/qemu_command.c:12551
 #, c-format
 msgid "missing VNC port number in '%s'"
 msgstr "у «%s» не вказано номера порту VNC"
 
-#: src/qemu/qemu_command.c:12562
+#: src/qemu/qemu_command.c:12559
 #, c-format
 msgid "cannot parse VNC port '%s'"
 msgstr "не вдалось розібрати порт VNC «%s»"
 
-#: src/qemu/qemu_command.c:12600
+#: src/qemu/qemu_command.c:12597
 #, c-format
 msgid "cannot parse VNC WebSocket port '%s'"
 msgstr "не вдалося обробити запис порту WebSocket VNC «%s»"
 
-#: src/qemu/qemu_command.c:12632
+#: src/qemu/qemu_command.c:12629
 msgid "missing vnc sharing policy"
 msgstr "не реалізовано правила спільного використання VNC"
 
-#: src/qemu/qemu_command.c:12656
+#: src/qemu/qemu_command.c:12653
 #, c-format
 msgid "cannot parse memory level '%s'"
 msgstr "не вдалось розібрати рівень пам'яті «%s»"
 
-#: src/qemu/qemu_command.c:12669
+#: src/qemu/qemu_command.c:12666
 #, c-format
 msgid "cannot parse UUID '%s'"
 msgstr "не вдалось розібрати UUID «%s»"
 
-#: src/qemu/qemu_command.c:12788
+#: src/qemu/qemu_command.c:12785
 #, c-format
 msgid "Cannot assign address for device name '%s'"
 msgstr "Не вдалося призначити адресу для пристрою з назвою «%s»"
 
-#: src/qemu/qemu_command.c:12851
+#: src/qemu/qemu_command.c:12848
 msgid "cannot parse reboot-timeout value"
 msgstr "не вдалося обробити значення reboot-timeout"
 
-#: src/qemu/qemu_command.c:12917
+#: src/qemu/qemu_command.c:12914
 #, fuzzy
 msgid "aes-key-wrap is not supported with this QEMU binary"
 msgstr "повторне використання не підтримується цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:12930
+#: src/qemu/qemu_command.c:12927
 #, fuzzy
 msgid "dea-key-wrap is not supported with this QEMU binary"
 msgstr "повторне використання не підтримується цим двійковим компонентом QEMU"
 
-#: src/qemu/qemu_command.c:13121
+#: src/qemu/qemu_command.c:13118
 #, c-format
 msgid "unknown video adapter type '%s'"
 msgstr "невідомий тип відеоадаптера «%s»"
 
-#: src/qemu/qemu_command.c:13180
+#: src/qemu/qemu_command.c:13177
 #, c-format
 msgid "invalid value for disable_s3 parameter: '%s'"
 msgstr "некоректне значення параметра disable_s3: «%s»"
 
-#: src/qemu/qemu_command.c:13197
+#: src/qemu/qemu_command.c:13194
 #, c-format
 msgid "invalid value for disable_s4 parameter: '%s'"
 msgstr "некоректне значення параметра disable_s4: «%s»"
 
-#: src/qemu/qemu_command.c:13216
+#: src/qemu/qemu_command.c:13213
 #, c-format
 msgid "cannot parse nvram's address '%s'"
 msgstr "не вдалося обробити значення адреси nvram «%s»"
 
-#: src/qemu/qemu_command.c:13274
+#: src/qemu/qemu_command.c:13271
 msgid "CEPH_ARGS was set without an rbd disk"
 msgstr "CEPH_ARGS було встановлено без диска rbd"
 
-#: src/qemu/qemu_command.c:13281
+#: src/qemu/qemu_command.c:13278
 #, c-format
 msgid "could not parse CEPH_ARGS '%s'"
 msgstr "не вдалося обробити CEPH_ARGS «%s»"
 
-#: src/qemu/qemu_command.c:13318
+#: src/qemu/qemu_command.c:13315
 #, c-format
 msgid "found no rbd hosts in CEPH_ARGS '%s'"
 msgstr "не виявлено жодного провідного вузла RBD у CEPH_ARGS «%s»"
 
-#: src/qemu/qemu_command.c:13530
+#: src/qemu/qemu_command.c:13527
 #, c-format
 msgid "Unable to resolve %s for pid %u"
 msgstr "Не вдалося виконати визначення %s для pid %u"
