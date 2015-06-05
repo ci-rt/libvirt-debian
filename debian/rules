@@ -129,14 +129,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
 
 override_dh_auto_test:
-	export LD_PRELOAD="";     \
-	export VIR_TEST_DEBUG=1;  \
-	[ -n "$(MAKE_CHECK)" ] || exit 0; \
-	if ! dh_auto_test -O--builddirectory=$(DEB_BUILDDIR); then \
-	    cat ./debian/build/gnulib/tests/test-suite.log \
-	        ./debian/build/tests/test-suite.log; \
-	    exit 1; \
-	fi
+	# Disabled due to #781232
 
 override_dh_install:
 	dh_install
