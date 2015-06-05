@@ -1,0 +1,50 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 5 Jun 2015 13:13:44 +0200
+Subject: Use upstreams polkit rule
+
+As of 1.2.16 upstream ships a Polkit rule like Debian does.
+---
+ daemon/Makefile.am | 4 ++--
+ daemon/Makefile.in | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/daemon/Makefile.am b/daemon/Makefile.am
+index 42dec5d..24b8026 100644
+--- a/daemon/Makefile.am
++++ b/daemon/Makefile.am
+@@ -269,14 +269,14 @@ install-data-polkit::
+ 	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+ if ! WITH_POLKIT0
+ 	$(MKDIR_P) $(DESTDIR)$(rulesdir)
+-	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/50-libvirt.rules
++	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/60-libvirt.rules
+ endif ! WITH_POLKIT0
+ 
+ uninstall-data-polkit::
+ 	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+ 	rmdir $(DESTDIR)$(policydir) || :
+ if ! WITH_POLKIT0
+-	rm -f $(DESTDIR)$(rulesdir)/50-libvirt.rules
++	rm -f $(DESTDIR)$(rulesdir)/60-libvirt.rules
+ 	rmdir $(DESTDIR)$(rulesdir) || :
+ endif ! WITH_POLKIT0
+ 
+diff --git a/daemon/Makefile.in b/daemon/Makefile.in
+index 3d7f810..0673723 100644
+--- a/daemon/Makefile.in
++++ b/daemon/Makefile.in
+@@ -2580,12 +2580,12 @@ qemu_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(rulesdir)
+-@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/50-libvirt.rules
++@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/60-libvirt.rules
+ 
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-data-polkit::
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(policydir) || :
+-@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(rulesdir)/50-libvirt.rules
++@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(rulesdir)/60-libvirt.rules
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(rulesdir) || :
+ 
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_FALSE@install-data-polkit::

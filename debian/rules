@@ -150,8 +150,6 @@ override_dh_install:
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-daemon-system.libvirt-guests.default
 	# Add our backward compat polkit rule
-	cp debian/polkit/60-libvirt.rules \
-	    debian/libvirt-daemon-system/usr/share/polkit-1/rules.d/
 	cp debian/polkit/60-libvirt.pkla \
 	    debian/libvirt-daemon-system/var/lib/polkit-1/localauthority/10-vendor.d/
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
