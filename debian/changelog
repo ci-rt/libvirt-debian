@@ -1,3 +1,16 @@
+libvirt (1.2.16-2) unstable; urgency=medium
+
+  * [0266267] Build-Depend and suggest nfs-common
+    for showmount
+    Thanks to Laurent Bigonville (Closes: #787783)
+  * [a48c783] Build depend on libpolkit-gobject-1-dev
+    to properly detect uid support in pkcheck.
+    Thanks to Laurent Bigonville (Closes: #787782)
+  * [3d0fe35] Enable firewalld support.
+    Thanks to Laurent Bigonville (Closes: #714372)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 05 Jun 2015 10:12:28 +0200
+
 libvirt (1.2.16-1) unstable; urgency=medium
 
   * Upload to unstabl
