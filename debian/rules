@@ -33,6 +33,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_SANLOCK        = --with-sanlock
   WITH_INIT_SCRIPT    =	--with-init-script=systemd
   WITH_SYSTEMD        = --with-systemd-daemon
+  WITH_FIREWALLD      = --with-firewalld
   WITH_AUDIT          = --with-audit
   WITH_SELINUX        = --with-selinux --with-secdriver-selinux --with-selinux-mount=/sys/fs/selinux
   WITH_APPARMOR       = --with-apparmor --with-secdriver-apparmor --with-apparmor-profiles
@@ -68,6 +69,7 @@ else
   WITH_NETCF          = --without-netcf
   WITH_INIT_SCRIPT    =	--with-init-script=none
   WITH_SYSTEMD        = --without-systemd-daemon
+  WITH_FIREWALLD      = --without-firewalld
   WITH_AUDIT          = --without-audit
   WITH_SELINUX        = --without-selinux
   WITH_APPARMOR       = --without-apparmor
@@ -117,7 +119,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_DTRACE)           \
 	$(WITH_AUDIT)            \
 	--without-hal            \
-	--without-firewalld      \
+	$(WITH_FIREWALLD)        \
 	--without-attr
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
