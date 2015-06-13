@@ -28,3 +28,4 @@ security/CVE-2015-0236-qemu-Check-ACLs-when-dumping-security-.patch
 security/CVE-2015-0236-qemu-Check-ACLs-when-dumping-securi-14.patch
 qemu-Don-t-try-to-parse-help-for-new-QEM.patch
 upstream/Teach-virt-aa-helper-to-use-TEMPLATE.qemu-if-the-dom.patch
+Allow-access-to-libnl-3-config-files.patch
