@@ -1,0 +1,25 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 13 Jun 2015 10:38:26 +0200
+Subject: Fix crash on live migration
+
+this supplements 07dbec0a64783f644854a22aa0355720f0328d17.
+
+Closes: #7788171
+Thanks: Eckebrecht von Pappenheim
+---
+ src/qemu/qemu_migration.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/qemu/qemu_migration.c b/src/qemu/qemu_migration.c
+index e18556f..87f3f1a 100644
+--- a/src/qemu/qemu_migration.c
++++ b/src/qemu/qemu_migration.c
+@@ -2746,7 +2746,7 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
+                                     QEMU_ASYNC_JOB_MIGRATION_IN) < 0)
+         goto stop;
+ 
+-    if (STREQ(protocol, "rdma") &&
++    if (STREQ_NULLABLE(protocol, "rdma") &&
+         virProcessSetMaxMemLock(vm->pid, vm->def->mem.hard_limit << 10) < 0) {
+         goto stop;
+     }
