@@ -30,3 +30,4 @@ qemu-Don-t-try-to-parse-help-for-new-QEM.patch
 upstream/Teach-virt-aa-helper-to-use-TEMPLATE.qemu-if-the-dom.patch
 Allow-access-to-libnl-3-config-files.patch
 Fix-crash-on-live-migration.patch
+upstream/Report-original-error-when-QMP-probing-fails-with-ne.patch

@@ -1,0 +1,182 @@
+From: "Daniel P. Berrange" <berrange@redhat.com>
+Date: Mon, 15 Jun 2015 09:04:34 +0200
+Subject: Report original error when QMP probing fails with new QEMU
+
+If probing capabilities via QMP fails, we now have a check
+that prevents us falling back to -help parsing. Unfortunately
+the error message
+
+  "Failed to probe capabilities for /usr/bin/qemu-kvm:
+   unsupported configuration: QEMU 2.1.2 is too new for help parsing"
+
+is proving rather unhelpful to the user. We need to be telling
+them why QMP failed (the root cause), rather than they can't
+use -help (the side effect).
+
+To do this we should capture stderr during QMP probing, and
+if -help parsing then sees a new QEMU version, we know that
+QMP should have worked, and so we can show the messages from
+stderr. The message thus becomes
+
+  "Failed to probe capabilities for /usr/bin/qemu-kvm:
+   internal error: QEMU / QMP failed: Could not access
+   KVM kernel module: No such file or directory
+   failed to initialize KVM: No such file or directory"
+---
+ src/qemu/qemu_capabilities.c | 37 +++++++++++++++++++++++++++----------
+ src/qemu/qemu_capabilities.h |  3 ++-
+ tests/qemuhelptest.c         |  2 +-
+ 3 files changed, 30 insertions(+), 12 deletions(-)
+
+diff --git a/src/qemu/qemu_capabilities.c b/src/qemu/qemu_capabilities.c
+index 9e0158c..b6144ea 100644
+--- a/src/qemu/qemu_capabilities.c
++++ b/src/qemu/qemu_capabilities.c
+@@ -1325,7 +1325,8 @@ int virQEMUCapsParseHelpStr(const char *qemu,
+                             unsigned int *version,
+                             bool *is_kvm,
+                             unsigned int *kvm_version,
+-                            bool check_yajl)
++                            bool check_yajl,
++                            const char *qmperr)
+ {
+     unsigned major, minor, micro;
+     const char *p = help;
+@@ -1386,9 +1387,15 @@ int virQEMUCapsParseHelpStr(const char *qemu,
+      * using QMP probing.
+      */
+     if (*version > 1002000) {
+-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+-                       _("QEMU %u.%u.%u is too new for help parsing"),
+-                       major, minor, micro);
++        if (qmperr && *qmperr) {
++            virReportError(VIR_ERR_INTERNAL_ERROR,
++                           _("QEMU / QMP failed: %s"),
++                           qmperr);
++        } else {
++            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
++                           _("QEMU %u.%u.%u is too new for help parsing"),
++                           major, minor, micro);
++        }
+         goto cleanup;
+     }
+ 
+@@ -2933,7 +2940,7 @@ virQEMUCapsInitCached(virQEMUCapsPtr qemuCaps, const char *cacheDir)
+ #define QEMU_SYSTEM_PREFIX "qemu-system-"
+ 
+ static int
+-virQEMUCapsInitHelp(virQEMUCapsPtr qemuCaps, uid_t runUid, gid_t runGid)
++virQEMUCapsInitHelp(virQEMUCapsPtr qemuCaps, uid_t runUid, gid_t runGid, const char *qmperr)
+ {
+     virCommandPtr cmd = NULL;
+     bool is_kvm;
+@@ -2964,7 +2971,8 @@ virQEMUCapsInitHelp(virQEMUCapsPtr qemuCaps, uid_t runUid, gid_t runGid)
+                                 &qemuCaps->version,
+                                 &is_kvm,
+                                 &qemuCaps->kvmVersion,
+-                                false) < 0)
++                                false,
++                                qmperr) < 0)
+         goto cleanup;
+ 
+     /* x86_64 and i686 support PCI-multibus on all machine types
+@@ -3215,7 +3223,8 @@ static int
+ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
+                    const char *libDir,
+                    uid_t runUid,
+-                   gid_t runGid)
++                   gid_t runGid,
++                   char **qmperr)
+ {
+     int ret = -1;
+     virCommandPtr cmd = NULL;
+@@ -3275,13 +3284,16 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
+     virCommandSetGID(cmd, runGid);
+     virCommandSetUID(cmd, runUid);
+ 
++    virCommandSetErrorBuffer(cmd, qmperr);
++
+     /* Log, but otherwise ignore, non-zero status.  */
+     if (virCommandRun(cmd, &status) < 0)
+         goto cleanup;
+ 
+     if (status != 0) {
+         ret = 0;
+-        VIR_DEBUG("QEMU %s exited with status %d", qemuCaps->binary, status);
++        VIR_DEBUG("QEMU %s exited with status %d: %s",
++                  qemuCaps->binary, status, *qmperr);
+         goto cleanup;
+     }
+ 
+@@ -3330,6 +3342,8 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
+             VIR_ERROR(_("Failed to kill process %lld: %s"),
+                       (long long) pid,
+                       virStrerror(errno, ebuf, sizeof(ebuf)));
++
++        VIR_FREE(*qmperr);
+     }
+     if (pidfile) {
+         unlink(pidfile);
+@@ -3370,6 +3384,7 @@ virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
+     virQEMUCapsPtr qemuCaps;
+     struct stat sb;
+     int rv;
++    char *qmperr = NULL;
+ 
+     if (!(qemuCaps = virQEMUCapsNew()))
+         goto error;
+@@ -3400,13 +3415,13 @@ virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
+         goto error;
+ 
+     if (rv == 0) {
+-        if (virQEMUCapsInitQMP(qemuCaps, libDir, runUid, runGid) < 0) {
++        if (virQEMUCapsInitQMP(qemuCaps, libDir, runUid, runGid, &qmperr) < 0) {
+             virQEMUCapsLogProbeFailure(binary);
+             goto error;
+         }
+ 
+         if (!qemuCaps->usedQMP &&
+-            virQEMUCapsInitHelp(qemuCaps, runUid, runGid) < 0) {
++            virQEMUCapsInitHelp(qemuCaps, runUid, runGid, qmperr) < 0) {
+             virQEMUCapsLogProbeFailure(binary);
+             goto error;
+         }
+@@ -3415,9 +3430,11 @@ virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
+             goto error;
+     }
+ 
++    VIR_FREE(qmperr);
+     return qemuCaps;
+ 
+  error:
++    VIR_FREE(qmperr);
+     virObjectUnref(qemuCaps);
+     qemuCaps = NULL;
+     return NULL;
+diff --git a/src/qemu/qemu_capabilities.h b/src/qemu/qemu_capabilities.h
+index a0bb5d3..d8d63a6 100644
+--- a/src/qemu/qemu_capabilities.h
++++ b/src/qemu/qemu_capabilities.h
+@@ -302,7 +302,8 @@ int virQEMUCapsParseHelpStr(const char *qemu,
+                             unsigned int *version,
+                             bool *is_kvm,
+                             unsigned int *kvm_version,
+-                            bool check_yajl);
++                            bool check_yajl,
++                            const char *qmperr);
+ /* Only for use by test suite */
+ int virQEMUCapsParseDeviceStr(virQEMUCapsPtr qemuCaps, const char *str);
+ 
+diff --git a/tests/qemuhelptest.c b/tests/qemuhelptest.c
+index 975edf3..271fddc 100644
+--- a/tests/qemuhelptest.c
++++ b/tests/qemuhelptest.c
+@@ -58,7 +58,7 @@ static int testHelpStrParsing(const void *data)
+         goto cleanup;
+ 
+     if (virQEMUCapsParseHelpStr("QEMU", help, flags,
+-                                &version, &is_kvm, &kvm_version, false) == -1)
++                                &version, &is_kvm, &kvm_version, false, NULL) == -1) {
+         goto cleanup;
+ 
+ # ifndef WITH_YAJL
