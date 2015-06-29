@@ -9,10 +9,10 @@ As of 1.2.16 upstream ships a Polkit rule like Debian does.
  2 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/daemon/Makefile.am b/daemon/Makefile.am
-index 42dec5d..24b8026 100644
+index d3fc029..5ccb578 100644
 --- a/daemon/Makefile.am
 +++ b/daemon/Makefile.am
-@@ -269,14 +269,14 @@ install-data-polkit::
+@@ -301,14 +301,14 @@ install-data-polkit::
  	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
  if ! WITH_POLKIT0
  	$(MKDIR_P) $(DESTDIR)$(rulesdir)
@@ -30,10 +30,10 @@ index 42dec5d..24b8026 100644
  endif ! WITH_POLKIT0
  
 diff --git a/daemon/Makefile.in b/daemon/Makefile.in
-index 3d7f810..0673723 100644
+index 13dbc81..c9efbdc 100644
 --- a/daemon/Makefile.in
 +++ b/daemon/Makefile.in
-@@ -2580,12 +2580,12 @@ qemu_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
+@@ -2637,12 +2637,12 @@ admin_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(rulesdir)
