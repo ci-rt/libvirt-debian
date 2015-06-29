@@ -1,0 +1,30 @@
+From: Felix Geyer <fgeyer@debian.org>
+Date: Sat, 13 Jun 2015 10:22:40 +0200
+Subject: Allow access to libnl-3 config files
+
+Closes: #786650
+---
+ examples/apparmor/usr.lib.libvirt.virt-aa-helper | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+index b34fb35..89b95f6 100644
+--- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -16,9 +16,16 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+   owner @{PROC}/[0-9]*/status r,
+   @{PROC}/filesystems r,
+ 
++  /etc/libnl-3/classid r,
++
+   # for hostdev
+   /sys/devices/ r,
+   /sys/devices/** r,
++  deny /dev/sd* r,
++  deny /dev/vd* r,
++  deny /dev/dm-* r,
++  deny /dev/mapper/ r,
++  deny /dev/mapper/* r,
+ 
+   /usr/{lib,lib64}/libvirt/virt-aa-helper mr,
+   /sbin/apparmor_parser Ux,
