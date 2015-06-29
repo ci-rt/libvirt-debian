@@ -1,7 +1,7 @@
 /*
  * virjson.h: JSON object parsing/formatting
  *
- * Copyright (C) 2009, 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2009, 2012-2015 Red Hat, Inc.
  * Copyright (C) 2009 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -110,6 +110,8 @@ int virJSONValueArrayAppend(virJSONValuePtr object, virJSONValuePtr value);
 
 int virJSONValueObjectHasKey(virJSONValuePtr object, const char *key);
 virJSONValuePtr virJSONValueObjectGet(virJSONValuePtr object, const char *key);
+virJSONValuePtr virJSONValueObjectGetByType(virJSONValuePtr object,
+                                            const char *key, virJSONType type);
 
 bool virJSONValueIsArray(virJSONValuePtr array);
 int virJSONValueArraySize(const virJSONValue *array);
@@ -129,7 +131,11 @@ int virJSONValueGetNumberDouble(virJSONValuePtr object, double *value);
 int virJSONValueGetBoolean(virJSONValuePtr object, bool *value);
 int virJSONValueGetArrayAsBitmap(const virJSONValue *val, virBitmapPtr *bitmap)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-int virJSONValueIsNull(virJSONValuePtr object);
+bool virJSONValueIsNull(virJSONValuePtr object);
+virJSONValuePtr virJSONValueObjectGetObject(virJSONValuePtr object,
+                                            const char *key);
+virJSONValuePtr virJSONValueObjectGetArray(virJSONValuePtr object,
+                                           const char *key);
 
 const char *virJSONValueObjectGetString(virJSONValuePtr object, const char *key);
 int virJSONValueObjectGetNumberInt(virJSONValuePtr object, const char *key, int *value);
@@ -164,5 +170,7 @@ typedef int (*virJSONValueObjectIteratorFunc)(const char *key,
 int virJSONValueObjectForeachKeyValue(virJSONValuePtr object,
                                       virJSONValueObjectIteratorFunc cb,
                                       void *opaque);
+
+virJSONValuePtr virJSONValueCopy(virJSONValuePtr in);
 
 #endif /* __VIR_JSON_H_ */

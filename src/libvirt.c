@@ -92,8 +92,8 @@
 #ifdef WITH_XENAPI
 # include "xenapi/xenapi_driver.h"
 #endif
-#ifdef WITH_PARALLELS
-# include "parallels/parallels_driver.h"
+#ifdef WITH_VZ
+# include "vz/vz_driver.h"
 #endif
 #ifdef WITH_BHYVE
 # include "bhyve/bhyve_driver.h"
@@ -109,7 +109,7 @@ VIR_LOG_INIT("libvirt");
  * - use reference counting to guarantee coherent pointer state ?
  */
 
-#define MAX_DRIVERS 20
+#define MAX_DRIVERS 21
 
 static virConnectDriverPtr virConnectDriverTab[MAX_DRIVERS];
 static int virConnectDriverTabCount;
@@ -433,8 +433,8 @@ virGlobalInit(void)
     if (xenapiRegister() == -1)
         goto error;
 # endif
-# ifdef WITH_PARALLELS
-    if (parallelsRegister() == -1)
+# ifdef WITH_VZ
+    if (vzRegister() == -1)
         goto error;
 # endif
 #endif
@@ -1164,7 +1164,7 @@ do_open(const char *name,
 #ifndef WITH_XENAPI
              STRCASEEQ(ret->uri->scheme, "xenapi") ||
 #endif
-#ifndef WITH_PARALLELS
+#ifndef WITH_VZ
              STRCASEEQ(ret->uri->scheme, "parallels") ||
 #endif
              false)) {

@@ -45,8 +45,12 @@ typedef void (*virNetSocketIOFunc)(virNetSocketPtr sock,
                                    void *opaque);
 
 
+int virNetSocketCheckProtocols(bool *hasIPv4,
+                               bool *hasIPv6);
+
 int virNetSocketNewListenTCP(const char *nodename,
                              const char *service,
+                             int family,
                              virNetSocketPtr **addrs,
                              size_t *naddrs);
 
@@ -61,6 +65,7 @@ int virNetSocketNewListenFD(int fd,
 
 int virNetSocketNewConnectTCP(const char *nodename,
                               const char *service,
+                              int family,
                               virNetSocketPtr *addr);
 
 int virNetSocketNewConnectUNIX(const char *path,
@@ -84,6 +89,7 @@ int virNetSocketNewConnectSSH(const char *nodename,
 
 int virNetSocketNewConnectLibSSH2(const char *host,
                                   const char *port,
+                                  int family,
                                   const char *username,
                                   const char *privkey,
                                   const char *knownHosts,

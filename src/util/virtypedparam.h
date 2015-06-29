@@ -26,6 +26,16 @@
 # include "internal.h"
 # include "virutil.h"
 
+/**
+ * VIR_TYPED_PARAM_MULTIPLE:
+ *
+ * Flag indicating that the params has multiple occurrences of the parameter.
+ * Only used as a flag for @type argument of the virTypedParamsValidate.
+ */
+# define VIR_TYPED_PARAM_MULTIPLE (1 << 31)
+
+verify(!(VIR_TYPED_PARAM_LAST & VIR_TYPED_PARAM_MULTIPLE));
+
 int virTypedParamsValidate(virTypedParameterPtr params, int nparams,
                            /* const char *name, int type ... */ ...)
     ATTRIBUTE_SENTINEL ATTRIBUTE_RETURN_CHECK;
@@ -34,6 +44,20 @@ bool virTypedParamsCheck(virTypedParameterPtr params,
                          int nparams,
                          const char **names,
                          int nnames);
+
+int
+virTypedParamsGetStringList(virTypedParameterPtr params,
+                            int nparams,
+                            const char *name,
+                            const char ***values);
+int
+virTypedParamsFilter(virTypedParameterPtr params,
+                     int nparams,
+                     const char *name,
+                     virTypedParameterPtr **ret)
+    ATTRIBUTE_RETURN_CHECK  ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4);
+
 
 int virTypedParameterAssign(virTypedParameterPtr param, const char *name,
                             int type, /* TYPE arg */ ...)

@@ -1,5 +1,5 @@
 /*
- * parallels_sdk.h: core driver functions for managing
+ * vz_sdk.h: core driver functions for managing
  * Parallels Cloud Server hosts
  *
  * Copyright (C) 2014 Parallels, Inc.
@@ -22,19 +22,19 @@
 
 #include <Parallels.h>
 
-#include "parallels_utils.h"
+#include "vz_utils.h"
 
 int prlsdkInit(void);
 void prlsdkDeinit(void);
-int prlsdkConnect(parallelsConnPtr privconn);
-void prlsdkDisconnect(parallelsConnPtr privconn);
+int prlsdkConnect(vzConnPtr privconn);
+void prlsdkDisconnect(vzConnPtr privconn);
 int
-prlsdkLoadDomains(parallelsConnPtr privconn);
+prlsdkLoadDomains(vzConnPtr privconn);
 virDomainObjPtr
-prlsdkAddDomain(parallelsConnPtr privconn, const unsigned char *uuid);
-int prlsdkUpdateDomain(parallelsConnPtr privconn, virDomainObjPtr dom);
-int prlsdkSubscribeToPCSEvents(parallelsConnPtr privconn);
-void prlsdkUnsubscribeFromPCSEvents(parallelsConnPtr privconn);
+prlsdkAddDomain(vzConnPtr privconn, const unsigned char *uuid);
+int prlsdkUpdateDomain(vzConnPtr privconn, virDomainObjPtr dom);
+int prlsdkSubscribeToPCSEvents(vzConnPtr privconn);
+void prlsdkUnsubscribeFromPCSEvents(vzConnPtr privconn);
 PRL_RESULT prlsdkStart(PRL_HANDLE sdkdom);
 PRL_RESULT prlsdkKill(PRL_HANDLE sdkdom);
 PRL_RESULT prlsdkStop(PRL_HANDLE sdkdom);
@@ -47,7 +47,7 @@ int
 prlsdkDomainChangeState(virDomainPtr domain,
                         prlsdkChangeStateFunc chstate);
 int
-prlsdkDomainChangeStateLocked(parallelsConnPtr privconn,
+prlsdkDomainChangeStateLocked(vzConnPtr privconn,
                               virDomainObjPtr dom,
                               prlsdkChangeStateFunc chstate);
 int
@@ -57,10 +57,22 @@ prlsdkApplyConfig(virConnectPtr conn,
 int prlsdkCreateVm(virConnectPtr conn, virDomainDefPtr def);
 int prlsdkCreateCt(virConnectPtr conn, virDomainDefPtr def);
 int
-prlsdkUnregisterDomain(parallelsConnPtr privconn, virDomainObjPtr dom);
+prlsdkUnregisterDomain(vzConnPtr privconn, virDomainObjPtr dom);
 int
 prlsdkDomainManagedSaveRemove(virDomainObjPtr dom);
 int
 prlsdkAttachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk);
 int
 prlsdkDetachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk);
+int
+prlsdkGetBlockStats(virDomainObjPtr dom, virDomainDiskDefPtr disk, virDomainBlockStatsPtr stats);
+int
+prlsdkAttachNet(virDomainObjPtr dom, vzConnPtr privconn, virDomainNetDefPtr net);
+int
+prlsdkDetachNet(virDomainObjPtr dom, vzConnPtr privconn, virDomainNetDefPtr net);
+int
+prlsdkGetNetStats(virDomainObjPtr dom, const char *path, virDomainInterfaceStatsPtr stats);
+int
+prlsdkGetVcpuStats(virDomainObjPtr dom, int idx, unsigned long long *time);
+int
+prlsdkGetMemoryStats(virDomainObjPtr dom, virDomainMemoryStatPtr stats, unsigned int nr_stats);

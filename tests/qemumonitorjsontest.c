@@ -1438,7 +1438,6 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
     virHashTablePtr blockstats = NULL;
     qemuBlockStatsPtr stats;
     int ret = -1;
-    unsigned long long extent;
 
     const char *reply =
         "{"
@@ -1502,7 +1501,6 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
         "            \"parent\": {"
         "                \"stats\": {"
         "                    \"flush_total_time_ns\": 0,"
-        "                    \"wr_highest_offset\": 0,"
         "                    \"wr_total_time_ns\": 0,"
         "                    \"wr_bytes\": 0,"
         "                    \"rd_total_time_ns\": 0,"
@@ -1538,16 +1536,20 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
         qemuMonitorTestAddItem(test, "query-blockstats", reply) < 0)
         goto cleanup;
 
-#define CHECK0(var, value) \
+#define CHECK0FULL(var, value, varformat, valformat) \
     if (stats->var != value) { \
         virReportError(VIR_ERR_INTERNAL_ERROR, \
-                       "Invalid " #var " value: %lld, expected %d", \
+                       "Invalid " #var " value: " varformat \
+                       ", expected " valformat, \
                        stats->var, value); \
         goto cleanup; \
     }
 
+#define CHECK0(var, value) CHECK0FULL(var, value, "%lld", "%d")
+
 #define CHECK(NAME, RD_REQ, RD_BYTES, RD_TOTAL_TIMES, WR_REQ, WR_BYTES,        \
-              WR_TOTAL_TIMES, FLUSH_REQ, FLUSH_TOTAL_TIMES)                    \
+              WR_TOTAL_TIMES, FLUSH_REQ, FLUSH_TOTAL_TIMES,                    \
+              WR_HIGHEST_OFFSET, WR_HIGHEST_OFFSET_VALID)                      \
     if (!(stats = virHashLookup(blockstats, NAME))) {                          \
         virReportError(VIR_ERR_INTERNAL_ERROR,                                 \
                        "block stats for device '%s' is missing", NAME);        \
@@ -1560,7 +1562,9 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
     CHECK0(wr_bytes, WR_BYTES) \
     CHECK0(wr_total_times, WR_TOTAL_TIMES) \
     CHECK0(flush_req, FLUSH_REQ) \
-    CHECK0(flush_total_times, FLUSH_TOTAL_TIMES)
+    CHECK0(flush_total_times, FLUSH_TOTAL_TIMES) \
+    CHECK0FULL(wr_highest_offset, WR_HIGHEST_OFFSET, "%llu", "%llu") \
+    CHECK0FULL(wr_highest_offset_valid, WR_HIGHEST_OFFSET_VALID, "%d", "%d")
 
     if (qemuMonitorGetAllBlockStatsInfo(qemuMonitorTestGetMonitor(test),
                                         &blockstats, false) < 0)
@@ -1572,47 +1576,15 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
         goto cleanup;
     }
 
-    CHECK("virtio-disk0", 1279, 28505088, 640616474, 174, 2845696, 530699221, 0, 0)
-    CHECK("virtio-disk1", 85, 348160, 8232156, 0, 0, 0, 0, 0)
-    CHECK("ide0-1-0", 16, 49250, 1004952, 0, 0, 0, 0, 0)
-
-    if (qemuMonitorJSONGetBlockExtent(qemuMonitorTestGetMonitor(test), "virtio-disk0",
-                                      &extent) < 0)
-        goto cleanup;
-
-    if (extent != 5256018944ULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Invalid extent: %llu, expected 5256018944",
-                       extent);
-        goto cleanup;
-    }
-
-    if (qemuMonitorJSONGetBlockExtent(qemuMonitorTestGetMonitor(test), "virtio-disk1",
-                                      &extent) < 0)
-        goto cleanup;
-
-    if (extent != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Invalid extent: %llu, expected 0",
-                       extent);
-        goto cleanup;
-    }
-
-    if (qemuMonitorJSONGetBlockExtent(qemuMonitorTestGetMonitor(test), "ide0-1-0",
-                                      &extent) < 0)
-        goto cleanup;
-
-    if (extent != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Invalid extent: %llu, expected 0",
-                       extent);
-        goto cleanup;
-    }
+    CHECK("virtio-disk0", 1279, 28505088, 640616474, 174, 2845696, 530699221, 0, 0, 5256018944ULL, true)
+    CHECK("virtio-disk1", 85, 348160, 8232156, 0, 0, 0, 0, 0, 0ULL, true)
+    CHECK("ide0-1-0", 16, 49250, 1004952, 0, 0, 0, 0, 0, 0ULL, false)
 
     ret = 0;
 
 #undef CHECK
 #undef CHECK0
+#undef CHECK0FULL
 
  cleanup:
     qemuMonitorTestFree(test);
@@ -1696,45 +1668,6 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationStatus(const void *data)
     if (memcmp(&status, &expectedStatus, sizeof(status)) != 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        "Invalid migration status");
-        goto cleanup;
-    }
-
-    ret = 0;
- cleanup:
-    qemuMonitorTestFree(test);
-    return ret;
-}
-
-static int
-testQemuMonitorJSONqemuMonitorJSONGetSpiceMigrationStatus(const void *data)
-{
-    virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
-    qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
-    int ret = -1;
-    bool spiceMigrated;
-
-    if (!test)
-        return -1;
-
-    if (qemuMonitorTestAddItem(test, "query-spice",
-                               "{"
-                               "    \"return\": {"
-                               "        \"migrated\": true,"
-                               "        \"enabled\": false,"
-                               "        \"mouse-mode\": \"client\""
-                               "    },"
-                               "    \"id\": \"libvirt-14\""
-                               "}") < 0)
-        goto cleanup;
-
-    if (qemuMonitorJSONGetSpiceMigrationStatus(qemuMonitorTestGetMonitor(test),
-                                               &spiceMigrated) < 0)
-        goto cleanup;
-
-    if (!spiceMigrated) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Invalid spice migration status: %d, expecting 1",
-                       spiceMigrated);
         goto cleanup;
     }
 
@@ -2400,7 +2333,6 @@ mymain(void)
     DO_TEST(qemuMonitorJSONGetBlockStatsInfo);
     DO_TEST(qemuMonitorJSONGetMigrationCacheSize);
     DO_TEST(qemuMonitorJSONGetMigrationStatus);
-    DO_TEST(qemuMonitorJSONGetSpiceMigrationStatus);
     DO_TEST(qemuMonitorJSONGetChardevInfo);
     DO_TEST(qemuMonitorJSONSetBlockIoThrottle);
     DO_TEST(qemuMonitorJSONGetTargetArch);

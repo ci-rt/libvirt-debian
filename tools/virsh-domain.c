@@ -415,7 +415,7 @@ struct PCIAddress {
 struct SCSIAddress {
     unsigned int controller;
     unsigned int bus;
-    unsigned int unit;
+    unsigned long long unit;
 };
 
 struct IDEAddress {
@@ -480,15 +480,15 @@ static int str2SCSIAddress(const char *str, struct SCSIAddress *scsiAddr)
 
     controller = (char *)str;
 
-    if (virStrToLong_ui(controller, &bus, 0, &scsiAddr->controller) != 0)
+    if (virStrToLong_uip(controller, &bus, 0, &scsiAddr->controller) != 0)
         return -1;
 
     bus++;
-    if (virStrToLong_ui(bus, &unit, 0, &scsiAddr->bus) != 0)
+    if (virStrToLong_uip(bus, &unit, 0, &scsiAddr->bus) != 0)
         return -1;
 
     unit++;
-    if (virStrToLong_ui(unit, NULL, 0, &scsiAddr->unit) != 0)
+    if (virStrToLong_ullp(unit, NULL, 0, &scsiAddr->unit) != 0)
         return -1;
 
     return 0;
@@ -724,8 +724,8 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         } else if (STRPREFIX((const char *)target, "sd")) {
             if (diskAddr.type == DISK_ADDR_TYPE_SCSI) {
                 virBufferAsprintf(&buf,
-                                  "<address type='drive' controller='%d'"
-                                  " bus='%d' unit='%d' />\n",
+                                  "<address type='drive' controller='%u'"
+                                  " bus='%u' unit='%llu' />\n",
                                   diskAddr.addr.scsi.controller, diskAddr.addr.scsi.bus,
                                   diskAddr.addr.scsi.unit);
             } else {
@@ -1292,7 +1292,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "device", &disk) < 0)
         goto cleanup;
 
-    if ((rv = vshCommandOptULongLong(cmd, "total-bytes-sec", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-bytes-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1301,7 +1301,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "read-bytes-sec", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-bytes-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1310,7 +1310,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "write-bytes-sec", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-bytes-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1319,7 +1319,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "total-bytes-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-bytes-sec-max", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1328,7 +1328,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "read-bytes-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-bytes-sec-max", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1337,7 +1337,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "write-bytes-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-bytes-sec-max", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1346,7 +1346,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "total-iops-sec", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-iops-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1355,7 +1355,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "read-iops-sec", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-iops-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1364,7 +1364,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "write-iops-sec", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-iops-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1373,7 +1373,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "write-iops-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-iops-sec-max", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1382,7 +1382,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "read-iops-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-iops-sec-max", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1391,7 +1391,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "total-iops-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-iops-sec-max", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1400,7 +1400,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(cmd, "size-iops-sec", &value)) < 0) {
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "size-iops-sec", &value)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1551,10 +1551,7 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if ((rv = vshCommandOptInt(cmd, "weight", &weight)) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "weight");
+    if ((rv = vshCommandOptInt(ctl, cmd, "weight", &weight)) < 0) {
         goto cleanup;
     } else if (rv > 0) {
         if (weight <= 0) {
@@ -1566,7 +1563,7 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
             goto save_error;
     }
 
-    rv = vshCommandOptString(cmd, "device-weights", &device_weight);
+    rv = vshCommandOptString(ctl, cmd, "device-weights", &device_weight);
     if (rv < 0) {
         vshError(ctl, "%s", _("Unable to parse string parameter"));
         goto cleanup;
@@ -1577,7 +1574,7 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
             goto save_error;
     }
 
-    rv = vshCommandOptString(cmd, "device-read-iops-sec", &device_riops);
+    rv = vshCommandOptString(ctl, cmd, "device-read-iops-sec", &device_riops);
     if (rv < 0) {
         vshError(ctl, "%s", _("Unable to parse string parameter"));
         goto cleanup;
@@ -1588,7 +1585,7 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
             goto save_error;
     }
 
-    rv = vshCommandOptString(cmd, "device-write-iops-sec", &device_wiops);
+    rv = vshCommandOptString(ctl, cmd, "device-write-iops-sec", &device_wiops);
     if (rv < 0) {
         vshError(ctl, "%s", _("Unable to parse string parameter"));
         goto cleanup;
@@ -1599,7 +1596,7 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
             goto save_error;
     }
 
-    rv = vshCommandOptString(cmd, "device-read-bytes-sec", &device_rbps);
+    rv = vshCommandOptString(ctl, cmd, "device-read-bytes-sec", &device_rbps);
     if (rv < 0) {
         vshError(ctl, "%s", _("Unable to parse string parameter"));
         goto cleanup;
@@ -1610,7 +1607,7 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
             goto save_error;
     }
 
-    rv = vshCommandOptString(cmd, "device-write-bytes-sec", &device_wbps);
+    rv = vshCommandOptString(ctl, cmd, "device-write-bytes-sec", &device_wbps);
     if (rv < 0) {
         vshError(ctl, "%s", _("Unable to parse string parameter"));
         goto cleanup;
@@ -1692,12 +1689,8 @@ blockJobImpl(vshControl *ctl, const vshCmd *cmd,
     if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
         goto cleanup;
 
-    if (vshCommandOptULWrap(cmd, "bandwidth", &bandwidth) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "bandwidth");
+    if (vshCommandOptULWrap(ctl, cmd, "bandwidth", &bandwidth) < 0)
         goto cleanup;
-    }
 
     switch (mode) {
     case VSH_CMD_BLOCK_JOB_ABORT:
@@ -2161,11 +2154,11 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
         return false;
-    if (vshCommandOptString(cmd, "dest", &dest) < 0)
+    if (vshCommandOptString(ctl, cmd, "dest", &dest) < 0)
         return false;
-    if (vshCommandOptString(cmd, "xml", &xml) < 0)
+    if (vshCommandOptString(ctl, cmd, "xml", &xml) < 0)
         return false;
-    if (vshCommandOptString(cmd, "format", &format) < 0)
+    if (vshCommandOptString(ctl, cmd, "format", &format) < 0)
         return false;
 
     VSH_EXCLUSIVE_OPTIONS_VAR(dest, xml);
@@ -2216,24 +2209,12 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
      * MiB/s, and either reject negative input or treat it as 0 rather
      * than trying to guess which value will work well across both
      * APIs with their different sizes and scales.  */
-    if (vshCommandOptULWrap(cmd, "bandwidth", &bandwidth) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "bandwidth");
+    if (vshCommandOptULWrap(ctl, cmd, "bandwidth", &bandwidth) < 0)
         goto cleanup;
-    }
-    if (vshCommandOptUInt(cmd, "granularity", &granularity) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "granularity");
+    if (vshCommandOptUInt(ctl, cmd, "granularity", &granularity) < 0)
         goto cleanup;
-    }
-    if (vshCommandOptULongLong(cmd, "buf-size", &buf_size) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "buf-size");
+    if (vshCommandOptULongLong(ctl, cmd, "buf-size", &buf_size) < 0)
         goto cleanup;
-    }
 
     if (xml) {
         if (virFileReadAll(xml, VSH_MAX_XML_FILE, &xmlstr) < 0) {
@@ -2331,8 +2312,11 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
             vshError(ctl, _("failed to query job for disk %s"), path);
             goto cleanup;
         }
-        if (result == 0)
-            break;
+
+        if (result == 0) {
+            vshError(ctl, _("Block Copy unexpectedly failed"));
+            goto cleanup;
+        }
 
         if (verbose)
             vshPrintJobProgress(_("Block Copy"), info.end - info.cur, info.end);
@@ -2800,12 +2784,8 @@ cmdBlockResize(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "path", (const char **) &path) < 0)
         return false;
 
-    if (vshCommandOptScaledInt(cmd, "size", &size, 1024, ULLONG_MAX) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "size");
+    if (vshCommandOptScaledInt(ctl, cmd, "size", &size, 1024, ULLONG_MAX) < 0)
         return false;
-    }
 
     /* Prefer the older interface of KiB.  */
     if (size % 1024 == 0)
@@ -3406,12 +3386,8 @@ cmdDomPMSuspend(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
-    if (vshCommandOptULongLong(cmd, "duration", &duration) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "duration");
+    if (vshCommandOptULongLong(ctl, cmd, "duration", &duration) < 0)
         goto cleanup;
-    }
 
     if (vshCommandOptStringReq(ctl, cmd, "target", &target) < 0)
         goto cleanup;
@@ -3587,7 +3563,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
     size_t i;
     size_t j;
 
-    ignore_value(vshCommandOptString(cmd, "storage", &vol_string));
+    ignore_value(vshCommandOptString(ctl, cmd, "storage", &vol_string));
 
     if (!(vol_string || remove_all_storage) && wipe_storage) {
         vshError(ctl,
@@ -3966,7 +3942,7 @@ cmdStartGetFDs(vshControl *ctl,
     *nfdsret = 0;
     *fdsret = NULL;
 
-    if (vshCommandOptString(cmd, "pass-fds", &fdopt) <= 0)
+    if (vshCommandOptString(ctl, cmd, "pass-fds", &fdopt) <= 0)
         return 0;
 
     if (!(fdlist = virStringSplit(fdopt, ",", -1))) {
@@ -4234,12 +4210,9 @@ vshWatchJob(vshControl *ctl,
         if (ret > 0) {
             if (pollfd[1].revents & POLLIN &&
                 saferead(STDIN_FILENO, &retchar, sizeof(retchar)) > 0) {
-                if (vshTTYIsInterruptCharacter(ctl, retchar)) {
+                if (vshTTYIsInterruptCharacter(ctl, retchar))
                     virDomainAbortJob(dom);
-                    goto cleanup;
-                } else {
-                    continue;
-                }
+                continue;
             }
 
             if (pollfd[0].revents & POLLIN &&
@@ -4259,9 +4232,8 @@ vshWatchJob(vshControl *ctl,
                 if (intCaught) {
                     virDomainAbortJob(dom);
                     intCaught = 0;
-                } else {
-                    continue;
                 }
+                continue;
             }
             goto cleanup;
         }
@@ -4834,7 +4806,7 @@ cmdSchedInfoUpdate(vshControl *ctl, const vshCmd *cmd,
     int ret = -1;
     int rv;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         set_field = vshStrdup(ctl, opt->data);
         if (!(set_val = strchr(set_field, '='))) {
             vshError(ctl, "%s", _("Invalid syntax for --set, "
@@ -5161,7 +5133,7 @@ doDump(void *opaque)
             goto out;
         }
 
-        if (vshCommandOptString(cmd, "format", &format)) {
+        if (vshCommandOptString(ctl, cmd, "format", &format)) {
             if (STREQ(format, "kdump-zlib")) {
                 dumpformat = VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB;
             } else if (STREQ(format, "kdump-lzo")) {
@@ -5330,12 +5302,8 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "file", (const char **) &file) < 0)
         return false;
 
-    if (vshCommandOptUInt(cmd, "screen", &screen) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "screen");
+    if (vshCommandOptUInt(ctl, cmd, "screen", &screen) < 0)
         return false;
-    }
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
@@ -6497,12 +6465,8 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
     if (!cpulist)
         VSH_EXCLUSIVE_OPTIONS_VAR(live, config);
 
-    if ((got_vcpu = vshCommandOptUInt(cmd, "vcpu", &vcpu)) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "vcpu");
+    if ((got_vcpu = vshCommandOptUInt(ctl, cmd, "vcpu", &vcpu)) < 0)
         return false;
-    }
 
     /* In pin mode, "vcpu" is necessary */
     if (cpulist && got_vcpu == 0) {
@@ -6766,12 +6730,8 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptInt(cmd, "count", &count) < 0 || count <= 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "count");
+    if (vshCommandOptInt(ctl, cmd, "count", &count) < 0 || count <= 0)
         goto cleanup;
-    }
 
     /* none of the options were specified */
     if (!current && flags == 0) {
@@ -6946,14 +6906,10 @@ cmdIOThreadPin(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptUInt(cmd, "iothread", &iothread_id) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "iothread");
+    if (vshCommandOptUInt(ctl, cmd, "iothread", &iothread_id) < 0)
         goto cleanup;
-    }
 
-    if (vshCommandOptString(cmd, "cpulist", &cpulist) < 0) {
+    if (vshCommandOptString(ctl, cmd, "cpulist", &cpulist) < 0) {
         vshError(ctl, "%s", _("iothreadpin: invalid cpulist."));
         goto cleanup;
     }
@@ -7037,12 +6993,8 @@ cmdIOThreadAdd(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptInt(cmd, "id", &iothread_id) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "id");
+    if (vshCommandOptInt(ctl, cmd, "id", &iothread_id) < 0)
         goto cleanup;
-    }
     if (iothread_id <= 0) {
         vshError(ctl, _("Invalid IOThread id value: '%d'"), iothread_id);
         goto cleanup;
@@ -7119,12 +7071,8 @@ cmdIOThreadDel(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptInt(cmd, "id", &iothread_id) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "id");
+    if (vshCommandOptInt(ctl, cmd, "id", &iothread_id) < 0)
         goto cleanup;
-    }
     if (iothread_id <= 0) {
         vshError(ctl, _("Invalid IOThread id value: '%d'"), iothread_id);
         goto cleanup;
@@ -7408,10 +7356,7 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
 
     show_total = vshCommandOptBool(cmd, "total");
 
-    if ((rv = vshCommandOptInt(cmd, "start", &cpu)) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "start");
+    if ((rv = vshCommandOptInt(ctl, cmd, "start", &cpu)) < 0) {
         goto cleanup;
     } else if (rv > 0) {
         if (cpu < 0) {
@@ -7421,10 +7366,7 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
         show_per_cpu = true;
     }
 
-    if ((rv = vshCommandOptInt(cmd, "count", &show_count)) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "count");
+    if ((rv = vshCommandOptInt(ctl, cmd, "count", &show_count)) < 0) {
         goto cleanup;
     } else if (rv > 0) {
         if (show_count < 0) {
@@ -7852,7 +7794,7 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd)
     if ((state = vshDomainState(ctl, dom, NULL)) < 0)
         goto cleanup;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         if (pad)
             virBufferAddChar(&buf, ' ');
         pad = true;
@@ -8208,15 +8150,11 @@ cmdSendKey(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptString(cmd, "codeset", &codeset_option) <= 0)
+    if (vshCommandOptString(ctl, cmd, "codeset", &codeset_option) <= 0)
         codeset_option = "linux";
 
-    if (vshCommandOptUInt(cmd, "holdtime", &holdtime) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "holdtime");
+    if (vshCommandOptUInt(ctl, cmd, "holdtime", &holdtime) < 0)
         goto cleanup;
-    }
 
     codeset = virKeycodeSetTypeFromString(codeset_option);
     if (codeset < 0) {
@@ -8224,7 +8162,7 @@ cmdSendKey(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         if (count == VIR_DOMAIN_SEND_KEY_MAX_KEYS) {
             vshError(ctl, _("too many keycodes"));
             goto cleanup;
@@ -8337,12 +8275,8 @@ cmdSendProcessSignal(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptLongLong(cmd, "pid", &pid_value) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "pid");
+    if (vshCommandOptLongLong(ctl, cmd, "pid", &pid_value) < 0)
         goto cleanup;
-    }
 
     if (vshCommandOptStringReq(ctl, cmd, "signame", &signame) < 0)
         goto cleanup;
@@ -8438,10 +8372,7 @@ cmdSetmem(vshControl *ctl, const vshCmd *cmd)
         max = 1024ull * ULONG_MAX;
     else
         max = ULONG_MAX;
-    if (vshCommandOptScaledInt(cmd, "size", &bytes, 1024, max) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "size");
+    if (vshCommandOptScaledInt(ctl, cmd, "size", &bytes, 1024, max) < 0) {
         virDomainFree(dom);
         return false;
     }
@@ -8535,10 +8466,7 @@ cmdSetmaxmem(vshControl *ctl, const vshCmd *cmd)
         max = 1024ull * ULONG_MAX;
     else
         max = ULONG_MAX;
-    if (vshCommandOptScaledInt(cmd, "size", &bytes, 1024, max) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "size");
+    if (vshCommandOptScaledInt(ctl, cmd, "size", &bytes, 1024, max) < 0) {
         virDomainFree(dom);
         return false;
     }
@@ -8630,14 +8558,14 @@ static const vshCmdOptDef opts_memtune[] = {
  *  <0 in all other cases
  */
 static int
-vshMemtuneGetSize(const vshCmd *cmd, const char *name, long long *value)
+vshMemtuneGetSize(vshControl *ctl, const vshCmd *cmd, const char *name, long long *value)
 {
     int ret;
     unsigned long long tmp;
     const char *str;
     char *end;
 
-    ret = vshCommandOptString(cmd, name, &str);
+    ret = vshCommandOptString(ctl, cmd, name, &str);
     if (ret <= 0)
         return ret;
     if (virStrToLong_ll(str, &end, 10, value) < 0)
@@ -8681,7 +8609,7 @@ cmdMemtune(vshControl *ctl, const vshCmd *cmd)
         return false;
 
 #define PARSE_MEMTUNE_PARAM(NAME, FIELD)                                    \
-    if ((rc = vshMemtuneGetSize(cmd, NAME, &tmpVal)) < 0) {                 \
+    if ((rc = vshMemtuneGetSize(ctl, cmd, NAME, &tmpVal)) < 0) {            \
         vshError(ctl, _("Unable to parse integer parameter %s"), NAME);     \
         goto cleanup;                                                       \
     }                                                                       \
@@ -8952,7 +8880,7 @@ cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
     if (dom == NULL)
         goto cleanup;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         if (pad)
             virBufferAddChar(&buf, ' ');
         pad = true;
@@ -9100,7 +9028,7 @@ cmdQemuMonitorEvent(vshControl *ctl, const vshCmd *cmd)
     data.count = 0;
     if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
         return false;
-    if (vshCommandOptString(cmd, "event", &event) < 0)
+    if (vshCommandOptString(ctl, cmd, "event", &event) < 0)
         return false;
 
     if (vshCommandOptBool(cmd, "domain"))
@@ -9171,12 +9099,8 @@ cmdQemuAttach(vshControl *ctl, const vshCmd *cmd)
     unsigned int flags = 0;
     unsigned int pid_value; /* API uses unsigned int, not pid_t */
 
-    if (vshCommandOptUInt(cmd, "pid", &pid_value) <= 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "pid");
+    if (vshCommandOptUInt(ctl, cmd, "pid", &pid_value) <= 0)
         goto cleanup;
-    }
 
     if (!(dom = virDomainQemuAttach(ctl->conn, pid_value, flags))) {
         vshError(ctl, _("Failed to attach to pid %u"), pid_value);
@@ -9255,7 +9179,7 @@ cmdQemuAgentCommand(vshControl *ctl, const vshCmd *cmd)
     if (dom == NULL)
         goto cleanup;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         if (pad)
             virBufferAddChar(&buf, ' ');
         pad = true;
@@ -9267,15 +9191,11 @@ cmdQemuAgentCommand(vshControl *ctl, const vshCmd *cmd)
     }
     guest_agent_cmd = virBufferContentAndReset(&buf);
 
-    judge = vshCommandOptInt(cmd, "timeout", &timeout);
-    if (judge < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "timeout");
+    judge = vshCommandOptInt(ctl, cmd, "timeout", &timeout);
+    if (judge < 0)
         goto cleanup;
-    } else if (judge > 0) {
+    else if (judge > 0)
         judge = 1;
-    }
     if (judge && timeout < 1) {
         vshError(ctl, "%s", _("timeout must be positive"));
         goto cleanup;
@@ -9377,7 +9297,7 @@ cmdLxcEnterNamespace(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptBool(cmd, "noseclabel"))
         setlabel = false;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         if (VIR_EXPAND_N(cmdargv, ncmdargv, 1) < 0) {
             vshError(ctl, _("%s: %d: failed to allocate argv"),
                      __FILE__, __LINE__);
@@ -9889,6 +9809,10 @@ static const vshCmdOptDef opts_migrate[] = {
      .type = VSH_OT_STRING,
      .help = N_("filename containing updated XML for the target")
     },
+    {.name = "migrate-disks",
+     .type = VSH_OT_STRING,
+     .help = N_("comma separated list of disks to be migrated")
+    },
     {.name = NULL}
 };
 
@@ -9947,6 +9871,25 @@ doMigrate(void *opaque)
         virTypedParamsAddString(&params, &nparams, &maxparams,
                                 VIR_MIGRATE_PARAM_DEST_NAME, opt) < 0)
         goto save_error;
+
+    if (vshCommandOptStringReq(ctl, cmd, "migrate-disks", &opt) < 0)
+        goto out;
+    if (opt) {
+        char **val = NULL;
+
+        val = virStringSplit(opt, ",", 0);
+
+        if (virTypedParamsAddStringList(&params,
+                                        &nparams,
+                                        &maxparams,
+                                        VIR_MIGRATE_PARAM_MIGRATE_DISKS,
+                                        (const char **)val) < 0) {
+            VIR_FREE(val);
+            goto save_error;
+        }
+
+        VIR_FREE(val);
+    }
 
     if (vshCommandOptStringReq(ctl, cmd, "xml", &opt) < 0)
         goto out;
@@ -10153,12 +10096,8 @@ cmdMigrateSetMaxDowntime(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptLongLong(cmd, "downtime", &downtime) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "downtime");
+    if (vshCommandOptLongLong(ctl, cmd, "downtime", &downtime) < 0)
         goto done;
-    }
     if (downtime < 1) {
         vshError(ctl, "%s", _("migrate: Invalid downtime"));
         goto done;
@@ -10215,11 +10154,8 @@ cmdMigrateCompCache(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    rc = vshCommandOptULongLong(cmd, "size", &size);
+    rc = vshCommandOptULongLong(ctl, cmd, "size", &size);
     if (rc < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "size");
         goto cleanup;
     } else if (rc != 0) {
         if (virDomainMigrateSetCompressionCache(dom, size, 0) < 0)
@@ -10276,12 +10212,8 @@ cmdMigrateSetMaxSpeed(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptULWrap(cmd, "bandwidth", &bandwidth) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "bandwidth");
+    if (vshCommandOptULWrap(ctl, cmd, "bandwidth", &bandwidth) < 0)
         goto done;
-    }
 
     if (virDomainMigrateSetMaxSpeed(dom, bandwidth, 0) < 0)
         goto done;
@@ -11771,7 +11703,8 @@ VIR_ENUM_IMPL(vshDomainEventWatchdog,
               N_("reset"),
               N_("poweroff"),
               N_("shutdown"),
-              N_("debug"))
+              N_("debug"),
+              N_("inject-nmi"))
 
 static const char *
 vshDomainEventWatchdogToString(int action)
@@ -12317,7 +12250,7 @@ cmdEvent(vshControl *ctl, const vshCmd *cmd)
         return true;
     }
 
-    if (vshCommandOptString(cmd, "event", &eventName) < 0)
+    if (vshCommandOptString(ctl, cmd, "event", &eventName) < 0)
         return false;
     if (eventName) {
         for (event = 0; event < VIR_DOMAIN_EVENT_ID_LAST; event++)
@@ -12505,6 +12438,15 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
 
     VSH_EXCLUSIVE_OPTIONS_VAR(eject, block);
 
+    if (vshCommandOptStringReq(ctl, cmd, "source", &source) < 0)
+        return false;
+
+    /* Docs state that update without source is eject */
+    if (update && !source) {
+        update = false;
+        eject = true;
+    }
+
     if (eject) {
         update_type = VSH_UPDATE_DISK_XML_EJECT;
         action = "eject";
@@ -12537,9 +12479,6 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (vshCommandOptStringReq(ctl, cmd, "path", &path) < 0)
-        goto cleanup;
-
-    if (vshCommandOptStringReq(ctl, cmd, "source", &source) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG)
@@ -12616,12 +12555,8 @@ cmdDomFSTrim(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return ret;
 
-    if (vshCommandOptULongLong(cmd, "minimum", &minimum) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "minimum");
+    if (vshCommandOptULongLong(ctl, cmd, "minimum", &minimum) < 0)
         goto cleanup;
-    }
 
     if (vshCommandOptStringReq(ctl, cmd, "mountpoint", &mountPoint) < 0)
         goto cleanup;
@@ -12672,7 +12607,7 @@ cmdDomFSFreeze(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         if (VIR_EXPAND_N(mountpoints, nmountpoints, 1) < 0) {
             vshError(ctl, _("%s: %d: failed to allocate mountpoints"),
                      __FILE__, __LINE__);
@@ -12729,7 +12664,7 @@ cmdDomFSThaw(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         if (VIR_EXPAND_N(mountpoints, nmountpoints, 1) < 0) {
             vshError(ctl, _("%s: %d: failed to allocate mountpoints"),
                      __FILE__, __LINE__);

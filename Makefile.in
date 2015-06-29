@@ -258,7 +258,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = run libvirt.pc libvirt-qemu.pc libvirt-lxc.pc \
-	libvirt.spec mingw-libvirt.spec
+	libvirt-admin.pc libvirt.spec mingw-libvirt.spec
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -347,10 +347,10 @@ CTAGS = ctags
 CSCOPE = cscope
 DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(srcdir)/libvirt-lxc.pc.in $(srcdir)/libvirt-qemu.pc.in \
-	$(srcdir)/libvirt.pc.in $(srcdir)/libvirt.spec.in \
-	$(srcdir)/mingw-libvirt.spec.in $(srcdir)/run.in \
-	$(top_srcdir)/build-aux/compile \
+	$(srcdir)/libvirt-admin.pc.in $(srcdir)/libvirt-lxc.pc.in \
+	$(srcdir)/libvirt-qemu.pc.in $(srcdir)/libvirt.pc.in \
+	$(srcdir)/libvirt.spec.in $(srcdir)/mingw-libvirt.spec.in \
+	$(srcdir)/run.in $(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.rpath \
 	$(top_srcdir)/build-aux/config.sub \
@@ -446,7 +446,6 @@ CAPNG_LIBS = @CAPNG_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-COLLIE = @COLLIE@
 CONFIG_INCLUDE = @CONFIG_INCLUDE@
 COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
@@ -1300,6 +1299,7 @@ LIBSOCKET = @LIBSOCKET@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVIRT_ADMIN_SYMBOL_FILE = @LIBVIRT_ADMIN_SYMBOL_FILE@
 LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
@@ -1727,6 +1727,7 @@ SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
 SERVENT_LIB = @SERVENT_LIB@
 SET_MAKE = @SET_MAKE@
+SHEEPDOGCLI = @SHEEPDOGCLI@
 SHELL = @SHELL@
 SHOWMOUNT = @SHOWMOUNT@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
@@ -1874,6 +1875,7 @@ EXTRA_DIST = \
   libvirt.pc.in \
   libvirt-qemu.pc.in \
   libvirt-lxc.pc.in \
+  libvirt-admin.pc.in \
   autobuild.sh \
   Makefile.nonreentrant \
   autogen.sh \
@@ -1948,6 +1950,8 @@ libvirt.pc: $(top_builddir)/config.status $(srcdir)/libvirt.pc.in
 libvirt-qemu.pc: $(top_builddir)/config.status $(srcdir)/libvirt-qemu.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 libvirt-lxc.pc: $(top_builddir)/config.status $(srcdir)/libvirt-lxc.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+libvirt-admin.pc: $(top_builddir)/config.status $(srcdir)/libvirt-admin.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 libvirt.spec: $(top_builddir)/config.status $(srcdir)/libvirt.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

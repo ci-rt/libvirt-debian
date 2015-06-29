@@ -20,5 +20,6 @@
     <nvram>
       <address type='spapr-vio' reg='0x4000'/>
     </nvram>
+    <panic/>
   </devices>
 </domain>

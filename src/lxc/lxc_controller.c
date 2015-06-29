@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Red Hat, Inc.
+ * Copyright (C) 2010-2015 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_controller.c: linux container process controller
@@ -65,7 +65,7 @@
 #include "virprocess.h"
 #include "virnuma.h"
 #include "virdbus.h"
-#include "rpc/virnetserver.h"
+#include "rpc/virnetdaemon.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -93,7 +93,7 @@ struct _virLXCControllerConsole {
     size_t fromContLen;
     char fromContBuf[1024];
 
-    virNetServerPtr server;
+    virNetDaemonPtr daemon;
 };
 
 typedef struct _virLXCController virLXCController;
@@ -106,6 +106,9 @@ struct _virLXCController {
     int handshakeFd;
 
     pid_t initpid;
+
+    size_t nnbdpids;
+    pid_t *nbdpids;
 
     size_t nveths;
     char **veths;
@@ -125,8 +128,7 @@ struct _virLXCController {
 
     virSecurityManagerPtr securityManager;
 
-    /* Server socket */
-    virNetServerPtr server;
+    virNetDaemonPtr daemon;
     bool firstClient;
     virNetServerClientPtr client;
     virNetServerProgramPtr prog;
@@ -149,7 +151,7 @@ static void virLXCControllerQuitTimer(int timer ATTRIBUTE_UNUSED, void *opaque)
     virLXCControllerPtr ctrl = opaque;
 
     VIR_DEBUG("Triggering event loop quit");
-    virNetServerQuit(ctrl->server);
+    virNetDaemonQuit(ctrl->daemon);
 }
 
 
@@ -280,8 +282,10 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
     if (ctrl->timerShutdown != -1)
         virEventRemoveTimeout(ctrl->timerShutdown);
 
-    virObjectUnref(ctrl->server);
+    virObjectUnref(ctrl->daemon);
     virLXCControllerFreeFuse(ctrl);
+
+    VIR_FREE(ctrl->nbdpids);
 
     virCgroupFree(&ctrl->cgroup);
 
@@ -296,7 +300,7 @@ static int virLXCControllerAddConsole(virLXCControllerPtr ctrl,
 {
     if (VIR_EXPAND_N(ctrl->consoles, ctrl->nconsoles, 1) < 0)
         return -1;
-    ctrl->consoles[ctrl->nconsoles-1].server = ctrl->server;
+    ctrl->consoles[ctrl->nconsoles-1].daemon = ctrl->daemon;
     ctrl->consoles[ctrl->nconsoles-1].hostFd = hostFd;
     ctrl->consoles[ctrl->nconsoles-1].hostWatch = -1;
 
@@ -525,6 +529,38 @@ static int virLXCControllerSetupNBDDeviceDisk(virDomainDiskDefPtr disk)
     return 0;
 }
 
+static int virLXCControllerAppendNBDPids(virLXCControllerPtr ctrl,
+                                         const char *dev)
+{
+    char *pidpath = NULL;
+    pid_t *pids;
+    size_t npids;
+    size_t i;
+    int ret = -1;
+    pid_t pid;
+
+    if (!STRPREFIX(dev, "/dev/") ||
+        virAsprintf(&pidpath, "/sys/devices/virtual/block/%s/pid", dev + 5) < 0)
+        goto cleanup;
+
+    if (virPidFileReadPath(pidpath, &pid) < 0)
+        goto cleanup;
+
+    if (virProcessGetPids(pid, &npids, &pids) < 0)
+        goto cleanup;
+
+    for (i = 0; i < npids; i++) {
+        if (VIR_APPEND_ELEMENT(ctrl->nbdpids, ctrl->nnbdpids, pids[i]) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(pids);
+    VIR_FREE(pidpath);
+    return ret;
+}
 
 static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
 {
@@ -569,6 +605,12 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
             ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
         } else if (fs->fsdriver == VIR_DOMAIN_FS_DRIVER_TYPE_NBD) {
             if (virLXCControllerSetupNBDDeviceFS(fs) < 0)
+                goto cleanup;
+
+            /* The NBD device will be cleaned up while the cgroup will end.
+             * For this we need to remember the qemu-nbd pid and add it to
+             * the cgroup*/
+            if (virLXCControllerAppendNBDPids(ctrl, fs->src) < 0)
                 goto cleanup;
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -628,6 +670,12 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
                 goto cleanup;
             }
             if (virLXCControllerSetupNBDDeviceDisk(disk) < 0)
+                goto cleanup;
+
+            /* The NBD device will be cleaned up while the cgroup will end.
+             * For this we need to remember the qemu-nbd pid and add it to
+             * the cgroup*/
+            if (virLXCControllerAppendNBDPids(ctrl, virDomainDiskGetSource(disk)) < 0)
                 goto cleanup;
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -781,6 +829,7 @@ static int virLXCControllerSetupCgroupLimits(virLXCControllerPtr ctrl)
     virBitmapPtr auto_nodeset = NULL;
     int ret = -1;
     virBitmapPtr nodeset = NULL;
+    size_t i;
 
     VIR_DEBUG("Setting up cgroup resource limits");
 
@@ -797,6 +846,12 @@ static int virLXCControllerSetupCgroupLimits(virLXCControllerPtr ctrl)
 
     if (virCgroupAddTask(ctrl->cgroup, getpid()) < 0)
         goto cleanup;
+
+    /* Add all qemu-nbd tasks to the cgroup */
+    for (i = 0; i < ctrl->nnbdpids; i++) {
+        if (virCgroupAddTask(ctrl->cgroup, ctrl->nbdpids[i]) < 0)
+            goto cleanup;
+    }
 
     if (virLXCCgroupSetup(ctrl->def, ctrl->cgroup, nodeset) < 0)
         goto cleanup;
@@ -846,6 +901,7 @@ static void *virLXCControllerClientPrivateNew(virNetServerClientPtr client,
 
 static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
 {
+    virNetServerPtr srv = NULL;
     virNetServerServicePtr svc = NULL;
     char *sockpath;
 
@@ -853,13 +909,13 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                     LXC_STATE_DIR, ctrl->name) < 0)
         return -1;
 
-    if (!(ctrl->server = virNetServerNew(0, 0, 0, 1,
-                                         0, -1, 0, false,
-                                         NULL,
-                                         virLXCControllerClientPrivateNew,
-                                         NULL,
-                                         virLXCControllerClientPrivateFree,
-                                         ctrl)))
+    if (!(srv = virNetServerNew(0, 0, 0, 1,
+                                0, -1, 0, false,
+                                NULL,
+                                virLXCControllerClientPrivateNew,
+                                NULL,
+                                virLXCControllerClientPrivateFree,
+                                ctrl)))
         goto error;
 
     if (virSecurityManagerSetSocketLabel(ctrl->securityManager, ctrl->def) < 0)
@@ -880,7 +936,7 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
     if (virSecurityManagerClearSocketLabel(ctrl->securityManager, ctrl->def) < 0)
         goto error;
 
-    if (virNetServerAddService(ctrl->server, svc, NULL) < 0)
+    if (virNetServerAddService(srv, svc, NULL) < 0)
         goto error;
     virObjectUnref(svc);
     svc = NULL;
@@ -891,14 +947,19 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                                               virLXCMonitorNProcs)))
         goto error;
 
-    virNetServerUpdateServices(ctrl->server, true);
+    if (!(ctrl->daemon = virNetDaemonNew()) ||
+        virNetDaemonAddServer(ctrl->daemon, srv) < 0)
+        goto error;
+
+    virNetDaemonUpdateServices(ctrl->daemon, true);
     VIR_FREE(sockpath);
     return 0;
 
  error:
     VIR_FREE(sockpath);
-    virObjectUnref(ctrl->server);
-    ctrl->server = NULL;
+    virObjectUnref(srv);
+    virObjectUnref(ctrl->daemon);
+    ctrl->daemon = NULL;
     virObjectUnref(svc);
     return -1;
 }
@@ -926,7 +987,7 @@ static bool wantReboot;
 static virMutex lock = VIR_MUTEX_INITIALIZER;
 
 
-static void virLXCControllerSignalChildIO(virNetServerPtr server,
+static void virLXCControllerSignalChildIO(virNetDaemonPtr dmn,
                                           siginfo_t *info ATTRIBUTE_UNUSED,
                                           void *opaque)
 {
@@ -937,7 +998,7 @@ static void virLXCControllerSignalChildIO(virNetServerPtr server,
     ret = waitpid(-1, &status, WNOHANG);
     VIR_DEBUG("Got sig child %d vs %lld", ret, (unsigned long long)ctrl->initpid);
     if (ret == ctrl->initpid) {
-        virNetServerQuit(server);
+        virNetDaemonQuit(dmn);
         virMutexLock(&lock);
         if (WIFSIGNALED(status) &&
             WTERMSIG(status) == SIGHUP) {
@@ -996,7 +1057,7 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
                 VIR_DEBUG(":fail");
                 virReportSystemError(errno, "%s",
                                      _("Unable to add epoll fd"));
-                virNetServerQuit(console->server);
+                virNetDaemonQuit(console->daemon);
                 goto cleanup;
             }
             console->hostEpoll = events;
@@ -1008,7 +1069,7 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
             virReportSystemError(errno, "%s",
                                  _("Unable to remove epoll fd"));
             VIR_DEBUG(":fail");
-            virNetServerQuit(console->server);
+            virNetDaemonQuit(console->daemon);
             goto cleanup;
         }
         console->hostEpoll = 0;
@@ -1034,7 +1095,7 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
                 virReportSystemError(errno, "%s",
                                      _("Unable to add epoll fd"));
                 VIR_DEBUG(":fail");
-                virNetServerQuit(console->server);
+                virNetDaemonQuit(console->daemon);
                 goto cleanup;
             }
             console->contEpoll = events;
@@ -1046,7 +1107,7 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
             virReportSystemError(errno, "%s",
                                  _("Unable to remove epoll fd"));
             VIR_DEBUG(":fail");
-            virNetServerQuit(console->server);
+            virNetDaemonQuit(console->daemon);
             goto cleanup;
         }
         console->contEpoll = 0;
@@ -1075,7 +1136,7 @@ static void virLXCControllerConsoleEPoll(int watch, int fd, int events, void *op
                 continue;
             virReportSystemError(errno, "%s",
                                  _("Unable to wait on epoll"));
-            virNetServerQuit(console->server);
+            virNetDaemonQuit(console->daemon);
             goto cleanup;
         }
 
@@ -1188,7 +1249,7 @@ static void virLXCControllerConsoleIO(int watch, int fd, int events, void *opaqu
     virEventRemoveHandle(console->contWatch);
     virEventRemoveHandle(console->hostWatch);
     console->contWatch = console->hostWatch = -1;
-    virNetServerQuit(console->server);
+    virNetDaemonQuit(console->daemon);
     virMutexUnlock(&lock);
 }
 
@@ -1208,7 +1269,7 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
     int rc = -1;
     size_t i;
 
-    if (virNetServerAddSignalHandler(ctrl->server,
+    if (virNetDaemonAddSignalHandler(ctrl->daemon,
                                      SIGCHLD,
                                      virLXCControllerSignalChildIO,
                                      ctrl) < 0)
@@ -1254,7 +1315,7 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
         }
     }
 
-    virNetServerRun(ctrl->server);
+    virNetDaemonRun(ctrl->daemon);
 
     err = virGetLastError();
     if (!err || err->code == VIR_ERR_OK)
@@ -2228,7 +2289,7 @@ virLXCControllerEventSendExit(virLXCControllerPtr ctrl,
         VIR_DEBUG("Waiting for client to complete dispatch");
         ctrl->inShutdown = true;
         virNetServerClientDelayedClose(ctrl->client);
-        virNetServerRun(ctrl->server);
+        virNetDaemonRun(ctrl->daemon);
     }
     VIR_DEBUG("Client has gone away");
     return 0;

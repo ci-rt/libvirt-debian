@@ -926,6 +926,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     virNetworkDNSDefPtr dns = &network->def->dns;
     virNetworkIpDefPtr tmpipdef, ipdef, ipv4def, ipv6def;
     bool ipv6SLAAC;
+    char *saddr = NULL, *eaddr = NULL;
 
     *configstr = NULL;
 
@@ -1180,20 +1181,23 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
 
     while (ipdef) {
         for (r = 0; r < ipdef->nranges; r++) {
-            char *saddr = virSocketAddrFormat(&ipdef->ranges[r].start);
-            if (!saddr)
+            int thisRange;
+
+            if (!(saddr = virSocketAddrFormat(&ipdef->ranges[r].start)) ||
+                !(eaddr = virSocketAddrFormat(&ipdef->ranges[r].end)))
                 goto cleanup;
-            char *eaddr = virSocketAddrFormat(&ipdef->ranges[r].end);
-            if (!eaddr) {
-                VIR_FREE(saddr);
-                goto cleanup;
-            }
+
             virBufferAsprintf(&configbuf, "dhcp-range=%s,%s\n",
                               saddr, eaddr);
             VIR_FREE(saddr);
             VIR_FREE(eaddr);
-            nbleases += virSocketAddrGetRange(&ipdef->ranges[r].start,
-                                              &ipdef->ranges[r].end);
+            thisRange = virSocketAddrGetRange(&ipdef->ranges[r].start,
+                                              &ipdef->ranges[r].end,
+                                              &ipdef->address,
+                                              virNetworkIpDefPrefix(ipdef));
+            if (thisRange < 0)
+                goto cleanup;
+            nbleases += thisRange;
         }
 
         /*
@@ -1287,6 +1291,8 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     ret = 0;
 
  cleanup:
+    VIR_FREE(saddr);
+    VIR_FREE(eaddr);
     virBufferFreeAndReset(&configbuf);
     return ret;
 }
@@ -1595,7 +1601,7 @@ networkRadvdConfContents(virNetworkObjPtr network, char **configstr)
     return ret;
 }
 
-/* write file and return it's name (which must be freed by caller) */
+/* write file and return its name (which must be freed by caller) */
 static int
 networkRadvdConfWrite(virNetworkDriverStatePtr driver,
                       virNetworkObjPtr network,

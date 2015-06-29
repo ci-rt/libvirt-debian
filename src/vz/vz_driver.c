@@ -1,5 +1,5 @@
 /*
- * parallels_driver.c: core driver functions for managing
+ * vz_driver.c: core driver functions for managing
  * Parallels Cloud Server hosts
  *
  * Copyright (C) 2014-2015 Red Hat, Inc.
@@ -51,10 +51,11 @@
 #include "nodeinfo.h"
 #include "virstring.h"
 #include "cpu/cpu.h"
+#include "virtypedparam.h"
 
-#include "parallels_driver.h"
-#include "parallels_utils.h"
-#include "parallels_sdk.h"
+#include "vz_driver.h"
+#include "vz_utils.h"
+#include "vz_sdk.h"
 
 #define VIR_FROM_THIS VIR_FROM_PARALLELS
 
@@ -63,22 +64,22 @@ VIR_LOG_INIT("parallels.parallels_driver");
 #define PRLCTL                      "prlctl"
 #define PRLSRVCTL                   "prlsrvctl"
 
-static int parallelsConnectClose(virConnectPtr conn);
+static int vzConnectClose(virConnectPtr conn);
 
 void
-parallelsDriverLock(parallelsConnPtr driver)
+vzDriverLock(vzConnPtr driver)
 {
     virMutexLock(&driver->lock);
 }
 
 void
-parallelsDriverUnlock(parallelsConnPtr driver)
+vzDriverUnlock(vzConnPtr driver)
 {
     virMutexUnlock(&driver->lock);
 }
 
 static virCapsPtr
-parallelsBuildCapabilities(void)
+vzBuildCapabilities(void)
 {
     virCapsPtr caps = NULL;
     virCPUDefPtr cpu = NULL;
@@ -120,6 +121,33 @@ parallelsBuildCapabilities(void)
                                       NULL, NULL, 0, NULL) == NULL)
         goto error;
 
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
+                                         VIR_ARCH_X86_64,
+                                         "vz",
+                                         NULL, 0, NULL)) == NULL)
+        goto error;
+
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
+                                         VIR_ARCH_I686,
+                                         "vz",
+                                         NULL, 0, NULL)) == NULL)
+        goto error;
+
+
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_VZ,
+                                      NULL, NULL, 0, NULL) == NULL)
+        goto error;
+
+    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_EXE,
+                                         VIR_ARCH_X86_64,
+                                         "vz",
+                                         NULL, 0, NULL)) == NULL)
+        goto error;
+
+    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_VZ,
+                                      NULL, NULL, 0, NULL) == NULL)
+        goto error;
+
     if (nodeGetInfo(&nodeinfo))
         goto error;
 
@@ -149,21 +177,21 @@ parallelsBuildCapabilities(void)
 }
 
 static char *
-parallelsConnectGetCapabilities(virConnectPtr conn)
+vzConnectGetCapabilities(virConnectPtr conn)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     char *xml;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     xml = virCapabilitiesFormatXML(privconn->caps);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
     return xml;
 }
 
 static int
-parallelsDomainDefPostParse(virDomainDefPtr def,
-                            virCapsPtr caps ATTRIBUTE_UNUSED,
-                            void *opaque ATTRIBUTE_UNUSED)
+vzDomainDefPostParse(virDomainDefPtr def,
+                     virCapsPtr caps ATTRIBUTE_UNUSED,
+                     void *opaque ATTRIBUTE_UNUSED)
 {
     /* memory hotplug tunables are not supported by this driver */
     if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
@@ -173,10 +201,10 @@ parallelsDomainDefPostParse(virDomainDefPtr def,
 }
 
 static int
-parallelsDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
-                                  const virDomainDef *def,
-                                  virCapsPtr caps ATTRIBUTE_UNUSED,
-                                  void *opaque ATTRIBUTE_UNUSED)
+vzDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
+                           const virDomainDef *def,
+                           virCapsPtr caps ATTRIBUTE_UNUSED,
+                           void *opaque ATTRIBUTE_UNUSED)
 {
     int ret = -1;
 
@@ -194,17 +222,17 @@ parallelsDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 }
 
 
-virDomainDefParserConfig parallelsDomainDefParserConfig = {
+virDomainDefParserConfig vzDomainDefParserConfig = {
     .macPrefix = {0x42, 0x1C, 0x00},
-    .devicesPostParseCallback = parallelsDomainDeviceDefPostParse,
-    .domainPostParseCallback = parallelsDomainDefPostParse,
+    .devicesPostParseCallback = vzDomainDeviceDefPostParse,
+    .domainPostParseCallback = vzDomainDefPostParse,
 };
 
 
 static int
-parallelsOpenDefault(virConnectPtr conn)
+vzOpenDefault(virConnectPtr conn)
 {
-    parallelsConnPtr privconn;
+    vzConnPtr privconn;
 
     if (VIR_ALLOC(privconn) < 0)
         return VIR_DRV_OPEN_ERROR;
@@ -214,6 +242,8 @@ parallelsOpenDefault(virConnectPtr conn)
         goto err_free;
     }
 
+    privconn->drivername = conn->driver->name;
+
     if (prlsdkInit()) {
         VIR_DEBUG("%s", _("Can't initialize Parallels SDK"));
         goto err_free;
@@ -222,11 +252,11 @@ parallelsOpenDefault(virConnectPtr conn)
     if (prlsdkConnect(privconn) < 0)
         goto err_free;
 
-    if (!(privconn->caps = parallelsBuildCapabilities()))
+    if (!(privconn->caps = vzBuildCapabilities()))
         goto error;
 
-    if (!(privconn->xmlopt = virDomainXMLOptionNew(&parallelsDomainDefParserConfig,
-                                                 NULL, NULL)))
+    if (!(privconn->xmlopt = virDomainXMLOptionNew(&vzDomainDefParserConfig,
+                                                   NULL, NULL)))
         goto error;
 
     if (!(privconn->domains = virDomainObjListNew()))
@@ -258,9 +288,9 @@ parallelsOpenDefault(virConnectPtr conn)
 }
 
 static virDrvOpenStatus
-parallelsConnectOpen(virConnectPtr conn,
-                     virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                     unsigned int flags)
+vzConnectOpen(virConnectPtr conn,
+              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+              unsigned int flags)
 {
     int ret;
 
@@ -269,7 +299,17 @@ parallelsConnectOpen(virConnectPtr conn,
     if (!conn->uri)
         return VIR_DRV_OPEN_DECLINED;
 
-    if (!conn->uri->scheme || STRNEQ(conn->uri->scheme, "parallels"))
+    if (!conn->uri->scheme)
+        return VIR_DRV_OPEN_DECLINED;
+
+    if (STRNEQ(conn->uri->scheme, "vz") &&
+        STRNEQ(conn->uri->scheme, "parallels"))
+        return VIR_DRV_OPEN_DECLINED;
+
+    if (STREQ(conn->uri->scheme, "vz") && STRNEQ(conn->driver->name, "vz"))
+        return VIR_DRV_OPEN_DECLINED;
+
+    if (STREQ(conn->uri->scheme, "parallels") && STRNEQ(conn->driver->name, "Parallels"))
         return VIR_DRV_OPEN_DECLINED;
 
     /* Remote driver should handle these. */
@@ -279,15 +319,15 @@ parallelsConnectOpen(virConnectPtr conn,
     /* From this point on, the connection is for us. */
     if (!STREQ_NULLABLE(conn->uri->path, "/system")) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unexpected Parallels URI path '%s', try parallels:///system"),
+                       _("Unexpected Virtuozzo URI path '%s', try vz:///system"),
                        conn->uri->path);
         return VIR_DRV_OPEN_ERROR;
     }
 
-    if ((ret = parallelsOpenDefault(conn)) != VIR_DRV_OPEN_SUCCESS ||
-        (ret = parallelsStorageOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS ||
-        (ret = parallelsNetworkOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS) {
-        parallelsConnectClose(conn);
+    if ((ret = vzOpenDefault(conn)) != VIR_DRV_OPEN_SUCCESS ||
+        (ret = vzStorageOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS ||
+        (ret = vzNetworkOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS) {
+        vzConnectClose(conn);
         return ret;
     }
 
@@ -295,17 +335,17 @@ parallelsConnectOpen(virConnectPtr conn,
 }
 
 static int
-parallelsConnectClose(virConnectPtr conn)
+vzConnectClose(virConnectPtr conn)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
 
     if (!privconn)
         return 0;
 
-    parallelsNetworkClose(conn);
-    parallelsStorageClose(conn);
+    vzNetworkClose(conn);
+    vzStorageClose(conn);
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     prlsdkUnsubscribeFromPCSEvents(privconn);
     virObjectUnref(privconn->caps);
     virObjectUnref(privconn->xmlopt);
@@ -315,7 +355,7 @@ parallelsConnectClose(virConnectPtr conn)
     conn->privateData = NULL;
     prlsdkDeinit();
 
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
     virMutexDestroy(&privconn->lock);
 
     VIR_FREE(privconn);
@@ -323,21 +363,21 @@ parallelsConnectClose(virConnectPtr conn)
 }
 
 static int
-parallelsConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *hvVer)
+vzConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *hvVer)
 {
     char *output, *sVer, *tmp;
     const char *searchStr = "prlsrvctl version ";
     int ret = -1;
 
-    output = parallelsGetOutput(PRLSRVCTL, "--help", NULL);
+    output = vzGetOutput(PRLSRVCTL, "--help", NULL);
 
     if (!output) {
-        parallelsParseError();
+        vzParseError();
         goto cleanup;
     }
 
     if (!(sVer = strstr(output, searchStr))) {
-        parallelsParseError();
+        vzParseError();
         goto cleanup;
     }
 
@@ -346,18 +386,18 @@ parallelsConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *h
     /* parallels server has versions number like 6.0.17977.782218,
      * so libvirt can handle only first two numbers. */
     if (!(tmp = strchr(sVer, '.'))) {
-        parallelsParseError();
+        vzParseError();
         goto cleanup;
     }
 
     if (!(tmp = strchr(tmp + 1, '.'))) {
-        parallelsParseError();
+        vzParseError();
         goto cleanup;
     }
 
     tmp[0] = '\0';
     if (virParseVersionString(sVer, hvVer, true) < 0) {
-        parallelsParseError();
+        vzParseError();
         goto cleanup;
     }
 
@@ -369,96 +409,96 @@ parallelsConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *h
 }
 
 
-static char *parallelsConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+static char *vzConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return virGetHostname();
 }
 
 
 static int
-parallelsConnectListDomains(virConnectPtr conn, int *ids, int maxids)
+vzConnectListDomains(virConnectPtr conn, int *ids, int maxids)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     int n;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     n = virDomainObjListGetActiveIDs(privconn->domains, ids, maxids,
                                      NULL, NULL);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     return n;
 }
 
 static int
-parallelsConnectNumOfDomains(virConnectPtr conn)
+vzConnectNumOfDomains(virConnectPtr conn)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     int count;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     count = virDomainObjListNumOfDomains(privconn->domains, true,
                                          NULL, NULL);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     return count;
 }
 
 static int
-parallelsConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
+vzConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     int n;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     memset(names, 0, sizeof(*names) * maxnames);
     n = virDomainObjListGetInactiveNames(privconn->domains, names,
                                          maxnames, NULL, NULL);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     return n;
 }
 
 static int
-parallelsConnectNumOfDefinedDomains(virConnectPtr conn)
+vzConnectNumOfDefinedDomains(virConnectPtr conn)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     int count;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     count = virDomainObjListNumOfDomains(privconn->domains, false,
                                          NULL, NULL);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     return count;
 }
 
 static int
-parallelsConnectListAllDomains(virConnectPtr conn,
-                               virDomainPtr **domains,
-                               unsigned int flags)
+vzConnectListAllDomains(virConnectPtr conn,
+                        virDomainPtr **domains,
+                        unsigned int flags)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     int ret = -1;
 
     virCheckFlags(VIR_CONNECT_LIST_DOMAINS_FILTERS_ALL, -1);
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     ret = virDomainObjListExport(privconn->domains, conn, domains,
                                  NULL, flags);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     return ret;
 }
 
 static virDomainPtr
-parallelsDomainLookupByID(virConnectPtr conn, int id)
+vzDomainLookupByID(virConnectPtr conn, int id)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     virDomainPtr ret = NULL;
     virDomainObjPtr dom;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     dom = virDomainObjListFindByID(privconn->domains, id);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     if (dom == NULL) {
         virReportError(VIR_ERR_NO_DOMAIN, NULL);
@@ -476,15 +516,15 @@ parallelsDomainLookupByID(virConnectPtr conn, int id)
 }
 
 static virDomainPtr
-parallelsDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
+vzDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     virDomainPtr ret = NULL;
     virDomainObjPtr dom;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     dom = virDomainObjListFindByUUID(privconn->domains, uuid);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     if (dom == NULL) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
@@ -505,15 +545,15 @@ parallelsDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 }
 
 static virDomainPtr
-parallelsDomainLookupByName(virConnectPtr conn, const char *name)
+vzDomainLookupByName(virConnectPtr conn, const char *name)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     virDomainPtr ret = NULL;
     virDomainObjPtr dom;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     dom = virDomainObjListFindByName(privconn->domains, name);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
 
     if (dom == NULL) {
         virReportError(VIR_ERR_NO_DOMAIN,
@@ -531,12 +571,12 @@ parallelsDomainLookupByName(virConnectPtr conn, const char *name)
 }
 
 static int
-parallelsDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
+vzDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 {
     virDomainObjPtr privdom;
     int ret = -1;
 
-    if (!(privdom = parallelsDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomain(domain)))
         goto cleanup;
 
     info->state = virDomainObjGetState(privdom, NULL);
@@ -553,13 +593,13 @@ parallelsDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 }
 
 static char *
-parallelsDomainGetOSType(virDomainPtr domain)
+vzDomainGetOSType(virDomainPtr domain)
 {
     virDomainObjPtr privdom;
 
     char *ret = NULL;
 
-    if (!(privdom = parallelsDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomain(domain)))
         goto cleanup;
 
     ignore_value(VIR_STRDUP(ret, virDomainOSTypeToString(privdom->def->os.type)));
@@ -571,12 +611,12 @@ parallelsDomainGetOSType(virDomainPtr domain)
 }
 
 static int
-parallelsDomainIsPersistent(virDomainPtr domain)
+vzDomainIsPersistent(virDomainPtr domain)
 {
     virDomainObjPtr privdom;
     int ret = -1;
 
-    if (!(privdom = parallelsDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomain(domain)))
         goto cleanup;
 
     ret = 1;
@@ -588,14 +628,14 @@ parallelsDomainIsPersistent(virDomainPtr domain)
 }
 
 static int
-parallelsDomainGetState(virDomainPtr domain,
-                  int *state, int *reason, unsigned int flags)
+vzDomainGetState(virDomainPtr domain,
+                 int *state, int *reason, unsigned int flags)
 {
     virDomainObjPtr privdom;
     int ret = -1;
     virCheckFlags(0, -1);
 
-    if (!(privdom = parallelsDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomain(domain)))
         goto cleanup;
 
     *state = virDomainObjGetState(privdom, reason);
@@ -608,7 +648,7 @@ parallelsDomainGetState(virDomainPtr domain,
 }
 
 static char *
-parallelsDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
+vzDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 {
     virDomainDefPtr def;
     virDomainObjPtr privdom;
@@ -616,7 +656,7 @@ parallelsDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 
     /* Flags checked by virDomainDefFormat */
 
-    if (!(privdom = parallelsDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomain(domain)))
         goto cleanup;
 
     def = (flags & VIR_DOMAIN_XML_INACTIVE) &&
@@ -631,12 +671,12 @@ parallelsDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 }
 
 static int
-parallelsDomainGetAutostart(virDomainPtr domain, int *autostart)
+vzDomainGetAutostart(virDomainPtr domain, int *autostart)
 {
     virDomainObjPtr privdom;
     int ret = -1;
 
-    if (!(privdom = parallelsDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomain(domain)))
         goto cleanup;
 
     *autostart = privdom->autostart;
@@ -649,9 +689,9 @@ parallelsDomainGetAutostart(virDomainPtr domain, int *autostart)
 }
 
 static virDomainPtr
-parallelsDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
+vzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     virDomainPtr retdom = NULL;
     virDomainDefPtr def;
     virDomainObjPtr olddom = NULL;
@@ -662,7 +702,7 @@ parallelsDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
         parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
 
-    parallelsDriverLock(privconn);
+    vzDriverLock(privconn);
     if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
                                        parse_flags)) == NULL)
         goto cleanup;
@@ -726,47 +766,47 @@ parallelsDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int 
     if (olddom)
         virObjectUnlock(olddom);
     virDomainDefFree(def);
-    parallelsDriverUnlock(privconn);
+    vzDriverUnlock(privconn);
     return retdom;
 }
 
 static virDomainPtr
-parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
+vzDomainDefineXML(virConnectPtr conn, const char *xml)
 {
-    return parallelsDomainDefineXMLFlags(conn, xml, 0);
+    return vzDomainDefineXMLFlags(conn, xml, 0);
 }
 
 
 static int
-parallelsNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
-                     virNodeInfoPtr nodeinfo)
+vzNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+              virNodeInfoPtr nodeinfo)
 {
     return nodeGetInfo(nodeinfo);
 }
 
-static int parallelsConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+static int vzConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* Encryption is not relevant / applicable to way we talk to PCS */
     return 0;
 }
 
-static int parallelsConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+static int vzConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* We run CLI tools directly so this is secure */
     return 1;
 }
 
-static int parallelsConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+static int vzConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 1;
 }
 
 
 static char *
-parallelsConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
-                            const char **xmlCPUs,
-                            unsigned int ncpus,
-                            unsigned int flags)
+vzConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
+                     const char **xmlCPUs,
+                     unsigned int ncpus,
+                     unsigned int flags)
 {
     virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, NULL);
 
@@ -775,18 +815,18 @@ parallelsConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 static int
-parallelsDomainGetVcpus(virDomainPtr domain,
-                        virVcpuInfoPtr info,
-                        int maxinfo,
-                        unsigned char *cpumaps,
-                        int maplen)
+vzDomainGetVcpus(virDomainPtr domain,
+                 virVcpuInfoPtr info,
+                 int maxinfo,
+                 unsigned char *cpumaps,
+                 int maplen)
 {
     virDomainObjPtr privdom = NULL;
     size_t i;
     int v, maxcpu, hostcpus;
     int ret = -1;
 
-    if (!(privdom = parallelsDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomainRef(domain)))
         goto cleanup;
 
     if (!virDomainObjIsActive(privdom)) {
@@ -809,6 +849,8 @@ parallelsDomainGetVcpus(virDomainPtr domain,
             for (i = 0; i < maxinfo; i++) {
                 info[i].number = i;
                 info[i].state = VIR_VCPU_RUNNING;
+                if (prlsdkGetVcpuStats(privdom, i, &info[i].cpuTime) < 0)
+                    goto cleanup;
             }
         }
         if (cpumaps != NULL) {
@@ -831,30 +873,30 @@ parallelsDomainGetVcpus(virDomainPtr domain,
 
  cleanup:
     if (privdom)
-        virObjectUnlock(privdom);
+        virDomainObjEndAPI(&privdom);
     return ret;
 }
 
 
 static int
-parallelsNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
-                       unsigned char **cpumap,
-                       unsigned int *online,
-                       unsigned int flags)
+vzNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
+                unsigned char **cpumap,
+                unsigned int *online,
+                unsigned int flags)
 {
     return nodeGetCPUMap(cpumap, online, flags);
 }
 
 static int
-parallelsConnectDomainEventRegisterAny(virConnectPtr conn,
-                                       virDomainPtr domain,
-                                       int eventID,
-                                       virConnectDomainEventGenericCallback callback,
-                                       void *opaque,
-                                       virFreeCallback freecb)
+vzConnectDomainEventRegisterAny(virConnectPtr conn,
+                                virDomainPtr domain,
+                                int eventID,
+                                virConnectDomainEventGenericCallback callback,
+                                void *opaque,
+                                virFreeCallback freecb)
 {
     int ret = -1;
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     if (virDomainEventStateRegisterID(conn,
                                       privconn->domainEventState,
                                       domain, eventID,
@@ -864,10 +906,10 @@ parallelsConnectDomainEventRegisterAny(virConnectPtr conn,
 }
 
 static int
-parallelsConnectDomainEventDeregisterAny(virConnectPtr conn,
-                                         int callbackID)
+vzConnectDomainEventDeregisterAny(virConnectPtr conn,
+                                  int callbackID)
 {
-    parallelsConnPtr privconn = conn->privateData;
+    vzConnPtr privconn = conn->privateData;
     int ret = -1;
 
     if (virObjectEventStateDeregisterID(conn,
@@ -881,37 +923,37 @@ parallelsConnectDomainEventDeregisterAny(virConnectPtr conn,
     return ret;
 }
 
-static int parallelsDomainSuspend(virDomainPtr domain)
+static int vzDomainSuspend(virDomainPtr domain)
 {
     return prlsdkDomainChangeState(domain, prlsdkPause);
 }
 
-static int parallelsDomainResume(virDomainPtr domain)
+static int vzDomainResume(virDomainPtr domain)
 {
     return prlsdkDomainChangeState(domain, prlsdkResume);
 }
 
-static int parallelsDomainCreate(virDomainPtr domain)
+static int vzDomainCreate(virDomainPtr domain)
 {
     return prlsdkDomainChangeState(domain, prlsdkStart);
 }
 
-static int parallelsDomainDestroy(virDomainPtr domain)
+static int vzDomainDestroy(virDomainPtr domain)
 {
     return prlsdkDomainChangeState(domain, prlsdkKill);
 }
 
-static int parallelsDomainShutdown(virDomainPtr domain)
+static int vzDomainShutdown(virDomainPtr domain)
 {
     return prlsdkDomainChangeState(domain, prlsdkStop);
 }
 
-static int parallelsDomainIsActive(virDomainPtr domain)
+static int vzDomainIsActive(virDomainPtr domain)
 {
     virDomainObjPtr dom = NULL;
     int ret = -1;
 
-    if (!(dom = parallelsDomObjFromDomain(domain)))
+    if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
     ret = virDomainObjIsActive(dom);
@@ -921,42 +963,42 @@ static int parallelsDomainIsActive(virDomainPtr domain)
 }
 
 static int
-parallelsDomainCreateWithFlags(virDomainPtr domain, unsigned int flags)
+vzDomainCreateWithFlags(virDomainPtr domain, unsigned int flags)
 {
     /* we don't support any create flags */
     virCheckFlags(0, -1);
 
-    return parallelsDomainCreate(domain);
+    return vzDomainCreate(domain);
 }
 
 static int
-parallelsDomainUndefineFlags(virDomainPtr domain,
-                             unsigned int flags)
+vzDomainUndefineFlags(virDomainPtr domain,
+                      unsigned int flags)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
+    vzConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr dom = NULL;
     int ret;
 
     virCheckFlags(0, -1);
 
-    if (!(dom = parallelsDomObjFromDomain(domain)))
+    if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
     ret = prlsdkUnregisterDomain(privconn, dom);
     if (ret)
-         virObjectUnlock(dom);
+        virObjectUnlock(dom);
 
     return ret;
 }
 
 static int
-parallelsDomainUndefine(virDomainPtr domain)
+vzDomainUndefine(virDomainPtr domain)
 {
-    return parallelsDomainUndefineFlags(domain, 0);
+    return vzDomainUndefineFlags(domain, 0);
 }
 
 static int
-parallelsDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
+vzDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
 {
     virDomainObjPtr dom = NULL;
     int state, reason;
@@ -964,7 +1006,7 @@ parallelsDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
 
     virCheckFlags(0, -1);
 
-    if (!(dom = parallelsDomObjFromDomain(domain)))
+    if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
     state = virDomainObjGetState(dom, &reason);
@@ -976,9 +1018,9 @@ parallelsDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
 }
 
 static int
-parallelsDomainManagedSave(virDomainPtr domain, unsigned int flags)
+vzDomainManagedSave(virDomainPtr domain, unsigned int flags)
 {
-    parallelsConnPtr privconn = domain->conn->privateData;
+    vzConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr dom = NULL;
     int state, reason;
     int ret = -1;
@@ -986,7 +1028,7 @@ parallelsDomainManagedSave(virDomainPtr domain, unsigned int flags)
     virCheckFlags(VIR_DOMAIN_SAVE_RUNNING |
                   VIR_DOMAIN_SAVE_PAUSED, -1);
 
-    if (!(dom = parallelsDomObjFromDomain(domain)))
+    if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
     state = virDomainObjGetState(dom, &reason);
@@ -1005,7 +1047,7 @@ parallelsDomainManagedSave(virDomainPtr domain, unsigned int flags)
 }
 
 static int
-parallelsDomainManagedSaveRemove(virDomainPtr domain, unsigned int flags)
+vzDomainManagedSaveRemove(virDomainPtr domain, unsigned int flags)
 {
     virDomainObjPtr dom = NULL;
     int state, reason;
@@ -1013,7 +1055,7 @@ parallelsDomainManagedSaveRemove(virDomainPtr domain, unsigned int flags)
 
     virCheckFlags(0, -1);
 
-    if (!(dom = parallelsDomObjFromDomain(domain)))
+    if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
     state = virDomainObjGetState(dom, &reason);
@@ -1028,11 +1070,11 @@ parallelsDomainManagedSaveRemove(virDomainPtr domain, unsigned int flags)
     return ret;
 }
 
-static int parallelsDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
-                                            unsigned int flags)
+static int vzDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
+                                     unsigned int flags)
 {
     int ret = -1;
-    parallelsConnPtr privconn = dom->conn->privateData;
+    vzConnPtr privconn = dom->conn->privateData;
     virDomainDeviceDefPtr dev = NULL;
     virDomainObjPtr privdom = NULL;
     bool domactive = false;
@@ -1040,7 +1082,7 @@ static int parallelsDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
 
-    if (!(privdom = parallelsDomObjFromDomain(dom)))
+    if (!(privdom = vzDomObjFromDomain(dom)))
         return -1;
 
     if (!(flags & VIR_DOMAIN_AFFECT_CONFIG)) {
@@ -1077,6 +1119,14 @@ static int parallelsDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
             goto cleanup;
         }
         break;
+    case VIR_DOMAIN_DEVICE_NET:
+        ret = prlsdkAttachNet(privdom, privconn, dev->data.net);
+        if (ret) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("network attach failed"));
+            goto cleanup;
+        }
+        break;
     default:
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("device type '%s' cannot be attached"),
@@ -1090,17 +1140,17 @@ static int parallelsDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
     return ret;
 }
 
-static int parallelsDomainAttachDevice(virDomainPtr dom, const char *xml)
+static int vzDomainAttachDevice(virDomainPtr dom, const char *xml)
 {
-    return parallelsDomainAttachDeviceFlags(dom, xml,
-                                            VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
+    return vzDomainAttachDeviceFlags(dom, xml,
+                                     VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
 }
 
-static int parallelsDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
-                                            unsigned int flags)
+static int vzDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
+                                     unsigned int flags)
 {
     int ret = -1;
-    parallelsConnPtr privconn = dom->conn->privateData;
+    vzConnPtr privconn = dom->conn->privateData;
     virDomainDeviceDefPtr dev = NULL;
     virDomainObjPtr privdom = NULL;
     bool domactive = false;
@@ -1108,7 +1158,7 @@ static int parallelsDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
 
-    privdom = parallelsDomObjFromDomain(dom);
+    privdom = vzDomObjFromDomain(dom);
     if (privdom == NULL)
         return -1;
 
@@ -1146,6 +1196,14 @@ static int parallelsDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
             goto cleanup;
         }
         break;
+    case VIR_DOMAIN_DEVICE_NET:
+        ret = prlsdkDetachNet(privdom, privconn, dev->data.net);
+        if (ret) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("network detach failed"));
+            goto cleanup;
+        }
+        break;
     default:
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("device type '%s' cannot be detached"),
@@ -1159,19 +1217,19 @@ static int parallelsDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
     return ret;
 }
 
-static int parallelsDomainDetachDevice(virDomainPtr dom, const char *xml)
+static int vzDomainDetachDevice(virDomainPtr dom, const char *xml)
 {
-    return parallelsDomainDetachDeviceFlags(dom, xml,
-                                            VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
+    return vzDomainDetachDeviceFlags(dom, xml,
+                                     VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
 }
 
 static unsigned long long
-parallelsDomainGetMaxMemory(virDomainPtr domain)
+vzDomainGetMaxMemory(virDomainPtr domain)
 {
     virDomainObjPtr dom = NULL;
     int ret = -1;
 
-    if (!(dom = parallelsDomObjFromDomain(domain)))
+    if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
     ret = dom->def->mem.max_balloon;
@@ -1179,70 +1237,216 @@ parallelsDomainGetMaxMemory(virDomainPtr domain)
     return ret;
 }
 
-static virHypervisorDriver parallelsDriver = {
-    .name = "Parallels",
-    .connectOpen = parallelsConnectOpen,            /* 0.10.0 */
-    .connectClose = parallelsConnectClose,          /* 0.10.0 */
-    .connectGetVersion = parallelsConnectGetVersion,   /* 0.10.0 */
-    .connectGetHostname = parallelsConnectGetHostname,      /* 0.10.0 */
-    .nodeGetInfo = parallelsNodeGetInfo,      /* 0.10.0 */
-    .connectGetCapabilities = parallelsConnectGetCapabilities,      /* 0.10.0 */
-    .connectBaselineCPU = parallelsConnectBaselineCPU, /* 1.2.6 */
-    .connectListDomains = parallelsConnectListDomains,      /* 0.10.0 */
-    .connectNumOfDomains = parallelsConnectNumOfDomains,    /* 0.10.0 */
-    .connectListDefinedDomains = parallelsConnectListDefinedDomains,        /* 0.10.0 */
-    .connectNumOfDefinedDomains = parallelsConnectNumOfDefinedDomains,      /* 0.10.0 */
-    .connectListAllDomains = parallelsConnectListAllDomains, /* 0.10.0 */
-    .domainLookupByID = parallelsDomainLookupByID,    /* 0.10.0 */
-    .domainLookupByUUID = parallelsDomainLookupByUUID,        /* 0.10.0 */
-    .domainLookupByName = parallelsDomainLookupByName,        /* 0.10.0 */
-    .domainGetOSType = parallelsDomainGetOSType,    /* 0.10.0 */
-    .domainGetInfo = parallelsDomainGetInfo,  /* 0.10.0 */
-    .domainGetState = parallelsDomainGetState,        /* 0.10.0 */
-    .domainGetXMLDesc = parallelsDomainGetXMLDesc,    /* 0.10.0 */
-    .domainIsPersistent = parallelsDomainIsPersistent,        /* 0.10.0 */
-    .domainGetAutostart = parallelsDomainGetAutostart,        /* 0.10.0 */
-    .domainGetVcpus = parallelsDomainGetVcpus, /* 1.2.6 */
-    .domainSuspend = parallelsDomainSuspend,    /* 0.10.0 */
-    .domainResume = parallelsDomainResume,    /* 0.10.0 */
-    .domainDestroy = parallelsDomainDestroy,  /* 0.10.0 */
-    .domainShutdown = parallelsDomainShutdown, /* 0.10.0 */
-    .domainCreate = parallelsDomainCreate,    /* 0.10.0 */
-    .domainCreateWithFlags = parallelsDomainCreateWithFlags, /* 1.2.10 */
-    .domainDefineXML = parallelsDomainDefineXML,      /* 0.10.0 */
-    .domainDefineXMLFlags = parallelsDomainDefineXMLFlags, /* 1.2.12 */
-    .domainUndefine = parallelsDomainUndefine, /* 1.2.10 */
-    .domainUndefineFlags = parallelsDomainUndefineFlags, /* 1.2.10 */
-    .domainAttachDevice = parallelsDomainAttachDevice, /* 1.2.15 */
-    .domainAttachDeviceFlags = parallelsDomainAttachDeviceFlags, /* 1.2.15 */
-    .domainDetachDevice = parallelsDomainDetachDevice, /* 1.2.15 */
-    .domainDetachDeviceFlags = parallelsDomainDetachDeviceFlags, /* 1.2.15 */
-    .domainIsActive = parallelsDomainIsActive, /* 1.2.10 */
-    .connectDomainEventRegisterAny = parallelsConnectDomainEventRegisterAny, /* 1.2.10 */
-    .connectDomainEventDeregisterAny = parallelsConnectDomainEventDeregisterAny, /* 1.2.10 */
-    .nodeGetCPUMap = parallelsNodeGetCPUMap, /* 1.2.8 */
-    .connectIsEncrypted = parallelsConnectIsEncrypted, /* 1.2.5 */
-    .connectIsSecure = parallelsConnectIsSecure, /* 1.2.5 */
-    .connectIsAlive = parallelsConnectIsAlive, /* 1.2.5 */
-    .domainHasManagedSaveImage = parallelsDomainHasManagedSaveImage, /* 1.2.13 */
-    .domainManagedSave = parallelsDomainManagedSave, /* 1.2.14 */
-    .domainManagedSaveRemove = parallelsDomainManagedSaveRemove, /* 1.2.14 */
-    .domainGetMaxMemory = parallelsDomainGetMaxMemory, /* 1.2.15 */
+static int
+vzDomainBlockStats(virDomainPtr domain, const char *path,
+                   virDomainBlockStatsPtr stats)
+{
+    virDomainObjPtr dom = NULL;
+    int ret = -1;
+    size_t i;
+    int idx;
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (*path) {
+        if ((idx = virDomainDiskIndexByName(dom->def, path, false)) < 0) {
+            virReportError(VIR_ERR_INVALID_ARG, _("invalid path: %s"), path);
+            goto cleanup;
+        }
+        if (prlsdkGetBlockStats(dom, dom->def->disks[idx], stats) < 0)
+            goto cleanup;
+    } else {
+        virDomainBlockStatsStruct s;
+
+#define PARALLELS_ZERO_STATS(VAR, TYPE, NAME)      \
+        stats->VAR = 0;
+
+        PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_ZERO_STATS)
+
+#undef PARALLELS_ZERO_STATS
+
+        for (i = 0; i < dom->def->ndisks; i++) {
+            if (prlsdkGetBlockStats(dom, dom->def->disks[i], &s) < 0)
+                goto cleanup;
+
+#define PARALLELS_SUM_STATS(VAR, TYPE, NAME)        \
+    if (s.VAR != -1)                                \
+        stats->VAR += s.VAR;
+
+        PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_SUM_STATS)
+
+#undef PARALLELS_SUM_STATS
+        }
+    }
+    stats->errs = -1;
+    ret = 0;
+
+ cleanup:
+    if (dom)
+        virDomainObjEndAPI(&dom);
+
+    return ret;
+}
+
+static int
+vzDomainBlockStatsFlags(virDomainPtr domain,
+                        const char *path,
+                        virTypedParameterPtr params,
+                        int *nparams,
+                        unsigned int flags)
+{
+    virDomainBlockStatsStruct stats;
+    int ret = -1;
+    size_t i;
+
+    virCheckFlags(VIR_TYPED_PARAM_STRING_OKAY, -1);
+    /* We don't return strings, and thus trivially support this flag.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
+
+    if (vzDomainBlockStats(domain, path, &stats) < 0)
+        goto cleanup;
+
+    if (*nparams == 0) {
+#define PARALLELS_COUNT_STATS(VAR, TYPE, NAME)       \
+        if ((stats.VAR) != -1)                       \
+            ++*nparams;
+
+        PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_COUNT_STATS)
+
+#undef PARALLELS_COUNT_STATS
+        ret = 0;
+        goto cleanup;
+    }
+
+    i = 0;
+#define PARALLELS_BLOCK_STATS_ASSIGN_PARAM(VAR, TYPE, NAME)                    \
+    if (i < *nparams && (stats.VAR) != -1) {                                   \
+        if (virTypedParameterAssign(params + i, TYPE,                          \
+                                    VIR_TYPED_PARAM_LLONG, (stats.VAR)) < 0)   \
+            goto cleanup;                                                      \
+        i++;                                                                   \
+    }
+
+    PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_BLOCK_STATS_ASSIGN_PARAM)
+
+#undef PARALLELS_BLOCK_STATS_ASSIGN_PARAM
+
+    *nparams = i;
+    ret = 0;
+
+ cleanup:
+    return ret;
+}
+
+static int
+vzDomainInterfaceStats(virDomainPtr domain,
+                         const char *path,
+                         virDomainInterfaceStatsPtr stats)
+{
+    virDomainObjPtr dom = NULL;
+    int ret;
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    ret = prlsdkGetNetStats(dom, path, stats);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
+}
+
+static int
+vzDomainMemoryStats(virDomainPtr domain,
+                    virDomainMemoryStatPtr stats,
+                    unsigned int nr_stats,
+                    unsigned int flags)
+{
+    virDomainObjPtr dom = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    ret = prlsdkGetMemoryStats(dom, stats, nr_stats);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
+}
+
+static virHypervisorDriver vzDriver = {
+    .name = "vz",
+    .connectOpen = vzConnectOpen,            /* 0.10.0 */
+    .connectClose = vzConnectClose,          /* 0.10.0 */
+    .connectGetVersion = vzConnectGetVersion,   /* 0.10.0 */
+    .connectGetHostname = vzConnectGetHostname,      /* 0.10.0 */
+    .nodeGetInfo = vzNodeGetInfo,      /* 0.10.0 */
+    .connectGetCapabilities = vzConnectGetCapabilities,      /* 0.10.0 */
+    .connectBaselineCPU = vzConnectBaselineCPU, /* 1.2.6 */
+    .connectListDomains = vzConnectListDomains,      /* 0.10.0 */
+    .connectNumOfDomains = vzConnectNumOfDomains,    /* 0.10.0 */
+    .connectListDefinedDomains = vzConnectListDefinedDomains,        /* 0.10.0 */
+    .connectNumOfDefinedDomains = vzConnectNumOfDefinedDomains,      /* 0.10.0 */
+    .connectListAllDomains = vzConnectListAllDomains, /* 0.10.0 */
+    .domainLookupByID = vzDomainLookupByID,    /* 0.10.0 */
+    .domainLookupByUUID = vzDomainLookupByUUID,        /* 0.10.0 */
+    .domainLookupByName = vzDomainLookupByName,        /* 0.10.0 */
+    .domainGetOSType = vzDomainGetOSType,    /* 0.10.0 */
+    .domainGetInfo = vzDomainGetInfo,  /* 0.10.0 */
+    .domainGetState = vzDomainGetState,        /* 0.10.0 */
+    .domainGetXMLDesc = vzDomainGetXMLDesc,    /* 0.10.0 */
+    .domainIsPersistent = vzDomainIsPersistent,        /* 0.10.0 */
+    .domainGetAutostart = vzDomainGetAutostart,        /* 0.10.0 */
+    .domainGetVcpus = vzDomainGetVcpus, /* 1.2.6 */
+    .domainSuspend = vzDomainSuspend,    /* 0.10.0 */
+    .domainResume = vzDomainResume,    /* 0.10.0 */
+    .domainDestroy = vzDomainDestroy,  /* 0.10.0 */
+    .domainShutdown = vzDomainShutdown, /* 0.10.0 */
+    .domainCreate = vzDomainCreate,    /* 0.10.0 */
+    .domainCreateWithFlags = vzDomainCreateWithFlags, /* 1.2.10 */
+    .domainDefineXML = vzDomainDefineXML,      /* 0.10.0 */
+    .domainDefineXMLFlags = vzDomainDefineXMLFlags, /* 1.2.12 */
+    .domainUndefine = vzDomainUndefine, /* 1.2.10 */
+    .domainUndefineFlags = vzDomainUndefineFlags, /* 1.2.10 */
+    .domainAttachDevice = vzDomainAttachDevice, /* 1.2.15 */
+    .domainAttachDeviceFlags = vzDomainAttachDeviceFlags, /* 1.2.15 */
+    .domainDetachDevice = vzDomainDetachDevice, /* 1.2.15 */
+    .domainDetachDeviceFlags = vzDomainDetachDeviceFlags, /* 1.2.15 */
+    .domainIsActive = vzDomainIsActive, /* 1.2.10 */
+    .connectDomainEventRegisterAny = vzConnectDomainEventRegisterAny, /* 1.2.10 */
+    .connectDomainEventDeregisterAny = vzConnectDomainEventDeregisterAny, /* 1.2.10 */
+    .nodeGetCPUMap = vzNodeGetCPUMap, /* 1.2.8 */
+    .connectIsEncrypted = vzConnectIsEncrypted, /* 1.2.5 */
+    .connectIsSecure = vzConnectIsSecure, /* 1.2.5 */
+    .connectIsAlive = vzConnectIsAlive, /* 1.2.5 */
+    .domainHasManagedSaveImage = vzDomainHasManagedSaveImage, /* 1.2.13 */
+    .domainManagedSave = vzDomainManagedSave, /* 1.2.14 */
+    .domainManagedSaveRemove = vzDomainManagedSaveRemove, /* 1.2.14 */
+    .domainGetMaxMemory = vzDomainGetMaxMemory, /* 1.2.15 */
+    .domainBlockStats = vzDomainBlockStats, /* 1.2.17 */
+    .domainBlockStatsFlags = vzDomainBlockStatsFlags, /* 1.2.17 */
+    .domainInterfaceStats = vzDomainInterfaceStats, /* 1.2.17 */
+    .domainMemoryStats = vzDomainMemoryStats, /* 1.2.17 */
 };
 
-static virConnectDriver parallelsConnectDriver = {
-    .hypervisorDriver = &parallelsDriver,
-    .storageDriver = &parallelsStorageDriver,
-    .networkDriver = &parallelsNetworkDriver,
+static virConnectDriver vzConnectDriver = {
+    .hypervisorDriver = &vzDriver,
+    .storageDriver = &vzStorageDriver,
+    .networkDriver = &vzNetworkDriver,
 };
+
+/* Parallels domain type backward compatibility*/
+static virHypervisorDriver parallelsDriver;
+static virConnectDriver parallelsConnectDriver;
 
 /**
- * parallelsRegister:
+ * vzRegister:
  *
- * Registers the parallels driver
+ * Registers the vz driver
  */
 int
-parallelsRegister(void)
+vzRegister(void)
 {
     char *prlctl_path;
 
@@ -1254,7 +1458,15 @@ parallelsRegister(void)
 
     VIR_FREE(prlctl_path);
 
+    /* Backward compatibility with Parallels domain type */
+    parallelsDriver = vzDriver;
+    parallelsDriver.name = "Parallels";
+    parallelsConnectDriver = vzConnectDriver;
+    parallelsConnectDriver.hypervisorDriver = &parallelsDriver;
     if (virRegisterConnectDriver(&parallelsConnectDriver, false) < 0)
+        return -1;
+
+    if (virRegisterConnectDriver(&vzConnectDriver, false) < 0)
         return -1;
 
     return 0;

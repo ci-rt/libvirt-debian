@@ -1001,10 +1001,10 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
     if (diskPriv->blockJobSync) {
+        /* We have a SYNC API waiting for this event, dispatch it back */
         diskPriv->blockJobType = type;
         diskPriv->blockJobStatus = status;
-        /* We have an SYNC API waiting for this event, dispatch it back */
-        virCondSignal(&diskPriv->blockJobSyncCond);
+        virDomainObjSignal(vm);
     } else {
         /* there is no waiting SYNC API, dispatch the update to a thread */
         if (VIR_ALLOC(processEvent) < 0)
@@ -1481,6 +1481,33 @@ qemuProcessHandleSerialChanged(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 }
 
 
+static int
+qemuProcessHandleSpiceMigrated(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
+                               virDomainObjPtr vm,
+                               void *opaque ATTRIBUTE_UNUSED)
+{
+    qemuDomainObjPrivatePtr priv;
+
+    virObjectLock(vm);
+
+    VIR_DEBUG("Spice migration completed for domain %p %s",
+              vm, vm->def->name);
+
+    priv = vm->privateData;
+    if (priv->job.asyncJob != QEMU_ASYNC_JOB_MIGRATION_OUT) {
+        VIR_DEBUG("got SPICE_MIGRATE_COMPLETED event without a migration job");
+        goto cleanup;
+    }
+
+    priv->job.spiceMigrated = true;
+    virDomainObjSignal(vm);
+
+ cleanup:
+    virObjectUnlock(vm);
+    return 0;
+}
+
+
 static qemuMonitorCallbacks monitorCallbacks = {
     .eofNotify = qemuProcessHandleMonitorEOF,
     .errorNotify = qemuProcessHandleMonitorError,
@@ -1504,6 +1531,7 @@ static qemuMonitorCallbacks monitorCallbacks = {
     .domainDeviceDeleted = qemuProcessHandleDeviceDeleted,
     .domainNicRxFilterChanged = qemuProcessHandleNicRxFilterChanged,
     .domainSerialChange = qemuProcessHandleSerialChanged,
+    .domainSpiceMigrated = qemuProcessHandleSpiceMigrated,
 };
 
 static int
@@ -2376,7 +2404,7 @@ qemuProcessSetVcpuAffinities(virDomainObjPtr vm)
         /* If any CPU has custom affinity that differs from the
          * VM default affinity, we must reject it
          */
-        for (n = 0; n < def->vcpus; n++) {
+        for (n = 0; n < def->cputune.nvcpupin; n++) {
             if (!virBitmapEqual(def->cpumask,
                                 def->cputune.vcpupin[n]->cpumask)) {
                 virReportError(VIR_ERR_OPERATION_INVALID,
@@ -2414,7 +2442,7 @@ qemuProcessSetEmulatorAffinity(virDomainObjPtr vm)
     int ret = -1;
 
     if (def->cputune.emulatorpin)
-        cpumask = def->cputune.emulatorpin->cpumask;
+        cpumask = def->cputune.emulatorpin;
     else if (def->cpumask)
         cpumask = def->cpumask;
     else
@@ -3354,8 +3382,6 @@ qemuProcessRecoverMigration(virQEMUDriverPtr driver,
                             virDomainState state,
                             int reason)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-
     if (job == QEMU_ASYNC_JOB_MIGRATION_IN) {
         switch (phase) {
         case QEMU_MIGRATION_PHASE_NONE:
@@ -3409,11 +3435,7 @@ qemuProcessRecoverMigration(virQEMUDriverPtr driver,
         case QEMU_MIGRATION_PHASE_PERFORM3:
             /* migration is still in progress, let's cancel it and resume the
              * domain */
-            VIR_DEBUG("Canceling unfinished outgoing migration of domain %s",
-                      vm->def->name);
-            qemuDomainObjEnterMonitor(driver, vm);
-            ignore_value(qemuMonitorMigrateCancel(priv->mon));
-            if (qemuDomainObjExitMonitor(driver, vm) < 0)
+            if (qemuMigrationCancel(driver, vm) < 0)
                 return -1;
             /* resume the domain but only if it was paused as a result of
              * migration */
@@ -4270,8 +4292,6 @@ int qemuProcessStart(virConnectPtr conn,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virCommandPtr cmd = NULL;
     struct qemuProcessHookData hookData;
-    unsigned long cur_balloon;
-    int period = 0;
     size_t i;
     bool rawio_set = false;
     char *nodeset = NULL;
@@ -4880,28 +4900,29 @@ int qemuProcessStart(virConnectPtr conn,
     if (qemuDomainUpdateMemoryDeviceInfo(driver, vm, asyncJob) < 0)
         goto cleanup;
 
-    /* Technically, qemuProcessStart can be called from inside
-     * QEMU_ASYNC_JOB_MIGRATION_IN, but we are okay treating this like
-     * a sync job since no other job can call into the domain until
-     * migration completes.  */
     VIR_DEBUG("Setting initial memory amount");
-    cur_balloon = vm->def->mem.cur_balloon;
-    if (cur_balloon != vm->def->mem.cur_balloon) {
-        virReportError(VIR_ERR_OVERFLOW,
-                       _("unable to set balloon to %lld"),
-                       vm->def->mem.cur_balloon);
-        goto cleanup;
+    if (vm->def->memballoon &&
+        vm->def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_NONE) {
+        unsigned long long balloon = vm->def->mem.cur_balloon;
+        int period = vm->def->memballoon->period;
+
+        if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+            goto cleanup;
+
+        if (period)
+            qemuMonitorSetMemoryStatsPeriod(priv->mon, period);
+
+        if (qemuMonitorSetBalloon(priv->mon, balloon) < 0)
+            goto exit_monitor;
+
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
+            goto cleanup;
     }
-    if (vm->def->memballoon && vm->def->memballoon->period)
-        period = vm->def->memballoon->period;
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-        goto cleanup;
-    if (period)
-        qemuMonitorSetMemoryStatsPeriod(priv->mon, period);
-    if (qemuMonitorSetBalloon(priv->mon, cur_balloon) < 0)
-        goto exit_monitor;
-    if (qemuDomainObjExitMonitor(driver, vm) < 0)
-        goto cleanup;
+
+    /* Since CPUs were not started yet, the ballon could not return the memory
+     * to the host and thus cur_balloon needs to be updated so that GetXMLdesc
+     * and friends return the correct size in case they can't grab the job */
+    vm->def->mem.cur_balloon = virDomainDefGetMemoryActual(vm->def);
 
     VIR_DEBUG("Detecting actual memory size for video device");
     if (qemuProcessUpdateVideoRamSize(driver, vm, asyncJob) < 0)
@@ -5056,13 +5077,8 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     if (virAtomicIntDecAndTest(&driver->nactive) && driver->inhibitCallback)
         driver->inhibitCallback(false, driver->inhibitOpaque);
 
-    /* Wake up anything waiting on synchronous block jobs */
-    for (i = 0; i < vm->def->ndisks; i++) {
-        qemuDomainDiskPrivatePtr diskPriv =
-            QEMU_DOMAIN_DISK_PRIVATE(vm->def->disks[i]);
-        if (diskPriv->blockJobSync && diskPriv->blockJobStatus == -1)
-            virCondSignal(&diskPriv->blockJobSyncCond);
-    }
+    /* Wake up anything waiting on domain condition */
+    virDomainObjBroadcast(vm);
 
     if ((logfile = qemuDomainCreateLog(driver, vm, true)) < 0) {
         /* To not break the normal domain shutdown process, skip the
@@ -5518,7 +5534,9 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (running) {
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
                              VIR_DOMAIN_RUNNING_UNPAUSED);
-        if (vm->def->memballoon && vm->def->memballoon->period) {
+        if (vm->def->memballoon &&
+            vm->def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO &&
+            vm->def->memballoon->period) {
             qemuDomainObjEnterMonitor(driver, vm);
             qemuMonitorSetMemoryStatsPeriod(priv->mon,
                                             vm->def->memballoon->period);

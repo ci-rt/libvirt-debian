@@ -135,7 +135,8 @@ struct qemuDomainJobObj {
     bool dump_memory_only;              /* use dump-guest-memory to do dump */
     qemuDomainJobInfoPtr current;       /* async job progress data */
     qemuDomainJobInfoPtr completed;     /* statistics data of a recently completed job */
-    bool asyncAbort;                    /* abort of async job requested */
+    bool abortJob;                      /* abort of the job requested */
+    bool spiceMigrated;                 /* spice migration completed */
 };
 
 typedef void (*qemuDomainCleanupCallback)(virQEMUDriverPtr driver,
@@ -214,7 +215,6 @@ struct _qemuDomainDiskPrivate {
     bool blockjob;
 
     /* for some synchronous block jobs, we need to notify the owner */
-    virCond blockJobSyncCond;
     int blockJobType;   /* type of the block job from the event */
     int blockJobStatus; /* status of the finished block job */
     bool blockJobSync; /* the block job needs synchronized termination */
@@ -465,5 +465,8 @@ virDomainChrSourceDefPtr qemuFindAgentConfig(virDomainDefPtr def);
 
 bool qemuDomainMachineIsQ35(const virDomainDef *def);
 bool qemuDomainMachineIsI440FX(const virDomainDef *def);
+
+int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
+                                      virDomainObjPtr vm);
 
 #endif /* __QEMU_DOMAIN_H__ */

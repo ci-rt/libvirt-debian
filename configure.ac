@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.16], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.17], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -25,6 +25,10 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms; also keep
 dnl quiet about the fact that we intentionally cater to automake 1.9
 AM_INIT_AUTOMAKE([-Wno-portability -Wno-obsolete tar-ustar subdir-objects])
+dnl older automake's default of ARFLAGS=cru is noisy on newer binutils;
+dnl we don't really need the 'u' even in older toolchains.  Then there is
+dnl older libtool, which spelled it AR_FLAGS
+m4_divert_text([DEFAULTS], [: "${ARFLAGS=cr} ${AR_FLAGS=cr}"])
 
 # Maintainer note - comment this line out if you plan to rerun
 # GNULIB_POSIXCHECK testing to see if libvirt should be using more modules.
@@ -558,10 +562,10 @@ AC_ARG_WITH([hyperv],
   [AS_HELP_STRING([--with-hyperv],
     [add Hyper-V support @<:@default=check@:>@])])
 m4_divert_text([DEFAULTS], [with_hyperv=check])
-AC_ARG_WITH([parallels],
-  [AS_HELP_STRING([--with-parallels],
-    [add Parallels Cloud Server support @<:@default=check@:>@])])
-m4_divert_text([DEFAULTS], [with_parallels=check])
+AC_ARG_WITH([vz],
+  [AS_HELP_STRING([--with-vz],
+    [add Virtuozzo support @<:@default=check@:>@])])
+m4_divert_text([DEFAULTS], [with_vz=check])
 AC_ARG_WITH([test],
   [AS_HELP_STRING([--with-test],
     [add test driver support @<:@default=yes@:>@])])
@@ -821,7 +825,6 @@ if test "$with_libvirtd" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_LIBVIRTD], [test "$with_libvirtd" = "yes"])
 
-
 old_LIBS="$LIBS"
 old_CFLAGS="$CFLAGS"
 LIBXENSERVER_LIBS=""
@@ -1079,22 +1082,22 @@ dnl Checks for the Parallels driver
 dnl
 
 
-if test "$with_parallels" = "yes" ||
-   test "$with_parallels" = "check"; then
+if test "$with_vz" = "yes" ||
+   test "$with_vz" = "check"; then
     PKG_CHECK_MODULES([PARALLELS_SDK], [parallels-sdk],
                       [PARALLELS_SDK_FOUND=yes], [PARALLELS_SDK_FOUND=no])
 
-    if test "$with_parallels" = "yes" && test "$PARALLELS_SDK_FOUND" = "no"; then
+    if test "$with_vz" = "yes" && test "$PARALLELS_SDK_FOUND" = "no"; then
         AC_MSG_ERROR([Parallels Virtualization SDK is needed to build the Parallels driver.])
     fi
 
-    with_parallels=$PARALLELS_SDK_FOUND
-    if test "$with_parallels" = "yes"; then
-        AC_DEFINE_UNQUOTED([WITH_PARALLELS], 1,
-                           [whether Parallels driver is enabled])
+    with_vz=$PARALLELS_SDK_FOUND
+    if test "$with_vz" = "yes"; then
+        AC_DEFINE_UNQUOTED([WITH_VZ], 1,
+                           [whether vz driver is enabled])
     fi
 fi
-AM_CONDITIONAL([WITH_PARALLELS], [test "$with_parallels" = "yes"])
+AM_CONDITIONAL([WITH_VZ], [test "$with_vz" = "yes"])
 
 dnl
 dnl Checks for bhyve driver
@@ -1358,15 +1361,6 @@ if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
   dnl Check for new polkit first - just a binary
   AC_PATH_PROG([PKCHECK_PATH],[pkcheck], [], [/usr/sbin:$PATH])
   if test "x$PKCHECK_PATH" != "x" ; then
-    AC_DEFINE_UNQUOTED([PKCHECK_PATH],["$PKCHECK_PATH"],[Location of pkcheck program])
-    AC_MSG_CHECKING([whether pkcheck supports uid value])
-    pkcheck_supports_uid=`$PKG_CONFIG --variable pkcheck_supports_uid polkit-gobject-1`
-    if test "x$pkcheck_supports_uid" = "xtrue"; then
-      AC_MSG_RESULT([yes])
-      AC_DEFINE_UNQUOTED([PKCHECK_SUPPORTS_UID], 1, [Pass uid to pkcheck])
-    else
-      AC_MSG_RESULT([no])
-    fi
     AC_DEFINE_UNQUOTED([WITH_POLKIT], 1,
         [use PolicyKit for UNIX socket access checks])
     AC_DEFINE_UNQUOTED([WITH_POLKIT1], 1,
@@ -1965,14 +1959,14 @@ AC_SUBST([LIBRBD_LIBS])
 
 if test "$with_storage_sheepdog" = "yes" ||
    test "$with_storage_sheepdog" = "check"; then
-  AC_PATH_PROG([COLLIE], [collie], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROGS([SHEEPDOGCLI], [collie dog], [], [$PATH:/sbin:/usr/sbin])
 
   if test "$with_storage_sheepdog" = "yes"; then
-    if test -z "$COLLIE"; then
-      AC_MSG_ERROR([We need collie for Sheepdog storage driver])
+    if test -z "$SHEEPDOGCLI"; then
+      AC_MSG_ERROR([We need sheepdog client for Sheepdog storage driver])
     fi
   else
-    if test -z "$COLLIE"; then
+    if test -z "$SHEEPDOGCLI"; then
       with_storage_sheepdog=no
     fi
 
@@ -1984,7 +1978,7 @@ if test "$with_storage_sheepdog" = "yes" ||
   if test "$with_storage_sheepdog" = "yes"; then
     AC_DEFINE_UNQUOTED([WITH_STORAGE_SHEEPDOG], 1,
       [whether Sheepdog backend for storage driver is enabled])
-    AC_DEFINE_UNQUOTED([COLLIE],["$COLLIE"],[Location of collie program])
+    AC_DEFINE_UNQUOTED([SHEEPDOGCLI],["$SHEEPDOGCLI"],[Location of sheepdog client program])
   fi
 fi
 AM_CONDITIONAL([WITH_STORAGE_SHEEPDOG],
@@ -2358,6 +2352,7 @@ WIN32_EXTRA_CFLAGS=
 dnl libvirt.syms is generated in builddir, but libvirt_qemu.syms is in git;
 dnl hence the asymmetric naming of these two symbol files.
 LIBVIRT_SYMBOL_FILE=libvirt.syms
+LIBVIRT_ADMIN_SYMBOL_FILE='$(srcdir)/libvirt_admin.syms'
 LIBVIRT_LXC_SYMBOL_FILE='$(srcdir)/libvirt_lxc.syms'
 LIBVIRT_QEMU_SYMBOL_FILE='$(srcdir)/libvirt_qemu.syms'
 MSCOM_LIBS=
@@ -2388,6 +2383,7 @@ case "$host" in
     # Also set the symbol file to .def, so src/Makefile generates libvirt.def
     # from libvirt.syms and passes libvirt.def instead of libvirt.syms to the linker
     LIBVIRT_SYMBOL_FILE=libvirt.def
+    LIBVIRT_ADMIN_SYMBOL_FILE=libvirt_admin.def
     LIBVIRT_LXC_SYMBOL_FILE=libvirt_lxc.def
     LIBVIRT_QEMU_SYMBOL_FILE=libvirt_qemu.def
     # mingw's ld has the --version-script parameter, but it requires a .def file
@@ -2403,6 +2399,7 @@ AC_SUBST([CYGWIN_EXTRA_LIBADD])
 AC_SUBST([MINGW_EXTRA_LDFLAGS])
 AC_SUBST([WIN32_EXTRA_CFLAGS])
 AC_SUBST([LIBVIRT_SYMBOL_FILE])
+AC_SUBST([LIBVIRT_ADMIN_SYMBOL_FILE])
 AC_SUBST([LIBVIRT_LXC_SYMBOL_FILE])
 AC_SUBST([LIBVIRT_QEMU_SYMBOL_FILE])
 AC_SUBST([VERSION_SCRIPT_FLAGS])
@@ -2793,6 +2790,7 @@ AC_CONFIG_FILES([\
         libvirt.pc \
         libvirt-qemu.pc \
         libvirt-lxc.pc \
+        libvirt-admin.pc \
         src/libvirt.pc \
         src/libvirt-qemu.pc \
         src/libvirt-lxc.pc \
@@ -2835,7 +2833,7 @@ AC_MSG_NOTICE([      LXC: $with_lxc])
 AC_MSG_NOTICE([     PHYP: $with_phyp])
 AC_MSG_NOTICE([      ESX: $with_esx])
 AC_MSG_NOTICE([  Hyper-V: $with_hyperv])
-AC_MSG_NOTICE([Parallels: $with_parallels])
+AC_MSG_NOTICE([       vz: $with_vz])
 LIBVIRT_DRIVER_RESULT_BHYVE
 AC_MSG_NOTICE([     Test: $with_test])
 AC_MSG_NOTICE([   Remote: $with_remote])

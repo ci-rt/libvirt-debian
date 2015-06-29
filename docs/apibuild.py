@@ -59,6 +59,11 @@ lxc_included_files = {
   "libvirt-lxc.c": "Implementations for the LXC specific APIs",
 }
 
+admin_included_files = {
+  "libvirt-admin.h": "header with admin specific API definitions",
+  "libvirt-admin.c": "Implementations for the admin specific APIs",
+}
+
 ignored_words = {
   "ATTRIBUTE_UNUSED": (0, "macro keyword"),
   "ATTRIBUTE_SENTINEL": (0, "macro keyword"),
@@ -1028,9 +1033,12 @@ class CParser:
                     name = string.split(name, '(') [0]
                 except:
                     pass
-                info = self.parseMacroComment(name, not self.is_header)
+                strValue = None
+                if len(lst) == 1 and lst[0][0] == '"' and lst[0][-1] == '"':
+                    strValue = lst[0][1:-1]
+                (args, desc) = self.parseMacroComment(name, not self.is_header)
                 self.index_add(name, self.filename, not self.is_header,
-                                "macro", info)
+                               "macro", (args, desc, strValue))
                 return token
 
         #
@@ -1356,32 +1364,32 @@ class CParser:
                 token = self.token()
                 return token
             elif token[0] == "name":
-                    self.cleanupComment()
-                    if name is not None:
-                        if self.comment is not None:
-                            comment = string.strip(self.comment)
-                            self.comment = None
-                        self.enums.append((name, value, comment))
-                    name = token[1]
-                    comment = ""
+                self.cleanupComment()
+                if name is not None:
+                    if self.comment is not None:
+                        comment = string.strip(self.comment)
+                        self.comment = None
+                    self.enums.append((name, value, comment))
+                name = token[1]
+                comment = ""
+                token = self.token()
+                if token[0] == "op" and token[1][0] == "=":
+                    value = ""
+                    if len(token[1]) > 1:
+                        value = token[1][1:]
                     token = self.token()
-                    if token[0] == "op" and token[1][0] == "=":
-                        value = ""
-                        if len(token[1]) > 1:
-                            value = token[1][1:]
+                    while token[0] != "sep" or (token[1] != ',' and
+                          token[1] != '}'):
+                        value = value + token[1]
                         token = self.token()
-                        while token[0] != "sep" or (token[1] != ',' and
-                              token[1] != '}'):
-                            value = value + token[1]
-                            token = self.token()
-                    else:
-                        try:
-                            value = "%d" % (int(value) + 1)
-                        except:
-                            self.warning("Failed to compute value of enum %s" % (name))
-                            value=""
-                    if token[0] == "sep" and token[1] == ",":
-                        token = self.token()
+                else:
+                    try:
+                        value = "%d" % (int(value) + 1)
+                    except:
+                        self.warning("Failed to compute value of enum %s" % (name))
+                        value=""
+                if token[0] == "sep" and token[1] == ",":
+                    token = self.token()
             else:
                 token = self.token()
         return token
@@ -2018,6 +2026,8 @@ class docBuilder:
             self.includes = includes + qemu_included_files.keys()
         elif name == "libvirt-lxc":
             self.includes = includes + lxc_included_files.keys()
+        elif name == "libvirt-admin":
+            self.includes = includes + admin_included_files.keys()
         self.modules = {}
         self.headers = {}
         self.idx = index()
@@ -2144,24 +2154,30 @@ class docBuilder:
 
     def serialize_macro(self, output, name):
         id = self.idx.macros[name]
-        output.write("    <macro name='%s' file='%s'>\n" % (name,
+        output.write("    <macro name='%s' file='%s'" % (name,
                      self.modulename_file(id.header)))
-        if id.info is not None:
-            try:
-                (args, desc) = id.info
-                if desc is not None and desc != "":
-                    output.write("      <info><![CDATA[%s]]></info>\n" % (desc))
-                    self.indexString(name, desc)
-                for arg in args:
-                    (name, desc) = arg
-                    if desc is not None and desc != "":
-                        output.write("      <arg name='%s' info='%s'/>\n" % (
-                                     name, escape(desc)))
-                        self.indexString(name, desc)
-                    else:
-                        output.write("      <arg name='%s'/>\n" % (name))
-            except:
-                pass
+        if id.info is None:
+            args = []
+            desc = None
+            strValue = None
+        else:
+            (args, desc, strValue) = id.info
+
+        if strValue is not None:
+            output.write(" string='%s'" % strValue)
+        output.write(">\n")
+
+        if desc is not None and desc != "":
+            output.write("      <info><![CDATA[%s]]></info>\n" % (desc))
+            self.indexString(name, desc)
+        for arg in args:
+            (name, desc) = arg
+            if desc is not None and desc != "":
+                output.write("      <arg name='%s' info='%s'/>\n" % (
+                             name, escape(desc)))
+                self.indexString(name, desc)
+            else:
+                output.write("      <arg name='%s'/>\n" % (name))
         output.write("    </macro>\n")
 
     def serialize_union(self, output, field, desc):
@@ -2551,7 +2567,7 @@ class docBuilder:
 
 
 def rebuild(name):
-    if name not in ["libvirt", "libvirt-qemu", "libvirt-lxc"]:
+    if name not in ["libvirt", "libvirt-qemu", "libvirt-lxc", "libvirt-admin"]:
         self.warning("rebuild() failed, unknown module %s") % name
         return None
     builder = None
@@ -2595,6 +2611,7 @@ if __name__ == "__main__":
         rebuild("libvirt")
         rebuild("libvirt-qemu")
         rebuild("libvirt-lxc")
+        rebuild("libvirt-admin")
     if warnings > 0:
         sys.exit(2)
     else:

@@ -607,7 +607,7 @@ cmdHelp(vshControl *ctl, const vshCmd *cmd)
  {
     const char *name = NULL;
 
-    if (vshCommandOptString(cmd, "command", &name) <= 0) {
+    if (vshCommandOptString(ctl, cmd, "command", &name) <= 0) {
         const vshCmdGrp *grp;
         const vshCmdDef *def;
 
@@ -875,7 +875,7 @@ cmdCd(vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
-    if (vshCommandOptString(cmd, "dir", &dir) <= 0)
+    if (vshCommandOptString(ctl, cmd, "dir", &dir) <= 0)
         dir = dir_malloced = virGetUserDirectory();
     if (!dir)
         dir = "/";
@@ -978,7 +978,7 @@ cmdEcho(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptBool(cmd, "xml"))
         xml = true;
 
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
         char *str;
         virBuffer xmlbuf = VIR_BUFFER_INITIALIZER;
 
@@ -1504,33 +1504,42 @@ vshCommandOpt(const vshCmd *cmd, const char *name, vshCmdOpt **opt,
 
 /**
  * vshCommandOptInt:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
  *
- * Convert option to int
+ * Convert option to int.
+ * On error, a message is displayed.
+ *
  * Return value:
  * >0 if option found and valid (@value updated)
  * 0 if option not found and not required (@value untouched)
  * <0 in all other cases (@value untouched)
  */
 int
-vshCommandOptInt(const vshCmd *cmd, const char *name, int *value)
+vshCommandOptInt(vshControl *ctl, const vshCmd *cmd,
+                 const char *name, int *value)
 {
     vshCmdOpt *arg;
     int ret;
 
-    ret = vshCommandOpt(cmd, name, &arg, true);
-    if (ret <= 0)
+    if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
 
-    if (virStrToLong_i(arg->data, NULL, 10, value) < 0)
-        return -1;
-    return 1;
+    if ((ret = virStrToLong_i(arg->data, NULL, 10, value)) < 0)
+        vshError(ctl,
+                 _("Numeric value '%s' for <%s> option is malformed or out of range"),
+                 arg->data, name);
+    else
+        ret = 1;
+
+    return ret;
 }
 
 static int
-vshCommandOptUIntInternal(const vshCmd *cmd,
+vshCommandOptUIntInternal(vshControl *ctl,
+                          const vshCmd *cmd,
                           const char *name,
                           unsigned int *value,
                           bool wrap)
@@ -1541,19 +1550,23 @@ vshCommandOptUIntInternal(const vshCmd *cmd,
     if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
 
-    if (wrap) {
-        if (virStrToLong_ui(arg->data, NULL, 10, value) < 0)
-            return -1;
-    } else {
-        if (virStrToLong_uip(arg->data, NULL, 10, value) < 0)
-            return -1;
-    }
+    if (wrap)
+        ret = virStrToLong_ui(arg->data, NULL, 10, value);
+    else
+        ret = virStrToLong_uip(arg->data, NULL, 10, value);
+    if (ret < 0)
+        vshError(ctl,
+                 _("Numeric value '%s' for <%s> option is malformed or out of range"),
+                 arg->data, name);
+    else
+        ret = 1;
 
-    return 1;
+    return ret;
 }
 
 /**
  * vshCommandOptUInt:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1562,13 +1575,15 @@ vshCommandOptUIntInternal(const vshCmd *cmd,
  * See vshCommandOptInt()
  */
 int
-vshCommandOptUInt(const vshCmd *cmd, const char *name, unsigned int *value)
+vshCommandOptUInt(vshControl *ctl, const vshCmd *cmd,
+                  const char *name, unsigned int *value)
 {
-    return vshCommandOptUIntInternal(cmd, name, value, false);
+    return vshCommandOptUIntInternal(ctl, cmd, name, value, false);
 }
 
 /**
  * vshCommandOptUIntWrap:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1577,13 +1592,15 @@ vshCommandOptUInt(const vshCmd *cmd, const char *name, unsigned int *value)
  * See vshCommandOptInt()
  */
 int
-vshCommandOptUIntWrap(const vshCmd *cmd, const char *name, unsigned int *value)
+vshCommandOptUIntWrap(vshControl *ctl, const vshCmd *cmd,
+                      const char *name, unsigned int *value)
 {
-    return vshCommandOptUIntInternal(cmd, name, value, true);
+    return vshCommandOptUIntInternal(ctl, cmd, name, value, true);
 }
 
 static int
-vshCommandOptULInternal(const vshCmd *cmd,
+vshCommandOptULInternal(vshControl *ctl,
+                        const vshCmd *cmd,
                         const char *name,
                         unsigned long *value,
                         bool wrap)
@@ -1594,19 +1611,23 @@ vshCommandOptULInternal(const vshCmd *cmd,
     if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
 
-    if (wrap) {
-        if (virStrToLong_ul(arg->data, NULL, 10, value) < 0)
-            return -1;
-    } else {
-        if (virStrToLong_ulp(arg->data, NULL, 10, value) < 0)
-            return -1;
-    }
+    if (wrap)
+        ret = virStrToLong_ul(arg->data, NULL, 10, value);
+    else
+        ret = virStrToLong_ulp(arg->data, NULL, 10, value);
+    if (ret < 0)
+        vshError(ctl,
+                 _("Numeric value '%s' for <%s> option is malformed or out of range"),
+                 arg->data, name);
+    else
+        ret = 1;
 
-    return 1;
+    return ret;
 }
 
 /*
  * vshCommandOptUL:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1615,13 +1636,15 @@ vshCommandOptULInternal(const vshCmd *cmd,
  * See vshCommandOptInt()
  */
 int
-vshCommandOptUL(const vshCmd *cmd, const char *name, unsigned long *value)
+vshCommandOptUL(vshControl *ctl, const vshCmd *cmd,
+                const char *name, unsigned long *value)
 {
-    return vshCommandOptULInternal(cmd, name, value, false);
+    return vshCommandOptULInternal(ctl, cmd, name, value, false);
 }
 
 /**
  * vshCommandOptULWrap:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1630,13 +1653,15 @@ vshCommandOptUL(const vshCmd *cmd, const char *name, unsigned long *value)
  * See vshCommandOptInt()
  */
 int
-vshCommandOptULWrap(const vshCmd *cmd, const char *name, unsigned long *value)
+vshCommandOptULWrap(vshControl *ctl, const vshCmd *cmd,
+                    const char *name, unsigned long *value)
 {
-    return vshCommandOptULInternal(cmd, name, value, true);
+    return vshCommandOptULInternal(ctl, cmd, name, value, true);
 }
 
 /**
  * vshCommandOptString:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1648,13 +1673,13 @@ vshCommandOptULWrap(const vshCmd *cmd, const char *name, unsigned long *value)
  * <0 in all other cases (@value untouched)
  */
 int
-vshCommandOptString(const vshCmd *cmd, const char *name, const char **value)
+vshCommandOptString(vshControl *ctl ATTRIBUTE_UNUSED, const vshCmd *cmd,
+                    const char *name, const char **value)
 {
     vshCmdOpt *arg;
     int ret;
 
-    ret = vshCommandOpt(cmd, name, &arg, true);
-    if (ret <= 0)
+    if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
 
     if (!*arg->data && !(arg->def->flags & VSH_OFLAG_EMPTY_OK))
@@ -1710,6 +1735,7 @@ vshCommandOptStringReq(vshControl *ctl,
 
 /**
  * vshCommandOptLongLong:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1718,23 +1744,28 @@ vshCommandOptStringReq(vshControl *ctl,
  * See vshCommandOptInt()
  */
 int
-vshCommandOptLongLong(const vshCmd *cmd, const char *name,
-                      long long *value)
+vshCommandOptLongLong(vshControl *ctl, const vshCmd *cmd,
+                      const char *name, long long *value)
 {
     vshCmdOpt *arg;
     int ret;
 
-    ret = vshCommandOpt(cmd, name, &arg, true);
-    if (ret <= 0)
+    if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
 
-    if (virStrToLong_ll(arg->data, NULL, 10, value) < 0)
-        return -1;
-    return 1;
+    if ((ret = virStrToLong_ll(arg->data, NULL, 10, value)) < 0)
+        vshError(ctl,
+                 _("Numeric value '%s' for <%s> option is malformed or out of range"),
+                 arg->data, name);
+    else
+        ret = 1;
+
+    return ret;
 }
 
 static int
-vshCommandOptULongLongInternal(const vshCmd *cmd,
+vshCommandOptULongLongInternal(vshControl *ctl,
+                               const vshCmd *cmd,
                                const char *name,
                                unsigned long long *value,
                                bool wrap)
@@ -1745,19 +1776,23 @@ vshCommandOptULongLongInternal(const vshCmd *cmd,
     if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
 
-    if (wrap) {
-        if (virStrToLong_ull(arg->data, NULL, 10, value) < 0)
-            return -1;
-    } else {
-        if (virStrToLong_ullp(arg->data, NULL, 10, value) < 0)
-            return -1;
-    }
+    if (wrap)
+        ret = virStrToLong_ull(arg->data, NULL, 10, value);
+    else
+        ret = virStrToLong_ullp(arg->data, NULL, 10, value);
+    if (ret < 0)
+        vshError(ctl,
+                 _("Numeric value '%s' for <%s> option is malformed or out of range"),
+                 arg->data, name);
+    else
+        ret = 1;
 
-    return 1;
+    return ret;
 }
 
 /**
  * vshCommandOptULongLong:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1766,14 +1801,15 @@ vshCommandOptULongLongInternal(const vshCmd *cmd,
  * See vshCommandOptInt()
  */
 int
-vshCommandOptULongLong(const vshCmd *cmd, const char *name,
-                       unsigned long long *value)
+vshCommandOptULongLong(vshControl *ctl, const vshCmd *cmd,
+                       const char *name, unsigned long long *value)
 {
-    return vshCommandOptULongLongInternal(cmd, name, value, false);
+    return vshCommandOptULongLongInternal(ctl, cmd, name, value, false);
 }
 
 /**
  * vshCommandOptULongLongWrap:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1782,14 +1818,15 @@ vshCommandOptULongLong(const vshCmd *cmd, const char *name,
  * See vshCommandOptInt()
  */
 int
-vshCommandOptULongLongWrap(const vshCmd *cmd, const char *name,
-                       unsigned long long *value)
+vshCommandOptULongLongWrap(vshControl *ctl, const vshCmd *cmd,
+                           const char *name, unsigned long long *value)
 {
-    return vshCommandOptULongLongInternal(cmd, name, value, true);
+    return vshCommandOptULongLongInternal(ctl, cmd, name, value, true);
 }
 
 /**
  * vshCommandOptScaledInt:
+ * @ctl virsh control structure
  * @cmd command reference
  * @name option name
  * @value result
@@ -1800,21 +1837,28 @@ vshCommandOptULongLongWrap(const vshCmd *cmd, const char *name,
  * See vshCommandOptInt()
  */
 int
-vshCommandOptScaledInt(const vshCmd *cmd, const char *name,
-                       unsigned long long *value, int scale,
-                       unsigned long long max)
+vshCommandOptScaledInt(vshControl *ctl, const vshCmd *cmd,
+                       const char *name, unsigned long long *value,
+                       int scale, unsigned long long max)
 {
-    const char *str;
-    int ret;
+    vshCmdOpt *arg;
     char *end;
+    int ret;
 
-    ret = vshCommandOptString(cmd, name, &str);
-    if (ret <= 0)
+    if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
-    if (virStrToLong_ullp(str, &end, 10, value) < 0 ||
+    if (virStrToLong_ullp(arg->data, &end, 10, value) < 0 ||
         virScaleInteger(value, end, scale, max) < 0)
-        return -1;
-    return 1;
+    {
+        vshError(ctl,
+                 _("Numeric value '%s' for <%s> option is malformed or out of range"),
+                 arg->data, name);
+        ret = -1;
+    } else {
+        ret = 1;
+    }
+
+    return ret;
 }
 
 
@@ -1838,6 +1882,7 @@ vshCommandOptBool(const vshCmd *cmd, const char *name)
 
 /**
  * vshCommandOptArgv:
+ * @ctl virsh control structure
  * @cmd command reference
  * @opt starting point for the search
  *
@@ -1848,7 +1893,8 @@ vshCommandOptBool(const vshCmd *cmd, const char *name)
  * list of supported options in CMD->def->opts.
  */
 const vshCmdOpt *
-vshCommandOptArgv(const vshCmd *cmd, const vshCmdOpt *opt)
+vshCommandOptArgv(vshControl *ctl ATTRIBUTE_UNUSED, const vshCmd *cmd,
+                  const vshCmdOpt *opt)
 {
     opt = opt ? opt->next : cmd->opts;
 
@@ -1860,29 +1906,39 @@ vshCommandOptArgv(const vshCmd *cmd, const vshCmdOpt *opt)
     return NULL;
 }
 
-/* Parse an optional --timeout parameter in seconds, but store the
- * value of the timeout in milliseconds.  Return -1 on error, 0 if
- * no timeout was requested, and 1 if timeout was set.  */
+/*
+ * vshCommandOptTimeoutToMs:
+ * @ctl virsh control structure
+ * @cmd command reference
+ * @timeout result
+ *
+ * Parse an optional --timeout parameter in seconds, but store the
+ * value of the timeout in milliseconds.
+ * See vshCommandOptInt()
+ */
 int
 vshCommandOptTimeoutToMs(vshControl *ctl, const vshCmd *cmd, int *timeout)
 {
-    int rv = vshCommandOptInt(cmd, "timeout", timeout);
+    int ret;
+    unsigned int utimeout;
 
-    if (rv < 0 || (rv > 0 && *timeout < 1)) {
-        vshError(ctl, "%s", _("invalid timeout"));
-        return -1;
+    if ((ret = vshCommandOptUInt(ctl, cmd, "timeout", &utimeout)) <= 0)
+        return ret;
+
+    /* Ensure that the timeout is not zero and that we can convert
+     * it from seconds to milliseconds without overflowing. */
+    if (utimeout == 0 || utimeout > INT_MAX / 1000) {
+        vshError(ctl,
+                 _("Numeric value '%u' for <%s> option is malformed or out of range"),
+                 utimeout,
+                 "timeout");
+        ret = -1;
+    } else {
+        *timeout = ((int) utimeout) * 1000;
     }
-    if (rv > 0) {
-        /* Ensure that we can multiply by 1000 without overflowing. */
-        if (*timeout > INT_MAX / 1000) {
-            vshError(ctl, "%s", _("timeout is too big"));
-            return -1;
-        }
-        *timeout *= 1000;
-    }
-    return rv;
+
+    return ret;
 }
-
 
 static bool
 vshConnectionUsability(vshControl *ctl, virConnectPtr conn)

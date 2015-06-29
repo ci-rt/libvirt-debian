@@ -284,6 +284,10 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "aes-key-wrap",
               "dea-key-wrap",
               "pci-serial",
+              "aarch64-off",
+
+              "vhost-user-multiqueue", /* 190 */
+              "arm-virt-pci",
     );
 
 
@@ -355,6 +359,8 @@ static virArch virQEMUCapsArchFromString(const char *arch)
         return VIR_ARCH_I686;
     if (STREQ(arch, "arm"))
         return VIR_ARCH_ARMV7L;
+    if (STREQ(arch, "or32"))
+        return VIR_ARCH_OR32;
 
     return virArchFromString(arch);
 }
@@ -366,6 +372,8 @@ static const char *virQEMUCapsArchToString(virArch arch)
         return "i386";
     else if (arch == VIR_ARCH_ARMV7L)
         return "arm";
+    else if (arch == VIR_ARCH_OR32)
+        return "or32";
 
     return virArchToString(arch);
 }
@@ -696,6 +704,14 @@ virQEMUCapsFindBinaryForArch(virArch hostarch,
     if (ret && !virFileIsExecutable(ret))
         VIR_FREE(ret);
 
+    if (guestarch == VIR_ARCH_ARMV7L &&
+        !ret &&
+        hostarch == VIR_ARCH_AARCH64) {
+        ret = virFindFileInPath("qemu-system-aarch64");
+        if (ret && !virFileIsExecutable(ret))
+            VIR_FREE(ret);
+    }
+
     if (guestarch == VIR_ARCH_I686 &&
         !ret &&
         hostarch == VIR_ARCH_X86_64) {
@@ -714,19 +730,6 @@ virQEMUCapsFindBinaryForArch(virArch hostarch,
     return ret;
 }
 
-
-static bool
-virQEMUCapsIsValidForKVM(virArch hostarch,
-                         virArch guestarch)
-{
-    if (hostarch == guestarch)
-        return true;
-    if (hostarch == VIR_ARCH_X86_64 &&
-        guestarch == VIR_ARCH_I686)
-        return true;
-    return false;
-}
-
 static int
 virQEMUCapsInitGuest(virCapsPtr caps,
                      virQEMUCapsCachePtr cache,
@@ -738,6 +741,7 @@ virQEMUCapsInitGuest(virCapsPtr caps,
     char *binary = NULL;
     virQEMUCapsPtr qemubinCaps = NULL;
     virQEMUCapsPtr kvmbinCaps = NULL;
+    bool native_kvm, x86_32on64_kvm, arm_32on64_kvm;
     int ret = -1;
 
     /* Check for existence of base emulator, or alternate base
@@ -755,16 +759,38 @@ virQEMUCapsInitGuest(virCapsPtr caps,
 
     /* qemu-kvm/kvm binaries can only be used if
      *  - host & guest arches match
-     * Or
-     *  - hostarch is x86_64 and guest arch is i686
-     * The latter simply needs "-cpu qemu32"
+     *  - hostarch is x86_64 and guest arch is i686 (needs -cpu qemu32)
+     *  - hostarch is aarch64 and guest arch is armv7l (needs -cpu aarch64=off)
      */
-    if (virQEMUCapsIsValidForKVM(hostarch, guestarch)) {
-        const char *const kvmbins[] = { "/usr/libexec/qemu-kvm", /* RHEL */
-                                        "qemu-kvm", /* Fedora */
-                                        "kvm" }; /* Upstream .spec */
+    native_kvm = (hostarch == guestarch);
+    x86_32on64_kvm = (hostarch == VIR_ARCH_X86_64 &&
+        guestarch == VIR_ARCH_I686);
+    arm_32on64_kvm = (hostarch == VIR_ARCH_AARCH64 &&
+        guestarch == VIR_ARCH_ARMV7L);
+
+    if (native_kvm || x86_32on64_kvm || arm_32on64_kvm) {
+        const char *kvmbins[] = {
+            "/usr/libexec/qemu-kvm", /* RHEL */
+            "qemu-kvm", /* Fedora */
+            "kvm", /* Debian/Ubuntu */
+            NULL,
+        };
+
+        /* x86 32-on-64 can be used with qemu-system-i386 and
+         * qemu-system-x86_64, so if we don't find a specific kvm binary,
+         * we can just fall back to the host arch native binary and
+         * everything works fine.
+         *
+         * arm is different in that 32-on-64 _only_ works with
+         * qemu-system-aarch64. So we have to add it to the kvmbins list
+         */
+        if (arm_32on64_kvm)
+            kvmbins[3] = "qemu-system-aarch64";
 
         for (i = 0; i < ARRAY_CARDINALITY(kvmbins); ++i) {
+            if (!kvmbins[i])
+                continue;
+
             kvmbin = virFindFileInPath(kvmbins[i]);
 
             if (!kvmbin)
@@ -1180,7 +1206,7 @@ virQEMUCapsComputeCmdFlags(const char *help,
         if (version >= 13000) {
             if (strstr(netdev, "bridge"))
                 virQEMUCapsSet(qemuCaps, QEMU_CAPS_NETDEV_BRIDGE);
-           virQEMUCapsSet(qemuCaps, QEMU_CAPS_NETDEV);
+            virQEMUCapsSet(qemuCaps, QEMU_CAPS_NETDEV);
         }
     }
 
@@ -1310,6 +1336,9 @@ virQEMUCapsComputeCmdFlags(const char *help,
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_IPV6_MIGRATION);
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_VNC_SHARE_POLICY);
     }
+
+    if (version >= 2003000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_ARM_VIRT_PCI);
 
     return 0;
 }
@@ -2202,6 +2231,44 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
                 goto error;
         }
         mach->maxCpus = qemuCaps->machineMaxCpus[i];
+    }
+
+    /* Make sure all canonical machine types also have their own entry so that
+     * /capabilities/guest/arch[@name='...']/machine/text() XPath selects all
+     * supported machine types.
+     */
+    i = 0;
+    while (i < *nmachines) {
+        size_t j;
+        bool found = false;
+        virCapsGuestMachinePtr machine = (*machines)[i];
+
+        if (!machine->canonical) {
+            i++;
+            continue;
+        }
+
+        for (j = 0; j < *nmachines; j++) {
+            if (STREQ(machine->canonical, (*machines)[j]->name)) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            virCapsGuestMachinePtr mach;
+            if (VIR_ALLOC(mach) < 0)
+                goto error;
+            if (VIR_INSERT_ELEMENT_COPY(*machines, i, *nmachines, mach) < 0) {
+                VIR_FREE(mach);
+                goto error;
+            }
+            if (VIR_STRDUP(mach->name, machine->canonical) < 0)
+                goto error;
+            mach->maxCpus = machine->maxCpus;
+            i++;
+        }
+        i++;
     }
 
     return 0;
@@ -3282,6 +3349,17 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
     /* vmport option is supported v2.2.0 onwards */
     if (qemuCaps->version >= 2002000)
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_VMPORT_OPT);
+
+    /* -cpu ...,aarch64=off supported in v2.3.0 and onwards. But it
+       isn't detectable via qmp at this point */
+    if (qemuCaps->arch == VIR_ARCH_AARCH64 &&
+        qemuCaps->version >= 2003000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_CPU_AARCH64_OFF);
+
+    /* vhost-user supports multi-queue from v2.4.0 onwards,
+     * but there is no way to query for that capability */
+    if (qemuCaps->version >= 2004000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_VHOSTUSER_MULTIQUEUE);
 
     if (virQEMUCapsProbeQMPCommands(qemuCaps, mon) < 0)
         goto cleanup;

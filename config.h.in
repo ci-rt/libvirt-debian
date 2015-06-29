@@ -52,9 +52,6 @@
 /* Define to 1 if chown mishandles trailing slash. */
 #undef CHOWN_TRAILING_SLASH_BUG
 
-/* Location of collie program */
-#undef COLLIE
-
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
    */
@@ -2142,12 +2139,6 @@
 /* Location or name of the parted program */
 #undef PARTED
 
-/* Location of pkcheck program */
-#undef PKCHECK_PATH
-
-/* Pass uid to pkcheck */
-#undef PKCHECK_SUPPORTS_UID
-
 /* Location of polkit-auth program */
 #undef POLKIT_AUTH
 
@@ -2221,6 +2212,9 @@
 
 /* SELinux mount point */
 #undef SELINUX_MOUNT
+
+/* Location of sheepdog client program */
+#undef SHEEPDOGCLI
 
 /* Location or name of the showmount program */
 #undef SHOWMOUNT
@@ -2496,9 +2490,6 @@
 /* whether openwsman >= 2.2.3 is available */
 #undef WITH_OPENWSMAN
 
-/* whether Parallels driver is enabled */
-#undef WITH_PARALLELS
-
 /* whether pciaccess >= 0.10.0 is available */
 #undef WITH_PCIACCESS
 
@@ -2612,6 +2603,9 @@
 
 /* whether VMware VMX config handling is enabled */
 #undef WITH_VMX
+
+/* whether vz driver is enabled */
+#undef WITH_VZ
 
 /* whether wireshark >= 1.11.3 is available */
 #undef WITH_WIRESHARK_DISSECTOR

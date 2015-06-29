@@ -191,7 +191,12 @@
         early and listen to feedback.</li><li>Official upstream repository is kept in git
         (<code>git://libvirt.org/libvirt.git</code>) and is browsable
         along with other libvirt-related repositories
-        (e.g. libvirt-python) <a href="http://libvirt.org/git/" shape="rect">online</a>.</li><li><p>Post patches in unified diff format, with git rename
+        (e.g. libvirt-python) <a href="http://libvirt.org/git/" shape="rect">online</a>.</li><li>Patches to translations are maintained via
+        the <a href="https://fedora.zanata.org/" shape="rect">zanata project</a>.
+        If you want to fix a translation in a .po file, join the
+        appropriate language team. The libvirt release process
+        automatically pulls the latest version of each translation
+        file from zanata.</li><li><p>Post patches in unified diff format, with git rename
         detection enabled.  You need a one-time setup of:</p>
 <pre xml:space="preserve">
   git config diff.renames true

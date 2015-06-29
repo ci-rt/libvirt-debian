@@ -219,7 +219,7 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    if (vshCommandOptString(cmd, "allocation", &allocationStr) > 0 &&
+    if (vshCommandOptString(ctl, cmd, "allocation", &allocationStr) > 0 &&
         vshVolSize(allocationStr, &allocation) < 0) {
         vshError(ctl, _("Malformed size %s"), allocationStr);
         goto cleanup;
@@ -693,19 +693,11 @@ cmdVolUpload(vshControl *ctl, const vshCmd *cmd)
     const char *name = NULL;
     unsigned long long offset = 0, length = 0;
 
-    if (vshCommandOptULongLong(cmd, "offset", &offset) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "offset");
+    if (vshCommandOptULongLong(ctl, cmd, "offset", &offset) < 0)
         return false;
-    }
 
-    if (vshCommandOptULongLongWrap(cmd, "length", &length) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "length");
+    if (vshCommandOptULongLongWrap(ctl, cmd, "length", &length) < 0)
         return false;
-    }
 
     if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name)))
         return false;
@@ -806,19 +798,11 @@ cmdVolDownload(vshControl *ctl, const vshCmd *cmd)
     unsigned long long offset = 0, length = 0;
     bool created = false;
 
-    if (vshCommandOptULongLong(cmd, "offset", &offset) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "offset");
+    if (vshCommandOptULongLong(ctl, cmd, "offset", &offset) < 0)
         return false;
-    }
 
-    if (vshCommandOptULongLongWrap(cmd, "length", &length) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "length");
+    if (vshCommandOptULongLongWrap(ctl, cmd, "length", &length) < 0)
         return false;
-    }
 
     if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name)))
         return false;
@@ -1124,14 +1108,10 @@ cmdVolResize(vshControl *ctl, const vshCmd *cmd)
     unsigned long long capacity = 0;
     unsigned int flags = 0;
     bool ret = false;
-    bool delta = false;
+    bool delta = vshCommandOptBool(cmd, "delta");
 
     if (vshCommandOptBool(cmd, "allocate"))
         flags |= VIR_STORAGE_VOL_RESIZE_ALLOCATE;
-    if (vshCommandOptBool(cmd, "delta")) {
-        delta = true;
-        flags |= VIR_STORAGE_VOL_RESIZE_DELTA;
-    }
     if (vshCommandOptBool(cmd, "shrink"))
         flags |= VIR_STORAGE_VOL_RESIZE_SHRINK;
 
@@ -1144,14 +1124,19 @@ cmdVolResize(vshControl *ctl, const vshCmd *cmd)
     if (*capacityStr == '-') {
         /* The API always requires a positive value; but we allow a
          * negative value for convenience.  */
-        if (delta && vshCommandOptBool(cmd, "shrink")) {
+        if (vshCommandOptBool(cmd, "shrink")) {
             capacityStr++;
+            delta = true;
         } else {
             vshError(ctl, "%s",
-                     _("negative size requires --delta and --shrink"));
+                     _("negative size requires --shrink"));
             goto cleanup;
         }
     }
+
+    if (delta)
+        flags |= VIR_STORAGE_VOL_RESIZE_DELTA;
+
     if (vshVolSize(capacityStr, &capacity) < 0) {
         vshError(ctl, _("Malformed size %s"), capacityStr);
         goto cleanup;

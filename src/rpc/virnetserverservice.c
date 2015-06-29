@@ -143,6 +143,7 @@ virNetServerServiceNewFDOrUNIX(const char *path,
 
 virNetServerServicePtr virNetServerServiceNewTCP(const char *nodename,
                                                  const char *service,
+                                                 int family,
                                                  int auth,
 #if WITH_GNUTLS
                                                  virNetTLSContextPtr tls,
@@ -169,6 +170,7 @@ virNetServerServicePtr virNetServerServiceNewTCP(const char *nodename,
 
     if (virNetSocketNewListenTCP(nodename,
                                  service,
+                                 family,
                                  &svc->socks,
                                  &svc->nsocks) < 0)
         goto error;
@@ -301,12 +303,15 @@ virNetServerServicePtr virNetServerServiceNewFD(int fd,
 
         /* IO callback is initially disabled, until we're ready
          * to deal with incoming clients */
+        virObjectRef(svc);
         if (virNetSocketAddIOCallback(svc->socks[i],
                                       0,
                                       virNetServerServiceAccept,
                                       svc,
-                                      virObjectFreeCallback) < 0)
+                                      virObjectFreeCallback) < 0) {
+            virObjectUnref(svc);
             goto error;
+        }
     }
 
 
@@ -386,7 +391,6 @@ virNetServerServicePtr virNetServerServiceNewPostExecRestart(virJSONValuePtr obj
                                       svc,
                                       virObjectFreeCallback) < 0) {
             virObjectUnref(svc);
-            virObjectUnref(sock);
             goto error;
         }
     }
@@ -516,6 +520,9 @@ void virNetServerServiceClose(virNetServerServicePtr svc)
     if (!svc)
         return;
 
-    for (i = 0; i < svc->nsocks; i++)
+    for (i = 0; i < svc->nsocks; i++) {
+        virNetSocketRemoveIOCallback(svc->socks[i]);
         virNetSocketClose(svc->socks[i]);
+        virObjectUnref(svc);
+    }
 }

@@ -58,6 +58,7 @@
 # include "libvirt/libvirt.h"
 # include "libvirt/libvirt-lxc.h"
 # include "libvirt/libvirt-qemu.h"
+# include "libvirt/libvirt-admin.h"
 # include "libvirt/virterror.h"
 
 # include "c-strcase.h"
@@ -444,6 +445,17 @@
             virReportInvalidNonNullArg(argname);    \
             goto label;                             \
         }                                           \
+    } while (0)
+# define virCheckNonEmptyStringArgGoto(argname, label) \
+    do {                                               \
+        if (argname == NULL) {                         \
+            virReportInvalidNonNullArg(argname);       \
+            goto label;                                \
+        }                                              \
+        if (*argname == '\0') {                        \
+            virReportInvalidEmptyStringArg(argname);   \
+            goto label;                                \
+        }                                              \
     } while (0)
 # define virCheckPositiveArgGoto(argname, label)    \
     do {                                            \

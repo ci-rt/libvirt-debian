@@ -25,6 +25,9 @@
 # include "internal.h"
 # include "qemu_conf.h"
 
+int qemuBlockJobUpdate(virQEMUDriverPtr driver,
+                       virDomainObjPtr vm,
+                       virDomainDiskDefPtr disk);
 void qemuBlockJobEventProcess(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainDiskDefPtr disk,
@@ -34,16 +37,6 @@ void qemuBlockJobEventProcess(virQEMUDriverPtr driver,
 void qemuBlockJobSyncBegin(virDomainDiskDefPtr disk);
 void qemuBlockJobSyncEnd(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
-                         virDomainDiskDefPtr disk,
-                         virConnectDomainEventBlockJobStatus *ret_status);
-int qemuBlockJobSyncWaitWithTimeout(virQEMUDriverPtr driver,
-                                    virDomainObjPtr vm,
-                                    virDomainDiskDefPtr disk,
-                                    unsigned long long timeout,
-                                    virConnectDomainEventBlockJobStatus *ret_status);
-int qemuBlockJobSyncWait(virQEMUDriverPtr driver,
-                         virDomainObjPtr vm,
-                         virDomainDiskDefPtr disk,
-                         virConnectDomainEventBlockJobStatus *ret_status);
+                         virDomainDiskDefPtr disk);
 
 #endif /* __QEMU_BLOCKJOB_H__ */

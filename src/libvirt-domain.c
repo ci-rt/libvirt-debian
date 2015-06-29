@@ -6065,7 +6065,7 @@ virDomainBlockPeek(virDomainPtr dom,
     conn = dom->conn;
 
     virCheckReadOnlyGoto(conn->flags, error);
-    virCheckNonNullArgGoto(disk, error);
+    virCheckNonEmptyStringArgGoto(disk, error);
 
     /* Allow size == 0 as an access test. */
     if (size > 0)
@@ -6333,7 +6333,7 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *disk,
         memset(info, 0, sizeof(*info));
 
     virCheckDomainReturn(domain, -1);
-    virCheckNonNullArgGoto(disk, error);
+    virCheckNonEmptyStringArgGoto(disk, error);
     virCheckNonNullArgGoto(info, error);
 
     conn = domain->conn;
@@ -7267,22 +7267,12 @@ virDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
                           VIR_DOMAIN_AFFECT_CONFIG,
                           error);
 
-    VIR_EXCLUSIVE_FLAGS_GOTO(VIR_DOMAIN_AFFECT_CURRENT,
-                             VIR_DOMAIN_AFFECT_LIVE,
-                             error);
-    VIR_EXCLUSIVE_FLAGS_GOTO(VIR_DOMAIN_AFFECT_CURRENT,
-                             VIR_DOMAIN_AFFECT_CONFIG,
-                             error);
     VIR_EXCLUSIVE_FLAGS_GOTO(VIR_DOMAIN_VCPU_GUEST,
                              VIR_DOMAIN_AFFECT_CONFIG,
                              error);
 
     virCheckNonZeroArgGoto(nvcpus, error);
 
-    if ((unsigned short) nvcpus != nvcpus) {
-        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"), nvcpus);
-        goto error;
-    }
     conn = domain->conn;
 
     if (conn->driver->domainSetVcpusFlags) {
@@ -7403,11 +7393,6 @@ virDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
     virCheckNonNullArgGoto(cpumap, error);
     virCheckPositiveArgGoto(maplen, error);
 
-    if ((unsigned short) vcpu != vcpu) {
-        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
-        goto error;
-    }
-
     if (conn->driver->domainPinVcpu) {
         int ret;
         ret = conn->driver->domainPinVcpu(domain, vcpu, cpumap, maplen);
@@ -7474,11 +7459,6 @@ virDomainPinVcpuFlags(virDomainPtr domain, unsigned int vcpu,
     virCheckReadOnlyGoto(conn->flags, error);
     virCheckNonNullArgGoto(cpumap, error);
     virCheckPositiveArgGoto(maplen, error);
-
-    if ((unsigned short) vcpu != vcpu) {
-        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
-        goto error;
-    }
 
     if (conn->driver->domainPinVcpuFlags) {
         int ret;
@@ -7920,11 +7900,6 @@ virDomainPinIOThread(virDomainPtr domain,
     conn = domain->conn;
 
     virCheckReadOnlyGoto(conn->flags, error);
-    if ((unsigned short) iothread_id != iothread_id) {
-        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"),
-                       iothread_id);
-        goto error;
-    }
     virCheckPositiveArgGoto(iothread_id, error);
     virCheckNonNullArgGoto(cpumap, error);
     virCheckPositiveArgGoto(maplen, error);

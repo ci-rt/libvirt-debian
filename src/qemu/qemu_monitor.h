@@ -182,6 +182,10 @@ typedef int (*qemuMonitorDomainSerialChangeCallback)(qemuMonitorPtr mon,
                                                      bool connected,
                                                      void *opaque);
 
+typedef int (*qemuMonitorDomainSpiceMigratedCallback)(qemuMonitorPtr mon,
+                                                      virDomainObjPtr vm,
+                                                      void *opaque);
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -209,6 +213,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainDeviceDeletedCallback domainDeviceDeleted;
     qemuMonitorDomainNicRxFilterChangedCallback domainNicRxFilterChanged;
     qemuMonitorDomainSerialChangeCallback domainSerialChange;
+    qemuMonitorDomainSpiceMigratedCallback domainSpiceMigrated;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -307,6 +312,7 @@ int qemuMonitorEmitNicRxFilterChanged(qemuMonitorPtr mon,
 int qemuMonitorEmitSerialChange(qemuMonitorPtr mon,
                                 const char *devAlias,
                                 bool connected);
+int qemuMonitorEmitSpiceMigrated(qemuMonitorPtr mon);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -372,7 +378,11 @@ struct _qemuBlockStats {
     long long flush_total_times;
     unsigned long long capacity;
     unsigned long long physical;
+
+    /* value of wr_highest_offset is valid if it's non 0 or
+     * if wr_highest_offset_valid is true */
     unsigned long long wr_highest_offset;
+    bool wr_highest_offset_valid;
 };
 
 int qemuMonitorGetAllBlockStatsInfo(qemuMonitorPtr mon,
@@ -385,9 +395,6 @@ int qemuMonitorBlockStatsUpdateCapacity(qemuMonitorPtr mon,
                                         bool backingChain)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
-                              const char *dev_name,
-                              unsigned long long *extent);
 int qemuMonitorBlockResize(qemuMonitorPtr mon,
                            const char *dev_name,
                            unsigned long long size);
@@ -401,7 +408,7 @@ int qemuMonitorExpirePassword(qemuMonitorPtr mon,
                               int type,
                               const char *expire_time);
 int qemuMonitorSetBalloon(qemuMonitorPtr mon,
-                          unsigned long newmem);
+                          unsigned long long newmem);
 int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, bool online);
 
 
@@ -492,8 +499,6 @@ struct _qemuMonitorMigrationStatus {
 
 int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   qemuMonitorMigrationStatusPtr status);
-int qemuMonitorGetSpiceMigrationStatus(qemuMonitorPtr mon,
-                                       bool *spice_migrated);
 
 typedef enum {
     QEMU_MONITOR_MIGRATION_CAPS_XBZRLE,
@@ -774,10 +779,19 @@ int qemuMonitorBlockJobSetSpeed(qemuMonitorPtr mon,
                                 unsigned long long bandwidth,
                                 bool modern);
 
-int qemuMonitorBlockJobInfo(qemuMonitorPtr mon,
-                            const char *device,
-                            virDomainBlockJobInfoPtr info,
-                            unsigned long long *bandwidth)
+typedef struct _qemuMonitorBlockJobInfo qemuMonitorBlockJobInfo;
+typedef qemuMonitorBlockJobInfo *qemuMonitorBlockJobInfoPtr;
+struct _qemuMonitorBlockJobInfo {
+    int type; /* virDomainBlockJobType */
+    unsigned long long bandwidth; /* in bytes/s */
+    virDomainBlockJobCursor cur;
+    virDomainBlockJobCursor end;
+};
+
+virHashTablePtr qemuMonitorGetAllBlockJobInfo(qemuMonitorPtr mon);
+int qemuMonitorGetBlockJobInfo(qemuMonitorPtr mon,
+                               const char *device,
+                               qemuMonitorBlockJobInfoPtr info)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int qemuMonitorOpenGraphics(qemuMonitorPtr mon,

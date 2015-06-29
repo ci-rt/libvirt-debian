@@ -1,7 +1,7 @@
 /*
  * libvirtd.c: daemon start of day, guest process & i/o management
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -44,12 +44,13 @@
 #include "libvirtd.h"
 #include "libvirtd-config.h"
 
+#include "admin_server.h"
 #include "viruuid.h"
 #include "remote_driver.h"
 #include "viralloc.h"
 #include "virconf.h"
 #include "virnetlink.h"
-#include "virnetserver.h"
+#include "virnetdaemon.h"
 #include "remote.h"
 #include "virhook.h"
 #include "viraudit.h"
@@ -112,6 +113,7 @@ VIR_LOG_INIT("daemon.libvirtd");
 virNetSASLContextPtr saslCtxt = NULL;
 #endif
 virNetServerProgramPtr remoteProgram = NULL;
+virNetServerProgramPtr adminProgram = NULL;
 virNetServerProgramPtr qemuProgram = NULL;
 virNetServerProgramPtr lxcProgram = NULL;
 
@@ -253,18 +255,24 @@ static int
 daemonUnixSocketPaths(struct daemonConfig *config,
                       bool privileged,
                       char **sockfile,
-                      char **rosockfile)
+                      char **rosockfile,
+                      char **admsockfile)
 {
     if (config->unix_sock_dir) {
         if (virAsprintf(sockfile, "%s/libvirt-sock", config->unix_sock_dir) < 0)
             goto error;
-        if (privileged &&
-            virAsprintf(rosockfile, "%s/libvirt-sock-ro", config->unix_sock_dir) < 0)
-            goto error;
+
+        if (privileged) {
+            if (virAsprintf(rosockfile, "%s/libvirt-sock-ro", config->unix_sock_dir) < 0)
+                goto error;
+            if (virAsprintf(admsockfile, "%s/libvirt-admin-sock", config->unix_sock_dir) < 0)
+                goto error;
+        }
     } else {
         if (privileged) {
             if (VIR_STRDUP(*sockfile, LOCALSTATEDIR "/run/libvirt/libvirt-sock") < 0 ||
-                VIR_STRDUP(*rosockfile, LOCALSTATEDIR "/run/libvirt/libvirt-sock-ro") < 0)
+                VIR_STRDUP(*rosockfile, LOCALSTATEDIR "/run/libvirt/libvirt-sock-ro") < 0 ||
+                VIR_STRDUP(*admsockfile, LOCALSTATEDIR "/run/libvirt/libvirt-admin-sock") < 0)
                 goto error;
         } else {
             char *rundir = NULL;
@@ -280,7 +288,8 @@ daemonUnixSocketPaths(struct daemonConfig *config,
             }
             umask(old_umask);
 
-            if (virAsprintf(sockfile, "%s/libvirt-sock", rundir) < 0) {
+            if (virAsprintf(sockfile, "%s/libvirt-sock", rundir) < 0 ||
+                virAsprintf(admsockfile, "%s/libvirt-admin-sock", rundir) < 0) {
                 VIR_FREE(rundir);
                 goto error;
             }
@@ -427,13 +436,16 @@ static void daemonInitialize(void)
 
 static int ATTRIBUTE_NONNULL(3)
 daemonSetupNetworking(virNetServerPtr srv,
+                      virNetServerPtr srvAdm,
                       struct daemonConfig *config,
                       const char *sock_path,
                       const char *sock_path_ro,
+                      const char *sock_path_adm,
                       bool ipsock,
                       bool privileged)
 {
     virNetServerServicePtr svc = NULL;
+    virNetServerServicePtr svcAdm = NULL;
     virNetServerServicePtr svcRO = NULL;
     virNetServerServicePtr svcTCP = NULL;
 #if WITH_GNUTLS
@@ -442,28 +454,35 @@ daemonSetupNetworking(virNetServerPtr srv,
     gid_t unix_sock_gid = 0;
     int unix_sock_ro_mask = 0;
     int unix_sock_rw_mask = 0;
+    int unix_sock_adm_mask = 0;
+    int ret = -1;
 
     unsigned int cur_fd = STDERR_FILENO + 1;
     unsigned int nfds = virGetListenFDs();
 
     if (config->unix_sock_group) {
         if (virGetGroupID(config->unix_sock_group, &unix_sock_gid) < 0)
-            return -1;
+            return ret;
     }
 
     if (nfds > (sock_path_ro ? 2 : 1)) {
         VIR_ERROR(_("Too many (%u) FDs passed from caller"), nfds);
-        return -1;
+        return ret;
     }
 
     if (virStrToLong_i(config->unix_sock_ro_perms, NULL, 8, &unix_sock_ro_mask) != 0) {
         VIR_ERROR(_("Failed to parse mode '%s'"), config->unix_sock_ro_perms);
-        goto error;
+        goto cleanup;
+    }
+
+    if (virStrToLong_i(config->unix_sock_admin_perms, NULL, 8, &unix_sock_adm_mask) != 0) {
+        VIR_ERROR(_("Failed to parse mode '%s'"), config->unix_sock_admin_perms);
+        goto cleanup;
     }
 
     if (virStrToLong_i(config->unix_sock_rw_perms, NULL, 8, &unix_sock_rw_mask) != 0) {
         VIR_ERROR(_("Failed to parse mode '%s'"), config->unix_sock_rw_perms);
-        goto error;
+        goto cleanup;
     }
 
     if (!(svc = virNetServerServiceNewFDOrUNIX(sock_path,
@@ -477,7 +496,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                config->max_queued_clients,
                                                config->max_client_requests,
                                                nfds, &cur_fd)))
-        goto error;
+        goto cleanup;
     if (sock_path_ro) {
         if (!(svcRO = virNetServerServiceNewFDOrUNIX(sock_path_ro,
                                                      unix_sock_ro_mask,
@@ -490,18 +509,37 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                      config->max_queued_clients,
                                                      config->max_client_requests,
                                                      nfds, &cur_fd)))
-            goto error;
+            goto cleanup;
     }
 
     if (virNetServerAddService(srv, svc,
                                config->mdns_adv && !ipsock ?
                                "_libvirt._tcp" :
                                NULL) < 0)
-        goto error;
+        goto cleanup;
 
     if (svcRO &&
         virNetServerAddService(srv, svcRO, NULL) < 0)
-        goto error;
+        goto cleanup;
+
+    /* Temporarily disabled */
+    if (sock_path_adm && false) {
+        VIR_DEBUG("Registering unix socket %s", sock_path_adm);
+        if (!(svcAdm = virNetServerServiceNewUNIX(sock_path_adm,
+                                                  unix_sock_adm_mask,
+                                                  unix_sock_gid,
+                                                  REMOTE_AUTH_NONE,
+#if WITH_GNUTLS
+                                                  NULL,
+#endif
+                                                  true,
+                                                  config->admin_max_queued_clients,
+                                                  config->admin_max_client_requests)))
+            goto cleanup;
+
+        if (virNetServerAddService(srvAdm, svcAdm, NULL) < 0)
+            goto cleanup;
+    }
 
     if (ipsock) {
         if (config->listen_tcp) {
@@ -509,6 +547,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                       config->listen_addr, config->tcp_port);
             if (!(svcTCP = virNetServerServiceNewTCP(config->listen_addr,
                                                      config->tcp_port,
+                                                     AF_UNSPEC,
                                                      config->auth_tcp,
 #if WITH_GNUTLS
                                                      NULL,
@@ -516,11 +555,11 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                      false,
                                                      config->max_queued_clients,
                                                      config->max_client_requests)))
-                goto error;
+                goto cleanup;
 
             if (virNetServerAddService(srv, svcTCP,
                                        config->mdns_adv ? "_libvirt._tcp" : NULL) < 0)
-                goto error;
+                goto cleanup;
         }
 
 #if WITH_GNUTLS
@@ -537,14 +576,14 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                        (const char *const*)config->tls_allowed_dn_list,
                                                        config->tls_no_sanity_certificate ? false : true,
                                                        config->tls_no_verify_certificate ? false : true)))
-                    goto error;
+                    goto cleanup;
             } else {
                 if (!(ctxt = virNetTLSContextNewServerPath(NULL,
                                                            !privileged,
                                                            (const char *const*)config->tls_allowed_dn_list,
                                                            config->tls_no_sanity_certificate ? false : true,
                                                            config->tls_no_verify_certificate ? false : true)))
-                    goto error;
+                    goto cleanup;
             }
 
             VIR_DEBUG("Registering TLS socket %s:%s",
@@ -552,18 +591,19 @@ daemonSetupNetworking(virNetServerPtr srv,
             if (!(svcTLS =
                   virNetServerServiceNewTCP(config->listen_addr,
                                             config->tls_port,
+                                            AF_UNSPEC,
                                             config->auth_tls,
                                             ctxt,
                                             false,
                                             config->max_queued_clients,
                                             config->max_client_requests))) {
                 virObjectUnref(ctxt);
-                goto error;
+                goto cleanup;
             }
             if (virNetServerAddService(srv, svcTLS,
                                        config->mdns_adv &&
                                        !config->listen_tcp ? "_libvirt._tcp" : NULL) < 0)
-                goto error;
+                goto cleanup;
 
             virObjectUnref(ctxt);
         }
@@ -572,7 +612,7 @@ daemonSetupNetworking(virNetServerPtr srv,
         if (config->listen_tls) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("This libvirtd build does not support TLS"));
-            goto error;
+            goto cleanup;
         }
 #endif
     }
@@ -587,20 +627,21 @@ daemonSetupNetworking(virNetServerPtr srv,
         saslCtxt = virNetSASLContextNewServer(
             (const char *const*)config->sasl_allowed_username_list);
         if (!saslCtxt)
-            goto error;
+            goto cleanup;
     }
 #endif
 
-    return 0;
+    ret = 0;
 
- error:
+ cleanup:
 #if WITH_GNUTLS
     virObjectUnref(svcTLS);
 #endif
     virObjectUnref(svcTCP);
-    virObjectUnref(svc);
     virObjectUnref(svcRO);
-    return -1;
+    virObjectUnref(svcAdm);
+    virObjectUnref(svc);
+    return ret;
 }
 
 
@@ -774,14 +815,14 @@ daemonSetupPrivs(void)
 #endif
 
 
-static void daemonShutdownHandler(virNetServerPtr srv,
+static void daemonShutdownHandler(virNetDaemonPtr dmn,
                                   siginfo_t *sig ATTRIBUTE_UNUSED,
                                   void *opaque ATTRIBUTE_UNUSED)
 {
-    virNetServerQuit(srv);
+    virNetDaemonQuit(dmn);
 }
 
-static void daemonReloadHandler(virNetServerPtr srv ATTRIBUTE_UNUSED,
+static void daemonReloadHandler(virNetDaemonPtr dmn ATTRIBUTE_UNUSED,
                                 siginfo_t *sig ATTRIBUTE_UNUSED,
                                 void *opaque ATTRIBUTE_UNUSED)
 {
@@ -797,15 +838,15 @@ static void daemonReloadHandler(virNetServerPtr srv ATTRIBUTE_UNUSED,
         VIR_WARN("Error while reloading drivers");
 }
 
-static int daemonSetupSignals(virNetServerPtr srv)
+static int daemonSetupSignals(virNetDaemonPtr dmn)
 {
-    if (virNetServerAddSignalHandler(srv, SIGINT, daemonShutdownHandler, NULL) < 0)
+    if (virNetDaemonAddSignalHandler(dmn, SIGINT, daemonShutdownHandler, NULL) < 0)
         return -1;
-    if (virNetServerAddSignalHandler(srv, SIGQUIT, daemonShutdownHandler, NULL) < 0)
+    if (virNetDaemonAddSignalHandler(dmn, SIGQUIT, daemonShutdownHandler, NULL) < 0)
         return -1;
-    if (virNetServerAddSignalHandler(srv, SIGTERM, daemonShutdownHandler, NULL) < 0)
+    if (virNetDaemonAddSignalHandler(dmn, SIGTERM, daemonShutdownHandler, NULL) < 0)
         return -1;
-    if (virNetServerAddSignalHandler(srv, SIGHUP, daemonReloadHandler, NULL) < 0)
+    if (virNetDaemonAddSignalHandler(dmn, SIGHUP, daemonReloadHandler, NULL) < 0)
         return -1;
     return 0;
 }
@@ -813,12 +854,12 @@ static int daemonSetupSignals(virNetServerPtr srv)
 
 static void daemonInhibitCallback(bool inhibit, void *opaque)
 {
-    virNetServerPtr srv = opaque;
+    virNetDaemonPtr dmn = opaque;
 
     if (inhibit)
-        virNetServerAddShutdownInhibition(srv);
+        virNetDaemonAddShutdownInhibition(dmn);
     else
-        virNetServerRemoveShutdownInhibition(srv);
+        virNetDaemonRemoveShutdownInhibition(dmn);
 }
 
 
@@ -828,26 +869,26 @@ static DBusConnection *systemBus;
 
 static void daemonStopWorker(void *opaque)
 {
-    virNetServerPtr srv = opaque;
+    virNetDaemonPtr dmn = opaque;
 
-    VIR_DEBUG("Begin stop srv=%p", srv);
+    VIR_DEBUG("Begin stop dmn=%p", dmn);
 
     ignore_value(virStateStop());
 
-    VIR_DEBUG("Completed stop srv=%p", srv);
+    VIR_DEBUG("Completed stop dmn=%p", dmn);
 
     /* Exit libvirtd cleanly */
-    virNetServerQuit(srv);
+    virNetDaemonQuit(dmn);
 }
 
 
 /* We do this in a thread to not block the main loop */
-static void daemonStop(virNetServerPtr srv)
+static void daemonStop(virNetDaemonPtr dmn)
 {
     virThread thr;
-    virObjectRef(srv);
-    if (virThreadCreate(&thr, false, daemonStopWorker, srv) < 0)
-        virObjectUnref(srv);
+    virObjectRef(dmn);
+    if (virThreadCreate(&thr, false, daemonStopWorker, dmn) < 0)
+        virObjectUnref(dmn);
 }
 
 
@@ -856,14 +897,14 @@ handleSessionMessageFunc(DBusConnection *connection ATTRIBUTE_UNUSED,
                          DBusMessage *message,
                          void *opaque)
 {
-    virNetServerPtr srv = opaque;
+    virNetDaemonPtr dmn = opaque;
 
-    VIR_DEBUG("srv=%p", srv);
+    VIR_DEBUG("dmn=%p", dmn);
 
     if (dbus_message_is_signal(message,
                                DBUS_INTERFACE_LOCAL,
                                "Disconnected"))
-        daemonStop(srv);
+        daemonStop(dmn);
 
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
@@ -874,14 +915,14 @@ handleSystemMessageFunc(DBusConnection *connection ATTRIBUTE_UNUSED,
                         DBusMessage *message,
                         void *opaque)
 {
-    virNetServerPtr srv = opaque;
+    virNetDaemonPtr dmn = opaque;
 
-    VIR_DEBUG("srv=%p", srv);
+    VIR_DEBUG("dmn=%p", dmn);
 
     if (dbus_message_is_signal(message,
                                "org.freedesktop.login1.Manager",
                                "PrepareForShutdown"))
-        daemonStop(srv);
+        daemonStop(dmn);
 
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
@@ -890,22 +931,22 @@ handleSystemMessageFunc(DBusConnection *connection ATTRIBUTE_UNUSED,
 
 static void daemonRunStateInit(void *opaque)
 {
-    virNetServerPtr srv = opaque;
+    virNetDaemonPtr dmn = opaque;
     virIdentityPtr sysident = virIdentityGetSystem();
 
     virIdentitySetCurrent(sysident);
 
     /* Since driver initialization can take time inhibit daemon shutdown until
        we're done so clients get a chance to connect */
-    daemonInhibitCallback(true, srv);
+    daemonInhibitCallback(true, dmn);
 
     /* Start the stateful HV drivers
      * This is deliberately done after telling the parent process
      * we're ready, since it can take a long time and this will
      * seriously delay OS bootup process */
-    if (virStateInitialize(virNetServerIsPrivileged(srv),
+    if (virStateInitialize(virNetDaemonIsPrivileged(dmn),
                            daemonInhibitCallback,
-                           srv) < 0) {
+                           dmn) < 0) {
         VIR_ERROR(_("Driver state initialization failed"));
         /* Ensure the main event loop quits */
         kill(getpid(), SIGTERM);
@@ -916,17 +957,17 @@ static void daemonRunStateInit(void *opaque)
 
 #ifdef HAVE_DBUS
     /* Tie the non-priviledged libvirtd to the session/shutdown lifecycle */
-    if (!virNetServerIsPrivileged(srv)) {
+    if (!virNetDaemonIsPrivileged(dmn)) {
 
         sessionBus = virDBusGetSessionBus();
         if (sessionBus != NULL)
             dbus_connection_add_filter(sessionBus,
-                                       handleSessionMessageFunc, srv, NULL);
+                                       handleSessionMessageFunc, dmn, NULL);
 
         systemBus = virDBusGetSystemBus();
         if (systemBus != NULL) {
             dbus_connection_add_filter(systemBus,
-                                       handleSystemMessageFunc, srv, NULL);
+                                       handleSystemMessageFunc, dmn, NULL);
             dbus_bus_add_match(systemBus,
                                "type='signal',sender='org.freedesktop.login1', interface='org.freedesktop.login1.Manager'",
                                NULL);
@@ -934,20 +975,20 @@ static void daemonRunStateInit(void *opaque)
     }
 #endif
     /* Only now accept clients from network */
-    virNetServerUpdateServices(srv, true);
+    virNetDaemonUpdateServices(dmn, true);
  cleanup:
-    daemonInhibitCallback(false, srv);
-    virObjectUnref(srv);
+    daemonInhibitCallback(false, dmn);
+    virObjectUnref(dmn);
     virObjectUnref(sysident);
     virIdentitySetCurrent(NULL);
 }
 
-static int daemonStateInit(virNetServerPtr srv)
+static int daemonStateInit(virNetDaemonPtr dmn)
 {
     virThread thr;
-    virObjectRef(srv);
-    if (virThreadCreate(&thr, false, daemonRunStateInit, srv) < 0) {
-        virObjectUnref(srv);
+    virObjectRef(dmn);
+    if (virThreadCreate(&thr, false, daemonRunStateInit, dmn) < 0) {
+        virObjectUnref(dmn);
         return -1;
     }
     return 0;
@@ -1098,7 +1139,9 @@ daemonUsage(const char *argv0, bool privileged)
 }
 
 int main(int argc, char **argv) {
+    virNetDaemonPtr dmn = NULL;
     virNetServerPtr srv = NULL;
+    virNetServerPtr srvAdm = NULL;
     char *remote_config_file = NULL;
     int statuswrite = -1;
     int ret = 1;
@@ -1106,6 +1149,7 @@ int main(int argc, char **argv) {
     char *pid_file = NULL;
     char *sock_file = NULL;
     char *sock_file_ro = NULL;
+    char *sock_file_adm = NULL;
     int timeout = -1;        /* -t: Shutdown timeout */
     int verbose = 0;
     int godaemon = 0;
@@ -1273,12 +1317,15 @@ int main(int argc, char **argv) {
     if (daemonUnixSocketPaths(config,
                               privileged,
                               &sock_file,
-                              &sock_file_ro) < 0) {
+                              &sock_file_ro,
+                              &sock_file_adm) < 0) {
         VIR_ERROR(_("Can't determine socket paths"));
         exit(EXIT_FAILURE);
     }
-    VIR_DEBUG("Decided on socket paths '%s' and '%s'",
-              sock_file, NULLSTR(sock_file_ro));
+    VIR_DEBUG("Decided on socket paths '%s', '%s' and '%s'",
+              sock_file,
+              NULLSTR(sock_file_ro),
+              NULLSTR(sock_file_adm));
 
     if (godaemon) {
         char ebuf[1024];
@@ -1352,6 +1399,12 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
+    if (!(dmn = virNetDaemonNew()) ||
+        virNetDaemonAddServer(dmn, srv) < 0) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto cleanup;
+    }
+
     /* Beyond this point, nothing should rely on using
      * getuid/geteuid() == 0, for privilege level checks.
      */
@@ -1404,13 +1457,46 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
-    if (timeout != -1) {
-        VIR_DEBUG("Registering shutdown timeout %d", timeout);
-        virNetServerAutoShutdown(srv,
-                                 timeout);
+    if (!(srvAdm = virNetServerNew(config->admin_min_workers,
+                                   config->admin_max_workers,
+                                   0,
+                                   config->admin_max_clients,
+                                   0,
+                                   config->admin_keepalive_interval,
+                                   config->admin_keepalive_count,
+                                   !!config->admin_keepalive_required,
+                                   NULL,
+                                   remoteAdmClientInitHook,
+                                   NULL,
+                                   remoteAdmClientFreeFunc,
+                                   dmn))) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto cleanup;
     }
 
-    if ((daemonSetupSignals(srv)) < 0) {
+    if (virNetDaemonAddServer(dmn, srvAdm) < 0) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto cleanup;
+    }
+
+    if (!(adminProgram = virNetServerProgramNew(ADMIN_PROGRAM,
+                                                ADMIN_PROTOCOL_VERSION,
+                                                adminProcs,
+                                                adminNProcs))) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto cleanup;
+    }
+    if (virNetServerAddProgram(srvAdm, adminProgram) < 0) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto cleanup;
+    }
+
+    if (timeout != -1) {
+        VIR_DEBUG("Registering shutdown timeout %d", timeout);
+        virNetDaemonAutoShutdown(dmn, timeout);
+    }
+
+    if ((daemonSetupSignals(dmn)) < 0) {
         ret = VIR_DAEMON_ERR_SIGNAL;
         goto cleanup;
     }
@@ -1445,8 +1531,11 @@ int main(int argc, char **argv) {
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_START,
                 0, "start", NULL, NULL);
 
-    if (daemonSetupNetworking(srv, config,
-                              sock_file, sock_file_ro,
+    if (daemonSetupNetworking(srv, srvAdm,
+                              config,
+                              sock_file,
+                              sock_file_ro,
+                              sock_file_adm,
                               ipsock, privileged) < 0) {
         ret = VIR_DAEMON_ERR_NETWORK;
         goto cleanup;
@@ -1465,7 +1554,7 @@ int main(int argc, char **argv) {
     }
 
     /* Initialize drivers & then start accepting new clients from network */
-    if (daemonStateInit(srv) < 0) {
+    if (daemonStateInit(dmn) < 0) {
         ret = VIR_DAEMON_ERR_INIT;
         goto cleanup;
     }
@@ -1487,7 +1576,7 @@ int main(int argc, char **argv) {
 #endif
 
     /* Run event loop. */
-    virNetServerRun(srv);
+    virNetDaemonRun(dmn);
 
     ret = 0;
 
@@ -1499,8 +1588,11 @@ int main(int argc, char **argv) {
     virObjectUnref(remoteProgram);
     virObjectUnref(lxcProgram);
     virObjectUnref(qemuProgram);
-    virNetServerClose(srv);
+    virObjectUnref(adminProgram);
+    virNetDaemonClose(dmn);
+    virObjectUnref(dmn);
     virObjectUnref(srv);
+    virObjectUnref(srvAdm);
     virNetlinkShutdown();
     if (statuswrite != -1) {
         if (ret != 0) {
@@ -1517,6 +1609,7 @@ int main(int argc, char **argv) {
 
     VIR_FREE(sock_file);
     VIR_FREE(sock_file_ro);
+    VIR_FREE(sock_file_adm);
     VIR_FREE(pid_file);
     VIR_FREE(remote_config_file);
     VIR_FREE(run_dir);

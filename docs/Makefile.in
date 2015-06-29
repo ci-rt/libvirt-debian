@@ -409,7 +409,6 @@ CAPNG_LIBS = @CAPNG_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-COLLIE = @COLLIE@
 CONFIG_INCLUDE = @CONFIG_INCLUDE@
 COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
@@ -1263,6 +1262,7 @@ LIBSOCKET = @LIBSOCKET@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVIRT_ADMIN_SYMBOL_FILE = @LIBVIRT_ADMIN_SYMBOL_FILE@
 LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
@@ -1690,6 +1690,7 @@ SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
 SERVENT_LIB = @SERVENT_LIB@
 SET_MAKE = @SET_MAKE@
+SHEEPDOGCLI = @SHEEPDOGCLI@
 SHELL = @SHELL@
 SHOWMOUNT = @SHOWMOUNT@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
@@ -1919,8 +1920,16 @@ lxc_xml = \
   libvirt-lxc-api.xml \
   libvirt-lxc-refs.xml
 
+admin_xml = \
+  libvirt-admin-api.xml \
+  libvirt-admin-refs.xml
+
 apidir = $(pkgdatadir)/api
-api_DATA = libvirt-api.xml libvirt-qemu-api.xml libvirt-lxc-api.xml
+api_DATA = \
+       libvirt-api.xml \
+       libvirt-qemu-api.xml \
+       libvirt-lxc-api.xml
+
 fig = \
   libvirt-net-logical.fig \
   libvirt-net-physical.fig \
@@ -1941,6 +1950,7 @@ EXTRA_DIST = apibuild.py genaclperms.pl site.xsl newapi.xsl news.xsl \
 	$(dot_php_code_in) $(dot_php) $(internals_html_in) \
 	$(internals_html) sitemap.html.in aclperms.htmlinc todo.pl \
 	hvsupport.pl todo.cfg-example $(APIBUILD_STAMP)
+acl_generated = aclperms.htmlinc
 MAINTAINERCLEANFILES = \
   $(addprefix $(srcdir)/,$(dot_html)) \
   $(addprefix $(srcdir)/,$(apihtml)) \
@@ -1952,6 +1962,7 @@ MAINTAINERCLEANFILES = \
 python_generated_files = \
 		$(srcdir)/html/libvirt-libvirt-lxc.html \
 		$(srcdir)/html/libvirt-libvirt-qemu.html \
+		$(srcdir)/html/libvirt-libvirt-admin.html \
 		$(srcdir)/html/libvirt-virterror.html \
 		$(srcdir)/libvirt-api.xml \
 		$(srcdir)/libvirt-refs.xml \
@@ -1959,6 +1970,8 @@ python_generated_files = \
 		$(srcdir)/libvirt-lxc-refs.xml \
 		$(srcdir)/libvirt-qemu-api.xml \
 		$(srcdir)/libvirt-qemu-refs.xml \
+		$(srcdir)/libvirt-admin-api.xml \
+		$(srcdir)/libvirt-admin-refs.xml \
 		$(NULL)
 
 APIBUILD = $(srcdir)/apibuild.py
@@ -2305,8 +2318,6 @@ uninstall-am: uninstall-apiDATA uninstall-local
 .PRECIOUS: Makefile
 
 
-acl.html:: $(srcdir)/aclperms.htmlinc
-
 $(srcdir)/aclperms.htmlinc: $(top_srcdir)/src/access/viraccessperm.h \
         $(srcdir)/genaclperms.pl Makefile.am
 	$(AM_V_GEN)$(PERL) $(srcdir)/genaclperms.pl $< > $@
@@ -2316,6 +2327,7 @@ all-am: web
 api: $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml
 qemu_api: $(srcdir)/libvirt-qemu-api.xml $(srcdir)/libvirt-qemu-refs.xml
 lxc_api: $(srcdir)/libvirt-lxc-api.xml $(srcdir)/libvirt-lxc-refs.xml
+admin_api: $(srcdir)/libvirt-admin-api.xml $(srcdir)/libvirt-admin-refs.xml
 
 web: $(dot_html) $(internals_html) html/index.html devhelp/index.html \
   $(dot_php)
@@ -2361,7 +2373,7 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	    $(top_srcdir)/docs/subsite.xsl $< > $@ \
 	    || { rm $@ && exit 1; }; fi
 
-%.html.tmp: %.html.in site.xsl page.xsl sitemap.html.in
+%.html.tmp: %.html.in site.xsl page.xsl sitemap.html.in $(acl_generated)
 	@if [ -x $(XSLTPROC) ] ; then \
 	  echo "Generating $@"; \
 	  name=`echo $@ | sed -e 's/.tmp//'`; \
@@ -2429,10 +2441,12 @@ $(APIBUILD_STAMP): $(srcdir)/apibuild.py \
 		$(top_srcdir)/include/libvirt/libvirt-stream.h \
 		$(top_srcdir)/include/libvirt/libvirt-lxc.h \
 		$(top_srcdir)/include/libvirt/libvirt-qemu.h \
+		$(top_srcdir)/include/libvirt/libvirt-admin.h \
 		$(top_srcdir)/include/libvirt/virterror.h \
 		$(top_srcdir)/src/libvirt.c \
 		$(top_srcdir)/src/libvirt-lxc.c \
 		$(top_srcdir)/src/libvirt-qemu.c \
+		$(top_srcdir)/src/libvirt-admin.c \
 		$(top_srcdir)/src/util/virerror.c \
 		$(top_srcdir)/src/util/virevent.c \
 		$(top_srcdir)/src/util/virtypedparam.c
@@ -2450,9 +2464,10 @@ maintainer-clean-local: clean-local
 		todo.html.in
 	rm -rf $(srcdir)/libvirt-qemu-api.xml $(srcdir)/libvirt-qemu-refs.xml
 	rm -rf $(srcdir)/libvirt-lxc-api.xml $(srcdir)/libvirt-lxc-refs.xml
+	rm -rf $(srcdir)/libvirt-admin-api.xml $(srcdir)/libvirt-admin-refs.xml
 	rm -rf $(APIBUILD_STAMP)
 
-rebuild: api qemu_api lxc_api all
+rebuild: api qemu_api lxc_api admin_api all
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)
