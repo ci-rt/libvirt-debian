@@ -1,8 +1,7 @@
 /*
- * parallels_driver.h: core driver functions for managing
- * Parallels Cloud Server hosts
+ * admin_server.h
  *
- * Copyright (C) 2012 Parallels, Inc.
+ * Copyright (C) 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,11 +17,20 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
+ * Author: Martin Kletzander <mkletzan@redhat.com>
  */
 
-#ifndef PARALLELS_DRIVER_H
-# define PARALLELS_DRIVER_H
+#ifndef __LIBVIRTD_ADMIN_H__
+# define __LIBVIRTD_ADMIN_H__
 
-int parallelsRegister(void);
+# include "rpc/virnetserverprogram.h"
+# include "rpc/virnetserverclient.h"
 
-#endif
+
+extern virNetServerProgramProc adminProcs[];
+extern size_t adminNProcs;
+
+void remoteAdmClientFreeFunc(void *data);
+void *remoteAdmClientInitHook(virNetServerClientPtr client, void *opaque);
+
+#endif /* __ADMIN_REMOTE_H__ */

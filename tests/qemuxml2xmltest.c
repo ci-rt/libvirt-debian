@@ -472,6 +472,7 @@ mymain(void)
     DO_TEST("serial-spiceport-nospice");
     DO_TEST("parallel-tcp");
     DO_TEST("console-compat");
+    DO_TEST_DIFFERENT("console-compat2");
     DO_TEST("console-virtio-many");
     DO_TEST("channel-guestfwd");
     DO_TEST("channel-virtio");
@@ -491,6 +492,7 @@ mymain(void)
     DO_TEST("cputune");
     DO_TEST("cputune-zero-shares");
     DO_TEST_DIFFERENT("cputune-iothreadsched");
+    DO_TEST("cputune-iothreadsched-zeropriority");
     DO_TEST("cputune-numatune");
     DO_TEST("vcpu-placement-static");
 
@@ -537,6 +539,8 @@ mymain(void)
     DO_TEST("virtio-rng-egd");
 
     DO_TEST("pseries-nvram");
+    DO_TEST_DIFFERENT("pseries-panic-missing");
+    DO_TEST("pseries-panic-no-address");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");
@@ -574,6 +578,7 @@ mymain(void)
     DO_TEST("hostdev-scsi-rawio");
 
     DO_TEST_DIFFERENT("hostdev-scsi-autogen-address");
+    DO_TEST("hostdev-scsi-large-unit");
 
     DO_TEST("hostdev-scsi-lsi-iscsi");
     DO_TEST("hostdev-scsi-lsi-iscsi-auth");
@@ -611,6 +616,7 @@ mymain(void)
     DO_TEST_DIFFERENT("tap-vhost-incorrect");
     DO_TEST("shmem");
     DO_TEST("smbios");
+    DO_TEST("smbios-multiple-type2");
     DO_TEST("aarch64-aavmf-virtio-mmio");
 
     DO_TEST("memory-hotplug");

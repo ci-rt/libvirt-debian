@@ -118,7 +118,8 @@ VIR_ENUM_IMPL(virDomainVirt, VIR_DOMAIN_VIRT_LAST,
               "vbox",
               "phyp",
               "parallels",
-              "bhyve")
+              "bhyve",
+              "vz")
 
 VIR_ENUM_IMPL(virDomainOS, VIR_DOMAIN_OSTYPE_LAST,
               "hvm",
@@ -497,7 +498,8 @@ VIR_ENUM_IMPL(virDomainSmbiosMode, VIR_DOMAIN_SMBIOS_LAST,
 
 VIR_ENUM_IMPL(virDomainWatchdogModel, VIR_DOMAIN_WATCHDOG_MODEL_LAST,
               "i6300esb",
-              "ib700")
+              "ib700",
+              "diag288")
 
 VIR_ENUM_IMPL(virDomainWatchdogAction, VIR_DOMAIN_WATCHDOG_ACTION_LAST,
               "reset",
@@ -505,7 +507,8 @@ VIR_ENUM_IMPL(virDomainWatchdogAction, VIR_DOMAIN_WATCHDOG_ACTION_LAST,
               "poweroff",
               "pause",
               "dump",
-              "none")
+              "none",
+              "inject-nmi")
 
 VIR_ENUM_IMPL(virDomainVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "vga",
@@ -1466,7 +1469,7 @@ virDomainDiskSetType(virDomainDiskDefPtr def, int type)
 
 
 const char *
-virDomainDiskGetSource(virDomainDiskDefPtr def)
+virDomainDiskGetSource(virDomainDiskDef const *def)
 {
     return def->src->path;
 }
@@ -2473,7 +2476,7 @@ void virDomainDefFree(virDomainDefPtr def)
 
     virDomainPinDefArrayFree(def->cputune.vcpupin, def->cputune.nvcpupin);
 
-    virDomainPinDefFree(def->cputune.emulatorpin);
+    virBitmapFree(def->cputune.emulatorpin);
 
     for (i = 0; i < def->cputune.nvcpusched; i++)
         virBitmapFree(def->cputune.vcpusched[i].ids);
@@ -2508,6 +2511,7 @@ static void virDomainObjDispose(void *obj)
     virDomainObjPtr dom = obj;
 
     VIR_DEBUG("obj=%p", dom);
+    virCondDestroy(&dom->cond);
     virDomainDefFree(dom->def);
     virDomainDefFree(dom->newDef);
 
@@ -2527,6 +2531,12 @@ virDomainObjNew(virDomainXMLOptionPtr xmlopt)
 
     if (!(domain = virObjectLockableNew(virDomainObjClass)))
         return NULL;
+
+    if (virCondInit(&domain->cond) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("failed to initialize domain condition"));
+        goto error;
+    }
 
     if (xmlopt->privateData.alloc) {
         if (!(domain->privateData = (xmlopt->privateData.alloc)()))
@@ -2647,6 +2657,46 @@ virDomainObjEndAPI(virDomainObjPtr *vm)
     virObjectUnlock(*vm);
     virObjectUnref(*vm);
     *vm = NULL;
+}
+
+
+void
+virDomainObjSignal(virDomainObjPtr vm)
+{
+    virCondSignal(&vm->cond);
+}
+
+
+void
+virDomainObjBroadcast(virDomainObjPtr vm)
+{
+    virCondBroadcast(&vm->cond);
+}
+
+
+int
+virDomainObjWait(virDomainObjPtr vm)
+{
+    if (virCondWait(&vm->cond, &vm->parent.lock) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("failed to wait for domain condition"));
+        return -1;
+    }
+    return 0;
+}
+
+
+int
+virDomainObjWaitUntil(virDomainObjPtr vm,
+                      unsigned long long whenms)
+{
+    if (virCondWaitUntil(&vm->cond, &vm->parent.lock, whenms) < 0 &&
+        errno != ETIMEDOUT) {
+        virReportSystemError(errno, "%s",
+                             _("failed to wait for domain condition"));
+        return -1;
+    }
+    return 0;
 }
 
 
@@ -2823,6 +2873,53 @@ virDomainObjGetPersistentDef(virCapsPtr caps,
         return domain->def;
 }
 
+
+/**
+ * virDomainObjUpdateModificationImpact:
+ *
+ * @vm: domain object
+ * @flags: flags to update the modification impact on
+ *
+ * Resolves virDomainModificationImpact flags in @flags so that they correctly
+ * apply to the actual state of @vm. @flags may be modified after call to this
+ * function.
+ *
+ * Returns 0 on success if @flags point to a valid combination for @vm or -1 on
+ * error.
+ */
+int
+virDomainObjUpdateModificationImpact(virDomainObjPtr vm,
+                                     unsigned int *flags)
+{
+    bool isActive = virDomainObjIsActive(vm);
+
+    if ((*flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) ==
+        VIR_DOMAIN_AFFECT_CURRENT) {
+        if (isActive)
+            *flags |= VIR_DOMAIN_AFFECT_LIVE;
+        else
+            *flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    }
+
+    if (!isActive && (*flags & VIR_DOMAIN_AFFECT_LIVE)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not running"));
+        return -1;
+    }
+
+    if (*flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (!vm->persistent) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("transient domains do not have any "
+                             "persistent config"));
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
 /*
  * Helper method for --current, --live, and --config options, and check
  * whether domain is active or can get persistent domain configuration.
@@ -2837,44 +2934,104 @@ virDomainLiveConfigHelperMethod(virCapsPtr caps,
                                 unsigned int *flags,
                                 virDomainDefPtr *persistentDef)
 {
-    bool isActive;
-    int ret = -1;
-
-    isActive = virDomainObjIsActive(dom);
-
-    if ((*flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) ==
-        VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            *flags |= VIR_DOMAIN_AFFECT_LIVE;
-        else
-            *flags |= VIR_DOMAIN_AFFECT_CONFIG;
-    }
-
-    if (!isActive && (*flags & VIR_DOMAIN_AFFECT_LIVE)) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("domain is not running"));
-        goto cleanup;
-    }
+    if (virDomainObjUpdateModificationImpact(dom, flags) < 0)
+        return -1;
 
     if (*flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!dom->persistent) {
-            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                           _("transient domains do not have any "
-                             "persistent config"));
-            goto cleanup;
-        }
         if (!(*persistentDef = virDomainObjGetPersistentDef(caps, xmlopt, dom))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Get persistent config failed"));
-            goto cleanup;
+            return -1;
         }
     }
 
-    ret = 0;
-
- cleanup:
-    return ret;
+    return 0;
 }
+
+
+/**
+ * virDomainObjGetDefs:
+ *
+ * @vm: domain object
+ * @flags: for virDomainModificationImpact
+ * @liveDef: Set to the pointer to the live definition of @vm.
+ * @persDef: Set to the pointer to the config definition of @vm.
+ *
+ * Helper function to resolve @flags and retrieve correct domain pointer
+ * objects. This function should be used only when the hypervisor driver always
+ * creates vm->newDef once the vm is started. (qemu driver does that)
+ *
+ * If @liveDef or @persDef are set it implies that @flags request modification
+ * of thereof.
+ *
+ * Returns 0 on success and sets @liveDef and @persDef; -1 if @flags are
+ * inappropriate.
+ */
+int
+virDomainObjGetDefs(virDomainObjPtr vm,
+                    unsigned int flags,
+                    virDomainDefPtr *liveDef,
+                    virDomainDefPtr *persDef)
+{
+    if (liveDef)
+        *liveDef = NULL;
+
+    if (persDef)
+        *persDef = NULL;
+
+    if (virDomainObjUpdateModificationImpact(vm, &flags) < 0)
+        return -1;
+
+    if (virDomainObjIsActive(vm)) {
+        if (liveDef && (flags & VIR_DOMAIN_AFFECT_LIVE))
+            *liveDef = vm->def;
+
+        if (persDef && (flags & VIR_DOMAIN_AFFECT_CONFIG))
+            *persDef = vm->newDef;
+    } else {
+        if (persDef)
+            *persDef = vm->def;
+    }
+
+    return 0;
+}
+
+
+/**
+ * virDomainObjGetOneDef:
+ *
+ * @vm: Domain object
+ * @flags: for virDomainModificationImpact
+ *
+ * Helper function to resolve @flags and return the correct domain pointer
+ * object. This function returns one of @vm->def or @vm->persistentDef
+ * according to @flags. This helper should be used only in APIs that guarantee
+ * that @flags contains exactly one of VIR_DOMAIN_AFFECT_LIVE or
+ * VIR_DOMAIN_AFFECT_CONFIG and not both.
+ *
+ * Returns the correct definition pointer or NULL on error.
+ */
+virDomainDefPtr
+virDomainObjGetOneDef(virDomainObjPtr vm,
+                      unsigned int flags)
+{
+    if (flags & VIR_DOMAIN_AFFECT_LIVE && flags & VIR_DOMAIN_AFFECT_CONFIG) {
+            virReportInvalidArg(ctl, "%s",
+                                _("Flags 'VIR_DOMAIN_AFFECT_LIVE' and "
+                                  "'VIR_DOMAIN_AFFECT_CONFIG' are mutually "
+                                  "exclusive"));
+            return NULL;
+    }
+
+    if (virDomainObjUpdateModificationImpact(vm, &flags) < 0)
+        return NULL;
+
+    if (virDomainObjIsActive(vm) && flags & VIR_DOMAIN_AFFECT_CONFIG)
+        return vm->newDef;
+    else
+        return vm->def;
+}
+
 
 /*
  * The caller must hold a lock on the driver owning 'doms',
@@ -3587,6 +3744,27 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
             def->consoles[0]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
             def->consoles[0]->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
         }
+    } else if (def->os.type == VIR_DOMAIN_OSTYPE_HVM && def->nserials > 0 &&
+               def->serials[0]->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
+               def->serials[0]->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_ISA) {
+        /* Create a stub console to match the serial port.
+         * console[0] either does not exist
+         *                or has a different type than SERIAL or NONE.
+         */
+        virDomainChrDefPtr chr;
+        if (VIR_ALLOC(chr) < 0)
+            return -1;
+
+        if (VIR_INSERT_ELEMENT(def->consoles,
+                               0,
+                               def->nconsoles,
+                               chr) < 0) {
+            VIR_FREE(chr);
+            return -1;
+        }
+
+        def->consoles[0]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
+        def->consoles[0]->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
     }
 
     if (virDomainDefRejectDuplicateControllers(def) < 0)
@@ -4848,20 +5026,20 @@ virDomainHostdevSubsysSCSIHostDefParseXML(xmlNodePtr sourcenode,
                     goto cleanup;
                 }
 
-                if (virStrToLong_ui(bus, NULL, 0, &scsihostsrc->bus) < 0) {
+                if (virStrToLong_uip(bus, NULL, 0, &scsihostsrc->bus) < 0) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot parse bus '%s'"), bus);
                     goto cleanup;
                 }
 
-                if (virStrToLong_ui(target, NULL, 0,
+                if (virStrToLong_uip(target, NULL, 0,
                                     &scsihostsrc->target) < 0) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot parse target '%s'"), target);
                     goto cleanup;
                 }
 
-                if (virStrToLong_ui(unit, NULL, 0, &scsihostsrc->unit) < 0) {
+                if (virStrToLong_ullp(unit, NULL, 0, &scsihostsrc->unit) < 0) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot parse unit '%s'"), unit);
                     goto cleanup;
@@ -6478,7 +6656,11 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                        xmlStrEqual(cur->name, BAD_CAST "auth")) {
                 if (!(authdef = virStorageAuthDefParse(node->doc, cur)))
                     goto error;
-                if ((auth_secret_usage =
+                /* Disk volume types won't have the secrettype filled in until
+                 * after virStorageTranslateDiskSourcePool is run
+                 */
+                if (def->src->type != VIR_STORAGE_TYPE_VOLUME &&
+                    (auth_secret_usage =
                      virSecretUsageTypeFromString(authdef->secrettype)) < 0) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                    _("invalid secret type %s"),
@@ -6697,7 +6879,11 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
         cur = cur->next;
     }
 
-    if (auth_secret_usage != -1 && auth_secret_usage != expected_secret_usage) {
+    /* Disk volume types will have authentication information handled in
+     * virStorageTranslateDiskSourcePool
+     */
+    if (def->src->type != VIR_STORAGE_TYPE_VOLUME &&
+        auth_secret_usage != -1 && auth_secret_usage != expected_secret_usage) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("invalid secret type '%s'"),
                        virSecretUsageTypeToString(auth_secret_usage));
@@ -8533,7 +8719,8 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
                                queues);
                 goto error;
             }
-            def->driver.virtio.queues = q;
+            if (q > 1)
+                def->driver.virtio.queues = q;
         }
         if ((str = virXPathString("string(./driver/host/@csum)", ctxt))) {
             if ((val = virTristateSwitchTypeFromString(str)) <= 0) {
@@ -9645,7 +9832,8 @@ virDomainInputDefParseXML(const virDomainDef *dom,
                 goto error;
             }
         } else {
-            if (dom->virtType == VIR_DOMAIN_VIRT_PARALLELS) {
+            if (dom->virtType == VIR_DOMAIN_VIRT_VZ ||
+                dom->virtType == VIR_DOMAIN_VIRT_PARALLELS) {
                 if (def->bus != VIR_DOMAIN_INPUT_BUS_PARALLELS) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("parallels containers don't support "
@@ -9681,7 +9869,8 @@ virDomainInputDefParseXML(const virDomainDef *dom,
         } else if (dom->os.type == VIR_DOMAIN_OSTYPE_XEN) {
             def->bus = VIR_DOMAIN_INPUT_BUS_XEN;
         } else {
-            if ((dom->virtType == VIR_DOMAIN_VIRT_PARALLELS))
+            if ((dom->virtType == VIR_DOMAIN_VIRT_VZ ||
+                 dom->virtType == VIR_DOMAIN_VIRT_PARALLELS))
                 def->bus = VIR_DOMAIN_INPUT_BUS_PARALLELS;
         }
     }
@@ -10997,6 +11186,195 @@ virDomainShmemDefParseXML(xmlNodePtr node,
     return ret;
 }
 
+static int
+virSysinfoBIOSParseXML(xmlNodePtr node,
+                       xmlXPathContextPtr ctxt,
+                       virSysinfoBIOSDefPtr *bios)
+{
+    int ret = -1;
+    virSysinfoBIOSDefPtr def;
+
+    if (!xmlStrEqual(node->name, BAD_CAST "bios")) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("XML does not contain expected 'bios' element"));
+        return ret;
+    }
+
+    if (VIR_ALLOC(def) < 0)
+        goto cleanup;
+
+    def->vendor = virXPathString("string(entry[@name='vendor'])", ctxt);
+    def->version = virXPathString("string(entry[@name='version'])", ctxt);
+    def->date = virXPathString("string(entry[@name='date'])", ctxt);
+    def->release = virXPathString("string(entry[@name='release'])", ctxt);
+    if (def->date != NULL) {
+        char *ptr;
+        int month, day, year;
+
+        /* Validate just the format of the date
+         * Expect mm/dd/yyyy or mm/dd/yy,
+         * where yy must be 00->99 and would be assumed to be 19xx
+         * a yyyy date should be 1900 and beyond
+         */
+        if (virStrToLong_i(def->date, &ptr, 10, &month) < 0 ||
+            *ptr != '/' ||
+            virStrToLong_i(ptr + 1, &ptr, 10, &day) < 0 ||
+            *ptr != '/' ||
+            virStrToLong_i(ptr + 1, &ptr, 10, &year) < 0 ||
+            *ptr != '\0' ||
+            (month < 1 || month > 12) ||
+            (day < 1 || day > 31) ||
+            (year < 0 || (year >= 100 && year < 1900))) {
+            virReportError(VIR_ERR_XML_DETAIL, "%s",
+                           _("Invalid BIOS 'date' format"));
+            goto cleanup;
+        }
+    }
+
+    if (!def->vendor && !def->version &&
+        !def->date && !def->release) {
+        virSysinfoBIOSDefFree(def);
+        def = NULL;
+    }
+
+    *bios = def;
+    def = NULL;
+    ret = 0;
+ cleanup:
+    virSysinfoBIOSDefFree(def);
+    return ret;
+}
+
+static int
+virSysinfoSystemParseXML(xmlNodePtr node,
+                         xmlXPathContextPtr ctxt,
+                         virSysinfoSystemDefPtr *sysdef,
+                         unsigned char *domUUID,
+                         bool uuid_generated)
+{
+    int ret = -1;
+    virSysinfoSystemDefPtr def;
+    char *tmpUUID = NULL;
+
+    if (!xmlStrEqual(node->name, BAD_CAST "system")) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("XML does not contain expected 'system' element"));
+        return ret;
+    }
+
+    if (VIR_ALLOC(def) < 0)
+        goto cleanup;
+
+    def->manufacturer =
+        virXPathString("string(entry[@name='manufacturer'])", ctxt);
+    def->product =
+        virXPathString("string(entry[@name='product'])", ctxt);
+    def->version =
+        virXPathString("string(entry[@name='version'])", ctxt);
+    def->serial =
+        virXPathString("string(entry[@name='serial'])", ctxt);
+    tmpUUID = virXPathString("string(entry[@name='uuid'])", ctxt);
+    if (tmpUUID) {
+        unsigned char uuidbuf[VIR_UUID_BUFLEN];
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        if (virUUIDParse(tmpUUID, uuidbuf) < 0) {
+            virReportError(VIR_ERR_XML_DETAIL,
+                           "%s", _("malformed <sysinfo> uuid element"));
+            goto cleanup;
+        }
+        if (uuid_generated) {
+            memcpy(domUUID, uuidbuf, VIR_UUID_BUFLEN);
+        } else if (memcmp(domUUID, uuidbuf, VIR_UUID_BUFLEN) != 0) {
+            virReportError(VIR_ERR_XML_DETAIL, "%s",
+                           _("UUID mismatch between <uuid> and "
+                             "<sysinfo>"));
+            goto cleanup;
+        }
+        /* Although we've validated the UUID as good, virUUIDParse() is
+         * lax with respect to allowing extraneous "-" and " ", but the
+         * underlying hypervisor may be less forgiving. Use virUUIDFormat()
+         * to validate format in xml is right. If not, then format it
+         * properly so that it's used correctly later.
+         */
+        virUUIDFormat(uuidbuf, uuidstr);
+        if (VIR_STRDUP(def->uuid, uuidstr) < 0)
+            goto cleanup;
+    }
+    def->sku =
+        virXPathString("string(entry[@name='sku'])", ctxt);
+    def->family =
+        virXPathString("string(entry[@name='family'])", ctxt);
+
+    if (!def->manufacturer && !def->product && !def->version &&
+        !def->serial && !def->uuid && !def->sku && !def->family) {
+        virSysinfoSystemDefFree(def);
+        def = NULL;
+    }
+
+    *sysdef = def;
+    def = NULL;
+    ret = 0;
+ cleanup:
+    virSysinfoSystemDefFree(def);
+    VIR_FREE(tmpUUID);
+    return ret;
+}
+
+static int
+virSysinfoBaseBoardParseXML(xmlXPathContextPtr ctxt,
+                            virSysinfoBaseBoardDefPtr *baseBoard,
+                            size_t *nbaseBoard)
+{
+    int ret = -1;
+    virSysinfoBaseBoardDefPtr boards = NULL;
+    size_t i, nboards = 0;
+    xmlNodePtr *nodes = NULL, oldnode = ctxt->node;
+    int n;
+
+    if ((n = virXPathNodeSet("./baseBoard", ctxt, &nodes)) < 0)
+        return ret;
+
+    if (n && VIR_ALLOC_N(boards, n) < 0)
+        goto cleanup;
+
+    for (i = 0; i < n; i++) {
+        virSysinfoBaseBoardDefPtr def = boards + nboards;
+
+        ctxt->node = nodes[i];
+
+        def->manufacturer =
+            virXPathString("string(entry[@name='manufacturer'])", ctxt);
+        def->product =
+            virXPathString("string(entry[@name='product'])", ctxt);
+        def->version =
+            virXPathString("string(entry[@name='version'])", ctxt);
+        def->serial =
+            virXPathString("string(entry[@name='serial'])", ctxt);
+        def->asset =
+            virXPathString("string(entry[@name='asset'])", ctxt);
+        def->location =
+            virXPathString("string(entry[@name='location'])", ctxt);
+
+        if (!def->manufacturer && !def->product && !def->version &&
+            !def->serial && !def->asset && !def->location) {
+            /* nada */
+        } else {
+            nboards++;
+        }
+    }
+
+    *baseBoard = boards;
+    *nbaseBoard = nboards;
+    boards = NULL;
+    nboards = 0;
+    ret = 0;
+ cleanup:
+    VIR_FREE(boards);
+    VIR_FREE(nodes);
+    ctxt->node = oldnode;
+    return ret;
+}
+
 static virSysinfoDefPtr
 virSysinfoParseXML(xmlNodePtr node,
                   xmlXPathContextPtr ctxt,
@@ -11004,8 +11382,8 @@ virSysinfoParseXML(xmlNodePtr node,
                   bool uuid_generated)
 {
     virSysinfoDefPtr def;
+    xmlNodePtr oldnode, tmpnode;
     char *type;
-    char *tmpUUID = NULL;
 
     if (!xmlStrEqual(node->name, BAD_CAST "sysinfo")) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
@@ -11028,84 +11406,35 @@ virSysinfoParseXML(xmlNodePtr node,
         goto error;
     }
 
-
     /* Extract BIOS related metadata */
-    def->bios_vendor =
-        virXPathString("string(bios/entry[@name='vendor'])", ctxt);
-    def->bios_version =
-        virXPathString("string(bios/entry[@name='version'])", ctxt);
-    def->bios_date =
-        virXPathString("string(bios/entry[@name='date'])", ctxt);
-    if (def->bios_date != NULL) {
-        char *ptr;
-        int month, day, year;
-
-        /* Validate just the format of the date
-         * Expect mm/dd/yyyy or mm/dd/yy,
-         * where yy must be 00->99 and would be assumed to be 19xx
-         * a yyyy date should be 1900 and beyond
-         */
-        if (virStrToLong_i(def->bios_date, &ptr, 10, &month) < 0 ||
-            *ptr != '/' ||
-            virStrToLong_i(ptr + 1, &ptr, 10, &day) < 0 ||
-            *ptr != '/' ||
-            virStrToLong_i(ptr + 1, &ptr, 10, &year) < 0 ||
-            *ptr != '\0' ||
-            (month < 1 || month > 12) ||
-            (day < 1 || day > 31) ||
-            (year < 0 || (year >= 100 && year < 1900))) {
-            virReportError(VIR_ERR_XML_DETAIL, "%s",
-                           _("Invalid BIOS 'date' format"));
+    if ((tmpnode = virXPathNode("./bios[1]", ctxt)) != NULL) {
+        oldnode = ctxt->node;
+        ctxt->node = tmpnode;
+        if (virSysinfoBIOSParseXML(tmpnode, ctxt, &def->bios) < 0) {
+            ctxt->node = oldnode;
             goto error;
         }
+        ctxt->node = oldnode;
     }
-    def->bios_release =
-        virXPathString("string(bios/entry[@name='release'])", ctxt);
 
     /* Extract system related metadata */
-    def->system_manufacturer =
-        virXPathString("string(system/entry[@name='manufacturer'])", ctxt);
-    def->system_product =
-        virXPathString("string(system/entry[@name='product'])", ctxt);
-    def->system_version =
-        virXPathString("string(system/entry[@name='version'])", ctxt);
-    def->system_serial =
-        virXPathString("string(system/entry[@name='serial'])", ctxt);
-    tmpUUID = virXPathString("string(system/entry[@name='uuid'])", ctxt);
-    if (tmpUUID) {
-        unsigned char uuidbuf[VIR_UUID_BUFLEN];
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        if (virUUIDParse(tmpUUID, uuidbuf) < 0) {
-            virReportError(VIR_ERR_XML_DETAIL,
-                           "%s", _("malformed <sysinfo> uuid element"));
+    if ((tmpnode = virXPathNode("./system[1]", ctxt)) != NULL) {
+        oldnode = ctxt->node;
+        ctxt->node = tmpnode;
+        if (virSysinfoSystemParseXML(tmpnode, ctxt, &def->system,
+                                     domUUID, uuid_generated) < 0) {
+            ctxt->node = oldnode;
             goto error;
         }
-        if (uuid_generated) {
-            memcpy(domUUID, uuidbuf, VIR_UUID_BUFLEN);
-        } else if (memcmp(domUUID, uuidbuf, VIR_UUID_BUFLEN) != 0) {
-            virReportError(VIR_ERR_XML_DETAIL, "%s",
-                           _("UUID mismatch between <uuid> and "
-                             "<sysinfo>"));
-            goto error;
-        }
-        /* Although we've validated the UUID as good, virUUIDParse() is
-         * lax with respect to allowing extraneous "-" and " ", but the
-         * underlying hypervisor may be less forgiving. Use virUUIDFormat()
-         * to validate format in xml is right. If not, then format it
-         * properly so that it's used correctly later.
-         */
-        virUUIDFormat(uuidbuf, uuidstr);
-        if (VIR_STRDUP(def->system_uuid, uuidstr) < 0)
-            goto error;
+        ctxt->node = oldnode;
     }
-    def->system_sku =
-        virXPathString("string(system/entry[@name='sku'])", ctxt);
-    def->system_family =
-        virXPathString("string(system/entry[@name='family'])", ctxt);
+
+    /* Extract system base board metadata */
+    if (virSysinfoBaseBoardParseXML(ctxt, &def->baseBoard, &def->nbaseBoard) < 0)
+        goto error;
 
  cleanup:
     VIR_FREE(type);
-    VIR_FREE(tmpUUID);
     return def;
 
  error:
@@ -11171,6 +11500,7 @@ virDomainVideoDefaultType(const virDomainDef *def)
     case VIR_DOMAIN_VIRT_VMWARE:
         return VIR_DOMAIN_VIDEO_TYPE_VMVGA;
 
+    case VIR_DOMAIN_VIRT_VZ:
     case VIR_DOMAIN_VIRT_PARALLELS:
         if (def->os.type == VIR_DOMAIN_OSTYPE_HVM)
             return VIR_DOMAIN_VIDEO_TYPE_VGA;
@@ -13565,36 +13895,26 @@ virDomainIOThreadPinDefParseXML(xmlNodePtr node,
 }
 
 
-
 /* Parse the XML definition for emulatorpin.
  * emulatorpin has the form of
  *   <emulatorpin cpuset='0'/>
  */
-static virDomainPinDefPtr
+static virBitmapPtr
 virDomainEmulatorPinDefParseXML(xmlNodePtr node)
 {
-    virDomainPinDefPtr def;
+    virBitmapPtr def = NULL;
     char *tmp = NULL;
-
-    if (VIR_ALLOC(def) < 0)
-        return NULL;
 
     if (!(tmp = virXMLPropString(node, "cpuset"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("missing cpuset for emulatorpin"));
-        goto error;
+        return NULL;
     }
 
-    if (virBitmapParse(tmp, 0, &def->cpumask, VIR_DOMAIN_CPUMASK_LEN) < 0)
-        goto error;
+    ignore_value(virBitmapParse(tmp, 0, &def, VIR_DOMAIN_CPUMASK_LEN));
 
     VIR_FREE(tmp);
     return def;
-
- error:
-    VIR_FREE(tmp);
-    VIR_FREE(def);
-    return NULL;
 }
 
 
@@ -13829,32 +14149,35 @@ virDomainThreadSchedParse(xmlNodePtr node,
     }
     VIR_FREE(tmp);
 
-    tmp = virXMLPropString(node, "scheduler");
-    if (tmp) {
-        if ((pol = virProcessSchedPolicyTypeFromString(tmp)) <= 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Invalid scheduler attribute: '%s'"),
-                           tmp);
+    if (!(tmp = virXMLPropString(node, "scheduler"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing scheduler attribute"));
+        goto error;
+    }
+
+    if ((pol = virProcessSchedPolicyTypeFromString(tmp)) <= 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid scheduler attribute: '%s'"),
+                       tmp);
+        goto error;
+    }
+    sp->policy = pol;
+
+    VIR_FREE(tmp);
+    if (sp->policy == VIR_PROC_POLICY_FIFO ||
+        sp->policy == VIR_PROC_POLICY_RR) {
+        tmp = virXMLPropString(node, "priority");
+        if (!tmp) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("Missing scheduler priority"));
             goto error;
         }
-        sp->policy = pol;
-
-        VIR_FREE(tmp);
-        if (sp->policy == VIR_PROC_POLICY_FIFO ||
-            sp->policy == VIR_PROC_POLICY_RR) {
-            tmp = virXMLPropString(node, "priority");
-            if (!tmp) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("Missing scheduler priority"));
-                goto error;
-            }
-            if (virStrToLong_i(tmp, NULL, 10, &sp->priority) < 0) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("Invalid value for element priority"));
-                goto error;
-            }
-            VIR_FREE(tmp);
+        if (virStrToLong_i(tmp, NULL, 10, &sp->priority) < 0) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("Invalid value for element priority"));
+            goto error;
         }
+        VIR_FREE(tmp);
     }
 
     return 0;
@@ -13862,6 +14185,81 @@ virDomainThreadSchedParse(xmlNodePtr node,
  error:
     VIR_FREE(tmp);
     return -1;
+}
+
+
+static int
+virDomainVcpuParse(virDomainDefPtr def,
+                   xmlXPathContextPtr ctxt)
+{
+    int n;
+    char *tmp = NULL;
+    int ret = -1;
+
+    if ((n = virXPathUInt("string(./vcpu[1])", ctxt, &def->maxvcpus)) < 0) {
+        if (n == -2) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("maximum vcpus count must be an integer"));
+            goto cleanup;
+        }
+
+        def->maxvcpus = 1;
+    }
+
+    if ((n = virXPathUInt("string(./vcpu[1]/@current)", ctxt, &def->vcpus)) < 0) {
+        if (n == -2) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("current vcpus count must be an integer"));
+            goto cleanup;
+        }
+
+        def->vcpus = def->maxvcpus;
+    }
+
+    if (def->maxvcpus < def->vcpus) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("maxvcpus must not be less than current vcpus "
+                         "(%u < %u)"), def->maxvcpus, def->vcpus);
+        goto cleanup;
+    }
+
+    tmp = virXPathString("string(./vcpu[1]/@placement)", ctxt);
+    if (tmp) {
+        if ((def->placement_mode =
+             virDomainCpuPlacementModeTypeFromString(tmp)) < 0) {
+             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                            _("Unsupported CPU placement mode '%s'"),
+                            tmp);
+             goto cleanup;
+        }
+        VIR_FREE(tmp);
+    } else {
+        def->placement_mode = VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC;
+    }
+
+    if (def->placement_mode != VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) {
+        tmp = virXPathString("string(./vcpu[1]/@cpuset)", ctxt);
+        if (tmp) {
+            if (virBitmapParse(tmp, 0, &def->cpumask,
+                               VIR_DOMAIN_CPUMASK_LEN) < 0)
+                goto cleanup;
+
+            if (virBitmapIsAllClear(def->cpumask)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Invalid value of 'cpuset': %s"), tmp);
+                goto cleanup;
+            }
+
+            VIR_FREE(tmp);
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(tmp);
+
+    return ret;
 }
 
 static virDomainDefPtr
@@ -13878,7 +14276,6 @@ virDomainDefParseXML(xmlDocPtr xml,
     int n;
     long id = -1;
     virDomainDefPtr def;
-    unsigned long count;
     bool uuid_generated = false;
     virHashTablePtr bootHash = NULL;
     bool usb_none = false;
@@ -14161,76 +14558,8 @@ virDomainDefParseXML(xmlDocPtr xml,
                                   &def->mem.swap_hard_limit) < 0)
         goto error;
 
-    n = virXPathULong("string(./vcpu[1])", ctxt, &count);
-    if (n == -2) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("maximum vcpus must be an integer"));
+    if (virDomainVcpuParse(def, ctxt) < 0)
         goto error;
-    } else if (n < 0) {
-        def->maxvcpus = 1;
-    } else {
-        def->maxvcpus = count;
-        if (count == 0 || (unsigned short) count != count) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("invalid maximum number of vCPUs '%lu'"), count);
-            goto error;
-        }
-    }
-
-    n = virXPathULong("string(./vcpu[1]/@current)", ctxt, &count);
-    if (n == -2) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("current vcpus must be an integer"));
-        goto error;
-    } else if (n < 0) {
-        def->vcpus = def->maxvcpus;
-    } else {
-        def->vcpus = count;
-        if (count == 0 || (unsigned short) count != count) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("invalid current number of vCPUs '%lu'"), count);
-            goto error;
-        }
-
-        if (def->maxvcpus < count) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("maxvcpus must not be less than current vcpus "
-                             "(%d < %lu)"),
-                           def->maxvcpus, count);
-            goto error;
-        }
-    }
-
-    tmp = virXPathString("string(./vcpu[1]/@placement)", ctxt);
-    if (tmp) {
-        if ((def->placement_mode =
-             virDomainCpuPlacementModeTypeFromString(tmp)) < 0) {
-             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                            _("Unsupported CPU placement mode '%s'"),
-                            tmp);
-             goto error;
-        }
-        VIR_FREE(tmp);
-    } else {
-        def->placement_mode = VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC;
-    }
-
-    if (def->placement_mode != VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) {
-        tmp = virXPathString("string(./vcpu[1]/@cpuset)", ctxt);
-        if (tmp) {
-            if (virBitmapParse(tmp, 0, &def->cpumask,
-                               VIR_DOMAIN_CPUMASK_LEN) < 0)
-                goto error;
-
-            if (virBitmapIsAllClear(def->cpumask)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("Invalid value of 'cpuset': %s"), tmp);
-                goto error;
-            }
-
-            VIR_FREE(tmp);
-        }
-    }
 
     /* Optional - iothreads */
     tmp = virXPathString("string(./iothreads[1])", ctxt);
@@ -15319,7 +15648,8 @@ virDomainDefParseXML(xmlDocPtr xml,
              (input->type == VIR_DOMAIN_INPUT_TYPE_MOUSE ||
               input->type == VIR_DOMAIN_INPUT_TYPE_KBD)) ||
             (def->os.type == VIR_DOMAIN_OSTYPE_EXE &&
-             def->virtType == VIR_DOMAIN_VIRT_PARALLELS &&
+             (def->virtType == VIR_DOMAIN_VIRT_VZ ||
+              def->virtType == VIR_DOMAIN_VIRT_PARALLELS)  &&
              input->bus == VIR_DOMAIN_INPUT_BUS_PARALLELS &&
              (input->type == VIR_DOMAIN_INPUT_TYPE_MOUSE ||
               input->type == VIR_DOMAIN_INPUT_TYPE_KBD))) {
@@ -15355,7 +15685,8 @@ virDomainDefParseXML(xmlDocPtr xml,
         if (def->os.type == VIR_DOMAIN_OSTYPE_HVM)
             input_bus = VIR_DOMAIN_INPUT_BUS_PS2;
         if (def->os.type == VIR_DOMAIN_OSTYPE_EXE &&
-            def->virtType == VIR_DOMAIN_VIRT_PARALLELS)
+            (def->virtType == VIR_DOMAIN_VIRT_VZ ||
+             def->virtType == VIR_DOMAIN_VIRT_PARALLELS))
             input_bus = VIR_DOMAIN_INPUT_BUS_PARALLELS;
 
         if (virDomainDefMaybeAddInput(def,
@@ -15853,7 +16184,7 @@ virDomainObjParseXML(xmlDocPtr xml,
     VIR_FREE(nodes);
 
     if (xmlopt->privateData.parse &&
-        ((xmlopt->privateData.parse)(ctxt, obj->privateData)) < 0)
+        xmlopt->privateData.parse(ctxt, obj) < 0)
         goto error;
 
     return obj;
@@ -17762,50 +18093,6 @@ virDomainPinDel(virDomainPinDefPtr **pindef_list,
     }
 }
 
-int
-virDomainEmulatorPinAdd(virDomainDefPtr def,
-                        unsigned char *cpumap,
-                        int maplen)
-{
-    virDomainPinDefPtr emulatorpin = NULL;
-
-    if (!def->cputune.emulatorpin) {
-        /* No emulatorpin exists yet. */
-        if (VIR_ALLOC(emulatorpin) < 0)
-            return -1;
-
-        emulatorpin->id = -1;
-        emulatorpin->cpumask = virBitmapNewData(cpumap, maplen);
-        if (!emulatorpin->cpumask) {
-            virDomainPinDefFree(emulatorpin);
-            return -1;
-        }
-
-        def->cputune.emulatorpin = emulatorpin;
-    } else {
-        /* Since there is only 1 emulatorpin for each vm,
-         * juest replace the old one.
-         */
-        virBitmapFree(def->cputune.emulatorpin->cpumask);
-        def->cputune.emulatorpin->cpumask = virBitmapNewData(cpumap, maplen);
-        if (!def->cputune.emulatorpin->cpumask)
-            return -1;
-    }
-
-    return 0;
-}
-
-int
-virDomainEmulatorPinDel(virDomainDefPtr def)
-{
-    if (!def->cputune.emulatorpin)
-        return 0;
-
-    virDomainPinDefFree(def->cputune.emulatorpin);
-    def->cputune.emulatorpin = NULL;
-
-    return 0;
-}
 
 static int
 virDomainEventActionDefFormat(virBufferPtr buf,
@@ -18814,7 +19101,7 @@ virDomainHostdevDefFormatSubsys(virBufferPtr buf,
             virBufferAsprintf(buf, "<adapter name='%s'/>\n",
                               scsihostsrc->adapter);
             virBufferAsprintf(buf,
-                              "<address %sbus='%d' target='%d' unit='%d'/>\n",
+                              "<address %sbus='%u' target='%u' unit='%llu'/>\n",
                               includeTypeInAddr ? "type='scsi' " : "",
                               scsihostsrc->bus, scsihostsrc->target,
                               scsihostsrc->unit);
@@ -20688,24 +20975,6 @@ virDomainHubDefFormat(virBufferPtr buf,
     return 0;
 }
 
-/*
- * Return true if no <vcpupin> specified in domain XML
- * (I.e. all vcpus inherit the cpuset from "cpuset" of
- * <vcpu>). Or false otherwise.
- */
-static bool
-virDomainIsAllVcpupinInherited(virDomainDefPtr def)
-{
-    size_t i;
-
-    for (i = 0; i < def->cputune.nvcpupin; i++) {
-        if (!virBitmapEqual(def->cputune.vcpupin[i]->cpumask, def->cpumask))
-            return false;
-    }
-
-    return true;
-}
-
 
 static void
 virDomainResourceDefFormat(virBufferPtr buf,
@@ -20836,8 +21105,8 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     const char *type = NULL;
     int n;
     size_t i;
-    bool blkio = false;
-    bool cputune = false;
+    virBuffer childrenBuf = VIR_BUFFER_INITIALIZER;
+    int indent;
 
     virCheckFlags(VIR_DOMAIN_DEF_FORMAT_COMMON_FLAGS |
                   VIR_DOMAIN_DEF_FORMAT_STATUS |
@@ -20913,62 +21182,47 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     virBufferAsprintf(buf, "<currentMemory unit='KiB'>%llu</currentMemory>\n",
                       def->mem.cur_balloon);
 
-    /* add blkiotune only if there are any */
-    if (def->blkio.weight) {
-        blkio = true;
-    } else {
-        for (n = 0; n < def->blkio.ndevices; n++) {
-            if (def->blkio.devices[n].weight ||
-                def->blkio.devices[n].riops ||
-                def->blkio.devices[n].wiops ||
-                def->blkio.devices[n].rbps ||
-                def->blkio.devices[n].wbps) {
-                blkio = true;
-                break;
-            }
-        }
+    /* start format blkiotune */
+    indent = virBufferGetIndent(buf, false);
+    virBufferAdjustIndent(&childrenBuf, indent + 2);
+    if (def->blkio.weight)
+        virBufferAsprintf(&childrenBuf, "<weight>%u</weight>\n",
+                          def->blkio.weight);
+
+    for (n = 0; n < def->blkio.ndevices; n++) {
+        virBlkioDevicePtr dev = &def->blkio.devices[n];
+
+        if (!dev->weight && !dev->riops && !dev->wiops &&
+            !dev->rbps && !dev->wbps)
+            continue;
+        virBufferAddLit(&childrenBuf, "<device>\n");
+        virBufferAdjustIndent(&childrenBuf, 2);
+        virBufferEscapeString(&childrenBuf, "<path>%s</path>\n",
+                              dev->path);
+        if (dev->weight)
+            virBufferAsprintf(&childrenBuf, "<weight>%u</weight>\n",
+                              dev->weight);
+        if (dev->riops)
+            virBufferAsprintf(&childrenBuf, "<read_iops_sec>%u</read_iops_sec>\n",
+                              dev->riops);
+        if (dev->wiops)
+            virBufferAsprintf(&childrenBuf, "<write_iops_sec>%u</write_iops_sec>\n",
+                              dev->wiops);
+        if (dev->rbps)
+            virBufferAsprintf(&childrenBuf, "<read_bytes_sec>%llu</read_bytes_sec>\n",
+                              dev->rbps);
+        if (dev->wbps)
+            virBufferAsprintf(&childrenBuf, "<write_bytes_sec>%llu</write_bytes_sec>\n",
+                              dev->wbps);
+        virBufferAdjustIndent(&childrenBuf, -2);
+        virBufferAddLit(&childrenBuf, "</device>\n");
     }
-
-    if (blkio) {
+    if (virBufferUse(&childrenBuf)) {
         virBufferAddLit(buf, "<blkiotune>\n");
-        virBufferAdjustIndent(buf, 2);
-
-        if (def->blkio.weight)
-            virBufferAsprintf(buf, "<weight>%u</weight>\n",
-                              def->blkio.weight);
-
-        for (n = 0; n < def->blkio.ndevices; n++) {
-            virBlkioDevicePtr dev = &def->blkio.devices[n];
-
-            if (!dev->weight && !dev->riops && !dev->wiops &&
-                !dev->rbps && !dev->wbps)
-                continue;
-            virBufferAddLit(buf, "<device>\n");
-            virBufferAdjustIndent(buf, 2);
-            virBufferEscapeString(buf, "<path>%s</path>\n",
-                                  dev->path);
-            if (dev->weight)
-                virBufferAsprintf(buf, "<weight>%u</weight>\n",
-                                  dev->weight);
-            if (dev->riops)
-                virBufferAsprintf(buf, "<read_iops_sec>%u</read_iops_sec>\n",
-                                  dev->riops);
-            if (dev->wiops)
-                virBufferAsprintf(buf, "<write_iops_sec>%u</write_iops_sec>\n",
-                                  dev->wiops);
-            if (dev->rbps)
-                virBufferAsprintf(buf, "<read_bytes_sec>%llu</read_bytes_sec>\n",
-                                  dev->rbps);
-            if (dev->wbps)
-                virBufferAsprintf(buf, "<write_bytes_sec>%llu</write_bytes_sec>\n",
-                                  dev->wbps);
-            virBufferAdjustIndent(buf, -2);
-            virBufferAddLit(buf, "</device>\n");
-        }
-
-        virBufferAdjustIndent(buf, -2);
+        virBufferAddBuffer(buf, &childrenBuf);
         virBufferAddLit(buf, "</blkiotune>\n");
     }
+    virBufferFreeAndReset(&childrenBuf);
 
     /* add memtune only if there are any */
     if (virMemoryLimitIsSet(def->mem.hard_limit) ||
@@ -21047,35 +21301,26 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         }
     }
 
-    if (def->cputune.sharesSpecified ||
-        (def->cputune.nvcpupin && !virDomainIsAllVcpupinInherited(def)) ||
-        def->cputune.period || def->cputune.quota ||
-        def->cputune.emulatorpin ||
-        def->cputune.emulator_period || def->cputune.emulator_quota ||
-        virDomainIOThreadIDArrayHasPin(def) ||
-        def->cputune.vcpusched || def->cputune.iothreadsched) {
-        virBufferAddLit(buf, "<cputune>\n");
-        cputune = true;
-    }
-
-    virBufferAdjustIndent(buf, 2);
+    /* start format cputune */
+    indent = virBufferGetIndent(buf, false);
+    virBufferAdjustIndent(&childrenBuf, indent + 2);
     if (def->cputune.sharesSpecified)
-        virBufferAsprintf(buf, "<shares>%lu</shares>\n",
+        virBufferAsprintf(&childrenBuf, "<shares>%lu</shares>\n",
                           def->cputune.shares);
     if (def->cputune.period)
-        virBufferAsprintf(buf, "<period>%llu</period>\n",
+        virBufferAsprintf(&childrenBuf, "<period>%llu</period>\n",
                           def->cputune.period);
     if (def->cputune.quota)
-        virBufferAsprintf(buf, "<quota>%lld</quota>\n",
+        virBufferAsprintf(&childrenBuf, "<quota>%lld</quota>\n",
                           def->cputune.quota);
 
     if (def->cputune.emulator_period)
-        virBufferAsprintf(buf, "<emulator_period>%llu"
+        virBufferAsprintf(&childrenBuf, "<emulator_period>%llu"
                           "</emulator_period>\n",
                           def->cputune.emulator_period);
 
     if (def->cputune.emulator_quota)
-        virBufferAsprintf(buf, "<emulator_quota>%lld"
+        virBufferAsprintf(&childrenBuf, "<emulator_quota>%lld"
                           "</emulator_quota>\n",
                           def->cputune.emulator_quota);
 
@@ -21085,24 +21330,24 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         if (virBitmapEqual(def->cpumask, def->cputune.vcpupin[i]->cpumask))
             continue;
 
-        virBufferAsprintf(buf, "<vcpupin vcpu='%u' ",
+        virBufferAsprintf(&childrenBuf, "<vcpupin vcpu='%u' ",
                           def->cputune.vcpupin[i]->id);
 
         if (!(cpumask = virBitmapFormat(def->cputune.vcpupin[i]->cpumask)))
             goto error;
 
-        virBufferAsprintf(buf, "cpuset='%s'/>\n", cpumask);
+        virBufferAsprintf(&childrenBuf, "cpuset='%s'/>\n", cpumask);
         VIR_FREE(cpumask);
     }
 
     if (def->cputune.emulatorpin) {
         char *cpumask;
-        virBufferAddLit(buf, "<emulatorpin ");
+        virBufferAddLit(&childrenBuf, "<emulatorpin ");
 
-        if (!(cpumask = virBitmapFormat(def->cputune.emulatorpin->cpumask)))
+        if (!(cpumask = virBitmapFormat(def->cputune.emulatorpin)))
             goto error;
 
-        virBufferAsprintf(buf, "cpuset='%s'/>\n", cpumask);
+        virBufferAsprintf(&childrenBuf, "cpuset='%s'/>\n", cpumask);
         VIR_FREE(cpumask);
     }
 
@@ -21113,13 +21358,13 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         if (!def->iothreadids[i]->cpumask)
             continue;
 
-        virBufferAsprintf(buf, "<iothreadpin iothread='%u' ",
+        virBufferAsprintf(&childrenBuf, "<iothreadpin iothread='%u' ",
                           def->iothreadids[i]->iothread_id);
 
         if (!(cpumask = virBitmapFormat(def->iothreadids[i]->cpumask)))
             goto error;
 
-        virBufferAsprintf(buf, "cpuset='%s'/>\n", cpumask);
+        virBufferAsprintf(&childrenBuf, "cpuset='%s'/>\n", cpumask);
         VIR_FREE(cpumask);
     }
 
@@ -21129,13 +21374,14 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
         if (!(ids = virBitmapFormat(sp->ids)))
             goto error;
-        virBufferAsprintf(buf, "<vcpusched vcpus='%s' scheduler='%s'",
+        virBufferAsprintf(&childrenBuf, "<vcpusched vcpus='%s' scheduler='%s'",
                           ids, virProcessSchedPolicyTypeToString(sp->policy));
         VIR_FREE(ids);
 
-        if (sp->priority)
-            virBufferAsprintf(buf, " priority='%d'", sp->priority);
-        virBufferAddLit(buf, "/>\n");
+        if (sp->policy == VIR_PROC_POLICY_FIFO ||
+            sp->policy == VIR_PROC_POLICY_RR)
+            virBufferAsprintf(&childrenBuf, " priority='%d'", sp->priority);
+        virBufferAddLit(&childrenBuf, "/>\n");
     }
 
     for (i = 0; i < def->cputune.niothreadsched; i++) {
@@ -21144,18 +21390,22 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
         if (!(ids = virBitmapFormat(sp->ids)))
             goto error;
-        virBufferAsprintf(buf, "<iothreadsched iothreads='%s' scheduler='%s'",
+        virBufferAsprintf(&childrenBuf, "<iothreadsched iothreads='%s' scheduler='%s'",
                           ids, virProcessSchedPolicyTypeToString(sp->policy));
         VIR_FREE(ids);
 
-        if (sp->priority)
-            virBufferAsprintf(buf, " priority='%d'", sp->priority);
-        virBufferAddLit(buf, "/>\n");
+        if (sp->policy == VIR_PROC_POLICY_FIFO ||
+            sp->policy == VIR_PROC_POLICY_RR)
+            virBufferAsprintf(&childrenBuf, " priority='%d'", sp->priority);
+        virBufferAddLit(&childrenBuf, "/>\n");
     }
 
-    virBufferAdjustIndent(buf, -2);
-    if (cputune)
+    if (virBufferUse(&childrenBuf)) {
+        virBufferAddLit(buf, "<cputune>\n");
+        virBufferAddBuffer(buf, &childrenBuf);
         virBufferAddLit(buf, "</cputune>\n");
+    }
+    virBufferFreeAndReset(&childrenBuf);
 
     if (virDomainNumatuneFormatXML(buf, def->numa) < 0)
         goto error;
@@ -21588,6 +21838,10 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         if (virDomainChrDefFormat(buf, &console, flags) < 0)
             goto error;
     }
+    /* The back-compat console device stub is added when parsing the domain XML
+     * and handled above, this is for formatting definitions created via other
+     * means.
+     */
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM &&
         def->nconsoles == 0 &&
         def->nserials > 0) {
@@ -21624,7 +21878,8 @@ virDomainDefFormatInternal(virDomainDefPtr def,
             if (def->os.type == VIR_DOMAIN_OSTYPE_HVM)
                 autoInput.bus = VIR_DOMAIN_INPUT_BUS_PS2;
             else if (def->os.type == VIR_DOMAIN_OSTYPE_EXE &&
-                     def->virtType == VIR_DOMAIN_VIRT_PARALLELS)
+                     (def->virtType == VIR_DOMAIN_VIRT_VZ ||
+                      def->virtType == VIR_DOMAIN_VIRT_PARALLELS))
                 autoInput.bus = VIR_DOMAIN_INPUT_BUS_PARALLELS;
             else
                autoInput.bus = VIR_DOMAIN_INPUT_BUS_XEN;
@@ -21724,6 +21979,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
  error:
     virBufferFreeAndReset(buf);
+    virBufferFreeAndReset(&childrenBuf);
     return -1;
 }
 
@@ -21781,7 +22037,7 @@ virDomainObjFormat(virDomainXMLOptionPtr xmlopt,
     }
 
     if (xmlopt->privateData.format &&
-        ((xmlopt->privateData.format)(&buf, obj->privateData)) < 0)
+        xmlopt->privateData.format(&buf, obj) < 0)
         goto error;
 
     if (virDomainDefFormatInternal(obj->def, flags, &buf) < 0)

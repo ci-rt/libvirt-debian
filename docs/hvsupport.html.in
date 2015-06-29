@@ -27,7 +27,6 @@ in.
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -35,6 +34,7 @@ in.
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -51,7 +51,6 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td>1.2.6</td>
 <td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
@@ -59,6 +58,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.6</td>
 <td></td>
 <td></td>
 </tr>
@@ -73,7 +73,6 @@ in.
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -81,6 +80,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -96,9 +96,9 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>0.7.5</td>
+<td>0.7.5</td>
 <td></td>
-<td>0.7.5</td>
-<td>0.7.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -118,11 +118,11 @@ in.
 <td>0.7.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.5.0</td>
 <td>0.5.0</td>
 <td>0.6.0</td>
 <td>0.9.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.5.0</td>
@@ -139,7 +139,6 @@ in.
 <td>0.9.0</td>
 <td>0.8.0</td>
 <td></td>
-<td>1.2.10</td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -147,6 +146,7 @@ in.
 <td>0.9.4</td>
 <td></td>
 <td></td>
+<td>1.2.10</td>
 <td>0.8.0</td>
 <td></td>
 </tr>
@@ -162,11 +162,11 @@ in.
 <td>0.7.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.5.0</td>
 <td>0.5.0</td>
 <td>0.6.0</td>
 <td>0.9.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.5.0</td>
@@ -183,7 +183,6 @@ in.
 <td>0.9.0</td>
 <td>0.8.0</td>
 <td></td>
-<td>1.2.10</td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -191,6 +190,7 @@ in.
 <td>0.9.4</td>
 <td></td>
 <td></td>
+<td>1.2.10</td>
 <td>0.8.0</td>
 <td></td>
 </tr>
@@ -206,9 +206,9 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.3</td>
+<td>1.2.3</td>
 <td></td>
-<td>1.2.3</td>
-<td>1.2.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -228,9 +228,9 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.3</td>
+<td>1.2.3</td>
 <td></td>
-<td>1.2.3</td>
-<td>1.2.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -250,13 +250,13 @@ in.
 <td>1.2.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.6.4</td>
 <td>0.6.4</td>
 <td></td>
 <td></td>
 <td></td>
 <td>0.9.11</td>
+<td></td>
 <td>0.6.4</td>
 <td></td>
 </tr>
@@ -272,9 +272,9 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>0.6.4</td>
+<td>0.6.4</td>
 <td></td>
-<td>0.6.4</td>
-<td>0.6.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -294,9 +294,9 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.8</td>
+<td>1.2.8</td>
 <td></td>
-<td>1.2.8</td>
-<td>1.2.8</td>
 <td></td>
 <td></td>
 <td></td>
@@ -316,10 +316,10 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>1.1.3</td>
+<td>1.1.3</td>
+<td>1.1.3</td>
 <td></td>
-<td>1.1.3</td>
-<td>1.1.3</td>
-<td>1.1.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -337,7 +337,6 @@ in.
 <td>0.9.0</td>
 <td>0.6.5</td>
 <td>0.4.6</td>
-<td>0.10.0</td>
 <td>0.7.3</td>
 <td>0.2.1</td>
 <td>0.3.0</td>
@@ -345,6 +344,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td></td>
+<td>0.10.0</td>
 <td>0.2.1</td>
 <td>0.8.0</td>
 </tr>
@@ -360,9 +360,9 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.7</td>
+<td>1.2.7</td>
 <td></td>
-<td>1.2.7</td>
-<td>1.2.7</td>
 <td></td>
 <td></td>
 <td></td>
@@ -379,7 +379,6 @@ in.
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -387,6 +386,7 @@ in.
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -401,7 +401,6 @@ in.
 <td>0.9.0</td>
 <td>0.6.3</td>
 <td>0.9.12</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.3.3</td>
 <td>0.3.0</td>
@@ -409,6 +408,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td></td>
+<td>0.10.0</td>
 <td>0.7.3</td>
 <td>0.8.0</td>
 </tr>
@@ -425,8 +425,8 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.7.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -446,12 +446,12 @@ in.
 <td></td>
 <td>0.4.6</td>
 <td></td>
-<td></td>
 <td>0.2.1</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td></td>
 <td>0.6.3</td>
+<td></td>
 <td></td>
 <td>0.2.1</td>
 <td>0.8.0</td>
@@ -468,9 +468,9 @@ in.
 <td>1.0.5</td>
 <td></td>
 <td></td>
+<td>0.8.8</td>
+<td>0.8.8</td>
 <td></td>
-<td>0.8.8</td>
-<td>0.8.8</td>
 <td></td>
 <td></td>
 <td></td>
@@ -490,13 +490,13 @@ in.
 <td></td>
 <td>0.3.1</td>
 <td></td>
-<td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
 <td></td>
 <td>0.5.0</td>
 <td></td>
 <td>0.8.7</td>
+<td></td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -511,7 +511,6 @@ in.
 <td>0.9.0</td>
 <td>0.4.6</td>
 <td>0.5.0</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -519,6 +518,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -533,14 +533,14 @@ in.
 <td>0.9.8</td>
 <td>0.9.8</td>
 <td>0.9.8</td>
+<td>0.9.8</td>
+<td>0.9.8</td>
+<td>0.9.8</td>
+<td>0.9.8</td>
+<td>0.9.8</td>
+<td>0.9.8</td>
+<td>0.9.8</td>
 <td>1.2.5</td>
-<td>0.9.8</td>
-<td>0.9.8</td>
-<td>0.9.8</td>
-<td>0.9.8</td>
-<td>0.9.8</td>
-<td>0.9.8</td>
-<td>0.9.8</td>
 <td>0.9.8</td>
 <td>0.9.8</td>
 </tr>
@@ -555,7 +555,6 @@ in.
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
-<td>1.2.5</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -563,6 +562,7 @@ in.
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td></td>
+<td>1.2.5</td>
 <td>0.7.3</td>
 <td></td>
 </tr>
@@ -577,7 +577,6 @@ in.
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
-<td>1.2.5</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -585,6 +584,7 @@ in.
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td></td>
+<td>1.2.5</td>
 <td>0.7.3</td>
 <td></td>
 </tr>
@@ -599,7 +599,6 @@ in.
 <td>0.9.13</td>
 <td>0.9.13</td>
 <td>0.9.13</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
@@ -607,6 +606,7 @@ in.
 <td>0.9.13</td>
 <td>0.9.13</td>
 <td>0.9.13</td>
+<td>0.10.0</td>
 <td></td>
 <td></td>
 </tr>
@@ -621,7 +621,6 @@ in.
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -629,6 +628,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.1.1</td>
 <td>0.8.0</td>
 </tr>
@@ -643,7 +643,6 @@ in.
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -651,6 +650,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -665,7 +665,6 @@ in.
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -673,6 +672,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.1.5</td>
 <td>0.8.0</td>
 </tr>
@@ -687,7 +687,6 @@ in.
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -695,6 +694,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -709,7 +709,6 @@ in.
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -717,6 +716,7 @@ in.
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -729,7 +729,6 @@ in.
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -737,6 +736,7 @@ in.
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -797,8 +797,8 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.8</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -817,9 +817,9 @@ virConnectSupportsFeature</td>
 <td>1.2.2</td>
 <td>1.2.8</td>
 <td></td>
-<td></td>
 <td>0.5.0</td>
 <td>0.3.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -839,9 +839,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.7.7</td>
+<td>0.7.7</td>
 <td></td>
-<td>0.7.7</td>
-<td>0.7.7</td>
 <td></td>
 <td></td>
 <td></td>
@@ -861,9 +861,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.15</td>
+<td>1.2.15</td>
 <td></td>
-<td>1.2.15</td>
-<td>1.2.15</td>
 <td></td>
 <td></td>
 <td></td>
@@ -882,7 +882,6 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td>1.0.1</td>
 <td></td>
-<td>1.2.15</td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.3.0</td>
@@ -890,6 +889,7 @@ virConnectSupportsFeature</td>
 <td>0.8.4</td>
 <td>0.6.3</td>
 <td></td>
+<td>1.2.15</td>
 <td>0.1.9</td>
 <td></td>
 </tr>
@@ -904,7 +904,6 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td>1.0.1</td>
 <td></td>
-<td>1.2.15</td>
 <td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
@@ -912,6 +911,7 @@ virConnectSupportsFeature</td>
 <td>0.8.4</td>
 <td>0.7.7</td>
 <td></td>
+<td>1.2.15</td>
 <td>0.7.7</td>
 <td></td>
 </tr>
@@ -927,9 +927,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>1.0.0</td>
 <td>0.10.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -949,9 +949,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.9</td>
+<td>1.2.9</td>
 <td></td>
-<td>1.2.9</td>
-<td>1.2.9</td>
 <td></td>
 <td></td>
 <td></td>
@@ -971,9 +971,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -993,9 +993,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1015,11 +1015,11 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.4</td>
 <td>0.4.2</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.4.4</td>
@@ -1037,9 +1037,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1059,9 +1059,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.10</td>
+<td>0.9.10</td>
 <td></td>
-<td>0.9.10</td>
-<td>0.9.10</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1078,7 +1078,6 @@ virConnectSupportsFeature</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -1086,6 +1085,7 @@ virConnectSupportsFeature</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -1101,9 +1101,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.8</td>
+<td>0.9.8</td>
 <td></td>
-<td>0.9.8</td>
-<td>0.9.8</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1123,13 +1123,13 @@ virConnectSupportsFeature</td>
 <td>1.2.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.3.2</td>
 <td>0.7.0</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.17</td>
 <td>0.3.2</td>
 <td></td>
 </tr>
@@ -1145,13 +1145,13 @@ virConnectSupportsFeature</td>
 <td>1.2.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.5</td>
 <td>0.9.5</td>
 <td></td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.17</td>
 <td></td>
 <td></td>
 </tr>
@@ -1167,10 +1167,10 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.7.0</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1189,10 +1189,10 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.3</td>
+<td>1.2.3</td>
+<td>1.2.3</td>
 <td></td>
-<td>1.2.3</td>
-<td>1.2.3</td>
-<td>1.2.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1210,7 +1210,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.4</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -1218,6 +1217,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.1.1</td>
 <td>0.8.0</td>
 </tr>
@@ -1232,7 +1232,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.4</td>
 <td>0.3.3</td>
-<td></td>
 <td>0.7.3</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -1240,6 +1239,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td></td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -1256,8 +1256,8 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>1.1.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1276,7 +1276,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.8.2</td>
 <td>0.8.2</td>
-<td>1.2.10</td>
 <td></td>
 <td>0.8.2</td>
 <td>0.8.2</td>
@@ -1284,6 +1283,7 @@ virConnectSupportsFeature</td>
 <td>0.8.2</td>
 <td>0.8.2</td>
 <td>0.8.7</td>
+<td>1.2.10</td>
 <td>0.8.2</td>
 <td>0.8.2</td>
 </tr>
@@ -1298,7 +1298,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.4</td>
 <td>0.3.3</td>
-<td></td>
 <td>0.7.3</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -1306,6 +1305,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td></td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -1322,8 +1322,8 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>1.1.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1342,7 +1342,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.3</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -1350,6 +1349,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.1.1</td>
 <td>0.8.0</td>
 </tr>
@@ -1364,8 +1364,8 @@ virConnectSupportsFeature</td>
 <td>1.2.12</td>
 <td>1.2.12</td>
 <td>1.2.12</td>
-<td>1.2.12</td>
 <td></td>
+<td>1.2.12</td>
 <td>1.2.12</td>
 <td>1.2.12</td>
 <td>1.2.12</td>
@@ -1387,9 +1387,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.15</td>
+<td>1.2.15</td>
 <td></td>
-<td>1.2.15</td>
-<td>1.2.15</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1408,7 +1408,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.4</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.3</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -1416,6 +1415,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -1428,7 +1428,6 @@ virConnectSupportsFeature</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -1436,6 +1435,7 @@ virConnectSupportsFeature</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -1450,7 +1450,6 @@ virConnectSupportsFeature</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
-<td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
@@ -1458,6 +1457,7 @@ virConnectSupportsFeature</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
+<td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 </tr>
@@ -1472,7 +1472,6 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td>1.0.1</td>
 <td></td>
-<td>1.2.15</td>
 <td></td>
 <td>0.5.0</td>
 <td>0.3.0</td>
@@ -1480,6 +1479,7 @@ virConnectSupportsFeature</td>
 <td>0.8.4</td>
 <td>0.6.3</td>
 <td></td>
+<td>1.2.15</td>
 <td>0.1.9</td>
 <td></td>
 </tr>
@@ -1494,7 +1494,6 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td>1.0.1</td>
 <td></td>
-<td>1.2.15</td>
 <td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
@@ -1502,6 +1501,7 @@ virConnectSupportsFeature</td>
 <td>0.8.4</td>
 <td>0.7.7</td>
 <td></td>
+<td>1.2.15</td>
 <td>0.7.7</td>
 <td></td>
 </tr>
@@ -1517,9 +1517,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.5</td>
+<td>1.2.5</td>
 <td></td>
-<td>1.2.5</td>
-<td>1.2.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1539,9 +1539,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.5</td>
+<td>1.2.5</td>
 <td></td>
-<td>1.2.5</td>
-<td>1.2.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1561,9 +1561,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.0.1</td>
+<td>1.0.1</td>
 <td></td>
-<td>1.0.1</td>
-<td>1.0.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1582,7 +1582,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.7.0</td>
 <td>0.4.6</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.1</td>
 <td>0.3.0</td>
@@ -1590,6 +1589,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td></td>
 <td></td>
+<td>0.10.0</td>
 <td>0.4.4</td>
 <td>0.8.0</td>
 </tr>
@@ -1605,9 +1605,9 @@ virConnectSupportsFeature</td>
 <td>0.9.8</td>
 <td></td>
 <td></td>
+<td>0.9.0</td>
+<td>0.9.0</td>
 <td></td>
-<td>0.9.0</td>
-<td>0.9.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1627,9 +1627,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.8.1</td>
+<td>0.8.1</td>
 <td></td>
-<td>0.8.1</td>
-<td>0.8.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1649,9 +1649,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.8</td>
+<td>0.9.8</td>
 <td></td>
-<td>0.9.8</td>
-<td>0.9.8</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1671,9 +1671,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1693,9 +1693,9 @@ virConnectSupportsFeature</td>
 <td>1.2.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.11</td>
 <td>0.9.10</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1715,9 +1715,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.3</td>
+<td>0.9.3</td>
 <td></td>
-<td>0.9.3</td>
-<td>0.9.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1737,9 +1737,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.10</td>
+<td>0.9.10</td>
 <td></td>
-<td>0.9.10</td>
-<td>0.9.10</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1759,9 +1759,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.10.0</td>
+<td>0.10.0</td>
 <td></td>
-<td>0.10.0</td>
-<td>0.10.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1778,7 +1778,6 @@ virConnectSupportsFeature</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -1786,6 +1785,7 @@ virConnectSupportsFeature</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -1801,9 +1801,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.11</td>
+<td>1.2.11</td>
 <td></td>
-<td>1.2.11</td>
-<td>1.2.11</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1824,8 +1824,8 @@ virConnectSupportsFeature</td>
 <td>0.10.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.10.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1845,9 +1845,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.14</td>
+<td>1.2.14</td>
 <td></td>
-<td>1.2.14</td>
-<td>1.2.14</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1866,7 +1866,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -1874,6 +1873,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -1889,9 +1889,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.9</td>
+<td>0.9.9</td>
 <td></td>
-<td>0.9.9</td>
-<td>0.9.9</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1911,9 +1911,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.7.7</td>
+<td>0.7.7</td>
 <td></td>
-<td>0.7.7</td>
-<td>0.7.7</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1933,9 +1933,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.0.3</td>
+<td>1.0.3</td>
 <td></td>
-<td>1.0.3</td>
-<td>1.0.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1954,7 +1954,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.7.2</td>
 <td></td>
-<td>1.2.15</td>
 <td></td>
 <td>0.4.2</td>
 <td>0.3.0</td>
@@ -1962,6 +1961,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td></td>
 <td></td>
+<td>1.2.15</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -1976,13 +1976,13 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td>0.4.6</td>
-<td></td>
 <td>0.7.3</td>
 <td>0.4.4</td>
 <td>0.3.0</td>
 <td>0.7.3</td>
 <td></td>
 <td>0.7.1</td>
+<td></td>
 <td></td>
 <td>0.2.1</td>
 <td>0.8.0</td>
@@ -1999,9 +1999,9 @@ virConnectSupportsFeature</td>
 <td>0.8.5</td>
 <td>0.9.12</td>
 <td></td>
+<td>0.8.5</td>
+<td>0.8.5</td>
 <td></td>
-<td>0.8.5</td>
-<td>0.8.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2021,10 +2021,10 @@ virConnectSupportsFeature</td>
 <td>1.1.3</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.10</td>
 <td>0.9.10</td>
 <td>1.1.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2043,9 +2043,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.9</td>
+<td>0.9.9</td>
 <td></td>
-<td>0.9.9</td>
-<td>0.9.9</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2064,7 +2064,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.2</td>
 <td>0.3.0</td>
@@ -2072,6 +2071,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -2087,10 +2087,10 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.7.0</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2109,10 +2109,10 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2128,7 +2128,6 @@ virConnectSupportsFeature</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -2136,6 +2135,7 @@ virConnectSupportsFeature</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -2151,10 +2151,10 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.7.0</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2173,9 +2173,9 @@ virConnectSupportsFeature</td>
 <td>0.9.10</td>
 <td></td>
 <td></td>
+<td>0.6.1</td>
+<td>0.6.1</td>
 <td></td>
-<td>0.6.1</td>
-<td>0.6.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2195,9 +2195,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.10.0</td>
+<td>0.10.0</td>
 <td></td>
-<td>0.10.0</td>
-<td>0.10.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2216,14 +2216,14 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td>0.10.0</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 </tr>
@@ -2239,9 +2239,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.5</td>
+<td>1.2.5</td>
 <td></td>
-<td>1.2.5</td>
-<td>1.2.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2261,9 +2261,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.3</td>
+<td>0.9.3</td>
 <td></td>
-<td>0.9.3</td>
-<td>0.9.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2282,7 +2282,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td></td>
 <td></td>
-<td>1.2.6</td>
 <td></td>
 <td>0.4.4</td>
 <td>0.3.0</td>
@@ -2290,6 +2289,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.6</td>
 <td>0.1.4</td>
 <td>0.8.0</td>
 </tr>
@@ -2304,13 +2304,13 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td></td>
 <td>0.8.5</td>
-<td></td>
 <td>0.8.5</td>
 <td>0.8.5</td>
 <td>0.8.5</td>
 <td>0.8.5</td>
 <td></td>
 <td>0.8.5</td>
+<td></td>
 <td></td>
 <td>0.8.5</td>
 <td>0.8.5</td>
@@ -2326,7 +2326,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.4.6</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -2334,6 +2333,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -2349,12 +2349,12 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2371,10 +2371,10 @@ virConnectSupportsFeature</td>
 <td>1.2.13</td>
 <td>1.2.13</td>
 <td>1.2.13</td>
-<td>1.2.13</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
+<td>1.2.13</td>
 <td>1.2.13</td>
 <td>1.2.13</td>
 <td>1.2.13</td>
@@ -2393,9 +2393,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2415,9 +2415,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.14</td>
+<td>1.2.14</td>
 <td></td>
-<td>1.2.14</td>
-<td>1.2.14</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2437,13 +2437,13 @@ virConnectSupportsFeature</td>
 <td>0.7.3</td>
 <td>0.9.12</td>
 <td></td>
-<td></td>
 <td>0.4.1</td>
 <td>0.3.2</td>
 <td>0.7.0</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.17</td>
 <td>0.3.2</td>
 <td></td>
 </tr>
@@ -2458,7 +2458,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
-<td>1.2.10</td>
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -2466,6 +2465,7 @@ virConnectSupportsFeature</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.8.7</td>
+<td>1.2.10</td>
 <td>0.7.3</td>
 <td></td>
 </tr>
@@ -2478,7 +2478,6 @@ virConnectSupportsFeature</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -2486,6 +2485,7 @@ virConnectSupportsFeature</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -2500,7 +2500,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -2508,6 +2507,7 @@ virConnectSupportsFeature</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.7.3</td>
 <td></td>
 </tr>
@@ -2522,13 +2522,13 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.8.6</td>
 <td>0.8.6</td>
+<td>0.8.6</td>
+<td>0.8.6</td>
+<td>0.8.6</td>
+<td>0.8.6</td>
+<td>0.8.6</td>
+<td>0.8.6</td>
 <td></td>
-<td>0.8.6</td>
-<td>0.8.6</td>
-<td>0.8.6</td>
-<td>0.8.6</td>
-<td>0.8.6</td>
-<td>0.8.6</td>
 <td></td>
 <td>0.8.6</td>
 <td>0.8.6</td>
@@ -2545,10 +2545,10 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
 <td>1.1.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2566,7 +2566,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -2574,6 +2573,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -2588,7 +2588,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -2596,6 +2595,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -2610,7 +2610,6 @@ virConnectSupportsFeature</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -2618,6 +2617,7 @@ virConnectSupportsFeature</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.5</td>
 <td>0.8.0</td>
 </tr>
@@ -2634,8 +2634,8 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>1.0.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2654,7 +2654,6 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td></td>
 <td></td>
-<td>1.2.14</td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2662,6 +2661,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.14</td>
 <td>1.0.1</td>
 <td></td>
 </tr>
@@ -2676,7 +2676,6 @@ virConnectSupportsFeature</td>
 <td>0.9.2</td>
 <td></td>
 <td></td>
-<td>1.2.14</td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2684,6 +2683,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.14</td>
 <td>1.0.1</td>
 <td></td>
 </tr>
@@ -2699,9 +2699,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.4</td>
 <td>0.4.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2721,13 +2721,13 @@ virConnectSupportsFeature</td>
 <td>1.2.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.7.5</td>
 <td>0.7.5</td>
 <td></td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.17</td>
 <td></td>
 <td></td>
 </tr>
@@ -2743,9 +2743,9 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.5.0</td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2764,9 +2764,9 @@ virDomainMigrateBegin3</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2785,9 +2785,9 @@ virDomainMigrateBegin3Params</td>
 <td></td>
 <td>1.2.8</td>
 <td></td>
+<td>1.1.0</td>
+<td>1.1.0</td>
 <td></td>
-<td>1.1.0</td>
-<td>1.1.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2806,9 +2806,9 @@ virDomainMigrateConfirm3</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2825,7 +2825,6 @@ virDomainMigrateConfirm3</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -2833,6 +2832,7 @@ virDomainMigrateConfirm3</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -2847,9 +2847,9 @@ virDomainMigrateConfirm3Params</td>
 <td></td>
 <td>1.2.8</td>
 <td></td>
+<td>1.1.0</td>
+<td>1.1.0</td>
 <td></td>
-<td>1.1.0</td>
-<td>1.1.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2869,8 +2869,8 @@ virDomainMigrateFinish</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2889,9 +2889,9 @@ virDomainMigrateFinish2</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.5.0</td>
+<td>0.5.0</td>
 <td></td>
-<td>0.5.0</td>
-<td>0.5.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2910,9 +2910,9 @@ virDomainMigrateFinish3</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2931,9 +2931,9 @@ virDomainMigrateFinish3Params</td>
 <td></td>
 <td>1.2.8</td>
 <td></td>
+<td>1.1.0</td>
+<td>1.1.0</td>
 <td></td>
-<td>1.1.0</td>
-<td>1.1.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2953,9 +2953,9 @@ virDomainMigrateFinish3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.0.3</td>
+<td>1.0.3</td>
 <td></td>
-<td>1.0.3</td>
-<td>1.0.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2975,9 +2975,9 @@ virDomainMigrateFinish3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.5</td>
+<td>0.9.5</td>
 <td></td>
-<td>0.9.5</td>
-<td>0.9.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2996,9 +2996,9 @@ virDomainMigratePerform</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.5.0</td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3017,9 +3017,9 @@ virDomainMigratePerform3</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3038,9 +3038,9 @@ virDomainMigratePerform3Params</td>
 <td></td>
 <td>1.2.8</td>
 <td></td>
+<td>1.1.0</td>
+<td>1.1.0</td>
 <td></td>
-<td>1.1.0</td>
-<td>1.1.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3060,8 +3060,8 @@ virDomainMigratePrepare</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3080,9 +3080,9 @@ virDomainMigratePrepare2</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.5.0</td>
+<td>0.5.0</td>
 <td></td>
-<td>0.5.0</td>
-<td>0.5.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3101,9 +3101,9 @@ virDomainMigratePrepare3</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3122,9 +3122,9 @@ virDomainMigratePrepare3Params</td>
 <td></td>
 <td>1.2.8</td>
 <td></td>
+<td>1.1.0</td>
+<td>1.1.0</td>
 <td></td>
-<td>1.1.0</td>
-<td>1.1.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3143,9 +3143,9 @@ virDomainMigratePrepareTunnel</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.7.2</td>
+<td>0.7.2</td>
 <td></td>
-<td>0.7.2</td>
-<td>0.7.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3162,7 +3162,6 @@ virDomainMigratePrepareTunnel</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -3170,6 +3169,7 @@ virDomainMigratePrepareTunnel</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -3184,9 +3184,9 @@ virDomainMigratePrepareTunnel3</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3205,9 +3205,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.1.0</td>
+<td>1.1.0</td>
 <td></td>
-<td>1.1.0</td>
-<td>1.1.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3227,9 +3227,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.0.3</td>
+<td>1.0.3</td>
 <td></td>
-<td>1.0.3</td>
-<td>1.0.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3249,9 +3249,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.8.0</td>
+<td>0.8.0</td>
 <td></td>
-<td>0.8.0</td>
-<td>0.8.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3271,9 +3271,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.0</td>
+<td>0.9.0</td>
 <td></td>
-<td>0.9.0</td>
-<td>0.9.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3293,9 +3293,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.0.2</td>
+<td>1.0.2</td>
 <td></td>
-<td>1.0.2</td>
-<td>1.0.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3315,11 +3315,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.8.6</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.6</td>
 <td>0.8.6</td>
 <td></td>
 <td>0.8.6</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.8.6</td>
@@ -3337,9 +3337,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.7</td>
+<td>0.9.7</td>
 <td></td>
-<td>0.9.7</td>
-<td>0.9.7</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3359,9 +3359,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.8</td>
+<td>1.2.8</td>
 <td></td>
-<td>1.2.8</td>
-<td>1.2.8</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3381,9 +3381,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.11</td>
 <td>0.9.10</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3403,9 +3403,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.11</td>
+<td>0.9.11</td>
 <td></td>
-<td>0.9.11</td>
-<td>0.9.11</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3425,9 +3425,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.10.0</td>
+<td>0.10.0</td>
 <td></td>
-<td>0.10.0</td>
-<td>0.10.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3447,9 +3447,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.14</td>
+<td>1.2.14</td>
 <td></td>
-<td>1.2.14</td>
-<td>1.2.14</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3469,10 +3469,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.4</td>
 <td>0.3.0</td>
 <td>0.7.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3491,9 +3491,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.3</td>
+<td>0.9.3</td>
 <td></td>
-<td>0.9.3</td>
-<td>0.9.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3510,7 +3510,6 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -3518,6 +3517,7 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -3533,9 +3533,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.10.0</td>
+<td>0.10.0</td>
 <td></td>
-<td>0.10.0</td>
-<td>0.10.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3555,9 +3555,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3577,9 +3577,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.8.3</td>
+<td>0.8.3</td>
 <td></td>
-<td>0.8.3</td>
-<td>0.8.3</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3598,7 +3598,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td>1.0.1</td>
 <td>0.3.1</td>
-<td></td>
 <td>0.9.1</td>
 <td>0.9.3</td>
 <td>0.3.0</td>
@@ -3606,6 +3605,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td></td>
 <td>0.1.0</td>
 <td>0.8.0</td>
 </tr>
@@ -3621,9 +3621,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.7</td>
+<td>0.9.7</td>
 <td></td>
-<td>0.9.7</td>
-<td>0.9.7</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3643,10 +3643,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3665,10 +3665,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3686,7 +3686,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td>0.7.2</td>
 <td>0.8.3</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -3694,6 +3693,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -3709,12 +3709,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3731,12 +3731,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td></td>
 <td>0.6.3</td>
+<td></td>
 <td></td>
 <td>0.0.3</td>
 <td></td>
@@ -3753,10 +3753,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3775,9 +3775,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3797,9 +3797,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.4</td>
+<td>0.9.4</td>
 <td></td>
-<td>0.9.4</td>
-<td>0.9.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3819,10 +3819,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td>1.0.5</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3841,12 +3841,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.4</td>
 <td>0.9.3</td>
 <td></td>
 <td></td>
 <td>1.2.15</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3860,7 +3860,6 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -3868,6 +3867,7 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -3884,8 +3884,8 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>1.0.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3905,11 +3905,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.7.0</td>
 <td>0.4.6</td>
 <td></td>
-<td></td>
 <td>0.2.1</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.4.4</td>
@@ -3927,9 +3927,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.8</td>
 <td></td>
 <td></td>
+<td>0.9.0</td>
+<td>0.9.0</td>
 <td></td>
-<td>0.9.0</td>
-<td>0.9.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3949,9 +3949,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.8</td>
+<td>0.9.8</td>
 <td></td>
-<td>0.9.8</td>
-<td>0.9.8</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3971,9 +3971,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.9</td>
+<td>0.9.9</td>
 <td></td>
-<td>0.9.9</td>
-<td>0.9.9</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3993,11 +3993,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.7.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.2</td>
 <td>0.3.0</td>
 <td>0.1.1</td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.0.3</td>
@@ -4015,12 +4015,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.7.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.4.2</td>
 <td>0.3.0</td>
 <td>0.1.4</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
+<td></td>
 <td></td>
 <td>0.1.1</td>
 <td></td>
@@ -4037,9 +4037,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.2.7</td>
 <td></td>
 <td></td>
+<td>0.9.0</td>
+<td>0.9.0</td>
 <td></td>
-<td>0.9.0</td>
-<td>0.9.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4059,9 +4059,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.8.5</td>
 <td>0.9.12</td>
 <td></td>
+<td>0.8.5</td>
+<td>0.8.5</td>
 <td></td>
-<td>0.8.5</td>
-<td>0.8.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4081,9 +4081,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.1.1</td>
+<td>1.1.1</td>
 <td></td>
-<td>1.1.1</td>
-<td>1.1.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4103,10 +4103,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.1.3</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.10</td>
 <td>0.9.10</td>
 <td>1.1.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4125,9 +4125,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.9.9</td>
+<td>0.9.9</td>
 <td></td>
-<td>0.9.9</td>
-<td>0.9.9</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4147,10 +4147,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.7.0</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4169,10 +4169,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.2</td>
 <td></td>
 <td></td>
+<td>0.9.2</td>
+<td>0.9.2</td>
+<td>0.9.2</td>
 <td></td>
-<td>0.9.2</td>
-<td>0.9.2</td>
-<td>0.9.2</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4191,9 +4191,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.5</td>
+<td>1.2.5</td>
 <td></td>
-<td>1.2.5</td>
-<td>1.2.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4210,7 +4210,6 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -4218,6 +4217,7 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -4233,9 +4233,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.2.16</td>
+<td>1.2.16</td>
 <td></td>
-<td>1.2.16</td>
-<td>1.2.16</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4254,13 +4254,13 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td></td>
 <td>0.4.6</td>
-<td></td>
 <td>0.7.3</td>
 <td>0.4.4</td>
 <td>0.3.0</td>
 <td>0.1.4</td>
 <td></td>
 <td>0.7.1</td>
+<td></td>
 <td></td>
 <td>0.1.4</td>
 <td>0.8.0</td>
@@ -4276,13 +4276,13 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td></td>
 <td>0.8.5</td>
-<td></td>
 <td>0.8.5</td>
 <td>0.8.5</td>
 <td>0.8.5</td>
 <td>0.8.5</td>
 <td></td>
 <td>0.8.5</td>
+<td></td>
 <td></td>
 <td>0.8.5</td>
 <td>0.8.5</td>
@@ -4298,7 +4298,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td>1.0.1</td>
 <td>0.3.1</td>
-<td>0.10.0</td>
 <td>0.7.0</td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -4306,6 +4305,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -4321,13 +4321,13 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.0.1</td>
 <td>0.9.10</td>
 <td></td>
+<td>0.9.10</td>
+<td>0.9.10</td>
+<td>0.9.10</td>
+<td>0.9.10</td>
+<td>0.9.10</td>
+<td>0.9.10</td>
 <td></td>
-<td>0.9.10</td>
-<td>0.9.10</td>
-<td>0.9.10</td>
-<td>0.9.10</td>
-<td>0.9.10</td>
-<td>0.9.10</td>
 <td>0.9.10</td>
 <td>0.9.10</td>
 </tr>
@@ -4343,12 +4343,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4365,12 +4365,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4387,12 +4387,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4409,12 +4409,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.7</td>
 <td>0.9.7</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.9.7</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4431,12 +4431,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4453,12 +4453,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.9.13</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4475,12 +4475,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.9.13</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4497,10 +4497,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
 <td>1.1.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4519,10 +4519,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.7</td>
 <td>0.9.7</td>
 <td>1.1.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4541,12 +4541,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4560,7 +4560,6 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -4568,6 +4567,7 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -4583,12 +4583,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4605,12 +4605,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4627,10 +4627,10 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.7</td>
 <td>0.9.7</td>
 <td>1.1.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4648,7 +4648,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td>0.7.2</td>
 <td>0.8.3</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -4656,6 +4655,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>0.10.0</td>
 <td>0.0.3</td>
 <td>0.8.0</td>
 </tr>
@@ -4670,7 +4670,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.3</td>
-<td>1.2.10</td>
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -4678,6 +4677,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td>0.8.7</td>
+<td>1.2.10</td>
 <td>0.1.1</td>
 <td>0.8.0</td>
 </tr>
@@ -4692,7 +4692,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
-<td>1.2.10</td>
 <td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
@@ -4700,6 +4699,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.4</td>
 <td>0.9.5</td>
 <td>0.9.4</td>
+<td>1.2.10</td>
 <td>0.9.4</td>
 <td>0.9.5</td>
 </tr>
@@ -4715,12 +4715,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.0.1</td>
 <td>0.9.13</td>
 <td></td>
-<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
 <td></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -4737,12 +4737,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.2.9</td>
 <td></td>
 <td></td>
-<td></td>
 <td>1.2.9</td>
 <td>1.2.9</td>
 <td></td>
 <td>1.2.9</td>
 <td>1.2.9</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4759,9 +4759,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>1.0.5</td>
+<td>1.0.5</td>
 <td></td>
-<td>1.0.5</td>
-<td>1.0.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4781,9 +4781,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.6.1</td>
+<td>0.6.1</td>
 <td></td>
-<td>0.6.1</td>
-<td>0.6.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4803,9 +4803,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.6.1</td>
+<td>0.6.1</td>
 <td></td>
-<td>0.6.1</td>
-<td>0.6.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4825,9 +4825,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
+<td>0.6.1</td>
+<td>0.6.1</td>
 <td></td>
-<td>0.6.1</td>
-<td>0.6.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4846,14 +4846,14 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>1.0.0</td>
 <td>1.0.0</td>
+<td></td>
+<td>1.0.0</td>
+<td>1.0.0</td>
+<td>1.0.0</td>
+<td>1.0.0</td>
+<td></td>
+<td></td>
 <td>1.2.8</td>
-<td></td>
-<td>1.0.0</td>
-<td>1.0.0</td>
-<td>1.0.0</td>
-<td>1.0.0</td>
-<td></td>
-<td></td>
 <td></td>
 <td></td>
 </tr>
@@ -4869,11 +4869,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.3</td>
 <td>0.9.12</td>
 <td></td>
-<td></td>
 <td>0.9.3</td>
 <td>0.9.3</td>
 <td></td>
 <td>0.9.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4891,12 +4891,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.6.5</td>
 <td>0.9.12</td>
 <td></td>
-<td></td>
 <td>0.4.4</td>
 <td>0.3.3</td>
 <td>0.4.2</td>
 <td>0.5.0</td>
 <td>0.6.5</td>
+<td></td>
 <td></td>
 <td>0.3.3</td>
 <td>0.8.0</td>
@@ -4910,7 +4910,6 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
-  <th>parallels</th>
   <th>phyp</th>
   <th>qemu</th>
   <th>remote</th>
@@ -4918,6 +4917,7 @@ virDomainMigratePrepareTunnel3Params</td>
   <th>uml</th>
   <th>vbox</th>
   <th>vmware</th>
+  <th>vz</th>
   <th>xen</th>
   <th>xenapi</th>
 </tr>
@@ -4933,12 +4933,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.6.5</td>
 <td>0.9.12</td>
 <td></td>
-<td></td>
 <td>0.4.4</td>
 <td>0.3.3</td>
 <td></td>
 <td>0.5.0</td>
 <td>0.6.5</td>
+<td></td>
 <td></td>
 <td>0.3.3</td>
 <td>0.8.0</td>
@@ -4955,12 +4955,12 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.2.6</td>
 <td></td>
 <td></td>
-<td></td>
 <td>1.2.6</td>
 <td>1.2.6</td>
 <td></td>
 <td>1.2.6</td>
 <td>1.2.6</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -4976,7 +4976,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.0</td>
 <td>0.6.5</td>
 <td>0.3.2</td>
-<td>0.10.0</td>
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
@@ -4984,6 +4983,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 <td>0.6.3</td>
 <td></td>
+<td>0.10.0</td>
 <td>0.1.0</td>
 <td>0.8.0</td>
 </tr>
@@ -4999,11 +4999,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.10.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.10.2</td>
 <td>0.10.2</td>
 <td></td>
 <td>0.10.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.10.2</td>
@@ -5021,11 +5021,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.3</td>
 <td>0.9.12</td>
 <td></td>
-<td></td>
 <td>0.9.3</td>
 <td>0.9.3</td>
 <td></td>
 <td>0.9.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -5043,9 +5043,9 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.10</td>
 <td></td>
 <td></td>
+<td>0.6.1</td>
+<td>0.6.1</td>
 <td></td>
-<td>0.6.1</td>
-<td>0.6.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -5065,11 +5065,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.10.2</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.10.2</td>
 <td>0.10.2</td>
 <td></td>
 <td>0.10.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.10.2</td>
@@ -5087,11 +5087,11 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.8</td>
 <td></td>
 <td></td>
-<td></td>
 <td>0.9.8</td>
 <td>0.9.8</td>
 <td></td>
 <td>0.9.8</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.9.8</td>

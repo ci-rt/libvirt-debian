@@ -34,7 +34,7 @@
       <span class="refentrytitle">virterror</span>
     </h2>
     <p>virterror - error handling interfaces for the libvirt library</p>
-    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2015 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
     <p>Author(s): Daniel Veillard &lt;veillard@redhat.com&gt; </p>
     <div class="refsynopsisdiv">
       <h2>Synopsis</h2>
@@ -145,7 +145,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_FIREWALL">VIR_FROM_FIREWALL</a> = 59 /* Error from firewall */
     <a name="VIR_FROM_POLKIT">VIR_FROM_POLKIT</a> = 60 /* Error from polkit code */
     <a name="VIR_FROM_THREAD">VIR_FROM_THREAD</a> = 61 /* Error from thread utils */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 62
+    <a name="VIR_FROM_ADMIN">VIR_FROM_ADMIN</a> = 62 /* Error from admin backend */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 63
 };
 </pre><p/>
 </div>

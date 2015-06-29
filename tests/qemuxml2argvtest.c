@@ -486,8 +486,8 @@ mymain(void)
     driver.config = virQEMUDriverConfigNew(false);
     if (driver.config == NULL)
         return EXIT_FAILURE;
-    else
-        driver.config->privileged = true;
+
+    driver.privileged = true;
 
     VIR_FREE(driver.config->spiceListen);
     VIR_FREE(driver.config->vncListen);
@@ -683,6 +683,15 @@ mymain(void)
     DO_TEST("pmu-feature-off", NONE);
 
     DO_TEST("hugepages", QEMU_CAPS_MEM_PATH);
+    DO_TEST("hugepages-numa", QEMU_CAPS_RTC, QEMU_CAPS_NO_KVM_PIT,
+            QEMU_CAPS_DISABLE_S3, QEMU_CAPS_DISABLE_S4,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC,
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_USB_REDIR,
+            QEMU_CAPS_DEVICE_PC_DIMM,
+            QEMU_CAPS_MEM_PATH, QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST_LINUX("hugepages-pages", QEMU_CAPS_MEM_PATH,
                   QEMU_CAPS_OBJECT_MEMORY_RAM,
                   QEMU_CAPS_OBJECT_MEMORY_FILE);
@@ -980,6 +989,9 @@ mymain(void)
     DO_TEST("misc-uuid", QEMU_CAPS_NAME, QEMU_CAPS_UUID);
     DO_TEST_PARSE_ERROR("vhost_queues-invalid", NONE);
     DO_TEST("net-vhostuser", QEMU_CAPS_DEVICE, QEMU_CAPS_NETDEV);
+    DO_TEST("net-vhostuser-multiq",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NETDEV, QEMU_CAPS_VHOSTUSER_MULTIQUEUE);
+    DO_TEST_FAILURE("net-vhostuser-multiq", QEMU_CAPS_DEVICE, QEMU_CAPS_NETDEV);
     DO_TEST("net-user", NONE);
     DO_TEST("net-virtio", NONE);
     DO_TEST("net-virtio-device",
@@ -1041,6 +1053,8 @@ mymain(void)
     DO_TEST("serial-pty-chardev",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("serial-dev-chardev",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("serial-dev-chardev-iobase",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("serial-file-chardev",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
@@ -1180,6 +1194,10 @@ mymain(void)
     DO_TEST("watchdog", NONE);
     DO_TEST("watchdog-device", QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("watchdog-dump", NONE);
+    DO_TEST("watchdog-injectnmi", NONE);
+    DO_TEST("watchdog-diag288",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_BOOTINDEX, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("balloon-device", QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("balloon-device-auto",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
@@ -1365,6 +1383,12 @@ mymain(void)
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-cpu-le",  QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-panic-missing",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-panic-no-address",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST_FAILURE("pseries-panic-address",
+                    QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-ide-drive-split",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_IDE_CD);
@@ -1546,6 +1570,15 @@ mymain(void)
     DO_TEST("aarch64-gic", QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
             QEMU_CAPS_KVM);
 
+    driver.caps->host.cpu->arch = VIR_ARCH_AARCH64;
+    DO_TEST("aarch64-kvm-32-on-64", QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST, QEMU_CAPS_CPU_AARCH64_OFF);
+    DO_TEST_FAILURE("aarch64-kvm-32-on-64", QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST);
+    driver.caps->host.cpu->arch = cpuDefault->arch;
+
     DO_TEST("kvm-pit-device", QEMU_CAPS_KVM_PIT_TICK_POLICY);
     DO_TEST("kvm-pit-delay", QEMU_CAPS_NO_KVM_PIT);
     DO_TEST("kvm-pit-device", QEMU_CAPS_NO_KVM_PIT,
@@ -1573,9 +1606,9 @@ mymain(void)
     DO_TEST_FAILURE("memory-hotplug", NONE);
     DO_TEST("memory-hotplug", QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_NUMA);
     DO_TEST("memory-hotplug-dimm", QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_NUMA,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_OBJECT_MEMORY_RAM);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST("memory-hotplug-dimm-addr", QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_NUMA,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_OBJECT_MEMORY_RAM);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_OBJECT_MEMORY_FILE);
 
     DO_TEST("machine-aeskeywrap-on-caps",
             QEMU_CAPS_MACHINE_OPT, QEMU_CAPS_AES_KEY_WRAP,

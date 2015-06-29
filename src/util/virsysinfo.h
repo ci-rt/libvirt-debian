@@ -65,23 +65,49 @@ struct _virSysinfoMemoryDef {
     char *memory_part_number;
 };
 
+typedef struct _virSysinfoBIOSDef virSysinfoBIOSDef;
+typedef virSysinfoBIOSDef *virSysinfoBIOSDefPtr;
+struct _virSysinfoBIOSDef {
+    char *vendor;
+    char *version;
+    char *date;
+    char *release;
+};
+
+typedef struct _virSysinfoSystemDef virSysinfoSystemDef;
+typedef virSysinfoSystemDef *virSysinfoSystemDefPtr;
+struct _virSysinfoSystemDef {
+    char *manufacturer;
+    char *product;
+    char *version;
+    char *serial;
+    char *uuid;
+    char *sku;
+    char *family;
+};
+
+typedef struct _virSysinfoBaseBoardDef virSysinfoBaseBoardDef;
+typedef virSysinfoBaseBoardDef *virSysinfoBaseBoardDefPtr;
+struct _virSysinfoBaseBoardDef {
+    char *manufacturer;
+    char *product;
+    char *version;
+    char *serial;
+    char *asset;
+    char *location;
+    /* XXX board type */
+};
+
 typedef struct _virSysinfoDef virSysinfoDef;
 typedef virSysinfoDef *virSysinfoDefPtr;
 struct _virSysinfoDef {
     int type;
 
-    char *bios_vendor;
-    char *bios_version;
-    char *bios_date;
-    char *bios_release;
+    virSysinfoBIOSDefPtr bios;
+    virSysinfoSystemDefPtr system;
 
-    char *system_manufacturer;
-    char *system_product;
-    char *system_version;
-    char *system_serial;
-    char *system_uuid;
-    char *system_sku;
-    char *system_family;
+    size_t nbaseBoard;
+    virSysinfoBaseBoardDefPtr baseBoard;
 
     size_t nprocessor;
     virSysinfoProcessorDefPtr processor;
@@ -92,6 +118,9 @@ struct _virSysinfoDef {
 
 virSysinfoDefPtr virSysinfoRead(void);
 
+void virSysinfoBIOSDefFree(virSysinfoBIOSDefPtr def);
+void virSysinfoSystemDefFree(virSysinfoSystemDefPtr def);
+void virSysinfoBaseBoardDefClear(virSysinfoBaseBoardDefPtr def);
 void virSysinfoDefFree(virSysinfoDefPtr def);
 
 int virSysinfoFormat(virBufferPtr buf, virSysinfoDefPtr def)

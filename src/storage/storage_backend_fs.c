@@ -334,9 +334,48 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSE
     return ret;
 }
 
+/**
+ * @pool storage pool to check FS types
+ *
+ * Determine if storage pool FS types are properly set up
+ *
+ * Return 0 if everything's OK, -1 on error
+ */
+static int
+virStorageBackendFileSystemIsValid(virStoragePoolObjPtr pool)
+{
+    if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
+        if (pool->def->source.nhost != 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("expected exactly 1 host for the storage pool"));
+            return -1;
+        }
+        if (pool->def->source.hosts[0].name == NULL) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("missing source host"));
+            return -1;
+        }
+        if (pool->def->source.dir == NULL) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("missing source path"));
+            return -1;
+        }
+    } else {
+        if (pool->def->source.ndevice != 1) {
+            if (pool->def->source.ndevice == 0)
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing source device"));
+            else
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("expected exactly 1 device for the "
+                                 "storage pool"));
+            return -1;
+        }
+    }
+    return 0;
+}
 
 /**
- * @conn connection to report errors against
  * @pool storage pool to check for status
  *
  * Determine if a storage pool is already mounted
@@ -369,7 +408,6 @@ virStorageBackendFileSystemIsMounted(virStoragePoolObjPtr pool)
 }
 
 /**
- * @conn connection to report errors against
  * @pool storage pool to mount
  *
  * Ensure that a FS storage pool is mounted on its target location.
@@ -388,33 +426,14 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
                     pool->def->source.format == VIR_STORAGE_POOL_NETFS_AUTO);
     bool glusterfs = (pool->def->type == VIR_STORAGE_POOL_NETFS &&
                       pool->def->source.format == VIR_STORAGE_POOL_NETFS_GLUSTERFS);
+    bool cifsfs = (pool->def->type == VIR_STORAGE_POOL_NETFS &&
+                   pool->def->source.format == VIR_STORAGE_POOL_NETFS_CIFS);
     virCommandPtr cmd = NULL;
     int ret = -1;
     int rc;
 
-    if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
-        if (pool->def->source.nhost != 1) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Expected exactly 1 host for the storage pool"));
-            return -1;
-        }
-        if (pool->def->source.hosts[0].name == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("missing source host"));
-            return -1;
-        }
-        if (pool->def->source.dir == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("missing source path"));
-            return -1;
-        }
-    } else {
-        if (pool->def->source.ndevice != 1) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("missing source device"));
-            return -1;
-        }
-    }
+    if (virStorageBackendFileSystemIsValid(pool) < 0)
+        return -1;
 
     /* Short-circuit if already mounted */
     if ((rc = virStorageBackendFileSystemIsMounted(pool)) != 0) {
@@ -427,11 +446,17 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
     }
 
     if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
-        if (virAsprintf(&src, "%s:%s",
-                        pool->def->source.hosts[0].name,
-                        pool->def->source.dir) == -1)
-            return -1;
-
+        if (pool->def->source.format == VIR_STORAGE_POOL_NETFS_CIFS) {
+            if (virAsprintf(&src, "//%s/%s",
+                            pool->def->source.hosts[0].name,
+                            pool->def->source.dir) == -1)
+                return -1;
+        } else {
+            if (virAsprintf(&src, "%s:%s",
+                            pool->def->source.hosts[0].name,
+                            pool->def->source.dir) == -1)
+                return -1;
+        }
     } else {
         if (VIR_STRDUP(src, pool->def->source.devices[0].path) < 0)
             return -1;
@@ -445,13 +470,20 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
     else if (glusterfs)
         cmd = virCommandNewArgList(MOUNT,
                                    "-t",
-                                   (pool->def->type == VIR_STORAGE_POOL_FS ?
-                                    virStoragePoolFormatFileSystemTypeToString(pool->def->source.format) :
-                                    virStoragePoolFormatFileSystemNetTypeToString(pool->def->source.format)),
+                                   virStoragePoolFormatFileSystemNetTypeToString(pool->def->source.format),
                                    src,
                                    "-o",
                                    "direct-io-mode=1",
                                    pool->def->target.path,
+                                   NULL);
+    else if (cifsfs)
+        cmd = virCommandNewArgList(MOUNT,
+                                   "-t",
+                                   virStoragePoolFormatFileSystemNetTypeToString(pool->def->source.format),
+                                   src,
+                                   pool->def->target.path,
+                                   "-o",
+                                   "guest",
                                    NULL);
     else
         cmd = virCommandNewArgList(MOUNT,
@@ -474,7 +506,6 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
 }
 
 /**
- * @conn connection to report errors against
  * @pool storage pool to unmount
  *
  * Ensure that a FS storage pool is not mounted on its target location.
@@ -489,29 +520,8 @@ virStorageBackendFileSystemUnmount(virStoragePoolObjPtr pool)
     int ret = -1;
     int rc;
 
-    if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
-        if (pool->def->source.nhost != 1) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Expected exactly 1 host for the storage pool"));
-            return -1;
-        }
-        if (pool->def->source.hosts[0].name == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("missing source host"));
-            return -1;
-        }
-        if (pool->def->source.dir == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("missing source dir"));
-            return -1;
-        }
-    } else {
-        if (pool->def->source.ndevice != 1) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("missing source device"));
-            return -1;
-        }
-    }
+    if (virStorageBackendFileSystemIsValid(pool) < 0)
+        return -1;
 
     /* Short-circuit if already unmounted */
     if ((rc = virStorageBackendFileSystemIsMounted(pool)) != 1)
@@ -542,6 +552,10 @@ virStorageBackendFileSystemCheck(virStoragePoolObjPtr pool,
     } else {
         int ret;
         *isActive = false;
+
+        if (virStorageBackendFileSystemIsValid(pool) < 0)
+            return -1;
+
         if ((ret = virStorageBackendFileSystemIsMounted(pool)) != 0) {
             if (ret < 0)
                 return -1;

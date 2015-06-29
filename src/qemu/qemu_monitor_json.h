@@ -77,9 +77,6 @@ int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
 int qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
                                             virHashTablePtr stats,
                                             bool backingChain);
-int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
-                                  const char *dev_name,
-                                  unsigned long long *extent);
 int qemuMonitorJSONBlockResize(qemuMonitorPtr mon,
                                const char *devce,
                                unsigned long long size);
@@ -94,7 +91,7 @@ int qemuMonitorJSONExpirePassword(qemuMonitorPtr mon,
                                   const char *protocol,
                                   const char *expire_time);
 int qemuMonitorJSONSetBalloon(qemuMonitorPtr mon,
-                              unsigned long newmem);
+                              unsigned long long newmem);
 int qemuMonitorJSONSetCPU(qemuMonitorPtr mon, int cpu, bool online);
 
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
@@ -316,11 +313,8 @@ int qemuMonitorJSONBlockJobSetSpeed(qemuMonitorPtr mon,
                                     bool modern)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-int qemuMonitorJSONBlockJobInfo(qemuMonitorPtr mon,
-                                const char *device,
-                                virDomainBlockJobInfoPtr info,
-                                unsigned long long *bandwidth)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+virHashTablePtr qemuMonitorJSONGetAllBlockJobInfo(qemuMonitorPtr mon)
+    ATTRIBUTE_NONNULL(1);
 
 int qemuMonitorJSONSetLink(qemuMonitorPtr mon,
                            const char *name,
@@ -482,4 +476,8 @@ int qemuMonitorJSONGetMemoryDeviceInfo(qemuMonitorPtr mon,
                                        virHashTablePtr info)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+int qemuMonitorJSONFindLinkPath(qemuMonitorPtr mon,
+                                const char *name,
+                                char **path)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 #endif /* QEMU_MONITOR_JSON_H */

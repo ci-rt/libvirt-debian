@@ -29,6 +29,9 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <fcntl.h>
+#ifdef HAVE_IFADDRS_H
+# include <ifaddrs.h>
+#endif
 #include <netdb.h>
 
 #ifdef HAVE_NETINET_TCP_H
@@ -142,6 +145,69 @@ static int virNetSocketForkDaemon(const char *binary)
 }
 #endif
 
+int virNetSocketCheckProtocols(bool *hasIPv4,
+                               bool *hasIPv6)
+{
+#ifdef HAVE_IFADDRS_H
+    struct ifaddrs *ifaddr = NULL, *ifa;
+    struct addrinfo hints;
+    struct addrinfo *ai = NULL;
+    int ret = -1;
+    int gaierr;
+
+    memset(&hints, 0, sizeof(hints));
+
+    *hasIPv4 = *hasIPv6 = false;
+
+    if (getifaddrs(&ifaddr) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Cannot get host interface addresses"));
+        goto cleanup;
+    }
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr)
+            continue;
+
+        if (ifa->ifa_addr->sa_family == AF_INET)
+            *hasIPv4 = true;
+        if (ifa->ifa_addr->sa_family == AF_INET6)
+            *hasIPv6 = true;
+    }
+
+    freeifaddrs(ifaddr);
+
+    hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
+    hints.ai_family = AF_INET6;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((gaierr = getaddrinfo("::1", NULL, &hints, &ai)) != 0) {
+        if (gaierr == EAI_ADDRFAMILY ||
+            gaierr == EAI_FAMILY) {
+            *hasIPv6 = false;
+        } else {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Cannot resolve ::1 address: %s"),
+                           gai_strerror(gaierr));
+            goto cleanup;
+        }
+    }
+
+    freeaddrinfo(ai);
+
+    VIR_DEBUG("Protocols: v4 %d v6 %d\n", *hasIPv4, *hasIPv6);
+
+    ret = 0;
+ cleanup:
+    return ret;
+#else
+    *hasIPv4 = *hasIPv6 = false;
+    virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                   _("Cannot check address family on this platform"));
+    return -1;
+#endif
+}
+
 
 static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
                                        virSocketAddrPtr remoteAddr,
@@ -179,6 +245,7 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
     sock->fd = fd;
     sock->errfd = errfd;
     sock->pid = pid;
+    sock->watch = -1;
 
     /* Disable nagle for TCP sockets */
     if (sock->localAddr.data.sa.sa_family == AF_INET ||
@@ -219,6 +286,7 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
 
 int virNetSocketNewListenTCP(const char *nodename,
                              const char *service,
+                             int family,
                              virNetSocketPtr **retsocks,
                              size_t *nretsocks)
 {
@@ -236,6 +304,7 @@ int virNetSocketNewListenTCP(const char *nodename,
     *nretsocks = 0;
 
     memset(&hints, 0, sizeof(hints));
+    hints.ai_family = family;
     hints.ai_flags = AI_PASSIVE;
     hints.ai_socktype = SOCK_STREAM;
 
@@ -454,6 +523,7 @@ int virNetSocketNewListenFD(int fd,
 
 int virNetSocketNewConnectTCP(const char *nodename,
                               const char *service,
+                              int family,
                               virNetSocketPtr *retsock)
 {
     struct addrinfo *ai = NULL;
@@ -470,6 +540,7 @@ int virNetSocketNewConnectTCP(const char *nodename,
     memset(&remoteAddr, 0, sizeof(remoteAddr));
 
     memset(&hints, 0, sizeof(hints));
+    hints.ai_family = family;
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
     hints.ai_socktype = SOCK_STREAM;
 
@@ -801,6 +872,7 @@ int virNetSocketNewConnectSSH(const char *nodename,
 int
 virNetSocketNewConnectLibSSH2(const char *host,
                               const char *port,
+                              int family,
                               const char *username,
                               const char *privkey,
                               const char *knownHosts,
@@ -892,7 +964,7 @@ virNetSocketNewConnectLibSSH2(const char *host,
     }
 
     /* connect to remote server */
-    if ((ret = virNetSocketNewConnectTCP(host, port, &sock)) < 0)
+    if ((ret = virNetSocketNewConnectTCP(host, port, family, &sock)) < 0)
         goto error;
 
     /* connect to the host using ssh */
@@ -915,6 +987,7 @@ virNetSocketNewConnectLibSSH2(const char *host,
 int
 virNetSocketNewConnectLibSSH2(const char *host ATTRIBUTE_UNUSED,
                               const char *port ATTRIBUTE_UNUSED,
+                              int family ATTRIBUTE_UNUSED,
                               const char *username ATTRIBUTE_UNUSED,
                               const char *privkey ATTRIBUTE_UNUSED,
                               const char *knownHosts ATTRIBUTE_UNUSED,
@@ -1081,7 +1154,7 @@ void virNetSocketDispose(void *obj)
     PROBE(RPC_SOCKET_DISPOSE,
           "sock=%p", sock);
 
-    if (sock->watch > 0) {
+    if (sock->watch >= 0) {
         virEventRemoveHandle(sock->watch);
         sock->watch = -1;
     }
@@ -1869,7 +1942,7 @@ int virNetSocketAddIOCallback(virNetSocketPtr sock,
 
     virObjectRef(sock);
     virObjectLock(sock);
-    if (sock->watch > 0) {
+    if (sock->watch >= 0) {
         VIR_DEBUG("Watch already registered on socket %p", sock);
         goto cleanup;
     }
@@ -1899,7 +1972,7 @@ void virNetSocketUpdateIOCallback(virNetSocketPtr sock,
                                   int events)
 {
     virObjectLock(sock);
-    if (sock->watch <= 0) {
+    if (sock->watch < 0) {
         VIR_DEBUG("Watch not registered on socket %p", sock);
         virObjectUnlock(sock);
         return;
@@ -1914,13 +1987,15 @@ void virNetSocketRemoveIOCallback(virNetSocketPtr sock)
 {
     virObjectLock(sock);
 
-    if (sock->watch <= 0) {
+    if (sock->watch < 0) {
         VIR_DEBUG("Watch not registered on socket %p", sock);
         virObjectUnlock(sock);
         return;
     }
 
     virEventRemoveHandle(sock->watch);
+    /* Don't unref @sock, it's done via eventloop callback. */
+    sock->watch = -1;
 
     virObjectUnlock(sock);
 }

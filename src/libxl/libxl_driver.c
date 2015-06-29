@@ -74,6 +74,7 @@ VIR_LOG_INIT("libxl.libxl_driver");
 #define LIBXL_CONFIG_FORMAT_SEXPR "xen-sxpr"
 
 #define HYPERVISOR_CAPABILITIES "/proc/xen/capabilities"
+#define HYPERVISOR_XENSTORED "/dev/xen/xenstored"
 
 /* Number of Xen scheduler parameters */
 #define XEN_SCHED_CREDIT_NPARAM   2
@@ -427,8 +428,6 @@ static bool
 libxlDriverShouldLoad(bool privileged)
 {
     bool ret = false;
-    int status;
-    char *output = NULL;
 
     /* Don't load if non-root */
     if (!privileged) {
@@ -436,24 +435,27 @@ libxlDriverShouldLoad(bool privileged)
         return ret;
     }
 
-    if (!virFileExists(HYPERVISOR_CAPABILITIES)) {
-        VIR_INFO("Disabling driver as " HYPERVISOR_CAPABILITIES
-                 " does not exist");
-        return ret;
-    }
-    /*
-     * Don't load if not running on a Xen control domain (dom0). It is not
-     * sufficient to check for the file to exist as any guest can mount
-     * xenfs to /proc/xen.
-     */
-    status = virFileReadAll(HYPERVISOR_CAPABILITIES, 10, &output);
-    if (status >= 0)
-        status = strncmp(output, "control_d", 9);
-    VIR_FREE(output);
-    if (status) {
-        VIR_INFO("No Xen capabilities detected, probably not running "
-                 "in a Xen Dom0.  Disabling libxenlight driver");
+    if (virFileExists(HYPERVISOR_CAPABILITIES)) {
+        int status;
+        char *output = NULL;
+        /*
+         * Don't load if not running on a Xen control domain (dom0). It is not
+         * sufficient to check for the file to exist as any guest can mount
+         * xenfs to /proc/xen.
+         */
+        status = virFileReadAll(HYPERVISOR_CAPABILITIES, 10, &output);
+        if (status >= 0)
+            status = strncmp(output, "control_d", 9);
+        VIR_FREE(output);
+        if (status) {
+            VIR_INFO("No Xen capabilities detected, probably not running "
+                     "in a Xen Dom0.  Disabling libxenlight driver");
 
+            return ret;
+        }
+    } else if (!virFileExists(HYPERVISOR_XENSTORED)) {
+        VIR_INFO("Disabling driver as neither " HYPERVISOR_CAPABILITIES
+                 " nor " HYPERVISOR_XENSTORED " exist");
         return ret;
     }
 
@@ -2244,14 +2246,6 @@ libxlDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu,
         }
     }
 
-    /* full bitmap means reset the settings (if any). */
-    if (virBitmapIsAllSet(pcpumap)) {
-        virDomainPinDel(&targetDef->cputune.vcpupin,
-                        &targetDef->cputune.nvcpupin,
-                        vcpu);
-        goto done;
-    }
-
     if (!targetDef->cputune.vcpupin) {
         if (VIR_ALLOC(targetDef->cputune.vcpupin) < 0)
             goto endjob;
@@ -2267,7 +2261,6 @@ libxlDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu,
         goto endjob;
     }
 
- done:
     ret = 0;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
@@ -2305,10 +2298,8 @@ libxlDomainGetVcpuPinInfo(virDomainPtr dom, int ncpumaps,
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     virDomainObjPtr vm = NULL;
     virDomainDefPtr targetDef = NULL;
-    virDomainPinDefPtr *vcpupin_list;
-    virBitmapPtr cpumask = NULL;
-    int maxcpu, hostcpus, vcpu, pcpu, n, ret = -1;
-    unsigned char *cpumap;
+    int hostcpus, vcpu, ret = -1;
+    virBitmapPtr allcpumap = NULL;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -2336,33 +2327,33 @@ libxlDomainGetVcpuPinInfo(virDomainPtr dom, int ncpumaps,
     if ((hostcpus = libxl_get_max_cpus(cfg->ctx)) < 0)
         goto cleanup;
 
-    maxcpu = maplen * 8;
-    if (maxcpu > hostcpus)
-        maxcpu = hostcpus;
+    if (!(allcpumap = virBitmapNew(hostcpus)))
+        goto cleanup;
 
-    /* initialize cpumaps */
-    memset(cpumaps, 0xff, maplen * ncpumaps);
-    if (maxcpu % 8) {
-        for (vcpu = 0; vcpu < ncpumaps; vcpu++) {
-            cpumap = VIR_GET_CPUMAP(cpumaps, maplen, vcpu);
-            cpumap[maplen - 1] &= (1 << maxcpu % 8) - 1;
-        }
+    virBitmapSetAll(allcpumap);
+
+    memset(cpumaps, 0x00, maplen * ncpumaps);
+
+    for (vcpu = 0; vcpu < ncpumaps; vcpu++) {
+        virDomainPinDefPtr pininfo;
+        virBitmapPtr bitmap = NULL;
+
+        pininfo = virDomainPinFind(targetDef->cputune.vcpupin,
+                                   targetDef->cputune.nvcpupin,
+                                   vcpu);
+
+        if (pininfo && pininfo->cpumask)
+            bitmap = pininfo->cpumask;
+        else
+            bitmap = allcpumap;
+
+        virBitmapToDataBuf(bitmap, VIR_GET_CPUMAP(cpumaps, maplen, vcpu), maplen);
     }
 
-    /* if vcpupin setting exists, there may be unused pcpus */
-    for (n = 0; n < targetDef->cputune.nvcpupin; n++) {
-        vcpupin_list = targetDef->cputune.vcpupin;
-        vcpu = vcpupin_list[n]->id;
-        cpumask = vcpupin_list[n]->cpumask;
-        cpumap = VIR_GET_CPUMAP(cpumaps, maplen, vcpu);
-        for (pcpu = 0; pcpu < maxcpu; pcpu++) {
-            if (!virBitmapIsBitSet(cpumask, pcpu))
-                VIR_UNUSE_CPU(cpumap, pcpu);
-        }
-    }
     ret = ncpumaps;
 
  cleanup:
+    virBitmapFree(allcpumap);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(cfg);
@@ -4308,7 +4299,7 @@ libxlDomainOpenConsole(virDomainPtr dom,
     if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("character device %s is not using a PTY"),
-                       NULLSTR(dev_name));
+                       dev_name ? dev_name : NULLSTR(chr->info.alias));
         goto cleanup;
     }
 

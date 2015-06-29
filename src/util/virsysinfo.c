@@ -64,6 +64,46 @@ void virSysinfoSetup(const char *dmidecode, const char *sysinfo,
     sysinfoCpuinfo = cpuinfo;
 }
 
+void virSysinfoBIOSDefFree(virSysinfoBIOSDefPtr def)
+{
+    if (def == NULL)
+        return;
+
+    VIR_FREE(def->vendor);
+    VIR_FREE(def->version);
+    VIR_FREE(def->date);
+    VIR_FREE(def->release);
+    VIR_FREE(def);
+}
+
+void virSysinfoSystemDefFree(virSysinfoSystemDefPtr def)
+{
+    if (def == NULL)
+        return;
+
+    VIR_FREE(def->manufacturer);
+    VIR_FREE(def->product);
+    VIR_FREE(def->version);
+    VIR_FREE(def->serial);
+    VIR_FREE(def->uuid);
+    VIR_FREE(def->sku);
+    VIR_FREE(def->family);
+    VIR_FREE(def);
+}
+
+void virSysinfoBaseBoardDefClear(virSysinfoBaseBoardDefPtr def)
+{
+    if (def == NULL)
+        return;
+
+    VIR_FREE(def->manufacturer);
+    VIR_FREE(def->product);
+    VIR_FREE(def->version);
+    VIR_FREE(def->serial);
+    VIR_FREE(def->asset);
+    VIR_FREE(def->location);
+}
+
 /**
  * virSysinfoDefFree:
  * @def: a sysinfo structure
@@ -78,18 +118,12 @@ void virSysinfoDefFree(virSysinfoDefPtr def)
     if (def == NULL)
         return;
 
-    VIR_FREE(def->bios_vendor);
-    VIR_FREE(def->bios_version);
-    VIR_FREE(def->bios_date);
-    VIR_FREE(def->bios_release);
+    virSysinfoBIOSDefFree(def->bios);
+    virSysinfoSystemDefFree(def->system);
 
-    VIR_FREE(def->system_manufacturer);
-    VIR_FREE(def->system_product);
-    VIR_FREE(def->system_version);
-    VIR_FREE(def->system_serial);
-    VIR_FREE(def->system_uuid);
-    VIR_FREE(def->system_sku);
-    VIR_FREE(def->system_family);
+    for (i = 0; i < def->nbaseBoard; i++)
+        virSysinfoBaseBoardDefClear(def->baseBoard + i);
+    VIR_FREE(def->baseBoard);
 
     for (i = 0; i < def->nprocessor; i++) {
         VIR_FREE(def->processor[i].processor_socket_destination);
@@ -132,39 +166,55 @@ void virSysinfoDefFree(virSysinfoDefPtr def)
 
 #if defined(__powerpc__)
 static int
-virSysinfoParseSystem(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
+    int ret = -1;
     char *eol = NULL;
     const char *cur;
+    virSysinfoSystemDefPtr def;
 
     if ((cur = strstr(base, "platform")) == NULL)
         return 0;
+
+    if (VIR_ALLOC(def) < 0)
+        return ret;
 
     base = cur;
     /* Account for format 'platform    : XXXX'*/
     cur = strchr(cur, ':') + 1;
     eol = strchr(cur, '\n');
     virSkipSpaces(&cur);
-    if (eol && VIR_STRNDUP(ret->system_family, cur, eol - cur) < 0)
-        return -1;
+    if (eol && VIR_STRNDUP(def->family, cur, eol - cur) < 0)
+        goto cleanup;
 
     if ((cur = strstr(base, "model")) != NULL) {
         cur = strchr(cur, ':') + 1;
         eol = strchr(cur, '\n');
         virSkipSpaces(&cur);
-        if (eol && VIR_STRNDUP(ret->system_serial, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->serial, cur, eol - cur) < 0)
+            goto cleanup;
     }
 
     if ((cur = strstr(base, "machine")) != NULL) {
         cur = strchr(cur, ':') + 1;
         eol = strchr(cur, '\n');
         virSkipSpaces(&cur);
-        if (eol && VIR_STRNDUP(ret->system_version, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->version, cur, eol - cur) < 0)
+            goto cleanup;
     }
 
-    return 0;
+    if (!def->manufacturer && !def->product && !def->version &&
+        !def->serial && !def->uuid && !def->sku && !def->family) {
+        virSysinfoSystemDefFree(def);
+        def = NULL;
+    }
+
+    *sysdef = def;
+    def = NULL;
+    ret = 0;
+ cleanup:
+    virSysinfoSystemDefFree(def);
+    return ret;
 }
 
 static int
@@ -234,7 +284,7 @@ virSysinfoRead(void)
     if (virSysinfoParseProcessor(outbuf, ret) < 0)
         goto no_memory;
 
-    if (virSysinfoParseSystem(outbuf, ret) < 0)
+    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
         goto no_memory;
 
     return ret;
@@ -246,39 +296,55 @@ virSysinfoRead(void)
 
 #elif defined(__arm__) || defined(__aarch64__)
 static int
-virSysinfoParseSystem(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
+    int ret = -1;
     char *eol = NULL;
     const char *cur;
+    virSysinfoSystemDefPtr def;
 
     if ((cur = strstr(base, "platform")) == NULL)
         return 0;
+
+    if (VIR_ALLOC(def) < 0)
+        return ret;
 
     base = cur;
     /* Account for format 'platform    : XXXX'*/
     cur = strchr(cur, ':') + 1;
     eol = strchr(cur, '\n');
     virSkipSpaces(&cur);
-    if (eol && VIR_STRNDUP(ret->system_family, cur, eol - cur) < 0)
-        return -1;
+    if (eol && VIR_STRNDUP(def->family, cur, eol - cur) < 0)
+        goto cleanup;
 
     if ((cur = strstr(base, "model")) != NULL) {
         cur = strchr(cur, ':') + 1;
         eol = strchr(cur, '\n');
         virSkipSpaces(&cur);
-        if (eol && VIR_STRNDUP(ret->system_serial, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->serial, cur, eol - cur) < 0)
+            goto cleanup;
     }
 
     if ((cur = strstr(base, "machine")) != NULL) {
         cur = strchr(cur, ':') + 1;
         eol = strchr(cur, '\n');
         virSkipSpaces(&cur);
-        if (eol && VIR_STRNDUP(ret->system_version, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->version, cur, eol - cur) < 0)
+            goto cleanup;
     }
 
-    return 0;
+    if (!def->manufacturer && !def->product && !def->version &&
+        !def->serial && !def->uuid && !def->sku && !def->family) {
+        virSysinfoSystemDefFree(def);
+        def = NULL;
+    }
+
+    *sysdef = def;
+    def = NULL;
+    ret = 0;
+ cleanup:
+    virSysinfoSystemDefFree(def);
+    return ret;
 }
 
 static int
@@ -350,7 +416,7 @@ virSysinfoRead(void)
     if (virSysinfoParseProcessor(outbuf, ret) < 0)
         goto no_memory;
 
-    if (virSysinfoParseSystem(outbuf, ret) < 0)
+    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
         goto no_memory;
 
     return ret;
@@ -402,17 +468,38 @@ virSysinfoParseLine(const char *base, const char *name, char **value)
 }
 
 static int
-virSysinfoParseSystem(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
-    if (virSysinfoParseLine(base, "Manufacturer",
-                            &ret->system_manufacturer) &&
-        virSysinfoParseLine(base, "Type",
-                            &ret->system_family) &&
-        virSysinfoParseLine(base, "Sequence Code",
-                            &ret->system_serial))
-        return 0;
-    else
-        return -1;
+    int ret = -1;
+    virSysinfoSystemDefPtr def;
+
+    if (VIR_ALLOC(def) < 0)
+        return ret;
+
+    if (!virSysinfoParseLine(base, "Manufacturer",
+                             &def->manufacturer))
+        goto cleanup;
+
+    if (!virSysinfoParseLine(base, "Type",
+                             &def->family))
+        goto cleanup;
+
+    if (!virSysinfoParseLine(base, "Sequence Code",
+                             &def->serial))
+        goto cleanup;
+
+    if (!def->manufacturer && !def->product && !def->version &&
+        !def->serial && !def->uuid && !def->sku && !def->family) {
+        virSysinfoSystemDefFree(def);
+        def = NULL;
+    }
+
+    *sysdef = def;
+    def = NULL;
+    ret = 0;
+ cleanup:
+    virSysinfoSystemDefFree(def);
+    return ret;
 }
 
 static int
@@ -489,7 +576,7 @@ virSysinfoRead(void)
         return NULL;
     }
 
-    if (virSysinfoParseSystem(outbuf, ret) < 0)
+    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
         goto no_memory;
 
     return ret;
@@ -522,95 +609,205 @@ virSysinfoRead(void)
 #else /* !WIN32 && x86 */
 
 static int
-virSysinfoParseBIOS(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseBIOS(const char *base, virSysinfoBIOSDefPtr *bios)
 {
+    int ret = -1;
     const char *cur, *eol = NULL;
+    virSysinfoBIOSDefPtr def;
 
     if ((cur = strstr(base, "BIOS Information")) == NULL)
         return 0;
+
+    if (VIR_ALLOC(def) < 0)
+        return ret;
 
     base = cur;
     if ((cur = strstr(base, "Vendor: ")) != NULL) {
         cur += 8;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->bios_vendor, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->vendor, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "Version: ")) != NULL) {
         cur += 9;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->bios_version, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->version, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "Release Date: ")) != NULL) {
         cur += 14;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->bios_date, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->date, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "BIOS Revision: ")) != NULL) {
         cur += 15;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->bios_release, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->release, cur, eol - cur) < 0)
+            goto cleanup;
     }
 
-    return 0;
+    if (!def->vendor && !def->version &&
+        !def->date && !def->release) {
+        virSysinfoBIOSDefFree(def);
+        def = NULL;
+    }
+
+    *bios = def;
+    def = NULL;
+    ret = 0;
+ cleanup:
+    virSysinfoBIOSDefFree(def);
+    return ret;
 }
 
 static int
-virSysinfoParseSystem(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
+    int ret = -1;
     const char *cur, *eol = NULL;
+    virSysinfoSystemDefPtr def;
 
     if ((cur = strstr(base, "System Information")) == NULL)
         return 0;
+
+    if (VIR_ALLOC(def) < 0)
+        return ret;
 
     base = cur;
     if ((cur = strstr(base, "Manufacturer: ")) != NULL) {
         cur += 14;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->system_manufacturer, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->manufacturer, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "Product Name: ")) != NULL) {
         cur += 14;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->system_product, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->product, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "Version: ")) != NULL) {
         cur += 9;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->system_version, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->version, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "Serial Number: ")) != NULL) {
         cur += 15;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->system_serial, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->serial, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "UUID: ")) != NULL) {
         cur += 6;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->system_uuid, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->uuid, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "SKU Number: ")) != NULL) {
         cur += 12;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->system_sku, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->sku, cur, eol - cur) < 0)
+            goto cleanup;
     }
     if ((cur = strstr(base, "Family: ")) != NULL) {
         cur += 8;
         eol = strchr(cur, '\n');
-        if (eol && VIR_STRNDUP(ret->system_family, cur, eol - cur) < 0)
-            return -1;
+        if (eol && VIR_STRNDUP(def->family, cur, eol - cur) < 0)
+            goto cleanup;
     }
 
-    return 0;
+    if (!def->manufacturer && !def->product && !def->version &&
+        !def->serial && !def->uuid && !def->sku && !def->family) {
+        virSysinfoSystemDefFree(def);
+        def = NULL;
+    }
+
+    *sysdef = def;
+    def = NULL;
+    ret = 0;
+ cleanup:
+    virSysinfoSystemDefFree(def);
+    return ret;
+}
+
+static int
+virSysinfoParseBaseBoard(const char *base,
+                         virSysinfoBaseBoardDefPtr *baseBoard,
+                         size_t *nbaseBoard)
+{
+    int ret = -1;
+    const char *cur, *eol = NULL;
+    virSysinfoBaseBoardDefPtr boards = NULL;
+    size_t nboards = 0;
+    char *board_type = NULL;
+
+    while (base && (cur = strstr(base, "Base Board Information"))) {
+        virSysinfoBaseBoardDefPtr def;
+
+        if (VIR_EXPAND_N(boards, nboards, 1) < 0)
+            goto cleanup;
+
+        def = &boards[nboards - 1];
+
+        base = cur + 22;
+        if ((cur = strstr(base, "Manufacturer: ")) != NULL) {
+            cur += 14;
+            eol = strchr(cur, '\n');
+            if (eol && VIR_STRNDUP(def->manufacturer, cur, eol - cur) < 0)
+                goto cleanup;
+        }
+        if ((cur = strstr(base, "Product Name: ")) != NULL) {
+            cur += 14;
+            eol = strchr(cur, '\n');
+            if (eol && VIR_STRNDUP(def->product, cur, eol - cur) < 0)
+                goto cleanup;
+        }
+        if ((cur = strstr(base, "Version: ")) != NULL) {
+            cur += 9;
+            eol = strchr(cur, '\n');
+            if (eol && VIR_STRNDUP(def->version, cur, eol - cur) < 0)
+                goto cleanup;
+        }
+        if ((cur = strstr(base, "Serial Number: ")) != NULL) {
+            cur += 15;
+            eol = strchr(cur, '\n');
+            if (eol && VIR_STRNDUP(def->serial, cur, eol - cur) < 0)
+                goto cleanup;
+        }
+        if ((cur = strstr(base, "Asset Tag: ")) != NULL) {
+            cur += 11;
+            eol = strchr(cur, '\n');
+            if (eol && VIR_STRNDUP(def->asset, cur, eol - cur) < 0)
+                goto cleanup;
+        }
+        if ((cur = strstr(base, "Location In Chassis: ")) != NULL) {
+            cur += 21;
+            eol = strchr(cur, '\n');
+            if (eol && VIR_STRNDUP(def->location, cur, eol - cur) < 0)
+                goto cleanup;
+        }
+
+        if (!def->manufacturer && !def->product && !def->version &&
+            !def->serial && !def->asset && !def->location)
+            nboards--;
+    }
+
+    /* This is safe, as we can be only shrinking the memory */
+    ignore_value(VIR_REALLOC_N(boards, nboards));
+
+    *baseBoard = boards;
+    *nbaseBoard = nboards;
+    boards = NULL;
+    nboards = 0;
+    ret = 0;
+ cleanup:
+    while (nboards--)
+        virSysinfoBaseBoardDefClear(&boards[nboards]);
+    VIR_FREE(boards);
+    VIR_FREE(board_type);
+    return ret;
 }
 
 static int
@@ -835,7 +1032,7 @@ virSysinfoRead(void)
         return NULL;
     }
 
-    cmd = virCommandNewArgList(path, "-q", "-t", "0,1,4,17", NULL);
+    cmd = virCommandNewArgList(path, "-q", "-t", "0,1,2,4,17", NULL);
     VIR_FREE(path);
     virCommandSetOutputBuffer(cmd, &outbuf);
     if (virCommandRun(cmd, NULL) < 0)
@@ -846,10 +1043,13 @@ virSysinfoRead(void)
 
     ret->type = VIR_SYSINFO_SMBIOS;
 
-    if (virSysinfoParseBIOS(outbuf, ret) < 0)
+    if (virSysinfoParseBIOS(outbuf, &ret->bios) < 0)
         goto error;
 
-    if (virSysinfoParseSystem(outbuf, ret) < 0)
+    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
+        goto error;
+
+    if (virSysinfoParseBaseBoard(outbuf, &ret->baseBoard, &ret->nbaseBoard) < 0)
         goto error;
 
     ret->nprocessor = 0;
@@ -876,52 +1076,79 @@ virSysinfoRead(void)
 #endif /* !WIN32 && x86 */
 
 static void
-virSysinfoBIOSFormat(virBufferPtr buf, virSysinfoDefPtr def)
+virSysinfoBIOSFormat(virBufferPtr buf, virSysinfoBIOSDefPtr def)
 {
-    if (!def->bios_vendor && !def->bios_version &&
-        !def->bios_date && !def->bios_release)
+    if (!def)
         return;
 
     virBufferAddLit(buf, "<bios>\n");
     virBufferAdjustIndent(buf, 2);
     virBufferEscapeString(buf, "<entry name='vendor'>%s</entry>\n",
-                          def->bios_vendor);
+                          def->vendor);
     virBufferEscapeString(buf, "<entry name='version'>%s</entry>\n",
-                          def->bios_version);
+                          def->version);
     virBufferEscapeString(buf, "<entry name='date'>%s</entry>\n",
-                          def->bios_date);
+                          def->date);
     virBufferEscapeString(buf, "<entry name='release'>%s</entry>\n",
-                          def->bios_release);
+                          def->release);
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</bios>\n");
 }
 
 static void
-virSysinfoSystemFormat(virBufferPtr buf, virSysinfoDefPtr def)
+virSysinfoSystemFormat(virBufferPtr buf, virSysinfoSystemDefPtr def)
 {
-    if (!def->system_manufacturer && !def->system_product &&
-        !def->system_version && !def->system_serial &&
-        !def->system_uuid && !def->system_sku && !def->system_family)
+    if (!def)
         return;
 
     virBufferAddLit(buf, "<system>\n");
     virBufferAdjustIndent(buf, 2);
     virBufferEscapeString(buf, "<entry name='manufacturer'>%s</entry>\n",
-                          def->system_manufacturer);
+                          def->manufacturer);
     virBufferEscapeString(buf, "<entry name='product'>%s</entry>\n",
-                          def->system_product);
+                          def->product);
     virBufferEscapeString(buf, "<entry name='version'>%s</entry>\n",
-                          def->system_version);
+                          def->version);
     virBufferEscapeString(buf, "<entry name='serial'>%s</entry>\n",
-                          def->system_serial);
+                          def->serial);
     virBufferEscapeString(buf, "<entry name='uuid'>%s</entry>\n",
-                          def->system_uuid);
+                          def->uuid);
     virBufferEscapeString(buf, "<entry name='sku'>%s</entry>\n",
-                          def->system_sku);
+                          def->sku);
     virBufferEscapeString(buf, "<entry name='family'>%s</entry>\n",
-                          def->system_family);
+                          def->family);
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</system>\n");
+}
+
+static void
+virSysinfoBaseBoardFormat(virBufferPtr buf,
+                          virSysinfoBaseBoardDefPtr baseBoard,
+                          size_t nbaseBoard)
+{
+    virSysinfoBaseBoardDefPtr def;
+    size_t i;
+
+    for (i = 0; i < nbaseBoard; i++) {
+        def = baseBoard + i;
+
+        virBufferAddLit(buf, "<baseBoard>\n");
+        virBufferAdjustIndent(buf, 2);
+        virBufferEscapeString(buf, "<entry name='manufacturer'>%s</entry>\n",
+                              def->manufacturer);
+        virBufferEscapeString(buf, "<entry name='product'>%s</entry>\n",
+                              def->product);
+        virBufferEscapeString(buf, "<entry name='version'>%s</entry>\n",
+                              def->version);
+        virBufferEscapeString(buf, "<entry name='serial'>%s</entry>\n",
+                              def->serial);
+        virBufferEscapeString(buf, "<entry name='asset'>%s</entry>\n",
+                              def->asset);
+        virBufferEscapeString(buf, "<entry name='location'>%s</entry>\n",
+                              def->location);
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</baseBoard>\n");
+    }
 }
 
 static void
@@ -1055,8 +1282,9 @@ virSysinfoFormat(virBufferPtr buf, virSysinfoDefPtr def)
 
     virBufferAdjustIndent(&childrenBuf, indent + 2);
 
-    virSysinfoBIOSFormat(&childrenBuf, def);
-    virSysinfoSystemFormat(&childrenBuf, def);
+    virSysinfoBIOSFormat(&childrenBuf, def->bios);
+    virSysinfoSystemFormat(&childrenBuf, def->system);
+    virSysinfoBaseBoardFormat(&childrenBuf, def->baseBoard, def->nbaseBoard);
     virSysinfoProcessorFormat(&childrenBuf, def);
     virSysinfoMemoryFormat(&childrenBuf, def);
 
@@ -1078,10 +1306,103 @@ virSysinfoFormat(virBufferPtr buf, virSysinfoDefPtr def)
     return ret;
 }
 
+#define CHECK_FIELD(name, desc)                                         \
+    do {                                                                \
+        if (STRNEQ_NULLABLE(src->name, dst->name)) {                    \
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,                  \
+                           _("Target sysinfo %s %s does not match source %s"), \
+                           desc, NULLSTR(dst->name), NULLSTR(src->name)); \
+            goto cleanup;                                               \
+        }                                                               \
+    } while (0)
+
+static bool
+virSysinfoBIOSIsEqual(virSysinfoBIOSDefPtr src,
+                      virSysinfoBIOSDefPtr dst)
+{
+    bool identical = false;
+
+    if (!src && !dst)
+        return true;
+
+    if ((src && !dst) || (!src && dst)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Target sysinfo does not match source"));
+        goto cleanup;
+    }
+
+    CHECK_FIELD(vendor, "BIOS vendor");
+    CHECK_FIELD(version, "BIOS version");
+    CHECK_FIELD(date, "BIOS date");
+    CHECK_FIELD(release, "BIOS release");
+
+    identical = true;
+ cleanup:
+    return identical;
+}
+
+static bool
+virSysinfoSystemIsEqual(virSysinfoSystemDefPtr src,
+                        virSysinfoSystemDefPtr dst)
+{
+    bool identical = false;
+
+    if (!src && !dst)
+        return true;
+
+    if ((src && !dst) || (!src && dst)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Target sysinfo does not match source"));
+        goto cleanup;
+    }
+
+    CHECK_FIELD(manufacturer, "system vendor");
+    CHECK_FIELD(product, "system product");
+    CHECK_FIELD(version, "system version");
+    CHECK_FIELD(serial, "system serial");
+    CHECK_FIELD(uuid, "system uuid");
+    CHECK_FIELD(sku, "system sku");
+    CHECK_FIELD(family, "system family");
+
+    identical = true;
+ cleanup:
+    return identical;
+}
+
+static bool
+virSysinfoBaseBoardIsEqual(virSysinfoBaseBoardDefPtr src,
+                           virSysinfoBaseBoardDefPtr dst)
+{
+    bool identical = false;
+
+    if (!src && !dst)
+        return true;
+
+    if ((src && !dst) || (!src && dst)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Target base board does not match source"));
+        goto cleanup;
+    }
+
+    CHECK_FIELD(manufacturer, "base board vendor");
+    CHECK_FIELD(product, "base board product");
+    CHECK_FIELD(version, "base board version");
+    CHECK_FIELD(serial, "base board serial");
+    CHECK_FIELD(asset, "base board asset");
+    CHECK_FIELD(location, "base board location");
+
+    identical = true;
+ cleanup:
+    return identical;
+}
+
+#undef CHECK_FIELD
+
 bool virSysinfoIsEqual(virSysinfoDefPtr src,
                        virSysinfoDefPtr dst)
 {
     bool identical = false;
+    size_t i;
 
     if (!src && !dst)
         return true;
@@ -1100,29 +1421,23 @@ bool virSysinfoIsEqual(virSysinfoDefPtr src,
         goto cleanup;
     }
 
-#define CHECK_FIELD(name, desc)                                         \
-    do {                                                                \
-        if (STRNEQ_NULLABLE(src->name, dst->name)) {                    \
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,                  \
-                           _("Target sysinfo %s %s does not match source %s"), \
-                           desc, NULLSTR(src->name), NULLSTR(dst->name)); \
-        }                                                               \
-    } while (0)
+    if (!virSysinfoBIOSIsEqual(src->bios, dst->bios))
+        goto cleanup;
 
-    CHECK_FIELD(bios_vendor, "BIOS vendor");
-    CHECK_FIELD(bios_version, "BIOS version");
-    CHECK_FIELD(bios_date, "BIOS date");
-    CHECK_FIELD(bios_release, "BIOS release");
+    if (!virSysinfoSystemIsEqual(src->system, dst->system))
+        goto cleanup;
 
-    CHECK_FIELD(system_manufacturer, "system vendor");
-    CHECK_FIELD(system_product, "system product");
-    CHECK_FIELD(system_version, "system version");
-    CHECK_FIELD(system_serial, "system serial");
-    CHECK_FIELD(system_uuid, "system uuid");
-    CHECK_FIELD(system_sku, "system sku");
-    CHECK_FIELD(system_family, "system family");
+    if (src->nbaseBoard != dst->nbaseBoard) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target sysinfo base board count '%zu' does not match source '%zu'"),
+                       dst->nbaseBoard, src->nbaseBoard);
+        goto cleanup;
+    }
 
-#undef CHECK_FIELD
+    for (i = 0; i < src->nbaseBoard; i++)
+        if (!virSysinfoBaseBoardIsEqual(src->baseBoard + i,
+                                        dst->baseBoard + i))
+            goto cleanup;
 
     identical = true;
 

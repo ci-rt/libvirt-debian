@@ -176,12 +176,8 @@ cmdFreecell(vshControl *ctl, const vshCmd *cmd)
 
     VSH_EXCLUSIVE_OPTIONS_VAR(all, cellno);
 
-    if (cellno && vshCommandOptInt(cmd, "cellno", &cell) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "cellno");
+    if (cellno && vshCommandOptInt(ctl, cmd, "cellno", &cell) < 0)
         return false;
-    }
 
     if (all) {
         if (!(cap_xml = virConnectGetCapabilities(ctl->conn))) {
@@ -311,12 +307,8 @@ cmdFreepages(vshControl *ctl, const vshCmd *cmd)
 
     VSH_EXCLUSIVE_OPTIONS_VAR(all, cellno);
 
-    if (vshCommandOptScaledInt(cmd, "pagesize", &bytes, 1024, UINT_MAX) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "pagesize");
+    if (vshCommandOptScaledInt(ctl, cmd, "pagesize", &bytes, 1024, UINT_MAX) < 0)
         goto cleanup;
-    }
     kibibytes = VIR_DIV_UP(bytes, 1024);
 
     if (all) {
@@ -391,12 +383,8 @@ cmdFreepages(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
         }
 
-        if (vshCommandOptInt(cmd, "cellno", &cell) < 0) {
-            vshError(ctl,
-                     _("Numeric value for <%s> option is malformed or out of range"),
-                     "cellno");
+        if (vshCommandOptInt(ctl, cmd, "cellno", &cell) < 0)
             goto cleanup;
-        }
 
         if (cell < -1) {
             vshError(ctl, "%s",
@@ -490,25 +478,15 @@ cmdAllocpages(vshControl *ctl, const vshCmd *cmd)
 
     VSH_EXCLUSIVE_OPTIONS_VAR(all, cellno);
 
-    if (cellno && vshCommandOptInt(cmd, "cellno", &startCell) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "cellno");
+    if (cellno && vshCommandOptInt(ctl, cmd, "cellno", &startCell) < 0)
         return false;
-    }
 
-    if (vshCommandOptScaledInt(cmd, "pagesize", &tmp, 1024, UINT_MAX) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "cellno");
+    if (vshCommandOptScaledInt(ctl, cmd, "pagesize", &tmp, 1024, UINT_MAX) < 0)
         return false;
-    }
     pageSizes[0] = VIR_DIV_UP(tmp, 1024);
 
-    if (vshCommandOptULongLong(cmd, "pagecount", &pageCounts[0]) < 0) {
-        vshError(ctl, "%s", _("pagecount has to be a number"));
+    if (vshCommandOptULongLong(ctl, cmd, "pagecount", &pageCounts[0]) < 0)
         return false;
-    }
 
     flags |= add ? VIR_NODE_ALLOC_PAGES_ADD : VIR_NODE_ALLOC_PAGES_SET;
 
@@ -764,12 +742,8 @@ cmdNodeCpuStats(vshControl *ctl, const vshCmd *cmd)
     unsigned long long cpu_stats[VSH_CPU_LAST] = { 0 };
     bool present[VSH_CPU_LAST] = { false };
 
-    if (vshCommandOptInt(cmd, "cpu", &cpuNum) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "cpu");
+    if (vshCommandOptInt(ctl, cmd, "cpu", &cpuNum) < 0)
         return false;
-    }
 
     if (virNodeGetCPUStats(ctl->conn, cpuNum, NULL, &nparams, 0) != 0) {
         vshError(ctl, "%s",
@@ -875,12 +849,8 @@ cmdNodeMemStats(vshControl *ctl, const vshCmd *cmd)
     virNodeMemoryStatsPtr params = NULL;
     bool ret = false;
 
-    if (vshCommandOptInt(cmd, "cell", &cellNum) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "cell");
+    if (vshCommandOptInt(ctl, cmd, "cell", &cellNum) < 0)
         return false;
-    }
 
     /* get the number of memory parameters */
     if (virNodeGetMemoryStats(ctl->conn, cellNum, NULL, &nparams, 0) != 0) {
@@ -951,12 +921,8 @@ cmdNodeSuspend(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "target", &target) < 0)
         return false;
 
-    if (vshCommandOptLongLong(cmd, "duration", &duration) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "duration");
+    if (vshCommandOptLongLong(ctl, cmd, "duration", &duration) < 0)
         return false;
-    }
 
     if (STREQ(target, "mem")) {
         suspendTarget = VIR_NODE_SUSPEND_TARGET_MEM;
@@ -1260,10 +1226,7 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
     int rc = -1;
     size_t i;
 
-    if ((rc = vshCommandOptUInt(cmd, "shm-pages-to-scan", &value)) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "shm-pages-to-scan");
+    if ((rc = vshCommandOptUInt(ctl, cmd, "shm-pages-to-scan", &value)) < 0) {
         goto cleanup;
     } else if (rc > 0) {
         if (virTypedParamsAddUInt(&params, &nparams, &maxparams,
@@ -1272,10 +1235,7 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rc = vshCommandOptUInt(cmd, "shm-sleep-millisecs", &value)) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "shm-sleep-millisecs");
+    if ((rc = vshCommandOptUInt(ctl, cmd, "shm-sleep-millisecs", &value)) < 0) {
         goto cleanup;
     } else if (rc > 0) {
         if (virTypedParamsAddUInt(&params, &nparams, &maxparams,
@@ -1284,10 +1244,7 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rc = vshCommandOptUInt(cmd, "shm-merge-across-nodes", &value)) < 0) {
-        vshError(ctl,
-                 _("Numeric value for <%s> option is malformed or out of range"),
-                 "shm-merge-across-nodes");
+    if ((rc = vshCommandOptUInt(ctl, cmd, "shm-merge-across-nodes", &value)) < 0) {
         goto cleanup;
     } else if (rc > 0) {
         if (virTypedParamsAddUInt(&params, &nparams, &maxparams,

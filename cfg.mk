@@ -304,6 +304,7 @@ sc_flags_usage:
 	    $(srcdir)/include/libvirt/virterror.h			\
 	    $(srcdir)/include/libvirt/libvirt-qemu.h			\
 	    $(srcdir)/include/libvirt/libvirt-lxc.h			\
+	    $(srcdir)/include/libvirt/libvirt-admin.h			\
 	  | grep -c '\(long\|unsigned\) flags')" != 4 &&		\
 	  { echo '$(ME): new API should use "unsigned int flags"' 1>&2;	\
 	    exit 1; } || :
@@ -1070,13 +1071,19 @@ bracket-spacing-check:
 sc_po_check: \
 		$(srcdir)/daemon/remote_dispatch.h \
 		$(srcdir)/daemon/qemu_dispatch.h \
-		$(srcdir)/src/remote/remote_client_bodies.h
+		$(srcdir)/src/remote/remote_client_bodies.h \
+		$(srcdir)/daemon/admin_dispatch.h \
+		$(srcdir)/src/admin/admin_client.h
 $(srcdir)/daemon/remote_dispatch.h: $(srcdir)/src/remote/remote_protocol.x
 	$(MAKE) -C daemon remote_dispatch.h
 $(srcdir)/daemon/qemu_dispatch.h: $(srcdir)/src/remote/qemu_protocol.x
 	$(MAKE) -C daemon qemu_dispatch.h
 $(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protocol.x
 	$(MAKE) -C src remote/remote_client_bodies.h
+$(srcdir)/daemon/admin_dispatch.h: $(srcdir)/src/admin/admin_protocol.x
+	$(MAKE) -C daemon admin_dispatch.h
+$(srcdir)/src/admin/admin_client.h: $(srcdir)/src/admin/admin_protocol.x
+	$(MAKE) -C src admin/admin_client.h
 
 # List all syntax-check exemptions:
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.h$$

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2011, 2013 Red Hat, Inc.
+## Copyright (C) 2005-2011, 2013-2015 Red Hat, Inc.
 ##
 ## This library is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU Lesser General Public
@@ -38,3 +38,6 @@ install-exec-hook:
 	$(mkinstalldirs) $(DESTDIR)$(virincdir)
 
 EXTRA_DIST = libvirt.h.in
+
+# Temporarily disabled, but we need it for building
+EXTRA_DIST += libvirt-admin.h

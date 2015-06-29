@@ -223,9 +223,10 @@ libxlDomainObjPrivateFree(void *data)
 }
 
 static int
-libxlDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
+libxlDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
+                              virDomainObjPtr vm)
 {
-    libxlDomainObjPrivatePtr priv = data;
+    libxlDomainObjPrivatePtr priv = vm->privateData;
 
     priv->lockState = virXPathString("string(./lockstate)", ctxt);
 
@@ -233,9 +234,10 @@ libxlDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
 }
 
 static int
-libxlDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
+libxlDomainObjPrivateXMLFormat(virBufferPtr buf,
+                               virDomainObjPtr vm)
 {
-    libxlDomainObjPrivatePtr priv = data;
+    libxlDomainObjPrivatePtr priv = vm->privateData;
 
     if (priv->lockState)
         virBufferAsprintf(buf, "<lockstate>%s</lockstate>\n", priv->lockState);
@@ -518,7 +520,7 @@ libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
 
     /*
      * Similar to the xl implementation, ignore SUSPEND.  Any actions needed
-     * after calling libxl_domain_suspend() are handled by it's callers.
+     * after calling libxl_domain_suspend() are handled by its callers.
      */
     if (xl_reason == LIBXL_SHUTDOWN_REASON_SUSPEND)
         goto error;
@@ -690,7 +692,6 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     int vnc_port;
     char *file;
-    size_t i;
     virHostdevManagerPtr hostdev_mgr = driver->hostdevMgr;
 
     virHostdevReAttachDomainDevices(hostdev_mgr, LIBXL_DRIVER_NAME,
@@ -723,16 +724,6 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
                                         vnc_port) < 0)
                 VIR_DEBUG("Could not mark port %d as unused", vnc_port);
         }
-    }
-
-    /* Remove any cputune settings */
-    if (vm->def->cputune.nvcpupin) {
-        for (i = 0; i < vm->def->cputune.nvcpupin; ++i) {
-            virBitmapFree(vm->def->cputune.vcpupin[i]->cpumask);
-            VIR_FREE(vm->def->cputune.vcpupin[i]);
-        }
-        VIR_FREE(vm->def->cputune.vcpupin);
-        vm->def->cputune.nvcpupin = 0;
     }
 
     if (virAsprintf(&file, "%s/%s.xml", cfg->stateDir, vm->def->name) > 0) {
@@ -794,51 +785,34 @@ int
 libxlDomainSetVcpuAffinities(libxlDriverPrivatePtr driver, virDomainObjPtr vm)
 {
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
-    virDomainDefPtr def = vm->def;
+    virDomainPinDefPtr pin;
     libxl_bitmap map;
     virBitmapPtr cpumask = NULL;
-    uint8_t *cpumap = NULL;
-    virNodeInfo nodeinfo;
-    size_t cpumaplen;
-    int vcpu;
     size_t i;
     int ret = -1;
 
-    if (libxlDriverNodeGetInfo(driver, &nodeinfo) < 0)
-        goto cleanup;
+    libxl_bitmap_init(&map);
 
-    cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
+    for (i = 0; i < vm->def->cputune.nvcpupin; ++i) {
+        pin = vm->def->cputune.vcpupin[i];
+        cpumask = pin->cpumask;
 
-    for (vcpu = 0; vcpu < def->cputune.nvcpupin; ++vcpu) {
-        if (vcpu != def->cputune.vcpupin[vcpu]->id)
-            continue;
-
-        if (VIR_ALLOC_N(cpumap, cpumaplen) < 0)
+        if (virBitmapToData(cpumask, &map.map, (int *)&map.size) < 0)
             goto cleanup;
 
-        cpumask = def->cputune.vcpupin[vcpu]->cpumask;
-
-        for (i = 0; i < virBitmapSize(cpumask); ++i) {
-            if (virBitmapIsBitSet(cpumask, i))
-                VIR_USE_CPU(cpumap, i);
-        }
-
-        map.size = cpumaplen;
-        map.map = cpumap;
-
-        if (libxl_set_vcpuaffinity(cfg->ctx, def->id, vcpu, &map) != 0) {
+        if (libxl_set_vcpuaffinity(cfg->ctx, vm->def->id, pin->id, &map) != 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to pin vcpu '%d' with libxenlight"), vcpu);
+                           _("Failed to pin vcpu '%d' with libxenlight"), pin->id);
             goto cleanup;
         }
 
-        VIR_FREE(cpumap);
+        libxl_bitmap_dispose(&map); /* Also returns to freshly-init'd state */
     }
 
     ret = 0;
 
  cleanup:
-    VIR_FREE(cpumap);
+    libxl_bitmap_dispose(&map);
     virObjectUnref(cfg);
     return ret;
 }

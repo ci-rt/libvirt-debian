@@ -344,7 +344,6 @@ virNodeCountThreadSiblings(const char *dir, unsigned int cpu)
 {
     unsigned long ret = 0;
     char *path;
-    FILE *pathfp;
     char *str = NULL;
     size_t i;
 
@@ -352,43 +351,24 @@ virNodeCountThreadSiblings(const char *dir, unsigned int cpu)
                     dir, cpu) < 0)
         return 0;
 
-    pathfp = fopen(path, "r");
-    if (pathfp == NULL) {
+    if (!virFileExists(path)) {
         /* If file doesn't exist, then pretend our only
          * sibling is ourself */
-        if (errno == ENOENT) {
-            VIR_FREE(path);
-            return 1;
-        }
-        virReportSystemError(errno, _("cannot open %s"), path);
-        VIR_FREE(path);
-        return 0;
-    }
-
-    if (VIR_ALLOC_N(str, SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX) < 0)
-        goto cleanup;
-
-    if (fgets(str, SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX, pathfp) == NULL) {
-        virReportSystemError(errno, _("cannot read from %s"), path);
+        ret = 1;
         goto cleanup;
     }
 
-    i = 0;
-    while (str[i] != '\0') {
-        if (c_isdigit(str[i]))
-            ret += count_one_bits(str[i] - '0');
-        else if (str[i] >= 'A' && str[i] <= 'F')
-            ret += count_one_bits(str[i] - 'A' + 10);
-        else if (str[i] >= 'a' && str[i] <= 'f')
-            ret += count_one_bits(str[i] - 'a' + 10);
-        i++;
+    if (virFileReadAll(path, SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX, &str) < 0)
+        goto cleanup;
+
+    for (i = 0; str[i] != '\0'; i++) {
+        if (c_isxdigit(str[i]))
+            ret += count_one_bits(virHexToBin(str[i]));
     }
 
  cleanup:
     VIR_FREE(str);
-    VIR_FORCE_FCLOSE(pathfp);
     VIR_FREE(path);
-
     return ret;
 }
 

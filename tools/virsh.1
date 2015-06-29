@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-05-23" "libvirt-1.2.16" "Virtualization Support"
+.TH VIRSH 1 "2015-06-28" "libvirt-1.2.17" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1019,10 +1019,10 @@ qemu, it may be non-zero only for an online domain. Specifying a negative
 value is interpreted as an unsigned long long value or essentially
 unlimited. The hypervisor can choose whether to reject the value or
 convert it to the maximum value allowed.
-.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR { \fIdest\fR [\fIformat\fR] [\fI\-\-blockdev\fR] | \fIxml\fR } [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fIbandwidth\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [{\fI\-\-pivot\fR | \fI\-\-finish\fR}] [\fI\-\-timeout\fR \fBseconds\fR] [\fIgranularity\fR] [\fIbuf-size\fR]" 4
-.IX Item "blockcopy domain path { dest [format] [--blockdev] | xml } [--shallow] [--reuse-external] [bandwidth] [--wait [--async] [--verbose]] [{--pivot | --finish}] [--timeout seconds] [granularity] [buf-size]"
+.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR { \fIdest\fR [\fIformat\fR] [\fI\-\-blockdev\fR] | \fI\-\-xml\fR \fBfile\fR } [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fIbandwidth\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [{\fI\-\-pivot\fR | \fI\-\-finish\fR}] [\fI\-\-timeout\fR \fBseconds\fR] [\fIgranularity\fR] [\fIbuf-size\fR]" 4
+.IX Item "blockcopy domain path { dest [format] [--blockdev] | --xml file } [--shallow] [--reuse-external] [bandwidth] [--wait [--async] [--verbose]] [{--pivot | --finish}] [--timeout seconds] [granularity] [buf-size]"
 Copy a disk backing image chain to a destination.  Either \fIdest\fR as
-the destination file name, or \fIxml\fR as the name of an \s-1XML\s0 file containing
+the destination file name, or \fI\-\-xml\fR with the name of an \s-1XML\s0 file containing
 a top-level <disk> element describing the destination, must be present.
 Additionally, if \fIdest\fR is given, \fIformat\fR should be specified to declare
 the format of the destination (if \fIformat\fR is omitted, then libvirt
@@ -1490,8 +1490,8 @@ to the private namespace.
 .Sp
 If neither of \fI\-\-edit\fR and \fIset\fR are specified the \s-1XML\s0 metadata corresponding
 to the \fIuri\fR namespace is displayed instead of being modified.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-auto\-converge\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--abort-on-error] [--auto-converge] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds] [--xml file]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-auto\-converge\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--abort-on-error] [--auto-converge] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds] [--xml file] [--migrate-disks disk-list]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1506,15 +1506,17 @@ with incremental copy (same base image shared between source and destination).
 In both cases the disk images have to exist on destination host, the
 \&\fI\-\-copy\-storage\-...\fR options only tell libvirt to transfer data from the
 images on source host to the images found at the same place on the destination
-host. \fI\-\-change\-protection\fR enforces that no incompatible configuration
-changes will be made to the domain while the migration is underway; this flag
-is implicitly enabled when supported by the hypervisor, but can be explicitly
-used to reject the migration if the hypervisor lacks change protection
-support.  \fI\-\-verbose\fR displays the progress of migration.  \fI\-\-compressed\fR
-activates compression of memory pages that have to be transferred repeatedly
-during live migration. \fI\-\-abort\-on\-error\fR cancels the migration if a soft
-error (for example I/O error) happens during the migration. \fI\-\-auto\-converge\fR
-forces convergence during live migration.
+host. By default only non-shared non-readonly images are transferred. Use
+\&\fI\-\-migrate\-disks\fR to explicitly specify a list of disk targets to
+transfer via the comma separated \fBdisk-list\fR argument. \fI\-\-change\-protection\fR
+enforces that no incompatible configuration changes will be made to the domain
+while the migration is underway; this flag is implicitly enabled when supported
+by the hypervisor, but can be explicitly used to reject the migration if the
+hypervisor lacks change protection support.  \fI\-\-verbose\fR displays the progress
+of migration.  \fI\-\-compressed\fR activates compression of memory pages that have
+to be transferred repeatedly during live migration. \fI\-\-abort\-on\-error\fR cancels
+the migration if a soft error (for example I/O error) happens during the
+migration. \fI\-\-auto\-converge\fR forces convergence during live migration.
 .Sp
 \&\fBNote\fR: Individual hypervisors usually do not support all possible types of
 migration. For example, \s-1QEMU\s0 does not support direct migration.
@@ -2276,8 +2278,7 @@ pin a single \fIvcpu\fR, specify \fIcpulist\fR; otherwise, you can query one
 \&\fIcpulist\fR is a list of physical \s-1CPU\s0 numbers. Its syntax is a comma
 separated list and a special markup using '\-' and '^' (ex. '0\-4', '0\-3,^2') can
 also be allowed. The '\-' denotes the range and the '^' denotes exclusive.
-If you want to reset vcpupin setting, that is, to pin the \fIvcpu\fR to all
-physical cpus, simply specify 'r' as a \fIcpulist\fR.
+For pinning the \fIvcpu\fR to all physical cpus specify 'r' as a \fIcpulist\fR.
 If \fI\-\-live\fR is specified, affect a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
 If \fI\-\-current\fR is specified, affect the current guest state.
@@ -2688,14 +2689,20 @@ events until a timeout or interrupt key.
 .IP "\fBnet-info\fR \fInetwork\fR" 4
 .IX Item "net-info network"
 Returns basic information about the \fInetwork\fR object.
-.IP "\fBnet-list\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] [\fI\-\-persistent\fR] [<\-\-transient>] [\fI\-\-autostart\fR] [<\-\-no\-autostart>]" 4
-.IX Item "net-list [--inactive | --all] [--persistent] [<--transient>] [--autostart] [<--no-autostart>]"
+.IP "\fBnet-list\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] { [\fI\-\-table\fR] | \fI\-\-name\fR | \fI\-\-uuid\fR } [\fI\-\-persistent\fR] [<\-\-transient>] [\fI\-\-autostart\fR] [<\-\-no\-autostart>]" 4
+.IX Item "net-list [--inactive | --all] { [--table] | --name | --uuid } [--persistent] [<--transient>] [--autostart] [<--no-autostart>]"
 Returns the list of active networks, if \fI\-\-all\fR is specified this will also
 include defined but inactive networks, if \fI\-\-inactive\fR is specified only the
 inactive ones will be listed. You may also want to filter the returned networks
 by \fI\-\-persistent\fR to list the persistent ones, \fI\-\-transient\fR to list the
 transient ones, \fI\-\-autostart\fR to list the ones with autostart enabled, and
 \&\fI\-\-no\-autostart\fR to list the ones with autostart disabled.
+.Sp
+If \fI\-\-name\fR is specified, network names are printed instead of the table
+formatted one per line. If \fI\-\-uuid\fR is specified network's \s-1UUID\s0's are printed
+instead of names. Flag \fI\-\-table\fR specifies that the legacy table-formatted
+output should be used. This is the default. All of these are mutually
+exclusive.
 .Sp
 \&\s-1NOTE:\s0 When talking to older servers, this command is forced to use a series of
 \&\s-1API\s0 calls with an inherent race, where a pool might not be listed or might appear

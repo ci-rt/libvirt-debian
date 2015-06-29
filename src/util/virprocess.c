@@ -468,76 +468,69 @@ int virProcessSetAffinity(pid_t pid, virBitmapPtr map)
     return 0;
 }
 
-int virProcessGetAffinity(pid_t pid,
-                          virBitmapPtr *map,
-                          int maxcpu)
+virBitmapPtr
+virProcessGetAffinity(pid_t pid)
 {
     size_t i;
-# ifdef CPU_ALLOC
-    /* New method dynamically allocates cpu mask, allowing unlimted cpus */
-    int numcpus = 1024;
-    size_t masklen;
     cpu_set_t *mask;
+    size_t masklen;
+    size_t ncpus;
+    virBitmapPtr ret = NULL;
 
-    /* Not only may the statically allocated cpu_set_t be too small,
-     * but there is no way to ask the kernel what size is large enough.
-     * So you have no option but to pick a size, try, catch EINVAL,
-     * enlarge, and re-try.
-     *
-     * http://lkml.org/lkml/2009/7/28/620
-     */
- realloc:
-    masklen = CPU_ALLOC_SIZE(numcpus);
-    mask = CPU_ALLOC(numcpus);
+# ifdef CPU_ALLOC
+    /* 262144 cpus ought to be enough for anyone */
+    ncpus = 1024 << 8;
+    masklen = CPU_ALLOC_SIZE(ncpus);
+    mask = CPU_ALLOC(ncpus);
 
     if (!mask) {
         virReportOOMError();
-        return -1;
+        return NULL;
     }
 
     CPU_ZERO_S(masklen, mask);
-    if (sched_getaffinity(pid, masklen, mask) < 0) {
-        CPU_FREE(mask);
-        if (errno == EINVAL &&
-            numcpus < (1024 << 8)) { /* 262144 cpus ought to be enough for anyone */
-            numcpus = numcpus << 2;
-            goto realloc;
-        }
-        virReportSystemError(errno,
-                             _("cannot get CPU affinity of process %d"), pid);
-        return -1;
-    }
-
-    *map = virBitmapNew(maxcpu);
-    if (!*map)
-        return -1;
-
-    for (i = 0; i < maxcpu; i++)
-        if (CPU_ISSET_S(i, masklen, mask))
-            ignore_value(virBitmapSetBit(*map, i));
-    CPU_FREE(mask);
 # else
-    /* Legacy method uses a fixed size cpu mask, only allows up to 1024 cpus */
-    cpu_set_t mask;
+    ncpus = 1024;
+    if (VIR_ALLOC(mask) < 0)
+        return NULL;
 
-    CPU_ZERO(&mask);
-    if (sched_getaffinity(pid, sizeof(mask), &mask) < 0) {
-        virReportSystemError(errno,
-                             _("cannot get CPU affinity of process %d"), pid);
-        return -1;
-    }
-
-    for (i = 0; i < maxcpu; i++)
-        if (CPU_ISSET(i, &mask))
-            ignore_value(virBitmapSetBit(*map, i));
+    masklen = sizeof(*mask);
+    CPU_ZERO(mask);
 # endif
 
-    return 0;
+    if (sched_getaffinity(pid, masklen, mask) < 0) {
+        virReportSystemError(errno,
+                             _("cannot get CPU affinity of process %d"), pid);
+        goto cleanup;
+    }
+
+    if (!(ret = virBitmapNew(ncpus)))
+          goto cleanup;
+
+    for (i = 0; i < ncpus; i++) {
+# ifdef CPU_ALLOC
+         /* coverity[overrun-local] */
+        if (CPU_ISSET_S(i, masklen, mask))
+            ignore_value(virBitmapSetBit(ret, i));
+# else
+        if (CPU_ISSET(i, mask))
+            ignore_value(virBitmapSetBit(ret, i));
+# endif
+    }
+
+ cleanup:
+# ifdef CPU_ALLOC
+    CPU_FREE(mask);
+# else
+    VIR_FREE(mask);
+# endif
+
+    return ret;
 }
 
 #elif defined(HAVE_BSD_CPU_AFFINITY)
 
-int virProcessSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
+int virProcessSetAffinity(pid_t pid,
                           virBitmapPtr map)
 {
     size_t i;
@@ -562,29 +555,29 @@ int virProcessSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
     return 0;
 }
 
-int virProcessGetAffinity(pid_t pid,
-                          virBitmapPtr *map,
-                          int maxcpu)
+virBitmapPtr
+virProcessGetAffinity(pid_t pid)
 {
     size_t i;
     cpuset_t mask;
-
-    if (!(*map = virBitmapNew(maxcpu)))
-        return -1;
+    virBitmapPtr ret = NULL;
 
     CPU_ZERO(&mask);
     if (cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, pid,
                            sizeof(mask), &mask) != 0) {
         virReportSystemError(errno,
                              _("cannot get CPU affinity of process %d"), pid);
-        return -1;
+        return NULL;
     }
 
-    for (i = 0; i < maxcpu; i++)
-        if (CPU_ISSET(i, &mask))
-            ignore_value(virBitmapSetBit(*map, i));
+    if (!(ret = virBitmapNew(sizeof(mask) * 8)))
+        return NULL;
 
-    return 0;
+    for (i = 0; i < sizeof(mask) * 8; i++)
+        if (CPU_ISSET(i, &mask))
+            ignore_value(virBitmapSetBit(ret, i));
+
+    return ret;
 }
 
 #else /* HAVE_SCHED_GETAFFINITY */
@@ -597,15 +590,61 @@ int virProcessSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
     return -1;
 }
 
-int virProcessGetAffinity(pid_t pid ATTRIBUTE_UNUSED,
-                          virBitmapPtr *map ATTRIBUTE_UNUSED,
-                          int maxcpu ATTRIBUTE_UNUSED)
+virBitmapPtr
+virProcessGetAffinity(pid_t pid ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Process CPU affinity is not supported on this platform"));
-    return -1;
+    return NULL;
 }
 #endif /* HAVE_SCHED_GETAFFINITY */
+
+
+int virProcessGetPids(pid_t pid, size_t *npids, pid_t **pids)
+{
+    int ret = -1;
+    char *taskPath = NULL;
+    DIR *dir = NULL;
+    int value;
+    struct dirent *ent;
+
+    *npids = 0;
+    *pids = NULL;
+
+    if (virAsprintf(&taskPath, "/proc/%llu/task",
+                    (unsigned long long)pid) < 0)
+        goto cleanup;
+
+    if (!(dir = opendir(taskPath)))
+        goto cleanup;
+
+    while ((value = virDirRead(dir, &ent, taskPath)) > 0) {
+        pid_t tmp_pid;
+
+        /* Skip . and .. */
+        if (STRPREFIX(ent->d_name, "."))
+            continue;
+
+        if (virStrToLong_i(ent->d_name, NULL, 10, &tmp_pid) < 0)
+            goto cleanup;
+
+        if (VIR_APPEND_ELEMENT(*pids, *npids, tmp_pid) < 0)
+            goto cleanup;
+    }
+
+    if (value < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (dir)
+        closedir(dir);
+    VIR_FREE(taskPath);
+    if (ret < 0)
+        VIR_FREE(*pids);
+    return ret;
+}
 
 
 int virProcessGetNamespaces(pid_t pid,

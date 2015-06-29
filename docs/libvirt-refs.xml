@@ -311,6 +311,7 @@
     <reference name='VIR_DOMAIN_EVENT_UNDEFINED_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED_REMOVED'/>
     <reference name='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_DEBUG'/>
+    <reference name='VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI'/>
     <reference name='VIR_DOMAIN_EVENT_WATCHDOG_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_WATCHDOG_NONE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_NONE'/>
     <reference name='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_PAUSE'/>
@@ -713,6 +714,7 @@
     <reference name='VIR_EVENT_HANDLE_READABLE' href='html/libvirt-libvirt-event.html#VIR_EVENT_HANDLE_READABLE'/>
     <reference name='VIR_EVENT_HANDLE_WRITABLE' href='html/libvirt-libvirt-event.html#VIR_EVENT_HANDLE_WRITABLE'/>
     <reference name='VIR_FROM_ACCESS' href='html/libvirt-virterror.html#VIR_FROM_ACCESS'/>
+    <reference name='VIR_FROM_ADMIN' href='html/libvirt-virterror.html#VIR_FROM_ADMIN'/>
     <reference name='VIR_FROM_AUDIT' href='html/libvirt-virterror.html#VIR_FROM_AUDIT'/>
     <reference name='VIR_FROM_AUTH' href='html/libvirt-virterror.html#VIR_FROM_AUTH'/>
     <reference name='VIR_FROM_BHYVE' href='html/libvirt-virterror.html#VIR_FROM_BHYVE'/>
@@ -805,6 +807,7 @@
     <reference name='VIR_MIGRATE_PARAM_DEST_XML' href='html/libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_DEST_XML'/>
     <reference name='VIR_MIGRATE_PARAM_GRAPHICS_URI' href='html/libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
     <reference name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' href='html/libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+    <reference name='VIR_MIGRATE_PARAM_MIGRATE_DISKS' href='html/libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
     <reference name='VIR_MIGRATE_PARAM_URI' href='html/libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_URI'/>
     <reference name='VIR_MIGRATE_PAUSED' href='html/libvirt-libvirt-domain.html#VIR_MIGRATE_PAUSED'/>
     <reference name='VIR_MIGRATE_PEER2PEER' href='html/libvirt-libvirt-domain.html#VIR_MIGRATE_PEER2PEER'/>
@@ -1637,6 +1640,7 @@
     <reference name='virTypedParamsAddInt' href='html/libvirt-libvirt-host.html#virTypedParamsAddInt'/>
     <reference name='virTypedParamsAddLLong' href='html/libvirt-libvirt-host.html#virTypedParamsAddLLong'/>
     <reference name='virTypedParamsAddString' href='html/libvirt-libvirt-host.html#virTypedParamsAddString'/>
+    <reference name='virTypedParamsAddStringList' href='html/libvirt-libvirt-host.html#virTypedParamsAddStringList'/>
     <reference name='virTypedParamsAddUInt' href='html/libvirt-libvirt-host.html#virTypedParamsAddUInt'/>
     <reference name='virTypedParamsAddULLong' href='html/libvirt-libvirt-host.html#virTypedParamsAddULLong'/>
     <reference name='virTypedParamsClear' href='html/libvirt-libvirt-host.html#virTypedParamsClear'/>
@@ -1965,6 +1969,7 @@
       <ref name='VIR_DOMAIN_EVENT_UNDEFINED_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG'/>
+      <ref name='VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_NONE'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE'/>
@@ -2367,6 +2372,7 @@
       <ref name='VIR_EVENT_HANDLE_READABLE'/>
       <ref name='VIR_EVENT_HANDLE_WRITABLE'/>
       <ref name='VIR_FROM_ACCESS'/>
+      <ref name='VIR_FROM_ADMIN'/>
       <ref name='VIR_FROM_AUDIT'/>
       <ref name='VIR_FROM_AUTH'/>
       <ref name='VIR_FROM_BHYVE'/>
@@ -2459,6 +2465,7 @@
       <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
       <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
       <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+      <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
       <ref name='VIR_MIGRATE_PARAM_URI'/>
       <ref name='VIR_MIGRATE_PAUSED'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
@@ -3295,6 +3302,7 @@
       <ref name='virTypedParamsAddInt'/>
       <ref name='virTypedParamsAddLLong'/>
       <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddStringList'/>
       <ref name='virTypedParamsAddUInt'/>
       <ref name='virTypedParamsAddULLong'/>
       <ref name='virTypedParamsClear'/>
@@ -3440,6 +3448,7 @@
       <ref name='virConnectBaselineCPU'/>
       <ref name='virDomainFSFreeze'/>
       <ref name='virDomainFSThaw'/>
+      <ref name='virTypedParamsAddStringList'/>
       <ref name='virTypedParamsGetString'/>
     </type>
     <type name='const unsigned char *'>
@@ -3489,6 +3498,7 @@
       <ref name='virTypedParamsAddInt'/>
       <ref name='virTypedParamsAddLLong'/>
       <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddStringList'/>
       <ref name='virTypedParamsAddUInt'/>
       <ref name='virTypedParamsAddULLong'/>
       <ref name='virTypedParamsGetBoolean'/>
@@ -4453,6 +4463,7 @@
       <ref name='virTypedParamsAddInt'/>
       <ref name='virTypedParamsAddLLong'/>
       <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddStringList'/>
       <ref name='virTypedParamsAddUInt'/>
       <ref name='virTypedParamsAddULLong'/>
     </type>
@@ -4806,6 +4817,7 @@
       <ref name='VIR_DOMAIN_EVENT_UNDEFINED_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG'/>
+      <ref name='VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_NONE'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE'/>
@@ -5113,6 +5125,7 @@
       <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
       <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
       <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+      <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
       <ref name='VIR_MIGRATE_PARAM_URI'/>
       <ref name='VIR_MIGRATE_PAUSED'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
@@ -5631,6 +5644,7 @@
       <ref name='virTypedParamsAddInt'/>
       <ref name='virTypedParamsAddLLong'/>
       <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddStringList'/>
       <ref name='virTypedParamsAddUInt'/>
       <ref name='virTypedParamsAddULLong'/>
       <ref name='virTypedParamsClear'/>
@@ -6094,6 +6108,7 @@
       <ref name='VIR_ERR_XML_ERROR'/>
       <ref name='VIR_ERR_XML_INVALID_SCHEMA'/>
       <ref name='VIR_FROM_ACCESS'/>
+      <ref name='VIR_FROM_ADMIN'/>
       <ref name='VIR_FROM_AUDIT'/>
       <ref name='VIR_FROM_AUTH'/>
       <ref name='VIR_FROM_BHYVE'/>
@@ -7200,6 +7215,7 @@
         </word>
         <word name='NULL-terminated'>
           <ref name='virConnectGetCPUModelNames'/>
+          <ref name='virTypedParamsAddStringList'/>
         </word>
         <word name='NUMA'>
           <ref name='VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES'/>
@@ -7348,6 +7364,9 @@
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReset'/>
         </word>
+        <word name='Packs'>
+          <ref name='virTypedParamsAddStringList'/>
+        </word>
         <word name='Page'>
           <ref name='virNodeGetFreePages'/>
         </word>
@@ -7476,6 +7495,7 @@
     <chunk name='chunk3'>
       <letter name='Q'>
         <word name='QEMU'>
+          <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
           <ref name='virConnectGetType'/>
           <ref name='virDomainFSFreeze'/>
           <ref name='virDomainFSThaw'/>
@@ -9528,6 +9548,7 @@
           <ref name='virTypedParamsAddInt'/>
           <ref name='virTypedParamsAddLLong'/>
           <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddStringList'/>
           <ref name='virTypedParamsAddUInt'/>
           <ref name='virTypedParamsAddULLong'/>
         </word>
@@ -14734,6 +14755,7 @@
           <ref name='virDomainSetMetadata'/>
           <ref name='virStorageVolGetKey'/>
           <ref name='virStorageVolLookupByKey'/>
+          <ref name='virTypedParamsAddStringList'/>
         </word>
         <word name='keycodes'>
           <ref name='VIR_DOMAIN_SEND_KEY_MAX_KEYS'/>
@@ -15660,6 +15682,7 @@
           <ref name='virDomainReboot'/>
         </word>
         <word name='migrated'>
+          <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainMigrateGetMaxSpeed'/>
         </word>
@@ -15786,6 +15809,7 @@
           <ref name='virNetworkUpdate'/>
         </word>
         <word name='moment'>
+          <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
           <ref name='virDomainMemoryPeek'/>
         </word>
         <word name='monitor'>
@@ -15863,36 +15887,6 @@
         <word name='multi-threaded'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
-        </word>
-        <word name='multiple'>
-          <ref name='VIR_MIGRATE_PARAM_URI'/>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-          <ref name='virConnectRef'/>
-          <ref name='virDomainBlockStats'/>
-          <ref name='virDomainBlockStatsFlags'/>
-          <ref name='virDomainGetCPUStats'/>
-          <ref name='virDomainInterfaceAddresses'/>
-          <ref name='virDomainInterfaceStats'/>
-          <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrate2'/>
-          <ref name='virDomainOpenGraphics'/>
-          <ref name='virDomainOpenGraphicsFD'/>
-          <ref name='virDomainRef'/>
-          <ref name='virDomainScreenshot'/>
-          <ref name='virDomainSnapshotRef'/>
-          <ref name='virEventAddHandleFunc'/>
-          <ref name='virInterfaceRef'/>
-          <ref name='virNWFilterRef'/>
-          <ref name='virNetworkGetDHCPLeases'/>
-          <ref name='virNetworkRef'/>
-          <ref name='virNetworkUpdate'/>
-          <ref name='virNodeDeviceRef'/>
-          <ref name='virSecretRef'/>
-          <ref name='virStoragePoolRef'/>
-          <ref name='virStorageVolRef'/>
-          <ref name='virStreamSinkFunc'/>
-          <ref name='virStreamSourceFunc'/>
         </word>
         <word name='multithreaded'>
           <ref name='virInitialize'/>
@@ -16705,6 +16699,7 @@
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
           <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+          <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
           <ref name='VIR_MIGRATE_PARAM_URI'/>
           <ref name='virConnectDomainEventTunableCallback'/>
           <ref name='virDomainGetCPUStats'/>
@@ -19713,6 +19708,7 @@
         </word>
         <word name='strings'>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
+          <ref name='virTypedParamsAddStringList'/>
         </word>
         <word name='strongly'>
           <ref name='virDomainBlockCopy'/>
@@ -20548,6 +20544,9 @@
           <ref name='virDomainBlockCopy'/>
           <ref name='virNodeSetMemoryParameters'/>
         </word>
+        <word name='tunnelled'>
+          <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
+        </word>
         <word name='turn'>
           <ref name='virConnectOpen'/>
         </word>
@@ -20716,6 +20715,7 @@
           <ref name='virDomainGetSecurityLabel'/>
           <ref name='virDomainGetSecurityLabelList'/>
           <ref name='virNodeSetMemoryParameters'/>
+          <ref name='virTypedParamsAddStringList'/>
         </word>
         <word name='underlying'>
           <ref name='virConnectGetDomainCapabilities'/>
@@ -21826,6 +21826,7 @@
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
           <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+          <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
           <ref name='VIR_MIGRATE_PARAM_URI'/>
           <ref name='virDomainMigrateToURI'/>
         </word>

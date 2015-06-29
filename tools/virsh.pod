@@ -989,12 +989,12 @@ unlimited. The hypervisor can choose whether to reject the value or
 convert it to the maximum value allowed.
 
 =item B<blockcopy> I<domain> I<path> { I<dest> [I<format>] [I<--blockdev>]
-| I<xml> } [I<--shallow>] [I<--reuse-external>] [I<bandwidth>]
+| I<--xml> B<file> } [I<--shallow>] [I<--reuse-external>] [I<bandwidth>]
 [I<--wait> [I<--async>] [I<--verbose>]] [{I<--pivot> | I<--finish>}]
 [I<--timeout> B<seconds>] [I<granularity>] [I<buf-size>]
 
 Copy a disk backing image chain to a destination.  Either I<dest> as
-the destination file name, or I<xml> as the name of an XML file containing
+the destination file name, or I<--xml> with the name of an XML file containing
 a top-level <disk> element describing the destination, must be present.
 Additionally, if I<dest> is given, I<format> should be specified to declare
 the format of the destination (if I<format> is omitted, then libvirt
@@ -1521,6 +1521,7 @@ to the I<uri> namespace is displayed instead of being modified.
 [I<--compressed>] [I<--abort-on-error>] [I<--auto-converge>]
 I<domain> I<desturi> [I<migrateuri>] [I<graphicsuri>] [I<listen-address>]
 [I<dname>] [I<--timeout> B<seconds>] [I<--xml> B<file>]
+[I<--migrate-disks> B<disk-list>]
 
 Migrate domain to another host.  Add I<--live> for live migration; <--p2p>
 for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
@@ -1536,15 +1537,17 @@ with incremental copy (same base image shared between source and destination).
 In both cases the disk images have to exist on destination host, the
 I<--copy-storage-...> options only tell libvirt to transfer data from the
 images on source host to the images found at the same place on the destination
-host. I<--change-protection> enforces that no incompatible configuration
-changes will be made to the domain while the migration is underway; this flag
-is implicitly enabled when supported by the hypervisor, but can be explicitly
-used to reject the migration if the hypervisor lacks change protection
-support.  I<--verbose> displays the progress of migration.  I<--compressed>
-activates compression of memory pages that have to be transferred repeatedly
-during live migration. I<--abort-on-error> cancels the migration if a soft
-error (for example I/O error) happens during the migration. I<--auto-converge>
-forces convergence during live migration.
+host. By default only non-shared non-readonly images are transferred. Use
+I<--migrate-disks> to explicitly specify a list of disk targets to
+transfer via the comma separated B<disk-list> argument. I<--change-protection>
+enforces that no incompatible configuration changes will be made to the domain
+while the migration is underway; this flag is implicitly enabled when supported
+by the hypervisor, but can be explicitly used to reject the migration if the
+hypervisor lacks change protection support.  I<--verbose> displays the progress
+of migration.  I<--compressed> activates compression of memory pages that have
+to be transferred repeatedly during live migration. I<--abort-on-error> cancels
+the migration if a soft error (for example I/O error) happens during the
+migration. I<--auto-converge> forces convergence during live migration.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -2365,8 +2368,7 @@ I<vcpu> or omit I<vcpu> to list all at once.
 I<cpulist> is a list of physical CPU numbers. Its syntax is a comma
 separated list and a special markup using '-' and '^' (ex. '0-4', '0-3,^2') can
 also be allowed. The '-' denotes the range and the '^' denotes exclusive.
-If you want to reset vcpupin setting, that is, to pin the I<vcpu> to all
-physical cpus, simply specify 'r' as a I<cpulist>.
+For pinning the I<vcpu> to all physical cpus specify 'r' as a I<cpulist>.
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
 If I<--current> is specified, affect the current guest state.
@@ -2835,6 +2837,7 @@ events until a timeout or interrupt key.
 Returns basic information about the I<network> object.
 
 =item B<net-list> [I<--inactive> | I<--all>]
+                  { [I<--table>] | I<--name> | I<--uuid> }
                   [I<--persistent>] [<--transient>]
                   [I<--autostart>] [<--no-autostart>]
 
@@ -2844,6 +2847,12 @@ inactive ones will be listed. You may also want to filter the returned networks
 by I<--persistent> to list the persistent ones, I<--transient> to list the
 transient ones, I<--autostart> to list the ones with autostart enabled, and
 I<--no-autostart> to list the ones with autostart disabled.
+
+If I<--name> is specified, network names are printed instead of the table
+formatted one per line. If I<--uuid> is specified network's UUID's are printed
+instead of names. Flag I<--table> specifies that the legacy table-formatted
+output should be used. This is the default. All of these are mutually
+exclusive.
 
 NOTE: When talking to older servers, this command is forced to use a series of
 API calls with an inherent race, where a pool might not be listed or might appear

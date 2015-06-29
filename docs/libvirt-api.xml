@@ -184,6 +184,7 @@
      <exports symbol='VIR_MIGRATE_PARAM_DEST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_GRAPHICS_URI' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_MIGRATE_DISKS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
      <exports symbol='VIR_USE_CPU' type='macro'/>
@@ -385,6 +386,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE' type='enum'/>
@@ -1137,6 +1139,7 @@
      <exports symbol='virTypedParamsAddInt' type='function'/>
      <exports symbol='virTypedParamsAddLLong' type='function'/>
      <exports symbol='virTypedParamsAddString' type='function'/>
+     <exports symbol='virTypedParamsAddStringList' type='function'/>
      <exports symbol='virTypedParamsAddUInt' type='function'/>
      <exports symbol='virTypedParamsAddULLong' type='function'/>
      <exports symbol='virTypedParamsClear' type='function'/>
@@ -1530,7 +1533,7 @@
     </file>
     <file name='virterror'>
      <summary>error handling interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
+     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2015 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='VIR_ERR_ACCESS_DENIED' type='enum'/>
      <exports symbol='VIR_ERR_AGENT_UNRESPONSIVE' type='enum'/>
@@ -1624,6 +1627,7 @@
      <exports symbol='VIR_ERR_XML_ERROR' type='enum'/>
      <exports symbol='VIR_ERR_XML_INVALID_SCHEMA' type='enum'/>
      <exports symbol='VIR_FROM_ACCESS' type='enum'/>
+     <exports symbol='VIR_FROM_ADMIN' type='enum'/>
      <exports symbol='VIR_FROM_AUDIT' type='enum'/>
      <exports symbol='VIR_FROM_AUTH' type='enum'/>
      <exports symbol='VIR_FROM_BHYVE' type='enum'/>
@@ -1737,265 +1741,265 @@
       <arg name='cpumap' info='pointer to a bit map of real CPUs (in 8-bit bytes) (IN)'/>
       <arg name='cpu' info='the physical CPU number'/>
     </macro>
-    <macro name='VIR_DOMAIN_BANDWIDTH_IN_AVERAGE' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BANDWIDTH_IN_AVERAGE' file='libvirt-domain' string='inbound.average'>
       <info><![CDATA[Macro represents the inbound average of NIC bandwidth, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BANDWIDTH_IN_BURST' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BANDWIDTH_IN_BURST' file='libvirt-domain' string='inbound.burst'>
       <info><![CDATA[Macro represents the inbound burst of NIC bandwidth, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BANDWIDTH_IN_PEAK' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BANDWIDTH_IN_PEAK' file='libvirt-domain' string='inbound.peak'>
       <info><![CDATA[Macro represents the inbound peak of NIC bandwidth, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE' file='libvirt-domain' string='outbound.average'>
       <info><![CDATA[Macro represents the outbound average of NIC bandwidth, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BANDWIDTH_OUT_BURST' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BANDWIDTH_OUT_BURST' file='libvirt-domain' string='outbound.burst'>
       <info><![CDATA[Macro represents the outbound burst of NIC bandwidth, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BANDWIDTH_OUT_PEAK' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BANDWIDTH_OUT_PEAK' file='libvirt-domain' string='outbound.peak'>
       <info><![CDATA[Macro represents the outbound peak of NIC bandwidth, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS' file='libvirt-domain' string='device_read_bytes_sec'>
       <info><![CDATA[Macro for the blkio tunable throttle.read_iops_device: it represents the bytes of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, read_bps elements, separated by ','.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS' file='libvirt-domain' string='device_read_iops_sec'>
       <info><![CDATA[Macro for the blkio tunable throttle.read_iops_device: it represents the number of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, read_iops elements, separated by ','.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT' file='libvirt-domain' string='device_weight'>
       <info><![CDATA[Macro for the blkio tunable weight_device: it represents the per-device weight, as a string.  The string is parsed as a series of /path/to/device,weight elements, separated by ','.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS' file='libvirt-domain' string='device_write_bytes_sec'>
       <info><![CDATA[Macro for the blkio tunable throttle.read_iops_device: it represents the number of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, write_bps elements, separated by ','.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS' file='libvirt-domain' string='device_write_iops_sec'>
       <info><![CDATA[Macro for the blkio tunable throttle.write_iops_device: it represents the number of writing the block device per second, as a string. The string is parsed as a series of /path/to/device, write_iops elements, separated by ','.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLKIO_FIELD_LENGTH' file='libvirt-domain'>
       <info><![CDATA[Macro providing the field length of virBlkioParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLKIO_WEIGHT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLKIO_WEIGHT' file='libvirt-domain' string='weight'>
       <info><![CDATA[Macro for the Blkio tunable weight: it represents the io weight the guest can use, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH' file='libvirt-domain' string='bandwidth'>
       <info><![CDATA[Macro for the virDomainBlockCopy bandwidth tunable: it represents the maximum bandwidth in bytes/s, and is used while getting the copy operation into the mirrored phase, with a type of ullong.  For compatibility with virDomainBlockJobSetSpeed(), values larger than 2^52 bytes/sec (a 32-bit MiB/s value) may be rejected on input due to overflow considerations (but do you really have an interface with that much bandwidth?), and values larger than 2^31 bytes/sec may cause overflow problems if queried in bytes/sec.  Hypervisors may further restrict the set of valid values. Specifying 0 is the same as omitting this parameter, to request no bandwidth limiting. Some hypervisors may lack support for this parameter, while still allowing a subsequent change of bandwidth via virDomainBlockJobSetSpeed().  The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE' file='libvirt-domain' string='buf-size'>
       <info><![CDATA[Macro for the virDomainBlockCopy buffer size tunable: it represents how much data in bytes can be in flight between source and destination, as an unsigned long long. Specifying 0 is the same as omitting this parameter, to request the hypervisor default.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' file='libvirt-domain' string='granularity'>
       <info><![CDATA[Macro for the virDomainBlockCopy granularity tunable: it represents the granularity in bytes at which the copy operation recognizes dirty blocks that need copying, as an unsigned int.  Hypervisors may restrict this to be a power of two or fall within a certain range. Specifying 0 is the same as omitting this parameter, to request the hypervisor default.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' file='libvirt-domain' string='read_bytes_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the read bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX' file='libvirt-domain' string='read_bytes_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum read bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC' file='libvirt-domain' string='read_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the read I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX' file='libvirt-domain' string='read_iops_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum read I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC' file='libvirt-domain' string='size_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the size I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC' file='libvirt-domain' string='total_bytes_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the total bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX' file='libvirt-domain' string='total_bytes_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum total bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC' file='libvirt-domain' string='total_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the total I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX' file='libvirt-domain' string='total_iops_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC' file='libvirt-domain' string='write_bytes_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the write bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX' file='libvirt-domain' string='write_bytes_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum write bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC' file='libvirt-domain' string='write_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the write I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX' file='libvirt-domain' string='write_iops_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum write I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_ERRS' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_ERRS' file='libvirt-domain' string='errs'>
       <info><![CDATA[In Xen this returns the mysterious 'oo_req', as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH' file='libvirt-domain'>
       <info><![CDATA[Macro providing the field length of parameter names when using virDomainBlockStatsFlags().]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ' file='libvirt-domain' string='flush_operations'>
       <info><![CDATA[Macro represents the total flush requests of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES' file='libvirt-domain' string='flush_total_times'>
       <info><![CDATA[Macro represents the total time spend on cache flushing in nano-seconds of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_READ_BYTES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_READ_BYTES' file='libvirt-domain' string='rd_bytes'>
       <info><![CDATA[Macro represents the total number of read bytes of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_READ_REQ' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_READ_REQ' file='libvirt-domain' string='rd_operations'>
       <info><![CDATA[Macro represents the total read requests of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES' file='libvirt-domain' string='rd_total_times'>
       <info><![CDATA[Macro represents the total time spend on cache reads in nano-seconds of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES' file='libvirt-domain' string='wr_bytes'>
       <info><![CDATA[Macro represents the total number of write bytes of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ' file='libvirt-domain' string='wr_operations'>
       <info><![CDATA[Macro represents the total write requests of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES' file='libvirt-domain' string='wr_total_times'>
       <info><![CDATA[Macro represents the total time spend on cache writes in nano-seconds of the block device, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_CPU_STATS_CPUTIME' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_CPU_STATS_CPUTIME' file='libvirt-domain' string='cpu_time'>
       <info><![CDATA[cpu usage (sum of both vcpu and hypervisor usage) in nanoseconds, as a ullong]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_CPU_STATS_SYSTEMTIME' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_CPU_STATS_SYSTEMTIME' file='libvirt-domain' string='system_time'>
       <info><![CDATA[cpu time charged to system instructions in nanoseconds, as a ullong]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_CPU_STATS_USERTIME' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_CPU_STATS_USERTIME' file='libvirt-domain' string='user_time'>
       <info><![CDATA[cpu time charged to user instructions in nanoseconds, as a ullong]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_CPU_STATS_VCPUTIME' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_CPU_STATS_VCPUTIME' file='libvirt-domain' string='vcpu_time'>
       <info><![CDATA[vcpu usage in nanoseconds (cpu_time excluding hypervisor time), as a ullong]]></info>
     </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt-domain'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_COMPRESSION_BYTES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_BYTES' file='libvirt-domain' string='compression_bytes'>
       <info><![CDATA[virDomainGetJobStats field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_COMPRESSION_CACHE' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_CACHE' file='libvirt-domain' string='compression_cache'>
       <info><![CDATA[virDomainGetJobStats field: size of the cache (in bytes) used for compressing repeatedly transferred memory pages during live migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES' file='libvirt-domain' string='compression_cache_misses'>
       <info><![CDATA[virDomainGetJobStats field: number of repeatedly changing pages that were not found in compression cache and thus could not be compressed, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW' file='libvirt-domain' string='compression_overflow'>
       <info><![CDATA[virDomainGetJobStats field: number of repeatedly changing pages that were found in compression cache but were sent uncompressed because the result of compression was larger than the original page as a whole, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_COMPRESSION_PAGES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_PAGES' file='libvirt-domain' string='compression_pages'>
       <info><![CDATA[virDomainGetJobStats field: number of compressed pages transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DATA_PROCESSED' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DATA_PROCESSED' file='libvirt-domain' string='data_processed'>
       <info><![CDATA[virDomainGetJobStats field: number of bytes transferred from the beginning of the job, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to dataProcessed field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DATA_REMAINING' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DATA_REMAINING' file='libvirt-domain' string='data_remaining'>
       <info><![CDATA[virDomainGetJobStats field: number of bytes that still need to be transferred, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to dataRemaining field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DATA_TOTAL' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DATA_TOTAL' file='libvirt-domain' string='data_total'>
       <info><![CDATA[virDomainGetJobStats field: total number of bytes supposed to be transferred, as VIR_TYPED_PARAM_ULLONG. For VIR_DOMAIN_JOB_UNBOUNDED jobs, this may be less than the sum of VIR_DOMAIN_JOB_DATA_PROCESSED and VIR_DOMAIN_JOB_DATA_REMAINING in the event that the hypervisor has to repeat some data, e.g., due to dirtied pages during migration. For VIR_DOMAIN_JOB_BOUNDED jobs, VIR_DOMAIN_JOB_DATA_TOTAL shall always equal VIR_DOMAIN_JOB_DATA_PROCESSED + VIR_DOMAIN_JOB_DATA_REMAINING.  This field corresponds to dataTotal field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DISK_BPS' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DISK_BPS' file='libvirt-domain' string='disk_bps'>
       <info><![CDATA[virDomainGetJobStats field: network throughput used while migrating disks in Bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DISK_PROCESSED' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DISK_PROCESSED' file='libvirt-domain' string='disk_processed'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileProcessed field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DISK_REMAINING' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DISK_REMAINING' file='libvirt-domain' string='disk_remaining'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_REMAINING but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileRemaining field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DISK_TOTAL' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DISK_TOTAL' file='libvirt-domain' string='disk_total'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileTotal field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DOWNTIME' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DOWNTIME' file='libvirt-domain' string='downtime'>
       <info><![CDATA[virDomainGetJobStats field: downtime (ms) that is expected to happen during migration, as VIR_TYPED_PARAM_ULLONG. The real computed downtime between the time guest CPUs were paused and the time they were resumed is reported for completed migration.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_DOWNTIME_NET' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_DOWNTIME_NET' file='libvirt-domain' string='downtime_net'>
       <info><![CDATA[virDomainGetJobStats field: real measured downtime (ms) NOT including the time required to transfer control flow from the source host to the destination host, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_MEMORY_BPS' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_BPS' file='libvirt-domain' string='memory_bps'>
       <info><![CDATA[virDomainGetJobStats field: network throughput used while migrating memory in Bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_MEMORY_CONSTANT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_CONSTANT' file='libvirt-domain' string='memory_constant'>
       <info><![CDATA[virDomainGetJobStats field: number of pages filled with a constant byte (all bytes in a single page are identical) transferred since the beginning of the migration job, as VIR_TYPED_PARAM_ULLONG.  The most common example of such pages are zero pages, i.e., pages filled with zero bytes.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_MEMORY_NORMAL' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_NORMAL' file='libvirt-domain' string='memory_normal'>
       <info><![CDATA[virDomainGetJobStats field: number of pages that were transferred without any kind of compression (i.e., pages which were not filled with a constant byte and which could not be compressed) transferred since the beginning of the migration job, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' file='libvirt-domain' string='memory_normal_bytes'>
       <info><![CDATA[virDomainGetJobStats field: number of bytes transferred as normal pages, as VIR_TYPED_PARAM_ULLONG.  See VIR_DOMAIN_JOB_MEMORY_NORMAL for more details.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_MEMORY_PROCESSED' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_PROCESSED' file='libvirt-domain' string='memory_processed'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memProcessed field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_MEMORY_REMAINING' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_REMAINING' file='libvirt-domain' string='memory_remaining'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_REMAINING but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memRemaining field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_MEMORY_TOTAL' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_TOTAL' file='libvirt-domain' string='memory_total'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memTotal field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_SETUP_TIME' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_SETUP_TIME' file='libvirt-domain' string='setup_time'>
       <info><![CDATA[virDomainGetJobStats field: total time in milliseconds spent preparing the migration in the 'setup' phase before the iterations begin, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED' file='libvirt-domain' string='time_elapsed'>
       <info><![CDATA[virDomainGetJobStats field: time (ms) since the beginning of the job, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeElapsed field in virDomainJobInfo.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED_NET' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED_NET' file='libvirt-domain' string='time_elapsed_net'>
       <info><![CDATA[virDomainGetJobStats field: time (ms) since the beginning of the migration job NOT including the time required to transfer control flow from the source host to the destination host, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_JOB_TIME_REMAINING' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_JOB_TIME_REMAINING' file='libvirt-domain' string='time_remaining'>
       <info><![CDATA[virDomainGetJobStats field: remaining time (ms) for VIR_DOMAIN_JOB_BOUNDED jobs, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeRemaining field in virDomainJobInfo.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_FIELD_LENGTH' file='libvirt-domain'>
       <info><![CDATA[Macro providing the field length of virMemoryParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_MEMORY_HARD_LIMIT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_MEMORY_HARD_LIMIT' file='libvirt-domain' string='hard_limit'>
       <info><![CDATA[Macro for the memory tunable hard_limit: it represents the maximum memory the guest can use, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' file='libvirt-domain' string='min_guarantee'>
       <info><![CDATA[Macro for the memory tunable min_guarantee: it represents the minimum memory guaranteed to be reserved for the guest, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED' file='libvirt-domain'>
       <info><![CDATA[Macro providing the virMemoryParameter value that indicates "unlimited"]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_MEMORY_SOFT_LIMIT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_MEMORY_SOFT_LIMIT' file='libvirt-domain' string='soft_limit'>
       <info><![CDATA[Macro for the memory tunable soft_limit: it represents the memory upper limit enforced during memory contention, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT' file='libvirt-domain' string='swap_hard_limit'>
       <info><![CDATA[Macro for the swap tunable swap_hard_limit: it represents the maximum swap plus memory the guest can use, as a ullong. This limit has to be more than VIR_DOMAIN_MEMORY_HARD_LIMIT.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_NUMA_MODE' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_NUMA_MODE' file='libvirt-domain' string='numa_mode'>
       <info><![CDATA[Macro for typed parameter name that lists the numa mode of a domain, as an int containing a virDomainNumatuneMemMode value.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_NUMA_NODESET' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_NUMA_NODESET' file='libvirt-domain' string='numa_nodeset'>
       <info><![CDATA[Macro for typed parameter name that lists the numa nodeset of a domain, as a string.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_CAP' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_CAP' file='libvirt-domain' string='cap'>
       <info><![CDATA[Macro represents the maximum scheduler cap, when using the credit scheduler, as a uint.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_CPU_SHARES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_CPU_SHARES' file='libvirt-domain' string='cpu_shares'>
       <info><![CDATA[Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD' file='libvirt-domain' string='emulator_period'>
       <info><![CDATA[Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA' file='libvirt-domain' string='emulator_quota'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_LIMIT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_LIMIT' file='libvirt-domain' string='limit'>
       <info><![CDATA[Macro represents the scheduler limit value, when using the allocation scheduler, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_RESERVATION' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_RESERVATION' file='libvirt-domain' string='reservation'>
       <info><![CDATA[Macro represents the scheduler reservation value, when using the allocation scheduler, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_SHARES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_SHARES' file='libvirt-domain' string='shares'>
       <info><![CDATA[Macro represents the scheduler shares value, when using the allocation scheduler, as an int.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD' file='libvirt-domain' string='vcpu_period'>
       <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as a ullong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA' file='libvirt-domain' string='vcpu_quota'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as an llong.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_SCHEDULER_WEIGHT' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_SCHEDULER_WEIGHT' file='libvirt-domain' string='weight'>
       <info><![CDATA[Macro represents the relative weight,  when using the credit scheduler, as a uint.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_SCHED_FIELD_LENGTH' file='libvirt-domain'>
@@ -2004,70 +2008,70 @@
     <macro name='VIR_DOMAIN_SEND_KEY_MAX_KEYS' file='libvirt-domain'>
       <info><![CDATA[Maximum number of keycodes that can be sent in one virDomainSendKey() call.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' file='libvirt-domain' string='blkdeviotune.disk'>
       <info><![CDATA[Macro represents the name of guest disk for which the values are updated, as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' file='libvirt-domain' string='blkdeviotune.read_bytes_sec'>
       <info><![CDATA[Marco represents the read throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX' file='libvirt-domain' string='blkdeviotune.read_bytes_sec_max'>
       <info><![CDATA[Marco represents the read throughput limit in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.read_iops_sec'>
       <info><![CDATA[Macro represents the read I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX' file='libvirt-domain' string='blkdeviotune.read_iops_sec_max'>
       <info><![CDATA[Macro represents the read maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.size_iops_sec'>
       <info><![CDATA[Macro represents the size maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' file='libvirt-domain' string='blkdeviotune.total_bytes_sec'>
       <info><![CDATA[Marco represents the total throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX' file='libvirt-domain' string='blkdeviotune.total_bytes_sec_max'>
       <info><![CDATA[Marco represents the total throughput limit in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.total_iops_sec'>
       <info><![CDATA[Macro represents the total I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX' file='libvirt-domain' string='blkdeviotune.total_iops_sec_max'>
       <info><![CDATA[Macro represents the total maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' file='libvirt-domain' string='blkdeviotune.write_bytes_sec'>
       <info><![CDATA[Macro represents the write throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX' file='libvirt-domain' string='blkdeviotune.write_bytes_sec_max'>
       <info><![CDATA[Macro represents the write throughput limit in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.write_iops_sec'>
       <info><![CDATA[Macro represents the write I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX' file='libvirt-domain' string='blkdeviotune.write_iops_sec_max'>
       <info><![CDATA[Macro represents the write maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' file='libvirt-domain' string='cputune.cpu_shares'>
       <info><![CDATA[Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' file='libvirt-domain' string='cputune.emulatorpin'>
       <info><![CDATA[Macro represents formatted pinning for emulator process, as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' file='libvirt-domain' string='cputune.emulator_period'>
       <info><![CDATA[Macro represents the enforcement period for a quota in microseconds, when using the posix scheduler, for all emulator activity not tied to vcpus, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' file='libvirt-domain' string='cputune.emulator_quota'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' file='libvirt-domain' string='cputune.iothreadpin%u'>
       <info><![CDATA[Macro represents formatted pinning for one IOThread specified by id which is appended to the parameter name, for example "cputune.iothreadpin1", as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' file='libvirt-domain' string='cputune.vcpupin%u'>
       <info><![CDATA[Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' file='libvirt-domain' string='cputune.vcpu_period'>
       <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
-    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' file='libvirt-domain'>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' file='libvirt-domain' string='cputune.vcpu_quota'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for vcpus only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.]]></info>
     </macro>
     <macro name='VIR_GET_CPUMAP' file='libvirt-domain'>
@@ -2076,22 +2080,25 @@
       <arg name='maplen' info='the length (in bytes) of one cpumap'/>
       <arg name='vcpu' info='the virtual CPU number'/>
     </macro>
-    <macro name='VIR_MIGRATE_PARAM_BANDWIDTH' file='libvirt-domain'>
+    <macro name='VIR_MIGRATE_PARAM_BANDWIDTH' file='libvirt-domain' string='bandwidth'>
       <info><![CDATA[virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will be used for migration as VIR_TYPED_PARAM_ULLONG. If set to 0 or omitted, libvirt will choose a suitable default. Some hypervisors do not support this feature and will return an error if this field is used and is not 0.]]></info>
     </macro>
-    <macro name='VIR_MIGRATE_PARAM_DEST_NAME' file='libvirt-domain'>
+    <macro name='VIR_MIGRATE_PARAM_DEST_NAME' file='libvirt-domain' string='destination_name'>
       <info><![CDATA[virDomainMigrate* params field: the name to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. Omitting this parameter keeps the domain name the same. This field is only allowed to be used with hypervisors that support domain renaming during migration.]]></info>
     </macro>
-    <macro name='VIR_MIGRATE_PARAM_DEST_XML' file='libvirt-domain'>
+    <macro name='VIR_MIGRATE_PARAM_DEST_XML' file='libvirt-domain' string='destination_xml'>
       <info><![CDATA[virDomainMigrate* params field: the new configuration to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. The configuration must include an identical set of virtual devices, to ensure a stable guest ABI across migration. Only parameters related to host side configuration can be changed in the XML. Hypervisors which support this field will forbid migration if the provided XML would cause a change in the guest ABI. This field cannot be used to rename the domain during migration (use VIR_MIGRATE_PARAM_DEST_NAME field for that purpose). Domain name in the destination XML must match the original domain name.  Omitting this parameter keeps the original domain configuration. Using this field with hypervisors that do not support changing domain configuration during migration will result in a failure.]]></info>
     </macro>
-    <macro name='VIR_MIGRATE_PARAM_GRAPHICS_URI' file='libvirt-domain'>
+    <macro name='VIR_MIGRATE_PARAM_GRAPHICS_URI' file='libvirt-domain' string='graphics_uri'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for migrating client's connection to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the client will be asked to automatically reconnect using these parameters instead of the automatically computed ones. This can be useful if, e.g., the client does not have a direct access to the network virtualization hosts are connected to and needs to connect through a proxy. The URI is formed as follows:  protocol://hostname[:port]/[?parameters]  where protocol is either "spice" or "vnc" and parameters is a list of protocol specific parameters separated by '&'. Currently recognized parameters are "tlsPort" and "tlsSubject". For example,  spice://target.host.com:1234/?tlsPort=4567]]></info>
     </macro>
-    <macro name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' file='libvirt-domain'>
+    <macro name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' file='libvirt-domain' string='listen_address'>
       <info><![CDATA[virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature and will return an error if this field is used.]]></info>
     </macro>
-    <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt-domain'>
+    <macro name='VIR_MIGRATE_PARAM_MIGRATE_DISKS' file='libvirt-domain' string='migrate_disks'>
+      <info><![CDATA[virDomainMigrate* params multiple field: The multiple values that list the block devices to be migrated. At the moment this is only supported by the QEMU driver but not for the tunnelled migration.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt-domain' string='migrate_uri'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
     </macro>
     <macro name='VIR_NETWORK_EVENT_CALLBACK' file='libvirt-network'>
@@ -2104,61 +2111,61 @@
     <macro name='VIR_NODE_CPU_STATS_FIELD_LENGTH' file='libvirt-host'>
       <info><![CDATA[Macro providing the field length of virNodeCPUStats]]></info>
     </macro>
-    <macro name='VIR_NODE_CPU_STATS_IDLE' file='libvirt-host'>
+    <macro name='VIR_NODE_CPU_STATS_IDLE' file='libvirt-host' string='idle'>
       <info><![CDATA[The cumulative idle CPU time, since the node booting up (in nanoseconds).]]></info>
     </macro>
-    <macro name='VIR_NODE_CPU_STATS_INTR' file='libvirt-host'>
+    <macro name='VIR_NODE_CPU_STATS_INTR' file='libvirt-host' string='intr'>
       <info><![CDATA[The cumulative interrupt CPU time, since the node booting up (in nanoseconds).]]></info>
     </macro>
-    <macro name='VIR_NODE_CPU_STATS_IOWAIT' file='libvirt-host'>
+    <macro name='VIR_NODE_CPU_STATS_IOWAIT' file='libvirt-host' string='iowait'>
       <info><![CDATA[The cumulative I/O wait CPU time, since the node booting up (in nanoseconds).]]></info>
     </macro>
-    <macro name='VIR_NODE_CPU_STATS_KERNEL' file='libvirt-host'>
+    <macro name='VIR_NODE_CPU_STATS_KERNEL' file='libvirt-host' string='kernel'>
       <info><![CDATA[Macro for the cumulative CPU time which was spent by the kernel, since the node booting up (in nanoseconds).]]></info>
     </macro>
-    <macro name='VIR_NODE_CPU_STATS_USER' file='libvirt-host'>
+    <macro name='VIR_NODE_CPU_STATS_USER' file='libvirt-host' string='user'>
       <info><![CDATA[The cumulative CPU time which was spent by user processes, since the node booting up (in nanoseconds).]]></info>
     </macro>
-    <macro name='VIR_NODE_CPU_STATS_UTILIZATION' file='libvirt-host'>
+    <macro name='VIR_NODE_CPU_STATS_UTILIZATION' file='libvirt-host' string='utilization'>
       <info><![CDATA[The CPU utilization of a node. The usage value is in percent and 100% represents all CPUs of the node.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_FULL_SCANS' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_FULL_SCANS' file='libvirt-host' string='shm_full_scans'>
       <info><![CDATA[Macro for typed parameter that represents how many times all mergeable areas have been scanned.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES' file='libvirt-host' string='shm_merge_across_nodes'>
       <info><![CDATA[Macro for typed parameter that represents whether pages from different NUMA nodes can be merged. The parameter has type int, when its value is 0, only pages which physically reside in the memory area of same NUMA node are merged; When its value is 1, pages from all nodes can be merged. Other values are reserved for future use.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_SHARED' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_SHARED' file='libvirt-host' string='shm_pages_shared'>
       <info><![CDATA[Macro for typed parameter that represents how many the shared memory pages are being used.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_SHARING' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_SHARING' file='libvirt-host' string='shm_pages_sharing'>
       <info><![CDATA[Macro for typed parameter that represents how many sites are sharing the pages i.e. how much saved.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN' file='libvirt-host' string='shm_pages_to_scan'>
       <info><![CDATA[Macro for typed parameter that represents how many present pages to scan before the shared memory service goes to sleep.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED' file='libvirt-host' string='shm_pages_unshared'>
       <info><![CDATA[Macro for typed parameter that represents how many pages unique but repeatedly checked for merging.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE' file='libvirt-host' string='shm_pages_volatile'>
       <info><![CDATA[Macro for typed parameter that represents how many pages changing too fast to be placed in a tree.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS' file='libvirt-host' string='shm_sleep_millisecs'>
       <info><![CDATA[Macro for typed parameter that represents how many milliseconds the shared memory service should sleep before next scan.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_STATS_BUFFERS' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_STATS_BUFFERS' file='libvirt-host' string='buffers'>
       <info><![CDATA[Macro for the buffer memory: On Linux, it is only returned in case of VIR_NODE_MEMORY_STATS_ALL_CELLS.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_STATS_CACHED' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_STATS_CACHED' file='libvirt-host' string='cached'>
       <info><![CDATA[Macro for the cached memory: On Linux, it is only returned in case of VIR_NODE_MEMORY_STATS_ALL_CELLS.]]></info>
     </macro>
     <macro name='VIR_NODE_MEMORY_STATS_FIELD_LENGTH' file='libvirt-host'>
       <info><![CDATA[Macro providing the field length of virNodeMemoryStats]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_STATS_FREE' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_STATS_FREE' file='libvirt-host' string='free'>
       <info><![CDATA[Macro for the free memory of specified cell: On Linux, it includes buffer and cached memory, in case of VIR_NODE_MEMORY_STATS_ALL_CELLS.]]></info>
     </macro>
-    <macro name='VIR_NODE_MEMORY_STATS_TOTAL' file='libvirt-host'>
+    <macro name='VIR_NODE_MEMORY_STATS_TOTAL' file='libvirt-host' string='total'>
       <info><![CDATA[Macro for the total memory of specified cell: it represents the maximum memory.]]></info>
     </macro>
     <macro name='VIR_SECURITY_DOI_BUFLEN' file='libvirt-host'>
@@ -2504,7 +2511,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED_LAST' file='libvirt-domain' value='1' type='virDomainEventUndefinedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' file='libvirt-domain' value='0' type='virDomainEventUndefinedDetailType' info='Deleted the config file'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG' file='libvirt-domain' value='5' type='virDomainEventWatchdogAction' info='No action, a debug message logged'/>
-    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_LAST' file='libvirt-domain' value='6' type='virDomainEventWatchdogAction'/>
+    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI' file='libvirt-domain' value='6' type='virDomainEventWatchdogAction' info='Inject a non-maskable interrupt into guest'/>
+    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_LAST' file='libvirt-domain' value='7' type='virDomainEventWatchdogAction'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_NONE' file='libvirt-domain' value='0' type='virDomainEventWatchdogAction' info='No action, watchdog ignored'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE' file='libvirt-domain' value='1' type='virDomainEventWatchdogAction' info='Guest CPUs are paused'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' file='libvirt-domain' value='3' type='virDomainEventWatchdogAction' info='Guest is forcibly powered off'/>
@@ -2814,7 +2822,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='62' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='63' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2908,6 +2916,7 @@ formed or broken'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt-event' value='1' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_WRITABLE' file='libvirt-event' value='2' type='virEventHandleType'/>
     <enum name='VIR_FROM_ACCESS' file='virterror' value='55' type='virErrorDomain' info='Error from access control manager'/>
+    <enum name='VIR_FROM_ADMIN' file='virterror' value='62' type='virErrorDomain' info='Error from admin backend'/>
     <enum name='VIR_FROM_AUDIT' file='virterror' value='36' type='virErrorDomain' info='Error from auditing subsystem'/>
     <enum name='VIR_FROM_AUTH' file='virterror' value='46' type='virErrorDomain' info='Error from auth handling'/>
     <enum name='VIR_FROM_BHYVE' file='virterror' value='57' type='virErrorDomain' info='Error from bhyve driver'/>
@@ -10670,6 +10679,16 @@ already exists in @params.]]></info>
       <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='const char *' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsAddStringList' file='libvirt-host' module='virtypedparam'>
+      <info><![CDATA[Packs NULL-terminated list of strings @values into @params under the
+key @name.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to store values to'/>
+      <arg name='values' type='const char **' info='the values to store into the new parameters'/>
     </function>
     <function name='virTypedParamsAddUInt' file='libvirt-host' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with unsigned int type and sets its value

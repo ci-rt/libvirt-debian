@@ -680,7 +680,7 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
 
 
 static int
-qemuDomainAttachUSBMassstorageDevice(virConnectPtr conn,
+qemuDomainAttachUSBMassStorageDevice(virConnectPtr conn,
                                      virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainDiskDefPtr disk)
@@ -823,7 +823,7 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
                                _("disk device='lun' is not supported for usb bus"));
                 break;
             }
-            ret = qemuDomainAttachUSBMassstorageDevice(conn, driver, vm,
+            ret = qemuDomainAttachUSBMassStorageDevice(conn, driver, vm,
                                                        disk);
         } else if (disk->bus == VIR_DOMAIN_DISK_BUS_VIRTIO) {
             ret = qemuDomainAttachVirtioDiskDevice(conn, driver, vm, disk);
@@ -1695,7 +1695,7 @@ qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
  audit:
     virDomainAuditRNG(vm, NULL, rng, "attach", ret == 0);
  cleanup:
-    if (vm)
+    if (ret < 0 && vm)
         qemuDomainReleaseDeviceAddress(vm, &rng->info, NULL);
     VIR_FREE(charAlias);
     VIR_FREE(objAlias);
@@ -1938,7 +1938,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
         } else {
             virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unable to prepare scsi hostdev: %s:%d:%d:%d"),
+                           _("Unable to prepare scsi hostdev: %s:%u:%u:%llu"),
                            scsihostsrc->adapter, scsihostsrc->bus,
                            scsihostsrc->target, scsihostsrc->unit);
         }
@@ -2051,20 +2051,6 @@ int qemuDomainAttachHostDevice(virConnectPtr conn,
  error:
     return -1;
 }
-
-static virDomainNetDefPtr *qemuDomainFindNet(virDomainObjPtr vm,
-                                             virDomainNetDefPtr dev)
-{
-    size_t i;
-
-    for (i = 0; i < vm->def->nnets; i++) {
-        if (virMacAddrCmp(&vm->def->nets[i]->mac, &dev->mac) == 0)
-            return &vm->def->nets[i];
-    }
-
-    return NULL;
-}
-
 
 static int
 qemuDomainChangeNetBridge(virDomainObjPtr vm,
@@ -2195,7 +2181,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
                     virDomainDeviceDefPtr dev)
 {
     virDomainNetDefPtr newdev = dev->data.net;
-    virDomainNetDefPtr *devslot = qemuDomainFindNet(vm, newdev);
+    virDomainNetDefPtr *devslot = NULL;
     virDomainNetDefPtr olddev;
     int oldType, newType;
     bool needReconnect = false;
@@ -2205,8 +2191,13 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
     bool needReplaceDevDef = false;
     bool needBandwidthSet = false;
     int ret = -1;
+    int changeidx = -1;
 
-    if (!devslot || !(olddev = *devslot)) {
+    if ((changeidx = virDomainNetFindIdx(vm->def, newdev)) < 0)
+        goto cleanup;
+    devslot = &vm->def->nets[changeidx];
+
+    if (!(olddev = *devslot)) {
         virReportError(VIR_ERR_OPERATION_FAILED, "%s",
                        _("cannot find existing network device to modify"));
         goto cleanup;
@@ -3271,7 +3262,7 @@ qemuDomainRemoveDevice(virQEMUDriverPtr driver,
         ret = qemuDomainRemoveChrDevice(driver, vm, dev->data.chr);
         break;
     case VIR_DOMAIN_DEVICE_RNG:
-        qemuDomainRemoveRNGDevice(driver, vm, dev->data.rng);
+        ret = qemuDomainRemoveRNGDevice(driver, vm, dev->data.rng);
         break;
 
     case VIR_DOMAIN_DEVICE_MEMORY:
@@ -3882,7 +3873,7 @@ int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
                  virDomainHostdevSubsysSCSIHostPtr scsihostsrc =
                      &scsisrc->u.host;
                  virReportError(VIR_ERR_OPERATION_FAILED,
-                                _("host scsi device %s:%d:%d.%d not found"),
+                                _("host scsi device %s:%u:%u.%llu not found"),
                                 scsihostsrc->adapter, scsihostsrc->bus,
                                 scsihostsrc->target, scsihostsrc->unit);
             }

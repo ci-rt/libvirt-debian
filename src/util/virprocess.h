@@ -58,9 +58,9 @@ int virProcessKillPainfully(pid_t pid, bool force);
 
 int virProcessSetAffinity(pid_t pid, virBitmapPtr map);
 
-int virProcessGetAffinity(pid_t pid,
-                          virBitmapPtr *map,
-                          int maxcpu);
+virBitmapPtr virProcessGetAffinity(pid_t pid);
+
+int virProcessGetPids(pid_t pid, size_t *npids, pid_t **pids);
 
 int virProcessGetStartTime(pid_t pid,
                            unsigned long long *timestamp);

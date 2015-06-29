@@ -392,6 +392,23 @@ REMOTE_DRIVER_SOURCES =						\
 EXTRA_DIST +=  $(REMOTE_DRIVER_PROTOCOL) \
 		$(REMOTE_DRIVER_GENERATED)
 
+ADMIN_PROTOCOL = $(srcdir)/admin/admin_protocol.x
+
+ADMIN_PROTOCOL_GENERATED = \
+		admin/admin_protocol.c	\
+		admin/admin_protocol.h	\
+		admin/admin_client.h
+
+admin/admin_client.h: $(srcdir)/rpc/gendispatch.pl \
+		$(ADMIN_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=client \
+	  admin ADMIN $(ADMIN_PROTOCOL) \
+	  > $(srcdir)/admin/admin_client.h
+
+EXTRA_DIST += $(ADMIN_PROTOCOL) $(ADMIN_PROTOCOL_GENERATED)
+BUILT_SOURCES += $(ADMIN_PROTOCOL_GENERATED)
+MAINTAINERCLEANFILES += $(ADMIN_PROTOCOL_GENERATED)
+
 # Ensure that we don't change the struct or member names or member ordering
 # in remote_protocol.x  The embedded perl below needs a few comments, and
 # presumes you know what pdwtags output looks like:
@@ -412,7 +429,9 @@ EXTRA_DIST +=  $(REMOTE_DRIVER_PROTOCOL) \
 # The alternation of the following regexps matches both cases.
 r1 = /\* \d+ \*/
 r2 = /\* <[[:xdigit:]]+> \S+:\d+ \*/
-struct_prefix = (remote_|qemu_|lxc_|keepalive|vir(Net|LockSpace|LXCMonitor))
+libs_prefix = remote_|qemu_|lxc_|admin_
+other_prefix = keepalive|vir(Net|LockSpace|LXCMonitor)
+struct_prefix = ($(libs_prefix)|$(other_prefix))
 
 # Depending on configure options, libtool creates one or both of
 # remote/{,.libs/}libvirt_driver_remote_la-remote_protocol.o.  We want
@@ -484,6 +503,7 @@ PROTOCOL_STRUCTS = \
 	$(srcdir)/virkeepaliveprotocol-structs \
 	$(srcdir)/lxc_monitor_protocol-structs \
 	$(srcdir)/lock_protocol-structs \
+	$(srcdir)/admin_protocol-structs \
 	$(NULL)
 
 if WITH_REMOTE
@@ -505,6 +525,9 @@ $(srcdir)/lxc_monitor_protocol-struct: \
 $(srcdir)/lock_protocol-struct: \
 		$(srcdir)/%-struct: locking/lockd_la-%.lo
 	$(PDWTAGS)
+$(srcdir)/admin_protocol-struct: \
+		$(srcdir)/%-struct: admin/libvirt_admin_la-%.lo
+	$(PDWTAGS)
 
 else !WITH_REMOTE
 # The $(PROTOCOL_STRUCTS) files must live in git, because they cannot be
@@ -517,6 +540,7 @@ check-drivername:
 	$(AM_V_GEN)$(PERL) $(srcdir)/check-drivername.pl \
 		$(srcdir)/driver.h \
 		$(srcdir)/libvirt_public.syms \
+		$(srcdir)/libvirt_admin.syms \
 		$(srcdir)/libvirt_qemu.syms \
 		$(srcdir)/libvirt_lxc.syms
 
@@ -534,7 +558,7 @@ DRIVER_SOURCE_FILES = \
 	$(NODE_DEVICE_DRIVER_UDEV_SOURCES) \
 	$(NWFILTER_DRIVER_SOURCES) \
 	$(OPENVZ_DRIVER_SOURCES) \
-	$(PARALLELS_DRIVER_SOURCES) \
+	$(VZ_DRIVER_SOURCES) \
 	$(PHYP_DRIVER_SOURCES) \
 	$(QEMU_DRIVER_SOURCES) \
 	$(REMOTE_DRIVER_SOURCES) \
@@ -802,15 +826,15 @@ HYPERV_DRIVER_EXTRA_DIST =							\
 		hyperv/hyperv_wmi_generator.py					\
 		$(HYPERV_DRIVER_GENERATED)
 
-PARALLELS_DRIVER_SOURCES =					\
-		parallels/parallels_driver.h			\
-		parallels/parallels_driver.c			\
-		parallels/parallels_utils.c			\
-		parallels/parallels_utils.h			\
-		parallels/parallels_storage.c		\
-		parallels/parallels_network.c		\
-		parallels/parallels_sdk.h			\
-		parallels/parallels_sdk.c
+VZ_DRIVER_SOURCES =					\
+		vz/vz_driver.h			\
+		vz/vz_driver.c			\
+		vz/vz_utils.c			\
+		vz/vz_utils.h			\
+		vz/vz_storage.c		\
+		vz/vz_network.c		\
+		vz/vz_sdk.h			\
+		vz/vz_sdk.c
 
 BHYVE_DRIVER_SOURCES =						\
 		bhyve/bhyve_capabilities.c			\
@@ -1075,6 +1099,7 @@ USED_SYM_FILES = $(srcdir)/libvirt_private.syms
 GENERATED_SYM_FILES = \
 	$(ACCESS_DRIVER_SYM_FILES) \
 	libvirt.syms libvirt.def libvirt_qemu.def libvirt_lxc.def \
+	libvirt_admin.def \
 	$(NULL)
 
 if WITH_TEST
@@ -1389,15 +1414,15 @@ libvirt_driver_hyperv_la_LIBADD = $(OPENWSMAN_LIBS)
 libvirt_driver_hyperv_la_SOURCES = $(HYPERV_DRIVER_SOURCES)
 endif WITH_HYPERV
 
-if WITH_PARALLELS
-noinst_LTLIBRARIES += libvirt_driver_parallels.la
-libvirt_la_BUILT_LIBADD += libvirt_driver_parallels.la
-libvirt_driver_parallels_la_CFLAGS = \
+if WITH_VZ
+noinst_LTLIBRARIES += libvirt_driver_vz.la
+libvirt_la_BUILT_LIBADD += libvirt_driver_vz.la
+libvirt_driver_vz_la_CFLAGS = \
 		-I$(srcdir)/conf $(AM_CFLAGS) \
 		$(PARALLELS_SDK_CFLAGS) $(LIBNL_CFLAGS)
-libvirt_driver_parallels_la_LIBADD = $(PARALLELS_SDK_LIBS) $(LIBNL_LIBS)
-libvirt_driver_parallels_la_SOURCES = $(PARALLELS_DRIVER_SOURCES)
-endif WITH_PARALLELS
+libvirt_driver_vz_la_LIBADD = $(PARALLELS_SDK_LIBS) $(LIBNL_LIBS)
+libvirt_driver_vz_la_SOURCES = $(VZ_DRIVER_SOURCES)
+endif WITH_VZ
 
 if WITH_BHYVE
 noinst_LTLIBRARIES += libvirt_driver_bhyve_impl.la
@@ -1762,7 +1787,7 @@ EXTRA_DIST +=							\
 		$(ESX_DRIVER_EXTRA_DIST)			\
 		$(HYPERV_DRIVER_SOURCES)			\
 		$(HYPERV_DRIVER_EXTRA_DIST)			\
-		$(PARALLELS_DRIVER_SOURCES)			\
+		$(VZ_DRIVER_SOURCES)				\
 		$(BHYVE_DRIVER_SOURCES)				\
 		$(NETWORK_DRIVER_SOURCES)			\
 		$(INTERFACE_DRIVER_SOURCES)			\
@@ -1984,6 +2009,7 @@ EXTRA_DIST += \
 	libvirt_public.syms		\
 	libvirt_lxc.syms		\
 	libvirt_qemu.syms		\
+	libvirt_admin.syms		\
 	$(SYM_FILES)			\
 	$(NULL)
 
@@ -2003,29 +2029,56 @@ libvirt.syms: libvirt_public.syms $(USED_SYM_FILES) \
 	chmod a-w $@-tmp && \
 	mv $@-tmp libvirt.syms
 
-libvirt.def: libvirt.syms
+%.def: %.syms
 	$(AM_V_GEN)rm -f -- $@-tmp $@ ; \
 	printf 'EXPORTS\n' > $@-tmp && \
 	sed -e '/^$$/d; /#/d; /:/d; /}/d; /\*/d; /LIBVIRT_/d'	\
 	    -e 's/[	 ]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
 	chmod a-w $@-tmp && \
-	mv $@-tmp libvirt.def
+	mv $@-tmp $@
 
-libvirt_qemu.def: $(srcdir)/libvirt_qemu.syms
-	$(AM_V_GEN)rm -f -- $@-tmp $@ ; \
-	printf 'EXPORTS\n' > $@-tmp && \
-	sed -e '/^$$/d; /#/d; /:/d; /}/d; /\*/d; /LIBVIRT_/d'	\
-	    -e 's/[	 ]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
-	chmod a-w $@-tmp && \
-	mv $@-tmp libvirt_qemu.def
+lib_LTLIBRARIES += libvirt-admin.la
+libvirt_admin_la_SOURCES = \
+		libvirt-admin.c			\
+		$(ADMIN_PROTOCOL_GENERATED)	\
+		$(DATATYPES_SOURCES)
 
-libvirt_lxc.def: $(srcdir)/libvirt_lxc.syms
-	$(AM_V_GEN)rm -f -- $@-tmp $@ ; \
-	printf 'EXPORTS\n' > $@-tmp && \
-	sed -e '/^$$/d; /#/d; /:/d; /}/d; /\*/d; /LIBVIRT_/d'	\
-	    -e 's/[	 ]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
-	chmod a-w $@-tmp && \
-	mv $@-tmp libvirt_lxc.def
+libvirt_admin_la_LDFLAGS = \
+		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_ADMIN_SYMBOL_FILE)	\
+		-version-info $(LIBVIRT_VERSION_INFO)			\
+		$(AM_LDFLAGS) 						\
+		$(CYGWIN_EXTRA_LDFLAGS) 				\
+		$(MINGW_EXTRA_LDFLAGS)
+
+libvirt_admin_la_LIBADD = \
+		libvirt.la		\
+		$(CYGWIN_EXTRA_LIBADD)
+
+libvirt_admin_la_CFLAGS = \
+		$(AM_CFLAGS)		\
+		-I$(srcdir)/remote	\
+		-I$(srcdir)/rpc		\
+		-I$(srcdir)/admin
+
+libvirt_admin_la_CFLAGS += \
+		$(CAPNG_CFLAGS)			\
+		$(YAJL_CFLAGS)			\
+		$(SSH2_CFLAGS)			\
+		$(SASL_CFLAGS)			\
+		$(GNUTLS_CFLAGS)
+
+libvirt_admin_la_LIBADD += \
+		$(CAPNG_LIBS)			\
+		$(YAJL_LIBS)			\
+		$(DEVMAPPER_LIBS)		\
+		$(LIBXML_LIBS)			\
+		$(SSH2_LIBS)			\
+		$(SASL_LIBS)			\
+		$(GNUTLS_LIBS)
+
+if WITH_DTRACE_PROBES
+libvirt_admin_la_LIBADD += libvirt_probes.lo
+endif WITH_DTRACE_PROBES
 
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES =
@@ -2094,7 +2147,8 @@ RPC_PROBE_FILES = $(srcdir)/rpc/virnetprotocol.x \
 		  $(srcdir)/remote/lxc_protocol.x \
 		  $(srcdir)/remote/qemu_protocol.x \
 		  $(srcdir)/lxc/lxc_monitor_protocol.x \
-		  $(srcdir)/locking/lock_protocol.x
+		  $(srcdir)/locking/lock_protocol.x \
+		  $(srcdir)/admin/admin_protocol.x
 
 libvirt_functions.stp: $(RPC_PROBE_FILES) $(srcdir)/rpc/gensystemtap.pl
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gensystemtap.pl $(RPC_PROBE_FILES) > $@
@@ -2523,6 +2577,7 @@ libvirt_net_rpc_server_la_SOURCES = \
 	rpc/virnetserverservice.h rpc/virnetserverservice.c \
 	rpc/virnetserverclient.h rpc/virnetserverclient.c \
 	rpc/virnetservermdns.h rpc/virnetservermdns.c \
+	rpc/virnetdaemon.h rpc/virnetdaemon.c \
 	rpc/virnetserver.h rpc/virnetserver.c
 libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \

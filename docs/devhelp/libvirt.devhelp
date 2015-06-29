@@ -138,6 +138,7 @@
     <function name="VIR_MIGRATE_PARAM_DEST_XML" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_DEST_XML"/>
     <function name="VIR_MIGRATE_PARAM_GRAPHICS_URI" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_GRAPHICS_URI"/>
     <function name="VIR_MIGRATE_PARAM_LISTEN_ADDRESS" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_LISTEN_ADDRESS"/>
+    <function name="VIR_MIGRATE_PARAM_MIGRATE_DISKS" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_MIGRATE_DISKS"/>
     <function name="VIR_MIGRATE_PARAM_URI" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_URI"/>
     <function name="VIR_NETWORK_EVENT_CALLBACK" link="libvirt-libvirt-network.html#VIR_NETWORK_EVENT_CALLBACK"/>
     <function name="VIR_NODEINFO_MAXCPUS" link="libvirt-libvirt-host.html#VIR_NODEINFO_MAXCPUS"/>
@@ -434,6 +435,7 @@
     <function name="VIR_DOMAIN_EVENT_UNDEFINED_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED_LAST"/>
     <function name="VIR_DOMAIN_EVENT_UNDEFINED_REMOVED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED_REMOVED"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_DEBUG" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_DEBUG"/>
+    <function name="VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_LAST"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_NONE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_NONE"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_PAUSE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_PAUSE"/>
@@ -769,6 +771,7 @@
     <function name="VIR_EVENT_HANDLE_READABLE" link="libvirt-libvirt-event.html#VIR_EVENT_HANDLE_READABLE"/>
     <function name="VIR_EVENT_HANDLE_WRITABLE" link="libvirt-libvirt-event.html#VIR_EVENT_HANDLE_WRITABLE"/>
     <function name="VIR_FROM_ACCESS" link="libvirt-virterror.html#VIR_FROM_ACCESS"/>
+    <function name="VIR_FROM_ADMIN" link="libvirt-virterror.html#VIR_FROM_ADMIN"/>
     <function name="VIR_FROM_AUDIT" link="libvirt-virterror.html#VIR_FROM_AUDIT"/>
     <function name="VIR_FROM_AUTH" link="libvirt-virterror.html#VIR_FROM_AUTH"/>
     <function name="VIR_FROM_BHYVE" link="libvirt-virterror.html#VIR_FROM_BHYVE"/>
@@ -1626,6 +1629,7 @@
     <function name="virTypedParamsAddInt ()" link="libvirt-libvirt-host.html#virTypedParamsAddInt"/>
     <function name="virTypedParamsAddLLong ()" link="libvirt-libvirt-host.html#virTypedParamsAddLLong"/>
     <function name="virTypedParamsAddString ()" link="libvirt-libvirt-host.html#virTypedParamsAddString"/>
+    <function name="virTypedParamsAddStringList ()" link="libvirt-libvirt-host.html#virTypedParamsAddStringList"/>
     <function name="virTypedParamsAddUInt ()" link="libvirt-libvirt-host.html#virTypedParamsAddUInt"/>
     <function name="virTypedParamsAddULLong ()" link="libvirt-libvirt-host.html#virTypedParamsAddULLong"/>
     <function name="virTypedParamsClear ()" link="libvirt-libvirt-host.html#virTypedParamsClear"/>

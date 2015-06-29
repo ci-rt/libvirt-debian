@@ -832,8 +832,9 @@ int virNetworkIpDefNetmask(const virNetworkIpDef *def,
 
 static int
 virSocketAddrRangeParseXML(const char *networkName,
-                               xmlNodePtr node,
-                               virSocketAddrRangePtr range)
+                           virNetworkIpDefPtr ipdef,
+                           xmlNodePtr node,
+                           virSocketAddrRangePtr range)
 {
 
 
@@ -859,12 +860,9 @@ virSocketAddrRangeParseXML(const char *networkName,
         goto cleanup;
 
     /* do a sanity check of the range */
-    if (virSocketAddrGetRange(&range->start, &range->end) < 0) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       _("Invalid dhcp range '%s' to '%s' in network '%s'"),
-                       start, end, networkName);
+    if (virSocketAddrGetRange(&range->start, &range->end, &ipdef->address,
+                              virNetworkIpDefPrefix(ipdef)) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 
@@ -1009,8 +1007,8 @@ virNetworkDHCPDefParseXML(const char *networkName,
 
             if (VIR_REALLOC_N(def->ranges, def->nranges + 1) < 0)
                 return -1;
-            if (virSocketAddrRangeParseXML(networkName, cur,
-                                               &def->ranges[def->nranges]) < 0) {
+            if (virSocketAddrRangeParseXML(networkName, def, cur,
+                                           &def->ranges[def->nranges]) < 0) {
                 return -1;
             }
             def->nranges++;
@@ -3608,7 +3606,7 @@ virNetworkDefUpdateIPDHCPRange(virNetworkDefPtr def,
         goto cleanup;
     }
 
-    if (virSocketAddrRangeParseXML(def->name, ctxt->node, &range) < 0)
+    if (virSocketAddrRangeParseXML(def->name, ipdef, ctxt->node, &range) < 0)
         goto cleanup;
 
     /* check if an entry with same name/address/ip already exists */

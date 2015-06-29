@@ -18,6 +18,14 @@
       <entry name='sku'>1234567890</entry>
       <entry name='family'>Red Hat</entry>
     </system>
+    <baseBoard>
+      <entry name='manufacturer'>Hewlett-Packard</entry>
+      <entry name='product'>0B4Ch</entry>
+      <entry name='version'>D</entry>
+      <entry name='serial'>CZC1065993</entry>
+      <entry name='asset'>CZC1065993</entry>
+      <entry name='location'>Upside down</entry>
+    </baseBoard>
   </sysinfo>
   <os>
     <type arch='i686' machine='pc'>hvm</type>

@@ -72,6 +72,7 @@ LDADDS = \
 	../src/libvirt.la
 
 EXTRA_DIST =		\
+	.valgrind.supp \
 	bhyvexml2argvdata \
 	bhyvexml2xmloutdata \
 	capabilityschemadata \
@@ -93,12 +94,12 @@ EXTRA_DIST =		\
 	lxcxml2xmldata \
 	lxcxml2xmloutdata \
 	networkschematest \
+	networkxml2confdata \
+	networkxml2firewalldata \
 	networkxml2xmlin \
 	networkxml2xmlout \
-	networkxml2confdata \
 	networkxml2xmlupdatein \
 	networkxml2xmlupdateout \
-	networkxml2firewalldata \
 	nodedevschemadata \
 	nodedevschematest \
 	nodeinfodata     \
@@ -116,40 +117,40 @@ EXTRA_DIST =		\
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
 	qemuxmlnsdata \
+	schematestutils.sh \
 	secretxml2xmlin \
 	securityselinuxhelperdata \
 	securityselinuxlabeldata \
-	schematestutils.sh \
 	sexpr2xmldata \
 	storagepoolschemadata \
 	storagepoolschematest \
 	storagepoolxml2xmlin \
 	storagepoolxml2xmlout \
-	storagevolxml2argvdata \
 	storagevolschemadata \
 	storagevolschematest \
+	storagevolxml2argvdata \
 	storagevolxml2xmlin \
 	storagevolxml2xmlout \
 	sysinfodata \
 	test-lib.sh	\
-	vircaps2xmldata \
 	vboxsnapshotxmldata \
-	virsh-uriprecedence \
+	vircaps2xmldata \
 	vircgroupdata \
 	virfiledata \
+	virmock.h \
+	virnetdaemondata \
 	virnetdevtestdata \
 	virpcitestdata \
 	virscsidata \
+	virsh-uriprecedence \
 	virusbtestdata \
+	vmwareverdata \
 	vmx2xmldata \
 	xencapsdata \
-	xmconfigdata \
 	xlconfigdata \
+	xmconfigdata \
 	xml2sexprdata \
-	xml2vmxdata \
-	vmwareverdata \
-	.valgrind.supp \
-	virmock.h
+	xml2vmxdata
 
 test_helpers = commandhelper ssh test_conf
 test_programs = virshtest sockettest \
@@ -182,12 +183,14 @@ test_programs = virshtest sockettest \
 	virhostdevtest \
 	vircaps2xmltest \
 	virnetdevtest \
+	virtypedparamtest \
 	$(NULL)
 
 if WITH_REMOTE
 test_programs += \
 	virnetmessagetest \
 	virnetsockettest \
+	virnetdaemontest \
 	virnetserverclienttest \
 	$(NULL)
 if WITH_GNUTLS
@@ -921,6 +924,12 @@ virnetsockettest_SOURCES = \
 	virnetsockettest.c testutils.h testutils.c
 virnetsockettest_LDADD = $(LDADDS)
 
+virnetdaemontest_SOURCES = \
+	virnetdaemontest.c \
+	testutils.h testutils.c
+virnetdaemontest_CFLAGS = $(XDR_CFLAGS) $(AM_CFLAGS)
+virnetdaemontest_LDADD = $(LDADDS)
+
 virnetserverclienttest_SOURCES = \
 	virnetserverclienttest.c \
 	testutils.h testutils.c
@@ -1224,6 +1233,11 @@ objecteventtest_SOURCES = \
 	objecteventtest.c \
 	testutils.c testutils.h
 objecteventtest_LDADD = $(LDADDS)
+
+virtypedparamtest_SOURCES = \
+	virtypedparamtest.c testutils.h testutils.c
+virtypedparamtest_LDADD = $(LDADDS)
+
 
 if WITH_LINUX
 fchosttest_SOURCES = \
