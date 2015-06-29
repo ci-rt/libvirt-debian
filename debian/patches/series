@@ -5,7 +5,6 @@ debian/Debianize-libvirt-guests.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Disable-failing-virnetsockettest.patch
-Don-t-fail-if-we-can-t-setup-avahi.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
