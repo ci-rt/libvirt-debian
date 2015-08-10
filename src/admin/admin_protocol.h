@@ -13,8 +13,7 @@
 extern "C" {
 #endif
 
-#include "remote_protocol.h"
-#define REMOTE_STRING_MAX 4194304
+#define ADMIN_STRING_MAX 4194304
 
 typedef char *admin_nonnull_string;
 

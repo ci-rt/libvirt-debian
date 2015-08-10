@@ -519,6 +519,9 @@ mymain(void)
     driver.config->spiceTLS = 1;
     if (VIR_STRDUP_QUIET(driver.config->spicePassword, "123456") < 0)
         return EXIT_FAILURE;
+    VIR_FREE(driver.config->channelTargetDir);
+    if (VIR_STRDUP_QUIET(driver.config->channelTargetDir, "/tmp") < 0)
+        return EXIT_FAILURE;
 
 # define DO_TEST_FULL(name, migrateFrom, migrateFd, flags, ...)         \
     do {                                                                \
@@ -604,6 +607,15 @@ mymain(void)
     DO_TEST("boot-cdrom", NONE);
     DO_TEST("boot-network", NONE);
     DO_TEST("boot-floppy", NONE);
+    DO_TEST("boot-floppy-q35",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_ICH9_AHCI);
+    DO_TEST("bootindex-floppy-q35",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_ICH9_AHCI, QEMU_CAPS_BOOT_MENU,
+            QEMU_CAPS_BOOTINDEX);
     DO_TEST("boot-multi", QEMU_CAPS_BOOT_MENU);
     DO_TEST("boot-menu-enable",
             QEMU_CAPS_BOOT_MENU, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE);
@@ -818,7 +830,7 @@ mymain(void)
                     QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-no-boot",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_BOOTINDEX);
-    DO_TEST_FAILURE("disk-device-lun-type-invalid",
+    DO_TEST_PARSE_ERROR("disk-device-lun-type-invalid",
                     QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-usb",  NONE);
     DO_TEST("disk-usb-device",
@@ -891,6 +903,9 @@ mymain(void)
             QEMU_CAPS_DEVICE);
     DO_TEST("disk-snapshot",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST_FAILURE("disk-same-targets",
+                    QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_SCSI_LSI,
+                    QEMU_CAPS_DEVICE_USB_STORAGE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("event_idx",
             QEMU_CAPS_DRIVE,
             QEMU_CAPS_VIRTIO_BLK_EVENT_IDX,
@@ -1110,6 +1125,11 @@ mymain(void)
     DO_TEST("channel-spicevmc-old",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SPICE, QEMU_CAPS_DEVICE_SPICEVMC);
+    DO_TEST("channel-virtio-default",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC);
+    DO_TEST("channel-virtio-unix",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
 
     DO_TEST("smartcard-host",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE,
@@ -1211,6 +1231,10 @@ mymain(void)
     DO_TEST("fs9p",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_FSDEV,
             QEMU_CAPS_FSDEV_WRITEOUT);
+    DO_TEST("fs9p-ccw",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_FSDEV,
+            QEMU_CAPS_FSDEV_WRITEOUT, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
 
     DO_TEST("hostdev-usb-address", NONE);
     DO_TEST("hostdev-usb-address-device",
@@ -1596,6 +1620,8 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_IVSHMEM);
     DO_TEST_FAILURE("shmem", NONE);
     DO_TEST_FAILURE("shmem-invalid-size", QEMU_CAPS_PCIDEVICE,
+                    QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_IVSHMEM);
+    DO_TEST_FAILURE("shmem-invalid-address", QEMU_CAPS_PCIDEVICE,
                     QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_IVSHMEM);
     DO_TEST_FAILURE("shmem-small-size", QEMU_CAPS_PCIDEVICE,
                     QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_IVSHMEM);

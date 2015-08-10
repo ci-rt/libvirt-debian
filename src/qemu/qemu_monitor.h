@@ -186,6 +186,11 @@ typedef int (*qemuMonitorDomainSpiceMigratedCallback)(qemuMonitorPtr mon,
                                                       virDomainObjPtr vm,
                                                       void *opaque);
 
+typedef int (*qemuMonitorDomainMigrationStatusCallback)(qemuMonitorPtr mon,
+                                                        virDomainObjPtr vm,
+                                                        int status,
+                                                        void *opaque);
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -214,6 +219,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainNicRxFilterChangedCallback domainNicRxFilterChanged;
     qemuMonitorDomainSerialChangeCallback domainSerialChange;
     qemuMonitorDomainSpiceMigratedCallback domainSpiceMigrated;
+    qemuMonitorDomainMigrationStatusCallback domainMigrationStatus;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -234,6 +240,8 @@ qemuMonitorPtr qemuMonitorOpenFD(virDomainObjPtr vm,
 
 void qemuMonitorClose(qemuMonitorPtr mon);
 
+virErrorPtr qemuMonitorLastError(qemuMonitorPtr mon);
+
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
 
 int qemuMonitorSetLink(qemuMonitorPtr mon,
@@ -251,7 +259,7 @@ void qemuMonitorSetOptions(qemuMonitorPtr mon, virJSONValuePtr options)
     ATTRIBUTE_NONNULL(1);
 int qemuMonitorUpdateVideoMemorySize(qemuMonitorPtr mon,
                                      virDomainVideoDefPtr video,
-                                     const char *videName)
+                                     const char *videoName)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
                                 const char *cmd,
@@ -313,6 +321,8 @@ int qemuMonitorEmitSerialChange(qemuMonitorPtr mon,
                                 const char *devAlias,
                                 bool connected);
 int qemuMonitorEmitSpiceMigrated(qemuMonitorPtr mon);
+int qemuMonitorEmitMigrationStatus(qemuMonitorPtr mon,
+                                   int status);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -504,6 +514,7 @@ typedef enum {
     QEMU_MONITOR_MIGRATION_CAPS_XBZRLE,
     QEMU_MONITOR_MIGRATION_CAPS_AUTO_CONVERGE,
     QEMU_MONITOR_MIGRATION_CAPS_RDMA_PIN_ALL,
+    QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
 
     QEMU_MONITOR_MIGRATION_CAPS_LAST
 } qemuMonitorMigrationCaps;
@@ -786,6 +797,7 @@ struct _qemuMonitorBlockJobInfo {
     unsigned long long bandwidth; /* in bytes/s */
     virDomainBlockJobCursor cur;
     virDomainBlockJobCursor end;
+    int ready; /* -1 if unknown, 0 if not ready, 1 if ready */
 };
 
 virHashTablePtr qemuMonitorGetAllBlockJobInfo(qemuMonitorPtr mon);

@@ -59,7 +59,7 @@
 
 VIR_LOG_INIT("qemu.qemu_hotplug");
 
-#define CHANGE_MEDIA_RETRIES 10
+#define CHANGE_MEDIA_TIMEOUT 5000
 
 /* Wait up to 5 seconds for device removal to finish. */
 unsigned long long qemuDomainRemoveDeviceWaitTime = 1000ull * 5;
@@ -166,12 +166,13 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
                                virStorageSourcePtr newsrc,
                                bool force)
 {
-    int ret = -1;
+    int ret = -1, rc;
     char *driveAlias = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    int retries = CHANGE_MEDIA_RETRIES;
     const char *format = NULL;
     char *sourcestr = NULL;
+    bool ejectRetry = false;
+    unsigned long long now;
 
     if (!disk->info.alias) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -193,36 +194,31 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     if (!(driveAlias = qemuDeviceDriveHostAlias(disk, priv->qemuCaps)))
         goto error;
 
-    qemuDomainObjEnterMonitor(driver, vm);
-    ret = qemuMonitorEjectMedia(priv->mon, driveAlias, force);
-    if (qemuDomainObjExitMonitor(driver, vm) < 0) {
-        ret = -1;
-        goto cleanup;
-    }
+    do {
+        qemuDomainObjEnterMonitor(driver, vm);
+        rc = qemuMonitorEjectMedia(priv->mon, driveAlias, force);
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
+            goto cleanup;
 
-    if (ret < 0)
-        goto error;
+        if (rc == -2) {
+            /* we've already tried, error out */
+            if (ejectRetry)
+                goto error;
+            VIR_DEBUG("tray is locked, wait for the guest to unlock "
+                      "the tray and try to eject it again");
+            ejectRetry = true;
+        } else if (rc < 0) {
+            goto error;
+        }
 
-    virObjectRef(vm);
-    /* we don't want to report errors from media tray_open polling */
-    while (retries) {
-        if (disk->tray_status == VIR_DOMAIN_DISK_TRAY_OPEN)
-            break;
+        if (virTimeMillisNow(&now) < 0)
+            goto error;
 
-        retries--;
-        virObjectUnlock(vm);
-        VIR_DEBUG("Waiting 500ms for tray to open. Retries left %d", retries);
-        usleep(500 * 1000); /* sleep 500ms */
-        virObjectLock(vm);
-    }
-    virObjectUnref(vm);
-
-    if (retries <= 0) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                       _("Unable to eject media"));
-        ret = -1;
-        goto error;
-    }
+        while (disk->tray_status != VIR_DOMAIN_DISK_TRAY_OPEN) {
+            if (virDomainObjWaitUntil(vm, now + CHANGE_MEDIA_TIMEOUT) != 0)
+                goto error;
+        }
+    } while (ejectRetry && rc != 0);
 
     if (!virStorageSourceIsEmpty(newsrc)) {
         if (qemuGetDriveSourceString(newsrc, conn, &sourcestr) < 0)
@@ -237,19 +233,17 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
             }
         }
         qemuDomainObjEnterMonitor(driver, vm);
-        ret = qemuMonitorChangeMedia(priv->mon,
-                                     driveAlias,
-                                     sourcestr,
-                                     format);
-        if (qemuDomainObjExitMonitor(driver, vm) < 0) {
-            ret = -1;
+        rc = qemuMonitorChangeMedia(priv->mon,
+                                    driveAlias,
+                                    sourcestr,
+                                    format);
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
             goto cleanup;
-        }
     }
 
-    virDomainAuditDisk(vm, disk->src, newsrc, "update", ret >= 0);
+    virDomainAuditDisk(vm, disk->src, newsrc, "update", rc >= 0);
 
-    if (ret < 0)
+    if (rc < 0)
         goto error;
 
     /* remove the old source from shared device list */
@@ -259,6 +253,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     virStorageSourceFree(disk->src);
     disk->src = newsrc;
     newsrc = NULL;
+    ret = 0;
 
  cleanup:
     VIR_FREE(driveAlias);
@@ -1531,17 +1526,51 @@ qemuDomainChrRemove(virDomainDefPtr vmdef,
     return ret;
 }
 
+static int
+qemuDomainAttachChrDeviceAssignAddr(qemuDomainObjPrivatePtr priv,
+                                    virDomainChrDefPtr chr)
+{
+    if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+        chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO) {
+        if (virDomainVirtioSerialAddrAutoAssign(NULL, priv->vioserialaddrs,
+                                                &chr->info, true) < 0)
+            return -1;
+        return 1;
+
+    } else if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
+               chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_PCI) {
+        if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &chr->info) < 0)
+            return -1;
+        return 1;
+
+    } else if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
+               chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO) {
+        if (virDomainVirtioSerialAddrAutoAssign(NULL, priv->vioserialaddrs,
+                                                &chr->info, false) < 0)
+            return -1;
+        return 1;
+    }
+
+    if (chr->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL ||
+        chr->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Unsupported address type for character device"));
+        return -1;
+    }
+
+    return 0;
+}
+
 int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainChrDefPtr chr)
 {
-    int ret = -1;
+    int ret = -1, rc;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainDefPtr vmdef = vm->def;
     char *devstr = NULL;
     char *charAlias = NULL;
     bool need_release = false;
-    bool allowZero = false;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
@@ -1552,23 +1581,10 @@ int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
     if (qemuAssignDeviceChrAlias(vmdef, chr, -1) < 0)
         goto cleanup;
 
-    if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
-        chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO)
-        allowZero = true;
-
-    if (chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_PCI) {
-        if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &chr->info) < 0)
-            goto cleanup;
-    } else if (chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB) {
-        /* XXX */
-    } else {
-        if (virDomainVirtioSerialAddrAutoAssign(NULL,
-                                                priv->vioserialaddrs,
-                                                &chr->info,
-                                                allowZero) < 0)
-            goto cleanup;
-    }
-    need_release = true;
+    if ((rc = qemuDomainAttachChrDeviceAssignAddr(priv, chr)) < 0)
+        goto cleanup;
+    if (rc == 1)
+        need_release = true;
 
     if (qemuBuildChrDeviceStr(&devstr, vm->def, chr, priv->qemuCaps) < 0)
         goto cleanup;
@@ -1601,15 +1617,8 @@ int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
  cleanup:
     if (ret < 0 && virDomainObjIsActive(vm))
         qemuDomainChrInsertPreAllocCleanup(vm->def, chr);
-    if (ret < 0 && need_release) {
-        if (chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_PCI) {
-            qemuDomainReleaseDeviceAddress(vm, &chr->info, NULL);
-        } else if (chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB) {
-            /* XXX */
-        } else {
-            virDomainVirtioSerialAddrRelease(priv->vioserialaddrs, &chr->info);
-        }
-    }
+    if (ret < 0 && need_release)
+        qemuDomainReleaseDeviceAddress(vm, &chr->info, NULL);
     VIR_FREE(charAlias);
     VIR_FREE(devstr);
     return ret;
@@ -1735,6 +1744,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    unsigned long long oldmem = virDomainDefGetMemoryActual(vm->def);
     char *devstr = NULL;
     char *objalias = NULL;
     const char *backendType;
@@ -1800,6 +1810,9 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     /* fix the balloon size if it was set to maximum */
     if (fix_balloon)
         vm->def->mem.cur_balloon += mem->size;
+
+    virDomainAuditMemory(vm, oldmem, virDomainDefGetMemoryActual(vm->def),
+                         "update", ret == 0);
 
     /* mem is consumed by vm->def */
     mem = NULL;
@@ -2890,10 +2903,12 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
                              virDomainMemoryDefPtr mem)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    unsigned long long oldmem = virDomainDefGetMemoryActual(vm->def);
     virObjectEventPtr event;
     char *backendAlias = NULL;
     int rc;
     int idx;
+    int ret = -1;
 
     VIR_DEBUG("Removing memory device %s from domain %p %s",
               mem->info.alias, vm, vm->def->name);
@@ -2902,12 +2917,12 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
         qemuDomainEventQueue(driver, event);
 
     if (virAsprintf(&backendAlias, "mem%s", mem->info.alias) < 0)
-        goto error;
+        goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
     rc = qemuMonitorDelObject(priv->mon, backendAlias);
     if (qemuDomainObjExitMonitor(driver, vm) < 0 || rc < 0)
-        goto error;
+        goto cleanup;
 
     vm->def->mem.cur_balloon -= mem->size;
 
@@ -2915,12 +2930,14 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
         virDomainMemoryRemove(vm->def, idx);
 
     virDomainMemoryDefFree(mem);
-    VIR_FREE(backendAlias);
-    return 0;
+    ret = 0;
 
- error:
+ cleanup:
+    virDomainAuditMemory(vm, oldmem, virDomainDefGetMemoryActual(vm->def),
+                         "update", ret == 0);
+
     VIR_FREE(backendAlias);
-    return -1;
+    return ret;
 }
 
 
@@ -4155,13 +4172,7 @@ int qemuDomainDetachChrDevice(virQEMUDriverPtr driver,
 
     rc = qemuDomainWaitForDeviceRemoval(vm);
     if (rc == 0 || rc == 1) {
-        if (chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_PCI) {
-            qemuDomainReleaseDeviceAddress(vm, &tmpChr->info, NULL);
-        } else if (chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB) {
-            /* XXX */
-        } else {
-            virDomainVirtioSerialAddrRelease(priv->vioserialaddrs, &tmpChr->info);
-        }
+        qemuDomainReleaseDeviceAddress(vm, &tmpChr->info, NULL);
         ret = qemuDomainRemoveChrDevice(driver, vm, tmpChr);
     } else {
         ret = 0;

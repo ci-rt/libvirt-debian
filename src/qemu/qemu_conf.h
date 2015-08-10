@@ -192,7 +192,7 @@ struct _virQEMUDriver {
     virThreadPoolPtr workerPool;
 
     /* Atomic increment only */
-    int nextvmid;
+    int lastvmid;
 
     /* Atomic inc/dec only */
     unsigned int nactive;
@@ -252,6 +252,9 @@ struct _virQEMUDriver {
 
     /* Immutable pointer, self-clocking APIs */
     virCloseCallbacksPtr closeCallbacks;
+
+    /* Immutable pointer, self-locking APIs */
+    virHashAtomicPtr migrationErrors;
 };
 
 typedef struct _qemuDomainCmdlineDef qemuDomainCmdlineDef;

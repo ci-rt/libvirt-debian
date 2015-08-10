@@ -1141,7 +1141,7 @@ prlsdkConvertCpuInfo(PRL_HANDLE sdkdom,
     PRL_RESULT pret;
     int ret = -1;
 
-    if ((hostcpus = nodeGetCPUCount()) < 0)
+    if ((hostcpus = nodeGetCPUCount(NULL)) < 0)
         goto cleanup;
 
     /* get number of CPUs */
@@ -1697,19 +1697,31 @@ prlsdkHandlePerfEvent(vzConnPtr privconn,
     return PRL_ERR_SUCCESS;
 }
 
-static void
-prlsdkHandleVmEvent(vzConnPtr privconn, PRL_HANDLE prlEvent)
+static PRL_RESULT
+prlsdkEventsHandler(PRL_HANDLE prlEvent, PRL_VOID_PTR opaque)
 {
+    vzConnPtr privconn = opaque;
     PRL_RESULT pret = PRL_ERR_FAILURE;
+    PRL_HANDLE_TYPE handleType;
     char uuidstr[VIR_UUID_STRING_BUFLEN + 2];
     unsigned char uuid[VIR_UUID_BUFLEN];
     PRL_UINT32 bufsize = ARRAY_CARDINALITY(uuidstr);
     PRL_EVENT_TYPE prlEventType;
 
-    pret = PrlEvent_GetType(prlEvent, &prlEventType);
+    pret = PrlHandle_GetType(prlEvent, &handleType);
     prlsdkCheckRetGoto(pret, cleanup);
 
+    /* Currently, there is no need to handle anything but events */
+    if (handleType != PHT_EVENT)
+        goto cleanup;
+
+    if (privconn == NULL)
+        goto cleanup;
+
     pret = PrlEvent_GetIssuerId(prlEvent, uuidstr, &bufsize);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlEvent_GetType(prlEvent, &prlEventType);
     prlsdkCheckRetGoto(pret, cleanup);
 
     if (prlsdkUUIDParse(uuidstr, uuid) < 0)
@@ -1736,51 +1748,13 @@ prlsdkHandleVmEvent(vzConnPtr privconn, PRL_HANDLE prlEvent)
         prlEvent = PRL_INVALID_HANDLE;
         break;
     default:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Can't handle event of type %d"), prlEventType);
-    }
-
- cleanup:
-    PrlHandle_Free(prlEvent);
-    return;
-}
-
-static PRL_RESULT
-prlsdkEventsHandler(PRL_HANDLE prlEvent, PRL_VOID_PTR opaque)
-{
-    vzConnPtr privconn = opaque;
-    PRL_RESULT pret = PRL_ERR_FAILURE;
-    PRL_HANDLE_TYPE handleType;
-    PRL_EVENT_ISSUER_TYPE prlIssuerType = PIE_UNKNOWN;
-
-    pret = PrlHandle_GetType(prlEvent, &handleType);
-    prlsdkCheckRetGoto(pret, cleanup);
-
-    /* Currently, there is no need to handle anything but events */
-    if (handleType != PHT_EVENT)
-        goto cleanup;
-
-    if (privconn == NULL)
-        goto cleanup;
-
-    PrlEvent_GetIssuerType(prlEvent, &prlIssuerType);
-    prlsdkCheckRetGoto(pret, cleanup);
-
-    switch (prlIssuerType) {
-    case PIE_VIRTUAL_MACHINE:
-        prlsdkHandleVmEvent(privconn, prlEvent);
-        /* above function takes own of event */
-        prlEvent = PRL_INVALID_HANDLE;
-        break;
-    default:
-        VIR_DEBUG("Skipping event of issuer type %d", prlIssuerType);
+        VIR_DEBUG("Skipping event of type %d", prlEventType);
     }
 
  cleanup:
     PrlHandle_Free(prlEvent);
     return PRL_ERR_SUCCESS;
 }
-
 
 int prlsdkSubscribeToPCSEvents(vzConnPtr privconn)
 {
@@ -2788,8 +2762,13 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom,
     PRL_HANDLE sdknet = PRL_INVALID_HANDLE;
     PRL_HANDLE vnet = PRL_INVALID_HANDLE;
     PRL_HANDLE job = PRL_INVALID_HANDLE;
+    PRL_HANDLE addrlist = PRL_INVALID_HANDLE;
+    size_t i;
     int ret = -1;
     char macstr[PRL_MAC_STRING_BUFNAME];
+    char *addrstr = NULL;
+    bool ipv6present = false;
+    bool ipv4present = false;
 
     if (prlsdkCheckNetUnsupportedParams(net) < 0)
         return -1;
@@ -2813,6 +2792,125 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom,
     prlsdkFormatMac(&net->mac, macstr);
     pret = PrlVmDevNet_SetMacAddress(sdknet, macstr);
     prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlApi_CreateStringsList(&addrlist);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    for (i = 0; i < net->nips; i++) {
+        char *tmpstr;
+
+        if (AF_INET == VIR_SOCKET_ADDR_FAMILY(&net->ips[i]->address))
+            ipv4present = true;
+        else if (AF_INET6 == VIR_SOCKET_ADDR_FAMILY(&net->ips[i]->address))
+            ipv6present = true;
+        else
+            continue;
+
+        if (!(tmpstr = virSocketAddrFormat(&net->ips[i]->address)))
+            goto cleanup;
+
+        if (virAsprintf(&addrstr, "%s/%d", tmpstr, net->ips[i]->prefix) < 0) {
+            VIR_FREE(tmpstr);
+            goto cleanup;
+        }
+
+        VIR_FREE(tmpstr);
+        pret = PrlStrList_AddItem(addrlist, addrstr);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        VIR_FREE(addrstr);
+    }
+
+    if (ipv4present || ipv6present) {
+        pret = PrlVmDevNet_SetNetAddresses(sdknet, addrlist);
+        prlsdkCheckRetGoto(pret, cleanup);
+    }
+
+    pret = PrlVmDevNet_SetConfigureWithDhcp(sdknet, !ipv4present);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDevNet_SetConfigureWithDhcpIPv6(sdknet, !ipv6present);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = PrlVmDevNet_SetAutoApply(sdknet, true);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (net->nroutes) {
+        bool alreadySetIPv4Gateway = false;
+        bool alreadySetIPv6Gateway = false;
+
+        for (i = 0; i < net->nroutes; i++) {
+            virSocketAddrPtr addrdst, gateway;
+            virSocketAddr zero;
+
+            addrdst = virNetworkRouteDefGetAddress(net->routes[i]);
+            gateway = virNetworkRouteDefGetGateway(net->routes[i]);
+
+            ignore_value(virSocketAddrParse(&zero,
+                                    (VIR_SOCKET_ADDR_IS_FAMILY(addrdst, AF_INET)
+                                     ? VIR_SOCKET_ADDR_IPV4_ALL
+                                     : VIR_SOCKET_ADDR_IPV6_ALL),
+                                    VIR_SOCKET_ADDR_FAMILY(addrdst)));
+
+            if (!virSocketAddrEqual(addrdst, &zero)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Support only default gateway"));
+                goto cleanup;
+            }
+
+            switch (VIR_SOCKET_ADDR_FAMILY(gateway)) {
+            case AF_INET:
+
+                if (!ipv4present)
+                    continue;
+
+                if (alreadySetIPv4Gateway) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("Support only one IPv4 default gateway"));
+                    goto cleanup;
+                }
+
+                if (!(addrstr = virSocketAddrFormat(gateway)))
+                    goto cleanup;
+
+                pret = PrlVmDevNet_SetDefaultGateway(sdknet, addrstr);
+                prlsdkCheckRetGoto(pret, cleanup);
+
+                alreadySetIPv4Gateway = true;
+                break;
+
+            case AF_INET6:
+
+                if (!ipv6present)
+                    continue;
+
+                if (alreadySetIPv6Gateway) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("Support only one IPv6 default gateway"));
+                    goto cleanup;
+                }
+
+                if (!(addrstr = virSocketAddrFormat(gateway)))
+                    goto cleanup;
+
+                pret = PrlVmDevNet_SetDefaultGatewayIPv6(sdknet, addrstr);
+                prlsdkCheckRetGoto(pret, cleanup);
+
+                alreadySetIPv6Gateway = true;
+                break;
+
+            default:
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Unsupported address family %d "
+                                 "Only IPv4 or IPv6 default gateway"),
+                               VIR_SOCKET_ADDR_FAMILY(gateway));
+
+                goto cleanup;
+            }
+
+            VIR_FREE(addrstr);
+        }
+    }
 
     if (isCt) {
         if (net->model)
@@ -2860,7 +2958,9 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom,
         pret = PrlVirtNet_SetNetworkType(vnet, PVN_BRIDGED_ETHERNET);
         prlsdkCheckRetGoto(pret, cleanup);
 
-        job = PrlSrv_AddVirtualNetwork(privconn->server, vnet, 0);
+        job = PrlSrv_AddVirtualNetwork(privconn->server,
+                                       vnet,
+                                       PRL_USE_VNET_NAME_FOR_BRIDGE_NAME);
         if (PRL_FAILED(pret = waitJob(job)))
             goto cleanup;
 
@@ -2879,25 +2979,22 @@ static int prlsdkAddNet(PRL_HANDLE sdkdom,
 
     ret = 0;
  cleanup:
+    VIR_FREE(addrstr);
+    PrlHandle_Free(addrlist);
     PrlHandle_Free(vnet);
     PrlHandle_Free(sdknet);
     return ret;
 }
 
-static int
-prlsdkDelNet(vzConnPtr privconn, virDomainNetDefPtr net)
+static void
+prlsdkCleanupBridgedNet(vzConnPtr privconn, virDomainNetDefPtr net)
 {
-    int ret = -1;
     PRL_RESULT pret;
     PRL_HANDLE vnet = PRL_INVALID_HANDLE;
     PRL_HANDLE job = PRL_INVALID_HANDLE;
 
-    if (net->type != VIR_DOMAIN_NET_TYPE_BRIDGE) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("unplugging network device of type %s is not supported"),
-                       virDomainNetTypeToString(net->type));
-        return ret;
-    }
+    if (net->type != VIR_DOMAIN_NET_TYPE_BRIDGE)
+        return;
 
     pret = PrlVirtNet_Create(&vnet);
     prlsdkCheckRetGoto(pret, cleanup);
@@ -2909,11 +3006,8 @@ prlsdkDelNet(vzConnPtr privconn, virDomainNetDefPtr net)
     if (PRL_FAILED(pret = waitJob(job)))
         goto cleanup;
 
-    ret = 0;
-
  cleanup:
     PrlHandle_Free(vnet);
-    return ret;
 }
 
 int prlsdkAttachNet(virDomainObjPtr dom,
@@ -3005,8 +3099,7 @@ int prlsdkDetachNet(virDomainObjPtr dom,
     if (sdknet == PRL_INVALID_HANDLE)
         goto cleanup;
 
-    if (prlsdkDelNet(privconn, net) < 0)
-        goto cleanup;
+    prlsdkCleanupBridgedNet(privconn, net);
 
     pret = PrlVmDev_Remove(sdknet);
     prlsdkCheckRetGoto(pret, cleanup);
@@ -3428,7 +3521,7 @@ prlsdkDoApplyConfig(virConnectPtr conn,
 
     if (olddef) {
         for (i = 0; i < olddef->nnets; i++)
-            prlsdkDelNet(conn->privateData, olddef->nets[i]);
+            prlsdkCleanupBridgedNet(conn->privateData, olddef->nets[i]);
     }
 
     for (i = 0; i < def->nnets; i++) {
@@ -3473,7 +3566,7 @@ prlsdkDoApplyConfig(virConnectPtr conn,
     VIR_FREE(mask);
 
     for (i = 0; i < def->nnets; i++)
-        prlsdkDelNet(conn->privateData, def->nets[i]);
+        prlsdkCleanupBridgedNet(conn->privateData, def->nets[i]);
 
     return -1;
 }
@@ -3620,7 +3713,7 @@ prlsdkUnregisterDomain(vzConnPtr privconn, virDomainObjPtr dom)
     size_t i;
 
     for (i = 0; i < dom->def->nnets; i++)
-        prlsdkDelNet(privconn, dom->def->nets[i]);
+        prlsdkCleanupBridgedNet(privconn, dom->def->nets[i]);
 
     job = PrlVm_Unreg(privdom->sdkdom);
     if (PRL_FAILED(waitJob(job)))

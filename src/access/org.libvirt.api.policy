@@ -204,7 +204,7 @@
   </action>
   <action id="org.libvirt.api.domain.inject-nmi">
     <description>Inject domain NMI</description>
-    <message>Injecting interrupt requries authoriation</message>
+    <message>Injecting interrupt requires authorization</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -258,7 +258,7 @@
   </action>
   <action id="org.libvirt.api.domain.pm-control">
     <description>Use domain power management</description>
-    <message>Using domain power management requires authoriation</message>
+    <message>Using domain power management requires authorization</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -510,7 +510,7 @@
   </action>
   <action id="org.libvirt.api.network.write">
     <description>Write network</description>
-    <message>Writing network configuration requries authorization</message>
+    <message>Writing network configuration requires authorization</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>

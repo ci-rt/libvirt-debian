@@ -1249,11 +1249,23 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
         dev->data.chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
         dev->data.chr->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
-        !dev->data.chr->source.data.nix.path && cfg) {
-        if (virAsprintf(&dev->data.chr->source.data.nix.path, "%s/%s.%s",
-                        cfg->channelTargetDir,
-                        def->name, dev->data.chr->target.name) < 0)
+        !dev->data.chr->source.data.nix.path) {
+        if (!cfg) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cannot generate UNIX socket path"));
             goto cleanup;
+        }
+
+        if (dev->data.chr->target.name) {
+            if (virAsprintf(&dev->data.chr->source.data.nix.path, "%s/%s.%s",
+                            cfg->channelTargetDir,
+                            def->name, dev->data.chr->target.name) < 0)
+                goto cleanup;
+        } else {
+            if (virAsprintf(&dev->data.chr->source.data.nix.path, "%s/%s",
+                            cfg->channelTargetDir, def->name) < 0)
+                goto cleanup;
+        }
 
         dev->data.chr->source.data.nix.listen = true;
     }
@@ -2104,6 +2116,9 @@ void qemuDomainObjCheckTaint(virQEMUDriverPtr driver,
 
     for (i = 0; i < obj->def->nnets; i++)
         qemuDomainObjCheckNetTaint(driver, obj, obj->def->nets[i], logFD);
+
+    if (obj->def->os.dtb)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_CUSTOM_DTB, logFD);
 
     virObjectUnref(cfg);
 }
@@ -3061,6 +3076,13 @@ qemuDomainAgentAvailable(virDomainObjPtr vm,
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
+        if (reportError) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("domain is not running"));
+        }
+        return false;
+    }
     if (priv->agentError) {
         if (reportError) {
             virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
@@ -3083,13 +3105,6 @@ qemuDomainAgentAvailable(virDomainObjPtr vm,
             }
             return false;
         }
-    }
-    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
-        if (reportError) {
-            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                           _("domain is not running"));
-        }
-        return false;
     }
     return true;
 }
@@ -3228,6 +3243,25 @@ qemuDomainMachineIsI440FX(const virDomainDef *def)
             STRPREFIX(def->os.machine, "pc-i440") ||
             STRPREFIX(def->os.machine, "rhel"));
 }
+
+
+bool
+qemuDomainMachineNeedsFDC(const virDomainDef *def)
+{
+    char *p = STRSKIP(def->os.machine, "pc-q35-");
+
+    if (p) {
+        if (STRPREFIX(p, "1.") ||
+            STRPREFIX(p, "2.0") ||
+            STRPREFIX(p, "2.1") ||
+            STRPREFIX(p, "2.2") ||
+            STRPREFIX(p, "2.3"))
+            return false;
+        return true;
+    }
+    return false;
+}
+
 
 
 /**

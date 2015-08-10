@@ -249,6 +249,7 @@ virDomainDiskDefFree;
 virDomainDiskDefNew;
 virDomainDiskDefSourceParse;
 virDomainDiskDeviceTypeToString;
+virDomainDiskDiffersSourceOnly;
 virDomainDiskDiscardTypeToString;
 virDomainDiskErrorPolicyTypeFromString;
 virDomainDiskErrorPolicyTypeToString;
@@ -412,7 +413,6 @@ virDomainObjParseNode;
 virDomainObjSetDefTransient;
 virDomainObjSetMetadata;
 virDomainObjSetState;
-virDomainObjSignal;
 virDomainObjTaint;
 virDomainObjUpdateModificationImpact;
 virDomainObjWait;
@@ -598,6 +598,7 @@ virNetworkDefFormat;
 virNetworkDefFormatBuf;
 virNetworkDefFree;
 virNetworkDefGetIpByIndex;
+virNetworkDefGetRouteByIndex;
 virNetworkDefParseFile;
 virNetworkDefParseNode;
 virNetworkDefParseString;
@@ -999,7 +1000,6 @@ virLockManagerRelease;
 nodeAllocPages;
 nodeCapsInitNUMA;
 nodeGetCellsFreeMemory;
-nodeGetCPUBitmap;
 nodeGetCPUCount;
 nodeGetCPUMap;
 nodeGetCPUStats;
@@ -1008,6 +1008,8 @@ nodeGetInfo;
 nodeGetMemory;
 nodeGetMemoryParameters;
 nodeGetMemoryStats;
+nodeGetOnlineCPUBitmap;
+nodeGetPresentCPUBitmap;
 nodeSetMemoryParameters;
 
 
@@ -1366,6 +1368,7 @@ ebtablesRemoveForwardAllowIn;
 
 # util/virerror.h
 virDispatchError;
+virErrorCopyNew;
 virErrorInitialize;
 virErrorSetErrnoFromLastError;
 virLastErrorIsSystemErrno;
@@ -1477,6 +1480,9 @@ virFirewallStartTransaction;
 
 # util/virhash.h
 virHashAddEntry;
+virHashAtomicNew;
+virHashAtomicSteal;
+virHashAtomicUpdate;
 virHashCreate;
 virHashEqual;
 virHashForEach;

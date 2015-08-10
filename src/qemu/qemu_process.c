@@ -285,6 +285,7 @@ qemuProcessHandleMonitorEOF(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     int eventReason = VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN;
     int stopReason = VIR_DOMAIN_SHUTOFF_SHUTDOWN;
     const char *auditReason = "shutdown";
+    unsigned int stopFlags = 0;
 
     VIR_DEBUG("Received EOF on %p '%s'", vm, vm->def->name);
 
@@ -310,10 +311,16 @@ qemuProcessHandleMonitorEOF(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         auditReason = "failed";
     }
 
+    if (priv->job.asyncJob == QEMU_ASYNC_JOB_MIGRATION_IN) {
+        stopFlags |= VIR_QEMU_PROCESS_STOP_MIGRATED;
+        qemuMigrationErrorSave(driver, vm->def->name,
+                               qemuMonitorLastError(priv->mon));
+    }
+
     event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      eventReason);
-    qemuProcessStop(driver, vm, stopReason, 0);
+    qemuProcessStop(driver, vm, stopReason, stopFlags);
     virDomainAuditStop(vm, auditReason);
 
     if (!vm->persistent) {
@@ -952,6 +959,9 @@ qemuProcessHandleIOError(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         qemuDomainObjPrivatePtr priv = vm->privateData;
         VIR_DEBUG("Transitioned guest %s to paused state due to IO error", vm->def->name);
 
+        if (priv->signalIOError)
+            virDomainObjBroadcast(vm);
+
         virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_IOERROR);
         lifecycleEvent = virDomainEventLifecycleNewFromObj(vm,
                                                   VIR_DOMAIN_EVENT_SUSPENDED,
@@ -1004,7 +1014,7 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         /* We have a SYNC API waiting for this event, dispatch it back */
         diskPriv->blockJobType = type;
         diskPriv->blockJobStatus = status;
-        virDomainObjSignal(vm);
+        virDomainObjBroadcast(vm);
     } else {
         /* there is no waiting SYNC API, dispatch the update to a thread */
         if (VIR_ALLOC(processEvent) < 0)
@@ -1152,6 +1162,8 @@ qemuProcessHandleTrayChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
             VIR_WARN("Unable to save status on vm %s after tray moved event",
                      vm->def->name);
         }
+
+        virDomainObjBroadcast(vm);
     }
 
     virObjectUnlock(vm);
@@ -1500,7 +1512,36 @@ qemuProcessHandleSpiceMigrated(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     }
 
     priv->job.spiceMigrated = true;
-    virDomainObjSignal(vm);
+    virDomainObjBroadcast(vm);
+
+ cleanup:
+    virObjectUnlock(vm);
+    return 0;
+}
+
+
+static int
+qemuProcessHandleMigrationStatus(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
+                                 virDomainObjPtr vm,
+                                 int status,
+                                 void *opaque ATTRIBUTE_UNUSED)
+{
+    qemuDomainObjPrivatePtr priv;
+
+    virObjectLock(vm);
+
+    VIR_DEBUG("Migration of domain %p %s changed state to %s",
+              vm, vm->def->name,
+              qemuMonitorMigrationStatusTypeToString(status));
+
+    priv = vm->privateData;
+    if (priv->job.asyncJob == QEMU_ASYNC_JOB_NONE) {
+        VIR_DEBUG("got MIGRATION event without a migration job");
+        goto cleanup;
+    }
+
+    priv->job.current->status.status = status;
+    virDomainObjBroadcast(vm);
 
  cleanup:
     virObjectUnlock(vm);
@@ -1532,6 +1573,7 @@ static qemuMonitorCallbacks monitorCallbacks = {
     .domainNicRxFilterChanged = qemuProcessHandleNicRxFilterChanged,
     .domainSerialChange = qemuProcessHandleSerialChanged,
     .domainSpiceMigrated = qemuProcessHandleSpiceMigrated,
+    .domainMigrationStatus = qemuProcessHandleMigrationStatus,
 };
 
 static int
@@ -1546,7 +1588,7 @@ qemuConnectMonitor(virQEMUDriverPtr driver, virDomainObjPtr vm, int asyncJob,
                                                vm->def) < 0) {
         VIR_ERROR(_("Failed to set security context for monitor for %s"),
                   vm->def->name);
-        goto error;
+        return -1;
     }
 
     /* Hold an extra reference because we can't allow 'vm' to be
@@ -1578,26 +1620,38 @@ qemuConnectMonitor(virQEMUDriverPtr driver, virDomainObjPtr vm, int asyncJob,
     if (virSecurityManagerClearSocketLabel(driver->securityManager, vm->def) < 0) {
         VIR_ERROR(_("Failed to clear security context for monitor for %s"),
                   vm->def->name);
-        goto error;
+        return -1;
     }
 
     if (priv->mon == NULL) {
         VIR_INFO("Failed to connect monitor for %s", vm->def->name);
-        goto error;
+        return -1;
     }
 
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-        goto error;
-    ret = qemuMonitorSetCapabilities(priv->mon);
-    if (ret == 0 &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MONITOR_JSON))
-        ret = virQEMUCapsProbeQMP(priv->qemuCaps, priv->mon);
-    if (qemuDomainObjExitMonitor(driver, vm) < 0)
         return -1;
 
- error:
+    if (qemuMonitorSetCapabilities(priv->mon) < 0)
+        goto cleanup;
 
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MONITOR_JSON) &&
+        virQEMUCapsProbeQMP(priv->qemuCaps, priv->mon) < 0)
+        goto cleanup;
+
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATION_EVENT) &&
+        qemuMonitorSetMigrationCapability(priv->mon,
+                                          QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
+                                          true) < 0) {
+        VIR_DEBUG("Cannot enable migration events; clearing capability");
+        virQEMUCapsClear(priv->qemuCaps, QEMU_CAPS_MIGRATION_EVENT);
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        ret = -1;
     return ret;
 }
 
@@ -2065,6 +2119,38 @@ qemuProcessReconnectRefreshChannelVirtioState(virQEMUDriverPtr driver,
 
 
 static int
+qemuProcessRefreshBalloonState(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm,
+                               int asyncJob)
+{
+    unsigned long long balloon;
+    int rc;
+
+    /* if no ballooning is available, the current size equals to the current
+     * full memory size */
+    if (!vm->def->memballoon ||
+        vm->def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_NONE) {
+        vm->def->mem.cur_balloon = virDomainDefGetMemoryActual(vm->def);
+        return 0;
+    }
+
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        return -1;
+
+    rc = qemuMonitorGetBalloonInfo(qemuDomainGetMonitor(vm), &balloon);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        rc = -1;
+
+    if (rc < 0)
+        return -1;
+
+    vm->def->mem.cur_balloon = balloon;
+
+    return 0;
+}
+
+
+static int
 qemuProcessWaitForMonitor(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           int asyncJob,
@@ -2322,7 +2408,7 @@ qemuProcessInitCpuAffinity(virDomainObjPtr vm)
 
             /* setaffinity fails if you set bits for CPUs which
              * aren't present, so we have to limit ourselves */
-            if ((hostcpus = nodeGetCPUCount()) < 0)
+            if ((hostcpus = nodeGetCPUCount(NULL)) < 0)
                 goto cleanup;
 
             if (hostcpus > QEMUD_CPUMASK_LEN)
@@ -3649,10 +3735,13 @@ qemuProcessReconnect(void *opaque)
     virQEMUDriverConfigPtr cfg;
     size_t i;
     int ret;
+    unsigned int stopFlags = 0;
 
     VIR_FREE(data);
 
     qemuDomainObjRestoreJob(obj, &oldjob);
+    if (oldjob.asyncJob == QEMU_ASYNC_JOB_MIGRATION_IN)
+        stopFlags |= VIR_QEMU_PROCESS_STOP_MIGRATED;
 
     cfg = virQEMUDriverGetConfig(driver);
     priv = obj->privateData;
@@ -3779,6 +3868,9 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessReconnectRefreshChannelVirtioState(driver, obj) < 0)
         goto error;
 
+    if (qemuProcessRefreshBalloonState(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
+        goto error;
+
     if (qemuProcessRecoverJob(driver, obj, conn, &oldjob) < 0)
         goto error;
 
@@ -3830,7 +3922,7 @@ qemuProcessReconnect(void *opaque)
              * really is and FAILED means "failed to start" */
             state = VIR_DOMAIN_SHUTOFF_UNKNOWN;
         }
-        qemuProcessStop(driver, obj, state, 0);
+        qemuProcessStop(driver, obj, state, stopFlags);
     }
 
     if (!obj->persistent)
@@ -4302,9 +4394,10 @@ int qemuProcessStart(virConnectPtr conn,
     size_t nnicindexes = 0;
     int *nicindexes = NULL;
 
-    VIR_DEBUG("vm=%p name=%s id=%d pid=%llu",
-              vm, vm->def->name, vm->def->id,
-              (unsigned long long)vm->pid);
+    VIR_DEBUG("vm=%p name=%s id=%d asyncJob=%d migrateFrom=%s stdin_fd=%d "
+              "stdin_path=%s snapshot=%p vmop=%d flags=0x%x",
+              vm, vm->def->name, vm->def->id, asyncJob, NULLSTR(migrateFrom),
+              stdin_fd, NULLSTR(stdin_path), snapshot, vmop, flags);
 
     /* Okay, these are just internal flags,
      * but doesn't hurt to check */
@@ -4919,10 +5012,11 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
-    /* Since CPUs were not started yet, the ballon could not return the memory
+    /* Since CPUs were not started yet, the balloon could not return the memory
      * to the host and thus cur_balloon needs to be updated so that GetXMLdesc
      * and friends return the correct size in case they can't grab the job */
-    vm->def->mem.cur_balloon = virDomainDefGetMemoryActual(vm->def);
+    if (qemuProcessRefreshBalloonState(driver, vm, asyncJob) < 0)
+        goto cleanup;
 
     VIR_DEBUG("Detecting actual memory size for video device");
     if (qemuProcessUpdateVideoRamSize(driver, vm, asyncJob) < 0)
@@ -5605,8 +5699,12 @@ qemuProcessAutoDestroy(virDomainObjPtr dom,
     virQEMUDriverPtr driver = opaque;
     qemuDomainObjPrivatePtr priv = dom->privateData;
     virObjectEventPtr event = NULL;
+    unsigned int stopFlags = 0;
 
     VIR_DEBUG("vm=%s, conn=%p", dom->def->name, conn);
+
+    if (priv->job.asyncJob == QEMU_ASYNC_JOB_MIGRATION_IN)
+        stopFlags |= VIR_QEMU_PROCESS_STOP_MIGRATED;
 
     if (priv->job.asyncJob) {
         VIR_DEBUG("vm=%s has long-term job active, cancelling",
@@ -5620,8 +5718,7 @@ qemuProcessAutoDestroy(virDomainObjPtr dom,
 
     VIR_DEBUG("Killing domain");
 
-    qemuProcessStop(driver, dom, VIR_DOMAIN_SHUTOFF_DESTROYED,
-                    VIR_QEMU_PROCESS_STOP_MIGRATED);
+    qemuProcessStop(driver, dom, VIR_DOMAIN_SHUTOFF_DESTROYED, stopFlags);
 
     virDomainAuditStop(dom, "destroyed");
     event = virDomainEventLifecycleNewFromObj(dom,

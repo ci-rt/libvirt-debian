@@ -37,7 +37,7 @@ enum virLXCMonitorExitStatus {
 typedef enum virLXCMonitorExitStatus virLXCMonitorExitStatus;
 
 struct virLXCMonitorExitEventMsg {
-        enum virLXCMonitorExitStatus status;
+        virLXCMonitorExitStatus status;
 };
 typedef struct virLXCMonitorExitEventMsg virLXCMonitorExitEventMsg;
 
