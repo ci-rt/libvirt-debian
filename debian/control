@@ -6,6 +6,7 @@ Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-mind
 Testsuite: autopkgtest
 Build-Depends:
  debhelper (>= 7),
+ dh-autoreconf,
  dh-systemd (>= 1.18~),
  libxml2-dev,
  libncurses5-dev,

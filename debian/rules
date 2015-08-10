@@ -127,7 +127,7 @@ LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 %:
-	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel
+	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel --with autoreconf
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
