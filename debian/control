@@ -44,6 +44,7 @@ Build-Depends:
  nfs-common,
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
  python,
+ xsltproc,
 # for --with-storage-sheepdog
  sheepdog [linux-any],
 # for --with-storage-rados

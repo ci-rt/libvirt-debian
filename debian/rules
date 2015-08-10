@@ -131,6 +131,7 @@ EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
+	mkdir -p debian/build/docs/internals
 
 override_dh_auto_test:
 	export LD_PRELOAD="";     \
