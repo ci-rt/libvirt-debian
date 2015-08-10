@@ -682,23 +682,17 @@ virNetDaemonRun(virNetDaemonPtr dmn)
          */
         if (dmn->autoShutdownTimeout) {
             if (timerActive) {
-                for (i = 0; i < dmn->nservers; i++) {
-                    if (virNetServerHasClients(dmn->servers[i])) {
-                        VIR_DEBUG("Deactivating shutdown timer %d", timerid);
-                        virEventUpdateTimeout(timerid, -1);
-                        timerActive = false;
-                        break;
-                    }
+                if (virNetDaemonHasClients(dmn)) {
+                    VIR_DEBUG("Deactivating shutdown timer %d", timerid);
+                    virEventUpdateTimeout(timerid, -1);
+                    timerActive = false;
                 }
             } else {
-                for (i = 0; i < dmn->nservers; i++) {
-                    if (!virNetServerHasClients(dmn->servers[i])) {
-                        VIR_DEBUG("Activating shutdown timer %d", timerid);
-                        virEventUpdateTimeout(timerid,
-                                              dmn->autoShutdownTimeout * 1000);
-                        timerActive = true;
-                        break;
-                    }
+                if (!virNetDaemonHasClients(dmn)) {
+                    VIR_DEBUG("Activating shutdown timer %d", timerid);
+                    virEventUpdateTimeout(timerid,
+                                          dmn->autoShutdownTimeout * 1000);
+                    timerActive = true;
                 }
             }
         }
@@ -746,4 +740,17 @@ virNetDaemonClose(virNetDaemonPtr dmn)
         virNetServerClose(dmn->servers[i]);
 
     virObjectUnlock(dmn);
+}
+
+bool
+virNetDaemonHasClients(virNetDaemonPtr dmn)
+{
+    size_t i = 0;
+
+    for (i = 0; i < dmn->nservers; i++) {
+        if (virNetServerHasClients(dmn->servers[i]))
+            return true;
+    }
+
+    return false;
 }

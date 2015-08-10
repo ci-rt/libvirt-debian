@@ -163,7 +163,7 @@ VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
-              "xbzrle", "auto-converge", "rdma-pin-all")
+              "xbzrle", "auto-converge", "rdma-pin-all", "events")
 
 VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
@@ -406,6 +406,9 @@ qemuMonitorGetErrorFromLog(qemuMonitorPtr mon)
 
     if ((len = qemuProcessReadLog(mon->logfd, logbuf, 4096 - 1, 0, true)) <= 0)
         goto error;
+
+    while (len > 0 && logbuf[len - 1] == '\n')
+        logbuf[--len] = '\0';
 
  cleanup:
     errno = orig_errno;
@@ -1054,6 +1057,20 @@ qemuMonitorSend(qemuMonitorPtr mon,
 }
 
 
+/**
+ * This function returns a new virError object; the caller is responsible
+ * for freeing it.
+ */
+virErrorPtr
+qemuMonitorLastError(qemuMonitorPtr mon)
+{
+    if (mon->lastError.code == VIR_ERR_OK)
+        return NULL;
+
+    return virErrorCopyNew(&mon->lastError);
+}
+
+
 virJSONValuePtr
 qemuMonitorGetOptions(qemuMonitorPtr mon)
 {
@@ -1492,6 +1509,20 @@ qemuMonitorEmitSpiceMigrated(qemuMonitorPtr mon)
     VIR_DEBUG("mon=%p", mon);
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainSpiceMigrated, mon->vm);
+
+    return ret;
+}
+
+
+int
+qemuMonitorEmitMigrationStatus(qemuMonitorPtr mon,
+                               int status)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p, status=%s",
+              mon, NULLSTR(qemuMonitorMigrationStatusTypeToString(status)));
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainMigrationStatus, mon->vm, status);
 
     return ret;
 }

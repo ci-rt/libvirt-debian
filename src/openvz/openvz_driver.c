@@ -2155,7 +2155,7 @@ static int
 openvzNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
                   virNodeInfoPtr nodeinfo)
 {
-    return nodeGetInfo(nodeinfo);
+    return nodeGetInfo(NULL, nodeinfo);
 }
 
 
@@ -2177,7 +2177,7 @@ openvzNodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
                          int *nparams,
                          unsigned int flags)
 {
-    return nodeGetMemoryStats(cellNum, params, nparams, flags);
+    return nodeGetMemoryStats(NULL, cellNum, params, nparams, flags);
 }
 
 
@@ -2207,7 +2207,7 @@ openvzNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
                     unsigned int *online,
                     unsigned int flags)
 {
-    return nodeGetCPUMap(cpumap, online, flags);
+    return nodeGetCPUMap(NULL, cpumap, online, flags);
 }
 
 

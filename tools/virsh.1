@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-06-28" "libvirt-1.2.17" "Virtualization Support"
+.TH VIRSH 1 "2015-07-22" "libvirt-1.2.18" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -408,7 +408,8 @@ Print the \s-1XML\s0 representation of the hypervisor sysinfo, if available.
 Returns basic information about the node, like number and type of \s-1CPU,\s0
 and size of the physical memory. The output corresponds to virNodeInfo
 structure. Specifically, the \*(L"\s-1CPU\s0 socket(s)\*(R" field means number of \s-1CPU\s0
-sockets per \s-1NUMA\s0 cell.
+sockets per \s-1NUMA\s0 cell. The information libvirt displays is dependent
+upon what each architecture may provide.
 .IP "\fBnodecpumap\fR [\fI\-\-pretty\fR]" 4
 .IX Item "nodecpumap [--pretty]"
 Displays the node's total number of CPUs, the number of online CPUs

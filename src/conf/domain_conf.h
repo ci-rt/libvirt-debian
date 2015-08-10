@@ -1601,7 +1601,7 @@ struct _virDomainShmemDef {
     unsigned long long size;
     struct {
         bool enabled;
-        char *path;
+        virDomainChrSourceDef chr;
     } server;
     struct {
         bool enabled;
@@ -2305,6 +2305,7 @@ typedef enum {
     VIR_DOMAIN_TAINT_HOST_CPU,         /* Host CPU passthrough in use */
     VIR_DOMAIN_TAINT_HOOK,             /* Domain (possibly) changed via hook script */
     VIR_DOMAIN_TAINT_CDROM_PASSTHROUGH,/* CDROM passthrough */
+    VIR_DOMAIN_TAINT_CUSTOM_DTB,       /* Custom device tree blob was specifed */
 
     VIR_DOMAIN_TAINT_LAST
 } virDomainTaintFlags;
@@ -2442,7 +2443,6 @@ void virDomainObjEndAPI(virDomainObjPtr *vm);
 bool virDomainObjTaint(virDomainObjPtr obj,
                        virDomainTaintFlags taint);
 
-void virDomainObjSignal(virDomainObjPtr vm);
 void virDomainObjBroadcast(virDomainObjPtr vm);
 int virDomainObjWait(virDomainObjPtr vm);
 int virDomainObjWaitUntil(virDomainObjPtr vm,
@@ -2474,6 +2474,8 @@ int virDomainDeviceFindControllerModel(virDomainDefPtr def,
 virDomainDiskDefPtr virDomainDiskFindByBusAndDst(virDomainDefPtr def,
                                                  int bus,
                                                  char *dst);
+bool virDomainDiskDiffersSourceOnly(virDomainDiskDefPtr disk,
+                                    virDomainDiskDefPtr orig_disk);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainActualNetDefFree(virDomainActualNetDefPtr def);

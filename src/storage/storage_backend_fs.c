@@ -784,7 +784,8 @@ virStorageBackendFileSystemBuild(virConnectPtr conn ATTRIBUTE_UNUSED,
     char *parent = NULL;
     char *p = NULL;
     mode_t mode;
-    bool needs_create_as_uid, dir_create_flags;
+    bool needs_create_as_uid;
+    unsigned int dir_create_flags;
 
     virCheckFlags(VIR_STORAGE_POOL_BUILD_OVERWRITE |
                   VIR_STORAGE_POOL_BUILD_NO_OVERWRITE, ret);
@@ -1051,7 +1052,10 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
                                      virStorageVolDefPtr vol)
 {
 
-    vol->type = VIR_STORAGE_VOL_FILE;
+    if (vol->target.format == VIR_STORAGE_FILE_DIR)
+        vol->type = VIR_STORAGE_VOL_DIR;
+    else
+        vol->type = VIR_STORAGE_VOL_FILE;
 
     VIR_FREE(vol->target.path);
     if (virAsprintf(&vol->target.path, "%s/%s",

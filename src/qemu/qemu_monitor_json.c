@@ -44,6 +44,7 @@
 #include "virprobe.h"
 #include "virstring.h"
 #include "cpu/cpu_x86.h"
+#include "c-strcasestr.h"
 
 #ifdef WITH_DTRACE_PROBES
 # include "libvirt_qemu_probes.h"
@@ -84,6 +85,7 @@ static void qemuMonitorJSONHandleDeviceDeleted(qemuMonitorPtr mon, virJSONValueP
 static void qemuMonitorJSONHandleNicRxFilterChanged(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleSerialChange(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleSpiceMigrated(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleMigrationStatus(qemuMonitorPtr mon, virJSONValuePtr data);
 
 typedef struct {
     const char *type;
@@ -99,6 +101,7 @@ static qemuEventHandler eventHandlers[] = {
     { "DEVICE_DELETED", qemuMonitorJSONHandleDeviceDeleted, },
     { "DEVICE_TRAY_MOVED", qemuMonitorJSONHandleTrayChange, },
     { "GUEST_PANICKED", qemuMonitorJSONHandleGuestPanic, },
+    { "MIGRATION", qemuMonitorJSONHandleMigrationStatus, },
     { "NIC_RX_FILTER_CHANGED", qemuMonitorJSONHandleNicRxFilterChanged, },
     { "POWERDOWN", qemuMonitorJSONHandlePowerdown, },
     { "RESET", qemuMonitorJSONHandleReset, },
@@ -617,7 +620,10 @@ VIR_ENUM_IMPL(qemuMonitorGraphicsAddressFamily,
               VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST,
               "ipv4", "ipv6", "unix");
 
-static void qemuMonitorJSONHandleGraphics(qemuMonitorPtr mon, virJSONValuePtr data, int phase)
+static void
+qemuMonitorJSONHandleGraphicsVNC(qemuMonitorPtr mon,
+                                 virJSONValuePtr data,
+                                 int phase)
 {
     const char *localNode, *localService, *localFamily;
     const char *remoteNode, *remoteService, *remoteFamily;
@@ -635,40 +641,37 @@ static void qemuMonitorJSONHandleGraphics(qemuMonitorPtr mon, virJSONValuePtr da
         return;
     }
 
-    authScheme = virJSONValueObjectGetString(server, "auth");
-    if (!authScheme) {
+    if (!(authScheme = virJSONValueObjectGetString(server, "auth"))) {
         /* not all events are required to contain auth scheme */
-        VIR_DEBUG("missing auth scheme in graphics event");
+        VIR_DEBUG("missing auth scheme in VNC event");
         authScheme = "";
     }
 
-    localFamily = virJSONValueObjectGetString(server, "family");
-    if (!localFamily) {
-        VIR_WARN("missing local address family in graphics event");
+    if (!(localFamily = virJSONValueObjectGetString(server, "family"))) {
+        VIR_WARN("missing local address family in VNC event");
         return;
     }
-    localNode = virJSONValueObjectGetString(server, "host");
-    if (!localNode) {
-        VIR_WARN("missing local hostname in graphics event");
+    if (!(localNode = virJSONValueObjectGetString(server, "host"))) {
+        VIR_WARN("missing local hostname in VNC event");
         return;
     }
-    localService = virJSONValueObjectGetString(server, "service");
-    if (!localService)
-        localService = ""; /* Spice has multiple ports, so this isn't provided */
+    if (!(localService = virJSONValueObjectGetString(server, "service"))) {
+        VIR_WARN("missing local service in VNC event");
+        return;
+    }
 
-    remoteFamily = virJSONValueObjectGetString(client, "family");
-    if (!remoteFamily) {
-        VIR_WARN("missing remote address family in graphics event");
+    if (!(remoteFamily = virJSONValueObjectGetString(client, "family"))) {
+        VIR_WARN("missing remote address family in VNC event");
         return;
     }
-    remoteNode = virJSONValueObjectGetString(client, "host");
-    if (!remoteNode) {
-        VIR_WARN("missing remote hostname in graphics event");
+    if (!(remoteNode = virJSONValueObjectGetString(client, "host"))) {
+        VIR_WARN("missing remote hostname in VNC event");
         return;
     }
-    remoteService = virJSONValueObjectGetString(client, "service");
-    if (!remoteService)
-        remoteService = ""; /* Spice has multiple ports, so this isn't provided */
+    if (!(remoteService = virJSONValueObjectGetString(client, "service"))) {
+        VIR_WARN("missing remote service in VNC event");
+        return;
+    }
 
     saslUsername = virJSONValueObjectGetString(client, "sasl_username");
     x509dname = virJSONValueObjectGetString(client, "x509_dname");
@@ -690,37 +693,101 @@ static void qemuMonitorJSONHandleGraphics(qemuMonitorPtr mon, virJSONValuePtr da
 
 static void qemuMonitorJSONHandleVNCConnect(qemuMonitorPtr mon, virJSONValuePtr data)
 {
-    qemuMonitorJSONHandleGraphics(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_CONNECT);
+    qemuMonitorJSONHandleGraphicsVNC(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_CONNECT);
 }
 
 
 static void qemuMonitorJSONHandleVNCInitialize(qemuMonitorPtr mon, virJSONValuePtr data)
 {
-    qemuMonitorJSONHandleGraphics(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE);
+    qemuMonitorJSONHandleGraphicsVNC(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE);
 }
 
 
 static void qemuMonitorJSONHandleVNCDisconnect(qemuMonitorPtr mon, virJSONValuePtr data)
 {
-    qemuMonitorJSONHandleGraphics(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT);
+    qemuMonitorJSONHandleGraphicsVNC(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT);
+}
+
+
+static void
+qemuMonitorJSONHandleGraphicsSPICE(qemuMonitorPtr mon,
+                                   virJSONValuePtr data,
+                                   int phase)
+{
+    const char *lhost, *lport, *lfamily;
+    const char *rhost, *rport, *rfamily;
+    const char *auth = "";
+    int lfamilyID, rfamilyID;
+    virJSONValuePtr client;
+    virJSONValuePtr server;
+
+    if (!(client = virJSONValueObjectGetObject(data, "client")) ||
+        !(server = virJSONValueObjectGetObject(data, "server"))) {
+        VIR_WARN("missing server or client info in SPICE event");
+        return;
+    }
+
+    if (phase == VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE &&
+        !(auth = virJSONValueObjectGetString(server, "auth"))) {
+        VIR_DEBUG("missing auth scheme in SPICE event");
+        auth = "";
+    }
+
+    if (!(lfamily = virJSONValueObjectGetString(server, "family"))) {
+        VIR_WARN("missing local address family in SPICE event");
+        return;
+    }
+    if (!(lhost = virJSONValueObjectGetString(server, "host"))) {
+        VIR_WARN("missing local hostname in SPICE event");
+        return;
+    }
+    if (!(lport = virJSONValueObjectGetString(server, "port"))) {
+        VIR_WARN("missing local port in SPICE event");
+        return;
+    }
+
+    if (!(rfamily = virJSONValueObjectGetString(client, "family"))) {
+        VIR_WARN("missing remote address family in SPICE event");
+        return;
+    }
+    if (!(rhost = virJSONValueObjectGetString(client, "host"))) {
+        VIR_WARN("missing remote hostname in SPICE event");
+        return;
+    }
+    if (!(rport = virJSONValueObjectGetString(client, "port"))) {
+        VIR_WARN("missing remote service in SPICE event");
+        return;
+    }
+
+    if ((lfamilyID = qemuMonitorGraphicsAddressFamilyTypeFromString(lfamily)) < 0) {
+        VIR_WARN("unknown address family '%s'", lfamily);
+        lfamilyID = VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4;
+    }
+    if ((rfamilyID = qemuMonitorGraphicsAddressFamilyTypeFromString(rfamily)) < 0) {
+        VIR_WARN("unknown address family '%s'", rfamily);
+        rfamilyID = VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4;
+    }
+
+    qemuMonitorEmitGraphics(mon, phase, lfamilyID, lhost, lport, rfamilyID,
+                            rhost, rport, auth, NULL, NULL);
 }
 
 
 static void qemuMonitorJSONHandleSPICEConnect(qemuMonitorPtr mon, virJSONValuePtr data)
 {
-    qemuMonitorJSONHandleGraphics(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_CONNECT);
+    qemuMonitorJSONHandleGraphicsSPICE(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_CONNECT);
 }
 
 
 static void qemuMonitorJSONHandleSPICEInitialize(qemuMonitorPtr mon, virJSONValuePtr data)
 {
-    qemuMonitorJSONHandleGraphics(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE);
+    qemuMonitorJSONHandleGraphicsSPICE(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE);
 }
 
 
 static void qemuMonitorJSONHandleSPICEDisconnect(qemuMonitorPtr mon, virJSONValuePtr data)
 {
-    qemuMonitorJSONHandleGraphics(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT);
+    qemuMonitorJSONHandleGraphicsSPICE(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT);
 }
 
 static void
@@ -917,6 +984,27 @@ qemuMonitorJSONHandleSpiceMigrated(qemuMonitorPtr mon,
                                    virJSONValuePtr data ATTRIBUTE_UNUSED)
 {
     qemuMonitorEmitSpiceMigrated(mon);
+}
+
+
+static void
+qemuMonitorJSONHandleMigrationStatus(qemuMonitorPtr mon,
+                                     virJSONValuePtr data)
+{
+    const char *str;
+    int status;
+
+    if (!(str = virJSONValueObjectGetString(data, "status"))) {
+        VIR_WARN("missing status in migration event");
+        return;
+    }
+
+    if ((status = qemuMonitorMigrationStatusTypeFromString(str)) == -1) {
+        VIR_WARN("unknown status '%s' in migration event", str);
+        return;
+    }
+
+    qemuMonitorEmitMigrationStatus(mon, status);
 }
 
 
@@ -2116,6 +2204,14 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
 }
 
 
+/**
+ * Run QMP command to eject a media from ejectable device.
+ *
+ * Returns:
+ *      -2 on error, when the tray is locked
+ *      -1 on all other errors
+ *      0 on success
+ */
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
                               const char *dev_name,
                               bool force)
@@ -2133,6 +2229,11 @@ int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
 
     if (ret == 0)
         ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    VIR_DEBUG("%s", virJSONValueToString(reply, false));
+
+    if (ret < 0 && c_strcasestr(virJSONValueToString(reply, false), "is locked"))
+        ret = -2;
 
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
@@ -3926,6 +4027,7 @@ qemuMonitorJSONParseBlockJobInfo(virHashTablePtr blockJobs,
     qemuMonitorBlockJobInfoPtr info = NULL;
     const char *device;
     const char *type;
+    bool ready;
 
     if (!(device = virJSONValueObjectGetString(entry, "device"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3940,6 +4042,9 @@ qemuMonitorJSONParseBlockJobInfo(virHashTablePtr blockJobs,
         VIR_FREE(info);
         return -1;
     }
+
+    /* assume we don't know the state */
+    info->ready = -1;
 
     if (!(type = virJSONValueObjectGetString(entry, "type"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3972,6 +4077,9 @@ qemuMonitorJSONParseBlockJobInfo(virHashTablePtr blockJobs,
                        _("entry was missing 'len'"));
         return -1;
     }
+
+    if (virJSONValueObjectGetBoolean(entry, "ready", &ready) == 0)
+        info->ready = ready;
 
     return 0;
 }

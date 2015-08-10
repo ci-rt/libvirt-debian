@@ -1569,6 +1569,7 @@
      <exports symbol='VIR_ERR_INVALID_STORAGE_POOL' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_VOL' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STREAM' type='enum'/>
+     <exports symbol='VIR_ERR_MIGRATE_FINISH_OK' type='enum'/>
      <exports symbol='VIR_ERR_MIGRATE_PERSIST_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_MIGRATE_UNSAFE' type='enum'/>
      <exports symbol='VIR_ERR_MULTIPLE_INTERFACES' type='enum'/>
@@ -2844,6 +2845,7 @@ CP'/>
     <enum name='VIR_ERR_INVALID_STORAGE_POOL' file='virterror' value='46' type='virErrorNumber' info='invalid storage pool object'/>
     <enum name='VIR_ERR_INVALID_STORAGE_VOL' file='virterror' value='47' type='virErrorNumber' info='invalid storage vol object'/>
     <enum name='VIR_ERR_INVALID_STREAM' file='virterror' value='73' type='virErrorNumber' info='stream pointer not valid'/>
+    <enum name='VIR_ERR_MIGRATE_FINISH_OK' file='virterror' value='93' type='virErrorNumber' info='Finish API succeeded but it is expected to return NULL'/>
     <enum name='VIR_ERR_MIGRATE_PERSIST_FAILED' file='virterror' value='69' type='virErrorNumber' info='a migration worked, but making the
 VM persist on the dest host failed'/>
     <enum name='VIR_ERR_MIGRATE_UNSAFE' file='virterror' value='81' type='virErrorNumber' info='Migration is not safe'/>
@@ -7553,7 +7555,7 @@ revert a running domain to an active state that requires starting a
 new hypervisor instance rather than reusing the existing hypervisor
 (since this would terminate all connections to the domain, such as
 such as VNC or Spice graphics) - this condition arises from active
-snapshots that are provably ABI incomaptible, as well as from
+snapshots that are provably ABI incompatible, as well as from
 inactive snapshots with a @flags request to start the domain after
 the revert.]]></info>
       <return type='int' info='0 if the creation is successful, -1 on error.'/>

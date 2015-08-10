@@ -287,7 +287,7 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "aarch64-off",
 
               "vhost-user-multiqueue", /* 190 */
-              "arm-virt-pci",
+              "migration-event",
     );
 
 
@@ -961,7 +961,7 @@ virQEMUCapsInitCPU(virCapsPtr caps,
 
     cpu->arch = arch;
 
-    if (nodeGetInfo(&nodeinfo))
+    if (nodeGetInfo(NULL, &nodeinfo))
         goto error;
 
     cpu->type = VIR_CPU_TYPE_HOST;
@@ -1024,7 +1024,7 @@ virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache)
      * unexpected failures. We don't want to break the QEMU
      * driver in this scenario, so log errors & carry on
      */
-    if (nodeCapsInitNUMA(caps) < 0) {
+    if (nodeCapsInitNUMA(NULL, caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
@@ -1337,9 +1337,6 @@ virQEMUCapsComputeCmdFlags(const char *help,
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_VNC_SHARE_POLICY);
     }
 
-    if (version >= 2003000)
-        virQEMUCapsSet(qemuCaps, QEMU_CAPS_ARM_VIRT_PCI);
-
     return 0;
 }
 
@@ -1509,6 +1506,7 @@ struct virQEMUCapsStringFlags virQEMUCapsEvents[] = {
     { "BALLOON_CHANGE", QEMU_CAPS_BALLOON_EVENT },
     { "SPICE_MIGRATE_COMPLETED", QEMU_CAPS_SEAMLESS_MIGRATION },
     { "DEVICE_DELETED", QEMU_CAPS_DEVICE_DEL_EVENT },
+    { "MIGRATION", QEMU_CAPS_MIGRATION_EVENT },
 };
 
 struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {

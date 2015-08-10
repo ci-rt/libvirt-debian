@@ -78,77 +78,61 @@ vzDriverUnlock(vzConnPtr driver)
     virMutexUnlock(&driver->lock);
 }
 
+static int
+vzCapsAddGuestDomain(virCapsPtr caps,
+                     virDomainOSType ostype,
+                     virArch arch,
+                     const char * emulator,
+                     virDomainVirtType virt_type)
+{
+    virCapsGuestPtr guest;
+
+    if ((guest = virCapabilitiesAddGuest(caps, ostype, arch, emulator,
+                                         NULL, 0, NULL)) == NULL)
+        return -1;
+
+
+    if (virCapabilitiesAddGuestDomain(guest, virt_type,
+                                      NULL, NULL, 0, NULL) == NULL)
+        return -1;
+
+    return 0;
+}
+
 static virCapsPtr
 vzBuildCapabilities(void)
 {
     virCapsPtr caps = NULL;
     virCPUDefPtr cpu = NULL;
     virCPUDataPtr data = NULL;
-    virCapsGuestPtr guest;
     virNodeInfo nodeinfo;
+    virDomainOSType ostypes[] = {
+        VIR_DOMAIN_OSTYPE_HVM,
+        VIR_DOMAIN_OSTYPE_EXE
+    };
+    virArch archs[] = { VIR_ARCH_I686, VIR_ARCH_X86_64 };
+    const char *const emulators[] = { "parallels", "vz" };
+    virDomainVirtType virt_types[] = {
+        VIR_DOMAIN_VIRT_PARALLELS,
+        VIR_DOMAIN_VIRT_VZ
+    };
+    size_t i, j, k;
 
     if ((caps = virCapabilitiesNew(virArchFromHost(),
                                    false, false)) == NULL)
         return NULL;
 
-    if (nodeCapsInitNUMA(caps) < 0)
+    if (nodeCapsInitNUMA(NULL, caps) < 0)
         goto error;
 
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
-                                         VIR_ARCH_X86_64,
-                                         "parallels",
-                                         NULL, 0, NULL)) == NULL)
-        goto error;
+    for (i = 0; i < 2; i++)
+        for (j = 0; j < 2; j++)
+            for (k = 0; k < 2; k++)
+                if (vzCapsAddGuestDomain(caps, ostypes[i], archs[j],
+                                         emulators[k], virt_types[k]) < 0)
+                    goto error;
 
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
-                                         VIR_ARCH_I686,
-                                         "parallels",
-                                         NULL, 0, NULL)) == NULL)
-        goto error;
-
-
-    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_PARALLELS,
-                                      NULL, NULL, 0, NULL) == NULL)
-        goto error;
-
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_EXE,
-                                         VIR_ARCH_X86_64,
-                                         "parallels",
-                                         NULL, 0, NULL)) == NULL)
-        goto error;
-
-    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_PARALLELS,
-                                      NULL, NULL, 0, NULL) == NULL)
-        goto error;
-
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
-                                         VIR_ARCH_X86_64,
-                                         "vz",
-                                         NULL, 0, NULL)) == NULL)
-        goto error;
-
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM,
-                                         VIR_ARCH_I686,
-                                         "vz",
-                                         NULL, 0, NULL)) == NULL)
-        goto error;
-
-
-    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_VZ,
-                                      NULL, NULL, 0, NULL) == NULL)
-        goto error;
-
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_EXE,
-                                         VIR_ARCH_X86_64,
-                                         "vz",
-                                         NULL, 0, NULL)) == NULL)
-        goto error;
-
-    if (virCapabilitiesAddGuestDomain(guest, VIR_DOMAIN_VIRT_VZ,
-                                      NULL, NULL, 0, NULL) == NULL)
-        goto error;
-
-    if (nodeGetInfo(&nodeinfo))
+    if (nodeGetInfo(NULL, &nodeinfo))
         goto error;
 
     if (VIR_ALLOC(cpu) < 0)
@@ -781,7 +765,7 @@ static int
 vzNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
               virNodeInfoPtr nodeinfo)
 {
-    return nodeGetInfo(nodeinfo);
+    return nodeGetInfo(NULL, nodeinfo);
 }
 
 static int vzConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
@@ -823,7 +807,6 @@ vzDomainGetVcpus(virDomainPtr domain,
 {
     virDomainObjPtr privdom = NULL;
     size_t i;
-    int v, maxcpu, hostcpus;
     int ret = -1;
 
     if (!(privdom = vzDomObjFromDomainRef(domain)))
@@ -836,13 +819,6 @@ vzDomainGetVcpus(virDomainPtr domain,
         goto cleanup;
     }
 
-    if ((hostcpus = nodeGetCPUCount()) < 0)
-        goto cleanup;
-
-    maxcpu = maplen * 8;
-    if (maxcpu > hostcpus)
-        maxcpu = hostcpus;
-
     if (maxinfo >= 1) {
         if (info != NULL) {
             memset(info, 0, sizeof(*info) * maxinfo);
@@ -854,19 +830,11 @@ vzDomainGetVcpus(virDomainPtr domain,
             }
         }
         if (cpumaps != NULL) {
-            unsigned char *tmpmap = NULL;
-            int tmpmapLen = 0;
-
             memset(cpumaps, 0, maplen * maxinfo);
-            virBitmapToData(privdom->def->cpumask, &tmpmap, &tmpmapLen);
-            if (tmpmapLen > maplen)
-                tmpmapLen = maplen;
-
-            for (v = 0; v < maxinfo; v++) {
-                unsigned char *cpumap = VIR_GET_CPUMAP(cpumaps, maplen, v);
-                memcpy(cpumap, tmpmap, tmpmapLen);
-            }
-            VIR_FREE(tmpmap);
+            for (i = 0; i < maxinfo; i++)
+                virBitmapToDataBuf(privdom->def->cpumask,
+                                   VIR_GET_CPUMAP(cpumaps, maplen, i),
+                                   maplen);
         }
     }
     ret = maxinfo;
@@ -884,7 +852,7 @@ vzNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
                 unsigned int *online,
                 unsigned int flags)
 {
-    return nodeGetCPUMap(cpumap, online, flags);
+    return nodeGetCPUMap(NULL, cpumap, online, flags);
 }
 
 static int

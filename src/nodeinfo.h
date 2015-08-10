@@ -26,14 +26,15 @@
 
 # include "capabilities.h"
 
-int nodeGetInfo(virNodeInfoPtr nodeinfo);
-int nodeCapsInitNUMA(virCapsPtr caps);
+int nodeGetInfo(const char *sysfs_prefix, virNodeInfoPtr nodeinfo);
+int nodeCapsInitNUMA(const char *sysfs_prefix, virCapsPtr caps);
 
 int nodeGetCPUStats(int cpuNum,
                     virNodeCPUStatsPtr params,
                     int *nparams,
                     unsigned int flags);
-int nodeGetMemoryStats(int cellNum,
+int nodeGetMemoryStats(const char *sysfs_prefix,
+                       int cellNum,
                        virNodeMemoryStatsPtr params,
                        int *nparams,
                        unsigned int flags);
@@ -43,9 +44,9 @@ int nodeGetCellsFreeMemory(unsigned long long *freeMems,
 int nodeGetMemory(unsigned long long *mem,
                   unsigned long long *freeMem);
 
-virBitmapPtr nodeGetPresentCPUBitmap(void);
-virBitmapPtr nodeGetCPUBitmap(int *max_id);
-int nodeGetCPUCount(void);
+virBitmapPtr nodeGetPresentCPUBitmap(const char *sysfs_prefix);
+virBitmapPtr nodeGetOnlineCPUBitmap(const char *sysfs_prefix);
+int nodeGetCPUCount(const char *sysfs_prefix);
 
 int nodeGetMemoryParameters(virTypedParameterPtr params,
                             int *nparams,
@@ -55,7 +56,8 @@ int nodeSetMemoryParameters(virTypedParameterPtr params,
                             int nparams,
                             unsigned int flags);
 
-int nodeGetCPUMap(unsigned char **cpumap,
+int nodeGetCPUMap(const char *sysfs_prefix,
+                  unsigned char **cpumap,
                   unsigned int *online,
                   unsigned int flags);
 

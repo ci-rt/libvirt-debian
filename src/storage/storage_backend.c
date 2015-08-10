@@ -342,7 +342,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    remain = vol->target.allocation;
+    remain = vol->target.capacity;
 
     if (inputvol) {
         int res = virStorageBackendCopyToFD(vol, inputvol,
@@ -399,7 +399,13 @@ createRawFile(int fd, virStorageVolDefPtr vol,
 {
     bool need_alloc = true;
     int ret = 0;
-    unsigned long long remain;
+    unsigned long long pos = 0;
+
+    /* If the new allocation is lower than the capacity of the original file,
+     * the cloned volume will be sparse */
+    if (inputvol &&
+        vol->target.allocation < inputvol->target.capacity)
+        need_alloc = false;
 
     /* Seek to the final size, so the capacity is available upfront
      * for progress reporting */
@@ -420,7 +426,7 @@ createRawFile(int fd, virStorageVolDefPtr vol,
      * to writing zeroes block by block in case fallocate isn't
      * available, and since we're going to copy data from another
      * file it doesn't make sense to write the file twice. */
-    if (vol->target.allocation) {
+    if (vol->target.allocation && need_alloc) {
         if (fallocate(fd, 0, 0, vol->target.allocation) == 0) {
             need_alloc = false;
         } else if (errno != ENOSYS && errno != EOPNOTSUPP) {
@@ -433,23 +439,24 @@ createRawFile(int fd, virStorageVolDefPtr vol,
     }
 #endif
 
-    remain = vol->target.allocation;
-
     if (inputvol) {
+        unsigned long long remain = inputvol->target.capacity;
         /* allow zero blocks to be skipped if we've requested sparse
          * allocation (allocation < capacity) or we have already
          * been able to allocate the required space. */
-        bool want_sparse = !need_alloc ||
-            (vol->target.allocation < inputvol->target.capacity);
-
         ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain,
-                                        want_sparse, reflink_copy);
+                                        !need_alloc, reflink_copy);
         if (ret < 0)
             goto cleanup;
+
+        /* If the new allocation is greater than the original capacity,
+         * but fallocate failed, fill the rest with zeroes.
+         */
+        pos = inputvol->target.capacity - remain;
     }
 
-    if (remain && need_alloc) {
-        if (safezero(fd, vol->target.allocation - remain, remain) < 0) {
+    if (need_alloc) {
+        if (safezero(fd, pos, vol->target.allocation - pos) < 0) {
             ret = -errno;
             virReportSystemError(errno, _("cannot fill file '%s'"),
                                  vol->target.path);
@@ -1068,7 +1075,7 @@ virStorageBackendCreateQemuImgCmdFromVol(virConnectPtr conn,
     if (info.inputPath)
         virCommandAddArg(cmd, info.inputPath);
     virCommandAddArg(cmd, info.path);
-    if (!info.inputPath && info.size_arg)
+    if (!info.inputPath && (info.size_arg || !info.backingPath))
         virCommandAddArgFormat(cmd, "%lluK", info.size_arg);
 
     return cmd;

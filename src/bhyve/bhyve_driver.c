@@ -1121,7 +1121,7 @@ bhyveNodeGetMemoryStats(virConnectPtr conn,
     if (virNodeGetMemoryStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryStats(cellNum, params, nparams, flags);
+    return nodeGetMemoryStats(NULL, cellNum, params, nparams, flags);
 }
 
 static int
@@ -1131,7 +1131,7 @@ bhyveNodeGetInfo(virConnectPtr conn,
     if (virNodeGetInfoEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetInfo(nodeinfo);
+    return nodeGetInfo(NULL, nodeinfo);
 }
 
 static int
@@ -1179,6 +1179,9 @@ bhyveStateInitialize(bool privileged,
         goto cleanup;
 
     if (!(bhyve_driver->caps = virBhyveCapsBuild()))
+        goto cleanup;
+
+    if (virBhyveProbeCaps(&bhyve_driver->bhyvecaps) < 0)
         goto cleanup;
 
     if (virBhyveProbeGrubCaps(&bhyve_driver->grubcaps) < 0)
@@ -1237,6 +1240,16 @@ bhyveStateInitialize(bool privileged,
     virObjectUnref(conn);
     bhyveStateCleanup();
     return -1;
+}
+
+unsigned
+bhyveDriverGetCaps(virConnectPtr conn)
+{
+    bhyveConnPtr driver = conn->privateData;
+
+    if (driver != NULL)
+        return driver->bhyvecaps;
+    return 0;
 }
 
 unsigned
@@ -1299,7 +1312,7 @@ bhyveNodeGetCPUMap(virConnectPtr conn,
     if (virNodeGetCPUMapEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUMap(cpumap, online, flags);
+    return nodeGetCPUMap(NULL, cpumap, online, flags);
 }
 
 static int

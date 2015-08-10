@@ -318,7 +318,7 @@ static virCapsPtr vboxCapsInit(void)
                                    false, false)) == NULL)
         goto no_memory;
 
-    if (nodeCapsInitNUMA(caps) < 0)
+    if (nodeCapsInitNUMA(NULL, caps) < 0)
         goto no_memory;
 
     if ((guest = virCapabilitiesAddGuest(caps,
@@ -7537,7 +7537,7 @@ static int
 vboxNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
                 virNodeInfoPtr nodeinfo)
 {
-    return nodeGetInfo(nodeinfo);
+    return nodeGetInfo(NULL, nodeinfo);
 }
 
 static int

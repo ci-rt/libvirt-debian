@@ -102,7 +102,8 @@ VIR_ENUM_IMPL(virDomainTaint, VIR_DOMAIN_TAINT_LAST,
               "external-launch",
               "host-cpu",
               "hook-script",
-              "cdrom-passthrough");
+              "cdrom-passthrough",
+              "custom-dtb");
 
 VIR_ENUM_IMPL(virDomainVirt, VIR_DOMAIN_VIRT_LAST,
               "qemu",
@@ -1526,6 +1527,38 @@ virDomainDiskSetFormat(virDomainDiskDefPtr def, int format)
 }
 
 
+static virDomainControllerDefPtr
+virDomainControllerDefNew(virDomainControllerType type)
+{
+    virDomainControllerDefPtr def;
+
+    if (VIR_ALLOC(def) < 0)
+        return NULL;
+
+    def->type = type;
+    def->model = -1;
+
+    /* initialize anything that has a non-0 default */
+    switch ((virDomainControllerType) def->type) {
+    case VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL:
+        def->opts.vioserial.ports = -1;
+        def->opts.vioserial.vectors = -1;
+        break;
+    case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
+    case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
+    case VIR_DOMAIN_CONTROLLER_TYPE_FDC:
+    case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
+    case VIR_DOMAIN_CONTROLLER_TYPE_SATA:
+    case VIR_DOMAIN_CONTROLLER_TYPE_CCID:
+    case VIR_DOMAIN_CONTROLLER_TYPE_USB:
+    case VIR_DOMAIN_CONTROLLER_TYPE_LAST:
+        break;
+    }
+
+    return def;
+}
+
+
 void virDomainControllerDefFree(virDomainControllerDefPtr def)
 {
     if (!def)
@@ -1947,7 +1980,7 @@ void virDomainShmemDefFree(virDomainShmemDefPtr def)
         return;
 
     virDomainDeviceInfoClear(&def->info);
-    VIR_FREE(def->server.path);
+    virDomainChrSourceDefClear(&def->server.chr);
     VIR_FREE(def->name);
     VIR_FREE(def);
 }
@@ -2661,13 +2694,6 @@ virDomainObjEndAPI(virDomainObjPtr *vm)
 
 
 void
-virDomainObjSignal(virDomainObjPtr vm)
-{
-    virCondSignal(&vm->cond);
-}
-
-
-void
 virDomainObjBroadcast(virDomainObjPtr vm)
 {
     virCondBroadcast(&vm->cond);
@@ -2686,15 +2712,25 @@ virDomainObjWait(virDomainObjPtr vm)
 }
 
 
+/**
+ * Waits for domain condition to be triggered for a specific period of time.
+ *
+ * Returns:
+ *  -1 in case of error
+ *  0 on success
+ *  1 on timeout
+ */
 int
 virDomainObjWaitUntil(virDomainObjPtr vm,
                       unsigned long long whenms)
 {
-    if (virCondWaitUntil(&vm->cond, &vm->parent.lock, whenms) < 0 &&
-        errno != ETIMEDOUT) {
-        virReportSystemError(errno, "%s",
-                             _("failed to wait for domain condition"));
-        return -1;
+    if (virCondWaitUntil(&vm->cond, &vm->parent.lock, whenms) < 0) {
+        if (errno != ETIMEDOUT) {
+            virReportSystemError(errno, "%s",
+                                 _("failed to wait for domain condition"));
+            return -1;
+        }
+        return 1;
     }
     return 0;
 }
@@ -3892,6 +3928,28 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
                                  "only with 'rbd' disks"));
                 return -1;
             }
+        }
+
+        /* Validate LUN configuration
+         * NOTE: virStorageTranslateDiskSourcePool is not run yet, so for
+         *       disk "volume"'s, the closest we can get at config time is
+         *       to ensure mode isn't direct since host/default will allow
+         *       lun/block usage. At run time if it's determined the wrong
+         *       voltype and pooltype values are set, then failure occurs
+         */
+        if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN &&
+            !(disk->src->type == VIR_STORAGE_TYPE_BLOCK ||
+              (disk->src->type == VIR_STORAGE_TYPE_NETWORK &&
+               disk->src->protocol == VIR_STORAGE_NET_PROTOCOL_ISCSI) ||
+              (disk->src->type == VIR_STORAGE_TYPE_VOLUME &&
+               disk->src->srcpool &&
+               disk->src->srcpool->mode !=
+               VIR_STORAGE_SOURCE_POOL_MODE_DIRECT))) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("disk '%s' improperly configured for a "
+                             "device='lun'"),
+                           disk->dst);
+            return -1;
         }
     }
 
@@ -5662,6 +5720,134 @@ virDomainDiskFindByBusAndDst(virDomainDefPtr def,
     }
 
     return NULL;
+}
+
+
+/*
+ * Makes sure the @disk differs from @orig_disk only by the source
+ * path and nothing else.  Fields that are being checked and the
+ * information whether they are nullable (may not be specified) or is
+ * taken from the virDomainDiskDefFormat() code.
+ */
+bool
+virDomainDiskDiffersSourceOnly(virDomainDiskDefPtr disk,
+                               virDomainDiskDefPtr orig_disk)
+{
+#define CHECK_EQ(field, field_name, nullable)                           \
+    do {                                                                \
+        if (nullable && !disk->field)                                   \
+            break;                                                      \
+        if (disk->field != orig_disk->field) {                          \
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED,               \
+                           _("cannot modify field '%s' of the disk"),   \
+                           field_name);                                 \
+            return false;                                               \
+        }                                                               \
+    } while (0)
+
+    CHECK_EQ(device, "device", false);
+    CHECK_EQ(cachemode, "cache", true);
+    CHECK_EQ(error_policy, "error_policy", true);
+    CHECK_EQ(rerror_policy, "rerror_policy", true);
+    CHECK_EQ(iomode, "io", true);
+    CHECK_EQ(ioeventfd, "ioeventfd", true);
+    CHECK_EQ(event_idx, "event_idx", true);
+    CHECK_EQ(copy_on_read, "copy_on_read", true);
+    CHECK_EQ(discard, "discard", true);
+    CHECK_EQ(iothread, "iothread", true);
+
+    if (disk->geometry.cylinders &&
+        disk->geometry.heads &&
+        disk->geometry.sectors) {
+        CHECK_EQ(geometry.cylinders, "geometry cylinders", false);
+        CHECK_EQ(geometry.heads, "geometry heads", false);
+        CHECK_EQ(geometry.sectors, "geometry sectors", false);
+        CHECK_EQ(geometry.trans, "BIOS-translation-modus", true);
+    }
+
+    CHECK_EQ(blockio.logical_block_size,
+             "blockio logical_block_size", false);
+    CHECK_EQ(blockio.physical_block_size,
+             "blockio physical_block_size", false);
+
+    if (disk->bus == VIR_DOMAIN_DISK_BUS_USB)
+        CHECK_EQ(removable, "removable", true);
+
+    CHECK_EQ(blkdeviotune.total_bytes_sec,
+             "blkdeviotune total_bytes_sec",
+             true);
+    CHECK_EQ(blkdeviotune.read_bytes_sec,
+             "blkdeviotune read_bytes_sec",
+             true);
+    CHECK_EQ(blkdeviotune.write_bytes_sec,
+             "blkdeviotune write_bytes_sec",
+             true);
+    CHECK_EQ(blkdeviotune.total_iops_sec,
+             "blkdeviotune total_iops_sec",
+             true);
+    CHECK_EQ(blkdeviotune.read_iops_sec,
+             "blkdeviotune read_iops_sec",
+             true);
+    CHECK_EQ(blkdeviotune.write_iops_sec,
+             "blkdeviotune write_iops_sec",
+             true);
+    CHECK_EQ(blkdeviotune.total_bytes_sec_max,
+             "blkdeviotune total_bytes_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.read_bytes_sec_max,
+             "blkdeviotune read_bytes_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.write_bytes_sec_max,
+             "blkdeviotune write_bytes_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.total_iops_sec_max,
+             "blkdeviotune total_iops_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.read_iops_sec_max,
+             "blkdeviotune read_iops_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.write_iops_sec_max,
+             "blkdeviotune write_iops_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.size_iops_sec,
+             "blkdeviotune size_iops_sec",
+             true);
+
+    CHECK_EQ(transient, "transient", true);
+
+    if (disk->serial && STRNEQ(disk->serial, orig_disk->serial)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "serial");
+        return false;
+    }
+
+    if (disk->wwn && STRNEQ(disk->wwn, orig_disk->wwn)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "wwn");
+        return false;
+    }
+
+    if (disk->vendor && STRNEQ(disk->vendor, orig_disk->vendor)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "vendor");
+        return false;
+    }
+
+    if (disk->product && STRNEQ(disk->product, orig_disk->product)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "product");
+        return false;
+    }
+
+    CHECK_EQ(info.bootIndex, "boot order", true);
+
+#undef CHECK_EQ
+
+    return true;
 }
 
 int
@@ -7571,9 +7757,10 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                                xmlXPathContextPtr ctxt,
                                unsigned int flags)
 {
-    virDomainControllerDefPtr def;
+    virDomainControllerDefPtr def = NULL;
+    int type = 0;
     xmlNodePtr cur = NULL;
-    char *type = NULL;
+    char *typeStr = NULL;
     char *idx = NULL;
     char *model = NULL;
     char *queues = NULL;
@@ -7584,17 +7771,17 @@ virDomainControllerDefParseXML(xmlNodePtr node,
 
     ctxt->node = node;
 
-    if (VIR_ALLOC(def) < 0)
-        return NULL;
-
-    type = virXMLPropString(node, "type");
-    if (type) {
-        if ((def->type = virDomainControllerTypeFromString(type)) < 0) {
+    typeStr = virXMLPropString(node, "type");
+    if (typeStr) {
+        if ((type = virDomainControllerTypeFromString(typeStr)) < 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Unknown controller type '%s'"), type);
+                           _("Unknown controller type '%s'"), typeStr);
             goto error;
         }
     }
+
+    if (!(def = virDomainControllerDefNew(type)))
+        goto error;
 
     idx = virXMLPropString(node, "index");
     if (idx) {
@@ -7613,8 +7800,6 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                            _("Unknown model type '%s'"), model);
             goto error;
         }
-    } else {
-        def->model = -1;
     }
 
     cur = node->children;
@@ -7666,8 +7851,6 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                 VIR_FREE(ports);
                 goto error;
             }
-        } else {
-            def->opts.vioserial.ports = -1;
         }
         VIR_FREE(ports);
 
@@ -7681,8 +7864,6 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                 VIR_FREE(vectors);
                 goto error;
             }
-        } else {
-            def->opts.vioserial.vectors = -1;
         }
         VIR_FREE(vectors);
         break;
@@ -7754,7 +7935,7 @@ virDomainControllerDefParseXML(xmlNodePtr node,
 
  cleanup:
     ctxt->node = saved;
-    VIR_FREE(type);
+    VIR_FREE(typeStr);
     VIR_FREE(idx);
     VIR_FREE(model);
     VIR_FREE(queues);
@@ -11135,8 +11316,10 @@ virDomainShmemDefParseXML(xmlNodePtr node,
     if ((server = virXPathNode("./server[1]", ctxt))) {
         def->server.enabled = true;
 
+        def->server.chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+        def->server.chr.data.nix.listen = false;
         if ((tmp = virXMLPropString(server, "path")))
-            def->server.path = virFileSanitizePath(tmp);
+            def->server.chr.data.nix.path = virFileSanitizePath(tmp);
         VIR_FREE(tmp);
     }
 
@@ -12633,8 +12816,7 @@ virDomainDiskDefDstDuplicates(virDomainDefPtr def)
 
     for (i = 1; i < def->ndisks; i++) {
         for (j = 0; j < i; j++) {
-            if (def->disks[i]->bus == def->disks[j]->bus &&
-                STREQ(def->disks[i]->dst, def->disks[j]->dst)) {
+            if (STREQ(def->disks[i]->dst, def->disks[j]->dst)) {
                 virReportError(VIR_ERR_XML_ERROR,
                                _("target '%s' duplicated for disk sources "
                                  "'%s' and '%s'"),
@@ -13933,17 +14115,11 @@ virDomainDefMaybeAddController(virDomainDefPtr def,
             return 0;
     }
 
-    if (VIR_ALLOC(cont) < 0)
+    if (!(cont = virDomainControllerDefNew(type)))
         return -1;
 
-    cont->type = type;
     cont->idx = idx;
     cont->model = model;
-
-    if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL) {
-        cont->opts.vioserial.ports = -1;
-        cont->opts.vioserial.vectors = -1;
-    }
 
     if (VIR_APPEND_ELEMENT(def->controllers, def->ncontrollers, cont) < 0) {
         VIR_FREE(cont);
@@ -20172,7 +20348,7 @@ virDomainShmemDefFormat(virBufferPtr buf,
 
     if (def->server.enabled) {
         virBufferAddLit(buf, "<server");
-        virBufferEscapeString(buf, " path='%s'", def->server.path);
+        virBufferEscapeString(buf, " path='%s'", def->server.chr.data.nix.path);
         virBufferAddLit(buf, "/>\n");
     }
 
@@ -22108,6 +22284,34 @@ virDomainDeviceInfoCheckBootIndex(virDomainDefPtr def ATTRIBUTE_UNUSED,
     return 0;
 }
 
+
+/**
+ * virDomainDefGetDiskByWWN:
+ * @def: domain definition
+ * @wwn: wwn of a disk to find
+ *
+ * Returns a disk definition pointer corresponding to the given WWN identifier
+ * or NULL either if @wwn was NULL or if disk with given WWN is not present in
+ * the domain definition.
+ */
+static virDomainDiskDefPtr
+virDomainDefGetDiskByWWN(virDomainDefPtr def,
+                         const char *wwn)
+{
+    size_t i;
+
+    if (!wwn)
+        return NULL;
+
+    for (i = 0; i < def->ndisks; i++) {
+        if (STREQ_NULLABLE(def->disks[i]->wwn, wwn))
+            return def->disks[i];
+    }
+
+    return NULL;
+}
+
+
 int
 virDomainDefCompatibleDevice(virDomainDefPtr def,
                              virDomainDeviceDefPtr dev,
@@ -22147,6 +22351,15 @@ virDomainDefCompatibleDevice(virDomainDefPtr def,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Attaching memory device with size '%llu' would "
                              "exceed domain's maxMemory config"), sz);
+            return -1;
+        }
+    }
+
+    if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
+        if (!!virDomainDefGetDiskByWWN(def, dev->data.disk->wwn)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Domain already has a disk with wwn '%s'"),
+                           dev->data.disk->wwn);
             return -1;
         }
     }

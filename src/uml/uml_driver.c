@@ -2782,7 +2782,7 @@ umlNodeGetInfo(virConnectPtr conn,
     if (virNodeGetInfoEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetInfo(nodeinfo);
+    return nodeGetInfo(NULL, nodeinfo);
 }
 
 
@@ -2810,7 +2810,7 @@ umlNodeGetMemoryStats(virConnectPtr conn,
     if (virNodeGetMemoryStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryStats(cellNum, params, nparams, flags);
+    return nodeGetMemoryStats(NULL, cellNum, params, nparams, flags);
 }
 
 
@@ -2877,7 +2877,7 @@ umlNodeGetCPUMap(virConnectPtr conn,
     if (virNodeGetCPUMapEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUMap(cpumap, online, flags);
+    return nodeGetCPUMap(NULL, cpumap, online, flags);
 }
 
 

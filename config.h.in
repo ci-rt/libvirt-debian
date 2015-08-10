@@ -717,6 +717,10 @@
    if you don't. */
 #undef HAVE_DECL_CPUSET_GETAFFINITY
 
+/* Define to 1 if you have the declaration of `ETHTOOL_GFEATURES', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETHTOOL_GFEATURES
+
 /* Define to 1 if you have the declaration of `ETHTOOL_GFLAGS', and to 0 if
    you don't. */
 #undef HAVE_DECL_ETHTOOL_GFLAGS

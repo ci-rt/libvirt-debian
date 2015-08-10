@@ -5,13 +5,12 @@
  */
 
 #include "admin_protocol.h"
-#include "remote_protocol.h"
 
 bool_t
 xdr_admin_nonnull_string (XDR *xdrs, admin_nonnull_string *objp)
 {
 
-         if (!xdr_string (xdrs, objp, REMOTE_STRING_MAX))
+         if (!xdr_string (xdrs, objp, ADMIN_STRING_MAX))
                  return FALSE;
         return TRUE;
 }

@@ -51,7 +51,7 @@ virBhyveCapsInitCPU(virCapsPtr caps,
 
     cpu->arch = arch;
 
-    if (nodeGetInfo(&nodeinfo))
+    if (nodeGetInfo(NULL, &nodeinfo))
         goto error;
 
     cpu->type = VIR_CPU_TYPE_HOST;
@@ -134,6 +134,37 @@ virBhyveProbeGrubCaps(virBhyveGrubCapsFlags *caps)
 
     if (strstr(help, "--cons-dev") != NULL)
         *caps |= BHYVE_GRUB_CAP_CONSDEV;
+
+ out:
+    VIR_FREE(help);
+    virCommandFree(cmd);
+    VIR_FREE(binary);
+    return ret;
+}
+
+int
+virBhyveProbeCaps(unsigned int *caps)
+{
+    char *binary, *help;
+    virCommandPtr cmd = NULL;
+    int ret = 0, exit;
+
+    binary = virFindFileInPath("bhyve");
+    if (binary == NULL)
+        goto out;
+    if (!virFileIsExecutable(binary))
+        goto out;
+
+    cmd = virCommandNew(binary);
+    virCommandAddArg(cmd, "-h");
+    virCommandSetErrorBuffer(cmd, &help);
+    if (virCommandRun(cmd, &exit) < 0) {
+        ret = -1;
+        goto out;
+    }
+
+    if (strstr(help, "-u:") != NULL)
+        *caps |= BHYVE_CAP_RTC_UTC;
 
  out:
     VIR_FREE(help);

@@ -377,8 +377,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.17
-Release: 0rc1%{?dist}%{?extra_release}
+Version: 1.2.18
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -387,7 +387,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -531,6 +531,8 @@ BuildRequires: cyrus-sasl-devel
 %endif
 %if %{with_polkit}
     %if 0%{?fedora} >= 20 || 0%{?rhel} >= 7
+# F22 polkit-devel doesn't pull in polkit anymore, which we need for pkcheck
+BuildRequires: polkit >= 0.112
 BuildRequires: polkit-devel >= 0.112
     %else
         %if 0%{?fedora} || 0%{?rhel} >= 6
@@ -2328,6 +2330,16 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Mon Aug  3 2015 Daniel Veillard <veillard@redhat.com> - 1.2.18-1
+- libxl: support dom0 
+- a number of improvements and bug fixes
+
+* Thu Jul  2 2015 Daniel Veillard <veillard@redhat.com> - 1.2.17-1
+- numerous improvements and refactoring of the parallels driver
+- hardening of vcpu code
+- hardening of migration code
+- a lot of improvement and bug fixes
+
 * Mon Jun  1 2015 Daniel Veillard <veillard@redhat.com> - 1.2.16-1
 - Introduce pci-serial
 - Introduce virDomainSetUserPassword API

@@ -529,6 +529,8 @@
         guaranteed stable across reboots, since they are allocated on
         demand. It is preferable to use a stable location such as one
         of the <code>/dev/disk/by-{path|id|uuid|label}</code> locations.
+        For a Multipath pool (type <code>mpath</code>), the provided
+        value is ignored and the default value of "/dev/mapper" is used.
         <span class="since">Since 0.4.1</span>
       </dd><dt><code>permissions</code></dt><dd>This is currently only useful for directory or filesystem based
         pools, which are mapped as a directory into the local filesystem

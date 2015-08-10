@@ -137,6 +137,23 @@ virLXCProcessReboot(virLXCDriverPtr driver,
 }
 
 
+static void
+lxcProcessRemoveDomainStatus(virLXCDriverConfigPtr cfg,
+                              virDomainObjPtr vm)
+{
+    char ebuf[1024];
+    char *file = NULL;
+
+    if (virAsprintf(&file, "%s/%s.xml", cfg->stateDir, vm->def->name) < 0)
+        return;
+
+    if (unlink(file) < 0 && errno != ENOENT && errno != ENOTDIR)
+        VIR_WARN("Failed to remove domain XML for %s: %s",
+                 vm->def->name, virStrerror(errno, ebuf, sizeof(ebuf)));
+    VIR_FREE(file);
+}
+
+
 /**
  * virLXCProcessCleanup:
  * @driver: pointer to driver structure
@@ -180,7 +197,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
     }
 
     virPidFileDelete(cfg->stateDir, vm->def->name);
-    virDomainDeleteConfig(cfg->stateDir, NULL, vm);
+    lxcProcessRemoveDomainStatus(cfg, vm);
 
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
     vm->pid = -1;
@@ -750,7 +767,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
                                 int *files,
                                 size_t nfiles,
                                 int handshakefd,
-                                int logfd,
+                                int * const logfd,
                                 const char *pidfile)
 {
     size_t i;
@@ -820,8 +837,8 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
     virCommandPassFD(cmd, handshakefd, 0);
     virCommandDaemonize(cmd);
     virCommandSetPidFile(cmd, pidfile);
-    virCommandSetOutputFD(cmd, &logfd);
-    virCommandSetErrorFD(cmd, &logfd);
+    virCommandSetOutputFD(cmd, logfd);
+    virCommandSetErrorFD(cmd, logfd);
     /* So we can pause before exec'ing the controller to
      * write the live domain status XML with the PID */
     virCommandRequireHandshake(cmd);
@@ -1208,7 +1225,7 @@ int virLXCProcessStart(virConnectPtr conn,
                                                 ttyFDs, nttyFDs,
                                                 files, nfiles,
                                                 handshakefds[1],
-                                                logfd,
+                                                &logfd,
                                                 pidfile)))
         goto cleanup;
 
@@ -1319,9 +1336,6 @@ int virLXCProcessStart(virConnectPtr conn,
      * more reliable way to kill everything off if something
      * goes wrong from here onwards ... */
     if (virCgroupNewDetectMachine(vm->def->name, "lxc", vm->pid,
-                                  vm->def->resource ?
-                                  vm->def->resource->partition :
-                                  NULL,
                                   -1, &priv->cgroup) < 0)
         goto cleanup;
 
@@ -1505,9 +1519,6 @@ virLXCProcessReconnectDomain(virDomainObjPtr vm,
             goto error;
 
         if (virCgroupNewDetectMachine(vm->def->name, "lxc", vm->pid,
-                                      vm->def->resource ?
-                                      vm->def->resource->partition :
-                                      NULL,
                                       -1, &priv->cgroup) < 0)
             goto error;
 

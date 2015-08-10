@@ -204,36 +204,33 @@ static int virPCIOnceInit(void)
 VIR_ONCE_GLOBAL_INIT(virPCI)
 
 
-static int
-virPCIDriverDir(char **buffer, const char *driver)
+static char *
+virPCIDriverDir(const char *driver)
 {
-    VIR_FREE(*buffer);
+    char *buffer;
 
-    if (virAsprintf(buffer, PCI_SYSFS "drivers/%s", driver) < 0)
-        return -1;
-    return 0;
+    ignore_value(virAsprintf(&buffer, PCI_SYSFS "drivers/%s", driver));
+    return buffer;
 }
 
 
-static int
-virPCIDriverFile(char **buffer, const char *driver, const char *file)
+static char *
+virPCIDriverFile(const char *driver, const char *file)
 {
-    VIR_FREE(*buffer);
+    char *buffer;
 
-    if (virAsprintf(buffer, PCI_SYSFS "drivers/%s/%s", driver, file) < 0)
-        return -1;
-    return 0;
+    ignore_value(virAsprintf(&buffer, PCI_SYSFS "drivers/%s/%s", driver, file));
+    return buffer;
 }
 
 
-static int
-virPCIFile(char **buffer, const char *device, const char *file)
+static char *
+virPCIFile(const char *device, const char *file)
 {
-    VIR_FREE(*buffer);
+    char *buffer;
 
-    if (virAsprintf(buffer, PCI_SYSFS "devices/%s/%s", device, file) < 0)
-        return -1;
-    return 0;
+    ignore_value(virAsprintf(&buffer, PCI_SYSFS "devices/%s/%s", device, file));
+    return buffer;
 }
 
 
@@ -252,7 +249,7 @@ virPCIDeviceGetDriverPathAndName(virPCIDevicePtr dev, char **path, char **name)
 
     *path = *name = NULL;
     /* drvlink = "/sys/bus/pci/dddd:bb:ss.ff/driver" */
-    if (virPCIFile(&drvlink, dev->name, "driver") < 0)
+    if (!(drvlink = virPCIFile(dev->name, "driver")))
         goto cleanup;
 
     if (!virFileExists(drvlink)) {
@@ -375,7 +372,7 @@ virPCIDeviceReadClass(virPCIDevicePtr dev, uint16_t *device_class)
     int ret = -1;
     unsigned int value;
 
-    if (virPCIFile(&path, dev->name, "class") < 0)
+    if (!(path = virPCIFile(dev->name, "class")))
         return ret;
 
     /* class string is '0xNNNNNN\n' ... i.e. 9 bytes */
@@ -1000,7 +997,7 @@ virPCIProbeStubDriver(const char *driver)
     bool probed = false;
 
  recheck:
-    if (virPCIDriverDir(&drvpath, driver) == 0 && virFileExists(drvpath)) {
+    if ((drvpath = virPCIDriverDir(driver)) && virFileExists(drvpath)) {
         /* driver already loaded, return */
         VIR_FREE(drvpath);
         return 0;
@@ -1055,7 +1052,7 @@ virPCIDeviceUnbind(virPCIDevicePtr dev, bool reprobe)
         goto cleanup;
     }
 
-    if (virPCIFile(&path, dev->name, "driver/unbind") < 0)
+    if (!(path = virPCIFile(dev->name, "driver/unbind")))
         goto cleanup;
 
     if (virFileExists(path)) {
@@ -1127,7 +1124,7 @@ virPCIDeviceUnbindFromStub(virPCIDevicePtr dev)
         goto reprobe;
 
     /* Xen's pciback.ko wants you to use remove_slot on the specific device */
-    if (virPCIDriverFile(&path, driver, "remove_slot") < 0)
+    if (!(path = virPCIDriverFile(driver, "remove_slot")))
         goto cleanup;
 
     if (virFileExists(path) && virFileWriteStr(path, dev->name, 0) < 0) {
@@ -1149,7 +1146,8 @@ virPCIDeviceUnbindFromStub(virPCIDevicePtr dev)
      * available, then re-probing would just cause the device to be
      * re-bound to the stub.
      */
-    if (driver && virPCIDriverFile(&path, driver, "remove_id") < 0)
+    VIR_FREE(path);
+    if (driver && !(path = virPCIDriverFile(driver, "remove_id")))
         goto cleanup;
 
     if (!driver || !virFileExists(drvdir) || virFileExists(path)) {
@@ -1189,8 +1187,8 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
     char *newDriverName = NULL;
     virErrorPtr err = NULL;
 
-    if (virPCIDriverDir(&stubDriverPath, stubDriverName) < 0 ||
-        virPCIFile(&driverLink, dev->name, "driver") < 0 ||
+    if (!(stubDriverPath = virPCIDriverDir(stubDriverName))  ||
+        !(driverLink = virPCIFile(dev->name, "driver")) ||
         VIR_STRDUP(newDriverName, stubDriverName) < 0)
         goto cleanup;
 
@@ -1213,7 +1211,7 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
      * is triggered for such a device, it will also be immediately
      * bound by the stub.
      */
-    if (virPCIDriverFile(&path, stubDriverName, "new_id") < 0)
+    if (!(path = virPCIDriverFile(stubDriverName, "new_id")))
         goto cleanup;
 
     if (virFileWriteStr(path, dev->id, 0) < 0) {
@@ -1240,7 +1238,8 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
      */
     if (!virFileLinkPointsTo(driverLink, stubDriverPath)) {
         /* Xen's pciback.ko wants you to use new_slot first */
-        if (virPCIDriverFile(&path, stubDriverName, "new_slot") < 0)
+        VIR_FREE(path);
+        if (!(path = virPCIDriverFile(stubDriverName, "new_slot")))
             goto remove_id;
 
         if (virFileExists(path) && virFileWriteStr(path, dev->name, 0) < 0) {
@@ -1252,7 +1251,8 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
         }
         dev->remove_slot = true;
 
-        if (virPCIDriverFile(&path, stubDriverName, "bind") < 0)
+        VIR_FREE(path);
+        if (!(path = virPCIDriverFile(stubDriverName, "bind")))
             goto remove_id;
 
         if (virFileWriteStr(path, dev->name, 0) < 0) {
@@ -1272,7 +1272,8 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
     /* If 'remove_id' exists, remove the device id from pci-stub's dynamic
      * ID table so that 'drivers_probe' works below.
      */
-    if (virPCIDriverFile(&path, stubDriverName, "remove_id") < 0) {
+    VIR_FREE(path);
+    if (!(path = virPCIDriverFile(stubDriverName, "remove_id"))) {
         /* We do not remove PCI ID from pci-stub, and we cannot reprobe it */
         if (dev->reprobe) {
             VIR_WARN("Could not remove PCI ID '%s' from %s, and the device "
@@ -1501,7 +1502,7 @@ virPCIDeviceReadID(virPCIDevicePtr dev, const char *id_name)
     char *path = NULL;
     char *id_str;
 
-    if (virPCIFile(&path, dev->name, id_name) < 0)
+    if (!(path = virPCIFile(dev->name, id_name)))
         return NULL;
 
     /* ID string is '0xNNNN\n' ... i.e. 7 bytes */
@@ -2167,7 +2168,7 @@ virPCIDeviceAddressGetIOMMUGroupNum(virPCIDeviceAddressPtr addr)
                     addr->bus, addr->slot, addr->function) < 0)
         goto cleanup;
 
-    if (virPCIFile(&devPath, devName, "iommu_group") < 0)
+    if (!(devPath = virPCIFile(devName, "iommu_group")))
         goto cleanup;
     if (virFileIsLink(devPath) != 1) {
         ret = -2;
@@ -2209,7 +2210,7 @@ virPCIDeviceGetIOMMUGroupDev(virPCIDevicePtr dev)
     char *groupPath = NULL;
     char *groupDev = NULL;
 
-    if (virPCIFile(&devPath, dev->name, "iommu_group") < 0)
+    if (!(devPath = virPCIFile(dev->name, "iommu_group")))
         goto cleanup;
     if (virFileIsLink(devPath) != 1) {
         virReportError(VIR_ERR_INTERNAL_ERROR,

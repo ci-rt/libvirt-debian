@@ -285,6 +285,15 @@ static const vshCmdOptDef opts_freepages[] = {
     {.name = NULL}
 };
 
+static int
+vshPageSizeSorter(const void *a, const void *b)
+{
+    unsigned int pa = *(unsigned int *)a;
+    unsigned int pb = *(unsigned int *)b;
+
+    return pa - pb;
+}
+
 static bool
 cmdFreepages(vshControl *ctl, const vshCmd *cmd)
 {
@@ -326,9 +335,15 @@ cmdFreepages(vshControl *ctl, const vshCmd *cmd)
             nodes_cnt = virXPathNodeSet("/capabilities/host/cpu/pages", ctxt, &nodes);
 
             if (nodes_cnt <= 0) {
-                vshError(ctl, "%s", _("could not get information about "
-                                      "supported page sizes"));
-                goto cleanup;
+                /* Some drivers don't export page sizes under the
+                 * XPath above. Do another trick to get them. */
+                nodes_cnt = virXPathNodeSet("/capabilities/host/topology/cells/cell/pages",
+                                            ctxt, &nodes);
+                if (nodes_cnt <= 0) {
+                    vshError(ctl, "%s", _("could not get information about "
+                                          "supported page sizes"));
+                    goto cleanup;
+                }
             }
 
             pagesize = vshCalloc(ctl, nodes_cnt, sizeof(*pagesize));
@@ -343,6 +358,22 @@ cmdFreepages(vshControl *ctl, const vshCmd *cmd)
                 }
 
                 VIR_FREE(val);
+            }
+
+            /* Here, if we've done the trick few lines above,
+             * @pagesize array will contain duplicates. We should
+             * remove them otherwise not very nice output will be
+             * produced. */
+            qsort(pagesize, nodes_cnt, sizeof(*pagesize), vshPageSizeSorter);
+
+            for (i = 0; i < nodes_cnt - 1;) {
+                if (pagesize[i] == pagesize[i + 1]) {
+                    memmove(pagesize + i, pagesize + i + 1,
+                            (nodes_cnt - i + 1) * sizeof(*pagesize));
+                    nodes_cnt--;
+                } else {
+                    i++;
+                }
             }
 
             npages = nodes_cnt;
@@ -606,7 +637,8 @@ cmdNodeinfo(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     }
     vshPrint(ctl, "%-20s %s\n", _("CPU model:"), info.model);
     vshPrint(ctl, "%-20s %d\n", _("CPU(s):"), info.cpus);
-    vshPrint(ctl, "%-20s %d MHz\n", _("CPU frequency:"), info.mhz);
+    if (info.mhz)
+        vshPrint(ctl, "%-20s %d MHz\n", _("CPU frequency:"), info.mhz);
     vshPrint(ctl, "%-20s %d\n", _("CPU socket(s):"), info.sockets);
     vshPrint(ctl, "%-20s %d\n", _("Core(s) per socket:"), info.cores);
     vshPrint(ctl, "%-20s %d\n", _("Thread(s) per core:"), info.threads);

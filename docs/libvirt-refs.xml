@@ -652,6 +652,7 @@
     <reference name='VIR_ERR_INVALID_STORAGE_POOL' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL'/>
     <reference name='VIR_ERR_INVALID_STORAGE_VOL' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL'/>
     <reference name='VIR_ERR_INVALID_STREAM' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STREAM'/>
+    <reference name='VIR_ERR_MIGRATE_FINISH_OK' href='html/libvirt-virterror.html#VIR_ERR_MIGRATE_FINISH_OK'/>
     <reference name='VIR_ERR_MIGRATE_PERSIST_FAILED' href='html/libvirt-virterror.html#VIR_ERR_MIGRATE_PERSIST_FAILED'/>
     <reference name='VIR_ERR_MIGRATE_UNSAFE' href='html/libvirt-virterror.html#VIR_ERR_MIGRATE_UNSAFE'/>
     <reference name='VIR_ERR_MULTIPLE_INTERFACES' href='html/libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES'/>
@@ -2310,6 +2311,7 @@
       <ref name='VIR_ERR_INVALID_STORAGE_POOL'/>
       <ref name='VIR_ERR_INVALID_STORAGE_VOL'/>
       <ref name='VIR_ERR_INVALID_STREAM'/>
+      <ref name='VIR_ERR_MIGRATE_FINISH_OK'/>
       <ref name='VIR_ERR_MIGRATE_PERSIST_FAILED'/>
       <ref name='VIR_ERR_MIGRATE_UNSAFE'/>
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
@@ -6050,6 +6052,7 @@
       <ref name='VIR_ERR_INVALID_STORAGE_POOL'/>
       <ref name='VIR_ERR_INVALID_STORAGE_VOL'/>
       <ref name='VIR_ERR_INVALID_STREAM'/>
+      <ref name='VIR_ERR_MIGRATE_FINISH_OK'/>
       <ref name='VIR_ERR_MIGRATE_PERSIST_FAILED'/>
       <ref name='VIR_ERR_MIGRATE_UNSAFE'/>
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
@@ -14142,9 +14145,6 @@
         <word name='includs'>
           <ref name='virDomainMigrateToURI2'/>
         </word>
-        <word name='incomaptible'>
-          <ref name='virDomainRevertToSnapshot'/>
-        </word>
         <word name='incoming'>
           <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virDomainGetJobStats'/>
@@ -14154,6 +14154,7 @@
         </word>
         <word name='incompatible'>
           <ref name='virConnectCompareCPU'/>
+          <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>

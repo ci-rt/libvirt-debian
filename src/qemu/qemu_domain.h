@@ -199,6 +199,9 @@ struct _qemuDomainObjPrivate {
     /* Bitmaps below hold data from the auto NUMA feature */
     virBitmapPtr autoNodeset;
     virBitmapPtr autoCpuset;
+
+    bool signalIOError; /* true if the domain condition should be signalled on
+                           I/O error */
 };
 
 # define QEMU_DOMAIN_DISK_PRIVATE(disk)	\
@@ -465,6 +468,7 @@ virDomainChrSourceDefPtr qemuFindAgentConfig(virDomainDefPtr def);
 
 bool qemuDomainMachineIsQ35(const virDomainDef *def);
 bool qemuDomainMachineIsI440FX(const virDomainDef *def);
+bool qemuDomainMachineNeedsFDC(const virDomainDef *def);
 
 int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
                                       virDomainObjPtr vm);
