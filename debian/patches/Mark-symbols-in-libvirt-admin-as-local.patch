@@ -1,0 +1,26 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 11 Aug 2015 20:26:07 +0200
+Subject: Mark symbols in libvirt-admin as local
+
+We put the one needed symbol by the daemon into a private namespace.
+---
+ src/libvirt_admin.syms | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/libvirt_admin.syms b/src/libvirt_admin.syms
+index d9e3c0b..de4f1b8 100644
+--- a/src/libvirt_admin.syms
++++ b/src/libvirt_admin.syms
+@@ -16,3 +16,12 @@ LIBVIRT_ADMIN_1.3.0 {
+         virAdmConnectClose;
+         virAdmConnectRef;
+ };
++
++
++LIBVIRT_ADMIN_PRIVATE_1.2.18 {
++    global:
++        xdr_admin_connect_open_args;
++
++    local:
++        *;
++};

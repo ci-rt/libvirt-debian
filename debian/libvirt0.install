@@ -1,3 +1,4 @@
 usr/lib/libvirt.so.*
+usr/lib/libvirt-admin.so.*
 usr/lib/libvirt-lxc.so.*
 usr/lib/libvirt-qemu.so.*
