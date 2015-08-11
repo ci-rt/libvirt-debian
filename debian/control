@@ -8,6 +8,7 @@ Build-Depends:
  debhelper (>= 7),
  dh-autoreconf,
  dh-systemd (>= 1.18~),
+ dh-apparmor [linux-any],
  libxml2-dev,
  libncurses5-dev,
  libreadline-dev,

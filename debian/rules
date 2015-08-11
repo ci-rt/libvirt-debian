@@ -158,6 +158,8 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
 	dh_install -p libvirt-daemon-system usr/lib/libvirt/virt-aa-helper
 	dh_install -p libvirt-daemon-system etc/apparmor.d
+	dh_apparmor -p libvirt-daemon-system --profile-name=usr.lib.libvirt.virt-aa-helper
+	dh_apparmor -p libvirt-daemon-system --profile-name=usr.sbin.libvirtd
 	dh_install -p libvirt-daemon-system usr/share/polkit-1
 	# Not all linux arches have systemtap yet
 	mkdir -p debian/tmp/usr/share/systemtap

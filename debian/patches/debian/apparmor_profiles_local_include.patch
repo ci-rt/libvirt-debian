@@ -1,0 +1,33 @@
+From: Felix Geyer <fgeyer@debian.org>
+Date: Tue, 11 Aug 2015 07:25:01 +0200
+Subject: apparmor_profiles_local_include
+
+Include local apparmor profile
+---
+ examples/apparmor/usr.lib.libvirt.virt-aa-helper | 3 +++
+ examples/apparmor/usr.sbin.libvirtd              | 2 ++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+index 89b95f6..a992119 100644
+--- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -52,4 +52,7 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+   /**.vmdk r,
+   /**.[iI][sS][oO] r,
+   /**/disk{,.*} r,
++
++  # Site-specific additions and overrides. See local/README for details.
++  #include <local/usr.lib.libvirt.virt-aa-helper>
+ }
+diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
+index 5d606e6..be4e1ef 100644
+--- a/examples/apparmor/usr.sbin.libvirtd
++++ b/examples/apparmor/usr.sbin.libvirtd
+@@ -66,4 +66,6 @@
+   # allow changing to our UUID-based named profiles
+   change_profile -> @{LIBVIRT}-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*,
+ 
++  # Site-specific additions and overrides. See local/README for details.
++  #include <local/usr.sbin.libvirtd>
+ }
