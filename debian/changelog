@@ -1,3 +1,33 @@
+libvirt (1.2.18-1) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * [18ffe0c] New upstream version 1.2.18
+  * [56eac6e] New upstream version 1.2.17~rc1
+  * [c656180,af739f0] Bump symbol versions
+  * [dd37716,88466c7] Rediff patches
+  * [9135e2e] Use upstreams polkit rule.
+    As of 1.2.16 upstream ships a Polkit rule like Debian does.
+  * [9958a7f] Use systemctl is-active to check if virtlockd is running.
+    This is less heavyweight as status.
+    Thanks to Michael Biebl <biebl@debian.org> (Closes: #787973)
+  * [6620081] Drop Don-t-fail-if-we-can-t-setup-avahi.patch
+    not needed anymore
+  * [aa77bd8] Allow access to libnl-3 config files (Closes: #786650)
+  * [fda50ec] Use dh-autoreconf
+  * [659882f] Create dir for doc generation and depend on xsltproc for it
+  * [e894ae7] virNetSocketCheckProtocols: handle EAI_NONAME as IPv6 unavailable.
+  * [b1467e1] Add libvirt-admin shared library
+
+  [ Felix Geyer ]
+  * [2f59533] Use dh-apparmor.
+    This makes sure we load the profiles after installing the package
+    (Closes: #792426)
+
+  [ Michael Biebl ]
+  * [5409dc1] Transition to libsystemd (Closes: #779775)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 11 Aug 2015 21:19:43 +0200
+
 libvirt (1.2.16-2) unstable; urgency=medium
 
   * [0266267] Build-Depend and suggest nfs-common
