@@ -10,7 +10,7 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 debian/Debianize-virtlockd.patch
-Use-upstreams-polkit-rule.patch
+debian/Use-upstreams-polkit-rule.patch
 Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
