@@ -4,7 +4,6 @@ debian/fix-Debian-specific-path-to-hvm-loader.patch
 debian/Debianize-libvirt-guests.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
-Disable-failing-virnetsockettest.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
@@ -14,3 +13,4 @@ debian/Use-upstreams-polkit-rule.patch
 Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
+virNetSocketCheckProtocols-handle-EAI_NONAME-as-IPv6.patch
