@@ -1,3 +1,24 @@
+libvirt (1.2.9-9+deb8u1) jessie; urgency=medium
+
+  [ Guido Günther ]
+  * [8e4cf5a] Teach virt-aa-helper to use TEMPLATE.qemu if the domain is kvm
+    or kqemu.
+    Thanks to Luke Faraone for the report (Closes: #786650)
+  * [ad1ff0b] Adjust gbp.conf for jessie
+  * [c830a54] Disable test suite due to libxml2 bug #781232 in jessie
+  * [be70aec] Fix crash on live migration
+    this supplements 07dbec0a64783f644854a22aa0355720f0328d17.
+    Thanks to Eckebrecht von Pappenheim (Closes: #7788171)
+
+  [ Felix Geyer ]
+  * [9fb6c59] Allow access to libnl-3 configuration (Closes: #786652)
+
+  [ Daniel P. Berrange ]
+  * [afae69a] Report original error when QMP probing fails with new QEMU
+    (Closes: #780093)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 13 Aug 2015 15:56:49 +0200
+
 libvirt (1.2.9-9) unstable; urgency=medium
 
   * [4c14b83] qemu: Don't try to parse -help for new QEMU.
