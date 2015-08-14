@@ -1,20 +1,11 @@
 Xen
 ===
-To manage xen domains with libvirt you have to set:
+Libvirt uses libxl to manage xen domains. In order to migrate your
+configuration from a xend based setup use:
 
-(xend-unix-server yes)
+    virsh define <(virsh domxml-from-native xen-xm /etc/xen/yourxendomain.cfg)
 
-in /etc/xen/xend-config.sxp.
-
-For xend HTTP access (not recommended) you also have to set:
-
-(xend-http-server yes)
-# only allow access from localhost:
-(xend-address localhost)
-
-Note that *every* user on the system has access to xend then. Better use
-libvirtd to access xen with unprivileged users and add the users to the
-"libvirt" group (see "Access Control" below).
+For some more details see #783901.
 
 Debugging
 =========
