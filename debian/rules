@@ -7,18 +7,18 @@ DEB_BUILDUSER=${USER}
 
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
-    WITH_VBOX = --with-vbox
-    MAKE_CHECK = 1
+    WITH_VBOX         = --with-vbox
+    MAKE_CHECK        = 1
   else
-    WITH_VBOX           = --without-vbox
+    WITH_VBOX         = --without-vbox
   endif
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64 armhf arm64))
-    WITH_XEN = --with-xen
-    WITH_LIBXL = --with-libxl
-    XEN_ENABLED = 1
+    WITH_XEN          = --with-xen
+    WITH_LIBXL        = --with-libxl
+    XEN_ENABLED       = 1
   else
-    WITH_XEN            = --without-xen
-    WITH_LIBXL          = --without-libxl
+    WITH_XEN          = --without-xen
+    WITH_LIBXL        = --without-libxl
   endif
   WITH_STORAGE_LVM    = --with-storage-lvm
   WITH_STORAGE_ISCSI  = --with-storage-iscsi
