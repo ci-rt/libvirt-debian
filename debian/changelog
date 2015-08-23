@@ -1,3 +1,17 @@
+libvirt (1.2.18-2) unstable; urgency=medium
+
+  * [54daa55] Add Breaks for older systemd.
+    These make us end up in the wrong parts of the cgroup hierarchy so we
+    won't find our lxc instances after restart. This could likely be fixed
+    in libvirt but forcing the newer version at least makes us not break
+    running containers. (Closes: #774237)
+  * [2caf1bb] Fix path to qemu-bridge-helper (Closes: #790935)
+  * [77dcc1a] README.Debian: remove xend bits were using libxl now
+  * [1b01f3f] Enable xen on armhf and amd64. Based on a patch by Yann
+    Soubeyrand (Closes: #795516)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 23 Aug 2015 17:59:27 +0200
+
 libvirt (1.2.18-1) experimental; urgency=medium
 
   [ Guido Günther ]
