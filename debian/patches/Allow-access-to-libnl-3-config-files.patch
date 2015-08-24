@@ -4,14 +4,14 @@ Subject: Allow access to libnl-3 config files
 
 Closes: #786650
 ---
- examples/apparmor/usr.lib.libvirt.virt-aa-helper | 7 +++++++
- 1 file changed, 7 insertions(+)
+ examples/apparmor/usr.lib.libvirt.virt-aa-helper | 2 ++
+ 1 file changed, 2 insertions(+)
 
 diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-index bceaaff..60739d0 100644
+index bceaaff..a3c9938 100644
 --- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-@@ -16,9 +16,16 @@
+@@ -16,6 +16,8 @@
    owner @{PROC}/[0-9]*/status r,
    @{PROC}/filesystems r,
  
@@ -20,11 +20,3 @@ index bceaaff..60739d0 100644
    # for hostdev
    /sys/devices/ r,
    /sys/devices/** r,
-+  deny /dev/sd* r,
-+  deny /dev/vd* r,
-+  deny /dev/dm-* r,
-+  deny /dev/mapper/ r,
-+  deny /dev/mapper/* r,
- 
-   /usr/lib/libvirt/virt-aa-helper mr,
-   /sbin/apparmor_parser Ux,
