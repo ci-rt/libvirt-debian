@@ -13,6 +13,10 @@ libvirt (1.2.9-9+deb8u1) jessie; urgency=medium
   [ Felix Geyer ]
   * [9fb6c59] Allow access to libnl-3 configuration (Closes: #786652)
 
+  [ intrigeri ]
+  * Allow-access-to-libnl-3-config-files.patch: revert changes that are
+    unrelated to the bug this patch is meant to fix.
+
   [ Daniel P. Berrange ]
   * [afae69a] Report original error when QMP probing fails with new QEMU
     (Closes: #780093)
