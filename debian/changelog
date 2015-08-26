@@ -8,7 +8,7 @@ libvirt (1.2.9-9+deb8u1) jessie; urgency=medium
   * [c830a54] Disable test suite due to libxml2 bug #781232 in jessie
   * [be70aec] Fix crash on live migration
     this supplements 07dbec0a64783f644854a22aa0355720f0328d17.
-    Thanks to Eckebrecht von Pappenheim (Closes: #7788171)
+    Thanks to Eckebrecht von Pappenheim (Closes: #788171)
 
   [ Felix Geyer ]
   * [9fb6c59] Allow access to libnl-3 configuration (Closes: #786652)
