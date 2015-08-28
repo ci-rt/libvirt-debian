@@ -209,6 +209,7 @@ extern int virDomainPinVcpuFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr do
 extern int virDomainPMSuspendForDurationEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainPMWakeupEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainRebootEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainRenameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainResetEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainRestoreEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainRestoreFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

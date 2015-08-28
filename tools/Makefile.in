@@ -276,8 +276,9 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)" \
 	"$(DESTDIR)$(confdir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_virsh_OBJECTS = virsh-virsh.$(OBJEXT) virsh-virsh-console.$(OBJEXT) \
-	virsh-virsh-domain.$(OBJEXT) \
+am__objects_1 = virsh-vsh.$(OBJEXT)
+am_virsh_OBJECTS = $(am__objects_1) virsh-virsh.$(OBJEXT) \
+	virsh-virsh-console.$(OBJEXT) virsh-virsh-domain.$(OBJEXT) \
 	virsh-virsh-domain-monitor.$(OBJEXT) \
 	virsh-virsh-host.$(OBJEXT) virsh-virsh-interface.$(OBJEXT) \
 	virsh-virsh-network.$(OBJEXT) virsh-virsh-nodedev.$(OBJEXT) \
@@ -1506,6 +1507,7 @@ PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
 QEMU = @QEMU@
+QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
@@ -1957,7 +1959,11 @@ virt_login_shell_CFLAGS = \
 		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)
 
+virt_shell_SOURCES = \
+		vsh.c vsh.h
+
 virsh_SOURCES = \
+		$(virt_shell_SOURCES)			\
 		virsh.c virsh.h					\
 		virsh-console.c virsh-console.h			\
 		virsh-domain.c virsh-domain.h			\
@@ -2214,6 +2220,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-snapshot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-volume.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-vsh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-lxc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-qemu.Po@am__quote@
@@ -2243,6 +2250,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+virsh-vsh.o: vsh.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-vsh.o -MD -MP -MF $(DEPDIR)/virsh-vsh.Tpo -c -o virsh-vsh.o `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-vsh.Tpo $(DEPDIR)/virsh-vsh.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='virsh-vsh.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-vsh.o `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
+
+virsh-vsh.obj: vsh.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-vsh.obj -MD -MP -MF $(DEPDIR)/virsh-vsh.Tpo -c -o virsh-vsh.obj `if test -f 'vsh.c'; then $(CYGPATH_W) 'vsh.c'; else $(CYGPATH_W) '$(srcdir)/vsh.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-vsh.Tpo $(DEPDIR)/virsh-vsh.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='virsh-vsh.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-vsh.obj `if test -f 'vsh.c'; then $(CYGPATH_W) 'vsh.c'; else $(CYGPATH_W) '$(srcdir)/vsh.c'; fi`
 
 virsh-virsh.o: virsh.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh.o -MD -MP -MF $(DEPDIR)/virsh-virsh.Tpo -c -o virsh-virsh.o `test -f 'virsh.c' || echo '$(srcdir)/'`virsh.c

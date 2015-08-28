@@ -27,6 +27,7 @@
 #include <config.h>
 
 #include <fcntl.h>
+#include <sched.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,7 +39,6 @@
 #include <mntent.h>
 #include <sys/reboot.h>
 #include <linux/reboot.h>
-
 /* Yes, we want linux private one, for _syscall2() macro */
 #include <linux/unistd.h>
 
@@ -95,6 +95,40 @@ VIR_LOG_INIT("lxc.lxc_container");
 # define CLONE_NEWNET  0x40000000 /* New network namespace */
 #endif
 
+/*
+ * Workaround older glibc. While kernel may support the setns
+ * syscall, the glibc wrapper might not exist. If that's the
+ * case, use our own.
+ */
+#ifndef __NR_setns
+# if defined(__x86_64__)
+#  define __NR_setns 308
+# elif defined(__i386__)
+#  define __NR_setns 346
+# elif defined(__arm__)
+#  define __NR_setns 375
+# elif defined(__aarch64__)
+#  define __NR_setns 375
+# elif defined(__powerpc__)
+#  define __NR_setns 350
+# elif defined(__s390__)
+#  define __NR_setns 339
+# endif
+#endif
+
+#ifndef HAVE_SETNS
+# if defined(__NR_setns)
+#  include <sys/syscall.h>
+
+static inline int setns(int fd, int nstype)
+{
+    return syscall(__NR_setns, fd, nstype);
+}
+# else /* !__NR_setns */
+#  error Please determine the syscall number for setns on your architecture
+# endif
+#endif
+
 /* messages between parent and container */
 typedef char lxc_message_t;
 #define LXC_CONTINUE_MSG 'c'
@@ -111,6 +145,7 @@ struct __lxc_child_argv {
     size_t nttyPaths;
     char **ttyPaths;
     int handshakefd;
+    int *nsInheritFDs;
 };
 
 static int lxcContainerMountFSBlock(virDomainFSDefPtr fs,
@@ -2144,6 +2179,35 @@ static int lxcContainerDropCapabilities(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 /**
+ * lxcAttach_ns:
+ * @ns_fd: array of namespaces to attach
+ */
+static int lxcAttachNS(int *ns_fd)
+{
+    size_t i;
+    if (ns_fd)
+        for (i = 0; i < VIR_LXC_DOMAIN_NAMESPACE_LAST; i++) {
+            if (ns_fd[i] < 0)
+                continue;
+            VIR_DEBUG("Setting into namespace\n");
+            /* We get EINVAL if new NS is same as the current
+             * NS, or if the fd namespace doesn't match the
+             * type passed to setns()'s second param. Since we
+             * pass 0, we know the EINVAL is harmless
+             */
+            if (setns(ns_fd[i], 0) < 0 &&
+                errno != EINVAL) {
+                virReportSystemError(errno, _("failed to set namespace '%s'"),
+                                     virLXCDomainNamespaceTypeToString(i));
+                return -1;
+            }
+            VIR_FORCE_CLOSE(ns_fd[i]);
+        }
+    return 0;
+}
+
+
+/**
  * lxcContainerChild:
  * @data: pointer to container arguments
  *
@@ -2170,6 +2234,12 @@ static int lxcContainerChild(void *data)
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("lxcChild() passed invalid vm definition"));
         goto cleanup;
+    }
+
+    if (lxcAttachNS(argv->nsInheritFDs) < 0) {
+        virReportError(VIR_ERR_SYSTEM_ERROR, "%s",
+                       _("failed to attach the namespace"));
+        return -1;
     }
 
     /* Wait for controller to finish setup tasks, including
@@ -2342,6 +2412,7 @@ int lxcContainerStart(virDomainDefPtr def,
                       int *passFDs,
                       int control,
                       int handshakefd,
+                      int *nsInheritFDs,
                       size_t nttyPaths,
                       char **ttyPaths)
 {
@@ -2359,7 +2430,8 @@ int lxcContainerStart(virDomainDefPtr def,
         .monitor = control,
         .nttyPaths = nttyPaths,
         .ttyPaths = ttyPaths,
-        .handshakefd = handshakefd
+        .handshakefd = handshakefd,
+        .nsInheritFDs = nsInheritFDs,
     };
 
     /* allocate a stack for the container */
@@ -2368,7 +2440,7 @@ int lxcContainerStart(virDomainDefPtr def,
 
     stacktop = stack + stacksize;
 
-    cflags = CLONE_NEWPID|CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|SIGCHLD;
+    cflags = CLONE_NEWPID|CLONE_NEWNS|SIGCHLD;
 
     if (userns_required(def)) {
         if (userns_supported()) {
@@ -2381,10 +2453,31 @@ int lxcContainerStart(virDomainDefPtr def,
             return -1;
         }
     }
+    if (!nsInheritFDs || nsInheritFDs[VIR_LXC_DOMAIN_NAMESPACE_SHARENET] == -1) {
+        if (lxcNeedNetworkNamespace(def)) {
+            VIR_DEBUG("Enable network namespaces");
+            cflags |= CLONE_NEWNET;
+        }
+    } else {
+        if (lxcNeedNetworkNamespace(def)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Config askes for inherit net namespace "
+                             "as well as private network interfaces"));
+            return -1;
+        }
+        VIR_DEBUG("Inheriting a net namespace");
+    }
 
-    if (lxcNeedNetworkNamespace(def)) {
-        VIR_DEBUG("Enable network namespaces");
-        cflags |= CLONE_NEWNET;
+    if (!nsInheritFDs || nsInheritFDs[VIR_LXC_DOMAIN_NAMESPACE_SHAREIPC] == -1) {
+        cflags |= CLONE_NEWIPC;
+    } else {
+        VIR_DEBUG("Inheriting an IPC namespace");
+    }
+
+    if (!nsInheritFDs || nsInheritFDs[VIR_LXC_DOMAIN_NAMESPACE_SHAREUTS] == -1) {
+        cflags |= CLONE_NEWUTS;
+    } else {
+        VIR_DEBUG("Inheriting a UTS namespace");
     }
 
     VIR_DEBUG("Cloning container init process");

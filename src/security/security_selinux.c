@@ -1740,7 +1740,7 @@ virSecuritySELinuxSetSecurityChardevLabel(virDomainDefPtr def,
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         if (!dev_source->data.nix.listen) {
-            if (virSecuritySELinuxSetFilecon(dev_source->data.file.path,
+            if (virSecuritySELinuxSetFilecon(dev_source->data.nix.path,
                                              imagelabel) < 0)
                 goto done;
         }
@@ -2505,6 +2505,20 @@ virSecuritySELinuxGetSecurityMountOptions(virSecurityManagerPtr mgr,
     return opts;
 }
 
+static int
+virSecuritySELinuxDomainSetDirLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                    virDomainDefPtr def,
+                                    const char *path)
+{
+    virSecurityLabelDefPtr seclabel;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (!seclabel || !seclabel->relabel)
+        return 0;
+
+    return virSecuritySELinuxSetFilecon(path, seclabel->imagelabel);
+}
+
 virSecurityDriver virSecurityDriverSELinux = {
     .privateDataLen                     = sizeof(virSecuritySELinuxData),
     .name                               = SECURITY_SELINUX_NAME,
@@ -2549,4 +2563,6 @@ virSecurityDriver virSecurityDriverSELinux = {
 
     .domainGetSecurityMountOptions      = virSecuritySELinuxGetSecurityMountOptions,
     .getBaseLabel                       = virSecuritySELinuxGetBaseLabel,
+
+    .domainSetDirLabel                  = virSecuritySELinuxDomainSetDirLabel,
 };

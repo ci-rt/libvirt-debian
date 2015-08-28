@@ -3137,6 +3137,35 @@ done:
 }
 
 static int
+remoteDomainRename(virDomainPtr dom, const char *new_name, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_rename_args args;
+    remote_domain_rename_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.new_name = new_name ? (char **)&new_name : NULL;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_RENAME,
+             (xdrproc_t)xdr_remote_domain_rename_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_rename_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.retcode;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainReset(virDomainPtr dom, unsigned int flags)
 {
     int rv = -1;

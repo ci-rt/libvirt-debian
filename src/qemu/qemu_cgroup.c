@@ -436,27 +436,37 @@ qemuSetupBlkioCgroup(virDomainObjPtr vm)
             virBlkioDevicePtr dev = &vm->def->blkio.devices[i];
             if (dev->weight &&
                 (virCgroupSetBlkioDeviceWeight(priv->cgroup, dev->path,
-                                               dev->weight) < 0))
+                                               dev->weight) < 0 ||
+                 virCgroupGetBlkioDeviceWeight(priv->cgroup, dev->path,
+                                               &dev->weight) < 0))
                 return -1;
 
             if (dev->riops &&
                 (virCgroupSetBlkioDeviceReadIops(priv->cgroup, dev->path,
-                                                 dev->riops) < 0))
+                                                 dev->riops) < 0 ||
+                 virCgroupGetBlkioDeviceReadIops(priv->cgroup, dev->path,
+                                                 &dev->riops) < 0))
                 return -1;
 
             if (dev->wiops &&
                 (virCgroupSetBlkioDeviceWriteIops(priv->cgroup, dev->path,
-                                                  dev->wiops) < 0))
+                                                  dev->wiops) < 0 ||
+                 virCgroupGetBlkioDeviceWriteIops(priv->cgroup, dev->path,
+                                                  &dev->wiops) < 0))
                 return -1;
 
             if (dev->rbps &&
                 (virCgroupSetBlkioDeviceReadBps(priv->cgroup, dev->path,
-                                                dev->rbps) < 0))
+                                                dev->rbps) < 0 ||
+                 virCgroupGetBlkioDeviceReadBps(priv->cgroup, dev->path,
+                                                &dev->rbps) < 0))
                 return -1;
 
             if (dev->wbps &&
                 (virCgroupSetBlkioDeviceWriteBps(priv->cgroup, dev->path,
-                                                 dev->wbps) < 0))
+                                                 dev->wbps) < 0 ||
+                 virCgroupGetBlkioDeviceWriteBps(priv->cgroup, dev->path,
+                                                 &dev->wbps) < 0))
                 return -1;
         }
     }
@@ -1025,10 +1035,6 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
         if (virCgroupAddTask(cgroup_vcpu, priv->vcpupids[i]) < 0)
             goto cleanup;
 
-        if (mem_mask &&
-            virCgroupSetCpusetMems(cgroup_vcpu, mem_mask) < 0)
-            goto cleanup;
-
         if (period || quota) {
             if (qemuSetupCgroupVcpuBW(cgroup_vcpu, period, quota) < 0)
                 goto cleanup;
@@ -1037,6 +1043,10 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
         /* Set vcpupin in cgroup if vcpupin xml is provided */
         if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
             virBitmapPtr cpumap = NULL;
+
+            if (mem_mask &&
+                virCgroupSetCpusetMems(cgroup_vcpu, mem_mask) < 0)
+                goto cleanup;
 
             /* try to use the default cpu maps */
             if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO)
@@ -1202,14 +1212,14 @@ qemuSetupCgroupForIOThreads(virDomainObjPtr vm)
                 goto cleanup;
         }
 
-        if (mem_mask &&
-            virCgroupSetCpusetMems(cgroup_iothread, mem_mask) < 0)
-            goto cleanup;
-
         /* Set iothreadpin in cgroup if iothreadpin xml is provided */
         if (virCgroupHasController(priv->cgroup,
                                    VIR_CGROUP_CONTROLLER_CPUSET)) {
             virBitmapPtr cpumask = NULL;
+
+            if (mem_mask &&
+                virCgroupSetCpusetMems(cgroup_iothread, mem_mask) < 0)
+                goto cleanup;
 
             if (def->iothreadids[i]->cpumask)
                 cpumask = def->iothreadids[i]->cpumask;

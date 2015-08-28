@@ -116,7 +116,7 @@
                         </div>
                       </li><li>
                         <div>
-                          <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
+                          <a title="Driver for Virtuozzo" class="inactive" href="drvvirtuozzo.html">Virtuozzo</a>
                         </div>
                       </li><li>
                         <div>
@@ -212,6 +212,8 @@
             <a href="#exconfig">Example configurations</a>
           </li><li>
             <a href="#capabilities">Altering the available capabilities</a>
+          </li><li>
+            <a href="#share">Inherit namespaces</a>
           </li><li>
             <a href="#usage">Container usage / management</a>
             <ul><li>
@@ -729,6 +731,28 @@ The following example, drops all capabilities but CAP_MKNOD:
 Note that allowing capabilities that are normally dropped by default can seriously
 affect the security of the container and the host.
 </p>
+        <h2>
+          <a name="share" shape="rect" id="share">Inherit namespaces</a>
+          <a class="headerlink" href="#share" title="Permalink to this headline">¶</a>
+        </h2>
+        <p>
+Libvirt allows you to inherit the namespace from container/process just like lxc tools
+or docker provides to share the network namespace. The following can be used to share
+required namespaces. If we want to share only one then the other namespaces can be ignored.
+The netns option is specific to sharenet. It can be used in cases we want to use existing network namespace
+rather than creating new network namespace for the container. In this case privnet option will be
+ignored.
+</p>
+        <pre xml:space="preserve">
+&lt;domain type='lxc' xmlns:lxc='http://libvirt.org/schemas/domain/lxc/1.0'&gt;
+...
+&lt;lxc:namespace&gt;
+  &lt;lxc:sharenet type='netns' value='red'/&gt;
+  &lt;lxc:shareuts type='name' value='container1'/&gt;
+  &lt;lxc:shareipc type='pid' value='12345'/&gt;
+&lt;/lxc:namespace&gt;
+&lt;/domain&gt;
+</pre>
         <h2>
           <a name="usage" shape="rect" id="usage">Container usage / management</a>
           <a class="headerlink" href="#usage" title="Permalink to this headline">¶</a>

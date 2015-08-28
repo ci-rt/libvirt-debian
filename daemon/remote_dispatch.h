@@ -8038,6 +8038,69 @@ cleanup:
 
 
 
+static int remoteDispatchDomainRename(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_rename_args *args,
+    remote_domain_rename_ret *ret);
+static int remoteDispatchDomainRenameHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainRename");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainRename(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainRename(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_rename_args *args,
+    remote_domain_rename_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *new_name;
+    int retcode;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    new_name = args->new_name ? *args->new_name : NULL;
+
+    if ((retcode = virDomainRename(dom, new_name, args->flags)) < 0)
+        goto cleanup;
+
+    ret->retcode = retcode;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainReset(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -19495,6 +19558,15 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_user_password_args,
    0,
    (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainRename => 358 */
+   remoteDispatchDomainRenameHelper,
+   sizeof(remote_domain_rename_args),
+   (xdrproc_t)xdr_remote_domain_rename_args,
+   sizeof(remote_domain_rename_ret),
+   (xdrproc_t)xdr_remote_domain_rename_ret,
    true,
    0
 },

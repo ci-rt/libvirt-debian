@@ -1335,6 +1335,13 @@ int                     virDomainInterfaceStats (virDomainPtr dom,
 # define VIR_DOMAIN_BANDWIDTH_IN_BURST "inbound.burst"
 
 /**
+ * VIR_DOMAIN_BANDWIDTH_IN_FLOOR:
+ *
+ * Macro represents the inbound floor of NIC bandwidth, as a uint.
+ */
+# define VIR_DOMAIN_BANDWIDTH_IN_FLOOR "inbound.floor"
+
+/**
  * VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE:
  *
  * Macro represents the outbound average of NIC bandwidth, as a uint.
@@ -2322,6 +2329,7 @@ typedef enum {
 typedef enum {
     VIR_DOMAIN_EVENT_DEFINED_ADDED = 0,     /* Newly created config file */
     VIR_DOMAIN_EVENT_DEFINED_UPDATED = 1,   /* Changed config file */
+    VIR_DOMAIN_EVENT_DEFINED_RENAMED = 2,   /* Domain was renamed */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_DEFINED_LAST
@@ -2335,6 +2343,7 @@ typedef enum {
  */
 typedef enum {
     VIR_DOMAIN_EVENT_UNDEFINED_REMOVED = 0, /* Deleted the config file */
+    VIR_DOMAIN_EVENT_UNDEFINED_RENAMED = 1, /* Domain was renamed */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_UNDEFINED_LAST
@@ -3836,5 +3845,9 @@ int virDomainSetUserPassword(virDomainPtr dom,
                              const char *user,
                              const char *password,
                              unsigned int flags);
+
+int virDomainRename(virDomainPtr dom,
+                    const char *new_name,
+                    unsigned int flags);
 
 #endif /* __VIR_LIBVIRT_DOMAIN_H__ */

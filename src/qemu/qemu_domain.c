@@ -618,20 +618,33 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf,
         virBufferAddLit(buf, "</devices>\n");
     }
 
+    if (priv->autoNodeset) {
+        char *nodeset = virBitmapFormat(priv->autoNodeset);
+
+        if (!nodeset)
+            return -1;
+
+        virBufferAsprintf(buf, "<numad nodeset='%s'/>\n", nodeset);
+        VIR_FREE(nodeset);
+    }
+
     return 0;
 }
 
 static int
 qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
-                             virDomainObjPtr vm)
+                             virDomainObjPtr vm,
+                             virDomainDefParserConfigPtr config)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virQEMUDriverPtr driver = config->priv;
     char *monitorpath;
-    char *tmp;
+    char *tmp = NULL;
     int n;
     size_t i;
     xmlNodePtr *nodes = NULL;
     virQEMUCapsPtr qemuCaps = NULL;
+    virCapsPtr caps = NULL;
 
     if (VIR_ALLOC(priv->monConfig) < 0)
         goto error;
@@ -715,6 +728,7 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
         }
 
         priv->qemuCaps = qemuCaps;
+        qemuCaps = NULL;
     }
     VIR_FREE(nodes);
 
@@ -803,15 +817,33 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
     }
     VIR_FREE(nodes);
 
+    if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
+        goto error;
+
+    if ((tmp = virXPathString("string(./numad/@nodeset)", ctxt))) {
+        if (virBitmapParse(tmp, 0, &priv->autoNodeset,
+                           caps->host.nnumaCell_max) < 0)
+            goto error;
+
+        if (!(priv->autoCpuset = virCapabilitiesGetCpusForNodemask(caps,
+                                                                   priv->autoNodeset)))
+            goto error;
+    }
+    virObjectUnref(caps);
+    caps = NULL;
+    VIR_FREE(tmp);
+
     return 0;
 
  error:
     virDomainChrSourceDefFree(priv->monConfig);
     priv->monConfig = NULL;
     VIR_FREE(nodes);
+    VIR_FREE(tmp);
     virStringFreeList(priv->qemuDevices);
     priv->qemuDevices = NULL;
     virObjectUnref(qemuCaps);
+    virObjectUnref(caps);
     return -1;
 }
 
@@ -981,8 +1013,10 @@ virDomainXMLNamespace virQEMUDriverDomainXMLNamespace = {
 static int
 qemuDomainDefPostParse(virDomainDefPtr def,
                        virCapsPtr caps,
-                       void *opaque ATTRIBUTE_UNUSED)
+                       void *opaque)
 {
+    virQEMUDriverPtr driver = opaque;
+    virQEMUCapsPtr qemuCaps = NULL;
     bool addDefaultUSB = true;
     bool addImplicitSATA = false;
     bool addPCIRoot = false;
@@ -991,17 +1025,24 @@ qemuDomainDefPostParse(virDomainDefPtr def,
     bool addDefaultUSBKBD = false;
     bool addDefaultUSBMouse = false;
     bool addPanicDevice = false;
+    int ret = -1;
 
     if (def->os.bootloader || def->os.bootloaderArgs) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("bootloader is not supported by QEMU"));
-        return -1;
+        return ret;
     }
 
     /* check for emulator and create a default one if needed */
     if (!def->emulator &&
         !(def->emulator = virDomainDefGetDefaultEmulator(def, caps)))
-        return -1;
+        return ret;
+
+
+    /* This condition is actually a (temporary) hack for test suite which
+     * does not create capabilities cache */
+    if (driver && driver->qemuCapsCache)
+        qemuCaps = virQEMUCapsCacheLookup(driver->qemuCapsCache, def->emulator);
 
     /* Add implicit PCI root controller if the machine has one */
     switch (def->os.arch) {
@@ -1015,10 +1056,10 @@ qemuDomainDefPostParse(virDomainDefPtr def,
         }
         if (STRPREFIX(def->os.machine, "pc-q35") ||
             STREQ(def->os.machine, "q35")) {
-           addPCIeRoot = true;
-           addDefaultUSB = false;
-           addImplicitSATA = true;
-           break;
+            addPCIeRoot = true;
+            addDefaultUSB = false;
+            addImplicitSATA = true;
+            break;
         }
         if (!STRPREFIX(def->os.machine, "pc-0.") &&
             !STRPREFIX(def->os.machine, "pc-1.") &&
@@ -1030,13 +1071,14 @@ qemuDomainDefPostParse(virDomainDefPtr def,
         break;
 
     case VIR_ARCH_ARMV7L:
-       addDefaultUSB = false;
-       addDefaultMemballoon = false;
-       break;
     case VIR_ARCH_AARCH64:
-       addDefaultUSB = false;
-       addDefaultMemballoon = false;
-       break;
+        addDefaultUSB = false;
+        addDefaultMemballoon = false;
+        if (STREQ(def->os.machine, "virt") ||
+            STRPREFIX(def->os.machine, "virt-")) {
+            addPCIeRoot = virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_GPEX);
+        }
+        break;
 
     case VIR_ARCH_PPC64:
     case VIR_ARCH_PPC64LE:
@@ -1076,22 +1118,28 @@ qemuDomainDefPostParse(virDomainDefPtr def,
     if (addDefaultUSB &&
         virDomainDefMaybeAddController(
             def, VIR_DOMAIN_CONTROLLER_TYPE_USB, 0, -1) < 0)
-        return -1;
+        goto cleanup;
 
     if (addImplicitSATA &&
         virDomainDefMaybeAddController(
             def, VIR_DOMAIN_CONTROLLER_TYPE_SATA, 0, -1) < 0)
-        return -1;
+        goto cleanup;
 
+    /* NB: any machine that sets addPCIRoot to true must also return
+     * true from the function qemuDomainSupportsPCI().
+     */
     if (addPCIRoot &&
         virDomainDefMaybeAddController(
             def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 0,
             VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT) < 0)
-        return -1;
+        goto cleanup;
 
     /* When a machine has a pcie-root, make sure that there is always
      * a dmi-to-pci-bridge controller added as bus 1, and a pci-bridge
      * as bus 2, so that standard PCI devices can be connected
+     *
+     * NB: any machine that sets addPCIeRoot to true must also return
+     * true from the function qemuDomainSupportsPCI().
      */
     if (addPCIeRoot) {
         if (virDomainDefMaybeAddController(
@@ -1103,14 +1151,14 @@ qemuDomainDefPostParse(virDomainDefPtr def,
             virDomainDefMaybeAddController(
                 def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 2,
                 VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE) < 0) {
-        return -1;
+            goto cleanup;
         }
     }
 
     if (addDefaultMemballoon && !def->memballoon) {
         virDomainMemballoonDefPtr memballoon;
         if (VIR_ALLOC(memballoon) < 0)
-            return -1;
+            goto cleanup;
 
         memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO;
         def->memballoon = memballoon;
@@ -1121,24 +1169,27 @@ qemuDomainDefPostParse(virDomainDefPtr def,
         virDomainDefMaybeAddInput(def,
                                   VIR_DOMAIN_INPUT_TYPE_KBD,
                                   VIR_DOMAIN_INPUT_BUS_USB) < 0)
-        return -1;
+        goto cleanup;
 
     if (addDefaultUSBMouse &&
         def->ngraphics > 0 &&
         virDomainDefMaybeAddInput(def,
                                   VIR_DOMAIN_INPUT_TYPE_MOUSE,
                                   VIR_DOMAIN_INPUT_BUS_USB) < 0)
-        return -1;
+        goto cleanup;
 
     if (addPanicDevice && !def->panic) {
         virDomainPanicDefPtr panic;
         if (VIR_ALLOC(panic) < 0)
-            return -1;
+            goto cleanup;
 
         def->panic = panic;
     }
 
-    return 0;
+    ret = 0;
+ cleanup:
+    virObjectUnref(qemuCaps);
+    return ret;
 }
 
 static const char *
@@ -1256,16 +1307,12 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
             goto cleanup;
         }
 
-        if (dev->data.chr->target.name) {
-            if (virAsprintf(&dev->data.chr->source.data.nix.path, "%s/%s.%s",
-                            cfg->channelTargetDir,
-                            def->name, dev->data.chr->target.name) < 0)
-                goto cleanup;
-        } else {
-            if (virAsprintf(&dev->data.chr->source.data.nix.path, "%s/%s",
-                            cfg->channelTargetDir, def->name) < 0)
-                goto cleanup;
-        }
+        if (virAsprintf(&dev->data.chr->source.data.nix.path,
+                        "%s/domain-%s/%s",
+                        cfg->channelTargetDir, def->name,
+                        dev->data.chr->target.name ? dev->data.chr->target.name
+                        : "unknown.sock") < 0)
+            goto cleanup;
 
         dev->data.chr->source.data.nix.listen = true;
     }
@@ -2593,6 +2640,19 @@ qemuDomainRemoveInactive(virQEMUDriverPtr driver,
     virObjectRef(vm);
 
     virDomainObjListRemove(driver->domains, vm);
+    /*
+     * virDomainObjListRemove() leaves the domain unlocked so it can
+     * be unref'd for other drivers that depend on that, but we still
+     * need to reset a job and we have a reference from the API that
+     * called this function.  So we need to lock it back.  This is
+     * just a workaround for the qemu driver.
+     *
+     * XXX: Ideally, the global handling of domain objects and object
+     *      lists would be refactored so we don't need hacks like
+     *      this, but since that requires refactor of all drivers,
+     *      it's a work for another day.
+     */
+    virObjectLock(vm);
     virObjectUnref(cfg);
 
     if (haveJob)

@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-07-22" "libvirt-1.2.18" "Virtualization Support"
+.TH VIRSH 1 "2015-08-21" "libvirt-1.2.19" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -818,18 +818,18 @@ is specified, query the persistent configuration, for compatibility
 purposes, \fI\-\-persistent\fR is alias of \fI\-\-config\fR.
 .Sp
 \&\fIinterface-device\fR can be the interface's target name or the \s-1MAC\s0 address.
-.IP "\fBdomiftune\fR \fIdomain\fR \fIinterface-device\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
-.IX Item "domiftune domain interface-device [[--config] [--live] | [--current]] [--inbound average,peak,burst] [--outbound average,peak,burst]"
+.IP "\fBdomiftune\fR \fIdomain\fR \fIinterface-device\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [\fI\-\-inbound average,peak,burst,floor\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
+.IX Item "domiftune domain interface-device [[--config] [--live] | [--current]] [--inbound average,peak,burst,floor] [--outbound average,peak,burst]"
 Set or query the domain's network interface's bandwidth parameters.
 \&\fIinterface-device\fR can be the interface's target name (<target dev='name'/>),
 or the \s-1MAC\s0 address.
 .Sp
 If no \fI\-\-inbound\fR or \fI\-\-outbound\fR is specified, this command will
 query and show the bandwidth settings. Otherwise, it will set the
-inbound or outbound bandwidth. \fIaverage,peak,burst\fR is the same as
-in command \fIattach-interface\fR.  Values for \fIaverage\fR and \fIpeak\fR are
-expressed in kilobytes per second, while \fIburst\fR is expressed in kilobytes
-in a single burst at \-\fIpeak\fR speed as described in the Network \s-1XML\s0
+inbound or outbound bandwidth. \fIaverage,peak,burst,floor\fR is the same as
+in command \fIattach-interface\fR.  Values for \fIaverage\fR, \fIpeak\fR and \fIfloor\fR
+are expressed in kilobytes per second, while \fIburst\fR is expressed in kilobytes
+in a single burst at \fIpeak\fR speed as described in the Network \s-1XML\s0
 documentation at <http://libvirt.org/formatnetwork.html#elementQoS>.
 .Sp
 To clear inbound or outbound settings, use \fI\-\-inbound\fR or \fI\-\-outbound\fR
@@ -1259,6 +1259,12 @@ on both of them).
 .IP "\fBdomname\fR \fIdomain-id-or-uuid\fR" 4
 .IX Item "domname domain-id-or-uuid"
 Convert a domain Id (or \s-1UUID\s0) to domain name
+.IP "\fBdomrename\fR \fIdomain\fR \fInew-name\fR" 4
+.IX Item "domrename domain new-name"
+Rename a domain. This command changes current domain name to the new name
+specified in the second argument.
+.Sp
+\&\fBNote\fR: Domain must be inactive and without snapshots.
 .IP "\fBdomstate\fR \fIdomain\fR [\fI\-\-reason\fR]" 4
 .IX Item "domstate domain [--reason]"
 Returns state about a domain.  \fI\-\-reason\fR tells virsh to also print
@@ -2388,8 +2394,8 @@ on the hypervisor driver.
 For compatibility purposes, \fI\-\-persistent\fR behaves like \fI\-\-config\fR for
 an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain.
 Likewise, \fI\-\-shareable\fR is an alias for \fI\-\-mode shareable\fR.
-.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
-.IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--inbound average,peak,burst] [--outbound average,peak,burst]"
+.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-inbound average,peak,burst,floor\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
+.IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--inbound average,peak,burst,floor] [--outbound average,peak,burst]"
 Attach a new network interface to the domain.  \fItype\fR can be
 \&\fInetwork\fR to indicate connection via a libvirt virtual network, or
 \&\fIbridge\fR to indicate connection via a bridge device on the host, or
@@ -2409,11 +2415,13 @@ instead of the default script not in addition to it; \-\-script is valid
 only for interfaces of type \fIbridge\fR and only for Xen domains.
 \&\fImodel\fR specifies the network device model to be presented to the
 domain.  \fIinbound\fR and \fIoutbound\fR control the bandwidth of the
-interface.  \fIpeak\fR and \fIburst\fR are optional, so \*(L"average,peak\*(R",
-\&\*(L"average,,burst\*(R" and \*(L"average\*(R" are also legal. Values for \fIaverage\fR
-and \fIpeak\fR are expressed in kilobytes per second, while \fIburst\fR is
-expressed in kilobytes in a single burst at \-\fIpeak\fR speed as
-described in the Network \s-1XML\s0 documentation at
+interface. At least one from the \fIaverage\fR, \fIfloor\fR pair must be
+specified. The other two \fIpeak\fR and \fIburst\fR are optional, so
+\&\*(L"average,peak\*(R", \*(L"average,,burst\*(R", \*(L"average,,,floor\*(R", \*(L"average\*(R" and
+\&\*(L",,,floor\*(R" are also legal. Values for \fIaverage\fR, \fIfloor\fR and \fIpeak\fR
+are expressed in kilobytes per second, while \fIburst\fR is expressed in
+kilobytes in a single burst at \fIpeak\fR speed as described in the
+Network \s-1XML\s0 documentation at
 <http://libvirt.org/formatnetwork.html#elementQoS>.
 .Sp
 If \fI\-\-live\fR is specified, affect a running domain.

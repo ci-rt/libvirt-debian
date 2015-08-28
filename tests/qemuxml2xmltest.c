@@ -130,7 +130,8 @@ static const char testStatusXMLPrefix[] =
 "    <device alias='serial0'/>\n"
 "    <device alias='net0'/>\n"
 "    <device alias='usb'/>\n"
-"  </devices>\n";
+"  </devices>\n"
+"  <numad nodeset='0-2'/>\n";
 
 static const char testStatusXMLSuffix[] =
 "</domstatus>\n";
@@ -420,6 +421,7 @@ mymain(void)
     DO_TEST("disk-virtio-scsi-num_queues");
     DO_TEST("disk-virtio-scsi-cmd_per_lun");
     DO_TEST("disk-virtio-scsi-max_sectors");
+    DO_TEST("disk-virtio-scsi-ioeventfd");
     DO_TEST("disk-scsi-megasas");
     DO_TEST_DIFFERENT("disk-mirror-old");
     DO_TEST_FULL("disk-mirror", false, WHEN_ACTIVE);
@@ -567,6 +569,10 @@ mymain(void)
     DO_TEST_DIFFERENT("pci-autoadd-idx");
     DO_TEST_DIFFERENT("pcie-root");
     DO_TEST_DIFFERENT("q35");
+    DO_TEST("pcie-root-port");
+    DO_TEST("pcie-root-port-too-many");
+    DO_TEST("pcie-switch-upstream-port");
+    DO_TEST("pcie-switch-downstream-port");
 
     DO_TEST("hostdev-scsi-lsi");
     DO_TEST("hostdev-scsi-virtio-scsi");

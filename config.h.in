@@ -2179,6 +2179,9 @@
 /* Location of pvs program */
 #undef PVS
 
+/* QEMU bridge helper */
+#undef QEMU_BRIDGE_HELPER
+
 /* QEMU group account */
 #undef QEMU_GROUP
 

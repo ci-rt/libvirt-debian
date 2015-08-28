@@ -69,6 +69,7 @@
      <exports symbol='VIR_CPU_USED' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_IN_AVERAGE' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_IN_BURST' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BANDWIDTH_IN_FLOOR' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_IN_PEAK' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_OUT_BURST' type='macro'/>
@@ -304,6 +305,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_ADDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_DEFINED_RENAMED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_UPDATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' type='enum'/>
@@ -385,6 +387,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_RENAMED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_LAST' type='enum'/>
@@ -917,6 +920,7 @@
      <exports symbol='virDomainPinVcpuFlags' type='function'/>
      <exports symbol='virDomainReboot' type='function'/>
      <exports symbol='virDomainRef' type='function'/>
+     <exports symbol='virDomainRename' type='function'/>
      <exports symbol='virDomainReset' type='function'/>
      <exports symbol='virDomainRestore' type='function'/>
      <exports symbol='virDomainRestoreFlags' type='function'/>
@@ -1748,6 +1752,9 @@
     <macro name='VIR_DOMAIN_BANDWIDTH_IN_BURST' file='libvirt-domain' string='inbound.burst'>
       <info><![CDATA[Macro represents the inbound burst of NIC bandwidth, as a uint.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_BANDWIDTH_IN_FLOOR' file='libvirt-domain' string='inbound.floor'>
+      <info><![CDATA[Macro represents the inbound floor of NIC bandwidth, as a uint.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_BANDWIDTH_IN_PEAK' file='libvirt-domain' string='inbound.peak'>
       <info><![CDATA[Macro represents the inbound peak of NIC bandwidth, as a uint.]]></info>
     </macro>
@@ -2427,7 +2434,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_CRASHED_PANICKED' file='libvirt-domain' value='0' type='virDomainEventCrashedDetailType' info='Guest was panicked'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED' file='libvirt-domain' value='0' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_ADDED' file='libvirt-domain' value='0' type='virDomainEventDefinedDetailType' info='Newly created config file'/>
-    <enum name='VIR_DOMAIN_EVENT_DEFINED_LAST' file='libvirt-domain' value='2' type='virDomainEventDefinedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_DEFINED_LAST' file='libvirt-domain' value='3' type='virDomainEventDefinedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_DEFINED_RENAMED' file='libvirt-domain' value='2' type='virDomainEventDefinedDetailType' info='Domain was renamed'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' file='libvirt-domain' value='1' type='virDomainEventDefinedDetailType' info='Changed config file'/>
     <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' file='libvirt-domain' value='2' type='virConnectDomainEventDiskChangeReason'/>
     <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' file='libvirt-domain' value='0' type='virConnectDomainEventDiskChangeReason' info='oldSrcPath is set'/>
@@ -2509,8 +2517,9 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_TRAY_CHANGE_LAST' file='libvirt-domain' value='2' type='virDomainEventTrayChangeReason'/>
     <enum name='VIR_DOMAIN_EVENT_TRAY_CHANGE_OPEN' file='libvirt-domain' value='0' type='virDomainEventTrayChangeReason'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED' file='libvirt-domain' value='1' type='virDomainEventType'/>
-    <enum name='VIR_DOMAIN_EVENT_UNDEFINED_LAST' file='libvirt-domain' value='1' type='virDomainEventUndefinedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_UNDEFINED_LAST' file='libvirt-domain' value='2' type='virDomainEventUndefinedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' file='libvirt-domain' value='0' type='virDomainEventUndefinedDetailType' info='Deleted the config file'/>
+    <enum name='VIR_DOMAIN_EVENT_UNDEFINED_RENAMED' file='libvirt-domain' value='1' type='virDomainEventUndefinedDetailType' info='Domain was renamed'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG' file='libvirt-domain' value='5' type='virDomainEventWatchdogAction' info='No action, a debug message logged'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI' file='libvirt-domain' value='6' type='virDomainEventWatchdogAction' info='Inject a non-maskable interrupt into guest'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_LAST' file='libvirt-domain' value='7' type='virDomainEventWatchdogAction'/>
@@ -4888,9 +4897,9 @@ soonest opportunity.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
     <function name='virDomainAddIOThread' file='libvirt-domain' module='libvirt-domain'>
-      <info><![CDATA[Dynamically add an IOThread to the domain. If @iothread_id is a positive
-non-zero value, then attempt to add the specific IOThread ID and error
-out if the iothread id already exists.
+      <info><![CDATA[Dynamically add an IOThread to the domain. It is left up to the
+underlying virtual hypervisor to determine the valid range for an
+@iothread_id and determining whether the @iothread_id already exists.
 
 Note that this call can fail if the underlying virtualization hypervisor
 does not support it or if growing the number is arbitrarily limited.
@@ -5498,7 +5507,7 @@ pressure on file system cache, but also risks slowing saves to NFS.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='to' type='const char *' info='path for the core file'/>
-      <arg name='dumpformat' type='unsigned int' info='format of domain memory&apos;s dump'/>
+      <arg name='dumpformat' type='unsigned int' info='format of domain memory&apos;s dump (one of virDomainCoreDumpFormat enum)'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainCoreDumpFlags'/>
     </function>
     <function name='virDomainCreate' file='libvirt-domain' module='libvirt-domain'>
@@ -7467,6 +7476,20 @@ it. ie, each new thread using a domain would increment
 the reference count.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='the domain to hold a reference on'/>
+    </function>
+    <function name='virDomainRename' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Rename a domain. New domain name is specified in the second
+argument. Depending on each driver implementation it may be
+required that domain is in a specific state.
+
+There might be some attributes and/or elements in domain XML that if no
+value provided at XML defining time, libvirt will derive their value from
+the domain name. These are not updated by this API. Users are strongly
+advised to change these after the rename was successful.]]></info>
+      <return type='int' info='0 if successfully renamed, -1 on error'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
+      <arg name='new_name' type='const char *' info='new domain name'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainReset' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Reset a domain immediately without any guest OS shutdown.

@@ -1,7 +1,7 @@
 /*
  * qemu_capabilities.h: QEMU capabilities generation
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -231,6 +231,10 @@ typedef enum {
     QEMU_CAPS_CPU_AARCH64_OFF    = 189, /* -cpu ...,aarch64=off */
     QEMU_CAPS_VHOSTUSER_MULTIQUEUE = 190, /* vhost-user with -netdev queues= */
     QEMU_CAPS_MIGRATION_EVENT    = 191, /* MIGRATION event */
+    QEMU_CAPS_OBJECT_GPEX        = 192, /* have generic PCI host controller */
+    QEMU_CAPS_DEVICE_IOH3420     = 193, /* -device ioh3420 */
+    QEMU_CAPS_DEVICE_X3130_UPSTREAM = 194, /* -device x3130-upstream */
+    QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM = 195, /* -device xio3130-downstream */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 } virQEMUCapsFlags;

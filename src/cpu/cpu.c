@@ -29,7 +29,7 @@
 #include "cpu.h"
 #include "cpu_map.h"
 #include "cpu_x86.h"
-#include "cpu_powerpc.h"
+#include "cpu_ppc64.h"
 #include "cpu_s390.h"
 #include "cpu_arm.h"
 #include "cpu_aarch64.h"
@@ -44,7 +44,7 @@ VIR_LOG_INIT("cpu.cpu");
 
 static struct cpuArchDriver *drivers[] = {
     &cpuDriverX86,
-    &cpuDriverPowerPC,
+    &cpuDriverPPC64,
     &cpuDriverS390,
     &cpuDriverArm,
     &cpuDriverAARCH64,
@@ -141,12 +141,6 @@ cpuCompare(virCPUDefPtr host,
     struct cpuArchDriver *driver;
 
     VIR_DEBUG("host=%p, cpu=%p", host, cpu);
-
-    if (!cpu->model) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("no guest CPU model specified"));
-        return VIR_CPU_COMPARE_ERROR;
-    }
 
     if ((driver = cpuGetSubDriver(host->arch)) == NULL)
         return VIR_CPU_COMPARE_ERROR;
@@ -375,12 +369,6 @@ cpuGuestData(virCPUDefPtr host,
     struct cpuArchDriver *driver;
 
     VIR_DEBUG("host=%p, guest=%p, data=%p, msg=%p", host, guest, data, msg);
-
-    if (!guest->model) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("no guest CPU model specified"));
-        return VIR_CPU_COMPARE_ERROR;
-    }
 
     if ((driver = cpuGetSubDriver(host->arch)) == NULL)
         return VIR_CPU_COMPARE_ERROR;

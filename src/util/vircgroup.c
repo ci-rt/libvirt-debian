@@ -705,6 +705,35 @@ virCgroupDetect(virCgroupPtr group,
 }
 
 
+static char *
+virCgroupGetBlockDevString(const char *path)
+{
+    char *ret = NULL;
+    struct stat sb;
+
+    if (stat(path, &sb) < 0) {
+        virReportSystemError(errno,
+                             _("Path '%s' is not accessible"),
+                             path);
+        return NULL;
+    }
+
+    if (!S_ISBLK(sb.st_mode)) {
+        virReportSystemError(EINVAL,
+                             _("Path '%s' must be a block device"),
+                             path);
+        return NULL;
+    }
+
+    /* Automatically append space after the string since all callers
+     * use it anyway */
+    if (virAsprintf(&ret, "%d:%d ", major(sb.st_rdev), minor(sb.st_rdev)) < 0)
+        return NULL;
+
+    return ret;
+}
+
+
 static int
 virCgroupSetValueStr(virCgroupPtr group,
                      int controller,
@@ -770,6 +799,39 @@ virCgroupGetValueStr(virCgroupPtr group,
 
  cleanup:
     VIR_FREE(keypath);
+    return ret;
+}
+
+
+static int
+virCgroupGetValueForBlkDev(virCgroupPtr group,
+                           int controller,
+                           const char *key,
+                           const char *path,
+                           char **value)
+{
+    char *prefix = NULL;
+    char *str = NULL;
+    char **lines = NULL;
+    int ret = -1;
+
+    if (virCgroupGetValueStr(group, controller, key, &str) < 0)
+        goto error;
+
+    if (!(prefix = virCgroupGetBlockDevString(path)))
+        goto error;
+
+    if (!(lines = virStringSplit(str, "\n", -1)))
+        goto error;
+
+    if (VIR_STRDUP(*value, virStringGetFirstWithPrefix(lines, prefix)) < 0)
+        goto error;
+
+    ret = 0;
+ error:
+    VIR_FREE(str);
+    VIR_FREE(prefix);
+    virStringFreeList(lines);
     return ret;
 }
 
@@ -1966,7 +2028,6 @@ virCgroupGetBlkioIoDeviceServiced(virCgroupPtr group,
                                   long long *requests_write)
 {
     char *str1 = NULL, *str2 = NULL, *str3 = NULL, *p1, *p2;
-    struct stat sb;
     size_t i;
     int ret = -1;
 
@@ -1983,20 +2044,6 @@ virCgroupGetBlkioIoDeviceServiced(virCgroupPtr group,
         requests_write
     };
 
-    if (stat(path, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("Path '%s' is not accessible"),
-                             path);
-        return -1;
-    }
-
-    if (!S_ISBLK(sb.st_mode)) {
-        virReportSystemError(EINVAL,
-                             _("Path '%s' must be a block device"),
-                             path);
-        return -1;
-    }
-
     if (virCgroupGetValueStr(group,
                              VIR_CGROUP_CONTROLLER_BLKIO,
                              "blkio.throttle.io_service_bytes", &str1) < 0)
@@ -2007,7 +2054,7 @@ virCgroupGetBlkioIoDeviceServiced(virCgroupPtr group,
                              "blkio.throttle.io_serviced", &str2) < 0)
         goto cleanup;
 
-    if (virAsprintf(&str3, "%d:%d ", major(sb.st_rdev), minor(sb.st_rdev)) < 0)
+    if (!(str3 = virCgroupGetBlockDevString(path)))
         goto cleanup;
 
     if (!(p1 = strstr(str1, str3))) {
@@ -2116,33 +2163,22 @@ virCgroupSetBlkioDeviceReadIops(virCgroupPtr group,
                                 const char *path,
                                 unsigned int riops)
 {
-    char *str;
-    struct stat sb;
-    int ret;
+    char *str = NULL;
+    char *blkstr = NULL;
+    int ret = -1;
 
-    if (stat(path, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("Path '%s' is not accessible"),
-                             path);
+    if (!(blkstr = virCgroupGetBlockDevString(path)))
         return -1;
-    }
 
-    if (!S_ISBLK(sb.st_mode)) {
-        virReportSystemError(EINVAL,
-                             _("Path '%s' must be a block device"),
-                             path);
-        return -1;
-    }
-
-    if (virAsprintf(&str, "%d:%d %u", major(sb.st_rdev),
-                    minor(sb.st_rdev), riops) < 0)
-        return -1;
+    if (virAsprintf(&str, "%s%u", blkstr, riops) < 0)
+        goto error;
 
     ret = virCgroupSetValueStr(group,
                                VIR_CGROUP_CONTROLLER_BLKIO,
                                "blkio.throttle.read_iops_device",
                                str);
-
+ error:
+    VIR_FREE(blkstr);
     VIR_FREE(str);
     return ret;
 }
@@ -2161,33 +2197,22 @@ virCgroupSetBlkioDeviceWriteIops(virCgroupPtr group,
                                  const char *path,
                                  unsigned int wiops)
 {
-    char *str;
-    struct stat sb;
-    int ret;
+    char *str = NULL;
+    char *blkstr = NULL;
+    int ret = -1;
 
-    if (stat(path, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("Path '%s' is not accessible"),
-                             path);
+    if (!(blkstr = virCgroupGetBlockDevString(path)))
         return -1;
-    }
 
-    if (!S_ISBLK(sb.st_mode)) {
-        virReportSystemError(EINVAL,
-                             _("Path '%s' must be a block device"),
-                             path);
-        return -1;
-    }
-
-    if (virAsprintf(&str, "%d:%d %u", major(sb.st_rdev),
-                    minor(sb.st_rdev), wiops) < 0)
-        return -1;
+    if (virAsprintf(&str, "%s%u", blkstr, wiops) < 0)
+        goto error;
 
     ret = virCgroupSetValueStr(group,
                                VIR_CGROUP_CONTROLLER_BLKIO,
                                "blkio.throttle.write_iops_device",
                                str);
-
+ error:
+    VIR_FREE(blkstr);
     VIR_FREE(str);
     return ret;
 }
@@ -2206,33 +2231,22 @@ virCgroupSetBlkioDeviceReadBps(virCgroupPtr group,
                                const char *path,
                                unsigned long long rbps)
 {
-    char *str;
-    struct stat sb;
-    int ret;
+    char *str = NULL;
+    char *blkstr = NULL;
+    int ret = -1;
 
-    if (stat(path, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("Path '%s' is not accessible"),
-                             path);
+    if (!(blkstr = virCgroupGetBlockDevString(path)))
         return -1;
-    }
 
-    if (!S_ISBLK(sb.st_mode)) {
-        virReportSystemError(EINVAL,
-                             _("Path '%s' must be a block device"),
-                             path);
-        return -1;
-    }
-
-    if (virAsprintf(&str, "%d:%d %llu", major(sb.st_rdev),
-                    minor(sb.st_rdev), rbps) < 0)
-        return -1;
+    if (virAsprintf(&str, "%s%llu", blkstr, rbps) < 0)
+        goto error;
 
     ret = virCgroupSetValueStr(group,
                                VIR_CGROUP_CONTROLLER_BLKIO,
                                "blkio.throttle.read_bps_device",
                                str);
-
+ error:
+    VIR_FREE(blkstr);
     VIR_FREE(str);
     return ret;
 }
@@ -2250,33 +2264,22 @@ virCgroupSetBlkioDeviceWriteBps(virCgroupPtr group,
                                 const char *path,
                                 unsigned long long wbps)
 {
-    char *str;
-    struct stat sb;
-    int ret;
+    char *str = NULL;
+    char *blkstr = NULL;
+    int ret = -1;
 
-    if (stat(path, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("Path '%s' is not accessible"),
-                             path);
+    if (!(blkstr = virCgroupGetBlockDevString(path)))
         return -1;
-    }
 
-    if (!S_ISBLK(sb.st_mode)) {
-        virReportSystemError(EINVAL,
-                             _("Path '%s' must be a block device"),
-                             path);
-        return -1;
-    }
-
-    if (virAsprintf(&str, "%d:%d %llu", major(sb.st_rdev),
-                    minor(sb.st_rdev), wbps) < 0)
-        return -1;
+    if (virAsprintf(&str, "%s%llu", blkstr, wbps) < 0)
+        goto error;
 
     ret = virCgroupSetValueStr(group,
                                VIR_CGROUP_CONTROLLER_BLKIO,
                                "blkio.throttle.write_bps_device",
                                str);
-
+ error:
+    VIR_FREE(blkstr);
     VIR_FREE(str);
     return ret;
 }
@@ -2289,9 +2292,6 @@ virCgroupSetBlkioDeviceWriteBps(virCgroupPtr group,
  * @weight: The new device weight (100-1000),
  * (10-1000) after kernel 2.6.39, or 0 to clear
  *
- * device_weight is treated as a write-only parameter, so
- * there isn't a getter counterpart.
- *
  * Returns: 0 on success, -1 on error
  */
 int
@@ -2299,32 +2299,212 @@ virCgroupSetBlkioDeviceWeight(virCgroupPtr group,
                               const char *path,
                               unsigned int weight)
 {
-    char *str;
-    struct stat sb;
-    int ret;
+    char *str = NULL;
+    char *blkstr = NULL;
+    int ret = -1;
 
-    if (stat(path, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("Path '%s' is not accessible"),
-                             path);
+    if (!(blkstr = virCgroupGetBlockDevString(path)))
         return -1;
-    }
 
-    if (!S_ISBLK(sb.st_mode)) {
-        virReportSystemError(EINVAL,
-                             _("Path '%s' must be a block device"),
-                             path);
-        return -1;
-    }
-
-    if (virAsprintf(&str, "%d:%d %d", major(sb.st_rdev), minor(sb.st_rdev),
-                    weight) < 0)
-        return -1;
+    if (virAsprintf(&str, "%s%d", blkstr, weight) < 0)
+        goto error;
 
     ret = virCgroupSetValueStr(group,
                                VIR_CGROUP_CONTROLLER_BLKIO,
                                "blkio.weight_device",
                                str);
+ error:
+    VIR_FREE(blkstr);
+    VIR_FREE(str);
+    return ret;
+}
+
+/**
+ * virCgroupGetBlkioDeviceReadIops:
+ * @group: The cgroup to gather block io setting for
+ * @path: The path of device
+ * @riops: Returned device read iops throttle, 0 if there is none
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupGetBlkioDeviceReadIops(virCgroupPtr group,
+                                const char *path,
+                                unsigned int *riops)
+{
+    char *str = NULL;
+    int ret = -1;
+
+    if (virCgroupGetValueForBlkDev(group,
+                                   VIR_CGROUP_CONTROLLER_BLKIO,
+                                   "blkio.throttle.read_iops_device",
+                                   path,
+                                   &str) < 0)
+        goto error;
+
+    if (!str) {
+        *riops = 0;
+    } else if (virStrToLong_ui(str, NULL, 10, riops) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse '%s' as an integer"),
+                       str);
+        goto error;
+    }
+
+    ret = 0;
+ error:
+    VIR_FREE(str);
+    return ret;
+}
+
+/**
+ * virCgroupGetBlkioDeviceWriteIops:
+ * @group: The cgroup to gather block io setting for
+ * @path: The path of device
+ * @wiops: Returned device write iops throttle, 0 if there is none
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupGetBlkioDeviceWriteIops(virCgroupPtr group,
+                                 const char *path,
+                                 unsigned int *wiops)
+{
+    char *str = NULL;
+    int ret = -1;
+
+    if (virCgroupGetValueForBlkDev(group,
+                                   VIR_CGROUP_CONTROLLER_BLKIO,
+                                   "blkio.throttle.write_iops_device",
+                                   path,
+                                   &str) < 0)
+        goto error;
+
+    if (!str) {
+        *wiops = 0;
+    } else if (virStrToLong_ui(str, NULL, 10, wiops) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse '%s' as an integer"),
+                       str);
+        goto error;
+    }
+
+    ret = 0;
+ error:
+    VIR_FREE(str);
+    return ret;
+}
+
+/**
+ * virCgroupGetBlkioDeviceReadBps:
+ * @group: The cgroup to gather block io setting for
+ * @path: The path of device
+ * @rbps: Returned device read bps throttle, 0 if there is none
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupGetBlkioDeviceReadBps(virCgroupPtr group,
+                               const char *path,
+                               unsigned long long *rbps)
+{
+    char *str = NULL;
+    int ret = -1;
+
+    if (virCgroupGetValueForBlkDev(group,
+                                   VIR_CGROUP_CONTROLLER_BLKIO,
+                                   "blkio.throttle.read_bps_device",
+                                   path,
+                                   &str) < 0)
+        goto error;
+
+    if (!str) {
+        *rbps = 0;
+    } else if (virStrToLong_ull(str, NULL, 10, rbps) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse '%s' as an integer"),
+                       str);
+        goto error;
+    }
+
+    ret = 0;
+ error:
+    VIR_FREE(str);
+    return ret;
+}
+
+/**
+ * virCgroupGetBlkioDeviceWriteBps:
+ * @group: The cgroup to gather block io setting for
+ * @path: The path of device
+ * @wbps: Returned device write bps throttle, 0 if there is none
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupGetBlkioDeviceWriteBps(virCgroupPtr group,
+                                const char *path,
+                                unsigned long long *wbps)
+{
+    char *str = NULL;
+    int ret = -1;
+
+    if (virCgroupGetValueForBlkDev(group,
+                                   VIR_CGROUP_CONTROLLER_BLKIO,
+                                   "blkio.throttle.write_bps_device",
+                                   path,
+                                   &str) < 0)
+        goto error;
+
+    if (!str) {
+        *wbps = 0;
+    } else if (virStrToLong_ull(str, NULL, 10, wbps) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse '%s' as an integer"),
+                       str);
+        goto error;
+    }
+
+    ret = 0;
+ error:
+    VIR_FREE(str);
+    return ret;
+}
+
+/**
+ * virCgroupGetBlkioDeviceWeight:
+ * @group: The cgroup to gather block io setting for
+ * @path: The path of device
+ * @weight: Returned device weight, 0 if there is none
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupGetBlkioDeviceWeight(virCgroupPtr group,
+                              const char *path,
+                              unsigned int *weight)
+{
+    char *str = NULL;
+    int ret = -1;
+
+    if (virCgroupGetValueForBlkDev(group,
+                                   VIR_CGROUP_CONTROLLER_BLKIO,
+                                   "blkio.weight_device",
+                                   path,
+                                   &str) < 0)
+        goto error;
+
+    if (!str) {
+        *weight = 0;
+    } else if (virStrToLong_ui(str, NULL, 10, weight) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse '%s' as an integer"),
+                       str);
+        goto error;
+    }
+
+    ret = 0;
+ error:
     VIR_FREE(str);
     return ret;
 }
@@ -4244,6 +4424,55 @@ virCgroupSetBlkioDeviceWriteBps(virCgroupPtr group ATTRIBUTE_UNUSED,
     return -1;
 }
 
+int
+virCgroupGetBlkioDeviceWeight(virCgroupPtr group ATTRIBUTE_UNUSED,
+                              const char *path ATTRIBUTE_UNUSED,
+                              unsigned int *weight ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+int
+virCgroupGetBlkioDeviceReadIops(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                const char *path ATTRIBUTE_UNUSED,
+                                unsigned int *riops ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+int
+virCgroupGetBlkioDeviceWriteIops(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                 const char *path ATTRIBUTE_UNUSED,
+                                 unsigned int *wiops ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+int
+virCgroupGetBlkioDeviceReadBps(virCgroupPtr group ATTRIBUTE_UNUSED,
+                               const char *path ATTRIBUTE_UNUSED,
+                               unsigned long long *rbps ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+int
+virCgroupGetBlkioDeviceWriteBps(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                const char *path ATTRIBUTE_UNUSED,
+                                unsigned long long *wbps ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
 
 int
 virCgroupSetMemory(virCgroupPtr group ATTRIBUTE_UNUSED,

@@ -100,6 +100,7 @@
 #include "vircgroup.h"
 #include "virnuma.h"
 #include "dirname.h"
+#include "network/bridge_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -137,7 +138,7 @@ VIR_LOG_INIT("qemu.qemu_driver");
 
 #define QEMU_NB_BLKIO_PARAM  6
 
-#define QEMU_NB_BANDWIDTH_PARAM 6
+#define QEMU_NB_BANDWIDTH_PARAM 7
 
 static void processWatchdogEvent(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
@@ -4597,15 +4598,14 @@ qemuDomainAddCgroupForThread(virCgroupPtr cgroup,
     if (virCgroupNewThread(cgroup, nameval, idx, true, &new_cgroup) < 0)
         return NULL;
 
-    if (mem_mask && virCgroupSetCpusetMems(new_cgroup, mem_mask) < 0)
+    if (mem_mask &&
+        virCgroupHasController(cgroup, VIR_CGROUP_CONTROLLER_CPUSET) &&
+        virCgroupSetCpusetMems(new_cgroup, mem_mask) < 0)
         goto error;
 
     /* Add pid/thread to the cgroup */
     rv = virCgroupAddTask(new_cgroup, pid);
     if (rv < 0) {
-        virReportSystemError(-rv,
-                             _("unable to add id %d task %d to cgroup"),
-                             idx, pid);
         virCgroupRemove(new_cgroup);
         goto error;
     }
@@ -4653,7 +4653,8 @@ qemuDomainHotplugPinThread(virBitmapPtr cpumask,
 {
     int ret = -1;
 
-    if (cgroup) {
+    if (cgroup &&
+        virCgroupHasController(cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
         if (qemuSetupCgroupCpusetCpus(cgroup, cpumask) < 0) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            _("failed to set cpuset.cpus in cgroup for id %d"),
@@ -4896,7 +4897,8 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
         goto endjob;
 
-    if (def && !(flags & VIR_DOMAIN_VCPU_GUEST) && virNumaIsAvailable()) {
+    if (def && !(flags & VIR_DOMAIN_VCPU_GUEST) && virNumaIsAvailable() &&
+        virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
         if (virCgroupNewThread(priv->cgroup, VIR_CGROUP_THREAD_EMULATOR, 0,
                                false, &cgroup_temp) < 0)
             goto endjob;
@@ -5224,6 +5226,7 @@ qemuDomainGetVcpuPinInfo(virDomainPtr dom,
     int ret = -1;
     int hostcpus, vcpu;
     virBitmapPtr allcpumap = NULL;
+    qemuDomainObjPrivatePtr priv = NULL;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -5244,6 +5247,7 @@ qemuDomainGetVcpuPinInfo(virDomainPtr dom,
         goto cleanup;
 
     virBitmapSetAll(allcpumap);
+    priv = vm->privateData;
 
     /* Clamp to actual number of vcpus */
     if (ncpumaps > def->vcpus)
@@ -5262,6 +5266,9 @@ qemuDomainGetVcpuPinInfo(virDomainPtr dom,
 
         if (pininfo && pininfo->cpumask)
             bitmap = pininfo->cpumask;
+        else if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO &&
+                 priv->autoCpuset)
+            bitmap = priv->autoCpuset;
         else
             bitmap = allcpumap;
 
@@ -5412,6 +5419,7 @@ qemuDomainGetEmulatorPinInfo(virDomainPtr dom,
     int hostcpus;
     virBitmapPtr cpumask = NULL;
     virBitmapPtr bitmap = NULL;
+    qemuDomainObjPrivatePtr priv = NULL;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -5428,10 +5436,15 @@ qemuDomainGetEmulatorPinInfo(virDomainPtr dom,
     if ((hostcpus = nodeGetCPUCount(NULL)) < 0)
         goto cleanup;
 
+    priv = vm->privateData;
+
     if (def->cputune.emulatorpin) {
         cpumask = def->cputune.emulatorpin;
     } else if (def->cpumask) {
         cpumask = def->cpumask;
+    } else if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO &&
+               priv->autoCpuset) {
+        cpumask = priv->autoCpuset;
     } else {
         if (!(bitmap = virBitmapNew(hostcpus)))
             goto cleanup;
@@ -6120,6 +6133,12 @@ qemuDomainChgIOThread(virQEMUDriverPtr driver,
     virDomainDefPtr def;
     virDomainDefPtr persistentDef;
     int ret = -1;
+
+    if (iothread_id == 0) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("invalid value of 0 for iothread_id"));
+        return -1;
+    }
 
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -9164,7 +9183,8 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
             virTypedParameterPtr param = &params[i];
 
             if (STREQ(param->field, VIR_DOMAIN_BLKIO_WEIGHT)) {
-                if (virCgroupSetBlkioWeight(priv->cgroup, param->value.ui) < 0)
+                if (virCgroupSetBlkioWeight(priv->cgroup, param->value.ui) < 0 ||
+                    virCgroupGetBlkioWeight(priv->cgroup, &def->blkio.weight) < 0)
                     ret = -1;
             } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) ||
                        STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS) ||
@@ -9187,7 +9207,10 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     for (j = 0; j < ndevices; j++) {
                         if (virCgroupSetBlkioDeviceWeight(priv->cgroup,
                                                           devices[j].path,
-                                                          devices[j].weight) < 0) {
+                                                          devices[j].weight) < 0 ||
+                            virCgroupGetBlkioDeviceWeight(priv->cgroup,
+                                                          devices[j].path,
+                                                          &devices[j].weight) < 0) {
                             ret = -1;
                             break;
                         }
@@ -9196,7 +9219,10 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     for (j = 0; j < ndevices; j++) {
                         if (virCgroupSetBlkioDeviceReadIops(priv->cgroup,
                                                             devices[j].path,
-                                                            devices[j].riops) < 0) {
+                                                            devices[j].riops) < 0 ||
+                            virCgroupGetBlkioDeviceReadIops(priv->cgroup,
+                                                            devices[j].path,
+                                                            &devices[j].riops) < 0) {
                             ret = -1;
                             break;
                         }
@@ -9205,7 +9231,10 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     for (j = 0; j < ndevices; j++) {
                         if (virCgroupSetBlkioDeviceWriteIops(priv->cgroup,
                                                              devices[j].path,
-                                                             devices[j].wiops) < 0) {
+                                                             devices[j].wiops) < 0 ||
+                            virCgroupGetBlkioDeviceWriteIops(priv->cgroup,
+                                                             devices[j].path,
+                                                             &devices[j].wiops) < 0) {
                             ret = -1;
                             break;
                         }
@@ -9214,7 +9243,10 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     for (j = 0; j < ndevices; j++) {
                         if (virCgroupSetBlkioDeviceReadBps(priv->cgroup,
                                                            devices[j].path,
-                                                           devices[j].rbps) < 0) {
+                                                           devices[j].rbps) < 0 ||
+                            virCgroupGetBlkioDeviceReadBps(priv->cgroup,
+                                                           devices[j].path,
+                                                           &devices[j].rbps) < 0) {
                             ret = -1;
                             break;
                         }
@@ -9223,7 +9255,10 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     for (j = 0; j < ndevices; j++) {
                         if (virCgroupSetBlkioDeviceWriteBps(priv->cgroup,
                                                             devices[j].path,
-                                                            devices[j].wbps) < 0) {
+                                                            devices[j].wbps) < 0 ||
+                            virCgroupGetBlkioDeviceWriteBps(priv->cgroup,
+                                                            devices[j].path,
+                                                            &devices[j].wbps) < 0) {
                             ret = -1;
                             break;
                         }
@@ -9960,6 +9995,9 @@ qemuDomainSetNumaParamsLive(virDomainObjPtr vm,
                          "requires strict numa mode"));
         goto cleanup;
     }
+
+    if (!virNumaNodesetIsAvailable(nodeset))
+        goto cleanup;
 
     /* Ensure the cpuset string is formatted before passing to cgroup */
     if (!(nodeset_str = virBitmapFormat(nodeset)))
@@ -11125,6 +11163,8 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
                                VIR_TYPED_PARAM_UINT,
                                VIR_DOMAIN_BANDWIDTH_IN_BURST,
                                VIR_TYPED_PARAM_UINT,
+                               VIR_DOMAIN_BANDWIDTH_IN_FLOOR,
+                               VIR_TYPED_PARAM_UINT,
                                VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE,
                                VIR_TYPED_PARAM_UINT,
                                VIR_DOMAIN_BANDWIDTH_OUT_PEAK,
@@ -11177,6 +11217,9 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
             bandwidth->in->peak = params[i].value.ui;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_BURST)) {
             bandwidth->in->burst = params[i].value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_FLOOR)) {
+            bandwidth->in->floor = params[i].value.ui;
+            inboundSpecified = true;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE)) {
             bandwidth->out->average = params[i].value.ui;
             outboundSpecified = true;
@@ -11187,10 +11230,10 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
         }
     }
 
-    /* average is mandatory, peak and burst are optional. So if no
-     * average is given, we free inbound/outbound here which causes
-     * inbound/outbound to not be set. */
-    if (!bandwidth->in->average)
+    /* average or floor are mandatory, peak and burst are optional.
+     * So if no average or floor is given, we free inbound/outbound
+     * here which causes inbound/outbound to not be set. */
+    if (!bandwidth->in->average && !bandwidth->in->floor)
         VIR_FREE(bandwidth->in);
     if (!bandwidth->out->average)
         VIR_FREE(bandwidth->out);
@@ -11221,7 +11264,11 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
                    sizeof(*newBandwidth->out));
         }
 
-        if (virNetDevBandwidthSet(net->ifname, newBandwidth, false) < 0) {
+        if (!networkBandwidthChangeAllowed(net, newBandwidth))
+            goto endjob;
+
+        if (virNetDevBandwidthSet(net->ifname, newBandwidth, false) < 0 ||
+            networkBandwidthUpdate(net, newBandwidth) < 0) {
             ignore_value(virNetDevBandwidthSet(net->ifname,
                                                net->bandwidth,
                                                false));
@@ -11350,7 +11397,15 @@ qemuDomainGetInterfaceParameters(virDomainPtr dom,
             if (net->bandwidth && net->bandwidth->in)
                 params[i].value.ui = net->bandwidth->in->burst;
             break;
-        case 3: /* outbound.average */
+        case 3: /* inbound.floor */
+            if (virTypedParameterAssign(&params[i],
+                                        VIR_DOMAIN_BANDWIDTH_IN_FLOOR,
+                                        VIR_TYPED_PARAM_UINT, 0) < 0)
+                goto cleanup;
+            if (net->bandwidth && net->bandwidth->in)
+                params[i].value.ui = net->bandwidth->in->floor;
+            break;
+        case 4: /* outbound.average */
             if (virTypedParameterAssign(&params[i],
                                         VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE,
                                         VIR_TYPED_PARAM_UINT, 0) < 0)
@@ -11358,7 +11413,7 @@ qemuDomainGetInterfaceParameters(virDomainPtr dom,
             if (net->bandwidth && net->bandwidth->out)
                 params[i].value.ui = net->bandwidth->out->average;
             break;
-        case 4: /* outbound.peak */
+        case 5: /* outbound.peak */
             if (virTypedParameterAssign(&params[i],
                                         VIR_DOMAIN_BANDWIDTH_OUT_PEAK,
                                         VIR_TYPED_PARAM_UINT, 0) < 0)
@@ -11366,7 +11421,7 @@ qemuDomainGetInterfaceParameters(virDomainPtr dom,
             if (net->bandwidth && net->bandwidth->out)
                 params[i].value.ui = net->bandwidth->out->peak;
             break;
-        case 5: /* outbound.burst */
+        case 6: /* outbound.burst */
             if (virTypedParameterAssign(&params[i],
                                         VIR_DOMAIN_BANDWIDTH_OUT_BURST,
                                         VIR_TYPED_PARAM_UINT, 0) < 0)
@@ -11823,8 +11878,16 @@ qemuDomainGetBlockInfo(virDomainPtr dom,
         info->allocation = entry->wr_highest_offset;
     }
 
+    if (entry->physical) {
+        info->physical = entry->physical;
+    } else {
+        if (virStorageSourceUpdateBlockPhysicalSize(disk->src, true) < 0)
+            goto endjob;
+
+        info->physical = disk->src->physical;
+    }
+
     info->capacity = entry->capacity;
-    info->physical = entry->physical;
 
     ret = 0;
 
@@ -19270,9 +19333,15 @@ qemuDomainGetStatsOneBlock(virQEMUDriverPtr driver,
     if (entry->capacity)
         QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
                                  "capacity", entry->capacity);
-    if (entry->physical)
+    if (entry->physical) {
         QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
                                  "physical", entry->physical);
+    } else {
+        if (virStorageSourceUpdateBlockPhysicalSize(src, false) == 0) {
+            QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
+                                     "physical", src->physical);
+        }
+    }
 
     ret = 0;
  cleanup:
@@ -19835,6 +19904,174 @@ qemuDomainSetUserPassword(virDomainPtr dom,
 }
 
 
+static int qemuDomainRename(virDomainPtr dom,
+                            const char *new_name,
+                            unsigned int flags)
+{
+    virQEMUDriverPtr driver = dom->conn->privateData;
+    virQEMUDriverConfigPtr cfg = NULL;
+    virDomainObjPtr vm = NULL;
+    virDomainObjPtr tmp_dom = NULL;
+    virObjectEventPtr event_new = NULL;
+    virObjectEventPtr event_old = NULL;
+    int ret = -1;
+    int logfile = -1;
+    char ebuf[1024];
+    char *timestamp;
+    char *rename_log_msg = NULL;
+    char *new_dom_name = NULL;
+    char *old_dom_name = NULL;
+    char *old_dom_cfg_file = NULL;
+
+    virCheckFlags(0, ret);
+
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainRenameEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    cfg = virQEMUDriverGetConfig(driver);
+
+    if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
+        goto cleanup;
+
+    if (virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("cannot rename active domain"));
+        goto endjob;
+    }
+
+    if (!vm->persistent) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("cannot rename a transient domain"));
+        goto endjob;
+    }
+
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_SHUTOFF) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain has to be shutoff before renaming"));
+        goto endjob;
+    }
+
+    if (virDomainSnapshotObjListNum(vm->snapshots, NULL, 0) > 0) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("cannot rename domain with snapshots"));
+        goto endjob;
+    }
+
+    if (STREQ(vm->def->name, new_name)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Can't rename domain to itself"));
+        goto endjob;
+    }
+
+    /*
+     * This is a rather racy check, but still better than reporting
+     * internal error.  And since new_name != name here, there's no
+     * deadlock imminent.
+     */
+    tmp_dom = virDomainObjListFindByName(driver->domains, new_name);
+    if (tmp_dom) {
+        virObjectUnlock(tmp_dom);
+        virObjectUnref(tmp_dom);
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("domain with name '%s' already exists"),
+                       new_name);
+        goto endjob;
+    }
+
+    if (VIR_STRDUP(new_dom_name, new_name) < 0)
+        goto endjob;
+
+    if (virAsprintf(&rename_log_msg, ": domain %s has been renamed to %s\n",
+                    vm->def->name, new_name) < 0) {
+        goto endjob;
+    }
+
+    if (!(old_dom_cfg_file = virDomainConfigFile(cfg->configDir,
+                                                 vm->def->name))) {
+        goto endjob;
+    }
+
+    if (virDomainObjListRenameAddNew(driver->domains, vm, new_name) < 0)
+        goto endjob;
+
+    if ((logfile = qemuDomainCreateLog(driver, vm, true)) < 0)
+        goto rollback;
+
+    event_old = virDomainEventLifecycleNewFromObj(vm,
+                                            VIR_DOMAIN_EVENT_UNDEFINED,
+                                            VIR_DOMAIN_EVENT_UNDEFINED_RENAMED);
+
+    /* Switch name in domain definition. */
+    old_dom_name = vm->def->name;
+    vm->def->name = new_dom_name;
+    new_dom_name = NULL;
+
+    if (virDomainSaveConfig(cfg->configDir, vm->def) < 0)
+        goto rollback;
+
+    if (virFileExists(old_dom_cfg_file) &&
+        unlink(old_dom_cfg_file) < 0) {
+        virReportSystemError(errno,
+                             _("cannot remove old domain config file %s"),
+                             old_dom_cfg_file);
+        goto rollback;
+    }
+
+    /* Remove old domain name from table. */
+    virDomainObjListRenameRemove(driver->domains, old_dom_name);
+
+    event_new = virDomainEventLifecycleNewFromObj(vm,
+                                              VIR_DOMAIN_EVENT_DEFINED,
+                                              VIR_DOMAIN_EVENT_DEFINED_RENAMED);
+
+    /* Write message to the log. */
+    if ((timestamp = virTimeStringNow()) != NULL) {
+        if (safewrite(logfile, timestamp, strlen(timestamp)) < 0 ||
+            safewrite(logfile, rename_log_msg,
+                      strlen(rename_log_msg)) < 0) {
+            VIR_WARN("Unable to write timestamp to logfile: %s",
+                     virStrerror(errno, ebuf, sizeof(ebuf)));
+        }
+        VIR_FREE(timestamp);
+    }
+
+    /* Success, domain has been renamed. */
+    ret = 0;
+
+ endjob:
+    qemuDomainObjEndJob(driver, vm);
+
+ cleanup:
+    if (VIR_CLOSE(logfile) < 0) {
+        VIR_WARN("Unable to close logfile: %s",
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
+    }
+    virDomainObjEndAPI(&vm);
+    VIR_FREE(old_dom_cfg_file);
+    VIR_FREE(old_dom_name);
+    VIR_FREE(new_dom_name);
+    VIR_FREE(rename_log_msg);
+    if (event_old)
+        qemuDomainEventQueue(driver, event_old);
+    if (event_new)
+        qemuDomainEventQueue(driver, event_new);
+    virObjectUnref(cfg);
+    return ret;
+
+ rollback:
+    if (old_dom_name) {
+        new_dom_name = vm->def->name;
+        vm->def->name = old_dom_name;
+        old_dom_name = NULL;
+    }
+
+    virDomainObjListRenameRemove(driver->domains, new_name);
+    goto endjob;
+}
+
 static virHypervisorDriver qemuHypervisorDriver = {
     .name = QEMU_DRIVER_NAME,
     .connectOpen = qemuConnectOpen, /* 0.2.0 */
@@ -20042,6 +20279,7 @@ static virHypervisorDriver qemuHypervisorDriver = {
     .domainGetFSInfo = qemuDomainGetFSInfo, /* 1.2.11 */
     .domainInterfaceAddresses = qemuDomainInterfaceAddresses, /* 1.2.14 */
     .domainSetUserPassword = qemuDomainSetUserPassword, /* 1.2.16 */
+    .domainRename = qemuDomainRename, /* 1.2.19 */
 };
 
 

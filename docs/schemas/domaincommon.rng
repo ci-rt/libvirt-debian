@@ -68,6 +68,9 @@
           <ref name='qemucmdline'/>
         </optional>
         <optional>
+          <ref name='lxcsharens'/>
+        </optional>
+        <optional>
           <ref name='keywrap'/>
         </optional>
       </interleave>
@@ -200,7 +203,7 @@
         <value>hyperv</value>
         <value>vbox</value>
         <value>phyp</value>
-        <value>parallels</value>
+        <value>vz</value>
         <value>bhyve</value>
       </choice>
     </attribute>
@@ -1731,6 +1734,45 @@
             <attribute name="type">
               <value>pci</value>
             </attribute>
+            <optional>
+              <element name="model">
+                <attribute name="name">
+                  <choice>
+                    <!-- implementations of 'pci-bridge' -->
+                    <value>pci-bridge</value>
+                    <!-- implementations of 'dmi-to-pci-bridge' -->
+                    <value>i82801b11-bridge</value>
+                    <!-- implementations of 'pcie-root-port' -->
+                    <value>ioh3420</value>
+                    <!-- implementations of 'pcie-switch-upstream-port' -->
+                    <value>x3130-upstream</value>
+                    <!-- implementations of 'pcie-switch-downstream-port' -->
+                    <value>xio3130-downstream</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="target">
+                <optional>
+                  <attribute name='chassisNr'>
+                    <ref name='uint8range'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="chassis">
+                    <ref name='uint8range'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="port">
+                    <ref name='uint8range'/>
+                  </attribute>
+                </optional>
+                <empty/>
+              </element>
+            </optional>
             <!-- *-root controllers have an optional element "pcihole64"-->
             <choice>
               <group>
@@ -1751,6 +1793,9 @@
                   <choice>
                     <value>pci-bridge</value>
                     <value>dmi-to-pci-bridge</value>
+                    <value>pcie-root-port</value>
+                    <value>pcie-switch-upstream-port</value>
+                    <value>pcie-switch-downstream-port</value>
                   </choice>
                 </attribute>
               </group>
@@ -1789,6 +1834,9 @@
               <attribute name="max_sectors">
                 <ref name="unsignedInt"/>
               </attribute>
+            </optional>
+            <optional>
+              <ref name="ioeventfd"/>
             </optional>
           </element>
         </optional>
@@ -5007,6 +5055,45 @@
             <attribute name='value'/>
           </optional>
           <empty/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+
+  <!--
+       Optional hypervisor extensions in their own namespace:
+       LXC
+    -->
+  <define name="lxcsharens">
+    <element name="namespace" ns="http://libvirt.org/schemas/domain/lxc/1.0">
+      <zeroOrMore>
+        <element name="sharenet">
+          <attribute name="type">
+            <choice>
+              <value>netns</value>
+              <value>name</value>
+              <value>pid</value>
+            </choice>
+          </attribute>
+          <attribute name='value'/>
+        </element>
+        <element name="shareipc">
+          <attribute name="type">
+            <choice>
+              <value>name</value>
+              <value>pid</value>
+            </choice>
+          </attribute>
+          <attribute name='value'/>
+        </element>
+        <element name="shareuts">
+          <attribute name="type">
+            <choice>
+              <value>name</value>
+              <value>pid</value>
+            </choice>
+          </attribute>
+          <attribute name='value'/>
         </element>
       </zeroOrMore>
     </element>

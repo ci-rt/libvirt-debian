@@ -789,6 +789,15 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
         ret = 0;
         break;
 
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        if (!dev_source->data.nix.listen) {
+            if (virSecurityDACSetOwnership(dev_source->data.nix.path,
+                                           user, group) < 0)
+                goto done;
+        }
+        ret = 0;
+        break;
+
     case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
     case VIR_DOMAIN_CHR_TYPE_NULL:
     case VIR_DOMAIN_CHR_TYPE_VC:
@@ -796,7 +805,6 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
     case VIR_DOMAIN_CHR_TYPE_STDIO:
     case VIR_DOMAIN_CHR_TYPE_UDP:
     case VIR_DOMAIN_CHR_TYPE_TCP:
-    case VIR_DOMAIN_CHR_TYPE_UNIX:
     case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
     case VIR_DOMAIN_CHR_TYPE_NMDM:
     case VIR_DOMAIN_CHR_TYPE_LAST:
@@ -1386,6 +1394,24 @@ virSecurityDACGetBaseLabel(virSecurityManagerPtr mgr,
     return priv->baselabel;
 }
 
+static int
+virSecurityDACDomainSetDirLabel(virSecurityManagerPtr mgr,
+                                virDomainDefPtr def,
+                                const char *path)
+{
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr seclabel;
+    uid_t user;
+    gid_t group;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+
+    if (virSecurityDACGetIds(seclabel, priv, &user, &group, NULL, NULL) < 0)
+        return -1;
+
+    return virSecurityDACSetOwnership(path, user, group);
+}
+
 virSecurityDriver virSecurityDriverDAC = {
     .privateDataLen                     = sizeof(virSecurityDACData),
     .name                               = SECURITY_DAC_NAME,
@@ -1433,4 +1459,6 @@ virSecurityDriver virSecurityDriverDAC = {
     .domainGetSecurityMountOptions      = virSecurityDACGetMountOptions,
 
     .getBaseLabel                       = virSecurityDACGetBaseLabel,
+
+    .domainSetDirLabel                  = virSecurityDACDomainSetDirLabel,
 };
