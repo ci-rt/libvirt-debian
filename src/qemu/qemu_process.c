@@ -295,12 +295,12 @@ qemuProcessHandleMonitorEOF(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 
     if (priv->beingDestroyed) {
         VIR_DEBUG("Domain is being destroyed, EOF is expected");
-        goto unlock;
+        goto cleanup;
     }
 
     if (!virDomainObjIsActive(vm)) {
         VIR_DEBUG("Domain %p is not active, ignoring EOF", vm);
-        goto unlock;
+        goto cleanup;
     }
 
     if (priv->monJSON && !priv->gotShutdown) {
@@ -323,15 +323,11 @@ qemuProcessHandleMonitorEOF(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     qemuProcessStop(driver, vm, stopReason, stopFlags);
     virDomainAuditStop(vm, auditReason);
 
-    if (!vm->persistent) {
+    if (!vm->persistent)
         qemuDomainRemoveInactive(driver, vm);
-        goto cleanup;
-    }
-
- unlock:
-    virObjectUnlock(vm);
 
  cleanup:
+    virObjectUnlock(vm);
     if (event)
         qemuDomainEventQueue(driver, event);
 }
@@ -3269,7 +3265,7 @@ qemuProcessPrepareMonitorChr(virQEMUDriverConfigPtr cfg,
     monConfig->type = VIR_DOMAIN_CHR_TYPE_UNIX;
     monConfig->data.nix.listen = true;
 
-    if (virAsprintf(&monConfig->data.nix.path, "%s/%s.monitor",
+    if (virAsprintf(&monConfig->data.nix.path, "%s/domain-%s/monitor.sock",
                     cfg->libDir, vm) < 0)
         return -1;
     return 0;
@@ -4393,6 +4389,7 @@ int qemuProcessStart(virConnectPtr conn,
     unsigned int hostdev_flags = 0;
     size_t nnicindexes = 0;
     int *nicindexes = NULL;
+    char *tmppath = NULL;
 
     VIR_DEBUG("vm=%p name=%s id=%d asyncJob=%d migrateFrom=%s stdin_fd=%d "
               "stdin_path=%s snapshot=%p vmop=%d flags=0x%x",
@@ -4728,6 +4725,36 @@ int qemuProcessStart(virConnectPtr conn,
                                      priv->autoNodeset,
                                      &nnicindexes, &nicindexes)))
         goto cleanup;
+
+
+    /*
+     * Create all per-domain directories in order to make sure domain
+     * with any possible seclabels can access it.
+     */
+    if (virAsprintf(&tmppath, "%s/domain-%s", cfg->libDir, vm->def->name) < 0)
+        goto cleanup;
+
+    if (virFileMakePath(tmppath) < 0)
+        goto cleanup;
+
+    if (virSecurityManagerDomainSetDirLabel(driver->securityManager,
+                                            vm->def, tmppath) < 0)
+        goto cleanup;
+
+    VIR_FREE(tmppath);
+
+    if (virAsprintf(&tmppath, "%s/domain-%s",
+                    cfg->channelTargetDir, vm->def->name) < 0)
+        goto cleanup;
+
+    if (virFileMakePath(tmppath) < 0)
+        goto cleanup;
+
+    if (virSecurityManagerDomainSetDirLabel(driver->securityManager,
+                                            vm->def, tmppath) < 0)
+        goto cleanup;
+
+    VIR_FREE(tmppath);
 
     /* now that we know it is about to start call the hook if present */
     if (virHookPresent(VIR_HOOK_DRIVER_QEMU)) {
@@ -5082,6 +5109,7 @@ int qemuProcessStart(virConnectPtr conn,
     /* We jump here if we failed to start the VM for any reason, or
      * if we failed to initialize the now running VM. kill it off and
      * pretend we never started it */
+    VIR_FREE(tmppath);
     VIR_FREE(nodeset);
     virCommandFree(cmd);
     VIR_FORCE_CLOSE(logfile);
@@ -5144,6 +5172,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     size_t i;
     int logfile = -1;
     char *timestamp;
+    char *tmppath = NULL;
     char ebuf[1024];
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
@@ -5233,6 +5262,18 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         virDomainChrSourceDefFree(priv->monConfig);
         priv->monConfig = NULL;
     }
+
+    ignore_value(virAsprintf(&tmppath, "%s/domain-%s",
+                             cfg->libDir, vm->def->name));
+    if (tmppath)
+        virFileDeleteTree(tmppath);
+    VIR_FREE(tmppath);
+
+    ignore_value(virAsprintf(&tmppath, "%s/domain-%s",
+                             cfg->channelTargetDir, vm->def->name));
+    if (tmppath)
+        virFileDeleteTree(tmppath);
+    VIR_FREE(tmppath);
 
     ignore_value(virDomainChrDefForeach(vm->def,
                                         false,
@@ -5703,6 +5744,8 @@ qemuProcessAutoDestroy(virDomainObjPtr dom,
 
     VIR_DEBUG("vm=%s, conn=%p", dom->def->name, conn);
 
+    virObjectRef(dom);
+
     if (priv->job.asyncJob == QEMU_ASYNC_JOB_MIGRATION_IN)
         stopFlags |= VIR_QEMU_PROCESS_STOP_MIGRATED;
 
@@ -5727,15 +5770,14 @@ qemuProcessAutoDestroy(virDomainObjPtr dom,
 
     qemuDomainObjEndJob(driver, dom);
 
-    if (!dom->persistent) {
+    if (!dom->persistent)
         qemuDomainRemoveInactive(driver, dom);
-        dom = NULL;
-    }
 
     if (event)
         qemuDomainEventQueue(driver, event);
 
  cleanup:
+    virDomainObjEndAPI(&dom);
     return dom;
 }
 

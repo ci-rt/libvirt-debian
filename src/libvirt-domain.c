@@ -1281,7 +1281,7 @@ virDomainCoreDump(virDomainPtr domain, const char *to, unsigned int flags)
  * virDomainCoreDumpWithFormat:
  * @domain: a domain object
  * @to: path for the core file
- * @dumpformat: format of domain memory's dump
+ * @dumpformat: format of domain memory's dump (one of virDomainCoreDumpFormat enum)
  * @flags: bitwise-OR of virDomainCoreDumpFlags
  *
  * This method will dump the core of a domain on a given file for analysis.
@@ -7926,7 +7926,6 @@ virDomainPinIOThread(virDomainPtr domain,
     conn = domain->conn;
 
     virCheckReadOnlyGoto(conn->flags, error);
-    virCheckPositiveArgGoto(iothread_id, error);
     virCheckNonNullArgGoto(cpumap, error);
     virCheckPositiveArgGoto(maplen, error);
 
@@ -7953,9 +7952,9 @@ virDomainPinIOThread(virDomainPtr domain,
  * @iothread_id: the specific IOThread ID value to add
  * @flags: bitwise-OR of virDomainModificationImpact
  *
- * Dynamically add an IOThread to the domain. If @iothread_id is a positive
- * non-zero value, then attempt to add the specific IOThread ID and error
- * out if the iothread id already exists.
+ * Dynamically add an IOThread to the domain. It is left up to the
+ * underlying virtual hypervisor to determine the valid range for an
+ * @iothread_id and determining whether the @iothread_id already exists.
  *
  * Note that this call can fail if the underlying virtualization hypervisor
  * does not support it or if growing the number is arbitrarily limited.
@@ -8774,6 +8773,47 @@ virDomainIsPersistent(virDomainPtr dom)
     return -1;
 }
 
+/**
+ * virDomainRename:
+ * @dom: pointer to the domain object
+ * @new_name: new domain name
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Rename a domain. New domain name is specified in the second
+ * argument. Depending on each driver implementation it may be
+ * required that domain is in a specific state.
+ *
+ * There might be some attributes and/or elements in domain XML that if no
+ * value provided at XML defining time, libvirt will derive their value from
+ * the domain name. These are not updated by this API. Users are strongly
+ * advised to change these after the rename was successful.
+ *
+ * Returns 0 if successfully renamed, -1 on error
+ */
+int
+virDomainRename(virDomainPtr dom,
+                const char *new_name,
+                unsigned int flags)
+{
+    VIR_DEBUG("dom=%p, new_name=%s", dom, NULLSTR(new_name));
+
+    virResetLastError();
+    virCheckDomainReturn(dom, -1);
+    virCheckNonNullArgGoto(new_name, error);
+    virCheckReadOnlyGoto(dom->conn->flags, error);
+
+    if (dom->conn->driver->domainRename) {
+        int ret = dom->conn->driver->domainRename(dom, new_name, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+ error:
+    virDispatchError(dom->conn);
+    return -1;
+}
 
 /**
  * virDomainIsUpdated:

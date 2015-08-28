@@ -334,7 +334,7 @@ virHashAddOrUpdateEntry(virHashTablePtr table, const void *name,
 {
     size_t key, len = 0;
     virHashEntryPtr entry;
-    char *new_name;
+    void *new_name;
 
     if ((table == NULL) || (name == NULL))
         return -1;
@@ -353,6 +353,8 @@ virHashAddOrUpdateEntry(virHashTablePtr table, const void *name,
                 entry->payload = userdata;
                 return 0;
             } else {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Duplicate key"));
                 return -1;
             }
         }

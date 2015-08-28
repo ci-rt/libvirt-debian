@@ -1731,6 +1731,27 @@ virNetworkForwardNatDefParseXML(const char *networkName,
         goto cleanup;
     }
 
+    if (addrStart && addrEnd) {
+        /* verify that start <= end */
+        if (virSocketAddrGetRange(&def->addr.start, &def->addr.end, NULL, 0) < 0)
+            goto cleanup;
+    } else {
+        if (addrStart) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Only start address '%s' specified in <nat> in "
+                             "<forward> in network '%s'"),
+                           addrStart, networkName);
+            goto cleanup;
+        }
+        if (addrEnd) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Only end address '%s' specified in <nat> in "
+                             "<forward> in network '%s'"),
+                           addrEnd, networkName);
+            goto cleanup;
+        }
+    }
+
     /* ports for SNAT and MASQUERADE */
     nNatPorts = virXPathNodeSet("./port", ctxt, &natPortNodes);
     if (nNatPorts < 0) {
@@ -3500,6 +3521,15 @@ virNetworkDefUpdateIPDHCPHost(virNetworkDefPtr def,
                                       &host, partialOkay) < 0)
         goto cleanup;
 
+    if (!partialOkay &&
+        VIR_SOCKET_ADDR_FAMILY(&ipdef->address)
+        != VIR_SOCKET_ADDR_FAMILY(&host.ip)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("the address family of a host entry IP must match "
+                         "the address family of the dhcp element's parent"));
+        goto cleanup;
+    }
+
     if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
 
         /* search for the entry with this (ip|mac|name),
@@ -3636,6 +3666,14 @@ virNetworkDefUpdateIPDHCPRange(virNetworkDefPtr def,
 
     if (virSocketAddrRangeParseXML(def->name, ipdef, ctxt->node, &range) < 0)
         goto cleanup;
+
+    if (VIR_SOCKET_ADDR_FAMILY(&ipdef->address)
+        != VIR_SOCKET_ADDR_FAMILY(&range.start)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("the address family of a dhcp range must match "
+                         "the address family of the dhcp element's parent"));
+        goto cleanup;
+    }
 
     /* check if an entry with same name/address/ip already exists */
     for (i = 0; i < ipdef->nranges; i++) {

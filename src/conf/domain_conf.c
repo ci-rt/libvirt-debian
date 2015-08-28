@@ -324,7 +324,19 @@ VIR_ENUM_IMPL(virDomainControllerModelPCI, VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST,
               "pci-root",
               "pcie-root",
               "pci-bridge",
-              "dmi-to-pci-bridge")
+              "dmi-to-pci-bridge",
+              "pcie-root-port",
+              "pcie-switch-upstream-port",
+              "pcie-switch-downstream-port")
+
+VIR_ENUM_IMPL(virDomainControllerPCIModelName,
+              VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_LAST,
+              "none",
+              "pci-bridge",
+              "i82801b11-bridge",
+              "ioh3420",
+              "x3130-upstream",
+              "xio3130-downstream")
 
 VIR_ENUM_IMPL(virDomainControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
               "auto",
@@ -1545,6 +1557,10 @@ virDomainControllerDefNew(virDomainControllerType type)
         def->opts.vioserial.vectors = -1;
         break;
     case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
+        def->opts.pciopts.chassisNr = -1;
+        def->opts.pciopts.chassis = -1;
+        def->opts.pciopts.port = -1;
+        break;
     case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
     case VIR_DOMAIN_CONTROLLER_TYPE_FDC:
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
@@ -2848,6 +2864,41 @@ virDomainObjPtr virDomainObjListAdd(virDomainObjListPtr doms,
     return ret;
 }
 
+
+int
+virDomainObjListRenameAddNew(virDomainObjListPtr doms,
+                             virDomainObjPtr vm,
+                             const char *name)
+{
+    int ret = -1;
+    virObjectLock(doms);
+
+    /* Add new name into the hash table of domain names. */
+    if (virHashAddEntry(doms->objsName, name, vm) < 0)
+        goto cleanup;
+
+    /* Okay, this is crazy. virHashAddEntry() does not increment
+     * the refcounter of @vm, but virHashRemoveEntry() does
+     * decrement it. We need to work around it. */
+    virObjectRef(vm);
+
+    ret = 0;
+ cleanup:
+    virObjectUnlock(doms);
+    return ret;
+}
+
+
+int
+virDomainObjListRenameRemove(virDomainObjListPtr doms, const char *name)
+{
+    virObjectLock(doms);
+    virHashRemoveEntry(doms->objsName, name);
+    virObjectUnlock(doms);
+    return 0;
+}
+
+
 /*
  * Mark the running VM config as transient. Ensures transient hotplug
  * operations do not persist past shutdown.
@@ -3127,7 +3178,7 @@ int virDomainDeviceAddressIsValid(virDomainDeviceInfoPtr info,
 
     switch (info->type) {
     case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
-        return virDevicePCIAddressIsValid(&info->addr.pci);
+        return virDevicePCIAddressIsValid(&info->addr.pci, false);
 
     case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE:
         return 1;
@@ -3868,10 +3919,168 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
 }
 
 
+/* Check if a drive type address $controller:$bus:$target:$unit is already
+ * taken by a disk or not.
+ */
+static bool
+virDomainDriveAddressIsUsedByDisk(const virDomainDef *def,
+                                  virDomainDiskBus type,
+                                  unsigned int controller,
+                                  unsigned int bus,
+                                  unsigned int target,
+                                  unsigned int unit)
+{
+    virDomainDiskDefPtr disk;
+    size_t i;
+
+    for (i = 0; i < def->ndisks; i++) {
+        disk = def->disks[i];
+
+        if (disk->bus != type ||
+            disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
+            continue;
+
+        if (disk->info.addr.drive.controller == controller &&
+            disk->info.addr.drive.unit == unit &&
+            disk->info.addr.drive.bus == bus &&
+            disk->info.addr.drive.target == target)
+            return true;
+    }
+
+    return false;
+}
+
+
+/* Check if a drive type address $controller:$target:$bus:$unit is already
+ * taken by a host device or not.
+ */
+static bool
+virDomainDriveAddressIsUsedByHostdev(const virDomainDef *def,
+                                     virDomainHostdevSubsysType type,
+                                     unsigned int controller,
+                                     unsigned int bus,
+                                     unsigned int target,
+                                     unsigned int unit)
+{
+    virDomainHostdevDefPtr hostdev;
+    size_t i;
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        hostdev = def->hostdevs[i];
+
+        if (hostdev->source.subsys.type != type ||
+            hostdev->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
+            continue;
+
+        if (hostdev->info->addr.drive.controller == controller &&
+            hostdev->info->addr.drive.unit == unit &&
+            hostdev->info->addr.drive.bus == bus &&
+            hostdev->info->addr.drive.target == target)
+            return true;
+    }
+
+    return false;
+}
+
+
+static bool
+virDomainSCSIDriveAddressIsUsed(const virDomainDef *def,
+                                unsigned int controller,
+                                unsigned int bus,
+                                unsigned int target,
+                                unsigned int unit)
+{
+    /* In current implementation, the maximum unit number of a controller
+     * is either 16 or 7 (narrow SCSI bus), and if the maximum unit number
+     * is 16, the controller itself is on unit 7 */
+    if (unit == 7)
+        return true;
+
+    if (virDomainDriveAddressIsUsedByDisk(def, VIR_DOMAIN_DISK_BUS_SCSI,
+                                          controller, bus, target, unit) ||
+        virDomainDriveAddressIsUsedByHostdev(def,
+                                             VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
+                                             controller, bus, target, unit))
+        return true;
+
+    return false;
+}
+
+
+/* Find out the next usable "unit" of a specific controller */
+static int
+virDomainControllerSCSINextUnit(const virDomainDef *def,
+                                unsigned int max_unit,
+                                unsigned int controller)
+{
+    size_t i;
+
+    for (i = 0; i < max_unit; i++) {
+        /* Default to assigning addresses using bus = target = 0 */
+        if (!virDomainSCSIDriveAddressIsUsed(def, controller, 0, 0, i))
+            return i;
+    }
+
+    return -1;
+}
+
+
+#define SCSI_WIDE_BUS_MAX_CONT_UNIT 16
+#define SCSI_NARROW_BUS_MAX_CONT_UNIT 7
+
+static int
+virDomainHostdevAssignAddress(virDomainXMLOptionPtr xmlopt,
+                              const virDomainDef *def,
+                              virDomainHostdevDefPtr hostdev)
+{
+    int next_unit = 0;
+    unsigned controller = 0;
+    size_t i;
+    int ret = -1;
+
+    for (i = 0; i < def->ncontrollers; i++) {
+        if (def->controllers[i]->type != VIR_DOMAIN_CONTROLLER_TYPE_SCSI)
+            continue;
+
+        controller++;
+        ret = virDomainControllerSCSINextUnit(def,
+                                              xmlopt->config.hasWideSCSIBus ?
+                                              SCSI_WIDE_BUS_MAX_CONT_UNIT :
+                                              SCSI_NARROW_BUS_MAX_CONT_UNIT,
+                                              def->controllers[i]->idx);
+        if (ret >= 0) {
+            next_unit = ret;
+            controller = def->controllers[i]->idx;
+            break;
+        }
+    }
+
+    /* If failed to find any VIR_DOMAIN_CONTROLLER_TYPE_SCSI or any space
+     * on existing VIR_DOMAIN_CONTROLLER_TYPE_SCSI controller(s), then
+     * try to add a new controller resulting in placement of this entry
+     * as unit=0
+     */
+    if (ret == -1 &&
+        virDomainDefMaybeAddController((virDomainDefPtr) def,
+                                           VIR_DOMAIN_CONTROLLER_TYPE_SCSI,
+                                           controller, -1) < 0)
+        return -1;
+
+    hostdev->info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
+    hostdev->info->addr.drive.controller = controller;
+    hostdev->info->addr.drive.bus = 0;
+    hostdev->info->addr.drive.target = 0;
+    hostdev->info->addr.drive.unit = next_unit;
+
+    return 0;
+}
+
+
 static int
 virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
                                     const virDomainDef *def,
-                                    virCapsPtr caps ATTRIBUTE_UNUSED)
+                                    virCapsPtr caps ATTRIBUTE_UNUSED,
+                                    virDomainXMLOptionPtr xmlopt)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR) {
         virDomainChrDefPtr chr = dev->data.chr;
@@ -3951,6 +4160,10 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
                            disk->dst);
             return -1;
         }
+
+        if (disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+            virDomainDiskDefAssignAddress(xmlopt, disk, def) < 0)
+            return -1;
     }
 
     if (dev->type == VIR_DOMAIN_DEVICE_VIDEO) {
@@ -3959,6 +4172,39 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
         video->vram = VIR_ROUND_UP_POWER_OF_TWO(video->vram);
     }
 
+    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
+        virDomainHostdevDefPtr hdev = dev->data.hostdev;
+
+        if (hdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            hdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
+
+            if (hdev->info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+                virDomainHostdevAssignAddress(xmlopt, def, hdev) < 0) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("Cannot assign SCSI host device address"));
+                return -1;
+            } else {
+                /* Ensure provided address doesn't conflict with existing
+                 * scsi disk drive address
+                 */
+                virDomainDeviceDriveAddressPtr addr = &hdev->info->addr.drive;
+                if (virDomainDriveAddressIsUsedByDisk(def,
+                                                      VIR_DOMAIN_DISK_BUS_SCSI,
+                                                      addr->controller,
+                                                      addr->bus,
+                                                      addr->target,
+                                                      addr->unit)) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("SCSI host address controller='%u' "
+                                     "bus='%u' target='%u' unit='%u' in "
+                                     "use by a SCSI disk"),
+                                   addr->controller, addr->bus,
+                                   addr->target, addr->unit);
+                    return -1;
+                }
+            }
+        }
+    }
     return 0;
 }
 
@@ -3971,14 +4217,14 @@ virDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 {
     int ret;
 
-    if (xmlopt && xmlopt->config.devicesPostParseCallback) {
+    if (xmlopt->config.devicesPostParseCallback) {
         ret = xmlopt->config.devicesPostParseCallback(dev, def, caps,
                                                       xmlopt->config.priv);
         if (ret < 0)
             return ret;
     }
 
-    if ((ret = virDomainDeviceDefPostParseInternal(dev, def, caps)) < 0)
+    if ((ret = virDomainDeviceDefPostParseInternal(dev, def, caps, xmlopt)) < 0)
         return ret;
 
     return 0;
@@ -4016,7 +4262,7 @@ virDomainDefPostParse(virDomainDefPtr def,
     };
 
     /* call the domain config callback */
-    if (xmlopt && xmlopt->config.domainPostParseCallback) {
+    if (xmlopt->config.domainPostParseCallback) {
         ret = xmlopt->config.domainPostParseCallback(def, caps,
                                                      xmlopt->config.priv);
         if (ret < 0)
@@ -5236,140 +5482,6 @@ virDomainHostdevSubsysSCSIDefParseXML(xmlNodePtr sourcenode,
     return ret;
 }
 
-/* Check if a drive type address $controller:0:0:$unit is already
- * taken by a disk or not.
- */
-static bool
-virDomainDriveAddressIsUsedByDisk(const virDomainDef *def,
-                                  virDomainDiskBus type,
-                                  unsigned int controller,
-                                  unsigned int unit)
-{
-    virDomainDiskDefPtr disk;
-    size_t i;
-
-    for (i = 0; i < def->ndisks; i++) {
-        disk = def->disks[i];
-
-        if (disk->bus != type ||
-            disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
-            continue;
-
-        if (disk->info.addr.drive.controller == controller &&
-            disk->info.addr.drive.unit == unit &&
-            disk->info.addr.drive.bus == 0 &&
-            disk->info.addr.drive.target == 0)
-            return true;
-    }
-
-    return false;
-}
-
-/* Check if a drive type address $controller:0:0:$unit is already
- * taken by a host device or not.
- */
-static bool
-virDomainDriveAddressIsUsedByHostdev(const virDomainDef *def,
-                                     virDomainHostdevSubsysType type,
-                                     unsigned int controller,
-                                     unsigned int unit)
-{
-    virDomainHostdevDefPtr hostdev;
-    size_t i;
-
-    for (i = 0; i < def->nhostdevs; i++) {
-        hostdev = def->hostdevs[i];
-
-        if (hostdev->source.subsys.type != type)
-            continue;
-
-        if (hostdev->info->addr.drive.controller == controller &&
-            hostdev->info->addr.drive.unit == unit &&
-            hostdev->info->addr.drive.bus == 0 &&
-            hostdev->info->addr.drive.target == 0)
-            return true;
-    }
-
-    return false;
-}
-
-static bool
-virDomainSCSIDriveAddressIsUsed(const virDomainDef *def,
-                                unsigned int controller,
-                                unsigned int unit)
-{
-    /* In current implementation, the maximum unit number of a controller
-     * is either 16 or 7 (narrow SCSI bus), and if the maximum unit number
-     * is 16, the controller itself is on unit 7 */
-    if (unit == 7)
-        return true;
-
-    if (virDomainDriveAddressIsUsedByDisk(def, VIR_DOMAIN_DISK_BUS_SCSI,
-                                          controller, unit) ||
-        virDomainDriveAddressIsUsedByHostdev(def, VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
-                                             controller, unit))
-        return true;
-
-    return false;
-}
-
-/* Find out the next usable "unit" of a specific controller */
-static int
-virDomainControllerSCSINextUnit(const virDomainDef *def,
-                                unsigned int max_unit,
-                                unsigned int controller)
-{
-    size_t i;
-
-    for (i = 0; i < max_unit; i++) {
-        if (!virDomainSCSIDriveAddressIsUsed(def, controller, i))
-            return i;
-    }
-
-    return -1;
-}
-
-#define SCSI_WIDE_BUS_MAX_CONT_UNIT 16
-#define SCSI_NARROW_BUS_MAX_CONT_UNIT 7
-
-static int
-virDomainHostdevAssignAddress(virDomainXMLOptionPtr xmlopt,
-                              const virDomainDef *def,
-                              virDomainHostdevDefPtr hostdev)
-{
-    int next_unit = 0;
-    unsigned controller = 0;
-    size_t i;
-    int ret;
-
-    if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI)
-        return -1;
-
-    for (i = 0; i < def->ncontrollers; i++) {
-        if (def->controllers[i]->type != VIR_DOMAIN_CONTROLLER_TYPE_SCSI)
-            continue;
-
-        controller++;
-        ret = virDomainControllerSCSINextUnit(def,
-                                              xmlopt->config.hasWideSCSIBus ?
-                                              SCSI_WIDE_BUS_MAX_CONT_UNIT :
-                                              SCSI_NARROW_BUS_MAX_CONT_UNIT,
-                                              def->controllers[i]->idx);
-        if (ret >= 0) {
-            next_unit = ret;
-            controller = def->controllers[i]->idx;
-            break;
-        }
-    }
-
-    hostdev->info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
-    hostdev->info->addr.drive.controller = controller;
-    hostdev->info->addr.drive.bus = 0;
-    hostdev->info->addr.drive.target = 0;
-    hostdev->info->addr.drive.unit = next_unit;
-
-    return 0;
-}
 
 static int
 virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
@@ -5815,28 +5927,28 @@ virDomainDiskDiffersSourceOnly(virDomainDiskDefPtr disk,
 
     CHECK_EQ(transient, "transient", true);
 
-    if (disk->serial && STRNEQ(disk->serial, orig_disk->serial)) {
+    if (disk->serial && STRNEQ_NULLABLE(disk->serial, orig_disk->serial)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("cannot modify field '%s' of the disk"),
                        "serial");
         return false;
     }
 
-    if (disk->wwn && STRNEQ(disk->wwn, orig_disk->wwn)) {
+    if (disk->wwn && STRNEQ_NULLABLE(disk->wwn, orig_disk->wwn)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("cannot modify field '%s' of the disk"),
                        "wwn");
         return false;
     }
 
-    if (disk->vendor && STRNEQ(disk->vendor, orig_disk->vendor)) {
+    if (disk->vendor && STRNEQ_NULLABLE(disk->vendor, orig_disk->vendor)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("cannot modify field '%s' of the disk"),
                        "vendor");
         return false;
     }
 
-    if (disk->product && STRNEQ(disk->product, orig_disk->product)) {
+    if (disk->product && STRNEQ_NULLABLE(disk->product, orig_disk->product)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("cannot modify field '%s' of the disk"),
                        "product");
@@ -5852,7 +5964,8 @@ virDomainDiskDiffersSourceOnly(virDomainDiskDefPtr disk,
 
 int
 virDomainDiskDefAssignAddress(virDomainXMLOptionPtr xmlopt,
-                              virDomainDiskDefPtr def)
+                              virDomainDiskDefPtr def,
+                              const virDomainDef *vmdef)
 {
     int idx = virDiskNameToIndex(def->dst);
     if (idx < 0) {
@@ -5863,7 +5976,10 @@ virDomainDiskDefAssignAddress(virDomainXMLOptionPtr xmlopt,
     }
 
     switch (def->bus) {
-    case VIR_DOMAIN_DISK_BUS_SCSI:
+    case VIR_DOMAIN_DISK_BUS_SCSI: {
+        unsigned int controller;
+        unsigned int unit;
+
         def->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
 
         if (xmlopt->config.hasWideSCSIBus) {
@@ -5872,22 +5988,36 @@ virDomainDiskDefAssignAddress(virDomainXMLOptionPtr xmlopt,
              * Unit 7 is the SCSI controller itself. Therefore unit 7
              * cannot be assigned to disks and is skipped.
              */
-            def->info.addr.drive.controller = idx / 15;
-            def->info.addr.drive.bus = 0;
-            def->info.addr.drive.unit = idx % 15;
+            controller = idx / 15;
+            unit = idx % 15;
 
             /* Skip the SCSI controller at unit 7 */
-            if (def->info.addr.drive.unit >= 7)
-                ++def->info.addr.drive.unit;
+            if (unit >= 7)
+                ++unit;
         } else {
             /* For a narrow SCSI bus we define the default mapping to be
              * 7 units per bus, 1 bus per controller, many controllers */
-            def->info.addr.drive.controller = idx / 7;
-            def->info.addr.drive.bus = 0;
-            def->info.addr.drive.unit = idx % 7;
+            controller = idx / 7;
+            unit = idx % 7;
         }
 
+        if (virDomainDriveAddressIsUsedByHostdev(vmdef,
+                                                 VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
+                                                 controller, 0, 0, unit)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("using disk target name '%s' conflicts with "
+                             "SCSI host device address controller='%u' "
+                             "bus='%u' target='%u' unit='%u"),
+                           def->dst, controller, 0, 0, unit);
+            return -1;
+        }
+
+        def->info.addr.drive.controller = controller;
+        def->info.addr.drive.bus = 0;
+        def->info.addr.drive.target = 0;
+        def->info.addr.drive.unit = unit;
         break;
+    }
 
     case VIR_DOMAIN_DISK_BUS_IDE:
         /* For IDE we define the default mapping to be 2 units
@@ -7353,7 +7483,8 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     }
 
     if (driverIOThread) {
-        if (virStrToLong_uip(driverIOThread, NULL, 10, &def->iothread) < 0) {
+        if (virStrToLong_uip(driverIOThread, NULL, 10, &def->iothread) < 0 ||
+            def->iothread == 0) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("Invalid iothread attribute in disk driver "
                              "element: %s"), driverIOThread);
@@ -7435,10 +7566,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     }
 
     if (!(flags & VIR_DOMAIN_DEF_PARSE_DISK_SOURCE)) {
-        if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE
-            && virDomainDiskDefAssignAddress(xmlopt, def) < 0)
-            goto error;
-
         if (virDomainDiskBackingStoreParse(ctxt, def->src) < 0)
             goto error;
     }
@@ -7766,6 +7893,13 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     char *queues = NULL;
     char *cmd_per_lun = NULL;
     char *max_sectors = NULL;
+    bool processedModel = false;
+    char *modelName = NULL;
+    bool processedTarget = false;
+    char *chassisNr = NULL;
+    char *chassis = NULL;
+    char *port = NULL;
+    char *ioeventfd = NULL;
     xmlNodePtr saved = ctxt->node;
     int rc;
 
@@ -7809,6 +7943,27 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                 queues = virXMLPropString(cur, "queues");
                 cmd_per_lun = virXMLPropString(cur, "cmd_per_lun");
                 max_sectors = virXMLPropString(cur, "max_sectors");
+                ioeventfd = virXMLPropString(cur, "ioeventfd");
+            } else if (xmlStrEqual(cur->name, BAD_CAST "model")) {
+                if (processedModel) {
+                    virReportError(VIR_ERR_XML_ERROR, "%s",
+                                   _("Multiple <model> elements in "
+                                     "controller definition not allowed"));
+                    goto error;
+                }
+                modelName = virXMLPropString(cur, "name");
+                processedModel = true;
+            } else if (xmlStrEqual(cur->name, BAD_CAST "target")) {
+                if (processedTarget) {
+                    virReportError(VIR_ERR_XML_ERROR, "%s",
+                                   _("Multiple <target> elements in "
+                                     "controller definition not allowed"));
+                    goto error;
+                }
+                chassisNr = virXMLPropString(cur, "chassisNr");
+                chassis = virXMLPropString(cur, "chassis");
+                port = virXMLPropString(cur, "port");
+                processedTarget = true;
             }
         }
         cur = cur->next;
@@ -7829,6 +7984,13 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     if (max_sectors && virStrToLong_ui(max_sectors, NULL, 10, &def->max_sectors) < 0) {
         virReportError(VIR_ERR_XML_ERROR,
                        _("Malformed 'max_sectors' value %s'"), max_sectors);
+        goto error;
+    }
+
+    if (ioeventfd &&
+        (def->ioeventfd = virTristateSwitchTypeFromString(ioeventfd)) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Malformed 'ioeventfd' value %s'"), max_sectors);
         goto error;
     }
 
@@ -7917,6 +8079,66 @@ virDomainControllerDefParseXML(xmlNodePtr node,
             def->opts.pciopts.pcihole64size = VIR_DIV_UP(bytes, 1024);
         }
         }
+        if (modelName &&
+            (def->opts.pciopts.modelName
+             = virDomainControllerPCIModelNameTypeFromString(modelName)) <= 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unknown PCI controller model name '%s'"),
+                           modelName);
+            goto error;
+        }
+        if (chassisNr) {
+            if (virStrToLong_i(chassisNr, NULL, 0,
+                               &def->opts.pciopts.chassisNr) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Invalid chassisNr '%s' in PCI controller"),
+                               chassisNr);
+                goto error;
+            }
+            if (def->opts.pciopts.chassisNr < 0 ||
+                def->opts.pciopts.chassisNr > 255) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("PCI controller chassisNr '%s' out of range "
+                                 "- must be 0-255"),
+                               chassisNr);
+                goto error;
+            }
+        }
+        if (chassis) {
+            if (virStrToLong_i(chassis, NULL, 0,
+                               &def->opts.pciopts.chassis) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Invalid chassis '%s' in PCI controller"),
+                               chassis);
+                goto error;
+            }
+            if (def->opts.pciopts.chassis < 0 ||
+                def->opts.pciopts.chassis > 255) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("PCI controller chassis '%s' out of range "
+                                 "- must be 0-255"),
+                               chassis);
+                goto error;
+            }
+        }
+        if (port) {
+            if (virStrToLong_i(port, NULL, 0,
+                               &def->opts.pciopts.port) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Invalid port '%s' in PCI controller"),
+                               port);
+                goto error;
+            }
+            if (def->opts.pciopts.port < 0 ||
+                def->opts.pciopts.port > 255) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("PCI controller port '%s' out of range "
+                                 "- must be 0-255"),
+                               port);
+                goto error;
+            }
+        }
+        break;
 
     default:
         break;
@@ -7941,6 +8163,11 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     VIR_FREE(queues);
     VIR_FREE(cmd_per_lun);
     VIR_FREE(max_sectors);
+    VIR_FREE(modelName);
+    VIR_FREE(chassisNr);
+    VIR_FREE(chassis);
+    VIR_FREE(port);
+    VIR_FREE(ioeventfd);
 
     return def;
 
@@ -11863,9 +12090,7 @@ virDomainVideoDefParseXML(xmlNodePtr node,
 }
 
 static virDomainHostdevDefPtr
-virDomainHostdevDefParseXML(virDomainXMLOptionPtr xmlopt,
-                            const virDomainDef *vmdef,
-                            xmlNodePtr node,
+virDomainHostdevDefParseXML(xmlNodePtr node,
                             xmlXPathContextPtr ctxt,
                             virHashTablePtr bootHash,
                             unsigned int flags)
@@ -11925,14 +12150,13 @@ virDomainHostdevDefParseXML(virDomainXMLOptionPtr xmlopt,
             }
             break;
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
-            if (def->info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
-                virDomainHostdevAssignAddress(xmlopt, vmdef, def) < 0) {
-
+            if (def->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+                def->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE) {
                 virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("SCSI host devices must have address specified"));
+                               _("SCSI host device must use 'drive' "
+                                 "address type"));
                 goto error;
             }
-
             if (virXPathBoolean("boolean(./readonly)", ctxt))
                 def->readonly = true;
             if (virXPathBoolean("boolean(./shareable)", ctxt))
@@ -12436,8 +12660,8 @@ virDomainDeviceDefParse(const char *xmlStr,
             goto error;
         break;
     case VIR_DOMAIN_DEVICE_HOSTDEV:
-        if (!(dev->data.hostdev = virDomainHostdevDefParseXML(xmlopt, def, node,
-                                                              ctxt, NULL, flags)))
+        if (!(dev->data.hostdev = virDomainHostdevDefParseXML(node, ctxt,
+                                                              NULL, flags)))
             goto error;
         break;
     case VIR_DOMAIN_DEVICE_CONTROLLER:
@@ -15070,6 +15294,12 @@ virDomainDefParseXML(xmlDocPtr xml,
         goto error;
     }
 
+    if (virDomainNumaGetMaxCPUID(def->numa) >= def->maxvcpus) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("CPU IDs in <numa> exceed the <vcpu> count"));
+        goto error;
+    }
+
     if (virDomainNumatuneParseXML(def->numa,
                                   def->placement_mode ==
                                   VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC,
@@ -15956,8 +16186,7 @@ virDomainDefParseXML(xmlDocPtr xml,
     for (i = 0; i < n; i++) {
         virDomainHostdevDefPtr hostdev;
 
-        hostdev = virDomainHostdevDefParseXML(xmlopt, def, nodes[i],
-                                              ctxt, bootHash, flags);
+        hostdev = virDomainHostdevDefParseXML(nodes[i], ctxt, bootHash, flags);
         if (!hostdev)
             goto error;
 
@@ -15971,9 +16200,6 @@ virDomainDefParseXML(xmlDocPtr xml,
         }
 
         def->hostdevs[def->nhostdevs++] = hostdev;
-
-        if (virDomainDefMaybeAddHostdevSCSIcontroller(def) < 0)
-            goto error;
     }
     VIR_FREE(nodes);
 
@@ -16360,7 +16586,7 @@ virDomainObjParseXML(xmlDocPtr xml,
     VIR_FREE(nodes);
 
     if (xmlopt->privateData.parse &&
-        xmlopt->privateData.parse(ctxt, obj) < 0)
+        xmlopt->privateData.parse(ctxt, obj, &xmlopt->config) < 0)
         goto error;
 
     return obj;
@@ -18950,7 +19176,8 @@ virDomainControllerDefFormat(virBufferPtr buf,
 {
     const char *type = virDomainControllerTypeToString(def->type);
     const char *model = NULL;
-    bool pcihole64 = false;
+    const char *modelName = NULL;
+    bool pcihole64 = false, pciModel = false, pciTarget = false;
 
     if (!type) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -18990,18 +19217,51 @@ virDomainControllerDefFormat(virBufferPtr buf,
     case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
         if (def->opts.pciopts.pcihole64)
             pcihole64 = true;
+        if (def->opts.pciopts.modelName != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE)
+            pciModel = true;
+        if (def->opts.pciopts.chassisNr != -1 ||
+            def->opts.pciopts.chassis != -1 ||
+            def->opts.pciopts.port != -1)
+            pciTarget = true;
         break;
 
     default:
         break;
     }
 
-    if (def->queues || def->cmd_per_lun || def->max_sectors ||
+    if (pciModel || pciTarget ||
+        def->queues || def->cmd_per_lun || def->max_sectors || def->ioeventfd ||
         virDomainDeviceInfoNeedsFormat(&def->info, flags) || pcihole64) {
         virBufferAddLit(buf, ">\n");
         virBufferAdjustIndent(buf, 2);
 
-        if (def->queues || def->cmd_per_lun || def->max_sectors) {
+        if (pciModel) {
+            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
+            if (!modelName) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected model name value %d"),
+                               def->opts.pciopts.modelName);
+                return -1;
+            }
+            virBufferAsprintf(buf, "<model name='%s'/>\n", modelName);
+        }
+
+        if (pciTarget) {
+            virBufferAddLit(buf, "<target");
+            if (def->opts.pciopts.chassisNr != -1)
+                virBufferAsprintf(buf, " chassisNr='%d'",
+                                  def->opts.pciopts.chassisNr);
+            if (def->opts.pciopts.chassis != -1)
+                virBufferAsprintf(buf, " chassis='%d'",
+                                  def->opts.pciopts.chassis);
+            if (def->opts.pciopts.port != -1)
+                virBufferAsprintf(buf, " port='0x%x'",
+                                  def->opts.pciopts.port);
+            virBufferAddLit(buf, "/>\n");
+        }
+
+        if (def->queues || def->cmd_per_lun ||
+            def->max_sectors || def->ioeventfd) {
             virBufferAddLit(buf, "<driver");
             if (def->queues)
                 virBufferAsprintf(buf, " queues='%u'", def->queues);
@@ -19011,6 +19271,11 @@ virDomainControllerDefFormat(virBufferPtr buf,
 
             if (def->max_sectors)
                 virBufferAsprintf(buf, " max_sectors='%u'", def->max_sectors);
+
+            if (def->ioeventfd) {
+                virBufferAsprintf(buf, " ioeventfd='%s'",
+                                  virTristateSwitchTypeToString(def->ioeventfd));
+            }
             virBufferAddLit(buf, "/>\n");
         }
 
@@ -23963,10 +24228,16 @@ virDomainDefFindDevice(virDomainDefPtr def,
  * Return true if its source is block type, or false otherwise.
  */
 bool
-virDomainDiskSourceIsBlockType(virStorageSourcePtr src)
+virDomainDiskSourceIsBlockType(virStorageSourcePtr src,
+                               bool report)
 {
-    if (!src->path)
+    if (!src->path) {
+        if (report)
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("source path not found for device='lun' "
+                             "using type='%d'"), src->type);
         return false;
+    }
 
     if (src->type == VIR_STORAGE_TYPE_BLOCK)
         return true;
@@ -23982,11 +24253,20 @@ virDomainDiskSourceIsBlockType(virStorageSourcePtr src)
          * (e.g. set sgio=filtered|unfiltered for it) in libvirt.
          */
          if (src->srcpool->pooltype == VIR_STORAGE_POOL_ISCSI &&
-             src->srcpool->mode == VIR_STORAGE_SOURCE_POOL_MODE_DIRECT)
+             src->srcpool->mode == VIR_STORAGE_SOURCE_POOL_MODE_DIRECT) {
+             if (report)
+                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                _("disk device='lun' for iSCSI is not "
+                                  "supported with mode='direct'."));
              return false;
+         }
 
         return true;
     }
+    if (report)
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("disk device='lun' is only valid for block "
+                         "type disk source"));
     return false;
 }
 

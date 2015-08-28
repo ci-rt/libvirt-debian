@@ -238,6 +238,23 @@ virStringArrayHasString(char **strings, const char *needle)
     return false;
 }
 
+char *
+virStringGetFirstWithPrefix(char **strings, const char *prefix)
+{
+    size_t i = 0;
+
+    if (!strings)
+        return NULL;
+
+    while (strings[i]) {
+        if (STRPREFIX(strings[i], prefix))
+            return strings[i] + strlen(prefix);
+        i++;
+    }
+
+    return NULL;
+}
+
 /* Like strtol, but produce an "int" result, and check more carefully.
    Return 0 upon success;  return -1 to indicate failure.
    When END_PTR is NULL, the byte after the final valid digit must be NUL.
@@ -1019,4 +1036,36 @@ virStringStripControlChars(char *str)
         str[j++] = str[i];
     }
     str[j] = '\0';
+}
+
+/**
+ * virStringToUpper:
+ * @str: string to capitalize
+ * @dst: where to store the new capitalized string
+ *
+ * Capitalize the string with replacement of all '-' characters for '_'
+ * characters. Caller frees the result.
+ *
+ * Returns 0 if src is NULL, 1 if capitalization was successfull, -1 on failure.
+ */
+int
+virStringToUpper(char **dst, const char *src)
+{
+    char *cap = NULL;
+    size_t i;
+
+    if (!src)
+        return 0;
+
+    if (VIR_ALLOC_N(cap, strlen(src) + 1) < 0)
+        return -1;
+
+    for (i = 0; src[i]; i++) {
+        cap[i] = c_toupper(src[i]);
+        if (cap[i] == '-')
+            cap[i] = '_';
+    }
+
+    *dst = cap;
+    return 1;
 }

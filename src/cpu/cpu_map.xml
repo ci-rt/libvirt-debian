@@ -1358,70 +1358,33 @@
     <vendor name='Freescale'/>
 
     <!-- IBM-based CPU models -->
+    <model name='POWER6'>
+      <vendor name='IBM'/>
+      <pvr value='0x003e0000' mask='0xffff0000'/>
+    </model>
+
     <model name='POWER7'>
       <vendor name='IBM'/>
-      <pvr value='0x003f0200'/>
+      <pvr value='0x003f0000' mask='0xffff0000'/>
+      <pvr value='0x004a0000' mask='0xffff0000'/>
     </model>
 
-    <model name='POWER7_v2.1'>
+    <model name='POWER8'>
       <vendor name='IBM'/>
-      <pvr value='0x003f0201'/>
-    </model>
-
-    <model name='POWER7_v2.3'>
-      <vendor name='IBM'/>
-      <pvr value='0x003f0203'/>
-    </model>
-
-    <model name='POWER7+_v2.1'>
-      <vendor name='IBM'/>
-      <pvr value='0x004a0201'/>
-    </model>
-
-    <model name='POWER8_v1.0'>
-      <vendor name='IBM'/>
-      <pvr value='0x004b0100'/>
-    </model>
-
-    <model name='power6'>
-      <vendor name='IBM'/>
-      <compat isa='2.05'/>
-      <pvr value='0x003e0000'/>
-    </model>
-
-    <model name='power7'>
-      <vendor name='IBM'/>
-      <compat isa='2.06'/>
-      <pvr value='0x003f0000'/>
-    </model>
-
-    <model name='power7+'>
-      <vendor name='IBM'/>
-      <compat isa='2.06B'/>
-      <pvr value='0x004a0000'/>
-    </model>
-
-    <model name='power8e'>
-      <vendor name='IBM'/>
-      <compat isa='2.07'/>
-      <pvr value='0x004b0000'/>
-    </model>
-
-    <model name='power8'>
-      <vendor name='IBM'/>
-      <compat isa='2.07'/>
-      <pvr value='0x004d0000'/>
+      <pvr value='0x004b0000' mask='0xffff0000'/>
+      <pvr value='0x004c0000' mask='0xffff0000'/>
+      <pvr value='0x004d0000' mask='0xffff0000'/>
     </model>
 
     <!-- Freescale-based CPU models -->
     <model name='POWERPC_e5500'>
       <vendor name='Freescale'/>
-      <pvr value='0x80240000'/>
+      <pvr value='0x80240000' mask='0xffff0000'/>
     </model>
 
     <model name='POWERPC_e6500'>
       <vendor name='Freescale'/>
-      <pvr value='0x80400000'/>
+      <pvr value='0x80400000' mask='0xffff0000'/>
     </model>
   </arch>
 </cpus>

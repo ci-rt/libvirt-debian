@@ -47,6 +47,8 @@ void virStringFreeListCount(char **strings, size_t count);
 size_t virStringListLen(const char **strings);
 
 bool virStringArrayHasString(char **strings, const char *needle);
+char *virStringGetFirstWithPrefix(char **strings, const char *prefix)
+    ATTRIBUTE_NONNULL(2);
 
 char *virArgvToString(const char *const *argv);
 
@@ -258,6 +260,7 @@ size_t virStringListLength(char **strings);
 
 int virStringSortCompare(const void *a, const void *b);
 int virStringSortRevCompare(const void *a, const void *b);
+int virStringToUpper(char **dst, const char *src);
 
 ssize_t virStringSearch(const char *str,
                         const char *regexp,

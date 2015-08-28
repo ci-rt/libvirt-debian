@@ -29,7 +29,7 @@
 # include "virarch.h"
 # include "conf/cpu_conf.h"
 # include "cpu_x86_data.h"
-# include "cpu_ppc_data.h"
+# include "cpu_ppc64_data.h"
 
 
 typedef struct _virCPUData virCPUData;
@@ -38,7 +38,7 @@ struct _virCPUData {
     virArch arch;
     union {
         virCPUx86Data *x86;
-        struct cpuPPCData ppc;
+        virCPUppc64Data *ppc64;
         /* generic driver needs no data */
     } data;
 };

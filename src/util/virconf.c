@@ -840,7 +840,7 @@ virConfFree(virConfPtr conf)
 /**
  * virConfGetValue:
  * @conf: a configuration file handle
- * @entry: the name of the entry
+ * @setting: the name of the entry
  *
  * Lookup the value associated to this entry in the configuration file
  *
@@ -870,7 +870,7 @@ virConfGetValue(virConfPtr conf, const char *setting)
 /**
  * virConfSetValue:
  * @conf: a configuration file handle
- * @entry: the name of the entry
+ * @setting: the name of the entry
  * @value: the new configuration value
  *
  * Set (or replace) the value associated to this entry in the configuration
@@ -930,7 +930,7 @@ virConfSetValue(virConfPtr conf,
  * virConfWalk:
  * @conf: a configuration file handle
  * @callback: the function to call to process each entry
- * @data: obscure data passed to callback
+ * @opaque: obscure data passed to callback
  *
  * Walk over all entries of the configuration file and run the callback
  * for each with entry name, value and the obscure data.
@@ -938,8 +938,8 @@ virConfSetValue(virConfPtr conf,
  * Returns 0 on success, or -1 on failure.
  */
 int virConfWalk(virConfPtr conf,
-                 virConfWalkCallback callback,
-                 void *opaque)
+                virConfWalkCallback callback,
+                void *opaque)
 {
     virConfEntryPtr cur;
 

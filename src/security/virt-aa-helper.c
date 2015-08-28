@@ -107,12 +107,14 @@ vah_usage(void)
             "  Options:\n"
             "    -a | --add                     load profile\n"
             "    -c | --create                  create profile from template\n"
+            "    -d | --dry-run                 dry run\n"
             "    -D | --delete                  unload and delete profile\n"
             "    -f | --add-file <file>         add file to profile\n"
             "    -F | --append-file <file>      append file to profile\n"
             "    -r | --replace                 reload profile\n"
             "    -R | --remove                  unload profile\n"
             "    -h | --help                    this help\n"
+            "    -p | --probing [0|1]           allow disk format probing\n"
             "    -u | --uuid <uuid>             uuid (profile name)\n"
             "\n"), progname);
 
@@ -544,7 +546,9 @@ array_starts_with(const char *str, const char * const *arr, const long size)
 static int
 valid_path(const char *path, const bool readonly)
 {
-    int npaths, opaths;
+    int npaths;
+    int nropaths;
+
     const char * const restricted[] = {
         "/bin/",
         "/etc/",
@@ -568,7 +572,8 @@ valid_path(const char *path, const bool readonly)
         "/boot/",
         "/vmlinuz",
         "/initrd",
-        "/initrd.img"
+        "/initrd.img",
+        "/usr/share/ovmf/"               /* for OVMF images */
     };
     /* override the above with these */
     const char * const override[] = {
@@ -594,18 +599,23 @@ valid_path(const char *path, const bool readonly)
     if (!virFileExists(path))
         vah_warning(_("path does not exist, skipping file type checks"));
 
-    opaths = sizeof(override)/sizeof(*(override));
+    /* overrides are always allowed */
+    npaths = sizeof(override)/sizeof(*(override));
+    if (array_starts_with(path, override, npaths) == 0)
+        return 0;
 
-    npaths = sizeof(restricted)/sizeof(*(restricted));
-    if (array_starts_with(path, restricted, npaths) == 0 &&
-        array_starts_with(path, override, opaths) != 0)
-            return 1;
-
-    npaths = sizeof(restricted_rw)/sizeof(*(restricted_rw));
-    if (!readonly) {
-        if (array_starts_with(path, restricted_rw, npaths) == 0)
-            return 1;
+    /* allow read only paths upfront */
+    if (readonly) {
+        nropaths = sizeof(restricted_rw)/sizeof(*(restricted_rw));
+        if (array_starts_with(path, restricted_rw, nropaths) == 0)
+            return 0;
     }
+
+    /* disallow RW acess to all paths in restricted and restriced_rw */
+    npaths = sizeof(restricted)/sizeof(*(restricted));
+    if ((array_starts_with(path, restricted, npaths) == 0
+        || array_starts_with(path, restricted_rw, nropaths) == 0))
+        return 1;
 
     return 0;
 }
@@ -1045,6 +1055,10 @@ get_files(vahControl * ctl)
 
     if (ctl->def->os.loader && ctl->def->os.loader->path)
         if (vah_add_file(&buf, ctl->def->os.loader->path, "r") != 0)
+            goto cleanup;
+
+    if (ctl->def->os.loader && ctl->def->os.loader->nvram)
+        if (vah_add_file(&buf, ctl->def->os.loader->nvram, "rw") != 0)
             goto cleanup;
 
     for (i = 0; i < ctl->def->ngraphics; i++) {

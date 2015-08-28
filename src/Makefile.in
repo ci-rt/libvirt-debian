@@ -807,8 +807,7 @@ am__objects_23 = cpu/libvirt_cpu_la-cpu.lo \
 	cpu/libvirt_cpu_la-cpu_x86.lo cpu/libvirt_cpu_la-cpu_s390.lo \
 	cpu/libvirt_cpu_la-cpu_arm.lo \
 	cpu/libvirt_cpu_la-cpu_aarch64.lo \
-	cpu/libvirt_cpu_la-cpu_map.lo \
-	cpu/libvirt_cpu_la-cpu_powerpc.lo
+	cpu/libvirt_cpu_la-cpu_ppc64.lo cpu/libvirt_cpu_la-cpu_map.lo
 am_libvirt_cpu_la_OBJECTS = $(am__objects_23)
 libvirt_cpu_la_OBJECTS = $(am_libvirt_cpu_la_OBJECTS)
 libvirt_cpu_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
@@ -1033,8 +1032,8 @@ libvirt_driver_lxc_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 am__DEPENDENCIES_8 = $(am__DEPENDENCIES_6) $(am__DEPENDENCIES_7)
 @WITH_LXC_TRUE@libvirt_driver_lxc_impl_la_DEPENDENCIES =  \
 @WITH_LXC_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-@WITH_LXC_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_5) \
-@WITH_LXC_TRUE@	$(am__DEPENDENCIES_8)
+@WITH_LXC_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+@WITH_LXC_TRUE@	$(am__DEPENDENCIES_5) $(am__DEPENDENCIES_8)
 am__libvirt_driver_lxc_impl_la_SOURCES_DIST =  \
 	lxc/lxc_monitor_protocol.h lxc/lxc_monitor_protocol.c \
 	lxc/lxc_monitor_dispatch.h lxc/lxc_conf.c lxc/lxc_conf.h \
@@ -3112,6 +3111,7 @@ PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
 QEMU = @QEMU@
+QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
@@ -3545,9 +3545,10 @@ EXTRA_DIST = $(conf_DATA) util/keymaps.csv $(srcdir)/util/virkeymaps.h \
 	$(VBOX_DRIVER_EXTRA_DIST) $(VMWARE_DRIVER_SOURCES) \
 	$(XENCONFIG_SOURCES) $(ACCESS_DRIVER_POLKIT_POLICY) \
 	$(top_srcdir)/build-aux/augeas-gentest.pl libvirt_public.syms \
-	libvirt_lxc.syms libvirt_qemu.syms libvirt_admin.syms \
-	$(SYM_FILES) $(NULL) libvirt_probes.d libvirt_qemu_probes.d \
-	$(am__append_180) locking/virtlockd.sysconf locking/lockd.conf \
+	libvirt_lxc.syms libvirt_qemu.syms libvirt_admin_public.syms \
+	$(SYM_FILES) $(ADMIN_SYM_FILES) $(NULL) libvirt_probes.d \
+	libvirt_qemu_probes.d $(am__append_180) \
+	locking/virtlockd.sysconf locking/lockd.conf \
 	locking/libvirt_lockd.aug locking/test_libvirt_lockd.aug.in \
 	locking/virtlockd.init.in locking/virtlockd.service.in \
 	locking/virtlockd.socket.in locking/virtlockd.pod.in \
@@ -4362,8 +4363,9 @@ CPU_SOURCES = \
 		cpu/cpu_s390.h cpu/cpu_s390.c			\
 		cpu/cpu_arm.h cpu/cpu_arm.c			\
 		cpu/cpu_aarch64.h cpu/cpu_aarch64.c		\
-		cpu/cpu_map.h cpu/cpu_map.c cpu/cpu_powerpc.h	\
-		cpu/cpu_powerpc.c cpu/cpu_ppc_data.h
+		cpu/cpu_ppc64.h cpu/cpu_ppc64.c			\
+		cpu/cpu_ppc64_data.h				\
+		cpu/cpu_map.h cpu/cpu_map.c
 
 VMX_SOURCES = \
 		vmx/vmx.c vmx/vmx.h
@@ -4582,8 +4584,8 @@ GENERATED_SYM_FILES = \
 @WITH_LXC_TRUE@	$(FUSE_CFLAGS) $(XDR_CFLAGS) -I$(srcdir)/access \
 @WITH_LXC_TRUE@	-I$(srcdir)/conf $(AM_CFLAGS) $(am__append_56)
 @WITH_LXC_TRUE@libvirt_driver_lxc_impl_la_LIBADD = $(CAPNG_LIBS) \
-@WITH_LXC_TRUE@	$(LIBNL_LIBS) $(FUSE_LIBS) $(am__append_57) \
-@WITH_LXC_TRUE@	$(SECDRIVER_LIBS)
+@WITH_LXC_TRUE@	$(LIBNL_LIBS) $(LIBXML_LIBS) $(FUSE_LIBS) \
+@WITH_LXC_TRUE@	$(am__append_57) $(SECDRIVER_LIBS)
 @WITH_LXC_TRUE@libvirt_driver_lxc_impl_la_SOURCES = $(LXC_DRIVER_SOURCES)
 @WITH_UML_TRUE@libvirt_driver_uml_la_SOURCES = 
 @WITH_UML_TRUE@libvirt_driver_uml_la_LIBADD =  \
@@ -4754,6 +4756,7 @@ libvirt_admin_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD) \
 libvirt_admin_la_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/remote \
 	-I$(srcdir)/rpc -I$(srcdir)/admin $(CAPNG_CFLAGS) \
 	$(YAJL_CFLAGS) $(SSH2_CFLAGS) $(SASL_CFLAGS) $(GNUTLS_CFLAGS)
+ADMIN_SYM_FILES = $(srcdir)/libvirt_admin_private.syms
 
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES = 
@@ -5513,9 +5516,9 @@ cpu/libvirt_cpu_la-cpu_arm.lo: cpu/$(am__dirstamp) \
 	cpu/$(DEPDIR)/$(am__dirstamp)
 cpu/libvirt_cpu_la-cpu_aarch64.lo: cpu/$(am__dirstamp) \
 	cpu/$(DEPDIR)/$(am__dirstamp)
-cpu/libvirt_cpu_la-cpu_map.lo: cpu/$(am__dirstamp) \
+cpu/libvirt_cpu_la-cpu_ppc64.lo: cpu/$(am__dirstamp) \
 	cpu/$(DEPDIR)/$(am__dirstamp)
-cpu/libvirt_cpu_la-cpu_powerpc.lo: cpu/$(am__dirstamp) \
+cpu/libvirt_cpu_la-cpu_map.lo: cpu/$(am__dirstamp) \
 	cpu/$(DEPDIR)/$(am__dirstamp)
 
 libvirt_cpu.la: $(libvirt_cpu_la_OBJECTS) $(libvirt_cpu_la_DEPENDENCIES) $(EXTRA_libvirt_cpu_la_DEPENDENCIES) 
@@ -6566,7 +6569,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_arm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_generic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_map.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_powerpc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_ppc64.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_s390.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_x86.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@esx/$(DEPDIR)/libvirt_driver_esx_la-esx_driver.Plo@am__quote@
@@ -7632,19 +7635,19 @@ cpu/libvirt_cpu_la-cpu_aarch64.lo: cpu/cpu_aarch64.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o cpu/libvirt_cpu_la-cpu_aarch64.lo `test -f 'cpu/cpu_aarch64.c' || echo '$(srcdir)/'`cpu/cpu_aarch64.c
 
+cpu/libvirt_cpu_la-cpu_ppc64.lo: cpu/cpu_ppc64.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -MT cpu/libvirt_cpu_la-cpu_ppc64.lo -MD -MP -MF cpu/$(DEPDIR)/libvirt_cpu_la-cpu_ppc64.Tpo -c -o cpu/libvirt_cpu_la-cpu_ppc64.lo `test -f 'cpu/cpu_ppc64.c' || echo '$(srcdir)/'`cpu/cpu_ppc64.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cpu/$(DEPDIR)/libvirt_cpu_la-cpu_ppc64.Tpo cpu/$(DEPDIR)/libvirt_cpu_la-cpu_ppc64.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cpu/cpu_ppc64.c' object='cpu/libvirt_cpu_la-cpu_ppc64.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o cpu/libvirt_cpu_la-cpu_ppc64.lo `test -f 'cpu/cpu_ppc64.c' || echo '$(srcdir)/'`cpu/cpu_ppc64.c
+
 cpu/libvirt_cpu_la-cpu_map.lo: cpu/cpu_map.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -MT cpu/libvirt_cpu_la-cpu_map.lo -MD -MP -MF cpu/$(DEPDIR)/libvirt_cpu_la-cpu_map.Tpo -c -o cpu/libvirt_cpu_la-cpu_map.lo `test -f 'cpu/cpu_map.c' || echo '$(srcdir)/'`cpu/cpu_map.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cpu/$(DEPDIR)/libvirt_cpu_la-cpu_map.Tpo cpu/$(DEPDIR)/libvirt_cpu_la-cpu_map.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cpu/cpu_map.c' object='cpu/libvirt_cpu_la-cpu_map.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o cpu/libvirt_cpu_la-cpu_map.lo `test -f 'cpu/cpu_map.c' || echo '$(srcdir)/'`cpu/cpu_map.c
-
-cpu/libvirt_cpu_la-cpu_powerpc.lo: cpu/cpu_powerpc.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -MT cpu/libvirt_cpu_la-cpu_powerpc.lo -MD -MP -MF cpu/$(DEPDIR)/libvirt_cpu_la-cpu_powerpc.Tpo -c -o cpu/libvirt_cpu_la-cpu_powerpc.lo `test -f 'cpu/cpu_powerpc.c' || echo '$(srcdir)/'`cpu/cpu_powerpc.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cpu/$(DEPDIR)/libvirt_cpu_la-cpu_powerpc.Tpo cpu/$(DEPDIR)/libvirt_cpu_la-cpu_powerpc.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cpu/cpu_powerpc.c' object='cpu/libvirt_cpu_la-cpu_powerpc.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o cpu/libvirt_cpu_la-cpu_powerpc.lo `test -f 'cpu/cpu_powerpc.c' || echo '$(srcdir)/'`cpu/cpu_powerpc.c
 
 libvirt_driver_la-driver.lo: driver.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_la-driver.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_la-driver.Tpo -c -o libvirt_driver_la-driver.lo `test -f 'driver.c' || echo '$(srcdir)/'`driver.c
@@ -10210,7 +10213,7 @@ check-drivername:
 	$(AM_V_GEN)$(PERL) $(srcdir)/check-drivername.pl \
 		$(srcdir)/driver.h \
 		$(srcdir)/libvirt_public.syms \
-		$(srcdir)/libvirt_admin.syms \
+		$(srcdir)/libvirt_admin_public.syms \
 		$(srcdir)/libvirt_qemu.syms \
 		$(srcdir)/libvirt_lxc.syms
 
@@ -10428,6 +10431,19 @@ libvirt.syms: libvirt_public.syms $(USED_SYM_FILES) \
 	    -e 's/[	 ]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
 	chmod a-w $@-tmp && \
 	mv $@-tmp $@
+
+libvirt_admin.syms: libvirt_admin_public.syms $(ADMIN_SYM_FILES) \
+		$(top_builddir)/config.status
+	$(AM_V_GEN)rm -f $@-tmp $@ ; \
+	printf '# WARNING: generated from the following:\n# $^\n\n' >$@-tmp && \
+	cat $(srcdir)/libvirt_admin_public.syms >>$@-tmp && \
+	printf '\n\n# Private symbols\n\n' >>$@-tmp && \
+	printf 'LIBVIRT_ADMIN_PRIVATE_$(VERSION) {\n\n'  >>$@-tmp && \
+	printf 'global:\n\n' >>$@-tmp && \
+	cat $(ADMIN_SYM_FILES) >>$@-tmp && \
+	printf '\n\nlocal:\n*;\n\n};' >>$@-tmp && \
+	chmod a-w $@-tmp && \
+	mv $@-tmp libvirt_admin.syms
 
 @WITH_DTRACE_PROBES_TRUE@%_probes.h: %_probes.d
 @WITH_DTRACE_PROBES_TRUE@	$(AM_V_GEN)$(DTRACE) -o $@ -h -s $<

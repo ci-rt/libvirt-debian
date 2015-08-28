@@ -910,6 +910,17 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         return -1;
     }
 
+    /* and only TAP devices support nwfilter rules */
+    if (net->filter &&
+        !(actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
+          actualType == VIR_DOMAIN_NET_TYPE_BRIDGE)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("filterref is not supported for "
+                         "network interfaces of type %s"),
+                       virDomainNetTypeToString(actualType));
+        return -1;
+    }
+
     if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE ||
         actualType == VIR_DOMAIN_NET_TYPE_NETWORK) {
         tapfdSize = vhostfdSize = net->driver.virtio.queues;
@@ -1745,6 +1756,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     unsigned long long oldmem = virDomainDefGetMemoryActual(vm->def);
+    unsigned long long newmem = oldmem + mem->size;
     char *devstr = NULL;
     char *objalias = NULL;
     const char *backendType;
@@ -1800,7 +1812,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         /* we shouldn't touch mem now, as the def might be freed */
         mem = NULL;
-        goto cleanup;
+        goto audit;
     }
 
     event = virDomainEventDeviceAddedNewFromObj(vm, objalias);
@@ -1811,9 +1823,6 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     if (fix_balloon)
         vm->def->mem.cur_balloon += mem->size;
 
-    virDomainAuditMemory(vm, oldmem, virDomainDefGetMemoryActual(vm->def),
-                         "update", ret == 0);
-
     /* mem is consumed by vm->def */
     mem = NULL;
 
@@ -1823,6 +1832,8 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
 
     ret = 0;
 
+ audit:
+    virDomainAuditMemory(vm, oldmem, newmem, "update", ret == 0);
  cleanup:
     virObjectUnref(cfg);
     VIR_FREE(devstr);
@@ -1833,7 +1844,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
  removedef:
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         mem = NULL;
-        goto cleanup;
+        goto audit;
     }
 
     if ((id = virDomainMemoryFindByDef(vm->def, mem)) >= 0)
@@ -1841,7 +1852,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     else
         mem = NULL;
 
-    goto cleanup;
+    goto audit;
 }
 
 
@@ -2383,10 +2394,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
 
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
             if (STRNEQ_NULLABLE(olddev->data.ethernet.dev,
-                                newdev->data.ethernet.dev) ||
-                olddev->nips == 0 || newdev->nips == 0 ||
-                !virSocketAddrEqual(&olddev->ips[0]->address,
-                                    &newdev->ips[0]->address)) {
+                                newdev->data.ethernet.dev)) {
                 needReconnect = true;
             }
         break;
@@ -2904,11 +2912,11 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     unsigned long long oldmem = virDomainDefGetMemoryActual(vm->def);
+    unsigned long long newmem = oldmem - mem->size;
     virObjectEventPtr event;
     char *backendAlias = NULL;
     int rc;
     int idx;
-    int ret = -1;
 
     VIR_DEBUG("Removing memory device %s from domain %p %s",
               mem->info.alias, vm, vm->def->name);
@@ -2917,12 +2925,18 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
         qemuDomainEventQueue(driver, event);
 
     if (virAsprintf(&backendAlias, "mem%s", mem->info.alias) < 0)
-        goto cleanup;
+        return -1;
 
     qemuDomainObjEnterMonitor(driver, vm);
     rc = qemuMonitorDelObject(priv->mon, backendAlias);
-    if (qemuDomainObjExitMonitor(driver, vm) < 0 || rc < 0)
-        goto cleanup;
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        rc = -1;
+
+    VIR_FREE(backendAlias);
+
+    virDomainAuditMemory(vm, oldmem, newmem, "update", rc == 0);
+    if (rc < 0)
+        return -1;
 
     vm->def->mem.cur_balloon -= mem->size;
 
@@ -2930,14 +2944,7 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
         virDomainMemoryRemove(vm->def, idx);
 
     virDomainMemoryDefFree(mem);
-    ret = 0;
-
- cleanup:
-    virDomainAuditMemory(vm, oldmem, virDomainDefGetMemoryActual(vm->def),
-                         "update", ret == 0);
-
-    VIR_FREE(backendAlias);
-    return ret;
+    return 0;
 }
 
 

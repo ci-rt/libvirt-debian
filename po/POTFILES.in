@@ -39,7 +39,7 @@ src/conf/virchrdev.c
 src/cpu/cpu.c
 src/cpu/cpu_generic.c
 src/cpu/cpu_map.c
-src/cpu/cpu_powerpc.c
+src/cpu/cpu_ppc64.c
 src/cpu/cpu_x86.c
 src/driver.c
 src/esx/esx_driver.c
@@ -85,6 +85,7 @@ src/lxc/lxc_native.c
 src/lxc/lxc_container.c
 src/lxc/lxc_conf.c
 src/lxc/lxc_controller.c
+src/lxc/lxc_domain.c
 src/lxc/lxc_driver.c
 src/lxc/lxc_process.c
 src/libxl/libxl_domain.c
@@ -258,7 +259,6 @@ src/xenconfig/xen_xm.c
 tests/virpolkittest.c
 tools/libvirt-guests.sh.in
 tools/virsh.c
-tools/virsh.h
 tools/virsh-console.c
 tools/virsh-domain-monitor.c
 tools/virsh-domain.c
@@ -277,3 +277,5 @@ tools/virt-host-validate-lxc.c
 tools/virt-host-validate-qemu.c
 tools/virt-host-validate.c
 tools/virt-login-shell.c
+tools/vsh.c
+tools/vsh.h

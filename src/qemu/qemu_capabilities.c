@@ -1,7 +1,7 @@
 /*
  * qemu_capabilities.c: QEMU capabilities generation
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -288,6 +288,10 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
 
               "vhost-user-multiqueue", /* 190 */
               "migration-event",
+              "gpex-pcihost",
+              "ioh3420",
+              "x3130-upstream",
+              "xio3130-downstream",
     );
 
 
@@ -1568,6 +1572,10 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "ivshmem", QEMU_CAPS_DEVICE_IVSHMEM },
     { "pc-dimm", QEMU_CAPS_DEVICE_PC_DIMM },
     { "pci-serial", QEMU_CAPS_DEVICE_PCI_SERIAL },
+    { "gpex-pcihost", QEMU_CAPS_OBJECT_GPEX},
+    { "ioh3420", QEMU_CAPS_DEVICE_IOH3420 },
+    { "x3130-upstream", QEMU_CAPS_DEVICE_X3130_UPSTREAM },
+    { "xio3130-downstream", QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
@@ -2134,6 +2142,14 @@ bool virQEMUCapsHasPCIMultiBus(virQEMUCapsPtr qemuCaps,
             return true;
 
         return false;
+    }
+
+    if (ARCH_IS_ARM(def->os.arch)) {
+        /* If 'virt' supports PCI, it supports multibus.
+         * No extra conditions here for simplicity.
+         */
+        if (STREQ(def->os.machine, "virt"))
+            return true;
     }
 
     return false;
@@ -3919,24 +3935,31 @@ virQEMUCapsFillDomainOSCaps(virQEMUCapsPtr qemuCaps,
 
 static int
 virQEMUCapsFillDomainDeviceDiskCaps(virQEMUCapsPtr qemuCaps,
+                                    const char *machine,
                                     virDomainCapsDeviceDiskPtr disk)
 {
     disk->device.supported = true;
     /* QEMU supports all of these */
     VIR_DOMAIN_CAPS_ENUM_SET(disk->diskDevice,
                              VIR_DOMAIN_DISK_DEVICE_DISK,
-                             VIR_DOMAIN_DISK_DEVICE_CDROM,
-                             VIR_DOMAIN_DISK_DEVICE_FLOPPY);
+                             VIR_DOMAIN_DISK_DEVICE_CDROM);
+
+    /* PowerPC pseries based VMs do not support floppy device */
+    if (!(ARCH_IS_PPC64(qemuCaps->arch) && STRPREFIX(machine, "pseries")))
+        VIR_DOMAIN_CAPS_ENUM_SET(disk->diskDevice, VIR_DOMAIN_DISK_DEVICE_FLOPPY);
 
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_BLK_SG_IO))
         VIR_DOMAIN_CAPS_ENUM_SET(disk->diskDevice, VIR_DOMAIN_DISK_DEVICE_LUN);
 
     VIR_DOMAIN_CAPS_ENUM_SET(disk->bus,
                              VIR_DOMAIN_DISK_BUS_IDE,
-                             VIR_DOMAIN_DISK_BUS_FDC,
                              VIR_DOMAIN_DISK_BUS_SCSI,
                              VIR_DOMAIN_DISK_BUS_VIRTIO,
                              /* VIR_DOMAIN_DISK_BUS_SD */);
+
+    /* PowerPC pseries based VMs do not support floppy device */
+    if (!(ARCH_IS_PPC64(qemuCaps->arch) && STRPREFIX(machine, "pseries")))
+        VIR_DOMAIN_CAPS_ENUM_SET(disk->bus, VIR_DOMAIN_DISK_BUS_FDC);
 
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_USB_STORAGE))
         VIR_DOMAIN_CAPS_ENUM_SET(disk->bus, VIR_DOMAIN_DISK_BUS_USB);
@@ -4008,7 +4031,7 @@ virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
 
     if (virQEMUCapsFillDomainOSCaps(qemuCaps, os,
                                     loader, nloader) < 0 ||
-        virQEMUCapsFillDomainDeviceDiskCaps(qemuCaps, disk) < 0 ||
+        virQEMUCapsFillDomainDeviceDiskCaps(qemuCaps, domCaps->machine, disk) < 0 ||
         virQEMUCapsFillDomainDeviceHostdevCaps(qemuCaps, hostdev) < 0)
         return -1;
     return 0;
