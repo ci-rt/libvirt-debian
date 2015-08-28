@@ -14,4 +14,3 @@ Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
 virNetSocketCheckProtocols-handle-EAI_NONAME-as-IPv6.patch
-Mark-symbols-in-libvirt-admin-as-local.patch
