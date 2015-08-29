@@ -1,0 +1,30 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 29 Aug 2015 14:04:27 +0200
+Subject: Disable tests affected by broken libxml2
+
+We now have #781232 in sid/testing as well.
+---
+ tests/Makefile.am | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/tests/Makefile.am b/tests/Makefile.am
+index bde7f5b..d5e9f72 100644
+--- a/tests/Makefile.am
++++ b/tests/Makefile.am
+@@ -244,7 +244,7 @@ test_programs += xlconfigtest
+ endif WITH_LIBXL
+ 
+ if WITH_QEMU
+-test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
++test_programs += qemuxml2xmltest qemuxmlnstest \
+ 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
+ 	qemumonitortest qemumonitorjsontest qemuhotplugtest \
+ 	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
+@@ -364,7 +364,6 @@ test_scripts +=				\
+ 	read-bufsiz			\
+ 	read-non-seekable		\
+ 	start				\
+-	virsh-uriprecedence		\
+ 	vcpupin				\
+ 	virsh-all			\
+ 	virsh-optparse			\
