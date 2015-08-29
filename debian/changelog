@@ -1,3 +1,21 @@
+libvirt (1.2.19~rc1-1) experimental; urgency=medium
+
+  * [6b88e35] New upstream version 1.2.19~rc1
+  * [f525b78] Remove doc generation workaround introduced in
+    659882f5a236a901fdb090a88af20eed4b2642c7. We fixed this properly upstream.
+  * [a94f6c2] Use qemu-bridge-helper autodetection that we implemented
+    upstream instead of hardcoding it.
+  * [6fe9265] Don't hardcode private libvirt-admin symbols but use the
+    autogeneration we implemented upstream.
+  * [761db17] Rediff patches.
+    Dropped virNetSocketCheckProtocols-handle-EAI_NONAME-as-IPv6.patch:
+    applied upstram
+  * [4569b2a] Bump symbol versions
+  * [ac3f8d3] Disable tests affected by broken libxml2
+  * [08f2ffa] apparmor: Adjust path to domain monitor socket
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 29 Aug 2015 18:33:06 +0200
+
 libvirt (1.2.18-2) unstable; urgency=medium
 
   * [54daa55] Add Breaks for older systemd.
