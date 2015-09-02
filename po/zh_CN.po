@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.2.13\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-08-27 09:23+0800\n"
+"POT-Creation-Date: 2015-09-02 10:17+0800\n"
 "PO-Revision-Date: 2014-10-28 11:16-0400\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/projects/p/libvirt/"
@@ -180,7 +180,7 @@ msgstr ""
 #: daemon/libvirtd.c:1179 src/locking/lock_daemon.c:1170
 #: src/locking/sanlock_helper.c:76 src/lxc/lxc_controller.c:2512
 #: src/network/leaseshelper.c:147 src/network/leaseshelper.c:153
-#: src/security/virt-aa-helper.c:1303 src/security/virt-aa-helper.c:1309
+#: src/security/virt-aa-helper.c:1301 src/security/virt-aa-helper.c:1307
 #: src/storage/parthelper.c:77 src/util/iohelper.c:236 src/util/iohelper.c:242
 #, c-format
 msgid "%s: initialization failed\n"
@@ -1094,7 +1094,7 @@ msgid "no console devices available"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:1205 src/bhyve/bhyve_driver.c:1212
-#: src/lxc/lxc_container.c:1042 src/lxc/lxc_driver.c:1650
+#: src/lxc/lxc_container.c:1008 src/lxc/lxc_driver.c:1650
 #, c-format
 msgid "Failed to mkdir %s"
 msgstr "新建文件夹 %s 失败"
@@ -4189,7 +4189,7 @@ msgstr "无效 pid"
 msgid "Unknown taint flag %s"
 msgstr "未知 taint 标签 %s"
 
-#: src/conf/domain_conf.c:16612 src/security/virt-aa-helper.c:670
+#: src/conf/domain_conf.c:16612 src/security/virt-aa-helper.c:668
 #: tools/virsh-domain-monitor.c:95 tools/virsh-domain-monitor.c:502
 #: tools/virsh-domain-monitor.c:618 tools/virsh-domain-monitor.c:740
 #: tools/virsh-domain.c:3124 tools/virsh-domain.c:3796
@@ -10799,369 +10799,364 @@ msgstr "生成 uuid 失败"
 msgid "lxc.mount found, use lxc.mount.entry lines instead"
 msgstr ""
 
-#: src/lxc/lxc_container.c:196
+#: src/lxc/lxc_container.c:162
 #, c-format
 msgid "Malformed ctrl-alt-del setting '%s'"
 msgstr "畸形 ctrl-alt-del 设置 '%s'"
 
-#: src/lxc/lxc_container.c:212
+#: src/lxc/lxc_container.c:178
 msgid "Unable to clone to check reboot support"
 msgstr "无法克隆以便检查重启支持"
 
-#: src/lxc/lxc_container.c:252
+#: src/lxc/lxc_container.c:218
 #, c-format
 msgid "Expected a /dev path for '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:318
+#: src/lxc/lxc_container.c:284
 msgid "setsid failed"
 msgstr "setsid 失败"
 
-#: src/lxc/lxc_container.c:324
+#: src/lxc/lxc_container.c:290
 #, fuzzy
 msgid "ioctl(TIOCSCTTY) failed"
 msgstr "ioctl(TIOCSTTY) 失败"
 
-#: src/lxc/lxc_container.c:330
+#: src/lxc/lxc_container.c:296
 msgid "dup2(stdin) failed"
 msgstr "dup2(stdin) 失败"
 
-#: src/lxc/lxc_container.c:336
+#: src/lxc/lxc_container.c:302
 msgid "dup2(stdout) failed"
 msgstr "dup2(stdout) 失败"
 
-#: src/lxc/lxc_container.c:342
+#: src/lxc/lxc_container.c:308
 msgid "dup2(stderr) failed"
 msgstr "dup2(stderr) 失败"
 
-#: src/lxc/lxc_container.c:374
+#: src/lxc/lxc_container.c:340
 #, c-format
 msgid "Cannot move fd %d out of the way"
 msgstr "无法将 fd %d 移出路径"
 
-#: src/lxc/lxc_container.c:392
+#: src/lxc/lxc_container.c:358
 #, c-format
 msgid "Cannot duplicate fd %d onto fd %d"
 msgstr "无法将 fd %d 复制到 fd %d 中"
 
-#: src/lxc/lxc_container.c:406 src/util/vircommand.c:591
+#: src/lxc/lxc_container.c:372 src/util/vircommand.c:591
 #: tools/virt-login-shell.c:292
 msgid "sysconf(_SC_OPEN_MAX) failed"
 msgstr "sysconf(_SC_OPEN_MAX) 失败"
 
-#: src/lxc/lxc_container.c:499
+#: src/lxc/lxc_container.c:465
 msgid "setuid or setgid failed"
 msgstr "setuid 或者 setgid 失败"
 
-#: src/lxc/lxc_container.c:571
+#: src/lxc/lxc_container.c:537
 #, fuzzy, c-format
 msgid "Failed to set IP address '%s' on %s"
 msgstr "解析 PCI 配置地址 '%s' 失败"
 
-#: src/lxc/lxc_container.c:669
+#: src/lxc/lxc_container.c:635
 #, c-format
 msgid "Failed to unmount '%s' and could not detach subtree '%s'"
 msgstr "无法卸载 '%s' 也无法取消子树 '%s'"
 
-#: src/lxc/lxc_container.c:677
+#: src/lxc/lxc_container.c:643
 #, c-format
 msgid "Failed to unmount '%s' and could not unmount old root '%s'"
 msgstr "无法卸载 '%s' 也无法卸载旧的 root '%s'"
 
-#: src/lxc/lxc_container.c:705
+#: src/lxc/lxc_container.c:671
 #, c-format
 msgid "Failed to access '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:717
+#: src/lxc/lxc_container.c:683
 #, c-format
 msgid "Failed to resolve symlink at %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:748
+#: src/lxc/lxc_container.c:714
 msgid "Unexpected root filesystem without loop device"
 msgstr "意外的没有循环设备的 root 文件系统"
 
-#: src/lxc/lxc_container.c:754
+#: src/lxc/lxc_container.c:720
 #, c-format
 msgid "Unsupported root filesystem type %s"
 msgstr "不支持的 root 文件系统类型 %s"
 
-#: src/lxc/lxc_container.c:795
+#: src/lxc/lxc_container.c:761
 msgid "Failed to make root private"
 msgstr "使 root 成为专用失败"
 
-#: src/lxc/lxc_container.c:804 src/lxc/lxc_container.c:824
-#: src/lxc/lxc_container.c:1274 src/lxc/lxc_container.c:1554
-#: src/lxc/lxc_container.c:1618
+#: src/lxc/lxc_container.c:770 src/lxc/lxc_container.c:790
+#: src/lxc/lxc_container.c:1240 src/lxc/lxc_container.c:1520
+#: src/lxc/lxc_container.c:1584
 #, c-format
 msgid "Failed to create %s"
 msgstr "创建 %s 失败"
 
-#: src/lxc/lxc_container.c:813
+#: src/lxc/lxc_container.c:779
 #, c-format
 msgid "Failed to mount empty tmpfs at %s"
 msgstr "在 %s 挂载空 tmpfs 失败"
 
-#: src/lxc/lxc_container.c:832
+#: src/lxc/lxc_container.c:798
 #, c-format
 msgid "Failed to bind %s to new root %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:840
+#: src/lxc/lxc_container.c:806
 #, c-format
 msgid "Failed to make new root %s readonly"
 msgstr "让新的 root %s 为只读失败"
 
-#: src/lxc/lxc_container.c:850
+#: src/lxc/lxc_container.c:816
 #, c-format
 msgid "Failed to chdir into %s"
 msgstr "使用 cd 命令进入 %s 失败"
 
-#: src/lxc/lxc_container.c:858
+#: src/lxc/lxc_container.c:824
 msgid "Failed to pivot root"
 msgstr "pivot root 失败"
 
-#: src/lxc/lxc_container.c:924
+#: src/lxc/lxc_container.c:890
 msgid "Failed to read /proc/mounts"
 msgstr "读取 /proc/mounts 失败"
 
-#: src/lxc/lxc_container.c:951
+#: src/lxc/lxc_container.c:917
 #, c-format
 msgid "Failed to make mount %s readonly"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1060
+#: src/lxc/lxc_container.c:1026
 #, c-format
 msgid "Failed to mount %s on %s type %s flags=%x"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1070
+#: src/lxc/lxc_container.c:1036
 #, c-format
 msgid "Failed to re-mount %s on %s flags=%x"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1105
+#: src/lxc/lxc_container.c:1071
 #, c-format
 msgid "Failed to mount %s on /proc/meminfo"
 msgstr "在 /proc/meminfo 中挂载 %s 失败"
 
-#: src/lxc/lxc_container.c:1135
+#: src/lxc/lxc_container.c:1101
 msgid "Cannot create /dev"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1144
+#: src/lxc/lxc_container.c:1110
 #, c-format
 msgid "Failed to mount %s on /dev"
 msgstr "在 /dev 中挂载 %s 设备"
 
-#: src/lxc/lxc_container.c:1171
+#: src/lxc/lxc_container.c:1137
 msgid "Cannot create /dev/pts"
 msgstr "无法创建 /dev/pts"
 
-#: src/lxc/lxc_container.c:1180
+#: src/lxc/lxc_container.c:1146
 #, c-format
 msgid "Failed to mount %s on /dev/pts"
 msgstr "在 /dev/pts 中挂载 %s 失败"
 
-#: src/lxc/lxc_container.c:1207
+#: src/lxc/lxc_container.c:1173
 #, c-format
 msgid "Failed to symlink device %s to %s"
 msgstr "为设备 %s 符号链接为 %s 失败"
 
-#: src/lxc/lxc_container.c:1219
+#: src/lxc/lxc_container.c:1185
 msgid "Failed to bind /dev/pts/ptmx on to /dev/ptmx"
 msgstr "将 /dev/pts/ptmx 捆绑到 /dev/ptmx 失败"
 
-#: src/lxc/lxc_container.c:1229
+#: src/lxc/lxc_container.c:1195
 #, c-format
 msgid "Failed to symlink %s to %s"
 msgstr "将符号链接 %s 改为 %s 失败"
 
-#: src/lxc/lxc_container.c:1238
+#: src/lxc/lxc_container.c:1204
 #, c-format
 msgid "Failed to symlink %s to /dev/console"
 msgstr "为 /dev/console 添加符号链接 %s 失败"
 
-#: src/lxc/lxc_container.c:1261
+#: src/lxc/lxc_container.c:1227
 #, c-format
 msgid "Unable to stat bind target %s"
 msgstr "无法统计捆绑目标 %s"
 
-#: src/lxc/lxc_container.c:1267
+#: src/lxc/lxc_container.c:1233
 #, c-format
 msgid "Unable to stat bind source %s"
 msgstr "无法统计源目标 %s"
 
-#: src/lxc/lxc_container.c:1284
+#: src/lxc/lxc_container.c:1250
 #, c-format
 msgid "Failed to create bind target %s"
 msgstr "创建捆绑目标失败：%s"
 
-#: src/lxc/lxc_container.c:1291
+#: src/lxc/lxc_container.c:1257
 #, c-format
 msgid "Failed to close bind target %s"
 msgstr "关闭捆绑目标 %s 失败"
 
-#: src/lxc/lxc_container.c:1300
+#: src/lxc/lxc_container.c:1266
 #, c-format
 msgid "Failed to bind mount directory %s to %s"
 msgstr "将挂载目录 %s 捆绑到 %s 失败"
 
-#: src/lxc/lxc_container.c:1309 src/lxc/lxc_container.c:1634
+#: src/lxc/lxc_container.c:1275 src/lxc/lxc_container.c:1600
 #, c-format
 msgid "Failed to make directory %s readonly"
 msgstr "让目录 %s 成为只读失败"
 
-#: src/lxc/lxc_container.c:1336
+#: src/lxc/lxc_container.c:1302
 #, c-format
 msgid "Unable to open filesystem %s"
 msgstr "无法打开文件系统 %s"
 
-#: src/lxc/lxc_container.c:1342
+#: src/lxc/lxc_container.c:1308
 msgid "Unable to create blkid library handle"
 msgstr "无法创建 blkid 库句柄"
 
-#: src/lxc/lxc_container.c:1347
+#: src/lxc/lxc_container.c:1313
 #, c-format
 msgid "Unable to associate device %s with blkid library"
 msgstr "无法使用 blkid 库关联设备 %s"
 
-#: src/lxc/lxc_container.c:1363
+#: src/lxc/lxc_container.c:1329
 #, c-format
 msgid "Too many filesystems detected for %s"
 msgstr "探测到 %s 的太多文件系统"
 
-#: src/lxc/lxc_container.c:1367
+#: src/lxc/lxc_container.c:1333
 #, c-format
 msgid "Unable to detect filesystem for %s"
 msgstr "无法为 %s 探测文件系统"
 
-#: src/lxc/lxc_container.c:1375
+#: src/lxc/lxc_container.c:1341
 #, c-format
 msgid "Unable to find filesystem type for %s"
 msgstr "无法为 %s 找到文件系统类型"
 
-#: src/lxc/lxc_container.c:1445 src/util/iohelper.c:151
+#: src/lxc/lxc_container.c:1411 src/util/iohelper.c:151
 #, c-format
 msgid "Unable to read %s"
 msgstr "无法读取 %s"
 
-#: src/lxc/lxc_container.c:1475
+#: src/lxc/lxc_container.c:1441
 #, c-format
 msgid "%s has unexpected '*' before last line"
 msgstr "%s 在最后一行前应有 '*' "
 
-#: src/lxc/lxc_container.c:1499
+#: src/lxc/lxc_container.c:1465
 #, c-format
 msgid "Failed to mount device %s to %s"
 msgstr "将设备 %s 挂载到 %s 失败"
 
-#: src/lxc/lxc_container.c:1522
+#: src/lxc/lxc_container.c:1488
 #, c-format
 msgid "Failed to mount device %s to %s, unable to detect filesystem"
 msgstr "将设备 %s 挂载到 %s 失败，无法探测文件系统。"
 
-#: src/lxc/lxc_container.c:1567
+#: src/lxc/lxc_container.c:1533
 #, c-format
 msgid "Failed to mount device %s to %s as %s"
 msgstr "无法将设备 %s 作为 %s 挂载到 %s"
 
-#: src/lxc/lxc_container.c:1625
+#: src/lxc/lxc_container.c:1591
 #, c-format
 msgid "Failed to mount directory %s as tmpfs"
 msgstr "将目录 %s 作为 tmpfs 挂载失败"
 
-#: src/lxc/lxc_container.c:1673
+#: src/lxc/lxc_container.c:1639
 #, c-format
 msgid "Unexpected filesystem type %s"
 msgstr "意外的文件系统类型 %s"
 
-#: src/lxc/lxc_container.c:1678
+#: src/lxc/lxc_container.c:1644
 #, c-format
 msgid "Cannot mount filesystem type %s"
 msgstr "无法挂载文件系统类型 %s"
 
-#: src/lxc/lxc_container.c:1729
+#: src/lxc/lxc_container.c:1695
 #, c-format
 msgid "Failed to create directory for '%s' dev '%s'"
 msgstr "为 '%s' dev '%s' 生成目录失败"
 
-#: src/lxc/lxc_container.c:2112
+#: src/lxc/lxc_container.c:2078
 #, c-format
 msgid "Failed to add capability %s: %d"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2144
+#: src/lxc/lxc_container.c:2110
 #, c-format
 msgid "Failed to remove capability %s: %d"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2152
+#: src/lxc/lxc_container.c:2118
 #, c-format
 msgid "Unsupported capabilities policy: %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2159
+#: src/lxc/lxc_container.c:2125
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "应用容量失败：%d"
 
-#: src/lxc/lxc_container.c:2200
-#, fuzzy, c-format
-msgid "failed to set namespace '%s'"
-msgstr "获取接口 '%s' 失败"
-
-#: src/lxc/lxc_container.c:2235
+#: src/lxc/lxc_container.c:2185
 msgid "lxcChild() passed invalid vm definition"
 msgstr "lxcChild() 传递无效 vm 定义"
 
-#: src/lxc/lxc_container.c:2241
+#: src/lxc/lxc_container.c:2191
 #, fuzzy
 msgid "failed to attach the namespace"
 msgstr "附加接口失败"
 
-#: src/lxc/lxc_container.c:2250
+#: src/lxc/lxc_container.c:2200
 msgid "Failed to read the container continue message"
 msgstr "读取容器继续信息失败"
 
-#: src/lxc/lxc_container.c:2277
+#: src/lxc/lxc_container.c:2227
 #, fuzzy
 msgid "At least one tty is required"
 msgstr "至少需要一个 cgroup 控制器"
 
-#: src/lxc/lxc_container.c:2286
+#: src/lxc/lxc_container.c:2236
 #, c-format
 msgid "Failed to open tty %s"
 msgstr "打开 tty %s 失败"
 
-#: src/lxc/lxc_container.c:2302
+#: src/lxc/lxc_container.c:2252
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr "未找到与容器 root 相关的 init 路径 '%s'"
 
-#: src/lxc/lxc_container.c:2320
+#: src/lxc/lxc_container.c:2270
 msgid "Failed to send continue signal to controller"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2355 src/lxc/lxc_controller.c:2738
+#: src/lxc/lxc_container.c:2305 src/lxc/lxc_controller.c:2739
 msgid "Unknown failure in libvirt_lxc startup"
 msgstr "启动 libvirt_lxc 时出现未知错误"
 
-#: src/lxc/lxc_container.c:2451
+#: src/lxc/lxc_container.c:2401
 msgid "Kernel doesn't support user namespace"
 msgstr "内核不支持用户名称空间"
 
-#: src/lxc/lxc_container.c:2464
+#: src/lxc/lxc_container.c:2414
 msgid ""
 "Config askes for inherit net namespace as well as private network interfaces"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2490
+#: src/lxc/lxc_container.c:2441
 msgid "Failed to run clone container"
 msgstr "运行克隆容器失败"
 
-#: src/lxc/lxc_container.c:2551
+#: src/lxc/lxc_container.c:2502
 #, c-format
 msgid "Failed to change owner of %s to %u:%u"
 msgstr "将 %s 的拥有者改为 %u:%u 失败"
@@ -11385,16 +11380,16 @@ msgstr "无法发送容器继续信息"
 msgid "error receiving signal from container"
 msgstr "从容器接收信号失败"
 
-#: src/lxc/lxc_controller.c:2704
+#: src/lxc/lxc_controller.c:2705
 #, c-format
 msgid "Unable to write pid file '%s/%s.pid'"
 msgstr "无法写入 pid 文件 '%s/%s.pid'"
 
-#: src/lxc/lxc_controller.c:2718
+#: src/lxc/lxc_controller.c:2719
 msgid "Unable to change to root dir"
 msgstr "不能更改 root 目录"
 
-#: src/lxc/lxc_controller.c:2724
+#: src/lxc/lxc_controller.c:2725
 msgid "Unable to become session leader"
 msgstr "无法成为会话引导者"
 
@@ -12632,17 +12627,17 @@ msgstr ""
 msgid "machine type %s too big for destination"
 msgstr "对于目的地来说极其类型 %s 太大"
 
-#: src/libxl/libxl_migration.c:139
+#: src/libxl/libxl_migration.c:153
 #, fuzzy
 msgid "Failed to accept migration connection"
 msgstr "唤醒迁移管道失败"
 
-#: src/libxl/libxl_migration.c:155
+#: src/libxl/libxl_migration.c:169
 #, fuzzy
 msgid "Failed to create thread for receiving migration data"
 msgstr "生成线程以便挂起主机失败"
 
-#: src/libxl/libxl_migration.c:201
+#: src/libxl/libxl_migration.c:205
 msgid "Failed to send migration data to destination host"
 msgstr ""
 
@@ -12676,16 +12671,16 @@ msgstr "迁移 URI 中缺少主机：%s"
 msgid "Fail to create socket for incoming migration"
 msgstr ""
 
-#: src/libxl/libxl_migration.c:500 src/xen/xend_internal.c:713
+#: src/libxl/libxl_migration.c:492 src/xen/xend_internal.c:713
 #, c-format
 msgid "unable to connect to '%s:%s'"
 msgstr "无法连接到 '%s:%s'"
 
-#: src/libxl/libxl_migration.c:550
+#: src/libxl/libxl_migration.c:542
 msgid "Migration failed. Domain is not running on destination host"
 msgstr ""
 
-#: src/libxl/libxl_migration.c:559
+#: src/libxl/libxl_migration.c:551
 msgid "Failed to unpause domain"
 msgstr ""
 
@@ -17843,7 +17838,7 @@ msgstr "无法将 %u 编码集的序列号 %s 转换为 rfb 序列号"
 msgid "Initial memory size too large"
 msgstr "maxerrors 太大"
 
-#: src/qemu/qemu_driver.c:2648
+#: src/qemu/qemu_driver.c:2647
 #, fuzzy
 msgid "Current memory size too large"
 msgstr "maxerrors 太大"
@@ -23315,7 +23310,7 @@ msgstr "写入侧写失败"
 msgid "failed to close or write to profile"
 msgstr "关闭或者写入侧写失败"
 
-#: src/security/virt-aa-helper.c:351 src/security/virt-aa-helper.c:1355
+#: src/security/virt-aa-helper.c:351 src/security/virt-aa-helper.c:1353
 msgid "profile exists"
 msgstr "侧写已存在"
 
@@ -23347,141 +23342,141 @@ msgstr "无法为侧写文件分配内存"
 msgid "failed to create profile"
 msgstr "生成侧写失败"
 
-#: src/security/virt-aa-helper.c:585
+#: src/security/virt-aa-helper.c:586
 msgid "bad pathname"
 msgstr "坏路径名"
 
-#: src/security/virt-aa-helper.c:600
+#: src/security/virt-aa-helper.c:601
 msgid "path does not exist, skipping file type checks"
 msgstr "路径不存在，跳过文件类型检查。"
 
-#: src/security/virt-aa-helper.c:630
+#: src/security/virt-aa-helper.c:628
 msgid "Invalid context"
 msgstr "无效上下文"
 
-#: src/security/virt-aa-helper.c:636
+#: src/security/virt-aa-helper.c:634
 msgid "Could not find <name>"
 msgstr "未找到 <name>"
 
-#: src/security/virt-aa-helper.c:643
+#: src/security/virt-aa-helper.c:641
 msgid "Could not find <uuid>"
 msgstr "未找到 <uuid>"
 
-#: src/security/virt-aa-helper.c:676
+#: src/security/virt-aa-helper.c:674
 msgid "unexpected root element, expecting <domain>"
 msgstr "意外的 root 元素，应为 <domain>"
 
-#: src/security/virt-aa-helper.c:686
+#: src/security/virt-aa-helper.c:684
 #, fuzzy
 msgid "domain type is not defined"
 msgstr "没有定义容器"
 
-#: src/security/virt-aa-helper.c:691
+#: src/security/virt-aa-helper.c:689
 msgid "os.type is not defined"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:726 src/security/virt-aa-helper.c:747
-#: src/security/virt-aa-helper.c:762 src/security/virt-aa-helper.c:870
-#: src/security/virt-aa-helper.c:879 src/security/virt-aa-helper.c:955
-#: src/security/virt-aa-helper.c:1337 src/security/virt-aa-helper.c:1341
-#: src/security/virt-aa-helper.c:1407
+#: src/security/virt-aa-helper.c:724 src/security/virt-aa-helper.c:745
+#: src/security/virt-aa-helper.c:760 src/security/virt-aa-helper.c:868
+#: src/security/virt-aa-helper.c:877 src/security/virt-aa-helper.c:953
+#: src/security/virt-aa-helper.c:1335 src/security/virt-aa-helper.c:1339
+#: src/security/virt-aa-helper.c:1405
 msgid "could not allocate memory"
 msgstr "无法分配内存"
 
-#: src/security/virt-aa-helper.c:731
+#: src/security/virt-aa-helper.c:729
 msgid "Failed to create XML config object"
 msgstr "创建 XML 配置对象失败"
 
-#: src/security/virt-aa-helper.c:736 src/util/virerror.c:921
+#: src/security/virt-aa-helper.c:734 src/util/virerror.c:921
 msgid "unknown OS type"
 msgstr "未知操作系统类型"
 
-#: src/security/virt-aa-helper.c:752
+#: src/security/virt-aa-helper.c:750
 #, fuzzy
 msgid "unknown virtualization type"
 msgstr "未知分区类型"
 
-#: src/security/virt-aa-helper.c:770
+#: src/security/virt-aa-helper.c:768
 msgid "could not parse XML"
 msgstr "无法解析 XML"
 
-#: src/security/virt-aa-helper.c:775
+#: src/security/virt-aa-helper.c:773
 msgid "could not find name in XML"
 msgstr "无法在 XML 自己找到名称"
 
-#: src/security/virt-aa-helper.c:780
+#: src/security/virt-aa-helper.c:778
 msgid "bad name"
 msgstr "坏名字"
 
-#: src/security/virt-aa-helper.c:806
+#: src/security/virt-aa-helper.c:804
 msgid "skipped non-absolute path"
 msgstr "跳过非绝对路径"
 
-#: src/security/virt-aa-helper.c:813
+#: src/security/virt-aa-helper.c:811
 msgid "could not find realpath for disk"
 msgstr "无法为磁盘找到 realpath"
 
-#: src/security/virt-aa-helper.c:827
+#: src/security/virt-aa-helper.c:825
 msgid "skipped restricted file"
 msgstr "跳过限制的文件"
 
-#: src/security/virt-aa-helper.c:960
+#: src/security/virt-aa-helper.c:958
 msgid "given uuid does not match XML uuid"
 msgstr "给定 uuid 与 XML uuid 不符"
 
-#: src/security/virt-aa-helper.c:1175
+#: src/security/virt-aa-helper.c:1173
 msgid "failed to allocate file buffer"
 msgstr "分配文件缓冲失败"
 
-#: src/security/virt-aa-helper.c:1224
+#: src/security/virt-aa-helper.c:1222
 msgid "could not allocate memory for disk"
 msgstr "无法为磁盘分配内存"
 
-#: src/security/virt-aa-helper.c:1239 src/security/virt-aa-helper.c:1259
+#: src/security/virt-aa-helper.c:1237 src/security/virt-aa-helper.c:1257
 msgid "invalid UUID"
 msgstr "无效 UUID"
 
-#: src/security/virt-aa-helper.c:1242
+#: src/security/virt-aa-helper.c:1240
 msgid "error copying UUID"
 msgstr "复制 UUID 出错"
 
-#: src/security/virt-aa-helper.c:1251
+#: src/security/virt-aa-helper.c:1249
 msgid "unsupported option"
 msgstr "不支持的选项"
 
-#: src/security/virt-aa-helper.c:1256
+#: src/security/virt-aa-helper.c:1254
 msgid "bad command"
 msgstr "坏命令"
 
-#: src/security/virt-aa-helper.c:1269
+#: src/security/virt-aa-helper.c:1267
 msgid "could not read xml file"
 msgstr "无法读取 xml 文件"
 
-#: src/security/virt-aa-helper.c:1273
+#: src/security/virt-aa-helper.c:1271
 msgid "could not get VM definition"
 msgstr "无法获取 VM 定义"
 
-#: src/security/virt-aa-helper.c:1278
+#: src/security/virt-aa-helper.c:1276
 msgid "invalid VM definition"
 msgstr "无效 VM 定义"
 
-#: src/security/virt-aa-helper.c:1319
+#: src/security/virt-aa-helper.c:1317
 msgid "could not set PATH"
 msgstr "无法设定 PATH"
 
-#: src/security/virt-aa-helper.c:1323
+#: src/security/virt-aa-helper.c:1321
 msgid "could not set IFS"
 msgstr "无法设定 IFS"
 
-#: src/security/virt-aa-helper.c:1333
+#: src/security/virt-aa-helper.c:1331
 msgid "could not parse arguments"
 msgstr "无法解析参数"
 
-#: src/security/virt-aa-helper.c:1383
+#: src/security/virt-aa-helper.c:1381
 msgid "failed to allocate buffer"
 msgstr "分配缓存失败"
 
-#: src/security/virt-aa-helper.c:1418
+#: src/security/virt-aa-helper.c:1416
 msgid "could not create profile"
 msgstr "无法生成配置文件"
 
@@ -27478,8 +27473,8 @@ msgid "owner %lld does not hold the resource lock"
 msgstr "拥有者 %lld 不拥有资源锁"
 
 #: src/util/virnetdev.c:140 src/util/virnetdev.c:552
-#: src/util/virnetdevbridge.c:98 src/util/virnetdevbridge.c:641
-#: src/util/virnetdevbridge.c:711 src/util/virnetdevtap.c:281
+#: src/util/virnetdevbridge.c:98 src/util/virnetdevbridge.c:690
+#: src/util/virnetdevbridge.c:760 src/util/virnetdevtap.c:281
 #: src/util/virnetdevtap.c:347
 #, c-format
 msgid "Network interface name '%s' is too long"
@@ -27576,9 +27571,9 @@ msgstr "无法在这个平台中获取 VLAN"
 
 #: src/util/virnetdev.c:1003 src/util/virnetdev.c:1177
 #: src/util/virnetdev.c:2052 src/util/virnetdev.c:2174
-#: src/util/virnetdevbridge.c:470 src/util/virnetdevbridge.c:1121
+#: src/util/virnetdevbridge.c:506 src/util/virnetdevbridge.c:1170
 #: src/util/virnetdevmacvlan.c:208 src/util/virnetdevvportprofile.c:768
-#: src/util/virnetlink.c:356
+#: src/util/virnetlink.c:364
 msgid "allocated netlink buffer is too small"
 msgstr "分配的 netlink 缓存太小"
 
@@ -27675,9 +27670,9 @@ msgid "error dumping %s (%d) interface"
 msgstr "转储g %s (%d) 接口出错"
 
 #: src/util/virnetdev.c:2047 src/util/virnetdev.c:2169
-#: src/util/virnetdevbridge.c:466 src/util/virnetdevbridge.c:1116
+#: src/util/virnetdevbridge.c:502 src/util/virnetdevbridge.c:1165
 #: src/util/virnetdevmacvlan.c:203 src/util/virnetdevvportprofile.c:763
-#: src/util/virnetlink.c:351 src/util/virnetlink.c:396
+#: src/util/virnetlink.c:359 src/util/virnetlink.c:404
 msgid "malformed netlink response message"
 msgstr "被破坏的 netlink 响应信息"
 
@@ -27852,88 +27847,88 @@ msgstr "无法在这个平台中获取虚拟功能"
 msgid "Unable to set bridge port unicast_flood on this platform"
 msgstr "无法在这个平台中获取虚拟功能"
 
-#: src/util/virnetdevbridge.c:446
-#, fuzzy, c-format
-msgid "error creating bridge interface %s"
-msgstr "启动桥接接口 %s 失败"
-
-#: src/util/virnetdevbridge.c:484 src/util/virnetdevbridge.c:522
+#: src/util/virnetdevbridge.c:409 src/util/virnetdevbridge.c:548
 #, c-format
 msgid "Unable to create bridge %s"
 msgstr "无法生成桥接 %s"
 
-#: src/util/virnetdevbridge.c:506
+#: src/util/virnetdevbridge.c:482
+#, fuzzy, c-format
+msgid "error creating bridge interface %s"
+msgstr "启动桥接接口 %s 失败"
+
+#: src/util/virnetdevbridge.c:532
 msgid "Unable to create bridge device"
 msgstr "无法生成桥接设备"
 
-#: src/util/virnetdevbridge.c:554 src/util/virnetdevbridge.c:590
+#: src/util/virnetdevbridge.c:575 src/util/virnetdevbridge.c:639
 #, c-format
 msgid "Unable to delete bridge %s"
 msgstr "无法删除桥接 %s"
 
-#: src/util/virnetdevbridge.c:576
+#: src/util/virnetdevbridge.c:625
 #, c-format
 msgid "Unable to remove bridge %s"
 msgstr "无法删除桥接设备 %s"
 
-#: src/util/virnetdevbridge.c:617 src/util/virnetdevbridge.c:686
+#: src/util/virnetdevbridge.c:666 src/util/virnetdevbridge.c:735
 #, c-format
 msgid "Unable to get interface index for %s"
 msgstr "无法为 %s 获取接口索引"
 
-#: src/util/virnetdevbridge.c:623 src/util/virnetdevbridge.c:648
-#: src/util/virnetdevbridge.c:659
+#: src/util/virnetdevbridge.c:672 src/util/virnetdevbridge.c:697
+#: src/util/virnetdevbridge.c:708
 #, c-format
 msgid "Unable to add bridge %s port %s"
 msgstr "无法添加桥接 %s 端口 %s"
 
-#: src/util/virnetdevbridge.c:693 src/util/virnetdevbridge.c:718
-#: src/util/virnetdevbridge.c:729
+#: src/util/virnetdevbridge.c:742 src/util/virnetdevbridge.c:767
+#: src/util/virnetdevbridge.c:778
 #, c-format
 msgid "Unable to remove bridge %s port %s"
 msgstr "无法删除桥接 %s 端口 %s"
 
-#: src/util/virnetdevbridge.c:868
+#: src/util/virnetdevbridge.c:917
 #, c-format
 msgid "Unable to set STP delay on %s"
 msgstr "无法在 %s 中设定 STP 延迟"
 
-#: src/util/virnetdevbridge.c:878 src/util/virnetdevbridge.c:912
+#: src/util/virnetdevbridge.c:927 src/util/virnetdevbridge.c:961
 #, c-format
 msgid "Unable to get STP delay on %s on this platform"
 msgstr "无法在这个平台中为 %s 获取 STP 延迟"
 
-#: src/util/virnetdevbridge.c:895 src/util/virnetdevbridge.c:930
+#: src/util/virnetdevbridge.c:944 src/util/virnetdevbridge.c:979
 #, c-format
 msgid "Unable to get STP on %s on this platform"
 msgstr "无法在这个平台中为 %s 获取 STP"
 
-#: src/util/virnetdevbridge.c:904
+#: src/util/virnetdevbridge.c:953
 #, c-format
 msgid "Unable to set STP delay on %s on this platform"
 msgstr "无法在这个平台中为 %s 设定 STP 延迟"
 
-#: src/util/virnetdevbridge.c:922
+#: src/util/virnetdevbridge.c:971
 #, c-format
 msgid "Unable to set STP on %s on this platform"
 msgstr "无法在这个平台中为 %s 设定 STP"
 
-#: src/util/virnetdevbridge.c:988
+#: src/util/virnetdevbridge.c:1037
 #, fuzzy
 msgid "Unable to get bridge vlan_filtering on this platform"
 msgstr "无法在这个平台中获取接口索引"
 
-#: src/util/virnetdevbridge.c:998
+#: src/util/virnetdevbridge.c:1047
 #, fuzzy
 msgid "Unable to set bridge vlan_filtering on this platform"
 msgstr "无法在这个平台中获取接口索引"
 
-#: src/util/virnetdevbridge.c:1097
+#: src/util/virnetdevbridge.c:1146
 #, fuzzy, c-format
 msgid "error adding fdb entry for %s"
 msgstr "在 config 列表中添加文件时出错"
 
-#: src/util/virnetdevbridge.c:1134
+#: src/util/virnetdevbridge.c:1183
 #, fuzzy
 msgid "Unable to add/delete fdb entries on this platform"
 msgstr "无法在这个平台中删除 TAP 设备"
@@ -28205,8 +28200,8 @@ msgstr "在这个平台中部支持虚拟端口侧写关联"
 msgid "cannot allocate placeholder nlhandle for netlink"
 msgstr "无法为 netlink 分配占位 nlhandle"
 
-#: src/util/virnetlink.c:199 src/util/virnetlink.c:587
-#: src/util/virnetlink.c:636
+#: src/util/virnetlink.c:199 src/util/virnetlink.c:595
+#: src/util/virnetlink.c:644
 #, c-format
 msgid "invalid protocol argument: %d"
 msgstr "无效协议参数：%d"
@@ -28215,16 +28210,16 @@ msgstr "无效协议参数：%d"
 msgid "cannot allocate nlhandle for netlink"
 msgstr "无法为 netlink 分配 nlhandle"
 
-#: src/util/virnetlink.c:212 src/util/virnetlink.c:666
+#: src/util/virnetlink.c:212 src/util/virnetlink.c:674
 #, c-format
 msgid "cannot connect to netlink socket with protocol %d"
 msgstr "无法使用协议 %d 连接到 netlink 插槽"
 
-#: src/util/virnetlink.c:220 src/util/virnetlink.c:673
+#: src/util/virnetlink.c:220 src/util/virnetlink.c:681
 msgid "cannot get netlink socket fd"
 msgstr "无法获取 netlink 插槽 fd"
 
-#: src/util/virnetlink.c:226 src/util/virnetlink.c:679
+#: src/util/virnetlink.c:226 src/util/virnetlink.c:687
 msgid "cannot add netlink membership"
 msgstr "无法添加 netlink 成员"
 
@@ -28248,40 +28243,40 @@ msgstr ""
 msgid "nl_recv failed"
 msgstr "nl_recv 失败"
 
-#: src/util/virnetlink.c:330
+#: src/util/virnetlink.c:338
 #, fuzzy, c-format
 msgid "error destroying network device %s"
 msgstr "销毁 %s 接口出错"
 
-#: src/util/virnetlink.c:465
+#: src/util/virnetlink.c:473
 msgid "nl_recv returned with error"
 msgstr "nl_recv 返回出错信息"
 
-#: src/util/virnetlink.c:610
+#: src/util/virnetlink.c:618
 msgid "netlink event service not running"
 msgstr "netlink 事件服务未运行"
 
-#: src/util/virnetlink.c:660
+#: src/util/virnetlink.c:668
 msgid "cannot allocate nlhandle for virNetlinkEvent server"
 msgstr "无法为 virNetlinkEvent 服务器分配 nlhandle"
 
-#: src/util/virnetlink.c:685
+#: src/util/virnetlink.c:693
 msgid "cannot set netlink socket nonblocking"
 msgstr "无法设定 netlink 插槽 nonblocking"
 
-#: src/util/virnetlink.c:694
+#: src/util/virnetlink.c:702
 msgid "Failed to add netlink event handle watch"
 msgstr "添加 netlink 事件句柄观察失败"
 
-#: src/util/virnetlink.c:752
+#: src/util/virnetlink.c:760
 msgid "Invalid NULL callback provided"
 msgstr "提供无效 NULL 回叫"
 
-#: src/util/virnetlink.c:858
+#: src/util/virnetlink.c:866
 msgid "libnl was not available at build time"
 msgstr "构建时 libnl 不可用"
 
-#: src/util/virnetlink.c:860 src/util/virpci.c:2728
+#: src/util/virnetlink.c:868 src/util/virpci.c:2728
 msgid "not supported on non-linux platforms"
 msgstr "在非 linux 平台中不支持"
 
@@ -28728,94 +28723,94 @@ msgstr "这个平台不支持进程 CPU 亲和性"
 msgid "Expected at least one file descriptor"
 msgstr "需要至少一个文件描述符"
 
-#: src/util/virprocess.c:716
+#: src/util/virprocess.c:719
 msgid "Unable to join domain namespace"
 msgstr "无法加入域名称空间"
 
-#: src/util/virprocess.c:753
+#: src/util/virprocess.c:756
 #, c-format
 msgid "cannot limit locked memory to %llu"
 msgstr "无法将锁定内存限制到 %llu"
 
-#: src/util/virprocess.c:760
+#: src/util/virprocess.c:763
 #, c-format
 msgid "cannot limit locked memory of process %lld to %llu"
 msgstr "无法将进程 %lld 的锁定内存限制为 %llu"
 
-#: src/util/virprocess.c:775 src/util/virprocess.c:816
-#: src/util/virprocess.c:864 src/util/virutil.c:2280 src/util/virutil.c:2289
+#: src/util/virprocess.c:778 src/util/virprocess.c:819
+#: src/util/virprocess.c:867 src/util/virutil.c:2280 src/util/virutil.c:2289
 #: src/util/virutil.c:2297 src/util/virutil.c:2308 src/util/virutil.c:2318
 #: src/util/virutil.c:2326 src/util/virutil.c:2334 src/util/virutil.c:2344
 #: src/util/virutil.c:2353 src/util/virutil.c:2360
 msgid "Not supported on this platform"
 msgstr "这个平台尚不支持"
 
-#: src/util/virprocess.c:794
+#: src/util/virprocess.c:797
 #, c-format
 msgid "cannot limit number of subprocesses to %u"
 msgstr "无法将子进程数限制为 %u"
 
-#: src/util/virprocess.c:801
+#: src/util/virprocess.c:804
 #, c-format
 msgid "cannot limit number of subprocesses of process %lld to %u"
 msgstr "无法将进程 %lld 子进程数限制为 %u"
 
-#: src/util/virprocess.c:842
+#: src/util/virprocess.c:845
 #, c-format
 msgid "cannot limit number of open files to %u"
 msgstr "无法将打开文件数限制为 %u"
 
-#: src/util/virprocess.c:849
+#: src/util/virprocess.c:852
 #, c-format
 msgid "cannot limit number of open files of process %lld to %u"
 msgstr "无法将进程 %lld 的打开文件数限制为 %u"
 
-#: src/util/virprocess.c:898 src/util/virprocess.c:905
-#: src/util/virprocess.c:914
+#: src/util/virprocess.c:901 src/util/virprocess.c:908
+#: src/util/virprocess.c:917
 #, c-format
 msgid "Cannot find start time in %s"
 msgstr "无法找到 %s 中的启示时间"
 
-#: src/util/virprocess.c:924
+#: src/util/virprocess.c:927
 #, c-format
 msgid "Cannot parse start time %s in %s"
 msgstr "无法在 %s 中解析启动时间 %s"
 
-#: src/util/virprocess.c:952
+#: src/util/virprocess.c:955
 msgid "Unable to query process ID start time"
 msgstr "无法查询进程 ID 启示时间"
 
-#: src/util/virprocess.c:990
+#: src/util/virprocess.c:993
 msgid "Kernel does not provide mount namespace"
 msgstr ""
 
-#: src/util/virprocess.c:996
+#: src/util/virprocess.c:999
 msgid "Unable to enter mount namespace"
 msgstr ""
 
-#: src/util/virprocess.c:1032
+#: src/util/virprocess.c:1035
 msgid "Cannot create pipe for child"
 msgstr ""
 
-#: src/util/virprocess.c:1149
+#: src/util/virprocess.c:1152
 msgid "Cannot get minimum scheduler priority value"
 msgstr ""
 
-#: src/util/virprocess.c:1156
+#: src/util/virprocess.c:1159
 msgid "Cannot get maximum scheduler priority value"
 msgstr ""
 
-#: src/util/virprocess.c:1163
+#: src/util/virprocess.c:1166
 #, c-format
 msgid "Scheduler priority %d out of range [%d, %d]"
 msgstr ""
 
-#: src/util/virprocess.c:1173
+#: src/util/virprocess.c:1176
 #, c-format
 msgid "Cannot set scheduler parameters for pid %d"
 msgstr ""
 
-#: src/util/virprocess.c:1192
+#: src/util/virprocess.c:1195
 msgid "Process CPU scheduling is not supported on this platform"
 msgstr ""
 

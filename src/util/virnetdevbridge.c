@@ -394,8 +394,33 @@ virNetDevBridgePortSetUnicastFlood(const char *brname ATTRIBUTE_UNUSED,
  *
  * Returns 0 in case of success or -1 on failure
  */
+#if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRADDBR)
+static int
+virNetDevBridgeCreateWithIoctl(const char *brname)
+{
+    int fd = -1;
+    int ret = -1;
+
+    if ((fd = virNetDevSetupControl(NULL, NULL)) < 0)
+        return -1;
+
+    if (ioctl(fd, SIOCBRADDBR, brname) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to create bridge %s"), brname);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FORCE_CLOSE(fd);
+    return ret;
+}
+#endif
+
 #if defined(__linux__) && defined(HAVE_LIBNL)
-int virNetDevBridgeCreate(const char *brname)
+int
+virNetDevBridgeCreate(const char *brname)
 {
     /* use a netlink RTM_NEWLINK message to create the bridge */
     const char *type = "bridge";
@@ -441,6 +466,17 @@ int virNetDevBridgeCreate(const char *brname)
         switch (err->error) {
         case 0:
             break;
+        case -EOPNOTSUPP:
+# if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRADDBR)
+            /* fallback to ioctl if netlink doesn't support creating
+             * bridges
+             */
+            rc = virNetDevBridgeCreateWithIoctl(brname);
+            goto cleanup;
+# endif
+            /* intentionally fall through if virNetDevBridgeCreateWithIoctl()
+             * isn't available.
+             */
         default:
             virReportSystemError(-err->error,
                                  _("error creating bridge interface %s"),
@@ -470,29 +506,19 @@ int virNetDevBridgeCreate(const char *brname)
                    _("allocated netlink buffer is too small"));
     goto cleanup;
 }
+
+
 #elif defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRADDBR)
-int virNetDevBridgeCreate(const char *brname)
+int
+virNetDevBridgeCreate(const char *brname)
 {
-    int fd = -1;
-    int ret = -1;
-
-    if ((fd = virNetDevSetupControl(NULL, NULL)) < 0)
-        return -1;
-
-    if (ioctl(fd, SIOCBRADDBR, brname) < 0) {
-        virReportSystemError(errno,
-                             _("Unable to create bridge %s"), brname);
-        goto cleanup;
-    }
-
-    ret = 0;
-
- cleanup:
-    VIR_FORCE_CLOSE(fd);
-    return ret;
+    return virNetDevBridgeCreateWithIoctl(brname);
 }
+
+
 #elif defined(HAVE_STRUCT_IFREQ) && defined(SIOCIFCREATE2)
-int virNetDevBridgeCreate(const char *brname)
+int
+virNetDevBridgeCreate(const char *brname)
 {
     int s;
     struct ifreq ifr;
@@ -532,19 +558,14 @@ int virNetDevBridgeCreate(const char *brname)
  *
  * Returns 0 in case of success or an errno code in case of failure.
  */
-#if defined(__linux__) && defined(HAVE_LIBNL)
-int virNetDevBridgeDelete(const char *brname)
-{
-    /* If netlink is available, use it, as it is successful at
-     * deleting a bridge even if it is currently IFF_UP.
-     */
-    return virNetlinkDelLink(brname);
-}
-#elif defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRDELBR)
-int virNetDevBridgeDelete(const char *brname)
+#if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRDELBR)
+static int
+virNetDevBridgeDeleteWithIoctl(const char *brname)
 {
     int fd = -1;
     int ret = -1;
+
+    ignore_value(virNetDevSetOnline(brname, false));
 
     if ((fd = virNetDevSetupControl(NULL, NULL)) < 0)
         return -1;
@@ -561,8 +582,36 @@ int virNetDevBridgeDelete(const char *brname)
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
+#endif
+
+
+#if defined(__linux__) && defined(HAVE_LIBNL)
+int
+virNetDevBridgeDelete(const char *brname)
+{
+    /* If netlink is available, use it, as it is successful at
+     * deleting a bridge even if it is currently IFF_UP. fallback to
+     * using ioctl(SIOCBRDELBR) if netlink fails with EOPNOTSUPP.
+     */
+# if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRDELBR)
+    return virNetlinkDelLink(brname, virNetDevBridgeDeleteWithIoctl);
+# else
+    return virNetlinkDelLink(brname, NULL);
+# endif
+}
+
+
+#elif defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRDELBR)
+int
+virNetDevBridgeDelete(const char *brname)
+{
+    return virNetDevBridgeDeleteWithIoctl(brname);
+}
+
+
 #elif defined(HAVE_STRUCT_IFREQ) && defined(SIOCIFDESTROY)
-int virNetDevBridgeDelete(const char *brname)
+int
+virNetDevBridgeDelete(const char *brname)
 {
     int s;
     struct ifreq ifr;

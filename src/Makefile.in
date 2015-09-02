@@ -4462,7 +4462,7 @@ USED_SYM_FILES = $(srcdir)/libvirt_private.syms $(am__append_134) \
 GENERATED_SYM_FILES = \
 	$(ACCESS_DRIVER_SYM_FILES) \
 	libvirt.syms libvirt.def libvirt_qemu.def libvirt_lxc.def \
-	libvirt_admin.def \
+	libvirt_admin.syms libvirt_admin.def \
 	$(NULL)
 
 @WITH_TEST_TRUE@libvirt_driver_test_la_CFLAGS = \
@@ -10178,10 +10178,17 @@ admin/admin_client.h: $(srcdir)/rpc/gendispatch.pl \
 @WITH_LINUX_TRUE@check-symfile: libvirt.syms libvirt.la
 @WITH_LINUX_TRUE@	$(AM_V_GEN)$(PERL) $(srcdir)/check-symfile.pl libvirt.syms \
 @WITH_LINUX_TRUE@	  .libs/libvirt.so
+@WITH_LINUX_TRUE@check-admin-symfile: libvirt_admin.syms libvirt-admin.la
+@WITH_LINUX_TRUE@	$(AM_V_GEN)$(PERL) $(srcdir)/check-symfile.pl libvirt_admin.syms \
+@WITH_LINUX_TRUE@	  .libs/libvirt-admin.so
 @WITH_LINUX_FALSE@check-symfile:
+@WITH_LINUX_FALSE@check-admin-symfile:
 check-symsorting:
 	$(AM_V_GEN)$(PERL) $(srcdir)/check-symsorting.pl \
 		$(srcdir) $(SYM_FILES)
+check-admin-symsorting:
+	$(AM_V_GEN)$(PERL) $(srcdir)/check-symsorting.pl \
+		$(srcdir) $(ADMIN_SYM_FILES)
 
 @WITH_REMOTE_TRUE@check-protocol: $(PROTOCOL_STRUCTS) $(PROTOCOL_STRUCTS:structs=struct)
 
@@ -10236,7 +10243,7 @@ check-aclperms:
 
 check-local: check-protocol check-symfile check-symsorting \
 	check-drivername check-driverimpls check-aclrules \
-	check-aclperms
+	check-aclperms check-admin-symfile check-admin-symsorting
 .PHONY: check-protocol $(PROTOCOL_STRUCTS:structs=struct)
 
 lxc/lxc_monitor_dispatch.h: $(srcdir)/rpc/gendispatch.pl \

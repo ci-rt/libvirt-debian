@@ -95,40 +95,6 @@ VIR_LOG_INIT("lxc.lxc_container");
 # define CLONE_NEWNET  0x40000000 /* New network namespace */
 #endif
 
-/*
- * Workaround older glibc. While kernel may support the setns
- * syscall, the glibc wrapper might not exist. If that's the
- * case, use our own.
- */
-#ifndef __NR_setns
-# if defined(__x86_64__)
-#  define __NR_setns 308
-# elif defined(__i386__)
-#  define __NR_setns 346
-# elif defined(__arm__)
-#  define __NR_setns 375
-# elif defined(__aarch64__)
-#  define __NR_setns 375
-# elif defined(__powerpc__)
-#  define __NR_setns 350
-# elif defined(__s390__)
-#  define __NR_setns 339
-# endif
-#endif
-
-#ifndef HAVE_SETNS
-# if defined(__NR_setns)
-#  include <sys/syscall.h>
-
-static inline int setns(int fd, int nstype)
-{
-    return syscall(__NR_setns, fd, nstype);
-}
-# else /* !__NR_setns */
-#  error Please determine the syscall number for setns on your architecture
-# endif
-#endif
-
 /* messages between parent and container */
 typedef char lxc_message_t;
 #define LXC_CONTINUE_MSG 'c'
@@ -2184,25 +2150,9 @@ static int lxcContainerDropCapabilities(virDomainDefPtr def ATTRIBUTE_UNUSED,
  */
 static int lxcAttachNS(int *ns_fd)
 {
-    size_t i;
-    if (ns_fd)
-        for (i = 0; i < VIR_LXC_DOMAIN_NAMESPACE_LAST; i++) {
-            if (ns_fd[i] < 0)
-                continue;
-            VIR_DEBUG("Setting into namespace\n");
-            /* We get EINVAL if new NS is same as the current
-             * NS, or if the fd namespace doesn't match the
-             * type passed to setns()'s second param. Since we
-             * pass 0, we know the EINVAL is harmless
-             */
-            if (setns(ns_fd[i], 0) < 0 &&
-                errno != EINVAL) {
-                virReportSystemError(errno, _("failed to set namespace '%s'"),
-                                     virLXCDomainNamespaceTypeToString(i));
-                return -1;
-            }
-            VIR_FORCE_CLOSE(ns_fd[i]);
-        }
+    if (ns_fd &&
+        virProcessSetNamespaces(VIR_LXC_DOMAIN_NAMESPACE_LAST, ns_fd) < 0)
+        return -1;
     return 0;
 }
 
@@ -2463,6 +2413,7 @@ int lxcContainerStart(virDomainDefPtr def,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Config askes for inherit net namespace "
                              "as well as private network interfaces"));
+            VIR_FREE(stack);
             return -1;
         }
         VIR_DEBUG("Inheriting a net namespace");

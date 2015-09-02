@@ -23,6 +23,7 @@
     <function name="VIR_CPU_USED" link="libvirt-libvirt-domain.html#VIR_CPU_USED"/>
     <function name="VIR_DOMAIN_BANDWIDTH_IN_AVERAGE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BANDWIDTH_IN_AVERAGE"/>
     <function name="VIR_DOMAIN_BANDWIDTH_IN_BURST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BANDWIDTH_IN_BURST"/>
+    <function name="VIR_DOMAIN_BANDWIDTH_IN_FLOOR" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BANDWIDTH_IN_FLOOR"/>
     <function name="VIR_DOMAIN_BANDWIDTH_IN_PEAK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BANDWIDTH_IN_PEAK"/>
     <function name="VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE"/>
     <function name="VIR_DOMAIN_BANDWIDTH_OUT_BURST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BANDWIDTH_OUT_BURST"/>
@@ -353,6 +354,7 @@
     <function name="VIR_DOMAIN_EVENT_DEFINED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_DEFINED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_ADDED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_DEFINED_ADDED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_DEFINED_LAST"/>
+    <function name="VIR_DOMAIN_EVENT_DEFINED_RENAMED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_DEFINED_RENAMED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_UPDATED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_DEFINED_UPDATED"/>
     <function name="VIR_DOMAIN_EVENT_DISK_CHANGE_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_DISK_CHANGE_LAST"/>
     <function name="VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START"/>
@@ -434,6 +436,7 @@
     <function name="VIR_DOMAIN_EVENT_UNDEFINED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED"/>
     <function name="VIR_DOMAIN_EVENT_UNDEFINED_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED_LAST"/>
     <function name="VIR_DOMAIN_EVENT_UNDEFINED_REMOVED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED_REMOVED"/>
+    <function name="VIR_DOMAIN_EVENT_UNDEFINED_RENAMED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_UNDEFINED_RENAMED"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_DEBUG" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_DEBUG"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_INJECTNMI"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_LAST"/>
@@ -1400,6 +1403,7 @@
     <function name="virDomainPinVcpuFlags ()" link="libvirt-libvirt-domain.html#virDomainPinVcpuFlags"/>
     <function name="virDomainReboot ()" link="libvirt-libvirt-domain.html#virDomainReboot"/>
     <function name="virDomainRef ()" link="libvirt-libvirt-domain.html#virDomainRef"/>
+    <function name="virDomainRename ()" link="libvirt-libvirt-domain.html#virDomainRename"/>
     <function name="virDomainReset ()" link="libvirt-libvirt-domain.html#virDomainReset"/>
     <function name="virDomainRestore ()" link="libvirt-libvirt-domain.html#virDomainRestore"/>
     <function name="virDomainRestoreFlags ()" link="libvirt-libvirt-domain.html#virDomainRestoreFlags"/>
