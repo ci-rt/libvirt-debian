@@ -95,21 +95,23 @@ libxlDoMigrateReceive(void *opaque)
     int recvfd = args->recvfd;
     size_t i;
     int ret;
+    bool remove_dom = 0;
+
+    virObjectLock(vm);
+    if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_MODIFY) < 0)
+        goto cleanup;
 
     /*
      * Always start the domain paused.  If needed, unpause in the
      * finish phase, after transfer of the domain is complete.
      */
-    virObjectLock(vm);
     ret = libxlDomainStart(driver, vm, true, recvfd);
-    virObjectUnlock(vm);
 
     if (ret < 0 && !vm->persistent)
-        virDomainObjListRemove(driver->domains, vm);
+        remove_dom = true;
 
     /* Remove all listen socks from event handler, and close them. */
     for (i = 0; i < nsocks; i++) {
-        virNetSocketUpdateIOCallback(socks[i], 0);
         virNetSocketRemoveIOCallback(socks[i]);
         virNetSocketClose(socks[i]);
         virObjectUnref(socks[i]);
@@ -117,6 +119,18 @@ libxlDoMigrateReceive(void *opaque)
     }
     args->nsocks = 0;
     VIR_FORCE_CLOSE(recvfd);
+    virObjectUnref(args);
+
+    if (!libxlDomainObjEndJob(driver, vm))
+        vm = NULL;
+
+ cleanup:
+    if (remove_dom && vm) {
+        virDomainObjListRemove(driver->domains, vm);
+        vm = NULL;
+    }
+    if (vm)
+        virObjectUnlock(vm);
 }
 
 
@@ -164,11 +178,11 @@ libxlMigrateReceive(virNetSocketPtr sock,
         virNetSocketUpdateIOCallback(socks[i], 0);
         virNetSocketRemoveIOCallback(socks[i]);
         virNetSocketClose(socks[i]);
-        virObjectUnref(socks[i]);
         socks[i] = NULL;
     }
     args->nsocks = 0;
     VIR_FORCE_CLOSE(recvfd);
+    virObjectUnref(args);
 }
 
 static int
@@ -178,7 +192,6 @@ libxlDoMigrateSend(libxlDriverPrivatePtr driver,
                    int sockfd)
 {
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
-    virObjectEventPtr event = NULL;
     int xl_flags = 0;
     int ret;
 
@@ -188,24 +201,11 @@ libxlDoMigrateSend(libxlDriverPrivatePtr driver,
     ret = libxl_domain_suspend(cfg->ctx, vm->def->id, sockfd,
                                xl_flags, NULL);
     if (ret != 0) {
-        /* attempt to resume the domain on failure */
-        if (libxl_domain_resume(cfg->ctx, vm->def->id, 1, 0) != 0) {
-            VIR_DEBUG("Failed to resume domain following failed migration");
-            virDomainObjSetState(vm, VIR_DOMAIN_PAUSED,
-                                 VIR_DOMAIN_PAUSED_MIGRATION);
-            event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_SUSPENDED,
-                                             VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED);
-            ignore_value(virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm));
-        }
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Failed to send migration data to destination host"));
         ret = -1;
-        goto cleanup;
     }
 
- cleanup:
-    if (event)
-        libxlDomainEventQueue(driver, event);
     virObjectUnref(cfg);
     return ret;
 }
@@ -318,7 +318,7 @@ libxlDomainMigrationPrepare(virConnectPtr dconn,
     virNetSocketPtr *socks = NULL;
     size_t nsocks = 0;
     int nsocks_listen = 0;
-    libxlMigrationDstArgs *args;
+    libxlMigrationDstArgs *args = NULL;
     size_t i;
     int ret = -1;
 
@@ -420,21 +420,11 @@ libxlDomainMigrationPrepare(virConnectPtr dconn,
                                       VIR_EVENT_HANDLE_READABLE,
                                       libxlMigrateReceive,
                                       args,
-                                      virObjectFreeCallback) < 0)
+                                      NULL) < 0)
             continue;
 
-        /*
-         * Successfully added sock to event loop.  Take a ref on args to
-         * ensure it is not freed until sock is removed from the event loop.
-         * Ref is dropped in virObjectFreeCallback after being removed
-         * from the event loop.
-         */
-        virObjectRef(args);
         nsocks_listen++;
     }
-
-    /* Done with args in this function, drop reference */
-    virObjectUnref(args);
 
     if (!nsocks_listen)
         goto error;
@@ -448,6 +438,8 @@ libxlDomainMigrationPrepare(virConnectPtr dconn,
         virObjectUnref(socks[i]);
     }
     VIR_FREE(socks);
+    virObjectUnref(args);
+
     /* Remove virDomainObj from domain list */
     if (vm) {
         virDomainObjListRemove(driver->domains, vm);

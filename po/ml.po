@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.2.13\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-08-27 09:23+0800\n"
+"POT-Creation-Date: 2015-09-02 10:17+0800\n"
 "PO-Revision-Date: 2014-10-28 11:16-0400\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Malayalam (http://www.transifex.com/projects/p/libvirt/"
@@ -204,7 +204,7 @@ msgstr ""
 #: daemon/libvirtd.c:1179 src/locking/lock_daemon.c:1170
 #: src/locking/sanlock_helper.c:76 src/lxc/lxc_controller.c:2512
 #: src/network/leaseshelper.c:147 src/network/leaseshelper.c:153
-#: src/security/virt-aa-helper.c:1303 src/security/virt-aa-helper.c:1309
+#: src/security/virt-aa-helper.c:1301 src/security/virt-aa-helper.c:1307
 #: src/storage/parthelper.c:77 src/util/iohelper.c:236 src/util/iohelper.c:242
 #, c-format
 msgid "%s: initialization failed\n"
@@ -1118,7 +1118,7 @@ msgid "no console devices available"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:1205 src/bhyve/bhyve_driver.c:1212
-#: src/lxc/lxc_container.c:1042 src/lxc/lxc_driver.c:1650
+#: src/lxc/lxc_container.c:1008 src/lxc/lxc_driver.c:1650
 #, c-format
 msgid "Failed to mkdir %s"
 msgstr "mkdir %s ചെയ്യുന്നതില്‍ പരാജയം"
@@ -4241,7 +4241,7 @@ msgstr "അസാധുവായ pid"
 msgid "Unknown taint flag %s"
 msgstr "അപരിചിതമായ ടെയിന്റ് ഫ്ലാഗ് %s"
 
-#: src/conf/domain_conf.c:16612 src/security/virt-aa-helper.c:670
+#: src/conf/domain_conf.c:16612 src/security/virt-aa-helper.c:668
 #: tools/virsh-domain-monitor.c:95 tools/virsh-domain-monitor.c:502
 #: tools/virsh-domain-monitor.c:618 tools/virsh-domain-monitor.c:740
 #: tools/virsh-domain.c:3124 tools/virsh-domain.c:3796
@@ -11000,370 +11000,365 @@ msgstr "uuid തയ്യാറാക്കുന്നതില്‍ പരാ
 msgid "lxc.mount found, use lxc.mount.entry lines instead"
 msgstr ""
 
-#: src/lxc/lxc_container.c:196
+#: src/lxc/lxc_container.c:162
 #, c-format
 msgid "Malformed ctrl-alt-del setting '%s'"
 msgstr "തെറ്റായ ctrl-alt-del സജ്ജീകരണം '%s'"
 
-#: src/lxc/lxc_container.c:212
+#: src/lxc/lxc_container.c:178
 msgid "Unable to clone to check reboot support"
 msgstr "റീബൂട്ട് പിന്തുണ പരിശോധിക്കാന്‍ തനിപ്പകര്‍പ്പ് ചെയ്യാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:252
+#: src/lxc/lxc_container.c:218
 #, c-format
 msgid "Expected a /dev path for '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:318
+#: src/lxc/lxc_container.c:284
 msgid "setsid failed"
 msgstr "setsid പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:324
+#: src/lxc/lxc_container.c:290
 #, fuzzy
 msgid "ioctl(TIOCSCTTY) failed"
 msgstr "ioctl(TIOCSTTY) പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:330
+#: src/lxc/lxc_container.c:296
 msgid "dup2(stdin) failed"
 msgstr "dup2(stdin) പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:336
+#: src/lxc/lxc_container.c:302
 msgid "dup2(stdout) failed"
 msgstr "dup2(stdout) പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:342
+#: src/lxc/lxc_container.c:308
 msgid "dup2(stderr) failed"
 msgstr "dup2(stderr) പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:374
+#: src/lxc/lxc_container.c:340
 #, c-format
 msgid "Cannot move fd %d out of the way"
 msgstr "fd %d നീക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:392
+#: src/lxc/lxc_container.c:358
 #, c-format
 msgid "Cannot duplicate fd %d onto fd %d"
 msgstr "fd %d, fd %d-ലേക്കു് ആവര്‍ത്തിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:406 src/util/vircommand.c:591
+#: src/lxc/lxc_container.c:372 src/util/vircommand.c:591
 #: tools/virt-login-shell.c:292
 msgid "sysconf(_SC_OPEN_MAX) failed"
 msgstr "sysconf(_SC_OPEN_MAX) പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:499
+#: src/lxc/lxc_container.c:465
 msgid "setuid or setgid failed"
 msgstr "setuid അല്ലെങ്കില്‍ setgid പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:571
+#: src/lxc/lxc_container.c:537
 #, fuzzy, c-format
 msgid "Failed to set IP address '%s' on %s"
 msgstr " '%s' എന്ന പിസിഐ കോണ്‍ഫിഗ് വിലാസം പാര്‍സ് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:669
+#: src/lxc/lxc_container.c:635
 #, c-format
 msgid "Failed to unmount '%s' and could not detach subtree '%s'"
 msgstr "%s-നെ അണ്‍മൌണ്ട് ചെയ്യുന്നത് പരാജയപ്പെട്ടു, ഉപശാഖ '%s' വിടുവിക്കുവാനും സാധിച്ചില്ല"
 
-#: src/lxc/lxc_container.c:677
+#: src/lxc/lxc_container.c:643
 #, c-format
 msgid "Failed to unmount '%s' and could not unmount old root '%s'"
 msgstr ""
 "'%s'-നെ അണ്‍മൌണ്ട് ചെയ്യുന്നത് പരാജയപ്പെട്ടു, പഴയ റൂട്ട് '%s' അണ്‍മൗണ്ട് ചെയ്യാനും സാധിച്ചില്ല"
 
-#: src/lxc/lxc_container.c:705
+#: src/lxc/lxc_container.c:671
 #, c-format
 msgid "Failed to access '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:717
+#: src/lxc/lxc_container.c:683
 #, c-format
 msgid "Failed to resolve symlink at %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:748
+#: src/lxc/lxc_container.c:714
 msgid "Unexpected root filesystem without loop device"
 msgstr "ലൂപ്പ് ഡിവൈസില്ലാതെ അപ്രതീക്ഷിതമായ റൂട്ട് ഫയല്‍സിസ്റ്റം"
 
-#: src/lxc/lxc_container.c:754
+#: src/lxc/lxc_container.c:720
 #, c-format
 msgid "Unsupported root filesystem type %s"
 msgstr "പിന്തുണയ്ക്കാത്ത റൂട്ട് ഫയല്‍സിസ്റ്റം തരം %s"
 
-#: src/lxc/lxc_container.c:795
+#: src/lxc/lxc_container.c:761
 msgid "Failed to make root private"
 msgstr "റൂട്ട് സ്വകാര്യമാക്കുന്നതില്‍ പരാ‍ജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:804 src/lxc/lxc_container.c:824
-#: src/lxc/lxc_container.c:1274 src/lxc/lxc_container.c:1554
-#: src/lxc/lxc_container.c:1618
+#: src/lxc/lxc_container.c:770 src/lxc/lxc_container.c:790
+#: src/lxc/lxc_container.c:1240 src/lxc/lxc_container.c:1520
+#: src/lxc/lxc_container.c:1584
 #, c-format
 msgid "Failed to create %s"
 msgstr "%s ഉണ്ടാക്കുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:813
+#: src/lxc/lxc_container.c:779
 #, c-format
 msgid "Failed to mount empty tmpfs at %s"
 msgstr "%s-ല്‍ ശൂന്യമായ tmpfs മൌണ്ട് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:832
+#: src/lxc/lxc_container.c:798
 #, c-format
 msgid "Failed to bind %s to new root %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:840
+#: src/lxc/lxc_container.c:806
 #, c-format
 msgid "Failed to make new root %s readonly"
 msgstr "പുതിയ റൂട്ട് %s റീഡ്ഒണ്‍ലിയാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:850
+#: src/lxc/lxc_container.c:816
 #, c-format
 msgid "Failed to chdir into %s"
 msgstr "%s-ലേക്കു് chdir ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:858
+#: src/lxc/lxc_container.c:824
 msgid "Failed to pivot root"
 msgstr "റൂട്ട് pivot ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:924
+#: src/lxc/lxc_container.c:890
 msgid "Failed to read /proc/mounts"
 msgstr "/proc/mounts ലഭ്യമാക്കുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:951
+#: src/lxc/lxc_container.c:917
 #, c-format
 msgid "Failed to make mount %s readonly"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1060
+#: src/lxc/lxc_container.c:1026
 #, c-format
 msgid "Failed to mount %s on %s type %s flags=%x"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1070
+#: src/lxc/lxc_container.c:1036
 #, c-format
 msgid "Failed to re-mount %s on %s flags=%x"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1105
+#: src/lxc/lxc_container.c:1071
 #, c-format
 msgid "Failed to mount %s on /proc/meminfo"
 msgstr "/proc/meminfo-ല്‍ %s മൌണ്ട് ചെയ്യുവാന്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1135
+#: src/lxc/lxc_container.c:1101
 msgid "Cannot create /dev"
 msgstr "/dev തയ്യാറാക്കുവാന്‍ പാടില്ല"
 
-#: src/lxc/lxc_container.c:1144
+#: src/lxc/lxc_container.c:1110
 #, c-format
 msgid "Failed to mount %s on /dev"
 msgstr "/dev-ല്‍ %s മൌണ്ട് ചെയ്യുവാന്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1171
+#: src/lxc/lxc_container.c:1137
 msgid "Cannot create /dev/pts"
 msgstr "/dev/pts ഉണ്ടാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1180
+#: src/lxc/lxc_container.c:1146
 #, c-format
 msgid "Failed to mount %s on /dev/pts"
 msgstr "/dev/pts-ല്‍ %s മൌണ്ട് ചെയ്യുവാന്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1207
+#: src/lxc/lxc_container.c:1173
 #, c-format
 msgid "Failed to symlink device %s to %s"
 msgstr "ഡിവൈസ് %s-നെ %s-ലേക്കു് സിംലിങ്ക് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1219
+#: src/lxc/lxc_container.c:1185
 msgid "Failed to bind /dev/pts/ptmx on to /dev/ptmx"
 msgstr "/dev/pts/ptmx, /dev/ptmx-ലേക്കു് ബൈന്‍ഡ് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1229
+#: src/lxc/lxc_container.c:1195
 #, c-format
 msgid "Failed to symlink %s to %s"
 msgstr "%s-നെ %s-ലേക്കു് സിംലിങ്ക് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1238
+#: src/lxc/lxc_container.c:1204
 #, c-format
 msgid "Failed to symlink %s to /dev/console"
 msgstr "%s, /dev/console-ലേക്കു് സിംലിങ്ക് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1261
+#: src/lxc/lxc_container.c:1227
 #, c-format
 msgid "Unable to stat bind target %s"
 msgstr "ബന്ധിപ്പിക്കാനുള്ള ലക്ഷ്യം %sന്റെ അവസ്ഥ പരിശോധിക്കാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1267
+#: src/lxc/lxc_container.c:1233
 #, c-format
 msgid "Unable to stat bind source %s"
 msgstr "ബന്ധിപ്പിക്കാനുള്ള ശ്രോതസ്സ് %sന്റെ അവസ്ഥ പരിശോധിക്കാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1284
+#: src/lxc/lxc_container.c:1250
 #, c-format
 msgid "Failed to create bind target %s"
 msgstr "ബന്ധിപ്പിക്കാനുള്ള ലക്ഷ്യം %s തയ്യാറാക്കുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:1291
+#: src/lxc/lxc_container.c:1257
 #, c-format
 msgid "Failed to close bind target %s"
 msgstr "ബന്ധിപ്പിക്കാനുള്ള ലക്ഷ്യം %s അടയ്ക്കുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:1300
+#: src/lxc/lxc_container.c:1266
 #, c-format
 msgid "Failed to bind mount directory %s to %s"
 msgstr "%s മൌണ്ട് ഡയറക്ടറിയെ %s-ലേക്കു്  ബന്ധിപ്പിക്കുന്നത് പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:1309 src/lxc/lxc_container.c:1634
+#: src/lxc/lxc_container.c:1275 src/lxc/lxc_container.c:1600
 #, c-format
 msgid "Failed to make directory %s readonly"
 msgstr "%s ഡയറക്ടറി വായ്ക്കുവാന്‍ മാത്രമായി തയ്യാറാക്കുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:1336
+#: src/lxc/lxc_container.c:1302
 #, c-format
 msgid "Unable to open filesystem %s"
 msgstr "%s ഫയല്‍സിസ്റ്റം തുറക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1342
+#: src/lxc/lxc_container.c:1308
 msgid "Unable to create blkid library handle"
 msgstr "blkid ലൈബ്രറി കൈകാര്യം ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1347
+#: src/lxc/lxc_container.c:1313
 #, c-format
 msgid "Unable to associate device %s with blkid library"
 msgstr "blkid ലൈബ്രറിയുമായി ഉപകരണം %s ബന്ധടുത്താന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1363
+#: src/lxc/lxc_container.c:1329
 #, c-format
 msgid "Too many filesystems detected for %s"
 msgstr "%s-നു് അനവധി ഫയല്‍സിസ്റ്റങ്ങള്‍ ലഭ്യമായിരിയ്ക്കുന്നു"
 
-#: src/lxc/lxc_container.c:1367
+#: src/lxc/lxc_container.c:1333
 #, c-format
 msgid "Unable to detect filesystem for %s"
 msgstr "%s-നുള്ള ഫയല്‍സിസ്റ്റം കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1375
+#: src/lxc/lxc_container.c:1341
 #, c-format
 msgid "Unable to find filesystem type for %s"
 msgstr "%s-നുള്ള ഫയല്‍സിസ്റ്റം രീതി കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1445 src/util/iohelper.c:151
+#: src/lxc/lxc_container.c:1411 src/util/iohelper.c:151
 #, c-format
 msgid "Unable to read %s"
 msgstr "%s ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1475
+#: src/lxc/lxc_container.c:1441
 #, c-format
 msgid "%s has unexpected '*' before last line"
 msgstr "%sന് അവസാന വരിക്കു മുമ്പ് പ്രതീക്ഷിക്കാത്ത '*' ഉണ്ട്"
 
-#: src/lxc/lxc_container.c:1499
+#: src/lxc/lxc_container.c:1465
 #, c-format
 msgid "Failed to mount device %s to %s"
 msgstr "%s-നെ %s-ലേക്കു് മൌണ്ട് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:1522
+#: src/lxc/lxc_container.c:1488
 #, c-format
 msgid "Failed to mount device %s to %s, unable to detect filesystem"
 msgstr "%s-നെ %s-ലേക്കു് മൌണ്ട് ചെയ്യുന്നത് പരാജയപ്പെട്ടു, ഫയല്‍ സിസ്റ്റം കണ്ടുപിടിക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1567
+#: src/lxc/lxc_container.c:1533
 #, c-format
 msgid "Failed to mount device %s to %s as %s"
 msgstr "ഡിവൈസ് %s, %s-ലേക്കു, %s ആയി മൌണ്ട് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:1625
+#: src/lxc/lxc_container.c:1591
 #, c-format
 msgid "Failed to mount directory %s as tmpfs"
 msgstr "%s ഡയറക്ടറി tmpfs ആയി മൌണ്ട് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:1673
+#: src/lxc/lxc_container.c:1639
 #, c-format
 msgid "Unexpected filesystem type %s"
 msgstr "അപ്രതീക്ഷിതമായ ഫയല്‍സിസ്റ്റം രീതി %s"
 
-#: src/lxc/lxc_container.c:1678
+#: src/lxc/lxc_container.c:1644
 #, c-format
 msgid "Cannot mount filesystem type %s"
 msgstr "ഫയല്‍സിസ്റ്റം രീതി %s മൌണ്ട് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:1729
+#: src/lxc/lxc_container.c:1695
 #, c-format
 msgid "Failed to create directory for '%s' dev '%s'"
 msgstr "'%s' dev '%s'-നുള്ള ഡയറക്ടറി തയ്യാറാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:2112
+#: src/lxc/lxc_container.c:2078
 #, c-format
 msgid "Failed to add capability %s: %d"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2144
+#: src/lxc/lxc_container.c:2110
 #, c-format
 msgid "Failed to remove capability %s: %d"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2152
+#: src/lxc/lxc_container.c:2118
 #, c-format
 msgid "Unsupported capabilities policy: %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2159
+#: src/lxc/lxc_container.c:2125
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "സവിശേഷതകള്‍ ഉപയോഗിക്കുന്നതില്‍ പരാജയം:%d"
 
-#: src/lxc/lxc_container.c:2200
-#, fuzzy, c-format
-msgid "failed to set namespace '%s'"
-msgstr "ഇന്റര്‍ഫെയിസ് '%s' ലഭ്യമാകുന്നതില്‍ പരാജയം"
-
-#: src/lxc/lxc_container.c:2235
+#: src/lxc/lxc_container.c:2185
 msgid "lxcChild() passed invalid vm definition"
 msgstr "lxcChild() തെറ്റായ വിഎം വിവരം നല്‍കിയിരിയ്ക്കുന്നു"
 
-#: src/lxc/lxc_container.c:2241
+#: src/lxc/lxc_container.c:2191
 #, fuzzy
 msgid "failed to attach the namespace"
 msgstr "ഇന്റര്‍ഫെയിസുകള്‍ ചേര്‍ക്കുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:2250
+#: src/lxc/lxc_container.c:2200
 msgid "Failed to read the container continue message"
 msgstr "കണ്ടെയിനര്‍ തുടരുന്നതിനുള്ള സന്ദേശം ലഭ്യമാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_container.c:2277
+#: src/lxc/lxc_container.c:2227
 #, fuzzy
 msgid "At least one tty is required"
 msgstr "കുറഞ്ഞതു് ഒരു cgroup കണ്ട്രോളര്‍ ആവശ്യമാകുന്നു"
 
-#: src/lxc/lxc_container.c:2286
+#: src/lxc/lxc_container.c:2236
 #, c-format
 msgid "Failed to open tty %s"
 msgstr "tty %s തുറക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/lxc/lxc_container.c:2302
+#: src/lxc/lxc_container.c:2252
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr "കണ്ടെയ്നര്‍ റൂട്ടിനെ ആശ്രയിച്ച് പ്രാരംഭ വഴി '%s' കണ്ടെത്താന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_container.c:2320
+#: src/lxc/lxc_container.c:2270
 msgid "Failed to send continue signal to controller"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2355 src/lxc/lxc_controller.c:2738
+#: src/lxc/lxc_container.c:2305 src/lxc/lxc_controller.c:2739
 msgid "Unknown failure in libvirt_lxc startup"
 msgstr "libvirt_lxc ആരംഭത്തില്‍ അപരിചിതമായ പരാജയം"
 
-#: src/lxc/lxc_container.c:2451
+#: src/lxc/lxc_container.c:2401
 msgid "Kernel doesn't support user namespace"
 msgstr "കേര്‍ണല്‍ നെയിംസ്പെയിസ് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/lxc/lxc_container.c:2464
+#: src/lxc/lxc_container.c:2414
 msgid ""
 "Config askes for inherit net namespace as well as private network interfaces"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2490
+#: src/lxc/lxc_container.c:2441
 msgid "Failed to run clone container"
 msgstr "ക്ലോണ്‍ കണ്ടെയിനര്‍ പ്രവര്‍ത്തിപ്പിക്കുന്നതില്‍ പരാജയം"
 
-#: src/lxc/lxc_container.c:2551
+#: src/lxc/lxc_container.c:2502
 #, c-format
 msgid "Failed to change owner of %s to %u:%u"
 msgstr "%s-ന്റെ ഉടമസ്ഥനെ %u:%u ആയി മാറ്റുന്നതില്‍ പരാജയപ്പെട്ടു"
@@ -11587,16 +11582,16 @@ msgstr "കണ്ടെയിനര്‍ തുടരുന്നതിനു�
 msgid "error receiving signal from container"
 msgstr "കണ്ടയിനറില്‍ നിന്നും പിശക് സിഗ്നല്‍ ലഭ്യമാകുന്നു"
 
-#: src/lxc/lxc_controller.c:2704
+#: src/lxc/lxc_controller.c:2705
 #, c-format
 msgid "Unable to write pid file '%s/%s.pid'"
 msgstr "pid ഫയല്‍ '%s/%s.pid' റൈറ്റ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_controller.c:2718
+#: src/lxc/lxc_controller.c:2719
 msgid "Unable to change to root dir"
 msgstr "റൂട്ട് ഡയറക്ടറിയിലേക്ക് മാറ്റുവാന്‍ അസാധ്യം"
 
-#: src/lxc/lxc_controller.c:2724
+#: src/lxc/lxc_controller.c:2725
 msgid "Unable to become session leader"
 msgstr "സെഷന്‍ ലീഡര്‍ ആകുന്നതില്‍ പരാജയം"
 
@@ -12852,17 +12847,17 @@ msgstr ""
 msgid "machine type %s too big for destination"
 msgstr "യന്ത്രത്തിന്റെ തരം %s ലക്ഷ്യസ്ഥാനത്തിന് കൈകാര്യം ചെയ്യാവുന്നതിനെക്കാള്‍ വളരെ വലുതാണ്"
 
-#: src/libxl/libxl_migration.c:139
+#: src/libxl/libxl_migration.c:153
 #, fuzzy
 msgid "Failed to accept migration connection"
 msgstr "മൈഗ്രേഷന്‍ ടണല്‍ wakeup ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/libxl/libxl_migration.c:155
+#: src/libxl/libxl_migration.c:169
 #, fuzzy
 msgid "Failed to create thread for receiving migration data"
 msgstr "ഹോസ്റ്റ് മയങ്ങാനായി ത്രെഡ് സൃഷ്ടിയ്ക്കുന്നതില്‍ പരാജയം"
 
-#: src/libxl/libxl_migration.c:201
+#: src/libxl/libxl_migration.c:205
 msgid "Failed to send migration data to destination host"
 msgstr ""
 
@@ -12898,16 +12893,16 @@ msgstr "മൈഗ്രേഷന്‍ യുആര്‍ഐയില്‍ ഹ�
 msgid "Fail to create socket for incoming migration"
 msgstr ""
 
-#: src/libxl/libxl_migration.c:500 src/xen/xend_internal.c:713
+#: src/libxl/libxl_migration.c:492 src/xen/xend_internal.c:713
 #, c-format
 msgid "unable to connect to '%s:%s'"
 msgstr "'%s:%s'-ലേക്ക് കണക്ട് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/libxl/libxl_migration.c:550
+#: src/libxl/libxl_migration.c:542
 msgid "Migration failed. Domain is not running on destination host"
 msgstr ""
 
-#: src/libxl/libxl_migration.c:559
+#: src/libxl/libxl_migration.c:551
 msgid "Failed to unpause domain"
 msgstr ""
 
@@ -18159,7 +18154,7 @@ msgstr "%u എന്ന കീ സെറ്റിലെ %s എന്ന കീ�
 msgid "Initial memory size too large"
 msgstr "maxerrors വളരെ വലുതു്"
 
-#: src/qemu/qemu_driver.c:2648
+#: src/qemu/qemu_driver.c:2647
 #, fuzzy
 msgid "Current memory size too large"
 msgstr "maxerrors വളരെ വലുതു്"
@@ -23682,7 +23677,7 @@ msgstr "പ്രൊഫൈല്‍ സൂക്ഷിയ്ക്കുന്�
 msgid "failed to close or write to profile"
 msgstr "ഫ്രൊഫൈല്‍ അടയ്ക്കുവാന്‍ അല്ലെങ്കില്‍ സൂക്ഷിയ്ക്കുന്നതില്‍ പരാജയം"
 
-#: src/security/virt-aa-helper.c:351 src/security/virt-aa-helper.c:1355
+#: src/security/virt-aa-helper.c:351 src/security/virt-aa-helper.c:1353
 msgid "profile exists"
 msgstr "പ്രൊഫൈല്‍ നിലവിലുണ്ടു്"
 
@@ -23714,141 +23709,141 @@ msgstr "പ്രൊഫൈല്‍ ഫയലുകള്‍ക്കുള്�
 msgid "failed to create profile"
 msgstr "പ്രൊഫൈല്‍ തയ്യാറാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/security/virt-aa-helper.c:585
+#: src/security/virt-aa-helper.c:586
 msgid "bad pathname"
 msgstr "തെറ്റായ പാഥ്‌നാമം"
 
-#: src/security/virt-aa-helper.c:600
+#: src/security/virt-aa-helper.c:601
 msgid "path does not exist, skipping file type checks"
 msgstr "പാഥ് നിലവിലില്ല, ഫയല്‍ രീതിയുടെ പരിശോധന വേണ്ടെന്നു് വയ്ക്കുന്നു"
 
-#: src/security/virt-aa-helper.c:630
+#: src/security/virt-aa-helper.c:628
 msgid "Invalid context"
 msgstr "തെറ്റായ കോണ്‍ടെക്സ്റ്റ്"
 
-#: src/security/virt-aa-helper.c:636
+#: src/security/virt-aa-helper.c:634
 msgid "Could not find <name>"
 msgstr "<name> കണ്ടുപിടിയ്ക്കാന്‍ സാധിച്ചില്ല"
 
-#: src/security/virt-aa-helper.c:643
+#: src/security/virt-aa-helper.c:641
 msgid "Could not find <uuid>"
 msgstr "<uuid> കണ്ടുപിടിയ്ക്കാന്‍ സാധിച്ചില്ല"
 
-#: src/security/virt-aa-helper.c:676
+#: src/security/virt-aa-helper.c:674
 msgid "unexpected root element, expecting <domain>"
 msgstr "അപ്രതീക്ഷിതമായ റൂട്ട് എലമെന്റ്, <domain> പ്രതീക്ഷിയ്ക്കുന്നു"
 
-#: src/security/virt-aa-helper.c:686
+#: src/security/virt-aa-helper.c:684
 #, fuzzy
 msgid "domain type is not defined"
 msgstr "കണ്ടെയിനര്‍ നിഷ്കര്‍ഷിച്ചിട്ടില്ല"
 
-#: src/security/virt-aa-helper.c:691
+#: src/security/virt-aa-helper.c:689
 msgid "os.type is not defined"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:726 src/security/virt-aa-helper.c:747
-#: src/security/virt-aa-helper.c:762 src/security/virt-aa-helper.c:870
-#: src/security/virt-aa-helper.c:879 src/security/virt-aa-helper.c:955
-#: src/security/virt-aa-helper.c:1337 src/security/virt-aa-helper.c:1341
-#: src/security/virt-aa-helper.c:1407
+#: src/security/virt-aa-helper.c:724 src/security/virt-aa-helper.c:745
+#: src/security/virt-aa-helper.c:760 src/security/virt-aa-helper.c:868
+#: src/security/virt-aa-helper.c:877 src/security/virt-aa-helper.c:953
+#: src/security/virt-aa-helper.c:1335 src/security/virt-aa-helper.c:1339
+#: src/security/virt-aa-helper.c:1405
 msgid "could not allocate memory"
 msgstr "മെമ്മറി അനുവദിക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/security/virt-aa-helper.c:731
+#: src/security/virt-aa-helper.c:729
 msgid "Failed to create XML config object"
 msgstr "എക്സ്എംഎല്‍ ക്രമീകരണ വസ്തു തയ്യാറാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/security/virt-aa-helper.c:736 src/util/virerror.c:921
+#: src/security/virt-aa-helper.c:734 src/util/virerror.c:921
 msgid "unknown OS type"
 msgstr "അപരിചിതമായ ഒഎസ് രീതി"
 
-#: src/security/virt-aa-helper.c:752
+#: src/security/virt-aa-helper.c:750
 #, fuzzy
 msgid "unknown virtualization type"
 msgstr "അപരിചിതമായ പാര്‍ട്ടീഷന്‍ തരം"
 
-#: src/security/virt-aa-helper.c:770
+#: src/security/virt-aa-helper.c:768
 msgid "could not parse XML"
 msgstr "എക്സ്എംഎല്‍ പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:775
+#: src/security/virt-aa-helper.c:773
 msgid "could not find name in XML"
 msgstr "എക്സ്എംഎലില്‍ പേരു് കണ്ടുപിടിയ്ക്കുവാനായില്ല"
 
-#: src/security/virt-aa-helper.c:780
+#: src/security/virt-aa-helper.c:778
 msgid "bad name"
 msgstr "തെറ്റായ നാമം"
 
-#: src/security/virt-aa-helper.c:806
+#: src/security/virt-aa-helper.c:804
 msgid "skipped non-absolute path"
 msgstr "നോണ്‍-ആബ്സ്യൂട്ട് ഉപേക്ഷിച്ചിരിയ്ക്കുന്നു"
 
-#: src/security/virt-aa-helper.c:813
+#: src/security/virt-aa-helper.c:811
 msgid "could not find realpath for disk"
 msgstr "ഡിസ്കിനുള്ള റിയല്‍പാഥ് കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:827
+#: src/security/virt-aa-helper.c:825
 msgid "skipped restricted file"
 msgstr "നിബന്ധനകളുള്ള ഫയല്‍ ഉപേക്ഷിച്ചിരിയ്ക്കുന്നു"
 
-#: src/security/virt-aa-helper.c:960
+#: src/security/virt-aa-helper.c:958
 msgid "given uuid does not match XML uuid"
 msgstr "നല്‍കിയിരിയ്ക്കന്ന യുയുഐഡി എക്സ്എംഎല്‍ യുയുഐഡിയുമായി ചേരുന്നില്ല"
 
-#: src/security/virt-aa-helper.c:1175
+#: src/security/virt-aa-helper.c:1173
 msgid "failed to allocate file buffer"
 msgstr "ഫയല്‍ ബഫര്‍ ലഭ്യമാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/security/virt-aa-helper.c:1224
+#: src/security/virt-aa-helper.c:1222
 msgid "could not allocate memory for disk"
 msgstr "ഡിസ്കിനുള്ള മെമ്മറി ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:1239 src/security/virt-aa-helper.c:1259
+#: src/security/virt-aa-helper.c:1237 src/security/virt-aa-helper.c:1257
 msgid "invalid UUID"
 msgstr "തെറ്റായ യുയുഐഡി"
 
-#: src/security/virt-aa-helper.c:1242
+#: src/security/virt-aa-helper.c:1240
 msgid "error copying UUID"
 msgstr "യുയുഐഡി പകര്‍ത്തുന്നതില്‍ പിശക്"
 
-#: src/security/virt-aa-helper.c:1251
+#: src/security/virt-aa-helper.c:1249
 msgid "unsupported option"
 msgstr "പിന്തുണയ്ക്കാത്ത ഐച്ഛികം"
 
-#: src/security/virt-aa-helper.c:1256
+#: src/security/virt-aa-helper.c:1254
 msgid "bad command"
 msgstr "തെറ്റായ കമാന്‍ഡ്"
 
-#: src/security/virt-aa-helper.c:1269
+#: src/security/virt-aa-helper.c:1267
 msgid "could not read xml file"
 msgstr "xml ഫയല്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:1273
+#: src/security/virt-aa-helper.c:1271
 msgid "could not get VM definition"
 msgstr "വിഎം നിഷ്കര്‍ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:1278
+#: src/security/virt-aa-helper.c:1276
 msgid "invalid VM definition"
 msgstr "തെറ്റായ വിഎം നിഷ്കര്‍ഷിയ്ക്കുക"
 
-#: src/security/virt-aa-helper.c:1319
+#: src/security/virt-aa-helper.c:1317
 msgid "could not set PATH"
 msgstr "PATH സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:1323
+#: src/security/virt-aa-helper.c:1321
 msgid "could not set IFS"
 msgstr "ഐഎഫ്എസ് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:1333
+#: src/security/virt-aa-helper.c:1331
 msgid "could not parse arguments"
 msgstr "ആര്‍ഗ്യുമെന്റുകള്‍ പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/virt-aa-helper.c:1383
+#: src/security/virt-aa-helper.c:1381
 msgid "failed to allocate buffer"
 msgstr "ബഫര്‍ ലഭ്യമാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/security/virt-aa-helper.c:1418
+#: src/security/virt-aa-helper.c:1416
 msgid "could not create profile"
 msgstr "പ്രൊഫൈല്‍ തയ്യാറാക്കുവാന്‍ സാധ്യമല്ല"
 
@@ -27868,8 +27863,8 @@ msgid "owner %lld does not hold the resource lock"
 msgstr " %lld ഉടമസ്ഥനു് റിസോഴ്സ് ലോക്ക് ലഭ്യമല്ല"
 
 #: src/util/virnetdev.c:140 src/util/virnetdev.c:552
-#: src/util/virnetdevbridge.c:98 src/util/virnetdevbridge.c:641
-#: src/util/virnetdevbridge.c:711 src/util/virnetdevtap.c:281
+#: src/util/virnetdevbridge.c:98 src/util/virnetdevbridge.c:690
+#: src/util/virnetdevbridge.c:760 src/util/virnetdevtap.c:281
 #: src/util/virnetdevtap.c:347
 #, c-format
 msgid "Network interface name '%s' is too long"
@@ -27966,9 +27961,9 @@ msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ വീലാന്‍ 
 
 #: src/util/virnetdev.c:1003 src/util/virnetdev.c:1177
 #: src/util/virnetdev.c:2052 src/util/virnetdev.c:2174
-#: src/util/virnetdevbridge.c:470 src/util/virnetdevbridge.c:1121
+#: src/util/virnetdevbridge.c:506 src/util/virnetdevbridge.c:1170
 #: src/util/virnetdevmacvlan.c:208 src/util/virnetdevvportprofile.c:768
-#: src/util/virnetlink.c:356
+#: src/util/virnetlink.c:364
 msgid "allocated netlink buffer is too small"
 msgstr "അനുവദിച്ച നെറ്റ്ലിങ്ക് ബഫര്‍ വളരെ ചെറുതാണു്"
 
@@ -28065,9 +28060,9 @@ msgid "error dumping %s (%d) interface"
 msgstr "%s (%d) ഒന്നിച്ചെടുക്കുന്നതില്‍ പിശക്"
 
 #: src/util/virnetdev.c:2047 src/util/virnetdev.c:2169
-#: src/util/virnetdevbridge.c:466 src/util/virnetdevbridge.c:1116
+#: src/util/virnetdevbridge.c:502 src/util/virnetdevbridge.c:1165
 #: src/util/virnetdevmacvlan.c:203 src/util/virnetdevvportprofile.c:763
-#: src/util/virnetlink.c:351 src/util/virnetlink.c:396
+#: src/util/virnetlink.c:359 src/util/virnetlink.c:404
 msgid "malformed netlink response message"
 msgstr "നെറ്റ്ലിങ്ക് സന്ദേശ മറുപടി malformed ആണു്"
 
@@ -28242,88 +28237,88 @@ msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ വിര്‍ച്ച�
 msgid "Unable to set bridge port unicast_flood on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ വിര്‍ച്ച്വല്‍ ഫങ്ഷനുകള്‍ കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdevbridge.c:446
-#, fuzzy, c-format
-msgid "error creating bridge interface %s"
-msgstr "ബ്രിഡ്ജ് ഇന്റര്‍ഫെയിസ് %s ആരംഭിക്കുന്നതില്‍ പരാജയം"
-
-#: src/util/virnetdevbridge.c:484 src/util/virnetdevbridge.c:522
+#: src/util/virnetdevbridge.c:409 src/util/virnetdevbridge.c:548
 #, c-format
 msgid "Unable to create bridge %s"
 msgstr "%s എന്ന ബ്രിഡ്ജ് ഉണ്ടാക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/util/virnetdevbridge.c:506
+#: src/util/virnetdevbridge.c:482
+#, fuzzy, c-format
+msgid "error creating bridge interface %s"
+msgstr "ബ്രിഡ്ജ് ഇന്റര്‍ഫെയിസ് %s ആരംഭിക്കുന്നതില്‍ പരാജയം"
+
+#: src/util/virnetdevbridge.c:532
 msgid "Unable to create bridge device"
 msgstr "ബ്രിഡ്ജ് ഡിവൈസ് തയ്യാറാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdevbridge.c:554 src/util/virnetdevbridge.c:590
+#: src/util/virnetdevbridge.c:575 src/util/virnetdevbridge.c:639
 #, c-format
 msgid "Unable to delete bridge %s"
 msgstr "%s എന്ന ബ്രിഡ്ജ് നീക്കം ചെയ്യാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdevbridge.c:576
+#: src/util/virnetdevbridge.c:625
 #, c-format
 msgid "Unable to remove bridge %s"
 msgstr "ബ്രിഡ്ജ് %s നീക്കം ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdevbridge.c:617 src/util/virnetdevbridge.c:686
+#: src/util/virnetdevbridge.c:666 src/util/virnetdevbridge.c:735
 #, c-format
 msgid "Unable to get interface index for %s"
 msgstr "%s-നുള്ള സമ്പര്‍ക്കമുഖസൂചിക ലഭ്യമല്ല"
 
-#: src/util/virnetdevbridge.c:623 src/util/virnetdevbridge.c:648
-#: src/util/virnetdevbridge.c:659
+#: src/util/virnetdevbridge.c:672 src/util/virnetdevbridge.c:697
+#: src/util/virnetdevbridge.c:708
 #, c-format
 msgid "Unable to add bridge %s port %s"
 msgstr "ബ്രിഡ്ജ് %s പോര്‍ട്ട് %s ചേര്‍ക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/util/virnetdevbridge.c:693 src/util/virnetdevbridge.c:718
-#: src/util/virnetdevbridge.c:729
+#: src/util/virnetdevbridge.c:742 src/util/virnetdevbridge.c:767
+#: src/util/virnetdevbridge.c:778
 #, c-format
 msgid "Unable to remove bridge %s port %s"
 msgstr "ബ്രിഡ്ജ് %s പോര്‍ട്ട് %s നീക്കംചെയ്യുവാന്‍ സാധ്യമായില്ല"
 
-#: src/util/virnetdevbridge.c:868
+#: src/util/virnetdevbridge.c:917
 #, c-format
 msgid "Unable to set STP delay on %s"
 msgstr "%s-ല്‍ എസ്‌ടിപി താമസം സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdevbridge.c:878 src/util/virnetdevbridge.c:912
+#: src/util/virnetdevbridge.c:927 src/util/virnetdevbridge.c:961
 #, c-format
 msgid "Unable to get STP delay on %s on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ %s ല്‍ എസ്‌ടിപി ഡിലേ എത്രയെന്നു് കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdevbridge.c:895 src/util/virnetdevbridge.c:930
+#: src/util/virnetdevbridge.c:944 src/util/virnetdevbridge.c:979
 #, c-format
 msgid "Unable to get STP on %s on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ %s ല്‍ എസ്‌ടിപി എത്രയെന്നു് കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdevbridge.c:904
+#: src/util/virnetdevbridge.c:953
 #, c-format
 msgid "Unable to set STP delay on %s on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ %s ല്‍ എസ്‌ടിപി ഡിലേ എത്രയെന്നു് പറയാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdevbridge.c:922
+#: src/util/virnetdevbridge.c:971
 #, c-format
 msgid "Unable to set STP on %s on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ %s ല്‍ എസ്‌ടിപി എത്രയെന്നു് പറയാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdevbridge.c:988
+#: src/util/virnetdevbridge.c:1037
 #, fuzzy
 msgid "Unable to get bridge vlan_filtering on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ സമ്പര്‍ക്കമുഖങ്ങളുടെ സൂചിക കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdevbridge.c:998
+#: src/util/virnetdevbridge.c:1047
 #, fuzzy
 msgid "Unable to set bridge vlan_filtering on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ സമ്പര്‍ക്കമുഖങ്ങളുടെ സൂചിക കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdevbridge.c:1097
+#: src/util/virnetdevbridge.c:1146
 #, fuzzy, c-format
 msgid "error adding fdb entry for %s"
 msgstr "കോണ്‍ഫിഗ് ലിസ്റ്റിലേക്ക് ഫയല്‍ ചേര്‍ക്കുന്നതില്‍ പിശക്"
 
-#: src/util/virnetdevbridge.c:1134
+#: src/util/virnetdevbridge.c:1183
 #, fuzzy
 msgid "Unable to add/delete fdb entries on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ ടാപ് ഉപകരണങ്ങള്‍ നീക്കം ചെയ്യാന്‍ സാധിയ്ക്കുന്നില്ല"
@@ -28604,8 +28599,8 @@ msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ വിര്‍ച്�
 msgid "cannot allocate placeholder nlhandle for netlink"
 msgstr "നെറ്റ്ലിങ്കിനു് വേണ്ടി nlhandle പ്ലേസ്ഹോള്‍ഡര്‍ അനുവദിയ്ക്കാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetlink.c:199 src/util/virnetlink.c:587
-#: src/util/virnetlink.c:636
+#: src/util/virnetlink.c:199 src/util/virnetlink.c:595
+#: src/util/virnetlink.c:644
 #, c-format
 msgid "invalid protocol argument: %d"
 msgstr "അസാധുവായ കീഴ്വഴക്ക ആര്‍ഗ്യുമെന്റ്: %d"
@@ -28614,16 +28609,16 @@ msgstr "അസാധുവായ കീഴ്വഴക്ക ആര്‍ഗ്�
 msgid "cannot allocate nlhandle for netlink"
 msgstr "നെറ്റ്ലിങ്കിനു് nlhandle അനുവദിയ്ക്കാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetlink.c:212 src/util/virnetlink.c:666
+#: src/util/virnetlink.c:212 src/util/virnetlink.c:674
 #, c-format
 msgid "cannot connect to netlink socket with protocol %d"
 msgstr "%d കീഴ്വഴക്കം വച്ചു് നെറ്റ്ലിങ്ക് സോക്കറ്റുമായി ബന്ധപ്പെടാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetlink.c:220 src/util/virnetlink.c:673
+#: src/util/virnetlink.c:220 src/util/virnetlink.c:681
 msgid "cannot get netlink socket fd"
 msgstr "നെറ്റ്ലിങ്ക് സോക്കറ്റ് എഫ്ഡി കാണാന്‍ സാധിയമല്ല"
 
-#: src/util/virnetlink.c:226 src/util/virnetlink.c:679
+#: src/util/virnetlink.c:226 src/util/virnetlink.c:687
 msgid "cannot add netlink membership"
 msgstr "നെറ്റ്ലിങ്ക് അംഗത്വം ചേര്‍ക്കുവാന്‍ സാധ്യമല്ല"
 
@@ -28647,40 +28642,40 @@ msgstr ""
 msgid "nl_recv failed"
 msgstr "nl_recv പരാജയപ്പെട്ടു."
 
-#: src/util/virnetlink.c:330
+#: src/util/virnetlink.c:338
 #, fuzzy, c-format
 msgid "error destroying network device %s"
 msgstr "%s എന്ന സമ്പര്‍ക്കമുഖം നശിപ്പിയ്ക്കുന്നതില്‍ പിശക്"
 
-#: src/util/virnetlink.c:465
+#: src/util/virnetlink.c:473
 msgid "nl_recv returned with error"
 msgstr "nl_recv പിഴവോടെ തിരിച്ചുകിട്ടി"
 
-#: src/util/virnetlink.c:610
+#: src/util/virnetlink.c:618
 msgid "netlink event service not running"
 msgstr "നെറ്റ്ലിങ്ക് ഈവന്റ് സേവനം പ്രവര്‍ത്തിയ്ക്കുന്നില്ല"
 
-#: src/util/virnetlink.c:660
+#: src/util/virnetlink.c:668
 msgid "cannot allocate nlhandle for virNetlinkEvent server"
 msgstr "virNetlinkEvent സെര്‍വറിനു് nlhandle അനുവദിയ്ക്കാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetlink.c:685
+#: src/util/virnetlink.c:693
 msgid "cannot set netlink socket nonblocking"
 msgstr "നെറ്റ്ലിങ്ക് സോക്കറ്റ് ബ്ലോക്ക്ചെയ്യാത്തതായി സജ്ജീകരിയ്ക്കാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetlink.c:694
+#: src/util/virnetlink.c:702
 msgid "Failed to add netlink event handle watch"
 msgstr "നെറ്റ്ലിങ്ക് ഈവന്റ് ഹാന്‍ഡില്‍ വാച്ച് ചേര്‍ക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/util/virnetlink.c:752
+#: src/util/virnetlink.c:760
 msgid "Invalid NULL callback provided"
 msgstr "അസാധുവായ NULL കോള്‍ബാക്കാണു് നല്‍കിയതു്"
 
-#: src/util/virnetlink.c:858
+#: src/util/virnetlink.c:866
 msgid "libnl was not available at build time"
 msgstr "ബില്‍ഡ് സമയത്തു് libnl ലഭ്യമായിരുന്നില്ല"
 
-#: src/util/virnetlink.c:860 src/util/virpci.c:2728
+#: src/util/virnetlink.c:868 src/util/virpci.c:2728
 msgid "not supported on non-linux platforms"
 msgstr "ലിനക്ലല്ലാത്ത പ്ലാറ്റ്ഫോമുകളില്‍ പിന്തുണയില്ല"
 
@@ -29129,94 +29124,94 @@ msgstr "പ്രൊസസ്സിന്റെ സിപിയു അഫിന�
 msgid "Expected at least one file descriptor"
 msgstr "കുറഞ്ഞതു് ഒരു ഫയല്‍ വിവരണം എങ്കിലും പ്രതീക്ഷിച്ചു"
 
-#: src/util/virprocess.c:716
+#: src/util/virprocess.c:719
 msgid "Unable to join domain namespace"
 msgstr "ഡൊമെയിന്‍ മെയിംസ്പെയിസ് ചേരുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:753
+#: src/util/virprocess.c:756
 #, c-format
 msgid "cannot limit locked memory to %llu"
 msgstr "പൂട്ടിയ മെമ്മറിയുടെ പരിധി %llu ആക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:760
+#: src/util/virprocess.c:763
 #, c-format
 msgid "cannot limit locked memory of process %lld to %llu"
 msgstr "%lld പ്രക്രിയയുടെ പൂട്ടിയ മെമ്മറിയുടെ പരിധി %llu ആക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:775 src/util/virprocess.c:816
-#: src/util/virprocess.c:864 src/util/virutil.c:2280 src/util/virutil.c:2289
+#: src/util/virprocess.c:778 src/util/virprocess.c:819
+#: src/util/virprocess.c:867 src/util/virutil.c:2280 src/util/virutil.c:2289
 #: src/util/virutil.c:2297 src/util/virutil.c:2308 src/util/virutil.c:2318
 #: src/util/virutil.c:2326 src/util/virutil.c:2334 src/util/virutil.c:2344
 #: src/util/virutil.c:2353 src/util/virutil.c:2360
 msgid "Not supported on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/util/virprocess.c:794
+#: src/util/virprocess.c:797
 #, c-format
 msgid "cannot limit number of subprocesses to %u"
 msgstr "ഉപപ്രക്രിയകളുടെ എണ്ണത്തിന്റെ പരിധി %u ആക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:801
+#: src/util/virprocess.c:804
 #, c-format
 msgid "cannot limit number of subprocesses of process %lld to %u"
 msgstr "%lld പ്രക്രിയയുടെ ഉപപ്രക്രിയയുടെ എണ്ണത്തിന്റെ പരിധി %u ആക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:842
+#: src/util/virprocess.c:845
 #, c-format
 msgid "cannot limit number of open files to %u"
 msgstr "തുറന്ന ഫയലുകളുടെ എണ്ണത്തിന്റെ പരിധി %u ആക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:849
+#: src/util/virprocess.c:852
 #, c-format
 msgid "cannot limit number of open files of process %lld to %u"
 msgstr "%lld പ്രക്രിയയുടെ തുറന്ന ഫയലുകളുടെ എണ്ണത്തിന്റെ പരിധി %u ആക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:898 src/util/virprocess.c:905
-#: src/util/virprocess.c:914
+#: src/util/virprocess.c:901 src/util/virprocess.c:908
+#: src/util/virprocess.c:917
 #, c-format
 msgid "Cannot find start time in %s"
 msgstr "%s-ല്‍ പ്രാരംഭ സമയം കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:924
+#: src/util/virprocess.c:927
 #, c-format
 msgid "Cannot parse start time %s in %s"
 msgstr "പ്രാരംഭ സമയം %s, %s-ല്‍ പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:952
+#: src/util/virprocess.c:955
 msgid "Unable to query process ID start time"
 msgstr "പ്രക്രിയ ഐഡിയുടെ പ്രാരംഭ സമയം ചോദ്യം ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virprocess.c:990
+#: src/util/virprocess.c:993
 msgid "Kernel does not provide mount namespace"
 msgstr ""
 
-#: src/util/virprocess.c:996
+#: src/util/virprocess.c:999
 msgid "Unable to enter mount namespace"
 msgstr ""
 
-#: src/util/virprocess.c:1032
+#: src/util/virprocess.c:1035
 msgid "Cannot create pipe for child"
 msgstr ""
 
-#: src/util/virprocess.c:1149
+#: src/util/virprocess.c:1152
 msgid "Cannot get minimum scheduler priority value"
 msgstr ""
 
-#: src/util/virprocess.c:1156
+#: src/util/virprocess.c:1159
 msgid "Cannot get maximum scheduler priority value"
 msgstr ""
 
-#: src/util/virprocess.c:1163
+#: src/util/virprocess.c:1166
 #, c-format
 msgid "Scheduler priority %d out of range [%d, %d]"
 msgstr ""
 
-#: src/util/virprocess.c:1173
+#: src/util/virprocess.c:1176
 #, c-format
 msgid "Cannot set scheduler parameters for pid %d"
 msgstr ""
 
-#: src/util/virprocess.c:1192
+#: src/util/virprocess.c:1195
 msgid "Process CPU scheduling is not supported on this platform"
 msgstr ""
 

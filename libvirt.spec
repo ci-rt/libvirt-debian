@@ -378,7 +378,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.2.19
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -387,7 +387,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2330,6 +2330,12 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Wed Sep  2 2015 Daniel Veillard <veillard@redhat.com> - 1.2.19-1
+- Big improvements on ppc64 support
+- New virDomainRename API
+- Support for QEMU new pci emulations
+- a number of improvements and bug fixes
+
 * Mon Aug  3 2015 Daniel Veillard <veillard@redhat.com> - 1.2.18-1
 - libxl: support dom0
 - a number of improvements and bug fixes
