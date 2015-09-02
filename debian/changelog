@@ -1,3 +1,14 @@
+libvirt (1.2.19-1) unstable; urgency=medium
+
+  * [8264435] New upstream version 1.2.19
+  * [0061284] Rediff patches
+  * [4dcd1f0] Drop apparmor-Adjust-path-to-domain-monitor-socket.patch applied
+    upstream
+  * [ec4de6a] Move README.Debian to libvirt-daemon
+    libvirt-bin is a transitional package.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 02 Sep 2015 19:10:03 +0200
+
 libvirt (1.2.19~rc1-1) experimental; urgency=medium
 
   * [6b88e35] New upstream version 1.2.19~rc1
