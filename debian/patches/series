@@ -14,4 +14,3 @@ Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
 Disable-tests-affected-by-broken-libxml2.patch
-apparmor-Adjust-path-to-domain-monitor-socket.patch
