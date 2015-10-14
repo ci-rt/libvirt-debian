@@ -95,12 +95,42 @@ static int disconnected; /* we may have been disconnected */
  * handler, just save the fact it was raised.
  */
 static void
-virshCatchDisconnect(virConnectPtr conn ATTRIBUTE_UNUSED,
+virshCatchDisconnect(virConnectPtr conn,
                      int reason,
-                     void *opaque ATTRIBUTE_UNUSED)
+                     void *opaque)
 {
-    if (reason != VIR_CONNECT_CLOSE_REASON_CLIENT)
+    if (reason != VIR_CONNECT_CLOSE_REASON_CLIENT) {
+        vshControl *ctl = opaque;
+        const char *str = "unknown reason";
+        virErrorPtr error;
+        char *uri;
+
+        error = virSaveLastError();
+        uri = virConnectGetURI(conn);
+
+        switch ((virConnectCloseReason) reason) {
+        case VIR_CONNECT_CLOSE_REASON_ERROR:
+            str = N_("Disconnected from %s due to I/O error");
+            break;
+        case VIR_CONNECT_CLOSE_REASON_EOF:
+            str = N_("Disconnected from %s due to end of file");
+            break;
+        case VIR_CONNECT_CLOSE_REASON_KEEPALIVE:
+            str = N_("Disconnected from %s due to keepalive timeout");
+            break;
+        /* coverity[dead_error_condition] */
+        case VIR_CONNECT_CLOSE_REASON_CLIENT:
+        case VIR_CONNECT_CLOSE_REASON_LAST:
+            break;
+        }
+        vshError(ctl, _(str), NULLSTR(uri));
+
+        if (error) {
+            virSetError(error);
+            virFreeError(error);
+        }
         disconnected++;
+    }
 }
 
 /* Main Function which should be used for connecting.
@@ -347,8 +377,9 @@ virshInit(vshControl *ctl)
     virshControlPtr priv = ctl->privData;
 
     /* Since we have the commandline arguments parsed, we need to
-     * re-initialize all the debugging to make it work properly */
-    vshInitDebug(ctl);
+     * reload our initial settings to make debugging and readline
+     * work properly */
+    vshInitReload(ctl);
 
     if (priv->conn)
         return false;
@@ -786,7 +817,9 @@ virshParseArgv(vshControl *ctl, int argc, char **argv)
         longindex = -1;
     }
 
-    if (argc > optind) {
+    if (argc == optind) {
+        ctl->imode = true;
+    } else {
         /* parse command */
         ctl->imode = false;
         if (argc - optind == 1) {
@@ -846,7 +879,6 @@ main(int argc, char **argv)
     memset(ctl, 0, sizeof(vshControl));
     memset(&virshCtl, 0, sizeof(virshControl));
     ctl->name = "virsh";        /* hardcoded name of the binary */
-    ctl->imode = true;          /* default is interactive mode */
     ctl->log_fd = -1;           /* Initialize log file descriptor */
     ctl->debug = VSH_DEBUG_DEFAULT;
     ctl->hooks = &hooks;
@@ -904,7 +936,7 @@ main(int argc, char **argv)
     if ((defaultConn = virGetEnvBlockSUID("VIRSH_DEFAULT_CONNECT_URI")))
         ctl->connname = vshStrdup(ctl, defaultConn);
 
-    if (vshInit(ctl, cmdGroups, NULL) < 0)
+    if (!vshInit(ctl, cmdGroups, NULL))
         exit(EXIT_FAILURE);
 
     if (!virshParseArgv(ctl, argc, argv) ||

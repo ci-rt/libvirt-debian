@@ -2,7 +2,7 @@
  * vmx.c: VMware VMX parsing/formatting functions
  *
  * Copyright (C) 2010-2014 Red Hat, Inc.
- * Copyright (C) 2009-2010 Matthias Bolte <matthias.bolte@googlemail.com>
+ * Copyright (C) 2009-2011, 2014-2015 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -523,10 +523,11 @@ VIR_ENUM_IMPL(virVMXControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Helpers
  */
+
 static int
-vmxDomainDefPostParse(virDomainDefPtr def,
-                      virCapsPtr caps ATTRIBUTE_UNUSED,
-                      void *opaque ATTRIBUTE_UNUSED)
+virVMXDomainDefPostParse(virDomainDefPtr def,
+                         virCapsPtr caps ATTRIBUTE_UNUSED,
+                         void *opaque ATTRIBUTE_UNUSED)
 {
     /* memory hotplug tunables are not supported by this driver */
     if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
@@ -536,27 +537,60 @@ vmxDomainDefPostParse(virDomainDefPtr def,
 }
 
 static int
-vmxDomainDeviceDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
-                            const virDomainDef *def ATTRIBUTE_UNUSED,
-                            virCapsPtr caps ATTRIBUTE_UNUSED,
-                            void *opaque ATTRIBUTE_UNUSED)
+virVMXDomainDevicesDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                                const virDomainDef *def ATTRIBUTE_UNUSED,
+                                virCapsPtr caps ATTRIBUTE_UNUSED,
+                                void *opaque ATTRIBUTE_UNUSED)
 {
     return 0;
 }
 
-virDomainDefParserConfig virVMXDomainDefParserConfig = {
+static virDomainDefParserConfig virVMXDomainDefParserConfig = {
     .hasWideSCSIBus = true,
     .macPrefix = {0x00, 0x0c, 0x29},
-    .devicesPostParseCallback = vmxDomainDeviceDefPostParse,
-    .domainPostParseCallback = vmxDomainDefPostParse,
+    .devicesPostParseCallback = virVMXDomainDevicesDefPostParse,
+    .domainPostParseCallback = virVMXDomainDefPostParse,
 };
 
+static void
+virVMXDomainDefNamespaceFree(void *nsdata)
+{
+    VIR_FREE(nsdata);
+}
+
+static int
+virVMXDomainDefNamespaceFormatXML(virBufferPtr buf, void *nsdata)
+{
+    const char *datacenterPath = nsdata;
+
+    if (!datacenterPath)
+        return 0;
+
+    virBufferAddLit(buf, "<vmware:datacenterpath>");
+    virBufferEscapeString(buf, "%s", datacenterPath);
+    virBufferAddLit(buf, "</vmware:datacenterpath>\n");
+
+    return 0;
+}
+
+static const char *
+virVMXDomainDefNamespaceHref(void)
+{
+    return "xmlns:vmware='http://libvirt.org/schemas/domain/vmware/1.0'";
+}
+
+static virDomainXMLNamespace virVMXDomainXMLNamespace = {
+    .parse = NULL,
+    .free = virVMXDomainDefNamespaceFree,
+    .format = virVMXDomainDefNamespaceFormatXML,
+    .href = virVMXDomainDefNamespaceHref,
+};
 
 virDomainXMLOptionPtr
 virVMXDomainXMLConfInit(void)
 {
-    return virDomainXMLOptionNew(&virVMXDomainDefParserConfig,
-                               NULL, NULL);
+    return virDomainXMLOptionNew(&virVMXDomainDefParserConfig, NULL,
+                                 &virVMXDomainXMLNamespace);
 }
 
 char *
@@ -1268,6 +1302,7 @@ virVMXParseConfig(virVMXContext *ctx,
     bool hgfs_disabled = true;
     long long sharedFolder_maxNum = 0;
     int cpumasklen;
+    char *namespaceData;
 
     if (ctx->parseFileName == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1381,7 +1416,7 @@ virVMXParseConfig(virVMXContext *ctx,
         goto cleanup;
     }
 
-    virDomainDefSetMemoryInitial(def, memsize * 1024); /* Scale from megabytes to kilobytes */
+    virDomainDefSetMemoryTotal(def, memsize * 1024); /* Scale from megabytes to kilobytes */
 
     /* vmx:sched.mem.max -> def:mem.cur_balloon */
     if (virVMXGetConfigLong(conf, "sched.mem.max", &sched_mem_max, memsize,
@@ -1765,6 +1800,15 @@ virVMXParseConfig(virVMXContext *ctx,
 
         if (def->parallels[def->nparallels] != NULL)
             ++def->nparallels;
+    }
+
+    /* ctx:datacenterPath -> def:namespaceData */
+    if (ctx->datacenterPath) {
+        if (VIR_STRDUP(namespaceData, ctx->datacenterPath) < 0)
+            goto cleanup;
+
+        def->ns = *virDomainXMLOptionGetNamespace(xmlopt);
+        def->namespaceData = namespaceData;
     }
 
     success = true;
@@ -2178,34 +2222,35 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                 (*def)->transient = STRCASEEQ(mode,
                                               "independent-nonpersistent");
         } else if (virFileHasSuffix(fileName, ".iso") ||
-                   STRCASEEQ(deviceType, "atapi-cdrom") ||
-                   STRCASEEQ(deviceType, "cdrom-raw")) {
+                   (deviceType &&
+                    (STRCASEEQ(deviceType, "atapi-cdrom") ||
+                     STRCASEEQ(deviceType, "cdrom-raw") ||
+                     (STRCASEEQ(deviceType, "scsi-passthru") &&
+                      STRPREFIX(fileName, "/vmfs/devices/cdrom/"))))) {
             /*
              * This function was called in order to parse a harddisk device,
-             * but .iso files, 'atapi-cdrom', and 'cdrom-raw' devices are for
-             * CDROM devices only. Just ignore it, another call to this
-             * function to parse a CDROM device may handle it.
+             * but .iso files, 'atapi-cdrom', 'cdrom-raw', and 'scsi-passthru'
+             * CDROM devices are for CDROM devices only. Just ignore it, another
+             * call to this function to parse a CDROM device may handle it.
              */
             goto ignore;
         } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Invalid or not yet handled value '%s' "
                              "for VMX entry '%s' for device type '%s'"),
-                             fileName, fileName_name,
-                             deviceType ? deviceType : "unknown");
+                           fileName, fileName_name,
+                           deviceType ? deviceType : "unknown");
             goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
         if (virFileHasSuffix(fileName, ".iso")) {
             char *tmp;
 
-            if (deviceType != NULL) {
-                if (STRCASENEQ(deviceType, "cdrom-image")) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Expecting VMX entry '%s' to be 'cdrom-image' "
-                                     "but found '%s'"), deviceType_name, deviceType);
-                    goto cleanup;
-                }
+            if (deviceType && STRCASENEQ(deviceType, "cdrom-image")) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Expecting VMX entry '%s' to be 'cdrom-image' "
+                                 "but found '%s'"), deviceType_name, deviceType);
+                goto cleanup;
             }
 
             virDomainDiskSetType(*def, VIR_STORAGE_TYPE_FILE);
@@ -2224,7 +2269,7 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
              * handle it.
              */
             goto ignore;
-        } else if (STRCASEEQ(deviceType, "atapi-cdrom")) {
+        } else if (deviceType && STRCASEEQ(deviceType, "atapi-cdrom")) {
             virDomainDiskSetType(*def, VIR_STORAGE_TYPE_BLOCK);
 
             if (STRCASEEQ(fileName, "auto detect")) {
@@ -2233,7 +2278,7 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
             } else if (virDomainDiskSetSource(*def, fileName) < 0) {
                 goto cleanup;
             }
-        } else if (STRCASEEQ(deviceType, "cdrom-raw")) {
+        } else if (deviceType && STRCASEEQ(deviceType, "cdrom-raw")) {
             /* Raw access CD-ROMs actually are device='lun' */
             (*def)->device = VIR_DOMAIN_DISK_DEVICE_LUN;
             virDomainDiskSetType(*def, VIR_STORAGE_TYPE_BLOCK);
@@ -2244,12 +2289,30 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
             } else if (virDomainDiskSetSource(*def, fileName) < 0) {
                 goto cleanup;
             }
+        } else if (busType == VIR_DOMAIN_DISK_BUS_SCSI &&
+                   deviceType && STRCASEEQ(deviceType, "scsi-passthru")) {
+            if (STRPREFIX(fileName, "/vmfs/devices/cdrom/")) {
+                /* SCSI-passthru CD-ROMs actually are device='lun' */
+                (*def)->device = VIR_DOMAIN_DISK_DEVICE_LUN;
+                virDomainDiskSetType(*def, VIR_STORAGE_TYPE_BLOCK);
+
+                if (virDomainDiskSetSource(*def, fileName) < 0)
+                    goto cleanup;
+            } else {
+                /*
+                 * This function was called in order to parse a CDROM device,
+                 * but the filename does not indicate a CDROM device. Just ignore
+                 * it, another call to this function to parse a harddisk device
+                 * may handle it.
+                 */
+                goto ignore;
+            }
         } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Invalid or not yet handled value '%s' "
                              "for VMX entry '%s' for device type '%s'"),
-                             fileName, fileName_name,
-                             deviceType ? deviceType : "unknown");
+                           fileName, fileName_name,
+                           deviceType ? deviceType : "unknown");
             goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
@@ -2272,8 +2335,8 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Invalid or not yet handled value '%s' "
                              "for VMX entry '%s' for device type '%s'"),
-                             fileName, fileName_name,
-                             deviceType ? deviceType : "unknown");
+                           fileName, fileName_name,
+                           deviceType ? deviceType : "unknown");
             goto cleanup;
         }
     } else {
@@ -2545,8 +2608,8 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
             STRCASENEQ(virtualDev, "e1000e")) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
-                             "'vmxnet3' or 'e1000e' or 'e1000e' but found '%s'"), virtualDev_name,
-                           virtualDev);
+                             "'vmxnet3' or 'e1000e' or 'e1000e' but found '%s'"),
+                           virtualDev_name, virtualDev);
             goto cleanup;
         }
 
@@ -3360,7 +3423,7 @@ virVMXFormatVNC(virDomainGraphicsDefPtr def, virBufferPtr buffer)
 
 int
 virVMXFormatDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
-                     virBufferPtr buffer)
+                 virBufferPtr buffer)
 {
     int controllerOrBus, unit;
     const char *vmxDeviceType = NULL;
@@ -3376,7 +3439,7 @@ virVMXFormatDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
      * an ISO.
      */
     const char *fileExt = (def->device == VIR_DOMAIN_DISK_DEVICE_DISK) ?
-                            ".vmdk" : ".iso";
+                           ".vmdk" : ".iso";
 
     /* Check that we got a valid device type */
     if (def->device != VIR_DOMAIN_DISK_DEVICE_DISK &&
@@ -3419,14 +3482,20 @@ virVMXFormatDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
     if (def->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
         type == VIR_STORAGE_TYPE_FILE) {
         vmxDeviceType = (def->bus == VIR_DOMAIN_DISK_BUS_SCSI) ?
-            "scsi-hardDisk" : "ata-hardDisk";
+                        "scsi-hardDisk" : "ata-hardDisk";
     } else if (def->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
         if (type == VIR_STORAGE_TYPE_FILE)
             vmxDeviceType = "cdrom-image";
         else
             vmxDeviceType = "atapi-cdrom";
     } else if (def->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
-        vmxDeviceType = "cdrom-raw";
+        const char *src = virDomainDiskGetSource(def);
+
+        if (def->bus == VIR_DOMAIN_DISK_BUS_SCSI &&
+            src && STRPREFIX(src, "/vmfs/devices/cdrom/"))
+            vmxDeviceType = "scsi-passthru";
+        else
+            vmxDeviceType = "cdrom-raw";
     } else {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("%s %s '%s' has an unsupported type '%s'"),
@@ -3491,6 +3560,7 @@ virVMXFormatDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
         virBufferAsprintf(buffer,
                           "%s%d:%d.mode = \"independent-nonpersistent\"\n",
                           busType, controllerOrBus, unit);
+
     return 0;
 }
 

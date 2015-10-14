@@ -862,6 +862,10 @@ static const vshCmdOptDef opts_attach_interface[] = {
      .type = VSH_OT_BOOL,
      .help = N_("affect current domain")
     },
+    {.name = "print-xml",
+     .type = VSH_OT_BOOL,
+     .help = N_("print XML document rather than attach the interface")
+    },
     {.name = NULL}
 };
 
@@ -921,7 +925,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     int ret;
     bool functionReturn = false;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *xml;
+    char *xml = NULL;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     bool current = vshCommandOptBool(cmd, "current");
     bool config = vshCommandOptBool(cmd, "config");
@@ -936,13 +940,6 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     if (config || persistent)
         flags |= VIR_DOMAIN_AFFECT_CONFIG;
     if (live)
-        flags |= VIR_DOMAIN_AFFECT_LIVE;
-
-    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
-    if (persistent &&
-        virDomainIsActive(dom) == 1)
         flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (vshCommandOptStringReq(ctl, cmd, "type", &type) < 0 ||
@@ -1005,6 +1002,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     case VIR_DOMAIN_NET_TYPE_SERVER:
     case VIR_DOMAIN_NET_TYPE_CLIENT:
     case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_UDP:
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
     case VIR_DOMAIN_NET_TYPE_HOSTDEV:
     case VIR_DOMAIN_NET_TYPE_LAST:
@@ -1050,6 +1048,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         virBufferAddLit(&buf, "</bandwidth>\n");
     }
 
+    virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</interface>\n");
 
     if (virBufferError(&buf)) {
@@ -1059,12 +1058,23 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
 
     xml = virBufferContentAndReset(&buf);
 
+    if (vshCommandOptBool(cmd, "print-xml")) {
+        vshPrint(ctl, "%s", xml);
+        functionReturn = true;
+        goto cleanup;
+    }
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        goto cleanup;
+
+    if (persistent &&
+        virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
     if (flags || current)
         ret = virDomainAttachDeviceFlags(dom, xml, flags);
     else
         ret = virDomainAttachDevice(dom, xml);
-
-    VIR_FREE(xml);
 
     if (ret != 0) {
         vshError(ctl, "%s", _("Failed to attach interface"));
@@ -1074,7 +1084,9 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     }
 
  cleanup:
-    virDomainFree(dom);
+    VIR_FREE(xml);
+    if (dom)
+        virDomainFree(dom);
     virBufferFreeAndReset(&buf);
     return functionReturn;
 }
@@ -1687,10 +1699,6 @@ virshPrintJobProgress(const char *label, unsigned long long remaining,
                       unsigned long long total)
 {
     int progress;
-
-    if (total == 0)
-        /* migration has not been started */
-        return;
 
     if (remaining == 0) {
         /* migration has completed */
@@ -4389,7 +4397,7 @@ virshWatchJob(vshControl *ctl,
             ret = virDomainGetJobInfo(dom, &jobinfo);
             pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
             if (ret == 0) {
-                if (verbose)
+                if (verbose && jobinfo.dataTotal > 0)
                     virshPrintJobProgress(label, jobinfo.dataRemaining,
                                           jobinfo.dataTotal);
 
@@ -11526,6 +11534,7 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
     xmlNodePtr source = NULL;
     char *device_type = NULL;
     char *ret = NULL;
+    char *startupPolicy = NULL;
 
     if (!disk_node)
         return NULL;
@@ -11559,13 +11568,15 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
         goto cleanup;
     }
 
-    if (type == VIRSH_UPDATE_DISK_XML_INSERT && source) {
-        vshError(NULL, _("The disk device '%s' already has media"), target);
-        goto cleanup;
-    }
-
-    /* remove current source */
     if (source) {
+        if (type == VIRSH_UPDATE_DISK_XML_INSERT) {
+            vshError(NULL, _("The disk device '%s' already has media"), target);
+            goto cleanup;
+        }
+
+        startupPolicy = virXMLPropString(source, "startupPolicy");
+
+        /* remove current source */
         xmlUnlinkNode(source);
         xmlFreeNode(source);
         source = NULL;
@@ -11589,6 +11600,8 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
         else
             xmlNewProp(source, BAD_CAST "file", BAD_CAST new_source);
 
+        if (startupPolicy)
+            xmlNewProp(source, BAD_CAST "startupPolicy", BAD_CAST startupPolicy);
         xmlAddChild(disk_node, source);
     }
 
@@ -11599,6 +11612,7 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
 
  cleanup:
     VIR_FREE(device_type);
+    VIR_FREE(startupPolicy);
     return ret;
 }
 

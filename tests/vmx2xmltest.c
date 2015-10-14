@@ -201,6 +201,7 @@ mymain(void)
     ctx.parseFileName = testParseVMXFileName;
     ctx.formatFileName = NULL;
     ctx.autodetectSCSIControllerModel = NULL;
+    ctx.datacenterPath = NULL;
 
     DO_TEST("case-insensitive-1", "case-insensitive-1");
     DO_TEST("case-insensitive-2", "case-insensitive-2");
@@ -221,6 +222,7 @@ mymain(void)
     DO_TEST("cdrom-scsi-device", "cdrom-scsi-device");
     DO_TEST("cdrom-scsi-raw-device", "cdrom-scsi-raw-device");
     DO_TEST("cdrom-scsi-raw-auto-detect", "cdrom-scsi-raw-auto-detect");
+    DO_TEST("cdrom-scsi-passthru", "cdrom-scsi-passthru");
     DO_TEST("cdrom-ide-file", "cdrom-ide-file");
     DO_TEST("cdrom-ide-device", "cdrom-ide-device");
     DO_TEST("cdrom-ide-raw-device", "cdrom-ide-raw-device");
@@ -261,6 +263,7 @@ mymain(void)
     DO_TEST("esx-in-the-wild-4", "esx-in-the-wild-4");
     DO_TEST("esx-in-the-wild-5", "esx-in-the-wild-5");
     DO_TEST("esx-in-the-wild-6", "esx-in-the-wild-6");
+    DO_TEST("esx-in-the-wild-7", "esx-in-the-wild-7");
 
     DO_TEST("gsx-in-the-wild-1", "gsx-in-the-wild-1");
     DO_TEST("gsx-in-the-wild-2", "gsx-in-the-wild-2");
@@ -277,6 +280,10 @@ mymain(void)
     DO_TEST("smbios", "smbios");
 
     DO_TEST("svga", "svga");
+
+    ctx.datacenterPath = "folder1/folder2/datacenter1";
+
+    DO_TEST("datacenterpath", "datacenterpath");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);

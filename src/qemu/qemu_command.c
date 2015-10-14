@@ -285,6 +285,7 @@ static int qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
                                             unsigned int flags)
 {
     virCommandPtr cmd;
+    char *errbuf = NULL, *cmdstr = NULL;
     int pair[2] = { -1, -1 };
 
     if ((flags & ~VIR_NETDEV_TAP_CREATE_VNET_HDR) != VIR_NETDEV_TAP_CREATE_IFUP)
@@ -306,6 +307,8 @@ static int qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
         virCommandAddArgFormat(cmd, "--use-vnet");
     virCommandAddArgFormat(cmd, "--br=%s", brname);
     virCommandAddArgFormat(cmd, "--fd=%d", pair[1]);
+    virCommandSetErrorBuffer(cmd, &errbuf);
+    virCommandDoAsyncIO(cmd);
     virCommandPassFD(cmd, pair[1],
                      VIR_COMMAND_PASS_FD_CLOSE_PARENT);
     virCommandClearCaps(cmd);
@@ -320,9 +323,24 @@ static int qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
     do {
         *tapfd = recvfd(pair[0], 0);
     } while (*tapfd < 0 && errno == EINTR);
+
     if (*tapfd < 0) {
-        virReportSystemError(errno, "%s",
-                             _("failed to retrieve file descriptor for interface"));
+        char ebuf[1024];
+        char *errstr = NULL;
+
+        if (!(cmdstr = virCommandToString(cmd)))
+            goto cleanup;
+        virCommandAbort(cmd);
+
+        if (errbuf && *errbuf &&
+            virAsprintf(&errstr, "\nstderr=%s", errbuf) < 0)
+            goto cleanup;
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+            _("%s: failed to communicate with bridge helper: %s%s"),
+            cmdstr, virStrerror(errno, ebuf, sizeof(ebuf)),
+            errstr ? errstr : "");
+        VIR_FREE(errstr);
         goto cleanup;
     }
 
@@ -333,6 +351,8 @@ static int qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
     }
 
  cleanup:
+    VIR_FREE(cmdstr);
+    VIR_FREE(errbuf);
     virCommandFree(cmd);
     VIR_FORCE_CLOSE(pair[0]);
     return *tapfd < 0 ? -1 : 0;
@@ -1342,7 +1362,7 @@ qemuDomainAssignS390Addresses(virDomainDefPtr def,
     virDomainCCWAddressSetPtr addrs = NULL;
     qemuDomainObjPrivatePtr priv = NULL;
 
-    if (STREQLEN(def->os.machine, "s390-ccw", 8) &&
+    if (qemuDomainMachineIsS390CCW(def) &&
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
         qemuDomainPrimeVirtioDeviceAddresses(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW);
@@ -1864,7 +1884,7 @@ qemuDomainReleaseDeviceAddress(virDomainObjPtr vm,
         devstr = info->alias;
 
     if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
-        STREQLEN(vm->def->os.machine, "s390-ccw", 8) &&
+        qemuDomainMachineIsS390CCW(vm->def) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW) &&
         virDomainCCWAddressReleaseAddr(priv->ccwaddrs, info) < 0)
         VIR_WARN("Unable to release CCW address on %s",
@@ -2241,7 +2261,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
                 virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
                 goto cleanup;
 
-            if (qemuAssignDevicePCISlots(def, addrs) < 0)
+            if (qemuAssignDevicePCISlots(def, qemuCaps, addrs) < 0)
                 goto cleanup;
 
             for (i = 1; i < addrs->nbuses; i++) {
@@ -2274,7 +2294,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
             if (qemuValidateDevicePCISlotsChipsets(def, qemuCaps, addrs) < 0)
                 goto cleanup;
 
-            if (qemuAssignDevicePCISlots(def, addrs) < 0)
+            if (qemuAssignDevicePCISlots(def, qemuCaps, addrs) < 0)
                 goto cleanup;
 
             for (i = 0; i < def->ncontrollers; i++) {
@@ -2406,6 +2426,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
  */
 int
 qemuAssignDevicePCISlots(virDomainDefPtr def,
+                         virQEMUCapsPtr qemuCaps,
                          virDomainPCIAddressSetPtr addrs)
 {
     size_t i, j;
@@ -2596,6 +2617,12 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
             VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390 ||
             def->disks[i]->info.type ==
             VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
+            continue;
+
+        /* Also ignore virtio-mmio disks if our machine allows them */
+        if (def->disks[i]->info.type ==
+            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO &&
+            virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_MMIO))
             continue;
 
         if (def->disks[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
@@ -3585,6 +3612,46 @@ qemuCheckDiskConfig(virDomainDiskDefPtr disk)
 }
 
 
+/* Check whether the device address is using either 'ccw' or default s390
+ * address format and whether that's "legal" for the current qemu and/or
+ * guest os.machine type. This is the corollary to the code which doesn't
+ * find the address type set using an emulator that supports either 'ccw'
+ * or s390 and sets the address type based on the capabilities.
+ *
+ * If the address is using 'ccw' or s390 and it's not supported, generate
+ * an error and return false; otherwise, return true.
+ */
+bool
+qemuCheckCCWS390AddressSupport(virDomainDefPtr def,
+                               virDomainDeviceInfo info,
+                               virQEMUCapsPtr qemuCaps,
+                               const char *devicename)
+{
+    if (info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+        if (!qemuDomainMachineIsS390CCW(def)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("cannot use CCW address type for device "
+                             "'%s' using machine type '%s'"),
+                       devicename, def->os.machine);
+            return false;
+        } else if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("CCW address type is not supported by "
+                             "this QEMU"));
+            return false;
+        }
+    } else if (info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("virtio S390 address type is not supported by "
+                             "this QEMU"));
+            return false;
+        }
+    }
+    return true;
+}
+
+
 /* Qemu 1.2 and later have a binary flag -enable-fips that must be
  * used for VNC auth to obey FIPS settings; but the flag only
  * exists on Linux, and with no way to probe for it via QMP.  Our
@@ -4138,6 +4205,9 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
         }
     }
 
+    if (!qemuCheckCCWS390AddressSupport(def, disk->info, qemuCaps, disk->dst))
+        goto error;
+
     if (disk->iothread && !qemuCheckIOThreads(def, qemuCaps, disk))
         goto error;
 
@@ -4591,6 +4661,10 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int model = def->model;
     const char *modelName = NULL;
+
+    if (!qemuCheckCCWS390AddressSupport(domainDef, def->info, qemuCaps,
+                                        "controller"))
+        return NULL;
 
     if (def->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
         if ((qemuSetSCSIControllerModel(domainDef, qemuCaps, &model)) < 0)
@@ -5591,6 +5665,16 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
                          type_sep,
                          net->data.socket.address,
                          net->data.socket.port);
+       type_sep = ',';
+       break;
+
+    case VIR_DOMAIN_NET_TYPE_UDP:
+       virBufferAsprintf(&buf, "socket%cudp=%s:%d,localaddr=%s:%d",
+                         type_sep,
+                         net->data.socket.address,
+                         net->data.socket.port,
+                         net->data.socket.localaddr,
+                         net->data.socket.localport);
        type_sep = ',';
        break;
 
@@ -6873,6 +6957,10 @@ qemuBuildRNGDevStr(virDomainDefPtr def,
                        virDomainRNGModelTypeToString(dev->model));
         goto error;
     }
+
+    if (!qemuCheckCCWS390AddressSupport(def, dev->info, qemuCaps,
+                                        dev->source.file))
+        goto error;
 
     if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
         virBufferAsprintf(&buf, "virtio-rng-ccw,rng=obj%s,id=%s",
@@ -8667,6 +8755,7 @@ qemuBuildInterfaceCommandLine(virCommandPtr cmd,
     case VIR_DOMAIN_NET_TYPE_SERVER:
     case VIR_DOMAIN_NET_TYPE_CLIENT:
     case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_UDP:
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
     case VIR_DOMAIN_NET_TYPE_HOSTDEV:
     case VIR_DOMAIN_NET_TYPE_LAST:
@@ -9229,12 +9318,13 @@ qemuBuildCommandLine(virConnectPtr conn,
     if (qemuBuildDomainLoaderCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuDomainAlignMemorySizes(def) < 0)
+    if (!migrateFrom && !snapshot &&
+        qemuDomainAlignMemorySizes(def) < 0)
         goto error;
 
     virCommandAddArg(cmd, "-m");
 
-    if (def->mem.max_memory) {
+    if (virDomainDefHasMemoryHotplug(def)) {
         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PC_DIMM)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("memory hotplug isn't supported by this QEMU binary"));
@@ -12921,7 +13011,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
 
     def->id = -1;
     def->mem.cur_balloon = 64 * 1024;
-    virDomainDefSetMemoryInitial(def, def->mem.cur_balloon);
+    virDomainDefSetMemoryTotal(def, def->mem.cur_balloon);
     def->maxvcpus = 1;
     def->vcpus = 1;
     def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_UTC;
@@ -13127,7 +13217,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
                                _("cannot parse memory level '%s'"), val);
                 goto error;
             }
-            virDomainDefSetMemoryInitial(def, mem * 1024);
+            virDomainDefSetMemoryTotal(def, mem * 1024);
             def->mem.cur_balloon = mem * 1024;
         } else if (STREQ(arg, "-smp")) {
             WANT_VALUE();
@@ -13869,7 +13959,8 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
     if (virDomainDefAddImplicitControllers(def) < 0)
         goto error;
 
-    if (virDomainDefPostParse(def, qemuCaps, xmlopt) < 0)
+    if (virDomainDefPostParse(def, qemuCaps, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,
+                              xmlopt) < 0)
         goto error;
 
     if (cmd->num_args || cmd->num_env) {

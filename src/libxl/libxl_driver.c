@@ -553,7 +553,7 @@ libxlAddDom0(libxlDriverPrivatePtr driver)
     vm->def->vcpus = d_info.vcpu_online;
     vm->def->maxvcpus = d_info.vcpu_max_id + 1;
     vm->def->mem.cur_balloon = d_info.current_memkb;
-    vm->def->mem.max_balloon = d_info.max_memkb;
+    virDomainDefSetMemoryTotal(vm->def, d_info.max_memkb);
 
     ret = 0;
 
@@ -974,6 +974,7 @@ libxlDomainCreateXML(virConnectPtr conn, const char *xml,
 
     if (!(vm = virDomainObjListAdd(driver->domains, def,
                                    driver->xmlopt,
+                                   VIR_DOMAIN_OBJ_LIST_ADD_LIVE |
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
         goto cleanup;
@@ -992,6 +993,7 @@ libxlDomainCreateXML(virConnectPtr conn, const char *xml,
         if (!vm->persistent) {
             virDomainObjListRemove(driver->domains, vm);
             vm = NULL;
+            goto cleanup;
         }
         goto endjob;
     }
@@ -1497,7 +1499,7 @@ libxlDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
         if (flags & VIR_DOMAIN_MEM_CONFIG) {
             /* Help clang 2.8 decipher the logic flow.  */
             sa_assert(persistentDef);
-            virDomainDefSetMemoryInitial(persistentDef, newmem);
+            virDomainDefSetMemoryTotal(persistentDef, newmem);
             if (persistentDef->mem.cur_balloon > newmem)
                 persistentDef->mem.cur_balloon = newmem;
             ret = virDomainSaveConfig(cfg->configDir, persistentDef);
@@ -3311,6 +3313,7 @@ libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
 
             if (virDomainHostdevInsert(vmdef, hostdev) < 0)
                 return -1;
+            dev->data.hostdev = NULL;
             break;
 
         default:

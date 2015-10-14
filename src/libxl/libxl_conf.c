@@ -1177,6 +1177,7 @@ libxlMakeNic(virDomainDefPtr def,
         case VIR_DOMAIN_NET_TYPE_SERVER:
         case VIR_DOMAIN_NET_TYPE_CLIENT:
         case VIR_DOMAIN_NET_TYPE_MCAST:
+        case VIR_DOMAIN_NET_TYPE_UDP:
         case VIR_DOMAIN_NET_TYPE_INTERNAL:
         case VIR_DOMAIN_NET_TYPE_DIRECT:
         case VIR_DOMAIN_NET_TYPE_HOSTDEV:
@@ -1495,6 +1496,7 @@ libxlDriverConfigNew(void)
 {
     libxlDriverConfigPtr cfg;
     char *log_file = NULL;
+    xentoollog_level log_level = XTL_DEBUG;
     char ebuf[1024];
     unsigned int free_mem;
 
@@ -1539,9 +1541,24 @@ libxlDriverConfigNew(void)
     }
     VIR_FREE(log_file);
 
+    switch (virLogGetDefaultPriority()) {
+    case VIR_LOG_DEBUG:
+        log_level = XTL_DEBUG;
+        break;
+    case VIR_LOG_INFO:
+        log_level = XTL_INFO;
+        break;
+    case VIR_LOG_WARN:
+        log_level = XTL_WARN;
+        break;
+    case VIR_LOG_ERROR:
+        log_level = XTL_ERROR;
+        break;
+    }
+
     cfg->logger =
         (xentoollog_logger *)xtl_createlogger_stdiostream(cfg->logger_file,
-                                      XTL_DEBUG, XTL_STDIOSTREAM_SHOW_DATE);
+                                      log_level, XTL_STDIOSTREAM_SHOW_DATE);
     if (!cfg->logger) {
         VIR_ERROR(_("cannot create logger for libxenlight, disabling driver"));
         goto error;

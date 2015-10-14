@@ -411,6 +411,13 @@ int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                                  bool force_probe,
                                  bool report_broken);
 
+bool qemuDomainDiskSourceDiffers(virConnectPtr conn,
+                                 virDomainDiskDefPtr disk,
+                                 virDomainDiskDefPtr origDisk);
+
+bool qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
+                                   virDomainDiskDefPtr orig_disk);
+
 int qemuDomainStorageFileInit(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virStorageSourcePtr src);
@@ -462,13 +469,15 @@ bool qemuDomainHasBlockjob(virDomainObjPtr vm, bool copy_only)
     ATTRIBUTE_NONNULL(1);
 
 int qemuDomainAlignMemorySizes(virDomainDefPtr def);
-void qemuDomainMemoryDeviceAlignSize(virDomainMemoryDefPtr mem);
+void qemuDomainMemoryDeviceAlignSize(virDomainDefPtr def,
+                                     virDomainMemoryDefPtr mem);
 
 virDomainChrSourceDefPtr qemuFindAgentConfig(virDomainDefPtr def);
 
 bool qemuDomainMachineIsQ35(const virDomainDef *def);
 bool qemuDomainMachineIsI440FX(const virDomainDef *def);
 bool qemuDomainMachineNeedsFDC(const virDomainDef *def);
+bool qemuDomainMachineIsS390CCW(const virDomainDef *def);
 
 int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
                                       virDomainObjPtr vm);

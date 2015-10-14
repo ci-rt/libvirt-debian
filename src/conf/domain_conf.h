@@ -209,6 +209,7 @@ struct _virDomainDeviceDef {
 /* Different types of hypervisor */
 /* NB: Keep in sync with virDomainVirtTypeToString impl */
 typedef enum {
+    VIR_DOMAIN_VIRT_NONE = 0,
     VIR_DOMAIN_VIRT_QEMU,
     VIR_DOMAIN_VIRT_KQEMU,
     VIR_DOMAIN_VIRT_KVM,
@@ -923,6 +924,7 @@ typedef enum {
     VIR_DOMAIN_NET_TYPE_INTERNAL,
     VIR_DOMAIN_NET_TYPE_DIRECT,
     VIR_DOMAIN_NET_TYPE_HOSTDEV,
+    VIR_DOMAIN_NET_TYPE_UDP,
 
     VIR_DOMAIN_NET_TYPE_LAST
 } virDomainNetType;
@@ -1025,6 +1027,8 @@ struct _virDomainNetDef {
         struct {
             char *address;
             int port;
+            char *localaddr;
+            int localport;
         } socket; /* any of NET_CLIENT or NET_SERVER or NET_MCAST */
         struct {
             char *name;
@@ -2139,8 +2143,11 @@ typedef struct _virDomainMemtune virDomainMemtune;
 typedef virDomainMemtune *virDomainMemtunePtr;
 
 struct _virDomainMemtune {
-    unsigned long long max_balloon; /* in kibibytes, capped at ulong thanks
-                                       to virDomainGetMaxMemory */
+    /* total memory size including memory modules in kibibytes, this field
+     * should be accessed only via accessors */
+    unsigned long long total_memory;
+    /* initial memory size in kibibytes = total_memory excluding memory modules*/
+    unsigned long long initial_memory;
     unsigned long long cur_balloon; /* in kibibytes, capped at ulong thanks
                                        to virDomainGetInfo */
 
@@ -2185,7 +2192,7 @@ struct _virDomainKeyWrapDef {
 typedef struct _virDomainDef virDomainDef;
 typedef virDomainDef *virDomainDefPtr;
 struct _virDomainDef {
-    int virtType;
+    virDomainVirtType virtType;
     int id;
     unsigned char uuid[VIR_UUID_BUFLEN];
     char *name;
@@ -2319,8 +2326,10 @@ struct _virDomainDef {
 };
 
 unsigned long long virDomainDefGetMemoryInitial(virDomainDefPtr def);
+void virDomainDefSetMemoryTotal(virDomainDefPtr def, unsigned long long size);
 void virDomainDefSetMemoryInitial(virDomainDefPtr def, unsigned long long size);
 unsigned long long virDomainDefGetMemoryActual(virDomainDefPtr def);
+bool virDomainDefHasMemoryHotplug(const virDomainDef *def);
 
 typedef enum {
     VIR_DOMAIN_KEY_WRAP_CIPHER_NAME_AES,
@@ -2451,6 +2460,7 @@ virDomainXMLOptionGetNamespace(virDomainXMLOptionPtr xmlopt)
 int
 virDomainDefPostParse(virDomainDefPtr def,
                       virCapsPtr caps,
+                      unsigned int parseFlags,
                       virDomainXMLOptionPtr xmlopt);
 
 static inline bool
@@ -2509,8 +2519,6 @@ int virDomainDeviceFindControllerModel(virDomainDefPtr def,
 virDomainDiskDefPtr virDomainDiskFindByBusAndDst(virDomainDefPtr def,
                                                  int bus,
                                                  char *dst);
-bool virDomainDiskDiffersSourceOnly(virDomainDiskDefPtr disk,
-                                    virDomainDiskDefPtr orig_disk);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainActualNetDefFree(virDomainActualNetDefPtr def);
@@ -2630,21 +2638,28 @@ void virDomainObjListRemoveLocked(virDomainObjListPtr doms,
 typedef enum {
     /* parse internal domain status information */
     VIR_DOMAIN_DEF_PARSE_STATUS          = 1 << 0,
+    /* Parse only parts of the XML that would be present in an inactive libvirt
+     * XML. Note that the flag does not imply that ABI incompatible
+     * transformations can be used, since it's used to strip runtime info when
+     * restoring save images/migration. */
     VIR_DOMAIN_DEF_PARSE_INACTIVE        = 1 << 1,
     /* parse <actual> element */
     VIR_DOMAIN_DEF_PARSE_ACTUAL_NET      = 1 << 2,
     /* parse original states of host PCI device */
     VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES = 1 << 3,
+    /* internal flag passed to device info sub-parser to allow using <rom> */
     VIR_DOMAIN_DEF_PARSE_ALLOW_ROM       = 1 << 4,
+    /* internal flag passed to device info sub-parser to allow specifying boot order */
     VIR_DOMAIN_DEF_PARSE_ALLOW_BOOT      = 1 << 5,
-    VIR_DOMAIN_DEF_PARSE_CLOCK_ADJUST    = 1 << 6,
     /* parse only source half of <disk> */
-    VIR_DOMAIN_DEF_PARSE_DISK_SOURCE     = 1 << 7,
-    VIR_DOMAIN_DEF_PARSE_VALIDATE        = 1 << 8,
+    VIR_DOMAIN_DEF_PARSE_DISK_SOURCE     = 1 << 6,
+    /* perform RNG schema validation on the passed XML document */
+    VIR_DOMAIN_DEF_PARSE_VALIDATE        = 1 << 7,
     /* don't validate os.type and arch against capabilities. Prevents
-     * VMs from disappearing when qemu is removed and libvirtd is restarted
-     */
-    VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS = 1 << 9,
+     * VMs from disappearing when qemu is removed and libvirtd is restarted */
+    VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS = 1 << 8,
+    /* allow updates in post parse callback that would break ABI otherwise */
+    VIR_DOMAIN_DEF_PARSE_ABI_UPDATE = 1 << 9,
 } virDomainDefParseFlags;
 
 typedef enum {

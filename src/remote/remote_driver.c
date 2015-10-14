@@ -546,10 +546,6 @@ remoteClientCloseFunc(virNetClientPtr client ATTRIBUTE_UNUSED,
         cbdata->freeCallback = NULL;
     }
     virObjectUnlock(cbdata);
-
-    /* free the connection reference that comes along with the callback
-     * registration */
-    virObjectUnref(cbdata->conn);
 }
 
 /* helper macro to ease extraction of arguments from the URI */
@@ -8038,6 +8034,47 @@ remoteDomainInterfaceAddresses(virDomainPtr dom,
              (char *) &ret);
  done:
     remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+static int
+remoteDomainRename(virDomainPtr dom, const char *new_name, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_rename_args args;
+    remote_domain_rename_ret ret;
+    char *tmp = NULL;
+
+    if (VIR_STRDUP(tmp, new_name) < 0)
+        return -1;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.new_name = new_name ? (char **)&new_name : NULL;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_RENAME,
+             (xdrproc_t)xdr_remote_domain_rename_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_rename_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.retcode;
+
+    if (rv == 0) {
+        VIR_FREE(dom->name);
+        dom->name = tmp;
+        tmp = NULL;
+    }
+
+ done:
+    remoteDriverUnlock(priv);
+    VIR_FREE(tmp);
     return rv;
 }
 

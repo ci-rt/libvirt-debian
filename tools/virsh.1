@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-08-21" "libvirt-1.2.19" "Virtualization Support"
+.TH VIRSH 1 "2015-09-28" "libvirt-1.2.20" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -2394,8 +2394,8 @@ on the hypervisor driver.
 For compatibility purposes, \fI\-\-persistent\fR behaves like \fI\-\-config\fR for
 an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain.
 Likewise, \fI\-\-shareable\fR is an alias for \fI\-\-mode shareable\fR.
-.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-inbound average,peak,burst,floor\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
-.IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--inbound average,peak,burst,floor] [--outbound average,peak,burst]"
+.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-inbound average,peak,burst,floor\fR] [\fI\-\-outbound average,peak,burst\fR] [\fI\-\-print\-xml\fR]" 4
+.IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--inbound average,peak,burst,floor] [--outbound average,peak,burst] [--print-xml]"
 Attach a new network interface to the domain.  \fItype\fR can be
 \&\fInetwork\fR to indicate connection via a libvirt virtual network, or
 \&\fIbridge\fR to indicate connection via a bridge device on the host, or
@@ -2423,6 +2423,9 @@ are expressed in kilobytes per second, while \fIburst\fR is expressed in
 kilobytes in a single burst at \fIpeak\fR speed as described in the
 Network \s-1XML\s0 documentation at
 <http://libvirt.org/formatnetwork.html#elementQoS>.
+.Sp
+If \fI\-\-print\-xml\fR is specified, then the \s-1XML\s0 of the interface that would be
+attached is printed instead.
 .Sp
 If \fI\-\-live\fR is specified, affect a running domain.
 If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.

@@ -249,6 +249,8 @@
                       </li><li>
                         <a href="#elementsNICSTCP">TCP tunnel</a>
                       </li><li>
+                        <a href="#elementsNICSUDP">UDP unicast tunnel</a>
+                      </li><li>
                         <a href="#elementsNICSModel">Setting the NIC model</a>
                       </li><li>
                         <a href="#elementsDriverBackendOptions">Setting NIC driver-specific options</a>
@@ -3809,6 +3811,30 @@
     &lt;interface type='client'&gt;
       &lt;mac address='52:54:00:8b:c9:51'/&gt;
       &lt;source address='192.168.0.1' port='5558'/&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <h5>
+          <a name="elementsNICSUDP" shape="rect" id="elementsNICSUDP">UDP unicast tunnel</a>
+          <a class="headerlink" href="#elementsNICSUDP" title="Permalink to this headline">¶</a>
+        </h5>
+        <p>
+    A UDP unicast architecture provides a virtual network which enables
+    connections between QEMU instances using QEMU's UDP infrastructure.
+
+    The xml "source" address is the endpoint address to which the UDP socket
+    packets will be sent from the host running QEMU.
+    The xml "local" address is the address of the interface from which the
+    UDP socket packets will originate from the QEMU host.
+    <span class="since">Since 1.2.20</span></p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;interface type='udp'&gt;
+      &lt;mac address='52:54:00:22:c9:42'/&gt;
+      &lt;source address='127.0.0.1' port='11115'&gt;
+        &lt;local address='127.0.0.1' port='11116'/&gt;
+      &lt;/source&gt;
     &lt;/interface&gt;
   &lt;/devices&gt;
   ...</pre>

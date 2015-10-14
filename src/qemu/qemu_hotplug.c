@@ -321,16 +321,21 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *devstr = NULL;
     char *drivestr = NULL;
+    char *drivealias = NULL;
     bool releaseaddr = false;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     const char *src = virDomainDiskGetSource(disk);
 
     if (!disk->info.type) {
-        if (STREQLEN(vm->def->os.machine, "s390-ccw", 8) &&
+        if (qemuDomainMachineIsS390CCW(vm->def) &&
             virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW))
             disk->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
         else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
             disk->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
+    } else {
+        if (!qemuCheckCCWS390AddressSupport(vm->def, disk->info, priv->qemuCaps,
+                                            disk->dst))
+            goto cleanup;
     }
 
     for (i = 0; i < vm->def->ndisks; i++) {
@@ -361,6 +366,9 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
         if (!(drivestr = qemuBuildDriveStr(conn, disk, false, priv->qemuCaps)))
             goto error;
 
+        if (!(drivealias = qemuDeviceDriveHostAlias(disk, priv->qemuCaps)))
+            goto error;
+
         if (!(devstr = qemuBuildDriveDevStr(vm->def, disk, 0, priv->qemuCaps)))
             goto error;
     }
@@ -375,10 +383,11 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
             ret = qemuMonitorAddDevice(priv->mon, devstr);
             if (ret < 0) {
                 virErrorPtr orig_err = virSaveLastError();
-                if (qemuMonitorDriveDel(priv->mon, drivestr) < 0) {
+                if (!drivealias ||
+                    qemuMonitorDriveDel(priv->mon, drivealias) < 0) {
                     VIR_WARN("Unable to remove drive %s (%s) after failed "
                              "qemuMonitorAddDevice",
-                             drivestr, devstr);
+                             NULLSTR(drivealias), drivestr);
                 }
                 if (orig_err) {
                     virSetError(orig_err);
@@ -411,6 +420,7 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
  cleanup:
     VIR_FREE(devstr);
     VIR_FREE(drivestr);
+    VIR_FREE(drivealias);
     virObjectUnref(cfg);
     return ret;
 
@@ -443,11 +453,15 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
-            if (STRPREFIX(vm->def->os.machine, "s390-ccw") &&
+            if (qemuDomainMachineIsS390CCW(vm->def) &&
                 virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW))
                 controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
             else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
                 controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
+        } else {
+            if (!qemuCheckCCWS390AddressSupport(vm->def, controller->info,
+                                                priv->qemuCaps, "controller"))
+                goto cleanup;
         }
 
         if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE ||
@@ -991,7 +1005,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
             goto cleanup;
     }
 
-    if (STREQLEN(vm->def->os.machine, "s390-ccw", 8) &&
+    if (qemuDomainMachineIsS390CCW(vm->def) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
         net->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
         if (virDomainCCWAddressAssign(&net->info, priv->ccwaddrs,
@@ -1657,12 +1671,16 @@ qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
         return -1;
 
     if (rng->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
-        if (STRPREFIX(vm->def->os.machine, "s390-ccw") &&
+        if (qemuDomainMachineIsS390CCW(vm->def) &&
             virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
             rng->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
         } else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390)) {
             rng->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
         }
+    } else {
+        if (!qemuCheckCCWS390AddressSupport(vm->def, rng->info, priv->qemuCaps,
+                                            rng->source.file))
+            return -1;
     }
 
     if (rng->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE ||
@@ -1784,7 +1802,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     if (!(devstr = qemuBuildMemoryDeviceStr(mem, vm->def, priv->qemuCaps)))
         goto cleanup;
 
-    qemuDomainMemoryDeviceAlignSize(mem);
+    qemuDomainMemoryDeviceAlignSize(vm->def, mem);
 
     if (qemuBuildMemoryBackendStr(mem->size, mem->pagesize,
                                   mem->targetNode, mem->sourceNodes, NULL,
@@ -1816,8 +1834,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     }
 
     event = virDomainEventDeviceAddedNewFromObj(vm, objalias);
-    if (event)
-        qemuDomainEventQueue(driver, event);
+    qemuDomainEventQueue(driver, event);
 
     /* fix the balloon size if it was set to maximum */
     if (fix_balloon)
@@ -2402,6 +2419,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
         case VIR_DOMAIN_NET_TYPE_SERVER:
         case VIR_DOMAIN_NET_TYPE_CLIENT:
         case VIR_DOMAIN_NET_TYPE_MCAST:
+        case VIR_DOMAIN_NET_TYPE_UDP:
             if (STRNEQ_NULLABLE(olddev->data.socket.address,
                                 newdev->data.socket.address) ||
                 olddev->data.socket.port != newdev->data.socket.port) {
@@ -2846,8 +2864,7 @@ qemuDomainRemoveDiskDevice(virQEMUDriverPtr driver,
     virDomainAuditDisk(vm, disk->src, NULL, "detach", true);
 
     event = virDomainEventDeviceRemovedNewFromObj(vm, disk->info.alias);
-    if (event)
-        qemuDomainEventQueue(driver, event);
+    qemuDomainEventQueue(driver, event);
 
     for (i = 0; i < vm->def->ndisks; i++) {
         if (vm->def->disks[i] == disk) {
@@ -2889,8 +2906,7 @@ qemuDomainRemoveControllerDevice(virQEMUDriverPtr driver,
               controller->info.alias, vm, vm->def->name);
 
     event = virDomainEventDeviceRemovedNewFromObj(vm, controller->info.alias);
-    if (event)
-        qemuDomainEventQueue(driver, event);
+    qemuDomainEventQueue(driver, event);
 
     for (i = 0; i < vm->def->ncontrollers; i++) {
         if (vm->def->controllers[i] == controller) {
@@ -2921,8 +2937,8 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
     VIR_DEBUG("Removing memory device %s from domain %p %s",
               mem->info.alias, vm, vm->def->name);
 
-    if ((event = virDomainEventDeviceRemovedNewFromObj(vm, mem->info.alias)))
-        qemuDomainEventQueue(driver, event);
+    event = virDomainEventDeviceRemovedNewFromObj(vm, mem->info.alias);
+    qemuDomainEventQueue(driver, event);
 
     if (virAsprintf(&backendAlias, "mem%s", mem->info.alias) < 0)
         return -1;
@@ -3004,8 +3020,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
     }
 
     event = virDomainEventDeviceRemovedNewFromObj(vm, hostdev->info->alias);
-    if (event)
-        qemuDomainEventQueue(driver, event);
+    qemuDomainEventQueue(driver, event);
 
     if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET) {
         net = hostdev->parent.data.net;
@@ -3119,8 +3134,7 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
     virDomainAuditNet(vm, net, NULL, "detach", true);
 
     event = virDomainEventDeviceRemovedNewFromObj(vm, net->info.alias);
-    if (event)
-        qemuDomainEventQueue(driver, event);
+    qemuDomainEventQueue(driver, event);
 
     for (i = 0; i < vm->def->nnets; i++) {
         if (vm->def->nets[i] == net) {
@@ -3197,8 +3211,7 @@ qemuDomainRemoveChrDevice(virQEMUDriverPtr driver,
         goto cleanup;
 
     event = virDomainEventDeviceRemovedNewFromObj(vm, chr->info.alias);
-    if (event)
-        qemuDomainEventQueue(driver, event);
+    qemuDomainEventQueue(driver, event);
 
     qemuDomainChrRemove(vm->def, chr);
     virDomainChrDefFree(chr);
@@ -3246,8 +3259,8 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
     if (rc < 0)
         goto cleanup;
 
-    if ((event = virDomainEventDeviceRemovedNewFromObj(vm, rng->info.alias)))
-        qemuDomainEventQueue(driver, event);
+    event = virDomainEventDeviceRemovedNewFromObj(vm, rng->info.alias);
+    qemuDomainEventQueue(driver, event);
 
     if ((idx = virDomainRNGFind(vm->def, rng)) >= 0)
         virDomainRNGRemove(vm->def, idx);
@@ -3411,7 +3424,7 @@ qemuDomainDetachVirtioDiskDevice(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (STREQLEN(vm->def->os.machine, "s390-ccw", 8) &&
+    if (qemuDomainMachineIsS390CCW(vm->def) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
         if (!virDomainDeviceAddressIsValid(&detach->info,
                                            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)) {
@@ -3941,7 +3954,7 @@ qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
                                              virDomainNetGetActualHostdev(detach));
         goto cleanup;
     }
-    if (STREQLEN(vm->def->os.machine, "s390-ccw", 8) &&
+    if (qemuDomainMachineIsS390CCW(vm->def) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
         if (!virDomainDeviceAddressIsValid(&detach->info,
                                            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)) {
@@ -4260,7 +4273,7 @@ qemuDomainDetachMemoryDevice(virQEMUDriverPtr driver,
         return -1;
     }
 
-    qemuDomainMemoryDeviceAlignSize(memdef);
+    qemuDomainMemoryDeviceAlignSize(vm->def, memdef);
 
     if ((idx = virDomainMemoryFindByDef(vm->def, memdef)) < 0) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",

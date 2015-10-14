@@ -476,7 +476,7 @@ libshunload_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$@
 @WITH_TESTS_FALSE@am_libshunload_la_rpath =
 @WITH_TESTS_TRUE@am_libshunload_la_rpath =
-libvirportallocatormock_la_LIBADD =
+libvirportallocatormock_la_DEPENDENCIES = ../src/libvirt.la
 am_libvirportallocatormock_la_OBJECTS =  \
 	libvirportallocatormock_la-virportallocatortest.lo
 libvirportallocatormock_la_OBJECTS =  \
@@ -3132,7 +3132,6 @@ VGCREATE = @VGCREATE@
 VGREMOVE = @VGREMOVE@
 VGS = @VGS@
 VGSCAN = @VGSCAN@
-VIRSH_LIBS = @VIRSH_LIBS@
 VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -3786,6 +3785,7 @@ libvirportallocatormock_la_SOURCES = \
 
 libvirportallocatormock_la_CFLAGS = $(AM_CFLAGS) -DMOCK_HELPER=1
 libvirportallocatormock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+libvirportallocatormock_la_LIBADD = ../src/libvirt.la
 vircgrouptest_SOURCES = \
 	vircgrouptest.c testutils.h testutils.c
 

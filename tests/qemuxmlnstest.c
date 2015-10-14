@@ -179,6 +179,12 @@ testCompareXMLToArgvHelper(const void *data)
                     abs_srcdir, info->name) < 0)
         goto cleanup;
 
+    qemuTestCapsName = info->name;
+    result = qemuTestCapsCacheInsert(driver.qemuCapsCache, info->name,
+                                     info->extraFlags);
+    if (result < 0)
+        goto cleanup;
+
     result = testCompareXMLToArgvFiles(xml, args, info->extraFlags,
                                        info->migrateFrom, info->migrateFd,
                                        info->json, info->expectError);
@@ -201,14 +207,11 @@ mymain(void)
     if (!abs_top_srcdir)
         abs_top_srcdir = abs_srcdir "/..";
 
-    if (!(driver.config = virQEMUDriverConfigNew(false)))
+    if (qemuTestDriverInit(&driver) < 0)
         return EXIT_FAILURE;
+
     VIR_FREE(driver.config->libDir);
     if (VIR_STRDUP_QUIET(driver.config->libDir, "/tmp") < 0)
-        return EXIT_FAILURE;
-    if ((driver.caps = testQemuCapsInit()) == NULL)
-        return EXIT_FAILURE;
-    if (!(driver.xmlopt = virQEMUDriverCreateXMLConf(&driver)))
         return EXIT_FAILURE;
 
 # define DO_TEST_FULL(name, migrateFrom, migrateFd, expectError, ...)   \
@@ -251,9 +254,7 @@ mymain(void)
     DO_TEST("qemu-ns-commandline-ns0", false, NONE);
     DO_TEST("qemu-ns-commandline-ns1", false, NONE);
 
-    virObjectUnref(driver.config);
-    virObjectUnref(driver.caps);
-    virObjectUnref(driver.xmlopt);
+    qemuTestDriverFree(&driver);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

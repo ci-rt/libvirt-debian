@@ -2552,8 +2552,8 @@ vshReadlineInit(vshControl *ctl)
     char *name_capitalized = NULL;
     int max_history = 500;
     int ret = -1;
+    char *histsize_env = NULL;
     const char *histsize_str = NULL;
-    const char *histsize_env = NULL;
     const char *strings[] = {
         name_capitalized,
         "HISTSIZE",
@@ -2613,6 +2613,7 @@ vshReadlineInit(vshControl *ctl)
  cleanup:
     VIR_FREE(userdir);
     VIR_FREE(name_capitalized);
+    VIR_FREE(histsize_env);
     return ret;
 }
 
@@ -2679,7 +2680,7 @@ vshReadline(vshControl *ctl, const char *prompt)
 /*
  * Initialize debug settings.
  */
-void
+static void
 vshInitDebug(vshControl *ctl)
 {
     const char *debugEnv;
@@ -2713,20 +2714,18 @@ vshInitDebug(vshControl *ctl)
 /*
  * Initialize global data
  */
-int
+bool
 vshInit(vshControl *ctl, const vshCmdGrp *groups, const vshCmdDef *set)
 {
-    int ret = -1;
-
     if (!ctl->hooks) {
         vshError(ctl, "%s", _("client hooks cannot be NULL"));
-        goto error;
+        return false;
     }
 
     if (!groups && !set) {
         vshError(ctl, "%s", _("command groups and command set "
                               "cannot both be NULL"));
-        goto error;
+        return false;
     }
 
     cmdGroups = groups;
@@ -2734,11 +2733,28 @@ vshInit(vshControl *ctl, const vshCmdGrp *groups, const vshCmdDef *set)
     vshInitDebug(ctl);
 
     if (ctl->imode && vshReadlineInit(ctl) < 0)
-        goto error;
+        return false;
 
-    ret = 0;
- error:
-    return ret;
+    return true;
+}
+
+bool
+vshInitReload(vshControl *ctl)
+{
+    if (!cmdGroups && !cmdSet) {
+        vshError(ctl, "%s", _("command groups and command are both NULL "
+                              "run vshInit before reloading"));
+        return false;
+    }
+
+    vshInitDebug(ctl);
+
+    if (ctl->imode)
+        vshReadlineDeinit(ctl);
+    if (ctl->imode && vshReadlineInit(ctl) < 0)
+        return false;
+
+    return true;
 }
 
 void
