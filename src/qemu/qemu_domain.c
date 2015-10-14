@@ -126,7 +126,8 @@ qemuDomainAsyncJobPhaseFromString(qemuDomainAsyncJob job,
 void qemuDomainEventQueue(virQEMUDriverPtr driver,
                           virObjectEventPtr event)
 {
-    virObjectEventStateQueue(driver->domainEventState, event);
+    if (event)
+        virObjectEventStateQueue(driver->domainEventState, event);
 }
 
 
@@ -830,7 +831,6 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
             goto error;
     }
     virObjectUnref(caps);
-    caps = NULL;
     VIR_FREE(tmp);
 
     return 0;
@@ -1039,10 +1039,7 @@ qemuDomainDefPostParse(virDomainDefPtr def,
         return ret;
 
 
-    /* This condition is actually a (temporary) hack for test suite which
-     * does not create capabilities cache */
-    if (driver && driver->qemuCapsCache)
-        qemuCaps = virQEMUCapsCacheLookup(driver->qemuCapsCache, def->emulator);
+    qemuCaps = virQEMUCapsCacheLookup(driver->qemuCapsCache, def->emulator);
 
     /* Add implicit PCI root controller if the machine has one */
     switch (def->os.arch) {
@@ -1193,7 +1190,8 @@ qemuDomainDefPostParse(virDomainDefPtr def,
 }
 
 static const char *
-qemuDomainDefaultNetModel(const virDomainDef *def)
+qemuDomainDefaultNetModel(const virDomainDef *def,
+                          virQEMUCapsPtr qemuCaps)
 {
     if (ARCH_IS_S390(def->os.arch))
         return "virtio";
@@ -1211,6 +1209,18 @@ qemuDomainDefaultNetModel(const virDomainDef *def)
         return "lan9118";
     }
 
+    /* Try several network devices in turn; each of these devices is
+     * less likely be supported out-of-the-box by the guest operating
+     * system than the previous one */
+    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_RTL8139))
+        return "rtl8139";
+    else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_E1000))
+        return "e1000";
+    else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_NET))
+        return "virtio";
+
+    /* We've had no luck detecting support for any network device,
+     * but we have to return something: might as well be rtl8139 */
     return "rtl8139";
 }
 
@@ -1220,18 +1230,18 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                              virCapsPtr caps ATTRIBUTE_UNUSED,
                              void *opaque)
 {
-    int ret = -1;
     virQEMUDriverPtr driver = opaque;
-    virQEMUDriverConfigPtr cfg = NULL;
+    virQEMUCapsPtr qemuCaps = NULL;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    int ret = -1;
 
-    if (driver)
-        cfg = virQEMUDriverGetConfig(driver);
+    qemuCaps = virQEMUCapsCacheLookup(driver->qemuCapsCache, def->emulator);
 
     if (dev->type == VIR_DOMAIN_DEVICE_NET &&
         dev->data.net->type != VIR_DOMAIN_NET_TYPE_HOSTDEV &&
         !dev->data.net->model) {
         if (VIR_STRDUP(dev->data.net->model,
-                       qemuDomainDefaultNetModel(def)) < 0)
+                       qemuDomainDefaultNetModel(def, qemuCaps)) < 0)
             goto cleanup;
     }
 
@@ -1239,37 +1249,34 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
         virDomainDiskDefPtr disk = dev->data.disk;
 
-        /* both of these require data from the driver config */
-        if (cfg) {
-            /* assign default storage format and driver according to config */
-            if (cfg->allowDiskFormatProbing) {
-                /* default disk format for drives */
-                if (virDomainDiskGetFormat(disk) == VIR_STORAGE_FILE_NONE &&
-                    (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_FILE ||
-                     virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_BLOCK))
-                    virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_AUTO);
+        /* assign default storage format and driver according to config */
+        if (cfg->allowDiskFormatProbing) {
+            /* default disk format for drives */
+            if (virDomainDiskGetFormat(disk) == VIR_STORAGE_FILE_NONE &&
+                (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_FILE ||
+                 virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_BLOCK))
+                virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_AUTO);
 
-                /* default disk format for mirrored drive */
-                if (disk->mirror &&
-                    disk->mirror->format == VIR_STORAGE_FILE_NONE)
-                    disk->mirror->format = VIR_STORAGE_FILE_AUTO;
-            } else {
-                /* default driver if probing is forbidden */
-                if (!virDomainDiskGetDriver(disk) &&
-                    virDomainDiskSetDriver(disk, "qemu") < 0)
-                    goto cleanup;
+            /* default disk format for mirrored drive */
+            if (disk->mirror &&
+                disk->mirror->format == VIR_STORAGE_FILE_NONE)
+                disk->mirror->format = VIR_STORAGE_FILE_AUTO;
+        } else {
+            /* default driver if probing is forbidden */
+            if (!virDomainDiskGetDriver(disk) &&
+                virDomainDiskSetDriver(disk, "qemu") < 0)
+                goto cleanup;
 
-                /* default disk format for drives */
-                if (virDomainDiskGetFormat(disk) == VIR_STORAGE_FILE_NONE &&
-                    (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_FILE ||
-                     virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_BLOCK))
-                    virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
+            /* default disk format for drives */
+            if (virDomainDiskGetFormat(disk) == VIR_STORAGE_FILE_NONE &&
+                (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_FILE ||
+                 virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_BLOCK))
+                virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
 
-                /* default disk format for mirrored drive */
-                if (disk->mirror &&
-                    disk->mirror->format == VIR_STORAGE_FILE_NONE)
-                    disk->mirror->format = VIR_STORAGE_FILE_RAW;
-            }
+            /* default disk format for mirrored drive */
+            if (disk->mirror &&
+                disk->mirror->format == VIR_STORAGE_FILE_NONE)
+                disk->mirror->format = VIR_STORAGE_FILE_RAW;
         }
     }
 
@@ -1301,12 +1308,6 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         dev->data.chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
         dev->data.chr->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
         !dev->data.chr->source.data.nix.path) {
-        if (!cfg) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("cannot generate UNIX socket path"));
-            goto cleanup;
-        }
-
         if (virAsprintf(&dev->data.chr->source.data.nix.path,
                         "%s/domain-%s/%s",
                         cfg->channelTargetDir, def->name,
@@ -1347,7 +1348,7 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
     }
 
     if (dev->type == VIR_DOMAIN_DEVICE_MEMORY &&
-        def->mem.max_memory == 0) {
+        !virDomainDefHasMemoryHotplug(def)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("maxMemory has to be specified when using memory "
                          "devices "));
@@ -1357,6 +1358,7 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
     ret = 0;
 
  cleanup:
+    virObjectUnref(qemuCaps);
     virObjectUnref(cfg);
     return ret;
 }
@@ -2617,7 +2619,14 @@ qemuDomainRemoveInactive(virQEMUDriverPtr driver,
 {
     bool haveJob = true;
     char *snapDir;
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    virQEMUDriverConfigPtr cfg;
+
+    if (vm->persistent) {
+        /* Short-circuit, we don't want to remove a persistent domain */
+        return;
+    }
+
+    cfg = virQEMUDriverGetConfig(driver);
 
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         haveJob = false;
@@ -2712,8 +2721,7 @@ qemuDomainCheckRemoveOptionalDisk(virQEMUDriverPtr driver,
         virDomainDiskDefFree(disk);
     }
 
-    if (event)
-        qemuDomainEventQueue(driver, event);
+    qemuDomainEventQueue(driver, event);
 
     return 0;
 }
@@ -2982,6 +2990,183 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
 
 
 bool
+qemuDomainDiskSourceDiffers(virConnectPtr conn,
+                            virDomainDiskDefPtr disk,
+                            virDomainDiskDefPtr origDisk)
+{
+    char *diskSrc = NULL, *origDiskSrc = NULL;
+    bool diskEmpty, origDiskEmpty;
+    bool ret = true;
+
+    diskEmpty = virStorageSourceIsEmpty(disk->src);
+    origDiskEmpty = virStorageSourceIsEmpty(origDisk->src);
+
+    if (diskEmpty && origDiskEmpty)
+        return false;
+
+    if (diskEmpty ^ origDiskEmpty)
+        return true;
+
+    if (qemuGetDriveSourceString(disk->src, conn, &diskSrc) < 0 ||
+        qemuGetDriveSourceString(origDisk->src, conn, &origDiskSrc) < 0)
+        goto cleanup;
+
+    /* So far in qemu disk sources are considered different
+     * if either path to disk or its format changes. */
+    ret = virDomainDiskGetFormat(disk) != virDomainDiskGetFormat(origDisk) ||
+          STRNEQ_NULLABLE(diskSrc, origDiskSrc);
+ cleanup:
+    VIR_FREE(diskSrc);
+    VIR_FREE(origDiskSrc);
+    return ret;
+}
+
+
+/*
+ * Makes sure the @disk differs from @orig_disk only by the source
+ * path and nothing else.  Fields that are being checked and the
+ * information whether they are nullable (may not be specified) or is
+ * taken from the virDomainDiskDefFormat() code.
+ */
+bool
+qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
+                              virDomainDiskDefPtr orig_disk)
+{
+#define CHECK_EQ(field, field_name, nullable)                           \
+    do {                                                                \
+        if (nullable && !disk->field)                                   \
+            break;                                                      \
+        if (disk->field != orig_disk->field) {                          \
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED,               \
+                           _("cannot modify field '%s' of the disk"),   \
+                           field_name);                                 \
+            return false;                                               \
+        }                                                               \
+    } while (0)
+
+    CHECK_EQ(device, "device", false);
+    CHECK_EQ(bus, "bus", false);
+    if (STRNEQ(disk->dst, orig_disk->dst)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "bus");
+        return false;
+    }
+    CHECK_EQ(tray_status, "tray", true);
+    CHECK_EQ(removable, "removable", true);
+
+    if (disk->geometry.cylinders &&
+        disk->geometry.heads &&
+        disk->geometry.sectors) {
+        CHECK_EQ(geometry.cylinders, "geometry cylinders", false);
+        CHECK_EQ(geometry.heads, "geometry heads", false);
+        CHECK_EQ(geometry.sectors, "geometry sectors", false);
+        CHECK_EQ(geometry.trans, "BIOS-translation-modus", true);
+    }
+
+    CHECK_EQ(blockio.logical_block_size,
+             "blockio logical_block_size", false);
+    CHECK_EQ(blockio.physical_block_size,
+             "blockio physical_block_size", false);
+
+    CHECK_EQ(blkdeviotune.total_bytes_sec,
+             "blkdeviotune total_bytes_sec",
+             true);
+    CHECK_EQ(blkdeviotune.read_bytes_sec,
+             "blkdeviotune read_bytes_sec",
+             true);
+    CHECK_EQ(blkdeviotune.write_bytes_sec,
+             "blkdeviotune write_bytes_sec",
+             true);
+    CHECK_EQ(blkdeviotune.total_iops_sec,
+             "blkdeviotune total_iops_sec",
+             true);
+    CHECK_EQ(blkdeviotune.read_iops_sec,
+             "blkdeviotune read_iops_sec",
+             true);
+    CHECK_EQ(blkdeviotune.write_iops_sec,
+             "blkdeviotune write_iops_sec",
+             true);
+    CHECK_EQ(blkdeviotune.total_bytes_sec_max,
+             "blkdeviotune total_bytes_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.read_bytes_sec_max,
+             "blkdeviotune read_bytes_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.write_bytes_sec_max,
+             "blkdeviotune write_bytes_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.total_iops_sec_max,
+             "blkdeviotune total_iops_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.read_iops_sec_max,
+             "blkdeviotune read_iops_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.write_iops_sec_max,
+             "blkdeviotune write_iops_sec_max",
+             true);
+    CHECK_EQ(blkdeviotune.size_iops_sec,
+             "blkdeviotune size_iops_sec",
+             true);
+
+    if (disk->serial && STRNEQ_NULLABLE(disk->serial, orig_disk->serial)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "serial");
+        return false;
+    }
+
+    if (disk->wwn && STRNEQ_NULLABLE(disk->wwn, orig_disk->wwn)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "wwn");
+        return false;
+    }
+
+    if (disk->vendor && STRNEQ_NULLABLE(disk->vendor, orig_disk->vendor)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "vendor");
+        return false;
+    }
+
+    if (disk->product && STRNEQ_NULLABLE(disk->product, orig_disk->product)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "product");
+        return false;
+    }
+
+    CHECK_EQ(cachemode, "cache", true);
+    CHECK_EQ(error_policy, "error_policy", true);
+    CHECK_EQ(rerror_policy, "rerror_policy", true);
+    CHECK_EQ(iomode, "io", true);
+    CHECK_EQ(ioeventfd, "ioeventfd", true);
+    CHECK_EQ(event_idx, "event_idx", true);
+    CHECK_EQ(copy_on_read, "copy_on_read", true);
+    CHECK_EQ(snapshot, "snapshot", true);
+    /* startupPolicy is allowed to be updated. Therefore not checked here. */
+    CHECK_EQ(transient, "transient", true);
+    CHECK_EQ(info.bootIndex, "boot order", true);
+    CHECK_EQ(rawio, "rawio", true);
+    CHECK_EQ(sgio, "sgio", true);
+    CHECK_EQ(discard, "discard", true);
+    CHECK_EQ(iothread, "iothread", true);
+
+    if (disk->domain_name &&
+        STRNEQ_NULLABLE(disk->domain_name, orig_disk->domain_name)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot modify field '%s' of the disk"),
+                       "backenddomain");
+        return false;
+    }
+
+#undef CHECK_EQ
+
+    return true;
+}
+
+bool
 qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk)
 {
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
@@ -3170,30 +3355,66 @@ qemuDomainAgentAvailable(virDomainObjPtr vm,
 }
 
 
+static unsigned long long
+qemuDomainGetMemorySizeAlignment(virDomainDefPtr def)
+{
+    /* PPC requires the memory sizes to be rounded to 256MiB increments, so
+     * round them to the size always. */
+    if (ARCH_IS_PPC64(def->os.arch))
+        return 256 * 1024;
+
+    /* Align memory size. QEMU requires rounding to next 4KiB block.
+     * We'll take the "traditional" path and round it to 1MiB*/
+
+    return 1024;
+}
+
+
+static unsigned long long
+qemuDomainGetMemoryModuleSizeAlignment(const virDomainDef *def,
+                                       const virDomainMemoryDef *mem ATTRIBUTE_UNUSED)
+{
+    /* PPC requires the memory sizes to be rounded to 256MiB increments, so
+     * round them to the size always. */
+    if (ARCH_IS_PPC64(def->os.arch))
+        return 256 * 1024;
+
+    /* dimm memory modules require 2MiB alignment rather than the 1MiB we are
+     * using elsewhere. */
+    return 2048;
+}
+
+
 int
 qemuDomainAlignMemorySizes(virDomainDefPtr def)
 {
+    unsigned long long initialmem = 0;
     unsigned long long mem;
+    unsigned long long align = qemuDomainGetMemorySizeAlignment(def);
     size_t ncells = virDomainNumaGetNodeCount(def->numa);
     size_t i;
 
     /* align NUMA cell sizes if relevant */
     for (i = 0; i < ncells; i++) {
-        mem = virDomainNumaGetNodeMemorySize(def->numa, i);
-        virDomainNumaSetNodeMemorySize(def->numa, i, VIR_ROUND_UP(mem, 1024));
+        mem = VIR_ROUND_UP(virDomainNumaGetNodeMemorySize(def->numa, i), align);
+        initialmem += mem;
+        virDomainNumaSetNodeMemorySize(def->numa, i, mem);
     }
 
-    /* align initial memory size */
-    mem = virDomainDefGetMemoryInitial(def);
-    virDomainDefSetMemoryInitial(def, VIR_ROUND_UP(mem, 1024));
+    /* align initial memory size, if NUMA is present calculate it as total of
+     * individual aligned NUMA node sizes */
+    if (initialmem == 0)
+        initialmem = VIR_ROUND_UP(virDomainDefGetMemoryInitial(def), align);
 
-    /* Align maximum memory size. QEMU requires rounding to next 4KiB block.
-     * We'll take the "traditional" path and round it to 1MiB*/
-    def->mem.max_memory = VIR_ROUND_UP(def->mem.max_memory, 1024);
+    virDomainDefSetMemoryInitial(def, initialmem);
+
+    def->mem.max_memory = VIR_ROUND_UP(def->mem.max_memory, align);
 
     /* Align memory module sizes */
-    for (i = 0; i < def->nmems; i++)
-        qemuDomainMemoryDeviceAlignSize(def->mems[i]);
+    for (i = 0; i < def->nmems; i++) {
+        align = qemuDomainGetMemoryModuleSizeAlignment(def, def->mems[i]);
+        def->mems[i]->size = VIR_ROUND_UP(def->mems[i]->size, align);
+    }
 
     return 0;
 }
@@ -3208,9 +3429,10 @@ qemuDomainAlignMemorySizes(virDomainDefPtr def)
  * size so this should be safe).
  */
 void
-qemuDomainMemoryDeviceAlignSize(virDomainMemoryDefPtr mem)
+qemuDomainMemoryDeviceAlignSize(virDomainDefPtr def,
+                                virDomainMemoryDefPtr mem)
 {
-    mem->size = VIR_ROUND_UP(mem->size, 1024);
+    mem->size = VIR_ROUND_UP(mem->size, qemuDomainGetMemorySizeAlignment(def));
 }
 
 
@@ -3322,6 +3544,12 @@ qemuDomainMachineNeedsFDC(const virDomainDef *def)
     return false;
 }
 
+
+bool
+qemuDomainMachineIsS390CCW(const virDomainDef *def)
+{
+    return STRPREFIX(def->os.machine, "s390-ccw");
+}
 
 
 /**

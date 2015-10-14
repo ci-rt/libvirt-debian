@@ -385,6 +385,7 @@ static int virLXCControllerGetNICIndexes(virLXCControllerPtr ctrl)
         case VIR_DOMAIN_NET_TYPE_SERVER:
         case VIR_DOMAIN_NET_TYPE_CLIENT:
         case VIR_DOMAIN_NET_TYPE_MCAST:
+        case VIR_DOMAIN_NET_TYPE_UDP:
         case VIR_DOMAIN_NET_TYPE_INTERNAL:
         case VIR_DOMAIN_NET_TYPE_DIRECT:
         case VIR_DOMAIN_NET_TYPE_HOSTDEV:
@@ -2645,7 +2646,7 @@ int main(int argc, char *argv[])
 
     if (!(ctrl->securityManager = virSecurityManagerNew(securityDriver,
                                                         LXC_DRIVER_NAME,
-                                                        false, false, false)))
+                                                        false, false, false, false)))
         goto cleanup;
 
     if (ctrl->def->seclabels) {

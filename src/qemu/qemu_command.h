@@ -284,6 +284,7 @@ virDomainPCIAddressSetPtr qemuDomainPCIAddressSetCreate(virDomainDefPtr def,
                                                         bool dryRun);
 
 int qemuAssignDevicePCISlots(virDomainDefPtr def,
+                             virQEMUCapsPtr qemuCaps,
                              virDomainPCIAddressSetPtr addrs);
 
 int qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps);
@@ -318,4 +319,9 @@ int qemuCheckDiskConfig(virDomainDiskDefPtr disk);
 
 bool
 qemuCheckFips(void);
+
+bool qemuCheckCCWS390AddressSupport(virDomainDefPtr def,
+                                    virDomainDeviceInfo info,
+                                    virQEMUCapsPtr qemuCaps,
+                                    const char *devicename);
 #endif /* __QEMU_COMMAND_H__*/

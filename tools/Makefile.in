@@ -16,6 +16,7 @@
 
 
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -270,15 +271,29 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+LTLIBRARIES = $(noinst_LTLIBRARIES)
+am__DEPENDENCIES_1 =
+libvirt_shell_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) ../src/libvirt.la \
+	../gnulib/lib/libgnu.la
+am_libvirt_shell_la_OBJECTS = libvirt_shell_la-vsh.lo
+libvirt_shell_la_OBJECTS = $(am_libvirt_shell_la_OBJECTS)
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+am__v_lt_1 = 
+libvirt_shell_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libvirt_shell_la_CFLAGS) $(CFLAGS) \
+	$(libvirt_shell_la_LDFLAGS) $(LDFLAGS) -o $@
 @WITH_LXC_TRUE@am__EXEEXT_1 = virt-login-shell$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" \
 	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)" \
 	"$(DESTDIR)$(confdir)"
 PROGRAMS = $(bin_PROGRAMS)
-am__objects_1 = virsh-vsh.$(OBJEXT)
-am_virsh_OBJECTS = $(am__objects_1) virsh-virsh.$(OBJEXT) \
-	virsh-virsh-console.$(OBJEXT) virsh-virsh-domain.$(OBJEXT) \
+am_virsh_OBJECTS = virsh-virsh.$(OBJEXT) virsh-virsh-console.$(OBJEXT) \
+	virsh-virsh-domain.$(OBJEXT) \
 	virsh-virsh-domain-monitor.$(OBJEXT) \
 	virsh-virsh-host.$(OBJEXT) virsh-virsh-interface.$(OBJEXT) \
 	virsh-virsh-network.$(OBJEXT) virsh-virsh-nodedev.$(OBJEXT) \
@@ -286,15 +301,9 @@ am_virsh_OBJECTS = $(am__objects_1) virsh-virsh.$(OBJEXT) \
 	virsh-virsh-secret.$(OBJEXT) virsh-virsh-snapshot.$(OBJEXT) \
 	virsh-virsh-volume.$(OBJEXT)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
-am__DEPENDENCIES_1 =
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	../src/libvirt.la ../src/libvirt-lxc.la ../src/libvirt-qemu.la \
-	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__append_6)
-AM_V_lt = $(am__v_lt_@AM_V@)
-am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
-am__v_lt_0 = --silent
-am__v_lt_1 = 
+	../src/libvirt-lxc.la ../src/libvirt-qemu.la libvirt_shell.la \
+	$(am__append_6)
 virsh_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virsh_CFLAGS) $(CFLAGS) \
 	$(virsh_LDFLAGS) $(LDFLAGS) -o $@
@@ -382,10 +391,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(virsh_SOURCES) $(virt_host_validate_SOURCES) \
-	$(virt_login_shell_SOURCES)
-DIST_SOURCES = $(virsh_SOURCES) $(virt_host_validate_SOURCES) \
-	$(virt_login_shell_SOURCES)
+SOURCES = $(libvirt_shell_la_SOURCES) $(virsh_SOURCES) \
+	$(virt_host_validate_SOURCES) $(virt_login_shell_SOURCES)
+DIST_SOURCES = $(libvirt_shell_la_SOURCES) $(virsh_SOURCES) \
+	$(virt_host_validate_SOURCES) $(virt_login_shell_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -1782,7 +1791,6 @@ VGCREATE = @VGCREATE@
 VGREMOVE = @VGREMOVE@
 VGS = @VGS@
 VGSCAN = @VGSCAN@
-VIRSH_LIBS = @VIRSH_LIBS@
 VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -1907,6 +1915,28 @@ libexec_SCRIPTS = libvirt-guests.sh
 dist_man1_MANS = virt-host-validate.1 virt-pki-validate.1 \
 	virt-xml-validate.1 virsh.1 $(am__append_5)
 @WITH_SANLOCK_TRUE@dist_man8_MANS = virt-sanlock-cleanup.8
+noinst_LTLIBRARIES = libvirt_shell.la
+libvirt_shell_la_CFLAGS = \
+		$(AM_CFLAGS)						\
+		$(PIE_CFLAGS)						\
+		$(READLINE_CFLAGS)					\
+		$(LIBXML_CFLAGS)					\
+		$(NULL)
+
+libvirt_shell_la_LDFLAGS = \
+		$(AM_LDFLAGS)						\
+		$(PIE_LDFLAGS)						\
+		$(COVERAGE_LDFLAGS)					\
+		$(NULL)
+
+libvirt_shell_la_LIBADD = \
+		$(LIBXML_LIBS)						\
+		$(READLINE_LIBS)					\
+		../src/libvirt.la					\
+		../gnulib/lib/libgnu.la				\
+		$(NULL)
+
+libvirt_shell_la_SOURCES = vsh.c vsh.h
 virt_host_validate_SOURCES = \
 		virt-host-validate.c \
 		virt-host-validate-common.c virt-host-validate-common.h \
@@ -1959,11 +1989,7 @@ virt_login_shell_CFLAGS = \
 		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)
 
-virt_shell_SOURCES = \
-		vsh.c vsh.h
-
 virsh_SOURCES = \
-		$(virt_shell_SOURCES)			\
 		virsh.c virsh.h					\
 		virsh-console.c virsh-console.h			\
 		virsh-domain.c virsh-domain.h			\
@@ -1984,16 +2010,13 @@ virsh_LDFLAGS = \
 		$(COVERAGE_LDFLAGS)				\
 		$(NULL)
 
-virsh_LDADD = $(STATIC_BINARIES) $(PIE_LDFLAGS) ../src/libvirt.la \
-	../src/libvirt-lxc.la ../src/libvirt-qemu.la \
-	../gnulib/lib/libgnu.la $(LIBXML_LIBS) $(VIRSH_LIBS) \
-	$(am__append_6)
+virsh_LDADD = $(STATIC_BINARIES) $(PIE_LDFLAGS) ../src/libvirt-lxc.la \
+	../src/libvirt-qemu.la libvirt_shell.la $(am__append_6)
 virsh_CFLAGS = \
 		$(WARN_CFLAGS)					\
 		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
-		$(LIBXML_CFLAGS)				\
-		$(READLINE_CFLAGS)
+		$(LIBXML_CFLAGS)
 
 BUILT_SOURCES = $(am__append_7) libvirt-guests.sh $(am__append_8)
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
@@ -2034,6 +2057,20 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+
+clean-noinstLTLIBRARIES:
+	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
+	@list='$(noinst_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	test -z "$$locs" || { \
+	  echo rm -f $${locs}; \
+	  rm -f $${locs}; \
+	}
+
+libvirt_shell.la: $(libvirt_shell_la_OBJECTS) $(libvirt_shell_la_DEPENDENCIES) $(EXTRA_libvirt_shell_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libvirt_shell_la_LINK)  $(libvirt_shell_la_OBJECTS) $(libvirt_shell_la_LIBADD) $(LIBS)
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
@@ -2207,6 +2244,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_shell_la-vsh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-console.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-domain-monitor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-domain.Po@am__quote@
@@ -2220,7 +2258,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-snapshot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-volume.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-vsh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-lxc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-qemu.Po@am__quote@
@@ -2251,19 +2288,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-virsh-vsh.o: vsh.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-vsh.o -MD -MP -MF $(DEPDIR)/virsh-vsh.Tpo -c -o virsh-vsh.o `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-vsh.Tpo $(DEPDIR)/virsh-vsh.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='virsh-vsh.o' libtool=no @AMDEPBACKSLASH@
+libvirt_shell_la-vsh.lo: vsh.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_shell_la_CFLAGS) $(CFLAGS) -MT libvirt_shell_la-vsh.lo -MD -MP -MF $(DEPDIR)/libvirt_shell_la-vsh.Tpo -c -o libvirt_shell_la-vsh.lo `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_shell_la-vsh.Tpo $(DEPDIR)/libvirt_shell_la-vsh.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='libvirt_shell_la-vsh.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-vsh.o `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
-
-virsh-vsh.obj: vsh.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-vsh.obj -MD -MP -MF $(DEPDIR)/virsh-vsh.Tpo -c -o virsh-vsh.obj `if test -f 'vsh.c'; then $(CYGPATH_W) 'vsh.c'; else $(CYGPATH_W) '$(srcdir)/vsh.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-vsh.Tpo $(DEPDIR)/virsh-vsh.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='virsh-vsh.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-vsh.obj `if test -f 'vsh.c'; then $(CYGPATH_W) 'vsh.c'; else $(CYGPATH_W) '$(srcdir)/vsh.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_shell_la_CFLAGS) $(CFLAGS) -c -o libvirt_shell_la-vsh.lo `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
 
 virsh-virsh.o: virsh.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh.o -MD -MP -MF $(DEPDIR)/virsh-virsh.Tpo -c -o virsh-virsh.o `test -f 'virsh.c' || echo '$(srcdir)/'`virsh.c
@@ -2711,7 +2741,7 @@ distdir: $(DISTFILES)
 check-am: all-am
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
-all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) $(DATA)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) $(MANS) $(DATA)
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(confdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -2753,7 +2783,8 @@ maintainer-clean-generic:
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libtool \
+	clean-noinstLTLIBRARIES mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -2829,21 +2860,22 @@ uninstall-man: uninstall-man1 uninstall-man8
 .MAKE: all check install install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
-	clean-binPROGRAMS clean-generic clean-libtool cscopelist-am \
-	ctags ctags-am distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-binPROGRAMS \
-	install-binSCRIPTS install-confDATA install-data \
-	install-data-am install-data-local install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-libexecSCRIPTS \
-	install-man install-man1 install-man8 install-pdf \
-	install-pdf-am install-ps install-ps-am install-sbinSCRIPTS \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-confDATA \
+	clean-binPROGRAMS clean-generic clean-libtool \
+	clean-noinstLTLIBRARIES cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-binSCRIPTS \
+	install-confDATA install-data install-data-am \
+	install-data-local install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-libexecSCRIPTS install-man \
+	install-man1 install-man8 install-pdf install-pdf-am \
+	install-ps install-ps-am install-sbinSCRIPTS install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-binSCRIPTS uninstall-confDATA \
 	uninstall-libexecSCRIPTS uninstall-local uninstall-man \
 	uninstall-man1 uninstall-man8 uninstall-sbinSCRIPTS
 

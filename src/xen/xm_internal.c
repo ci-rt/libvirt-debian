@@ -191,15 +191,14 @@ xenXMConfigCacheRemoveFile(virConnectPtr conn, const char *filename)
  * calling this function
  */
 int
-xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
+xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename, time_t now)
 {
     xenUnifiedPrivatePtr priv = conn->privateData;
     xenXMConfCachePtr entry;
     struct stat st;
     int newborn = 0;
-    time_t now = time(NULL);
 
-    VIR_DEBUG("Adding file %s", filename);
+    VIR_DEBUG("Adding file %s %lld", filename, (long long)now);
 
     /* Get modified time */
     if ((stat(filename, &st) < 0)) {
@@ -373,7 +372,7 @@ xenXMConfigCacheRefresh(virConnectPtr conn)
 
         /* If we already have a matching entry and it is not
            modified, then carry on to next one*/
-        if (xenXMConfigCacheAddFile(conn, path) < 0) {
+        if (xenXMConfigCacheAddFile(conn, path, now) < 0) {
             /* Ignoring errors, since a lot of stuff goes wrong in /etc/xen */
         }
 
@@ -606,7 +605,7 @@ xenXMDomainSetMaxMemory(virConnectPtr conn,
     if (entry->def->mem.cur_balloon > memory)
         entry->def->mem.cur_balloon = memory;
 
-    virDomainDefSetMemoryInitial(entry->def, memory);
+    virDomainDefSetMemoryTotal(entry->def, memory);
     /* If this fails, should we try to undo our changes to the
      * in-memory representation of the config file. I say not!
      */

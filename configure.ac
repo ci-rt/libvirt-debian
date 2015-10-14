@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.19], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.20], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -1670,10 +1670,6 @@ if test "$with_pm_utils" = "yes"; then
 fi
 AM_CONDITIONAL([WITH_PM_UTILS], [test "$with_pm_utils" = "yes"])
 
-dnl virsh libraries
-VIRSH_LIBS="$VIRSH_LIBS $READLINE_LIBS"
-AC_SUBST([VIRSH_LIBS])
-
 dnl check if the network driver should be compiled
 
 AC_ARG_WITH([network],
@@ -2777,7 +2773,6 @@ AC_DEFINE_UNQUOTED([isbase64],[libvirt_gl_isbase64],[Hack to avoid symbol clash]
 AC_DEFINE_UNQUOTED([base64_encode],[libvirt_gl_base64_encode],[Hack to avoid symbol clash])
 AC_DEFINE_UNQUOTED([base64_encode_alloc],[libvirt_gl_base64_encode_alloc],[Hack to avoid symbol clash])
 
-AC_CONFIG_COMMANDS([mkdir], [$MKDIR_P docs/internals])
 AC_CONFIG_FILES([run],
                 [chmod +x,-w run])
 AC_CONFIG_FILES([\
@@ -2806,9 +2801,11 @@ AC_CONFIG_FILES([\
         examples/domtop/Makefile \
         examples/openauth/Makefile \
         examples/hellolibvirt/Makefile \
+        examples/rename/Makefile \
         examples/systemtap/Makefile \
         examples/xml/nwfilter/Makefile \
         examples/lxcconvert/Makefile \
+        examples/polkit/Makefile \
         tools/wireshark/Makefile \
         tools/wireshark/src/Makefile])
 AC_OUTPUT

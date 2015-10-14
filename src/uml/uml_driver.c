@@ -1615,6 +1615,7 @@ static virDomainPtr umlDomainCreateXML(virConnectPtr conn, const char *xml,
 
     if (!(vm = virDomainObjListAdd(driver->domains, def,
                                    driver->xmlopt,
+                                   VIR_DOMAIN_OBJ_LIST_ADD_LIVE |
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
         goto cleanup;
@@ -1623,9 +1624,10 @@ static virDomainPtr umlDomainCreateXML(virConnectPtr conn, const char *xml,
     if (umlStartVMDaemon(conn, driver, vm,
                          (flags & VIR_DOMAIN_START_AUTODESTROY)) < 0) {
         virDomainAuditStart(vm, "booted", false);
-        virDomainObjListRemove(driver->domains,
-                               vm);
-        vm = NULL;
+        if (!vm->persistent) {
+            virDomainObjListRemove(driver->domains, vm);
+            vm = NULL;
+        }
         goto cleanup;
     }
     virDomainAuditStart(vm, "booted", true);
@@ -1828,7 +1830,7 @@ static int umlDomainSetMaxMemory(virDomainPtr dom, unsigned long newmax)
         goto cleanup;
     }
 
-    virDomainDefSetMemoryInitial(vm->def, newmax);
+    virDomainDefSetMemoryTotal(vm->def, newmax);
     ret = 0;
 
  cleanup:

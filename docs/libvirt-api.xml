@@ -5521,7 +5521,7 @@ control, see virDomainCreateWithFlags().]]></info>
     <function name='virDomainCreateLinux' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Deprecated after 0.4.6.
 Renamed to virDomainCreateXML() providing identical functionality.
-This existing name will left indefinitely for API compatibility.]]></info>
+This existing name will be left indefinitely for API compatibility.]]></info>
       <return type='virDomainPtr' info='a new domain object or NULL in case of failure'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='xmlDesc' type='const char *' info='string containing an XML description of the domain'/>

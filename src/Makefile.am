@@ -763,7 +763,8 @@ QEMU_DRIVER_SOURCES =							\
 		qemu/qemu_monitor_json.c				\
 		qemu/qemu_monitor_json.h				\
 		qemu/qemu_driver.c qemu/qemu_driver.h	\
-		qemu/qemu_interface.c qemu/qemu_interface.h
+		qemu/qemu_interface.c qemu/qemu_interface.h		\
+		qemu/qemu_capspriv.h
 
 XENAPI_DRIVER_SOURCES =						\
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
@@ -2805,7 +2806,7 @@ if WITH_SANLOCK
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock"
 endif WITH_SANLOCK
 if WITH_QEMU
-	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
+	$(MKDIR_P) -m 0751 "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/log/libvirt/qemu"

@@ -268,7 +268,7 @@ virDomainCreateXMLWithFiles(virConnectPtr conn, const char *xmlDesc,
  *
  * Deprecated after 0.4.6.
  * Renamed to virDomainCreateXML() providing identical functionality.
- * This existing name will left indefinitely for API compatibility.
+ * This existing name will be left indefinitely for API compatibility.
  *
  * Returns a new domain object or NULL in case of failure
  */
@@ -3195,7 +3195,8 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
                 orig_err->domain == VIR_FROM_QEMU &&
                 orig_err->code == VIR_ERR_OPERATION_FAILED) {
                 virErrorPtr err = virGetLastError();
-                if (err->domain == VIR_FROM_QEMU &&
+                if (err &&
+                    err->domain == VIR_FROM_QEMU &&
                     err->code != VIR_ERR_MIGRATE_FINISH_OK) {
                     virFreeError(orig_err);
                     orig_err = NULL;

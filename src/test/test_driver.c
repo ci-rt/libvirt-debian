@@ -1616,13 +1616,19 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
     if (!(dom = virDomainObjListAdd(privconn->domains,
                                     def,
                                     privconn->xmlopt,
+                                    VIR_DOMAIN_OBJ_LIST_ADD_LIVE |
                                     VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                     NULL)))
         goto cleanup;
     def = NULL;
 
-    if (testDomainStartState(privconn, dom, VIR_DOMAIN_RUNNING_BOOTED) < 0)
+    if (testDomainStartState(privconn, dom, VIR_DOMAIN_RUNNING_BOOTED) < 0) {
+        if (!dom->persistent) {
+            virDomainObjListRemove(privconn->domains, dom);
+            dom = NULL;
+        }
         goto cleanup;
+    }
 
     event = virDomainEventLifecycleNewFromObj(dom,
                                      VIR_DOMAIN_EVENT_STARTED,
@@ -2126,8 +2132,13 @@ testDomainRestoreFlags(virConnectPtr conn,
         goto cleanup;
     def = NULL;
 
-    if (testDomainStartState(privconn, dom, VIR_DOMAIN_RUNNING_RESTORED) < 0)
+    if (testDomainStartState(privconn, dom, VIR_DOMAIN_RUNNING_RESTORED) < 0) {
+        if (!dom->persistent) {
+            virDomainObjListRemove(privconn->domains, dom);
+            dom = NULL;
+        }
         goto cleanup;
+    }
 
     event = virDomainEventLifecycleNewFromObj(dom,
                                      VIR_DOMAIN_EVENT_STARTED,
@@ -2256,7 +2267,7 @@ static int testDomainSetMaxMemory(virDomainPtr domain,
         return -1;
 
     /* XXX validate not over host memory wrt to other domains */
-    virDomainDefSetMemoryInitial(privdom->def, memory);
+    virDomainDefSetMemoryTotal(privdom->def, memory);
 
     virDomainObjEndAPI(&privdom);
     return 0;
@@ -4321,6 +4332,7 @@ testStoragePoolUndefine(virStoragePoolPtr pool)
     }
 
     virStoragePoolObjRemove(&privconn->pools, privpool);
+    privpool = NULL;
     ret = 0;
 
  cleanup:

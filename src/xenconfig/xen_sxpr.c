@@ -1154,7 +1154,7 @@ xenParseSxpr(const struct sexpr *root,
         }
     }
 
-    virDomainDefSetMemoryInitial(def, (sexpr_u64(root, "domain/maxmem") << 10));
+    virDomainDefSetMemoryTotal(def, (sexpr_u64(root, "domain/maxmem") << 10));
     def->mem.cur_balloon = (sexpr_u64(root, "domain/memory") << 10);
 
     if (def->mem.cur_balloon > virDomainDefGetMemoryActual(def))
@@ -1962,6 +1962,7 @@ xenFormatSxprNet(virConnectPtr conn,
     case VIR_DOMAIN_NET_TYPE_SERVER:
     case VIR_DOMAIN_NET_TYPE_CLIENT:
     case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_UDP:
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
     case VIR_DOMAIN_NET_TYPE_DIRECT:
     case VIR_DOMAIN_NET_TYPE_HOSTDEV:
