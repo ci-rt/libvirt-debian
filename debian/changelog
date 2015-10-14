@@ -1,3 +1,17 @@
+libvirt (1.2.20-1) unstable; urgency=medium
+
+  * [6eb4fb6] Don't use current user, hostname and build time but parse
+    debian/changelog instead to work towards reproducibility.
+    Thanks to Ben Hutchings for pointing this out
+  * [3c9129d] Drop Disable-tests-affected-by-broken-libxml2.patch we have a
+    fixed libxml2 in unstable again.
+  * [96ec9e5] Use daemon log facility for journald (Closes: #799633)
+  * [a4989de] New upstream version 1.2.20
+  * [8109247] Bump symbol versions
+  * [c0ad561] Rediff patches.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 14 Oct 2015 17:53:08 +0200
+
 libvirt (1.2.19-1) unstable; urgency=medium
 
   * [8264435] New upstream version 1.2.19
