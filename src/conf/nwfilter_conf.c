@@ -3082,7 +3082,7 @@ virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
     nwfilter = virNWFilterObjFindByUUID(nwfilters, def->uuid);
 
     if (nwfilter) {
-        if (!STREQ(def->name, nwfilter->def->name)) {
+        if (STRNEQ(def->name, nwfilter->def->name)) {
             virReportError(VIR_ERR_OPERATION_FAILED,
                            _("filter with same UUID but different name "
                              "('%s') already exists"),
@@ -3416,7 +3416,7 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
                break;
 
                case DATATYPE_BOOLEAN:
-                   if (item->u.boolean == true)
+                   if (item->u.boolean)
                        virBufferAddLit(buf, "true");
                    else
                        virBufferAddLit(buf, "false");

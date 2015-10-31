@@ -2329,6 +2329,59 @@ virDomainIOThreadIDDefArrayFree(virDomainIOThreadIDDefPtr *def,
 }
 
 
+static int
+virDomainIOThreadIDDefArrayInit(virDomainDefPtr def)
+{
+    int retval = -1;
+    size_t i;
+    ssize_t nxt = -1;
+    virDomainIOThreadIDDefPtr iothrid = NULL;
+    virBitmapPtr thrmap = NULL;
+
+    /* Same value (either 0 or some number), then we have none to fill in or
+     * the iothreadid array was filled from the XML
+     */
+    if (def->iothreads == def->niothreadids)
+        return 0;
+
+    /* iothread's are numbered starting at 1, account for that */
+    if (!(thrmap = virBitmapNew(def->iothreads + 1)))
+        goto error;
+    virBitmapSetAll(thrmap);
+
+    /* Clear 0 since we don't use it, then mark those which are
+     * already provided by the user */
+    ignore_value(virBitmapClearBit(thrmap, 0));
+    for (i = 0; i < def->niothreadids; i++)
+        ignore_value(virBitmapClearBit(thrmap,
+                                       def->iothreadids[i]->iothread_id));
+
+    /* resize array */
+    if (VIR_REALLOC_N(def->iothreadids, def->iothreads) < 0)
+        goto error;
+
+    /* Populate iothreadids[] using the set bit number from thrmap */
+    while (def->niothreadids < def->iothreads) {
+        if ((nxt = virBitmapNextSetBit(thrmap, nxt)) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("failed to populate iothreadids"));
+            goto error;
+        }
+        if (VIR_ALLOC(iothrid) < 0)
+            goto error;
+        iothrid->iothread_id = nxt;
+        iothrid->autofill = true;
+        def->iothreadids[def->niothreadids++] = iothrid;
+    }
+
+    retval = 0;
+
+ error:
+    virBitmapFree(thrmap);
+    return retval;
+}
+
+
 void
 virDomainPinDefFree(virDomainPinDefPtr def)
 {
@@ -3688,27 +3741,40 @@ virDomainDefRejectDuplicateControllers(virDomainDefPtr def)
 
 
 /**
- * virDomainDefRemoveDuplicateMetadata:
- * @def: Remove duplicate metadata for this def
+ * virDomainDefMetadataSanitize:
+ * @def: Sanitize metadata for this def
  *
  * This function removes metadata elements in @def that share the namespace.
- * The first metadata entry of every duplicate namespace is kept.
+ * The first metadata entry of every duplicate namespace is kept. Additionally
+ * elements with no namespace are deleted.
  */
 static void
-virDomainDefRemoveDuplicateMetadata(virDomainDefPtr def)
+virDomainDefMetadataSanitize(virDomainDefPtr def)
 {
     xmlNodePtr child;
     xmlNodePtr next;
+    xmlNodePtr dupl;
 
     if (!def || !def->metadata)
         return;
 
-    for (child = def->metadata->children; child; child = child->next) {
+    child = def->metadata->children;
+    while (child) {
+        /* remove metadata entries that don't have any namespace at all */
+        if (!child->ns || !child->ns->href) {
+            dupl = child;
+            child = child->next;
+
+            xmlUnlinkNode(dupl);
+            xmlFreeNode(dupl);
+            continue;
+        }
+
         /* check that every other child of @root doesn't share the namespace of
          * the current one and delete them possibly */
         next = child->next;
         while (next) {
-            xmlNodePtr dupl = NULL;
+            dupl = NULL;
 
             if (child->ns && next->ns &&
                 STREQ_NULLABLE((const char *) child->ns->href,
@@ -3722,6 +3788,8 @@ virDomainDefRemoveDuplicateMetadata(virDomainDefPtr def)
                 xmlFreeNode(dupl);
             }
         }
+
+        child = child->next;
     }
 }
 
@@ -3956,7 +4024,7 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
     }
 
     /* clean up possibly duplicated metadata entries */
-    virDomainDefRemoveDuplicateMetadata(def);
+    virDomainDefMetadataSanitize(def);
 
     return 0;
 }
@@ -7917,7 +7985,7 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     if (ioeventfd &&
         (def->ioeventfd = virTristateSwitchTypeFromString(ioeventfd)) < 0) {
         virReportError(VIR_ERR_XML_ERROR,
-                       _("Malformed 'ioeventfd' value %s'"), max_sectors);
+                       _("Malformed 'ioeventfd' value %s'"), ioeventfd);
         goto error;
     }
 
@@ -14964,22 +15032,8 @@ virDomainDefParseXML(xmlDocPtr xml,
     }
     VIR_FREE(nodes);
 
-    /* If no iothreadid's or not fully populated, let's finish the job
-     * here rather than in PostParseCallback
-     */
-    if (def->iothreads && def->iothreads != def->niothreadids) {
-        unsigned int iothread_id = 1;
-        while (def->niothreadids != def->iothreads) {
-            if (!virDomainIOThreadIDFind(def, iothread_id)) {
-                virDomainIOThreadIDDefPtr iothrid;
-
-                if (!(iothrid = virDomainIOThreadIDAdd(def, iothread_id)))
-                    goto error;
-                iothrid->autofill = true;
-            }
-            iothread_id++;
-        }
-    }
+    if (virDomainIOThreadIDDefArrayInit(def) < 0)
+        goto error;
 
     /* Extract cpu tunables. */
     if ((n = virXPathULong("string(./cputune/shares[1])", ctxt,
@@ -15190,7 +15244,7 @@ virDomainDefParseXML(xmlDocPtr xml,
         goto error;
     }
     if (n) {
-        if (n > def->iothreads) {
+        if (n > def->niothreadids) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("too many iothreadsched nodes in cputune"));
             goto error;
@@ -17171,6 +17225,14 @@ static bool
 virDomainSerialDefCheckABIStability(virDomainChrDefPtr src,
                                     virDomainChrDefPtr dst)
 {
+    if (src->targetType != dst->targetType) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target serial type %s does not match source %s"),
+                       virDomainChrSerialTargetTypeToString(dst->targetType),
+                       virDomainChrSerialTargetTypeToString(src->targetType));
+        return false;
+    }
+
     if (src->target.port != dst->target.port) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target serial port %d does not match source %d"),
@@ -21699,7 +21761,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAsprintf(buf, " current='%u'", def->vcpus);
     virBufferAsprintf(buf, ">%u</vcpu>\n", def->maxvcpus);
 
-    if (def->iothreads > 0) {
+    if (def->niothreadids > 0) {
         virBufferAsprintf(buf, "<iothreads>%u</iothreads>\n",
                           def->iothreads);
         /* Only print out iothreadids if we read at least one */
@@ -24451,18 +24513,29 @@ virDomainDefNeedsPlacementAdvice(virDomainDefPtr def)
 
 
 int
-virDomainDefCheckDuplicateDiskWWN(virDomainDefPtr def)
+virDomainDefCheckDuplicateDiskInfo(virDomainDefPtr def)
 {
     size_t i;
     size_t j;
 
     for (i = 0; i < def->ndisks; i++) {
-        if (def->disks[i]->wwn) {
+        if (def->disks[i]->wwn || def->disks[i]->serial) {
             for (j = i + 1; j < def->ndisks; j++) {
-                if (STREQ_NULLABLE(def->disks[i]->wwn,
+                if (def->disks[i]->wwn &&
+                    STREQ_NULLABLE(def->disks[i]->wwn,
                                    def->disks[j]->wwn)) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                    _("Disks '%s' and '%s' have identical WWN"),
+                                   def->disks[i]->dst,
+                                   def->disks[j]->dst);
+                    return -1;
+                }
+
+                if (def->disks[i]->serial &&
+                    STREQ_NULLABLE(def->disks[i]->serial,
+                                   def->disks[j]->serial)) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   _("Disks '%s' and '%s' have identical serial"),
                                    def->disks[i]->dst,
                                    def->disks[j]->dst);
                     return -1;

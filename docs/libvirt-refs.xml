@@ -906,6 +906,7 @@
     <reference name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'/>
     <reference name='VIR_STORAGE_VOL_CREATE_REFLINK' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_CREATE_REFLINK'/>
     <reference name='VIR_STORAGE_VOL_DELETE_NORMAL' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_NORMAL'/>
+    <reference name='VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS'/>
     <reference name='VIR_STORAGE_VOL_DELETE_ZEROED' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_ZEROED'/>
     <reference name='VIR_STORAGE_VOL_DIR' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DIR'/>
     <reference name='VIR_STORAGE_VOL_FILE' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_FILE'/>
@@ -2569,6 +2570,7 @@
       <ref name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'/>
       <ref name='VIR_STORAGE_VOL_CREATE_REFLINK'/>
       <ref name='VIR_STORAGE_VOL_DELETE_NORMAL'/>
+      <ref name='VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS'/>
       <ref name='VIR_STORAGE_VOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_VOL_DIR'/>
       <ref name='VIR_STORAGE_VOL_FILE'/>
@@ -5914,6 +5916,7 @@
       <ref name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'/>
       <ref name='VIR_STORAGE_VOL_CREATE_REFLINK'/>
       <ref name='VIR_STORAGE_VOL_DELETE_NORMAL'/>
+      <ref name='VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS'/>
       <ref name='VIR_STORAGE_VOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_VOL_DIR'/>
       <ref name='VIR_STORAGE_VOL_FILE'/>
@@ -6938,6 +6941,8 @@
           <ref name='virConnectGetVersion'/>
           <ref name='virConnectOpen'/>
           <ref name='virConnectOpenAuth'/>
+          <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
         </word>
         <word name='Hypervisors'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
@@ -10156,6 +10161,8 @@
           <ref name='virDomainSetVcpus'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virEventRunDefaultImpl'/>
           <ref name='virInitialize'/>
           <ref name='virInterfaceChangeBegin'/>
@@ -13734,6 +13741,8 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virSetErrorFunc'/>
         </word>
         <word name='haphazard'>
@@ -14102,6 +14111,10 @@
         </word>
         <word name='import'>
           <ref name='virConnectDomainXMLFromNative'/>
+        </word>
+        <word name='important'>
+          <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
         </word>
         <word name='importing'>
           <ref name='virConnectDomainXMLFromNative'/>
@@ -16563,6 +16576,8 @@
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainOpenGraphicsFD'/>
+          <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virInterfaceChangeCommit'/>
           <ref name='virInterfaceChangeRollback'/>
@@ -17487,6 +17502,8 @@
         <word name='proper'>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainCoreDumpWithFormat'/>
+          <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
         </word>
         <word name='properly'>
           <ref name='virDomainBlockRebase'/>
@@ -17639,7 +17656,7 @@
         <word name='qemu:'>
           <ref name='virConnectGetType'/>
         </word>
-        <word name='qualfied'>
+        <word name='qualified'>
           <ref name='virSecretGetUsageID'/>
         </word>
         <word name='queried'>
@@ -18902,9 +18919,6 @@
           <ref name='virDomainBlockJobSetSpeed'/>
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
-        </word>
-        <word name='seclets'>
-          <ref name='virConnectListAllSecrets'/>
         </word>
         <word name='seconds'>
           <ref name='virConnectDomainEventRTCChangeCallback'/>

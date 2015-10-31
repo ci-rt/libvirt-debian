@@ -1487,12 +1487,9 @@ libvirt_driver_vmware_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_VZ_TRUE@libvirt_driver_vz_la_DEPENDENCIES =  \
 @WITH_VZ_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__libvirt_driver_vz_la_SOURCES_DIST = vz/vz_driver.h vz/vz_driver.c \
-	vz/vz_utils.c vz/vz_utils.h vz/vz_storage.c vz/vz_network.c \
-	vz/vz_sdk.h vz/vz_sdk.c
+	vz/vz_utils.c vz/vz_utils.h vz/vz_sdk.h vz/vz_sdk.c
 am__objects_80 = vz/libvirt_driver_vz_la-vz_driver.lo \
 	vz/libvirt_driver_vz_la-vz_utils.lo \
-	vz/libvirt_driver_vz_la-vz_storage.lo \
-	vz/libvirt_driver_vz_la-vz_network.lo \
 	vz/libvirt_driver_vz_la-vz_sdk.lo
 @WITH_VZ_TRUE@am_libvirt_driver_vz_la_OBJECTS = $(am__objects_80)
 libvirt_driver_vz_la_OBJECTS = $(am_libvirt_driver_vz_la_OBJECTS)
@@ -3485,6 +3482,7 @@ INCLUDES = -I../gnulib/lib					\
 		-I../include					\
 		-I$(top_srcdir)/include				\
 		-I$(srcdir)/util				\
+		-I./util					\
 		-DIN_LIBVIRT					\
 		-Dabs_topbuilddir="\"$(abs_topbuilddir)\""	\
 		-Dabs_topsrcdir="\"$(abs_topsrcdir)\""		\
@@ -3504,12 +3502,11 @@ AM_LDFLAGS = $(DRIVER_MODULE_LDFLAGS)			\
 
 
 # Add all conditional sources just in case...
-EXTRA_DIST = $(conf_DATA) util/keymaps.csv $(srcdir)/util/virkeymaps.h \
-	$(srcdir)/util/keymaps.csv $(srcdir)/util/virkeycode-mapgen.py \
-	$(LOCK_PROTOCOL) $(LOCK_PROTOCOL_GENERATED) \
-	$(LOCK_DAEMON_GENERATED) $(REMOTE_DRIVER_PROTOCOL) \
-	$(REMOTE_DRIVER_GENERATED) $(ADMIN_PROTOCOL) \
-	$(ADMIN_PROTOCOL_GENERATED) check-symfile.pl \
+EXTRA_DIST = $(conf_DATA) util/keymaps.csv $(srcdir)/util/keymaps.csv \
+	$(srcdir)/util/virkeycode-mapgen.py $(LOCK_PROTOCOL) \
+	$(LOCK_PROTOCOL_GENERATED) $(LOCK_DAEMON_GENERATED) \
+	$(REMOTE_DRIVER_PROTOCOL) $(REMOTE_DRIVER_GENERATED) \
+	$(ADMIN_PROTOCOL) $(ADMIN_PROTOCOL_GENERATED) check-symfile.pl \
 	check-symsorting.pl $(PROTOCOL_STRUCTS) check-drivername.pl \
 	check-driverimpls.pl check-aclrules.pl check-aclperms.pl \
 	$(LXC_MONITOR_PROTOCOL) $(LXC_GENERATED) $(NULL) \
@@ -3578,7 +3575,7 @@ CLEANFILES = $(LXC_GENERATED) $(am__append_43) $(am__append_51) \
 DISTCLEANFILES = $(am__append_175) $(am__append_178) $(am__append_182) \
 	$(am__append_186) $(am__append_193) $(am__append_196) \
 	$(GENERATED_SYM_FILES)
-MAINTAINERCLEANFILES = $(LOCK_PROTOCOL_GENERATED) \
+MAINTAINERCLEANFILES = util/virkeymaps.h $(LOCK_PROTOCOL_GENERATED) \
 	$(LOCK_DAEMON_GENERATED) $(ADMIN_PROTOCOL_GENERATED) \
 	$(ESX_DRIVER_GENERATED) $(ESX_GENERATED_STAMP) \
 	$(HYPERV_DRIVER_GENERATED) $(HYPERV_GENERATED_STAMP) \
@@ -4201,8 +4198,6 @@ VZ_DRIVER_SOURCES = \
 		vz/vz_driver.c			\
 		vz/vz_utils.c			\
 		vz/vz_utils.h			\
-		vz/vz_storage.c		\
-		vz/vz_network.c		\
 		vz/vz_sdk.h			\
 		vz/vz_sdk.c
 
@@ -4754,8 +4749,9 @@ libvirt_admin_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD) \
 	$(CAPNG_LIBS) $(YAJL_LIBS) $(DEVMAPPER_LIBS) $(LIBXML_LIBS) \
 	$(SSH2_LIBS) $(SASL_LIBS) $(GNUTLS_LIBS) $(am__append_160)
 libvirt_admin_la_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/remote \
-	-I$(srcdir)/rpc -I$(srcdir)/admin $(CAPNG_CFLAGS) \
-	$(YAJL_CFLAGS) $(SSH2_CFLAGS) $(SASL_CFLAGS) $(GNUTLS_CFLAGS)
+	-I$(srcdir)/rpc -I$(srcdir)/admin $(XDR_CFLAGS) \
+	$(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(SSH2_CFLAGS) $(SASL_CFLAGS) \
+	$(GNUTLS_CFLAGS)
 ADMIN_SYM_FILES = $(srcdir)/libvirt_admin_private.syms
 
 # Empty source list - it merely links a bunch of convenience libs together
@@ -5987,10 +5983,6 @@ vz/libvirt_driver_vz_la-vz_driver.lo: vz/$(am__dirstamp) \
 	vz/$(DEPDIR)/$(am__dirstamp)
 vz/libvirt_driver_vz_la-vz_utils.lo: vz/$(am__dirstamp) \
 	vz/$(DEPDIR)/$(am__dirstamp)
-vz/libvirt_driver_vz_la-vz_storage.lo: vz/$(am__dirstamp) \
-	vz/$(DEPDIR)/$(am__dirstamp)
-vz/libvirt_driver_vz_la-vz_network.lo: vz/$(am__dirstamp) \
-	vz/$(DEPDIR)/$(am__dirstamp)
 vz/libvirt_driver_vz_la-vz_sdk.lo: vz/$(am__dirstamp) \
 	vz/$(DEPDIR)/$(am__dirstamp)
 
@@ -6837,9 +6829,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@vmware/$(DEPDIR)/libvirt_driver_vmware_la-vmware_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@vmx/$(DEPDIR)/libvirt_vmx_la-vmx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@vz/$(DEPDIR)/libvirt_driver_vz_la-vz_driver.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@vz/$(DEPDIR)/libvirt_driver_vz_la-vz_network.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@vz/$(DEPDIR)/libvirt_driver_vz_la-vz_sdk.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@vz/$(DEPDIR)/libvirt_driver_vz_la-vz_storage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@vz/$(DEPDIR)/libvirt_driver_vz_la-vz_utils.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@xen/$(DEPDIR)/libvirt_driver_xen_impl_la-block_stats.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@xen/$(DEPDIR)/libvirt_driver_xen_impl_la-xen_driver.Plo@am__quote@
@@ -8608,20 +8598,6 @@ vz/libvirt_driver_vz_la-vz_utils.lo: vz/vz_utils.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_vz_la_CFLAGS) $(CFLAGS) -c -o vz/libvirt_driver_vz_la-vz_utils.lo `test -f 'vz/vz_utils.c' || echo '$(srcdir)/'`vz/vz_utils.c
 
-vz/libvirt_driver_vz_la-vz_storage.lo: vz/vz_storage.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_vz_la_CFLAGS) $(CFLAGS) -MT vz/libvirt_driver_vz_la-vz_storage.lo -MD -MP -MF vz/$(DEPDIR)/libvirt_driver_vz_la-vz_storage.Tpo -c -o vz/libvirt_driver_vz_la-vz_storage.lo `test -f 'vz/vz_storage.c' || echo '$(srcdir)/'`vz/vz_storage.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) vz/$(DEPDIR)/libvirt_driver_vz_la-vz_storage.Tpo vz/$(DEPDIR)/libvirt_driver_vz_la-vz_storage.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vz/vz_storage.c' object='vz/libvirt_driver_vz_la-vz_storage.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_vz_la_CFLAGS) $(CFLAGS) -c -o vz/libvirt_driver_vz_la-vz_storage.lo `test -f 'vz/vz_storage.c' || echo '$(srcdir)/'`vz/vz_storage.c
-
-vz/libvirt_driver_vz_la-vz_network.lo: vz/vz_network.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_vz_la_CFLAGS) $(CFLAGS) -MT vz/libvirt_driver_vz_la-vz_network.lo -MD -MP -MF vz/$(DEPDIR)/libvirt_driver_vz_la-vz_network.Tpo -c -o vz/libvirt_driver_vz_la-vz_network.lo `test -f 'vz/vz_network.c' || echo '$(srcdir)/'`vz/vz_network.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) vz/$(DEPDIR)/libvirt_driver_vz_la-vz_network.Tpo vz/$(DEPDIR)/libvirt_driver_vz_la-vz_network.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vz/vz_network.c' object='vz/libvirt_driver_vz_la-vz_network.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_vz_la_CFLAGS) $(CFLAGS) -c -o vz/libvirt_driver_vz_la-vz_network.lo `test -f 'vz/vz_network.c' || echo '$(srcdir)/'`vz/vz_network.c
-
 vz/libvirt_driver_vz_la-vz_sdk.lo: vz/vz_sdk.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_vz_la_CFLAGS) $(CFLAGS) -MT vz/libvirt_driver_vz_la-vz_sdk.lo -MD -MP -MF vz/$(DEPDIR)/libvirt_driver_vz_la-vz_sdk.Tpo -c -o vz/libvirt_driver_vz_la-vz_sdk.lo `test -f 'vz/vz_sdk.c' || echo '$(srcdir)/'`vz/vz_sdk.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) vz/$(DEPDIR)/libvirt_driver_vz_la-vz_sdk.Tpo vz/$(DEPDIR)/libvirt_driver_vz_la-vz_sdk.Plo
@@ -10140,7 +10116,7 @@ uninstall-man: uninstall-man8
 util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
 		$(srcdir)/util/virkeycode-mapgen.py
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/util/virkeycode-mapgen.py \
-	  <$(srcdir)/util/keymaps.csv >$(srcdir)/util/virkeymaps.h
+	  <$(srcdir)/util/keymaps.csv >util/virkeymaps.h
 		$(NULL)
 
 locking/lock_daemon_dispatch_stubs.h: $(LOCK_PROTOCOL) \

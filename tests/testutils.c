@@ -91,6 +91,11 @@ bool virtTestOOMActive(void)
     return testOOMActive;
 }
 
+static int virtTestUseTerminalColors(void)
+{
+    return isatty(STDIN_FILENO);
+}
+
 static unsigned int
 virTestGetFlag(const char *name)
 {
@@ -113,44 +118,6 @@ static void virTestAllocHook(int nalloc ATTRIBUTE_UNUSED,
     ntestAllocStack = backtrace(testAllocStack, ARRAY_CARDINALITY(testAllocStack));
 }
 #endif
-
-void virtTestResult(const char *name, int ret, const char *msg, ...)
-{
-    va_list vargs;
-    va_start(vargs, msg);
-
-    if (testCounter == 0 && !virTestGetVerbose())
-        fprintf(stderr, "      ");
-
-    testCounter++;
-    if (virTestGetVerbose()) {
-        fprintf(stderr, "%3zu) %-60s ", testCounter, name);
-        if (ret == 0) {
-            fprintf(stderr, "OK\n");
-        } else {
-            fprintf(stderr, "FAILED\n");
-            if (msg) {
-                char *str;
-                if (virVasprintfQuiet(&str, msg, vargs) == 0) {
-                    fprintf(stderr, "%s", str);
-                    VIR_FREE(str);
-                }
-            }
-        }
-    } else {
-        if (testCounter != 1 &&
-            !((testCounter-1) % 40)) {
-            fprintf(stderr, " %-3zu\n", (testCounter-1));
-            fprintf(stderr, "      ");
-        }
-        if (ret == 0)
-            fprintf(stderr, ".");
-        else
-            fprintf(stderr, "!");
-    }
-
-    va_end(vargs);
-}
 
 #ifdef TEST_OOM_TRACE
 static void
@@ -217,11 +184,20 @@ virtTestRun(const char *title,
 
     if (virTestGetVerbose()) {
         if (ret == 0)
-            fprintf(stderr, "OK\n");
+            if (virtTestUseTerminalColors())
+                fprintf(stderr, "\e[32mOK\e[0m\n");  /* green */
+            else
+                fprintf(stderr, "OK\n");
         else if (ret == EXIT_AM_SKIP)
-            fprintf(stderr, "SKIP\n");
+            if (virtTestUseTerminalColors())
+                fprintf(stderr, "\e[34m\e[1mSKIP\e[0m\n");  /* bold blue */
+            else
+                fprintf(stderr, "SKIP\n");
         else
-            fprintf(stderr, "FAILED\n");
+            if (virtTestUseTerminalColors())
+                fprintf(stderr, "\e[31m\e[1mFAILED\e[0m\n");  /* bold red */
+            else
+                fprintf(stderr, "FAILED\n");
     } else {
         if (testCounter != 1 &&
             !((testCounter-1) % 40)) {

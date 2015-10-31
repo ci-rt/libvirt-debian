@@ -1796,6 +1796,15 @@ storageVolCreateXML(virStoragePoolPtr obj,
     if (virStorageVolCreateXMLEnsureACL(obj->conn, pool->def, voldef) < 0)
         goto cleanup;
 
+    /* While not perfect, refresh the list of volumes in the pool and
+     * then check that the incoming name isn't already in the pool.
+     */
+    if (backend->refreshPool) {
+        virStoragePoolObjClearVols(pool);
+        if (backend->refreshPool(obj->conn, pool) < 0)
+            goto cleanup;
+    }
+
     if (virStorageVolDefFindByName(pool, voldef->name)) {
         virReportError(VIR_ERR_STORAGE_VOL_EXIST,
                        _("'%s'"), voldef->name);
@@ -1850,6 +1859,8 @@ storageVolCreateXML(virStoragePoolPtr obj,
 
         buildret = backend->buildVol(obj->conn, pool, buildvoldef, flags);
 
+        VIR_FREE(buildvoldef);
+
         storageDriverLock();
         virStoragePoolObjLock(pool);
         storageDriverUnlock();
@@ -1858,7 +1869,6 @@ storageVolCreateXML(virStoragePoolPtr obj,
         pool->asyncjobs--;
 
         if (buildret < 0) {
-            VIR_FREE(buildvoldef);
             storageVolDeleteInternal(volobj, backend, pool, voldef,
                                      0, false);
             voldef = NULL;
@@ -3190,6 +3200,8 @@ virStorageTranslateDiskSourcePoolAuth(virDomainDiskDefPtr def,
     def->src->auth = virStorageAuthDefCopy(source->auth);
     if (!def->src->auth)
         goto cleanup;
+    /* A <disk> doesn't use <auth type='%s', so clear that out for the disk */
+    def->src->auth->authType = VIR_STORAGE_AUTH_TYPE_NONE;
     ret = 0;
 
  cleanup:

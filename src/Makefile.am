@@ -31,6 +31,7 @@ INCLUDES =	-I../gnulib/lib					\
 		-I../include					\
 		-I$(top_srcdir)/include				\
 		-I$(srcdir)/util				\
+		-I./util					\
 		-DIN_LIBVIRT					\
 		-Dabs_topbuilddir="\"$(abs_topbuilddir)\""	\
 		-Dabs_topsrcdir="\"$(abs_topsrcdir)\""		\
@@ -172,16 +173,15 @@ UTIL_SOURCES =							\
 		util/virxml.c util/virxml.h			\
 		$(NULL)
 
-
-EXTRA_DIST += $(srcdir)/util/virkeymaps.h $(srcdir)/util/keymaps.csv \
-		$(srcdir)/util/virkeycode-mapgen.py
+EXTRA_DIST += $(srcdir)/util/keymaps.csv $(srcdir)/util/virkeycode-mapgen.py
 
 BUILT_SOURCES += util/virkeymaps.h
+MAINTAINERCLEANFILES += util/virkeymaps.h
 
 util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
 		$(srcdir)/util/virkeycode-mapgen.py
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/util/virkeycode-mapgen.py \
-	  <$(srcdir)/util/keymaps.csv >$(srcdir)/util/virkeymaps.h
+	  <$(srcdir)/util/keymaps.csv >util/virkeymaps.h
 
 # Internal generic driver infrastructure
 NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c nodeinfopriv.h
@@ -839,8 +839,6 @@ VZ_DRIVER_SOURCES =					\
 		vz/vz_driver.c			\
 		vz/vz_utils.c			\
 		vz/vz_utils.h			\
-		vz/vz_storage.c		\
-		vz/vz_network.c		\
 		vz/vz_sdk.h			\
 		vz/vz_sdk.c
 
@@ -2089,6 +2087,7 @@ libvirt_admin_la_CFLAGS = \
 		-I$(srcdir)/admin
 
 libvirt_admin_la_CFLAGS += \
+		$(XDR_CFLAGS)			\
 		$(CAPNG_CFLAGS)			\
 		$(YAJL_CFLAGS)			\
 		$(SSH2_CFLAGS)			\

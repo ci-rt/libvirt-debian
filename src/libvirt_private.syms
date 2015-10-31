@@ -200,7 +200,7 @@ virDomainCpuPlacementModeTypeFromString;
 virDomainCpuPlacementModeTypeToString;
 virDomainDefAddImplicitControllers;
 virDomainDefCheckABIStability;
-virDomainDefCheckDuplicateDiskWWN;
+virDomainDefCheckDuplicateDiskInfo;
 virDomainDefCheckUnsupportedMemoryHotplug;
 virDomainDefClearCCWAddresses;
 virDomainDefClearDeviceAliases;
@@ -834,6 +834,7 @@ virStoragePoolDefParseFile;
 virStoragePoolDefParseNode;
 virStoragePoolDefParseSourceString;
 virStoragePoolDefParseString;
+virStoragePoolFormatDiskTypeFromString;
 virStoragePoolFormatDiskTypeToString;
 virStoragePoolFormatFileSystemNetTypeToString;
 virStoragePoolFormatFileSystemTypeToString;
@@ -1533,10 +1534,10 @@ virHostdevReAttachDomainDevices;
 virHostdevReAttachPCIDevices;
 virHostdevReAttachSCSIDevices;
 virHostdevReAttachUSBDevices;
+virHostdevUpdateActiveDomainDevices;
 virHostdevUpdateActivePCIDevices;
 virHostdevUpdateActiveSCSIDevices;
 virHostdevUpdateActiveUSBDevices;
-virHostdevUpdateDomainActiveDevices;
 
 
 # util/viridentity.h
@@ -1791,6 +1792,7 @@ virNetDevSetRcvMulti;
 virNetDevSetupControl;
 virNetDevSysfsFile;
 virNetDevValidateConfig;
+virNetDevWaitDadFinish;
 
 
 # util/virnetdevbandwidth.h
