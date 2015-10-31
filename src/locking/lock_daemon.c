@@ -125,6 +125,17 @@ virLockDaemonFree(virLockDaemonPtr lockd)
     VIR_FREE(lockd);
 }
 
+static inline void
+virLockDaemonLock(virLockDaemonPtr lockd)
+{
+    virMutexLock(&lockd->lock);
+}
+
+static inline void
+virLockDaemonUnlock(virLockDaemonPtr lockd)
+{
+    virMutexUnlock(&lockd->lock);
+}
 
 static void virLockDaemonLockSpaceDataFree(void *data,
                                            const void *key ATTRIBUTE_UNUSED)
@@ -184,7 +195,7 @@ virLockDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
     virJSONValuePtr lockspaces;
     virNetServerPtr srv;
     size_t i;
-    int n;
+    ssize_t n;
 
     if (VIR_ALLOC(lockd) < 0)
         return NULL;
@@ -275,9 +286,9 @@ int virLockDaemonAddLockSpace(virLockDaemonPtr lockd,
                               virLockSpacePtr lockspace)
 {
     int ret;
-    virMutexLock(&lockd->lock);
+    virLockDaemonLock(lockd);
     ret = virHashAddEntry(lockd->lockspaces, path, lockspace);
-    virMutexUnlock(&lockd->lock);
+    virLockDaemonUnlock(lockd);
     return ret;
 }
 
@@ -285,12 +296,12 @@ virLockSpacePtr virLockDaemonFindLockSpace(virLockDaemonPtr lockd,
                                            const char *path)
 {
     virLockSpacePtr lockspace;
-    virMutexLock(&lockd->lock);
+    virLockDaemonLock(lockd);
     if (path && STRNEQ(path, ""))
         lockspace = virHashLookup(lockd->lockspaces, path);
     else
         lockspace = lockd->defaultLockspace;
-    virMutexUnlock(&lockd->lock);
+    virLockDaemonUnlock(lockd);
     return lockspace;
 }
 
@@ -675,14 +686,14 @@ virLockDaemonClientFree(void *opaque)
 
         /* Release all locks associated with this
          * owner in all lockspaces */
-        virMutexLock(&lockDaemon->lock);
+        virLockDaemonLock(lockDaemon);
         virHashForEach(lockDaemon->lockspaces,
                        virLockDaemonClientReleaseLockspace,
                        &data);
         virLockDaemonClientReleaseLockspace(lockDaemon->defaultLockspace,
                                             "",
                                             &data);
-        virMutexUnlock(&lockDaemon->lock);
+        virLockDaemonUnlock(lockDaemon);
 
         /* If the client had some active leases when it
          * closed the connection, we must kill it off
@@ -1322,10 +1333,9 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
-    /* rv == 1, means we setup everything from saved state,
-     * so only (possibly) daemonize and setup stuff from
-     * scratch if rv == 0
-     */
+    /* rv == 1 means we successfully restored from the saved internal state
+     * (but still need to add @lockProgram into @srv). rv == 0 means that no
+     * saved state is present, therefore initialize from scratch here. */
     if (rv == 0) {
         if (godaemon) {
             char ebuf[1024];
@@ -1366,6 +1376,8 @@ int main(int argc, char **argv) {
             ret = VIR_LOCK_DAEMON_ERR_NETWORK;
             goto cleanup;
         }
+    } else if (rv == 1) {
+        srv = virNetDaemonGetServer(lockDaemon->dmn, 0);
     }
 
     if (timeout != -1) {

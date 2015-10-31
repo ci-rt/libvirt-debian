@@ -197,7 +197,7 @@ bhyveConnectOpen(virConnectPtr conn,
          if (conn->uri->server)
              return VIR_DRV_OPEN_DECLINED;
 
-         if (!STREQ_NULLABLE(conn->uri->path, "/system")) {
+         if (STRNEQ_NULLABLE(conn->uri->path, "/system")) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Unexpected bhyve URI path '%s', try bhyve:///system"),
                            conn->uri->path);
@@ -461,6 +461,27 @@ bhyveDomainIsPersistent(virDomainPtr domain)
  cleanup:
     if (obj)
         virObjectUnlock(obj);
+    return ret;
+}
+
+static char *
+bhyveDomainGetOSType(virDomainPtr dom)
+{
+    virDomainObjPtr vm;
+    char *ret = NULL;
+
+    if (!(vm = bhyveDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainGetOSTypeEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (VIR_STRDUP(ret, virDomainOSTypeToString(vm->def->os.type)) < 0)
+        goto cleanup;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -1487,6 +1508,7 @@ static virHypervisorDriver bhyveHypervisorDriver = {
     .domainDefineXML = bhyveDomainDefineXML, /* 1.2.2 */
     .domainDefineXMLFlags = bhyveDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = bhyveDomainUndefine, /* 1.2.2 */
+    .domainGetOSType = bhyveDomainGetOSType, /* 1.2.21 */
     .domainGetXMLDesc = bhyveDomainGetXMLDesc, /* 1.2.2 */
     .domainIsActive = bhyveDomainIsActive, /* 1.2.2 */
     .domainIsPersistent = bhyveDomainIsPersistent, /* 1.2.2 */

@@ -344,16 +344,14 @@ virNetSSHCheckHostKey(virNetSSHSessionPtr sess)
             memset(&askKey, 0, sizeof(virConnectCredential));
 
             for (i = 0; i < sess->cred->ncredtype; i++) {
-                if (sess->cred->credtype[i] == VIR_CRED_ECHOPROMPT) {
-                    i = -1;
+                if (sess->cred->credtype[i] == VIR_CRED_ECHOPROMPT)
                     break;
-                }
             }
 
-            if (i > 0) {
+            if (i == sess->cred->ncredtype) {
                 virReportError(VIR_ERR_SSH, "%s",
-                               _("no suitable method to retrieve "
-                                 "authentication credentials"));
+                               _("no suitable callback for host key "
+                                 "verification"));
                 return -1;
             }
 
@@ -524,6 +522,8 @@ virNetSSHAuthenticateAgent(virNetSSHSessionPtr sess,
     int ret;
     char *errmsg;
 
+    VIR_DEBUG("sess=%p", sess);
+
     if (libssh2_agent_connect(sess->agent) < 0) {
         virReportError(VIR_ERR_SSH, "%s",
                        _("Failed to connect to ssh agent"));
@@ -594,6 +594,8 @@ virNetSSHAuthenticatePrivkey(virNetSSHSessionPtr sess,
     char *errmsg;
     int ret;
     char *tmp;
+
+    VIR_DEBUG("sess=%p", sess);
 
     /* try open the key with no password */
     if ((ret = libssh2_userauth_publickey_fromfile(sess->session,
@@ -697,6 +699,8 @@ virNetSSHAuthenticatePassword(virNetSSHSessionPtr sess,
     int ret = -1;
     int rc;
 
+    VIR_DEBUG("sess=%p", sess);
+
     if (priv->password) {
         /* tunelled password authentication */
         if ((ret = libssh2_userauth_password(sess->session,
@@ -770,6 +774,8 @@ virNetSSHAuthenticateKeyboardInteractive(virNetSSHSessionPtr sess,
     char *errmsg;
     int ret;
 
+    VIR_DEBUG("sess=%p", sess);
+
     if (!sess->cred || !sess->cred->cb) {
         virReportError(VIR_ERR_SSH, "%s",
                        _("Can't perform keyboard-interactive authentication: "
@@ -836,6 +842,8 @@ virNetSSHAuthenticate(virNetSSHSessionPtr sess)
     char *errmsg;
     size_t i;
     int ret;
+
+    VIR_DEBUG("sess=%p", sess);
 
     if (!sess->nauths) {
         virReportError(VIR_ERR_SSH, "%s",

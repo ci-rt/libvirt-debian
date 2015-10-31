@@ -282,7 +282,7 @@ testSELinuxCheckLabels(testSELinuxFile *files, size_t nfiles)
                 return -1;
             }
         }
-        if (!STREQ_NULLABLE(files[i].context, ctx)) {
+        if (STRNEQ_NULLABLE(files[i].context, ctx)) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "File %s context '%s' did not match epected '%s'",
                            files[i].file, ctx, files[i].context);
@@ -351,7 +351,9 @@ mymain(void)
     if (!rc)
         return EXIT_AM_SKIP;
 
-    if (!(mgr = virSecurityManagerNew("selinux", "QEMU", false, true, false, true))) {
+    if (!(mgr = virSecurityManagerNew("selinux", "QEMU",
+                                      VIR_SECURITY_MANAGER_DEFAULT_CONFINED |
+                                      VIR_SECURITY_MANAGER_PRIVILEGED))) {
         virErrorPtr err = virGetLastError();
         VIR_TEST_VERBOSE("Unable to initialize security driver: %s\n",
                 err->message);

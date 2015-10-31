@@ -452,7 +452,7 @@ in.
 <td></td>
 <td>0.6.3</td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td>0.2.1</td>
 <td>0.8.0</td>
 </tr>
@@ -1983,7 +1983,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td>0.7.1</td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td>0.2.1</td>
 <td>0.8.0</td>
 </tr>
@@ -2058,7 +2058,7 @@ virConnectSupportsFeature</td>
 <a href="html/libvirt-libvirt-domain.html#virDomainGetOSType">virDomainGetOSType</a>
 </td>
 <td>0.0.3</td>
-<td></td>
+<td>1.2.21</td>
 <td>0.7.0</td>
 <td>0.9.5</td>
 <td>0.9.0</td>
@@ -2311,7 +2311,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td>0.8.5</td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td>0.8.5</td>
 <td>0.8.5</td>
 </tr>
@@ -2529,7 +2529,7 @@ virConnectSupportsFeature</td>
 <td>0.8.6</td>
 <td>0.8.6</td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td>0.8.6</td>
 <td>0.8.6</td>
 </tr>
@@ -4897,7 +4897,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.3</td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td></td>
 <td></td>
 </tr>
@@ -4939,7 +4939,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 <td>0.6.5</td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td>0.3.3</td>
 <td>0.8.0</td>
 </tr>
@@ -4961,7 +4961,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 <td>0.6.5</td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td>0.3.3</td>
 <td>0.8.0</td>
 </tr>
@@ -5049,7 +5049,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.3</td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.21</td>
 <td></td>
 <td></td>
 </tr>

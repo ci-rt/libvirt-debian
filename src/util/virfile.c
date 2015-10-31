@@ -1008,7 +1008,7 @@ virFileStripSuffix(char *str, const char *suffix)
     if (len < suffixlen)
         return 0;
 
-    if (!STREQ(str + len - suffixlen, suffix))
+    if (STRNEQ(str + len - suffixlen, suffix))
         return 0;
 
     str[len-suffixlen] = '\0';
@@ -2057,7 +2057,12 @@ virFileOpenForceOwnerMode(const char *path, int fd, mode_t mode,
  * virFileOpenAs(). It forks, then the child does setuid+setgid to
  * given uid:gid and attempts to open the file, while the parent just
  * calls recvfd to get the open fd back from the child. returns the
- * fd, or -errno if there is an error. */
+ * fd, or -errno if there is an error. Additionally, to avoid another
+ * round-trip to unlink the file in a forked process; on error if this
+ * function created the file, but failed to perform some action after
+ * creation, then perform the unlink of the file. The storage driver
+ * buildVol backend function expects the file to be deleted on error.
+ */
 static int
 virFileOpenForked(const char *path, int openflags, mode_t mode,
                   uid_t uid, gid_t gid, unsigned int flags)
@@ -2069,6 +2074,7 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
     int pair[2] = { -1, -1 };
     gid_t *groups;
     int ngroups;
+    bool created = false;
 
     /* parent is running as root, but caller requested that the
      * file be opened as some other user and/or group). The
@@ -2113,6 +2119,8 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
                                  path);
             goto childerror;
         }
+        if (openflags & O_CREAT)
+            created = true;
 
         /* File is successfully open. Set permissions if requested. */
         ret = virFileOpenForceOwnerMode(path, fd, mode, uid, gid, flags);
@@ -2141,8 +2149,11 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
         /* XXX This makes assumptions about errno being < 255, which is
          * not true on Hurd.  */
         VIR_FORCE_CLOSE(pair[1]);
-        if (ret < 0)
+        if (ret < 0) {
             VIR_FORCE_CLOSE(fd);
+            if (created)
+                unlink(path);
+        }
         ret = -ret;
         if ((ret & 0xff) != ret) {
             VIR_WARN("unable to pass desired return value %d", ret);
@@ -2218,13 +2229,18 @@ virFileOpenForked(const char *path, int openflags, mode_t mode,
  * the file already existed with different permissions).
  *
  * The return value (if non-negative) is the file descriptor, left
- * open.  Returns -errno on failure.
+ * open.  Returns -errno on failure. Additionally, to avoid another
+ * round-trip to unlink the file; on error if this function created the
+ * file, but failed to perform some action after creation, then perform
+ * the unlink of the file. The storage driver buildVol backend function
+ * expects the file to be deleted on error.
  */
 int
 virFileOpenAs(const char *path, int openflags, mode_t mode,
               uid_t uid, gid_t gid, unsigned int flags)
 {
     int ret = 0, fd = -1;
+    bool created = false;
 
     /* allow using -1 to mean "current value" */
     if (uid == (uid_t) -1)
@@ -2246,6 +2262,8 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
             if (!(flags & VIR_FILE_OPEN_FORK))
                 goto error;
         } else {
+            if (openflags & O_CREAT)
+                created = true;
             ret = virFileOpenForceOwnerMode(path, fd, mode, uid, gid, flags);
             if (ret < 0)
                 goto error;
@@ -2288,6 +2306,8 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
     if (fd >= 0) {
         /* some other failure after the open succeeded */
         VIR_FORCE_CLOSE(fd);
+        if (created)
+            unlink(path);
     }
     /* whoever failed the open last has already set ret = -errno */
     return ret;
@@ -2316,10 +2336,11 @@ virFileRemove(const char *path,
     int ngroups;
 
     /* If not running as root or if a non explicit uid/gid was being used for
-     * the file/volume, then use unlink directly
+     * the file/volume or the explicit uid/gid matches, then use unlink directly
      */
     if ((geteuid() != 0) ||
-        ((uid == (uid_t) -1) && (gid == (gid_t) -1))) {
+        ((uid == (uid_t) -1) && (gid == (gid_t) -1)) ||
+        (uid == geteuid() && gid == getegid())) {
         if (virFileIsDir(path))
             return rmdir(path);
         else
@@ -2363,8 +2384,10 @@ virFileRemove(const char *path,
                 status = EACCES;
         }
 
-        if (status)
-            ret = -status;
+        if (status) {
+            errno = status;
+            ret = -1;
+        }
 
         return ret;
     }
@@ -2398,7 +2421,15 @@ virFileRemove(const char *path,
 }
 
 
-/* return -errno on failure, or 0 on success */
+/* Attempt to create a directory and possibly adjust its owner/group and
+ * permissions.
+ *
+ * return 0 on success or -errno on failure. Additionally to avoid another
+ * round-trip to remove the directory on failure, perform the rmdir when
+ * a mkdir was successful, but some other failure would cause a -1 return.
+ * The storage driver buildVol backend function expects the directory to
+ * be deleted on error.
+ */
 static int
 virDirCreateNoFork(const char *path,
                    mode_t mode, uid_t uid, gid_t gid,
@@ -2406,6 +2437,7 @@ virDirCreateNoFork(const char *path,
 {
     int ret = 0;
     struct stat st;
+    bool created = false;
 
     if (!((flags & VIR_DIR_CREATE_ALLOW_EXIST) && virFileExists(path))) {
         if (mkdir(path, mode) < 0) {
@@ -2414,6 +2446,7 @@ virDirCreateNoFork(const char *path,
                                  path);
             goto error;
         }
+        created = true;
     }
 
     if (stat(path, &st) == -1) {
@@ -2437,10 +2470,30 @@ virDirCreateNoFork(const char *path,
         goto error;
     }
  error:
+    if (ret < 0 && created)
+        rmdir(path);
     return ret;
 }
 
-/* return -errno on failure, or 0 on success */
+/*
+ * virDirCreate:
+ * @path: directory to create
+ * @mode: mode to use on creation or when forcing permissions
+ * @uid: uid that should own directory
+ * @gid: gid that should own directory
+ * @flags: bit-wise or of VIR_DIR_CREATE_* flags
+ *
+ * Attempt to create a directory and possibly adjust its owner/group and
+ * permissions. If conditions allow, use the *NoFork code in order to create
+ * the directory under current owner/group rather than via a forked process.
+ *
+ * return 0 on success or -errno on failure. Additionally to avoid another
+ * round-trip to remove the directory on failure, perform the rmdir if a
+ * mkdir was successful, but some other failure would cause a -1 return.
+ * The storage driver buildVol backend function expects the directory to
+ * be deleted on error.
+ *
+ */
 int
 virDirCreate(const char *path,
              mode_t mode, uid_t uid, gid_t gid,
@@ -2451,6 +2504,7 @@ virDirCreate(const char *path,
     int status = 0, ret = 0;
     gid_t *groups;
     int ngroups;
+    bool created = false;
 
     /* Everything after this check is crazyness to allow setting uid/gid
      * on directories that are on root-squash NFS shares. We only want
@@ -2538,6 +2592,7 @@ virDirCreate(const char *path,
         }
         goto childerror;
     }
+    created = true;
 
     /* check if group was set properly by creating after
      * setgid. If not, try doing it with chown */
@@ -2564,6 +2619,9 @@ virDirCreate(const char *path,
     }
 
  childerror:
+    if (ret != 0 && created)
+        rmdir(path);
+
     if ((ret & 0xff) != ret) {
         VIR_WARN("unable to pass desired return value %d", ret);
         ret = 0xff;

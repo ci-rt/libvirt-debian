@@ -389,6 +389,16 @@ qemuSecurityInit(virQEMUDriverPtr driver)
     virSecurityManagerPtr mgr = NULL;
     virSecurityManagerPtr stack = NULL;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    unsigned int flags = 0;
+
+    if (cfg->allowDiskFormatProbing)
+        flags |= VIR_SECURITY_MANAGER_ALLOW_DISK_PROBE;
+    if (cfg->securityDefaultConfined)
+        flags |= VIR_SECURITY_MANAGER_DEFAULT_CONFINED;
+    if (cfg->securityRequireConfined)
+        flags |= VIR_SECURITY_MANAGER_REQUIRE_CONFINED;
+    if (virQEMUDriverIsPrivileged(driver))
+        flags |= VIR_SECURITY_MANAGER_PRIVILEGED;
 
     if (cfg->securityDriverNames &&
         cfg->securityDriverNames[0]) {
@@ -396,10 +406,7 @@ qemuSecurityInit(virQEMUDriverPtr driver)
         while (names && *names) {
             if (!(mgr = virSecurityManagerNew(*names,
                                               QEMU_DRIVER_NAME,
-                                              cfg->allowDiskFormatProbing,
-                                              cfg->securityDefaultConfined,
-                                              cfg->securityRequireConfined,
-                                              virQEMUDriverIsPrivileged(driver))))
+                                              flags)))
                 goto error;
             if (!stack) {
                 if (!(stack = virSecurityManagerNewStack(mgr)))
@@ -414,10 +421,7 @@ qemuSecurityInit(virQEMUDriverPtr driver)
     } else {
         if (!(mgr = virSecurityManagerNew(NULL,
                                           QEMU_DRIVER_NAME,
-                                          cfg->allowDiskFormatProbing,
-                                          cfg->securityDefaultConfined,
-                                          cfg->securityRequireConfined,
-                                          virQEMUDriverIsPrivileged(driver))))
+                                          flags)))
             goto error;
         if (!(stack = virSecurityManagerNewStack(mgr)))
             goto error;
@@ -425,14 +429,12 @@ qemuSecurityInit(virQEMUDriverPtr driver)
     }
 
     if (virQEMUDriverIsPrivileged(driver)) {
+        if (cfg->dynamicOwnership)
+            flags |= VIR_SECURITY_MANAGER_DYNAMIC_OWNERSHIP;
         if (!(mgr = virSecurityManagerNewDAC(QEMU_DRIVER_NAME,
                                              cfg->user,
                                              cfg->group,
-                                             cfg->allowDiskFormatProbing,
-                                             cfg->securityDefaultConfined,
-                                             cfg->securityRequireConfined,
-                                             cfg->dynamicOwnership,
-                                             virQEMUDriverIsPrivileged(driver),
+                                             flags,
                                              qemuSecurityChownCallback)))
             goto error;
         if (!stack) {
@@ -3182,7 +3184,7 @@ qemuDomainSaveInternal(virQEMUDriverPtr driver, virDomainPtr dom,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (!qemuMigrationIsAllowed(driver, vm, vm->def, false, false))
+    if (!qemuMigrationIsAllowed(driver, vm, false, 0))
         goto cleanup;
 
     if (qemuDomainObjBeginAsyncJob(driver, vm, QEMU_ASYNC_JOB_SAVE) < 0)
@@ -3614,7 +3616,7 @@ doCoreDump(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
-        if (!qemuMigrationIsAllowed(driver, vm, vm->def, false, false))
+        if (!qemuMigrationIsAllowed(driver, vm, false, 0))
             goto cleanup;
 
         ret = qemuMigrationToFile(driver, vm, fd, 0, path,
@@ -5669,13 +5671,13 @@ qemuDomainGetIOThreadsConfig(virDomainDefPtr targetDef,
     size_t i;
     int ret = -1;
 
-    if (targetDef->iothreads == 0)
+    if (targetDef->niothreadids == 0)
         return 0;
 
     if ((hostcpus = nodeGetCPUCount(NULL)) < 0)
         goto cleanup;
 
-    if (VIR_ALLOC_N(info_ret, targetDef->iothreads) < 0)
+    if (VIR_ALLOC_N(info_ret, targetDef->niothreadids) < 0)
         goto cleanup;
 
     for (i = 0; i < targetDef->niothreadids; i++) {
@@ -5705,11 +5707,11 @@ qemuDomainGetIOThreadsConfig(virDomainDefPtr targetDef,
 
     *info = info_ret;
     info_ret = NULL;
-    ret = targetDef->iothreads;
+    ret = targetDef->niothreadids;
 
  cleanup:
     if (info_ret) {
-        for (i = 0; i < targetDef->iothreads; i++)
+        for (i = 0; i < targetDef->niothreadids; i++)
             virDomainIOThreadInfoFree(info_ret[i]);
         VIR_FREE(info_ret);
     }
@@ -5908,8 +5910,8 @@ qemuDomainHotplugAddIOThread(virQEMUDriverPtr driver,
     size_t idx;
     int rc = -1;
     int ret = -1;
-    unsigned int orig_niothreads = vm->def->iothreads;
-    unsigned int exp_niothreads = vm->def->iothreads;
+    unsigned int orig_niothreads = vm->def->niothreadids;
+    unsigned int exp_niothreads = vm->def->niothreadids;
     int new_niothreads = 0;
     qemuMonitorIOThreadInfoPtr *new_iothreads = NULL;
     virCgroupPtr cgroup_iothread = NULL;
@@ -6037,8 +6039,8 @@ qemuDomainHotplugDelIOThread(virQEMUDriverPtr driver,
     char *alias = NULL;
     int rc = -1;
     int ret = -1;
-    unsigned int orig_niothreads = vm->def->iothreads;
-    unsigned int exp_niothreads = vm->def->iothreads;
+    unsigned int orig_niothreads = vm->def->niothreadids;
+    unsigned int exp_niothreads = vm->def->niothreadids;
     int new_niothreads = 0;
     qemuMonitorIOThreadInfoPtr *new_iothreads = NULL;
 
@@ -10175,6 +10177,7 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
     size_t i;
     virDomainObjPtr vm = NULL;
     virDomainNumatuneMemMode tmpmode = VIR_DOMAIN_NUMATUNE_MEM_STRICT;
+    qemuDomainObjPrivatePtr priv;
     char *nodeset = NULL;
     int ret = -1;
     virDomainDefPtr def = NULL;
@@ -10185,6 +10188,7 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
 
     if (!(vm = qemuDomObjFromDomain(dom)))
         return -1;
+    priv = vm->privateData;
 
     if (virDomainGetNumaParametersEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
@@ -10212,7 +10216,8 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
             break;
 
         case 1: /* fill numa nodeset here */
-            nodeset = virDomainNumatuneFormatNodeset(def->numa, NULL, -1);
+            nodeset = virDomainNumatuneFormatNodeset(def->numa,
+                                                     priv->autoNodeset, -1);
             if (!nodeset ||
                 virTypedParameterAssign(param, VIR_DOMAIN_NUMA_NODESET,
                                         VIR_TYPED_PARAM_STRING, nodeset) < 0)
@@ -13688,7 +13693,7 @@ qemuDomainSnapshotCreateActiveInternal(virConnectPtr conn,
     bool resume = false;
     int ret = -1;
 
-    if (!qemuMigrationIsAllowed(driver, vm, vm->def, false, false))
+    if (!qemuMigrationIsAllowed(driver, vm, false, 0))
         goto cleanup;
 
     if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
@@ -14503,7 +14508,7 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
     /* do the memory snapshot if necessary */
     if (memory) {
         /* check if migration is possible */
-        if (!qemuMigrationIsAllowed(driver, vm, vm->def, false, false))
+        if (!qemuMigrationIsAllowed(driver, vm, false, 0))
             goto cleanup;
 
         /* allow the migration job to be cancelled or the domain to be paused */

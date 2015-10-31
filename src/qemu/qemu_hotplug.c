@@ -783,7 +783,7 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
     const char *driverName = virDomainDiskGetDriver(disk);
     const char *src = virDomainDiskGetSource(disk);
 
-    if (driverName && !STREQ(driverName, "qemu")) {
+    if (driverName && STRNEQ(driverName, "qemu")) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unsupported driver name '%s' for disk '%s'"),
                        driverName, src);
@@ -1263,11 +1263,11 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
 
     if (!cfg->relaxedACS)
         flags |= VIR_HOSTDEV_STRICT_ACS_CHECK;
-    if (qemuPrepareHostdevPCIDevices(driver, vm->def->name, vm->def->uuid,
+    if (qemuHostdevPreparePCIDevices(driver, vm->def->name, vm->def->uuid,
                                      &hostdev, 1, priv->qemuCaps, flags) < 0)
         goto cleanup;
 
-    /* this could have been changed by qemuPrepareHostdevPCIDevices */
+    /* this could have been changed by qemuHostdevPreparePCIDevices */
     backend = hostdev->source.subsys.u.pci.backend;
 
     switch ((virDomainHostdevSubsysPCIBackendType) backend) {
@@ -1383,7 +1383,7 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     if (releaseaddr)
         qemuDomainReleaseDeviceAddress(vm, hostdev->info, NULL);
 
-    qemuDomainReAttachHostdevDevices(driver, vm->def->name, &hostdev, 1);
+    qemuHostdevReAttachPCIDevices(driver, vm->def->name, &hostdev, 1);
 
     VIR_FREE(devstr);
     VIR_FREE(configfd_name);
@@ -1885,7 +1885,7 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
     bool teardownlabel = false;
     int ret = -1;
 
-    if (qemuPrepareHostUSBDevices(driver, vm->def->name, &hostdev, 1, 0) < 0)
+    if (qemuHostdevPrepareUSBDevices(driver, vm->def->name, &hostdev, 1, 0) < 0)
         goto cleanup;
 
     added = true;
@@ -1936,7 +1936,7 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
                                                   vm->def, hostdev, NULL) < 0)
             VIR_WARN("Unable to restore host device labelling on hotplug fail");
         if (added)
-            qemuDomainReAttachHostUSBDevices(driver, vm->def->name, &hostdev, 1);
+            qemuHostdevReAttachUSBDevices(driver, vm->def->name, &hostdev, 1);
     }
     VIR_FREE(devstr);
     return ret;
@@ -1968,7 +1968,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     if (!cont)
         return -1;
 
-    if (qemuPrepareHostdevSCSIDevices(driver, vm->def->name,
+    if (qemuHostdevPrepareSCSIDevices(driver, vm->def->name,
                                       &hostdev, 1)) {
         virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
         if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
@@ -2036,7 +2036,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     ret = 0;
  cleanup:
     if (ret < 0) {
-        qemuDomainReAttachHostSCSIDevices(driver, vm->def->name, &hostdev, 1);
+        qemuHostdevReAttachSCSIDevices(driver, vm->def->name, &hostdev, 1);
         if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
             VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
         if (teardownlabel &&
@@ -2969,7 +2969,7 @@ qemuDomainRemovePCIHostDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainHostdevDefPtr hostdev)
 {
-    qemuDomainReAttachHostdevDevices(driver, vm->def->name, &hostdev, 1);
+    qemuHostdevReAttachPCIDevices(driver, vm->def->name, &hostdev, 1);
     qemuDomainReleaseDeviceAddress(vm, hostdev->info, NULL);
 }
 
@@ -2978,7 +2978,7 @@ qemuDomainRemoveUSBHostDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainHostdevDefPtr hostdev)
 {
-    qemuDomainReAttachHostUSBDevices(driver, vm->def->name, &hostdev, 1);
+    qemuHostdevReAttachUSBDevices(driver, vm->def->name, &hostdev, 1);
 }
 
 static void
@@ -2986,7 +2986,7 @@ qemuDomainRemoveSCSIHostDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr hostdev)
 {
-    qemuDomainReAttachHostSCSIDevices(driver, vm->def->name, &hostdev, 1);
+    qemuHostdevReAttachSCSIDevices(driver, vm->def->name, &hostdev, 1);
 }
 
 static int

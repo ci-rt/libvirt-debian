@@ -1415,6 +1415,7 @@
      <exports symbol='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_CREATE_REFLINK' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DELETE_NORMAL' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DELETE_ZEROED' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_FILE' type='enum'/>
@@ -3097,6 +3098,7 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA' file='libvirt-storage' value='1' type='virStorageVolCreateFlags'/>
     <enum name='VIR_STORAGE_VOL_CREATE_REFLINK' file='libvirt-storage' value='2' type='virStorageVolCreateFlags' info='perform a btrfs lightweight copy'/>
     <enum name='VIR_STORAGE_VOL_DELETE_NORMAL' file='libvirt-storage' value='0' type='virStorageVolDeleteFlags' info='Delete metadata only    (fast)'/>
+    <enum name='VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS' file='libvirt-storage' value='2' type='virStorageVolDeleteFlags' info='Force removal of volume, even if in use'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt-storage' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt-storage' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
     <enum name='VIR_STORAGE_VOL_FILE' file='libvirt-storage' value='0' type='virStorageVolType' info='Regular file based volumes'/>
@@ -4506,7 +4508,7 @@ are kept only in memory. Flag VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL
 selects secrets that are kept in persistent storage.
 
 The second group of @flags is used to filter secrets by privacy. Flag
-VIR_CONNECT_LIST_SECRETS_PRIVATE seclets secrets that are never revealed
+VIR_CONNECT_LIST_SECRETS_PRIVATE selects secrets that are never revealed
 to any caller of libvirt nor to any other node. Flag
 VIR_CONNECT_LIST_SECRETS_NO_PRIVATE selects non-private secrets.]]></info>
       <return type='int' info='the number of secrets found or -1 and sets @secrets to NULL in case of error.  On success, the array stored into @secrets is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virSecretFree() on each array element, then calling free() on @secrets.'/>
@@ -8618,6 +8620,9 @@ that can be used by any client application which does
 not have a need to integrate with an external event
 loop impl.
 
+For proper event handling, it is important that the event implementation
+is registered before a connection to the Hypervisor is opened.
+
 Once registered, the application has to invoke virEventRunDefaultImpl() in
 a loop to process events.  Failure to do so may result in connections being
 closed unexpectedly as a result of keepalive timeout.  The default
@@ -8631,6 +8636,9 @@ virEventAddHandle() or virConnectDomainEventRegisterAny().]]></info>
 with an external event loop. Applications would use this
 to integrate with the libglib2 event loop, or libevent
 or the QT event loop.
+
+For proper event handling, it is important that the event implementation
+is registered before a connection to the Hypervisor is opened.
 
 Use of the virEventAddHandle() and similar APIs require that the
 corresponding handler is registered.  Use of the
@@ -9788,7 +9796,7 @@ UUID see RFC4122.]]></info>
 secret is to be used. The format of the identifier is
 dependent on the usage type of the secret. For a secret
 with a usage type of VIR_SECRET_USAGE_TYPE_VOLUME the
-identifier will be a fully qualfied path name. The
+identifier will be a fully qualified path name. The
 identifiers are intended to be unique within the set of
 all secrets sharing the same usage type. ie, there shall
 only ever be one secret for each volume path.]]></info>

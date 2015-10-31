@@ -90,7 +90,7 @@ endif
 
 # Files that should never cause syntax check failures.
 VC_LIST_ALWAYS_EXCLUDE_REGEX = \
-  (^(HACKING|docs/(news\.html\.in|.*\.patch))|\.(po|fig|gif|ico|png))$$
+  (^(HACKING|docs/(news(-[0-9]*)?\.html\.in|.*\.patch))|\.(po|fig|gif|ico|png))$$
 
 # Functions like free() that are no-ops on NULL arguments.
 useless_free_options =				\
@@ -1011,6 +1011,16 @@ sc_prohibit_pthread_create:
 	halt="avoid using 'pthread_create', use 'virThreadCreate' instead" \
 	  $(_sc_search_regexp)
 
+sc_prohibit_not_streq:
+	@prohibit='! *STREQ *\(.*\)'		\
+	halt='Use STRNEQ instead of !STREQ'	\
+	  $(_sc_search_regexp)
+
+sc_prohibit_not_strneq:
+	@prohibit='! *STRNEQ *\(.*\)'       \
+	halt='Use STREQ instead of !STRNEQ'	\
+	  $(_sc_search_regexp)
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -1213,3 +1223,9 @@ exclude_file_name_regexp--sc_prohibit_sysconf_pagesize = \
 
 exclude_file_name_regexp--sc_prohibit_pthread_create = \
   ^(cfg\.mk|src/util/virthread\.c|tests/.*)$$
+
+exclude_file_name_regexp--sc_prohibit_not_streq = \
+  ^tests/.*\.[ch]$$
+
+exclude_file_name_regexp--sc_prohibit_not_strneq = \
+  ^tests/.*\.[ch]$$

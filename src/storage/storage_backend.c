@@ -345,9 +345,8 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
     remain = vol->target.capacity;
 
     if (inputvol) {
-        int res = virStorageBackendCopyToFD(vol, inputvol,
-                                            fd, &remain, false, reflink_copy);
-        if (res < 0)
+        if (virStorageBackendCopyToFD(vol, inputvol, fd, &remain,
+                                      false, reflink_copy) < 0)
             goto cleanup;
     }
 
@@ -444,9 +443,8 @@ createRawFile(int fd, virStorageVolDefPtr vol,
         /* allow zero blocks to be skipped if we've requested sparse
          * allocation (allocation < capacity) or we have already
          * been able to allocate the required space. */
-        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain,
-                                        !need_alloc, reflink_copy);
-        if (ret < 0)
+        if ((ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain,
+                                             !need_alloc, reflink_copy)) < 0)
             goto cleanup;
 
         /* If the new allocation is greater than the original capacity,
@@ -681,6 +679,7 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
     uid_t uid;
     mode_t mode;
     bool filecreated = false;
+    int ret = -1;
 
     if ((pool->def->type == VIR_STORAGE_POOL_NETFS)
         && (((geteuid() == 0)
@@ -705,11 +704,11 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
 
     if (!filecreated) {
         if (virCommandRun(cmd, NULL) < 0)
-            return -1;
+            goto cleanup;
         if (stat(vol->target.path, &st) < 0) {
             virReportSystemError(errno,
                                  _("failed to create %s"), vol->target.path);
-            return -1;
+            goto cleanup;
         }
     }
 
@@ -723,7 +722,7 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
                              _("cannot chown %s to (%u, %u)"),
                              vol->target.path, (unsigned int) uid,
                              (unsigned int) gid);
-        return -1;
+        goto cleanup;
     }
 
     mode = (vol->target.perms->mode == (mode_t) -1 ?
@@ -732,9 +731,13 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
         virReportSystemError(errno,
                              _("cannot set mode of '%s' to %04o"),
                              vol->target.path, mode);
-        return -1;
+        goto cleanup;
     }
-    return 0;
+
+    ret = 0;
+
+ cleanup:
+    return ret;
 }
 
 enum {

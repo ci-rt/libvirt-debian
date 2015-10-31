@@ -3008,7 +3008,7 @@ qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
     if (transp)
         *transp++ = 0;
 
-    if (!STREQ(uri->scheme, scheme)) {
+    if (STRNEQ(uri->scheme, scheme)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Invalid transport/scheme '%s'"), uri->scheme);
         goto error;
@@ -4145,16 +4145,8 @@ qemuBuildDriveStr(virConnectPtr conn,
 
 static bool
 qemuCheckIOThreads(virDomainDefPtr def,
-                   virQEMUCapsPtr qemuCaps,
                    virDomainDiskDefPtr disk)
 {
-    /* Have capability */
-    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("IOThreads not supported for this QEMU"));
-        return false;
-    }
-
     /* Right "type" of disk" */
     if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO ||
         (disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
@@ -4208,7 +4200,7 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
     if (!qemuCheckCCWS390AddressSupport(def, disk->info, qemuCaps, disk->dst))
         goto error;
 
-    if (disk->iothread && !qemuCheckIOThreads(def, qemuCaps, disk))
+    if (disk->iothread && !qemuCheckIOThreads(def, disk))
         goto error;
 
     switch (disk->bus) {
@@ -5052,6 +5044,7 @@ qemuBuildMemoryBackendStr(unsigned long long size,
     virBitmapPtr nodemask = NULL;
     int ret = -1;
     virJSONValuePtr props = NULL;
+    bool nodeSpecified = virDomainNumatuneNodeSpecified(def->numa, guestNode);
 
     *backendProps = NULL;
     *backendType = NULL;
@@ -5119,12 +5112,6 @@ qemuBuildMemoryBackendStr(unsigned long long size,
     }
 
     if (pagesize || hugepage) {
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("this qemu doesn't support hugepage memory backing"));
-            goto cleanup;
-        }
-
         if (pagesize) {
             /* Now lets see, if the huge page we want to use is even mounted
              * and ready to use */
@@ -5203,30 +5190,32 @@ qemuBuildMemoryBackendStr(unsigned long long size,
             goto cleanup;
     }
 
-    if (!hugepage && !pagesize) {
-        bool nodeSpecified = virDomainNumatuneNodeSpecified(def->numa, guestNode);
-
-        if ((userNodeset || nodeSpecified || force) &&
-            !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM)) {
+    /* If none of the following is requested... */
+    if (!pagesize && !userNodeset && !memAccess && !nodeSpecified && !force) {
+        /* report back that using the new backend is not necessary
+         * to achieve the desired configuration */
+        ret = 1;
+    } else {
+        /* otherwise check the required capability */
+        if (STREQ(*backendType, "memory-backend-file") &&
+            !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("this qemu doesn't support the "
+                             "memory-backend-file object"));
+            goto cleanup;
+        } else if (STREQ(*backendType, "memory-backend-ram") &&
+                   !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this qemu doesn't support the "
                              "memory-backend-ram object"));
             goto cleanup;
         }
 
-        /* report back that using the new backend is not necessary to achieve
-         * the desired configuration */
-        if (!userNodeset && !nodeSpecified) {
-            *backendProps = props;
-            props = NULL;
-            ret = 1;
-            goto cleanup;
-        }
+        ret = 0;
     }
 
     *backendProps = props;
     props = NULL;
-    ret = 0;
 
  cleanup:
     virJSONValueFree(props);
@@ -5249,17 +5238,17 @@ qemuBuildMemoryCellBackendStr(virDomainDefPtr def,
     const char *backendType;
     int ret = -1;
     int rc;
+    unsigned long long memsize = virDomainNumaGetNodeMemorySize(def->numa,
+                                                                cell);
 
     *backendStr = NULL;
 
     if (virAsprintf(&alias, "ram-node%zu", cell) < 0)
         goto cleanup;
 
-    if ((rc = qemuBuildMemoryBackendStr(virDomainNumaGetNodeMemorySize(def->numa, cell),
-                                        0, cell,
-                                        NULL, auto_nodeset,
-                                        def, qemuCaps, cfg,
-                                        &backendType, &props, false)) < 0)
+    if ((rc = qemuBuildMemoryBackendStr(memsize, 0, cell, NULL, auto_nodeset,
+                                        def, qemuCaps, cfg, &backendType,
+                                        &props, false)) < 0)
         goto cleanup;
 
     if (!(*backendStr = qemuBuildObjectCommandlineFromJSON(backendType,
@@ -7702,19 +7691,6 @@ qemuBuildCpuArgStr(virQEMUDriverPtr driver,
         have_cpu = true;
     }
 
-    if (def->features[VIR_DOMAIN_FEATURE_GIC] == VIR_TRISTATE_SWITCH_ON) {
-        if (def->gic_version && def->gic_version != 2) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("gic version '%u' is not supported"),
-                           def->gic_version);
-            goto cleanup;
-        }
-
-        /* There's no command line argument currently to turn on/off GIC. It's
-         * done automatically by qemu-system-aarch64. But if this changes, lets
-         * put the code here. */
-    }
-
     if (virBufferCheckError(&buf) < 0)
         goto cleanup;
 
@@ -7931,6 +7907,37 @@ qemuBuildMachineArgStr(virCommandPtr cmd,
             return -1;
         }
 
+        if (def->features[VIR_DOMAIN_FEATURE_GIC] == VIR_TRISTATE_SWITCH_ON) {
+            if (def->gic_version) {
+                if ((def->os.arch != VIR_ARCH_ARMV7L &&
+                     def->os.arch != VIR_ARCH_AARCH64) ||
+                    (STRNEQ(def->os.machine, "virt") &&
+                     !STRPREFIX(def->os.machine, "virt-"))) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("gic-version option is available "
+                                     "only for ARM virt machine"));
+                    virBufferFreeAndReset(&buf);
+                    return -1;
+                }
+
+                /* 2 is the default, so we don't put it as option for
+                 * backwards compatibility
+                 */
+                if (def->gic_version != 2) {
+                    if (!virQEMUCapsGet(qemuCaps,
+                                        QEMU_CAPS_MACH_VIRT_GIC_VERSION)) {
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                       _("gic-version option is not available "
+                                         "with this QEMU binary"));
+                        virBufferFreeAndReset(&buf);
+                        return -1;
+                    }
+
+                    virBufferAsprintf(&buf, ",gic-version=%d", def->gic_version);
+                }
+            }
+        }
+
         virCommandAddArgBuffer(cmd, &buf);
     }
 
@@ -7976,6 +7983,71 @@ qemuBuildSmpArgStr(const virDomainDef *def,
         return NULL;
 
     return virBufferContentAndReset(&buf);
+}
+
+static int
+qemuBuildMemPathStr(virQEMUDriverConfigPtr cfg,
+                    virDomainDefPtr def,
+                    virQEMUCapsPtr qemuCaps,
+                    virCommandPtr cmd)
+{
+    const long system_page_size = virGetSystemPageSizeKB();
+    char *mem_path = NULL;
+    size_t i = 0;
+
+    /*
+     *  No-op if hugepages were not requested.
+     */
+    if (!def->mem.nhugepages)
+        return 0;
+
+    /* There is one special case: if user specified "huge"
+     * pages of regular system pages size.
+     * And there is nothing to do in this case.
+     */
+    if (def->mem.hugepages[0].size == system_page_size)
+        return 0;
+
+    if (!cfg->nhugetlbfs) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("hugetlbfs filesystem is not mounted "
+                               "or disabled by administrator config"));
+        return -1;
+    }
+
+    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MEM_PATH)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("hugepage backing not supported by '%s'"),
+                       def->emulator);
+        return -1;
+    }
+
+    if (!def->mem.hugepages[0].size) {
+        if (!(mem_path = qemuGetDefaultHugepath(cfg->hugetlbfs,
+                                                cfg->nhugetlbfs)))
+            return -1;
+    } else {
+        for (i = 0; i < cfg->nhugetlbfs; i++) {
+            if (cfg->hugetlbfs[i].size == def->mem.hugepages[0].size)
+                break;
+        }
+
+        if (i == cfg->nhugetlbfs) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to find any usable hugetlbfs "
+                             "mount for %llu KiB"),
+                           def->mem.hugepages[0].size);
+            return -1;
+        }
+
+        if (!(mem_path = qemuGetHugepagePath(&cfg->hugetlbfs[i])))
+            return -1;
+    }
+
+    virCommandAddArgList(cmd, "-mem-prealloc", "-mem-path", mem_path, NULL);
+    VIR_FREE(mem_path);
+
+    return 0;
 }
 
 static int
@@ -8064,6 +8136,10 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
             }
         }
     }
+
+    if (!needBackend &&
+        qemuBuildMemPathStr(cfg, def, qemuCaps, cmd) < 0)
+        goto cleanup;
 
     for (i = 0; i < ncells; i++) {
         VIR_FREE(cpumask);
@@ -9352,54 +9428,13 @@ qemuBuildCommandLine(virConnectPtr conn,
        virCommandAddArgFormat(cmd, "%llu", virDomainDefGetMemoryInitial(def) / 1024);
     }
 
-    if (def->mem.nhugepages && !virDomainNumaGetNodeCount(def->numa)) {
-        const long system_page_size = virGetSystemPageSizeKB();
-        char *mem_path = NULL;
-
-        if (def->mem.hugepages[0].size == system_page_size) {
-            /* There is one special case: if user specified "huge"
-             * pages of regular system pages size. */
-        } else {
-            if (!cfg->nhugetlbfs) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               "%s", _("hugetlbfs filesystem is not mounted "
-                                       "or disabled by administrator config"));
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MEM_PATH)) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("hugepage backing not supported by '%s'"),
-                               def->emulator);
-                goto error;
-            }
-
-            if (def->mem.hugepages[0].size) {
-                for (j = 0; j < cfg->nhugetlbfs; j++) {
-                    if (cfg->hugetlbfs[j].size == def->mem.hugepages[0].size)
-                        break;
-                }
-
-                if (j == cfg->nhugetlbfs) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Unable to find any usable hugetlbfs mount for %llu KiB"),
-                                   def->mem.hugepages[0].size);
-                    goto error;
-                }
-
-                if (!(mem_path = qemuGetHugepagePath(&cfg->hugetlbfs[j])))
-                    goto error;
-            } else {
-                if (!(mem_path = qemuGetDefaultHugepath(cfg->hugetlbfs,
-                                                        cfg->nhugetlbfs)))
-                    goto error;
-            }
-        }
-
-        virCommandAddArg(cmd, "-mem-prealloc");
-        if (mem_path)
-            virCommandAddArgList(cmd, "-mem-path", mem_path, NULL);
-        VIR_FREE(mem_path);
-    }
+    /*
+     * Add '-mem-path' (and '-mem-prealloc') parameter here only if
+     * there is no numa node specified.
+     */
+    if (!virDomainNumaGetNodeCount(def->numa) &&
+        qemuBuildMemPathStr(cfg, def, qemuCaps, cmd) < 0)
+        goto error;
 
     if (def->mem.locked && !virQEMUCapsGet(qemuCaps, QEMU_CAPS_MLOCK)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -9419,8 +9454,13 @@ qemuBuildCommandLine(virConnectPtr conn,
     virCommandAddArg(cmd, smp);
     VIR_FREE(smp);
 
-    if (def->iothreads > 0 &&
-        virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
+    if (def->niothreadids) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("IOThreads not supported for this QEMU"));
+            goto error;
+        }
+
         /* Create iothread objects using the defined iothreadids list
          * and the defined id and name from the list. These may be used
          * by a disk definition which will associate to an iothread by
@@ -9987,7 +10027,7 @@ qemuBuildCommandLine(virConnectPtr conn,
         virDomainDiskDefPtr disk = def->disks[i];
 
         if (disk->src->driverName != NULL &&
-            !STREQ(disk->src->driverName, "qemu")) {
+            STRNEQ(disk->src->driverName, "qemu")) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unsupported driver name '%s' for disk '%s'"),
                            disk->src->driverName, disk->src->path);
@@ -12685,7 +12725,7 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
             if (VIR_STRDUP(model, tokens[i]) < 0)
                 goto cleanup;
 
-            if (!STREQ(model, "qemu32") && !STREQ(model, "qemu64")) {
+            if (STRNEQ(model, "qemu32") && STRNEQ(model, "qemu64")) {
                 if (!(cpu = qemuInitGuestCPU(dom)))
                     goto cleanup;
 

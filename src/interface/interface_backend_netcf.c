@@ -2,7 +2,7 @@
  * interface_backend_netcf.c: backend driver methods to handle physical
  *                            interface configuration using the netcf library.
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -528,10 +528,10 @@ netcfConnectListAllInterfaces(virConnectPtr conn,
 {
     int count;
     size_t i;
+    unsigned int ncf_flags = 0;
     struct netcf_if *iface = NULL;
     virInterfacePtr *tmp_iface_objs = NULL;
     virInterfacePtr iface_obj = NULL;
-    bool active;
     int niface_objs = 0;
     int ret = -1;
     char **names = NULL;
@@ -543,14 +543,20 @@ netcfConnectListAllInterfaces(virConnectPtr conn,
 
     virObjectLock(driver);
 
-    /* List all interfaces, in case of we might support new filter flags
-     * except active|inactive in future.
-     */
-    count = ncf_num_of_interfaces(driver->netcf, NETCF_IFACE_ACTIVE |
-                                  NETCF_IFACE_INACTIVE);
-    if (count < 0) {
+    /* let netcf pre-filter for this flag to save time */
+    if (MATCH(VIR_CONNECT_LIST_INTERFACES_FILTERS_ACTIVE)) {
+        if (MATCH(VIR_CONNECT_LIST_INTERFACES_ACTIVE))
+            ncf_flags |= NETCF_IFACE_ACTIVE;
+        if (MATCH(VIR_CONNECT_LIST_INTERFACES_INACTIVE))
+            ncf_flags |= NETCF_IFACE_INACTIVE;
+    } else {
+        ncf_flags = NETCF_IFACE_ACTIVE | NETCF_IFACE_INACTIVE;
+    }
+
+    if ((count = ncf_num_of_interfaces(driver->netcf, ncf_flags)) < 0) {
         const char *errmsg, *details;
         int errcode = ncf_error(driver->netcf, &errmsg, &details);
+
         virReportError(netcf_to_vir_err(errcode),
                        _("failed to get number of host interfaces: %s%s%s"),
                        errmsg, details ? " - " : "",
@@ -566,11 +572,11 @@ netcfConnectListAllInterfaces(virConnectPtr conn,
     if (VIR_ALLOC_N(names, count) < 0)
         goto cleanup;
 
-    if ((count = ncf_list_interfaces(driver->netcf, count, names,
-                                     NETCF_IFACE_ACTIVE |
-                                     NETCF_IFACE_INACTIVE)) < 0) {
+    if ((count = ncf_list_interfaces(driver->netcf, count,
+                                     names, ncf_flags)) < 0) {
         const char *errmsg, *details;
         int errcode = ncf_error(driver->netcf, &errmsg, &details);
+
         virReportError(netcf_to_vir_err(errcode),
                        _("failed to list host interfaces: %s%s%s"),
                        errmsg, details ? " - " : "",
@@ -583,6 +589,7 @@ netcfConnectListAllInterfaces(virConnectPtr conn,
 
     for (i = 0; i < count; i++) {
         virInterfaceDefPtr def;
+
         iface = ncf_lookup_by_name(driver->netcf, names[i]);
         if (!iface) {
             const char *errmsg, *details;
@@ -603,9 +610,6 @@ netcfConnectListAllInterfaces(virConnectPtr conn,
             }
         }
 
-        if (netcfInterfaceObjIsActive(iface, &active) < 0)
-            goto cleanup;
-
         if (!(def = netcfGetMinimalDefForDevice(iface)))
             goto cleanup;
 
@@ -615,25 +619,15 @@ netcfConnectListAllInterfaces(virConnectPtr conn,
             virInterfaceDefFree(def);
             continue;
         }
-        virInterfaceDefFree(def);
-
-        /* XXX: Filter the result, need to be split once new filter flags
-         * except active|inactive are supported.
-         */
-        if (MATCH(VIR_CONNECT_LIST_INTERFACES_FILTERS_ACTIVE) &&
-            !((MATCH(VIR_CONNECT_LIST_INTERFACES_ACTIVE) && active) ||
-              (MATCH(VIR_CONNECT_LIST_INTERFACES_INACTIVE) && !active))) {
-            ncf_if_free(iface);
-            iface = NULL;
-            continue;
-        }
 
         if (ifaces) {
-            iface_obj = virGetInterface(conn, ncf_if_name(iface),
-                                        ncf_if_mac_string(iface));
-            tmp_iface_objs[niface_objs++] = iface_obj;
+            if (!(iface_obj = virGetInterface(conn, def->name, def->mac)))
+                goto cleanup;
+            tmp_iface_objs[niface_objs] = iface_obj;
         }
+        niface_objs++;
 
+        virInterfaceDefFree(def);
         ncf_if_free(iface);
         iface = NULL;
     }
@@ -696,7 +690,7 @@ static virInterfacePtr netcfInterfaceLookupByName(virConnectPtr conn,
     if (virInterfaceLookupByNameEnsureACL(conn, def) < 0)
        goto cleanup;
 
-    ret = virGetInterface(conn, ncf_if_name(iface), ncf_if_mac_string(iface));
+    ret = virGetInterface(conn, def->name, def->mac);
 
  cleanup:
     ncf_if_free(iface);
@@ -744,7 +738,7 @@ static virInterfacePtr netcfInterfaceLookupByMACString(virConnectPtr conn,
     if (virInterfaceLookupByMACStringEnsureACL(conn, def) < 0)
        goto cleanup;
 
-    ret = virGetInterface(conn, ncf_if_name(iface), ncf_if_mac_string(iface));
+    ret = virGetInterface(conn, def->name, def->mac);
 
  cleanup:
     ncf_if_free(iface);

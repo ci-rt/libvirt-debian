@@ -8,6 +8,7 @@ Daniel Veillard <veillard@redhat.com> or <daniel@veillard.com>
 The primary maintainers and people with commit access rights:
 
 Alex Jia <ajia@redhat.com>
+Andrea Bolognani <abologna@redhat.com>
 Cédric Bosdonnat <cbosdonnat@suse.com>
 Christophe Fergeau <cfergeau@redhat.com>
 Claudio Bley <claudio.bley@gmail.com>
@@ -182,6 +183,7 @@ Diego Woitasen <diego.woitasen@vhgroup.net>
 Dipankar Sarma <dipankar@in.ibm.com>
 Dirk Herrendoerfer <d.herrendoerfer@herrendoerfer.name>
 Dmitry Guryanov <dguryanov@parallels.com>
+Dominik Perpeet <dperpeet@redhat.com>
 Don Dugger <n0ano@n0ano.com>
 Doug Goldstein <cardoe@cardoe.com>
 Douglas Schilling Landgraf <dougsland@redhat.com>
@@ -242,6 +244,7 @@ Ian Campbell <Ian.Campbell@citrix.com>
 Ian Campbell <ian.campbell@citrix.com>
 Ian Main <imain@redhat.com>
 Ilja Livenson <ilja.livenson@gmail.com>
+Ishmanpreet Kaur Khera <khera.ishman@gmail.com>
 J.B. Joret <jb@linux.vnet.ibm.com>
 James Chapman <james.p.chapman@intel.com>
 James Cowgill <james410@cowgill.org.uk>
@@ -324,6 +327,7 @@ Matthieu Coudron <mattator@gmail.com>
 Mattias Bolte <matthias.bolte@googlemail.com>
 Maxim Nestratov <mnestratov@parallels.com>
 Maxim Nestratov <mnestratov@virtuozzo.com>
+Maxim Perevedentsev <mperevedentsev@virtuozzo.com>
 Maxime Leroy <maxime.leroy@6wind.com>
 Maximilian Wilhelm <max@rfc2324.org>
 Michael Avdienko <whitearchey@gmail.com>
@@ -388,6 +392,7 @@ Peter Robinson <pbrobinson@gmail.com>
 Phil Petty <phpetty@cisco.com>
 Philipp Hahn <hahn@univention.de>
 Pieter Hollants <pieter@hollants.com>
+Pino Toscano <ptoscano@redhat.com>
 Pradipta Kr. Banerjee <bpradip@in.ibm.com>
 Pradipta Kr. Banerjee <pradipta.banerjee@gmail.com>
 Pranavkumar Sawargaonkar <pranavkumar@linaro.org>
@@ -478,6 +483,7 @@ Wang Rui <moon.wangrui@huawei.com>
 Wang Yufei (James) <james.wangyufei@huawei.com>
 Wangrui (K) <moon.wangrui@huawei.com>
 Wei Huang <wei@redhat.com>
+Wei Jiangang <weijg.fnst@cn.fujitsu.com>
 Wei Liu <wei.liu2@citrix.com>
 Weiwei Li <nuonuoli@tencent.com>
 Wen Congyang <wency@cn.fujitsu.com>

@@ -2296,8 +2296,32 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
     int ret = -1;
     size_t i;
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD))
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
+        /* The following check is because at one time a domain could
+         * define iothreadids and start the domain - only failing the
+         * capability check when attempting to add a disk. Because the
+         * iothreads and [n]iothreadids were left untouched other code
+         * assumed it could use the ->thread_id value to make thread_id
+         * based adjustments (e.g. pinning, scheduling) which while
+         * succeeding would execute on the calling thread.
+         */
+        if (vm->def->niothreadids) {
+            for (i = 0; i < vm->def->niothreadids; i++) {
+                /* Check if the domain had defined any iothreadid elements
+                 * and supply a VIR_INFO indicating that it's being removed.
+                 */
+                if (!vm->def->iothreadids[i]->autofill)
+                    VIR_INFO("IOThreads not supported, remove iothread id '%u'",
+                             vm->def->iothreadids[i]->iothread_id);
+                virDomainIOThreadIDDefFree(vm->def->iothreadids[i]);
+            }
+            /* Remove any trace */
+            VIR_FREE(vm->def->iothreadids);
+            vm->def->niothreadids = 0;
+            vm->def->iothreads = 0;
+        }
         return 0;
+    }
 
     /* Get the list of IOThreads from qemu */
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
@@ -2308,11 +2332,11 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
     if (niothreads < 0)
         goto cleanup;
 
-    if (niothreads != vm->def->iothreads) {
+    if (niothreads != vm->def->niothreadids) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("got wrong number of IOThread pids from QEMU monitor. "
-                         "got %d, wanted %d"),
-                       niothreads, vm->def->iothreads);
+                         "got %d, wanted %zu"),
+                       niothreads, vm->def->niothreadids);
         goto cleanup;
     }
 
@@ -3745,13 +3769,7 @@ qemuProcessReconnect(void *opaque)
         priv->agentError = true;
     }
 
-    if (qemuUpdateActivePCIHostdevs(driver, obj->def) < 0)
-        goto error;
-
-    if (qemuUpdateActiveUSBHostdevs(driver, obj->def) < 0)
-        goto error;
-
-    if (qemuUpdateActiveSCSIHostdevs(driver, obj->def) < 0)
+    if (qemuHostdevUpdateActiveDomainDevices(driver, obj->def) < 0)
         goto error;
 
     if (qemuConnectCgroup(driver, obj) < 0)
@@ -4466,8 +4484,8 @@ int qemuProcessStart(virConnectPtr conn,
         hostdev_flags |= VIR_HOSTDEV_STRICT_ACS_CHECK;
     if (!migrateFrom)
         hostdev_flags |= VIR_HOSTDEV_COLD_BOOT;
-    if (qemuPrepareHostDevices(driver, vm->def, priv->qemuCaps,
-                               hostdev_flags) < 0)
+    if (qemuHostdevPrepareDomainDevices(driver, vm->def, priv->qemuCaps,
+                                        hostdev_flags) < 0)
         goto cleanup;
 
     VIR_DEBUG("Preparing chr devices");
@@ -4628,7 +4646,8 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
-    if (virDomainDefCheckDuplicateDiskWWN(vm->def) < 0)
+    if (!migrateFrom && !snapshot &&
+        virDomainDefCheckDuplicateDiskInfo(vm->def) < 0)
         goto cleanup;
 
     /* "volume" type disk's source must be translated before
@@ -5317,7 +5336,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         priv->vioserialaddrs = NULL;
     }
 
-    qemuDomainReAttachHostDevices(driver, vm->def);
+    qemuHostdevReAttachDomainDevices(driver, vm->def);
 
     def = vm->def;
     for (i = 0; i < def->nnets; i++) {
@@ -5332,7 +5351,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
                              virDomainNetGetActualDirectMode(net),
                              virDomainNetGetActualVirtPortProfile(net),
                              cfg->stateDir));
-            VIR_FREE(net->ifname);
             break;
         case VIR_DOMAIN_NET_TYPE_BRIDGE:
         case VIR_DOMAIN_NET_TYPE_NETWORK:

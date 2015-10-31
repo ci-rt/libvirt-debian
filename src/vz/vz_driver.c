@@ -262,7 +262,6 @@ vzOpenDefault(virConnectPtr conn)
  error:
     virObjectUnref(privconn->domains);
     virObjectUnref(privconn->caps);
-    virStoragePoolObjListFree(&privconn->pools);
     virObjectEventStateFree(privconn->domainEventState);
     prlsdkDisconnect(privconn);
     prlsdkDeinit();
@@ -301,16 +300,14 @@ vzConnectOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_DECLINED;
 
     /* From this point on, the connection is for us. */
-    if (!STREQ_NULLABLE(conn->uri->path, "/system")) {
+    if (STRNEQ_NULLABLE(conn->uri->path, "/system")) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unexpected Virtuozzo URI path '%s', try vz:///system"),
                        conn->uri->path);
         return VIR_DRV_OPEN_ERROR;
     }
 
-    if ((ret = vzOpenDefault(conn)) != VIR_DRV_OPEN_SUCCESS ||
-        (ret = vzStorageOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS ||
-        (ret = vzNetworkOpen(conn, flags)) != VIR_DRV_OPEN_SUCCESS) {
+    if ((ret = vzOpenDefault(conn)) != VIR_DRV_OPEN_SUCCESS) {
         vzConnectClose(conn);
         return ret;
     }
@@ -325,9 +322,6 @@ vzConnectClose(virConnectPtr conn)
 
     if (!privconn)
         return 0;
-
-    vzNetworkClose(conn);
-    vzStorageClose(conn);
 
     vzDriverLock(privconn);
     prlsdkUnsubscribeFromPCSEvents(privconn);
@@ -1343,13 +1337,119 @@ vzDomainMemoryStats(virDomainPtr domain,
     return ret;
 }
 
+static int
+vzDomainGetVcpusFlags(virDomainPtr dom,
+                      unsigned int flags)
+{
+    virDomainObjPtr privdom = NULL;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
+
+    if (!(privdom = vzDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+        ret = privdom->def->maxvcpus;
+    else
+        ret = privdom->def->vcpus;
+
+ cleanup:
+    if (privdom)
+        virObjectUnlock(privdom);
+
+    return ret;
+}
+
+static int vzDomainGetMaxVcpus(virDomainPtr dom)
+{
+    return vzDomainGetVcpusFlags(dom, (VIR_DOMAIN_AFFECT_LIVE |
+                                       VIR_DOMAIN_VCPU_MAXIMUM));
+}
+
+static int vzDomainIsUpdated(virDomainPtr dom)
+{
+    virDomainObjPtr privdom;
+    int ret = -1;
+
+    /* As far as VZ domains are always updated (e.g. current==persistent),
+     * we just check for domain existence */
+    if (!(privdom = vzDomObjFromDomain(dom)))
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (privdom)
+        virObjectUnlock(privdom);
+    return ret;
+}
+
+static int vzConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                const char *type)
+{
+    /* As far as we have no limitation for containers
+     * we report maximum */
+    if (type == NULL || STRCASEEQ(type, "vz") || STRCASEEQ(type, "parallels"))
+        return 1028;
+
+    virReportError(VIR_ERR_INVALID_ARG,
+                   _("unknown type '%s'"), type);
+    return -1;
+}
+
+static int
+vzNodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                  int cpuNum,
+                  virNodeCPUStatsPtr params,
+                  int *nparams,
+                  unsigned int flags)
+{
+    return nodeGetCPUStats(cpuNum, params, nparams, flags);
+}
+
+static int
+vzNodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                     int cellNum,
+                     virNodeMemoryStatsPtr params,
+                     int *nparams,
+                     unsigned int flags)
+{
+    return nodeGetMemoryStats(NULL, cellNum, params, nparams, flags);
+}
+
+static int
+vzNodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
+                         unsigned long long *freeMems,
+                         int startCell,
+                         int maxCells)
+{
+    return nodeGetCellsFreeMemory(freeMems, startCell, maxCells);
+}
+
+static unsigned long long
+vzNodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    unsigned long long freeMem;
+    if (nodeGetMemory(NULL, &freeMem) < 0)
+        return 0;
+    return freeMem;
+}
+
 static virHypervisorDriver vzDriver = {
     .name = "vz",
     .connectOpen = vzConnectOpen,            /* 0.10.0 */
     .connectClose = vzConnectClose,          /* 0.10.0 */
     .connectGetVersion = vzConnectGetVersion,   /* 0.10.0 */
     .connectGetHostname = vzConnectGetHostname,      /* 0.10.0 */
+    .connectGetMaxVcpus = vzConnectGetMaxVcpus, /* 1.2.21 */
     .nodeGetInfo = vzNodeGetInfo,      /* 0.10.0 */
+    .nodeGetCPUStats = vzNodeGetCPUStats,      /* 1.2.21 */
+    .nodeGetMemoryStats = vzNodeGetMemoryStats, /* 1.2.21 */
+    .nodeGetCellsFreeMemory = vzNodeGetCellsFreeMemory, /* 1.2.21 */
+    .nodeGetFreeMemory = vzNodeGetFreeMemory, /* 1.2.21 */
     .connectGetCapabilities = vzConnectGetCapabilities,      /* 0.10.0 */
     .connectBaselineCPU = vzConnectBaselineCPU, /* 1.2.6 */
     .connectListDomains = vzConnectListDomains,      /* 0.10.0 */
@@ -1382,6 +1482,9 @@ static virHypervisorDriver vzDriver = {
     .domainDetachDevice = vzDomainDetachDevice, /* 1.2.15 */
     .domainDetachDeviceFlags = vzDomainDetachDeviceFlags, /* 1.2.15 */
     .domainIsActive = vzDomainIsActive, /* 1.2.10 */
+    .domainIsUpdated = vzDomainIsUpdated,     /* 1.2.21 */
+    .domainGetVcpusFlags = vzDomainGetVcpusFlags, /* 1.2.21 */
+    .domainGetMaxVcpus = vzDomainGetMaxVcpus, /* 1.2.21 */
     .connectDomainEventRegisterAny = vzConnectDomainEventRegisterAny, /* 1.2.10 */
     .connectDomainEventDeregisterAny = vzConnectDomainEventDeregisterAny, /* 1.2.10 */
     .nodeGetCPUMap = vzNodeGetCPUMap, /* 1.2.8 */
@@ -1400,8 +1503,6 @@ static virHypervisorDriver vzDriver = {
 
 static virConnectDriver vzConnectDriver = {
     .hypervisorDriver = &vzDriver,
-    .storageDriver = &vzStorageDriver,
-    .networkDriver = &vzNetworkDriver,
 };
 
 /* Parallels domain type backward compatibility*/

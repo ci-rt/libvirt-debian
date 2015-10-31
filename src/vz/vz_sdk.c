@@ -2026,7 +2026,7 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         }
     } else {
         if (def->os.nBootDevs != 0 ||
-            !STREQ_NULLABLE(def->os.init, "/sbin/init") ||
+            STRNEQ_NULLABLE(def->os.init, "/sbin/init") ||
             (def->os.initargv != NULL && def->os.initargv[0] != NULL)) {
 
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -3293,7 +3293,7 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom,
         goto cleanup;
     }
 
-    if (bootDisk == true) {
+    if (bootDisk) {
         pret = PrlVmDev_GetIndex(sdkdisk, &devIndex);
         prlsdkCheckRetGoto(pret, cleanup);
 
@@ -3551,7 +3551,7 @@ prlsdkDoApplyConfig(virConnectPtr conn,
     for (i = 0; i < def->ndisks; i++) {
         bool bootDisk = false;
 
-        if (needBoot == true &&
+        if (needBoot &&
             def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
 
             needBoot = false;
