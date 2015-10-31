@@ -1,3 +1,13 @@
+libvirt (1.2.21~rc1-1) experimental; urgency=medium
+
+  * Upload to experimental
+  * [42946f7] New upstream version 1.2.21~rc1
+  * [6b46089] Update Vcs-Browser URL
+  * [789630d] Bump symbol versions
+  * [af1af23] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 31 Oct 2015 23:58:43 +0100
+
 libvirt (1.2.20-1) unstable; urgency=medium
 
   * [6eb4fb6] Don't use current user, hostname and build time but parse
