@@ -378,7 +378,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -387,7 +387,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1170,7 +1170,7 @@ virtualization capabilities of recent versions of Linux (and other OSes).
 %package wireshark
 Summary: Wireshark dissector plugin for libvirt RPC transactions
 Group: Development/Libraries
-Requires: wireshark
+Requires: wireshark >= 1.12.6-4
 Requires: %{name}-client = %{version}-%{release}
 
 %description wireshark
@@ -1561,6 +1561,8 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/connection-driver/*.a
 %endif
 %if %{with_wireshark}
 rm -f $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/*/libvirt.la
+mv $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/*/libvirt.so \
+   $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/libvirt.so
 %endif
 
 # Temporarily get rid of not-installed libvirt-admin.so
@@ -2279,7 +2281,7 @@ exit 0
 
 %if %{with_wireshark}
 %files wireshark
-%{_libdir}/wireshark/plugins/*/libvirt.so
+%{_libdir}/wireshark/plugins/libvirt.so
 %endif
 
 %if %{with_lxc}
@@ -2334,6 +2336,9 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Wed Nov  4 2015 Daniel Veillard <veillard@redhat.com> - 1.2.21-1
+- a number of improvements and bug fixes
+
 * Fri Oct  2 2015 Daniel Veillard <veillard@redhat.com> - 1.2.20-1
 - security fixes for CVE-2015-5247
 - a number of improvements and bug fixes

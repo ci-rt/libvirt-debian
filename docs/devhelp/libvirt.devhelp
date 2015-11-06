@@ -930,6 +930,7 @@
     <function name="VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA"/>
     <function name="VIR_STORAGE_VOL_CREATE_REFLINK" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_CREATE_REFLINK"/>
     <function name="VIR_STORAGE_VOL_DELETE_NORMAL" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_NORMAL"/>
+    <function name="VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS"/>
     <function name="VIR_STORAGE_VOL_DELETE_ZEROED" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_ZEROED"/>
     <function name="VIR_STORAGE_VOL_DIR" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DIR"/>
     <function name="VIR_STORAGE_VOL_FILE" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_FILE"/>

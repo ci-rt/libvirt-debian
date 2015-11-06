@@ -96,7 +96,7 @@ VIR_LOG_INIT("util.netdev");
 # define FEATURE_BIT_IS_SET(blocks, index, field)        \
     (FEATURE_WORD(blocks, index, field) & FEATURE_FIELD_FLAG(index))
 #endif
-#define VIR_DAD_WAIT_TIMEOUT 5 /* seconds */
+#define VIR_DAD_WAIT_TIMEOUT 20 /* seconds */
 
 typedef enum {
     VIR_MCAST_TYPE_INDEX_TOKEN,
@@ -1398,7 +1398,13 @@ virNetDevWaitDadFinish(virSocketAddrPtr *addrs, size_t count)
         VIR_FREE(resp);
     }
     /* Check timeout. */
-    ret = dad ? -1 : 0;
+    if (dad) {
+        virReportError(VIR_ERR_SYSTEM_ERROR,
+                       _("Duplicate Address Detection "
+                         "not finished in %d seconds"), VIR_DAD_WAIT_TIMEOUT);
+    } else {
+        ret = 0;
+    }
 
  cleanup:
     VIR_FREE(resp);

@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.2.13\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-10-29 14:39+0800\n"
+"POT-Creation-Date: 2015-11-04 10:48+0800\n"
 "PO-Revision-Date: 2014-10-28 11:16-0400\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Malayalam (http://www.transifex.com/projects/p/libvirt/"
@@ -24469,7 +24469,7 @@ msgid "failed to read link of gluster file '%s'"
 msgstr ""
 
 #: src/storage/storage_backend_iscsi.c:106
-#: src/storage/storage_backend_scsi.c:477 src/util/virnetdev.c:3097
+#: src/storage/storage_backend_scsi.c:477 src/util/virnetdev.c:3103
 #: src/util/virnetdevtap.c:104 src/util/virutil.c:1777 src/util/virutil.c:2115
 #: src/util/virutil.c:2209
 #, c-format
@@ -27936,7 +27936,7 @@ msgstr "'%s' ല്‍ സമ്പര്‍ക്കമുഖത്തിന്
 msgid "Unable to preserve mac for %s"
 msgstr "'%s' ല്‍ സമ്പര്‍ക്കമുഖത്തിന്റെ മാക് അതുതന്നെ തുടരാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdev.c:434 src/util/virnetdev.c:2475
+#: src/util/virnetdev.c:434 src/util/virnetdev.c:2481
 #, c-format
 msgid "Cannot parse MAC address from '%s'"
 msgstr "'%s' ലുള്ള മാക് വിലാസം മനസ്സിലാക്കാന്‍ സാധ്യമല്ല"
@@ -27999,8 +27999,8 @@ msgid "Unable to get VLAN on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ വീലാന്‍ കാണാന്‍ സാധിച്ചില്ല"
 
 #: src/util/virnetdev.c:1090 src/util/virnetdev.c:1264
-#: src/util/virnetdev.c:1377 src/util/virnetdev.c:2165
-#: src/util/virnetdev.c:2287 src/util/virnetdevbridge.c:506
+#: src/util/virnetdev.c:1377 src/util/virnetdev.c:2171
+#: src/util/virnetdev.c:2293 src/util/virnetdevbridge.c:506
 #: src/util/virnetdevbridge.c:1170 src/util/virnetdevmacvlan.c:208
 #: src/util/virnetdevvportprofile.c:768 src/util/virnetlink.c:364
 msgid "allocated netlink buffer is too small"
@@ -28026,187 +28026,192 @@ msgstr "'%s'-ല്‍ നിന്നും എംഎസി ലഭ്യമാ�
 msgid "error reading DAD state information"
 msgstr "പ്രാരംഭ ക്രമീകരണം തയ്യാറാക്കുന്നതില്‍ പിശക്"
 
-#: src/util/virnetdev.c:1534
+#: src/util/virnetdev.c:1403
+#, c-format
+msgid "Duplicate Address Detection not finished in %d seconds"
+msgstr ""
+
+#: src/util/virnetdev.c:1540
 #, fuzzy
 msgid "Unable to wait for IPv6 DAD on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ വീലാന്‍ കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:1564
+#: src/util/virnetdev.c:1570
 #, fuzzy, c-format
 msgid "Unable to get IPv4 address for interface %s via ioctl"
 msgstr "%s എന്ന സമ്പര്‍ക്കമുഖത്തിന്റെ ഐപിവി4 വിലാസം കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:1610
+#: src/util/virnetdev.c:1616
 #, fuzzy, c-format
 msgid "Could not get interface list for '%s'"
 msgstr "'%s' എന്ന സമ്പര്‍ക്കമുഖത്തു് വച്ചിട്ടുള്ള കൊടികള്‍ കാണാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdev.c:1636
+#: src/util/virnetdev.c:1642
 #, fuzzy, c-format
 msgid "no IP address found for interface '%s'"
 msgstr "%s എന്ന സമ്പര്‍ക്കമുഖത്തിന്റെ ഐപിവി4 വിലാസം കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:1680
+#: src/util/virnetdev.c:1686
 #, fuzzy
 msgid "Unable to get IP address on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ ഐപിവി4 വിലാസം കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:1723
+#: src/util/virnetdev.c:1729
 #, c-format
 msgid "could not get MAC address of interface %s"
 msgstr "%s എന്ന സമ്പര്‍ക്കമുഖത്തിന്റെ മാക് വിലാസം കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:1756
+#: src/util/virnetdev.c:1762
 msgid "Unable to check interface config on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ സമ്പര്‍ക്കമുഖങ്ങളുടെ ക്രമീകരണം പരിശോധിയ്ക്കാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:1827
+#: src/util/virnetdev.c:1833
 msgid "Failed to get PCI Config Address String"
 msgstr "പിസിഐ കോണ്‍ഫിക വിലാസ വാചകം നോക്കാന്‍ കഴിഞ്ഞില്ല"
 
-#: src/util/virnetdev.c:1832
+#: src/util/virnetdev.c:1838
 msgid "Failed to get PCI SYSFS file"
 msgstr "പിസിഐ സിസ്എഫ്എസ് ഫയല്‍ കാണുന്നതില്‍ പരാജയം"
 
-#: src/util/virnetdev.c:1987
+#: src/util/virnetdev.c:1993
 msgid "Unable to get virtual functions on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ വിര്‍ച്ച്വല്‍ ഫങ്ഷനുകള്‍ കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:1995
+#: src/util/virnetdev.c:2001
 msgid "Unable to check virtual function status on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ വിര്‍ച്ച്വല്‍ ഫങ്ഷനുകളുടെ സ്ഥിതി കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2005
+#: src/util/virnetdev.c:2011
 msgid "Unable to get virtual function index on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ വിര്‍ച്ച്വല്‍ ഫങ്ഷനുകളുടെ സൂചിക കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2014
+#: src/util/virnetdev.c:2020
 msgid "Unable to get physical function status on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ ഭൌതിക ഫങ്ഷനുകളുടെ സ്ഥിതി കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2024
+#: src/util/virnetdev.c:2030
 msgid "Unable to get virtual function info on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമിലെ വിര്‍ച്ച്വല്‍ ഫങ്ഷനുകളുടെ വിവരം കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2034
+#: src/util/virnetdev.c:2040
 #, fuzzy
 msgid "Unable to get sysfs info on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ വീലാന്‍ കാണാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2133
+#: src/util/virnetdev.c:2139
 #, c-format
 msgid "error dumping %s (%d) interface"
 msgstr "%s (%d) ഒന്നിച്ചെടുക്കുന്നതില്‍ പിശക്"
 
-#: src/util/virnetdev.c:2160 src/util/virnetdev.c:2282
+#: src/util/virnetdev.c:2166 src/util/virnetdev.c:2288
 #: src/util/virnetdevbridge.c:502 src/util/virnetdevbridge.c:1165
 #: src/util/virnetdevmacvlan.c:203 src/util/virnetdevvportprofile.c:763
 #: src/util/virnetlink.c:359 src/util/virnetlink.c:406
 msgid "malformed netlink response message"
 msgstr "നെറ്റ്ലിങ്ക് സന്ദേശ മറുപടി malformed ആണു്"
 
-#: src/util/virnetdev.c:2260
+#: src/util/virnetdev.c:2266
 #, c-format
 msgid "error during set %s of ifindex %d"
 msgstr "ifindex %2$d യുടെ %1$s സജ്ജീകരിയ്ക്കുമ്പോള്‍ പിശക്"
 
-#: src/util/virnetdev.c:2304
+#: src/util/virnetdev.c:2310
 msgid "missing IFLA_VF_INFO in netlink response"
 msgstr "നെറ്റ്‌ലിങ്ക് മറുപടിയില്‍ IFLA_VF_INFO ലഭ്യമല്ല"
 
-#: src/util/virnetdev.c:2315
+#: src/util/virnetdev.c:2321
 msgid "error parsing IFLA_VF_INFO"
 msgstr "IFLA_VF_INFO മനസ്സിലാക്കുന്നതില്‍ പിഴവു്"
 
-#: src/util/virnetdev.c:2340
+#: src/util/virnetdev.c:2346
 #, c-format
 msgid "couldn't find IFLA_VF_INFO for VF %d in netlink response"
 msgstr "netlink മറുപടിയില്‍ VF %d-നുള്ള IFLA_VF_INFO"
 
-#: src/util/virnetdev.c:2394
+#: src/util/virnetdev.c:2400
 #, c-format
 msgid ""
 "Unable to configure VF %d of PF '%s' because the PF is not online. Please "
 "change host network config to put the PF online."
 msgstr ""
 
-#: src/util/virnetdev.c:2413
+#: src/util/virnetdev.c:2419
 #, c-format
 msgid "Unable to preserve mac/vlan tag for pf = %s, vf = %d"
 msgstr "pf = %s, vf = %d-നുള്ള mac/vlan റ്റാഗ് കരുതുവാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdev.c:2466
+#: src/util/virnetdev.c:2472
 #, c-format
 msgid "Cannot parse vlan tag from '%s'"
 msgstr "'%s' ല്‍ നിന്നും വീലാന്‍ ടാഗ് മനസ്സിലാക്കാന്‍ സാധ്യമല്ല"
 
-#: src/util/virnetdev.c:2586
+#: src/util/virnetdev.c:2592
 msgid "Unable to dump link info on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ നിന്നും ലിങ്ക് വിവരം ഒന്നിച്ചെടുക്കാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2598
+#: src/util/virnetdev.c:2604
 msgid "Unable to replace net config on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ നെറ്റ് കോണ്‍ഫിഗ് മാറ്റിവയ്ക്കാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2609
+#: src/util/virnetdev.c:2615
 msgid "Unable to restore net config on this platform"
 msgstr "ഈ പ്ലാറ്റ്ഫോമില്‍ നെറ്റ് കോണ്‍ഫിഗ് തിരിച്ചുവയ്ക്കാന്‍ സാധിച്ചില്ല"
 
-#: src/util/virnetdev.c:2632 src/util/virnetdev.c:2680
+#: src/util/virnetdev.c:2638 src/util/virnetdev.c:2686
 #, c-format
 msgid "unable to read: %s"
 msgstr ""
 
-#: src/util/virnetdev.c:2639 src/util/virnetdev.c:2650
-#: src/util/virnetdev.c:2688
+#: src/util/virnetdev.c:2645 src/util/virnetdev.c:2656
+#: src/util/virnetdev.c:2694
 #, c-format
 msgid "Unable to parse: %s"
 msgstr ""
 
-#: src/util/virnetdev.c:2745 src/util/virnetdev.c:2794
+#: src/util/virnetdev.c:2751 src/util/virnetdev.c:2800
 #, c-format
 msgid "Cannot add multicast MAC %s on '%s' interface"
 msgstr ""
 
-#: src/util/virnetdev.c:2760
+#: src/util/virnetdev.c:2766
 msgid "Unable to add address to interface multicast list on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:2809
+#: src/util/virnetdev.c:2815
 msgid "Unable to delete address from interface multicast list on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:2830
+#: src/util/virnetdev.c:2836
 #, c-format
 msgid "failed to parse multicast address from '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:2839
+#: src/util/virnetdev.c:2845
 #, c-format
 msgid "Failed to parse interface index from '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:2850
+#: src/util/virnetdev.c:2856
 #, c-format
 msgid "Failed to parse network device name from '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:2858 src/util/virnetdev.c:2868
+#: src/util/virnetdev.c:2864 src/util/virnetdev.c:2874
 #, c-format
 msgid "Failed to parse users from '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:2879
+#: src/util/virnetdev.c:2885
 #, c-format
 msgid "Failed to parse MAC address from '%s'"
 msgstr ""
 
-#: src/util/virnetdev.c:3175
+#: src/util/virnetdev.c:3181
 #, fuzzy, c-format
 msgid "Cannot get device %s flags"
 msgstr "ലക്ഷ്യ ഡിവൈസ് %s ലഭ്യമല്ല"
 
-#: src/util/virnetdev.c:3197
+#: src/util/virnetdev.c:3203
 #, fuzzy, c-format
 msgid "Cannot get device %s generic features"
 msgstr "ഡിവൈസ് ലീസുകള്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
