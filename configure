@@ -59513,7 +59513,10 @@ fi
 
     if test "x$with_wireshark_dissector" != "xno" ; then
     if test "x$with_ws_plugindir" = "xcheck" ; then
-      ws_plugindir="$libdir/wireshark/plugins/$($PKG_CONFIG --modversion wireshark)"
+      ws_plugindir="$($PKG_CONFIG --variable plugindir wireshark)"
+      if test "x$ws_plugindir" = "x" ; then
+                        ws_plugindir="$libdir/wireshark/plugins/$($PKG_CONFIG --modversion wireshark)"
+      fi
     elif test "x$with_ws_plugindir" = "xno" || test "x$with_ws_plugindir" = "xyes"; then
       as_fn_error $? "ws-plugindir must be used only with valid path" "$LINENO" 5
     else
