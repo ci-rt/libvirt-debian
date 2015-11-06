@@ -1,3 +1,9 @@
+libvirt (1.2.21-1) unstable; urgency=medium
+
+  * [6e075d2] New upstream version 1.2.21
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 06 Nov 2015 06:31:58 +0100
+
 libvirt (1.2.21~rc1-1) experimental; urgency=medium
 
   * Upload to experimental
