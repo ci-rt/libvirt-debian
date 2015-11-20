@@ -1,0 +1,121 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 18 Nov 2015 19:37:47 +0100
+Subject: qemu: Handle default IDE controller on other machine types as well
+
+like ppc g3beige, sparc64s sun4u and qemu: MIPS{,64} malta
+
+Closes: #805189
+---
+ src/qemu/qemu_command.c | 34 ++++++++++++++++++++++++----------
+ src/qemu/qemu_domain.c  | 21 +++++++++++++++++++++
+ src/qemu/qemu_domain.h  |  3 +++
+ 3 files changed, 48 insertions(+), 10 deletions(-)
+
+diff --git a/src/qemu/qemu_command.c b/src/qemu/qemu_command.c
+index 8824541..018544c 100644
+--- a/src/qemu/qemu_command.c
++++ b/src/qemu/qemu_command.c
+@@ -1084,11 +1084,15 @@ qemuAssignDeviceControllerAlias(virDomainDefPtr domainDef,
+          */
+         return virAsprintf(&controller->info.alias, "pci.%d", controller->idx);
+     } else if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_IDE) {
+-        /* for any machine based on I440FX, the first (and currently
+-         * only) IDE controller is an integrated controller hardcoded
+-         * with id "ide"
++        /* for any machine based on I440FX, G3Beige, Sun4u or Malta, the
++         * first (and currently only) IDE controller is an integrated
++         * controller hardcoded with id "ide"
+          */
+-        if (qemuDomainMachineIsI440FX(domainDef) && controller->idx == 0)
++        if ((qemuDomainMachineIsI440FX(domainDef) ||
++             qemuDomainMachineIsSun4u(domainDef) ||
++             qemuDomainMachineIsMalta(domainDef) ||
++             qemuDomainMachineIsG3Beige(domainDef)) &&
++            controller->idx == 0)
+             return VIR_STRDUP(controller->info.alias, "ide");
+     } else if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA) {
+         /* for any Q35 machine, the first SATA controller is the
+@@ -4952,11 +4956,17 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
+         break;
+ 
+     case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
+-        /* Since we currently only support the integrated IDE controller
+-         * on 440fx, if we ever get to here, it's because some other
+-         * machinetype had an IDE controller specified, or a 440fx had
+-         * multiple ide controllers.
++        /* Since we currently only support the integrated IDE
++         * controller on 440fx, G3Beige, Sun4u and Malta, if we ever
++         * get to here, it's because some other machinetype had an IDE
++         * controller specified, or a 440fx had multiple ide
++         * controllers.
+          */
++        if (qemuDomainMachineIsG3Beige(domainDef) ||
++            qemuDomainMachineIsMalta(domainDef) ||
++            qemuDomainMachineIsSun4u(domainDef))
++                break;
++
+         if (qemuDomainMachineIsI440FX(domainDef))
+             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                            _("Only a single IDE controller is unsupported "
+@@ -10062,9 +10072,13 @@ qemuBuildCommandLine(virConnectPtr conn,
+                     cont->idx == 0 && qemuDomainMachineIsQ35(def))
+                         continue;
+ 
+-                /* first IDE controller on i440fx machines is implicit */
++                /* first IDE controller on i440fx, G3Beige, Sun4u and
++                 * Malta machines is implicit */
+                 if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_IDE &&
+-                    cont->idx == 0 && qemuDomainMachineIsI440FX(def))
++                    cont->idx == 0 && (qemuDomainMachineIsI440FX(def) ||
++                                       qemuDomainMachineIsSun4u(def) ||
++                                       qemuDomainMachineIsMalta(def) ||
++                                       qemuDomainMachineIsG3Beige(def)))
+                         continue;
+ 
+                 if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+diff --git a/src/qemu/qemu_domain.c b/src/qemu/qemu_domain.c
+index 890d8ed..5e4b5c3 100644
+--- a/src/qemu/qemu_domain.c
++++ b/src/qemu/qemu_domain.c
+@@ -3552,6 +3552,27 @@ qemuDomainMachineIsS390CCW(const virDomainDef *def)
+ }
+ 
+ 
++bool
++qemuDomainMachineIsG3Beige(const virDomainDef *def)
++{
++    return STREQ(def->os.machine, "g3beige");
++}
++
++
++bool
++qemuDomainMachineIsSun4u(const virDomainDef *def)
++{
++    return STREQ(def->os.machine, "sun4u");
++}
++
++
++bool
++qemuDomainMachineIsMalta(const virDomainDef *def)
++{
++    return STREQ(def->os.machine, "malta");
++}
++
++
+ /**
+  * qemuDomainUpdateCurrentMemorySize:
+  *
+diff --git a/src/qemu/qemu_domain.h b/src/qemu/qemu_domain.h
+index 64cd7e1..7ea685f 100644
+--- a/src/qemu/qemu_domain.h
++++ b/src/qemu/qemu_domain.h
+@@ -478,6 +478,9 @@ bool qemuDomainMachineIsQ35(const virDomainDef *def);
+ bool qemuDomainMachineIsI440FX(const virDomainDef *def);
+ bool qemuDomainMachineNeedsFDC(const virDomainDef *def);
+ bool qemuDomainMachineIsS390CCW(const virDomainDef *def);
++bool qemuDomainMachineIsG3Beige(const virDomainDef *def);
++bool qemuDomainMachineIsSun4u(const virDomainDef *def);
++bool qemuDomainMachineIsMalta(const virDomainDef *def);
+ 
+ int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
+                                       virDomainObjPtr vm);
