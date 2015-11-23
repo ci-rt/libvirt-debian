@@ -1,3 +1,12 @@
+libvirt (1.2.21-2) unstable; urgency=medium
+
+  * [014a0c7] Add a build test to verify that the we can link against libvirt
+  * [37efced] Disable service timeout for libvirt-guests (Closes: #803714)
+  * [ae65b71] qemu: Handle default IDE controller on other machine types as well
+    (Closes: #805189)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 23 Nov 2015 18:00:59 +0100
+
 libvirt (1.2.21-1) unstable; urgency=medium
 
   * [6e075d2] New upstream version 1.2.21
