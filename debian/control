@@ -5,7 +5,7 @@ Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.deb
 Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
 Testsuite: autopkgtest
 Build-Depends:
- debhelper (>= 7),
+ debhelper (>= 8.9.7~),
  dh-autoreconf,
  dh-systemd (>= 1.18~),
  dh-apparmor [linux-any],
