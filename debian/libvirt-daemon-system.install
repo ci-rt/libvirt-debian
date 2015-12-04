@@ -1,3 +1,4 @@
 etc/libvirt/libvirtd.conf
 etc/libvirt/virtlockd.conf
+etc/libvirt/virtlogd.conf
 etc/sasl2/*

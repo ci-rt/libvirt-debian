@@ -157,6 +157,8 @@ override_dh_install:
 	    debian/libvirt-daemon-system.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-daemon-system.libvirt-guests.default
+	cp src/logging/virtlogd.sysconf \
+	    debian/libvirt-daemon-system.virtlogd.default
 	# Add our backward compat polkit rule
 	cp debian/polkit/60-libvirt.pkla \
 	    debian/libvirt-daemon-system/var/lib/polkit-1/localauthority/10-vendor.d/
@@ -197,6 +199,7 @@ endif
 
 override_dh_installinit:
 	dh_systemd_enable
+	dh_installinit -p libvirt-daemon-system --name=virtlogd --no-restart-on-upgrade
 	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
 	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service
