@@ -1217,6 +1217,7 @@ LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
 LTLIBOBJS = @LTLIBOBJS@
 LTLIBPTH = @LTLIBPTH@
 LTLIBTHREAD = @LTLIBTHREAD@
+LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 LVCHANGE = @LVCHANGE@
 LVCREATE = @LVCREATE@
 LVREMOVE = @LVREMOVE@
@@ -1858,8 +1859,8 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@WITH_NWFILTER_FALSE@install-data-local:
 @WITH_NWFILTER_FALSE@uninstall-local:
+@WITH_NWFILTER_FALSE@install-data-local:
 clean: clean-am
 
 clean-am: clean-generic clean-libtool mostlyclean-am

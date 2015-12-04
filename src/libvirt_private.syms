@@ -148,6 +148,7 @@ virDomainCapsNew;
 
 # conf/domain_conf.h
 virBlkioDeviceArrayClear;
+virDiskNameParse;
 virDiskNameToBusDeviceIndex;
 virDiskNameToIndex;
 virDomainActualNetDefFree;
@@ -395,24 +396,6 @@ virDomainObjGetMetadata;
 virDomainObjGetOneDef;
 virDomainObjGetPersistentDef;
 virDomainObjGetState;
-virDomainObjListAdd;
-virDomainObjListCollect;
-virDomainObjListConvert;
-virDomainObjListExport;
-virDomainObjListFindByID;
-virDomainObjListFindByName;
-virDomainObjListFindByUUID;
-virDomainObjListFindByUUIDRef;
-virDomainObjListForEach;
-virDomainObjListGetActiveIDs;
-virDomainObjListGetInactiveNames;
-virDomainObjListLoadAllConfigs;
-virDomainObjListNew;
-virDomainObjListNumOfDomains;
-virDomainObjListRemove;
-virDomainObjListRemoveLocked;
-virDomainObjListRenameAddNew;
-virDomainObjListRenameRemove;
 virDomainObjNew;
 virDomainObjParseNode;
 virDomainObjSetDefTransient;
@@ -884,6 +867,27 @@ virChrdevFree;
 virChrdevOpen;
 
 
+# conf/virdomainobjlist.h
+virDomainObjListAdd;
+virDomainObjListCollect;
+virDomainObjListConvert;
+virDomainObjListExport;
+virDomainObjListFindByID;
+virDomainObjListFindByName;
+virDomainObjListFindByUUID;
+virDomainObjListFindByUUIDRef;
+virDomainObjListForEach;
+virDomainObjListGetActiveIDs;
+virDomainObjListGetInactiveNames;
+virDomainObjListLoadAllConfigs;
+virDomainObjListNew;
+virDomainObjListNumOfDomains;
+virDomainObjListRemove;
+virDomainObjListRemoveLocked;
+virDomainObjListRenameAddNew;
+virDomainObjListRenameRemove;
+
+
 # cpu/cpu.h
 cpuBaseline;
 cpuBaselineXML;
@@ -1001,6 +1005,14 @@ virLockManagerPluginRef;
 virLockManagerPluginUnref;
 virLockManagerPluginUsesState;
 virLockManagerRelease;
+
+
+# logging/log_manager.h
+virLogManagerDomainGetLogFilePosition;
+virLogManagerDomainOpenLogFile;
+virLogManagerDomainReadLogFile;
+virLogManagerFree;
+virLogManagerNew;
 
 
 # nodeinfo.h
@@ -1323,6 +1335,7 @@ virRun;
 virConfFree;
 virConfFreeValue;
 virConfGetValue;
+virConfLoadConfig;
 virConfNew;
 virConfReadFile;
 virConfReadMem;
@@ -2046,6 +2059,19 @@ virRandomGenerateWWN;
 virRandomInt;
 
 
+# util/virrotatingfile.h
+virRotatingFileReaderConsume;
+virRotatingFileReaderFree;
+virRotatingFileReaderNew;
+virRotatingFileReaderSeek;
+virRotatingFileWriterAppend;
+virRotatingFileWriterFree;
+virRotatingFileWriterGetINode;
+virRotatingFileWriterGetOffset;
+virRotatingFileWriterGetPath;
+virRotatingFileWriterNew;
+
+
 # util/virscsi.h
 virSCSIDeviceFileIterate;
 virSCSIDeviceFree;
@@ -2321,6 +2347,7 @@ virURIFormat;
 virURIFormatParams;
 virURIFree;
 virURIParse;
+virURIResolveAlias;
 
 
 # util/virusb.h

@@ -856,14 +856,13 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if ((virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0) ||
-            (virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0))
+        if (virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0 ||
+            virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0)
             goto done;
         if (virFileExists(in) && virFileExists(out)) {
-            if ((virSecurityDACSetOwnership(priv, NULL, in, user, group) < 0) ||
-                (virSecurityDACSetOwnership(priv, NULL, out, user, group) < 0)) {
+            if (virSecurityDACSetOwnership(priv, NULL, in, user, group) < 0 ||
+                virSecurityDACSetOwnership(priv, NULL, out, user, group) < 0)
                 goto done;
-            }
         } else if (virSecurityDACSetOwnership(priv, NULL,
                                               dev_source->data.file.path,
                                               user, group) < 0) {
@@ -927,14 +926,13 @@ virSecurityDACRestoreChardevLabel(virSecurityManagerPtr mgr,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if ((virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0) ||
-            (virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0))
+        if (virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0 ||
+            virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0)
             goto done;
         if (virFileExists(in) && virFileExists(out)) {
-            if ((virSecurityDACRestoreSecurityFileLabel(priv, out) < 0) ||
-                (virSecurityDACRestoreSecurityFileLabel(priv, in) < 0)) {
+            if (virSecurityDACRestoreSecurityFileLabel(priv, out) < 0 ||
+                virSecurityDACRestoreSecurityFileLabel(priv, in) < 0)
                 goto done;
-            }
         } else if (virSecurityDACRestoreSecurityFileLabel(priv, dev_source->data.file.path) < 0) {
             goto done;
         }
@@ -1015,6 +1013,66 @@ virSecurityDACRestoreSecurityTPMFileLabel(virSecurityManagerPtr mgr,
 
 
 static int
+virSecurityDACSetInputLabel(virSecurityManagerPtr mgr,
+                            virDomainDefPtr def,
+                            virDomainInputDefPtr input)
+
+{
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityLabelDefPtr seclabel;
+    int ret = -1;
+    uid_t user;
+    gid_t group;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
+    if (seclabel && !seclabel->relabel)
+        return 0;
+
+    switch ((virDomainInputType) input->type) {
+    case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
+        if (virSecurityDACGetIds(seclabel, priv, &user, &group, NULL, NULL) < 0)
+            return -1;
+
+        ret = virSecurityDACSetOwnership(priv, NULL, input->source.evdev, user, group);
+        break;
+
+    case VIR_DOMAIN_INPUT_TYPE_MOUSE:
+    case VIR_DOMAIN_INPUT_TYPE_TABLET:
+    case VIR_DOMAIN_INPUT_TYPE_KBD:
+    case VIR_DOMAIN_INPUT_TYPE_LAST:
+        ret = 0;
+        break;
+    }
+
+    return ret;
+}
+
+static int
+virSecurityDACRestoreInputLabel(virSecurityManagerPtr mgr,
+                                virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                virDomainInputDefPtr input)
+{
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    int ret = -1;
+
+    switch ((virDomainInputType) input->type) {
+    case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
+        ret = virSecurityDACRestoreSecurityFileLabel(priv, input->source.evdev);
+        break;
+
+    case VIR_DOMAIN_INPUT_TYPE_MOUSE:
+    case VIR_DOMAIN_INPUT_TYPE_TABLET:
+    case VIR_DOMAIN_INPUT_TYPE_KBD:
+    case VIR_DOMAIN_INPUT_TYPE_LAST:
+        ret = 0;
+        break;
+    }
+
+    return ret;
+}
+
+
+static int
 virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
                                       bool migrated)
@@ -1039,6 +1097,12 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                                       NULL) < 0)
             rc = -1;
     }
+
+    for (i = 0; i < def->ninputs; i++) {
+        if (virSecurityDACRestoreInputLabel(mgr, def, def->inputs[i]) < 0)
+            rc = -1;
+    }
+
     for (i = 0; i < def->ndisks; i++) {
         if (virSecurityDACRestoreSecurityImageLabelInt(mgr,
                                                        def,
@@ -1116,6 +1180,12 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                                def->disks[i]) < 0)
             return -1;
     }
+
+    for (i = 0; i < def->ninputs; i++) {
+        if (virSecurityDACSetInputLabel(mgr, def, def->inputs[i]) < 0)
+            return -1;
+    }
+
     for (i = 0; i < def->nhostdevs; i++) {
         if (virSecurityDACSetSecurityHostdevLabel(mgr,
                                                   def,
@@ -1213,7 +1283,7 @@ virSecurityDACSetProcessLabel(virSecurityManagerPtr mgr,
     if (virSecurityDACGetIds(secdef, priv, &user, &group, &groups, &ngroups) < 0)
         return -1;
 
-    VIR_DEBUG("Dropping privileges of DEF to %u:%u, %d supplemental groups",
+    VIR_DEBUG("Dropping privileges to %u:%u, %d supplemental groups",
               (unsigned int) user, (unsigned int) group, ngroups);
 
     if (virSetUIDGID(user, group, groups, ngroups) < 0)
@@ -1238,7 +1308,7 @@ virSecurityDACSetChildProcessLabel(virSecurityManagerPtr mgr,
     if (virSecurityDACGetIds(secdef, priv, &user, &group, NULL, NULL))
         return -1;
 
-    VIR_DEBUG("Setting child to drop privileges of DEF to %u:%u",
+    VIR_DEBUG("Setting child to drop privileges to %u:%u",
               (unsigned int) user, (unsigned int) group);
 
     virCommandSetUID(cmd, user);

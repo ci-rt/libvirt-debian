@@ -1,3 +1,4 @@
+daemon/admin_dispatch.h
 daemon/admin_server.c
 daemon/libvirtd-config.c
 daemon/libvirtd.c
@@ -36,6 +37,7 @@ src/conf/secret_conf.c
 src/conf/snapshot_conf.c
 src/conf/storage_conf.c
 src/conf/virchrdev.c
+src/conf/virdomainobjlist.c
 src/cpu/cpu.c
 src/cpu/cpu_generic.c
 src/cpu/cpu_map.c
@@ -78,6 +80,11 @@ src/locking/lock_driver_lockd.c
 src/locking/lock_driver_sanlock.c
 src/locking/lock_manager.c
 src/locking/sanlock_helper.c
+src/logging/log_daemon.c
+src/logging/log_daemon_config.c
+src/logging/log_daemon_dispatch.c
+src/logging/log_handler.c
+src/logging/log_manager.c
 src/lxc/lxc_cgroup.c
 src/lxc/lxc_fuse.c
 src/lxc/lxc_hostdev.c
@@ -214,6 +221,7 @@ src/util/virpolkit.c
 src/util/virportallocator.c
 src/util/virprocess.c
 src/util/virrandom.c
+src/util/virrotatingfile.c
 src/util/virsexpr.c
 src/util/virscsi.c
 src/util/virsocketaddr.c
@@ -270,6 +278,7 @@ tools/virsh-pool.c
 tools/virsh-secret.c
 tools/virsh-snapshot.c
 tools/virsh-volume.c
+tools/virt-admin.c
 tools/virt-host-validate-common.c
 tools/virt-host-validate-lxc.c
 tools/virt-host-validate-qemu.c

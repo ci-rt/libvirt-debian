@@ -1017,11 +1017,6 @@
      <exports symbol='VIR_UUID_STRING_BUFLEN' type='macro'/>
      <exports symbol='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' type='enum'/>
      <exports symbol='VIR_CONNECT_BASELINE_CPU_MIGRATABLE' type='enum'/>
-     <exports symbol='VIR_CONNECT_CLOSE_REASON_CLIENT' type='enum'/>
-     <exports symbol='VIR_CONNECT_CLOSE_REASON_EOF' type='enum'/>
-     <exports symbol='VIR_CONNECT_CLOSE_REASON_ERROR' type='enum'/>
-     <exports symbol='VIR_CONNECT_CLOSE_REASON_KEEPALIVE' type='enum'/>
-     <exports symbol='VIR_CONNECT_CLOSE_REASON_LAST' type='enum'/>
      <exports symbol='VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE' type='enum'/>
      <exports symbol='VIR_CONNECT_NO_ALIASES' type='enum'/>
      <exports symbol='VIR_CONNECT_RO' type='enum'/>
@@ -1062,7 +1057,6 @@
      <exports symbol='virConnectAuth' type='typedef'/>
      <exports symbol='virConnectAuthPtr' type='typedef'/>
      <exports symbol='virConnectBaselineCPUFlags' type='typedef'/>
-     <exports symbol='virConnectCloseReason' type='typedef'/>
      <exports symbol='virConnectCompareCPUFlags' type='typedef'/>
      <exports symbol='virConnectCredential' type='typedef'/>
      <exports symbol='virConnectCredentialPtr' type='typedef'/>
@@ -1122,7 +1116,6 @@
      <exports symbol='virConnectRegisterCloseCallback' type='function'/>
      <exports symbol='virConnectSetKeepAlive' type='function'/>
      <exports symbol='virConnectUnregisterCloseCallback' type='function'/>
-     <exports symbol='virFreeCallback' type='function'/>
      <exports symbol='virGetVersion' type='function'/>
      <exports symbol='virInitialize' type='function'/>
      <exports symbol='virNodeAllocPages' type='function'/>
@@ -1658,6 +1651,7 @@
      <exports symbol='VIR_FROM_LIBXL' type='enum'/>
      <exports symbol='VIR_FROM_LOCKING' type='enum'/>
      <exports symbol='VIR_FROM_LOCKSPACE' type='enum'/>
+     <exports symbol='VIR_FROM_LOGGING' type='enum'/>
      <exports symbol='VIR_FROM_LXC' type='enum'/>
      <exports symbol='VIR_FROM_NET' type='enum'/>
      <exports symbol='VIR_FROM_NETWORK' type='enum'/>
@@ -2213,11 +2207,6 @@
     </macro>
     <enum name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' file='libvirt-host' value='1' type='virConnectBaselineCPUFlags' info='show all features'/>
     <enum name='VIR_CONNECT_BASELINE_CPU_MIGRATABLE' file='libvirt-host' value='2' type='virConnectBaselineCPUFlags' info='filter out non-migratable features'/>
-    <enum name='VIR_CONNECT_CLOSE_REASON_CLIENT' file='libvirt-host' value='3' type='virConnectCloseReason' info='Client requested it'/>
-    <enum name='VIR_CONNECT_CLOSE_REASON_EOF' file='libvirt-host' value='1' type='virConnectCloseReason' info='End-of-file from server'/>
-    <enum name='VIR_CONNECT_CLOSE_REASON_ERROR' file='libvirt-host' value='0' type='virConnectCloseReason' info='Misc I/O error'/>
-    <enum name='VIR_CONNECT_CLOSE_REASON_KEEPALIVE' file='libvirt-host' value='2' type='virConnectCloseReason' info='Keepalive timer triggered'/>
-    <enum name='VIR_CONNECT_CLOSE_REASON_LAST' file='libvirt-host' value='4' type='virConnectCloseReason'/>
     <enum name='VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE' file='libvirt-host' value='1' type='virConnectCompareCPUFlags' info='treat incompatible
 CPUs as failure'/>
     <enum name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_CHANNEL' file='libvirt-domain' value='2' type='virConnectDomainEventAgentLifecycleReason' info='channel state changed'/>
@@ -2833,7 +2822,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='63' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='64' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2953,6 +2942,7 @@ formed or broken'/>
     <enum name='VIR_FROM_LIBXL' file='virterror' value='41' type='virErrorDomain' info='Error from libxenlight driver'/>
     <enum name='VIR_FROM_LOCKING' file='virterror' value='42' type='virErrorDomain' info='Error from lock manager'/>
     <enum name='VIR_FROM_LOCKSPACE' file='virterror' value='51' type='virErrorDomain' info='Error from lockspace'/>
+    <enum name='VIR_FROM_LOGGING' file='virterror' value='63' type='virErrorDomain' info='Error from log manager'/>
     <enum name='VIR_FROM_LXC' file='virterror' value='17' type='virErrorDomain' info='Error from Linux Container driver'/>
     <enum name='VIR_FROM_NET' file='virterror' value='11' type='virErrorDomain' info='Error when operating on a network'/>
     <enum name='VIR_FROM_NETWORK' file='virterror' value='19' type='virErrorDomain' info='Error from network config'/>
@@ -3181,7 +3171,6 @@ Cryptography&quot; (1996)'/>
     </struct>
     <typedef name='virConnectAuthPtr' file='libvirt-host' type='virConnectAuth *'/>
     <typedef name='virConnectBaselineCPUFlags' file='libvirt-host' type='enum'/>
-    <typedef name='virConnectCloseReason' file='libvirt-host' type='enum'/>
     <typedef name='virConnectCompareCPUFlags' file='libvirt-host' type='enum'/>
     <struct name='virConnectCredential' file='libvirt-host' type='struct _virConnectCredential'>
       <field name='type' type='int' info='One of virConnectCredentialType constants'/>
@@ -5764,19 +5753,10 @@ ignore the shutdown request).]]></info>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDestroyFlagsValues'/>
     </function>
     <function name='virDomainDetachDevice' file='libvirt-domain' module='libvirt-domain'>
-      <info><![CDATA[Destroy a virtual device attachment to backend.  This function,
-having hot-unplug semantics, is only allowed on an active domain.
+      <info><![CDATA[This is an equivalent of virDomainDetachDeviceFlags() when called with
+@flags parameter set to VIR_DOMAIN_AFFECT_LIVE.
 
-Be aware that hotplug changes might not persist across a domain going
-into S4 state (also known as hibernation) unless you also modify the
-persistent domain definition.
-
-The supplied XML description of the device should be as specific
-as its definition in the domain XML. The set of attributes used
-to match the device are internal to the drivers. Using a partial definition,
-or attempting to detach a device that is not present in the domain XML,
-but shares some specific attributes with one that is present,
-may lead to unexpected results.]]></info>
+See virDomainDetachDeviceFlags() for more details.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
@@ -8753,20 +8733,6 @@ event timeout.]]></info>
       <return type='void'/>
       <arg name='timer' type='int' info='the timer to modify'/>
       <arg name='timeout' type='int' info='the new timeout value'/>
-    </functype>
-    <functype name='virFreeCallback' file='libvirt-host' module='libvirt-host'>
-      <info><![CDATA[Type for a callback cleanup function to be paired with a callback.  This
-function will be called as a final chance to clean up the @opaque
-registered with the primary callback, at the time when the primary
-callback is deregistered.
-
-It is forbidden to call any other libvirt APIs from an
-implementation of this callback, since it can be invoked
-from a context which is not re-entrant safe. Failure to
-abide by this requirement may lead to application deadlocks
-or crashes.]]></info>
-      <return type='void'/>
-      <arg name='opaque' type='void *' info='opaque user data provided at registration'/>
     </functype>
     <function name='virFreeError' file='virterror' module='virerror'>
       <info><![CDATA[Resets and frees the given error.]]></info>

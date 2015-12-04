@@ -407,7 +407,7 @@ virProcessKillPainfully(pid_t pid, bool force)
 int virProcessSetAffinity(pid_t pid, virBitmapPtr map)
 {
     size_t i;
-    VIR_DEBUG("Set process affinity on %lld\n", (long long)pid);
+    VIR_DEBUG("Set process affinity on %lld", (long long)pid);
 # ifdef CPU_ALLOC
     /* New method dynamically allocates cpu mask, allowing unlimted cpus */
     int numcpus = 1024;
@@ -766,6 +766,10 @@ virProcessSetMaxMemLock(pid_t pid, unsigned long long bytes)
             return -1;
         }
     }
+
+    VIR_DEBUG("Locked memory for process %lld limited to %llu bytes",
+              (long long int) pid, bytes);
+
     return 0;
 }
 #else /* ! (HAVE_SETRLIMIT && defined(RLIMIT_MEMLOCK)) */

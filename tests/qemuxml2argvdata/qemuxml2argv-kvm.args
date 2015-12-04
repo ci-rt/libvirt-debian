@@ -1,4 +1,21 @@
-LC_ALL=C PATH=/bin HOME=/home/test USER=test LOGNAME=test QEMU_AUDIO_DRV=none \
-/usr/libexec/qemu-kvm -S -machine pc-1.0,accel=kvm -m 4096 \
--smp 4 -nographic -monitor unix:/tmp/test-monitor,server,nowait \
--no-acpi -boot c -usb -net none -serial none -parallel none
+LC_ALL=C \
+PATH=/bin \
+HOME=/home/test \
+USER=test \
+LOGNAME=test \
+QEMU_AUDIO_DRV=none \
+/usr/libexec/qemu-kvm \
+-name kvm \
+-S \
+-machine pc-1.0,accel=kvm \
+-m 4096 \
+-smp 4 \
+-uuid d091ea82-29e6-2e34-3005-f02617b36e87 \
+-nographic \
+-monitor unix:/tmp/test-monitor,server,nowait \
+-no-acpi \
+-boot c \
+-usb \
+-net none \
+-serial none \
+-parallel none

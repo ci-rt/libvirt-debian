@@ -775,7 +775,7 @@ sc_prohibit_gettext_markup:
 # lower-level code must not include higher-level headers.
 cross_dirs=$(patsubst $(srcdir)/src/%.,%,$(wildcard $(srcdir)/src/*/.))
 cross_dirs_re=($(subst / ,/|,$(cross_dirs)))
-mid_dirs=access|conf|cpu|locking|network|node_device|rpc|security|storage
+mid_dirs=access|conf|cpu|locking|logging|network|node_device|rpc|security|storage
 sc_prohibit_cross_inclusion:
 	@for dir in $(cross_dirs); do					\
 	  case $$dir in							\
@@ -917,6 +917,15 @@ sc_require_space_before_label:
 	@prohibit='^(   ?)?[_a-zA-Z0-9]+:$$'                           \
 	in_vc_files='\.[ch]$$'                                         \
 	halt="Top-level labels should be indented by one space"        \
+	  $(_sc_search_regexp)
+
+# Allow for up to three spaces before the label: this is to avoid running
+# into situations where neither this rule nor require_space_before_label
+# would apply, eg. a line matching ^[a-zA-Z0-9]+ :$
+sc_prohibit_space_in_label:
+	@prohibit='^ {0,3}[_a-zA-Z0-9]+ +:$$'                          \
+	in_vc_files='\.[ch]$$'                                         \
+	halt="There should be no space between label name and colon"   \
 	  $(_sc_search_regexp)
 
 # Doesn't catch all cases of mismatched braces across if-else, but it helps
@@ -1068,7 +1077,7 @@ _autogen:
 
 # regenerate HACKING as part of the syntax-check
 ifneq ($(_gl-Makefile),)
-syntax-check: $(top_srcdir)/HACKING bracket-spacing-check
+syntax-check: $(top_srcdir)/HACKING bracket-spacing-check test-wrap-argv
 endif
 
 bracket-spacing-check:
@@ -1076,6 +1085,20 @@ bracket-spacing-check:
 	$(PERL) $(top_srcdir)/build-aux/bracket-spacing.pl $$files || \
 	  { echo '$(ME): incorrect formatting, see HACKING for rules' 1>&2; \
 	    exit 1; }
+
+test-wrap-argv:
+	$(AM_V_GEN)files=`$(VC_LIST) | grep -E '\.(ldargs|args)'`; \
+	for file in $$files ; \
+	do \
+	    $(PERL) $(top_srcdir)/tests/test-wrap-argv.pl $$file > $${file}-t ; \
+	    diff $$file $${file}-t; \
+	    res=$$? ; \
+	    rm $${file}-t ; \
+	    test $$res == 0 || { \
+	      echo "$(ME): Incorrect line wrapping in $$file." 1>&2; \
+              echo "$(ME): Use test-wrap-argv.pl to wrap test data files" 1>&2; \
+	      exit 1; } \
+	done
 
 # sc_po_check can fail if generated files are not built first
 sc_po_check: \
@@ -1098,7 +1121,7 @@ $(srcdir)/src/admin/admin_client.h: $(srcdir)/src/admin/admin_protocol.x
 # List all syntax-check exemptions:
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/vsh\.h$$
 
-_src1=libvirt-stream|fdstream|qemu/qemu_monitor|util/(vircommand|virfile)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
+_src1=libvirt-stream|fdstream|qemu/qemu_monitor|util/(vircommand|virfile)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon
 _test1=shunloadtest|virnettlscontexttest|virnettlssessiontest|vircgroupmock
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/virsh-console|tests/($(_test1)))\.c$$
@@ -1133,7 +1156,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
   (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.diff$$)
 
-_src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon)
+_src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
   (^($(_src2)|tests/testutils|daemon/libvirtd)\.c$$)
 
@@ -1192,7 +1215,7 @@ exclude_file_name_regexp--sc_prohibit_include_public_headers_quote = \
   ^(src/internal\.h$$|tools/wireshark/src/packet-libvirt.h$$)
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
-  ^(tools/|examples/|include/libvirt/(virterror|libvirt-(qemu|lxc))\.h$$)
+  ^(tools/|examples/|include/libvirt/(virterror|libvirt(-(admin|qemu|lxc))?)\.h$$)
 
 exclude_file_name_regexp--sc_prohibit_int_ijk = \
   ^(src/remote_protocol-structs|src/remote/remote_protocol.x|cfg.mk|include/)$

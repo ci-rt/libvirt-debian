@@ -116,7 +116,6 @@ EXTRA_DIST =		\
 	qemumonitorjsondata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
-	qemuxmlnsdata \
 	schematestutils.sh \
 	secretxml2xmlin \
 	securityselinuxhelperdata \
@@ -173,6 +172,7 @@ test_programs = virshtest sockettest \
 	virkeycodetest \
 	virlockspacetest \
 	virlogtest \
+	virrotatingfiletest \
 	virstringtest \
 	virportallocatortest \
 	sysinfotest \
@@ -244,7 +244,7 @@ test_programs += xlconfigtest
 endif WITH_LIBXL
 
 if WITH_QEMU
-test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
+test_programs += qemuxml2argvtest qemuxml2xmltest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 	qemumonitortest qemumonitorjsontest qemuhotplugtest \
 	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
@@ -567,11 +567,6 @@ qemuxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 qemuxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
-qemuxmlnstest_SOURCES = \
-	qemuxmlnstest.c testutilsqemu.c testutilsqemu.h \
-	testutils.c testutils.h
-qemuxmlnstest_LDADD = $(qemu_LDADDS) $(LDADDS)
-
 qemuargv2xmltest_SOURCES = \
 	qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
@@ -642,7 +637,7 @@ domainsnapshotxml2xmltest_SOURCES = \
 domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 else ! WITH_QEMU
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
-	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
+	qemuhelptest.c domainsnapshotxml2xmltest.c \
 	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
 	qemuagenttest.c qemucapabilitiestest.c \
@@ -1066,6 +1061,11 @@ virnetdevmock_la_CFLAGS = $(AM_CFLAGS) $(LIBNL_CFLAGS)
 virnetdevmock_la_LIBADD = $(GNULIB_LIBS) \
 					   ../src/libvirt.la
 virnetdevmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+
+virrotatingfiletest_SOURCES = \
+	virrotatingfiletest.c testutils.h testutils.c
+virrotatingfiletest_CFLAGS = $(AM_CFLAGS)
+virrotatingfiletest_LDADD = $(LDADDS)
 
 if WITH_LINUX
 virusbtest_SOURCES = \

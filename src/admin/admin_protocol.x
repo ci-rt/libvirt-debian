@@ -37,8 +37,12 @@ typedef string admin_nonnull_string<ADMIN_STRING_MAX>;
 typedef admin_nonnull_string *admin_string;
 
 /*----- Protocol. -----*/
-struct admin_connect_open_args {
+struct admin_daemon_open_args {
     unsigned int flags;
+};
+
+struct admin_daemon_get_version_ret {
+    unsigned hyper libVer;
 };
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -64,12 +68,17 @@ enum admin_procedure {
      *   in the function parameter list.
      */
     /**
-     * @generate: client
+     * @generate: none
      */
-    ADMIN_PROC_CONNECT_OPEN = 1,
+    ADMIN_PROC_DAEMON_OPEN = 1,
 
     /**
-     * @generate: client
+     * @generate: none
      */
-    ADMIN_PROC_CONNECT_CLOSE = 2
+    ADMIN_PROC_DAEMON_CLOSE = 2,
+
+    /**
+     * @generate: both
+     */
+    ADMIN_PROC_DAEMON_GET_VERSION = 3
 };

@@ -30,28 +30,56 @@
 extern "C" {
 # endif
 
+# define __VIR_ADMIN_H_INCLUDES__
+# include <libvirt/libvirt-common.h>
+# undef __VIR_ADMIN_H_INCLUDES__
 
 /**
- * virAdmConnect:
+ * virAdmDaemon:
  *
- * a virAdmConnect is a private structure representing a connection to
- * libvirt daemon.
+ * a virAdmDaemon is a private structure representing a remote daemon.
  */
-typedef struct _virAdmConnect virAdmConnect;
+typedef struct _virAdmDaemon virAdmDaemon;
 
 /**
- * virAdmConnectPtr:
+ * virAdmDaemonPtr:
  *
- * a virAdmConnectPtr is pointer to a virAdmConnect private structure,
- * this is the type used to reference a connection to the daemon
- * in the API.
+ * a virAdmDaemonPtr is pointer to a virAdmDaemon private structure,
+ * this is the type used to reference a daemon in the API.
  */
-typedef virAdmConnect *virAdmConnectPtr;
+typedef virAdmDaemon *virAdmDaemonPtr;
 
-virAdmConnectPtr virAdmConnectOpen(const char *name, unsigned int flags);
-int virAdmConnectClose(virAdmConnectPtr conn);
+virAdmDaemonPtr virAdmDaemonOpen(const char *name, unsigned int flags);
+int virAdmDaemonClose(virAdmDaemonPtr dmn);
 
-int virAdmConnectRef(virAdmConnectPtr conn);
+int virAdmDaemonRef(virAdmDaemonPtr dmn);
+int virAdmDaemonIsAlive(virAdmDaemonPtr dmn);
+
+int virAdmGetVersion(unsigned long long *libVer);
+
+char *virAdmDaemonGetURI(virAdmDaemonPtr dmn);
+
+int virAdmDaemonGetVersion(virAdmDaemonPtr dmn,
+                           unsigned long long *libVer);
+
+/**
+ * virAdmDaemonCloseFunc:
+ * @dmn: virAdmDaemon connection
+ * @reason: reason why the connection was closed (see virConnectCloseReason)
+ * @opaque: opaque client data
+ *
+ * A callback to be registered, in case a connection was closed.
+ */
+typedef void (*virAdmDaemonCloseFunc)(virAdmDaemonPtr dmn,
+                                       int reason,
+                                       void *opaque);
+
+int virAdmDaemonRegisterCloseCallback(virAdmDaemonPtr dmn,
+                                      virAdmDaemonCloseFunc cb,
+                                      void *opaque,
+                                      virFreeCallback freecb);
+int virAdmDaemonUnregisterCloseCallback(virAdmDaemonPtr dmn,
+                                        virAdmDaemonCloseFunc cb);
 
 # ifdef __cplusplus
 }

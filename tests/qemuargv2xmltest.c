@@ -179,9 +179,6 @@ mymain(void)
     /* This needs <emulator>./qemu.sh</emulator> which doesn't work here.  */
     /*DO_TEST("cpu-kvmclock");*/
 
-    /* Can't roundtrip xenner arch */
-    /*DO_TEST("bootloader");*/
-
     DO_TEST("reboot-timeout-enabled");
     DO_TEST("reboot-timeout-disabled");
 
@@ -196,12 +193,6 @@ mymain(void)
     DO_TEST("disk-drive-boot-disk");
     DO_TEST("disk-drive-boot-cdrom");
     DO_TEST("disk-drive-fmt-qcow");
-    /* Can't roundtrip  shareable+cache mode option */
-    /*DO_TEST("disk-drive-shared");*/
-    /* Can't roundtrip v1 writethrough option */
-    /*DO_TEST("disk-drive-cache-v1-wt");*/
-    DO_TEST("disk-drive-cache-v1-wb");
-    DO_TEST("disk-drive-cache-v1-none");
     DO_TEST("disk-drive-error-policy-stop");
     DO_TEST("disk-drive-error-policy-enospace");
     DO_TEST("disk-drive-error-policy-wreport-rignore");
@@ -238,8 +229,6 @@ mymain(void)
     DO_TEST("nographics-vga");
     DO_TEST("input-usbmouse");
     DO_TEST("input-usbtablet");
-    /* Can't rountrip xenner arch */
-    /*DO_TEST("input-xen");*/
     DO_TEST("misc-acpi");
     DO_TEST("misc-disable-s3");
     DO_TEST("misc-disable-suspends");
@@ -272,6 +261,7 @@ mymain(void)
     DO_TEST("smp");
 
     DO_TEST("hyperv");
+    DO_TEST("hyperv-panic");
 
     DO_TEST("kvm-features");
 
@@ -280,7 +270,6 @@ mymain(void)
 
     DO_TEST("nosharepages");
 
-    DO_TEST("restore-v1");
     DO_TEST("restore-v2");
     DO_TEST("migrate");
 

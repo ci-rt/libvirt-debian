@@ -256,7 +256,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(virinc_HEADERS) \
 	$(am__DIST_COMMON)
 mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = libvirt.h
+CONFIG_CLEAN_FILES = libvirt-common.h
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -325,7 +325,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/libvirt.h.in \
+am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/libvirt-common.h.in \
 	$(top_srcdir)/build-aux/mkinstalldirs
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkglibexecdir = @pkglibexecdir@
@@ -1266,6 +1266,7 @@ LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
 LTLIBOBJS = @LTLIBOBJS@
 LTLIBPTH = @LTLIBPTH@
 LTLIBTHREAD = @LTLIBTHREAD@
+LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 LVCHANGE = @LVCHANGE@
 LVCREATE = @LVCREATE@
 LVREMOVE = @LVREMOVE@
@@ -1778,6 +1779,7 @@ top_srcdir = @top_srcdir@
 ws_plugindir = @ws_plugindir@
 virincdir = $(includedir)/libvirt
 virinc_HEADERS = libvirt.h		\
+		 libvirt-common.h	\
 		 libvirt-domain.h \
 		 libvirt-domain-snapshot.h \
 		 libvirt-event.h \
@@ -1795,7 +1797,7 @@ virinc_HEADERS = libvirt.h		\
 
 
 # Temporarily disabled, but we need it for building
-EXTRA_DIST = libvirt.h.in libvirt-admin.h
+EXTRA_DIST = libvirt-common.h.in libvirt-admin.h
 all: all-am
 
 .SUFFIXES:
@@ -1828,7 +1830,7 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-libvirt.h: $(top_builddir)/config.status $(srcdir)/libvirt.h.in
+libvirt-common.h: $(top_builddir)/config.status $(srcdir)/libvirt-common.h.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 
 mostlyclean-libtool:

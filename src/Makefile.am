@@ -79,7 +79,7 @@ moddir = $(libdir)/libvirt/connection-driver
 mod_LTLIBRARIES =
 
 confdir = $(sysconfdir)/libvirt
-conf_DATA = libvirt.conf
+conf_DATA = libvirt.conf libvirt-admin.conf
 
 augeasdir = $(datadir)/augeas/lenses
 augeas_DATA =
@@ -150,6 +150,7 @@ UTIL_SOURCES =							\
 		util/virprobe.h					\
 		util/virprocess.c util/virprocess.h		\
 		util/virrandom.h util/virrandom.c		\
+		util/virrotatingfile.h util/virrotatingfile.c   \
 		util/virscsi.c util/virscsi.h			\
 		util/virseclabel.c util/virseclabel.h		\
 		util/virsexpr.c util/virsexpr.h			\
@@ -180,6 +181,7 @@ MAINTAINERCLEANFILES += util/virkeymaps.h
 
 util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
 		$(srcdir)/util/virkeycode-mapgen.py
+	$(MKDIR_P) util/
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/util/virkeycode-mapgen.py \
 	  <$(srcdir)/util/keymaps.csv >util/virkeymaps.h
 
@@ -215,7 +217,9 @@ DRIVER_SOURCES =							\
 		locking/lock_manager.c locking/lock_manager.h		\
 		locking/lock_driver.h					\
 		locking/lock_driver_nop.h locking/lock_driver_nop.c	\
-		locking/domain_lock.h locking/domain_lock.c
+		locking/domain_lock.h locking/domain_lock.c		\
+		logging/log_manager.c logging/log_manager.h		\
+		$(NULL)
 
 LOCK_DRIVER_SANLOCK_SOURCES = \
 		locking/lock_driver_sanlock.c
@@ -262,6 +266,45 @@ locking/lock_daemon_dispatch_stubs.h: $(LOCK_PROTOCOL) \
 	    $(LOCK_PROTOCOL) > $(srcdir)/locking/lock_daemon_dispatch_stubs.h
 
 
+LOG_PROTOCOL_GENERATED = \
+		logging/log_protocol.h \
+		logging/log_protocol.c \
+		$(NULL)
+
+DRIVER_SOURCES += $(LOG_PROTOCOL_GENERATED)
+
+LOG_PROTOCOL = $(srcdir)/logging/log_protocol.x
+EXTRA_DIST += $(LOG_PROTOCOL) \
+	$(LOG_PROTOCOL_GENERATED)
+BUILT_SOURCES += $(LOG_PROTOCOL_GENERATED)
+MAINTAINERCLEANFILES += $(LOG_PROTOCOL_GENERATED)
+
+LOG_DAEMON_GENERATED = \
+		logging/log_daemon_dispatch_stubs.h
+		$(NULL)
+
+BUILT_SOURCES += $(LOG_DAEMON_GENERATED)
+EXTRA_DIST += $(LOG_DAEMON_GENERATED)
+MAINTAINERCLEANFILES += $(LOG_DAEMON_GENERATED)
+
+LOG_DAEMON_SOURCES = \
+		logging/log_daemon.h \
+		logging/log_daemon.c \
+		logging/log_daemon_config.h \
+		logging/log_daemon_config.c \
+		logging/log_daemon_dispatch.c \
+		logging/log_daemon_dispatch.h \
+		logging/log_handler.c \
+		logging/log_handler.h \
+		$(NULL)
+
+logging/log_daemon_dispatch_stubs.h: $(LOG_PROTOCOL) \
+		$(srcdir)/rpc/gendispatch.pl Makefile.am
+	$(AM_V_GEN)perl -w $(srcdir)/rpc/gendispatch.pl --mode=server \
+	    virLogManagerProtocol VIR_LOG_MANAGER_PROTOCOL \
+	    $(LOG_PROTOCOL) > $(srcdir)/logging/log_daemon_dispatch_stubs.h
+
+
 NETDEV_CONF_SOURCES =						\
 		conf/netdev_bandwidth_conf.h conf/netdev_bandwidth_conf.c \
 		conf/netdev_vport_profile_conf.h conf/netdev_vport_profile_conf.c \
@@ -277,7 +320,8 @@ DOMAIN_CONF_SOURCES =						\
 		conf/domain_audit.c conf/domain_audit.h		\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
 		conf/snapshot_conf.c conf/snapshot_conf.h	\
-		conf/numa_conf.c conf/numa_conf.h
+		conf/numa_conf.c conf/numa_conf.h	\
+		conf/virdomainobjlist.c conf/virdomainobjlist.h
 
 OBJECT_EVENT_SOURCES =						\
 		conf/object_event.c conf/object_event.h \
@@ -1837,7 +1881,8 @@ check-local: check-augeas
 	$(NULL)
 
 check-augeas: check-augeas-qemu check-augeas-lxc check-augeas-sanlock \
-	check-augeas-lockd check-augeas-virtlockd check-augeas-libxl
+	check-augeas-lockd check-augeas-virtlockd check-augeas-libxl \
+	check-augeas-virtlogd
 
 AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
 EXTRA_DIST += $(top_srcdir)/build-aux/augeas-gentest.pl
@@ -1919,6 +1964,15 @@ check-augeas-libxl: test_libvirtd_libxl.aug
 else ! WITH_LIBXL
 check-augeas-libxl:
 endif ! WITH_LIBXL
+
+test_virtlogd.aug: logging/test_virtlogd.aug.in \
+		logging/virtlogd.conf $(AUG_GENTEST)
+	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/logging/virtlogd.conf $< $@
+
+check-augeas-virtlogd: test_virtlogd.aug
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+	    '$(AUGPARSE)' -I $(srcdir)/logging test_virtlogd.aug; \
+	fi
 
 #
 # Build our version script.  This is composed of three parts:
@@ -2062,6 +2116,10 @@ libvirt_admin.syms: libvirt_admin_public.syms $(ADMIN_SYM_FILES) \
 	printf '\n\nlocal:\n*;\n\n};' >>$@-tmp && \
 	chmod a-w $@-tmp && \
 	mv $@-tmp libvirt_admin.syms
+
+# admin/admin_remote.c is being included in libvirt-admin.c, so we
+# need to include it in the dist
+EXTRA_DIST += admin/admin_remote.c
 
 lib_LTLIBRARIES += libvirt-admin.la
 libvirt_admin_la_SOURCES = \
@@ -2344,7 +2402,7 @@ locking/%-lockd.conf: $(srcdir)/locking/lockd.conf
 	cp $< $@
 
 
-sbin_PROGRAMS = virtlockd
+sbin_PROGRAMS = virtlockd virtlogd
 
 virtlockd_SOURCES = \
 		$(LOCK_DAEMON_SOURCES) \
@@ -2373,40 +2431,77 @@ if WITH_DTRACE_PROBES
 virtlockd_LDADD += libvirt_probes.lo
 endif WITH_DTRACE_PROBES
 
+
+virtlogd_SOURCES = \
+		$(LOG_DAEMON_SOURCES) \
+		$(LOG_PROTOCOL_GENERATED) \
+		$(LOG_DAEMON_GENERATED) \
+		$(NULL)
+virtlogd_CFLAGS = \
+		$(AM_CFLAGS) \
+		$(PIE_CFLAGS) \
+		$(XDR_CFLAGS) \
+		$(NULL)
+virtlogd_LDFLAGS = \
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(CYGWIN_EXTRA_LDFLAGS) \
+		$(MINGW_EXTRA_LDFLAGS) \
+		$(NULL)
+virtlogd_LDADD = \
+		libvirt-net-rpc-server.la \
+		libvirt-net-rpc.la \
+		libvirt_util.la \
+		../gnulib/lib/libgnu.la \
+		$(CYGWIN_EXTRA_LIBADD) \
+		$(NULL)
+if WITH_DTRACE_PROBES
+virtlogd_LDADD += libvirt_probes.lo
+endif WITH_DTRACE_PROBES
+
 else ! WITH_LIBVIRTD
 EXTRA_DIST += $(LOCK_DAEMON_SOURCES) \
-              $(LOCK_DRIVER_LOCKD_SOURCES)
+              $(LOCK_DRIVER_LOCKD_SOURCES) \
+	      $(LOG_DAEMON_SOURCES)
 endif ! WITH_LIBVIRTD
 
-EXTRA_DIST += locking/virtlockd.sysconf \
+EXTRA_DIST += \
+	locking/virtlockd.sysconf \
 	locking/lockd.conf \
 	locking/libvirt_lockd.aug \
-	locking/test_libvirt_lockd.aug.in
+	locking/test_libvirt_lockd.aug.in \
+	logging/virtlogd.sysconf
 
 install-sysconfig:
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
 	$(INSTALL_DATA) $(srcdir)/locking/virtlockd.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/virtlockd
+	$(INSTALL_DATA) $(srcdir)/logging/virtlogd.sysconf \
+	  $(DESTDIR)$(sysconfdir)/sysconfig/virtlogd
 
 uninstall-sysconfig:
+	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/virtlogd
 	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/virtlockd
 	rmdir $(DESTDIR)$(sysconfdir)/sysconfig || :
 
-EXTRA_DIST += locking/virtlockd.init.in
+EXTRA_DIST += locking/virtlockd.init.in logging/virtlogd.init.in
 
 if WITH_LIBVIRTD
 if LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init:: virtlockd.init install-sysconfig
+install-init:: virtlockd.init virtlogd.init install-sysconfig
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
 	$(INSTALL_SCRIPT) virtlockd.init \
 	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/virtlockd
+	$(INSTALL_SCRIPT) virtlogd.init \
+	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/virtlogd
 
 uninstall-init:: uninstall-sysconfig
 	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/virtlockd
+	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/virtlogd
 	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d || :
 
-BUILT_SOURCES += virtlockd.init
-DISTCLEANFILES += virtlockd.init
+BUILT_SOURCES += virtlockd.init virtlogd.init
+DISTCLEANFILES += virtlockd.init virtlogd.init
 else ! LIBVIRT_INIT_SCRIPT_RED_HAT
 install-init::
 uninstall-init::
@@ -2417,6 +2512,15 @@ uninstall-init::
 endif ! WITH_LIBVIRTD
 
 virtlockd.init: locking/virtlockd.init.in $(top_builddir)/config.status
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+	    < $< > $@-t &&					\
+	    chmod a+x $@-t &&					\
+	    mv $@-t $@
+
+virtlogd.init: logging/virtlogd.init.in $(top_builddir)/config.status
 	$(AM_V_GEN)sed						\
 	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
@@ -2439,17 +2543,29 @@ virtlockd.8: $(srcdir)/virtlockd.8.in
 	    < $< > $@-t && \
 	mv $@-t $@
 
+$(srcdir)/virtlogd.8.in: logging/virtlogd.pod.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)$(POD2MAN) --name VIRTLOGD $< $@ \
+	    && if grep 'POD ERROR' $@ ; then rm $@; exit 1; fi
+
+virtlogd.8: $(srcdir)/virtlogd.8.in
+	$(AM_V_GEN)sed \
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+	    < $< > $@-t && \
+	mv $@-t $@
+
 if WITH_LIBVIRTD
-man8_MANS = virtlockd.8
+man8_MANS = virtlockd.8 virtlogd.8
 
-conf_DATA += locking/virtlockd.conf
+conf_DATA += locking/virtlockd.conf logging/virtlogd.conf
 
-augeas_DATA += locking/virtlockd.aug
-augeastest_DATA += test_virtlockd.aug
+augeas_DATA += locking/virtlockd.aug logging/virtlogd.aug
+augeastest_DATA += test_virtlockd.aug test_virtlogd.aug
 endif WITH_LIBVIRTD
 
-CLEANFILES += test_virtlockd.aug virtlockd.8
-MAINTAINERCLEANFILES += $(srcdir)/virtlockd.8.in
+CLEANFILES += test_virtlockd.aug virtlockd.8 \
+	      test_virtlogd.aug virtlogd.8
+MAINTAINERCLEANFILES += $(srcdir)/virtlockd.8.in $(srcdir)/virtlogd.8.in
 
 EXTRA_DIST += \
         locking/virtlockd.service.in \
@@ -2459,6 +2575,13 @@ EXTRA_DIST += \
         locking/virtlockd.aug \
         locking/virtlockd.conf \
         locking/test_virtlockd.aug.in \
+        logging/virtlogd.service.in \
+        logging/virtlogd.socket.in \
+        logging/virtlogd.pod.in \
+        virtlogd.8.in \
+        logging/virtlogd.aug \
+        logging/virtlogd.conf \
+        logging/test_virtlogd.aug.in \
         $(NULL)
 
 
@@ -2467,19 +2590,28 @@ if LIBVIRT_INIT_SCRIPT_SYSTEMD
 
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 
-BUILT_SOURCES += virtlockd.service virtlockd.socket
-DISTCLEANFILES += virtlockd.service virtlockd.socket
+BUILT_SOURCES += virtlockd.service virtlockd.socket \
+		 virtlogd.service virtlogd.socket
+DISTCLEANFILES += virtlockd.service virtlockd.socket \
+		  virtlogd.service virtlogd.socket
 
-install-systemd: virtlockd.service virtlockd.socket install-sysconfig
+install-systemd: virtlockd.service virtlockd.socket \
+                 virtlogd.service virtlogd.socket install-sysconfig
 	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
 	$(INSTALL_DATA) virtlockd.service \
 	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/
 	$(INSTALL_DATA) virtlockd.socket \
 	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/
+	$(INSTALL_DATA) virtlogd.service \
+	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/
+	$(INSTALL_DATA) virtlogd.socket \
+	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/
 
 uninstall-systemd: uninstall-sysconfig
 	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/virtlockd.service \
 	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/virtlockd.socket
+	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/virtlogd.service \
+	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/virtlogd.socket
 	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) || :
 else ! LIBVIRT_INIT_SCRIPT_SYSTEMD
 install-systemd:
@@ -2497,6 +2629,18 @@ virtlockd.service: locking/virtlockd.service.in $(top_builddir)/config.status
 	    mv $@-t $@
 
 virtlockd.socket: locking/virtlockd.socket.in $(top_builddir)/config.status
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+	    < $< > $@-t &&					\
+	    mv $@-t $@
+
+virtlogd.service: logging/virtlogd.service.in $(top_builddir)/config.status
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+	    < $< > $@-t &&					\
+	    mv $@-t $@
+
+virtlogd.socket: logging/virtlogd.socket.in $(top_builddir)/config.status
 	$(AM_V_GEN)sed						\
 	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 	    < $< > $@-t &&					\
