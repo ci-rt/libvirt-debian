@@ -1,3 +1,16 @@
+libvirt (1.3.0~rc1-1~1.gbpf4cbf4) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @f4cbf4a55e9b0f49ea2c7e5b2d7f27d61dfa1fa7 **
+
+  * [2721bee] Run build-tests with libvirt-dev only
+    to make sure we have everything in the dev packages
+  * [ae8211f] New upstream version 1.3.0~rc1
+  * [f4cbf4a] Rediff patches.
+    Dropped Disable-service-timeout-for-libvirt-guests.patch: Applied upstream
+    Dropped qemu-Handle-default-IDE-controller-on-other-machine-types.patch: Fixed upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 04 Dec 2015 11:13:47 +0100
+
 libvirt (1.2.21-2) unstable; urgency=medium
 
   * [014a0c7] Add a build test to verify that the we can link against libvirt

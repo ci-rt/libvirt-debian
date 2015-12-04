@@ -147,6 +147,11 @@ override_dh_auto_test:
 
 override_dh_install:
 	dh_install
+
+	# Don't ship virt-admin yet
+	rm debian/tmp/usr/share/man/man1/virt-admin.*
+	rm debian/tmp/usr/bin/virt-admin
+
 	# Copy upstream files to debian/ so dh_* can find them
 	cp debian/tmp/usr/lib/libvirt/libvirt-guests.sh \
 	    debian/libvirt-daemon-system.libvirt-guests.init
