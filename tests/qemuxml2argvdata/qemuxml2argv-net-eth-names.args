@@ -1,8 +1,25 @@
-LC_ALL=C PATH=/bin HOME=/home/test USER=test LOGNAME=test QEMU_AUDIO_DRV=none \
-/usr/bin/qemu -S -M \
-pc -m 214 -smp 1 -nographic -monitor unix:/tmp/test-monitor,server,nowait \
--no-acpi -boot c -usb -hda /dev/HostVG/QEMUGuest1 -net nic,\
-macaddr=00:11:22:33:44:55,vlan=0,model=rtl8139,name=net0 -net tap,\
-script=/etc/qemu-ifup,vlan=0,name=hostnet0 -net nic,macaddr=00:11:22:33:44:56,\
-vlan=1,model=e1000,name=net1 -net tap,script=/etc/qemu-ifup,vlan=1,name=hostnet1 \
--serial none -parallel none
+LC_ALL=C \
+PATH=/bin \
+HOME=/home/test \
+USER=test \
+LOGNAME=test \
+QEMU_AUDIO_DRV=none \
+/usr/bin/qemu \
+-name QEMUGuest1 \
+-S \
+-M pc \
+-m 214 \
+-smp 1 \
+-uuid c7a5fdbd-edaf-9455-926a-d65c16db1809 \
+-nographic \
+-monitor unix:/tmp/test-monitor,server,nowait \
+-no-acpi \
+-boot c \
+-usb \
+-drive file=/dev/HostVG/QEMUGuest1,if=ide,bus=0,unit=0,format=raw \
+-net nic,macaddr=00:11:22:33:44:55,vlan=0,model=rtl8139,name=net0 \
+-net tap,script=/etc/qemu-ifup,vlan=0,name=hostnet0 \
+-net nic,macaddr=00:11:22:33:44:56,vlan=1,model=e1000,name=net1 \
+-net tap,script=/etc/qemu-ifup,vlan=1,name=hostnet1 \
+-serial none \
+-parallel none

@@ -24,7 +24,6 @@
 
 #include <config.h>
 
-#include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -58,19 +57,6 @@
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
 VIR_LOG_INIT("conf.domain_conf");
-
-struct _virDomainObjList {
-    virObjectLockable parent;
-
-    /* uuid string -> virDomainObj  mapping
-     * for O(1), lockless lookup-by-uuid */
-    virHashTable *objs;
-
-    /* name -> virDomainObj mapping for O(1),
-     * lockless lookup-by-name */
-    virHashTable *objsName;
-};
-
 
 /* This structure holds various callbacks and data needed
  * while parsing and creating domain XMLs */
@@ -525,6 +511,12 @@ VIR_ENUM_IMPL(virDomainWatchdogAction, VIR_DOMAIN_WATCHDOG_ACTION_LAST,
               "none",
               "inject-nmi")
 
+VIR_ENUM_IMPL(virDomainPanicModel, VIR_DOMAIN_PANIC_MODEL_LAST,
+              "default",
+              "isa",
+              "pseries",
+              "hyperv")
+
 VIR_ENUM_IMPL(virDomainVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "vga",
               "cirrus",
@@ -532,18 +524,21 @@ VIR_ENUM_IMPL(virDomainVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "xen",
               "vbox",
               "qxl",
-              "parallels")
+              "parallels",
+              "virtio")
 
 VIR_ENUM_IMPL(virDomainInput, VIR_DOMAIN_INPUT_TYPE_LAST,
               "mouse",
               "tablet",
-              "keyboard")
+              "keyboard",
+              "passthrough")
 
 VIR_ENUM_IMPL(virDomainInputBus, VIR_DOMAIN_INPUT_BUS_LAST,
               "ps2",
               "usb",
               "xen",
-              "parallels")
+              "parallels",
+              "virtio")
 
 VIR_ENUM_IMPL(virDomainGraphics, VIR_DOMAIN_GRAPHICS_TYPE_LAST,
               "sdl",
@@ -818,10 +813,8 @@ VIR_ENUM_IMPL(virDomainMemoryModel, VIR_DOMAIN_MEMORY_MODEL_LAST,
               "", "dimm")
 
 static virClassPtr virDomainObjClass;
-static virClassPtr virDomainObjListClass;
 static virClassPtr virDomainXMLOptionClass;
 static void virDomainObjDispose(void *obj);
-static void virDomainObjListDispose(void *obj);
 static void virDomainXMLOptionClassDispose(void *obj);
 
 static int virDomainObjOnceInit(void)
@@ -830,12 +823,6 @@ static int virDomainObjOnceInit(void)
                                           "virDomainObj",
                                           sizeof(virDomainObj),
                                           virDomainObjDispose)))
-        return -1;
-
-    if (!(virDomainObjListClass = virClassNew(virClassForObjectLockable(),
-                                              "virDomainObjList",
-                                              sizeof(virDomainObjList),
-                                              virDomainObjListDispose)))
         return -1;
 
     if (!(virDomainXMLOptionClass = virClassNew(virClassForObject(),
@@ -1187,134 +1174,6 @@ virDomainDeviceDefCheckUnsupportedMemoryDevice(virDomainDeviceDefPtr dev)
 }
 
 
-virDomainObjListPtr virDomainObjListNew(void)
-{
-    virDomainObjListPtr doms;
-
-    if (virDomainObjInitialize() < 0)
-        return NULL;
-
-    if (!(doms = virObjectLockableNew(virDomainObjListClass)))
-        return NULL;
-
-    if (!(doms->objs = virHashCreate(50, virObjectFreeHashData)) ||
-        !(doms->objsName = virHashCreate(50, virObjectFreeHashData))) {
-        virObjectUnref(doms);
-        return NULL;
-    }
-
-    return doms;
-}
-
-
-static void virDomainObjListDispose(void *obj)
-{
-    virDomainObjListPtr doms = obj;
-
-    virHashFree(doms->objs);
-    virHashFree(doms->objsName);
-}
-
-
-static int virDomainObjListSearchID(const void *payload,
-                                    const void *name ATTRIBUTE_UNUSED,
-                                    const void *data)
-{
-    virDomainObjPtr obj = (virDomainObjPtr)payload;
-    const int *id = data;
-    int want = 0;
-
-    virObjectLock(obj);
-    if (virDomainObjIsActive(obj) &&
-        obj->def->id == *id)
-        want = 1;
-    virObjectUnlock(obj);
-    return want;
-}
-
-virDomainObjPtr virDomainObjListFindByID(virDomainObjListPtr doms,
-                                         int id)
-{
-    virDomainObjPtr obj;
-    virObjectLock(doms);
-    obj = virHashSearch(doms->objs, virDomainObjListSearchID, &id);
-    if (obj) {
-        virObjectLock(obj);
-        if (obj->removing) {
-            virObjectUnlock(obj);
-            obj = NULL;
-        }
-    }
-    virObjectUnlock(doms);
-    return obj;
-}
-
-
-static virDomainObjPtr
-virDomainObjListFindByUUIDInternal(virDomainObjListPtr doms,
-                                   const unsigned char *uuid,
-                                   bool ref)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-    virDomainObjPtr obj;
-
-    virObjectLock(doms);
-    virUUIDFormat(uuid, uuidstr);
-
-    obj = virHashLookup(doms->objs, uuidstr);
-    if (ref) {
-        virObjectRef(obj);
-        virObjectUnlock(doms);
-    }
-    if (obj) {
-        virObjectLock(obj);
-        if (obj->removing) {
-            virObjectUnlock(obj);
-            if (ref)
-                virObjectUnref(obj);
-            obj = NULL;
-        }
-    }
-    if (!ref)
-        virObjectUnlock(doms);
-    return obj;
-}
-
-virDomainObjPtr
-virDomainObjListFindByUUID(virDomainObjListPtr doms,
-                           const unsigned char *uuid)
-{
-    return virDomainObjListFindByUUIDInternal(doms, uuid, false);
-}
-
-virDomainObjPtr
-virDomainObjListFindByUUIDRef(virDomainObjListPtr doms,
-                              const unsigned char *uuid)
-{
-    return virDomainObjListFindByUUIDInternal(doms, uuid, true);
-}
-
-virDomainObjPtr virDomainObjListFindByName(virDomainObjListPtr doms,
-                                           const char *name)
-{
-    virDomainObjPtr obj;
-
-    virObjectLock(doms);
-    obj = virHashLookup(doms->objsName, name);
-    virObjectRef(obj);
-    virObjectUnlock(doms);
-    if (obj) {
-        virObjectLock(obj);
-        if (obj->removing) {
-            virObjectUnlock(obj);
-            virObjectUnref(obj);
-            obj = NULL;
-        }
-    }
-    return obj;
-}
-
-
 bool virDomainObjTaint(virDomainObjPtr obj,
                        virDomainTaintFlags taint)
 {
@@ -1408,6 +1267,7 @@ void virDomainInputDefFree(virDomainInputDefPtr def)
         return;
 
     virDomainDeviceInfoClear(&def->info);
+    VIR_FREE(def->source.evdev);
     VIR_FREE(def);
 }
 
@@ -2532,7 +2392,9 @@ void virDomainDefFree(virDomainDefPtr def)
 
     virDomainTPMDefFree(def->tpm);
 
-    virDomainPanicDefFree(def->panic);
+    for (i = 0; i < def->npanics; i++)
+        virDomainPanicDefFree(def->panics[i]);
+    VIR_FREE(def->panics);
 
     VIR_FREE(def->idmap.uidmap);
     VIR_FREE(def->idmap.gidmap);
@@ -2810,153 +2672,6 @@ virDomainObjWaitUntil(virDomainObjPtr vm,
 
 
 /*
- *
- * If flags & VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE then
- * this will refuse updating an existing def if the
- * current def is Live
- *
- * If flags & VIR_DOMAIN_OBJ_LIST_ADD_LIVE then
- * the @def being added is assumed to represent a
- * live config, not a future inactive config
- *
- */
-static virDomainObjPtr
-virDomainObjListAddLocked(virDomainObjListPtr doms,
-                          virDomainDefPtr def,
-                          virDomainXMLOptionPtr xmlopt,
-                          unsigned int flags,
-                          virDomainDefPtr *oldDef)
-{
-    virDomainObjPtr vm;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-
-    if (oldDef)
-        *oldDef = NULL;
-
-    virUUIDFormat(def->uuid, uuidstr);
-
-    /* See if a VM with matching UUID already exists */
-    if ((vm = virHashLookup(doms->objs, uuidstr))) {
-        virObjectLock(vm);
-        /* UUID matches, but if names don't match, refuse it */
-        if (STRNEQ(vm->def->name, def->name)) {
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("domain '%s' is already defined with uuid %s"),
-                           vm->def->name, uuidstr);
-            goto error;
-        }
-
-        if (flags & VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE) {
-            /* UUID & name match, but if VM is already active, refuse it */
-            if (virDomainObjIsActive(vm)) {
-                virReportError(VIR_ERR_OPERATION_INVALID,
-                               _("domain '%s' is already active"),
-                               vm->def->name);
-                goto error;
-            }
-            if (!vm->persistent) {
-                virReportError(VIR_ERR_OPERATION_INVALID,
-                               _("domain '%s' is already being started"),
-                               vm->def->name);
-                goto error;
-            }
-        }
-
-        virDomainObjAssignDef(vm,
-                              def,
-                              !!(flags & VIR_DOMAIN_OBJ_LIST_ADD_LIVE),
-                              oldDef);
-    } else {
-        /* UUID does not match, but if a name matches, refuse it */
-        if ((vm = virHashLookup(doms->objsName, def->name))) {
-            virObjectLock(vm);
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("domain '%s' already exists with uuid %s"),
-                           def->name, uuidstr);
-            goto error;
-        }
-
-        if (!(vm = virDomainObjNew(xmlopt)))
-            goto cleanup;
-        vm->def = def;
-
-        virUUIDFormat(def->uuid, uuidstr);
-        if (virHashAddEntry(doms->objs, uuidstr, vm) < 0) {
-            virObjectUnref(vm);
-            return NULL;
-        }
-
-        if (virHashAddEntry(doms->objsName, def->name, vm) < 0) {
-            virHashRemoveEntry(doms->objs, uuidstr);
-            return NULL;
-        }
-
-        /* Since domain is in two hash tables, increment the
-         * reference counter */
-        virObjectRef(vm);
-    }
- cleanup:
-    return vm;
-
- error:
-    virObjectUnlock(vm);
-    vm = NULL;
-    goto cleanup;
-}
-
-
-virDomainObjPtr virDomainObjListAdd(virDomainObjListPtr doms,
-                                    virDomainDefPtr def,
-                                    virDomainXMLOptionPtr xmlopt,
-                                    unsigned int flags,
-                                    virDomainDefPtr *oldDef)
-{
-    virDomainObjPtr ret;
-
-    virObjectLock(doms);
-    ret = virDomainObjListAddLocked(doms, def, xmlopt, flags, oldDef);
-    virObjectUnlock(doms);
-    return ret;
-}
-
-
-int
-virDomainObjListRenameAddNew(virDomainObjListPtr doms,
-                             virDomainObjPtr vm,
-                             const char *name)
-{
-    int ret = -1;
-    virObjectLock(doms);
-
-    /* Add new name into the hash table of domain names. */
-    if (virHashAddEntry(doms->objsName, name, vm) < 0)
-        goto cleanup;
-
-    /* Okay, this is crazy. virHashAddEntry() does not increment
-     * the refcounter of @vm, but virHashRemoveEntry() does
-     * decrement it. We need to work around it. */
-    virObjectRef(vm);
-
-    ret = 0;
- cleanup:
-    virObjectUnlock(doms);
-    return ret;
-}
-
-
-int
-virDomainObjListRenameRemove(virDomainObjListPtr doms, const char *name)
-{
-    virObjectLock(doms);
-    virHashRemoveEntry(doms->objsName, name);
-    virObjectUnlock(doms);
-    return 0;
-}
-
-
-/*
  * Mark the running VM config as transient. Ensures transient hotplug
  * operations do not persist past shutdown.
  *
@@ -3176,48 +2891,6 @@ virDomainObjGetOneDef(virDomainObjPtr vm,
         return vm->def;
 }
 
-
-/*
- * The caller must hold a lock on the driver owning 'doms',
- * and must also have locked 'dom', to ensure no one else
- * is either waiting for 'dom' or still using it
- */
-void virDomainObjListRemove(virDomainObjListPtr doms,
-                            virDomainObjPtr dom)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-
-    dom->removing = true;
-    virUUIDFormat(dom->def->uuid, uuidstr);
-    virObjectRef(dom);
-    virObjectUnlock(dom);
-
-    virObjectLock(doms);
-    virObjectLock(dom);
-    virHashRemoveEntry(doms->objs, uuidstr);
-    virHashRemoveEntry(doms->objsName, dom->def->name);
-    virObjectUnlock(dom);
-    virObjectUnref(dom);
-    virObjectUnlock(doms);
-}
-
-/* The caller must hold lock on 'doms' in addition to 'virDomainObjListRemove'
- * requirements
- *
- * Can be used to remove current element while iterating with
- * virDomainObjListForEach
- */
-void virDomainObjListRemoveLocked(virDomainObjListPtr doms,
-                                  virDomainObjPtr dom)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-
-    virUUIDFormat(dom->def->uuid, uuidstr);
-
-    virHashRemoveEntry(doms->objs, uuidstr);
-    virHashRemoveEntry(doms->objsName, dom->def->name);
-    virObjectUnlock(dom);
-}
 
 static int
 virDomainDeviceCCWAddressIsValid(virDomainDeviceCCWAddressPtr addr)
@@ -3611,10 +3284,10 @@ virDomainDeviceInfoIterateInternal(virDomainDefPtr def,
         if (cb(def, &device, &def->tpm->info, opaque) < 0)
             return -1;
     }
-    if (def->panic) {
-        device.type = VIR_DOMAIN_DEVICE_PANIC;
-        device.data.panic = def->panic;
-        if (cb(def, &device, &def->panic->info, opaque) < 0)
+    device.type = VIR_DOMAIN_DEVICE_PANIC;
+    for (i = 0; i < def->npanics; i++) {
+        device.data.panic = def->panics[i];
+        if (cb(def, &device, &def->panics[i]->info, opaque) < 0)
             return -1;
     }
 
@@ -3739,6 +3412,28 @@ virDomainDefRejectDuplicateControllers(virDomainDefPtr def)
     return ret;
 }
 
+static int
+virDomainDefRejectDuplicatePanics(virDomainDefPtr def)
+{
+    bool exists[VIR_DOMAIN_PANIC_MODEL_LAST];
+    size_t i;
+
+    for (i = 0; i < VIR_DOMAIN_PANIC_MODEL_LAST; i++)
+         exists[i] = false;
+
+    for (i = 0; i < def->npanics; i++) {
+        virDomainPanicModel model = def->panics[i]->model;
+        if (exists[model]) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Multiple panic devices with model '%s'"),
+                           virDomainPanicModelTypeToString(model));
+            return -1;
+        }
+        exists[model] = true;
+    }
+
+    return 0;
+}
 
 /**
  * virDomainDefMetadataSanitize:
@@ -3966,6 +3661,9 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
     }
 
     if (virDomainDefRejectDuplicateControllers(def) < 0)
+        return -1;
+
+    if (virDomainDefRejectDuplicatePanics(def) < 0)
         return -1;
 
     /* verify settings of guest timers */
@@ -7796,7 +7494,7 @@ virDomainDefHasMemoryHotplug(const virDomainDef *def)
  * or the sum of memory sizes of NUMA nodes in case NUMA is enabled in @def.
  */
 unsigned long long
-virDomainDefGetMemoryInitial(virDomainDefPtr def)
+virDomainDefGetMemoryInitial(const virDomainDef *def)
 {
     return def->mem.initial_memory;
 }
@@ -10197,6 +9895,7 @@ static virDomainPanicDefPtr
 virDomainPanicDefParseXML(xmlNodePtr node)
 {
     virDomainPanicDefPtr panic;
+    char *model = NULL;
 
     if (VIR_ALLOC(panic) < 0)
         return NULL;
@@ -10204,24 +9903,41 @@ virDomainPanicDefParseXML(xmlNodePtr node)
     if (virDomainDeviceInfoParseXML(node, NULL, &panic->info, 0) < 0)
         goto error;
 
+    model = virXMLPropString(node, "model");
+    if (model != NULL &&
+        (panic->model = virDomainPanicModelTypeFromString(model)) < 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unknown panic model '%s'"), model);
+        goto error;
+    }
+
+ cleanup:
+    VIR_FREE(model);
     return panic;
+
  error:
     virDomainPanicDefFree(panic);
-    return NULL;
+    panic = NULL;
+    goto cleanup;
 }
 
 /* Parse the XML definition for an input device */
 static virDomainInputDefPtr
 virDomainInputDefParseXML(const virDomainDef *dom,
                           xmlNodePtr node,
+                          xmlXPathContextPtr ctxt,
                           unsigned int flags)
 {
+    xmlNodePtr save = ctxt->node;
     virDomainInputDefPtr def;
+    char *evdev = NULL;
     char *type = NULL;
     char *bus = NULL;
 
     if (VIR_ALLOC(def) < 0)
         return NULL;
+
+    ctxt->node = node;
 
     type = virXMLPropString(node, "type");
     bus = virXMLPropString(node, "bus");
@@ -10329,10 +10045,20 @@ virDomainInputDefParseXML(const virDomainDef *dom,
         goto error;
     }
 
+    if ((evdev = virXPathString("string(./source/@evdev)", ctxt)))
+        def->source.evdev = virFileSanitizePath(evdev);
+    if (def->type == VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH && !def->source.evdev) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Missing evdev path for input device passthrough"));
+        goto error;
+    }
+
  cleanup:
+    VIR_FREE(evdev);
     VIR_FREE(type);
     VIR_FREE(bus);
 
+    ctxt->node = save;
     return def;
 
  error:
@@ -11961,43 +11687,49 @@ virDomainVideoAccelDefParseXML(xmlNodePtr node)
 {
     xmlNodePtr cur;
     virDomainVideoAccelDefPtr def;
-    char *support3d = NULL;
-    char *support2d = NULL;
+    char *accel2d = NULL;
+    char *accel3d = NULL;
+    int val;
 
     cur = node->children;
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE) {
-            if (!support3d && !support2d &&
+            if (!accel3d && !accel2d &&
                 xmlStrEqual(cur->name, BAD_CAST "acceleration")) {
-                support3d = virXMLPropString(cur, "accel3d");
-                support2d = virXMLPropString(cur, "accel2d");
+                accel3d = virXMLPropString(cur, "accel3d");
+                accel2d = virXMLPropString(cur, "accel2d");
             }
         }
         cur = cur->next;
     }
 
-    if (!support3d && !support2d)
+    if (!accel3d && !accel2d)
         return NULL;
 
     if (VIR_ALLOC(def) < 0)
-        return NULL;
+        goto cleanup;
 
-    if (support3d) {
-        if (STREQ(support3d, "yes"))
-            def->support3d = true;
-        else
-            def->support3d = false;
-        VIR_FREE(support3d);
+    if (accel3d) {
+        if ((val = virTristateBoolTypeFromString(accel3d)) <= 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown accel3d value '%s'"), accel3d);
+            goto cleanup;
+        }
+        def->accel3d = val;
     }
 
-    if (support2d) {
-        if (STREQ(support2d, "yes"))
-            def->support2d = true;
-        else
-            def->support2d = false;
-        VIR_FREE(support2d);
+    if (accel2d) {
+        if ((val = virTristateBoolTypeFromString(accel2d)) <= 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown accel2d value '%s'"), accel2d);
+            goto cleanup;
+        }
+        def->accel2d = val;
     }
 
+ cleanup:
+    VIR_FREE(accel2d);
+    VIR_FREE(accel3d);
     return def;
 }
 
@@ -12544,10 +12276,15 @@ virDomainMemoryTargetDefParseXML(xmlNodePtr node,
     int ret = -1;
     xmlNodePtr save = ctxt->node;
     ctxt->node = node;
+    int rv;
 
-    if (virXPathUInt("string(./node)", ctxt, &def->targetNode) < 0) {
+    /* initialize to value which marks that the user didn't specify it */
+    def->targetNode = -1;
+
+    if ((rv = virXPathInt("string(./node)", ctxt, &def->targetNode)) == -2 ||
+        (rv == 0 && def->targetNode < 0)) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("invalid or missing value of memory device node"));
+                       _("invalid value of memory device node"));
         goto cleanup;
     }
 
@@ -12678,8 +12415,8 @@ virDomainDeviceDefParse(const char *xmlStr,
             goto error;
         break;
     case VIR_DOMAIN_DEVICE_INPUT:
-        if (!(dev->data.input = virDomainInputDefParseXML(def,
-                                                          node, flags)))
+        if (!(dev->data.input = virDomainInputDefParseXML(def, node,
+                                                          ctxt, flags)))
             goto error;
         break;
     case VIR_DOMAIN_DEVICE_SOUND:
@@ -13397,6 +13134,7 @@ void virDomainControllerInsertPreAlloced(virDomainDefPtr def,
     int idx;
     /* Tenatively plan to insert controller at the end. */
     int insertAt = -1;
+    virDomainControllerDefPtr current = NULL;
 
     /* Then work backwards looking for controllers of
      * the same type. If we find a controller with a
@@ -13404,17 +13142,27 @@ void virDomainControllerInsertPreAlloced(virDomainDefPtr def,
      * that position
      */
     for (idx = (def->ncontrollers - 1); idx >= 0; idx--) {
-        /* If bus matches and current controller is after
-         * new controller, then new controller should go here */
-        if (def->controllers[idx]->type == controller->type &&
-            def->controllers[idx]->idx > controller->idx) {
-            insertAt = idx;
-        } else if (def->controllers[idx]->type == controller->type &&
-                   insertAt == -1) {
-            /* Last controller with match bus is before the
-             * new controller, then put new controller just after
-             */
-            insertAt = idx + 1;
+        current = def->controllers[idx];
+        if (current->type == controller->type) {
+            if (current->idx > controller->idx) {
+                /* If bus matches and current controller is after
+                 * new controller, then new controller should go here
+                 * */
+                insertAt = idx;
+            } else if (controller->info.mastertype == VIR_DOMAIN_CONTROLLER_MASTER_NONE &&
+                       current->info.mastertype != VIR_DOMAIN_CONTROLLER_MASTER_NONE &&
+                       current->idx == controller->idx) {
+                /* If bus matches and index matches and new controller is
+                 * master and current isn't a master, then new controller
+                 * should go here to be placed before its companion
+                 */
+                insertAt = idx;
+            } else if (insertAt == -1) {
+                /* Last controller with match bus is before the
+                 * new controller, then put new controller just after
+                 */
+                insertAt = idx + 1;
+            }
         }
     }
 
@@ -15208,12 +14956,6 @@ virDomainDefParseXML(xmlDocPtr xml,
         goto error;
     }
     if (n) {
-        if (n > def->maxvcpus) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("too many vcpusched nodes in cputune"));
-            goto error;
-        }
-
         if (VIR_ALLOC_N(def->cputune.vcpusched, n) < 0)
             goto error;
         def->cputune.nvcpusched = n;
@@ -16051,6 +15793,7 @@ virDomainDefParseXML(xmlDocPtr xml,
     for (i = 0; i < n; i++) {
         virDomainInputDefPtr input = virDomainInputDefParseXML(def,
                                                                nodes[i],
+                                                               ctxt,
                                                                flags);
         if (!input)
             goto error;
@@ -16377,23 +16120,19 @@ virDomainDefParseXML(xmlDocPtr xml,
     VIR_FREE(nodes);
 
     /* analysis of the panic devices */
-    def->panic = NULL;
     if ((n = virXPathNodeSet("./devices/panic", ctxt, &nodes)) < 0)
         goto error;
-    if (n > 1) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("only a single panic device is supported"));
+    if (n && VIR_ALLOC_N(def->panics, n) < 0)
         goto error;
-    }
-    if (n > 0) {
+    for (i = 0; i < n; i++) {
         virDomainPanicDefPtr panic =
-            virDomainPanicDefParseXML(nodes[0]);
+            virDomainPanicDefParseXML(nodes[i]);
         if (!panic)
             goto error;
 
-        def->panic = panic;
-        VIR_FREE(nodes);
+        def->panics[def->npanics++] = panic;
     }
+    VIR_FREE(nodes);
 
     /* analysis of the shmem devices */
     if ((n = virXPathNodeSet("./devices/shmem", ctxt, &nodes)) < 0)
@@ -17160,17 +16899,17 @@ virDomainVideoDefCheckABIStability(virDomainVideoDefPtr src,
     }
 
     if (src->accel) {
-        if (src->accel->support2d != dst->accel->support2d) {
+        if (src->accel->accel2d != dst->accel->accel2d) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target video card 2d accel %u does not match source %u"),
-                           dst->accel->support2d, src->accel->support2d);
+                           dst->accel->accel2d, src->accel->accel2d);
             return false;
         }
 
-        if (src->accel->support3d != dst->accel->support3d) {
+        if (src->accel->accel3d != dst->accel->accel3d) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target video card 3d accel %u does not match source %u"),
-                           dst->accel->support3d, src->accel->support3d);
+                           dst->accel->accel3d, src->accel->accel3d);
             return false;
         }
     }
@@ -17603,17 +17342,14 @@ virDomainDefFeaturesCheckABIStability(virDomainDefPtr src,
 }
 
 static bool
-virDomainPanicCheckABIStability(virDomainPanicDefPtr src,
-                                virDomainPanicDefPtr dst)
+virDomainPanicDefCheckABIStability(virDomainPanicDefPtr src,
+                                   virDomainPanicDefPtr dst)
 {
-    if (!src && !dst)
-        return true;
-
-    if (!src || !dst) {
+    if (src->model != dst->model) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain panic device count '%d' "
-                         "does not match source count '%d'"),
-                       src ? 1 : 0, dst ? 1 : 0);
+                       _("Target panic model '%s' does not match source '%s'"),
+                       virDomainPanicModelTypeToString(dst->model),
+                       virDomainPanicModelTypeToString(src->model));
         return false;
     }
 
@@ -17679,13 +17415,6 @@ virDomainTPMDefCheckABIStability(virDomainTPMDefPtr src,
 }
 
 static bool
-virDomainPanicDefCheckABIStability(virDomainPanicDefPtr src,
-                                   virDomainPanicDefPtr dst)
-{
-    return virDomainDeviceInfoCheckABIStability(&src->info, &dst->info);
-}
-
-static bool
 virDomainMemoryDefCheckABIStability(virDomainMemoryDefPtr src,
                                     virDomainMemoryDefPtr dst)
 {
@@ -17700,8 +17429,8 @@ virDomainMemoryDefCheckABIStability(virDomainMemoryDefPtr src,
 
     if (src->targetNode != dst->targetNode) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target memory device targetNode '%u' "
-                         "doesn't match source targetNode '%u'"),
+                       _("Target memory device targetNode '%d' "
+                         "doesn't match source targetNode '%d'"),
                        dst->targetNode, src->targetNode);
         return false;
     }
@@ -18102,8 +17831,17 @@ virDomainDefCheckABIStability(virDomainDefPtr src,
         if (!virDomainRNGDefCheckABIStability(src->rngs[i], dst->rngs[i]))
             goto error;
 
-    if (!virDomainPanicCheckABIStability(src->panic, dst->panic))
+    if (src->npanics != dst->npanics) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target domain panic device count %zu "
+                         "does not match source %zu"), dst->npanics, src->npanics);
         goto error;
+    }
+
+    for (i = 0; i < src->npanics; i++) {
+        if (!virDomainPanicDefCheckABIStability(src->panics[i], dst->panics[i]))
+            goto error;
+    }
 
     if (src->nshmems != dst->nshmems) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -18124,16 +17862,6 @@ virDomainDefCheckABIStability(virDomainDefPtr src,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Either both target and source domains or none of "
                          "them must have TPM device present"));
-        goto error;
-    }
-
-    if (src->panic && dst->panic) {
-        if (!virDomainPanicDefCheckABIStability(src->panic, dst->panic))
-            goto error;
-    } else if (src->panic || dst->panic) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Either both target and source domains or none of "
-                         "them must have PANIC device present"));
         goto error;
     }
 
@@ -20620,6 +20348,11 @@ static int virDomainPanicDefFormat(virBufferPtr buf,
     int indent = virBufferGetIndent(buf, false);
 
     virBufferAddLit(buf, "<panic");
+
+    if (def->model)
+        virBufferAsprintf(buf, " model='%s'",
+                          virDomainPanicModelTypeToString(def->model));
+
     virBufferAdjustIndent(&childrenBuf, indent + 2);
     if (virDomainDeviceInfoFormat(&childrenBuf, &def->info, 0) < 0)
         return -1;
@@ -20791,7 +20524,8 @@ virDomainMemoryTargetDefFormat(virBufferPtr buf,
     virBufferAdjustIndent(buf, 2);
 
     virBufferAsprintf(buf, "<size unit='KiB'>%llu</size>\n", def->size);
-    virBufferAsprintf(buf, "<node>%u</node>\n", def->targetNode);
+    if (def->targetNode >= 0)
+        virBufferAsprintf(buf, "<node>%d</node>\n", def->targetNode);
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</target>\n");
@@ -20826,10 +20560,15 @@ static void
 virDomainVideoAccelDefFormat(virBufferPtr buf,
                              virDomainVideoAccelDefPtr def)
 {
-    virBufferAsprintf(buf, "<acceleration accel3d='%s'",
-                      def->support3d ? "yes" : "no");
-    virBufferAsprintf(buf, " accel2d='%s'",
-                      def->support2d ? "yes" : "no");
+    virBufferAddLit(buf, "<acceleration");
+    if (def->accel3d) {
+        virBufferAsprintf(buf, " accel3d='%s'",
+                          virTristateBoolTypeToString(def->accel3d));
+    }
+    if (def->accel2d) {
+        virBufferAsprintf(buf, " accel2d='%s'",
+                          virTristateBoolTypeToString(def->accel2d));
+    }
     virBufferAddLit(buf, "/>\n");
 }
 
@@ -20901,9 +20640,11 @@ virDomainInputDefFormat(virBufferPtr buf,
     virBufferAsprintf(buf, "<input type='%s' bus='%s'",
                       type, bus);
 
-    if (virDomainDeviceInfoNeedsFormat(&def->info, flags)) {
+    if (virDomainDeviceInfoNeedsFormat(&def->info, flags) ||
+        def->type == VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH) {
         virBufferAddLit(buf, ">\n");
         virBufferAdjustIndent(buf, 2);
+        virBufferEscapeString(buf, "<source evdev='%s'/>\n", def->source.evdev);
         if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
             return -1;
         virBufferAdjustIndent(buf, -2);
@@ -22340,7 +22081,8 @@ virDomainDefFormatInternal(virDomainDefPtr def,
             goto error;
 
     for (n = 0; n < def->ninputs; n++)
-        if (def->inputs[n]->bus == VIR_DOMAIN_INPUT_BUS_USB &&
+        if ((def->inputs[n]->bus == VIR_DOMAIN_INPUT_BUS_USB ||
+             def->inputs[n]->bus == VIR_DOMAIN_INPUT_BUS_VIRTIO) &&
             virDomainInputDefFormat(buf, def->inputs[n], flags) < 0)
             goto error;
 
@@ -22425,9 +22167,9 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     if (def->nvram)
         virDomainNVRAMDefFormat(buf, def->nvram, flags);
 
-    if (def->panic &&
-        virDomainPanicDefFormat(buf, def->panic) < 0)
-        goto error;
+    for (n = 0; n < def->npanics; n++)
+        if (virDomainPanicDefFormat(buf, def->panics[n]) < 0)
+            goto error;
 
     for (n = 0; n < def->nshmems; n++)
         if (virDomainShmemDefFormat(buf, def->shmems[n], flags) < 0)
@@ -22751,179 +22493,6 @@ virDomainSaveStatus(virDomainXMLOptionPtr xmlopt,
 }
 
 
-static virDomainObjPtr
-virDomainObjListLoadConfig(virDomainObjListPtr doms,
-                           virCapsPtr caps,
-                           virDomainXMLOptionPtr xmlopt,
-                           const char *configDir,
-                           const char *autostartDir,
-                           const char *name,
-                           virDomainLoadConfigNotify notify,
-                           void *opaque)
-{
-    char *configFile = NULL, *autostartLink = NULL;
-    virDomainDefPtr def = NULL;
-    virDomainObjPtr dom;
-    int autostart;
-    virDomainDefPtr oldDef = NULL;
-
-    if ((configFile = virDomainConfigFile(configDir, name)) == NULL)
-        goto error;
-    if (!(def = virDomainDefParseFile(configFile, caps, xmlopt,
-                                      VIR_DOMAIN_DEF_PARSE_INACTIVE |
-                                      VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS)))
-        goto error;
-
-    if ((autostartLink = virDomainConfigFile(autostartDir, name)) == NULL)
-        goto error;
-
-    if ((autostart = virFileLinkPointsTo(autostartLink, configFile)) < 0)
-        goto error;
-
-    if (!(dom = virDomainObjListAddLocked(doms, def, xmlopt, 0, &oldDef)))
-        goto error;
-
-    dom->autostart = autostart;
-
-    if (notify)
-        (*notify)(dom, oldDef == NULL, opaque);
-
-    virDomainDefFree(oldDef);
-    VIR_FREE(configFile);
-    VIR_FREE(autostartLink);
-    return dom;
-
- error:
-    VIR_FREE(configFile);
-    VIR_FREE(autostartLink);
-    virDomainDefFree(def);
-    return NULL;
-}
-
-static virDomainObjPtr
-virDomainObjListLoadStatus(virDomainObjListPtr doms,
-                           const char *statusDir,
-                           const char *name,
-                           virCapsPtr caps,
-                           virDomainXMLOptionPtr xmlopt,
-                           virDomainLoadConfigNotify notify,
-                           void *opaque)
-{
-    char *statusFile = NULL;
-    virDomainObjPtr obj = NULL;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-
-    if ((statusFile = virDomainConfigFile(statusDir, name)) == NULL)
-        goto error;
-
-    if (!(obj = virDomainObjParseFile(statusFile, caps, xmlopt,
-                                      VIR_DOMAIN_DEF_PARSE_STATUS |
-                                      VIR_DOMAIN_DEF_PARSE_ACTUAL_NET |
-                                      VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES |
-                                      VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS)))
-        goto error;
-
-    virUUIDFormat(obj->def->uuid, uuidstr);
-
-    if (virHashLookup(doms->objs, uuidstr) != NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unexpected domain %s already exists"),
-                       obj->def->name);
-        goto error;
-    }
-
-    if (virHashAddEntry(doms->objs, uuidstr, obj) < 0)
-        goto error;
-
-    if (virHashAddEntry(doms->objsName, obj->def->name, obj) < 0) {
-        virHashRemoveEntry(doms->objs, uuidstr);
-        goto error;
-    }
-
-    /* Since domain is in two hash tables, increment the
-     * reference counter */
-    virObjectRef(obj);
-
-    if (notify)
-        (*notify)(obj, 1, opaque);
-
-    VIR_FREE(statusFile);
-    return obj;
-
- error:
-    virObjectUnref(obj);
-    VIR_FREE(statusFile);
-    return NULL;
-}
-
-int
-virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
-                               const char *configDir,
-                               const char *autostartDir,
-                               int liveStatus,
-                               virCapsPtr caps,
-                               virDomainXMLOptionPtr xmlopt,
-                               virDomainLoadConfigNotify notify,
-                               void *opaque)
-{
-    DIR *dir;
-    struct dirent *entry;
-    int ret = -1;
-
-    VIR_INFO("Scanning for configs in %s", configDir);
-
-    if (!(dir = opendir(configDir))) {
-        if (errno == ENOENT)
-            return 0;
-        virReportSystemError(errno,
-                             _("Failed to open dir '%s'"),
-                             configDir);
-        return -1;
-    }
-
-    virObjectLock(doms);
-
-    while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
-        virDomainObjPtr dom;
-
-        if (entry->d_name[0] == '.')
-            continue;
-
-        if (!virFileStripSuffix(entry->d_name, ".xml"))
-            continue;
-
-        /* NB: ignoring errors, so one malformed config doesn't
-           kill the whole process */
-        VIR_INFO("Loading config file '%s.xml'", entry->d_name);
-        if (liveStatus)
-            dom = virDomainObjListLoadStatus(doms,
-                                             configDir,
-                                             entry->d_name,
-                                             caps,
-                                             xmlopt,
-                                             notify,
-                                             opaque);
-        else
-            dom = virDomainObjListLoadConfig(doms,
-                                             caps,
-                                             xmlopt,
-                                             configDir,
-                                             autostartDir,
-                                             entry->d_name,
-                                             notify,
-                                             opaque);
-        if (dom) {
-            if (!liveStatus)
-                dom->persistent = 1;
-            virObjectUnlock(dom);
-        }
-    }
-
-    closedir(dir);
-    virObjectUnlock(doms);
-    return ret;
-}
-
 int
 virDomainDeleteConfig(const char *configDir,
                       const char *autostartDir,
@@ -23037,178 +22606,6 @@ virDomainGetFilesystemForTarget(virDomainDefPtr def,
     }
 
     return NULL;
-}
-
-
-struct virDomainObjListData {
-    virDomainObjListACLFilter filter;
-    virConnectPtr conn;
-    bool active;
-    int count;
-};
-
-static void
-virDomainObjListCount(void *payload,
-                      const void *name ATTRIBUTE_UNUSED,
-                      void *opaque)
-{
-    virDomainObjPtr obj = payload;
-    struct virDomainObjListData *data = opaque;
-    virObjectLock(obj);
-    if (data->filter &&
-        !data->filter(data->conn, obj->def))
-        goto cleanup;
-    if (virDomainObjIsActive(obj)) {
-        if (data->active)
-            data->count++;
-    } else {
-        if (!data->active)
-            data->count++;
-    }
- cleanup:
-    virObjectUnlock(obj);
-}
-
-int
-virDomainObjListNumOfDomains(virDomainObjListPtr doms,
-                             bool active,
-                             virDomainObjListACLFilter filter,
-                             virConnectPtr conn)
-{
-    struct virDomainObjListData data = { filter, conn, active, 0 };
-    virObjectLock(doms);
-    virHashForEach(doms->objs, virDomainObjListCount, &data);
-    virObjectUnlock(doms);
-    return data.count;
-}
-
-struct virDomainIDData {
-    virDomainObjListACLFilter filter;
-    virConnectPtr conn;
-    int numids;
-    int maxids;
-    int *ids;
-};
-
-static void
-virDomainObjListCopyActiveIDs(void *payload,
-                              const void *name ATTRIBUTE_UNUSED,
-                              void *opaque)
-{
-    virDomainObjPtr obj = payload;
-    struct virDomainIDData *data = opaque;
-    virObjectLock(obj);
-    if (data->filter &&
-        !data->filter(data->conn, obj->def))
-        goto cleanup;
-    if (virDomainObjIsActive(obj) && data->numids < data->maxids)
-        data->ids[data->numids++] = obj->def->id;
- cleanup:
-    virObjectUnlock(obj);
-}
-
-int
-virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
-                             int *ids,
-                             int maxids,
-                             virDomainObjListACLFilter filter,
-                             virConnectPtr conn)
-{
-    struct virDomainIDData data = { filter, conn,
-                                    0, maxids, ids };
-    virObjectLock(doms);
-    virHashForEach(doms->objs, virDomainObjListCopyActiveIDs, &data);
-    virObjectUnlock(doms);
-    return data.numids;
-}
-
-struct virDomainNameData {
-    virDomainObjListACLFilter filter;
-    virConnectPtr conn;
-    int oom;
-    int numnames;
-    int maxnames;
-    char **const names;
-};
-
-static void
-virDomainObjListCopyInactiveNames(void *payload,
-                                  const void *name ATTRIBUTE_UNUSED,
-                                  void *opaque)
-{
-    virDomainObjPtr obj = payload;
-    struct virDomainNameData *data = opaque;
-
-    if (data->oom)
-        return;
-
-    virObjectLock(obj);
-    if (data->filter &&
-        !data->filter(data->conn, obj->def))
-        goto cleanup;
-    if (!virDomainObjIsActive(obj) && data->numnames < data->maxnames) {
-        if (VIR_STRDUP(data->names[data->numnames], obj->def->name) < 0)
-            data->oom = 1;
-        else
-            data->numnames++;
-    }
- cleanup:
-    virObjectUnlock(obj);
-}
-
-
-int
-virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
-                                 char **const names,
-                                 int maxnames,
-                                 virDomainObjListACLFilter filter,
-                                 virConnectPtr conn)
-{
-    struct virDomainNameData data = { filter, conn,
-                                      0, 0, maxnames, names };
-    size_t i;
-    virObjectLock(doms);
-    virHashForEach(doms->objs, virDomainObjListCopyInactiveNames, &data);
-    virObjectUnlock(doms);
-    if (data.oom) {
-        for (i = 0; i < data.numnames; i++)
-            VIR_FREE(data.names[i]);
-        return -1;
-    }
-
-    return data.numnames;
-}
-
-
-struct virDomainListIterData {
-    virDomainObjListIterator callback;
-    void *opaque;
-    int ret;
-};
-
-static void
-virDomainObjListHelper(void *payload,
-                       const void *name ATTRIBUTE_UNUSED,
-                       void *opaque)
-{
-    struct virDomainListIterData *data = opaque;
-
-    if (data->callback(payload, data->opaque) < 0)
-        data->ret = -1;
-}
-
-int
-virDomainObjListForEach(virDomainObjListPtr doms,
-                        virDomainObjListIterator callback,
-                        void *opaque)
-{
-    struct virDomainListIterData data = {
-        callback, opaque, 0,
-    };
-    virObjectLock(doms);
-    virHashForEach(doms->objs, virDomainObjListHelper, &data);
-    virObjectUnlock(doms);
-    return data.ret;
 }
 
 
@@ -23922,258 +23319,6 @@ virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
 
  cleanup:
     VIR_FREE(xmlStr);
-    return ret;
-}
-
-
-#define MATCH(FLAG) (filter & (FLAG))
-static bool
-virDomainObjMatchFilter(virDomainObjPtr vm,
-                        unsigned int filter)
-{
-    /* filter by active state */
-    if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_ACTIVE) &&
-        !((MATCH(VIR_CONNECT_LIST_DOMAINS_ACTIVE) &&
-           virDomainObjIsActive(vm)) ||
-          (MATCH(VIR_CONNECT_LIST_DOMAINS_INACTIVE) &&
-           !virDomainObjIsActive(vm))))
-        return false;
-
-    /* filter by persistence */
-    if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_PERSISTENT) &&
-        !((MATCH(VIR_CONNECT_LIST_DOMAINS_PERSISTENT) &&
-           vm->persistent) ||
-          (MATCH(VIR_CONNECT_LIST_DOMAINS_TRANSIENT) &&
-           !vm->persistent)))
-        return false;
-
-    /* filter by domain state */
-    if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_STATE)) {
-        int st = virDomainObjGetState(vm, NULL);
-        if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_RUNNING) &&
-               st == VIR_DOMAIN_RUNNING) ||
-              (MATCH(VIR_CONNECT_LIST_DOMAINS_PAUSED) &&
-               st == VIR_DOMAIN_PAUSED) ||
-              (MATCH(VIR_CONNECT_LIST_DOMAINS_SHUTOFF) &&
-               st == VIR_DOMAIN_SHUTOFF) ||
-              (MATCH(VIR_CONNECT_LIST_DOMAINS_OTHER) &&
-               (st != VIR_DOMAIN_RUNNING &&
-                st != VIR_DOMAIN_PAUSED &&
-                st != VIR_DOMAIN_SHUTOFF))))
-            return false;
-    }
-
-    /* filter by existence of managed save state */
-    if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_MANAGEDSAVE) &&
-        !((MATCH(VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE) &&
-           vm->hasManagedSave) ||
-          (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE) &&
-           !vm->hasManagedSave)))
-        return false;
-
-    /* filter by autostart option */
-    if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_AUTOSTART) &&
-        !((MATCH(VIR_CONNECT_LIST_DOMAINS_AUTOSTART) && vm->autostart) ||
-          (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART) && !vm->autostart)))
-        return false;
-
-    /* filter by snapshot existence */
-    if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_SNAPSHOT)) {
-        int nsnap = virDomainSnapshotObjListNum(vm->snapshots, NULL, 0);
-        if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT) && nsnap > 0) ||
-              (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT) && nsnap <= 0)))
-            return false;
-    }
-
-    return true;
-}
-#undef MATCH
-
-
-struct virDomainListData {
-    virDomainObjPtr *vms;
-    size_t nvms;
-};
-
-
-static void
-virDomainObjListCollectIterator(void *payload,
-                                const void *name ATTRIBUTE_UNUSED,
-                                void *opaque)
-{
-    struct virDomainListData *data = opaque;
-
-    data->vms[data->nvms++] = virObjectRef(payload);
-}
-
-
-static void
-virDomainObjListFilter(virDomainObjPtr **list,
-                       size_t *nvms,
-                       virConnectPtr conn,
-                       virDomainObjListACLFilter filter,
-                       unsigned int flags)
-{
-    size_t i = 0;
-
-    while (i < *nvms) {
-        virDomainObjPtr vm = (*list)[i];
-
-        virObjectLock(vm);
-
-        /* do not list the object if:
-         * 1) it's being removed.
-         * 2) connection does not have ACL to see it
-         * 3) it doesn't match the filter
-         */
-        if (vm->removing ||
-            (filter && !filter(conn, vm->def)) ||
-            !virDomainObjMatchFilter(vm, flags)) {
-            virObjectUnlock(vm);
-            virObjectUnref(vm);
-            VIR_DELETE_ELEMENT(*list, i, *nvms);
-            continue;
-        }
-
-        virObjectUnlock(vm);
-        i++;
-    }
-}
-
-
-int
-virDomainObjListCollect(virDomainObjListPtr domlist,
-                        virConnectPtr conn,
-                        virDomainObjPtr **vms,
-                        size_t *nvms,
-                        virDomainObjListACLFilter filter,
-                        unsigned int flags)
-{
-    struct virDomainListData data = { NULL, 0 };
-    ssize_t hash_size;
-
-    virObjectLock(domlist);
-    if ((hash_size = virHashSize(domlist->objs)) < 0 ||
-        (VIR_ALLOC_N(data.vms, hash_size) < 0)) {
-        virObjectUnlock(domlist);
-        return -1;
-    }
-
-    virHashForEach(domlist->objs, virDomainObjListCollectIterator, &data);
-    virObjectUnlock(domlist);
-
-    virDomainObjListFilter(&data.vms, &data.nvms, conn, filter, flags);
-
-    *nvms = data.nvms;
-    *vms = data.vms;
-
-    return 0;
-}
-
-
-int
-virDomainObjListConvert(virDomainObjListPtr domlist,
-                        virConnectPtr conn,
-                        virDomainPtr *doms,
-                        size_t ndoms,
-                        virDomainObjPtr **vms,
-                        size_t *nvms,
-                        virDomainObjListACLFilter filter,
-                        unsigned int flags,
-                        bool skip_missing)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-    virDomainObjPtr vm;
-    size_t i;
-
-    *nvms = 0;
-    *vms = NULL;
-
-    virObjectLock(domlist);
-    for (i = 0; i < ndoms; i++) {
-        virDomainPtr dom = doms[i];
-
-        virUUIDFormat(dom->uuid, uuidstr);
-
-        if (!(vm = virHashLookup(domlist->objs, uuidstr))) {
-            if (skip_missing)
-                continue;
-
-            virObjectUnlock(domlist);
-            virReportError(VIR_ERR_NO_DOMAIN,
-                           _("no domain with matching uuid '%s' (%s)"),
-                           uuidstr, dom->name);
-            goto error;
-        }
-
-        virObjectRef(vm);
-
-        if (VIR_APPEND_ELEMENT(*vms, *nvms, vm) < 0) {
-            virObjectUnlock(domlist);
-            virObjectUnref(vm);
-            goto error;
-        }
-    }
-    virObjectUnlock(domlist);
-
-    if (*vms)
-        virDomainObjListFilter(vms, nvms, conn, filter, flags);
-
-    return 0;
-
- error:
-    virObjectListFreeCount(*vms, *nvms);
-    *vms = NULL;
-    *nvms = 0;
-
-    return -1;
-}
-
-
-int
-virDomainObjListExport(virDomainObjListPtr domlist,
-                       virConnectPtr conn,
-                       virDomainPtr **domains,
-                       virDomainObjListACLFilter filter,
-                       unsigned int flags)
-{
-    virDomainObjPtr *vms = NULL;
-    virDomainPtr *doms = NULL;
-    size_t nvms = 0;
-    size_t i;
-    int ret = -1;
-
-    if (virDomainObjListCollect(domlist, conn, &vms, &nvms, filter, flags) < 0)
-        return -1;
-
-    if (domains) {
-        if (VIR_ALLOC_N(doms, nvms + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < nvms; i++) {
-            virDomainObjPtr vm = vms[i];
-
-            virObjectLock(vm);
-
-            if (!(doms[i] = virGetDomain(conn, vm->def->name, vm->def->uuid))) {
-                virObjectUnlock(vm);
-                goto cleanup;
-            }
-
-            doms[i]->id = vm->def->id;
-
-            virObjectUnlock(vm);
-        }
-
-        *domains = doms;
-        doms = NULL;
-    }
-
-    ret = nvms;
-
- cleanup:
-    virObjectListFree(doms);
-    virObjectListFreeCount(vms, nvms);
     return ret;
 }
 

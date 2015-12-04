@@ -2921,6 +2921,7 @@
                 <value>vmvga</value>
                 <value>xen</value>
                 <value>vbox</value>
+                <value>virtio</value>
               </choice>
             </attribute>
             <group>
@@ -3578,22 +3579,40 @@
 
   <define name="input">
     <element name="input">
-      <attribute name="type">
-        <choice>
-          <value>tablet</value>
-          <value>mouse</value>
-          <value>keyboard</value>
-        </choice>
-      </attribute>
-      <optional>
-        <attribute name="bus">
-          <choice>
-            <value>ps2</value>
-            <value>usb</value>
-            <value>xen</value>
-          </choice>
-        </attribute>
-      </optional>
+      <choice>
+        <group>
+          <attribute name="type">
+            <choice>
+              <value>tablet</value>
+              <value>mouse</value>
+              <value>keyboard</value>
+            </choice>
+          </attribute>
+          <optional>
+            <attribute name="bus">
+              <choice>
+                <value>ps2</value>
+                <value>usb</value>
+                <value>xen</value>
+                <value>virtio</value>
+              </choice>
+            </attribute>
+          </optional>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>passthrough</value>
+          </attribute>
+          <attribute name="bus">
+            <value>virtio</value>
+          </attribute>
+          <element name="source">
+            <attribute name="evdev">
+              <ref name="absFilePath"/>
+            </attribute>
+          </element>
+        </group>
+      </choice>
       <optional>
         <ref name="alias"/>
       </optional>
@@ -4044,9 +4063,9 @@
         <optional>
           <ref name="nvram"/>
         </optional>
-        <optional>
+        <zeroOrMore>
           <ref name="panic"/>
-        </optional>
+        </zeroOrMore>
       </interleave>
     </element>
   </define>
@@ -4532,9 +4551,11 @@
         <element name="size">
           <ref name="scaledInteger"/>
         </element>
-        <element name="node">
-          <ref name="unsignedInt"/>
-        </element>
+        <optional>
+          <element name="node">
+            <ref name="unsignedInt"/>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -5219,9 +5240,10 @@
     </data>
   </define>
   <define name="addrIPorName">
-    <data type="string">
-      <param name="pattern">(([0-2]?[0-9]?[0-9]\.){3}[0-2]?[0-9]?[0-9])|(([0-9a-fA-F]+|:)+[0-9a-fA-F]+)|([a-zA-Z0-9_\.\+\-]*)</param>
-    </data>
+    <choice>
+      <ref name="ipAddr"/>
+      <ref name="dnsName"/>
+    </choice>
   </define>
   <define name="usbIdDefault">
     <data type="string">
@@ -5358,6 +5380,15 @@
   </define>
   <define name="panic">
     <element name="panic">
+      <optional>
+        <attribute name="model">
+          <choice>
+            <value>isa</value>
+            <value>pseries</value>
+            <value>hyperv</value>
+          </choice>
+        </attribute>
+      </optional>
       <optional>
         <ref name="address"/>
       </optional>

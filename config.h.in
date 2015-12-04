@@ -1487,6 +1487,9 @@
 /* Define to 1 if 'long double' and 'double' have the same representation. */
 #undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
+/* whether Sanlock supports sanlock_add_lockspace_timeout */
+#undef HAVE_SANLOCK_ADD_LOCKSPACE_TIMEOUT
+
 /* whether sanlock supports sanlock_inq_lockspace */
 #undef HAVE_SANLOCK_INQ_LOCKSPACE
 
@@ -2050,8 +2053,7 @@
    slash. */
 #undef LSTAT_FOLLOWS_SLASHED_SYMLINK
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Location of lvchange program */

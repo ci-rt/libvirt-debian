@@ -199,4 +199,15 @@ void qemuMigrationErrorSave(virQEMUDriverPtr driver,
 void qemuMigrationErrorReport(virQEMUDriverPtr driver,
                               const char *name);
 
+int qemuMigrationCheckIncoming(virQEMUCapsPtr qemuCaps,
+                               const char *migrateFrom);
+
+char *qemuMigrationIncomingURI(const char *migrateFrom,
+                               int migrateFd);
+
+int qemuMigrationRunIncoming(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             const char *uri,
+                             qemuDomainAsyncJob asyncJob);
+
 #endif /* __QEMU_MIGRATION_H__ */

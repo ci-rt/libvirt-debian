@@ -892,7 +892,13 @@ int qemuMonitorDetachCharDev(qemuMonitorPtr mon,
 int qemuMonitorGetDeviceAliases(qemuMonitorPtr mon,
                                 char ***aliases);
 
-int qemuMonitorSetDomainLog(qemuMonitorPtr mon, int logfd);
+typedef void (*qemuMonitorReportDomainLogError)(qemuMonitorPtr mon,
+                                                const char *msg,
+                                                void *opaque);
+void qemuMonitorSetDomainLog(qemuMonitorPtr mon,
+                             qemuMonitorReportDomainLogError func,
+                             void *opaque,
+                             virFreeCallback destroy);
 
 int qemuMonitorGetGuestCPU(qemuMonitorPtr mon,
                            virArch arch,
@@ -923,6 +929,9 @@ struct _qemuMonitorMemoryDeviceInfo {
 int qemuMonitorGetMemoryDeviceInfo(qemuMonitorPtr mon,
                                    virHashTablePtr *info)
     ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorMigrateIncoming(qemuMonitorPtr mon,
+                               const char *uri);
 
 /**
  * When running two dd process and using <> redirection, we need a

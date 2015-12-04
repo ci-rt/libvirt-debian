@@ -73,6 +73,8 @@ VIR_LOG_INIT("libxl.libxl_driver");
 #define LIBXL_CONFIG_FORMAT_XM "xen-xm"
 #define LIBXL_CONFIG_FORMAT_SEXPR "xen-sxpr"
 
+#define LIBXL_NB_TOTAL_CPU_STAT_PARAM 1
+
 #define HYPERVISOR_CAPABILITIES "/proc/xen/capabilities"
 #define HYPERVISOR_XENSTORED "/dev/xen/xenstored"
 
@@ -4641,6 +4643,192 @@ libxlDomainIsUpdated(virDomainPtr dom)
 }
 
 static int
+libxlDomainGetTotalCPUStats(libxlDriverPrivatePtr driver,
+                            virDomainObjPtr vm,
+                            virTypedParameterPtr params,
+                            unsigned int nparams)
+{
+    libxlDriverConfigPtr cfg;
+    libxl_dominfo d_info;
+    int ret = -1;
+
+    if (nparams == 0)
+        return LIBXL_NB_TOTAL_CPU_STAT_PARAM;
+
+    libxl_dominfo_init(&d_info);
+    cfg = libxlDriverConfigGet(driver);
+
+    if (libxl_domain_info(cfg->ctx, &d_info, vm->def->id) != 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("libxl_domain_info failed for domain '%d'"),
+                       vm->def->id);
+        goto cleanup;
+    }
+
+    if (virTypedParameterAssign(&params[0], VIR_DOMAIN_CPU_STATS_CPUTIME,
+                                VIR_TYPED_PARAM_ULLONG, d_info.cpu_time) < 0)
+        goto cleanup;
+
+    ret = nparams;
+
+ cleanup:
+    libxl_dominfo_dispose(&d_info);
+    virObjectUnref(cfg);
+    return ret;
+}
+
+static int
+libxlDomainGetPerCPUStats(libxlDriverPrivatePtr driver,
+                          virDomainObjPtr vm,
+                          virTypedParameterPtr params,
+                          unsigned int nparams,
+                          int start_cpu,
+                          unsigned int ncpus)
+{
+    libxl_vcpuinfo *vcpuinfo;
+    int maxcpu, hostcpus;
+    size_t i;
+    libxlDriverConfigPtr cfg;
+    int ret = -1;
+
+    if (nparams == 0 && ncpus != 0)
+        return LIBXL_NB_TOTAL_CPU_STAT_PARAM;
+    else if (nparams == 0)
+        return vm->def->maxvcpus;
+
+    cfg = libxlDriverConfigGet(driver);
+    if ((vcpuinfo = libxl_list_vcpu(cfg->ctx, vm->def->id, &maxcpu,
+                                    &hostcpus)) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to list vcpus for domain '%d' with libxenlight"),
+                       vm->def->id);
+        goto cleanup;
+    }
+
+    for (i = start_cpu; i < maxcpu && i < ncpus; ++i) {
+        if (virTypedParameterAssign(&params[(i-start_cpu)],
+                                    VIR_DOMAIN_CPU_STATS_CPUTIME,
+                                    VIR_TYPED_PARAM_ULLONG,
+                                    vcpuinfo[i].vcpu_time) < 0)
+            goto cleanup;
+    }
+    ret = nparams;
+
+ cleanup:
+    if (vcpuinfo)
+        libxl_vcpuinfo_list_free(vcpuinfo, maxcpu);
+    virObjectUnref(cfg);
+    return ret;
+}
+
+static int
+libxlDomainGetCPUStats(virDomainPtr dom,
+                       virTypedParameterPtr params,
+                       unsigned int nparams,
+                       int start_cpu,
+                       unsigned int ncpus,
+                       unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainGetCPUStatsEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
+    if (start_cpu == -1)
+        ret = libxlDomainGetTotalCPUStats(driver, vm, params, nparams);
+    else
+        ret = libxlDomainGetPerCPUStats(driver, vm, params, nparams,
+                                          start_cpu, ncpus);
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+#define LIBXL_SET_MEMSTAT(TAG, VAL) \
+        if (i < nr_stats) { \
+            stats[i].tag = TAG; \
+            stats[i].val = VAL; \
+            i++; \
+        }
+
+static int
+libxlDomainMemoryStats(virDomainPtr dom,
+                       virDomainMemoryStatPtr stats,
+                       unsigned int nr_stats,
+                       unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    libxlDriverConfigPtr cfg;
+    virDomainObjPtr vm;
+    libxl_dominfo d_info;
+    unsigned mem, maxmem;
+    size_t i = 0;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    cfg = libxlDriverConfigGet(driver);
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainMemoryStatsEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_QUERY) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto endjob;
+    }
+
+    if (libxl_domain_info(cfg->ctx, &d_info, vm->def->id) != 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("libxl_domain_info failed for domain '%d'"),
+                       vm->def->id);
+        goto endjob;
+    }
+    mem = d_info.current_memkb;
+    maxmem = d_info.max_memkb;
+
+    LIBXL_SET_MEMSTAT(VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON, mem);
+    LIBXL_SET_MEMSTAT(VIR_DOMAIN_MEMORY_STAT_AVAILABLE, maxmem);
+
+    ret = i;
+
+    libxl_dominfo_dispose(&d_info);
+
+ endjob:
+    if (!libxlDomainObjEndJob(driver, vm))
+        vm = NULL;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    virObjectUnref(cfg);
+    return ret;
+}
+
+#undef LIBXL_SET_MEMSTAT
+
+static int
 libxlConnectDomainEventRegisterAny(virConnectPtr conn, virDomainPtr dom, int eventID,
                                    virConnectDomainEventGenericCallback callback,
                                    void *opaque, virFreeCallback freecb)
@@ -5233,6 +5421,8 @@ static virHypervisorDriver libxlHypervisorDriver = {
 #endif
     .nodeGetFreeMemory = libxlNodeGetFreeMemory, /* 0.9.0 */
     .nodeGetCellsFreeMemory = libxlNodeGetCellsFreeMemory, /* 1.1.1 */
+    .domainMemoryStats = libxlDomainMemoryStats, /* 1.3.0 */
+    .domainGetCPUStats = libxlDomainGetCPUStats, /* 1.3.0 */
     .connectDomainEventRegister = libxlConnectDomainEventRegister, /* 0.9.0 */
     .connectDomainEventDeregister = libxlConnectDomainEventDeregister, /* 0.9.0 */
     .domainManagedSave = libxlDomainManagedSave, /* 0.9.2 */

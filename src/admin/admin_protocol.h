@@ -19,16 +19,22 @@ typedef char *admin_nonnull_string;
 
 typedef admin_nonnull_string *admin_string;
 
-struct admin_connect_open_args {
+struct admin_daemon_open_args {
         u_int flags;
 };
-typedef struct admin_connect_open_args admin_connect_open_args;
+typedef struct admin_daemon_open_args admin_daemon_open_args;
+
+struct admin_daemon_get_version_ret {
+        uint64_t libVer;
+};
+typedef struct admin_daemon_get_version_ret admin_daemon_get_version_ret;
 #define ADMIN_PROGRAM 0x06900690
 #define ADMIN_PROTOCOL_VERSION 1
 
 enum admin_procedure {
-        ADMIN_PROC_CONNECT_OPEN = 1,
-        ADMIN_PROC_CONNECT_CLOSE = 2,
+        ADMIN_PROC_DAEMON_OPEN = 1,
+        ADMIN_PROC_DAEMON_CLOSE = 2,
+        ADMIN_PROC_DAEMON_GET_VERSION = 3,
 };
 typedef enum admin_procedure admin_procedure;
 
@@ -37,13 +43,15 @@ typedef enum admin_procedure admin_procedure;
 #if defined(__STDC__) || defined(__cplusplus)
 extern  bool_t xdr_admin_nonnull_string (XDR *, admin_nonnull_string*);
 extern  bool_t xdr_admin_string (XDR *, admin_string*);
-extern  bool_t xdr_admin_connect_open_args (XDR *, admin_connect_open_args*);
+extern  bool_t xdr_admin_daemon_open_args (XDR *, admin_daemon_open_args*);
+extern  bool_t xdr_admin_daemon_get_version_ret (XDR *, admin_daemon_get_version_ret*);
 extern  bool_t xdr_admin_procedure (XDR *, admin_procedure*);
 
 #else /* K&R C */
 extern bool_t xdr_admin_nonnull_string ();
 extern bool_t xdr_admin_string ();
-extern bool_t xdr_admin_connect_open_args ();
+extern bool_t xdr_admin_daemon_open_args ();
+extern bool_t xdr_admin_daemon_get_version_ret ();
 extern bool_t xdr_admin_procedure ();
 
 #endif /* K&R C */

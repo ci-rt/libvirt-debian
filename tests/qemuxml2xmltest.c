@@ -114,11 +114,6 @@ static const char testStatusXMLPrefix[] =
 "    <vcpu pid='3803519'/>\n"
 "  </vcpus>\n"
 "  <qemuCaps>\n"
-"    <flag name='vnc-colon'/>\n"
-"    <flag name='no-reboot'/>\n"
-"    <flag name='drive'/>\n"
-"    <flag name='name'/>\n"
-"    <flag name='uuid'/>\n"
 "    <flag name='vnet-hdr'/>\n"
 "    <flag name='qxl.vgamem_mb'/>\n"
 "    <flag name='qxl-vga.vgamem_mb'/>\n"
@@ -380,6 +375,7 @@ mymain(void)
 
     DO_TEST("hyperv");
     DO_TEST("hyperv-off");
+    DO_TEST("hyperv-panic");
 
     DO_TEST("kvm-features");
     DO_TEST("kvm-features-off");
@@ -403,9 +399,6 @@ mymain(void)
     DO_TEST("floppy-drive-fat");
     DO_TEST("disk-drive-fat");
     DO_TEST("disk-drive-fmt-qcow");
-    DO_TEST("disk-drive-cache-v1-wt");
-    DO_TEST("disk-drive-cache-v1-wb");
-    DO_TEST("disk-drive-cache-v1-none");
     DO_TEST("disk-drive-copy-on-read");
     DO_TEST("disk-drive-network-nbd");
     DO_TEST("disk-drive-network-nbd-export");
@@ -515,6 +508,7 @@ mymain(void)
     DO_TEST_DIFFERENT("usb-redir-filter");
     DO_TEST_DIFFERENT("usb-redir-filter-version");
     DO_TEST("blkdeviotune");
+    DO_TEST_DIFFERENT("controller-usb-order");
 
     DO_TEST_FULL("seclabel-dynamic-baselabel", false, WHEN_INACTIVE);
     DO_TEST_FULL("seclabel-dynamic-override", false, WHEN_INACTIVE);
@@ -541,7 +535,7 @@ mymain(void)
 
     DO_TEST("pseries-nvram");
     DO_TEST_DIFFERENT("pseries-panic-missing");
-    DO_TEST("pseries-panic-no-address");
+    DO_TEST_DIFFERENT("pseries-panic-no-address");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");
@@ -597,7 +591,10 @@ mymain(void)
     DO_TEST("pcihole64-none");
     DO_TEST("pcihole64-q35");
 
-    DO_TEST("panic");
+    DO_TEST_DIFFERENT("panic");
+    DO_TEST("panic-isa");
+    DO_TEST("panic-pseries");
+    DO_TEST("panic-double");
     DO_TEST("panic-no-address");
 
     DO_TEST_DIFFERENT("disk-backing-chains");
@@ -632,6 +629,11 @@ mymain(void)
     DO_TEST("memory-hotplug-nonuma");
     DO_TEST("memory-hotplug-dimm");
     DO_TEST("net-udp");
+
+    DO_TEST("video-virtio-gpu-device");
+    DO_TEST("video-virtio-gpu-virgl");
+    DO_TEST("virtio-input");
+    DO_TEST("virtio-input-passthrough");
 
     qemuTestDriverFree(&driver);
 

@@ -56,6 +56,7 @@
 #include "virtime.h"
 #include "virtypedparam.h"
 #include "virxml.h"
+#include "virsh-nodedev.h"
 
 /* Gnulib doesn't guarantee SA_SIGINFO support.  */
 #ifndef SA_SIGINFO
@@ -866,6 +867,10 @@ static const vshCmdOptDef opts_attach_interface[] = {
      .type = VSH_OT_BOOL,
      .help = N_("print XML document rather than attach the interface")
     },
+    {.name = "managed",
+     .type = VSH_OT_BOOL,
+     .help = N_("libvirt will automatically detach/attach the device from/to host")
+    },
     {.name = NULL}
 };
 
@@ -931,6 +936,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool persistent = vshCommandOptBool(cmd, "persistent");
+    bool managed = vshCommandOptBool(cmd, "managed");
 
     VSH_EXCLUSIVE_OPTIONS_VAR(persistent, current);
 
@@ -983,7 +989,12 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     }
 
     /* Make XML of interface */
-    virBufferAsprintf(&buf, "<interface type='%s'>\n", type);
+    virBufferAsprintf(&buf, "<interface type='%s'", type);
+
+    if (managed)
+        virBufferAddLit(&buf, " managed='yes'>\n");
+    else
+        virBufferAddLit(&buf, ">\n");
     virBufferAdjustIndent(&buf, 2);
 
     switch (typ) {
@@ -995,6 +1006,26 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     case VIR_DOMAIN_NET_TYPE_DIRECT:
         virBufferAsprintf(&buf, "<source dev='%s'/>\n", source);
         break;
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+    {
+        struct PCIAddress pciAddr = {0, 0, 0, 0};
+
+        if (str2PCIAddress(source, &pciAddr) < 0) {
+            vshError(ctl, _("cannot parse pci address '%s' for network "
+                            "interface"), source);
+            goto cleanup;
+        }
+
+        virBufferAddLit(&buf, "<source>\n");
+        virBufferAdjustIndent(&buf, 2);
+        virBufferAsprintf(&buf, "<address type='pci' domain='0x%.4x'"
+                          " bus='0x%.2x' slot='0x%.2x' function='0x%.1x'/>\n",
+                          pciAddr.domain, pciAddr.bus,
+                          pciAddr.slot, pciAddr.function);
+        virBufferAdjustIndent(&buf, -2);
+        virBufferAddLit(&buf, "</source>\n");
+        break;
+    }
 
     case VIR_DOMAIN_NET_TYPE_USER:
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
@@ -1004,7 +1035,6 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     case VIR_DOMAIN_NET_TYPE_MCAST:
     case VIR_DOMAIN_NET_TYPE_UDP:
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
-    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
     case VIR_DOMAIN_NET_TYPE_LAST:
         vshError(ctl, _("No support for %s in command 'attach-interface'"),
                  type);
@@ -11536,7 +11566,10 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
                    const char *target,
                    virshUpdateDiskXMLType type)
 {
+    xmlNodePtr tmp = NULL;
     xmlNodePtr source = NULL;
+    xmlNodePtr target_node = NULL;
+    xmlNodePtr text_node = NULL;
     char *device_type = NULL;
     char *ret = NULL;
     char *startupPolicy = NULL;
@@ -11553,9 +11586,31 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
     }
 
     /* find the current source subelement */
-    for (source = disk_node->children; source; source = source->next) {
-        if (source->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(source->name, BAD_CAST "source"))
+    for (tmp = disk_node->children; tmp; tmp = tmp->next) {
+        /*
+         * Save the last text node before the <target/>.  The
+         * reasoning behind this is that the target node will be
+         * present in this case and also has a proper indentation.
+         */
+        if (!target_node && tmp->type == XML_TEXT_NODE)
+            text_node = tmp;
+
+        /*
+         * We need only element nodes from now on.
+         */
+        if (tmp->type != XML_ELEMENT_NODE)
+            continue;
+
+        if (xmlStrEqual(tmp->name, BAD_CAST "source"))
+            source = tmp;
+
+        if (xmlStrEqual(tmp->name, BAD_CAST "target"))
+            target_node = tmp;
+
+        /*
+         * We've found all we needed.
+         */
+        if (source && target_node)
             break;
     }
 
@@ -11607,7 +11662,22 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
 
         if (startupPolicy)
             xmlNewProp(source, BAD_CAST "startupPolicy", BAD_CAST startupPolicy);
-        xmlAddChild(disk_node, source);
+
+        /*
+         * So that the output XML looks nice in case anyone calls
+         * 'change-media' with '--print-xml', let's attach the source
+         * before target...
+         */
+        xmlAddPrevSibling(target_node, source);
+
+        /*
+         * ... and duplicate the text node doing the indentation just
+         * so it's more easily readable.  And don't make it fatal.
+         */
+        if ((tmp = xmlCopyNode(text_node, 0))) {
+            if (!xmlAddPrevSibling(target_node, tmp))
+                xmlFreeNode(tmp);
+        }
     }
 
     if (!(ret = virXMLNodeToString(NULL, disk_node))) {

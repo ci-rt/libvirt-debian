@@ -91,7 +91,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = virsh$(EXEEXT) virt-host-validate$(EXEEXT) \
-	$(am__EXEEXT_1)
+	virt-admin$(EXEEXT) $(am__EXEEXT_1)
 @WITH_SANLOCK_TRUE@am__append_1 = virt-sanlock-cleanup
 @WITH_LXC_TRUE@am__append_2 = virt-login-shell.conf
 @WITH_LXC_TRUE@am__append_3 = virt-login-shell
@@ -307,6 +307,13 @@ virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 virsh_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virsh_CFLAGS) $(CFLAGS) \
 	$(virsh_LDFLAGS) $(LDFLAGS) -o $@
+am_virt_admin_OBJECTS = virt_admin-virt-admin.$(OBJEXT)
+virt_admin_OBJECTS = $(am_virt_admin_OBJECTS)
+virt_admin_DEPENDENCIES = ../src/libvirt-admin.la libvirt_shell.la \
+	$(am__DEPENDENCIES_1)
+virt_admin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virt_admin_CFLAGS) \
+	$(CFLAGS) $(virt_admin_LDFLAGS) $(LDFLAGS) -o $@
 am_virt_host_validate_OBJECTS =  \
 	virt_host_validate-virt-host-validate.$(OBJEXT) \
 	virt_host_validate-virt-host-validate-common.$(OBJEXT) \
@@ -392,9 +399,11 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libvirt_shell_la_SOURCES) $(virsh_SOURCES) \
-	$(virt_host_validate_SOURCES) $(virt_login_shell_SOURCES)
+	$(virt_admin_SOURCES) $(virt_host_validate_SOURCES) \
+	$(virt_login_shell_SOURCES)
 DIST_SOURCES = $(libvirt_shell_la_SOURCES) $(virsh_SOURCES) \
-	$(virt_host_validate_SOURCES) $(virt_login_shell_SOURCES)
+	$(virt_admin_SOURCES) $(virt_host_validate_SOURCES) \
+	$(virt_login_shell_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -1366,6 +1375,7 @@ LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
 LTLIBOBJS = @LTLIBOBJS@
 LTLIBPTH = @LTLIBPTH@
 LTLIBTHREAD = @LTLIBTHREAD@
+LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 LVCHANGE = @LVCHANGE@
 LVCREATE = @LVCREATE@
 LVREMOVE = @LVREMOVE@
@@ -1913,7 +1923,7 @@ bin_SCRIPTS = virt-xml-validate virt-pki-validate
 libexec_SCRIPTS = libvirt-guests.sh
 @WITH_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
 dist_man1_MANS = virt-host-validate.1 virt-pki-validate.1 \
-	virt-xml-validate.1 virsh.1 $(am__append_5)
+	virt-xml-validate.1 virsh.1 virt-admin.1 $(am__append_5)
 @WITH_SANLOCK_TRUE@dist_man8_MANS = virt-sanlock-cleanup.8
 noinst_LTLIBRARIES = libvirt_shell.la
 libvirt_shell_la_CFLAGS = \
@@ -2017,6 +2027,30 @@ virsh_CFLAGS = \
 		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(LIBXML_CFLAGS)
+
+virt_admin_SOURCES = \
+		virt-admin.c virt-admin.h			\
+		$(NULL)
+
+virt_admin_LDFLAGS = \
+		$(AM_LDFLAGS)					\
+		$(COVERAGE_LDFLAGS)				\
+		$(STATIC_BINARIES)				\
+		$(PIE_LDFLAGS)					\
+		$(NULL)
+
+virt_admin_LDADD = \
+		../src/libvirt-admin.la				\
+		libvirt_shell.la				\
+		$(LIBXML_LIBS)					\
+		$(NULL)
+
+virt_admin_CFLAGS = \
+		$(WARN_CFLAGS)					\
+		$(PIE_CFLAGS)					\
+		$(COVERAGE_CFLAGS)				\
+		$(LIBXML_CFLAGS)				\
+		$(READLINE_CFLAGS)
 
 BUILT_SOURCES = $(am__append_7) libvirt-guests.sh $(am__append_8)
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
@@ -2124,6 +2158,10 @@ clean-binPROGRAMS:
 virsh$(EXEEXT): $(virsh_OBJECTS) $(virsh_DEPENDENCIES) $(EXTRA_virsh_DEPENDENCIES) 
 	@rm -f virsh$(EXEEXT)
 	$(AM_V_CCLD)$(virsh_LINK) $(virsh_OBJECTS) $(virsh_LDADD) $(LIBS)
+
+virt-admin$(EXEEXT): $(virt_admin_OBJECTS) $(virt_admin_DEPENDENCIES) $(EXTRA_virt_admin_DEPENDENCIES) 
+	@rm -f virt-admin$(EXEEXT)
+	$(AM_V_CCLD)$(virt_admin_LINK) $(virt_admin_OBJECTS) $(virt_admin_LDADD) $(LIBS)
 
 virt-host-validate$(EXEEXT): $(virt_host_validate_OBJECTS) $(virt_host_validate_DEPENDENCIES) $(EXTRA_virt_host_validate_DEPENDENCIES) 
 	@rm -f virt-host-validate$(EXEEXT)
@@ -2258,6 +2296,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-snapshot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-volume.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_admin-virt-admin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-lxc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-qemu.Po@am__quote@
@@ -2476,6 +2515,20 @@ virsh-virsh-volume.obj: virsh-volume.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virsh-volume.c' object='virsh-virsh-volume.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-virsh-volume.obj `if test -f 'virsh-volume.c'; then $(CYGPATH_W) 'virsh-volume.c'; else $(CYGPATH_W) '$(srcdir)/virsh-volume.c'; fi`
+
+virt_admin-virt-admin.o: virt-admin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -MT virt_admin-virt-admin.o -MD -MP -MF $(DEPDIR)/virt_admin-virt-admin.Tpo -c -o virt_admin-virt-admin.o `test -f 'virt-admin.c' || echo '$(srcdir)/'`virt-admin.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virt_admin-virt-admin.Tpo $(DEPDIR)/virt_admin-virt-admin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-admin.c' object='virt_admin-virt-admin.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -c -o virt_admin-virt-admin.o `test -f 'virt-admin.c' || echo '$(srcdir)/'`virt-admin.c
+
+virt_admin-virt-admin.obj: virt-admin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -MT virt_admin-virt-admin.obj -MD -MP -MF $(DEPDIR)/virt_admin-virt-admin.Tpo -c -o virt_admin-virt-admin.obj `if test -f 'virt-admin.c'; then $(CYGPATH_W) 'virt-admin.c'; else $(CYGPATH_W) '$(srcdir)/virt-admin.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virt_admin-virt-admin.Tpo $(DEPDIR)/virt_admin-virt-admin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-admin.c' object='virt_admin-virt-admin.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -c -o virt_admin-virt-admin.obj `if test -f 'virt-admin.c'; then $(CYGPATH_W) 'virt-admin.c'; else $(CYGPATH_W) '$(srcdir)/virt-admin.c'; fi`
 
 virt_host_validate-virt-host-validate.o: virt-host-validate.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_host_validate_CFLAGS) $(CFLAGS) -MT virt_host_validate-virt-host-validate.o -MD -MP -MF $(DEPDIR)/virt_host_validate-virt-host-validate.Tpo -c -o virt_host_validate-virt-host-validate.o `test -f 'virt-host-validate.c' || echo '$(srcdir)/'`virt-host-validate.c
@@ -2940,14 +2993,9 @@ virt-sanlock-cleanup.8: virt-sanlock-cleanup.in $(top_srcdir)/configure.ac
 @WITH_WIN_ICON_TRUE@	  --input-format rc --input $< \
 @WITH_WIN_ICON_TRUE@	  --output-format coff --output $@
 
-virt-login-shell.1: virt-login-shell.pod $(top_srcdir)/configure.ac
+%.1: %.pod $(top_srcdir)/configure.ac
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
-
-virsh.1: virsh.pod $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
+		&& if grep 'POD ERROR' $(srcdir)/$@ ; then \
 		rm $(srcdir)/$@; exit 1; fi
 
 install-data-local: install-init install-systemd

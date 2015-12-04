@@ -24,7 +24,7 @@
 
 #include "internal.h"
 #include "datatypes.h"
-#include "domain_conf.h"
+#include "virdomainobjlist.h"
 #include "virauth.h"
 #include "viralloc.h"
 #include "virlog.h"
@@ -774,7 +774,7 @@ hypervDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 
     /* Flags checked by virDomainDefFormat */
 
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDefNew()))
         goto cleanup;
 
     virUUIDFormat(domain->uuid, uuid_string);

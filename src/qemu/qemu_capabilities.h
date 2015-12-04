@@ -30,39 +30,52 @@
 # include "qemu_monitor.h"
 # include "domain_capabilities.h"
 
-/* Internal flags to keep track of qemu command line capabilities */
+/*
+ * Internal flags to keep track of qemu command line capabilities
+ *
+ * As a general rule these flags must not be deleted / renamed, as
+ * they are serialized in string format into the runtime XML file
+ * for guests, and new libvirt needs to cope with reading flags
+ * defined by old libvirt.
+ *
+ * The exception to this rule is when we drop support for running
+ * with older QEMU versions entirely. When a flag is no longer needed
+ * we temporarily give it an X_ prefix to indicate it should no
+ * longer be used in code. Periodically we can then purge all the
+ * X_ flags and re-group what's left.
+ */
 typedef enum {
     /* 0 */
-    QEMU_CAPS_KQEMU, /* Whether KQEMU is compiled in */
-    QEMU_CAPS_VNC_COLON, /* VNC takes or address + display */
-    QEMU_CAPS_NO_REBOOT, /* Is the -no-reboot flag available */
-    QEMU_CAPS_DRIVE, /* Is the new -drive arg available */
+    X_QEMU_CAPS_KQEMU, /* Whether KQEMU is compiled in */
+    X_QEMU_CAPS_VNC_COLON, /* VNC takes or address + display */
+    X_QEMU_CAPS_NO_REBOOT, /* Is the -no-reboot flag available */
+    X_QEMU_CAPS_DRIVE, /* Is the new -drive arg available */
     QEMU_CAPS_DRIVE_BOOT, /* Does -drive support boot=on */
 
     /* 5 */
-    QEMU_CAPS_NAME, /* Is the -name flag available */
-    QEMU_CAPS_UUID, /* Is the -uuid flag available */
-    QEMU_CAPS_DOMID, /* Xenner: -domid flag available */
-    QEMU_CAPS_VNET_HDR,
-    QEMU_CAPS_MIGRATE_KVM_STDIO, /* avoid kvm tcp migration bug */
+    X_QEMU_CAPS_NAME, /* Is the -name flag available */
+    X_QEMU_CAPS_UUID, /* Is the -uuid flag available */
+    X_QEMU_CAPS_DOMID, /* Xenner: -domid flag available */
+    X_QEMU_CAPS_VNET_HDR,
+    X_QEMU_CAPS_MIGRATE_KVM_STDIO, /* avoid kvm tcp migration bug */
 
     /* 10 */
-    QEMU_CAPS_MIGRATE_QEMU_TCP, /* have qemu tcp migration */
-    QEMU_CAPS_MIGRATE_QEMU_EXEC, /* have qemu exec migration */
-    QEMU_CAPS_DRIVE_CACHE_V2, /* cache= flag wanting new v2 values */
+    X_QEMU_CAPS_MIGRATE_QEMU_TCP, /* have qemu tcp migration */
+    X_QEMU_CAPS_MIGRATE_QEMU_EXEC, /* have qemu exec migration */
+    X_QEMU_CAPS_DRIVE_CACHE_V2, /* cache= flag wanting new v2 values */
     QEMU_CAPS_KVM, /* Whether KVM is enabled by default */
-    QEMU_CAPS_DRIVE_FORMAT, /* Is -drive format= avail */
+    X_QEMU_CAPS_DRIVE_FORMAT, /* Is -drive format= avail */
 
     /* 15 */
-    QEMU_CAPS_VGA, /* Is -vga avail */
-    QEMU_CAPS_0_10, /* features added in qemu-0.10.0 or later */
+    X_QEMU_CAPS_VGA, /* Is -vga avail */
+    X_QEMU_CAPS_0_10, /* features added in qemu-0.10.0 or later */
     QEMU_CAPS_PCIDEVICE, /* PCI device assignment supported */
     QEMU_CAPS_MEM_PATH, /* mmap'ped guest backing supported */
     QEMU_CAPS_DRIVE_SERIAL, /* -driver serial=  available */
 
     /* 20 */
-    QEMU_CAPS_XEN_DOMID, /* -xen-domid */
-    QEMU_CAPS_MIGRATE_QEMU_UNIX, /* qemu migration via unix sockets */
+    X_QEMU_CAPS_XEN_DOMID, /* -xen-domid */
+    X_QEMU_CAPS_MIGRATE_QEMU_UNIX, /* qemu migration via unix sockets */
     QEMU_CAPS_CHARDEV, /* Is the new -chardev arg available */
     QEMU_CAPS_ENABLE_KVM, /* -enable-kvm flag */
     QEMU_CAPS_MONITOR_JSON, /* JSON mode for monitor */
@@ -86,7 +99,7 @@ typedef enum {
     QEMU_CAPS_PCI_CONFIGFD, /* pci-assign.configfd */
     QEMU_CAPS_NODEFCONFIG, /* -nodefconfig */
     QEMU_CAPS_BOOT_MENU, /* -boot menu=on support */
-    QEMU_CAPS_ENABLE_KQEMU, /* -enable-kqemu flag */
+    X_QEMU_CAPS_ENABLE_KQEMU, /* -enable-kqemu flag */
 
     /* 40 */
     QEMU_CAPS_FSDEV, /* -fstype filesystem passthrough */
@@ -99,7 +112,7 @@ typedef enum {
     QEMU_CAPS_VGA_QXL, /* The 'qxl' arg for '-vga' */
     QEMU_CAPS_SPICE, /* Is -spice avail */
     QEMU_CAPS_VGA_NONE, /* The 'none' arg for '-vga' */
-    QEMU_CAPS_MIGRATE_QEMU_FD, /* -incoming fd:n */
+    X_QEMU_CAPS_MIGRATE_QEMU_FD, /* -incoming fd:n */
     QEMU_CAPS_BOOTINDEX, /* -device bootindex property */
 
     /* 50 */
@@ -312,12 +325,19 @@ typedef enum {
     QEMU_CAPS_DEVICE_VIRTIO_NET, /* -device virtio-net-* */
     QEMU_CAPS_MACH_VIRT_GIC_VERSION, /* -machine virt,gic-version */
 
+    /* 200 */
+    QEMU_CAPS_INCOMING_DEFER, /* -incoming defer and migrate_incoming */
+    QEMU_CAPS_DEVICE_VIRTIO_GPU, /* -device virtio-gpu-* & virtio-vga */
+    QEMU_CAPS_DEVICE_VIRTIO_GPU_VIRGL, /* -device virtio-gpu-*.virgl */
+    QEMU_CAPS_VIRTIO_KEYBOARD, /* -device virtio-keyboard-{device,pci} */
+    QEMU_CAPS_VIRTIO_MOUSE, /* -device virtio-mouse-{device,pci} */
+
+    /* 205 */
+    QEMU_CAPS_VIRTIO_TABLET, /* -device virtio-tablet-{device,pci} */
+    QEMU_CAPS_VIRTIO_INPUT_HOST, /* -device virtio-input-host-{device,pci} */
+
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
-
-/* Aliases for some of the capabilities defined above */
-# define QEMU_CAPS_NET_NAME QEMU_CAPS_0_10 /* -net ...,name=str */
-# define QEMU_CAPS_HOST_NET_ADD QEMU_CAPS_0_10 /* host_net_add command */
 
 typedef struct _virQEMUCaps virQEMUCaps;
 typedef virQEMUCaps *virQEMUCapsPtr;
@@ -414,7 +434,6 @@ int virQEMUCapsParseDeviceStr(virQEMUCapsPtr qemuCaps, const char *str);
 
 VIR_ENUM_DECL(virQEMUCaps);
 
-bool virQEMUCapsUsedQMP(virQEMUCapsPtr qemuCaps);
 bool virQEMUCapsSupportsChardev(virDomainDefPtr def,
                                 virQEMUCapsPtr qemuCaps,
                                 virDomainChrDefPtr chr);

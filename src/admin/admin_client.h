@@ -3,43 +3,23 @@
  */
 
 static int
-remoteAdminConnectClose(virAdmConnectPtr conn)
+remoteAdminDaemonGetVersion(virAdmDaemonPtr conn, unsigned long long *libVer)
 {
     int rv = -1;
     remoteAdminPrivPtr priv = conn->privateData;
+    admin_daemon_get_version_ret ret;
 
     virObjectLock(priv);
 
-    if (call(conn, 0, ADMIN_PROC_CONNECT_CLOSE,
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, 0, ADMIN_PROC_DAEMON_GET_VERSION,
              (xdrproc_t)xdr_void, (char *)NULL,
-             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+             (xdrproc_t)xdr_admin_daemon_get_version_ret, (char *)&ret) == -1) {
         goto done;
     }
 
-    rv = 0;
-
-done:
-    virObjectUnlock(priv);
-    return rv;
-}
-
-static int
-remoteAdminConnectOpen(virAdmConnectPtr conn, unsigned int flags)
-{
-    int rv = -1;
-    remoteAdminPrivPtr priv = conn->privateData;
-    admin_connect_open_args args;
-
-    virObjectLock(priv);
-
-    args.flags = flags;
-
-    if (call(conn, 0, ADMIN_PROC_CONNECT_OPEN,
-             (xdrproc_t)xdr_admin_connect_open_args, (char *)&args,
-             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
-        goto done;
-    }
-
+    *libVer = ret.libVer;
     rv = 0;
 
 done:

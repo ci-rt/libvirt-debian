@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.21], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.3.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -2520,7 +2520,7 @@ AC_DEFINE_UNQUOTED([QEMU_USER], ["$QEMU_USER"], [QEMU user account])
 AC_DEFINE_UNQUOTED([QEMU_GROUP], ["$QEMU_GROUP"], [QEMU group account])
 
 AC_PATH_PROG([QEMU_BRIDGE_HELPER], [qemu-bridge-helper], [/usr/libexec/qemu-bridge-helper],
-                  [/usr/libexec:/usr/lib/qemu])
+                  [/usr/libexec:/usr/lib/qemu:/usr/lib])
 AC_DEFINE_UNQUOTED([QEMU_BRIDGE_HELPER], ["$QEMU_BRIDGE_HELPER"], [QEMU bridge helper])
 
 AC_ARG_WITH([macvtap],
@@ -2789,7 +2789,7 @@ AC_CONFIG_FILES([\
         src/libvirt-lxc.pc \
         libvirt.spec mingw-libvirt.spec \
         po/Makefile.in \
-        include/libvirt/Makefile include/libvirt/libvirt.h \
+        include/libvirt/Makefile include/libvirt/libvirt-common.h \
         daemon/Makefile \
         tools/Makefile \
         tests/Makefile \

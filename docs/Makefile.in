@@ -1307,6 +1307,7 @@ LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
 LTLIBOBJS = @LTLIBOBJS@
 LTLIBPTH = @LTLIBPTH@
 LTLIBTHREAD = @LTLIBTHREAD@
+LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 LVCHANGE = @LVCHANGE@
 LVCREATE = @LVCREATE@
 LVREMOVE = @LVREMOVE@
@@ -2428,7 +2429,8 @@ $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
 $(python_generated_files): $(APIBUILD_STAMP)
 
 $(APIBUILD_STAMP): $(srcdir)/apibuild.py \
-		$(top_srcdir)/include/libvirt/libvirt.h.in \
+		$(top_srcdir)/include/libvirt/libvirt.h \
+		$(top_srcdir)/include/libvirt/libvirt-common.h.in \
 		$(top_srcdir)/include/libvirt/libvirt-domain-snapshot.h \
 		$(top_srcdir)/include/libvirt/libvirt-domain.h \
 		$(top_srcdir)/include/libvirt/libvirt-event.h \

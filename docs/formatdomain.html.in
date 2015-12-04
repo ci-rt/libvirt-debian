@@ -4801,18 +4801,26 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;input type='mouse' bus='usb'/&gt;
     &lt;input type='keyboard' bus='usb'/&gt;
+    &lt;input type='mouse' bus='virtio'/&gt;
+    &lt;input type='keyboard' bus='virtio'/&gt;
+    &lt;input type='tablet' bus='virtio'/&gt;
+    &lt;input type='passthrough' bus='virtio'&gt;
+      &lt;source evdev='/dev/input/event1/&gt;
+    &lt;/input&gt;
   &lt;/devices&gt;
   ...</pre>
 
     <dl>
       <dt><code>input</code></dt>
       <dd>The <code>input</code> element has one mandatory attribute,
-        the <code>type</code> whose value can be 'mouse', 'tablet' or
-        (<span class="since">since 1.2.2</span>) 'keyboard'.
+        the <code>type</code> whose value can be 'mouse', 'tablet',
+        (<span class="since">since 1.2.2</span>) 'keyboard' or
+        (<span class="since">since 1.3.0</span>) 'passthrough'.
         The tablet provides absolute cursor movement,
         while the mouse uses relative movement. The optional
         <code>bus</code> attribute can be used to refine the exact device type.
-        It takes values "xen" (paravirtualized), "ps2" and "usb".</dd>
+        It takes values "xen" (paravirtualized), "ps2" and "usb" or
+        (<span class="since">since 1.3.0</span>) "virtio".</dd>
     </dl>
 
     <p>
@@ -4820,6 +4828,10 @@ qemu-kvm -net nic,model=? /dev/null
       sub-element <code>&lt;address&gt;</code> which can tie the
       device to a particular PCI
       slot, <a href="#elementsAddress">documented above</a>.
+
+      For type <code>passthrough</code>, the mandatory sub-element <code>source</code>
+      must have an <code>evdev</code> attribute containing the absolute path to the
+      event device passed through to guests. (KVM only)
     </p>
 
     <h4><a name="elementsHub">Hub devices</a></h4>
@@ -5153,8 +5165,9 @@ qemu-kvm -net nic,model=? /dev/null
         <p>
           The <code>model</code> element has a mandatory <code>type</code>
           attribute which takes the value "vga", "cirrus", "vmvga", "xen",
-          "vbox", or "qxl" (<span class="since">since 0.8.6</span>) depending
-          on the hypervisor features available.
+          "vbox", "qxl" (<span class="since">since 0.8.6</span>) or
+          "virtio" (<span class="since">since 1.3.0</span>)
+          depending on the hypervisor features available.
         </p>
         <p>
           You can provide the amount of video memory in kibibytes (blocks of
@@ -6152,19 +6165,34 @@ qemu-kvm -net nic,model=? /dev/null
 <pre>
   ...
   &lt;devices&gt;
-    &lt;panic&gt;
+    &lt;panic model='hyperv'/&gt;
+    &lt;panic model='isa'&gt;
       &lt;address type='isa' iobase='0x505'/&gt;
     &lt;/panic&gt;
   &lt;/devices&gt;
   ...
 </pre>
   <dl>
+    <dt><code>model</code></dt>
+      <dd>
+        <p>
+          The optional <code>model</code> attribute specifies what type
+          of panic device is provided. The panic model used when this attribute
+          is missing depends on the hypervisor and guest arch.
+        </p>
+        <ul>
+          <li>'isa' &mdash; for ISA pvpanic device</li>
+          <li>'pseries' &mdash; default and valid only for pSeries guests.</li>
+          <li>'hyperv' &mdash; for Hyper-V crash CPU feature.
+            <span class="since">Since 1.3.0, QEMU and KVM only</span></li>
+        </ul>
+      </dd>
     <dt><code>address</code></dt>
     <dd>
       <p>
         address of panic. The default ioport is 0x505. Most users
         don't need to specify an address, and doing so is forbidden
-        altogether for pSeries guests.
+        altogether for pseries and hyperv models.
       </p>
     </dd>
   </dl>
@@ -6300,8 +6328,9 @@ qemu-kvm -net nic,model=? /dev/null
           added memory as a scaled integer.
         </p>
         <p>
-          The mandatory <code>node</code> subelement configures the guest NUMA
-          node to attach the memory to.
+          The <code>node</code> subelement configures the guest NUMA node to
+          attach the memory to. The element shall be used only if the guest has
+          NUMA nodes configured.
         </p>
       </dd>
     </dl>

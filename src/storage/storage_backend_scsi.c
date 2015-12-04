@@ -43,8 +43,8 @@ VIR_LOG_INIT("storage.storage_backend_scsi");
 typedef struct _virStoragePoolFCRefreshInfo virStoragePoolFCRefreshInfo;
 typedef virStoragePoolFCRefreshInfo *virStoragePoolFCRefreshInfoPtr;
 struct _virStoragePoolFCRefreshInfo {
-    char *name;
-    virStoragePoolObjPtr pool;
+    char *fchost_name;
+    unsigned char pool_uuid[VIR_UUID_BUFLEN];
 };
 
 /* Function to check if the type file in the given sysfs_path is a
@@ -565,7 +565,7 @@ virStoragePoolFCRefreshDataFree(void *opaque)
 {
     virStoragePoolFCRefreshInfoPtr cbdata = opaque;
 
-    VIR_FREE(cbdata->name);
+    VIR_FREE(cbdata->fchost_name);
     VIR_FREE(cbdata);
 }
 
@@ -593,8 +593,9 @@ static void
 virStoragePoolFCRefreshThread(void *opaque)
 {
     virStoragePoolFCRefreshInfoPtr cbdata = opaque;
-    const char *name = cbdata->name;
-    virStoragePoolObjPtr pool = cbdata->pool;
+    const char *fchost_name = cbdata->fchost_name;
+    const unsigned char *pool_uuid = cbdata->pool_uuid;
+    virStoragePoolObjPtr pool = NULL;
     unsigned int host;
     int found = 0;
     int tries = 2;
@@ -602,14 +603,17 @@ virStoragePoolFCRefreshThread(void *opaque)
     do {
         sleep(5); /* Give it time */
 
-        /* Lock the pool, if active, we can get the host number, successfully
-         * rescan, and find LUN's, then we are happy
+        /* Let's see if the pool still exists -  */
+        if (!(pool = virStoragePoolObjFindPoolByUUID(pool_uuid)))
+            break;
+
+        /* Return with pool lock, if active, we can get the host number,
+         * successfully, rescan, and find LUN's, then we are happy
          */
         VIR_DEBUG("Attempt FC Refresh for pool='%s' name='%s' tries='%d'",
-                  pool->def->name, name, tries);
-        virStoragePoolObjLock(pool);
+                  pool->def->name, fchost_name, tries);
         if (virStoragePoolObjIsActive(pool) &&
-            virGetSCSIHostNumber(name, &host) == 0 &&
+            virGetSCSIHostNumber(fchost_name, &host) == 0 &&
             virStorageBackendSCSITriggerRescan(host) == 0) {
             virStoragePoolObjClearVols(pool);
             found = virStorageBackendSCSIFindLUs(pool, host);
@@ -617,7 +621,7 @@ virStoragePoolFCRefreshThread(void *opaque)
         virStoragePoolObjUnlock(pool);
     } while (!found && --tries);
 
-    if (!found)
+    if (pool && !found)
         VIR_DEBUG("FC Refresh Thread failed to find LU's");
 
     virStoragePoolFCRefreshDataFree(cbdata);
@@ -798,8 +802,8 @@ createVport(virConnectPtr conn,
     if ((name = virGetFCHostNameByWWN(NULL, adapter->data.fchost.wwnn,
                                       adapter->data.fchost.wwpn))) {
         if (VIR_ALLOC(cbdata) == 0) {
-            cbdata->pool = pool;
-            cbdata->name = name;
+            memcpy(cbdata->pool_uuid, pool->def->uuid, VIR_UUID_BUFLEN);
+            cbdata->fchost_name = name;
             name = NULL;
 
             if (virThreadCreate(&thread, false, virStoragePoolFCRefreshThread,

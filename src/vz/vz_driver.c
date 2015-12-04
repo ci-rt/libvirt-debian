@@ -554,7 +554,7 @@ vzDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     virDomainObjPtr privdom;
     int ret = -1;
 
-    if (!(privdom = vzDomObjFromDomain(domain)))
+    if (!(privdom = vzDomObjFromDomainRef(domain)))
         goto cleanup;
 
     info->state = virDomainObjGetState(privdom, NULL);
@@ -562,11 +562,24 @@ vzDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     info->maxMem = virDomainDefGetMemoryActual(privdom->def);
     info->nrVirtCpu = privdom->def->vcpus;
     info->cpuTime = 0;
+
+    if (virDomainObjIsActive(privdom)) {
+        unsigned long long vtime;
+        size_t i;
+
+        for (i = 0; i < privdom->def->vcpus; ++i) {
+            if (prlsdkGetVcpuStats(privdom, i, &vtime) < 0) {
+                virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                               _("cannot read cputime for domain"));
+                goto cleanup;
+            }
+            info->cpuTime += vtime;
+        }
+    }
     ret = 0;
 
  cleanup:
-    if (privdom)
-        virObjectUnlock(privdom);
+    virDomainObjEndAPI(&privdom);
     return ret;
 }
 
@@ -908,6 +921,13 @@ static int vzDomainDestroy(virDomainPtr domain)
 static int vzDomainShutdown(virDomainPtr domain)
 {
     return prlsdkDomainChangeState(domain, prlsdkStop);
+}
+
+static int vzDomainReboot(virDomainPtr domain,
+                          unsigned int flags)
+{
+    virCheckFlags(0, -1);
+    return prlsdkDomainChangeState(domain, prlsdkRestart);
 }
 
 static int vzDomainIsActive(virDomainPtr domain)
@@ -1473,6 +1493,7 @@ static virHypervisorDriver vzDriver = {
     .domainShutdown = vzDomainShutdown, /* 0.10.0 */
     .domainCreate = vzDomainCreate,    /* 0.10.0 */
     .domainCreateWithFlags = vzDomainCreateWithFlags, /* 1.2.10 */
+    .domainReboot = vzDomainReboot, /* 1.3.0 */
     .domainDefineXML = vzDomainDefineXML,      /* 0.10.0 */
     .domainDefineXMLFlags = vzDomainDefineXMLFlags, /* 1.2.12 */
     .domainUndefine = vzDomainUndefine, /* 1.2.10 */

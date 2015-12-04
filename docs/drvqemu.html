@@ -220,9 +220,7 @@
           </li></ul>
         <p>
       The libvirt KVM/QEMU driver can manage any QEMU emulator from
-      version 0.8.1 or later. It can also manage Xenner, which
-      provides the same QEMU command line syntax and monitor
-      interaction.
+      version 0.12.0 or later.
     </p>
         <h2>
           <a name="project" shape="rect" id="project">Project Links</a>
@@ -251,11 +249,6 @@
         for the presence of <code>qemu-kvm</code> and <code>/dev/kvm</code> device
         node. If both are found, then KVM fullyvirtualized, hardware accelerated
         guests will be available.
-      </li><li>
-        <strong>Xenner hypervisor</strong>: The driver will probe <code>/usr/bin</code>
-        for the presence of <code>xenner</code> and <code>/dev/kvm</code> device
-        node. If both are found, then Xen paravirtualized guests can be run using
-        the KVM hardware acceleration.
       </li></ul>
         <h2>
           <a name="uris" shape="rect" id="uris">Connections to QEMU driver</a>
@@ -830,7 +823,6 @@ $ virsh domxml-to-native qemu-argv demo.xml
     &lt;graphics type='vnc' port='-1' keymap='de'/&gt;
   &lt;/devices&gt;
 &lt;/domain&gt;</pre>
-        <h3>Xen paravirtualized guests with hardware acceleration</h3>
       </div>
     </div>
     <div id="footer">

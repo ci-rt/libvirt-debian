@@ -19,6 +19,7 @@
 virincdir = $(includedir)/libvirt
 
 virinc_HEADERS = libvirt.h		\
+		 libvirt-common.h	\
 		 libvirt-domain.h \
 		 libvirt-domain-snapshot.h \
 		 libvirt-event.h \
@@ -37,7 +38,7 @@ virinc_HEADERS = libvirt.h		\
 install-exec-hook:
 	$(mkinstalldirs) $(DESTDIR)$(virincdir)
 
-EXTRA_DIST = libvirt.h.in
+EXTRA_DIST = libvirt-common.h.in
 
 # Temporarily disabled, but we need it for building
 EXTRA_DIST += libvirt-admin.h
