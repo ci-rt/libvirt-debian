@@ -13,5 +13,3 @@ debian/Use-upstreams-polkit-rule.patch
 Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
-Disable-service-timeout-for-libvirt-guests.patch
-qemu-Handle-default-IDE-controller-on-other-machine-types.patch

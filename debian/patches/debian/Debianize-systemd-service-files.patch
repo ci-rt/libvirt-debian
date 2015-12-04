@@ -23,7 +23,7 @@ index 9e67e43..d9b0841 100644
  KillMode=process
  Restart=on-failure
 diff --git a/tools/libvirt-guests.service.in b/tools/libvirt-guests.service.in
-index cc04b6d..fc353f0 100644
+index c31f663..cb1d7bd 100644
 --- a/tools/libvirt-guests.service.in
 +++ b/tools/libvirt-guests.service.in
 @@ -5,7 +5,7 @@ Documentation=man:libvirtd(8)
