@@ -176,11 +176,6 @@
     <function name="_virSchedParameter" link="libvirt-libvirt-domain.html#_virSchedParameter"/>
     <function name="VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES" link="libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES"/>
     <function name="VIR_CONNECT_BASELINE_CPU_MIGRATABLE" link="libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_MIGRATABLE"/>
-    <function name="VIR_CONNECT_CLOSE_REASON_CLIENT" link="libvirt-libvirt-host.html#VIR_CONNECT_CLOSE_REASON_CLIENT"/>
-    <function name="VIR_CONNECT_CLOSE_REASON_EOF" link="libvirt-libvirt-host.html#VIR_CONNECT_CLOSE_REASON_EOF"/>
-    <function name="VIR_CONNECT_CLOSE_REASON_ERROR" link="libvirt-libvirt-host.html#VIR_CONNECT_CLOSE_REASON_ERROR"/>
-    <function name="VIR_CONNECT_CLOSE_REASON_KEEPALIVE" link="libvirt-libvirt-host.html#VIR_CONNECT_CLOSE_REASON_KEEPALIVE"/>
-    <function name="VIR_CONNECT_CLOSE_REASON_LAST" link="libvirt-libvirt-host.html#VIR_CONNECT_CLOSE_REASON_LAST"/>
     <function name="VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE" link="libvirt-libvirt-host.html#VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE"/>
     <function name="VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_CHANNEL" link="libvirt-libvirt-domain.html#VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_CHANNEL"/>
     <function name="VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_DOMAIN_STARTED" link="libvirt-libvirt-domain.html#VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_DOMAIN_STARTED"/>
@@ -800,6 +795,7 @@
     <function name="VIR_FROM_LIBXL" link="libvirt-virterror.html#VIR_FROM_LIBXL"/>
     <function name="VIR_FROM_LOCKING" link="libvirt-virterror.html#VIR_FROM_LOCKING"/>
     <function name="VIR_FROM_LOCKSPACE" link="libvirt-virterror.html#VIR_FROM_LOCKSPACE"/>
+    <function name="VIR_FROM_LOGGING" link="libvirt-virterror.html#VIR_FROM_LOGGING"/>
     <function name="VIR_FROM_LXC" link="libvirt-virterror.html#VIR_FROM_LXC"/>
     <function name="VIR_FROM_NET" link="libvirt-virterror.html#VIR_FROM_NET"/>
     <function name="VIR_FROM_NETWORK" link="libvirt-virterror.html#VIR_FROM_NETWORK"/>
@@ -980,7 +976,6 @@
     <function name="virCPUCompareResult" link="libvirt-libvirt-host.html#virCPUCompareResult"/>
     <function name="virConnectAuthPtr" link="libvirt-libvirt-host.html#virConnectAuthPtr"/>
     <function name="virConnectBaselineCPUFlags" link="libvirt-libvirt-host.html#virConnectBaselineCPUFlags"/>
-    <function name="virConnectCloseReason" link="libvirt-libvirt-host.html#virConnectCloseReason"/>
     <function name="virConnectCompareCPUFlags" link="libvirt-libvirt-host.html#virConnectCompareCPUFlags"/>
     <function name="virConnectCredentialPtr" link="libvirt-libvirt-host.html#virConnectCredentialPtr"/>
     <function name="virConnectCredentialType" link="libvirt-libvirt-host.html#virConnectCredentialType"/>
@@ -1218,7 +1213,6 @@
     <function name="virEventTimeoutCallback" link="libvirt-libvirt-event.html#virEventTimeoutCallback"/>
     <function name="virEventUpdateHandleFunc" link="libvirt-libvirt-event.html#virEventUpdateHandleFunc"/>
     <function name="virEventUpdateTimeoutFunc" link="libvirt-libvirt-event.html#virEventUpdateTimeoutFunc"/>
-    <function name="virFreeCallback" link="libvirt-libvirt-host.html#virFreeCallback"/>
     <function name="virStreamEventCallback" link="libvirt-libvirt-stream.html#virStreamEventCallback"/>
     <function name="virStreamSinkFunc" link="libvirt-libvirt-stream.html#virStreamSinkFunc"/>
     <function name="virStreamSourceFunc" link="libvirt-libvirt-stream.html#virStreamSourceFunc"/>
