@@ -47,23 +47,23 @@ int virLogHandlerDomainOpenLogFile(virLogHandlerPtr handler,
                                    const char *driver,
                                    const unsigned char *domuuid,
                                    const char *domname,
+                                   const char *path,
+                                   unsigned int flags,
                                    ino_t *inode,
                                    off_t *offset);
 
 int virLogHandlerDomainGetLogFilePosition(virLogHandlerPtr handler,
-                                          const char *driver,
-                                          const unsigned char *domuuid,
-                                          const char *domname,
+                                          const char *path,
+                                          unsigned int flags,
                                           ino_t *inode,
                                           off_t *offset);
 
 char *virLogHandlerDomainReadLogFile(virLogHandlerPtr handler,
-                                     const char *driver,
-                                     const unsigned char *domuuid,
-                                     const char *domname,
+                                     const char *path,
                                      ino_t inode,
                                      off_t offset,
-                                     size_t maxlen);
+                                     size_t maxlen,
+                                     unsigned int flags);
 
 virJSONValuePtr virLogHandlerPreExecRestart(virLogHandlerPtr handler);
 

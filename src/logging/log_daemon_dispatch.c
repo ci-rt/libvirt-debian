@@ -55,6 +55,8 @@ virLogManagerProtocolDispatchDomainOpenLogFile(virNetServerPtr server ATTRIBUTE_
                                              args->driver,
                                              (unsigned char *)args->dom.uuid,
                                              args->dom.name,
+                                             args->path,
+                                             args->flags,
                                              &inode, &offset)) < 0)
         goto cleanup;
 
@@ -87,9 +89,8 @@ virLogManagerProtocolDispatchDomainGetLogFilePosition(virNetServerPtr server ATT
     ino_t inode;
 
     if (virLogHandlerDomainGetLogFilePosition(virLogDaemonGetHandler(logDaemon),
-                                              args->driver,
-                                              (unsigned char *)args->dom.uuid,
-                                              args->dom.name,
+                                              args->path,
+                                              args->flags,
                                               &inode, &offset) < 0)
         goto cleanup;
 
@@ -125,12 +126,11 @@ virLogManagerProtocolDispatchDomainReadLogFile(virNetServerPtr server ATTRIBUTE_
     }
 
     if ((data = virLogHandlerDomainReadLogFile(virLogDaemonGetHandler(logDaemon),
-                                               args->driver,
-                                               (unsigned char *)args->dom.uuid,
-                                               args->dom.name,
+                                               args->path,
                                                args->pos.inode,
                                                args->pos.offset,
-                                               args->maxlen)) == NULL)
+                                               args->maxlen,
+                                               args->flags)) == NULL)
         goto cleanup;
 
     ret->data = data;
