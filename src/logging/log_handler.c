@@ -30,6 +30,7 @@
 #include "virstring.h"
 #include "virlog.h"
 #include "virrotatingfile.h"
+#include "viruuid.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -51,6 +52,10 @@ struct _virLogHandlerLogFile {
     virRotatingFileWriterPtr file;
     int watch;
     int pipefd; /* Read from QEMU via this */
+
+    char *driver;
+    unsigned char domuuid[VIR_UUID_BUFLEN];
+    char *domname;
 };
 
 struct _virLogHandler {
@@ -93,6 +98,9 @@ virLogHandlerLogFileFree(virLogHandlerLogFilePtr file)
 
     if (file->watch != -1)
         virEventRemoveHandle(file->watch);
+
+    VIR_FREE(file->driver);
+    VIR_FREE(file->domname);
     VIR_FREE(file);
 }
 
@@ -204,6 +212,8 @@ virLogHandlerLogFilePostExecRestart(virLogHandlerPtr handler,
 {
     virLogHandlerLogFilePtr file;
     const char *path;
+    const char *domuuid;
+    const char *tmp;
 
     if (VIR_ALLOC(file) < 0)
         return NULL;
@@ -212,7 +222,34 @@ virLogHandlerLogFilePostExecRestart(virLogHandlerPtr handler,
 
     if ((path = virJSONValueObjectGetString(object, "path")) == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Missing file path in JSON document"));
+                       _("Missing 'path' field in JSON document"));
+        goto error;
+    }
+
+    if ((tmp = virJSONValueObjectGetString(object, "driver")) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing 'driver' in JSON document"));
+        goto error;
+    }
+    if (VIR_STRDUP(file->driver, tmp) < 0)
+        goto error;
+
+    if ((tmp = virJSONValueObjectGetString(object, "domname")) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing 'domname' in JSON document"));
+        goto error;
+    }
+    if (VIR_STRDUP(file->domname, tmp) < 0)
+        goto error;
+
+    if ((domuuid = virJSONValueObjectGetString(object, "domuuid")) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing 'domuuid' in JSON document"));
+        goto error;
+    }
+    if (virUUIDParse(domuuid, file->domuuid) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Malformed 'domuuid' in JSON document"));
         goto error;
     }
 
@@ -225,7 +262,7 @@ virLogHandlerLogFilePostExecRestart(virLogHandlerPtr handler,
 
     if (virJSONValueObjectGetNumberInt(object, "pipefd", &file->pipefd) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Missing file pipefd in JSON document"));
+                       _("Missing 'pipefd' in JSON document"));
         goto error;
     }
     if (virSetInherit(file->pipefd, false) < 0) {
@@ -314,58 +351,25 @@ virLogHandlerDispose(void *obj)
 }
 
 
-static char *
-virLogHandlerGetLogFilePathForDomain(virLogHandlerPtr handler,
-                                     const char *driver,
-                                     const unsigned char *domuuid ATTRIBUTE_UNUSED,
-                                     const char *domname)
-{
-    char *path;
-    if (handler->privileged) {
-        if (virAsprintf(&path,
-                        LOCALSTATEDIR "/log/libvirt/%s/%s.log",
-                        driver, domname) < 0)
-            return NULL;
-    } else {
-        char *cachedir;
-
-        cachedir = virGetUserCacheDirectory();
-        if (!cachedir)
-            return NULL;
-
-        if (virAsprintf(&path,
-                        "%s/%s/log/%s.log", cachedir, driver, domname) < 0) {
-            VIR_FREE(cachedir);
-            return NULL;
-        }
-
-    }
-    return path;
-}
-
-
 int
 virLogHandlerDomainOpenLogFile(virLogHandlerPtr handler,
                                const char *driver,
-                               const unsigned char *domuuid ATTRIBUTE_UNUSED,
+                               const unsigned char *domuuid,
                                const char *domname,
+                               const char *path,
+                               unsigned int flags,
                                ino_t *inode,
                                off_t *offset)
 {
     size_t i;
     virLogHandlerLogFilePtr file = NULL;
     int pipefd[2] = { -1, -1 };
-    char *path;
+
+    virCheckFlags(0, -1);
 
     virObjectLock(handler);
 
     handler->inhibitor(true, handler->opaque);
-
-    if (!(path = virLogHandlerGetLogFilePathForDomain(handler,
-                                                      driver,
-                                                      domuuid,
-                                                      domname)))
-        goto error;
 
     for (i = 0; i < handler->nfiles; i++) {
         if (STREQ(virRotatingFileWriterGetPath(handler->files[i]->file),
@@ -388,6 +392,10 @@ virLogHandlerDomainOpenLogFile(virLogHandlerPtr handler,
     file->watch = -1;
     file->pipefd = pipefd[0];
     pipefd[0] = -1;
+    memcpy(file->domuuid, domuuid, VIR_UUID_BUFLEN);
+    if (VIR_STRDUP(file->driver, driver) < 0 ||
+        VIR_STRDUP(file->domname, domname) < 0)
+        goto error;
 
     if ((file->file = virRotatingFileWriterNew(path,
                                                DEFAULT_FILE_SIZE,
@@ -408,8 +416,6 @@ virLogHandlerDomainOpenLogFile(virLogHandlerPtr handler,
         goto error;
     }
 
-    VIR_FREE(path);
-
     *inode = virRotatingFileWriterGetINode(file->file);
     *offset = virRotatingFileWriterGetOffset(file->file);
 
@@ -417,7 +423,6 @@ virLogHandlerDomainOpenLogFile(virLogHandlerPtr handler,
     return pipefd[1];
 
  error:
-    VIR_FREE(path);
     VIR_FORCE_CLOSE(pipefd[0]);
     VIR_FORCE_CLOSE(pipefd[1]);
     handler->inhibitor(false, handler->opaque);
@@ -429,24 +434,18 @@ virLogHandlerDomainOpenLogFile(virLogHandlerPtr handler,
 
 int
 virLogHandlerDomainGetLogFilePosition(virLogHandlerPtr handler,
-                                      const char *driver,
-                                      const unsigned char *domuuid,
-                                      const char *domname,
+                                      const char *path,
+                                      unsigned int flags,
                                       ino_t *inode,
                                       off_t *offset)
 {
-    char *path;
     virLogHandlerLogFilePtr file = NULL;
     int ret = -1;
     size_t i;
 
-    virObjectLock(handler);
+    virCheckFlags(0, -1);
 
-    if (!(path = virLogHandlerGetLogFilePathForDomain(handler,
-                                                      driver,
-                                                      domuuid,
-                                                      domname)))
-        goto cleanup;
+    virObjectLock(handler);
 
     for (i = 0; i < handler->nfiles; i++) {
         if (STREQ(virRotatingFileWriterGetPath(handler->files[i]->file),
@@ -458,8 +457,8 @@ virLogHandlerDomainGetLogFilePosition(virLogHandlerPtr handler,
 
     if (!file) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No open log file for domain %s"),
-                       domname);
+                       _("No open log file %s"),
+                       path);
         goto cleanup;
     }
 
@@ -469,7 +468,6 @@ virLogHandlerDomainGetLogFilePosition(virLogHandlerPtr handler,
     ret = 0;
 
  cleanup:
-    VIR_FREE(path);
     virObjectUnlock(handler);
     return ret;
 }
@@ -477,25 +475,19 @@ virLogHandlerDomainGetLogFilePosition(virLogHandlerPtr handler,
 
 char *
 virLogHandlerDomainReadLogFile(virLogHandlerPtr handler,
-                               const char *driver,
-                               const unsigned char *domuuid,
-                               const char *domname,
+                               const char *path,
                                ino_t inode,
                                off_t offset,
-                               size_t maxlen)
+                               size_t maxlen,
+                               unsigned int flags)
 {
-    char *path;
     virRotatingFileReaderPtr file = NULL;
     char *data = NULL;
     ssize_t got;
 
-    virObjectLock(handler);
+    virCheckFlags(0, NULL);
 
-    if (!(path = virLogHandlerGetLogFilePathForDomain(handler,
-                                                      driver,
-                                                      domuuid,
-                                                      domname)))
-        goto error;
+    virObjectLock(handler);
 
     if (!(file = virRotatingFileReaderNew(path, DEFAULT_MAX_BACKUP)))
         goto error;
@@ -513,11 +505,9 @@ virLogHandlerDomainReadLogFile(virLogHandlerPtr handler,
 
     virRotatingFileReaderFree(file);
     virObjectUnlock(handler);
-    VIR_FREE(path);
     return data;
 
  error:
-    VIR_FREE(path);
     VIR_FREE(data);
     virRotatingFileReaderFree(file);
     virObjectUnlock(handler);
@@ -531,6 +521,7 @@ virLogHandlerPreExecRestart(virLogHandlerPtr handler)
     virJSONValuePtr ret = virJSONValueNewObject();
     virJSONValuePtr files;
     size_t i;
+    char domuuid[VIR_UUID_STRING_BUFLEN];
 
     if (!ret)
         return NULL;
@@ -559,6 +550,18 @@ virLogHandlerPreExecRestart(virLogHandlerPtr handler)
 
         if (virJSONValueObjectAppendString(file, "path",
                                            virRotatingFileWriterGetPath(handler->files[i]->file)) < 0)
+            goto error;
+
+        if (virJSONValueObjectAppendString(file, "driver",
+                                           handler->files[i]->driver) < 0)
+            goto error;
+
+        if (virJSONValueObjectAppendString(file, "domname",
+                                           handler->files[i]->domname) < 0)
+            goto error;
+
+        virUUIDFormat(handler->files[i]->domuuid, domuuid);
+        if (virJSONValueObjectAppendString(file, "domuuid", domuuid) < 0)
             goto error;
 
         if (virSetInherit(handler->files[i]->pipefd, true) < 0) {

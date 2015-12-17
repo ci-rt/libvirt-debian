@@ -64,6 +64,8 @@ xdr_virLogManagerProtocolDomainOpenLogFileArgs (XDR *xdrs, virLogManagerProtocol
                  return FALSE;
          if (!xdr_virLogManagerProtocolDomain (xdrs, &objp->dom))
                  return FALSE;
+         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->path))
+                 return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
@@ -82,9 +84,7 @@ bool_t
 xdr_virLogManagerProtocolDomainGetLogFilePositionArgs (XDR *xdrs, virLogManagerProtocolDomainGetLogFilePositionArgs *objp)
 {
 
-         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->driver))
-                 return FALSE;
-         if (!xdr_virLogManagerProtocolDomain (xdrs, &objp->dom))
+         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->path))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
@@ -104,9 +104,7 @@ bool_t
 xdr_virLogManagerProtocolDomainReadLogFileArgs (XDR *xdrs, virLogManagerProtocolDomainReadLogFileArgs *objp)
 {
 
-         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->driver))
-                 return FALSE;
-         if (!xdr_virLogManagerProtocolDomain (xdrs, &objp->dom))
+         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->path))
                  return FALSE;
          if (!xdr_virLogManagerProtocolLogFilePosition (xdrs, &objp->pos))
                  return FALSE;

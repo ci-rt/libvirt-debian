@@ -19,7 +19,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.2.13\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2015-12-07 10:17+0800\n"
+"POT-Creation-Date: 2015-12-09 10:29+0800\n"
 "PO-Revision-Date: 2014-10-28 11:16-0400\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/libvirt/"
@@ -979,14 +979,14 @@ msgid "PCI bus 0 slot 1 is reserved for the implicit LPC PCI-ISA bridge"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:94 src/lxc/lxc_process.c:1618
-#: src/libxl/libxl_driver.c:328 src/qemu/qemu_driver.c:302
+#: src/libxl/libxl_driver.c:327 src/qemu/qemu_driver.c:302
 #: src/uml/uml_driver.c:193
 #, c-format
 msgid "Failed to autostart VM '%s': %s"
 msgstr "仮想マシン '%s' の自動起動に失敗しました: %s"
 
 #: src/bhyve/bhyve_driver.c:95 src/libxl/libxl_domain.c:492
-#: src/libxl/libxl_driver.c:330 src/qemu/qemu_capabilities.c:3059
+#: src/libxl/libxl_driver.c:329 src/qemu/qemu_capabilities.c:3059
 #: src/qemu/qemu_driver.c:295 src/qemu/qemu_driver.c:304
 #: src/secret/secret_driver.c:491 src/uml/uml_driver.c:194
 #: src/util/virdbus.c:1570 src/util/virerror.c:284 src/util/virhook.c:304
@@ -1001,7 +1001,7 @@ msgid "Unable to get Capabilities"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:172 src/conf/virdomainobjlist.c:925
-#: src/lxc/lxc_driver.c:139 src/libxl/libxl_driver.c:301 src/vz/vz_utils.c:58
+#: src/lxc/lxc_driver.c:139 src/libxl/libxl_driver.c:300 src/vz/vz_utils.c:58
 #: src/vz/vz_utils.c:88 src/qemu/qemu_driver.c:231 src/test/test_driver.c:513
 #, c-format
 msgid "no domain with matching uuid '%s' (%s)"
@@ -1017,7 +1017,7 @@ msgid "bhyve state driver is not active"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:255 src/lxc/lxc_driver.c:5405
-#: src/libxl/libxl_driver.c:864 src/qemu/qemu_command.c:9493
+#: src/libxl/libxl_driver.c:863 src/qemu/qemu_command.c:9493
 #: src/qemu/qemu_driver.c:1308 src/xen/xen_driver.c:680
 msgid "Host SMBIOS information is not available"
 msgstr "ホスト SMBIOS 情報が利用可能ではありません"
@@ -1027,12 +1027,12 @@ msgstr "ホスト SMBIOS 情報が利用可能ではありません"
 msgid "Unknown release: %s"
 msgstr "不明なリリース: %s"
 
-#: src/bhyve/bhyve_driver.c:379 src/libxl/libxl_driver.c:4114
+#: src/bhyve/bhyve_driver.c:379 src/libxl/libxl_driver.c:4113
 #: src/qemu/qemu_driver.c:8841 src/uml/uml_driver.c:2469
 msgid "cannot set autostart for transient domain"
 msgstr "一時ドメインに対して自動起動を設定できません"
 
-#: src/bhyve/bhyve_driver.c:394 src/libxl/libxl_driver.c:4129
+#: src/bhyve/bhyve_driver.c:394 src/libxl/libxl_driver.c:4128
 #: src/qemu/qemu_driver.c:8861 src/storage/storage_driver.c:1239
 #: src/uml/uml_driver.c:2484
 #, c-format
@@ -1046,7 +1046,7 @@ msgid "Failed to create symlink '%s' to '%s'"
 msgstr "'%s' へのシンボルリンク %s の作成に失敗しました"
 
 #: src/bhyve/bhyve_driver.c:408 src/lxc/lxc_driver.c:3261
-#: src/libxl/libxl_driver.c:4143 src/network/bridge_driver.c:3608
+#: src/libxl/libxl_driver.c:4142 src/network/bridge_driver.c:3608
 #: src/qemu/qemu_driver.c:8877 src/storage/storage_driver.c:1254
 #: src/uml/uml_driver.c:2498
 #, c-format
@@ -1081,7 +1081,7 @@ msgid "No domain with matching ID '%d'"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:877 src/lxc/lxc_driver.c:1118
-#: src/libxl/libxl_driver.c:2730 src/vmware/vmware_driver.c:766
+#: src/libxl/libxl_driver.c:2729 src/vmware/vmware_driver.c:766
 msgid "Domain is already running"
 msgstr "ドメインはすでに実行中です"
 
@@ -1089,15 +1089,15 @@ msgstr "ドメインはすでに実行中です"
 #: src/lxc/lxc_driver.c:3151 src/lxc/lxc_driver.c:3381
 #: src/lxc/lxc_driver.c:3430 src/lxc/lxc_driver.c:3650
 #: src/lxc/lxc_driver.c:3727 src/lxc/lxc_driver.c:5371
-#: src/libxl/libxl_driver.c:1118 src/libxl/libxl_driver.c:1176
-#: src/libxl/libxl_driver.c:1237 src/libxl/libxl_driver.c:1304
-#: src/libxl/libxl_driver.c:1351 src/libxl/libxl_driver.c:1760
-#: src/libxl/libxl_driver.c:1888 src/libxl/libxl_driver.c:1987
-#: src/libxl/libxl_driver.c:2287 src/libxl/libxl_driver.c:2496
-#: src/libxl/libxl_driver.c:3684 src/libxl/libxl_driver.c:3792
-#: src/libxl/libxl_driver.c:3897 src/libxl/libxl_driver.c:4183
-#: src/libxl/libxl_driver.c:4248 src/libxl/libxl_driver.c:4328
-#: src/libxl/libxl_driver.c:4496 src/openvz/openvz_driver.c:622
+#: src/libxl/libxl_driver.c:1117 src/libxl/libxl_driver.c:1175
+#: src/libxl/libxl_driver.c:1236 src/libxl/libxl_driver.c:1303
+#: src/libxl/libxl_driver.c:1350 src/libxl/libxl_driver.c:1759
+#: src/libxl/libxl_driver.c:1887 src/libxl/libxl_driver.c:1986
+#: src/libxl/libxl_driver.c:2286 src/libxl/libxl_driver.c:2495
+#: src/libxl/libxl_driver.c:3683 src/libxl/libxl_driver.c:3791
+#: src/libxl/libxl_driver.c:3896 src/libxl/libxl_driver.c:4182
+#: src/libxl/libxl_driver.c:4247 src/libxl/libxl_driver.c:4327
+#: src/libxl/libxl_driver.c:4495 src/openvz/openvz_driver.c:622
 #: src/openvz/openvz_driver.c:660 tools/virsh-domain.c:10597
 #: tools/virsh-domain.c:10800
 msgid "Domain is not running"
@@ -1106,44 +1106,44 @@ msgstr "ドメインが実行中です"
 #: src/bhyve/bhyve_driver.c:1035 src/conf/domain_conf.c:2765
 #: src/lxc/lxc_driver.c:2358 src/lxc/lxc_driver.c:2437
 #: src/lxc/lxc_driver.c:3482 src/lxc/lxc_driver.c:3557
-#: src/lxc/lxc_driver.c:5687 src/libxl/libxl_driver.c:4407
-#: src/libxl/libxl_driver.c:4667 src/libxl/libxl_driver.c:4797
-#: src/libxl/libxl_driver.c:4849 src/libxl/libxl_driver.c:5174
-#: src/openvz/openvz_driver.c:2005 src/openvz/openvz_driver.c:2257
-#: src/qemu/qemu_domain.c:3460 src/qemu/qemu_domain.c:3940
-#: src/qemu/qemu_driver.c:1828 src/qemu/qemu_driver.c:1840
-#: src/qemu/qemu_driver.c:1908 src/qemu/qemu_driver.c:1984
-#: src/qemu/qemu_driver.c:2084 src/qemu/qemu_driver.c:2152
-#: src/qemu/qemu_driver.c:2241 src/qemu/qemu_driver.c:2527
-#: src/qemu/qemu_driver.c:2538 src/qemu/qemu_driver.c:2601
-#: src/qemu/qemu_driver.c:3340 src/qemu/qemu_driver.c:3396
-#: src/qemu/qemu_driver.c:3714 src/qemu/qemu_driver.c:3828
-#: src/qemu/qemu_driver.c:3912 src/qemu/qemu_driver.c:3975
-#: src/qemu/qemu_driver.c:4043 src/qemu/qemu_driver.c:5534
-#: src/qemu/qemu_driver.c:10841 src/qemu/qemu_driver.c:11001
-#: src/qemu/qemu_driver.c:11058 src/qemu/qemu_driver.c:11128
-#: src/qemu/qemu_driver.c:11486 src/qemu/qemu_driver.c:11606
-#: src/qemu/qemu_driver.c:13056 src/qemu/qemu_driver.c:13186
-#: src/qemu/qemu_driver.c:13242 src/qemu/qemu_driver.c:13285
-#: src/qemu/qemu_driver.c:13339 src/qemu/qemu_driver.c:13404
-#: src/qemu/qemu_driver.c:14344 src/qemu/qemu_driver.c:15811
-#: src/qemu/qemu_driver.c:15820 src/qemu/qemu_driver.c:15966
-#: src/qemu/qemu_driver.c:16046 src/qemu/qemu_driver.c:16267
-#: src/qemu/qemu_driver.c:16394 src/qemu/qemu_driver.c:16513
-#: src/qemu/qemu_driver.c:16613 src/qemu/qemu_driver.c:16678
-#: src/qemu/qemu_driver.c:17048 src/qemu/qemu_driver.c:17269
-#: src/qemu/qemu_driver.c:17334 src/qemu/qemu_driver.c:17985
-#: src/qemu/qemu_driver.c:18131 src/qemu/qemu_driver.c:18190
-#: src/qemu/qemu_driver.c:18228 src/qemu/qemu_driver.c:18266
-#: src/qemu/qemu_driver.c:18336 src/qemu/qemu_driver.c:18348
-#: src/qemu/qemu_driver.c:18445 src/qemu/qemu_driver.c:18457
-#: src/qemu/qemu_driver.c:18632 src/qemu/qemu_driver.c:18684
-#: src/qemu/qemu_driver.c:18712 src/qemu/qemu_driver.c:18761
-#: src/qemu/qemu_driver.c:18805 src/qemu/qemu_driver.c:19679
-#: src/qemu/qemu_driver.c:19721 src/qemu/qemu_driver.c:19883
-#: src/qemu/qemu_migration.c:3227 src/qemu/qemu_migration.c:5452
-#: src/test/test_driver.c:5752 src/uml/uml_driver.c:2617
-#: src/xen/xen_driver.c:2680 src/xen/xm_internal.c:677
+#: src/lxc/lxc_driver.c:5687 src/libxl/libxl_driver.c:4406
+#: src/libxl/libxl_driver.c:4746 src/libxl/libxl_driver.c:4798
+#: src/libxl/libxl_driver.c:5123 src/openvz/openvz_driver.c:2005
+#: src/openvz/openvz_driver.c:2257 src/qemu/qemu_domain.c:3451
+#: src/qemu/qemu_domain.c:3931 src/qemu/qemu_driver.c:1828
+#: src/qemu/qemu_driver.c:1840 src/qemu/qemu_driver.c:1908
+#: src/qemu/qemu_driver.c:1984 src/qemu/qemu_driver.c:2084
+#: src/qemu/qemu_driver.c:2152 src/qemu/qemu_driver.c:2241
+#: src/qemu/qemu_driver.c:2527 src/qemu/qemu_driver.c:2538
+#: src/qemu/qemu_driver.c:2601 src/qemu/qemu_driver.c:3340
+#: src/qemu/qemu_driver.c:3396 src/qemu/qemu_driver.c:3714
+#: src/qemu/qemu_driver.c:3828 src/qemu/qemu_driver.c:3912
+#: src/qemu/qemu_driver.c:3975 src/qemu/qemu_driver.c:4043
+#: src/qemu/qemu_driver.c:5534 src/qemu/qemu_driver.c:10841
+#: src/qemu/qemu_driver.c:11001 src/qemu/qemu_driver.c:11058
+#: src/qemu/qemu_driver.c:11128 src/qemu/qemu_driver.c:11486
+#: src/qemu/qemu_driver.c:11606 src/qemu/qemu_driver.c:13056
+#: src/qemu/qemu_driver.c:13186 src/qemu/qemu_driver.c:13242
+#: src/qemu/qemu_driver.c:13285 src/qemu/qemu_driver.c:13339
+#: src/qemu/qemu_driver.c:13404 src/qemu/qemu_driver.c:14344
+#: src/qemu/qemu_driver.c:15811 src/qemu/qemu_driver.c:15820
+#: src/qemu/qemu_driver.c:15966 src/qemu/qemu_driver.c:16046
+#: src/qemu/qemu_driver.c:16267 src/qemu/qemu_driver.c:16394
+#: src/qemu/qemu_driver.c:16513 src/qemu/qemu_driver.c:16613
+#: src/qemu/qemu_driver.c:16678 src/qemu/qemu_driver.c:17048
+#: src/qemu/qemu_driver.c:17269 src/qemu/qemu_driver.c:17334
+#: src/qemu/qemu_driver.c:17985 src/qemu/qemu_driver.c:18131
+#: src/qemu/qemu_driver.c:18190 src/qemu/qemu_driver.c:18228
+#: src/qemu/qemu_driver.c:18266 src/qemu/qemu_driver.c:18336
+#: src/qemu/qemu_driver.c:18348 src/qemu/qemu_driver.c:18445
+#: src/qemu/qemu_driver.c:18457 src/qemu/qemu_driver.c:18632
+#: src/qemu/qemu_driver.c:18684 src/qemu/qemu_driver.c:18712
+#: src/qemu/qemu_driver.c:18761 src/qemu/qemu_driver.c:18805
+#: src/qemu/qemu_driver.c:19679 src/qemu/qemu_driver.c:19721
+#: src/qemu/qemu_driver.c:19883 src/qemu/qemu_migration.c:3227
+#: src/qemu/qemu_migration.c:5452 src/test/test_driver.c:5752
+#: src/uml/uml_driver.c:2617 src/xen/xen_driver.c:2680
+#: src/xen/xm_internal.c:677
 msgid "domain is not running"
 msgstr "ドメインが稼働していません"
 
@@ -1163,7 +1163,7 @@ msgstr "ディレクトリー %s の作成に失敗しました"
 msgid "unknown type '%s'"
 msgstr "不明なタイプ %s"
 
-#: src/bhyve/bhyve_driver.c:1409 src/qemu/qemu_domain.c:1990
+#: src/bhyve/bhyve_driver.c:1409 src/qemu/qemu_domain.c:1989
 #: src/qemu/qemu_driver.c:12995
 msgid "cannot get host CPU capabilities"
 msgstr "ホスト CPU ケイパビリティを取得できません"
@@ -5032,7 +5032,7 @@ msgstr "PCI アドレスの初期化に失敗しました"
 
 #: src/conf/domain_conf.c:19316 src/conf/domain_conf.c:19356
 #: src/conf/domain_conf.c:21051 src/conf/domain_conf.c:21060
-#: src/libxl/libxl_driver.c:3442 src/qemu/qemu_hotplug.c:3939
+#: src/libxl/libxl_driver.c:3441 src/qemu/qemu_hotplug.c:3939
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "予期しない hostdev タイプ %d"
@@ -5413,7 +5413,7 @@ msgstr "予期しないインターフェース形式 %d"
 
 #: src/conf/interface_conf.c:1248 src/conf/node_device_conf.c:192
 #: src/conf/nwfilter_conf.c:3141 src/conf/storage_conf.c:1787
-#: src/libxl/libxl_driver.c:590 src/vz/vz_driver.c:225
+#: src/libxl/libxl_driver.c:589 src/vz/vz_driver.c:225
 #: src/qemu/qemu_driver.c:651 src/remote/remote_driver.c:1129
 #: src/test/test_driver.c:389 src/xen/xen_driver.c:488
 msgid "cannot initialize mutex"
@@ -11199,64 +11199,84 @@ msgstr ""
 "      $XDG_RUNTIME_DIR/libvirt/virtlockd.pid\n"
 "\n"
 
-#: src/logging/log_daemon_dispatch.c:121
+#: src/logging/log_daemon_dispatch.c:122
 #, fuzzy, c-format
 msgid "Requested data len %llu is larger than maximum %d"
 msgstr "start_cpu %d が %d の最大値よりも大きいです"
 
-#: src/logging/log_handler.c:157
+#: src/logging/log_handler.c:165
 #, fuzzy
 msgid "Unable to read from log pipe"
 msgstr "モニターから読み込みできません"
 
-#: src/logging/log_handler.c:215
+#: src/logging/log_handler.c:225
 #, fuzzy
-msgid "Missing file path in JSON document"
+msgid "Missing 'path' field in JSON document"
+msgstr "JSON 状態ドキュメントに auth 項目がありません"
+
+#: src/logging/log_handler.c:231
+#, fuzzy
+msgid "Missing 'driver' in JSON document"
+msgstr "JSON ドキュメントに resource ファイル記述子がありません"
+
+#: src/logging/log_handler.c:239
+#, fuzzy
+msgid "Missing 'domname' in JSON document"
+msgstr "JSON ドキュメントに resource 名がありません"
+
+#: src/logging/log_handler.c:247
+#, fuzzy
+msgid "Missing 'domuuid' in JSON document"
 msgstr "JSON ドキュメントに fd データがありません"
 
-#: src/logging/log_handler.c:228
+#: src/logging/log_handler.c:252
 #, fuzzy
-msgid "Missing file pipefd in JSON document"
-msgstr "JSON ドキュメントに fd データがありません"
+msgid "Malformed 'domuuid' in JSON document"
+msgstr "JSON ドキュメントに不正な形式の owner 値があります"
 
-#: src/logging/log_handler.c:233 src/util/virlockspace.c:374
+#: src/logging/log_handler.c:265
+#, fuzzy
+msgid "Missing 'pipefd' in JSON document"
+msgstr "JSON ドキュメントに pid データがありません"
+
+#: src/logging/log_handler.c:270 src/util/virlockspace.c:374
 msgid "Cannot enable close-on-exec flag"
 msgstr "close-on-exec フラグを有効化できません"
 
-#: src/logging/log_handler.c:264
+#: src/logging/log_handler.c:301
 #, fuzzy
 msgid "Missing files data from JSON file"
 msgstr "JSON ファイルに lockspaces データがありません"
 
-#: src/logging/log_handler.c:270
+#: src/logging/log_handler.c:307
 #, fuzzy
 msgid "Malformed files data from JSON file"
 msgstr "JSON ファイルに不正な形式の lockspaces データがあります"
 
-#: src/logging/log_handler.c:374
+#: src/logging/log_handler.c:378
 #, fuzzy, c-format
 msgid "Cannot open log file: '%s'"
 msgstr "ディレクトリー '%s' が開けません"
 
-#: src/logging/log_handler.c:382
+#: src/logging/log_handler.c:386
 #, fuzzy
 msgid "Cannot open fifo pipe"
 msgstr "%s を開けません"
 
-#: src/logging/log_handler.c:461
+#: src/logging/log_handler.c:460
 #, fuzzy, c-format
-msgid "No open log file for domain %s"
-msgstr "%s をドメイン %s に対して検索できませんでした"
+msgid "No open log file %s"
+msgstr "ログファイル %s を開けません"
 
-#: src/logging/log_handler.c:566 src/util/virlockspace.c:487
+#: src/logging/log_handler.c:569 src/util/virlockspace.c:487
 msgid "Cannot disable close-on-exec flag"
 msgstr "close-on-exec フラグを無効化できません"
 
-#: src/logging/log_manager.c:189 src/remote/remote_driver.c:6477
+#: src/logging/log_manager.c:191 src/remote/remote_driver.c:6477
 msgid "too many file descriptors received"
 msgstr ""
 
-#: src/logging/log_manager.c:192 src/remote/remote_driver.c:6482
+#: src/logging/log_manager.c:194 src/remote/remote_driver.c:6482
 msgid "no file descriptor received"
 msgstr ""
 
@@ -11960,7 +11980,7 @@ msgstr "root ディレクトリーを変更できません"
 msgid "Unable to become session leader"
 msgstr "セッションリーダーになれません"
 
-#: src/lxc/lxc_domain.c:89 src/qemu/qemu_domain.c:898
+#: src/lxc/lxc_domain.c:89 src/qemu/qemu_domain.c:897
 #: src/test/test_driver.c:223
 #, c-format
 msgid "Failed to register xml namespace '%s'"
@@ -12036,8 +12056,8 @@ msgstr ""
 msgid "unable to set memory %s tunable"
 msgstr "メモリー %s tunable を設定できません"
 
-#: src/lxc/lxc_driver.c:1066 src/libxl/libxl_driver.c:2613
-#: src/libxl/libxl_driver.c:2659 src/qemu/qemu_driver.c:7097
+#: src/lxc/lxc_driver.c:1066 src/libxl/libxl_driver.c:2612
+#: src/libxl/libxl_driver.c:2658 src/qemu/qemu_driver.c:7097
 #: src/qemu/qemu_driver.c:7145 src/xen/xen_driver.c:1639
 #: src/xen/xen_driver.c:1692
 #, c-format
@@ -12156,7 +12176,7 @@ msgstr "一時ドメインに対して自動起動を設定できません"
 msgid "Cannot create autostart directory %s"
 msgstr "自動起動ディレクトリー %s を作成できません"
 
-#: src/lxc/lxc_driver.c:3254 src/libxl/libxl_driver.c:4136
+#: src/lxc/lxc_driver.c:3254 src/libxl/libxl_driver.c:4135
 #: src/qemu/qemu_driver.c:8868 src/uml/uml_driver.c:2491
 #, c-format
 msgid "Failed to create symlink '%s to '%s'"
@@ -12179,7 +12199,7 @@ msgstr "コンソールデバイス '%s' が見つかりません"
 msgid "default"
 msgstr "デフォルト"
 
-#: src/lxc/lxc_driver.c:3510 src/libxl/libxl_driver.c:4425
+#: src/lxc/lxc_driver.c:3510 src/libxl/libxl_driver.c:4424
 #: src/qemu/qemu_driver.c:16002 src/uml/uml_driver.c:2645
 #: src/xen/xen_driver.c:2708
 #, c-format
@@ -12213,7 +12233,7 @@ msgstr "コンテナーが initctl パイプを提供していません"
 msgid "Unable to send SIGTERM to init pid %llu"
 msgstr "SIGTERM を init pid %llu に送信できません"
 
-#: src/lxc/lxc_driver.c:3790 src/libxl/libxl_driver.c:3279
+#: src/lxc/lxc_driver.c:3790 src/libxl/libxl_driver.c:3278
 #, c-format
 msgid "target %s already exists."
 msgstr "ターゲット %s がすでに存在します。"
@@ -12222,28 +12242,28 @@ msgstr "ターゲット %s がすでに存在します。"
 msgid "device is already in the domain configuration"
 msgstr "デバイスはすでにドメインの設定にあります"
 
-#: src/lxc/lxc_driver.c:3823 src/libxl/libxl_driver.c:3324
+#: src/lxc/lxc_driver.c:3823 src/libxl/libxl_driver.c:3323
 msgid "persistent attach of device is not supported"
 msgstr "デバイスの永続的な接続はサポートされません"
 
-#: src/lxc/lxc_driver.c:3856 src/libxl/libxl_driver.c:3641
+#: src/lxc/lxc_driver.c:3856 src/libxl/libxl_driver.c:3640
 msgid "persistent update of device is not supported"
 msgstr "デバイスの永続的な更新はサポートされません"
 
-#: src/lxc/lxc_driver.c:3880 src/libxl/libxl_driver.c:3543
+#: src/lxc/lxc_driver.c:3880 src/libxl/libxl_driver.c:3542
 #: src/qemu/qemu_driver.c:8219
 #, c-format
 msgid "no target device %s"
 msgstr "ターゲットデバイス %s がありません"
 
-#: src/lxc/lxc_driver.c:3901 src/libxl/libxl_driver.c:3562
+#: src/lxc/lxc_driver.c:3901 src/libxl/libxl_driver.c:3561
 #: src/qemu/qemu_driver.c:8238 src/qemu/qemu_driver.c:8262
 #: src/qemu/qemu_hotplug.c:1539 src/qemu/qemu_hotplug.c:4183
 #: src/qemu/qemu_hotplug.c:4240 src/qemu/qemu_hotplug.c:4298
 msgid "device not present in domain configuration"
 msgstr "デバイスはドメインの設定にありません"
 
-#: src/lxc/lxc_driver.c:3912 src/libxl/libxl_driver.c:3572
+#: src/lxc/lxc_driver.c:3912 src/libxl/libxl_driver.c:3571
 msgid "persistent detach of device is not supported"
 msgstr "デバイスの永続的な切断はサポートされません"
 
@@ -12269,7 +12289,7 @@ msgstr "init PID が確認できるまでディスクを接続できません"
 msgid "devices cgroup isn't mounted"
 msgstr "デバイス cgroup がマウントされていません"
 
-#: src/lxc/lxc_driver.c:4107 src/libxl/libxl_driver.c:2966
+#: src/lxc/lxc_driver.c:4107 src/libxl/libxl_driver.c:2965
 #: src/qemu/qemu_driver.c:8048 src/qemu/qemu_hotplug.c:344
 #: src/qemu/qemu_hotplug.c:594 src/qemu/qemu_hotplug.c:712
 #: src/uml/uml_driver.c:2191
@@ -12317,13 +12337,13 @@ msgstr "サポートされないホストデバイス形式 %s"
 msgid "Cannot attach hostdev until init PID is known"
 msgstr "init PID が確認できるまでホストデバイスを接続できません"
 
-#: src/lxc/lxc_driver.c:4591 src/libxl/libxl_driver.c:3256
+#: src/lxc/lxc_driver.c:4591 src/libxl/libxl_driver.c:3255
 #: src/vz/vz_driver.c:1114 src/uml/uml_driver.c:2273
 #, c-format
 msgid "device type '%s' cannot be attached"
 msgstr "デバイスタイプ '%s' は添付できません"
 
-#: src/lxc/lxc_driver.c:4620 src/libxl/libxl_driver.c:3120
+#: src/lxc/lxc_driver.c:4620 src/libxl/libxl_driver.c:3119
 #: src/qemu/qemu_hotplug.c:3571 src/uml/uml_driver.c:2322
 #, c-format
 msgid "disk %s not found"
@@ -12342,7 +12362,7 @@ msgstr "USB デバイスがありませんでした"
 msgid "hostdev %s not found"
 msgstr "ホストデバイス %s がありませんでした"
 
-#: src/lxc/lxc_driver.c:4970 src/libxl/libxl_driver.c:3521
+#: src/lxc/lxc_driver.c:4970 src/libxl/libxl_driver.c:3520
 #: src/vz/vz_driver.c:1191 src/xen/xm_internal.c:1374
 #, c-format
 msgid "device type '%s' cannot be detached"
@@ -12354,8 +12374,8 @@ msgid "cannot do live update a device on inactive domain"
 msgstr "停止状態のドメインにおいてデバイスを動的更新できません"
 
 #: src/lxc/lxc_driver.c:5023 src/lxc/lxc_driver.c:5149
-#: src/lxc/lxc_driver.c:5262 src/libxl/libxl_driver.c:3691
-#: src/libxl/libxl_driver.c:3799 src/libxl/libxl_driver.c:3904
+#: src/lxc/lxc_driver.c:5262 src/libxl/libxl_driver.c:3690
+#: src/libxl/libxl_driver.c:3798 src/libxl/libxl_driver.c:3903
 msgid "cannot modify device on transient domain"
 msgstr "一時ドメインにあるデバイスを変更できません"
 
@@ -12508,11 +12528,11 @@ msgstr "マシン %s の有効な cgroup がありません"
 msgid "could not close logfile"
 msgstr "ログファイルを閉じられませんでした"
 
-#: src/libxl/libxl_domain.c:147 src/qemu/qemu_domain.c:1621
+#: src/libxl/libxl_domain.c:147 src/qemu/qemu_domain.c:1620
 msgid "cannot acquire state change lock"
 msgstr "状態変更ロックを獲得できません"
 
-#: src/libxl/libxl_domain.c:150 src/qemu/qemu_domain.c:1638
+#: src/libxl/libxl_domain.c:150 src/qemu/qemu_domain.c:1637
 msgid "cannot acquire job mutex"
 msgstr "ジョブのミューテックスを獲得できません"
 
@@ -12522,7 +12542,7 @@ msgid "multiple IP addresses not supported on device type %s"
 msgstr "フィルターは %s 形式のインターフェースにおいてサポートされません"
 
 #: src/libxl/libxl_domain.c:297 src/openvz/openvz_driver.c:123
-#: src/qemu/qemu_domain.c:1352 src/uml/uml_driver.c:423
+#: src/qemu/qemu_domain.c:1351 src/uml/uml_driver.c:423
 #: src/xen/xen_driver.c:348 src/xenapi/xenapi_driver.c:62
 #, c-format
 msgid "hostdev mode 'capabilities' is not supported in %s"
@@ -12564,17 +12584,17 @@ msgstr "無効な XML 長: %d"
 msgid "failed to read XML"
 msgstr "XML の読み込みに失敗しました"
 
-#: src/libxl/libxl_domain.c:818 src/libxl/libxl_driver.c:2356
+#: src/libxl/libxl_domain.c:807 src/libxl/libxl_driver.c:2355
 #, c-format
 msgid "Failed to pin vcpu '%d' with libxenlight"
 msgstr "libxenlight を用いた仮想 CPU '%d' の固定に失敗しました"
 
-#: src/libxl/libxl_domain.c:863
+#: src/libxl/libxl_domain.c:852
 #, fuzzy
 msgid "Failed to balloon domain0 memory"
 msgstr "メモリーの割り当てに失敗しました"
 
-#: src/libxl/libxl_domain.c:980 src/qemu/qemu_driver.c:7025
+#: src/libxl/libxl_domain.c:944 src/qemu/qemu_driver.c:7025
 #, c-format
 msgid ""
 "cannot restore domain '%s' uuid %s from a file which belongs to domain '%s' "
@@ -12583,201 +12603,201 @@ msgstr ""
 "ドメイン '%s' UUID %s をドメイン '%s' UUID %s に属するファイルから復元できま"
 "せん"
 
-#: src/libxl/libxl_domain.c:1047
+#: src/libxl/libxl_domain.c:1011
 #, c-format
 msgid "libxenlight failed to create new domain '%s'"
 msgstr "libxenlight が新しいドメイン '%s' の作成に失敗しました"
 
-#: src/libxl/libxl_domain.c:1051
+#: src/libxl/libxl_domain.c:1015
 #, c-format
 msgid "libxenlight failed to restore domain '%s'"
 msgstr "libxenlight がドメイン '%s' の復元に失敗しました"
 
-#: src/libxl/libxl_domain.c:1074
+#: src/libxl/libxl_domain.c:1037
 msgid "libxenlight failed to store userdata"
 msgstr "libxenlight がユーザーデータの保存に失敗しました"
 
-#: src/libxl/libxl_driver.c:89
+#: src/libxl/libxl_driver.c:88
 #, fuzzy
 msgid "Domain-0 does not support requested operation"
 msgstr "ストレージプールはボリューム作成をサポートしていません"
 
-#: src/libxl/libxl_driver.c:530
+#: src/libxl/libxl_driver.c:529
 #, fuzzy
 msgid "unable to get Domain-0 information from libxenlight"
 msgstr "libxenlight からバージョン情報の取得に失敗しました"
 
-#: src/libxl/libxl_driver.c:597
+#: src/libxl/libxl_driver.c:596
 msgid "VNC"
 msgstr "VNC"
 
-#: src/libxl/libxl_driver.c:605 src/qemu/qemu_driver.c:767
+#: src/libxl/libxl_driver.c:604 src/qemu/qemu_driver.c:767
 msgid "migration"
 msgstr "マイグレーション"
 
-#: src/libxl/libxl_driver.c:638
+#: src/libxl/libxl_driver.c:637
 #, c-format
 msgid "failed to create state dir '%s': %s"
 msgstr "状態ファイル用ディレクトリー '%s' の作成に失敗しました: %s"
 
-#: src/libxl/libxl_driver.c:645
+#: src/libxl/libxl_driver.c:644
 #, c-format
 msgid "failed to create lib dir '%s': %s"
 msgstr "ライブラリーディレクトリー '%s' の作成に失敗しました: %s"
 
-#: src/libxl/libxl_driver.c:652
+#: src/libxl/libxl_driver.c:651
 #, c-format
 msgid "failed to create save dir '%s': %s"
 msgstr "保存用ディレクトリ '%s' の作成に失敗しました: %s"
 
-#: src/libxl/libxl_driver.c:659
+#: src/libxl/libxl_driver.c:658
 #, c-format
 msgid "failed to create dump dir '%s': %s"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:682
+#: src/libxl/libxl_driver.c:681
 msgid "cannot create capabilities for libxenlight"
 msgstr "libxenlight のケイパビリティの作成に失敗しました"
 
-#: src/libxl/libxl_driver.c:787
+#: src/libxl/libxl_driver.c:786
 msgid "libxenlight state driver is not active"
 msgstr "libxenlight 状態ドライバーが動作中ではありません"
 
-#: src/libxl/libxl_driver.c:797 src/xen/xen_driver.c:462
+#: src/libxl/libxl_driver.c:796 src/xen/xen_driver.c:462
 #, c-format
 msgid "unexpected Xen URI path '%s', try xen:///"
 msgstr "予期しない Xen URI パス '%s' です、xen:/// を試してください"
 
-#: src/libxl/libxl_driver.c:1125
+#: src/libxl/libxl_driver.c:1124
 #, c-format
 msgid "Failed to suspend domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' の一時停止に失敗しました"
 
-#: src/libxl/libxl_driver.c:1183
+#: src/libxl/libxl_driver.c:1182
 #, c-format
 msgid "Failed to resume domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' の再開に失敗しました"
 
-#: src/libxl/libxl_driver.c:1248 src/libxl/libxl_driver.c:1263
+#: src/libxl/libxl_driver.c:1247 src/libxl/libxl_driver.c:1262
 #, c-format
 msgid "Failed to shutdown domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' のシャットダウンに失敗しました"
 
-#: src/libxl/libxl_driver.c:1314
+#: src/libxl/libxl_driver.c:1313
 #, c-format
 msgid "Failed to reboot domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' の再起動に失敗しました"
 
-#: src/libxl/libxl_driver.c:1357 src/libxl/libxl_driver.c:1709
-#: src/libxl/libxl_driver.c:1920
+#: src/libxl/libxl_driver.c:1356 src/libxl/libxl_driver.c:1708
+#: src/libxl/libxl_driver.c:1919
 #, c-format
 msgid "Failed to destroy domain '%d'"
 msgstr "ドメイン '%d' の強制停止に失敗しました"
 
-#: src/libxl/libxl_driver.c:1474
+#: src/libxl/libxl_driver.c:1473
 msgid "cannot set memory on an inactive domain"
 msgstr "休止状態のドメインにメモリーを設定できません"
 
-#: src/libxl/libxl_driver.c:1481 src/libxl/libxl_driver.c:2151
+#: src/libxl/libxl_driver.c:1480 src/libxl/libxl_driver.c:2150
 msgid "cannot change persistent config of a transient domain"
 msgstr "一時ドメインの永続的な設定を変更できません"
 
-#: src/libxl/libxl_driver.c:1496
+#: src/libxl/libxl_driver.c:1495
 #, c-format
 msgid "Failed to set maximum memory for domain '%d' with libxenlight"
 msgstr "libxenlight を用いてドメイン '%d' に最大メモリーを設定できませんでした"
 
-#: src/libxl/libxl_driver.c:1517 src/qemu/qemu_driver.c:2385
+#: src/libxl/libxl_driver.c:1516 src/qemu/qemu_driver.c:2385
 #: src/uml/uml_driver.c:1872
 msgid "cannot set memory higher than max memory"
 msgstr "メモリーは最大メモリー以上にセットできません"
 
-#: src/libxl/libxl_driver.c:1531
+#: src/libxl/libxl_driver.c:1530
 #, c-format
 msgid "Failed to set memory for domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' のメモリーの設定に失敗しました"
 
-#: src/libxl/libxl_driver.c:1592 src/libxl/libxl_driver.c:4714
-#: src/libxl/libxl_driver.c:4855
+#: src/libxl/libxl_driver.c:1591 src/libxl/libxl_driver.c:4663
+#: src/libxl/libxl_driver.c:4804
 #, c-format
 msgid "libxl_domain_info failed for domain '%d'"
 msgstr "libxl_domain_info がドメイン '%d' に対して失敗しました"
 
-#: src/libxl/libxl_driver.c:1655
+#: src/libxl/libxl_driver.c:1654
 #, c-format
 msgid "Domain '%d' has to be running because libxenlight will suspend it"
 msgstr "libxenlight がドメイン '%d' を一時停止するので実行する必要があります"
 
-#: src/libxl/libxl_driver.c:1663
+#: src/libxl/libxl_driver.c:1662
 #, c-format
 msgid "Failed to create domain save file '%s'"
 msgstr "ドメイン保存ファイル '%s' の作成に失敗しました"
 
-#: src/libxl/libxl_driver.c:1678
+#: src/libxl/libxl_driver.c:1677
 msgid "Failed to write save file header"
 msgstr "保存ファイルヘッダーの書き込みに失敗しました"
 
-#: src/libxl/libxl_driver.c:1684
+#: src/libxl/libxl_driver.c:1683
 msgid "Failed to write xml description"
 msgstr "XML 記述の書き込みに失敗しました"
 
-#: src/libxl/libxl_driver.c:1695
+#: src/libxl/libxl_driver.c:1694
 #, c-format
 msgid "Failed to save domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' の保存に失敗しました"
 
-#: src/libxl/libxl_driver.c:1720 src/libxl/libxl_driver.c:1849
+#: src/libxl/libxl_driver.c:1719 src/libxl/libxl_driver.c:1848
 msgid "cannot close file"
 msgstr "ファイルを閉じることができませんでした"
 
-#: src/libxl/libxl_driver.c:1744 src/libxl/libxl_driver.c:1812
+#: src/libxl/libxl_driver.c:1743 src/libxl/libxl_driver.c:1811
 #: src/test/test_driver.c:1977 src/test/test_driver.c:2079
 #: src/xen/xen_driver.c:1233 src/xen/xen_driver.c:1356
 msgid "xml modification unsupported"
 msgstr "XML 修正はサポートされません"
 
-#: src/libxl/libxl_driver.c:1896
+#: src/libxl/libxl_driver.c:1895
 #, c-format
 msgid "Before dumping core, failed to suspend domain '%d' with libxenlight"
 msgstr ""
 "コアをダンプする前に、libxenlight を用いてドメイン '%d' を一時停止できません"
 "でした"
 
-#: src/libxl/libxl_driver.c:1911
+#: src/libxl/libxl_driver.c:1910
 #, c-format
 msgid "Failed to dump core of domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' のダンプコアに失敗しました"
 
-#: src/libxl/libxl_driver.c:1939
+#: src/libxl/libxl_driver.c:1938
 #, c-format
 msgid "After dumping core, failed to resume domain '%d' with libxenlight"
 msgstr "コアのダンプ後、libxenlight を用いたドメイン '%d' の再開に失敗しました"
 
-#: src/libxl/libxl_driver.c:1992 src/qemu/qemu_driver.c:3401
+#: src/libxl/libxl_driver.c:1991 src/qemu/qemu_driver.c:3401
 #: src/test/test_driver.c:5758
 msgid "cannot do managed save for transient domain"
 msgstr "一時ドメインに対して管理保存を実行できません"
 
-#: src/libxl/libxl_driver.c:2125 src/libxl/libxl_driver.c:2280
+#: src/libxl/libxl_driver.c:2124 src/libxl/libxl_driver.c:2279
 #: src/xen/xen_driver.c:1408
 #, c-format
 msgid "invalid flag combination: (0x%x)"
 msgstr "フラグの無効な組み合わせです: (0x%x)"
 
-#: src/libxl/libxl_driver.c:2130
+#: src/libxl/libxl_driver.c:2129
 msgid "nvcpus is zero"
 msgstr "nvcpus が 0 です"
 
-#: src/libxl/libxl_driver.c:2145
+#: src/libxl/libxl_driver.c:2144
 msgid "cannot set vcpus on an inactive domain"
 msgstr "休止状態のドメインの仮想 CPU 数を設定できません"
 
-#: src/libxl/libxl_driver.c:2157 src/xen/xend_internal.c:1815
+#: src/libxl/libxl_driver.c:2156 src/xen/xend_internal.c:1815
 #: src/xen/xm_internal.c:692
 msgid "could not determine max vcpus for the domain"
 msgstr "ドメインの最大仮想 CPU 数を決定できません"
 
-#: src/libxl/libxl_driver.c:2166 src/qemu/qemu_driver.c:4921
+#: src/libxl/libxl_driver.c:2165 src/qemu/qemu_driver.c:4921
 #: src/xen/xend_internal.c:1820 src/xen/xm_internal.c:701
 #, c-format
 msgid ""
@@ -12785,260 +12805,255 @@ msgid ""
 msgstr ""
 "要求された vcpus はドメインに許可できる最大 vcpus を越えています: %d > %d"
 
-#: src/libxl/libxl_driver.c:2200 src/libxl/libxl_driver.c:2210
+#: src/libxl/libxl_driver.c:2199 src/libxl/libxl_driver.c:2209
 #, c-format
 msgid "Failed to set vcpus for domain '%d' with libxenlight"
 msgstr "libxenlight を用いたドメイン '%d' の仮想 CPU 数の設定に失敗しました"
 
-#: src/libxl/libxl_driver.c:2294
+#: src/libxl/libxl_driver.c:2293
 msgid "domain is transient"
 msgstr "ドメインが一時的です"
 
-#: src/libxl/libxl_driver.c:2334
+#: src/libxl/libxl_driver.c:2333
 msgid "domain is inactive"
 msgstr "ドメインが休止状態です"
 
-#: src/libxl/libxl_driver.c:2373
+#: src/libxl/libxl_driver.c:2372
 msgid "failed to update or add vcpupin xml"
 msgstr "vcpupin の XML の更新または追加に失敗しました"
 
-#: src/libxl/libxl_driver.c:2503 src/libxl/libxl_driver.c:4754
+#: src/libxl/libxl_driver.c:2502 src/libxl/libxl_driver.c:4703
 #, c-format
 msgid "Failed to list vcpus for domain '%d' with libxenlight"
 msgstr ""
 "libxenlight を用いたドメイン '%d' の仮想 CPU 数の一覧表示に失敗しました"
 
-#: src/libxl/libxl_driver.c:2608
+#: src/libxl/libxl_driver.c:2607
 msgid "parsing sxpr config failed"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2842 src/qemu/qemu_driver.c:7590
+#: src/libxl/libxl_driver.c:2841 src/qemu/qemu_driver.c:7590
 #: src/uml/uml_driver.c:2151 src/vmware/vmware_driver.c:809
 msgid "cannot undefine transient domain"
 msgstr "一時ドメインを定義解除できません"
 
-#: src/libxl/libxl_driver.c:2854 src/qemu/qemu_driver.c:7615
+#: src/libxl/libxl_driver.c:2853 src/qemu/qemu_driver.c:7615
 msgid "Failed to remove domain managed save image"
 msgstr "ドメインの管理保存イメージの削除に失敗しました"
 
-#: src/libxl/libxl_driver.c:2859 src/qemu/qemu_driver.c:7621
+#: src/libxl/libxl_driver.c:2858 src/qemu/qemu_driver.c:7621
 #: src/test/test_driver.c:2821 tools/virsh-domain.c:3965
 msgid "Refusing to undefine while domain managed save image exists"
 msgstr "ドメインの管理保存イメージが存在する間は定義解除が拒否されます"
 
-#: src/libxl/libxl_driver.c:2915 src/qemu/qemu_driver.c:7926
+#: src/libxl/libxl_driver.c:2914 src/qemu/qemu_driver.c:7926
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
 msgstr "バス '%s' とターゲット '%s' を持つデバイスはありません"
 
-#: src/libxl/libxl_driver.c:2922 src/qemu/qemu_hotplug.c:186
+#: src/libxl/libxl_driver.c:2921 src/qemu/qemu_hotplug.c:186
 #, c-format
 msgid "Removable media not supported for %s device"
 msgstr "リムーバブルメディアは %s デバイスに対してサポートされません"
 
-#: src/libxl/libxl_driver.c:2932
+#: src/libxl/libxl_driver.c:2931
 #, c-format
 msgid "libxenlight failed to change media for disk '%s'"
 msgstr "libxenlight がディスク '%s' のメディアの変更に失敗しました"
 
-#: src/libxl/libxl_driver.c:2972 src/qemu/qemu_hotplug.c:723
+#: src/libxl/libxl_driver.c:2971 src/qemu/qemu_hotplug.c:723
 #: src/uml/uml_driver.c:2198
 msgid "disk source path is missing"
 msgstr "ディスクソースパスがありません"
 
-#: src/libxl/libxl_driver.c:2990
+#: src/libxl/libxl_driver.c:2989
 #, c-format
 msgid "libxenlight failed to attach disk '%s'"
 msgstr "libxenlight がディスク '%s' の接続に失敗しました"
 
-#: src/libxl/libxl_driver.c:3004 src/qemu/qemu_hotplug.c:847
+#: src/libxl/libxl_driver.c:3003 src/qemu/qemu_hotplug.c:847
 #: src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr "ディスクバス '%s' はホットプラグができません"
 
-#: src/libxl/libxl_driver.c:3010 src/qemu/qemu_hotplug.c:853
+#: src/libxl/libxl_driver.c:3009 src/qemu/qemu_hotplug.c:853
 #, c-format
 msgid "disk device type '%s' cannot be hotplugged"
 msgstr "ディスクデバイスタイプ '%s' はホットプラグができません"
 
-#: src/libxl/libxl_driver.c:3036
+#: src/libxl/libxl_driver.c:3035
 #, c-format
 msgid "target pci device %.4x:%.2x:%.2x.%.1x already exists"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3055
+#: src/libxl/libxl_driver.c:3054
 #, c-format
 msgid "libxenlight failed to attach pci device %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3082 src/libxl/libxl_driver.c:3431
+#: src/libxl/libxl_driver.c:3081 src/libxl/libxl_driver.c:3430
 #: src/qemu/qemu_hotplug.c:2071 src/qemu/qemu_hotplug.c:3894
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "hostdev モード '%s' はサポートされません"
 
-#: src/libxl/libxl_driver.c:3095 src/qemu/qemu_hotplug.c:2097
+#: src/libxl/libxl_driver.c:3094 src/qemu/qemu_hotplug.c:2097
 #: src/qemu/qemu_hotplug.c:3860
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys モード '%s' はサポートされません"
 
-#: src/libxl/libxl_driver.c:3132
+#: src/libxl/libxl_driver.c:3131
 #, c-format
 msgid "libxenlight failed to detach disk '%s'"
 msgstr "libxenlight がディスク '%s' の切断に失敗しました"
 
-#: src/libxl/libxl_driver.c:3147
+#: src/libxl/libxl_driver.c:3146
 #, c-format
 msgid "disk bus '%s' cannot be hot unplugged."
 msgstr "ディスクバス '%s' は活性抜線できません。"
 
-#: src/libxl/libxl_driver.c:3153
+#: src/libxl/libxl_driver.c:3152
 #, c-format
 msgid "device type '%s' cannot hot unplugged"
 msgstr "ディスク形式 '%s' は活性抜線できません。"
 
-#: src/libxl/libxl_driver.c:3189 src/libxl/libxl_driver.c:3292
+#: src/libxl/libxl_driver.c:3188 src/libxl/libxl_driver.c:3291
 #, fuzzy, c-format
 msgid "network device with mac %s already exists"
 msgstr "ネットワークデバイス %s がすでに存在します"
 
-#: src/libxl/libxl_driver.c:3211
+#: src/libxl/libxl_driver.c:3210
 msgid "libxenlight failed to attach network device"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3310
+#: src/libxl/libxl_driver.c:3309
 #, c-format
 msgid ""
 "target pci device %.4x:%.2x:%.2x.%.1x                                  "
 "already exists"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3378 src/qemu/qemu_hotplug.c:3905
+#: src/libxl/libxl_driver.c:3377 src/qemu/qemu_hotplug.c:3905
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "ホスト pci デバイス %.4x:%.2x:%.2x.%.1x は見付かりません"
 
-#: src/libxl/libxl_driver.c:3386 src/qemu/qemu_hotplug.c:3746
+#: src/libxl/libxl_driver.c:3385 src/qemu/qemu_hotplug.c:3746
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 "マルチファンクション PCI デバイスを活性抜線できません: %.4x:%.2x:%.2x.%.1x"
 
-#: src/libxl/libxl_driver.c:3398
+#: src/libxl/libxl_driver.c:3397
 #, c-format
 msgid ""
 "libxenlight failed to detach pci device                          %.4x:%.2x:"
 "%.2x.%.1x"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3482
+#: src/libxl/libxl_driver.c:3481
 msgid "libxenlight failed to detach network device"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3596 src/qemu/qemu_driver.c:7960
+#: src/libxl/libxl_driver.c:3595 src/qemu/qemu_driver.c:7960
 #, c-format
 msgid "disk bus '%s' cannot be updated."
 msgstr "ディスクのバス '%s' は更新できません"
 
-#: src/libxl/libxl_driver.c:3603
+#: src/libxl/libxl_driver.c:3602
 #, c-format
 msgid "device type '%s' cannot be updated"
 msgstr "デバイス形式 '%s' は更新できません"
 
-#: src/libxl/libxl_driver.c:3623 src/openvz/openvz_driver.c:2045
+#: src/libxl/libxl_driver.c:3622 src/openvz/openvz_driver.c:2045
 #: src/qemu/qemu_driver.c:8351
 #, c-format
 msgid "target %s doesn't exist."
 msgstr "ターゲット %s が存在しません。"
 
-#: src/libxl/libxl_driver.c:3628 src/qemu/qemu_driver.c:8357
+#: src/libxl/libxl_driver.c:3627 src/qemu/qemu_driver.c:8357
 msgid "this disk doesn't support update"
 msgstr "このディスクは更新をサポートしません"
 
-#: src/libxl/libxl_driver.c:3975 src/libxl/libxl_conf.c:1803
+#: src/libxl/libxl_driver.c:3974 src/libxl/libxl_conf.c:1803
 msgid "libxl_get_physinfo_info failed"
 msgstr "libxl_get_physinfo_info に失敗しました"
 
-#: src/libxl/libxl_driver.c:4004 src/libxl/libxl_conf.c:204
+#: src/libxl/libxl_driver.c:4003 src/libxl/libxl_conf.c:204
 msgid "libxl_get_numainfo failed"
 msgstr "libxl_get_numainfo に失敗しました"
 
-#: src/libxl/libxl_driver.c:4011 src/nodeinfo.c:1902 src/nodeinfo.c:2200
+#: src/libxl/libxl_driver.c:4010 src/nodeinfo.c:1902 src/nodeinfo.c:2200
 #: src/nodeinfo.c:2273 src/nodeinfo.c:2320
 #, c-format
 msgid "start cell %d out of range (0-%d)"
 msgstr "セル %d を開始、範囲外です (0-%d)"
 
-#: src/libxl/libxl_driver.c:4208
+#: src/libxl/libxl_driver.c:4207
 #, c-format
 msgid "Failed to get scheduler id for domain '%d' with libxenlight"
 msgstr ""
 "libxenlight を用いたドメイン '%d' のスケジューラー ID の取得に失敗しました"
 
-#: src/libxl/libxl_driver.c:4256 src/libxl/libxl_driver.c:4336
+#: src/libxl/libxl_driver.c:4255 src/libxl/libxl_driver.c:4335
 msgid "Only 'credit' scheduler is supported"
 msgstr "'credit' スケジューラーのみがサポートされます"
 
-#: src/libxl/libxl_driver.c:4262 src/libxl/libxl_driver.c:4342
+#: src/libxl/libxl_driver.c:4261 src/libxl/libxl_driver.c:4341
 #, c-format
 msgid "Failed to get scheduler parameters for domain '%d' with libxenlight"
 msgstr ""
 "libxenlight を用いたドメイン '%d' に対するスケジューラーのパラメーターを取得"
 "できませんでした"
 
-#: src/libxl/libxl_driver.c:4358
+#: src/libxl/libxl_driver.c:4357
 #, c-format
 msgid "Failed to set scheduler parameters for domain '%d' with libxenlight"
 msgstr ""
 "libxenlight を用いたドメイン '%d' に対するスケジューラーのパラメーターを設定"
 "できませんでした"
 
-#: src/libxl/libxl_driver.c:4393 src/xen/xen_driver.c:2687
+#: src/libxl/libxl_driver.c:4392 src/xen/xen_driver.c:2687
 msgid "Named device aliases are not supported"
 msgstr "名前付きデバイスのエイリアスはサポートされません"
 
-#: src/libxl/libxl_driver.c:4418 src/qemu/qemu_driver.c:15995
+#: src/libxl/libxl_driver.c:4417 src/qemu/qemu_driver.c:15995
 #, c-format
 msgid "cannot find character device %s"
 msgstr "キャラクターデバイス %s を見つけられませんでした"
 
-#: src/libxl/libxl_driver.c:4438 src/qemu/qemu_driver.c:16015
+#: src/libxl/libxl_driver.c:4437 src/qemu/qemu_driver.c:16015
 msgid "Active console session exists for this domain"
 msgstr "使用中のコンソールセッションがこのドメインに対して存在します"
 
-#: src/libxl/libxl_driver.c:4543
+#: src/libxl/libxl_driver.c:4542
 msgid "unable to get numa affinity"
 msgstr "NUMA アフィニティを取得できません"
 
-#: src/libxl/libxl_driver.c:4553
+#: src/libxl/libxl_driver.c:4552
 #, c-format
 msgid "Node %zu out of range"
 msgstr "ノード %zu が範囲外です"
 
-#: src/libxl/libxl_driver.c:4684
-#, fuzzy, c-format
-msgid "'%s' is not a known interface"
-msgstr "無効なパス、'%s' が既知のインターフェースではありません"
-
-#: src/libxl/libxl_driver.c:4985 src/qemu/qemu_driver.c:12799
+#: src/libxl/libxl_driver.c:4934 src/qemu/qemu_driver.c:12799
 #: src/xen/xen_driver.c:2504
 #, c-format
 msgid "device %s is not a PCI device"
 msgstr "デバイス %s  PCI デバイスではありません"
 
-#: src/libxl/libxl_driver.c:5030
+#: src/libxl/libxl_driver.c:4979
 #, c-format
 msgid "unsupported driver name '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:5163
+#: src/libxl/libxl_driver.c:5112
 #, fuzzy
 msgid "Domain-0 cannot be migrated"
 msgstr "ドメイン '%s' がマイグレーションされていません"
 
-#: src/libxl/libxl_driver.c:5327 src/openvz/openvz_driver.c:2473
+#: src/libxl/libxl_driver.c:5276 src/openvz/openvz_driver.c:2473
 #, c-format
 msgid "Migration failed. No domain on destination host with matching name '%s'"
 msgstr ""
@@ -15947,7 +15962,7 @@ msgstr ""
 msgid "missing selfctime in QEMU capabilities XML"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2746 src/qemu/qemu_domain.c:725
+#: src/qemu/qemu_capabilities.c:2746 src/qemu/qemu_domain.c:724
 msgid "failed to parse qemu capabilities flags"
 msgstr "QEMU のケイパビリティのフラグを構文解析できませんでした"
 
@@ -15955,7 +15970,7 @@ msgstr "QEMU のケイパビリティのフラグを構文解析できません�
 msgid "missing flag name in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2761 src/qemu/qemu_domain.c:738
+#: src/qemu/qemu_capabilities.c:2761 src/qemu/qemu_domain.c:737
 #, c-format
 msgid "Unknown qemu capabilities flag %s"
 msgstr "不明な QEMU ケイパビリティフラグ %s"
@@ -16818,7 +16833,7 @@ msgstr "PCI デバイス %s は割り当てできません"
 msgid "missing alias for memory device"
 msgstr "ソースデバイスがありません"
 
-#: src/qemu/qemu_command.c:5323 src/qemu/qemu_domain.c:3789
+#: src/qemu/qemu_command.c:5323 src/qemu/qemu_domain.c:3780
 #, fuzzy
 msgid "invalid memory device type"
 msgstr "無効なノードデバイスポインターがあります"
@@ -17513,7 +17528,7 @@ msgstr ""
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr "この QEMU は QXL グラフィックアダプターをサポートしません"
 
-#: src/qemu/qemu_command.c:10711 src/qemu/qemu_domain.c:1363
+#: src/qemu/qemu_command.c:10711 src/qemu/qemu_domain.c:1362
 #, fuzzy
 msgid "value for 'vgamem' must be at least 1 MiB (1024 KiB)"
 msgstr "'vram' の値は '%u' よりも少なくなければいけません"
@@ -18076,256 +18091,256 @@ msgstr ""
 msgid "Snapshots are not yet supported with 'pool' volumes"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:475
+#: src/qemu/qemu_domain.c:474
 msgid "Unable to init qemu driver mutexes"
 msgstr "QEMU ドライバーのミューテックスを初期化できません"
 
-#: src/qemu/qemu_domain.c:517
+#: src/qemu/qemu_domain.c:516
 msgid "Unexpected QEMU monitor still active during domain deletion"
 msgstr "予期しない QEMU モニターがドメインの削除中にまだアクティブです"
 
-#: src/qemu/qemu_domain.c:521
+#: src/qemu/qemu_domain.c:520
 msgid "Unexpected QEMU agent still active during domain deletion"
 msgstr "予期しない QEMU エージェントがドメインの削除中にまだアクティブです"
 
-#: src/qemu/qemu_domain.c:672
+#: src/qemu/qemu_domain.c:671
 msgid "no monitor path"
 msgstr "モニターパスがありません"
 
-#: src/qemu/qemu_domain.c:696
+#: src/qemu/qemu_domain.c:695
 #, c-format
 msgid "unsupported monitor type '%s'"
 msgstr "サポートされないモニター形式 '%s' です"
 
-#: src/qemu/qemu_domain.c:759
+#: src/qemu/qemu_domain.c:758
 #, c-format
 msgid "Unknown job type %s"
 msgstr "不明なジョブ形式 %s"
 
-#: src/qemu/qemu_domain.c:772
+#: src/qemu/qemu_domain.c:771
 #, c-format
 msgid "Unknown async job type %s"
 msgstr "不明な非同期ジョブ形式 %s"
 
-#: src/qemu/qemu_domain.c:783
+#: src/qemu/qemu_domain.c:782
 #, c-format
 msgid "Unknown job phase %s"
 msgstr "不明なジョブのフェーズ %s"
 
-#: src/qemu/qemu_domain.c:794
+#: src/qemu/qemu_domain.c:793
 #, fuzzy
 msgid "failed to parse list of disks marked for migration"
 msgstr "Xend ドメイン情報の解析に失敗しました"
 
-#: src/qemu/qemu_domain.c:818 src/qemu/qemu_domain.c:830
+#: src/qemu/qemu_domain.c:817 src/qemu/qemu_domain.c:829
 msgid "failed to parse qemu device list"
 msgstr "QEMU のデバイス一覧の構文解析に失敗しました"
 
-#: src/qemu/qemu_domain.c:919
+#: src/qemu/qemu_domain.c:918
 msgid "No qemu command-line argument specified"
 msgstr "QEMU コマンドライン引数が指定されていません"
 
-#: src/qemu/qemu_domain.c:945
+#: src/qemu/qemu_domain.c:944
 msgid "No qemu environment name specified"
 msgstr "QEMU 環境名が指定されていません"
 
-#: src/qemu/qemu_domain.c:950
+#: src/qemu/qemu_domain.c:949
 msgid "Empty qemu environment name specified"
 msgstr "空の QEMU 環境名が指定されています"
 
-#: src/qemu/qemu_domain.c:955
+#: src/qemu/qemu_domain.c:954
 msgid "Invalid environment name, it must begin with a letter or underscore"
 msgstr "無効な環境名。文字またはアンダースコア（_）から始まる必要があります"
 
-#: src/qemu/qemu_domain.c:960
+#: src/qemu/qemu_domain.c:959
 msgid ""
 "Invalid environment name, it must contain only alphanumerics and underscore"
 msgstr "無効な環境名です、英数字とアンダースコア (_) のみを含められます"
 
-#: src/qemu/qemu_domain.c:1048
+#: src/qemu/qemu_domain.c:1047
 msgid "bootloader is not supported by QEMU"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:1369
+#: src/qemu/qemu_domain.c:1368
 #, fuzzy
 msgid "value for 'vgamem' must be power of two"
 msgstr "'vram' の値は '%u' よりも少なくなければいけません"
 
-#: src/qemu/qemu_domain.c:1617
+#: src/qemu/qemu_domain.c:1616
 #, fuzzy, c-format
 msgid "cannot acquire state change lock (held by %s)"
 msgstr "状態変更ロックを獲得できません"
 
-#: src/qemu/qemu_domain.c:1628
+#: src/qemu/qemu_domain.c:1627
 #, fuzzy, c-format
 msgid "cannot acquire state change lock (held by %s) due to max_queued limit"
 msgstr "max_queued 制限のため状態変更ロックを獲得できません"
 
-#: src/qemu/qemu_domain.c:1633
+#: src/qemu/qemu_domain.c:1632
 msgid "cannot acquire state change lock due to max_queued limit"
 msgstr "max_queued 制限のため状態変更ロックを獲得できません"
 
-#: src/qemu/qemu_domain.c:1686
+#: src/qemu/qemu_domain.c:1685
 #, c-format
 msgid "unexpected async job %d"
 msgstr "予期しない非同期ジョブ %d"
 
-#: src/qemu/qemu_domain.c:1777 src/qemu/qemu_domain.c:1847
+#: src/qemu/qemu_domain.c:1776 src/qemu/qemu_domain.c:1846
 msgid "domain is no longer running"
 msgstr "ドメインはもはや実行中ではありません"
 
-#: src/qemu/qemu_domain.c:2322 src/uml/uml_driver.c:1089
+#: src/qemu/qemu_domain.c:2316 src/uml/uml_driver.c:1089
 #, c-format
 msgid "failed to create logfile %s"
 msgstr "ログファイル %s の作成に失敗"
 
-#: src/qemu/qemu_domain.c:2327 src/qemu/qemu_domain.c:2350
+#: src/qemu/qemu_domain.c:2321 src/qemu/qemu_domain.c:2344
 #, c-format
 msgid "failed to set close-on-exec flag on %s"
 msgstr "%s において close-on-exec フラグの設定に失敗しました"
 
-#: src/qemu/qemu_domain.c:2338
+#: src/qemu/qemu_domain.c:2332
 #, c-format
 msgid "failed to truncate %s"
 msgstr "%s の切り詰めに失敗しました"
 
-#: src/qemu/qemu_domain.c:2345
+#: src/qemu/qemu_domain.c:2339
 #, c-format
 msgid "failed to open logfile %s"
 msgstr "ログファイル %s を開けませんでした"
 
-#: src/qemu/qemu_domain.c:2357
+#: src/qemu/qemu_domain.c:2351
 #, fuzzy, c-format
 msgid "failed to seek in log file %s"
 msgstr "ログファイル %s を開けませんでした"
 
-#: src/qemu/qemu_domain.c:2387
+#: src/qemu/qemu_domain.c:2382
 #, fuzzy
 msgid "Unable to seek to end of domain logfile"
 msgstr "ドメインのログファイル %s に書き込みできません"
 
-#: src/qemu/qemu_domain.c:2392
+#: src/qemu/qemu_domain.c:2387
 #, fuzzy
 msgid "Unable to write to domain logfile"
 msgstr "ドメインのログファイル %s に書き込みできません"
 
-#: src/qemu/qemu_domain.c:2441
+#: src/qemu/qemu_domain.c:2434
 #, fuzzy
 msgid "Unable to read from log file"
 msgstr "VMware ログファイルを"
 
-#: src/qemu/qemu_domain.c:2511 src/storage/storage_backend.c:1143
+#: src/qemu/qemu_domain.c:2502 src/storage/storage_backend.c:1143
 #: src/storage/storage_backend_fs.c:1297
 msgid "unable to find kvm-img or qemu-img"
 msgstr "kvm-img か qemu-img が見付かりません"
 
-#: src/qemu/qemu_domain.c:2538
+#: src/qemu/qemu_domain.c:2529
 #, c-format
 msgid "cannot create snapshot directory '%s'"
 msgstr "スナップショットのディレクトリー '%s' を作成できません"
 
-#: src/qemu/qemu_domain.c:2599
+#: src/qemu/qemu_domain.c:2590
 #, c-format
 msgid "Disk device '%s' does not support snapshotting"
 msgstr "ディスクデバイス '%s' がスナップショットをサポートしません"
 
-#: src/qemu/qemu_domain.c:3174 src/qemu/qemu_domain.c:3184
-#: src/qemu/qemu_domain.c:3247 src/qemu/qemu_domain.c:3254
-#: src/qemu/qemu_domain.c:3261 src/qemu/qemu_domain.c:3268
-#: src/qemu/qemu_domain.c:3292
+#: src/qemu/qemu_domain.c:3165 src/qemu/qemu_domain.c:3175
+#: src/qemu/qemu_domain.c:3238 src/qemu/qemu_domain.c:3245
+#: src/qemu/qemu_domain.c:3252 src/qemu/qemu_domain.c:3259
+#: src/qemu/qemu_domain.c:3283
 #, fuzzy, c-format
 msgid "cannot modify field '%s' of the disk"
 msgstr "一時ドメインにあるデバイスを変更できません"
 
-#: src/qemu/qemu_domain.c:3309 src/qemu/qemu_domain.c:3317
+#: src/qemu/qemu_domain.c:3300 src/qemu/qemu_domain.c:3308
 #, c-format
 msgid "disk '%s' already in active block job"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3467
+#: src/qemu/qemu_domain.c:3458
 msgid "QEMU guest agent is not available due to an error"
 msgstr "QEMU ゲストエージェントがエラーのため利用可能ではありません"
 
-#: src/qemu/qemu_domain.c:3476
+#: src/qemu/qemu_domain.c:3467
 #, fuzzy
 msgid "QEMU guest agent is not connected"
 msgstr "QEMU ゲストエージェントが設定されていません"
 
-#: src/qemu/qemu_domain.c:3482
+#: src/qemu/qemu_domain.c:3473
 msgid "QEMU guest agent is not configured"
 msgstr "QEMU ゲストエージェントが設定されていません"
 
-#: src/qemu/qemu_domain.c:3539
+#: src/qemu/qemu_domain.c:3530
 #, c-format
 msgid "memory size of NUMA node '%zu' overflowed after alignment"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3553
+#: src/qemu/qemu_domain.c:3544
 #, fuzzy
 msgid "initial memory size overflowed after alignment"
 msgstr "maxerrors が大きすぎます"
 
-#: src/qemu/qemu_domain.c:3562
+#: src/qemu/qemu_domain.c:3553
 #, fuzzy
 msgid "maximum memory size overflowed after alignment"
 msgstr "新しい最大メモリー容量、単位付き整数 (初期値 KiB)"
 
-#: src/qemu/qemu_domain.c:3573
+#: src/qemu/qemu_domain.c:3564
 #, c-format
 msgid "size of memory module '%zu' overflowed after alignment"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3631
+#: src/qemu/qemu_domain.c:3622
 msgid "block jobs not supported with this QEMU binary"
 msgstr "ブロックジョブはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_domain.c:3730
+#: src/qemu/qemu_domain.c:3721
 #, c-format
 msgid "memory device slot '%u' is already being used by another memory device"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3739
+#: src/qemu/qemu_domain.c:3730
 #, c-format
 msgid ""
 "memory device base '0x%llx' is already being used by another memory device"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3757
+#: src/qemu/qemu_domain.c:3748
 #, fuzzy
 msgid "only 'dimm' addresses are supported for the pc-dimm device"
 msgstr "TCP リッスンのみが文字デバイス用にサポートされています"
 
-#: src/qemu/qemu_domain.c:3765
+#: src/qemu/qemu_domain.c:3756
 #, fuzzy
 msgid "target NUMA node needs to be specifed for memory device"
 msgstr "ターゲット形式は %s デバイスに対して指定されなければいけません"
 
-#: src/qemu/qemu_domain.c:3774
+#: src/qemu/qemu_domain.c:3765
 #, c-format
 msgid "memory device slot '%u' exceeds slots count '%u'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3833
+#: src/qemu/qemu_domain.c:3824
 msgid ""
 "cannot use/hotplug a memory device when domain 'maxMemory' is not defined"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3843
+#: src/qemu/qemu_domain.c:3834
 #, fuzzy
 msgid "memory hotplug isn't supported by this QEMU binary"
 msgstr "メモリーロックはこの QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_domain.c:3854
+#: src/qemu/qemu_domain.c:3845
 msgid ""
 "At least one numa node has to be configured when enabling memory hotplug"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:3862
+#: src/qemu/qemu_domain.c:3853
 #, fuzzy, c-format
 msgid "memory device count '%u' exceeds slots count '%u'"
 msgstr "ターゲットドメインのホストデバイス数 %zu がソースの %zu と一致しません"
 
-#: src/qemu/qemu_domain.c:3878
+#: src/qemu/qemu_domain.c:3869
 #, fuzzy
 msgid "memory device total size exceeds hotplug space"
 msgstr "ターゲットドメインのホストデバイス数 %zu がソースの %zu と一致しません"
@@ -42408,6 +42423,10 @@ msgstr "オプション --%s と --%s は相互排他です"
 #, c-format
 msgid "Option --%s is required by option --%s"
 msgstr ""
+
+#, fuzzy
+#~ msgid "'%s' is not a known interface"
+#~ msgstr "無効なパス、'%s' が既知のインターフェースではありません"
 
 #, fuzzy
 #~ msgid "Invalid connection name '%s'"
