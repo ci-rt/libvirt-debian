@@ -81,7 +81,7 @@ Depends:
  libvirt-clients (>= ${binary:Version}),
 Section: oldlibs
 Priority: extra
-Description: programs for the libvirt library
+Description: Dummy transitional package
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
@@ -100,7 +100,7 @@ Replaces: libvirt-bin (<< 1.2.6-1~)
 Conflicts: libvirt-bin (<< 1.2.6-1~)
 Suggests:
  libvirt-daemon,
-Description: programs for the libvirt library
+Description: Programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
@@ -122,13 +122,13 @@ Recommends:
  netcat-openbsd,
 Suggests:
  libvirt-daemon-system,
-Description: programs for the libvirt library
+Description: Virtualization daemon
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
- This package contains the libvirt-daemon.
+ This package contains the deaemon libvirtd to manage the hypvervisors.
 
 Package: libvirt-daemon-system
 Architecture: any
@@ -184,7 +184,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libvirt0 (= ${binary:Version})
 Priority: extra
 Section: debug
-Description: library for interfacing with different virtualization systems
+Description: library for interfacing with different virtualization systems - debugging symbols
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
@@ -228,11 +228,11 @@ Depends:
  augeas-tools,
  libvirt0 (= ${binary:Version}),
 Priority: extra
-Description: library for interfacing with different virtualization systems
+Description: Sanlock plugin for virtlockd
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
- This package contains the sanlock plugin.
+ This package contains the sanlock plugin for libvirt's locking daemon.
 
