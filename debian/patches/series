@@ -14,3 +14,4 @@ Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
 CVE-2015-5313-storage-don-t-allow-in-filesystem-volume-na.patch
+test-qemuxml2argv-Mock-virMemoryMaxValue-to-remove-32-64-.patch
