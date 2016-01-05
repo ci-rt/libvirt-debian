@@ -1,3 +1,12 @@
+libvirt (1.3.0-2) unstable; urgency=medium
+
+  * [836190e] Avoid duplicates in package descriptions. Thanks lintian
+  * [9f29e58] Remove unused pycompat
+  * [e89c059] test: qemuxml2argv: Mock virMemoryMaxValue to remove 32/64 bit
+    difference to fix the testsuite on i386
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 06 Jan 2016 00:04:12 +0100
+
 libvirt (1.3.0-1) unstable; urgency=medium
 
   * Upload to unstable
