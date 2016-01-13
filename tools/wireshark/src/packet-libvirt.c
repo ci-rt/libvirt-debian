@@ -36,15 +36,11 @@
 #include "packet-libvirt.h"
 #include "internal.h"
 
+/* Wireshark 1.12 brings API change */
 #define WIRESHARK_VERSION               \
     ((VERSION_MAJOR * 1000 * 1000) +    \
      (VERSION_MINOR * 1000) +           \
      (VERSION_MICRO))
-
-/* Wireshark 1.12 brings API change */
-#if WIRESHARK_VERSION < 1012000
-# define WIRESHARK_COMPAT
-#endif
 
 static int proto_libvirt = -1;
 static int hf_libvirt_length = -1;
@@ -56,7 +52,7 @@ static int hf_libvirt_serial = -1;
 static int hf_libvirt_status = -1;
 static int hf_libvirt_stream = -1;
 static int hf_libvirt_num_of_fds = -1;
-static int hf_libvirt_unknown = -1;
+int hf_libvirt_unknown = -1;
 static gint ett_libvirt = -1;
 
 #define XDR_PRIMITIVE_DISSECTOR(xtype, ctype, ftype)                    \
@@ -113,7 +109,7 @@ format_xdr_bytes(guint8 *bytes, guint32 length)
 
     if (length == 0)
         return "";
-    buf = ep_alloc(length*2 + 1);
+    buf = wmem_alloc(wmem_packet_scope(), length*2 + 1);
     for (i = 0; i < length; i++) {
         /* We know that buf has enough size to contain
            2 * length + '\0' characters. */
@@ -316,7 +312,7 @@ dissect_libvirt_payload_xdr_data(tvbuff_t *tvb, proto_tree *tree, gint payload_l
     }
 
     payload_tvb = tvb_new_subset(tvb, start, -1, payload_length);
-#ifdef WIRESHARK_COMPAT
+#if WIRESHARK_VERSION < 1012000
     payload_data = (caddr_t)tvb_memdup(payload_tvb, 0, payload_length);
 #else
     payload_data = (caddr_t)tvb_memdup(NULL, payload_tvb, 0, payload_length);
@@ -338,7 +334,7 @@ dissect_libvirt_payload(tvbuff_t *tvb, proto_tree *tree,
 {
     gssize payload_length;
 
-    payload_length = tvb_length(tvb) - VIR_HEADER_LEN;
+    payload_length = tvb_captured_length(tvb) - VIR_HEADER_LEN;
     if (payload_length <= 0)
         return; /* No payload */
 
@@ -362,7 +358,7 @@ dissect_libvirt_payload(tvbuff_t *tvb, proto_tree *tree,
     proto_tree_add_item(tree, hf_libvirt_unknown, tvb, VIR_HEADER_LEN, -1, ENC_NA);
 }
 
-#ifdef WIRESHARK_COMPAT
+#if WIRESHARK_VERSION < 1012000
 static void
 dissect_libvirt_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 #else
@@ -405,7 +401,7 @@ dissect_libvirt_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
         proto_item *ti;
         proto_tree *libvirt_tree;
 
-        ti = proto_tree_add_item(tree, proto_libvirt, tvb, 0, tvb_length(tvb), ENC_NA);
+        ti = proto_tree_add_item(tree, proto_libvirt, tvb, 0, tvb_captured_length(tvb), ENC_NA);
         libvirt_tree = proto_item_add_subtree(ti, ett_libvirt);
 
         offset = 0;
@@ -430,13 +426,18 @@ dissect_libvirt_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
         dissect_libvirt_payload(tvb, libvirt_tree, prog, proc, type, status);
     }
 
-#ifndef WIRESHARK_COMPAT
+#if WIRESHARK_VERSION >= 1012000
     return 0;
 #endif
 }
 
+#if WIRESHARK_VERSION >= 1099002
+static guint
+get_message_len(packet_info *pinfo ATTRIBUTE_UNUSED, tvbuff_t *tvb, int offset, void *data ATTRIBUTE_UNUSED)
+#else
 static guint32
 get_message_len(packet_info *pinfo ATTRIBUTE_UNUSED, tvbuff_t *tvb, int offset)
+#endif
 {
     return tvb_get_ntohl(tvb, offset);
 }
@@ -446,7 +447,7 @@ dissect_libvirt(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
     /* Another magic const - 4; simply, how much bytes
      * is needed to tell the length of libvirt packet. */
-#ifdef WIRESHARK_COMPAT
+#if WIRESHARK_VERSION < 1012000
     tcp_dissect_pdus(tvb, pinfo, tree, TRUE, 4,
                      get_message_len, dissect_libvirt_message);
 #else

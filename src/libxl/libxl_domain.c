@@ -74,6 +74,9 @@ libxlDomainObjInitJob(libxlDomainObjPrivatePtr priv)
     if (virCondInit(&priv->job.cond) < 0)
         return -1;
 
+    if (VIR_ALLOC(priv->job.current) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -90,6 +93,7 @@ static void
 libxlDomainObjFreeJob(libxlDomainObjPrivatePtr priv)
 {
     ignore_value(virCondDestroy(&priv->job.cond));
+    VIR_FREE(priv->job.current);
 }
 
 /* Give up waiting for mutex after 30 seconds */
@@ -131,6 +135,8 @@ libxlDomainObjBeginJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
     VIR_DEBUG("Starting job: %s", libxlDomainJobTypeToString(job));
     priv->job.active = job;
     priv->job.owner = virThreadSelfID();
+    priv->job.started = now;
+    priv->job.current->type = VIR_DOMAIN_JOB_UNBOUNDED;
 
     return 0;
 
@@ -177,6 +183,27 @@ libxlDomainObjEndJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
     virCondSignal(&priv->job.cond);
 
     return virObjectUnref(obj);
+}
+
+int
+libxlDomainJobUpdateTime(struct libxlDomainJobObj *job)
+{
+    virDomainJobInfoPtr jobInfo = job->current;
+    unsigned long long now;
+
+    if (!job->started)
+        return 0;
+
+    if (virTimeMillisNow(&now) < 0)
+        return -1;
+
+    if (now < job->started) {
+        job->started = 0;
+        return 0;
+    }
+
+    jobInfo->timeElapsed = now - job->started;
+    return 0;
 }
 
 static void *
@@ -258,6 +285,7 @@ static int
 libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                               const virDomainDef *def,
                               virCapsPtr caps ATTRIBUTE_UNUSED,
+                              unsigned int parseFlags ATTRIBUTE_UNUSED,
                               void *opaque ATTRIBUTE_UNUSED)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
@@ -343,6 +371,7 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 static int
 libxlDomainDefPostParse(virDomainDefPtr def,
                         virCapsPtr caps ATTRIBUTE_UNUSED,
+                        unsigned int parseFlags ATTRIBUTE_UNUSED,
                         void *opaque ATTRIBUTE_UNUSED)
 {
     /* Xen PV domains always have a PV console, so add one to the domain config
@@ -958,6 +987,10 @@ libxlDomainStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
         }
         VIR_FREE(managed_save_path);
     }
+
+    if (virDomainObjSetDefTransient(cfg->caps, driver->xmlopt,
+                                    vm, true) < 0)
+        goto cleanup;
 
     if (libxlBuildDomainConfig(driver->reservedGraphicsPorts, vm->def,
                                cfg->ctx, &d_config) < 0)

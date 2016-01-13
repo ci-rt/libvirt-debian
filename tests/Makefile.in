@@ -272,7 +272,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/configmake.m4 \
 	$(top_srcdir)/m4/count-leading-zeros.m4 \
-	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/dirname.m4 \
+	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/ctype.m4 \
+	$(top_srcdir)/m4/dirname.m4 \
 	$(top_srcdir)/m4/double-slash-root.m4 $(top_srcdir)/m4/dup.m4 \
 	$(top_srcdir)/m4/dup2.m4 $(top_srcdir)/m4/eealloc.m4 \
 	$(top_srcdir)/m4/environ.m4 $(top_srcdir)/m4/errno_h.m4 \
@@ -403,6 +404,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-login-shell.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
@@ -677,7 +679,8 @@ am__EXEEXT_30 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
 	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT) \
 	metadatatest$(EXEEXT) secretxml2xmltest$(EXEEXT) \
-	$(am__EXEEXT_28) $(am__EXEEXT_29) objecteventtest$(EXEEXT)
+	genericxml2xmltest$(EXEEXT) $(am__EXEEXT_28) $(am__EXEEXT_29) \
+	objecteventtest$(EXEEXT)
 am__EXEEXT_31 = commandhelper$(EXEEXT) ssh$(EXEEXT) test_conf$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am__bhyvexml2argvtest_SOURCES_DIST = bhyvexml2argvtest.c testutils.c \
@@ -755,6 +758,10 @@ fchosttest_OBJECTS = $(am_fchosttest_OBJECTS)
 am_fdstreamtest_OBJECTS = fdstreamtest.$(OBJEXT) testutils.$(OBJEXT)
 fdstreamtest_OBJECTS = $(am_fdstreamtest_OBJECTS)
 fdstreamtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_genericxml2xmltest_OBJECTS = genericxml2xmltest.$(OBJEXT) \
+	testutils.$(OBJEXT)
+genericxml2xmltest_OBJECTS = $(am_genericxml2xmltest_OBJECTS)
+genericxml2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_interfacexml2xmltest_OBJECTS = interfacexml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 interfacexml2xmltest_OBJECTS = $(am_interfacexml2xmltest_OBJECTS)
@@ -771,10 +778,10 @@ libvirtdconftest_OBJECTS = $(am_libvirtdconftest_OBJECTS)
 @WITH_LIBVIRTD_TRUE@libvirtdconftest_DEPENDENCIES =  \
 @WITH_LIBVIRTD_TRUE@	../daemon/libvirtd_conf.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2)
-am__lxcconf2xmltest_SOURCES_DIST = lxcconf2xmltest.c testutils.c \
-	testutils.h
+am__lxcconf2xmltest_SOURCES_DIST = lxcconf2xmltest.c testutilslxc.c \
+	testutilslxc.h testutils.c testutils.h
 @WITH_LXC_TRUE@am_lxcconf2xmltest_OBJECTS = lxcconf2xmltest.$(OBJEXT) \
-@WITH_LXC_TRUE@	testutils.$(OBJEXT)
+@WITH_LXC_TRUE@	testutilslxc.$(OBJEXT) testutils.$(OBJEXT)
 lxcconf2xmltest_OBJECTS = $(am_lxcconf2xmltest_OBJECTS)
 @WITH_LXC_TRUE@am__DEPENDENCIES_4 = ../src/libvirt_driver_lxc_impl.la \
 @WITH_LXC_TRUE@	$(am__append_46) $(am__DEPENDENCIES_2)
@@ -1381,10 +1388,11 @@ SOURCES = $(bhyvexml2argvmock_la_SOURCES) \
 	$(domaincapstest_SOURCES) $(domainconftest_SOURCES) \
 	$(domainsnapshotxml2xmltest_SOURCES) $(esxutilstest_SOURCES) \
 	$(eventtest_SOURCES) $(fchosttest_SOURCES) \
-	$(fdstreamtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
-	$(jsontest_SOURCES) $(libvirtdconftest_SOURCES) \
-	$(lxcconf2xmltest_SOURCES) $(lxcxml2xmltest_SOURCES) \
-	$(metadatatest_SOURCES) $(networkxml2conftest_SOURCES) \
+	$(fdstreamtest_SOURCES) $(genericxml2xmltest_SOURCES) \
+	$(interfacexml2xmltest_SOURCES) $(jsontest_SOURCES) \
+	$(libvirtdconftest_SOURCES) $(lxcconf2xmltest_SOURCES) \
+	$(lxcxml2xmltest_SOURCES) $(metadatatest_SOURCES) \
+	$(networkxml2conftest_SOURCES) \
 	$(networkxml2firewalltest_SOURCES) \
 	$(networkxml2xmltest_SOURCES) \
 	$(networkxml2xmlupdatetest_SOURCES) \
@@ -1456,8 +1464,8 @@ DIST_SOURCES = $(am__bhyvexml2argvmock_la_SOURCES_DIST) \
 	$(am__domainsnapshotxml2xmltest_SOURCES_DIST) \
 	$(am__esxutilstest_SOURCES_DIST) $(am__eventtest_SOURCES_DIST) \
 	$(am__fchosttest_SOURCES_DIST) $(fdstreamtest_SOURCES) \
-	$(interfacexml2xmltest_SOURCES) $(jsontest_SOURCES) \
-	$(am__libvirtdconftest_SOURCES_DIST) \
+	$(genericxml2xmltest_SOURCES) $(interfacexml2xmltest_SOURCES) \
+	$(jsontest_SOURCES) $(am__libvirtdconftest_SOURCES_DIST) \
 	$(am__lxcconf2xmltest_SOURCES_DIST) \
 	$(am__lxcxml2xmltest_SOURCES_DIST) $(metadatatest_SOURCES) \
 	$(am__networkxml2conftest_SOURCES_DIST) \
@@ -1994,6 +2002,7 @@ GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
 GNULIB_IOCTL = @GNULIB_IOCTL@
 GNULIB_ISATTY = @GNULIB_ISATTY@
+GNULIB_ISBLANK = @GNULIB_ISBLANK@
 GNULIB_ISFINITE = @GNULIB_ISFINITE@
 GNULIB_ISINF = @GNULIB_ISINF@
 GNULIB_ISNAN = @GNULIB_ISNAN@
@@ -2198,6 +2207,7 @@ GNULIB_TANL = @GNULIB_TANL@
 GNULIB_TCGETSID = @GNULIB_TCGETSID@
 GNULIB_TIMEGM = @GNULIB_TIMEGM@
 GNULIB_TIME_R = @GNULIB_TIME_R@
+GNULIB_TIME_RZ = @GNULIB_TIME_RZ@
 GNULIB_TMPFILE = @GNULIB_TMPFILE@
 GNULIB_TOWCTRANS = @GNULIB_TOWCTRANS@
 GNULIB_TRUNC = @GNULIB_TRUNC@
@@ -2416,6 +2426,7 @@ HAVE_ILOGB = @HAVE_ILOGB@
 HAVE_ILOGBF = @HAVE_ILOGBF@
 HAVE_ILOGBL = @HAVE_ILOGBL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
+HAVE_ISBLANK = @HAVE_ISBLANK@
 HAVE_ISNAND = @HAVE_ISNAND@
 HAVE_ISNANF = @HAVE_ISNANF@
 HAVE_ISNANL = @HAVE_ISNANL@
@@ -2569,6 +2580,7 @@ HAVE_TANHF = @HAVE_TANHF@
 HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
+HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
@@ -2734,6 +2746,7 @@ NET_IF_H = @NET_IF_H@
 NET_IF_LIB = @NET_IF_LIB@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
 NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H = @NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H@
+NEXT_AS_FIRST_DIRECTIVE_CTYPE_H = @NEXT_AS_FIRST_DIRECTIVE_CTYPE_H@
 NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
 NEXT_AS_FIRST_DIRECTIVE_FCNTL_H = @NEXT_AS_FIRST_DIRECTIVE_FCNTL_H@
 NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
@@ -2771,6 +2784,7 @@ NEXT_AS_FIRST_DIRECTIVE_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_TIME_H@
 NEXT_AS_FIRST_DIRECTIVE_UNISTD_H = @NEXT_AS_FIRST_DIRECTIVE_UNISTD_H@
 NEXT_AS_FIRST_DIRECTIVE_WCHAR_H = @NEXT_AS_FIRST_DIRECTIVE_WCHAR_H@
 NEXT_AS_FIRST_DIRECTIVE_WCTYPE_H = @NEXT_AS_FIRST_DIRECTIVE_WCTYPE_H@
+NEXT_CTYPE_H = @NEXT_CTYPE_H@
 NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FCNTL_H = @NEXT_FCNTL_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
@@ -3264,10 +3278,11 @@ EXTRA_DIST = .valgrind.supp bhyvexml2argvdata bhyvexml2xmloutdata \
 	cputestdata domaincapsschemadata domaincapsschematest \
 	domainconfdata domainschemadata domainschematest \
 	domainsnapshotschematest domainsnapshotxml2xmlin \
-	domainsnapshotxml2xmlout fchostdata interfaceschemadata \
-	lxcconf2xmldata lxcxml2xmldata lxcxml2xmloutdata \
-	networkschematest networkxml2confdata networkxml2firewalldata \
-	networkxml2xmlin networkxml2xmlout networkxml2xmlupdatein \
+	domainsnapshotxml2xmlout fchostdata genericxml2xmlindata \
+	genericxml2xmloutdata interfaceschemadata lxcconf2xmldata \
+	lxcxml2xmldata lxcxml2xmloutdata networkschematest \
+	networkxml2confdata networkxml2firewalldata networkxml2xmlin \
+	networkxml2xmlout networkxml2xmlupdatein \
 	networkxml2xmlupdateout nodedevschemadata nodedevschematest \
 	nodeinfodata nwfilterschematest nwfilterxml2firewalldata \
 	nwfilterxml2xmlin nwfilterxml2xmlout oomtrace.pl qemuagentdata \
@@ -3317,8 +3332,8 @@ test_programs = virshtest sockettest nodeinfotest virbuftest \
 	$(am__append_27) $(am__append_28) $(am__append_29) \
 	storagevolxml2xmltest storagepoolxml2xmltest \
 	nodedevxml2xmltest interfacexml2xmltest cputest metadatatest \
-	secretxml2xmltest $(am__append_30) $(am__append_32) \
-	objecteventtest
+	secretxml2xmltest genericxml2xmltest $(am__append_30) \
+	$(am__append_32) objecteventtest
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
@@ -3508,7 +3523,7 @@ QEMUMONITORTESTUTILS_SOURCES = \
 
 @WITH_LXC_TRUE@lxcxml2xmltest_LDADD = $(lxc_LDADDS)
 @WITH_LXC_TRUE@lxcconf2xmltest_SOURCES = \
-@WITH_LXC_TRUE@	lxcconf2xmltest.c \
+@WITH_LXC_TRUE@	lxcconf2xmltest.c testutilslxc.c testutilslxc.h \
 @WITH_LXC_TRUE@	testutils.c testutils.h
 
 @WITH_LXC_TRUE@lxcconf2xmltest_LDADD = $(lxc_LDADDS)
@@ -3609,6 +3624,11 @@ secretxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 
 secretxml2xmltest_LDADD = $(LDADDS)
+genericxml2xmltest_SOURCES = \
+	genericxml2xmltest.c \
+	testutils.c testutils.h
+
+genericxml2xmltest_LDADD = $(LDADDS)
 @WITH_STORAGE_TRUE@storagevolxml2argvtest_SOURCES = \
 @WITH_STORAGE_TRUE@    storagevolxml2argvtest.c \
 @WITH_STORAGE_TRUE@    testutils.c testutils.h
@@ -4173,6 +4193,10 @@ fdstreamtest$(EXEEXT): $(fdstreamtest_OBJECTS) $(fdstreamtest_DEPENDENCIES) $(EX
 	@rm -f fdstreamtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(fdstreamtest_OBJECTS) $(fdstreamtest_LDADD) $(LIBS)
 
+genericxml2xmltest$(EXEEXT): $(genericxml2xmltest_OBJECTS) $(genericxml2xmltest_DEPENDENCIES) $(EXTRA_genericxml2xmltest_DEPENDENCIES) 
+	@rm -f genericxml2xmltest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(genericxml2xmltest_OBJECTS) $(genericxml2xmltest_LDADD) $(LIBS)
+
 interfacexml2xmltest$(EXEEXT): $(interfacexml2xmltest_OBJECTS) $(interfacexml2xmltest_DEPENDENCIES) $(EXTRA_interfacexml2xmltest_DEPENDENCIES) 
 	@rm -f interfacexml2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(interfacexml2xmltest_OBJECTS) $(interfacexml2xmltest_LDADD) $(LIBS)
@@ -4588,6 +4612,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fchosttest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fdstreamtest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genericxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interfacexml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jsontest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirportallocatormock_la-virportallocatortest.Plo@am__quote@
@@ -5992,6 +6017,13 @@ metadatatest.log: metadatatest$(EXEEXT)
 secretxml2xmltest.log: secretxml2xmltest$(EXEEXT)
 	@p='secretxml2xmltest$(EXEEXT)'; \
 	b='secretxml2xmltest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+genericxml2xmltest.log: genericxml2xmltest$(EXEEXT)
+	@p='genericxml2xmltest$(EXEEXT)'; \
+	b='genericxml2xmltest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

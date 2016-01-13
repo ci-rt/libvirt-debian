@@ -378,7 +378,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -387,7 +387,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -647,8 +647,8 @@ BuildRequires: util-linux
 BuildRequires: nfs-utils
 %endif
 
-%if %{with_firewalld}
-# Communication with the firewall daemon uses DBus
+%if %{with_firewalld} || %{with_polkit}
+# Communication with the firewall and polkit daemons use DBus
 BuildRequires: dbus-devel
 %endif
 
@@ -1547,10 +1547,8 @@ rm -fr %{buildroot}
 # on RHEL 5, thus we need to expand it here.
 make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
 
-for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap dommigrate domtop rename
-do
-  (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
-done
+make -C examples distclean
+
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.la
@@ -1792,9 +1790,9 @@ if [ $1 -ge 1 ] ; then
             /bin/systemctl start virtlogd.socket || :
     %else
         /sbin/chkconfig libvirtd 1>/dev/null 2>&1 &&
-            /bin/chkconfig virtlogd on || :
+            /sbin/chkconfig virtlogd on || :
         /sbin/service libvirtd status 1>/dev/null 2>&1 &&
-            /bin/service virtlogd start || :
+            /sbin/service virtlogd start || :
     %endif
 fi
 

@@ -15,22 +15,8 @@ extern "C" {
 
 #include <libvirt/libvirt.h>
 #include "internal.h"
+#include "virxdrdefs.h"
 #include <arpa/inet.h>
-#ifdef HAVE_XDR_U_INT64_T
-# define xdr_uint64_t xdr_u_int64_t
-#endif
-#ifndef IXDR_PUT_INT32
-# define IXDR_PUT_INT32 IXDR_PUT_LONG
-#endif
-#ifndef IXDR_GET_INT32
-# define IXDR_GET_INT32 IXDR_GET_LONG
-#endif
-#ifndef IXDR_PUT_U_INT32
-# define IXDR_PUT_U_INT32 IXDR_PUT_U_LONG
-#endif
-#ifndef IXDR_GET_U_INT32
-# define IXDR_GET_U_INT32 IXDR_GET_U_LONG
-#endif
 #define REMOTE_STRING_MAX 4194304
 
 typedef char *remote_nonnull_string;

@@ -3,19 +3,19 @@
  */
 
 static int
-remoteAdminDaemonGetVersion(virAdmDaemonPtr conn, unsigned long long *libVer)
+remoteAdminConnectGetLibVersion(virAdmConnectPtr conn, unsigned long long *libVer)
 {
     int rv = -1;
     remoteAdminPrivPtr priv = conn->privateData;
-    admin_daemon_get_version_ret ret;
+    admin_connect_get_lib_version_ret ret;
 
     virObjectLock(priv);
 
     memset(&ret, 0, sizeof(ret));
 
-    if (call(conn, 0, ADMIN_PROC_DAEMON_GET_VERSION,
+    if (call(conn, 0, ADMIN_PROC_CONNECT_GET_LIB_VERSION,
              (xdrproc_t)xdr_void, (char *)NULL,
-             (xdrproc_t)xdr_admin_daemon_get_version_ret, (char *)&ret) == -1) {
+             (xdrproc_t)xdr_admin_connect_get_lib_version_ret, (char *)&ret) == -1) {
         goto done;
     }
 

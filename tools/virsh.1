@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2015-11-27" "libvirt-1.3.0" "Virtualization Support"
+.TH VIRSH 1 "2016-01-12" "libvirt-1.3.1" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1359,8 +1359,8 @@ except that it does some error checking.
 .Sp
 The editor used can be supplied by the \f(CW$VISUAL\fR or \f(CW$EDITOR\fR environment
 variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
-.IP "\fBevent\fR {[\fIdomain\fR] { \fIevent\fR | \fI\-\-all\fR } [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] | \fI\-\-list\fR}" 4
-.IX Item "event {[domain] { event | --all } [--loop] [--timeout seconds] | --list}"
+.IP "\fBevent\fR {[\fIdomain\fR] { \fIevent\fR | \fI\-\-all\fR } [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] [\fI\-\-timestamp\fR] | \fI\-\-list\fR}" 4
+.IX Item "event {[domain] { event | --all } [--loop] [--timeout seconds] [--timestamp] | --list}"
 Wait for a class of domain events to occur, and print appropriate details
 of events as they happen.  The events can optionally be filtered by
 \&\fIdomain\fR.  Using \fI\-\-list\fR as the only argument will provide a list
@@ -1374,6 +1374,9 @@ occurs; you can send \s-1SIGINT \s0(usually via \f(CW\*(C`Ctrl\-C\*(C'\fR) to qu
 If \fI\-\-timeout\fR is specified, the command gives up waiting for events
 after \fIseconds\fR have elapsed.   With \fI\-\-loop\fR, the command prints all
 events until a timeout or interrupt key.
+.Sp
+When \fI\-\-timestamp\fR is used, a human-readable timestamp will be printed
+before the event.
 .IP "\fBiothreadinfo\fR \fIdomain\fR [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "iothreadinfo domain [[--live] [--config] | [--current]]"
 Display basic domain IOThreads information including the IOThread \s-1ID\s0 and
@@ -2209,8 +2212,8 @@ elapse. This operation doesn't not necessarily fail if the domain is running.
 .IX Item "ttyconsole domain"
 Output the device used for the \s-1TTY\s0 console of the domain. If the information
 is not available the processes will provide an exit code of 1.
-.IP "\fBundefine\fR \fIdomain\fR [\fI\-\-managed\-save\fR] [\fI\-\-snapshots\-metadata\fR] [\fI\-\-nvram\fR] [ {\fI\-\-storage\fR \fBvolumes\fR | \fI\-\-remove\-all\-storage\fR} \fI\-\-wipe\-storage\fR]" 4
-.IX Item "undefine domain [--managed-save] [--snapshots-metadata] [--nvram] [ {--storage volumes | --remove-all-storage} --wipe-storage]"
+.IP "\fBundefine\fR \fIdomain\fR [\fI\-\-managed\-save\fR] [\fI\-\-snapshots\-metadata\fR] [\fI\-\-nvram\fR] [ {\fI\-\-storage\fR \fBvolumes\fR | \fI\-\-remove\-all\-storage\fR [\fI\-\-delete\-snapshots\fR]} \fI\-\-wipe\-storage\fR]" 4
+.IX Item "undefine domain [--managed-save] [--snapshots-metadata] [--nvram] [ {--storage volumes | --remove-all-storage [--delete-snapshots]} --wipe-storage]"
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
 the domain configuration is removed.
@@ -2243,6 +2246,11 @@ Example: \-\-storage vda,/path/to/storage.img
 .Sp
 The \fI\-\-remove\-all\-storage\fR flag specifies that all of the domain's storage
 volumes should be deleted.
+.Sp
+The \fI\-\-delete\-snapshots\fR flag specifies that any snapshots associated with
+the storage volume should be deleted as well. Requires the
+\&\fI\-\-remove\-all\-storage\fR flag to be provided. Not all storage drivers
+support this option, presently only rbd.
 .Sp
 The flag \fI\-\-wipe\-storage\fR specifies that the storage volumes should be
 wiped before removal.
@@ -2725,8 +2733,8 @@ except that it does some error checking.
 .Sp
 The editor used can be supplied by the \f(CW$VISUAL\fR or \f(CW$EDITOR\fR environment
 variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
-.IP "\fBnet-event\fR {[\fInetwork\fR] \fIevent\fR [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] | \fI\-\-list\fR}" 4
-.IX Item "net-event {[network] event [--loop] [--timeout seconds] | --list}"
+.IP "\fBnet-event\fR {[\fInetwork\fR] \fIevent\fR [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] [\fI\-\-timestamp\fR] | \fI\-\-list\fR}" 4
+.IX Item "net-event {[network] event [--loop] [--timeout seconds] [--timestamp] | --list}"
 Wait for a class of network events to occur, and print appropriate details
 of events as they happen.  The events can optionally be filtered by
 \&\fInetwork\fR.  Using \fI\-\-list\fR as the only argument will provide a list
@@ -2738,6 +2746,9 @@ occurs; you can send \s-1SIGINT \s0(usually via \f(CW\*(C`Ctrl\-C\*(C'\fR) to qu
 If \fI\-\-timeout\fR is specified, the command gives up waiting for events
 after \fIseconds\fR have elapsed.   With \fI\-\-loop\fR, the command prints all
 events until a timeout or interrupt key.
+.Sp
+When \fI\-\-timestamp\fR is used, a human-readable timestamp will be printed
+before the event.
 .IP "\fBnet-info\fR \fInetwork\fR" 4
 .IX Item "net-info network"
 Returns basic information about the \fInetwork\fR object.
@@ -2994,11 +3005,17 @@ does not already have one will a label be created. If \fI\-\-overwrite\fR is
 specified or it's been determined that the disk doesn't already have one,
 \&'parted mklabel' will be used to create a label of the format specified
 by the pool source format type or \*(L"dos\*(R" if not specified for the pool.
-.IP "\fBpool-create\fR \fIfile\fR" 4
-.IX Item "pool-create file"
+.IP "\fBpool-create\fR \fIfile\fR [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]]" 4
+.IX Item "pool-create file [--build] [[--overwrite] | [--no-overwrite]]"
 Create and start a pool object from the \s-1XML \s0\fIfile\fR.
-.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-print\-xml\fR] [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]]" 4
-.IX Item "pool-create-as name type [--print-xml] [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username --secret-usage usage] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]]"
+.Sp
+[\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] perform a
+\&\fBpool-build\fR after creation in order to remove the need for a
+follow-up command to build the pool. The \fI\-\-overwrite\fR and
+\&\fI\-\-no\-overwrite\fR flags follow the same rules as \fBpool-build\fR. If
+just \fI\-\-build\fR is provided, then \fBpool-build\fR is called with no flags.
+.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-print\-xml\fR] [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]]" 4
+.IX Item "pool-create-as name type [--print-xml] [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username --secret-usage usage] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--build] [[--overwrite] | [--no-overwrite]]"
 Create and start a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without creating the pool.  Otherwise, the pool has the specified
@@ -3039,6 +3056,12 @@ the scsi_host adapter type pool.
 the wwnn and wwpn to be used for the fc_host adapter type pool. The parent
 optionally provides the name of the scsi_hostN node device to be used for
 the vHBA.
+.Sp
+[\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] perform a
+\&\fBpool-build\fR after creation in order to remove the need for a
+follow-up command to build the pool. The \fI\-\-overwrite\fR and
+\&\fI\-\-no\-overwrite\fR flags follow the same rules as \fBpool-build\fR. If
+just \fI\-\-build\fR is provided, then \fBpool-build\fR is called with no flags.
 .IP "\fBpool-define\fR \fIfile\fR" 4
 .IX Item "pool-define file"
 Define an inactive persistent storage pool or modify an existing persistent one
@@ -3050,7 +3073,8 @@ Create, but do not start, a pool object \fIname\fR from the raw parameters.  If
 without defining the pool.  Otherwise, the pool has the specified
 \&\fItype\fR.
 .Sp
-Use the same arguments as \fBpool-create-as\fR.
+Use the same arguments as \fBpool-create-as\fR, except for the \fI\-\-build\fR,
+\&\fI\-\-overwrite\fR, and \fI\-\-no\-overwrite\fR options.
 .IP "\fBpool-destroy\fR \fIpool-or-uuid\fR" 4
 .IX Item "pool-destroy pool-or-uuid"
 Destroy (stop) a given \fIpool\fR object. Libvirt will no longer manage the
@@ -3115,9 +3139,16 @@ Convert the \fIuuid\fR to a pool name.
 .IP "\fBpool-refresh\fR \fIpool-or-uuid\fR" 4
 .IX Item "pool-refresh pool-or-uuid"
 Refresh the list of volumes contained in \fIpool\fR.
-.IP "\fBpool-start\fR \fIpool-or-uuid\fR" 4
-.IX Item "pool-start pool-or-uuid"
+.IP "\fBpool-start\fR \fIpool-or-uuid\fR [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]]" 4
+.IX Item "pool-start pool-or-uuid [--build] [[--overwrite] | [--no-overwrite]]"
 Start the storage \fIpool\fR, which is previously defined but inactive.
+.Sp
+[\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] perform a
+\&\fBpool-build\fR prior to \fBpool-start\fR to ensure the pool environment is
+in an expected state rather than needing to run the build command prior
+to startup. The \fI\-\-overwrite\fR and \fI\-\-no\-overwrite\fR flags follow the
+same rules as \fBpool-build\fR. If just \fI\-\-build\fR is provided, then
+\&\fBpool-build\fR is called with no flags.
 .Sp
 \&\fBNote\fR: A storage pool that relies on remote resources such as an
 \&\*(L"iscsi\*(R" or a (v)HBA backed \*(L"scsi\*(R" pool may need to be refreshed multiple
@@ -3212,12 +3243,16 @@ only slightly higher initial disk space usage.
 When \fI\-\-reflink\fR is specified, perform a \s-1COW\s0 lightweight copy,
 where the data blocks are copied only when modified.
 If this is not possible, the copy fails.
-.IP "\fBvol-delete\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
-.IX Item "vol-delete [--pool pool-or-uuid] vol-name-or-key-or-path"
+.IP "\fBvol-delete\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-delete\-snapshots\fR]" 4
+.IX Item "vol-delete [--pool pool-or-uuid] vol-name-or-key-or-path [--delete-snapshots]"
 Delete a given volume.
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
 is in.
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume to delete.
+.Sp
+The \fI\-\-delete\-snapshots\fR flag specifies that any snapshots associated with
+the storage volume should be deleted as well. Not all storage drivers
+support this option, presently only rbd.
 .IP "\fBvol-upload\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] \fIvol-name-or-key-or-path\fR \fIlocal-file\fR" 4
 .IX Item "vol-upload [--pool pool-or-uuid] [--offset bytes] [--length bytes] vol-name-or-key-or-path local-file"
 Upload the contents of \fIlocal-file\fR to a storage volume.
@@ -3742,8 +3777,8 @@ qemu agent.
 When \fI\-\-aysnc\fR is given, the command waits for timeout whether success or
 failed. And when \fI\-\-block\fR is given, the command waits forever with blocking
 timeout.
-.IP "\fBqemu-monitor-event\fR [\fIdomain\fR] [\fI\-\-event\fR \fIevent-name\fR] [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] [\fI\-\-pretty\fR] [\fI\-\-regex\fR] [\fI\-\-no\-case\fR]" 4
-.IX Item "qemu-monitor-event [domain] [--event event-name] [--loop] [--timeout seconds] [--pretty] [--regex] [--no-case]"
+.IP "\fBqemu-monitor-event\fR [\fIdomain\fR] [\fI\-\-event\fR \fIevent-name\fR] [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] [\fI\-\-pretty\fR] [\fI\-\-regex\fR] [\fI\-\-no\-case\fR] [\fI\-\-timestamp\fR]" 4
+.IX Item "qemu-monitor-event [domain] [--event event-name] [--loop] [--timeout seconds] [--pretty] [--regex] [--no-case] [--timestamp]"
 Wait for arbitrary \s-1QEMU\s0 monitor events to occur, and print out the
 details of events as they happen.  The events can optionally be filtered
 by \fIdomain\fR or \fIevent-name\fR.  The 'query\-events' \s-1QMP\s0 command can be
@@ -3758,6 +3793,10 @@ If \fI\-\-timeout\fR is specified, the command gives up waiting for events
 after \fIseconds\fR have elapsed.  With \fI\-\-loop\fR, the command prints all
 events until a timeout or interrupt key.  If \fI\-\-pretty\fR is specified,
 any \s-1JSON\s0 event details are pretty-printed for better legibility.
+.Sp
+When \fI\-\-timestamp\fR is used, a human-readable timestamp will be printed
+before the event, and the timing information provided by \s-1QEMU\s0 will be
+omitted.
 .IP "\fBlxc-enter-namespace\fR \fIdomain\fR \*(-- /path/to/binary [arg1, [arg2, ...]]" 4
 .IX Item "lxc-enter-namespace domain /path/to/binary [arg1, [arg2, ...]]"
 Enter the namespace of \fIdomain\fR and execute the command \f(CW\*(C`/path/to/binary\*(C'\fR

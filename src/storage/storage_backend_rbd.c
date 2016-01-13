@@ -173,7 +173,7 @@ static int virStorageBackendRBDOpenRADOSConn(virStorageBackendRBDStatePtr ptr,
     for (i = 0; i < source->nhost; i++) {
         if (source->hosts[i].name != NULL &&
             !source->hosts[i].port) {
-            virBufferAsprintf(&mon_host, "%s:6789,",
+            virBufferAsprintf(&mon_host, "%s,",
                               source->hosts[i].name);
         } else if (source->hosts[i].name != NULL &&
             source->hosts[i].port) {
@@ -281,18 +281,20 @@ static int volStorageBackendRBDRefreshVolInfo(virStorageVolDefPtr vol,
 {
     int ret = -1;
     int r = 0;
-    rbd_image_t image;
+    rbd_image_t image = NULL;
 
     r = rbd_open(ptr->ioctx, vol->name, &image, NULL);
     if (r < 0) {
+        ret = -r;
         virReportSystemError(-r, _("failed to open the RBD image '%s'"),
                              vol->name);
-        return ret;
+        goto cleanup;
     }
 
     rbd_image_info_t info;
     r = rbd_stat(image, &info, sizeof(info));
     if (r < 0) {
+        ret = -r;
         virReportSystemError(-r, _("failed to stat the RBD image '%s'"),
                              vol->name);
         goto cleanup;
@@ -306,6 +308,7 @@ static int volStorageBackendRBDRefreshVolInfo(virStorageVolDefPtr vol,
     vol->target.capacity = info.size;
     vol->target.allocation = info.obj_size * info.num_objs;
     vol->type = VIR_STORAGE_VOL_NETWORK;
+    vol->target.format = VIR_STORAGE_FILE_RAW;
 
     VIR_FREE(vol->target.path);
     if (virAsprintf(&vol->target.path, "%s/%s",
@@ -322,7 +325,8 @@ static int volStorageBackendRBDRefreshVolInfo(virStorageVolDefPtr vol,
     ret = 0;
 
  cleanup:
-    rbd_close(image);
+    if (image)
+        rbd_close(image);
     return ret;
 }
 
@@ -398,7 +402,21 @@ static int virStorageBackendRBDRefreshPool(virConnectPtr conn,
 
         name += strlen(name) + 1;
 
-        if (volStorageBackendRBDRefreshVolInfo(vol, pool, &ptr) < 0) {
+        r = volStorageBackendRBDRefreshVolInfo(vol, pool, &ptr);
+
+        /* It could be that a volume has been deleted through a different route
+         * then libvirt and that will cause a -ENOENT to be returned.
+         *
+         * Another possibility is that there is something wrong with the placement
+         * group (PG) that RBD image's header is in and that causes -ETIMEDOUT
+         * to be returned.
+         *
+         * Do not error out and simply ignore the volume
+         */
+        if (r < 0) {
+            if (r == -ENOENT || r == -ETIMEDOUT)
+                continue;
+
             virStorageVolDefFree(vol);
             goto cleanup;
         }
@@ -513,6 +531,9 @@ static int virStorageBackendRBDDeleteVol(virConnectPtr conn,
     ptr.cluster = NULL;
     ptr.ioctx = NULL;
 
+    virCheckFlags(VIR_STORAGE_VOL_DELETE_ZEROED |
+                  VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS, -1);
+
     VIR_DEBUG("Removing RBD image %s/%s", pool->def->source.name, vol->name);
 
     if (flags & VIR_STORAGE_VOL_DELETE_ZEROED)
@@ -553,6 +574,12 @@ virStorageBackendRBDCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
                               virStorageVolDefPtr vol)
 {
     vol->type = VIR_STORAGE_VOL_NETWORK;
+
+    if (vol->target.format != VIR_STORAGE_FILE_RAW) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("only RAW volumes are supported by this storage pool"));
+        return -VIR_ERR_NO_SUPPORT;
+    }
 
     VIR_FREE(vol->target.path);
     if (virAsprintf(&vol->target.path, "%s/%s",
@@ -597,6 +624,12 @@ virStorageBackendRBDBuildVol(virConnectPtr conn,
     if (!vol->target.capacity) {
         virReportError(VIR_ERR_NO_SUPPORT, "%s",
                        _("volume capacity required for this storage pool"));
+        goto cleanup;
+    }
+
+    if (vol->target.format != VIR_STORAGE_FILE_RAW) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("only RAW volumes are supported by this storage pool"));
         goto cleanup;
     }
 

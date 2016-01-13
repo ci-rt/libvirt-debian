@@ -1,7 +1,7 @@
 /*
  * domain_conf.c: domain XML processing
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  * Copyright (c) 2015 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
@@ -1284,6 +1284,111 @@ void virDomainLeaseDefFree(virDomainLeaseDefPtr def)
 }
 
 
+static void
+virDomainVcpuInfoClear(virDomainVcpuInfoPtr info)
+{
+    if (!info)
+        return;
+}
+
+
+int
+virDomainDefSetVcpusMax(virDomainDefPtr def,
+                        unsigned int maxvcpus)
+{
+    size_t i;
+
+    if (def->maxvcpus == maxvcpus)
+        return 0;
+
+    if (def->maxvcpus < maxvcpus) {
+        if (VIR_EXPAND_N(def->vcpus, def->maxvcpus, maxvcpus - def->maxvcpus) < 0)
+            return -1;
+    } else {
+        for (i = maxvcpus; i < def->maxvcpus; i++)
+            virDomainVcpuInfoClear(&def->vcpus[i]);
+
+        VIR_SHRINK_N(def->vcpus, def->maxvcpus, def->maxvcpus - maxvcpus);
+    }
+
+    return 0;
+}
+
+
+bool
+virDomainDefHasVcpusOffline(const virDomainDef *def)
+{
+    size_t i;
+
+    for (i = 0; i < def->maxvcpus; i++) {
+        if (!def->vcpus[i].online)
+            return true;
+    }
+
+    return false;
+}
+
+
+unsigned int
+virDomainDefGetVcpusMax(const virDomainDef *def)
+{
+    return def->maxvcpus;
+}
+
+
+int
+virDomainDefSetVcpus(virDomainDefPtr def,
+                     unsigned int vcpus)
+{
+    size_t i;
+
+    if (vcpus > def->maxvcpus) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("maxvcpus must not be less than current vcpus (%u < %zu)"),
+                       vcpus, def->maxvcpus);
+        return -1;
+    }
+
+    for (i = 0; i < vcpus; i++)
+        def->vcpus[i].online = true;
+
+    for (i = vcpus; i < def->maxvcpus; i++)
+        def->vcpus[i].online = false;
+
+    return 0;
+}
+
+
+unsigned int
+virDomainDefGetVcpus(const virDomainDef *def)
+{
+    size_t i;
+    unsigned int ret = 0;
+
+    for (i = 0; i < def->maxvcpus; i++) {
+        if (def->vcpus[i].online)
+            ret++;
+    }
+
+    return ret;
+}
+
+
+virDomainVcpuInfoPtr
+virDomainDefGetVcpu(virDomainDefPtr def,
+                    unsigned int vcpu)
+{
+    if (vcpu > def->maxvcpus) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("vCPU '%u' is not present in domain definition"),
+                       vcpu);
+        return NULL;
+    }
+
+    return &def->vcpus[vcpu];
+}
+
+
 virDomainDiskDefPtr
 virDomainDiskDefNew(virDomainXMLOptionPtr xmlopt)
 {
@@ -1617,10 +1722,12 @@ virDomainChrSourceDefCopy(virDomainChrSourceDefPtr dest,
     virDomainChrSourceDefClear(dest);
 
     switch (src->type) {
+    case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PTY:
     case VIR_DOMAIN_CHR_TYPE_DEV:
-    case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
+        if (src->type == VIR_DOMAIN_CHR_TYPE_FILE)
+            dest->data.file.append = src->data.file.append;
         if (VIR_STRDUP(dest->data.file.path, src->data.file.path) < 0)
             return -1;
         break;
@@ -1691,9 +1798,12 @@ virDomainChrSourceDefIsEqual(const virDomainChrSourceDef *src,
         return false;
 
     switch ((virDomainChrType)src->type) {
+    case VIR_DOMAIN_CHR_TYPE_FILE:
+        return src->data.file.append == tgt->data.file.append &&
+            STREQ_NULLABLE(src->data.file.path, tgt->data.file.path);
+        break;
     case VIR_DOMAIN_CHR_TYPE_PTY:
     case VIR_DOMAIN_CHR_TYPE_DEV:
-    case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         return STREQ_NULLABLE(src->data.file.path, tgt->data.file.path);
         break;
@@ -2307,6 +2417,10 @@ void virDomainDefFree(virDomainDefPtr def)
         return;
 
     virDomainResourceDefFree(def->resource);
+
+    for (i = 0; i < def->maxvcpus; i++)
+        virDomainVcpuInfoClear(&def->vcpus[i]);
+    VIR_FREE(def->vcpus);
 
     /* hostdevs must be freed before nets (or any future "intelligent
      * hostdevs") because the pointer to the hostdev is really
@@ -3552,21 +3666,9 @@ virDomainDefPostParseMemory(virDomainDefPtr def,
 
 
 static int
-virDomainDefPostParseInternal(virDomainDefPtr def,
-                              virCapsPtr caps ATTRIBUTE_UNUSED,
-                              unsigned int parseFlags)
+virDomainDefAddConsoleCompat(virDomainDefPtr def)
 {
     size_t i;
-
-    /* verify init path for container based domains */
-    if (def->os.type == VIR_DOMAIN_OSTYPE_EXE && !def->os.init) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("init binary must be specified"));
-        return -1;
-    }
-
-    if (virDomainDefPostParseMemory(def, parseFlags) < 0)
-        return -1;
 
     /*
      * Some really crazy backcompat stuff for consoles
@@ -3660,11 +3762,14 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
         def->consoles[0]->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
     }
 
-    if (virDomainDefRejectDuplicateControllers(def) < 0)
-        return -1;
+    return 0;
+}
 
-    if (virDomainDefRejectDuplicatePanics(def) < 0)
-        return -1;
+
+static int
+virDomainDefPostParseTimer(virDomainDefPtr def)
+{
+    size_t i;
 
     /* verify settings of guest timers */
     for (i = 0; i < def->clock.ntimers; i++) {
@@ -3720,6 +3825,37 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
             }
         }
     }
+
+    return 0;
+}
+
+
+static int
+virDomainDefPostParseInternal(virDomainDefPtr def,
+                              virCapsPtr caps ATTRIBUTE_UNUSED,
+                              unsigned int parseFlags)
+{
+    /* verify init path for container based domains */
+    if (def->os.type == VIR_DOMAIN_OSTYPE_EXE && !def->os.init) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("init binary must be specified"));
+        return -1;
+    }
+
+    if (virDomainDefPostParseMemory(def, parseFlags) < 0)
+        return -1;
+
+    if (virDomainDefAddConsoleCompat(def) < 0)
+        return -1;
+
+    if (virDomainDefRejectDuplicateControllers(def) < 0)
+        return -1;
+
+    if (virDomainDefRejectDuplicatePanics(def) < 0)
+        return -1;
+
+    if (virDomainDefPostParseTimer(def) < 0)
+        return -1;
 
     /* clean up possibly duplicated metadata entries */
     virDomainDefMetadataSanitize(def);
@@ -3886,6 +4022,7 @@ static int
 virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
                                     const virDomainDef *def,
                                     virCapsPtr caps ATTRIBUTE_UNUSED,
+                                    unsigned int parseFlags ATTRIBUTE_UNUSED,
                                     virDomainXMLOptionPtr xmlopt)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR) {
@@ -4019,18 +4156,19 @@ static int
 virDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                             const virDomainDef *def,
                             virCapsPtr caps,
+                            unsigned int flags,
                             virDomainXMLOptionPtr xmlopt)
 {
     int ret;
 
     if (xmlopt->config.devicesPostParseCallback) {
-        ret = xmlopt->config.devicesPostParseCallback(dev, def, caps,
+        ret = xmlopt->config.devicesPostParseCallback(dev, def, caps, flags,
                                                       xmlopt->config.priv);
         if (ret < 0)
             return ret;
     }
 
-    if ((ret = virDomainDeviceDefPostParseInternal(dev, def, caps, xmlopt)) < 0)
+    if ((ret = virDomainDeviceDefPostParseInternal(dev, def, caps, flags, xmlopt)) < 0)
         return ret;
 
     return 0;
@@ -4041,6 +4179,7 @@ struct virDomainDefPostParseDeviceIteratorData {
     virDomainDefPtr def;
     virCapsPtr caps;
     virDomainXMLOptionPtr xmlopt;
+    unsigned int parseFlags;
 };
 
 
@@ -4051,7 +4190,8 @@ virDomainDefPostParseDeviceIterator(virDomainDefPtr def ATTRIBUTE_UNUSED,
                                     void *opaque)
 {
     struct virDomainDefPostParseDeviceIteratorData *data = opaque;
-    return virDomainDeviceDefPostParse(dev, data->def, data->caps, data->xmlopt);
+    return virDomainDeviceDefPostParse(dev, data->def, data->caps,
+                                       data->parseFlags, data->xmlopt);
 }
 
 
@@ -4066,11 +4206,12 @@ virDomainDefPostParse(virDomainDefPtr def,
         .def = def,
         .caps = caps,
         .xmlopt = xmlopt,
+        .parseFlags = parseFlags,
     };
 
     /* call the domain config callback */
     if (xmlopt->config.domainPostParseCallback) {
-        ret = xmlopt->config.domainPostParseCallback(def, caps,
+        ret = xmlopt->config.domainPostParseCallback(def, caps, parseFlags,
                                                      xmlopt->config.priv);
         if (ret < 0)
             return ret;
@@ -9262,6 +9403,7 @@ virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
     char *channel = NULL;
     char *master = NULL;
     char *slave = NULL;
+    char *append = NULL;
     int remaining = 0;
 
     while (cur != NULL) {
@@ -9271,11 +9413,13 @@ virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
                     mode = virXMLPropString(cur, "mode");
 
                 switch ((virDomainChrType) def->type) {
+                case VIR_DOMAIN_CHR_TYPE_FILE:
                 case VIR_DOMAIN_CHR_TYPE_PTY:
                 case VIR_DOMAIN_CHR_TYPE_DEV:
-                case VIR_DOMAIN_CHR_TYPE_FILE:
                 case VIR_DOMAIN_CHR_TYPE_PIPE:
                 case VIR_DOMAIN_CHR_TYPE_UNIX:
+                    if (!append && def->type == VIR_DOMAIN_CHR_TYPE_FILE)
+                        append = virXMLPropString(cur, "append");
                     /* PTY path is only parsed from live xml.  */
                     if (!path  &&
                         (def->type != VIR_DOMAIN_CHR_TYPE_PTY ||
@@ -9359,10 +9503,16 @@ virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
     case VIR_DOMAIN_CHR_TYPE_LAST:
         break;
 
+    case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PTY:
     case VIR_DOMAIN_CHR_TYPE_DEV:
-    case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
+        if (append && def->type == VIR_DOMAIN_CHR_TYPE_FILE &&
+            (def->data.file.append = virTristateSwitchTypeFromString(append)) <= 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid append attribute value '%s'"), append);
+            goto error;
+        }
         if (!path &&
             def->type != VIR_DOMAIN_CHR_TYPE_PTY) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -9502,6 +9652,7 @@ virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
     VIR_FREE(connectService);
     VIR_FREE(path);
     VIR_FREE(channel);
+    VIR_FREE(append);
 
     return remaining;
 
@@ -12498,7 +12649,7 @@ virDomainDeviceDefParse(const char *xmlStr,
     }
 
     /* callback to fill driver specific device aspects */
-    if (virDomainDeviceDefPostParse(dev, def, caps, xmlopt) < 0)
+    if (virDomainDeviceDefPostParse(dev, def, caps, flags, xmlopt) < 0)
         goto error;
 
  cleanup:
@@ -13182,6 +13333,18 @@ virDomainControllerFind(virDomainDefPtr def,
     }
 
     return -1;
+}
+
+
+static int
+virDomainControllerFindUnusedIndex(virDomainDefPtr def, int type)
+{
+    int idx = 0;
+
+    while (virDomainControllerFind(def, type, idx) >= 0)
+        idx++;
+
+    return idx;
 }
 
 
@@ -14104,33 +14267,98 @@ virDomainEmulatorPinDefParseXML(xmlNodePtr node)
 }
 
 
+static virDomainControllerDefPtr
+virDomainDefAddController(virDomainDefPtr def, int type, int idx, int model)
+{
+    virDomainControllerDefPtr cont;
+
+    if (!(cont = virDomainControllerDefNew(type)))
+        return NULL;
+
+    if (idx < 0)
+        idx = virDomainControllerFindUnusedIndex(def, type);
+
+    cont->idx = idx;
+    cont->model = model;
+
+    if (VIR_APPEND_ELEMENT_COPY(def->controllers, def->ncontrollers, cont) < 0) {
+        VIR_FREE(cont);
+        return NULL;
+    }
+
+    return cont;
+}
+
+
+/**
+ * virDomainDefAddUSBController:
+ * @def:   the domain
+ * @idx:   index for new controller (or -1 for "lowest unused index")
+ * @model: VIR_DOMAIN_CONTROLLER_MODEL_USB_* or -1
+ *
+ * Add a USB controller of the specified model (or default model for
+ * current machinetype if model == -1). If model is ich9-usb-ehci,
+ * also add companion uhci1, uhci2, and uhci3 controllers at the same
+ * index.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int
+virDomainDefAddUSBController(virDomainDefPtr def, int idx, int model)
+{
+    virDomainControllerDefPtr cont; /* this is a *copy* of the DefPtr */
+
+    cont = virDomainDefAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_USB,
+                                     idx, model);
+    if (!cont)
+        return -1;
+
+    if (model != VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_EHCI1)
+        return 0;
+
+    /* When the initial controller is ich9-usb-ehci, also add the
+     * companion controllers
+     */
+
+    idx = cont->idx; /* in case original request was "-1" */
+
+    if (!(cont = virDomainDefAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_USB,
+                                           idx, VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI1)))
+        return -1;
+    cont->info.mastertype = VIR_DOMAIN_CONTROLLER_MASTER_USB;
+    cont->info.master.usb.startport = 0;
+
+    if (!(cont = virDomainDefAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_USB,
+                                           idx, VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI2)))
+        return -1;
+    cont->info.mastertype = VIR_DOMAIN_CONTROLLER_MASTER_USB;
+    cont->info.master.usb.startport = 2;
+
+    if (!(cont = virDomainDefAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_USB,
+                                           idx, VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI3)))
+        return -1;
+    cont->info.mastertype = VIR_DOMAIN_CONTROLLER_MASTER_USB;
+    cont->info.master.usb.startport = 4;
+
+    return 0;
+}
+
+
 int
 virDomainDefMaybeAddController(virDomainDefPtr def,
                                int type,
                                int idx,
                                int model)
 {
-    size_t i;
-    virDomainControllerDefPtr cont;
+    /* skip if a specific index was given and it is already
+     * in use for that type of controller
+     */
+    if (idx >= 0 && virDomainControllerFind(def, type, idx) >= 0)
+        return 0;
 
-    for (i = 0; i < def->ncontrollers; i++) {
-        if (def->controllers[i]->type == type &&
-            def->controllers[i]->idx == idx)
-            return 0;
-    }
-
-    if (!(cont = virDomainControllerDefNew(type)))
-        return -1;
-
-    cont->idx = idx;
-    cont->model = model;
-
-    if (VIR_APPEND_ELEMENT(def->controllers, def->ncontrollers, cont) < 0) {
-        VIR_FREE(cont);
-        return -1;
-    }
-
-    return 1;
+    if (virDomainDefAddController(def, type, idx, model))
+        return 1;
+    return -1;
 }
 
 
@@ -14374,34 +14602,35 @@ virDomainVcpuParse(virDomainDefPtr def,
 {
     int n;
     char *tmp = NULL;
+    unsigned int maxvcpus;
+    unsigned int vcpus;
     int ret = -1;
 
-    if ((n = virXPathUInt("string(./vcpu[1])", ctxt, &def->maxvcpus)) < 0) {
+    if ((n = virXPathUInt("string(./vcpu[1])", ctxt, &maxvcpus)) < 0) {
         if (n == -2) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("maximum vcpus count must be an integer"));
             goto cleanup;
         }
 
-        def->maxvcpus = 1;
+        maxvcpus = 1;
     }
 
-    if ((n = virXPathUInt("string(./vcpu[1]/@current)", ctxt, &def->vcpus)) < 0) {
+    if (virDomainDefSetVcpusMax(def, maxvcpus) < 0)
+        goto cleanup;
+
+    if ((n = virXPathUInt("string(./vcpu[1]/@current)", ctxt, &vcpus)) < 0) {
         if (n == -2) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("current vcpus count must be an integer"));
             goto cleanup;
         }
 
-        def->vcpus = def->maxvcpus;
+        vcpus = maxvcpus;
     }
 
-    if (def->maxvcpus < def->vcpus) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("maxvcpus must not be less than current vcpus "
-                         "(%u < %u)"), def->maxvcpus, def->vcpus);
+    if (virDomainDefSetVcpus(def, vcpus) < 0)
         goto cleanup;
-    }
 
     tmp = virXPathString("string(./vcpu[1]/@placement)", ctxt);
     if (tmp) {
@@ -14873,7 +15102,7 @@ virDomainDefParseXML(xmlDocPtr xml,
             goto error;
         }
 
-        if (vcpupin->id >= def->vcpus) {
+        if (vcpupin->id >= virDomainDefGetVcpus(def)) {
             /* To avoid the regression when daemon loading
              * domain confs, we can't simply error out if
              * <vcpupin> nodes greater than current vcpus,
@@ -14891,10 +15120,10 @@ virDomainDefParseXML(xmlDocPtr xml,
      * the policy specified explicitly as def->cpuset.
      */
     if (def->cpumask) {
-        if (VIR_REALLOC_N(def->cputune.vcpupin, def->vcpus) < 0)
+        if (VIR_REALLOC_N(def->cputune.vcpupin, virDomainDefGetVcpus(def)) < 0)
             goto error;
 
-        for (i = 0; i < def->vcpus; i++) {
+        for (i = 0; i < virDomainDefGetVcpus(def); i++) {
             if (virDomainPinIsDuplicate(def->cputune.vcpupin,
                                         def->cputune.nvcpupin,
                                         i))
@@ -14959,7 +15188,8 @@ virDomainDefParseXML(xmlDocPtr xml,
 
         for (i = 0; i < def->cputune.nvcpusched; i++) {
             if (virDomainThreadSchedParse(nodes[i],
-                                          0, def->maxvcpus - 1,
+                                          0,
+                                          virDomainDefGetVcpusMax(def) - 1,
                                           "vcpus",
                                           &def->cputune.vcpusched[i]) < 0)
                 goto error;
@@ -15036,7 +15266,7 @@ virDomainDefParseXML(xmlDocPtr xml,
             goto error;
 
         if (def->cpu->sockets &&
-            def->maxvcpus >
+            virDomainDefGetVcpusMax(def) >
             def->cpu->sockets * def->cpu->cores * def->cpu->threads) {
             virReportError(VIR_ERR_XML_DETAIL, "%s",
                            _("Maximum CPUs greater than topology limit"));
@@ -15048,14 +15278,14 @@ virDomainDefParseXML(xmlDocPtr xml,
     if (virDomainNumaDefCPUParseXML(def->numa, ctxt) < 0)
         goto error;
 
-    if (virDomainNumaGetCPUCountTotal(def->numa) > def->maxvcpus) {
+    if (virDomainNumaGetCPUCountTotal(def->numa) > virDomainDefGetVcpusMax(def)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Number of CPUs in <numa> exceeds the"
                          " <vcpu> count"));
         goto error;
     }
 
-    if (virDomainNumaGetMaxCPUID(def->numa) >= def->maxvcpus) {
+    if (virDomainNumaGetMaxCPUID(def->numa) >= virDomainDefGetVcpusMax(def)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("CPU IDs in <numa> exceed the <vcpu> count"));
         goto error;
@@ -17453,6 +17683,35 @@ virDomainMemoryDefCheckABIStability(virDomainMemoryDefPtr src,
 }
 
 
+static bool
+virDomainDefVcpuCheckAbiStability(virDomainDefPtr src,
+                                  virDomainDefPtr dst)
+{
+    size_t i;
+
+    if (src->maxvcpus != dst->maxvcpus) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target domain vCPU max %zu does not match source %zu"),
+                       dst->maxvcpus, src->maxvcpus);
+        return false;
+    }
+
+    for (i = 0; i < src->maxvcpus; i++) {
+        virDomainVcpuInfoPtr svcpu = &src->vcpus[i];
+        virDomainVcpuInfoPtr dvcpu = &dst->vcpus[i];
+
+        if (svcpu->online != dvcpu->online) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("State of vCPU '%zu' differs between source and "
+                             "destination definitions"), i);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
 /* This compares two configurations and looks for any differences
  * which will affect the guest ABI. This is primarily to allow
  * validation of custom XML config passed in during migration
@@ -17526,18 +17785,8 @@ virDomainDefCheckABIStability(virDomainDefPtr src,
         goto error;
     }
 
-    if (src->vcpus != dst->vcpus) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain vCPU count %d does not match source %d"),
-                       dst->vcpus, src->vcpus);
+    if (!virDomainDefVcpuCheckAbiStability(src, dst))
         goto error;
-    }
-    if (src->maxvcpus != dst->maxvcpus) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain vCPU max %d does not match source %d"),
-                       dst->maxvcpus, src->maxvcpus);
-        goto error;
-    }
 
     if (src->iothreads != dst->iothreads) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -19926,6 +20175,10 @@ virDomainChrSourceDefFormat(virBufferPtr buf,
              !(flags & VIR_DOMAIN_DEF_FORMAT_INACTIVE))) {
             virBufferEscapeString(buf, "<source path='%s'",
                                   def->data.file.path);
+            if (def->type == VIR_DOMAIN_CHR_TYPE_FILE &&
+                def->data.file.append != VIR_TRISTATE_SWITCH_ABSENT)
+                virBufferAsprintf(buf, " append='%s'",
+                    virTristateSwitchTypeToString(def->data.file.append));
             virDomainSourceDefFormatSeclabel(buf, nseclabels, seclabels, flags);
         }
         break;
@@ -21504,9 +21757,9 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAsprintf(buf, " cpuset='%s'", cpumask);
         VIR_FREE(cpumask);
     }
-    if (def->vcpus != def->maxvcpus)
-        virBufferAsprintf(buf, " current='%u'", def->vcpus);
-    virBufferAsprintf(buf, ">%u</vcpu>\n", def->maxvcpus);
+    if (virDomainDefHasVcpusOffline(def))
+        virBufferAsprintf(buf, " current='%u'", virDomainDefGetVcpus(def));
+    virBufferAsprintf(buf, ">%u</vcpu>\n", virDomainDefGetVcpusMax(def));
 
     if (def->niothreadids > 0) {
         virBufferAsprintf(buf, "<iothreads>%u</iothreads>\n",

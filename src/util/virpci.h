@@ -43,6 +43,16 @@ struct _virPCIDeviceAddress {
 };
 
 typedef enum {
+    VIR_PCI_STUB_DRIVER_NONE = 0,
+    VIR_PCI_STUB_DRIVER_XEN,
+    VIR_PCI_STUB_DRIVER_KVM,
+    VIR_PCI_STUB_DRIVER_VFIO,
+    VIR_PCI_STUB_DRIVER_LAST
+} virPCIStubDriver;
+
+VIR_ENUM_DECL(virPCIStubDriver);
+
+typedef enum {
     VIR_PCIE_LINK_SPEED_NA = 0,
     VIR_PCIE_LINK_SPEED_25,
     VIR_PCIE_LINK_SPEED_5,
@@ -90,10 +100,9 @@ int virPCIDeviceReset(virPCIDevicePtr dev,
 void virPCIDeviceSetManaged(virPCIDevice *dev,
                             bool managed);
 unsigned int virPCIDeviceGetManaged(virPCIDevice *dev);
-int virPCIDeviceSetStubDriver(virPCIDevicePtr dev,
-                              const char *driver)
-    ATTRIBUTE_NONNULL(2);
-const char *virPCIDeviceGetStubDriver(virPCIDevicePtr dev);
+void virPCIDeviceSetStubDriver(virPCIDevicePtr dev,
+                               virPCIStubDriver driver);
+virPCIStubDriver virPCIDeviceGetStubDriver(virPCIDevicePtr dev);
 virPCIDeviceAddressPtr virPCIDeviceGetAddress(virPCIDevicePtr dev);
 int virPCIDeviceSetUsedBy(virPCIDevice *dev,
                           const char *drv_name,
@@ -159,15 +168,15 @@ virPCIDeviceListPtr virPCIDeviceGetIOMMUGroupList(virPCIDevicePtr dev);
 int virPCIDeviceAddressGetIOMMUGroupAddresses(virPCIDeviceAddressPtr devAddr,
                                               virPCIDeviceAddressPtr **iommuGroupDevices,
                                               size_t *nIommuGroupDevices);
-int virPCIDeviceAddressGetIOMMUGroupNum(virPCIDeviceAddressPtr dev);
+int virPCIDeviceAddressGetIOMMUGroupNum(virPCIDeviceAddressPtr addr);
 char *virPCIDeviceGetIOMMUGroupDev(virPCIDevicePtr dev);
 
 int virPCIDeviceIsAssignable(virPCIDevicePtr dev,
                              int strict_acs_check);
 int virPCIDeviceWaitForCleanup(virPCIDevicePtr dev, const char *matcher);
 
-int virPCIGetPhysicalFunction(const char *sysfs_path,
-                              virPCIDeviceAddressPtr *phys_fn);
+int virPCIGetPhysicalFunction(const char *vf_sysfs_path,
+                              virPCIDeviceAddressPtr *pf);
 
 int virPCIGetVirtualFunctions(const char *sysfs_path,
                               virPCIDeviceAddressPtr **virtual_functions,
@@ -180,7 +189,7 @@ int virPCIGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
                                         const char *vf_sysfs_device_link,
                                         int *vf_index);
 
-int virPCIDeviceAddressGetSysfsFile(virPCIDeviceAddressPtr dev,
+int virPCIDeviceAddressGetSysfsFile(virPCIDeviceAddressPtr addr,
                                     char **pci_sysfs_device_link);
 
 int virPCIGetNetName(char *device_link_sysfs_path, char **netname);
@@ -201,7 +210,7 @@ int virPCIDeviceAddressParse(char *address, virPCIDeviceAddressPtr bdf);
 int virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
                                  char **pfname, int *vf_index);
 
-int virPCIDeviceUnbind(virPCIDevicePtr dev, bool reprobe);
+int virPCIDeviceUnbind(virPCIDevicePtr dev);
 int virPCIDeviceGetDriverPathAndName(virPCIDevicePtr dev,
                                      char **path,
                                      char **name);

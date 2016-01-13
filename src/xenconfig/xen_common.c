@@ -323,8 +323,7 @@ xenParseMem(virConfPtr conf, virDomainDefPtr def)
 
 
 static int
-xenParseTimeOffset(virConfPtr conf, virDomainDefPtr def,
-                     int xendConfigVersion)
+xenParseTimeOffset(virConfPtr conf, virDomainDefPtr def)
 {
     int vmlocaltime;
 
@@ -332,24 +331,15 @@ xenParseTimeOffset(virConfPtr conf, virDomainDefPtr def,
         return -1;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
-        /* only managed HVM domains since 3.1.0 have persistent rtc_timeoffset */
-        if (xendConfigVersion < XEND_CONFIG_VERSION_3_1_0) {
-            if (vmlocaltime)
-                def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME;
-            else
-                def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_UTC;
-            def->clock.data.utc_reset = true;
-        } else {
-            unsigned long rtc_timeoffset;
-            def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_VARIABLE;
-            if (xenConfigGetULong(conf, "rtc_timeoffset", &rtc_timeoffset, 0) < 0)
-                return -1;
+        unsigned long rtc_timeoffset;
+        def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_VARIABLE;
+        if (xenConfigGetULong(conf, "rtc_timeoffset", &rtc_timeoffset, 0) < 0)
+            return -1;
 
-            def->clock.data.variable.adjustment = (int)rtc_timeoffset;
-            def->clock.data.variable.basis = vmlocaltime ?
-                VIR_DOMAIN_CLOCK_BASIS_LOCALTIME :
-                VIR_DOMAIN_CLOCK_BASIS_UTC;
-        }
+        def->clock.data.variable.adjustment = (int)rtc_timeoffset;
+        def->clock.data.variable.basis = vmlocaltime ?
+            VIR_DOMAIN_CLOCK_BASIS_LOCALTIME :
+            VIR_DOMAIN_CLOCK_BASIS_UTC;
     } else {
         /* PV domains do not have an emulated RTC and the offset is fixed. */
         def->clock.offset = vmlocaltime ?
@@ -498,15 +488,23 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
     const char *str = NULL;
     int val = 0;
 
-    if (xenConfigGetULong(conf, "vcpus", &count, 1) < 0 ||
-        MAX_VIRT_CPUS < count)
+    if (xenConfigGetULong(conf, "vcpus", &count, 1) < 0)
         return -1;
 
-    def->maxvcpus = count;
-    if (xenConfigGetULong(conf, "vcpu_avail", &count, -1) < 0)
+    if (virDomainDefSetVcpusMax(def, count) < 0)
         return -1;
 
-    def->vcpus = MIN(count_one_bits_l(count), def->maxvcpus);
+    if (virDomainDefSetVcpus(def, count) < 0)
+        return -1;
+
+    if (virConfGetValue(conf, "maxvcpus")) {
+        if (xenConfigGetULong(conf, "maxvcpus", &count, 0) < 0)
+            return -1;
+
+        if (virDomainDefSetVcpusMax(def, count) < 0)
+            return -1;
+    }
+
     if (xenConfigGetString(conf, "cpus", &str, NULL) < 0)
         return -1;
 
@@ -553,6 +551,8 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
             timer->name = VIR_DOMAIN_TIMER_NAME_HPET;
             timer->present = val;
             timer->tickpolicy = -1;
+            timer->mode = -1;
+            timer->track = -1;
 
             def->clock.ntimers = 1;
             def->clock.timers[0] = timer;
@@ -566,7 +566,7 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
 #define MAX_VFB 1024
 
 static int
-xenParseVfb(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
+xenParseVfb(virConfPtr conf, virDomainDefPtr def)
 {
     int val;
     char *listenAddr = NULL;
@@ -574,7 +574,7 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
     virConfValuePtr list;
     virDomainGraphicsDefPtr graphics = NULL;
 
-    if (hvm || xendConfigVersion < XEND_CONFIG_VERSION_3_0_4) {
+    if (hvm) {
         if (xenConfigGetBool(conf, "vnc", &val, 0) < 0)
             goto cleanup;
         if (val) {
@@ -819,6 +819,7 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def)
             char mac[18];
             char bridge[50];
             char vifname[50];
+            char rate[50];
             char *key;
 
             bridge[0] = '\0';
@@ -827,6 +828,7 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def)
             model[0] = '\0';
             type[0] = '\0';
             vifname[0] = '\0';
+            rate[0] = '\0';
 
             if ((list->type != VIR_CONF_STRING) || (list->str == NULL))
                 goto skipnic;
@@ -892,6 +894,13 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def)
                                        _("IP %s too big for destination"), data);
                         goto skipnic;
                     }
+                } else if (STRPREFIX(key, "rate=")) {
+                    int len = nextkey ? (nextkey - data) : sizeof(rate) - 1;
+                    if (virStrncpy(rate, data, len, sizeof(rate)) == NULL) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR,
+                                       _("rate %s too big for destination"), data);
+                        goto skipnic;
+                    }
                 }
 
                 while (nextkey && (nextkey[0] == ',' ||
@@ -941,6 +950,24 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def)
             if (vifname[0] &&
                 VIR_STRDUP(net->ifname, vifname) < 0)
                 goto cleanup;
+
+            if (rate[0]) {
+                virNetDevBandwidthPtr bandwidth;
+                unsigned long long kbytes_per_sec;
+
+                if (xenParseSxprVifRate(rate, &kbytes_per_sec) < 0)
+                    goto cleanup;
+
+                if (VIR_ALLOC(bandwidth) < 0)
+                    goto cleanup;
+                if (VIR_ALLOC(bandwidth->out) < 0) {
+                    VIR_FREE(bandwidth);
+                    goto cleanup;
+                }
+
+                bandwidth->out->average = kbytes_per_sec;
+                net->bandwidth = bandwidth;
+            }
 
             if (VIR_APPEND_ELEMENT(def->nets, def->nnets, net) < 0)
                 goto cleanup;
@@ -1020,8 +1047,7 @@ xenParseGeneralMeta(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
 int
 xenParseConfigCommon(virConfPtr conf,
                      virDomainDefPtr def,
-                     virCapsPtr caps,
-                     int xendConfigVersion)
+                     virCapsPtr caps)
 {
     if (xenParseGeneralMeta(conf, def, caps) < 0)
         return -1;
@@ -1035,7 +1061,7 @@ xenParseConfigCommon(virConfPtr conf,
     if (xenParseCPUFeatures(conf, def) < 0)
         return -1;
 
-    if (xenParseTimeOffset(conf, def, xendConfigVersion) < 0)
+    if (xenParseTimeOffset(conf, def) < 0)
         return -1;
 
     if (xenConfigCopyStringOpt(conf, "device_model", &def->emulator) < 0)
@@ -1050,7 +1076,7 @@ xenParseConfigCommon(virConfPtr conf,
     if (xenParseEmulatedDevices(conf, def) < 0)
         return -1;
 
-    if (xenParseVfb(conf, def, xendConfigVersion) < 0)
+    if (xenParseVfb(conf, def) < 0)
         return -1;
 
     if (xenParseCharDev(conf, def) < 0)
@@ -1102,7 +1128,7 @@ static int
 xenFormatNet(virConnectPtr conn,
              virConfValuePtr list,
              virDomainNetDefPtr net,
-             int hvm, int xendConfigVersion)
+             int hvm)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
@@ -1178,19 +1204,15 @@ xenFormatNet(virConnectPtr conn,
         } else {
             if (net->model != NULL)
                 virBufferAsprintf(&buf, ",model=%s", net->model);
-
-            /*
-             * apparently type ioemu breaks paravirt drivers on HVM so skip this
-             * from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
-             */
-            if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
-                virBufferAddLit(&buf, ",type=ioemu");
         }
     }
 
     if (net->ifname)
         virBufferAsprintf(&buf, ",vifname=%s",
                           net->ifname);
+
+    if (net->bandwidth && net->bandwidth->out && net->bandwidth->out->average)
+        virBufferAsprintf(&buf, ",rate=%lluKB/s", net->bandwidth->out->average);
 
     if (virBufferCheckError(&buf) < 0)
         goto cleanup;
@@ -1315,12 +1337,47 @@ xenFormatMem(virConfPtr conf, virDomainDefPtr def)
 
 
 static int
-xenFormatTimeOffset(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
+xenFormatTimeOffset(virConfPtr conf, virDomainDefPtr def)
 {
     int vmlocaltime;
 
-    if (xendConfigVersion < XEND_CONFIG_VERSION_3_1_0) {
-        /* <3.1: UTC and LOCALTIME */
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
+        /* >=3.1 HV: VARIABLE */
+        int rtc_timeoffset;
+
+        switch (def->clock.offset) {
+        case VIR_DOMAIN_CLOCK_OFFSET_VARIABLE:
+            vmlocaltime = (int)def->clock.data.variable.basis;
+            rtc_timeoffset = def->clock.data.variable.adjustment;
+            break;
+        case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+            if (def->clock.data.utc_reset) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("unsupported clock adjustment='reset'"));
+                return -1;
+            }
+            vmlocaltime = 0;
+            rtc_timeoffset = 0;
+            break;
+        case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+            if (def->clock.data.utc_reset) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("unsupported clock adjustment='reset'"));
+                return -1;
+            }
+            vmlocaltime = 1;
+            rtc_timeoffset = 0;
+            break;
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unsupported clock offset='%s'"),
+                           virDomainClockOffsetTypeToString(def->clock.offset));
+            return -1;
+        }
+        if (xenConfigSetInt(conf, "rtc_timeoffset", rtc_timeoffset) < 0)
+            return -1;
+    } else {
+        /* PV: UTC and LOCALTIME */
         switch (def->clock.offset) {
         case VIR_DOMAIN_CLOCK_OFFSET_UTC:
             vmlocaltime = 0;
@@ -1334,61 +1391,7 @@ xenFormatTimeOffset(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
                            virDomainClockOffsetTypeToString(def->clock.offset));
             return -1;
         }
-
-    } else {
-        if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
-            /* >=3.1 HV: VARIABLE */
-            int rtc_timeoffset;
-
-            switch (def->clock.offset) {
-            case VIR_DOMAIN_CLOCK_OFFSET_VARIABLE:
-                vmlocaltime = (int)def->clock.data.variable.basis;
-                rtc_timeoffset = def->clock.data.variable.adjustment;
-                break;
-            case VIR_DOMAIN_CLOCK_OFFSET_UTC:
-                if (def->clock.data.utc_reset) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("unsupported clock adjustment='reset'"));
-                    return -1;
-                }
-                vmlocaltime = 0;
-                rtc_timeoffset = 0;
-                break;
-            case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
-                if (def->clock.data.utc_reset) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("unsupported clock adjustment='reset'"));
-                    return -1;
-                }
-                vmlocaltime = 1;
-                rtc_timeoffset = 0;
-                break;
-            default:
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("unsupported clock offset='%s'"),
-                               virDomainClockOffsetTypeToString(def->clock.offset));
-                return -1;
-            }
-            if (xenConfigSetInt(conf, "rtc_timeoffset", rtc_timeoffset) < 0)
-                return -1;
-
-        } else {
-            /* >=3.1 PV: UTC and LOCALTIME */
-            switch (def->clock.offset) {
-            case VIR_DOMAIN_CLOCK_OFFSET_UTC:
-                vmlocaltime = 0;
-                break;
-            case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
-                vmlocaltime = 1;
-                break;
-            default:
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("unsupported clock offset='%s'"),
-                               virDomainClockOffsetTypeToString(def->clock.offset));
-                return -1;
-            }
-        } /* !hvm */
-    }
+    } /* !hvm */
 
     if (xenConfigSetInt(conf, "localtime", vmlocaltime) < 0)
         return -1;
@@ -1524,13 +1527,10 @@ xenFormatCPUAllocation(virConfPtr conf, virDomainDefPtr def)
     int ret = -1;
     char *cpus = NULL;
 
-    if (xenConfigSetInt(conf, "vcpus", def->maxvcpus) < 0)
+    if (virDomainDefGetVcpus(def) < virDomainDefGetVcpusMax(def) &&
+        xenConfigSetInt(conf, "maxvcpus", virDomainDefGetVcpusMax(def)) < 0)
         goto cleanup;
-
-    /* Computing the vcpu_avail bitmask works because MAX_VIRT_CPUS is
-       either 32, or 64 on a platform where long is big enough.  */
-    if (def->vcpus < def->maxvcpus &&
-        xenConfigSetInt(conf, "vcpu_avail", (1UL << def->vcpus) - 1) < 0)
+    if (xenConfigSetInt(conf, "vcpus", virDomainDefGetVcpus(def)) < 0)
         goto cleanup;
 
     if ((def->cpumask != NULL) &&
@@ -1551,7 +1551,7 @@ xenFormatCPUAllocation(virConfPtr conf, virDomainDefPtr def)
 
 
 static int
-xenFormatCPUFeatures(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
+xenFormatCPUFeatures(virConfPtr conf, virDomainDefPtr def)
 {
     size_t i;
 
@@ -1571,17 +1571,15 @@ xenFormatCPUFeatures(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion
                             VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             return -1;
 
-        if (xendConfigVersion >= XEND_CONFIG_VERSION_3_0_4) {
-            if (xenConfigSetInt(conf, "hap",
-                                (def->features[VIR_DOMAIN_FEATURE_HAP] ==
-                                VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
-                return -1;
+        if (xenConfigSetInt(conf, "hap",
+                            (def->features[VIR_DOMAIN_FEATURE_HAP] ==
+                             VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
+            return -1;
 
-            if (xenConfigSetInt(conf, "viridian",
-                                (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] ==
-                                VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
-                return -1;
-        }
+        if (xenConfigSetInt(conf, "viridian",
+                            (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] ==
+                             VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
+            return -1;
 
         for (i = 0; i < def->clock.ntimers; i++) {
             if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_HPET &&
@@ -1607,38 +1605,13 @@ xenFormatEmulator(virConfPtr conf, virDomainDefPtr def)
 
 
 static int
-xenFormatCDROM(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
-{
-    size_t i;
-
-    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
-        if (xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
-            for (i = 0; i < def->ndisks; i++) {
-                if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
-                    def->disks[i]->dst &&
-                    STREQ(def->disks[i]->dst, "hdc") &&
-                    virDomainDiskGetSource(def->disks[i])) {
-                    if (xenConfigSetString(conf, "cdrom",
-                                           virDomainDiskGetSource(def->disks[i])) < 0)
-                        return -1;
-                    break;
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-
-static int
-xenFormatVfb(virConfPtr conf, virDomainDefPtr def, int xendConfigVersion)
+xenFormatVfb(virConfPtr conf, virDomainDefPtr def)
 {
     int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM ? 1 : 0;
 
     if (def->ngraphics == 1 &&
         def->graphics[0]->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
-        if (hvm || (xendConfigVersion < XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
+        if (hvm) {
             if (def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
                 if (xenConfigSetInt(conf, "sdl", 1) < 0)
                     return -1;
@@ -1777,8 +1750,7 @@ xenFormatSound(virConfPtr conf, virDomainDefPtr def)
 static int
 xenFormatVif(virConfPtr conf,
              virConnectPtr conn,
-             virDomainDefPtr def,
-             int xendConfigVersion)
+             virDomainDefPtr def)
 {
    virConfValuePtr netVal = NULL;
    size_t i;
@@ -1791,7 +1763,7 @@ xenFormatVif(virConfPtr conf,
 
     for (i = 0; i < def->nnets; i++) {
         if (xenFormatNet(conn, netVal, def->nets[i],
-                         hvm, xendConfigVersion) < 0)
+                         hvm) < 0)
            goto cleanup;
     }
 
@@ -1817,8 +1789,7 @@ xenFormatVif(virConfPtr conf,
 int
 xenFormatConfigCommon(virConfPtr conf,
                       virDomainDefPtr def,
-                      virConnectPtr conn,
-                      int xendConfigVersion)
+                      virConnectPtr conn)
 {
     if (xenFormatGeneralMeta(conf, def) < 0)
         return -1;
@@ -1829,13 +1800,10 @@ xenFormatConfigCommon(virConfPtr conf,
     if (xenFormatCPUAllocation(conf, def) < 0)
         return -1;
 
-    if (xenFormatCPUFeatures(conf, def, xendConfigVersion) < 0)
+    if (xenFormatCPUFeatures(conf, def) < 0)
         return -1;
 
-    if (xenFormatCDROM(conf, def, xendConfigVersion) < 0)
-        return -1;
-
-    if (xenFormatTimeOffset(conf, def, xendConfigVersion) < 0)
+    if (xenFormatTimeOffset(conf, def) < 0)
         return -1;
 
     if (xenFormatEventActions(conf, def) < 0)
@@ -1844,10 +1812,10 @@ xenFormatConfigCommon(virConfPtr conf,
     if (xenFormatEmulator(conf, def) < 0)
         return -1;
 
-    if (xenFormatVfb(conf, def, xendConfigVersion) < 0)
+    if (xenFormatVfb(conf, def) < 0)
         return -1;
 
-    if (xenFormatVif(conf, conn, def, xendConfigVersion) < 0)
+    if (xenFormatVif(conf, conn, def) < 0)
         return -1;
 
     if (xenFormatPCI(conf, def) < 0)

@@ -190,10 +190,10 @@ typedef enum {
     QEMU_CAPS_SCSI_LSI, /* -device lsi */
     QEMU_CAPS_VIRTIO_SCSI, /* -device virtio-scsi-* */
     QEMU_CAPS_BLOCKIO, /* -device ...logical_block_size & co */
-    QEMU_CAPS_DISABLE_S3, /* S3 BIOS Advertisement on/off */
+    QEMU_CAPS_PIIX_DISABLE_S3, /* -M pc S3 BIOS Advertisement on/off */
 
     /* 105 */
-    QEMU_CAPS_DISABLE_S4, /* S4 BIOS Advertisement on/off */
+    QEMU_CAPS_PIIX_DISABLE_S4, /* -M pc S4 BIOS Advertisement on/off */
     QEMU_CAPS_USB_REDIR_FILTER, /* usb-redir.filter */
     QEMU_CAPS_IDE_DRIVE_WWN, /* Is ide-drive.wwn available? */
     QEMU_CAPS_SCSI_DISK_WWN, /* Is scsi-disk.wwn available? */
@@ -335,6 +335,12 @@ typedef enum {
     /* 205 */
     QEMU_CAPS_VIRTIO_TABLET, /* -device virtio-tablet-{device,pci} */
     QEMU_CAPS_VIRTIO_INPUT_HOST, /* -device virtio-input-host-{device,pci} */
+    QEMU_CAPS_CHARDEV_FILE_APPEND, /* -chardev file,append=on|off */
+    QEMU_CAPS_ICH9_DISABLE_S3, /* -M q35 S3 BIOS Advertisement on/off */
+    QEMU_CAPS_ICH9_DISABLE_S4, /* -M q35 S4 BIOS Advertisement on/off */
+
+    /* 210 */
+    QEMU_CAPS_VSERPORT_CHANGE, /* VSERPORT_CHANGE event */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;

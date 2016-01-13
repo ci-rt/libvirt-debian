@@ -442,7 +442,13 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
     char *devstr = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     bool releaseaddr = false;
-    bool addedToAddrSet = false;
+
+    if (controller->type != VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("'%s' controller cannot be hot plugged."),
+                       virDomainControllerTypeToString(controller->type));
+        return -1;
+    }
 
     if (virDomainControllerFind(vm->def, controller->type, controller->idx) >= 0) {
         virReportError(VIR_ERR_OPERATION_FAILED,
@@ -477,20 +483,6 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
         if (qemuAssignDeviceControllerAlias(vm->def, priv->qemuCaps, controller) < 0)
             goto cleanup;
 
-        if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
-            controller->model == -1 &&
-            !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_PIIX3_USB_UHCI)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("USB controller hotplug unsupported in this QEMU binary"));
-            goto cleanup;
-        }
-
-        if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL &&
-            virDomainVirtioSerialAddrSetAddController(priv->vioserialaddrs,
-                                                      controller) < 0)
-            goto cleanup;
-        addedToAddrSet = true;
-
         if (!(devstr = qemuBuildControllerDevStr(vm->def, controller, priv->qemuCaps, NULL)))
             goto cleanup;
     }
@@ -519,9 +511,6 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
     }
 
  cleanup:
-    if (ret != 0 && addedToAddrSet)
-        virDomainVirtioSerialAddrSetRemoveController(priv->vioserialaddrs,
-                                                     controller);
     if (ret != 0 && releaseaddr)
         qemuDomainReleaseDeviceAddress(vm, &controller->info, NULL);
 
@@ -951,15 +940,17 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, vhostfd, &vhostfdSize) < 0)
             goto cleanup;
     } else if (actualType == VIR_DOMAIN_NET_TYPE_DIRECT) {
-        tapfdSize = vhostfdSize = 1;
-        if (VIR_ALLOC(tapfd) < 0)
+        tapfdSize = vhostfdSize = net->driver.virtio.queues;
+        if (!tapfdSize)
+            tapfdSize = vhostfdSize = 1;
+        if (VIR_ALLOC_N(tapfd, tapfdSize) < 0)
             goto cleanup;
-        *tapfd = -1;
-        if (VIR_ALLOC(vhostfd) < 0)
+        memset(tapfd, -1, sizeof(*tapfd) * tapfdSize);
+        if (VIR_ALLOC_N(vhostfd, vhostfdSize) < 0)
             goto cleanup;
-        *vhostfd = -1;
-        if ((tapfd[0] = qemuPhysIfaceConnect(vm->def, driver, net,
-                                             VIR_NETDEV_VPORT_PROFILE_OP_CREATE)) < 0)
+        memset(vhostfd, -1, sizeof(*vhostfd) * vhostfdSize);
+        if (qemuPhysIfaceConnect(vm->def, driver, net, tapfd, tapfdSize,
+                                 VIR_NETDEV_VPORT_PROFILE_OP_CREATE) < 0)
             goto cleanup;
         iface_connected = true;
         if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, vhostfd, &vhostfdSize) < 0)
@@ -1280,17 +1271,14 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     }
 
     /* Temporarily add the hostdev to the domain definition. This is needed
-     * because qemuDomainRequiresMlock() and qemuDomainGetMlockLimitBytes()
-     * require the hostdev to be already part of the domain definition, but
-     * other functions like qemuAssignDeviceHostdevAlias() used below expect
-     * it *not* to be there. A better way to handle this would be nice */
+     * because qemuDomainAdjustMaxMemLock() requires the hostdev to be already
+     * part of the domain definition, but other functions like
+     * qemuAssignDeviceHostdevAlias() used below expect it *not* to be there.
+     * A better way to handle this would be nice */
     vm->def->hostdevs[vm->def->nhostdevs++] = hostdev;
-    if (qemuDomainRequiresMlock(vm->def)) {
-        if (virProcessSetMaxMemLock(vm->pid,
-                                    qemuDomainGetMlockLimitBytes(vm->def)) < 0) {
-            vm->def->hostdevs[--(vm->def->nhostdevs)] = NULL;
-            goto error;
-        }
+    if (qemuDomainAdjustMaxMemLock(vm) < 0) {
+        vm->def->hostdevs[--(vm->def->nhostdevs)] = NULL;
+        goto error;
     }
     vm->def->hostdevs[--(vm->def->nhostdevs)] = NULL;
 
@@ -1325,8 +1313,8 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
             goto error;
         }
 
-        if (!(devstr = qemuBuildPCIHostdevDevStr(vm->def, hostdev, configfd_name,
-                                                 priv->qemuCaps)))
+        if (!(devstr = qemuBuildPCIHostdevDevStr(vm->def, hostdev, 0,
+                                                 configfd_name, priv->qemuCaps)))
             goto error;
 
         qemuDomainObjEnterMonitor(driver, vm);
@@ -1776,7 +1764,6 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     virJSONValuePtr props = NULL;
     virObjectEventPtr event;
     bool fix_balloon = false;
-    bool mlock = false;
     int id;
     int ret = -1;
 
@@ -1808,12 +1795,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    mlock = qemuDomainRequiresMlock(vm->def);
-
-    if (mlock &&
-        virProcessSetMaxMemLock(vm->pid,
-                                qemuDomainGetMlockLimitBytes(vm->def)) < 0) {
-        mlock = false;
+    if (qemuDomainAdjustMaxMemLock(vm) < 0) {
         virJSONValueFree(props);
         goto removedef;
     }
@@ -1874,13 +1856,10 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
         mem = NULL;
 
     /* reset the mlock limit */
-    if (mlock) {
-        virErrorPtr err = virSaveLastError();
-        ignore_value(virProcessSetMaxMemLock(vm->pid,
-                                             qemuDomainGetMlockLimitBytes(vm->def)));
-        virSetError(err);
-        virFreeError(err);
-    }
+    virErrorPtr err = virSaveLastError();
+    ignore_value(qemuDomainAdjustMaxMemLock(vm));
+    virSetError(err);
+    virFreeError(err);
 
     goto audit;
 }
@@ -2974,9 +2953,7 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
     virDomainMemoryDefFree(mem);
 
     /* decrease the mlock limit after memory unplug if necessary */
-    if (qemuDomainRequiresMlock(vm->def))
-        ignore_value(virProcessSetMaxMemLock(vm->pid,
-                                             qemuDomainGetMlockLimitBytes(vm->def)));
+    ignore_value(qemuDomainAdjustMaxMemLock(vm));
 
     return 0;
 }
@@ -3063,6 +3040,10 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
     switch ((virDomainHostdevSubsysType) hostdev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
         qemuDomainRemovePCIHostDevice(driver, vm, hostdev);
+        /* QEMU might no longer need to lock as much memory, eg. we just
+         * detached the last VFIO device, so adjust the limit here */
+        if (qemuDomainAdjustMaxMemLock(vm) < 0)
+            VIR_WARN("Failed to adjust locked memory limit");
         break;
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
         qemuDomainRemoveUSBHostDevice(driver, vm, hostdev);
@@ -3088,6 +3069,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
         networkReleaseActualDevice(vm->def, net);
         virDomainNetDefFree(net);
     }
+
     ret = 0;
 
  cleanup:

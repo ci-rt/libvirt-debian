@@ -1,7 +1,7 @@
 /*
  * virsh-nodedev.c: Commands in node device group
  *
- * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -50,11 +50,8 @@ static const vshCmdInfo info_node_device_create[] = {
 };
 
 static const vshCmdOptDef opts_node_device_create[] = {
-    {.name = "file",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("file containing an XML description of the device")
-    },
+    VIRSH_COMMON_OPT_FILE(N_("file containing an XML description "
+                             "of the device")),
     {.name = NULL}
 };
 
@@ -398,7 +395,7 @@ cmdNodeListDevices(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     virshNodeDeviceListPtr list = NULL;
     int cap_type = -1;
 
-    ignore_value(vshCommandOptString(ctl, cmd, "cap", &cap_str));
+    ignore_value(vshCommandOptStringQuiet(ctl, cmd, "cap", &cap_str));
 
     if (cap_str) {
         if (tree) {
@@ -615,7 +612,7 @@ cmdNodeDeviceDetach(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "device", &name) < 0)
         return false;
 
-    ignore_value(vshCommandOptString(ctl, cmd, "driver", &driverName));
+    ignore_value(vshCommandOptStringQuiet(ctl, cmd, "driver", &driverName));
 
     if (!(device = virNodeDeviceLookupByName(priv->conn, name))) {
         vshError(ctl, _("Could not find matching device '%s'"), name);

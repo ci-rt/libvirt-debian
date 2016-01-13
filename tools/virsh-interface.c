@@ -1,7 +1,7 @@
 /*
  * virsh-interface.c: Commands to manage host interface
  *
- * Copyright (C) 2005, 2007-2015 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,13 @@
  *  Daniel P. Berrange <berrange@redhat.com>
  *
  */
+
+#define VIRSH_COMMON_OPT_INTERFACE                     \
+    {.name = "interface",                              \
+     .type = VSH_OT_DATA,                              \
+     .flags = VSH_OFLAG_REQ,                           \
+     .help = N_("interface name or MAC address")       \
+    }                                                  \
 
 #include <config.h>
 #include "virsh-interface.h"
@@ -100,11 +107,7 @@ static const vshCmdInfo info_interface_edit[] = {
 };
 
 static const vshCmdOptDef opts_interface_edit[] = {
-    {.name = "interface",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("interface name or MAC address")
-    },
+    VIRSH_COMMON_OPT_INTERFACE,
     {.name = NULL}
 };
 
@@ -464,11 +467,7 @@ static const vshCmdInfo info_interface_dumpxml[] = {
 };
 
 static const vshCmdOptDef opts_interface_dumpxml[] = {
-    {.name = "interface",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("interface name or MAC address")
-    },
+    VIRSH_COMMON_OPT_INTERFACE,
     {.name = "inactive",
      .type = VSH_OT_BOOL,
      .help = N_("show inactive defined XML")
@@ -518,11 +517,7 @@ static const vshCmdInfo info_interface_define[] = {
 };
 
 static const vshCmdOptDef opts_interface_define[] = {
-    {.name = "file",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("file containing an XML interface description")
-    },
+    VIRSH_COMMON_OPT_FILE(N_("file containing an XML interface description")),
     {.name = NULL}
 };
 
@@ -569,11 +564,7 @@ static const vshCmdInfo info_interface_undefine[] = {
 };
 
 static const vshCmdOptDef opts_interface_undefine[] = {
-    {.name = "interface",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("interface name or MAC address")
-    },
+    VIRSH_COMMON_OPT_INTERFACE,
     {.name = NULL}
 };
 
@@ -612,11 +603,7 @@ static const vshCmdInfo info_interface_start[] = {
 };
 
 static const vshCmdOptDef opts_interface_start[] = {
-    {.name = "interface",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("interface name or MAC address")
-    },
+    VIRSH_COMMON_OPT_INTERFACE,
     {.name = NULL}
 };
 
@@ -655,11 +642,7 @@ static const vshCmdInfo info_interface_destroy[] = {
 };
 
 static const vshCmdOptDef opts_interface_destroy[] = {
-    {.name = "interface",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("interface name or MAC address")
-    },
+    VIRSH_COMMON_OPT_INTERFACE,
     {.name = NULL}
 };
 

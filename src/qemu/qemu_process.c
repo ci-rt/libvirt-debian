@@ -203,7 +203,7 @@ qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
     qemuAgentPtr agent = NULL;
-    virDomainChrSourceDefPtr config = qemuFindAgentConfig(vm->def);
+    virDomainChrDefPtr config = qemuFindAgentConfig(vm->def);
 
     if (!config)
         return 0;
@@ -223,7 +223,7 @@ qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
     virObjectUnlock(vm);
 
     agent = qemuAgentOpen(vm,
-                          config,
+                          &config->source,
                           &agentCallbacks);
 
     virObjectLock(vm);
@@ -1507,7 +1507,7 @@ qemuProcessHandleMigrationStatus(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    priv->job.current->status.status = status;
+    priv->job.current->stats.status = status;
     virDomainObjBroadcast(vm);
 
  cleanup:
@@ -2020,11 +2020,11 @@ qemuProcessDetectVcpuPIDs(virQEMUDriverPtr driver,
         return 0;
     }
 
-    if (ncpupids != vm->def->vcpus) {
+    if (ncpupids != virDomainDefGetVcpus(vm->def)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("got wrong number of vCPU pids from QEMU monitor. "
                          "got %d, wanted %d"),
-                       ncpupids, vm->def->vcpus);
+                       ncpupids, virDomainDefGetVcpus(vm->def));
         VIR_FREE(cpupids);
         return -1;
     }
@@ -2234,17 +2234,17 @@ qemuProcessSetLinkStates(virQEMUDriverPtr driver,
 static int
 qemuProcessSetVcpuAffinities(virDomainObjPtr vm)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainDefPtr def = vm->def;
     virDomainPinDefPtr pininfo;
     int n;
     int ret = -1;
-    VIR_DEBUG("Setting affinity on CPUs nvcpupin=%zu nvcpus=%d nvcpupids=%d",
-              def->cputune.nvcpupin, def->vcpus, priv->nvcpupids);
+    VIR_DEBUG("Setting affinity on CPUs nvcpupin=%zu nvcpus=%d hasVcpupids=%d",
+              def->cputune.nvcpupin, virDomainDefGetVcpus(def),
+              qemuDomainHasVcpuPids(vm));
     if (!def->cputune.nvcpupin)
         return 0;
 
-    if (priv->vcpupids == NULL) {
+    if (!qemuDomainHasVcpuPids(vm)) {
         /* If any CPU has custom affinity that differs from the
          * VM default affinity, we must reject it
          */
@@ -2259,14 +2259,14 @@ qemuProcessSetVcpuAffinities(virDomainObjPtr vm)
         return 0;
     }
 
-    for (n = 0; n < def->vcpus; n++) {
+    for (n = 0; n < virDomainDefGetVcpus(def); n++) {
         /* set affinity only for existing vcpus */
         if (!(pininfo = virDomainPinFind(def->cputune.vcpupin,
                                          def->cputune.nvcpupin,
                                          n)))
             continue;
 
-        if (virProcessSetAffinity(priv->vcpupids[n],
+        if (virProcessSetAffinity(qemuDomainGetVcpuPid(vm, n),
                                   pininfo->cpumask) < 0) {
             goto cleanup;
         }
@@ -2354,7 +2354,7 @@ qemuProcessSetSchedulers(virDomainObjPtr vm)
     size_t i = 0;
 
     for (i = 0; i < priv->nvcpupids; i++) {
-        if (qemuProcessSetSchedParams(i, priv->vcpupids[i],
+        if (qemuProcessSetSchedParams(i, qemuDomainGetVcpuPid(vm, i),
                                       vm->def->cputune.nvcpusched,
                                       vm->def->cputune.vcpusched) < 0)
             return -1;
@@ -3869,7 +3869,7 @@ qemuValidateCpuMax(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
     if (!maxCpus)
         return true;
 
-    if (def->maxvcpus > maxCpus) {
+    if (virDomainDefGetVcpusMax(def) > maxCpus) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        "%s", _("Maximum CPUs greater than specified machine type limit"));
         return false;
@@ -4124,6 +4124,7 @@ qemuProcessIncomingDefFree(qemuProcessIncomingDefPtr inc)
     if (!inc)
         return;
 
+    VIR_FREE(inc->address);
     VIR_FREE(inc->launchURI);
     VIR_FREE(inc->deferredURI);
     VIR_FREE(inc);
@@ -4137,6 +4138,7 @@ qemuProcessIncomingDefFree(qemuProcessIncomingDefPtr inc)
  */
 qemuProcessIncomingDefPtr
 qemuProcessIncomingDefNew(virQEMUCapsPtr qemuCaps,
+                          const char *listenAddress,
                           const char *migrateFrom,
                           int fd,
                           const char *path)
@@ -4148,6 +4150,9 @@ qemuProcessIncomingDefNew(virQEMUCapsPtr qemuCaps,
 
     if (VIR_ALLOC(inc) < 0)
         return NULL;
+
+    if (VIR_STRDUP(inc->address, listenAddress) < 0)
+        goto error;
 
     inc->launchURI = qemuMigrationIncomingURI(migrateFrom, fd);
     if (!inc->launchURI)
@@ -4542,6 +4547,7 @@ qemuProcessLaunch(virConnectPtr conn,
     unsigned int hostdev_flags = 0;
     size_t nnicindexes = 0;
     int *nicindexes = NULL;
+    bool check_shmem = false;
 
     VIR_DEBUG("vm=%p name=%s id=%d asyncJob=%d "
               "incoming.launchURI=%s incoming.deferredURI=%s "
@@ -4670,7 +4676,7 @@ qemuProcessLaunch(virConnectPtr conn,
      * either <vcpu> or <numatune> is 'auto'.
      */
     if (virDomainDefNeedsPlacementAdvice(vm->def)) {
-        nodeset = virNumaGetAutoPlacementAdvice(vm->def->vcpus,
+        nodeset = virNumaGetAutoPlacementAdvice(virDomainDefGetVcpus(vm->def),
                                                 virDomainDefGetMemoryActual(vm->def));
         if (!nodeset)
             goto cleanup;
@@ -4747,6 +4753,50 @@ qemuProcessLaunch(virConnectPtr conn,
         VIR_DEBUG("Assigning domain PCI addresses");
         if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm)) < 0)
             goto cleanup;
+    }
+
+    VIR_DEBUG("Checking for any possible (non-fatal) issues");
+
+    /*
+     * For vhost-user to work, the domain has to have some type of
+     * shared memory configured.  We're not the proper ones to judge
+     * whether shared hugepages or shm are enough and will be in the
+     * future, so we'll just warn in case neither is configured.
+     * Moreover failing would give the false illusion that libvirt is
+     * really checking that everything works before running the domain
+     * and not only we are unable to do that, but it's also not our
+     * aim to do so.
+     */
+    for (i = 0; i < vm->def->nnets; i++) {
+        if (virDomainNetGetActualType(vm->def->nets[i]) ==
+                                      VIR_DOMAIN_NET_TYPE_VHOSTUSER) {
+            check_shmem = true;
+            break;
+        }
+    }
+
+    if (check_shmem) {
+        bool shmem = vm->def->nshmems;
+
+        /*
+         * This check is by no means complete.  We merely check
+         * whether there are *some* hugepages enabled and *some* NUMA
+         * nodes with shared memory access.
+         */
+        if (!shmem && vm->def->mem.nhugepages) {
+            for (i = 0; i < virDomainNumaGetNodeCount(vm->def->numa); i++) {
+                if (virDomainNumaGetNodeMemoryAccessMode(vm->def->numa, i) ==
+                    VIR_NUMA_MEM_ACCESS_SHARED) {
+                    shmem = true;
+                    break;
+                }
+            }
+        }
+
+        if (!shmem) {
+            VIR_WARN("Detected vhost-user interface without any shared memory, "
+                     "the interface might not be operational");
+        }
     }
 
     VIR_DEBUG("Building emulator command line");
@@ -4844,12 +4894,6 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuSetupCgroup(driver, vm, nnicindexes, nicindexes) < 0)
         goto cleanup;
 
-    /* This must be done after cgroup placement to avoid resetting CPU
-     * affinity */
-    if (!vm->def->cputune.emulatorpin &&
-        qemuProcessInitCpuAffinity(vm) < 0)
-        goto cleanup;
-
     VIR_DEBUG("Setting domain security labels");
     if (virSecurityManagerSetAllLabel(driver->securityManager,
                                       vm->def,
@@ -4894,6 +4938,12 @@ qemuProcessLaunch(virConnectPtr conn,
 
     VIR_DEBUG("Setting cgroup for emulator (if required)");
     if (qemuSetupCgroupForEmulator(vm) < 0)
+        goto cleanup;
+
+    /* This must be done after cgroup placement to avoid resetting CPU
+     * affinity */
+    if (!vm->def->cputune.emulatorpin &&
+        qemuProcessInitCpuAffinity(vm) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting affinity of emulator threads");
@@ -5092,7 +5142,7 @@ qemuProcessStart(virConnectPtr conn,
         goto cleanup;
 
     if (migrateFrom) {
-        incoming = qemuProcessIncomingDefNew(priv->qemuCaps, migrateFrom,
+        incoming = qemuProcessIncomingDefNew(priv->qemuCaps, NULL, migrateFrom,
                                              migrateFd, migratePath);
         if (!incoming)
             goto stop;

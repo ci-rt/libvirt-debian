@@ -1928,7 +1928,7 @@ static int testDomainGetInfo(virDomainPtr domain,
     info->state = virDomainObjGetState(privdom, NULL);
     info->memory = privdom->def->mem.cur_balloon;
     info->maxMem = virDomainDefGetMemoryActual(privdom->def);
-    info->nrVirtCpu = privdom->def->vcpus;
+    info->nrVirtCpu = virDomainDefGetVcpus(privdom->def);
     info->cpuTime = ((tv.tv_sec * 1000ll * 1000ll  * 1000ll) + (tv.tv_usec * 1000ll));
     ret = 0;
 
@@ -2313,7 +2313,10 @@ testDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     if (!(def = virDomainObjGetOneDef(vm, flags)))
         goto cleanup;
 
-    ret = (flags & VIR_DOMAIN_VCPU_MAXIMUM) ? def->maxvcpus : def->vcpus;
+    if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+        ret = virDomainDefGetVcpusMax(def);
+    else
+        ret = virDomainDefGetVcpus(def);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -2356,32 +2359,33 @@ testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
     if (virDomainObjGetDefs(privdom, flags, &def, &persistentDef) < 0)
         goto cleanup;
 
-    if (def && def->maxvcpus < nrCpus) {
+    if (def && virDomainDefGetVcpusMax(def) < nrCpus) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("requested cpu amount exceeds maximum (%d > %d)"),
-                       nrCpus, def->maxvcpus);
+                       nrCpus, virDomainDefGetVcpusMax(def));
         goto cleanup;
     }
 
     if (persistentDef &&
         !(flags & VIR_DOMAIN_VCPU_MAXIMUM) &&
-        persistentDef->maxvcpus < nrCpus) {
+        virDomainDefGetVcpusMax(persistentDef) < nrCpus) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("requested cpu amount exceeds maximum (%d > %d)"),
-                       nrCpus, persistentDef->maxvcpus);
+                       nrCpus, virDomainDefGetVcpusMax(persistentDef));
         goto cleanup;
     }
 
-    if (def)
-        def->vcpus = nrCpus;
+    if (def &&
+        virDomainDefSetVcpus(def, nrCpus) < 0)
+        goto cleanup;
 
     if (persistentDef) {
         if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
-            persistentDef->maxvcpus = nrCpus;
-            if (nrCpus < persistentDef->vcpus)
-                persistentDef->vcpus = nrCpus;
+            if (virDomainDefSetVcpusMax(persistentDef, nrCpus) < 0)
+                goto cleanup;
         } else {
-            persistentDef->vcpus = nrCpus;
+            if (virDomainDefSetVcpus(persistentDef, nrCpus) < 0)
+                goto cleanup;
         }
     }
 
@@ -2444,8 +2448,8 @@ static int testDomainGetVcpus(virDomainPtr domain,
     virBitmapSetAll(allcpumap);
 
     /* Clamp to actual number of vcpus */
-    if (maxinfo > privdom->def->vcpus)
-        maxinfo = privdom->def->vcpus;
+    if (maxinfo > virDomainDefGetVcpus(privdom->def))
+        maxinfo = virDomainDefGetVcpus(privdom->def);
 
     memset(info, 0, sizeof(*info) * maxinfo);
     memset(cpumaps, 0, maxinfo * maplen);
@@ -2503,7 +2507,7 @@ static int testDomainPinVcpu(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (vcpu > privdom->def->vcpus) {
+    if (vcpu > virDomainDefGetVcpus(privdom->def)) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("requested vcpu is higher than allocated vcpus"));
         goto cleanup;
@@ -2557,8 +2561,8 @@ testDomainGetVcpuPinInfo(virDomainPtr dom,
     virBitmapSetAll(allcpumap);
 
     /* Clamp to actual number of vcpus */
-    if (ncpumaps > def->vcpus)
-        ncpumaps = def->vcpus;
+    if (ncpumaps > virDomainDefGetVcpus(def))
+        ncpumaps = virDomainDefGetVcpus(def);
 
     for (vcpu = 0; vcpu < ncpumaps; vcpu++) {
         virDomainPinDefPtr pininfo;

@@ -24,10 +24,9 @@
 #include <config.h>
 
 #include <stdio.h>
-#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+#if defined HAVE_MNTENT_H && defined HAVE_SYS_MOUNT_H \
+    && defined HAVE_GETMNTENT_R
 # include <mntent.h>
-#endif
-#if defined HAVE_SYS_MOUNT_H
 # include <sys/mount.h>
 #endif
 #include <fcntl.h>
@@ -38,6 +37,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #define __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
 #include "vircgrouppriv.h"
@@ -1669,16 +1669,6 @@ virCgroupNewMachineSystemd(const char *name,
         }
     }
 
-    if (virCgroupAddTask(*group, pidleader) < 0) {
-        virErrorPtr saved = virSaveLastError();
-        virCgroupRemove(*group);
-        virCgroupFree(group);
-        if (saved) {
-            virSetError(saved);
-            virFreeError(saved);
-        }
-    }
-
     ret = 0;
  cleanup:
     virCgroupFree(&parent);
@@ -1701,7 +1691,6 @@ int virCgroupTerminateMachine(const char *name,
 static int
 virCgroupNewMachineManual(const char *name,
                           const char *drivername,
-                          pid_t pidleader,
                           const char *partition,
                           int controllers,
                           virCgroupPtr *group)
@@ -1726,16 +1715,6 @@ virCgroupNewMachineManual(const char *name,
                                     true,
                                     group) < 0)
         goto cleanup;
-
-    if (virCgroupAddTask(*group, pidleader) < 0) {
-        virErrorPtr saved = virSaveLastError();
-        virCgroupRemove(*group);
-        virCgroupFree(group);
-        if (saved) {
-            virSetError(saved);
-            virFreeError(saved);
-        }
-    }
 
  done:
     ret = 0;
@@ -1783,7 +1762,6 @@ virCgroupNewMachine(const char *name,
 
     return virCgroupNewMachineManual(name,
                                      drivername,
-                                     pidleader,
                                      partition,
                                      controllers,
                                      group);

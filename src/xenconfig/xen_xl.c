@@ -444,7 +444,9 @@ xenParseXLInputDevs(virConfPtr conf, virDomainDefPtr def)
 }
 
 virDomainDefPtr
-xenParseXL(virConfPtr conf, virCapsPtr caps, int xendConfigVersion)
+xenParseXL(virConfPtr conf,
+           virCapsPtr caps,
+           virDomainXMLOptionPtr xmlopt)
 {
     virDomainDefPtr def = NULL;
 
@@ -454,7 +456,7 @@ xenParseXL(virConfPtr conf, virCapsPtr caps, int xendConfigVersion)
     def->virtType = VIR_DOMAIN_VIRT_XEN;
     def->id = -1;
 
-    if (xenParseConfigCommon(conf, def, caps, xendConfigVersion) < 0)
+    if (xenParseConfigCommon(conf, def, caps) < 0)
         goto cleanup;
 
     if (xenParseXLOS(conf, def, caps) < 0)
@@ -467,6 +469,10 @@ xenParseXL(virConfPtr conf, virCapsPtr caps, int xendConfigVersion)
         goto cleanup;
 
     if (xenParseXLInputDevs(conf, def) < 0)
+        goto cleanup;
+
+    if (virDomainDefPostParse(def, caps, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,
+                              xmlopt) < 0)
         goto cleanup;
 
     return def;
@@ -821,14 +827,14 @@ xenFormatXLInputDevs(virConfPtr conf, virDomainDefPtr def)
 
 
 virConfPtr
-xenFormatXL(virDomainDefPtr def, virConnectPtr conn, int xendConfigVersion)
+xenFormatXL(virDomainDefPtr def, virConnectPtr conn)
 {
     virConfPtr conf = NULL;
 
     if (!(conf = virConfNew()))
         goto cleanup;
 
-    if (xenFormatConfigCommon(conf, def, conn, xendConfigVersion) < 0)
+    if (xenFormatConfigCommon(conf, def, conn) < 0)
         goto cleanup;
 
     if (xenFormatXLOS(conf, def) < 0)

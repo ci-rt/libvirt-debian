@@ -139,7 +139,7 @@ xenXMConfigReadFile(virConnectPtr conn, const char *filename)
     if (!(conf = virConfReadFile(filename, 0)))
         return NULL;
 
-    def = xenParseXM(conf, priv->xendConfigVersion, priv->caps);
+    def = xenParseXM(conf, priv->caps, priv->xmlopt);
     virConfFree(conf);
 
     return def;
@@ -151,10 +151,9 @@ xenXMConfigSaveFile(virConnectPtr conn,
                     virDomainDefPtr def)
 {
     virConfPtr conf;
-    xenUnifiedPrivatePtr priv = conn->privateData;
     int ret;
 
-    if (!(conf = xenFormatXM(conn, def, priv->xendConfigVersion)))
+    if (!(conf = xenFormatXM(conn, def)))
         return -1;
 
     ret = virConfWriteFile(filename, conf);
@@ -483,7 +482,7 @@ xenXMDomainGetInfo(virConnectPtr conn,
     memset(info, 0, sizeof(virDomainInfo));
     info->maxMem = virDomainDefGetMemoryActual(entry->def);
     info->memory = entry->def->mem.cur_balloon;
-    info->nrVirtCpu = entry->def->vcpus;
+    info->nrVirtCpu = virDomainDefGetVcpus(entry->def);
     info->state = VIR_DOMAIN_SHUTOFF;
     info->cpuTime = 0;
 
@@ -695,7 +694,8 @@ xenXMDomainSetVcpusFlags(virConnectPtr conn,
     /* Can't specify a current larger than stored maximum; but
      * reducing maximum can silently reduce current.  */
     if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM))
-        max = entry->def->maxvcpus;
+        max = virDomainDefGetVcpusMax(entry->def);
+
     if (vcpus > max) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("requested vcpus is greater than max allowable"
@@ -704,11 +704,11 @@ xenXMDomainSetVcpusFlags(virConnectPtr conn,
     }
 
     if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
-        entry->def->maxvcpus = vcpus;
-        if (entry->def->vcpus > vcpus)
-            entry->def->vcpus = vcpus;
+        if (virDomainDefSetVcpusMax(entry->def, vcpus) < 0)
+            goto cleanup;
     } else {
-        entry->def->vcpus = vcpus;
+        if (virDomainDefSetVcpus(entry->def, vcpus) < 0)
+            goto cleanup;
     }
 
     /* If this fails, should we try to undo our changes to the
@@ -761,8 +761,10 @@ xenXMDomainGetVcpusFlags(virConnectPtr conn,
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto cleanup;
 
-    ret = ((flags & VIR_DOMAIN_VCPU_MAXIMUM) ? entry->def->maxvcpus
-           : entry->def->vcpus);
+    if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+        ret = virDomainDefGetVcpusMax(entry->def);
+    else
+        ret = virDomainDefGetVcpus(entry->def);
 
  cleanup:
     xenUnifiedUnlock(priv);
@@ -918,7 +920,7 @@ xenXMDomainCreate(virConnectPtr conn,
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto error;
 
-    if (!(sexpr = xenFormatSxpr(conn, entry->def, priv->xendConfigVersion)))
+    if (!(sexpr = xenFormatSxpr(conn, entry->def)))
         goto error;
 
     ret = xenDaemonDomainCreateXML(conn, sexpr);
@@ -969,7 +971,7 @@ xenXMDomainDefineXML(virConnectPtr conn, virDomainDefPtr def)
         return -1;
     }
 
-    if (!(conf = xenFormatXM(conn, def, priv->xendConfigVersion)))
+    if (!(conf = xenFormatXM(conn, def)))
         goto error;
 
     /*

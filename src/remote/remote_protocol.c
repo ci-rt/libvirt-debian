@@ -7,22 +7,8 @@
 #include "remote_protocol.h"
 #include <libvirt/libvirt.h>
 #include "internal.h"
+#include "virxdrdefs.h"
 #include <arpa/inet.h>
-#ifdef HAVE_XDR_U_INT64_T
-# define xdr_uint64_t xdr_u_int64_t
-#endif
-#ifndef IXDR_PUT_INT32
-# define IXDR_PUT_INT32 IXDR_PUT_LONG
-#endif
-#ifndef IXDR_GET_INT32
-# define IXDR_GET_INT32 IXDR_GET_LONG
-#endif
-#ifndef IXDR_PUT_U_INT32
-# define IXDR_PUT_U_INT32 IXDR_PUT_U_LONG
-#endif
-#ifndef IXDR_GET_U_INT32
-# define IXDR_GET_U_INT32 IXDR_GET_U_LONG
-#endif
 
 bool_t
 xdr_remote_nonnull_string (XDR *xdrs, remote_nonnull_string *objp)
@@ -6185,8 +6171,8 @@ xdr_remote_domain_migrate_begin3_params_ret (XDR *xdrs, remote_domain_migrate_be
 bool_t
 xdr_remote_domain_migrate_prepare3_params_args (XDR *xdrs, remote_domain_migrate_prepare3_params_args *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX,
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
@@ -6213,8 +6199,8 @@ xdr_remote_domain_migrate_prepare3_params_ret (XDR *xdrs, remote_domain_migrate_
 bool_t
 xdr_remote_domain_migrate_prepare_tunnel3_params_args (XDR *xdrs, remote_domain_migrate_prepare_tunnel3_params_args *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX,
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
@@ -6269,8 +6255,8 @@ xdr_remote_domain_migrate_perform3_params_ret (XDR *xdrs, remote_domain_migrate_
 bool_t
 xdr_remote_domain_migrate_finish3_params_args (XDR *xdrs, remote_domain_migrate_finish3_params_args *objp)
 {
-        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
         char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX,
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
@@ -6299,8 +6285,8 @@ xdr_remote_domain_migrate_finish3_params_ret (XDR *xdrs, remote_domain_migrate_f
 bool_t
 xdr_remote_domain_migrate_confirm3_params_args (XDR *xdrs, remote_domain_migrate_confirm3_params_args *objp)
 {
-        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
         char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
@@ -6532,8 +6518,8 @@ xdr_remote_node_get_free_pages_ret (XDR *xdrs, remote_node_get_free_pages_ret *o
 bool_t
 xdr_remote_node_alloc_pages_args (XDR *xdrs, remote_node_alloc_pages_args *objp)
 {
-        char **objp_cpp0 = (char **) (void *) &objp->pageSizes.pageSizes_val;
         char **objp_cpp1 = (char **) (void *) &objp->pageCounts.pageCounts_val;
+        char **objp_cpp0 = (char **) (void *) &objp->pageSizes.pageSizes_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->pageSizes.pageSizes_len, REMOTE_NODE_MAX_CELLS,
                 sizeof (u_int), (xdrproc_t) xdr_u_int))

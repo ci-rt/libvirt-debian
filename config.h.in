@@ -1054,6 +1054,9 @@
 /* Define to 1 if you have the 'getifaddrs' function. */
 #undef HAVE_GETIFADDRS
 
+/* Define to 1 if you have the `getlocalename_l' function. */
+#undef HAVE_GETLOCALENAME_L
+
 /* Define to 1 if you have the 'getmntent_r' function. */
 #undef HAVE_GETMNTENT_R
 
@@ -1065,6 +1068,9 @@
 
 /* Define to 1 if you have the 'getpwuid_r' function. */
 #undef HAVE_GETPWUID_R
+
+/* Define to 1 if you have the 'getrlimit' function. */
+#undef HAVE_GETRLIMIT
 
 /* Define to 1 if you have the `getservbyname' function. */
 #undef HAVE_GETSERVBYNAME
@@ -1693,6 +1699,9 @@
 
 /* Define to 1 if `ss_family' is a member of `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY
+
+/* Defined if struct sockpeercred is available */
+#undef HAVE_STRUCT_SOCKPEERCRED
 
 /* Define to 1 if `st_atimensec' is a member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_ATIMENSEC
@@ -2471,6 +2480,9 @@
 
 /* whether libxenlight driver is enabled */
 #undef WITH_LIBXL
+
+/* whether virt-login-shell is built */
+#undef WITH_LOGIN_SHELL
 
 /* whether LXC driver is enabled */
 #undef WITH_LXC

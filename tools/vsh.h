@@ -197,6 +197,7 @@ struct _vshControl {
     const char *name;           /* hardcoded name of the binary that cannot
                                  * be changed without recompilation compared
                                  * to program name */
+    char *connname;             /* connection name */
     char *progname;             /* program name */
     vshCmd *cmd;                /* the current command */
     char *cmdstr;               /* string with command */
@@ -270,8 +271,8 @@ int vshCommandOptUL(vshControl *ctl, const vshCmd *cmd,
 int vshCommandOptULWrap(vshControl *ctl, const vshCmd *cmd,
                         const char *name, unsigned long *value)
     ATTRIBUTE_NONNULL(4) ATTRIBUTE_RETURN_CHECK;
-int vshCommandOptString(vshControl *ctl, const vshCmd *cmd,
-                        const char *name, const char **value)
+int vshCommandOptStringQuiet(vshControl *ctl, const vshCmd *cmd,
+                             const char *name, const char **value)
     ATTRIBUTE_NONNULL(4) ATTRIBUTE_RETURN_CHECK;
 int vshCommandOptStringReq(vshControl *ctl, const vshCmd *cmd,
                            const char *name, const char **value)

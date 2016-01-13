@@ -1,6 +1,6 @@
-/* gl_openssl.h -- wrap openssl crypto hash routines in gnulib interface
+/* Wrap openssl crypto hash routines in gnulib interface.  -*- coding: utf-8 -*-
 
-   Copyright (C) 2013-2015 Free Software Foundation, Inc.
+   Copyright (C) 2013-2016 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by

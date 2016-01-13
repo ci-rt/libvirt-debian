@@ -1389,9 +1389,21 @@ static struct diskType const disk_types[] = {
 };
 
 
+/*
+ * virStorageBackendDetectBlockVolFormatFD
+ * @target: target definition ptr of volume to update
+ * @fd: fd of storage volume to update,
+ * @readflags: VolReadErrorMode flags to handle read error after open
+ *             is successful, but read is not.
+ *
+ * Returns 0 for success, -1 on a legitimate error condition, -2 if
+ * the read error is desired to be ignored (along with appropriate
+ * VIR_WARN of the issue).
+ */
 static int
 virStorageBackendDetectBlockVolFormatFD(virStorageSourcePtr target,
-                                        int fd)
+                                        int fd,
+                                        unsigned int readflags)
 {
     size_t i;
     off_t start;
@@ -1410,10 +1422,16 @@ virStorageBackendDetectBlockVolFormatFD(virStorageSourcePtr target,
     }
     bytes = saferead(fd, buffer, sizeof(buffer));
     if (bytes < 0) {
-        virReportSystemError(errno,
-                             _("cannot read beginning of file '%s'"),
-                             target->path);
-        return -1;
+        if (readflags & VIR_STORAGE_VOL_READ_NOERROR) {
+            VIR_WARN("ignoring failed saferead of file '%s'",
+                     target->path);
+            return -2;
+        } else {
+            virReportSystemError(errno,
+                                 _("cannot read beginning of file '%s'"),
+                                 target->path);
+            return -1;
+        }
     }
 
     for (i = 0; disk_types[i].part_table_type != -1; i++) {
@@ -1425,6 +1443,10 @@ virStorageBackendDetectBlockVolFormatFD(virStorageSourcePtr target,
             break;
         }
     }
+
+    if (target->format == VIR_STORAGE_POOL_DISK_UNKNOWN)
+        VIR_DEBUG("cannot determine the target format for '%s'",
+                  target->path);
 
     return 0;
 }
@@ -1577,10 +1599,24 @@ virStorageBackendVolOpen(const char *path, struct stat *sb,
     return fd;
 }
 
+/*
+ * virStorageBackendUpdateVolTargetInfo
+ * @target: target definition ptr of volume to update
+ * @withBlockVolFormat: true if caller determined a block file
+ * @openflags: various VolOpenCheckMode flags to handle errors on open
+ * @readflags: VolReadErrorMode flags to handle read error after open
+ *             is successful, but read is not.
+ *
+ * Returns 0 for success, -1 on a legitimate error condition, and -2
+ * if the openflags used VIR_STORAGE_VOL_OPEN_NOERROR and some sort of
+ * open error occurred. It is up to the caller to handle. A -2 may also
+ * be returned if the caller passed a readflagsflag.
+ */
 int
 virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
                                      bool withBlockVolFormat,
-                                     unsigned int openflags)
+                                     unsigned int openflags,
+                                     unsigned int readflags)
 {
     int ret, fd = -1;
     struct stat sb;
@@ -1604,16 +1640,27 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
 
         if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
             virReportSystemError(errno, _("cannot seek to start of '%s'"), target->path);
+            ret = -1;
             goto cleanup;
         }
 
         if ((len = virFileReadHeaderFD(fd, len, &buf)) < 0) {
-            virReportSystemError(errno, _("cannot read header '%s'"), target->path);
+            if (readflags & VIR_STORAGE_VOL_READ_NOERROR) {
+                VIR_WARN("ignoring failed header read for '%s'",
+                         target->path);
+                ret = -2;
+            } else {
+                virReportSystemError(errno,
+                                     _("cannot read header '%s'"),
+                                     target->path);
+                ret = -1;
+            }
             goto cleanup;
         }
 
         if (!(meta = virStorageFileGetMetadataFromBuf(target->path, buf, len, target->format,
                                                       NULL))) {
+            ret = -1;
             goto cleanup;
         }
 
@@ -1622,7 +1669,8 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
     }
 
     if (withBlockVolFormat) {
-        if ((ret = virStorageBackendDetectBlockVolFormatFD(target, fd)) < 0)
+        if ((ret = virStorageBackendDetectBlockVolFormatFD(target, fd,
+                                                           readflags)) < 0)
             goto cleanup;
     }
 
@@ -1633,23 +1681,36 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
     return ret;
 }
 
+/*
+ * virStorageBackendUpdateVolInfo
+ * @vol: Pointer to a volume storage definition
+ * @withBlockVolFormat: true if the caller determined a block file
+ * @openflags: various VolOpenCheckMode flags to handle errors on open
+ * @readflags: various VolReadErrorMode flags to handle errors on read
+ *
+ * Returns 0 for success, -1 on a legitimate error condition, and -2
+ * if the openflags used VIR_STORAGE_VOL_OPEN_NOERROR and some sort of
+ * open error occurred. It is up to the caller to handle.
+ */
 int
 virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
                                bool withBlockVolFormat,
-                               unsigned int openflags)
+                               unsigned int openflags,
+                               unsigned int readflags)
 {
     int ret;
 
     if ((ret = virStorageBackendUpdateVolTargetInfo(&vol->target,
                                                     withBlockVolFormat,
-                                                    openflags)) < 0)
+                                                    openflags, readflags)) < 0)
         return ret;
 
     if (vol->target.backingStore &&
         (ret = virStorageBackendUpdateVolTargetInfo(vol->target.backingStore,
                                                     withBlockVolFormat,
                                                     VIR_STORAGE_VOL_OPEN_DEFAULT |
-                                                    VIR_STORAGE_VOL_OPEN_NOERROR) < 0))
+                                                    VIR_STORAGE_VOL_OPEN_NOERROR,
+                                                    readflags) < 0))
         return ret;
 
     return 0;
@@ -1926,30 +1987,30 @@ virStorageBackendVolZeroSparseFileLocal(virStorageVolDefPtr vol,
 
 
 static int
-virStorageBackendWipeExtentLocal(virStorageVolDefPtr vol,
-                                 int fd,
-                                 off_t extent_start,
-                                 off_t extent_length,
-                                 char *writebuf,
-                                 size_t writebuf_length,
-                                 size_t *bytes_wiped)
+virStorageBackendWipeLocal(virStorageVolDefPtr vol,
+                           int fd,
+                           unsigned long long wipe_len,
+                           size_t writebuf_length)
 {
     int ret = -1, written = 0;
-    off_t remaining = 0;
+    unsigned long long remaining = 0;
     size_t write_size = 0;
+    char *writebuf = NULL;
 
-    VIR_DEBUG("extent logical start: %ju len: %ju",
-              (uintmax_t)extent_start, (uintmax_t)extent_length);
+    VIR_DEBUG("wiping start: 0 len: %llu", wipe_len);
 
-    if ((ret = lseek(fd, extent_start, SEEK_SET)) < 0) {
+    if (VIR_ALLOC_N(writebuf, writebuf_length) < 0)
+        goto cleanup;
+
+    if (lseek(fd, 0, SEEK_SET) < 0) {
         virReportSystemError(errno,
-                             _("Failed to seek to position %ju in volume "
+                             _("Failed to seek to the start in volume "
                                "with path '%s'"),
-                             (uintmax_t)extent_start, vol->target.path);
+                             vol->target.path);
         goto cleanup;
     }
 
-    remaining = extent_length;
+    remaining = wipe_len;
     while (remaining > 0) {
 
         write_size = (writebuf_length < remaining) ? writebuf_length : remaining;
@@ -1963,24 +2024,23 @@ virStorageBackendWipeExtentLocal(virStorageVolDefPtr vol,
             goto cleanup;
         }
 
-        *bytes_wiped += written;
         remaining -= written;
     }
 
     if (fdatasync(fd) < 0) {
-        ret = -errno;
         virReportSystemError(errno,
                              _("cannot sync data to volume with path '%s'"),
                              vol->target.path);
         goto cleanup;
     }
 
-    VIR_DEBUG("Wrote %zu bytes to volume with path '%s'",
-              *bytes_wiped, vol->target.path);
+    VIR_DEBUG("Wrote %llu bytes to volume with path '%s'",
+              wipe_len, vol->target.path);
 
     ret = 0;
 
  cleanup:
+    VIR_FREE(writebuf);
     return ret;
 }
 
@@ -1994,8 +2054,6 @@ virStorageBackendVolWipeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     int ret = -1, fd = -1;
     struct stat st;
-    char *writebuf = NULL;
-    size_t bytes_wiped = 0;
     virCommandPtr cmd = NULL;
 
     virCheckFlags(0, -1);
@@ -2063,23 +2121,15 @@ virStorageBackendVolWipeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
         if (S_ISREG(st.st_mode) && st.st_blocks < (st.st_size / DEV_BSIZE)) {
             ret = virStorageBackendVolZeroSparseFileLocal(vol, st.st_size, fd);
         } else {
-
-            if (VIR_ALLOC_N(writebuf, st.st_blksize) < 0)
-                goto cleanup;
-
-            ret = virStorageBackendWipeExtentLocal(vol,
-                                                   fd,
-                                                   0,
-                                                   vol->target.allocation,
-                                                   writebuf,
-                                                   st.st_blksize,
-                                                   &bytes_wiped);
+            ret = virStorageBackendWipeLocal(vol,
+                                             fd,
+                                             vol->target.allocation,
+                                             st.st_blksize);
         }
     }
 
  cleanup:
     virCommandFree(cmd);
-    VIR_FREE(writebuf);
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
