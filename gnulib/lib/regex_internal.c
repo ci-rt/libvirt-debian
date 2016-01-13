@@ -1,5 +1,5 @@
 /* Extended regular expression matching and search library.
-   Copyright (C) 2002-2015 Free Software Foundation, Inc.
+   Copyright (C) 2002-2016 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Isamu Hasegawa <isamu@yamato.ibm.com>.
 
@@ -311,12 +311,12 @@ build_wcs_upper_buffer (re_string_t *pstr)
 			       + byte_idx), remain_len, &pstr->cur_state);
 	  if (BE (mbclen < (size_t) -2, 1))
 	    {
-	      wchar_t wcu = towupper (wc);
+	      wchar_t wcu = __towupper (wc);
 	      if (wcu != wc)
 		{
 		  size_t mbcdlen;
 
-		  mbcdlen = wcrtomb (buf, wcu, &prev_st);
+		  mbcdlen = __wcrtomb (buf, wcu, &prev_st);
 		  if (BE (mbclen == mbcdlen, 1))
 		    memcpy (pstr->mbs + byte_idx, buf, mbclen);
 		  else
@@ -380,7 +380,7 @@ build_wcs_upper_buffer (re_string_t *pstr)
 	mbclen = __mbrtowc (&wc, p, remain_len, &pstr->cur_state);
 	if (BE (mbclen < (size_t) -2, 1))
 	  {
-	    wchar_t wcu = towupper (wc);
+	    wchar_t wcu = __towupper (wc);
 	    if (wcu != wc)
 	      {
 		size_t mbcdlen;

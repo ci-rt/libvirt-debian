@@ -252,6 +252,7 @@ static char *vboxGenerateMediumName(PRUint32  storageBus,
 static int
 vboxDomainDefPostParse(virDomainDefPtr def,
                        virCapsPtr caps ATTRIBUTE_UNUSED,
+                       unsigned int parseFlags ATTRIBUTE_UNUSED,
                        void *opaque ATTRIBUTE_UNUSED)
 {
     /* memory hotplug tunables are not supported by this driver */
@@ -265,6 +266,7 @@ static int
 vboxDomainDeviceDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
                              const virDomainDef *def ATTRIBUTE_UNUSED,
                              virCapsPtr caps ATTRIBUTE_UNUSED,
+                             unsigned int parseFlags ATTRIBUTE_UNUSED,
                              void *opaque ATTRIBUTE_UNUSED)
 {
     return 0;
@@ -1895,15 +1897,15 @@ vboxDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags
                        def->mem.cur_balloon, (unsigned)rc);
     }
 
-    if (def->vcpus != def->maxvcpus) {
+    if (virDomainDefHasVcpusOffline(def)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("current vcpu count must equal maximum"));
     }
-    rc = gVBoxAPI.UIMachine.SetCPUCount(machine, def->maxvcpus);
+    rc = gVBoxAPI.UIMachine.SetCPUCount(machine, virDomainDefGetVcpusMax(def));
     if (NS_FAILED(rc)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("could not set the number of virtual CPUs to: %u, rc=%08x"),
-                       def->maxvcpus, (unsigned)rc);
+                       virDomainDefGetVcpusMax(def), (unsigned)rc);
     }
 
     rc = gVBoxAPI.UIMachine.SetCPUProperty(machine, CPUPropertyType_PAE,
@@ -3907,7 +3909,11 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     virDomainDefSetMemoryTotal(def, memorySize * 1024);
 
     gVBoxAPI.UIMachine.GetCPUCount(machine, &CPUCount);
-    def->maxvcpus = def->vcpus = CPUCount;
+    if (virDomainDefSetVcpusMax(def, CPUCount) < 0)
+        goto cleanup;
+
+    if (virDomainDefSetVcpus(def, CPUCount) < 0)
+        goto cleanup;
 
     /* Skip cpumasklen, cpumask, onReboot, onPoweroff, onCrash */
 
@@ -6061,7 +6067,12 @@ static char *vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
         def->dom->os.type = VIR_DOMAIN_OSTYPE_HVM;
         def->dom->os.arch = virArchFromHost();
         gVBoxAPI.UIMachine.GetCPUCount(machine, &CPUCount);
-        def->dom->maxvcpus = def->dom->vcpus = CPUCount;
+        if (virDomainDefSetVcpusMax(def->dom, CPUCount) < 0)
+            goto cleanup;
+
+        if (virDomainDefSetVcpus(def->dom, CPUCount) < 0)
+            goto cleanup;
+
         if (vboxSnapshotGetReadWriteDisks(def, snapshot) < 0)
             VIR_DEBUG("Could not get read write disks for snapshot");
 

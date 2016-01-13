@@ -409,6 +409,7 @@ static int
 umlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                             const virDomainDef *def ATTRIBUTE_UNUSED,
                             virCapsPtr caps ATTRIBUTE_UNUSED,
+                            unsigned int parseFlags ATTRIBUTE_UNUSED,
                             void *opaque ATTRIBUTE_UNUSED)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
@@ -436,6 +437,7 @@ umlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 static int
 umlDomainDefPostParse(virDomainDefPtr def,
                       virCapsPtr caps ATTRIBUTE_UNUSED,
+                      unsigned int parseFlags ATTRIBUTE_UNUSED,
                       void *opaque ATTRIBUTE_UNUSED)
 {
     /* memory hotplug tunables are not supported by this driver */
@@ -1916,7 +1918,7 @@ static int umlDomainGetInfo(virDomainPtr dom,
 
     info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->memory = vm->def->mem.cur_balloon;
-    info->nrVirtCpu = vm->def->vcpus;
+    info->nrVirtCpu = virDomainDefGetVcpus(vm->def);
     ret = 0;
 
  cleanup:

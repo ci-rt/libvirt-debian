@@ -89,6 +89,8 @@ EXTRA_DIST =		\
 	domainsnapshotxml2xmlin \
 	domainsnapshotxml2xmlout \
 	fchostdata \
+	genericxml2xmlindata \
+	genericxml2xmloutdata \
 	interfaceschemadata \
 	lxcconf2xmldata \
 	lxcxml2xmldata \
@@ -333,6 +335,8 @@ test_programs += cputest
 test_programs += metadatatest
 
 test_programs += secretxml2xmltest
+
+test_programs += genericxml2xmltest
 
 if WITH_LINUX
 test_programs += virusbtest \
@@ -659,7 +663,7 @@ lxcxml2xmltest_SOURCES = \
 lxcxml2xmltest_LDADD = $(lxc_LDADDS)
 
 lxcconf2xmltest_SOURCES = \
-	lxcconf2xmltest.c \
+	lxcconf2xmltest.c testutilslxc.c testutilslxc.h \
 	testutils.c testutils.h
 lxcconf2xmltest_LDADD = $(lxc_LDADDS)
 else ! WITH_LXC
@@ -799,6 +803,11 @@ secretxml2xmltest_SOURCES = \
 	secretxml2xmltest.c \
 	testutils.c testutils.h
 secretxml2xmltest_LDADD = $(LDADDS)
+
+genericxml2xmltest_SOURCES = \
+	genericxml2xmltest.c \
+	testutils.c testutils.h
+genericxml2xmltest_LDADD = $(LDADDS)
 
 
 if WITH_STORAGE

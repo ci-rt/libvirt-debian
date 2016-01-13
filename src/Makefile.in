@@ -309,7 +309,7 @@ host_triplet = @host@
 # have a RPC client for local UNIX socket access only. We use
 # the ../config-post.h header to disable all external deps that
 # we don't want
-@WITH_LXC_TRUE@am__append_167 = libvirt-setuid-rpc-client.la
+@WITH_SETUID_RPC_CLIENT_TRUE@am__append_167 = libvirt-setuid-rpc-client.la
 @WITH_LIBVIRTD_TRUE@am__append_168 = lockd.la
 @WITH_LIBVIRTD_TRUE@am__append_169 = locking/libvirt_lockd.aug \
 @WITH_LIBVIRTD_TRUE@	locking/virtlockd.aug logging/virtlogd.aug
@@ -398,7 +398,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/configmake.m4 \
 	$(top_srcdir)/m4/count-leading-zeros.m4 \
-	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/dirname.m4 \
+	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/ctype.m4 \
+	$(top_srcdir)/m4/dirname.m4 \
 	$(top_srcdir)/m4/double-slash-root.m4 $(top_srcdir)/m4/dup.m4 \
 	$(top_srcdir)/m4/dup2.m4 $(top_srcdir)/m4/eealloc.m4 \
 	$(top_srcdir)/m4/environ.m4 $(top_srcdir)/m4/errno_h.m4 \
@@ -529,6 +530,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-login-shell.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
@@ -699,68 +701,67 @@ am__libvirt_setuid_rpc_client_la_SOURCES_DIST = util/viralloc.c \
 	libvirt-host.c libvirt-interface.c libvirt-network.c \
 	libvirt-nodedev.c libvirt-nwfilter.c libvirt-secret.c \
 	libvirt-storage.c libvirt-stream.c libvirt-lxc.c
-@WITH_LXC_TRUE@am_libvirt_setuid_rpc_client_la_OBJECTS =  \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-viralloc.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-viratomic.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virbitmap.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virbuffer.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-vircommand.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virconf.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virerror.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virevent.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-vireventpoll.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virfile.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virhash.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virhashcode.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virjson.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virlog.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virobject.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virpidfile.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virprocess.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virrandom.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virsocketaddr.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virstring.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virtime.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virthread.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virthreadjob.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virtypedparam.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-viruri.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-virutil.lo \
-@WITH_LXC_TRUE@	util/libvirt_setuid_rpc_client_la-viruuid.lo \
-@WITH_LXC_TRUE@	conf/libvirt_setuid_rpc_client_la-domain_event.lo \
-@WITH_LXC_TRUE@	conf/libvirt_setuid_rpc_client_la-network_event.lo \
-@WITH_LXC_TRUE@	conf/libvirt_setuid_rpc_client_la-object_event.lo \
-@WITH_LXC_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetsocket.lo \
-@WITH_LXC_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetmessage.lo \
-@WITH_LXC_TRUE@	rpc/libvirt_setuid_rpc_client_la-virkeepalive.lo \
-@WITH_LXC_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetclient.lo \
-@WITH_LXC_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetclientprogram.lo \
-@WITH_LXC_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetclientstream.lo \
-@WITH_LXC_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetprotocol.lo \
-@WITH_LXC_TRUE@	remote/libvirt_setuid_rpc_client_la-remote_driver.lo \
-@WITH_LXC_TRUE@	remote/libvirt_setuid_rpc_client_la-remote_protocol.lo \
-@WITH_LXC_TRUE@	remote/libvirt_setuid_rpc_client_la-qemu_protocol.lo \
-@WITH_LXC_TRUE@	remote/libvirt_setuid_rpc_client_la-lxc_protocol.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-datatypes.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-domain.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-domain-snapshot.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-host.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-interface.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-network.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-nodedev.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-nwfilter.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-secret.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-storage.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-stream.lo \
-@WITH_LXC_TRUE@	libvirt_setuid_rpc_client_la-libvirt-lxc.lo
+@WITH_SETUID_RPC_CLIENT_TRUE@am_libvirt_setuid_rpc_client_la_OBJECTS = util/libvirt_setuid_rpc_client_la-viralloc.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-viratomic.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virbitmap.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virbuffer.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-vircommand.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virconf.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virerror.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virevent.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-vireventpoll.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virfile.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virhash.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virhashcode.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virjson.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virlog.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virobject.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virpidfile.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virprocess.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virrandom.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virsocketaddr.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virstring.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virtime.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virthread.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virthreadjob.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virtypedparam.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-viruri.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virutil.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-viruuid.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	conf/libvirt_setuid_rpc_client_la-domain_event.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	conf/libvirt_setuid_rpc_client_la-network_event.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	conf/libvirt_setuid_rpc_client_la-object_event.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetsocket.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetmessage.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	rpc/libvirt_setuid_rpc_client_la-virkeepalive.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetclient.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetclientprogram.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetclientstream.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	rpc/libvirt_setuid_rpc_client_la-virnetprotocol.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	remote/libvirt_setuid_rpc_client_la-remote_driver.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	remote/libvirt_setuid_rpc_client_la-remote_protocol.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	remote/libvirt_setuid_rpc_client_la-qemu_protocol.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	remote/libvirt_setuid_rpc_client_la-lxc_protocol.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-datatypes.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-domain.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-domain-snapshot.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-host.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-interface.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-network.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-nodedev.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-nwfilter.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-secret.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-storage.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-stream.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	libvirt_setuid_rpc_client_la-libvirt-lxc.lo
 libvirt_setuid_rpc_client_la_OBJECTS =  \
 	$(am_libvirt_setuid_rpc_client_la_OBJECTS)
 libvirt_setuid_rpc_client_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) \
 	$(libvirt_setuid_rpc_client_la_LDFLAGS) $(LDFLAGS) -o $@
-@WITH_LXC_TRUE@am_libvirt_setuid_rpc_client_la_rpath =
+@WITH_SETUID_RPC_CLIENT_TRUE@am_libvirt_setuid_rpc_client_la_rpath =
 @WITH_XENCONFIG_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
 am_libvirt_la_OBJECTS =
 nodist_libvirt_la_OBJECTS =
@@ -2275,6 +2276,7 @@ GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
 GNULIB_IOCTL = @GNULIB_IOCTL@
 GNULIB_ISATTY = @GNULIB_ISATTY@
+GNULIB_ISBLANK = @GNULIB_ISBLANK@
 GNULIB_ISFINITE = @GNULIB_ISFINITE@
 GNULIB_ISINF = @GNULIB_ISINF@
 GNULIB_ISNAN = @GNULIB_ISNAN@
@@ -2479,6 +2481,7 @@ GNULIB_TANL = @GNULIB_TANL@
 GNULIB_TCGETSID = @GNULIB_TCGETSID@
 GNULIB_TIMEGM = @GNULIB_TIMEGM@
 GNULIB_TIME_R = @GNULIB_TIME_R@
+GNULIB_TIME_RZ = @GNULIB_TIME_RZ@
 GNULIB_TMPFILE = @GNULIB_TMPFILE@
 GNULIB_TOWCTRANS = @GNULIB_TOWCTRANS@
 GNULIB_TRUNC = @GNULIB_TRUNC@
@@ -2697,6 +2700,7 @@ HAVE_ILOGB = @HAVE_ILOGB@
 HAVE_ILOGBF = @HAVE_ILOGBF@
 HAVE_ILOGBL = @HAVE_ILOGBL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
+HAVE_ISBLANK = @HAVE_ISBLANK@
 HAVE_ISNAND = @HAVE_ISNAND@
 HAVE_ISNANF = @HAVE_ISNANF@
 HAVE_ISNANL = @HAVE_ISNANL@
@@ -2850,6 +2854,7 @@ HAVE_TANHF = @HAVE_TANHF@
 HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
+HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
@@ -3015,6 +3020,7 @@ NET_IF_H = @NET_IF_H@
 NET_IF_LIB = @NET_IF_LIB@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
 NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H = @NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H@
+NEXT_AS_FIRST_DIRECTIVE_CTYPE_H = @NEXT_AS_FIRST_DIRECTIVE_CTYPE_H@
 NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
 NEXT_AS_FIRST_DIRECTIVE_FCNTL_H = @NEXT_AS_FIRST_DIRECTIVE_FCNTL_H@
 NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
@@ -3052,6 +3058,7 @@ NEXT_AS_FIRST_DIRECTIVE_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_TIME_H@
 NEXT_AS_FIRST_DIRECTIVE_UNISTD_H = @NEXT_AS_FIRST_DIRECTIVE_UNISTD_H@
 NEXT_AS_FIRST_DIRECTIVE_WCHAR_H = @NEXT_AS_FIRST_DIRECTIVE_WCHAR_H@
 NEXT_AS_FIRST_DIRECTIVE_WCTYPE_H = @NEXT_AS_FIRST_DIRECTIVE_WCTYPE_H@
+NEXT_CTYPE_H = @NEXT_CTYPE_H@
 NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FCNTL_H = @NEXT_FCNTL_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
@@ -3734,6 +3741,7 @@ UTIL_SOURCES = \
 		util/viruri.h util/viruri.c			\
 		util/virutil.c util/virutil.h			\
 		util/viruuid.c util/viruuid.h			\
+		util/virxdrdefs.h                               \
 		util/virxml.c util/virxml.h			\
 		$(NULL)
 
@@ -4862,81 +4870,81 @@ libvirt_lxc_la_LDFLAGS = \
 
 libvirt_lxc_la_CFLAGS = $(AM_CFLAGS)
 libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
-@WITH_LXC_TRUE@libvirt_setuid_rpc_client_la_SOURCES = \
-@WITH_LXC_TRUE@		util/viralloc.c			\
-@WITH_LXC_TRUE@		util/viratomic.c		\
-@WITH_LXC_TRUE@		util/viratomic.h		\
-@WITH_LXC_TRUE@		util/virbitmap.c		\
-@WITH_LXC_TRUE@		util/virbuffer.c		\
-@WITH_LXC_TRUE@		util/vircommand.c		\
-@WITH_LXC_TRUE@		util/virconf.c			\
-@WITH_LXC_TRUE@		util/virerror.c			\
-@WITH_LXC_TRUE@		util/virevent.c			\
-@WITH_LXC_TRUE@		util/vireventpoll.c		\
-@WITH_LXC_TRUE@		util/virfile.c			\
-@WITH_LXC_TRUE@		util/virhash.c			\
-@WITH_LXC_TRUE@		util/virhashcode.c		\
-@WITH_LXC_TRUE@		util/virjson.c			\
-@WITH_LXC_TRUE@		util/virlog.c			\
-@WITH_LXC_TRUE@		util/virobject.c		\
-@WITH_LXC_TRUE@		util/virpidfile.c		\
-@WITH_LXC_TRUE@		util/virprocess.c		\
-@WITH_LXC_TRUE@		util/virrandom.c		\
-@WITH_LXC_TRUE@		util/virsocketaddr.c		\
-@WITH_LXC_TRUE@		util/virstring.c		\
-@WITH_LXC_TRUE@		util/virtime.c			\
-@WITH_LXC_TRUE@		util/virthread.c		\
-@WITH_LXC_TRUE@		util/virthreadjob.c		\
-@WITH_LXC_TRUE@		util/virtypedparam.c		\
-@WITH_LXC_TRUE@		util/viruri.c			\
-@WITH_LXC_TRUE@		util/virutil.c			\
-@WITH_LXC_TRUE@		util/viruuid.c			\
-@WITH_LXC_TRUE@		conf/domain_event.c		\
-@WITH_LXC_TRUE@		conf/network_event.c		\
-@WITH_LXC_TRUE@		conf/object_event.c		\
-@WITH_LXC_TRUE@		rpc/virnetsocket.c		\
-@WITH_LXC_TRUE@		rpc/virnetsocket.h		\
-@WITH_LXC_TRUE@		rpc/virnetmessage.h		\
-@WITH_LXC_TRUE@		rpc/virnetmessage.c		\
-@WITH_LXC_TRUE@		rpc/virkeepalive.c		\
-@WITH_LXC_TRUE@		rpc/virkeepalive.h		\
-@WITH_LXC_TRUE@		rpc/virnetclient.c		\
-@WITH_LXC_TRUE@		rpc/virnetclientprogram.c	\
-@WITH_LXC_TRUE@		rpc/virnetclientstream.c	\
-@WITH_LXC_TRUE@		rpc/virnetprotocol.c		\
-@WITH_LXC_TRUE@		remote/remote_driver.c		\
-@WITH_LXC_TRUE@		remote/remote_protocol.c	\
-@WITH_LXC_TRUE@		remote/qemu_protocol.c		\
-@WITH_LXC_TRUE@		remote/lxc_protocol.c		\
-@WITH_LXC_TRUE@		datatypes.c			\
-@WITH_LXC_TRUE@		libvirt.c			\
-@WITH_LXC_TRUE@		libvirt-domain.c		\
-@WITH_LXC_TRUE@		libvirt-domain-snapshot.c	\
-@WITH_LXC_TRUE@		libvirt-host.c			\
-@WITH_LXC_TRUE@		libvirt-interface.c		\
-@WITH_LXC_TRUE@		libvirt-network.c		\
-@WITH_LXC_TRUE@		libvirt-nodedev.c		\
-@WITH_LXC_TRUE@		libvirt-nwfilter.c		\
-@WITH_LXC_TRUE@		libvirt-secret.c		\
-@WITH_LXC_TRUE@		libvirt-storage.c		\
-@WITH_LXC_TRUE@		libvirt-stream.c		\
-@WITH_LXC_TRUE@		libvirt-lxc.c			\
-@WITH_LXC_TRUE@		$(NULL)
+@WITH_SETUID_RPC_CLIENT_TRUE@libvirt_setuid_rpc_client_la_SOURCES = \
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/viralloc.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/viratomic.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/viratomic.h		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virbitmap.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virbuffer.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/vircommand.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virconf.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virerror.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virevent.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/vireventpoll.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virfile.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virhash.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virhashcode.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virjson.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virlog.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virobject.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virpidfile.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virprocess.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virrandom.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virsocketaddr.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virstring.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virtime.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virthread.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virthreadjob.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virtypedparam.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/viruri.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virutil.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/viruuid.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		conf/domain_event.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		conf/network_event.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		conf/object_event.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetsocket.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetsocket.h		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetmessage.h		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetmessage.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virkeepalive.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virkeepalive.h		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetclient.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetclientprogram.c	\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetclientstream.c	\
+@WITH_SETUID_RPC_CLIENT_TRUE@		rpc/virnetprotocol.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		remote/remote_driver.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		remote/remote_protocol.c	\
+@WITH_SETUID_RPC_CLIENT_TRUE@		remote/qemu_protocol.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		remote/lxc_protocol.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		datatypes.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-domain.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-domain-snapshot.c	\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-host.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-interface.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-network.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-nodedev.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-nwfilter.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-secret.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-storage.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-stream.c		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		libvirt-lxc.c			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(NULL)
 
-@WITH_LXC_TRUE@libvirt_setuid_rpc_client_la_LDFLAGS = \
-@WITH_LXC_TRUE@		$(AM_LDFLAGS)			\
-@WITH_LXC_TRUE@		$(LIBXML_LIBS)			\
-@WITH_LXC_TRUE@		$(SECDRIVER_LIBS)		\
-@WITH_LXC_TRUE@		$(NULL)
+@WITH_SETUID_RPC_CLIENT_TRUE@libvirt_setuid_rpc_client_la_LDFLAGS = \
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(AM_LDFLAGS)			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(LIBXML_LIBS)			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(SECDRIVER_LIBS)		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(NULL)
 
-@WITH_LXC_TRUE@libvirt_setuid_rpc_client_la_CFLAGS = \
-@WITH_LXC_TRUE@		-DLIBVIRT_SETUID_RPC_CLIENT	\
-@WITH_LXC_TRUE@		-I$(srcdir)/conf		\
-@WITH_LXC_TRUE@		-I$(srcdir)/rpc			\
-@WITH_LXC_TRUE@		$(AM_CFLAGS)			\
-@WITH_LXC_TRUE@		$(SECDRIVER_CFLAGS)		\
-@WITH_LXC_TRUE@		$(XDR_CFLAGS)			\
-@WITH_LXC_TRUE@		$(NULL)
+@WITH_SETUID_RPC_CLIENT_TRUE@libvirt_setuid_rpc_client_la_CFLAGS = \
+@WITH_SETUID_RPC_CLIENT_TRUE@		-DLIBVIRT_SETUID_RPC_CLIENT	\
+@WITH_SETUID_RPC_CLIENT_TRUE@		-I$(srcdir)/conf		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		-I$(srcdir)/rpc			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(AM_CFLAGS)			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(SECDRIVER_CFLAGS)		\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(XDR_CFLAGS)			\
+@WITH_SETUID_RPC_CLIENT_TRUE@		$(NULL)
 
 lockdriverdir = $(libdir)/libvirt/lock-driver
 lockdriver_LTLIBRARIES = $(am__append_168) $(am__append_188)

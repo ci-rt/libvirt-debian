@@ -1,7 +1,7 @@
 /*
  * virsh-network.c: Commands to manage network
  *
- * Copyright (C) 2005, 2007-2015 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,15 @@
 #include "viralloc.h"
 #include "virfile.h"
 #include "virstring.h"
+#include "virtime.h"
 #include "conf/network_conf.h"
+
+#define VIRSH_COMMON_OPT_NETWORK                              \
+    {.name = "network",                                       \
+     .type = VSH_OT_DATA,                                     \
+     .flags = VSH_OFLAG_REQ,                                  \
+     .help = N_("network name or uuid")                       \
+    }                                                         \
 
 virNetworkPtr
 virshCommandOptNetworkBy(vshControl *ctl, const vshCmd *cmd,
@@ -85,11 +93,7 @@ static const vshCmdInfo info_network_autostart[] = {
 };
 
 static const vshCmdOptDef opts_network_autostart[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = "disable",
      .type = VSH_OT_BOOL,
      .help = N_("disable autostarting")
@@ -141,11 +145,7 @@ static const vshCmdInfo info_network_create[] = {
 };
 
 static const vshCmdOptDef opts_network_create[] = {
-    {.name = "file",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("file containing an XML network description")
-    },
+    VIRSH_COMMON_OPT_FILE(N_("file containing an XML network description")),
     {.name = NULL}
 };
 
@@ -193,11 +193,7 @@ static const vshCmdInfo info_network_define[] = {
 };
 
 static const vshCmdOptDef opts_network_define[] = {
-    {.name = "file",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("file containing an XML network description")
-    },
+    VIRSH_COMMON_OPT_FILE(N_("file containing an XML network description")),
     {.name = NULL}
 };
 
@@ -244,11 +240,7 @@ static const vshCmdInfo info_network_destroy[] = {
 };
 
 static const vshCmdOptDef opts_network_destroy[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = NULL}
 };
 
@@ -287,11 +279,7 @@ static const vshCmdInfo info_network_dumpxml[] = {
 };
 
 static const vshCmdOptDef opts_network_dumpxml[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = "inactive",
      .type = VSH_OT_BOOL,
      .help = N_("network information of an inactive domain")
@@ -342,11 +330,7 @@ static const vshCmdInfo info_network_info[] = {
 };
 
 static const vshCmdOptDef opts_network_info[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = NULL}
 };
 
@@ -795,11 +779,7 @@ static const vshCmdInfo info_network_start[] = {
 };
 
 static const vshCmdOptDef opts_network_start[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = NULL}
 };
 
@@ -837,11 +817,7 @@ static const vshCmdInfo info_network_undefine[] = {
 };
 
 static const vshCmdOptDef opts_network_undefine[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = NULL}
 };
 
@@ -880,11 +856,7 @@ static const vshCmdInfo info_network_update[] = {
 };
 
 static const vshCmdOptDef opts_network_update[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = "command",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -905,18 +877,9 @@ static const vshCmdOptDef opts_network_update[] = {
      .type = VSH_OT_INT,
      .help = N_("which parent object to search through")
     },
-    {.name = "config",
-     .type = VSH_OT_BOOL,
-     .help = N_("affect next network startup")
-    },
-    {.name = "live",
-     .type = VSH_OT_BOOL,
-     .help = N_("affect running network")
-    },
-    {.name = "current",
-     .type = VSH_OT_BOOL,
-     .help = N_("affect current state of network")
-    },
+    VIRSH_COMMON_OPT_CONFIG(N_("affect next network startup")),
+    VIRSH_COMMON_OPT_LIVE(N_("affect running network")),
+    VIRSH_COMMON_OPT_CURRENT(N_("affect current state of network")),
     {.name = NULL}
 };
 
@@ -1097,11 +1060,7 @@ static const vshCmdInfo info_network_edit[] = {
 };
 
 static const vshCmdOptDef opts_network_edit[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = NULL}
 };
 
@@ -1181,6 +1140,7 @@ virshNetworkEventToString(int event)
 struct virshNetEventData {
     vshControl *ctl;
     bool loop;
+    bool timestamp;
     int count;
 };
 typedef struct virshNetEventData virshNetEventData;
@@ -1201,8 +1161,21 @@ vshEventLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (!data->loop && data->count)
         return;
-    vshPrint(data->ctl, _("event 'lifecycle' for network %s: %s\n"),
-             virNetworkGetName(net), virshNetworkEventToString(event));
+
+    if (data->timestamp) {
+        char timestamp[VIR_TIME_STRING_BUFLEN];
+
+        if (virTimeStringNowRaw(timestamp) < 0)
+            timestamp[0] = '\0';
+
+        vshPrint(data->ctl, _("%s: event 'lifecycle' for network %s: %s\n"),
+                 timestamp,
+                 virNetworkGetName(net), virshNetworkEventToString(event));
+    } else {
+        vshPrint(data->ctl, _("event 'lifecycle' for network %s: %s\n"),
+                 virNetworkGetName(net), virshNetworkEventToString(event));
+    }
+
     data->count++;
     if (!data->loop)
         vshEventDone(data->ctl);
@@ -1238,6 +1211,10 @@ static const vshCmdOptDef opts_network_event[] = {
     {.name = "list",
      .type = VSH_OT_BOOL,
      .help = N_("list valid event types")
+    },
+    {.name = "timestamp",
+     .type = VSH_OT_BOOL,
+     .help = N_("show timestamp for each printed event")
     },
     {.name = NULL}
 };
@@ -1275,6 +1252,7 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
 
     data.ctl = ctl;
     data.loop = vshCommandOptBool(cmd, "loop");
+    data.timestamp = vshCommandOptBool(cmd, "timestamp");
     data.count = 0;
     if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
         return false;
@@ -1329,11 +1307,7 @@ static const vshCmdInfo info_network_dhcp_leases[] = {
 };
 
 static const vshCmdOptDef opts_network_dhcp_leases[] = {
-    {.name = "network",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("network name or uuid")
-    },
+    VIRSH_COMMON_OPT_NETWORK,
     {.name = "mac",
      .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_NONE,

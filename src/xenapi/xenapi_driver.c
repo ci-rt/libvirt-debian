@@ -47,6 +47,7 @@ static int
 xenapiDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                                const virDomainDef *def,
                                virCapsPtr caps ATTRIBUTE_UNUSED,
+                               unsigned int parseFlags ATTRIBUTE_UNUSED,
                                void *opaque ATTRIBUTE_UNUSED)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
@@ -75,6 +76,7 @@ xenapiDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 static int
 xenapiDomainDefPostParse(virDomainDefPtr def,
                          virCapsPtr caps ATTRIBUTE_UNUSED,
+                         unsigned int parseFlags ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
     /* memory hotplug tunables are not supported by this driver */
@@ -1502,8 +1504,11 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 
     vcpus = xenapiDomainGetMaxVcpus(dom);
 
-    defPtr->maxvcpus = vcpus;
-    defPtr->vcpus = vcpus;
+    if (virDomainDefSetVcpusMax(defPtr, vcpus) < 0)
+        goto error;
+
+    if (virDomainDefSetVcpus(defPtr, vcpus) < 0)
+        goto error;
 
     enum xen_on_normal_exit action;
     if (xen_vm_get_actions_after_shutdown(session, &action, vm))

@@ -1150,8 +1150,11 @@ prlsdkConvertCpuInfo(PRL_HANDLE sdkdom,
     if (cpuCount > hostcpus)
         cpuCount = hostcpus;
 
-    def->vcpus = cpuCount;
-    def->maxvcpus = cpuCount;
+    if (virDomainDefSetVcpusMax(def, cpuCount) < 0)
+        goto cleanup;
+
+    if (virDomainDefSetVcpus(def, cpuCount) < 0)
+        goto cleanup;
 
     pret = PrlVmCfg_GetCpuMask(sdkdom, NULL, &buflen);
     prlsdkCheckRetGoto(pret, cleanup);
@@ -1931,7 +1934,7 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (def->vcpus != def->maxvcpus) {
+    if (virDomainDefHasVcpusOffline(def)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("current vcpus must be equal to maxvcpus"));
         return -1;
@@ -1955,7 +1958,7 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
     }
 
     if (def->cputune.vcpupin) {
-        for (i = 0; i < def->vcpus; i++) {
+        for (i = 0; i < virDomainDefGetVcpus(def); i++) {
             if (!virBitmapEqual(def->cpumask,
                                 def->cputune.vcpupin[i]->cpumask)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -3498,7 +3501,7 @@ prlsdkDoApplyConfig(virConnectPtr conn,
     pret = PrlVmCfg_SetRamSize(sdkdom, virDomainDefGetMemoryActual(def) >> 10);
     prlsdkCheckRetGoto(pret, error);
 
-    pret = PrlVmCfg_SetCpuCount(sdkdom, def->vcpus);
+    pret = PrlVmCfg_SetCpuCount(sdkdom, virDomainDefGetVcpus(def));
     prlsdkCheckRetGoto(pret, error);
 
     if (!(mask = virBitmapFormat(def->cpumask)))
@@ -3715,19 +3718,149 @@ prlsdkCreateCt(virConnectPtr conn, virDomainDefPtr def)
     return ret;
 }
 
+/**
+ * prlsdkDetachDomainHardDisks:
+ *
+ * @sdkdom: domain handle
+ *
+ * Returns 0 if hard disks were successfully detached or not detected.
+ */
+static int
+prlsdkDetachDomainHardDisks(PRL_HANDLE sdkdom)
+{
+    int ret = -1;
+    PRL_RESULT pret;
+    PRL_UINT32 hddCount;
+    PRL_UINT32 i;
+    PRL_HANDLE job;
+
+    job = PrlVm_BeginEdit(sdkdom);
+    if (PRL_FAILED(waitJob(job)))
+        goto cleanup;
+
+    pret = PrlVmCfg_GetHardDisksCount(sdkdom, &hddCount);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    for (i = 0; i < hddCount; ++i) {
+        ret = prlsdkDelDisk(sdkdom, i);
+        if (ret)
+            goto cleanup;
+    }
+
+    job = PrlVm_CommitEx(sdkdom, PVCF_DETACH_HDD_BUNDLE);
+    if (PRL_FAILED(waitJob(job)))
+        ret = -1;
+
+ cleanup:
+
+    return ret;
+}
+
+/**
+ * prlsdkDomainHasSnapshots:
+ *
+ * This function detects where a domain specified by @sdkdom
+ * has snapshots. It doesn't count them correctly.
+ *
+ * @sdkdom: domain handle
+ * @found: a value more than zero if snapshots present
+ *
+ * Returns 0 if function succeeds, -1 otherwise.
+ */
+static int
+prlsdkDomainHasSnapshots(PRL_HANDLE sdkdom, int* found)
+{
+    int ret = -1;
+    PRL_RESULT pret;
+    PRL_HANDLE job;
+    PRL_HANDLE result;
+    char *snapshotxml = NULL;
+    unsigned int len, paramsCount;
+    xmlDocPtr xml = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+
+    if (!found)
+        goto cleanup;
+
+    job = PrlVm_GetSnapshotsTreeEx(sdkdom, PGST_WITHOUT_SCREENSHOTS);
+    if (PRL_FAILED(getJobResult(job, &result)))
+        goto cleanup;
+
+    pret = PrlResult_GetParamsCount(result, &paramsCount);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (!paramsCount)
+        goto cleanup;
+
+    pret = PrlResult_GetParamAsString(result, 0, &len);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (VIR_ALLOC_N(snapshotxml, len+1) < 0)
+        goto cleanup;
+
+    pret = PrlResult_GetParamAsString(result, snapshotxml, &len);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (len <= 1) {
+        /* The document is empty that means no snapshots */
+        *found = 0;
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (!(xml = virXMLParseStringCtxt(snapshotxml, "SavedStateItem", &ctxt)))
+        goto cleanup;
+
+    *found = virXMLChildElementCount(ctxt->node);
+    ret = 0;
+
+ cleanup:
+
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml);
+    VIR_FREE(snapshotxml);
+    return ret;
+}
+
 int
-prlsdkUnregisterDomain(vzConnPtr privconn, virDomainObjPtr dom)
+prlsdkUnregisterDomain(vzConnPtr privconn, virDomainObjPtr dom, unsigned int flags)
 {
     vzDomObjPtr privdom = dom->privateData;
     PRL_HANDLE job;
     size_t i;
+    int snapshotfound = 0;
+    VIRTUAL_MACHINE_STATE domainState;
+
+    if (prlsdkGetDomainState(privdom->sdkdom, &domainState) < 0)
+        return -1;
+
+    if (VMS_SUSPENDED == domainState &&
+        !(flags & VIR_DOMAIN_UNDEFINE_MANAGED_SAVE)) {
+
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Refusing to undefine while domain managed "
+                         "save image exists"));
+        return -1;
+    }
+
+    if (prlsdkDomainHasSnapshots(privdom->sdkdom, &snapshotfound) < 0)
+        return -1;
+
+    if (snapshotfound && !(flags & VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA)) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("Refusing to undefine while snapshots exist"));
+        return -1;
+    }
+
+    if (prlsdkDetachDomainHardDisks(privdom->sdkdom))
+        return -1;
+
+    job = PrlVm_Delete(privdom->sdkdom, PRL_INVALID_HANDLE);
+    if (PRL_FAILED(waitJob(job)))
+        return -1;
 
     for (i = 0; i < dom->def->nnets; i++)
         prlsdkCleanupBridgedNet(privconn, dom->def->nets[i]);
-
-    job = PrlVm_Unreg(privdom->sdkdom);
-    if (PRL_FAILED(waitJob(job)))
-        return -1;
 
     if (prlsdkSendEvent(privconn, dom, VIR_DOMAIN_EVENT_UNDEFINED,
                         VIR_DOMAIN_EVENT_UNDEFINED_REMOVED) < 0)

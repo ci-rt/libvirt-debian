@@ -552,8 +552,11 @@ libxlAddDom0(libxlDriverPrivatePtr driver)
     def = NULL;
 
     virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_BOOTED);
-    vm->def->vcpus = d_info.vcpu_online;
-    vm->def->maxvcpus = d_info.vcpu_max_id + 1;
+    if (virDomainDefSetVcpusMax(vm->def, d_info.vcpu_max_id + 1))
+        goto cleanup;
+
+    if (virDomainDefSetVcpus(vm->def, d_info.vcpu_online) < 0)
+        goto cleanup;
     vm->def->mem.cur_balloon = d_info.current_memkb;
     virDomainDefSetMemoryTotal(vm->def, d_info.max_memkb);
 
@@ -1598,7 +1601,7 @@ libxlDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
     }
 
     info->state = virDomainObjGetState(vm, NULL);
-    info->nrVirtCpu = vm->def->vcpus;
+    info->nrVirtCpu = virDomainDefGetVcpus(vm->def);
     ret = 0;
 
  cleanup:
@@ -2157,8 +2160,8 @@ libxlDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
         goto endjob;
     }
 
-    if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM) && vm->def->maxvcpus < max)
-        max = vm->def->maxvcpus;
+    if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM) && virDomainDefGetVcpusMax(vm->def) < max)
+        max = virDomainDefGetVcpusMax(vm->def);
 
     if (nvcpus > max) {
         virReportError(VIR_ERR_INVALID_ARG,
@@ -2184,13 +2187,13 @@ libxlDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
 
     switch (flags) {
     case VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_CONFIG:
-        def->maxvcpus = nvcpus;
-        if (nvcpus < def->vcpus)
-            def->vcpus = nvcpus;
+        if (virDomainDefSetVcpusMax(def, nvcpus) < 0)
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_VCPU_CONFIG:
-        def->vcpus = nvcpus;
+        if (virDomainDefSetVcpus(def, nvcpus) < 0)
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_VCPU_LIVE:
@@ -2200,7 +2203,8 @@ libxlDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
                              " with libxenlight"), vm->def->id);
             goto endjob;
         }
-        vm->def->vcpus = nvcpus;
+        if (virDomainDefSetVcpus(vm->def, nvcpus) < 0)
+            goto endjob;
         break;
 
     case VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG:
@@ -2210,8 +2214,9 @@ libxlDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
                              " with libxenlight"), vm->def->id);
             goto endjob;
         }
-        vm->def->vcpus = nvcpus;
-        def->vcpus = nvcpus;
+        if (virDomainDefSetVcpus(vm->def, nvcpus) < 0 ||
+            virDomainDefSetVcpus(def, nvcpus) < 0)
+            goto endjob;
         break;
     }
 
@@ -2296,7 +2301,10 @@ libxlDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
         def = vm->newDef ? vm->newDef : vm->def;
     }
 
-    ret = (flags & VIR_DOMAIN_VCPU_MAXIMUM) ? def->maxvcpus : def->vcpus;
+    if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+        ret = virDomainDefGetVcpusMax(def);
+    else
+        ret = virDomainDefGetVcpus(def);
 
  cleanup:
     if (vm)
@@ -2433,8 +2441,8 @@ libxlDomainGetVcpuPinInfo(virDomainPtr dom, int ncpumaps,
     sa_assert(targetDef);
 
     /* Clamp to actual number of vcpus */
-    if (ncpumaps > targetDef->vcpus)
-        ncpumaps = targetDef->vcpus;
+    if (ncpumaps > virDomainDefGetVcpus(targetDef))
+        ncpumaps = virDomainDefGetVcpus(targetDef);
 
     if ((hostcpus = libxl_get_max_cpus(cfg->ctx)) < 0)
         goto cleanup;
@@ -2587,22 +2595,23 @@ libxlConnectDomainXMLFromNative(virConnectPtr conn,
             goto cleanup;
         if (!(def = xenParseXL(conf,
                                cfg->caps,
-                               cfg->verInfo->xen_version_major)))
+                               driver->xmlopt)))
             goto cleanup;
     } else if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_XM)) {
         if (!(conf = virConfReadMem(nativeConfig, strlen(nativeConfig), 0)))
             goto cleanup;
 
         if (!(def = xenParseXM(conf,
-                               cfg->verInfo->xen_version_major,
-                               cfg->caps)))
+                               cfg->caps,
+                               driver->xmlopt)))
             goto cleanup;
     } else if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_SEXPR)) {
         /* only support latest xend config format */
         if (!(def = xenParseSxprString(nativeConfig,
-                                       XEND_CONFIG_VERSION_3_1_0,
                                        NULL,
-                                       -1))) {
+                                       -1,
+                                       cfg->caps,
+                                       driver->xmlopt))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("parsing sxpr config failed"));
             goto cleanup;
@@ -2647,10 +2656,10 @@ libxlConnectDomainXMLToNative(virConnectPtr conn, const char * nativeFormat,
         goto cleanup;
 
     if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_XL)) {
-        if (!(conf = xenFormatXL(def, conn, cfg->verInfo->xen_version_major)))
+        if (!(conf = xenFormatXL(def, conn)))
             goto cleanup;
     } else if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_XM)) {
-        if (!(conf = xenFormatXM(conn, def, cfg->verInfo->xen_version_major)))
+        if (!(conf = xenFormatXM(conn, def)))
             goto cleanup;
     } else {
 
@@ -4694,7 +4703,7 @@ libxlDomainGetPerCPUStats(libxlDriverPrivatePtr driver,
     if (nparams == 0 && ncpus != 0)
         return LIBXL_NB_TOTAL_CPU_STAT_PARAM;
     else if (nparams == 0)
-        return vm->def->maxvcpus;
+        return virDomainDefGetVcpusMax(vm->def);
 
     cfg = libxlDriverConfigGet(driver);
     if ((vcpuinfo = libxl_list_vcpu(cfg->ctx, vm->def->id, &maxcpu,
@@ -4827,6 +4836,95 @@ libxlDomainMemoryStats(virDomainPtr dom,
 }
 
 #undef LIBXL_SET_MEMSTAT
+
+static int
+libxlDomainGetJobInfo(virDomainPtr dom,
+                      virDomainJobInfoPtr info)
+{
+    libxlDomainObjPrivatePtr priv;
+    virDomainObjPtr vm;
+    int ret = -1;
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainGetJobInfoEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    priv = vm->privateData;
+    if (!priv->job.active) {
+        memset(info, 0, sizeof(*info));
+        info->type = VIR_DOMAIN_JOB_NONE;
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* In libxl we don't have an estimated completion time
+     * thus we always set to unbounded and update time
+     * for the active job. */
+    if (libxlDomainJobUpdateTime(&priv->job) < 0)
+        goto cleanup;
+
+    memcpy(info, priv->job.current, sizeof(virDomainJobInfo));
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+static int
+libxlDomainGetJobStats(virDomainPtr dom,
+                       int *type,
+                       virTypedParameterPtr *params,
+                       int *nparams,
+                       unsigned int flags)
+{
+    libxlDomainObjPrivatePtr priv;
+    virDomainObjPtr vm;
+    virDomainJobInfoPtr jobInfo;
+    int ret = -1;
+    int maxparams = 0;
+
+    /* VIR_DOMAIN_JOB_STATS_COMPLETED not supported yet */
+    virCheckFlags(0, -1);
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainGetJobStatsEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    priv = vm->privateData;
+    jobInfo = priv->job.current;
+    if (!priv->job.active) {
+        *type = VIR_DOMAIN_JOB_NONE;
+        *params = NULL;
+        *nparams = 0;
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* In libxl we don't have an estimated completion time
+     * thus we always set to unbounded and update time
+     * for the active job. */
+    if (libxlDomainJobUpdateTime(&priv->job) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddULLong(params, nparams, &maxparams,
+                                VIR_DOMAIN_JOB_TIME_ELAPSED,
+                                jobInfo->timeElapsed) < 0)
+        goto cleanup;
+
+    *type = jobInfo->type;
+    ret = 0;
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
 
 static int
 libxlConnectDomainEventRegisterAny(virConnectPtr conn, virDomainPtr dom, int eventID,
@@ -4972,8 +5070,7 @@ libxlNodeDeviceDetachFlags(virNodeDevicePtr dev,
         goto cleanup;
 
     if (!driverName || STREQ(driverName, "xen")) {
-        if (virPCIDeviceSetStubDriver(pci, "pciback") < 0)
-            goto cleanup;
+        virPCIDeviceSetStubDriver(pci, VIR_PCI_STUB_DRIVER_XEN);
     } else {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("unsupported driver name '%s'"), driverName);
@@ -5421,6 +5518,8 @@ static virHypervisorDriver libxlHypervisorDriver = {
 #endif
     .nodeGetFreeMemory = libxlNodeGetFreeMemory, /* 0.9.0 */
     .nodeGetCellsFreeMemory = libxlNodeGetCellsFreeMemory, /* 1.1.1 */
+    .domainGetJobInfo = libxlDomainGetJobInfo, /* 1.3.1 */
+    .domainGetJobStats = libxlDomainGetJobStats, /* 1.3.1 */
     .domainMemoryStats = libxlDomainMemoryStats, /* 1.3.0 */
     .domainGetCPUStats = libxlDomainGetCPUStats, /* 1.3.0 */
     .connectDomainEventRegister = libxlConnectDomainEventRegister, /* 0.9.0 */

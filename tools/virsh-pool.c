@@ -1,7 +1,7 @@
 /*
  * virsh-pool.c: Commands to manage storage pool
  *
- * Copyright (C) 2005, 2007-2015 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,98 @@
 #include "virfile.h"
 #include "conf/storage_conf.h"
 #include "virstring.h"
+
+#define VIRSH_COMMON_OPT_POOL_FULL                            \
+    VIRSH_COMMON_OPT_POOL(N_("pool name or uuid"))            \
+
+#define VIRSH_COMMON_OPT_POOL_BUILD                           \
+    {.name = "build",                                         \
+     .type = VSH_OT_BOOL,                                     \
+     .flags = 0,                                              \
+     .help = N_("build the pool as normal")                   \
+    }                                                         \
+
+#define VIRSH_COMMON_OPT_POOL_NO_OVERWRITE                        \
+    {.name = "no-overwrite",                                      \
+     .type = VSH_OT_BOOL,                                         \
+     .flags = 0,                                                  \
+     .help = N_("do not overwrite an existing pool of this type") \
+    }                                                             \
+
+#define VIRSH_COMMON_OPT_POOL_OVERWRITE                           \
+    {.name = "overwrite",                                         \
+     .type = VSH_OT_BOOL,                                         \
+     .flags = 0,                                                  \
+     .help = N_("overwrite any existing data")                    \
+    }                                                             \
+
+#define VIRSH_COMMON_OPT_POOL_X_AS                                     \
+    {.name = "name",                                                   \
+     .type = VSH_OT_DATA,                                              \
+     .flags = VSH_OFLAG_REQ,                                           \
+     .help = N_("name of the pool")                                    \
+    },                                                                 \
+    {.name = "type",                                                   \
+     .type = VSH_OT_DATA,                                              \
+     .flags = VSH_OFLAG_REQ,                                           \
+     .help = N_("type of the pool")                                    \
+    },                                                                 \
+    {.name = "print-xml",                                              \
+     .type = VSH_OT_BOOL,                                              \
+     .help = N_("print XML document, but don't define/create")         \
+    },                                                                 \
+    {.name = "source-host",                                            \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("source-host for underlying storage")                  \
+    },                                                                 \
+    {.name = "source-path",                                            \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("source path for underlying storage")                  \
+    },                                                                 \
+    {.name = "source-dev",                                             \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("source device for underlying storage")                \
+    },                                                                 \
+    {.name = "source-name",                                            \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("source name for underlying storage")                  \
+    },                                                                 \
+    {.name = "target",                                                 \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("target for underlying storage")                       \
+    },                                                                 \
+    {.name = "source-format",                                          \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("format for underlying storage")                       \
+    },                                                                 \
+    {.name = "auth-type",                                              \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("auth type to be used for underlying storage")         \
+    },                                                                 \
+    {.name = "auth-username",                                          \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("auth username to be used for underlying storage")     \
+    },                                                                 \
+    {.name = "secret-usage",                                           \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("auth secret usage to be used for underlying storage") \
+    },                                                                 \
+    {.name = "adapter-name",                                           \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("adapter name to be used for underlying storage")      \
+    },                                                                 \
+    {.name = "adapter-wwnn",                                           \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("adapter wwnn to be used for underlying storage")      \
+    },                                                                 \
+    {.name = "adapter-wwpn",                                           \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("adapter wwpn to be used for underlying storage")      \
+    },                                                                 \
+    {.name = "adapter-parent",                                         \
+     .type = VSH_OT_STRING,                                            \
+     .help = N_("adapter parent to be used for underlying storage")    \
+    }                                                                  \
 
 virStoragePoolPtr
 virshCommandOptPoolBy(vshControl *ctl, const vshCmd *cmd, const char *optname,
@@ -85,11 +177,8 @@ static const vshCmdInfo info_pool_autostart[] = {
 };
 
 static const vshCmdOptDef opts_pool_autostart[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = "disable",
      .type = VSH_OT_BOOL,
      .help = N_("disable autostarting")
@@ -141,11 +230,11 @@ static const vshCmdInfo info_pool_create[] = {
 };
 
 static const vshCmdOptDef opts_pool_create[] = {
-    {.name = "file",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("file containing an XML pool description")
-    },
+    VIRSH_COMMON_OPT_FILE(N_("file containing an XML pool description")),
+    VIRSH_COMMON_OPT_POOL_BUILD,
+    VIRSH_COMMON_OPT_POOL_NO_OVERWRITE,
+    VIRSH_COMMON_OPT_POOL_OVERWRITE,
+
     {.name = NULL}
 };
 
@@ -156,15 +245,33 @@ cmdPoolCreate(vshControl *ctl, const vshCmd *cmd)
     const char *from = NULL;
     bool ret = true;
     char *buffer;
+    bool build;
+    bool overwrite;
+    bool no_overwrite;
+    unsigned int flags = 0;
     virshControlPtr priv = ctl->privData;
 
     if (vshCommandOptStringReq(ctl, cmd, "file", &from) < 0)
         return false;
 
+    build = vshCommandOptBool(cmd, "build");
+    overwrite = vshCommandOptBool(cmd, "overwrite");
+    no_overwrite = vshCommandOptBool(cmd, "no-overwrite");
+
+    VSH_EXCLUSIVE_OPTIONS_EXPR("overwrite", overwrite,
+                               "no-overwrite", no_overwrite);
+
+    if (build)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD;
+    if (overwrite)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD_OVERWRITE;
+    if (no_overwrite)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE;
+
     if (virFileReadAll(from, VSH_MAX_XML_FILE, &buffer) < 0)
         return false;
 
-    pool = virStoragePoolCreateXML(priv->conn, buffer, 0);
+    pool = virStoragePoolCreateXML(priv->conn, buffer, flags);
     VIR_FREE(buffer);
 
     if (pool != NULL) {
@@ -178,76 +285,9 @@ cmdPoolCreate(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
-/*
- * XML Building helper for pool-define-as and pool-create-as
- */
-static const vshCmdOptDef opts_pool_X_as[] = {
-    {.name = "name",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("name of the pool")
-    },
-    {.name = "type",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("type of the pool")
-    },
-    {.name = "print-xml",
-     .type = VSH_OT_BOOL,
-     .help = N_("print XML document, but don't define/create")
-    },
-    {.name = "source-host",
-     .type = VSH_OT_STRING,
-     .help = N_("source-host for underlying storage")
-    },
-    {.name = "source-path",
-     .type = VSH_OT_STRING,
-     .help = N_("source path for underlying storage")
-    },
-    {.name = "source-dev",
-     .type = VSH_OT_STRING,
-     .help = N_("source device for underlying storage")
-    },
-    {.name = "source-name",
-     .type = VSH_OT_STRING,
-     .help = N_("source name for underlying storage")
-    },
-    {.name = "target",
-     .type = VSH_OT_STRING,
-     .help = N_("target for underlying storage")
-    },
-    {.name = "source-format",
-     .type = VSH_OT_STRING,
-     .help = N_("format for underlying storage")
-    },
-    {.name = "auth-type",
-     .type = VSH_OT_STRING,
-     .help = N_("auth type to be used for underlying storage")
-    },
-    {.name = "auth-username",
-     .type = VSH_OT_STRING,
-     .help = N_("auth username to be used for underlying storage")
-    },
-    {.name = "secret-usage",
-     .type = VSH_OT_STRING,
-     .help = N_("auth secret usage to be used for underlying storage")
-    },
-    {.name = "adapter-name",
-     .type = VSH_OT_STRING,
-     .help = N_("adapter name to be used for underlying storage")
-    },
-    {.name = "adapter-wwnn",
-     .type = VSH_OT_STRING,
-     .help = N_("adapter wwnn to be used for underlying storage")
-    },
-    {.name = "adapter-wwpn",
-     .type = VSH_OT_STRING,
-     .help = N_("adapter wwpn to be used for underlying storage")
-    },
-    {.name = "adapter-parent",
-     .type = VSH_OT_STRING,
-     .help = N_("adapter parent to be used for underlying storage")
-    },
+static const vshCmdOptDef opts_pool_define_as[] = {
+    VIRSH_COMMON_OPT_POOL_X_AS,
+
     {.name = NULL}
 };
 
@@ -361,6 +401,15 @@ static const vshCmdInfo info_pool_create_as[] = {
     {.name = NULL}
 };
 
+static const vshCmdOptDef opts_pool_create_as[] = {
+    VIRSH_COMMON_OPT_POOL_X_AS,
+    VIRSH_COMMON_OPT_POOL_BUILD,
+    VIRSH_COMMON_OPT_POOL_NO_OVERWRITE,
+    VIRSH_COMMON_OPT_POOL_OVERWRITE,
+
+    {.name = NULL}
+};
+
 static bool
 cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
 {
@@ -368,7 +417,25 @@ cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
     const char *name;
     char *xml;
     bool printXML = vshCommandOptBool(cmd, "print-xml");
+    bool build;
+    bool overwrite;
+    bool no_overwrite;
+    unsigned int flags = 0;
     virshControlPtr priv = ctl->privData;
+
+    build = vshCommandOptBool(cmd, "build");
+    overwrite = vshCommandOptBool(cmd, "overwrite");
+    no_overwrite = vshCommandOptBool(cmd, "no-overwrite");
+
+    VSH_EXCLUSIVE_OPTIONS_EXPR("overwrite", overwrite,
+                               "no-overwrite", no_overwrite);
+
+    if (build)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD;
+    if (overwrite)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD_OVERWRITE;
+    if (no_overwrite)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE;
 
     if (!virshBuildPoolXML(ctl, cmd, &name, &xml))
         return false;
@@ -377,7 +444,7 @@ cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, "%s", xml);
         VIR_FREE(xml);
     } else {
-        pool = virStoragePoolCreateXML(priv->conn, xml, 0);
+        pool = virStoragePoolCreateXML(priv->conn, xml, flags);
         VIR_FREE(xml);
 
         if (pool != NULL) {
@@ -406,11 +473,8 @@ static const vshCmdInfo info_pool_define[] = {
 };
 
 static const vshCmdOptDef opts_pool_define[] = {
-    {.name = "file",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("file containing an XML pool description")
-    },
+    VIRSH_COMMON_OPT_FILE(N_("file containing an XML pool description")),
+
     {.name = NULL}
 };
 
@@ -500,19 +564,10 @@ static const vshCmdInfo info_pool_build[] = {
 };
 
 static const vshCmdOptDef opts_pool_build[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
-    {.name = "no-overwrite",
-     .type = VSH_OT_BOOL,
-     .help = N_("do not overwrite an existing pool of this type")
-    },
-    {.name = "overwrite",
-     .type = VSH_OT_BOOL,
-     .help = N_("overwrite any existing data")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+    VIRSH_COMMON_OPT_POOL_NO_OVERWRITE,
+    VIRSH_COMMON_OPT_POOL_OVERWRITE,
+
     {.name = NULL}
 };
 
@@ -559,11 +614,8 @@ static const vshCmdInfo info_pool_destroy[] = {
 };
 
 static const vshCmdOptDef opts_pool_destroy[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -602,11 +654,8 @@ static const vshCmdInfo info_pool_delete[] = {
 };
 
 static const vshCmdOptDef opts_pool_delete[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -645,11 +694,8 @@ static const vshCmdInfo info_pool_refresh[] = {
 };
 
 static const vshCmdOptDef opts_pool_refresh[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -688,11 +734,8 @@ static const vshCmdInfo info_pool_dumpxml[] = {
 };
 
 static const vshCmdOptDef opts_pool_dumpxml[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = "inactive",
      .type = VSH_OT_BOOL,
      .help = N_("show inactive defined XML")
@@ -1542,11 +1585,8 @@ static const vshCmdInfo info_pool_info[] = {
 };
 
 static const vshCmdOptDef opts_pool_info[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -1622,11 +1662,8 @@ static const vshCmdInfo info_pool_name[] = {
 };
 
 static const vshCmdOptDef opts_pool_name[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -1657,11 +1694,11 @@ static const vshCmdInfo info_pool_start[] = {
 };
 
 static const vshCmdOptDef opts_pool_start[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("name or uuid of the inactive pool")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+    VIRSH_COMMON_OPT_POOL_BUILD,
+    VIRSH_COMMON_OPT_POOL_NO_OVERWRITE,
+    VIRSH_COMMON_OPT_POOL_OVERWRITE,
+
     {.name = NULL}
 };
 
@@ -1671,11 +1708,29 @@ cmdPoolStart(vshControl *ctl, const vshCmd *cmd)
     virStoragePoolPtr pool;
     bool ret = true;
     const char *name = NULL;
+    bool build;
+    bool overwrite;
+    bool no_overwrite;
+    unsigned int flags = 0;
 
     if (!(pool = virshCommandOptPool(ctl, cmd, "pool", &name)))
          return false;
 
-    if (virStoragePoolCreate(pool, 0) == 0) {
+    build = vshCommandOptBool(cmd, "build");
+    overwrite = vshCommandOptBool(cmd, "overwrite");
+    no_overwrite = vshCommandOptBool(cmd, "no-overwrite");
+
+    VSH_EXCLUSIVE_OPTIONS_EXPR("overwrite", overwrite,
+                               "no-overwrite", no_overwrite);
+
+    if (build)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD;
+    if (overwrite)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD_OVERWRITE;
+    if (no_overwrite)
+        flags |= VIR_STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE;
+
+    if (virStoragePoolCreate(pool, flags) == 0) {
         vshPrint(ctl, _("Pool %s started\n"), name);
     } else {
         vshError(ctl, _("Failed to start pool %s"), name);
@@ -1700,11 +1755,8 @@ static const vshCmdInfo info_pool_undefine[] = {
 };
 
 static const vshCmdOptDef opts_pool_undefine[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -1743,11 +1795,8 @@ static const vshCmdInfo info_pool_uuid[] = {
 };
 
 static const vshCmdOptDef opts_pool_uuid[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -1783,11 +1832,8 @@ static const vshCmdInfo info_pool_edit[] = {
 };
 
 static const vshCmdOptDef opts_pool_edit[] = {
-    {.name = "pool",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("pool name or uuid")
-    },
+    VIRSH_COMMON_OPT_POOL_FULL,
+
     {.name = NULL}
 };
 
@@ -1870,7 +1916,7 @@ const vshCmdDef storagePoolCmds[] = {
     },
     {.name = "pool-create-as",
      .handler = cmdPoolCreateAs,
-     .opts = opts_pool_X_as,
+     .opts = opts_pool_create_as,
      .info = info_pool_create_as,
      .flags = 0
     },
@@ -1882,7 +1928,7 @@ const vshCmdDef storagePoolCmds[] = {
     },
     {.name = "pool-define-as",
      .handler = cmdPoolDefineAs,
-     .opts = opts_pool_X_as,
+     .opts = opts_pool_define_as,
      .info = info_pool_define_as,
      .flags = 0
     },

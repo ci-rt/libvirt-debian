@@ -244,25 +244,29 @@ testVirFindSCSIHostByPCI(const void *data ATTRIBUTE_UNUSED)
     return ret;
 }
 
-# define FAKESYSFSDIRTEMPLATE abs_builddir "/fakesysfsdir-XXXXXX"
+# define FAKEROOTDIRTEMPLATE abs_builddir "/fakerootdir-XXXXXX"
 
 static int
 mymain(void)
 {
     int ret = -1;
+    char *fakerootdir = NULL;
     char *fakesysfsdir = NULL;
 
-    if (VIR_STRDUP_QUIET(fakesysfsdir, FAKESYSFSDIRTEMPLATE) < 0) {
+    if (VIR_STRDUP_QUIET(fakerootdir, FAKEROOTDIRTEMPLATE) < 0) {
         fprintf(stderr, "Out of memory\n");
         goto cleanup;
     }
 
-    if (!mkdtemp(fakesysfsdir)) {
-        fprintf(stderr, "Cannot create fakesysfsdir");
+    if (!mkdtemp(fakerootdir)) {
+        fprintf(stderr, "Cannot create fakerootdir");
         goto cleanup;
     }
 
-    setenv("LIBVIRT_FAKE_SYSFS_DIR", fakesysfsdir, 1);
+    if (virAsprintfQuiet(&fakesysfsdir, "%s/sys", fakerootdir) < 0) {
+        fprintf(stderr, "Out of memory\n");
+        goto cleanup;
+    }
 
     if (init_scsihost_sysfs(fakesysfsdir) < 0) {
         fprintf(stderr, "Failed to create fakesysfs='%s'\n", fakesysfsdir);
@@ -292,7 +296,8 @@ mymain(void)
 
  cleanup:
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
-        virFileDeleteTree(fakesysfsdir);
+        virFileDeleteTree(fakerootdir);
+    VIR_FREE(fakerootdir);
     VIR_FREE(fakesysfsdir);
     VIR_FREE(scsihost_class_path);
     return ret;

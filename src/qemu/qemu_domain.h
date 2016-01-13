@@ -116,7 +116,7 @@ struct _qemuDomainJobInfo {
                             destination. */
     bool timeDeltaSet;
     /* Raw values from QEMU */
-    qemuMonitorMigrationStatus status;
+    qemuMonitorMigrationStats stats;
 };
 
 struct qemuDomainJobObj {
@@ -298,6 +298,7 @@ int qemuDomainObjEnterMonitorAsync(virQEMUDriverPtr driver,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 
+qemuAgentPtr qemuDomainGetAgent(virDomainObjPtr vm);
 void qemuDomainObjEnterAgent(virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1);
 void qemuDomainObjExitAgent(virDomainObjPtr obj)
@@ -486,7 +487,7 @@ int qemuDomainAlignMemorySizes(virDomainDefPtr def);
 void qemuDomainMemoryDeviceAlignSize(virDomainDefPtr def,
                                      virDomainMemoryDefPtr mem);
 
-virDomainChrSourceDefPtr qemuFindAgentConfig(virDomainDefPtr def);
+virDomainChrDefPtr qemuFindAgentConfig(virDomainDefPtr def);
 
 bool qemuDomainMachineIsQ35(const virDomainDef *def);
 bool qemuDomainMachineIsI440FX(const virDomainDef *def);
@@ -497,11 +498,15 @@ bool qemuDomainMachineHasBuiltinIDE(const virDomainDef *def);
 int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
                                       virDomainObjPtr vm);
 
-unsigned long long qemuDomainGetMlockLimitBytes(virDomainDefPtr def);
-bool qemuDomainRequiresMlock(virDomainDefPtr def);
+unsigned long long qemuDomainGetMemLockLimitBytes(virDomainDefPtr def);
+bool qemuDomainRequiresMemLock(virDomainDefPtr def);
+int qemuDomainAdjustMaxMemLock(virDomainObjPtr vm);
 
 int qemuDomainDefValidateMemoryHotplug(const virDomainDef *def,
                                        virQEMUCapsPtr qemuCaps,
                                        const virDomainMemoryDef *mem);
+
+bool qemuDomainHasVcpuPids(virDomainObjPtr vm);
+pid_t qemuDomainGetVcpuPid(virDomainObjPtr vm, unsigned int vcpu);
 
 #endif /* __QEMU_DOMAIN_H__ */

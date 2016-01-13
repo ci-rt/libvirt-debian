@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.3.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.3.1], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -175,12 +175,13 @@ dnl are also linux specific.  The "network" and storage_fs drivers are known
 dnl to not work on MacOS X presently, so we also make a note if compiling
 dnl for that
 
-with_linux=no with_osx=no with_freebsd=no
+with_linux=no with_osx=no with_freebsd=no with_win=no with_cygwin=no
 case $host in
   *-*-linux*) with_linux=yes ;;
   *-*-darwin*) with_osx=yes ;;
   *-*-freebsd*) with_freebsd=yes ;;
   *-*-mingw* | *-*-msvc* ) with_win=yes ;;
+  *-*-cygwin*) with_cygwin=yes ;;
 esac
 
 if test $with_linux = no; then
@@ -192,9 +193,12 @@ if test $with_linux = no; then
 fi
 
 if test $with_freebsd = yes; then
-   want_ifconfig=yes
+    want_ifconfig=yes
+    with_firewalld=no
+fi
 
-   with_firewalld=no
+if test $with_cygwin = yes; then
+    with_vbox=no
 fi
 
 AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
@@ -279,7 +283,7 @@ AC_CHECK_SIZEOF([long])
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
-  getmntent_r getpwuid_r getuid kill mmap newlocale posix_fallocate \
+  getmntent_r getpwuid_r getrlimit getuid kill mmap newlocale posix_fallocate \
   posix_memalign prlimit regexec sched_getaffinity setgroups setns \
   setrlimit symlink sysctlbyname getifaddrs sched_setscheduler])
 
@@ -387,6 +391,12 @@ AC_CHECK_TYPE([struct ifreq],
     [Defined if struct ifreq exists in net/if.h])],
   [], [[#include <sys/socket.h>
         #include <net/if.h>
+  ]])
+
+AC_CHECK_TYPE([struct sockpeercred],
+  [AC_DEFINE([HAVE_STRUCT_SOCKPEERCRED], [1],
+    [Defined if struct sockpeercred is available])],
+  [], [[#include <sys/socket.h>
   ]])
 
 AC_CHECK_DECLS([ETH_FLAG_TXVLAN, ETH_FLAG_NTUPLE, ETH_FLAG_RXHASH, ETH_FLAG_LRO,
@@ -883,7 +893,6 @@ if test "$with_libxl" != "no" ; then
     PKG_CHECK_MODULES([LIBXL], [xenlight], [
      LIBXL_FIRMWARE_DIR=`$PKG_CONFIG --variable xenfirmwaredir xenlight`
      LIBXL_EXECBIN_DIR=`$PKG_CONFIG --variable libexec_bin xenlight`
-     LIBXL_LIBS="$LIBXL_LIBS -lxenctrl"
      with_libxl=yes
     ], [LIBXL_FOUND=no])
     if test "$LIBXL_FOUND" = "no"; then
@@ -896,7 +905,7 @@ if test "$with_libxl" != "no" ; then
         LIBS="$LIBS $LIBXL_LIBS"
         AC_CHECK_LIB([xenlight], [libxl_ctx_alloc], [
             with_libxl=yes
-            LIBXL_LIBS="$LIBXL_LIBS -lxenlight -lxenctrl"
+            LIBXL_LIBS="$LIBXL_LIBS -lxenlight"
         ],[
             if test "$with_libxl" = "yes"; then
                 fail=1
@@ -924,6 +933,14 @@ if test "$with_libxl" = "yes"; then
     if test "x$LIBXL_EXECBIN_DIR" != "x"; then
         AC_DEFINE_UNQUOTED([LIBXL_EXECBIN_DIR], ["$LIBXL_EXECBIN_DIR"], [directory containing Xen libexec binaries])
     fi
+    dnl Check if the xtl_* infrastructure is in libxentoollog
+    dnl (since Xen 4.7) if not then assume it is in libxenctrl
+    dnl (as it was for 4.6 and earler)
+    AC_CHECK_LIB([xentoollog], [xtl_createlogger_stdiostream], [
+        LIBXL_LIBS="$LIBXL_LIBS -lxentoollog"
+    ],[
+        LIBXL_LIBS="$LIBXL_LIBS -lxenctrl"
+    ])
 fi
 AM_CONDITIONAL([WITH_LIBXL], [test "$with_libxl" = "yes"])
 
@@ -1073,6 +1090,14 @@ if test "$with_lxc" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_LXC], 1, [whether LXC driver is enabled])
 fi
 AM_CONDITIONAL([WITH_LXC], [test "$with_lxc" = "yes"])
+
+dnl
+dnl Check for virt-login-shell
+dnl
+
+LIBVIRT_CHECK_LOGIN_SHELL
+
+AM_CONDITIONAL([WITH_SETUID_RPC_CLIENT], [test "$with_lxc$with_login_shell" != "nono"])
 
 dnl
 dnl Checks for the Parallels driver
@@ -2777,7 +2802,6 @@ AC_CONFIG_FILES([run],
                 [chmod +x,-w run])
 AC_CONFIG_FILES([\
         Makefile src/Makefile include/Makefile docs/Makefile \
-        docs/schemas/Makefile \
         gnulib/lib/Makefile \
         gnulib/tests/Makefile \
         libvirt.pc \
@@ -2789,23 +2813,11 @@ AC_CONFIG_FILES([\
         src/libvirt-lxc.pc \
         libvirt.spec mingw-libvirt.spec \
         po/Makefile.in \
-        include/libvirt/Makefile include/libvirt/libvirt-common.h \
+        include/libvirt/libvirt-common.h \
         daemon/Makefile \
-        tools/Makefile \
+        examples/Makefile \
         tests/Makefile \
-        examples/apparmor/Makefile \
-        examples/object-events/Makefile \
-        examples/domsuspend/Makefile \
-        examples/dominfo/Makefile \
-        examples/dommigrate/Makefile \
-        examples/domtop/Makefile \
-        examples/openauth/Makefile \
-        examples/hellolibvirt/Makefile \
-        examples/rename/Makefile \
-        examples/systemtap/Makefile \
-        examples/xml/nwfilter/Makefile \
-        examples/lxcconvert/Makefile \
-        examples/polkit/Makefile \
+        tools/Makefile \
         tools/wireshark/Makefile \
         tools/wireshark/src/Makefile])
 AC_OUTPUT
@@ -2974,6 +2986,7 @@ AC_MSG_NOTICE([      Init script: $with_init_script])
 AC_MSG_NOTICE([Char device locks: $with_chrdev_lock_files])
 AC_MSG_NOTICE([   Default Editor: $DEFAULT_EDITOR])
 AC_MSG_NOTICE([     Loader/NVRAM: $with_loader_nvram])
+AC_MSG_NOTICE([ virt-login-shell: $with_login_shell])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Developer Tools])
 AC_MSG_NOTICE([])

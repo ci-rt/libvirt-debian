@@ -89,6 +89,7 @@ struct openvz_driver ovz_driver;
 static int
 openvzDomainDefPostParse(virDomainDefPtr def,
                          virCapsPtr caps ATTRIBUTE_UNUSED,
+                         unsigned int parseFlags ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
     /* fill the init path */
@@ -109,6 +110,7 @@ static int
 openvzDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                                const virDomainDef *def ATTRIBUTE_UNUSED,
                                virCapsPtr caps ATTRIBUTE_UNUSED,
+                               unsigned int parseFlags ATTRIBUTE_UNUSED,
                                void *opaque ATTRIBUTE_UNUSED)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
@@ -465,7 +467,7 @@ static int openvzDomainGetInfo(virDomainPtr dom,
 
     info->maxMem = virDomainDefGetMemoryActual(vm->def);
     info->memory = vm->def->mem.cur_balloon;
-    info->nrVirtCpu = vm->def->vcpus;
+    info->nrVirtCpu = virDomainDefGetVcpus(vm->def);
     ret = 0;
 
  cleanup:
@@ -1030,13 +1032,13 @@ openvzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
     if (openvzDomainSetNetworkConfig(conn, vm->def) < 0)
         goto cleanup;
 
-    if (vm->def->vcpus != vm->def->maxvcpus) {
+    if (virDomainDefHasVcpusOffline(vm->def)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("current vcpu count must equal maximum"));
         goto cleanup;
     }
-    if (vm->def->maxvcpus > 0) {
-        if (openvzDomainSetVcpusInternal(vm, vm->def->maxvcpus) < 0) {
+    if (virDomainDefGetVcpusMax(vm->def)) {
+        if (openvzDomainSetVcpusInternal(vm, virDomainDefGetVcpusMax(vm->def)) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Could not set number of vCPUs"));
              goto cleanup;
@@ -1133,8 +1135,8 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
     vm->def->id = vm->pid;
     virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_BOOTED);
 
-    if (vm->def->maxvcpus > 0) {
-        if (openvzDomainSetVcpusInternal(vm, vm->def->maxvcpus) < 0) {
+    if (virDomainDefGetVcpusMax(vm->def) > 0) {
+        if (openvzDomainSetVcpusInternal(vm, virDomainDefGetVcpusMax(vm->def)) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Could not set number of vCPUs"));
             goto cleanup;
@@ -1368,7 +1370,12 @@ static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
     if (virRun(prog, NULL) < 0)
         return -1;
 
-    vm->def->maxvcpus = vm->def->vcpus = nvcpus;
+    if (virDomainDefSetVcpusMax(vm->def, nvcpus) < 0)
+        return -1;
+
+    if (virDomainDefSetVcpus(vm->def, nvcpus) < 0)
+        return -1;
+
     return 0;
 }
 

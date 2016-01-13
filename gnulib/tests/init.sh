@@ -1,6 +1,6 @@
 # source this file; set up for tests
 
-# Copyright (C) 2009-2015 Free Software Foundation, Inc.
+# Copyright (C) 2009-2016 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -150,6 +150,7 @@ fi
 #  ? - not ok
 gl_shell_test_script_='
 test $(echo y) = y || exit 1
+f_local_() { local v=1; }; f_local_ || exit 1
 score_=10
 if test "$VERBOSE" = yes; then
   test -n "$( (exec 3>&1; set -x; P=1 true 2>&3) 2> /dev/null)" && score_=9
@@ -326,7 +327,7 @@ elif diff_out_=`exec 2>/dev/null; diff -c "$0" "$0" < /dev/null`; then
       fi
     }
   fi
-elif ( cmp --version < /dev/null 2>&1 | grep GNU ) > /dev/null 2>&1; then
+elif cmp -s /dev/null /dev/null 2>/dev/null; then
   compare_ () { cmp -s "$@"; }
 else
   compare_ () { cmp "$@"; }

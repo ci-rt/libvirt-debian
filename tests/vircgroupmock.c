@@ -31,6 +31,8 @@
 # include <sys/stat.h>
 # include <stdarg.h>
 # include "testutilslxc.h"
+# include "virstring.h"
+# include "virfile.h"
 
 static int (*realopen)(const char *path, int flags, ...);
 static FILE *(*realfopen)(const char *path, const char *mode);
@@ -45,12 +47,13 @@ static int (*realmkdir)(const char *path, mode_t mode);
  * when passed as an arg to asprintf()
  * vircgroupmock.c:462:22: error: static variable 'fakesysfsdir' is used in an inline function with external linkage [-Werror,-Wstatic-in-inline]
  */
-char *fakesysfsdir;
+char *fakerootdir;
+char *fakesysfscgroupdir;
 const char *fakedevicedir0 = FAKEDEVDIR0;
 const char *fakedevicedir1 = FAKEDEVDIR1;
 
 
-# define SYSFS_PREFIX "/not/really/sys/fs/cgroup/"
+# define SYSFS_CGROUP_PREFIX "/not/really/sys/fs/cgroup/"
 # define SYSFS_CPU_PRESENT "/sys/devices/system/cpu/present"
 # define SYSFS_CPU_PRESENT_MOCKED "devices_system_cpu_present"
 
@@ -64,9 +67,9 @@ const char *fakedevicedir1 = FAKEDEVDIR1;
  *
  * In any open/acces/mkdir calls we look at path and if
  * it starts with /not/really/sys/fs/cgroup, we rewrite
- * the path to point at a temporary directory referred
- * to by LIBVIRT_FAKE_SYSFS_DIR env variable that is
- * set by the main test suite
+ * the path to point at a subdirectory of the temporary
+ * directory referred to by LIBVIRT_FAKE_ROOT_DIR env
+ * variable that is set by the main test suite
  *
  * In mkdir() calls, we simulate the cgroups behaviour
  * whereby creating the directory auto-creates a bunch
@@ -183,11 +186,11 @@ static int make_controller(const char *path, mode_t mode)
     int ret = -1;
     const char *controller;
 
-    if (!STRPREFIX(path, fakesysfsdir)) {
+    if (!STRPREFIX(path, fakesysfscgroupdir)) {
         errno = EINVAL;
         return -1;
     }
-    controller = path + strlen(fakesysfsdir) + 1;
+    controller = path + strlen(fakesysfscgroupdir) + 1;
 
     if (STREQ(controller, "cpu"))
         return symlink("cpu,cpuacct", path);
@@ -414,23 +417,32 @@ static void init_syms(void)
 
 static void init_sysfs(void)
 {
-    if (fakesysfsdir)
+    if (fakerootdir && fakesysfscgroupdir)
         return;
 
-    if (!(fakesysfsdir = getenv("LIBVIRT_FAKE_SYSFS_DIR"))) {
-        fprintf(stderr, "Missing LIBVIRT_FAKE_SYSFS_DIR env variable\n");
+    if (!(fakerootdir = getenv("LIBVIRT_FAKE_ROOT_DIR"))) {
+        fprintf(stderr, "Missing LIBVIRT_FAKE_ROOT_DIR env variable\n");
         abort();
     }
 
-# define MAKE_CONTROLLER(subpath)                               \
-    do {                                                        \
-        char *path;                                             \
-        if (asprintf(&path, "%s/%s", fakesysfsdir, subpath) < 0)\
-            abort();                                            \
-        if (make_controller(path, 0755) < 0) {                  \
-            fprintf(stderr, "Cannot initialize %s\n", path);    \
-            abort();                                            \
-        }                                                       \
+    if (virAsprintfQuiet(&fakesysfscgroupdir, "%s%s",
+                         fakerootdir, SYSFS_CGROUP_PREFIX) < 0)
+        abort();
+
+    if (virFileMakePath(fakesysfscgroupdir) < 0) {
+        fprintf(stderr, "Cannot create %s\n", fakesysfscgroupdir);
+        abort();
+    }
+
+# define MAKE_CONTROLLER(subpath)                                      \
+    do {                                                               \
+        char *path;                                                    \
+        if (asprintf(&path, "%s/%s", fakesysfscgroupdir, subpath) < 0) \
+            abort();                                                   \
+        if (make_controller(path, 0755) < 0) {                         \
+            fprintf(stderr, "Cannot initialize %s\n", path);           \
+            abort();                                                   \
+        }                                                              \
     } while (0)
 
     MAKE_CONTROLLER("cpu");
@@ -442,7 +454,8 @@ static void init_sysfs(void)
     MAKE_CONTROLLER("memory");
     MAKE_CONTROLLER("freezer");
 
-    if (make_file(fakesysfsdir, SYSFS_CPU_PRESENT_MOCKED, "8-23,48-159\n") < 0)
+    if (make_file(fakesysfscgroupdir,
+                  SYSFS_CPU_PRESENT_MOCKED, "8-23,48-159\n") < 0)
         abort();
 }
 
@@ -516,12 +529,12 @@ int access(const char *path, int mode)
 
     init_syms();
 
-    if (STRPREFIX(path, SYSFS_PREFIX)) {
+    if (STRPREFIX(path, SYSFS_CGROUP_PREFIX)) {
         init_sysfs();
         char *newpath;
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
-                     path + strlen(SYSFS_PREFIX)) < 0) {
+                     fakesysfscgroupdir,
+                     path + strlen(SYSFS_CGROUP_PREFIX)) < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -547,12 +560,12 @@ int __lxstat(int ver, const char *path, struct stat *sb)
 
     init_syms();
 
-    if (STRPREFIX(path, SYSFS_PREFIX)) {
+    if (STRPREFIX(path, SYSFS_CGROUP_PREFIX)) {
         init_sysfs();
         char *newpath;
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
-                     path + strlen(SYSFS_PREFIX)) < 0) {
+                     fakesysfscgroupdir,
+                     path + strlen(SYSFS_CGROUP_PREFIX)) < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -578,12 +591,12 @@ int lstat(const char *path, struct stat *sb)
 
     init_syms();
 
-    if (STRPREFIX(path, SYSFS_PREFIX)) {
+    if (STRPREFIX(path, SYSFS_CGROUP_PREFIX)) {
         init_sysfs();
         char *newpath;
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
-                     path + strlen(SYSFS_PREFIX)) < 0) {
+                     fakesysfscgroupdir,
+                     path + strlen(SYSFS_CGROUP_PREFIX)) < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -609,12 +622,12 @@ int __xstat(int ver, const char *path, struct stat *sb)
 
     init_syms();
 
-    if (STRPREFIX(path, SYSFS_PREFIX)) {
+    if (STRPREFIX(path, SYSFS_CGROUP_PREFIX)) {
         init_sysfs();
         char *newpath;
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
-                     path + strlen(SYSFS_PREFIX)) < 0) {
+                     fakesysfscgroupdir,
+                     path + strlen(SYSFS_CGROUP_PREFIX)) < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -644,16 +657,16 @@ int stat(const char *path, struct stat *sb)
     if (STREQ(path, SYSFS_CPU_PRESENT)) {
         init_sysfs();
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
+                     fakesysfscgroupdir,
                      SYSFS_CPU_PRESENT_MOCKED) < 0) {
             errno = ENOMEM;
             return -1;
         }
-    } else if (STRPREFIX(path, SYSFS_PREFIX)) {
+    } else if (STRPREFIX(path, SYSFS_CGROUP_PREFIX)) {
         init_sysfs();
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
-                     path + strlen(SYSFS_PREFIX)) < 0) {
+                     fakesysfscgroupdir,
+                     path + strlen(SYSFS_CGROUP_PREFIX)) < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -680,12 +693,12 @@ int mkdir(const char *path, mode_t mode)
 
     init_syms();
 
-    if (STRPREFIX(path, SYSFS_PREFIX)) {
+    if (STRPREFIX(path, SYSFS_CGROUP_PREFIX)) {
         init_sysfs();
         char *newpath;
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
-                     path + strlen(SYSFS_PREFIX)) < 0) {
+                     fakesysfscgroupdir,
+                     path + strlen(SYSFS_CGROUP_PREFIX)) < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -707,18 +720,18 @@ int open(const char *path, int flags, ...)
     if (STREQ(path, SYSFS_CPU_PRESENT)) {
         init_sysfs();
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
+                     fakesysfscgroupdir,
                      SYSFS_CPU_PRESENT_MOCKED) < 0) {
             errno = ENOMEM;
             return -1;
         }
     }
 
-    if (STRPREFIX(path, SYSFS_PREFIX)) {
+    if (STRPREFIX(path, SYSFS_CGROUP_PREFIX)) {
         init_sysfs();
         if (asprintf(&newpath, "%s/%s",
-                     fakesysfsdir,
-                     path + strlen(SYSFS_PREFIX)) < 0) {
+                     fakesysfscgroupdir,
+                     path + strlen(SYSFS_CGROUP_PREFIX)) < 0) {
             errno = ENOMEM;
             return -1;
         }

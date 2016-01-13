@@ -3428,7 +3428,7 @@ virDomainMigrateUnmanagedParams(virDomainPtr domain,
                                 unsigned int flags)
 {
     VIR_DOMAIN_DEBUG(domain, "dconnuri=%s, params=%p, nparams=%d, flags=%x",
-                     dconnuri, params, nparams, flags);
+                     NULLSTR(dconnuri), params, nparams, flags);
     VIR_TYPED_PARAMS_DEBUG(params, nparams);
 
     if ((flags & VIR_MIGRATE_PEER2PEER) &&
@@ -4404,7 +4404,7 @@ virDomainMigrateToURI2(virDomainPtr domain,
     else
         dconnuri = NULL;
 
-    if (virDomainMigrateUnmanaged(domain, NULL, flags,
+    if (virDomainMigrateUnmanaged(domain, dxml, flags,
                                   dname, dconnuri, miguri, bandwidth) < 0)
         goto error;
 
@@ -10572,15 +10572,17 @@ virDomainGetBlockIoTune(virDomainPtr dom,
  * Typical use sequence is below.
  *
  * getting total stats: set start_cpu as -1, ncpus 1
- * virDomainGetCPUStats(dom, NULL, 0, -1, 1, 0) => nparams
- * params = calloc(nparams, sizeof(virTypedParameter))
- * virDomainGetCPUStats(dom, params, nparams, -1, 1, 0) => total stats.
+ *
+ *   virDomainGetCPUStats(dom, NULL, 0, -1, 1, 0); // nparams
+ *   params = calloc(nparams, sizeof(virTypedParameter))
+ *   virDomainGetCPUStats(dom, params, nparams, -1, 1, 0); // total stats.
  *
  * getting per-cpu stats:
- * virDomainGetCPUStats(dom, NULL, 0, 0, 0, 0) => ncpus
- * virDomainGetCPUStats(dom, NULL, 0, 0, 1, 0) => nparams
- * params = calloc(ncpus * nparams, sizeof(virTypedParameter))
- * virDomainGetCPUStats(dom, params, nparams, 0, ncpus, 0) => per-cpu stats
+ *
+ *   virDomainGetCPUStats(dom, NULL, 0, 0, 0, 0); // ncpus
+ *   virDomainGetCPUStats(dom, NULL, 0, 0, 1, 0); // nparams
+ *   params = calloc(ncpus * nparams, sizeof(virTypedParameter));
+ *   virDomainGetCPUStats(dom, params, nparams, 0, ncpus, 0); // per-cpu stats
  *
  * Returns -1 on failure, or the number of statistics that were
  * populated per cpu on success (this will be less than the total
@@ -10932,6 +10934,7 @@ virDomainGetTime(virDomainPtr dom,
     virResetLastError();
 
     virCheckDomainReturn(dom, -1);
+    virCheckReadOnlyGoto(dom->conn->flags, error);
 
     if (dom->conn->driver->domainGetTime) {
         int ret = dom->conn->driver->domainGetTime(dom, seconds,
@@ -11544,7 +11547,8 @@ virDomainInterfaceAddresses(virDomainPtr dom,
         *ifaces = NULL;
     virCheckDomainReturn(dom, -1);
     virCheckNonNullArgGoto(ifaces, error);
-    virCheckReadOnlyGoto(dom->conn->flags, error);
+    if (source == VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
+        virCheckReadOnlyGoto(dom->conn->flags, error);
 
     if (dom->conn->driver->domainInterfaceAddresses) {
         int ret;

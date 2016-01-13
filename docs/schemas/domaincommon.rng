@@ -30,8 +30,8 @@
   <define name="domain">
     <element name="domain">
       <ref name="hvs"/>
-      <ref name="ids"/>
       <interleave>
+        <ref name="ids"/>
         <optional>
           <ref name="title"/>
         </optional>
@@ -3251,6 +3251,11 @@
         </optional>
         <optional>
           <attribute name="slave"/>
+        </optional>
+        <optional>
+          <attribute name="append">
+            <ref name="virOnOff"/>
+          </attribute>
         </optional>
         <zeroOrMore>
           <ref name='devSeclabel'/>

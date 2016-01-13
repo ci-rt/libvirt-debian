@@ -1176,6 +1176,7 @@ struct _virDomainChrSourceDef {
         /* no <source> for null, vc, stdio */
         struct {
             char *path;
+            int append; /* enum virTristateSwitch */
         } file; /* pty, file, pipe, or device */
         struct {
             char *master;
@@ -2145,6 +2146,14 @@ struct _virDomainCputune {
     virDomainThreadSchedParamPtr iothreadsched;
 };
 
+
+typedef struct _virDomainVcpuInfo virDomainVcpuInfo;
+typedef virDomainVcpuInfo *virDomainVcpuInfoPtr;
+
+struct _virDomainVcpuInfo {
+    bool online;
+};
+
 typedef struct _virDomainBlkiotune virDomainBlkiotune;
 typedef virDomainBlkiotune *virDomainBlkiotunePtr;
 
@@ -2218,8 +2227,8 @@ struct _virDomainDef {
     virDomainBlkiotune blkio;
     virDomainMemtune mem;
 
-    unsigned int vcpus;
-    unsigned int maxvcpus;
+    virDomainVcpuInfoPtr vcpus;
+    size_t maxvcpus;
     int placement_mode;
     virBitmapPtr cpumask;
 
@@ -2343,6 +2352,14 @@ struct _virDomainDef {
     xmlNodePtr metadata;
 };
 
+int virDomainDefSetVcpusMax(virDomainDefPtr def, unsigned int vcpus);
+bool virDomainDefHasVcpusOffline(const virDomainDef *def);
+unsigned int virDomainDefGetVcpusMax(const virDomainDef *def);
+int virDomainDefSetVcpus(virDomainDefPtr def, unsigned int vcpus);
+unsigned int virDomainDefGetVcpus(const virDomainDef *def);
+virDomainVcpuInfoPtr virDomainDefGetVcpu(virDomainDefPtr def, unsigned int vcpu)
+    ATTRIBUTE_RETURN_CHECK;
+
 unsigned long long virDomainDefGetMemoryInitial(const virDomainDef *def);
 void virDomainDefSetMemoryTotal(virDomainDefPtr def, unsigned long long size);
 void virDomainDefSetMemoryInitial(virDomainDefPtr def, unsigned long long size);
@@ -2404,6 +2421,9 @@ struct _virDomainObj {
     void (*privateDataFreeFunc)(void *);
 
     int taint;
+
+    unsigned long long original_memlock; /* Original RLIMIT_MEMLOCK, zero if no
+                                          * restore will be required later */
 };
 
 typedef bool (*virDomainObjListACLFilter)(virConnectPtr conn,
@@ -2419,12 +2439,14 @@ typedef virDomainXMLOption *virDomainXMLOptionPtr;
  * overall domain defaults.  */
 typedef int (*virDomainDefPostParseCallback)(virDomainDefPtr def,
                                              virCapsPtr caps,
+                                             unsigned int parseFlags,
                                              void *opaque);
 /* Called once per device, for adjusting per-device settings while
  * leaving the overall domain otherwise unchanged.  */
 typedef int (*virDomainDeviceDefPostParseCallback)(virDomainDeviceDefPtr dev,
                                                    const virDomainDef *def,
                                                    virCapsPtr caps,
+                                                   unsigned int parseFlags,
                                                    void *opaque);
 
 typedef struct _virDomainDefParserConfig virDomainDefParserConfig;
@@ -3067,6 +3089,8 @@ VIR_ENUM_DECL(virDomainCpuPlacementMode)
 
 VIR_ENUM_DECL(virDomainStartupPolicy)
 
+int
+virDomainDefAddUSBController(virDomainDefPtr def, int idx, int model);
 int
 virDomainDefMaybeAddController(virDomainDefPtr def,
                                int type,

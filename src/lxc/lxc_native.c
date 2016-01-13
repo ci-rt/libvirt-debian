@@ -991,7 +991,9 @@ lxcSetCapDrop(virDomainDefPtr def, virConfPtr properties)
 }
 
 virDomainDefPtr
-lxcParseConfigString(const char *config)
+lxcParseConfigString(const char *config,
+                     virCapsPtr caps,
+                     virDomainXMLOptionPtr xmlopt)
 {
     virDomainDefPtr vmdef = NULL;
     virConfPtr properties = NULL;
@@ -1019,8 +1021,11 @@ lxcParseConfigString(const char *config)
 
     /* Value not handled by the LXC driver, setting to
      * minimum required to make XML parsing pass */
-    vmdef->maxvcpus = 1;
-    vmdef->vcpus = 1;
+    if (virDomainDefSetVcpusMax(vmdef, 1) < 0)
+        goto error;
+
+    if (virDomainDefSetVcpus(vmdef, 1) < 0)
+        goto error;
 
     vmdef->nfss = 0;
     vmdef->os.type = VIR_DOMAIN_OSTYPE_EXE;
@@ -1087,6 +1092,10 @@ lxcParseConfigString(const char *config)
 
     /* lxc.cap.drop */
     lxcSetCapDrop(vmdef, properties);
+
+    if (virDomainDefPostParse(vmdef, caps, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,
+                              xmlopt) < 0)
+        goto cleanup;
 
     goto cleanup;
 

@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2015 Free Software Foundation, Inc.
+# Copyright (C) 2002-2016 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,7 +37,11 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_ES$])dnl a valid locale name
   m4_pattern_allow([^gl_LIBOBJS$])dnl a variable
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
+
+  # Pre-early section.
+  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
   AC_REQUIRE([gl_PROG_AR_RANLIB])
+
   AC_REQUIRE([AM_PROG_CC_C_O])
   # Code from module absolute-header:
   # Code from module accept:
@@ -92,6 +96,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module crypto/md5:
   # Code from module crypto/md5-tests:
   # Code from module crypto/sha256:
+  # Code from module ctype:
+  # Code from module ctype-tests:
   # Code from module dirname-lgpl:
   # Code from module dosname:
   # Code from module double-slash-root:
@@ -107,7 +113,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module execinfo:
   # Code from module exitfail:
   # Code from module extensions:
-  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
   # Code from module extern-inline:
   # Code from module fatal-signal:
   # Code from module fclose:
@@ -882,11 +887,11 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([mktime])
     gl_PREREQ_MKTIME
   fi
-  gl_MSVC_INVAL
+  AC_REQUIRE([gl_MSVC_INVAL])
   if test $HAVE_MSVC_INVALID_PARAMETER_HANDLER = 1; then
     AC_LIBOBJ([msvc-inval])
   fi
-  gl_MSVC_NOTHROW
+  AC_REQUIRE([gl_MSVC_NOTHROW])
   if test $HAVE_MSVC_INVALID_PARAMETER_HANDLER = 1; then
     AC_LIBOBJ([msvc-nothrow])
   fi
@@ -1296,6 +1301,7 @@ changequote([, ])dnl
   gt_LOCALE_FR
   gt_LOCALE_TR_UTF8
   AC_CHECK_FUNCS_ONCE([getegid])
+  gl_CTYPE_H
   gl_FUNC_DUP
   if test $REPLACE_DUP = 1; then
     AC_LIBOBJ([dup])
@@ -1957,6 +1963,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/configmake.m4
   m4/count-leading-zeros.m4
   m4/count-one-bits.m4
+  m4/ctype.m4
   m4/dirname.m4
   m4/double-slash-root.m4
   m4/dup.m4
@@ -2222,6 +2229,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-connect.c
   tests/test-count-leading-zeros.c
   tests/test-count-one-bits.c
+  tests/test-ctype.c
   tests/test-dup.c
   tests/test-dup2.c
   tests/test-environ.c
@@ -2460,6 +2468,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-xalloc-die.c
   tests/test-xalloc-die.sh
   tests/zerosize-ptr.h
+  tests=lib/ctype.in.h
   tests=lib/dup.c
   tests=lib/error.c
   tests=lib/error.h

@@ -5,6 +5,7 @@
  */
 
 #include "admin_protocol.h"
+#include "virxdrdefs.h"
 
 bool_t
 xdr_admin_nonnull_string (XDR *xdrs, admin_nonnull_string *objp)
@@ -25,7 +26,7 @@ xdr_admin_string (XDR *xdrs, admin_string *objp)
 }
 
 bool_t
-xdr_admin_daemon_open_args (XDR *xdrs, admin_daemon_open_args *objp)
+xdr_admin_connect_open_args (XDR *xdrs, admin_connect_open_args *objp)
 {
 
          if (!xdr_u_int (xdrs, &objp->flags))
@@ -34,7 +35,7 @@ xdr_admin_daemon_open_args (XDR *xdrs, admin_daemon_open_args *objp)
 }
 
 bool_t
-xdr_admin_daemon_get_version_ret (XDR *xdrs, admin_daemon_get_version_ret *objp)
+xdr_admin_connect_get_lib_version_ret (XDR *xdrs, admin_connect_get_lib_version_ret *objp)
 {
 
          if (!xdr_uint64_t (xdrs, &objp->libVer))

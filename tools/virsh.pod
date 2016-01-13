@@ -1370,7 +1370,7 @@ The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
 
 =item B<event> {[I<domain>] { I<event> | I<--all> } [I<--loop>]
-[I<--timeout> I<seconds>] | I<--list>}
+[I<--timeout> I<seconds>] [I<--timestamp>] | I<--list>}
 
 Wait for a class of domain events to occur, and print appropriate details
 of events as they happen.  The events can optionally be filtered by
@@ -1385,6 +1385,9 @@ occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
 If I<--timeout> is specified, the command gives up waiting for events
 after I<seconds> have elapsed.   With I<--loop>, the command prints all
 events until a timeout or interrupt key.
+
+When I<--timestamp> is used, a human-readable timestamp will be printed
+before the event.
 
 =item B<iothreadinfo> I<domain> [[I<--live>] [I<--config>] | [I<--current>]]
 
@@ -2295,7 +2298,9 @@ Output the device used for the TTY console of the domain. If the information
 is not available the processes will provide an exit code of 1.
 
 =item B<undefine> I<domain> [I<--managed-save>] [I<--snapshots-metadata>]
-[I<--nvram>] [ {I<--storage> B<volumes> | I<--remove-all-storage>} I<--wipe-storage>]
+[I<--nvram>]
+[ {I<--storage> B<volumes> | I<--remove-all-storage> [I<--delete-snapshots>]}
+I<--wipe-storage>]
 
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
@@ -2329,6 +2334,11 @@ Example: --storage vda,/path/to/storage.img
 
 The I<--remove-all-storage> flag specifies that all of the domain's storage
 volumes should be deleted.
+
+The I<--delete-snapshots> flag specifies that any snapshots associated with
+the storage volume should be deleted as well. Requires the
+I<--remove-all-storage> flag to be provided. Not all storage drivers
+support this option, presently only rbd.
 
 The flag I<--wipe-storage> specifies that the storage volumes should be
 wiped before removal.
@@ -2870,7 +2880,7 @@ The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
 
 =item B<net-event> {[I<network>] I<event> [I<--loop>] [I<--timeout>
-I<seconds>] | I<--list>}
+I<seconds>] [I<--timestamp>] | I<--list>}
 
 Wait for a class of network events to occur, and print appropriate details
 of events as they happen.  The events can optionally be filtered by
@@ -2883,6 +2893,9 @@ occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
 If I<--timeout> is specified, the command gives up waiting for events
 after I<seconds> have elapsed.   With I<--loop>, the command prints all
 events until a timeout or interrupt key.
+
+When I<--timestamp> is used, a human-readable timestamp will be printed
+before the event.
 
 =item B<net-info> I<network>
 
@@ -3181,8 +3194,15 @@ specified or it's been determined that the disk doesn't already have one,
 by the pool source format type or "dos" if not specified for the pool.
 
 =item B<pool-create> I<file>
+[I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]]
 
 Create and start a pool object from the XML I<file>.
+
+[I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]] perform a
+B<pool-build> after creation in order to remove the need for a
+follow-up command to build the pool. The I<--overwrite> and
+I<--no-overwrite> flags follow the same rules as B<pool-build>. If
+just I<--build> is provided, then B<pool-build> is called with no flags.
 
 =item B<pool-create-as> I<name> I<type> [I<--print-xml>]
 [I<--source-host hostname>] [I<--source-path path>] [I<--source-dev path>]
@@ -3190,6 +3210,7 @@ Create and start a pool object from the XML I<file>.
 [I<--auth-type authtype> I<--auth-username username> I<--secret-usage usage>]
 [[I<--adapter-name name>] | [I<--adapter-wwnn> I<--adapter-wwpn>]
 [I<--adapter-parent parent>]]
+[I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]]
 
 
 Create and start a pool object I<name> from the raw parameters.  If
@@ -3233,6 +3254,12 @@ the wwnn and wwpn to be used for the fc_host adapter type pool. The parent
 optionally provides the name of the scsi_hostN node device to be used for
 the vHBA.
 
+[I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]] perform a
+B<pool-build> after creation in order to remove the need for a
+follow-up command to build the pool. The I<--overwrite> and
+I<--no-overwrite> flags follow the same rules as B<pool-build>. If
+just I<--build> is provided, then B<pool-build> is called with no flags.
+
 =item B<pool-define> I<file>
 
 Define an inactive persistent storage pool or modify an existing persistent one
@@ -3250,7 +3277,8 @@ I<--print-xml> is specified, then print the XML of the pool object
 without defining the pool.  Otherwise, the pool has the specified
 I<type>.
 
-Use the same arguments as B<pool-create-as>.
+Use the same arguments as B<pool-create-as>, except for the I<--build>,
+I<--overwrite>, and I<--no-overwrite> options.
 
 =item B<pool-destroy> I<pool-or-uuid>
 
@@ -3326,8 +3354,16 @@ Convert the I<uuid> to a pool name.
 Refresh the list of volumes contained in I<pool>.
 
 =item B<pool-start> I<pool-or-uuid>
+[I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]]
 
 Start the storage I<pool>, which is previously defined but inactive.
+
+[I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]] perform a
+B<pool-build> prior to B<pool-start> to ensure the pool environment is
+in an expected state rather than needing to run the build command prior
+to startup. The I<--overwrite> and I<--no-overwrite> flags follow the
+same rules as B<pool-build>. If just I<--build> is provided, then
+B<pool-build> is called with no flags.
 
 B<Note>: A storage pool that relies on remote resources such as an
 "iscsi" or a (v)HBA backed "scsi" pool may need to be refreshed multiple
@@ -3438,11 +3474,16 @@ where the data blocks are copied only when modified.
 If this is not possible, the copy fails.
 
 =item B<vol-delete> [I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
+[I<--delete-snapshots>]
 
 Delete a given volume.
 I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume
 is in.
 I<vol-name-or-key-or-path> is the name or key or path of the volume to delete.
+
+The I<--delete-snapshots> flag specifies that any snapshots associated with
+the storage volume should be deleted as well. Not all storage drivers
+support this option, presently only rbd.
 
 =item B<vol-upload> [I<--pool> I<pool-or-uuid>] [I<--offset> I<bytes>]
 [I<--length> I<bytes>] I<vol-name-or-key-or-path> I<local-file>
@@ -4039,6 +4080,7 @@ timeout.
 
 =item B<qemu-monitor-event> [I<domain>] [I<--event> I<event-name>] [I<--loop>]
 [I<--timeout> I<seconds>] [I<--pretty>] [I<--regex>] [I<--no-case>]
+[I<--timestamp>]
 
 Wait for arbitrary QEMU monitor events to occur, and print out the
 details of events as they happen.  The events can optionally be filtered
@@ -4054,6 +4096,10 @@ If I<--timeout> is specified, the command gives up waiting for events
 after I<seconds> have elapsed.  With I<--loop>, the command prints all
 events until a timeout or interrupt key.  If I<--pretty> is specified,
 any JSON event details are pretty-printed for better legibility.
+
+When I<--timestamp> is used, a human-readable timestamp will be printed
+before the event, and the timing information provided by QEMU will be
+omitted.
 
 =item B<lxc-enter-namespace> I<domain> -- /path/to/binary [arg1, [arg2, ...]]
 

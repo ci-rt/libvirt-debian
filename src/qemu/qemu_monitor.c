@@ -160,8 +160,10 @@ VIR_ONCE_GLOBAL_INIT(qemuMonitor)
 
 VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               QEMU_MONITOR_MIGRATION_STATUS_LAST,
-              "inactive", "active", "completed", "failed", "cancelling",
-              "cancelled", "setup")
+              "inactive", "setup",
+              "active",
+              "completed", "failed",
+              "cancelling", "cancelled")
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
@@ -1955,6 +1957,9 @@ qemuMonitorSetBalloon(qemuMonitorPtr mon,
 }
 
 
+/*
+ * Returns: 0 if CPU modification was successful or -1 on failure
+ */
 int
 qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, bool online)
 {
@@ -2098,15 +2103,15 @@ qemuMonitorSetMigrationCacheSize(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
-                              qemuMonitorMigrationStatusPtr status)
+qemuMonitorGetMigrationStats(qemuMonitorPtr mon,
+                             qemuMonitorMigrationStatsPtr stats)
 {
     QEMU_CHECK_MONITOR(mon);
 
     if (mon->json)
-        return qemuMonitorJSONGetMigrationStatus(mon, status);
+        return qemuMonitorJSONGetMigrationStats(mon, stats);
     else
-        return qemuMonitorTextGetMigrationStatus(mon, status);
+        return qemuMonitorTextGetMigrationStats(mon, stats);
 }
 
 

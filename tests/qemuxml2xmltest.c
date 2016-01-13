@@ -30,66 +30,19 @@ enum {
 
 struct testInfo {
     char *inName;
-    char *inFile;
-
     char *outActiveName;
-    char *outActiveFile;
-
     char *outInactiveName;
-    char *outInactiveFile;
+
+    virQEMUCapsPtr qemuCaps;
 };
-
-static int
-testXML2XMLHelper(const char *inxml,
-                  const char *inXmlData,
-                  const char *outxml,
-                  const char *outXmlData,
-                  bool live)
-{
-    char *actual = NULL;
-    int ret = -1;
-    virDomainDefPtr def = NULL;
-    unsigned int parse_flags = live ? 0 : VIR_DOMAIN_DEF_PARSE_INACTIVE;
-    unsigned int format_flags = VIR_DOMAIN_DEF_FORMAT_SECURE;
-    if (!live)
-        format_flags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE;
-
-    if (!(def = virDomainDefParseString(inXmlData, driver.caps, driver.xmlopt,
-                                        parse_flags)))
-        goto fail;
-
-    if (!virDomainDefCheckABIStability(def, def)) {
-        fprintf(stderr, "ABI stability check failed on %s", inxml);
-        goto fail;
-    }
-
-    if (!(actual = virDomainDefFormat(def, format_flags)))
-        goto fail;
-
-    if (STRNEQ(outXmlData, actual)) {
-        virtTestDifferenceFull(stderr, outXmlData, outxml, actual, inxml);
-        goto fail;
-    }
-
-    ret = 0;
-
- fail:
-    VIR_FREE(actual);
-    virDomainDefFree(def);
-    return ret;
-}
-
 
 static int
 testXML2XMLActive(const void *opaque)
 {
     const struct testInfo *info = opaque;
 
-    return testXML2XMLHelper(info->inName,
-                             info->inFile,
-                             info->outActiveName,
-                             info->outActiveFile,
-                             true);
+    return testCompareDomXML2XMLFiles(driver.caps, driver.xmlopt,
+                                      info->inName, info->outActiveName, true);
 }
 
 
@@ -98,11 +51,8 @@ testXML2XMLInactive(const void *opaque)
 {
     const struct testInfo *info = opaque;
 
-    return testXML2XMLHelper(info->inName,
-                             info->inFile,
-                             info->outInactiveName,
-                             info->outInactiveFile,
-                             false);
+    return testCompareDomXML2XMLFiles(driver.caps, driver.xmlopt, info->inName,
+                                      info->outInactiveName, false);
 }
 
 
@@ -142,30 +92,36 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
     char *expect = NULL;
     char *actual = NULL;
     char *source = NULL;
+    char *inFile = NULL, *outActiveFile = NULL;
     int ret = -1;
     int keepBlanksDefault = xmlKeepBlanksDefault(0);
+
+    if (virtTestLoadFile(data->inName, &inFile) < 0)
+        goto cleanup;
+    if (virtTestLoadFile(data->outActiveName, &outActiveFile) < 0)
+        goto cleanup;
 
     /* construct faked source status XML */
     virBufferAdd(&buf, testStatusXMLPrefix, -1);
     virBufferAdjustIndent(&buf, 2);
-    virBufferAddStr(&buf, data->inFile);
+    virBufferAddStr(&buf, inFile);
     virBufferAdjustIndent(&buf, -2);
     virBufferAdd(&buf, testStatusXMLSuffix, -1);
 
     if (!(source = virBufferContentAndReset(&buf))) {
-        fprintf(stderr, "Failed to create the source XML");
+        VIR_TEST_DEBUG("Failed to create the source XML");
         goto cleanup;
     }
 
     /* construct the expect string */
     virBufferAdd(&buf, testStatusXMLPrefix, -1);
     virBufferAdjustIndent(&buf, 2);
-    virBufferAddStr(&buf, data->outActiveFile);
+    virBufferAddStr(&buf, outActiveFile);
     virBufferAdjustIndent(&buf, -2);
     virBufferAdd(&buf, testStatusXMLSuffix, -1);
 
     if (!(expect = virBufferContentAndReset(&buf))) {
-        fprintf(stderr, "Failed to create the expect XML");
+        VIR_TEST_DEBUG("Failed to create the expect XML");
         goto cleanup;
     }
 
@@ -176,21 +132,23 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
                                       VIR_DOMAIN_DEF_PARSE_STATUS |
                                       VIR_DOMAIN_DEF_PARSE_ACTUAL_NET |
                                       VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES))) {
-        fprintf(stderr, "Failed to parse domain status XML:\n%s", source);
+        VIR_TEST_DEBUG("Failed to parse domain status XML:\n%s", source);
         goto cleanup;
     }
 
     /* format it back */
     if (!(actual = virDomainObjFormat(driver.xmlopt, obj,
                                       VIR_DOMAIN_DEF_FORMAT_SECURE))) {
-        fprintf(stderr, "Failed to format domain status XML");
+        VIR_TEST_DEBUG("Failed to format domain status XML");
         goto cleanup;
     }
 
     if (STRNEQ(actual, expect)) {
-        virtTestDifferenceFull(stderr,
-                               expect, data->outActiveName,
-                               actual, data->inName);
+        /* For status test we don't want to regenerate output to not
+         * add the status data.*/
+        virtTestDifferenceFullNoRegenerate(stderr,
+                                           expect, data->outActiveName,
+                                           actual, data->inName);
         goto cleanup;
     }
 
@@ -203,6 +161,8 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
     VIR_FREE(expect);
     VIR_FREE(actual);
     VIR_FREE(source);
+    VIR_FREE(inFile);
+    VIR_FREE(outActiveFile);
     return ret;
 }
 
@@ -211,13 +171,10 @@ static void
 testInfoFree(struct testInfo *info)
 {
     VIR_FREE(info->inName);
-    VIR_FREE(info->inFile);
-
     VIR_FREE(info->outActiveName);
-    VIR_FREE(info->outActiveFile);
-
     VIR_FREE(info->outInactiveName);
-    VIR_FREE(info->outInactiveFile);
+
+    virObjectUnref(info->qemuCaps);
 }
 
 
@@ -227,11 +184,15 @@ testInfoSet(struct testInfo *info,
             bool different,
             int when)
 {
-    if (virAsprintf(&info->inName, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
-                    abs_srcdir, name) < 0)
+    if (!(info->qemuCaps = virQEMUCapsNew()))
         goto error;
 
-    if (virtTestLoadFile(info->inName, &info->inFile) < 0)
+    if (qemuTestCapsCacheInsert(driver.qemuCapsCache, name,
+                                info->qemuCaps) < 0)
+        goto error;
+
+    if (virAsprintf(&info->inName, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
+                    abs_srcdir, name) < 0)
         goto error;
 
     if (when & WHEN_INACTIVE) {
@@ -253,9 +214,6 @@ testInfoSet(struct testInfo *info,
             if (VIR_STRDUP(info->outInactiveName, info->inName) < 0)
                 goto error;
         }
-
-        if (virtTestLoadFile(info->outInactiveName, &info->outInactiveFile) < 0)
-            goto error;
     }
 
     if (when & WHEN_ACTIVE) {
@@ -278,8 +236,6 @@ testInfoSet(struct testInfo *info,
                 goto error;
         }
 
-        if (virtTestLoadFile(info->outActiveName, &info->outActiveFile) < 0)
-            goto error;
     }
 
     return 0;
@@ -305,7 +261,7 @@ mymain(void)
 # define DO_TEST_FULL(name, is_different, when)                                \
     do {                                                                       \
         if (testInfoSet(&info, name, is_different, when) < 0) {                \
-            fprintf(stderr, "Failed to generate test data for '%s'", name);    \
+            VIR_TEST_DEBUG("Failed to generate test data for '%s'", name);    \
             return -1;                                                         \
         }                                                                      \
                                                                                \
@@ -562,6 +518,9 @@ mymain(void)
     DO_TEST_DIFFERENT("pci-autoadd-idx");
     DO_TEST_DIFFERENT("pcie-root");
     DO_TEST_DIFFERENT("q35");
+    DO_TEST_DIFFERENT("q35-usb2");
+    DO_TEST_DIFFERENT("q35-usb2-multi");
+    DO_TEST_DIFFERENT("q35-usb2-reorder");
     DO_TEST("pcie-root-port");
     DO_TEST("pcie-root-port-too-many");
     DO_TEST("pcie-switch-upstream-port");

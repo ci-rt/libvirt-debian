@@ -67,6 +67,11 @@ int virtTestDifferenceFull(FILE *stream,
                            const char *expectName,
                            const char *actual,
                            const char *actualName);
+int virtTestDifferenceFullNoRegenerate(FILE *stream,
+                                       const char *expect,
+                                       const char *expectName,
+                                       const char *actual,
+                                       const char *actualName);
 int virtTestDifferenceBin(FILE *stream,
                           const char *expect,
                           const char *actual,
@@ -77,6 +82,7 @@ int virtTestCompareToFile(const char *strcontent,
 unsigned int virTestGetDebug(void);
 unsigned int virTestGetVerbose(void);
 unsigned int virTestGetExpensive(void);
+unsigned int virTestGetRegenerate(void);
 
 # define VIR_TEST_DEBUG(...)                    \
     do {                                        \
@@ -130,5 +136,11 @@ int virtTestMain(int argc,
 
 virCapsPtr virTestGenericCapsInit(void);
 virDomainXMLOptionPtr virTestGenericDomainXMLConfInit(void);
+
+int testCompareDomXML2XMLFiles(virCapsPtr caps,
+                               virDomainXMLOptionPtr xmlopt,
+                               const char *inxml,
+                               const char *outfile,
+                               bool live);
 
 #endif /* __VIT_TEST_UTILS_H__ */

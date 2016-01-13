@@ -100,7 +100,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/configmake.m4 \
 	$(top_srcdir)/m4/count-leading-zeros.m4 \
-	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/dirname.m4 \
+	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/ctype.m4 \
+	$(top_srcdir)/m4/dirname.m4 \
 	$(top_srcdir)/m4/double-slash-root.m4 $(top_srcdir)/m4/dup.m4 \
 	$(top_srcdir)/m4/dup2.m4 $(top_srcdir)/m4/eealloc.m4 \
 	$(top_srcdir)/m4/environ.m4 $(top_srcdir)/m4/errno_h.m4 \
@@ -231,6 +232,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-login-shell.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
@@ -259,7 +261,8 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = run libvirt.pc libvirt-qemu.pc libvirt-lxc.pc \
-	libvirt-admin.pc libvirt.spec mingw-libvirt.spec
+	libvirt-admin.pc libvirt.spec mingw-libvirt.spec \
+	include/libvirt/libvirt-common.h
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -351,16 +354,18 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/libvirt-admin.pc.in $(srcdir)/libvirt-lxc.pc.in \
 	$(srcdir)/libvirt-qemu.pc.in $(srcdir)/libvirt.pc.in \
 	$(srcdir)/libvirt.spec.in $(srcdir)/mingw-libvirt.spec.in \
-	$(srcdir)/run.in $(top_srcdir)/build-aux/compile \
+	$(srcdir)/run.in $(top_srcdir)/build-aux/ar-lib \
+	$(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.rpath \
 	$(top_srcdir)/build-aux/config.sub \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/ltmain.sh \
 	$(top_srcdir)/build-aux/missing \
-	$(top_srcdir)/build-aux/mkinstalldirs ABOUT-NLS AUTHORS \
-	COPYING COPYING.LESSER ChangeLog INSTALL NEWS README TODO \
-	build-aux/compile build-aux/config.guess \
+	$(top_srcdir)/build-aux/mkinstalldirs \
+	$(top_srcdir)/include/libvirt/libvirt-common.h.in ABOUT-NLS \
+	AUTHORS COPYING COPYING.LESSER ChangeLog INSTALL NEWS README \
+	TODO build-aux/ar-lib build-aux/compile build-aux/config.guess \
 	build-aux/config.rpath build-aux/config.sub \
 	build-aux/install-sh build-aux/ltmain.sh build-aux/missing \
 	build-aux/mkinstalldirs
@@ -629,6 +634,7 @@ GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
 GNULIB_IOCTL = @GNULIB_IOCTL@
 GNULIB_ISATTY = @GNULIB_ISATTY@
+GNULIB_ISBLANK = @GNULIB_ISBLANK@
 GNULIB_ISFINITE = @GNULIB_ISFINITE@
 GNULIB_ISINF = @GNULIB_ISINF@
 GNULIB_ISNAN = @GNULIB_ISNAN@
@@ -833,6 +839,7 @@ GNULIB_TANL = @GNULIB_TANL@
 GNULIB_TCGETSID = @GNULIB_TCGETSID@
 GNULIB_TIMEGM = @GNULIB_TIMEGM@
 GNULIB_TIME_R = @GNULIB_TIME_R@
+GNULIB_TIME_RZ = @GNULIB_TIME_RZ@
 GNULIB_TMPFILE = @GNULIB_TMPFILE@
 GNULIB_TOWCTRANS = @GNULIB_TOWCTRANS@
 GNULIB_TRUNC = @GNULIB_TRUNC@
@@ -1051,6 +1058,7 @@ HAVE_ILOGB = @HAVE_ILOGB@
 HAVE_ILOGBF = @HAVE_ILOGBF@
 HAVE_ILOGBL = @HAVE_ILOGBL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
+HAVE_ISBLANK = @HAVE_ISBLANK@
 HAVE_ISNAND = @HAVE_ISNAND@
 HAVE_ISNANF = @HAVE_ISNANF@
 HAVE_ISNANL = @HAVE_ISNANL@
@@ -1204,6 +1212,7 @@ HAVE_TANHF = @HAVE_TANHF@
 HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
+HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
@@ -1369,6 +1378,7 @@ NET_IF_H = @NET_IF_H@
 NET_IF_LIB = @NET_IF_LIB@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
 NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H = @NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H@
+NEXT_AS_FIRST_DIRECTIVE_CTYPE_H = @NEXT_AS_FIRST_DIRECTIVE_CTYPE_H@
 NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
 NEXT_AS_FIRST_DIRECTIVE_FCNTL_H = @NEXT_AS_FIRST_DIRECTIVE_FCNTL_H@
 NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
@@ -1406,6 +1416,7 @@ NEXT_AS_FIRST_DIRECTIVE_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_TIME_H@
 NEXT_AS_FIRST_DIRECTIVE_UNISTD_H = @NEXT_AS_FIRST_DIRECTIVE_UNISTD_H@
 NEXT_AS_FIRST_DIRECTIVE_WCHAR_H = @NEXT_AS_FIRST_DIRECTIVE_WCHAR_H@
 NEXT_AS_FIRST_DIRECTIVE_WCTYPE_H = @NEXT_AS_FIRST_DIRECTIVE_WCTYPE_H@
+NEXT_CTYPE_H = @NEXT_CTYPE_H@
 NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FCNTL_H = @NEXT_FCNTL_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
@@ -1858,17 +1869,9 @@ ws_plugindir = @ws_plugindir@
 LCOV = lcov
 GENHTML = genhtml
 SUBDIRS = . gnulib/lib include src daemon tools docs gnulib/tests \
-  tests po examples/object-events examples/hellolibvirt \
-  examples/dominfo examples/domsuspend examples/apparmor \
-  examples/xml/nwfilter examples/openauth examples/systemtap \
-  tools/wireshark examples/dommigrate examples/polkit \
-  examples/lxcconvert examples/domtop examples/rename
+  tests po examples tools/wireshark
 
 ACLOCAL_AMFLAGS = -I m4
-XML_EXAMPLES = \
-  $(patsubst $(srcdir)/%,%,$(wildcard $(addprefix $(srcdir)/examples/xml/, \
-					test/*.xml storage/*.xml)))
-
 EXTRA_DIST = \
   config-post.h \
   ChangeLog-old \
@@ -1883,8 +1886,7 @@ EXTRA_DIST = \
   autogen.sh \
   cfg.mk \
   run.in \
-  AUTHORS.in \
-  $(XML_EXAMPLES)
+  AUTHORS.in
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libvirt.pc libvirt-qemu.pc libvirt-lxc.pc
@@ -1958,6 +1960,8 @@ libvirt-admin.pc: $(top_builddir)/config.status $(srcdir)/libvirt-admin.pc.in
 libvirt.spec: $(top_builddir)/config.status $(srcdir)/libvirt.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 mingw-libvirt.spec: $(top_builddir)/config.status $(srcdir)/mingw-libvirt.spec.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+include/libvirt/libvirt-common.h: $(top_builddir)/config.status $(top_srcdir)/include/libvirt/libvirt-common.h.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:

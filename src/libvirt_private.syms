@@ -111,11 +111,9 @@ virDomainVirtioSerialAddrAutoAssign;
 virDomainVirtioSerialAddrIsComplete;
 virDomainVirtioSerialAddrRelease;
 virDomainVirtioSerialAddrReserve;
-virDomainVirtioSerialAddrSetAddController;
 virDomainVirtioSerialAddrSetAddControllers;
 virDomainVirtioSerialAddrSetCreate;
 virDomainVirtioSerialAddrSetFree;
-virDomainVirtioSerialAddrSetRemoveController;
 
 
 # conf/domain_audit.h
@@ -200,6 +198,7 @@ virDomainControllerTypeToString;
 virDomainCpuPlacementModeTypeFromString;
 virDomainCpuPlacementModeTypeToString;
 virDomainDefAddImplicitControllers;
+virDomainDefAddUSBController;
 virDomainDefCheckABIStability;
 virDomainDefCheckDuplicateDiskInfo;
 virDomainDefCheckUnsupportedMemoryHotplug;
@@ -217,8 +216,12 @@ virDomainDefGetDefaultEmulator;
 virDomainDefGetMemoryActual;
 virDomainDefGetMemoryInitial;
 virDomainDefGetSecurityLabelDef;
+virDomainDefGetVcpu;
+virDomainDefGetVcpus;
+virDomainDefGetVcpusMax;
 virDomainDefHasDeviceAddress;
 virDomainDefHasMemoryHotplug;
+virDomainDefHasVcpusOffline;
 virDomainDefMaybeAddController;
 virDomainDefMaybeAddInput;
 virDomainDefNeedsPlacementAdvice;
@@ -230,6 +233,8 @@ virDomainDefParseString;
 virDomainDefPostParse;
 virDomainDefSetMemoryInitial;
 virDomainDefSetMemoryTotal;
+virDomainDefSetVcpus;
+virDomainDefSetVcpusMax;
 virDomainDeleteConfig;
 virDomainDeviceAddressIsValid;
 virDomainDeviceAddressTypeToString;
@@ -1999,6 +2004,8 @@ virPCIGetVirtualFunctionIndex;
 virPCIGetVirtualFunctionInfo;
 virPCIGetVirtualFunctions;
 virPCIIsVirtualFunction;
+virPCIStubDriverTypeFromString;
+virPCIStubDriverTypeToString;
 
 
 # util/virpidfile.h
@@ -2034,6 +2041,7 @@ virPortAllocatorSetUsed;
 virProcessAbort;
 virProcessExitWithStatus;
 virProcessGetAffinity;
+virProcessGetMaxMemLock;
 virProcessGetNamespaces;
 virProcessGetPids;
 virProcessGetStartTime;
@@ -2387,6 +2395,7 @@ virGetGroupID;
 virGetGroupList;
 virGetGroupName;
 virGetHostname;
+virGetHostnameQuiet;
 virGetListenFDs;
 virGetSCSIHostNameByParentaddr;
 virGetSCSIHostNumber;

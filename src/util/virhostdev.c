@@ -237,22 +237,13 @@ virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
         }
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
-        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
-            if (virPCIDeviceSetStubDriver(dev, "vfio-pci") < 0) {
-                virObjectUnref(list);
-                return NULL;
-            }
-        } else if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN) {
-            if (virPCIDeviceSetStubDriver(dev, "pciback") < 0) {
-                virObjectUnref(list);
-                return NULL;
-            }
-        } else {
-            if (virPCIDeviceSetStubDriver(dev, "pci-stub") < 0) {
-                virObjectUnref(list);
-                return NULL;
-            }
-        }
+
+        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO)
+            virPCIDeviceSetStubDriver(dev, VIR_PCI_STUB_DRIVER_VFIO);
+        else if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN)
+            virPCIDeviceSetStubDriver(dev, VIR_PCI_STUB_DRIVER_XEN);
+        else
+            virPCIDeviceSetStubDriver(dev, VIR_PCI_STUB_DRIVER_KVM);
     }
 
     return list;
@@ -574,7 +565,7 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
         bool strict_acs_check = !!(flags & VIR_HOSTDEV_STRICT_ACS_CHECK);
-        bool usesVfio = STREQ(virPCIDeviceGetStubDriver(dev), "vfio-pci");
+        bool usesVfio = (virPCIDeviceGetStubDriver(dev) == VIR_PCI_STUB_DRIVER_VFIO);
         struct virHostdevIsPCINodeDeviceUsedData data = {hostdev_mgr, dom_name,
                                                          usesVfio};
 
@@ -585,15 +576,12 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
             goto cleanup;
         }
 
-        VIR_FREE(devAddr);
-        if (!(devAddr = virPCIDeviceGetAddress(dev)))
-            goto cleanup;
-
         /* The device is in use by other active domain if
          * the dev is in list activePCIHostdevs. VFIO devices
          * belonging to same iommu group can't be shared
          * across guests.
          */
+        devAddr = virPCIDeviceGetAddress(dev);
         if (usesVfio) {
             if (virPCIDeviceAddressIOMMUGroupIterate(devAddr,
                                                      virHostdevIsPCINodeDeviceUsed,
@@ -607,16 +595,29 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
     /* Loop 2: detach managed devices (i.e. bind to appropriate stub driver) */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
-        if (virPCIDeviceGetManaged(dev) &&
-            virPCIDeviceDetach(dev, hostdev_mgr->activePCIHostdevs, NULL) < 0)
-            goto reattachdevs;
+
+        if (virPCIDeviceGetManaged(dev)) {
+            VIR_DEBUG("Detaching managed PCI device %s",
+                      virPCIDeviceGetName(dev));
+            if (virPCIDeviceDetach(dev,
+                                   hostdev_mgr->activePCIHostdevs,
+                                   hostdev_mgr->inactivePCIHostdevs) < 0)
+                goto reattachdevs;
+        } else {
+            VIR_DEBUG("Not detaching unmanaged PCI device %s",
+                      virPCIDeviceGetName(dev));
+        }
     }
+
+    /* At this point, all devices are attached to the stub driver and have
+     * been marked as inactive */
 
     /* Loop 3: Now that all the PCI hostdevs have been detached, we
      * can safely reset them */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
 
+        VIR_DEBUG("Resetting PCI device %s", virPCIDeviceGetName(dev));
         if (virPCIDeviceReset(dev, hostdev_mgr->activePCIHostdevs,
                               hostdev_mgr->inactivePCIHostdevs) < 0)
             goto reattachdevs;
@@ -638,14 +639,20 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
     /* Loop 5: Now mark all the devices as active */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+
+        VIR_DEBUG("Adding PCI device %s to active list",
+                  virPCIDeviceGetName(dev));
         if (virPCIDeviceListAdd(hostdev_mgr->activePCIHostdevs, dev) < 0)
             goto inactivedevs;
     }
 
     /* Loop 6: Now remove the devices from inactive list. */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
-         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
-         virPCIDeviceListDel(hostdev_mgr->inactivePCIHostdevs, dev);
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+
+        VIR_DEBUG("Removing PCI device %s from inactive list",
+                  virPCIDeviceGetName(dev));
+        virPCIDeviceListDel(hostdev_mgr->inactivePCIHostdevs, dev);
     }
 
     /* Loop 7: Now set the used_by_domain of the device in
@@ -657,6 +664,8 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
         dev = virPCIDeviceListGet(pcidevs, i);
         activeDev = virPCIDeviceListFind(hostdev_mgr->activePCIHostdevs, dev);
 
+        VIR_DEBUG("Setting driver and domain information for PCI device %s",
+                  virPCIDeviceGetName(dev));
         if (activeDev)
             virPCIDeviceSetUsedBy(activeDev, drv_name, dom_name);
     }
@@ -680,6 +689,8 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
          * "reprobe" were already set by pciDettachDevice in
          * loop 2.
          */
+        VIR_DEBUG("Saving network configuration of PCI device %s",
+                  virPCIDeviceGetName(dev));
         if ((pcidev = virPCIDeviceListFind(pcidevs, dev))) {
             hostdev->origstates.states.pci.unbind_from_stub =
                 virPCIDeviceGetUnbindFromStub(pcidev);
@@ -705,6 +716,9 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
      */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+
+        VIR_DEBUG("Removing PCI device %s from active list",
+                  virPCIDeviceGetName(dev));
         virPCIDeviceListSteal(hostdev_mgr->activePCIHostdevs, dev);
     }
 
@@ -717,18 +731,25 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr hostdev_mgr,
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
 
-        /* NB: This doesn't actually re-bind to original driver, just
-         * unbinds from the stub driver
-         */
-        ignore_value(virPCIDeviceReattach(dev, hostdev_mgr->activePCIHostdevs,
-                                          NULL));
+        if (virPCIDeviceGetManaged(dev)) {
+            /* NB: This doesn't actually re-bind to original driver, just
+             * unbinds from the stub driver
+             */
+            VIR_DEBUG("Reattaching managed PCI device %s",
+                      virPCIDeviceGetName(dev));
+            ignore_value(virPCIDeviceReattach(dev,
+                                              hostdev_mgr->activePCIHostdevs,
+                                              hostdev_mgr->inactivePCIHostdevs));
+        } else {
+            VIR_DEBUG("Not reattaching unmanaged PCI device %s",
+                      virPCIDeviceGetName(dev));
+        }
     }
 
  cleanup:
     virObjectUnlock(hostdev_mgr->activePCIHostdevs);
     virObjectUnlock(hostdev_mgr->inactivePCIHostdevs);
     virObjectUnref(pcidevs);
-    VIR_FREE(devAddr);
     return ret;
 }
 
@@ -743,13 +764,15 @@ virHostdevReattachPCIDevice(virPCIDevicePtr dev, virHostdevManagerPtr mgr)
      * successfully, it must have been inactive.
      */
     if (!virPCIDeviceGetManaged(dev)) {
+        VIR_DEBUG("Adding unmanaged PCI device %s to inactive list",
+                  virPCIDeviceGetName(dev));
         if (virPCIDeviceListAdd(mgr->inactivePCIHostdevs, dev) < 0)
             virPCIDeviceFree(dev);
         return;
     }
 
     /* Wait for device cleanup if it is qemu/kvm */
-    if (STREQ(virPCIDeviceGetStubDriver(dev), "pci-stub")) {
+    if (virPCIDeviceGetStubDriver(dev) == VIR_PCI_STUB_DRIVER_KVM) {
         int retries = 100;
         while (virPCIDeviceWaitForCleanup(dev, "kvm_assigned_device")
                && retries) {
@@ -758,6 +781,7 @@ virHostdevReattachPCIDevice(virPCIDevicePtr dev, virHostdevManagerPtr mgr)
         }
     }
 
+    VIR_DEBUG("Reattaching PCI device %s", virPCIDeviceGetName(dev));
     if (virPCIDeviceReattach(dev, mgr->activePCIHostdevs,
                              mgr->inactivePCIHostdevs) < 0) {
         virErrorPtr err = virGetLastError();
@@ -825,6 +849,8 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
                 }
         }
 
+        VIR_DEBUG("Removing PCI device %s from active list",
+                  virPCIDeviceGetName(dev));
         virPCIDeviceListDel(hostdev_mgr->activePCIHostdevs, dev);
         i++;
     }
@@ -847,6 +873,8 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
                                   pcisrc->addr.slot, pcisrc->addr.function);
             if (dev) {
                 if (virPCIDeviceListFind(pcidevs, dev)) {
+                    VIR_DEBUG("Restoring network configuration of PCI device %s",
+                              virPCIDeviceGetName(dev));
                     virHostdevNetConfigRestore(hostdev, hostdev_mgr->stateDir,
                                                oldStateDir);
                 }
@@ -859,6 +887,7 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
 
+        VIR_DEBUG("Resetting PCI device %s", virPCIDeviceGetName(dev));
         if (virPCIDeviceReset(dev, hostdev_mgr->activePCIHostdevs,
                               hostdev_mgr->inactivePCIHostdevs) < 0) {
             virErrorPtr err = virGetLastError();
@@ -917,18 +946,14 @@ virHostdevUpdateActivePCIDevices(virHostdevManagerPtr mgr,
             goto cleanup;
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
-        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
-            if (virPCIDeviceSetStubDriver(dev, "vfio-pci") < 0)
-                goto cleanup;
-        } else if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN) {
-            if (virPCIDeviceSetStubDriver(dev, "pciback") < 0)
-                goto cleanup;
-        } else {
-            if (virPCIDeviceSetStubDriver(dev, "pci-stub") < 0)
-                goto cleanup;
-
-        }
         virPCIDeviceSetUsedBy(dev, drv_name, dom_name);
+
+        if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO)
+            virPCIDeviceSetStubDriver(dev, VIR_PCI_STUB_DRIVER_VFIO);
+        else if (pcisrc->backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN)
+            virPCIDeviceSetStubDriver(dev, VIR_PCI_STUB_DRIVER_XEN);
+        else
+            virPCIDeviceSetStubDriver(dev, VIR_PCI_STUB_DRIVER_KVM);
 
         /* Setup the original states for the PCI device */
         virPCIDeviceSetUnbindFromStub(dev, hostdev->origstates.states.pci.unbind_from_stub);
@@ -1558,7 +1583,6 @@ int
 virHostdevPCINodeDeviceDetach(virHostdevManagerPtr hostdev_mgr,
                               virPCIDevicePtr pci)
 {
-    virPCIDeviceAddressPtr devAddr = NULL;
     struct virHostdevIsPCINodeDeviceUsedData data = { hostdev_mgr, NULL,
                                                      false };
     int ret = -1;
@@ -1566,10 +1590,7 @@ virHostdevPCINodeDeviceDetach(virHostdevManagerPtr hostdev_mgr,
     virObjectLock(hostdev_mgr->activePCIHostdevs);
     virObjectLock(hostdev_mgr->inactivePCIHostdevs);
 
-    if (!(devAddr = virPCIDeviceGetAddress(pci)))
-        goto out;
-
-    if (virHostdevIsPCINodeDeviceUsed(devAddr, &data))
+    if (virHostdevIsPCINodeDeviceUsed(virPCIDeviceGetAddress(pci), &data))
         goto out;
 
     if (virPCIDeviceDetach(pci, hostdev_mgr->activePCIHostdevs,
@@ -1581,7 +1602,6 @@ virHostdevPCINodeDeviceDetach(virHostdevManagerPtr hostdev_mgr,
  out:
     virObjectUnlock(hostdev_mgr->inactivePCIHostdevs);
     virObjectUnlock(hostdev_mgr->activePCIHostdevs);
-    VIR_FREE(devAddr);
     return ret;
 }
 
@@ -1589,7 +1609,6 @@ int
 virHostdevPCINodeDeviceReAttach(virHostdevManagerPtr hostdev_mgr,
                                 virPCIDevicePtr pci)
 {
-    virPCIDeviceAddressPtr devAddr = NULL;
     struct virHostdevIsPCINodeDeviceUsedData data = {hostdev_mgr, NULL,
                                                      false};
     int ret = -1;
@@ -1597,10 +1616,7 @@ virHostdevPCINodeDeviceReAttach(virHostdevManagerPtr hostdev_mgr,
     virObjectLock(hostdev_mgr->activePCIHostdevs);
     virObjectLock(hostdev_mgr->inactivePCIHostdevs);
 
-    if (!(devAddr = virPCIDeviceGetAddress(pci)))
-        goto out;
-
-    if (virHostdevIsPCINodeDeviceUsed(devAddr, &data))
+    if (virHostdevIsPCINodeDeviceUsed(virPCIDeviceGetAddress(pci), &data))
         goto out;
 
     virPCIDeviceReattachInit(pci);
@@ -1613,7 +1629,6 @@ virHostdevPCINodeDeviceReAttach(virHostdevManagerPtr hostdev_mgr,
  out:
     virObjectUnlock(hostdev_mgr->inactivePCIHostdevs);
     virObjectUnlock(hostdev_mgr->activePCIHostdevs);
-    VIR_FREE(devAddr);
     return ret;
 }
 

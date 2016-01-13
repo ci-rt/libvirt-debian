@@ -527,6 +527,7 @@ VIR_ENUM_IMPL(virVMXControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
 static int
 virVMXDomainDefPostParse(virDomainDefPtr def,
                          virCapsPtr caps ATTRIBUTE_UNUSED,
+                         unsigned int parseFlags ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
     /* memory hotplug tunables are not supported by this driver */
@@ -540,6 +541,7 @@ static int
 virVMXDomainDevicesDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
                                 const virDomainDef *def ATTRIBUTE_UNUSED,
                                 virCapsPtr caps ATTRIBUTE_UNUSED,
+                                unsigned int parseFlags ATTRIBUTE_UNUSED,
                                 void *opaque ATTRIBUTE_UNUSED)
 {
     return 0;
@@ -1276,6 +1278,7 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
 virDomainDefPtr
 virVMXParseConfig(virVMXContext *ctx,
                   virDomainXMLOptionPtr xmlopt,
+                  virCapsPtr caps,
                   const char *vmx)
 {
     bool success = false;
@@ -1457,7 +1460,11 @@ virVMXParseConfig(virVMXContext *ctx,
         goto cleanup;
     }
 
-    def->maxvcpus = def->vcpus = numvcpus;
+    if (virDomainDefSetVcpusMax(def, numvcpus) < 0)
+        goto cleanup;
+
+    if (virDomainDefSetVcpus(def, numvcpus) < 0)
+        goto cleanup;
 
     /* vmx:sched.cpu.affinity -> def:cpumask */
     /* NOTE: maps to VirtualMachine:config.cpuAffinity.affinitySet */
@@ -1535,13 +1542,14 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     if (sched_cpu_shares != NULL) {
+        unsigned int vcpus = virDomainDefGetVcpus(def);
         /* See http://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/vim.SharesInfo.Level.html */
         if (STRCASEEQ(sched_cpu_shares, "low")) {
-            def->cputune.shares = def->vcpus * 500;
+            def->cputune.shares = vcpus * 500;
         } else if (STRCASEEQ(sched_cpu_shares, "normal")) {
-            def->cputune.shares = def->vcpus * 1000;
+            def->cputune.shares = vcpus * 1000;
         } else if (STRCASEEQ(sched_cpu_shares, "high")) {
-            def->cputune.shares = def->vcpus * 2000;
+            def->cputune.shares = vcpus * 2000;
         } else if (virStrToLong_ul(sched_cpu_shares, NULL, 10,
                                    &def->cputune.shares) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1810,6 +1818,10 @@ virVMXParseConfig(virVMXContext *ctx,
         def->ns = *virDomainXMLOptionGetNamespace(xmlopt);
         def->namespaceData = namespaceData;
     }
+
+    if (virDomainDefPostParse(def, caps, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,
+                              xmlopt) < 0)
+        goto cleanup;
 
     success = true;
 
@@ -3063,6 +3075,7 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
     bool scsi_present[4] = { false, false, false, false };
     int scsi_virtualDev[4] = { -1, -1, -1, -1 };
     bool floppy_present[2] = { false, false };
+    unsigned int maxvcpus;
 
     if (ctx->formatFileName == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3172,21 +3185,22 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
     }
 
     /* def:maxvcpus -> vmx:numvcpus */
-    if (def->vcpus != def->maxvcpus) {
+    if (virDomainDefHasVcpusOffline(def)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("No support for domain XML entry 'vcpu' attribute "
                          "'current'"));
         goto cleanup;
     }
-    if (def->maxvcpus <= 0 || (def->maxvcpus % 2 != 0 && def->maxvcpus != 1)) {
+    maxvcpus = virDomainDefGetVcpusMax(def);
+    if (maxvcpus == 0 || (maxvcpus % 2 != 0 && maxvcpus != 1)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Expecting domain XML entry 'vcpu' to be an unsigned "
-                         "integer (1 or a multiple of 2) but found %d"),
-                       def->maxvcpus);
+                       _("Expecting domain XML entry 'vcpu' to be 1 or a "
+                         "multiple of 2 but found %d"),
+                       maxvcpus);
         goto cleanup;
     }
 
-    virBufferAsprintf(&buffer, "numvcpus = \"%d\"\n", def->maxvcpus);
+    virBufferAsprintf(&buffer, "numvcpus = \"%d\"\n", maxvcpus);
 
     /* def:cpumask -> vmx:sched.cpu.affinity */
     if (def->cpumask && virBitmapSize(def->cpumask) > 0) {
@@ -3199,11 +3213,11 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
         while ((bit = virBitmapNextSetBit(def->cpumask, bit)) >= 0)
             ++sched_cpu_affinity_length;
 
-        if (sched_cpu_affinity_length < def->maxvcpus) {
+        if (sched_cpu_affinity_length < maxvcpus) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting domain XML attribute 'cpuset' of entry "
                              "'vcpu' to contain at least %d CPU(s)"),
-                           def->maxvcpus);
+                           maxvcpus);
             goto cleanup;
         }
 
@@ -3222,12 +3236,13 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
 
     /* def:cputune.shares -> vmx:sched.cpu.shares */
     if (def->cputune.sharesSpecified) {
+        unsigned int vcpus = virDomainDefGetVcpus(def);
         /* See http://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/vim.SharesInfo.Level.html */
-        if (def->cputune.shares == def->vcpus * 500) {
+        if (def->cputune.shares == vcpus * 500) {
             virBufferAddLit(&buffer, "sched.cpu.shares = \"low\"\n");
-        } else if (def->cputune.shares == def->vcpus * 1000) {
+        } else if (def->cputune.shares == vcpus * 1000) {
             virBufferAddLit(&buffer, "sched.cpu.shares = \"normal\"\n");
-        } else if (def->cputune.shares == def->vcpus * 2000) {
+        } else if (def->cputune.shares == vcpus * 2000) {
             virBufferAddLit(&buffer, "sched.cpu.shares = \"high\"\n");
         } else {
             virBufferAsprintf(&buffer, "sched.cpu.shares = \"%lu\"\n",
