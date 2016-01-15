@@ -2862,7 +2862,8 @@ qemuProcessCleanupChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
                                 void *opaque ATTRIBUTE_UNUSED)
 {
     if (dev->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
-        dev->source.data.nix.listen)
+        dev->source.data.nix.listen &&
+        dev->source.data.nix.path)
         unlink(dev->source.data.nix.path);
 
     return 0;
@@ -4894,6 +4895,12 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuSetupCgroup(driver, vm, nnicindexes, nicindexes) < 0)
         goto cleanup;
 
+    /* This must be done after cgroup placement to avoid resetting CPU
+     * affinity */
+    if (!vm->def->cputune.emulatorpin &&
+        qemuProcessInitCpuAffinity(vm) < 0)
+        goto cleanup;
+
     VIR_DEBUG("Setting domain security labels");
     if (virSecurityManagerSetAllLabel(driver->securityManager,
                                       vm->def,
@@ -4938,12 +4945,6 @@ qemuProcessLaunch(virConnectPtr conn,
 
     VIR_DEBUG("Setting cgroup for emulator (if required)");
     if (qemuSetupCgroupForEmulator(vm) < 0)
-        goto cleanup;
-
-    /* This must be done after cgroup placement to avoid resetting CPU
-     * affinity */
-    if (!vm->def->cputune.emulatorpin &&
-        qemuProcessInitCpuAffinity(vm) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting affinity of emulator threads");

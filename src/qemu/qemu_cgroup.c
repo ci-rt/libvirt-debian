@@ -1079,10 +1079,7 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
                 }
             }
 
-            if (!cpumap)
-                continue;
-
-            if (qemuSetupCgroupCpusetCpus(cgroup_vcpu, cpumap) < 0)
+            if (cpumap && qemuSetupCgroupCpusetCpus(cgroup_vcpu, cpumap) < 0)
                 goto cleanup;
         }
 
@@ -1159,10 +1156,6 @@ qemuSetupCgroupForEmulator(virDomainObjPtr vm)
                                   quota) < 0)
             goto cleanup;
     }
-
-    /* consider the first thread an emulator-thread */
-    if (virCgroupAddTask(cgroup_emulator, vm->pid) < 0)
-        goto cleanup;
 
     virCgroupFree(&cgroup_emulator);
     return 0;

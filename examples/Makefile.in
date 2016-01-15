@@ -1876,6 +1876,7 @@ mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
+plugindir = @plugindir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
@@ -1888,8 +1889,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-ws_plugindir = @ws_plugindir@
-FILTERS = $(wildcard xml/nwfilter/*.xml)
+FILTERS = $(wildcard $(srcdir)/xml/nwfilter/*.xml)
 EXTRA_DIST = \
 	apparmor/TEMPLATE.qemu \
 	apparmor/TEMPLATE.lxc \
@@ -1902,8 +1902,8 @@ EXTRA_DIST = \
 	systemtap/events.stp \
 	systemtap/rpc-monitor.stp \
 	$(FILTERS) \
-	$(wildcard xml/storage/*.xml) \
-	$(wildcard xml/test/*.xml)
+	$(wildcard $(srcdir)/xml/storage/*.xml) \
+	$(wildcard $(srcdir)/xml/test/*.xml)
 
 INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir) \
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib
@@ -2336,8 +2336,8 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@WITH_NWFILTER_FALSE@install-data-local:
 @WITH_NWFILTER_FALSE@uninstall-local:
+@WITH_NWFILTER_FALSE@install-data-local:
 clean: clean-am
 
 clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \

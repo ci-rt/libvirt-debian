@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #include "internal.h"
+#include "virxdrdefs.h"
 
 typedef char virLogManagerProtocolUUID[VIR_UUID_BUFLEN];
 #define VIR_LOG_MANAGER_PROTOCOL_STRING_MAX 4194304

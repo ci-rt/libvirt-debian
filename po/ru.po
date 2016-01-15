@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.2.13\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2016-01-12 08:14+0800\n"
+"POT-Creation-Date: 2016-01-15 08:58+0800\n"
 "PO-Revision-Date: 2014-10-28 11:16-0400\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Russian (http://www.transifex.com/projects/p/libvirt/language/"
@@ -176,7 +176,7 @@ msgstr ""
 #: daemon/remote_dispatch.h:16020 daemon/remote_dispatch.h:16080
 #: daemon/remote_dispatch.h:16134 daemon/remote_dispatch.h:16192
 #: daemon/remote_dispatch.h:16264 daemon/remote_dispatch.h:16320
-#: src/rpc/virnetserverclient.c:1491
+#: src/rpc/virnetserverclient.c:1493
 msgid "connection not open"
 msgstr "соединение не открыто"
 
@@ -371,8 +371,8 @@ msgstr ""
 #: daemon/libvirtd.c:1179 src/locking/lock_daemon.c:1184
 #: src/locking/sanlock_helper.c:76 src/logging/log_daemon.c:942
 #: src/lxc/lxc_controller.c:2513 src/network/leaseshelper.c:147
-#: src/network/leaseshelper.c:153 src/security/virt-aa-helper.c:1301
-#: src/security/virt-aa-helper.c:1307 src/storage/parthelper.c:77
+#: src/network/leaseshelper.c:153 src/security/virt-aa-helper.c:1304
+#: src/security/virt-aa-helper.c:1310 src/storage/parthelper.c:77
 #: src/util/iohelper.c:236 src/util/iohelper.c:242
 #, c-format
 msgid "%s: initialization failed\n"
@@ -956,8 +956,8 @@ msgstr ""
 msgid "Installed bhyve binary does not support UTC clock"
 msgstr "QEMU не поддерживает kvm"
 
-#: src/bhyve/bhyve_command.c:264 src/qemu/qemu_command.c:7371
-#: src/qemu/qemu_command.c:9715
+#: src/bhyve/bhyve_command.c:264 src/qemu/qemu_command.c:7382
+#: src/qemu/qemu_command.c:9726
 #, c-format
 msgid "unsupported clock offset '%s'"
 msgstr "смещение «%s» не поддерживается"
@@ -983,7 +983,7 @@ msgid "Failed to autostart VM '%s': %s"
 msgstr "Не удалось автоматически запустить виртуальную машину «%s»: %s"
 
 #: src/bhyve/bhyve_driver.c:95 src/libxl/libxl_domain.c:521
-#: src/libxl/libxl_driver.c:329 src/qemu/qemu_capabilities.c:3073
+#: src/libxl/libxl_driver.c:329 src/qemu/qemu_capabilities.c:3084
 #: src/qemu/qemu_driver.c:295 src/qemu/qemu_driver.c:304
 #: src/secret/secret_driver.c:491 src/uml/uml_driver.c:194
 #: src/util/virdbus.c:1570 src/util/virerror.c:284 src/util/virhook.c:304
@@ -1014,7 +1014,7 @@ msgid "bhyve state driver is not active"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:255 src/lxc/lxc_driver.c:5408
-#: src/libxl/libxl_driver.c:866 src/qemu/qemu_command.c:9574
+#: src/libxl/libxl_driver.c:866 src/qemu/qemu_command.c:9585
 #: src/qemu/qemu_driver.c:1308 src/xen/xen_driver.c:661
 msgid "Host SMBIOS information is not available"
 msgstr ""
@@ -1220,7 +1220,7 @@ msgstr ""
 msgid "Cannot write device.map '%s'"
 msgstr "не удалось открыть устройство «%s»"
 
-#: src/bhyve/bhyve_process.c:203 src/qemu/qemu_process.c:4871
+#: src/bhyve/bhyve_process.c:203 src/qemu/qemu_process.c:4872
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "Список не содержит домен %s"
@@ -1287,7 +1287,7 @@ msgstr "Недопустимый атрибут соответствия для 
 msgid "Missing CPU architecture"
 msgstr "Отсутствует архитектура процессора"
 
-#: src/conf/cpu_conf.c:241 src/conf/domain_conf.c:14765
+#: src/conf/cpu_conf.c:241 src/conf/domain_conf.c:14774
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "Неизвестная архитектура %s"
@@ -2819,7 +2819,7 @@ msgstr ""
 "Недопустимая спецификация нескольких значений <filterref> в одной секции "
 "<interface>"
 
-#: src/conf/domain_conf.c:8647 src/qemu/qemu_command.c:12354
+#: src/conf/domain_conf.c:8647 src/qemu/qemu_command.c:12365
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "не удалось разобрать MAC-адрес «%s»"
@@ -3107,7 +3107,7 @@ msgstr "неизвестный тип символьного устройств�
 msgid "spicevmc device type only supports virtio"
 msgstr "Тип устройств spicevmc поддерживает только virtio"
 
-#: src/conf/domain_conf.c:9801 src/qemu/qemu_command.c:11458
+#: src/conf/domain_conf.c:9801 src/qemu/qemu_command.c:11469
 msgid "usb-serial requires address of usb type"
 msgstr "usb-serial требует  <address type='usb'>"
 
@@ -3215,7 +3215,7 @@ msgstr "шина ps2 не поддерживает устройство ввод
 msgid "Input devices are not supported by this virtualization driver."
 msgstr "QEMU не поддерживает device='lun'"
 
-#: src/conf/domain_conf.c:10192 src/conf/domain_conf.c:12153
+#: src/conf/domain_conf.c:10192 src/conf/domain_conf.c:12162
 msgid "Invalid address for a USB device"
 msgstr "Недопустимый адрес устройства USB"
 
@@ -3339,7 +3339,7 @@ msgstr "не удалось разобрать vnc-порт %s"
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "не удалось выполнить разбор порта VNC WebSocket %s"
 
-#: src/conf/domain_conf.c:10689 src/qemu/qemu_command.c:13181
+#: src/conf/domain_conf.c:10689 src/qemu/qemu_command.c:13192
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "неизвестная политика совместного доступа к VNC-дисплею: «%s»"
@@ -3526,828 +3526,833 @@ msgstr ""
 msgid "unknown backend type '%s' for egd"
 msgstr "неизвестный тип в строке  <backend model='egd'>: «%s»"
 
-#: src/conf/domain_conf.c:11367
+#: src/conf/domain_conf.c:11368
 msgid "balloon memory must contain model name"
 msgstr "строка <memballoon> должна содержать название модели"
 
-#: src/conf/domain_conf.c:11373
+#: src/conf/domain_conf.c:11374
 #, c-format
 msgid "unknown memory balloon model '%s'"
 msgstr "неизвестная модель в описании <memballoon>: «%s»"
 
-#: src/conf/domain_conf.c:11380
+#: src/conf/domain_conf.c:11381
+#, fuzzy, c-format
+msgid "invalid autodeflate attribute value '%s'"
+msgstr "Недопустимый атрибут режима «%s»"
+
+#: src/conf/domain_conf.c:11388
 msgid "invalid statistics collection period"
 msgstr "недопустимый интервал сбора статистики в описании <memballoon>"
 
-#: src/conf/domain_conf.c:11444
+#: src/conf/domain_conf.c:11453
 msgid "shmem element must contain 'name' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:11468
+#: src/conf/domain_conf.c:11477
 #, c-format
 msgid "invalid number of vectors for shmem: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11479
+#: src/conf/domain_conf.c:11488
 #, c-format
 msgid "invalid msi ioeventfd setting for shmem: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11491
+#: src/conf/domain_conf.c:11500
 msgid "msi option is only supported with a server"
 msgstr ""
 
-#: src/conf/domain_conf.c:11518
+#: src/conf/domain_conf.c:11527
 #, fuzzy
 msgid "XML does not contain expected 'bios' element"
 msgstr "XML не содержит элемент «sysinfo»"
 
-#: src/conf/domain_conf.c:11548
+#: src/conf/domain_conf.c:11557
 msgid "Invalid BIOS 'date' format"
 msgstr "Недопустимый формат «date» в BIOS"
 
-#: src/conf/domain_conf.c:11580
+#: src/conf/domain_conf.c:11589
 #, fuzzy
 msgid "XML does not contain expected 'system' element"
 msgstr "XML не содержит элемент «sysinfo»"
 
-#: src/conf/domain_conf.c:11601
+#: src/conf/domain_conf.c:11610
 msgid "malformed <sysinfo> uuid element"
 msgstr "неверный формат элемента UUID <sysinfo>"
 
-#: src/conf/domain_conf.c:11608
+#: src/conf/domain_conf.c:11617
 msgid "UUID mismatch between <uuid> and <sysinfo>"
 msgstr "Несоответствие UUID между <uuid> и <sysinfo>"
 
-#: src/conf/domain_conf.c:11709
+#: src/conf/domain_conf.c:11718
 msgid "XML does not contain expected 'sysinfo' element"
 msgstr "XML не содержит элемент «sysinfo»"
 
-#: src/conf/domain_conf.c:11719
+#: src/conf/domain_conf.c:11728
 msgid "sysinfo must contain a type attribute"
 msgstr "sysinfo должен содержать атрибут типа"
 
-#: src/conf/domain_conf.c:11724
+#: src/conf/domain_conf.c:11733
 #, c-format
 msgid "unknown sysinfo type '%s'"
 msgstr "неизвестный тип sysinfo: «%s»"
 
-#: src/conf/domain_conf.c:11863
+#: src/conf/domain_conf.c:11872
 #, fuzzy, c-format
 msgid "unknown accel3d value '%s'"
 msgstr "неизвестное значение connected %s"
 
-#: src/conf/domain_conf.c:11872
+#: src/conf/domain_conf.c:11881
 #, fuzzy, c-format
 msgid "unknown accel2d value '%s'"
 msgstr "неизвестное значение connected %s"
 
-#: src/conf/domain_conf.c:11927
+#: src/conf/domain_conf.c:11936
 #, c-format
 msgid "unknown video model '%s'"
 msgstr "неизвестная модель видеоустройства «%s»"
 
-#: src/conf/domain_conf.c:11933
+#: src/conf/domain_conf.c:11942
 msgid "missing video model and cannot determine default"
 msgstr ""
 "отсутствует модель видеоустройства и не удалось определить стандартную модель"
 
-#: src/conf/domain_conf.c:11941
+#: src/conf/domain_conf.c:11950
 msgid "ram attribute only supported for type of qxl"
 msgstr "атрибут «ram» используется только для устройств типа  «qxl»"
 
-#: src/conf/domain_conf.c:11946
+#: src/conf/domain_conf.c:11955
 #, c-format
 msgid "cannot parse video ram '%s'"
 msgstr "не удалось разобрать видеопамять «%s»"
 
-#: src/conf/domain_conf.c:11956
+#: src/conf/domain_conf.c:11965
 #, fuzzy, c-format
 msgid "cannot parse video vram '%s'"
 msgstr "не удалось разобрать видеопамять «%s»"
 
-#: src/conf/domain_conf.c:11966
+#: src/conf/domain_conf.c:11975
 #, fuzzy
 msgid "vgamem attribute only supported for type of qxl"
 msgstr "атрибут «ram» используется только для устройств типа  «qxl»"
 
-#: src/conf/domain_conf.c:11971
+#: src/conf/domain_conf.c:11980
 #, fuzzy, c-format
 msgid "cannot parse video vgamem '%s'"
 msgstr "не удалось разобрать видеопамять «%s»"
 
-#: src/conf/domain_conf.c:11979
+#: src/conf/domain_conf.c:11988
 #, c-format
 msgid "cannot parse video heads '%s'"
 msgstr "не удалось разобрать видеоголовки «%s»"
 
-#: src/conf/domain_conf.c:12026
+#: src/conf/domain_conf.c:12035
 #, c-format
 msgid "unknown hostdev mode '%s'"
 msgstr "неизвестный режим hostdev «%s»"
 
-#: src/conf/domain_conf.c:12046
+#: src/conf/domain_conf.c:12055
 #, c-format
 msgid "Unexpected hostdev mode %d"
 msgstr "Непредвиденный режим hostdev %d"
 
-#: src/conf/domain_conf.c:12063
+#: src/conf/domain_conf.c:12072
 msgid "PCI host devices must use 'pci' address type"
 msgstr "Адрес PCI-устройств узла должен иметь тип «pci»"
 
-#: src/conf/domain_conf.c:12071
+#: src/conf/domain_conf.c:12080
 #, fuzzy
 msgid "SCSI host device must use 'drive' address type"
 msgstr "Адрес PCI-устройств узла должен иметь тип «pci»"
 
-#: src/conf/domain_conf.c:12113
+#: src/conf/domain_conf.c:12122
 #, c-format
 msgid "unknown redirdev bus '%s'"
 msgstr "неизвестная шина redirdev «%s»"
 
-#: src/conf/domain_conf.c:12124
+#: src/conf/domain_conf.c:12133
 #, c-format
 msgid "unknown redirdev character device type '%s'"
 msgstr "неизвестный тип устройства в <redirdev>: «%s»"
 
-#: src/conf/domain_conf.c:12129
+#: src/conf/domain_conf.c:12138
 msgid "missing type in redirdev"
 msgstr "элемент <redirdev> должен содержать тип устройства"
 
-#: src/conf/domain_conf.c:12203
+#: src/conf/domain_conf.c:12212
 #, fuzzy, c-format
 msgid "Cannot parse USB device version %s"
 msgstr "Не удалось выполнить разбор USB %s"
 
-#: src/conf/domain_conf.c:12222
+#: src/conf/domain_conf.c:12231
 #, c-format
 msgid "Cannot parse USB Class code %s"
 msgstr "Не удалось выполнить разбор кода класса USB %s"
 
-#: src/conf/domain_conf.c:12228
+#: src/conf/domain_conf.c:12237
 #, c-format
 msgid "Invalid USB Class code %s"
 msgstr "Недопустимый код класса USB %s"
 
-#: src/conf/domain_conf.c:12239
+#: src/conf/domain_conf.c:12248
 #, c-format
 msgid "Cannot parse USB vendor ID %s"
 msgstr "Не удалось выполнить разбор ID производителя USB %s"
 
-#: src/conf/domain_conf.c:12250
+#: src/conf/domain_conf.c:12259
 #, c-format
 msgid "Cannot parse USB product ID %s"
 msgstr "Не удалось выполнить разбор ID продукта USB %s"
 
-#: src/conf/domain_conf.c:12275
+#: src/conf/domain_conf.c:12284
 msgid "Invalid allow value, either 'yes' or 'no'"
 msgstr "Недопустимое значение «allow» (должно быть «yes» или «no»)"
 
-#: src/conf/domain_conf.c:12280
+#: src/conf/domain_conf.c:12289
 msgid "Missing allow attribute for USB redirection filter"
 msgstr "Секция  <redirfilter> должна содержать атрибут «allow»"
 
-#: src/conf/domain_conf.c:12352
+#: src/conf/domain_conf.c:12361
 #, c-format
 msgid "unknown %s action: %s"
 msgstr "неизвестное действие %s: %s"
 
-#: src/conf/domain_conf.c:12372
+#: src/conf/domain_conf.c:12381
 #, c-format
 msgid "unknown PM state value %s"
 msgstr "неизвестный статус управления питанием: «%s»"
 
-#: src/conf/domain_conf.c:12405
+#: src/conf/domain_conf.c:12414
 #, fuzzy, c-format
 msgid "Invalid value of 'nodemask': %s"
 msgstr "недопустимое значение «ephemeral»"
 
-#: src/conf/domain_conf.c:12435
+#: src/conf/domain_conf.c:12444
 #, fuzzy
 msgid "invalid value of memory device node"
 msgstr "недопустимый указатель узла"
 
-#: src/conf/domain_conf.c:12468
+#: src/conf/domain_conf.c:12477
 #, fuzzy
 msgid "missing memory model"
 msgstr "Отсутствует имя таймера"
 
-#: src/conf/domain_conf.c:12474
+#: src/conf/domain_conf.c:12483
 #, fuzzy, c-format
 msgid "invalid memory model '%s'"
 msgstr "Недопустимый код ключа: «%s»"
 
-#: src/conf/domain_conf.c:12487
+#: src/conf/domain_conf.c:12496
 #, fuzzy
 msgid "missing <target> element for <memory> device"
 msgstr "Секция <lease> должна содержать элемент «target»"
 
-#: src/conf/domain_conf.c:12520
+#: src/conf/domain_conf.c:12529
 msgid "(device_definition)"
 msgstr "(определение_устройства)"
 
-#: src/conf/domain_conf.c:12538
+#: src/conf/domain_conf.c:12547
 #, c-format
 msgid "unknown device type '%s'"
 msgstr "неизвестный тип устройства «%s»"
 
-#: src/conf/domain_conf.c:12678
+#: src/conf/domain_conf.c:12687
 msgid "(disk_definition)"
 msgstr ""
 
-#: src/conf/domain_conf.c:12684
+#: src/conf/domain_conf.c:12693
 #, c-format
 msgid "expecting root element of 'disk', not '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12965
+#: src/conf/domain_conf.c:12974
 #, c-format
 msgid "target '%s' duplicated for disk sources '%s' and '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13176
+#: src/conf/domain_conf.c:13185
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "обнаружено несколько интерфейсов с совпадающим MAC %s"
 
-#: src/conf/domain_conf.c:13197
+#: src/conf/domain_conf.c:13206
 #, c-format
 msgid "no device matching mac address %s found on %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 
-#: src/conf/domain_conf.c:13206
+#: src/conf/domain_conf.c:13215
 #, c-format
 msgid "no device matching mac address %s found"
 msgstr ""
 
-#: src/conf/domain_conf.c:13360
+#: src/conf/domain_conf.c:13369
 #, fuzzy, c-format
 msgid "Unknown controller type %d"
 msgstr "Неизвестный тип контроллера: %s"
 
-#: src/conf/domain_conf.c:13368
+#: src/conf/domain_conf.c:13377
 #, fuzzy, c-format
 msgid "Could not find %s controller with index %d required for device"
 msgstr "Обнаружено несколько контроллеров «%s» с индексом «%d»"
 
-#: src/conf/domain_conf.c:13375
+#: src/conf/domain_conf.c:13384
 #, fuzzy, c-format
 msgid "Device alias was not set for %s controller with index %d "
 msgstr "Обнаружено несколько контроллеров «%s» с индексом «%d»"
 
-#: src/conf/domain_conf.c:13818
+#: src/conf/domain_conf.c:13827
 msgid "Domain already contains a device with the same address"
 msgstr ""
 
-#: src/conf/domain_conf.c:13880
+#: src/conf/domain_conf.c:13889
 msgid "cannot count boot devices"
 msgstr "не удалось получить число загрузочных устройств"
 
-#: src/conf/domain_conf.c:13890 src/conf/domain_conf.c:22644
+#: src/conf/domain_conf.c:13899 src/conf/domain_conf.c:22667
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr ""
 "элементы <boot> отдельных устройств не могут одновременно использоваться с  "
 "<boot> в секции <os>"
 
-#: src/conf/domain_conf.c:13900
+#: src/conf/domain_conf.c:13909
 msgid "missing boot device"
 msgstr "отсутствует загрузочное устройство"
 
-#: src/conf/domain_conf.c:13905
+#: src/conf/domain_conf.c:13914
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "неизвестное загрузочное устройство «%s»"
 
-#: src/conf/domain_conf.c:13937
+#: src/conf/domain_conf.c:13946
 msgid "invalid value for boot menu timeout, must be in range [0,65535]"
 msgstr ""
 
-#: src/conf/domain_conf.c:13951
+#: src/conf/domain_conf.c:13960
 msgid "need at least one serial port for useserial"
 msgstr ""
 "атрибут «userserial» используется только при наличии последовательного порта"
 
-#: src/conf/domain_conf.c:13969
+#: src/conf/domain_conf.c:13978
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr ""
 "Недопустимое значение rebootTimeout: должно лежать в диапазоне [-1,65535]"
 
-#: src/conf/domain_conf.c:14023
+#: src/conf/domain_conf.c:14032
 msgid "invalid idmap start/target/count settings"
 msgstr ""
 
-#: src/conf/domain_conf.c:14035
+#: src/conf/domain_conf.c:14044
 msgid "You must map the root user of container"
 msgstr "Необходимо создать сопоставление для пользователя root контейнера."
 
-#: src/conf/domain_conf.c:14072
+#: src/conf/domain_conf.c:14081
 #, fuzzy
 msgid "Missing 'id' attribute in <iothread> element"
 msgstr "элемент  <interface>  не содержит атрибут «dev»"
 
-#: src/conf/domain_conf.c:14078
+#: src/conf/domain_conf.c:14087
 #, fuzzy, c-format
 msgid "invalid iothread 'id' value '%s'"
 msgstr "Недопустимое значение преобразования: «%s»"
 
-#: src/conf/domain_conf.c:14134
+#: src/conf/domain_conf.c:14143
 #, fuzzy
 msgid "missing vcpu id in vcpupin"
 msgstr "<vcpupin> должен содержать атрибут «cpuset»"
 
-#: src/conf/domain_conf.c:14140
+#: src/conf/domain_conf.c:14149
 #, fuzzy, c-format
 msgid "invalid setting for vcpu '%s'"
 msgstr "недопустимое значение <encryption> для тома %s"
 
-#: src/conf/domain_conf.c:14149
+#: src/conf/domain_conf.c:14158
 msgid "missing cpuset for vcpupin"
 msgstr "<vcpupin> должен содержать атрибут «cpuset»"
 
-#: src/conf/domain_conf.c:14188
+#: src/conf/domain_conf.c:14197
 #, fuzzy
 msgid "missing iothread id in iothreadpin"
 msgstr "отсутствует информация об интерфейсе"
 
-#: src/conf/domain_conf.c:14194
+#: src/conf/domain_conf.c:14203
 #, c-format
 msgid "invalid setting for iothread '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14201
+#: src/conf/domain_conf.c:14210
 msgid "zero is an invalid iothread id value"
 msgstr ""
 
-#: src/conf/domain_conf.c:14207
+#: src/conf/domain_conf.c:14216
 #, fuzzy, c-format
 msgid "Cannot find 'iothread' : %u"
 msgstr "Программа %d версии %d не найдена."
 
-#: src/conf/domain_conf.c:14214
+#: src/conf/domain_conf.c:14223
 msgid "missing cpuset for iothreadpin"
 msgstr ""
 
-#: src/conf/domain_conf.c:14223 src/conf/domain_conf.c:14658
+#: src/conf/domain_conf.c:14232 src/conf/domain_conf.c:14667
 #, fuzzy, c-format
 msgid "Invalid value of 'cpuset': %s"
 msgstr "Недопустимое значение «cpuNum»."
 
-#: src/conf/domain_conf.c:14230
+#: src/conf/domain_conf.c:14239
 #, fuzzy, c-format
 msgid "duplicate iothreadpin for same iothread '%u'"
 msgstr "обнаружены повторные записи vcpupin для одного виртуального процессора"
 
-#: src/conf/domain_conf.c:14259
+#: src/conf/domain_conf.c:14268
 msgid "missing cpuset for emulatorpin"
 msgstr ""
 
-#: src/conf/domain_conf.c:14411
+#: src/conf/domain_conf.c:14420
 msgid "hugepage size can't be zero"
 msgstr ""
 
-#: src/conf/domain_conf.c:14422 src/conf/numa_conf.c:184
+#: src/conf/domain_conf.c:14431 src/conf/numa_conf.c:184
 #: src/conf/numa_conf.c:249
 #, fuzzy, c-format
 msgid "Invalid value of 'nodeset': %s"
 msgstr "недопустимое значение «ephemeral»"
 
-#: src/conf/domain_conf.c:14451
+#: src/conf/domain_conf.c:14460
 msgid "missing resource partition attribute"
 msgstr "не задан атрибут раздела ресурса"
 
-#: src/conf/domain_conf.c:14507
+#: src/conf/domain_conf.c:14516
 #, c-format
 msgid "unknown readonly value: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14515
+#: src/conf/domain_conf.c:14524
 #, c-format
 msgid "unknown type value: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14541
+#: src/conf/domain_conf.c:14550
 #, c-format
 msgid "Missing attribute '%s' in element '%sched'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14554
+#: src/conf/domain_conf.c:14563
 #, c-format
 msgid "Invalid value of '%s': %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14562
+#: src/conf/domain_conf.c:14571
 #, fuzzy
 msgid "Missing scheduler attribute"
 msgstr "отсутствует атрибут порядка загрузки"
 
-#: src/conf/domain_conf.c:14568
+#: src/conf/domain_conf.c:14577
 #, c-format
 msgid "Invalid scheduler attribute: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14580
+#: src/conf/domain_conf.c:14589
 msgid "Missing scheduler priority"
 msgstr ""
 
-#: src/conf/domain_conf.c:14585
+#: src/conf/domain_conf.c:14594
 msgid "Invalid value for element priority"
 msgstr ""
 
-#: src/conf/domain_conf.c:14612
+#: src/conf/domain_conf.c:14621
 #, fuzzy
 msgid "maximum vcpus count must be an integer"
 msgstr "максимальное число vcpu должно быть целым числом"
 
-#: src/conf/domain_conf.c:14625
+#: src/conf/domain_conf.c:14634
 #, fuzzy
 msgid "current vcpus count must be an integer"
 msgstr "текущее число vcpu должно быть целым числом"
 
-#: src/conf/domain_conf.c:14640
+#: src/conf/domain_conf.c:14649
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr "Тип размещения процессоров не поддерживается: «%s»"
 
-#: src/conf/domain_conf.c:14719
+#: src/conf/domain_conf.c:14728
 msgid "missing domain type attribute"
 msgstr "отсутствует атрибут типа домена"
 
-#: src/conf/domain_conf.c:14725
+#: src/conf/domain_conf.c:14734
 #, c-format
 msgid "invalid domain type %s"
 msgstr "недопустимый тип домена %s"
 
-#: src/conf/domain_conf.c:14740
+#: src/conf/domain_conf.c:14749
 #, fuzzy
 msgid "an os <type> must be specified"
 msgstr "необходимо определить тип прослушивания графики"
 
-#: src/conf/domain_conf.c:14746
+#: src/conf/domain_conf.c:14755
 #, fuzzy, c-format
 msgid "unknown OS type '%s'"
 msgstr "неизвестный тип ОС %s"
 
-#: src/conf/domain_conf.c:14812 src/conf/network_conf.c:2055
+#: src/conf/domain_conf.c:14821 src/conf/network_conf.c:2055
 #: src/conf/secret_conf.c:192 src/openvz/openvz_conf.c:1043
 #: src/xenconfig/xen_common.c:206
 msgid "Failed to generate UUID"
 msgstr "Не удалось создать UUID"
 
-#: src/conf/domain_conf.c:14819 src/conf/network_conf.c:2061
+#: src/conf/domain_conf.c:14828 src/conf/network_conf.c:2061
 #: src/conf/nwfilter_conf.c:2672 src/conf/secret_conf.c:198
 #: src/conf/storage_conf.c:849
 msgid "malformed uuid element"
 msgstr "неверно сформированный элемент UUID"
 
-#: src/conf/domain_conf.c:14829
+#: src/conf/domain_conf.c:14838
 msgid "Domain title can't contain newlines"
 msgstr "Заголовок домена не может содержать несколько строк."
 
-#: src/conf/domain_conf.c:14856
+#: src/conf/domain_conf.c:14865
 #, fuzzy
 msgid "Failed to parse memory slot count"
 msgstr "Не удалось задать память для домена"
 
-#: src/conf/domain_conf.c:14864
+#: src/conf/domain_conf.c:14873
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "Недопустимое значение атрибута дампа памяти: «%s»"
 
-#: src/conf/domain_conf.c:14871
+#: src/conf/domain_conf.c:14880
 msgid "cannot extract hugepages nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:14891
+#: src/conf/domain_conf.c:14900
 #, c-format
 msgid "nodeset attribute of hugepages of sizes %llu and %llu intersect"
 msgstr ""
 
-#: src/conf/domain_conf.c:14899
+#: src/conf/domain_conf.c:14908
 #, c-format
 msgid "two master hugepages detected: %llu and %llu"
 msgstr ""
 
-#: src/conf/domain_conf.c:14931
+#: src/conf/domain_conf.c:14940
 msgid "cannot extract blkiotune nodes"
 msgstr "не удалось извлечь узлы blkiotune"
 
-#: src/conf/domain_conf.c:14946
+#: src/conf/domain_conf.c:14955
 #, c-format
 msgid "duplicate blkio device path '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14978
+#: src/conf/domain_conf.c:14987
 #, c-format
 msgid "invalid iothreads count '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15000
+#: src/conf/domain_conf.c:15009
 #, c-format
 msgid "duplicate iothread id '%u' found"
 msgstr ""
 
-#: src/conf/domain_conf.c:15016
+#: src/conf/domain_conf.c:15025
 msgid "can't parse cputune shares value"
 msgstr "Не удалось обработать значение <shares> в секции  <cputune>"
 
-#: src/conf/domain_conf.c:15025
+#: src/conf/domain_conf.c:15034
 msgid "can't parse cputune period value"
 msgstr "Не удалось обработать значение <period> в секции <cputune>"
 
-#: src/conf/domain_conf.c:15032
+#: src/conf/domain_conf.c:15041
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr ""
 "Значение <period> в секции <cputune> должно быть в пределах диапазона [1000, "
 "1000000]"
 
-#: src/conf/domain_conf.c:15040
+#: src/conf/domain_conf.c:15049
 msgid "can't parse cputune quota value"
 msgstr "не удалось разобрать значение квоты cputune"
 
-#: src/conf/domain_conf.c:15048
+#: src/conf/domain_conf.c:15057
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "Значение квоты cputune должно быть в пределах диапазона [1000, "
 "18446744073709551]"
 
-#: src/conf/domain_conf.c:15056
+#: src/conf/domain_conf.c:15065
 msgid "can't parse cputune emulator period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:15064
+#: src/conf/domain_conf.c:15073
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr ""
 "Значение  <emulator_period> в секции <cputune> должно быть в пределах "
 "диапазона [1000, 1000000]"
 
-#: src/conf/domain_conf.c:15072
+#: src/conf/domain_conf.c:15081
 msgid "can't parse cputune emulator quota value"
 msgstr "не удалось разобрать значение <emulator_quota> в секции  <cputune>"
 
-#: src/conf/domain_conf.c:15080
+#: src/conf/domain_conf.c:15089
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "Значение emulator_quota для cputune должно быть в пределах диапазона [1000, "
 "18446744073709551]"
 
-#: src/conf/domain_conf.c:15100
+#: src/conf/domain_conf.c:15109
 msgid "duplicate vcpupin for same vcpu"
 msgstr "обнаружены повторные записи vcpupin для одного виртуального процессора"
 
-#: src/conf/domain_conf.c:15149
+#: src/conf/domain_conf.c:15158
 msgid "cannot extract emulatorpin nodes"
 msgstr "не удалось извлечь узлы emulatorpin"
 
-#: src/conf/domain_conf.c:15156
+#: src/conf/domain_conf.c:15165
 msgid "only one emulatorpin is supported"
 msgstr "поддерживается только один emulatorpin"
 
-#: src/conf/domain_conf.c:15169
+#: src/conf/domain_conf.c:15178
 msgid "cannot extract iothreadpin nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:15181
+#: src/conf/domain_conf.c:15190
 msgid "cannot extract vcpusched nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:15201
+#: src/conf/domain_conf.c:15210
 msgid "vcpusched attributes 'vcpus' must not overlap"
 msgstr ""
 
-#: src/conf/domain_conf.c:15212
+#: src/conf/domain_conf.c:15221
 msgid "cannot extract iothreadsched nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:15218
+#: src/conf/domain_conf.c:15227
 msgid "too many iothreadsched nodes in cputune"
 msgstr ""
 
-#: src/conf/domain_conf.c:15239
+#: src/conf/domain_conf.c:15248
 msgid "iothreadsched attribute 'iothreads' uses undefined iothread ids"
 msgstr ""
 
-#: src/conf/domain_conf.c:15249
+#: src/conf/domain_conf.c:15258
 msgid "iothreadsched attributes 'iothreads' must not overlap"
 msgstr ""
 
-#: src/conf/domain_conf.c:15272
+#: src/conf/domain_conf.c:15281
 msgid "Maximum CPUs greater than topology limit"
 msgstr "Максимальное число процессоров превышает разрешенное топологией"
 
-#: src/conf/domain_conf.c:15283
+#: src/conf/domain_conf.c:15292
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "Число процессоров в <numa>  превышает число <vcpu>"
 
-#: src/conf/domain_conf.c:15290
+#: src/conf/domain_conf.c:15299
 #, fuzzy
 msgid "CPU IDs in <numa> exceed the <vcpu> count"
 msgstr "Число процессоров в <numa>  превышает число <vcpu>"
 
-#: src/conf/domain_conf.c:15308
+#: src/conf/domain_conf.c:15317
 msgid "cannot extract resource nodes"
 msgstr "не удалось извлечь узлы ресурсов"
 
-#: src/conf/domain_conf.c:15314
+#: src/conf/domain_conf.c:15323
 msgid "only one resource element is supported"
 msgstr "поддерживается только один элемент ресурса"
 
-#: src/conf/domain_conf.c:15330
+#: src/conf/domain_conf.c:15339
 #, c-format
 msgid "unexpected feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15340
+#: src/conf/domain_conf.c:15349
 #, c-format
 msgid "unknown value for attribute eoi: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15364 src/conf/domain_conf.c:15383
+#: src/conf/domain_conf.c:15373 src/conf/domain_conf.c:15392
 #, c-format
 msgid "unknown state attribute '%s' of feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15401
+#: src/conf/domain_conf.c:15410
 #, fuzzy, c-format
 msgid "malformed gic version: %s"
 msgstr "Неверный формат порта nbd: «%s»"
 
-#: src/conf/domain_conf.c:15428
+#: src/conf/domain_conf.c:15437
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "недопустимая функция HyperV Enlightenment: %s"
 
-#: src/conf/domain_conf.c:15440 src/conf/domain_conf.c:15461
+#: src/conf/domain_conf.c:15449 src/conf/domain_conf.c:15470
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr ""
 "не задан атрибут «state» для следующей функции HyperV Enlightenment: «%s»"
 
-#: src/conf/domain_conf.c:15448 src/conf/domain_conf.c:15469
+#: src/conf/domain_conf.c:15457 src/conf/domain_conf.c:15478
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr ""
 "Недопустимое значение аргумента state функций HyperV Enlightenment: «%s»"
 
-#: src/conf/domain_conf.c:15480
+#: src/conf/domain_conf.c:15489
 msgid "invalid HyperV spinlock retry count"
 msgstr ""
 "недопустимое значение атрибута  «retries»  в строке <spinlocks> описания "
 "HyperV"
 
-#: src/conf/domain_conf.c:15486
+#: src/conf/domain_conf.c:15495
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr ""
 "значение  «retries»  в строке  <spinlocks> описания HyperV не может быть "
 "меньше 4095"
 
-#: src/conf/domain_conf.c:15514
+#: src/conf/domain_conf.c:15523
 #, c-format
 msgid "unsupported KVM feature: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15525
+#: src/conf/domain_conf.c:15534
 #, c-format
 msgid "missing 'state' attribute for KVM feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15533
+#: src/conf/domain_conf.c:15542
 #, c-format
 msgid "invalid value of state argument for KVM feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15559
+#: src/conf/domain_conf.c:15568
 #, c-format
 msgid "unexpected capability feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15570
+#: src/conf/domain_conf.c:15579
 #, c-format
 msgid "unknown state attribute '%s' of feature capability '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15624
+#: src/conf/domain_conf.c:15633
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "неизвестное значение смещения часов «%s»"
 
-#: src/conf/domain_conf.c:15640
+#: src/conf/domain_conf.c:15649
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "неизвестное значение атрибута  «adjustment»: «%s»"
 
-#: src/conf/domain_conf.c:15671
+#: src/conf/domain_conf.c:15680
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "неизвестное значение атрибута  «basis»: «%s»"
 
-#: src/conf/domain_conf.c:15684
+#: src/conf/domain_conf.c:15693
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "отсутствует атрибут «timezone» (в offset='timezone')"
 
-#: src/conf/domain_conf.c:15729
+#: src/conf/domain_conf.c:15738
 msgid "No data supplied for <initarg> element"
 msgstr "Нет данных для элемента <initarg> "
 
-#: src/conf/domain_conf.c:15812 src/conf/domain_conf.c:15821
+#: src/conf/domain_conf.c:15821 src/conf/domain_conf.c:15830
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr ""
 "Не удалось добавить другой контроллер USB: функции USB для этого домена "
 "отключены"
 
-#: src/conf/domain_conf.c:15838
+#: src/conf/domain_conf.c:15847
 msgid "No master USB controller specified"
 msgstr "Основной контроллер USB не определен"
 
-#: src/conf/domain_conf.c:15845
+#: src/conf/domain_conf.c:15854
 msgid "cannot extract device leases"
 msgstr "не удалось получить данные об аренде для устройства"
 
-#: src/conf/domain_conf.c:15975
+#: src/conf/domain_conf.c:15984
 msgid "cannot extract console devices"
 msgstr "не удалось извлечь консольные устройства"
 
-#: src/conf/domain_conf.c:16032
+#: src/conf/domain_conf.c:16041
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "Не удалось добавить устройство ввода USB. Шина USB отключена."
 
-#: src/conf/domain_conf.c:16134
+#: src/conf/domain_conf.c:16143
 msgid "Only one primary video device is supported"
 msgstr "Поддерживается только одно основное видеоустройство"
 
-#: src/conf/domain_conf.c:16160 src/vz/vz_sdk.c:1030
+#: src/conf/domain_conf.c:16169 src/vz/vz_sdk.c:1030
 msgid "cannot determine default video type"
 msgstr "не удалось определить стандартный тип видеоустройства"
 
-#: src/conf/domain_conf.c:16188
+#: src/conf/domain_conf.c:16197
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr "Не удалось добавить устройство USB: функции USB на хосте отключены."
 
-#: src/conf/domain_conf.c:16213
+#: src/conf/domain_conf.c:16222
 msgid "only a single watchdog device is supported"
 msgstr "поддерживается только одно устройство watchdog"
 
-#: src/conf/domain_conf.c:16232
+#: src/conf/domain_conf.c:16241
 msgid "only a single memory balloon device is supported"
 msgstr "поддерживается только одно устройство memballoon"
 
-#: src/conf/domain_conf.c:16267
+#: src/conf/domain_conf.c:16276
 msgid "only a single TPM device is supported"
 msgstr "поддерживается только одно устройство TPM"
 
-#: src/conf/domain_conf.c:16282
+#: src/conf/domain_conf.c:16291
 msgid "only a single nvram device is supported"
 msgstr "поддерживается только одно устройство nvram"
 
-#: src/conf/domain_conf.c:16306
+#: src/conf/domain_conf.c:16315
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "Не удалось концентратор USB: функции USB для этого домена отключены"
 
-#: src/conf/domain_conf.c:16329
+#: src/conf/domain_conf.c:16338
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:16344
+#: src/conf/domain_conf.c:16353
 msgid "only one set of redirection filter rule is supported"
 msgstr "поддерживается только одно правило переанаправления "
 
-#: src/conf/domain_conf.c:16437
+#: src/conf/domain_conf.c:16446
 msgid "uid and gid should be mapped both"
 msgstr "необходимо создать сопоставления для UID и GID"
 
-#: src/conf/domain_conf.c:16457
+#: src/conf/domain_conf.c:16466
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "неизвестный режим smbios: «%s»"
 
-#: src/conf/domain_conf.c:16524
+#: src/conf/domain_conf.c:16533
 msgid "no domain config"
 msgstr "нет конфигурации домена"
 
-#: src/conf/domain_conf.c:16537
+#: src/conf/domain_conf.c:16546
 msgid "missing domain state"
 msgstr "отсутствует состояние домена"
 
-#: src/conf/domain_conf.c:16542
+#: src/conf/domain_conf.c:16551
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "недопустимое состояние домена «%s»"
 
-#: src/conf/domain_conf.c:16551
+#: src/conf/domain_conf.c:16560
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "недопустимая причина изменения состояния домена: «%s»"
 
-#: src/conf/domain_conf.c:16562
+#: src/conf/domain_conf.c:16571
 msgid "invalid pid"
 msgstr "недопустимый pid"
 
-#: src/conf/domain_conf.c:16575 src/conf/network_conf.c:3091
+#: src/conf/domain_conf.c:16584 src/conf/network_conf.c:3091
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "Неизвестный флаг taint: %s"
 
-#: src/conf/domain_conf.c:16609 src/security/virt-aa-helper.c:668
+#: src/conf/domain_conf.c:16618 src/security/virt-aa-helper.c:668
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:488
 #: tools/virsh-domain-monitor.c:595 tools/virsh-domain-monitor.c:710
 #: tools/virsh-domain.c:3066 tools/virsh-domain.c:3721
@@ -4357,42 +4362,42 @@ msgstr "Неизвестный флаг taint: %s"
 msgid "(domain_definition)"
 msgstr "(определение_домена)"
 
-#: src/conf/domain_conf.c:16650
+#: src/conf/domain_conf.c:16659
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "недопустимый корневой элемент <%s> (ожидается <domain>)"
 
-#: src/conf/domain_conf.c:16683
+#: src/conf/domain_conf.c:16692
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "недопустимый корневой элемент <%s> (ожидается <domstatus>)"
 
-#: src/conf/domain_conf.c:16730
+#: src/conf/domain_conf.c:16739
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr "%s не соответствует исходному таймеру %s"
 
-#: src/conf/domain_conf.c:16738
+#: src/conf/domain_conf.c:16747
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr "%d не соответствует исходному значению «present» (%d)"
 
-#: src/conf/domain_conf.c:16746
+#: src/conf/domain_conf.c:16755
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr "%lu не соответствует исходной частоте TSC (%lu)"
 
-#: src/conf/domain_conf.c:16753
+#: src/conf/domain_conf.c:16762
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr "%s не соответствует режиму исходной модели TSC %s"
 
-#: src/conf/domain_conf.c:16770
+#: src/conf/domain_conf.c:16779
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "%s не соответствует типу адреса исходного устройства  %s"
 
-#: src/conf/domain_conf.c:16783
+#: src/conf/domain_conf.c:16792
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -4401,12 +4406,12 @@ msgstr ""
 "PCI-адрес %04x:%02x:%02x.%02x не соответствует адресу исходного устройства "
 "%04x:%02x:%02x.%02x"
 
-#: src/conf/domain_conf.c:16798
+#: src/conf/domain_conf.c:16807
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "%d:%d:%d не соответствует адресу исходного диска %d:%d:%d"
 
-#: src/conf/domain_conf.c:16813
+#: src/conf/domain_conf.c:16822
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
@@ -4414,860 +4419,866 @@ msgstr ""
 "%d:%d:%d не соответствует последовательному адресу virtio исходного "
 "устройства %d:%d:%d"
 
-#: src/conf/domain_conf.c:16827
+#: src/conf/domain_conf.c:16836
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr "%d:%d не соответствует адресу ccid исходного устройства %d:%d"
 
-#: src/conf/domain_conf.c:16841
+#: src/conf/domain_conf.c:16850
 #, c-format
 msgid "Target device isa address %d:%d does not match source %d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16854
+#: src/conf/domain_conf.c:16863
 #, fuzzy, c-format
 msgid "Target device dimm slot %u does not match source %u"
 msgstr "%s не соответствует режиму исходного устройства  %s"
 
-#: src/conf/domain_conf.c:16863
+#: src/conf/domain_conf.c:16872
 #, fuzzy, c-format
 msgid "Target device dimm base addres '%llx' does not match source '%llx'"
 msgstr "%s не соответствует типу адреса исходного устройства  %s"
 
-#: src/conf/domain_conf.c:16891
+#: src/conf/domain_conf.c:16900
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "%s не соответствует исходному дисковому устройству  %s"
 
-#: src/conf/domain_conf.c:16899
+#: src/conf/domain_conf.c:16908
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "Шина диска назначения %s не соответствует шине исходного диска (%s)"
 
-#: src/conf/domain_conf.c:16907
+#: src/conf/domain_conf.c:16916
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "%s не соответствует исходному диску  %s"
 
-#: src/conf/domain_conf.c:16914
+#: src/conf/domain_conf.c:16923
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr "%s не соответствует серийному номеру исходного диска  %s"
 
-#: src/conf/domain_conf.c:16921
+#: src/conf/domain_conf.c:16930
 #, fuzzy, c-format
 msgid "Target disk wwn '%s' does not match source '%s'"
 msgstr "%s не соответствует исходному диску  %s"
 
-#: src/conf/domain_conf.c:16930
+#: src/conf/domain_conf.c:16939
 msgid "Target disk access mode does not match source"
 msgstr ""
 "Режим доступа к диску назначения не соответствует режиму исходного диска"
 
-#: src/conf/domain_conf.c:16947
+#: src/conf/domain_conf.c:16956
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "%s не соответствует типу исходного контроллера %s"
 
-#: src/conf/domain_conf.c:16955
+#: src/conf/domain_conf.c:16964
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "%d не соответствует индексу исходного контроллера %d"
 
-#: src/conf/domain_conf.c:16962
+#: src/conf/domain_conf.c:16971
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "%d не соответствует модели исходного контроллера %d"
 
-#: src/conf/domain_conf.c:16970
+#: src/conf/domain_conf.c:16979
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr "%d не соответствуют портам исходного контроллера %d"
 
-#: src/conf/domain_conf.c:16977
+#: src/conf/domain_conf.c:16986
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr "%d не соответствует числу векторов исходного контроллера %d"
 
-#: src/conf/domain_conf.c:16996
+#: src/conf/domain_conf.c:17005
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr "%s не соответствует целевой файловой системе исходного домена, %s"
 
-#: src/conf/domain_conf.c:17003
+#: src/conf/domain_conf.c:17012
 msgid "Target filesystem access mode does not match source"
 msgstr ""
 "Режим доступа в файловой системе назначения не соответствует режиму источника"
 
-#: src/conf/domain_conf.c:17023
+#: src/conf/domain_conf.c:17032
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr "%s не соответствует MAC-адресу исходной сетевой карты %s"
 
-#: src/conf/domain_conf.c:17032
+#: src/conf/domain_conf.c:17041
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "%s не соответствует модели исходной сетевой карты %s"
 
-#: src/conf/domain_conf.c:17050
+#: src/conf/domain_conf.c:17059
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr "%s не соответствует типу исходного устройства ввода  %s"
 
-#: src/conf/domain_conf.c:17058
+#: src/conf/domain_conf.c:17067
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr ""
 "Шина целевого устройства ввода %s не соответствует шине исходного устройства "
 "(%s)"
 
-#: src/conf/domain_conf.c:17077
+#: src/conf/domain_conf.c:17086
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "Модель целевой звуковой карты %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:17096
+#: src/conf/domain_conf.c:17105
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr "%s не соответствует модели исходной видеокарты %s"
 
-#: src/conf/domain_conf.c:17104
+#: src/conf/domain_conf.c:17113
 #, c-format
 msgid "Target video card ram %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:17111
+#: src/conf/domain_conf.c:17120
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr "%u не соответствует исходному размеру виртуальной памяти, %u"
 
-#: src/conf/domain_conf.c:17118
+#: src/conf/domain_conf.c:17127
 #, fuzzy, c-format
 msgid "Target video card vgamem %u does not match source %u"
 msgstr "%u не соответствует исходному размеру виртуальной памяти, %u"
 
-#: src/conf/domain_conf.c:17125
+#: src/conf/domain_conf.c:17134
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr "%u не соответствует головкам исходной видеокарты %u"
 
-#: src/conf/domain_conf.c:17133
+#: src/conf/domain_conf.c:17142
 msgid "Target video card acceleration does not match source"
 msgstr "Ускорение целевой видеокарты не соответствует источнику"
 
-#: src/conf/domain_conf.c:17140
+#: src/conf/domain_conf.c:17149
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr "%u не соответствует 2D-ускорению исходной видеокарты %u"
 
-#: src/conf/domain_conf.c:17147
+#: src/conf/domain_conf.c:17156
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr "%u не соответствует 3D-ускорению исходной видеокарты %u"
 
-#: src/conf/domain_conf.c:17166
+#: src/conf/domain_conf.c:17175
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr "%s не соответствует режиму исходного устройства  %s"
 
-#: src/conf/domain_conf.c:17175
+#: src/conf/domain_conf.c:17184
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr "%s не соответствует подсистеме исходного устройства %s"
 
-#: src/conf/domain_conf.c:17205
+#: src/conf/domain_conf.c:17214
 #, fuzzy, c-format
 msgid "Target serial type %s does not match source %s"
 msgstr "%s не соответствует типу исходного канала %s"
 
-#: src/conf/domain_conf.c:17213
+#: src/conf/domain_conf.c:17222
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "%d не соответствует исходному последовательному порту %d"
 
-#: src/conf/domain_conf.c:17231
+#: src/conf/domain_conf.c:17240
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr "%d не соответствует исходному параллельному порту %d"
 
-#: src/conf/domain_conf.c:17249
+#: src/conf/domain_conf.c:17258
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "%s не соответствует типу исходного канала %s"
 
-#: src/conf/domain_conf.c:17259
+#: src/conf/domain_conf.c:17268
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr "%s не соответствует имени исходного канала %s"
 
-#: src/conf/domain_conf.c:17268
+#: src/conf/domain_conf.c:17277
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr ""
 "Изменение типа устройства spicevmc изменит имя стандартного целевого канала"
 
-#: src/conf/domain_conf.c:17279
+#: src/conf/domain_conf.c:17288
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr "%s не соответствует адресу исходного канала %s"
 
-#: src/conf/domain_conf.c:17301
+#: src/conf/domain_conf.c:17310
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr "%s не соответствует типу исходной консоли %s"
 
-#: src/conf/domain_conf.c:17320
+#: src/conf/domain_conf.c:17329
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr "%s не соответствует исходной модели watchdog %s"
 
-#: src/conf/domain_conf.c:17339
+#: src/conf/domain_conf.c:17348
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr "%s не соответствует исходной модели динамического выделения памяти %s"
 
-#: src/conf/domain_conf.c:17358
+#: src/conf/domain_conf.c:17356
+#, fuzzy, c-format
+msgid ""
+"Target balloon autodeflate attribute value '%s' does not match source '%s'"
+msgstr "%s не соответствует исходной модели динамического выделения памяти %s"
+
+#: src/conf/domain_conf.c:17376
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "«%s» не соответствует исходной модели RNG  «%s»"
 
-#: src/conf/domain_conf.c:17377
+#: src/conf/domain_conf.c:17395
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr "%s не соответствует типу исходного концентратора, %s"
 
-#: src/conf/domain_conf.c:17396
+#: src/conf/domain_conf.c:17414
 #, c-format
 msgid "Target redirected device bus %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:17407
+#: src/conf/domain_conf.c:17425
 #, c-format
 msgid ""
 "Target redirected device source type %s does not match source device source "
 "type %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:17433
+#: src/conf/domain_conf.c:17451
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr ""
 "%zu не соответствует исходному числу правил фильтрования при перенаправлении "
 "устройств USB, %zu"
 
-#: src/conf/domain_conf.c:17444
+#: src/conf/domain_conf.c:17462
 msgid "Target USB Class code does not match source"
 msgstr "Код класса USB не соответствует исходному"
 
-#: src/conf/domain_conf.c:17450
+#: src/conf/domain_conf.c:17468
 msgid "Target USB vendor ID does not match source"
 msgstr "Идентификатор производителя USB не соответствует исходному"
 
-#: src/conf/domain_conf.c:17456
+#: src/conf/domain_conf.c:17474
 msgid "Target USB product ID does not match source"
 msgstr "Идентификатор продукта USB не соответствует исходному"
 
-#: src/conf/domain_conf.c:17462
+#: src/conf/domain_conf.c:17480
 msgid "Target USB version does not match source"
 msgstr "Версия USB не соответствует исходной"
 
-#: src/conf/domain_conf.c:17468
+#: src/conf/domain_conf.c:17486
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr ""
 "«%s» не соответствует значению атрибута «allow='%s'» в описании USB "
 "исходного домена"
 
-#: src/conf/domain_conf.c:17488
+#: src/conf/domain_conf.c:17506
 #, c-format
 msgid "State of feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17500
+#: src/conf/domain_conf.c:17518
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17510
+#: src/conf/domain_conf.c:17528
 #, fuzzy, c-format
 msgid "Source GIC version '%u' does not match destination '%u'"
 msgstr "Версия USB не соответствует исходной"
 
-#: src/conf/domain_conf.c:17523
+#: src/conf/domain_conf.c:17541
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17538
+#: src/conf/domain_conf.c:17556
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17560
+#: src/conf/domain_conf.c:17578
 #, c-format
 msgid "State of KVM feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17586
+#: src/conf/domain_conf.c:17604
 #, fuzzy, c-format
 msgid "Target panic model '%s' does not match source '%s'"
 msgstr "«%s» не соответствует исходной модели RNG  «%s»"
 
-#: src/conf/domain_conf.c:17602
+#: src/conf/domain_conf.c:17620
 #, c-format
 msgid "Target shared memory name '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17609
+#: src/conf/domain_conf.c:17627
 #, c-format
 msgid "Target shared memory size '%llu' does not match source size '%llu'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17616
+#: src/conf/domain_conf.c:17634
 msgid "Target shared memory server usage doesn't match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:17625
+#: src/conf/domain_conf.c:17643
 msgid "Target shared memory MSI configuration doesn't match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:17640
+#: src/conf/domain_conf.c:17658
 #, fuzzy
 msgid "Target TPM device type doesn't match source"
 msgstr "%s не соответствует типу исходного концентратора, %s"
 
-#: src/conf/domain_conf.c:17646
+#: src/conf/domain_conf.c:17664
 #, fuzzy
 msgid "Target TPM device model doesn't match source"
 msgstr "%s не соответствует режиму исходного устройства  %s"
 
-#: src/conf/domain_conf.c:17659
+#: src/conf/domain_conf.c:17677
 #, fuzzy, c-format
 msgid "Target memory device model '%s' doesn't match source model '%s'"
 msgstr "%s не соответствует режиму исходного устройства  %s"
 
-#: src/conf/domain_conf.c:17668
+#: src/conf/domain_conf.c:17686
 #, fuzzy, c-format
 msgid ""
 "Target memory device targetNode '%d' doesn't match source targetNode '%d'"
 msgstr "%s не соответствует режиму исходного устройства  %s"
 
-#: src/conf/domain_conf.c:17676
+#: src/conf/domain_conf.c:17694
 #, fuzzy, c-format
 msgid ""
 "Target memory device size '%llu' doesn't match source memory device size "
 "'%llu'"
 msgstr "%s не соответствует режиму исходного устройства  %s"
 
-#: src/conf/domain_conf.c:17694
+#: src/conf/domain_conf.c:17712
 #, fuzzy, c-format
 msgid "Target domain vCPU max %zu does not match source %zu"
 msgstr ""
 "%d не соответствует максимальному числу виртуальных процессоров исходного "
 "домена, %d"
 
-#: src/conf/domain_conf.c:17705
+#: src/conf/domain_conf.c:17723
 #, c-format
 msgid "State of vCPU '%zu' differs between source and destination definitions"
 msgstr ""
 
-#: src/conf/domain_conf.c:17730
+#: src/conf/domain_conf.c:17748
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr "%s не соответствует типу виртуализации исходного домена, %s"
 
-#: src/conf/domain_conf.c:17742
+#: src/conf/domain_conf.c:17760
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr "%s не соответствует UUID исходного домена %s"
 
-#: src/conf/domain_conf.c:17753
+#: src/conf/domain_conf.c:17771
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "%s не соответствует имени исходного домена %s"
 
-#: src/conf/domain_conf.c:17760
+#: src/conf/domain_conf.c:17778
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr "%lld не соответствует максимальному объему памяти источника, %lld"
 
-#: src/conf/domain_conf.c:17767
+#: src/conf/domain_conf.c:17785
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr "%lld не соответствует текущему размеру памяти исходного домена, %lld"
 
-#: src/conf/domain_conf.c:17777
+#: src/conf/domain_conf.c:17795
 #, fuzzy, c-format
 msgid "Target domain memory slots count '%u' doesn't match source '%u'"
 msgstr ""
 "%zu не соответствует числу последовательных портов исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17783
+#: src/conf/domain_conf.c:17801
 #, fuzzy, c-format
 msgid "Target maximum memory size '%llu' doesn't match source '%llu'"
 msgstr "%lld не соответствует максимальному объему памяти источника, %lld"
 
-#: src/conf/domain_conf.c:17793
+#: src/conf/domain_conf.c:17811
 #, c-format
 msgid "Target domain iothreads count %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:17801
+#: src/conf/domain_conf.c:17819
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr "%s не соответствует типу операционной системы исходного домена, %s"
 
-#: src/conf/domain_conf.c:17808
+#: src/conf/domain_conf.c:17826
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr "%s не соответствует архитектуре исходного домена, %s"
 
-#: src/conf/domain_conf.c:17815
+#: src/conf/domain_conf.c:17833
 #, fuzzy, c-format
 msgid "Target domain machine type %s does not match source %s"
 msgstr "%s не соответствует типу виртуализации исходного домена, %s"
 
-#: src/conf/domain_conf.c:17822
+#: src/conf/domain_conf.c:17840
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr "%s не соответствует режиму SMBIOS исходного домена,  %s"
 
-#: src/conf/domain_conf.c:17833
+#: src/conf/domain_conf.c:17851
 msgid "Target domain timers do not match source"
 msgstr "Число таймеров целевого домена не совпадает с исходным"
 
-#: src/conf/domain_conf.c:17851
+#: src/conf/domain_conf.c:17869
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr "%zu не соответствует числу дисков исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17862
+#: src/conf/domain_conf.c:17880
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr "%zu не соответствует числу контроллеров исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17875
+#: src/conf/domain_conf.c:17893
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr "%zu не соответствует числу файловых систем исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17887
+#: src/conf/domain_conf.c:17905
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr "%zu не соответствует числу сетевых карт исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17899
+#: src/conf/domain_conf.c:17917
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr "%zu не соответствует числу устройств ввода исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17911
+#: src/conf/domain_conf.c:17929
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr "%zu не соответствует числу звуковых карт исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17923
+#: src/conf/domain_conf.c:17941
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr "%zu не соответствует числу видеокарт исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17935
+#: src/conf/domain_conf.c:17953
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:17948
+#: src/conf/domain_conf.c:17966
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr "%zu не соответствует числу смарт-карт исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17961
+#: src/conf/domain_conf.c:17979
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr ""
 "%zu не соответствует числу последовательных портов исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17974
+#: src/conf/domain_conf.c:17992
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr "%zu не соответствует числу параллельных портов исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:17987
+#: src/conf/domain_conf.c:18005
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr "%zu не соответствует числу каналов исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:18000
+#: src/conf/domain_conf.c:18018
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr "%zu не соответствует числу консолей исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:18013
+#: src/conf/domain_conf.c:18031
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr "%zu не соответствует числу концентраторов исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:18025
+#: src/conf/domain_conf.c:18043
 #, c-format
 msgid "Target domain redirected devices count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:18040
+#: src/conf/domain_conf.c:18058
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr ""
 "%d не соответствует числу фильтров перенаправления USB исходного домена, %d"
 
-#: src/conf/domain_conf.c:18054
+#: src/conf/domain_conf.c:18072
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr "%d не соответствует числу устройств наблюдения исходного домена, %d"
 
-#: src/conf/domain_conf.c:18067
+#: src/conf/domain_conf.c:18085
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:18080
+#: src/conf/domain_conf.c:18098
 #, c-format
 msgid "Target domain RNG device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:18091
+#: src/conf/domain_conf.c:18109
 #, fuzzy, c-format
 msgid "Target domain panic device count %zu does not match source %zu"
 msgstr "%zu не соответствует числу устройств ввода исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:18103
+#: src/conf/domain_conf.c:18121
 #, c-format
 msgid "Target domain shared memory device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:18118
+#: src/conf/domain_conf.c:18136
 msgid ""
 "Either both target and source domains or none of them must have TPM device "
 "present"
 msgstr ""
 
-#: src/conf/domain_conf.c:18125
+#: src/conf/domain_conf.c:18143
 #, fuzzy, c-format
 msgid "Target domain memory device count %zu does not match source %zu"
 msgstr "%zu не соответствует числу концентраторов исходного домена,  %zu"
 
-#: src/conf/domain_conf.c:18365
+#: src/conf/domain_conf.c:18383
 #, c-format
 msgid "cannot duplicate iothread_id '%u' in iothreadids"
 msgstr ""
 
-#: src/conf/domain_conf.c:18521
+#: src/conf/domain_conf.c:18539
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "непредвиденное действие %s: %d"
 
-#: src/conf/domain_conf.c:18825 src/conf/domain_conf.c:18914
+#: src/conf/domain_conf.c:18843 src/conf/domain_conf.c:18932
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "непредвиденный тип диска %d"
 
-#: src/conf/domain_conf.c:18862
+#: src/conf/domain_conf.c:18880
 #, c-format
 msgid "unexpected disk backing store type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:18870
+#: src/conf/domain_conf.c:18888
 #, c-format
 msgid "unexpected disk backing store format %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:18919
+#: src/conf/domain_conf.c:18937
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "непредвиденное дисковое устройство %d"
 
-#: src/conf/domain_conf.c:18924
+#: src/conf/domain_conf.c:18942
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "непредвиденная шина диска %d"
 
-#: src/conf/domain_conf.c:18929
+#: src/conf/domain_conf.c:18947
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "непредвиденный режим кэша диска %d"
 
-#: src/conf/domain_conf.c:18934
+#: src/conf/domain_conf.c:18952
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "недопустимый режим дискового ввода-вывода: %d"
 
-#: src/conf/domain_conf.c:18939
+#: src/conf/domain_conf.c:18957
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "Недопустимый режим sgio: «%d»"
 
-#: src/conf/domain_conf.c:19196
+#: src/conf/domain_conf.c:19214
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "непредвиденный тип контроллера %d"
 
-#: src/conf/domain_conf.c:19205
+#: src/conf/domain_conf.c:19223
 #, c-format
 msgid "unexpected model type %d"
 msgstr "непредвиденный тип модели %d"
 
-#: src/conf/domain_conf.c:19254
+#: src/conf/domain_conf.c:19272
 #, fuzzy, c-format
 msgid "unexpected model name value %d"
 msgstr "недопустимое значение «rombar»: %d"
 
-#: src/conf/domain_conf.c:19340
+#: src/conf/domain_conf.c:19358
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "непредвиденный тип файловой системы %d"
 
-#: src/conf/domain_conf.c:19346
+#: src/conf/domain_conf.c:19364
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "непредвиденный режим доступа %d"
 
-#: src/conf/domain_conf.c:19480
+#: src/conf/domain_conf.c:19498
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "непредвиденный тип имени драйвера физического устройства PCI: %d"
 
-#: src/conf/domain_conf.c:19529
+#: src/conf/domain_conf.c:19547
 msgid "PCI address Formatting failed"
 msgstr "Ошибка форматирования адреса PCI"
 
-#: src/conf/domain_conf.c:19565 src/conf/domain_conf.c:19605
-#: src/conf/domain_conf.c:21304 src/conf/domain_conf.c:21313
+#: src/conf/domain_conf.c:19583 src/conf/domain_conf.c:19623
+#: src/conf/domain_conf.c:21327 src/conf/domain_conf.c:21336
 #: src/libxl/libxl_driver.c:3450 src/qemu/qemu_hotplug.c:3921
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "непредвиденный тип hostdev %d"
 
-#: src/conf/domain_conf.c:19683
+#: src/conf/domain_conf.c:19701
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "непредвиденный режим источника: %d"
 
-#: src/conf/domain_conf.c:19726 src/conf/domain_conf.c:19895
-#: src/conf/domain_conf.c:21078
+#: src/conf/domain_conf.c:19744 src/conf/domain_conf.c:19913
+#: src/conf/domain_conf.c:21101
 #, c-format
 msgid "unexpected net type %d"
 msgstr "непредвиденный тип сети %d"
 
-#: src/conf/domain_conf.c:19887
+#: src/conf/domain_conf.c:19905
 #, c-format
 msgid "unexpected actual net type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:20148
+#: src/conf/domain_conf.c:20166
 #, c-format
 msgid "unexpected char type %d"
 msgstr "непредвиденный символьный тип %d"
 
-#: src/conf/domain_conf.c:20263
+#: src/conf/domain_conf.c:20281
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "недопустимый тип символьного устройства: %d"
 
-#: src/conf/domain_conf.c:20283
+#: src/conf/domain_conf.c:20301
 msgid "Could not format channel target type"
 msgstr "Ошибка форматирования целевого типа канала"
 
-#: src/conf/domain_conf.c:20293
+#: src/conf/domain_conf.c:20311
 msgid "Unable to format guestfwd port"
 msgstr "Ошибка форматирования порта guestfwd"
 
-#: src/conf/domain_conf.c:20367 src/conf/domain_conf.c:20400
-#: src/qemu/qemu_command.c:10481
+#: src/conf/domain_conf.c:20385 src/conf/domain_conf.c:20418
+#: src/qemu/qemu_command.c:10492
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "недопустимый тип смарт-карты: %d"
 
-#: src/conf/domain_conf.c:20418
+#: src/conf/domain_conf.c:20436
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "непредвиденный тип кодека %d"
 
-#: src/conf/domain_conf.c:20474 src/xenconfig/xen_sxpr.c:2087
+#: src/conf/domain_conf.c:20492 src/xenconfig/xen_sxpr.c:2097
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "непредвиденная модель звукового устройства %d"
 
-#: src/conf/domain_conf.c:20521
+#: src/conf/domain_conf.c:20539
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "непредвиденная модель memballoon %d"
 
-#: src/conf/domain_conf.c:20576
+#: src/conf/domain_conf.c:20599
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "непредвиденная модель watchdog %d"
 
-#: src/conf/domain_conf.c:20582
+#: src/conf/domain_conf.c:20605
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "непредвиденное действие watchdog %d"
 
-#: src/conf/domain_conf.c:20844
+#: src/conf/domain_conf.c:20867
 #, c-format
 msgid "unexpected video model %d"
 msgstr "непредвиденная модель видеоустройства %d"
 
-#: src/conf/domain_conf.c:20890 src/xenconfig/xen_sxpr.c:2123
+#: src/conf/domain_conf.c:20913 src/xenconfig/xen_sxpr.c:2133
 #, c-format
 msgid "unexpected input type %d"
 msgstr "непредвиденный тип устройства ввода %d"
 
-#: src/conf/domain_conf.c:20895
+#: src/conf/domain_conf.c:20918
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "непредвиденный тип входной шины %d"
 
-#: src/conf/domain_conf.c:20927
+#: src/conf/domain_conf.c:20950
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "непредвиденное имя таймера: %d"
 
-#: src/conf/domain_conf.c:20943
+#: src/conf/domain_conf.c:20966
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "непредвиденное значение  «tickpolicy»: %d"
 
-#: src/conf/domain_conf.c:20957
+#: src/conf/domain_conf.c:20980
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "непредвиденное значение атрибута «track»: %d"
 
-#: src/conf/domain_conf.c:20974
+#: src/conf/domain_conf.c:20997
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "недопустимый режим таймера %d"
 
-#: src/conf/domain_conf.c:21295 src/conf/domain_conf.c:21320
+#: src/conf/domain_conf.c:21318 src/conf/domain_conf.c:21343
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "непредвиденный режим hostdev %d"
 
-#: src/conf/domain_conf.c:21440
+#: src/conf/domain_conf.c:21463
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "непредвиденный тип концентратора %d"
 
-#: src/conf/domain_conf.c:21602
+#: src/conf/domain_conf.c:21625
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "непредвиденный тип домена %d"
 
-#: src/conf/domain_conf.c:21953
+#: src/conf/domain_conf.c:21976
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "непредвиденный тип загрузочного устройства %d"
 
-#: src/conf/domain_conf.c:21986
+#: src/conf/domain_conf.c:22009
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "непредвиденный режим smbios %d"
 
-#: src/conf/domain_conf.c:22033
+#: src/conf/domain_conf.c:22056
 #, c-format
 msgid "unexpected feature %zu"
 msgstr "непредвиденное свойство %zu"
 
-#: src/conf/domain_conf.c:22054
+#: src/conf/domain_conf.c:22077
 #, c-format
 msgid "Unexpected state of feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:22587
+#: src/conf/domain_conf.c:22610
 #, c-format
 msgid "boot order %d is already used by another device"
 msgstr ""
 
-#: src/conf/domain_conf.c:22636
+#: src/conf/domain_conf.c:22659
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "Несовместимая конфигурация устройства: домен не поддерживает шину USB"
 
-#: src/conf/domain_conf.c:22659
+#: src/conf/domain_conf.c:22682
 #, c-format
 msgid ""
 "Attaching memory device with size '%llu' would exceed domain's maxMemory "
 "config"
 msgstr ""
 
-#: src/conf/domain_conf.c:22668
+#: src/conf/domain_conf.c:22691
 #, fuzzy, c-format
 msgid "Domain already has a disk with wwn '%s'"
 msgstr "домен «%s» уже существует (UUID: %s)"
 
-#: src/conf/domain_conf.c:22694 src/conf/network_conf.c:2957
+#: src/conf/domain_conf.c:22717 src/conf/network_conf.c:2957
 #: src/conf/nwfilter_conf.c:2829 src/util/virdnsmasq.c:565
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "не удалось создать каталог конфигурации «%s»"
 
-#: src/conf/domain_conf.c:22776
+#: src/conf/domain_conf.c:22799
 #, c-format
 msgid "cannot remove config %s"
 msgstr "не удалось удалить конфигурацию %s"
 
-#: src/conf/domain_conf.c:22970
+#: src/conf/domain_conf.c:22993
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr "не удалось получить файл резервной цепочки %s"
 
-#: src/conf/domain_conf.c:23082
+#: src/conf/domain_conf.c:23105
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "Недопустимое состояние домена: %d"
 
-#: src/conf/domain_conf.c:23566
+#: src/conf/domain_conf.c:23589
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr "Копирование определения  «%d» не допускается."
 
-#: src/conf/domain_conf.c:23656
+#: src/conf/domain_conf.c:23679
 #, c-format
 msgid "no device found with alias %s"
 msgstr "устройство %s не найдено"
 
-#: src/conf/domain_conf.c:23682
+#: src/conf/domain_conf.c:23705
 #, c-format
 msgid "source path not found for device='lun' using type='%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:23704
+#: src/conf/domain_conf.c:23727
 #, fuzzy
 msgid "disk device='lun' for iSCSI is not supported with mode='direct'."
 msgstr "Шина «%s» не поддерживает устройство «lun»."
 
-#: src/conf/domain_conf.c:23713
+#: src/conf/domain_conf.c:23736
 msgid "disk device='lun' is only valid for block type disk source"
 msgstr "device='lun' допускается, только если type='block'"
 
-#: src/conf/domain_conf.c:23735 src/conf/domain_conf.c:23794
+#: src/conf/domain_conf.c:23758 src/conf/domain_conf.c:23817
 #, c-format
 msgid "unknown metadata type '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:23772
+#: src/conf/domain_conf.c:23795
 msgid "Requested metadata element is not present"
 msgstr "Запрошенный элемент метаданных отсутствует"
 
-#: src/conf/domain_conf.c:23818
+#: src/conf/domain_conf.c:23841
 msgid "(metadata_xml)"
 msgstr ""
 
-#: src/conf/domain_conf.c:23932
+#: src/conf/domain_conf.c:23955
 #, c-format
 msgid "Disks '%s' and '%s' have identical WWN"
 msgstr ""
 
-#: src/conf/domain_conf.c:23942
+#: src/conf/domain_conf.c:23965
 #, fuzzy, c-format
 msgid "Disks '%s' and '%s' have identical serial"
 msgstr "Параметры --%s и --%s являются взаимоисключающими"
@@ -9538,7 +9549,7 @@ msgstr ""
 
 #: src/fdstream.c:495 src/locking/lock_daemon.c:158
 #: src/locking/lock_daemon.c:206 src/logging/log_daemon.c:148
-#: src/logging/log_daemon.c:197 src/qemu/qemu_capabilities.c:3683
+#: src/logging/log_daemon.c:197 src/qemu/qemu_capabilities.c:3694
 #: src/util/vireventpoll.c:692 src/util/virobject.c:224
 msgid "Unable to initialize mutex"
 msgstr "Не удалось инициализировать мьютекс"
@@ -10799,7 +10810,7 @@ msgstr "Не удалось создать пространство блокир
 
 #: src/locking/lock_driver_sanlock.c:267 src/locking/lock_driver_sanlock.c:322
 #: src/locking/lock_driver_sanlock.c:690 src/storage/storage_backend.c:365
-#: src/util/vircgroup.c:4026 src/util/vircgroup.c:4038 src/util/virfile.c:2038
+#: src/util/vircgroup.c:4048 src/util/vircgroup.c:4060 src/util/virfile.c:2038
 #: src/util/virfile.c:2461
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
@@ -11221,7 +11232,7 @@ msgstr "не удалось получить путь к контроллеру 
 msgid "Resource partition '%s' must start with '/'"
 msgstr "Раздел «%s» должен начинаться с «/»"
 
-#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3682
+#: src/lxc/lxc_fuse.c:150 src/util/vircgroup.c:3704
 #, c-format
 msgid "Cannot open %s"
 msgstr "Не удалось открыть %s"
@@ -11321,7 +11332,7 @@ msgstr ""
 msgid "failed to parse write_iops_device: '%s'"
 msgstr ""
 
-#: src/lxc/lxc_native.c:1010 src/qemu/qemu_command.c:13009
+#: src/lxc/lxc_native.c:1010 src/qemu/qemu_command.c:13020
 msgid "failed to generate uuid"
 msgstr ""
 
@@ -13031,7 +13042,7 @@ msgstr "libxenlight не смог выполнить анализ UUID «%s»"
 msgid "unknown chrdev type"
 msgstr ""
 
-#: src/libxl/libxl_conf.c:623 src/qemu/qemu_command.c:6691
+#: src/libxl/libxl_conf.c:623 src/qemu/qemu_command.c:6702
 #, c-format
 msgid "unsupported chardev '%s'"
 msgstr "недопустимое символьное устройство «%s»"
@@ -15772,152 +15783,152 @@ msgstr "Не удалось получить адрес IPv4 интерфейс�
 msgid "malformed 'prefix' field"
 msgstr "неверный формат флагов ipset"
 
-#: src/qemu/qemu_capabilities.c:550
+#: src/qemu/qemu_capabilities.c:551
 #, c-format
 msgid "Cannot find QEMU binary %s"
 msgstr "Не найден QEMU %s"
 
-#: src/qemu/qemu_capabilities.c:1277
+#: src/qemu/qemu_capabilities.c:1278
 msgid "this qemu binary requires libvirt to be compiled with yajl"
 msgstr "Этот QEMU требует, чтобы libvirt был скомпилирован с поддержкой yajl"
 
-#: src/qemu/qemu_capabilities.c:1402
+#: src/qemu/qemu_capabilities.c:1403
 #, c-format
 msgid "QEMU version >= 0.12.00 is required, but %d.%d.%d found"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:1413
+#: src/qemu/qemu_capabilities.c:1414
 #, c-format
 msgid "QEMU / QMP failed: %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:1417
+#: src/qemu/qemu_capabilities.c:1418
 #, c-format
 msgid "QEMU %u.%u.%u is too new for help parsing"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:1445 src/util/virdnsmasq.c:706
+#: src/qemu/qemu_capabilities.c:1446 src/util/virdnsmasq.c:706
 #, c-format
 msgid "cannot parse %s version number in '%.*s'"
 msgstr "не удалось разобрать номер версии %s в «%.*s»"
 
-#: src/qemu/qemu_capabilities.c:1774
+#: src/qemu/qemu_capabilities.c:1785
 msgid "Malformed QEMU device list string, missing quote"
 msgstr "Неверный формат строки списка устройств QEMU: отсутствуют кавычки."
 
-#: src/qemu/qemu_capabilities.c:1828
+#: src/qemu/qemu_capabilities.c:1839
 msgid "Malformed QEMU device list string, missing '='"
 msgstr ""
 "Неверный формат строки списка устройств QEMU: отсутствует знак равенства."
 
-#: src/qemu/qemu_capabilities.c:1949
+#: src/qemu/qemu_capabilities.c:1960
 #, c-format
 msgid "Cannot find suitable emulator for %s"
 msgstr "Не удалось найти эмулятор для %s"
 
-#: src/qemu/qemu_capabilities.c:2365
+#: src/qemu/qemu_capabilities.c:2376
 msgid "unable to probe for add-fd"
 msgstr "функции add-fd не обнаружены"
 
-#: src/qemu/qemu_capabilities.c:2731
+#: src/qemu/qemu_capabilities.c:2742
 #, c-format
 msgid "unexpected root element <%s>, expecting <qemuCaps>"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2739
+#: src/qemu/qemu_capabilities.c:2750
 msgid "missing qemuctime in QEMU capabilities XML"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2746
+#: src/qemu/qemu_capabilities.c:2757
 msgid "missing selfctime in QEMU capabilities XML"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2760 src/qemu/qemu_domain.c:733
+#: src/qemu/qemu_capabilities.c:2771 src/qemu/qemu_domain.c:733
 msgid "failed to parse qemu capabilities flags"
 msgstr "не удалось обработать флаги функций QEMU"
 
-#: src/qemu/qemu_capabilities.c:2769
+#: src/qemu/qemu_capabilities.c:2780
 msgid "missing flag name in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2775 src/qemu/qemu_domain.c:746
+#: src/qemu/qemu_capabilities.c:2786 src/qemu/qemu_domain.c:746
 #, c-format
 msgid "Unknown qemu capabilities flag %s"
 msgstr "Неизвестный флаг функций qemu %s"
 
-#: src/qemu/qemu_capabilities.c:2786 src/qemu/qemu_capabilities.c:2792
+#: src/qemu/qemu_capabilities.c:2797 src/qemu/qemu_capabilities.c:2803
 msgid "missing version in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2801
+#: src/qemu/qemu_capabilities.c:2812
 msgid "missing arch in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2806
+#: src/qemu/qemu_capabilities.c:2817
 #, c-format
 msgid "unknown arch %s in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2813
+#: src/qemu/qemu_capabilities.c:2824
 msgid "failed to parse qemu capabilities cpus"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2825
+#: src/qemu/qemu_capabilities.c:2836
 msgid "missing cpu name in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2835
+#: src/qemu/qemu_capabilities.c:2846
 msgid "failed to parse qemu capabilities machines"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2851
+#: src/qemu/qemu_capabilities.c:2862
 msgid "missing machine name in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2860
+#: src/qemu/qemu_capabilities.c:2871
 msgid "malformed machine cpu count in QEMU capabilities cache"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2944
+#: src/qemu/qemu_capabilities.c:2955
 #, c-format
 msgid "Failed to save '%s' for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2981 src/qemu/qemu_capabilities.c:3050
+#: src/qemu/qemu_capabilities.c:2992 src/qemu/qemu_capabilities.c:3061
 #, c-format
 msgid "Unable to create directory '%s'"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3063
+#: src/qemu/qemu_capabilities.c:3074
 #, c-format
 msgid "Unable to access cache '%s' for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3262
+#: src/qemu/qemu_capabilities.c:3273
 #, c-format
 msgid "Unknown QEMU arch %s"
 msgstr "Неизвестная архитектура QEMU %s"
 
-#: src/qemu/qemu_capabilities.c:3518
+#: src/qemu/qemu_capabilities.c:3529
 #, c-format
 msgid "Failed to kill process %lld: %s"
 msgstr "Не удалось остановить процесс %lld: %s"
 
-#: src/qemu/qemu_capabilities.c:3548
+#: src/qemu/qemu_capabilities.c:3559
 #, c-format
 msgid "Failed to probe capabilities for %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3550
+#: src/qemu/qemu_capabilities.c:3561
 msgid "unknown failure"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:3574
+#: src/qemu/qemu_capabilities.c:3585
 #, c-format
 msgid "Cannot check QEMU binary %s"
 msgstr "Не удалось проверить QEMU %s"
 
-#: src/qemu/qemu_capabilities.c:3585
+#: src/qemu/qemu_capabilities.c:3596
 #, c-format
 msgid "QEMU binary %s is not executable"
 msgstr "QEMU %s не является исполняемым компонентом"
@@ -15938,8 +15949,8 @@ msgstr "Настройка процессоров на этом хосте не�
 msgid "Cannot setup cgroups until process is started"
 msgstr "Контрольные группы не могут быть настроены до запуска процесса"
 
-#: src/qemu/qemu_cgroup.c:1019 src/qemu/qemu_cgroup.c:1123
-#: src/qemu/qemu_cgroup.c:1197
+#: src/qemu/qemu_cgroup.c:1019 src/qemu/qemu_cgroup.c:1120
+#: src/qemu/qemu_cgroup.c:1190
 msgid "cgroup cpu is required for scheduler tuning"
 msgstr "Для настройки планировщика необходима контрольная группа процессора"
 
@@ -16101,7 +16112,7 @@ msgstr ""
 msgid "virtio disk cannot have an address of type '%s'"
 msgstr "virtio поддерживает только адреса типа «PCI»"
 
-#: src/qemu/qemu_command.c:2732 src/qemu/qemu_command.c:6027
+#: src/qemu/qemu_command.c:2732 src/qemu/qemu_command.c:6038
 msgid "non-primary video device must be type of 'qxl'"
 msgstr "неосновное устройство должно иметь тип «qxl»"
 
@@ -16333,7 +16344,7 @@ msgstr ""
 msgid "readonly sata disks are not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3933 src/xenconfig/xen_sxpr.c:1797
+#: src/qemu/qemu_command.c:3933 src/xenconfig/xen_sxpr.c:1807
 #: src/xenconfig/xen_xl.c:608 src/xenconfig/xen_xm.c:333
 msgid "transient disks not supported yet"
 msgstr "временные диски не поддерживаются"
@@ -16479,7 +16490,7 @@ msgstr ""
 msgid "can only passthrough directories"
 msgstr "сквозное подключение доступно только для каталогов"
 
-#: src/qemu/qemu_command.c:4670 src/qemu/qemu_command.c:5993
+#: src/qemu/qemu_command.c:4670 src/qemu/qemu_command.c:6004
 #, c-format
 msgid "%s not supported in this QEMU binary"
 msgstr "Этот QEMU не поддерживает %s"
@@ -16640,7 +16651,7 @@ msgid ""
 "NUMA nodes configured"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5172 src/qemu/qemu_command.c:8115
+#: src/qemu/qemu_command.c:5172 src/qemu/qemu_command.c:8126
 #, c-format
 msgid "Unable to find any usable hugetlbfs mount for %llu KiB"
 msgstr ""
@@ -16681,12 +16692,12 @@ msgstr "неизвестный параметр virtio-net-pci «tx»"
 msgid "virtio-net-pci 'tx' option not supported in this QEMU binary"
 msgstr "Этот QEMU не поддерживает параметр «tx» virtio-net-pci"
 
-#: src/qemu/qemu_command.c:5580 src/xenconfig/xen_sxpr.c:1845
+#: src/qemu/qemu_command.c:5580 src/xenconfig/xen_sxpr.c:1855
 #, c-format
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "использование сценариев для интерфейсов типа %s недопустимо"
 
-#: src/qemu/qemu_command.c:5714 src/qemu/qemu_command.c:10991
+#: src/qemu/qemu_command.c:5714 src/qemu/qemu_command.c:11002
 msgid "missing watchdog model"
 msgstr "отсутствует модель watchdog"
 
@@ -16695,89 +16706,94 @@ msgstr "отсутствует модель watchdog"
 msgid "memballoon unsupported with address type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5782
+#: src/qemu/qemu_command.c:5764
+#, fuzzy
+msgid "deflate-on-oom is not supported by this QEMU binary"
+msgstr "Этот QEMU не поддерживает возможность удаления"
+
+#: src/qemu/qemu_command.c:5793
 msgid "nvram address type must be spaprvio"
 msgstr "адрес nvram должен иметь тип spaprvio"
 
-#: src/qemu/qemu_command.c:5810
+#: src/qemu/qemu_command.c:5821
 #, fuzzy, c-format
 msgid "unsupported address type %s for virtio input device"
 msgstr "Тип символьного устройства «%s» не поддерживается"
 
-#: src/qemu/qemu_command.c:5819
+#: src/qemu/qemu_command.c:5830
 #, fuzzy
 msgid "virtio-mouse is not supported by this QEMU binary"
 msgstr "Этот QEMU не поддерживает функции ожидания перезагрузки."
 
-#: src/qemu/qemu_command.c:5827
+#: src/qemu/qemu_command.c:5838
 #, fuzzy
 msgid "virtio-tablet is not supported by this QEMU binary"
 msgstr "Этот QEMU не поддерживает функции ожидания перезагрузки."
 
-#: src/qemu/qemu_command.c:5835
+#: src/qemu/qemu_command.c:5846
 #, fuzzy
 msgid "virtio-keyboard is not supported by this QEMU binary"
 msgstr "Этот QEMU не поддерживает возможность удаления"
 
-#: src/qemu/qemu_command.c:5843
+#: src/qemu/qemu_command.c:5854
 #, fuzzy
 msgid "virtio-input-host is not supported by this QEMU binary"
 msgstr "Этот QEMU не поддерживает функции ожидания перезагрузки."
 
-#: src/qemu/qemu_command.c:5924
+#: src/qemu/qemu_command.c:5935
 msgid "usb-audio controller is not supported by this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5933
+#: src/qemu/qemu_command.c:5944
 msgid ""
 "The ich9-intel-hda audio controller is not supported in this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5944
+#: src/qemu/qemu_command.c:5955
 #, c-format
 msgid "sound card model '%s' is not supported by qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6020 src/qemu/qemu_command.c:10779
+#: src/qemu/qemu_command.c:6031 src/qemu/qemu_command.c:10790
 #, c-format
 msgid "video type %s is not supported with QEMU"
 msgstr "QEMU не поддерживает тип видео %s"
 
-#: src/qemu/qemu_command.c:6033 src/qemu/qemu_command.c:10879
+#: src/qemu/qemu_command.c:6044 src/qemu/qemu_command.c:10890
 msgid "only one video card is currently supported"
 msgstr "в настоящий момент поддерживается только одна видеокарта"
 
-#: src/qemu/qemu_command.c:6046
+#: src/qemu/qemu_command.c:6057
 #, fuzzy
 msgid "virtio-gpu 3d acceleration is not supported"
 msgstr "Операция не поддерживается"
 
-#: src/qemu/qemu_command.c:6056 src/qemu/qemu_command.c:10808
+#: src/qemu/qemu_command.c:6067 src/qemu/qemu_command.c:10819
 #, c-format
 msgid "value for 'vram' must be less than '%u'"
 msgstr "значение «vram» должно быть меньше «%u»"
 
-#: src/qemu/qemu_command.c:6062 src/qemu/qemu_command.c:10814
+#: src/qemu/qemu_command.c:6073 src/qemu/qemu_command.c:10825
 #, c-format
 msgid "value for 'ram' must be less than '%u'"
 msgstr "значение «ram» должно быть меньше «%u»"
 
-#: src/qemu/qemu_command.c:6090
+#: src/qemu/qemu_command.c:6101
 #, fuzzy
 msgid "value for 'vram' must be at least 1 MiB (1024 KiB)"
 msgstr "значение «vram» должно быть меньше «%u»"
 
-#: src/qemu/qemu_command.c:6127
+#: src/qemu/qemu_command.c:6138
 #, c-format
 msgid "Failed opening %s"
 msgstr "Не удалось открыть %s"
 
-#: src/qemu/qemu_command.c:6159
+#: src/qemu/qemu_command.c:6170
 #, c-format
 msgid "invalid PCI passthrough type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6168 src/qemu/qemu_command.c:6209
+#: src/qemu/qemu_command.c:6179 src/qemu/qemu_command.c:6220
 #: src/qemu/qemu_hotplug.c:1332
 #, c-format
 msgid ""
@@ -16785,50 +16801,50 @@ msgid ""
 "binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6238
+#: src/qemu/qemu_command.c:6249
 #, c-format
 msgid "Redirection bus %s is not supported by QEMU"
 msgstr "QEMU не поддерживает шину перенаправления %s"
 
-#: src/qemu/qemu_command.c:6245
+#: src/qemu/qemu_command.c:6256
 msgid "USB redirection is not supported by this version of QEMU"
 msgstr "Эта версия QEMU не поддерживает переадресацию USB"
 
-#: src/qemu/qemu_command.c:6256
+#: src/qemu/qemu_command.c:6267
 msgid "USB redirection filter is not supported by this version of QEMU"
 msgstr "Эта версия QEMU не поддерживает фильтры переадресации USB"
 
-#: src/qemu/qemu_command.c:6294
+#: src/qemu/qemu_command.c:6305
 msgid "USB redirection booting is not supported by this version of QEMU"
 msgstr "Эта версия QEMU не поддерживает перезагрузку с переадресацией USB"
 
-#: src/qemu/qemu_command.c:6324 src/qemu/qemu_command.c:6401
+#: src/qemu/qemu_command.c:6335 src/qemu/qemu_command.c:6412
 msgid "USB host device is missing bus/device information"
 msgstr "Отсутствует информация о шине/устройстве для USB-устройства"
 
-#: src/qemu/qemu_command.c:6360
+#: src/qemu/qemu_command.c:6371
 #, c-format
 msgid "hub type %s not supported"
 msgstr "тип концентраторов «%s» не поддерживается"
 
-#: src/qemu/qemu_command.c:6367
+#: src/qemu/qemu_command.c:6378
 msgid "usb-hub not supported by QEMU binary"
 msgstr "Этот QEMU не поддерживает usb-hub"
 
-#: src/qemu/qemu_command.c:6395
+#: src/qemu/qemu_command.c:6406
 msgid "This QEMU doesn't not support missing USB devices"
 msgstr "QEMU не поддерживает отсутствующие устройства USB"
 
-#: src/qemu/qemu_command.c:6494
+#: src/qemu/qemu_command.c:6505
 msgid "this qemu doesn't support 'readonly' for -drive"
 msgstr "QEMU не поддерживает параметр «readonly» для -drive"
 
-#: src/qemu/qemu_command.c:6529
+#: src/qemu/qemu_command.c:6540
 msgid ""
 "target must be 0 for scsi host device if its controller model is 'lsilogic'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6536
+#: src/qemu/qemu_command.c:6547
 msgid ""
 "unit must be not more than 7 for scsi host device if its controller model is "
 "'lsilogic'"
@@ -16836,171 +16852,171 @@ msgstr ""
 "Если модель контроллера устройства хоста равна «lsilogic», значение «unit» "
 "не может превышать 7"
 
-#: src/qemu/qemu_command.c:6611
+#: src/qemu/qemu_command.c:6622
 #, fuzzy
 msgid "append not supported in this QEMU binary"
 msgstr "Этот QEMU не поддерживает %s"
 
-#: src/qemu/qemu_command.c:6672
+#: src/qemu/qemu_command.c:6683
 msgid "spicevmc not supported in this QEMU binary"
 msgstr "Этот QEMU не поддерживает spicevmc"
 
-#: src/qemu/qemu_command.c:6682
+#: src/qemu/qemu_command.c:6693
 msgid "spiceport not supported in this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6824
+#: src/qemu/qemu_command.c:6835
 msgid "Cannot use virtio serial for parallel/serial devices"
 msgstr ""
 "Последовательный порт virtio не может использоваться для последовательных и "
 "параллельных устройств"
 
-#: src/qemu/qemu_command.c:6836
+#: src/qemu/qemu_command.c:6847
 msgid "virtio serial device has invalid address type"
 msgstr "Недопустимый тип адреса последовательного устройства virtio"
 
-#: src/qemu/qemu_command.c:6855
+#: src/qemu/qemu_command.c:6866
 #, c-format
 msgid "Unsupported spicevmc target name '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6899
+#: src/qemu/qemu_command.c:6910
 msgid "Cannot use slcp with devices other than console"
 msgstr "slcp используется только с консолью"
 
-#: src/qemu/qemu_command.c:6951
+#: src/qemu/qemu_command.c:6962
 msgid "this qemu doesn't support the rng-random backend"
 msgstr "QEMU не поддерживает rng-random"
 
-#: src/qemu/qemu_command.c:6966
+#: src/qemu/qemu_command.c:6977
 msgid "this qemu doesn't support the rng-egd backend"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6984
+#: src/qemu/qemu_command.c:6995
 msgid "unknown rng-random backend"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7030
+#: src/qemu/qemu_command.c:7041
 #, c-format
 msgid "this qemu doesn't support RNG device type '%s'"
 msgstr "QEMU не поддерживает устройства RNG типа «%s»"
 
-#: src/qemu/qemu_command.c:7102
+#: src/qemu/qemu_command.c:7113
 #, c-format
 msgid "Could not open TPM device %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7116
+#: src/qemu/qemu_command.c:7127
 #, c-format
 msgid "Could not open TPM device's cancel path %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7149
+#: src/qemu/qemu_command.c:7160
 #, c-format
 msgid "The QEMU executable %s does not support TPM backend type %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7172
+#: src/qemu/qemu_command.c:7183
 #, c-format
 msgid "The QEMU executable %s does not support TPM model %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7385
+#: src/qemu/qemu_command.c:7396
 #, c-format
 msgid "unsupported rtc timer track '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7409
+#: src/qemu/qemu_command.c:7420
 #, c-format
 msgid "unsupported rtc timer tickpolicy '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7462
+#: src/qemu/qemu_command.c:7473
 msgid "CPU specification not supported by hypervisor"
 msgstr "Спецификация процессора не поддерживается гипервизором"
 
-#: src/qemu/qemu_command.c:7492
+#: src/qemu/qemu_command.c:7503
 #, c-format
 msgid ""
 "guest and host CPU are not compatible: %s; try using '%s-noTSX' CPU model"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7497
+#: src/qemu/qemu_command.c:7508
 #, c-format
 msgid "guest and host CPU are not compatible: %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7504
+#: src/qemu/qemu_command.c:7515
 #, fuzzy, c-format
 msgid ""
 "guest CPU is not compatible with host CPU; try using '%s-noTSX' CPU model"
 msgstr "процессор гостя несовместим с процессором узла"
 
-#: src/qemu/qemu_command.c:7509
+#: src/qemu/qemu_command.c:7520
 msgid "guest CPU is not compatible with host CPU"
 msgstr "процессор гостя несовместим с процессором узла"
 
-#: src/qemu/qemu_command.c:7539
+#: src/qemu/qemu_command.c:7550
 #, c-format
 msgid "CPU mode '%s' is not supported by QEMU binary"
 msgstr "Этот QEMU не поддерживает режим процессора «%s»"
 
-#: src/qemu/qemu_command.c:7545
+#: src/qemu/qemu_command.c:7556
 #, c-format
 msgid "CPU mode '%s' is only supported with kvm"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7555
+#: src/qemu/qemu_command.c:7566
 msgid ""
 "QEMU binary does not support CPU host-passthrough for armv7l on aarch64 host"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7818
+#: src/qemu/qemu_command.c:7829
 msgid "the QEMU binary does not support kqemu"
 msgstr "Этот QEMU не поддерживает kqemu"
 
-#: src/qemu/qemu_command.c:7826
+#: src/qemu/qemu_command.c:7837
 msgid "the QEMU binary does not support kvm"
 msgstr "QEMU не поддерживает kvm"
 
-#: src/qemu/qemu_command.c:7837
+#: src/qemu/qemu_command.c:7848
 #, c-format
 msgid "the QEMU binary does not support %s"
 msgstr "QEMU не поддерживает %s"
 
-#: src/qemu/qemu_command.c:7857
+#: src/qemu/qemu_command.c:7868
 #, fuzzy, c-format
 msgid "%s is not available with this QEMU binary"
 msgstr "Этот QEMU не поддерживает dump-guest-core"
 
-#: src/qemu/qemu_command.c:7904 src/qemu/qemu_command.c:7960
+#: src/qemu/qemu_command.c:7915 src/qemu/qemu_command.c:7971
 msgid "dump-guest-core is not available with this QEMU binary"
 msgstr "Этот QEMU не поддерживает dump-guest-core"
 
-#: src/qemu/qemu_command.c:7911 src/qemu/qemu_command.c:7975
+#: src/qemu/qemu_command.c:7922 src/qemu/qemu_command.c:7986
 msgid "disable shared memory is not available with this QEMU binary"
 msgstr "Этот QEMU не поддерживает отключение совместного использования памяти"
 
-#: src/qemu/qemu_command.c:7920
+#: src/qemu/qemu_command.c:7931
 #, fuzzy
 msgid "key wrap support is not available with this QEMU binary"
 msgstr "Этот QEMU не поддерживает dump-guest-core"
 
-#: src/qemu/qemu_command.c:7947
+#: src/qemu/qemu_command.c:7958
 #, fuzzy
 msgid "vmport is not available with this QEMU binary"
 msgstr "Этот QEMU не поддерживает dump-guest-core"
 
-#: src/qemu/qemu_command.c:7995
+#: src/qemu/qemu_command.c:8006
 msgid "gic-version option is available only for ARM virt machine"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8008
+#: src/qemu/qemu_command.c:8019
 #, fuzzy
 msgid "gic-version option is not available with this QEMU binary"
 msgstr "Этот QEMU не поддерживает dump-guest-core"
 
-#: src/qemu/qemu_command.c:8055
+#: src/qemu/qemu_command.c:8066
 msgid ""
 "setting current vcpu count less than maximum is not supported with this QEMU "
 "binary"
@@ -17008,764 +17024,764 @@ msgstr ""
 "Этот QEMU не допускает, чтобы число виртуальных процессоров было меньше "
 "максимального"
 
-#: src/qemu/qemu_command.c:8091
+#: src/qemu/qemu_command.c:8102
 msgid "hugetlbfs filesystem is not mounted or disabled by administrator config"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8098
+#: src/qemu/qemu_command.c:8109
 #, c-format
 msgid "hugepage backing not supported by '%s'"
 msgstr "очень большие страницы не поддерживаются «%s»"
 
-#: src/qemu/qemu_command.c:8152
+#: src/qemu/qemu_command.c:8163
 msgid "Per-node memory binding is not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8161
+#: src/qemu/qemu_command.c:8172
 msgid "huge pages per NUMA node are not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8187
+#: src/qemu/qemu_command.c:8198
 #, c-format
 msgid "hugepages: node %zd not found"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8211
+#: src/qemu/qemu_command.c:8222
 msgid "Shared memory mapping is not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8230
+#: src/qemu/qemu_command.c:8241
 msgid "disjoint NUMA cpu ranges are not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8289
+#: src/qemu/qemu_command.c:8300
 msgid "vnc graphics are not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8306
+#: src/qemu/qemu_command.c:8317
 #, fuzzy
 msgid "vnc port must be in range [5900,65535]"
 msgstr ""
 "Недопустимое значение rebootTimeout: должно лежать в диапазоне [-1,65535]"
 
-#: src/qemu/qemu_command.c:8322 src/qemu/qemu_command.c:8478
+#: src/qemu/qemu_command.c:8333 src/qemu/qemu_command.c:8489
 msgid "network-based listen not possible, network driver not present"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8356
+#: src/qemu/qemu_command.c:8367
 msgid "VNC WebSockets are not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает VNC WebSocket."
 
-#: src/qemu/qemu_command.c:8366
+#: src/qemu/qemu_command.c:8377
 msgid "vnc display sharing policy is not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8437
+#: src/qemu/qemu_command.c:8448
 msgid "spice graphics are not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8447
+#: src/qemu/qemu_command.c:8458
 msgid ""
 "spice TLS port set in XML configuration, but TLS is disabled in qemu.conf"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8541
+#: src/qemu/qemu_command.c:8552
 msgid ""
 "spice secure channels set in XML configuration, but TLS port is not provided"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8552
+#: src/qemu/qemu_command.c:8563
 msgid ""
 "spice insecure channels set in XML configuration, but plain port is not "
 "provided"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8565
+#: src/qemu/qemu_command.c:8576
 msgid ""
 "spice defaultMode secure requested in XML configuration but TLS port not "
 "provided"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8574
+#: src/qemu/qemu_command.c:8585
 msgid ""
 "spice defaultMode insecure requested in XML configuration but plain port not "
 "provided"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8607
+#: src/qemu/qemu_command.c:8618
 msgid "This QEMU can't disable file transfers through spice"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8651
+#: src/qemu/qemu_command.c:8662
 #, c-format
 msgid "sdl not supported by '%s'"
 msgstr "«%s» не поддерживает sdl"
 
-#: src/qemu/qemu_command.c:8686
+#: src/qemu/qemu_command.c:8697
 #, c-format
 msgid "unsupported graphics type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8708
+#: src/qemu/qemu_command.c:8719
 msgid "Netdev support unavailable"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8733
+#: src/qemu/qemu_command.c:8744
 #, c-format
 msgid "vhost-user type '%s' not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8744
+#: src/qemu/qemu_command.c:8755
 #, fuzzy
 msgid "multi-queue is not supported for vhost-user with this QEMU binary"
 msgstr "Этот QEMU не поддерживает повторное использование."
 
-#: src/qemu/qemu_command.c:8760
+#: src/qemu/qemu_command.c:8771
 msgid "Error generating NIC -device string"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8823 src/qemu/qemu_hotplug.c:909
+#: src/qemu/qemu_command.c:8834 src/qemu/qemu_hotplug.c:909
 #, c-format
 msgid "Multiqueue network is not supported for: %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:8833 src/qemu/qemu_hotplug.c:919
+#: src/qemu/qemu_command.c:8844 src/qemu/qemu_hotplug.c:919
 #, fuzzy, c-format
 msgid "filterref is not supported for network interfaces of type %s"
 msgstr "интерфейсы типа %s не поддерживают использование фильтров"
 
-#: src/qemu/qemu_command.c:8843
+#: src/qemu/qemu_command.c:8854
 #, c-format
 msgid "Custom tap device path is not supported for: %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9050
+#: src/qemu/qemu_command.c:9061
 msgid "ivshmem device is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9065
+#: src/qemu/qemu_command.c:9076
 msgid "shmem size must be a power of two"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9070
+#: src/qemu/qemu_command.c:9081
 msgid "shmem size must be at least 1 MiB (1024 KiB)"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9092
+#: src/qemu/qemu_command.c:9103
 #, fuzzy
 msgid "only 'pci' addresses are supported for the shared memory device"
 msgstr "для символьного устройства поддерживается только TCP-прослушивание"
 
-#: src/qemu/qemu_command.c:9190
+#: src/qemu/qemu_command.c:9201
 msgid "ACPI must be enabled in order to use UEFI"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9202
+#: src/qemu/qemu_command.c:9213
 msgid "this qemu doesn't support passing readonly attribute"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9378 src/qemu/qemu_driver.c:9786
+#: src/qemu/qemu_command.c:9389 src/qemu/qemu_driver.c:9786
 #: src/qemu/qemu_driver.c:9923
 msgid "Memory tuning is not available in session mode"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9384 src/qemu/qemu_driver.c:9158
+#: src/qemu/qemu_command.c:9395 src/qemu/qemu_driver.c:9158
 #: src/qemu/qemu_driver.c:9364
 msgid "Block I/O tuning is not available in session mode"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9392 src/qemu/qemu_driver.c:8902
+#: src/qemu/qemu_command.c:9403 src/qemu/qemu_driver.c:8902
 #: src/qemu/qemu_driver.c:10351 src/qemu/qemu_driver.c:10650
 msgid "CPU tuning is not available in session mode"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9487
+#: src/qemu/qemu_command.c:9498
 msgid "memory locking not supported by QEMU binary"
 msgstr "Этот QEMU не поддерживает блокирование памяти"
 
-#: src/qemu/qemu_command.c:9505
+#: src/qemu/qemu_command.c:9516
 msgid "IOThreads not supported for this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9553
+#: src/qemu/qemu_command.c:9564
 #, c-format
 msgid "qemu emulator '%s' does not support xen"
 msgstr "Эмулятор QEMU «%s» не поддерживает Xen"
 
-#: src/qemu/qemu_command.c:9565
+#: src/qemu/qemu_command.c:9576
 #, c-format
 msgid "the QEMU binary %s does not support smbios settings"
 msgstr "QEMU %s не поддерживает настройки smbios"
 
-#: src/qemu/qemu_command.c:9583
+#: src/qemu/qemu_command.c:9594
 #, c-format
 msgid "Domain '%s' sysinfo are not available"
 msgstr "Sysinfo домена «%s» отсутствует"
 
-#: src/qemu/qemu_command.c:9606
+#: src/qemu/qemu_command.c:9617
 msgid "qemu does not support more than one entry to Type 2 in SMBIOS table"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9650 src/qemu/qemu_hotplug.c:1585
+#: src/qemu/qemu_command.c:9661 src/qemu/qemu_hotplug.c:1585
 #: src/qemu/qemu_hotplug.c:4171 src/qemu/qemu_hotplug.c:4230
 #: src/qemu/qemu_hotplug.c:4272
 msgid "qemu does not support -device"
 msgstr "QEMU не поддерживает -device"
 
-#: src/qemu/qemu_command.c:9655
+#: src/qemu/qemu_command.c:9666
 msgid "qemu does not support SGA"
 msgstr "QEMU не поддерживает SGA"
 
-#: src/qemu/qemu_command.c:9660
+#: src/qemu/qemu_command.c:9671
 msgid "need at least one serial port to use SGA"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9730
+#: src/qemu/qemu_command.c:9741
 #, c-format
 msgid "unsupported timer type (name) '%s'"
 msgstr "тип таймера «%s» не поддерживается"
 
-#: src/qemu/qemu_command.c:9756 src/qemu/qemu_command.c:9767
+#: src/qemu/qemu_command.c:9767 src/qemu/qemu_command.c:9778
 #, c-format
 msgid "unsupported rtc tickpolicy '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9795 src/qemu/qemu_command.c:9804
+#: src/qemu/qemu_command.c:9806 src/qemu/qemu_command.c:9815
 #, c-format
 msgid "unsupported pit tickpolicy '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9826
+#: src/qemu/qemu_command.c:9837
 msgid "hpet timer is not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:9869
+#: src/qemu/qemu_command.c:9880
 msgid "setting ACPI S3 not supported"
 msgstr "настройка ACPI S3 не поддерживается"
 
-#: src/qemu/qemu_command.c:9886
+#: src/qemu/qemu_command.c:9897
 msgid "setting ACPI S4 not supported"
 msgstr "настройка ACPI S4 не поддерживается"
 
-#: src/qemu/qemu_command.c:9906
+#: src/qemu/qemu_command.c:9917
 msgid "hypervisor lacks deviceboot feature"
 msgstr "гипервизор не включает функции deviceboot"
 
-#: src/qemu/qemu_command.c:9963
+#: src/qemu/qemu_command.c:9974
 msgid "reboot timeout is not supported by this QEMU binary"
 msgstr "Этот QEMU не поддерживает функции ожидания перезагрузки."
 
-#: src/qemu/qemu_command.c:9976
+#: src/qemu/qemu_command.c:9987
 msgid "splash timeout is not supported by this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10019
+#: src/qemu/qemu_command.c:10030
 msgid "dtb is not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает dtb"
 
-#: src/qemu/qemu_command.c:10047
+#: src/qemu/qemu_command.c:10058
 msgid "64-bit PCI hole setting is only for root PCI controllers"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10054
+#: src/qemu/qemu_command.c:10065
 #, c-format
 msgid "Setting the 64-bit PCI hole size is not supported for machine '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10060
+#: src/qemu/qemu_command.c:10071
 msgid "64-bit PCI hole size setting is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10077 src/qemu/qemu_hotplug.c:781
+#: src/qemu/qemu_command.c:10088 src/qemu/qemu_hotplug.c:781
 #, c-format
 msgid "unsupported driver name '%s' for disk '%s'"
 msgstr "имя драйвера «%s» для диска «%s» не поддерживается"
 
-#: src/qemu/qemu_command.c:10134
+#: src/qemu/qemu_command.c:10145
 msgid "Multiple legacy USB controllers are not supported"
 msgstr "Использование нескольких устаревших контроллеров USB не поддерживается"
 
-#: src/qemu/qemu_command.c:10203
+#: src/qemu/qemu_command.c:10214
 #, c-format
 msgid "unsupported usb disk type for '%s'"
 msgstr "тип диска USB «%s» не поддерживается"
 
-#: src/qemu/qemu_command.c:10214
+#: src/qemu/qemu_command.c:10225
 #, fuzzy
 msgid "PowerPC pseries machines do not support floppy device"
 msgstr "шина ps2 не поддерживает устройство ввода %s"
 
-#: src/qemu/qemu_command.c:10334
+#: src/qemu/qemu_command.c:10345
 msgid "filesystem passthrough not supported by this QEMU"
 msgstr "QEMU не поддерживает сквозное подключение файловой системы"
 
-#: src/qemu/qemu_command.c:10401
+#: src/qemu/qemu_command.c:10412
 msgid "this QEMU binary lacks multiple smartcard support"
 msgstr ""
 "Этот QEMU не включает поддержку одновременного использования нескольких "
 "смарт-карт"
 
-#: src/qemu/qemu_command.c:10412 src/qemu/qemu_command.c:10424
+#: src/qemu/qemu_command.c:10423 src/qemu/qemu_command.c:10435
 msgid "this QEMU binary lacks smartcard host mode support"
 msgstr "Этот QEMU не поддерживает режим хоста для смарт-карт"
 
-#: src/qemu/qemu_command.c:10434
+#: src/qemu/qemu_command.c:10445
 #, c-format
 msgid "invalid certificate name: %s"
 msgstr "Недопустимое имя сертификата: %s"
 
-#: src/qemu/qemu_command.c:10445
+#: src/qemu/qemu_command.c:10456
 #, c-format
 msgid "invalid database name: %s"
 msgstr "Недопустимое имя базы данных: %s"
 
-#: src/qemu/qemu_command.c:10460
+#: src/qemu/qemu_command.c:10471
 msgid "this QEMU binary lacks smartcard passthrough mode support"
 msgstr "Этот QEMU не поддерживает сквозной режим смарт-карт"
 
-#: src/qemu/qemu_command.c:10565
+#: src/qemu/qemu_command.c:10576
 msgid "guestfwd requires QEMU to support -chardev & -device"
 msgstr "требование guestfwd: QEMU должен поддерживать «-chardev» и «-device»"
 
-#: src/qemu/qemu_command.c:10586 src/qemu/qemu_command.c:10663
+#: src/qemu/qemu_command.c:10597 src/qemu/qemu_command.c:10674
 msgid "virtio channel requires QEMU to support -device"
 msgstr "требование virtio: QEMU должен поддерживать «-device»"
 
-#: src/qemu/qemu_command.c:10639
+#: src/qemu/qemu_command.c:10650
 msgid "sclp console requires QEMU to support -device"
 msgstr "консоль sclp требует, чтобы QEMU поддерживал -device"
 
-#: src/qemu/qemu_command.c:10644
+#: src/qemu/qemu_command.c:10655
 msgid "sclp console requires QEMU to support s390-sclp"
 msgstr "консоль sclp требует, чтобы QEMU поддерживал «s390-sclp»"
 
-#: src/qemu/qemu_command.c:10684 src/qemu/qemu_command.c:11589
+#: src/qemu/qemu_command.c:10695 src/qemu/qemu_command.c:11600
 #, c-format
 msgid "unsupported console target type %s"
 msgstr "тип консоли не поддерживается: %s"
 
-#: src/qemu/qemu_command.c:10731
+#: src/qemu/qemu_command.c:10742
 msgid "only 1 graphics device of each type (sdl, vnc, spice) is supported"
 msgstr ""
 "допускается только одно графическое устройство определенного типа (sdl, vnc, "
 "spice)"
 
-#: src/qemu/qemu_command.c:10772
+#: src/qemu/qemu_command.c:10783
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr "QEMU не поддерживает графические адаптеры QXL"
 
-#: src/qemu/qemu_command.c:10847 src/qemu/qemu_domain.c:1425
+#: src/qemu/qemu_command.c:10858 src/qemu/qemu_domain.c:1425
 #, fuzzy
 msgid "value for 'vgamem' must be at least 1 MiB (1024 KiB)"
 msgstr "значение «vram» должно быть меньше «%u»"
 
-#: src/qemu/qemu_command.c:10864
+#: src/qemu/qemu_command.c:10875
 #, c-format
 msgid "video type %s is only valid as primary video card"
 msgstr " %s может использоваться только в качестве основной видеокарты"
 
-#: src/qemu/qemu_command.c:10952
+#: src/qemu/qemu_command.c:10963
 msgid "invalid sound model"
 msgstr "недопустимая модель звукового устройства"
 
-#: src/qemu/qemu_command.c:10960
+#: src/qemu/qemu_command.c:10971
 msgid "this QEMU binary lacks hda support"
 msgstr "Этот QEMU не поддерживает hda"
 
-#: src/qemu/qemu_command.c:11007
+#: src/qemu/qemu_command.c:11018
 msgid "invalid watchdog action"
 msgstr "недопустимое действие watchdog"
 
-#: src/qemu/qemu_command.c:11030 src/qemu/qemu_hotplug.c:1392
+#: src/qemu/qemu_command.c:11041 src/qemu/qemu_hotplug.c:1392
 #, fuzzy
 msgid "redirected devices are not supported by this QEMU"
 msgstr "QEMU не поддерживает device='lun'"
 
-#: src/qemu/qemu_command.c:11053
+#: src/qemu/qemu_command.c:11064
 msgid ""
 "booting from assigned devices is only supported for PCI, USB and SCSI devices"
 msgstr "загрузка допускается только с устройств PCI, USB и SCSI "
 
-#: src/qemu/qemu_command.c:11062
+#: src/qemu/qemu_command.c:11073
 msgid ""
 "booting from PCI devices assigned with VFIO is not supported with this "
 "version of qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11069
+#: src/qemu/qemu_command.c:11080
 msgid ""
 "booting from assigned PCI devices is not supported with this version of qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11078
+#: src/qemu/qemu_command.c:11089
 msgid ""
 "booting from assigned USB devices is not supported with this version of qemu"
 msgstr "эта версия QEMU не поддерживает загрузку с назначенных устройств USB"
 
-#: src/qemu/qemu_command.c:11085
+#: src/qemu/qemu_command.c:11096
 msgid ""
 "booting from assigned SCSI devices is not supported with this version of qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11119 src/qemu/qemu_hotplug.c:1263
+#: src/qemu/qemu_command.c:11130 src/qemu/qemu_hotplug.c:1263
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "Эта версия QEMU не поддерживает сопоставление PCI-устройств VFIO "
 
-#: src/qemu/qemu_command.c:11167 src/qemu/qemu_monitor_text.c:1771
+#: src/qemu/qemu_command.c:11178 src/qemu/qemu_monitor_text.c:1771
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "Эта версия QEMU не поддерживает сопоставление PCI-устройств"
 
-#: src/qemu/qemu_command.c:11192 src/qemu/qemu_hotplug.c:1954
+#: src/qemu/qemu_command.c:11203 src/qemu/qemu_hotplug.c:1954
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "QEMU не поддерживает сквозное подключение SCSI"
 
-#: src/qemu/qemu_command.c:11215
+#: src/qemu/qemu_command.c:11226
 #, c-format
 msgid ""
 "Memory balloon device type '%s' is not supported by this version of qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11239
+#: src/qemu/qemu_command.c:11250
 msgid "RNG device is missing alias"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11271
+#: src/qemu/qemu_command.c:11282
 msgid "nvram device is not supported by this QEMU binary"
 msgstr "Этот QEMU не поддерживает устройство nvram"
 
-#: src/qemu/qemu_command.c:11286
+#: src/qemu/qemu_command.c:11297
 msgid "nvram device is only supported for PPC64"
 msgstr "устройство nvram поддерживается только для PPC64"
 
-#: src/qemu/qemu_command.c:11312
+#: src/qemu/qemu_command.c:11323
 msgid "QEMU does not support seccomp sandboxes"
 msgstr "QEMU не поддерживает песочницы seccomp"
 
-#: src/qemu/qemu_command.c:11324
+#: src/qemu/qemu_command.c:11335
 msgid "only i686 and x86_64 guests support panic device of model 'hyperv'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11330
+#: src/qemu/qemu_command.c:11341
 #, fuzzy
 msgid "setting the panic device address is not supported for model 'hyperv'"
 msgstr "драйвер parallels не поддерживает изменение параметров устройств"
 
-#: src/qemu/qemu_command.c:11343
+#: src/qemu/qemu_command.c:11354
 msgid "only pSeries guests support panic device of model 'pseries'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11349
+#: src/qemu/qemu_command.c:11360
 #, fuzzy
 msgid "setting the panic device address is not supported for model 'pseries'"
 msgstr "драйвер parallels не поддерживает изменение параметров устройств"
 
-#: src/qemu/qemu_command.c:11358
+#: src/qemu/qemu_command.c:11369
 #, fuzzy
 msgid "the QEMU binary does not support the panic device"
 msgstr "QEMU не поддерживает kvm"
 
-#: src/qemu/qemu_command.c:11376
+#: src/qemu/qemu_command.c:11387
 msgid "panic is supported only with ISA address type"
 msgstr ""
 
-#: src/qemu/qemu_command.c:11451
+#: src/qemu/qemu_command.c:11462
 msgid "usb-serial is not supported in this QEMU binary"
 msgstr "Этот QEMU не поддерживает usb-serial"
 
-#: src/qemu/qemu_command.c:11470
+#: src/qemu/qemu_command.c:11481
 #, fuzzy
 msgid "isa-serial requires address of isa type"
 msgstr "usb-serial требует  <address type='usb'>"
 
-#: src/qemu/qemu_command.c:11481
+#: src/qemu/qemu_command.c:11492
 #, fuzzy
 msgid "pci-serial is not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает usb-serial"
 
-#: src/qemu/qemu_command.c:11488
+#: src/qemu/qemu_command.c:11499
 #, fuzzy
 msgid "pci-serial requires address of pci type"
 msgstr "usb-serial требует  <address type='usb'>"
 
-#: src/qemu/qemu_command.c:11800
+#: src/qemu/qemu_command.c:11811
 #, c-format
 msgid "malformed keyword arguments in '%s'"
 msgstr "неверно сформированные аргументы в «%s»"
 
-#: src/qemu/qemu_command.c:11961 src/qemu/qemu_command.c:13311
+#: src/qemu/qemu_command.c:11972 src/qemu/qemu_command.c:13322
 #, c-format
 msgid "cannot parse sheepdog filename '%s'"
 msgstr "не удалось выполнить разбор имени файла sheepdog «%s»"
 
-#: src/qemu/qemu_command.c:11990
+#: src/qemu/qemu_command.c:12001
 #, c-format
 msgid "pseries systems do not support ide devices '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:12048
+#: src/qemu/qemu_command.c:12059
 #, c-format
 msgid "cannot parse drive index '%s'"
 msgstr "не удалось разобрать значение «index» для диска «%s»"
 
-#: src/qemu/qemu_command.c:12054
+#: src/qemu/qemu_command.c:12065
 #, c-format
 msgid "cannot parse drive bus '%s'"
 msgstr "не удалось разобрать значение «bus» для диска «%s»"
 
-#: src/qemu/qemu_command.c:12060
+#: src/qemu/qemu_command.c:12071
 #, c-format
 msgid "cannot parse drive unit '%s'"
 msgstr "не удалось разобрать значение «unit» для диска «%s»"
 
-#: src/qemu/qemu_command.c:12069
+#: src/qemu/qemu_command.c:12080
 #, c-format
 msgid "cannot parse io mode '%s'"
 msgstr "не удалось выполнить разбор режима ввода-вывода «%s»"
 
-#: src/qemu/qemu_command.c:12078
+#: src/qemu/qemu_command.c:12089
 #, c-format
 msgid "cannot parse cylinders value'%s'"
 msgstr "не удалось выполнить разбор значения цилиндров «%s»"
 
-#: src/qemu/qemu_command.c:12088
+#: src/qemu/qemu_command.c:12099
 #, c-format
 msgid "cannot parse heads value'%s'"
 msgstr "не удалось выполнить разбор головок «%s»"
 
-#: src/qemu/qemu_command.c:12098
+#: src/qemu/qemu_command.c:12109
 #, c-format
 msgid "cannot parse sectors value'%s'"
 msgstr "не удалось получить значение секторов «%s»"
 
-#: src/qemu/qemu_command.c:12110
+#: src/qemu/qemu_command.c:12121
 #, c-format
 msgid "cannot parse translation value '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:12124
+#: src/qemu/qemu_command.c:12135
 #, c-format
 msgid "missing file parameter in drive '%s'"
 msgstr "отсутствует параметр файла для диска «%s»"
 
-#: src/qemu/qemu_command.c:12135
+#: src/qemu/qemu_command.c:12146
 #, c-format
 msgid "missing index/unit/bus parameter in drive '%s'"
 msgstr "отсутствует параметр index/unit/bus для «%s»"
 
-#: src/qemu/qemu_command.c:12182
+#: src/qemu/qemu_command.c:12193
 #, c-format
 msgid "invalid device name '%s'"
 msgstr "Недопустимое имя диска: «%s»"
 
-#: src/qemu/qemu_command.c:12223
+#: src/qemu/qemu_command.c:12234
 #, c-format
 msgid "cannot parse NIC vlan in '%s'"
 msgstr "не удалось разобрать vlan NIC в «%s»"
 
-#: src/qemu/qemu_command.c:12235
+#: src/qemu/qemu_command.c:12246
 #, c-format
 msgid "cannot find NIC definition for vlan %d"
 msgstr "определение NIC для vlan %d не найдено"
 
-#: src/qemu/qemu_command.c:12292
+#: src/qemu/qemu_command.c:12303
 #, c-format
 msgid "cannot parse vlan in '%s'"
 msgstr "не удалось разобрать vlan в «%s»"
 
-#: src/qemu/qemu_command.c:12322
+#: src/qemu/qemu_command.c:12333
 #, c-format
 msgid "cannot parse NIC definition '%s'"
 msgstr "не удалось разобрать определение NIC «%s»"
 
-#: src/qemu/qemu_command.c:12372
+#: src/qemu/qemu_command.c:12383
 #, c-format
 msgid "cannot parse sndbuf size in '%s'"
 msgstr "не удалось выполнить разбор размера sndbuf «%s»"
 
-#: src/qemu/qemu_command.c:12411
+#: src/qemu/qemu_command.c:12422
 #, c-format
 msgid "unknown PCI device syntax '%s'"
 msgstr "неизвестный синтаксис PCI-устройства: «%s»"
 
-#: src/qemu/qemu_command.c:12418
+#: src/qemu/qemu_command.c:12429
 #, c-format
 msgid "cannot extract PCI device bus '%s'"
 msgstr "не удалось извлечь информацию о шине PCI-устройства «%s»"
 
-#: src/qemu/qemu_command.c:12424
+#: src/qemu/qemu_command.c:12435
 #, c-format
 msgid "cannot extract PCI device slot '%s'"
 msgstr "не удалось извлечь информацию о слоте PCI-устройства «%s»"
 
-#: src/qemu/qemu_command.c:12430
+#: src/qemu/qemu_command.c:12441
 #, c-format
 msgid "cannot extract PCI device function '%s'"
 msgstr "не удалось получить информацию о функции PCI-устройства «%s»"
 
-#: src/qemu/qemu_command.c:12466
+#: src/qemu/qemu_command.c:12477
 #, c-format
 msgid "unknown USB device syntax '%s'"
 msgstr "неизвестный синтаксис устройства USB: «%s»"
 
-#: src/qemu/qemu_command.c:12474
+#: src/qemu/qemu_command.c:12485
 #, c-format
 msgid "cannot extract USB device vendor '%s'"
 msgstr "не удалось извлечь сведения о производителе USB-устройства «%s»"
 
-#: src/qemu/qemu_command.c:12480
+#: src/qemu/qemu_command.c:12491
 #, c-format
 msgid "cannot extract USB device product '%s'"
 msgstr "не удалось получить информацию о продукте для USB-устройства «%s»"
 
-#: src/qemu/qemu_command.c:12486
+#: src/qemu/qemu_command.c:12497
 #, c-format
 msgid "cannot extract USB device bus '%s'"
 msgstr "не удалось извлечь информацию о шине USB-устройства «%s»"
 
-#: src/qemu/qemu_command.c:12492
+#: src/qemu/qemu_command.c:12503
 #, c-format
 msgid "cannot extract USB device address '%s'"
 msgstr "не удалось получить адрес USB-устройства «%s»"
 
-#: src/qemu/qemu_command.c:12584
+#: src/qemu/qemu_command.c:12595
 #, c-format
 msgid "cannot find port number in character device %s"
 msgstr "не найден номер порта в символьном устройстве %s"
 
-#: src/qemu/qemu_command.c:12610
+#: src/qemu/qemu_command.c:12621
 #, c-format
 msgid "unknown character device syntax %s"
 msgstr "неизвестный синтаксис символьного устройства %s"
 
-#: src/qemu/qemu_command.c:12686
+#: src/qemu/qemu_command.c:12697
 #, c-format
 msgid "%s platform doesn't support CPU features'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:12716
+#: src/qemu/qemu_command.c:12727
 msgid "conflicting occurrences of kvmclock feature"
 msgstr "Конфликт повторяющихся характеристик kvmclock"
 
-#: src/qemu/qemu_command.c:12774
+#: src/qemu/qemu_command.c:12785
 #, c-format
 msgid "unsupported HyperV Enlightenment feature '%s'"
 msgstr "Недопустимая функция HyperV Enlightenment: «%s»"
 
-#: src/qemu/qemu_command.c:12784
+#: src/qemu/qemu_command.c:12795
 #, c-format
 msgid "HyperV feature '%s' should not have a value"
 msgstr ""
 
-#: src/qemu/qemu_command.c:12795
+#: src/qemu/qemu_command.c:12806
 msgid "missing HyperV spinlock retry count"
 msgstr ""
 
-#: src/qemu/qemu_command.c:12801
+#: src/qemu/qemu_command.c:12812
 msgid "cannot parse HyperV spinlock retry count"
 msgstr "Не удалось выполнить разбор числа попыток спин-блокировки HyperV"
 
-#: src/qemu/qemu_command.c:12849
+#: src/qemu/qemu_command.c:12860
 #, c-format
 msgid "unknown CPU syntax '%s'"
 msgstr "неизвестный синтаксис процессора: «%s»"
 
-#: src/qemu/qemu_command.c:12930
+#: src/qemu/qemu_command.c:12941
 #, c-format
 msgid "cannot parse CPU topology '%s'"
 msgstr "не удалось разобрать топологию процессора «%s»"
 
-#: src/qemu/qemu_command.c:12996
+#: src/qemu/qemu_command.c:13007
 msgid "no emulator path found"
 msgstr "не найден путь к эмулятору"
 
-#: src/qemu/qemu_command.c:13053
+#: src/qemu/qemu_command.c:13064
 #, c-format
 msgid "missing value for %s argument"
 msgstr "отсутствует значение аргумента %s"
 
-#: src/qemu/qemu_command.c:13113
+#: src/qemu/qemu_command.c:13124
 #, c-format
 msgid "missing VNC port number in '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:13121
+#: src/qemu/qemu_command.c:13132
 #, c-format
 msgid "cannot parse VNC port '%s'"
 msgstr "не удалось разобрать порт VNC «%s»"
 
-#: src/qemu/qemu_command.c:13159
+#: src/qemu/qemu_command.c:13170
 #, c-format
 msgid "cannot parse VNC WebSocket port '%s'"
 msgstr "не удалось разобрать порт VNC WebSocket «%s»"
 
-#: src/qemu/qemu_command.c:13191
+#: src/qemu/qemu_command.c:13202
 msgid "missing vnc sharing policy"
 msgstr ""
 
-#: src/qemu/qemu_command.c:13217
+#: src/qemu/qemu_command.c:13228
 #, c-format
 msgid "cannot parse memory level '%s'"
 msgstr "не удалось разобрать уровень памяти «%s»"
 
-#: src/qemu/qemu_command.c:13230
+#: src/qemu/qemu_command.c:13241
 #, c-format
 msgid "cannot parse UUID '%s'"
 msgstr "не удалось разобрать UUID «%s»"
 
-#: src/qemu/qemu_command.c:13349
+#: src/qemu/qemu_command.c:13360
 #, c-format
 msgid "Cannot assign address for device name '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:13412
+#: src/qemu/qemu_command.c:13423
 msgid "cannot parse reboot-timeout value"
 msgstr "не удалось выполнить разбор значения reboot-timeout"
 
-#: src/qemu/qemu_command.c:13478
+#: src/qemu/qemu_command.c:13489
 #, fuzzy
 msgid "aes-key-wrap is not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает повторное использование."
 
-#: src/qemu/qemu_command.c:13491
+#: src/qemu/qemu_command.c:13502
 #, fuzzy
 msgid "dea-key-wrap is not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает повторное использование."
 
-#: src/qemu/qemu_command.c:13682
+#: src/qemu/qemu_command.c:13693
 #, c-format
 msgid "unknown video adapter type '%s'"
 msgstr "неизвестный тип видеоадаптера «%s»"
 
-#: src/qemu/qemu_command.c:13741
+#: src/qemu/qemu_command.c:13752
 #, c-format
 msgid "invalid value for disable_s3 parameter: '%s'"
 msgstr "недопустимое значение «disable_s3»: «%s»"
 
-#: src/qemu/qemu_command.c:13758
+#: src/qemu/qemu_command.c:13769
 #, c-format
 msgid "invalid value for disable_s4 parameter: '%s'"
 msgstr "недопустимое значение «disable_s4»: «%s»"
 
-#: src/qemu/qemu_command.c:13777
+#: src/qemu/qemu_command.c:13788
 #, c-format
 msgid "cannot parse nvram's address '%s'"
 msgstr "не удалось выполнить разбор адреса nvram «%s»"
 
-#: src/qemu/qemu_command.c:13835
+#: src/qemu/qemu_command.c:13846
 msgid "CEPH_ARGS was set without an rbd disk"
 msgstr ""
 
-#: src/qemu/qemu_command.c:13842
+#: src/qemu/qemu_command.c:13853
 #, c-format
 msgid "could not parse CEPH_ARGS '%s'"
 msgstr "Ошибка разбора CEPH_ARGS «%s»"
 
-#: src/qemu/qemu_command.c:13879
+#: src/qemu/qemu_command.c:13890
 #, c-format
 msgid "found no rbd hosts in CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS «%s» не содержит хост rbd"
 
-#: src/qemu/qemu_command.c:14092
+#: src/qemu/qemu_command.c:14103
 #, c-format
 msgid "Unable to resolve %s for pid %u"
 msgstr ""
@@ -18320,7 +18336,7 @@ msgid "domain is pmsuspended"
 msgstr "домен приостановлен"
 
 #: src/qemu/qemu_driver.c:1906 src/qemu/qemu_migration.c:5907
-#: src/qemu/qemu_process.c:566 src/qemu/qemu_process.c:5086
+#: src/qemu/qemu_process.c:566 src/qemu/qemu_process.c:5087
 msgid "resume operation failed"
 msgstr "сбой операции возобновления"
 
@@ -18421,13 +18437,13 @@ msgstr "Ошибка при создании дочерним процессом
 msgid "Error from child process opening '%s'"
 msgstr "Ошибка. Дочерний процесс не смог открыть «%s» "
 
-#: src/qemu/qemu_driver.c:3016 src/qemu/qemu_process.c:4029
+#: src/qemu/qemu_driver.c:3016 src/qemu/qemu_process.c:4030
 #: src/storage/storage_backend.c:531
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "Не удалось создать файл «%s»"
 
-#: src/qemu/qemu_driver.c:3017 src/qemu/qemu_process.c:4020
+#: src/qemu/qemu_driver.c:3017 src/qemu/qemu_process.c:4021
 #: src/storage/storage_backend_fs.c:1534
 #: src/storage/storage_backend_gluster.c:695 src/util/virfile.c:1376
 #: src/util/virstoragefile.c:875
@@ -21625,12 +21641,12 @@ msgstr ""
 msgid "Unable to pre-create chardev file '%s'"
 msgstr "Не удалось предварительно создать файл chardev: «%s»"
 
-#: src/qemu/qemu_process.c:3724
+#: src/qemu/qemu_process.c:3725
 msgid "Could not create thread. QEMU initialization might be incomplete"
 msgstr ""
 "Не удалось создать поток. Инициализация QEMU может оказаться незавершенной."
 
-#: src/qemu/qemu_process.c:3844
+#: src/qemu/qemu_process.c:3845
 msgid ""
 "Auto allocation of spice TLS port requested but spice TLS is disabled in "
 "qemu.conf"
@@ -21638,68 +21654,68 @@ msgstr ""
 "Запрошено автоматическое выделение порта TLS, но SPICE TLS отключен в qemu."
 "conf"
 
-#: src/qemu/qemu_process.c:3874
+#: src/qemu/qemu_process.c:3875
 msgid "Maximum CPUs greater than specified machine type limit"
 msgstr "Максимальное число процессоров превышает разрешенное архитектурой"
 
-#: src/qemu/qemu_process.c:3919
+#: src/qemu/qemu_process.c:3920
 msgid "host doesn't support paravirtual spinlocks"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3933
+#: src/qemu/qemu_process.c:3934
 msgid "host doesn't support invariant TSC"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4012
+#: src/qemu/qemu_process.c:4013
 #, c-format
 msgid "unable to find any master var store for loader: %s"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4040
+#: src/qemu/qemu_process.c:4041
 #, c-format
 msgid "Unable to read from file '%s'"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4047
+#: src/qemu/qemu_process.c:4048
 #, c-format
 msgid "Unable to write to file '%s'"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4055 src/qemu/qemu_process.c:4061
+#: src/qemu/qemu_process.c:4056 src/qemu/qemu_process.c:4062
 #, c-format
 msgid "Unable to close file '%s'"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4294
+#: src/qemu/qemu_process.c:4295
 msgid ""
 "QEMU does not support multiple listen addresses for one graphics device."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4360
+#: src/qemu/qemu_process.c:4361
 msgid "Raw I/O is not supported on this platform"
 msgstr "Эта платформа не поддерживает необработанный ввод-вывод"
 
-#: src/qemu/qemu_process.c:4413
+#: src/qemu/qemu_process.c:4414
 #, fuzzy, c-format
 msgid "Cannot create directory '%s'"
 msgstr "Не удалось создать каталог журналирования «%s»"
 
-#: src/qemu/qemu_process.c:4455 src/qemu/qemu_process.c:5553
+#: src/qemu/qemu_process.c:4456 src/qemu/qemu_process.c:5554
 #: src/uml/uml_driver.c:1057
 msgid "VM is already active"
 msgstr "Виртуальная машина уже активна"
 
-#: src/qemu/qemu_process.c:4628
+#: src/qemu/qemu_process.c:4629
 msgid "Unable to set huge path in security driver"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4647 src/qemu/qemu_process.c:5577
+#: src/qemu/qemu_process.c:4648 src/qemu/qemu_process.c:5578
 #: src/uml/uml_driver.c:1079
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "не удалось создать каталог журналов %s"
 
-#: src/qemu/qemu_process.c:4662
+#: src/qemu/qemu_process.c:4663
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
@@ -21709,24 +21725,24 @@ msgstr ""
 "виртуализации включены в BIOS физической системы, и ее конфигурация "
 "разрешает загрузку модулей KVM."
 
-#: src/qemu/qemu_process.c:4713
+#: src/qemu/qemu_process.c:4714
 msgid "Parameter 'min_guarantee' not supported by QEMU."
 msgstr ""
 
-#: src/qemu/qemu_process.c:4733
+#: src/qemu/qemu_process.c:4734
 msgid "Failed to build pidfile path."
 msgstr "Ошибка формирования пути к файлу PID."
 
-#: src/qemu/qemu_process.c:4740
+#: src/qemu/qemu_process.c:4741
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "не удалось удалить устаревший файл PID %s"
 
-#: src/qemu/qemu_process.c:4889
+#: src/qemu/qemu_process.c:4890
 msgid "Process exited prior to exec"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4919
+#: src/qemu/qemu_process.c:4926
 #, c-format
 msgid "cannot stat fd %d"
 msgstr ""
@@ -22424,17 +22440,17 @@ msgid "Unable to bind to port"
 msgstr ""
 
 #: src/rpc/virnetsocket.c:384 src/rpc/virnetsocket.c:514
-#: src/rpc/virnetsocket.c:584 src/rpc/virnetsocket.c:701
-#: src/rpc/virnetsocket.c:1031 src/rpc/virnetsocket.c:1083
-#: src/rpc/virnetsocket.c:1882
+#: src/rpc/virnetsocket.c:584 src/rpc/virnetsocket.c:715
+#: src/rpc/virnetsocket.c:1045 src/rpc/virnetsocket.c:1097
+#: src/rpc/virnetsocket.c:1896
 msgid "Unable to get local socket name"
 msgstr "Не удалось получить имя локального сокета"
 
-#: src/rpc/virnetsocket.c:444 src/rpc/virnetsocket.c:671
+#: src/rpc/virnetsocket.c:444 src/rpc/virnetsocket.c:675
 msgid "Failed to create socket"
 msgstr "Не удалось создать сокет"
 
-#: src/rpc/virnetsocket.c:451 src/rpc/virnetsocket.c:677
+#: src/rpc/virnetsocket.c:451 src/rpc/virnetsocket.c:681
 #, c-format
 msgid "Path %s too long for unix socket"
 msgstr "Слишком длинный путь %s для сокета unix"
@@ -22449,7 +22465,7 @@ msgstr "Не удалось привязать сокет к «%s»"
 msgid "Failed to change ownership of '%s' to %d:%d"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:499 src/rpc/virnetsocket.c:730
+#: src/rpc/virnetsocket.c:499 src/rpc/virnetsocket.c:744
 msgid "UNIX sockets are not supported on this platform"
 msgstr ""
 
@@ -22462,175 +22478,175 @@ msgstr ""
 msgid "Unable to get remote socket name"
 msgstr "Не удалось получить имя удаленного сокета"
 
-#: src/rpc/virnetsocket.c:633
+#: src/rpc/virnetsocket.c:637
 msgid "Auto-spawn of daemon requested, but no binary specified"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:640
+#: src/rpc/virnetsocket.c:644
 #, c-format
 msgid "Cannot determine basename for binary '%s'"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:650 src/util/virpidfile.c:561
+#: src/rpc/virnetsocket.c:654 src/util/virpidfile.c:561
 #, c-format
 msgid "Cannot create user runtime directory '%s'"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:660
+#: src/rpc/virnetsocket.c:664
 #, fuzzy, c-format
 msgid "Unable to create lock '%s'"
 msgstr "Не удалось создать пространство блокирования %s"
 
-#: src/rpc/virnetsocket.c:665
+#: src/rpc/virnetsocket.c:669
 #, fuzzy, c-format
 msgid "Unable to lock '%s'"
 msgstr "Не удалось открыть «%s»"
 
-#: src/rpc/virnetsocket.c:687
+#: src/rpc/virnetsocket.c:698
 #, c-format
 msgid "Failed to connect socket to '%s'"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:752 src/rpc/virnetsocket.c:758
+#: src/rpc/virnetsocket.c:766 src/rpc/virnetsocket.c:772
 msgid "unable to create socket pair"
 msgstr "не удалось создать пару сокетов"
 
-#: src/rpc/virnetsocket.c:796
+#: src/rpc/virnetsocket.c:810
 msgid "Tunnelling sockets not supported on this platform"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:901
+#: src/rpc/virnetsocket.c:915
 msgid "Failed to parse port number"
 msgstr "Не удалось разобрать номер порта"
 
-#: src/rpc/virnetsocket.c:921
+#: src/rpc/virnetsocket.c:935
 #, c-format
 msgid "Invalid host key verification method: '%s'"
 msgstr "Недопустимый метод проверки ключа хоста: «%s»"
 
-#: src/rpc/virnetsocket.c:958
+#: src/rpc/virnetsocket.c:972
 #, c-format
 msgid "Invalid authentication method: '%s'"
 msgstr "Недопустимый метод аутентификации:  «%s»"
 
-#: src/rpc/virnetsocket.c:1004
+#: src/rpc/virnetsocket.c:1018
 msgid "libssh2 transport support was not enabled"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1051
+#: src/rpc/virnetsocket.c:1065
 msgid "Missing fd data in JSON document"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1057
+#: src/rpc/virnetsocket.c:1071
 msgid "Missing pid data in JSON document"
 msgstr "Документ JSON не содержит PID"
 
-#: src/rpc/virnetsocket.c:1063
+#: src/rpc/virnetsocket.c:1077
 msgid "Missing errfd data in JSON document"
 msgstr "Документ JSON не содержит данных errfd"
 
-#: src/rpc/virnetsocket.c:1068
+#: src/rpc/virnetsocket.c:1082
 msgid "Missing isClient data in JSON document"
 msgstr "Документ JSON не содержит данных isClient"
 
-#: src/rpc/virnetsocket.c:1077
+#: src/rpc/virnetsocket.c:1091
 msgid "Unable to get peer socket name"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1101
+#: src/rpc/virnetsocket.c:1115
 msgid "Unable to save socket state when SASL session is active"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1108
+#: src/rpc/virnetsocket.c:1122
 msgid "Unable to save socket state when TLS session is active"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1130
+#: src/rpc/virnetsocket.c:1144
 #, c-format
 msgid "Cannot disable close-on-exec flag on socket %d"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1137
+#: src/rpc/virnetsocket.c:1151
 #, c-format
 msgid "Cannot disable close-on-exec flag on pipe %d"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1216
+#: src/rpc/virnetsocket.c:1230
 msgid "Unable to copy socket file handle"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1274 src/rpc/virnetsocket.c:1328
+#: src/rpc/virnetsocket.c:1288 src/rpc/virnetsocket.c:1342
 msgid "Failed to get client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1334
+#: src/rpc/virnetsocket.c:1348
 msgid "Failed to get valid client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1340
+#: src/rpc/virnetsocket.c:1354
 msgid "Failed to get valid client socket identity groups"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1368
+#: src/rpc/virnetsocket.c:1382
 msgid "Failed to get client socket PID"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1389
+#: src/rpc/virnetsocket.c:1403
 msgid "Client socket identity not available"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1410
+#: src/rpc/virnetsocket.c:1424
 msgid "Unable to query peer security context"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1588
+#: src/rpc/virnetsocket.c:1602
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1591
+#: src/rpc/virnetsocket.c:1605
 msgid "Cannot recv data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1596
+#: src/rpc/virnetsocket.c:1610
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr "Достигнут конец файла при чтении данных: %s"
 
-#: src/rpc/virnetsocket.c:1599
+#: src/rpc/virnetsocket.c:1613
 msgid "End of file while reading data"
 msgstr "Достигнут конец файла при чтении данных"
 
-#: src/rpc/virnetsocket.c:1636
+#: src/rpc/virnetsocket.c:1650
 msgid "Cannot write data"
 msgstr "Ошибка записи данных"
 
-#: src/rpc/virnetsocket.c:1641
+#: src/rpc/virnetsocket.c:1655
 msgid "End of file while writing data"
 msgstr "Достигнут конец файла при записи данных"
 
-#: src/rpc/virnetsocket.c:1784
+#: src/rpc/virnetsocket.c:1798
 msgid "Sending file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1795
+#: src/rpc/virnetsocket.c:1809
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "Не удалось отправить дескриптор %d"
 
-#: src/rpc/virnetsocket.c:1818
+#: src/rpc/virnetsocket.c:1832
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1828
+#: src/rpc/virnetsocket.c:1842
 msgid "Failed to recv file descriptor"
 msgstr "Не удалось получить файловый дескриптор"
 
-#: src/rpc/virnetsocket.c:1845
+#: src/rpc/virnetsocket.c:1859
 msgid "Unable to listen on socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1876
+#: src/rpc/virnetsocket.c:1890
 msgid "Unable to accept client"
 msgstr ""
 
@@ -22747,7 +22763,7 @@ msgstr ""
 msgid "Missing privateData field in JSON state document"
 msgstr ""
 
-#: src/rpc/virnetserverclient.c:1046 src/rpc/virnetserverclient.c:1226
+#: src/rpc/virnetserverclient.c:1046 src/rpc/virnetserverclient.c:1228
 #, c-format
 msgid "unexpected zero/negative length request %lld"
 msgstr ""
@@ -23864,7 +23880,7 @@ msgstr "не удалось выполнить запись в профиль"
 msgid "failed to close or write to profile"
 msgstr "не удалось выполнить запись или закрыть профиль"
 
-#: src/security/virt-aa-helper.c:351 src/security/virt-aa-helper.c:1353
+#: src/security/virt-aa-helper.c:351 src/security/virt-aa-helper.c:1356
 msgid "profile exists"
 msgstr "профиль существует"
 
@@ -23932,8 +23948,8 @@ msgstr ""
 #: src/security/virt-aa-helper.c:724 src/security/virt-aa-helper.c:745
 #: src/security/virt-aa-helper.c:760 src/security/virt-aa-helper.c:868
 #: src/security/virt-aa-helper.c:877 src/security/virt-aa-helper.c:953
-#: src/security/virt-aa-helper.c:1335 src/security/virt-aa-helper.c:1339
-#: src/security/virt-aa-helper.c:1405
+#: src/security/virt-aa-helper.c:1338 src/security/virt-aa-helper.c:1342
+#: src/security/virt-aa-helper.c:1408
 msgid "could not allocate memory"
 msgstr "Не удалось выделить память"
 
@@ -23978,59 +23994,59 @@ msgstr ""
 msgid "given uuid does not match XML uuid"
 msgstr "UUID не соответствует UUID XML"
 
-#: src/security/virt-aa-helper.c:1173
+#: src/security/virt-aa-helper.c:1176
 msgid "failed to allocate file buffer"
 msgstr "не удалось выделить файловый буфер"
 
-#: src/security/virt-aa-helper.c:1222
+#: src/security/virt-aa-helper.c:1225
 msgid "could not allocate memory for disk"
 msgstr "не удалось выделить память для диска"
 
-#: src/security/virt-aa-helper.c:1237 src/security/virt-aa-helper.c:1257
+#: src/security/virt-aa-helper.c:1240 src/security/virt-aa-helper.c:1260
 msgid "invalid UUID"
 msgstr "недопустимый UUID"
 
-#: src/security/virt-aa-helper.c:1240
+#: src/security/virt-aa-helper.c:1243
 msgid "error copying UUID"
 msgstr "ошибка при копировании UUID"
 
-#: src/security/virt-aa-helper.c:1249
+#: src/security/virt-aa-helper.c:1252
 msgid "unsupported option"
 msgstr "параметр не поддерживается"
 
-#: src/security/virt-aa-helper.c:1254
+#: src/security/virt-aa-helper.c:1257
 msgid "bad command"
 msgstr "неверная команда"
 
-#: src/security/virt-aa-helper.c:1267
+#: src/security/virt-aa-helper.c:1270
 msgid "could not read xml file"
 msgstr "ошибка чтения файла XML"
 
-#: src/security/virt-aa-helper.c:1271
+#: src/security/virt-aa-helper.c:1274
 msgid "could not get VM definition"
 msgstr "Не удалось получить определение виртуальной машины"
 
-#: src/security/virt-aa-helper.c:1276
+#: src/security/virt-aa-helper.c:1279
 msgid "invalid VM definition"
 msgstr "недопустимое определение виртуальной машины"
 
-#: src/security/virt-aa-helper.c:1317
+#: src/security/virt-aa-helper.c:1320
 msgid "could not set PATH"
 msgstr "не удалось установить PATH"
 
-#: src/security/virt-aa-helper.c:1321
+#: src/security/virt-aa-helper.c:1324
 msgid "could not set IFS"
 msgstr "не удалось установить IFS"
 
-#: src/security/virt-aa-helper.c:1331
+#: src/security/virt-aa-helper.c:1334
 msgid "could not parse arguments"
 msgstr "не удалось обработать аргументы"
 
-#: src/security/virt-aa-helper.c:1381
+#: src/security/virt-aa-helper.c:1384
 msgid "failed to allocate buffer"
 msgstr "не удалось выделить буфер"
 
-#: src/security/virt-aa-helper.c:1416
+#: src/security/virt-aa-helper.c:1419
 msgid "could not create profile"
 msgstr "не удалось создать профиль"
 
@@ -25972,7 +25988,7 @@ msgstr "Требуется как минимум один контроллер c
 msgid "Could not find placement for controller %s at %s"
 msgstr "На удалось определить размещение контроллера %s в %s"
 
-#: src/util/vircgroup.c:716 src/util/vircgroup.c:2998 src/util/vircgroup.c:3092
+#: src/util/vircgroup.c:716 src/util/vircgroup.c:3020 src/util/vircgroup.c:3114
 #, c-format
 msgid "Path '%s' is not accessible"
 msgstr "Путь «%s»  недоступен"
@@ -25997,9 +26013,9 @@ msgstr "Ошибка записи в «%s»"
 msgid "Unable to read from '%s'"
 msgstr "Ошибка чтения из «%s»"
 
-#: src/util/vircgroup.c:893 src/util/vircgroup.c:920 src/util/vircgroup.c:2327
-#: src/util/vircgroup.c:2365 src/util/vircgroup.c:2403
-#: src/util/vircgroup.c:2441 src/util/vircgroup.c:2479
+#: src/util/vircgroup.c:893 src/util/vircgroup.c:920 src/util/vircgroup.c:2349
+#: src/util/vircgroup.c:2387 src/util/vircgroup.c:2425
+#: src/util/vircgroup.c:2463 src/util/vircgroup.c:2501
 #, c-format
 msgid "Unable to parse '%s' as an integer"
 msgstr "Не удалось обработать «%s» как целое число"
@@ -26034,203 +26050,203 @@ msgstr "Путь к разделу «%s» должен начинаться с �
 msgid "unexpected name value %d"
 msgstr "недопустимое значение «rombar»: %d"
 
-#: src/util/vircgroup.c:1852
+#: src/util/vircgroup.c:1874
 msgid "No controllers are mounted"
 msgstr "Нет подключенных контроллеров"
 
-#: src/util/vircgroup.c:1858
+#: src/util/vircgroup.c:1880
 #, c-format
 msgid "Controller '%s' is not mounted"
 msgstr "Контроллер «%s» не смонтирован"
 
-#: src/util/vircgroup.c:1865
+#: src/util/vircgroup.c:1887
 #, c-format
 msgid "Controller '%s' is not enabled for group"
 msgstr "Контроллер «%s» для этой группы не выбран"
 
-#: src/util/vircgroup.c:1940
+#: src/util/vircgroup.c:1962
 #, c-format
 msgid "Cannot parse byte %sstat '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:1950
+#: src/util/vircgroup.c:1972
 #, c-format
 msgid "Sum of byte %sstat overflows"
 msgstr ""
 
-#: src/util/vircgroup.c:1961
+#: src/util/vircgroup.c:1983
 #, c-format
 msgid "Cannot parse %srequest stat '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:1971
+#: src/util/vircgroup.c:1993
 #, c-format
 msgid "Sum of %srequest stat overflows"
 msgstr ""
 
-#: src/util/vircgroup.c:2040
+#: src/util/vircgroup.c:2062
 #, c-format
 msgid "Cannot find byte stats for block device '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:2047
+#: src/util/vircgroup.c:2069
 #, c-format
 msgid "Cannot find request stats for block device '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:2055
+#: src/util/vircgroup.c:2077
 #, c-format
 msgid "Cannot find byte %sstats for block device '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:2062 src/util/vircgroup.c:2076
+#: src/util/vircgroup.c:2084 src/util/vircgroup.c:2098
 #, c-format
 msgid "Cannot parse %sstat '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:2069
+#: src/util/vircgroup.c:2091
 #, c-format
 msgid "Cannot find request %sstats for block device '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:2506 src/util/vircgroup.c:2605
-#: src/util/vircgroup.c:2667
+#: src/util/vircgroup.c:2528 src/util/vircgroup.c:2627
+#: src/util/vircgroup.c:2689
 #, c-format
 msgid "Memory '%llu' must be less than %llu"
 msgstr "Размер памяти «%llu» должен быть меньше %llu"
 
-#: src/util/vircgroup.c:3152 src/util/vircgroup.c:3231
+#: src/util/vircgroup.c:3174 src/util/vircgroup.c:3253
 msgid "cpuacct parse error"
 msgstr "ошибка разбора cpuacct"
 
-#: src/util/vircgroup.c:3210
+#: src/util/vircgroup.c:3232
 #, c-format
 msgid "start_cpu %d larger than maximum of %d"
 msgstr "start_cpu %d превышает допустимый максимум: %d"
 
-#: src/util/vircgroup.c:3286 src/util/vircgroup.c:3300
+#: src/util/vircgroup.c:3308 src/util/vircgroup.c:3322
 msgid "unable to get cpu account"
 msgstr "не удалось получить учетную запись процессора"
 
-#: src/util/vircgroup.c:3356
+#: src/util/vircgroup.c:3378
 #, c-format
 msgid "cfs_period '%llu' must be in range (1000, 1000000)"
 msgstr "cfs_period  «%llu» должен быть в пределах диапазона (1000, 1000000)"
 
-#: src/util/vircgroup.c:3401
+#: src/util/vircgroup.c:3423
 #, c-format
 msgid "cfs_quota '%lld' must be in range (1000, %llu)"
 msgstr "cfs_quota  «%lld» должна быть в пределах диапазона (1000, %llu)"
 
-#: src/util/vircgroup.c:3433
+#: src/util/vircgroup.c:3455
 #, c-format
 msgid "Unable to open %s (%d)"
 msgstr "Не удалось открыть %s (%d)"
 
-#: src/util/vircgroup.c:3456
+#: src/util/vircgroup.c:3478
 #, c-format
 msgid "Failed to readdir for %s (%d)"
 msgstr "Не удалось прочитать каталог %s (%d)"
 
-#: src/util/vircgroup.c:3464
+#: src/util/vircgroup.c:3486
 #, c-format
 msgid "Unable to remove %s (%d)"
 msgstr "Не удалось удалить %s (%d)"
 
-#: src/util/vircgroup.c:3551 src/util/vircgroup.c:3561 src/util/virfile.c:1846
+#: src/util/vircgroup.c:3573 src/util/vircgroup.c:3583 src/util/virfile.c:1846
 #, c-format
 msgid "Failed to read %s"
 msgstr "Ошибка чтения %s"
 
-#: src/util/vircgroup.c:3573
+#: src/util/vircgroup.c:3595
 #, c-format
 msgid "Failed to kill process %lu"
 msgstr "Не удалось остановить процесс %lu"
 
-#: src/util/vircgroup.c:3786
+#: src/util/vircgroup.c:3808
 #, c-format
 msgid "Could not find directory separator in %s"
 msgstr "Не удалось найти разделитель каталогов в %s"
 
-#: src/util/vircgroup.c:3798
+#: src/util/vircgroup.c:3820
 msgid "Could not find any mounted controllers"
 msgstr "Нет смонтированных контроллеров"
 
-#: src/util/vircgroup.c:3846
+#: src/util/vircgroup.c:3868
 #, c-format
 msgid "Cannot parse user stat '%s'"
 msgstr "Не удалось обработать статистику пользователя «%s»"
 
-#: src/util/vircgroup.c:3853
+#: src/util/vircgroup.c:3875
 #, c-format
 msgid "Cannot parse sys stat '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:3864
+#: src/util/vircgroup.c:3886
 msgid "Cannot determine system clock HZ"
 msgstr "Не удалось определить частоту системных часов"
 
-#: src/util/vircgroup.c:3913 src/util/vircgroup.c:3945
+#: src/util/vircgroup.c:3935 src/util/vircgroup.c:3967
 #, c-format
 msgid "Unable to create directory %s"
 msgstr "Не удалось создать каталог %s"
 
-#: src/util/vircgroup.c:3924
+#: src/util/vircgroup.c:3946
 #, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "Не удалось смонтировать %s в %s (тип %s)"
 
-#: src/util/vircgroup.c:3954
+#: src/util/vircgroup.c:3976
 #, c-format
 msgid "Failed to bind cgroup '%s' on '%s'"
 msgstr "Не удалось привязать cgroup «%s» к %s"
 
-#: src/util/vircgroup.c:3970
+#: src/util/vircgroup.c:3992
 #, c-format
 msgid "Unable to symlink directory %s to %s"
 msgstr "Не удалось создать символьную ссылку для %s в %s"
 
-#: src/util/vircgroup.c:4012
+#: src/util/vircgroup.c:4034
 #, c-format
 msgid "Unable to open dir '%s'"
 msgstr ""
 
-#: src/util/vircgroup.c:4135 src/util/vircgroup.c:4147
-#: src/util/vircgroup.c:4156 src/util/vircgroup.c:4169
-#: src/util/vircgroup.c:4182 src/util/vircgroup.c:4193
-#: src/util/vircgroup.c:4206 src/util/vircgroup.c:4216
-#: src/util/vircgroup.c:4236 src/util/vircgroup.c:4253
-#: src/util/vircgroup.c:4272 src/util/vircgroup.c:4282
-#: src/util/vircgroup.c:4293 src/util/vircgroup.c:4303
-#: src/util/vircgroup.c:4316 src/util/vircgroup.c:4330
-#: src/util/vircgroup.c:4340 src/util/vircgroup.c:4350
-#: src/util/vircgroup.c:4361 src/util/vircgroup.c:4371
-#: src/util/vircgroup.c:4381 src/util/vircgroup.c:4391
-#: src/util/vircgroup.c:4401 src/util/vircgroup.c:4411
-#: src/util/vircgroup.c:4421 src/util/vircgroup.c:4431
-#: src/util/vircgroup.c:4441 src/util/vircgroup.c:4451
-#: src/util/vircgroup.c:4460 src/util/vircgroup.c:4470
-#: src/util/vircgroup.c:4480 src/util/vircgroup.c:4490
-#: src/util/vircgroup.c:4500 src/util/vircgroup.c:4510
-#: src/util/vircgroup.c:4520 src/util/vircgroup.c:4530
-#: src/util/vircgroup.c:4540 src/util/vircgroup.c:4550
-#: src/util/vircgroup.c:4560 src/util/vircgroup.c:4570
-#: src/util/vircgroup.c:4580 src/util/vircgroup.c:4590
-#: src/util/vircgroup.c:4600 src/util/vircgroup.c:4609
-#: src/util/vircgroup.c:4617 src/util/vircgroup.c:4630
-#: src/util/vircgroup.c:4642 src/util/vircgroup.c:4653
-#: src/util/vircgroup.c:4666 src/util/vircgroup.c:4678
-#: src/util/vircgroup.c:4689 src/util/vircgroup.c:4699
-#: src/util/vircgroup.c:4709 src/util/vircgroup.c:4719
-#: src/util/vircgroup.c:4729 src/util/vircgroup.c:4739
-#: src/util/vircgroup.c:4748 src/util/vircgroup.c:4757
-#: src/util/vircgroup.c:4767 src/util/vircgroup.c:4777
-#: src/util/vircgroup.c:4786 src/util/vircgroup.c:4796
-#: src/util/vircgroup.c:4806 src/util/vircgroup.c:4816
-#: src/util/vircgroup.c:4827 src/util/vircgroup.c:4838
-#: src/util/vircgroup.c:4848 src/util/vircgroup.c:4858
-#: src/util/vircgroup.c:4869 src/util/vircgroup.c:4891
-#: src/util/vircgroup.c:4903 src/util/vircgroup.c:4912
+#: src/util/vircgroup.c:4157 src/util/vircgroup.c:4169
+#: src/util/vircgroup.c:4178 src/util/vircgroup.c:4191
+#: src/util/vircgroup.c:4204 src/util/vircgroup.c:4215
+#: src/util/vircgroup.c:4228 src/util/vircgroup.c:4238
+#: src/util/vircgroup.c:4258 src/util/vircgroup.c:4275
+#: src/util/vircgroup.c:4294 src/util/vircgroup.c:4304
+#: src/util/vircgroup.c:4315 src/util/vircgroup.c:4325
+#: src/util/vircgroup.c:4338 src/util/vircgroup.c:4352
+#: src/util/vircgroup.c:4362 src/util/vircgroup.c:4372
+#: src/util/vircgroup.c:4383 src/util/vircgroup.c:4393
+#: src/util/vircgroup.c:4403 src/util/vircgroup.c:4413
+#: src/util/vircgroup.c:4423 src/util/vircgroup.c:4433
+#: src/util/vircgroup.c:4443 src/util/vircgroup.c:4453
+#: src/util/vircgroup.c:4463 src/util/vircgroup.c:4473
+#: src/util/vircgroup.c:4482 src/util/vircgroup.c:4492
+#: src/util/vircgroup.c:4502 src/util/vircgroup.c:4512
+#: src/util/vircgroup.c:4522 src/util/vircgroup.c:4532
+#: src/util/vircgroup.c:4542 src/util/vircgroup.c:4552
+#: src/util/vircgroup.c:4562 src/util/vircgroup.c:4572
+#: src/util/vircgroup.c:4582 src/util/vircgroup.c:4592
+#: src/util/vircgroup.c:4602 src/util/vircgroup.c:4612
+#: src/util/vircgroup.c:4622 src/util/vircgroup.c:4631
+#: src/util/vircgroup.c:4639 src/util/vircgroup.c:4652
+#: src/util/vircgroup.c:4664 src/util/vircgroup.c:4675
+#: src/util/vircgroup.c:4688 src/util/vircgroup.c:4700
+#: src/util/vircgroup.c:4711 src/util/vircgroup.c:4721
+#: src/util/vircgroup.c:4731 src/util/vircgroup.c:4741
+#: src/util/vircgroup.c:4751 src/util/vircgroup.c:4761
+#: src/util/vircgroup.c:4770 src/util/vircgroup.c:4779
+#: src/util/vircgroup.c:4789 src/util/vircgroup.c:4799
+#: src/util/vircgroup.c:4808 src/util/vircgroup.c:4818
+#: src/util/vircgroup.c:4828 src/util/vircgroup.c:4838
+#: src/util/vircgroup.c:4849 src/util/vircgroup.c:4860
+#: src/util/vircgroup.c:4870 src/util/vircgroup.c:4880
+#: src/util/vircgroup.c:4891 src/util/vircgroup.c:4913
+#: src/util/vircgroup.c:4925 src/util/vircgroup.c:4934
 msgid "Control groups not supported on this platform"
 msgstr "Платформа не поддерживает контрольные группы"
 
@@ -30619,8 +30635,8 @@ msgstr ""
 "не удалось подключить файл как жесткий диск, dvd или дисковод: %s, rc=%08x"
 
 #: src/vbox/vbox_common.c:1322 src/xenconfig/xen_common.c:1148
-#: src/xenconfig/xen_common.c:1163 src/xenconfig/xen_sxpr.c:1873
-#: src/xenconfig/xen_sxpr.c:1914
+#: src/xenconfig/xen_common.c:1163 src/xenconfig/xen_sxpr.c:1883
+#: src/xenconfig/xen_sxpr.c:1924
 #, fuzzy
 msgid "Driver does not support setting multiple IP addresses"
 msgstr "QEMU не поддерживает отправку дескрипторов файлов: %s"
@@ -32943,28 +32959,28 @@ msgstr "Слишком большой IP-адрес %s для цели"
 msgid "rate %s too big for destination"
 msgstr "Слишком большой параметр %s для цели"
 
-#: src/xenconfig/xen_common.c:919 src/xenconfig/xen_sxpr.c:637
+#: src/xenconfig/xen_common.c:919 src/xenconfig/xen_sxpr.c:647
 #, c-format
 msgid "malformed mac address '%s'"
 msgstr "неверно сформированный MAC-адрес «%s»"
 
-#: src/xenconfig/xen_common.c:1181 src/xenconfig/xen_sxpr.c:1894
+#: src/xenconfig/xen_common.c:1181 src/xenconfig/xen_sxpr.c:1904
 #, c-format
 msgid "network %s is not active"
 msgstr "сеть %s не активна"
 
-#: src/xenconfig/xen_common.c:1193 src/xenconfig/xen_sxpr.c:1838
+#: src/xenconfig/xen_common.c:1193 src/xenconfig/xen_sxpr.c:1848
 #, c-format
 msgid "unsupported network type %d"
 msgstr "тип сети %d не поддерживается"
 
 #: src/xenconfig/xen_common.c:1356 src/xenconfig/xen_common.c:1365
-#: src/xenconfig/xen_sxpr.c:2408 src/xenconfig/xen_sxpr.c:2417
+#: src/xenconfig/xen_sxpr.c:2418 src/xenconfig/xen_sxpr.c:2427
 msgid "unsupported clock adjustment='reset'"
 msgstr "недопустимая коррекция часов: «reset»"
 
 #: src/xenconfig/xen_common.c:1373 src/xenconfig/xen_common.c:1390
-#: src/xenconfig/xen_sxpr.c:2425 src/xenconfig/xen_sxpr.c:2441
+#: src/xenconfig/xen_sxpr.c:2435 src/xenconfig/xen_sxpr.c:2451
 #, c-format
 msgid "unsupported clock offset='%s'"
 msgstr "недопустимое смещение часов: «%s»"
@@ -32993,138 +33009,143 @@ msgstr "неизвестный тип символьного устройств�
 msgid "malformed char device string"
 msgstr "неверно сформированная строка символьного устройства"
 
-#: src/xenconfig/xen_sxpr.c:342
+#: src/xenconfig/xen_sxpr.c:345
+#, fuzzy, c-format
+msgid "Failed to compile regular expression '%s': %s"
+msgstr "Не удалось выполнить компиляцию регулярного выражения %s"
+
+#: src/xenconfig/xen_sxpr.c:352
 #, fuzzy, c-format
 msgid "Invalid rate '%s' specified"
 msgstr "Недопустимый относительный путь: «%s»"
 
-#: src/xenconfig/xen_sxpr.c:348
+#: src/xenconfig/xen_sxpr.c:358
 #, fuzzy, c-format
 msgid "Failed to parse rate '%s'"
 msgstr "Не удалось разобрать имя каталога «%s»"
 
-#: src/xenconfig/xen_sxpr.c:425
+#: src/xenconfig/xen_sxpr.c:435
 msgid "domain information incomplete, vbd has no dev"
 msgstr "неполное описание домена, нет устройства для vbd"
 
-#: src/xenconfig/xen_sxpr.c:436
+#: src/xenconfig/xen_sxpr.c:446
 msgid "domain information incomplete, vbd has no src"
 msgstr "неполное описание домена, нет источника для vbd"
 
-#: src/xenconfig/xen_sxpr.c:445
+#: src/xenconfig/xen_sxpr.c:455
 msgid "cannot parse vbd filename, missing driver name"
 msgstr "ошибка разбора имени файла vbd, отсутствует имя драйвера"
 
-#: src/xenconfig/xen_sxpr.c:473
+#: src/xenconfig/xen_sxpr.c:483
 msgid "cannot parse vbd filename, missing driver type"
 msgstr "ошибка разбора имени файла vbd, отсутствует тип драйвера"
 
-#: src/xenconfig/xen_sxpr.c:487 src/xenconfig/xen_xm.c:216
+#: src/xenconfig/xen_sxpr.c:497 src/xenconfig/xen_xm.c:216
 #, c-format
 msgid "Unknown driver type %s"
 msgstr "Неизвестный тип драйвера: %s"
 
-#: src/xenconfig/xen_sxpr.c:738
+#: src/xenconfig/xen_sxpr.c:748
 #, c-format
 msgid "Sound model %s too big for destination"
 msgstr "Слишком большой размер модели аудио %s для цели"
 
-#: src/xenconfig/xen_sxpr.c:942
+#: src/xenconfig/xen_sxpr.c:952
 #, c-format
 msgid "unknown graphics type '%s'"
 msgstr "неизвестный тип видео «%s»"
 
-#: src/xenconfig/xen_sxpr.c:1061
+#: src/xenconfig/xen_sxpr.c:1071
 msgid "missing PCI domain"
 msgstr "отсутствует домен PCI"
 
-#: src/xenconfig/xen_sxpr.c:1066
+#: src/xenconfig/xen_sxpr.c:1076
 msgid "missing PCI bus"
 msgstr "отсутствует шина PCI"
 
-#: src/xenconfig/xen_sxpr.c:1071
+#: src/xenconfig/xen_sxpr.c:1081
 msgid "missing PCI slot"
 msgstr "отсутствует слот PCI"
 
-#: src/xenconfig/xen_sxpr.c:1076
+#: src/xenconfig/xen_sxpr.c:1086
 msgid "missing PCI func"
 msgstr "отсутствует функция PCI"
 
-#: src/xenconfig/xen_sxpr.c:1082
+#: src/xenconfig/xen_sxpr.c:1092
 #, c-format
 msgid "cannot parse PCI domain '%s'"
 msgstr "не удалось разобрать PCI-домен «%s»"
 
-#: src/xenconfig/xen_sxpr.c:1087
+#: src/xenconfig/xen_sxpr.c:1097
 #, c-format
 msgid "cannot parse PCI bus '%s'"
 msgstr "не удалось разобрать PCI-шину «%s»"
 
-#: src/xenconfig/xen_sxpr.c:1092
+#: src/xenconfig/xen_sxpr.c:1102
 #, c-format
 msgid "cannot parse PCI slot '%s'"
 msgstr "не удалось разобрать PCI-слот «%s»"
 
-#: src/xenconfig/xen_sxpr.c:1097
+#: src/xenconfig/xen_sxpr.c:1107
 #, c-format
 msgid "cannot parse PCI func '%s'"
 msgstr "не удалось разобрать PCI-функцию «%s»"
 
-#: src/xenconfig/xen_sxpr.c:1164 src/xenconfig/xen_sxpr.c:1171
+#: src/xenconfig/xen_sxpr.c:1174 src/xenconfig/xen_sxpr.c:1181
 msgid "domain information incomplete, missing name"
 msgstr "неполное описание домена, отсутствует имя"
 
-#: src/xenconfig/xen_sxpr.c:1219
+#: src/xenconfig/xen_sxpr.c:1229
 #, fuzzy, c-format
 msgid "Invalid value of 'cpumask': %s"
 msgstr "Недопустимое значение «cpuNum»."
 
-#: src/xenconfig/xen_sxpr.c:1239 src/xenconfig/xen_sxpr.c:1250
-#: src/xenconfig/xen_sxpr.c:1261
+#: src/xenconfig/xen_sxpr.c:1249 src/xenconfig/xen_sxpr.c:1260
+#: src/xenconfig/xen_sxpr.c:1271
 #, c-format
 msgid "unknown lifecycle type %s"
 msgstr "неизвестный тип жизненного цикла %s"
 
-#: src/xenconfig/xen_sxpr.c:1290 src/xenconfig/xen_sxpr.c:1322
+#: src/xenconfig/xen_sxpr.c:1300 src/xenconfig/xen_sxpr.c:1332
 #, c-format
 msgid "unknown localtime offset %s"
 msgstr ""
 
-#: src/xenconfig/xen_sxpr.c:1519 src/xenconfig/xen_sxpr.c:1575
+#: src/xenconfig/xen_sxpr.c:1529 src/xenconfig/xen_sxpr.c:1585
 #, c-format
 msgid "unexpected graphics type %d"
 msgstr "непредвиденный тип видео: %d"
 
-#: src/xenconfig/xen_sxpr.c:1626
+#: src/xenconfig/xen_sxpr.c:1636
 msgid "unexpected chr device type"
 msgstr "непредвиденный тип символьного устройства"
 
-#: src/xenconfig/xen_sxpr.c:1682
+#: src/xenconfig/xen_sxpr.c:1692
 #, c-format
 msgid "unsupported chr device type '%s'"
 msgstr "Тип символьного устройства «%s» не поддерживается"
 
-#: src/xenconfig/xen_sxpr.c:1720
+#: src/xenconfig/xen_sxpr.c:1730
 #, c-format
 msgid "Cannot directly attach floppy %s"
 msgstr "Не удалось напрямую подключить дисковод %s"
 
-#: src/xenconfig/xen_sxpr.c:1782 src/xenconfig/xen_xm.c:312
+#: src/xenconfig/xen_sxpr.c:1792 src/xenconfig/xen_xm.c:312
 #, c-format
 msgid "unsupported disk type %s"
 msgstr "тип диска %s не поддерживается"
 
-#: src/xenconfig/xen_sxpr.c:1995 src/xenconfig/xen_sxpr.c:2055
+#: src/xenconfig/xen_sxpr.c:2005 src/xenconfig/xen_sxpr.c:2065
 msgid "managed PCI devices not supported with XenD"
 msgstr "XenD не поддерживает управляемые PCI-устройства"
 
-#: src/xenconfig/xen_sxpr.c:2208 src/xenconfig/xen_sxpr.c:2215
-#: src/xenconfig/xen_sxpr.c:2222
+#: src/xenconfig/xen_sxpr.c:2218 src/xenconfig/xen_sxpr.c:2225
+#: src/xenconfig/xen_sxpr.c:2232
 #, c-format
 msgid "unexpected lifecycle value %d"
 msgstr "непредвиденное значение жизненного цикла %d"
 
-#: src/xenconfig/xen_sxpr.c:2240
+#: src/xenconfig/xen_sxpr.c:2250
 msgid "no HVM domain loader"
 msgstr "нет загрузчика домена HVM"
 
@@ -37092,7 +37113,7 @@ msgid "LXC Guest Enter Namespace"
 msgstr ""
 
 #: tools/virsh-domain.c:9069
-msgid "Run an arbitrary lxc guest enter namespace; use at your own risk"
+msgid "Run an arbitrary command in a lxc guest namespace; use at your own risk"
 msgstr ""
 
 #: tools/virsh-domain.c:9078
@@ -37100,8 +37121,9 @@ msgid "Do not change process security label"
 msgstr "Не изменять метку безопасности процесса"
 
 #: tools/virsh-domain.c:9083
-msgid "namespace"
-msgstr ""
+#, fuzzy
+msgid "command to run"
+msgstr "команда"
 
 #: tools/virsh-domain.c:9114 tools/virsh-domain.c:9120
 #, c-format

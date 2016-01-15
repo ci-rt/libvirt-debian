@@ -6,6 +6,7 @@
 
 #include "log_protocol.h"
 #include "internal.h"
+#include "virxdrdefs.h"
 
 bool_t
 xdr_virLogManagerProtocolUUID (XDR *xdrs, virLogManagerProtocolUUID objp)

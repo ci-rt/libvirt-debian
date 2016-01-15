@@ -1753,6 +1753,7 @@ mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
+plugindir = @plugindir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
@@ -1765,7 +1766,6 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-ws_plugindir = @ws_plugindir@
 
 # The directory containing the source code (if it contains documentation).
 DOC_SOURCE_DIR = ../src
@@ -1892,7 +1892,7 @@ fig = \
   migration-unmanaged-direct.fig
 
 schemadir = $(pkgdatadir)/schemas
-schema_DATA = $(wildcard schemas/*.rng)
+schema_DATA = $(wildcard $(srcdir)/schemas/*.rng)
 EXTRA_DIST = apibuild.py genaclperms.pl site.xsl newapi.xsl news.xsl \
 	page.xsl hacking1.xsl hacking2.xsl wrapstring.xsl $(dot_html) \
 	$(dot_html_in) $(gif) $(apihtml) $(apipng) $(devhelphtml) \
