@@ -39,7 +39,7 @@ index 88e08d2..bfbc8c9 100644
    </define>
  
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 6626bb5..069dc43 100644
+index 5ad5ad6..85f19af 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
 @@ -2144,11 +2144,9 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,

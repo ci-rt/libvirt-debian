@@ -23,7 +23,7 @@ index aa5ab69..0507a48 100644
  
  uninstall-local:: uninstall-init uninstall-systemd
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 835215b..253ccfd 100644
+index 9204224..c1a9529 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
 @@ -10849,9 +10849,6 @@ install-data-local: install-init install-systemd
