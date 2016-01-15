@@ -957,7 +957,7 @@ WITH_YAJL2_TRUE
 WITH_YAJL_FALSE
 WITH_YAJL_TRUE
 QEMU
-ws_plugindir
+plugindir
 WITH_WIRESHARK_DISSECTOR_FALSE
 WITH_WIRESHARK_DISSECTOR_TRUE
 WIRESHARK_DISSECTOR_LIBS
@@ -60325,14 +60325,14 @@ fi
 
     if test "x$with_wireshark_dissector" != "xno" ; then
     if test "x$with_ws_plugindir" = "xcheck" ; then
-      ws_plugindir="$($PKG_CONFIG --variable plugindir wireshark)"
+      plugindir="$($PKG_CONFIG --variable plugindir wireshark)"
       if test "x$ws_plugindir" = "x" ; then
-                        ws_plugindir="$libdir/wireshark/plugins/$($PKG_CONFIG --modversion wireshark)"
+                        plugindir="$libdir/wireshark/plugins/$($PKG_CONFIG --modversion wireshark)"
       fi
     elif test "x$with_ws_plugindir" = "xno" || test "x$with_ws_plugindir" = "xyes"; then
       as_fn_error $? "ws-plugindir must be used only with valid path" "$LINENO" 5
     else
-      ws_plugindir=$with_ws_plugindir
+      plugindir=$with_ws_plugindir
     fi
   fi
 
@@ -70713,7 +70713,7 @@ _ACEOF
 
 ac_config_files="$ac_config_files run"
 
-ac_config_files="$ac_config_files Makefile src/Makefile include/Makefile docs/Makefile gnulib/lib/Makefile gnulib/tests/Makefile libvirt.pc libvirt-qemu.pc libvirt-lxc.pc libvirt-admin.pc src/libvirt.pc src/libvirt-qemu.pc src/libvirt-lxc.pc libvirt.spec mingw-libvirt.spec po/Makefile.in include/libvirt/libvirt-common.h daemon/Makefile examples/Makefile tests/Makefile tools/Makefile tools/wireshark/Makefile tools/wireshark/src/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile include/Makefile docs/Makefile gnulib/lib/Makefile gnulib/tests/Makefile libvirt.pc libvirt-qemu.pc libvirt-lxc.pc libvirt-admin.pc src/libvirt.pc src/libvirt-qemu.pc src/libvirt-lxc.pc libvirt.spec mingw-libvirt.spec po/Makefile.in include/libvirt/libvirt-common.h daemon/Makefile examples/Makefile tests/Makefile tools/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -72268,8 +72268,6 @@ do
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "tests/Makefile") CONFIG_FILES="$CONFIG_FILES tests/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
-    "tools/wireshark/Makefile") CONFIG_FILES="$CONFIG_FILES tools/wireshark/Makefile" ;;
-    "tools/wireshark/src/Makefile") CONFIG_FILES="$CONFIG_FILES tools/wireshark/src/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
