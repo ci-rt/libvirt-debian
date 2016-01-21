@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.2.13\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2016-01-15 08:58+0800\n"
+"POT-Creation-Date: 2016-01-17 10:28+0800\n"
 "PO-Revision-Date: 2014-10-28 11:16-0400\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Panjabi (Punjabi) (http://www.transifex.com/projects/p/"
@@ -15383,154 +15383,154 @@ msgstr "QEMU ਏਜੰਟ ਕਮਾਂਡ '%s' ਨੂੰ ਚਲਾਉਣ ਤੋ�
 msgid "Guest agent disappeared while executing command"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1321 src/qemu/qemu_agent.c:1359
-#: src/qemu/qemu_agent.c:1583 src/qemu/qemu_agent.c:1692
+#: src/qemu/qemu_agent.c:1322 src/qemu/qemu_agent.c:1360
+#: src/qemu/qemu_agent.c:1584 src/qemu/qemu_agent.c:1693
 msgid "malformed return value"
 msgstr "ਗਲਤ ਵਾਲੀਅਮ ਐਕਸਟੈੰਟ ਅਕਾਰ ਮੁੱਲ"
 
-#: src/qemu/qemu_agent.c:1411
+#: src/qemu/qemu_agent.c:1412
 #, c-format
 msgid "guest agent timeout '%d' is less than the minimum '%d'"
 msgstr "ਪ੍ਰਾਹੁਣਾ ਏਜੰਟ ਸਮਾਂ ਮਿਆਦ '%d' ਘੱਟ ਤੋਂ ਘੱਟ '%d' ਤੋਂ ਘੱਟ ਹੈ"
 
-#: src/qemu/qemu_agent.c:1475
+#: src/qemu/qemu_agent.c:1476
 msgid "guest-get-vcpus reply was missing return data"
 msgstr "guest-get-vcpus ਜਵਾਬ ਵਿੱਚ ਵਾਪਸੀ ਡਾਟਾ ਗੁੰਮ ਸੀ"
 
-#: src/qemu/qemu_agent.c:1481
+#: src/qemu/qemu_agent.c:1482
 msgid "guest-get-vcpus return information was not an array"
 msgstr "guest-get-vcpus ਵਾਪਸੀ ਜਾਣਕਾਰੀ ਇੱਕ ਐਰੇਅ ਨਹੀਂ ਸੀ"
 
-#: src/qemu/qemu_agent.c:1496
+#: src/qemu/qemu_agent.c:1497
 msgid "array element missing in guest-get-vcpus return value"
 msgstr "guest-get-vcpus ਵਾਪਸੀ ਮੁੱਲ ਵਿੱਚ ਐਰੇਅ ਤੱਤ ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1503
+#: src/qemu/qemu_agent.c:1504
 msgid "'logical-id' missing in reply of guest-get-vcpus"
 msgstr "guest-get-vcpus ਦੇ ਜਵਾਬ ਵਿੱਚ 'logical-id' ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1509
+#: src/qemu/qemu_agent.c:1510
 msgid "'online' missing in reply of guest-get-vcpus"
 msgstr "guest-get-vcpus ਦੇ ਜਵਾਬ ਵਿੱਚ 'online' ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1516
+#: src/qemu/qemu_agent.c:1517
 msgid "'can-offline' missing in reply of guest-get-vcpus"
 msgstr "guest-get-vcpus ਦੇ ਜਵਾਬ ਵਿੱਚ 'can-offline' ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1620
+#: src/qemu/qemu_agent.c:1621
 msgid "Invalid data provided by guest agent"
 msgstr "ਪ੍ਰਾਹੁਣਾ ਏਜੰਟ ਵੱਲੋਂ ਅਢੁਕਵਾਂ ਡਾਟਾ ਮੁਹੱਈਆ ਕਰਵਾਇਆ ਗਿਆ"
 
-#: src/qemu/qemu_agent.c:1637
+#: src/qemu/qemu_agent.c:1638
 msgid "guest agent reports less cpu than requested"
 msgstr "ਪ੍ਰਾਹੁਣਾ ਏਜੰਟ ਬੇਨਤੀ ਕੀਤੇ ਗਏ ਨਾਲੋਂ ਘੱਟ cpu ਦੱਸਦਾ ਹੈ"
 
-#: src/qemu/qemu_agent.c:1644
+#: src/qemu/qemu_agent.c:1645
 msgid "Cannot offline enough CPUs"
 msgstr "ਕਾਫੀ CPU-ਆਂ ਨੂੰ ਆਫਲਾਈਨ ਨਹੀਂ ਕਰ ਸਕਦਾ"
 
-#: src/qemu/qemu_agent.c:1737
+#: src/qemu/qemu_agent.c:1738
 #, c-format
 msgid "Time '%lld' is too big for guest agent"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1788
+#: src/qemu/qemu_agent.c:1789
 #, fuzzy
 msgid "guest-get-fsinfo reply was missing return data"
 msgstr "guest-get-vcpus ਜਵਾਬ ਵਿੱਚ ਵਾਪਸੀ ਡਾਟਾ ਗੁੰਮ ਸੀ"
 
-#: src/qemu/qemu_agent.c:1794
+#: src/qemu/qemu_agent.c:1795
 #, fuzzy
 msgid "guest-get-fsinfo return information was not an array"
 msgstr "guest-get-vcpus ਵਾਪਸੀ ਜਾਣਕਾਰੀ ਇੱਕ ਐਰੇਅ ਨਹੀਂ ਸੀ"
 
-#: src/qemu/qemu_agent.c:1813
+#: src/qemu/qemu_agent.c:1814
 #, fuzzy, c-format
 msgid "array element '%zd' of '%zd' missing in guest-get-fsinfo return data"
 msgstr "guest-get-vcpus ਵਾਪਸੀ ਮੁੱਲ ਵਿੱਚ ਐਰੇਅ ਤੱਤ ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1825
+#: src/qemu/qemu_agent.c:1826
 #, fuzzy
 msgid "'mountpoint' missing in reply of guest-get-fsinfo"
 msgstr "guest-get-vcpus ਦੇ ਜਵਾਬ ਵਿੱਚ 'online' ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1833
+#: src/qemu/qemu_agent.c:1834
 #, fuzzy
 msgid "'name' missing in reply of guest-get-fsinfo"
 msgstr "guest-get-vcpus ਦੇ ਜਵਾਬ ਵਿੱਚ 'online' ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1840
+#: src/qemu/qemu_agent.c:1841
 #, fuzzy
 msgid "'type' missing in reply of guest-get-fsinfo"
 msgstr "guest-get-vcpus ਦੇ ਜਵਾਬ ਵਿੱਚ 'online' ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1846
+#: src/qemu/qemu_agent.c:1847
 #, fuzzy
 msgid "'disk' missing in reply of guest-get-fsinfo"
 msgstr "guest-get-vcpus ਦੇ ਜਵਾਬ ਵਿੱਚ 'online' ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1852
+#: src/qemu/qemu_agent.c:1853
 #, fuzzy
 msgid "guest-get-fsinfo 'disk' data was not an array"
 msgstr "guest-get-vcpus ਵਾਪਸੀ ਜਾਣਕਾਰੀ ਇੱਕ ਐਰੇਅ ਨਹੀਂ ਸੀ"
 
-#: src/qemu/qemu_agent.c:1874
+#: src/qemu/qemu_agent.c:1875
 #, fuzzy, c-format
 msgid "array element '%zd' of '%zd' missing in guest-get-fsinfo 'disk' data"
 msgstr "guest-get-vcpus ਵਾਪਸੀ ਮੁੱਲ ਵਿੱਚ ਐਰੇਅ ਤੱਤ ਗੁੰਮ"
 
-#: src/qemu/qemu_agent.c:1882
+#: src/qemu/qemu_agent.c:1883
 msgid "'pci-controller' missing in guest-get-fsinfo 'disk' data"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1891
+#: src/qemu/qemu_agent.c:1892
 #, c-format
 msgid "'%s' missing in guest-get-fsinfo 'disk' data"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1900
+#: src/qemu/qemu_agent.c:1901
 #, c-format
 msgid "'%s' missing in guest-get-fsinfo 'pci-address' data"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1983
+#: src/qemu/qemu_agent.c:1984
 msgid "qemu agent didn't provide 'return' field"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1989
+#: src/qemu/qemu_agent.c:1990
 msgid "qemu agent didn't return an array of interfaces"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:2003
+#: src/qemu/qemu_agent.c:2004
 #, fuzzy
 msgid "qemu agent reply missing interface entry in array"
 msgstr "qom-get ਜਵਾਬ ਵਿੱਚ ਵਾਪਸੀ ਡਾਟਾ ਗੁੰਮ ਸੀ"
 
-#: src/qemu/qemu_agent.c:2011
+#: src/qemu/qemu_agent.c:2012
 msgid "qemu agent didn't provide 'name' field"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:2073
+#: src/qemu/qemu_agent.c:2074
 #, fuzzy
 msgid "qemu agent reply missing IP addr in array"
 msgstr "query-target ਜਵਾਬ ਵਿੱਚ ਢਾਂਚਾ ਡਾਟਾ ਗੁੰਮ ਸੀ"
 
-#: src/qemu/qemu_agent.c:2080
+#: src/qemu/qemu_agent.c:2081
 #, c-format
 msgid "qemu agent didn't provide 'ip-address-type' field for interface '%s'"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:2089
+#: src/qemu/qemu_agent.c:2090
 #, fuzzy, c-format
 msgid "unknown ip address type '%s'"
 msgstr "ਅਣਪਛਾਤੀ ਐਡਰੈੱਸ ਕਿਸਮ '%s'"
 
-#: src/qemu/qemu_agent.c:2097
+#: src/qemu/qemu_agent.c:2098
 #, fuzzy, c-format
 msgid "qemu agent didn't provide 'ip-address' field for interface '%s'"
 msgstr "ਇੰਟਰਫੇਸ %s ਲਈ IPv4 ਐਡਰੈੱਸ ਲੈਣ ਤੋਂ ਅਸਮਰਥ"
 
-#: src/qemu/qemu_agent.c:2107
+#: src/qemu/qemu_agent.c:2108
 #, fuzzy
 msgid "malformed 'prefix' field"
 msgstr "ਗਲਤ ipset ਫਲੈਗ"
@@ -23195,9 +23195,9 @@ msgid "could not remove profile for '%s'"
 msgstr "'%s' ਲਈ ਪਰੋਫਾਈਲ ਹਟਾ ਨਹੀਂ ਸਕਦਾ"
 
 #: src/security/security_apparmor.c:622 src/security/security_apparmor.c:668
-#: src/security/security_selinux.c:2122 src/security/security_selinux.c:2153
-#: src/security/security_selinux.c:2187 src/security/security_selinux.c:2216
-#: src/security/security_selinux.c:2263 src/security/security_selinux.c:2301
+#: src/security/security_selinux.c:2110 src/security/security_selinux.c:2141
+#: src/security/security_selinux.c:2175 src/security/security_selinux.c:2204
+#: src/security/security_selinux.c:2251 src/security/security_selinux.c:2289
 #, c-format
 msgid ""
 "security label driver mismatch: '%s' model configured for domain, but "
@@ -23238,41 +23238,41 @@ msgstr "%s ਨੂੰ stat ਕਰਨ ਤੋਂ ਅਸਮਰੱਥ"
 msgid "unable to set user and group to '%ld:%ld' on '%s'"
 msgstr " ਸੁਰੱਖਿਆ ਪ੍ਰਸੰਗ '%ld:%ld' ਨੂੰ %s ਉੱਪਰ ਸੈੱਟ ਕਰਨ ਤੋਂ ਅਸਫਲ"
 
-#: src/security/security_dac.c:1341 src/security/security_selinux.c:603
+#: src/security/security_dac.c:1329 src/security/security_selinux.c:603
 msgid "security image label already defined for VM"
 msgstr "VM ਲਈ ਸੁਰੱਖਿਆ ਲੇਬਲ ਪਹਿਲਾਂ ਮੌਜੂਦ ਹੈ"
 
-#: src/security/security_dac.c:1349 src/security/security_selinux.c:610
+#: src/security/security_dac.c:1337 src/security/security_selinux.c:610
 #, c-format
 msgid "security label model %s is not supported with selinux"
 msgstr "ਸੁਰੱਖਿਆ ਲੇਬਲ ਮਾਡਲ %s ਨੂੰ selinux ਨਾਲ ਸਹਿਯੋਗੀ ਨਹੀਂ ਹੈ"
 
-#: src/security/security_dac.c:1359
+#: src/security/security_dac.c:1347
 #, c-format
 msgid "missing label for static security driver in domain %s"
 msgstr "ਸਥਿਰ ਸੁਰੱਖਿਆ ਡਰਾਈਵਰ ਲਈ ਡੋਮੇਨ %s ਵਿੱਚ ਲੇਬਲ ਨਹੀਂ ਹੈ"
 
-#: src/security/security_dac.c:1371
+#: src/security/security_dac.c:1359
 #, c-format
 msgid "cannot generate dac user and group id for domain %s"
 msgstr "ਡੋਮੇਨ %s ਲਈ dac ਯੂਜ਼ਰ ਅਤੇ ਗਰੁੱਪ id ਨਹੀਂ ਬਣਾ ਸਕਿਆ"
 
-#: src/security/security_dac.c:1382 src/security/security_selinux.c:688
+#: src/security/security_dac.c:1370 src/security/security_selinux.c:688
 #, c-format
 msgid "unexpected security label type '%s'"
 msgstr "ਗਲਤ ਸੁਰੱਖਿਆ ਲੇਬਲ ਕਿਸਮ '%s'"
 
-#: src/security/security_dac.c:1427
+#: src/security/security_dac.c:1415
 #, fuzzy, c-format
 msgid "unable to get uid and gid for PID %d via procfs"
 msgstr "'%s' ਤੋਂ uid ਅਤੇ gid ਅੰਕ ਪਾਰਸ ਕਰਨ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/security/security_dac.c:1456
+#: src/security/security_dac.c:1444
 #, fuzzy, c-format
 msgid "unable to get PID %d uid and gid via sysctl"
 msgstr "PID %d ਸੁਰੱਖਿਆ ਪ੍ਰਸੰਗ ਲੈਣ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/security/security_dac.c:1472
+#: src/security/security_dac.c:1460
 #, fuzzy
 msgid "Cannot get process uid and gid on this platform"
 msgstr "ਇਸ ਪਲੇਟ ਫਾਰਮ ਤੇ ਹੋਸਟ ਜੰਤਰ ਮਲਕੀਅਤ ਸੈੱਟ ਕਰਨ ਵਿੱਚ ਅਸਮਰਥ"
@@ -23417,57 +23417,57 @@ msgstr "'%s' ਸੁਰੱਖਿਆ ਕੰਟੈਕਸਟ ਸੈਟਿੰਗਾ�
 msgid "unable to set security context '%s' on fd %d"
 msgstr "unable to set security context '%s' on fd %d"
 
-#: src/security/security_selinux.c:1958 src/security/security_selinux.c:2361
+#: src/security/security_selinux.c:1958 src/security/security_selinux.c:2349
 #, c-format
 msgid "unknown smartcard type %d"
 msgstr "ਅਣਜਾਣ ਸਮਾਰਟਕਾਰਡ ਕਿਸਮ %d"
 
-#: src/security/security_selinux.c:2132
+#: src/security/security_selinux.c:2120
 #, c-format
 msgid "Invalid security label %s"
 msgstr "ਗਲਤ ਸੁਰੱਖਿਆ ਲੇਬਲ %s"
 
-#: src/security/security_selinux.c:2163
+#: src/security/security_selinux.c:2151
 #, c-format
 msgid "unable to set security context '%s'"
 msgstr "ਸੁਰੱਖਿਆ ਪ੍ਰਸੰਗ '%s' ਸੈੱਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/security/security_selinux.c:2225
+#: src/security/security_selinux.c:2213
 #, c-format
 msgid "unable to get current process context '%s'"
 msgstr "ਸੁਰੱਖਿਆ ਪ੍ਰਸੰਗ '%s' ਸੈੱਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/security/security_selinux.c:2236 src/security/security_selinux.c:2274
+#: src/security/security_selinux.c:2224 src/security/security_selinux.c:2262
 #, c-format
 msgid "unable to set socket security context '%s'"
 msgstr "ਸੁਰੱਖਿਆ ਪ੍ਰਸੰਗ '%s' ਸੈੱਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/security/security_selinux.c:2311
+#: src/security/security_selinux.c:2299
 #, c-format
 msgid "unable to clear socket security context '%s'"
 msgstr "ਸਾਕਟ ਸੁਰੱਖਿਆ ਪ੍ਰਸੰਗ '%s' ਕਲੀਅਰ ਕਰਨ ਵਿੱਚ ਅਸਫਲ"
 
-#: src/security/security_selinux.c:2489
+#: src/security/security_selinux.c:2477
 #, c-format
 msgid "cannot stat tap fd %d"
 msgstr ""
 
-#: src/security/security_selinux.c:2495
+#: src/security/security_selinux.c:2483
 #, c-format
 msgid "tap fd %d is not character device"
 msgstr ""
 
-#: src/security/security_selinux.c:2505
+#: src/security/security_selinux.c:2493
 #, c-format
 msgid "Unable to resolve link: %s"
 msgstr ""
 
-#: src/security/security_selinux.c:2518
+#: src/security/security_selinux.c:2506
 #, c-format
 msgid "cannot lookup default selinux label for tap fd %d"
 msgstr ""
 
-#: src/security/security_selinux.c:2554
+#: src/security/security_selinux.c:2542
 #, c-format
 msgid "unable to create selinux context for: %s"
 msgstr "selinux ਪ੍ਰਸੰਗ ਇਸ ਲਈ ਬਣਾਉਣ ਤੋਂ ਅਸਮਰੱਥ: %s"
