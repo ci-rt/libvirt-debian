@@ -73,22 +73,6 @@ Vcs-Browser: https://anonscm.debian.org/cgit/pkg-libvirt/libvirt.git/
 Homepage: http://libvirt.org
 Standards-Version: 3.9.6
 
-Package: libvirt-bin
-Architecture: any
-Depends:
- ${misc:Depends},
- libvirt-daemon-system (>= ${binary:Version}),
- libvirt-clients (>= ${binary:Version}),
-Section: oldlibs
-Priority: extra
-Description: Dummy transitional package
- Libvirt is a C toolkit to interact with the virtualization capabilities
- of recent versions of Linux (and other OSes). The library aims at providing
- a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
- .
- This is a transitional package. You can safely remove it.
-
 Package: libvirt-clients
 Architecture: any
 Depends:
