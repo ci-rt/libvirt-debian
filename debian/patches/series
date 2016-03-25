@@ -32,3 +32,4 @@ Allow-access-to-libnl-3-config-files.patch
 Fix-crash-on-live-migration.patch
 upstream/Report-original-error-when-QMP-probing-fails-with-ne.patch
 security/CVE-2015-5313-storage-don-t-allow-in-filesystem-volu.patch
+debian/Debianize-bridge-helper-path.patch
