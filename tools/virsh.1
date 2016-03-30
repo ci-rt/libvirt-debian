@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2016-01-12" "libvirt-1.3.1" "Virtualization Support"
+.TH VIRSH 1 "2016-03-30" "libvirt-1.3.3" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -885,8 +885,8 @@ disk type and device value will also be printed. Other contexts
 that require a block device name (such as \fIdomblkinfo\fR or
 \&\fIsnapshot-create\fR for disk snapshots) will accept either target
 or unique source names printed by this command.
-.IP "\fBdomstats\fR [\fI\-\-raw\fR] [\fI\-\-enforce\fR] [\fI\-\-backing\fR] [\fI\-\-state\fR] [\fI\-\-cpu\-total\fR] [\fI\-\-balloon\fR] [\fI\-\-vcpu\fR] [\fI\-\-interface\fR] [\fI\-\-block\fR] [[\fI\-\-list\-active\fR] [\fI\-\-list\-inactive\fR] [\fI\-\-list\-persistent\fR] [\fI\-\-list\-transient\fR] [\fI\-\-list\-running\fR] [\fI\-\-list\-paused\fR] [\fI\-\-list\-shutoff\fR] [\fI\-\-list\-other\fR]] | [\fIdomain\fR ...]" 4
-.IX Item "domstats [--raw] [--enforce] [--backing] [--state] [--cpu-total] [--balloon] [--vcpu] [--interface] [--block] [[--list-active] [--list-inactive] [--list-persistent] [--list-transient] [--list-running] [--list-paused] [--list-shutoff] [--list-other]] | [domain ...]"
+.IP "\fBdomstats\fR [\fI\-\-raw\fR] [\fI\-\-enforce\fR] [\fI\-\-backing\fR] [\fI\-\-state\fR] [\fI\-\-cpu\-total\fR] [\fI\-\-balloon\fR] [\fI\-\-vcpu\fR] [\fI\-\-interface\fR] [\fI\-\-block\fR] [\fI\-\-perf\fR] [[\fI\-\-list\-active\fR] [\fI\-\-list\-inactive\fR] [\fI\-\-list\-persistent\fR] [\fI\-\-list\-transient\fR] [\fI\-\-list\-running\fR] [\fI\-\-list\-paused\fR] [\fI\-\-list\-shutoff\fR] [\fI\-\-list\-other\fR]] | [\fIdomain\fR ...]" 4
+.IX Item "domstats [--raw] [--enforce] [--backing] [--state] [--cpu-total] [--balloon] [--vcpu] [--interface] [--block] [--perf] [[--list-active] [--list-inactive] [--list-persistent] [--list-transient] [--list-running] [--list-paused] [--list-shutoff] [--list-other]] | [domain ...]"
 Get statistics for multiple or all domains. Without any argument this
 command prints all available statistics for all domains.
 .Sp
@@ -901,7 +901,7 @@ behavior use the \fI\-\-raw\fR flag.
 The individual statistics groups are selectable via specific flags. By
 default all supported statistics groups are returned. Supported
 statistics groups flags are: \fI\-\-state\fR, \fI\-\-cpu\-total\fR, \fI\-\-balloon\fR,
-\&\fI\-\-vcpu\fR, \fI\-\-interface\fR, \fI\-\-block\fR.
+\&\fI\-\-vcpu\fR, \fI\-\-interface\fR, \fI\-\-block\fR, \fI\-\-perf\fR.
 .Sp
 When selecting the \fI\-\-state\fR group the following fields are returned:
 \&\*(L"state.state\*(R" \- state of the \s-1VM,\s0 returned as number from virDomainState enum,
@@ -935,6 +935,9 @@ from virVcpuState enum,
 \&\*(L"net.<num>.tx.pkts\*(R" \- number of packets transmitted,
 \&\*(L"net.<num>.tx.errs\*(R" \- number of transmission errors,
 \&\*(L"net.<num>.tx.drop\*(R" \- number of transmit packets dropped
+.Sp
+\&\fI\-\-perf\fR returns the statistics of all enabled perf events:
+\&\*(L"perf.cache\*(R" \- the cache usage in Byte currently used
 .Sp
 \&\fI\-\-block\fR returns information about disks associated with each
 domain.  Using the \fI\-\-backing\fR flag extends this information to
@@ -973,8 +976,8 @@ virtual interfaces that will be used on the next boot, rather than those
 currently in use by a running domain. Other contexts that require a \s-1MAC\s0
 address of virtual interface (such as \fIdetach-interface\fR or
 \&\fIdomif-setlink\fR) will accept the \s-1MAC\s0 address printed by this command.
-.IP "\fBblockcommit\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-shallow\fR] [\fItop\fR] [\fI\-\-delete\fR] [\fI\-\-keep\-relative\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-active\fR] [{\fI\-\-pivot\fR | \fI\-\-keep\-overlay\fR}]" 4
-.IX Item "blockcommit domain path [bandwidth] [base] [--shallow] [top] [--delete] [--keep-relative] [--wait [--async] [--verbose]] [--timeout seconds] [--active] [{--pivot | --keep-overlay}]"
+.IP "\fBblockcommit\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fI\-\-bytes\fR] [\fIbase\fR] [\fI\-\-shallow\fR] [\fItop\fR] [\fI\-\-delete\fR] [\fI\-\-keep\-relative\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-active\fR] [{\fI\-\-pivot\fR | \fI\-\-keep\-overlay\fR}]" 4
+.IX Item "blockcommit domain path [bandwidth] [--bytes] [base] [--shallow] [top] [--delete] [--keep-relative] [--wait [--async] [--verbose]] [--timeout seconds] [--active] [{--pivot | --keep-overlay}]"
 Reduce the length of a backing image chain, by committing changes at the
 top of the chain (snapshot or delta files) into backing images.  By
 default, this command attempts to flatten the entire chain.  If \fIbase\fR
@@ -1016,12 +1019,11 @@ to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
 also \fBdomblklist\fR for listing these names).
 \&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s, although for
-qemu, it may be non-zero only for an online domain. Specifying a negative
-value is interpreted as an unsigned long long value or essentially
-unlimited. The hypervisor can choose whether to reject the value or
-convert it to the maximum value allowed.
-.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR { \fIdest\fR [\fIformat\fR] [\fI\-\-blockdev\fR] | \fI\-\-xml\fR \fBfile\fR } [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fIbandwidth\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [{\fI\-\-pivot\fR | \fI\-\-finish\fR}] [\fI\-\-timeout\fR \fBseconds\fR] [\fIgranularity\fR] [\fIbuf-size\fR]" 4
-.IX Item "blockcopy domain path { dest [format] [--blockdev] | --xml file } [--shallow] [--reuse-external] [bandwidth] [--wait [--async] [--verbose]] [{--pivot | --finish}] [--timeout seconds] [granularity] [buf-size]"
+qemu, it may be non-zero only for an online domain. For further information
+on the \fIbandwidth\fR argument see the corresponding section for the \fBblockjob\fR
+command.
+.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR { \fIdest\fR [\fIformat\fR] [\fI\-\-blockdev\fR] | \fI\-\-xml\fR \fBfile\fR } [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fIbandwidth\fR] [\fI\-\-wait\fR [\fI\-\-async\fR] [\fI\-\-verbose\fR]] [{\fI\-\-pivot\fR | \fI\-\-finish\fR}] [\fI\-\-timeout\fR \fBseconds\fR] [\fIgranularity\fR] [\fIbuf-size\fR] [\fI\-\-bytes\fR]" 4
+.IX Item "blockcopy domain path { dest [format] [--blockdev] | --xml file } [--shallow] [--reuse-external] [bandwidth] [--wait [--async] [--verbose]] [{--pivot | --finish}] [--timeout seconds] [granularity] [buf-size] [--bytes]"
 Copy a disk backing image chain to a destination.  Either \fIdest\fR as
 the destination file name, or \fI\-\-xml\fR with the name of an \s-1XML\s0 file containing
 a top-level <disk> element describing the destination, must be present.
@@ -1065,15 +1067,17 @@ while longer until the job has actually cancelled.
 \&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s. Specifying a negative
 value is interpreted as an unsigned long long value that might be essentially
 unlimited, but more likely would overflow; it is safer to use 0 for that
-purpose.  Specifying \fIgranularity\fR allows fine-tuning of the granularity that
-will be copied when a dirty region is detected; larger values trigger less
+purpose. For further information on the \fIbandwidth\fR argument see the
+corresponding section for the \fBblockjob\fR command.
+Specifying \fIgranularity\fR allows fine-tuning of the granularity that will be
+copied when a dirty region is detected; larger values trigger less
 I/O overhead but may end up copying more data overall (the default value is
 usually correct); hypervisors may restrict this to be a power of two or fall
 within a certain range. Specifying \fIbuf-size\fR will control how much data can
 be simultaneously in-flight during the copy; larger values use more memory but
 may allow faster completion (the default value is usually correct).
-.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]] [\fI\-\-keep\-relative\fR]" 4
-.IX Item "blockpull domain path [bandwidth] [base] [--wait [--verbose] [--timeout seconds] [--async]] [--keep-relative]"
+.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fI\-\-bytes\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]] [\fI\-\-keep\-relative\fR]" 4
+.IX Item "blockpull domain path [bandwidth] [--bytes] [base] [--wait [--verbose] [--timeout seconds] [--async]] [--keep-relative]"
 Populate a disk from its backing image chain. By default, this command
 flattens the entire chain; but if \fIbase\fR is specified, containing the
 name of one of the backing files in the chain, then that file becomes
@@ -1099,10 +1103,9 @@ relative.
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
 also \fBdomblklist\fR for listing these names).
-\&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s. Specifying a negative
-value is interpreted as an unsigned long long value or essentially
-unlimited. The hypervisor can choose whether to reject the value or
-convert it to the maximum value allowed.
+\&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s. For further information
+on the \fIbandwidth\fR argument see the corresponding section for the \fBblockjob\fR
+command.
 .IP "\fBblkdeviotune\fR \fIdomain\fR \fIdevice\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [[\fItotal-bytes-sec\fR] | [\fIread-bytes-sec\fR] [\fIwrite-bytes-sec\fR]] [[\fItotal-iops-sec\fR] | [\fIread-iops-sec\fR] [\fIwrite-iops-sec\fR]] [[\fItotal-bytes-sec-max\fR] | [\fIread-bytes-sec-max\fR] [\fIwrite-bytes-sec-max\fR]] [[\fItotal-iops-sec-max\fR] | [\fIread-iops-sec-max\fR] [\fIwrite-iops-sec-max\fR]] [\fIsize-iops-sec\fR]" 4
 .IX Item "blkdeviotune domain device [[--config] [--live] | [--current]] [[total-bytes-sec] | [read-bytes-sec] [write-bytes-sec]] [[total-iops-sec] | [read-iops-sec] [write-iops-sec]] [[total-bytes-sec-max] | [read-bytes-sec-max] [write-bytes-sec-max]] [[total-iops-sec-max] | [read-iops-sec-max] [write-iops-sec-max]] [size-iops-sec]"
 Set or query the block disk io parameters for a block device of \fIdomain\fR.
@@ -1168,10 +1171,15 @@ not supply bytes/s resolution; when omitting the flag, raw output is
 listed in MiB/s and human-readable output automatically selects the
 best resolution supported by the server.
 .Sp
-\&\fIbandwidth\fR can be used to set bandwidth limit for the active job.
-Specifying a negative value is interpreted as an unsigned long long
+\&\fIbandwidth\fR can be used to set bandwidth limit for the active job in MiB/s.
+If \fI\-\-bytes\fR is specified then the bandwidth value is interpreted in
+bytes/s. Specifying a negative value is interpreted as an unsigned long
 value or essentially unlimited. The hypervisor can choose whether to
-reject the value or convert it to the maximum value allowed.
+reject the value or convert it to the maximum value allowed. Optionally a
+scaled positive number may be used as bandwidth (see \fB\s-1NOTES\s0\fR above). Using
+\&\fI\-\-bytes\fR with a scaled value allows to use finer granularity. A scaled value
+used without \fI\-\-bytes\fR will be rounded down to MiB/s. Note that the
+\&\fI\-\-bytes\fR may be unsupported by the hypervisor.
 .IP "\fBblockresize\fR \fIdomain\fR \fIpath\fR \fIsize\fR" 4
 .IX Item "blockresize domain path size"
 Resize a block device of domain while the domain is running, \fIpath\fR
@@ -1500,8 +1508,8 @@ to the private namespace.
 .Sp
 If neither of \fI\-\-edit\fR and \fIset\fR are specified the \s-1XML\s0 metadata corresponding
 to the \fIuri\fR namespace is displayed instead of being modified.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-auto\-converge\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--abort-on-error] [--auto-converge] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds] [--xml file] [--migrate-disks disk-list]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-auto\-converge\fR] [\fI\-\-postcopy\fR] [\fI\-\-postcopy\-after\-precopy\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR [\fI\-\-timeout\-suspend\fR | \fI\-\-timeout\-postcopy\fR]] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR] [\fI\-\-disks\-port\fR \fBport\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--abort-on-error] [--auto-converge] [--postcopy] [--postcopy-after-precopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--disks-port port]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1527,6 +1535,12 @@ of migration.  \fI\-\-compressed\fR activates compression of memory pages that h
 to be transferred repeatedly during live migration. \fI\-\-abort\-on\-error\fR cancels
 the migration if a soft error (for example I/O error) happens during the
 migration. \fI\-\-auto\-converge\fR forces convergence during live migration.
+\&\fI\-\-postcopy\fR enables post-copy logic in migration, but does not
+actually start post-copy, i.e., migration is started in pre-copy mode.
+Once migration is running, the user may switch to post-copy using the
+\&\fBmigrate-postcopy\fR command sent from another virsh instance or use
+\&\fI\-\-postcopy\-after\-precopy\fR to let libvirt automatically switch to
+post-copy after the first pass of pre-copy is finished.
 .Sp
 \&\fBNote\fR: Individual hypervisors usually do not support all possible types of
 migration. For example, \s-1QEMU\s0 does not support direct migration.
@@ -1546,9 +1560,14 @@ the destination to supply a larger set of changes to any host-specific
 portions of the domain \s-1XML,\s0 such as accounting for naming differences
 between source and destination in accessing underlying storage.
 .Sp
-\&\fI\-\-timeout\fR \fBseconds\fR forces guest to suspend when live migration exceeds
-that many seconds, and
-then the migration will complete offline. It can only be used with \fI\-\-live\fR.
+\&\fI\-\-timeout\fR \fBseconds\fR tells virsh to run a specified action when live
+migration exceeds that many seconds.  It can only be used with \fI\-\-live\fR.
+If \fI\-\-timeout\-suspend\fR is specified, the domain will be suspended after
+the timeout and the migration will complete offline; this is the default
+if no \fI\-\-timeout\-*\fR option is specified on the command line.  When
+\&\fI\-\-timeout\-postcopy\fR is used, virsh will switch migration from pre-copy
+to post-copy upon timeout; migration has to be started with \fI\-\-postcopy\fR
+option for this to work.
 .Sp
 Running migration can be canceled by interrupting virsh (usually using
 \&\f(CW\*(C`Ctrl\-C\*(C'\fR) or by \fBdomjobabort\fR command sent from another virsh instance.
@@ -1627,6 +1646,9 @@ destination side should bind to for incoming migration. Both IPv4 and IPv6
 addresses are accepted as well as hostnames (the resolving is done on
 destination). Some hypervisors do not support this feature and will return an
 error if this parameter is used.
+.Sp
+Optional \fIdisks-port\fR sets the port that hypervisor on destination side should
+bind to for incoming disks traffic. Currently it is supported only by qemu.
 .RE
 .IP "\fBmigrate-setmaxdowntime\fR \fIdomain\fR \fIdowntime\fR" 4
 .IX Item "migrate-setmaxdowntime domain downtime"
@@ -1654,6 +1676,10 @@ reject the value or convert it to the maximum value allowed.
 .IP "\fBmigrate-getspeed\fR \fIdomain\fR" 4
 .IX Item "migrate-getspeed domain"
 Get the maximum migration bandwidth (in MiB/s) for a domain.
+.IP "\fBmigrate-postcopy\fR \fIdomain\fR" 4
+.IX Item "migrate-postcopy domain"
+Switch the current migration from pre-copy to post-copy. This is only
+supported for a migration started with \fI\-\-postcopy\fR option.
 .IP "\fBnumatune\fR \fIdomain\fR [\fI\-\-mode\fR \fBmode\fR] [\fI\-\-nodeset\fR \fBnodeset\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "numatune domain [--mode mode] [--nodeset nodeset] [[--config] [--live] | [--current]]"
 Set or get a domain's numa parameters, corresponding to the <numatune>
@@ -2049,6 +2075,24 @@ The guaranteed minimum memory allocation for the guest.
 .Sp
 Specifying \-1 as a value for these limits is interpreted as unlimited.
 .RE
+.IP "\fBperf\fR \fIdomain\fR [\fI\-\-enable\fR \fBeventName\fR] [\fI\-\-disable\fR \fBeventName\fR]" 4
+.IX Item "perf domain [--enable eventName] [--disable eventName]"
+Get the current perf events setting or enable/disable specific perf
+event for a guest domain.
+.Sp
+Perf is a performance analyzing tool in Linux, and it can instrument
+\&\s-1CPU\s0 performance counters, tracepoints, kprobes, and uprobes (dynamic
+tracing). Perf supports a list of measurable events, and can measure
+events coming from different sources. For instance, some event are
+pure kernel counters, in this case they are called software events,
+including context-switches, minor-faults, etc.. Now dozens of events
+from different sources can be supported by perf.
+.Sp
+Currently only \s-1QEMU/KVM\s0 supports \fI\-\-enable\fR and \fI\-\-disable\fR.
+\&\fBeventName\fR is a string listing one or more events, in the format
+of name|name|name. Only \*(L"cmt\*(R" event is supported presently. \s-1CMT\s0 is
+a PQos (Platform Qos) feature to monitor the usage of cache by
+applications running on the platform.
 .IP "\fBblkiotune\fR \fIdomain\fR [\fI\-\-weight\fR \fBweight\fR] [\fI\-\-device\-weights\fR \fBdevice-weights\fR] [\fI\-\-device\-read\-iops\-sec\fR \fBdevice-read-iops-sec\fR] [\fI\-\-device\-write\-iops\-sec\fR \fBdevice-write-iops-sec\fR] [\fI\-\-device\-read\-bytes\-sec\fR \fBdevice-read-bytes-sec\fR] [\fI\-\-device\-write\-bytes\-sec\fR \fBdevice-write-bytes-sec\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "blkiotune domain [--weight weight] [--device-weights device-weights] [--device-read-iops-sec device-read-iops-sec] [--device-write-iops-sec device-write-iops-sec] [--device-read-bytes-sec device-read-bytes-sec] [--device-write-bytes-sec device-write-bytes-sec] [[--config] [--live] | [--current]]"
 Display or set the blkio parameters. \s-1QEMU/KVM\s0 supports \fI\-\-weight\fR.
@@ -3200,9 +3244,11 @@ only slightly higher initial disk space usage.
 When \fI\-\-reflink\fR is specified, perform a \s-1COW\s0 lightweight copy,
 where the data blocks are copied only when modified.
 If this is not possible, the copy fails.
-.IP "\fBvol-create-as\fR \fIpool-or-uuid\fR \fIname\fR \fIcapacity\fR [\fI\-\-allocation\fR \fIsize\fR] [\fI\-\-format\fR \fIstring\fR] [\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR] [\fI\-\-backing\-vol\-format\fR \fIstring\fR] [\fI\-\-prealloc\-metadata\fR]" 4
-.IX Item "vol-create-as pool-or-uuid name capacity [--allocation size] [--format string] [--backing-vol vol-name-or-key-or-path] [--backing-vol-format string] [--prealloc-metadata]"
-Create a volume from a set of arguments.
+.IP "\fBvol-create-as\fR \fIpool-or-uuid\fR \fIname\fR \fIcapacity\fR [\fI\-\-allocation\fR \fIsize\fR] [\fI\-\-format\fR \fIstring\fR] [\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR] [\fI\-\-backing\-vol\-format\fR \fIstring\fR] [\fI\-\-prealloc\-metadata\fR] [\fI\-\-print\-xml\fR]" 4
+.IX Item "vol-create-as pool-or-uuid name capacity [--allocation size] [--format string] [--backing-vol vol-name-or-key-or-path] [--backing-vol-format string] [--prealloc-metadata] [--print-xml]"
+Create a volume from a set of arguments unless \fI\-\-print\-xml\fR is specified, in
+which case just the \s-1XML\s0 of the volume object is printed out without any actual
+object creation.
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume
 in.
 \&\fIname\fR is the name of the new volume. For a disk pool, this must match the
@@ -3309,9 +3355,19 @@ volume with zeroes. This can be done via \fI\-\-algorithm\fR switch.
   pfitzner7  \- Roy Pfitzner's 7\-random\-pass method: random x7.
   pfitzner33 \- Roy Pfitzner's 33\-random\-pass method: random x33.
   random     \- 1\-pass pattern: random.
+  trim       \- 1\-pass trimming the volume using \s-1TRIM\s0 or \s-1DISCARD\s0
 .Sp
-\&\fBNote\fR: The availability of algorithms may be limited by the version
-of the \f(CW\*(C`scrub\*(C'\fR binary installed on the host.
+\&\fBNote\fR: The \f(CW\*(C`scrub\*(C'\fR binary will be used to handle the 'nnsa', 'dod',
+\&'bsi', 'gutmann', 'schneier', 'pfitzner7' and 'pfitzner33' algorithms.
+The availability of the algorithms may be limited by the version of
+the \f(CW\*(C`scrub\*(C'\fR binary installed on the host. The 'zero' algorithm will
+write zeroes to the entire volume. For some volumes, such as sparse
+or rbd volumes, this may result in completely filling the volume with
+zeroes making it appear to be completely full. As an alternative, the
+\&'trim' algorithm does not overwrite all the data in a volume, rather
+it expects the storage driver to be able to discard all bytes in a
+volume. It is up to the storage driver to handle how the discarding
+occurs. Not all storage drivers or volume types can support 'trim'.
 .IP "\fBvol-dumpxml\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
 .IX Item "vol-dumpxml [--pool pool-or-uuid] vol-name-or-key-or-path"
 Output the volume information as an \s-1XML\s0 dump to stdout.

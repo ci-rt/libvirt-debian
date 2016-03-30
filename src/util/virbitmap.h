@@ -37,6 +37,7 @@ typedef virBitmap *virBitmapPtr;
  */
 virBitmapPtr virBitmapNewQuiet(size_t size) ATTRIBUTE_RETURN_CHECK;
 virBitmapPtr virBitmapNew(size_t size) ATTRIBUTE_RETURN_CHECK;
+virBitmapPtr virBitmapNewEmpty(void) ATTRIBUTE_RETURN_CHECK;
 
 /*
  * Free previously allocated bitmap
@@ -55,10 +56,17 @@ int virBitmapCopy(virBitmapPtr dst, virBitmapPtr src);
 int virBitmapSetBit(virBitmapPtr bitmap, size_t b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
+int virBitmapSetBitExpand(virBitmapPtr bitmap, size_t b)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
+
 /*
  * Clear bit position @b in @bitmap
  */
 int virBitmapClearBit(virBitmapPtr bitmap, size_t b)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
+int virBitmapClearBitExpand(virBitmapPtr bitmap, size_t b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 /*
@@ -127,6 +135,9 @@ char *virBitmapDataToString(void *data,
     ATTRIBUTE_NONNULL(1);
 bool virBitmapOverlaps(virBitmapPtr b1,
                        virBitmapPtr b2)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void virBitmapSubtract(virBitmapPtr a, virBitmapPtr b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 #endif

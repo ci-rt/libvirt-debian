@@ -39,6 +39,7 @@
 #include "xenapi_driver_private.h"
 #include "xenapi_utils.h"
 #include "virstring.h"
+#include "xen_common.h"
 
 #define VIR_FROM_THIS VIR_FROM_XENAPI
 
@@ -66,9 +67,6 @@ xenapiDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         return -1;
     }
 
-    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
-        return -1;
-
     return 0;
 }
 
@@ -79,8 +77,8 @@ xenapiDomainDefPostParse(virDomainDefPtr def,
                          unsigned int parseFlags ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
-    /* memory hotplug tunables are not supported by this driver */
-    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+    /* add implicit input device */
+    if (xenDomainDefAddImplicitInputDevice(def) < 0)
         return -1;
 
     return 0;
@@ -1397,7 +1395,8 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     xen_vm vm = NULL;
     xen_vm_set *vms;
     xen_string_string_map *result = NULL;
-    xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
+    struct _xenapiPrivate *priv = dom->conn->privateData;
+    xen_session *session = priv->session;
     virDomainDefPtr defPtr = NULL;
     char *boot_policy = NULL;
     unsigned long memory = 0;
@@ -1575,7 +1574,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         xen_vif_set_free(vif_set);
     }
     xen_vm_set_free(vms);
-    xml = virDomainDefFormat(defPtr, flags);
+    xml = virDomainDefFormat(defPtr, priv->caps, flags);
     virDomainDefFree(defPtr);
     return xml;
 

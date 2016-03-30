@@ -254,7 +254,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
-	$(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
@@ -283,8 +283,10 @@ CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 @WITH_LIBVIRTD_TRUE@libvirtd_admin_la_DEPENDENCIES =  \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-admin.la
-am__libvirtd_admin_la_SOURCES_DIST = admin_server.c admin_server.h
+am__libvirtd_admin_la_SOURCES_DIST = admin.c admin.h admin_server.c \
+	admin_server.h
 @WITH_LIBVIRTD_TRUE@am_libvirtd_admin_la_OBJECTS =  \
+@WITH_LIBVIRTD_TRUE@	libvirtd_admin_la-admin.lo \
 @WITH_LIBVIRTD_TRUE@	libvirtd_admin_la-admin_server.lo
 libvirtd_admin_la_OBJECTS = $(am_libvirtd_admin_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -1980,7 +1982,7 @@ ADMIN_PROTOCOL = $(top_srcdir)/src/admin/admin_protocol.x
 
 @WITH_LIBVIRTD_TRUE@libvirtd_conf_la_LIBADD = $(LIBXML_LIBS)
 @WITH_LIBVIRTD_TRUE@libvirtd_admin_la_SOURCES = \
-@WITH_LIBVIRTD_TRUE@		admin_server.c admin_server.h
+@WITH_LIBVIRTD_TRUE@		admin.c admin.h admin_server.c admin_server.h
 
 @WITH_LIBVIRTD_TRUE@libvirtd_admin_la_CFLAGS = \
 @WITH_LIBVIRTD_TRUE@		$(AM_CFLAGS)		\
@@ -2172,6 +2174,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-libvirtd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-stream.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd_admin_la-admin.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd_admin_la-admin_server.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd_conf_la-libvirtd-config.Plo@am__quote@
 
@@ -2198,6 +2201,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+libvirtd_admin_la-admin.lo: admin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_admin_la_CFLAGS) $(CFLAGS) -MT libvirtd_admin_la-admin.lo -MD -MP -MF $(DEPDIR)/libvirtd_admin_la-admin.Tpo -c -o libvirtd_admin_la-admin.lo `test -f 'admin.c' || echo '$(srcdir)/'`admin.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd_admin_la-admin.Tpo $(DEPDIR)/libvirtd_admin_la-admin.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='admin.c' object='libvirtd_admin_la-admin.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_admin_la_CFLAGS) $(CFLAGS) -c -o libvirtd_admin_la-admin.lo `test -f 'admin.c' || echo '$(srcdir)/'`admin.c
 
 libvirtd_admin_la-admin_server.lo: admin_server.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_admin_la_CFLAGS) $(CFLAGS) -MT libvirtd_admin_la-admin_server.lo -MD -MP -MF $(DEPDIR)/libvirtd_admin_la-admin_server.Tpo -c -o libvirtd_admin_la-admin_server.lo `test -f 'admin_server.c' || echo '$(srcdir)/'`admin_server.c
@@ -2662,7 +2672,8 @@ admin_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 
 @WITH_LIBVIRTD_TRUE@remote.c: $(DAEMON_GENERATED)
 @WITH_LIBVIRTD_TRUE@remote.h: $(DAEMON_GENERATED)
-@WITH_LIBVIRTD_TRUE@admin_server.c: $(DAEMON_GENERATED)
+@WITH_LIBVIRTD_TRUE@admin.c: $(DAEMON_GENERATED)
+@WITH_LIBVIRTD_TRUE@admin.h: $(DAEMON_GENERATED)
 
 @WITH_LIBVIRTD_TRUE@libvirtd.logrotate: libvirtd.logrotate.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\

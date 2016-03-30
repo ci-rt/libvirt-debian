@@ -36,7 +36,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <paths.h>
 #include <pwd.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
@@ -427,23 +426,16 @@ umlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         return -1;
     }
 
-    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
-        return -1;
-
     return 0;
 }
 
 
 static int
-umlDomainDefPostParse(virDomainDefPtr def,
+umlDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
                       virCapsPtr caps ATTRIBUTE_UNUSED,
                       unsigned int parseFlags ATTRIBUTE_UNUSED,
                       void *opaque ATTRIBUTE_UNUSED)
 {
-    /* memory hotplug tunables are not supported by this driver */
-    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
-        return -1;
-
     return 0;
 }
 
@@ -724,9 +716,9 @@ struct umlProcessAutoDestroyData {
     virConnectPtr conn;
 };
 
-static void umlProcessAutoDestroyDom(void *payload,
-                                     const void *name,
-                                     void *opaque)
+static int umlProcessAutoDestroyDom(void *payload,
+                                    const void *name,
+                                    void *opaque)
 {
     struct umlProcessAutoDestroyData *data = opaque;
     virConnectPtr conn = payload;
@@ -738,17 +730,17 @@ static void umlProcessAutoDestroyDom(void *payload,
     VIR_DEBUG("conn=%p uuidstr=%s thisconn=%p", conn, uuidstr, data->conn);
 
     if (data->conn != conn)
-        return;
+        return 0;
 
     if (virUUIDParse(uuidstr, uuid) < 0) {
         VIR_WARN("Failed to parse %s", uuidstr);
-        return;
+        return 0;
     }
 
     if (!(dom = virDomainObjListFindByUUID(data->driver->domains,
                                            uuid))) {
         VIR_DEBUG("No domain object to kill");
-        return;
+        return 0;
     }
 
     VIR_DEBUG("Killing domain");
@@ -766,6 +758,7 @@ static void umlProcessAutoDestroyDom(void *payload,
     if (event)
         umlDomainEventQueue(data->driver, event);
     virHashRemoveEntry(data->driver->autodestroy, uuidstr);
+    return 0;
 }
 
 /*
@@ -1131,12 +1124,11 @@ static int umlStartVMDaemon(virConnectPtr conn,
     virCommandSetErrorFD(cmd, &logfd);
     virCommandDaemonize(cmd);
 
-    ret = virCommandRun(cmd, NULL);
-    if (ret < 0)
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
     if (autoDestroy &&
-        (ret = umlProcessAutoDestroyAdd(driver, vm, conn)) < 0)
+        umlProcessAutoDestroyAdd(driver, vm, conn) < 0)
         goto cleanup;
 
     ret = virDomainObjSetDefTransient(driver->caps, driver->xmlopt, vm, false);
@@ -1986,7 +1978,7 @@ static char *umlDomainGetXMLDesc(virDomainPtr dom,
         goto cleanup;
 
     ret = virDomainDefFormat((flags & VIR_DOMAIN_XML_INACTIVE) && vm->newDef ?
-                             vm->newDef : vm->def,
+                             vm->newDef : vm->def, driver->caps,
                              virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
@@ -2103,7 +2095,7 @@ umlDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
     def = NULL;
     vm->persistent = 1;
 
-    if (virDomainSaveConfig(driver->configDir,
+    if (virDomainSaveConfig(driver->configDir, driver->caps,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
         virDomainObjListRemove(driver->domains,
                                vm);

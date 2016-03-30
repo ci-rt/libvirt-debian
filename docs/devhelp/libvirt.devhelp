@@ -377,6 +377,7 @@
     <function name="VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON"/>
     <function name="VIR_DOMAIN_EVENT_ID_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_LAST"/>
     <function name="VIR_DOMAIN_EVENT_ID_LIFECYCLE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_LIFECYCLE"/>
+    <function name="VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION"/>
     <function name="VIR_DOMAIN_EVENT_ID_PMSUSPEND" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND"/>
     <function name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK"/>
     <function name="VIR_DOMAIN_EVENT_ID_PMWAKEUP" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_PMWAKEUP"/>
@@ -832,6 +833,7 @@
     <function name="VIR_FROM_XENAPI" link="libvirt-virterror.html#VIR_FROM_XENAPI"/>
     <function name="VIR_FROM_XEND" link="libvirt-virterror.html#VIR_FROM_XEND"/>
     <function name="VIR_FROM_XENSTORE" link="libvirt-virterror.html#VIR_FROM_XENSTORE"/>
+    <function name="VIR_FROM_XENXL" link="libvirt-virterror.html#VIR_FROM_XENXL"/>
     <function name="VIR_FROM_XENXM" link="libvirt-virterror.html#VIR_FROM_XENXM"/>
     <function name="VIR_FROM_XEN_INOTIFY" link="libvirt-virterror.html#VIR_FROM_XEN_INOTIFY"/>
     <function name="VIR_FROM_XML" link="libvirt-virterror.html#VIR_FROM_XML"/>
@@ -951,6 +953,7 @@
     <function name="VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_RANDOM" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_RANDOM"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER"/>
+    <function name="VIR_STORAGE_VOL_WIPE_ALG_TRIM" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_TRIM"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_ZERO" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_ZERO"/>
     <function name="VIR_STORAGE_XML_INACTIVE" link="libvirt-libvirt-storage.html#VIR_STORAGE_XML_INACTIVE"/>
     <function name="VIR_STREAM_EVENT_ERROR" link="libvirt-libvirt-stream.html#VIR_STREAM_EVENT_ERROR"/>
@@ -1202,6 +1205,7 @@
     <function name="virConnectDomainEventGraphicsCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventGraphicsCallback"/>
     <function name="virConnectDomainEventIOErrorCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventIOErrorCallback"/>
     <function name="virConnectDomainEventIOErrorReasonCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventIOErrorReasonCallback"/>
+    <function name="virConnectDomainEventMigrationIterationCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventMigrationIterationCallback"/>
     <function name="virConnectDomainEventPMSuspendCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendCallback"/>
     <function name="virConnectDomainEventPMSuspendDiskCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendDiskCallback"/>
     <function name="virConnectDomainEventPMWakeupCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventPMWakeupCallback"/>

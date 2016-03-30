@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #include "internal.h"
+#include "lock_driver_lockd.h"
 
 typedef char virLockSpaceProtocolUUID[VIR_UUID_BUFLEN];
 #define VIR_LOCK_SPACE_PROTOCOL_STRING_MAX 65536
@@ -61,12 +62,6 @@ struct virLockSpaceProtocolDeleteResourceArgs {
 };
 typedef struct virLockSpaceProtocolDeleteResourceArgs virLockSpaceProtocolDeleteResourceArgs;
 
-enum virLockSpaceProtocolAcquireResourceFlags {
-        VIR_LOCK_SPACE_PROTOCOL_ACQUIRE_RESOURCE_SHARED = 1,
-        VIR_LOCK_SPACE_PROTOCOL_ACQUIRE_RESOURCE_AUTOCREATE = 2,
-};
-typedef enum virLockSpaceProtocolAcquireResourceFlags virLockSpaceProtocolAcquireResourceFlags;
-
 struct virLockSpaceProtocolAcquireResourceArgs {
         virLockSpaceProtocolNonNullString path;
         virLockSpaceProtocolNonNullString name;
@@ -112,7 +107,6 @@ extern  bool_t xdr_virLockSpaceProtocolRestrictArgs (XDR *, virLockSpaceProtocol
 extern  bool_t xdr_virLockSpaceProtocolNewArgs (XDR *, virLockSpaceProtocolNewArgs*);
 extern  bool_t xdr_virLockSpaceProtocolCreateResourceArgs (XDR *, virLockSpaceProtocolCreateResourceArgs*);
 extern  bool_t xdr_virLockSpaceProtocolDeleteResourceArgs (XDR *, virLockSpaceProtocolDeleteResourceArgs*);
-extern  bool_t xdr_virLockSpaceProtocolAcquireResourceFlags (XDR *, virLockSpaceProtocolAcquireResourceFlags*);
 extern  bool_t xdr_virLockSpaceProtocolAcquireResourceArgs (XDR *, virLockSpaceProtocolAcquireResourceArgs*);
 extern  bool_t xdr_virLockSpaceProtocolReleaseResourceArgs (XDR *, virLockSpaceProtocolReleaseResourceArgs*);
 extern  bool_t xdr_virLockSpaceProtocolCreateLockSpaceArgs (XDR *, virLockSpaceProtocolCreateLockSpaceArgs*);
@@ -128,7 +122,6 @@ extern bool_t xdr_virLockSpaceProtocolRestrictArgs ();
 extern bool_t xdr_virLockSpaceProtocolNewArgs ();
 extern bool_t xdr_virLockSpaceProtocolCreateResourceArgs ();
 extern bool_t xdr_virLockSpaceProtocolDeleteResourceArgs ();
-extern bool_t xdr_virLockSpaceProtocolAcquireResourceFlags ();
 extern bool_t xdr_virLockSpaceProtocolAcquireResourceArgs ();
 extern bool_t xdr_virLockSpaceProtocolReleaseResourceArgs ();
 extern bool_t xdr_virLockSpaceProtocolCreateLockSpaceArgs ();

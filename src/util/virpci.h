@@ -62,6 +62,16 @@ typedef enum {
 
 VIR_ENUM_DECL(virPCIELinkSpeed)
 
+typedef enum {
+    VIR_PCI_HEADER_ENDPOINT = 0,
+    VIR_PCI_HEADER_PCI_BRIDGE,
+    VIR_PCI_HEADER_CARDBUS_BRIDGE,
+
+    VIR_PCI_HEADER_LAST
+} virPCIHeaderType;
+
+VIR_ENUM_DECL(virPCIHeader)
+
 typedef struct _virPCIELink virPCIELink;
 typedef virPCIELink *virPCIELinkPtr;
 struct _virPCIELink {
@@ -99,7 +109,7 @@ int virPCIDeviceReset(virPCIDevicePtr dev,
 
 void virPCIDeviceSetManaged(virPCIDevice *dev,
                             bool managed);
-unsigned int virPCIDeviceGetManaged(virPCIDevice *dev);
+bool virPCIDeviceGetManaged(virPCIDevice *dev);
 void virPCIDeviceSetStubDriver(virPCIDevicePtr dev,
                                virPCIStubDriver driver);
 virPCIStubDriver virPCIDeviceGetStubDriver(virPCIDevicePtr dev);
@@ -110,16 +120,15 @@ int virPCIDeviceSetUsedBy(virPCIDevice *dev,
 void virPCIDeviceGetUsedBy(virPCIDevice *dev,
                            const char **drv_name,
                            const char **dom_name);
-unsigned int virPCIDeviceGetUnbindFromStub(virPCIDevicePtr dev);
+bool virPCIDeviceGetUnbindFromStub(virPCIDevicePtr dev);
 void  virPCIDeviceSetUnbindFromStub(virPCIDevice *dev,
                                     bool unbind);
-unsigned int virPCIDeviceGetRemoveSlot(virPCIDevicePtr dev);
+bool virPCIDeviceGetRemoveSlot(virPCIDevicePtr dev);
 void virPCIDeviceSetRemoveSlot(virPCIDevice *dev,
                                bool remove_slot);
-unsigned int virPCIDeviceGetReprobe(virPCIDevicePtr dev);
+bool virPCIDeviceGetReprobe(virPCIDevicePtr dev);
 void virPCIDeviceSetReprobe(virPCIDevice *dev,
                             bool reprobe);
-void virPCIDeviceReattachInit(virPCIDevice *dev);
 
 
 virPCIDeviceListPtr virPCIDeviceListNew(void);
@@ -223,6 +232,8 @@ int virPCIDeviceGetLinkCapSta(virPCIDevicePtr dev,
                               unsigned int *cap_width,
                               unsigned int *sta_speed,
                               unsigned int *sta_width);
+
+int virPCIGetHeaderType(virPCIDevicePtr dev, int *hdrType);
 
 void virPCIEDeviceInfoFree(virPCIEDeviceInfoPtr dev);
 

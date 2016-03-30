@@ -2,23 +2,9 @@ body {
   margin: 0em;
   padding: 0px;
   color: rgb(0,0,0);
-  font-family: Verdana, Arial, Helvetica, sans-serif;
-  font-size: smaller;
+  font-family: sans-serif;
+  font-size: 90%;
   background: #ffffff;
-}
-
-p, ul, ol, dl {
-  padding: 0px;
-  margin: 0px;
-}
-
-ol,ul {
-  margin-left: 3em;
-}
-
-ol,ul,dl,p {
-  margin-top: 1em;
-  margin-bottom: 1em;
 }
 
 p:first-line {
@@ -30,37 +16,23 @@ div.body p:first-letter {
   font-weight: bold;
 }
 
-h1,h2,h3,h4,h5,h6 {
-  font-weight: bold;
-  margin: 0px;
+
+p, ul, ol, dl {
   padding: 0px;
-  margin-top: 0.5em;
+  margin: 0px;
+  line-height: 150%;
 }
 
-div.footer {
+p {
   margin-top: 1em;
+  margin-bottom: 1em;
 }
 
-h1 {
-  font-size: 2em;
-}
-h2 {
-  font-size: 1.6em;
-}
-h3 {
-  font-size: 1.4em;
-}
-h4 {
-  font-size: 1.2em;
-}
-h5 {
-  font-size: 1em;
-}
-h6 {
-  font-size: 0.8em;
+ul, ol {
+  margin-left: 2em;
 }
 
-dl dt {
+dt {
   margin-left: 1em;
   margin-right: 2em;
 }
@@ -69,4 +41,38 @@ dl dd {
   margin-left: 2em;
   margin-right: 2em;
   margin-bottom: 0.5em;
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: bold;
+  margin: 0px;
+  padding: 0px;
+  margin-bottom: 0.25em;
+  border-bottom: 1px solid #aaa;
+}
+
+h1 {
+  margin-top: 0em;
+  font-size: 2em;
+}
+h2 {
+  margin-top: 1.0em;
+  font-size: 1.6em;
+}
+h3 {
+  margin-top: 1.0em;
+  font-size: 1.4em;
+}
+h4 {
+  margin-top: 1.0em;
+  font-size: 1.2em;
+}
+h5 {
+  margin-top: 0.75em;
+  font-size: 1em;
+}
+h6 {
+  margin-top: 0.75em;
+  font-size: 0.8em;
 }

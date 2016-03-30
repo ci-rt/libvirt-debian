@@ -196,8 +196,10 @@ virLogManagerDomainOpenLogFile(virLogManagerPtr mgr,
         goto cleanup;
     }
 
-    *inode = ret.pos.inode;
-    *offset = ret.pos.offset;
+    if (inode)
+        *inode = ret.pos.inode;
+    if (offset)
+        *offset = ret.pos.offset;
 
     rv = fdout[0];
  cleanup:
@@ -256,8 +258,6 @@ virLogManagerDomainReadLogFile(virLogManagerPtr mgr,
 {
     struct virLogManagerProtocolDomainReadLogFileArgs args;
     struct virLogManagerProtocolDomainReadLogFileRet ret;
-    int *fdout = NULL;
-    size_t fdoutlen = 0;
     char *rv = NULL;
 
     memset(&args, 0, sizeof(args));
@@ -273,7 +273,7 @@ virLogManagerDomainReadLogFile(virLogManagerPtr mgr,
                                 mgr->client,
                                 mgr->serial++,
                                 VIR_LOG_MANAGER_PROTOCOL_PROC_DOMAIN_READ_LOG_FILE,
-                                0, NULL, &fdoutlen, &fdout,
+                                0, NULL, NULL, NULL,
                                 (xdrproc_t)xdr_virLogManagerProtocolDomainReadLogFileArgs, &args,
                                 (xdrproc_t)xdr_virLogManagerProtocolDomainReadLogFileRet, &ret) < 0)
         goto cleanup;

@@ -29,6 +29,7 @@
 #include "viralloc.h"
 #include "vircgroup.h"
 #include "virstring.h"
+#include "virsystemd.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -330,7 +331,7 @@ virLXCSetupHostUSBDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
 
     VIR_DEBUG("Process path '%s' for USB device", path);
     if (virCgroupAllowDevicePath(cgroup, path,
-                                 VIR_CGROUP_DEVICE_RWM) < 0)
+                                 VIR_CGROUP_DEVICE_RWM, false) < 0)
         return -1;
 
     return 0;
@@ -346,7 +347,7 @@ virLXCTeardownHostUSBDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
 
     VIR_DEBUG("Process path '%s' for USB device", path);
     if (virCgroupDenyDevicePath(cgroup, path,
-                                VIR_CGROUP_DEVICE_RWM) < 0)
+                                VIR_CGROUP_DEVICE_RWM, false) < 0)
         return -1;
 
     return 0;
@@ -400,7 +401,7 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
                                      (def->disks[i]->src->readonly ?
                                       VIR_CGROUP_DEVICE_READ :
                                       VIR_CGROUP_DEVICE_RW) |
-                                     VIR_CGROUP_DEVICE_MKNOD) < 0)
+                                     VIR_CGROUP_DEVICE_MKNOD, false) < 0)
             goto cleanup;
     }
 
@@ -413,7 +414,7 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
                                      def->fss[i]->src,
                                      def->fss[i]->readonly ?
                                      VIR_CGROUP_DEVICE_READ :
-                                     VIR_CGROUP_DEVICE_RW) < 0)
+                                     VIR_CGROUP_DEVICE_RW, false) < 0)
             goto cleanup;
     }
 
@@ -447,14 +448,14 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
                 if (virCgroupAllowDevicePath(cgroup,
                                              hostdev->source.caps.u.storage.block,
                                              VIR_CGROUP_DEVICE_RW |
-                                             VIR_CGROUP_DEVICE_MKNOD) < 0)
+                                             VIR_CGROUP_DEVICE_MKNOD, false) < 0)
                     goto cleanup;
                 break;
             case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_MISC:
                 if (virCgroupAllowDevicePath(cgroup,
                                              hostdev->source.caps.u.misc.chardev,
                                              VIR_CGROUP_DEVICE_RW |
-                                             VIR_CGROUP_DEVICE_MKNOD) < 0)
+                                             VIR_CGROUP_DEVICE_MKNOD, false) < 0)
                     goto cleanup;
                 break;
             default:
@@ -465,8 +466,8 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
         }
     }
 
-    if (virCgroupAllowDeviceMajor(cgroup, 'c', LXC_DEV_MAJ_PTY,
-                                  VIR_CGROUP_DEVICE_RWM) < 0)
+    if (virCgroupAllowDevice(cgroup, 'c', LXC_DEV_MAJ_PTY, -1,
+                             VIR_CGROUP_DEVICE_RWM) < 0)
         goto cleanup;
 
     VIR_DEBUG("Device whitelist complete");
@@ -483,6 +484,13 @@ virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def,
                                 int *nicindexes)
 {
     virCgroupPtr cgroup = NULL;
+    char *machineName = virSystemdMakeMachineName("lxc",
+                                                  def->id,
+                                                  def->name,
+                                                  true);
+
+    if (!machineName)
+        goto cleanup;
 
     if (def->resource->partition[0] != '/') {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -491,9 +499,8 @@ virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def,
         goto cleanup;
     }
 
-    if (virCgroupNewMachine(def->name,
+    if (virCgroupNewMachine(machineName,
                             "lxc",
-                            true,
                             def->uuid,
                             NULL,
                             initpid,
@@ -517,6 +524,8 @@ virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def,
     }
 
  cleanup:
+    VIR_FREE(machineName);
+
     return cgroup;
 }
 

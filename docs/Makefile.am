@@ -70,8 +70,6 @@ devhelpxsl = devhelp/devhelp.xsl devhelp/html.xsl
 
 png = \
   32favicon.png \
-  footer_corner.png \
-  footer_pattern.png \
   libvirt-header-bg.png \
   libvirt-header-logo.png \
   libvirtLogo.png \
@@ -81,7 +79,6 @@ png = \
   libvirt-driver-arch.png \
   libvirt-object-model.png \
   madeWith.png \
-  et.png \
   migration-managed-direct.png \
   migration-managed-p2p.png \
   migration-native.png \
@@ -220,21 +217,21 @@ $(srcdir)/hvsupport.html.in: $(srcdir)/hvsupport.pl $(api_DATA) \
 %.png: %.fig
 	convert -rotate 90 $< $@
 
-internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
-	@if [ -x $(XSLTPROC) ] ; then \
-	  echo "Generating $@"; \
-	  $(MKDIR_P) internals; \
-	  name=`echo $@ | sed -e 's/.tmp//'`; \
-	  $(XSLTPROC) --stringparam pagename $$name --nonet \
-	    $(top_srcdir)/docs/subsite.xsl $< > $@ \
-	    || { rm $@ && exit 1; }; fi
-
-%.html.tmp: %.html.in site.xsl page.xsl sitemap.html.in $(acl_generated)
+%.html.tmp: %.html.in site.xsl subsite.xsl page.xsl \
+		sitemap.html.in $(acl_generated)
 	@if [ -x $(XSLTPROC) ] ; then \
 	  echo "Generating $@"; \
 	  name=`echo $@ | sed -e 's/.tmp//'`; \
+	  dir=`dirname $@` ; \
+	  if test "$$dir" = "."; \
+	  then \
+	    style=site.xsl; \
+	  else \
+	    $(MKDIR_P) $$dir; \
+	    style=subsite.xsl; \
+	  fi; \
 	  $(XSLTPROC) --stringparam pagename $$name --nonet \
-	    $(top_srcdir)/docs/site.xsl $< > $@ \
+	    $(top_srcdir)/docs/$$style $< > $@ \
 	    || { rm $@ && exit 1; }; fi
 
 %.html: %.html.tmp
@@ -366,8 +363,8 @@ install-data-local:
 	$(INSTALL_DATA) $(srcdir)/libvirtLogo.png $(DESTDIR)$(pkgdatadir)
 
 uninstall-local:
-	for h in $(apihtml); do rm $(DESTDIR)$(HTML_DIR)/$$h; done
-	for p in $(apipng); do rm $(DESTDIR)$(HTML_DIR)/$$p; done
+	for h in $(apihtml); do rm -f $(DESTDIR)$(HTML_DIR)/$$h; done
+	for p in $(apipng); do rm -f $(DESTDIR)$(HTML_DIR)/$$p; done
 	for f in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
-	  rm $(DESTDIR)$(DEVHELP_DIR)/$$(basename $$f); \
+	  rm -f $(DESTDIR)$(DEVHELP_DIR)/$$(basename $$f); \
 	done

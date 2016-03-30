@@ -39,7 +39,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <paths.h>
 #include <pwd.h>
 #include <sys/wait.h>
 
@@ -98,10 +97,6 @@ openvzDomainDefPostParse(virDomainDefPtr def,
             return -1;
     }
 
-    /* memory hotplug tunables are not supported by this driver */
-    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
-        return -1;
-
     return 0;
 }
 
@@ -127,9 +122,6 @@ openvzDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                        virDomainVirtTypeToString(def->virtType));
         return -1;
     }
-
-    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
-        return -1;
 
     return 0;
 }
@@ -573,7 +565,7 @@ static char *openvzDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
         goto cleanup;
     }
 
-    ret = virDomainDefFormat(vm->def,
+    ret = virDomainDefFormat(vm->def, driver->caps,
                              virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
@@ -2274,7 +2266,8 @@ openvzDomainMigrateBegin3Params(virDomainPtr domain,
         goto cleanup;
     }
 
-    xml = virDomainDefFormat(vm->def, VIR_DOMAIN_DEF_FORMAT_SECURE);
+    xml = virDomainDefFormat(vm->def, driver->caps,
+                             VIR_DOMAIN_DEF_FORMAT_SECURE);
 
  cleanup:
     if (vm)

@@ -439,7 +439,7 @@ virSecuritySELinuxLXCInitialize(virSecurityManagerPtr mgr)
     dcon = virConfGetValue(selinux_conf, "content");
     if (! dcon || dcon->type != VIR_CONF_STRING || (! dcon->str)) {
         virReportSystemError(errno,
-                             _("cannot read 'file' value from selinux lxc contexts file '%s'"),
+                             _("cannot read 'content' value from selinux lxc contexts file '%s'"),
                              selinux_lxc_contexts_path());
         goto error;
     }
@@ -1023,6 +1023,12 @@ virSecuritySELinuxRestoreFileLabel(virSecurityManagerPtr mgr,
     int rc = -1;
     char *newpath = NULL;
     char ebuf[1024];
+
+    /* Some paths are auto-generated, so let's be safe here and do
+     * nothing if nothing is needed.
+     */
+    if (!path)
+        return 0;
 
     VIR_INFO("Restoring SELinux context on '%s'", path);
 

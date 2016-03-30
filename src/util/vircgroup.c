@@ -243,12 +243,17 @@ static bool
 virCgroupValidateMachineGroup(virCgroupPtr group,
                               const char *name,
                               const char *drivername,
+                              int id,
+                              bool privileged,
                               bool stripEmulatorSuffix)
 {
     size_t i;
     bool valid = false;
-    char *partname;
-    char *scopename;
+    char *partname = NULL;
+    char *scopename_old = NULL;
+    char *scopename_new = NULL;
+    char *machinename = virSystemdMakeMachineName(drivername, id,
+                                                  name, privileged);
 
     if (virAsprintf(&partname, "%s.libvirt-%s",
                     name, drivername) < 0)
@@ -257,10 +262,21 @@ virCgroupValidateMachineGroup(virCgroupPtr group,
     if (virCgroupPartitionEscape(&partname) < 0)
         goto cleanup;
 
-    if (!(scopename = virSystemdMakeScopeName(name, drivername)))
+    if (!(scopename_old = virSystemdMakeScopeName(name, drivername, true)))
         goto cleanup;
 
-    if (virCgroupPartitionEscape(&scopename) < 0)
+    /* We should keep trying even if this failed */
+    if (!machinename)
+        virResetLastError();
+    else if (!(scopename_new = virSystemdMakeScopeName(machinename,
+                                                       drivername, false)))
+        goto cleanup;
+
+    if (virCgroupPartitionEscape(&scopename_old) < 0)
+        goto cleanup;
+
+    if (scopename_new &&
+        virCgroupPartitionEscape(&scopename_new) < 0)
         goto cleanup;
 
     for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
@@ -290,12 +306,15 @@ virCgroupValidateMachineGroup(virCgroupPtr group,
         tmp++;
 
         if (STRNEQ(tmp, name) &&
+            STRNEQ_NULLABLE(tmp, machinename) &&
             STRNEQ(tmp, partname) &&
-            STRNEQ(tmp, scopename)) {
+            STRNEQ(tmp, scopename_old) &&
+            STRNEQ_NULLABLE(tmp, scopename_new)) {
             VIR_DEBUG("Name '%s' for controller '%s' does not match "
-                      "'%s', '%s' or '%s'",
+                      "'%s', '%s', '%s', '%s' or '%s'",
                       tmp, virCgroupControllerTypeToString(i),
-                      name, partname, scopename);
+                      name, NULLSTR(machinename), partname,
+                      scopename_old, NULLSTR(scopename_new));
             goto cleanup;
         }
     }
@@ -304,7 +323,9 @@ virCgroupValidateMachineGroup(virCgroupPtr group,
 
  cleanup:
     VIR_FREE(partname);
-    VIR_FREE(scopename);
+    VIR_FREE(scopename_old);
+    VIR_FREE(scopename_new);
+    VIR_FREE(machinename);
     return valid;
 }
 
@@ -1162,7 +1183,7 @@ virCgroupAddTask(virCgroupPtr group, pid_t pid)
         if (i == VIR_CGROUP_CONTROLLER_SYSTEMD)
             continue;
 
-        if (virCgroupSetValueU64(group, i, "tasks", pid) < 0)
+        if (virCgroupAddTaskController(group, pid, i) < 0)
             goto cleanup;
     }
 
@@ -1199,99 +1220,6 @@ virCgroupAddTaskController(virCgroupPtr group, pid_t pid, int controller)
 
     return virCgroupSetValueU64(group, controller, "tasks",
                                 (unsigned long long)pid);
-}
-
-
-static int
-virCgroupAddTaskStrController(virCgroupPtr group,
-                              const char *pidstr,
-                              int controller)
-{
-    char *str = NULL, *cur = NULL, *next = NULL;
-    unsigned long long p = 0;
-    int rc = 0;
-    char *endp;
-
-    if (VIR_STRDUP(str, pidstr) < 0)
-        return -1;
-
-    cur = str;
-    while (*cur != '\0') {
-        if (virStrToLong_ull(cur, &endp, 10, &p) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Cannot parse '%s' as an integer"), cur);
-            goto cleanup;
-        }
-
-        if (virCgroupAddTaskController(group, p, controller) < 0) {
-            /* A thread that exits between when we first read the source
-             * tasks and now is not fatal.  */
-            if (virLastErrorIsSystemErrno(ESRCH))
-                virResetLastError();
-            else
-                goto cleanup;
-        }
-
-        next = strchr(cur, '\n');
-        if (next) {
-            cur = next + 1;
-            *next = '\0';
-        } else {
-            break;
-        }
-    }
-
- cleanup:
-    VIR_FREE(str);
-    return rc;
-}
-
-
-/**
- * virCgroupMoveTask:
- *
- * @src_group: The source cgroup where all tasks are removed from
- * @dest_group: The destination where all tasks are added to
- *
- * Returns: 0 on success or -1 on failure
- */
-int
-virCgroupMoveTask(virCgroupPtr src_group, virCgroupPtr dest_group)
-{
-    int ret = -1;
-    char *content = NULL;
-    size_t i;
-
-    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
-        if (!src_group->controllers[i].mountPoint ||
-            !dest_group->controllers[i].mountPoint)
-            continue;
-
-        /* We must never move tasks in systemd's hierarchy */
-        if (i == VIR_CGROUP_CONTROLLER_SYSTEMD)
-            continue;
-
-        /* New threads are created in the same group as their parent;
-         * but if a thread is created after we first read we aren't
-         * aware that it needs to move.  Therefore, we must iterate
-         * until content is empty.  */
-        while (1) {
-            VIR_FREE(content);
-            if (virCgroupGetValueStr(src_group, i, "tasks", &content) < 0)
-                return -1;
-
-            if (!*content)
-                break;
-
-            if (virCgroupAddTaskStrController(dest_group, content, i) < 0)
-                goto cleanup;
-        }
-    }
-
-    ret = 0;
- cleanup:
-    VIR_FREE(content);
-    return ret;
 }
 
 
@@ -1555,6 +1483,8 @@ virCgroupNewDetect(pid_t pid,
 int
 virCgroupNewDetectMachine(const char *name,
                           const char *drivername,
+                          int id,
+                          bool privileged,
                           pid_t pid,
                           int controllers,
                           virCgroupPtr *group)
@@ -1565,7 +1495,8 @@ virCgroupNewDetectMachine(const char *name,
         return -1;
     }
 
-    if (!virCgroupValidateMachineGroup(*group, name, drivername, true)) {
+    if (!virCgroupValidateMachineGroup(*group, name, drivername,
+                                       id, privileged, true)) {
         VIR_DEBUG("Failed to validate machine name for '%s' driver '%s'",
                   name, drivername);
         virCgroupFree(group);
@@ -1582,7 +1513,6 @@ virCgroupNewDetectMachine(const char *name,
 static int
 virCgroupNewMachineSystemd(const char *name,
                            const char *drivername,
-                           bool privileged,
                            const unsigned char *uuid,
                            const char *rootdir,
                            pid_t pidleader,
@@ -1602,7 +1532,6 @@ virCgroupNewMachineSystemd(const char *name,
     VIR_DEBUG("Trying to setup machine '%s' via systemd", name);
     if ((rv = virSystemdCreateMachine(name,
                                       drivername,
-                                      privileged,
                                       uuid,
                                       rootdir,
                                       pidleader,
@@ -1690,11 +1619,9 @@ virCgroupNewMachineSystemd(const char *name,
 /*
  * Returns 0 on success, -1 on fatal error
  */
-int virCgroupTerminateMachine(const char *name,
-                              const char *drivername,
-                              bool privileged)
+int virCgroupTerminateMachine(const char *name)
 {
-    return virSystemdTerminateMachine(name, drivername, privileged);
+    return virSystemdTerminateMachine(name);
 }
 
 
@@ -1749,7 +1676,6 @@ virCgroupNewMachineManual(const char *name,
 int
 virCgroupNewMachine(const char *name,
                     const char *drivername,
-                    bool privileged,
                     const unsigned char *uuid,
                     const char *rootdir,
                     pid_t pidleader,
@@ -1766,7 +1692,6 @@ virCgroupNewMachine(const char *name,
 
     if ((rv = virCgroupNewMachineSystemd(name,
                                          drivername,
-                                         privileged,
                                          uuid,
                                          rootdir,
                                          pidleader,
@@ -2963,59 +2888,31 @@ virCgroupAllowDevice(virCgroupPtr group, char type, int major, int minor,
 
 
 /**
- * virCgroupAllowDeviceMajor:
- *
- * @group: The cgroup to allow an entire device major type for
- * @type: The device type (i.e., 'c' or 'b')
- * @major: The major number of the device type
- * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to allow
- *
- * Returns: 0 on success
- */
-int
-virCgroupAllowDeviceMajor(virCgroupPtr group, char type, int major,
-                          int perms)
-{
-    int ret = -1;
-    char *devstr = NULL;
-
-    if (virAsprintf(&devstr, "%c %i:* %s", type, major,
-                    virCgroupGetDevicePermsString(perms)) < 0)
-        goto cleanup;
-
-    if (virCgroupSetValueStr(group,
-                             VIR_CGROUP_CONTROLLER_DEVICES,
-                             "devices.allow",
-                             devstr) < 0)
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(devstr);
-    return ret;
-}
-
-
-/**
  * virCgroupAllowDevicePath:
  *
  * @group: The cgroup to allow the device for
  * @path: the device to allow
  * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to allow
+ * @ignoreEacces: Ignore lack of permission (mostly for NFS mounts)
  *
  * Queries the type of device and its major/minor number, and
  * adds that to the cgroup ACL
  *
- * Returns: 0 on success, 1 if path exists but is not a device, or
- * -1 on error
+ * Returns: 0 on success, 1 if path exists but is not a device or is not
+ * accesible, or * -1 on error
  */
 int
-virCgroupAllowDevicePath(virCgroupPtr group, const char *path, int perms)
+virCgroupAllowDevicePath(virCgroupPtr group,
+                         const char *path,
+                         int perms,
+                         bool ignoreEacces)
 {
     struct stat sb;
 
     if (stat(path, &sb) < 0) {
+        if (errno == EACCES && ignoreEacces)
+            return 1;
+
         virReportSystemError(errno,
                              _("Path '%s' is not accessible"),
                              path);
@@ -3038,8 +2935,8 @@ virCgroupAllowDevicePath(virCgroupPtr group, const char *path, int perms)
  *
  * @group: The cgroup to deny a device for
  * @type: The device type (i.e., 'c' or 'b')
- * @major: The major number of the device
- * @minor: The minor number of the device
+ * @major: The major number of the device, a negative value means '*'
+ * @minor: The minor number of the device, a negative value means '*'
  * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to deny
  *
  * Returns: 0 on success
@@ -3050,8 +2947,18 @@ virCgroupDenyDevice(virCgroupPtr group, char type, int major, int minor,
 {
     int ret = -1;
     char *devstr = NULL;
+    char *majorstr = NULL;
+    char *minorstr = NULL;
 
-    if (virAsprintf(&devstr, "%c %i:%i %s", type, major, minor,
+    if ((major < 0 && VIR_STRDUP(majorstr, "*") < 0) ||
+        (major >= 0 && virAsprintf(&majorstr, "%i", major) < 0))
+        goto cleanup;
+
+    if ((minor < 0 && VIR_STRDUP(minorstr, "*") < 0) ||
+        (minor >= 0 && virAsprintf(&minorstr, "%i", minor) < 0))
+        goto cleanup;
+
+    if (virAsprintf(&devstr, "%c %s:%s %s", type, majorstr, minorstr,
                     virCgroupGetDevicePermsString(perms)) < 0)
         goto cleanup;
 
@@ -3065,51 +2972,38 @@ virCgroupDenyDevice(virCgroupPtr group, char type, int major, int minor,
 
  cleanup:
     VIR_FREE(devstr);
+    VIR_FREE(majorstr);
+    VIR_FREE(minorstr);
     return ret;
 }
 
 
 /**
- * virCgroupDenyDeviceMajor:
+ * virCgroupDenyDevicePath:
  *
- * @group: The cgroup to deny an entire device major type for
- * @type: The device type (i.e., 'c' or 'b')
- * @major: The major number of the device type
- * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to deny
+ * @group: The cgroup to deny the device for
+ * @path: the device to deny
+ * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to allow
+ * @ignoreEacces: Ignore lack of permission (mostly for NFS mounts)
  *
- * Returns: 0 on success
+ * Queries the type of device and its major/minor number, and
+ * removes it from the cgroup ACL
+ *
+ * Returns: 0 on success, 1 if path exists but is not a device or is not
+ * accessible, or -1 on error.
  */
 int
-virCgroupDenyDeviceMajor(virCgroupPtr group, char type, int major,
-                         int perms)
-{
-    int ret = -1;
-    char *devstr = NULL;
-
-    if (virAsprintf(&devstr, "%c %i:* %s", type, major,
-                    virCgroupGetDevicePermsString(perms)) < 0)
-        goto cleanup;
-
-    if (virCgroupSetValueStr(group,
-                             VIR_CGROUP_CONTROLLER_DEVICES,
-                             "devices.deny",
-                             devstr) < 0)
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(devstr);
-    return ret;
-}
-
-
-int
-virCgroupDenyDevicePath(virCgroupPtr group, const char *path, int perms)
+virCgroupDenyDevicePath(virCgroupPtr group,
+                        const char *path,
+                        int perms,
+                        bool ignoreEacces)
 {
     struct stat sb;
 
     if (stat(path, &sb) < 0) {
+        if (errno == EACCES && ignoreEacces)
+            return 1;
+
         virReportSystemError(errno,
                              _("Path '%s' is not accessible"),
                              path);
@@ -3143,17 +3037,17 @@ virCgroupDenyDevicePath(virCgroupPtr group, const char *path, int perms)
  */
 static int
 virCgroupGetPercpuVcpuSum(virCgroupPtr group,
-                          unsigned int nvcpupids,
+                          virBitmapPtr guestvcpus,
                           unsigned long long *sum_cpu_time,
                           size_t nsum,
                           virBitmapPtr cpumap)
 {
     int ret = -1;
-    size_t i;
+    ssize_t i = -1;
     char *buf = NULL;
     virCgroupPtr group_vcpu = NULL;
 
-    for (i = 0; i < nvcpupids; i++) {
+    while ((i = virBitmapNextSetBit(guestvcpus, i)) >= 0) {
         char *pos;
         unsigned long long tmp;
         ssize_t j;
@@ -3189,15 +3083,35 @@ virCgroupGetPercpuVcpuSum(virCgroupPtr group,
 }
 
 
+/**
+ * virCgroupGetPercpuStats:
+ * @cgroup: cgroup data structure
+ * @params: typed parameter array where data is returned
+ * @nparams: cardinality of @params
+ * @start_cpu: offset of physical CPU to get data for
+ * @ncpus: number of physical CPUs to get data for
+ * @nvcpupids: number of vCPU threads for a domain (actual number of vcpus)
+ *
+ * This function is the worker that retrieves data in the appropriate format
+ * for the terribly designed 'virDomainGetCPUStats' API. Sharing semantics with
+ * the API, this function has two modes of operation depending on magic settings
+ * of the input arguments. Please refer to docs of 'virDomainGetCPUStats' for
+ * the usage patterns of the similarly named arguments.
+ *
+ * @nvcpupids determines the count of active vcpu threads for the vm. If the
+ * threads could not be detected the percpu data is skipped.
+ *
+ * Please DON'T use this function anywhere else.
+ */
 int
 virCgroupGetPercpuStats(virCgroupPtr group,
                         virTypedParameterPtr params,
                         unsigned int nparams,
                         int start_cpu,
                         unsigned int ncpus,
-                        unsigned int nvcpupids)
+                        virBitmapPtr guestvcpus)
 {
-    int rv = -1;
+    int ret = -1;
     size_t i;
     int need_cpus, total_cpus;
     char *pos;
@@ -3210,7 +3124,7 @@ virCgroupGetPercpuStats(virCgroupPtr group,
 
     /* return the number of supported params */
     if (nparams == 0 && ncpus != 0) {
-        if (nvcpupids == 0)
+        if (!guestvcpus)
             return CGROUP_NB_PER_CPU_STAT_PARAM;
         else
             return CGROUP_NB_PER_CPU_STAT_PARAM + 1;
@@ -3218,12 +3132,13 @@ virCgroupGetPercpuStats(virCgroupPtr group,
 
     /* To parse account file, we need to know how many cpus are present.  */
     if (!(cpumap = nodeGetPresentCPUBitmap(NULL)))
-        return rv;
+        return -1;
 
     total_cpus = virBitmapSize(cpumap);
 
+    /* return total number of cpus */
     if (ncpus == 0) {
-        rv = total_cpus;
+        ret = total_cpus;
         goto cleanup;
     }
 
@@ -3261,34 +3176,35 @@ virCgroupGetPercpuStats(virCgroupPtr group,
             goto cleanup;
     }
 
-    if (nvcpupids == 0 || param_idx + 1 >= nparams)
-        goto success;
     /* return percpu vcputime in index 1 */
-    param_idx++;
+    param_idx = 1;
 
-    if (VIR_ALLOC_N(sum_cpu_time, need_cpus) < 0)
-        goto cleanup;
-    if (virCgroupGetPercpuVcpuSum(group, nvcpupids, sum_cpu_time, need_cpus,
-                                  cpumap) < 0)
-        goto cleanup;
-
-    for (i = start_cpu; i < need_cpus; i++) {
-        if (virTypedParameterAssign(&params[(i - start_cpu) * nparams +
-                                            param_idx],
-                                    VIR_DOMAIN_CPU_STATS_VCPUTIME,
-                                    VIR_TYPED_PARAM_ULLONG,
-                                    sum_cpu_time[i]) < 0)
+    if (guestvcpus && param_idx < nparams) {
+        if (VIR_ALLOC_N(sum_cpu_time, need_cpus) < 0)
             goto cleanup;
+        if (virCgroupGetPercpuVcpuSum(group, guestvcpus, sum_cpu_time,
+                                      need_cpus, cpumap) < 0)
+            goto cleanup;
+
+        for (i = start_cpu; i < need_cpus; i++) {
+            if (virTypedParameterAssign(&params[(i - start_cpu) * nparams +
+                                                param_idx],
+                                        VIR_DOMAIN_CPU_STATS_VCPUTIME,
+                                        VIR_TYPED_PARAM_ULLONG,
+                                        sum_cpu_time[i]) < 0)
+                goto cleanup;
+        }
+
+        param_idx++;
     }
 
- success:
-    rv = param_idx + 1;
+    ret = param_idx;
 
  cleanup:
     virBitmapFree(cpumap);
     VIR_FREE(sum_cpu_time);
     VIR_FREE(buf);
-    return rv;
+    return ret;
 }
 
 
@@ -3917,8 +3833,8 @@ virCgroupGetFreezerState(virCgroupPtr group, char **state)
 
 
 int
-virCgroupIsolateMount(virCgroupPtr group, const char *oldroot,
-                      const char *mountopts)
+virCgroupBindMount(virCgroupPtr group, const char *oldroot,
+                   const char *mountopts)
 {
     int ret = -1;
     size_t i;
@@ -3954,10 +3870,9 @@ virCgroupIsolateMount(virCgroupPtr group, const char *oldroot,
 
         if (!virFileExists(group->controllers[i].mountPoint)) {
             char *src;
-            if (virAsprintf(&src, "%s%s%s",
+            if (virAsprintf(&src, "%s%s",
                             oldroot,
-                            group->controllers[i].mountPoint,
-                            group->controllers[i].placement) < 0)
+                            group->controllers[i].mountPoint) < 0)
                 goto cleanup;
 
             VIR_DEBUG("Create mount point '%s'",
@@ -4220,6 +4135,8 @@ virCgroupNewDetect(pid_t pid ATTRIBUTE_UNUSED,
 int
 virCgroupNewDetectMachine(const char *name ATTRIBUTE_UNUSED,
                           const char *drivername ATTRIBUTE_UNUSED,
+                          int id ATTRIBUTE_UNUSED,
+                          bool privileged ATTRIBUTE_UNUSED,
                           pid_t pid ATTRIBUTE_UNUSED,
                           int controllers ATTRIBUTE_UNUSED,
                           virCgroupPtr *group ATTRIBUTE_UNUSED)
@@ -4230,9 +4147,7 @@ virCgroupNewDetectMachine(const char *name ATTRIBUTE_UNUSED,
 }
 
 
-int virCgroupTerminateMachine(const char *name ATTRIBUTE_UNUSED,
-                              const char *drivername ATTRIBUTE_UNUSED,
-                              bool privileged ATTRIBUTE_UNUSED)
+int virCgroupTerminateMachine(const char *name ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENXIO, "%s",
                          _("Control groups not supported on this platform"));
@@ -4243,7 +4158,6 @@ int virCgroupTerminateMachine(const char *name ATTRIBUTE_UNUSED,
 int
 virCgroupNewMachine(const char *name ATTRIBUTE_UNUSED,
                     const char *drivername ATTRIBUTE_UNUSED,
-                    bool privileged ATTRIBUTE_UNUSED,
                     const unsigned char *uuid ATTRIBUTE_UNUSED,
                     const char *rootdir ATTRIBUTE_UNUSED,
                     pid_t pidleader ATTRIBUTE_UNUSED,
@@ -4310,16 +4224,6 @@ int
 virCgroupAddTaskController(virCgroupPtr group ATTRIBUTE_UNUSED,
                            pid_t pid ATTRIBUTE_UNUSED,
                            int controller ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENXIO, "%s",
-                         _("Control groups not supported on this platform"));
-    return -1;
-}
-
-
-int
-virCgroupMoveTask(virCgroupPtr src_group ATTRIBUTE_UNUSED,
-                  virCgroupPtr dest_group ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENXIO, "%s",
                          _("Control groups not supported on this platform"));
@@ -4655,21 +4559,10 @@ virCgroupAllowDevice(virCgroupPtr group ATTRIBUTE_UNUSED,
 
 
 int
-virCgroupAllowDeviceMajor(virCgroupPtr group ATTRIBUTE_UNUSED,
-                          char type ATTRIBUTE_UNUSED,
-                          int major ATTRIBUTE_UNUSED,
-                          int perms ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("Control groups not supported on this platform"));
-    return -1;
-}
-
-
-int
 virCgroupAllowDevicePath(virCgroupPtr group ATTRIBUTE_UNUSED,
                          const char *path ATTRIBUTE_UNUSED,
-                         int perms ATTRIBUTE_UNUSED)
+                         int perms ATTRIBUTE_UNUSED,
+                         bool ignoreEaccess ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));
@@ -4691,21 +4584,10 @@ virCgroupDenyDevice(virCgroupPtr group ATTRIBUTE_UNUSED,
 
 
 int
-virCgroupDenyDeviceMajor(virCgroupPtr group ATTRIBUTE_UNUSED,
-                         char type ATTRIBUTE_UNUSED,
-                         int major ATTRIBUTE_UNUSED,
-                         int perms ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("Control groups not supported on this platform"));
-    return -1;
-}
-
-
-int
 virCgroupDenyDevicePath(virCgroupPtr group ATTRIBUTE_UNUSED,
                         const char *path ATTRIBUTE_UNUSED,
-                        int perms ATTRIBUTE_UNUSED)
+                        int perms ATTRIBUTE_UNUSED,
+                        bool ignoreEacces ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));
@@ -4883,9 +4765,9 @@ virCgroupGetFreezerState(virCgroupPtr group ATTRIBUTE_UNUSED,
 
 
 int
-virCgroupIsolateMount(virCgroupPtr group ATTRIBUTE_UNUSED,
-                      const char *oldroot ATTRIBUTE_UNUSED,
-                      const char *mountopts ATTRIBUTE_UNUSED)
+virCgroupBindMount(virCgroupPtr group ATTRIBUTE_UNUSED,
+                   const char *oldroot ATTRIBUTE_UNUSED,
+                   const char *mountopts ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));
@@ -4907,7 +4789,7 @@ virCgroupGetPercpuStats(virCgroupPtr group ATTRIBUTE_UNUSED,
                         unsigned int nparams ATTRIBUTE_UNUSED,
                         int start_cpu ATTRIBUTE_UNUSED,
                         unsigned int ncpus ATTRIBUTE_UNUSED,
-                        unsigned int nvcpupids ATTRIBUTE_UNUSED)
+                        virBitmapPtr guestvcpus ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));

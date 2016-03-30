@@ -1982,7 +1982,7 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
 
-    xml = virDomainDefFormat(privdom->def,
+    xml = virDomainDefFormat(privdom->def, privconn->caps,
                              VIR_DOMAIN_DEF_FORMAT_SECURE);
 
     if (xml == NULL) {
@@ -2455,15 +2455,14 @@ static int testDomainGetVcpus(virDomainPtr domain,
     memset(cpumaps, 0, maxinfo * maplen);
 
     for (i = 0; i < maxinfo; i++) {
-        virDomainPinDefPtr pininfo;
+        virDomainVcpuInfoPtr vcpu = virDomainDefGetVcpu(def, i);
         virBitmapPtr bitmap = NULL;
 
-        pininfo = virDomainPinFind(def->cputune.vcpupin,
-                                   def->cputune.nvcpupin,
-                                   i);
+        if (!vcpu->online)
+            continue;
 
-        if (pininfo && pininfo->cpumask)
-            bitmap = pininfo->cpumask;
+        if (vcpu->cpumask)
+            bitmap = vcpu->cpumask;
         else if (def->cpumask)
             bitmap = def->cpumask;
         else
@@ -2492,6 +2491,7 @@ static int testDomainPinVcpu(virDomainPtr domain,
                              unsigned char *cpumap,
                              int maplen)
 {
+    virDomainVcpuInfoPtr vcpuinfo;
     virDomainObjPtr privdom;
     virDomainDefPtr def;
     int ret = -1;
@@ -2507,28 +2507,21 @@ static int testDomainPinVcpu(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (vcpu > virDomainDefGetVcpus(privdom->def)) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("requested vcpu is higher than allocated vcpus"));
+    if (!(vcpuinfo = virDomainDefGetVcpu(def, vcpu)) ||
+        !vcpuinfo->online) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("requested vcpu '%d' is not present in the domain"),
+                       vcpu);
         goto cleanup;
     }
 
-    if (!def->cputune.vcpupin) {
-        if (VIR_ALLOC(def->cputune.vcpupin) < 0)
-            goto cleanup;
-        def->cputune.nvcpupin = 0;
-    }
-    if (virDomainPinAdd(&def->cputune.vcpupin,
-                        &def->cputune.nvcpupin,
-                        cpumap,
-                        maplen,
-                        vcpu) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("failed to update or add vcpupin"));
+    virBitmapFree(vcpuinfo->cpumask);
+
+    if (!(vcpuinfo->cpumask = virBitmapNewData(cpumap, maplen)))
         goto cleanup;
-    }
 
     ret = 0;
+
  cleanup:
     virDomainObjEndAPI(&privdom);
     return ret;
@@ -2541,11 +2534,10 @@ testDomainGetVcpuPinInfo(virDomainPtr dom,
                         int maplen,
                         unsigned int flags)
 {
-    testDriverPtr privconn = dom->conn->privateData;
+    testDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr privdom;
     virDomainDefPtr def;
-    int ret = -1, hostcpus, vcpu;
-    virBitmapPtr allcpumap = NULL;
+    int ret = -1;
 
     if (!(privdom = testDomObjFromDomain(dom)))
         return -1;
@@ -2553,43 +2545,18 @@ testDomainGetVcpuPinInfo(virDomainPtr dom,
     if (!(def = virDomainObjGetOneDef(privdom, flags)))
         goto cleanup;
 
-    hostcpus = VIR_NODEINFO_MAXCPUS(privconn->nodeInfo);
-
-    if (!(allcpumap = virBitmapNew(hostcpus)))
-        goto cleanup;
-
-    virBitmapSetAll(allcpumap);
-
-    /* Clamp to actual number of vcpus */
-    if (ncpumaps > virDomainDefGetVcpus(def))
-        ncpumaps = virDomainDefGetVcpus(def);
-
-    for (vcpu = 0; vcpu < ncpumaps; vcpu++) {
-        virDomainPinDefPtr pininfo;
-        virBitmapPtr bitmap = NULL;
-
-        pininfo = virDomainPinFind(def->cputune.vcpupin,
-                                   def->cputune.nvcpupin,
-                                   vcpu);
-
-        if (pininfo && pininfo->cpumask)
-            bitmap = pininfo->cpumask;
-        else
-            bitmap = allcpumap;
-
-        virBitmapToDataBuf(bitmap, VIR_GET_CPUMAP(cpumaps, maplen, vcpu), maplen);
-    }
-
-    ret = ncpumaps;
+    ret = virDomainDefGetVcpuPinInfoHelper(def, maplen, ncpumaps, cpumaps,
+                                           VIR_NODEINFO_MAXCPUS(driver->nodeInfo),
+                                           NULL);
 
  cleanup:
-    virBitmapFree(allcpumap);
     virDomainObjEndAPI(&privdom);
     return ret;
 }
 
 static char *testDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 {
+    testDriverPtr privconn = domain->conn->privateData;
     virDomainDefPtr def;
     virDomainObjPtr privdom;
     char *ret = NULL;
@@ -2602,7 +2569,8 @@ static char *testDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     def = (flags & VIR_DOMAIN_XML_INACTIVE) &&
         privdom->newDef ? privdom->newDef : privdom->def;
 
-    ret = virDomainDefFormat(def, virDomainDefFormatConvertXMLFlags(flags));
+    ret = virDomainDefFormat(def, privconn->caps,
+                             virDomainDefFormatConvertXMLFlags(flags));
 
     virDomainObjEndAPI(&privdom);
     return ret;
@@ -6084,6 +6052,7 @@ testDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     char *xml = NULL;
     virDomainSnapshotObjPtr snap = NULL;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
+    testDriverPtr privconn = snapshot->domain->conn->privateData;
 
     virCheckFlags(VIR_DOMAIN_XML_SECURE, NULL);
 
@@ -6095,7 +6064,7 @@ testDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(snapshot->domain->uuid, uuidstr);
 
-    xml = virDomainSnapshotDefFormat(uuidstr, snap->def,
+    xml = virDomainSnapshotDefFormat(uuidstr, snap->def, privconn->caps,
                                      virDomainDefFormatConvertXMLFlags(flags),
                                      0);
 
@@ -6298,10 +6267,10 @@ struct _testSnapRemoveData {
     bool current;
 };
 
-static void
+static int
 testDomainSnapshotDiscardAll(void *payload,
-                          const void *name ATTRIBUTE_UNUSED,
-                          void *data)
+                             const void *name ATTRIBUTE_UNUSED,
+                             void *data)
 {
     virDomainSnapshotObjPtr snap = payload;
     testSnapRemoveDataPtr curr = data;
@@ -6309,6 +6278,7 @@ testDomainSnapshotDiscardAll(void *payload,
     if (snap->def->current)
         curr->current = true;
     virDomainSnapshotObjListRemove(curr->vm->snapshots, snap);
+    return 0;
 }
 
 typedef struct _testSnapReparentData testSnapReparentData;
@@ -6320,7 +6290,7 @@ struct _testSnapReparentData {
     virDomainSnapshotObjPtr last;
 };
 
-static void
+static int
 testDomainSnapshotReparentChildren(void *payload,
                                    const void *name ATTRIBUTE_UNUSED,
                                    void *data)
@@ -6329,7 +6299,7 @@ testDomainSnapshotReparentChildren(void *payload,
     testSnapReparentDataPtr rep = data;
 
     if (rep->err < 0)
-        return;
+        return 0;
 
     VIR_FREE(snap->def->parent);
     snap->parent = rep->parent;
@@ -6337,11 +6307,12 @@ testDomainSnapshotReparentChildren(void *payload,
     if (rep->parent->def &&
         VIR_STRDUP(snap->def->parent, rep->parent->def->name) < 0) {
         rep->err = -1;
-        return;
+        return 0;
     }
 
     if (!snap->sibling)
         rep->last = snap;
+    return 0;
 }
 
 static int

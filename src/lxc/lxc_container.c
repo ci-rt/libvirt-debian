@@ -1827,7 +1827,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
 
     /* Now we can re-mount the cgroups controllers in the
      * same configuration as before */
-    if (virCgroupIsolateMount(cgroup, "/.oldroot/", sec_mount_options) < 0)
+    if (virCgroupBindMount(cgroup, "/.oldroot/", sec_mount_options) < 0)
         goto cleanup;
 
     /* Mounts /dev */
@@ -2404,7 +2404,7 @@ int lxcContainerStart(virDomainDefPtr def,
     } else {
         if (lxcNeedNetworkNamespace(def)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Config askes for inherit net namespace "
+                           _("Config asks for inherit net namespace "
                              "as well as private network interfaces"));
             VIR_FREE(stack);
             return -1;

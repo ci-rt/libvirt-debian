@@ -1460,6 +1460,11 @@
       &lt;relaxed state='on'/&gt;
       &lt;vapic state='on'/&gt;
       &lt;spinlocks state='on' retries='4096'/&gt;
+      &lt;vpindex state='on'/&gt;
+      &lt;runtime state='on'/&gt;
+      &lt;synic state='on'/&gt;
+      &lt;reset state='on'/&gt;
+      &lt;vendor_id state='on' value='KVM Hv'/&gt;
     &lt;/hyperv&gt;
     &lt;kvm&gt;
       &lt;hidden state='on'/&gt;
@@ -1494,8 +1499,10 @@
       Interrupt) for the guest.
       </dd>
       <dt><code>hap</code></dt>
-      <dd>Enable use of Hardware Assisted Paging if available in
-        the hardware.
+      <dd>Depending on the <code>state</code> attribute (values <code>on</code>,
+        <code>off</code>) enable or disable use of Hardware Assisted Paging.
+        The default is <code>on</code> if the hypervisor detects availability
+        of Hardware Assisted Paging.
       </dd>
       <dt><code>viridian</code></dt>
       <dd>Enable Viridian hypervisor extensions for paravirtualizing
@@ -1521,19 +1528,55 @@
           <td>relaxed</td>
           <td>Relax constraints on timers</td>
           <td> on, off</td>
-          <td><span class="since">1.0.0 (QEMU only)</span></td>
+          <td><span class="since">1.0.0 (QEMU 2.0)</span></td>
         </tr>
         <tr>
           <td>vapic</td>
           <td>Enable virtual APIC</td>
           <td>on, off</td>
-          <td><span class="since">1.1.0 (QEMU only)</span></td>
+          <td><span class="since">1.1.0 (QEMU 2.0)</span></td>
         </tr>
         <tr>
           <td>spinlocks</td>
           <td>Enable spinlock support</td>
           <td>on, off; retries - at least 4095</td>
-          <td><span class="since">1.1.0 (QEMU only)</span></td>
+          <td><span class="since">1.1.0 (QEMU 2.0)</span></td>
+        </tr>
+        <tr>
+          <td>vpindex</td>
+          <td>Virtual processor index</td>
+          <td> on, off</td>
+          <td><span class="since">1.3.3 (QEMU 2.5)</span></td>
+        </tr>
+        <tr>
+          <td>runtime</td>
+          <td>Processor time spent on running guest code and on behalf of guest code</td>
+          <td> on, off</td>
+          <td><span class="since">1.3.3 (QEMU 2.5)</span></td>
+        </tr>
+        <tr>
+          <td>synic</td>
+          <td>Enable Synthetic Interrupt Controller (SyNIC)</td>
+          <td> on, off</td>
+          <td><span class="since">1.3.3 (QEMU 2.5)</span></td>
+        </tr>
+        <tr>
+          <td>stimer</td>
+          <td>Enable SyNIC timers</td>
+          <td> on, off</td>
+          <td><span class="since">1.3.3 (QEMU 2.5)</span></td>
+        </tr>
+        <tr>
+          <td>reset</td>
+          <td>Enable hypervisor reset</td>
+          <td> on, off</td>
+          <td><span class="since">1.3.3 (QEMU 2.5)</span></td>
+        </tr>
+        <tr>
+          <td>vendor_id</td>
+          <td>Set hypervisor vendor id</td>
+          <td>on, off; value - string, up to 12 characters</td>
+          <td><span class="since">1.3.3 (QEMU 2.5)</span></td>
         </tr>
       </table>
       </dd>
@@ -1569,7 +1612,7 @@
       <dt><code>vmport</code></dt>
       <dd>Depending on the <code>state</code> attribute (values <code>on</code>,
         <code>off</code>, default <code>on</code>) enable or disable
-        the emulation of VMWare IO port, for vmmouse etc.
+        the emulation of VMware IO port, for vmmouse etc.
         <span class="since">Since 1.2.16</span>
       </dd>
       <dt><code>gic</code></dt>
@@ -1578,8 +1621,9 @@
           For example, the 'aarch64' architecture uses
           <code>gic</code> instead of <code>apic</code>. The optional
           attribute <code>version</code> specifies the GIC version;
-          however, it may not be supported by all hypervisors. <span
-          class="since">Since 1.2.16</span>
+          however, it may not be supported by all hypervisors. Accepted
+          values are <code>2</code>, <code>3</code> and <code>host</code>.
+          <span class="since">Since 1.2.16</span>
       </dd>
     </dl>
 
@@ -4506,10 +4550,10 @@ qemu-kvm -net nic,model=? /dev/null
     <p>
       If no target is specified, certain hypervisors will
       automatically generate a name for the created tun device. This
-      name can be manually specified, however the name <i>must not
+      name can be manually specified, however the name <i>should not
       start with either 'vnet' or 'vif'</i>, which are prefixes
       reserved by libvirt and certain hypervisors. Manually specified
-      targets using these prefixes will be ignored.
+      targets using these prefixes may be ignored.
     </p>
 
     <p>
@@ -4890,7 +4934,8 @@ qemu-kvm -net nic,model=? /dev/null
     <dl>
       <dt><code>graphics</code></dt>
       <dd>The <code>graphics</code> element has a mandatory <code>type</code>
-        attribute which takes the value "sdl", "vnc", "rdp" or "desktop":
+        attribute which takes the value "sdl", "vnc", "spice", "rdp" or
+        "desktop":
         <dl>
           <dt><code>"sdl"</code></dt>
           <dd>
@@ -5000,6 +5045,7 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;clipboard copypaste='no'/&gt;
     &lt;mouse mode='client'/&gt;
     &lt;filetransfer enable='no'/&gt;
+    &lt;gl enable='yes'/&gt;
   &lt;/graphics&gt;</pre>
             <p>
               Spice supports variable compression settings for audio,
@@ -5045,6 +5091,13 @@ qemu-kvm -net nic,model=? /dev/null
               It is enabled by default, and can be disabled by setting the
               <code>enable</code> property to <code>no</code> ,
               since <span class="since">since 1.2.2</span>.
+            </p>
+            <p>
+              Spice may provide accelerated server-side rendering with
+              OpenGL. You can enable or disable OpenGL support explicitly with
+              the <code>gl</code> element, by setting the
+              <code>enable</code> property. (QEMU
+              only, <span class="since">since 1.3.2</span>).
             </p>
           </dd>
           <dt><code>"rdp"</code></dt>
@@ -5181,15 +5234,17 @@ qemu-kvm -net nic,model=? /dev/null
           supported only for guests type of "vz", "kvm", "vbox" and "vmx".
         </p>
         <p>
-          For guest type of kvm the optional attribute <code>ram</code>
-          (<span class="since">since 1.0.2</span>) is allowed for "qxl" type
-          only and specifies the size of the primary bar, while the optional
+          For guest type of "kvm" or "qemu" and model type "qxl" there are
+          optional attributes. Attribute <code>ram</code> (<span class="since">
+          since 1.0.2</span>) specifies the size of the primary bar, while the
           attribute <code>vram</code> specifies the secondary bar size.
-          If "ram" or "vram" are not supplied a default value is used. The ram
-          should also be rounded to power of two as vram. There is also optional
-          attribute <code>vgamem</code> (<span class="since">since 1.2.11 (QEMU
-          only)</span>) to set the size of VGA framebuffer for fallback mode of
-          QXL device.
+          If <code>ram</code> or <code>vram</code> are not supplied a default
+          value is used. The <code>ram</code> should also be rounded to power of
+          two as <code>vram</code>. There is also optional attribute
+          <code>vgamem</code> (<span class="since">since 1.2.11</span>) to set
+          the size of VGA framebuffer for fallback mode of QXL device.
+          Attribute <code>vram64</code> (<span class="since">since 1.3.3</span>)
+          extends secondary bar and makes it addressable as 64bit memory.
         </p>
       </dd>
 
@@ -5270,6 +5325,20 @@ qemu-kvm -net nic,model=? /dev/null
       the file should be preserved on domain restart. Allowed values are
       "on" and "off" (default). <span class="since">Since 1.3.1</span>.
     </p>
+
+    <p>
+      Regardless of the<code>type</code>, character devices can
+      have an optional log file associated with them. This is
+      expressed via a <code>log</code> sub-element, with a
+      <code>file</code> attribute. There can also be a <code>append</code>
+      attribute which takes teh same values described above.
+      <span class="since">1.3.3</span>.
+    </p>
+
+    <pre>
+  ...
+  &lt;log file="/var/log/libvirt/qemu/guestname-serial0.log" append="off"/&gt;
+  ...</pre>
 
     <p>
       Each character device element has an optional

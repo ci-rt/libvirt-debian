@@ -185,7 +185,7 @@ virAdmGetDefaultURI(virConfPtr conf)
 /**
  * virAdmConnectOpen:
  * @name: uri of the daemon to connect to, NULL for default
- * @flags: unused, must be 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Opens connection to admin interface of the daemon.
  *
@@ -204,7 +204,7 @@ virAdmConnectOpen(const char *name, unsigned int flags)
 
     VIR_DEBUG("flags=%x", flags);
     virResetLastError();
-    virCheckFlags(VIR_CONNECT_NO_ALIASES, NULL);
+    virCheckFlagsGoto(VIR_CONNECT_NO_ALIASES, error);
 
     if (!(conn = virAdmConnectNew()))
         goto error;
@@ -371,11 +371,12 @@ virAdmConnectIsAlive(virAdmConnectPtr conn)
 
     VIR_DEBUG("conn=%p", conn);
 
+    virResetLastError();
+
     if (!conn)
         return 0;
 
     virCheckAdmConnectReturn(conn, -1);
-    virResetLastError();
 
     priv = conn->privateData;
     virObjectLock(priv);
@@ -549,8 +550,127 @@ int virAdmConnectGetLibVersion(virAdmConnectPtr conn,
         goto error;
 
     return 0;
-
  error:
     virDispatchError(NULL);
     return -1;
+}
+
+/**
+ * virAdmServerGetName:
+ * @srv: a server object
+ *
+ *  Get the public name for specified server
+ *
+ * Returns a pointer to the name or NULL. The string doesn't need to be
+ * deallocated since its lifetime will be the same as the server object.
+ */
+const char *
+virAdmServerGetName(virAdmServerPtr srv)
+{
+    VIR_DEBUG("server=%p", srv);
+
+    virResetLastError();
+    virCheckAdmServerReturn(srv, NULL);
+
+    return srv->name;
+}
+
+/**
+ * virAdmServerFree:
+ * @srv: server object
+ *
+ * Release the server object. The running instance is kept alive.
+ * The data structure is freed and should not be used thereafter.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int virAdmServerFree(virAdmServerPtr srv)
+{
+    VIR_DEBUG("server=%p", srv);
+
+    virResetLastError();
+
+    if (!srv)
+        return 0;
+
+    virCheckAdmServerReturn(srv, -1);
+
+    virObjectUnref(srv);
+    return 0;
+}
+
+/**
+ * virAdmConnectListServers:
+ * @conn: daemon connection reference
+ * @servers: Pointer to a list to store an array containing objects or NULL
+ *           if the list is not required (number of servers only)
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Collect list of all servers provided by daemon the client is connected to.
+ *
+ * Returns the number of servers available on daemon side or -1 in case of a
+ * failure, setting @servers to NULL. There is a guaranteed extra element set
+ * to NULL in the @servers list returned to make the iteration easier, excluding
+ * this extra element from the final count.
+ * Caller is responsible to call virAdmServerFree() on each list element,
+ * followed by freeing @servers.
+ */
+int
+virAdmConnectListServers(virAdmConnectPtr conn,
+                         virAdmServerPtr **servers,
+                         unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("conn=%p, servers=%p, flags=%x", conn, servers, flags);
+
+    virResetLastError();
+    virCheckFlagsGoto(0, error);
+
+    if (servers)
+        *servers = NULL;
+
+    virCheckAdmConnectReturn(conn, -1);
+    if ((ret = remoteAdminConnectListServers(conn, servers, flags)) < 0)
+        goto error;
+
+    return ret;
+ error:
+    virDispatchError(NULL);
+    return -1;
+}
+
+/**
+ * virAdmConnectLookupServer:
+ * @conn: daemon connection reference
+ * @name: name of the server too lookup
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Try to lookup a server on the given daemon based on @name.
+ *
+ * virAdmServerFree() should be used to free the resources after the
+ * server object is no longer needed.
+ *
+ * Returns the requested server or NULL in case of failure.  If the
+ * server cannot be found, then VIR_ERR_NO_SERVER error is raised.
+ */
+virAdmServerPtr
+virAdmConnectLookupServer(virAdmConnectPtr conn,
+                          const char *name,
+                          unsigned int flags)
+{
+    virAdmServerPtr ret = NULL;
+
+    VIR_DEBUG("conn=%p, name=%s, flags=%x", conn, NULLSTR(name), flags);
+    virResetLastError();
+
+    virCheckAdmConnectGoto(conn, cleanup);
+    virCheckNonNullArgGoto(name, cleanup);
+    virCheckFlagsGoto(0, cleanup);
+
+    ret = remoteAdminConnectLookupServer(conn, name, flags);
+ cleanup:
+    if (!ret)
+        virDispatchError(NULL);
+    return ret;
 }

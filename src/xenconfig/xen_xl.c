@@ -27,13 +27,16 @@
 
 #include "virconf.h"
 #include "virerror.h"
+#include "virlog.h"
 #include "domain_conf.h"
 #include "viralloc.h"
 #include "virstring.h"
 #include "virstoragefile.h"
 #include "xen_xl.h"
 
-#define VIR_FROM_THIS VIR_FROM_NONE
+#define VIR_FROM_THIS VIR_FROM_XENXL
+
+VIR_LOG_INIT("xen.xen_xl");
 
 /*
  * Xen provides a libxl utility library, with several useful functions,
@@ -58,11 +61,46 @@ extern int xlu_disk_parse(XLU_Config *cfg,
                           libxl_device_disk *disk);
 #endif
 
+static int xenParseCmdline(virConfPtr conf, char **r_cmdline)
+{
+    char *cmdline = NULL;
+    const char *root, *extra, *buf;
+
+    if (xenConfigGetString(conf, "cmdline", &buf, NULL) < 0)
+        return -1;
+
+    if (xenConfigGetString(conf, "root", &root, NULL) < 0)
+        return -1;
+
+    if (xenConfigGetString(conf, "extra", &extra, NULL) < 0)
+        return -1;
+
+    if (buf) {
+        if (VIR_STRDUP(cmdline, buf) < 0)
+            return -1;
+        if (root || extra)
+            VIR_WARN("ignoring root= and extra= in favour of cmdline=");
+    } else {
+        if (root && extra) {
+            if (virAsprintf(&cmdline, "root=%s %s", root, extra) < 0)
+                return -1;
+        } else if (root) {
+            if (virAsprintf(&cmdline, "root=%s", root) < 0)
+                return -1;
+        } else if (extra) {
+            if (VIR_STRDUP(cmdline, extra) < 0)
+                return -1;
+        }
+    }
+
+    *r_cmdline = cmdline;
+    return 0;
+}
+
 static int
 xenParseXLOS(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
 {
     size_t i;
-    const char *extra, *root;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         const char *boot;
@@ -84,19 +122,8 @@ xenParseXLOS(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
         if (xenConfigCopyStringOpt(conf, "ramdisk", &def->os.initrd) < 0)
             return -1;
 
-        if (xenConfigGetString(conf, "extra", &extra, NULL) < 0)
+        if (xenParseCmdline(conf, &def->os.cmdline) < 0)
             return -1;
-
-        if (xenConfigGetString(conf, "root", &root, NULL) < 0)
-            return -1;
-
-        if (root) {
-            if (virAsprintf(&def->os.cmdline, "root=%s %s", root, extra) < 0)
-                return -1;
-        } else {
-            if (VIR_STRDUP(def->os.cmdline, extra) < 0)
-                return -1;
-        }
 #endif
 
         if (xenConfigGetString(conf, "boot", &boot, "c") < 0)
@@ -132,19 +159,8 @@ xenParseXLOS(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
         if (xenConfigCopyStringOpt(conf, "ramdisk", &def->os.initrd) < 0)
             return -1;
 
-        if (xenConfigGetString(conf, "extra", &extra, NULL) < 0)
+        if (xenParseCmdline(conf, &def->os.cmdline) < 0)
             return -1;
-
-        if (xenConfigGetString(conf, "root", &root, NULL) < 0)
-            return -1;
-
-        if (root) {
-            if (virAsprintf(&def->os.cmdline, "root=%s %s", root, extra) < 0)
-                return -1;
-        } else {
-            if (VIR_STRDUP(def->os.cmdline, extra) < 0)
-                return -1;
-        }
     }
 
     return 0;
@@ -230,6 +246,33 @@ xenParseXLSpice(virConfPtr conf, virDomainDefPtr def)
     return -1;
 }
 
+
+static int
+xenParseXLDiskSrc(virDomainDiskDefPtr disk, char *srcstr)
+{
+    char *tmpstr = NULL;
+    int ret = -1;
+
+    if (STRPREFIX(srcstr, "rbd:")) {
+        if (!(tmpstr = virStringReplace(srcstr, "\\\\", "\\")))
+            goto cleanup;
+
+        virDomainDiskSetType(disk, VIR_STORAGE_TYPE_NETWORK);
+        disk->src->protocol = VIR_STORAGE_NET_PROTOCOL_RBD;
+        ret = virStorageSourceParseRBDColonString(tmpstr, disk->src);
+    } else {
+        if (virDomainDiskSetSource(disk, srcstr) < 0)
+            goto cleanup;
+
+        ret = 0;
+    }
+
+ cleanup:
+    VIR_FREE(tmpstr);
+    return ret;
+}
+
+
 /*
  * For details on xl disk config syntax, see
  * docs/misc/xl-disk-configuration.txt in the Xen sources.  The important
@@ -295,10 +338,10 @@ xenParseXLDisk(virConfPtr conf, virDomainDefPtr def)
             if (!(disk = virDomainDiskDefNew(NULL)))
                 goto fail;
 
-            if (VIR_STRDUP(disk->dst, libxldisk->vdev) < 0)
+            if (xenParseXLDiskSrc(disk, libxldisk->pdev_path) < 0)
                 goto fail;
 
-            if (virDomainDiskSetSource(disk, libxldisk->pdev_path) < 0)
+            if (VIR_STRDUP(disk->dst, libxldisk->vdev) < 0)
                 goto fail;
 
             disk->src->readonly = !libxldisk->readwrite;
@@ -342,7 +385,8 @@ xenParseXLDisk(virConfPtr conf, virDomainDefPtr def)
                 case LIBXL_DISK_BACKEND_UNKNOWN:
                     if (virDomainDiskSetDriver(disk, "qemu") < 0)
                         goto fail;
-                    virDomainDiskSetType(disk, VIR_STORAGE_TYPE_FILE);
+                    if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NONE)
+                        virDomainDiskSetType(disk, VIR_STORAGE_TYPE_FILE);
                     break;
 
                 case LIBXL_DISK_BACKEND_TAP:
@@ -503,7 +547,7 @@ xenFormatXLOS(virConfPtr conf, virDomainDefPtr def)
             return -1;
 
         if (def->os.cmdline &&
-            xenConfigSetString(conf, "extra", def->os.cmdline) < 0)
+            xenConfigSetString(conf, "cmdline", def->os.cmdline) < 0)
             return -1;
 #endif
 
@@ -554,9 +598,110 @@ xenFormatXLOS(virConfPtr conf, virDomainDefPtr def)
             return -1;
 
          if (def->os.cmdline &&
-             xenConfigSetString(conf, "extra", def->os.cmdline) < 0)
+             xenConfigSetString(conf, "cmdline", def->os.cmdline) < 0)
             return -1;
      } /* !hvm */
+
+    return 0;
+}
+
+
+static char *
+xenFormatXLDiskSrcNet(virStorageSourcePtr src)
+{
+    char *ret = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t i;
+
+    switch ((virStorageNetProtocol) src->protocol) {
+    case VIR_STORAGE_NET_PROTOCOL_NBD:
+    case VIR_STORAGE_NET_PROTOCOL_HTTP:
+    case VIR_STORAGE_NET_PROTOCOL_HTTPS:
+    case VIR_STORAGE_NET_PROTOCOL_FTP:
+    case VIR_STORAGE_NET_PROTOCOL_FTPS:
+    case VIR_STORAGE_NET_PROTOCOL_TFTP:
+    case VIR_STORAGE_NET_PROTOCOL_ISCSI:
+    case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
+    case VIR_STORAGE_NET_PROTOCOL_SHEEPDOG:
+    case VIR_STORAGE_NET_PROTOCOL_LAST:
+    case VIR_STORAGE_NET_PROTOCOL_NONE:
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("Unsupported network block protocol '%s'"),
+                       virStorageNetProtocolTypeToString(src->protocol));
+        goto cleanup;
+
+    case VIR_STORAGE_NET_PROTOCOL_RBD:
+        if (strchr(src->path, ':')) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("':' not allowed in RBD source volume name '%s'"),
+                           src->path);
+            goto cleanup;
+        }
+
+        virBufferStrcat(&buf, "rbd:", src->path, NULL);
+
+        virBufferAddLit(&buf, ":auth_supported=none");
+
+        if (src->nhosts > 0) {
+            virBufferAddLit(&buf, ":mon_host=");
+            for (i = 0; i < src->nhosts; i++) {
+                if (i)
+                    virBufferAddLit(&buf, "\\\\;");
+
+                /* assume host containing : is ipv6 */
+                if (strchr(src->hosts[i].name, ':'))
+                    virBufferEscape(&buf, '\\', ":", "[%s]",
+                                    src->hosts[i].name);
+                else
+                    virBufferAsprintf(&buf, "%s", src->hosts[i].name);
+
+                if (src->hosts[i].port)
+                    virBufferAsprintf(&buf, "\\\\:%s", src->hosts[i].port);
+            }
+        }
+
+        if (virBufferCheckError(&buf) < 0)
+            goto cleanup;
+
+        ret = virBufferContentAndReset(&buf);
+        break;
+    }
+
+ cleanup:
+    virBufferFreeAndReset(&buf);
+
+    return ret;
+}
+
+
+static int
+xenFormatXLDiskSrc(virStorageSourcePtr src, char **srcstr)
+{
+    int actualType = virStorageSourceGetActualType(src);
+
+    *srcstr = NULL;
+
+    if (virStorageSourceIsEmpty(src))
+        return 0;
+
+    switch ((virStorageType) actualType) {
+    case VIR_STORAGE_TYPE_BLOCK:
+    case VIR_STORAGE_TYPE_FILE:
+    case VIR_STORAGE_TYPE_DIR:
+        if (VIR_STRDUP(*srcstr, src->path) < 0)
+            return -1;
+        break;
+
+    case VIR_STORAGE_TYPE_NETWORK:
+        if (!(*srcstr = xenFormatXLDiskSrcNet(src)))
+            return -1;
+        break;
+
+    case VIR_STORAGE_TYPE_VOLUME:
+    case VIR_STORAGE_TYPE_NONE:
+    case VIR_STORAGE_TYPE_LAST:
+        break;
+    }
 
     return 0;
 }
@@ -567,13 +712,12 @@ xenFormatXLDisk(virConfValuePtr list, virDomainDiskDefPtr disk)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
-    const char *src = virDomainDiskGetSource(disk);
     int format = virDomainDiskGetFormat(disk);
     const char *driver = virDomainDiskGetDriver(disk);
+    char *target = NULL;
 
-    /* target */
-    virBufferAsprintf(&buf, "%s,", src);
     /* format */
+    virBufferAddLit(&buf, "format=");
     switch (format) {
         case VIR_STORAGE_FILE_RAW:
             virBufferAddLit(&buf, "raw,");
@@ -593,31 +737,47 @@ xenFormatXLDisk(virConfValuePtr list, virDomainDiskDefPtr disk)
     }
 
     /* device */
-    virBufferAdd(&buf, disk->dst, -1);
+    virBufferAsprintf(&buf, "vdev=%s,", disk->dst);
 
-    virBufferAddLit(&buf, ",");
-
+    /* access */
+    virBufferAddLit(&buf, "access=");
     if (disk->src->readonly)
-        virBufferAddLit(&buf, "r,");
+        virBufferAddLit(&buf, "ro,");
     else if (disk->src->shared)
         virBufferAddLit(&buf, "!,");
     else
-        virBufferAddLit(&buf, "w,");
+        virBufferAddLit(&buf, "rw,");
     if (disk->transient) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("transient disks not supported yet"));
         goto cleanup;
     }
 
+    /* backendtype */
+    virBufferAddLit(&buf, "backendtype=");
     if (STREQ_NULLABLE(driver, "qemu"))
-        virBufferAddLit(&buf, "backendtype=qdisk");
+        virBufferAddLit(&buf, "qdisk,");
     else if (STREQ_NULLABLE(driver, "tap"))
-        virBufferAddLit(&buf, "backendtype=tap");
+        virBufferAddLit(&buf, "tap,");
     else if (STREQ_NULLABLE(driver, "phy"))
-        virBufferAddLit(&buf, "backendtype=phy");
+        virBufferAddLit(&buf, "phy,");
 
+    /* devtype */
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
-        virBufferAddLit(&buf, ",devtype=cdrom");
+        virBufferAddLit(&buf, "devtype=cdrom,");
+
+    /*
+     * target
+     * From $xensrc/docs/misc/xl-disk-configuration.txt:
+     * When this parameter is specified by name, ie with the "target="
+     * syntax in the configuration file, it consumes the whole rest of the
+     * <diskspec> including trailing whitespaces.  Therefore in that case
+     * it must come last.
+     */
+    if (xenFormatXLDiskSrc(disk->src, &target) < 0)
+        goto cleanup;
+
+    virBufferAsprintf(&buf, "target=%s", target);
 
     if (virBufferCheckError(&buf) < 0)
         goto cleanup;
@@ -637,6 +797,7 @@ xenFormatXLDisk(virConfValuePtr list, virDomainDiskDefPtr disk)
     return 0;
 
  cleanup:
+    VIR_FREE(target);
     virBufferFreeAndReset(&buf);
     return -1;
 }

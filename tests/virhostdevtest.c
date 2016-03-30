@@ -37,13 +37,16 @@
 
 VIR_LOG_INIT("tests.hostdevtest");
 
-# define CHECK_LIST_COUNT(list, cnt)                                    \
-    if ((count = virPCIDeviceListCount(list)) != cnt) {                 \
-        virReportError(VIR_ERR_INTERNAL_ERROR,                          \
-                       "Unexpected count of items in " #list ": %d, "   \
-                       "expecting %zu", count, (size_t) cnt);           \
-        goto cleanup;                                                   \
-    }
+# define CHECK_LIST_COUNT(list, cnt)                                        \
+    do {                                                                    \
+        size_t actualCount;                                                 \
+        if ((actualCount = virPCIDeviceListCount(list)) != cnt) {           \
+            virReportError(VIR_ERR_INTERNAL_ERROR,                          \
+                           "Unexpected count of items in " #list ": %zu, "  \
+                           "expecting %zu", actualCount, (size_t) cnt);     \
+            goto cleanup;                                                   \
+        }                                                                   \
+    } while (0)
 
 # define TEST_STATE_DIR abs_builddir "/hostdevmgr"
 static const char *drv_name = "test_driver";
@@ -157,56 +160,56 @@ virHostdevHostSupportsPassthroughKVM(void)
 # endif
 
 static int
-testVirHostdevPreparePCIHostdevs_unmanaged(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevPreparePCIHostdevs_unmanaged(void)
 {
     int ret = -1;
-    size_t i;
-    int count, count1, count2;
+    size_t active_count, inactive_count, i;
 
     for (i = 0; i < nhostdevs; i++)
          hostdevs[i]->managed = false;
 
-    count1 = virPCIDeviceListCount(mgr->activePCIHostdevs);
-    count2 = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
+    active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
 
     /* Test normal functionality */
     VIR_DEBUG("Test 0 hostdevs");
     if (virHostdevPreparePCIDevices(mgr, drv_name, dom_name, uuid,
                                     NULL, 0, 0) < 0)
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     /* Test unmanaged hostdevs */
     VIR_DEBUG("Test >=1 unmanaged hostdevs");
     if (virHostdevPreparePCIDevices(mgr, drv_name, dom_name, uuid,
                                     hostdevs, nhostdevs, 0) < 0)
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1 + 3);
-    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, count2 - 3);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count + nhostdevs);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count - nhostdevs);
 
     /* Test conflict */
-    count1 = virPCIDeviceListCount(mgr->activePCIHostdevs);
-    count2 = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
+    active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
     VIR_DEBUG("Test: prepare same hostdevs for same driver/domain again");
     if (!virHostdevPreparePCIDevices(mgr, drv_name, dom_name, uuid,
                                      &hostdevs[0], 1, 0))
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
-    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, count2);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     VIR_DEBUG("Test: prepare same hostdevs for same driver, diff domain again");
     if (!virHostdevPreparePCIDevices(mgr, drv_name, "test_domain1", uuid,
                                      &hostdevs[1], 1, 0))
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
-    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, count2);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     VIR_DEBUG("Test: prepare same hostdevs for diff driver/domain again");
     if (!virHostdevPreparePCIDevices(mgr, "test_driver1", dom_name, uuid,
                                      &hostdevs[2], 1, 0))
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
-    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, count2);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     ret = 0;
 
@@ -216,11 +219,10 @@ testVirHostdevPreparePCIHostdevs_unmanaged(const void *oaque ATTRIBUTE_UNUSED)
 }
 
 static int
-testVirHostdevReAttachPCIHostdevs_unmanaged(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevReAttachPCIHostdevs_unmanaged(void)
 {
     int ret = -1;
-    size_t i;
-    int count, count1, count2;
+    size_t active_count, inactive_count, i;
 
     for (i = 0; i < nhostdevs; i++) {
         if (hostdevs[i]->managed != false) {
@@ -229,18 +231,19 @@ testVirHostdevReAttachPCIHostdevs_unmanaged(const void *oaque ATTRIBUTE_UNUSED)
         }
     }
 
-    count1 = virPCIDeviceListCount(mgr->activePCIHostdevs);
-    count2 = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
+    active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
 
     VIR_DEBUG("Test 0 hostdevs");
     virHostdevReAttachPCIDevices(mgr, drv_name, dom_name, NULL, 0, NULL);
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     VIR_DEBUG("Test >=1 unmanaged hostdevs");
     virHostdevReAttachPCIDevices(mgr, drv_name, dom_name,
                                   hostdevs, nhostdevs, NULL);
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1 - 3);
-    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, count2 + 3);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count - nhostdevs);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count + nhostdevs);
 
     ret = 0;
 
@@ -250,43 +253,54 @@ testVirHostdevReAttachPCIHostdevs_unmanaged(const void *oaque ATTRIBUTE_UNUSED)
 }
 
 static int
-testVirHostdevPreparePCIHostdevs_managed(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevPreparePCIHostdevs_managed(bool mixed)
 {
     int ret = -1;
-    size_t i;
-    int count, count1;
+    size_t active_count, inactive_count, i;
 
     for (i = 0; i < nhostdevs; i++)
         hostdevs[i]->managed = true;
 
-    count1 = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
 
     /* Test normal functionality */
     VIR_DEBUG("Test >=1 hostdevs");
     if (virHostdevPreparePCIDevices(mgr, drv_name, dom_name, uuid,
                                      hostdevs, nhostdevs, 0) < 0)
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1 + 3);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count + nhostdevs);
+    /* If testing a mixed roundtrip, devices are already in the inactive list
+     * before we start and are removed from it as soon as we attach them to
+     * the guest */
+    if (mixed)
+        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count - nhostdevs);
+    else
+        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     /* Test conflict */
-    count1 = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
     VIR_DEBUG("Test: prepare same hostdevs for same driver/domain again");
     if (!virHostdevPreparePCIDevices(mgr, drv_name, dom_name, uuid,
                                       &hostdevs[0], 1, 0))
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     VIR_DEBUG("Test: prepare same hostdevs for same driver, diff domain again");
     if (!virHostdevPreparePCIDevices(mgr, drv_name, "test_domain1", uuid,
                                       &hostdevs[1], 1, 0))
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     VIR_DEBUG("Test: prepare same hostdevs for diff driver/domain again");
     if (!virHostdevPreparePCIDevices(mgr, "test_driver1", dom_name, uuid,
                                       &hostdevs[2], 1, 0))
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     ret = 0;
 
@@ -296,11 +310,10 @@ testVirHostdevPreparePCIHostdevs_managed(const void *oaque ATTRIBUTE_UNUSED)
 }
 
 static int
-testVirHostdevReAttachPCIHostdevs_managed(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevReAttachPCIHostdevs_managed(bool mixed)
 {
     int ret = -1;
-    size_t i;
-    int count, count1;
+    size_t active_count, inactive_count, i;
 
     for (i = 0; i < nhostdevs; i++) {
         if (hostdevs[i]->managed != true) {
@@ -309,16 +322,24 @@ testVirHostdevReAttachPCIHostdevs_managed(const void *oaque ATTRIBUTE_UNUSED)
         }
     }
 
-    count1 = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
 
     VIR_DEBUG("Test 0 hostdevs");
     virHostdevReAttachPCIDevices(mgr, drv_name, dom_name, NULL, 0, NULL);
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     VIR_DEBUG("Test >=1 hostdevs");
     virHostdevReAttachPCIDevices(mgr, drv_name, dom_name,
                                   hostdevs, nhostdevs, NULL);
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1 - 3);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count - nhostdevs);
+    /* If testing a mixed roundtrip, devices are added back to the inactive
+     * list as soon as we detach from the guest */
+    if (mixed)
+        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count + nhostdevs);
+    else
+        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     ret = 0;
 
@@ -328,17 +349,18 @@ testVirHostdevReAttachPCIHostdevs_managed(const void *oaque ATTRIBUTE_UNUSED)
 }
 
 static int
-testVirHostdevDetachPCINodeDevice(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevDetachPCINodeDevice(void)
 {
     int ret = -1;
-    size_t i;
-    int count, count1;
+    size_t active_count, inactive_count, i;
 
     for (i = 0; i < nhostdevs; i++) {
-        count1 = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
+        active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+        inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
         if (virHostdevPCINodeDeviceDetach(mgr, dev[i]) < 0)
             goto cleanup;
-        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, count1 + 1);
+        CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count + 1);
     }
 
     ret = 0;
@@ -346,15 +368,20 @@ testVirHostdevDetachPCINodeDevice(const void *oaque ATTRIBUTE_UNUSED)
  cleanup:
     return ret;
 }
+
 static int
-testVirHostdevResetPCINodeDevice(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevResetPCINodeDevice(void)
 {
     int ret = -1;
-    size_t i;
+    size_t active_count, inactive_count, i;
 
     for (i = 0; i < nhostdevs; i++) {
+        active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+        inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
         if (virHostdevPCINodeDeviceReset(mgr, dev[i]) < 0)
             goto cleanup;
+        CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
     }
 
     ret = 0;
@@ -365,17 +392,18 @@ testVirHostdevResetPCINodeDevice(const void *oaque ATTRIBUTE_UNUSED)
 }
 
 static int
-testVirHostdevReAttachPCINodeDevice(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevReAttachPCINodeDevice(void)
 {
     int ret = -1;
-    size_t i;
-    int count, count1;
+    size_t active_count, inactive_count, i;
 
     for (i = 0; i < nhostdevs; i++) {
-        count1 = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
+        active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+        inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
         if (virHostdevPCINodeDeviceReAttach(mgr, dev[i]) < 0)
             goto cleanup;
-        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, count1 - 1);
+        CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+        CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count - 1);
     }
 
     ret = 0;
@@ -386,28 +414,175 @@ testVirHostdevReAttachPCINodeDevice(const void *oaque ATTRIBUTE_UNUSED)
 }
 
 static int
-testVirHostdevUpdateActivePCIHostdevs(const void *oaque ATTRIBUTE_UNUSED)
+testVirHostdevUpdateActivePCIHostdevs(void)
 {
     int ret = -1;
-    int count, count1;
+    size_t active_count, inactive_count;
 
-    count1 = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    active_count = virPCIDeviceListCount(mgr->activePCIHostdevs);
+    inactive_count = virPCIDeviceListCount(mgr->inactivePCIHostdevs);
 
     VIR_DEBUG("Test 0 hostdevs");
     if (virHostdevUpdateActivePCIDevices(mgr, NULL, 0,
                                          drv_name, dom_name) < 0)
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     VIR_DEBUG("Test >=1 hostdevs");
     if (virHostdevUpdateActivePCIDevices(mgr, hostdevs, nhostdevs,
                                          drv_name, dom_name) < 0)
         goto cleanup;
-    CHECK_LIST_COUNT(mgr->activePCIHostdevs, count1 + 3);
+    CHECK_LIST_COUNT(mgr->activePCIHostdevs, active_count + nhostdevs);
+    CHECK_LIST_COUNT(mgr->inactivePCIHostdevs, inactive_count);
 
     ret = 0;
 
  cleanup:
+    return ret;
+}
+
+/**
+ * testVirHostdevRoundtripNoGuest:
+ * @opaque: unused
+ *
+ * Perform a roundtrip without ever assigning devices to the guest.
+ *
+ *   1. Detach devices from the host
+ *   2. Reattach devices to the host
+ */
+static int
+testVirHostdevRoundtripNoGuest(const void *opaque ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+
+    if (testVirHostdevDetachPCINodeDevice() < 0)
+        goto out;
+    if (testVirHostdevReAttachPCINodeDevice() < 0)
+        goto out;
+
+    ret = 0;
+
+ out:
+    return ret;
+}
+
+/**
+ * testVirHostdevRoundtripUnmanaged:
+ * @opaque: unused
+ *
+ * Perform a roundtrip with unmanaged devices.
+ *
+ *   1. Detach devices from the host
+ *   2. Attach devices to the guest as unmanaged
+ *   3. Detach devices from the guest as unmanaged
+ *   4. Reattach devices to the host
+ */
+static int
+testVirHostdevRoundtripUnmanaged(const void *opaque ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+
+    if (testVirHostdevDetachPCINodeDevice() < 0)
+        goto out;
+    if (virHostdevHostSupportsPassthroughKVM()) {
+        if (testVirHostdevPreparePCIHostdevs_unmanaged() < 0)
+            goto out;
+        if (testVirHostdevReAttachPCIHostdevs_unmanaged() < 0)
+            goto out;
+    }
+    if (testVirHostdevReAttachPCINodeDevice() < 0)
+        goto out;
+
+    ret = 0;
+
+ out:
+    return ret;
+}
+
+/**
+ * testVirHostdevRoundtripManaged:
+ * @opaque: unused
+ *
+ * Perform a roundtrip with managed devices.
+ *
+ *   1. Attach devices to the guest as managed
+ *   2. Detach devices from the guest as managed
+ */
+static int
+testVirHostdevRoundtripManaged(const void *opaque ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+
+    if (virHostdevHostSupportsPassthroughKVM()) {
+        if (testVirHostdevPreparePCIHostdevs_managed(false) < 0)
+            goto out;
+        if (testVirHostdevReAttachPCIHostdevs_managed(false) < 0)
+            goto out;
+    }
+
+    ret = 0;
+
+ out:
+    return ret;
+}
+
+/**
+ * testVirHostdevRoundtripMixed:
+ * @opaque: unused
+ *
+ * Perform a roundtrip with managed devices but manually detach the devices
+ * from the host first.
+ *
+ *   1. Detach devices from the host
+ *   2. Attach devices to the guest as managed
+ *   3. Detach devices from the guest as managed
+ *   4. Reattach devices to the host
+ */
+static int
+testVirHostdevRoundtripMixed(const void *opaque ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+
+    if (testVirHostdevDetachPCINodeDevice() < 0)
+        goto out;
+    if (virHostdevHostSupportsPassthroughKVM()) {
+        if (testVirHostdevPreparePCIHostdevs_managed(true) < 0)
+            goto out;
+        if (testVirHostdevReAttachPCIHostdevs_managed(true) < 0)
+            goto out;
+    }
+    if (testVirHostdevReAttachPCINodeDevice() < 0)
+        goto out;
+
+    ret = 0;
+
+ out:
+    return ret;
+}
+
+/**
+ * testVirHostdevOther:
+ * @opaque: unused
+ *
+ * Perform other operations on devices.
+ *
+ *   1. Reset devices
+ *   2. Update list of active devices
+ */
+static int
+testVirHostdevOther(const void *opaque ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+
+    if (testVirHostdevResetPCINodeDevice() < 0)
+        goto out;
+    if (testVirHostdevUpdateActivePCIHostdevs() < 0)
+        goto out;
+
+    ret = 0;
+
+ out:
     return ret;
 }
 
@@ -441,20 +616,11 @@ mymain(void)
     if (myInit() < 0)
         fprintf(stderr, "Init data structures failed.");
 
-    DO_TEST(testVirHostdevDetachPCINodeDevice);
-    if (virHostdevHostSupportsPassthroughKVM()) {
-        /* following tests would check KVM support */
-        DO_TEST(testVirHostdevPreparePCIHostdevs_unmanaged);
-        DO_TEST(testVirHostdevReAttachPCIHostdevs_unmanaged);
-    }
-    DO_TEST(testVirHostdevResetPCINodeDevice);
-    DO_TEST(testVirHostdevReAttachPCINodeDevice);
-    if (virHostdevHostSupportsPassthroughKVM()) {
-        /* following tests would check KVM support */
-        DO_TEST(testVirHostdevPreparePCIHostdevs_managed);
-        DO_TEST(testVirHostdevReAttachPCIHostdevs_managed);
-    }
-    DO_TEST(testVirHostdevUpdateActivePCIHostdevs);
+    DO_TEST(testVirHostdevRoundtripNoGuest);
+    DO_TEST(testVirHostdevRoundtripUnmanaged);
+    DO_TEST(testVirHostdevRoundtripManaged);
+    DO_TEST(testVirHostdevRoundtripMixed);
+    DO_TEST(testVirHostdevOther);
 
     myCleanup();
 

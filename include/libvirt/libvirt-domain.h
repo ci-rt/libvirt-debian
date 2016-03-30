@@ -90,6 +90,7 @@ typedef enum {
     VIR_DOMAIN_RUNNING_WAKEUP = 8,          /* returned from pmsuspended due to
                                                wakeup event */
     VIR_DOMAIN_RUNNING_CRASHED = 9,         /* resumed from crashed */
+    VIR_DOMAIN_RUNNING_POSTCOPY = 10,       /* running in post-copy migration mode */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_RUNNING_LAST
@@ -117,6 +118,8 @@ typedef enum {
     VIR_DOMAIN_PAUSED_SNAPSHOT = 9,      /* paused while creating a snapshot */
     VIR_DOMAIN_PAUSED_CRASHED = 10,     /* paused due to a guest crash */
     VIR_DOMAIN_PAUSED_STARTING_UP = 11, /* the domain is being started */
+    VIR_DOMAIN_PAUSED_POSTCOPY = 12,    /* paused for post-copy migration */
+    VIR_DOMAIN_PAUSED_POSTCOPY_FAILED = 13, /* paused after failed post-copy */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_PAUSED_LAST
@@ -310,6 +313,22 @@ typedef enum {
  * host cpu, when using the posix scheduler, as a ullong.
  */
 # define VIR_DOMAIN_SCHEDULER_CPU_SHARES "cpu_shares"
+
+/**
+ * VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD:
+ *
+ * Macro represents the enforcement period for a quota, in microseconds,
+ * for whole domain, when using the posix scheduler, as a ullong.
+ */
+# define VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD "global_period"
+
+/**
+ * VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA:
+ *
+ * Macro represents the maximum bandwidth to be used within a period for
+ * whole domain, when using the posix scheduler, as an llong.
+ */
+# define VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA "global_quota"
 
 /**
  * VIR_DOMAIN_SCHEDULER_VCPU_PERIOD:
@@ -659,6 +678,7 @@ typedef enum {
     VIR_MIGRATE_ABORT_ON_ERROR    = (1 << 12), /* abort migration on I/O errors happened during migration */
     VIR_MIGRATE_AUTO_CONVERGE     = (1 << 13), /* force convergence */
     VIR_MIGRATE_RDMA_PIN_ALL      = (1 << 14), /* RDMA memory pinning */
+    VIR_MIGRATE_POSTCOPY          = (1 << 15), /* enable (but do not start) post-copy migration */
 } virDomainMigrateFlags;
 
 
@@ -757,6 +777,16 @@ typedef enum {
  */
 # define VIR_MIGRATE_PARAM_MIGRATE_DISKS    "migrate_disks"
 
+/**
+ * VIR_MIGRATE_PARAM_DISKS_PORT:
+ *
+ * virDomainMigrate* params field: port that destination server should use
+ * for incoming disks migration. Type is VIR_TYPED_PARAM_INT. If set to 0 or
+ * omitted, libvirt will choose a suitable default. At the moment this is only
+ * supported by the QEMU driver.
+ */
+# define VIR_MIGRATE_PARAM_DISKS_PORT    "disks_port"
+
 /* Domain migration. */
 virDomainPtr virDomainMigrate (virDomainPtr domain, virConnectPtr dconn,
                                unsigned long flags, const char *dname,
@@ -806,6 +836,9 @@ int virDomainMigrateSetMaxSpeed(virDomainPtr domain,
 int virDomainMigrateGetMaxSpeed(virDomainPtr domain,
                                 unsigned long *bandwidth,
                                 unsigned int flags);
+
+int virDomainMigrateStartPostCopy(virDomainPtr domain,
+                                  unsigned int flags);
 
 char * virConnectGetDomainCapabilities(virConnectPtr conn,
                                        const char *emulatorbin,
@@ -1771,6 +1804,7 @@ typedef enum {
     VIR_DOMAIN_STATS_VCPU = (1 << 3), /* return domain virtual CPU info */
     VIR_DOMAIN_STATS_INTERFACE = (1 << 4), /* return domain interfaces info */
     VIR_DOMAIN_STATS_BLOCK = (1 << 5), /* return domain block info */
+    VIR_DOMAIN_STATS_PERF = (1 << 6), /* return domain perf event info */
 } virDomainStatsTypes;
 
 typedef enum {
@@ -1800,6 +1834,24 @@ int virDomainListGetStats(virDomainPtr *doms,
                           unsigned int flags);
 
 void virDomainStatsRecordListFree(virDomainStatsRecordPtr *stats);
+
+/*
+ * Perf Event API
+ */
+
+/**
+ * VIR_PERF_PARAM_CMT:
+ *
+ * Macro for typed parameter name that represents CMT perf event.
+ */
+# define VIR_PERF_PARAM_CMT "cmt"
+
+int virDomainGetPerfEvents(virDomainPtr dom,
+                           virTypedParameterPtr *params,
+                           int *nparams);
+int virDomainSetPerfEvents(virDomainPtr dom,
+                           virTypedParameterPtr params,
+                           int nparams);
 
 /*
  * BlockJob API
@@ -2330,6 +2382,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_DEFINED_ADDED = 0,     /* Newly created config file */
     VIR_DOMAIN_EVENT_DEFINED_UPDATED = 1,   /* Changed config file */
     VIR_DOMAIN_EVENT_DEFINED_RENAMED = 2,   /* Domain was renamed */
+    VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT = 3,   /* Config was restored from a snapshot */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_DEFINED_LAST
@@ -2380,6 +2433,8 @@ typedef enum {
     VIR_DOMAIN_EVENT_SUSPENDED_RESTORED = 4,  /* Restored from paused state file */
     VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT = 5, /* Restored from paused snapshot */
     VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR = 6, /* suspended after failure during libvirt API call */
+    VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY = 7, /* suspended for post-copy migration */
+    VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY_FAILED = 8, /* suspended after failed post-copy */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_SUSPENDED_LAST
@@ -2395,6 +2450,8 @@ typedef enum {
     VIR_DOMAIN_EVENT_RESUMED_UNPAUSED = 0,   /* Normal resume due to admin unpause */
     VIR_DOMAIN_EVENT_RESUMED_MIGRATED = 1,   /* Resumed for completion of migration */
     VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT = 2, /* Resumed from snapshot */
+    VIR_DOMAIN_EVENT_RESUMED_POSTCOPY = 3,   /* Resumed, but migration is still
+                                                running in post-copy mode */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_RESUMED_LAST
@@ -3284,6 +3341,50 @@ typedef void (*virConnectDomainEventDeviceAddedCallback)(virConnectPtr conn,
                                                          void *opaque);
 
 /**
+ * virConnectDomainEventMigrationIterationCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @iteration: current iteration over domain's memory
+ * @opaque: application specific data
+ *
+ * This callback occurs during live migration when a new iteration over
+ * domain's memory starts. The @iteration value is increased by one every
+ * time a new iteration is started to transfer memory pages dirtied since
+ * the last iteration.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION with
+ * virConnectDomainEventRegisterAny().
+ */
+typedef void (*virConnectDomainEventMigrationIterationCallback)(virConnectPtr conn,
+                                                                virDomainPtr dom,
+                                                                int iteration,
+                                                                void *opaque);
+
+/**
+ * virConnectDomainEventJobCompletedCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @params: job statistics stored as an array of virTypedParameter
+ * @nparams: size of the params array
+ * @opaque: application specific data
+ *
+ * This callback occurs when a job (such as migration) running on the domain
+ * is completed. The params array will contain statistics of the just completed
+ * job as virDomainGetJobStats would return. The callback must not free @params
+ * (the array will be freed once the callback finishes).
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_JOB_COMPLETED with
+ * virConnectDomainEventRegisterAny().
+ */
+typedef void (*virConnectDomainEventJobCompletedCallback)(virConnectPtr conn,
+                                                          virDomainPtr dom,
+                                                          virTypedParameterPtr params,
+                                                          int nparams,
+                                                          void *opaque);
+
+/**
  * VIR_DOMAIN_TUNABLE_CPU_VCPUPIN:
  *
  * Macro represents formatted pinning for one vcpu specified by id which is
@@ -3316,6 +3417,22 @@ typedef void (*virConnectDomainEventDeviceAddedCallback)(virConnectPtr conn,
  * host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.
  */
 # define VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES "cputune.cpu_shares"
+
+/**
+ * VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD:
+ *
+ * Macro represents the enforcement period for a quota, in microseconds,
+ * for whole domain, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD "cputune.global_period"
+
+/**
+ * VIR_DOMAIN_TUNABLE_CPU_GLOBAL_QUOTA:
+ *
+ * Macro represents the maximum bandwidth to be used within a period for
+ * whole domain, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.
+ */
+# define VIR_DOMAIN_TUNABLE_CPU_GLOBAL_QUOTA "cputune.global_quota"
 
 /**
  * VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD:
@@ -3566,6 +3683,8 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_TUNABLE = 17,        /* virConnectDomainEventTunableCallback */
     VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE = 18,/* virConnectDomainEventAgentLifecycleCallback */
     VIR_DOMAIN_EVENT_ID_DEVICE_ADDED = 19,   /* virConnectDomainEventDeviceAddedCallback */
+    VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION = 20, /* virConnectDomainEventMigrationIterationCallback */
+    VIR_DOMAIN_EVENT_ID_JOB_COMPLETED = 21,  /* virConnectDomainEventJobCompletedCallback */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST

@@ -47,6 +47,14 @@ remoteAdminPrivDispose(void *opaque)
 }
 
 
+/* Helpers */
+static virAdmServerPtr
+get_nonnull_server(virAdmConnectPtr conn, admin_nonnull_server server)
+{
+    return virAdmGetServer(conn, server.name);
+}
+
+
 static int
 callFull(virAdmConnectPtr conn ATTRIBUTE_UNUSED,
          remoteAdminPrivPtr priv,
@@ -172,7 +180,9 @@ remoteAdminConnectClose(virAdmConnectPtr conn)
         goto done;
     }
 
-    virNetClientSetCloseCallback(priv->client, NULL, NULL, NULL);
+    virNetClientSetCloseCallback(priv->client, NULL, conn->closeCallback,
+                                 virObjectFreeCallback);
+    virNetClientClose(priv->client);
 
     rv = 0;
 

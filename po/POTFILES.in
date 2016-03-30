@@ -1,5 +1,5 @@
 daemon/admin_dispatch.h
-daemon/admin_server.c
+daemon/admin.c
 daemon/libvirtd-config.c
 daemon/libvirtd.c
 daemon/qemu_dispatch.h
@@ -120,18 +120,22 @@ src/vz/vz_utils.c
 src/vz/vz_utils.h
 src/phyp/phyp_driver.c
 src/qemu/qemu_agent.c
+src/qemu/qemu_alias.c
 src/qemu/qemu_capabilities.c
 src/qemu/qemu_cgroup.c
 src/qemu/qemu_command.c
 src/qemu/qemu_conf.c
 src/qemu/qemu_domain.c
+src/qemu/qemu_domain_address.c
 src/qemu/qemu_driver.c
 src/qemu/qemu_hostdev.c
 src/qemu/qemu_hotplug.c
+src/qemu/qemu_interface.c
 src/qemu/qemu_migration.c
 src/qemu/qemu_monitor.c
 src/qemu/qemu_monitor_json.c
 src/qemu/qemu_monitor_text.c
+src/qemu/qemu_parse_command.c
 src/qemu/qemu_process.c
 src/remote/remote_client_bodies.h
 src/remote/remote_driver.c
@@ -201,7 +205,9 @@ src/util/viriptables.c
 src/util/viriscsi.c
 src/util/virjson.c
 src/util/virkeyfile.c
+src/util/virlease.c
 src/util/virlockspace.c
+src/util/virlog.c
 src/util/virnetdev.c
 src/util/virnetdevbandwidth.c
 src/util/virnetdevbridge.c
@@ -216,6 +222,7 @@ src/util/virnodesuspend.c
 src/util/virnuma.c
 src/util/virobject.c
 src/util/virpci.c
+src/util/virperf.c
 src/util/virpidfile.c
 src/util/virpolkit.c
 src/util/virportallocator.c

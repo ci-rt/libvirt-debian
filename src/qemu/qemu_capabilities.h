@@ -343,6 +343,14 @@ typedef enum {
     QEMU_CAPS_VSERPORT_CHANGE, /* VSERPORT_CHANGE event */
     QEMU_CAPS_VIRTIO_BALLOON_AUTODEFLATE, /* virtio-balloon-{device,pci,ccw}.
                                            * deflate-on-oom */
+    QEMU_CAPS_SCSI_MPTSAS1068, /* -device mptsas1068 */
+    QEMU_CAPS_SPICE_GL, /* -spice gl */
+    QEMU_CAPS_QXL_VRAM64, /* -device qxl.vram64_size_mb */
+
+    /* 215 */
+    QEMU_CAPS_QXL_VGA_VRAM64, /* -device qxl-vga.vram64_size_mb */
+    QEMU_CAPS_CHARDEV_LOGFILE, /* -chardev logfile=xxxx */
+    QEMU_CAPS_NAME_DEBUG_THREADS, /* Is -name debug-threads= available */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -442,7 +450,7 @@ int virQEMUCapsParseDeviceStr(virQEMUCapsPtr qemuCaps, const char *str);
 
 VIR_ENUM_DECL(virQEMUCaps);
 
-bool virQEMUCapsSupportsChardev(virDomainDefPtr def,
+bool virQEMUCapsSupportsChardev(const virDomainDef *def,
                                 virQEMUCapsPtr qemuCaps,
                                 virDomainChrDefPtr chr);
 

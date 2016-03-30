@@ -37,6 +37,11 @@ struct virLogManagerProtocolLogFilePosition {
 typedef struct virLogManagerProtocolLogFilePosition virLogManagerProtocolLogFilePosition;
 
 
+enum virLogManagerProtocolDomainOpenLogFileFlags {
+        VIR_LOG_MANAGER_PROTOCOL_DOMAIN_OPEN_LOG_FILE_TRUNCATE = 1,
+};
+typedef enum virLogManagerProtocolDomainOpenLogFileFlags virLogManagerProtocolDomainOpenLogFileFlags;
+
 struct virLogManagerProtocolDomainOpenLogFileArgs {
         virLogManagerProtocolNonNullString driver;
         virLogManagerProtocolDomain dom;
@@ -93,6 +98,7 @@ extern  bool_t xdr_virLogManagerProtocolDomain (XDR *, virLogManagerProtocolDoma
 extern  bool_t xdr_virLogManagerProtocolDomain (XDR *, virLogManagerProtocolDomain*);
 extern  bool_t xdr_virLogManagerProtocolLogFilePosition (XDR *, virLogManagerProtocolLogFilePosition*);
 extern  bool_t xdr_virLogManagerProtocolLogFilePosition (XDR *, virLogManagerProtocolLogFilePosition*);
+extern  bool_t xdr_virLogManagerProtocolDomainOpenLogFileFlags (XDR *, virLogManagerProtocolDomainOpenLogFileFlags*);
 extern  bool_t xdr_virLogManagerProtocolDomainOpenLogFileArgs (XDR *, virLogManagerProtocolDomainOpenLogFileArgs*);
 extern  bool_t xdr_virLogManagerProtocolDomainOpenLogFileRet (XDR *, virLogManagerProtocolDomainOpenLogFileRet*);
 extern  bool_t xdr_virLogManagerProtocolDomainGetLogFilePositionArgs (XDR *, virLogManagerProtocolDomainGetLogFilePositionArgs*);
@@ -109,6 +115,7 @@ extern bool_t xdr_virLogManagerProtocolDomain ();
 extern bool_t xdr_virLogManagerProtocolDomain ();
 extern bool_t xdr_virLogManagerProtocolLogFilePosition ();
 extern bool_t xdr_virLogManagerProtocolLogFilePosition ();
+extern bool_t xdr_virLogManagerProtocolDomainOpenLogFileFlags ();
 extern bool_t xdr_virLogManagerProtocolDomainOpenLogFileArgs ();
 extern bool_t xdr_virLogManagerProtocolDomainOpenLogFileRet ();
 extern bool_t xdr_virLogManagerProtocolDomainGetLogFilePositionArgs ();

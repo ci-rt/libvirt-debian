@@ -39,6 +39,7 @@
 #include "virstring.h"
 #include "xen_common.h"
 
+#define VIR_FROM_THIS VIR_FROM_XEN
 
 /*
  * Convenience method to grab a long int from the config file object
@@ -527,11 +528,11 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
 
         else if (val)
             def->features[VIR_DOMAIN_FEATURE_APIC] = VIR_TRISTATE_SWITCH_ON;
-        if (xenConfigGetBool(conf, "hap", &val, 0) < 0)
+        if (xenConfigGetBool(conf, "hap", &val, 1) < 0)
             return -1;
 
-        else if (val)
-            def->features[VIR_DOMAIN_FEATURE_HAP] = VIR_TRISTATE_SWITCH_ON;
+        else if (!val)
+            def->features[VIR_DOMAIN_FEATURE_HAP] = VIR_TRISTATE_SWITCH_OFF;
         if (xenConfigGetBool(conf, "viridian", &val, 0) < 0)
             return -1;
 
@@ -1571,10 +1572,10 @@ xenFormatCPUFeatures(virConfPtr conf, virDomainDefPtr def)
                             VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
             return -1;
 
-        if (xenConfigSetInt(conf, "hap",
-                            (def->features[VIR_DOMAIN_FEATURE_HAP] ==
-                             VIR_TRISTATE_SWITCH_ON) ? 1 : 0) < 0)
-            return -1;
+        if (def->features[VIR_DOMAIN_FEATURE_HAP] == VIR_TRISTATE_SWITCH_OFF) {
+            if (xenConfigSetInt(conf, "hap", 0) < 0)
+                return -1;
+        }
 
         if (xenConfigSetInt(conf, "viridian",
                             (def->features[VIR_DOMAIN_FEATURE_VIRIDIAN] ==
@@ -1825,6 +1826,28 @@ xenFormatConfigCommon(virConfPtr conf,
         return -1;
 
     if (xenFormatSound(conf, def) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+int
+xenDomainDefAddImplicitInputDevice(virDomainDefPtr def)
+{
+    virDomainInputBus implicitInputBus = VIR_DOMAIN_INPUT_BUS_XEN;
+
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM)
+        implicitInputBus = VIR_DOMAIN_INPUT_BUS_PS2;
+
+    if (virDomainDefMaybeAddInput(def,
+                                  VIR_DOMAIN_INPUT_TYPE_MOUSE,
+                                  implicitInputBus) < 0)
+        return -1;
+
+    if (virDomainDefMaybeAddInput(def,
+                                  VIR_DOMAIN_INPUT_TYPE_KBD,
+                                  implicitInputBus) < 0)
         return -1;
 
     return 0;

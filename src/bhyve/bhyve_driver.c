@@ -30,7 +30,6 @@
 #include "datatypes.h"
 #include "virbuffer.h"
 #include "viruuid.h"
-#include "capabilities.h"
 #include "configmake.h"
 #include "viralloc.h"
 #include "network_conf.h"
@@ -58,7 +57,6 @@
 #include "bhyve_command.h"
 #include "bhyve_domain.h"
 #include "bhyve_process.h"
-#include "bhyve_utils.h"
 #include "bhyve_capabilities.h"
 
 #define VIR_FROM_THIS   VIR_FROM_BHYVE
@@ -127,7 +125,7 @@ bhyveAutostartDomains(bhyveConnPtr driver)
  *
  * Returns: a reference to a virCapsPtr instance or NULL
  */
-static virCapsPtr ATTRIBUTE_NONNULL(1)
+virCapsPtr ATTRIBUTE_NONNULL(1)
 bhyveDriverGetCapabilities(bhyveConnPtr driver)
 {
 
@@ -488,7 +486,9 @@ bhyveDomainGetOSType(virDomainPtr dom)
 static char *
 bhyveDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 {
+    bhyveConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr vm;
+    virCapsPtr caps = NULL;
     char *ret = NULL;
 
     if (!(vm = bhyveDomObjFromDomain(domain)))
@@ -497,9 +497,14 @@ bhyveDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     if (virDomainGetXMLDescEnsureACL(domain->conn, vm->def, flags) < 0)
         goto cleanup;
 
-    ret = virDomainDefFormat(vm->def,
+    caps = bhyveDriverGetCapabilities(privconn);
+    if (!caps)
+        goto cleanup;
+
+    ret = virDomainDefFormat(vm->def, caps,
                              virDomainDefFormatConvertXMLFlags(flags));
 
+    virObjectUnref(caps);
  cleanup:
     if (vm)
         virObjectUnlock(vm);
@@ -544,7 +549,7 @@ bhyveDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flag
     def = NULL;
     vm->persistent = 1;
 
-    if (virDomainSaveConfig(BHYVE_CONFIG_DIR,
+    if (virDomainSaveConfig(BHYVE_CONFIG_DIR, caps,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
         virDomainObjListRemove(privconn->domains, vm);
         vm = NULL;
@@ -1167,7 +1172,7 @@ bhyveStateCleanup(void)
     virObjectUnref(bhyve_driver->domains);
     virObjectUnref(bhyve_driver->caps);
     virObjectUnref(bhyve_driver->xmlopt);
-    virObjectUnref(bhyve_driver->hostsysinfo);
+    virSysinfoDefFree(bhyve_driver->hostsysinfo);
     virObjectUnref(bhyve_driver->closeCallbacks);
     virObjectEventStateFree(bhyve_driver->domainEventState);
 
@@ -1182,8 +1187,6 @@ bhyveStateInitialize(bool privileged,
                      virStateInhibitCallback callback ATTRIBUTE_UNUSED,
                      void *opaque ATTRIBUTE_UNUSED)
 {
-    virConnectPtr conn = NULL;
-
     if (!privileged) {
         VIR_INFO("Not running privileged, disabling driver");
         return 0;
@@ -1254,12 +1257,9 @@ bhyveStateInitialize(bool privileged,
 
     virBhyveProcessReconnectAll(bhyve_driver);
 
-    virObjectUnref(conn);
-
     return 0;
 
  cleanup:
-    virObjectUnref(conn);
     bhyveStateCleanup();
     return -1;
 }

@@ -26,3 +26,91 @@ done:
     virObjectUnlock(priv);
     return rv;
 }
+
+static int
+remoteAdminConnectListServers(virAdmConnectPtr conn, virAdmServerPtr **result, unsigned int flags)
+{
+    int rv = -1;
+    remoteAdminPrivPtr priv = conn->privateData;
+    admin_connect_list_servers_args args;
+    admin_connect_list_servers_ret ret;
+    virAdmServerPtr *tmp_results = NULL;
+    size_t i;
+
+    virObjectLock(priv);
+
+    args.flags = flags;
+    args.need_results = !!result;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, 0, ADMIN_PROC_CONNECT_LIST_SERVERS,
+             (xdrproc_t)xdr_admin_connect_list_servers_args, (char *)&args,
+             (xdrproc_t)xdr_admin_connect_list_servers_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.servers.servers_len > ADMIN_SERVER_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote servers: %d > %d"),
+                       ret.servers.servers_len, ADMIN_SERVER_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result) {
+        if (VIR_ALLOC_N(tmp_results, ret.servers.servers_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.servers.servers_len; i++) {
+            tmp_results[i] = get_nonnull_server(conn, ret.servers.servers_val[i]);
+            if (!tmp_results[i])
+                goto cleanup;
+        }
+        *result = tmp_results;
+        tmp_results = NULL;
+    }
+
+    rv = ret.ret;
+
+cleanup:
+    if (tmp_results) {
+        for (i = 0; i < ret.servers.servers_len; i++)
+            virObjectUnref(tmp_results[i]);
+        VIR_FREE(tmp_results);
+    }
+
+    xdr_free((xdrproc_t)xdr_admin_connect_list_servers_ret, (char *)&ret);
+
+done:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static virAdmServerPtr
+remoteAdminConnectLookupServer(virAdmConnectPtr conn, const char *name, unsigned int flags)
+{
+    virAdmServerPtr rv = NULL;
+    remoteAdminPrivPtr priv = conn->privateData;
+    admin_connect_lookup_server_args args;
+    admin_connect_lookup_server_ret ret;
+
+    virObjectLock(priv);
+
+    args.name = (char *)name;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, 0, ADMIN_PROC_CONNECT_LOOKUP_SERVER,
+             (xdrproc_t)xdr_admin_connect_lookup_server_args, (char *)&args,
+             (xdrproc_t)xdr_admin_connect_lookup_server_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_server(conn, ret.srv);
+    xdr_free((xdrproc_t)xdr_admin_connect_lookup_server_ret, (char *)&ret);
+
+done:
+    virObjectUnlock(priv);
+    return rv;
+}

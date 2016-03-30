@@ -725,4 +725,11 @@ LIBVIRT_1.2.19 {
         virDomainRename;
 } LIBVIRT_1.2.17;
 
+LIBVIRT_1.3.3 {
+    global:
+        virDomainMigrateStartPostCopy;
+        virDomainGetPerfEvents;
+        virDomainSetPerfEvents;
+} LIBVIRT_1.2.19;
+
 # .... define new API here using predicted next version number ....

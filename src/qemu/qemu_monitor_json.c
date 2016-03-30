@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_json.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -34,6 +34,7 @@
 #include "qemu_monitor_text.h"
 #include "qemu_monitor_json.h"
 #include "qemu_command.h"
+#include "qemu_parse_command.h"
 #include "qemu_capabilities.h"
 #include "viralloc.h"
 #include "virlog.h"
@@ -86,6 +87,7 @@ static void qemuMonitorJSONHandleNicRxFilterChanged(qemuMonitorPtr mon, virJSONV
 static void qemuMonitorJSONHandleSerialChange(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleSpiceMigrated(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleMigrationStatus(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleMigrationPass(qemuMonitorPtr mon, virJSONValuePtr data);
 
 typedef struct {
     const char *type;
@@ -102,6 +104,7 @@ static qemuEventHandler eventHandlers[] = {
     { "DEVICE_TRAY_MOVED", qemuMonitorJSONHandleTrayChange, },
     { "GUEST_PANICKED", qemuMonitorJSONHandleGuestPanic, },
     { "MIGRATION", qemuMonitorJSONHandleMigrationStatus, },
+    { "MIGRATION_PASS", qemuMonitorJSONHandleMigrationPass, },
     { "NIC_RX_FILTER_CHANGED", qemuMonitorJSONHandleNicRxFilterChanged, },
     { "POWERDOWN", qemuMonitorJSONHandlePowerdown, },
     { "RESET", qemuMonitorJSONHandleReset, },
@@ -1008,6 +1011,21 @@ qemuMonitorJSONHandleMigrationStatus(qemuMonitorPtr mon,
 }
 
 
+static void
+qemuMonitorJSONHandleMigrationPass(qemuMonitorPtr mon,
+                                   virJSONValuePtr data)
+{
+    int pass;
+
+    if (virJSONValueObjectGetNumberInt(data, "pass", &pass) < 0) {
+        VIR_WARN("missing dirty-sync-count in migration-pass event");
+        return;
+    }
+
+    qemuMonitorEmitMigrationPass(mon, pass);
+}
+
+
 int
 qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
                                   const char *cmd_str,
@@ -1418,6 +1436,18 @@ qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
             return -1;
         }
         video->vram = prop.val.ul / 1024;
+
+        if (video->vram64 != 0) {
+            if (qemuMonitorJSONGetObjectProperty(mon, path,
+                                                 "vram64_size_mb", &prop) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("QOM Object '%s' has no property 'vram64_size_mb'"),
+                               path);
+                return -1;
+            }
+            video->vram64 = prop.val.ul / 1024;
+        }
+
         if (qemuMonitorJSONGetObjectProperty(mon, path, "ram_size", &prop) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("QOM Object '%s' has no property 'ram_size'"),
@@ -1442,6 +1472,48 @@ qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
         }
         video->vram = prop.val.ul * 1024;
         break;
+    case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+    case VIR_DOMAIN_VIDEO_TYPE_XEN:
+    case VIR_DOMAIN_VIDEO_TYPE_VBOX:
+    case VIR_DOMAIN_VIDEO_TYPE_LAST:
+        break;
+    }
+
+    return 0;
+}
+
+
+/**
+ * Loads correct video vram64 size value from QEMU and update the video
+ * definition.
+ *
+ * Return 0 on success, -1 on failure and set proper error message.
+ */
+int
+qemuMonitorJSONUpdateVideoVram64Size(qemuMonitorPtr mon,
+                                     virDomainVideoDefPtr video,
+                                     char *path)
+{
+    qemuMonitorJSONObjectProperty prop = {
+        QEMU_MONITOR_OBJECT_PROPERTY_ULONG,
+        {0}
+    };
+
+    switch (video->type) {
+    case VIR_DOMAIN_VIDEO_TYPE_QXL:
+        if (video->vram64 != 0) {
+            if (qemuMonitorJSONGetObjectProperty(mon, path,
+                                                 "vram64_size_mb", &prop) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("QOM Object '%s' has no property 'vram64_size_mb'"),
+                               path);
+                return -1;
+            }
+            video->vram64 = prop.val.ul / 1024;
+        }
+        break;
+    case VIR_DOMAIN_VIDEO_TYPE_VGA:
+    case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
     case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
     case VIR_DOMAIN_VIDEO_TYPE_XEN:
     case VIR_DOMAIN_VIDEO_TYPE_VBOX:
@@ -2200,8 +2272,7 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
  * Run QMP command to eject a media from ejectable device.
  *
  * Returns:
- *      -2 on error, when the tray is locked
- *      -1 on all other errors
+ *      -1 on error
  *      0 on success
  */
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
@@ -2221,15 +2292,6 @@ int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
 
     if (ret == 0)
         ret = qemuMonitorJSONCheckError(cmd, reply);
-
-    if (ret < 0) {
-        virJSONValuePtr error = virJSONValueObjectGet(reply, "error");
-        if (error) {
-            const char *errorStr = virJSONValueObjectGetString(error, "desc");
-            if (errorStr && c_strcasestr(errorStr, "is locked"))
-                ret = -2;
-        }
-    }
 
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
@@ -2476,6 +2538,7 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
         break;
 
     case QEMU_MONITOR_MIGRATION_STATUS_ACTIVE:
+    case QEMU_MONITOR_MIGRATION_STATUS_POSTCOPY:
     case QEMU_MONITOR_MIGRATION_STATUS_COMPLETED:
     case QEMU_MONITOR_MIGRATION_STATUS_CANCELLING:
         ram = virJSONValueObjectGetObject(ret, "ram");
@@ -3519,35 +3582,6 @@ int qemuMonitorJSONDelObject(qemuMonitorPtr mon,
     return ret;
 }
 
-
-int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
-                            const char *drivestr)
-{
-    /* XXX Update to use QMP, if QMP ever adds support for drive_add */
-    VIR_DEBUG("drive_add command not found, trying HMP");
-    return qemuMonitorTextAddDrive(mon, drivestr);
-}
-
-
-int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
-                            const char *drivestr)
-{
-    int ret;
-
-    /* XXX Update to use QMP, if QMP ever adds support for drive_del */
-    VIR_DEBUG("drive_del command not found, trying HMP");
-    if ((ret = qemuMonitorTextDriveDel(mon, drivestr)) < 0) {
-        virErrorPtr err = virGetLastError();
-        if (err && err->code == VIR_ERR_OPERATION_UNSUPPORTED) {
-            VIR_ERROR("%s",
-                      _("deleting disk is not supported.  "
-                        "This may leak data if disk is reassigned"));
-            ret = 1;
-            virResetLastError();
-        }
-    }
-    return ret;
-}
 
 int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,
@@ -6652,6 +6686,28 @@ qemuMonitorJSONMigrateIncoming(qemuMonitorPtr mon,
     if (!(cmd = qemuMonitorJSONMakeCommand("migrate-incoming",
                                            "s:uri", uri,
                                            NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONMigrateStartPostCopy(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("migrate-start-postcopy", NULL)))
         return -1;
 
     if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)

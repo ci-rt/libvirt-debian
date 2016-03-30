@@ -1,7 +1,7 @@
 /*
  * bridge_driver.c: core driver methods for managing network
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -36,7 +36,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <paths.h>
 #include <pwd.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
@@ -200,11 +199,11 @@ networkRunHook(virNetworkObjPtr network,
 
         virBufferAddLit(&buf, "<hookData>\n");
         virBufferAdjustIndent(&buf, 2);
-        if (iface && virDomainNetDefFormat(&buf, iface, 0) < 0)
+        if (iface && virDomainNetDefFormat(&buf, iface, NULL, 0) < 0)
             goto cleanup;
         if (virNetworkDefFormatBuf(&buf, network->def, 0) < 0)
             goto cleanup;
-        if (dom && virDomainDefFormatInternal(dom, 0, &buf) < 0)
+        if (dom && virDomainDefFormatInternal(dom, NULL, 0, &buf) < 0)
             goto cleanup;
 
         virBufferAdjustIndent(&buf, -2);
@@ -406,7 +405,8 @@ networkUpdateState(virNetworkObjPtr obj,
         break;
 
     case VIR_NETWORK_FORWARD_BRIDGE:
-        if (!(obj->def->bridge && virNetDevExists(obj->def->bridge) == 1)) {
+        if (obj->def->bridge) {
+            if (virNetDevExists(obj->def->bridge) != 1)
                 obj->active = 0;
             break;
         }
@@ -2490,10 +2490,15 @@ networkStartNetwork(virNetworkDriverStatePtr driver,
         break;
 
     case VIR_NETWORK_FORWARD_BRIDGE:
-       if (networkStartNetworkBridge(network) < 0)
-          goto cleanup;
-       break;
-
+        if (network->def->bridge) {
+            if (networkStartNetworkBridge(network) < 0)
+                goto cleanup;
+            break;
+        }
+        /* intentionally fall through to the macvtap/direct case for
+         * VIR_NETWORK_FORWARD_BRIDGE with no bridge device defined
+         * (since that is macvtap bridge mode).
+         */
     case VIR_NETWORK_FORWARD_PRIVATE:
     case VIR_NETWORK_FORWARD_VEPA:
     case VIR_NETWORK_FORWARD_PASSTHROUGH:
@@ -2562,9 +2567,14 @@ networkShutdownNetwork(virNetworkDriverStatePtr driver,
         break;
 
     case VIR_NETWORK_FORWARD_BRIDGE:
-        ret = networkShutdownNetworkBridge(network);
-        break;
-
+        if (network->def->bridge) {
+            ret = networkShutdownNetworkBridge(network);
+            break;
+        }
+        /* intentionally fall through to the macvtap/direct case for
+         * VIR_NETWORK_FORWARD_BRIDGE with no bridge device defined
+         * (since that is macvtap bridge mode).
+         */
     case VIR_NETWORK_FORWARD_PRIVATE:
     case VIR_NETWORK_FORWARD_VEPA:
     case VIR_NETWORK_FORWARD_PASSTHROUGH:
@@ -3222,6 +3232,12 @@ networkUndefine(virNetworkPtr net)
     if (virNetworkObjIsActive(network))
         active = true;
 
+    if (!network->persistent) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("can't undefine transient network"));
+        goto cleanup;
+    }
+
     /* remove autostart link */
     if (virNetworkDeleteConfig(driver->networkConfigDir,
                                driver->networkAutostartDir,
@@ -3856,6 +3872,41 @@ int networkRegister(void)
 
 /********************************************************/
 
+/* A unified function to log network connections and disconnections */
+
+static void
+networkLogAllocation(virNetworkDefPtr netdef,
+                     virDomainNetType actualType,
+                     virNetworkForwardIfDefPtr dev,
+                     virDomainNetDefPtr iface,
+                     bool inUse)
+{
+    char macStr[VIR_MAC_STRING_BUFLEN];
+    const char *verb = inUse ? "using" : "releasing";
+
+    if (!dev) {
+        VIR_INFO("MAC %s %s network %s (%d connections)",
+                 virMacAddrFormat(&iface->mac, macStr), verb,
+                 netdef->name, netdef->connections);
+    } else {
+        if (actualType == VIR_DOMAIN_NET_TYPE_HOSTDEV) {
+            VIR_INFO("MAC %s %s network %s (%d connections) "
+                     "physical device %04x:%02x:%02x.%x (%d connections)",
+                     virMacAddrFormat(&iface->mac, macStr), verb,
+                     netdef->name, netdef->connections,
+                     dev->device.pci.domain, dev->device.pci.bus,
+                     dev->device.pci.slot, dev->device.pci.function,
+                     dev->connections);
+        } else {
+            VIR_INFO("MAC %s %s network %s (%d connections) "
+                     "physical device %s (%d connections)",
+                     virMacAddrFormat(&iface->mac, macStr), verb,
+                     netdef->name, netdef->connections,
+                     dev->device.dev, dev->connections);
+        }
+    }
+}
+
 /* Private API to deal with logical switch capabilities.
  * These functions are exported so that other parts of libvirt can
  * call them, but are not part of the public API and not in the
@@ -4236,23 +4287,8 @@ networkAllocateActualDevice(virDomainDefPtr dom,
 
     if (netdef) {
         netdef->connections++;
-        VIR_DEBUG("Using network %s, %d connections",
-                  netdef->name, netdef->connections);
-
-        if (dev) {
-            /* mark the allocation */
+        if (dev)
             dev->connections++;
-            if (actualType != VIR_DOMAIN_NET_TYPE_HOSTDEV) {
-                VIR_DEBUG("Using physical device %s, %d connections",
-                          dev->device.dev, dev->connections);
-            } else {
-                VIR_DEBUG("Using physical device %04x:%02x:%02x.%x, connections %d",
-                          dev->device.pci.domain, dev->device.pci.bus,
-                          dev->device.pci.slot, dev->device.pci.function,
-                          dev->connections);
-            }
-        }
-
         /* finally we can call the 'plugged' hook script if any */
         if (networkRunHook(network, dom, iface,
                            VIR_HOOK_NETWORK_OP_IFACE_PLUGGED,
@@ -4263,6 +4299,7 @@ networkAllocateActualDevice(virDomainDefPtr dom,
                 dev->connections--;
             goto error;
         }
+        networkLogAllocation(netdef, actualType, dev, iface, true);
     }
 
     ret = 0;
@@ -4388,12 +4425,6 @@ networkNotifyActualDevice(virDomainDefPtr dom,
                            netdef->name, actualDev);
             goto error;
         }
-
-        /* we are now assured of success, so mark the allocation */
-        dev->connections++;
-        VIR_DEBUG("Using physical device %s, connections %d",
-                  dev->device.dev, dev->connections);
-
     }  else /* if (actualType == VIR_DOMAIN_NET_TYPE_HOSTDEV) */ {
         virDomainHostdevDefPtr hostdev;
 
@@ -4443,20 +4474,12 @@ networkNotifyActualDevice(virDomainDefPtr dom,
                            dev->device.pci.slot, dev->device.pci.function);
             goto error;
         }
-
-        /* we are now assured of success, so mark the allocation */
-        dev->connections++;
-        VIR_DEBUG("Using physical device %04x:%02x:%02x.%x, connections %d",
-                  dev->device.pci.domain, dev->device.pci.bus,
-                  dev->device.pci.slot, dev->device.pci.function,
-                  dev->connections);
     }
 
  success:
     netdef->connections++;
-    VIR_DEBUG("Using network %s, %d connections",
-              netdef->name, netdef->connections);
-
+    if (dev)
+        dev->connections++;
     /* finally we can call the 'plugged' hook script if any */
     if (networkRunHook(network, dom, iface, VIR_HOOK_NETWORK_OP_IFACE_PLUGGED,
                        VIR_HOOK_SUBOP_BEGIN) < 0) {
@@ -4466,6 +4489,7 @@ networkNotifyActualDevice(virDomainDefPtr dom,
         netdef->connections--;
         goto error;
     }
+    networkLogAllocation(netdef, actualType, dev, iface, true);
 
     ret = 0;
  cleanup:
@@ -4475,6 +4499,7 @@ networkNotifyActualDevice(virDomainDefPtr dom,
  error:
     goto cleanup;
 }
+
 
 
 /* networkReleaseActualDevice:
@@ -4561,11 +4586,6 @@ networkReleaseActualDevice(virDomainDefPtr dom,
                            netdef->name, actualDev);
             goto error;
         }
-
-        dev->connections--;
-        VIR_DEBUG("Releasing physical device %s, connections %d",
-                  dev->device.dev, dev->connections);
-
     } else /* if (actualType == VIR_DOMAIN_NET_TYPE_HOSTDEV) */ {
         virDomainHostdevDefPtr hostdev;
 
@@ -4597,23 +4617,17 @@ networkReleaseActualDevice(virDomainDefPtr dom,
                            hostdev->source.subsys.u.pci.addr.function);
             goto error;
         }
-
-        dev->connections--;
-        VIR_DEBUG("Releasing physical device %04x:%02x:%02x.%x, connections %d",
-                  dev->device.pci.domain, dev->device.pci.bus,
-                  dev->device.pci.slot, dev->device.pci.function,
-                  dev->connections);
     }
 
  success:
     if (iface->data.network.actual) {
         netdef->connections--;
-        VIR_DEBUG("Releasing network %s, %d connections",
-                  netdef->name, netdef->connections);
-
+        if (dev)
+            dev->connections--;
         /* finally we can call the 'unplugged' hook script if any */
         networkRunHook(network, dom, iface, VIR_HOOK_NETWORK_OP_IFACE_UNPLUGGED,
                        VIR_HOOK_SUBOP_BEGIN);
+        networkLogAllocation(netdef, actualType, dev, iface, false);
     }
     ret = 0;
  cleanup:
@@ -4687,8 +4701,8 @@ networkGetNetworkAddress(const char *netname, char **netaddr)
         if ((dev_name = netdef->bridge))
             break;
         /*
-         * fall through if netdef->bridge wasn't set, since this is
-         * also a direct-mode interface.
+         * fall through if netdef->bridge wasn't set, since that is
+         * macvtap bridge mode network.
          */
     case VIR_NETWORK_FORWARD_PRIVATE:
     case VIR_NETWORK_FORWARD_VEPA:

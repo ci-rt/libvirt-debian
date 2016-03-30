@@ -25,9 +25,8 @@
 # include "qemu_conf.h"
 # include "qemu_domain.h"
 
-int qemuProcessPrepareMonitorChr(virQEMUDriverConfigPtr cfg,
-                                 virDomainChrSourceDefPtr monConfig,
-                                 const char *vm);
+int qemuProcessPrepareMonitorChr(virDomainChrSourceDefPtr monConfig,
+                                 const char *domainDir);
 
 int qemuProcessStartCPUs(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
@@ -41,8 +40,6 @@ int qemuProcessStopCPUs(virQEMUDriverPtr driver,
 
 void qemuProcessAutostartAll(virQEMUDriverPtr driver);
 void qemuProcessReconnectAll(virConnectPtr conn, virQEMUDriverPtr driver);
-
-int qemuProcessAssignPCIAddresses(virDomainDefPtr def);
 
 typedef struct _qemuProcessIncomingDef qemuProcessIncomingDef;
 typedef qemuProcessIncomingDef *qemuProcessIncomingDefPtr;
@@ -70,6 +67,7 @@ typedef enum {
     VIR_QEMU_PROCESS_START_COLD         = 1 << 0,
     VIR_QEMU_PROCESS_START_PAUSED       = 1 << 1,
     VIR_QEMU_PROCESS_START_AUTODESTROY  = 1 << 2,
+    VIR_QEMU_PROCESS_START_PRETEND      = 1 << 3,
 } qemuProcessStartFlags;
 
 int qemuProcessStart(virConnectPtr conn,
@@ -83,9 +81,36 @@ int qemuProcessStart(virConnectPtr conn,
                      virNetDevVPortProfileOp vmop,
                      unsigned int flags);
 
+virCommandPtr qemuProcessCreatePretendCmd(virConnectPtr conn,
+                                          virQEMUDriverPtr driver,
+                                          virDomainObjPtr vm,
+                                          const char *migrateURI,
+                                          bool forceFips,
+                                          bool standalone,
+                                          unsigned int flags);
+
+int qemuProcessStartValidate(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             virQEMUCapsPtr qemuCaps,
+                             bool migration,
+                             bool snap,
+                             unsigned int flags);
+
 int qemuProcessInit(virQEMUDriverPtr driver,
                     virDomainObjPtr vm,
-                    bool migration);
+                    qemuDomainAsyncJob asyncJob,
+                    bool migration,
+                    bool snap,
+                    unsigned int flags);
+
+int qemuProcessPrepareDomain(virConnectPtr conn,
+                             virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             unsigned int flags);
+
+int qemuProcessPrepareHost(virQEMUDriverPtr driver,
+                           virDomainObjPtr vm,
+                           bool incoming);
 
 int qemuProcessLaunch(virConnectPtr conn,
                       virQEMUDriverPtr driver,
@@ -108,9 +133,14 @@ typedef enum {
     VIR_QEMU_PROCESS_STOP_NO_RELABEL    = 1 << 1,
 } qemuProcessStopFlags;
 
+int qemuProcessBeginStopJob(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            qemuDomainJob job,
+                            bool forceKill);
 void qemuProcessStop(virQEMUDriverPtr driver,
                      virDomainObjPtr vm,
                      virDomainShutoffReason reason,
+                     qemuDomainAsyncJob asyncJob,
                      unsigned int flags);
 
 int qemuProcessAttach(virConnectPtr conn,
@@ -155,4 +185,12 @@ virDomainDiskDefPtr qemuProcessFindDomainDiskByAlias(virDomainObjPtr vm,
 
 int qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm);
 
+
+int qemuProcessSetupVcpu(virDomainObjPtr vm,
+                         unsigned int vcpuid);
+int qemuProcessSetupIOThread(virDomainObjPtr vm,
+                             virDomainIOThreadIDDefPtr iothread);
+
+int qemuRefreshVirtioChannelState(virQEMUDriverPtr driver,
+                                  virDomainObjPtr vm);
 #endif /* __QEMU_PROCESS_H__ */

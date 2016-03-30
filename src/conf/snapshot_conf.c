@@ -429,8 +429,88 @@ virDomainSnapshotDefParseString(const char *xmlStr,
     return ret;
 }
 
+
+/**
+ * virDomainSnapshotDefAssignExternalNames:
+ * @def: snapshot def object
+ *
+ * Generate default external file names for snapshot targets. Returns 0 on
+ * success, -1 on error.
+ */
 static int
-disksorter(const void *a, const void *b)
+virDomainSnapshotDefAssignExternalNames(virDomainSnapshotDefPtr def)
+{
+    const char *origpath;
+    char *tmppath;
+    char *tmp;
+    struct stat sb;
+    size_t i;
+    size_t j;
+
+    for (i = 0; i < def->ndisks; i++) {
+        virDomainSnapshotDiskDefPtr disk = &def->disks[i];
+
+        if (disk->snapshot != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL ||
+            disk->src->path)
+            continue;
+
+        if (disk->src->type != VIR_STORAGE_TYPE_FILE) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("cannot generate external snapshot name "
+                             "for disk '%s' on a '%s' device"),
+                           disk->name, virStorageTypeToString(disk->src->type));
+            return -1;
+        }
+
+        if (!(origpath = virDomainDiskGetSource(def->dom->disks[i]))) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("cannot generate external snapshot name "
+                             "for disk '%s' without source"),
+                           disk->name);
+            return -1;
+        }
+
+        if (stat(origpath, &sb) < 0 || !S_ISREG(sb.st_mode)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("source for disk '%s' is not a regular "
+                             "file; refusing to generate external "
+                             "snapshot name"),
+                           disk->name);
+            return -1;
+        }
+
+        if (VIR_STRDUP(tmppath, origpath) < 0)
+            return -1;
+
+        /* drop suffix of the file name */
+        if ((tmp = strrchr(tmppath, '.')) && !strchr(tmp, '/'))
+            *tmp = '\0';
+
+        if (virAsprintf(&disk->src->path, "%s.%s", tmppath, def->name) < 0) {
+            VIR_FREE(tmppath);
+            return -1;
+        }
+
+        VIR_FREE(tmppath);
+
+        /* verify that we didn't generate a duplicate name */
+        for (j = 0; j < i; j++) {
+            if (STREQ_NULLABLE(disk->src->path, def->disks[j].src->path)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("cannot generate external snapshot name for "
+                                 "disk '%s': collision with disk '%s'"),
+                               disk->name, def->disks[j].name);
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+static int
+virDomainSnapshotCompareDiskIndex(const void *a, const void *b)
 {
     const virDomainSnapshotDiskDef *diska = a;
     const virDomainSnapshotDiskDef *diskb = b;
@@ -562,62 +642,12 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
             disk->snapshot = default_snapshot;
     }
 
-    qsort(&def->disks[0], def->ndisks, sizeof(def->disks[0]), disksorter);
+    qsort(&def->disks[0], def->ndisks, sizeof(def->disks[0]),
+          virDomainSnapshotCompareDiskIndex);
 
-    /* Generate any default external file names, but only if the
-     * backing file is a regular file.  */
-    for (i = 0; i < def->ndisks; i++) {
-        virDomainSnapshotDiskDefPtr disk = &def->disks[i];
-
-        if (disk->snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL &&
-            !disk->src->path) {
-            const char *original = virDomainDiskGetSource(def->dom->disks[i]);
-            const char *tmp;
-            struct stat sb;
-
-            if (disk->src->type != VIR_STORAGE_TYPE_FILE) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("cannot generate external snapshot name "
-                                 "for disk '%s' on a '%s' device"),
-                               disk->name,
-                               virStorageTypeToString(disk->src->type));
-                goto cleanup;
-            }
-
-            if (!original) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("cannot generate external snapshot name "
-                                 "for disk '%s' without source"),
-                               disk->name);
-                goto cleanup;
-            }
-            if (stat(original, &sb) < 0 || !S_ISREG(sb.st_mode)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("source for disk '%s' is not a regular "
-                                 "file; refusing to generate external "
-                                 "snapshot name"),
-                               disk->name);
-                goto cleanup;
-            }
-
-            tmp = strrchr(original, '.');
-            if (!tmp || strchr(tmp, '/')) {
-                if (virAsprintf(&disk->src->path, "%s.%s", original,
-                                def->name) < 0)
-                    goto cleanup;
-            } else {
-                if ((tmp - original) > INT_MAX) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("integer overflow"));
-                    goto cleanup;
-                }
-                if (virAsprintf(&disk->src->path, "%.*s.%s",
-                                (int) (tmp - original), original,
-                                def->name) < 0)
-                    goto cleanup;
-            }
-        }
-    }
+    /* Generate default external file names for external snapshot locations */
+    if (virDomainSnapshotDefAssignExternalNames(def) < 0)
+        goto cleanup;
 
     ret = 0;
 
@@ -659,6 +689,7 @@ virDomainSnapshotDiskDefFormat(virBufferPtr buf,
 
 char *virDomainSnapshotDefFormat(const char *domain_uuid,
                                  virDomainSnapshotDefPtr def,
+                                 virCapsPtr caps,
                                  unsigned int flags,
                                  int internal)
 {
@@ -702,7 +733,7 @@ char *virDomainSnapshotDefFormat(const char *domain_uuid,
         virBufferAddLit(&buf, "</disks>\n");
     }
     if (def->dom) {
-        if (virDomainDefFormatInternal(def->dom, flags, &buf) < 0) {
+        if (virDomainDefFormatInternal(def->dom, caps, flags, &buf) < 0) {
             virBufferFreeAndReset(&buf);
             return NULL;
         }
@@ -813,48 +844,49 @@ struct virDomainSnapshotNameData {
     bool error;
 };
 
-static void virDomainSnapshotObjListCopyNames(void *payload,
-                                              const void *name ATTRIBUTE_UNUSED,
-                                              void *opaque)
+static int virDomainSnapshotObjListCopyNames(void *payload,
+                                             const void *name ATTRIBUTE_UNUSED,
+                                             void *opaque)
 {
     virDomainSnapshotObjPtr obj = payload;
     struct virDomainSnapshotNameData *data = opaque;
 
     if (data->error)
-        return;
+        return 0;
     /* Caller already sanitized flags.  Filtering on DESCENDANTS was
      * done by choice of iteration in the caller.  */
     if ((data->flags & VIR_DOMAIN_SNAPSHOT_LIST_LEAVES) && obj->nchildren)
-        return;
+        return 0;
     if ((data->flags & VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES) && !obj->nchildren)
-        return;
+        return 0;
 
     if (data->flags & VIR_DOMAIN_SNAPSHOT_FILTERS_STATUS) {
         if (!(data->flags & VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE) &&
             obj->def->state == VIR_DOMAIN_SHUTOFF)
-            return;
+            return 0;
         if (!(data->flags & VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY) &&
             obj->def->state == VIR_DOMAIN_DISK_SNAPSHOT)
-            return;
+            return 0;
         if (!(data->flags & VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE) &&
             obj->def->state != VIR_DOMAIN_SHUTOFF &&
             obj->def->state != VIR_DOMAIN_DISK_SNAPSHOT)
-            return;
+            return 0;
     }
 
     if ((data->flags & VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL) &&
         virDomainSnapshotIsExternal(obj))
-        return;
+        return 0;
     if ((data->flags & VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL) &&
         !virDomainSnapshotIsExternal(obj))
-        return;
+        return 0;
 
     if (data->names && data->count < data->maxnames &&
         VIR_STRDUP(data->names[data->count], obj->def->name) < 0) {
         data->error = true;
-        return;
+        return 0;
     }
     data->count++;
+    return 0;
 }
 
 int
@@ -981,7 +1013,7 @@ struct snapshot_act_on_descendant {
     void *data;
 };
 
-static void
+static int
 virDomainSnapshotActOnDescendant(void *payload,
                                  const void *name,
                                  void *data)
@@ -993,6 +1025,7 @@ virDomainSnapshotActOnDescendant(void *payload,
                                                            curr->iter,
                                                            curr->data);
     (curr->iter)(payload, name, curr->data);
+    return 0;
 }
 
 /* Run iter(data) on all descendants of snapshot, while ignoring all
@@ -1024,7 +1057,7 @@ struct snapshot_set_relation {
     virDomainSnapshotObjListPtr snapshots;
     int err;
 };
-static void
+static int
 virDomainSnapshotSetRelations(void *payload,
                               const void *name ATTRIBUTE_UNUSED,
                               void *data)
@@ -1054,6 +1087,7 @@ virDomainSnapshotSetRelations(void *payload,
     obj->parent->nchildren++;
     obj->sibling = obj->parent->first_child;
     obj->parent->first_child = obj;
+    return 0;
 }
 
 /* Populate parent link and child count of all snapshots, with all

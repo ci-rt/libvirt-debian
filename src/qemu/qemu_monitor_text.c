@@ -1170,8 +1170,7 @@ int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, bool online)
  * Run HMP command to eject a media from ejectable device.
  *
  * Returns:
- *      -2 on error, when the tray is locked
- *      -1 on all other errors
+ *      -1 on error
  *      0 on success
  */
 int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
@@ -1192,8 +1191,6 @@ int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
      * device not found, device is locked ...
      * No message is printed on success it seems */
     if (c_strcasestr(reply, "device ")) {
-        if (c_strcasestr(reply, "is locked"))
-            ret = -2;
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("could not eject media on %s: %s"), dev_name, reply);
         goto cleanup;
@@ -2213,104 +2210,6 @@ int qemuMonitorTextAttachPCIDiskController(qemuMonitorPtr mon,
 }
 
 
-static int
-qemuParseDriveAddReply(const char *reply,
-                       virDomainDeviceDriveAddressPtr addr)
-{
-    char *s, *e;
-
-    /* If the command succeeds qemu prints:
-     * OK bus X, unit Y
-     */
-
-    if (!(s = strstr(reply, "OK ")))
-        return -1;
-
-    s += 3;
-
-    if (STRPREFIX(s, "bus ")) {
-        s += strlen("bus ");
-
-        if (virStrToLong_ui(s, &e, 10, &addr->bus) == -1) {
-            VIR_WARN("Unable to parse bus '%s'", s);
-            return -1;
-        }
-
-        if (!STRPREFIX(e, ", ")) {
-            VIR_WARN("Expected ', ' parsing drive_add reply '%s'", s);
-            return -1;
-        }
-        s = e + 2;
-    }
-
-    if (!STRPREFIX(s, "unit ")) {
-        VIR_WARN("Expected 'unit ' parsing drive_add reply '%s'", s);
-        return -1;
-    }
-    s += strlen("bus ");
-
-    if (virStrToLong_ui(s, &e, 10, &addr->unit) == -1) {
-        VIR_WARN("Unable to parse unit number '%s'", s);
-        return -1;
-    }
-
-    return 0;
-}
-
-
-int qemuMonitorTextAttachDrive(qemuMonitorPtr mon,
-                               const char *drivestr,
-                               virDevicePCIAddress *controllerAddr,
-                               virDomainDeviceDriveAddress *driveAddr)
-{
-    char *cmd = NULL;
-    char *reply = NULL;
-    int ret = -1;
-    char *safe_str;
-    bool tryOldSyntax = false;
-
-    safe_str = qemuMonitorEscapeArg(drivestr);
-    if (!safe_str)
-        return -1;
-
- try_command:
-    if (virAsprintf(&cmd, "drive_add %s%.2x:%.2x:%.2x %s",
-                    (tryOldSyntax ? "" : "pci_addr="),
-                    controllerAddr->domain, controllerAddr->bus,
-                    controllerAddr->slot, safe_str) < 0)
-        goto cleanup;
-
-    if (qemuMonitorHMPCommand(mon, cmd, &reply) < 0)
-        goto cleanup;
-
-    if (strstr(reply, "unknown command:")) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                       _("drive hotplug is not supported"));
-        goto cleanup;
-    }
-
-    if (qemuParseDriveAddReply(reply, driveAddr) < 0) {
-        if (!tryOldSyntax && strstr(reply, "invalid char in expression")) {
-            VIR_FREE(reply);
-            VIR_FREE(cmd);
-            tryOldSyntax = true;
-            goto try_command;
-        }
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("adding %s disk failed: %s"), drivestr, reply);
-        goto cleanup;
-    }
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(cmd);
-    VIR_FREE(reply);
-    VIR_FREE(safe_str);
-    return ret;
-}
-
-
 /*
  * The format we're after looks like this
  *
@@ -2555,8 +2454,7 @@ int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
     return ret;
 }
 
-/* Attempts to remove a host drive.
- * Returns 1 if unsupported, 0 if ok, and -1 on other failure */
+
 int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
                             const char *drivestr)
 {
@@ -2564,7 +2462,6 @@ int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
     char *reply = NULL;
     char *safedev;
     int ret = -1;
-    VIR_DEBUG("TextDriveDel drivestr=%s", drivestr);
 
     if (!(safedev = qemuMonitorEscapeArg(drivestr)))
         goto cleanup;
@@ -2640,7 +2537,10 @@ int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
     return ret;
 }
 
-int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name)
+
+int
+qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon,
+                              const char *name)
 {
     char *cmd = NULL;
     char *reply = NULL;
@@ -2654,20 +2554,16 @@ int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name)
     if (qemuMonitorHMPCommand(mon, cmd, &reply))
         goto cleanup;
 
-    if (strstr(reply, "Error while creating snapshot") != NULL) {
+    if (strstr(reply, "Error while creating snapshot") ||
+        strstr(reply, "Could not open VM state file") ||
+        strstr(reply, "State blocked by non-migratable device") ||
+        (strstr(reply, "Error") && strstr(reply, "while writing VM"))) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("Failed to take snapshot: %s"), reply);
         goto cleanup;
-    } else if (strstr(reply, "No block device can accept snapshots") != NULL) {
+    } else if (strstr(reply, "No block device can accept snapshots")) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("this domain does not have a device to take snapshots"));
-        goto cleanup;
-    } else if (strstr(reply, "Could not open VM state file") != NULL) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
-        goto cleanup;
-    } else if (strstr(reply, "Error") != NULL
-             && strstr(reply, "while writing VM") != NULL) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
         goto cleanup;
     }
 

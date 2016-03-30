@@ -638,6 +638,10 @@ typedef int
                                     const char *dom_xml);
 
 typedef int
+(*virDrvDomainMigrateStartPostCopy)(virDomainPtr domain,
+                                    unsigned int flags);
+
+typedef int
 (*virDrvConnectIsEncrypted)(virConnectPtr conn);
 
 typedef int
@@ -958,6 +962,16 @@ typedef int
                                 unsigned int flags);
 
 typedef int
+(*virDrvDomainGetPerfEvents)(virDomainPtr dom,
+                             virTypedParameterPtr *params,
+                             int *nparams);
+
+typedef int
+(*virDrvDomainSetPerfEvents)(virDomainPtr dom,
+                             virTypedParameterPtr params,
+                             int nparams);
+
+typedef int
 (*virDrvDomainBlockJobAbort)(virDomainPtr dom,
                              const char *path,
                              unsigned int flags);
@@ -1212,6 +1226,16 @@ typedef int
                                const char *password,
                                unsigned int flags);
 
+typedef int
+(*virDrvConnectRegisterCloseCallback)(virConnectPtr conn,
+                                      virConnectCloseFunc cb,
+                                      void *opaque,
+                                      virFreeCallback freecb);
+
+typedef int
+(*virDrvConnectUnregisterCloseCallback)(virConnectPtr conn,
+                                        virConnectCloseFunc cb);
+
 typedef struct _virHypervisorDriver virHypervisorDriver;
 typedef virHypervisorDriver *virHypervisorDriverPtr;
 
@@ -1413,6 +1437,8 @@ struct _virHypervisorDriver {
     virDrvConnectSetKeepAlive connectSetKeepAlive;
     virDrvConnectIsAlive connectIsAlive;
     virDrvNodeSuspendForDuration nodeSuspendForDuration;
+    virDrvDomainGetPerfEvents domainGetPerfEvents;
+    virDrvDomainSetPerfEvents domainSetPerfEvents;
     virDrvDomainSetBlockIoTune domainSetBlockIoTune;
     virDrvDomainGetBlockIoTune domainGetBlockIoTune;
     virDrvDomainGetCPUStats domainGetCPUStats;
@@ -1443,6 +1469,9 @@ struct _virHypervisorDriver {
     virDrvDomainGetFSInfo domainGetFSInfo;
     virDrvDomainInterfaceAddresses domainInterfaceAddresses;
     virDrvDomainSetUserPassword domainSetUserPassword;
+    virDrvConnectRegisterCloseCallback connectRegisterCloseCallback;
+    virDrvConnectUnregisterCloseCallback connectUnregisterCloseCallback;
+    virDrvDomainMigrateStartPostCopy domainMigrateStartPostCopy;
 };
 
 

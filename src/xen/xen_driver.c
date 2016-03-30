@@ -46,6 +46,7 @@
 
 #include "xen_sxpr.h"
 #include "xen_xm.h"
+#include "xen_common.h"
 #include "xen_hypervisor.h"
 #include "xend_internal.h"
 #include "xs_internal.h"
@@ -360,9 +361,6 @@ xenDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         }
     }
 
-    if (virDomainDeviceDefCheckUnsupportedMemoryDevice(dev) < 0)
-        return -1;
-
     return 0;
 }
 
@@ -382,8 +380,8 @@ xenDomainDefPostParse(virDomainDefPtr def,
         def->memballoon = memballoon;
     }
 
-    /* memory hotplug tunables are not supported by this driver */
-    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
+    /* add implicit input device */
+    if (xenDomainDefAddImplicitInputDevice(def) <0)
         return -1;
 
     return 0;
@@ -1525,7 +1523,7 @@ xenUnifiedDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     def = xenDaemonDomainGetXMLDesc(dom->conn, minidef, cpus);
 
     if (def)
-        ret = virDomainDefFormat(def,
+        ret = virDomainDefFormat(def, priv->caps,
                                  virDomainDefFormatConvertXMLFlags(flags));
 
  cleanup:
@@ -1581,7 +1579,7 @@ xenUnifiedConnectDomainXMLFromNative(virConnectPtr conn,
     if (!def)
         goto cleanup;
 
-    ret = virDomainDefFormat(def, 0);
+    ret = virDomainDefFormat(def, priv->caps, 0);
 
  cleanup:
     virDomainDefFree(def);

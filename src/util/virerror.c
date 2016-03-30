@@ -1,7 +1,7 @@
 /*
  * virerror.c: error handling and reporting code for libvirt
  *
- * Copyright (C) 2006, 2008-2015 Red Hat, Inc.
+ * Copyright (C) 2006, 2008-2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -105,7 +105,7 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "Audit Utils",
               "Sysinfo Utils",
               "I/O Stream Utils",
-              "VMWare Driver",
+              "VMware Driver",
 
               "Event Loop", /* 40 */
               "Xen Light Driver",
@@ -135,6 +135,9 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "Thread jobs",
               "Admin Interface",
               "Log Manager",
+              "Xen XL Config",
+
+              "Perf",
     )
 
 
@@ -1094,6 +1097,12 @@ virErrorMsg(virErrorNumber error, const char *info)
             else
                 errmsg = _("authentication cancelled: %s");
             break;
+        case VIR_ERR_AUTH_UNAVAILABLE:
+            if (info == NULL)
+                errmsg = _("authentication unavailable");
+            else
+                errmsg = _("authentication unavailable: %s");
+            break;
         case VIR_ERR_NO_STORAGE_POOL:
             if (info == NULL)
                 errmsg = _("Storage pool not found");
@@ -1372,6 +1381,12 @@ virErrorMsg(virErrorNumber error, const char *info)
             break;
         case VIR_ERR_MIGRATE_FINISH_OK:
             errmsg = _("migration successfully aborted");
+            break;
+        case VIR_ERR_NO_SERVER:
+            if (info == NULL)
+                errmsg = _("Server not found");
+            else
+                errmsg = _("Server not found: %s");
             break;
     }
     return errmsg;

@@ -1,7 +1,7 @@
 /*
  * storage_conf.c: config handling for storage driver
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -528,6 +528,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
         goto cleanup;
 
     for (i = 0; i < nsource; i++) {
+        char *partsep;
         virStoragePoolSourceDevice dev = { .path = NULL };
         dev.path = virXMLPropString(nodeset[i], "path");
 
@@ -537,10 +538,25 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
             goto cleanup;
         }
 
+        partsep = virXMLPropString(nodeset[i], "part_separator");
+        if (partsep) {
+            dev.part_separator = virTristateBoolTypeFromString(partsep);
+            if (dev.part_separator <= 0) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("invalid part_separator setting '%s'"),
+                               partsep);
+                virStoragePoolSourceDeviceClear(&dev);
+                VIR_FREE(partsep);
+                goto cleanup;
+            }
+            VIR_FREE(partsep);
+        }
+
         if (VIR_APPEND_ELEMENT(source->devices, source->ndevice, dev) < 0) {
             virStoragePoolSourceDeviceClear(&dev);
             goto cleanup;
         }
+
     }
 
     source->dir = virXPathString("string(./dir/@path)", ctxt);
@@ -1039,9 +1055,15 @@ virStoragePoolSourceFormat(virBufferPtr buf,
     if ((options->flags & VIR_STORAGE_POOL_SOURCE_DEVICE) &&
         src->ndevice) {
         for (i = 0; i < src->ndevice; i++) {
+            virBufferEscapeString(buf, "<device path='%s'",
+                                  src->devices[i].path);
+            if (src->devices[i].part_separator !=
+                VIR_TRISTATE_SWITCH_ABSENT) {
+                virBufferAsprintf(buf, " part_separator='%s'",
+                                  virTristateBoolTypeToString(src->devices[i].part_separator));
+            }
             if (src->devices[i].nfreeExtent) {
-                virBufferEscapeString(buf, "<device path='%s'>\n",
-                                      src->devices[i].path);
+                virBufferAddLit(buf, ">\n");
                 virBufferAdjustIndent(buf, 2);
                 for (j = 0; j < src->devices[i].nfreeExtent; j++) {
                     virBufferAsprintf(buf, "<freeExtent start='%llu' end='%llu'/>\n",
@@ -1051,8 +1073,7 @@ virStoragePoolSourceFormat(virBufferPtr buf,
                 virBufferAdjustIndent(buf, -2);
                 virBufferAddLit(buf, "</device>\n");
             } else {
-                virBufferEscapeString(buf, "<device path='%s'/>\n",
-                                      src->devices[i].path);
+                virBufferAddLit(buf, "/>\n");
             }
         }
     }
@@ -1830,12 +1851,12 @@ virStoragePoolObjLoad(virStoragePoolObjListPtr pools,
 
     VIR_FREE(pool->configFile);  /* for driver reload */
     if (VIR_STRDUP(pool->configFile, path) < 0) {
-        virStoragePoolDefFree(def);
+        virStoragePoolObjRemove(pools, pool);
         return NULL;
     }
     VIR_FREE(pool->autostartLink); /* for driver reload */
     if (VIR_STRDUP(pool->autostartLink, autostartLink) < 0) {
-        virStoragePoolDefFree(def);
+        virStoragePoolObjRemove(pools, pool);
         return NULL;
     }
 

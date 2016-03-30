@@ -1,7 +1,7 @@
 /*
  * storage_backend.c: internal storage driver backend contract
  *
- * Copyright (C) 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2007-2016 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -1963,26 +1963,23 @@ virStorageBackendVolZeroSparseFileLocal(virStorageVolDefPtr vol,
                                         off_t size,
                                         int fd)
 {
-    int ret = -1;
-
-    ret = ftruncate(fd, 0);
-    if (ret == -1) {
+    if (ftruncate(fd, 0) < 0) {
         virReportSystemError(errno,
                              _("Failed to truncate volume with "
                                "path '%s' to 0 bytes"),
                              vol->target.path);
-        return ret;
+        return -1;
     }
 
-    ret = ftruncate(fd, size);
-    if (ret == -1) {
+    if (ftruncate(fd, size) < 0) {
         virReportSystemError(errno,
                              _("Failed to truncate volume with "
                                "path '%s' to %ju bytes"),
                              vol->target.path, (uintmax_t)size);
+        return -1;
     }
 
-    return ret;
+    return 0;
 }
 
 
@@ -2053,6 +2050,7 @@ virStorageBackendVolWipeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
                               unsigned int flags)
 {
     int ret = -1, fd = -1;
+    const char *alg_char = NULL;
     struct stat st;
     virCommandPtr cmd = NULL;
 
@@ -2076,38 +2074,46 @@ virStorageBackendVolWipeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
+    switch ((virStorageVolWipeAlgorithm) algorithm) {
+    case VIR_STORAGE_VOL_WIPE_ALG_ZERO:
+        alg_char = "zero";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_NNSA:
+        alg_char = "nnsa";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_DOD:
+        alg_char = "dod";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_BSI:
+        alg_char = "bsi";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_GUTMANN:
+        alg_char = "gutmann";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER:
+        alg_char = "schneier";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7:
+        alg_char = "pfitzner7";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33:
+        alg_char = "pfitzner33";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_RANDOM:
+        alg_char = "random";
+        break;
+    case VIR_STORAGE_VOL_WIPE_ALG_TRIM:
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("'trim' algorithm not supported"));
+        goto cleanup;
+    case VIR_STORAGE_VOL_WIPE_ALG_LAST:
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unsupported algorithm %d"),
+                       algorithm);
+        goto cleanup;
+    }
+
     if (algorithm != VIR_STORAGE_VOL_WIPE_ALG_ZERO) {
-        const char *alg_char ATTRIBUTE_UNUSED = NULL;
-        switch (algorithm) {
-        case VIR_STORAGE_VOL_WIPE_ALG_NNSA:
-            alg_char = "nnsa";
-            break;
-        case VIR_STORAGE_VOL_WIPE_ALG_DOD:
-            alg_char = "dod";
-            break;
-        case VIR_STORAGE_VOL_WIPE_ALG_BSI:
-            alg_char = "bsi";
-            break;
-        case VIR_STORAGE_VOL_WIPE_ALG_GUTMANN:
-            alg_char = "gutmann";
-            break;
-        case VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER:
-            alg_char = "schneier";
-            break;
-        case VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7:
-            alg_char = "pfitzner7";
-            break;
-        case VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33:
-            alg_char = "pfitzner33";
-            break;
-        case VIR_STORAGE_VOL_WIPE_ALG_RANDOM:
-            alg_char = "random";
-            break;
-        default:
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("unsupported algorithm %d"),
-                           algorithm);
-        }
         cmd = virCommandNew(SCRUB);
         virCommandAddArgList(cmd, "-f", "-p", alg_char,
                              vol->target.path, NULL);

@@ -346,31 +346,37 @@ prlsdkGetDomainIds(PRL_HANDLE sdkdom,
     PRL_UINT32 len;
     PRL_RESULT pret;
 
-    len = 0;
-    /* get name length */
-    pret = PrlVmCfg_GetName(sdkdom, NULL, &len);
-    prlsdkCheckRetGoto(pret, error);
+    if (name) {
+        len = 0;
+        *name = NULL;
+        /* get name length */
+        pret = PrlVmCfg_GetName(sdkdom, NULL, &len);
+        prlsdkCheckRetGoto(pret, error);
 
-    if (VIR_ALLOC_N(*name, len) < 0)
-        goto error;
+        if (VIR_ALLOC_N(*name, len) < 0)
+            goto error;
 
-    PrlVmCfg_GetName(sdkdom, *name, &len);
-    prlsdkCheckRetGoto(pret, error);
+        pret = PrlVmCfg_GetName(sdkdom, *name, &len);
+        prlsdkCheckRetGoto(pret, error);
+    }
 
-    len = sizeof(uuidstr);
-    PrlVmCfg_GetUuid(sdkdom, uuidstr, &len);
-    prlsdkCheckRetGoto(pret, error);
+    if (uuid) {
+        len = sizeof(uuidstr);
+        pret = PrlVmCfg_GetUuid(sdkdom, uuidstr, &len);
+        prlsdkCheckRetGoto(pret, error);
 
-    if (prlsdkUUIDParse(uuidstr, uuid) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Domain UUID is malformed or empty"));
-        goto error;
+        if (prlsdkUUIDParse(uuidstr, uuid) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Domain UUID is malformed or empty"));
+            goto error;
+        }
     }
 
     return 0;
 
  error:
-    VIR_FREE(*name);
+    if (name)
+        VIR_FREE(*name);
     return -1;
 }
 
@@ -402,7 +408,7 @@ prlsdkGetDomainState(PRL_HANDLE sdkdom, VIRTUAL_MACHINE_STATE_PTR vmState)
     return ret;
 }
 
-static void
+void
 prlsdkDomObjFreePrivate(void *p)
 {
     vzDomObjPtr pdom = p;
@@ -413,7 +419,6 @@ prlsdkDomObjFreePrivate(void *p)
     PrlHandle_Free(pdom->sdkdom);
     PrlHandle_Free(pdom->cache.stats);
     virCondDestroy(&pdom->cache.cond);
-    VIR_FREE(pdom->uuid);
     VIR_FREE(pdom->home);
     VIR_FREE(p);
 };
@@ -453,7 +458,8 @@ prlsdkAddDomainVideoInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
 }
 
 static int
-prlsdkGetDiskInfo(PRL_HANDLE prldisk,
+prlsdkGetDiskInfo(vzConnPtr privconn,
+                  PRL_HANDLE prldisk,
                   virDomainDiskDefPtr disk,
                   bool isCdrom,
                   bool isCt)
@@ -471,10 +477,14 @@ prlsdkGetDiskInfo(PRL_HANDLE prldisk,
     prlsdkCheckRetGoto(pret, cleanup);
     if (emulatedType == PDT_USE_IMAGE_FILE) {
         virDomainDiskSetType(disk, VIR_STORAGE_TYPE_FILE);
-        if (isCdrom)
+        if (isCdrom) {
             virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
-        else
-            virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_PLOOP);
+        } else {
+            if (isCt)
+                virDomainDiskSetFormat(disk, privconn->vzCaps.ctDiskFormat);
+            else
+                virDomainDiskSetFormat(disk, privconn->vzCaps.vmDiskFormat);
+        }
     } else {
         virDomainDiskSetType(disk, VIR_STORAGE_TYPE_BLOCK);
         virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
@@ -602,7 +612,7 @@ prlsdkGetFSInfo(PRL_HANDLE prldisk,
 }
 
 static int
-prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
+prlsdkAddDomainHardDisksInfo(vzConnPtr privconn, PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     PRL_RESULT pret;
     PRL_UINT32 hddCount;
@@ -642,7 +652,7 @@ prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
             if (!(disk = virDomainDiskDefNew(NULL)))
                 goto error;
 
-            if (prlsdkGetDiskInfo(hdd, disk, false, IS_CT(def)) < 0)
+            if (prlsdkGetDiskInfo(privconn, hdd, disk, false, IS_CT(def)) < 0)
                 goto error;
 
             if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0)
@@ -664,7 +674,7 @@ prlsdkAddDomainHardDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
 }
 
 static int
-prlsdkAddDomainOpticalDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
+prlsdkAddDomainOpticalDisksInfo(vzConnPtr privconn, PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     PRL_RESULT pret;
     PRL_UINT32 cdromsCount;
@@ -682,7 +692,7 @@ prlsdkAddDomainOpticalDisksInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
         if (!(disk = virDomainDiskDefNew(NULL)))
             goto error;
 
-        if (prlsdkGetDiskInfo(cdrom, disk, true, IS_CT(def)) < 0)
+        if (prlsdkGetDiskInfo(privconn, cdrom, disk, true, IS_CT(def)) < 0)
             goto error;
 
         PrlHandle_Free(cdrom);
@@ -945,16 +955,16 @@ prlsdkAddSerialInfo(PRL_HANDLE sdkdom,
 
 
 static int
-prlsdkAddDomainHardware(PRL_HANDLE sdkdom, virDomainDefPtr def)
+prlsdkAddDomainHardware(vzConnPtr privconn, PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     if (!IS_CT(def))
         if (prlsdkAddDomainVideoInfo(sdkdom, def) < 0)
             goto error;
 
-    if (prlsdkAddDomainHardDisksInfo(sdkdom, def) < 0)
+    if (prlsdkAddDomainHardDisksInfo(privconn, sdkdom, def) < 0)
         goto error;
 
-    if (prlsdkAddDomainOpticalDisksInfo(sdkdom, def) < 0)
+    if (prlsdkAddDomainOpticalDisksInfo(privconn, sdkdom, def) < 0)
         goto error;
 
     if (prlsdkAddDomainNetInfo(sdkdom, def) < 0)
@@ -1046,7 +1056,7 @@ prlsdkAddVNCInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
     return -1;
 }
 
-static int
+static void
 prlsdkConvertDomainState(VIRTUAL_MACHINE_STATE domainState,
                          PRL_UINT32 envId,
                          virDomainObjPtr dom)
@@ -1116,17 +1126,12 @@ prlsdkConvertDomainState(VIRTUAL_MACHINE_STATE domainState,
         dom->def->id = envId;
         break;
     case VMS_UNKNOWN:
+    default:
         virDomainObjSetState(dom, VIR_DOMAIN_NOSTATE,
                              VIR_DOMAIN_NOSTATE_UNKNOWN);
-        break;
-    default:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unknown domain state: %X"), domainState);
-        return -1;
+        dom->def->id = -1;
         break;
     }
-
-    return 0;
 }
 
 static int
@@ -1236,61 +1241,58 @@ prlsdkConvertCpuMode(PRL_HANDLE sdkdom, virDomainDefPtr def)
     return -1;
 }
 
-/*
- * This function retrieves information about domain.
- * If the domains is already in the domains list
- * privconn->domains, then locked 'olddom' must be
- * provided. If the domains must be added to the list,
- * olddom must be NULL.
- *
- * The function return a pointer to a locked virDomainObj.
- */
 static virDomainObjPtr
-prlsdkLoadDomain(vzConnPtr privconn,
-                 PRL_HANDLE sdkdom,
-                 virDomainObjPtr olddom)
+prlsdkNewDomainByHandle(vzConnPtr privconn, PRL_HANDLE sdkdom)
 {
     virDomainObjPtr dom = NULL;
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    char *name = NULL;
+
+    if (prlsdkGetDomainIds(sdkdom, &name, uuid) < 0)
+        goto cleanup;
+
+    if (!(dom = vzNewDomain(privconn, name, uuid)))
+        goto cleanup;
+
+    if (prlsdkLoadDomain(privconn, dom) < 0) {
+        virDomainObjListRemove(privconn->domains, dom);
+        dom = NULL;
+        goto cleanup;
+    }
+
+ cleanup:
+    VIR_FREE(name);
+    return dom;
+}
+
+int
+prlsdkLoadDomain(vzConnPtr privconn, virDomainObjPtr dom)
+{
     virDomainDefPtr def = NULL;
     vzDomObjPtr pdom = NULL;
     VIRTUAL_MACHINE_STATE domainState;
+    char *home = NULL;
 
     PRL_UINT32 buflen = 0;
     PRL_RESULT pret;
     PRL_UINT32 ram;
     PRL_UINT32 envId;
     PRL_VM_AUTOSTART_OPTION autostart;
+    PRL_HANDLE sdkdom = PRL_INVALID_HANDLE;
 
     virCheckNonNullArgGoto(privconn, error);
-    virCheckNonNullArgGoto(sdkdom, error);
+    virCheckNonNullArgGoto(dom, error);
+
+    pdom = dom->privateData;
+    sdkdom = prlsdkSdkDomainLookupByUUID(privconn, dom->def->uuid);
+    if (sdkdom == PRL_INVALID_HANDLE)
+        return -1;
 
     if (!(def = virDomainDefNew()))
         goto error;
 
-    if (!olddom) {
-        if (VIR_ALLOC(pdom) < 0)
-            goto error;
-    } else {
-        pdom = olddom->privateData;
-    }
-
-    if (STREQ(privconn->drivername, "vz"))
-        def->virtType = VIR_DOMAIN_VIRT_VZ;
-    else
-        def->virtType = VIR_DOMAIN_VIRT_PARALLELS;
-
-    def->id = -1;
-
-    /* we will remove this field in the near future, so let's set it
-     * to NULL temporarily */
-    pdom->uuid = NULL;
-
-    pdom->cache.stats = PRL_INVALID_HANDLE;
-    pdom->cache.count = -1;
-    if (virCondInit(&pdom->cache.cond) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("cannot initialize condition"));
-        goto error;
-    }
+    def->virtType = dom->def->virtType;
+    def->id = dom->def->id;
 
     if (prlsdkGetDomainIds(sdkdom, &def->name, def->uuid) < 0)
         goto error;
@@ -1315,7 +1317,7 @@ prlsdkLoadDomain(vzConnPtr privconn,
     if (prlsdkConvertDomainType(sdkdom, def) < 0)
         goto error;
 
-    if (prlsdkAddDomainHardware(sdkdom, def) < 0)
+    if (prlsdkAddDomainHardware(privconn, sdkdom, def) < 0)
         goto error;
 
     if (prlsdkAddVNCInfo(sdkdom, def) < 0)
@@ -1323,34 +1325,38 @@ prlsdkLoadDomain(vzConnPtr privconn,
 
     pret = PrlVmCfg_GetEnvId(sdkdom, &envId);
     prlsdkCheckRetGoto(pret, error);
-    pdom->id = envId;
 
     buflen = 0;
     pret = PrlVmCfg_GetHomePath(sdkdom, NULL, &buflen);
     prlsdkCheckRetGoto(pret, error);
 
-    VIR_FREE(pdom->home);
-    if (VIR_ALLOC_N(pdom->home, buflen) < 0)
+    if (VIR_ALLOC_N(home, buflen) < 0)
         goto error;
 
-    pret = PrlVmCfg_GetHomePath(sdkdom, pdom->home, &buflen);
+    pret = PrlVmCfg_GetHomePath(sdkdom, home, &buflen);
     prlsdkCheckRetGoto(pret, error);
 
-    /* For VMs pdom->home is actually /directory/config.pvs */
+    /* For VMs home is actually /directory/config.pvs */
     if (!IS_CT(def)) {
         /* Get rid of /config.pvs in path string */
-        char *s = strrchr(pdom->home, '/');
+        char *s = strrchr(home, '/');
         if (s)
             *s = '\0';
     }
 
     pret = PrlVmCfg_GetAutoStart(sdkdom, &autostart);
     prlsdkCheckRetGoto(pret, error);
+    if (autostart != PAO_VM_START_ON_LOAD &&
+        autostart != PAO_VM_START_MANUAL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unknown autostart mode: %X"), autostart);
+        goto error;
+    }
 
     if (prlsdkGetDomainState(sdkdom, &domainState) < 0)
         goto error;
 
-    if (virDomainDefAddImplicitControllers(def) < 0)
+    if (virDomainDefAddImplicitDevices(def) < 0)
         goto error;
 
     if (def->ngraphics > 0) {
@@ -1368,65 +1374,34 @@ prlsdkLoadDomain(vzConnPtr privconn,
             goto error;
     }
 
-    if (olddom) {
-        /* assign new virDomainDef without any checks */
-        /* we can't use virDomainObjAssignDef, because it checks
-         * for state and domain name */
-        dom = olddom;
-        virDomainDefFree(dom->def);
-        dom->def = def;
-    } else {
-        if (!(dom = virDomainObjListAdd(privconn->domains, def,
-                                        privconn->xmlopt,
-                                        0, NULL)))
-            goto error;
-    }
-    /* dom is locked here */
+    /* assign new virDomainDef without any checks
+     * we can't use virDomainObjAssignDef, because it checks
+     * for state and domain name */
+    virDomainDefFree(dom->def);
+    dom->def = def;
+    pdom->id = envId;
+    VIR_FREE(pdom->home);
+    pdom->home = home;
 
-    dom->privateData = pdom;
-    dom->privateDataFreeFunc = prlsdkDomObjFreePrivate;
-    dom->persistent = 1;
-
-    switch (autostart) {
-    case PAO_VM_START_ON_LOAD:
-        dom->autostart = 1;
-        break;
-    case PAO_VM_START_MANUAL:
-        dom->autostart = 0;
-        break;
-    default:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unknown autostart mode: %X"), autostart);
-        goto error;
-    }
-
-    if (prlsdkConvertDomainState(domainState, envId, dom) < 0)
-        goto error;
+    prlsdkConvertDomainState(domainState, envId, dom);
 
     if (!pdom->sdkdom) {
-        pret = PrlHandle_AddRef(sdkdom);
-        prlsdkCheckRetGoto(pret, error);
+        PrlHandle_AddRef(sdkdom);
         pdom->sdkdom = sdkdom;
     }
 
-    return dom;
+    if (autostart == PAO_VM_START_ON_LOAD)
+        dom->autostart = 1;
+    else
+        dom->autostart = 0;
+
+    PrlHandle_Free(sdkdom);
+    return 0;
  error:
-    if (dom && !olddom) {
-        /* Domain isn't persistent means that we haven't yet set
-         * prlsdkDomObjFreePrivate and should call it manually
-         */
-        if (!dom->persistent)
-            prlsdkDomObjFreePrivate(pdom);
-
-        virDomainObjListRemove(privconn->domains, dom);
-    }
-    /* Delete newly allocated def only if we haven't assigned it to domain
-     * Otherwise we will end up with domain having invalid def within it
-     */
-    if (!dom)
-        virDomainDefFree(def);
-
-    return NULL;
+    PrlHandle_Free(sdkdom);
+    VIR_FREE(home);
+    virDomainDefFree(def);
+    return -1;
 }
 
 int
@@ -1434,7 +1409,7 @@ prlsdkLoadDomains(vzConnPtr privconn)
 {
     PRL_HANDLE job = PRL_INVALID_HANDLE;
     PRL_HANDLE result;
-    PRL_HANDLE sdkdom;
+    PRL_HANDLE sdkdom = PRL_INVALID_HANDLE;
     PRL_UINT32 paramsCount;
     PRL_RESULT pret;
     size_t i = 0;
@@ -1450,63 +1425,36 @@ prlsdkLoadDomains(vzConnPtr privconn)
 
     for (i = 0; i < paramsCount; i++) {
         pret = PrlResult_GetParamByIndex(result, i, &sdkdom);
-        if (PRL_FAILED(pret)) {
-            logPrlError(pret);
-            PrlHandle_Free(sdkdom);
-            goto error;
-        }
+        prlsdkCheckRetGoto(pret, error);
 
-        dom = prlsdkLoadDomain(privconn, sdkdom, NULL);
+        if (!(dom = prlsdkNewDomainByHandle(privconn, sdkdom)))
+            goto error;
+
+        virObjectUnlock(dom);
         PrlHandle_Free(sdkdom);
-
-        if (!dom)
-            goto error;
-        else
-            virObjectUnlock(dom);
+        sdkdom = PRL_INVALID_HANDLE;
     }
 
     PrlHandle_Free(result);
     return 0;
 
  error:
+    PrlHandle_Free(sdkdom);
     PrlHandle_Free(result);
     return -1;
-}
-
-virDomainObjPtr
-prlsdkAddDomain(vzConnPtr privconn, const unsigned char *uuid)
-{
-    PRL_HANDLE sdkdom = PRL_INVALID_HANDLE;
-    virDomainObjPtr dom;
-
-    dom = virDomainObjListFindByUUID(privconn->domains, uuid);
-    if (dom) {
-        /* domain is already in the list */
-        return dom;
-    }
-
-    sdkdom = prlsdkSdkDomainLookupByUUID(privconn, uuid);
-    if (sdkdom == PRL_INVALID_HANDLE)
-        return NULL;
-
-    dom = prlsdkLoadDomain(privconn, sdkdom, NULL);
-    PrlHandle_Free(sdkdom);
-    return dom;
 }
 
 int
 prlsdkUpdateDomain(vzConnPtr privconn, virDomainObjPtr dom)
 {
     PRL_HANDLE job;
-    virDomainObjPtr retdom = NULL;
     vzDomObjPtr pdom = dom->privateData;
 
     job = PrlVm_RefreshConfig(pdom->sdkdom);
     if (waitJob(job))
         return -1;
 
-    retdom = prlsdkLoadDomain(privconn, pdom->sdkdom, dom);
-    return retdom ? 0 : -1;
+    return prlsdkLoadDomain(privconn, dom);
 }
 
 static int prlsdkSendEvent(vzConnPtr privconn,
@@ -1583,8 +1531,8 @@ prlsdkHandleVmStateEvent(vzConnPtr privconn,
     prlsdkCheckRetGoto(pret, cleanup);
 
     pdom = dom->privateData;
-    if (prlsdkConvertDomainState(domainState, pdom->id, dom) < 0)
-        goto cleanup;
+
+    prlsdkConvertDomainState(domainState, pdom->id, dom);
 
     prlsdkNewStateToEvent(domainState,
                           &lvEventType,
@@ -1623,15 +1571,25 @@ prlsdkHandleVmAddedEvent(vzConnPtr privconn,
                          unsigned char *uuid)
 {
     virDomainObjPtr dom = NULL;
+    PRL_HANDLE sdkdom = PRL_INVALID_HANDLE;
 
-    dom = prlsdkAddDomain(privconn, uuid);
-    if (dom == NULL)
-        return;
+    dom = virDomainObjListFindByUUID(privconn->domains, uuid);
+    if (!dom) {
+        sdkdom = prlsdkSdkDomainLookupByUUID(privconn, uuid);
+        if (sdkdom == PRL_INVALID_HANDLE)
+            goto cleanup;
+
+        if (!(dom = prlsdkNewDomainByHandle(privconn, sdkdom)))
+            goto cleanup;
+    }
 
     prlsdkSendEvent(privconn, dom, VIR_DOMAIN_EVENT_DEFINED,
                     VIR_DOMAIN_EVENT_DEFINED_ADDED);
 
-    virObjectUnlock(dom);
+ cleanup:
+    if (dom)
+        virObjectUnlock(dom);
+    PrlHandle_Free(sdkdom);
     return;
 }
 
@@ -1750,6 +1708,10 @@ prlsdkEventsHandler(PRL_HANDLE prlEvent, PRL_VOID_PTR opaque)
         prlsdkHandlePerfEvent(privconn, prlEvent, uuid);
         /* above function takes own of event */
         prlEvent = PRL_INVALID_HANDLE;
+        break;
+    case PET_DSP_EVT_DISP_CONNECTION_CLOSED:
+        virConnectCloseCallbackDataCall(privconn->closeCallback,
+                                        VIR_CONNECT_CLOSE_REASON_EOF);
         break;
     default:
         VIR_DEBUG("Skipping event of type %d", prlEventType);
@@ -1957,14 +1919,14 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (def->cputune.vcpupin) {
-        for (i = 0; i < virDomainDefGetVcpus(def); i++) {
-            if (!virBitmapEqual(def->cpumask,
-                                def->cputune.vcpupin[i]->cpumask)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               "%s", _("vcpupin cpumask differs from default cpumask"));
-                return -1;
-            }
+    for (i = 0; i < virDomainDefGetVcpusMax(def); i++) {
+        virDomainVcpuInfoPtr vcpu = virDomainDefGetVcpu(def, i);
+
+        if (vcpu->cpumask &&
+            !virBitmapEqual(def->cpumask, vcpu->cpumask)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("vcpupin cpumask differs from default cpumask"));
+            return -1;
         }
     }
 
@@ -2453,126 +2415,6 @@ static int prlsdkCheckNetUnsupportedParams(virDomainNetDefPtr net)
     return 0;
 }
 
-static int prlsdkCheckDiskUnsupportedParams(virDomainDiskDefPtr disk)
-{
-    if (disk->device != VIR_DOMAIN_DISK_DEVICE_DISK &&
-        disk->device != VIR_DOMAIN_DISK_DEVICE_CDROM) {
-
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Only hard disks and cdroms are supported "
-                         "by vz driver."));
-        return -1;
-    }
-
-    if (disk->blockio.logical_block_size ||
-        disk->blockio.physical_block_size) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting disk block sizes is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->blkdeviotune.total_bytes_sec ||
-        disk->blkdeviotune.read_bytes_sec ||
-        disk->blkdeviotune.write_bytes_sec ||
-        disk->blkdeviotune.total_iops_sec ||
-        disk->blkdeviotune.read_iops_sec ||
-        disk->blkdeviotune.write_iops_sec) {
-
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting disk io limits is not "
-                         "supported by vz driver yet."));
-        return -1;
-    }
-
-    if (disk->serial) {
-        VIR_INFO("%s", _("Setting disk serial number is not "
-                         "supported by vz driver."));
-    }
-
-    if (disk->wwn) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting disk wwn id is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->vendor) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting disk vendor is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->product) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting disk product id is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->error_policy != VIR_DOMAIN_DISK_ERROR_POLICY_DEFAULT) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting disk error policy is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->iomode) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting disk io mode is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->copy_on_read) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Disk copy_on_read is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->startupPolicy != VIR_DOMAIN_STARTUP_POLICY_DEFAULT) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting up disk startup policy is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->transient) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Transient disks are not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->discard) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting up disk discard parameter is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->iothread) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Setting up disk io thread # is not "
-                         "supported by vz driver."));
-        return -1;
-    }
-
-    if (disk->src->type != VIR_STORAGE_TYPE_FILE &&
-        disk->src->type != VIR_STORAGE_TYPE_BLOCK) {
-
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Only disk and block storage types are "
-                         "supported by vz driver."));
-        return -1;
-
-    }
-
-    return 0;
-}
-
 static int prlsdkCheckFSUnsupportedParams(virDomainFSDefPtr fs)
 {
     if (fs->type != VIR_DOMAIN_FS_TYPE_FILE) {
@@ -2766,8 +2608,8 @@ static const char * prlsdkFormatMac(virMacAddrPtr mac, char *macstr)
     return macstr;
 }
 
-static int prlsdkAddNet(PRL_HANDLE sdkdom,
-                        vzConnPtr privconn,
+static int prlsdkAddNet(vzConnPtr privconn,
+                        PRL_HANDLE sdkdom,
                         virDomainNetDefPtr net,
                         bool isCt)
 {
@@ -3023,8 +2865,8 @@ prlsdkCleanupBridgedNet(vzConnPtr privconn, virDomainNetDefPtr net)
     PrlHandle_Free(vnet);
 }
 
-int prlsdkAttachNet(virDomainObjPtr dom,
-                    vzConnPtr privconn,
+int prlsdkAttachNet(vzConnPtr privconn,
+                    virDomainObjPtr dom,
                     virDomainNetDefPtr net)
 {
     int ret = -1;
@@ -3041,7 +2883,7 @@ int prlsdkAttachNet(virDomainObjPtr dom,
     if (PRL_FAILED(waitJob(job)))
         return ret;
 
-    ret = prlsdkAddNet(privdom->sdkdom, privconn, net, IS_CT(dom->def));
+    ret = prlsdkAddNet(privconn, privdom->sdkdom, net, IS_CT(dom->def));
     if (ret == 0) {
         job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
         if (PRL_FAILED(waitJob(job)))
@@ -3088,8 +2930,8 @@ prlsdkFindNetByMAC(PRL_HANDLE sdkdom, virMacAddrPtr mac)
     return adapter;
 }
 
-int prlsdkDetachNet(virDomainObjPtr dom,
-                    vzConnPtr privconn,
+int prlsdkDetachNet(vzConnPtr privconn,
+                    virDomainObjPtr dom,
                     virDomainNetDefPtr net)
 {
     int ret = -1;
@@ -3147,7 +2989,8 @@ static int prlsdkDelDisk(PRL_HANDLE sdkdom, int idx)
     return ret;
 }
 
-static int prlsdkAddDisk(PRL_HANDLE sdkdom,
+static int prlsdkAddDisk(vzConnPtr privconn,
+                         PRL_HANDLE sdkdom,
                          virDomainDiskDefPtr disk,
                          bool bootDisk,
                          bool isCt)
@@ -3161,10 +3004,8 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom,
     virDomainDeviceDriveAddressPtr drive;
     PRL_UINT32 devIndex;
     PRL_DEVICE_TYPE devType;
+    PRL_CLUSTERED_DEVICE_SUBTYPE scsiModel;
     char *dst = NULL;
-
-    if (prlsdkCheckDiskUnsupportedParams(disk) < 0)
-        return -1;
 
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
         devType = PDE_HARD_DISK;
@@ -3180,30 +3021,10 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom,
     pret = PrlVmDev_SetConnected(sdkdisk, 1);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    if (disk->src->type == VIR_STORAGE_TYPE_FILE) {
-        if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
-            virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_PLOOP) {
-
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid format of "
-                                                         "disk %s, vz driver supports only "
-                                                         "images in ploop format."), disk->src->path);
-            goto cleanup;
-        }
-
+    if (disk->src->type == VIR_STORAGE_TYPE_FILE)
         emutype = PDT_USE_IMAGE_FILE;
-    } else {
-        if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
-            (virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_RAW &&
-             virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_NONE &&
-             virDomainDiskGetFormat(disk) != VIR_STORAGE_FILE_AUTO)) {
-
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid format "
-                                                         "of disk %s, it should be either not set, or set "
-                                                         "to raw or auto."), disk->src->path);
-            goto cleanup;
-        }
+    else
         emutype = PDT_USE_REAL_DEVICE;
-    }
 
     pret = PrlVmDev_SetEmulatedType(sdkdisk, emutype);
     prlsdkCheckRetGoto(pret, cleanup);
@@ -3281,6 +3102,13 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom,
         goto cleanup;
     }
 
+    if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
+        if (vzGetDefaultSCSIModel(privconn, &scsiModel) < 0)
+            goto cleanup;
+        pret = PrlVmDev_SetSubType(sdkdisk, scsiModel);
+        prlsdkCheckRetGoto(pret, cleanup);
+    }
+
     pret = PrlVmDev_SetIfaceType(sdkdisk, sdkbus);
     prlsdkCheckRetGoto(pret, cleanup);
 
@@ -3328,7 +3156,9 @@ static int prlsdkAddDisk(PRL_HANDLE sdkdom,
 }
 
 int
-prlsdkAttachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk)
+prlsdkAttachVolume(vzConnPtr privconn,
+                   virDomainObjPtr dom,
+                   virDomainDiskDefPtr disk)
 {
     int ret = -1;
     vzDomObjPtr privdom = dom->privateData;
@@ -3338,7 +3168,11 @@ prlsdkAttachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk)
     if (PRL_FAILED(waitJob(job)))
         goto cleanup;
 
-    ret = prlsdkAddDisk(privdom->sdkdom, disk, false, IS_CT(dom->def));
+    ret = prlsdkAddDisk(privconn,
+                        privdom->sdkdom,
+                        disk,
+                        false,
+                        IS_CT(dom->def));
     if (ret == 0) {
         job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
         if (PRL_FAILED(waitJob(job))) {
@@ -3538,7 +3372,7 @@ prlsdkDoApplyConfig(virConnectPtr conn,
     }
 
     for (i = 0; i < def->nnets; i++) {
-        if (prlsdkAddNet(sdkdom, conn->privateData, def->nets[i], IS_CT(def)) < 0)
+        if (prlsdkAddNet(conn->privateData, sdkdom, def->nets[i], IS_CT(def)) < 0)
             goto error;
     }
 
@@ -3569,7 +3403,11 @@ prlsdkDoApplyConfig(virConnectPtr conn,
             needBoot = false;
             bootDisk = true;
         }
-        if (prlsdkAddDisk(sdkdom, def->disks[i], bootDisk, IS_CT(def)) < 0)
+        if (prlsdkAddDisk(conn->privateData,
+                          sdkdom,
+                          def->disks[i],
+                          bootDisk,
+                          IS_CT(def)) < 0)
             goto error;
     }
 

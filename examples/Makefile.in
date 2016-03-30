@@ -239,7 +239,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
-	$(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \

@@ -21,4 +21,8 @@ LIBVIRT_ADMIN_1.3.0 {
         virAdmConnectGetLibVersion;
         virAdmConnectRegisterCloseCallback;
         virAdmConnectUnregisterCloseCallback;
+        virAdmConnectListServers;
+        virAdmServerGetName;
+        virAdmServerFree;
+        virAdmConnectLookupServer;
 };

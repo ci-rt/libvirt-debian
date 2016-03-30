@@ -291,6 +291,10 @@ int vshCommandOptScaledInt(vshControl *ctl, const vshCmd *cmd,
                            const char *name, unsigned long long *value,
                            int scale, unsigned long long max)
     ATTRIBUTE_NONNULL(4) ATTRIBUTE_RETURN_CHECK;
+int vshBlockJobOptionBandwidth(vshControl *ctl,
+                               const vshCmd *cmd,
+                               bool bytes,
+                               unsigned long *bandwidth);
 bool vshCommandOptBool(const vshCmd *cmd, const char *name);
 bool vshCommandRun(vshControl *ctl, const vshCmd *cmd);
 bool vshCommandStringParse(vshControl *ctl, char *cmdstr);
@@ -300,6 +304,8 @@ const vshCmdOpt *vshCommandOptArgv(vshControl *ctl, const vshCmd *cmd,
 bool vshCommandArgvParse(vshControl *ctl, int nargs, char **argv);
 int vshCommandOptTimeoutToMs(vshControl *ctl, const vshCmd *cmd, int *timeout);
 
+void vshPrint(vshControl *ctl, const char *format, ...)
+    ATTRIBUTE_FMT_PRINTF(2, 3);
 void vshPrintExtra(vshControl *ctl, const char *format, ...)
     ATTRIBUTE_FMT_PRINTF(2, 3);
 bool vshInit(vshControl *ctl, const vshCmdGrp *groups, const vshCmdDef *set);
@@ -307,9 +313,6 @@ bool vshInitReload(vshControl *ctl);
 void vshDeinit(vshControl *ctl);
 void vshDebug(vshControl *ctl, int level, const char *format, ...)
     ATTRIBUTE_FMT_PRINTF(3, 4);
-
-/* XXX: add batch support */
-# define vshPrint(_ctl, ...)   vshPrintExtra(NULL, __VA_ARGS__)
 
 /* User visible sort, so we want locale-specific case comparison.  */
 # define vshStrcasecmp(S1, S2) strcasecmp(S1, S2)

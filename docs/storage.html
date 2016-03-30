@@ -316,7 +316,7 @@
         <p>
       One of the following options:
     </p>
-        <ul><li><code>raw</code>: a plain file</li><li><code>bochs</code>: Bochs disk image format</li><li><code>cloop</code>: compressed loopback disk image format</li><li><code>cow</code>: User Mode Linux disk image format</li><li><code>dmg</code>: Mac disk image format</li><li><code>iso</code>: CDROM disk image format</li><li><code>qcow</code>: QEMU v1 disk image format</li><li><code>qcow2</code>: QEMU v2 disk image format</li><li><code>qed</code>: QEMU Enhanced Disk image format</li><li><code>vmdk</code>: VMWare disk image format</li><li><code>vpc</code>: VirtualPC disk image format</li></ul>
+        <ul><li><code>raw</code>: a plain file</li><li><code>bochs</code>: Bochs disk image format</li><li><code>cloop</code>: compressed loopback disk image format</li><li><code>cow</code>: User Mode Linux disk image format</li><li><code>dmg</code>: Mac disk image format</li><li><code>iso</code>: CDROM disk image format</li><li><code>qcow</code>: QEMU v1 disk image format</li><li><code>qcow2</code>: QEMU v2 disk image format</li><li><code>qed</code>: QEMU Enhanced Disk image format</li><li><code>vmdk</code>: VMware disk image format</li><li><code>vpc</code>: VirtualPC disk image format</li></ul>
         <p>
       When listing existing volumes all these formats are supported
       natively. When creating new volumes, only a subset may be
@@ -853,8 +853,10 @@
           <a class="headerlink" href="#StorageBackendZFS" title="Permalink to this headline">¶</a>
         </h2>
         <p>
-      This provides a pool based on the ZFS filesystem. It is currently
-      supported on FreeBSD only.
+      This provides a pool based on the ZFS filesystem. Initially it was developed
+      for FreeBSD, and <span class="since">since 1.3.2</span> experimental support
+      for <a href="http://zfsonlinux.org/" shape="rect">ZFS on Linux</a> version 0.6.4 or newer
+      is available.
     </p>
         <p>A pool could either be created manually using the <code>zpool create</code>
       command and its name specified in the source section or <span class="since">
@@ -884,10 +886,6 @@
       The ZFS volume pool does not use the volume format type element.
     </p>
       </div>
-    </div>
-    <div id="footer">
-      <p id="sponsor">
-	    Sponsored by:<br /><a href="http://et.redhat.com/"><img src="et.png" alt="Project sponsored by Red Hat Emerging Technology" /></a></p>
     </div>
   </body>
 </html>

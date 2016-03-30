@@ -27,6 +27,7 @@
 
 #include "virsystemd.h"
 #include "viratomic.h"
+#include "virbuffer.h"
 #include "virdbus.h"
 #include "virstring.h"
 #include "viralloc.h"
@@ -38,17 +39,8 @@
 
 VIR_LOG_INIT("util.systemd");
 
-/**
- * virSystemdEscapeName:
- *
- * This function escapes various characters in @name and appends that
- * escaped string to @buf, in order to comply with the requirements
- * from systemd/machined.  Parameter @full_escape decides whether to
- * also escape dot as a first character and '-'.
- */
 static void virSystemdEscapeName(virBufferPtr buf,
-                                 const char *name,
-                                 bool full_escape)
+                                 const char *name)
 {
     static const char hextable[16] = "0123456789abcdef";
 
@@ -66,7 +58,7 @@ static void virSystemdEscapeName(virBufferPtr buf,
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"            \
         ":-_.\\"
 
-    if (full_escape && *name == '.') {
+    if (*name == '.') {
         ESCAPE(*name);
         name++;
     }
@@ -74,7 +66,7 @@ static void virSystemdEscapeName(virBufferPtr buf,
     while (*name) {
         if (*name == '/')
             virBufferAddChar(buf, '-');
-        else if ((full_escape && *name == '-') ||
+        else if (*name == '-' ||
                  *name == '\\' ||
                  !strchr(VALID_CHARS, *name))
             ESCAPE(*name);
@@ -87,16 +79,18 @@ static void virSystemdEscapeName(virBufferPtr buf,
 #undef VALID_CHARS
 }
 
-
 char *virSystemdMakeScopeName(const char *name,
-                              const char *drivername)
+                              const char *drivername,
+                              bool legacy_behaviour)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     virBufferAddLit(&buf, "machine-");
-    virSystemdEscapeName(&buf, drivername, true);
-    virBufferAddLit(&buf, "\\x2d");
-    virSystemdEscapeName(&buf, name, true);
+    if (legacy_behaviour) {
+        virSystemdEscapeName(&buf, drivername);
+        virBufferAddLit(&buf, "\\x2d");
+    }
+    virSystemdEscapeName(&buf, name);
     virBufferAddLit(&buf, ".scope");
 
     if (virBufferCheckError(&buf) < 0)
@@ -113,7 +107,7 @@ char *virSystemdMakeSliceName(const char *partition)
     if (*partition == '/')
         partition++;
 
-    virSystemdEscapeName(&buf, partition, true);
+    virSystemdEscapeName(&buf, partition);
     virBufferAddLit(&buf, ".slice");
 
     if (virBufferCheckError(&buf) < 0)
@@ -122,9 +116,42 @@ char *virSystemdMakeSliceName(const char *partition)
     return virBufferContentAndReset(&buf);
 }
 
-char *virSystemdMakeMachineName(const char *name,
-                                const char *drivername,
-                                bool privileged)
+#define HOSTNAME_CHARS                                                  \
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
+
+static void
+virSystemdAppendValidMachineName(virBufferPtr buf,
+                                 const char *name)
+{
+    bool skip_dot = false;
+
+    for (; *name; name++) {
+        if (strlen(virBufferCurrentContent(buf)) >= 64)
+            break;
+
+        if (*name == '.') {
+            if (!skip_dot)
+                virBufferAddChar(buf, *name);
+            skip_dot = true;
+            continue;
+        }
+
+        skip_dot = false;
+
+        if (!strchr(HOSTNAME_CHARS, *name))
+            continue;
+
+        virBufferAddChar(buf, *name);
+    }
+}
+
+#undef HOSTNAME_CHARS
+
+char *
+virSystemdMakeMachineName(const char *drivername,
+                          int id,
+                          const char *name,
+                          bool privileged)
 {
     char *machinename = NULL;
     char *username = NULL;
@@ -139,7 +166,8 @@ char *virSystemdMakeMachineName(const char *name,
         virBufferAsprintf(&buf, "%s-%s-", username, drivername);
     }
 
-    virSystemdEscapeName(&buf, name, false);
+    virBufferAsprintf(&buf, "%d-", id);
+    virSystemdAppendValidMachineName(&buf, name);
 
     machinename = virBufferContentAndReset(&buf);
  cleanup:
@@ -147,6 +175,61 @@ char *virSystemdMakeMachineName(const char *name,
 
     return machinename;
 }
+
+
+char *
+virSystemdGetMachineNameByPID(pid_t pid)
+{
+    DBusConnection *conn;
+    DBusMessage *reply = NULL;
+    char *name = NULL, *object = NULL;
+
+    if (virDBusIsServiceEnabled("org.freedesktop.machine1") < 0)
+        goto cleanup;
+
+    if (virDBusIsServiceRegistered("org.freedesktop.systemd1") < 0)
+        goto cleanup;
+
+    if (!(conn = virDBusGetSystemBus()))
+        goto cleanup;
+
+    if (virDBusCallMethod(conn, &reply, NULL,
+                          "org.freedesktop.machine1",
+                          "/org/freedesktop/machine1",
+                          "org.freedesktop.machine1.Manager",
+                          "GetMachineByPID",
+                          "u", pid) < 0)
+        goto cleanup;
+
+    if (virDBusMessageRead(reply, "o", &object) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Domain with pid %llu has object path '%s'",
+              (unsigned long long)pid, object);
+
+    if (virDBusCallMethod(conn, &reply, NULL,
+                          "org.freedesktop.machine1",
+                          object,
+                          "org.freedesktop.DBus.Properties",
+                          "Get",
+                          "ss",
+                          "org.freedesktop.machine1.Machine",
+                          "Name") < 0)
+        goto cleanup;
+
+    if (virDBusMessageRead(reply, "v", "s", &name) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Domain with pid %llu has machine name '%s'",
+              (unsigned long long)pid, name);
+
+ cleanup:
+    VIR_FREE(object);
+    virDBusMessageUnref(reply);
+
+    return name;
+}
+
 
 /**
  * virSystemdCreateMachine:
@@ -165,7 +248,6 @@ char *virSystemdMakeMachineName(const char *name,
  */
 int virSystemdCreateMachine(const char *name,
                             const char *drivername,
-                            bool privileged,
                             const unsigned char *uuid,
                             const char *rootdir,
                             pid_t pidleader,
@@ -176,7 +258,6 @@ int virSystemdCreateMachine(const char *name,
 {
     int ret;
     DBusConnection *conn;
-    char *machinename = NULL;
     char *creatorname = NULL;
     char *slicename = NULL;
     static int hasCreateWithNetwork = 1;
@@ -192,8 +273,6 @@ int virSystemdCreateMachine(const char *name,
         return -1;
 
     ret = -1;
-    if (!(machinename = virSystemdMakeMachineName(name, drivername, privileged)))
-        goto cleanup;
 
     if (virAsprintf(&creatorname, "libvirt-%s", drivername) < 0)
         goto cleanup;
@@ -271,7 +350,7 @@ int virSystemdCreateMachine(const char *name,
                               "org.freedesktop.machine1.Manager",
                               "CreateMachineWithNetwork",
                               "sayssusa&ia(sv)",
-                              machinename,
+                              name,
                               16,
                               uuid[0], uuid[1], uuid[2], uuid[3],
                               uuid[4], uuid[5], uuid[6], uuid[7],
@@ -313,7 +392,7 @@ int virSystemdCreateMachine(const char *name,
                               "org.freedesktop.machine1.Manager",
                               "CreateMachine",
                               "sayssusa(sv)",
-                              machinename,
+                              name,
                               16,
                               uuid[0], uuid[1], uuid[2], uuid[3],
                               uuid[4], uuid[5], uuid[6], uuid[7],
@@ -334,19 +413,18 @@ int virSystemdCreateMachine(const char *name,
 
  cleanup:
     VIR_FREE(creatorname);
-    VIR_FREE(machinename);
     VIR_FREE(slicename);
     return ret;
 }
 
-int virSystemdTerminateMachine(const char *name,
-                               const char *drivername,
-                               bool privileged)
+int virSystemdTerminateMachine(const char *name)
 {
     int ret;
     DBusConnection *conn;
-    char *machinename = NULL;
     virError error;
+
+    if (!name)
+        return 0;
 
     memset(&error, 0, sizeof(error));
 
@@ -360,9 +438,6 @@ int virSystemdTerminateMachine(const char *name,
     ret = -1;
 
     if (!(conn = virDBusGetSystemBus()))
-        goto cleanup;
-
-    if (!(machinename = virSystemdMakeMachineName(name, drivername, privileged)))
         goto cleanup;
 
     /*
@@ -384,7 +459,7 @@ int virSystemdTerminateMachine(const char *name,
                           "org.freedesktop.machine1.Manager",
                           "TerminateMachine",
                           "s",
-                          machinename) < 0)
+                          name) < 0)
         goto cleanup;
 
     if (error.code == VIR_ERR_ERROR &&
@@ -399,7 +474,6 @@ int virSystemdTerminateMachine(const char *name,
  cleanup:
     virResetError(&error);
 
-    VIR_FREE(machinename);
     return ret;
 }
 

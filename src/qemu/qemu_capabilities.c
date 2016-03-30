@@ -314,6 +314,13 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
 
               "vserport-change-event", /* 210 */
               "virtio-balloon-pci.deflate-on-oom",
+              "mptsas1068",
+              "spice-gl",
+              "qxl.vram64_size_mb",
+
+              "qxl-vga.vram64_size_mb", /* 215 */
+              "chardev-logfile",
+              "debug-threads",
     );
 
 
@@ -1567,6 +1574,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-tablet-pci", QEMU_CAPS_VIRTIO_TABLET },
     { "virtio-input-host-device", QEMU_CAPS_VIRTIO_INPUT_HOST },
     { "virtio-input-host-pci", QEMU_CAPS_VIRTIO_INPUT_HOST },
+    { "mptsas1068", QEMU_CAPS_SCSI_MPTSAS1068 },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBalloon[] = {
@@ -1650,10 +1658,12 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVmwareSvga[] = {
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQxl[] = {
     { "vgamem_mb", QEMU_CAPS_QXL_VGAMEM },
+    { "vram64_size_mb", QEMU_CAPS_QXL_VRAM64 },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQxlVga[] = {
     { "vgamem_mb", QEMU_CAPS_QXL_VGA_VGAMEM },
+    { "vram64_size_mb", QEMU_CAPS_QXL_VGA_VRAM64 },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioGpu[] = {
@@ -2625,6 +2635,9 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "machine", "aes-key-wrap", QEMU_CAPS_AES_KEY_WRAP },
     { "machine", "dea-key-wrap", QEMU_CAPS_DEA_KEY_WRAP },
     { "chardev", "append", QEMU_CAPS_CHARDEV_FILE_APPEND },
+    { "spice", "gl", QEMU_CAPS_SPICE_GL },
+    { "chardev", "logfile", QEMU_CAPS_CHARDEV_LOGFILE },
+    { "name", "debug-threads", QEMU_CAPS_NAME_DEBUG_THREADS },
 };
 
 static int
@@ -2772,23 +2785,21 @@ virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps, const char *filename,
         goto cleanup;
     }
     VIR_DEBUG("Got flags %d", n);
-    if (n > 0) {
-        for (i = 0; i < n; i++) {
-            int flag;
-            if (!(str = virXMLPropString(nodes[i], "name"))) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("missing flag name in QEMU capabilities cache"));
-                goto cleanup;
-            }
-            flag = virQEMUCapsTypeFromString(str);
-            if (flag < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Unknown qemu capabilities flag %s"), str);
-                goto cleanup;
-            }
-            VIR_FREE(str);
-            virQEMUCapsSet(qemuCaps, flag);
+    for (i = 0; i < n; i++) {
+        int flag;
+        if (!(str = virXMLPropString(nodes[i], "name"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing flag name in QEMU capabilities cache"));
+            goto cleanup;
         }
+        flag = virQEMUCapsTypeFromString(str);
+        if (flag < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown qemu capabilities flag %s"), str);
+            goto cleanup;
+        }
+        VIR_FREE(str);
+        virQEMUCapsSet(qemuCaps, flag);
     }
     VIR_FREE(nodes);
 
@@ -3078,10 +3089,8 @@ virQEMUCapsInitCached(virQEMUCapsPtr qemuCaps, const char *cacheDir)
 
     if (virQEMUCapsLoadCache(qemuCaps, capsfile, &qemuctime, &selfctime,
                              &selfvers) < 0) {
-        virErrorPtr err = virGetLastError();
         VIR_WARN("Failed to load cached caps from '%s' for '%s': %s",
-                 capsfile, qemuCaps->binary, err ? NULLSTR(err->message) :
-                 _("unknown error"));
+                 capsfile, qemuCaps->binary, virGetLastErrorMessage());
         virResetLastError();
         ret = 0;
         virQEMUCapsReset(qemuCaps);
@@ -3309,9 +3318,8 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
     /* @mon is supposed to be locked by callee */
 
     if (qemuMonitorSetCapabilities(mon) < 0) {
-        virErrorPtr err = virGetLastError();
         VIR_DEBUG("Failed to set monitor capabilities %s",
-                  err ? err->message : "<unknown problem>");
+                  virGetLastErrorMessage());
         ret = 0;
         goto cleanup;
     }
@@ -3319,9 +3327,8 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
     if (qemuMonitorGetVersion(mon,
                               &major, &minor, &micro,
                               &package) < 0) {
-        virErrorPtr err = virGetLastError();
         VIR_DEBUG("Failed to query monitor version %s",
-                  err ? err->message : "<unknown problem>");
+                  virGetLastErrorMessage());
         ret = 0;
         goto cleanup;
     }
@@ -3550,15 +3557,13 @@ virQEMUCapsLogProbeFailure(const char *binary)
         { .key = "LIBVIRT_QEMU_BINARY", .s = binary, .iv = 0 },
         { .key = NULL },
     };
-    virErrorPtr err = virGetLastError();
 
     virLogMessage(&virLogSelf,
                   VIR_LOG_WARN,
                   __FILE__, __LINE__, __func__,
                   meta,
                   _("Failed to probe capabilities for %s: %s"),
-                  binary, err && err->message ? err->message :
-                  _("unknown failure"));
+                  binary, virGetLastErrorMessage());
 }
 
 
@@ -3828,7 +3833,7 @@ virQEMUCapsCacheFree(virQEMUCapsCachePtr cache)
 
 
 bool
-virQEMUCapsSupportsChardev(virDomainDefPtr def,
+virQEMUCapsSupportsChardev(const virDomainDef *def,
                            virQEMUCapsPtr qemuCaps,
                            virDomainChrDefPtr chr)
 {

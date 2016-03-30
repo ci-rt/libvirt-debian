@@ -525,15 +525,11 @@ VIR_ENUM_IMPL(virVMXControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
  */
 
 static int
-virVMXDomainDefPostParse(virDomainDefPtr def,
+virVMXDomainDefPostParse(virDomainDefPtr def ATTRIBUTE_UNUSED,
                          virCapsPtr caps ATTRIBUTE_UNUSED,
                          unsigned int parseFlags ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
-    /* memory hotplug tunables are not supported by this driver */
-    if (virDomainDefCheckUnsupportedMemoryHotplug(def) < 0)
-        return -1;
-
     return 0;
 }
 
@@ -548,10 +544,10 @@ virVMXDomainDevicesDefPostParse(virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
 }
 
 static virDomainDefParserConfig virVMXDomainDefParserConfig = {
-    .hasWideSCSIBus = true,
     .macPrefix = {0x00, 0x0c, 0x29},
     .devicesPostParseCallback = virVMXDomainDevicesDefPostParse,
     .domainPostParseCallback = virVMXDomainDefPostParse,
+    .features = VIR_DOMAIN_DEF_FEATURE_WIDE_SCSI,
 };
 
 static void
@@ -1691,7 +1687,7 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     /* def:controllers */
-    if (virDomainDefAddImplicitControllers(def) < 0) {
+    if (virDomainDefAddImplicitDevices(def) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Could not add controllers"));
         goto cleanup;
     }
@@ -2234,6 +2230,7 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                 (*def)->transient = STRCASEEQ(mode,
                                               "independent-nonpersistent");
         } else if (virFileHasSuffix(fileName, ".iso") ||
+                   STREQ(fileName, "emptyBackingString") ||
                    (deviceType &&
                     (STRCASEEQ(deviceType, "atapi-cdrom") ||
                      STRCASEEQ(deviceType, "cdrom-raw") ||
@@ -2319,6 +2316,16 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                  */
                 goto ignore;
             }
+        } else if (STREQ(fileName, "emptyBackingString")) {
+            if (deviceType && STRCASENEQ(deviceType, "cdrom-image")) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Expecting VMX entry '%s' to be 'cdrom-image' "
+                                 "but found '%s'"), deviceType_name, deviceType);
+                goto cleanup;
+            }
+
+            virDomainDiskSetType(*def, VIR_STORAGE_TYPE_FILE);
+            ignore_value(virDomainDiskSetSource(*def, NULL));
         } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Invalid or not yet handled value '%s' "
@@ -2620,7 +2627,7 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
             STRCASENEQ(virtualDev, "e1000e")) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
-                             "'vmxnet3' or 'e1000e' or 'e1000e' but found '%s'"),
+                             "'vmxnet3' or 'e1000' or 'e1000e' but found '%s'"),
                            virtualDev_name, virtualDev);
             goto cleanup;
         }
@@ -3526,15 +3533,19 @@ virVMXFormatDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
     if (type == VIR_STORAGE_TYPE_FILE) {
         const char *src = virDomainDiskGetSource(def);
 
-        if (src && ! virFileHasSuffix(src, fileExt)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Image file for %s %s '%s' has "
-                             "unsupported suffix, expecting '%s'"),
-                           busType, deviceType, def->dst, fileExt);
+        if (src) {
+            if (!virFileHasSuffix(src, fileExt)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Image file for %s %s '%s' has "
+                                 "unsupported suffix, expecting '%s'"),
+                               busType, deviceType, def->dst, fileExt);
                 return -1;
-        }
+            }
 
-        fileName = ctx->formatFileName(src, ctx->opaque);
+            fileName = ctx->formatFileName(src, ctx->opaque);
+        } else if (def->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
+            ignore_value(VIR_STRDUP(fileName, "emptyBackingString"));
+        }
 
         if (fileName == NULL)
             return -1;

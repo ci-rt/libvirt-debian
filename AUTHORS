@@ -15,7 +15,6 @@ Claudio Bley <claudio.bley@gmail.com>
 Cole Robinson <crobinso@redhat.com>
 Daniel Berrange <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
-Dmitry Guryanov <dguryanov@parallels.com>
 Doug Goldstein <cardoe@gentoo.org>
 Eric Blake <eblake@redhat.com>
 Erik Skultety <eskultet@redhat.com>
@@ -29,6 +28,7 @@ Laine Stump <laine@redhat.com>
 Mark McLoughlin <markmc@redhat.com>
 Martin Kletzander <mkletzan@redhat.com>
 Matthias Bolte <matthias.bolte@googlemail.com>
+Maxim Nestratov <mnestratov@virtuozzo.com>
 Michal Prívozník <mprivozn@redhat.com>
 Pavel Hrdina <phrdina@redhat.com>
 Peter Krempa <pkrempa@redhat.com>
@@ -45,6 +45,7 @@ Chris Lalancette <clalance@redhat.com>
 Dan Smith <danms@us.ibm.com>
 Dave Allan <dallan@redhat.com>
 Dave Leskovec <dlesko@linux.vnet.ibm.com>
+Dmitry Guryanov <dguryanov@parallels.com>
 Guannan Ren <gren@redhat.com>
 Jim Meyering <meyering@redhat.com>
 John Levon <john.levon@sun.com>
@@ -94,6 +95,7 @@ Alan Pevec <apevec@redhat.com>
 Alex Jia <ajia@redhat.com>
 Alex Williamson <alex.williamson@redhat.com>
 Alexander Burluka <aburluka@parallels.com>
+Alexander Burluka <aburluka@virtuozzo.com>
 Alexander Larsson <alexl@redhat.com>
 Alexander Todorov <atodorov@otb.bg>
 Aline Manera <alinefm@br.ibm.com>
@@ -101,6 +103,7 @@ Alon Levy <alevy@redhat.com>
 Alvaro Polo <apoloval@gmail.com>
 Amy Fong <amy.fong@windriver.com>
 Amy Griffis <amy.griffis@hp.com>
+Anatole Denis <natolumin@gmail.com>
 Andrea Bolognani <abologna@redhat.com>
 Andres Lagar-Cavilla <andres@lagarcavilla.org>
 Anirban Chakraborty <abchak@juniper.net>
@@ -122,6 +125,7 @@ Ben Gray <ben.r.gray@gmail.com>
 Benjamin Cama <benoar@dolka.fr>
 Bharata B Rao <bharata@linux.vnet.ibm.com>
 Bing Bu Cao <mars@linux.vnet.ibm.com>
+Bjoern Walk <bwalk@linux.vnet.ibm.com>
 Bogdan Purcareata <bogdan.purcareata@freescale.com>
 Boris Fiuczynski <fiuczy@linux.vnet.ibm.com>
 Brian Candler <b.candler@pobox.com>
@@ -151,6 +155,7 @@ Clark Laughlin <clark.laughlin@linaro.org>
 Claudio Bley <claudio.bley@gmail.com>
 Cole Robinson <crobinso@redhat.com>
 Conrad Meyer <cse.cem@gmail.com>
+Cristian Klein <cristiklein@gmail.com>
 Cédric Bosdonnat <cbosdonnat@suse.com>
 Cédric Bosdonnat <cedric.bosdonnat@free.fr>
 Dan Horák <dan@danny.cz>
@@ -257,6 +262,7 @@ James Shubin <james@shubin.ca>
 Jamie Strandboge <jamie@canonical.com>
 Jan Kiszka <jan.kiszka@siemens.com>
 Jason Andryuk <andryuk@aero.org>
+Jason J. Herne <jjherne@linux.vnet.ibm.com>
 Jasper Lievisse Adriaanse <jasper@humppa.nl>
 Jasper Lievisse Adriaanse <jasper@openbsd.org>
 Jean-Baptiste Rouault <jean-baptiste.rouault@diateam.net>
@@ -281,6 +287,7 @@ Jonathan Lebon <jlebon@redhat.com>
 Jonathan Toppins <jtoppins@cumulusnetworks.com>
 Josh Durgin <josh.durgin@inktank.com>
 Josh Stone <jistone@redhat.com>
+Jovanka Gulicoska <jovanka.gulicoska@gmail.com>
 Juerg Haefliger <juerg.haefliger@hp.com>
 Julio Faracco <jcfaracco@gmail.com>
 Jun Koi <junkoi2004@gmail.com>
@@ -300,14 +307,17 @@ Kyle Mestery <kmestery@cisco.com>
 Lai Jiangshan <laijs@cn.fujitsu.com>
 Laine Stump <laine@redhat.com>
 Laszlo Ersek <lersek@redhat.com>
+Laurent Bigonville <bigon@bigon.be>
 Laurent Léonard <laurent@open-minds.org>
 Lei Li <lilei@linux.vnet.ibm.com>
+Leno Hou <houqy@linux.vnet.ibm.com>
 Li Yang <liyang.fnst@cn.fujitsu.com>
 Li Zhang <zhlcindy@linux.vnet.ibm.com>
 Lincoln Myers <lincoln_myers@yahoo.com>
 Liuji (Jeremy) <jeremy.liu@huawei.com>
 Lorin Hochstein <lorin@isi.edu>
 Lubomir Rintel <lkundrak@v3.sk>
+Ludovic Beliveau <ludovic.beliveau@windriver.com>
 Luiz Capitulino <lcapitulino@redhat.com>
 Luyao Huang <lhuang@redhat.com>
 Lénaïc Huard <lenaic@lhuard.fr.eu.org>
@@ -372,6 +382,7 @@ Nikolay Shirokovskiy <nshirokovskiy@parallels.com>
 Nikolay Shirokovskiy <nshirokovskiy@virtuozzo.com>
 Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 Nishank Trivedi <nistrive@cisco.com>
+Nitesh Konkar <niteshkonkar.libvirt@gmail.com>
 Noella Ashu <ashu.noella207@gmail.com>
 Ohad Levy <ohadlevy@gmail.com>
 Olaf Hering <olaf@aepfle.de>
@@ -380,6 +391,7 @@ Olivia Yin <Hong-Hua.Yin@freescale.com>
 Olivia Yin <hong-hua.yin@freescale.com>
 Olivier Fourdan <ofourdan@redhat.com>
 Osier Yang <jyang@redhat.com>
+Osier Yang <osier@yunify.com>
 Oskari Saarenmaa <os@ohmu.fi>
 Ossi Herrala <oherrala@gmail.com>
 Paolo Bonzini <pbonzini@redhat.com>
@@ -407,6 +419,7 @@ Pranavkumar Sawargaonkar <pranavkumar@linaro.org>
 Prerna Saxena <prerna@linux.vnet.ibm.com>
 Pritesh Kothari <pritesh.kothari@sun.com>
 Qiao Nuohan <qiaonuohan@cn.fujitsu.com>
+Qiaowei Ren <qiaowei.ren@intel.com>
 Radu Caragea <dmns_serp@yahoo.com>
 Reinier Schoof <reinier@transip.nl>
 Richa Marwaha <rmarwah@linux.vnet.ibm.com>
