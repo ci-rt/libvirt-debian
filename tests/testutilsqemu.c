@@ -555,13 +555,22 @@ int qemuTestCapsCacheInsert(virQEMUCapsCachePtr cache, const char *binary,
 
 int qemuTestDriverInit(virQEMUDriver *driver)
 {
+    virSecurityManagerPtr mgr = NULL;
+
+    memset(driver, 0, sizeof(*driver));
+
     if (virMutexInit(&driver->lock) < 0)
         return -1;
 
-    driver->securityManager = NULL;
-
     driver->config = virQEMUDriverConfigNew(false);
     if (!driver->config)
+        goto error;
+
+    /* Overwrite some default paths so it's consistent for tests. */
+    VIR_FREE(driver->config->libDir);
+    VIR_FREE(driver->config->channelTargetDir);
+    if (VIR_STRDUP(driver->config->libDir, "/tmp/lib") < 0 ||
+        VIR_STRDUP(driver->config->channelTargetDir, "/tmp/channel") < 0)
         goto error;
 
     driver->caps = testQemuCapsInit();
@@ -581,9 +590,16 @@ int qemuTestDriverInit(virQEMUDriver *driver)
     if (qemuTestCapsCacheInsert(driver->qemuCapsCache, "empty", NULL) < 0)
         goto error;
 
+    if (!(mgr = virSecurityManagerNew("none", "qemu",
+                                      VIR_SECURITY_MANAGER_PRIVILEGED)))
+        goto error;
+    if (!(driver->securityManager = virSecurityManagerNewStack(mgr)))
+        goto error;
+
     return 0;
 
  error:
+    virObjectUnref(mgr);
     qemuTestDriverFree(driver);
     return -1;
 }

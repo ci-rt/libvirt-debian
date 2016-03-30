@@ -56,28 +56,31 @@ testHashInit(int size)
     return hash;
 }
 
-static void
+static int
 testHashCheckForEachCount(void *payload ATTRIBUTE_UNUSED,
                           const void *name ATTRIBUTE_UNUSED,
                           void *data ATTRIBUTE_UNUSED)
 {
+    size_t *count = data;
+    *count += 1;
+    return 0;
 }
 
 static int
 testHashCheckCount(virHashTablePtr hash, size_t count)
 {
-    ssize_t iter_count = 0;
+    size_t iter_count = 0;
 
     if (virHashSize(hash) != count) {
-        VIR_TEST_VERBOSE("\nhash contains %zu instead of %zu elements\n",
-                  (size_t)virHashSize(hash), count);
+        VIR_TEST_VERBOSE("\nhash contains %zd instead of %zu elements\n",
+                         virHashSize(hash), count);
         return -1;
     }
 
-    iter_count = virHashForEach(hash, testHashCheckForEachCount, NULL);
+    virHashForEach(hash, testHashCheckForEachCount, &iter_count);
     if (count != iter_count) {
-        VIR_TEST_VERBOSE("\nhash claims to have %zu elements but iteration finds %zu\n",
-                  count, (size_t)iter_count);
+        VIR_TEST_VERBOSE("\nhash claims to have %zu elements but iteration"
+                         "finds %zu\n", count, iter_count);
         return -1;
     }
 
@@ -183,7 +186,7 @@ testHashRemove(const void *data ATTRIBUTE_UNUSED)
 const int testHashCountRemoveForEachSome =
     ARRAY_CARDINALITY(uuids) - ARRAY_CARDINALITY(uuids_subset);
 
-static void
+static int
 testHashRemoveForEachSome(void *payload ATTRIBUTE_UNUSED,
                           const void *name,
                           void *data)
@@ -200,12 +203,13 @@ testHashRemoveForEachSome(void *payload ATTRIBUTE_UNUSED,
             break;
         }
     }
+    return 0;
 }
 
 
 const int testHashCountRemoveForEachAll = 0;
 
-static void
+static int
 testHashRemoveForEachAll(void *payload ATTRIBUTE_UNUSED,
                          const void *name,
                          void *data)
@@ -213,12 +217,13 @@ testHashRemoveForEachAll(void *payload ATTRIBUTE_UNUSED,
     virHashTablePtr hash = data;
 
     virHashRemoveEntry(hash, name);
+    return 0;
 }
 
 
 const int testHashCountRemoveForEachForbidden = ARRAY_CARDINALITY(uuids);
 
-static void
+static int
 testHashRemoveForEachForbidden(void *payload ATTRIBUTE_UNUSED,
                                const void *name,
                                void *data)
@@ -238,6 +243,7 @@ testHashRemoveForEachForbidden(void *payload ATTRIBUTE_UNUSED,
             break;
         }
     }
+    return 0;
 }
 
 
@@ -246,18 +252,13 @@ testHashRemoveForEach(const void *data)
 {
     const struct testInfo *info = data;
     virHashTablePtr hash;
-    int count;
     int ret = -1;
 
     if (!(hash = testHashInit(0)))
         return -1;
 
-    count = virHashForEach(hash, (virHashIterator) info->data, hash);
-
-    if (count != ARRAY_CARDINALITY(uuids)) {
-        VIR_TEST_VERBOSE("\nvirHashForEach didn't go through all entries,"
-                  " %d != %zu\n",
-                  count, ARRAY_CARDINALITY(uuids));
+    if (virHashForEach(hash, (virHashIterator) info->data, hash)) {
+        VIR_TEST_VERBOSE("\nvirHashForEach didn't go through all entries");
         goto cleanup;
     }
 
@@ -302,15 +303,15 @@ testHashSteal(const void *data ATTRIBUTE_UNUSED)
 }
 
 
-static void
+static int
 testHashIter(void *payload ATTRIBUTE_UNUSED,
              const void *name ATTRIBUTE_UNUSED,
              void *data ATTRIBUTE_UNUSED)
 {
-    return;
+    return 0;
 }
 
-static void
+static int
 testHashForEachIter(void *payload ATTRIBUTE_UNUSED,
                     const void *name ATTRIBUTE_UNUSED,
                     void *data)
@@ -332,24 +333,20 @@ testHashForEachIter(void *payload ATTRIBUTE_UNUSED,
     if (virHashForEach(hash, testHashIter, NULL) >= 0)
         VIR_TEST_VERBOSE("\niterating through hash in ForEach"
                 " should be forbidden");
+    return 0;
 }
 
 static int
 testHashForEach(const void *data ATTRIBUTE_UNUSED)
 {
     virHashTablePtr hash;
-    int count;
     int ret = -1;
 
     if (!(hash = testHashInit(0)))
         return -1;
 
-    count = virHashForEach(hash, testHashForEachIter, hash);
-
-    if (count != ARRAY_CARDINALITY(uuids)) {
-        VIR_TEST_VERBOSE("\nvirHashForEach didn't go through all entries,"
-                  " %d != %zu\n",
-                  count, ARRAY_CARDINALITY(uuids));
+    if (virHashForEach(hash, testHashForEachIter, hash)) {
+        VIR_TEST_VERBOSE("\nvirHashForEach didn't go through all entries");
         goto cleanup;
     }
 

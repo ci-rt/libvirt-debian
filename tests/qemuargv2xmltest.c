@@ -13,7 +13,7 @@
 #ifdef WITH_QEMU
 
 # include "internal.h"
-# include "qemu/qemu_command.h"
+# include "qemu/qemu_parse_command.h"
 # include "testutilsqemu.h"
 # include "virstring.h"
 
@@ -21,29 +21,41 @@
 
 static virQEMUDriver driver;
 
-static int blankProblemElements(char *data)
+static int testSanitizeDef(virDomainDefPtr vmdef)
 {
-    if (virtTestClearLineRegex("<name>[[:alnum:]]+</name>", data) < 0 ||
-        virtTestClearLineRegex("<uuid>([[:alnum:]]|-)+</uuid>", data) < 0 ||
-        virtTestClearLineRegex("<memory.*>[[:digit:]]+</memory>", data) < 0 ||
-        virtTestClearLineRegex("<secret.*>", data) < 0 ||
-        virtTestClearLineRegex("<currentMemory.*>[[:digit:]]+</currentMemory>",
-                               data) < 0 ||
-        virtTestClearLineRegex("<readonly/>", data) < 0 ||
-        virtTestClearLineRegex("<shareable/>", data) < 0)
-        return -1;
-    return 0;
+    size_t i = 0;
+    int ret = -1;
+
+    /* Remove UUID randomness */
+    if (virUUIDParse("c7a5fdbd-edaf-9455-926a-d65c16db1809", vmdef->uuid) < 0)
+        goto fail;
+
+    /* qemuargv2xml doesn't know what to set for a secret usage/uuid,
+     * so hardcode usage='qemuargv2xml_usage' to appead the schema checker */
+    for (i = 0; i < vmdef->ndisks; i++) {
+        virDomainDiskDefPtr disk = vmdef->disks[i];
+
+        if (disk->src->auth) {
+            disk->src->auth->secretType = VIR_STORAGE_SECRET_TYPE_USAGE;
+            if (VIR_STRDUP(disk->src->auth->secret.usage,
+                          "qemuargv2xml_usage") < 0)
+                goto fail;
+        }
+    }
+
+    ret = 0;
+ fail:
+    return ret;
 }
 
 typedef enum {
     FLAG_EXPECT_WARNING     = 1 << 0,
 } virQemuXML2ArgvTestFlags;
 
-static int testCompareXMLToArgvFiles(const char *xml,
+static int testCompareXMLToArgvFiles(const char *xmlfile,
                                      const char *cmdfile,
                                      virQemuXML2ArgvTestFlags flags)
 {
-    char *expectxml = NULL;
     char *actualxml = NULL;
     char *cmd = NULL;
     char *log = NULL;
@@ -51,8 +63,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
     virDomainDefPtr vmdef = NULL;
 
     if (virtTestLoadFile(cmdfile, &cmd) < 0)
-        goto fail;
-    if (virtTestLoadFile(xml, &expectxml) < 0)
         goto fail;
 
     if (!(vmdef = qemuParseCommandLineString(driver.caps, driver.xmlopt,
@@ -82,27 +92,23 @@ static int testCompareXMLToArgvFiles(const char *xml,
         }
     }
 
+    if (testSanitizeDef(vmdef) < 0)
+        goto fail;
+
     if (!virDomainDefCheckABIStability(vmdef, vmdef)) {
-        VIR_TEST_DEBUG("ABI stability check failed on %s", xml);
+        VIR_TEST_DEBUG("ABI stability check failed on %s", xmlfile);
         goto fail;
     }
 
-    if (!(actualxml = virDomainDefFormat(vmdef, 0)))
+    if (!(actualxml = virDomainDefFormat(vmdef, driver.caps, 0)))
         goto fail;
 
-    if (blankProblemElements(expectxml) < 0 ||
-        blankProblemElements(actualxml) < 0)
+    if (virtTestCompareToFile(actualxml, xmlfile) < 0)
         goto fail;
-
-    if (STRNEQ(expectxml, actualxml)) {
-        virtTestDifference(stderr, expectxml, actualxml);
-        goto fail;
-    }
 
     ret = 0;
 
  fail:
-    VIR_FREE(expectxml);
     VIR_FREE(actualxml);
     VIR_FREE(cmd);
     VIR_FREE(log);
@@ -124,9 +130,9 @@ testCompareXMLToArgvHelper(const void *data)
     char *xml = NULL;
     char *args = NULL;
 
-    if (virAsprintf(&xml, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
+    if (virAsprintf(&xml, "%s/qemuargv2xmldata/qemuargv2xml-%s.xml",
                     abs_srcdir, info->name) < 0 ||
-        virAsprintf(&args, "%s/qemuxml2argvdata/qemuxml2argv-%s.args",
+        virAsprintf(&args, "%s/qemuargv2xmldata/qemuargv2xml-%s.args",
                     abs_srcdir, info->name) < 0)
         goto cleanup;
 

@@ -148,6 +148,7 @@ extern int virDomainGetMemoryParametersEnsureACL(virConnectPtr conn, virDomainDe
 extern int virDomainGetMetadataEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetNumaParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetOSTypeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetPerfEventsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetSchedulerParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetSchedulerParametersFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetSchedulerTypeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -198,6 +199,7 @@ extern int virDomainMigratePrepareTunnel3ParamsEnsureACL(virConnectPtr conn, vir
 extern int virDomainMigrateSetCompressionCacheEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMigrateSetMaxDowntimeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMigrateSetMaxSpeedEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainMigrateStartPostCopyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainOpenChannelEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainOpenConsoleEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainOpenGraphicsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -233,6 +235,7 @@ extern int virDomainSetMemoryParametersEnsureACL(virConnectPtr conn, virDomainDe
 extern int virDomainSetMemoryStatsPeriodEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSetMetadataEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSetNumaParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainSetPerfEventsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetSchedulerParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetSchedulerParametersFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSetTimeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

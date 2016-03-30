@@ -30,6 +30,7 @@
 # include "conf/virdomainobjlist.h"
 # include "conf/domain_event.h"
 # include "virthread.h"
+# include "datatypes.h"
 
 # define vzParseError()                                                 \
     virReportErrorHelper(VIR_FROM_TEST, VIR_ERR_OPERATION_FAILED, __FILE__,    \
@@ -47,6 +48,17 @@
 
 # define PARALLELS_DOMAIN_ROUTED_NETWORK_NAME   "Routed"
 # define PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME  "Bridged"
+# define VIRTUOZZO_VER_7 ((unsigned long) 7000000)
+
+struct _vzCapabilities {
+    virStorageFileFormat vmDiskFormat;
+    virStorageFileFormat ctDiskFormat;
+    virDomainDiskBus *diskBuses;
+    virDomainControllerType *controllerTypes;
+    virDomainControllerModelSCSI scsiControllerModel;
+};
+typedef struct _vzCapabilities vzCapabilities;
+typedef struct _vzCapabilities *vzCapabilitiesPtr;
 
 struct _vzConn {
     virMutex lock;
@@ -59,6 +71,10 @@ struct _vzConn {
     virDomainXMLOptionPtr xmlopt;
     virObjectEventStatePtr domainEventState;
     const char *drivername;
+    /* Immutable pointer, self-locking APIs */
+    virConnectCloseCallbackDataPtr closeCallback;
+    unsigned long vzVersion;
+    vzCapabilities vzCaps;
 };
 
 typedef struct _vzConn vzConn;
@@ -76,7 +92,6 @@ typedef struct _vzCountersCache vzCountersCache;
 
 struct vzDomObj {
     int id;
-    char *uuid;
     char *home;
     PRL_HANDLE sdkdom;
     vzCountersCache cache;
@@ -91,6 +106,21 @@ char * vzGetOutput(const char *binary, ...)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_SENTINEL;
 void vzDriverLock(vzConnPtr driver);
 void vzDriverUnlock(vzConnPtr driver);
+virDomainObjPtr
+vzNewDomain(vzConnPtr privconn,
+            char *name,
+            const unsigned char *uuid);
+int
+vzInitVersion(vzConnPtr privconn);
+int
+vzCheckUnsupportedDisks(virDomainDefPtr def,
+                        vzCapabilitiesPtr vzCaps);
+int
+vzCheckUnsupportedControllers(virDomainDefPtr def,
+                              vzCapabilitiesPtr vzCaps);
+int
+vzGetDefaultSCSIModel(vzConnPtr privconn,
+                      PRL_CLUSTERED_DEVICE_SUBTYPE *scsiModel);
 
 # define PARALLELS_BLOCK_STATS_FOREACH(OP)                              \
     OP(rd_req, VIR_DOMAIN_BLOCK_STATS_READ_REQ, "read_requests")        \

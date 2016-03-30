@@ -209,6 +209,24 @@ virDomainEventAgentLifecycleNewFromDom(virDomainPtr dom,
                                        int state,
                                        int reason);
 
+virObjectEventPtr
+virDomainEventMigrationIterationNewFromObj(virDomainObjPtr obj,
+                                           int iteration);
+
+virObjectEventPtr
+virDomainEventMigrationIterationNewFromDom(virDomainPtr dom,
+                                           int iteration);
+
+virObjectEventPtr
+virDomainEventJobCompletedNewFromObj(virDomainObjPtr obj,
+                                     virTypedParameterPtr params,
+                                     int nparams);
+
+virObjectEventPtr
+virDomainEventJobCompletedNewFromDom(virDomainPtr dom,
+                                     virTypedParameterPtr params,
+                                     int nparams);
+
 int
 virDomainEventStateRegister(virConnectPtr conn,
                             virObjectEventStatePtr state,

@@ -155,6 +155,7 @@
 # Non-server/HV driver defaults which are always enabled
 %define with_sasl          0%{!?_without_sasl:1}
 %define with_audit         0%{!?_without_audit:1}
+%define with_nss_plugin    0%{!?_without_nss_plugin:1}
 
 
 # Finally set the OS / architecture specific special cases
@@ -190,7 +191,7 @@
 %endif
 
 # RHEL doesn't ship OpenVZ, VBox, UML, PowerHypervisor,
-# VMWare, libxenserver (xenapi), libxenlight (Xen 4.1 and newer),
+# VMware, libxenserver (xenapi), libxenlight (Xen 4.1 and newer),
 # or HyperV.
 %if 0%{?rhel}
     %define with_openvz 0
@@ -377,8 +378,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.3.1
-Release: 1%{?dist}%{?extra_release}
+Version: 1.3.3
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -387,7 +388,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1218,6 +1219,16 @@ Includes the Sanlock lock manager plugin for the QEMU
 driver
 %endif
 
+%if %{with_nss_plugin}
+%package nss
+Summary: Libvirt plugin for Name Service Switch
+Group: Development/Libraries
+Requires: libvirt-daemon-driver-network = %{version}-%{release}
+
+%description nss
+Libvirt plugin for NSS for translating domain names into IP addresses.
+%endif
+
 
 %prep
 %setup -q
@@ -1451,6 +1462,10 @@ rm -rf .git
     %define _without_pm_utils --without-pm-utils
 %endif
 
+%if ! %{with_nss_plugin}
+    %define _without_nss_plugin --without-nss-plugin
+%endif
+
 %define when  %(date +"%%F-%%T")
 %define where %(hostname)
 %define who   %{?packager}%{!?packager:Unknown}
@@ -1528,6 +1543,7 @@ rm -f po/stamp-po
            %{?_without_wireshark} \
            %{?_without_systemd_daemon} \
            %{?_without_pm_utils} \
+           %{?_without_nss_plugin} \
            %{with_packager} \
            %{with_packager_version} \
            --with-qemu-user=%{qemu_user} \
@@ -2324,6 +2340,11 @@ exit 0
 %{_libdir}/wireshark/plugins/libvirt.so
 %endif
 
+%if %{with_nss_plugin}
+%files nss
+%{_libdir}/libnss_libvirt.so.2
+%endif
+
 %if %{with_lxc}
 %files login-shell
 %attr(4750, root, virtlogin) %{_bindir}/virt-login-shell
@@ -2377,6 +2398,12 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Tue Mar  1 2016 Daniel Veillard <veillard@redhat.com> - 1.3.2-1
+- Various improvements for the Xen libxl driver
+- virt-admin improvement
+- Various improvements for the RDB volumes
+- many bug fixes and improvements
+
 * Sun Jan 17 2016 Daniel Veillard <veillard@redhat.com> - 1.3.1-1
 - Various improvements for the Xen libxl driver
 - rbd: Add support for wiping and cloning images to storage driver

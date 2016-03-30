@@ -28,6 +28,7 @@
 # include <dbus/dbus.h>
 
 # include "virsystemd.h"
+# include "virdbus.h"
 # include "virlog.h"
 # include "virmock.h"
 # define VIR_FROM_THIS VIR_FROM_NONE
@@ -54,6 +55,31 @@ VIR_MOCK_WRAP_RET_ARGS(dbus_connection_send_with_reply_and_block,
                                  "Something went wrong creating the machine");
         } else {
             reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+
+            if (STREQ(member, "GetMachineByPID")) {
+                const char *object_path = "/org/freedesktop/machine1/machine/qemu_2ddemo";
+                DBusMessageIter iter;
+
+                dbus_message_iter_init_append(reply, &iter);
+                if (!dbus_message_iter_append_basic(&iter,
+                                                    DBUS_TYPE_OBJECT_PATH,
+                                                    &object_path))
+                    goto error;
+            } else if (STREQ(member, "Get")) {
+                const char *name = "qemu-demo";
+                DBusMessageIter iter;
+                DBusMessageIter sub;
+
+                dbus_message_iter_init_append(reply, &iter);
+                dbus_message_iter_open_container(&iter, DBUS_TYPE_VARIANT,
+                                                 "s", &sub);
+
+                if (!dbus_message_iter_append_basic(&sub,
+                                                    DBUS_TYPE_STRING,
+                                                    &name))
+                    goto error;
+                dbus_message_iter_close_container(&iter, &sub);
+            }
         }
     } else if (STREQ(service, "org.freedesktop.login1")) {
         char *supported = getenv("RESULT_SUPPORT");
@@ -126,7 +152,7 @@ VIR_MOCK_WRAP_RET_ARGS(dbus_connection_send_with_reply_and_block,
     return reply;
 
  error:
-    dbus_message_unref(reply);
+    virDBusMessageUnref(reply);
     return NULL;
 }
 
@@ -141,7 +167,6 @@ static int testCreateContainer(const void *opaque ATTRIBUTE_UNUSED)
     };
     if (virSystemdCreateMachine("demo",
                                 "lxc",
-                                true,
                                 uuid,
                                 "/proc/123/root",
                                 123,
@@ -157,9 +182,7 @@ static int testCreateContainer(const void *opaque ATTRIBUTE_UNUSED)
 
 static int testTerminateContainer(const void *opaque ATTRIBUTE_UNUSED)
 {
-    if (virSystemdTerminateMachine("demo",
-                                   "lxc",
-                                   true) < 0) {
+    if (virSystemdTerminateMachine("lxc-demo") < 0) {
         fprintf(stderr, "%s", "Failed to terminate LXC machine\n");
         return -1;
     }
@@ -177,7 +200,6 @@ static int testCreateMachine(const void *opaque ATTRIBUTE_UNUSED)
     };
     if (virSystemdCreateMachine("demo",
                                 "qemu",
-                                false,
                                 uuid,
                                 NULL,
                                 123,
@@ -193,9 +215,7 @@ static int testCreateMachine(const void *opaque ATTRIBUTE_UNUSED)
 
 static int testTerminateMachine(const void *opaque ATTRIBUTE_UNUSED)
 {
-    if (virSystemdTerminateMachine("demo",
-                                   "qemu",
-                                   false) < 0) {
+    if (virSystemdTerminateMachine("test-qemu-demo") < 0) {
         fprintf(stderr, "%s", "Failed to terminate KVM machine\n");
         return -1;
     }
@@ -217,7 +237,6 @@ static int testCreateNoSystemd(const void *opaque ATTRIBUTE_UNUSED)
 
     if ((rv = virSystemdCreateMachine("demo",
                                       "qemu",
-                                      true,
                                       uuid,
                                       NULL,
                                       123,
@@ -252,7 +271,6 @@ static int testCreateSystemdNotRunning(const void *opaque ATTRIBUTE_UNUSED)
 
     if ((rv = virSystemdCreateMachine("demo",
                                       "qemu",
-                                      true,
                                       uuid,
                                       NULL,
                                       123,
@@ -287,7 +305,6 @@ static int testCreateBadSystemd(const void *opaque ATTRIBUTE_UNUSED)
 
     if ((rv = virSystemdCreateMachine("demo",
                                       "qemu",
-                                      true,
                                       uuid,
                                       NULL,
                                       123,
@@ -323,7 +340,6 @@ static int testCreateNetwork(const void *opaque ATTRIBUTE_UNUSED)
     size_t nnicindexes = ARRAY_CARDINALITY(nicindexes);
     if (virSystemdCreateMachine("demo",
                                 "lxc",
-                                true,
                                 uuid,
                                 "/proc/123/root",
                                 123,
@@ -338,9 +354,30 @@ static int testCreateNetwork(const void *opaque ATTRIBUTE_UNUSED)
 }
 
 
+static int
+testGetMachineName(const void *opaque ATTRIBUTE_UNUSED)
+{
+    char *tmp = virSystemdGetMachineNameByPID(1234);
+    int ret = -1;
+
+    if (!tmp) {
+        fprintf(stderr, "%s", "Failed to create LXC machine\n");
+        return ret;
+    }
+
+    if (STREQ(tmp, "qemu-demo"))
+        ret = 0;
+
+    VIR_FREE(tmp);
+    return ret;
+}
+
+
 struct testNameData {
     const char *name;
     const char *expected;
+    int id;
+    bool legacy;
 };
 
 static int
@@ -350,7 +387,7 @@ testScopeName(const void *opaque)
     int ret = -1;
     char *actual = NULL;
 
-    if (!(actual = virSystemdMakeScopeName(data->name, "lxc")))
+    if (!(actual = virSystemdMakeScopeName(data->name, "lxc", data->legacy)))
         goto cleanup;
 
     if (STRNEQ(actual, data->expected)) {
@@ -373,7 +410,8 @@ testMachineName(const void *opaque)
     int ret = -1;
     char *actual = NULL;
 
-    if (!(actual = virSystemdMakeMachineName(data->name, "qemu", true)))
+    if (!(actual = virSystemdMakeMachineName("qemu", data->id,
+                                             data->name, true)))
         goto cleanup;
 
     if (STRNEQ(actual, data->expected)) {
@@ -474,6 +512,12 @@ mymain(void)
 {
     int ret = 0;
 
+    unsigned char uuid[VIR_UUID_BUFLEN];
+
+    /* The one we use in tests quite often */
+    if (virUUIDParse("c7a5fdbd-edaf-9455-926a-d65c16db1809", uuid) < 0)
+        return EXIT_FAILURE;
+
     if (virtTestRun("Test create container ", testCreateContainer, NULL) < 0)
         ret = -1;
     if (virtTestRun("Test terminate container ", testTerminateContainer, NULL) < 0)
@@ -491,36 +535,50 @@ mymain(void)
         ret = -1;
     if (virtTestRun("Test create with network ", testCreateNetwork, NULL) < 0)
         ret = -1;
+    if (virtTestRun("Test getting machine name ", testGetMachineName, NULL) < 0)
+        ret = -1;
 
-# define TEST_SCOPE(name, unitname)                                     \
+# define TEST_SCOPE(_name, unitname, _legacy)                           \
     do {                                                                \
         struct testNameData data = {                                    \
-            name, unitname                                              \
+            .name = _name, .expected = unitname, .legacy = _legacy,     \
         };                                                              \
         if (virtTestRun("Test scopename", testScopeName, &data) < 0)    \
             ret = -1;                                                   \
     } while (0)
 
-    TEST_SCOPE("demo", "machine-lxc\\x2ddemo.scope");
-    TEST_SCOPE("demo-name", "machine-lxc\\x2ddemo\\x2dname.scope");
-    TEST_SCOPE("demo!name", "machine-lxc\\x2ddemo\\x21name.scope");
-    TEST_SCOPE(".demo", "machine-lxc\\x2d\\x2edemo.scope");
-    TEST_SCOPE("bull💩", "machine-lxc\\x2dbull\\xf0\\x9f\\x92\\xa9.scope");
+# define TEST_SCOPE_OLD(name, unitname)         \
+    TEST_SCOPE(name, unitname, true)
+# define TEST_SCOPE_NEW(name, unitname)         \
+    TEST_SCOPE(name, unitname, false)
 
-# define TEST_MACHINE(name, machinename)                                \
+    TEST_SCOPE_OLD("demo", "machine-lxc\\x2ddemo.scope");
+    TEST_SCOPE_OLD("demo-name", "machine-lxc\\x2ddemo\\x2dname.scope");
+    TEST_SCOPE_OLD("demo!name", "machine-lxc\\x2ddemo\\x21name.scope");
+    TEST_SCOPE_OLD(".demo", "machine-lxc\\x2d\\x2edemo.scope");
+    TEST_SCOPE_OLD("bull💩", "machine-lxc\\x2dbull\\xf0\\x9f\\x92\\xa9.scope");
+
+    TEST_SCOPE_NEW("qemu-3-demo", "machine-qemu\\x2d3\\x2ddemo.scope");
+
+# define TEST_MACHINE(_name, _id, machinename)                           \
     do {                                                                \
         struct testNameData data = {                                    \
-            name, machinename                                           \
+            .name = _name, .expected = machinename, .id = _id,         \
         };                                                              \
         if (virtTestRun("Test scopename", testMachineName, &data) < 0)  \
             ret = -1;                                                   \
     } while (0)
 
-    TEST_MACHINE("demo", "qemu-demo");
-    TEST_MACHINE("demo-name", "qemu-demo-name");
-    TEST_MACHINE("demo!name", "qemu-demo\\x21name");
-    TEST_MACHINE(".demo", "qemu-.demo");
-    TEST_MACHINE("bull\U0001f4a9", "qemu-bull\\xf0\\x9f\\x92\\xa9");
+    TEST_MACHINE("demo", 1, "qemu-1-demo");
+    TEST_MACHINE("demo-name", 2, "qemu-2-demo-name");
+    TEST_MACHINE("demo!name", 3, "qemu-3-demoname");
+    TEST_MACHINE(".demo", 4, "qemu-4-.demo");
+    TEST_MACHINE("bull\U0001f4a9", 5, "qemu-5-bull");
+    TEST_MACHINE("demo..name", 6, "qemu-6-demo.name");
+    TEST_MACHINE("12345678901234567890123456789012345678901234567890123456789", 7,
+                 "qemu-7-123456789012345678901234567890123456789012345678901234567");
+    TEST_MACHINE("123456789012345678901234567890123456789012345678901234567890", 8,
+                 "qemu-8-123456789012345678901234567890123456789012345678901234567");
 
 # define TESTS_PM_SUPPORT_HELPER(name, function)                        \
     do {                                                                \
@@ -544,7 +602,7 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virmockdbus.so")
+VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virdbusmock.so")
 
 #else /* ! (WITH_DBUS && __linux__) */
 int

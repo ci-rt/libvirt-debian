@@ -490,7 +490,7 @@ vmdk4GetBackingStore(char **res,
     *res = NULL;
     /*
      * Technically this should have been VMDK, since
-     * VMDK spec / VMWare impl only support VMDK backed
+     * VMDK spec / VMware impl only support VMDK backed
      * by VMDK. QEMU isn't following this though and
      * does probing on VMDK backing files, hence we set
      * AUTO
@@ -1283,7 +1283,7 @@ virStorageFileParseChainIndex(const char *diskTarget,
     if (name && diskTarget)
         strings = virStringSplit(name, "[", 2);
 
-    if (virStringListLength(strings) != 2)
+    if (virStringListLength((const char * const *)strings) != 2)
         goto cleanup;
 
     if (virStrToLong_uip(strings[1], &suffix, 10, &idx) < 0 ||

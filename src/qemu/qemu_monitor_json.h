@@ -60,6 +60,9 @@ int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
 int qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
                                          virDomainVideoDefPtr video,
                                          char *path);
+int qemuMonitorJSONUpdateVideoVram64Size(qemuMonitorPtr mon,
+                                         virDomainVideoDefPtr video,
+                                         char *path);
 int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long long *currmem);
 int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
@@ -226,12 +229,6 @@ int qemuMonitorJSONAddObject(qemuMonitorPtr mon,
 
 int qemuMonitorJSONDelObject(qemuMonitorPtr mon,
                              const char *objalias);
-
-int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
-                            const char *drivestr);
-
-int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
-                            const char *drivestr);
 
 int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,
@@ -484,5 +481,8 @@ int qemuMonitorJSONFindLinkPath(qemuMonitorPtr mon,
 int qemuMonitorJSONMigrateIncoming(qemuMonitorPtr mon,
                                    const char *uri)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONMigrateStartPostCopy(qemuMonitorPtr mon)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* QEMU_MONITOR_JSON_H */

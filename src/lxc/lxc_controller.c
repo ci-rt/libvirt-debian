@@ -31,7 +31,6 @@
 #include <sys/un.h>
 #include <sys/personality.h>
 #include <unistd.h>
-#include <paths.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -928,7 +927,8 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                     LXC_STATE_DIR, ctrl->name) < 0)
         return -1;
 
-    if (!(srv = virNetServerNew(0, 0, 0, 1,
+    if (!(srv = virNetServerNew("LXC",
+                                0, 0, 0, 1,
                                 0, -1, 0,
                                 NULL,
                                 virLXCControllerClientPrivateNew,

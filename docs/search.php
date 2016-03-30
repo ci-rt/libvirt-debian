@@ -324,9 +324,5 @@
         <img src="libvirtLogo.png" alt="libvirt Logo" />
       </div>
     </div>
-    <div id="footer">
-      <p id="sponsor">
-	    Sponsored by:<br /><a href="http://et.redhat.com/"><img src="et.png" alt="Project sponsored by Red Hat Emerging Technology" /></a></p>
-    </div>
   </body>
 </html>

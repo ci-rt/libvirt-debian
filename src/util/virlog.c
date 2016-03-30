@@ -73,6 +73,10 @@ static regex_t *virLogRegex;
     VIR_LOG_DATE_REGEX " " VIR_LOG_TIME_REGEX ": " \
     VIR_LOG_PID_REGEX ": " VIR_LOG_LEVEL_REGEX " : "
 
+VIR_ENUM_DECL(virLogDestination);
+VIR_ENUM_IMPL(virLogDestination, VIR_LOG_TO_OUTPUT_LAST,
+              "stderr", "syslog", "file", "journald");
+
 /*
  * Filters are used to refine the rules on what to keep or drop
  * based on a matching pattern (currently a substring)
@@ -144,23 +148,6 @@ void
 virLogUnlock(void)
 {
     virMutexUnlock(&virLogMutex);
-}
-
-
-static const char *
-virLogOutputString(virLogDestination ldest)
-{
-    switch (ldest) {
-    case VIR_LOG_TO_STDERR:
-        return "stderr";
-    case VIR_LOG_TO_SYSLOG:
-        return "syslog";
-    case VIR_LOG_TO_FILE:
-        return "file";
-    case VIR_LOG_TO_JOURNALD:
-        return "journald";
-    }
-    return "unknown";
 }
 
 
@@ -1093,6 +1080,78 @@ int virLogPriorityFromSyslog(int priority ATTRIBUTE_UNUSED)
      (*cur == '\r') || (*cur == '\\'))
 
 
+static int
+virLogParseOutput(const char *src)
+{
+    int ret = -1;
+    char **tokens = NULL;
+    char *abspath = NULL;
+    size_t count = 0;
+    virLogPriority prio;
+    int dest;
+    bool isSUID = virIsSUID();
+
+    if (!src)
+        return -1;
+
+    VIR_DEBUG("output=%s", src);
+
+    /* split our format prio:destination:additional_data to tokens and parse
+     * them individually
+     */
+    if (!(tokens = virStringSplitCount(src, ":", 0, &count)))
+        return -1;
+
+    if (virStrToLong_uip(tokens[0], NULL, 10, &prio) < 0 ||
+        (prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
+        goto cleanup;
+
+    if ((dest = virLogDestinationTypeFromString(tokens[1])) < 0)
+        goto cleanup;
+
+    if (((dest == VIR_LOG_TO_STDERR ||
+          dest == VIR_LOG_TO_JOURNALD) && count != 2) ||
+        ((dest == VIR_LOG_TO_FILE ||
+          dest == VIR_LOG_TO_SYSLOG) && count != 3))
+        goto cleanup;
+
+    /* if running with setuid, only 'stderr' is allowed */
+    if (isSUID && dest != VIR_LOG_TO_STDERR)
+        goto cleanup;
+
+    switch ((virLogDestination) dest) {
+    case VIR_LOG_TO_STDERR:
+        ret = virLogAddOutputToStderr(prio);
+        break;
+    case VIR_LOG_TO_SYSLOG:
+#if HAVE_SYSLOG_H
+        ret = virLogAddOutputToSyslog(prio, tokens[2]);
+#endif
+        break;
+    case VIR_LOG_TO_FILE:
+        if (virFileAbsPath(tokens[2], &abspath) < 0)
+            goto cleanup;
+        ret = virLogAddOutputToFile(prio, abspath);
+        VIR_FREE(abspath);
+        break;
+    case VIR_LOG_TO_JOURNALD:
+#if USE_JOURNALD
+        ret = virLogAddOutputToJournald(prio);
+#endif
+        break;
+    case VIR_LOG_TO_OUTPUT_LAST:
+        break;
+    }
+
+ cleanup:
+    if (ret < 0)
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to parse and define log output %s"), src);
+    virStringFreeList(tokens);
+    return ret;
+}
+
+
 /**
  * virLogParseOutputs:
  * @outputs: string defining a (set of) output(s)
@@ -1116,97 +1175,87 @@ int virLogPriorityFromSyslog(int priority ATTRIBUTE_UNUSED)
  * If running in setuid mode, then only the 'stderr' output will
  * be allowed
  *
- * Returns the number of output parsed and installed or -1 in case of error
+ * Returns the number of output parsed or -1 in case of error.
  */
 int
-virLogParseOutputs(const char *outputs)
+virLogParseOutputs(const char *src)
 {
-    const char *cur = outputs, *str;
-    char *name;
-    char *abspath;
-    virLogPriority prio;
     int ret = -1;
     int count = 0;
-    bool isSUID = virIsSUID();
+    size_t i;
+    char **strings = NULL;
 
-    if (cur == NULL)
+    if (!src)
         return -1;
 
-    VIR_DEBUG("outputs=%s", outputs);
+    VIR_DEBUG("outputs=%s", src);
 
-    virSkipSpaces(&cur);
-    while (*cur != 0) {
-        prio = virParseNumber(&cur);
-        if ((prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
+    if (!(strings = virStringSplit(src, " ", 0)))
+        goto cleanup;
+
+    for (i = 0; strings[i]; i++) {
+        /* virStringSplit may return empty strings */
+        if (STREQ(strings[i], ""))
+            continue;
+
+        if (virLogParseOutput(strings[i]) < 0)
             goto cleanup;
-        if (*cur != ':')
-            goto cleanup;
-        cur++;
-        if (STREQLEN(cur, "stderr", 6)) {
-            cur += 6;
-            if (virLogAddOutputToStderr(prio) == 0)
-                count++;
-        } else if (STREQLEN(cur, "syslog", 6)) {
-            if (isSUID)
-                goto cleanup;
-            cur += 6;
-            if (*cur != ':')
-                goto cleanup;
-            cur++;
-            str = cur;
-            while ((*cur != 0) && (!IS_SPACE(cur)))
-                cur++;
-            if (str == cur)
-                goto cleanup;
-#if HAVE_SYSLOG_H
-            if (VIR_STRNDUP(name, str, cur - str) < 0)
-                goto cleanup;
-            if (virLogAddOutputToSyslog(prio, name) == 0)
-                count++;
-            VIR_FREE(name);
-#endif /* HAVE_SYSLOG_H */
-        } else if (STREQLEN(cur, "file", 4)) {
-            if (isSUID)
-                goto cleanup;
-            cur += 4;
-            if (*cur != ':')
-                goto cleanup;
-            cur++;
-            str = cur;
-            while ((*cur != 0) && (!IS_SPACE(cur)))
-                cur++;
-            if (str == cur)
-                goto cleanup;
-            if (VIR_STRNDUP(name, str, cur - str) < 0)
-                goto cleanup;
-            if (virFileAbsPath(name, &abspath) < 0) {
-                VIR_FREE(name);
-                return -1; /* skip warning here because setting was fine */
-            }
-            if (virLogAddOutputToFile(prio, abspath) == 0)
-                count++;
-            VIR_FREE(name);
-            VIR_FREE(abspath);
-        } else if (STREQLEN(cur, "journald", 8)) {
-            if (isSUID)
-                goto cleanup;
-            cur += 8;
-#if USE_JOURNALD
-            if (virLogAddOutputToJournald(prio) == 0)
-                count++;
-#endif /* USE_JOURNALD */
-        } else {
-            goto cleanup;
-        }
-        virSkipSpaces(&cur);
+
+        count++;
     }
+
     ret = count;
  cleanup:
-    if (ret == -1)
-        VIR_WARN("Ignoring invalid log output setting.");
+    virStringFreeList(strings);
     return ret;
 }
 
+
+static int
+virLogParseFilter(const char *filter)
+{
+    int ret = -1;
+    size_t count = 0;
+    virLogPriority prio;
+    char **tokens = NULL;
+    unsigned int flags = 0;
+    char *ref = NULL;
+
+    if (!filter)
+        return -1;
+
+    VIR_DEBUG("filter=%s", filter);
+
+    if (!(tokens = virStringSplitCount(filter, ":", 0, &count)))
+        return -1;
+
+    if (count != 2)
+        goto cleanup;
+
+    if (virStrToLong_uip(tokens[0], NULL, 10, &prio) < 0 ||
+        (prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
+        goto cleanup;
+
+    ref = tokens[1];
+    if (ref[0] == '+') {
+        flags |= VIR_LOG_STACK_TRACE;
+        ref++;
+    }
+
+    if (!*ref)
+        goto cleanup;
+
+    if (virLogDefineFilter(ref, prio, flags) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    if (ret < 0)
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to parse and define log filter %s"), filter);
+    virStringFreeList(tokens);
+    return ret;
+}
 
 /**
  * virLogParseFilters:
@@ -1224,49 +1273,38 @@ virLogParseOutputs(const char *outputs)
  * Multiple filter can be defined in a single @filters, they just need to be
  * separated by spaces.
  *
- * Returns the number of filter parsed and installed or -1 in case of error
+ * Returns the number of filter parsed or -1 in case of error.
  */
 int
 virLogParseFilters(const char *filters)
 {
-    const char *cur = filters, *str;
-    char *name;
-    virLogPriority prio;
     int ret = -1;
     int count = 0;
+    size_t i;
+    char **strings = NULL;
 
-    if (cur == NULL)
+    if (!filters)
         return -1;
 
-    virSkipSpaces(&cur);
-    while (*cur != 0) {
-        unsigned int flags = 0;
-        prio = virParseNumber(&cur);
-        if ((prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
+    VIR_DEBUG("filters=%s", filters);
+
+    if (!(strings = virStringSplit(filters, " ", 0)))
+        goto cleanup;
+
+    for (i = 0; strings[i]; i++) {
+        /* virStringSplit may return empty strings */
+        if (STREQ(strings[i], ""))
+            continue;
+
+        if (virLogParseFilter(strings[i]) < 0)
             goto cleanup;
-        if (*cur != ':')
-            goto cleanup;
-        cur++;
-        if (*cur == '+') {
-            flags |= VIR_LOG_STACK_TRACE;
-            cur++;
-        }
-        str = cur;
-        while ((*cur != 0) && (!IS_SPACE(cur)))
-            cur++;
-        if (str == cur)
-            goto cleanup;
-        if (VIR_STRNDUP(name, str, cur - str) < 0)
-            goto cleanup;
-        if (virLogDefineFilter(name, prio, flags) >= 0)
-            count++;
-        VIR_FREE(name);
-        virSkipSpaces(&cur);
+
+        count++;
     }
+
     ret = count;
  cleanup:
-    if (ret == -1)
-        VIR_WARN("Ignoring invalid log filter setting.");
+    virStringFreeList(strings);
     return ret;
 }
 
@@ -1340,13 +1378,13 @@ virLogGetOutputs(void)
             case VIR_LOG_TO_FILE:
                 virBufferAsprintf(&outputbuf, "%d:%s:%s",
                                   virLogOutputs[i].priority,
-                                  virLogOutputString(dest),
+                                  virLogDestinationTypeToString(dest),
                                   virLogOutputs[i].name);
                 break;
             default:
                 virBufferAsprintf(&outputbuf, "%d:%s",
                                   virLogOutputs[i].priority,
-                                  virLogOutputString(dest));
+                                  virLogDestinationTypeToString(dest));
         }
     }
     virLogUnlock();

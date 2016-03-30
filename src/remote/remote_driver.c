@@ -72,11 +72,6 @@ VIR_LOG_INIT("remote.remote_driver");
 # define HYPER_TO_ULONG(_to, _from) (_to) = (_from)
 #endif
 
-#define remoteDeserializeTypedParameters(ret_params_val, ret_params_len,      \
-                                         limit, params, nparams)              \
-    deserializeTypedParameters(__FUNCTION__, ret_params_val, ret_params_len,  \
-                               limit, params, nparams)
-
 static bool inside_daemon;
 
 struct private_data {
@@ -99,8 +94,10 @@ struct private_data {
     char *hostname;             /* Original hostname */
     bool serverKeepAlive;       /* Does server support keepalive protocol? */
     bool serverEventFilter;     /* Does server support modern event filtering */
+    bool serverCloseCallback;   /* Does server support driver close callback */
 
     virObjectEventStatePtr eventState;
+    virConnectCloseCallbackDataPtr closeCallback;
 };
 
 enum {
@@ -342,9 +339,24 @@ remoteDomainBuildEventCallbackAgentLifecycle(virNetClientProgramPtr prog,
                                              void *evdata, void *opaque);
 
 static void
+remoteDomainBuildEventCallbackMigrationIteration(virNetClientProgramPtr prog,
+                                                 virNetClientPtr client,
+                                                 void *evdata, void *opaque);
+
+static void
+remoteDomainBuildEventCallbackJobCompleted(virNetClientProgramPtr prog,
+                                           virNetClientPtr client,
+                                           void *evdata, void *opaque);
+
+static void
 remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                  virNetClientPtr client ATTRIBUTE_UNUSED,
                                  void *evdata, void *opaque);
+
+static void
+remoteConnectNotifyEventConnectionClosed(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                         virNetClientPtr client ATTRIBUTE_UNUSED,
+                                         void *evdata, void *opaque);
 
 static virNetClientProgramEvent remoteEvents[] = {
     { REMOTE_PROC_DOMAIN_EVENT_LIFECYCLE,
@@ -504,8 +516,31 @@ static virNetClientProgramEvent remoteEvents[] = {
       remoteDomainBuildEventCallbackDeviceAdded,
       sizeof(remote_domain_event_callback_device_added_msg),
       (xdrproc_t)xdr_remote_domain_event_callback_device_added_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_CALLBACK_MIGRATION_ITERATION,
+      remoteDomainBuildEventCallbackMigrationIteration,
+      sizeof(remote_domain_event_callback_migration_iteration_msg),
+      (xdrproc_t)xdr_remote_domain_event_callback_migration_iteration_msg },
+    { REMOTE_PROC_CONNECT_EVENT_CONNECTION_CLOSED,
+      remoteConnectNotifyEventConnectionClosed,
+      sizeof(remote_connect_event_connection_closed_msg),
+      (xdrproc_t)xdr_remote_connect_event_connection_closed_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_CALLBACK_JOB_COMPLETED,
+      remoteDomainBuildEventCallbackJobCompleted,
+      sizeof(remote_domain_event_callback_job_completed_msg),
+      (xdrproc_t)xdr_remote_domain_event_callback_job_completed_msg },
 };
 
+static void
+remoteConnectNotifyEventConnectionClosed(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                         virNetClientPtr client ATTRIBUTE_UNUSED,
+                                         void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_connect_event_connection_closed_msg *msg = evdata;
+
+    virConnectCloseCallbackDataCall(priv->closeCallback, msg->reason);
+}
 
 static void
 remoteDomainBuildQemuMonitorEvent(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
@@ -531,21 +566,24 @@ remoteClientCloseFunc(virNetClientPtr client ATTRIBUTE_UNUSED,
                       int reason,
                       void *opaque)
 {
-    virConnectCloseCallbackDataPtr cbdata = opaque;
+    virConnectCloseCallbackDataCall((virConnectCloseCallbackDataPtr)opaque,
+                                    reason);
+}
 
-    virObjectLock(cbdata);
+static bool
+remoteConnectSupportsFeatureUnlocked(virConnectPtr conn,
+                                     struct private_data *priv,
+                                     int feature)
+{
+    remote_connect_supports_feature_args args = { feature };
+    remote_connect_supports_feature_ret ret = { 0 };
+    int rc;
 
-    if (cbdata->callback) {
-        VIR_DEBUG("Triggering connection close callback %p reason=%d, opaque=%p",
-                  cbdata->callback, reason, cbdata->opaque);
-        cbdata->callback(cbdata->conn, reason, cbdata->opaque);
+    rc = call(conn, priv, 0, REMOTE_PROC_CONNECT_SUPPORTS_FEATURE,
+              (xdrproc_t)xdr_remote_connect_supports_feature_args, (char *) &args,
+              (xdrproc_t)xdr_remote_connect_supports_feature_ret, (char *) &ret);
 
-        if (cbdata->freeCallback)
-            cbdata->freeCallback(cbdata->opaque);
-        cbdata->callback = NULL;
-        cbdata->freeCallback = NULL;
-    }
-    virObjectUnlock(cbdata);
+    return rc != -1 && ret.supported;
 }
 
 /* helper macro to ease extraction of arguments from the URI */
@@ -972,11 +1010,13 @@ doRemoteOpen(virConnectPtr conn,
             goto failed;
     }
 
-    virObjectRef(conn->closeCallback);
-
+    if (!(priv->closeCallback = virNewConnectCloseCallbackData()))
+        goto failed;
+    // ref on behalf of netclient
+    virObjectRef(priv->closeCallback);
     virNetClientSetCloseCallback(priv->client,
                                  remoteClientCloseFunc,
-                                 conn->closeCallback, virObjectFreeCallback);
+                                 priv->closeCallback, virObjectFreeCallback);
 
     if (!(priv->remoteProgram = virNetClientProgramNew(REMOTE_PROGRAM,
                                                        REMOTE_PROTOCOL_VERSION,
@@ -1008,18 +1048,9 @@ doRemoteOpen(virConnectPtr conn,
         goto failed;
 
     if (virNetClientKeepAliveIsSupported(priv->client)) {
-        remote_connect_supports_feature_args args =
-            { VIR_DRV_FEATURE_PROGRAM_KEEPALIVE };
-        remote_connect_supports_feature_ret ret = { 0 };
-        int rc;
-
-        rc = call(conn, priv, 0, REMOTE_PROC_CONNECT_SUPPORTS_FEATURE,
-                  (xdrproc_t)xdr_remote_connect_supports_feature_args, (char *) &args,
-                  (xdrproc_t)xdr_remote_connect_supports_feature_ret, (char *) &ret);
-
-        if (rc != -1 && ret.supported) {
-            priv->serverKeepAlive = true;
-        } else {
+        priv->serverKeepAlive = remoteConnectSupportsFeatureUnlocked(conn,
+                                    priv, VIR_DRV_FEATURE_PROGRAM_KEEPALIVE);
+        if (!priv->serverKeepAlive) {
             VIR_INFO("Disabling keepalive protocol since it is not supported"
                      " by the server");
         }
@@ -1058,22 +1089,19 @@ doRemoteOpen(virConnectPtr conn,
     /* Set up events */
     if (!(priv->eventState = virObjectEventStateNew()))
         goto failed;
-    {
-        remote_connect_supports_feature_args args =
-            { VIR_DRV_FEATURE_REMOTE_EVENT_CALLBACK };
-        remote_connect_supports_feature_ret ret = { 0 };
-        int rc;
 
-        rc = call(conn, priv, 0, REMOTE_PROC_CONNECT_SUPPORTS_FEATURE,
-                  (xdrproc_t)xdr_remote_connect_supports_feature_args, (char *) &args,
-                  (xdrproc_t)xdr_remote_connect_supports_feature_ret, (char *) &ret);
+    priv->serverEventFilter = remoteConnectSupportsFeatureUnlocked(conn,
+                                priv, VIR_DRV_FEATURE_REMOTE_EVENT_CALLBACK);
+    if (!priv->serverEventFilter) {
+        VIR_INFO("Avoiding server event filtering since it is not "
+                 "supported by the server");
+    }
 
-        if (rc != -1 && ret.supported) {
-            priv->serverEventFilter = true;
-        } else {
-            VIR_INFO("Avoiding server event filtering since it is not "
-                     "supported by the server");
-        }
+    priv->serverCloseCallback = remoteConnectSupportsFeatureUnlocked(conn,
+                                    priv, VIR_DRV_FEATURE_REMOTE_CLOSE_CALLBACK);
+    if (!priv->serverCloseCallback) {
+        VIR_INFO("Close callback registering isn't supported "
+                 "by the remote side.");
     }
 
     /* Successful. */
@@ -1106,6 +1134,8 @@ doRemoteOpen(virConnectPtr conn,
     virNetClientClose(priv->client);
     virObjectUnref(priv->client);
     priv->client = NULL;
+    virObjectUnref(priv->closeCallback);
+    priv->closeCallback = NULL;
 #ifdef WITH_GNUTLS
     virObjectUnref(priv->tls);
     priv->tls = NULL;
@@ -1238,11 +1268,13 @@ doRemoteClose(virConnectPtr conn, struct private_data *priv)
 
     virNetClientSetCloseCallback(priv->client,
                                  NULL,
-                                 conn->closeCallback, virObjectFreeCallback);
+                                 priv->closeCallback, virObjectFreeCallback);
 
     virNetClientClose(priv->client);
     virObjectUnref(priv->client);
     priv->client = NULL;
+    virObjectUnref(priv->closeCallback);
+    priv->closeCallback = NULL;
     virObjectUnref(priv->remoteProgram);
     virObjectUnref(priv->lxcProgram);
     virObjectUnref(priv->qemuProgram);
@@ -1595,249 +1627,6 @@ remoteConnectListDomains(virConnectPtr conn, int *ids, int maxids)
 }
 
 static int
-remoteConnectListAllDomains(virConnectPtr conn,
-                            virDomainPtr **domains,
-                            unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virDomainPtr *doms = NULL;
-    remote_connect_list_all_domains_args args;
-    remote_connect_list_all_domains_ret ret;
-
-    struct private_data *priv = conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!domains;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn,
-             priv,
-             0,
-             REMOTE_PROC_CONNECT_LIST_ALL_DOMAINS,
-             (xdrproc_t) xdr_remote_connect_list_all_domains_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_connect_list_all_domains_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.domains.domains_len > REMOTE_DOMAIN_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many domains '%d' for limit '%d'"),
-                       ret.domains.domains_len, REMOTE_DOMAIN_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (domains) {
-        if (VIR_ALLOC_N(doms, ret.domains.domains_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.domains.domains_len; i++) {
-            doms[i] = get_nonnull_domain(conn, ret.domains.domains_val[i]);
-            if (!doms[i])
-                goto cleanup;
-        }
-        *domains = doms;
-        doms = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (doms) {
-        for (i = 0; i < ret.domains.domains_len; i++)
-            virObjectUnref(doms[i]);
-        VIR_FREE(doms);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_connect_list_all_domains_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-/* Helper to free typed parameters. */
-static void
-remoteFreeTypedParameters(remote_typed_param *args_params_val,
-                          u_int args_params_len)
-{
-    size_t i;
-
-    if (args_params_val == NULL)
-        return;
-
-    for (i = 0; i < args_params_len; i++) {
-        VIR_FREE(args_params_val[i].field);
-        if (args_params_val[i].value.type == VIR_TYPED_PARAM_STRING)
-            VIR_FREE(args_params_val[i].value.remote_typed_param_value_u.s);
-    }
-
-    VIR_FREE(args_params_val);
-}
-
-/* Helper to serialize typed parameters. */
-static int
-remoteSerializeTypedParameters(virTypedParameterPtr params,
-                               int nparams,
-                               remote_typed_param **args_params_val,
-                               u_int *args_params_len)
-{
-    size_t i;
-    int rv = -1;
-    remote_typed_param *val;
-
-    *args_params_len = nparams;
-    if (VIR_ALLOC_N(val, nparams) < 0)
-        goto cleanup;
-
-    for (i = 0; i < nparams; ++i) {
-        /* call() will free this: */
-        if (VIR_STRDUP(val[i].field, params[i].field) < 0)
-            goto cleanup;
-        val[i].value.type = params[i].type;
-        switch (params[i].type) {
-        case VIR_TYPED_PARAM_INT:
-            val[i].value.remote_typed_param_value_u.i = params[i].value.i;
-            break;
-        case VIR_TYPED_PARAM_UINT:
-            val[i].value.remote_typed_param_value_u.ui = params[i].value.ui;
-            break;
-        case VIR_TYPED_PARAM_LLONG:
-            val[i].value.remote_typed_param_value_u.l = params[i].value.l;
-            break;
-        case VIR_TYPED_PARAM_ULLONG:
-            val[i].value.remote_typed_param_value_u.ul = params[i].value.ul;
-            break;
-        case VIR_TYPED_PARAM_DOUBLE:
-            val[i].value.remote_typed_param_value_u.d = params[i].value.d;
-            break;
-        case VIR_TYPED_PARAM_BOOLEAN:
-            val[i].value.remote_typed_param_value_u.b = params[i].value.b;
-            break;
-        case VIR_TYPED_PARAM_STRING:
-            if (VIR_STRDUP(val[i].value.remote_typed_param_value_u.s,
-                           params[i].value.s) < 0)
-                goto cleanup;
-            break;
-        default:
-            virReportError(VIR_ERR_RPC, _("unknown parameter type: %d"),
-                           params[i].type);
-            goto cleanup;
-        }
-    }
-
-    *args_params_val = val;
-    val = NULL;
-    rv = 0;
-
- cleanup:
-    remoteFreeTypedParameters(val, nparams);
-    return rv;
-}
-
-/* Helper to deserialize typed parameters. */
-static int
-deserializeTypedParameters(const char *funcname,
-                           remote_typed_param *ret_params_val,
-                           u_int ret_params_len,
-                           int limit,
-                           virTypedParameterPtr *params,
-                           int *nparams)
-{
-    size_t i = 0;
-    int rv = -1;
-    bool userAllocated = *params != NULL;
-
-    if (ret_params_len > limit) {
-        virReportError(VIR_ERR_RPC,
-                       _("%s: too many parameters '%u' for limit '%d'"),
-                       funcname, ret_params_len, limit);
-        goto cleanup;
-    }
-
-    if (userAllocated) {
-        /* Check the length of the returned list carefully. */
-        if (ret_params_len > *nparams) {
-            virReportError(VIR_ERR_RPC,
-                           _("%s: too many parameters '%u' for nparams '%d'"),
-                           funcname, ret_params_len, *nparams);
-            goto cleanup;
-        }
-    } else {
-        if (VIR_ALLOC_N(*params, ret_params_len) < 0)
-            goto cleanup;
-    }
-    *nparams = ret_params_len;
-
-    /* Deserialise the result. */
-    for (i = 0; i < ret_params_len; ++i) {
-        virTypedParameterPtr param = *params + i;
-        remote_typed_param *ret_param = ret_params_val + i;
-
-        if (virStrcpyStatic(param->field,
-                            ret_param->field) == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("%s: parameter %s too big for destination"),
-                           funcname, ret_param->field);
-            goto cleanup;
-        }
-
-        param->type = ret_param->value.type;
-        switch (param->type) {
-        case VIR_TYPED_PARAM_INT:
-            param->value.i =
-                ret_param->value.remote_typed_param_value_u.i;
-            break;
-        case VIR_TYPED_PARAM_UINT:
-            param->value.ui =
-                ret_param->value.remote_typed_param_value_u.ui;
-            break;
-        case VIR_TYPED_PARAM_LLONG:
-            param->value.l =
-                ret_param->value.remote_typed_param_value_u.l;
-            break;
-        case VIR_TYPED_PARAM_ULLONG:
-            param->value.ul =
-                ret_param->value.remote_typed_param_value_u.ul;
-            break;
-        case VIR_TYPED_PARAM_DOUBLE:
-            param->value.d =
-                ret_param->value.remote_typed_param_value_u.d;
-            break;
-        case VIR_TYPED_PARAM_BOOLEAN:
-            param->value.b =
-                ret_param->value.remote_typed_param_value_u.b;
-            break;
-        case VIR_TYPED_PARAM_STRING:
-            if (VIR_STRDUP(param->value.s,
-                           ret_param->value.remote_typed_param_value_u.s) < 0)
-                goto cleanup;
-            break;
-        default:
-            virReportError(VIR_ERR_RPC, _("%s: unknown parameter type: %d"),
-                           funcname, param->type);
-            goto cleanup;
-        }
-    }
-
-    rv = 0;
-
- cleanup:
-    if (rv < 0) {
-        if (userAllocated) {
-            virTypedParamsClear(*params, i);
-        } else {
-            virTypedParamsFree(*params, i);
-            *params = NULL;
-        }
-    }
-    return rv;
-}
-
-static int
 remoteDeserializeDomainDiskErrors(remote_domain_disk_error *ret_errors_val,
                                   u_int ret_errors_len,
                                   int limit,
@@ -1913,12 +1702,12 @@ remoteDomainBlockStatsFlags(virDomainPtr domain,
 
     *nparams = ret.params.params_len;
 
-    /* Deserialise the result. */
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
-                                         &params,
-                                         nparams) < 0)
+    /* Deserialize the result. */
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
+                                  &params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -1962,11 +1751,11 @@ remoteDomainGetMemoryParameters(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
-                                         &params,
-                                         nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
+                                  &params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -2010,17 +1799,54 @@ remoteDomainGetNumaParameters(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_NUMA_PARAMETERS_MAX,
-                                         &params,
-                                         nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_NUMA_PARAMETERS_MAX,
+                                  &params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;
 
  cleanup:
     xdr_free((xdrproc_t) xdr_remote_domain_get_numa_parameters_ret,
+             (char *) &ret);
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainGetPerfEvents(virDomainPtr domain,
+                          virTypedParameterPtr *params,
+                          int *nparams)
+{
+    int rv = -1;
+    remote_domain_get_perf_events_args args;
+    remote_domain_get_perf_events_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, domain);
+
+    memset(&ret, 0, sizeof(ret));
+    if (call(domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_PERF_EVENTS,
+             (xdrproc_t) xdr_remote_domain_get_perf_events_args, (char *) &args,
+             (xdrproc_t) xdr_remote_domain_get_perf_events_ret, (char *) &ret) == -1)
+        goto done;
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                         ret.params.params_len,
+                                         REMOTE_DOMAIN_PERF_EVENTS_MAX,
+                                         params,
+                                         nparams) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+ cleanup:
+    xdr_free((xdrproc_t) xdr_remote_domain_get_perf_events_ret,
              (char *) &ret);
  done:
     remoteDriverUnlock(priv);
@@ -2058,11 +1884,11 @@ remoteDomainGetBlkioParameters(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX,
-                                         &params,
-                                         nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX,
+                                  &params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -2982,11 +2808,11 @@ static int remoteDomainGetBlockIoTune(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
-                                         &params,
-                                         nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
+                                  &params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -3072,9 +2898,10 @@ static int remoteDomainGetCPUStats(virDomainPtr domain,
         virTypedParameterPtr cpu_params = &params[cpu * nparams];
         remote_typed_param *stride = &ret.params.params_val[cpu * ret.nparams];
 
-        if (remoteDeserializeTypedParameters(stride, ret.nparams,
-                                             REMOTE_NODE_CPU_STATS_MAX,
-                                             &cpu_params, &tmp) < 0)
+        if (virTypedParamsDeserialize((virTypedParameterRemotePtr) stride,
+                                      ret.nparams,
+                                      REMOTE_NODE_CPU_STATS_MAX,
+                                      &cpu_params, &tmp) < 0)
             goto cleanup;
     }
 
@@ -3085,71 +2912,6 @@ static int remoteDomainGetCPUStats(virDomainPtr domain,
 
     xdr_free((xdrproc_t) xdr_remote_domain_get_cpu_stats_ret,
              (char *) &ret);
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-static int
-remoteConnectListAllNetworks(virConnectPtr conn,
-                             virNetworkPtr **nets,
-                             unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virNetworkPtr *tmp_nets = NULL;
-    remote_connect_list_all_networks_args args;
-    remote_connect_list_all_networks_ret ret;
-
-    struct private_data *priv = conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!nets;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn,
-             priv,
-             0,
-             REMOTE_PROC_CONNECT_LIST_ALL_NETWORKS,
-             (xdrproc_t) xdr_remote_connect_list_all_networks_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_connect_list_all_networks_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.nets.nets_len > REMOTE_NETWORK_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many networks '%d' for limit '%d'"),
-                       ret.nets.nets_len, REMOTE_NETWORK_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (nets) {
-        if (VIR_ALLOC_N(tmp_nets, ret.nets.nets_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.nets.nets_len; i++) {
-            tmp_nets[i] = get_nonnull_network(conn, ret.nets.nets_val[i]);
-            if (!tmp_nets[i])
-                goto cleanup;
-        }
-        *nets = tmp_nets;
-        tmp_nets = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (tmp_nets) {
-        for (i = 0; i < ret.nets.nets_len; i++)
-            virObjectUnref(tmp_nets[i]);
-        VIR_FREE(tmp_nets);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_connect_list_all_networks_ret, (char *) &ret);
-
  done:
     remoteDriverUnlock(priv);
     return rv;
@@ -3347,267 +3109,6 @@ remoteConnectDomainQemuMonitorEventDeregister(virConnectPtr conn,
     return rv;
 }
 
-
-static int
-remoteConnectListAllInterfaces(virConnectPtr conn,
-                               virInterfacePtr **ifaces,
-                               unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virInterfacePtr *tmp_ifaces = NULL;
-    remote_connect_list_all_interfaces_args args;
-    remote_connect_list_all_interfaces_ret ret;
-
-    struct private_data *priv = conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!ifaces;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn,
-             priv,
-             0,
-             REMOTE_PROC_CONNECT_LIST_ALL_INTERFACES,
-             (xdrproc_t) xdr_remote_connect_list_all_interfaces_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_connect_list_all_interfaces_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.ifaces.ifaces_len > REMOTE_INTERFACE_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many interfaces '%d' for limit '%d'"),
-                       ret.ifaces.ifaces_len, REMOTE_INTERFACE_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (ifaces) {
-        if (VIR_ALLOC_N(tmp_ifaces, ret.ifaces.ifaces_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.ifaces.ifaces_len; i++) {
-            tmp_ifaces[i] = get_nonnull_interface(conn, ret.ifaces.ifaces_val[i]);
-            if (!tmp_ifaces[i])
-                goto cleanup;
-        }
-        *ifaces = tmp_ifaces;
-        tmp_ifaces = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (tmp_ifaces) {
-        for (i = 0; i < ret.ifaces.ifaces_len; i++)
-            virObjectUnref(tmp_ifaces[i]);
-    }
-    VIR_FREE(tmp_ifaces);
-
-    xdr_free((xdrproc_t) xdr_remote_connect_list_all_interfaces_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-static int
-remoteConnectListAllNodeDevices(virConnectPtr conn,
-                                virNodeDevicePtr **devices,
-                                unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virNodeDevicePtr *tmp_devices = NULL;
-    remote_connect_list_all_node_devices_args args;
-    remote_connect_list_all_node_devices_ret ret;
-
-    struct private_data *priv = conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!devices;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn,
-             priv,
-             0,
-             REMOTE_PROC_CONNECT_LIST_ALL_NODE_DEVICES,
-             (xdrproc_t) xdr_remote_connect_list_all_node_devices_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_connect_list_all_node_devices_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.devices.devices_len > REMOTE_NODE_DEVICE_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many node devices '%d' for limit '%d'"),
-                       ret.devices.devices_len, REMOTE_NODE_DEVICE_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (devices) {
-        if (VIR_ALLOC_N(tmp_devices, ret.devices.devices_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.devices.devices_len; i++) {
-            tmp_devices[i] = get_nonnull_node_device(conn, ret.devices.devices_val[i]);
-            if (!tmp_devices[i])
-                goto cleanup;
-        }
-        *devices = tmp_devices;
-        tmp_devices = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (tmp_devices) {
-        for (i = 0; i < ret.devices.devices_len; i++)
-            virObjectUnref(tmp_devices[i]);
-        VIR_FREE(tmp_devices);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_connect_list_all_node_devices_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-static int
-remoteConnectListAllNWFilters(virConnectPtr conn,
-                              virNWFilterPtr **filters,
-                              unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virNWFilterPtr *tmp_filters = NULL;
-    remote_connect_list_all_nwfilters_args args;
-    remote_connect_list_all_nwfilters_ret ret;
-
-    struct private_data *priv = conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!filters;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn,
-             priv,
-             0,
-             REMOTE_PROC_CONNECT_LIST_ALL_NWFILTERS,
-             (xdrproc_t) xdr_remote_connect_list_all_nwfilters_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_connect_list_all_nwfilters_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.filters.filters_len > REMOTE_NWFILTER_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many network filters '%d' for limit '%d'"),
-                       ret.filters.filters_len, REMOTE_NWFILTER_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (filters) {
-        if (VIR_ALLOC_N(tmp_filters, ret.filters.filters_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.filters.filters_len; i++) {
-            tmp_filters[i] = get_nonnull_nwfilter(conn, ret.filters.filters_val[i]);
-            if (!tmp_filters[i])
-                goto cleanup;
-        }
-        *filters = tmp_filters;
-        tmp_filters = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (tmp_filters) {
-        for (i = 0; i < ret.filters.filters_len; i++)
-            virObjectUnref(tmp_filters[i]);
-        VIR_FREE(tmp_filters);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_connect_list_all_nwfilters_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-static int
-remoteConnectListAllSecrets(virConnectPtr conn,
-                            virSecretPtr **secrets,
-                            unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virSecretPtr *tmp_secrets = NULL;
-    remote_connect_list_all_secrets_args args;
-    remote_connect_list_all_secrets_ret ret;
-
-    struct private_data *priv = conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!secrets;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn,
-             priv,
-             0,
-             REMOTE_PROC_CONNECT_LIST_ALL_SECRETS,
-             (xdrproc_t) xdr_remote_connect_list_all_secrets_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_connect_list_all_secrets_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.secrets.secrets_len > REMOTE_SECRET_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many secrets '%d' for limit '%d'"),
-                       ret.secrets.secrets_len, REMOTE_SECRET_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (secrets) {
-        if (VIR_ALLOC_N(tmp_secrets, ret.secrets.secrets_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.secrets.secrets_len; i++) {
-            tmp_secrets[i] = get_nonnull_secret(conn, ret.secrets.secrets_val[i]);
-            if (!tmp_secrets[i])
-                goto cleanup;
-        }
-        *secrets = tmp_secrets;
-        tmp_secrets = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (tmp_secrets) {
-        for (i = 0; i < ret.secrets.secrets_len; i++)
-            virObjectUnref(tmp_secrets[i]);
-        VIR_FREE(tmp_secrets);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_connect_list_all_secrets_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
 /*----------------------------------------------------------------------*/
 
 static char *
@@ -3642,138 +3143,6 @@ remoteConnectFindStoragePoolSources(virConnectPtr conn,
     remoteDriverUnlock(priv);
     return rv;
 }
-
-static int
-remoteConnectListAllStoragePools(virConnectPtr conn,
-                                 virStoragePoolPtr **pools,
-                                 unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virStoragePoolPtr *tmp_pools = NULL;
-    remote_connect_list_all_storage_pools_args args;
-    remote_connect_list_all_storage_pools_ret ret;
-
-    struct private_data *priv = conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!pools;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn,
-             priv,
-             0,
-             REMOTE_PROC_CONNECT_LIST_ALL_STORAGE_POOLS,
-             (xdrproc_t) xdr_remote_connect_list_all_storage_pools_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_connect_list_all_storage_pools_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.pools.pools_len > REMOTE_STORAGE_POOL_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many storage pools '%d' for limit '%d'"),
-                       ret.pools.pools_len, REMOTE_STORAGE_POOL_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (pools) {
-        if (VIR_ALLOC_N(tmp_pools, ret.pools.pools_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.pools.pools_len; i++) {
-            tmp_pools[i] = get_nonnull_storage_pool(conn, ret.pools.pools_val[i]);
-            if (!tmp_pools[i])
-                goto cleanup;
-        }
-        *pools = tmp_pools;
-        tmp_pools = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (tmp_pools) {
-        for (i = 0; i < ret.pools.pools_len; i++)
-            virObjectUnref(tmp_pools[i]);
-        VIR_FREE(tmp_pools);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_connect_list_all_storage_pools_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-static int
-remoteStoragePoolListAllVolumes(virStoragePoolPtr pool,
-                                virStorageVolPtr **vols,
-                                unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virStorageVolPtr *tmp_vols = NULL;
-    remote_storage_pool_list_all_volumes_args args;
-    remote_storage_pool_list_all_volumes_ret ret;
-
-    struct private_data *priv = pool->conn->privateData;
-
-    remoteDriverLock(priv);
-
-    make_nonnull_storage_pool(&args.pool, pool);
-    args.need_results = !!vols;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(pool->conn,
-             priv,
-             0,
-             REMOTE_PROC_STORAGE_POOL_LIST_ALL_VOLUMES,
-             (xdrproc_t) xdr_remote_storage_pool_list_all_volumes_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_storage_pool_list_all_volumes_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.vols.vols_len > REMOTE_STORAGE_VOL_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many storage volumes '%d' for limit '%d'"),
-                       ret.vols.vols_len, REMOTE_STORAGE_VOL_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (vols) {
-        if (VIR_ALLOC_N(tmp_vols, ret.vols.vols_len + 1) < 0)
-            goto cleanup;
-
-        for (i = 0; i < ret.vols.vols_len; i++) {
-            tmp_vols[i] = get_nonnull_storage_vol(pool->conn, ret.vols.vols_val[i]);
-            if (!tmp_vols[i])
-                goto cleanup;
-        }
-        *vols = tmp_vols;
-        tmp_vols = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (tmp_vols) {
-        for (i = 0; i < ret.vols.vols_len; i++)
-            virObjectUnref(tmp_vols[i]);
-        VIR_FREE(tmp_vols);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_storage_pool_list_all_volumes_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
 
 /*----------------------------------------------------------------------*/
 
@@ -5471,10 +4840,10 @@ remoteDomainBuildEventCallbackTunable(virNetClientProgramPtr prog ATTRIBUTE_UNUS
     int nparams = 0;
     virObjectEventPtr event = NULL;
 
-    if (remoteDeserializeTypedParameters(msg->params.params_val,
-                                         msg->params.params_len,
-                                         REMOTE_DOMAIN_EVENT_TUNABLE_MAX,
-                                         &params, &nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) msg->params.params_val,
+                                  msg->params.params_len,
+                                  REMOTE_DOMAIN_EVENT_TUNABLE_MAX,
+                                  &params, &nparams) < 0)
         return;
 
     dom = get_nonnull_domain(conn, msg->dom);
@@ -5512,6 +4881,63 @@ remoteDomainBuildEventCallbackAgentLifecycle(virNetClientProgramPtr prog ATTRIBU
 
     remoteEventQueue(priv, event, msg->callbackID);
 }
+
+
+static void
+remoteDomainBuildEventCallbackMigrationIteration(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                                 virNetClientPtr client ATTRIBUTE_UNUSED,
+                                                 void *evdata,
+                                                 void *opaque)
+{
+    virConnectPtr conn = opaque;
+    remote_domain_event_callback_migration_iteration_msg *msg = evdata;
+    struct private_data *priv = conn->privateData;
+    virDomainPtr dom;
+    virObjectEventPtr event = NULL;
+
+    if (!(dom = get_nonnull_domain(conn, msg->dom)))
+        return;
+
+    event = virDomainEventMigrationIterationNewFromDom(dom, msg->iteration);
+
+    virObjectUnref(dom);
+
+    remoteEventQueue(priv, event, msg->callbackID);
+}
+
+
+static void
+remoteDomainBuildEventCallbackJobCompleted(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                           virNetClientPtr client ATTRIBUTE_UNUSED,
+                                           void *evdata,
+                                           void *opaque)
+{
+    virConnectPtr conn = opaque;
+    remote_domain_event_callback_job_completed_msg *msg = evdata;
+    struct private_data *priv = conn->privateData;
+    virDomainPtr dom;
+    virObjectEventPtr event = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) msg->params.params_val,
+                                  msg->params.params_len,
+                                  REMOTE_DOMAIN_JOB_STATS_MAX,
+                                  &params, &nparams) < 0)
+        return;
+
+    if (!(dom = get_nonnull_domain(conn, msg->dom))) {
+        virTypedParamsFree(params, nparams);
+        return;
+    }
+
+    event = virDomainEventJobCompletedNewFromDom(dom, params, nparams);
+
+    virObjectUnref(dom);
+
+    remoteEventQueue(priv, event, msg->callbackID);
+}
+
 
 static void
 remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
@@ -6687,11 +6113,11 @@ remoteDomainGetInterfaceParameters(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX,
-                                         &params,
-                                         nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX,
+                                  &params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -6704,137 +6130,6 @@ remoteDomainGetInterfaceParameters(virDomainPtr domain,
     return rv;
 }
 
-static int
-remoteDomainListAllSnapshots(virDomainPtr dom,
-                             virDomainSnapshotPtr **snapshots,
-                             unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virDomainSnapshotPtr *snaps = NULL;
-    remote_domain_list_all_snapshots_args args;
-    remote_domain_list_all_snapshots_ret ret;
-
-    struct private_data *priv = dom->conn->privateData;
-
-    remoteDriverLock(priv);
-
-    make_nonnull_domain(&args.dom, dom);
-    args.need_results = !!snapshots;
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(dom->conn,
-             priv,
-             0,
-             REMOTE_PROC_DOMAIN_LIST_ALL_SNAPSHOTS,
-             (xdrproc_t) xdr_remote_domain_list_all_snapshots_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_domain_list_all_snapshots_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.snapshots.snapshots_len > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many domain snapshots '%d' for limit '%d'"),
-                       ret.snapshots.snapshots_len,
-                       REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (snapshots) {
-        if (VIR_ALLOC_N(snaps, ret.snapshots.snapshots_len + 1) < 0)
-            goto cleanup;
-        for (i = 0; i < ret.snapshots.snapshots_len; i++) {
-            snaps[i] = get_nonnull_domain_snapshot(dom, ret.snapshots.snapshots_val[i]);
-            if (!snaps[i])
-                goto cleanup;
-        }
-        *snapshots = snaps;
-        snaps = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (snaps) {
-        for (i = 0; i < ret.snapshots.snapshots_len; i++)
-            virObjectUnref(snaps[i]);
-        VIR_FREE(snaps);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_domain_list_all_snapshots_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-static int
-remoteDomainSnapshotListAllChildren(virDomainSnapshotPtr parent,
-                                    virDomainSnapshotPtr **snapshots,
-                                    unsigned int flags)
-{
-    int rv = -1;
-    size_t i;
-    virDomainSnapshotPtr *snaps = NULL;
-    remote_domain_snapshot_list_all_children_args args;
-    remote_domain_snapshot_list_all_children_ret ret;
-
-    struct private_data *priv = parent->domain->conn->privateData;
-
-    remoteDriverLock(priv);
-
-    args.need_results = !!snapshots;
-    args.flags = flags;
-    make_nonnull_domain_snapshot(&args.snapshot, parent);
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(parent->domain->conn,
-             priv,
-             0,
-             REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_ALL_CHILDREN,
-             (xdrproc_t) xdr_remote_domain_snapshot_list_all_children_args,
-             (char *) &args,
-             (xdrproc_t) xdr_remote_domain_snapshot_list_all_children_ret,
-             (char *) &ret) == -1)
-        goto done;
-
-    if (ret.snapshots.snapshots_len > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many domain snapshots '%d' for limit '%d'"),
-                       ret.snapshots.snapshots_len,
-                       REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
-        goto cleanup;
-    }
-
-    if (snapshots) {
-        if (VIR_ALLOC_N(snaps, ret.snapshots.snapshots_len + 1) < 0)
-            goto cleanup;
-        for (i = 0; i < ret.snapshots.snapshots_len; i++) {
-            snaps[i] = get_nonnull_domain_snapshot(parent->domain, ret.snapshots.snapshots_val[i]);
-            if (!snaps[i])
-                goto cleanup;
-        }
-        *snapshots = snaps;
-        snaps = NULL;
-    }
-
-    rv = ret.ret;
-
- cleanup:
-    if (snaps) {
-        for (i = 0; i < ret.snapshots.snapshots_len; i++)
-            virObjectUnref(snaps[i]);
-        VIR_FREE(snaps);
-    }
-
-    xdr_free((xdrproc_t) xdr_remote_domain_snapshot_list_all_children_ret, (char *) &ret);
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
 
 static int
 remoteNodeGetMemoryParameters(virConnectPtr conn,
@@ -6867,11 +6162,11 @@ remoteNodeGetMemoryParameters(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_NODE_MEMORY_PARAMETERS_MAX,
-                                         &params,
-                                         nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_NODE_MEMORY_PARAMETERS_MAX,
+                                  &params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -6988,10 +6283,10 @@ remoteDomainGetJobStats(virDomainPtr domain,
 
     *type = ret.type;
 
-    if (remoteDeserializeTypedParameters(ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_JOB_STATS_MAX,
-                                         params, nparams) < 0)
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_JOB_STATS_MAX,
+                                  params, nparams) < 0)
         goto cleanup;
 
     rv = 0;
@@ -7033,9 +6328,10 @@ remoteDomainMigrateBegin3Params(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (remoteSerializeTypedParameters(params, nparams,
-                                       &args.params.params_val,
-                                       &args.params.params_len) < 0) {
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0) {
         xdr_free((xdrproc_t) xdr_remote_domain_migrate_begin3_params_args,
                  (char *) &args);
         goto cleanup;
@@ -7061,7 +6357,8 @@ remoteDomainMigrateBegin3Params(virDomainPtr domain,
     rv = ret.xml; /* caller frees */
 
  cleanup:
-    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 
@@ -7099,9 +6396,10 @@ remoteDomainMigratePrepare3Params(virConnectPtr dconn,
         goto cleanup;
     }
 
-    if (remoteSerializeTypedParameters(params, nparams,
-                                       &args.params.params_val,
-                                       &args.params.params_len) < 0) {
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0) {
         xdr_free((xdrproc_t) xdr_remote_domain_migrate_prepare3_params_args,
                  (char *) &args);
         goto cleanup;
@@ -7139,7 +6437,8 @@ remoteDomainMigratePrepare3Params(virConnectPtr dconn,
     rv = 0;
 
  cleanup:
-    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
     VIR_FREE(ret.uri_out);
     remoteDriverUnlock(priv);
     return rv;
@@ -7185,9 +6484,10 @@ remoteDomainMigratePrepareTunnel3Params(virConnectPtr dconn,
     args.cookie_in.cookie_in_len = cookieinlen;
     args.flags = flags;
 
-    if (remoteSerializeTypedParameters(params, nparams,
-                                       &args.params.params_val,
-                                       &args.params.params_len) < 0) {
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0) {
         xdr_free((xdrproc_t) xdr_remote_domain_migrate_prepare_tunnel3_params_args,
                  (char *) &args);
         goto cleanup;
@@ -7229,7 +6529,8 @@ remoteDomainMigratePrepareTunnel3Params(virConnectPtr dconn,
     rv = 0;
 
  cleanup:
-    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 
@@ -7273,9 +6574,10 @@ remoteDomainMigratePerform3Params(virDomainPtr dom,
     args.cookie_in.cookie_in_len = cookieinlen;
     args.flags = flags;
 
-    if (remoteSerializeTypedParameters(params, nparams,
-                                       &args.params.params_val,
-                                       &args.params.params_len) < 0) {
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0) {
         xdr_free((xdrproc_t) xdr_remote_domain_migrate_perform3_params_args,
                  (char *) &args);
         goto cleanup;
@@ -7301,7 +6603,8 @@ remoteDomainMigratePerform3Params(virDomainPtr dom,
     rv = 0;
 
  cleanup:
-    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 
@@ -7344,9 +6647,10 @@ remoteDomainMigrateFinish3Params(virConnectPtr dconn,
     args.flags = flags;
     args.cancelled = cancelled;
 
-    if (remoteSerializeTypedParameters(params, nparams,
-                                       &args.params.params_val,
-                                       &args.params.params_len) < 0) {
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0) {
         xdr_free((xdrproc_t) xdr_remote_domain_migrate_finish3_params_args,
                  (char *) &args);
         goto cleanup;
@@ -7377,7 +6681,8 @@ remoteDomainMigrateFinish3Params(virConnectPtr dconn,
              (char *) &ret);
 
  cleanup:
-    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 
@@ -7417,9 +6722,10 @@ remoteDomainMigrateConfirm3Params(virDomainPtr domain,
     args.flags = flags;
     args.cancelled = cancelled;
 
-    if (remoteSerializeTypedParameters(params, nparams,
-                                       &args.params.params_val,
-                                       &args.params.params_len) < 0) {
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0) {
         xdr_free((xdrproc_t) xdr_remote_domain_migrate_confirm3_params_args,
                  (char *) &args);
         goto cleanup;
@@ -7433,7 +6739,8 @@ remoteDomainMigrateConfirm3Params(virDomainPtr domain,
     rv = 0;
 
  cleanup:
-    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }
@@ -7769,11 +7076,11 @@ remoteConnectGetAllDomainStats(virConnectPtr conn,
         if (!(elem->dom = get_nonnull_domain(conn, rec->dom)))
             goto cleanup;
 
-        if (remoteDeserializeTypedParameters(rec->params.params_val,
-                                             rec->params.params_len,
-                                             REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX,
-                                             &elem->params,
-                                             &elem->nparams))
+        if (virTypedParamsDeserialize((virTypedParameterRemotePtr) rec->params.params_val,
+                                      rec->params.params_len,
+                                      REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX,
+                                      &elem->params,
+                                      &elem->nparams))
             goto cleanup;
 
         tmpret[i] = elem;
@@ -8037,6 +7344,68 @@ remoteDomainInterfaceAddresses(virDomainPtr dom,
     return rv;
 }
 
+static int
+remoteConnectRegisterCloseCallback(virConnectPtr conn,
+                                   virConnectCloseFunc cb,
+                                   void *opaque,
+                                   virFreeCallback freecb)
+{
+    struct private_data *priv = conn->privateData;
+    int ret = -1;
+
+    remoteDriverLock(priv);
+
+    if (virConnectCloseCallbackDataGetCallback(priv->closeCallback) != NULL) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("A close callback is already registered"));
+        goto cleanup;
+    }
+
+    if (priv->serverCloseCallback &&
+        call(conn, priv, 0, REMOTE_PROC_CONNECT_CLOSE_CALLBACK_REGISTER,
+             (xdrproc_t) xdr_void, (char *) NULL,
+             (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto cleanup;
+
+    virConnectCloseCallbackDataRegister(priv->closeCallback, conn, cb,
+                                        opaque, freecb);
+    ret = 0;
+
+ cleanup:
+    remoteDriverUnlock(priv);
+
+    return ret;
+}
+
+static int
+remoteConnectUnregisterCloseCallback(virConnectPtr conn,
+                                     virConnectCloseFunc cb)
+{
+    struct private_data *priv = conn->privateData;
+    int ret = -1;
+
+    remoteDriverLock(priv);
+
+    if (virConnectCloseCallbackDataGetCallback(priv->closeCallback) != cb) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("A different callback was requested"));
+        goto cleanup;
+    }
+
+    if (priv->serverCloseCallback &&
+        call(conn, priv, 0, REMOTE_PROC_CONNECT_CLOSE_CALLBACK_UNREGISTER,
+             (xdrproc_t) xdr_void, (char *) NULL,
+             (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto cleanup;
+
+    virConnectCloseCallbackDataUnregister(priv->closeCallback, cb);
+    ret = 0;
+
+ cleanup:
+    remoteDriverUnlock(priv);
+
+    return ret;
+}
 
 static int
 remoteDomainRename(virDomainPtr dom, const char *new_name, unsigned int flags)
@@ -8253,6 +7622,8 @@ static virHypervisorDriver hypervisor_driver = {
     .domainGetMemoryParameters = remoteDomainGetMemoryParameters, /* 0.8.5 */
     .domainSetBlkioParameters = remoteDomainSetBlkioParameters, /* 0.9.0 */
     .domainGetBlkioParameters = remoteDomainGetBlkioParameters, /* 0.9.0 */
+    .domainGetPerfEvents = remoteDomainGetPerfEvents, /* 1.3.3 */
+    .domainSetPerfEvents = remoteDomainSetPerfEvents, /* 1.3.3 */
     .domainGetInfo = remoteDomainGetInfo, /* 0.3.0 */
     .domainGetState = remoteDomainGetState, /* 0.9.2 */
     .domainGetControlInfo = remoteDomainGetControlInfo, /* 0.9.3 */
@@ -8429,6 +7800,9 @@ static virHypervisorDriver hypervisor_driver = {
     .domainInterfaceAddresses = remoteDomainInterfaceAddresses, /* 1.2.14 */
     .domainSetUserPassword = remoteDomainSetUserPassword, /* 1.2.16 */
     .domainRename = remoteDomainRename, /* 1.2.19 */
+    .connectRegisterCloseCallback = remoteConnectRegisterCloseCallback, /* 1.3.2 */
+    .connectUnregisterCloseCallback = remoteConnectUnregisterCloseCallback, /* 1.3.2 */
+    .domainMigrateStartPostCopy = remoteDomainMigrateStartPostCopy, /* 1.3.3 */
 };
 
 static virNetworkDriver network_driver = {

@@ -150,7 +150,8 @@ virLogDaemonNew(virLogDaemonConfigPtr config, bool privileged)
         return NULL;
     }
 
-    if (!(logd->srv = virNetServerNew(1, 1, 0, config->max_clients,
+    if (!(logd->srv = virNetServerNew("virtlogd",
+                                      1, 1, 0, config->max_clients,
                                       config->max_clients, -1, 0,
                                       NULL,
                                       virLogDaemonClientNew,
@@ -209,6 +210,7 @@ virLogDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
         goto error;
 
     if (!(logd->srv = virNetDaemonAddServerPostExec(logd->dmn,
+                                                    "virtlogd",
                                                     virLogDaemonClientNew,
                                                     virLogDaemonClientNewPostExecRestart,
                                                     virLogDaemonClientPreExecRestart,

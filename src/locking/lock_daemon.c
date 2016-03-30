@@ -160,7 +160,8 @@ virLockDaemonNew(virLockDaemonConfigPtr config, bool privileged)
         return NULL;
     }
 
-    if (!(srv = virNetServerNew(1, 1, 0, config->max_clients,
+    if (!(srv = virNetServerNew("virtlockd",
+                                1, 1, 0, config->max_clients,
                                 config->max_clients, -1, 0,
                                 NULL,
                                 virLockDaemonClientNew,
@@ -267,6 +268,7 @@ virLockDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
         goto error;
 
     if (!(srv = virNetDaemonAddServerPostExec(lockd->dmn,
+                                              "virtlockd",
                                               virLockDaemonClientNew,
                                               virLockDaemonClientNewPostExecRestart,
                                               virLockDaemonClientPreExecRestart,
@@ -649,7 +651,7 @@ struct virLockDaemonClientReleaseData {
     bool gotError;
 };
 
-static void
+static int
 virLockDaemonClientReleaseLockspace(void *payload,
                                     const void *name ATTRIBUTE_UNUSED,
                                     void *opaque)
@@ -664,6 +666,7 @@ virLockDaemonClientReleaseLockspace(void *payload,
         data->hadSomeLeases = true;
     else if (rc < 0)
         data->gotError = true;
+    return 0;
 }
 
 
@@ -1368,7 +1371,7 @@ int main(int argc, char **argv) {
             goto cleanup;
         }
 
-        srv = virNetDaemonGetServer(lockDaemon->dmn, 0);
+        srv = virNetDaemonGetServer(lockDaemon->dmn, "virtlockd");
         if ((rv = virLockDaemonSetupNetworkingSystemD(srv) < 0)) {
             ret = VIR_LOCK_DAEMON_ERR_NETWORK;
             goto cleanup;
@@ -1381,7 +1384,7 @@ int main(int argc, char **argv) {
             goto cleanup;
         }
     } else if (rv == 1) {
-        srv = virNetDaemonGetServer(lockDaemon->dmn, 0);
+        srv = virNetDaemonGetServer(lockDaemon->dmn, "virtlockd");
     }
 
     if (timeout != -1) {

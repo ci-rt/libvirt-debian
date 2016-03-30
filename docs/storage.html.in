@@ -161,7 +161,7 @@
       <li><code>qcow</code>: QEMU v1 disk image format</li>
       <li><code>qcow2</code>: QEMU v2 disk image format</li>
       <li><code>qed</code>: QEMU Enhanced Disk image format</li>
-      <li><code>vmdk</code>: VMWare disk image format</li>
+      <li><code>vmdk</code>: VMware disk image format</li>
       <li><code>vpc</code>: VirtualPC disk image format</li>
     </ul>
     <p>
@@ -755,8 +755,10 @@
 
     <h2><a name="StorageBackendZFS">ZFS pools</a></h2>
     <p>
-      This provides a pool based on the ZFS filesystem. It is currently
-      supported on FreeBSD only.
+      This provides a pool based on the ZFS filesystem. Initially it was developed
+      for FreeBSD, and <span class="since">since 1.3.2</span> experimental support
+      for <a href="http://zfsonlinux.org/">ZFS on Linux</a> version 0.6.4 or newer
+      is available.
     </p>
 
     <p>A pool could either be created manually using the <code>zpool create</code>

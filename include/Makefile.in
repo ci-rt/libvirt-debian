@@ -233,7 +233,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
-	$(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
@@ -1787,7 +1787,9 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 virincdir = $(includedir)/libvirt
 allheaders = $(wildcard $(srcdir)/libvirt/*.h)
-virinc_HEADERS = $(filter-out $(srcdir)/libvirt/libvirt-admin.h, $(allheaders))
+virinc_HEADERS = $(filter-out $(srcdir)/libvirt/libvirt-admin.h \
+	$(srcdir)/libvirt/libvirt-common.h, $(allheaders)) \
+	libvirt/libvirt-common.h
 
 # Temporarily disabled, but we need it for building
 EXTRA_DIST = libvirt/libvirt-common.h.in libvirt/libvirt-admin.h

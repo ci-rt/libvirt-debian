@@ -28,7 +28,7 @@
 
 #if defined(HAVE_SOCKETPAIR) && defined(WITH_YAJL)
 static virNetServerPtr
-testCreateServer(const char *host, int family)
+testCreateServer(const char *server_name, const char *host, int family)
 {
     virNetServerPtr srv = NULL;
     virNetServerServicePtr svc1 = NULL, svc2 = NULL;
@@ -49,7 +49,8 @@ testCreateServer(const char *host, int family)
         goto cleanup;
     }
 
-    if (!(srv = virNetServerNew(10, 50, 5, 100, 10,
+    if (!(srv = virNetServerNew(server_name,
+                                10, 50, 5, 100, 10,
                                 120, 5,
                                 mdns_group,
                                 NULL,
@@ -135,7 +136,7 @@ testCreateServer(const char *host, int family)
     goto cleanup;
 }
 
-static char *testGenerateJSON(void)
+static char *testGenerateJSON(const char *server_name)
 {
     virNetDaemonPtr dmn = NULL;
     virNetServerPtr srv = NULL;
@@ -155,9 +156,9 @@ static char *testGenerateJSON(void)
     if (!has_ipv4 && !has_ipv6)
         return NULL;
 
-    if (!(srv = testCreateServer(
-              has_ipv4 ? "127.0.0.1" : "::1",
-              has_ipv4 ? AF_INET : AF_INET6)))
+    if (!(srv = testCreateServer(server_name,
+                                 has_ipv4 ? "127.0.0.1" : "::1",
+                                 has_ipv4 ? AF_INET : AF_INET6)))
         goto cleanup;
 
     if (!(dmn = virNetDaemonNew()))
@@ -186,6 +187,7 @@ static char *testGenerateJSON(void)
 
 struct testExecRestartData {
     const char *jsonfile;
+    const char **serverNames;
     int nservers;
     bool pass;
 };
@@ -241,7 +243,7 @@ static int testExecRestart(const void *opaque)
         goto cleanup;
 
     for (i = 0; i < data->nservers; i++) {
-        if (!(srv = virNetDaemonAddServerPostExec(dmn,
+        if (!(srv = virNetDaemonAddServerPostExec(dmn, data->serverNames[i],
                                                   NULL, NULL, NULL,
                                                   NULL, NULL)))
             goto cleanup;
@@ -257,18 +259,18 @@ static int testExecRestart(const void *opaque)
     if (virtTestCompareToFile(outjsonstr, outfile) < 0)
         goto cleanup;
 
-    if (!data->pass) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", "Test should've failed");
-        goto cleanup;
-    }
-
     ret = 0;
  cleanup:
     if (ret < 0) {
-        if (!data->pass)
+        if (!data->pass) {
+            VIR_TEST_DEBUG("Got expected error: %s\n",
+                           virGetLastErrorMessage());
+            virResetLastError();
             ret = 0;
-        else
-            virDispatchError(NULL);
+        }
+    } else if (!data->pass) {
+            VIR_TEST_DEBUG("Test should have failed\n");
+            ret = -1;
     }
     VIR_FREE(infile);
     VIR_FREE(outfile);
@@ -289,6 +291,7 @@ static int
 mymain(void)
 {
     int ret = 0;
+    const char *server_names[] = { "testServer0", "testServer1" };
 
     if (virInitialize() < 0 ||
         virEventRegisterDefaultImpl() < 0) {
@@ -302,7 +305,7 @@ mymain(void)
      * numbers with 100, 101, 102, 103.
      */
     if (getenv("VIR_GENERATE_JSON")) {
-        char *json = testGenerateJSON();
+        char *json = testGenerateJSON(server_names[0]);
         if (!json)
             return EXIT_FAILURE;
 
@@ -311,26 +314,28 @@ mymain(void)
         return ret;
     }
 
-# define EXEC_RESTART_TEST_FULL(file, servers, pass)    \
-    do {                                                \
-        struct testExecRestartData data = {             \
-            file, servers, pass                         \
-        };                                              \
-        if (virtTestRun("ExecRestart " file,            \
-                        testExecRestart, &data) < 0)    \
-            ret = -1;                                   \
+# define EXEC_RESTART_TEST_FULL(file, nservers, pass)         \
+    do {                                                      \
+        struct testExecRestartData data = {                   \
+            file, server_names, nservers, pass                \
+        };                                                    \
+        if (virtTestRun("ExecRestart " file,                  \
+                        testExecRestart, &data) < 0)          \
+            ret = -1;                                         \
     } while (0)
 
-# define EXEC_RESTART_TEST(file) EXEC_RESTART_TEST_FULL(file, 1, true)
+# define EXEC_RESTART_TEST(file, N) EXEC_RESTART_TEST_FULL(file, N, true)
+# define EXEC_RESTART_TEST_FAIL(file, N) EXEC_RESTART_TEST_FULL(file, N, false)
+
 
 # ifdef WITH_AVAHI
-    EXEC_RESTART_TEST("initial");
+    EXEC_RESTART_TEST("initial", 1);
 # endif
-    EXEC_RESTART_TEST("initial-nomdns");
-    EXEC_RESTART_TEST("anon-clients");
-
-    EXEC_RESTART_TEST_FULL("anon-clients", 2, false);
-    EXEC_RESTART_TEST_FULL("admin-nomdns", 2, true);
+    EXEC_RESTART_TEST("initial-nomdns", 1);
+    EXEC_RESTART_TEST("anon-clients", 1);
+    EXEC_RESTART_TEST("admin-nomdns", 2);
+    EXEC_RESTART_TEST("admin-server-names", 2);
+    EXEC_RESTART_TEST_FAIL("anon-clients", 2);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

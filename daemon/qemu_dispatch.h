@@ -105,7 +105,7 @@ static int qemuDispatchDomainAgentCommand(
 
     if (VIR_ALLOC(result_p) < 0)
         goto cleanup;
-    
+
     if (VIR_STRDUP(*result_p, result) < 0)
         goto cleanup;
 

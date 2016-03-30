@@ -191,6 +191,11 @@ typedef int (*qemuMonitorDomainMigrationStatusCallback)(qemuMonitorPtr mon,
                                                         int status,
                                                         void *opaque);
 
+typedef int (*qemuMonitorDomainMigrationPassCallback)(qemuMonitorPtr mon,
+                                                      virDomainObjPtr vm,
+                                                      int pass,
+                                                      void *opaque);
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -220,6 +225,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainSerialChangeCallback domainSerialChange;
     qemuMonitorDomainSpiceMigratedCallback domainSpiceMigrated;
     qemuMonitorDomainMigrationStatusCallback domainMigrationStatus;
+    qemuMonitorDomainMigrationPassCallback domainMigrationPass;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -238,6 +244,8 @@ qemuMonitorPtr qemuMonitorOpenFD(virDomainObjPtr vm,
                                  void *opaque)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
+void qemuMonitorUnregister(qemuMonitorPtr mon)
+    ATTRIBUTE_NONNULL(1);
 void qemuMonitorClose(qemuMonitorPtr mon);
 
 virErrorPtr qemuMonitorLastError(qemuMonitorPtr mon);
@@ -258,6 +266,10 @@ virJSONValuePtr qemuMonitorGetOptions(qemuMonitorPtr mon)
 void qemuMonitorSetOptions(qemuMonitorPtr mon, virJSONValuePtr options)
     ATTRIBUTE_NONNULL(1);
 int qemuMonitorUpdateVideoMemorySize(qemuMonitorPtr mon,
+                                     virDomainVideoDefPtr video,
+                                     const char *videoName)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+int qemuMonitorUpdateVideoVram64Size(qemuMonitorPtr mon,
                                      virDomainVideoDefPtr video,
                                      const char *videoName)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
@@ -323,6 +335,8 @@ int qemuMonitorEmitSerialChange(qemuMonitorPtr mon,
 int qemuMonitorEmitSpiceMigrated(qemuMonitorPtr mon);
 int qemuMonitorEmitMigrationStatus(qemuMonitorPtr mon,
                                    int status);
+int qemuMonitorEmitMigrationPass(qemuMonitorPtr mon,
+                                 int pass);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -459,6 +473,7 @@ typedef enum {
     QEMU_MONITOR_MIGRATION_STATUS_INACTIVE,
     QEMU_MONITOR_MIGRATION_STATUS_SETUP,
     QEMU_MONITOR_MIGRATION_STATUS_ACTIVE,
+    QEMU_MONITOR_MIGRATION_STATUS_POSTCOPY,
     QEMU_MONITOR_MIGRATION_STATUS_COMPLETED,
     QEMU_MONITOR_MIGRATION_STATUS_ERROR,
     QEMU_MONITOR_MIGRATION_STATUS_CANCELLING,
@@ -517,6 +532,7 @@ typedef enum {
     QEMU_MONITOR_MIGRATION_CAPS_AUTO_CONVERGE,
     QEMU_MONITOR_MIGRATION_CAPS_RDMA_PIN_ALL,
     QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
+    QEMU_MONITOR_MIGRATION_CAPS_POSTCOPY,
 
     QEMU_MONITOR_MIGRATION_CAPS_LAST
 } qemuMonitorMigrationCaps;
@@ -551,23 +567,6 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
 int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
                                 unsigned int flags,
                                 const char * const *argv);
-
-/* In general, BS is the smallest fundamental block size we can use to
- * access a block device; everything must be aligned to a multiple of
- * this.  Linux generally supports a BS as small as 512, but with
- * newer disks with 4k sectors, performance is better if we guarantee
- * alignment to the sector size.  However, operating on BS-sized
- * blocks is painfully slow, so we also have a transfer size that is
- * larger but only aligned to the smaller block size.
- */
-# define QEMU_MONITOR_MIGRATE_TO_FILE_BS (1024llu * 4)
-# define QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE (1024llu * 1024)
-
-int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
-                             unsigned int flags,
-                             const char * const *argv,
-                             const char *target,
-                             unsigned long long offset);
 
 int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
                              unsigned int flags,
@@ -674,12 +673,6 @@ int qemuMonitorGetChardevInfo(qemuMonitorPtr mon,
 int qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
                                        const char *bus,
                                        virDevicePCIAddress *guestAddr);
-
-int qemuMonitorAttachDrive(qemuMonitorPtr mon,
-                           const char *drivestr,
-                           virDevicePCIAddress *controllerAddr,
-                           virDomainDeviceDriveAddress *driveAddr);
-
 
 typedef struct _qemuMonitorPCIAddress qemuMonitorPCIAddress;
 struct _qemuMonitorPCIAddress {
@@ -935,17 +928,6 @@ int qemuMonitorGetMemoryDeviceInfo(qemuMonitorPtr mon,
 int qemuMonitorMigrateIncoming(qemuMonitorPtr mon,
                                const char *uri);
 
-/**
- * When running two dd process and using <> redirection, we need a
- * shell that will not truncate files.  These two strings serve that
- * purpose.
- */
-# ifdef VIR_WRAPPER_SHELL
-#  define VIR_WRAPPER_SHELL_PREFIX VIR_WRAPPER_SHELL " -c '"
-#  define VIR_WRAPPER_SHELL_SUFFIX "'"
-# else
-#  define VIR_WRAPPER_SHELL_PREFIX /* nothing */
-#  define VIR_WRAPPER_SHELL_SUFFIX /* nothing */
-# endif
+int qemuMonitorMigrateStartPostCopy(qemuMonitorPtr mon);
 
 #endif /* QEMU_MONITOR_H */

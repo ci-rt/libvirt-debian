@@ -161,13 +161,14 @@ VIR_ONCE_GLOBAL_INIT(qemuMonitor)
 VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               QEMU_MONITOR_MIGRATION_STATUS_LAST,
               "inactive", "setup",
-              "active",
+              "active", "postcopy-active",
               "completed", "failed",
               "cancelling", "cancelled")
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
-              "xbzrle", "auto-converge", "rdma-pin-all", "events")
+              "xbzrle", "auto-converge", "rdma-pin-all", "events",
+              "postcopy-ram")
 
 VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
@@ -915,6 +916,15 @@ qemuMonitorOpenFD(virDomainObjPtr vm,
 
 
 void
+qemuMonitorUnregister(qemuMonitorPtr mon)
+{
+    if (mon->watch) {
+        virEventRemoveHandle(mon->watch);
+        mon->watch = 0;
+    }
+}
+
+void
 qemuMonitorClose(qemuMonitorPtr mon)
 {
     if (!mon)
@@ -927,10 +937,7 @@ qemuMonitorClose(qemuMonitorPtr mon)
     qemuMonitorSetDomainLog(mon, NULL, NULL, NULL);
 
     if (mon->fd >= 0) {
-        if (mon->watch) {
-            virEventRemoveHandle(mon->watch);
-            mon->watch = 0;
-        }
+        qemuMonitorUnregister(mon);
         VIR_FORCE_CLOSE(mon->fd);
     }
 
@@ -1140,6 +1147,41 @@ qemuMonitorUpdateVideoMemorySize(qemuMonitorPtr mon,
         }
 
         ret = qemuMonitorJSONUpdateVideoMemorySize(mon, video, path);
+        VIR_FREE(path);
+        return ret;
+    }
+
+    return 0;
+}
+
+
+/**
+ * To update video vram64 size in status XML we need to load correct value from
+ * QEMU.  This is supported only with JSON monitor.
+ *
+ * Returns 0 on success, -1 on failure and sets proper error message.
+ */
+int
+qemuMonitorUpdateVideoVram64Size(qemuMonitorPtr mon,
+                                 virDomainVideoDefPtr video,
+                                 const char *videoName)
+{
+    int ret = -1;
+    char *path = NULL;
+
+    QEMU_CHECK_MONITOR(mon);
+
+    if (mon->json) {
+        ret = qemuMonitorJSONFindLinkPath(mon, videoName, &path);
+        if (ret < 0) {
+            if (ret == -2)
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to find QOM Object path for "
+                                 "device '%s'"), videoName);
+            return -1;
+        }
+
+        ret = qemuMonitorJSONUpdateVideoVram64Size(mon, video, path);
         VIR_FREE(path);
         return ret;
     }
@@ -1488,6 +1530,19 @@ qemuMonitorEmitMigrationStatus(qemuMonitorPtr mon,
               mon, NULLSTR(qemuMonitorMigrationStatusTypeToString(status)));
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainMigrationStatus, mon->vm, status);
+
+    return ret;
+}
+
+
+int
+qemuMonitorEmitMigrationPass(qemuMonitorPtr mon,
+                             int pass)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p, pass=%d", mon, pass);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainMigrationPass, mon->vm, pass);
 
     return ret;
 }
@@ -2200,67 +2255,6 @@ qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorMigrateToFile(qemuMonitorPtr mon,
-                         unsigned int flags,
-                         const char * const *argv,
-                         const char *target,
-                         unsigned long long offset)
-{
-    char *argstr;
-    char *dest = NULL;
-    int ret = -1;
-    char *safe_target = NULL;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    VIR_DEBUG("argv=%p target=%s offset=%llu flags=%x",
-              argv, target, offset, flags);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (offset % QEMU_MONITOR_MIGRATE_TO_FILE_BS) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("file offset must be a multiple of %llu"),
-                       QEMU_MONITOR_MIGRATE_TO_FILE_BS);
-        return -1;
-    }
-
-    argstr = virArgvToString(argv);
-    if (!argstr)
-        goto cleanup;
-
-    /* Migrate to file */
-    virBufferEscapeShell(&buf, target);
-    if (virBufferCheckError(&buf) < 0)
-        goto cleanup;
-    safe_target = virBufferContentAndReset(&buf);
-
-    /* Two dd processes, sharing the same stdout, are necessary to
-     * allow starting at an alignment of 512, but without wasting
-     * padding to get to the larger alignment useful for speed.  Use
-     * <> redirection to avoid truncating a regular file.  */
-    if (virAsprintf(&dest, "exec:" VIR_WRAPPER_SHELL_PREFIX "%s | "
-                    "{ dd bs=%llu seek=%llu if=/dev/null && "
-                    "dd ibs=%llu obs=%llu; } 1<>%s" VIR_WRAPPER_SHELL_SUFFIX,
-                    argstr, QEMU_MONITOR_MIGRATE_TO_FILE_BS,
-                    offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS,
-                    QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
-                    QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
-                    safe_target) < 0)
-        goto cleanup;
-
-    if (mon->json)
-        ret = qemuMonitorJSONMigrate(mon, flags, dest);
-    else
-        ret = qemuMonitorTextMigrate(mon, flags, dest);
-
- cleanup:
-    VIR_FREE(safe_target);
-    VIR_FREE(argstr);
-    VIR_FREE(dest);
-    return ret;
-}
-
-
-int
 qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
                          unsigned int flags,
                          const char *unixfile)
@@ -2789,22 +2783,6 @@ qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorAttachDrive(qemuMonitorPtr mon,
-                       const char *drivestr,
-                       virDevicePCIAddress *controllerAddr,
-                       virDomainDeviceDriveAddress *driveAddr)
-{
-    VIR_DEBUG("drivestr=%s domain=%d bus=%d slot=%d function=%d",
-              drivestr, controllerAddr->domain, controllerAddr->bus,
-              controllerAddr->slot, controllerAddr->function);
-
-    QEMU_CHECK_MONITOR_JSON(mon);
-
-    return qemuMonitorTextAttachDrive(mon, drivestr, controllerAddr, driveAddr);
-}
-
-
-int
 qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
                               qemuMonitorPCIAddress **addrs)
 {
@@ -2819,6 +2797,13 @@ qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
 }
 
 
+/**
+ * qemuMonitorDriveDel:
+ * @mon: monitor object
+ * @drivestr: identifier of drive to delete.
+ *
+ * Attempts to remove a host drive.
+ * Returns 1 if unsupported, 0 if ok, and -1 on other failure */
 int
 qemuMonitorDriveDel(qemuMonitorPtr mon,
                     const char *drivestr)
@@ -2827,10 +2812,8 @@ qemuMonitorDriveDel(qemuMonitorPtr mon,
 
     QEMU_CHECK_MONITOR(mon);
 
-    if (mon->json)
-        return qemuMonitorJSONDriveDel(mon, drivestr);
-    else
-        return qemuMonitorTextDriveDel(mon, drivestr);
+    /* there won't be a direct replacement for drive_del in QMP */
+    return qemuMonitorTextDriveDel(mon, drivestr);
 }
 
 
@@ -2933,10 +2916,8 @@ qemuMonitorAddDrive(qemuMonitorPtr mon,
 
     QEMU_CHECK_MONITOR(mon);
 
-    if (mon->json)
-        return qemuMonitorJSONAddDrive(mon, drivestr);
-    else
-        return qemuMonitorTextAddDrive(mon, drivestr);
+    /* there won't ever be a direct QMP replacement for this function */
+    return qemuMonitorTextAddDrive(mon, drivestr);
 }
 
 
@@ -3803,4 +3784,15 @@ qemuMonitorMigrateIncoming(qemuMonitorPtr mon,
     QEMU_CHECK_MONITOR_JSON(mon);
 
     return qemuMonitorJSONMigrateIncoming(mon, uri);
+}
+
+
+int
+qemuMonitorMigrateStartPostCopy(qemuMonitorPtr mon)
+{
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_CHECK_MONITOR_JSON(mon);
+
+    return qemuMonitorJSONMigrateStartPostCopy(mon);
 }

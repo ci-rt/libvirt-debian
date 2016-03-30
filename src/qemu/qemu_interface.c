@@ -1,6 +1,7 @@
 /*
  * qemu_interface.c: QEMU interface management
  *
+ * Copyright (C) 2015-2016 Red Hat, Inc.
  * Copyright IBM Corp. 2014
  *
  * This library is free software; you can redistribute it and/or
@@ -24,12 +25,25 @@
 #include <config.h>
 
 #include "network_conf.h"
+#include "domain_audit.h"
+#include "domain_nwfilter.h"
 #include "qemu_interface.h"
+#include "passfd.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virstring.h"
 #include "virnetdev.h"
 #include "virnetdevtap.h"
 #include "virnetdevmacvlan.h"
 #include "virnetdevbridge.h"
 #include "virnetdevvportprofile.h"
+
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#define VIR_FROM_THIS VIR_FROM_QEMU
+
+VIR_LOG_INIT("qemu.qemu_interface");
 
 /**
  * qemuInterfaceStartDevice:
@@ -218,4 +232,486 @@ qemuInterfaceStopDevices(virDomainDefPtr def)
             return -1;
     }
     return 0;
+}
+
+
+/**
+ * qemuInterfaceDirectConnect:
+ * @def: the definition of the VM (needed by 802.1Qbh and audit)
+ * @driver: pointer to the driver instance
+ * @net: pointer to the VM's interface description with direct device type
+ * @tapfd: array of file descriptor return value for the new device
+ * @tapfdSize: number of file descriptors in @tapfd
+ * @vmop: VM operation type
+ *
+ * Returns 0 on success or -1 in case of error.
+ */
+int
+qemuInterfaceDirectConnect(virDomainDefPtr def,
+                           virQEMUDriverPtr driver,
+                           virDomainNetDefPtr net,
+                           int *tapfd,
+                           size_t tapfdSize,
+                           virNetDevVPortProfileOp vmop)
+{
+    int ret = -1;
+    char *res_ifname = NULL;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    unsigned int macvlan_create_flags = VIR_NETDEV_MACVLAN_CREATE_WITH_TAP;
+
+    if (net->model && STREQ(net->model, "virtio"))
+        macvlan_create_flags |= VIR_NETDEV_MACVLAN_VNET_HDR;
+
+    if (virNetDevMacVLanCreateWithVPortProfile(net->ifname,
+                                               &net->mac,
+                                               virDomainNetGetActualDirectDev(net),
+                                               virDomainNetGetActualDirectMode(net),
+                                               def->uuid,
+                                               virDomainNetGetActualVirtPortProfile(net),
+                                               &res_ifname,
+                                               vmop, cfg->stateDir,
+                                               tapfd, tapfdSize,
+                                               macvlan_create_flags) < 0)
+        goto cleanup;
+
+    virDomainAuditNetDevice(def, net, res_ifname, true);
+    VIR_FREE(net->ifname);
+    net->ifname = res_ifname;
+    ret = 0;
+
+ cleanup:
+    if (ret < 0) {
+        while (tapfdSize--)
+            VIR_FORCE_CLOSE(tapfd[tapfdSize]);
+    }
+    virObjectUnref(cfg);
+    return ret;
+}
+
+
+/**
+ * qemuCreateInBridgePortWithHelper:
+ * @cfg: the configuration object in which the helper name is looked up
+ * @brname: the bridge name
+ * @ifname: the returned interface name
+ * @macaddr: the returned MAC address
+ * @tapfd: file descriptor return value for the new tap device
+ * @flags: OR of virNetDevTapCreateFlags:
+
+ *   VIR_NETDEV_TAP_CREATE_VNET_HDR
+ *     - Enable IFF_VNET_HDR on the tap device
+ *
+ * This function creates a new tap device on a bridge using an external
+ * helper.  The final name for the bridge will be stored in @ifname.
+ *
+ * Returns 0 in case of success or -1 on failure
+ */
+static int
+qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
+                                 const char *brname,
+                                 char **ifname,
+                                 int *tapfd,
+                                 unsigned int flags)
+{
+    virCommandPtr cmd;
+    char *errbuf = NULL, *cmdstr = NULL;
+    int pair[2] = { -1, -1 };
+
+    if ((flags & ~VIR_NETDEV_TAP_CREATE_VNET_HDR) != VIR_NETDEV_TAP_CREATE_IFUP)
+        return -1;
+
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) < 0) {
+        virReportSystemError(errno, "%s", _("failed to create socket"));
+        return -1;
+    }
+
+    if (!virFileIsExecutable(cfg->bridgeHelperName)) {
+        virReportSystemError(errno, _("'%s' is not a suitable bridge helper"),
+                             cfg->bridgeHelperName);
+        return -1;
+    }
+
+    cmd = virCommandNew(cfg->bridgeHelperName);
+    if (flags & VIR_NETDEV_TAP_CREATE_VNET_HDR)
+        virCommandAddArgFormat(cmd, "--use-vnet");
+    virCommandAddArgFormat(cmd, "--br=%s", brname);
+    virCommandAddArgFormat(cmd, "--fd=%d", pair[1]);
+    virCommandSetErrorBuffer(cmd, &errbuf);
+    virCommandDoAsyncIO(cmd);
+    virCommandPassFD(cmd, pair[1],
+                     VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+    virCommandClearCaps(cmd);
+#ifdef CAP_NET_ADMIN
+    virCommandAllowCap(cmd, CAP_NET_ADMIN);
+#endif
+    if (virCommandRunAsync(cmd, NULL) < 0) {
+        *tapfd = -1;
+        goto cleanup;
+    }
+
+    do {
+        *tapfd = recvfd(pair[0], 0);
+    } while (*tapfd < 0 && errno == EINTR);
+
+    if (*tapfd < 0) {
+        char ebuf[1024];
+        char *errstr = NULL;
+
+        if (!(cmdstr = virCommandToString(cmd)))
+            goto cleanup;
+        virCommandAbort(cmd);
+
+        if (errbuf && *errbuf &&
+            virAsprintf(&errstr, "\nstderr=%s", errbuf) < 0)
+            goto cleanup;
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+            _("%s: failed to communicate with bridge helper: %s%s"),
+            cmdstr, virStrerror(errno, ebuf, sizeof(ebuf)),
+            errstr ? errstr : "");
+        VIR_FREE(errstr);
+        goto cleanup;
+    }
+
+    if (virNetDevTapGetName(*tapfd, ifname) < 0 ||
+        virCommandWait(cmd, NULL) < 0) {
+        VIR_FORCE_CLOSE(*tapfd);
+        *tapfd = -1;
+    }
+
+ cleanup:
+    VIR_FREE(cmdstr);
+    VIR_FREE(errbuf);
+    virCommandFree(cmd);
+    VIR_FORCE_CLOSE(pair[0]);
+    return *tapfd < 0 ? -1 : 0;
+}
+
+/**
+ * qemuExecuteEthernetScript:
+ * @ifname: the interface name
+ * @script: the script name
+ *
+ * This function executes script for new tap device created by libvirt.
+ * Returns 0 in case of success or -1 on failure
+ */
+static int
+qemuExecuteEthernetScript(const char *ifname, const char *script)
+{
+        virCommandPtr cmd;
+        int ret;
+
+        cmd = virCommandNew(script);
+        virCommandAddArgFormat(cmd, "%s", ifname);
+        virCommandClearCaps(cmd);
+#ifdef CAP_NET_ADMIN
+        virCommandAllowCap(cmd, CAP_NET_ADMIN);
+#endif
+        virCommandAddEnvPassCommon(cmd);
+
+        ret = virCommandRun(cmd, NULL);
+
+        virCommandFree(cmd);
+        return ret;
+}
+
+/* qemuInterfaceEthernetConnect:
+ * @def: the definition of the VM
+ * @driver: qemu driver data
+ * @net: pointer to the VM's interface description
+ * @tapfd: array of file descriptor return value for the new device
+ * @tapfdsize: number of file descriptors in @tapfd
+ *
+ * Called *only* called if actualType is VIR_DOMAIN_NET_TYPE_ETHERNET
+ * (i.e. if the connection is made with a tap device)
+ */
+int
+qemuInterfaceEthernetConnect(virDomainDefPtr def,
+                           virQEMUDriverPtr driver,
+                           virDomainNetDefPtr net,
+                           int *tapfd,
+                           size_t tapfdSize)
+{
+    virMacAddr tapmac;
+    int ret = -1;
+    unsigned int tap_create_flags = VIR_NETDEV_TAP_CREATE_IFUP;
+    bool template_ifname = false;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    const char *tunpath = "/dev/net/tun";
+
+    if (net->backend.tap) {
+        tunpath = net->backend.tap;
+        if (!virQEMUDriverIsPrivileged(driver)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cannot use custom tap device in session mode"));
+            goto cleanup;
+        }
+    }
+
+    if (!net->ifname ||
+        STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
+        strchr(net->ifname, '%')) {
+        VIR_FREE(net->ifname);
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0)
+            goto cleanup;
+        /* avoid exposing vnet%d in getXMLDesc or error outputs */
+        template_ifname = true;
+    }
+
+    if (net->model && STREQ(net->model, "virtio"))
+        tap_create_flags |= VIR_NETDEV_TAP_CREATE_VNET_HDR;
+
+    if (virNetDevTapCreate(&net->ifname, tunpath, tapfd, tapfdSize,
+                           tap_create_flags) < 0) {
+        virDomainAuditNetDevice(def, net, tunpath, false);
+        goto cleanup;
+    }
+
+    virDomainAuditNetDevice(def, net, tunpath, true);
+    virMacAddrSet(&tapmac, &net->mac);
+    tapmac.addr[0] = 0xFE;
+
+    if (virNetDevSetMAC(net->ifname, &tapmac) < 0)
+        goto cleanup;
+
+    if (net->script &&
+        qemuExecuteEthernetScript(net->ifname, net->script) < 0)
+        goto cleanup;
+
+    if (cfg->macFilter &&
+        ebtablesAddForwardAllowIn(driver->ebtables,
+                                  net->ifname,
+                                  &net->mac) < 0)
+        goto cleanup;
+
+    if (net->filter &&
+        virDomainConfNWFilterInstantiate(def->uuid, net) < 0) {
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (ret < 0) {
+        size_t i;
+        for (i = 0; i < tapfdSize && tapfd[i] >= 0; i++)
+            VIR_FORCE_CLOSE(tapfd[i]);
+        if (template_ifname)
+            VIR_FREE(net->ifname);
+    }
+    virObjectUnref(cfg);
+
+    return ret;
+}
+
+
+/* qemuInterfaceBridgeConnect:
+ * @def: the definition of the VM
+ * @driver: qemu driver data
+ * @net: pointer to the VM's interface description
+ * @tapfd: array of file descriptor return value for the new device
+ * @tapfdsize: number of file descriptors in @tapfd
+ *
+ * Called *only* called if actualType is VIR_DOMAIN_NET_TYPE_NETWORK or
+ * VIR_DOMAIN_NET_TYPE_BRIDGE (i.e. if the connection is made with a tap
+ * device connecting to a bridge device)
+ */
+int
+qemuInterfaceBridgeConnect(virDomainDefPtr def,
+                           virQEMUDriverPtr driver,
+                           virDomainNetDefPtr net,
+                           int *tapfd,
+                           size_t *tapfdSize)
+{
+    const char *brname;
+    int ret = -1;
+    unsigned int tap_create_flags = VIR_NETDEV_TAP_CREATE_IFUP;
+    bool template_ifname = false;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    const char *tunpath = "/dev/net/tun";
+
+    if (net->backend.tap) {
+        tunpath = net->backend.tap;
+        if (!(virQEMUDriverIsPrivileged(driver))) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cannot use custom tap device in session mode"));
+            goto cleanup;
+        }
+    }
+
+    if (!(brname = virDomainNetGetActualBridgeName(net))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Missing bridge name"));
+        goto cleanup;
+    }
+
+    if (!net->ifname ||
+        STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
+        strchr(net->ifname, '%')) {
+        VIR_FREE(net->ifname);
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0)
+            goto cleanup;
+        /* avoid exposing vnet%d in getXMLDesc or error outputs */
+        template_ifname = true;
+    }
+
+    if (net->model && STREQ(net->model, "virtio"))
+        tap_create_flags |= VIR_NETDEV_TAP_CREATE_VNET_HDR;
+
+    if (virQEMUDriverIsPrivileged(driver)) {
+        if (virNetDevTapCreateInBridgePort(brname, &net->ifname, &net->mac,
+                                           def->uuid, tunpath, tapfd, *tapfdSize,
+                                           virDomainNetGetActualVirtPortProfile(net),
+                                           virDomainNetGetActualVlan(net),
+                                           tap_create_flags) < 0) {
+            virDomainAuditNetDevice(def, net, tunpath, false);
+            goto cleanup;
+        }
+        if (virDomainNetGetActualBridgeMACTableManager(net)
+            == VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_LIBVIRT) {
+            /* libvirt is managing the FDB of the bridge this device
+             * is attaching to, so we need to turn off learning and
+             * unicast_flood on the device to prevent the kernel from
+             * adding any FDB entries for it. We will add add an fdb
+             * entry ourselves (during qemuInterfaceStartDevices(),
+             * using the MAC address from the interface config.
+             */
+            if (virNetDevBridgePortSetLearning(brname, net->ifname, false) < 0)
+                goto cleanup;
+            if (virNetDevBridgePortSetUnicastFlood(brname, net->ifname, false) < 0)
+                goto cleanup;
+        }
+    } else {
+        if (qemuCreateInBridgePortWithHelper(cfg, brname,
+                                             &net->ifname,
+                                             tapfd, tap_create_flags) < 0) {
+            virDomainAuditNetDevice(def, net, tunpath, false);
+            goto cleanup;
+        }
+        /* qemuCreateInBridgePortWithHelper can only create a single FD */
+        if (*tapfdSize > 1) {
+            VIR_WARN("Ignoring multiqueue network request");
+            *tapfdSize = 1;
+        }
+    }
+
+    virDomainAuditNetDevice(def, net, tunpath, true);
+
+    if (cfg->macFilter &&
+        ebtablesAddForwardAllowIn(driver->ebtables,
+                                  net->ifname,
+                                  &net->mac) < 0)
+        goto cleanup;
+
+    if (net->filter &&
+        virDomainConfNWFilterInstantiate(def->uuid, net) < 0) {
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (ret < 0) {
+        size_t i;
+        for (i = 0; i < *tapfdSize && tapfd[i] >= 0; i++)
+            VIR_FORCE_CLOSE(tapfd[i]);
+        if (template_ifname)
+            VIR_FREE(net->ifname);
+    }
+    virObjectUnref(cfg);
+
+    return ret;
+}
+
+
+/**
+ * qemuInterfaceOpenVhostNet:
+ * @def: domain definition
+ * @net: network definition
+ * @qemuCaps: qemu binary capabilities
+ * @vhostfd: array of opened vhost-net device
+ * @vhostfdSize: number of file descriptors in @vhostfd array
+ *
+ * Open vhost-net, multiple times - if requested.
+ * In case, no vhost-net is needed, @vhostfdSize is set to 0
+ * and 0 is returned.
+ *
+ * Returns: 0 on success
+ *         -1 on failure
+ */
+int
+qemuInterfaceOpenVhostNet(virDomainDefPtr def,
+                          virDomainNetDefPtr net,
+                          virQEMUCapsPtr qemuCaps,
+                          int *vhostfd,
+                          size_t *vhostfdSize)
+{
+    size_t i;
+    const char *vhostnet_path = net->backend.vhost;
+
+    if (!vhostnet_path)
+        vhostnet_path = "/dev/vhost-net";
+
+    /* If running a plain QEMU guest, or
+     * if the config says explicitly to not use vhost, return now*/
+    if (def->virtType != VIR_DOMAIN_VIRT_KVM ||
+        net->driver.virtio.name == VIR_DOMAIN_NET_BACKEND_TYPE_QEMU) {
+        *vhostfdSize = 0;
+        return 0;
+    }
+
+    /* If qemu doesn't support vhost-net mode (including the -netdev command
+     * option), don't try to open the device.
+     */
+    if (!(virQEMUCapsGet(qemuCaps, QEMU_CAPS_VHOST_NET) &&
+          qemuDomainSupportsNetdev(def, qemuCaps, net))) {
+        if (net->driver.virtio.name == VIR_DOMAIN_NET_BACKEND_TYPE_VHOST) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           "%s", _("vhost-net is not supported with "
+                                   "this QEMU binary"));
+            return -1;
+        }
+        *vhostfdSize = 0;
+        return 0;
+    }
+
+    /* If the nic model isn't virtio, don't try to open. */
+    if (!(net->model && STREQ(net->model, "virtio"))) {
+        if (net->driver.virtio.name == VIR_DOMAIN_NET_BACKEND_TYPE_VHOST) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           "%s", _("vhost-net is only supported for "
+                                   "virtio network interfaces"));
+            return -1;
+        }
+        *vhostfdSize = 0;
+        return 0;
+    }
+
+    for (i = 0; i < *vhostfdSize; i++) {
+        vhostfd[i] = open(vhostnet_path, O_RDWR);
+
+        /* If the config says explicitly to use vhost and we couldn't open it,
+         * report an error.
+         */
+        if (vhostfd[i] < 0) {
+            virDomainAuditNetDevice(def, net, vhostnet_path, false);
+            if (net->driver.virtio.name == VIR_DOMAIN_NET_BACKEND_TYPE_VHOST) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               "%s", _("vhost-net was requested for an interface, "
+                                       "but is unavailable"));
+                goto error;
+            }
+            VIR_WARN("Unable to open vhost-net. Opened so far %zu, requested %zu",
+                     i, *vhostfdSize);
+            *vhostfdSize = i;
+            break;
+        }
+    }
+    virDomainAuditNetDevice(def, net, vhostnet_path, *vhostfdSize);
+    return 0;
+
+ error:
+    while (i--)
+        VIR_FORCE_CLOSE(vhostfd[i]);
+
+    return -1;
 }

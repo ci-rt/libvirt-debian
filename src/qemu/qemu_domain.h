@@ -1,7 +1,7 @@
 /*
  * qemu_domain.h: QEMU domain private state
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -26,6 +26,7 @@
 
 # include "virthread.h"
 # include "vircgroup.h"
+# include "virperf.h"
 # include "domain_addr.h"
 # include "domain_conf.h"
 # include "snapshot_conf.h"
@@ -35,6 +36,7 @@
 # include "qemu_capabilities.h"
 # include "virchrdev.h"
 # include "virobject.h"
+# include "logging/log_manager.h"
 
 # define QEMU_DOMAIN_FORMAT_LIVE_FLAGS      \
     (VIR_DOMAIN_XML_SECURE |                \
@@ -137,7 +139,10 @@ struct qemuDomainJobObj {
     qemuDomainJobInfoPtr current;       /* async job progress data */
     qemuDomainJobInfoPtr completed;     /* statistics data of a recently completed job */
     bool abortJob;                      /* abort of the job requested */
+    bool spiceMigration;                /* we asked for spice migration and we
+                                         * should wait for it to finish */
     bool spiceMigrated;                 /* spice migration completed */
+    bool postcopyEnabled;               /* post-copy migration was enabled */
 };
 
 typedef void (*qemuDomainCleanupCallback)(virQEMUDriverPtr driver,
@@ -191,6 +196,8 @@ struct _qemuDomainObjPrivate {
 
     virCgroupPtr cgroup;
 
+    virPerfPtr perf;
+
     virCond unplugFinished; /* signals that unpluggingDevice was unplugged */
     const char *unpluggingDevice; /* alias of the device that is being unplugged */
     char **qemuDevices; /* NULL-terminated list of devices aliases known to QEMU */
@@ -203,6 +210,11 @@ struct _qemuDomainObjPrivate {
 
     bool signalIOError; /* true if the domain condition should be signalled on
                            I/O error */
+    bool signalStop; /* true if the domain condition should be signalled on
+                        QMP STOP event */
+    char *machineName;
+    char *libDir;            /* base path for per-domain files */
+    char *channelTargetDir;  /* base path for per-domain channel targets */
 };
 
 # define QEMU_DOMAIN_DISK_PRIVATE(disk)	\
@@ -233,6 +245,7 @@ typedef enum {
     QEMU_PROCESS_EVENT_NIC_RX_FILTER_CHANGED,
     QEMU_PROCESS_EVENT_SERIAL_CHANGED,
     QEMU_PROCESS_EVENT_BLOCK_JOB,
+    QEMU_PROCESS_EVENT_MONITOR_EOF,
 
     QEMU_PROCESS_EVENT_LAST
 } qemuProcessEventType;
@@ -257,6 +270,8 @@ void qemuDomainEventFlush(int timer, void *opaque);
 
 void qemuDomainEventQueue(virQEMUDriverPtr driver,
                           virObjectEventPtr event);
+void qemuDomainEventEmitJobCompleted(virQEMUDriverPtr driver,
+                                     virDomainObjPtr vm);
 
 int qemuDomainObjBeginJob(virQEMUDriverPtr driver,
                           virDomainObjPtr obj,
@@ -265,6 +280,10 @@ int qemuDomainObjBeginJob(virQEMUDriverPtr driver,
 int qemuDomainObjBeginAsyncJob(virQEMUDriverPtr driver,
                                virDomainObjPtr obj,
                                qemuDomainAsyncJob asyncJob)
+    ATTRIBUTE_RETURN_CHECK;
+int qemuDomainObjBeginNestedJob(virQEMUDriverPtr driver,
+                                virDomainObjPtr obj,
+                                qemuDomainAsyncJob asyncJob)
     ATTRIBUTE_RETURN_CHECK;
 
 void qemuDomainObjEndJob(virQEMUDriverPtr driver,
@@ -371,10 +390,13 @@ void qemuDomainLogContextMarkPosition(qemuDomainLogContextPtr ctxt);
 void qemuDomainLogContextRef(qemuDomainLogContextPtr ctxt);
 void qemuDomainLogContextFree(qemuDomainLogContextPtr ctxt);
 
+virLogManagerPtr qemuDomainLogContextGetManager(qemuDomainLogContextPtr ctxt);
+
 const char *qemuFindQemuImgBinary(virQEMUDriverPtr driver);
 
 int qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
                                     virDomainSnapshotObjPtr snapshot,
+                                    virCapsPtr caps,
                                     char *snapshotDir);
 
 int qemuDomainSnapshotForEachQcow2(virQEMUDriverPtr driver,
@@ -399,9 +421,9 @@ struct _virQEMUSnapRemove {
     bool current;
 };
 
-void qemuDomainSnapshotDiscardAll(void *payload,
-                                  const void *name,
-                                  void *data);
+int qemuDomainSnapshotDiscardAll(void *payload,
+                                 const void *name,
+                                 void *data);
 
 int qemuDomainSnapshotDiscardAllMetadata(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm);
@@ -437,6 +459,14 @@ int qemuDomainStorageFileInit(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virStorageSourcePtr src);
 char *qemuDomainStorageAlias(const char *device, int depth);
+
+void qemuDomainDiskChainElementRevoke(virQEMUDriverPtr driver,
+                                      virDomainObjPtr vm,
+                                      virStorageSourcePtr elem);
+int qemuDomainDiskChainElementPrepare(virQEMUDriverPtr driver,
+                                      virDomainObjPtr vm,
+                                      virStorageSourcePtr elem,
+                                      bool readonly);
 
 int qemuDomainCleanupAdd(virDomainObjPtr vm,
                          qemuDomainCleanupCallback cb);
@@ -508,5 +538,26 @@ int qemuDomainDefValidateMemoryHotplug(const virDomainDef *def,
 
 bool qemuDomainHasVcpuPids(virDomainObjPtr vm);
 pid_t qemuDomainGetVcpuPid(virDomainObjPtr vm, unsigned int vcpu);
+int qemuDomainDetectVcpuPids(virQEMUDriverPtr driver, virDomainObjPtr vm,
+                             int asyncJob);
+
+bool qemuDomainSupportsNicdev(virDomainDefPtr def,
+                              virQEMUCapsPtr qemuCaps,
+                              virDomainNetDefPtr net);
+
+bool qemuDomainSupportsNetdev(virDomainDefPtr def,
+                              virQEMUCapsPtr qemuCaps,
+                              virDomainNetDefPtr net);
+
+int qemuDomainNetVLAN(virDomainNetDefPtr def);
+
+int qemuDomainSetPrivatePaths(char **domainLibDir,
+                              char **domainChannelTargetDir,
+                              const char *confLibDir,
+                              const char *confChannelDir,
+                              const char *domainName,
+                              int domainId);
+
+virDomainDiskDefPtr qemuDomainDiskByName(virDomainDefPtr def, const char *name);
 
 #endif /* __QEMU_DOMAIN_H__ */

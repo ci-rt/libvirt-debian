@@ -77,6 +77,18 @@ const vshCmdDef *cmdSet;
 /* Bypass header poison */
 #undef strdup
 
+
+/* simple handler for oom conditions */
+static void
+vshErrorOOM(void)
+{
+    fflush(stdout);
+    fputs(_("error: Out of memory\n"), stderr);
+    fflush(stderr);
+    exit(EXIT_FAILURE);
+}
+
+
 double
 vshPrettyCapacity(unsigned long long val, const char **unit)
 {
@@ -1131,18 +1143,16 @@ vshCommandOptScaledInt(vshControl *ctl, const vshCmd *cmd,
 
     if ((ret = vshCommandOpt(cmd, name, &arg, true)) <= 0)
         return ret;
+
     if (virStrToLong_ullp(arg->data, &end, 10, value) < 0 ||
-        virScaleInteger(value, end, scale, max) < 0)
-    {
+        virScaleInteger(value, end, scale, max) < 0) {
         vshError(ctl,
-                 _("Numeric value '%s' for <%s> option is malformed or out of range"),
-                 arg->data, name);
-        ret = -1;
-    } else {
-        ret = 1;
+                 _("Scaled numeric value '%s' for <%s> option is malformed or "
+                   "out of range"), arg->data, name);
+        return -1;
     }
 
-    return ret;
+    return 1;
 }
 
 
@@ -1188,6 +1198,58 @@ vshCommandOptArgv(vshControl *ctl ATTRIBUTE_UNUSED, const vshCmd *cmd,
         opt = opt->next;
     }
     return NULL;
+}
+
+
+/**
+ * vshBlockJobOptionBandwidth:
+ * @ctl: virsh control data
+ * @cmd: virsh command description
+ * @bytes: return bandwidth in bytes/s instead of MiB/s
+ * @bandwidth: return value
+ *
+ * Extracts the value of --bandwidth either as a wrap-able number without scale
+ * or as a scaled integer. The returned value is checked to fit into a unsigned
+ * long data type. This is a legacy compatibility function and it should not
+ * be used for things other the block job APIs.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+vshBlockJobOptionBandwidth(vshControl *ctl,
+                           const vshCmd *cmd,
+                           bool bytes,
+                           unsigned long *bandwidth)
+{
+    vshCmdOpt *arg;
+    char *end;
+    unsigned long long bw;
+    int ret;
+
+    if ((ret = vshCommandOpt(cmd, "bandwidth", &arg, true)) <= 0)
+        return ret;
+
+    /* due to historical reasons we declare to parse negative numbers and wrap
+     * them to the unsigned data type. */
+    if (virStrToLong_ul(arg->data, NULL, 10, bandwidth) < 0) {
+        /* try to parse the number as scaled size in this case we don't accept
+         * wrapping since it would be ridiculous. In case of a 32 bit host,
+         * limit the value to ULONG_MAX */
+        if (virStrToLong_ullp(arg->data, &end, 10, &bw) < 0 ||
+            virScaleInteger(&bw, end, 1, ULONG_MAX) < 0) {
+            vshError(ctl,
+                     _("Scaled numeric value '%s' for <--bandwidth> option is "
+                       "malformed or out of range"), arg->data);
+            return -1;
+        }
+
+        if (!bytes)
+            bw >>= 20;
+
+        *bandwidth = bw;
+    }
+
+    return 0;
 }
 
 
@@ -1700,11 +1762,23 @@ vshPrintExtra(vshControl *ctl, const char *format, ...)
         return;
 
     va_start(ap, format);
-    if (virVasprintf(&str, format, ap) < 0) {
-        vshError(ctl, "%s", _("Out of memory"));
-        va_end(ap);
-        return;
-    }
+    if (virVasprintfQuiet(&str, format, ap) < 0)
+        vshErrorOOM();
+    va_end(ap);
+    fputs(str, stdout);
+    VIR_FREE(str);
+}
+
+
+void
+vshPrint(vshControl *ctl ATTRIBUTE_UNUSED, const char *format, ...)
+{
+    va_list ap;
+    char *str;
+
+    va_start(ap, format);
+    if (virVasprintfQuiet(&str, format, ap) < 0)
+        vshErrorOOM();
     va_end(ap);
     fputs(str, stdout);
     VIR_FREE(str);
@@ -2086,6 +2160,7 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
     }
     virBufferAsprintf(&buf, "%s ", lvl);
     virBufferVasprintf(&buf, msg_format, ap);
+    virBufferTrim(&buf, "\n", -1);
     virBufferAddChar(&buf, '\n');
 
     if (virBufferError(&buf))
@@ -2093,10 +2168,6 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
 
     str = virBufferContentAndReset(&buf);
     len = strlen(str);
-    if (len > 1 && str[len - 2] == '\n') {
-        str[len - 1] = '\0';
-        len--;
-    }
 
     /* write log */
     if (safewrite(ctl->log_fd, str, len) < 0)

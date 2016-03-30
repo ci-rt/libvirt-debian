@@ -54,10 +54,6 @@
 # endif
 #endif
 
-#ifdef HAVE_PATHS_H
-# include <paths.h>
-#endif
-
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 VIR_LOG_INIT("tests.testutils");
@@ -433,6 +429,32 @@ virtTestCaptureProgramOutput(const char *const argv[] ATTRIBUTE_UNUSED,
 }
 #endif /* !WIN32 */
 
+static int
+virTestRewrapFile(const char *filename)
+{
+    int ret = -1;
+    char *outbuf = NULL;
+    char *script = NULL;
+    virCommandPtr cmd = NULL;
+
+    if (virAsprintf(&script, "%s/test-wrap-argv.pl", abs_srcdir) < 0)
+        goto cleanup;
+
+    cmd = virCommandNewArgList(script, filename, NULL);
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    if (virFileWriteStr(filename, outbuf, 0666) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(script);
+    virCommandFree(cmd);
+    VIR_FREE(outbuf);
+    return ret;
+}
 
 /**
  * @param stream: output stream to write differences to
@@ -470,17 +492,15 @@ virtTestDifferenceFullInternal(FILE *stream,
     actualEnd = actual + (strlen(actual)-1);
 
     if (expectName && regenerate && (virTestGetRegenerate() > 0)) {
-        char *regencontent;
-
-        /* Try to properly indent qemu argv files */
-        if (!(regencontent = virStringReplace(actual, " -", " \\\n-")))
-            return -1;
-
-        if (virFileWriteStr(expectName, regencontent, 0666) < 0) {
-            VIR_FREE(regencontent);
+        if (virFileWriteStr(expectName, actual, 0666) < 0) {
+            virDispatchError(NULL);
             return -1;
         }
-        VIR_FREE(regencontent);
+
+        if (virTestRewrapFile(expectName) < 0) {
+            virDispatchError(NULL);
+            return -1;
+        }
     }
 
     if (!virTestGetDebug())
@@ -786,6 +806,32 @@ virTestGetRegenerate(void)
     return testRegenerate;
 }
 
+static int
+virTestSetEnvPath(void)
+{
+    int ret = -1;
+    const char *path = getenv("PATH");
+    char *new_path = NULL;
+
+    if (path) {
+        if (strstr(path, abs_builddir) != path &&
+            virAsprintf(&new_path, "%s:%s", abs_builddir, path) < 0)
+            goto cleanup;
+    } else {
+        if (VIR_STRDUP(new_path, abs_builddir) < 0)
+            goto cleanup;
+    }
+
+    if (new_path &&
+        setenv("PATH", new_path, 1) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(new_path);
+    return ret;
+}
+
 int virtTestMain(int argc,
                  char **argv,
                  int (*func)(void))
@@ -797,6 +843,9 @@ int virtTestMain(int argc,
 #endif
 
     virFileActivateDirOverride(argv[0]);
+
+    if (virTestSetEnvPath() < 0)
+        return EXIT_AM_HARDFAIL;
 
     if (!virFileExists(abs_srcdir))
         return EXIT_AM_HARDFAIL;
@@ -918,51 +967,6 @@ int virtTestMain(int argc,
 }
 
 
-int virtTestClearLineRegex(const char *pattern,
-                           char *str)
-{
-    regex_t reg;
-    char *lineStart = str;
-    char *lineEnd = strchr(str, '\n');
-
-    if (regcomp(&reg, pattern, REG_EXTENDED | REG_NOSUB) != 0)
-        return -1;
-
-    while (lineStart) {
-        int ret;
-        if (lineEnd)
-            *lineEnd = '\0';
-
-
-        ret = regexec(&reg, lineStart, 0, NULL, 0);
-        //fprintf(stderr, "Match %d '%s' '%s'\n", ret, lineStart, pattern);
-        if (ret == 0) {
-            if (lineEnd) {
-                memmove(lineStart, lineEnd + 1, strlen(lineEnd+1) + 1);
-                /* Don't update lineStart - just iterate again on this
-                   location */
-                lineEnd = strchr(lineStart, '\n');
-            } else {
-                *lineStart = '\0';
-                lineStart = NULL;
-            }
-        } else {
-            if (lineEnd) {
-                *lineEnd = '\n';
-                lineStart = lineEnd + 1;
-                lineEnd = strchr(lineStart, '\n');
-            } else {
-                lineStart = NULL;
-            }
-        }
-    }
-
-    regfree(&reg);
-
-    return 0;
-}
-
-
 /*
  * @cmdset contains a list of command line args, eg
  *
@@ -1073,13 +1077,18 @@ virDomainXMLOptionPtr virTestGenericDomainXMLConfInit(void)
 
 int
 testCompareDomXML2XMLFiles(virCapsPtr caps, virDomainXMLOptionPtr xmlopt,
-                           const char *infile, const char *outfile, bool live)
+                           const char *infile, const char *outfile, bool live,
+                           testCompareDomXML2XMLPreFormatCallback cb,
+                           const void *opaque, unsigned int parseFlags)
 {
     char *actual = NULL;
     int ret = -1;
     virDomainDefPtr def = NULL;
     unsigned int parse_flags = live ? 0 : VIR_DOMAIN_DEF_PARSE_INACTIVE;
     unsigned int format_flags = VIR_DOMAIN_DEF_FORMAT_SECURE;
+
+    parse_flags |= parseFlags;
+
     if (!live)
         format_flags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE;
 
@@ -1091,7 +1100,10 @@ testCompareDomXML2XMLFiles(virCapsPtr caps, virDomainXMLOptionPtr xmlopt,
         goto fail;
     }
 
-    if (!(actual = virDomainDefFormat(def, format_flags)))
+    if (cb && cb(def, opaque) < 0)
+        goto fail;
+
+    if (!(actual = virDomainDefFormat(def, caps, format_flags)))
         goto fail;
 
     if (virtTestCompareToFile(actual, outfile) < 0)

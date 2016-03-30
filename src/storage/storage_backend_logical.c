@@ -1,7 +1,7 @@
 /*
  * storage_backend_logical.c: storage backend for logical volume handling
  *
- * Copyright (C) 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2007-2016 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -65,11 +65,144 @@ virStorageBackendLogicalSetActive(virStoragePoolObjPtr pool,
 
 
 #define VIR_STORAGE_VOL_LOGICAL_SEGTYPE_STRIPED "striped"
+#define VIR_STORAGE_VOL_LOGICAL_SEGTYPE_MIRROR  "mirror"
+#define VIR_STORAGE_VOL_LOGICAL_SEGTYPE_RAID    "raid"
 
 struct virStorageBackendLogicalPoolVolData {
     virStoragePoolObjPtr pool;
     virStorageVolDefPtr vol;
 };
+
+static int
+virStorageBackendLogicalParseVolExtents(virStorageVolDefPtr vol,
+                                        char **const groups)
+{
+    int nextents, ret = -1;
+    const char *regex_unit = "(\\S+)\\((\\S+)\\)";
+    char *regex = NULL;
+    regex_t *reg = NULL;
+    regmatch_t *vars = NULL;
+    char *p = NULL;
+    size_t i;
+    int err, nvars;
+    unsigned long long offset, size, length;
+    virStorageVolSourceExtent extent;
+
+    memset(&extent, 0, sizeof(extent));
+
+    /* Assume 1 extent (the regex for 'devices' is "(\\S+)") and only
+     * check the 'stripes' field if we have a striped, mirror, or one of
+     * the raid (raid1, raid4, raid5*, raid6*, or raid10) segtypes in which
+     * case the stripes field will denote the number of lv's within the
+     * 'devices' field in order to generate the proper regex to decode
+     * the field
+     */
+    nextents = 1;
+    if (STREQ(groups[4], VIR_STORAGE_VOL_LOGICAL_SEGTYPE_STRIPED) ||
+        STREQ(groups[4], VIR_STORAGE_VOL_LOGICAL_SEGTYPE_MIRROR) ||
+        STRPREFIX(groups[4], VIR_STORAGE_VOL_LOGICAL_SEGTYPE_RAID)) {
+        if (virStrToLong_i(groups[5], NULL, 10, &nextents) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("malformed volume extent stripes value"));
+            goto cleanup;
+        }
+    }
+
+    if (virStrToLong_ull(groups[6], NULL, 10, &length) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("malformed volume extent length value"));
+        goto cleanup;
+    }
+
+    if (virStrToLong_ull(groups[7], NULL, 10, &size) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("malformed volume extent size value"));
+        goto cleanup;
+    }
+
+    /* Allocate space for 'nextents' regex_unit strings plus a comma for each */
+    if (VIR_ALLOC_N(regex, nextents * (strlen(regex_unit) + 1) + 1) < 0)
+        goto cleanup;
+    strcat(regex, regex_unit);
+    for (i = 1; i < nextents; i++) {
+        /* "," is the separator of "devices" field */
+        strcat(regex, ",");
+        strcat(regex, regex_unit);
+    }
+
+    if (VIR_ALLOC(reg) < 0)
+        goto cleanup;
+
+    /* Each extent has a "path:offset" pair, and vars[0] will
+     * be the whole matched string.
+     */
+    nvars = (nextents * 2) + 1;
+    if (VIR_ALLOC_N(vars, nvars) < 0)
+        goto cleanup;
+
+    err = regcomp(reg, regex, REG_EXTENDED);
+    if (err != 0) {
+        char error[100];
+        regerror(err, reg, error, sizeof(error));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to compile regex %s"),
+                       error);
+        goto cleanup;
+    }
+
+    err = regexec(reg, groups[3], nvars, vars, 0);
+    regfree(reg);
+    if (err != 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("malformed volume extent devices value"));
+        goto cleanup;
+    }
+
+    p = groups[3];
+
+    /* vars[0] is skipped */
+    for (i = 0; i < nextents; i++) {
+        size_t j;
+        int len;
+        char *offset_str = NULL;
+
+        j = (i * 2) + 1;
+        len = vars[j].rm_eo - vars[j].rm_so;
+        p[vars[j].rm_eo] = '\0';
+
+        if (VIR_STRNDUP(extent.path,
+                        p + vars[j].rm_so, len) < 0)
+            goto cleanup;
+
+        len = vars[j + 1].rm_eo - vars[j + 1].rm_so;
+        if (VIR_STRNDUP(offset_str, p + vars[j + 1].rm_so, len) < 0)
+            goto cleanup;
+
+        if (virStrToLong_ull(offset_str, NULL, 10, &offset) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("malformed volume extent offset value"));
+            VIR_FREE(offset_str);
+            goto cleanup;
+        }
+        VIR_FREE(offset_str);
+        extent.start = offset * size;
+        extent.end = (offset * size) + length;
+
+        if (VIR_APPEND_ELEMENT(vol->source.extents, vol->source.nextent,
+                               extent) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(regex);
+    VIR_FREE(reg);
+    VIR_FREE(vars);
+    VIR_FREE(extent.path);
+    return ret;
+}
+
 
 static int
 virStorageBackendLogicalMakeVol(char **const groups,
@@ -79,14 +212,7 @@ virStorageBackendLogicalMakeVol(char **const groups,
     virStoragePoolObjPtr pool = data->pool;
     virStorageVolDefPtr vol = NULL;
     bool is_new_vol = false;
-    unsigned long long offset, size, length;
-    const char *regex_unit = "(\\S+)\\((\\S+)\\)";
-    char *regex = NULL;
-    regex_t *reg = NULL;
-    regmatch_t *vars = NULL;
-    char *p = NULL;
-    size_t i;
-    int err, nextents, nvars, ret = -1;
+    int ret = -1;
     const char *attrs = groups[9];
 
     /* Skip inactive volume */
@@ -165,109 +291,14 @@ virStorageBackendLogicalMakeVol(char **const groups,
                                        VIR_STORAGE_VOL_OPEN_DEFAULT, 0) < 0)
         goto cleanup;
 
-    nextents = 1;
-    if (STREQ(groups[4], VIR_STORAGE_VOL_LOGICAL_SEGTYPE_STRIPED)) {
-        if (virStrToLong_i(groups[5], NULL, 10, &nextents) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("malformed volume extent stripes value"));
-            goto cleanup;
-        }
-    }
-
-    /* Finally fill in extents information */
-    if (VIR_REALLOC_N(vol->source.extents,
-                      vol->source.nextent + nextents) < 0)
-        goto cleanup;
-
-    if (virStrToLong_ull(groups[6], NULL, 10, &length) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("malformed volume extent length value"));
-        goto cleanup;
-    }
-    if (virStrToLong_ull(groups[7], NULL, 10, &size) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("malformed volume extent size value"));
-        goto cleanup;
-    }
     if (virStrToLong_ull(groups[8], NULL, 10, &vol->target.allocation) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("malformed volume allocation value"));
         goto cleanup;
     }
 
-    /* Now parse the "devices" field separately */
-    if (VIR_STRDUP(regex, regex_unit) < 0)
+    if (virStorageBackendLogicalParseVolExtents(vol, groups) < 0)
         goto cleanup;
-
-    for (i = 1; i < nextents; i++) {
-        if (VIR_REALLOC_N(regex, strlen(regex) + strlen(regex_unit) + 2) < 0)
-            goto cleanup;
-        /* "," is the separator of "devices" field */
-        strcat(regex, ",");
-        strncat(regex, regex_unit, strlen(regex_unit));
-    }
-
-    if (VIR_ALLOC(reg) < 0)
-        goto cleanup;
-
-    /* Each extent has a "path:offset" pair, and vars[0] will
-     * be the whole matched string.
-     */
-    nvars = (nextents * 2) + 1;
-    if (VIR_ALLOC_N(vars, nvars) < 0)
-        goto cleanup;
-
-    err = regcomp(reg, regex, REG_EXTENDED);
-    if (err != 0) {
-        char error[100];
-        regerror(err, reg, error, sizeof(error));
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to compile regex %s"),
-                       error);
-        goto cleanup;
-    }
-
-    err = regexec(reg, groups[3], nvars, vars, 0);
-    regfree(reg);
-    if (err != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("malformed volume extent devices value"));
-        goto cleanup;
-    }
-
-    p = groups[3];
-
-    /* vars[0] is skipped */
-    for (i = 0; i < nextents; i++) {
-        size_t j;
-        int len;
-        char *offset_str = NULL;
-
-        j = (i * 2) + 1;
-        len = vars[j].rm_eo - vars[j].rm_so;
-        p[vars[j].rm_eo] = '\0';
-
-        if (VIR_STRNDUP(vol->source.extents[vol->source.nextent].path,
-                        p + vars[j].rm_so, len) < 0)
-            goto cleanup;
-
-        len = vars[j + 1].rm_eo - vars[j + 1].rm_so;
-        if (VIR_STRNDUP(offset_str, p + vars[j + 1].rm_so, len) < 0)
-            goto cleanup;
-
-        if (virStrToLong_ull(offset_str, NULL, 10, &offset) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("malformed volume extent offset value"));
-            VIR_FREE(offset_str);
-            goto cleanup;
-        }
-
-        VIR_FREE(offset_str);
-
-        vol->source.extents[vol->source.nextent].start = offset * size;
-        vol->source.extents[vol->source.nextent].end = (offset * size) + length;
-        vol->source.nextent++;
-    }
 
     if (is_new_vol &&
         VIR_APPEND_ELEMENT(pool->volumes.objs, pool->volumes.count, vol) < 0)
@@ -276,45 +307,73 @@ virStorageBackendLogicalMakeVol(char **const groups,
     ret = 0;
 
  cleanup:
-    VIR_FREE(regex);
-    VIR_FREE(reg);
-    VIR_FREE(vars);
-    if (is_new_vol && (ret == -1))
+    if (is_new_vol)
         virStorageVolDefFree(vol);
     return ret;
 }
+
+#define VIR_STORAGE_VOL_LOGICAL_PREFIX_REGEX "^\\s*"
+#define VIR_STORAGE_VOL_LOGICAL_LV_NAME_REGEX "(\\S+)#"
+#define VIR_STORAGE_VOL_LOGICAL_ORIGIN_REGEX "(\\S*)#"
+#define VIR_STORAGE_VOL_LOGICAL_UUID_REGEX "(\\S+)#"
+#define VIR_STORAGE_VOL_LOGICAL_DEVICES_REGEX "(\\S+)#"
+#define VIR_STORAGE_VOL_LOGICAL_SEGTYPE_REGEX "(\\S+)#"
+#define VIR_STORAGE_VOL_LOGICAL_STRIPES_REGEX "([0-9]+)#"
+#define VIR_STORAGE_VOL_LOGICAL_SEG_SIZE_REGEX "(\\S+)#"
+#define VIR_STORAGE_VOL_LOGICAL_VG_EXTENT_SIZE_REGEX "([0-9]+)#"
+#define VIR_STORAGE_VOL_LOGICAL_SIZE_REGEX "([0-9]+)#"
+#define VIR_STORAGE_VOL_LOGICAL_LV_ATTR_REGEX "(\\S+)#"
+#define VIR_STORAGE_VOL_LOGICAL_SUFFIX_REGEX "?\\s*$"
+
+#define VIR_STORAGE_VOL_LOGICAL_REGEX_COUNT 10
+#define VIR_STORAGE_VOL_LOGICAL_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_PREFIX_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_LV_NAME_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_ORIGIN_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_UUID_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_DEVICES_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_SEGTYPE_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_STRIPES_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_SEG_SIZE_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_VG_EXTENT_SIZE_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_SIZE_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_LV_ATTR_REGEX \
+           VIR_STORAGE_VOL_LOGICAL_SUFFIX_REGEX
 
 static int
 virStorageBackendLogicalFindLVs(virStoragePoolObjPtr pool,
                                 virStorageVolDefPtr vol)
 {
     /*
-     * # lvs --separator , --noheadings --units b --unbuffered --nosuffix --options \
-     * "lv_name,origin,uuid,devices,seg_size,vg_extent_size,size,lv_attr" VGNAME
+     * # lvs --separator # --noheadings --units b --unbuffered --nosuffix --options \
+     * "lv_name,origin,uuid,devices,segtype,stripes,seg_size,vg_extent_size,size,lv_attr" VGNAME
      *
-     * RootLV,,06UgP5-2rhb-w3Bo-3mdR-WeoL-pytO-SAa2ky,/dev/hda2(0),5234491392,33554432,5234491392,-wi-ao
-     * SwapLV,,oHviCK-8Ik0-paqS-V20c-nkhY-Bm1e-zgzU0M,/dev/hda2(156),1040187392,33554432,1040187392,-wi-ao
-     * Test2,,3pg3he-mQsA-5Sui-h0i6-HNmc-Cz7W-QSndcR,/dev/hda2(219),1073741824,33554432,1073741824,owi-a-
-     * Test3,,UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht,/dev/hda2(251),2181038080,33554432,2181038080,-wi-a-
-     * Test3,Test2,UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht,/dev/hda2(187),1040187392,33554432,1040187392,swi-a-
+     * RootLV##06UgP5-2rhb-w3Bo-3mdR-WeoL-pytO-SAa2ky#/dev/hda2(0)#linear#1#5234491392#33554432#5234491392#-wi-ao
+     * SwapLV##oHviCK-8Ik0-paqS-V20c-nkhY-Bm1e-zgzU0M#/dev/hda2(156)#linear#1#1040187392#33554432#1040187392#-wi-ao
+     * Test2##3pg3he-mQsA-5Sui-h0i6-HNmc-Cz7W-QSndcR#/dev/hda2(219)#linear#1#1073741824#33554432#1073741824#owi-a-
+     * Test3##UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht#/dev/hda2(251)#linear#1#2181038080#33554432#2181038080#-wi-a-
+     * Test3#Test2#UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht#/dev/hda2(187)#linear#1#1040187392#33554432#1040187392#swi-a-
+     * test_stripes##fSLSZH-zAS2-yAIb-n4mV-Al9u-HA3V-oo9K1B#/dev/sdc1(10240),/dev/sdd1(0)#striped#2#42949672960#4194304#-wi-a-
      *
      * Pull out name, origin, & uuid, device, device extent start #,
      * segment size, extent size, size, attrs
      *
      * NB can be multiple rows per volume if they have many extents
      *
-     * NB lvs from some distros (e.g. SLES10 SP2) outputs trailing "," on each line
+     * NB lvs from some distros (e.g. SLES10 SP2) outputs trailing ","
+     * on each line
      *
      * NB Encrypted logical volumes can print ':' in their name, so it is
      *    not a suitable separator (rhbz 470693).
+     *
      * NB "devices" field has multiple device paths and "," if the volume is
      *    striped, so "," is not a suitable separator either (rhbz 727474).
      */
     const char *regexes[] = {
-       "^\\s*(\\S+)#(\\S*)#(\\S+)#(\\S+)#(\\S+)#([0-9]+)#(\\S+)#([0-9]+)#([0-9]+)#(\\S+)#?\\s*$"
+        VIR_STORAGE_VOL_LOGICAL_REGEX
     };
     int vars[] = {
-        10
+        VIR_STORAGE_VOL_LOGICAL_REGEX_COUNT
     };
     int ret = -1;
     virCommandPtr cmd;
@@ -516,7 +575,7 @@ static bool
 virStorageBackendLogicalMatchPoolSource(virStoragePoolObjPtr pool)
 {
     virStoragePoolSourceList sourceList;
-    virStoragePoolSource *thisSource;
+    virStoragePoolSource *thisSource = NULL;
     size_t i, j;
     int matchcount = 0;
     bool ret = false;
@@ -862,9 +921,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
 
     vol->type = VIR_STORAGE_VOL_BLOCK;
 
-    /* A target path passed to CreateVol has no meaning */
     VIR_FREE(vol->target.path);
-
     if (virAsprintf(&vol->target.path, "%s/%s",
                     pool->def->target.path,
                     vol->name) == -1)

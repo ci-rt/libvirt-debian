@@ -41,6 +41,8 @@
 #include "virstoragefile.h"
 #include "virstring.h"
 
+#define VIR_FROM_THIS VIR_FROM_SEXPR
+
 VIR_LOG_INIT("xenconfig.xen_sxpr");
 
 /* Get a domain id from a S-expression string */
@@ -866,7 +868,7 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
         graphics->data.vnc.port = port;
 
         if (listenAddr &&
-            virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true))
+            virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true) < 0)
             goto error;
 
         if (VIR_STRDUP(graphics->data.vnc.auth.passwd, vncPasswd) < 0)
@@ -985,7 +987,7 @@ xenParseSxprGraphicsNew(virDomainDefPtr def,
                 graphics->data.vnc.port = port;
 
                 if (listenAddr &&
-                    virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true))
+                    virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true) < 0)
                     goto error;
 
                 if (VIR_STRDUP(graphics->data.vnc.auth.passwd, vncPasswd) < 0)

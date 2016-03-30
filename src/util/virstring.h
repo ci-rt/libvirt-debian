@@ -44,8 +44,6 @@ char *virStringJoin(const char **strings,
 void virStringFreeList(char **strings);
 void virStringFreeListCount(char **strings, size_t count);
 
-size_t virStringListLen(const char **strings);
-
 bool virStringArrayHasString(char **strings, const char *needle);
 char *virStringGetFirstWithPrefix(char **strings, const char *prefix)
     ATTRIBUTE_NONNULL(2);
@@ -203,7 +201,7 @@ int virVasprintfInternal(bool report, int domcode, const char *filename,
 # define VIR_STRNDUP_QUIET(dst, src, n) virStrndup(&(dst), src, n, false, \
                                                    0, NULL, NULL, 0)
 
-size_t virStringListLength(char **strings);
+size_t virStringListLength(const char * const *strings);
 
 /**
  * virVasprintf

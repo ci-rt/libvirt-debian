@@ -2749,7 +2749,7 @@ esxDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
         if (powerState != esxVI_VirtualMachinePowerState_PoweredOff)
             def->id = id;
 
-        xml = virDomainDefFormat(def,
+        xml = virDomainDefFormat(def, priv->caps,
                                  virDomainDefFormatConvertXMLFlags(flags));
     }
 
@@ -2805,7 +2805,8 @@ esxConnectDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
     def = virVMXParseConfig(&ctx, priv->xmlopt, priv->caps, nativeConfig);
 
     if (def)
-        xml = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_INACTIVE);
+        xml = virDomainDefFormat(def, priv->caps,
+                                 VIR_DOMAIN_DEF_FORMAT_INACTIVE);
 
     virDomainDefFree(def);
 
@@ -4291,7 +4292,7 @@ esxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(snapshot->domain->uuid, uuid_string);
 
-    xml = virDomainSnapshotDefFormat(uuid_string, &def,
+    xml = virDomainSnapshotDefFormat(uuid_string, &def, priv->caps,
                                      virDomainDefFormatConvertXMLFlags(flags),
                                      0);
 

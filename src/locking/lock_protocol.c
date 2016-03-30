@@ -6,6 +6,7 @@
 
 #include "lock_protocol.h"
 #include "internal.h"
+#include "lock_driver_lockd.h"
 
 bool_t
 xdr_virLockSpaceProtocolUUID (XDR *xdrs, virLockSpaceProtocolUUID objp)
@@ -102,15 +103,6 @@ xdr_virLockSpaceProtocolDeleteResourceArgs (XDR *xdrs, virLockSpaceProtocolDelet
          if (!xdr_virLockSpaceProtocolNonNullString (xdrs, &objp->name))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
-                 return FALSE;
-        return TRUE;
-}
-
-bool_t
-xdr_virLockSpaceProtocolAcquireResourceFlags (XDR *xdrs, virLockSpaceProtocolAcquireResourceFlags *objp)
-{
-
-         if (!xdr_enum (xdrs, (enum_t *) objp))
                  return FALSE;
         return TRUE;
 }

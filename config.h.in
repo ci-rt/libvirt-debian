@@ -1351,6 +1351,9 @@
 /* Define to 1 if you have the 'nl_langinfo' function. */
 #undef HAVE_NL_LANGINFO
 
+/* Define to 1 if you have the <nss.h> header file. */
+#undef HAVE_NSS_H
+
 /* whether numad is available */
 #undef HAVE_NUMAD
 
@@ -2115,6 +2118,9 @@
    compilation errors when mixed with glibc netinet headers */
 #undef NETINET_LINUX_WORKAROUND
 
+/* whether nss plugin is enabled */
+#undef NSS
+
 /* Location or name of the numad program */
 #undef NUMAD
 
@@ -2397,9 +2403,9 @@
    context parameters */
 #undef VIR_SELINUX_CTX_CONST
 
-/* Define to the absolute path of a shell that does not truncate on <>
-   redirection, if /bin/sh does not fit the bill */
-#undef VIR_WRAPPER_SHELL
+/* Define to empty or 'const' depending on how SELinux qualifies its
+   selabel_open parameter */
+#undef VIR_SELINUX_OPEN_CONST
 
 /* Define to 1 if unsetenv returns void instead of int. */
 #undef VOID_UNSETENV

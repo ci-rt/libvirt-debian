@@ -151,6 +151,8 @@
      <exports symbol='VIR_DOMAIN_SCHEDULER_CPU_SHARES' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_RESERVATION' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_SHARES' type='macro'/>
@@ -177,6 +179,8 @@
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_GLOBAL_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' type='macro'/>
@@ -185,10 +189,12 @@
      <exports symbol='VIR_MIGRATE_PARAM_BANDWIDTH' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_DEST_NAME' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_DEST_XML' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_DISKS_PORT' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_GRAPHICS_URI' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_MIGRATE_DISKS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CMT' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
      <exports symbol='VIR_USE_CPU' type='macro'/>
      <exports symbol='_virBlkioParameter' type='macro'/>
@@ -306,6 +312,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_CRASHED_PANICKED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_ADDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_RENAMED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_UPDATED' type='enum'/>
@@ -331,8 +338,10 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_GRAPHICS' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_IO_ERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_LIFECYCLE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_PMSUSPEND' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_PMWAKEUP' type='enum'/>
@@ -354,6 +363,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_MIGRATED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_RESUMED_POSTCOPY' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' type='enum'/>
@@ -381,6 +391,8 @@
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_PAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_RESTORED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_TRAY_CHANGE_CLOSE' type='enum'/>
@@ -451,6 +463,8 @@
      <exports symbol='VIR_DOMAIN_PAUSED_IOERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_MIGRATION' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PAUSED_POSTCOPY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PAUSED_POSTCOPY_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SNAPSHOT' type='enum'/>
@@ -542,6 +556,7 @@
      <exports symbol='VIR_DOMAIN_RUNNING_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_MIGRATION_CANCELED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_RUNNING_POSTCOPY' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_RESTORED' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_SAVE_CANCELED' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_UNKNOWN' type='enum'/>
@@ -585,6 +600,7 @@
      <exports symbol='VIR_DOMAIN_STATS_BLOCK' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_CPU_TOTAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_INTERFACE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_PERF' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_STATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_VCPU' type='enum'/>
      <exports symbol='VIR_DOMAIN_TIME_SYNC' type='enum'/>
@@ -629,6 +645,7 @@
      <exports symbol='VIR_MIGRATE_PAUSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_PEER2PEER' type='enum'/>
      <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
+     <exports symbol='VIR_MIGRATE_POSTCOPY' type='enum'/>
      <exports symbol='VIR_MIGRATE_RDMA_PIN_ALL' type='enum'/>
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
@@ -791,6 +808,8 @@
      <exports symbol='virConnectDomainEventGraphicsCallback' type='function'/>
      <exports symbol='virConnectDomainEventIOErrorCallback' type='function'/>
      <exports symbol='virConnectDomainEventIOErrorReasonCallback' type='function'/>
+     <exports symbol='virConnectDomainEventJobCompletedCallback' type='function'/>
+     <exports symbol='virConnectDomainEventMigrationIterationCallback' type='function'/>
      <exports symbol='virConnectDomainEventPMSuspendCallback' type='function'/>
      <exports symbol='virConnectDomainEventPMSuspendDiskCallback' type='function'/>
      <exports symbol='virConnectDomainEventPMWakeupCallback' type='function'/>
@@ -868,6 +887,7 @@
      <exports symbol='virDomainGetName' type='function'/>
      <exports symbol='virDomainGetNumaParameters' type='function'/>
      <exports symbol='virDomainGetOSType' type='function'/>
+     <exports symbol='virDomainGetPerfEvents' type='function'/>
      <exports symbol='virDomainGetSchedulerParameters' type='function'/>
      <exports symbol='virDomainGetSchedulerParametersFlags' type='function'/>
      <exports symbol='virDomainGetSchedulerType' type='function'/>
@@ -907,6 +927,7 @@
      <exports symbol='virDomainMigrateSetCompressionCache' type='function'/>
      <exports symbol='virDomainMigrateSetMaxDowntime' type='function'/>
      <exports symbol='virDomainMigrateSetMaxSpeed' type='function'/>
+     <exports symbol='virDomainMigrateStartPostCopy' type='function'/>
      <exports symbol='virDomainMigrateToURI' type='function'/>
      <exports symbol='virDomainMigrateToURI2' type='function'/>
      <exports symbol='virDomainMigrateToURI3' type='function'/>
@@ -945,6 +966,7 @@
      <exports symbol='virDomainSetMemoryStatsPeriod' type='function'/>
      <exports symbol='virDomainSetMetadata' type='function'/>
      <exports symbol='virDomainSetNumaParameters' type='function'/>
+     <exports symbol='virDomainSetPerfEvents' type='function'/>
      <exports symbol='virDomainSetSchedulerParameters' type='function'/>
      <exports symbol='virDomainSetSchedulerParametersFlags' type='function'/>
      <exports symbol='virDomainSetTime' type='function'/>
@@ -1374,7 +1396,7 @@
     <file name='libvirt-storage'>
      <summary>APIs for management of storage pools and volumes</summary>
      <description>Provides APIs for the management of storage pools and volumes</description>
-     <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
+     <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_DIR' type='enum'/>
@@ -1433,6 +1455,7 @@
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_RANDOM' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_TRIM' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_ZERO' type='enum'/>
      <exports symbol='VIR_STORAGE_XML_INACTIVE' type='enum'/>
      <exports symbol='virConnectListAllStoragePoolsFlags' type='typedef'/>
@@ -1538,13 +1561,14 @@
     </file>
     <file name='virterror'>
      <summary>error handling interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2015 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
+     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='VIR_ERR_ACCESS_DENIED' type='enum'/>
      <exports symbol='VIR_ERR_AGENT_UNRESPONSIVE' type='enum'/>
      <exports symbol='VIR_ERR_ARGUMENT_UNSUPPORTED' type='enum'/>
      <exports symbol='VIR_ERR_AUTH_CANCELLED' type='enum'/>
      <exports symbol='VIR_ERR_AUTH_FAILED' type='enum'/>
+     <exports symbol='VIR_ERR_AUTH_UNAVAILABLE' type='enum'/>
      <exports symbol='VIR_ERR_BLOCK_COPY_ACTIVE' type='enum'/>
      <exports symbol='VIR_ERR_BUILD_FIREWALL' type='enum'/>
      <exports symbol='VIR_ERR_CALL_FAILED' type='enum'/>
@@ -1596,6 +1620,7 @@
      <exports symbol='VIR_ERR_NO_ROOT' type='enum'/>
      <exports symbol='VIR_ERR_NO_SECRET' type='enum'/>
      <exports symbol='VIR_ERR_NO_SECURITY_MODEL' type='enum'/>
+     <exports symbol='VIR_ERR_NO_SERVER' type='enum'/>
      <exports symbol='VIR_ERR_NO_SOURCE' type='enum'/>
      <exports symbol='VIR_ERR_NO_STORAGE_POOL' type='enum'/>
      <exports symbol='VIR_ERR_NO_STORAGE_VOL' type='enum'/>
@@ -1668,6 +1693,7 @@
      <exports symbol='VIR_FROM_ONE' type='enum'/>
      <exports symbol='VIR_FROM_OPENVZ' type='enum'/>
      <exports symbol='VIR_FROM_PARALLELS' type='enum'/>
+     <exports symbol='VIR_FROM_PERF' type='enum'/>
      <exports symbol='VIR_FROM_PHYP' type='enum'/>
      <exports symbol='VIR_FROM_POLKIT' type='enum'/>
      <exports symbol='VIR_FROM_PROXY' type='enum'/>
@@ -1693,6 +1719,7 @@
      <exports symbol='VIR_FROM_XENAPI' type='enum'/>
      <exports symbol='VIR_FROM_XEND' type='enum'/>
      <exports symbol='VIR_FROM_XENSTORE' type='enum'/>
+     <exports symbol='VIR_FROM_XENXL' type='enum'/>
      <exports symbol='VIR_FROM_XENXM' type='enum'/>
      <exports symbol='VIR_FROM_XEN_INOTIFY' type='enum'/>
      <exports symbol='VIR_FROM_XML' type='enum'/>
@@ -2000,6 +2027,12 @@
     <macro name='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA' file='libvirt-domain' string='emulator_quota'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an llong.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD' file='libvirt-domain' string='global_period'>
+      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for whole domain, when using the posix scheduler, as a ullong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA' file='libvirt-domain' string='global_quota'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for whole domain, when using the posix scheduler, as an llong.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_SCHEDULER_LIMIT' file='libvirt-domain' string='limit'>
       <info><![CDATA[Macro represents the scheduler limit value, when using the allocation scheduler, as an llong.]]></info>
     </macro>
@@ -2078,6 +2111,12 @@
     <macro name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA' file='libvirt-domain' string='cputune.emulator_quota'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for all emulator activity not tied to vcpus, when using the posix scheduler, as an VIR_TYPED_PARAM_LLONG.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD' file='libvirt-domain' string='cputune.global_period'>
+      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for whole domain, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_GLOBAL_QUOTA' file='libvirt-domain' string='cputune.global_quota'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for whole domain, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' file='libvirt-domain' string='cputune.iothreadpin%u'>
       <info><![CDATA[Macro represents formatted pinning for one IOThread specified by id which is appended to the parameter name, for example "cputune.iothreadpin1", as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
@@ -2104,6 +2143,9 @@
     </macro>
     <macro name='VIR_MIGRATE_PARAM_DEST_XML' file='libvirt-domain' string='destination_xml'>
       <info><![CDATA[virDomainMigrate* params field: the new configuration to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. The configuration must include an identical set of virtual devices, to ensure a stable guest ABI across migration. Only parameters related to host side configuration can be changed in the XML. Hypervisors which support this field will forbid migration if the provided XML would cause a change in the guest ABI. This field cannot be used to rename the domain during migration (use VIR_MIGRATE_PARAM_DEST_NAME field for that purpose). Domain name in the destination XML must match the original domain name.  Omitting this parameter keeps the original domain configuration. Using this field with hypervisors that do not support changing domain configuration during migration will result in a failure.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_DISKS_PORT' file='libvirt-domain' string='disks_port'>
+      <info><![CDATA[virDomainMigrate* params field: port that destination server should use for incoming disks migration. Type is VIR_TYPED_PARAM_INT. If set to 0 or omitted, libvirt will choose a suitable default. At the moment this is only supported by the QEMU driver.]]></info>
     </macro>
     <macro name='VIR_MIGRATE_PARAM_GRAPHICS_URI' file='libvirt-domain' string='graphics_uri'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for migrating client's connection to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the client will be asked to automatically reconnect using these parameters instead of the automatically computed ones. This can be useful if, e.g., the client does not have a direct access to the network virtualization hosts are connected to and needs to connect through a proxy. The URI is formed as follows:  protocol://hostname[:port]/[?parameters]  where protocol is either "spice" or "vnc" and parameters is a list of protocol specific parameters separated by '&'. Currently recognized parameters are "tlsPort" and "tlsSubject". For example,  spice://target.host.com:1234/?tlsPort=4567]]></info>
@@ -2183,6 +2225,9 @@
     </macro>
     <macro name='VIR_NODE_MEMORY_STATS_TOTAL' file='libvirt-host' string='total'>
       <info><![CDATA[Macro for the total memory of specified cell: it represents the maximum memory.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_CMT' file='libvirt-domain' string='cmt'>
+      <info><![CDATA[Macro for typed parameter name that represents CMT perf event.]]></info>
     </macro>
     <macro name='VIR_SECURITY_DOI_BUFLEN' file='libvirt-host'>
       <info><![CDATA[Macro providing the maximum length of the virSecurityModel doi string.]]></info>
@@ -2437,7 +2482,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_CRASHED_PANICKED' file='libvirt-domain' value='0' type='virDomainEventCrashedDetailType' info='Guest was panicked'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED' file='libvirt-domain' value='0' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_ADDED' file='libvirt-domain' value='0' type='virDomainEventDefinedDetailType' info='Newly created config file'/>
-    <enum name='VIR_DOMAIN_EVENT_DEFINED_LAST' file='libvirt-domain' value='3' type='virDomainEventDefinedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT' file='libvirt-domain' value='3' type='virDomainEventDefinedDetailType' info='Config was restored from a snapshot'/>
+    <enum name='VIR_DOMAIN_EVENT_DEFINED_LAST' file='libvirt-domain' value='4' type='virDomainEventDefinedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_RENAMED' file='libvirt-domain' value='2' type='virDomainEventDefinedDetailType' info='Domain was renamed'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' file='libvirt-domain' value='1' type='virDomainEventDefinedDetailType' info='Changed config file'/>
     <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' file='libvirt-domain' value='2' type='virConnectDomainEventDiskChangeReason'/>
@@ -2462,10 +2508,12 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_GRAPHICS' file='libvirt-domain' value='5' type='virDomainEventID' info='virConnectDomainEventGraphicsCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt-domain' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt-domain' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='20' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED' file='libvirt-domain' value='21' type='virDomainEventID' info='virConnectDomainEventJobCompletedCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='22' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt-domain' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION' file='libvirt-domain' value='20' type='virDomainEventID' info='virConnectDomainEventMigrationIterationCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND' file='libvirt-domain' value='12' type='virDomainEventID' info='virConnectDomainEventPMSuspendCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' file='libvirt-domain' value='14' type='virDomainEventID' info='virConnectDomainEventPMSuspendDiskCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMWAKEUP' file='libvirt-domain' value='11' type='virDomainEventID' info='virConnectDomainEventPMWakeupCallback'/>
@@ -2485,8 +2533,10 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY' file='libvirt-domain' value='0' type='virDomainEventPMSuspendedDetailType' info='Guest was PM suspended to memory'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED' file='libvirt-domain' value='4' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' file='libvirt-domain' value='2' type='virDomainEventResumedDetailType' info='Resumed from snapshot'/>
-    <enum name='VIR_DOMAIN_EVENT_RESUMED_LAST' file='libvirt-domain' value='3' type='virDomainEventResumedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_RESUMED_LAST' file='libvirt-domain' value='4' type='virDomainEventResumedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_MIGRATED' file='libvirt-domain' value='1' type='virDomainEventResumedDetailType' info='Resumed for completion of migration'/>
+    <enum name='VIR_DOMAIN_EVENT_RESUMED_POSTCOPY' file='libvirt-domain' value='3' type='virDomainEventResumedDetailType' info='Resumed, but migration is still
+running in post-copy mode'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' file='libvirt-domain' value='0' type='virDomainEventResumedDetailType' info='Normal resume due to admin unpause'/>
     <enum name='VIR_DOMAIN_EVENT_SHUTDOWN' file='libvirt-domain' value='6' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' file='libvirt-domain' value='0' type='virDomainEventShutdownDetailType' info='Guest finished shutdown sequence'/>
@@ -2511,9 +2561,11 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR' file='libvirt-domain' value='6' type='virDomainEventSuspendedDetailType' info='suspended after failure during libvirt API call'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT' file='libvirt-domain' value='5' type='virDomainEventSuspendedDetailType' info='Restored from paused snapshot'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR' file='libvirt-domain' value='2' type='virDomainEventSuspendedDetailType' info='Suspended due to a disk I/O error'/>
-    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_LAST' file='libvirt-domain' value='7' type='virDomainEventSuspendedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_LAST' file='libvirt-domain' value='9' type='virDomainEventSuspendedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED' file='libvirt-domain' value='1' type='virDomainEventSuspendedDetailType' info='Suspended for offline migration'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_PAUSED' file='libvirt-domain' value='0' type='virDomainEventSuspendedDetailType' info='Normal suspend due to admin pause'/>
+    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY' file='libvirt-domain' value='7' type='virDomainEventSuspendedDetailType' info='suspended for post-copy migration'/>
+    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY_FAILED' file='libvirt-domain' value='8' type='virDomainEventSuspendedDetailType' info='suspended after failed post-copy'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_RESTORED' file='libvirt-domain' value='4' type='virDomainEventSuspendedDetailType' info='Restored from paused state file'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG' file='libvirt-domain' value='3' type='virDomainEventSuspendedDetailType' info='Suspended due to a watchdog firing'/>
     <enum name='VIR_DOMAIN_EVENT_TRAY_CHANGE_CLOSE' file='libvirt-domain' value='1' type='virDomainEventTrayChangeReason'/>
@@ -2595,8 +2647,10 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PAUSED_DUMP' file='libvirt-domain' value='4' type='virDomainPausedReason' info='paused for offline core dump'/>
     <enum name='VIR_DOMAIN_PAUSED_FROM_SNAPSHOT' file='libvirt-domain' value='7' type='virDomainPausedReason' info='paused after restoring from snapshot'/>
     <enum name='VIR_DOMAIN_PAUSED_IOERROR' file='libvirt-domain' value='5' type='virDomainPausedReason' info='paused due to a disk I/O error'/>
-    <enum name='VIR_DOMAIN_PAUSED_LAST' file='libvirt-domain' value='12' type='virDomainPausedReason'/>
+    <enum name='VIR_DOMAIN_PAUSED_LAST' file='libvirt-domain' value='14' type='virDomainPausedReason'/>
     <enum name='VIR_DOMAIN_PAUSED_MIGRATION' file='libvirt-domain' value='2' type='virDomainPausedReason' info='paused for offline migration'/>
+    <enum name='VIR_DOMAIN_PAUSED_POSTCOPY' file='libvirt-domain' value='12' type='virDomainPausedReason' info='paused for post-copy migration'/>
+    <enum name='VIR_DOMAIN_PAUSED_POSTCOPY_FAILED' file='libvirt-domain' value='13' type='virDomainPausedReason' info='paused after failed post-copy'/>
     <enum name='VIR_DOMAIN_PAUSED_SAVE' file='libvirt-domain' value='3' type='virDomainPausedReason' info='paused for save'/>
     <enum name='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' file='libvirt-domain' value='8' type='virDomainPausedReason' info='paused during shutdown process'/>
     <enum name='VIR_DOMAIN_PAUSED_SNAPSHOT' file='libvirt-domain' value='9' type='virDomainPausedReason' info='paused while creating a snapshot'/>
@@ -2686,9 +2740,10 @@ power management'/>
     <enum name='VIR_DOMAIN_RUNNING_BOOTED' file='libvirt-domain' value='1' type='virDomainRunningReason' info='normal startup from boot'/>
     <enum name='VIR_DOMAIN_RUNNING_CRASHED' file='libvirt-domain' value='9' type='virDomainRunningReason' info='resumed from crashed'/>
     <enum name='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT' file='libvirt-domain' value='4' type='virDomainRunningReason' info='restored from snapshot'/>
-    <enum name='VIR_DOMAIN_RUNNING_LAST' file='libvirt-domain' value='10' type='virDomainRunningReason'/>
+    <enum name='VIR_DOMAIN_RUNNING_LAST' file='libvirt-domain' value='11' type='virDomainRunningReason'/>
     <enum name='VIR_DOMAIN_RUNNING_MIGRATED' file='libvirt-domain' value='2' type='virDomainRunningReason' info='migrated from another host'/>
     <enum name='VIR_DOMAIN_RUNNING_MIGRATION_CANCELED' file='libvirt-domain' value='6' type='virDomainRunningReason' info='returned from migration'/>
+    <enum name='VIR_DOMAIN_RUNNING_POSTCOPY' file='libvirt-domain' value='10' type='virDomainRunningReason' info='running in post-copy migration mode'/>
     <enum name='VIR_DOMAIN_RUNNING_RESTORED' file='libvirt-domain' value='3' type='virDomainRunningReason' info='restored from a state file'/>
     <enum name='VIR_DOMAIN_RUNNING_SAVE_CANCELED' file='libvirt-domain' value='7' type='virDomainRunningReason' info='returned from failed save process'/>
     <enum name='VIR_DOMAIN_RUNNING_UNKNOWN' file='libvirt-domain' value='0' type='virDomainRunningReason'/>
@@ -2792,6 +2847,7 @@ listing a domain'/>
     <enum name='VIR_DOMAIN_STATS_BLOCK' file='libvirt-domain' value='32' type='virDomainStatsTypes' info='return domain block info'/>
     <enum name='VIR_DOMAIN_STATS_CPU_TOTAL' file='libvirt-domain' value='2' type='virDomainStatsTypes' info='return domain CPU info'/>
     <enum name='VIR_DOMAIN_STATS_INTERFACE' file='libvirt-domain' value='16' type='virDomainStatsTypes' info='return domain interfaces info'/>
+    <enum name='VIR_DOMAIN_STATS_PERF' file='libvirt-domain' value='64' type='virDomainStatsTypes' info='return domain perf event info'/>
     <enum name='VIR_DOMAIN_STATS_STATE' file='libvirt-domain' value='1' type='virDomainStatsTypes' info='return domain state'/>
     <enum name='VIR_DOMAIN_STATS_VCPU' file='libvirt-domain' value='8' type='virDomainStatsTypes' info='return domain virtual CPU info'/>
     <enum name='VIR_DOMAIN_TIME_SYNC' file='libvirt-domain' value='1' type='virDomainSetTimeFlags' info='Re-sync domain time from domain&apos;s RTC'/>
@@ -2824,6 +2880,7 @@ not running or not usable'/>
 the given driver'/>
     <enum name='VIR_ERR_AUTH_CANCELLED' file='virterror' value='79' type='virErrorNumber' info='authentication cancelled'/>
     <enum name='VIR_ERR_AUTH_FAILED' file='virterror' value='45' type='virErrorNumber' info='authentication failed'/>
+    <enum name='VIR_ERR_AUTH_UNAVAILABLE' file='virterror' value='94' type='virErrorNumber' info='authentication unavailable'/>
     <enum name='VIR_ERR_BLOCK_COPY_ACTIVE' file='virterror' value='83' type='virErrorNumber' info='action prevented by block copy job'/>
     <enum name='VIR_ERR_BUILD_FIREWALL' file='virterror' value='63' type='virErrorNumber' info='nw filter pool not found'/>
     <enum name='VIR_ERR_CALL_FAILED' file='virterror' value='26' type='virErrorNumber' info='not supported by the drivers
@@ -2835,7 +2892,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='64' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='66' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2882,6 +2939,7 @@ disappeared'/>
     <enum name='VIR_ERR_NO_ROOT' file='virterror' value='18' type='virErrorNumber' info='missing root device information'/>
     <enum name='VIR_ERR_NO_SECRET' file='virterror' value='66' type='virErrorNumber' info='secret not found'/>
     <enum name='VIR_ERR_NO_SECURITY_MODEL' file='virterror' value='54' type='virErrorNumber' info='security model not found'/>
+    <enum name='VIR_ERR_NO_SERVER' file='virterror' value='95' type='virErrorNumber' info='Server was not found'/>
     <enum name='VIR_ERR_NO_SOURCE' file='virterror' value='19' type='virErrorNumber' info='missing source device information'/>
     <enum name='VIR_ERR_NO_STORAGE_POOL' file='virterror' value='49' type='virErrorNumber' info='storage pool not found'/>
     <enum name='VIR_ERR_NO_STORAGE_VOL' file='virterror' value='50' type='virErrorNumber' info='storage volume not found'/>
@@ -2966,6 +3024,7 @@ formed or broken'/>
 Retained for ABI/API compat only'/>
     <enum name='VIR_FROM_OPENVZ' file='virterror' value='14' type='virErrorDomain' info='Error from OpenVZ driver'/>
     <enum name='VIR_FROM_PARALLELS' file='virterror' value='48' type='virErrorDomain' info='Error from Parallels'/>
+    <enum name='VIR_FROM_PERF' file='virterror' value='65' type='virErrorDomain' info='Error from perf'/>
     <enum name='VIR_FROM_PHYP' file='virterror' value='29' type='virErrorDomain' info='Error from IBM power hypervisor'/>
     <enum name='VIR_FROM_POLKIT' file='virterror' value='60' type='virErrorDomain' info='Error from polkit code'/>
     <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code; unused since
@@ -2992,6 +3051,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_FROM_XENAPI' file='virterror' value='32' type='virErrorDomain' info='Error from XenAPI'/>
     <enum name='VIR_FROM_XEND' file='virterror' value='2' type='virErrorDomain' info='Error at connection with xend daemon'/>
     <enum name='VIR_FROM_XENSTORE' file='virterror' value='3' type='virErrorDomain' info='Error at connection with xen store'/>
+    <enum name='VIR_FROM_XENXL' file='virterror' value='64' type='virErrorDomain' info='Error from Xen xl config code'/>
     <enum name='VIR_FROM_XENXM' file='virterror' value='15' type='virErrorDomain' info='Error at Xen XM layer'/>
     <enum name='VIR_FROM_XEN_INOTIFY' file='virterror' value='23' type='virErrorDomain' info='Error from xen inotify layer'/>
     <enum name='VIR_FROM_XML' file='virterror' value='5' type='virErrorDomain' info='Error in the XML code'/>
@@ -3028,6 +3088,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt-domain' value='2' type='virDomainMigrateFlags' info='direct source -&gt; dest host control channel Note the less-common spelling that we&apos;re stuck with:
 VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt-domain' value='8' type='virDomainMigrateFlags' info='persist the VM on the destination'/>
+    <enum name='VIR_MIGRATE_POSTCOPY' file='libvirt-domain' value='32768' type='virDomainMigrateFlags' info='enable (but do not start) post-copy migration'/>
     <enum name='VIR_MIGRATE_RDMA_PIN_ALL' file='libvirt-domain' value='16384' type='virDomainMigrateFlags' info='RDMA memory pinning'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt-domain' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
     <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt-domain' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
@@ -3126,7 +3187,7 @@ Information Technologies'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_DOD' file='libvirt-storage' value='2' type='virStorageVolWipeAlgorithm' info='4-pass DoD 5220.22-M section
 8-306 procedure'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN' file='libvirt-storage' value='4' type='virStorageVolWipeAlgorithm' info='The canonical 35-pass sequence'/>
-    <enum name='VIR_STORAGE_VOL_WIPE_ALG_LAST' file='libvirt-storage' value='9' type='virStorageVolWipeAlgorithm' info='NB: this enum value will increase over time as new algorithms are
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_LAST' file='libvirt-storage' value='10' type='virStorageVolWipeAlgorithm' info='NB: this enum value will increase over time as new algorithms are
  added to the libvirt API. It reflects the last algorithm supported
  by this version of the libvirt API.'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_NNSA' file='libvirt-storage' value='1' type='virStorageVolWipeAlgorithm' info='4-pass  NNSA Policy Letter
@@ -3137,6 +3198,8 @@ NAP-14.1-C (XVI-8)'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER' file='libvirt-storage' value='5' type='virStorageVolWipeAlgorithm' info='7-pass method described by
 Bruce Schneier in &quot;Applied
 Cryptography&quot; (1996)'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_TRIM' file='libvirt-storage' value='9' type='virStorageVolWipeAlgorithm' info='1-pass, trim all data on the
+volume by using TRIM or DISCARD'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_ZERO' file='libvirt-storage' value='0' type='virStorageVolWipeAlgorithm' info='1-pass, all zeroes'/>
     <enum name='VIR_STORAGE_XML_INACTIVE' file='libvirt-storage' value='1' type='virStorageXMLFlags' info='dump inactive pool/volume information'/>
     <enum name='VIR_STREAM_EVENT_ERROR' file='libvirt-stream' value='4' type='virStreamEventType'/>
@@ -3943,6 +4006,37 @@ if determination of other error types becomes possible.]]></info>
       <arg name='action' type='int' info='action that is to be taken due to the IO error'/>
       <arg name='reason' type='const char *' info='the cause of the IO error'/>
       <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectDomainEventJobCompletedCallback' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[This callback occurs when a job (such as migration) running on the domain
+is completed. The params array will contain statistics of the just completed
+job as virDomainGetJobStats would return. The callback must not free @params
+(the array will be freed once the callback finishes).
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_JOB_COMPLETED with
+virConnectDomainEventRegisterAny().]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='params' type='virTypedParameterPtr' info='job statistics stored as an array of virTypedParameter'/>
+      <arg name='nparams' type='int' info='size of the params array'/>
+      <arg name='opaque' type='void *' info='application specific data'/>
+    </functype>
+    <functype name='virConnectDomainEventMigrationIterationCallback' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[This callback occurs during live migration when a new iteration over
+domain's memory starts. The @iteration value is increased by one every
+time a new iteration is started to transfer memory pages dirtied since
+the last iteration.
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION with
+virConnectDomainEventRegisterAny().]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='iteration' type='int' info='current iteration over domain&apos;s memory'/>
+      <arg name='opaque' type='void *' info='application specific data'/>
     </functype>
     <functype name='virConnectDomainEventPMSuspendCallback' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[This callback occurs when the guest is suspended.
@@ -6224,12 +6318,15 @@ newer server.
 
 When @flags contains VIR_DOMAIN_JOB_STATS_COMPLETED, the function will
 return statistics about a recently completed job. Specifically, this
-flag may be used to query statistics of a completed incoming migration.
-Statistics of a completed job are automatically destroyed once read or
-when libvirtd is restarted. Note that time information returned for
-completed migrations may be completely irrelevant unless both source and
-destination hosts have synchronized time (i.e., NTP daemon is running on
-both of them).]]></info>
+flag may be used to query statistics of a completed incoming pre-copy
+migration (statistics for post-copy migration are only available on the
+source hsot). Statistics of a completed job are automatically destroyed
+once read or when libvirtd is restarted. Note that time information
+returned for completed migrations may be completely irrelevant unless both
+source and destination hosts have synchronized time (i.e., NTP daemon is
+running on both of them). The statistics of a completed job can also be
+obtained by listening to a VIR_DOMAIN_EVENT_ID_JOB_COMPLETED event (on the
+source host in case of a migration job).]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='type' type='int *' info='where to store the job type (one of virDomainJobType)'/>
@@ -6334,6 +6431,15 @@ expects the caller to allocate the @params.]]></info>
       <info><![CDATA[Get the type of domain operation system.]]></info>
       <return type='char *' info='the new string or NULL in case of error, the string must be freed by the caller.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
+    </function>
+    <function name='virDomainGetPerfEvents' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Get all perf events setting. Possible fields returned in @params are
+defined by VIR_DOMAIN_PERF_* macros and new fields will likely be
+introduced in the future.]]></info>
+      <return type='int' info='-1 in case of failure, 0 in case of success.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='params' type='virTypedParameterPtr *' info='where to store perf events setting'/>
+      <arg name='nparams' type='int *' info='number of items in @params'/>
     </function>
     <function name='virDomainGetSchedulerParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Get all scheduler parameters.  On input, @nparams gives the size of the
@@ -6849,6 +6955,7 @@ Flags may be one of more of the following:
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
   VIR_MIGRATE_OFFLINE Migrate offline
+  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -6884,6 +6991,11 @@ can be specified with the bandwidth parameter.  If set to 0,
 libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
 is not 0.
+
+Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+migration.  Use virDomainMigrateStartPostCopy to switch migration into
+the post-copy mode.  See virDomainMigrateStartPostCopy for more details
+about post-copy.
 
 To see which features are supported by the current hypervisor,
 see virConnectGetCapabilities, /capabilities/host/migration_features.
@@ -6925,6 +7037,7 @@ Flags may be one of more of the following:
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
   VIR_MIGRATE_OFFLINE Migrate offline
+  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -6960,6 +7073,11 @@ can be specified with the bandwidth parameter.  If set to 0,
 libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
 is not 0.
+
+Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+migration.  Use virDomainMigrateStartPostCopy to switch migration into
+the post-copy mode.  See virDomainMigrateStartPostCopy for more details
+about post-copy.
 
 To see which features are supported by the current hypervisor,
 see virConnectGetCapabilities, /capabilities/host/migration_features.
@@ -7004,6 +7122,11 @@ API, use virDomainMigrateToURI3 instead.
 If you want to copy non-shared storage within migration you
 can use either VIR_MIGRATE_NON_SHARED_DISK or
 VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
+Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+migration.  Use virDomainMigrateStartPostCopy to switch migration into
+the post-copy mode.  See virDomainMigrateStartPostCopy for more details
+about post-copy.
 
 There are many limitations on migration imposed by the underlying
 technology - for example it may not be possible to migrate between
@@ -7064,6 +7187,65 @@ will support a bandwidth cap]]></info>
       <arg name='bandwidth' type='unsigned long' info='migration bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
+    <function name='virDomainMigrateStartPostCopy' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Starts post-copy migration. This function has to be called while
+migration (initiated with VIR_MIGRATE_POSTCOPY flag) is in progress.
+
+Traditional pre-copy migration iteratively walks through guest memory
+pages and migrates those that changed since the previous iteration. The
+iterative phase stops when the number of dirty pages is low enough so that
+the virtual CPUs can be paused, all dirty pages transferred to the
+destination, where the virtual CPUs are unpaused, and all this can happen
+within a predefined downtime period. It's clear that this process may never
+converge if downtime is too short and/or the guest keeps changing a lot of
+memory pages.
+
+When migration is switched to post-copy mode, the virtual CPUs are paused
+immediately, only a minimum set of pages is transferred, and the CPUs are
+unpaused on destination. The source keeps sending all remaining memory pages
+to the destination while the guest is already running there. Whenever the
+guest tries to read a memory page which has not been migrated yet, the
+hypervisor has to tell the source to transfer that page in a priority
+channel. To minimize such page faults, it is a good idea to run at least one
+iteration of pre-copy migration before switching to post-copy.
+
+Post-copy migration is guaranteed to converge since each page is transferred
+at most once no matter how fast it changes. On the other hand once the
+guest is running on the destination host, the migration can no longer be
+rolled back because none of the hosts has complete state. If this happens,
+libvirt will leave the domain paused on both hosts with
+VIR_DOMAIN_PAUSED_POSTCOPY_FAILED reason. It's up to the upper layer to
+decide what to do in such case.
+
+The following domain life cycle events are emitted during post-copy
+migration:
+ VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY (on the source) -- migration entered
+     post-copy mode.
+ VIR_DOMAIN_EVENT_RESUMED_POSTCOPY (on the destination) -- the guest is
+     running on the destination host while some of its memory pages still
+     remain on the source host; neither the source nor the destination host
+     contain a complete guest state from this point until migration
+     finishes.
+ VIR_DOMAIN_EVENT_RESUMED_MIGRATED (on the destination),
+ VIR_DOMAIN_EVENT_STOPPED_MIGRATED (on the source) -- migration finished
+     successfully and the destination host holds a complete guest state.
+ VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY_FAILED (on the destination) -- emitted
+     when migration fails in post-copy mode and it's unclear whether any
+     of the hosts has a complete guest state.
+
+The progress of a post-copy migration can be monitored normally using
+virDomainGetJobStats on the source host. Fetching statistics of a completed
+post-copy migration can also be done on the source host (by calling
+virDomainGetJobStats or listening to VIR_DOMAIN_EVENT_ID_JOB_COMPLETED
+event, but (in contrast to pre-copy migration) the statistics are not
+available on the destination host. Thus, VIR_DOMAIN_EVENT_ID_JOB_COMPLETED
+event is the only way of getting statistics of a completed post-copy
+migration of a transient domain (because the domain is removed after
+migration and there's no domain to run virDomainGetJobStats on).]]></info>
+      <return type='int' info='0 in case of success, -1 otherwise.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virDomainMigrateToURI' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
 host given by duri.
@@ -7086,6 +7268,7 @@ Flags may be one of more of the following:
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
   VIR_MIGRATE_OFFLINE Migrate offline
+  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
@@ -7117,6 +7300,11 @@ can be specified with the bandwidth parameter.  If set to 0,
 libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
 is not 0.
+
+Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+migration.  Use virDomainMigrateStartPostCopy to switch migration into
+the post-copy mode.  See virDomainMigrateStartPostCopy for more details
+about post-copy.
 
 To see which features are supported by the current hypervisor,
 see virConnectGetCapabilities, /capabilities/host/migration_features.
@@ -7154,6 +7342,7 @@ Flags may be one of more of the following:
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
   VIR_MIGRATE_OFFLINE Migrate offline
+  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 
@@ -7199,6 +7388,11 @@ libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
 is not 0.
 
+Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+migration.  Use virDomainMigrateStartPostCopy to switch migration into
+the post-copy mode.  See virDomainMigrateStartPostCopy for more details
+about post-copy.
+
 To see which features are supported by the current hypervisor,
 see virConnectGetCapabilities, /capabilities/host/migration_features.
 
@@ -7237,6 +7431,11 @@ VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 If you want to copy non-shared storage within migration you
 can use either VIR_MIGRATE_NON_SHARED_DISK or
 VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
+Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+migration.  Use virDomainMigrateStartPostCopy to switch migration into
+the post-copy mode.  See virDomainMigrateStartPostCopy for more details
+about post-copy.
 
 There are many limitations on migration imposed by the underlying
 technology - for example it may not be possible to migrate between
@@ -7897,6 +8096,13 @@ This function may require privileged access to the hypervisor.]]></info>
       <arg name='params' type='virTypedParameterPtr' info='pointer to numa parameter objects'/>
       <arg name='nparams' type='int' info='number of numa parameters (this value can be the same or less than the number of parameters supported)'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
+    <function name='virDomainSetPerfEvents' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Enable or disable the particular list of perf events you care about.]]></info>
+      <return type='int' info='-1 in case of error, 0 in case of success.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='params' type='virTypedParameterPtr' info='pointer to perf events parameter object'/>
+      <arg name='nparams' type='int' info='number of perf event parameters (this value can be the same less than the number of parameters supported)'/>
     </function>
     <function name='virDomainSetSchedulerParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Change all or a subset or the scheduler parameters.  It is

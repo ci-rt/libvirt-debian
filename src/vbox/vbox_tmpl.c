@@ -228,18 +228,18 @@ static void nsIDtoChar(unsigned char *uuid, const nsID *iid)
     memcpy(uuidinterim, iid, VIR_UUID_BUFLEN);
     virUUIDFormat(uuidinterim, uuidstrsrc);
 
-    uuidstrdst[0]  = uuidstrsrc[6];
-    uuidstrdst[1]  = uuidstrsrc[7];
-    uuidstrdst[2]  = uuidstrsrc[4];
-    uuidstrdst[3]  = uuidstrsrc[5];
-    uuidstrdst[4]  = uuidstrsrc[2];
-    uuidstrdst[5]  = uuidstrsrc[3];
-    uuidstrdst[6]  = uuidstrsrc[0];
-    uuidstrdst[7]  = uuidstrsrc[1];
+    uuidstrdst[0] = uuidstrsrc[6];
+    uuidstrdst[1] = uuidstrsrc[7];
+    uuidstrdst[2] = uuidstrsrc[4];
+    uuidstrdst[3] = uuidstrsrc[5];
+    uuidstrdst[4] = uuidstrsrc[2];
+    uuidstrdst[5] = uuidstrsrc[3];
+    uuidstrdst[6] = uuidstrsrc[0];
+    uuidstrdst[7] = uuidstrsrc[1];
 
-    uuidstrdst[8]  = uuidstrsrc[8];
+    uuidstrdst[8] = uuidstrsrc[8];
 
-    uuidstrdst[9]  = uuidstrsrc[11];
+    uuidstrdst[9] = uuidstrsrc[11];
     uuidstrdst[10] = uuidstrsrc[12];
     uuidstrdst[11] = uuidstrsrc[9];
     uuidstrdst[12] = uuidstrsrc[10];
@@ -267,18 +267,18 @@ static void nsIDFromChar(nsID *iid, const unsigned char *uuid)
 
     virUUIDFormat(uuid, uuidstrsrc);
 
-    uuidstrdst[0]  = uuidstrsrc[6];
-    uuidstrdst[1]  = uuidstrsrc[7];
-    uuidstrdst[2]  = uuidstrsrc[4];
-    uuidstrdst[3]  = uuidstrsrc[5];
-    uuidstrdst[4]  = uuidstrsrc[2];
-    uuidstrdst[5]  = uuidstrsrc[3];
-    uuidstrdst[6]  = uuidstrsrc[0];
-    uuidstrdst[7]  = uuidstrsrc[1];
+    uuidstrdst[0] = uuidstrsrc[6];
+    uuidstrdst[1] = uuidstrsrc[7];
+    uuidstrdst[2] = uuidstrsrc[4];
+    uuidstrdst[3] = uuidstrsrc[5];
+    uuidstrdst[4] = uuidstrsrc[2];
+    uuidstrdst[5] = uuidstrsrc[3];
+    uuidstrdst[6] = uuidstrsrc[0];
+    uuidstrdst[7] = uuidstrsrc[1];
 
-    uuidstrdst[8]  = uuidstrsrc[8];
+    uuidstrdst[8] = uuidstrsrc[8];
 
-    uuidstrdst[9]  = uuidstrsrc[11];
+    uuidstrdst[9] = uuidstrsrc[11];
     uuidstrdst[10] = uuidstrsrc[12];
     uuidstrdst[11] = uuidstrsrc[9];
     uuidstrdst[12] = uuidstrsrc[10];
@@ -621,12 +621,13 @@ _vboxIIDFromArrayItem(vboxGlobalData *data, vboxIIDUnion *iidu,
 # if VBOX_API_VERSION < 4000000
 /* Only 3.x will use this function. */
 static bool vboxGetDeviceDetails(const char *deviceName,
-                                 PRUint32   *aMaxPortPerInst,
-                                 PRUint32   *aMaxSlotPerPort,
-                                 PRUint32    storageBus,
-                                 PRInt32    *deviceInst,
-                                 PRInt32    *devicePort,
-                                 PRInt32    *deviceSlot) {
+                                 PRUint32 *aMaxPortPerInst,
+                                 PRUint32 *aMaxSlotPerPort,
+                                 PRUint32 storageBus,
+                                 PRInt32 *deviceInst,
+                                 PRInt32 *devicePort,
+                                 PRInt32 *deviceSlot)
+{
     int total = 0;
     PRUint32 maxPortPerInst = 0;
     PRUint32 maxSlotPerPort = 0;
@@ -828,8 +829,8 @@ _vboxAttachDrivesOld(virDomainDefPtr def, vboxGlobalData *data, IMachine *machin
 
                 machine->vtbl->GetDVDDrive(machine, &dvdDrive);
                 if (dvdDrive) {
-                    IDVDImage *dvdImage          = NULL;
-                    PRUnichar *dvdfileUtf16      = NULL;
+                    IDVDImage *dvdImage = NULL;
+                    PRUnichar *dvdfileUtf16 = NULL;
                     vboxIID dvduuid = VBOX_IID_INITIALIZER;
                     vboxIID dvdemptyuuid = VBOX_IID_INITIALIZER;
 
@@ -872,10 +873,10 @@ _vboxAttachDrivesOld(virDomainDefPtr def, vboxGlobalData *data, IMachine *machin
             }
         } else if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
             if (type == VIR_STORAGE_TYPE_FILE && src) {
-                IHardDisk *hardDisk     = NULL;
+                IHardDisk *hardDisk = NULL;
                 PRUnichar *hddfileUtf16 = NULL;
                 vboxIID hdduuid = VBOX_IID_INITIALIZER;
-                PRUnichar *hddEmpty     = NULL;
+                PRUnichar *hddEmpty = NULL;
                 /* Current Limitation: Harddisk can't be connected to
                  * Secondary Master as Secondary Master is always used
                  * for CD/DVD Drive, so don't connect the harddisk if it
@@ -929,8 +930,8 @@ _vboxAttachDrivesOld(virDomainDefPtr def, vboxGlobalData *data, IMachine *machin
                                 VIR_DEBUG("Not connecting harddisk to hdc as hdc"
                                        " is taken by CD/DVD Drive");
                             } else {
-                                PRInt32 channel          = 0;
-                                PRInt32 device           = 0;
+                                PRInt32 channel = 0;
+                                PRInt32 device = 0;
                                 PRUnichar *hddcnameUtf16 = NULL;
 
                                 char *hddcname;
@@ -940,13 +941,13 @@ _vboxAttachDrivesOld(virDomainDefPtr def, vboxGlobalData *data, IMachine *machin
 
                                 if (STREQ(def->disks[i]->dst, "hda")) {
                                     channel = 0;
-                                    device  = 0;
+                                    device = 0;
                                 } else if (STREQ(def->disks[i]->dst, "hdb")) {
                                     channel = 0;
-                                    device  = 1;
+                                    device = 1;
                                 } else if (STREQ(def->disks[i]->dst, "hdd")) {
                                     channel = 1;
-                                    device  = 1;
+                                    device = 1;
                                 }
 
                                 rc = machine->vtbl->AttachHardDisk(machine,
@@ -981,8 +982,8 @@ _vboxAttachDrivesOld(virDomainDefPtr def, vboxGlobalData *data, IMachine *machin
                 if (floppyDrive) {
                     rc = floppyDrive->vtbl->SetEnabled(floppyDrive, 1);
                     if (NS_SUCCEEDED(rc)) {
-                        IFloppyImage *floppyImage   = NULL;
-                        PRUnichar *fdfileUtf16      = NULL;
+                        IFloppyImage *floppyImage = NULL;
+                        PRUnichar *fdfileUtf16 = NULL;
                         vboxIID fduuid = VBOX_IID_INITIALIZER;
                         vboxIID fdemptyuuid = VBOX_IID_INITIALIZER;
 
@@ -1037,7 +1038,7 @@ static void
 _vboxAttachDrivesOld(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
     size_t i;
-    nsresult rc;
+    nsresult rc = 0;
 
     PRUint32 maxPortPerInst[StorageBus_Floppy + 1] = {};
     PRUint32 maxSlotPerPort[StorageBus_Floppy + 1] = {};
@@ -1109,14 +1110,14 @@ _vboxAttachDrivesOld(virDomainDefPtr def, vboxGlobalData *data, IMachine *machin
                                              ? "True" : "False"));
 
         if (type == VIR_STORAGE_TYPE_FILE && src) {
-            IMedium   *medium          = NULL;
-            PRUnichar *mediumUUID      = NULL;
+            IMedium *medium = NULL;
+            PRUnichar *mediumUUID = NULL;
             PRUnichar *mediumFileUtf16 = NULL;
-            PRUint32   storageBus      = StorageBus_Null;
-            PRUint32   deviceType      = DeviceType_Null;
-            PRInt32    deviceInst      = 0;
-            PRInt32    devicePort      = 0;
-            PRInt32    deviceSlot      = 0;
+            PRUint32 storageBus = StorageBus_Null;
+            PRUint32 deviceType = DeviceType_Null;
+            PRInt32 deviceInst = 0;
+            PRInt32 devicePort = 0;
+            PRInt32 deviceSlot = 0;
 
             VBOX_UTF8_TO_UTF16(src, &mediumFileUtf16);
 
@@ -1405,8 +1406,8 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                                  PRUnichar *machineId, PRUint32 state)
 {
     virDomainPtr dom = NULL;
-    int event        = 0;
-    int detail       = 0;
+    int event = 0;
+    int detail = 0;
 
     vboxDriverLock(g_pVBoxGlobalData);
 
@@ -1414,7 +1415,7 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
     DEBUGPRUnichar("machineId", machineId);
 
     if (machineId) {
-        char *machineIdUtf8       = NULL;
+        char *machineIdUtf8 = NULL;
         unsigned char uuid[VIR_UUID_BUFLEN];
 
         g_pVBoxGlobalData->pFuncs->pfnUtf16ToUtf8(machineId, &machineIdUtf8);
@@ -1425,31 +1426,31 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
             virObjectEventPtr ev;
 
             if (state == MachineState_Starting) {
-                event  = VIR_DOMAIN_EVENT_STARTED;
+                event = VIR_DOMAIN_EVENT_STARTED;
                 detail = VIR_DOMAIN_EVENT_STARTED_BOOTED;
             } else if (state == MachineState_Restoring) {
-                event  = VIR_DOMAIN_EVENT_STARTED;
+                event = VIR_DOMAIN_EVENT_STARTED;
                 detail = VIR_DOMAIN_EVENT_STARTED_RESTORED;
             } else if (state == MachineState_Paused) {
-                event  = VIR_DOMAIN_EVENT_SUSPENDED;
+                event = VIR_DOMAIN_EVENT_SUSPENDED;
                 detail = VIR_DOMAIN_EVENT_SUSPENDED_PAUSED;
             } else if (state == MachineState_Running) {
-                event  = VIR_DOMAIN_EVENT_RESUMED;
+                event = VIR_DOMAIN_EVENT_RESUMED;
                 detail = VIR_DOMAIN_EVENT_RESUMED_UNPAUSED;
             } else if (state == MachineState_PoweredOff) {
-                event  = VIR_DOMAIN_EVENT_STOPPED;
+                event = VIR_DOMAIN_EVENT_STOPPED;
                 detail = VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN;
             } else if (state == MachineState_Stopping) {
-                event  = VIR_DOMAIN_EVENT_STOPPED;
+                event = VIR_DOMAIN_EVENT_STOPPED;
                 detail = VIR_DOMAIN_EVENT_STOPPED_DESTROYED;
             } else if (state == MachineState_Aborted) {
-                event  = VIR_DOMAIN_EVENT_STOPPED;
+                event = VIR_DOMAIN_EVENT_STOPPED;
                 detail = VIR_DOMAIN_EVENT_STOPPED_CRASHED;
             } else if (state == MachineState_Saving) {
-                event  = VIR_DOMAIN_EVENT_STOPPED;
+                event = VIR_DOMAIN_EVENT_STOPPED;
                 detail = VIR_DOMAIN_EVENT_STOPPED_SAVED;
             } else {
-                event  = VIR_DOMAIN_EVENT_STOPPED;
+                event = VIR_DOMAIN_EVENT_STOPPED;
                 detail = VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN;
             }
 
@@ -1524,8 +1525,8 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                                 PRUnichar *machineId, PRBool registered)
 {
     virDomainPtr dom = NULL;
-    int event        = 0;
-    int detail       = 0;
+    int event = 0;
+    int detail = 0;
 
     vboxDriverLock(g_pVBoxGlobalData);
 
@@ -1533,7 +1534,7 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
     DEBUGPRUnichar("machineId", machineId);
 
     if (machineId) {
-        char *machineIdUtf8       = NULL;
+        char *machineIdUtf8 = NULL;
         unsigned char uuid[VIR_UUID_BUFLEN];
 
         g_pVBoxGlobalData->pFuncs->pfnUtf16ToUtf8(machineId, &machineIdUtf8);
@@ -1550,10 +1551,10 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
              * to show the VIR_DOMAIN_EVENT_UNDEFINED event
              */
             if (registered) {
-                event  = VIR_DOMAIN_EVENT_DEFINED;
+                event = VIR_DOMAIN_EVENT_DEFINED;
                 detail = VIR_DOMAIN_EVENT_DEFINED_ADDED;
             } else {
-                event  = VIR_DOMAIN_EVENT_UNDEFINED;
+                event = VIR_DOMAIN_EVENT_UNDEFINED;
                 detail = VIR_DOMAIN_EVENT_UNDEFINED_REMOVED;
             }
 
@@ -1749,7 +1750,7 @@ vboxConnectDomainEventRegister(virConnectPtr conn,
                                virFreeCallback freecb)
 {
     vboxGlobalData *data = conn->privateData;
-    int vboxRet          = -1;
+    int vboxRet = -1;
     nsresult rc;
     int ret = -1;
 
@@ -1853,7 +1854,7 @@ static int vboxConnectDomainEventRegisterAny(virConnectPtr conn,
                                              virFreeCallback freecb)
 {
     vboxGlobalData *data = conn->privateData;
-    int vboxRet          = -1;
+    int vboxRet = -1;
     nsresult rc;
     int ret = -1;
 
@@ -2159,26 +2160,26 @@ _dumpIDEHDDsOld(virDomainDefPtr def,
                 vboxGlobalData *data,
                 IMachine *machine)
 {
-    PRInt32       hddNum                = 0;
-    IHardDisk    *hardDiskPM            = NULL;
-    IHardDisk    *hardDiskPS            = NULL;
-    IHardDisk    *hardDiskSS            = NULL;
-    const char   *hddBus                = "IDE";
-    PRUnichar    *hddBusUtf16           = NULL;
+    PRInt32 hddNum = 0;
+    IHardDisk *hardDiskPM = NULL;
+    IHardDisk *hardDiskPS = NULL;
+    IHardDisk *hardDiskSS = NULL;
+    const char *hddBus = "IDE";
+    PRUnichar *hddBusUtf16 = NULL;
 
     /* dump IDE hdds if present */
     VBOX_UTF8_TO_UTF16(hddBus, &hddBusUtf16);
 
     def->ndisks = 0;
-    machine->vtbl->GetHardDisk(machine, hddBusUtf16, 0, 0,  &hardDiskPM);
+    machine->vtbl->GetHardDisk(machine, hddBusUtf16, 0, 0, &hardDiskPM);
     if (hardDiskPM)
         def->ndisks++;
 
-    machine->vtbl->GetHardDisk(machine, hddBusUtf16, 0, 1,  &hardDiskPS);
+    machine->vtbl->GetHardDisk(machine, hddBusUtf16, 0, 1, &hardDiskPS);
     if (hardDiskPS)
         def->ndisks++;
 
-    machine->vtbl->GetHardDisk(machine, hddBusUtf16, 1, 1,  &hardDiskSS);
+    machine->vtbl->GetHardDisk(machine, hddBusUtf16, 1, 1, &hardDiskSS);
     if (hardDiskSS)
         def->ndisks++;
 
@@ -2198,8 +2199,8 @@ _dumpIDEHDDsOld(virDomainDefPtr def,
 
     if (hardDiskPM) {
         PRUnichar *hddlocationUtf16 = NULL;
-        char *hddlocation           = NULL;
-        PRUint32 hddType            = HardDiskType_Normal;
+        char *hddlocation = NULL;
+        PRUint32 hddType = HardDiskType_Normal;
 
         hardDiskPM->vtbl->imedium.GetLocation((IMedium *)hardDiskPM, &hddlocationUtf16);
         VBOX_UTF16_TO_UTF8(hddlocationUtf16, &hddlocation);
@@ -2220,8 +2221,8 @@ _dumpIDEHDDsOld(virDomainDefPtr def,
 
     if (hardDiskPS) {
         PRUnichar *hddlocationUtf16 = NULL;
-        char *hddlocation           = NULL;
-        PRUint32 hddType            = HardDiskType_Normal;
+        char *hddlocation = NULL;
+        PRUint32 hddType = HardDiskType_Normal;
 
         hardDiskPS->vtbl->imedium.GetLocation((IMedium *)hardDiskPS, &hddlocationUtf16);
         VBOX_UTF16_TO_UTF8(hddlocationUtf16, &hddlocation);
@@ -2242,8 +2243,8 @@ _dumpIDEHDDsOld(virDomainDefPtr def,
 
     if (hardDiskSS) {
         PRUnichar *hddlocationUtf16 = NULL;
-        char *hddlocation           = NULL;
-        PRUint32 hddType            = HardDiskType_Normal;
+        char *hddlocation = NULL;
+        PRUint32 hddType = HardDiskType_Normal;
 
         hardDiskSS->vtbl->imedium.GetLocation((IMedium *)hardDiskSS, &hddlocationUtf16);
         VBOX_UTF16_TO_UTF8(hddlocationUtf16, &hddlocation);
@@ -2268,10 +2269,10 @@ _dumpDVD(virDomainDefPtr def,
          vboxGlobalData *data,
          IMachine *machine)
 {
-    IDVDDrive *dvdDrive      = NULL;
-    IDVDImage *dvdImage      = NULL;
+    IDVDDrive *dvdDrive = NULL;
+    IDVDImage *dvdImage = NULL;
     PRUnichar *locationUtf16 = NULL;
-    char *location           = NULL;
+    char *location = NULL;
 
 
     /* dump CDROM/DVD if the drive is attached and has DVD/CD in it */
@@ -2322,8 +2323,8 @@ _dumpDVD(virDomainDefPtr def,
 static int
 _attachDVD(vboxGlobalData *data, IMachine *machine, const char *src)
 {
-    IDVDDrive *dvdDrive     = NULL;
-    IDVDImage *dvdImage     = NULL;
+    IDVDDrive *dvdDrive = NULL;
+    IDVDImage *dvdImage = NULL;
     PRUnichar *dvdfileUtf16 = NULL;
     vboxIID dvduuid = VBOX_IID_INITIALIZER;
     vboxIID dvdemptyuuid = VBOX_IID_INITIALIZER;
@@ -2409,10 +2410,10 @@ _dumpFloppy(virDomainDefPtr def,
 {
     IFloppyDrive *floppyDrive = NULL;
     IFloppyImage *floppyImage = NULL;
-    PRUnichar *locationUtf16  = NULL;
-    char *location            = NULL;
-    PRBool enabled            = PR_FALSE;
-    PRUint32 state            = DriveState_Null;
+    PRUnichar *locationUtf16 = NULL;
+    char *location = NULL;
+    PRBool enabled = PR_FALSE;
+    PRUint32 state = DriveState_Null;
 
     /* dump Floppy if the drive is attached and has floppy in it */
     machine->vtbl->GetFloppyDrive(machine, &floppyDrive);
@@ -2465,8 +2466,8 @@ static int
 _attachFloppy(vboxGlobalData *data, IMachine *machine, const char *src)
 {
     IFloppyDrive *floppyDrive;
-    IFloppyImage *floppyImage   = NULL;
-    PRUnichar *fdfileUtf16      = NULL;
+    IFloppyImage *floppyImage = NULL;
+    PRUnichar *fdfileUtf16 = NULL;
     vboxIID fduuid = VBOX_IID_INITIALIZER;
     vboxIID fdemptyuuid = VBOX_IID_INITIALIZER;
     nsresult rc;
@@ -2811,7 +2812,7 @@ _virtualboxCreateMachine(vboxGlobalData *data, virDomainDefPtr def, IMachine **m
 {
     vboxIID iid = VBOX_IID_INITIALIZER;
     PRUnichar *machineNameUtf16 = NULL;
-    nsresult rc;
+    nsresult rc = -1;
 
     VBOX_UTF8_TO_UTF16(def->name, &machineNameUtf16);
     vboxIIDFromUUID(&iid, def->uuid);
@@ -2824,7 +2825,7 @@ _virtualboxCreateMachine(vboxGlobalData *data, virDomainDefPtr def, IMachine **m
                                                     iid.value,
                                                     machine);
 #elif VBOX_API_VERSION < 4000000 /* 3002000 <= VBOX_API_VERSION < 4000000 */
-        PRBool override             = PR_FALSE;
+        PRBool override = PR_FALSE;
         rc = data->vboxObj->vtbl->CreateMachine(data->vboxObj,
                                                 machineNameUtf16,
                                                 NULL,
@@ -2833,7 +2834,7 @@ _virtualboxCreateMachine(vboxGlobalData *data, virDomainDefPtr def, IMachine **m
                                                 override,
                                                 machine);
 #elif VBOX_API_VERSION >= 4000000 && VBOX_API_VERSION < 4002000
-        PRBool override             = PR_FALSE;
+        PRBool override = PR_FALSE;
         rc = data->vboxObj->vtbl->CreateMachine(data->vboxObj,
                                                 NULL,
                                                 machineNameUtf16,
@@ -2842,18 +2843,12 @@ _virtualboxCreateMachine(vboxGlobalData *data, virDomainDefPtr def, IMachine **m
                                                 override,
                                                 machine);
 #else /* VBOX_API_VERSION >= 4002000 */
-        const char *flagsUUIDPrefix = "UUID=";
-        const char *flagsForceOverwrite = "forceOverwrite=0";
-        const char *flagsSeparator = ",";
-        char createFlags[strlen(flagsUUIDPrefix) + VIR_UUID_STRING_BUFLEN + strlen(flagsSeparator) + strlen(flagsForceOverwrite) + 1];
+        char *createFlags = NULL;
         PRUnichar *createFlagsUtf16 = NULL;
 
-        snprintf(createFlags, sizeof(createFlags), "%s%s%s%s",
-                 flagsUUIDPrefix,
-                 uuidstr,
-                 flagsSeparator,
-                 flagsForceOverwrite
-                );
+        if (virAsprintf(&createFlags,
+                        "UUID=%s,forceOverwrite=0", uuidstr) < 0)
+            goto cleanup;
         VBOX_UTF8_TO_UTF16(createFlags, &createFlagsUtf16);
         rc = data->vboxObj->vtbl->CreateMachine(data->vboxObj,
                                                 NULL,
@@ -2863,6 +2858,8 @@ _virtualboxCreateMachine(vboxGlobalData *data, virDomainDefPtr def, IMachine **m
                                                 nsnull,
                                                 createFlagsUtf16,
                                                 machine);
+ cleanup:
+        VIR_FREE(createFlags);
 #endif /* VBOX_API_VERSION >= 4002000 */
     }
     VBOX_UTF16_FREE(machineNameUtf16);

@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.3.1], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.3.3], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -257,6 +257,7 @@ LIBVIRT_CHECK_SSH2
 LIBVIRT_CHECK_SYSTEMD_DAEMON
 LIBVIRT_CHECK_UDEV
 LIBVIRT_CHECK_WIRESHARK
+LIBVIRT_CHECK_NSS
 LIBVIRT_CHECK_YAJL
 
 AC_MSG_CHECKING([for CPUID instruction])
@@ -323,7 +324,7 @@ fi
 LIBS=$old_libs
 
 dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
+AC_CHECK_HEADERS([pwd.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
   sys/un.h sys/syscall.h sys/sysctl.h netinet/tcp.h ifaddrs.h \
   libtasn1.h sys/ucred.h sys/mount.h])
@@ -1110,56 +1111,6 @@ dnl Checks for bhyve driver
 dnl
 
 LIBVIRT_DRIVER_CHECK_BHYVE
-
-dnl
-dnl check for shell that understands <> redirection without truncation,
-dnl needed by src/qemu/qemu_monitor_{text,json}.c.
-dnl
-if test "$with_qemu" = yes; then
-  lv_wrapper_shell=
-  AC_CACHE_CHECK([for shell that supports <> redirection],
-    [lv_cv_wrapper_shell],
-    [
-    # If cross-compiling, guess that /bin/sh is good enough except for
-    # Linux, where it might be dash 0.5.5 which is known broken; and on
-    # Linux, we have a good chance that /bin/bash will exist.
-    # If we guess wrong, a user can override the cache variable.
-    # Going through /bin/bash is a slight slowdown if /bin/sh works.
-    if test "$cross_compiling" = yes; then
-      case $host_os in
-        linux*) lv_cv_wrapper_shell=/bin/bash ;;
-        *) lv_cv_wrapper_shell=/bin/sh ;;
-      esac
-    else
-      for lv_cv_wrapper_shell in /bin/sh bash ksh zsh none; do
-        test $lv_cv_wrapper_shell = none &&
-          AC_MSG_ERROR([could not find decent shell])
-        echo a > conftest.a
-        ($lv_cv_wrapper_shell -c ': 1<>conftest.a') 2>/dev/null &&
-        case `cat conftest.a`.$lv_cv_wrapper_shell in
-          a./*) break;; dnl /bin/sh is good enough
-          a.*) dnl bash, ksh, and zsh all understand 'command', use that
-               dnl to determine the absolute path of the shell
-            lv_cv_wrapper_shell=`$lv_cv_wrapper_shell -c \
-              "command -v $lv_cv_wrapper_shell"`
-            case $lv_cv_wrapper_shell in
-              /*) break;;
-            esac
-            ;;
-        esac
-      done
-      rm -f conftest.a
-    fi
-  ])
-  if test "x$lv_cv_wrapper_shell" != x/bin/sh; then
-    lv_wrapper_shell=$lv_cv_wrapper_shell
-  fi
-  if test "x$lv_wrapper_shell" != x; then
-    AC_DEFINE_UNQUOTED([VIR_WRAPPER_SHELL], ["$lv_wrapper_shell"],
-      [Define to the absolute path of a shell that does not truncate on
-       <> redirection, if /bin/sh does not fit the bill])
-  fi
-fi
 
 
 dnl
@@ -2010,14 +1961,6 @@ if test "$with_storage_gluster" = "yes"; then
     [whether Gluster backend for storage driver is enabled])
 fi
 AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
-
-if test "$with_storage_zfs" = "check"; then
-    with_storage_zfs=$with_freebsd
-fi
-
-if test "$with_storage_zfs" = "yes" && test "$with_freebsd" = "no"; then
-    AC_MSG_ERROR([The ZFS storage driver can be enabled on FreeBSD only.])
-fi
 
 if test "$with_storage_zfs" = "yes" ||
    test "$with_storage_zfs" = "check"; then
@@ -2901,6 +2844,7 @@ LIBVIRT_RESULT_SSH2
 LIBVIRT_RESULT_SYSTEMD_DAEMON
 LIBVIRT_RESULT_UDEV
 LIBVIRT_RESULT_WIRESHARK
+LIBVIRT_RESULT_NSS
 LIBVIRT_RESULT_YAJL
 AC_MSG_NOTICE([  libxml: $LIBXML_CFLAGS $LIBXML_LIBS])
 AC_MSG_NOTICE([  dlopen: $DLOPEN_LIBS])

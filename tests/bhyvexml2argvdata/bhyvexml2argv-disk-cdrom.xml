@@ -5,6 +5,7 @@
   <vcpu>1</vcpu>
   <os>
     <type>hvm</type>
+    <boot dev='cdrom'/>
   </os>
   <devices>
     <disk type='file' device='cdrom'>

@@ -102,6 +102,7 @@ bin_PROGRAMS = virsh$(EXEEXT) virt-host-validate$(EXEEXT) \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_7 = libvirt-guests.init
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_8 = libvirt-guests.service
 @WITH_WIRESHARK_DISSECTOR_TRUE@am__append_9 = wireshark/src/plugin.c
+@WITH_NSS_TRUE@am__append_10 = nss/libnss_libvirt_impl.la
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -248,7 +249,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
-	$(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
@@ -301,11 +302,13 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(ws_plugindir)" "$(DESTDIR)$(bindir)" \
-	"$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" \
-	"$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" \
-	"$(DESTDIR)$(man8dir)" "$(DESTDIR)$(confdir)"
-LTLIBRARIES = $(noinst_LTLIBRARIES) $(ws_plugin_LTLIBRARIES)
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(ws_plugindir)" \
+	"$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
+	"$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" \
+	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)" \
+	"$(DESTDIR)$(confdir)"
+LTLIBRARIES = $(lib_LTLIBRARIES) $(noinst_LTLIBRARIES) \
+	$(ws_plugin_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libvirt_shell_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) ../src/libvirt.la \
@@ -320,10 +323,33 @@ libvirt_shell_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(libvirt_shell_la_CFLAGS) $(CFLAGS) \
 	$(libvirt_shell_la_LDFLAGS) $(LDFLAGS) -o $@
+@WITH_NSS_TRUE@nss_libnss_libvirt_la_DEPENDENCIES =  \
+@WITH_NSS_TRUE@	nss/libnss_libvirt_impl.la
+am_nss_libnss_libvirt_la_OBJECTS =
+nss_libnss_libvirt_la_OBJECTS = $(am_nss_libnss_libvirt_la_OBJECTS)
+nss_libnss_libvirt_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(nss_libnss_libvirt_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@WITH_NSS_TRUE@am_nss_libnss_libvirt_la_rpath = -rpath $(libdir)
+am__dirstamp = $(am__leading_dot)dirstamp
+@WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_DEPENDENCIES =  \
+@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la ../src/libvirt-nss.la
+am__nss_libnss_libvirt_impl_la_SOURCES_DIST = nss/libvirt_nss.c \
+	nss/libvirt_nss.h
+am__objects_1 = nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo
+@WITH_NSS_TRUE@am_nss_libnss_libvirt_impl_la_OBJECTS =  \
+@WITH_NSS_TRUE@	$(am__objects_1)
+nss_libnss_libvirt_impl_la_OBJECTS =  \
+	$(am_nss_libnss_libvirt_impl_la_OBJECTS)
+nss_libnss_libvirt_impl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(nss_libnss_libvirt_impl_la_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@WITH_NSS_TRUE@am_nss_libnss_libvirt_impl_la_rpath =
 wireshark_src_libvirt_la_LIBADD =
 am__wireshark_src_libvirt_la_SOURCES_DIST =  \
 	wireshark/src/packet-libvirt.h wireshark/src/packet-libvirt.c
-am__dirstamp = $(am__leading_dot)dirstamp
 @WITH_WIRESHARK_DISSECTOR_TRUE@am_wireshark_src_libvirt_la_OBJECTS = wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo
 @WITH_WIRESHARK_DISSECTOR_TRUE@nodist_wireshark_src_libvirt_la_OBJECTS = wireshark/src/wireshark_src_libvirt_la-plugin.lo
 wireshark_src_libvirt_la_OBJECTS =  \
@@ -414,12 +440,15 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libvirt_shell_la_SOURCES) \
+SOURCES = $(libvirt_shell_la_SOURCES) $(nss_libnss_libvirt_la_SOURCES) \
+	$(nss_libnss_libvirt_impl_la_SOURCES) \
 	$(wireshark_src_libvirt_la_SOURCES) \
 	$(nodist_wireshark_src_libvirt_la_SOURCES) $(virsh_SOURCES) \
 	$(virt_admin_SOURCES) $(virt_host_validate_SOURCES) \
 	$(virt_login_shell_SOURCES)
 DIST_SOURCES = $(libvirt_shell_la_SOURCES) \
+	$(nss_libnss_libvirt_la_SOURCES) \
+	$(am__nss_libnss_libvirt_impl_la_SOURCES_DIST) \
 	$(am__wireshark_src_libvirt_la_SOURCES_DIST) $(virsh_SOURCES) \
 	$(virt_admin_SOURCES) $(virt_host_validate_SOURCES) \
 	$(virt_login_shell_SOURCES)
@@ -1941,7 +1970,8 @@ EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	virsh-secret.c virsh-snapshot.c virsh-volume.c $(am__append_4) \
 	libvirt-guests.sh.in libvirt-guests.init.in \
 	libvirt-guests.service.in wireshark/util/genxdrstub.pl \
-	wireshark/util/make-dissector-reg
+	wireshark/util/make-dissector-reg $(LIBVIRT_NSS_SYMBOL_FILE) \
+	$(LIBVIRT_NSS_SOURCES)
 CLEANFILES = $(am__append_9) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
 	.libs/*.gcno *.gcno *.gcda *.i *.s
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
@@ -1953,7 +1983,7 @@ libexec_SCRIPTS = libvirt-guests.sh
 dist_man1_MANS = virt-host-validate.1 virt-pki-validate.1 \
 	virt-xml-validate.1 virsh.1 virt-admin.1 $(am__append_5)
 @WITH_SANLOCK_TRUE@dist_man8_MANS = virt-sanlock-cleanup.8
-noinst_LTLIBRARIES = libvirt_shell.la
+noinst_LTLIBRARIES = libvirt_shell.la $(am__append_10)
 libvirt_shell_la_CFLAGS = \
 		$(AM_CFLAGS)						\
 		$(PIE_CFLAGS)						\
@@ -2100,6 +2130,44 @@ SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_WIRESHARK_DISSECTOR_TRUE@  $(abs_top_srcdir)/src/remote/lxc_protocol.x \
 @WITH_WIRESHARK_DISSECTOR_TRUE@  $(abs_top_srcdir)/src/rpc/virkeepaliveprotocol.x
 
+LIBVIRT_NSS_SYMBOL_FILE = \
+	$(srcdir)/nss/libvirt_nss.syms
+
+LIBVIRT_NSS_SOURCES = \
+	nss/libvirt_nss.c	\
+	nss/libvirt_nss.h
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_SOURCES = \
+@WITH_NSS_TRUE@	$(LIBVIRT_NSS_SOURCES)
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_CFLAGS = \
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS		\
+@WITH_NSS_TRUE@	$(AM_CFLAGS)		\
+@WITH_NSS_TRUE@	$(WARN_CFLAGS)		\
+@WITH_NSS_TRUE@	$(PIE_CFLAGS)		\
+@WITH_NSS_TRUE@	$(COVERAGE_CFLAGS)	\
+@WITH_NSS_TRUE@	$(LIBXML_CFLAGS)
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_LIBADD = \
+@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la		\
+@WITH_NSS_TRUE@	../src/libvirt-nss.la
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_la_SOURCES = 
+@WITH_NSS_TRUE@nss_libnss_libvirt_la_LDFLAGS = \
+@WITH_NSS_TRUE@	$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_NSS_SYMBOL_FILE)	\
+@WITH_NSS_TRUE@	$(AM_LDFLAGS) \
+@WITH_NSS_TRUE@	-module \
+@WITH_NSS_TRUE@	-export-dynamic \
+@WITH_NSS_TRUE@	-avoid-version \
+@WITH_NSS_TRUE@	-shared \
+@WITH_NSS_TRUE@	-shrext .so.2
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_la_LIBADD = \
+@WITH_NSS_TRUE@	nss/libnss_libvirt_impl.la
+
+@WITH_NSS_TRUE@lib_LTLIBRARIES = \
+@WITH_NSS_TRUE@	nss/libnss_libvirt.la
+
 MAINTAINERCLEANFILES = $(dist_man1_MANS)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -2135,6 +2203,41 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	list2=; for p in $$list; do \
+	  if test -f $$p; then \
+	    list2="$$list2 $$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$list2" || { \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libdir)" || exit 1; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
+	}
+
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	for p in $$list; do \
+	  $(am__strip_dir) \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
+	done
+
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	test -z "$$locs" || { \
+	  echo rm -f $${locs}; \
+	  rm -f $${locs}; \
+	}
 
 clean-noinstLTLIBRARIES:
 	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
@@ -2184,6 +2287,20 @@ clean-ws_pluginLTLIBRARIES:
 
 libvirt_shell.la: $(libvirt_shell_la_OBJECTS) $(libvirt_shell_la_DEPENDENCIES) $(EXTRA_libvirt_shell_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libvirt_shell_la_LINK)  $(libvirt_shell_la_OBJECTS) $(libvirt_shell_la_LIBADD) $(LIBS)
+nss/$(am__dirstamp):
+	@$(MKDIR_P) nss
+	@: > nss/$(am__dirstamp)
+
+nss/libnss_libvirt.la: $(nss_libnss_libvirt_la_OBJECTS) $(nss_libnss_libvirt_la_DEPENDENCIES) $(EXTRA_nss_libnss_libvirt_la_DEPENDENCIES) nss/$(am__dirstamp)
+	$(AM_V_CCLD)$(nss_libnss_libvirt_la_LINK) $(am_nss_libnss_libvirt_la_rpath) $(nss_libnss_libvirt_la_OBJECTS) $(nss_libnss_libvirt_la_LIBADD) $(LIBS)
+nss/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) nss/$(DEPDIR)
+	@: > nss/$(DEPDIR)/$(am__dirstamp)
+nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo: nss/$(am__dirstamp) \
+	nss/$(DEPDIR)/$(am__dirstamp)
+
+nss/libnss_libvirt_impl.la: $(nss_libnss_libvirt_impl_la_OBJECTS) $(nss_libnss_libvirt_impl_la_DEPENDENCIES) $(EXTRA_nss_libnss_libvirt_impl_la_DEPENDENCIES) nss/$(am__dirstamp)
+	$(AM_V_CCLD)$(nss_libnss_libvirt_impl_la_LINK) $(am_nss_libnss_libvirt_impl_la_rpath) $(nss_libnss_libvirt_impl_la_OBJECTS) $(nss_libnss_libvirt_impl_la_LIBADD) $(LIBS)
 wireshark/src/$(am__dirstamp):
 	@$(MKDIR_P) wireshark/src
 	@: > wireshark/src/$(am__dirstamp)
@@ -2372,6 +2489,8 @@ uninstall-sbinSCRIPTS:
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f nss/*.$(OBJEXT)
+	-rm -f nss/*.lo
 	-rm -f wireshark/src/*.$(OBJEXT)
 	-rm -f wireshark/src/*.lo
 
@@ -2398,6 +2517,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-qemu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_login_shell-virt-login-shell.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@nss/$(DEPDIR)/nss_libnss_libvirt_impl_la-libvirt_nss.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-packet-libvirt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-plugin.Plo@am__quote@
 
@@ -2431,6 +2551,13 @@ libvirt_shell_la-vsh.lo: vsh.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='libvirt_shell_la-vsh.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_shell_la_CFLAGS) $(CFLAGS) -c -o libvirt_shell_la-vsh.lo `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
+
+nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo: nss/libvirt_nss.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nss_libnss_libvirt_impl_la_CFLAGS) $(CFLAGS) -MT nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo -MD -MP -MF nss/$(DEPDIR)/nss_libnss_libvirt_impl_la-libvirt_nss.Tpo -c -o nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo `test -f 'nss/libvirt_nss.c' || echo '$(srcdir)/'`nss/libvirt_nss.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) nss/$(DEPDIR)/nss_libnss_libvirt_impl_la-libvirt_nss.Tpo nss/$(DEPDIR)/nss_libnss_libvirt_impl_la-libvirt_nss.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nss/libvirt_nss.c' object='nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nss_libnss_libvirt_impl_la_CFLAGS) $(CFLAGS) -c -o nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo `test -f 'nss/libvirt_nss.c' || echo '$(srcdir)/'`nss/libvirt_nss.c
 
 wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo: wireshark/src/packet-libvirt.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wireshark_src_libvirt_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo -MD -MP -MF wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-packet-libvirt.Tpo -c -o wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo `test -f 'wireshark/src/packet-libvirt.c' || echo '$(srcdir)/'`wireshark/src/packet-libvirt.c
@@ -2717,6 +2844,7 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+	-rm -rf nss/.libs nss/_libs
 	-rm -rf wireshark/src/.libs wireshark/src/_libs
 install-man1: $(dist_man1_MANS)
 	@$(NORMAL_INSTALL)
@@ -2908,8 +3036,10 @@ check-am: all-am
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
 all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) $(MANS) $(DATA)
+install-binPROGRAMS: install-libLTLIBRARIES
+
 installdirs:
-	for dir in "$(DESTDIR)$(ws_plugindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(confdir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(ws_plugindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(confdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -2940,6 +3070,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f nss/$(DEPDIR)/$(am__dirstamp)
+	-rm -f nss/$(am__dirstamp)
 	-rm -f wireshark/src/$(DEPDIR)/$(am__dirstamp)
 	-rm -f wireshark/src/$(am__dirstamp)
 	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
@@ -2951,12 +3083,12 @@ maintainer-clean-generic:
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-libtool clean-local \
-	clean-noinstLTLIBRARIES clean-ws_pluginLTLIBRARIES \
-	mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
+	clean-libtool clean-local clean-noinstLTLIBRARIES \
+	clean-ws_pluginLTLIBRARIES mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR) wireshark/src/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) nss/$(DEPDIR) wireshark/src/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -2981,7 +3113,8 @@ install-dvi: install-dvi-am
 install-dvi-am:
 
 install-exec-am: install-binPROGRAMS install-binSCRIPTS \
-	install-libexecSCRIPTS install-sbinSCRIPTS
+	install-libLTLIBRARIES install-libexecSCRIPTS \
+	install-sbinSCRIPTS
 
 install-html: install-html-am
 
@@ -3004,7 +3137,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) wireshark/src/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) nss/$(DEPDIR) wireshark/src/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -3022,24 +3155,25 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
-	uninstall-confDATA uninstall-libexecSCRIPTS uninstall-local \
-	uninstall-man uninstall-sbinSCRIPTS \
-	uninstall-ws_pluginLTLIBRARIES
+	uninstall-confDATA uninstall-libLTLIBRARIES \
+	uninstall-libexecSCRIPTS uninstall-local uninstall-man \
+	uninstall-sbinSCRIPTS uninstall-ws_pluginLTLIBRARIES
 
 uninstall-man: uninstall-man1 uninstall-man8
 
 .MAKE: all check install install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
-	clean-binPROGRAMS clean-generic clean-libtool clean-local \
-	clean-noinstLTLIBRARIES clean-ws_pluginLTLIBRARIES \
-	cscopelist-am ctags ctags-am distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-binSCRIPTS install-confDATA \
-	install-data install-data-am install-data-local install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am \
+	clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
+	clean-libtool clean-local clean-noinstLTLIBRARIES \
+	clean-ws_pluginLTLIBRARIES cscopelist-am ctags ctags-am \
+	distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-binSCRIPTS install-confDATA install-data \
+	install-data-am install-data-local install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-libLTLIBRARIES \
 	install-libexecSCRIPTS install-man install-man1 install-man8 \
 	install-pdf install-pdf-am install-ps install-ps-am \
 	install-sbinSCRIPTS install-strip install-ws_pluginLTLIBRARIES \
@@ -3048,9 +3182,9 @@ uninstall-man: uninstall-man1 uninstall-man8
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
 	uninstall-binSCRIPTS uninstall-confDATA \
-	uninstall-libexecSCRIPTS uninstall-local uninstall-man \
-	uninstall-man1 uninstall-man8 uninstall-sbinSCRIPTS \
-	uninstall-ws_pluginLTLIBRARIES
+	uninstall-libLTLIBRARIES uninstall-libexecSCRIPTS \
+	uninstall-local uninstall-man uninstall-man1 uninstall-man8 \
+	uninstall-sbinSCRIPTS uninstall-ws_pluginLTLIBRARIES
 
 .PRECIOUS: Makefile
 

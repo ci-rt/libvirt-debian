@@ -30,9 +30,10 @@ int prlsdkConnect(vzConnPtr privconn);
 void prlsdkDisconnect(vzConnPtr privconn);
 int
 prlsdkLoadDomains(vzConnPtr privconn);
-virDomainObjPtr
-prlsdkAddDomain(vzConnPtr privconn, const unsigned char *uuid);
 int prlsdkUpdateDomain(vzConnPtr privconn, virDomainObjPtr dom);
+int
+prlsdkLoadDomain(vzConnPtr privconn,
+                 virDomainObjPtr dom);
 int prlsdkSubscribeToPCSEvents(vzConnPtr privconn);
 void prlsdkUnsubscribeFromPCSEvents(vzConnPtr privconn);
 PRL_RESULT prlsdkStart(PRL_HANDLE sdkdom);
@@ -62,18 +63,20 @@ prlsdkUnregisterDomain(vzConnPtr privconn, virDomainObjPtr dom, unsigned int fla
 int
 prlsdkDomainManagedSaveRemove(virDomainObjPtr dom);
 int
-prlsdkAttachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk);
+prlsdkAttachVolume(vzConnPtr privconn, virDomainObjPtr dom, virDomainDiskDefPtr disk);
 int
 prlsdkDetachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk);
 int
 prlsdkGetBlockStats(virDomainObjPtr dom, virDomainDiskDefPtr disk, virDomainBlockStatsPtr stats);
 int
-prlsdkAttachNet(virDomainObjPtr dom, vzConnPtr privconn, virDomainNetDefPtr net);
+prlsdkAttachNet(vzConnPtr privconn, virDomainObjPtr dom, virDomainNetDefPtr net);
 int
-prlsdkDetachNet(virDomainObjPtr dom, vzConnPtr privconn, virDomainNetDefPtr net);
+prlsdkDetachNet(vzConnPtr privconn, virDomainObjPtr dom, virDomainNetDefPtr net);
 int
 prlsdkGetNetStats(virDomainObjPtr dom, const char *path, virDomainInterfaceStatsPtr stats);
 int
 prlsdkGetVcpuStats(virDomainObjPtr dom, int idx, unsigned long long *time);
 int
 prlsdkGetMemoryStats(virDomainObjPtr dom, virDomainMemoryStatPtr stats, unsigned int nr_stats);
+void
+prlsdkDomObjFreePrivate(void *p);

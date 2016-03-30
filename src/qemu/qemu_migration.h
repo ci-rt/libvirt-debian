@@ -41,7 +41,8 @@
      VIR_MIGRATE_COMPRESSED |                   \
      VIR_MIGRATE_ABORT_ON_ERROR |               \
      VIR_MIGRATE_AUTO_CONVERGE |                \
-     VIR_MIGRATE_RDMA_PIN_ALL)
+     VIR_MIGRATE_RDMA_PIN_ALL |                 \
+     VIR_MIGRATE_POSTCOPY)
 
 /* All supported migration parameters and their types. */
 # define QEMU_MIGRATION_PARAMETERS                                \
@@ -53,6 +54,7 @@
     VIR_MIGRATE_PARAM_LISTEN_ADDRESS,   VIR_TYPED_PARAM_STRING,   \
     VIR_MIGRATE_PARAM_MIGRATE_DISKS,    VIR_TYPED_PARAM_STRING |  \
                                         VIR_TYPED_PARAM_MULTIPLE, \
+    VIR_MIGRATE_PARAM_DISKS_PORT,       VIR_TYPED_PARAM_INT,      \
     NULL
 
 
@@ -134,6 +136,7 @@ int qemuMigrationPrepareDirect(virQEMUDriverPtr driver,
                                const char *listenAddress,
                                size_t nmigrate_disks,
                                const char **migrate_disks,
+                               int nbdPort,
                                unsigned long flags);
 
 int qemuMigrationPerform(virQEMUDriverPtr driver,
@@ -146,6 +149,7 @@ int qemuMigrationPerform(virQEMUDriverPtr driver,
                          const char *listenAddress,
                          size_t nmigrate_disks,
                          const char **migrate_disks,
+                         int nbdPort,
                          const char *cookiein,
                          int cookieinlen,
                          char **cookieout,
@@ -176,13 +180,12 @@ int qemuMigrationConfirm(virConnectPtr conn,
 bool qemuMigrationIsAllowed(virQEMUDriverPtr driver, virDomainObjPtr vm,
                             bool remote, unsigned int flags);
 
-int qemuMigrationToFile(virQEMUDriverPtr driver, virDomainObjPtr vm,
-                        int fd, off_t offset, const char *path,
+int qemuMigrationToFile(virQEMUDriverPtr driver,
+                        virDomainObjPtr vm,
+                        int fd,
                         const char *compressor,
-                        bool bypassSecurityDriver,
                         qemuDomainAsyncJob asyncJob)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(5)
-    ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 int qemuMigrationCancel(virQEMUDriverPtr driver,
                         virDomainObjPtr vm);
@@ -209,5 +212,8 @@ int qemuMigrationRunIncoming(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              const char *uri,
                              qemuDomainAsyncJob asyncJob);
+
+void qemuMigrationPostcopyFailed(virQEMUDriverPtr driver,
+                                 virDomainObjPtr vm);
 
 #endif /* __QEMU_MIGRATION_H__ */

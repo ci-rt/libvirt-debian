@@ -1,7 +1,7 @@
 /*
- * admin_server.h
+ * admin_server.h: admin methods to manage daemons and clients
  *
- * Copyright (C) 2014 Red Hat, Inc.
+ * Copyright (C) 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,20 +17,22 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Author: Martin Kletzander <mkletzan@redhat.com>
+ * Authors: Erik Skultety <eskultet@redhat.com>
+ *          Martin Kletzander <mkletzan@redhat.com>
  */
 
-#ifndef __LIBVIRTD_ADMIN_H__
-# define __LIBVIRTD_ADMIN_H__
+#ifndef __LIBVIRTD_ADMIN_SERVER_H__
+# define __LIBVIRTD_ADMIN_SERVER_H__
 
-# include "rpc/virnetserverprogram.h"
-# include "rpc/virnetserverclient.h"
+# include "rpc/virnetdaemon.h"
+# include "rpc/virnetserver.h"
 
+int adminConnectListServers(virNetDaemonPtr dmn,
+                            virNetServerPtr **servers,
+                            unsigned int flags);
 
-extern virNetServerProgramProc adminProcs[];
-extern size_t adminNProcs;
+virNetServerPtr adminConnectLookupServer(virNetDaemonPtr dmn,
+                                         const char *name,
+                                         unsigned int flags);
 
-void remoteAdmClientFreeFunc(void *data);
-void *remoteAdmClientInitHook(virNetServerClientPtr client, void *opaque);
-
-#endif /* __ADMIN_REMOTE_H__ */
+#endif /* __LIBVIRTD_ADMIN_SERVER_H__ */

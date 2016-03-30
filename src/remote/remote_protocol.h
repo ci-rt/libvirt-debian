@@ -40,6 +40,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX 16
 #define REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX 16
 #define REMOTE_DOMAIN_NUMA_PARAMETERS_MAX 16
+#define REMOTE_DOMAIN_PERF_EVENTS_MAX 64
 #define REMOTE_DOMAIN_BLOCK_COPY_PARAMETERS_MAX 16
 #define REMOTE_NODE_CPU_STATS_MAX 16
 #define REMOTE_NODE_MEMORY_STATS_MAX 16
@@ -501,6 +502,28 @@ struct remote_domain_get_numa_parameters_ret {
         int nparams;
 };
 typedef struct remote_domain_get_numa_parameters_ret remote_domain_get_numa_parameters_ret;
+
+struct remote_domain_set_perf_events_args {
+        remote_nonnull_domain dom;
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+};
+typedef struct remote_domain_set_perf_events_args remote_domain_set_perf_events_args;
+
+struct remote_domain_get_perf_events_args {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_get_perf_events_args remote_domain_get_perf_events_args;
+
+struct remote_domain_get_perf_events_ret {
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+};
+typedef struct remote_domain_get_perf_events_ret remote_domain_get_perf_events_ret;
 
 struct remote_domain_block_stats_args {
         remote_nonnull_domain dom;
@@ -3651,6 +3674,11 @@ struct remote_domain_event_callback_device_added_msg {
 };
 typedef struct remote_domain_event_callback_device_added_msg remote_domain_event_callback_device_added_msg;
 
+struct remote_connect_event_connection_closed_msg {
+        int reason;
+};
+typedef struct remote_connect_event_connection_closed_msg remote_connect_event_connection_closed_msg;
+
 struct remote_connect_get_cpu_model_names_args {
         remote_nonnull_string arch;
         int need_results;
@@ -3902,6 +3930,29 @@ struct remote_domain_rename_ret {
         int retcode;
 };
 typedef struct remote_domain_rename_ret remote_domain_rename_ret;
+
+struct remote_domain_event_callback_migration_iteration_msg {
+        int callbackID;
+        remote_nonnull_domain dom;
+        int iteration;
+};
+typedef struct remote_domain_event_callback_migration_iteration_msg remote_domain_event_callback_migration_iteration_msg;
+
+struct remote_domain_event_callback_job_completed_msg {
+        int callbackID;
+        remote_nonnull_domain dom;
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+};
+typedef struct remote_domain_event_callback_job_completed_msg remote_domain_event_callback_job_completed_msg;
+
+struct remote_domain_migrate_start_post_copy_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_migrate_start_post_copy_args remote_domain_migrate_start_post_copy_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4264,6 +4315,14 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_DEL_IOTHREAD = 356,
         REMOTE_PROC_DOMAIN_SET_USER_PASSWORD = 357,
         REMOTE_PROC_DOMAIN_RENAME = 358,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_MIGRATION_ITERATION = 359,
+        REMOTE_PROC_CONNECT_CLOSE_CALLBACK_REGISTER = 360,
+        REMOTE_PROC_CONNECT_CLOSE_CALLBACK_UNREGISTER = 361,
+        REMOTE_PROC_CONNECT_EVENT_CONNECTION_CLOSED = 362,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_JOB_COMPLETED = 363,
+        REMOTE_PROC_DOMAIN_MIGRATE_START_POST_COPY = 364,
+        REMOTE_PROC_DOMAIN_GET_PERF_EVENTS = 365,
+        REMOTE_PROC_DOMAIN_SET_PERF_EVENTS = 366,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4337,6 +4396,9 @@ extern  bool_t xdr_remote_domain_block_resize_args (XDR *, remote_domain_block_r
 extern  bool_t xdr_remote_domain_set_numa_parameters_args (XDR *, remote_domain_set_numa_parameters_args*);
 extern  bool_t xdr_remote_domain_get_numa_parameters_args (XDR *, remote_domain_get_numa_parameters_args*);
 extern  bool_t xdr_remote_domain_get_numa_parameters_ret (XDR *, remote_domain_get_numa_parameters_ret*);
+extern  bool_t xdr_remote_domain_set_perf_events_args (XDR *, remote_domain_set_perf_events_args*);
+extern  bool_t xdr_remote_domain_get_perf_events_args (XDR *, remote_domain_get_perf_events_args*);
+extern  bool_t xdr_remote_domain_get_perf_events_ret (XDR *, remote_domain_get_perf_events_ret*);
 extern  bool_t xdr_remote_domain_block_stats_args (XDR *, remote_domain_block_stats_args*);
 extern  bool_t xdr_remote_domain_block_stats_ret (XDR *, remote_domain_block_stats_ret*);
 extern  bool_t xdr_remote_domain_block_stats_flags_args (XDR *, remote_domain_block_stats_flags_args*);
@@ -4812,6 +4874,7 @@ extern  bool_t xdr_remote_domain_event_callback_device_removed_msg (XDR *, remot
 extern  bool_t xdr_remote_domain_event_block_job_2_msg (XDR *, remote_domain_event_block_job_2_msg*);
 extern  bool_t xdr_remote_domain_event_callback_tunable_msg (XDR *, remote_domain_event_callback_tunable_msg*);
 extern  bool_t xdr_remote_domain_event_callback_device_added_msg (XDR *, remote_domain_event_callback_device_added_msg*);
+extern  bool_t xdr_remote_connect_event_connection_closed_msg (XDR *, remote_connect_event_connection_closed_msg*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_args (XDR *, remote_connect_get_cpu_model_names_args*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_ret (XDR *, remote_connect_get_cpu_model_names_ret*);
 extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote_connect_network_event_register_any_args*);
@@ -4843,6 +4906,9 @@ extern  bool_t xdr_remote_domain_interface_addresses_ret (XDR *, remote_domain_i
 extern  bool_t xdr_remote_domain_set_user_password_args (XDR *, remote_domain_set_user_password_args*);
 extern  bool_t xdr_remote_domain_rename_args (XDR *, remote_domain_rename_args*);
 extern  bool_t xdr_remote_domain_rename_ret (XDR *, remote_domain_rename_ret*);
+extern  bool_t xdr_remote_domain_event_callback_migration_iteration_msg (XDR *, remote_domain_event_callback_migration_iteration_msg*);
+extern  bool_t xdr_remote_domain_event_callback_job_completed_msg (XDR *, remote_domain_event_callback_job_completed_msg*);
+extern  bool_t xdr_remote_domain_migrate_start_post_copy_args (XDR *, remote_domain_migrate_start_post_copy_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -4913,6 +4979,9 @@ extern bool_t xdr_remote_domain_block_resize_args ();
 extern bool_t xdr_remote_domain_set_numa_parameters_args ();
 extern bool_t xdr_remote_domain_get_numa_parameters_args ();
 extern bool_t xdr_remote_domain_get_numa_parameters_ret ();
+extern bool_t xdr_remote_domain_set_perf_events_args ();
+extern bool_t xdr_remote_domain_get_perf_events_args ();
+extern bool_t xdr_remote_domain_get_perf_events_ret ();
 extern bool_t xdr_remote_domain_block_stats_args ();
 extern bool_t xdr_remote_domain_block_stats_ret ();
 extern bool_t xdr_remote_domain_block_stats_flags_args ();
@@ -5388,6 +5457,7 @@ extern bool_t xdr_remote_domain_event_callback_device_removed_msg ();
 extern bool_t xdr_remote_domain_event_block_job_2_msg ();
 extern bool_t xdr_remote_domain_event_callback_tunable_msg ();
 extern bool_t xdr_remote_domain_event_callback_device_added_msg ();
+extern bool_t xdr_remote_connect_event_connection_closed_msg ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_args ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_ret ();
 extern bool_t xdr_remote_connect_network_event_register_any_args ();
@@ -5419,6 +5489,9 @@ extern bool_t xdr_remote_domain_interface_addresses_ret ();
 extern bool_t xdr_remote_domain_set_user_password_args ();
 extern bool_t xdr_remote_domain_rename_args ();
 extern bool_t xdr_remote_domain_rename_ret ();
+extern bool_t xdr_remote_domain_event_callback_migration_iteration_msg ();
+extern bool_t xdr_remote_domain_event_callback_job_completed_msg ();
+extern bool_t xdr_remote_domain_migrate_start_post_copy_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

@@ -109,6 +109,9 @@ const REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX = 16;
 /* Upper limit on list of numa parameters. */
 const REMOTE_DOMAIN_NUMA_PARAMETERS_MAX = 16;
 
+/* Upper limit on list of perf events. */
+const REMOTE_DOMAIN_PERF_EVENTS_MAX = 64;
+
 /* Upper limit on block copy tunable parameters. */
 const REMOTE_DOMAIN_BLOCK_COPY_PARAMETERS_MAX = 16;
 
@@ -626,6 +629,19 @@ struct remote_domain_get_numa_parameters_args {
 struct remote_domain_get_numa_parameters_ret {
     remote_typed_param params<REMOTE_DOMAIN_NUMA_PARAMETERS_MAX>;
     int nparams;
+};
+
+struct remote_domain_set_perf_events_args {
+    remote_nonnull_domain dom;
+    remote_typed_param params<REMOTE_DOMAIN_PERF_EVENTS_MAX>;
+};
+
+struct remote_domain_get_perf_events_args {
+    remote_nonnull_domain dom;
+};
+
+struct remote_domain_get_perf_events_ret {
+    remote_typed_param params<REMOTE_DOMAIN_PERF_EVENTS_MAX>;
 };
 
 struct remote_domain_block_stats_args {
@@ -2553,7 +2569,7 @@ struct remote_domain_list_all_snapshots_args {
     unsigned int flags;
 };
 
-struct remote_domain_list_all_snapshots_ret {
+struct remote_domain_list_all_snapshots_ret { /* insert@1 */
     remote_nonnull_domain_snapshot snapshots<REMOTE_DOMAIN_SNAPSHOT_LIST_MAX>;
     int ret;
 };
@@ -2583,7 +2599,7 @@ struct remote_domain_snapshot_list_all_children_args {
     unsigned int flags;
 };
 
-struct remote_domain_snapshot_list_all_children_ret {
+struct remote_domain_snapshot_list_all_children_ret { /* insert@1 */
     remote_nonnull_domain_snapshot snapshots<REMOTE_DOMAIN_SNAPSHOT_LIST_MAX>;
     int ret;
 };
@@ -2822,7 +2838,7 @@ struct remote_connect_list_all_domains_args {
     unsigned int flags;
 };
 
-struct remote_connect_list_all_domains_ret {
+struct remote_connect_list_all_domains_ret { /* insert@1 */
     remote_nonnull_domain domains<REMOTE_DOMAIN_LIST_MAX>;
     unsigned int ret;
 };
@@ -2832,7 +2848,7 @@ struct remote_connect_list_all_storage_pools_args {
     unsigned int flags;
 };
 
-struct remote_connect_list_all_storage_pools_ret {
+struct remote_connect_list_all_storage_pools_ret { /* insert@1 */
     remote_nonnull_storage_pool pools<REMOTE_STORAGE_POOL_LIST_MAX>;
     unsigned int ret;
 };
@@ -2843,7 +2859,7 @@ struct remote_storage_pool_list_all_volumes_args {
     unsigned int flags;
 };
 
-struct remote_storage_pool_list_all_volumes_ret {
+struct remote_storage_pool_list_all_volumes_ret { /* insert@1 */
     remote_nonnull_storage_vol vols<REMOTE_STORAGE_VOL_LIST_MAX>;
     unsigned int ret;
 };
@@ -2853,7 +2869,7 @@ struct remote_connect_list_all_networks_args {
     unsigned int flags;
 };
 
-struct remote_connect_list_all_networks_ret {
+struct remote_connect_list_all_networks_ret { /* insert@1 */
     remote_nonnull_network nets<REMOTE_NETWORK_LIST_MAX>;
     unsigned int ret;
 };
@@ -2863,7 +2879,7 @@ struct remote_connect_list_all_interfaces_args {
     unsigned int flags;
 };
 
-struct remote_connect_list_all_interfaces_ret {
+struct remote_connect_list_all_interfaces_ret { /* insert@1 */
     remote_nonnull_interface ifaces<REMOTE_INTERFACE_LIST_MAX>;
     unsigned int ret;
 };
@@ -2873,7 +2889,7 @@ struct remote_connect_list_all_node_devices_args {
     unsigned int flags;
 };
 
-struct remote_connect_list_all_node_devices_ret {
+struct remote_connect_list_all_node_devices_ret { /* insert@1 */
     remote_nonnull_node_device devices<REMOTE_NODE_DEVICE_LIST_MAX>;
     unsigned int ret;
 };
@@ -2883,7 +2899,7 @@ struct remote_connect_list_all_nwfilters_args {
     unsigned int flags;
 };
 
-struct remote_connect_list_all_nwfilters_ret {
+struct remote_connect_list_all_nwfilters_ret { /* insert@1 */
     remote_nonnull_nwfilter filters<REMOTE_NWFILTER_LIST_MAX>;
     unsigned int ret;
 };
@@ -2893,7 +2909,7 @@ struct remote_connect_list_all_secrets_args {
     unsigned int flags;
 };
 
-struct remote_connect_list_all_secrets_ret {
+struct remote_connect_list_all_secrets_ret { /* insert@1 */
     remote_nonnull_secret secrets<REMOTE_SECRET_LIST_MAX>;
     unsigned int ret;
 };
@@ -3043,6 +3059,10 @@ struct remote_domain_event_callback_device_added_msg {
     int callbackID;
     remote_nonnull_domain dom;
     remote_nonnull_string devAlias;
+};
+
+struct remote_connect_event_connection_closed_msg {
+    int reason;
 };
 
 struct remote_connect_get_cpu_model_names_args {
@@ -3220,6 +3240,23 @@ struct remote_domain_rename_args {
 
 struct remote_domain_rename_ret {
     int retcode;
+};
+
+struct remote_domain_event_callback_migration_iteration_msg {
+    int callbackID;
+    remote_nonnull_domain dom;
+    int iteration;
+};
+
+struct remote_domain_event_callback_job_completed_msg {
+    int callbackID;
+    remote_nonnull_domain dom;
+    remote_typed_param params<REMOTE_DOMAIN_JOB_STATS_MAX>;
+};
+
+struct remote_domain_migrate_start_post_copy_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
 };
 
 /*----- Protocol. -----*/
@@ -5131,7 +5168,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_SNAPSHOT_HAS_METADATA = 272,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: connect:search_domains
      * @aclfilter: domain:getattr
@@ -5139,14 +5176,14 @@ enum remote_procedure {
     REMOTE_PROC_CONNECT_LIST_ALL_DOMAINS = 273,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: domain:read
      */
     REMOTE_PROC_DOMAIN_LIST_ALL_SNAPSHOTS = 274,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: domain:read
      */
@@ -5186,7 +5223,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_GET_EMULATOR_PIN_INFO = 280,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: connect:search_storage_pools
      * @aclfilter: storage_pool:getattr
@@ -5194,7 +5231,7 @@ enum remote_procedure {
     REMOTE_PROC_CONNECT_LIST_ALL_STORAGE_POOLS = 281,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: storage_pool:search_storage_vols
      * @aclfilter: storage_vol:getattr
@@ -5202,7 +5239,7 @@ enum remote_procedure {
     REMOTE_PROC_STORAGE_POOL_LIST_ALL_VOLUMES = 282,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: connect:search_networks
      * @aclfilter: network:getattr
@@ -5210,7 +5247,7 @@ enum remote_procedure {
     REMOTE_PROC_CONNECT_LIST_ALL_NETWORKS = 283,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: connect:search_interfaces
      * @aclfilter: interface:getattr
@@ -5218,7 +5255,7 @@ enum remote_procedure {
     REMOTE_PROC_CONNECT_LIST_ALL_INTERFACES = 284,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: connect:search_node_devices
      * @aclfilter: node_device:getattr
@@ -5226,7 +5263,7 @@ enum remote_procedure {
     REMOTE_PROC_CONNECT_LIST_ALL_NODE_DEVICES = 285,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: connect:search_nwfilters
      * @aclfilter: nwfilter:getattr
@@ -5234,7 +5271,7 @@ enum remote_procedure {
     REMOTE_PROC_CONNECT_LIST_ALL_NWFILTERS = 286,
 
     /**
-     * @generate: none
+     * @generate: both
      * @priority: high
      * @acl: connect:search_secrets
      * @aclfilter: secret:getattr
@@ -5694,5 +5731,53 @@ enum remote_procedure {
      * @acl: domain:write
      * @acl: domain:save
      */
-    REMOTE_PROC_DOMAIN_RENAME = 358
+    REMOTE_PROC_DOMAIN_RENAME = 358,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_CALLBACK_MIGRATION_ITERATION = 359,
+
+    /**
+     * @generate: none
+     * @acl: none
+     */
+    REMOTE_PROC_CONNECT_CLOSE_CALLBACK_REGISTER = 360,
+
+    /**
+     * @generate: none
+     * @acl: none
+     */
+    REMOTE_PROC_CONNECT_CLOSE_CALLBACK_UNREGISTER = 361,
+
+    /**
+     * @generate: none
+     * @acl: none
+     */
+    REMOTE_PROC_CONNECT_EVENT_CONNECTION_CLOSED = 362,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_CALLBACK_JOB_COMPLETED = 363,
+
+    /**
+     * @generate: both
+     * @acl: domain:migrate
+     */
+    REMOTE_PROC_DOMAIN_MIGRATE_START_POST_COPY = 364,
+
+    /**
+     * @generate: none
+     * @acl: domain:read
+     */
+    REMOTE_PROC_DOMAIN_GET_PERF_EVENTS = 365,
+
+    /**
+     * @generate: both
+     * @acl: domain:write
+     */
+    REMOTE_PROC_DOMAIN_SET_PERF_EVENTS = 366
 };

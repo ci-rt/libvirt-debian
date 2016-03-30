@@ -14,7 +14,7 @@ QEMU_AUDIO_DRV=spice \
 -smp 2 \
 -uuid 553effab-b5e1-2d80-dfe3-da4344826c43 \
 -nodefaults \
--monitor unix:/tmp/test-monitor,server,nowait \
+-monitor unix:/tmp/lib/domain--1-f14/monitor.sock,server,nowait \
 -boot dc \
 -device virtio-serial-pci,id=virtio-serial0,bus=pci.0,addr=0x6 \
 -usb \
@@ -26,7 +26,7 @@ id=virtio-disk0 \
 media=cdrom,id=drive-ide0-1-0 \
 -device ide-drive,bus=ide.1,unit=0,drive=drive-ide0-1-0,id=ide0-1-0 \
 -device rtl8139,vlan=0,id=net0,mac=52:54:00:71:70:89,bus=pci.0,addr=0x7 \
--net tap,script=/etc/qemu-ifup,vlan=0,name=hostnet0 \
+-net tap,fd=3,vlan=0,name=hostnet0 \
 -serial pty \
 -device usb-tablet,id=input0 \
 -spice port=5900 \

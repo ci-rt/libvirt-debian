@@ -40,6 +40,7 @@
         <ref name="capusbinterface"/>
         <ref name="capnet"/>
         <ref name="capscsihost"/>
+        <ref name="capscsitarget"/>
         <ref name="capscsi"/>
         <ref name="capstorage"/>
       </choice>
@@ -165,6 +166,17 @@
             <data type='int'/>
           </attribute>
         </optional>
+      </element>
+    </optional>
+
+    <optional>
+      <element name='capability'>
+        <attribute name='type'>
+          <choice>
+            <value>pci-bridge</value>
+            <value>cardbus-bridge</value>
+          </choice>
+        </attribute>
       </element>
     </optional>
 
@@ -369,6 +381,16 @@
         </element>
       </zeroOrMore>
     </optional>
+  </define>
+
+  <define name='capscsitarget'>
+    <attribute name='type'>
+      <value>scsi_target</value>
+    </attribute>
+
+    <element name='target'>
+      <text/>
+    </element>
   </define>
 
   <define name='capscsi'>

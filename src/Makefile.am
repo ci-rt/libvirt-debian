@@ -98,6 +98,7 @@ UTIL_SOURCES =							\
 		util/virauthconfig.c util/virauthconfig.h	\
 		util/virbitmap.c util/virbitmap.h		\
 		util/virbuffer.c util/virbuffer.h		\
+		util/virperf.c util/virperf.h			\
 		util/vircgroup.c util/vircgroup.h util/vircgrouppriv.h	\
 		util/virclosecallbacks.c util/virclosecallbacks.h		\
 		util/vircommand.c util/vircommand.h util/vircommandpriv.h \
@@ -113,6 +114,7 @@ UTIL_SOURCES =							\
 		util/virfile.c util/virfile.h			\
 		util/virfirewall.c util/virfirewall.h		\
 		util/virfirewallpriv.h				\
+		util/virgic.c util/virgic.h			\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h		\
 		util/virhook.c util/virhook.h			\
@@ -125,6 +127,7 @@ UTIL_SOURCES =							\
 		util/virkeycode.c util/virkeycode.h		\
 		util/virkeyfile.c util/virkeyfile.h		\
 		util/virkeymaps.h				\
+		util/virlease.c util/virlease.h			\
 		util/virlockspace.c util/virlockspace.h		\
 		util/virlog.c util/virlog.h			\
 		util/virmacaddr.h util/virmacaddr.c		\
@@ -249,6 +252,7 @@ MAINTAINERCLEANFILES += $(LOCK_DAEMON_GENERATED)
 
 LOCK_DRIVER_LOCKD_SOURCES = \
 		locking/lock_driver_lockd.c \
+		locking/lock_driver_lockd.h \
 		$(NULL)
 
 LOCK_DAEMON_SOURCES = \
@@ -790,10 +794,13 @@ VBOX_DRIVER_EXTRA_DIST =					\
 
 QEMU_DRIVER_SOURCES =							\
 		qemu/qemu_agent.c qemu/qemu_agent.h			\
+		qemu/qemu_alias.c qemu/qemu_alias.h			\
 		qemu/qemu_blockjob.c qemu/qemu_blockjob.h		\
 		qemu/qemu_capabilities.c qemu/qemu_capabilities.h	\
 		qemu/qemu_command.c qemu/qemu_command.h			\
+		qemu/qemu_parse_command.c qemu/qemu_parse_command.h	\
 		qemu/qemu_domain.c qemu/qemu_domain.h			\
+		qemu/qemu_domain_address.c qemu/qemu_domain_address.h	\
 		qemu/qemu_cgroup.c qemu/qemu_cgroup.h			\
 		qemu/qemu_hostdev.c qemu/qemu_hostdev.h			\
 		qemu/qemu_hotplug.c qemu/qemu_hotplug.h			\
@@ -1211,7 +1218,7 @@ libvirt_driver_xen_impl_la_CFLAGS =				\
 		-I$(srcdir)/xenconfig				\
 		$(AM_CFLAGS)
 libvirt_driver_xen_impl_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_xen_impl_la_LIBADD = $(XEN_LIBS)
+libvirt_driver_xen_impl_la_LIBADD = $(XEN_LIBS) libvirt_xenconfig.la
 libvirt_driver_xen_impl_la_SOURCES = $(XEN_DRIVER_SOURCES)
 endif WITH_XEN
 
@@ -1272,7 +1279,7 @@ if WITH_XENAPI
 noinst_LTLIBRARIES += libvirt_driver_xenapi.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_xenapi.la
 libvirt_driver_xenapi_la_CFLAGS = $(LIBXENSERVER_CFLAGS) $(CURL_CFLAGS) \
-		-I$(srcdir)/conf $(AM_CFLAGS)
+		-I$(srcdir)/conf -I$(srcdir)/xenconfig $(AM_CFLAGS)
 libvirt_driver_xenapi_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_xenapi_la_LIBADD = $(LIBXENSERVER_LIBS) $(CURL_LIBS)
 libvirt_driver_xenapi_la_SOURCES = $(XENAPI_DRIVER_SOURCES)
@@ -2805,6 +2812,10 @@ libvirt_iohelper_CFLAGS = \
 if WITH_NETWORK
 libexec_PROGRAMS += libvirt_leaseshelper
 libvirt_leaseshelper_SOURCES = $(NETWORK_LEASES_HELPER_SOURCES)
+libvirt_leaseshelper_LDFLAGS = \
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(NULL)
 libvirt_leaseshelper_LDADD =           \
                libvirt_util.la         \
                ../gnulib/lib/libgnu.la
@@ -2935,6 +2946,63 @@ virt_aa_helper_CFLAGS =						\
 endif WITH_LIBVIRTD
 endif WITH_SECDRIVER_APPARMOR
 EXTRA_DIST += $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
+
+noinst_LTLIBRARIES += libvirt-nss.la
+
+libvirt_nss_la_SOURCES =		\
+		util/viralloc.c			\
+		util/viralloc.h			\
+		util/virbitmap.c		\
+		util/virbitmap.h		\
+		util/virbuffer.c		\
+		util/virbuffer.h		\
+		util/vircommand.c		\
+		util/vircommand.h		\
+		util/virerror.c			\
+		util/virerror.h			\
+		util/virfile.c			\
+		util/virfile.h			\
+		util/virjson.c			\
+		util/virjson.h			\
+		util/virkmod.c			\
+		util/virkmod.h			\
+		util/virlease.c			\
+		util/virlease.h			\
+		util/virlog.c			\
+		util/virlog.h			\
+		util/virobject.c		\
+		util/virobject.h		\
+		util/virpidfile.c		\
+		util/virpidfile.h		\
+		util/virprocess.c		\
+		util/virprocess.h		\
+		util/virsocketaddr.c	\
+		util/virsocketaddr.h	\
+		util/virstring.c		\
+		util/virstring.h		\
+		util/virthread.c		\
+		util/virthread.h		\
+		util/virthreadjob.c		\
+		util/virthreadjob.h		\
+		util/virtime.c			\
+		util/virtime.h			\
+		util/virutil.c			\
+		util/virutil.h			\
+		$(NULL)
+
+libvirt_nss_la_CFLAGS =			\
+		-DLIBVIRT_NSS			\
+		$(AM_CFLAGS)			\
+		$(YAJL_CFLAGS)			\
+		$(NULL)
+libvirt_nss_la_LDFLAGS =		\
+		$(AM_LDFLAGS)			\
+		$(NULL)
+
+libvirt_nss_la_LIBADD =			\
+		$(YAJL_LIBS)			\
+		$(NULL)
+
 
 install-data-local: install-init install-systemd
 if WITH_LIBVIRTD

@@ -121,7 +121,7 @@ testCompareFormatXML(const char *xmcfg, const char *xml)
     if (!(def = xenParseXM(conf, caps, xmlopt)))
         goto fail;
 
-    if (!(gotxml = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_SECURE)))
+    if (!(gotxml = virDomainDefFormat(def, caps, VIR_DOMAIN_DEF_FORMAT_SECURE)))
         goto fail;
 
     if (virtTestCompareToFile(gotxml, xml) < 0)
@@ -235,6 +235,7 @@ mymain(void)
 
     DO_TEST("fullvirt-force-hpet");
     DO_TEST("fullvirt-force-nohpet");
+    DO_TEST("fullvirt-nohap");
 
     DO_TEST("fullvirt-parallel-tcp");
 

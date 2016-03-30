@@ -50,6 +50,8 @@
 # include "virstoragefile.h"
 # include "virseclabel.h"
 # include "virprocess.h"
+# include "virgic.h"
+# include "virperf.h"
 
 /* forward declarations of all device types, required by
  * virDomainDeviceDef
@@ -1203,6 +1205,8 @@ struct _virDomainChrSourceDef {
             char *channel;
         } spiceport;
     } data;
+    char *logfile;
+    int logappend;
 };
 
 /* A complete character device, both host and domain views.  */
@@ -1398,6 +1402,7 @@ struct _virDomainVideoDef {
     int type;
     unsigned int ram;  /* kibibytes (multiples of 1024) */
     unsigned int vram; /* kibibytes (multiples of 1024) */
+    unsigned int vram64; /* kibibytes (multiples of 1024) */
     unsigned int vgamem; /* kibibytes (multiples of 1024) */
     unsigned int heads;
     bool primary;
@@ -1585,6 +1590,7 @@ struct _virDomainGraphicsDef {
             int streaming;
             int copypaste; /* enum virTristateBool */
             int filetransfer; /* enum virTristateBool */
+            int gl; /* enum virTristateBool */
         } spice;
     } data;
     /* nListens, listens, and *port are only useful if type is vnc,
@@ -1696,10 +1702,18 @@ typedef enum {
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
 
+# define VIR_DOMAIN_HYPERV_VENDOR_ID_MAX 12
+
 typedef enum {
     VIR_DOMAIN_HYPERV_RELAXED = 0,
     VIR_DOMAIN_HYPERV_VAPIC,
     VIR_DOMAIN_HYPERV_SPINLOCKS,
+    VIR_DOMAIN_HYPERV_VPINDEX,
+    VIR_DOMAIN_HYPERV_RUNTIME,
+    VIR_DOMAIN_HYPERV_SYNIC,
+    VIR_DOMAIN_HYPERV_STIMER,
+    VIR_DOMAIN_HYPERV_RESET,
+    VIR_DOMAIN_HYPERV_VENDOR_ID,
 
     VIR_DOMAIN_HYPERV_LAST
 } virDomainHyperv;
@@ -1898,7 +1912,6 @@ typedef enum {
 typedef struct _virDomainThreadSchedParam virDomainThreadSchedParam;
 typedef virDomainThreadSchedParam *virDomainThreadSchedParamPtr;
 struct _virDomainThreadSchedParam {
-    virBitmapPtr ids;
     virProcessSchedPolicy policy;
     int priority;
 };
@@ -2095,37 +2108,12 @@ struct _virDomainIOThreadIDDef {
     unsigned int iothread_id;
     int thread_id;
     virBitmapPtr cpumask;
+
+    virDomainThreadSchedParam sched;
 };
 
 void virDomainIOThreadIDDefFree(virDomainIOThreadIDDefPtr def);
 
-
-typedef struct _virDomainPinDef virDomainPinDef;
-typedef virDomainPinDef *virDomainPinDefPtr;
-struct _virDomainPinDef {
-    int id;
-    virBitmapPtr cpumask;
-};
-
-void virDomainPinDefFree(virDomainPinDefPtr def);
-void virDomainPinDefArrayFree(virDomainPinDefPtr *def, int npin);
-
-virDomainPinDefPtr *virDomainPinDefCopy(virDomainPinDefPtr *src,
-                                        int npin);
-
-virDomainPinDefPtr virDomainPinFind(virDomainPinDefPtr *def,
-                                    int npin,
-                                    int id);
-
-int virDomainPinAdd(virDomainPinDefPtr **pindef_list,
-                    size_t *npin,
-                    unsigned char *cpumap,
-                    int maplen,
-                    int id);
-
-void virDomainPinDel(virDomainPinDefPtr **pindef_list,
-                     size_t *npin,
-                     int vcpu);
 
 typedef struct _virDomainCputune virDomainCputune;
 typedef virDomainCputune *virDomainCputunePtr;
@@ -2135,16 +2123,11 @@ struct _virDomainCputune {
     bool sharesSpecified;
     unsigned long long period;
     long long quota;
+    unsigned long long global_period;
+    long long global_quota;
     unsigned long long emulator_period;
     long long emulator_quota;
-    size_t nvcpupin;
-    virDomainPinDefPtr *vcpupin;
     virBitmapPtr emulatorpin;
-
-    size_t nvcpusched;
-    virDomainThreadSchedParamPtr vcpusched;
-    size_t niothreadsched;
-    virDomainThreadSchedParamPtr iothreadsched;
 };
 
 
@@ -2153,6 +2136,9 @@ typedef virDomainVcpuInfo *virDomainVcpuInfoPtr;
 
 struct _virDomainVcpuInfo {
     bool online;
+    virBitmapPtr cpumask;
+
+    virDomainThreadSchedParam sched;
 };
 
 typedef struct _virDomainBlkiotune virDomainBlkiotune;
@@ -2200,6 +2186,13 @@ struct _virDomainPowerManagement {
     /* These options are of type enum virTristateBool */
     int s3;
     int s4;
+};
+
+typedef struct _virDomainPerfDef virDomainPerfDef;
+typedef virDomainPerfDef *virDomainPerfDefPtr;
+struct _virDomainPerfDef {
+    /* These options are of type enum virTristateBool */
+    int events[VIR_PERF_EVENT_LAST];
 };
 
 typedef struct _virDomainKeyWrapDef virDomainKeyWrapDef;
@@ -2252,6 +2245,8 @@ struct _virDomainDef {
 
     virDomainPowerManagement pm;
 
+    virDomainPerfDefPtr perf;
+
     virDomainOSDef os;
     char *emulator;
     /* These three options are of type virTristateSwitch,
@@ -2262,7 +2257,8 @@ struct _virDomainDef {
     int hyperv_features[VIR_DOMAIN_HYPERV_LAST];
     int kvm_features[VIR_DOMAIN_KVM_LAST];
     unsigned int hyperv_spinlocks;
-    unsigned int gic_version;
+    virGICVersion gic_version;
+    char *hyperv_vendor_id;
 
     /* These options are of type virTristateSwitch: ON = keep, OFF = drop */
     int caps_features[VIR_DOMAIN_CAPS_FEATURE_LAST];
@@ -2358,6 +2354,7 @@ bool virDomainDefHasVcpusOffline(const virDomainDef *def);
 unsigned int virDomainDefGetVcpusMax(const virDomainDef *def);
 int virDomainDefSetVcpus(virDomainDefPtr def, unsigned int vcpus);
 unsigned int virDomainDefGetVcpus(const virDomainDef *def);
+virBitmapPtr virDomainDefGetOnlineVcpumap(const virDomainDef *def);
 virDomainVcpuInfoPtr virDomainDefGetVcpu(virDomainDefPtr def, unsigned int vcpu)
     ATTRIBUTE_RETURN_CHECK;
 
@@ -2384,7 +2381,7 @@ typedef enum {
     VIR_DOMAIN_TAINT_HOST_CPU,         /* Host CPU passthrough in use */
     VIR_DOMAIN_TAINT_HOOK,             /* Domain (possibly) changed via hook script */
     VIR_DOMAIN_TAINT_CDROM_PASSTHROUGH,/* CDROM passthrough */
-    VIR_DOMAIN_TAINT_CUSTOM_DTB,       /* Custom device tree blob was specifed */
+    VIR_DOMAIN_TAINT_CUSTOM_DTB,       /* Custom device tree blob was specified */
 
     VIR_DOMAIN_TAINT_LAST
 } virDomainTaintFlags;
@@ -2431,6 +2428,13 @@ typedef bool (*virDomainObjListACLFilter)(virConnectPtr conn,
                                           virDomainDefPtr def);
 
 
+typedef enum {
+    VIR_DOMAIN_DEF_FEATURE_WIDE_SCSI = (1 << 0),
+    VIR_DOMAIN_DEF_FEATURE_MEMORY_HOTPLUG = (1 << 1),
+    VIR_DOMAIN_DEF_FEATURE_OFFLINE_VCPUPIN = (1 << 2),
+} virDomainDefFeatures;
+
+
 /* This structure holds various callbacks and data needed
  * while parsing and creating domain XMLs */
 typedef struct _virDomainXMLOption virDomainXMLOption;
@@ -2462,7 +2466,7 @@ struct _virDomainDefParserConfig {
     virFreeCallback privFree;
 
     /* data */
-    bool hasWideSCSIBus;
+    unsigned int features; /* virDomainDefFeatures */
     unsigned char macPrefix[VIR_MAC_PREFIX_BUFLEN];
 };
 
@@ -2520,9 +2524,6 @@ int virDomainObjWait(virDomainObjPtr vm);
 int virDomainObjWaitUntil(virDomainObjPtr vm,
                           unsigned long long whenms);
 
-int virDomainDefCheckUnsupportedMemoryHotplug(virDomainDefPtr def);
-int virDomainDeviceDefCheckUnsupportedMemoryDevice(virDomainDeviceDefPtr dev);
-
 void virDomainPanicDefFree(virDomainPanicDefPtr panic);
 void virDomainResourceDefFree(virDomainResourceDefPtr resource);
 void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
@@ -2540,7 +2541,7 @@ int virDomainDiskSetDriver(virDomainDiskDefPtr def, const char *name)
     ATTRIBUTE_RETURN_CHECK;
 int virDomainDiskGetFormat(virDomainDiskDefPtr def);
 void virDomainDiskSetFormat(virDomainDiskDefPtr def, int format);
-int virDomainDeviceFindControllerModel(virDomainDefPtr def,
+int virDomainDeviceFindControllerModel(const virDomainDef *def,
                                        virDomainDeviceInfoPtr info,
                                        int controllerType);
 virDomainDiskDefPtr virDomainDiskFindByBusAndDst(virDomainDefPtr def,
@@ -2721,23 +2722,25 @@ virDomainObjPtr virDomainObjParseFile(const char *filename,
 bool virDomainDefCheckABIStability(virDomainDefPtr src,
                                    virDomainDefPtr dst);
 
-int virDomainDefAddImplicitControllers(virDomainDefPtr def);
+int virDomainDefAddImplicitDevices(virDomainDefPtr def);
 
-virDomainIOThreadIDDefPtr virDomainIOThreadIDFind(virDomainDefPtr def,
+virDomainIOThreadIDDefPtr virDomainIOThreadIDFind(const virDomainDef *def,
                                                   unsigned int iothread_id);
 virDomainIOThreadIDDefPtr virDomainIOThreadIDAdd(virDomainDefPtr def,
                                                  unsigned int iothread_id);
 void virDomainIOThreadIDDel(virDomainDefPtr def, unsigned int iothread_id);
-void virDomainIOThreadSchedDelId(virDomainDefPtr def, unsigned int iothread_id);
 
 unsigned int virDomainDefFormatConvertXMLFlags(unsigned int flags);
 
 char *virDomainDefFormat(virDomainDefPtr def,
+                         virCapsPtr caps,
                          unsigned int flags);
 char *virDomainObjFormat(virDomainXMLOptionPtr xmlopt,
                          virDomainObjPtr obj,
+                         virCapsPtr caps,
                          unsigned int flags);
 int virDomainDefFormatInternal(virDomainDefPtr def,
+                               virCapsPtr caps,
                                unsigned int flags,
                                virBufferPtr buf);
 
@@ -2748,6 +2751,7 @@ int virDomainDiskSourceFormat(virBufferPtr buf,
 
 int virDomainNetDefFormat(virBufferPtr buf,
                           virDomainNetDefPtr def,
+                          char *prefix,
                           unsigned int flags);
 
 typedef enum {
@@ -2762,7 +2766,6 @@ int virDomainDefCompatibleDevice(virDomainDefPtr def,
 
 void virDomainRNGDefFree(virDomainRNGDefPtr def);
 
-bool virDomainDiskDefDstDuplicates(virDomainDefPtr def);
 int virDomainDiskIndexByAddress(virDomainDefPtr def,
                                 virDevicePCIAddressPtr pci_controller,
                                 unsigned int bus, unsigned int target,
@@ -2848,12 +2851,12 @@ int virDomainControllerInsert(virDomainDefPtr def,
     ATTRIBUTE_RETURN_CHECK;
 void virDomainControllerInsertPreAlloced(virDomainDefPtr def,
                                          virDomainControllerDefPtr controller);
-int virDomainControllerFind(virDomainDefPtr def, int type, int idx);
+int virDomainControllerFind(const virDomainDef *def, int type, int idx);
 int virDomainControllerFindByType(virDomainDefPtr def, int type);
 int virDomainControllerFindByPCIAddress(virDomainDefPtr def,
                                         virDevicePCIAddressPtr addr);
 virDomainControllerDefPtr virDomainControllerRemove(virDomainDefPtr def, size_t i);
-const char *virDomainControllerAliasFind(virDomainDefPtr def,
+const char *virDomainControllerAliasFind(const virDomainDef *def,
                                          int type, int idx)
     ATTRIBUTE_NONNULL(1);
 
@@ -2904,10 +2907,12 @@ int virDomainSaveXML(const char *configDir,
                      const char *xml);
 
 int virDomainSaveConfig(const char *configDir,
+                        virCapsPtr caps,
                         virDomainDefPtr def);
 int virDomainSaveStatus(virDomainXMLOptionPtr xmlopt,
                         const char *statusDir,
-                        virDomainObjPtr obj) ATTRIBUTE_RETURN_CHECK;
+                        virDomainObjPtr obj,
+                        virCapsPtr caps) ATTRIBUTE_RETURN_CHECK;
 
 typedef void (*virDomainLoadConfigNotify)(virDomainObjPtr dom,
                                           int newDomain,
@@ -3143,7 +3148,18 @@ virDomainParseMemory(const char *xpath,
 bool virDomainDefNeedsPlacementAdvice(virDomainDefPtr def)
     ATTRIBUTE_NONNULL(1);
 
+int virDomainDiskDefCheckDuplicateInfo(virDomainDiskDefPtr a,
+                                       virDomainDiskDefPtr b)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 int virDomainDefCheckDuplicateDiskInfo(virDomainDefPtr def)
     ATTRIBUTE_NONNULL(1);
+
+int virDomainDefGetVcpuPinInfoHelper(virDomainDefPtr def,
+                                     int maplen,
+                                     int ncpumaps,
+                                     unsigned char *cpumaps,
+                                     int hostcpus,
+                                     virBitmapPtr autoCpuset)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4) ATTRIBUTE_RETURN_CHECK;
 
 #endif /* __DOMAIN_CONF_H */

@@ -8,6 +8,8 @@
     <shares>2048</shares>
     <period>1000000</period>
     <quota>-1</quota>
+    <global_period>1000000</global_period>
+    <global_quota>-1</global_quota>
     <vcpupin vcpu='0' cpuset='0'/>
     <vcpupin vcpu='1' cpuset='1'/>
     <emulatorpin cpuset='1'/>
@@ -30,6 +32,8 @@
     <controller type='usb' index='0'/>
     <controller type='ide' index='0'/>
     <controller type='pci' index='0' model='pci-root'/>
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
     <memballoon model='virtio'/>
   </devices>
 </domain>

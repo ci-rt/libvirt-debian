@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2013, 2014, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -140,7 +140,7 @@ VIR_MOCK_WRAP_RET_ARGS(dbus_connection_send_with_reply_and_block,
     return reply;
 
  error:
-    dbus_message_unref(reply);
+    virDBusMessageUnref(reply);
     return NULL;
 }
 
@@ -220,8 +220,9 @@ static int testPolkitAuthChallenge(const void *opaque ATTRIBUTE_UNUSED)
     }
 
     err = virGetLastError();
-    if (!err || !strstr(err->message,
-                       _("no agent is available to authenticate"))) {
+    if (!err || err->domain != VIR_FROM_POLKIT ||
+        err->code != VIR_ERR_AUTH_UNAVAILABLE ||
+        !strstr(err->message, _("no polkit agent available to authenticate"))) {
         fprintf(stderr, "Incorrect error response\n");
         goto cleanup;
     }
@@ -349,7 +350,7 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virmockdbus.so")
+VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virdbusmock.so")
 
 #else /* ! (WITH_DBUS && __linux__) */
 int

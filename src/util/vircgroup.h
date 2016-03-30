@@ -26,6 +26,7 @@
 # define __VIR_CGROUP_H__
 
 # include "virutil.h"
+# include "virbitmap.h"
 
 struct virCgroup;
 typedef struct virCgroup *virCgroupPtr;
@@ -91,13 +92,15 @@ int virCgroupNewDetect(pid_t pid,
 
 int virCgroupNewDetectMachine(const char *name,
                               const char *drivername,
+                              int id,
+                              bool privileged,
                               pid_t pid,
                               int controllers,
-                              virCgroupPtr *group);
+                              virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int virCgroupNewMachine(const char *name,
                         const char *drivername,
-                        bool privileged,
                         const unsigned char *uuid,
                         const char *rootdir,
                         pid_t pidleader,
@@ -108,12 +111,10 @@ int virCgroupNewMachine(const char *name,
                         int controllers,
                         virCgroupPtr *group)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
-    ATTRIBUTE_NONNULL(4);
+    ATTRIBUTE_NONNULL(3);
 
-int virCgroupTerminateMachine(const char *name,
-                              const char *drivername,
-                              bool privileged)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+int virCgroupTerminateMachine(const char *name)
+    ATTRIBUTE_NONNULL(1);
 
 bool virCgroupNewIgnoreError(void);
 
@@ -130,9 +131,6 @@ int virCgroupAddTask(virCgroupPtr group, pid_t pid);
 int virCgroupAddTaskController(virCgroupPtr group,
                                pid_t pid,
                                int controller);
-
-int virCgroupMoveTask(virCgroupPtr src_group,
-                      virCgroupPtr dest_group);
 
 int virCgroupSetBlkioWeight(virCgroupPtr group, unsigned int weight);
 int virCgroupGetBlkioWeight(virCgroupPtr group, unsigned int *weight);
@@ -219,26 +217,20 @@ int virCgroupAllowDevice(virCgroupPtr group,
                          int major,
                          int minor,
                          int perms);
-int virCgroupAllowDeviceMajor(virCgroupPtr group,
-                              char type,
-                              int major,
-                              int perms);
 int virCgroupAllowDevicePath(virCgroupPtr group,
                              const char *path,
-                             int perms);
+                             int perms,
+                             bool ignoreEacces);
 
 int virCgroupDenyDevice(virCgroupPtr group,
                         char type,
                         int major,
                         int minor,
                         int perms);
-int virCgroupDenyDeviceMajor(virCgroupPtr group,
-                             char type,
-                             int major,
-                             int perms);
 int virCgroupDenyDevicePath(virCgroupPtr group,
                             const char *path,
-                            int perms);
+                            int perms,
+                            bool ignoreEacces);
 
 int
 virCgroupGetPercpuStats(virCgroupPtr group,
@@ -246,7 +238,7 @@ virCgroupGetPercpuStats(virCgroupPtr group,
                         unsigned int nparams,
                         int start_cpu,
                         unsigned int ncpus,
-                        unsigned int nvcpupids);
+                        virBitmapPtr guestvcpus);
 
 int
 virCgroupGetDomainTotalCpuStats(virCgroupPtr group,
@@ -286,9 +278,9 @@ int virCgroupKill(virCgroupPtr group, int signum);
 int virCgroupKillRecursive(virCgroupPtr group, int signum);
 int virCgroupKillPainfully(virCgroupPtr group);
 
-int virCgroupIsolateMount(virCgroupPtr group,
-                          const char *oldroot,
-                          const char *mountopts);
+int virCgroupBindMount(virCgroupPtr group,
+                       const char *oldroot,
+                       const char *mountopts);
 
 bool virCgroupSupportsCpuBW(virCgroupPtr cgroup);
 

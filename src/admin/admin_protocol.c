@@ -26,6 +26,15 @@ xdr_admin_string (XDR *xdrs, admin_string *objp)
 }
 
 bool_t
+xdr_admin_nonnull_server (XDR *xdrs, admin_nonnull_server *objp)
+{
+
+         if (!xdr_admin_nonnull_string (xdrs, &objp->name))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_admin_connect_open_args (XDR *xdrs, admin_connect_open_args *objp)
 {
 
@@ -39,6 +48,50 @@ xdr_admin_connect_get_lib_version_ret (XDR *xdrs, admin_connect_get_lib_version_
 {
 
          if (!xdr_uint64_t (xdrs, &objp->libVer))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_list_servers_args (XDR *xdrs, admin_connect_list_servers_args *objp)
+{
+
+         if (!xdr_u_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_list_servers_ret (XDR *xdrs, admin_connect_list_servers_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->servers.servers_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->servers.servers_len, ADMIN_SERVER_LIST_MAX,
+                sizeof (admin_nonnull_server), (xdrproc_t) xdr_admin_nonnull_server))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_lookup_server_args (XDR *xdrs, admin_connect_lookup_server_args *objp)
+{
+
+         if (!xdr_admin_nonnull_string (xdrs, &objp->name))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_lookup_server_ret (XDR *xdrs, admin_connect_lookup_server_ret *objp)
+{
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
                  return FALSE;
         return TRUE;
 }

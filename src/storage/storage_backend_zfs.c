@@ -39,6 +39,47 @@ VIR_LOG_INIT("storage.storage_backend_zfs");
  *       for size, show just a number instead of 2G etc
  */
 
+/**
+ * virStorageBackendZFSVolModeNeeded:
+ *
+ * Checks if it's necessary to specify 'volmode' (i.e. that
+ * we're working with BSD ZFS implementation).
+ *
+ * Returns 1 if 'volmode' is need, 0 if not needed, -1 on error
+ */
+static int
+virStorageBackendZFSVolModeNeeded(void)
+{
+    virCommandPtr cmd = NULL;
+    int ret = -1, exit = -1;
+    char *error = NULL;
+
+    /* 'zfs get' without arguments prints out
+     * usage information to stderr, including
+     * list of supported options, and exits with
+     * exit code 2
+     */
+    cmd = virCommandNewArgList(ZFS, "get", NULL);
+    virCommandAddEnvString(cmd, "LC_ALL=C");
+    virCommandSetErrorBuffer(cmd, &error);
+
+    ret = virCommandRun(cmd, &exit);
+    if ((ret < 0) || (exit != 2)) {
+        VIR_WARN("Command 'zfs get' either failed "
+                 "to run or exited with unexpected status");
+        goto cleanup;
+    }
+
+    if (strstr(error, " volmode "))
+        ret = 1;
+    else
+        ret = 0;
+
+ cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(error);
+    return ret;
+}
 
 static int
 virStorageBackendZFSCheckPool(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
@@ -120,7 +161,7 @@ virStorageBackendZFSParseVol(virStoragePoolObjPtr pool,
  cleanup:
     virStringFreeList(tokens);
     virStringFreeList(name_tokens);
-    if (is_new_vol && (ret == -1))
+    if (is_new_vol)
         virStorageVolDefFree(volume);
     return ret;
 }
@@ -258,14 +299,18 @@ virStorageBackendZFSCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     virCommandPtr cmd = NULL;
     int ret = -1;
+    int volmode_needed = -1;
+
+    if (vol->target.encryption != NULL) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       "%s", _("storage pool does not support encrypted "
+                               "volumes"));
+        return -1;
+    }
 
     vol->type = VIR_STORAGE_VOL_BLOCK;
 
-    if (vol->target.path != NULL) {
-        /* A target path passed to CreateVol has no meaning */
-        VIR_FREE(vol->target.path);
-    }
-
+    VIR_FREE(vol->target.path);
     if (virAsprintf(&vol->target.path, "%s/%s",
                     pool->def->target.path, vol->name) == -1)
         return -1;
@@ -273,6 +318,9 @@ virStorageBackendZFSCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (VIR_STRDUP(vol->key, vol->target.path) < 0)
         goto cleanup;
 
+    volmode_needed = virStorageBackendZFSVolModeNeeded();
+    if (volmode_needed < 0)
+        goto cleanup;
     /**
      * $ zfs create -o volmode=dev -V 10240K test/volname
      *
@@ -281,8 +329,10 @@ virStorageBackendZFSCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
      *                   will lookup vfs.zfs.vol.mode sysctl value
      * -V -- tells to create a volume with the specified size
      */
-    cmd = virCommandNewArgList(ZFS, "create", "-o", "volmode=dev",
-                               "-V", NULL);
+    cmd = virCommandNewArgList(ZFS, "create", NULL);
+    if (volmode_needed)
+        virCommandAddArgList(cmd, "-o", "volmode=dev", NULL);
+    virCommandAddArg(cmd, "-V");
     virCommandAddArgFormat(cmd, "%lluK",
                            VIR_DIV_UP(vol->target.capacity, 1024));
     virCommandAddArgFormat(cmd, "%s/%s",
@@ -308,9 +358,11 @@ virStorageBackendZFSDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
                               unsigned int flags)
 {
     int ret = -1;
-    virCommandPtr destroy_cmd = virCommandNewArgList(ZFS, "destroy", NULL);
+    virCommandPtr destroy_cmd = NULL;
 
     virCheckFlags(0, -1);
+
+    destroy_cmd = virCommandNewArgList(ZFS, "destroy", NULL);
 
     virCommandAddArgFormat(destroy_cmd, "%s/%s",
                            pool->def->source.name, vol->name);

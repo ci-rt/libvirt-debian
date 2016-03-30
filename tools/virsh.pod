@@ -846,7 +846,7 @@ or unique source names printed by this command.
 
 =item B<domstats> [I<--raw>] [I<--enforce>] [I<--backing>] [I<--state>]
 [I<--cpu-total>] [I<--balloon>] [I<--vcpu>] [I<--interface>] [I<--block>]
-[[I<--list-active>] [I<--list-inactive>] [I<--list-persistent>]
+[I<--perf>] [[I<--list-active>] [I<--list-inactive>] [I<--list-persistent>]
 [I<--list-transient>] [I<--list-running>] [I<--list-paused>]
 [I<--list-shutoff>] [I<--list-other>]] | [I<domain> ...]
 
@@ -864,7 +864,7 @@ behavior use the I<--raw> flag.
 The individual statistics groups are selectable via specific flags. By
 default all supported statistics groups are returned. Supported
 statistics groups flags are: I<--state>, I<--cpu-total>, I<--balloon>,
-I<--vcpu>, I<--interface>, I<--block>.
+I<--vcpu>, I<--interface>, I<--block>, I<--perf>.
 
 When selecting the I<--state> group the following fields are returned:
 "state.state" - state of the VM, returned as number from virDomainState enum,
@@ -898,6 +898,9 @@ I<--interface> returns:
 "net.<num>.tx.pkts" - number of packets transmitted,
 "net.<num>.tx.errs" - number of transmission errors,
 "net.<num>.tx.drop" - number of transmit packets dropped
+
+I<--perf> returns the statistics of all enabled perf events:
+"perf.cache" - the cache usage in Byte currently used
 
 I<--block> returns information about disks associated with each
 domain.  Using the I<--backing> flag extends this information to
@@ -938,7 +941,7 @@ currently in use by a running domain. Other contexts that require a MAC
 address of virtual interface (such as I<detach-interface> or
 I<domif-setlink>) will accept the MAC address printed by this command.
 
-=item B<blockcommit> I<domain> I<path> [I<bandwidth>]
+=item B<blockcommit> I<domain> I<path> [I<bandwidth>] [I<--bytes>]
 [I<base>] [I<--shallow>] [I<top>] [I<--delete>] [I<--keep-relative>]
 [I<--wait> [I<--async>] [I<--verbose>]] [I<--timeout> B<seconds>]
 [I<--active>] [{I<--pivot> | I<--keep-overlay>}]
@@ -984,15 +987,14 @@ to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
 also B<domblklist> for listing these names).
 I<bandwidth> specifies copying bandwidth limit in MiB/s, although for
-qemu, it may be non-zero only for an online domain. Specifying a negative
-value is interpreted as an unsigned long long value or essentially
-unlimited. The hypervisor can choose whether to reject the value or
-convert it to the maximum value allowed.
+qemu, it may be non-zero only for an online domain. For further information
+on the I<bandwidth> argument see the corresponding section for the B<blockjob>
+command.
 
 =item B<blockcopy> I<domain> I<path> { I<dest> [I<format>] [I<--blockdev>]
 | I<--xml> B<file> } [I<--shallow>] [I<--reuse-external>] [I<bandwidth>]
 [I<--wait> [I<--async>] [I<--verbose>]] [{I<--pivot> | I<--finish>}]
-[I<--timeout> B<seconds>] [I<granularity>] [I<buf-size>]
+[I<--timeout> B<seconds>] [I<granularity>] [I<buf-size>] [I<--bytes>]
 
 Copy a disk backing image chain to a destination.  Either I<dest> as
 the destination file name, or I<--xml> with the name of an XML file containing
@@ -1037,15 +1039,17 @@ I<path> specifies fully-qualified path of the disk.
 I<bandwidth> specifies copying bandwidth limit in MiB/s. Specifying a negative
 value is interpreted as an unsigned long long value that might be essentially
 unlimited, but more likely would overflow; it is safer to use 0 for that
-purpose.  Specifying I<granularity> allows fine-tuning of the granularity that
-will be copied when a dirty region is detected; larger values trigger less
+purpose. For further information on the I<bandwidth> argument see the
+corresponding section for the B<blockjob> command.
+Specifying I<granularity> allows fine-tuning of the granularity that will be
+copied when a dirty region is detected; larger values trigger less
 I/O overhead but may end up copying more data overall (the default value is
 usually correct); hypervisors may restrict this to be a power of two or fall
 within a certain range. Specifying I<buf-size> will control how much data can
 be simultaneously in-flight during the copy; larger values use more memory but
 may allow faster completion (the default value is usually correct).
 
-=item B<blockpull> I<domain> I<path> [I<bandwidth>] [I<base>]
+=item B<blockpull> I<domain> I<path> [I<bandwidth>] [I<--bytes>] [I<base>]
 [I<--wait> [I<--verbose>] [I<--timeout> B<seconds>] [I<--async>]]
 [I<--keep-relative>]
 
@@ -1074,10 +1078,9 @@ I<path> specifies fully-qualified path of the disk; it corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
 also B<domblklist> for listing these names).
-I<bandwidth> specifies copying bandwidth limit in MiB/s. Specifying a negative
-value is interpreted as an unsigned long long value or essentially
-unlimited. The hypervisor can choose whether to reject the value or
-convert it to the maximum value allowed.
+I<bandwidth> specifies copying bandwidth limit in MiB/s. For further information
+on the I<bandwidth> argument see the corresponding section for the B<blockjob>
+command.
 
 =item B<blkdeviotune> I<domain> I<device>
 [[I<--config>] [I<--live>] | [I<--current>]]
@@ -1152,10 +1155,15 @@ not supply bytes/s resolution; when omitting the flag, raw output is
 listed in MiB/s and human-readable output automatically selects the
 best resolution supported by the server.
 
-I<bandwidth> can be used to set bandwidth limit for the active job.
-Specifying a negative value is interpreted as an unsigned long long
+I<bandwidth> can be used to set bandwidth limit for the active job in MiB/s.
+If I<--bytes> is specified then the bandwidth value is interpreted in
+bytes/s. Specifying a negative value is interpreted as an unsigned long
 value or essentially unlimited. The hypervisor can choose whether to
-reject the value or convert it to the maximum value allowed.
+reject the value or convert it to the maximum value allowed. Optionally a
+scaled positive number may be used as bandwidth (see B<NOTES> above). Using
+I<--bytes> with a scaled value allows to use finer granularity. A scaled value
+used without I<--bytes> will be rounded down to MiB/s. Note that the
+I<--bytes> may be unsupported by the hypervisor.
 
 =item B<blockresize> I<domain> I<path> I<size>
 
@@ -1529,10 +1537,11 @@ to the I<uri> namespace is displayed instead of being modified.
 =item B<migrate> [I<--live>] [I<--offline>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
 [I<--persistent>] [I<--undefinesource>] [I<--suspend>] [I<--copy-storage-all>]
 [I<--copy-storage-inc>] [I<--change-protection>] [I<--unsafe>] [I<--verbose>]
-[I<--compressed>] [I<--abort-on-error>] [I<--auto-converge>]
-I<domain> I<desturi> [I<migrateuri>] [I<graphicsuri>] [I<listen-address>]
-[I<dname>] [I<--timeout> B<seconds>] [I<--xml> B<file>]
-[I<--migrate-disks> B<disk-list>]
+[I<--compressed>] [I<--abort-on-error>] [I<--auto-converge>] [I<--postcopy>]
+[I<--postcopy-after-precopy>] I<domain> I<desturi> [I<migrateuri>]
+[I<graphicsuri>] [I<listen-address>] [I<dname>]
+[I<--timeout> B<seconds> [I<--timeout-suspend> | I<--timeout-postcopy>]]
+[I<--xml> B<file>] [I<--migrate-disks> B<disk-list>] [I<--disks-port> B<port>]
 
 Migrate domain to another host.  Add I<--live> for live migration; <--p2p>
 for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
@@ -1559,6 +1568,12 @@ of migration.  I<--compressed> activates compression of memory pages that have
 to be transferred repeatedly during live migration. I<--abort-on-error> cancels
 the migration if a soft error (for example I/O error) happens during the
 migration. I<--auto-converge> forces convergence during live migration.
+I<--postcopy> enables post-copy logic in migration, but does not
+actually start post-copy, i.e., migration is started in pre-copy mode.
+Once migration is running, the user may switch to post-copy using the
+B<migrate-postcopy> command sent from another virsh instance or use
+I<--postcopy-after-precopy> to let libvirt automatically switch to
+post-copy after the first pass of pre-copy is finished.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -1578,9 +1593,14 @@ the destination to supply a larger set of changes to any host-specific
 portions of the domain XML, such as accounting for naming differences
 between source and destination in accessing underlying storage.
 
-I<--timeout> B<seconds> forces guest to suspend when live migration exceeds
-that many seconds, and
-then the migration will complete offline. It can only be used with I<--live>.
+I<--timeout> B<seconds> tells virsh to run a specified action when live
+migration exceeds that many seconds.  It can only be used with I<--live>.
+If I<--timeout-suspend> is specified, the domain will be suspended after
+the timeout and the migration will complete offline; this is the default
+if no I<--timeout-*> option is specified on the command line.  When
+I<--timeout-postcopy> is used, virsh will switch migration from pre-copy
+to post-copy upon timeout; migration has to be started with I<--postcopy>
+option for this to work.
 
 Running migration can be canceled by interrupting virsh (usually using
 C<Ctrl-C>) or by B<domjobabort> command sent from another virsh instance.
@@ -1659,6 +1679,9 @@ addresses are accepted as well as hostnames (the resolving is done on
 destination). Some hypervisors do not support this feature and will return an
 error if this parameter is used.
 
+Optional I<disks-port> sets the port that hypervisor on destination side should
+bind to for incoming disks traffic. Currently it is supported only by qemu.
+
 =item B<migrate-setmaxdowntime> I<domain> I<downtime>
 
 Set maximum tolerable downtime for a domain which is being live-migrated to
@@ -1688,6 +1711,11 @@ reject the value or convert it to the maximum value allowed.
 =item B<migrate-getspeed> I<domain>
 
 Get the maximum migration bandwidth (in MiB/s) for a domain.
+
+=item B<migrate-postcopy> I<domain>
+
+Switch the current migration from pre-copy to post-copy. This is only
+supported for a migration started with I<--postcopy> option.
 
 =item B<numatune> I<domain> [I<--mode> B<mode>] [I<--nodeset> B<nodeset>]
 [[I<--config>] [I<--live>] | [I<--current>]]
@@ -2115,6 +2143,26 @@ The guaranteed minimum memory allocation for the guest.
 =back
 
 Specifying -1 as a value for these limits is interpreted as unlimited.
+
+=item B<perf> I<domain> [I<--enable> B<eventName>]
+[I<--disable> B<eventName>]
+
+Get the current perf events setting or enable/disable specific perf
+event for a guest domain.
+
+Perf is a performance analyzing tool in Linux, and it can instrument
+CPU performance counters, tracepoints, kprobes, and uprobes (dynamic
+tracing). Perf supports a list of measurable events, and can measure
+events coming from different sources. For instance, some event are
+pure kernel counters, in this case they are called software events,
+including context-switches, minor-faults, etc.. Now dozens of events
+from different sources can be supported by perf.
+
+Currently only QEMU/KVM supports I<--enable> and I<--disable>.
+B<eventName> is a string listing one or more events, in the format
+of name|name|name. Only "cmt" event is supported presently. CMT is
+a PQos (Platform Qos) feature to monitor the usage of cache by
+applications running on the platform.
 
 =item B<blkiotune> I<domain> [I<--weight> B<weight>]
 [I<--device-weights> B<device-weights>]
@@ -3427,9 +3475,11 @@ If this is not possible, the copy fails.
 =item B<vol-create-as> I<pool-or-uuid> I<name> I<capacity>
 [I<--allocation> I<size>] [I<--format> I<string>] [I<--backing-vol>
 I<vol-name-or-key-or-path>] [I<--backing-vol-format> I<string>]
-[I<--prealloc-metadata>]
+[I<--prealloc-metadata>] [I<--print-xml>]
 
-Create a volume from a set of arguments.
+Create a volume from a set of arguments unless I<--print-xml> is specified, in
+which case just the XML of the volume object is printed out without any actual
+object creation.
 I<pool-or-uuid> is the name or UUID of the storage pool to create the volume
 in.
 I<name> is the name of the new volume. For a disk pool, this must match the
@@ -3546,9 +3596,19 @@ B<Supported algorithms>
   pfitzner7  - Roy Pfitzner's 7-random-pass method: random x7.
   pfitzner33 - Roy Pfitzner's 33-random-pass method: random x33.
   random     - 1-pass pattern: random.
+  trim       - 1-pass trimming the volume using TRIM or DISCARD
 
-B<Note>: The availability of algorithms may be limited by the version
-of the C<scrub> binary installed on the host.
+B<Note>: The C<scrub> binary will be used to handle the 'nnsa', 'dod',
+'bsi', 'gutmann', 'schneier', 'pfitzner7' and 'pfitzner33' algorithms.
+The availability of the algorithms may be limited by the version of
+the C<scrub> binary installed on the host. The 'zero' algorithm will
+write zeroes to the entire volume. For some volumes, such as sparse
+or rbd volumes, this may result in completely filling the volume with
+zeroes making it appear to be completely full. As an alternative, the
+'trim' algorithm does not overwrite all the data in a volume, rather
+it expects the storage driver to be able to discard all bytes in a
+volume. It is up to the storage driver to handle how the discarding
+occurs. Not all storage drivers or volume types can support 'trim'.
 
 =item B<vol-dumpxml> [I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
 

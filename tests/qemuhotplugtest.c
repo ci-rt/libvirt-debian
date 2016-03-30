@@ -19,6 +19,7 @@
 
 #include <config.h>
 
+#include "qemu/qemu_alias.h"
 #include "qemu/qemu_conf.h"
 #include "qemu/qemu_hotplug.h"
 #include "qemu/qemu_hotplugpriv.h"
@@ -175,13 +176,15 @@ testQemuHotplugUpdate(virDomainObjPtr vm,
 static int
 testQemuHotplugCheckResult(virDomainObjPtr vm,
                            const char *expected,
+                           const char *expectedFile,
                            bool fail)
 {
     char *actual;
     int ret;
 
     vm->def->id = -1;
-    actual = virDomainDefFormat(vm->def, VIR_DOMAIN_DEF_FORMAT_SECURE);
+    actual = virDomainDefFormat(vm->def, driver.caps,
+                                VIR_DOMAIN_DEF_FORMAT_SECURE);
     if (!actual)
         return -1;
     vm->def->id = QEMU_HOTPLUG_TEST_DOMAIN_ID;
@@ -192,7 +195,9 @@ testQemuHotplugCheckResult(virDomainObjPtr vm,
         ret = 0;
     } else {
         if (!fail)
-            virtTestDifference(stderr, expected, actual);
+            virtTestDifferenceFull(stderr,
+                                   expected, expectedFile,
+                                   actual, NULL);
         ret = -1;
     }
 
@@ -294,13 +299,15 @@ testQemuHotplug(const void *data)
             VIR_FREE(dev);
         }
         if (ret == 0 || fail)
-            ret = testQemuHotplugCheckResult(vm, result_xml, fail);
+            ret = testQemuHotplugCheckResult(vm, result_xml,
+                                             result_filename, fail);
         break;
 
     case DETACH:
         ret = testQemuHotplugDetach(vm, dev);
         if (ret == 0 || fail)
-            ret = testQemuHotplugCheckResult(vm, domain_xml, fail);
+            ret = testQemuHotplugCheckResult(vm, domain_xml,
+                                             domain_filename, fail);
         break;
 
     case UPDATE:
@@ -334,7 +341,6 @@ mymain(void)
 {
     int ret = 0;
     struct qemuHotplugTestData data = {0};
-    virSecurityManagerPtr mgr;
 
 #if !WITH_YAJL
     fputs("libvirt not compiled with yajl, skipping this test\n", stderr);
@@ -360,12 +366,6 @@ mymain(void)
                                                  driver.config->configBaseDir,
                                                  0);
     if (!driver.lockManager)
-        return EXIT_FAILURE;
-
-    if (!(mgr = virSecurityManagerNew("none", "qemu",
-                                      VIR_SECURITY_MANAGER_PRIVILEGED)))
-        return EXIT_FAILURE;
-    if (!(driver.securityManager = virSecurityManagerNewStack(mgr)))
         return EXIT_FAILURE;
 
     /* wait only 100ms for DEVICE_DELETED event */

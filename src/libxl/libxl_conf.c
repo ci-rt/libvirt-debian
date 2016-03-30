@@ -46,6 +46,7 @@
 #include "libxl_conf.h"
 #include "libxl_utils.h"
 #include "virstoragefile.h"
+#include "base64.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -181,6 +182,9 @@ libxlCapsInitHost(libxl_ctx *ctx, virCapsPtr caps)
     host_pae = phy_info.hw_cap[0] & LIBXL_X86_FEATURE_PAE_MASK;
     if (host_pae &&
         virCapabilitiesAddHostFeature(caps, "pae") < 0)
+        return -1;
+
+    if (virCapabilitiesSetNetPrefix(caps, LIBXL_GENERATED_PREFIX_XEN) < 0)
         return -1;
 
     return 0;
@@ -489,7 +493,7 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
 
             if (virCapabilitiesAddGuestFeature(guest,
                                                "hap",
-                                               0,
+                                               1,
                                                1) == NULL)
                 return -1;
         }
@@ -507,10 +511,24 @@ libxlMakeDomCreateInfo(libxl_ctx *ctx,
 
     libxl_domain_create_info_init(c_info);
 
-    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM)
+    if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         c_info->type = LIBXL_DOMAIN_TYPE_HVM;
-    else
+        switch ((virTristateSwitch) def->features[VIR_DOMAIN_FEATURE_HAP]) {
+        case VIR_TRISTATE_SWITCH_OFF:
+            libxl_defbool_set(&c_info->hap, false);
+            break;
+
+        case VIR_TRISTATE_SWITCH_ON:
+            libxl_defbool_set(&c_info->hap, true);
+            break;
+
+        case VIR_TRISTATE_SWITCH_ABSENT:
+        case VIR_TRISTATE_SWITCH_LAST:
+            break;
+        }
+    } else {
         c_info->type = LIBXL_DOMAIN_TYPE_PV;
+    }
 
     if (VIR_STRDUP(c_info->name, def->name) < 0)
         goto error;
@@ -917,17 +935,206 @@ libxlDomainGetEmulatorType(const virDomainDef *def)
     return ret;
 }
 
+static char *
+libxlGetSecretString(virConnectPtr conn,
+                     const char *scheme,
+                     bool encoded,
+                     virStorageAuthDefPtr authdef,
+                     virSecretUsageType secretUsageType)
+{
+    size_t secret_size;
+    virSecretPtr sec = NULL;
+    char *secret = NULL;
+    char uuidStr[VIR_UUID_STRING_BUFLEN];
+
+    /* look up secret */
+    switch (authdef->secretType) {
+    case VIR_STORAGE_SECRET_TYPE_UUID:
+        sec = virSecretLookupByUUID(conn, authdef->secret.uuid);
+        virUUIDFormat(authdef->secret.uuid, uuidStr);
+        break;
+    case VIR_STORAGE_SECRET_TYPE_USAGE:
+        sec = virSecretLookupByUsage(conn, secretUsageType,
+                                     authdef->secret.usage);
+        break;
+    }
+
+    if (!sec) {
+        if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
+            virReportError(VIR_ERR_NO_SECRET,
+                           _("%s no secret matches uuid '%s'"),
+                           scheme, uuidStr);
+        } else {
+            virReportError(VIR_ERR_NO_SECRET,
+                           _("%s no secret matches usage value '%s'"),
+                           scheme, authdef->secret.usage);
+        }
+        goto cleanup;
+    }
+
+    secret = (char *)conn->secretDriver->secretGetValue(sec, &secret_size, 0,
+                                                        VIR_SECRET_GET_VALUE_INTERNAL_CALL);
+    if (!secret) {
+        if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("could not get value of the secret for "
+                             "username '%s' using uuid '%s'"),
+                           authdef->username, uuidStr);
+        } else {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("could not get value of the secret for "
+                             "username '%s' using usage value '%s'"),
+                           authdef->username, authdef->secret.usage);
+        }
+        goto cleanup;
+    }
+
+    if (encoded) {
+        char *base64 = NULL;
+
+        base64_encode_alloc(secret, secret_size, &base64);
+        VIR_FREE(secret);
+        if (!base64) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        secret = base64;
+    }
+
+ cleanup:
+    virObjectUnref(sec);
+    return secret;
+}
+
+static char *
+libxlMakeNetworkDiskSrcStr(virStorageSourcePtr src,
+                           const char *username,
+                           const char *secret)
+{
+    char *ret = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t i;
+
+    switch ((virStorageNetProtocol) src->protocol) {
+    case VIR_STORAGE_NET_PROTOCOL_NBD:
+    case VIR_STORAGE_NET_PROTOCOL_HTTP:
+    case VIR_STORAGE_NET_PROTOCOL_HTTPS:
+    case VIR_STORAGE_NET_PROTOCOL_FTP:
+    case VIR_STORAGE_NET_PROTOCOL_FTPS:
+    case VIR_STORAGE_NET_PROTOCOL_TFTP:
+    case VIR_STORAGE_NET_PROTOCOL_ISCSI:
+    case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
+    case VIR_STORAGE_NET_PROTOCOL_SHEEPDOG:
+    case VIR_STORAGE_NET_PROTOCOL_LAST:
+    case VIR_STORAGE_NET_PROTOCOL_NONE:
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("Unsupported network block protocol '%s'"),
+                       virStorageNetProtocolTypeToString(src->protocol));
+        goto cleanup;
+
+    case VIR_STORAGE_NET_PROTOCOL_RBD:
+        if (strchr(src->path, ':')) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("':' not allowed in RBD source volume name '%s'"),
+                           src->path);
+            goto cleanup;
+        }
+
+        virBufferStrcat(&buf, "rbd:", src->path, NULL);
+
+        if (username) {
+            virBufferEscape(&buf, '\\', ":", ":id=%s", username);
+            virBufferEscape(&buf, '\\', ":",
+                            ":key=%s:auth_supported=cephx\\;none",
+                            secret);
+        } else {
+            virBufferAddLit(&buf, ":auth_supported=none");
+        }
+
+        if (src->nhosts > 0) {
+            virBufferAddLit(&buf, ":mon_host=");
+            for (i = 0; i < src->nhosts; i++) {
+                if (i)
+                    virBufferAddLit(&buf, "\\;");
+
+                /* assume host containing : is ipv6 */
+                if (strchr(src->hosts[i].name, ':'))
+                    virBufferEscape(&buf, '\\', ":", "[%s]",
+                                    src->hosts[i].name);
+                else
+                    virBufferAsprintf(&buf, "%s", src->hosts[i].name);
+
+                if (src->hosts[i].port)
+                    virBufferAsprintf(&buf, "\\:%s", src->hosts[i].port);
+            }
+        }
+
+        if (src->configFile)
+            virBufferEscape(&buf, '\\', ":", ":conf=%s", src->configFile);
+
+        if (virBufferCheckError(&buf) < 0)
+            goto cleanup;
+
+        ret = virBufferContentAndReset(&buf);
+        break;
+    }
+
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    return ret;
+}
+
+static int
+libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
+{
+    virConnectPtr conn = NULL;
+    char *secret = NULL;
+    char *username = NULL;
+    int ret = -1;
+
+    *srcstr = NULL;
+    if (src->auth && src->protocol == VIR_STORAGE_NET_PROTOCOL_RBD) {
+        const char *protocol = virStorageNetProtocolTypeToString(src->protocol);
+
+        username = src->auth->username;
+        if (!(conn = virConnectOpen("xen:///system")))
+            goto cleanup;
+
+        if (!(secret = libxlGetSecretString(conn,
+                                            protocol,
+                                            true,
+                                            src->auth,
+                                            VIR_SECRET_USAGE_TYPE_CEPH)))
+            goto cleanup;
+    }
+
+    if (!(*srcstr = libxlMakeNetworkDiskSrcStr(src, username, secret)))
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(secret);
+    virObjectUnref(conn);
+    return ret;
+}
 
 int
 libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
 {
     const char *driver;
     int format;
+    int actual_type = virStorageSourceGetActualType(l_disk->src);
 
     libxl_device_disk_init(x_disk);
 
-    if (VIR_STRDUP(x_disk->pdev_path, virDomainDiskGetSource(l_disk)) < 0)
+    if (actual_type == VIR_STORAGE_TYPE_NETWORK) {
+        if (libxlMakeNetworkDiskSrc(l_disk->src, &x_disk->pdev_path) < 0)
+            return -1;
+    } else {
+        if (VIR_STRDUP(x_disk->pdev_path, virDomainDiskGetSource(l_disk)) < 0)
         return -1;
+    }
 
     if (VIR_STRDUP(x_disk->vdev, l_disk->dst) < 0)
         return -1;
@@ -1093,7 +1300,10 @@ libxlMakeNic(virDomainDefPtr def,
 {
     bool ioemu_nic = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
     virDomainNetType actual_type = virDomainNetGetActualType(l_nic);
+    virNetworkPtr network = NULL;
+    virConnectPtr conn = NULL;
     virNetDevBandwidthPtr actual_bw;
+    int ret = -1;
 
     /* TODO: Where is mtu stored?
      *
@@ -1119,64 +1329,47 @@ libxlMakeNic(virDomainDefPtr def,
 
     if (l_nic->model) {
         if (VIR_STRDUP(x_nic->model, l_nic->model) < 0)
-            return -1;
+            goto cleanup;
         if (STREQ(l_nic->model, "netfront"))
             x_nic->nictype = LIBXL_NIC_TYPE_VIF;
     }
 
     if (VIR_STRDUP(x_nic->ifname, l_nic->ifname) < 0)
-        return -1;
+        goto cleanup;
 
     switch (actual_type) {
         case VIR_DOMAIN_NET_TYPE_BRIDGE:
             if (VIR_STRDUP(x_nic->bridge,
                            virDomainNetGetActualBridgeName(l_nic)) < 0)
-                return -1;
+                goto cleanup;
             /* fallthrough */
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
             if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
-                return -1;
+                goto cleanup;
             if (l_nic->nips > 0) {
                 x_nic->ip = virSocketAddrFormat(&l_nic->ips[0]->address);
                 if (!x_nic->ip)
-                    return -1;
+                    goto cleanup;
             }
             break;
         case VIR_DOMAIN_NET_TYPE_NETWORK:
         {
-            bool fail = false;
-            char *brname = NULL;
-            virNetworkPtr network;
-            virConnectPtr conn;
-
             if (!(conn = virConnectOpen("xen:///system")))
-                return -1;
+                goto cleanup;
 
             if (!(network =
                   virNetworkLookupByName(conn, l_nic->data.network.name))) {
-                virObjectUnref(conn);
-                return -1;
+                goto cleanup;
             }
 
             if (l_nic->nips > 0) {
                 x_nic->ip = virSocketAddrFormat(&l_nic->ips[0]->address);
                 if (!x_nic->ip)
-                    return -1;
+                    goto cleanup;
             }
 
-            if ((brname = virNetworkGetBridgeName(network))) {
-                if (VIR_STRDUP(x_nic->bridge, brname) < 0)
-                    fail = true;
-            } else {
-                fail = true;
-            }
-
-            VIR_FREE(brname);
-
-            virObjectUnref(network);
-            virObjectUnref(conn);
-            if (fail)
-                return -1;
+            if (!(x_nic->bridge = virNetworkGetBridgeName(network)))
+                goto cleanup;
             break;
         }
         case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
@@ -1192,18 +1385,18 @@ libxlMakeNic(virDomainDefPtr def,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                     _("unsupported interface type %s"),
                     virDomainNetTypeToString(l_nic->type));
-            return -1;
+            goto cleanup;
     }
 
     if (l_nic->domain_name) {
 #ifdef LIBXL_HAVE_DEVICE_BACKEND_DOMNAME
         if (VIR_STRDUP(x_nic->backend_domname, l_nic->domain_name) < 0)
-            return -1;
+            goto cleanup;
 #else
         virReportError(VIR_ERR_XML_DETAIL, "%s",
                 _("this version of libxenlight does not "
                   "support backend domain name"));
-        return -1;
+        goto cleanup;
 #endif
     }
 
@@ -1245,7 +1438,13 @@ libxlMakeNic(virDomainDefPtr def,
         x_nic->rate_interval_usecs =  50000UL;
     }
 
-    return 0;
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(network);
+    virObjectUnref(conn);
+
+    return ret;
 }
 
 static int
@@ -1260,7 +1459,7 @@ libxlMakeNicList(virDomainDefPtr def,  libxl_domain_config *d_config)
         return -1;
 
     for (i = 0; i < nnics; i++) {
-        if (l_nics[i]->type == VIR_DOMAIN_NET_TYPE_HOSTDEV)
+        if (virDomainNetGetActualType(l_nics[i]) == VIR_DOMAIN_NET_TYPE_HOSTDEV)
             continue;
 
         if (libxlMakeNic(def, l_nics[i], &x_nics[nvnics]))
@@ -1278,7 +1477,7 @@ libxlMakeNicList(virDomainDefPtr def,  libxl_domain_config *d_config)
 
     VIR_SHRINK_N(x_nics, nnics, nnics - nvnics);
     d_config->nics = x_nics;
-    d_config->num_nics = nnics;
+    d_config->num_nics = nvnics;
 
     return 0;
 
@@ -1656,6 +1855,10 @@ int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
     virConfValuePtr p;
     int ret = -1;
 
+    /* defaults for keepalive messages */
+    cfg->keepAliveInterval = 5;
+    cfg->keepAliveCount = 5;
+
     /* Check the file is readable before opening it, otherwise
      * libvirt emits an error.
      */
@@ -1681,6 +1884,28 @@ int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
 
         if (VIR_STRDUP(cfg->lockManagerName, p->str) < 0)
             goto cleanup;
+    }
+
+    if ((p = virConfGetValue(conf, "keepalive_interval"))) {
+        if (p->type != VIR_CONF_LONG && p->type != VIR_CONF_ULONG) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s",
+                           _("Unexpected type for 'keepalive_interval' setting"));
+            goto cleanup;
+        }
+
+        cfg->keepAliveInterval = p->l;
+    }
+
+    if ((p = virConfGetValue(conf, "keepalive_count"))) {
+        if (p->type != VIR_CONF_ULONG) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s",
+                           _("Unexpected type for 'keepalive_count' setting"));
+            goto cleanup;
+        }
+
+        cfg->keepAliveCount = p->l;
     }
 
     ret = 0;

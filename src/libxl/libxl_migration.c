@@ -42,6 +42,7 @@
 #include "libxl_conf.h"
 #include "libxl_migration.h"
 #include "locking/domain_lock.h"
+#include "virtypedparam.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -254,7 +255,7 @@ libxlDomainMigrationBegin(virConnectPtr conn,
     if (!libxlDomainMigrationIsAllowed(def))
         goto endjob;
 
-    xml = virDomainDefFormat(def, VIR_DOMAIN_DEF_FORMAT_SECURE);
+    xml = virDomainDefFormat(def, cfg->caps, VIR_DOMAIN_DEF_FORMAT_SECURE);
 
  endjob:
     if (!libxlDomainObjEndJob(driver, vm))
@@ -456,6 +457,208 @@ libxlDomainMigrationPrepare(virConnectPtr dconn,
     return ret;
 }
 
+/* This function is a simplification of virDomainMigrateVersion3Full
+ * excluding tunnel support and restricting it to migration v3
+ * with params since it was the first to be introduced in libxl.
+ */
+static int
+libxlDoMigrateP2P(libxlDriverPrivatePtr driver,
+                  virDomainObjPtr vm,
+                  virConnectPtr sconn,
+                  const char *xmlin,
+                  virConnectPtr dconn,
+                  const char *dconnuri ATTRIBUTE_UNUSED,
+                  const char *dname,
+                  const char *uri,
+                  unsigned int flags)
+{
+    virDomainPtr ddomain = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    int maxparams = 0;
+    char *uri_out = NULL;
+    char *dom_xml = NULL;
+    unsigned long destflags;
+    bool cancelled = true;
+    virErrorPtr orig_err = NULL;
+    int ret = -1;
+
+    dom_xml = libxlDomainMigrationBegin(sconn, vm, xmlin);
+    if (!dom_xml)
+        goto cleanup;
+
+    if (virTypedParamsAddString(&params, &nparams, &maxparams,
+                                VIR_MIGRATE_PARAM_DEST_XML, dom_xml) < 0)
+        goto cleanup;
+
+    if (dname &&
+        virTypedParamsAddString(&params, &nparams, &maxparams,
+                                VIR_MIGRATE_PARAM_DEST_NAME, dname) < 0)
+        goto cleanup;
+
+    if (uri &&
+        virTypedParamsAddString(&params, &nparams, &maxparams,
+                                VIR_MIGRATE_PARAM_URI, uri) < 0)
+        goto cleanup;
+
+    /* We don't require the destination to have P2P support
+     * as it looks to be normal migration from the receiver perpective.
+     */
+    destflags = flags & ~(VIR_MIGRATE_PEER2PEER);
+
+    VIR_DEBUG("Prepare3");
+    virObjectUnlock(vm);
+    ret = dconn->driver->domainMigratePrepare3Params
+        (dconn, params, nparams, NULL, 0, NULL, NULL, &uri_out, destflags);
+    virObjectLock(vm);
+
+    if (ret == -1)
+        goto cleanup;
+
+    if (uri_out) {
+        if (virTypedParamsReplaceString(&params, &nparams,
+                                        VIR_MIGRATE_PARAM_URI, uri_out) < 0) {
+            orig_err = virSaveLastError();
+            goto finish;
+        }
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("domainMigratePrepare3 did not set uri"));
+        goto finish;
+    }
+
+    VIR_DEBUG("Perform3 uri=%s", NULLSTR(uri_out));
+    ret = libxlDomainMigrationPerform(driver, vm, NULL, NULL,
+                                      uri_out, NULL, flags);
+
+    if (ret < 0)
+        orig_err = virSaveLastError();
+
+    cancelled = (ret < 0);
+
+ finish:
+    VIR_DEBUG("Finish3 ret=%d", ret);
+    if (virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_NAME, NULL) <= 0 &&
+        virTypedParamsReplaceString(&params, &nparams,
+                                    VIR_MIGRATE_PARAM_DEST_NAME,
+                                    vm->def->name) < 0) {
+        ddomain = NULL;
+    } else {
+        virObjectUnlock(vm);
+        ddomain = dconn->driver->domainMigrateFinish3Params
+            (dconn, params, nparams, NULL, 0, NULL, NULL,
+             destflags, cancelled);
+        virObjectLock(vm);
+    }
+
+    cancelled = (ddomain == NULL);
+
+    /* If Finish3Params set an error, and we don't have an earlier
+     * one we need to preserve it in case confirm3 overwrites
+     */
+    if (!orig_err)
+        orig_err = virSaveLastError();
+
+    VIR_DEBUG("Confirm3 cancelled=%d vm=%p", cancelled, vm);
+    ret = libxlDomainMigrationConfirm(driver, vm, flags, cancelled);
+
+    if (ret < 0)
+        VIR_WARN("Guest %s probably left in 'paused' state on source",
+                 vm->def->name);
+
+ cleanup:
+    if (ddomain) {
+        virObjectUnref(ddomain);
+        ret = 0;
+    } else {
+        ret = -1;
+    }
+
+    if (orig_err) {
+        virSetError(orig_err);
+        virFreeError(orig_err);
+    }
+
+    VIR_FREE(dom_xml);
+    VIR_FREE(uri_out);
+    virTypedParamsFree(params, nparams);
+    return ret;
+}
+
+static int virConnectCredType[] = {
+    VIR_CRED_AUTHNAME,
+    VIR_CRED_PASSPHRASE,
+};
+
+static virConnectAuth virConnectAuthConfig = {
+    .credtype = virConnectCredType,
+    .ncredtype = ARRAY_CARDINALITY(virConnectCredType),
+};
+
+/* On P2P mode there is only the Perform3 phase and we need to handle
+ * the connection with the destination libvirtd and perform the migration.
+ * Here we first tackle the first part of it, and libxlDoMigrationP2P handles
+ * the migration process with an established virConnectPtr to the destination.
+ */
+int
+libxlDomainMigrationPerformP2P(libxlDriverPrivatePtr driver,
+                               virDomainObjPtr vm,
+                               virConnectPtr sconn,
+                               const char *xmlin,
+                               const char *dconnuri,
+                               const char *uri_str ATTRIBUTE_UNUSED,
+                               const char *dname,
+                               unsigned int flags)
+{
+    int ret = -1;
+    bool useParams;
+    virConnectPtr dconn = NULL;
+    virErrorPtr orig_err = NULL;
+    libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
+
+    virObjectUnlock(vm);
+    dconn = virConnectOpenAuth(dconnuri, &virConnectAuthConfig, 0);
+    virObjectLock(vm);
+
+    if (dconn == NULL) {
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("Failed to connect to remote libvirt URI %s: %s"),
+                       dconnuri, virGetLastErrorMessage());
+        return ret;
+    }
+
+    if (virConnectSetKeepAlive(dconn, cfg->keepAliveInterval,
+                               cfg->keepAliveCount) < 0)
+        goto cleanup;
+
+    virObjectUnlock(vm);
+    useParams = VIR_DRV_SUPPORTS_FEATURE(dconn->driver, dconn,
+                                         VIR_DRV_FEATURE_MIGRATION_PARAMS);
+    virObjectLock(vm);
+
+    if (!useParams) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Destination libvirt does not support migration with extensible parameters"));
+        goto cleanup;
+    }
+
+    ret = libxlDoMigrateP2P(driver, vm, sconn, xmlin, dconn, dconnuri,
+                            dname, uri_str, flags);
+
+ cleanup:
+    orig_err = virSaveLastError();
+    virObjectUnlock(vm);
+    virObjectUnref(dconn);
+    virObjectUnref(cfg);
+    virObjectLock(vm);
+    if (orig_err) {
+        virSetError(orig_err);
+        virFreeError(orig_err);
+    }
+    return ret;
+}
+
 int
 libxlDomainMigrationPerform(libxlDriverPrivatePtr driver,
                             virDomainObjPtr vm,
@@ -564,7 +767,7 @@ libxlDomainMigrationFinish(virConnectPtr dconn,
         event = NULL;
     }
 
-    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, cfg->caps) < 0)
         goto cleanup;
 
     dom = virGetDomain(dconn, vm->def->name, vm->def->uuid);
@@ -607,7 +810,7 @@ libxlDomainMigrationConfirm(libxlDriverPrivatePtr driver,
                                  VIR_DOMAIN_PAUSED_MIGRATION);
             event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_SUSPENDED,
                                      VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED);
-            ignore_value(virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm));
+            ignore_value(virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, cfg->caps));
         }
         goto cleanup;
     }

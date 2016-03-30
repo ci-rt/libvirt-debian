@@ -182,7 +182,8 @@ VIR_ENUM_IMPL(virshDomainRunningReason,
               N_("migration canceled"),
               N_("save canceled"),
               N_("event wakeup"),
-              N_("crashed"))
+              N_("crashed"),
+              N_("post-copy"))
 
 VIR_ENUM_DECL(virshDomainBlockedReason)
 VIR_ENUM_IMPL(virshDomainBlockedReason,
@@ -203,7 +204,9 @@ VIR_ENUM_IMPL(virshDomainPausedReason,
               N_("shutting down"),
               N_("creating snapshot"),
               N_("crashed"),
-              N_("starting up"))
+              N_("starting up"),
+              N_("post-copy"),
+              N_("post-copy failed"))
 
 VIR_ENUM_DECL(virshDomainShutdownReason)
 VIR_ENUM_IMPL(virshDomainShutdownReason,
@@ -1876,17 +1879,17 @@ cmdList(vshControl *ctl, const vshCmd *cmd)
         else
             ignore_value(virStrcpyStatic(id_buf, "-"));
 
-        state = virshDomainState(ctl, dom, NULL);
-
-        /* Domain could've been removed in the meantime */
-        if (state < 0)
-            continue;
-
-        if (optTable && managed && state == VIR_DOMAIN_SHUTOFF &&
-            virDomainHasManagedSaveImage(dom, 0) > 0)
-            state = -2;
-
         if (optTable) {
+            state = virshDomainState(ctl, dom, NULL);
+
+            /* Domain could've been removed in the meantime */
+            if (state < 0)
+                continue;
+
+            if (managed && state == VIR_DOMAIN_SHUTOFF &&
+                virDomainHasManagedSaveImage(dom, 0) > 0)
+                state = -2;
+
             if (optTitle) {
                 if (!(title = virshGetDomainDescription(ctl, dom, true, 0)))
                     goto cleanup;
@@ -1959,6 +1962,10 @@ static const vshCmdOptDef opts_domstats[] = {
     {.name = "block",
      .type = VSH_OT_BOOL,
      .help = N_("report domain block device statistics"),
+    },
+    {.name = "perf",
+     .type = VSH_OT_BOOL,
+     .help = N_("report domain perf event statistics"),
     },
     {.name = "list-active",
      .type = VSH_OT_BOOL,
@@ -2070,6 +2077,9 @@ cmdDomstats(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool(cmd, "block"))
         stats |= VIR_DOMAIN_STATS_BLOCK;
+
+    if (vshCommandOptBool(cmd, "perf"))
+        stats |= VIR_DOMAIN_STATS_PERF;
 
     if (vshCommandOptBool(cmd, "list-active"))
         flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE;

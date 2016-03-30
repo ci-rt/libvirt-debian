@@ -1,7 +1,7 @@
 /*
- * admin_server.c:
+ * admin_server.c: admin methods to manage daemons and clients
  *
- * Copyright (C) 2014-2015 Red Hat, Inc.
+ * Copyright (C) 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,16 +17,12 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Author: Martin Kletzander <mkletzan@redhat.com>
+ * Authors: Erik Skultety <eskultet@redhat.com>
+ *          Martin Kletzander <mkletzan@redhat.com>
  */
 
 #include <config.h>
 
-#include "internal.h"
-#include "libvirtd.h"
-#include "libvirt_internal.h"
-
-#include "admin_protocol.h"
 #include "admin_server.h"
 #include "datatypes.h"
 #include "viralloc.h"
@@ -35,92 +31,40 @@
 #include "virnetdaemon.h"
 #include "virnetserver.h"
 #include "virstring.h"
-#include "virthreadjob.h"
 
 #define VIR_FROM_THIS VIR_FROM_ADMIN
 
-VIR_LOG_INIT("daemon.admin");
+VIR_LOG_INIT("daemon.admin_server");
 
-
-void
-remoteAdmClientFreeFunc(void *data)
+int
+adminConnectListServers(virNetDaemonPtr dmn,
+                        virNetServerPtr **servers,
+                        unsigned int flags)
 {
-    struct daemonAdmClientPrivate *priv = data;
-
-    virMutexDestroy(&priv->lock);
-    virObjectUnref(priv->dmn);
-    VIR_FREE(priv);
-}
-
-void *
-remoteAdmClientInitHook(virNetServerClientPtr client ATTRIBUTE_UNUSED,
-                        void *opaque)
-{
-    struct daemonAdmClientPrivate *priv;
-
-    if (VIR_ALLOC(priv) < 0)
-        return NULL;
-
-    if (virMutexInit(&priv->lock) < 0) {
-        VIR_FREE(priv);
-        virReportSystemError(errno, "%s", _("unable to init mutex"));
-        return NULL;
-    }
-
-    /*
-     * We don't necessarily need to ref this object right now as there
-     * must be one ref being held throughout the life of the daemon,
-     * but let's just be safe for future.
-     */
-    priv->dmn = virObjectRef(opaque);
-
-    return priv;
-}
-
-/* Functions */
-static int
-adminDispatchConnectOpen(virNetServerPtr server ATTRIBUTE_UNUSED,
-                         virNetServerClientPtr client,
-                         virNetMessagePtr msg ATTRIBUTE_UNUSED,
-                         virNetMessageErrorPtr rerr,
-                         struct admin_connect_open_args *args)
-{
-    unsigned int flags;
-    struct daemonAdmClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
     int ret = -1;
+    virNetServerPtr *srvs = NULL;
 
-    VIR_DEBUG("priv=%p dmn=%p", priv, priv->dmn);
-    virMutexLock(&priv->lock);
+    virCheckFlags(0, -1);
 
-    flags = args->flags;
-    virCheckFlagsGoto(0, cleanup);
+    if ((ret = virNetDaemonGetServers(dmn, &srvs)) < 0)
+        goto cleanup;
 
-    ret = 0;
+    if (servers) {
+        *servers = srvs;
+        srvs = NULL;
+    }
  cleanup:
-    if (ret < 0)
-        virNetMessageSaveError(rerr);
-    virMutexUnlock(&priv->lock);
+    if (ret > 0)
+        virObjectListFreeCount(srvs, ret);
     return ret;
 }
 
-static int
-adminDispatchConnectClose(virNetServerPtr server ATTRIBUTE_UNUSED,
-                          virNetServerClientPtr client,
-                          virNetMessagePtr msg ATTRIBUTE_UNUSED,
-                          virNetMessageErrorPtr rerr ATTRIBUTE_UNUSED)
+virNetServerPtr
+adminConnectLookupServer(virNetDaemonPtr dmn,
+                         const char *name,
+                         unsigned int flags)
 {
-    virNetServerClientDelayedClose(client);
-    return 0;
-}
+    virCheckFlags(flags, NULL);
 
-static int
-adminConnectGetLibVersion(virNetDaemonPtr dmn ATTRIBUTE_UNUSED,
-                          unsigned long long *libVer)
-{
-    if (libVer)
-        *libVer = LIBVIR_VERSION_NUMBER;
-    return 0;
+    return virNetDaemonGetServer(dmn, name);
 }
-
-#include "admin_dispatch.h"

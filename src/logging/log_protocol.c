@@ -58,6 +58,15 @@ xdr_virLogManagerProtocolLogFilePosition (XDR *xdrs, virLogManagerProtocolLogFil
 }
 
 bool_t
+xdr_virLogManagerProtocolDomainOpenLogFileFlags (XDR *xdrs, virLogManagerProtocolDomainOpenLogFileFlags *objp)
+{
+
+         if (!xdr_enum (xdrs, (enum_t *) objp))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_virLogManagerProtocolDomainOpenLogFileArgs (XDR *xdrs, virLogManagerProtocolDomainOpenLogFileArgs *objp)
 {
 

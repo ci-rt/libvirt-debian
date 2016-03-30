@@ -552,9 +552,106 @@ test10(const void *opaque ATTRIBUTE_UNUSED)
     return ret;
 }
 
+struct testBinaryOpData {
+    const char *a;
+    const char *b;
+    const char *res;
+};
+
+static int
+test11(const void *opaque)
+{
+    const struct testBinaryOpData *data = opaque;
+    virBitmapPtr amap = NULL;
+    virBitmapPtr bmap = NULL;
+    virBitmapPtr resmap = NULL;
+    int ret = -1;
+
+    if (virBitmapParse(data->a, 0, &amap, 256) < 0 ||
+        virBitmapParse(data->b, 0, &bmap, 256) < 0 ||
+        virBitmapParse(data->res, 0, &resmap, 256) < 0)
+        goto cleanup;
+
+    virBitmapSubtract(amap, bmap);
+
+    if (!virBitmapEqual(amap, resmap)) {
+        fprintf(stderr, "\n bitmap subtraction failed: '%s'-'%s'!='%s'\n",
+                data->a, data->b, data->res);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virBitmapFree(amap);
+    virBitmapFree(bmap);
+    virBitmapFree(resmap);
+
+    return ret;
+}
+
+#define TEST_MAP(sz, expect)                                                   \
+    do {                                                                       \
+        char *actual;                                                          \
+        if (virBitmapSize(map) != sz) {                                        \
+            fprintf(stderr, "\n expected bitmap size: '%d' actual size: "      \
+                    "'%zu'\n", sz, virBitmapSize(map));                        \
+            goto cleanup;                                                      \
+        }                                                                      \
+                                                                               \
+        actual = virBitmapFormat(map);                                         \
+                                                                               \
+        if (STRNEQ_NULLABLE(expect, actual)) {                                 \
+            fprintf(stderr, "\n expected bitmap contents '%s' actual contents "\
+                    "'%s'\n", NULLSTR(expect), NULLSTR(actual));               \
+            VIR_FREE(actual);                                                  \
+            goto cleanup;                                                      \
+        }                                                                      \
+        VIR_FREE(actual);                                                      \
+    } while (0)
+
+/* test self-expanding bitmap APIs */
+static int
+test12(const void *opaque ATTRIBUTE_UNUSED)
+{
+    virBitmapPtr map = NULL;
+    int ret = -1;
+
+    if (!(map = virBitmapNewEmpty()))
+        return -1;
+
+    TEST_MAP(0, "");
+
+    if (virBitmapSetBitExpand(map, 100) < 0)
+        goto cleanup;
+
+    TEST_MAP(101, "100");
+
+    if (virBitmapClearBitExpand(map, 150) < 0)
+        goto cleanup;
+
+    TEST_MAP(151, "100");
+
+    ret = 0;
+
+ cleanup:
+    virBitmapFree(map);
+    return ret;
+}
+#undef TEST_MAP
+
+
+#define TESTBINARYOP(A, B, RES, FUNC)                                         \
+    testBinaryOpData.a = A;                                                   \
+    testBinaryOpData.b = B;                                                   \
+    testBinaryOpData.res = RES;                                               \
+    if (virtTestRun(virtTestCounterNext(), FUNC, &testBinaryOpData) < 0)      \
+        ret = -1;
+
 static int
 mymain(void)
 {
+    struct testBinaryOpData testBinaryOpData;
     int ret = 0;
 
     if (virtTestRun("test1", test1, NULL) < 0)
@@ -576,6 +673,18 @@ mymain(void)
     if (virtTestRun("test9", test9, NULL) < 0)
         ret = -1;
     if (virtTestRun("test10", test10, NULL) < 0)
+        ret = -1;
+
+    virtTestCounterReset("test11-");
+    TESTBINARYOP("0", "0", "0,^0", test11);
+    TESTBINARYOP("0-3", "0", "1-3", test11);
+    TESTBINARYOP("0-3", "0,3", "1-2", test11);
+    TESTBINARYOP("0,^0", "0", "0,^0", test11);
+    TESTBINARYOP("0-3", "0-3", "0,^0", test11);
+    TESTBINARYOP("0-3", "0,^0", "0-3", test11);
+    TESTBINARYOP("0,2", "1,3", "0,2", test11);
+
+    if (virtTestRun("test12", test12, NULL) < 0)
         ret = -1;
 
     return ret;
