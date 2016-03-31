@@ -26,10 +26,8 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_STORAGE_RBD    = --with-storage-rbd
   WITH_UDEV           = --with-udev
   WITH_CAPNG          = --with-capng
-  WITH_POLKIT         = --with-polkit
   WITH_MACVTAP        = --with-macvtap
   WITH_NETWORK        = --with-network
-  WITH_QEMU           = --with-qemu
   WITH_OPENVZ         = --with-openvz
   WITH_NETCF          = --with-netcf
   WITH_SANLOCK        = --with-sanlock
@@ -62,10 +60,8 @@ else
   WITH_STORAGE_RBD    = --without-storage-rbd
   WITH_UDEV           = --without-udev
   WITH_CAPNG          = --without-capng
-  WITH_POLKIT         = --without-polkit
   WITH_MACVTAP        = --without-macvtap
   WITH_NETWORK        = --without-network
-  WITH_QEMU           = --without-qemu
   WITH_LXC            = --without-lxc
   WITH_NUMA           = --without-numactl
   WITH_NETCF          = --without-netcf
@@ -87,7 +83,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--with-default-editor="sensible-editor" \
 	--disable-silent-rules   \
 	--disable-rpath          \
-	$(WITH_QEMU)		 \
+	--with-qemu		 \
 	--with-qemu-user=libvirt-qemu  \
 	--with-qemu-group=libvirt-qemu \
 	$(WITH_OPENVZ)		 \
@@ -95,7 +91,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--with-sasl              \
 	--with-yajl              \
 	--with-ssh2		 \
-	$(WITH_POLKIT)		 \
+	--with-polkit		 \
 	$(WITH_UDEV)		 \
 	--with-storage-fs        \
 	$(WITH_STORAGE_LVM)	 \
@@ -169,13 +165,10 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	dh_install -p libvirt-daemon-system etc/apparmor.d
 	dh_apparmor -p libvirt-daemon-system --profile-name=usr.lib.libvirt.virt-aa-helper
 	dh_apparmor -p libvirt-daemon-system --profile-name=usr.sbin.libvirtd
-	dh_install -p libvirt-daemon-system usr/share/polkit-1
 	# Not all linux arches have systemtap yet
 	mkdir -p debian/tmp/usr/share/systemtap
 	dh_install -p libvirt-daemon-system usr/share/systemtap
 	dh_install -p libvirt-daemon-system etc/libvirt/lxc.conf
-	dh_install -p libvirt-daemon-system etc/libvirt/qemu.conf
-	dh_install -p libvirt-daemon-system etc/libvirt/qemu-lockd.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu-sanlock.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu/networks/
 	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/

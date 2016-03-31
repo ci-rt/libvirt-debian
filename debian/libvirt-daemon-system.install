@@ -1,4 +1,7 @@
 etc/libvirt/libvirtd.conf
+etc/libvirt/qemu.conf
+etc/libvirt/qemu-lockd.conf
 etc/libvirt/virtlockd.conf
 etc/libvirt/virtlogd.conf
 etc/sasl2/*
+usr/share/polkit-1
