@@ -214,9 +214,6 @@ override_dh_installdocs:
 	rm -f $(EXAMPLES_DIR)domsuspend/suspend
 	rm -f $(EXAMPLES_DIR)hellolibvirt/hellolibvirt
 
-override_dh_strip:
-	dh_strip --dbg-package=libvirt0-dbg
-
 override_dh_auto_clean:
 	[ ! -f Makefile ] || dh_auto_clean
 	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.init

@@ -163,19 +163,6 @@ Description: library for interfacing with different virtualization systems
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
 
-Package: libvirt0-dbg
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libvirt0 (= ${binary:Version})
-Priority: extra
-Section: debug
-Description: library for interfacing with different virtualization systems - debugging symbols
- Libvirt is a C toolkit to interact with the virtualization capabilities
- of recent versions of Linux (and other OSes). The library aims at providing
- a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
- .
- This package contains the debugging symbols.
-
 Package: libvirt-doc
 Architecture: all
 Section: doc
