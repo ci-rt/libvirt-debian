@@ -15,3 +15,4 @@ debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
 virt-aa-helper-apparmor-allow-usr-share-OVMF-too.patch
 Link-xen-driver-against-libxl.patch
+apparmor-monitor-socket-moved.patch
