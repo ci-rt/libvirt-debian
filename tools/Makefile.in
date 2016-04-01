@@ -2130,9 +2130,14 @@ SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_WIRESHARK_DISSECTOR_TRUE@  $(abs_top_srcdir)/src/remote/lxc_protocol.x \
 @WITH_WIRESHARK_DISSECTOR_TRUE@  $(abs_top_srcdir)/src/rpc/virkeepaliveprotocol.x
 
-LIBVIRT_NSS_SYMBOL_FILE = \
-	$(srcdir)/nss/libvirt_nss.syms
+@WITH_BSD_NSS_FALSE@LIBVIRT_NSS_SYMBOL_FILE = \
+@WITH_BSD_NSS_FALSE@	$(srcdir)/nss/libvirt_nss.syms
 
+@WITH_BSD_NSS_TRUE@LIBVIRT_NSS_SYMBOL_FILE = \
+@WITH_BSD_NSS_TRUE@	$(srcdir)/nss/libvirt_nss_bsd.syms
+
+@WITH_BSD_NSS_FALSE@NSS_SO_VER = 2
+@WITH_BSD_NSS_TRUE@NSS_SO_VER = 1
 LIBVIRT_NSS_SOURCES = \
 	nss/libvirt_nss.c	\
 	nss/libvirt_nss.h
@@ -2160,7 +2165,7 @@ LIBVIRT_NSS_SOURCES = \
 @WITH_NSS_TRUE@	-export-dynamic \
 @WITH_NSS_TRUE@	-avoid-version \
 @WITH_NSS_TRUE@	-shared \
-@WITH_NSS_TRUE@	-shrext .so.2
+@WITH_NSS_TRUE@	-shrext .so.$(NSS_SO_VER)
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_la_LIBADD = \
 @WITH_NSS_TRUE@	nss/libnss_libvirt_impl.la
@@ -3081,6 +3086,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
+@WITH_BSD_NSS_FALSE@install-exec-hook:
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
@@ -3115,7 +3121,8 @@ install-dvi-am:
 install-exec-am: install-binPROGRAMS install-binSCRIPTS \
 	install-libLTLIBRARIES install-libexecSCRIPTS \
 	install-sbinSCRIPTS
-
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
 install-html: install-html-am
 
 install-html-am:
@@ -3161,7 +3168,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
 
 uninstall-man: uninstall-man1 uninstall-man8
 
-.MAKE: all check install install-am install-strip
+.MAKE: all check install install-am install-exec-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
 	clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
@@ -3172,19 +3179,20 @@ uninstall-man: uninstall-man1 uninstall-man8
 	html-am info info-am install install-am install-binPROGRAMS \
 	install-binSCRIPTS install-confDATA install-data \
 	install-data-am install-data-local install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-libLTLIBRARIES \
-	install-libexecSCRIPTS install-man install-man1 install-man8 \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-sbinSCRIPTS install-strip install-ws_pluginLTLIBRARIES \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-binSCRIPTS uninstall-confDATA \
-	uninstall-libLTLIBRARIES uninstall-libexecSCRIPTS \
-	uninstall-local uninstall-man uninstall-man1 uninstall-man8 \
-	uninstall-sbinSCRIPTS uninstall-ws_pluginLTLIBRARIES
+	install-exec install-exec-am install-exec-hook install-html \
+	install-html-am install-info install-info-am \
+	install-libLTLIBRARIES install-libexecSCRIPTS install-man \
+	install-man1 install-man8 install-pdf install-pdf-am \
+	install-ps install-ps-am install-sbinSCRIPTS install-strip \
+	install-ws_pluginLTLIBRARIES installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-binSCRIPTS \
+	uninstall-confDATA uninstall-libLTLIBRARIES \
+	uninstall-libexecSCRIPTS uninstall-local uninstall-man \
+	uninstall-man1 uninstall-man8 uninstall-sbinSCRIPTS \
+	uninstall-ws_pluginLTLIBRARIES
 
 .PRECIOUS: Makefile
 
@@ -3336,6 +3344,13 @@ libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
 @WITH_WIRESHARK_DISSECTOR_TRUE@	LIBVIRT_VERSION=$(LIBVIRT_VERSION) \
 @WITH_WIRESHARK_DISSECTOR_TRUE@		  $(PERL) $(abs_top_srcdir)/tools/wireshark/util/genxdrstub.pl \
 @WITH_WIRESHARK_DISSECTOR_TRUE@		  $(WS_DISSECTOR_PROTO_FILES)
+
+@WITH_BSD_NSS_TRUE@install-exec-hook:
+@WITH_BSD_NSS_TRUE@	cd $(DESTDIR)$(libdir) && \
+@WITH_BSD_NSS_TRUE@	  $(LN_S) libnss_libvirt.so.$(NSS_SO_VER) nss_libvirt.so.$(NSS_SO_VER)
+
+@WITH_BSD_NSS_TRUE@uninstall-local:
+@WITH_BSD_NSS_TRUE@	rm $(DESTDIR)$(libdir)/libnss_libvirt.so.$(NSS_SO_VER)
 
 clean-local:
 	-rm -rf wireshark/src/libvirt

@@ -1819,7 +1819,8 @@ remoteDomainGetNumaParameters(virDomainPtr domain,
 static int
 remoteDomainGetPerfEvents(virDomainPtr domain,
                           virTypedParameterPtr *params,
-                          int *nparams)
+                          int *nparams,
+                          unsigned int flags)
 {
     int rv = -1;
     remote_domain_get_perf_events_args args;
@@ -1829,6 +1830,7 @@ remoteDomainGetPerfEvents(virDomainPtr domain,
     remoteDriverLock(priv);
 
     make_nonnull_domain(&args.dom, domain);
+    args.flags = flags;
 
     memset(&ret, 0, sizeof(ret));
     if (call(domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_PERF_EVENTS,
@@ -1837,10 +1839,10 @@ remoteDomainGetPerfEvents(virDomainPtr domain,
         goto done;
 
     if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
-                                         ret.params.params_len,
-                                         REMOTE_DOMAIN_PERF_EVENTS_MAX,
-                                         params,
-                                         nparams) < 0)
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_PERF_EVENTS_MAX,
+                                  params,
+                                  nparams) < 0)
         goto cleanup;
 
     rv = 0;

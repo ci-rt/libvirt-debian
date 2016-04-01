@@ -4311,7 +4311,7 @@ done:
 }
 
 static int
-remoteDomainSetPerfEvents(virDomainPtr dom, virTypedParameterPtr params, int nparams)
+remoteDomainSetPerfEvents(virDomainPtr dom, virTypedParameterPtr params, int nparams, unsigned int flags)
 {
     int rv = -1;
     struct private_data *priv = dom->conn->privateData;
@@ -4320,6 +4320,7 @@ remoteDomainSetPerfEvents(virDomainPtr dom, virTypedParameterPtr params, int npa
     remoteDriverLock(priv);
 
     make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
 
     if (virTypedParamsSerialize(params, nparams,
                                 (virTypedParameterRemotePtr *) &args.params.params_val,

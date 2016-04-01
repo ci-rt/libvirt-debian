@@ -34,7 +34,7 @@
       <span class="refentrytitle">virterror</span>
     </h2>
     <p>virterror - error handling interfaces for the libvirt library</p>
-    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2015 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
     <p>Author(s): Daniel Veillard &lt;veillard@redhat.com&gt; </p>
     <div class="refsynopsisdiv">
       <h2>Synopsis</h2>
@@ -148,7 +148,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_ADMIN">VIR_FROM_ADMIN</a> = 62 /* Error from admin backend */
     <a name="VIR_FROM_LOGGING">VIR_FROM_LOGGING</a> = 63 /* Error from log manager */
     <a name="VIR_FROM_XENXL">VIR_FROM_XENXL</a> = 64 /* Error from Xen xl config code */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 65
+    <a name="VIR_FROM_PERF">VIR_FROM_PERF</a> = 65 /* Error from perf */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 66
 };
 </pre><p/>
 </div>
@@ -256,6 +257,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_CPU_INCOMPATIBLE">VIR_ERR_CPU_INCOMPATIBLE</a> = 91 /* given CPU is incompatible with host CP */
     <a name="VIR_ERR_XML_INVALID_SCHEMA">VIR_ERR_XML_INVALID_SCHEMA</a> = 92 /* XML document doesn't validate against schema */
     <a name="VIR_ERR_MIGRATE_FINISH_OK">VIR_ERR_MIGRATE_FINISH_OK</a> = 93 /* Finish API succeeded but it is expected to return NULL */
+    <a name="VIR_ERR_AUTH_UNAVAILABLE">VIR_ERR_AUTH_UNAVAILABLE</a> = 94 /* authentication unavailable */
+    <a name="VIR_ERR_NO_SERVER">VIR_ERR_NO_SERVER</a> = 95 /* Server was not found */
 };
 </pre><p/>
 </div>

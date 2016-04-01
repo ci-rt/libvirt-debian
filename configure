@@ -957,6 +957,8 @@ WITH_YAJL2_TRUE
 WITH_YAJL_FALSE
 WITH_YAJL_TRUE
 QEMU
+WITH_BSD_NSS_FALSE
+WITH_BSD_NSS_TRUE
 WITH_NSS_FALSE
 WITH_NSS_TRUE
 plugindir
@@ -60388,6 +60390,7 @@ else
 fi
 
 
+  bsd_nss=no
   fail=0
   if test "x$with_nss_plugin" != "xno" ; then
     for ac_header in nss.h
@@ -60421,6 +60424,46 @@ cat >>confdefs.h <<_ACEOF
 #define NSS 1
 _ACEOF
 
+
+      ac_fn_c_check_type "$LINENO" "struct gaih_addrtuple" "ac_cv_type_struct_gaih_addrtuple" "#include <nss.h>
+
+"
+if test "x$ac_cv_type_struct_gaih_addrtuple" = xyes; then :
+
+$as_echo "#define HAVE_STRUCT_GAIH_ADDRTUPLE 1" >>confdefs.h
+
+fi
+
+
+      ac_fn_c_check_type "$LINENO" "ns_mtab" "ac_cv_type_ns_mtab" "#include <nsswitch.h>
+"
+if test "x$ac_cv_type_ns_mtab" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_NS_MTAB 1
+_ACEOF
+
+
+$as_echo "#define HAVE_BSD_NSS 1" >>confdefs.h
+
+                      bsd_nss=yes
+
+fi
+ac_fn_c_check_type "$LINENO" "nss_module_unregister_fn" "ac_cv_type_nss_module_unregister_fn" "#include <nsswitch.h>
+"
+if test "x$ac_cv_type_nss_module_unregister_fn" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_NSS_MODULE_UNREGISTER_FN 1
+_ACEOF
+
+
+$as_echo "#define HAVE_BSD_NSS 1" >>confdefs.h
+
+                      bsd_nss=yes
+
+fi
+
     fi
   fi
 
@@ -60432,6 +60475,13 @@ else
   WITH_NSS_FALSE=
 fi
 
+   if test "x$bsd_nss" = "xyes"; then
+  WITH_BSD_NSS_TRUE=
+  WITH_BSD_NSS_FALSE='#'
+else
+  WITH_BSD_NSS_TRUE='#'
+  WITH_BSD_NSS_FALSE=
+fi
 
 
 
@@ -71102,6 +71152,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${WITH_NSS_TRUE}" && test -z "${WITH_NSS_FALSE}"; then
   as_fn_error $? "conditional \"WITH_NSS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${WITH_BSD_NSS_TRUE}" && test -z "${WITH_BSD_NSS_FALSE}"; then
+  as_fn_error $? "conditional \"WITH_BSD_NSS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${WITH_YAJL_TRUE}" && test -z "${WITH_YAJL_FALSE}"; then

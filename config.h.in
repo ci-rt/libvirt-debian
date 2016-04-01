@@ -616,6 +616,9 @@
 /* whether BSD CPU affinity management is available */
 #undef HAVE_BSD_CPU_AFFINITY
 
+/* whether using BSD style NSS */
+#undef HAVE_BSD_NSS
+
 /* Define to 1 if you have the 'btowc' function. */
 #undef HAVE_BTOWC
 
@@ -1354,6 +1357,12 @@
 /* Define to 1 if you have the <nss.h> header file. */
 #undef HAVE_NSS_H
 
+/* Define to 1 if the system has the type `nss_module_unregister_fn'. */
+#undef HAVE_NSS_MODULE_UNREGISTER_FN
+
+/* Define to 1 if the system has the type `ns_mtab'. */
+#undef HAVE_NS_MTAB
+
 /* whether numad is available */
 #undef HAVE_NUMAD
 
@@ -1663,6 +1672,9 @@
 
 /* Define to 1 if the system has the type `struct addrinfo'. */
 #undef HAVE_STRUCT_ADDRINFO
+
+/* Defined if struct gaih_addrtuple exists in nss.h */
+#undef HAVE_STRUCT_GAIH_ADDRTUPLE
 
 /* Defined if struct ifreq exists in net/if.h */
 #undef HAVE_STRUCT_IFREQ
