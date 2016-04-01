@@ -1,3 +1,10 @@
+libvirt (1.3.3~rc2-1) experimental; urgency=medium
+
+  * [b6de71c] Make sure the cgroup update notice is also shown in backports
+  * [aec93e0] New upstream version 1.3.3~rc2
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 01 Apr 2016 15:39:15 +0200
+
 libvirt (1.3.3~rc1-1) experimental; urgency=medium
 
   [ Philipp Hahn ]
