@@ -3904,11 +3904,6 @@ qemuProcessVerifyGuestCPU(virQEMUDriverPtr driver,
     bool ret = false;
     size_t i;
 
-    /* no features are passed to QEMU with -cpu host
-     * so it makes no sense to verify them */
-    if (def->cpu && def->cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH)
-        return true;
-
     switch (arch) {
     case VIR_ARCH_I686:
     case VIR_ARCH_X86_64:
@@ -3933,17 +3928,53 @@ qemuProcessVerifyGuestCPU(virQEMUDriverPtr driver,
             }
         }
 
-        for (i = 0; def->cpu && i < def->cpu->nfeatures; i++) {
-            virCPUFeatureDefPtr feature = &def->cpu->features[i];
+        for (i = 0; i < VIR_DOMAIN_HYPERV_LAST; i++) {
+            if (def->hyperv_features[i] == VIR_TRISTATE_SWITCH_ON) {
+                char *cpuFeature;
+                if (virAsprintf(&cpuFeature, "__kvm_hv_%s",
+                                virDomainHypervTypeToString(i)) < 0)
+                    goto cleanup;
+                if (!cpuHasFeature(guestcpu, cpuFeature)) {
+                    switch ((virDomainHyperv) i) {
+                    case VIR_DOMAIN_HYPERV_RELAXED:
+                    case VIR_DOMAIN_HYPERV_VAPIC:
+                    case VIR_DOMAIN_HYPERV_SPINLOCKS:
+                        VIR_WARN("host doesn't support hyperv '%s' feature",
+                                 virDomainHypervTypeToString(i));
+                        break;
+                    case VIR_DOMAIN_HYPERV_VPINDEX:
+                    case VIR_DOMAIN_HYPERV_RUNTIME:
+                    case VIR_DOMAIN_HYPERV_SYNIC:
+                    case VIR_DOMAIN_HYPERV_STIMER:
+                    case VIR_DOMAIN_HYPERV_RESET:
+                    case VIR_DOMAIN_HYPERV_VENDOR_ID:
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                       _("host doesn't support hyperv '%s' feature"),
+                                       virDomainHypervTypeToString(i));
+                        goto cleanup;
+                        break;
 
-            if (feature->policy != VIR_CPU_FEATURE_REQUIRE)
-                continue;
+                    /* coverity[dead_error_begin] */
+                    case VIR_DOMAIN_HYPERV_LAST:
+                        break;
+                    }
+                }
+            }
+        }
 
-            if (STREQ(feature->name, "invtsc") &&
-                !cpuHasFeature(guestcpu, feature->name)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("host doesn't support invariant TSC"));
-                goto cleanup;
+        if (def->cpu && def->cpu->mode != VIR_CPU_MODE_HOST_PASSTHROUGH) {
+            for (i = 0; i < def->cpu->nfeatures; i++) {
+                virCPUFeatureDefPtr feature = &def->cpu->features[i];
+
+                if (feature->policy != VIR_CPU_FEATURE_REQUIRE)
+                    continue;
+
+                if (STREQ(feature->name, "invtsc") &&
+                    !cpuHasFeature(guestcpu, feature->name)) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("host doesn't support invariant TSC"));
+                    goto cleanup;
+                }
             }
         }
         break;

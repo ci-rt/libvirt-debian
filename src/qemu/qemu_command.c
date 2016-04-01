@@ -2945,7 +2945,8 @@ static char *
 qemuBuildMemoryDimmBackendStr(virDomainMemoryDefPtr mem,
                               virDomainDefPtr def,
                               virQEMUCapsPtr qemuCaps,
-                              virQEMUDriverConfigPtr cfg)
+                              virQEMUDriverConfigPtr cfg,
+                              virBitmapPtr auto_nodeset)
 {
     virJSONValuePtr props = NULL;
     char *alias = NULL;
@@ -2962,7 +2963,7 @@ qemuBuildMemoryDimmBackendStr(virDomainMemoryDefPtr mem,
         goto cleanup;
 
     if (qemuBuildMemoryBackendStr(mem->size, mem->pagesize,
-                                  mem->targetNode, mem->sourceNodes, NULL,
+                                  mem->targetNode, mem->sourceNodes, auto_nodeset,
                                   def, qemuCaps, cfg,
                                   &backendType, &props, true) < 0)
         goto cleanup;
@@ -7181,17 +7182,13 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
 
 
 static int
-qemuBuildNumaCommandLine(virCommandPtr cmd,
-                         virQEMUDriverConfigPtr cfg,
-                         virDomainDefPtr def,
-                         virQEMUCapsPtr qemuCaps,
-                         virBitmapPtr nodeset)
+qemuBuildMemoryDeviceCommandLine(virCommandPtr cmd,
+                                 virQEMUDriverConfigPtr cfg,
+                                 virDomainDefPtr def,
+                                 virQEMUCapsPtr qemuCaps,
+                                 virBitmapPtr nodeset)
 {
     size_t i;
-
-    if (virDomainNumaGetNodeCount(def->numa) &&
-        qemuBuildNumaArgStr(cfg, def, cmd, qemuCaps, nodeset) < 0)
-        return -1;
 
     /* memory hotplug requires NUMA to be enabled - we already checked
      * that memory devices are present only when NUMA is */
@@ -7200,7 +7197,7 @@ qemuBuildNumaCommandLine(virCommandPtr cmd,
         char *dimmStr;
 
         if (!(backStr = qemuBuildMemoryDimmBackendStr(def->mems[i], def,
-                                                      qemuCaps, cfg)))
+                                                      qemuCaps, cfg, nodeset)))
             return -1;
 
         if (!(dimmStr = qemuBuildMemoryDeviceStr(def->mems[i]))) {
@@ -9259,7 +9256,11 @@ qemuBuildCommandLine(virConnectPtr conn,
     if (qemuBuildIOThreadCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildNumaCommandLine(cmd, cfg, def, qemuCaps, nodeset) < 0)
+    if (virDomainNumaGetNodeCount(def->numa) &&
+        qemuBuildNumaArgStr(cfg, def, cmd, qemuCaps, nodeset) < 0)
+        goto error;
+
+    if (qemuBuildMemoryDeviceCommandLine(cmd, cfg, def, qemuCaps, nodeset) < 0)
         goto error;
 
     virUUIDFormat(def->uuid, uuid);

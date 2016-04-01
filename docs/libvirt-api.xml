@@ -6440,6 +6440,7 @@ introduced in the future.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='params' type='virTypedParameterPtr *' info='where to store perf events setting'/>
       <arg name='nparams' type='int *' info='number of items in @params'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainGetSchedulerParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Get all scheduler parameters.  On input, @nparams gives the size of the
@@ -8103,6 +8104,7 @@ This function may require privileged access to the hypervisor.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to perf events parameter object'/>
       <arg name='nparams' type='int' info='number of perf event parameters (this value can be the same less than the number of parameters supported)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainSetSchedulerParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Change all or a subset or the scheduler parameters.  It is

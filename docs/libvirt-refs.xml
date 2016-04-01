@@ -3675,6 +3675,7 @@
       <ref name='virDomainGetMemoryParameters'/>
       <ref name='virDomainGetMetadata'/>
       <ref name='virDomainGetNumaParameters'/>
+      <ref name='virDomainGetPerfEvents'/>
       <ref name='virDomainGetSchedulerParametersFlags'/>
       <ref name='virDomainGetState'/>
       <ref name='virDomainGetTime'/>
@@ -3728,6 +3729,7 @@
       <ref name='virDomainSetMemoryStatsPeriod'/>
       <ref name='virDomainSetMetadata'/>
       <ref name='virDomainSetNumaParameters'/>
+      <ref name='virDomainSetPerfEvents'/>
       <ref name='virDomainSetSchedulerParametersFlags'/>
       <ref name='virDomainSetTime'/>
       <ref name='virDomainSetUserPassword'/>

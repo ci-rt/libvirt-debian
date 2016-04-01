@@ -509,11 +509,13 @@ struct remote_domain_set_perf_events_args {
                 u_int params_len;
                 remote_typed_param *params_val;
         } params;
+        u_int flags;
 };
 typedef struct remote_domain_set_perf_events_args remote_domain_set_perf_events_args;
 
 struct remote_domain_get_perf_events_args {
         remote_nonnull_domain dom;
+        u_int flags;
 };
 typedef struct remote_domain_get_perf_events_args remote_domain_get_perf_events_args;
 

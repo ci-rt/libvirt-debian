@@ -8551,11 +8551,7 @@ static const vshCmdInfo info_perf[] = {
 };
 
 static const vshCmdOptDef opts_perf[] = {
-    {.name = "domain",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
-     .help = N_("domain name, id or uuid")
-    },
+    VIRSH_COMMON_OPT_DOMAIN_FULL,
     {.name = "enable",
      .type = VSH_OT_STRING,
      .help = N_("perf events which will be enabled")
@@ -8564,12 +8560,14 @@ static const vshCmdOptDef opts_perf[] = {
      .type = VSH_OT_STRING,
      .help = N_("perf events which will be disabled")
     },
+    VIRSH_COMMON_OPT_DOMAIN_CONFIG,
+    VIRSH_COMMON_OPT_DOMAIN_LIVE,
+    VIRSH_COMMON_OPT_DOMAIN_CURRENT,
     {.name = NULL}
 };
 
 static int
-virshParseEventStr(vshControl *ctl,
-                   const char *event,
+virshParseEventStr(const char *event,
                    bool state,
                    virTypedParameterPtr *params,
                    int *nparams,
@@ -8579,13 +8577,8 @@ virshParseEventStr(vshControl *ctl,
     size_t i, ntok;
     int ret = -1;
 
-    if (!(tok = virStringSplitCount(event, "|", 0, &ntok)))
+    if (!(tok = virStringSplitCount(event, ",", 0, &ntok)))
         return -1;
-
-    if (ntok > VIR_PERF_EVENT_LAST) {
-        vshError(ctl, _("event string '%s' has too many fields"), event);
-        goto cleanup;
-    }
 
     for (i = 0; i < ntok; i++) {
         if ((*tok[i] != '\0') &&
@@ -8610,6 +8603,18 @@ cmdPerf(vshControl *ctl, const vshCmd *cmd)
     virTypedParameterPtr params = NULL;
     bool ret = false;
     const char *enable = NULL, *disable = NULL;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+    bool current = vshCommandOptBool(cmd, "current");
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -8618,16 +8623,16 @@ cmdPerf(vshControl *ctl, const vshCmd *cmd)
         vshCommandOptStringReq(ctl, cmd, "disable", &disable) < 0)
         return false;
 
-    if (enable && virshParseEventStr(ctl, enable, true,
-                                     &params, &nparams, &maxparams) < 0)
+    if (enable && virshParseEventStr(enable, true, &params,
+                                     &nparams, &maxparams) < 0)
         goto cleanup;
 
-    if (disable && virshParseEventStr(ctl, disable, false,
-                                      &params, &nparams, &maxparams) < 0)
+    if (disable && virshParseEventStr(disable, false, &params,
+                                      &nparams, &maxparams) < 0)
         goto cleanup;
 
     if (nparams == 0) {
-        if (virDomainGetPerfEvents(dom, &params, &nparams) != 0) {
+        if (virDomainGetPerfEvents(dom, &params, &nparams, flags) != 0) {
             vshError(ctl, "%s", _("Unable to get perf events"));
             goto cleanup;
         }
@@ -8640,7 +8645,7 @@ cmdPerf(vshControl *ctl, const vshCmd *cmd)
             }
         }
     } else {
-        if (virDomainSetPerfEvents(dom, params, nparams) != 0)
+        if (virDomainSetPerfEvents(dom, params, nparams, flags) != 0)
             goto error;
     }
 

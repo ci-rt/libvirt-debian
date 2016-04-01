@@ -10127,7 +10127,7 @@ static int remoteDispatchDomainSetPerfEvents(
                                   &nparams) < 0)
         goto cleanup;
 
-    if (virDomainSetPerfEvents(dom, params, nparams) < 0)
+    if (virDomainSetPerfEvents(dom, params, nparams, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
