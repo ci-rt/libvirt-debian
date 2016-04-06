@@ -379,7 +379,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.3.3
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -388,7 +388,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2398,6 +2398,12 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Wed Apr  6 2016 Daniel Veillard <veillard@redhat.com> - 1.3.3-1
+- perf events
+- post-copy migration support
+- NSS module
+- a lot of various improvements, and large number of bugs fixes
+
 * Tue Mar  1 2016 Daniel Veillard <veillard@redhat.com> - 1.3.2-1
 - Various improvements for the Xen libxl driver
 - virt-admin improvement
