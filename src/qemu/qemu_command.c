@@ -8198,7 +8198,6 @@ qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
             return -1;
         }
 
-        virCommandAddArg(cmd, "-chardev");
         if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                               &smartcard->data.passthru,
                                               smartcard->info.alias,
@@ -8206,6 +8205,7 @@ qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
             virBufferFreeAndReset(&opt);
             return -1;
         }
+        virCommandAddArg(cmd, "-chardev");
         virCommandAddArg(cmd, devstr);
         VIR_FREE(devstr);
 
@@ -8388,12 +8388,12 @@ qemuBuildSerialCommandLine(virLogManagerPtr logManager,
 
         /* Use -chardev with -device if they are available */
         if (virQEMUCapsSupportsChardev(def, qemuCaps, serial)) {
-            virCommandAddArg(cmd, "-chardev");
             if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                                   &serial->source,
                                                   serial->info.alias,
                                                   qemuCaps)))
                 return -1;
+            virCommandAddArg(cmd, "-chardev");
             virCommandAddArg(cmd, devstr);
             VIR_FREE(devstr);
 
@@ -8436,12 +8436,12 @@ qemuBuildParallelsCommandLine(virLogManagerPtr logManager,
         /* Use -chardev with -device if they are available */
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_CHARDEV) &&
             virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
-            virCommandAddArg(cmd, "-chardev");
             if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                                   &parallel->source,
                                                   parallel->info.alias,
                                                   qemuCaps)))
                 return -1;
+            virCommandAddArg(cmd, "-chardev");
             virCommandAddArg(cmd, devstr);
             VIR_FREE(devstr);
 
@@ -8483,12 +8483,12 @@ qemuBuildChannelsCommandLine(virLogManagerPtr logManager,
                 return -1;
             }
 
-            virCommandAddArg(cmd, "-chardev");
             if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                                   &channel->source,
                                                   channel->info.alias,
                                                   qemuCaps)))
                 return -1;
+            virCommandAddArg(cmd, "-chardev");
             virCommandAddArg(cmd, devstr);
             VIR_FREE(devstr);
 
@@ -8528,12 +8528,12 @@ qemuBuildChannelsCommandLine(virLogManagerPtr logManager,
                  * the newer -chardev interface.  */
                 ;
             } else {
-                virCommandAddArg(cmd, "-chardev");
                 if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                                       &channel->source,
                                                       channel->info.alias,
                                                       qemuCaps)))
                     return -1;
+                virCommandAddArg(cmd, "-chardev");
                 virCommandAddArg(cmd, devstr);
                 VIR_FREE(devstr);
             }
@@ -8575,12 +8575,12 @@ qemuBuildConsoleCommandLine(virLogManagerPtr logManager,
                 return -1;
             }
 
-            virCommandAddArg(cmd, "-chardev");
             if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                                   &console->source,
                                                   console->info.alias,
                                                   qemuCaps)))
                 return -1;
+            virCommandAddArg(cmd, "-chardev");
             virCommandAddArg(cmd, devstr);
             VIR_FREE(devstr);
 
@@ -8595,12 +8595,12 @@ qemuBuildConsoleCommandLine(virLogManagerPtr logManager,
                 return -1;
             }
 
-            virCommandAddArg(cmd, "-chardev");
             if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                                   &console->source,
                                                   console->info.alias,
                                                   qemuCaps)))
                 return -1;
+            virCommandAddArg(cmd, "-chardev");
             virCommandAddArg(cmd, devstr);
             VIR_FREE(devstr);
 
@@ -8723,7 +8723,6 @@ qemuBuildRedirdevCommandLine(virLogManagerPtr logManager,
         virDomainRedirdevDefPtr redirdev = def->redirdevs[i];
         char *devstr;
 
-        virCommandAddArg(cmd, "-chardev");
         if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, def,
                                               &redirdev->source.chr,
                                               redirdev->info.alias,
@@ -8731,6 +8730,7 @@ qemuBuildRedirdevCommandLine(virLogManagerPtr logManager,
             return -1;
         }
 
+        virCommandAddArg(cmd, "-chardev");
         virCommandAddArg(cmd, devstr);
         VIR_FREE(devstr);
 
