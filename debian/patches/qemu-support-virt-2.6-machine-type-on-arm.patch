@@ -1,0 +1,166 @@
+From: =?utf-8?q?J=C3=A1n_Tomko?= <jtomko@redhat.com>
+Date: Fri, 8 Apr 2016 10:46:41 +0200
+Subject: qemu: support virt-2.6 machine type on arm
+
+Some places already check for "virt-" prefix as well as plain "virt".
+virQEMUCapsHasPCIMultiBus did not, resulting in multiple PCI devices
+having assigned the same unnumbered "pci" alias.
+
+Add a test for the "virt-2.6" machine type which also omits the
+<model type='virtio'/> in <interface>, to check if
+qemuDomainDefaultNetModel works too.
+
+https://bugzilla.redhat.com/show_bug.cgi?id=1325085
+
+Closes: #820952
+---
+ src/qemu/qemu_capabilities.c                       |  3 +-
+ src/qemu/qemu_domain.c                             |  3 +-
+ ...l2argv-aarch64-virt-2.6-virtio-pci-default.args | 37 +++++++++++++++++
+ ...ml2argv-aarch64-virt-2.6-virtio-pci-default.xml | 47 ++++++++++++++++++++++
+ tests/qemuxml2argvtest.c                           |  6 +++
+ 5 files changed, 94 insertions(+), 2 deletions(-)
+ create mode 100644 tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.args
+ create mode 100644 tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.xml
+
+diff --git a/src/qemu/qemu_capabilities.c b/src/qemu/qemu_capabilities.c
+index 2823843..57e2056 100644
+--- a/src/qemu/qemu_capabilities.c
++++ b/src/qemu/qemu_capabilities.c
+@@ -2172,7 +2172,8 @@ bool virQEMUCapsHasPCIMultiBus(virQEMUCapsPtr qemuCaps,
+         /* If 'virt' supports PCI, it supports multibus.
+          * No extra conditions here for simplicity.
+          */
+-        if (STREQ(def->os.machine, "virt"))
++        if (STREQ(def->os.machine, "virt") ||
++            STRPREFIX(def->os.machine, "virt-"))
+             return true;
+     }
+ 
+diff --git a/src/qemu/qemu_domain.c b/src/qemu/qemu_domain.c
+index f38b0f3..d9d5041 100644
+--- a/src/qemu/qemu_domain.c
++++ b/src/qemu/qemu_domain.c
+@@ -1479,7 +1479,8 @@ qemuDomainDefaultNetModel(const virDomainDef *def,
+         if (STREQ(def->os.machine, "versatilepb"))
+             return "smc91c111";
+ 
+-        if (STREQ(def->os.machine, "virt"))
++        if (STREQ(def->os.machine, "virt") ||
++            STRPREFIX(def->os.machine, "virt-"))
+             return "virtio";
+ 
+         /* Incomplete. vexpress (and a few others) use this, but not all
+diff --git a/tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.args b/tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.args
+new file mode 100644
+index 0000000..93c181d
+--- /dev/null
++++ b/tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.args
+@@ -0,0 +1,37 @@
++LC_ALL=C \
++PATH=/bin \
++HOME=/home/test \
++USER=test \
++LOGNAME=test \
++QEMU_AUDIO_DRV=none \
++/usr/bin/qemu-system-aarch64 \
++-name aarch64test \
++-S \
++-M virt-2.6 \
++-cpu cortex-a53 \
++-m 1024 \
++-smp 1 \
++-uuid 496d7ea8-9739-544b-4ebd-ef08be936e8b \
++-nographic \
++-nodefconfig \
++-nodefaults \
++-monitor unix:/tmp/lib/domain--1-aarch64test/monitor.sock,server,nowait \
++-boot c \
++-kernel /aarch64.kernel \
++-initrd /aarch64.initrd \
++-append 'earlyprintk console=ttyAMA0,115200n8 rw root=/dev/vda rootwait' \
++-dtb /aarch64.dtb \
++-device i82801b11-bridge,id=pci.1,bus=pcie.0,addr=0x1 \
++-device pci-bridge,chassis_nr=2,id=pci.2,bus=pci.1,addr=0x1 \
++-device virtio-serial-device,id=virtio-serial0 \
++-usb \
++-drive file=/aarch64.raw,format=raw,if=none,id=drive-virtio-disk0 \
++-device virtio-blk-device,drive=drive-virtio-disk0,id=virtio-disk0 \
++-device virtio-net-device,vlan=0,id=net0,mac=52:54:00:09:a4:37 \
++-net user,vlan=0,name=hostnet0 \
++-serial pty \
++-chardev pty,id=charconsole1 \
++-device virtconsole,chardev=charconsole1,id=console1 \
++-device virtio-balloon-device,id=balloon0 \
++-object rng-random,id=objrng0,filename=/dev/random \
++-device virtio-rng-device,rng=objrng0,id=rng0
+diff --git a/tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.xml b/tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.xml
+new file mode 100644
+index 0000000..e745101
+--- /dev/null
++++ b/tests/qemuxml2argvdata/qemuxml2argv-aarch64-virt-2.6-virtio-pci-default.xml
+@@ -0,0 +1,47 @@
++<domain type="qemu">
++  <name>aarch64test</name>
++  <uuid>496d7ea8-9739-544b-4ebd-ef08be936e8b</uuid>
++  <memory>1048576</memory>
++  <currentMemory>1048576</currentMemory>
++  <vcpu placement='static'>1</vcpu>
++  <os>
++    <type arch="aarch64" machine="virt-2.6">hvm</type>
++    <kernel>/aarch64.kernel</kernel>
++    <initrd>/aarch64.initrd</initrd>
++    <dtb>/aarch64.dtb</dtb>
++    <cmdline>earlyprintk console=ttyAMA0,115200n8 rw root=/dev/vda rootwait</cmdline>
++  </os>
++  <features>
++    <acpi/>
++    <apic/>
++    <pae/>
++  </features>
++  <cpu match='exact'>
++    <model>cortex-a53</model>
++  </cpu>
++  <clock offset="utc"/>
++  <on_poweroff>destroy</on_poweroff>
++  <on_reboot>restart</on_reboot>
++  <on_crash>restart</on_crash>
++  <devices>
++    <emulator>/usr/bin/qemu-system-aarch64</emulator>
++    <disk type='file' device='disk'>
++      <source file='/aarch64.raw'/>
++      <target dev='vda' bus='virtio'/>
++    </disk>
++    <interface type='user'>
++      <mac address='52:54:00:09:a4:37'/>
++    </interface>
++    <console type='pty'/>
++    <console type='pty'>
++      <target type='virtio' port='0'/>
++    </console>
++    <memballoon model='virtio'/>
++    <!--
++      This actually doesn't work in practice because vexpress only has
++      4 virtio slots available, rng makes 5 -->
++    <rng model='virtio'>
++      <backend model='random'>/dev/random</backend>
++    </rng>
++  </devices>
++</domain>
+diff --git a/tests/qemuxml2argvtest.c b/tests/qemuxml2argvtest.c
+index e9b8d64..d1b9e98 100644
+--- a/tests/qemuxml2argvtest.c
++++ b/tests/qemuxml2argvtest.c
+@@ -1661,6 +1661,12 @@ mymain(void)
+             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
+             QEMU_CAPS_OBJECT_GPEX, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE);
++    DO_TEST("aarch64-virt-2.6-virtio-pci-default",
++            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
++            QEMU_CAPS_DEVICE_VIRTIO_MMIO,
++            QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
++            QEMU_CAPS_OBJECT_GPEX, QEMU_CAPS_DEVICE_PCI_BRIDGE,
++            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE);
+     /* Example of using virtio-pci with no explicit PCI controller
+        but with manual PCI addresses */
+     DO_TEST("aarch64-virtio-pci-manual-addresses",
