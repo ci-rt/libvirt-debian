@@ -229,7 +229,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
-	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-host-validate.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -1775,6 +1777,7 @@ apihtml = \
   $(apihtml_generated)
 
 apihtml_generated = \
+  html/libvirt-libvirt-common.html		\
   html/libvirt-libvirt-domain.html		\
   html/libvirt-libvirt-domain-snapshot.html	\
   html/libvirt-libvirt-event.html		\
@@ -2300,7 +2303,7 @@ $(APIBUILD_STAMP): $(srcdir)/apibuild.py \
 		$(top_srcdir)/src/util/virerror.c \
 		$(top_srcdir)/src/util/virevent.c \
 		$(top_srcdir)/src/util/virtypedparam.c
-	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(APIBUILD)
+	$(AM_V_GEN)srcdir=$(srcdir) builddir=$(builddir) $(PYTHON) $(APIBUILD)
 	touch $@
 
 check-local: all
@@ -2338,11 +2341,18 @@ install-data-local:
 	$(INSTALL_DATA) $(srcdir)/libvirtLogo.png $(DESTDIR)$(pkgdatadir)
 
 uninstall-local:
+	for f in $(css) $(dot_html) $(gif) $(png); do \
+	  rm -f $(DESTDIR)$(HTML_DIR)/$$f; \
+	done
 	for h in $(apihtml); do rm -f $(DESTDIR)$(HTML_DIR)/$$h; done
 	for p in $(apipng); do rm -f $(DESTDIR)$(HTML_DIR)/$$p; done
+	for f in $(internals_html); do \
+	  rm -f $(DESTDIR)$(HTML_DIR)/$$f; \
+	done
 	for f in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
 	  rm -f $(DESTDIR)$(DEVHELP_DIR)/$$(basename $$f); \
 	done
+	rm -f $(DESTDIR)$(pkgdatadir)/libvirtLogo.png
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -1,7 +1,7 @@
 /*
  * domain_addr.c: helper APIs for managing domain device addresses
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -31,6 +31,61 @@
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
 VIR_LOG_INIT("conf.domain_addr");
+
+virDomainPCIConnectFlags
+virDomainPCIControllerModelToConnectType(virDomainControllerModelPCI model)
+{
+    /* given a VIR_DOMAIN_CONTROLLER_MODEL_PCI*, set connectType to
+     * the equivalent VIR_PCI_CONNECT_TYPE_*. return 0 on success, -1
+     * if the model wasn't recognized.
+     */
+    switch (model) {
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+        /* pci-root and pcie-root are implicit in the machine,
+         * and have no upstream connection, "last" will never actually
+         * happen, it's just there so that all possible cases are
+         * covered in the switch (keeps the compiler happy).
+         */
+        return 0;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
+        /* pci-bridge and pci-expander-bus are treated like a standard
+         * PCI endpoint device, because they can plug into any
+         * standard PCI slot.
+         */
+        return VIR_PCI_CONNECT_TYPE_PCI_DEVICE;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
+        /* dmi-to-pci-bridge and pcie-expander-bus are treated like
+         * PCIe devices (the part of pcie-expander-bus that is plugged
+         * in isn't the expander bus itself, but a companion device
+         * used for setting it up).
+         */
+        return VIR_PCI_CONNECT_TYPE_PCIE_DEVICE;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
+        return VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
+        return VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
+        return VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_DOWNSTREAM_PORT;
+
+        /* if this happens, there is an error in the code. A
+         * PCI controller should always have a proper model
+         * set
+         */
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("PCI controller model incorrectly set to 'last'"));
+        return -1;
+    }
+    return 0;
+}
 
 bool
 virDomainPCIAddressFlagsCompatible(virDevicePCIAddressPtr addr,
@@ -64,13 +119,13 @@ virDomainPCIAddressFlagsCompatible(virDevicePCIAddressPtr addr,
      */
     if (!(devFlags & busFlags & VIR_PCI_CONNECT_TYPES_MASK)) {
         if (reportError) {
-            if (devFlags & VIR_PCI_CONNECT_TYPE_PCI) {
+            if (devFlags & VIR_PCI_CONNECT_TYPE_PCI_DEVICE) {
                 virReportError(errType,
                                _("PCI bus is not compatible with the device "
                                  "at %s. Device requires a standard PCI slot, "
                                  "which is not provided by bus %.4x:%.2x"),
                                addrStr, addr->domain, addr->bus);
-            } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE) {
+            } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_DEVICE) {
                 virReportError(errType,
                                _("PCI bus is not compatible with the device "
                                  "at %s. Device requires a PCI Express slot, "
@@ -172,48 +227,71 @@ int
 virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
                                virDomainControllerModelPCI model)
 {
+    /* set flags for what can be connected *downstream* from each
+     * bus.
+     */
     switch (model) {
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
         bus->flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
-                      VIR_PCI_CONNECT_TYPE_PCI);
+                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE);
         bus->minSlot = 1;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
+        bus->flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
+                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE);
+        bus->minSlot = 0;
+        bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
+        break;
+
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
-        /* slots 1 - 31, no hotplug, PCIe only unless the address was
-         * specified in user config *and* the particular device being
-         * attached also allows it.
+        /* slots 1 - 31, no hotplug, PCIe endpoint device or
+         * pcie-root-port only, unless the address was specified in
+         * user config *and* the particular device being attached also
+         * allows it.
          */
-        bus->flags = VIR_PCI_CONNECT_TYPE_PCIE | VIR_PCI_CONNECT_TYPE_PCIE_ROOT;
+        bus->flags = (VIR_PCI_CONNECT_TYPE_PCIE_DEVICE
+                      | VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT);
         bus->minSlot = 1;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
-        /* slots 1 - 31, standard PCI slots,
+        /* slots 0 - 31, standard PCI slots,
          * but *not* hot-pluggable */
-        bus->flags = VIR_PCI_CONNECT_TYPE_PCI;
-        bus->minSlot = 1;
+        bus->flags = VIR_PCI_CONNECT_TYPE_PCI_DEVICE;
+        bus->minSlot = 0;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
-        /* provides one slot which is pcie, can be used by devices
-         * that must connect to some type of "pcie-*-port", and
-         * is hotpluggable
+        /* provides one slot which is pcie, can be used by endpoint
+         * devices and pcie-switch-upstream-ports, and is hotpluggable
          */
-        bus->flags = VIR_PCI_CONNECT_TYPE_PCIE
-           | VIR_PCI_CONNECT_TYPE_PCIE_PORT
+        bus->flags = VIR_PCI_CONNECT_TYPE_PCIE_DEVICE
+           | VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT
            | VIR_PCI_CONNECT_HOTPLUGGABLE;
         bus->minSlot = 0;
         bus->maxSlot = 0;
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
-        /* 31 slots, can only accept pcie-switch-port, no hotplug */
-        bus->flags = VIR_PCI_CONNECT_TYPE_PCIE_SWITCH;
+        /* 32 slots, can only accept pcie-switch-downstrean-ports,
+         * no hotplug
+         */
+        bus->flags = VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_DOWNSTREAM_PORT;
         bus->minSlot = 0;
-        bus->maxSlot = 31;
+        bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
+        /* single slot, no hotplug, only accepts pcie-root-port or
+         * pcie-switch-upstream-port.
+         */
+        bus->flags = (VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT
+                      | VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT);
+        bus->minSlot = 0;
+        bus->maxSlot = 0;
+        break;
+
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Invalid PCI controller model %d"), model);
@@ -249,7 +327,7 @@ virDomainPCIAddressSetGrow(virDomainPCIAddressSetPtr addrs,
         return 0;
 
     /* auto-grow only works when we're adding plain PCI devices */
-    if (!(flags & VIR_PCI_CONNECT_TYPE_PCI)) {
+    if (!(flags & VIR_PCI_CONNECT_TYPE_PCI_DEVICE)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Cannot automatically add a new PCI bus for a "
                          "device requiring a slot other than standard PCI."));
@@ -388,7 +466,7 @@ virDomainPCIAddressEnsureAddr(virDomainPCIAddressSetPtr addrs,
      * only supported for standard PCI devices, so we can safely use
      * the setting below */
     virDomainPCIConnectFlags flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
-                                      VIR_PCI_CONNECT_TYPE_PCI);
+                                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE);
 
     if (!(addrStr = virDomainPCIAddressAsString(&dev->addr.pci)))
         goto cleanup;

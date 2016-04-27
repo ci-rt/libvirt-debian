@@ -31,6 +31,8 @@
 #include "virnetdaemon.h"
 #include "virnetserver.h"
 #include "virstring.h"
+#include "virthreadpool.h"
+#include "virtypedparam.h"
 
 #define VIR_FROM_THIS VIR_FROM_ADMIN
 
@@ -67,4 +69,112 @@ adminConnectLookupServer(virNetDaemonPtr dmn,
     virCheckFlags(flags, NULL);
 
     return virNetDaemonGetServer(dmn, name);
+}
+
+int
+adminServerGetThreadPoolParameters(virNetServerPtr srv,
+                                   virTypedParameterPtr *params,
+                                   int *nparams,
+                                   unsigned int flags)
+{
+    int ret = -1;
+    int maxparams = 0;
+    size_t minWorkers;
+    size_t maxWorkers;
+    size_t nWorkers;
+    size_t freeWorkers;
+    size_t nPrioWorkers;
+    size_t jobQueueDepth;
+    virTypedParameterPtr tmpparams = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (virNetServerGetThreadPoolParameters(srv, &minWorkers, &maxWorkers,
+                                            &nWorkers, &freeWorkers,
+                                            &nPrioWorkers,
+                                            &jobQueueDepth) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to retrieve threadpool parameters"));
+        goto cleanup;
+    }
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams,
+                              &maxparams, VIR_THREADPOOL_WORKERS_MIN,
+                              minWorkers) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams,
+                              &maxparams, VIR_THREADPOOL_WORKERS_MAX,
+                              maxWorkers) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams,
+                              &maxparams, VIR_THREADPOOL_WORKERS_CURRENT,
+                              nWorkers) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams,
+                              &maxparams, VIR_THREADPOOL_WORKERS_FREE,
+                              freeWorkers) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams,
+                              &maxparams, VIR_THREADPOOL_WORKERS_PRIORITY,
+                              nPrioWorkers) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams,
+                              &maxparams, VIR_THREADPOOL_JOB_QUEUE_DEPTH,
+                              jobQueueDepth) < 0)
+        goto cleanup;
+
+    *params = tmpparams;
+    tmpparams = NULL;
+    ret = 0;
+
+ cleanup:
+    virTypedParamsFree(tmpparams, *nparams);
+    return ret;
+}
+
+int
+adminServerSetThreadPoolParameters(virNetServerPtr srv,
+                                   virTypedParameterPtr params,
+                                   int nparams,
+                                   unsigned int flags)
+{
+    long long int minWorkers = -1;
+    long long int maxWorkers = -1;
+    long long int prioWorkers = -1;
+    virTypedParameterPtr param = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (virTypedParamsValidate(params, nparams,
+                               VIR_THREADPOOL_WORKERS_MIN,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_THREADPOOL_WORKERS_MAX,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_THREADPOOL_WORKERS_PRIORITY,
+                               VIR_TYPED_PARAM_UINT,
+                               NULL) < 0)
+        return -1;
+
+    if ((param = virTypedParamsGet(params, nparams,
+                                   VIR_THREADPOOL_WORKERS_MIN)))
+        minWorkers = param->value.ui;
+
+    if ((param = virTypedParamsGet(params, nparams,
+                                   VIR_THREADPOOL_WORKERS_MAX)))
+        maxWorkers = param->value.ui;
+
+    if ((param = virTypedParamsGet(params, nparams,
+                                   VIR_THREADPOOL_WORKERS_PRIORITY)))
+        prioWorkers = param->value.ui;
+
+    if (virNetServerSetThreadPoolParameters(srv, minWorkers,
+                                            maxWorkers, prioWorkers) < 0)
+        return -1;
+
+    return 0;
 }

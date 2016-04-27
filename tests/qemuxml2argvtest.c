@@ -242,11 +242,10 @@ static virStorageDriver fakeStorageDriver = {
 };
 
 typedef enum {
-    FLAG_EXPECT_ERROR       = 1 << 0,
-    FLAG_EXPECT_FAILURE     = 1 << 1,
-    FLAG_EXPECT_PARSE_ERROR = 1 << 2,
-    FLAG_JSON               = 1 << 3,
-    FLAG_FIPS               = 1 << 4,
+    FLAG_EXPECT_FAILURE     = 1 << 0,
+    FLAG_EXPECT_PARSE_ERROR = 1 << 1,
+    FLAG_JSON               = 1 << 2,
+    FLAG_FIPS               = 1 << 3,
 } virQemuXML2ArgvTestFlags;
 
 static int testCompareXMLToArgvFiles(const char *xml,
@@ -312,12 +311,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     virQEMUCapsFilterByMachineType(extraFlags, vm->def->os.machine);
 
-    if (qemuDomainAssignAddresses(vm->def, extraFlags, NULL)) {
-        if (flags & FLAG_EXPECT_ERROR)
-            goto ok;
-        goto out;
-    }
-
     log = virtTestLogContentAndReset();
     VIR_FREE(log);
     virResetLastError();
@@ -354,20 +347,15 @@ static int testCompareXMLToArgvFiles(const char *xml,
     ret = 0;
 
  ok:
-    if (ret == 0 &&
-        ((flags & FLAG_EXPECT_ERROR) ||
-         (flags & FLAG_EXPECT_FAILURE))) {
+    if (ret == 0 && flags & FLAG_EXPECT_FAILURE) {
         ret = -1;
         VIR_TEST_DEBUG("Error expected but there wasn't any.\n");
         goto out;
     }
     if (!virtTestOOMActive()) {
-        if (flags & FLAG_EXPECT_ERROR) {
+        if (flags & FLAG_EXPECT_FAILURE) {
             if ((log = virtTestLogContentAndReset()))
                 VIR_TEST_DEBUG("Got expected error: \n%s", log);
-        } else if (flags & FLAG_EXPECT_FAILURE) {
-            VIR_TEST_DEBUG("Got expected failure: %s\n",
-                           virGetLastErrorMessage());
         }
         virResetLastError();
         ret = 0;
@@ -419,9 +407,8 @@ testCompareXMLToArgvHelper(const void *data)
     if (virQEMUCapsGet(info->extraFlags, QEMU_CAPS_ENABLE_FIPS))
         flags |= FLAG_FIPS;
 
-    result = qemuTestCapsCacheInsert(driver.qemuCapsCache, info->name,
-                                     info->extraFlags);
-    if (result < 0)
+    if (qemuTestCapsCacheInsert(driver.qemuCapsCache, info->name,
+                                info->extraFlags) < 0)
         goto cleanup;
 
     result = testCompareXMLToArgvFiles(xml, args, info->extraFlags,
@@ -489,9 +476,6 @@ mymain(void)
 
     driver.privileged = true;
 
-    VIR_FREE(driver.config->spiceListen);
-    VIR_FREE(driver.config->vncListen);
-
     VIR_FREE(driver.config->vncTLSx509certdir);
     if (VIR_STRDUP_QUIET(driver.config->vncTLSx509certdir, "/etc/pki/libvirt-vnc") < 0)
         return EXIT_FAILURE;
@@ -536,20 +520,17 @@ mymain(void)
 # define DO_TEST(name, ...)                                             \
     DO_TEST_FULL(name, NULL, -1, 0, 0, __VA_ARGS__)
 
-# define DO_TEST_ERROR(name, ...)                                       \
-    DO_TEST_FULL(name, NULL, -1, FLAG_EXPECT_ERROR, 0, __VA_ARGS__)
-
 # define DO_TEST_FAILURE(name, ...)                                     \
     DO_TEST_FULL(name, NULL, -1, FLAG_EXPECT_FAILURE, 0, __VA_ARGS__)
 
 # define DO_TEST_PARSE_ERROR(name, ...)                                 \
     DO_TEST_FULL(name, NULL, -1,                                        \
-                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_ERROR,           \
+                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE,         \
                  0, __VA_ARGS__)
 
 # define DO_TEST_PARSE_FLAGS_ERROR(name, parseFlags, ...)               \
     DO_TEST_FULL(name, NULL, -1,                                        \
-                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_ERROR,           \
+                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE,         \
                  parseFlags, __VA_ARGS__)
 
 # define DO_TEST_LINUX(name, ...)                                       \
@@ -894,6 +875,7 @@ mymain(void)
     DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC);
     DO_TEST("graphics-vnc-websocket", QEMU_CAPS_VNC, QEMU_CAPS_VNC_WEBSOCKET);
     DO_TEST("graphics-vnc-policy", QEMU_CAPS_VNC, QEMU_CAPS_VNC_SHARE_POLICY);
+    DO_TEST("graphics-vnc-no-listen-attr", QEMU_CAPS_VNC);
 
     driver.config->vncSASL = 1;
     VIR_FREE(driver.config->vncSASLdir);
@@ -1391,7 +1373,7 @@ mymain(void)
             QEMU_CAPS_PCI_OHCI, QEMU_CAPS_PCI_MULTIFUNCTION);
     DO_TEST("pseries-vio-user-assigned",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
-    DO_TEST_ERROR("pseries-vio-address-clash",
+    DO_TEST_FAILURE("pseries-vio-address-clash",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-nvram", QEMU_CAPS_DEVICE_NVRAM);
     DO_TEST("pseries-usb-kbd", QEMU_CAPS_PCI_OHCI,
@@ -1554,7 +1536,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
 
-    DO_TEST_ERROR("pcie-root-port-too-many",
+    DO_TEST_FAILURE("pcie-root-port-too-many",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_IOH3420,
@@ -1579,6 +1561,31 @@ mymain(void)
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+
+    DO_TEST("pci-expander-bus",
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PXB);
+    DO_TEST_PARSE_ERROR("pci-expander-bus-bad-node",
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_PXB);
+    DO_TEST_PARSE_ERROR("pci-expander-bus-bad-machine",
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_PXB);
+
+    DO_TEST("pcie-expander-bus",
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_DEVICE_X3130_UPSTREAM,
+            QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM,
+            QEMU_CAPS_DEVICE_PXB_PCIE);
+    DO_TEST_PARSE_ERROR("pcie-expander-bus-bad-machine",
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_IOH3420,
+                        QEMU_CAPS_DEVICE_X3130_UPSTREAM,
+                        QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM,
+                        QEMU_CAPS_DEVICE_PXB_PCIE);
 
     DO_TEST("hostdev-scsi-lsi",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_LSI,
@@ -1656,6 +1663,12 @@ mymain(void)
        but virtio-mmio is always used unless PCI addresses are manually
        specified. */
     DO_TEST("aarch64-virtio-pci-default",
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
+            QEMU_CAPS_OBJECT_GPEX, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE);
+    DO_TEST("aarch64-virt-2.6-virtio-pci-default",
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
@@ -1863,6 +1876,8 @@ mymain(void)
                               NONE);
 
     DO_TEST("debug-threads", QEMU_CAPS_NAME_DEBUG_THREADS);
+
+    DO_TEST("master-key", QEMU_CAPS_OBJECT_SECRET);
 
     qemuTestDriverFree(&driver);
 

@@ -1,6 +1,54 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <api name='libvirt'>
   <files>
+    <file name='libvirt-common'>
+     <summary>common macros and enums for the libvirt and libvirt-admin library</summary>
+     <description>Provides common macros and enums needed by both libvirt and libvirt-admin libraries</description>
+     <author>Erik Skultety &lt;eskultet@redhat.com&gt;  Copyright (C) 2015 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
+     <exports symbol='LIBVIR_CHECK_VERSION' type='macro'/>
+     <exports symbol='LIBVIR_VERSION_NUMBER' type='macro'/>
+     <exports symbol='VIR_TYPED_PARAM_FIELD_LENGTH' type='macro'/>
+     <exports symbol='VIR_CONNECT_CLOSE_REASON_CLIENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_CLOSE_REASON_EOF' type='enum'/>
+     <exports symbol='VIR_CONNECT_CLOSE_REASON_ERROR' type='enum'/>
+     <exports symbol='VIR_CONNECT_CLOSE_REASON_KEEPALIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_CLOSE_REASON_LAST' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_BOOLEAN' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_DOUBLE' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_INT' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_LAST' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_LLONG' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_STRING' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_STRING_OKAY' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_UINT' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_ULLONG' type='enum'/>
+     <exports symbol='virConnectCloseReason' type='typedef'/>
+     <exports symbol='virTypedParameter' type='typedef'/>
+     <exports symbol='virTypedParameterFlags' type='typedef'/>
+     <exports symbol='virTypedParameterPtr' type='typedef'/>
+     <exports symbol='virTypedParameterType' type='typedef'/>
+     <exports symbol='_virTypedParameter' type='struct'/>
+     <exports symbol='virFreeCallback' type='function'/>
+     <exports symbol='virTypedParamsAddBoolean' type='function'/>
+     <exports symbol='virTypedParamsAddDouble' type='function'/>
+     <exports symbol='virTypedParamsAddFromString' type='function'/>
+     <exports symbol='virTypedParamsAddInt' type='function'/>
+     <exports symbol='virTypedParamsAddLLong' type='function'/>
+     <exports symbol='virTypedParamsAddString' type='function'/>
+     <exports symbol='virTypedParamsAddStringList' type='function'/>
+     <exports symbol='virTypedParamsAddUInt' type='function'/>
+     <exports symbol='virTypedParamsAddULLong' type='function'/>
+     <exports symbol='virTypedParamsClear' type='function'/>
+     <exports symbol='virTypedParamsFree' type='function'/>
+     <exports symbol='virTypedParamsGet' type='function'/>
+     <exports symbol='virTypedParamsGetBoolean' type='function'/>
+     <exports symbol='virTypedParamsGetDouble' type='function'/>
+     <exports symbol='virTypedParamsGetInt' type='function'/>
+     <exports symbol='virTypedParamsGetLLong' type='function'/>
+     <exports symbol='virTypedParamsGetString' type='function'/>
+     <exports symbol='virTypedParamsGetUInt' type='function'/>
+     <exports symbol='virTypedParamsGetULLong' type='function'/>
+    </file>
     <file name='libvirt-domain-snapshot'>
      <summary>APIs for management of domain snapshots</summary>
      <description>Provides APIs for the management of domain snapshots</description>
@@ -187,12 +235,18 @@
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_BANDWIDTH' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_COMPRESSION' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_COMPRESSION_MT_DTHREADS' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_COMPRESSION_MT_THREADS' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_DEST_NAME' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_DEST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_DISKS_PORT' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_GRAPHICS_URI' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_MIGRATE_DISKS' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_PERSIST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CMT' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
@@ -333,6 +387,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DEVICE_ADDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DISK_CHANGE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_GRAPHICS' type='enum'/>
@@ -802,6 +857,7 @@
      <exports symbol='virConnectDomainEventDeregister' type='function'/>
      <exports symbol='virConnectDomainEventDeregisterAny' type='function'/>
      <exports symbol='virConnectDomainEventDeviceAddedCallback' type='function'/>
+     <exports symbol='virConnectDomainEventDeviceRemovalFailedCallback' type='function'/>
      <exports symbol='virConnectDomainEventDeviceRemovedCallback' type='function'/>
      <exports symbol='virConnectDomainEventDiskChangeCallback' type='function'/>
      <exports symbol='virConnectDomainEventGenericCallback' type='function'/>
@@ -1036,7 +1092,6 @@
      <exports symbol='VIR_SECURITY_DOI_BUFLEN' type='macro'/>
      <exports symbol='VIR_SECURITY_LABEL_BUFLEN' type='macro'/>
      <exports symbol='VIR_SECURITY_MODEL_BUFLEN' type='macro'/>
-     <exports symbol='VIR_TYPED_PARAM_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_UUID_BUFLEN' type='macro'/>
      <exports symbol='VIR_UUID_STRING_BUFLEN' type='macro'/>
      <exports symbol='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' type='enum'/>
@@ -1067,15 +1122,6 @@
      <exports symbol='VIR_NODE_SUSPEND_TARGET_HYBRID' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_LAST' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_MEM' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_BOOLEAN' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_DOUBLE' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_INT' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_LAST' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_LLONG' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_STRING' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_STRING_OKAY' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_UINT' type='enum'/>
-     <exports symbol='VIR_TYPED_PARAM_ULLONG' type='enum'/>
      <exports symbol='virCPUCompareResult' type='typedef'/>
      <exports symbol='virConnect' type='typedef'/>
      <exports symbol='virConnectAuth' type='typedef'/>
@@ -1103,10 +1149,6 @@
      <exports symbol='virSecurityModelPtr' type='typedef'/>
      <exports symbol='virStream' type='typedef'/>
      <exports symbol='virStreamPtr' type='typedef'/>
-     <exports symbol='virTypedParameter' type='typedef'/>
-     <exports symbol='virTypedParameterFlags' type='typedef'/>
-     <exports symbol='virTypedParameterPtr' type='typedef'/>
-     <exports symbol='virTypedParameterType' type='typedef'/>
      <exports symbol='_virConnectAuth' type='struct'/>
      <exports symbol='_virConnectCredential' type='struct'/>
      <exports symbol='_virNodeCPUStats' type='struct'/>
@@ -1114,7 +1156,6 @@
      <exports symbol='_virNodeMemoryStats' type='struct'/>
      <exports symbol='_virSecurityLabel' type='struct'/>
      <exports symbol='_virSecurityModel' type='struct'/>
-     <exports symbol='_virTypedParameter' type='struct'/>
      <exports symbol='virConnectAuthPtrDefault' type='variable'/>
      <exports symbol='virConnectAuthCallbackPtr' type='function'/>
      <exports symbol='virConnectBaselineCPU' type='function'/>
@@ -1154,25 +1195,6 @@
      <exports symbol='virNodeGetSecurityModel' type='function'/>
      <exports symbol='virNodeSetMemoryParameters' type='function'/>
      <exports symbol='virNodeSuspendForDuration' type='function'/>
-     <exports symbol='virTypedParamsAddBoolean' type='function'/>
-     <exports symbol='virTypedParamsAddDouble' type='function'/>
-     <exports symbol='virTypedParamsAddFromString' type='function'/>
-     <exports symbol='virTypedParamsAddInt' type='function'/>
-     <exports symbol='virTypedParamsAddLLong' type='function'/>
-     <exports symbol='virTypedParamsAddString' type='function'/>
-     <exports symbol='virTypedParamsAddStringList' type='function'/>
-     <exports symbol='virTypedParamsAddUInt' type='function'/>
-     <exports symbol='virTypedParamsAddULLong' type='function'/>
-     <exports symbol='virTypedParamsClear' type='function'/>
-     <exports symbol='virTypedParamsFree' type='function'/>
-     <exports symbol='virTypedParamsGet' type='function'/>
-     <exports symbol='virTypedParamsGetBoolean' type='function'/>
-     <exports symbol='virTypedParamsGetDouble' type='function'/>
-     <exports symbol='virTypedParamsGetInt' type='function'/>
-     <exports symbol='virTypedParamsGetLLong' type='function'/>
-     <exports symbol='virTypedParamsGetString' type='function'/>
-     <exports symbol='virTypedParamsGetUInt' type='function'/>
-     <exports symbol='virTypedParamsGetULLong' type='function'/>
     </file>
     <file name='libvirt-interface'>
      <summary>APIs for management of interfaces</summary>
@@ -1443,6 +1465,7 @@
      <exports symbol='VIR_STORAGE_VOL_LAST' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_NETDIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_NETWORK' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_PLOOP' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_ALLOCATE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_DELTA' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_SHRINK' type='enum'/>
@@ -1752,6 +1775,15 @@
     </file>
   </files>
   <symbols>
+    <macro name='LIBVIR_CHECK_VERSION' file='libvirt-common'>
+      <info><![CDATA[Macro for developers to easily check what version of the library their code is compiling against. e.g. #if LIBVIR_CHECK_VERSION(1,1,3) // some code that only works in 1.1.3 and newer #endif]]></info>
+      <arg name='major' info='major component of the version number'/>
+      <arg name='minor' info='minor component of the version number'/>
+      <arg name='micro' info='micro component of the version number'/>
+    </macro>
+    <macro name='LIBVIR_VERSION_NUMBER' file='libvirt-common'>
+      <info><![CDATA[Macro providing the version of the library as version * 1,000,000 + minor * 1000 + micro]]></info>
+    </macro>
     <macro name='VIR_COPY_CPUMAP' file='libvirt-domain'>
       <info><![CDATA[This macro is to be used in conjunction with virDomainGetVcpus() and virDomainPinVcpu() APIs. VIR_COPY_CPUMAP macro extracts the cpumap of the specified vcpu from cpumaps array and copies it into cpumap to be used later by virDomainPinVcpu() API.]]></info>
       <arg name='cpumaps' info='pointer to an array of cpumap (in 8-bit bytes) (IN)'/>
@@ -2138,6 +2170,21 @@
     <macro name='VIR_MIGRATE_PARAM_BANDWIDTH' file='libvirt-domain' string='bandwidth'>
       <info><![CDATA[virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will be used for migration as VIR_TYPED_PARAM_ULLONG. If set to 0 or omitted, libvirt will choose a suitable default. Some hypervisors do not support this feature and will return an error if this field is used and is not 0.]]></info>
     </macro>
+    <macro name='VIR_MIGRATE_PARAM_COMPRESSION' file='libvirt-domain' string='compression'>
+      <info><![CDATA[virDomainMigrate* params multiple field: name of the method used to compress migration traffic. Supported compression methods: xbzrle, mt. The parameter may be specified multiple times if more than one method should be used.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_COMPRESSION_MT_DTHREADS' file='libvirt-domain' string='compression.mt.dthreads'>
+      <info><![CDATA[virDomainMigrate* params field: the number of decompression threads for multithread compression as VIR_TYPED_PARAM_INT.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL' file='libvirt-domain' string='compression.mt.level'>
+      <info><![CDATA[virDomainMigrate* params field: the level of compression for multithread compression as VIR_TYPED_PARAM_INT. Accepted values are in range 0-9. 0 is no compression, 1 is maximum speed and 9 is maximum compression.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_COMPRESSION_MT_THREADS' file='libvirt-domain' string='compression.mt.threads'>
+      <info><![CDATA[virDomainMigrate* params field: the number of compression threads for multithread compression as VIR_TYPED_PARAM_INT.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE' file='libvirt-domain' string='compression.xbzrle.cache'>
+      <info><![CDATA[virDomainMigrate* params field: the size of page cache for xbzrle compression as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
     <macro name='VIR_MIGRATE_PARAM_DEST_NAME' file='libvirt-domain' string='destination_name'>
       <info><![CDATA[virDomainMigrate* params field: the name to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. Omitting this parameter keeps the domain name the same. This field is only allowed to be used with hypervisors that support domain renaming during migration.]]></info>
     </macro>
@@ -2155,6 +2202,9 @@
     </macro>
     <macro name='VIR_MIGRATE_PARAM_MIGRATE_DISKS' file='libvirt-domain' string='migrate_disks'>
       <info><![CDATA[virDomainMigrate* params multiple field: The multiple values that list the block devices to be migrated. At the moment this is only supported by the QEMU driver but not for the tunnelled migration.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_PERSIST_XML' file='libvirt-domain' string='persistent_xml'>
+      <info><![CDATA[virDomainMigrate* params field: the new persistent configuration to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. This field cannot be used to rename the domain during migration (use VIR_MIGRATE_PARAM_DEST_NAME field for that purpose). Domain name in the destination XML must match the original domain name.  Omitting this parameter keeps the original domain persistent configuration. Using this field with hypervisors that do not support changing domain configuration during migration will result in a failure.]]></info>
     </macro>
     <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt-domain' string='migrate_uri'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
@@ -2238,7 +2288,7 @@
     <macro name='VIR_SECURITY_MODEL_BUFLEN' file='libvirt-host'>
       <info><![CDATA[Macro providing the maximum length of the virSecurityModel model string.]]></info>
     </macro>
-    <macro name='VIR_TYPED_PARAM_FIELD_LENGTH' file='libvirt-host'>
+    <macro name='VIR_TYPED_PARAM_FIELD_LENGTH' file='libvirt-common'>
       <info><![CDATA[Macro providing the field length of virTypedParameter name]]></info>
     </macro>
     <macro name='VIR_UNUSE_CPU' file='libvirt-domain'>
@@ -2265,6 +2315,11 @@
     </macro>
     <enum name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' file='libvirt-host' value='1' type='virConnectBaselineCPUFlags' info='show all features'/>
     <enum name='VIR_CONNECT_BASELINE_CPU_MIGRATABLE' file='libvirt-host' value='2' type='virConnectBaselineCPUFlags' info='filter out non-migratable features'/>
+    <enum name='VIR_CONNECT_CLOSE_REASON_CLIENT' file='libvirt-common' value='3' type='virConnectCloseReason' info='Client requested it'/>
+    <enum name='VIR_CONNECT_CLOSE_REASON_EOF' file='libvirt-common' value='1' type='virConnectCloseReason' info='End-of-file from server'/>
+    <enum name='VIR_CONNECT_CLOSE_REASON_ERROR' file='libvirt-common' value='0' type='virConnectCloseReason' info='Misc I/O error'/>
+    <enum name='VIR_CONNECT_CLOSE_REASON_KEEPALIVE' file='libvirt-common' value='2' type='virConnectCloseReason' info='Keepalive timer triggered'/>
+    <enum name='VIR_CONNECT_CLOSE_REASON_LAST' file='libvirt-common' value='4' type='virConnectCloseReason'/>
     <enum name='VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE' file='libvirt-host' value='1' type='virConnectCompareCPUFlags' info='treat incompatible
 CPUs as failure'/>
     <enum name='VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_CHANNEL' file='libvirt-domain' value='2' type='virConnectDomainEventAgentLifecycleReason' info='channel state changed'/>
@@ -2487,8 +2542,10 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_RENAMED' file='libvirt-domain' value='2' type='virDomainEventDefinedDetailType' info='Domain was renamed'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' file='libvirt-domain' value='1' type='virDomainEventDefinedDetailType' info='Changed config file'/>
     <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' file='libvirt-domain' value='2' type='virConnectDomainEventDiskChangeReason'/>
-    <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' file='libvirt-domain' value='0' type='virConnectDomainEventDiskChangeReason' info='oldSrcPath is set'/>
-    <enum name='VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START' file='libvirt-domain' value='1' type='virConnectDomainEventDiskChangeReason'/>
+    <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' file='libvirt-domain' value='0' type='virConnectDomainEventDiskChangeReason' info='removable media changed to empty according to startup policy as source
+ was missing. oldSrcPath is set, newSrcPath is NULL'/>
+    <enum name='VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START' file='libvirt-domain' value='1' type='virConnectDomainEventDiskChangeReason' info='disk was dropped from domain as source file was missing.
+ oldSrcPath is set, newSrcPath is NULL'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' file='libvirt-domain' value='0' type='virDomainEventGraphicsAddressType' info='IPv4 address'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' file='libvirt-domain' value='1' type='virDomainEventGraphicsAddressType' info='IPv6 address'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST' file='libvirt-domain' value='3' type='virDomainEventGraphicsAddressType'/>
@@ -2503,13 +2560,14 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2' file='libvirt-domain' value='16' type='virDomainEventID' info='virConnectDomainEventBlockJobCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' file='libvirt-domain' value='7' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DEVICE_ADDED' file='libvirt-domain' value='19' type='virDomainEventID' info='virConnectDomainEventDeviceAddedCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED' file='libvirt-domain' value='22' type='virDomainEventID' info='virConnectDomainEventDeviceRemovalFailedCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED' file='libvirt-domain' value='15' type='virDomainEventID' info='virConnectDomainEventDeviceRemovedCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DISK_CHANGE' file='libvirt-domain' value='9' type='virDomainEventID' info='virConnectDomainEventDiskChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_GRAPHICS' file='libvirt-domain' value='5' type='virDomainEventID' info='virConnectDomainEventGraphicsCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt-domain' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt-domain' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED' file='libvirt-domain' value='21' type='virDomainEventID' info='virConnectDomainEventJobCompletedCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='22' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='23' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt-domain' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
@@ -3174,10 +3232,11 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt-storage' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt-storage' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
     <enum name='VIR_STORAGE_VOL_FILE' file='libvirt-storage' value='0' type='virStorageVolType' info='Regular file based volumes'/>
-    <enum name='VIR_STORAGE_VOL_LAST' file='libvirt-storage' value='5' type='virStorageVolType'/>
+    <enum name='VIR_STORAGE_VOL_LAST' file='libvirt-storage' value='6' type='virStorageVolType'/>
     <enum name='VIR_STORAGE_VOL_NETDIR' file='libvirt-storage' value='4' type='virStorageVolType' info='Network accessible directory that can
  contain other network volumes'/>
     <enum name='VIR_STORAGE_VOL_NETWORK' file='libvirt-storage' value='3' type='virStorageVolType' info='Network volumes like RBD (RADOS Block Device)'/>
+    <enum name='VIR_STORAGE_VOL_PLOOP' file='libvirt-storage' value='5' type='virStorageVolType' info='Ploop based volumes'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' file='libvirt-storage' value='1' type='virStorageVolResizeFlags' info='force allocation of new size'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_DELTA' file='libvirt-storage' value='2' type='virStorageVolResizeFlags' info='size is relative to current'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_SHRINK' file='libvirt-storage' value='4' type='virStorageVolResizeFlags' info='allow decrease in capacity'/>
@@ -3207,15 +3266,15 @@ volume by using TRIM or DISCARD'/>
     <enum name='VIR_STREAM_EVENT_READABLE' file='libvirt-stream' value='1' type='virStreamEventType'/>
     <enum name='VIR_STREAM_EVENT_WRITABLE' file='libvirt-stream' value='2' type='virStreamEventType'/>
     <enum name='VIR_STREAM_NONBLOCK' file='libvirt-stream' value='1' type='virStreamFlags'/>
-    <enum name='VIR_TYPED_PARAM_BOOLEAN' file='libvirt-host' value='6' type='virTypedParameterType' info='boolean(character) case'/>
-    <enum name='VIR_TYPED_PARAM_DOUBLE' file='libvirt-host' value='5' type='virTypedParameterType' info='double case'/>
-    <enum name='VIR_TYPED_PARAM_INT' file='libvirt-host' value='1' type='virTypedParameterType' info='integer case'/>
-    <enum name='VIR_TYPED_PARAM_LAST' file='libvirt-host' value='8' type='virTypedParameterType'/>
-    <enum name='VIR_TYPED_PARAM_LLONG' file='libvirt-host' value='3' type='virTypedParameterType' info='long long case'/>
-    <enum name='VIR_TYPED_PARAM_STRING' file='libvirt-host' value='7' type='virTypedParameterType' info='string case'/>
-    <enum name='VIR_TYPED_PARAM_STRING_OKAY' file='libvirt-host' value='4' type='virTypedParameterFlags'/>
-    <enum name='VIR_TYPED_PARAM_UINT' file='libvirt-host' value='2' type='virTypedParameterType' info='unsigned integer case'/>
-    <enum name='VIR_TYPED_PARAM_ULLONG' file='libvirt-host' value='4' type='virTypedParameterType' info='unsigned long long case'/>
+    <enum name='VIR_TYPED_PARAM_BOOLEAN' file='libvirt-common' value='6' type='virTypedParameterType' info='boolean(character) case'/>
+    <enum name='VIR_TYPED_PARAM_DOUBLE' file='libvirt-common' value='5' type='virTypedParameterType' info='double case'/>
+    <enum name='VIR_TYPED_PARAM_INT' file='libvirt-common' value='1' type='virTypedParameterType' info='integer case'/>
+    <enum name='VIR_TYPED_PARAM_LAST' file='libvirt-common' value='8' type='virTypedParameterType'/>
+    <enum name='VIR_TYPED_PARAM_LLONG' file='libvirt-common' value='3' type='virTypedParameterType' info='long long case'/>
+    <enum name='VIR_TYPED_PARAM_STRING' file='libvirt-common' value='7' type='virTypedParameterType' info='string case'/>
+    <enum name='VIR_TYPED_PARAM_STRING_OKAY' file='libvirt-common' value='4' type='virTypedParameterFlags'/>
+    <enum name='VIR_TYPED_PARAM_UINT' file='libvirt-common' value='2' type='virTypedParameterType' info='unsigned integer case'/>
+    <enum name='VIR_TYPED_PARAM_ULLONG' file='libvirt-common' value='4' type='virTypedParameterType' info='unsigned long long case'/>
     <enum name='VIR_VCPU_BLOCKED' file='libvirt-domain' value='2' type='virVcpuState' info='the virtual CPU is blocked on resource'/>
     <enum name='VIR_VCPU_LAST' file='libvirt-domain' value='3' type='virVcpuState'/>
     <enum name='VIR_VCPU_OFFLINE' file='libvirt-domain' value='0' type='virVcpuState' info='the virtual CPU is offline'/>
@@ -3255,6 +3314,7 @@ volume by using TRIM or DISCARD'/>
     </struct>
     <typedef name='virConnectAuthPtr' file='libvirt-host' type='virConnectAuth *'/>
     <typedef name='virConnectBaselineCPUFlags' file='libvirt-host' type='enum'/>
+    <typedef name='virConnectCloseReason' file='libvirt-common' type='enum'/>
     <typedef name='virConnectCompareCPUFlags' file='libvirt-host' type='enum'/>
     <struct name='virConnectCredential' file='libvirt-host' type='struct _virConnectCredential'>
       <field name='type' type='int' info='One of virConnectCredentialType constants'/>
@@ -3699,7 +3759,7 @@ unusual numa topology'/>
     <typedef name='virStreamPtr' file='libvirt-host' type='virStream *'>
       <info><![CDATA[a virStreamPtr is pointer to a virStream private structure, this is the type used to reference a data stream in the API.]]></info>
     </typedef>
-    <struct name='virTypedParameter' file='libvirt-host' type='struct _virTypedParameter'>
+    <struct name='virTypedParameter' file='libvirt-common' type='struct _virTypedParameter'>
       <field name='field' type='char field[VIR_TYPED_PARAM_FIELD_LENGTH]' info='parameter name'/>
       <field name='type' type='int' info='parameter type, virTypedParameterType'/>
       <field name='value' type='union' info='parameter value'>
@@ -3714,11 +3774,11 @@ unusual numa topology'/>
         </union>
       </field>
     </struct>
-    <typedef name='virTypedParameterFlags' file='libvirt-host' type='enum'/>
-    <typedef name='virTypedParameterPtr' file='libvirt-host' type='virTypedParameter *'>
+    <typedef name='virTypedParameterFlags' file='libvirt-common' type='enum'/>
+    <typedef name='virTypedParameterPtr' file='libvirt-common' type='virTypedParameter *'>
       <info><![CDATA[a pointer to a virTypedParameter structure.]]></info>
     </typedef>
-    <typedef name='virTypedParameterType' file='libvirt-host' type='enum'/>
+    <typedef name='virTypedParameterType' file='libvirt-common' type='enum'/>
     <struct name='virVcpuInfo' file='libvirt-domain' type='struct _virVcpuInfo'>
       <field name='number' type='unsigned int' info='virtual CPU number'/>
       <field name='state' type='int' info='value from virVcpuState'/>
@@ -3920,6 +3980,18 @@ value obtained from a previous virConnectDomainEventRegisterAny() method.]]></in
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_DEVICE_ADDED with virConnectDomainEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='devAlias' type='const char *' info='device alias'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectDomainEventDeviceRemovalFailedCallback' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[This callback occurs when it's certain that removal of a device failed.
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED with
+virConnectDomainEventRegisterAny().]]></info>
       <return type='void'/>
       <arg name='conn' type='virConnectPtr' info='connection object'/>
       <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
@@ -6433,14 +6505,16 @@ expects the caller to allocate the @params.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
     <function name='virDomainGetPerfEvents' file='libvirt-domain' module='libvirt-domain'>
-      <info><![CDATA[Get all perf events setting. Possible fields returned in @params are
-defined by VIR_DOMAIN_PERF_* macros and new fields will likely be
-introduced in the future.]]></info>
+      <info><![CDATA[Get all Linux perf events setting. Possible fields returned in
+@params are defined by VIR_PERF_EVENT_* macros and new fields
+will likely be introduced in the future.
+
+Linux perf events are performance analyzing tool in Linux.]]></info>
       <return type='int' info='-1 in case of failure, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='params' type='virTypedParameterPtr *' info='where to store perf events setting'/>
       <arg name='nparams' type='int *' info='number of items in @params'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainGetSchedulerParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Get all scheduler parameters.  On input, @nparams gives the size of the
@@ -8099,12 +8173,16 @@ This function may require privileged access to the hypervisor.]]></info>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainSetPerfEvents' file='libvirt-domain' module='libvirt-domain'>
-      <info><![CDATA[Enable or disable the particular list of perf events you care about.]]></info>
+      <info><![CDATA[Enable or disable the particular list of Linux perf events you
+care about. The @params argument should contain any subset of
+VIR_PERF_EVENT_ macros.
+
+Linux perf events are performance analyzing tool in Linux.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to perf events parameter object'/>
       <arg name='nparams' type='int' info='number of perf event parameters (this value can be the same less than the number of parameters supported)'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainSetSchedulerParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Change all or a subset or the scheduler parameters.  It is
@@ -8966,6 +9044,20 @@ event timeout.]]></info>
       <return type='void'/>
       <arg name='timer' type='int' info='the timer to modify'/>
       <arg name='timeout' type='int' info='the new timeout value'/>
+    </functype>
+    <functype name='virFreeCallback' file='libvirt-common' module='libvirt-common'>
+      <info><![CDATA[Type for a callback cleanup function to be paired with a callback.  This
+function will be called as a final chance to clean up the @opaque
+registered with the primary callback, at the time when the primary
+callback is deregistered.
+
+It is forbidden to call any other libvirt APIs from an
+implementation of this callback, since it can be invoked
+from a context which is not re-entrant safe. Failure to
+abide by this requirement may lead to application deadlocks
+or crashes.]]></info>
+      <return type='void'/>
+      <arg name='opaque' type='void *' info='opaque user data provided at registration'/>
     </functype>
     <function name='virFreeError' file='virterror' module='virerror'>
       <info><![CDATA[Resets and frees the given error.]]></info>
@@ -10832,7 +10924,7 @@ of -1 at any time will abort the send operation]]></info>
       <arg name='nbytes' type='size_t' info='size of the data array'/>
       <arg name='opaque' type='void *' info='optional application provided data'/>
     </functype>
-    <function name='virTypedParamsAddBoolean' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddBoolean' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with boolean type and sets its value to
 @value. If @params array points to NULL or to a space that is not large
 enough to accommodate the new parameter (@maxparams < @nparams + 1), the
@@ -10846,7 +10938,7 @@ error if the parameter already exists in @params.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='int' info='the value to store into the new parameter'/>
     </function>
-    <function name='virTypedParamsAddDouble' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddDouble' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with double type and sets its value to
 @value. If @params array points to NULL or to a space that is not large
 enough to accommodate the new parameter (@maxparams < @nparams + 1), the
@@ -10860,7 +10952,7 @@ error if the parameter already exists in @params.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='double' info='the value to store into the new parameter'/>
     </function>
-    <function name='virTypedParamsAddFromString' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddFromString' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with the requested @type and parses its
 value from the @value string. If the requested type is string, the function
 creates its own copy of the @value string, which needs to be freed using
@@ -10878,7 +10970,7 @@ exists in @params.]]></info>
       <arg name='type' type='int' info='type of the parameter'/>
       <arg name='value' type='const char *' info='the value to store into the new parameter encoded as a string'/>
     </function>
-    <function name='virTypedParamsAddInt' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddInt' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with int type and sets its value to @value.
 If @params array points to NULL or to a space that is not large enough to
 accommodate the new parameter (@maxparams < @nparams + 1), the function
@@ -10892,7 +10984,7 @@ if the parameter already exists in @params.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='int' info='the value to store into the new parameter'/>
     </function>
-    <function name='virTypedParamsAddLLong' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddLLong' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with long long int type and sets its value
 to @value. If @params array points to NULL or to a space that is not large
 enough to accommodate the new parameter (@maxparams < @nparams + 1), the
@@ -10906,7 +10998,7 @@ error if the parameter already exists in @params.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='long long' info='the value to store into the new parameter'/>
     </function>
-    <function name='virTypedParamsAddString' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddString' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with char * type and sets its value to
 @value. The function creates its own copy of @value string, which needs to
 be freed using virTypedParamsFree or virTypedParamsClear. If @params array
@@ -10922,7 +11014,7 @@ already exists in @params.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='const char *' info='the value to store into the new parameter'/>
     </function>
-    <function name='virTypedParamsAddStringList' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddStringList' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Packs NULL-terminated list of strings @values into @params under the
 key @name.]]></info>
       <return type='int' info='0 on success, -1 on error.'/>
@@ -10932,7 +11024,7 @@ key @name.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to store values to'/>
       <arg name='values' type='const char **' info='the values to store into the new parameters'/>
     </function>
-    <function name='virTypedParamsAddUInt' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddUInt' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with unsigned int type and sets its value
 to @value. If @params array points to NULL or to a space that is not large
 enough to accommodate the new parameter (@maxparams < @nparams + 1), the
@@ -10946,7 +11038,7 @@ error if the parameter already exists in @params.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='unsigned int' info='the value to store into the new parameter'/>
     </function>
-    <function name='virTypedParamsAddULLong' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsAddULLong' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with unsigned long long type and sets its
 value to @value. If @params array points to NULL or to a space that is not
 large enough to accommodate the new parameter (@maxparams < @nparams + 1),
@@ -10960,28 +11052,28 @@ error if the parameter already exists in @params.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='unsigned long long' info='the value to store into the new parameter'/>
     </function>
-    <function name='virTypedParamsClear' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsClear' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Frees all memory used by string parameters. The memory occupied by @params
 is not freed; use virTypedParamsFree if you want it to be freed too.]]></info>
       <return type='void'/>
       <arg name='params' type='virTypedParameterPtr' info='the array of typed parameters'/>
       <arg name='nparams' type='int' info='number of parameters in the @params array'/>
     </function>
-    <function name='virTypedParamsFree' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsFree' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Frees all memory used by string parameters and the memory occupied by
 @params.]]></info>
       <return type='void'/>
       <arg name='params' type='virTypedParameterPtr' info='the array of typed parameters'/>
       <arg name='nparams' type='int' info='number of parameters in the @params array'/>
     </function>
-    <function name='virTypedParamsGet' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGet' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name.]]></info>
       <return type='virTypedParameterPtr' info='pointer to the parameter or NULL if it does not exist in @params. This function does not raise an error, even when returning NULL.'/>
       <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
       <arg name='nparams' type='int' info='number of parameters in the @params array'/>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
     </function>
-    <function name='virTypedParamsGetBoolean' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGetBoolean' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name and store its boolean value in @value.
 The function fails with VIR_ERR_INVALID_ARG error if the parameter does not
 have the expected type. By passing NULL as @value, the function may be used
@@ -10992,7 +11084,7 @@ to check presence and type of the parameter.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='int *' info='where to store the parameter&apos;s value'/>
     </function>
-    <function name='virTypedParamsGetDouble' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGetDouble' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name and store its double value in @value.
 The function fails with VIR_ERR_INVALID_ARG error if the parameter does not
 have the expected type. By passing NULL as @value, the function may be used
@@ -11003,7 +11095,7 @@ to check presence and type of the parameter.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='double *' info='where to store the parameter&apos;s value'/>
     </function>
-    <function name='virTypedParamsGetInt' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGetInt' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name and store its int value in @value. The
 function fails with VIR_ERR_INVALID_ARG error if the parameter does not
 have the expected type. By passing NULL as @value, the function may be
@@ -11014,7 +11106,7 @@ used to check presence and type of the parameter.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='int *' info='where to store the parameter&apos;s value'/>
     </function>
-    <function name='virTypedParamsGetLLong' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGetLLong' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name and store its long long int value in
 @value. The function fails with VIR_ERR_INVALID_ARG error if the parameter
 does not have the expected type. By passing NULL as @value, the function
@@ -11025,7 +11117,7 @@ may be used to check presence and type of the parameter.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='long long *' info='where to store the parameter&apos;s value'/>
     </function>
-    <function name='virTypedParamsGetString' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGetString' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name and store its char * value in @value.
 The function does not create a copy of the string and the caller must not
 free the string @value points to. The function fails with
@@ -11038,7 +11130,7 @@ type of the parameter.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='const char **' info='where to store the parameter&apos;s value'/>
     </function>
-    <function name='virTypedParamsGetUInt' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGetUInt' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name and store its unsigned int value in
 @value. The function fails with VIR_ERR_INVALID_ARG error if the parameter
 does not have the expected type. By passing NULL as @value, the function
@@ -11049,7 +11141,7 @@ may be used to check presence and type of the parameter.]]></info>
       <arg name='name' type='const char *' info='name of the parameter to find'/>
       <arg name='value' type='unsigned int *' info='where to store the parameter&apos;s value'/>
     </function>
-    <function name='virTypedParamsGetULLong' file='libvirt-host' module='virtypedparam'>
+    <function name='virTypedParamsGetULLong' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name and store its unsigned long long int
 value in @value. The function fails with VIR_ERR_INVALID_ARG error if the
 parameter does not have the expected type. By passing NULL as @value, the

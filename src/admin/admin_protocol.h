@@ -13,13 +13,35 @@
 extern "C" {
 #endif
 
+#include <libvirt/libvirt-admin.h>
 #include "virxdrdefs.h"
 #define ADMIN_STRING_MAX 4194304
 #define ADMIN_SERVER_LIST_MAX 16384
+#define ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX 32
 
 typedef char *admin_nonnull_string;
 
 typedef admin_nonnull_string *admin_string;
+
+struct admin_typed_param_value {
+        int type;
+        union {
+                int i;
+                u_int ui;
+                int64_t l;
+                uint64_t ul;
+                double d;
+                int b;
+                admin_nonnull_string s;
+        } admin_typed_param_value_u;
+};
+typedef struct admin_typed_param_value admin_typed_param_value;
+
+struct admin_typed_param {
+        admin_nonnull_string field;
+        admin_typed_param_value value;
+};
+typedef struct admin_typed_param admin_typed_param;
 
 struct admin_nonnull_server {
         admin_nonnull_string name;
@@ -61,6 +83,30 @@ struct admin_connect_lookup_server_ret {
         admin_nonnull_server srv;
 };
 typedef struct admin_connect_lookup_server_ret admin_connect_lookup_server_ret;
+
+struct admin_server_get_threadpool_parameters_args {
+        admin_nonnull_server srv;
+        u_int flags;
+};
+typedef struct admin_server_get_threadpool_parameters_args admin_server_get_threadpool_parameters_args;
+
+struct admin_server_get_threadpool_parameters_ret {
+        struct {
+                u_int params_len;
+                admin_typed_param *params_val;
+        } params;
+};
+typedef struct admin_server_get_threadpool_parameters_ret admin_server_get_threadpool_parameters_ret;
+
+struct admin_server_set_threadpool_parameters_args {
+        admin_nonnull_server srv;
+        struct {
+                u_int params_len;
+                admin_typed_param *params_val;
+        } params;
+        u_int flags;
+};
+typedef struct admin_server_set_threadpool_parameters_args admin_server_set_threadpool_parameters_args;
 #define ADMIN_PROGRAM 0x06900690
 #define ADMIN_PROTOCOL_VERSION 1
 
@@ -70,6 +116,8 @@ enum admin_procedure {
         ADMIN_PROC_CONNECT_GET_LIB_VERSION = 3,
         ADMIN_PROC_CONNECT_LIST_SERVERS = 4,
         ADMIN_PROC_CONNECT_LOOKUP_SERVER = 5,
+        ADMIN_PROC_SERVER_GET_THREADPOOL_PARAMETERS = 6,
+        ADMIN_PROC_SERVER_SET_THREADPOOL_PARAMETERS = 7,
 };
 typedef enum admin_procedure admin_procedure;
 
@@ -78,6 +126,8 @@ typedef enum admin_procedure admin_procedure;
 #if defined(__STDC__) || defined(__cplusplus)
 extern  bool_t xdr_admin_nonnull_string (XDR *, admin_nonnull_string*);
 extern  bool_t xdr_admin_string (XDR *, admin_string*);
+extern  bool_t xdr_admin_typed_param_value (XDR *, admin_typed_param_value*);
+extern  bool_t xdr_admin_typed_param (XDR *, admin_typed_param*);
 extern  bool_t xdr_admin_nonnull_server (XDR *, admin_nonnull_server*);
 extern  bool_t xdr_admin_connect_open_args (XDR *, admin_connect_open_args*);
 extern  bool_t xdr_admin_connect_get_lib_version_ret (XDR *, admin_connect_get_lib_version_ret*);
@@ -85,11 +135,16 @@ extern  bool_t xdr_admin_connect_list_servers_args (XDR *, admin_connect_list_se
 extern  bool_t xdr_admin_connect_list_servers_ret (XDR *, admin_connect_list_servers_ret*);
 extern  bool_t xdr_admin_connect_lookup_server_args (XDR *, admin_connect_lookup_server_args*);
 extern  bool_t xdr_admin_connect_lookup_server_ret (XDR *, admin_connect_lookup_server_ret*);
+extern  bool_t xdr_admin_server_get_threadpool_parameters_args (XDR *, admin_server_get_threadpool_parameters_args*);
+extern  bool_t xdr_admin_server_get_threadpool_parameters_ret (XDR *, admin_server_get_threadpool_parameters_ret*);
+extern  bool_t xdr_admin_server_set_threadpool_parameters_args (XDR *, admin_server_set_threadpool_parameters_args*);
 extern  bool_t xdr_admin_procedure (XDR *, admin_procedure*);
 
 #else /* K&R C */
 extern bool_t xdr_admin_nonnull_string ();
 extern bool_t xdr_admin_string ();
+extern bool_t xdr_admin_typed_param_value ();
+extern bool_t xdr_admin_typed_param ();
 extern bool_t xdr_admin_nonnull_server ();
 extern bool_t xdr_admin_connect_open_args ();
 extern bool_t xdr_admin_connect_get_lib_version_ret ();
@@ -97,6 +152,9 @@ extern bool_t xdr_admin_connect_list_servers_args ();
 extern bool_t xdr_admin_connect_list_servers_ret ();
 extern bool_t xdr_admin_connect_lookup_server_args ();
 extern bool_t xdr_admin_connect_lookup_server_ret ();
+extern bool_t xdr_admin_server_get_threadpool_parameters_args ();
+extern bool_t xdr_admin_server_get_threadpool_parameters_ret ();
+extern bool_t xdr_admin_server_set_threadpool_parameters_args ();
 extern bool_t xdr_admin_procedure ();
 
 #endif /* K&R C */

@@ -34,6 +34,7 @@
 # include "virnetdev.h"
 # include "device_conf.h"
 # include "cpu/cpu.h"
+# include "util/virgic.h"
 
 typedef struct _qemuMonitor qemuMonitor;
 typedef qemuMonitor *qemuMonitorPtr;
@@ -196,6 +197,16 @@ typedef int (*qemuMonitorDomainMigrationPassCallback)(qemuMonitorPtr mon,
                                                       int pass,
                                                       void *opaque);
 
+typedef int (*qemuMonitorDomainAcpiOstInfoCallback)(qemuMonitorPtr mon,
+                                                    virDomainObjPtr vm,
+                                                    const char *alias,
+                                                    const char *slotType,
+                                                    const char *slot,
+                                                    unsigned int source,
+                                                    unsigned int status,
+                                                    void *opaque);
+
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -226,6 +237,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainSpiceMigratedCallback domainSpiceMigrated;
     qemuMonitorDomainMigrationStatusCallback domainMigrationStatus;
     qemuMonitorDomainMigrationPassCallback domainMigrationPass;
+    qemuMonitorDomainAcpiOstInfoCallback domainAcpiOstInfo;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -337,6 +349,13 @@ int qemuMonitorEmitMigrationStatus(qemuMonitorPtr mon,
                                    int status);
 int qemuMonitorEmitMigrationPass(qemuMonitorPtr mon,
                                  int pass);
+
+int qemuMonitorEmitAcpiOstInfo(qemuMonitorPtr mon,
+                               const char *alias,
+                               const char *slotType,
+                               const char *slot,
+                               unsigned int source,
+                               unsigned int status);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -469,6 +488,23 @@ int qemuMonitorGetMigrationCacheSize(qemuMonitorPtr mon,
 int qemuMonitorSetMigrationCacheSize(qemuMonitorPtr mon,
                                      unsigned long long cacheSize);
 
+typedef struct _qemuMonitorMigrationCompression qemuMonitorMigrationCompression;
+typedef qemuMonitorMigrationCompression *qemuMonitorMigrationCompressionPtr;
+struct _qemuMonitorMigrationCompression {
+    bool level_set;
+    bool threads_set;
+    bool dthreads_set;
+
+    int level;
+    int threads;
+    int dthreads;
+};
+
+int qemuMonitorGetMigrationCompression(qemuMonitorPtr mon,
+                                       qemuMonitorMigrationCompressionPtr compress);
+int qemuMonitorSetMigrationCompression(qemuMonitorPtr mon,
+                                       qemuMonitorMigrationCompressionPtr compress);
+
 typedef enum {
     QEMU_MONITOR_MIGRATION_STATUS_INACTIVE,
     QEMU_MONITOR_MIGRATION_STATUS_SETUP,
@@ -533,6 +569,7 @@ typedef enum {
     QEMU_MONITOR_MIGRATION_CAPS_RDMA_PIN_ALL,
     QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
     QEMU_MONITOR_MIGRATION_CAPS_POSTCOPY,
+    QEMU_MONITOR_MIGRATION_CAPS_COMPRESS,
 
     QEMU_MONITOR_MIGRATION_CAPS_LAST
 } qemuMonitorMigrationCaps;
@@ -546,6 +583,9 @@ int qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
 int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
                                       qemuMonitorMigrationCaps capability,
                                       bool state);
+
+int qemuMonitorGetGICCapabilities(qemuMonitorPtr mon,
+                                  virGICCapability **capabilities);
 
 typedef enum {
   QEMU_MONITOR_MIGRATE_BACKGROUND	= 1 << 0,

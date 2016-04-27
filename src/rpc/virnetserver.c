@@ -877,3 +877,40 @@ virNetServerGetName(virNetServerPtr srv)
 {
     return srv->name;
 }
+
+int
+virNetServerGetThreadPoolParameters(virNetServerPtr srv,
+                                    size_t *minWorkers,
+                                    size_t *maxWorkers,
+                                    size_t *nWorkers,
+                                    size_t *freeWorkers,
+                                    size_t *nPrioWorkers,
+                                    size_t *jobQueueDepth)
+{
+    virObjectLock(srv);
+
+    *minWorkers = virThreadPoolGetMinWorkers(srv->workers);
+    *maxWorkers = virThreadPoolGetMaxWorkers(srv->workers);
+    *freeWorkers = virThreadPoolGetFreeWorkers(srv->workers);
+    *nWorkers = virThreadPoolGetCurrentWorkers(srv->workers);
+    *nPrioWorkers = virThreadPoolGetPriorityWorkers(srv->workers);
+    *jobQueueDepth = virThreadPoolGetJobQueueDepth(srv->workers);
+
+    virObjectUnlock(srv);
+    return 0;
+}
+
+int
+virNetServerSetThreadPoolParameters(virNetServerPtr srv,
+                                    long long int minWorkers,
+                                    long long int maxWorkers,
+                                    long long int prioWorkers)
+{
+    int ret;
+
+    virObjectLock(srv);
+    ret = virThreadPoolSetParameters(srv->workers, minWorkers,
+                                     maxWorkers, prioWorkers);
+    virObjectUnlock(srv);
+    return ret;
+}

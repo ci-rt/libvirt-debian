@@ -46,7 +46,7 @@
 #include "libxl_conf.h"
 #include "libxl_utils.h"
 #include "virstoragefile.h"
-#include "base64.h"
+#include "secret_util.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -935,76 +935,6 @@ libxlDomainGetEmulatorType(const virDomainDef *def)
     return ret;
 }
 
-static char *
-libxlGetSecretString(virConnectPtr conn,
-                     const char *scheme,
-                     bool encoded,
-                     virStorageAuthDefPtr authdef,
-                     virSecretUsageType secretUsageType)
-{
-    size_t secret_size;
-    virSecretPtr sec = NULL;
-    char *secret = NULL;
-    char uuidStr[VIR_UUID_STRING_BUFLEN];
-
-    /* look up secret */
-    switch (authdef->secretType) {
-    case VIR_STORAGE_SECRET_TYPE_UUID:
-        sec = virSecretLookupByUUID(conn, authdef->secret.uuid);
-        virUUIDFormat(authdef->secret.uuid, uuidStr);
-        break;
-    case VIR_STORAGE_SECRET_TYPE_USAGE:
-        sec = virSecretLookupByUsage(conn, secretUsageType,
-                                     authdef->secret.usage);
-        break;
-    }
-
-    if (!sec) {
-        if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
-            virReportError(VIR_ERR_NO_SECRET,
-                           _("%s no secret matches uuid '%s'"),
-                           scheme, uuidStr);
-        } else {
-            virReportError(VIR_ERR_NO_SECRET,
-                           _("%s no secret matches usage value '%s'"),
-                           scheme, authdef->secret.usage);
-        }
-        goto cleanup;
-    }
-
-    secret = (char *)conn->secretDriver->secretGetValue(sec, &secret_size, 0,
-                                                        VIR_SECRET_GET_VALUE_INTERNAL_CALL);
-    if (!secret) {
-        if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("could not get value of the secret for "
-                             "username '%s' using uuid '%s'"),
-                           authdef->username, uuidStr);
-        } else {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("could not get value of the secret for "
-                             "username '%s' using usage value '%s'"),
-                           authdef->username, authdef->secret.usage);
-        }
-        goto cleanup;
-    }
-
-    if (encoded) {
-        char *base64 = NULL;
-
-        base64_encode_alloc(secret, secret_size, &base64);
-        VIR_FREE(secret);
-        if (!base64) {
-            virReportOOMError();
-            goto cleanup;
-        }
-        secret = base64;
-    }
-
- cleanup:
-    virObjectUnref(sec);
-    return secret;
-}
 
 static char *
 libxlMakeNetworkDiskSrcStr(virStorageSourcePtr src,
@@ -1100,11 +1030,11 @@ libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
         if (!(conn = virConnectOpen("xen:///system")))
             goto cleanup;
 
-        if (!(secret = libxlGetSecretString(conn,
-                                            protocol,
-                                            true,
-                                            src->auth,
-                                            VIR_SECRET_USAGE_TYPE_CEPH)))
+        if (!(secret = virSecretGetSecretString(conn,
+                                                protocol,
+                                                true,
+                                                src->auth,
+                                                VIR_SECRET_USAGE_TYPE_CEPH)))
             goto cleanup;
     }
 
@@ -1494,7 +1424,7 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
              libxl_device_vfb *x_vfb)
 {
     unsigned short port;
-    const char *listenAddr;
+    virDomainGraphicsListenDefPtr gListen = NULL;
 
     libxl_device_vfb_init(x_vfb);
 
@@ -1521,11 +1451,11 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
             }
             x_vfb->vnc.display = l_vfb->data.vnc.port - LIBXL_VNC_PORT_MIN;
 
-            listenAddr = virDomainGraphicsListenGetAddress(l_vfb, 0);
-            if (listenAddr) {
+            if ((gListen = virDomainGraphicsGetListen(l_vfb, 0)) &&
+                gListen->address) {
                 /* libxl_device_vfb_init() does VIR_STRDUP("127.0.0.1") */
                 VIR_FREE(x_vfb->vnc.listen);
-                if (VIR_STRDUP(x_vfb->vnc.listen, listenAddr) < 0)
+                if (VIR_STRDUP(x_vfb->vnc.listen, gListen->address) < 0)
                     return -1;
             }
             if (VIR_STRDUP(x_vfb->vnc.passwd, l_vfb->data.vnc.auth.passwd) < 0)
@@ -1609,7 +1539,7 @@ libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
     for (i = 0; i < def->ngraphics; i++) {
         virDomainGraphicsDefPtr l_vfb = def->graphics[i];
         unsigned short port;
-        const char *listenAddr;
+        virDomainGraphicsListenDefPtr gListen = NULL;
 
         if (l_vfb->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE)
             continue;
@@ -1623,8 +1553,9 @@ libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
         }
         b_info->u.hvm.spice.port = l_vfb->data.spice.port;
 
-        listenAddr = virDomainGraphicsListenGetAddress(l_vfb, 0);
-        if (VIR_STRDUP(b_info->u.hvm.spice.host, listenAddr) < 0)
+        if ((gListen = virDomainGraphicsGetListen(l_vfb, 0)) &&
+            gListen->address &&
+            VIR_STRDUP(b_info->u.hvm.spice.host, gListen->address) < 0)
             return -1;
 
         if (VIR_STRDUP(b_info->u.hvm.keymap, l_vfb->data.spice.keymap) < 0)

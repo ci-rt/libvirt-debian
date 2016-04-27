@@ -3955,6 +3955,13 @@ struct remote_domain_migrate_start_post_copy_args {
         u_int flags;
 };
 typedef struct remote_domain_migrate_start_post_copy_args remote_domain_migrate_start_post_copy_args;
+
+struct remote_domain_event_callback_device_removal_failed_msg {
+        int callbackID;
+        remote_nonnull_domain dom;
+        remote_nonnull_string devAlias;
+};
+typedef struct remote_domain_event_callback_device_removal_failed_msg remote_domain_event_callback_device_removal_failed_msg;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4325,6 +4332,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_MIGRATE_START_POST_COPY = 364,
         REMOTE_PROC_DOMAIN_GET_PERF_EVENTS = 365,
         REMOTE_PROC_DOMAIN_SET_PERF_EVENTS = 366,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVAL_FAILED = 367,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4911,6 +4919,7 @@ extern  bool_t xdr_remote_domain_rename_ret (XDR *, remote_domain_rename_ret*);
 extern  bool_t xdr_remote_domain_event_callback_migration_iteration_msg (XDR *, remote_domain_event_callback_migration_iteration_msg*);
 extern  bool_t xdr_remote_domain_event_callback_job_completed_msg (XDR *, remote_domain_event_callback_job_completed_msg*);
 extern  bool_t xdr_remote_domain_migrate_start_post_copy_args (XDR *, remote_domain_migrate_start_post_copy_args*);
+extern  bool_t xdr_remote_domain_event_callback_device_removal_failed_msg (XDR *, remote_domain_event_callback_device_removal_failed_msg*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5494,6 +5503,7 @@ extern bool_t xdr_remote_domain_rename_ret ();
 extern bool_t xdr_remote_domain_event_callback_migration_iteration_msg ();
 extern bool_t xdr_remote_domain_event_callback_job_completed_msg ();
 extern bool_t xdr_remote_domain_migrate_start_post_copy_args ();
+extern bool_t xdr_remote_domain_event_callback_device_removal_failed_msg ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

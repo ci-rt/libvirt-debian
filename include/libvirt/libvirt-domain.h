@@ -727,6 +727,21 @@ typedef enum {
 # define VIR_MIGRATE_PARAM_DEST_XML          "destination_xml"
 
 /**
+ * VIR_MIGRATE_PARAM_PERSIST_XML:
+ *
+ * virDomainMigrate* params field: the new persistent configuration to be used
+ * for the domain on the destination host as VIR_TYPED_PARAM_STRING.
+ * This field cannot be used to rename the domain during migration (use
+ * VIR_MIGRATE_PARAM_DEST_NAME field for that purpose). Domain name in the
+ * destination XML must match the original domain name.
+ *
+ * Omitting this parameter keeps the original domain persistent configuration.
+ * Using this field with hypervisors that do not support changing domain
+ * configuration during migration will result in a failure.
+ */
+# define VIR_MIGRATE_PARAM_PERSIST_XML  "persistent_xml"
+
+/**
  * VIR_MIGRATE_PARAM_BANDWIDTH:
  *
  * virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will
@@ -786,6 +801,49 @@ typedef enum {
  * supported by the QEMU driver.
  */
 # define VIR_MIGRATE_PARAM_DISKS_PORT    "disks_port"
+
+/**
+ * VIR_MIGRATE_PARAM_COMPRESSION:
+ *
+ * virDomainMigrate* params multiple field: name of the method used to
+ * compress migration traffic. Supported compression methods: xbzrle, mt.
+ * The parameter may be specified multiple times if more than one method
+ * should be used.
+ */
+# define VIR_MIGRATE_PARAM_COMPRESSION    "compression"
+
+/**
+ * VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL:
+ *
+ * virDomainMigrate* params field: the level of compression for multithread
+ * compression as VIR_TYPED_PARAM_INT. Accepted values are in range 0-9.
+ * 0 is no compression, 1 is maximum speed and 9 is maximum compression.
+ */
+# define VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL    "compression.mt.level"
+
+/**
+ * VIR_MIGRATE_PARAM_COMPRESSION_MT_THREADS:
+ *
+ * virDomainMigrate* params field: the number of compression threads for
+ * multithread compression as VIR_TYPED_PARAM_INT.
+ */
+# define VIR_MIGRATE_PARAM_COMPRESSION_MT_THREADS "compression.mt.threads"
+
+/**
+ * VIR_MIGRATE_PARAM_COMPRESSION_MT_DTHREADS:
+ *
+ * virDomainMigrate* params field: the number of decompression threads for
+ * multithread compression as VIR_TYPED_PARAM_INT.
+ */
+# define VIR_MIGRATE_PARAM_COMPRESSION_MT_DTHREADS "compression.mt.dthreads"
+
+/**
+ * VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE:
+ *
+ * virDomainMigrate* params field: the size of page cache for xbzrle
+ * compression as VIR_TYPED_PARAM_ULLONG.
+ */
+# define VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE "compression.xbzrle.cache"
 
 /* Domain migration. */
 virDomainPtr virDomainMigrate (virDomainPtr domain, virConnectPtr dconn,
@@ -3170,8 +3228,12 @@ typedef void (*virConnectDomainEventBlockJobCallback)(virConnectPtr conn,
  * The reason describing why this callback is called
  */
 typedef enum {
-    VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START = 0, /* oldSrcPath is set */
+    VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START = 0,
+    /* removable media changed to empty according to startup policy as source
+     * was missing. oldSrcPath is set, newSrcPath is NULL */
     VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START = 1,
+    /* disk was dropped from domain as source file was missing.
+     * oldSrcPath is set, newSrcPath is NULL */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_DISK_CHANGE_LAST
@@ -3341,6 +3403,26 @@ typedef void (*virConnectDomainEventDeviceAddedCallback)(virConnectPtr conn,
                                                          virDomainPtr dom,
                                                          const char *devAlias,
                                                          void *opaque);
+
+
+/**
+ * virConnectDomainEventDeviceRemovalFailedCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @devAlias: device alias
+ * @opaque: application specified data
+ *
+ * This callback occurs when it's certain that removal of a device failed.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED with
+ * virConnectDomainEventRegisterAny().
+ */
+typedef void (*virConnectDomainEventDeviceRemovalFailedCallback)(virConnectPtr conn,
+                                                                 virDomainPtr dom,
+                                                                 const char *devAlias,
+                                                                 void *opaque);
+
 
 /**
  * virConnectDomainEventMigrationIterationCallback:
@@ -3687,6 +3769,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_DEVICE_ADDED = 19,   /* virConnectDomainEventDeviceAddedCallback */
     VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION = 20, /* virConnectDomainEventMigrationIterationCallback */
     VIR_DOMAIN_EVENT_ID_JOB_COMPLETED = 21,  /* virConnectDomainEventJobCompletedCallback */
+    VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED = 22, /* virConnectDomainEventDeviceRemovalFailedCallback */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST

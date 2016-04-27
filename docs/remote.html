@@ -252,20 +252,20 @@ much slower than, say, direct hypervisor calls. </li></ul>
         <p>
 Remote libvirt supports a range of transports:
 </p>
-        <dl><dt> tls </dt><dd><a href="http://en.wikipedia.org/wiki/Transport_Layer_Security" title="Transport Layer Security" shape="rect">TLS</a>
+        <dl><dt><code>tls</code></dt><dd><a href="http://en.wikipedia.org/wiki/Transport_Layer_Security" title="Transport Layer Security" shape="rect">TLS</a>
  1.0 (SSL 3.1) authenticated and encrypted TCP/IP socket, usually
  listening on a public port number.  To use this you will need to
  <a href="#Remote_certificates" title="Generating TLS certificates" shape="rect">generate client and
  server certificates</a>.
  The standard port is 16514.
- </dd><dt> unix </dt><dd> Unix domain socket.  Since this is only accessible on the
+ </dd><dt><code>unix</code></dt><dd> Unix domain socket.  Since this is only accessible on the
  local machine, it is not encrypted, and uses Unix permissions or
  SELinux for authentication.
  The standard socket names are
  <code>/var/run/libvirt/libvirt-sock</code> and
  <code>/var/run/libvirt/libvirt-sock-ro</code> (the latter
  for read-only connections).
- </dd><dt> ssh </dt><dd> Transported over an ordinary
+ </dd><dt><code>ssh</code></dt><dd> Transported over an ordinary
  <a href="http://www.openssh.com/" title="OpenSSH homepage" shape="rect">ssh
  (secure shell)</a> connection.
  Requires <a href="http://netcat.sourceforge.net/" shape="rect">Netcat (nc)</a>
@@ -274,11 +274,11 @@ Remote libvirt supports a range of transports:
  ssh key management (eg.
  <a href="http://mah.everybody.org/docs/ssh" title="Using ssh-agent with ssh" shape="rect">ssh-agent</a>)
  otherwise programs which use
- this transport will stop to ask for a password. </dd><dt> ext </dt><dd> Any external program which can make a connection to the
- remote machine by means outside the scope of libvirt. </dd><dt> tcp </dt><dd> Unencrypted TCP/IP socket.  Not recommended for production
+ this transport will stop to ask for a password. </dd><dt><code>ext</code></dt><dd> Any external program which can make a connection to the
+ remote machine by means outside the scope of libvirt. </dd><dt><code>tcp</code></dt><dd> Unencrypted TCP/IP socket.  Not recommended for production
  use, this is normally disabled, but an administrator can enable
  it for testing or use over a trusted network.
- The standard port is 16509. </dd><dt> libssh2 </dt><dd> Transport over the SSH protocol using
+ The standard port is 16509. </dd><dt><code>libssh2</code></dt><dd> Transport over the SSH protocol using
       <a href="http://libssh2.org/" title="libssh2 homepage" shape="rect">libssh2</a> instead
 of the OpenSSH binary. This transport uses the libvirt authentication callback for
 all ssh authentication calls and therefore supports keyboard-interactive authentication
@@ -688,7 +688,7 @@ cp clientcert.pem /etc/pki/libvirt/clientcert.pem
         <h4>
       <a name="Remote_TLS_troubleshooting" shape="rect" id="Remote_TLS_troubleshooting">Troubleshooting TLS certificate problems</a>
     <a class="headerlink" href="#Remote_TLS_troubleshooting" title="Permalink to this headline">¶</a></h4>
-        <dl><dt> failed to verify client's certificate </dt><dd>
+        <dl><dt>failed to verify client's certificate</dt><!-- exempt from syntax-check --><dd>
         <p>
 On the server side, run the libvirtd server with
 the '--listen' and '--verbose' options while the

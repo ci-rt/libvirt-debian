@@ -321,6 +321,10 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "qxl-vga.vram64_size_mb", /* 215 */
               "chardev-logfile",
               "debug-threads",
+              "secret",
+              "pxb",
+
+              "pxb-pcie", /* 220 */
     );
 
 
@@ -354,6 +358,9 @@ struct _virQEMUCaps {
     char **machineTypes;
     char **machineAliases;
     unsigned int *machineMaxCpus;
+
+    size_t ngicCapabilities;
+    virGICCapability *gicCapabilities;
 };
 
 struct virQEMUCapsSearchData {
@@ -1163,8 +1170,6 @@ virQEMUCapsComputeCmdFlags(const char *help,
         if (strstr(help, "-chardev spiceport"))
             virQEMUCapsSet(qemuCaps, QEMU_CAPS_CHARDEV_SPICEPORT);
     }
-    if (strstr(help, "-balloon"))
-        virQEMUCapsSet(qemuCaps, QEMU_CAPS_BALLOON);
     if (strstr(help, "-device")) {
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DEVICE);
         /*
@@ -1575,6 +1580,9 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-input-host-device", QEMU_CAPS_VIRTIO_INPUT_HOST },
     { "virtio-input-host-pci", QEMU_CAPS_VIRTIO_INPUT_HOST },
     { "mptsas1068", QEMU_CAPS_SCSI_MPTSAS1068 },
+    { "secret", QEMU_CAPS_OBJECT_SECRET },
+    { "pxb", QEMU_CAPS_DEVICE_PXB },
+    { "pxb-pcie", QEMU_CAPS_DEVICE_PXB_PCIE },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBalloon[] = {
@@ -2077,6 +2085,8 @@ void virQEMUCapsDispose(void *obj)
 
     VIR_FREE(qemuCaps->package);
     VIR_FREE(qemuCaps->binary);
+
+    VIR_FREE(qemuCaps->gicCapabilities);
 }
 
 void
@@ -2172,7 +2182,8 @@ bool virQEMUCapsHasPCIMultiBus(virQEMUCapsPtr qemuCaps,
         /* If 'virt' supports PCI, it supports multibus.
          * No extra conditions here for simplicity.
          */
-        if (STREQ(def->os.machine, "virt"))
+        if (STREQ(def->os.machine, "virt") ||
+            STRPREFIX(def->os.machine, "virt-"))
             return true;
     }
 
@@ -2690,6 +2701,34 @@ virQEMUCapsProbeQMPMigrationCapabilities(virQEMUCapsPtr qemuCaps,
     return 0;
 }
 
+/**
+ * virQEMUCapsProbeQMPGICCapabilities:
+ * @qemuCaps: QEMU binary capabilities
+ * @mon: QEMU monitor
+ *
+ * Use @mon to obtain information about the GIC capabilities for the
+ * corresponding QEMU binary, and store them in @qemuCaps.
+ *
+ * Returns: 0 on success, <0 on failure
+ */
+static int
+virQEMUCapsProbeQMPGICCapabilities(virQEMUCapsPtr qemuCaps,
+                                   qemuMonitorPtr mon)
+{
+    virGICCapability *caps = NULL;
+    int ncaps;
+
+    if ((ncaps = qemuMonitorGetGICCapabilities(mon, &caps)) < 0)
+        return -1;
+
+    VIR_FREE(qemuCaps->gicCapabilities);
+
+    qemuCaps->gicCapabilities = caps;
+    qemuCaps->ngicCapabilities = ncaps;
+
+    return 0;
+}
+
 int virQEMUCapsProbeQMP(virQEMUCapsPtr qemuCaps,
                         qemuMonitorPtr mon)
 {
@@ -2887,6 +2926,72 @@ virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps, const char *filename,
     }
     VIR_FREE(nodes);
 
+    if ((n = virXPathNodeSet("./gic", ctxt, &nodes)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("failed to parse qemu capabilities gic"));
+        goto cleanup;
+    }
+    if (n > 0) {
+        unsigned int uintValue;
+        bool boolValue;
+
+        qemuCaps->ngicCapabilities = n;
+        if (VIR_ALLOC_N(qemuCaps->gicCapabilities, n) < 0)
+            goto cleanup;
+
+        for (i = 0; i < n; i++) {
+            virGICCapabilityPtr cap = &qemuCaps->gicCapabilities[i];
+
+            if (!(str = virXMLPropString(nodes[i], "version"))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing GIC version "
+                                 "in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            if (virStrToLong_ui(str, NULL, 10, &uintValue) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("malformed GIC version "
+                                 "in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            cap->version = uintValue;
+            VIR_FREE(str);
+
+            if (!(str = virXMLPropString(nodes[i], "kernel"))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing in-kernel GIC information "
+                                 "in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            if (!(boolValue = STREQ(str, "yes")) && STRNEQ(str, "no")) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("malformed in-kernel GIC information "
+                                 "in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            if (boolValue)
+                cap->implementation |= VIR_GIC_IMPLEMENTATION_KERNEL;
+            VIR_FREE(str);
+
+            if (!(str = virXMLPropString(nodes[i], "emulated"))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing emulated GIC information "
+                                 "in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            if (!(boolValue = STREQ(str, "yes")) && STRNEQ(str, "no")) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("malformed emulated GIC information "
+                                 "in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            if (boolValue)
+                cap->implementation |= VIR_GIC_IMPLEMENTATION_EMULATED;
+            VIR_FREE(str);
+        }
+    }
+    VIR_FREE(nodes);
+
     ret = 0;
  cleanup:
     VIR_FREE(str);
@@ -2951,6 +3056,22 @@ virQEMUCapsSaveCache(virQEMUCapsPtr qemuCaps, const char *filename)
                               qemuCaps->machineAliases[i]);
         virBufferAsprintf(&buf, " maxCpus='%u'/>\n",
                           qemuCaps->machineMaxCpus[i]);
+    }
+
+    for (i = 0; i < qemuCaps->ngicCapabilities; i++) {
+        virGICCapabilityPtr cap;
+        bool kernel;
+        bool emulated;
+
+        cap = &qemuCaps->gicCapabilities[i];
+        kernel = (cap->implementation & VIR_GIC_IMPLEMENTATION_KERNEL);
+        emulated = (cap->implementation & VIR_GIC_IMPLEMENTATION_EMULATED);
+
+        virBufferAsprintf(&buf,
+                          "<gic version='%d' kernel='%s' emulated='%s'/>\n",
+                          cap->version,
+                          kernel ? "yes" : "no",
+                          emulated ? "yes" : "no");
     }
 
     virBufferAdjustIndent(&buf, -2);
@@ -3041,6 +3162,9 @@ virQEMUCapsReset(virQEMUCapsPtr qemuCaps)
     VIR_FREE(qemuCaps->machineAliases);
     VIR_FREE(qemuCaps->machineMaxCpus);
     qemuCaps->nmachineTypes = 0;
+
+    VIR_FREE(qemuCaps->gicCapabilities);
+    qemuCaps->ngicCapabilities = 0;
 }
 
 
@@ -3226,7 +3350,6 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DRIVE_SERIAL);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_CHARDEV);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_MONITOR_JSON);
-    virQEMUCapsSet(qemuCaps, QEMU_CAPS_BALLOON);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DEVICE);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_SDL);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_SMP_TOPOLOGY);
@@ -3404,6 +3527,12 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
     if (virQEMUCapsProbeQMPCommandLine(qemuCaps, mon) < 0)
         goto cleanup;
     if (virQEMUCapsProbeQMPMigrationCapabilities(qemuCaps, mon) < 0)
+        goto cleanup;
+
+    /* GIC capabilities, eg. available GIC versions */
+    if ((qemuCaps->arch == VIR_ARCH_AARCH64 ||
+         qemuCaps->arch == VIR_ARCH_ARMV7L) &&
+        virQEMUCapsProbeQMPGICCapabilities(qemuCaps, mon) < 0)
         goto cleanup;
 
     ret = 0;
@@ -3903,7 +4032,7 @@ virQEMUCapsFillDomainLoaderCaps(virQEMUCapsPtr qemuCaps,
 {
     size_t i;
 
-    capsLoader->device.supported = true;
+    capsLoader->supported = true;
 
     if (VIR_ALLOC_N(capsLoader->values.values, nloader) < 0)
         return -1;
@@ -3945,7 +4074,7 @@ virQEMUCapsFillDomainOSCaps(virQEMUCapsPtr qemuCaps,
 {
     virDomainCapsLoaderPtr capsLoader = &os->loader;
 
-    os->device.supported = true;
+    os->supported = true;
     if (virQEMUCapsFillDomainLoaderCaps(qemuCaps, capsLoader,
                                         loader, nloader) < 0)
         return -1;
@@ -3958,7 +4087,7 @@ virQEMUCapsFillDomainDeviceDiskCaps(virQEMUCapsPtr qemuCaps,
                                     const char *machine,
                                     virDomainCapsDeviceDiskPtr disk)
 {
-    disk->device.supported = true;
+    disk->supported = true;
     /* QEMU supports all of these */
     VIR_DOMAIN_CAPS_ENUM_SET(disk->diskDevice,
                              VIR_DOMAIN_DISK_DEVICE_DISK,
@@ -3994,7 +4123,7 @@ virQEMUCapsFillDomainDeviceHostdevCaps(virQEMUCapsPtr qemuCaps,
     bool supportsPassthroughKVM = qemuHostdevHostSupportsPassthroughLegacy();
     bool supportsPassthroughVFIO = qemuHostdevHostSupportsPassthroughVFIO();
 
-    hostdev->device.supported = true;
+    hostdev->supported = true;
     /* VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES is for containers only */
     VIR_DOMAIN_CAPS_ENUM_SET(hostdev->mode,
                              VIR_DOMAIN_HOSTDEV_MODE_SUBSYS);
@@ -4035,6 +4164,60 @@ virQEMUCapsFillDomainDeviceHostdevCaps(virQEMUCapsPtr qemuCaps,
 }
 
 
+/**
+ * virQEMUCapsFillDomainFeatureGICCaps:
+ * @qemuCaps: QEMU capabilities
+ * @domCaps: domain capabilities
+ *
+ * Take the information about GIC capabilities that has been obtained
+ * using the 'query-gic-capabilities' QMP command and stored in @qemuCaps
+ * and convert it to a form suitable for @domCaps.
+ *
+ * @qemuCaps contains complete information about the GIC capabilities for
+ * the corresponding QEMU binary, stored as custom objects; @domCaps, on
+ * the other hand, should only contain information about the GIC versions
+ * available for the specific combination of architecture, machine type
+ * and virtualization type. Moreover, a common format is used to store
+ * information about enumerations in @domCaps, so further processing is
+ * required.
+ *
+ * Returns: 0 on success, <0 on failure
+ */
+static int
+virQEMUCapsFillDomainFeatureGICCaps(virQEMUCapsPtr qemuCaps,
+                                    virDomainCapsPtr domCaps)
+{
+    virDomainCapsFeatureGICPtr gic = &domCaps->gic;
+    size_t i;
+
+    if (domCaps->arch != VIR_ARCH_ARMV7L &&
+        domCaps->arch != VIR_ARCH_AARCH64)
+        return 0;
+
+    if (STRNEQ(domCaps->machine, "virt") &&
+        !STRPREFIX(domCaps->machine, "virt-"))
+        return 0;
+
+    for (i = 0; i < qemuCaps->ngicCapabilities; i++) {
+        virGICCapabilityPtr cap = &qemuCaps->gicCapabilities[i];
+
+        if (domCaps->virttype == VIR_DOMAIN_VIRT_KVM &&
+            !(cap->implementation & VIR_GIC_IMPLEMENTATION_KERNEL))
+            continue;
+
+        if (domCaps->virttype == VIR_DOMAIN_VIRT_QEMU &&
+            !(cap->implementation & VIR_GIC_IMPLEMENTATION_EMULATED))
+            continue;
+
+        gic->supported = true;
+        VIR_DOMAIN_CAPS_ENUM_SET(gic->version,
+                                 cap->version);
+    }
+
+    return 0;
+}
+
+
 int
 virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
                           virQEMUCapsPtr qemuCaps,
@@ -4051,7 +4234,8 @@ virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
     if (virQEMUCapsFillDomainOSCaps(qemuCaps, os,
                                     loader, nloader) < 0 ||
         virQEMUCapsFillDomainDeviceDiskCaps(qemuCaps, domCaps->machine, disk) < 0 ||
-        virQEMUCapsFillDomainDeviceHostdevCaps(qemuCaps, hostdev) < 0)
+        virQEMUCapsFillDomainDeviceHostdevCaps(qemuCaps, hostdev) < 0 ||
+        virQEMUCapsFillDomainFeatureGICCaps(qemuCaps, domCaps) < 0)
         return -1;
     return 0;
 }

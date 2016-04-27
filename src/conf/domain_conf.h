@@ -1,7 +1,7 @@
 /*
  * domain_conf.h: domain XML processing
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  * Copyright (c) 2015 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
@@ -368,7 +368,7 @@ struct _virDomainDeviceInfo {
     char *romfile;
     /* bootIndex is only used for disk, network interface, hostdev
      * and redirdev devices */
-    int bootIndex;
+    unsigned int bootIndex;
 };
 
 
@@ -514,6 +514,7 @@ typedef struct _virDomainNetIpDef virDomainNetIpDef;
 typedef virDomainNetIpDef *virDomainNetIpDefPtr;
 struct _virDomainNetIpDef {
     virSocketAddr address;       /* ipv4 or ipv6 address */
+    virSocketAddr peer;    /* ipv4 or ipv6 address of peer */
     unsigned int prefix; /* number of 1 bits in the net mask */
 };
 
@@ -605,7 +606,7 @@ typedef enum {
 
 
 typedef enum {
-    VIR_DOMAIN_DISK_TRAY_CLOSED,
+    VIR_DOMAIN_DISK_TRAY_CLOSED = 0,
     VIR_DOMAIN_DISK_TRAY_OPEN,
 
     VIR_DOMAIN_DISK_TRAY_LAST
@@ -621,7 +622,7 @@ typedef enum {
 } virDomainDiskGeometryTrans;
 
 typedef enum {
-    VIR_DOMAIN_DISK_IO_DEFAULT,
+    VIR_DOMAIN_DISK_IO_DEFAULT = 0,
     VIR_DOMAIN_DISK_IO_NATIVE,
     VIR_DOMAIN_DISK_IO_THREADS,
 
@@ -758,6 +759,8 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT,
     VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT,
     VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT,
+    VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS,
+    VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS,
 
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST
 } virDomainControllerModelPCI;
@@ -769,6 +772,8 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_IOH3420,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_X3130_UPSTREAM,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_XIO3130_DOWNSTREAM,
+    VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PXB,
+    VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PXB_PCIE,
 
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_LAST
 } virDomainControllerPCIModelName;
@@ -833,6 +838,11 @@ struct _virDomainPCIControllerOpts {
      * pcie-root-port/pcie-switch-downstream-port, -1 = unspecified */
     int chassis;
     int port;
+    int busNr; /* used by pci-expander-bus, -1 == unspecified */
+    /* numaNode is a *subelement* of target (to match existing
+     * item in memory target config) -1 == unspecified
+     */
+    int numaNode;
 };
 
 /* Stores the virtual disk controller configuration */
@@ -2811,22 +2821,10 @@ virDomainHostdevRemove(virDomainDefPtr def, size_t i);
 int virDomainHostdevFind(virDomainDefPtr def, virDomainHostdevDefPtr match,
                          virDomainHostdevDefPtr *found);
 
-int virDomainGraphicsListenGetType(virDomainGraphicsDefPtr def, size_t i)
-            ATTRIBUTE_NONNULL(1);
-int virDomainGraphicsListenSetType(virDomainGraphicsDefPtr def, size_t i, int val)
-            ATTRIBUTE_NONNULL(1);
-const char *virDomainGraphicsListenGetAddress(virDomainGraphicsDefPtr def,
-                                              size_t i)
-            ATTRIBUTE_NONNULL(1);
-int virDomainGraphicsListenSetAddress(virDomainGraphicsDefPtr def,
-                                      size_t i, const char *address,
-                                      int len, bool setType)
-            ATTRIBUTE_NONNULL(1);
-const char *virDomainGraphicsListenGetNetwork(virDomainGraphicsDefPtr def,
-                                              size_t i)
-            ATTRIBUTE_NONNULL(1);
-int virDomainGraphicsListenSetNetwork(virDomainGraphicsDefPtr def,
-                                      size_t i, const char *network, int len)
+virDomainGraphicsListenDefPtr
+virDomainGraphicsGetListen(virDomainGraphicsDefPtr def, size_t i);
+int virDomainGraphicsListenAppendAddress(virDomainGraphicsDefPtr def,
+                                         const char *address)
             ATTRIBUTE_NONNULL(1);
 
 int virDomainNetGetActualType(virDomainNetDefPtr iface);
@@ -3161,5 +3159,7 @@ int virDomainDefGetVcpuPinInfoHelper(virDomainDefPtr def,
                                      int hostcpus,
                                      virBitmapPtr autoCpuset)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4) ATTRIBUTE_RETURN_CHECK;
+
+bool virDomainDefHasMemballoon(const virDomainDef *def) ATTRIBUTE_NONNULL(1);
 
 #endif /* __DOMAIN_CONF_H */

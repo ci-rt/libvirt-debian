@@ -500,6 +500,7 @@ qemuParseCommandLineVnc(virDomainDefPtr def,
 {
     int ret = -1;
     virDomainGraphicsDefPtr vnc = NULL;
+    char *listenAddr = NULL;
     char *tmp;
 
     if (VIR_ALLOC(vnc) < 0)
@@ -536,7 +537,8 @@ qemuParseCommandLineVnc(virDomainDefPtr def,
         }
         if (val[0] == '[')
             val++;
-        if (virDomainGraphicsListenSetAddress(vnc, 0, val, tmp-val, true) < 0)
+        if (VIR_STRNDUP(listenAddr, val, tmp-val) < 0 ||
+            virDomainGraphicsListenAppendAddress(vnc, listenAddr) < 0)
             goto cleanup;
 
         if (*opts == ',') {
@@ -612,6 +614,7 @@ qemuParseCommandLineVnc(virDomainDefPtr def,
 
  cleanup:
     virDomainGraphicsDefFree(vnc);
+    VIR_FREE(listenAddr);
     return ret;
 }
 

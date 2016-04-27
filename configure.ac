@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.3.3], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.3.4], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -143,6 +143,8 @@ AC_TYPE_UID_T
 
 dnl Support building Win32 DLLs (must appear *before* AM_PROG_LIBTOOL)
 AC_LIBTOOL_WIN32_DLL
+
+AC_HEADER_MAJOR
 
 m4_ifndef([LT_INIT], [
   AM_PROG_LIBTOOL
@@ -321,7 +323,7 @@ if test "x$lv_cv_pthread_sigmask_works" != xyes; then
   AC_DEFINE([FUNC_PTHREAD_SIGMASK_BROKEN], [1],
     [Define to 1 if pthread_sigmask is not a real function])
 fi
-LIBS=$old_libs
+LIBS=$old_LIBS
 
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h regex.h sys/un.h \
@@ -426,6 +428,7 @@ AC_PATH_PROG([XMLCATALOG], [xmlcatalog], [/usr/bin/xmlcatalog])
 AC_PATH_PROG([XSLTPROC], [xsltproc], [/usr/bin/xsltproc])
 AC_PATH_PROG([AUGPARSE], [augparse], [/usr/bin/augparse])
 AC_PROG_MKDIR_P
+AC_PROG_LN_S
 
 dnl External programs that we can use if they are available.
 dnl We will hard-code paths to these programs unless we cannot
@@ -916,6 +919,10 @@ if test "$with_libxl" != "no" ; then
     fi
 fi
 
+# Until there is a need to use enhancements of libxl APIs such as
+# libxl_domain_create_restore and libxl_set_vcpuaffinity, stick with
+# the APIs as defined in libxl API version 4.2.0.
+LIBXL_CFLAGS="$LIBXL_CFLAGS -DLIBXL_API_VERSION=0x040200"
 LIBS="$old_LIBS"
 CFLAGS="$old_CFLAGS"
 
@@ -1098,6 +1105,12 @@ dnl
 
 LIBVIRT_CHECK_LOGIN_SHELL
 
+dnl
+dnl Check for virt-host-validate
+dnl
+
+LIBVIRT_CHECK_HOST_VALIDATE
+
 AM_CONDITIONAL([WITH_SETUID_RPC_CLIENT], [test "$with_lxc$with_login_shell" != "nono"])
 
 dnl
@@ -1198,15 +1211,15 @@ AC_SUBST([LIBXML_CFLAGS])
 AC_SUBST([LIBXML_LIBS])
 
 dnl xmlURI structure has query_raw?
-old_cflags="$CFLAGS"
-old_libs="$LIBS"
+old_CFLAGS="$CFLAGS"
+old_LIBS="$LIBS"
 CFLAGS="$CFLAGS $LIBXML_CFLAGS"
 LIBS="$LIBS $LIBXML_LIBS"
 AC_CHECK_MEMBER([struct _xmlURI.query_raw],
 		[AC_DEFINE([HAVE_XMLURI_QUERY_RAW], [], [Have query_raw field in libxml2 xmlURI structure])],,
 		[#include <libxml/uri.h>])
-CFLAGS="$old_cflags"
-LIBS="$old_libs"
+CFLAGS="$old_CFLAGS"
+LIBS="$old_LIBS"
 
 dnl GnuTLS library
 AC_ARG_WITH([gnutls],
@@ -1222,8 +1235,8 @@ if test "x$with_gnutls" != "xno"; then
     GNUTLS_LIBS="-L$with_gnutls/lib"
   fi
   fail=0
-  old_cflags="$CFLAGS"
-  old_libs="$LIBS"
+  old_CFLAGS="$CFLAGS"
+  old_LIBS="$LIBS"
   CFLAGS="$CFLAGS $GNUTLS_CFLAGS"
   LIBS="$LIBS $GNUTLS_LIBS"
 
@@ -1281,16 +1294,23 @@ if test "x$with_gnutls" != "xno"; then
         [set to 1 if it is known or assumed that GNUTLS uses gcrypt])
     fi
 
-    dnl gnutls 3.x moved some declarations to a new header
-    AC_CHECK_HEADERS([gnutls/crypto.h], [], [], [[
-      #include <gnutls/gnutls.h>
-    ]])
-
     with_gnutls=yes
   fi
 
-  LIBS="$old_libs"
+  dnl GNUTLS_CFLAGS and GNUTLS_LIBS have probably been updated above,
+  dnl and we need the final values for function probing to work
+  CFLAGS="$old_CFLAGS $GNUTLS_CFLAGS"
+  LIBS="$old_LIBS $GNUTLS_LIBS"
+
+  dnl gnutls 3.x moved some declarations to a new header
+  AC_CHECK_HEADERS([gnutls/crypto.h], [], [], [[
+    #include <gnutls/gnutls.h>
+  ]])
+
+  AC_CHECK_FUNCS([gnutls_rnd])
+
   CFLAGS="$old_CFLAGS"
+  LIBS="$old_LIBS"
 fi
 
 if test "x$with_gnutls" = "xyes" ; then
@@ -1431,8 +1451,8 @@ if test "$with_selinux" != "yes" ; then
         AC_MSG_ERROR([You must install the libselinux development package and enable SELinux with the --with-selinux=yes in order to compile libvirt --with-secdriver-selinux=yes])
   fi
 elif test "$with_secdriver_selinux" != "no"; then
-  old_cflags="$CFLAGS"
-  old_libs="$LIBS"
+  old_CFLAGS="$CFLAGS"
+  old_LIBS="$LIBS"
   CFLAGS="$CFLAGS $SELINUX_CFLAGS"
   LIBS="$CFLAGS $SELINUX_LIBS"
 
@@ -1440,8 +1460,8 @@ elif test "$with_secdriver_selinux" != "no"; then
   AC_CHECK_FUNC([selinux_virtual_domain_context_path], [], [fail=1])
   AC_CHECK_FUNC([selinux_virtual_image_context_path], [], [fail=1])
   AC_CHECK_FUNCS([selinux_lxc_contexts_path])
-  CFLAGS="$old_cflags"
-  LIBS="$old_libs"
+  CFLAGS="$old_CFLAGS"
+  LIBS="$old_LIBS"
 
   if test "$fail" = "1" ; then
     if test "$with_secdriver_selinux" = "check" ; then
@@ -2744,7 +2764,7 @@ AC_DEFINE_UNQUOTED([base64_encode_alloc],[libvirt_gl_base64_encode_alloc],[Hack 
 AC_CONFIG_FILES([run],
                 [chmod +x,-w run])
 AC_CONFIG_FILES([\
-        Makefile src/Makefile include/Makefile docs/Makefile \
+        Makefile src/Makefile include/libvirt/Makefile docs/Makefile \
         gnulib/lib/Makefile \
         gnulib/tests/Makefile \
         libvirt.pc \
@@ -2918,17 +2938,18 @@ AC_MSG_NOTICE([        Alloc OOM: $enable_oom])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Miscellaneous])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([            Debug: $enable_debug])
-AC_MSG_NOTICE([      Use -Werror: $set_werror])
-AC_MSG_NOTICE([    Warning Flags: $WARN_CFLAGS])
-AC_MSG_NOTICE([           DTrace: $with_dtrace])
-AC_MSG_NOTICE([            numad: $with_numad])
-AC_MSG_NOTICE([      XML Catalog: $XML_CATALOG_FILE])
-AC_MSG_NOTICE([      Init script: $with_init_script])
-AC_MSG_NOTICE([Char device locks: $with_chrdev_lock_files])
-AC_MSG_NOTICE([   Default Editor: $DEFAULT_EDITOR])
-AC_MSG_NOTICE([     Loader/NVRAM: $with_loader_nvram])
-AC_MSG_NOTICE([ virt-login-shell: $with_login_shell])
+AC_MSG_NOTICE([             Debug: $enable_debug])
+AC_MSG_NOTICE([       Use -Werror: $set_werror])
+AC_MSG_NOTICE([     Warning Flags: $WARN_CFLAGS])
+AC_MSG_NOTICE([            DTrace: $with_dtrace])
+AC_MSG_NOTICE([             numad: $with_numad])
+AC_MSG_NOTICE([       XML Catalog: $XML_CATALOG_FILE])
+AC_MSG_NOTICE([       Init script: $with_init_script])
+AC_MSG_NOTICE([ Char device locks: $with_chrdev_lock_files])
+AC_MSG_NOTICE([    Default Editor: $DEFAULT_EDITOR])
+AC_MSG_NOTICE([      Loader/NVRAM: $with_loader_nvram])
+AC_MSG_NOTICE([  virt-login-shell: $with_login_shell])
+AC_MSG_NOTICE([virt-host-validate: $with_host_validate])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Developer Tools])
 AC_MSG_NOTICE([])

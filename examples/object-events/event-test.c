@@ -6,10 +6,14 @@
 #include <signal.h>
 #include <inttypes.h>
 
+#include <verify.h>
+
+#define VIR_ENUM_SENTINELS
+
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
 
-#define VIR_DEBUG(fmt) printf("%s:%d: " fmt "\n", __func__, __LINE__)
+#define ARRAY_CARDINALITY(Array) (sizeof(Array) / sizeof(*(Array)))
 #define STREQ(a, b) (strcmp(a, b) == 0)
 
 #ifndef ATTRIBUTE_UNUSED
@@ -18,293 +22,328 @@
 
 int run = 1;
 
-/* Prototypes */
-const char *eventToString(int event);
-int myEventAddHandleFunc  (int fd, int event,
-                           virEventHandleCallback cb,
-                           void *opaque,
-                           virFreeCallback ff);
-void myEventUpdateHandleFunc(int watch, int event);
-int  myEventRemoveHandleFunc(int watch);
-
-int myEventAddTimeoutFunc(int timeout,
-                          virEventTimeoutCallback cb,
-                          void *opaque,
-                          virFreeCallback ff);
-void myEventUpdateTimeoutFunc(int timer, int timout);
-int myEventRemoveTimeoutFunc(int timer);
-
-int myEventHandleTypeToPollEvent(virEventHandleType events);
-virEventHandleType myPollEventToEventHandleType(int events);
-
-void usage(const char *pname);
-
 /* Callback functions */
-
-
-static void connectClose(virConnectPtr conn ATTRIBUTE_UNUSED,
-                         int reason,
-                         void *opaque ATTRIBUTE_UNUSED)
+static void
+connectClose(virConnectPtr conn ATTRIBUTE_UNUSED,
+             int reason,
+             void *opaque ATTRIBUTE_UNUSED)
 {
-    switch (reason) {
+    run = 0;
+
+    switch ((virConnectCloseReason) reason) {
     case VIR_CONNECT_CLOSE_REASON_ERROR:
         fprintf(stderr, "Connection closed due to I/O error\n");
-        break;
+        return;
+
     case VIR_CONNECT_CLOSE_REASON_EOF:
         fprintf(stderr, "Connection closed due to end of file\n");
-        break;
+        return;
+
     case VIR_CONNECT_CLOSE_REASON_KEEPALIVE:
         fprintf(stderr, "Connection closed due to keepalive timeout\n");
-        break;
+        return;
+
     case VIR_CONNECT_CLOSE_REASON_CLIENT:
         fprintf(stderr, "Connection closed due to client request\n");
-        break;
-    default:
-        fprintf(stderr, "Connection closed due to unknown reason\n");
+        return;
+
+    case VIR_CONNECT_CLOSE_REASON_LAST:
         break;
     };
-    run = 0;
+
+    fprintf(stderr, "Connection closed due to unknown reason\n");
 }
 
-const char *eventToString(int event) {
-    const char *ret = "";
+
+static const char *
+eventToString(int event)
+{
     switch ((virDomainEventType) event) {
         case VIR_DOMAIN_EVENT_DEFINED:
-            ret = "Defined";
-            break;
+            return "Defined";
+
         case VIR_DOMAIN_EVENT_UNDEFINED:
-            ret = "Undefined";
-            break;
+            return "Undefined";
+
         case VIR_DOMAIN_EVENT_STARTED:
-            ret = "Started";
-            break;
+            return "Started";
+
         case VIR_DOMAIN_EVENT_SUSPENDED:
-            ret = "Suspended";
-            break;
+            return "Suspended";
+
         case VIR_DOMAIN_EVENT_RESUMED:
-            ret = "Resumed";
-            break;
+            return "Resumed";
+
         case VIR_DOMAIN_EVENT_STOPPED:
-            ret = "Stopped";
-            break;
+            return "Stopped";
+
         case VIR_DOMAIN_EVENT_SHUTDOWN:
-            ret = "Shutdown";
-            break;
+            return "Shutdown";
+
         case VIR_DOMAIN_EVENT_PMSUSPENDED:
-            ret = "PMSuspended";
-            break;
+            return "PMSuspended";
+
         case VIR_DOMAIN_EVENT_CRASHED:
-            ret = "Crashed";
+            return "Crashed";
+
+        case VIR_DOMAIN_EVENT_LAST:
             break;
     }
-    return ret;
+
+    return "unknown";
 }
 
-static const char *eventDetailToString(int event, int detail) {
-    const char *ret = "";
+
+static const char *
+eventDetailToString(int event,
+                    int detail)
+{
     switch ((virDomainEventType) event) {
         case VIR_DOMAIN_EVENT_DEFINED:
-            if (detail == VIR_DOMAIN_EVENT_DEFINED_ADDED)
-                ret = "Added";
-            else if (detail == VIR_DOMAIN_EVENT_DEFINED_UPDATED)
-                ret = "Updated";
-            else if (detail == VIR_DOMAIN_EVENT_DEFINED_RENAMED)
-                ret = "Renamed";
-            else if (detail == VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT)
-                ret = "Snapshot";
+            switch ((virDomainEventDefinedDetailType) detail) {
+            case VIR_DOMAIN_EVENT_DEFINED_ADDED:
+                return "Added";
+
+            case VIR_DOMAIN_EVENT_DEFINED_UPDATED:
+                return "Updated";
+
+            case VIR_DOMAIN_EVENT_DEFINED_RENAMED:
+                return "Renamed";
+
+            case  VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT:
+                return "Snapshot";
+
+            case VIR_DOMAIN_EVENT_DEFINED_LAST:
+                break;
+            }
             break;
+
         case VIR_DOMAIN_EVENT_UNDEFINED:
-            if (detail == VIR_DOMAIN_EVENT_UNDEFINED_REMOVED)
-                ret = "Removed";
-            else if (detail == VIR_DOMAIN_EVENT_UNDEFINED_RENAMED)
-                ret = "Renamed";
+            switch ((virDomainEventUndefinedDetailType) detail) {
+            case VIR_DOMAIN_EVENT_UNDEFINED_REMOVED:
+                return "Removed";
+
+            case VIR_DOMAIN_EVENT_UNDEFINED_RENAMED:
+                return "Renamed";
+
+            case VIR_DOMAIN_EVENT_UNDEFINED_LAST:
+                break;
+            }
             break;
+
         case VIR_DOMAIN_EVENT_STARTED:
             switch ((virDomainEventStartedDetailType) detail) {
             case VIR_DOMAIN_EVENT_STARTED_BOOTED:
-                ret = "Booted";
-                break;
+                return "Booted";
+
             case VIR_DOMAIN_EVENT_STARTED_MIGRATED:
-                ret = "Migrated";
-                break;
+                return "Migrated";
+
             case VIR_DOMAIN_EVENT_STARTED_RESTORED:
-                ret = "Restored";
-                break;
+                return "Restored";
+
             case VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT:
-                ret = "Snapshot";
-                break;
+                return "Snapshot";
+
             case VIR_DOMAIN_EVENT_STARTED_WAKEUP:
-                ret = "Event wakeup";
+                return "Event wakeup";
+
+            case VIR_DOMAIN_EVENT_STARTED_LAST:
                 break;
             }
             break;
+
         case VIR_DOMAIN_EVENT_SUSPENDED:
             switch ((virDomainEventSuspendedDetailType) detail) {
             case VIR_DOMAIN_EVENT_SUSPENDED_PAUSED:
-                ret = "Paused";
-                break;
+                return "Paused";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED:
-                ret = "Migrated";
-                break;
+                return "Migrated";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_IOERROR:
-                ret = "I/O Error";
-                break;
+                return "I/O Error";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG:
-                ret = "Watchdog";
-                break;
+                return "Watchdog";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_RESTORED:
-                ret = "Restored";
-                break;
+                return "Restored";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT:
-                ret = "Snapshot";
-                break;
+                return "Snapshot";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR:
-                ret = "API error";
-                break;
+                return "API error";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY:
-                ret = "Post-copy";
-                break;
+                return "Post-copy";
+
             case VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY_FAILED:
-                ret = "Post-copy Error";
+                return "Post-copy Error";
+
+            case VIR_DOMAIN_EVENT_SUSPENDED_LAST:
                 break;
             }
             break;
+
         case VIR_DOMAIN_EVENT_RESUMED:
             switch ((virDomainEventResumedDetailType) detail) {
             case VIR_DOMAIN_EVENT_RESUMED_UNPAUSED:
-                ret = "Unpaused";
-                break;
+                return "Unpaused";
+
             case VIR_DOMAIN_EVENT_RESUMED_MIGRATED:
-                ret = "Migrated";
-                break;
+                return "Migrated";
+
             case VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT:
-                ret = "Snapshot";
-                break;
+                return "Snapshot";
+
             case VIR_DOMAIN_EVENT_RESUMED_POSTCOPY:
-                ret = "Post-copy";
+                return "Post-copy";
+
+            case VIR_DOMAIN_EVENT_RESUMED_LAST:
                 break;
             }
             break;
+
         case VIR_DOMAIN_EVENT_STOPPED:
             switch ((virDomainEventStoppedDetailType) detail) {
             case VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN:
-                ret = "Shutdown";
-                break;
+                return "Shutdown";
+
             case VIR_DOMAIN_EVENT_STOPPED_DESTROYED:
-                ret = "Destroyed";
-                break;
+                return "Destroyed";
+
             case VIR_DOMAIN_EVENT_STOPPED_CRASHED:
-                ret = "Crashed";
-                break;
+                return "Crashed";
+
             case VIR_DOMAIN_EVENT_STOPPED_MIGRATED:
-                ret = "Migrated";
-                break;
+                return "Migrated";
+
             case VIR_DOMAIN_EVENT_STOPPED_SAVED:
-                ret = "Saved";
-                break;
+                return "Saved";
+
             case VIR_DOMAIN_EVENT_STOPPED_FAILED:
-                ret = "Failed";
-                break;
+                return "Failed";
+
             case VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT:
-                ret = "Snapshot";
+                return "Snapshot";
+
+            case VIR_DOMAIN_EVENT_STOPPED_LAST:
                 break;
             }
             break;
+
         case VIR_DOMAIN_EVENT_SHUTDOWN:
             switch ((virDomainEventShutdownDetailType) detail) {
             case VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED:
-                ret = "Finished";
+                return "Finished";
+
+            case VIR_DOMAIN_EVENT_SHUTDOWN_LAST:
                 break;
             }
             break;
+
         case VIR_DOMAIN_EVENT_PMSUSPENDED:
             switch ((virDomainEventPMSuspendedDetailType) detail) {
             case VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY:
-                ret = "Memory";
-                break;
+                return "Memory";
+
             case VIR_DOMAIN_EVENT_PMSUSPENDED_DISK:
-                ret = "Disk";
+                return "Disk";
+
+            case VIR_DOMAIN_EVENT_PMSUSPENDED_LAST:
                 break;
             }
             break;
+
         case VIR_DOMAIN_EVENT_CRASHED:
            switch ((virDomainEventCrashedDetailType) detail) {
            case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
-               ret = "Panicked";
+               return "Panicked";
+
+           case VIR_DOMAIN_EVENT_CRASHED_LAST:
                break;
            }
            break;
+
+        case VIR_DOMAIN_EVENT_LAST:
+           break;
     }
-    return ret;
+
+    return "unknown";
 }
+
 
 static const char *
 networkEventToString(int event)
 {
-    const char *ret = "";
     switch ((virNetworkEventLifecycleType) event) {
         case VIR_NETWORK_EVENT_DEFINED:
-            ret = "Defined";
-            break;
+            return "Defined";
+
         case VIR_NETWORK_EVENT_UNDEFINED:
-            ret = "Undefined";
-            break;
+            return "Undefined";
+
         case VIR_NETWORK_EVENT_STARTED:
-            ret = "Started";
-            break;
+            return "Started";
+
         case VIR_NETWORK_EVENT_STOPPED:
-            ret = "Stopped";
+            return "Stopped";
+
+        case VIR_NETWORK_EVENT_LAST:
             break;
     }
-    return ret;
+
+    return "unknown";
 }
+
 
 static const char *
 guestAgentLifecycleEventStateToString(int event)
 {
-    const char *ret = "";
-
     switch ((virConnectDomainEventAgentLifecycleState) event) {
     case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED:
-        ret = "Disconnected";
-        break;
+        return "Disconnected";
 
     case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_CONNECTED:
-        ret = "Connected";
+        return "Connected";
+
+    case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST:
         break;
     }
 
-    return ret;
+    return "unknown";
 }
+
 
 static const char *
 guestAgentLifecycleEventReasonToString(int event)
 {
-    const char *ret = "";
-
     switch ((virConnectDomainEventAgentLifecycleReason) event) {
     case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_UNKNOWN:
-        ret = "Unknown";
-        break;
+        return "Unknown";
 
     case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_DOMAIN_STARTED:
-        ret = "Domain started";
-        break;
+        return "Domain started";
 
     case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_CHANNEL:
-        ret = "Channel event";
+        return "Channel event";
+
+    case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_LAST:
         break;
     }
 
-    return ret;
+    return "unknown";
 }
 
 
-static int myDomainEventCallback1(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                  virDomainPtr dom,
-                                  int event,
-                                  int detail,
-                                  void *opaque ATTRIBUTE_UNUSED)
+static int
+myDomainEventCallback1(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       virDomainPtr dom,
+                       int event,
+                       int detail,
+                       void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) %s %s\n", __func__, virDomainGetName(dom),
            virDomainGetID(dom), eventToString(event),
@@ -312,11 +351,13 @@ static int myDomainEventCallback1(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static int myDomainEventCallback2(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                  virDomainPtr dom,
-                                  int event,
-                                  int detail,
-                                  void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventCallback2(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       virDomainPtr dom,
+                       int event,
+                       int detail,
+                       void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) %s %s\n", __func__, virDomainGetName(dom),
            virDomainGetID(dom), eventToString(event),
@@ -324,9 +365,11 @@ static int myDomainEventCallback2(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static int myDomainEventRebootCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                       virDomainPtr dom,
-                                       void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventRebootCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                            virDomainPtr dom,
+                            void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) rebooted\n", __func__, virDomainGetName(dom),
            virDomainGetID(dom));
@@ -334,10 +377,12 @@ static int myDomainEventRebootCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static int myDomainEventRTCChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                          virDomainPtr dom,
-                                          long long offset,
-                                          void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventRTCChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                               virDomainPtr dom,
+                               long long offset,
+                               void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) rtc change %" PRIdMAX "\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom),
@@ -346,10 +391,12 @@ static int myDomainEventRTCChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static int myDomainEventBalloonChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                              virDomainPtr dom,
-                                              unsigned long long actual,
-                                              void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventBalloonChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                   virDomainPtr dom,
+                                   unsigned long long actual,
+                                   void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) balloon change %" PRIuMAX "KB\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom), (uintmax_t)actual);
@@ -357,54 +404,90 @@ static int myDomainEventBalloonChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSE
     return 0;
 }
 
-static int myDomainEventWatchdogCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                         virDomainPtr dom,
-                                         int action,
-                                         void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventWatchdogCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                              virDomainPtr dom,
+                              int action,
+                              void *opaque ATTRIBUTE_UNUSED)
 {
-    printf("%s EVENT: Domain %s(%d) watchdog action=%d\n", __func__, virDomainGetName(dom),
-           virDomainGetID(dom), action);
+    printf("%s EVENT: Domain %s(%d) watchdog action=%d\n", __func__,
+           virDomainGetName(dom), virDomainGetID(dom), action);
 
     return 0;
 }
 
-static int myDomainEventIOErrorCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                        virDomainPtr dom,
-                                        const char *srcPath,
-                                        const char *devAlias,
-                                        int action,
-                                        void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventIOErrorCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                             virDomainPtr dom,
+                             const char *srcPath,
+                             const char *devAlias,
+                             int action,
+                             void *opaque ATTRIBUTE_UNUSED)
 {
-    printf("%s EVENT: Domain %s(%d) io error path=%s alias=%s action=%d\n", __func__, virDomainGetName(dom),
-           virDomainGetID(dom), srcPath, devAlias, action);
+    printf("%s EVENT: Domain %s(%d) io error path=%s alias=%s action=%d\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom),
+           srcPath, devAlias, action);
 
     return 0;
 }
 
-static int myDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                         virDomainPtr dom,
-                                         int phase,
-                                         virDomainEventGraphicsAddressPtr local,
-                                         virDomainEventGraphicsAddressPtr remote,
-                                         const char *authScheme,
-                                         virDomainEventGraphicsSubjectPtr subject,
-                                         void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventIOErrorReasonCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                   virDomainPtr dom,
+                                   const char *srcPath,
+                                   const char *devAlias,
+                                   int action,
+                                   const char *reason,
+                                   void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) io error (reason) path=%s alias=%s "
+           "action=%d reason=%s\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom),
+           srcPath, devAlias, action, reason);
+
+    return 0;
+}
+
+
+static const char *
+graphicsPhaseToStr(int phase)
+{
+    switch ((virDomainEventGraphicsPhase) phase) {
+    case VIR_DOMAIN_EVENT_GRAPHICS_CONNECT:
+        return "connected";
+
+    case VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE:
+        return "initialized";
+
+    case VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT:
+        return "disconnected";
+
+    case VIR_DOMAIN_EVENT_GRAPHICS_LAST:
+        break;
+    }
+
+    return "unknown";
+}
+
+
+static int
+myDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                              virDomainPtr dom,
+                              int phase,
+                              virDomainEventGraphicsAddressPtr local,
+                              virDomainEventGraphicsAddressPtr remote,
+                              const char *authScheme,
+                              virDomainEventGraphicsSubjectPtr subject,
+                              void *opaque ATTRIBUTE_UNUSED)
 {
     size_t i;
     printf("%s EVENT: Domain %s(%d) graphics ", __func__, virDomainGetName(dom),
            virDomainGetID(dom));
 
-    switch (phase) {
-    case VIR_DOMAIN_EVENT_GRAPHICS_CONNECT:
-        printf("connected ");
-        break;
-    case VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE:
-        printf("initialized ");
-        break;
-    case VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT:
-        printf("disconnected ");
-        break;
-    }
+    printf("%s ", graphicsPhaseToStr(phase));
 
     printf("local: family=%d node=%s service=%s ",
            local->family, local->node, local->service);
@@ -422,81 +505,120 @@ static int myDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static int myDomainEventControlErrorCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                             virDomainPtr dom,
-                                             void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventControlErrorCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virDomainPtr dom,
+                                  void *opaque ATTRIBUTE_UNUSED)
 {
-    printf("%s EVENT: Domain %s(%d) control error\n", __func__, virDomainGetName(dom),
-           virDomainGetID(dom));
+    printf("%s EVENT: Domain %s(%d) control error\n", __func__,
+           virDomainGetName(dom), virDomainGetID(dom));
 
     return 0;
 }
 
-
-const char *diskChangeReasonStrings[] = {
-    "startupPolicy", /* 0 */
-    /* add new reason here */
-};
-static int myDomainEventDiskChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                           virDomainPtr dom,
-                                           const char *oldSrcPath,
-                                           const char *newSrcPath,
-                                           const char *devAlias,
-                                           int reason,
-                                           void *opaque ATTRIBUTE_UNUSED)
+static const char *
+diskChangeReasonToStr(int reason)
 {
-    printf("%s EVENT: Domain %s(%d) disk change oldSrcPath: %s newSrcPath: %s devAlias: %s reason: %s\n",
+    switch ((virConnectDomainEventDiskChangeReason) reason) {
+    case VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START:
+        return "disk empty due to startupPolicy";
+
+    case VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START:
+        return "disk dropped due to startupPolicy";
+
+    case VIR_DOMAIN_EVENT_DISK_CHANGE_LAST:
+        break;
+    }
+
+    return "unknown";
+}
+
+
+static int
+myDomainEventDiskChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                virDomainPtr dom,
+                                const char *oldSrcPath,
+                                const char *newSrcPath,
+                                const char *devAlias,
+                                int reason,
+                                void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) disk change oldSrcPath: %s newSrcPath: %s "
+           "devAlias: %s reason: %s\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom),
-           oldSrcPath, newSrcPath, devAlias, diskChangeReasonStrings[reason]);
+           oldSrcPath, newSrcPath, devAlias, diskChangeReasonToStr(reason));
     return 0;
 }
 
-const char *trayChangeReasonStrings[] = {
-    "open",
-    "close",
+static const char *
+trayChangeReasonToStr(int reason)
+{
+    switch ((virDomainEventTrayChangeReason) reason) {
+    case VIR_DOMAIN_EVENT_TRAY_CHANGE_OPEN:
+        return "open";
+
+    case VIR_DOMAIN_EVENT_TRAY_CHANGE_CLOSE:
+        return "close";
+
+    case VIR_DOMAIN_EVENT_TRAY_CHANGE_LAST:
+        break;
+    }
+
+    return "unknown";
 };
 
-static int myDomainEventTrayChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                           virDomainPtr dom,
-                                           const char *devAlias,
-                                           int reason,
-                                           void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventTrayChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                virDomainPtr dom,
+                                const char *devAlias,
+                                int reason,
+                                void *opaque ATTRIBUTE_UNUSED)
 {
-    printf("%s EVENT: Domain %s(%d) removable disk's tray change devAlias: %s reason: %s\n",
+    printf("%s EVENT: Domain %s(%d) removable disk's tray change devAlias: %s "
+           "reason: %s\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom),
-           devAlias, trayChangeReasonStrings[reason]);
+           devAlias, trayChangeReasonToStr(reason));
     return 0;
 }
 
-static int myDomainEventPMWakeupCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                         virDomainPtr dom,
-                                         int reason ATTRIBUTE_UNUSED,
-                                         void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventPMWakeupCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                              virDomainPtr dom,
+                              int reason ATTRIBUTE_UNUSED,
+                              void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) system pmwakeup\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom));
     return 0;
 }
 
-static int myDomainEventPMSuspendCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                          virDomainPtr dom,
-                                          int reason ATTRIBUTE_UNUSED,
-                                          void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventPMSuspendCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                               virDomainPtr dom,
+                               int reason ATTRIBUTE_UNUSED,
+                               void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) system pmsuspend\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom));
     return 0;
 }
 
-static int myDomainEventPMSuspendDiskCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                              virDomainPtr dom,
-                                              int reason ATTRIBUTE_UNUSED,
-                                              void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myDomainEventPMSuspendDiskCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                   virDomainPtr dom,
+                                   int reason ATTRIBUTE_UNUSED,
+                                   void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) system pmsuspend-disk\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom));
     return 0;
 }
+
 
 static int
 myDomainEventDeviceRemovedCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -509,28 +631,24 @@ myDomainEventDeviceRemovedCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static int myNetworkEventCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                  virNetworkPtr dom,
-                                  int event,
-                                  int detail,
-                                  void *opaque ATTRIBUTE_UNUSED)
+
+static int
+myNetworkEventCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       virNetworkPtr dom,
+                       int event,
+                       int detail,
+                       void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Network %s %s %d\n", __func__, virNetworkGetName(dom),
            networkEventToString(event), detail);
     return 0;
 }
 
-static int
-myDomainEventTunableCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
-                             virDomainPtr dom,
-                             virTypedParameterPtr params,
-                             int nparams,
-                             void *opaque ATTRIBUTE_UNUSED)
+static void
+eventTypedParamsPrint(virTypedParameterPtr params,
+                      int nparams)
 {
     size_t i;
-
-    printf("%s EVENT: Domain %s(%d) tunable updated:\n",
-           __func__, virDomainGetName(dom), virDomainGetID(dom));
 
     for (i = 0; i < nparams; i++) {
         switch (params[i].type) {
@@ -561,9 +679,24 @@ myDomainEventTunableCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
             printf("\t%s: unknown type\n", params[i].field);
         }
     }
+}
+
+
+static int
+myDomainEventTunableCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                             virDomainPtr dom,
+                             virTypedParameterPtr params,
+                             int nparams,
+                             void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) tunable updated:\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom));
+
+    eventTypedParamsPrint(params, nparams);
 
     return 0;
 }
+
 
 static int
 myDomainEventAgentLifecycleCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -580,6 +713,7 @@ myDomainEventAgentLifecycleCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
+
 static int
 myDomainEventDeviceAddedCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  virDomainPtr dom,
@@ -591,7 +725,117 @@ myDomainEventDeviceAddedCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static void myFreeFunc(void *opaque)
+
+static const char *
+blockJobTypeToStr(int type)
+{
+    switch ((virDomainBlockJobType) type) {
+    case VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN:
+    case VIR_DOMAIN_BLOCK_JOB_TYPE_LAST:
+        break;
+
+    case VIR_DOMAIN_BLOCK_JOB_TYPE_PULL:
+        return "block pull";
+
+    case VIR_DOMAIN_BLOCK_JOB_TYPE_COPY:
+        return "block copy";
+
+    case VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT:
+        return "block commit";
+
+    case VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT:
+        return "active layer block commit";
+    }
+
+    return "unknown";
+}
+
+
+static const char *
+blockJobStatusToStr(int status)
+{
+    switch ((virConnectDomainEventBlockJobStatus) status) {
+    case VIR_DOMAIN_BLOCK_JOB_COMPLETED:
+        return "completed";
+
+    case VIR_DOMAIN_BLOCK_JOB_FAILED:
+        return "failed";
+
+    case VIR_DOMAIN_BLOCK_JOB_CANCELED:
+        return "cancelled";
+
+    case VIR_DOMAIN_BLOCK_JOB_READY:
+        return "ready";
+
+    case VIR_DOMAIN_BLOCK_JOB_LAST:
+        break;
+    }
+
+    return "unknown";
+}
+
+
+static int
+myDomainEventBlockJobCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                              virDomainPtr dom,
+                              const char *disk,
+                              int type,
+                              int status,
+                              void *opaque)
+{
+    const char *eventName = opaque;
+
+    printf("%s EVENT: Domain %s(%d) block job callback '%s' disk '%s', "
+           "type '%s' status '%s'",
+           __func__, virDomainGetName(dom), virDomainGetID(dom), eventName,
+           disk, blockJobTypeToStr(type), blockJobStatusToStr(status));
+    return 0;
+}
+
+
+static int
+myDomainEventMigrationIterationCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                        virDomainPtr dom,
+                                        int iteration,
+                                        void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) migration iteration '%d'\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom), iteration);
+    return 0;
+}
+
+
+static int
+myDomainEventJobCompletedCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virDomainPtr dom,
+                                  virTypedParameterPtr params,
+                                  int nparams,
+                                  void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) job completed:\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom));
+
+    eventTypedParamsPrint(params, nparams);
+
+    return 0;
+}
+
+
+static int
+myDomainEventDeviceRemovalFailedCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                         virDomainPtr dom,
+                                         const char *devAlias,
+                                         void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) device removal failed: %s\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom), devAlias);
+    return 0;
+}
+
+
+
+static void
+myFreeFunc(void *opaque)
 {
     char *str = opaque;
     printf("%s: Freeing [%s]\n", __func__, str);
@@ -600,51 +844,70 @@ static void myFreeFunc(void *opaque)
 
 
 /* main test functions */
-
-void usage(const char *pname)
-{
-    printf("%s uri\n", pname);
-}
-
-
-static void stop(int sig)
+static void
+stop(int sig)
 {
     printf("Exiting on signal %d\n", sig);
     run = 0;
 }
 
 
-int main(int argc, char **argv)
+struct domainEventData {
+    int event;
+    int id;
+    virConnectDomainEventGenericCallback cb;
+    const char *name;
+};
+
+
+#define DOMAIN_EVENT(event, callback)                                          \
+    {event, -1, VIR_DOMAIN_EVENT_CALLBACK(callback), #event}
+
+struct domainEventData domainEvents[] = {
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_LIFECYCLE, myDomainEventCallback2),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_REBOOT, myDomainEventRebootCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_RTC_CHANGE, myDomainEventRTCChangeCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_WATCHDOG, myDomainEventWatchdogCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_IO_ERROR, myDomainEventIOErrorCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_GRAPHICS, myDomainEventGraphicsCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON, myDomainEventIOErrorReasonCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_CONTROL_ERROR, myDomainEventControlErrorCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_BLOCK_JOB, myDomainEventBlockJobCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_DISK_CHANGE, myDomainEventDiskChangeCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_TRAY_CHANGE, myDomainEventTrayChangeCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_PMWAKEUP, myDomainEventPMWakeupCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_PMSUSPEND, myDomainEventPMSuspendCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE, myDomainEventBalloonChangeCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK, myDomainEventPMSuspendDiskCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED, myDomainEventDeviceRemovedCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2, myDomainEventBlockJobCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_TUNABLE, myDomainEventTunableCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE, myDomainEventAgentLifecycleCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_DEVICE_ADDED, myDomainEventDeviceAddedCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION, myDomainEventMigrationIterationCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_JOB_COMPLETED, myDomainEventJobCompletedCallback),
+    DOMAIN_EVENT(VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED, myDomainEventDeviceRemovalFailedCallback),
+};
+
+/* make sure that the events are kept in sync */
+verify(ARRAY_CARDINALITY(domainEvents) == VIR_DOMAIN_EVENT_ID_LAST);
+
+int
+main(int argc, char **argv)
 {
     int ret = EXIT_FAILURE;
     virConnectPtr dconn = NULL;
     int callback1ret = -1;
-    int callback2ret = -1;
-    int callback3ret = -1;
-    int callback4ret = -1;
-    int callback5ret = -1;
-    int callback6ret = -1;
-    int callback7ret = -1;
-    int callback8ret = -1;
-    int callback9ret = -1;
-    int callback10ret = -1;
-    int callback11ret = -1;
-    int callback12ret = -1;
-    int callback13ret = -1;
-    int callback14ret = -1;
-    int callback15ret = -1;
     int callback16ret = -1;
-    int callback17ret = -1;
-    int callback18ret = -1;
-    int callback19ret = -1;
     struct sigaction action_stop;
+    size_t i;
 
     memset(&action_stop, 0, sizeof(action_stop));
 
     action_stop.sa_handler = stop;
 
     if (argc > 1 && STREQ(argv[1], "--help")) {
-        usage(argv[0]);
+        printf("%s uri\n", argv[0]);
         goto cleanup;
     }
 
@@ -677,120 +940,35 @@ int main(int argc, char **argv)
     sigaction(SIGTERM, &action_stop, NULL);
     sigaction(SIGINT, &action_stop, NULL);
 
-    VIR_DEBUG("Registering event cbs");
+    printf("Registering event callbacks\n");
 
-    /* Add 2 callbacks to prove this works with more than just one */
     callback1ret = virConnectDomainEventRegister(dconn, myDomainEventCallback1,
                                                  strdup("callback 1"), myFreeFunc);
-    callback2ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_LIFECYCLE,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventCallback2),
-                                                    strdup("callback 2"), myFreeFunc);
-    callback3ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_REBOOT,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventRebootCallback),
-                                                    strdup("callback reboot"), myFreeFunc);
-    callback4ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_RTC_CHANGE,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventRTCChangeCallback),
-                                                    strdup("callback rtcchange"), myFreeFunc);
-    callback5ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_WATCHDOG,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventWatchdogCallback),
-                                                    strdup("callback watchdog"), myFreeFunc);
-    callback6ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_IO_ERROR,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventIOErrorCallback),
-                                                    strdup("callback io error"), myFreeFunc);
-    callback7ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_GRAPHICS,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventGraphicsCallback),
-                                                    strdup("callback graphics"), myFreeFunc);
-    callback8ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_CONTROL_ERROR,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventControlErrorCallback),
-                                                    strdup("callback control error"), myFreeFunc);
-    callback9ret = virConnectDomainEventRegisterAny(dconn,
-                                                    NULL,
-                                                    VIR_DOMAIN_EVENT_ID_DISK_CHANGE,
-                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventDiskChangeCallback),
-                                                    strdup("disk change"), myFreeFunc);
-    callback10ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_TRAY_CHANGE,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventTrayChangeCallback),
-                                                     strdup("tray change"), myFreeFunc);
-    callback11ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_PMWAKEUP,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventPMWakeupCallback),
-                                                     strdup("pmwakeup"), myFreeFunc);
-    callback12ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_PMSUSPEND,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventPMSuspendCallback),
-                                                     strdup("pmsuspend"), myFreeFunc);
-    callback13ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventBalloonChangeCallback),
-                                                     strdup("callback balloonchange"), myFreeFunc);
-    callback14ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventPMSuspendDiskCallback),
-                                                     strdup("pmsuspend-disk"), myFreeFunc);
-    callback15ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventDeviceRemovedCallback),
-                                                     strdup("device removed"), myFreeFunc);
+
+    /* register common domain callbacks */
+    for (i = 0; i < ARRAY_CARDINALITY(domainEvents); i++) {
+        struct domainEventData *event = domainEvents + i;
+
+        event->id = virConnectDomainEventRegisterAny(dconn, NULL,
+                                                     event->event,
+                                                     event->cb,
+                                                     strdup(event->name),
+                                                     myFreeFunc);
+
+        if (event->id < 0) {
+            fprintf(stderr, "Failed to register event '%s'\n", event->name);
+            goto cleanup;
+        }
+    }
+
     callback16ret = virConnectNetworkEventRegisterAny(dconn,
                                                       NULL,
                                                       VIR_NETWORK_EVENT_ID_LIFECYCLE,
                                                       VIR_NETWORK_EVENT_CALLBACK(myNetworkEventCallback),
                                                       strdup("net callback"), myFreeFunc);
-    callback17ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_TUNABLE,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventTunableCallback),
-                                                     strdup("tunable"), myFreeFunc);
-    callback18ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventAgentLifecycleCallback),
-                                                     strdup("guest agent lifecycle"), myFreeFunc);
-    callback19ret = virConnectDomainEventRegisterAny(dconn,
-                                                     NULL,
-                                                     VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
-                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventDeviceAddedCallback),
-                                                     strdup("device added"), myFreeFunc);
 
     if ((callback1ret == -1) ||
-        (callback2ret == -1) ||
-        (callback3ret == -1) ||
-        (callback4ret == -1) ||
-        (callback5ret == -1) ||
-        (callback6ret == -1) ||
-        (callback7ret == -1) ||
-        (callback9ret == -1) ||
-        (callback10ret == -1) ||
-        (callback11ret == -1) ||
-        (callback12ret == -1) ||
-        (callback13ret == -1) ||
-        (callback14ret == -1) ||
-        (callback15ret == -1) ||
-        (callback16ret == -1) ||
-        (callback17ret == -1) ||
-        (callback18ret == -1) ||
-        (callback19ret == -1))
+        (callback16ret == -1))
         goto cleanup;
 
     if (virConnectSetKeepAlive(dconn, 5, 3) < 0) {
@@ -808,28 +986,16 @@ int main(int argc, char **argv)
         }
     }
 
-    VIR_DEBUG("Deregistering event handlers");
+    printf("Deregistering event callbacks\n");
     virConnectDomainEventDeregister(dconn, myDomainEventCallback1);
-    virConnectDomainEventDeregisterAny(dconn, callback2ret);
-    virConnectDomainEventDeregisterAny(dconn, callback3ret);
-    virConnectDomainEventDeregisterAny(dconn, callback4ret);
-    virConnectDomainEventDeregisterAny(dconn, callback5ret);
-    virConnectDomainEventDeregisterAny(dconn, callback6ret);
-    virConnectDomainEventDeregisterAny(dconn, callback7ret);
-    virConnectDomainEventDeregisterAny(dconn, callback9ret);
-    virConnectDomainEventDeregisterAny(dconn, callback10ret);
-    virConnectDomainEventDeregisterAny(dconn, callback11ret);
-    virConnectDomainEventDeregisterAny(dconn, callback12ret);
-    virConnectDomainEventDeregisterAny(dconn, callback13ret);
-    virConnectDomainEventDeregisterAny(dconn, callback14ret);
-    virConnectDomainEventDeregisterAny(dconn, callback15ret);
     virConnectNetworkEventDeregisterAny(dconn, callback16ret);
-    virConnectDomainEventDeregisterAny(dconn, callback17ret);
-    virConnectDomainEventDeregisterAny(dconn, callback18ret);
-    virConnectDomainEventDeregisterAny(dconn, callback19ret);
 
-    if (callback8ret != -1)
-        virConnectDomainEventDeregisterAny(dconn, callback8ret);
+
+    printf("Deregistering domain event callbacks\n");
+    for (i = 0; i < ARRAY_CARDINALITY(domainEvents); i++) {
+        if (domainEvents[i].id > 0)
+            virConnectDomainEventDeregisterAny(dconn, domainEvents[i].id);
+    }
 
     virConnectUnregisterCloseCallback(dconn, connectClose);
     ret = EXIT_SUCCESS;
@@ -837,9 +1003,9 @@ int main(int argc, char **argv)
 
  cleanup:
     if (dconn) {
-        VIR_DEBUG("Closing connection");
+        printf("Closing connection: ");
         if (virConnectClose(dconn) < 0)
-            printf("error closing\n");
+            printf("failed\n");
         printf("done\n");
     }
 

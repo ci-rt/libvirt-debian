@@ -1,7 +1,7 @@
 /*
  * network_conf.c: network XML handling
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -1799,7 +1799,7 @@ virNetworkForwardDefParseXML(const char *networkName,
                              xmlXPathContextPtr ctxt,
                              virNetworkForwardDefPtr def)
 {
-    size_t i;
+    size_t i, j;
     int ret = -1;
     xmlNodePtr *forwardIfNodes = NULL;
     xmlNodePtr *forwardPfNodes = NULL;
@@ -1936,6 +1936,16 @@ virNetworkForwardDefParseXML(const char *networkName,
                 continue;
             }
 
+            for (j = 0; j < i; j++) {
+                if (STREQ_NULLABLE(def->ifs[j].device.dev, forwardDev)) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("interface '%s' can only be "
+                                     "listed once in network %s"),
+                                   forwardDev, networkName);
+                    goto cleanup;
+                }
+            }
+
             def->ifs[i].device.dev = forwardDev;
             forwardDev = NULL;
             def->ifs[i].type = VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV;
@@ -1963,12 +1973,25 @@ virNetworkForwardDefParseXML(const char *networkName,
 
             switch (def->ifs[i].type) {
             case VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI:
-                if (virDevicePCIAddressParseXML(forwardAddrNodes[i],
-                                                &def->ifs[i].device.pci) < 0) {
+            {
+                virDevicePCIAddressPtr addr = &def->ifs[i].device.pci;
+
+                if (virDevicePCIAddressParseXML(forwardAddrNodes[i], addr) < 0)
                     goto cleanup;
+
+                for (j = 0; j < i; j++) {
+                    if (virDevicePCIAddressEqual(addr, &def->ifs[j].device.pci)) {
+                        virReportError(VIR_ERR_XML_ERROR,
+                                       _("PCI device '%04x:%02x:%02x.%x' can "
+                                         "only be listed once in network %s"),
+                                       addr->domain, addr->bus,
+                                       addr->slot, addr->function,
+                                       networkName);
+                        goto cleanup;
+                    }
                 }
                 break;
-
+            }
             /* Add USB case here if we ever find a reason to support it */
 
             default:
@@ -3376,14 +3399,14 @@ void virNetworkSetBridgeMacAddr(virNetworkDefPtr def)
 static void
 virNetworkDefUpdateNoSupport(virNetworkDefPtr def, const char *section)
 {
-    virReportError(VIR_ERR_NO_SUPPORT,
+    virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                    _("can't update '%s' section of network '%s'"),
                    section, def->name);
 }
 static void
 virNetworkDefUpdateUnknownCommand(unsigned int command)
 {
-    virReportError(VIR_ERR_NO_SUPPORT,
+    virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                    _("unrecognized network update command code %d"), command);
 }
 
@@ -3666,7 +3689,7 @@ virNetworkDefUpdateIPDHCPRange(virNetworkDefPtr def,
     /* parse the xml into a virSocketAddrRange */
     if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
 
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("dhcp ranges cannot be modified, "
                          "only added or deleted"));
         goto cleanup;
@@ -3772,7 +3795,7 @@ virNetworkDefUpdateForwardInterface(virNetworkDefPtr def,
         goto cleanup;
 
     if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("forward interface entries cannot be modified, "
                          "only added or deleted"));
         goto cleanup;
@@ -3973,7 +3996,7 @@ virNetworkDefUpdateDNSHost(virNetworkDefPtr def,
     memset(&host, 0, sizeof(host));
 
     if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("DNS HOST records cannot be modified, "
                          "only added or deleted"));
         goto cleanup;
@@ -4067,7 +4090,7 @@ virNetworkDefUpdateDNSSrv(virNetworkDefPtr def,
     memset(&srv, 0, sizeof(srv));
 
     if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("DNS SRV records cannot be modified, "
                          "only added or deleted"));
         goto cleanup;
@@ -4151,7 +4174,7 @@ virNetworkDefUpdateDNSTxt(virNetworkDefPtr def,
     memset(&txt, 0, sizeof(txt));
 
     if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("DNS TXT records cannot be modified, "
                          "only added or deleted"));
         goto cleanup;
@@ -4268,7 +4291,7 @@ virNetworkDefUpdateSection(virNetworkDefPtr def,
         ret = virNetworkDefUpdateDNSSrv(def, command, parentIndex, ctxt, flags);
         break;
     default:
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("can't update unrecognized section of network"));
         break;
     }

@@ -7357,6 +7357,13 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
     /* get number of cpus on the node */
     if ((max_id = virDomainGetCPUStats(dom, NULL, 0, 0, 0, 0)) < 0)
         goto failed_stats;
+
+    if (cpu >= max_id) {
+        vshError(ctl, "Start CPU %d is out of range (min: 0, max: %d)",
+                 cpu, max_id - 1);
+        goto cleanup;
+    }
+
     if (show_count < 0 || show_count > max_id) {
         if (show_count > max_id)
             vshPrint(ctl, _("Only %d CPUs available to show\n"), max_id);
@@ -8616,11 +8623,11 @@ cmdPerf(vshControl *ctl, const vshCmd *cmd)
     if (live)
         flags |= VIR_DOMAIN_AFFECT_LIVE;
 
-    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
     if (vshCommandOptStringReq(ctl, cmd, "enable", &enable) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "disable", &disable) < 0)
+        return false;
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
     if (enable && virshParseEventStr(enable, true, &params,
@@ -8645,8 +8652,10 @@ cmdPerf(vshControl *ctl, const vshCmd *cmd)
             }
         }
     } else {
-        if (virDomainSetPerfEvents(dom, params, nparams, flags) != 0)
-            goto error;
+        if (virDomainSetPerfEvents(dom, params, nparams, flags) != 0) {
+            vshError(ctl, "%s", _("Unable to enable/disable perf events"));
+            goto cleanup;
+        }
     }
 
     ret = true;
@@ -8654,10 +8663,6 @@ cmdPerf(vshControl *ctl, const vshCmd *cmd)
     virTypedParamsFree(params, nparams);
     virDomainFree(dom);
     return ret;
-
- error:
-    vshError(ctl, "%s", _("Unable to enable/disable perf events"));
-    goto cleanup;
 }
 
 
@@ -9783,6 +9788,26 @@ static const vshCmdOptDef opts_migrate[] = {
      .type = VSH_OT_BOOL,
      .help = N_("compress repeated pages during live migration")
     },
+    {.name = "comp-methods",
+     .type = VSH_OT_STRING,
+     .help = N_("comma separated list of compression methods to be used")
+    },
+    {.name = "comp-mt-level",
+     .type = VSH_OT_INT,
+     .help = N_("compress level for multithread compression")
+    },
+    {.name = "comp-mt-threads",
+     .type = VSH_OT_INT,
+     .help = N_("number of compession threads for multithread compression")
+    },
+    {.name = "comp-mt-dthreads",
+     .type = VSH_OT_INT,
+     .help = N_("number of decompession threads for multithread compression")
+    },
+    {.name = "comp-xbzrle-cache",
+     .type = VSH_OT_INT,
+     .help = N_("page cache size for xbzrle compression")
+    },
     {.name = "auto-converge",
      .type = VSH_OT_BOOL,
      .help = N_("force convergence during live migration")
@@ -9863,6 +9888,9 @@ doMigrate(void *opaque)
     virTypedParameterPtr params = NULL;
     int nparams = 0;
     int maxparams = 0;
+    int intOpt = 0;
+    unsigned long long ullOpt = 0;
+    int rv;
     virConnectPtr dconn = data->dconn;
 
     sigemptyset(&sigmask);
@@ -9928,6 +9956,59 @@ doMigrate(void *opaque)
         }
 
         VIR_FREE(val);
+    }
+
+    if (vshCommandOptStringReq(ctl, cmd, "comp-methods", &opt) < 0)
+        goto out;
+    if (opt) {
+        char **val = virStringSplit(opt, ",", 0);
+
+        if (virTypedParamsAddStringList(&params,
+                                        &nparams,
+                                        &maxparams,
+                                        VIR_MIGRATE_PARAM_COMPRESSION,
+                                        (const char **)val) < 0) {
+            VIR_FREE(val);
+            goto save_error;
+        }
+
+        VIR_FREE(val);
+    }
+
+    if ((rv = vshCommandOptInt(ctl, cmd, "comp-mt-level", &intOpt)) < 0) {
+        goto out;
+    } else if (rv > 0) {
+        if (virTypedParamsAddInt(&params, &nparams, &maxparams,
+                                 VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL,
+                                 intOpt) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptInt(ctl, cmd, "comp-mt-threads", &intOpt)) < 0) {
+        goto out;
+    } else if (rv > 0) {
+        if (virTypedParamsAddInt(&params, &nparams, &maxparams,
+                                 VIR_MIGRATE_PARAM_COMPRESSION_MT_THREADS,
+                                 intOpt) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptInt(ctl, cmd, "comp-mt-dthreads", &intOpt)) < 0) {
+        goto out;
+    } else if (rv > 0) {
+        if (virTypedParamsAddInt(&params, &nparams, &maxparams,
+                                 VIR_MIGRATE_PARAM_COMPRESSION_MT_DTHREADS,
+                                 intOpt) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "comp-xbzrle-cache", &ullOpt)) < 0) {
+        goto out;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE,
+                                    ullOpt) < 0)
+            goto save_error;
     }
 
     if (vshCommandOptStringReq(ctl, cmd, "xml", &opt) < 0)
@@ -12301,6 +12382,22 @@ virshEventJobCompletedPrint(virConnectPtr conn ATTRIBUTE_UNUSED,
     virshEventPrint(opaque, &buf);
 }
 
+
+static void
+virshEventDeviceRemovalFailedPrint(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                   virDomainPtr dom,
+                                   const char *alias,
+                                   void *opaque)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    virBufferAsprintf(&buf, _("event 'device-removal-failed' for domain %s: %s\n"),
+                      virDomainGetName(dom),
+                      alias);
+    virshEventPrint(opaque, &buf);
+}
+
+
 static vshEventCallback vshEventCallbacks[] = {
     { "lifecycle",
       VIR_DOMAIN_EVENT_CALLBACK(virshEventLifecyclePrint), },
@@ -12344,6 +12441,8 @@ static vshEventCallback vshEventCallbacks[] = {
       VIR_DOMAIN_EVENT_CALLBACK(virshEventMigrationIterationPrint), },
     { "job-completed",
       VIR_DOMAIN_EVENT_CALLBACK(virshEventJobCompletedPrint), },
+    { "device-removal-failed",
+      VIR_DOMAIN_EVENT_CALLBACK(virshEventDeviceRemovalFailedPrint), },
 };
 verify(VIR_DOMAIN_EVENT_ID_LAST == ARRAY_CARDINALITY(vshEventCallbacks));
 

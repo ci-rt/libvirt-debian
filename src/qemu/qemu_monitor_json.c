@@ -88,6 +88,7 @@ static void qemuMonitorJSONHandleSerialChange(qemuMonitorPtr mon, virJSONValuePt
 static void qemuMonitorJSONHandleSpiceMigrated(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleMigrationStatus(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleMigrationPass(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleAcpiOstInfo(qemuMonitorPtr mon, virJSONValuePtr data);
 
 typedef struct {
     const char *type;
@@ -95,6 +96,7 @@ typedef struct {
 } qemuEventHandler;
 
 static qemuEventHandler eventHandlers[] = {
+    { "ACPI_DEVICE_OST", qemuMonitorJSONHandleAcpiOstInfo, },
     { "BALLOON_CHANGE", qemuMonitorJSONHandleBalloonChange, },
     { "BLOCK_IO_ERROR", qemuMonitorJSONHandleIOError, },
     { "BLOCK_JOB_CANCELLED", qemuMonitorJSONHandleBlockJobCanceled, },
@@ -1023,6 +1025,43 @@ qemuMonitorJSONHandleMigrationPass(qemuMonitorPtr mon,
     }
 
     qemuMonitorEmitMigrationPass(mon, pass);
+}
+
+
+static void
+qemuMonitorJSONHandleAcpiOstInfo(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    virJSONValuePtr info;
+    const char *alias;
+    const char *slotType;
+    const char *slot;
+    unsigned int source;
+    unsigned int status;
+
+    if (!(info = virJSONValueObjectGetObject(data, "info")))
+        goto error;
+
+    /* optional */
+    alias = virJSONValueObjectGetString(info, "device");
+
+    if (!(slotType = virJSONValueObjectGetString(info, "slot-type")))
+        goto error;
+
+    if (!(slot = virJSONValueObjectGetString(info, "slot")))
+        goto error;
+
+    if (virJSONValueObjectGetNumberUint(info, "source", &source) < 0)
+        goto error;
+
+    if (virJSONValueObjectGetNumberUint(info, "status", &status) < 0)
+        goto error;
+
+    qemuMonitorEmitAcpiOstInfo(mon, alias, slotType, slot, source, status);
+    return;
+
+ error:
+    VIR_WARN("malformed ACPI_DEVICE_OST event");
+    return;
 }
 
 
@@ -2477,6 +2516,116 @@ qemuMonitorJSONSetMigrationCacheSize(qemuMonitorPtr mon,
         ret = qemuMonitorJSONCheckError(cmd, reply);
 
     virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONGetMigrationCompression(qemuMonitorPtr mon,
+                                       qemuMonitorMigrationCompressionPtr compress)
+{
+    int ret = -1;
+    virJSONValuePtr result;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-migrate-parameters", NULL)))
+        return -1;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+
+    if ((ret = qemuMonitorJSONCheckError(cmd, reply)) < 0)
+        goto cleanup;
+
+    if (!(result = virJSONValueObjectGet(reply, "return"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-migrate-parameters reply was missing "
+                         "'return' data"));
+        goto cleanup;
+    }
+
+    if (virJSONValueObjectGetNumberInt(result, "compress-level",
+                                       &compress->level) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("malformed/missing compress-level "
+                         "in migrate parameters"));
+        goto cleanup;
+    }
+    compress->level_set = true;
+
+    if (virJSONValueObjectGetNumberInt(result, "compress-threads",
+                                       &compress->threads) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("malformed/missing compress-threads "
+                         "in migrate parameters"));
+        goto cleanup;
+    }
+    compress->threads_set = true;
+
+    if (virJSONValueObjectGetNumberInt(result, "decompress-threads",
+                                       &compress->dthreads) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("malformed/missing decompress-threads "
+                         "in migrate parameters"));
+        goto cleanup;
+    }
+    compress->dthreads_set = true;
+
+    ret = 0;
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int
+qemuMonitorJSONSetMigrationCompression(qemuMonitorPtr mon,
+                                       qemuMonitorMigrationCompressionPtr compress)
+{
+    int ret = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr args = NULL;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = virJSONValueNewObject()))
+        goto cleanup;
+
+    if (virJSONValueObjectAppendString(cmd, "execute",
+                                       "migrate-set-parameters") < 0)
+        goto cleanup;
+
+    if (!(args = virJSONValueNewObject()))
+        goto cleanup;
+
+    if (compress->level_set &&
+        virJSONValueObjectAppendNumberInt(args, "compress-level",
+                                          compress->level) < 0)
+        goto cleanup;
+
+    if (compress->threads_set &&
+        virJSONValueObjectAppendNumberInt(args, "compress-threads",
+                                          compress->threads) < 0)
+        goto cleanup;
+
+    if (compress->dthreads_set &&
+        virJSONValueObjectAppendNumberInt(args, "decompress-threads",
+                                          compress->dthreads) < 0)
+        goto cleanup;
+
+    if (virJSONValueObjectAppend(cmd, "arguments", args) < 0)
+        goto cleanup;
+    args = NULL;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(args);
     virJSONValueFree(reply);
     return ret;
 }
@@ -5703,6 +5852,121 @@ qemuMonitorJSONSetMigrationCapability(qemuMonitorPtr mon,
     virJSONValueFree(cap);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
+    return ret;
+}
+
+
+/**
+ * qemuMonitorJSONGetGICCapabilities:
+ * @mon: QEMU JSON monitor
+ * @capabilities: where to store the GIC capabilities
+ *
+ * Use @mon to obtain information about the GIC capabilities for the
+ * corresponding QEMU binary, and store them in @capabilities.
+ *
+ * If the QEMU binary has no GIC capabilities, or if GIC capabilities could
+ * not be determined due to the lack of 'query-gic-capabilities' QMP command,
+ * a NULL pointer will be returned instead of an empty array.
+ *
+ * Returns: the number of GIC capabilities obtained from the monitor,
+ *          <0 on failure
+ */
+int
+qemuMonitorJSONGetGICCapabilities(qemuMonitorPtr mon,
+                                  virGICCapability **capabilities)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr caps;
+    virGICCapability *list = NULL;
+    size_t i;
+    ssize_t n;
+
+    *capabilities = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-gic-capabilities",
+                                           NULL)))
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        /* If the 'query-gic-capabilities' QMP command was not available
+         * we simply successfully return zero capabilities.
+         * This is the case for QEMU <2.6 and all non-ARM architectures */
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound"))
+            goto cleanup;
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+    if (ret < 0)
+        goto cleanup;
+
+    ret = -1;
+
+    if (!(caps = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(caps)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing GIC capabilities"));
+        goto cleanup;
+    }
+
+    /* If the returned array was empty we have to return successfully */
+    if (n == 0) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC_N(list, n) < 0)
+        goto cleanup;
+
+    for (i = 0; i < n; i++) {
+        virJSONValuePtr cap = virJSONValueArrayGet(caps, i);
+        int version;
+        bool kernel;
+        bool emulated;
+
+        if (!cap || cap->type != VIR_JSON_TYPE_OBJECT) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing entry in GIC capabilities list"));
+            goto cleanup;
+        }
+
+        if (virJSONValueObjectGetNumberInt(cap, "version", &version) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing GIC version"));
+            goto cleanup;
+        }
+
+        if (virJSONValueObjectGetBoolean(cap, "kernel", &kernel) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing in-kernel GIC information"));
+            goto cleanup;
+        }
+
+        if (virJSONValueObjectGetBoolean(cap, "emulated", &emulated) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing emulated GIC information"));
+            goto cleanup;
+        }
+
+        list[i].version = version;
+        if (kernel)
+            list[i].implementation |= VIR_GIC_IMPLEMENTATION_KERNEL;
+        if (emulated)
+            list[i].implementation |= VIR_GIC_IMPLEMENTATION_EMULATED;
+    }
+
+    ret = n;
+    *capabilities = list;
+
+ cleanup:
+    if (ret < 0)
+        VIR_FREE(list);
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+
     return ret;
 }
 

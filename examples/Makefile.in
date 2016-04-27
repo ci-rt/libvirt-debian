@@ -235,7 +235,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
-	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-host-validate.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -310,7 +312,7 @@ hellolibvirt_hellolibvirt_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
 	$(top_builddir)/gnulib/lib/libgnu.la
 am_object_events_event_test_OBJECTS =  \
-	object-events/event-test.$(OBJEXT)
+	object-events/object_events_event_test-event-test.$(OBJEXT)
 object_events_event_test_OBJECTS =  \
 	$(am_object_events_event_test_OBJECTS)
 object_events_event_test_LDADD = $(LDADD)
@@ -318,6 +320,10 @@ object_events_event_test_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
 	$(top_builddir)/gnulib/lib/libgnu.la
+object_events_event_test_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(object_events_event_test_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 am_openauth_openauth_OBJECTS = openauth/openauth.$(OBJEXT)
 openauth_openauth_OBJECTS = $(am_openauth_openauth_OBJECTS)
 openauth_openauth_LDADD = $(LDADD)
@@ -1916,6 +1922,10 @@ dommigrate_dommigrate_SOURCES = dommigrate/dommigrate.c
 domsuspend_suspend_SOURCES = domsuspend/suspend.c
 domtop_domtop_SOURCES = domtop/domtop.c
 hellolibvirt_hellolibvirt_SOURCES = hellolibvirt/hellolibvirt.c
+object_events_event_test_CFLAGS = \
+		$(WARN_CFLAGS)						\
+		$(NULL)
+
 object_events_event_test_SOURCES = object-events/event-test.c
 openauth_openauth_SOURCES = openauth/openauth.c
 rename_rename_SOURCES = rename/rename.c
@@ -2046,12 +2056,13 @@ object-events/$(am__dirstamp):
 object-events/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) object-events/$(DEPDIR)
 	@: > object-events/$(DEPDIR)/$(am__dirstamp)
-object-events/event-test.$(OBJEXT): object-events/$(am__dirstamp) \
+object-events/object_events_event_test-event-test.$(OBJEXT):  \
+	object-events/$(am__dirstamp) \
 	object-events/$(DEPDIR)/$(am__dirstamp)
 
 object-events/event-test$(EXEEXT): $(object_events_event_test_OBJECTS) $(object_events_event_test_DEPENDENCIES) $(EXTRA_object_events_event_test_DEPENDENCIES) object-events/$(am__dirstamp)
 	@rm -f object-events/event-test$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(object_events_event_test_OBJECTS) $(object_events_event_test_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(object_events_event_test_LINK) $(object_events_event_test_OBJECTS) $(object_events_event_test_LDADD) $(LIBS)
 openauth/$(am__dirstamp):
 	@$(MKDIR_P) openauth
 	@: > openauth/$(am__dirstamp)
@@ -2096,7 +2107,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@domsuspend/$(DEPDIR)/suspend.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@domtop/$(DEPDIR)/domtop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@hellolibvirt/$(DEPDIR)/hellolibvirt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@object-events/$(DEPDIR)/event-test.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@object-events/$(DEPDIR)/object_events_event_test-event-test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@openauth/$(DEPDIR)/openauth.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@rename/$(DEPDIR)/rename.Po@am__quote@
 
@@ -2123,6 +2134,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+object-events/object_events_event_test-event-test.o: object-events/event-test.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(object_events_event_test_CFLAGS) $(CFLAGS) -MT object-events/object_events_event_test-event-test.o -MD -MP -MF object-events/$(DEPDIR)/object_events_event_test-event-test.Tpo -c -o object-events/object_events_event_test-event-test.o `test -f 'object-events/event-test.c' || echo '$(srcdir)/'`object-events/event-test.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) object-events/$(DEPDIR)/object_events_event_test-event-test.Tpo object-events/$(DEPDIR)/object_events_event_test-event-test.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='object-events/event-test.c' object='object-events/object_events_event_test-event-test.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(object_events_event_test_CFLAGS) $(CFLAGS) -c -o object-events/object_events_event_test-event-test.o `test -f 'object-events/event-test.c' || echo '$(srcdir)/'`object-events/event-test.c
+
+object-events/object_events_event_test-event-test.obj: object-events/event-test.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(object_events_event_test_CFLAGS) $(CFLAGS) -MT object-events/object_events_event_test-event-test.obj -MD -MP -MF object-events/$(DEPDIR)/object_events_event_test-event-test.Tpo -c -o object-events/object_events_event_test-event-test.obj `if test -f 'object-events/event-test.c'; then $(CYGPATH_W) 'object-events/event-test.c'; else $(CYGPATH_W) '$(srcdir)/object-events/event-test.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) object-events/$(DEPDIR)/object_events_event_test-event-test.Tpo object-events/$(DEPDIR)/object_events_event_test-event-test.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='object-events/event-test.c' object='object-events/object_events_event_test-event-test.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(object_events_event_test_CFLAGS) $(CFLAGS) -c -o object-events/object_events_event_test-event-test.obj `if test -f 'object-events/event-test.c'; then $(CYGPATH_W) 'object-events/event-test.c'; else $(CYGPATH_W) '$(srcdir)/object-events/event-test.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -2442,7 +2467,7 @@ uninstall-am: uninstall-abstractionsDATA uninstall-apparmorDATA \
 @WITH_NWFILTER_TRUE@	for f in $(FILTERS); do \
 @WITH_NWFILTER_TRUE@		rm -f "$(NWFILTER_DIR)/`basename $$f`"; \
 @WITH_NWFILTER_TRUE@	done
-@WITH_NWFILTER_TRUE@	-test -z $(shell ls $(NWFILTER_DIR)) || rmdir $(NWFILTER_DIR)
+@WITH_NWFILTER_TRUE@	-test -z "$(shell ls $(NWFILTER_DIR))" || rmdir $(NWFILTER_DIR)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

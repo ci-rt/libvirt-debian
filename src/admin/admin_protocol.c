@@ -5,6 +5,7 @@
  */
 
 #include "admin_protocol.h"
+#include <libvirt/libvirt-admin.h>
 #include "virxdrdefs.h"
 
 bool_t
@@ -21,6 +22,58 @@ xdr_admin_string (XDR *xdrs, admin_string *objp)
 {
 
          if (!xdr_pointer (xdrs, (char **)objp, sizeof (admin_nonnull_string), (xdrproc_t) xdr_admin_nonnull_string))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_typed_param_value (XDR *xdrs, admin_typed_param_value *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->type))
+                 return FALSE;
+        switch (objp->type) {
+        case VIR_TYPED_PARAM_INT:
+                 if (!xdr_int (xdrs, &objp->admin_typed_param_value_u.i))
+                         return FALSE;
+                break;
+        case VIR_TYPED_PARAM_UINT:
+                 if (!xdr_u_int (xdrs, &objp->admin_typed_param_value_u.ui))
+                         return FALSE;
+                break;
+        case VIR_TYPED_PARAM_LLONG:
+                 if (!xdr_int64_t (xdrs, &objp->admin_typed_param_value_u.l))
+                         return FALSE;
+                break;
+        case VIR_TYPED_PARAM_ULLONG:
+                 if (!xdr_uint64_t (xdrs, &objp->admin_typed_param_value_u.ul))
+                         return FALSE;
+                break;
+        case VIR_TYPED_PARAM_DOUBLE:
+                 if (!xdr_double (xdrs, &objp->admin_typed_param_value_u.d))
+                         return FALSE;
+                break;
+        case VIR_TYPED_PARAM_BOOLEAN:
+                 if (!xdr_int (xdrs, &objp->admin_typed_param_value_u.b))
+                         return FALSE;
+                break;
+        case VIR_TYPED_PARAM_STRING:
+                 if (!xdr_admin_nonnull_string (xdrs, &objp->admin_typed_param_value_u.s))
+                         return FALSE;
+                break;
+        default:
+                return FALSE;
+        }
+        return TRUE;
+}
+
+bool_t
+xdr_admin_typed_param (XDR *xdrs, admin_typed_param *objp)
+{
+
+         if (!xdr_admin_nonnull_string (xdrs, &objp->field))
+                 return FALSE;
+         if (!xdr_admin_typed_param_value (xdrs, &objp->value))
                  return FALSE;
         return TRUE;
 }
@@ -92,6 +145,43 @@ xdr_admin_connect_lookup_server_ret (XDR *xdrs, admin_connect_lookup_server_ret 
 {
 
          if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_get_threadpool_parameters_args (XDR *xdrs, admin_server_get_threadpool_parameters_args *objp)
+{
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_get_threadpool_parameters_ret (XDR *xdrs, admin_server_get_threadpool_parameters_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX,
+                sizeof (admin_typed_param), (xdrproc_t) xdr_admin_typed_param))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_set_threadpool_parameters_args (XDR *xdrs, admin_server_set_threadpool_parameters_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX,
+                sizeof (admin_typed_param), (xdrproc_t) xdr_admin_typed_param))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }

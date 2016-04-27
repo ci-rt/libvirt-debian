@@ -42,15 +42,15 @@ struct daemonClientStream {
 
     virStreamPtr st;
     int procedure;
-    int serial;
+    unsigned int serial;
 
-    unsigned int recvEOF : 1;
-    unsigned int closed : 1;
+    bool recvEOF;
+    bool closed;
 
     int filterID;
 
     virNetMessagePtr rx;
-    int tx;
+    bool tx;
 
     daemonClientStreamPtr next;
 };
@@ -92,14 +92,14 @@ daemonStreamUpdateEvents(daemonClientStream *stream)
  * fast stream, but slow client
  */
 static void
-daemonStreamMessageFinished(virNetMessagePtr msg ATTRIBUTE_UNUSED,
+daemonStreamMessageFinished(virNetMessagePtr msg,
                             void *opaque)
 {
     daemonClientStream *stream = opaque;
-    VIR_DEBUG("stream=%p proc=%d serial=%d",
+    VIR_DEBUG("stream=%p proc=%d serial=%u",
               stream, msg->header.proc, msg->header.serial);
 
-    stream->tx = 1;
+    stream->tx = true;
     daemonStreamUpdateEvents(stream);
 
     daemonFreeClientStream(NULL, stream);
@@ -197,8 +197,8 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
         (events & VIR_STREAM_EVENT_HANGUP)) {
         virNetMessagePtr msg;
         events &= ~(VIR_STREAM_EVENT_HANGUP);
-        stream->tx = 0;
-        stream->recvEOF = 1;
+        stream->tx = false;
+        stream->recvEOF = true;
         if (!(msg = virNetMessageNew(false))) {
             daemonRemoveClientStream(client, stream);
             virNetServerClientClose(client);
@@ -227,7 +227,7 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
         virNetMessageError rerr;
 
         memset(&rerr, 0, sizeof(rerr));
-        stream->closed = 1;
+        stream->closed = true;
         virStreamEventRemoveCallback(stream->st);
         virStreamAbort(stream->st);
         if (events & VIR_STREAM_EVENT_HANGUP)
@@ -293,7 +293,7 @@ daemonStreamFilter(virNetServerClientPtr client ATTRIBUTE_UNUSED,
         msg->header.serial != stream->serial)
         goto cleanup;
 
-    VIR_DEBUG("Incoming client=%p, rx=%p, serial=%d, proc=%d, status=%d",
+    VIR_DEBUG("Incoming client=%p, rx=%p, serial=%u, proc=%d, status=%d",
               client, stream->rx, msg->header.proc,
               msg->header.serial, msg->header.status);
 
@@ -324,7 +324,7 @@ daemonCreateClientStream(virNetServerClientPtr client,
     daemonClientStream *stream;
     daemonClientPrivatePtr priv = virNetServerClientGetPrivateData(client);
 
-    VIR_DEBUG("client=%p, proc=%d, serial=%d, st=%p",
+    VIR_DEBUG("client=%p, proc=%d, serial=%u, st=%p",
               client, header->proc, header->serial, st);
 
     if (VIR_ALLOC(stream) < 0)
@@ -360,7 +360,7 @@ int daemonFreeClientStream(virNetServerClientPtr client,
     if (stream->refs)
         return 0;
 
-    VIR_DEBUG("client=%p, proc=%d, serial=%d",
+    VIR_DEBUG("client=%p, proc=%d, serial=%u",
               client, stream->procedure, stream->serial);
 
     virObjectUnref(stream->prog);
@@ -398,7 +398,7 @@ int daemonAddClientStream(virNetServerClientPtr client,
                           daemonClientStream *stream,
                           bool transmit)
 {
-    VIR_DEBUG("client=%p, proc=%d, serial=%d, st=%p, transmit=%d",
+    VIR_DEBUG("client=%p, proc=%d, serial=%u, st=%p, transmit=%d",
               client, stream->procedure, stream->serial, stream->st, transmit);
     daemonClientPrivatePtr priv = virNetServerClientGetPrivateData(client);
 
@@ -422,7 +422,7 @@ int daemonAddClientStream(virNetServerClientPtr client,
     }
 
     if (transmit)
-        stream->tx = 1;
+        stream->tx = true;
 
     virMutexLock(&priv->lock);
     stream->next = priv->streams;
@@ -448,7 +448,7 @@ int
 daemonRemoveClientStream(virNetServerClientPtr client,
                          daemonClientStream *stream)
 {
-    VIR_DEBUG("client=%p, proc=%d, serial=%d, st=%p",
+    VIR_DEBUG("client=%p, proc=%d, serial=%u, st=%p",
               client, stream->procedure, stream->serial, stream->st);
     daemonClientPrivatePtr priv = virNetServerClientGetPrivateData(client);
     daemonClientStream *curr = priv->streams;
@@ -515,7 +515,7 @@ daemonStreamHandleWriteData(virNetServerClientPtr client,
 {
     int ret;
 
-    VIR_DEBUG("client=%p, stream=%p, proc=%d, serial=%d, len=%zu, offset=%zu",
+    VIR_DEBUG("client=%p, stream=%p, proc=%d, serial=%u, len=%zu, offset=%zu",
               client, stream, msg->header.proc, msg->header.serial,
               msg->bufferLength, msg->bufferOffset);
 
@@ -538,7 +538,7 @@ daemonStreamHandleWriteData(virNetServerClientPtr client,
         memset(&rerr, 0, sizeof(rerr));
 
         VIR_INFO("Stream send failed");
-        stream->closed = 1;
+        stream->closed = true;
         return virNetServerProgramSendReplyError(stream->prog,
                                                  client,
                                                  msg,
@@ -565,10 +565,10 @@ daemonStreamHandleFinish(virNetServerClientPtr client,
 {
     int ret;
 
-    VIR_DEBUG("client=%p, stream=%p, proc=%d, serial=%d",
+    VIR_DEBUG("client=%p, stream=%p, proc=%d, serial=%u",
               client, stream, msg->header.proc, msg->header.serial);
 
-    stream->closed = 1;
+    stream->closed = true;
     virStreamEventRemoveCallback(stream->st);
     ret = virStreamFinish(stream->st);
 
@@ -602,13 +602,13 @@ daemonStreamHandleAbort(virNetServerClientPtr client,
                         daemonClientStream *stream,
                         virNetMessagePtr msg)
 {
-    VIR_DEBUG("client=%p, stream=%p, proc=%d, serial=%d",
+    VIR_DEBUG("client=%p, stream=%p, proc=%d, serial=%u",
               client, stream, msg->header.proc, msg->header.serial);
     virNetMessageError rerr;
 
     memset(&rerr, 0, sizeof(rerr));
 
-    stream->closed = 1;
+    stream->closed = true;
     virStreamEventRemoveCallback(stream->st);
     virStreamAbort(stream->st);
 
@@ -709,9 +709,12 @@ static int
 daemonStreamHandleRead(virNetServerClientPtr client,
                        daemonClientStream *stream)
 {
+    virNetMessagePtr msg = NULL;
+    virNetMessageError rerr;
     char *buffer;
     size_t bufferLen = VIR_NET_MESSAGE_LEGACY_PAYLOAD_MAX;
-    int ret;
+    int ret = -1;
+    int rv;
 
     VIR_DEBUG("client=%p, stream=%p tx=%d closed=%d",
               client, stream, stream->tx, stream->closed);
@@ -728,50 +731,48 @@ daemonStreamHandleRead(virNetServerClientPtr client,
     if (!stream->tx)
         return 0;
 
+    memset(&rerr, 0, sizeof(rerr));
+
     if (VIR_ALLOC_N(buffer, bufferLen) < 0)
         return -1;
 
-    ret = virStreamRecv(stream->st, buffer, bufferLen);
-    if (ret == -2) {
+    if (!(msg = virNetMessageNew(false)))
+        goto cleanup;
+
+    rv = virStreamRecv(stream->st, buffer, bufferLen);
+    if (rv == -2) {
         /* Should never get this, since we're only called when we know
          * we're readable, but hey things change... */
-        ret = 0;
-    } else if (ret < 0) {
-        virNetMessagePtr msg;
-        virNetMessageError rerr;
-
-        memset(&rerr, 0, sizeof(rerr));
-
-        if (!(msg = virNetMessageNew(false)))
-            ret = -1;
-        else
-            ret = virNetServerProgramSendStreamError(remoteProgram,
-                                                     client,
-                                                     msg,
-                                                     &rerr,
-                                                     stream->procedure,
-                                                     stream->serial);
+    } else if (rv < 0) {
+        if (virNetServerProgramSendStreamError(remoteProgram,
+                                               client,
+                                               msg,
+                                               &rerr,
+                                               stream->procedure,
+                                               stream->serial) < 0)
+            goto cleanup;
+        msg = NULL;
     } else {
-        virNetMessagePtr msg;
-        stream->tx = 0;
-        if (ret == 0)
-            stream->recvEOF = 1;
-        if (!(msg = virNetMessageNew(false)))
-            ret = -1;
+        stream->tx = false;
+        if (rv == 0)
+            stream->recvEOF = true;
 
-        if (msg) {
-            msg->cb = daemonStreamMessageFinished;
-            msg->opaque = stream;
-            stream->refs++;
-            ret = virNetServerProgramSendStreamData(remoteProgram,
-                                                    client,
-                                                    msg,
-                                                    stream->procedure,
-                                                    stream->serial,
-                                                    buffer, ret);
-        }
+        msg->cb = daemonStreamMessageFinished;
+        msg->opaque = stream;
+        stream->refs++;
+        if (virNetServerProgramSendStreamData(remoteProgram,
+                                              client,
+                                              msg,
+                                              stream->procedure,
+                                              stream->serial,
+                                              buffer, rv) < 0)
+            goto cleanup;
+        msg = NULL;
     }
 
+    ret = 0;
+ cleanup:
     VIR_FREE(buffer);
+    virNetMessageFree(msg);
     return ret;
 }

@@ -308,7 +308,7 @@ sc_flags_usage:
 	  | grep -c '\(long\|unsigned\) flags')" != 4 &&		\
 	  { echo '$(ME): new API should use "unsigned int flags"' 1>&2;	\
 	    exit 1; } || :
-	@prohibit=' flags ''ATTRIBUTE_UNUSED'				\
+	@prohibit=' flags ATTRIBUTE_UNUSED'				\
 	halt='flags should be checked with virCheckFlags'		\
 	  $(_sc_search_regexp)
 	@prohibit='^[^@]*([^d] (int|long long)|[^dg] long) flags[;,)]'	\
@@ -351,8 +351,8 @@ sc_prohibit_mkstemp:
 # access with X_OK accepts directories, but we can't exec() those.
 # access with F_OK or R_OK is okay, though.
 sc_prohibit_access_xok:
-	@prohibit='access''(at)? *\(.*X_OK'				\
-	halt='use virFileIsExecutable instead of access''(,X_OK)'	\
+	@prohibit='access(at)? *\(.*X_OK'				\
+	halt='use virFileIsExecutable instead of access(,X_OK)'		\
 	  $(_sc_search_regexp)
 
 # Similar to the gnulib maint.mk rule for sc_prohibit_strcmp
@@ -361,7 +361,7 @@ snp_ = strncmp *\(.+\)
 sc_prohibit_strncmp:
 	@prohibit='! *strncmp *\(|\<$(snp_) *[!=]=|[!=]= *$(snp_)'	\
 	exclude=':# *define STR(N?EQLEN|PREFIX)\('			\
-	halt='use STREQLEN or STRPREFIX instead of str''ncmp'		\
+	halt='use STREQLEN or STRPREFIX instead of strncmp'		\
 	  $(_sc_search_regexp)
 
 # strtol and friends are too easy to misuse
@@ -379,7 +379,7 @@ sc_prohibit_strtol:
 # But for plain %s, virAsprintf is overkill compared to strdup.
 sc_prohibit_asprintf:
 	@prohibit='\<v?a[s]printf\>'					\
-	halt='use virAsprintf, not as'printf				\
+	halt='use virAsprintf, not asprintf'				\
 	  $(_sc_search_regexp)
 	@prohibit='virAsprintf.*, *"%s",'				\
 	halt='use VIR_STRDUP instead of virAsprintf with "%s"'		\
@@ -406,7 +406,7 @@ sc_prohibit_risky_id_promotion:
 # since gnulib has more guarantees for snprintf portability
 sc_prohibit_sprintf:
 	@prohibit='\<[s]printf\>'					\
-	halt='use snprintf, not s'printf				\
+	halt='use snprintf, not sprintf'				\
 	  $(_sc_search_regexp)
 
 sc_prohibit_readlink:
@@ -431,13 +431,13 @@ sc_prohibit_gettext_noop:
 	  $(_sc_search_regexp)
 
 sc_prohibit_VIR_ERR_NO_MEMORY:
-	@prohibit='\<V''IR_ERR_NO_MEMORY\>'				\
-	halt='use virReportOOMError, not V'IR_ERR_NO_MEMORY		\
+	@prohibit='\<VIR_ERR_NO_MEMORY\>'				\
+	halt='use virReportOOMError, not VIR_ERR_NO_MEMORY'		\
 	  $(_sc_search_regexp)
 
 sc_prohibit_PATH_MAX:
-	@prohibit='\<P''ATH_MAX\>'				\
-	halt='dynamically allocate paths, do not use P'ATH_MAX	\
+	@prohibit='\<PATH_MAX\>'				\
+	halt='dynamically allocate paths, do not use PATH_MAX'	\
 	  $(_sc_search_regexp)
 
 # Use a subshell for each function, to give the optimal warning message.
@@ -454,20 +454,20 @@ sc_prohibit_nonreentrant:
 	exit $$fail
 
 sc_prohibit_select:
-	@prohibit="\\<select *\\("					\
-	halt="use poll(), not se""lect()"				\
+	@prohibit='\<select *\('					\
+	halt='use poll(), not select()'					\
 	  $(_sc_search_regexp)
 
 # Prohibit the inclusion of <ctype.h>.
 sc_prohibit_ctype_h:
 	@prohibit='^# *include  *<ctype\.h>'				\
-	halt="don't use ctype.h; instead, use c-ctype.h"		\
+	halt='use c-ctype.h instead of ctype.h'				\
 	  $(_sc_search_regexp)
 
 # Insist on correct types for [pug]id.
 sc_correct_id_types:
 	@prohibit='\<(int|long) *[pug]id\>'				\
-	halt="use pid_t for pid, uid_t for uid, gid_t for gid"		\
+	halt='use pid_t for pid, uid_t for uid, gid_t for gid'		\
 	  $(_sc_search_regexp)
 
 # "const fooPtr a" is the same as "foo * const a", even though it is
@@ -503,12 +503,12 @@ ctype_re = isalnum|isalpha|isascii|isblank|iscntrl|isdigit|isgraph|islower\
 
 sc_avoid_ctype_macros:
 	@prohibit='\b($(ctype_re)) *\('					\
-	halt="don't use ctype macros (use c-ctype.h)"			\
+	halt='use c-ctype.h instead of ctype macros'			\
 	  $(_sc_search_regexp)
 
 sc_avoid_strcase:
 	@prohibit='\bstrn?case(cmp|str) *\('				\
-	halt="don't use raw strcase functions (use c-strcase instead)"	\
+	halt='use c-strcase.h instead of raw strcase functions'		\
 	  $(_sc_search_regexp)
 
 sc_prohibit_virBufferAdd_with_string_literal:
@@ -578,7 +578,7 @@ sc_prohibit_int_ijk:
 
 sc_prohibit_loop_iijjkk:
 	@prohibit='\<(int|unsigned) ([^=]+ )*(ii|jj|kk)\>(\s|,|;)'	\
-	halt='use i, j, k for loop iterators, not ii, jj, kk' 		\
+	halt='use i, j, k for loop iterators, not ii, jj, kk'		\
 	  $(_sc_search_regexp)
 
 # RHEL 5 gcc can't grok "for (int i..."
@@ -743,7 +743,7 @@ sc_copyright_format:
 	@prohibit='Copyright [^(].*Red 'Hat				\
 	halt='consistently use (C) in Red Hat copyright'		\
 	  $(_sc_search_regexp)
-	@prohibit='\<Red''Hat\>'					\
+	@prohibit='\<RedHat\>'						\
 	halt='spell Red Hat as two words'				\
 	  $(_sc_search_regexp)
 
@@ -810,7 +810,7 @@ sc_require_enum_last_marker:
 sc_prohibit_semicolon_at_eol_in_python:
 	@prohibit='^[^#].*\;$$'			                        \
 	in_vc_files='\.py$$'						\
-	halt="Don't use semicolon at eol in python files"		\
+	halt='python does not require to end lines with a semicolon'	\
 	  $(_sc_search_regexp)
 
 # mymain() in test files should use return, not exit, for nicer output
@@ -917,7 +917,7 @@ sc_prohibit_virConnectOpen_in_virsh:
 sc_require_space_before_label:
 	@prohibit='^(   ?)?[_a-zA-Z0-9]+:$$'                           \
 	in_vc_files='\.[ch]$$'                                         \
-	halt="Top-level labels should be indented by one space"        \
+	halt='Top-level labels should be indented by one space'        \
 	  $(_sc_search_regexp)
 
 # Allow for up to three spaces before the label: this is to avoid running
@@ -926,14 +926,14 @@ sc_require_space_before_label:
 sc_prohibit_space_in_label:
 	@prohibit='^ {0,3}[_a-zA-Z0-9]+ +:$$'                          \
 	in_vc_files='\.[ch]$$'                                         \
-	halt="There should be no space between label name and colon"   \
+	halt='There should be no space between label name and colon'   \
 	  $(_sc_search_regexp)
 
 # Doesn't catch all cases of mismatched braces across if-else, but it helps
 sc_require_if_else_matching_braces:
 	@prohibit='(  else( if .*\))? {|} else( if .*\))?$$)'		\
 	in_vc_files='\.[chx]$$'						\
-	halt="if one side of if-else uses {}, both sides must use it"	\
+	halt='if one side of if-else uses {}, both sides must use it'	\
 	  $(_sc_search_regexp)
 
 sc_curly_braces_style:
@@ -993,7 +993,7 @@ sc_prohibit_static_zero_init:
 sc_prohibit_devname:
 	@prohibit='\bdevname\b'	\
 	exclude='sc_prohibit_devname' \
-	halt='avoid using 'devname' as FreeBSD exports the symbol' \
+	halt='avoid using devname as FreeBSD exports the symbol' \
 	  $(_sc_search_regexp)
 
 sc_prohibit_system_error_with_vir_err:
@@ -1007,7 +1007,7 @@ sc_prohibit_system_error_with_vir_err:
 sc_prohibit_virXXXFree:
 	@prohibit='\bvir(Domain|Network|NodeDevice|StorageVol|StoragePool|Stream|Secret|NWFilter|Interface|DomainSnapshot)Free\b'	\
 	exclude='sc_prohibit_virXXXFree' \
-	halt='avoid using 'virXXXFree', use 'virObjectUnref' instead' \
+	halt='avoid using virXXXFree, use virObjectUnref instead' \
 	  $(_sc_search_regexp)
 
 sc_prohibit_sysconf_pagesize:
@@ -1018,7 +1018,7 @@ sc_prohibit_sysconf_pagesize:
 sc_prohibit_pthread_create:
 	@prohibit='\bpthread_create\b' \
 	exclude='sc_prohibit_pthread_create' \
-	halt="avoid using 'pthread_create', use 'virThreadCreate' instead" \
+	halt='avoid using pthread_create, use virThreadCreate instead' \
 	  $(_sc_search_regexp)
 
 sc_prohibit_not_streq:
@@ -1035,6 +1035,26 @@ sc_prohibit_verbose_strcat:
 	@prohibit='strncat\([^,]*,\s+([^,]*),\s+strlen\(\1\)\)'     \
 	in_vc_files='\.[ch]$$'                                      \
 	halt='Use strcat(a, b) instead of strncat(a, b, strlen(b))' \
+	  $(_sc_search_regexp)
+
+# Ensure that each .c file containing a "main" function also
+# calls virGettextInitialize
+sc_gettext_init:
+	@require='virGettextInitialize *\('					\
+	in_vc_files='\.c$$'						\
+	containing='\<main *('						\
+	halt='the above files do not call virGettextInitialize'		\
+	  $(_sc_search_regexp)
+
+# <dt> is mostly used to document symbols, in which case it should contain
+# a <code> element. The regular expression below trades speed and readability
+# for accuracy, and won't catch someone trying to stick a <canvas> inside a
+# <dt>, but that's what code reviews are for :)
+sc_prohibit_dt_without_code:
+	@prohibit='<dt>([^<]|<[^c])' \
+	exclude='exempt from syntax-check' \
+	in_vc_files='docs/.*$$' \
+	halt='Use <code> inside <dt> when documenting symbols' \
 	  $(_sc_search_regexp)
 
 # We don't use this feature of maint.mk.
@@ -1133,13 +1153,18 @@ _test1=shunloadtest|virnettlscontexttest|virnettlssessiontest|vircgroupmock
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/virsh-console|tests/($(_test1)))\.c$$
 
-exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
+exclude_file_name_regexp--sc_bindtextdomain = .*
+
+exclude_file_name_regexp--sc_gettext_init = ^(tests|examples)/
+
+exclude_file_name_regexp--sc_copyright_format = \
+	^cfg\.mk$$
 
 exclude_file_name_regexp--sc_copyright_usage = \
   ^COPYING(|\.LESSER)$$
 
 exclude_file_name_regexp--sc_flags_usage = \
-  ^(docs/|src/util/virnetdevtap\.c$$|tests/(vir(cgroup|pci|usb)|nss|qemuxml2argv)mock\.c$$)
+  ^(cfg\.mk|docs/|src/util/virnetdevtap\.c$$|tests/(vir(cgroup|pci|usb)|nss|qemuxml2argv)mock\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^(src/rpc/gendispatch\.pl$$|tests/)
@@ -1147,12 +1172,16 @@ exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
 exclude_file_name_regexp--sc_po_check = ^(docs/|src/rpc/gendispatch\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
-  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virerror\.c|docs/internals/oomtesting\.html\.in)$$
+  ^(cfg\.mk|include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virerror\.c|docs/internals/oomtesting\.html\.in)$$
 
-exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/virutil\.c$$
+exclude_file_name_regexp--sc_prohibit_PATH_MAX = \
+	^cfg\.mk$$
+
+exclude_file_name_regexp--sc_prohibit_access_xok = \
+	^(cfg\.mk|src/util/virutil\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
-  ^(bootstrap.conf$$|src/util/virstring\.[ch]$$|tests/vircgroupmock\.c$$)
+  ^(cfg\.mk|bootstrap.conf$$|src/util/virstring\.[ch]$$|tests/vircgroupmock\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_strdup = \
   ^(docs/|examples/|src/util/virstring\.c|tests/vir(netserverclient|cgroup)mock.c$$)
@@ -1161,7 +1190,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|\.spec\.in$$|^docs/|^(src/util/virfile\.c|src/libvirt-stream\.c|tests/vir.+mock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.diff$$)
+  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.diff|tests/virconfdata/no-newline\.conf$$)
 
 _src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -1178,6 +1207,9 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|tests)/|docs/.*(py|html\.in)|run.in$$|tools/wireshark/util/genxdrstub\.pl$$)
 
+exclude_file_name_regexp--sc_prohibit_select = \
+	^cfg\.mk$$
+
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
   ^(docs/hacking\.html\.in|src/util/viralloc\.[ch]|examples/.*|tests/(securityselinuxhelper|vircgroupmock)\.c|tools/wireshark/src/packet-libvirt\.c)$$
 
@@ -1187,7 +1219,7 @@ exclude_file_name_regexp--sc_prohibit_readlink = \
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = \
-  (^docs/hacking\.html\.in|\.stp|\.pl)$$
+  ^(cfg\.mk|docs/hacking\.html\.in|.*\.stp|.*\.pl)$$
 
 exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
@@ -1227,7 +1259,7 @@ exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
   ^(tools/|examples/|include/libvirt/(virterror|libvirt(-(admin|qemu|lxc))?)\.h$$)
 
 exclude_file_name_regexp--sc_prohibit_int_ijk = \
-  ^(src/remote_protocol-structs|src/remote/remote_protocol.x|cfg.mk|include/)$
+  ^(src/remote_protocol-structs|src/remote/remote_protocol.x|cfg.mk|include/|src/admin_protocol-structs|src/admin/admin_protocol.x)$
 
 exclude_file_name_regexp--sc_prohibit_getenv = \
   ^tests/.*\.[ch]$$
@@ -1261,3 +1293,6 @@ exclude_file_name_regexp--sc_prohibit_not_streq = \
 
 exclude_file_name_regexp--sc_prohibit_not_strneq = \
   ^tests/.*\.[ch]$$
+
+exclude_file_name_regexp--sc_prohibit_dt_without_code = \
+  ^docs/(newapi\.xsl|(apps|contact)\.html\.in)$$

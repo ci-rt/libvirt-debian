@@ -148,6 +148,23 @@ struct qemuDomainJobObj {
 typedef void (*qemuDomainCleanupCallback)(virQEMUDriverPtr driver,
                                           virDomainObjPtr vm);
 
+# define QEMU_DOMAIN_MASTER_KEY_LEN 32  /* 32 bytes for 256 bit random key */
+
+
+/* helper data types for async device unplug */
+typedef enum {
+    QEMU_DOMAIN_UNPLUGGING_DEVICE_STATUS_NONE = 0,
+    QEMU_DOMAIN_UNPLUGGING_DEVICE_STATUS_OK,
+    QEMU_DOMAIN_UNPLUGGING_DEVICE_STATUS_GUEST_REJECTED,
+} qemuDomainUnpluggingDeviceStatus;
+
+typedef struct _qemuDomainUnpluggingDevice qemuDomainUnpluggingDevice;
+typedef qemuDomainUnpluggingDevice *qemuDomainUnpluggingDevicePtr;
+struct _qemuDomainUnpluggingDevice {
+    const char *alias;
+    qemuDomainUnpluggingDeviceStatus status;
+};
+
 typedef struct _qemuDomainObjPrivate qemuDomainObjPrivate;
 typedef qemuDomainObjPrivate *qemuDomainObjPrivatePtr;
 struct _qemuDomainObjPrivate {
@@ -198,8 +215,8 @@ struct _qemuDomainObjPrivate {
 
     virPerfPtr perf;
 
-    virCond unplugFinished; /* signals that unpluggingDevice was unplugged */
-    const char *unpluggingDevice; /* alias of the device that is being unplugged */
+    qemuDomainUnpluggingDevice unplug;
+
     char **qemuDevices; /* NULL-terminated list of devices aliases known to QEMU */
 
     bool hookRun;  /* true if there was a hook run over this domain */
@@ -215,6 +232,11 @@ struct _qemuDomainObjPrivate {
     char *machineName;
     char *libDir;            /* base path for per-domain files */
     char *channelTargetDir;  /* base path for per-domain channel targets */
+
+    /* random masterKey and length for encryption (not to be saved in our */
+    /* private XML) - need to restore at process reconnect */
+    uint8_t *masterKey;
+    size_t masterKeyLen;
 };
 
 # define QEMU_DOMAIN_DISK_PRIVATE(disk)	\
@@ -557,5 +579,14 @@ int qemuDomainSetPrivatePaths(virQEMUDriverPtr driver,
 void qemuDomainClearPrivatePaths(virDomainObjPtr vm);
 
 virDomainDiskDefPtr qemuDomainDiskByName(virDomainDefPtr def, const char *name);
+
+char *qemuDomainGetMasterKeyFilePath(const char *libDir);
+
+int qemuDomainMasterKeyReadFile(qemuDomainObjPrivatePtr priv);
+
+int qemuDomainMasterKeyCreate(virQEMUDriverPtr driver,
+                              virDomainObjPtr vm);
+
+void qemuDomainMasterKeyRemove(qemuDomainObjPrivatePtr priv);
 
 #endif /* __QEMU_DOMAIN_H__ */

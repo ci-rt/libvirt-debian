@@ -36,8 +36,11 @@
 /* Define to the number of bits in type 'wint_t'. */
 #undef BITSIZEOF_WINT_T
 
+/* Define to 1 if gcc -Wlogical-op reports false positive 'or' equal expr */
+#undef BROKEN_GCC_WLOGICALOP_EQUAL_EXPR
+
 /* Define to 1 if gcc -Wlogical-op reports false positives on strchr */
-#undef BROKEN_GCC_WLOGICALOP
+#undef BROKEN_GCC_WLOGICALOP_STRCHR
 
 /* Define to 1 if chown fails to change ctime when at least one argument was
    not -1. */
@@ -1093,6 +1096,9 @@
 /* Define to 1 if you have the <gnutls/crypto.h> header file. */
 #undef HAVE_GNUTLS_CRYPTO_H
 
+/* Define to 1 if you have the `gnutls_rnd' function. */
+#undef HAVE_GNUTLS_RND
+
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
 
@@ -2092,6 +2098,14 @@
 /* Location of lvs program */
 #undef LVS
 
+/* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
+   */
+#undef MAJOR_IN_MKDEV
+
+/* Define to 1 if `major', `minor', and `makedev' are declared in
+   <sysmacros.h>. */
+#undef MAJOR_IN_SYSMACROS
+
 /* If malloc(0) is != NULL, define this to 1. Otherwise define this to 0. */
 #undef MALLOC_0_IS_NONNULL
 
@@ -2486,6 +2500,9 @@
 
 /* whether hal >= 0.5.0 is available */
 #undef WITH_HAL
+
+/* whether virt-host-validate is built */
+#undef WITH_HOST_VALIDATE
 
 /* whether Hyper-V driver is enabled */
 #undef WITH_HYPERV

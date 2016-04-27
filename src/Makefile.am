@@ -114,6 +114,7 @@ UTIL_SOURCES =							\
 		util/virfile.c util/virfile.h			\
 		util/virfirewall.c util/virfirewall.h		\
 		util/virfirewallpriv.h				\
+		util/virgettext.c util/virgettext.h		\
 		util/virgic.c util/virgic.h			\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h		\
@@ -364,7 +365,8 @@ INTERFACE_CONF_SOURCES =                                       \
 
 # Secret driver generic impl APIs
 SECRET_CONF_SOURCES =                                          \
-		conf/secret_conf.h conf/secret_conf.c
+		conf/secret_conf.h conf/secret_conf.c          \
+		conf/virsecretobj.h conf/virsecretobj.c
 
 # Network driver generic impl APIs
 NODE_DEVICE_CONF_SOURCES =                                     \
@@ -886,7 +888,7 @@ HYPERV_DRIVER_EXTRA_DIST =							\
 		hyperv/hyperv_wmi_generator.py					\
 		$(HYPERV_DRIVER_GENERATED)
 
-VZ_DRIVER_SOURCES =					\
+VZ_DRIVER_SOURCES =				\
 		vz/vz_driver.h			\
 		vz/vz_driver.c			\
 		vz/vz_utils.c			\
@@ -935,6 +937,9 @@ INTERFACE_DRIVER_SOURCES +=					\
 		interface/interface_backend_udev.c
 endif WITH_UDEV
 endif WITH_INTERFACE
+
+SECRET_UTIL_SOURCES =						\
+		secret/secret_util.h secret/secret_util.c
 
 SECRET_DRIVER_SOURCES =						\
 		secret/secret_driver.h secret/secret_driver.c
@@ -1123,6 +1128,12 @@ libvirt_cpu_la_CFLAGS = \
 		-I$(srcdir)/conf $(AM_CFLAGS)
 libvirt_cpu_la_SOURCES = $(CPU_SOURCES)
 
+noinst_LTLIBRARIES += libvirt_secret.la
+libvirt_la_BUILT_LIBADD += libvirt_secret.la
+libvirt_secret_la_CFLAGS = $(AM_CFLAGS)
+libvirt_secret_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_secret_la_SOURCES = $(SECRET_UTIL_SOURCES)
+
 if WITH_VMX
 noinst_LTLIBRARIES += libvirt_vmx.la
 libvirt_la_BUILT_LIBADD += libvirt_vmx.la
@@ -1134,7 +1145,7 @@ endif WITH_VMX
 if WITH_XENCONFIG
 noinst_LTLIBRARIES += libvirt_xenconfig.la
 libvirt_la_BUILT_LIBADD += libvirt_xenconfig.la
-libvirt_la_LIBADD += $(LIBXL_LIBS)
+libvirt_xenconfig_la_LIBADD = $(LIBXL_LIBS)
 libvirt_xenconfig_la_CFLAGS = \
 		-I$(srcdir)/conf $(AM_CFLAGS)
 libvirt_xenconfig_la_SOURCES = $(XENCONFIG_SOURCES)
@@ -1303,10 +1314,13 @@ libvirt_driver_libxl_impl_la_CFLAGS = 		\
 		$(LIBXL_CFLAGS)			\
 		-I$(srcdir)/access	\
 		-I$(srcdir)/conf	\
+		-I$(srcdir)/secret      \
 		-I$(srcdir)/xenconfig	\
 		$(AM_CFLAGS)
 libvirt_driver_libxl_impl_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_libxl_impl_la_LIBADD = $(LIBXL_LIBS) libvirt_xenconfig.la
+libvirt_driver_libxl_impl_la_LIBADD = $(LIBXL_LIBS) \
+				      libvirt_xenconfig.la \
+				      libvirt_secret.la
 libvirt_driver_libxl_impl_la_SOURCES = $(LIBXL_DRIVER_SOURCES)
 
 conf_DATA += libxl/libxl.conf
@@ -1337,12 +1351,14 @@ libvirt_driver_qemu_impl_la_CFLAGS = \
 		$(LIBNL_CFLAGS) \
 		-I$(srcdir)/access \
 		-I$(srcdir)/conf \
+		-I$(srcdir)/secret \
 		$(AM_CFLAGS)
 libvirt_driver_qemu_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_qemu_impl_la_LIBADD = $(CAPNG_LIBS) \
                                 $(GNUTLS_LIBS) \
 				$(LIBNL_LIBS) \
 				$(LIBXML_LIBS) \
+				libvirt_secret.la \
 				$(NULL)
 libvirt_driver_qemu_impl_la_SOURCES = $(QEMU_DRIVER_SOURCES)
 
@@ -1479,13 +1495,21 @@ libvirt_driver_hyperv_la_SOURCES = $(HYPERV_DRIVER_SOURCES)
 endif WITH_HYPERV
 
 if WITH_VZ
+noinst_LTLIBRARIES += libvirt_driver_vz_impl.la
+libvirt_driver_vz_la_SOURCES =
+libvirt_driver_vz_la_LIBADD = libvirt_driver_vz_impl.la
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_vz.la
+libvirt_driver_vz_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_vz_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
+else ! WITH_DRIVER_MODULES
 noinst_LTLIBRARIES += libvirt_driver_vz.la
-libvirt_la_BUILT_LIBADD += libvirt_driver_vz.la
-libvirt_driver_vz_la_CFLAGS = \
+endif ! WITH_DRIVER_MODULES
+libvirt_driver_vz_impl_la_CFLAGS = \
 		-I$(srcdir)/conf $(AM_CFLAGS) \
 		$(PARALLELS_SDK_CFLAGS) $(LIBNL_CFLAGS)
-libvirt_driver_vz_la_LIBADD = $(PARALLELS_SDK_LIBS) $(LIBNL_LIBS)
-libvirt_driver_vz_la_SOURCES = $(VZ_DRIVER_SOURCES)
+libvirt_driver_vz_impl_la_SOURCES = $(VZ_DRIVER_SOURCES)
+libvirt_driver_vz_impl_la_LIBADD =  $(PARALLELS_SDK_LIBS) $(LIBNL_LIBS)
 endif WITH_VZ
 
 if WITH_BHYVE
@@ -1873,6 +1897,7 @@ EXTRA_DIST +=							\
 		$(SECURITY_DRIVER_SELINUX_SOURCES)		\
 		$(SECURITY_DRIVER_APPARMOR_SOURCES)		\
 		$(SECRET_DRIVER_SOURCES)			\
+		$(SECRET_UTIL_SOURCES)				\
 		$(VBOX_DRIVER_EXTRA_DIST)			\
 		$(VMWARE_DRIVER_SOURCES)			\
 		$(XENCONFIG_SOURCES)				\
@@ -2306,6 +2331,7 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/virevent.c			\
 		util/vireventpoll.c		\
 		util/virfile.c			\
+		util/virgettext.c		\
 		util/virhash.c			\
 		util/virhashcode.c		\
 		util/virjson.c			\
@@ -2537,29 +2563,33 @@ virtlogd.init: logging/virtlogd.init.in $(top_builddir)/config.status
 	    chmod a+x $@-t &&					\
 	    mv $@-t $@
 
-POD2MAN = pod2man -c "Virtualization Support" \
-			-r "$(PACKAGE)-$(VERSION)" -s 8
+POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 
-$(srcdir)/virtlockd.8.in: locking/virtlockd.pod.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRTLOCKD $< $@ \
-	    && if grep 'POD ERROR' $@ ; then rm $@; exit 1; fi
+virtlockd.8.in: locking/virtlockd.pod
+	$(AM_V_GEN)$(POD2MAN) --section=8 $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+		< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
 
-virtlockd.8: $(srcdir)/virtlockd.8.in
+virtlogd.8.in: logging/virtlogd.pod
+	$(AM_V_GEN)$(POD2MAN) --section=8 $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+		< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
+
+%.8: %.8.in $(top_srcdir)/configure.ac
 	$(AM_V_GEN)sed \
-	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
-	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
-	    < $< > $@-t && \
-	mv $@-t $@
-
-$(srcdir)/virtlogd.8.in: logging/virtlogd.pod.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRTLOGD $< $@ \
-	    && if grep 'POD ERROR' $@ ; then rm $@; exit 1; fi
-
-virtlogd.8: $(srcdir)/virtlogd.8.in
-	$(AM_V_GEN)sed \
-	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
-	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
-	    < $< > $@-t && \
+		-e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+		-e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+		< $< > $@-t && \
 	mv $@-t $@
 
 if WITH_LIBVIRTD
@@ -2571,25 +2601,32 @@ augeas_DATA += locking/virtlockd.aug logging/virtlogd.aug
 augeastest_DATA += test_virtlockd.aug test_virtlogd.aug
 endif WITH_LIBVIRTD
 
-CLEANFILES += test_virtlockd.aug virtlockd.8 \
-	      test_virtlogd.aug virtlogd.8
-MAINTAINERCLEANFILES += $(srcdir)/virtlockd.8.in $(srcdir)/virtlogd.8.in
+PODFILES = \
+	locking/virtlockd.pod \
+	logging/virtlogd.pod \
+	$(NULL)
+
+MANINFILES = \
+	virtlockd.8.in \
+	virtlogd.8.in \
+	$(NULL)
+
+CLEANFILES += test_virtlockd.aug test_virtlogd.aug $(man8_MANS)
+MAINTAINERCLEANFILES += $(MANINFILES)
 
 EXTRA_DIST += \
         locking/virtlockd.service.in \
         locking/virtlockd.socket.in \
-        locking/virtlockd.pod.in \
-        virtlockd.8.in \
         locking/virtlockd.aug \
         locking/virtlockd.conf \
         locking/test_virtlockd.aug.in \
         logging/virtlogd.service.in \
         logging/virtlogd.socket.in \
-        logging/virtlogd.pod.in \
-        virtlogd.8.in \
         logging/virtlogd.aug \
         logging/virtlogd.conf \
         logging/test_virtlogd.aug.in \
+        $(PODFILES) \
+        $(MANINFILES) \
         $(NULL)
 
 
@@ -3047,15 +3084,16 @@ if WITH_NETWORK
 	$(INSTALL_DATA) $(srcdir)/network/default.xml \
 	  $(DESTDIR)$(confdir)/qemu/networks/default.xml
 	test -z "$(UUID)" || \
-	  { sed -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
-	      $(DESTDIR)$(confdir)/qemu/networks/default.xml > \
+	  { sed -e "s,</name>,</name>;  <uuid>$(UUID)</uuid>," \
+	      $(DESTDIR)$(confdir)/qemu/networks/default.xml | \
+	      tr ";" "\n" > \
 	      $(DESTDIR)$(confdir)/qemu/networks/default.xml.t && \
 	    cp $(DESTDIR)$(confdir)/qemu/networks/default.xml.t \
 	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
 	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
-	test -e $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml || \
-	   ln -s ../default.xml \
-	    $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
+	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
+	  rm -f default.xml && \
+	  $(LN_S) ../default.xml default.xml )
 endif WITH_NETWORK
 
 uninstall-local:: uninstall-init uninstall-systemd

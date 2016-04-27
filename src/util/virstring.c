@@ -989,14 +989,7 @@ virStringHasControlChars(const char *str)
 }
 
 
-/* Work around spurious strchr() diagnostics given by -Wlogical-op
- * for gcc < 4.6.  Doing it via a local pragma keeps the damage
- * smaller than disabling it on the package level.  Unfortunately, the
- * affected GCCs don't allow diagnostic push/pop which would have
- * further reduced the impact. */
-#if BROKEN_GCC_WLOGICALOP
-# pragma GCC diagnostic ignored "-Wlogical-op"
-#endif
+VIR_WARNINGS_NO_WLOGICALOP_STRCHR
 
 
 /**
@@ -1054,4 +1047,22 @@ virStringToUpper(char **dst, const char *src)
 
     *dst = cap;
     return 1;
+}
+
+
+/**
+ * virStringIsPrintable:
+ *
+ * Returns true @str contains only printable characters.
+ */
+bool
+virStringIsPrintable(const char *str)
+{
+    size_t i;
+
+    for (i = 0; str[i]; i++)
+        if (!c_isprint(str[i]))
+            return false;
+
+    return true;
 }

@@ -22,6 +22,7 @@
  * Author: Martin Kletzander <mkletzan@redhat.com>
  */
 
+%#include <libvirt/libvirt-admin.h>
 %#include "virxdrdefs.h"
 
 /*----- Data types. -----*/
@@ -35,11 +36,36 @@ const ADMIN_STRING_MAX = 4194304;
 /* Upper limit on list of servers */
 const ADMIN_SERVER_LIST_MAX = 16384;
 
+/* Upper limit on number of threadpool parameters */
+const ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX = 32;
+
 /* A long string, which may NOT be NULL. */
 typedef string admin_nonnull_string<ADMIN_STRING_MAX>;
 
 /* A long string, which may be NULL. */
 typedef admin_nonnull_string *admin_string;
+
+union admin_typed_param_value switch (int type) {
+ case VIR_TYPED_PARAM_INT:
+     int i;
+ case VIR_TYPED_PARAM_UINT:
+     unsigned int ui;
+ case VIR_TYPED_PARAM_LLONG:
+     hyper l;
+ case VIR_TYPED_PARAM_ULLONG:
+     unsigned hyper ul;
+ case VIR_TYPED_PARAM_DOUBLE:
+     double d;
+ case VIR_TYPED_PARAM_BOOLEAN:
+     int b;
+ case VIR_TYPED_PARAM_STRING:
+     admin_nonnull_string s;
+};
+
+struct admin_typed_param {
+    admin_nonnull_string field;
+    admin_typed_param_value value;
+};
 
 /* A server which may NOT be NULL */
 struct admin_nonnull_server {
@@ -47,6 +73,7 @@ struct admin_nonnull_server {
 };
 
 /*----- Protocol. -----*/
+
 struct admin_connect_open_args {
     unsigned int flags;
 };
@@ -72,6 +99,21 @@ struct admin_connect_lookup_server_args {
 
 struct admin_connect_lookup_server_ret {
     admin_nonnull_server srv;
+};
+
+struct admin_server_get_threadpool_parameters_args {
+    admin_nonnull_server srv;
+    unsigned int flags;
+};
+
+struct admin_server_get_threadpool_parameters_ret {
+    admin_typed_param params<ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX>;
+};
+
+struct admin_server_set_threadpool_parameters_args {
+    admin_nonnull_server srv;
+    admin_typed_param params<ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX>;
+    unsigned int flags;
 };
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -119,5 +161,15 @@ enum admin_procedure {
     /**
       * @generate: both
       */
-    ADMIN_PROC_CONNECT_LOOKUP_SERVER = 5
+    ADMIN_PROC_CONNECT_LOOKUP_SERVER = 5,
+
+    /**
+     * @generate: none
+     */
+    ADMIN_PROC_SERVER_GET_THREADPOOL_PARAMETERS = 6,
+
+    /**
+     * @generate: none
+     */
+    ADMIN_PROC_SERVER_SET_THREADPOOL_PARAMETERS = 7
 };

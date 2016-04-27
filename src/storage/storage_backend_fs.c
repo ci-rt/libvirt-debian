@@ -84,9 +84,15 @@ virStorageBackendProbeTarget(virStorageSourcePtr target,
         goto cleanup;
 
     if (S_ISDIR(sb.st_mode)) {
-        target->format = VIR_STORAGE_FILE_DIR;
-        ret = 0;
-        goto cleanup;
+        if (virStorageBackendIsPloopDir(target->path)) {
+            if (virStorageBackendRedoPloopUpdate(target, &sb, &fd,
+                                                 VIR_STORAGE_VOL_FS_PROBE_FLAGS) < 0)
+                goto cleanup;
+        } else {
+            target->format = VIR_STORAGE_FILE_DIR;
+            ret = 0;
+            goto cleanup;
+        }
     }
 
     if (!(meta = virStorageFileGetMetadataFromFD(target->path,
@@ -949,6 +955,9 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
         if (vol->target.format == VIR_STORAGE_FILE_DIR)
             vol->type = VIR_STORAGE_VOL_DIR;
 
+        if (vol->target.format == VIR_STORAGE_FILE_PLOOP)
+            vol->type = VIR_STORAGE_VOL_PLOOP;
+
         if (vol->target.backingStore) {
             ignore_value(virStorageBackendUpdateVolTargetInfo(vol->target.backingStore,
                                                               false,
@@ -1085,6 +1094,8 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (vol->target.format == VIR_STORAGE_FILE_DIR)
         vol->type = VIR_STORAGE_VOL_DIR;
+    else if (vol->target.format == VIR_STORAGE_FILE_PLOOP)
+        vol->type = VIR_STORAGE_VOL_PLOOP;
     else
         vol->type = VIR_STORAGE_VOL_FILE;
 
@@ -1159,7 +1170,6 @@ _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
                                      unsigned int flags)
 {
     virStorageBackendBuildVolFrom create_func;
-    int tool_type;
 
     if (inputvol) {
         if (vol->target.encryption != NULL) {
@@ -1177,16 +1187,10 @@ _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
         create_func = virStorageBackendCreateRaw;
     } else if (vol->target.format == VIR_STORAGE_FILE_DIR) {
         create_func = createFileDir;
-    } else if ((tool_type = virStorageBackendFindFSImageTool(NULL)) != -1) {
-        create_func = virStorageBackendFSImageToolTypeToFunc(tool_type);
-
-        if (!create_func)
-            return -1;
+    } else if (vol->target.format == VIR_STORAGE_FILE_PLOOP) {
+        create_func = virStorageBackendCreatePloop;
     } else {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("creation of non-raw images "
-                               "is not supported without qemu-img"));
-        return -1;
+        create_func = virStorageBackendCreateQemuImg;
     }
 
     if (create_func(conn, pool, vol, inputvol, flags) < 0)
@@ -1196,7 +1200,7 @@ _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
 
 /**
  * Allocate a new file as a volume. This is either done directly
- * for raw/sparse files, or by calling qemu-img/qcow-create for
+ * for raw/sparse files, or by calling qemu-img for
  * special kinds of files
  */
 static int
@@ -1258,6 +1262,10 @@ virStorageBackendFileSystemVolDelete(virConnectPtr conn ATTRIBUTE_UNUSED,
                 return -1;
             }
         }
+        break;
+    case VIR_STORAGE_VOL_PLOOP:
+        if (virFileDeleteTree(vol->target.path) < 0)
+            return -1;
         break;
     case VIR_STORAGE_VOL_BLOCK:
     case VIR_STORAGE_VOL_NETWORK:
@@ -1326,14 +1334,10 @@ virStorageBackendFilesystemResizeQemuImg(const char *path,
     char *img_tool;
     virCommandPtr cmd = NULL;
 
-    /* KVM is usually ahead of qemu on features, so try that first */
-    img_tool = virFindFileInPath("kvm-img");
-    if (!img_tool)
-        img_tool = virFindFileInPath("qemu-img");
-
+    img_tool = virFindFileInPath("qemu-img");
     if (!img_tool) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("unable to find kvm-img or qemu-img"));
+                       "%s", _("unable to find qemu-img"));
         return -1;
     }
 
@@ -1371,6 +1375,8 @@ virStorageBackendFileSystemVolResize(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (vol->target.format == VIR_STORAGE_FILE_RAW) {
         return virStorageFileResize(vol->target.path, capacity,
                                     vol->target.allocation, pre_allocate);
+    } else if (vol->target.format == VIR_STORAGE_FILE_PLOOP) {
+        return virStoragePloopResize(vol, capacity);
     } else {
         if (pre_allocate) {
             virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",

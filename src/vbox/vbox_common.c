@@ -1578,6 +1578,7 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     char *guiDisplay = NULL;
     char *sdlDisplay = NULL;
     size_t i = 0;
+    virDomainGraphicsListenDefPtr gListen;
 
     for (i = 0; i < def->ngraphics; i++) {
         IVRDxServer *VRDxServer = NULL;
@@ -1588,9 +1589,6 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
             vrdpPresent = 1;
             gVBoxAPI.UIMachine.GetVRDxServer(machine, &VRDxServer);
             if (VRDxServer) {
-                const char *listenAddr
-                    = virDomainGraphicsListenGetAddress(def->graphics[i], 0);
-
                 gVBoxAPI.UIVRDxServer.SetEnabled(VRDxServer, PR_TRUE);
                 VIR_DEBUG("VRDP Support turned ON.");
 
@@ -1608,14 +1606,15 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                     VIR_DEBUG("VRDP set to allow multiple connection");
                 }
 
-                if (listenAddr) {
+                if ((gListen = virDomainGraphicsGetListen(def->graphics[i], 0)) &&
+                    gListen->address) {
                     PRUnichar *netAddressUtf16 = NULL;
 
-                    VBOX_UTF8_TO_UTF16(listenAddr, &netAddressUtf16);
+                    VBOX_UTF8_TO_UTF16(gListen->address, &netAddressUtf16);
                     gVBoxAPI.UIVRDxServer.SetNetAddress(data, VRDxServer,
                                                         netAddressUtf16);
                     VIR_DEBUG("VRDP listen address is set to: %s",
-                              listenAddr);
+                              gListen->address);
 
                     VBOX_UTF16_FREE(netAddressUtf16);
                 }
@@ -3386,8 +3385,7 @@ vboxDumpDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         }
 
         if (STRNEQ_NULLABLE(netAddressUtf8, "") &&
-            virDomainGraphicsListenSetAddress(graphics, 0,
-                                              netAddressUtf8, -1, true) < 0)
+            virDomainGraphicsListenAppendAddress(graphics, netAddressUtf8) < 0)
             goto cleanup;
 
         gVBoxAPI.UIVRDxServer.GetAllowMultiConnection(VRDxServer, &allowMultiConnection);
@@ -7858,7 +7856,11 @@ virHypervisorDriverPtr vboxGetHypervisorDriver(uint32_t uVersion)
     /* Install gVBoxAPI according to the vbox API version. */
     int result = 0;
     installUniformedAPI(gVBoxAPI, result);
-    if (result < 0) return NULL;
+    if (result < 0) {
+        VIR_WARN("Libvirt doesn't support VirtualBox API version %u",
+                 uVersion);
+        return NULL;
+    }
     updateDriver();
     return &vboxCommonDriver;
 }

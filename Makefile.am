@@ -19,7 +19,7 @@
 LCOV = lcov
 GENHTML = genhtml
 
-SUBDIRS = . gnulib/lib include src daemon tools docs gnulib/tests \
+SUBDIRS = . gnulib/lib include/libvirt src daemon tools docs gnulib/tests \
   tests po examples
 
 ACLOCAL_AMFLAGS = -I m4
@@ -68,7 +68,7 @@ rpm: clean
 check-local: all tests
 
 cov: clean-cov
-	mkdir $(top_builddir)/coverage
+	$(MKDIR_P) $(top_builddir)/coverage
 	$(LCOV) -c -o $(top_builddir)/coverage/libvirt.info.tmp \
 	  -d $(top_builddir)/src  -d $(top_builddir)/daemon \
 	  -d $(top_builddir)/tests
@@ -82,9 +82,6 @@ clean-cov:
 	rm -rf $(top_builddir)/coverage
 
 MAINTAINERCLEANFILES = .git-module-status
-
-# disable this check
-distuninstallcheck:
 
 dist-hook: gen-ChangeLog gen-AUTHORS
 

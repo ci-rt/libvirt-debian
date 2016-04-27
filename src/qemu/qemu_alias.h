@@ -54,8 +54,11 @@ int qemuAssignDeviceRedirdevAlias(virDomainDefPtr def,
                                   virDomainRedirdevDefPtr redirdev,
                                   int idx);
 
-int qemuAssignDeviceRNGAlias(virDomainRNGDefPtr rng,
-                             size_t idx);
+int qemuAssignDeviceRNGAlias(virDomainDefPtr def,
+                             virDomainRNGDefPtr rng);
+
+int qemuAssignDeviceMemoryAlias(virDomainDefPtr def,
+                                virDomainMemoryDefPtr mems);
 
 int qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps);
 
@@ -63,4 +66,7 @@ int qemuDomainDeviceAliasIndex(const virDomainDeviceInfo *info,
                                const char *prefix);
 
 char *qemuAliasFromDisk(const virDomainDiskDef *disk);
+
+char *qemuDomainGetMasterKeyAlias(void);
+
 #endif /* __QEMU_ALIAS_H__*/
