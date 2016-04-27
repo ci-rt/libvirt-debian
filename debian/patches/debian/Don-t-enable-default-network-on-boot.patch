@@ -4,35 +4,35 @@ Subject: Don't enable default network on boot
 
 to not interfere with existing network configurations
 ---
- src/Makefile.am | 3 ---
- src/Makefile.in | 3 ---
- 2 files changed, 6 deletions(-)
+ src/Makefile.am | 3 +--
+ src/Makefile.in | 3 +--
+ 2 files changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 1726d06..b96a55d 100644
+index 314f6df..82afbad 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -3053,9 +3053,6 @@ if WITH_NETWORK
- 	    cp $(DESTDIR)$(confdir)/qemu/networks/default.xml.t \
+@@ -3092,8 +3092,7 @@ if WITH_NETWORK
  	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
--	test -e $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml || \
--	   ln -s ../default.xml \
--	    $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
+ 	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
+-	  rm -f default.xml && \
+-	  $(LN_S) ../default.xml default.xml )
++	  rm -f default.xml )
  endif WITH_NETWORK
  
  uninstall-local:: uninstall-init uninstall-systemd
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 784c49e..2230f6d 100644
+index 5d2311f..bbc7914 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -11201,9 +11201,6 @@ install-data-local: install-init install-systemd
- @WITH_NETWORK_TRUE@	    cp $(DESTDIR)$(confdir)/qemu/networks/default.xml.t \
+@@ -11319,8 +11319,7 @@ install-data-local: install-init install-systemd
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
--@WITH_NETWORK_TRUE@	test -e $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml || \
--@WITH_NETWORK_TRUE@	   ln -s ../default.xml \
--@WITH_NETWORK_TRUE@	    $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
+ @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
+-@WITH_NETWORK_TRUE@	  rm -f default.xml && \
+-@WITH_NETWORK_TRUE@	  $(LN_S) ../default.xml default.xml )
++@WITH_NETWORK_TRUE@	  rm -f default.xml )
  
  uninstall-local:: uninstall-init uninstall-systemd
  @WITH_LIBVIRTD_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/lockd/files" ||:

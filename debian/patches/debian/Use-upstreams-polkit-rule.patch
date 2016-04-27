@@ -8,10 +8,10 @@ As of 1.2.16 upstream ships a Polkit rule like Debian does.
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/daemon/Makefile.am b/daemon/Makefile.am
-index 2dbe81b..39bed47 100644
+index 927d16f..4cb8f05 100644
 --- a/daemon/Makefile.am
 +++ b/daemon/Makefile.am
-@@ -301,14 +301,14 @@ install-data-polkit::
+@@ -305,14 +305,14 @@ install-data-polkit::
  	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
  if ! WITH_POLKIT0
  	$(MKDIR_P) $(DESTDIR)$(rulesdir)

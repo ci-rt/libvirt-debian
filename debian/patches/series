@@ -14,5 +14,3 @@ Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 debian/libsystemd.patch
 virt-aa-helper-apparmor-allow-usr-share-OVMF-too.patch
-Link-xen-driver-against-libxl.patch
-qemu-support-virt-2.6-machine-type-on-arm.patch
