@@ -90,19 +90,19 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = virsh$(EXEEXT) virt-host-validate$(EXEEXT) \
-	virt-admin$(EXEEXT) $(am__EXEEXT_1)
+bin_PROGRAMS = virsh$(EXEEXT) virt-admin$(EXEEXT) $(am__EXEEXT_1) \
+	$(am__EXEEXT_2)
 @WITH_SANLOCK_TRUE@am__append_1 = virt-sanlock-cleanup
 @WITH_LOGIN_SHELL_TRUE@am__append_2 = virt-login-shell.conf
 @WITH_LOGIN_SHELL_TRUE@am__append_3 = virt-login-shell
-@WITH_LOGIN_SHELL_FALSE@am__append_4 = virt-login-shell.conf \
-@WITH_LOGIN_SHELL_FALSE@	virt-login-shell.1
-@WITH_LOGIN_SHELL_TRUE@am__append_5 = virt-login-shell.1
-@WITH_WIN_ICON_TRUE@am__append_6 = virsh_win_icon.$(OBJEXT)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_7 = libvirt-guests.init
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_8 = libvirt-guests.service
-@WITH_WIRESHARK_DISSECTOR_TRUE@am__append_9 = wireshark/src/plugin.c
-@WITH_NSS_TRUE@am__append_10 = nss/libnss_libvirt_impl.la
+@WITH_LOGIN_SHELL_TRUE@am__append_4 = virt-login-shell.1
+@WITH_HOST_VALIDATE_TRUE@am__append_5 = virt-host-validate
+@WITH_HOST_VALIDATE_TRUE@am__append_6 = virt-host-validate.1
+@WITH_WIN_ICON_TRUE@am__append_7 = virsh_win_icon.$(OBJEXT)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_8 = libvirt-guests.init
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_9 = libvirt-guests.service
+@WITH_WIRESHARK_DISSECTOR_TRUE@am__append_10 = wireshark/src/plugin.c
+@WITH_NSS_TRUE@am__append_11 = nss/libnss_libvirt_impl.la
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -245,7 +245,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
-	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-host-validate.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -362,6 +364,7 @@ wireshark_src_libvirt_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_WIRESHARK_DISSECTOR_TRUE@am_wireshark_src_libvirt_la_rpath =  \
 @WITH_WIRESHARK_DISSECTOR_TRUE@	-rpath $(ws_plugindir)
 @WITH_LOGIN_SHELL_TRUE@am__EXEEXT_1 = virt-login-shell$(EXEEXT)
+@WITH_HOST_VALIDATE_TRUE@am__EXEEXT_2 = virt-host-validate$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 am_virsh_OBJECTS = virsh-virsh.$(OBJEXT) virsh-virsh-console.$(OBJEXT) \
 	virsh-virsh-domain.$(OBJEXT) \
@@ -373,7 +376,7 @@ am_virsh_OBJECTS = virsh-virsh.$(OBJEXT) virsh-virsh-console.$(OBJEXT) \
 	virsh-virsh-volume.$(OBJEXT)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) ../src/libvirt-lxc.la \
-	../src/libvirt-qemu.la libvirt_shell.la $(am__append_6)
+	../src/libvirt-qemu.la libvirt_shell.la $(am__append_7)
 virsh_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virsh_CFLAGS) $(CFLAGS) \
 	$(virsh_LDFLAGS) $(LDFLAGS) -o $@
@@ -460,7 +463,7 @@ am__can_run_installinfo = \
 man1dir = $(mandir)/man1
 man8dir = $(mandir)/man8
 NROFF = nroff
-MANS = $(dist_man1_MANS) $(dist_man8_MANS)
+MANS = $(man1_MANS) $(man8_MANS)
 DATA = $(conf_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
@@ -481,8 +484,8 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-am__DIST_COMMON = $(dist_man1_MANS) $(dist_man8_MANS) \
-	$(srcdir)/Makefile.in $(top_srcdir)/build-aux/depcomp \
+am__DIST_COMMON = $(srcdir)/Makefile.in \
+	$(top_srcdir)/build-aux/depcomp \
 	$(top_srcdir)/build-aux/mkinstalldirs
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkglibexecdir = @pkglibexecdir@
@@ -1953,7 +1956,6 @@ AM_LDFLAGS = \
 	$(NO_INDIRECT_LDFLAGS)					\
 	$(NULL)
 
-POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 ICON_FILES = \
 	libvirt_win_icon_16x16.ico \
 	libvirt_win_icon_32x32.ico \
@@ -1961,29 +1963,51 @@ ICON_FILES = \
 	libvirt_win_icon_64x64.ico \
 	virsh_win_icon.rc
 
+PODFILES = \
+	virt-admin.pod \
+	virt-host-validate.pod \
+	virt-login-shell.pod \
+	virt-pki-validate.pod \
+	virt-sanlock-cleanup.pod \
+	virt-xml-validate.pod \
+	virsh.pod \
+	$(NULL)
+
+MANINFILES = \
+	virt-admin.1.in \
+	virt-host-validate.1.in \
+	virt-login-shell.1.in \
+	virt-pki-validate.1.in \
+	virt-sanlock-cleanup.8.in \
+	virt-xml-validate.1.in \
+	virsh.1.in \
+	$(NULL)
+
 EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	virt-pki-validate.in virt-sanlock-cleanup.in \
-	virt-sanlock-cleanup.8 virt-login-shell.pod virsh.pod \
-	libvirt-guests.sysconf virsh-edit.c virsh-domain.c \
-	virsh-domain-monitor.c virsh-host.c virsh-interface.c \
-	virsh-network.c virsh-nodedev.c virsh-nwfilter.c virsh-pool.c \
-	virsh-secret.c virsh-snapshot.c virsh-volume.c $(am__append_4) \
+	libvirt-guests.sysconf virt-login-shell.conf virsh-edit.c \
+	virsh-domain.c virsh-domain-monitor.c virsh-host.c \
+	virsh-interface.c virsh-network.c virsh-nodedev.c \
+	virsh-nwfilter.c virsh-pool.c virsh-secret.c virsh-snapshot.c \
+	virsh-volume.c $(PODFILES) $(MANINFILES) $(NULL) \
 	libvirt-guests.sh.in libvirt-guests.init.in \
 	libvirt-guests.service.in wireshark/util/genxdrstub.pl \
-	wireshark/util/make-dissector-reg $(LIBVIRT_NSS_SYMBOL_FILE) \
-	$(LIBVIRT_NSS_SOURCES)
-CLEANFILES = $(am__append_9) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
-	.libs/*.gcno *.gcno *.gcda *.i *.s
+	wireshark/util/make-dissector-reg $(LIBVIRT_NSS_SOURCES) \
+	$(srcdir)/nss/libvirt_nss.syms \
+	$(srcdir)/nss/libvirt_nss_bsd.syms
+CLEANFILES = $(am__append_10) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
+	.libs/*.gcno *.gcno *.gcda *.i *.s $(man1_MANS) $(man8_MANS)
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
+MAINTAINERCLEANFILES = $(MANINFILES)
 confdir = $(sysconfdir)/libvirt
 conf_DATA = $(am__append_2)
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
 libexec_SCRIPTS = libvirt-guests.sh
+man1_MANS = virt-pki-validate.1 virt-xml-validate.1 virsh.1 \
+	virt-admin.1 $(am__append_4) $(am__append_6)
 @WITH_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
-dist_man1_MANS = virt-host-validate.1 virt-pki-validate.1 \
-	virt-xml-validate.1 virsh.1 virt-admin.1 $(am__append_5)
-@WITH_SANLOCK_TRUE@dist_man8_MANS = virt-sanlock-cleanup.8
-noinst_LTLIBRARIES = libvirt_shell.la $(am__append_10)
+@WITH_SANLOCK_TRUE@man8_MANS = virt-sanlock-cleanup.8
+noinst_LTLIBRARIES = libvirt_shell.la $(am__append_11)
 libvirt_shell_la_CFLAGS = \
 		$(AM_CFLAGS)						\
 		$(PIE_CFLAGS)						\
@@ -2080,7 +2104,7 @@ virsh_LDFLAGS = \
 		$(NULL)
 
 virsh_LDADD = $(STATIC_BINARIES) ../src/libvirt-lxc.la \
-	../src/libvirt-qemu.la libvirt_shell.la $(am__append_6)
+	../src/libvirt-qemu.la libvirt_shell.la $(am__append_7)
 virsh_CFLAGS = \
 		$(WARN_CFLAGS)					\
 		$(PIE_CFLAGS)					\
@@ -2111,7 +2135,8 @@ virt_admin_CFLAGS = \
 		$(LIBXML_CFLAGS)				\
 		$(READLINE_CFLAGS)
 
-BUILT_SOURCES = $(am__append_7) libvirt-guests.sh $(am__append_8)
+BUILT_SOURCES = $(am__append_8) libvirt-guests.sh $(am__append_9)
+POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugindir = $(plugindir)
 @WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugin_LTLIBRARIES = wireshark/src/libvirt.la
@@ -2173,7 +2198,6 @@ LIBVIRT_NSS_SOURCES = \
 @WITH_NSS_TRUE@lib_LTLIBRARIES = \
 @WITH_NSS_TRUE@	nss/libnss_libvirt.la
 
-MAINTAINERCLEANFILES = $(dist_man1_MANS)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -2851,9 +2875,9 @@ clean-libtool:
 	-rm -rf .libs _libs
 	-rm -rf nss/.libs nss/_libs
 	-rm -rf wireshark/src/.libs wireshark/src/_libs
-install-man1: $(dist_man1_MANS)
+install-man1: $(man1_MANS)
 	@$(NORMAL_INSTALL)
-	@list1='$(dist_man1_MANS)'; \
+	@list1='$(man1_MANS)'; \
 	list2=''; \
 	test -n "$(man1dir)" \
 	  && test -n "`echo $$list1$$list2`" \
@@ -2887,14 +2911,14 @@ install-man1: $(dist_man1_MANS)
 
 uninstall-man1:
 	@$(NORMAL_UNINSTALL)
-	@list='$(dist_man1_MANS)'; test -n "$(man1dir)" || exit 0; \
+	@list='$(man1_MANS)'; test -n "$(man1dir)" || exit 0; \
 	files=`{ for i in $$list; do echo "$$i"; done; \
 	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^1][0-9a-z]*$$,1,;x' \
 	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
 	dir='$(DESTDIR)$(man1dir)'; $(am__uninstall_files_from_dir)
-install-man8: $(dist_man8_MANS)
+install-man8: $(man8_MANS)
 	@$(NORMAL_INSTALL)
-	@list1='$(dist_man8_MANS)'; \
+	@list1='$(man8_MANS)'; \
 	list2=''; \
 	test -n "$(man8dir)" \
 	  && test -n "`echo $$list1$$list2`" \
@@ -2928,7 +2952,7 @@ install-man8: $(dist_man8_MANS)
 
 uninstall-man8:
 	@$(NORMAL_UNINSTALL)
-	@list='$(dist_man8_MANS)'; test -n "$(man8dir)" || exit 0; \
+	@list='$(man8_MANS)'; test -n "$(man8dir)" || exit 0; \
 	files=`{ for i in $$list; do echo "$$i"; done; \
 	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
 	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
@@ -3086,7 +3110,6 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
-@WITH_BSD_NSS_FALSE@install-exec-hook:
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
@@ -3121,8 +3144,7 @@ install-dvi-am:
 install-exec-am: install-binPROGRAMS install-binSCRIPTS \
 	install-libLTLIBRARIES install-libexecSCRIPTS \
 	install-sbinSCRIPTS
-	@$(NORMAL_INSTALL)
-	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
+
 install-html: install-html-am
 
 install-html-am:
@@ -3168,7 +3190,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
 
 uninstall-man: uninstall-man1 uninstall-man8
 
-.MAKE: all check install install-am install-exec-am install-strip
+.MAKE: all check install install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
 	clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
@@ -3179,20 +3201,19 @@ uninstall-man: uninstall-man1 uninstall-man8
 	html-am info info-am install install-am install-binPROGRAMS \
 	install-binSCRIPTS install-confDATA install-data \
 	install-data-am install-data-local install-dvi install-dvi-am \
-	install-exec install-exec-am install-exec-hook install-html \
-	install-html-am install-info install-info-am \
-	install-libLTLIBRARIES install-libexecSCRIPTS install-man \
-	install-man1 install-man8 install-pdf install-pdf-am \
-	install-ps install-ps-am install-sbinSCRIPTS install-strip \
-	install-ws_pluginLTLIBRARIES installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-binPROGRAMS uninstall-binSCRIPTS \
-	uninstall-confDATA uninstall-libLTLIBRARIES \
-	uninstall-libexecSCRIPTS uninstall-local uninstall-man \
-	uninstall-man1 uninstall-man8 uninstall-sbinSCRIPTS \
-	uninstall-ws_pluginLTLIBRARIES
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-libLTLIBRARIES \
+	install-libexecSCRIPTS install-man install-man1 install-man8 \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-sbinSCRIPTS install-strip install-ws_pluginLTLIBRARIES \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-binSCRIPTS uninstall-confDATA \
+	uninstall-libLTLIBRARIES uninstall-libexecSCRIPTS \
+	uninstall-local uninstall-man uninstall-man1 uninstall-man8 \
+	uninstall-sbinSCRIPTS uninstall-ws_pluginLTLIBRARIES
 
 .PRECIOUS: Makefile
 
@@ -3202,36 +3223,15 @@ virt-xml-validate: virt-xml-validate.in Makefile
 		       -e 's|[@]VERSION@|$(VERSION)|g' \
 	  < $< > $@ || (rm $@ && exit 1) && chmod +x $@
 
-virt-xml-validate.1: virt-xml-validate.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-XML-VALIDATE $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
-
 virt-pki-validate: virt-pki-validate.in Makefile
 	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|g' \
 		       -e 's|[@]VERSION@|$(VERSION)|g' \
 	  < $< > $@ || (rm $@ && exit 1) && chmod +x $@
 
-virt-pki-validate.1: virt-pki-validate.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-PKI-VALIDATE $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
-
-virt-host-validate.1: virt-host-validate.c $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-HOST-VALIDATE $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
-
 virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
 	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|' \
 	    -e 's|[@]localstatedir@|$(localstatedir)|' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
-
-virt-sanlock-cleanup.8: virt-sanlock-cleanup.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-SANLOCK-CLEANUP --section=8 \
-	    $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
 
 # Before you edit virsh_win_icon.rc, please note the following
 # limitations of the resource file format:
@@ -3255,14 +3255,43 @@ virt-sanlock-cleanup.8: virt-sanlock-cleanup.in $(top_srcdir)/configure.ac
 @WITH_WIN_ICON_TRUE@	  --input-format rc --input $< \
 @WITH_WIN_ICON_TRUE@	  --output-format coff --output $@
 
-%.1: %.pod $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@ \
-		&& if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
+%.1.in: %.pod
+	$(AM_V_GEN)$(POD2MAN) $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+	< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
 
-install-data-local: install-init install-systemd
+%.8.in: %.pod
+	$(AM_V_GEN)$(POD2MAN) --section=8 $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+		< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
 
-uninstall-local: uninstall-init uninstall-systemd
+%.1: %.1.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)sed \
+		-e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+		-e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+		< $< > $@-t && \
+	mv $@-t $@
+
+%.8: %.8.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)sed \
+		-e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+		-e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+		< $< > $@-t && \
+	mv $@-t $@
+
+install-data-local: install-init install-systemd install-nss
+
+uninstall-local: uninstall-init uninstall-systemd uninstall-nss
 
 install-sysconfig:
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
@@ -3345,12 +3374,16 @@ libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
 @WITH_WIRESHARK_DISSECTOR_TRUE@		  $(PERL) $(abs_top_srcdir)/tools/wireshark/util/genxdrstub.pl \
 @WITH_WIRESHARK_DISSECTOR_TRUE@		  $(WS_DISSECTOR_PROTO_FILES)
 
-@WITH_BSD_NSS_TRUE@install-exec-hook:
-@WITH_BSD_NSS_TRUE@	cd $(DESTDIR)$(libdir) && \
-@WITH_BSD_NSS_TRUE@	  $(LN_S) libnss_libvirt.so.$(NSS_SO_VER) nss_libvirt.so.$(NSS_SO_VER)
+@WITH_BSD_NSS_TRUE@install-nss:
+@WITH_BSD_NSS_TRUE@	( cd $(DESTDIR)$(libdir) && \
+@WITH_BSD_NSS_TRUE@	  rm -f nss_libvirt.so.$(NSS_SO_VER) && \
+@WITH_BSD_NSS_TRUE@	  $(LN_S) libnss_libvirt.so.$(NSS_SO_VER) nss_libvirt.so.$(NSS_SO_VER) )
 
-@WITH_BSD_NSS_TRUE@uninstall-local:
-@WITH_BSD_NSS_TRUE@	rm $(DESTDIR)$(libdir)/libnss_libvirt.so.$(NSS_SO_VER)
+@WITH_BSD_NSS_TRUE@uninstall-nss:
+@WITH_BSD_NSS_TRUE@	-rm -f $(DESTDIR)$(libdir)/nss_libvirt.so.$(NSS_SO_VER)
+
+@WITH_BSD_NSS_FALSE@install-nss:
+@WITH_BSD_NSS_FALSE@uninstall-nss:
 
 clean-local:
 	-rm -rf wireshark/src/libvirt

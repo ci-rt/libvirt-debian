@@ -20440,5 +20440,14 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
+{ /* Async event DomainEventCallbackDeviceRemovalFailed => 367 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
 };
 size_t remoteNProcs = ARRAY_CARDINALITY(remoteProcs);

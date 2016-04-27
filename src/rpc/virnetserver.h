@@ -89,4 +89,17 @@ int virNetServerStart(virNetServerPtr srv);
 
 const char *virNetServerGetName(virNetServerPtr srv);
 
+int virNetServerGetThreadPoolParameters(virNetServerPtr srv,
+                                        size_t *minWorkers,
+                                        size_t *maxWorkers,
+                                        size_t *nWorkers,
+                                        size_t *freeWorkers,
+                                        size_t *nPrioWorkers,
+                                        size_t *jobQueueDepth);
+
+int virNetServerSetThreadPoolParameters(virNetServerPtr srv,
+                                        long long int minWorkers,
+                                        long long int maxWorkers,
+                                        long long int prioWorkers);
+
 #endif /* __VIR_NET_SERVER_H__ */

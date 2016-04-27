@@ -48,7 +48,12 @@ dommigrate_dommigrate_SOURCES = dommigrate/dommigrate.c
 domsuspend_suspend_SOURCES = domsuspend/suspend.c
 domtop_domtop_SOURCES = domtop/domtop.c
 hellolibvirt_hellolibvirt_SOURCES = hellolibvirt/hellolibvirt.c
+
+object_events_event_test_CFLAGS = \
+		$(WARN_CFLAGS)						\
+		$(NULL)
 object_events_event_test_SOURCES = object-events/event-test.c
+
 openauth_openauth_SOURCES = openauth/openauth.c
 rename_rename_SOURCES = rename/rename.c
 
@@ -85,5 +90,5 @@ uninstall-local::
 	for f in $(FILTERS); do \
 		rm -f "$(NWFILTER_DIR)/`basename $$f`"; \
 	done
-	-test -z $(shell ls $(NWFILTER_DIR)) || rmdir $(NWFILTER_DIR)
+	-test -z "$(shell ls $(NWFILTER_DIR))" || rmdir $(NWFILTER_DIR)
 endif WITH_NWFILTER

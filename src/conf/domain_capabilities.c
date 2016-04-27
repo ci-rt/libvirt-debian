@@ -187,9 +187,9 @@ virDomainCapsStringValuesFormat(virBufferPtr buf,
 #define FORMAT_PROLOGUE(item)                                       \
     do {                                                            \
         virBufferAsprintf(buf, "<" #item " supported='%s'%s\n",     \
-                          item->device.supported ? "yes" : "no",    \
-                          item->device.supported ? ">" : "/>");     \
-        if (!item->device.supported)                                \
+                          item->supported ? "yes" : "no",           \
+                          item->supported ? ">" : "/>");            \
+        if (!item->supported)                                       \
             return;                                                 \
         virBufferAdjustIndent(buf, 2);                              \
     } while (0)
@@ -262,6 +262,34 @@ virDomainCapsDeviceHostdevFormat(virBufferPtr buf,
 }
 
 
+/**
+ * virDomainCapsFeatureGICFormat:
+ * @buf: target buffer
+ * @gic: GIC features
+ *
+ * Format GIC features for inclusion in the domcapabilities XML.
+ *
+ * The resulting XML will look like
+ *
+ *   <gic supported='yes'>
+ *     <enum name='version>
+ *       <value>2</value>
+ *       <value>3</value>
+ *     </enum>
+ *   </gic>
+ */
+static void
+virDomainCapsFeatureGICFormat(virBufferPtr buf,
+                              virDomainCapsFeatureGICPtr const gic)
+{
+    FORMAT_PROLOGUE(gic);
+
+    ENUM_PROCESS(gic, version, virGICVersionTypeToString);
+
+    FORMAT_EPILOGUE(gic);
+}
+
+
 static int
 virDomainCapsFormatInternal(virBufferPtr buf,
                             virDomainCapsPtr const caps)
@@ -290,6 +318,14 @@ virDomainCapsFormatInternal(virBufferPtr buf,
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</devices>\n");
+
+    virBufferAddLit(buf, "<features>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    virDomainCapsFeatureGICFormat(buf, &caps->gic);
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</features>\n");
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</domainCapabilities>\n");

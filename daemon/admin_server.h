@@ -35,4 +35,15 @@ virNetServerPtr adminConnectLookupServer(virNetDaemonPtr dmn,
                                          const char *name,
                                          unsigned int flags);
 
+int
+adminServerGetThreadPoolParameters(virNetServerPtr srv,
+                                   virTypedParameterPtr *params,
+                                   int *nparams,
+                                   unsigned int flags);
+int
+adminServerSetThreadPoolParameters(virNetServerPtr srv,
+                                   virTypedParameterPtr params,
+                                   int nparams,
+                                   unsigned int flags);
+
 #endif /* __LIBVIRTD_ADMIN_SERVER_H__ */

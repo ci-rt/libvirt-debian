@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LIBVIRTD 8"
-.TH LIBVIRTD 8 "2015-01-23" "libvirt-1.3.3" "Virtualization Support"
+.TH LIBVIRTD 8 "2016-04-26" "libvirt-1.3.4" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -142,9 +142,7 @@
 libvirtd \- libvirtd management daemon
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-\&\fBlibvirtd\fR [ \-dlv ] [ \-f config_file ] [ \-p pid_file ] [ \-t timeout_seconds ]
-.PP
-\&\fBlibvirtd\fR \-\-version
+\&\fBlibvirtd\fR [\fI\s-1OPTION\s0\fR]...
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 The \fBlibvirtd\fR program is the server side daemon component of the libvirt
@@ -204,28 +202,28 @@ On receipt of \fB\s-1SIGHUP\s0\fR libvirtd will reload its configuration.
 .IX Header "FILES"
 .SS "When run as \fBroot\fP."
 .IX Subsection "When run as root."
-.IP "\fISYSCONFDIR/libvirtd.conf\fR" 4
-.IX Item "SYSCONFDIR/libvirtd.conf"
+.IP "\fI@sysconfdir@/libvirtd.conf\fR" 4
+.IX Item "@sysconfdir@/libvirtd.conf"
 The default configuration file used by libvirtd, unless overridden on the
 command line using the \fB\-f\fR|\fB\-\-config\fR option.
-.IP "\fILOCALSTATEDIR/run/libvirt/libvirt\-sock\fR" 4
-.IX Item "LOCALSTATEDIR/run/libvirt/libvirt-sock"
+.IP "\fI@localstatedir@/run/libvirt/libvirt\-sock\fR" 4
+.IX Item "@localstatedir@/run/libvirt/libvirt-sock"
 .PD 0
-.IP "\fILOCALSTATEDIR/run/libvirt/libvirt\-sock\-ro\fR" 4
-.IX Item "LOCALSTATEDIR/run/libvirt/libvirt-sock-ro"
+.IP "\fI@localstatedir@/run/libvirt/libvirt\-sock\-ro\fR" 4
+.IX Item "@localstatedir@/run/libvirt/libvirt-sock-ro"
 .PD
 The sockets libvirtd will use.
-.IP "\fISYSCONFDIR/pki/CA/cacert.pem\fR" 4
-.IX Item "SYSCONFDIR/pki/CA/cacert.pem"
+.IP "\fI@sysconfdir@/pki/CA/cacert.pem\fR" 4
+.IX Item "@sysconfdir@/pki/CA/cacert.pem"
 The \s-1TLS \s0\fBCertificate Authority\fR certificate libvirtd will use.
-.IP "\fISYSCONFDIR/pki/libvirt/servercert.pem\fR" 4
-.IX Item "SYSCONFDIR/pki/libvirt/servercert.pem"
+.IP "\fI@sysconfdir@/pki/libvirt/servercert.pem\fR" 4
+.IX Item "@sysconfdir@/pki/libvirt/servercert.pem"
 The \s-1TLS \s0\fBServer\fR certificate libvirtd will use.
-.IP "\fISYSCONFDIR/pki/libvirt/private/serverkey.pem\fR" 4
-.IX Item "SYSCONFDIR/pki/libvirt/private/serverkey.pem"
+.IP "\fI@sysconfdir@/pki/libvirt/private/serverkey.pem\fR" 4
+.IX Item "@sysconfdir@/pki/libvirt/private/serverkey.pem"
 The \s-1TLS \s0\fBServer\fR private key libvirtd will use.
-.IP "\fILOCALSTATEDIR/run/libvirtd.pid\fR" 4
-.IX Item "LOCALSTATEDIR/run/libvirtd.pid"
+.IP "\fI@localstatedir@/run/libvirtd.pid\fR" 4
+.IX Item "@localstatedir@/run/libvirtd.pid"
 The \s-1PID\s0 file to use, unless overridden by the \fB\-p\fR|\fB\-\-pid\-file\fR option.
 .SS "When run as \fBnon-root\fP."
 .IX Subsection "When run as non-root."
@@ -276,8 +274,8 @@ To start libvirtd, instructing it to daemonize and create a \s-1PID\s0 file:
 .PP
 .Vb 4
 \& # libvirtd \-d
-\& # ls \-la LOCALSTATEDIR/run/libvirtd.pid
-\& \-rw\-r\-\-r\-\- 1 root root 6 Jul  9 02:40 LOCALSTATEDIR/run/libvirtd.pid
+\& # ls \-la @localstatedir@/run/libvirtd.pid
+\& \-rw\-r\-\-r\-\- 1 root root 6 Jul  9 02:40 @localstatedir@/run/libvirtd.pid
 \& #
 .Ve
 .SH "BUGS"

@@ -7,11 +7,6 @@ body {
   background: #ffffff;
 }
 
-div.body p:first-letter {
-  font-size: 1.2em;
-  font-weight: bold;
-}
-
 p, ul, ol, dl {
   padding: 0px;
   margin: 0px;
@@ -30,6 +25,10 @@ ul, ol {
 dt {
   margin-left: 1em;
   margin-right: 2em;
+}
+
+dt code {
+  font-weight: bold;
 }
 
 dl dd {

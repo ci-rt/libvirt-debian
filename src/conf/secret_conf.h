@@ -1,7 +1,7 @@
 /*
  * secret_conf.h: internal <secret> XML handling API
  *
- * Copyright (C) 2009-2010, 2013-2014 Red Hat, Inc.
+ * Copyright (C) 2009-2010, 2013-2014, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,8 +31,8 @@ VIR_ENUM_DECL(virSecretUsage)
 typedef struct _virSecretDef virSecretDef;
 typedef virSecretDef *virSecretDefPtr;
 struct _virSecretDef {
-    bool ephemeral;
-    bool private;
+    bool isephemeral;
+    bool isprivate;
     unsigned char uuid[VIR_UUID_BUFLEN];
     char *description;          /* May be NULL */
     int usage_type;
@@ -42,6 +42,8 @@ struct _virSecretDef {
         char *target;
     } usage;
 };
+
+const char *virSecretUsageIDForDef(virSecretDefPtr def);
 
 void virSecretDefFree(virSecretDefPtr def);
 virSecretDefPtr virSecretDefParseString(const char *xml);
@@ -59,5 +61,6 @@ char *virSecretDefFormat(const virSecretDef *def);
 # define VIR_CONNECT_LIST_SECRETS_FILTERS_ALL                  \
                 (VIR_CONNECT_LIST_SECRETS_FILTERS_EPHEMERAL  | \
                  VIR_CONNECT_LIST_SECRETS_FILTERS_PRIVATE)
+
 
 #endif

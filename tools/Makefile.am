@@ -28,8 +28,6 @@ AM_LDFLAGS = \
 	$(NO_INDIRECT_LDFLAGS)					\
 	$(NULL)
 
-POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
-
 ICON_FILES = \
 	libvirt_win_icon_16x16.ico \
 	libvirt_win_icon_32x32.ico \
@@ -37,16 +35,34 @@ ICON_FILES = \
 	libvirt_win_icon_64x64.ico \
 	virsh_win_icon.rc
 
+PODFILES = \
+	virt-admin.pod \
+	virt-host-validate.pod \
+	virt-login-shell.pod \
+	virt-pki-validate.pod \
+	virt-sanlock-cleanup.pod \
+	virt-xml-validate.pod \
+	virsh.pod \
+	$(NULL)
+
+MANINFILES = \
+	virt-admin.1.in \
+	virt-host-validate.1.in \
+	virt-login-shell.1.in \
+	virt-pki-validate.1.in \
+	virt-sanlock-cleanup.8.in \
+	virt-xml-validate.1.in \
+	virsh.1.in \
+	$(NULL)
+
 EXTRA_DIST = \
 	$(ICON_FILES)					\
 	$(conf_DATA)					\
 	virt-xml-validate.in				\
 	virt-pki-validate.in				\
 	virt-sanlock-cleanup.in				\
-	virt-sanlock-cleanup.8				\
-	virt-login-shell.pod				\
-	virsh.pod					\
 	libvirt-guests.sysconf				\
+	virt-login-shell.conf				\
 	virsh-edit.c					\
 	virsh-domain.c					\
 	virsh-domain-monitor.c				\
@@ -54,82 +70,59 @@ EXTRA_DIST = \
 	virsh-network.c virsh-nodedev.c			\
 	virsh-nwfilter.c virsh-pool.c			\
 	virsh-secret.c virsh-snapshot.c			\
-	virsh-volume.c
+	virsh-volume.c					\
+	$(PODFILES)					\
+	$(MANINFILES)					\
+	$(NULL)
 
 
 CLEANFILES =
 DISTCLEANFILES =
+MAINTAINERCLEANFILES =
 
 confdir = $(sysconfdir)/libvirt
 conf_DATA =
 
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
-bin_PROGRAMS = virsh virt-host-validate virt-admin
+bin_PROGRAMS = virsh virt-admin
 libexec_SCRIPTS = libvirt-guests.sh
+man1_MANS = \
+		virt-pki-validate.1 \
+		virt-xml-validate.1 \
+		virsh.1 \
+		virt-admin.1
 
 if WITH_SANLOCK
 sbin_SCRIPTS = virt-sanlock-cleanup
+man8_MANS = virt-sanlock-cleanup.8
 DISTCLEANFILES += virt-sanlock-cleanup
 endif WITH_SANLOCK
 
 if WITH_LOGIN_SHELL
 conf_DATA += virt-login-shell.conf
 bin_PROGRAMS += virt-login-shell
-else ! WITH_LOGIN_SHELL
-EXTRA_DIST += virt-login-shell.conf
-endif ! WITH_LOGIN_SHELL
+man1_MANS += virt-login-shell.1
+endif WITH_LOGIN_SHELL
 
-
-dist_man1_MANS = \
-		virt-host-validate.1 \
-		virt-pki-validate.1 \
-		virt-xml-validate.1 \
-		virsh.1 \
-		virt-admin.1
-if WITH_LOGIN_SHELL
-dist_man1_MANS += virt-login-shell.1
-else ! WITH_LOGIN_SHELL
-EXTRA_DIST += virt-login-shell.1
-endif ! WITH_LOGIN_SHELL
-if WITH_SANLOCK
-dist_man8_MANS = virt-sanlock-cleanup.8
-endif WITH_SANLOCK
+if WITH_HOST_VALIDATE
+bin_PROGRAMS += virt-host-validate
+man1_MANS += virt-host-validate.1
+endif WITH_HOST_VALIDATE
 
 virt-xml-validate: virt-xml-validate.in Makefile
 	$(AM_V_GEN)sed -e 's|[@]schemadir@|$(pkgdatadir)/schemas|g' \
 		       -e 's|[@]VERSION@|$(VERSION)|g' \
 	  < $< > $@ || (rm $@ && exit 1) && chmod +x $@
 
-virt-xml-validate.1: virt-xml-validate.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-XML-VALIDATE $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
-
 virt-pki-validate: virt-pki-validate.in Makefile
 	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|g' \
 		       -e 's|[@]VERSION@|$(VERSION)|g' \
 	  < $< > $@ || (rm $@ && exit 1) && chmod +x $@
 
-virt-pki-validate.1: virt-pki-validate.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-PKI-VALIDATE $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
-
-virt-host-validate.1: virt-host-validate.c $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-HOST-VALIDATE $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
-
 virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
 	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|' \
 	    -e 's|[@]localstatedir@|$(localstatedir)|' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
-
-virt-sanlock-cleanup.8: virt-sanlock-cleanup.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name VIRT-SANLOCK-CLEANUP --section=8 \
-	    $< $(srcdir)/$@ \
-	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
 
 noinst_LTLIBRARIES = libvirt_shell.la
 libvirt_shell_la_CFLAGS = \
@@ -282,14 +275,45 @@ virsh_win_icon.$(OBJEXT): virsh_win_icon.rc
 	  --output-format coff --output $@
 endif WITH_WIN_ICON
 
-%.1: %.pod $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@ \
-		&& if grep 'POD ERROR' $(srcdir)/$@ ; then \
-		rm $(srcdir)/$@; exit 1; fi
+POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 
-install-data-local: install-init install-systemd
+%.1.in: %.pod
+	$(AM_V_GEN)$(POD2MAN) $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+	< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
 
-uninstall-local: uninstall-init uninstall-systemd
+%.8.in: %.pod
+	$(AM_V_GEN)$(POD2MAN) --section=8 $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+		< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
+
+%.1: %.1.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)sed \
+		-e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+		-e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+		< $< > $@-t && \
+	mv $@-t $@
+
+%.8: %.8.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)sed \
+		-e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+		-e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+		< $< > $@-t && \
+	mv $@-t $@
+
+install-data-local: install-init install-systemd install-nss
+
+uninstall-local: uninstall-init uninstall-systemd uninstall-nss
 
 install-sysconfig:
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
@@ -422,16 +446,20 @@ LIBVIRT_NSS_SYMBOL_FILE = \
 	$(srcdir)/nss/libvirt_nss_bsd.syms
 NSS_SO_VER = 1
 
-install-exec-hook:
-	cd $(DESTDIR)$(libdir) && \
-	  $(LN_S) libnss_libvirt.so.$(NSS_SO_VER) nss_libvirt.so.$(NSS_SO_VER)
+install-nss:
+	( cd $(DESTDIR)$(libdir) && \
+	  rm -f nss_libvirt.so.$(NSS_SO_VER) && \
+	  $(LN_S) libnss_libvirt.so.$(NSS_SO_VER) nss_libvirt.so.$(NSS_SO_VER) )
 
-uninstall-local:
-	rm $(DESTDIR)$(libdir)/libnss_libvirt.so.$(NSS_SO_VER)
+uninstall-nss:
+	-rm -f $(DESTDIR)$(libdir)/nss_libvirt.so.$(NSS_SO_VER)
 else ! WITH_BSD_NSS
 LIBVIRT_NSS_SYMBOL_FILE = \
 	$(srcdir)/nss/libvirt_nss.syms
 NSS_SO_VER = 2
+
+install-nss:
+uninstall-nss:
 endif ! WITH_BSD_NSS
 
 LIBVIRT_NSS_SOURCES = \
@@ -473,14 +501,17 @@ lib_LTLIBRARIES = \
 
 endif WITH_NSS
 
-EXTRA_DIST += $(LIBVIRT_NSS_SYMBOL_FILE) \
-	$(LIBVIRT_NSS_SOURCES)
+EXTRA_DIST += $(LIBVIRT_NSS_SOURCES) \
+	$(srcdir)/nss/libvirt_nss.syms \
+	$(srcdir)/nss/libvirt_nss_bsd.syms
 
 clean-local:
 	-rm -rf wireshark/src/libvirt
 
 CLEANFILES += $(bin_SCRIPTS)
 CLEANFILES += *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
-MAINTAINERCLEANFILES = $(dist_man1_MANS)
+CLEANFILES += $(man1_MANS) $(man8_MANS)
 
 DISTCLEANFILES += $(BUILT_SOURCES)
+
+MAINTAINERCLEANFILES += $(MANINFILES)

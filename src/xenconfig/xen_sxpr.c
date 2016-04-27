@@ -868,7 +868,7 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
         graphics->data.vnc.port = port;
 
         if (listenAddr &&
-            virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true) < 0)
+            virDomainGraphicsListenAppendAddress(graphics, listenAddr) < 0)
             goto error;
 
         if (VIR_STRDUP(graphics->data.vnc.auth.passwd, vncPasswd) < 0)
@@ -987,7 +987,7 @@ xenParseSxprGraphicsNew(virDomainDefPtr def,
                 graphics->data.vnc.port = port;
 
                 if (listenAddr &&
-                    virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true) < 0)
+                    virDomainGraphicsListenAppendAddress(graphics, listenAddr) < 0)
                     goto error;
 
                 if (VIR_STRDUP(graphics->data.vnc.auth.passwd, vncPasswd) < 0)
@@ -1523,7 +1523,7 @@ static int
 xenFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
                          virBufferPtr buf)
 {
-    const char *listenAddr;
+    virDomainGraphicsListenDefPtr gListen;
 
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_SDL &&
         def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
@@ -1551,9 +1551,9 @@ xenFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
             virBufferAsprintf(buf, "(vncdisplay %d)", def->data.vnc.port-5900);
         }
 
-        listenAddr = virDomainGraphicsListenGetAddress(def, 0);
-        if (listenAddr)
-            virBufferAsprintf(buf, "(vnclisten '%s')", listenAddr);
+        if ((gListen = virDomainGraphicsGetListen(def, 0)) &&
+            gListen->address)
+            virBufferAsprintf(buf, "(vnclisten '%s')", gListen->address);
         if (def->data.vnc.auth.passwd)
             virBufferAsprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
         if (def->data.vnc.keymap)
@@ -1579,7 +1579,7 @@ xenFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
 static int
 xenFormatSxprGraphicsOld(virDomainGraphicsDefPtr def, virBufferPtr buf)
 {
-    const char *listenAddr;
+    virDomainGraphicsListenDefPtr gListen;
 
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_SDL &&
         def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
@@ -1604,9 +1604,9 @@ xenFormatSxprGraphicsOld(virDomainGraphicsDefPtr def, virBufferPtr buf)
             virBufferAsprintf(buf, "(vncdisplay %d)", def->data.vnc.port-5900);
         }
 
-        listenAddr = virDomainGraphicsListenGetAddress(def, 0);
-        if (listenAddr)
-            virBufferAsprintf(buf, "(vnclisten '%s')", listenAddr);
+        if ((gListen = virDomainGraphicsGetListen(def, 0)) &&
+            gListen->address)
+            virBufferAsprintf(buf, "(vnclisten '%s')", gListen->address);
         if (def->data.vnc.auth.passwd)
             virBufferAsprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
         if (def->data.vnc.keymap)

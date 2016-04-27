@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRTLOCKD 8"
-.TH VIRTLOCKD 8 "2015-11-27" "libvirt-1.3.3" "Virtualization Support"
+.TH VIRTLOCKD 8 "2016-04-26" "libvirt-1.3.4" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -142,9 +142,7 @@
 virtlockd \- libvirt lock management daemon
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-\&\fBvirtlockd\fR [ \-dvV ] [ \-t timeout] [ \-f config_file ] [ \-p pid_file ]
-.PP
-\&\fBvirtlockd\fR \-\-version
+\&\fBvirtlockd\fR [\fI\s-1OPTION\s0\fR]...
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 The \fBvirtlockd\fR program is a server side daemon component of the libvirt
@@ -191,15 +189,15 @@ upgrades of the virtlockd service.
 .IX Header "FILES"
 .SS "When run as \fBroot\fP."
 .IX Subsection "When run as root."
-.IP "\fISYSCONFDIR/virtlockd.conf\fR" 4
-.IX Item "SYSCONFDIR/virtlockd.conf"
+.IP "\fI@sysconfdir@/virtlockd.conf\fR" 4
+.IX Item "@sysconfdir@/virtlockd.conf"
 The default configuration file used by virtlockd, unless overridden on the
 command line using the \fB\-f\fR|\fB\-\-config\fR option.
-.IP "\fILOCALSTATEDIR/run/libvirt/virtlockd\-sock\fR" 4
-.IX Item "LOCALSTATEDIR/run/libvirt/virtlockd-sock"
+.IP "\fI@localstatedir@/run/libvirt/virtlockd\-sock\fR" 4
+.IX Item "@localstatedir@/run/libvirt/virtlockd-sock"
 The sockets libvirtd will use.
-.IP "\fILOCALSTATEDIR/run/virtlockd.pid\fR" 4
-.IX Item "LOCALSTATEDIR/run/virtlockd.pid"
+.IP "\fI@localstatedir@/run/virtlockd.pid\fR" 4
+.IX Item "@localstatedir@/run/virtlockd.pid"
 The \s-1PID\s0 file to use, unless overridden by the \fB\-p\fR|\fB\-\-pid\-file\fR option.
 .SS "When run as \fBnon-root\fP."
 .IX Subsection "When run as non-root."
@@ -238,8 +236,8 @@ To start virtlockd, instructing it to daemonize and create a \s-1PID\s0 file:
 .PP
 .Vb 4
 \& # virtlockd \-d
-\& # ls \-la LOCALSTATEDIR/run/virtlockd.pid
-\& \-rw\-r\-\-r\-\- 1 root root 6 Jul  9 02:40 LOCALSTATEDIR/run/virtlockd.pid
+\& # ls \-la @localstatedir@/run/virtlockd.pid
+\& \-rw\-r\-\-r\-\- 1 root root 6 Jul  9 02:40 @localstatedir@/run/virtlockd.pid
 \& #
 .Ve
 .SH "BUGS"

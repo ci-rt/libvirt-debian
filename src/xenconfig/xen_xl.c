@@ -187,10 +187,8 @@ xenParseXLSpice(virConfPtr conf, virDomainDefPtr def)
             if (xenConfigCopyStringOpt(conf, "spicehost", &listenAddr) < 0)
                 goto cleanup;
             if (listenAddr &&
-                virDomainGraphicsListenSetAddress(graphics, 0, listenAddr,
-                                                  -1, true) < 0) {
+                virDomainGraphicsListenAppendAddress(graphics, listenAddr) < 0)
                 goto cleanup;
-            }
             VIR_FREE(listenAddr);
 
             if (xenConfigGetULong(conf, "spicetls_port", &port, 0) < 0)
@@ -242,6 +240,7 @@ xenParseXLSpice(virConfPtr conf, virDomainDefPtr def)
     return 0;
 
  cleanup:
+    VIR_FREE(listenAddr);
     virDomainGraphicsDefFree(graphics);
     return -1;
 }
@@ -839,7 +838,7 @@ xenFormatXLDomainDisks(virConfPtr conf, virDomainDefPtr def)
 static int
 xenFormatXLSpice(virConfPtr conf, virDomainDefPtr def)
 {
-    const char *listenAddr = NULL;
+    virDomainGraphicsListenDefPtr gListen;
     virDomainGraphicsDefPtr graphics;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
@@ -856,9 +855,9 @@ xenFormatXLSpice(virConfPtr conf, virDomainDefPtr def)
             if (xenConfigSetInt(conf, "spice", 1) < 0)
                 return -1;
 
-            listenAddr = virDomainGraphicsListenGetAddress(graphics, 0);
-            if (listenAddr &&
-                xenConfigSetString(conf, "spicehost", listenAddr) < 0)
+            if ((gListen = virDomainGraphicsGetListen(graphics, 0)) &&
+                gListen->address &&
+                xenConfigSetString(conf, "spicehost", gListen->address) < 0)
                 return -1;
 
             if (xenConfigSetInt(conf, "spiceport",

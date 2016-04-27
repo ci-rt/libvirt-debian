@@ -99,15 +99,16 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LIBXL_TRUE@am__append_7 = ../src/libvirt_driver_libxl.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_8 = ../src/libvirt_driver_uml.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_VBOX_TRUE@am__append_9 = ../src/libvirt_driver_vbox.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_TRUE@am__append_10 = ../src/libvirt_driver_storage.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_11 = ../src/libvirt_driver_network.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_INTERFACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = ../src/libvirt_driver_interface.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_13 = ../src/libvirt_driver_nodedev.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_14 = ../src/libvirt_driver_secret.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_15 = ../src/libvirt_driver_nwfilter.la
-@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.policy $(LOGROTATE_CONFS)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.init
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.service libvirtd.socket
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_VZ_TRUE@am__append_10 = ../src/libvirt_driver_vz.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_TRUE@am__append_11 = ../src/libvirt_driver_storage.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_12 = ../src/libvirt_driver_network.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_INTERFACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = ../src/libvirt_driver_interface.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_14 = ../src/libvirt_driver_nodedev.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_15 = ../src/libvirt_driver_secret.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_16 = ../src/libvirt_driver_nwfilter.la
+@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.policy $(LOGROTATE_CONFS)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.init
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_19 = libvirtd.service
 subdir = daemon
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -250,7 +251,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
-	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-host-validate.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -338,8 +341,8 @@ libvirtd_OBJECTS = $(am_libvirtd_OBJECTS)
 @WITH_LIBVIRTD_TRUE@	$(am__append_9) $(am__append_10) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_11) $(am__append_12) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_14) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_15) ../src/libvirt.la \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_15) $(am__append_16) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 libvirtd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libvirtd_CFLAGS) \
@@ -1926,6 +1929,14 @@ DAEMON_SOURCES = \
 		$(DAEMON_GENERATED)
 
 LIBVIRTD_CONF_SOURCES = libvirtd-config.c libvirtd-config.h
+PODFILES = \
+	libvirtd.pod \
+	$(NULL)
+
+MANINFILES = \
+	libvirtd.8.in \
+	$(NULL)
+
 DISTCLEANFILES = 
 EXTRA_DIST = \
 	remote_dispatch.h				\
@@ -1939,7 +1950,6 @@ EXTRA_DIST = \
 	libvirt.rules					\
 	libvirtd.sasl					\
 	libvirtd.service.in				\
-	libvirtd.socket.in				\
 	libvirtd.sysconf				\
 	libvirtd.sysctl					\
 	libvirtd.aug                                    \
@@ -1950,13 +1960,13 @@ EXTRA_DIST = \
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug.in                             \
 	THREADS.txt					\
-	libvirtd.pod.in					\
-	libvirtd.8.in					\
+	$(PODFILES)					\
+	$(MANINFILES)					\
 	$(DAEMON_SOURCES)				\
 	$(LIBVIRTD_CONF_SOURCES)			\
 	$(NULL)
 
-BUILT_SOURCES = $(am__append_16) $(am__append_17) $(am__append_18)
+BUILT_SOURCES = $(am__append_17) $(am__append_18) $(am__append_19)
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 LXC_PROTOCOL = $(top_srcdir)/src/remote/lxc_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
@@ -2042,8 +2052,9 @@ ADMIN_PROTOCOL = $(top_srcdir)/src/admin/admin_protocol.x
 @WITH_LIBVIRTD_TRUE@	$(am__append_9) $(am__append_10) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_11) $(am__append_12) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_14) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_15) ../src/libvirt.la \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
+@WITH_LIBVIRTD_TRUE@	$(am__append_15) $(am__append_16) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policydir = $(datadir)/polkit-1/actions
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_TRUE@@WITH_POLKIT_TRUE@policydir = $(datadir)/PolicyKit/policy
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policyauth = auth_admin_keep
@@ -2056,10 +2067,8 @@ ADMIN_PROTOCOL = $(top_srcdir)/src/admin/admin_protocol.x
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_LIBVIRTD_TRUE@AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
-POD2MAN = pod2man -c "Virtualization Support" \
-			-r "$(PACKAGE)-$(VERSION)" -s 8
-
-MAINTAINERCLEANFILES = $(srcdir)/libvirtd.8.in $(DAEMON_GENERATED)
+POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
+MAINTAINERCLEANFILES = $(MANINFILES) $(DAEMON_GENERATED)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -2626,13 +2635,6 @@ admin_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 	  --mode=server admin ADMIN $(ADMIN_PROTOCOL) \
 	  > $(srcdir)/admin_dispatch.h
 
-@WITH_LIBVIRTD_TRUE@libvirtd.8: $(srcdir)/libvirtd.8.in
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
-@WITH_LIBVIRTD_TRUE@	mv $@-t $@
-
 @WITH_LIBVIRTD_TRUE@libvirtd.policy: libvirtd.policy.in $(top_builddir)/config.status
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN) sed \
 @WITH_LIBVIRTD_TRUE@	    -e 's|[@]authaction[@]|$(policyauth)|g' \
@@ -2775,16 +2777,13 @@ admin_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@install-init-upstart:
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-upstart:
 
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@install-init-systemd: install-sysconfig libvirtd.service libvirtd.socket
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@install-init-systemd: install-sysconfig libvirtd.service
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.service \
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.socket \
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.socket
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.socket
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) || :
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@install-init-systemd:
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd:
@@ -2806,12 +2805,6 @@ admin_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
-@WITH_LIBVIRTD_TRUE@libvirtd.socket: libvirtd.socket.in $(top_builddir)/config.status
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]runstatedir[@]|$(runstatedir)|g'		\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
-@WITH_LIBVIRTD_TRUE@	    mv $@-t $@
-
 @WITH_LIBVIRTD_TRUE@check-local: check-augeas
 
 @WITH_LIBVIRTD_TRUE@test_libvirtd.aug: test_libvirtd.aug.in $(srcdir)/libvirtd.conf
@@ -2825,9 +2818,22 @@ admin_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_FALSE@install-data-local: install-data-sasl
 @WITH_LIBVIRTD_FALSE@uninstall-local:: uninstall-data-sasl
 
-$(srcdir)/libvirtd.8.in: libvirtd.pod.in $(top_srcdir)/configure.ac
-	$(AM_V_GEN)$(POD2MAN) --name LIBVIRTD $< $@ \
-	    && if grep 'POD ERROR' $@ ; then rm $@; exit 1; fi
+%.8.in: %.pod
+	$(AM_V_GEN)$(POD2MAN) --section=8 $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+		< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
+
+%.8: %.8.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)sed \
+		-e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+		-e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+		< $< > $@-t && \
+	mv $@-t $@
 
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional

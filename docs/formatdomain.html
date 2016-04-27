@@ -274,6 +274,8 @@
                         <a href="#ipconfig">IP configuration</a>
                       </li><li>
                         <a href="#elementVhostuser">vhost-user interface</a>
+                      </li><li>
+                        <a href="#elementNwfilter">Traffic filtering with NWFilter</a>
                       </li></ul>
                   </li><li>
                     <a href="#elementsInput">Input devices</a>
@@ -1147,6 +1149,10 @@
     &lt;device&gt;
       &lt;path&gt;/dev/sdb&lt;/path&gt;
       &lt;weight&gt;500&lt;/weight&gt;
+      &lt;read_bytes_sec&gt;10000&lt;/read_bytes_sec&gt;
+      &lt;write_bytes_sec&gt;10000&lt;/write_bytes_sec&gt;
+      &lt;read_iops_sec&gt;20000&lt;/read_iops_sec&gt;
+      &lt;write_iops_sec&gt;20000&lt;/write_iops_sec&gt;
     &lt;/device&gt;
   &lt;/blkiotune&gt;
   ...
@@ -1174,7 +1180,13 @@
         absolute path of the device, and <code>weight</code> giving
         the relative weight of that device, in the range [100,
         1000]. After kernel 2.6.39, the value could be in the
-        range [10, 1000].<span class="since">Since 0.9.8</span></dd></dl>
+        range [10, 1000]. <span class="since">Since 0.9.8</span><br />
+        Additionally, the following optional sub-elements can be used:
+        <dl><dt><code>read_bytes_sec</code></dt><dd>Read throughput limit in bytes per second.
+            <span class="since">Since 1.2.2</span></dd><dt><code>write_bytes_sec</code></dt><dd>Write throughput limit in bytes per second.
+            <span class="since">Since 1.2.2</span></dd><dt><code>read_iops_sec</code></dt><dd>Read I/O operations per second limit.
+            <span class="since">Since 1.2.2</span></dd><dt><code>write_iops_sec</code></dt><dd>Write I/O operations per second limit.
+            <span class="since">Since 1.2.2</span></dd></dl></dd></dl>
         <h3>
           <a name="resPartition" shape="rect" id="resPartition">Resource partitioning</a>
           <a class="headerlink" href="#resPartition" title="Permalink to this headline">¶</a>
@@ -1534,7 +1546,8 @@
       All features are listed within the <code>features</code>
       element, omitting a togglable feature tag turns it off.
       The available features can be found by asking
-      for the <a href="formatcaps.html" shape="rect">capabilities XML</a>,
+      for the <a href="formatcaps.html" shape="rect">capabilities XML</a> and
+      <a href="formatdomaincaps.html" shape="rect">domain capabilities XML</a>,
       but a common set for fully virtualized domains are:
     </p>
         <dl><dt><code>pae</code></dt><dd>Physical address extension mode allows 32-bit guests
@@ -1902,17 +1915,16 @@
     &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
-        <dl><dt><code>disk</code></dt><dd>The <code>disk</code> element is the main container for describing
-      disks (<span class="since">since 0.0.3</span>).
-        <dl><dt><code>type</code> attribute
-          <span class="since">since 0.0.3</span></dt><dd>
+        <dl><dt><code>disk</code></dt><dd>The <code>disk</code> element is the main container for
+      describing disks and supports the following attributes:
+        <dl><dt><code>type</code></dt><dd>
             Valid values are "file", "block",
             "dir" (<span class="since">since 0.7.5</span>),
             "network" (<span class="since">since 0.8.7</span>), or
             "volume" (<span class="since">since 1.0.5</span>)
             and refer to the underlying source for the disk.
-            </dd><dt><code>device</code> attribute
-          <span class="since">since 0.1.4</span></dt><dd>
+            <span class="since">Since 0.0.3</span>
+            </dd><dt><code>device</code></dt><dd>
             Indicates how the disk is to be exposed to the guest OS. Possible
             values for this attribute are "floppy", "disk", "cdrom", and "lun",
             defaulting to "disk".
@@ -1931,9 +1943,9 @@
             but never for individual partitions or LVM partitions (in those
             cases, the kernel will reject the generic SCSI commands, making
             it identical to device='disk').
+            <span class="since">Since 0.1.4</span>
             </p>
-            </dd><dt><code>rawio</code> attribute
-          <span class="since">since 0.9.10</span></dt><dd>
+            </dd><dt><code>rawio</code></dt><dd>
             Indicates whether the disk needs rawio capability. Valid
             settings are "yes" or "no" (default is "no"). If any one disk
             in a domain has rawio='yes', rawio capability will be enabled
@@ -1946,14 +1958,14 @@
             To confine the capability as much as possible for QEMU driver
             as this stage, <code>sgio</code> is recommended, it's more
             secure than <code>rawio</code>.
-            </dd><dt><code>sgio</code> attribute
-          <span class="since">since 1.0.2</span></dt><dd>
+            <span class="since">Since 0.9.10</span>
+            </dd><dt><code>sgio</code></dt><dd>
             If supported by the hypervisor and OS, indicates whether
             unprivileged SG_IO commands are filtered for the disk. Valid
             settings are "filtered" or "unfiltered" where the default is
             "filtered". Only available when the <code>device</code> is 'lun'.
-            </dd><dt><code>snapshot</code> attribute
-          <span class="since">since 0.9.5</span></dt><dd>
+            <span class="since">Since 1.0.2</span>
+            </dd><dt><code>snapshot</code></dt><dd>
             Indicates the default behavior of the disk during disk snapshots:
             "internal" requires a file format such as qcow2 that can store
             both the snapshot and the data changes since the snapshot;
@@ -1966,23 +1978,23 @@
             Not all snapshot modes are supported; for example,
             <code>snapshot='yes'</code> with a transient disk generally
             does not make sense.
+            <span class="since">Since 0.9.5</span>
             </dd></dl>
       </dd><dt><code>source</code></dt><dd>Representation of the disk <code>source</code> depends on the
       disk <code>type</code> attribute value as follows:
-          <dl><dt><code>type='file'</code>
-            <span class="since">since 0.0.3</span></dt><dd>
+          <dl><dt><code>file</code></dt><dd>
               The <code>file</code> attribute specifies the fully-qualified
               path to the file holding the disk.
-              </dd><dt><code>type='block'</code>
-            <span class="since">since 0.0.3</span></dt><dd>
+              <span class="since">Since 0.0.3</span>
+              </dd><dt><code>block</code></dt><dd>
               The <code>dev</code> attribute specifies the fully-qualified path
               to the host device to serve as the disk.
-              </dd><dt><code>type='dir'</code>
-            <span class="since">since 0.7.5</span></dt><dd>
+              <span class="since">Since 0.0.3</span>
+              </dd><dt><code>dir</code></dt><dd>
               The <code>dir</code> attribute specifies the fully-qualified path
               to the directory to use as the disk.
-              </dd><dt><code>type='network'</code>
-            <span class="since">since 0.8.7</span></dt><dd>
+              <span class="since">Since 0.7.5</span>
+              </dd><dt><code>network</code></dt><dd>
               The <code>protocol</code> attribute specifies the protocol to
               access to the requested image. Possible values are "nbd",
               "iscsi", "rbd", "sheepdog" or "gluster".  If the
@@ -1995,8 +2007,8 @@
               target's name by a slash (e.g.,
               <code>iqn.2013-07.com.example:iscsi-pool/1</code>). If not
               specified, the default LUN is zero.
-              </dd><dt><code>type='volume'</code>
-            <span class="since">since 1.0.5</span></dt><dd>
+              <span class="since">Since 0.8.7</span>
+              </dd><dt><code>volume</code></dt><dd>
               The underlying disk source is represented by attributes
               <code>pool</code> and <code>volume</code>. Attribute
               <code>pool</code> specifies the name of the
@@ -2029,6 +2041,7 @@
               of 'lun' with respect to how the LUN is presented to and
               may used by the guest.
 
+              <span class="since">Since 1.0.5</span>
               </p>
               </dd></dl>
         With "file", "block", and "volume", one or more optional
@@ -2109,29 +2122,31 @@
         each file of the chain (files created by libvirt satisfy this
         property, but using existing external files for snapshot or
         block copy operations requires the end user to pre-create the
-        file correctly). The following attributes and sub-elements are
+        file correctly). The following attributes are
         supported in <code>backingStore</code>:
-        <dl><dt><code>type</code> attribute</dt><dd>
+        <dl><dt><code>type</code></dt><dd>
             The <code>type</code> attribute represents the type of disk used
             by the backing store, see disk type attribute above for more
             details and possible values.
-          </dd><dt><code>index</code> attribute</dt><dd>
+          </dd><dt><code>index</code></dt><dd>
             This attribute is only valid in output (and ignored on input) and
             it can be used to refer to a specific part of the disk chain when
             doing block operations (such as via the
             <code>virDomainBlockRebase</code> API). For example,
             <code>vda[2]</code> refers to the backing store with
             <code>index='2'</code> of the disk with <code>vda</code> target.
-          </dd><dt><code>format</code> sub-element</dt><dd>
+          </dd></dl>
+        Moreover, <code>backingStore</code> supports the following sub-elements:
+        <dl><dt><code>format</code></dt><dd>
             The <code>format</code> element contains <code>type</code>
             attribute which specifies the internal format of the backing
             store, such as <code>raw</code> or <code>qcow2</code>.
-          </dd><dt><code>source</code> sub-element</dt><dd>
+          </dd><dt><code>source</code></dt><dd>
             This element has the same structure as the <code>source</code>
             element in <code>disk</code>. It specifies which file, device,
             or network location contains the data of the described backing
             store.
-          </dd><dt><code>backingStore</code> sub-element</dt><dd>
+          </dd><dt><code>backingStore</code></dt><dd>
             If the backing store is not self-contained, the next element
             in the chain is described by nested <code>backingStore</code>
             element.
@@ -2448,7 +2463,7 @@
       The filesystem attribute <code>type</code> specifies the type of the
       <code>source</code>. The possible values are:
 
-        <dl><dt><code>type='mount'</code></dt><dd>
+        <dl><dt><code>mount</code></dt><dd>
         A host directory to mount in the guest. Used by LXC,
         OpenVZ <span class="since">(since 0.6.2)</span>
         and QEMU/KVM <span class="since">(since 0.8.5)</span>.
@@ -2463,23 +2478,23 @@
         while the value <code>immediate</code> means that a host writeback
         is immediately triggered for all pages touched during a guest file
         write operation <span class="since">(since 0.9.10)</span>.
-        </dd><dt><code>type='template'</code></dt><dd>
+        </dd><dt><code>template</code></dt><dd>
         OpenVZ filesystem template. Only used by OpenVZ driver.
-        </dd><dt><code>type='file'</code></dt><dd>
+        </dd><dt><code>file</code></dt><dd>
         A host file will be treated as an image and mounted in
         the guest. The filesystem format will be autodetected.
         Only used by LXC driver.
-        </dd><dt><code>type='block'</code></dt><dd>
+        </dd><dt><code>block</code></dt><dd>
         A host block device to mount in the guest. The filesystem
         format will be autodetected. Only used by LXC driver
         <span class="since">(since 0.9.5)</span>.
-        </dd><dt><code>type='ram'</code></dt><dd>
+        </dd><dt><code>ram</code></dt><dd>
           An in-memory filesystem, using memory from the host OS.
           The source element has a single attribute <code>usage</code>
           which gives the memory usage limit in KiB, unless units
           are specified by the <code>units</code> attribute. Only used
           by LXC driver.
-          <span class="since"> (since 0.9.13)</span></dd><dt><code>type='bind'</code></dt><dd>
+          <span class="since"> (since 0.9.13)</span></dd><dt><code>bind</code></dt><dd>
           A directory inside the guest will be bound to another
           directory inside the guest. Only used by LXC driver
           <span class="since"> (since 0.9.13)</span></dd></dl>
@@ -2490,16 +2505,16 @@
       with <code>type='mount'</code> for the QEMU/KVM driver. The possible
       values are:
 
-        <dl><dt><code>accessmode='passthrough'</code></dt><dd>
+        <dl><dt><code>passthrough</code></dt><dd>
         The <code>source</code> is accessed with the permissions of the
         user inside the guest. This is the default <code>accessmode</code> if
         one is not specified.
         <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-05/msg02673.html" shape="rect">More info</a>
-        </dd><dt><code>accessmode='mapped'</code></dt><dd>
+        </dd><dt><code>mapped</code></dt><dd>
         The <code>source</code> is accessed with the permissions of the
         hypervisor (QEMU process).
         <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-05/msg02673.html" shape="rect">More info</a>
-        </dd><dt><code>accessmode='squash'</code></dt><dd>
+        </dd><dt><code>squash</code></dt><dd>
         Similar to 'passthrough', the exception is that failure of
         privileged operations like 'chown' are ignored. This makes a
         passthrough-like mode usable for people who run the hypervisor
@@ -2573,7 +2588,7 @@
       Each address type has further optional attributes that control
       where on the bus the device will be placed:
     </p>
-        <dl><dt><code>type='pci'</code></dt><dd>PCI addresses have the following additional
+        <dl><dt><code>pci</code></dt><dd>PCI addresses have the following additional
         attributes: <code>domain</code> (a 2-byte hex integer, not
         currently used by qemu), <code>bus</code> (a hex value between
         0 and 0xff, inclusive), <code>slot</code> (a hex value between
@@ -2586,24 +2601,24 @@
         0.13</span>). <code>multifunction</code> defaults to 'off',
         but should be set to 'on' for function 0 of a slot that will
         have multiple functions used.
-      </dd><dt><code>type='drive'</code></dt><dd>Drive addresses have the following additional
+      </dd><dt><code>drive</code></dt><dd>Drive addresses have the following additional
         attributes: <code>controller</code> (a 2-digit controller
         number), <code>bus</code> (a 2-digit bus number),
         <code>target</code> (a 2-digit target number),
         and <code>unit</code> (a 2-digit unit number on the bus).
-      </dd><dt><code>type='virtio-serial'</code></dt><dd>Each virtio-serial address has the following additional
+      </dd><dt><code>virtio-serial</code></dt><dd>Each virtio-serial address has the following additional
         attributes: <code>controller</code> (a 2-digit controller
         number), <code>bus</code> (a 2-digit bus number),
         and <code>slot</code> (a 2-digit slot within the bus).
-      </dd><dt><code>type='ccid'</code></dt><dd>A CCID address, for smart-cards, has the following
+      </dd><dt><code>ccid</code></dt><dd>A CCID address, for smart-cards, has the following
         additional attributes: <code>bus</code> (a 2-digit bus
         number), and <code>slot</code> attribute (a 2-digit slot
         within the bus).  <span class="since">Since 0.8.8.</span>
-      </dd><dt><code>type='usb'</code></dt><dd>USB addresses have the following additional
+      </dd><dt><code>usb</code></dt><dd>USB addresses have the following additional
         attributes: <code>bus</code> (a hex value between 0 and 0xfff,
         inclusive), and <code>port</code> (a dotted notation of up to
         four octets, such as 1.2 or 2.1.3.1).
-      </dd><dt><code>type='spapr-vio'</code></dt><dd>On PowerPC pseries guests, devices can be assigned to the
+      </dd><dt><code>spapr-vio</code></dt><dd>On PowerPC pseries guests, devices can be assigned to the
         SPAPR-VIO bus.  It has a flat 64-bit address space; by
         convention, devices are generally assigned at a non-zero
         multiple of 0x1000, but other addresses are valid and
@@ -2611,7 +2626,7 @@
         additional attribute: <code>reg</code> (the hex value address
         of the starting register).  <span class="since">Since
         0.9.9.</span>
-      </dd><dt><code>type='ccw'</code></dt><dd>s390 guests with a <code>machine</code> value of
+      </dd><dt><code>ccw</code></dt><dd>s390 guests with a <code>machine</code> value of
         s390-ccw-virtio use the native CCW bus for I/O devices.
         CCW bus addresses have the following additional attributes:
         <code>cssid</code> (a hex value between 0 and 0xfe, inclusive),
@@ -2622,7 +2637,7 @@
         cssid=0xfe and ssid=0. Virtio-ccw devices must have their cssid
         set to 0xfe.
         <span class="since">Since 1.0.4</span>
-      </dd><dt><code>type='isa'</code></dt><dd>ISA addresses have the following additional
+      </dd><dt><code>isa</code></dt><dd>ISA addresses have the following additional
         attributes: <code>iobase</code> and <code>irq</code>.
         <span class="since">Since 1.2.1</span>
       </dd></dl>
@@ -2734,15 +2749,19 @@
       PCI controllers have an optional <code>model</code> attribute with
       possible values <code>pci-root</code>, <code>pcie-root</code>,
       <code>pcie-root-port</code>, <code>pci-bridge</code>,
-      <code>dmi-to-pci-bridge</code>, <code>pcie-switch-upstream-port</code>, or
-      <code>pcie-switch-downstream-port</code>.
-      (pci-root and pci-bridge <span class="since">since 1.0.5</span>,
-      pcie-root and dmi-to-pci-bridge <span class="since">since
-      1.1.2</span>, pcie-root-port, pcie-switch-upstream-port, and
-      pcie-switch-downstream-port <span class="since">since 1.2.19</span>)
-      The root controllers (<code>pci-root</code> and <code>pcie-root</code>)
-      have an optional <code>pcihole64</code> element specifying how big
-      (in kilobytes, or in the unit specified by <code>pcihole64</code>'s
+      <code>dmi-to-pci-bridge</code>, <code>pcie-switch-upstream-port</code>,
+      <code>pcie-switch-downstream-port</code>, <code>pci-expander-bus</code>,
+      or <code>pcie-expander-bus</code>.  (pci-root and
+      pci-bridge <span class="since">since 1.0.5</span>, pcie-root and
+      dmi-to-pci-bridge <span class="since">since 1.1.2</span>,
+      pcie-root-port, pcie-switch-upstream-port,
+      pcie-switch-downstream-port <span class="since">since
+      1.2.19</span>, and pci-expander-bus and
+      pcie-expander-bus <span class="since">since 1.3.4</span>) The
+      root controllers (<code>pci-root</code>
+      and <code>pcie-root</code>) have an
+      optional <code>pcihole64</code> element specifying how big (in
+      kilobytes, or in the unit specified by <code>pcihole64</code>'s
       <code>unit</code> attribute) the 64-bit PCI hole should be. Some guests (like
       Windows XP or Windows Server 2003) might crash when QEMU and Seabios
       are recent enough to support 64-bit PCI holes, unless this is disabled
@@ -2763,9 +2782,9 @@
     </p>
         <p>
       PCI controllers also have an optional
-      subelement <code>&lt;target&gt;</code> with the attributes
-      listed below. These are configurable items that 1) are visible
-      to the guest OS so must be preserved for guest ABI
+      subelement <code>&lt;target&gt;</code> with the attributes and
+      subelements listed below. These are configurable items that 1)
+      are visible to the guest OS so must be preserved for guest ABI
       compatibility, and 2) are usually left to default values or
       derived automatically by libvirt. In almost all cases, you
       should not manually add a <code>&lt;target&gt;</code> subelement
@@ -2795,6 +2814,48 @@
         is used to set the controller's "port" configuration value,
         which is visible to the virtual machine. If set, port must be
         between 0 and 255.
+      </dd><dt><code>busNr</code></dt><dd>
+        pci-expander-bus and pcie-expander-bus controllers can have an
+        optional <code>busNr</code> attribute (1-254). This will be
+        the bus number of the new bus; All bus numbers between that
+        specified and 255 will be available only for assignment to
+        PCI/PCIe controllers plugged into the hierarchy starting with
+        this expander bus, and bus numbers less than the specified
+        value will be available to the next lower expander-bus (or the
+        root-bus if there are no lower expander buses). If you do not
+        specify a busNumber, libvirt will find the lowest existing
+        busNumber in all other expander buses (or use 256 if there are
+        no others) and auto-assign the busNr of that found bus - 2,
+        which provides one bus number for the pci-expander-bus and one
+        for the pci-bridge that is automatically attached to it (if
+        you plan on adding more pci-bridges to the hierarchy of the
+        bus, you should manually set busNr to a lower value).
+        <p>
+          A similar algorithm is used for automatically determining
+          the busNr attribute for pcie-expander-bus, but since the
+          pcie-expander-bus doesn't have any built-in pci-bridge, the
+          2nd bus-number is just being reserved for the pcie-root-port
+          that must necessarily be connected to the bus in order to
+          actually plug in an endpoint device. If you intend to plug
+          multiple devices into a pcie-expander-bus, you must instead
+          connect a pcie-switch-upstream-port to the
+          pcie-expander-bus, and multiple pcie-switch-downstream-ports
+          to the pcie-switch-downstream-port, and of course for this
+          to work properly, you will need to decrease the
+          pcie-expander-bus' busNr accordingly so that there are
+          enough unused bus numbers above it to accomodate giving out
+          one bus number for the upstream-port and one for each
+          downstream-port).
+        </p>
+      </dd><dt><code>node</code></dt><dd>
+        pci-expander-bus controllers can have an
+        optional <code>&lt;node&gt;</code> subelement within
+        the <code>&lt;target&gt;</code> subelement, which is used to
+        set the NUMA node reported to the guest OS for that bus - the
+        guest OS will then know that all devices on that bus are a
+        part of the specified NUMA node (it is up to the user of the
+        libvirt API to attach host devices to the correct
+        pci-expander-bus when assigning them to the domain).
       </dd></dl>
         <p>
       For machine types which provide an implicit PCI bus, the pci-root
@@ -2902,13 +2963,13 @@
     ...
   &lt;/devices&gt;
   ...</pre>
-        <dl><dt>lockspace</dt><dd>This is an arbitrary string, identifying the lockspace
+        <dl><dt><code>lockspace</code></dt><dd>This is an arbitrary string, identifying the lockspace
         within which the key is held. Lock managers may impose
         extra restrictions on the format, or length of the lockspace
-        name.</dd><dt>key</dt><dd>This is an arbitrary string, uniquely identifying the
+        name.</dd><dt><code>key</code></dt><dd>This is an arbitrary string, uniquely identifying the
         lease to be acquired. Lock managers may impose extra
         restrictions on the format, or length of the key.
-      </dd><dt>target</dt><dd>This is the fully qualified path of the file associated
+      </dd><dt><code>target</code></dt><dd>This is the fully qualified path of the file associated
         with the lockspace. The offset specifies where the lease
         is stored within the file. If the lock manager does not
         require a offset, just pass 0.
@@ -2985,10 +3046,10 @@
         host devices. For each device, the <code>mode</code> is always
         "subsystem" and the <code>type</code> is one of the following values
         with additional attributes noted.
-        <dl><dt>usb</dt><dd>USB devices are detached from the host on guest startup
+        <dl><dt><code>usb</code></dt><dd>USB devices are detached from the host on guest startup
             and reattached after the guest exits or the device is
             hot-unplugged.
-          </dd><dt>pci</dt><dd>For PCI devices, when <code>managed</code> is "yes" it is
+          </dd><dt><code>pci</code></dt><dd>For PCI devices, when <code>managed</code> is "yes" it is
             detached from the host before being passed on to the guest
             and reattached to the host after the guest exits. If
             <code>managed</code> is omitted or "no", the user is
@@ -2997,7 +3058,7 @@
             or hot-plugging the device and <code>virNodeDeviceReAttach</code>
             (or <code>virsh nodedev-reattach</code>) after hot-unplug or
             stopping the guest.
-          </dd><dt>scsi</dt><dd>For SCSI devices, user is responsible to make sure the device
+          </dd><dt><code>scsi</code></dt><dd>For SCSI devices, user is responsible to make sure the device
             is not used by host. If supported by the hypervisor and OS, the
             optional <code>sgio</code> (<span class="since">since 1.0.6</span>)
             attribute indicates whether unprivileged SG_IO commands are
@@ -3019,7 +3080,7 @@
         </p>
       </dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host using
         the following mechanism to describe:
-        <dl><dt>usb</dt><dd>The USB device can either be addressed by vendor / product id
+        <dl><dt><code>usb</code></dt><dd>The USB device can either be addressed by vendor / product id
             using the <code>vendor</code> and <code>product</code> elements
             or by the device's address on the host using the
             <code>address</code> element.
@@ -3032,8 +3093,8 @@
             </p>
             <table class="top_table"><tr><td rowspan="1" colspan="1"> mandatory </td><td rowspan="1" colspan="1"> fail if missing for any reason (the default) </td></tr><tr><td rowspan="1" colspan="1"> requisite </td><td rowspan="1" colspan="1"> fail if missing on boot up,
                      drop if missing on migrate/restore/revert </td></tr><tr><td rowspan="1" colspan="1"> optional </td><td rowspan="1" colspan="1"> drop if missing at any start attempt </td></tr></table>
-          </dd><dt>pci</dt><dd>PCI devices can only be described by their <code>address</code>.
-          </dd><dt>scsi</dt><dd>SCSI devices are described by both the <code>adapter</code>
+          </dd><dt><code>pci</code></dt><dd>PCI devices can only be described by their <code>address</code>.
+          </dd><dt><code>scsi</code></dt><dd>SCSI devices are described by both the <code>adapter</code>
             and <code>address</code> elements. The <code>address</code>
             element includes a <code>bus</code> attribute (a 2-digit bus
             number), a <code>target</code> attribute (a 10-digit target
@@ -3264,11 +3325,11 @@
       behaves like a physical USB CCID (Chip/Smart Card Interface
       Device) card.
     </p>
-        <dl><dt><code>mode='host'</code></dt><dd>The simplest operation, where the hypervisor relays all
+        <dl><dt><code>host</code></dt><dd>The simplest operation, where the hypervisor relays all
       requests from the guest into direct access to the host's
       smartcard via NSS.  No other attributes or sub-elements are
       required.  See below about the use of an
-      optional <code>&lt;address&gt;</code> sub-element.</dd><dt><code>mode='host-certificates'</code></dt><dd>Rather than requiring a smartcard to be plugged into the
+      optional <code>&lt;address&gt;</code> sub-element.</dd><dt><code>host-certificates</code></dt><dd>Rather than requiring a smartcard to be plugged into the
       host, it is possible to provide three NSS certificate names
       residing in a database on the host.  These certificates can be
       generated via the command <code>certutil -d /etc/pki/nssdb -x -t
@@ -3279,7 +3340,7 @@
       the absolute path to an alternate directory (matching
       the <code>-d</code> option of the <code>certutil</code> command
       when creating the certificates); if not present, it defaults to
-      /etc/pki/nssdb.</dd><dt><code>mode='passthrough'</code></dt><dd>Rather than having the hypervisor directly communicate with
+      /etc/pki/nssdb.</dd><dt><code>passthrough</code></dt><dd>Rather than having the hypervisor directly communicate with
       the host, it is possible to tunnel all requests through a
       secondary character device to a third-party provider (which may
       in turn be talking to a smartcard or using three certificate
@@ -3990,7 +4051,12 @@ qemu-kvm -net nic,model=? /dev/null
         processor, resulting in much higher throughput.
         <span class="since">virtio-net since 1.0.6 (QEMU and KVM only)</span>
         <span class="since">vhost-user since 1.2.17 (QEMU and KVM only)</span>
-      </dd><dt><code>host</code> offloading options</dt><dd>
+      </dd></dl>
+        <p>
+      Offloading options for the host and guest can be configured using
+      the following sub-elements:
+    </p>
+        <dl><dt><code>host</code></dt><dd>
         The <code>csum</code>, <code>gso</code>, <code>tso4</code>,
         <code>tso6</code>, <code>ecn</code> and <code>ufo</code>
         attributes with possible values <code>on</code>
@@ -4001,7 +4067,7 @@ qemu-kvm -net nic,model=? /dev/null
         mergeable rx buffers on the host side. Possible values are
         <code>on</code> (default) and <code>off</code>.
         <span class="since">Since 1.2.13 (QEMU only)</span>
-      </dd><dt><code>guest</code> offloading options</dt><dd>
+      </dd><dt><code>guest</code></dt><dd>
         The <code>csum</code>, <code>tso4</code>,
         <code>tso6</code>, <code>ecn</code> and <code>ufo</code>
         attributes with possible values <code>on</code>
@@ -4259,6 +4325,7 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source network='default'/&gt;
       &lt;target dev='vnet0'/&gt;
       <b>&lt;ip address='192.168.122.5' prefix='24'/&gt;</b>
+      <b>&lt;ip address='192.168.122.5' prefix='24' peer='10.0.0.10'/&gt;</b>
       <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
       <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
     &lt;/interface&gt;
@@ -4289,7 +4356,15 @@ qemu-kvm -net nic,model=? /dev/null
     to define the network routes to use for the network device. The attributes
     of this element are described in the documentation for the <code>route</code>
     element in <a href="formatnetwork.html#elementsStaticroute" shape="rect">network definitions</a>.
-    This is only used by the LXC driver.
+    This is used by the LXC driver and <span class="since">Since 1.3.3</span> by the QEMU
+    driver.
+    </p>
+        <p>
+    <span class="since">Since 1.3.3</span> ip elements can hold peer attribute to assign
+    a point-to-point address for the network device. The attributes  of this element
+    are described in the documentation for the <code>ip</code> element in
+    <a href="formatnetwork.html#elementsAddress" shape="rect">network definitions</a>.
+    This is only used by the LXC and QEMU drivers.
     </p>
         <h5>
           <a name="elementVhostuser" shape="rect" id="elementVhostuser">vhost-user interface</a>
@@ -4326,6 +4401,44 @@ qemu-kvm -net nic,model=? /dev/null
       are supported.
       vhost-user requires the virtio model type, thus the
       <code>&lt;model&gt;</code> element is mandatory.
+    </p>
+        <h5>
+          <a name="elementNwfilter" shape="rect" id="elementNwfilter">Traffic filtering with NWFilter</a>
+          <a class="headerlink" href="#elementNwfilter" title="Permalink to this headline">¶</a>
+        </h5>
+        <p>
+    <span class="since">Since 0.8.0</span> an <code>nwfilter</code> profile
+    can be assigned to a domain interface, which allows configuring
+    traffic filter rules for the virtual machine.
+
+    See the <a href="formatnwfilter.html" shape="rect">nwfilter</a> documentation for more
+    complete details.
+    </p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;interface ...&gt;
+      ...
+      &lt;filterref filter='clean-traffic'/&gt;
+    &lt;/interface&gt;
+    &lt;interface ...&gt;
+      ...
+      &lt;filterref filter='myfilter'&gt;
+        &lt;parameter name='IP' value='104.207.129.11'/&gt;
+        &lt;parameter name='IP6_ADDR' value='2001:19f0:300:2102::'/&gt;
+        &lt;parameter name='IP6_MASK' value='64'/&gt;
+        ...
+      &lt;/filterref&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      The <code>filter</code> attribute specifies the name of the nwfilter
+      to use. Optional <code>&lt;parameter&gt;</code> elements may be
+      specified for passing additional info to the nwfilter via the
+      <code>name</code> and <code>value</code> attributes. See
+      the <a href="formatnwfilter.html#nwfconceptsvars" shape="rect">nwfilter</a>
+      docs for info on parameters.
     </p>
         <h4>
           <a name="elementsInput" shape="rect" id="elementsInput">Input devices</a>
@@ -4418,102 +4531,107 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;/graphics&gt;
   &lt;/devices&gt;
   ...</pre>
-        <dl><dt><code>graphics</code></dt><dd>The <code>graphics</code> element has a mandatory <code>type</code>
-        attribute which takes the value "sdl", "vnc", "spice", "rdp" or
-        "desktop":
-        <dl><dt><code>"sdl"</code></dt><dd>
-            This displays a window on the host desktop, it can take 3
-            optional arguments: a <code>display</code> attribute for
-            the display to use, an <code>xauth</code> attribute for
-            the authentication identifier, and an
-            optional <code>fullscreen</code> attribute accepting
-            values 'yes' or 'no'.
-          </dd><dt><code>"vnc"</code></dt><dd>
-            Starts a VNC server. The <code>port</code> attribute
-            specifies the TCP port number (with -1 as legacy syntax
-            indicating that it should be
-            auto-allocated). The <code>autoport</code> attribute is
-            the new preferred syntax for indicating autoallocation of
-            the TCP port to use.  The <code>listen</code> attribute is
-            an IP address for the server to listen
-            on. The <code>passwd</code> attribute provides a VNC
-            password in clear text. The <code>keymap</code> attribute
-            specifies the keymap to use. It is possible to set a limit
-            on the validity of the password be giving an
-            timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
-            assumed to be in UTC. The <code>connected</code> attribute
-            allows control of connected client during password changes.
-            VNC accepts <code>keep</code> value only.
-            <span class="since">since 0.9.3</span>
-            NB, this may not be supported by all hypervisors.<br />
-            The optional <code>sharePolicy</code> attribute specifies vnc server
-            display sharing policy. "allow-exclusive" allows clients to ask
-            for exclusive access by dropping other connections. Connecting
-            multiple clients in parallel requires all clients asking for a
-            shared session (vncviewer: -Shared switch). This is the default
-            value. "force-shared" disables exclusive client access, every
-            connection has to specify -Shared switch for vncviewer. "ignore"
-            welcomes every connection unconditionally
-            <span class="since">since 1.0.6</span>. <br /> <br />
-            Rather than using listen/port, QEMU supports a
-            <code>socket</code> attribute for listening on a unix
-            domain socket path.<span class="since">Since 0.8.8</span>
-
-            For VNC WebSocket functionality, <code>websocket</code>
-            attribute may be used to specify port to listen on (with
-            -1 meaning auto-allocation and <code>autoport</code>
-            having no effect due to security reasons).
-            <span class="since">Since 1.0.6</span>
-          </dd><dt><code>"spice"</code></dt><dd>
+        <dl><dt><code>graphics</code></dt><dd>
+        <p>
+          The <code>graphics</code> element has a mandatory <code>type</code>
+          attribute which takes the value <code>sdl</code>, <code>vnc</code>,
+          <code>spice</code>, <code>rdp</code> or <code>desktop</code>:
+        </p>
+        <dl><dt><code>sdl</code></dt><dd>
             <p>
-              Starts a SPICE server. The <code>port</code> attribute
-              specifies the TCP port number (with -1 as legacy syntax
-              indicating that it should be auto-allocated),
-              while <code>tlsPort</code> gives an alternative secure
-              port number. The <code>autoport</code> attribute is the
-              new preferred syntax for indicating autoallocation of
-              needed port numbers.  The <code>listen</code> attribute is
-              an IP address for the server to listen
-              on. The <code>passwd</code> attribute provides a SPICE
-              password in clear text. The <code>keymap</code>
-              attribute specifies the keymap to use. It is possible to
-              set a limit on the validity of the password be giving an
-              timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
-              assumed to be in UTC. The <code>connected</code> attribute
-              allows control of connected client during password changes.
-              SPICE accepts <code>keep</code> to keep client connected,
-              <code>disconnect</code> to disconnect client and
-              <code>fail</code> to fail changing password.
-              <span class="since">Since 0.9.3</span>
+              This displays a window on the host desktop, it can take 3 optional
+              arguments: a <code>display</code> attribute for the display to use,
+              an <code>xauth</code> attribute for the authentication identifier,
+              and an optional <code>fullscreen</code> attribute accepting values
+              <code>yes</code> or <code>no</code>.
+            </p>
+          </dd><dt><code>vnc</code></dt><dd>
+            <p>
+              Starts a VNC server. The <code>port</code> attribute specifies
+              the TCP port number (with -1 as legacy syntax indicating that it
+              should be auto-allocated). The <code>autoport</code> attribute is
+              the new preferred syntax for indicating auto-allocation of the TCP
+              port to use. The <code>listen</code> attribute is an IP address
+              for the server to listen on. The <code>passwd</code> attribute
+              provides a VNC password in clear text. The <code>keymap</code>
+              attribute specifies the keymap to use. It is possible to set
+              a limit on the validity of the password by giving an timestamp
+              <code>passwdValidTo='2010-04-09T15:51:00'</code> assumed to be
+              in UTC. The <code>connected</code> attribute allows control of
+              connected client during password changes. VNC accepts
+              <code>keep</code> value only <span class="since">since 0.9.3</span>.
               NB, this may not be supported by all hypervisors.
-              <span class="since">"spice" since 0.8.6</span>.
-              The <code>defaultMode</code> attribute sets the default channel
-              security policy, valid values are <code>secure</code>,
-              <code>insecure</code> and the default <code>any</code>
-              (which is secure if possible, but falls back to insecure
-              rather than erroring out if no secure path is
-              available). <span class="since">"defaultMode" since
-              0.9.12</span>.
             </p>
             <p>
-              When SPICE has both a normal and TLS secured TCP port
-              configured, it can be desirable to restrict what
-              channels can be run on each port.  This is achieved by
-              adding one or more &lt;channel&gt; elements inside the
-              main &lt;graphics&gt; element and setting the <code>mode</code>
-              attribute to either <code>secure</code> or <code>insecure</code>.
-              Setting the mode attribute overrides the default value as set
-              by the <code>defaultMode</code> attribute. (Note that specifying
+              The optional <code>sharePolicy</code> attribute specifies vnc
+              server display sharing policy. <code>allow-exclusive</code> allows
+              clients to ask for exclusive access by dropping other connections.
+              Connecting multiple clients in parallel requires all clients asking
+              for a shared session (vncviewer: -Shared switch). This is
+              the default value. <code>force-shared</code> disables exclusive
+              client access, every connection has to specify -Shared switch for
+              vncviewer. <code>ignore</code> welcomes every connection
+              unconditionally <span class="since">since 1.0.6</span>.
+            </p>
+            <p>
+              Rather than using listen/port, QEMU supports a <code>socket</code>
+              attribute for listening on a unix domain socket path
+              <span class="since">Since 0.8.8</span>.
+            </p>
+            <p>
+              For VNC WebSocket functionality, <code>websocket</code> attribute
+              may be used to specify port to listen on (with -1 meaning
+              auto-allocation and <code>autoport</code> having no effect due to
+              security reasons) <span class="since">Since 1.0.6</span>.
+            </p>
+          </dd><dt><code>spice</code> <span class="since">Since 0.8.6</span></dt><dd>
+            <p>
+              Starts a SPICE server. The <code>port</code> attribute specifies
+              the TCP port number (with -1 as legacy syntax indicating that it
+              should be auto-allocated), while <code>tlsPort</code> gives
+              an alternative secure port number. The <code>autoport</code>
+              attribute is the new preferred syntax for indicating
+              auto-allocation of needed port numbers. The <code>listen</code>
+              attribute is an IP address for the server to listen on.
+              The <code>passwd</code> attribute provides a SPICE password in
+              clear text. The <code>keymap</code> attribute specifies the keymap
+              to use. It is possible to set a limit on the validity of
+              the password by giving an timestamp
+              <code>passwdValidTo='2010-04-09T15:51:00'</code> assumed to be in
+              UTC.
+            </p>
+            <p>
+              The <code>connected</code> attribute allows control of connected
+              client during password changes. SPICE accepts <code>keep</code> to
+              keep client connected, <code>disconnect</code> to disconnect client
+              and <code>fail</code> to fail changing password . NB, this may not
+              be supported by all hypervisors.
+              <span class="since">Since 0.9.3</span>
+            </p>
+            <p>
+              The <code>defaultMode</code> attribute sets the default channel
+              security policy, valid values are <code>secure</code>,
+              <code>insecure</code> and the default <code>any</code> (which is
+              secure if possible, but falls back to insecure rather than erroring
+              out if no secure path is available).
+              <span class="since">Since 0.9.12</span>
+            </p>
+            <p>
+              When SPICE has both a normal and TLS secured TCP port configured,
+              it can be desirable to restrict what channels can be run on each
+              port. This is achieved by adding one or more <code>&lt;channel&gt;
+              </code> elements inside the main <code>&lt;graphics&gt;</code>
+              element and setting the <code>mode</code> attribute to either
+              <code>secure</code> or <code>insecure</code>. Setting the mode
+              attribute overrides the default value as set by
+              the <code>defaultMode</code> attribute. (Note that specifying
               <code>any</code> as mode discards the entry as the channel would
-              inherit the default mode anyways)
-              Valid channel names
-              include <code>main</code>, <code>display</code>,
-              <code>inputs</code>, <code>cursor</code>,
-              <code>playback</code>, <code>record</code>
+              inherit the default mode anyways.) Valid channel names include
+              <code>main</code>, <code>display</code>, <code>inputs</code>,
+              <code>cursor</code>, <code>playback</code>, <code>record</code>
               (all <span class="since"> since 0.8.6</span>);
-              <code>smartcard</code> (<span class="since">since
-              0.8.8</span>); and <code>usbredir</code>
-              (<span class="since">since 0.9.12</span>).
+              <code>smartcard</code> (<span class="since">since 0.8.8</span>);
+              and <code>usbredir</code> (<span class="since">since 0.9.12</span>).
             </p>
             <pre xml:space="preserve">
   &lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
@@ -4527,116 +4645,102 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;gl enable='yes'/&gt;
   &lt;/graphics&gt;</pre>
             <p>
-              Spice supports variable compression settings for audio,
-              images and streaming, <span class="since">since
-              0.9.1</span>.  These settings are accessible via
-              the <code>compression</code> attribute in all following
-              elements: <code>image</code> to set image compression
-              (accepts <code>auto_glz</code>, <code>auto_lz</code>,
-              <code>quic</code>, <code>glz</code>, <code>lz</code>,
-              <code>off</code>), <code>jpeg</code> for JPEG
-              compression for images over wan
-              (accepts <code>auto</code>, <code>never</code>,
-              <code>always</code>), <code>zlib</code> for configuring
-              wan image compression (accepts <code>auto</code>,
-              <code>never</code>, <code>always</code>)
-              and <code>playback</code> for enabling audio stream
-              compression (accepts <code>on</code> or <code>off</code>).
+              Spice supports variable compression settings for audio, images and
+              streaming. These settings are accessible via the <code>compression
+              </code> attribute in all following elements: <code>image</code> to
+              set image compression (accepts <code>auto_glz</code>,
+              <code>auto_lz</code>, <code>quic</code>, <code>glz</code>,
+              <code>lz</code>, <code>off</code>), <code>jpeg</code> for JPEG
+              compression for images over wan (accepts <code>auto</code>,
+              <code>never</code>, <code>always</code>), <code>zlib</code> for
+              configuring wan image compression (accepts <code>auto</code>,
+              <code>never</code>, <code>always</code>)  and <code>playback</code>
+              for enabling audio stream compression (accepts <code>on</code> or
+              <code>off</code>). <span class="since">Since 0.9.1</span>
             </p>
             <p>
-              Streaming mode is set by the <code>streaming</code>
-              element, settings its <code>mode</code> attribute to one
-              of <code>filter</code>, <code>all</code>
-              or <code>off</code>, <span class="since">since 0.9.2</span>.
+              Streaming mode is set by the <code>streaming</code> element,
+              settings its <code>mode</code> attribute to one of
+              <code>filter</code>, <code>all</code> or <code>off</code>.
+              <span class="since">Since 0.9.2</span>
             </p>
             <p>
-              Copy &amp; Paste functionality (via Spice agent) is set
-              by the <code>clipboard</code> element. It is enabled by
-              default, and can be disabled by setting
-              the <code>copypaste</code> property
-              to <code>no</code>, <span class="since">since
-              0.9.3</span>.
+              Copy &amp; Paste functionality (via Spice agent) is set by the
+              <code>clipboard</code> element. It is enabled by default, and can
+              be disabled by setting the <code>copypaste</code> property to
+              <code>no</code>. <span class="since">Since 0.9.3</span>
             </p>
             <p>
-              Mouse mode is set by the <code>mouse</code> element,
-              setting its <code>mode</code> attribute to one of
-              <code>server</code> or <code>client</code> ,
-              <span class="since">since 0.9.11</span>. If no mode is
-              specified, the qemu default will be used (client mode).
+              Mouse mode is set by the <code>mouse</code> element, setting its
+              <code>mode</code> attribute to one of <code>server</code> or
+              <code>client</code>. If no mode is specified, the qemu default will
+              be used (client mode). <span class="since">Since 0.9.11</span>
             </p>
             <p>
               File transfer functionality (via Spice agent) is set using the
-              <code>filetransfer</code> element.
-              It is enabled by default, and can be disabled by setting the
-              <code>enable</code> property to <code>no</code> ,
-              since <span class="since">since 1.2.2</span>.
+              <code>filetransfer</code> element. It is enabled by default, and
+              can be disabled by setting the <code>enable</code> property to
+              <code>no</code>. <span class="since">Since 1.2.2</span>
             </p>
             <p>
-              Spice may provide accelerated server-side rendering with
-              OpenGL. You can enable or disable OpenGL support explicitly with
-              the <code>gl</code> element, by setting the
-              <code>enable</code> property. (QEMU
-              only, <span class="since">since 1.3.2</span>).
+              Spice may provide accelerated server-side rendering with OpenGL.
+              You can enable or disable OpenGL support explicitly with
+              the <code>gl</code> element, by setting the <code>enable</code>
+              property. (QEMU only, <span class="since">since 1.3.2</span>).
             </p>
-          </dd><dt><code>"rdp"</code></dt><dd>
-            Starts a RDP server. The <code>port</code> attribute
-            specifies the TCP port number (with -1 as legacy syntax
-            indicating that it should be
-            auto-allocated). The <code>autoport</code> attribute is
-            the new preferred syntax for indicating autoallocation of
-            the TCP port to use. The <code>replaceUser</code>
-            attribute is a boolean deciding whether multiple
-            simultaneous connections to the VM are permitted.
-            The <code>multiUser</code> attribute is a boolean deciding
-            whether the existing connection must be dropped and a new
-            connection must be established by the VRDP server, when a
-            new client connects in single connection mode.
-          </dd><dt><code>"desktop"</code></dt><dd>
-            This value is reserved for VirtualBox domains for the
-            moment. It displays a window on the host desktop,
-            similarly to "sdl", but using the VirtualBox viewer. Just
-            like "sdl", it accepts the optional
-            attributes <code>display</code>
-            and <code>fullscreen</code>.
+          </dd><dt><code>rdp</code></dt><dd>
+            <p>
+              Starts a RDP server. The <code>port</code> attribute specifies the
+              TCP port number (with -1 as legacy syntax indicating that it should
+              be auto-allocated). The <code>autoport</code> attribute is the new
+              preferred syntax for indicating auto-allocation of the TCP port to
+              use. The <code>replaceUser</code> attribute is a boolean deciding
+              whether multiple simultaneous connections to the VM are permitted.
+              The <code>multiUser</code> attribute is a boolean deciding whether
+              the existing connection must be dropped and a new connection must
+              be established by the VRDP server, when a new client connects in
+              single connection mode.
+            </p>
+          </dd><dt><code>desktop</code></dt><dd>
+            <p>
+              This value is reserved for VirtualBox domains for the moment. It
+              displays a window on the host desktop, similarly to "sdl", but
+              using the VirtualBox viewer. Just like "sdl", it accepts
+              the optional attributes <code>display</code> and
+              <code>fullscreen</code>.
+            </p>
           </dd></dl>
       </dd></dl>
         <p>
-      Rather than putting the address information used to set up the
-      listening socket for graphics types <code>vnc</code>
-      and <code>spice</code> in
-      the <code>&lt;graphics&gt;</code> <code>listen</code> attribute,
-      a separate subelement of <code>&lt;graphics&gt;</code>,
-      called <code>&lt;listen&gt;</code> can be specified (see the
-      examples above)<span class="since">since
-      0.9.4</span>. <code>&lt;listen&gt;</code> accepts the following
-      attributes:
+      Graphics device uses a <code>&lt;listen&gt;</code> to set up where
+      the device should listen for clients. It has a mandatory attribute
+      <code>type</code> which specifies the listen type. Only <code>vnc</code>,
+      <code>spice</code> and <code>rdp</code> supports <code>&lt;listen&gt;
+      </code> element. <span class="since">Since 0.9.4</span>.
+      Available types are:
     </p>
-        <dl><dt><code>type</code></dt><dd>Set to either <code>address</code>
-        or <code>network</code>. This tells whether this listen
-        element is specifying the address to be used directly, or by
-        naming a network (which will then be used to determine an
-        appropriate address for listening).
-      </dd></dl>
-        <dl><dt><code>address</code></dt><dd>if <code>type='address'</code>, the <code>address</code>
-        attribute will contain either an IP address or hostname (which
-        will be resolved to an IP address via a DNS query) to listen
-        on. In the "live" XML of a running domain, this attribute will
-        be set to the IP address used for listening, even
-        if <code>type='network'</code>.
-      </dd></dl>
-        <dl><dt><code>network</code></dt><dd>if <code>type='network'</code>, the <code>network</code>
-        attribute will contain the name of a network in libvirt's list
-        of configured networks. The named network configuration will
-        be examined to determine an appropriate listen address. For
-        example, if the network has an IPv4 address in its
-        configuration (e.g. if it has a forward type
-        of <code>route</code>, <code>nat</code>, or no forward type
-        (isolated)), the first IPv4 address listed in the network's
-        configuration will be used. If the network is describing a
-        host bridge, the first IPv4 address associated with that
-        bridge device will be used, and if the network is describing
-        one of the 'direct' (macvtap) modes, the first IPv4 address of
-        the first forward dev will be used.
+        <dl><dt><code>address</code></dt><dd>
+        <p>
+          Tells a graphics device to use an address specified in the
+          <code>address</code> attribute, which will contain either an IP address
+          or hostname (which will be resolved to an IP address via a DNS query)
+          to listen on.
+        </p>
+      </dd><dt><code>network</code></dt><dd>
+        <p>
+          This is used to specify an existing network in the <code>network</code>
+          attribute from libvirt's list of configured networks. The named network
+          configuration will be examined to determine an appropriate listen
+          address and the address will be stored in live XML in <code>address
+          </code> attribute. For example, if the network has an IPv4 address in
+          its configuration (e.g. if it has a forward type of <code>route</code>,
+          <code>nat</code>, or no forward type (isolated)), the first IPv4
+          address listed in the network's configuration will be used.
+          If the network is describing a host bridge, the first IPv4 address
+          associated with that bridge device will be used, and if the network is
+          describing one of the 'direct' (macvtap) modes, the first IPv4 address
+          of the first forward dev will be used.
+        </p>
       </dd></dl>
         <h4>
           <a name="elementsVideo" shape="rect" id="elementsVideo">Video devices</a>
@@ -4705,9 +4809,11 @@ qemu-kvm -net nic,model=? /dev/null
           extends secondary bar and makes it addressable as 64bit memory.
         </p>
       </dd><dt><code>acceleration</code></dt><dd>
-        If acceleration should be enabled (if supported) using the
-        <code>accel3d</code> and <code>accel2d</code> attributes in the
-        <code>acceleration</code> element.
+        Configure if video acceleration should be enabled.
+        <dl><dt><code>accel2d</code></dt><dd>Enable 2D acceleration (for vbox driver only,
+        <span class="since">since 0.7.1</span>)</dd><dt><code>accel3d</code></dt><dd>Enable 3D acceleration (for vbox driver
+        <span class="since">since 0.7.1</span>, qemu driver
+        <span class="since">since 1.3.0</span>)</dd></dl>
       </dd><dt><code>address</code></dt><dd>
         The optional <code>address</code> sub-element can be used to
         tie the video device to a particular PCI slot.
@@ -5481,22 +5587,22 @@ qemu-kvm -net nic,model=? /dev/null
           to be used for the domain. The source model is configured using the
           <code>model</code> attribute. Supported source models are:
         </p>
-        <ul><li>'random' — /dev/random (default) or /dev/hwrng
-            device as source (for now, no other sources are permitted)</li><li>'egd' — a EGD protocol backend</li></ul>
-      </dd><dt><code>backend model='random'</code></dt><dd>
-        <p>
-          This backend type expects a non-blocking character device as input.
-          The only accepted paths are /dev/random and /dev/hwrng. The file
-          name is specified as contents of the <code>backend</code> element.
-          When no file name is specified the hypervisor default is used.
-        </p>
-      </dd><dt><code>backend model='egd'</code></dt><dd>
-        <p>
-          This backend connects to a source using the EGD protocol.
-          The source is specified as a character device. Refer to
-          <a href="#elementsCharHostInterface" shape="rect">character device host interface</a>
-          for more information.
-        </p>
+        <dl><dt><code>random</code></dt><dd>
+            <p>
+              This backend type expects a non-blocking character device as
+              input. The file name is specified as contents of the
+              <code>backend</code> element. When no file name is specified
+              the hypervisor default is used. For qemu, the default is
+              /dev/random
+            </p>
+          </dd><dt><code>egd</code></dt><dd>
+            <p>
+              This backend connects to a source using the EGD protocol.
+              The source is specified as a character device. Refer to
+              <a href="#elementsCharHostInterface" shape="rect">character device host interface</a>
+              for more information.
+            </p>
+          </dd></dl>
       </dd></dl>
         <h4>
           <a name="elementsTpm" shape="rect" id="elementsTpm">TPM device</a>
@@ -5537,15 +5643,18 @@ qemu-kvm -net nic,model=? /dev/null
           The <code>backend</code> element specifies the type of
           TPM device. The following types are supported:
         </p>
-        <ul><li>'passthrough' — use the host's TPM device.</li></ul>
-      </dd><dt><code>backend type='passthrough'</code></dt><dd>
-        <p>
-          This backend type requires exclusive access to a TPM device on
-          the host.
-          An example for such a device is /dev/tpm0. The fully qualified file
-          name is specified by path attribute of the <code>source</code> element.
-          If no file name is specified then /dev/tpm0 is automatically used.
-        </p>
+        <dl><dt><code>passthrough</code></dt><dd>
+            <p>
+              Use the host's TPM device.
+            </p>
+            <p>
+              This backend type requires exclusive access to a TPM device on
+              the host. An example for such a device is /dev/tpm0. The fully
+              qualified file name is specified by path attribute of the
+              <code>source</code> element. If no file name is specified then
+              /dev/tpm0 is automatically used.
+            </p>
+          </dd></dl>
       </dd></dl>
         <h4>
           <a name="elementsNVRAM" shape="rect" id="elementsNVRAM">NVRAM device</a>

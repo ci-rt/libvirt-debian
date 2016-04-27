@@ -108,12 +108,30 @@ int virStorageBackendCreateRaw(virConnectPtr conn,
                                virStorageVolDefPtr vol,
                                virStorageVolDefPtr inputvol,
                                unsigned int flags);
+
+int virStorageBackendCreateQemuImg(virConnectPtr conn,
+                                   virStoragePoolObjPtr pool,
+                                   virStorageVolDefPtr vol,
+                                   virStorageVolDefPtr inputvol,
+                                   unsigned int flags);
+
+int virStorageBackendCreatePloop(virConnectPtr conn,
+                                 virStoragePoolObjPtr pool,
+                                 virStorageVolDefPtr vol,
+                                 virStorageVolDefPtr inputvol,
+                                 unsigned int flags);
+
+int virStoragePloopResize(virStorageVolDefPtr vol,
+                          unsigned long long capacity);
+
+int virStorageBackendRedoPloopUpdate(virStorageSourcePtr target,
+                                     struct stat *sb, int *fd,
+                                     unsigned int flags);
+bool virStorageBackendIsPloopDir(char *path);
+
 virStorageBackendBuildVolFrom
 virStorageBackendGetBuildVolFromFunction(virStorageVolDefPtr vol,
                                          virStorageVolDefPtr inputvol);
-int virStorageBackendFindFSImageTool(char **tool);
-virStorageBackendBuildVolFrom
-virStorageBackendFSImageToolTypeToFunc(int tool_type);
 
 int virStorageBackendFindGlusterPoolSources(const char *host,
                                             int pooltype,

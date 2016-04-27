@@ -81,7 +81,6 @@ EXTRA_DIST =		\
 	capabilityschemadata \
 	capabilityschematest \
 	commanddata \
-	confdata \
 	cputestdata \
 	domaincapsschemadata \
 	domaincapsschematest \
@@ -142,6 +141,7 @@ EXTRA_DIST =		\
 	vboxsnapshotxmldata \
 	vircaps2xmldata \
 	vircgroupdata \
+	virconfdata \
 	virfiledata \
 	virmock.h \
 	virnetdaemondata \
@@ -158,7 +158,7 @@ EXTRA_DIST =		\
 	xml2sexprdata \
 	xml2vmxdata
 
-test_helpers = commandhelper ssh test_conf
+test_helpers = commandhelper ssh virconftest
 test_programs = virshtest sockettest \
 	nodeinfotest virbuftest \
 	commandtest seclabeltest \
@@ -243,7 +243,7 @@ ssh_LDADD = $(COVERAGE_LDFLAGS)
 
 if WITH_XEN
 test_programs += xml2sexprtest sexpr2xmltest \
-	xmconfigtest xencapstest statstest reconnect
+	xmconfigtest xencapstest
 endif WITH_XEN
 
 if WITH_LIBXL
@@ -367,47 +367,33 @@ test_scripts = \
 	domainsnapshotschematest \
 	secretschematest
 
-if WITH_LIBVIRTD
-test_scripts +=				\
-	test_conf.sh			\
-	cpuset				\
-	define-dev-segfault		\
-	int-overflow			\
+libvirtd_test_scripts =		\
 	libvirtd-fail			\
 	libvirtd-pool			\
-	read-bufsiz			\
-	read-non-seekable		\
-	start				\
-	virsh-uriprecedence		\
-	vcpupin				\
+	virconftest.sh			\
 	virsh-all			\
+	virsh-cpuset			\
+	virsh-define-dev-segfault	\
+	virsh-int-overflow		\
 	virsh-optparse			\
+	virsh-read-bufsiz		\
+	virsh-read-non-seekable		\
 	virsh-schedinfo			\
+	virsh-start			\
 	virsh-synopsis			\
 	virsh-undefine			\
+	virsh-uriprecedence		\
+	virsh-vcpupin			\
 	$(NULL)
+
+if WITH_LIBVIRTD
+test_scripts += $(libvirtd_test_scripts)
 
 test_programs += 			\
 	eventtest			\
 	libvirtdconftest
 else ! WITH_LIBVIRTD
-EXTRA_DIST += 				\
-	test_conf.sh			\
-	cpuset				\
-	define-dev-segfault		\
-	int-overflow			\
-	libvirtd-fail			\
-	libvirtd-pool			\
-	read-bufsiz			\
-	read-non-seekable		\
-	start				\
-	vcpupin				\
-	virsh-all			\
-	virsh-optparse			\
-	virsh-schedinfo			\
-	virsh-synopsis			\
-	virsh-undefine			\
-	$(NULL)
+EXTRA_DIST += $(libvirtd_test_scripts)
 endif ! WITH_LIBVIRTD
 
 test_programs += objecteventtest
@@ -518,22 +504,17 @@ xencapstest_SOURCES = \
 	xencapstest.c testutils.h testutils.c
 xencapstest_LDADD = $(xen_LDADDS)
 
-reconnect_SOURCES = \
-	reconnect.c testutils.h testutils.c
-reconnect_LDADD = $(LDADDS)
-
-statstest_SOURCES = \
-	statstest.c testutils.h testutils.c
-statstest_LDADD = $(xen_LDADDS)
-
 else ! WITH_XEN
 EXTRA_DIST += xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
-	xencapstest.c reconnect.c \
+	xencapstest.c \
 	testutilsxen.c testutilsxen.h
 endif ! WITH_XEN
 
 if WITH_LIBXL
 libxl_LDADDS = ../src/libvirt_driver_libxl_impl.la
+if WITH_NETWORK
+libxl_LDADDS += ../src/libvirt_driver_network_impl.la
+endif WITH_NETWORK
 libxl_LDADDS += $(LDADDS)
 
 xlconfigtest_SOURCES = \
@@ -868,9 +849,9 @@ virshtest_SOURCES = \
 	testutils.c testutils.h
 virshtest_LDADD = $(LDADDS)
 
-test_conf_SOURCES = \
-	test_conf.c
-test_conf_LDADD = $(LDADDS)
+virconftest_SOURCES = \
+	virconftest.c
+virconftest_LDADD = $(LDADDS)
 
 nodeinfotest_SOURCES = \
 	nodeinfotest.c testutils.h testutils.c

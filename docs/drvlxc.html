@@ -315,12 +315,12 @@ environment variables. The following standard environment variables are mandated
 by <a href="http://www.freedesktop.org/wiki/Software/systemd/ContainerInterface" shape="rect">systemd container interface</a>
 to be provided by all container technologies on Linux.
 </p>
-        <dl><dt>container</dt><dd>The fixed string <code>libvirt-lxc</code> to identify libvirt as the creator</dd><dt>container_uuid</dt><dd>The UUID assigned to the container by libvirt</dd><dt>PATH</dt><dd>The fixed string <code>/bin:/usr/bin</code></dd><dt>TERM</dt><dd>The fixed string <code>linux</code></dd><dt>HOME</dt><dd>The fixed string <code>/</code></dd></dl>
+        <dl><dt><code>container</code></dt><dd>The fixed string <code>libvirt-lxc</code> to identify libvirt as the creator</dd><dt><code>container_uuid</code></dt><dd>The UUID assigned to the container by libvirt</dd><dt><code>PATH</code></dt><dd>The fixed string <code>/bin:/usr/bin</code></dd><dt><code>TERM</code></dt><dd>The fixed string <code>linux</code></dd><dt><code>HOME</code></dt><dd>The fixed string <code>/</code></dd></dl>
         <p>
 In addition to the standard variables, the following libvirt specific
 environment variables are also provided
 </p>
-        <dl><dt>LIBVIRT_LXC_NAME</dt><dd>The name assigned to the container by libvirt</dd><dt>LIBVIRT_LXC_UUID</dt><dd>The UUID assigned to the container by libvirt</dd><dt>LIBVIRT_LXC_CMDLINE</dt><dd>The unparsed command line arguments specified in the container configuration.
+        <dl><dt><code>LIBVIRT_LXC_NAME</code></dt><dd>The name assigned to the container by libvirt</dd><dt><code>LIBVIRT_LXC_UUID</code></dt><dd>The UUID assigned to the container by libvirt</dd><dt><code>LIBVIRT_LXC_CMDLINE</code></dt><dd>The unparsed command line arguments specified in the container configuration.
 Use of this is discouraged, in favour of passing arguments directly to the
 container init process via the <code>initarg</code> config element.</dd></dl>
         <h3>

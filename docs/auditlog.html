@@ -260,11 +260,11 @@
       be described below. There are a number of common fields that will
       be reported for all message types.
     </p>
-        <dl><dt>pid</dt><dd>Process ID of the libvirtd daemon generating the audit record.</dd><dt>uid</dt><dd>User ID of the libvirtd daemon process generating the audit record.</dd><dt>subj</dt><dd>Security context of the libvirtd daemon process generating the audit record.</dd><dt>msg</dt><dd>String containing a list of key=value pairs specific to the type of audit record being reported.</dd></dl>
+        <dl><dt><code>pid</code></dt><dd>Process ID of the libvirtd daemon generating the audit record.</dd><dt><code>uid</code></dt><dd>User ID of the libvirtd daemon process generating the audit record.</dd><dt><code>subj</code></dt><dd>Security context of the libvirtd daemon process generating the audit record.</dd><dt><code>msg</code></dt><dd>String containing a list of key=value pairs specific to the type of audit record being reported.</dd></dl>
         <p>
       Some fields in the <code>msg</code> string are common to audit records
     </p>
-        <dl><dt>virt</dt><dd>Type of virtualization driver used. One of <code>qemu</code> or <code>lxc</code></dd><dt>vm</dt><dd>Host driver unique name of the guest</dd><dt>uuid</dt><dd>Globally unique identifier for the guest</dd><dt>exe</dt><dd>Path of the libvirtd daemon</dd><dt>hostname</dt><dd>Currently unused</dd><dt>addr</dt><dd>Currently unused</dd><dt>terminal</dt><dd>Currently unused</dd><dt>res</dt><dd>Result of the action, either <code>success</code> or <code>failed</code></dd></dl>
+        <dl><dt><code>virt</code></dt><dd>Type of virtualization driver used. One of <code>qemu</code> or <code>lxc</code></dd><dt><code>vm</code></dt><dd>Host driver unique name of the guest</dd><dt><code>uuid</code></dt><dd>Globally unique identifier for the guest</dd><dt><code>exe</code></dt><dd>Path of the libvirtd daemon</dd><dt><code>hostname</code></dt><dd>Currently unused</dd><dt><code>addr</code></dt><dd>Currently unused</dd><dt><code>terminal</code></dt><dd>Currently unused</dd><dt><code>res</code></dt><dd>Result of the action, either <code>success</code> or <code>failed</code></dd></dl>
         <h3>
           <a name="typecontrol" shape="rect" id="typecontrol">VIRT_CONTROL</a>
           <a class="headerlink" href="#typecontrol" title="Permalink to this headline">¶</a>
@@ -273,7 +273,7 @@
       Reports change in the lifecycle state of a virtual machine. The <code>msg</code>
       field will include the following sub-fields
     </p>
-        <dl><dt>op</dt><dd>Type of operation performed. One of <code>start</code>, <code>stop</code> or <code>init</code></dd><dt>reason</dt><dd>The reason which caused the operation to happen</dd><dt>vm-pid</dt><dd>ID of the primary/leading process associated with the guest</dd><dt>init-pid</dt><dd>ID of the <code>init</code> process in a container. Only if <code>op=init</code> and <code>virt=lxc</code></dd><dt>pid-ns</dt><dd>Namespace ID of the <code>init</code> process in a container. Only if <code>op=init</code> and <code>virt=lxc</code></dd></dl>
+        <dl><dt><code>op</code></dt><dd>Type of operation performed. One of <code>start</code>, <code>stop</code> or <code>init</code></dd><dt><code>reason</code></dt><dd>The reason which caused the operation to happen</dd><dt><code>vm-pid</code></dt><dd>ID of the primary/leading process associated with the guest</dd><dt><code>init-pid</code></dt><dd>ID of the <code>init</code> process in a container. Only if <code>op=init</code> and <code>virt=lxc</code></dd><dt><code>pid-ns</code></dt><dd>Namespace ID of the <code>init</code> process in a container. Only if <code>op=init</code> and <code>virt=lxc</code></dd></dl>
         <h3>
           <a name="typemachine" shape="rect" id="typemachine">VIRT_MACHINE_ID</a>
           <a class="headerlink" href="#typemachine" title="Permalink to this headline">¶</a>
@@ -282,7 +282,7 @@
       Reports the association of a security context with a guest. The <code>msg</code>
       field will include the following sub-fields
     </p>
-        <dl><dt>model</dt><dd>The security driver type. One of <code>selinux</code> or <code>apparmor</code></dd><dt>vm-ctx</dt><dd>Security context for the guest process</dd><dt>img-ctx</dt><dd>Security context for the guest disk images and other assigned host resources</dd></dl>
+        <dl><dt><code>model</code></dt><dd>The security driver type. One of <code>selinux</code> or <code>apparmor</code></dd><dt><code>vm-ctx</code></dt><dd>Security context for the guest process</dd><dt><code>img-ctx</code></dt><dd>Security context for the guest disk images and other assigned host resources</dd></dl>
         <h3>
           <a name="typeresource" shape="rect" id="typeresource">VIRT_RESOURCE</a>
           <a class="headerlink" href="#typeresource" title="Permalink to this headline">¶</a>
@@ -302,7 +302,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>vcpu</code></dd><dt>old-vcpu</dt><dd>Original vCPU count, or 0</dd><dt>new-vcpu</dt><dd>Updated vCPU count</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>vcpu</code></dd><dt><code>old-vcpu</code></dt><dd>Original vCPU count, or 0</dd><dt><code>new-vcpu</code></dt><dd>Updated vCPU count</dd></dl>
         <h4>
           <a name="typeresourcemem" shape="rect" id="typeresourcemem">Memory</a>
           <a class="headerlink" href="#typeresourcemem" title="Permalink to this headline">¶</a>
@@ -310,7 +310,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>mem</code></dd><dt>old-mem</dt><dd>Original memory size in bytes, or 0</dd><dt>new-mem</dt><dd>Updated memory size in bytes</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>mem</code></dd><dt><code>old-mem</code></dt><dd>Original memory size in bytes, or 0</dd><dt><code>new-mem</code></dt><dd>Updated memory size in bytes</dd></dl>
         <h4>
           <a name="typeresourcedisk" shape="rect" id="typeresourcedisk">Disk</a>
           <a class="headerlink" href="#typeresourcedisk" title="Permalink to this headline">¶</a>
@@ -318,7 +318,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>disk</code></dd><dt>old-disk</dt><dd>Original host file or device path acting as the disk backing file</dd><dt>new-disk</dt><dd>Updated host file or device path acting as the disk backing file</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>disk</code></dd><dt><code>old-disk</code></dt><dd>Original host file or device path acting as the disk backing file</dd><dt><code>new-disk</code></dt><dd>Updated host file or device path acting as the disk backing file</dd></dl>
         <h4>
           <a name="typeresourcenic" shape="rect" id="typeresourcenic">Network interface</a>
           <a class="headerlink" href="#typeresourcenic" title="Permalink to this headline">¶</a>
@@ -326,12 +326,12 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>net</code></dd><dt>old-net</dt><dd>Original MAC address of the guest network interface</dd><dt>new-net</dt><dd>Updated MAC address of the guest network interface</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>net</code></dd><dt><code>old-net</code></dt><dd>Original MAC address of the guest network interface</dd><dt><code>new-net</code></dt><dd>Updated MAC address of the guest network interface</dd></dl>
         <p>
       If there is a host network interface associated with the guest NIC then
       further records may be generated
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>net</code></dd><dt>net</dt><dd>MAC address of the host network interface</dd><dt>rdev</dt><dd>Name of the host network interface</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>net</code></dd><dt><code>net</code></dt><dd>MAC address of the host network interface</dd><dt><code>rdev</code></dt><dd>Name of the host network interface</dd></dl>
         <h4>
           <a name="typeresourcefs" shape="rect" id="typeresourcefs">Filesystem</a>
           <a class="headerlink" href="#typeresourcefs" title="Permalink to this headline">¶</a>
@@ -339,7 +339,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>fs</code></dd><dt>old-fs</dt><dd>Original host directory, file or device path backing the filesystem </dd><dt>new-fs</dt><dd>Updated host directory, file or device path backing the filesystem</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>fs</code></dd><dt><code>old-fs</code></dt><dd>Original host directory, file or device path backing the filesystem </dd><dt><code>new-fs</code></dt><dd>Updated host directory, file or device path backing the filesystem</dd></dl>
         <h4>
           <a name="typeresourcehost" shape="rect" id="typeresourcehost">Host device</a>
           <a class="headerlink" href="#typeresourcehost" title="Permalink to this headline">¶</a>
@@ -347,7 +347,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>hostdev</code> or <code>dev</code></dd><dt>dev</dt><dd>The unique bus identifier of the USB, PCI or SCSI device, if <code>resrc=dev</code></dd><dt>disk</dt><dd>The path of the block device assigned to the guest, if <code>resrc=hostdev</code></dd><dt>chardev</dt><dd>The path of the character device assigned to the guest, if <code>resrc=hostdev</code></dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>hostdev</code> or <code>dev</code></dd><dt><code>dev</code></dt><dd>The unique bus identifier of the USB, PCI or SCSI device, if <code>resrc=dev</code></dd><dt><code>disk</code></dt><dd>The path of the block device assigned to the guest, if <code>resrc=hostdev</code></dd><dt><code>chardev</code></dt><dd>The path of the character device assigned to the guest, if <code>resrc=hostdev</code></dd></dl>
         <h4>
           <a name="typeresourcetpm" shape="rect" id="typeresourcetpm">TPM</a>
           <a class="headerlink" href="#typeresourcetpm" title="Permalink to this headline">¶</a>
@@ -355,7 +355,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>tpm</code></dd><dt>device</dt><dd>The path of the host TPM device assigned to the guest</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>tpm</code></dd><dt><code>device</code></dt><dd>The path of the host TPM device assigned to the guest</dd></dl>
         <h4>
           <a name="typeresourcerng" shape="rect" id="typeresourcerng">RNG</a>
           <a class="headerlink" href="#typeresourcerng" title="Permalink to this headline">¶</a>
@@ -363,7 +363,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>rng</code></dd><dt>old-rng</dt><dd>Original path of the host entropy source for the RNG</dd><dt>new-rng</dt><dd>Updated path of the host entropy source for the RNG</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>rng</code></dd><dt><code>old-rng</code></dt><dd>Original path of the host entropy source for the RNG</dd><dt><code>new-rng</code></dt><dd>Updated path of the host entropy source for the RNG</dd></dl>
         <h4>
           <a name="typeresourcechardev" shape="rect" id="typeresourcechardev">console/serial/parallel/channel</a>
           <a class="headerlink" href="#typeresourcechardev" title="Permalink to this headline">¶</a>
@@ -371,7 +371,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>chardev</code></dd><dt>old-chardev</dt><dd>Original path of the backing character device for given emulated device</dd><dt>new-chardev</dt><dd>Updated path of the backing character device for given emulated device</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>chardev</code></dd><dt><code>old-chardev</code></dt><dd>Original path of the backing character device for given emulated device</dd><dt><code>new-chardev</code></dt><dd>Updated path of the backing character device for given emulated device</dd></dl>
         <h4>
           <a name="typeresourcesmartcard" shape="rect" id="typeresourcesmartcard">smartcard</a>
           <a class="headerlink" href="#typeresourcesmartcard" title="Permalink to this headline">¶</a>
@@ -379,9 +379,9 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>smartcard</code></dd><dt>old-smartcard</dt><dd>Original path of the backing character device, certificate store or
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>smartcard</code></dd><dt><code>old-smartcard</code></dt><dd>Original path of the backing character device, certificate store or
           "nss-smartcard-device" for host smartcard passthrough.
-      </dd><dt>new-smartcard</dt><dd>Updated path of the backing character device, certificate store or
+      </dd><dt><code>new-smartcard</code></dt><dd>Updated path of the backing character device, certificate store or
           "nss-smartcard-device" for host smartcard passthrough.
       </dd></dl>
         <h4>
@@ -391,7 +391,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>redir</code></dd><dt>bus</dt><dd>The bus type, only <code>usb</code> allowed</dd><dt>device</dt><dd>The device type, only <code>USB redir</code> allowed</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>redir</code></dd><dt><code>bus</code></dt><dd>The bus type, only <code>usb</code> allowed</dd><dt><code>device</code></dt><dd>The device type, only <code>USB redir</code> allowed</dd></dl>
         <h4>
           <a name="typeresourcecgroup" shape="rect" id="typeresourcecgroup">Control group</a>
           <a class="headerlink" href="#typeresourcecgroup" title="Permalink to this headline">¶</a>
@@ -399,7 +399,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>cgroup</code></dd><dt>cgroup</dt><dd>The name of the cgroup controller</dd></dl>
+        <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>cgroup</code></dd><dt><code>cgroup</code></dt><dd>The name of the cgroup controller</dd></dl>
       </div>
     </div>
   </body>

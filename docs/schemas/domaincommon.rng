@@ -1165,14 +1165,16 @@
       <optional>
         <element name="vendor">
           <data type="string">
-            <param name="pattern">[x20-x7E]{0,8}</param>
+            <!-- All printable characters -->
+            <param name="pattern">[&#x20;-&#x7E;]{0,8}</param>
           </data>
         </element>
       </optional>
       <optional>
         <element name="product">
           <data type="string">
-            <param name="pattern">[x20-x7E]{0,16}</param>
+            <!-- All printable characters -->
+            <param name="pattern">[&#x20;-&#x7E;]{0,16}</param>
           </data>
         </element>
       </optional>
@@ -1786,6 +1788,10 @@
                     <value>x3130-upstream</value>
                     <!-- implementations of 'pcie-switch-downstream-port' -->
                     <value>xio3130-downstream</value>
+                    <!-- implementations of 'pci-expander-bus' -->
+                    <value>pxb</value>
+                    <!-- implementations of 'pcie-expander-bus' -->
+                    <value>pxb-pcie</value>
                   </choice>
                 </attribute>
                 <empty/>
@@ -1795,20 +1801,29 @@
               <element name="target">
                 <optional>
                   <attribute name='chassisNr'>
-                    <ref name='uint8range'/>
+                    <ref name='uint8'/>
                   </attribute>
                 </optional>
                 <optional>
                   <attribute name="chassis">
-                    <ref name='uint8range'/>
+                    <ref name='uint8'/>
                   </attribute>
                 </optional>
                 <optional>
                   <attribute name="port">
-                    <ref name='uint8range'/>
+                    <ref name='uint8'/>
                   </attribute>
                 </optional>
-                <empty/>
+                <optional>
+                  <attribute name='busNr'>
+                    <ref name='uint8'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <element name='node'>
+                    <ref name='unsignedInt'/>
+                  </element>
+                </optional>
               </element>
             </optional>
             <!-- *-root controllers have an optional element "pcihole64"-->
@@ -1834,6 +1849,8 @@
                     <value>pcie-root-port</value>
                     <value>pcie-switch-upstream-port</value>
                     <value>pcie-switch-downstream-port</value>
+                    <value>pci-expander-bus</value>
+                    <value>pcie-expander-bus</value>
                   </choice>
                 </attribute>
               </group>
@@ -2391,6 +2408,11 @@
           <optional>
             <attribute name="prefix">
               <ref name="ipPrefix"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="peer">
+              <ref name="ipAddr"/>
             </attribute>
           </optional>
           <empty/>
@@ -4671,8 +4693,7 @@
             <value>random</value>
           </attribute>
           <choice>
-            <value>/dev/random</value>
-            <value>/dev/hwrng</value>
+            <ref name='absFilePath'/>
             <empty/>
           </choice>
         </group>

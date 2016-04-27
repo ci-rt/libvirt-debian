@@ -245,6 +245,59 @@ static int adminDispatchConnectOpenHelper(
 
 
 
+static int adminDispatchServerGetThreadpoolParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    admin_server_get_threadpool_parameters_args *args,
+    admin_server_get_threadpool_parameters_ret *ret);
+static int adminDispatchServerGetThreadpoolParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("adminDispatchServerGetThreadpoolParameters");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = adminDispatchServerGetThreadpoolParameters(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* adminDispatchServerGetThreadpoolParameters body has to be implemented manually */
+
+
+
+static int adminDispatchServerSetThreadpoolParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    admin_server_set_threadpool_parameters_args *args);
+static int adminDispatchServerSetThreadpoolParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("adminDispatchServerSetThreadpoolParameters");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = adminDispatchServerSetThreadpoolParameters(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* adminDispatchServerSetThreadpoolParameters body has to be implemented manually */
+
+
+
 virNetServerProgramProc adminProcs[] = {
 { /* Unused 0 */
    NULL,
@@ -297,6 +350,24 @@ virNetServerProgramProc adminProcs[] = {
    (xdrproc_t)xdr_admin_connect_lookup_server_args,
    sizeof(admin_connect_lookup_server_ret),
    (xdrproc_t)xdr_admin_connect_lookup_server_ret,
+   true,
+   0
+},
+{ /* Method ServerGetThreadpoolParameters => 6 */
+   adminDispatchServerGetThreadpoolParametersHelper,
+   sizeof(admin_server_get_threadpool_parameters_args),
+   (xdrproc_t)xdr_admin_server_get_threadpool_parameters_args,
+   sizeof(admin_server_get_threadpool_parameters_ret),
+   (xdrproc_t)xdr_admin_server_get_threadpool_parameters_ret,
+   true,
+   0
+},
+{ /* Method ServerSetThreadpoolParameters => 7 */
+   adminDispatchServerSetThreadpoolParametersHelper,
+   sizeof(admin_server_set_threadpool_parameters_args),
+   (xdrproc_t)xdr_admin_server_set_threadpool_parameters_args,
+   0,
+   (xdrproc_t)xdr_void,
    true,
    0
 },

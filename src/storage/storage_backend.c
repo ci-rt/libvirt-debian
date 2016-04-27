@@ -151,12 +151,6 @@ static virStorageFileBackendPtr fileBackends[] = {
 };
 
 
-enum {
-    TOOL_QEMU_IMG,
-    TOOL_KVM_IMG,
-    TOOL_QCOW_CREATE,
-};
-
 #define READ_BLOCK_SIZE_DEFAULT  (1024 * 1024)
 #define WRITE_BLOCK_SIZE_DEFAULT (4 * 1024)
 
@@ -626,8 +620,8 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
         VIR_ALLOC(def) < 0)
         goto cleanup;
 
-    def->ephemeral = false;
-    def->private = false;
+    def->isephemeral = false;
+    def->isprivate = false;
     if (virStorageGenerateSecretUUID(conn, def->uuid) < 0)
         goto cleanup;
 
@@ -770,6 +764,108 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
     if (ret < 0 && filecreated)
         virFileRemove(vol->target.path, vol->target.perms->uid,
                       vol->target.perms->gid);
+    return ret;
+}
+
+/* Create ploop directory with ploop image and DiskDescriptor.xml
+ * if function fails to create image file the directory will be deleted.*/
+int
+virStorageBackendCreatePloop(virConnectPtr conn ATTRIBUTE_UNUSED,
+                             virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+                             virStorageVolDefPtr vol,
+                             virStorageVolDefPtr inputvol,
+                             unsigned int flags)
+{
+    int ret = -1;
+    virCommandPtr cmd = NULL;
+    char *create_tool = NULL;
+    bool created = false;
+
+    virCheckFlags(0, -1);
+
+    if (inputvol && inputvol->target.format != VIR_STORAGE_FILE_PLOOP) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unsupported input storage vol type %d"),
+                       inputvol->target.format);
+        return -1;
+    }
+
+    if (vol->target.encryption != NULL) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("encrypted ploop volumes are not supported with "
+                         "ploop init"));
+        return -1;
+    }
+
+    if (vol->target.backingStore != NULL) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("copy-on-write ploop volumes are not yet supported"));
+        return -1;
+    }
+
+    create_tool = virFindFileInPath("ploop");
+    if (!create_tool && !inputvol) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("unable to find ploop, please install "
+                               "ploop tools"));
+        return -1;
+    }
+
+    if (!inputvol) {
+        if ((virDirCreate(vol->target.path,
+                          (vol->target.perms->mode == (mode_t) -1 ?
+                           VIR_STORAGE_DEFAULT_VOL_PERM_MODE:
+                           vol->target.perms->mode),
+                          vol->target.perms->uid,
+                          vol->target.perms->gid,
+                          0)) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("error creating directory for ploop volume"));
+            goto cleanup;
+        }
+        cmd = virCommandNewArgList(create_tool, "init", "-s", NULL);
+        virCommandAddArgFormat(cmd, "%lluM", VIR_DIV_UP(vol->target.capacity,
+                                                        (1024 * 1024)));
+        virCommandAddArgList(cmd, "-t", "ext4", NULL);
+        virCommandAddArgFormat(cmd, "%s/root.hds", vol->target.path);
+
+    } else {
+        vol->target.capacity = inputvol->target.capacity;
+        cmd = virCommandNewArgList("cp", "-r", inputvol->target.path,
+                                   vol->target.path, NULL);
+    }
+    created = true;
+    ret = virCommandRun(cmd, NULL);
+ cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(create_tool);
+    if (ret < 0 && created)
+        virFileDeleteTree(vol->target.path);
+    return ret;
+}
+
+int
+virStoragePloopResize(virStorageVolDefPtr vol,
+                      unsigned long long capacity)
+{
+    int ret = -1;
+    virCommandPtr cmd = NULL;
+    char *resize_tool = NULL;
+
+    resize_tool = virFindFileInPath("ploop");
+    if (!resize_tool) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("unable to find ploop, please install ploop tools"));
+        return -1;
+    }
+    cmd = virCommandNewArgList(resize_tool, "resize", "-s", NULL);
+    virCommandAddArgFormat(cmd, "%lluM", VIR_DIV_UP(capacity, (1024 * 1024)));
+
+    virCommandAddArgFormat(cmd, "%s/DiskDescriptor.xml", vol->target.path);
+
+    ret = virCommandRun(cmd, NULL);
+    virCommandFree(cmd);
+    VIR_FREE(resize_tool);
     return ret;
 }
 
@@ -1119,7 +1215,7 @@ virStorageBackendCreateQemuImgCmdFromVol(virConnectPtr conn,
     return cmd;
 }
 
-static int
+int
 virStorageBackendCreateQemuImg(virConnectPtr conn,
                                virStoragePoolObjPtr pool,
                                virStorageVolDefPtr vol,
@@ -1133,14 +1229,11 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
 
     virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
 
-    /* KVM is usually ahead of qemu on features, so try that first */
-    create_tool = virFindFileInPath("kvm-img");
-    if (!create_tool)
-        create_tool = virFindFileInPath("qemu-img");
-
+    create_tool = virFindFileInPath("qemu-img");
     if (!create_tool) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("unable to find kvm-img or qemu-img"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("creation of non-raw file images is "
+                         "not supported without qemu-img."));
         return -1;
     }
 
@@ -1161,115 +1254,10 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     return ret;
 }
 
-/*
- * Xen removed the fully-functional qemu-img, and replaced it
- * with a partially functional qcow-create. Go figure ??!?
- */
-static int
-virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                  virStoragePoolObjPtr pool,
-                                  virStorageVolDefPtr vol,
-                                  virStorageVolDefPtr inputvol,
-                                  unsigned int flags)
-{
-    int ret;
-    char *size;
-    virCommandPtr cmd;
-
-    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
-
-    if (flags & VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("metadata preallocation is not supported with "
-                         "qcow-create"));
-        return -1;
-    }
-
-    if (inputvol) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("cannot copy from volume with qcow-create"));
-        return -1;
-    }
-
-    if (vol->target.format != VIR_STORAGE_FILE_QCOW2) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unsupported storage vol type %d"),
-                       vol->target.format);
-        return -1;
-    }
-    if (vol->target.backingStore != NULL) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("copy-on-write image not supported with "
-                         "qcow-create"));
-        return -1;
-    }
-    if (vol->target.encryption != NULL) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       "%s", _("encrypted volumes not supported with "
-                               "qcow-create"));
-        return -1;
-    }
-
-    /* Size in MB - yes different units to qemu-img :-( */
-    if (virAsprintf(&size, "%llu",
-                    VIR_DIV_UP(vol->target.capacity, (1024 * 1024))) < 0)
-        return -1;
-
-    cmd = virCommandNewArgList("qcow-create", size, vol->target.path, NULL);
-
-    ret = virStorageBackendCreateExecCommand(pool, vol, cmd);
-    virCommandFree(cmd);
-    VIR_FREE(size);
-
-    return ret;
-}
-
-virStorageBackendBuildVolFrom
-virStorageBackendFSImageToolTypeToFunc(int tool_type)
-{
-    switch (tool_type) {
-    case TOOL_KVM_IMG:
-    case TOOL_QEMU_IMG:
-        return virStorageBackendCreateQemuImg;
-    case TOOL_QCOW_CREATE:
-        return virStorageBackendCreateQcowCreate;
-    default:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unknown file create tool type '%d'."),
-                       tool_type);
-    }
-
-    return NULL;
-}
-
-int
-virStorageBackendFindFSImageTool(char **tool)
-{
-    int tool_type = -1;
-    char *tmp = NULL;
-
-    if ((tmp = virFindFileInPath("kvm-img")) != NULL) {
-        tool_type = TOOL_KVM_IMG;
-    } else if ((tmp = virFindFileInPath("qemu-img")) != NULL) {
-        tool_type = TOOL_QEMU_IMG;
-    } else if ((tmp = virFindFileInPath("qcow-create")) != NULL) {
-        tool_type = TOOL_QCOW_CREATE;
-    }
-
-    if (tool)
-        *tool = tmp;
-    else
-        VIR_FREE(tmp);
-
-    return tool_type;
-}
-
 virStorageBackendBuildVolFrom
 virStorageBackendGetBuildVolFromFunction(virStorageVolDefPtr vol,
                                          virStorageVolDefPtr inputvol)
 {
-    int tool_type;
-
     if (!inputvol)
         return NULL;
 
@@ -1280,17 +1268,11 @@ virStorageBackendGetBuildVolFromFunction(virStorageVolDefPtr vol,
          vol->target.format != VIR_STORAGE_FILE_RAW) ||
         (inputvol->type == VIR_STORAGE_VOL_FILE &&
          inputvol->target.format != VIR_STORAGE_FILE_RAW)) {
-
-        if ((tool_type = virStorageBackendFindFSImageTool(NULL)) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("creation of non-raw file images is "
-                             "not supported without qemu-img."));
-            return NULL;
-        }
-
-        return virStorageBackendFSImageToolTypeToFunc(tool_type);
+        return virStorageBackendCreateQemuImg;
     }
 
+    if (vol->type == VIR_STORAGE_VOL_PLOOP)
+        return virStorageBackendCreatePloop;
     if (vol->type == VIR_STORAGE_VOL_BLOCK)
         return virStorageBackendCreateBlockFrom;
     else
@@ -1599,6 +1581,56 @@ virStorageBackendVolOpen(const char *path, struct stat *sb,
     return fd;
 }
 
+/* virStorageIsPloop function checks whether given directory is ploop volume's
+ * directory.
+ */
+bool
+virStorageBackendIsPloopDir(char *path)
+{
+    bool ret = false;
+    char *root = NULL;
+    char *desc = NULL;
+    if (virAsprintf(&root, "%s/root.hds", path) < 0)
+        return ret;
+    if (!virFileExists(root))
+        goto cleanup;
+    if (virAsprintf(&desc, "%s/DiskDescriptor.xml", path) < 0)
+        goto cleanup;
+    if (!virFileExists(desc))
+        goto cleanup;
+
+    ret = true;
+ cleanup:
+    VIR_FREE(root);
+    VIR_FREE(desc);
+    return ret;
+}
+
+/* In case of ploop volumes, path to volume is the path to the ploop
+ * directory. To get information about allocation, header information
+ * and etc. we need to perform virStorageBackendVolOpen and
+ * virStorageBackendUpdateVolTargetFd once again.
+ */
+int
+virStorageBackendRedoPloopUpdate(virStorageSourcePtr target, struct stat *sb,
+                                 int *fd, unsigned int flags)
+{
+    char *path = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&path, "%s/root.hds", target->path) < 0)
+        return -1;
+    VIR_FORCE_CLOSE(*fd);
+    if ((*fd = virStorageBackendVolOpen(path, sb, flags)) < 0)
+        goto cleanup;
+    ret = virStorageBackendUpdateVolTargetInfoFD(target, *fd, sb);
+
+ cleanup:
+
+    VIR_FREE(path);
+    return ret;
+}
+
 /*
  * virStorageBackendUpdateVolTargetInfo
  * @target: target definition ptr of volume to update
@@ -1634,8 +1666,15 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
     if (target->type == VIR_STORAGE_VOL_FILE &&
         target->format != VIR_STORAGE_FILE_NONE) {
         if (S_ISDIR(sb.st_mode)) {
-            ret = 0;
-            goto cleanup;
+            if (virStorageBackendIsPloopDir(target->path)) {
+                if ((ret = virStorageBackendRedoPloopUpdate(target, &sb, &fd,
+                                                            openflags)) < 0)
+                    goto cleanup;
+                target->format = VIR_STORAGE_FILE_PLOOP;
+            } else {
+                ret = 0;
+                goto cleanup;
+            }
         }
 
         if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
@@ -1911,6 +1950,47 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
     return stablepath;
 }
 
+/*
+ *  Check whether the ploop image has snapshots.
+ *  return: -1 - failed to check
+ *           0 - no snapshots
+ *           1 - at least one snapshot
+ */
+static int
+virStorageBackendPloopHasSnapshots(char *path)
+{
+    virCommandPtr cmd = NULL;
+    char *output = NULL;
+    char *snap_tool = NULL;
+    int ret = -1;
+
+    snap_tool = virFindFileInPath("ploop");
+    if (!snap_tool) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("unable to find ploop, please install "
+                               "ploop tools"));
+        return ret;
+    }
+
+    cmd = virCommandNewArgList(snap_tool, "snapshot-list", NULL);
+    virCommandAddArgFormat(cmd, "%s/DiskDescriptor.xml", path);
+    virCommandSetOutputBuffer(cmd, &output);
+
+    if ((ret = virCommandRun(cmd, NULL)) < 0)
+        goto cleanup;
+
+    if (!strstr(output, "root.hds.")) {
+        ret = 1;
+        goto cleanup;
+    }
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(output);
+    virCommandFree(cmd);
+    return ret;
+}
+
 int
 virStorageBackendVolUploadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
                                 virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
@@ -1920,12 +2000,41 @@ virStorageBackendVolUploadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
                                 unsigned long long len,
                                 unsigned int flags)
 {
+    char *path = NULL;
+    char *target_path = vol->target.path;
+    int ret = -1;
+    int has_snap = 0;
+
     virCheckFlags(0, -1);
+    /* if volume has target format VIR_STORAGE_FILE_PLOOP
+     * we need to restore DiskDescriptor.xml, according to
+     * new contents of volume. This operation will be perfomed
+     * when volUpload is fully finished. */
+    if (vol->target.format == VIR_STORAGE_FILE_PLOOP) {
+        /* Fail if the volume contains snapshots or we failed to check it.*/
+        has_snap = virStorageBackendPloopHasSnapshots(vol->target.path);
+        if (has_snap < 0) {
+            goto cleanup;
+        } else if (!has_snap) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("can't upload volume, all existing snapshots"
+                             " will be lost"));
+            goto cleanup;
+        }
+
+        if (virAsprintf(&path, "%s/root.hds", vol->target.path) < 0)
+            return -1;
+        target_path = path;
+    }
 
     /* Not using O_CREAT because the file is required to already exist at
      * this point */
-    return virFDStreamOpenBlockDevice(stream, vol->target.path,
-                                      offset, len, O_WRONLY);
+    ret = virFDStreamOpenBlockDevice(stream, target_path,
+                                     offset, len, O_WRONLY);
+
+ cleanup:
+    VIR_FREE(path);
+    return ret;
 }
 
 int
@@ -1937,10 +2046,33 @@ virStorageBackendVolDownloadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   unsigned long long len,
                                   unsigned int flags)
 {
-    virCheckFlags(0, -1);
+    char *path = NULL;
+    char *target_path = vol->target.path;
+    int ret = -1;
+    int has_snap = 0;
 
-    return virFDStreamOpenBlockDevice(stream, vol->target.path,
-                                      offset, len, O_RDONLY);
+    virCheckFlags(0, -1);
+    if (vol->target.format == VIR_STORAGE_FILE_PLOOP) {
+        has_snap = virStorageBackendPloopHasSnapshots(vol->target.path);
+        if (has_snap < 0) {
+            goto cleanup;
+        } else if (!has_snap) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("can't download volume, all existing snapshots"
+                             " will be lost"));
+            goto cleanup;
+        }
+        if (virAsprintf(&path, "%s/root.hds", vol->target.path) < 0)
+            goto cleanup;
+        target_path = path;
+    }
+
+    ret = virFDStreamOpenBlockDevice(stream, target_path,
+                                     offset, len, O_RDONLY);
+
+ cleanup:
+    VIR_FREE(path);
+    return ret;
 }
 
 
@@ -2058,6 +2190,12 @@ virStorageBackendVolWipeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     VIR_DEBUG("Wiping volume with path '%s' and algorithm %u",
               vol->target.path, algorithm);
+
+    if (vol->target.format == VIR_STORAGE_FILE_PLOOP) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("wiping for ploop volumes is not supported"));
+        goto cleanup;
+    }
 
     fd = open(vol->target.path, O_RDWR);
     if (fd == -1) {

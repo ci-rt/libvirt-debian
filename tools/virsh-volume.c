@@ -546,7 +546,7 @@ static const vshCmdInfo info_vol_clone[] = {
      .data = N_("clone a volume.")
     },
     {.name = "desc",
-     .data = N_("Clone an existing volume.")
+     .data = N_("Clone an existing volume within the parent pool.")
     },
     {.name = NULL}
 };
@@ -965,7 +965,8 @@ VIR_ENUM_IMPL(virshStorageVol,
               N_("block"),
               N_("dir"),
               N_("network"),
-              N_("netdir"))
+              N_("netdir"),
+              N_("ploop"))
 
 static const char *
 virshVolumeTypeToString(int type)

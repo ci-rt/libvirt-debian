@@ -90,6 +90,7 @@ int virNetDevGetOnline(const char *ifname,
 
 int virNetDevSetIPAddress(const char *ifname,
                           virSocketAddr *addr,
+                          virSocketAddr *peer,
                           unsigned int prefix)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 int virNetDevAddRoute(const char *ifname,
@@ -229,4 +230,6 @@ int virNetDevSysfsFile(char **pf_sysfs_device_link,
                        const char *file)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_RETURN_CHECK;
+
+int virNetDevRunEthernetScript(const char *ifname, const char *script);
 #endif /* __VIR_NETDEV_H__ */

@@ -177,6 +177,11 @@
                   </li><li>
                     <a href="#elementsHostDev">Host device assignment</a>
                   </li></ul>
+              </li><li>
+                <a href="#elementsFeatures">Features</a>
+                <ul><li>
+                    <a href="#elementsGIC">GIC capabilities</a>
+                  </li></ul>
               </li></ul>
           </li></ul>
         <h2>
@@ -230,9 +235,9 @@
   ...
 &lt;/domainCapabilities&gt;
 </pre>
-        <dl><dt>path</dt><dd>The full path to the emulator binary.</dd><dt>domain</dt><dd>Describes the <a href="formatdomain.html#elements" shape="rect">virtualization
-          type</a> (or so called domain type).</dd><dt>machine</dt><dd>The domain's <a href="formatdomain.html#elementsOSBIOS" shape="rect">machine
-          type</a>.</dd><dt>arch</dt><dd>The domain's <a href="formatdomain.html#elementsOSBIOS" shape="rect">
+        <dl><dt><code>path</code></dt><dd>The full path to the emulator binary.</dd><dt><code>domain</code></dt><dd>Describes the <a href="formatdomain.html#elements" shape="rect">virtualization
+          type</a> (or so called domain type).</dd><dt><code>machine</code></dt><dd>The domain's <a href="formatdomain.html#elementsOSBIOS" shape="rect">machine
+          type</a>.</dd><dt><code>arch</code></dt><dd>The domain's <a href="formatdomain.html#elementsOSBIOS" shape="rect">
           architecture</a>.</dd></dl>
         <h3>
           <a name="elementsCPUAllocation" shape="rect" id="elementsCPUAllocation">CPU Allocation</a>
@@ -247,7 +252,7 @@
   ...
 &lt;/domainCapabilities&gt;
 </pre>
-        <dl><dt>vcpu</dt><dd>The maximum number of supported virtual CPUs</dd></dl>
+        <dl><dt><code>vcpu</code></dt><dd>The maximum number of supported virtual CPUs</dd></dl>
         <h3>
           <a name="elementsOSBIOS" shape="rect" id="elementsOSBIOS">BIOS bootloader</a>
           <a class="headerlink" href="#elementsOSBIOS" title="Permalink to this headline">¶</a>
@@ -275,19 +280,19 @@
 &lt;domainCapabilities&gt;
 </pre>
         <p>For the <code>loader</code> element, the following can occur:</p>
-        <dl><dt>value</dt><dd>List of known loader paths. Currently this is only used
+        <dl><dt><code>value</code></dt><dd>List of known loader paths. Currently this is only used
       to advertise known locations of OVMF binaries for qemu. Binaries
-      will only be listed if they actually exist on disk.</dd><dt>type</dt><dd>Whether loader is a typical BIOS (<code>rom</code>) or
+      will only be listed if they actually exist on disk.</dd><dt><code>type</code></dt><dd>Whether loader is a typical BIOS (<code>rom</code>) or
       an UEFI binary (<code>pflash</code>). This refers to
       <code>type</code> attribute of the &lt;loader/&gt;
-      element.</dd><dt>readonly</dt><dd>Options for the <code>readonly</code> attribute of the
+      element.</dd><dt><code>readonly</code></dt><dd>Options for the <code>readonly</code> attribute of the
       &lt;loader/&gt; element.</dd></dl>
         <h3>
           <a name="elementsDevices" shape="rect" id="elementsDevices">Devices</a>
           <a class="headerlink" href="#elementsDevices" title="Permalink to this headline">¶</a>
         </h3>
         <p>
-      The final set of XML elements describe the supported devices and their
+      Another set of XML elements describe the supported devices and their
       capabilities. All devices occur as children of the main
       <code>devices</code> element.
     </p>
@@ -346,8 +351,8 @@
   &lt;/devices&gt;
 &lt;/domainCapabilities&gt;
 </pre>
-        <dl><dt>diskDevice</dt><dd>Options for the <code>device</code> attribute of the &lt;disk/&gt;
-      element.</dd><dt>bus</dt><dd>Options for the <code>bus</code> attribute of the &lt;target/&gt;
+        <dl><dt><code>diskDevice</code></dt><dd>Options for the <code>device</code> attribute of the &lt;disk/&gt;
+      element.</dd><dt><code>bus</code></dt><dd>Options for the <code>bus</code> attribute of the &lt;target/&gt;
       element for a &lt;disk/&gt;.</dd></dl>
         <h4>
           <a name="elementsHostDev" shape="rect" id="elementsHostDev">Host device assignment</a>
@@ -390,12 +395,47 @@
   &lt;/devices&gt;
 &lt;/domainCapabilities&gt;
 </pre>
-        <dl><dt>mode</dt><dd>Options for the <code>mode</code> attribute of the &lt;hostdev/&gt;
-      element.</dd><dt>startupPolicy</dt><dd>Options for the <code>startupPolicy</code> attribute of the
-      &lt;hostdev/&gt; element.</dd><dt>subsysType</dt><dd>Options for the <code>type</code> attribute of the &lt;hostdev/&gt;
-      element in case of <code>mode="subsystem"</code>.</dd><dt>capsType</dt><dd>Options for the <code>type</code> attribute of the &lt;hostdev/&gt;
-      element in case of <code>mode="capabilities"</code>.</dd><dt>pciBackend</dt><dd>Options for the <code>name</code> attribute of the &lt;driver/&gt;
+        <dl><dt><code>mode</code></dt><dd>Options for the <code>mode</code> attribute of the &lt;hostdev/&gt;
+      element.</dd><dt><code>startupPolicy</code></dt><dd>Options for the <code>startupPolicy</code> attribute of the
+      &lt;hostdev/&gt; element.</dd><dt><code>subsysType</code></dt><dd>Options for the <code>type</code> attribute of the &lt;hostdev/&gt;
+      element in case of <code>mode="subsystem"</code>.</dd><dt><code>capsType</code></dt><dd>Options for the <code>type</code> attribute of the &lt;hostdev/&gt;
+      element in case of <code>mode="capabilities"</code>.</dd><dt><code>pciBackend</code></dt><dd>Options for the <code>name</code> attribute of the &lt;driver/&gt;
       element.</dd></dl>
+        <h3>
+          <a name="elementsFeatures" shape="rect" id="elementsFeatures">Features</a>
+          <a class="headerlink" href="#elementsFeatures" title="Permalink to this headline">¶</a>
+        </h3>
+        <p>One more set of XML elements describe the supported features and
+    their capabilities. All features occur as children of the main
+    <code>features</code> element.</p>
+        <pre xml:space="preserve">
+&lt;domainCapabilities&gt;
+  ...
+  &lt;features&gt;
+    &lt;gic supported='yes'&gt;
+      &lt;enum name='version'&gt;
+        &lt;value&gt;2&lt;/value&gt;
+        &lt;value&gt;3&lt;/value&gt;
+      &lt;/enum&gt;
+    &lt;/gic&gt;
+  &lt;/features&gt;
+&lt;/domainCapabilities&gt;
+</pre>
+        <p>Reported capabilities are expressed as an enumerated list of
+    possible values for each of the elements or attributes. For example, the
+    <code>gic</code> element has an attribute <code>version</code> which can
+    support the values <code>2</code> or <code>3</code>.</p>
+        <p>For information about the purpose of each feature, see the
+    <a href="formatdomain.html#elementsFeatures" shape="rect">relevant section</a> in
+    the domain XML documentation.
+    </p>
+        <h4>
+          <a name="elementsGIC" shape="rect" id="elementsGIC">GIC capabilities</a>
+          <a class="headerlink" href="#elementsGIC" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>GIC capabilities are exposed under the <code>gic</code> element.</p>
+        <dl><dt><code>version</code></dt><dd>Options for the <code>version</code> attribute of the
+      <code>gic</code> element.</dd></dl>
       </div>
     </div>
   </body>

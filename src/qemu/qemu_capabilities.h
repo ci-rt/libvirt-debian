@@ -81,7 +81,7 @@ typedef enum {
     QEMU_CAPS_MONITOR_JSON, /* JSON mode for monitor */
 
     /* 25 */
-    QEMU_CAPS_BALLOON, /* -balloon available */
+    X_QEMU_CAPS_BALLOON, /* -balloon available */
     QEMU_CAPS_DEVICE, /* Is the new -device arg available */
     QEMU_CAPS_SDL, /* Is the new -sdl arg available */
     QEMU_CAPS_SMP_TOPOLOGY, /* -smp has sockets/cores/threads */
@@ -351,6 +351,11 @@ typedef enum {
     QEMU_CAPS_QXL_VGA_VRAM64, /* -device qxl-vga.vram64_size_mb */
     QEMU_CAPS_CHARDEV_LOGFILE, /* -chardev logfile=xxxx */
     QEMU_CAPS_NAME_DEBUG_THREADS, /* Is -name debug-threads= available */
+    QEMU_CAPS_OBJECT_SECRET, /* -object secret */
+    QEMU_CAPS_DEVICE_PXB, /* -device pxb */
+
+    /* 220 */
+    QEMU_CAPS_DEVICE_PXB_PCIE, /* -device pxb-pcie */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;

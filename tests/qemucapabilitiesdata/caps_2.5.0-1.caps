@@ -4,7 +4,6 @@
     <flag name='chardev'/>
     <flag name='enable-kvm'/>
     <flag name='monitor-json'/>
-    <flag name='balloon'/>
     <flag name='device'/>
     <flag name='sdl'/>
     <flag name='smp-topology'/>
@@ -175,4 +174,5 @@
     <flag name='qxl.vram64_size_mb'/>
     <flag name='qxl-vga.vram64_size_mb'/>
     <flag name='debug-threads'/>
+    <flag name='pxb'/>
   </qemuCaps>
