@@ -29,14 +29,10 @@
 # include "domain_conf.h"
 
 int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
-                                   virConnectPtr conn,
                                    virDomainObjPtr vm,
                                    virDomainDiskDefPtr disk,
                                    virStorageSourcePtr newsrc,
                                    bool force);
-int qemuDomainCheckEjectableMedia(virQEMUDriverPtr driver,
-                                  virDomainObjPtr vm,
-                                  qemuDomainAsyncJob asyncJob);
 int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainControllerDefPtr controller);
@@ -44,8 +40,7 @@ int qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
                                    virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainDeviceDefPtr dev);
-int qemuDomainAttachNetDevice(virConnectPtr conn,
-                              virQEMUDriverPtr driver,
+int qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainNetDefPtr net);
 int qemuDomainAttachRedirdevDevice(virQEMUDriverPtr driver,

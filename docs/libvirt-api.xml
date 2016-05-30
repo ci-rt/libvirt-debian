@@ -249,6 +249,8 @@
      <exports symbol='VIR_MIGRATE_PARAM_PERSIST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CMT' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_MBML' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_MBMT' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
      <exports symbol='VIR_USE_CPU' type='macro'/>
      <exports symbol='_virBlkioParameter' type='macro'/>
@@ -1627,6 +1629,7 @@
      <exports symbol='VIR_ERR_MULTIPLE_INTERFACES' type='enum'/>
      <exports symbol='VIR_ERR_NETWORK_EXIST' type='enum'/>
      <exports symbol='VIR_ERR_NONE' type='enum'/>
+     <exports symbol='VIR_ERR_NO_CLIENT' type='enum'/>
      <exports symbol='VIR_ERR_NO_CONNECT' type='enum'/>
      <exports symbol='VIR_ERR_NO_DEVICE' type='enum'/>
      <exports symbol='VIR_ERR_NO_DOMAIN' type='enum'/>
@@ -2277,7 +2280,13 @@
       <info><![CDATA[Macro for the total memory of specified cell: it represents the maximum memory.]]></info>
     </macro>
     <macro name='VIR_PERF_PARAM_CMT' file='libvirt-domain' string='cmt'>
-      <info><![CDATA[Macro for typed parameter name that represents CMT perf event.]]></info>
+      <info><![CDATA[Macro for typed parameter name that represents CMT perf event which can be used to measure the usage of cache (bytes) by applications running on the platform. It corresponds to the "perf.cmt" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_MBML' file='libvirt-domain' string='mbml'>
+      <info><![CDATA[Macro for typed parameter name that represents MBML perf event which can be used to monitor the amount of data (bytes/s) sent through the memory controller on the socket. It corresponds to the "perf.mbml" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_MBMT' file='libvirt-domain' string='mbmt'>
+      <info><![CDATA[Macro for typed parameter name that represents MBMT perf event which can be used to monitor total system bandwidth (bytes/s) from one level of cache to another. It corresponds to the "perf.mbmt" field in the *Stats APIs.]]></info>
     </macro>
     <macro name='VIR_SECURITY_DOI_BUFLEN' file='libvirt-host'>
       <info><![CDATA[Macro providing the maximum length of the virSecurityModel doi string.]]></info>
@@ -2980,6 +2989,7 @@ VM persist on the dest host failed'/>
 found'/>
     <enum name='VIR_ERR_NETWORK_EXIST' file='virterror' value='37' type='virErrorNumber' info='the network already exist'/>
     <enum name='VIR_ERR_NONE' file='virterror' value='0' type='virErrorLevel'/>
+    <enum name='VIR_ERR_NO_CLIENT' file='virterror' value='96' type='virErrorNumber' info='Client was not found'/>
     <enum name='VIR_ERR_NO_CONNECT' file='virterror' value='5' type='virErrorNumber' info='can&apos;t connect to hypervisor'/>
     <enum name='VIR_ERR_NO_DEVICE' file='virterror' value='23' type='virErrorNumber' info='missing domain devices information'/>
     <enum name='VIR_ERR_NO_DOMAIN' file='virterror' value='42' type='virErrorNumber' info='domain not found or unexpectedly
@@ -4379,6 +4389,18 @@ The typed parameter keys are in this format:
                          image as unsigned long long.
 "block.<num>.physical" - physical size in bytes of the container of the
                          backing image as unsigned long long.
+
+VIR_DOMAIN_STATS_PERF: Return perf event statistics.
+The typed parameter keys are in this format:
+"perf.cmt" - the usage of l3 cache (bytes) by applications running on the
+             platform as unsigned long long. It is produced by cmt perf
+             event.
+"perf.mbmt" - the total system bandwidth (bytes/s) from one level of cache
+              to another as unsigned long long. It is produced by mbmt perf
+              event.
+"perf.mbml" - the amount of data (bytes/s) sent through the memory controller
+              on the socket as unsigned long long. It is produced by mbml
+              perf event.
 
 Note that entire stats groups or individual stat fields may be missing from
 the output in case they are not supported by the given hypervisor, are not

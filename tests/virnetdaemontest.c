@@ -49,7 +49,7 @@ testCreateServer(const char *server_name, const char *host, int family)
         goto cleanup;
     }
 
-    if (!(srv = virNetServerNew(server_name,
+    if (!(srv = virNetServerNew(server_name, 1,
                                 10, 50, 5, 100, 10,
                                 120, 5,
                                 mdns_group,
@@ -93,7 +93,8 @@ testCreateServer(const char *server_name, const char *host, int family)
     if (virNetSocketNewConnectSockFD(fdclient[1], &sk2) < 0)
         goto error;
 
-    if (!(cln1 = virNetServerClientNew(sk1,
+    if (!(cln1 = virNetServerClientNew(virNetServerNextClientID(srv),
+                                       sk1,
                                        VIR_NET_SERVER_SERVICE_AUTH_SASL,
                                        true,
                                        15,
@@ -103,7 +104,8 @@ testCreateServer(const char *server_name, const char *host, int family)
                                        NULL, NULL, NULL, NULL)))
         goto error;
 
-    if (!(cln2 = virNetServerClientNew(sk2,
+    if (!(cln2 = virNetServerClientNew(virNetServerNextClientID(srv),
+                                       sk2,
                                        VIR_NET_SERVER_SERVICE_AUTH_POLKIT,
                                        true,
                                        66,
@@ -336,15 +338,18 @@ mymain(void)
     EXEC_RESTART_TEST("admin-nomdns", 2);
     EXEC_RESTART_TEST("admin-server-names", 2);
     EXEC_RESTART_TEST("no-keepalive-required", 2);
+    EXEC_RESTART_TEST("client-ids", 1);
+    EXEC_RESTART_TEST("client-timestamp", 1);
     EXEC_RESTART_TEST_FAIL("anon-clients", 2);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virnetdaemonmock.so")
 #else
 static int
 mymain(void)
 {
     return EXIT_AM_SKIP;
 }
-#endif
 VIRT_TEST_MAIN(mymain);
+#endif

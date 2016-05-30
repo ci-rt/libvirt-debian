@@ -48,8 +48,7 @@ char *qemuBuildObjectCommandlineFromJSON(const char *type,
                                          const char *alias,
                                          virJSONValuePtr props);
 
-virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
-                                   virQEMUDriverPtr driver,
+virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    virLogManagerPtr logManager,
                                    virDomainDefPtr def,
                                    virDomainChrSourceDefPtr monitor_chr,
@@ -65,7 +64,7 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    int **nicindexes,
                                    const char *domainLibDir,
                                    const char *domainChannelTargetDir)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(16) ATTRIBUTE_NONNULL(17);
+    ATTRIBUTE_NONNULL(15) ATTRIBUTE_NONNULL(16);
 
 /* Generate '-device' string for chardev device */
 int
@@ -97,12 +96,10 @@ char *qemuBuildNicDevStr(virDomainDefPtr def,
                          size_t vhostfdSize,
                          virQEMUCapsPtr qemuCaps);
 
-char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
-                               virQEMUCapsPtr qemuCaps);
+char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk);
 
 /* Both legacy & current support */
-char *qemuBuildDriveStr(virConnectPtr conn,
-                        virDomainDiskDefPtr disk,
+char *qemuBuildDriveStr(virDomainDiskDefPtr disk,
                         bool bootable,
                         virQEMUCapsPtr qemuCaps);
 
@@ -164,9 +161,7 @@ char *qemuBuildUSBHostdevDevStr(const virDomainDef *def,
                                 virDomainHostdevDefPtr dev,
                                 virQEMUCapsPtr qemuCaps);
 
-char *qemuBuildSCSIHostdevDrvStr(virConnectPtr conn,
-                                 virDomainHostdevDefPtr dev,
-                                 virQEMUCapsPtr qemuCaps);
+char *qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev);
 
 char *qemuBuildSCSIHostdevDevStr(const virDomainDef *def,
                                  virDomainHostdevDefPtr dev,
@@ -179,7 +174,7 @@ char *qemuBuildRedirdevDevStr(const virDomainDef *def,
 int qemuNetworkPrepareDevices(virDomainDefPtr def);
 
 int qemuGetDriveSourceString(virStorageSourcePtr src,
-                             virConnectPtr conn,
+                             qemuDomainSecretInfoPtr secinfo,
                              char **source);
 
 int qemuCheckDiskConfig(virDomainDiskDefPtr disk);

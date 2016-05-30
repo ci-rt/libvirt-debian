@@ -56,12 +56,13 @@ fillStringValues(virDomainCapsStringValuesPtr values, ...)
 }
 
 static int
-fillAll(virDomainCapsPtr domCaps,
-        void *opaque ATTRIBUTE_UNUSED)
+fillAllCaps(virDomainCapsPtr domCaps)
 {
     virDomainCapsOSPtr os = &domCaps->os;
     virDomainCapsLoaderPtr loader = &os->loader;
     virDomainCapsDeviceDiskPtr disk = &domCaps->disk;
+    virDomainCapsDeviceGraphicsPtr graphics = &domCaps->graphics;
+    virDomainCapsDeviceVideoPtr video = &domCaps->video;
     virDomainCapsDeviceHostdevPtr hostdev = &domCaps->hostdev;
     domCaps->maxvcpus = 255;
 
@@ -80,6 +81,12 @@ fillAll(virDomainCapsPtr domCaps,
     SET_ALL_BITS(disk->diskDevice);
     SET_ALL_BITS(disk->bus);
 
+    graphics->supported = true;
+    SET_ALL_BITS(graphics->type);
+
+    video->supported = true;
+    SET_ALL_BITS(video->modelType);
+
     hostdev->supported = true;
     SET_ALL_BITS(hostdev->mode);
     SET_ALL_BITS(hostdev->startupPolicy);
@@ -90,26 +97,39 @@ fillAll(virDomainCapsPtr domCaps,
 }
 
 
-#ifdef WITH_QEMU
+#if WITH_QEMU
 # include "testutilsqemu.h"
-
-struct fillQemuCapsData {
-    virQEMUCapsPtr qemuCaps;
-    virQEMUDriverConfigPtr cfg;
-};
 
 static int
 fillQemuCaps(virDomainCapsPtr domCaps,
-             void *opaque)
+             const char *name,
+             const char *arch,
+             const char *machine,
+             virQEMUDriverConfigPtr cfg)
 {
-    struct fillQemuCapsData *data = (struct fillQemuCapsData *) opaque;
-    virQEMUCapsPtr qemuCaps = data->qemuCaps;
-    virQEMUDriverConfigPtr cfg = data->cfg;
+    int ret = -1;
+    char *path = NULL;
+    virQEMUCapsPtr qemuCaps = NULL;
     virDomainCapsLoaderPtr loader = &domCaps->os.loader;
+
+    if (virAsprintf(&path, "%s/qemucapabilitiesdata/%s.%s.xml",
+                    abs_srcdir, name, arch) < 0 ||
+        !(qemuCaps = qemuTestParseCapabilities(path)))
+        goto cleanup;
+
+    if (machine &&
+        VIR_STRDUP(domCaps->machine,
+                   virQEMUCapsGetCanonicalMachine(qemuCaps, machine)) < 0)
+        goto cleanup;
+
+    if (!domCaps->machine &&
+        VIR_STRDUP(domCaps->machine,
+                   virQEMUCapsGetDefaultMachine(qemuCaps)) < 0)
+        goto cleanup;
 
     if (virQEMUCapsFillDomainCaps(domCaps, qemuCaps,
                                   cfg->loader, cfg->nloader) < 0)
-        return -1;
+        goto cleanup;
 
     /* The function above tries to query host's KVM & VFIO capabilities by
      * calling qemuHostdevHostSupportsPassthroughLegacy() and
@@ -121,8 +141,8 @@ fillQemuCaps(virDomainCapsPtr domCaps,
                              VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM,
                              VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO);
 
-    /* Moreover, as of f05b6a918e28 we are expecting to see
-     * OVMF_CODE.fd file which may not exists everywhere. */
+    /* As of f05b6a918e28 we are expecting to see OVMF_CODE.fd file which
+     * may not exists everywhere. */
     while (loader->values.nvalues)
         VIR_FREE(loader->values.values[--loader->values.nvalues]);
 
@@ -130,64 +150,69 @@ fillQemuCaps(virDomainCapsPtr domCaps,
                          "/usr/share/AAVMF/AAVMF_CODE.fd",
                          "/usr/share/OVMF/OVMF_CODE.fd",
                          NULL) < 0)
-        return -1;
+        goto cleanup;
 
-    return 0;
+    ret = 0;
+ cleanup:
+    virObjectUnref(qemuCaps);
+    VIR_FREE(path);
+    return ret;
 }
 #endif /* WITH_QEMU */
 
 
-static virDomainCapsPtr
-buildVirDomainCaps(const char *emulatorbin,
-                   const char *machine,
-                   virArch arch,
-                   virDomainVirtType type,
-                   virDomainCapsFill fillFunc,
-                   void *opaque)
-{
-    virDomainCapsPtr domCaps, ret = NULL;
+enum testCapsType {
+    CAPS_NONE,
+    CAPS_ALL,
+    CAPS_QEMU,
+};
 
-    if (!(domCaps = virDomainCapsNew(emulatorbin, machine, arch, type)))
-        goto cleanup;
-
-    if (fillFunc && fillFunc(domCaps, opaque) < 0) {
-        virObjectUnref(domCaps);
-        domCaps = NULL;
-    }
-
-    ret = domCaps;
- cleanup:
-    return ret;
-}
-
-struct test_virDomainCapsFormatData {
-    const char *filename;
-    const char *emulatorbin;
+struct testData {
+    const char *name;
+    const char *emulator;
     const char *machine;
-    virArch arch;
+    const char *arch;
     virDomainVirtType type;
-    virDomainCapsFill fillFunc;
-    void *opaque;
+    enum testCapsType capsType;
+    const char *capsName;
+    void *capsOpaque;
 };
 
 static int
 test_virDomainCapsFormat(const void *opaque)
 {
-    struct test_virDomainCapsFormatData *data =
-        (struct test_virDomainCapsFormatData *) opaque;
+    const struct testData *data = opaque;
     virDomainCapsPtr domCaps = NULL;
     char *path = NULL;
     char *domCapsXML = NULL;
     int ret = -1;
 
-    if (virAsprintf(&path, "%s/domaincapsschemadata/domaincaps-%s.xml",
-                    abs_srcdir, data->filename) < 0)
+    if (virAsprintf(&path, "%s/domaincapsschemadata/%s.xml",
+                    abs_srcdir, data->name) < 0)
         goto cleanup;
 
-    if (!(domCaps = buildVirDomainCaps(data->emulatorbin, data->machine,
-                                       data->arch, data->type,
-                                       data->fillFunc, data->opaque)))
+    if (!(domCaps = virDomainCapsNew(data->emulator, data->machine,
+                                     virArchFromString(data->arch),
+                                     data->type)))
         goto cleanup;
+
+    switch (data->capsType) {
+    case CAPS_NONE:
+        break;
+
+    case CAPS_ALL:
+        if (fillAllCaps(domCaps) < 0)
+            goto cleanup;
+        break;
+
+    case CAPS_QEMU:
+#if WITH_QEMU
+        if (fillQemuCaps(domCaps, data->capsName, data->arch, data->machine,
+                         data->capsOpaque) < 0)
+            goto cleanup;
+#endif
+        break;
+    }
 
     if (!(domCapsXML = virDomainCapsFormat(domCaps)))
         goto cleanup;
@@ -208,47 +233,83 @@ mymain(void)
 {
     int ret = 0;
 
-#define DO_TEST(Filename, Emulatorbin, Machine, Arch, Type, ...)                    \
-    do {                                                                            \
-        struct test_virDomainCapsFormatData data = {.filename = Filename,           \
-            .emulatorbin = Emulatorbin, .machine = Machine, .arch = Arch,           \
-            .type = Type, __VA_ARGS__};                                             \
-        if (virtTestRun(Filename, test_virDomainCapsFormat, &data) < 0)             \
-            ret = -1;                                                               \
-    } while (0)
-
-    DO_TEST("basic", "/bin/emulatorbin", "my-machine-type",
-            VIR_ARCH_X86_64, VIR_DOMAIN_VIRT_UML);
-    DO_TEST("full", "/bin/emulatorbin", "my-machine-type",
-            VIR_ARCH_X86_64, VIR_DOMAIN_VIRT_KVM, .fillFunc = fillAll);
-
-#ifdef WITH_QEMU
-
+#if WITH_QEMU
     virQEMUDriverConfigPtr cfg = virQEMUDriverConfigNew(false);
 
     if (!cfg)
         return EXIT_FAILURE;
+#endif
 
-# define DO_TEST_QEMU(Filename, QemuCapsFile, Emulatorbin, Machine, Arch, Type, ...)    \
-    do {                                                                                \
-        const char *capsPath = abs_srcdir "/qemucapabilitiesdata/" QemuCapsFile ".caps";    \
-        virQEMUCapsPtr qemuCaps = qemuTestParseCapabilities(capsPath);                  \
-        struct fillQemuCapsData fillData = {.qemuCaps = qemuCaps, .cfg = cfg};          \
-        struct test_virDomainCapsFormatData data = {.filename = Filename,               \
-            .emulatorbin = Emulatorbin, .machine = Machine, .arch = Arch,               \
-            .type = Type, .fillFunc = fillQemuCaps, .opaque = &fillData};               \
-        if (!qemuCaps) {                                                                \
-            fprintf(stderr, "Unable to build qemu caps from %s\n", capsPath);           \
-            ret = -1;                                                                   \
-        } else if (virtTestRun(Filename, test_virDomainCapsFormat, &data) < 0)          \
-            ret = -1;                                                                   \
-        virObjectUnref(qemuCaps);                                                             \
+#define DO_TEST(Name, Emulator, Machine, Arch, Type, CapsType)          \
+    do {                                                                \
+        struct testData data = {                                        \
+            .name = Name,                                               \
+            .emulator = Emulator,                                       \
+            .machine = Machine,                                         \
+            .arch = Arch,                                               \
+            .type = Type,                                               \
+            .capsType = CapsType,                                       \
+        };                                                              \
+        if (virtTestRun(Name, test_virDomainCapsFormat, &data) < 0)     \
+            ret = -1;                                                   \
     } while (0)
 
-    DO_TEST_QEMU("qemu_1.6.50-1", "caps_1.6.50-1", "/usr/bin/qemu-system-x86_64",
-                 "pc-1.2",  VIR_ARCH_X86_64, VIR_DOMAIN_VIRT_KVM);
+#define DO_TEST_QEMU(Name, CapsName, Emulator, Machine, Arch, Type)     \
+    do {                                                                \
+        char *name = NULL;                                              \
+        if (virAsprintf(&name, "qemu_%s%s%s.%s",                        \
+                        Name,                                           \
+                        Machine ? "-" : "", Machine ? Machine : "",     \
+                        Arch) < 0) {                                    \
+            ret = -1;                                                   \
+            break;                                                      \
+        }                                                               \
+        struct testData data = {                                        \
+            .name = name,                                               \
+            .emulator = Emulator,                                       \
+            .machine = Machine,                                         \
+            .arch = Arch,                                               \
+            .type = Type,                                               \
+            .capsType = CAPS_QEMU,                                      \
+            .capsName = CapsName,                                       \
+            .capsOpaque = cfg,                                          \
+        };                                                              \
+        if (virtTestRun(name, test_virDomainCapsFormat, &data) < 0)     \
+            ret = -1;                                                   \
+        VIR_FREE(name);                                                 \
+    } while (0)
 
-    virObjectUnref(cfg);
+    DO_TEST("basic", "/bin/emulatorbin", "my-machine-type",
+            "x86_64", VIR_DOMAIN_VIRT_UML, CAPS_NONE);
+    DO_TEST("full", "/bin/emulatorbin", "my-machine-type",
+            "x86_64", VIR_DOMAIN_VIRT_KVM, CAPS_ALL);
+
+#if WITH_QEMU
+
+    DO_TEST_QEMU("1.7.0", "caps_1.7.0",
+                 "/usr/bin/qemu-system-x86_64", NULL,
+                 "x86_64", VIR_DOMAIN_VIRT_KVM);
+
+    DO_TEST_QEMU("2.6.0", "caps_2.6.0",
+                 "/usr/bin/qemu-system-x86_64", NULL,
+                 "x86_64", VIR_DOMAIN_VIRT_KVM);
+
+    DO_TEST_QEMU("2.6.0", "caps_2.6.0-gicv2",
+                 "/usr/bin/qemu-system-aarch64", NULL,
+                 "aarch64", VIR_DOMAIN_VIRT_KVM);
+
+    DO_TEST_QEMU("2.6.0-gicv2", "caps_2.6.0-gicv2",
+                 "/usr/bin/qemu-system-aarch64", "virt",
+                 "aarch64", VIR_DOMAIN_VIRT_KVM);
+
+    DO_TEST_QEMU("2.6.0-gicv3", "caps_2.6.0-gicv3",
+                 "/usr/bin/qemu-system-aarch64", "virt",
+                 "aarch64", VIR_DOMAIN_VIRT_KVM);
+
+    DO_TEST_QEMU("2.6.0", "caps_2.6.0",
+                 "/usr/bin/qemu-system-ppc64", NULL,
+                 "ppc64le", VIR_DOMAIN_VIRT_KVM);
+
 #endif /* WITH_QEMU */
 
     return ret;

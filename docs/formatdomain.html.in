@@ -277,6 +277,9 @@
     &lt;initrd&gt;/root/f8-i386-initrd&lt;/initrd&gt;
     &lt;cmdline&gt;console=ttyS0 ks=http://example.com/f8-i386/os/&lt;/cmdline&gt;
     &lt;dtb&gt;/root/ppc.dtb&lt;/dtb&gt;
+    &lt;acpi&gt;
+      &lt;table type='slic'&gt;/path/to/slic.dat&lt;/table&gt;
+    &lt;/acpi&gt;
   &lt;/os&gt;
   ...</pre>
 
@@ -302,6 +305,11 @@
       <dd>The contents of this element specify the fully-qualified path
         to the (optional) device tree binary (dtb) image in the host OS.
         <span class="since">Since 1.0.4</span></dd>
+      <dt><code>acpi</code></dt>
+      <dd>The <code>table</code> element contains a fully-qualified path
+        to the ACPI table. The <code>type</code> attribute contains the
+        ACPI table type (currently only <code>slic</code> is supported)
+        <span class="since">Since 1.3.5 (QEMU only)</span></dd>
     </dl>
 
     <h4><a name="elementsOSContainer">Container boot</a></h4>
@@ -566,7 +574,7 @@
       <dd>
         The content of this optional element defines the number
         of IOThreads to be assigned to the domain for use by
-        virtio-blk-pci and virtio-blk-ccw target storage devices. There
+        supported target storage devices. There
         should be only 1 or 2 IOThreads per host CPU. There may be more
         than one supported device assigned to each IOThread.
         <span class="since">Since 1.2.8</span>
@@ -2158,9 +2166,9 @@
 
               Using a LUN from an iSCSI source pool provides the same
               features as a <code>disk</code> configured using
-              <code>type</code> 'block' or 'network and <code>device</code>
+              <code>type</code> 'block' or 'network' and <code>device</code>
               of 'lun' with respect to how the LUN is presented to and
-              may used by the guest.
+              may be used by the guest.
 
               <span class="since">Since 1.0.5</span>
               </p>
@@ -2560,9 +2568,11 @@
             The optional <code>iothread</code> attribute assigns the
             disk to an IOThread as defined by the range for the domain
             <a href="#elementsIOThreadsAllocation"><code>iothreads</code></a>
-            value. Multiple devices may be assigned to the same IOThread and
-            are numbered from 1 to the domain iothreads value.
-            <span class='since'>Since 1.2.8 (QEMU only)</span>
+            value. Multiple disks may be assigned to the same IOThread and
+            are numbered from 1 to the domain iothreads value. Available
+            for a disk device <code>target</code> configured to use "virtio"
+            <code>bus</code> and "pci" or "ccw" <code>address</code> types.
+            <span class='since'>Since 1.2.8 (QEMU 2.1)</span>
           </li>
         </ul>
       </dd>
@@ -2928,7 +2938,13 @@
         (<span class="since">since 0.9.7, requires QEMU
         0.13</span>). <code>multifunction</code> defaults to 'off',
         but should be set to 'on' for function 0 of a slot that will
-        have multiple functions used.
+        have multiple functions used.<br/>
+        <span class="since">Since 1.3.5</span>, some hypervisor
+        drivers may accept an <code>&lt;address type='pci'/&gt;</code>
+        element with no other attributes as an explicit request to
+        assign a PCI address for the device rather than some other
+        type of address that may also be appropriate for that same
+        device (e.g. virtio-mmio).
       </dd>
       <dt><code>drive</code></dt>
       <dd>Drive addresses have the following additional
@@ -2966,7 +2982,7 @@
         0.9.9.</span>
       </dd>
       <dt><code>ccw</code></dt>
-      <dd>s390 guests with a <code>machine</code> value of
+      <dd>S390 guests with a <code>machine</code> value of
         s390-ccw-virtio use the native CCW bus for I/O devices.
         CCW bus addresses have the following additional attributes:
         <code>cssid</code> (a hex value between 0 and 0xfe, inclusive),
@@ -2977,6 +2993,13 @@
         cssid=0xfe and ssid=0. Virtio-ccw devices must have their cssid
         set to 0xfe.
         <span class="since">Since 1.0.4</span>
+      </dd>
+      <dt><code>virtio-mmio</code></dt>
+      <dd>This places the device on the virtio-mmio transport, which is
+        currently only available for some <code>armv7l</code> and
+        <code>aarch64</code> virtual machines. virtio-mmio addresses
+        do not have any additional attributes.
+        <span class="since">Since 1.1.3</span>
       </dd>
       <dt><code>isa</code></dt>
       <dd>ISA addresses have the following additional
@@ -3003,32 +3026,55 @@
     &lt;controller type='virtio-serial' index='1'&gt;
       &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0a' function='0x0'/&gt;
     &lt;/controller&gt;
+    &lt;controller type='scsi' index='0' model='virtio-scsi'&gt;
+      &lt;driver iothread='4'&gt;
+      &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0b' function='0x0'/&gt;
+    &lt;/controller&gt;
     ...
   &lt;/devices&gt;
   ...</pre>
 
     <p>
       Each controller has a mandatory attribute <code>type</code>,
-      which must be one of "ide", "fdc", "scsi", "sata", "usb",
-      "ccid", "virtio-serial" or "pci", and a mandatory
+      which must be one of 'ide', 'fdc', 'scsi', 'sata', 'usb',
+      'ccid', 'virtio-serial' or 'pci', and a mandatory
       attribute <code>index</code> which is the decimal integer
       describing in which order the bus controller is encountered (for
-      use in <code>controller</code> attributes
-      of <code>&lt;address&gt;</code> elements).  The "virtio-serial"
-      controller has two additional optional
-      attributes <code>ports</code> and <code>vectors</code>, which
-      control how many devices can be connected through the
-      controller.  A "scsi" controller has an optional
-      attribute <code>model</code>, which is one of "auto", "buslogic",
-      "ibmvscsi", "lsilogic", "lsisas1068", "lsisas1078", "virtio-scsi" or
-      "vmpvscsi".  A "usb" controller has an optional attribute
-      <code>model</code>, which is one of "piix3-uhci", "piix4-uhci", "ehci",
-      "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3", "vt82c686b-uhci",
-      "pci-ohci" or "nec-xhci".  Additionally,
-      <span class="since">since 0.10.0</span>, if the USB bus needs to be
-      explicitly disabled for the guest, <code>model='none'</code> may be
-      used.  <span class="since">Since 1.0.5</span>, no default USB controller
-      will be built on s390.  The PowerPC64 "spapr-vio" addresses do not have an
+      use in <code>controller</code> attributes of
+      <code>&lt;address&gt;</code> elements).
+      <span class="since">Since 1.3.5</span> the index is optional; if
+      not specified, it will be auto-assigned to be the lowest unused
+      index for the given controller type. Some controller types have
+      additional attributes that control specific features, such as:
+    </p>
+
+      <dl>
+        <dt><code>virtio-serial</code></dt>
+        <dd>The <code>virtio-serial</code> controller has two additional
+        optional attributes <code>ports</code> and <code>vectors</code>,
+        which control how many devices can be connected through the
+        controller.</dd>
+        <dt><code>scsi</code></dt>
+        <dd>A <code>scsi</code> controller has an optional attribute
+        <code>model</code>, which is one of 'auto', 'buslogic', 'ibmvscsi',
+        'lsilogic', 'lsisas1068', 'lsisas1078', 'virtio-scsi' or
+        'vmpvscsi'.</dd>
+        <dt><code>usb</code></dt>
+        <dd>A <code>usb</code> controller has an optional attribute
+        <code>model</code>, which is one of "piix3-uhci", "piix4-uhci",
+        "ehci", "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
+        "vt82c686b-uhci", "pci-ohci" or "nec-xhci".  Additionally,
+         <span class="since">since 0.10.0</span>, if the USB bus needs to
+         be explicitly disabled for the guest, <code>model='none'</code>
+         may be used.  <span class="since">Since 1.0.5</span>, no default
+         USB controller will be built on s390.
+         <span class="since">Since 1.3.5</span>, USB controllers accept a
+         <code>ports</code> attribute to configure how many devices can be
+         connected to the controller.</dd>
+      </dl>
+
+    <p>
+      Note: The PowerPC64 "spapr-vio" addresses do not have an
       associated controller.
     </p>
 
@@ -3073,6 +3119,23 @@
         <a href='https://patchwork.kernel.org/patch/43390/'>
         I/O asynchronous handling</a> or not.  Accepted values are
         "on" and "off". <span class="since">Since 1.2.18</span>
+      </dd>
+      <dt><code>iothread</code></dt>
+      <dd>
+        Supported for controller type <code>scsi</code> using model
+        <code>virtio-scsi</code> for <code>address</code> types
+        <code>pci</code> and <code>ccw</code>
+        <span class="since">since 1.3.5 (QEMU 2.4)</span>.
+
+        The optional <code>iothread</code> attribute assigns the controller
+        to an IOThread as defined by the range for the domain
+        <a href="#elementsIOThreadsAllocation"><code>iothreads</code></a>
+        value. Each SCSI <code>disk</code> assigned to use the specified
+        <code>controller</code> will utilize the same IOThread. If a specific
+        IOThread is desired for a specific SCSI <code>disk</code>, then
+        multiple controllers must be defined each having a specific
+        <code>iothread</code> value. The <code>iothread</code> value
+        must be within the range 1 to the domain iothreads value.
       </dd>
     </dl>
     <p>
@@ -3993,7 +4056,7 @@
     <p>
       On Linux systems, the bridge device is normally a standard Linux
       host bridge. On hosts that support Open vSwitch, it is also
-      possible to connect to an open vSwitch bridge device by adding
+      possible to connect to an Open vSwitch bridge device by adding
       a <code>&lt;virtualport type='openvswitch'/&gt;</code> to the
       interface definition.  (<span class="since">Since
       0.9.11</span>). The Open vSwitch type virtualport accepts two
@@ -4777,34 +4840,46 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       If (and only if) the network connection used by the guest
-      supports vlan tagging transparent to the guest, an
+      supports VLAN tagging transparent to the guest, an
       optional <code>&lt;vlan&gt;</code> element can specify one or
-      more vlan tags to apply to the guest's network
-      traffic <span class="since">Since 0.10.0</span>. (openvswitch
-      and type='hostdev' SR-IOV interfaces do support transparent vlan
-      tagging of guest traffic; everything else, including standard
+      more VLAN tags to apply to the guest's network
+      traffic <span class="since">Since 0.10.0</span>. Network
+      connections that support guest-transparent VLAN tagging include
+      1) type='bridge' interfaces connected to an Open vSwitch bridge
+      <span class="since">Since 0.10.0</span>, 2) SRIOV Virtual
+      Functions (VF) used via type='hostdev' (direct device
+      assignment) <span class="since">Since 0.10.0</span>, and 3)
+      SRIOV VFs used via type='direct' with mode='passthrough'
+      (macvtap "passthru" mode) <span class="since">Since
+      1.3.5</span>. All other connection types, including standard
       linux bridges and libvirt's own virtual networks, <b>do not</b>
       support it. 802.1Qbh (vn-link) and 802.1Qbg (VEPA) switches
       provide their own way (outside of libvirt) to tag guest traffic
-      onto specific vlans.) To allow for specification of multiple
-      tags (in the case of vlan trunking), a
-      subelement, <code>&lt;tag&gt;</code>, specifies which vlan tag
-      to use (for example: <code>&lt;tag id='42'/&gt;</code>. If an
-      interface has more than one <code>&lt;vlan&gt;</code> element
-      defined, it is assumed that the user wants to do VLAN trunking
-      using all the specified tags. In the case that vlan trunking
-      with a single tag is desired, the optional
+      onto a specific VLAN. Each tag is given in a
+      separate <code>&lt;tag&gt;</code> subelement
+      of <code>&lt;vlan&gt;</code> (for example: <code>&lt;tag
+      id='42'/&gt;</code>). For VLAN trunking of multiple tags (which
+      is supported only on Open vSwitch connections),
+      multiple <code>&lt;tag&gt;</code> subelements can be specified,
+      which implies that the user wants to do VLAN trunking on the
+      interface for all the specified tags. In the case that VLAN
+      trunking of a single tag is desired, the optional
       attribute <code>trunk='yes'</code> can be added to the toplevel
-      vlan element.
+      <code>&lt;vlan&gt;</code> element to differentiate trunking of a
+      single tag from normal tagging.
     </p>
-
     <p>
-      For network connections using openvswitch it is possible to
-      configure the 'native-tagged' and 'native-untagged' vlan modes
-      <span class="since">Since 1.1.0.</span> This uses the optional
-      <code>nativeMode</code> attribute on the <code>&lt;tag&gt;</code>
-      element: <code>nativeMode</code> may be set to 'tagged' or
-      'untagged'. The id attribute of the element sets the native vlan.
+      For network connections using Open vSwitch it is also possible
+      to configure 'native-tagged' and 'native-untagged' VLAN modes
+      <span class="since">Since 1.1.0.</span> This is done with the
+      optional <code>nativeMode</code> attribute on
+      the <code>&lt;tag&gt;</code> subelement: <code>nativeMode</code>
+      may be set to 'tagged' or 'untagged'. The <code>id</code>
+      attribute of the <code>&lt;tag&gt;</code> subelement
+      containing <code>nativeMode</code> sets which VLAN is considered
+      to be the "native" VLAN for this interface, and
+      the <code>nativeMode</code> attribute determines whether or not
+      traffic for that VLAN will be tagged.
     </p>
 
     <h5><a name="elementLink">Modifying virtual link state</a></h5>
@@ -5075,11 +5150,10 @@ qemu-kvm -net nic,model=? /dev/null
               the TCP port number (with -1 as legacy syntax indicating that it
               should be auto-allocated). The <code>autoport</code> attribute is
               the new preferred syntax for indicating auto-allocation of the TCP
-              port to use. The <code>listen</code> attribute is an IP address
-              for the server to listen on. The <code>passwd</code> attribute
-              provides a VNC password in clear text. The <code>keymap</code>
-              attribute specifies the keymap to use. It is possible to set
-              a limit on the validity of the password by giving an timestamp
+              port to use. The <code>passwd</code> attribute provides a VNC
+              password in clear text. The <code>keymap</code> attribute specifies
+              the keymap to use. It is possible to set a limit on the validity of
+              the password by giving an timestamp
               <code>passwdValidTo='2010-04-09T15:51:00'</code> assumed to be
               in UTC. The <code>connected</code> attribute allows control of
               connected client during password changes. VNC accepts
@@ -5117,14 +5191,12 @@ qemu-kvm -net nic,model=? /dev/null
               should be auto-allocated), while <code>tlsPort</code> gives
               an alternative secure port number. The <code>autoport</code>
               attribute is the new preferred syntax for indicating
-              auto-allocation of needed port numbers. The <code>listen</code>
-              attribute is an IP address for the server to listen on.
-              The <code>passwd</code> attribute provides a SPICE password in
-              clear text. The <code>keymap</code> attribute specifies the keymap
-              to use. It is possible to set a limit on the validity of
-              the password by giving an timestamp
-              <code>passwdValidTo='2010-04-09T15:51:00'</code> assumed to be in
-              UTC.
+              auto-allocation of needed port numbers. The <code>passwd</code>
+              attribute provides a SPICE password in clear text. The
+              <code>keymap</code> attribute specifies the keymap to use. It is
+              possible to set a limit on the validity of the password by giving
+              an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
+              assumed to be in UTC.
             </p>
             <p>
               The <code>connected</code> attribute allows control of connected
@@ -5212,7 +5284,7 @@ qemu-kvm -net nic,model=? /dev/null
               Spice may provide accelerated server-side rendering with OpenGL.
               You can enable or disable OpenGL support explicitly with
               the <code>gl</code> element, by setting the <code>enable</code>
-              property. (QEMU only, <span class="since">since 1.3.2</span>).
+              property. (QEMU only, <span class="since">since 1.3.3</span>).
             </p>
           </dd>
           <dt><code>rdp</code></dt>
@@ -5260,6 +5332,15 @@ qemu-kvm -net nic,model=? /dev/null
           <code>address</code> attribute, which will contain either an IP address
           or hostname (which will be resolved to an IP address via a DNS query)
           to listen on.
+        </p>
+        <p>
+          It is possible to omit the <code>address</code> attribute in order to
+          use an address from config files <span class="since">Since 1.3.5</span>.
+        </p>
+        <p>
+          The <code>address</code> attribute is duplicated as <code>listen</code>
+          attribute in <code>graphics</code> element for backward compatibility.
+          If both are provided they must be equal.
         </p>
       </dd>
       <dt><code>network</code></dt>
@@ -5539,9 +5620,9 @@ qemu-kvm -net nic,model=? /dev/null
       <li>Only the first <code>console</code> element may use a <code>targetType</code>
         of <code>serial</code>. Secondary consoles must all be paravirtualized.
       </li>
-      <li>On s390, the <code>console</code> element may use a
+      <li>On S390, the <code>console</code> element may use a
         <code>targetType</code> of <code>sclp</code> or <code>sclplm</code>
-        (line mode). SCLP is the native console type for s390. There's no
+        (line mode). SCLP is the native console type for S390. There's no
         controller associated to SCLP consoles.
         <span class="since">Since 1.0.2</span>
       </li>
@@ -5573,7 +5654,7 @@ qemu-kvm -net nic,model=? /dev/null
 <pre>
   ...
   &lt;devices&gt;
-    &lt;!-- KVM s390 sclp console --&gt;
+    &lt;!-- KVM S390 sclp console --&gt;
     &lt;console type='pty'&gt;
       &lt;source path='/dev/pts/1'/&gt;
       &lt;target type='sclp' port='0'/&gt;
@@ -6355,9 +6436,15 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 1.2.1, QEMU and KVM only</span>
     </p>
     <p>
-      For pSeries guests, this feature is always enabled since it's
-      implemented by the guest firmware, thus libvirt automatically
-      adds the <code>panic</code> element to the domain XML.
+      This feature is always enabled for:
+    </p>
+    <ul>
+      <li>pSeries guests, since it's implemented by the guest firmware</li>
+      <li>S390 guests, since it's an integral part of the S390 architecture</li>
+    </ul>
+    <p>
+      For the guest types listed above, libvirt automatically adds a
+      <code>panic</code> element to the domain XML.
     </p>
     <p>
       Example: usage of panic configuration
@@ -6385,6 +6472,8 @@ qemu-kvm -net nic,model=? /dev/null
           <li>'pseries' &mdash; default and valid only for pSeries guests.</li>
           <li>'hyperv' &mdash; for Hyper-V crash CPU feature.
             <span class="since">Since 1.3.0, QEMU and KVM only</span></li>
+          <li>'s390' &mdash; default for S390 guests.
+            <span class="since">Since 1.3.5</span></li>
         </ul>
       </dd>
     <dt><code>address</code></dt>
@@ -6392,7 +6481,7 @@ qemu-kvm -net nic,model=? /dev/null
       <p>
         address of panic. The default ioport is 0x505. Most users
         don't need to specify an address, and doing so is forbidden
-        altogether for pseries and hyperv models.
+        altogether for s390, pseries and hyperv models.
       </p>
     </dd>
   </dl>

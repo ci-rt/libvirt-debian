@@ -278,25 +278,17 @@ virBhyveProcessStop(bhyveConnPtr driver,
         return -1;
     }
 
-    if ((priv != NULL) && (priv->mon != NULL))
-         bhyveMonitorClose(priv->mon);
-
-    /* First, try to kill 'bhyve' process */
-    if (virProcessKillPainfully(vm->pid, true) != 0)
-        VIR_WARN("Failed to gracefully stop bhyve VM '%s' (pid: %d)",
-                 vm->def->name,
-                 (int)vm->pid);
-
-    /* Cleanup network interfaces */
-    bhyveNetCleanup(vm);
-
-    /* No matter if shutdown was successful or not, we
-     * need to unload the VM */
     if (!(cmd = virBhyveProcessBuildDestroyCmd(driver, vm->def)))
-        goto cleanup;
+        return -1;
 
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
+
+    if ((priv != NULL) && (priv->mon != NULL))
+         bhyveMonitorClose(priv->mon);
+
+    /* Cleanup network interfaces */
+    bhyveNetCleanup(vm);
 
     ret = 0;
 
@@ -314,6 +306,29 @@ virBhyveProcessStop(bhyveConnPtr driver,
     virDomainDeleteConfig(BHYVE_STATE_DIR, NULL, vm);
 
     return ret;
+}
+
+int
+virBhyveProcessShutdown(virDomainObjPtr vm)
+{
+    if (vm->pid <= 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid PID %d for VM"),
+                       (int)vm->pid);
+        return -1;
+    }
+
+    /* Bhyve tries to perform ACPI shutdown when it receives
+     * SIGTERM signal. So we just issue SIGTERM here and rely
+     * on the bhyve monitor to clean things up if process disappears.
+     */
+    if (virProcessKill(vm->pid, SIGTERM) != 0) {
+        VIR_WARN("Failed to terminate bhyve process for VM '%s': %s",
+                 vm->def->name, virGetLastErrorMessage());
+        return -1;
+    }
+
+    return 0;
 }
 
 int

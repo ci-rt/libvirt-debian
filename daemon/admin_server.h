@@ -46,4 +46,30 @@ adminServerSetThreadPoolParameters(virNetServerPtr srv,
                                    int nparams,
                                    unsigned int flags);
 
+int adminServerListClients(virNetServerPtr srv,
+                           virNetServerClientPtr **clients,
+                           unsigned int flags);
+
+virNetServerClientPtr adminServerLookupClient(virNetServerPtr srv,
+                                              unsigned long long id,
+                                              unsigned int flags);
+
+int adminClientGetInfo(virNetServerClientPtr client,
+                       virTypedParameterPtr *params,
+                       int *nparams,
+                       unsigned int flags);
+
+int adminClientClose(virNetServerClientPtr client,
+                     unsigned int flags);
+
+int adminServerGetClientLimits(virNetServerPtr srv,
+                               virTypedParameterPtr *params,
+                               int *nparams,
+                               unsigned int flags);
+
+int adminServerSetClientLimits(virNetServerPtr srv,
+                               virTypedParameterPtr params,
+                               int nparams,
+                               unsigned int flags);
+
 #endif /* __LIBVIRTD_ADMIN_SERVER_H__ */

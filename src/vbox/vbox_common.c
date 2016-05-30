@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014, Taowei Luo (uaedante@gmail.com)
- * Copyright (C) 2010-2015 Red Hat, Inc.
+ * Copyright (C) 2010-2016 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -273,6 +273,7 @@ static virDomainDefParserConfig vboxDomainDefParserConfig = {
     .macPrefix = { 0x08, 0x00, 0x27 },
     .devicesPostParseCallback = vboxDomainDeviceDefPostParse,
     .domainPostParseCallback = vboxDomainDefPostParse,
+    .features = VIR_DOMAIN_DEF_FEATURE_NAME_SLASH,
 };
 
 static virDomainXMLOptionPtr
@@ -1578,7 +1579,7 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     char *guiDisplay = NULL;
     char *sdlDisplay = NULL;
     size_t i = 0;
-    virDomainGraphicsListenDefPtr gListen;
+    virDomainGraphicsListenDefPtr glisten;
 
     for (i = 0; i < def->ngraphics; i++) {
         IVRDxServer *VRDxServer = NULL;
@@ -1606,15 +1607,15 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                     VIR_DEBUG("VRDP set to allow multiple connection");
                 }
 
-                if ((gListen = virDomainGraphicsGetListen(def->graphics[i], 0)) &&
-                    gListen->address) {
+                if ((glisten = virDomainGraphicsGetListen(def->graphics[i], 0)) &&
+                    glisten->address) {
                     PRUnichar *netAddressUtf16 = NULL;
 
-                    VBOX_UTF8_TO_UTF16(gListen->address, &netAddressUtf16);
+                    VBOX_UTF8_TO_UTF16(glisten->address, &netAddressUtf16);
                     gVBoxAPI.UIVRDxServer.SetNetAddress(data, VRDxServer,
                                                         netAddressUtf16);
                     VIR_DEBUG("VRDP listen address is set to: %s",
-                              gListen->address);
+                              glisten->address);
 
                     VBOX_UTF16_FREE(netAddressUtf16);
                 }
@@ -3033,7 +3034,7 @@ vboxHostDeviceGetXMLDesc(vboxGlobalData *data, virDomainDefPtr def, IMachine *ma
         goto release_filters;
 
     for (i = 0; i < def->nhostdevs; i++) {
-        def->hostdevs[i] = virDomainHostdevDefAlloc();
+        def->hostdevs[i] = virDomainHostdevDefAlloc(NULL);
         if (!def->hostdevs[i])
             goto release_hostdevs;
     }
@@ -3384,8 +3385,10 @@ vboxDumpDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
             VBOX_UTF16_FREE(netAddressUtf16);
         }
 
-        if (STRNEQ_NULLABLE(netAddressUtf8, "") &&
-            virDomainGraphicsListenAppendAddress(graphics, netAddressUtf8) < 0)
+        if (netAddressUtf8 && STREQ(netAddressUtf8, ""))
+            VBOX_UTF8_FREE(netAddressUtf8);
+
+        if (virDomainGraphicsListenAppendAddress(graphics, netAddressUtf8) < 0)
             goto cleanup;
 
         gVBoxAPI.UIVRDxServer.GetAllowMultiConnection(VRDxServer, &allowMultiConnection);

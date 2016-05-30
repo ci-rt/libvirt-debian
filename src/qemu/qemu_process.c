@@ -1992,6 +1992,42 @@ qemuRefreshVirtioChannelState(virQEMUDriverPtr driver,
     return ret;
 }
 
+static void
+qemuRefreshRTC(virQEMUDriverPtr driver,
+               virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    time_t now, then;
+    struct tm thenbits;
+    long localOffset;
+    int rv;
+
+    if (vm->def->clock.offset != VIR_DOMAIN_CLOCK_OFFSET_VARIABLE)
+        return;
+
+    memset(&thenbits, 0, sizeof(thenbits));
+    qemuDomainObjEnterMonitor(driver, vm);
+    now = time(NULL);
+    rv = qemuMonitorGetRTCTime(priv->mon, &thenbits);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        rv = -1;
+
+    if (rv < 0)
+        return;
+
+    thenbits.tm_isdst = -1;
+    if ((then = mktime(&thenbits)) == (time_t) -1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to convert time"));
+        return;
+    }
+
+    /* Thing is, @now is in local TZ but @then in UTC. */
+    if (virTimeLocalOffsetFromUTC(&localOffset) < 0)
+        return;
+
+    vm->def->clock.data.variable.adjustment = then - now + localOffset;
+}
 
 int
 qemuProcessRefreshBalloonState(virQEMUDriverPtr driver,
@@ -2370,431 +2406,35 @@ qemuProcessInitPasswords(virConnectPtr conn,
             goto cleanup;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        for (i = 0; i < vm->def->ndisks; i++) {
-            size_t secretLen;
+    for (i = 0; i < vm->def->ndisks; i++) {
+        size_t secretLen;
 
-            if (!vm->def->disks[i]->src->encryption ||
-                !virDomainDiskGetSource(vm->def->disks[i]))
-                continue;
+        if (!vm->def->disks[i]->src->encryption ||
+            !virDomainDiskGetSource(vm->def->disks[i]))
+            continue;
 
-            VIR_FREE(secret);
-            if (qemuProcessGetVolumeQcowPassphrase(conn,
-                                                   vm->def->disks[i],
-                                                   &secret, &secretLen) < 0)
-                goto cleanup;
+        VIR_FREE(secret);
+        if (qemuProcessGetVolumeQcowPassphrase(conn,
+                                               vm->def->disks[i],
+                                               &secret, &secretLen) < 0)
+            goto cleanup;
 
-            VIR_FREE(alias);
-            if (VIR_STRDUP(alias, vm->def->disks[i]->info.alias) < 0)
-                goto cleanup;
-            if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-                goto cleanup;
-            ret = qemuMonitorSetDrivePassphrase(priv->mon, alias, secret);
-            if (qemuDomainObjExitMonitor(driver, vm) < 0)
-                ret = -1;
-            if (ret < 0)
-                goto cleanup;
-        }
+        VIR_FREE(alias);
+        if (VIR_STRDUP(alias, vm->def->disks[i]->info.alias) < 0)
+            goto cleanup;
+        if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+            goto cleanup;
+        ret = qemuMonitorSetDrivePassphrase(priv->mon, alias, secret);
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
+            ret = -1;
+        if (ret < 0)
+            goto cleanup;
     }
 
  cleanup:
     VIR_FREE(alias);
     VIR_FREE(secret);
     virObjectUnref(cfg);
-    return ret;
-}
-
-
-#define QEMU_PCI_VENDOR_INTEL     0x8086
-#define QEMU_PCI_VENDOR_LSI_LOGIC 0x1000
-#define QEMU_PCI_VENDOR_REDHAT    0x1af4
-#define QEMU_PCI_VENDOR_CIRRUS    0x1013
-#define QEMU_PCI_VENDOR_REALTEK   0x10ec
-#define QEMU_PCI_VENDOR_AMD       0x1022
-#define QEMU_PCI_VENDOR_ENSONIQ   0x1274
-#define QEMU_PCI_VENDOR_VMWARE    0x15ad
-#define QEMU_PCI_VENDOR_QEMU      0x1234
-
-#define QEMU_PCI_PRODUCT_DISK_VIRTIO 0x1001
-
-#define QEMU_PCI_PRODUCT_BALLOON_VIRTIO 0x1002
-
-#define QEMU_PCI_PRODUCT_NIC_NE2K     0x8029
-#define QEMU_PCI_PRODUCT_NIC_PCNET    0x2000
-#define QEMU_PCI_PRODUCT_NIC_RTL8139  0x8139
-#define QEMU_PCI_PRODUCT_NIC_E1000    0x100E
-#define QEMU_PCI_PRODUCT_NIC_VIRTIO   0x1000
-
-#define QEMU_PCI_PRODUCT_VGA_CIRRUS 0x00b8
-#define QEMU_PCI_PRODUCT_VGA_VMWARE 0x0405
-#define QEMU_PCI_PRODUCT_VGA_STDVGA 0x1111
-
-#define QEMU_PCI_PRODUCT_AUDIO_AC97    0x2415
-#define QEMU_PCI_PRODUCT_AUDIO_ES1370  0x5000
-
-#define QEMU_PCI_PRODUCT_CONTROLLER_PIIX 0x7010
-#define QEMU_PCI_PRODUCT_CONTROLLER_LSI  0x0012
-
-#define QEMU_PCI_PRODUCT_WATCHDOG_I63000ESB 0x25ab
-
-static int
-qemuProcessAssignNextPCIAddress(virDomainDeviceInfo *info,
-                                int vendor,
-                                int product,
-                                qemuMonitorPCIAddress *addrs,
-                                int naddrs)
-{
-    bool found = false;
-    size_t i;
-
-    VIR_DEBUG("Look for %x:%x out of %d", vendor, product, naddrs);
-
-    for (i = 0; i < naddrs; i++) {
-        VIR_DEBUG("Maybe %x:%x", addrs[i].vendor, addrs[i].product);
-        if (addrs[i].vendor == vendor &&
-            addrs[i].product == product) {
-            VIR_DEBUG("Match %zu", i);
-            found = true;
-            break;
-        }
-    }
-    if (!found)
-        return -1;
-
-    /* Blank it out so this device isn't matched again */
-    addrs[i].vendor = 0;
-    addrs[i].product = 0;
-
-    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
-        info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
-
-    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-        info->addr.pci.domain = addrs[i].addr.domain;
-        info->addr.pci.bus = addrs[i].addr.bus;
-        info->addr.pci.slot = addrs[i].addr.slot;
-        info->addr.pci.function = addrs[i].addr.function;
-    }
-
-    return 0;
-}
-
-static int
-qemuProcessGetPCIDiskVendorProduct(virDomainDiskDefPtr def,
-                                   unsigned *vendor,
-                                   unsigned *product)
-{
-    switch (def->bus) {
-    case VIR_DOMAIN_DISK_BUS_VIRTIO:
-        *vendor = QEMU_PCI_VENDOR_REDHAT;
-        *product = QEMU_PCI_PRODUCT_DISK_VIRTIO;
-        break;
-
-    default:
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-qemuProcessGetPCINetVendorProduct(virDomainNetDefPtr def,
-                                  unsigned *vendor,
-                                  unsigned *product)
-{
-    if (!def->model)
-        return -1;
-
-    if (STREQ(def->model, "ne2k_pci")) {
-        *vendor = QEMU_PCI_VENDOR_REALTEK;
-        *product = QEMU_PCI_PRODUCT_NIC_NE2K;
-    } else if (STREQ(def->model, "pcnet")) {
-        *vendor = QEMU_PCI_VENDOR_AMD;
-        *product = QEMU_PCI_PRODUCT_NIC_PCNET;
-    } else if (STREQ(def->model, "rtl8139")) {
-        *vendor = QEMU_PCI_VENDOR_REALTEK;
-        *product = QEMU_PCI_PRODUCT_NIC_RTL8139;
-    } else if (STREQ(def->model, "e1000")) {
-        *vendor = QEMU_PCI_VENDOR_INTEL;
-        *product = QEMU_PCI_PRODUCT_NIC_E1000;
-    } else if (STREQ(def->model, "virtio")) {
-        *vendor = QEMU_PCI_VENDOR_REDHAT;
-        *product = QEMU_PCI_PRODUCT_NIC_VIRTIO;
-    } else {
-        VIR_INFO("Unexpected NIC model %s, cannot get PCI address",
-                 def->model);
-        return -1;
-    }
-    return 0;
-}
-
-static int
-qemuProcessGetPCIControllerVendorProduct(virDomainControllerDefPtr def,
-                                         unsigned *vendor,
-                                         unsigned *product)
-{
-    switch (def->type) {
-    case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        *vendor = QEMU_PCI_VENDOR_LSI_LOGIC;
-        *product = QEMU_PCI_PRODUCT_CONTROLLER_LSI;
-        break;
-
-    case VIR_DOMAIN_CONTROLLER_TYPE_FDC:
-        /* XXX we could put in the ISA bridge address, but
-           that's not technically the FDC's address */
-        return -1;
-
-    case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
-        *vendor = QEMU_PCI_VENDOR_INTEL;
-        *product = QEMU_PCI_PRODUCT_CONTROLLER_PIIX;
-        break;
-
-    default:
-        VIR_INFO("Unexpected controller type %s, cannot get PCI address",
-                 virDomainControllerTypeToString(def->type));
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-qemuProcessGetPCIVideoVendorProduct(virDomainVideoDefPtr def,
-                                    unsigned *vendor,
-                                    unsigned *product)
-{
-    switch (def->type) {
-    case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
-        *vendor = QEMU_PCI_VENDOR_CIRRUS;
-        *product = QEMU_PCI_PRODUCT_VGA_CIRRUS;
-        break;
-
-    case VIR_DOMAIN_VIDEO_TYPE_VGA:
-        *vendor = QEMU_PCI_VENDOR_QEMU;
-        *product = QEMU_PCI_PRODUCT_VGA_STDVGA;
-        break;
-
-    case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
-        *vendor = QEMU_PCI_VENDOR_VMWARE;
-        *product = QEMU_PCI_PRODUCT_VGA_VMWARE;
-        break;
-
-    default:
-        return -1;
-    }
-    return 0;
-}
-
-static int
-qemuProcessGetPCISoundVendorProduct(virDomainSoundDefPtr def,
-                                    unsigned *vendor,
-                                    unsigned *product)
-{
-    switch (def->model) {
-    case VIR_DOMAIN_SOUND_MODEL_ES1370:
-        *vendor = QEMU_PCI_VENDOR_ENSONIQ;
-        *product = QEMU_PCI_PRODUCT_AUDIO_ES1370;
-        break;
-
-    case VIR_DOMAIN_SOUND_MODEL_AC97:
-        *vendor = QEMU_PCI_VENDOR_INTEL;
-        *product = QEMU_PCI_PRODUCT_AUDIO_AC97;
-        break;
-
-    default:
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-qemuProcessGetPCIWatchdogVendorProduct(virDomainWatchdogDefPtr def,
-                                       unsigned *vendor,
-                                       unsigned *product)
-{
-    switch (def->model) {
-    case VIR_DOMAIN_WATCHDOG_MODEL_I6300ESB:
-        *vendor = QEMU_PCI_VENDOR_INTEL;
-        *product = QEMU_PCI_PRODUCT_WATCHDOG_I63000ESB;
-        break;
-
-    default:
-        return -1;
-    }
-
-    return 0;
-}
-
-
-static int
-qemuProcessGetPCIMemballoonVendorProduct(virDomainMemballoonDefPtr def,
-                                         unsigned *vendor,
-                                         unsigned *product)
-{
-    switch (def->model) {
-    case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO:
-        *vendor = QEMU_PCI_VENDOR_REDHAT;
-        *product = QEMU_PCI_PRODUCT_BALLOON_VIRTIO;
-        break;
-
-    default:
-        return -1;
-    }
-
-    return 0;
-}
-
-
-/*
- * This entire method assumes that PCI devices in 'info pci'
- * match ordering of devices specified on the command line
- * wrt to devices of matching vendor+product
- *
- * XXXX this might not be a valid assumption if we assign
- * some static addrs on CLI. Have to check that...
- */
-static int
-qemuProcessDetectPCIAddresses(virDomainObjPtr vm,
-                              qemuMonitorPCIAddress *addrs,
-                              int naddrs)
-{
-    unsigned int vendor = 0, product = 0;
-    size_t i;
-
-    /* XXX should all these vendor/product IDs be kept in the
-     * actual device data structure instead ?
-     */
-
-    for (i = 0; i < vm->def->ndisks; i++) {
-        if (qemuProcessGetPCIDiskVendorProduct(vm->def->disks[i], &vendor, &product) < 0)
-            continue;
-
-        if (qemuProcessAssignNextPCIAddress(&(vm->def->disks[i]->info),
-                                            vendor, product,
-                                            addrs, naddrs) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find PCI address for VirtIO disk %s"),
-                           vm->def->disks[i]->dst);
-            return -1;
-        }
-    }
-
-    for (i = 0; i < vm->def->nnets; i++) {
-        if (qemuProcessGetPCINetVendorProduct(vm->def->nets[i], &vendor, &product) < 0)
-            continue;
-
-        if (qemuProcessAssignNextPCIAddress(&(vm->def->nets[i]->info),
-                                            vendor, product,
-                                            addrs,  naddrs) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find PCI address for %s NIC"),
-                           vm->def->nets[i]->model);
-            return -1;
-        }
-    }
-
-    for (i = 0; i < vm->def->ncontrollers; i++) {
-        if (qemuProcessGetPCIControllerVendorProduct(vm->def->controllers[i], &vendor, &product) < 0)
-            continue;
-
-        if (qemuProcessAssignNextPCIAddress(&(vm->def->controllers[i]->info),
-                                            vendor, product,
-                                            addrs,  naddrs) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find PCI address for controller %s"),
-                           virDomainControllerTypeToString(vm->def->controllers[i]->type));
-            return -1;
-        }
-    }
-
-    for (i = 0; i < vm->def->nvideos; i++) {
-        if (qemuProcessGetPCIVideoVendorProduct(vm->def->videos[i], &vendor, &product) < 0)
-            continue;
-
-        if (qemuProcessAssignNextPCIAddress(&(vm->def->videos[i]->info),
-                                            vendor, product,
-                                            addrs,  naddrs) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find PCI address for video adapter %s"),
-                           virDomainVideoTypeToString(vm->def->videos[i]->type));
-            return -1;
-        }
-    }
-
-    for (i = 0; i < vm->def->nsounds; i++) {
-        if (qemuProcessGetPCISoundVendorProduct(vm->def->sounds[i], &vendor, &product) < 0)
-            continue;
-
-        if (qemuProcessAssignNextPCIAddress(&(vm->def->sounds[i]->info),
-                                    vendor, product,
-                                     addrs,  naddrs) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find PCI address for sound adapter %s"),
-                           virDomainSoundModelTypeToString(vm->def->sounds[i]->model));
-            return -1;
-        }
-    }
-
-
-    if (vm->def->watchdog &&
-        qemuProcessGetPCIWatchdogVendorProduct(vm->def->watchdog, &vendor, &product) == 0) {
-        if (qemuProcessAssignNextPCIAddress(&(vm->def->watchdog->info),
-                                            vendor, product,
-                                            addrs,  naddrs) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find PCI address for watchdog %s"),
-                           virDomainWatchdogModelTypeToString(vm->def->watchdog->model));
-            return -1;
-        }
-    }
-
-    if (vm->def->memballoon &&
-        qemuProcessGetPCIMemballoonVendorProduct(vm->def->memballoon, &vendor, &product) == 0) {
-        if (qemuProcessAssignNextPCIAddress(&(vm->def->memballoon->info),
-                                            vendor, product,
-                                            addrs, naddrs) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find PCI address for balloon %s"),
-                           virDomainMemballoonModelTypeToString(vm->def->memballoon->model));
-            return -1;
-        }
-    }
-
-    /* XXX console (virtio) */
-
-
-    /* ... and now things we don't have in our xml */
-
-    /* XXX USB controller ? */
-
-    /* XXX what about other PCI devices (ie bridges) */
-
-    return 0;
-}
-
-static int
-qemuProcessInitPCIAddresses(virQEMUDriverPtr driver,
-                            virDomainObjPtr vm,
-                            int asyncJob)
-{
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-    int naddrs;
-    int ret = -1;
-    qemuMonitorPCIAddress *addrs = NULL;
-
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-        return -1;
-    naddrs = qemuMonitorGetAllPCIAddresses(priv->mon,
-                                           &addrs);
-    if (qemuDomainObjExitMonitor(driver, vm) < 0)
-        goto cleanup;
-
-    if (naddrs > 0)
-        ret = qemuProcessDetectPCIAddresses(vm, addrs, naddrs);
-
- cleanup:
-    VIR_FREE(addrs);
-
     return ret;
 }
 
@@ -3492,26 +3132,20 @@ qemuDomainPerfRestart(virDomainObjPtr vm)
     virDomainDefPtr def = vm->def;
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
-    virPerfFree(priv->perf);
-
-    priv->perf = virPerfNew();
-    if (!priv->perf)
+    if (!(priv->perf = virPerfNew()))
         return -1;
 
     for (i = 0; i < VIR_PERF_EVENT_LAST; i++) {
         if (def->perf->events[i] &&
             def->perf->events[i] == VIR_TRISTATE_BOOL_YES) {
-            if (virPerfEventEnable(priv->perf, i, vm->pid))
-                goto cleanup;
+
+            /* Failure to re-enable the perf event should not be fatal */
+            if (virPerfEventEnable(priv->perf, i, vm->pid) < 0)
+                def->perf->events[i] = VIR_TRISTATE_BOOL_NO;
         }
     }
 
     return 0;
-
- cleanup:
-    virPerfFree(priv->perf);
-    priv->perf = NULL;
-    return -1;
 }
 
 struct qemuProcessReconnectData {
@@ -3654,9 +3288,8 @@ qemuProcessReconnect(void *opaque)
         goto cleanup;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE))
-        if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps, obj)) < 0)
-            goto error;
+    if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps, obj)) < 0)
+        goto error;
 
     /* if domain requests security driver we haven't loaded, report error, but
      * do not kill the domain
@@ -3673,11 +3306,14 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessFiltersInstantiate(obj->def))
         goto error;
 
-    if (qemuDomainCheckEjectableMedia(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
+    if (qemuProcessRefreshDisks(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
 
     if (qemuRefreshVirtioChannelState(driver, obj) < 0)
         goto error;
+
+    /* If querying of guest's RTC failed, report error, but do not kill the domain. */
+    qemuRefreshRTC(driver, obj);
 
     if (qemuProcessRefreshBalloonState(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
@@ -3825,12 +3461,20 @@ qemuProcessReconnectAll(virConnectPtr conn, virQEMUDriverPtr driver)
 
 static int
 qemuProcessVNCAllocatePorts(virQEMUDriverPtr driver,
-                            virDomainGraphicsDefPtr graphics)
+                            virDomainGraphicsDefPtr graphics,
+                            bool allocate)
 {
     unsigned short port;
 
     if (graphics->data.vnc.socket)
         return 0;
+
+    if (!allocate) {
+        if (graphics->data.vnc.autoport)
+            graphics->data.vnc.port = 5900;
+
+        return 0;
+    }
 
     if (graphics->data.vnc.autoport) {
         if (virPortAllocatorAcquire(driver->remotePorts, &port) < 0)
@@ -3847,7 +3491,7 @@ qemuProcessVNCAllocatePorts(virQEMUDriverPtr driver,
     return 0;
 }
 
-int
+static int
 qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
                               virQEMUDriverConfigPtr cfg,
                               virDomainGraphicsDefPtr graphics,
@@ -4307,12 +3951,10 @@ qemuProcessStartHook(virQEMUDriverPtr driver,
 
 
 static int
-qemuProcessSetupGraphics(virQEMUDriverPtr driver,
-                         virDomainObjPtr vm)
+qemuProcessGraphicsReservePorts(virQEMUDriverPtr driver,
+                                virDomainObjPtr vm)
 {
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     size_t i;
-    int ret = -1;
 
     for (i = 0; i < vm->def->ngraphics; ++i) {
         virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
@@ -4321,7 +3963,7 @@ qemuProcessSetupGraphics(virQEMUDriverPtr driver,
             if (virPortAllocatorSetUsed(driver->remotePorts,
                                         graphics->data.vnc.port,
                                         true) < 0)
-                goto cleanup;
+                return -1;
             graphics->data.vnc.portReserved = true;
 
         } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
@@ -4330,7 +3972,7 @@ qemuProcessSetupGraphics(virQEMUDriverPtr driver,
                 if (virPortAllocatorSetUsed(driver->remotePorts,
                                             graphics->data.spice.port,
                                             true) < 0)
-                    goto cleanup;
+                    return -1;
                 graphics->data.spice.portReserved = true;
             }
 
@@ -4338,41 +3980,135 @@ qemuProcessSetupGraphics(virQEMUDriverPtr driver,
                 if (virPortAllocatorSetUsed(driver->remotePorts,
                                             graphics->data.spice.tlsPort,
                                             true) < 0)
-                    goto cleanup;
+                    return -1;
                 graphics->data.spice.tlsPortReserved = true;
             }
         }
     }
 
+    return 0;
+}
+
+
+static int
+qemuProcessGraphicsSetupNetworkAddress(virDomainGraphicsListenDefPtr glisten,
+                                       const char *listenAddr)
+{
+    int rc;
+
+    /* TODO: reject configuration without network specified for network listen */
+    if (!glisten->network) {
+        if (VIR_STRDUP(glisten->address, listenAddr) < 0)
+            return -1;
+        return 0;
+    }
+
+    rc = networkGetNetworkAddress(glisten->network, &glisten->address);
+    if (rc <= -2) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("network-based listen isn't possible, "
+                         "network driver isn't present"));
+        return -1;
+    }
+    if (rc < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int
+qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
+                               virDomainGraphicsDefPtr graphics)
+{
+    char *listenAddr = NULL;
+    size_t i;
+
+    switch (graphics->type) {
+    case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+        listenAddr = cfg->vncListen;
+        break;
+
+    case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        listenAddr = cfg->spiceListen;
+        break;
+
+    case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+    case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+        break;
+    }
+
+    for (i = 0; i < graphics->nListens; i++) {
+        virDomainGraphicsListenDefPtr glisten = &graphics->listens[i];
+
+        switch (glisten->type) {
+        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
+            if (glisten->address || !listenAddr)
+                continue;
+
+            if (VIR_STRDUP(glisten->address, listenAddr) < 0)
+                return -1;
+
+            glisten->fromConfig = true;
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
+            if (glisten->address || !listenAddr)
+                continue;
+
+            if (qemuProcessGraphicsSetupNetworkAddress(glisten,
+                                                       listenAddr) < 0)
+                return -1;
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NONE:
+        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_LAST:
+            break;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
+qemuProcessSetupGraphics(virQEMUDriverPtr driver,
+                         virDomainObjPtr vm,
+                         unsigned int flags)
+{
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    bool allocate = !(flags & VIR_QEMU_PROCESS_START_PRETEND);
+    size_t i;
+    int ret = -1;
+
+    if (allocate && qemuProcessGraphicsReservePorts(driver, vm) < 0)
+        goto cleanup;
+
     for (i = 0; i < vm->def->ngraphics; ++i) {
         virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
-        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
-            if (qemuProcessVNCAllocatePorts(driver, graphics) < 0)
+
+        switch (graphics->type) {
+        case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+            if (qemuProcessVNCAllocatePorts(driver, graphics, allocate) < 0)
                 goto cleanup;
-        } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
-            if (qemuProcessSPICEAllocatePorts(driver, cfg, graphics, true) < 0)
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+            if (qemuProcessSPICEAllocatePorts(driver, cfg, graphics, allocate) < 0)
                 goto cleanup;
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+        case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+        case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+        case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+            break;
         }
 
-        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC ||
-            graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
-            if (graphics->nListens == 0) {
-                const char *listenAddr
-                    = graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC ?
-                    cfg->vncListen : cfg->spiceListen;
-
-                if (virDomainGraphicsListenAppendAddress(graphics,
-                                                         listenAddr) < 0)
-                    goto cleanup;
-
-                graphics->listens[0].fromConfig = true;
-            } else if (graphics->nListens > 1) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("QEMU does not support multiple listen "
-                                 "addresses for one graphics device."));
-                goto cleanup;
-            }
-        }
+        if (qemuProcessGraphicsSetupListen(cfg, graphics) < 0)
+            goto cleanup;
     }
 
     ret = 0;
@@ -4597,6 +4333,8 @@ qemuProcessStartValidate(virQEMUDriverPtr driver,
                          bool snapshot,
                          unsigned int flags)
 {
+    size_t i;
+
     if (!(flags & VIR_QEMU_PROCESS_START_PRETEND)) {
         if (vm->def->virtType == VIR_DOMAIN_VIRT_KVM) {
             VIR_DEBUG("Checking for KVM availability");
@@ -4626,6 +4364,28 @@ qemuProcessStartValidate(virQEMUDriverPtr driver,
     VIR_DEBUG("Checking for any possible (non-fatal) issues");
 
     qemuProcessStartWarnShmem(vm);
+
+    for (i = 0; i < vm->def->ngraphics; i++) {
+        virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
+
+        switch (graphics->type) {
+        case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+            if (graphics->nListens > 1) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("QEMU does not support multiple listens for "
+                                 "one graphics device."));
+                return -1;
+            }
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+        case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+        case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+        case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+            break;
+        }
+    }
 
     return 0;
 }
@@ -5053,6 +4813,7 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     size_t i;
     char *nodeset = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virCapsPtr caps;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
@@ -5096,13 +4857,15 @@ qemuProcessPrepareDomain(virConnectPtr conn,
      * we also need to populate the PCI address set cache for later
      * use in hotplug
      */
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        VIR_DEBUG("Assigning domain PCI addresses");
-        if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm)) < 0)
-            goto cleanup;
-    }
+    VIR_DEBUG("Assigning domain PCI addresses");
+    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm)) < 0)
+        goto cleanup;
 
     if (qemuAssignDeviceAliases(vm->def, priv->qemuCaps) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Setting graphics devices");
+    if (qemuProcessSetupGraphics(driver, vm, flags) < 0)
         goto cleanup;
 
     /* "volume" type disk's source must be translated before
@@ -5112,6 +4875,14 @@ qemuProcessPrepareDomain(virConnectPtr conn,
         if (virStorageTranslateDiskSourcePool(conn, vm->def->disks[i]) < 0)
             goto cleanup;
     }
+
+    VIR_DEBUG("Create domain masterKey");
+    if (qemuDomainMasterKeyCreate(vm) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Add secrets to disks and hostdevs");
+    if (qemuDomainSecretPrepare(conn, vm) < 0)
+        goto cleanup;
 
     if (VIR_ALLOC(priv->monConfig) < 0)
         goto cleanup;
@@ -5129,6 +4900,7 @@ qemuProcessPrepareDomain(virConnectPtr conn,
  cleanup:
     VIR_FREE(nodeset);
     virObjectUnref(caps);
+    virObjectUnref(cfg);
     return ret;
 }
 
@@ -5204,10 +4976,6 @@ qemuProcessPrepareHost(virQEMUDriverPtr driver,
     VIR_DEBUG("Ensuring no historical cgroup is lying around");
     qemuRemoveCgroup(vm);
 
-    VIR_DEBUG("Setting up ports for graphics");
-    if (qemuProcessSetupGraphics(driver, vm) < 0)
-        goto cleanup;
-
     if (virFileMakePath(cfg->logDir) < 0) {
         virReportSystemError(errno,
                              _("cannot create log directory %s"),
@@ -5238,8 +5006,8 @@ qemuProcessPrepareHost(virQEMUDriverPtr driver,
         qemuProcessMakeDir(driver, vm, priv->channelTargetDir) < 0)
         goto cleanup;
 
-    VIR_DEBUG("Create domain masterKey");
-    if (qemuDomainMasterKeyCreate(driver, vm) < 0)
+    VIR_DEBUG("Write domain masterKey");
+    if (qemuDomainWriteMasterKeyFile(driver, vm) < 0)
         goto cleanup;
 
     ret = 0;
@@ -5320,7 +5088,7 @@ qemuProcessLaunch(virConnectPtr conn,
     logfile = qemuDomainLogContextGetWriteFD(logCtxt);
 
     VIR_DEBUG("Building emulator command line");
-    if (!(cmd = qemuBuildCommandLine(conn, driver,
+    if (!(cmd = qemuBuildCommandLine(driver,
                                      qemuDomainLogContextGetManager(logCtxt),
                                      vm->def, priv->monConfig,
                                      priv->monJSON, priv->qemuCaps,
@@ -5410,12 +5178,13 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuSetupCgroup(driver, vm, nnicindexes, nicindexes) < 0)
         goto cleanup;
 
-    priv->perf = virPerfNew();
-    if (priv->perf) {
-        for (i = 0; i < VIR_PERF_EVENT_LAST; i++) {
-            if (vm->def->perf->events[i] == VIR_TRISTATE_BOOL_YES)
-                virPerfEventEnable(priv->perf, i, vm->pid);
-        }
+    if (!(priv->perf = virPerfNew()))
+        goto cleanup;
+
+    for (i = 0; i < VIR_PERF_EVENT_LAST; i++) {
+        if (vm->def->perf->events[i] == VIR_TRISTATE_BOOL_YES &&
+            virPerfEventEnable(priv->perf, i, vm->pid) < 0)
+            goto cleanup;
     }
 
     /* This must be done after cgroup placement to avoid resetting CPU
@@ -5517,14 +5286,6 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuProcessInitPasswords(conn, driver, vm, asyncJob) < 0)
         goto cleanup;
 
-    /* If we have -device, then addresses are assigned explicitly.
-     * If not, then we have to detect dynamic ones here */
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        VIR_DEBUG("Determining domain device PCI addresses");
-        if (qemuProcessInitPCIAddresses(driver, vm, asyncJob) < 0)
-            goto cleanup;
-    }
-
     /* set default link states */
     /* qemu doesn't support setting this on the command line, so
      * enter the monitor */
@@ -5555,6 +5316,10 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuProcessUpdateVideoRamSize(driver, vm, asyncJob) < 0)
         goto cleanup;
 
+    VIR_DEBUG("Updating disk data");
+    if (qemuProcessRefreshDisks(driver, vm, asyncJob) < 0)
+        goto cleanup;
+
     if (flags & VIR_QEMU_PROCESS_START_AUTODESTROY &&
         qemuProcessAutoDestroyAdd(driver, vm, conn) < 0)
         goto cleanup;
@@ -5562,6 +5327,7 @@ qemuProcessLaunch(virConnectPtr conn,
     ret = 0;
 
  cleanup:
+    qemuDomainSecretDestroy(vm);
     virCommandFree(cmd);
     qemuDomainLogContextFree(logCtxt);
     virObjectUnref(cfg);
@@ -5736,8 +5502,7 @@ qemuProcessCreatePretendCmd(virConnectPtr conn,
         goto cleanup;
 
     VIR_DEBUG("Building emulator command line");
-    cmd = qemuBuildCommandLine(conn,
-                               driver,
+    cmd = qemuBuildCommandLine(driver,
                                NULL,
                                vm->def,
                                priv->monConfig,
@@ -5989,16 +5754,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     priv->qemuDevices = NULL;
 
     virDomainDefClearDeviceAliases(vm->def);
-    if (!priv->persistentAddrs) {
-        virDomainDefClearPCIAddresses(vm->def);
-        virDomainPCIAddressSetFree(priv->pciaddrs);
-        priv->pciaddrs = NULL;
-        virDomainDefClearCCWAddresses(vm->def);
-        virDomainCCWAddressSetFree(priv->ccwaddrs);
-        priv->ccwaddrs = NULL;
-        virDomainVirtioSerialAddrSetFree(priv->vioserialaddrs);
-        priv->vioserialaddrs = NULL;
-    }
 
     qemuHostdevReAttachDomainDevices(driver, vm->def);
 
@@ -6280,11 +6035,9 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
      * we also need to populate the PCI address set cache for later
      * use in hotplug
      */
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        VIR_DEBUG("Assigning domain PCI addresses");
-        if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm)) < 0)
-            goto error;
-    }
+    VIR_DEBUG("Assigning domain PCI addresses");
+    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm)) < 0)
+        goto error;
 
     if ((timestamp = virTimeStringNow()) == NULL)
         goto error;
@@ -6316,14 +6069,6 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_DEBUG("Detecting IOThread PIDs");
     if (qemuProcessDetectIOThreadPIDs(driver, vm, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
-
-    /* If we have -device, then addresses are assigned explicitly.
-     * If not, then we have to detect dynamic ones here */
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        VIR_DEBUG("Determining domain device PCI addresses");
-        if (qemuProcessInitPCIAddresses(driver, vm, QEMU_ASYNC_JOB_NONE) < 0)
-            goto error;
-    }
 
     VIR_DEBUG("Getting initial memory amount");
     qemuDomainObjEnterMonitor(driver, vm);
@@ -6475,4 +6220,56 @@ bool qemuProcessAutoDestroyActive(virQEMUDriverPtr driver,
     VIR_DEBUG("vm=%s", vm->def->name);
     cb = virCloseCallbacksGet(driver->closeCallbacks, vm, NULL);
     return cb == qemuProcessAutoDestroy;
+}
+
+
+int
+qemuProcessRefreshDisks(virQEMUDriverPtr driver,
+                        virDomainObjPtr vm,
+                        qemuDomainAsyncJob asyncJob)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virHashTablePtr table = NULL;
+    int ret = -1;
+    size_t i;
+
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
+        table = qemuMonitorGetBlockInfo(priv->mon);
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
+            goto cleanup;
+    }
+
+    if (!table)
+        goto cleanup;
+
+    for (i = 0; i < vm->def->ndisks; i++) {
+        virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskpriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
+        struct qemuDomainDiskInfo *info;
+
+        if (!(info = virHashLookup(table, disk->info.alias)))
+            continue;
+
+        if (info->removable) {
+            if (info->empty)
+                ignore_value(virDomainDiskSetSource(disk, NULL));
+
+            if (info->tray) {
+                if (info->tray_open)
+                    disk->tray_status = VIR_DOMAIN_DISK_TRAY_OPEN;
+                else
+                    disk->tray_status = VIR_DOMAIN_DISK_TRAY_CLOSED;
+            }
+        }
+
+        /* fill in additional data */
+        diskpriv->removable = info->removable;
+        diskpriv->tray = info->tray;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virHashFree(table);
+    return ret;
 }

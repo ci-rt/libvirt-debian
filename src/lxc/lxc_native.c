@@ -1,7 +1,7 @@
 /*
  * lxc_native.c: LXC native configuration import
  *
- * Copyright (c) 2014 Red Hat, Inc.
+ * Copyright (c) 2014-2016 Red Hat, Inc.
  * Copyright (c) 2013-2015 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * This library is free software; you can redistribute it and/or
@@ -360,14 +360,13 @@ lxcCreateNetDef(const char *type,
         net->mac = macAddr;
 
     if (STREQ(type, "veth")) {
-        if (!linkdev)
-            goto error;
-
-        net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
-
-        if (VIR_STRDUP(net->data.bridge.brname, linkdev) < 0)
-            goto error;
-
+        if (linkdev) {
+            net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
+            if (VIR_STRDUP(net->data.bridge.brname, linkdev) < 0)
+                goto error;
+        } else {
+            net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
+        }
     } else if (STREQ(type, "macvlan")) {
         net->type = VIR_DOMAIN_NET_TYPE_DIRECT;
 
@@ -394,7 +393,7 @@ lxcCreateNetDef(const char *type,
 static virDomainHostdevDefPtr
 lxcCreateHostdevDef(int mode, int type, const char *data)
 {
-    virDomainHostdevDefPtr hostdev = virDomainHostdevDefAlloc();
+    virDomainHostdevDefPtr hostdev = virDomainHostdevDefAlloc(NULL);
 
     if (!hostdev)
         return NULL;
@@ -801,7 +800,7 @@ lxcSetCpuTune(virDomainDefPtr def, virConfPtr properties)
 
     if ((value = virConfGetValue(properties, "lxc.cgroup.cpu.shares")) &&
             value->str) {
-        if (virStrToLong_ul(value->str, NULL, 10, &def->cputune.shares) < 0)
+        if (virStrToLong_ull(value->str, NULL, 10, &def->cputune.shares) < 0)
             goto error;
         def->cputune.sharesSpecified = true;
     }

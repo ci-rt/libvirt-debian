@@ -13,7 +13,7 @@ module Libvirtd =
 
    let str_val = del /\"/ "\"" . store /[^\"]*/ . del /\"/ "\""
    let bool_val = store /0|1/
-   let int_val = store /[0-9]+/
+   let int_val = store /-?[0-9]+/
    let str_array_element = [ seq "el" . str_val ] . del /[ \t\n]*/ ""
    let str_array_val = counter "el" . array_start . ( str_array_element . ( array_sep . str_array_element ) * ) ? . array_end
 
@@ -86,6 +86,7 @@ module Libvirtd =
                              | bool_entry "admin_keepalive_required"
 
    let misc_entry = str_entry "host_uuid"
+                  | str_entry "host_uuid_source"
 
    (* Each enty in the config is one of the following three ... *)
    let entry = network_entry

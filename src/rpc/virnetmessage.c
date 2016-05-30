@@ -49,17 +49,31 @@ virNetMessagePtr virNetMessageNew(bool tracked)
 }
 
 
-void virNetMessageClear(virNetMessagePtr msg)
+void
+virNetMessageClearPayload(virNetMessagePtr msg)
 {
-    bool tracked = msg->tracked;
     size_t i;
-
-    VIR_DEBUG("msg=%p nfds=%zu", msg, msg->nfds);
 
     for (i = 0; i < msg->nfds; i++)
         VIR_FORCE_CLOSE(msg->fds[i]);
+
+    msg->donefds = 0;
+    msg->nfds = 0;
     VIR_FREE(msg->fds);
+
+    msg->bufferOffset = 0;
+    msg->bufferLength = 0;
     VIR_FREE(msg->buffer);
+}
+
+
+void virNetMessageClear(virNetMessagePtr msg)
+{
+    bool tracked = msg->tracked;
+
+    VIR_DEBUG("msg=%p nfds=%zu", msg, msg->nfds);
+
+    virNetMessageClearPayload(msg);
     memset(msg, 0, sizeof(*msg));
     msg->tracked = tracked;
 }
@@ -67,7 +81,6 @@ void virNetMessageClear(virNetMessagePtr msg)
 
 void virNetMessageFree(virNetMessagePtr msg)
 {
-    size_t i;
     if (!msg)
         return;
 
@@ -76,10 +89,7 @@ void virNetMessageFree(virNetMessagePtr msg)
     if (msg->cb)
         msg->cb(msg, msg->opaque);
 
-    for (i = 0; i < msg->nfds; i++)
-        VIR_FORCE_CLOSE(msg->fds[i]);
-    VIR_FREE(msg->buffer);
-    VIR_FREE(msg->fds);
+    virNetMessageClearPayload(msg);
     VIR_FREE(msg);
 }
 

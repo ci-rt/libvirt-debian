@@ -88,9 +88,9 @@ bhyveAutostartDomain(virDomainObjPtr vm, void *opaque)
         ret = virBhyveProcessStart(data->conn, data->driver, vm,
                                    VIR_DOMAIN_RUNNING_BOOTED, 0);
         if (ret < 0) {
-            virErrorPtr err = virGetLastError();
-            VIR_ERROR(_("Failed to autostart VM '%s': %s"),
-                      vm->def->name, err ? err->message : _("unknown error"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to autostart VM '%s': %s"),
+                           vm->def->name, virGetLastErrorMessage());
         }
     }
     virObjectUnlock(vm);
@@ -1018,6 +1018,32 @@ bhyveDomainDestroy(virDomainPtr dom)
 }
 
 static int
+bhyveDomainShutdown(virDomainPtr dom)
+{
+    virDomainObjPtr vm;
+    int ret = -1;
+
+    if (!(vm = bhyveDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainShutdownEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("Domain is not running"));
+        goto cleanup;
+    }
+
+    ret = virBhyveProcessShutdown(vm);
+
+ cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+static int
 bhyveDomainOpenConsole(virDomainPtr dom,
                        const char *dev_name ATTRIBUTE_UNUSED,
                        virStreamPtr st,
@@ -1482,6 +1508,34 @@ bhyveDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
     return ret;
 }
 
+static const char *
+bhyveConnectGetType(virConnectPtr conn)
+{
+    if (virConnectGetTypeEnsureACL(conn) < 0)
+        return NULL;
+
+    return "BHYVE";
+}
+
+static int bhyveConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
+}
+
+static int
+bhyveConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* Trivially secure, since always inside the daemon */
+    return 1;
+}
+
+static int
+bhyveConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* Not encrypted, but remote driver takes care of that */
+    return 0;
+}
+
 static virHypervisorDriver bhyveHypervisorDriver = {
     .name = "bhyve",
     .connectOpen = bhyveConnectOpen, /* 1.2.2 */
@@ -1502,6 +1556,7 @@ static virHypervisorDriver bhyveHypervisorDriver = {
     .domainCreateWithFlags = bhyveDomainCreateWithFlags, /* 1.2.3 */
     .domainCreateXML = bhyveDomainCreateXML, /* 1.2.4 */
     .domainDestroy = bhyveDomainDestroy, /* 1.2.2 */
+    .domainShutdown = bhyveDomainShutdown, /* 1.3.3 */
     .domainLookupByUUID = bhyveDomainLookupByUUID, /* 1.2.2 */
     .domainLookupByName = bhyveDomainLookupByName, /* 1.2.2 */
     .domainLookupByID = bhyveDomainLookupByID, /* 1.2.3 */
@@ -1530,6 +1585,10 @@ static virHypervisorDriver bhyveHypervisorDriver = {
     .connectDomainEventRegisterAny = bhyveConnectDomainEventRegisterAny, /* 1.2.5 */
     .connectDomainEventDeregisterAny = bhyveConnectDomainEventDeregisterAny, /* 1.2.5 */
     .domainHasManagedSaveImage = bhyveDomainHasManagedSaveImage, /* 1.2.13 */
+    .connectGetType = bhyveConnectGetType, /* 1.3.5 */
+    .connectIsAlive = bhyveConnectIsAlive, /* 1.3.5 */
+    .connectIsSecure = bhyveConnectIsSecure, /* 1.3.5 */
+    .connectIsEncrypted = bhyveConnectIsEncrypted, /* 1.3.5 */
 };
 
 

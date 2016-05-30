@@ -40,7 +40,8 @@
 
 VIR_ENUM_IMPL(virHostValidateCPUFlag, VIR_HOST_VALIDATE_CPU_FLAG_LAST,
               "vmx",
-              "svm");
+              "svm",
+              "sie");
 
 static bool quiet;
 
@@ -212,10 +213,11 @@ virBitmapPtr virHostValidateGetCPUFlags(void)
         if (!fgets(line, sizeof(line), fp))
             break;
 
-        /* The line we're interested in is marked either as "flags" or
-         * as "Features" depending on the architecture, so check both
-         * prefixes */
-        if (!STRPREFIX(line, "flags") && !STRPREFIX(line, "Features"))
+        /* The line we're interested in is marked differently depending
+         * on the architecture, so check possible prefixes */
+        if (!STRPREFIX(line, "flags") &&
+            !STRPREFIX(line, "Features") &&
+            !STRPREFIX(line, "features"))
             continue;
 
         /* fgets() includes the trailing newline in the output buffer,

@@ -452,48 +452,19 @@ virQEMUCapsPtr
 qemuTestParseCapabilities(const char *capsFile)
 {
     virQEMUCapsPtr qemuCaps = NULL;
-    xmlDocPtr xml;
-    xmlXPathContextPtr ctxt = NULL;
-    ssize_t i, n;
-    xmlNodePtr *nodes = NULL;
+    time_t qemuctime;
+    time_t selfctime;
+    unsigned long version;
 
-    if (!(xml = virXMLParseFileCtxt(capsFile, &ctxt)))
+    if (!(qemuCaps = virQEMUCapsNew()) ||
+        virQEMUCapsLoadCache(qemuCaps, capsFile,
+                             &qemuctime, &selfctime, &version) < 0)
         goto error;
 
-    if ((n = virXPathNodeSet("/qemuCaps/flag", ctxt, &nodes)) < 0) {
-        fprintf(stderr, "failed to parse qemu capabilities flags");
-        goto error;
-    }
-
-    if (n > 0) {
-        if (!(qemuCaps = virQEMUCapsNew()))
-            goto error;
-
-        for (i = 0; i < n; i++) {
-            char *str = virXMLPropString(nodes[i], "name");
-            if (str) {
-                int flag = virQEMUCapsTypeFromString(str);
-                if (flag < 0) {
-                    fprintf(stderr, "Unknown qemu capabilities flag %s", str);
-                    VIR_FREE(str);
-                    goto error;
-                }
-                VIR_FREE(str);
-                virQEMUCapsSet(qemuCaps, flag);
-            }
-        }
-    }
-
-    VIR_FREE(nodes);
-    xmlFreeDoc(xml);
-    xmlXPathFreeContext(ctxt);
     return qemuCaps;
 
  error:
-    VIR_FREE(nodes);
     virObjectUnref(qemuCaps);
-    xmlFreeDoc(xml);
-    xmlXPathFreeContext(ctxt);
     return NULL;
 }
 
@@ -583,6 +554,42 @@ int qemuTestDriverInit(virQEMUDriver *driver)
     virObjectUnref(mgr);
     qemuTestDriverFree(driver);
     return -1;
+}
+
+int
+testQemuCapsSetGIC(virQEMUCapsPtr qemuCaps,
+                   int gic)
+{
+    virGICCapability *gicCapabilities = NULL;
+    size_t ngicCapabilities = 0;
+    int ret = -1;
+
+    if (VIR_ALLOC_N(gicCapabilities, 2) < 0)
+        goto out;
+
+# define IMPL_BOTH \
+         VIR_GIC_IMPLEMENTATION_KERNEL|VIR_GIC_IMPLEMENTATION_EMULATED
+
+    if (gic & GIC_V2) {
+        gicCapabilities[ngicCapabilities].version = VIR_GIC_VERSION_2;
+        gicCapabilities[ngicCapabilities].implementation = IMPL_BOTH;
+        ngicCapabilities++;
+    }
+    if (gic & GIC_V3) {
+        gicCapabilities[ngicCapabilities].version = VIR_GIC_VERSION_3;
+        gicCapabilities[ngicCapabilities].implementation = IMPL_BOTH;
+        ngicCapabilities++;
+    }
+
+# undef IMPL_BOTH
+
+    virQEMUCapsSetGICCapabilities(qemuCaps,
+                                  gicCapabilities, ngicCapabilities);
+
+    ret = 0;
+
+ out:
+    return ret;
 }
 
 #endif

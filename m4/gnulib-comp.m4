@@ -196,6 +196,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module gnumakefile:
   # Code from module grantpt:
   # Code from module grantpt-tests:
+  # Code from module hard-locale:
   # Code from module havelib:
   # Code from module hostent:
   # Code from module ignore-value:
@@ -761,6 +762,7 @@ AC_SUBST([LTALLOCA])
           m4_defn([m4_PACKAGE_VERSION])), [1], [],
         [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
           [GNUmakefile=$GNUmakefile])])
+  gl_HARD_LOCALE
   gl_HOSTENT
   gl_FUNC_INET_NTOP
   if test $HAVE_INET_NTOP = 0 || test $REPLACE_INET_NTOP = 1; then
@@ -1773,6 +1775,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/glthread/lock.c
   lib/glthread/lock.h
   lib/glthread/threadlib.c
+  lib/hard-locale.c
+  lib/hard-locale.h
   lib/ignore-value.h
   lib/inet_ntop.c
   lib/inet_pton.c
@@ -2016,6 +2020,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/glibc21.m4
   m4/gnulib-common.m4
   m4/grantpt.m4
+  m4/hard-locale.m4
   m4/hostent.m4
   m4/include_next.m4
   m4/inet_ntop.m4
@@ -2327,6 +2332,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-mbrtowc2.sh
   tests/test-mbrtowc3.sh
   tests/test-mbrtowc4.sh
+  tests/test-mbrtowc5.sh
   tests/test-mbsinit.c
   tests/test-mbsinit.sh
   tests/test-mbsrtowcs.c

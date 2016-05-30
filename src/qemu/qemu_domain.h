@@ -190,7 +190,6 @@ struct _qemuDomainObjPrivate {
     virDomainPCIAddressSetPtr pciaddrs;
     virDomainCCWAddressSetPtr ccwaddrs;
     virDomainVirtioSerialAddrSetPtr vioserialaddrs;
-    int persistentAddrs;
 
     virQEMUCapsPtr qemuCaps;
     char *lockState;
@@ -239,6 +238,43 @@ struct _qemuDomainObjPrivate {
     size_t masterKeyLen;
 };
 
+/* Type of domain secret */
+typedef enum {
+    VIR_DOMAIN_SECRET_INFO_TYPE_PLAIN = 0,
+    VIR_DOMAIN_SECRET_INFO_TYPE_AES,  /* utilize GNUTLS_CIPHER_AES_256_CBC */
+
+    VIR_DOMAIN_SECRET_INFO_TYPE_LAST
+} qemuDomainSecretInfoType;
+
+typedef struct _qemuDomainSecretPlain qemuDomainSecretPlain;
+typedef struct _qemuDomainSecretPlain *qemuDomainSecretPlainPtr;
+struct _qemuDomainSecretPlain {
+    char *username;
+    uint8_t *secret;
+    size_t secretlen;
+};
+
+# define QEMU_DOMAIN_AES_IV_LEN 16   /* 16 bytes for 128 bit random */
+                                     /*    initialization vector */
+typedef struct _qemuDomainSecretAES qemuDomainSecretAES;
+typedef struct _qemuDomainSecretAES *qemuDomainSecretAESPtr;
+struct _qemuDomainSecretAES {
+    char *username;
+    char *alias;      /* generated alias for secret */
+    char *iv;         /* base64 encoded initialization vector */
+    char *ciphertext; /* encoded/encrypted secret */
+};
+
+typedef struct _qemuDomainSecretInfo qemuDomainSecretInfo;
+typedef qemuDomainSecretInfo *qemuDomainSecretInfoPtr;
+struct _qemuDomainSecretInfo {
+    qemuDomainSecretInfoType type;
+    union {
+        qemuDomainSecretPlain plain;
+        qemuDomainSecretAES aes;
+    } s;
+};
+
 # define QEMU_DOMAIN_DISK_PRIVATE(disk)	\
     ((qemuDomainDiskPrivatePtr) (disk)->privateData)
 
@@ -258,6 +294,36 @@ struct _qemuDomainDiskPrivate {
     bool blockJobSync; /* the block job needs synchronized termination */
 
     bool migrating; /* the disk is being migrated */
+
+    /* for storage devices using auth/secret
+     * NB: *not* to be written to qemu domain object XML */
+    qemuDomainSecretInfoPtr secinfo;
+
+    /* information about the device */
+    bool tray; /* device has tray */
+    bool removable; /* device media can be removed/changed */
+};
+
+# define QEMU_DOMAIN_HOSTDEV_PRIVATE(hostdev)	\
+    ((qemuDomainHostdevPrivatePtr) (hostdev)->privateData)
+
+struct qemuDomainDiskInfo {
+    bool removable;
+    bool locked;
+    bool tray;
+    bool tray_open;
+    bool empty;
+    int io_status;
+};
+
+typedef struct _qemuDomainHostdevPrivate qemuDomainHostdevPrivate;
+typedef qemuDomainHostdevPrivate *qemuDomainHostdevPrivatePtr;
+struct _qemuDomainHostdevPrivate {
+    virObject parent;
+
+    /* for hostdev storage devices using auth/secret
+     * NB: *not* to be written to qemu domain object XML */
+    qemuDomainSecretInfoPtr secinfo;
 };
 
 typedef enum {
@@ -470,8 +536,7 @@ int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                                  bool force_probe,
                                  bool report_broken);
 
-bool qemuDomainDiskSourceDiffers(virConnectPtr conn,
-                                 virDomainDiskDefPtr disk,
+bool qemuDomainDiskSourceDiffers(virDomainDiskDefPtr disk,
                                  virDomainDiskDefPtr origDisk);
 
 bool qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
@@ -545,6 +610,7 @@ bool qemuDomainMachineIsQ35(const virDomainDef *def);
 bool qemuDomainMachineIsI440FX(const virDomainDef *def);
 bool qemuDomainMachineNeedsFDC(const virDomainDef *def);
 bool qemuDomainMachineIsS390CCW(const virDomainDef *def);
+bool qemuDomainMachineIsVirt(const virDomainDef *def);
 bool qemuDomainMachineHasBuiltinIDE(const virDomainDef *def);
 
 int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
@@ -564,7 +630,6 @@ int qemuDomainDetectVcpuPids(virQEMUDriverPtr driver, virDomainObjPtr vm,
                              int asyncJob);
 
 bool qemuDomainSupportsNicdev(virDomainDefPtr def,
-                              virQEMUCapsPtr qemuCaps,
                               virDomainNetDefPtr net);
 
 bool qemuDomainSupportsNetdev(virDomainDefPtr def,
@@ -584,9 +649,36 @@ char *qemuDomainGetMasterKeyFilePath(const char *libDir);
 
 int qemuDomainMasterKeyReadFile(qemuDomainObjPrivatePtr priv);
 
-int qemuDomainMasterKeyCreate(virQEMUDriverPtr driver,
-                              virDomainObjPtr vm);
+int qemuDomainWriteMasterKeyFile(virQEMUDriverPtr driver,
+                                 virDomainObjPtr vm);
+
+int qemuDomainMasterKeyCreate(virDomainObjPtr vm);
 
 void qemuDomainMasterKeyRemove(qemuDomainObjPrivatePtr priv);
+
+void qemuDomainSecretDiskDestroy(virDomainDiskDefPtr disk)
+    ATTRIBUTE_NONNULL(1);
+
+int qemuDomainSecretDiskPrepare(virConnectPtr conn,
+                                qemuDomainObjPrivatePtr priv,
+                                virDomainDiskDefPtr disk)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+void qemuDomainSecretHostdevDestroy(virDomainHostdevDefPtr disk)
+    ATTRIBUTE_NONNULL(1);
+
+int qemuDomainSecretHostdevPrepare(virConnectPtr conn,
+                                   qemuDomainObjPrivatePtr priv,
+                                   virDomainHostdevDefPtr hostdev)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+void qemuDomainSecretDestroy(virDomainObjPtr vm)
+    ATTRIBUTE_NONNULL(1);
+
+int qemuDomainSecretPrepare(virConnectPtr conn, virDomainObjPtr vm)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuDomainDefValidateDiskLunSource(const virStorageSource *src)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __QEMU_DOMAIN_H__ */

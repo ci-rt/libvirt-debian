@@ -281,9 +281,9 @@ const char *
 virGetLastErrorMessage(void)
 {
     virErrorPtr err = virLastErrorObject();
-    if (!err || err->code == VIR_ERR_OK)
+    if (err && err->code == VIR_ERR_OK)
         return _("no error");
-    if (err->message == NULL)
+    if (!err || !err->message)
         return _("unknown error");
     return err->message;
 }
@@ -1387,6 +1387,12 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("Server not found");
             else
                 errmsg = _("Server not found: %s");
+            break;
+        case VIR_ERR_NO_CLIENT:
+            if (info == NULL)
+                errmsg = _("Client not found");
+            else
+                errmsg = _("Client not found: %s");
             break;
     }
     return errmsg;

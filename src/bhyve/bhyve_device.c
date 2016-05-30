@@ -40,7 +40,7 @@ bhyveCollectPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
 {
     int ret = -1;
     virDomainPCIAddressSetPtr addrs = opaque;
-    virDevicePCIAddressPtr addr = &info->addr.pci;
+    virPCIDeviceAddressPtr addr = &info->addr.pci;
 
     if (addr->domain == 0 && addr->bus == 0) {
         if (addr->slot == 0) {
@@ -88,7 +88,7 @@ bhyveAssignDevicePCISlots(virDomainDefPtr def,
                           virDomainPCIAddressSetPtr addrs)
 {
     size_t i;
-    virDevicePCIAddress lpc_addr;
+    virPCIDeviceAddress lpc_addr;
 
     /* explicitly reserve slot 1 for LPC-ISA bridge */
     memset(&lpc_addr, 0, sizeof(lpc_addr));
@@ -98,7 +98,7 @@ bhyveAssignDevicePCISlots(virDomainDefPtr def,
         goto error;
 
     for (i = 0; i < def->nnets; i++) {
-        if (def->nets[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        if (!virDeviceInfoPCIAddressWanted(&def->nets[i]->info))
             continue;
         if (virDomainPCIAddressReserveNextSlot(addrs,
                                                &def->nets[i]->info,
@@ -107,8 +107,7 @@ bhyveAssignDevicePCISlots(virDomainDefPtr def,
     }
 
     for (i = 0; i < def->ndisks; i++) {
-        if (def->disks[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
-            def->disks[i]->info.addr.pci.slot != 0)
+        if (!virDeviceInfoPCIAddressWanted(&def->disks[i]->info))
             continue;
         if (virDomainPCIAddressReserveNextSlot(addrs,
                                                &def->disks[i]->info,
@@ -118,9 +117,8 @@ bhyveAssignDevicePCISlots(virDomainDefPtr def,
 
     for (i = 0; i < def->ncontrollers; i++) {
         if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) {
-            if (def->controllers[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
-                continue;
-            if (def->controllers[i]->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT)
+            if (def->controllers[i]->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT ||
+                !virDeviceInfoPCIAddressWanted(&def->controllers[i]->info))
                 continue;
 
             if (virDomainPCIAddressReserveNextSlot(addrs,

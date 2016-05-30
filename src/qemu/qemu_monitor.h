@@ -404,9 +404,6 @@ int qemuMonitorSetMemoryStatsPeriod(qemuMonitorPtr mon,
 
 int qemuMonitorBlockIOStatusToError(const char *status);
 virHashTablePtr qemuMonitorGetBlockInfo(qemuMonitorPtr mon);
-struct qemuDomainDiskInfo *
-qemuMonitorBlockInfoLookup(virHashTablePtr blockInfo,
-                           const char *dev_name);
 
 typedef struct _qemuBlockStats qemuBlockStats;
 typedef qemuBlockStats *qemuBlockStatsPtr;
@@ -628,43 +625,6 @@ int qemuMonitorGraphicsRelocate(qemuMonitorPtr mon,
                                 int tlsPort,
                                 const char *tlsSubject);
 
-/* XXX disk driver type eg,  qcow/etc.
- * XXX cache mode
- */
-int qemuMonitorAddUSBDisk(qemuMonitorPtr mon,
-                          const char *path);
-
-int qemuMonitorAddUSBDeviceExact(qemuMonitorPtr mon,
-                                 int bus,
-                                 int dev);
-int qemuMonitorAddUSBDeviceMatch(qemuMonitorPtr mon,
-                                 int vendor,
-                                 int product);
-
-
-int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
-                                virDevicePCIAddress *hostAddr,
-                                virDevicePCIAddress *guestAddr);
-
-/* XXX disk driver type eg,  qcow/etc.
- * XXX cache mode
- */
-int qemuMonitorAddPCIDisk(qemuMonitorPtr mon,
-                          const char *path,
-                          const char *bus,
-                          virDevicePCIAddress *guestAddr);
-
-/* XXX do we really want to hardcode 'nicstr' as the
- * sendable item here
- */
-int qemuMonitorAddPCINetwork(qemuMonitorPtr mon,
-                             const char *nicstr,
-                             virDevicePCIAddress *guestAddr);
-
-int qemuMonitorRemovePCIDevice(qemuMonitorPtr mon,
-                               virDevicePCIAddress *guestAddr);
-
-
 int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
                               const char *fdname,
                               int fd);
@@ -712,17 +672,7 @@ int qemuMonitorGetChardevInfo(qemuMonitorPtr mon,
 
 int qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
                                        const char *bus,
-                                       virDevicePCIAddress *guestAddr);
-
-typedef struct _qemuMonitorPCIAddress qemuMonitorPCIAddress;
-struct _qemuMonitorPCIAddress {
-    unsigned int vendor;
-    unsigned int product;
-    virDevicePCIAddress addr;
-};
-
-int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
-                                  qemuMonitorPCIAddress **addrs);
+                                       virPCIDeviceAddress *guestAddr);
 
 int qemuMonitorAddDevice(qemuMonitorPtr mon,
                          const char *devicestr);
@@ -854,8 +804,7 @@ int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
 
 int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
-                                  virDomainBlockIoTuneInfoPtr reply,
-                                  bool supportMaxOptions);
+                                  virDomainBlockIoTuneInfoPtr reply);
 
 int qemuMonitorSystemWakeup(qemuMonitorPtr mon);
 
@@ -969,5 +918,8 @@ int qemuMonitorMigrateIncoming(qemuMonitorPtr mon,
                                const char *uri);
 
 int qemuMonitorMigrateStartPostCopy(qemuMonitorPtr mon);
+
+int qemuMonitorGetRTCTime(qemuMonitorPtr mon,
+                          struct tm *tm);
 
 #endif /* QEMU_MONITOR_H */

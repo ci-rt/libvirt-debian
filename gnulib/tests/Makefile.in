@@ -256,35 +256,36 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/gl-openssl.m4 \
 	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
-	$(top_srcdir)/m4/hostent.m4 $(top_srcdir)/m4/iconv.m4 \
-	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
-	$(top_srcdir)/m4/inet_pton.m4 $(top_srcdir)/m4/intlmacosx.m4 \
-	$(top_srcdir)/m4/intmax_t.m4 $(top_srcdir)/m4/inttypes-pri.m4 \
-	$(top_srcdir)/m4/inttypes.m4 $(top_srcdir)/m4/inttypes_h.m4 \
-	$(top_srcdir)/m4/ioctl.m4 $(top_srcdir)/m4/isatty.m4 \
-	$(top_srcdir)/m4/isnand.m4 $(top_srcdir)/m4/isnanf.m4 \
-	$(top_srcdir)/m4/isnanl.m4 $(top_srcdir)/m4/langinfo_h.m4 \
-	$(top_srcdir)/m4/largefile.m4 $(top_srcdir)/m4/lcmessage.m4 \
-	$(top_srcdir)/m4/ldexp.m4 $(top_srcdir)/m4/lib-ld.m4 \
-	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
-	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/localcharset.m4 \
-	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
-	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
-	$(top_srcdir)/m4/locale_h.m4 $(top_srcdir)/m4/localeconv.m4 \
-	$(top_srcdir)/m4/localename.m4 $(top_srcdir)/m4/lock.m4 \
-	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
-	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
-	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
-	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
-	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
-	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
-	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
-	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
-	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
-	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
-	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/hard-locale.m4 $(top_srcdir)/m4/hostent.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/include_next.m4 \
+	$(top_srcdir)/m4/inet_ntop.m4 $(top_srcdir)/m4/inet_pton.m4 \
+	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax_t.m4 \
+	$(top_srcdir)/m4/inttypes-pri.m4 $(top_srcdir)/m4/inttypes.m4 \
+	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/ioctl.m4 \
+	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isnand.m4 \
+	$(top_srcdir)/m4/isnanf.m4 $(top_srcdir)/m4/isnanl.m4 \
+	$(top_srcdir)/m4/langinfo_h.m4 $(top_srcdir)/m4/largefile.m4 \
+	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
+	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
+	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/localcharset.m4 $(top_srcdir)/m4/locale-fr.m4 \
+	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
+	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
+	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
+	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
+	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
+	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
+	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
+	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
+	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
+	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
+	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
+	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
+	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
+	$(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -353,10 +354,12 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
+	$(top_srcdir)/m4/virt-driver-uml.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
+	$(top_srcdir)/m4/virt-init-script.m4 \
 	$(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
@@ -1727,16 +1730,17 @@ am__EXEEXT_2 = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
 	test-lseek.sh test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
 	test-math$(EXEEXT) test-mbrtowc1.sh test-mbrtowc2.sh \
-	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc-w32-1.sh \
-	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
-	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbsinit.sh \
-	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
-	test-mbsrtowcs4.sh test-memchr$(EXEEXT) \
-	test-nanosleep$(EXEEXT) test-net_if$(EXEEXT) \
-	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) \
-	test-nl_langinfo.sh test-nonblocking-pipe.sh \
-	test-nonblocking-socket.sh test-nonblocking$(EXEEXT) \
-	test-open$(EXEEXT) test-openpty$(EXEEXT) test-passfd$(EXEEXT) \
+	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc5.sh \
+	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
+	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
+	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
+	test-memchr$(EXEEXT) test-nanosleep$(EXEEXT) \
+	test-net_if$(EXEEXT) test-netdb$(EXEEXT) \
+	test-netinet_in$(EXEEXT) test-nl_langinfo.sh \
+	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
+	test-nonblocking$(EXEEXT) test-open$(EXEEXT) \
+	test-openpty$(EXEEXT) test-passfd$(EXEEXT) \
 	test-pathmax$(EXEEXT) test-perror.sh test-perror2$(EXEEXT) \
 	test-pipe$(EXEEXT) test-pipe2$(EXEEXT) test-poll-h$(EXEEXT) \
 	test-poll$(EXEEXT) test-posix_openpt$(EXEEXT) \
@@ -1889,7 +1893,6 @@ DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMIDECODE = @DMIDECODE@
-DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
 DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
@@ -3310,17 +3313,17 @@ GNULIB_TESTS = test-accept test-alloca-opt test-areadlink \
 	test-langinfo test-ldexp test-listen test-locale \
 	test-localeconv test-localename test-lseek.sh test-lstat \
 	test-malloca test-math test-mbrtowc1.sh test-mbrtowc2.sh \
-	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc-w32-1.sh \
-	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
-	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbsinit.sh \
-	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
-	test-mbsrtowcs4.sh test-memchr test-nanosleep test-net_if \
-	test-netdb test-netinet_in test-nl_langinfo.sh \
-	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
-	test-nonblocking test-open test-openpty test-passfd \
-	test-pathmax test-perror.sh test-perror2 test-pipe test-pipe2 \
-	test-poll-h test-poll test-posix_openpt \
-	test-posix_spawn_file_actions_addclose \
+	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc5.sh \
+	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
+	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
+	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
+	test-memchr test-nanosleep test-net_if test-netdb \
+	test-netinet_in test-nl_langinfo.sh test-nonblocking-pipe.sh \
+	test-nonblocking-socket.sh test-nonblocking test-open \
+	test-openpty test-passfd test-pathmax test-perror.sh \
+	test-perror2 test-pipe test-pipe2 test-poll-h test-poll \
+	test-posix_openpt test-posix_spawn_file_actions_addclose \
 	test-posix_spawn_file_actions_adddup2 \
 	test-posix_spawn_file_actions_addopen $(am__append_1) \
 	test-pthread_sigmask1 test-pthread_sigmask2 test-ptsname \
@@ -3422,16 +3425,17 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-lseek.sh signature.h macros.h test-lstat.h test-lstat.c \
 	signature.h macros.h test-malloca.c math.in.h test-math.c \
 	macros.h test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
-	test-mbrtowc4.sh test-mbrtowc.c test-mbrtowc-w32-1.sh \
-	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
-	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbrtowc-w32.c \
-	signature.h macros.h test-mbsinit.sh test-mbsinit.c \
-	signature.h macros.h test-mbsrtowcs1.sh test-mbsrtowcs2.sh \
-	test-mbsrtowcs3.sh test-mbsrtowcs4.sh test-mbsrtowcs.c \
-	signature.h macros.h test-memchr.c zerosize-ptr.h signature.h \
-	macros.h nanosleep.c test-nanosleep.c signature.h macros.h \
-	test-net_if.c signature.h test-netdb.c test-netinet_in.c \
-	test-nl_langinfo.sh test-nl_langinfo.c signature.h macros.h \
+	test-mbrtowc4.sh test-mbrtowc5.sh test-mbrtowc.c \
+	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
+	test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h \
+	test-mbsinit.sh test-mbsinit.c signature.h macros.h \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-mbsrtowcs.c signature.h macros.h \
+	test-memchr.c zerosize-ptr.h signature.h macros.h nanosleep.c \
+	test-nanosleep.c signature.h macros.h test-net_if.c \
+	signature.h test-netdb.c test-netinet_in.c test-nl_langinfo.sh \
+	test-nl_langinfo.c signature.h macros.h \
 	test-nonblocking-pipe.sh test-nonblocking-pipe-main.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe.h \
 	test-nonblocking-writer.h test-nonblocking-reader.h \
@@ -3528,12 +3532,17 @@ BUILT_SOURCES = ctype.h inttypes.h math.h $(am__append_3) \
 	arg-nonnull.h c++defs.h unused-parameter.h warn-on-use.h \
 	spawn.h
 SUFFIXES = 
+
+# This test expects compilation of test-verify.c to fail, and
+# each time it fails, the makefile rule does not perform the usual
+#  "mv -f $name.Tpo $name.po, so tell make clean to remove that file.
 MOSTLYCLEANFILES = core *.stackdump ctype.h ctype.h-t test-fflush.txt \
 	t-fpurge.tmp t-freading.tmp t-ftell3.tmp t-ftello3.tmp \
 	test-getdelim.txt test-getline.txt inttypes.h inttypes.h-t \
 	math.h math.h-t $(am__append_4) arg-nonnull.h arg-nonnull.h-t \
 	c++defs.h c++defs.h-t unused-parameter.h unused-parameter.h-t \
-	warn-on-use.h warn-on-use.h-t spawn.h spawn.h-t
+	warn-on-use.h warn-on-use.h-t spawn.h spawn.h-t \
+	.deps/test-verify.Tpo
 MOSTLYCLEANDIRS = 
 CLEANFILES = 
 DISTCLEANFILES = 
@@ -5656,6 +5665,13 @@ test-mbrtowc3.sh.log: test-mbrtowc3.sh
 test-mbrtowc4.sh.log: test-mbrtowc4.sh
 	@p='test-mbrtowc4.sh'; \
 	b='test-mbrtowc4.sh'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-mbrtowc5.sh.log: test-mbrtowc5.sh
+	@p='test-mbrtowc5.sh'; \
+	b='test-mbrtowc5.sh'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

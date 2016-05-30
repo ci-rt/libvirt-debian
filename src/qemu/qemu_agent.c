@@ -1770,7 +1770,7 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
     virJSONValuePtr reply = NULL;
     virJSONValuePtr data;
     virDomainFSInfoPtr *info_ret = NULL;
-    virDevicePCIAddress pci_address;
+    virPCIDeviceAddress pci_address;
 
     cmd = qemuAgentMakeCommand("guest-get-fsinfo", NULL);
     if (!cmd)
@@ -2142,11 +2142,9 @@ qemuAgentSetUserPassword(qemuAgentPtr mon,
     virJSONValuePtr reply = NULL;
     char *password64 = NULL;
 
-    base64_encode_alloc(password, strlen(password), &password64);
-    if (!password64) {
-        virReportOOMError();
+    if (!(password64 = virStringEncodeBase64((unsigned char *) password,
+                                             strlen(password))))
         goto cleanup;
-    }
 
     if (!(cmd = qemuAgentMakeCommand("guest-set-user-password",
                                      "b:crypted", crypted,

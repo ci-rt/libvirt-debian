@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.3.4], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.3.5], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -332,6 +332,7 @@ AC_CHECK_HEADERS([pwd.h regex.h sys/un.h \
   libtasn1.h sys/ucred.h sys/mount.h])
 dnl Check whether endian provides handy macros.
 AC_CHECK_DECLS([htole64], [], [], [[#include <endian.h>]])
+AC_CHECK_FUNCS([stat stat64 __xstat __xstat64 lstat lstat64 __lxstat __lxstat64])
 
 dnl We need to decide at configure time if libvirt will use real atomic
 dnl operations ("lock free") or emulated ones with a mutex.
@@ -537,10 +538,6 @@ AC_ARG_WITH([qemu],
   [AS_HELP_STRING([--with-qemu],
     [add QEMU/KVM support @<:@default=yes@:>@])])
 m4_divert_text([DEFAULTS], [with_qemu=yes])
-AC_ARG_WITH([uml],
-  [AS_HELP_STRING([--with-uml],
-    [add UML support @<:@default=check@:>@])])
-m4_divert_text([DEFAULTS], [with_uml=check])
 AC_ARG_WITH([openvz],
   [AS_HELP_STRING([--with-openvz],
     [add OpenVZ support @<:@default=check@:>@])])
@@ -616,51 +613,7 @@ if test x"$enable_debug" = x"yes"; then
    AC_DEFINE([ENABLE_DEBUG], [], [whether debugging is enabled])
 fi
 
-
-
-dnl
-dnl init script flavor
-dnl
-AC_MSG_CHECKING([for init script flavor])
-AC_ARG_WITH([init-script],
-  [AS_HELP_STRING([--with-init-script@<:@=STYLE@:>@],
-    [Style of init script to install: redhat, systemd, systemd+redhat,
-     upstart, check, none @<:@default=check@:>@])],
-  [],[with_init_script=check])
-init_redhat=no
-init_systemd=no
-init_upstart=no
-case "$with_init_script" in
-    systemd+redhat)
-       init_redhat=yes
-       init_systemd=yes
-       ;;
-    systemd)
-       init_systemd=yes
-       ;;
-    upstart)
-       init_upstart=yes
-       ;;
-    redhat)
-       init_redhat=yes
-       ;;
-    none)
-       ;;
-    check)
-       if test "$cross_compiling" != yes && test -f /etc/redhat-release; then
-          init_redhat=yes
-          with_init_script=redhat
-       fi
-       ;;
-    *)
-       AC_MSG_ERROR([Unknown initscript flavour $with_init_script])
-    ;;
-esac
-AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_RED_HAT], test "$init_redhat" = "yes")
-AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_UPSTART], test "$init_upstart" = "yes")
-AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_SYSTEMD], test "$init_systemd" = "yes")
-AC_MSG_RESULT($with_init_script)
-
+LIBVIRT_CHECK_INIT_SCRIPT
 
 AC_MSG_CHECKING([for whether to install sysctl config])
 AC_ARG_WITH([sysctl],
@@ -919,10 +872,11 @@ if test "$with_libxl" != "no" ; then
     fi
 fi
 
-# Until there is a need to use enhancements of libxl APIs such as
-# libxl_domain_create_restore and libxl_set_vcpuaffinity, stick with
-# the APIs as defined in libxl API version 4.2.0.
-LIBXL_CFLAGS="$LIBXL_CFLAGS -DLIBXL_API_VERSION=0x040200"
+# LIBXL_API_VERSION 4.4.0 introduced a new parameter to
+# libxl_domain_create_restore for specifying restore parameters.
+# The libxl driver will make use of this new parameter for specifying
+# the Xen migration stream version.
+LIBXL_CFLAGS="$LIBXL_CFLAGS -DLIBXL_API_VERSION=0x040400"
 LIBS="$old_LIBS"
 CFLAGS="$old_CFLAGS"
 
@@ -1308,6 +1262,7 @@ if test "x$with_gnutls" != "xno"; then
   ]])
 
   AC_CHECK_FUNCS([gnutls_rnd])
+  AC_CHECK_FUNCS([gnutls_cipher_encrypt])
 
   CFLAGS="$old_CFLAGS"
   LIBS="$old_LIBS"
@@ -1605,27 +1560,7 @@ dnl
 dnl Checks for the UML driver
 dnl
 
-if test "$with_libvirtd" = "no" ; then
-  with_uml=no
-fi
-if test "$with_uml" = "yes" || test "$with_uml" = "check"; then
-    AC_CHECK_HEADER([sys/inotify.h], [
-        with_uml=yes
-    ], [
-        if test "$with_uml" = "check"; then
-            with_uml=no
-            AC_MSG_NOTICE([<sys/inotify.h> is required for the UML driver, disabling it])
-        else
-            AC_MSG_ERROR([The <sys/inotify.h> is required for the UML driver. Upgrade your libc6.])
-        fi
-    ])
-fi
-if test "$with_uml" = "yes" ; then
-    AC_DEFINE_UNQUOTED([WITH_UML], 1, [whether UML driver is enabled])
-fi
-AM_CONDITIONAL([WITH_UML], [test "$with_uml" = "yes"])
-
-
+LIBVIRT_DRIVER_CHECK_UML
 
 dnl
 dnl check for PHYP
@@ -2025,17 +1960,10 @@ LIBPARTED_LIBS=
 if test "$with_storage_disk" = "yes" ||
    test "$with_storage_disk" = "check"; then
   AC_PATH_PROG([PARTED], [parted], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([DMSETUP], [dmsetup], [], [$PATH:/sbin:/usr/sbin])
   if test -z "$PARTED" ; then
     PARTED_FOUND=no
   else
     PARTED_FOUND=yes
-  fi
-
-  if test -z "$DMSETUP" ; then
-    DMSETUP_FOUND=no
-  else
-    DMSETUP_FOUND=yes
   fi
 
   if test "$PARTED_FOUND" = "yes" && test "x$PKG_CONFIG" != "x" ; then
@@ -2056,12 +1984,12 @@ if test "$with_storage_disk" = "yes" ||
   fi
 
   if test "$with_storage_disk" = "yes" &&
-     test "$PARTED_FOUND:$DMSETUP_FOUND" != "yes:yes"; then
-    AC_MSG_ERROR([Need both parted and dmsetup for disk storage driver])
+     test "$PARTED_FOUND" != "yes"; then
+    AC_MSG_ERROR([Need parted for disk storage driver])
   fi
 
   if test "$with_storage_disk" = "check"; then
-    if test "$PARTED_FOUND:$DMSETUP_FOUND" != "yes:yes"; then
+    if test "$PARTED_FOUND" != "yes"; then
       with_storage_disk=no
     else
       with_storage_disk=yes
@@ -2073,8 +2001,6 @@ if test "$with_storage_disk" = "yes" ||
       [whether Disk backend for storage driver is enabled])
     AC_DEFINE_UNQUOTED([PARTED],["$PARTED"],
       [Location or name of the parted program])
-    AC_DEFINE_UNQUOTED([DMSETUP],["$DMSETUP"],
-      [Location or name of the dmsetup program])
   fi
 fi
 AM_CONDITIONAL([WITH_STORAGE_DISK], [test "$with_storage_disk" = "yes"])
@@ -2791,7 +2717,7 @@ AC_MSG_NOTICE([Drivers])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([      Xen: $with_xen])
 AC_MSG_NOTICE([     QEMU: $with_qemu])
-AC_MSG_NOTICE([      UML: $with_uml])
+LIBVIRT_DRIVER_RESULT_UML
 AC_MSG_NOTICE([   OpenVZ: $with_openvz])
 AC_MSG_NOTICE([   VMware: $with_vmware])
 AC_MSG_NOTICE([     VBox: $with_vbox])
@@ -2944,7 +2870,7 @@ AC_MSG_NOTICE([     Warning Flags: $WARN_CFLAGS])
 AC_MSG_NOTICE([            DTrace: $with_dtrace])
 AC_MSG_NOTICE([             numad: $with_numad])
 AC_MSG_NOTICE([       XML Catalog: $XML_CATALOG_FILE])
-AC_MSG_NOTICE([       Init script: $with_init_script])
+LIBVIRT_RESULT_INIT_SCRIPT
 AC_MSG_NOTICE([ Char device locks: $with_chrdev_lock_files])
 AC_MSG_NOTICE([    Default Editor: $DEFAULT_EDITOR])
 AC_MSG_NOTICE([      Loader/NVRAM: $with_loader_nvram])

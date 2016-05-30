@@ -353,8 +353,6 @@ virNWFilterObjFree(virNWFilterObjPtr obj)
     virNWFilterDefFree(obj->def);
     virNWFilterDefFree(obj->newDef);
 
-    VIR_FREE(obj->configFile);
-
     virMutexDestroy(&obj->lock);
 
     VIR_FREE(obj);
@@ -2660,6 +2658,7 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt)
     }
 
     uuid = virXPathString("string(./uuid)", ctxt);
+    ret->uuid_specified = (uuid != NULL);
     if (uuid == NULL) {
         if (virUUIDGenerate(ret->uuid) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -3158,36 +3157,43 @@ virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
 
 
 static virNWFilterObjPtr
-virNWFilterObjLoad(virNWFilterObjListPtr nwfilters,
-                   const char *file,
-                   const char *path)
+virNWFilterLoadConfig(virNWFilterObjListPtr nwfilters,
+                      const char *configDir,
+                      const char *name)
 {
-    virNWFilterDefPtr def;
+    virNWFilterDefPtr def = NULL;
     virNWFilterObjPtr nwfilter;
+    char *configFile = NULL;
 
-    if (!(def = virNWFilterDefParseFile(path)))
-        return NULL;
+    if (!(configFile = virFileBuildPath(configDir, name, ".xml")))
+        goto error;
 
-    if (!virFileMatchesNameSuffix(file, def->name, ".xml")) {
+    if (!(def = virNWFilterDefParseFile(configFile)))
+        goto error;
+
+    if (STRNEQ(name, def->name)) {
         virReportError(VIR_ERR_XML_ERROR,
-                       _("network filter config filename '%s' does not match name '%s'"),
-                       path, def->name);
-        virNWFilterDefFree(def);
-        return NULL;
+                       _("network filter config filename '%s' "
+                         "does not match name '%s'"),
+                       configFile, def->name);
+        goto error;
     }
 
-    if (!(nwfilter = virNWFilterObjAssignDef(nwfilters, def))) {
-        virNWFilterDefFree(def);
-        return NULL;
-    }
+    /* We generated a UUID, make it permanent by saving the config to disk */
+    if (!def->uuid_specified &&
+        virNWFilterSaveConfig(configDir, def) < 0)
+        goto error;
 
-    VIR_FREE(nwfilter->configFile); /* for driver reload */
-    if (VIR_STRDUP(nwfilter->configFile, path) < 0) {
-        virNWFilterDefFree(def);
-        return NULL;
-    }
+    if (!(nwfilter = virNWFilterObjAssignDef(nwfilters, def)))
+        goto error;
 
+    VIR_FREE(configFile);
     return nwfilter;
+
+ error:
+    VIR_FREE(configFile);
+    virNWFilterDefFree(def);
+    return NULL;
 }
 
 
@@ -3208,23 +3214,17 @@ virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
     }
 
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
-        char *path;
         virNWFilterObjPtr nwfilter;
 
         if (entry->d_name[0] == '.')
             continue;
 
-        if (!virFileHasSuffix(entry->d_name, ".xml"))
+        if (!virFileStripSuffix(entry->d_name, ".xml"))
             continue;
 
-        if (!(path = virFileBuildPath(configDir, entry->d_name, NULL)))
-            continue;
-
-        nwfilter = virNWFilterObjLoad(nwfilters, entry->d_name, path);
+        nwfilter = virNWFilterLoadConfig(nwfilters, configDir, entry->d_name);
         if (nwfilter)
             virNWFilterObjUnlock(nwfilter);
-
-        VIR_FREE(path);
     }
 
     closedir(dir);
@@ -3234,60 +3234,66 @@ virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
 
 int
 virNWFilterObjSaveDef(virNWFilterDriverStatePtr driver,
-                      virNWFilterObjPtr nwfilter,
                       virNWFilterDefPtr def)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *xml;
-    int ret;
+    int ret = -1;
+    char *configFile = NULL;
 
-    if (!nwfilter->configFile) {
-        if (virFileMakePath(driver->configDir) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot create config directory %s"),
-                                 driver->configDir);
-            return -1;
-        }
+    if (virFileMakePath(driver->configDir) < 0) {
+        virReportSystemError(errno,
+                             _("cannot create config directory %s"),
+                             driver->configDir);
+        goto error;
+    }
 
-        if (!(nwfilter->configFile = virFileBuildPath(driver->configDir,
-                                                      def->name, ".xml"))) {
-            return -1;
-        }
+    if (!(configFile = virFileBuildPath(driver->configDir,
+                                        def->name, ".xml"))) {
+        goto error;
     }
 
     if (!(xml = virNWFilterDefFormat(def))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("failed to generate XML"));
-        return -1;
+        goto error;
     }
 
     virUUIDFormat(def->uuid, uuidstr);
-    ret = virXMLSaveFile(nwfilter->configFile,
+    ret = virXMLSaveFile(configFile,
                          virXMLPickShellSafeComment(def->name, uuidstr),
                          "nwfilter-edit", xml);
     VIR_FREE(xml);
 
+ error:
+    VIR_FREE(configFile);
     return ret;
 }
 
 
 int
-virNWFilterObjDeleteDef(virNWFilterObjPtr nwfilter)
+virNWFilterObjDeleteDef(const char *configDir,
+                        virNWFilterObjPtr nwfilter)
 {
-    if (!nwfilter->configFile) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("no config file for %s"), nwfilter->def->name);
-        return -1;
+    int ret = -1;
+    char *configFile = NULL;
+
+    if (!(configFile = virFileBuildPath(configDir,
+                                        nwfilter->def->name, ".xml"))) {
+        goto error;
     }
 
-    if (unlink(nwfilter->configFile) < 0) {
+    if (unlink(configFile) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("cannot remove config for %s"),
                        nwfilter->def->name);
-        return -1;
+        goto error;
     }
 
-    return 0;
+    ret = 0;
+ error:
+    VIR_FREE(configFile);
+    return ret;
 }
 
 

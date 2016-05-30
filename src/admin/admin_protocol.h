@@ -18,6 +18,9 @@ extern "C" {
 #define ADMIN_STRING_MAX 4194304
 #define ADMIN_SERVER_LIST_MAX 16384
 #define ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX 32
+#define ADMIN_CLIENT_LIST_MAX 16384
+#define ADMIN_CLIENT_INFO_PARAMETERS_MAX 64
+#define ADMIN_SERVER_CLIENT_LIMITS_MAX 32
 
 typedef char *admin_nonnull_string;
 
@@ -47,6 +50,14 @@ struct admin_nonnull_server {
         admin_nonnull_string name;
 };
 typedef struct admin_nonnull_server admin_nonnull_server;
+
+struct admin_nonnull_client {
+        admin_nonnull_server srv;
+        uint64_t id;
+        int64_t timestamp;
+        u_int transport;
+};
+typedef struct admin_nonnull_client admin_nonnull_client;
 
 struct admin_connect_open_args {
         u_int flags;
@@ -107,6 +118,78 @@ struct admin_server_set_threadpool_parameters_args {
         u_int flags;
 };
 typedef struct admin_server_set_threadpool_parameters_args admin_server_set_threadpool_parameters_args;
+
+struct admin_server_list_clients_args {
+        admin_nonnull_server srv;
+        u_int need_results;
+        u_int flags;
+};
+typedef struct admin_server_list_clients_args admin_server_list_clients_args;
+
+struct admin_server_list_clients_ret {
+        struct {
+                u_int clients_len;
+                admin_nonnull_client *clients_val;
+        } clients;
+        u_int ret;
+};
+typedef struct admin_server_list_clients_ret admin_server_list_clients_ret;
+
+struct admin_server_lookup_client_args {
+        admin_nonnull_server srv;
+        uint64_t id;
+        u_int flags;
+};
+typedef struct admin_server_lookup_client_args admin_server_lookup_client_args;
+
+struct admin_server_lookup_client_ret {
+        admin_nonnull_client clnt;
+};
+typedef struct admin_server_lookup_client_ret admin_server_lookup_client_ret;
+
+struct admin_client_get_info_args {
+        admin_nonnull_client clnt;
+        u_int flags;
+};
+typedef struct admin_client_get_info_args admin_client_get_info_args;
+
+struct admin_client_get_info_ret {
+        struct {
+                u_int params_len;
+                admin_typed_param *params_val;
+        } params;
+};
+typedef struct admin_client_get_info_ret admin_client_get_info_ret;
+
+struct admin_client_close_args {
+        admin_nonnull_client clnt;
+        u_int flags;
+};
+typedef struct admin_client_close_args admin_client_close_args;
+
+struct admin_server_get_client_limits_args {
+        admin_nonnull_server srv;
+        u_int flags;
+};
+typedef struct admin_server_get_client_limits_args admin_server_get_client_limits_args;
+
+struct admin_server_get_client_limits_ret {
+        struct {
+                u_int params_len;
+                admin_typed_param *params_val;
+        } params;
+};
+typedef struct admin_server_get_client_limits_ret admin_server_get_client_limits_ret;
+
+struct admin_server_set_client_limits_args {
+        admin_nonnull_server srv;
+        struct {
+                u_int params_len;
+                admin_typed_param *params_val;
+        } params;
+        u_int flags;
+};
+typedef struct admin_server_set_client_limits_args admin_server_set_client_limits_args;
 #define ADMIN_PROGRAM 0x06900690
 #define ADMIN_PROTOCOL_VERSION 1
 
@@ -118,6 +201,12 @@ enum admin_procedure {
         ADMIN_PROC_CONNECT_LOOKUP_SERVER = 5,
         ADMIN_PROC_SERVER_GET_THREADPOOL_PARAMETERS = 6,
         ADMIN_PROC_SERVER_SET_THREADPOOL_PARAMETERS = 7,
+        ADMIN_PROC_SERVER_LIST_CLIENTS = 8,
+        ADMIN_PROC_SERVER_LOOKUP_CLIENT = 9,
+        ADMIN_PROC_CLIENT_GET_INFO = 10,
+        ADMIN_PROC_CLIENT_CLOSE = 11,
+        ADMIN_PROC_SERVER_GET_CLIENT_LIMITS = 12,
+        ADMIN_PROC_SERVER_SET_CLIENT_LIMITS = 13,
 };
 typedef enum admin_procedure admin_procedure;
 
@@ -129,6 +218,7 @@ extern  bool_t xdr_admin_string (XDR *, admin_string*);
 extern  bool_t xdr_admin_typed_param_value (XDR *, admin_typed_param_value*);
 extern  bool_t xdr_admin_typed_param (XDR *, admin_typed_param*);
 extern  bool_t xdr_admin_nonnull_server (XDR *, admin_nonnull_server*);
+extern  bool_t xdr_admin_nonnull_client (XDR *, admin_nonnull_client*);
 extern  bool_t xdr_admin_connect_open_args (XDR *, admin_connect_open_args*);
 extern  bool_t xdr_admin_connect_get_lib_version_ret (XDR *, admin_connect_get_lib_version_ret*);
 extern  bool_t xdr_admin_connect_list_servers_args (XDR *, admin_connect_list_servers_args*);
@@ -138,6 +228,16 @@ extern  bool_t xdr_admin_connect_lookup_server_ret (XDR *, admin_connect_lookup_
 extern  bool_t xdr_admin_server_get_threadpool_parameters_args (XDR *, admin_server_get_threadpool_parameters_args*);
 extern  bool_t xdr_admin_server_get_threadpool_parameters_ret (XDR *, admin_server_get_threadpool_parameters_ret*);
 extern  bool_t xdr_admin_server_set_threadpool_parameters_args (XDR *, admin_server_set_threadpool_parameters_args*);
+extern  bool_t xdr_admin_server_list_clients_args (XDR *, admin_server_list_clients_args*);
+extern  bool_t xdr_admin_server_list_clients_ret (XDR *, admin_server_list_clients_ret*);
+extern  bool_t xdr_admin_server_lookup_client_args (XDR *, admin_server_lookup_client_args*);
+extern  bool_t xdr_admin_server_lookup_client_ret (XDR *, admin_server_lookup_client_ret*);
+extern  bool_t xdr_admin_client_get_info_args (XDR *, admin_client_get_info_args*);
+extern  bool_t xdr_admin_client_get_info_ret (XDR *, admin_client_get_info_ret*);
+extern  bool_t xdr_admin_client_close_args (XDR *, admin_client_close_args*);
+extern  bool_t xdr_admin_server_get_client_limits_args (XDR *, admin_server_get_client_limits_args*);
+extern  bool_t xdr_admin_server_get_client_limits_ret (XDR *, admin_server_get_client_limits_ret*);
+extern  bool_t xdr_admin_server_set_client_limits_args (XDR *, admin_server_set_client_limits_args*);
 extern  bool_t xdr_admin_procedure (XDR *, admin_procedure*);
 
 #else /* K&R C */
@@ -146,6 +246,7 @@ extern bool_t xdr_admin_string ();
 extern bool_t xdr_admin_typed_param_value ();
 extern bool_t xdr_admin_typed_param ();
 extern bool_t xdr_admin_nonnull_server ();
+extern bool_t xdr_admin_nonnull_client ();
 extern bool_t xdr_admin_connect_open_args ();
 extern bool_t xdr_admin_connect_get_lib_version_ret ();
 extern bool_t xdr_admin_connect_list_servers_args ();
@@ -155,6 +256,16 @@ extern bool_t xdr_admin_connect_lookup_server_ret ();
 extern bool_t xdr_admin_server_get_threadpool_parameters_args ();
 extern bool_t xdr_admin_server_get_threadpool_parameters_ret ();
 extern bool_t xdr_admin_server_set_threadpool_parameters_args ();
+extern bool_t xdr_admin_server_list_clients_args ();
+extern bool_t xdr_admin_server_list_clients_ret ();
+extern bool_t xdr_admin_server_lookup_client_args ();
+extern bool_t xdr_admin_server_lookup_client_ret ();
+extern bool_t xdr_admin_client_get_info_args ();
+extern bool_t xdr_admin_client_get_info_ret ();
+extern bool_t xdr_admin_client_close_args ();
+extern bool_t xdr_admin_server_get_client_limits_args ();
+extern bool_t xdr_admin_server_get_client_limits_ret ();
+extern bool_t xdr_admin_server_set_client_limits_args ();
 extern bool_t xdr_admin_procedure ();
 
 #endif /* K&R C */

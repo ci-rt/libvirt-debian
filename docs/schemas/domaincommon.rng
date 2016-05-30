@@ -306,6 +306,9 @@
         <optional>
           <ref name="bios"/>
         </optional>
+        <optional>
+          <ref name="acpiTable"/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -1701,9 +1704,11 @@
   </define>
   <define name="controller">
     <element name="controller">
-      <attribute name="index">
-        <ref name="unsignedInt"/>
-      </attribute>
+      <optional>
+        <attribute name="index">
+          <ref name="unsignedInt"/>
+        </attribute>
+      </optional>
       <interleave>
         <optional>
           <ref name="alias"/>
@@ -1743,7 +1748,8 @@
               </attribute>
             </optional>
           </group>
-          <!-- usb has an optional attribute "model", and optional subelement "master" -->
+          <!-- usb has an optional attribute "model",
+               and optional subelements "master" and "ports" -->
           <group>
             <attribute name="type">
               <value>usb</value>
@@ -1767,6 +1773,11 @@
             </optional>
             <optional>
               <ref name="usbmaster"/>
+            </optional>
+            <optional>
+              <attribute name="ports">
+                <ref name="unsignedInt"/>
+              </attribute>
             </optional>
           </group>
           <!-- pci has an optional attribute "model" -->
@@ -1892,6 +1903,9 @@
             </optional>
             <optional>
               <ref name="ioeventfd"/>
+            </optional>
+            <optional>
+              <ref name="driverIOThread"/>
             </optional>
           </element>
         </optional>
@@ -2613,10 +2627,7 @@
     </element>
   </define>
   <!--
-      A graphic description, currently in Xen only 2 types are supported:
-        - sdl with optional display, xauth and fullscreen
-        - vnc with a required port and optional listen IP address, password
-          and keymap
+      A graphic description (SPICE, VNC, SDL, ...)
     -->
   <define name="graphic">
     <element name="graphics">
@@ -2946,9 +2957,11 @@
             <attribute name="type">
               <value>address</value>
             </attribute>
-            <attribute name="address">
-              <ref name="addrIPorName"/>
-            </attribute>
+            <optional>
+              <attribute name="address">
+                <ref name="addrIPorName"/>
+              </attribute>
+            </optional>
           </group>
           <group>
             <attribute name="type">
@@ -4497,6 +4510,21 @@
     </data>
   </define>
 
+  <define name="acpiTable">
+    <element name="acpi">
+      <zeroOrMore>
+        <element name="table">
+          <attribute name="type">
+            <choice>
+              <value>slic</value>
+            </choice>
+          </attribute>
+          <ref name="absFilePath"/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+
   <define name="smbios">
     <element name="smbios">
       <attribute name="mode">
@@ -5518,6 +5546,7 @@
             <value>isa</value>
             <value>pseries</value>
             <value>hyperv</value>
+            <value>s390</value>
           </choice>
         </attribute>
       </optional>

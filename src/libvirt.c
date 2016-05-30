@@ -770,10 +770,9 @@ virStateInitialize(bool privileged,
             if (virStateDriverTab[i]->stateInitialize(privileged,
                                                       callback,
                                                       opaque) < 0) {
-                virErrorPtr err = virGetLastError();
                 VIR_ERROR(_("Initialization of %s state driver failed: %s"),
                           virStateDriverTab[i]->name,
-                          err && err->message ? err->message : _("Unknown problem"));
+                          virGetLastErrorMessage());
                 return -1;
             }
         }
@@ -800,12 +799,12 @@ virStateInitialize(bool privileged,
 int
 virStateCleanup(void)
 {
-    size_t i;
+    int r;
     int ret = 0;
 
-    for (i = 0; i < virStateDriverTabCount; i++) {
-        if (virStateDriverTab[i]->stateCleanup &&
-            virStateDriverTab[i]->stateCleanup() < 0)
+    for (r = virStateDriverTabCount - 1; r >= 0; r--) {
+        if (virStateDriverTab[r]->stateCleanup &&
+            virStateDriverTab[r]->stateCleanup() < 0)
             ret = -1;
     }
     return ret;

@@ -38,6 +38,7 @@
 #include "virstring.h"
 #include "virthread.h"
 #include "virgettext.h"
+#include "virtime.h"
 
 /* Gnulib doesn't guarantee SA_SIGINFO support.  */
 #ifndef SA_SIGINFO
@@ -46,10 +47,63 @@
 
 #define VIRT_ADMIN_PROMPT "virt-admin # "
 
+/* we don't need precision to milliseconds in this module */
+#define VIRT_ADMIN_TIME_BUFLEN VIR_TIME_STRING_BUFLEN - 3
+
 static char *progname;
 
 static const vshCmdGrp cmdGroups[];
 static const vshClientHooks hooks;
+
+VIR_ENUM_DECL(virClientTransport)
+VIR_ENUM_IMPL(virClientTransport,
+              VIR_CLIENT_TRANS_LAST,
+              N_("unix"),
+              N_("tcp"),
+              N_("tls"))
+
+static const char *
+vshAdmClientTransportToString(int transport)
+{
+    const char *str = virClientTransportTypeToString(transport);
+    return str ? _(str) : _("unknown");
+}
+
+/*
+ * vshAdmGetTimeStr:
+ *
+ * Produces string representation (local time) of @then
+ * (seconds since epoch UTC) using format 'YYYY-MM-DD HH:MM:SS+ZZZZ'.
+ *
+ * Returns 0 if conversion finished successfully, -1 in case of an error.
+ * Caller is responsible for freeing the string returned.
+ */
+static int
+vshAdmGetTimeStr(vshControl *ctl, time_t then, char **result)
+{
+
+    char *tmp = NULL;
+    struct tm timeinfo;
+
+    if (!localtime_r(&then, &timeinfo))
+        goto error;
+
+    if (VIR_ALLOC_N(tmp, VIRT_ADMIN_TIME_BUFLEN) < 0)
+        goto error;
+
+    if (strftime(tmp, VIRT_ADMIN_TIME_BUFLEN, "%Y-%m-%d %H:%M:%S%z",
+                 &timeinfo) == 0) {
+        VIR_FREE(tmp);
+        goto error;
+    }
+
+    *result = tmp;
+    return 0;
+
+ error:
+    vshError(ctl, "%s", _("Timestamp string conversion failed"));
+    return -1;
+}
 
 /*
  * vshAdmCatchDisconnect:
@@ -291,8 +345,10 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "name", &name) < 0)
         return false;
 
-    VIR_FREE(ctl->connname);
-    ctl->connname = vshStrdup(ctl, name);
+    if (name) {
+        VIR_FREE(ctl->connname);
+        ctl->connname = vshStrdup(ctl, name);
+    }
 
     vshAdmReconnect(ctl);
     if (!connected)
@@ -517,6 +573,401 @@ cmdSrvThreadpoolSet(vshControl *ctl, const vshCmd *cmd)
 
  error:
     vshError(ctl, "%s", _("Unable to change server workerpool parameters"));
+    goto cleanup;
+}
+
+/* ------------------------
+ * Command srv-clients-list
+ * ------------------------
+ */
+
+static const vshCmdInfo info_srv_clients_list[] = {
+    {.name = "help",
+     .data = N_("list clients connected to <server>")
+    },
+    {.name = "desc",
+     .data = N_("List all manageable clients connected to <server>.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_srv_clients_list[] = {
+    {.name = "server",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("server which to list connected clients from"),
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdSrvClientsList(vshControl *ctl, const vshCmd *cmd)
+{
+    int nclts = 0;
+    size_t i;
+    bool ret = false;
+    const char *srvname = NULL;
+    unsigned long long id;
+    virClientTransport transport;
+    char *timestr = NULL;
+    virAdmServerPtr srv = NULL;
+    virAdmClientPtr *clts = NULL;
+    vshAdmControlPtr priv = ctl->privData;
+
+    if (vshCommandOptStringReq(ctl, cmd, "server", &srvname) < 0)
+        return false;
+
+    if (!(srv = virAdmConnectLookupServer(priv->conn, srvname, 0)))
+        goto cleanup;
+
+    /* Obtain a list of clients connected to server @srv */
+    if ((nclts = virAdmServerListClients(srv, &clts, 0)) < 0) {
+        vshError(ctl, _("failed to obtain list of connected clients "
+                        "from server '%s'"), virAdmServerGetName(srv));
+        goto cleanup;
+    }
+
+    vshPrintExtra(ctl, " %-5s %-15s %-15s\n%s\n", _("Id"), _("Transport"),
+                  _("Connected since"),
+                  "-------------------------"
+                  "-------------------------");
+
+    for (i = 0; i < nclts; i++) {
+        virAdmClientPtr client = clts[i];
+        id = virAdmClientGetID(client);
+        transport = virAdmClientGetTransport(client);
+        if (vshAdmGetTimeStr(ctl, virAdmClientGetTimestamp(client),
+                             &timestr) < 0)
+            goto cleanup;
+
+        vshPrint(ctl, " %-5llu %-15s %-15s\n",
+                 id, vshAdmClientTransportToString(transport), timestr);
+        VIR_FREE(timestr);
+    }
+
+    ret = true;
+
+ cleanup:
+    if (clts) {
+        for (i = 0; i < nclts; i++)
+            virAdmClientFree(clts[i]);
+        VIR_FREE(clts);
+    }
+    virAdmServerFree(srv);
+    return ret;
+}
+
+/* -------------------
+ * Command client-info
+ * -------------------
+ */
+
+static const vshCmdInfo info_client_info[] = {
+    {.name = "help",
+     .data = N_("retrieve client's identity info from server")
+    },
+    {.name = "desc",
+     .data = N_("Retrieve identity details about <client> from <server>")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_client_info[] = {
+    {.name = "server",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("server to which <client> is connected to"),
+    },
+    {.name = "client",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("client which to retrieve identity information for"),
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdClientInfo(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    size_t i;
+    unsigned long long id;
+    const char *srvname = NULL;
+    char *timestr = NULL;
+    virAdmServerPtr srv = NULL;
+    virAdmClientPtr clnt = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    vshAdmControlPtr priv = ctl->privData;
+
+    if (vshCommandOptULongLong(ctl, cmd, "client", &id) < 0)
+        return false;
+
+    if (vshCommandOptStringReq(ctl, cmd, "server", &srvname) < 0)
+        return false;
+
+    if (!(srv = virAdmConnectLookupServer(priv->conn, srvname, 0)) ||
+        !(clnt = virAdmServerLookupClient(srv, id, 0)))
+        goto cleanup;
+
+    /* Retrieve client identity info */
+    if (virAdmClientGetInfo(clnt, &params, &nparams, 0) < 0) {
+        vshError(ctl, _("failed to retrieve client identity information for "
+                        "client '%llu' connected to server '%s'"),
+                        id, virAdmServerGetName(srv));
+        goto cleanup;
+    }
+
+    if (vshAdmGetTimeStr(ctl, virAdmClientGetTimestamp(clnt), &timestr) < 0)
+        goto cleanup;
+
+    /* this info is provided by the client object itself */
+    vshPrint(ctl, "%-15s: %llu\n", "id", virAdmClientGetID(clnt));
+    vshPrint(ctl, "%-15s: %s\n", "connection_time", timestr);
+    vshPrint(ctl, "%-15s: %s\n", "transport",
+             vshAdmClientTransportToString(virAdmClientGetTransport(clnt)));
+
+    for (i = 0; i < nparams; i++) {
+        char *str = vshGetTypedParamValue(ctl, &params[i]);
+        vshPrint(ctl, "%-15s: %s\n", params[i].field, str);
+        VIR_FREE(str);
+    }
+
+    ret = true;
+
+ cleanup:
+    virTypedParamsFree(params, nparams);
+    virAdmServerFree(srv);
+    virAdmClientFree(clnt);
+    VIR_FREE(timestr);
+    return ret;
+}
+
+/* -------------------------
+ * Command client-disconnect
+ * -------------------------
+ */
+
+static const vshCmdInfo info_client_disconnect[] = {
+    {.name = "help",
+     .data = N_("force disconnect a client from the given server")
+    },
+    {.name = "desc",
+     .data = N_("Force close a specific client's connection to the given "
+                "server.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_client_disconnect[] = {
+    {.name = "server",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("server which the client is currently connected to"),
+    },
+    {.name = "client",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("client which to disconnect, specified by ID"),
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdClientDisconnect(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    const char *srvname = NULL;
+    unsigned long long id = 0;
+    virAdmServerPtr srv = NULL;
+    virAdmClientPtr client = NULL;
+    vshAdmControlPtr priv = ctl->privData;
+
+    if (vshCommandOptStringReq(ctl, cmd, "server", &srvname) < 0)
+        return false;
+
+    if (vshCommandOptULongLongWrap(ctl, cmd, "client", &id) < 0)
+        return false;
+
+    if (!(srv = virAdmConnectLookupServer(priv->conn, srvname, 0)))
+        goto cleanup;
+
+    if (!(client = virAdmServerLookupClient(srv, id, 0)))
+        goto cleanup;
+
+    if (virAdmClientClose(client, 0) < 0) {
+        vshError(ctl, _("Failed to disconnect client '%llu' from server %s"),
+                 id, virAdmServerGetName(srv));
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("Client '%llu' disconnected"), id);
+    ret = true;
+ cleanup:
+    virAdmClientFree(client);
+    virAdmServerFree(srv);
+    return ret;
+}
+
+/* ------------------------
+ * Command srv-clients-info
+ * ------------------------
+ */
+
+static const vshCmdInfo info_srv_clients_info[] = {
+    {.name = "help",
+     .data = N_("get server's client-related configuration limits")
+    },
+    {.name = "desc",
+     .data = N_("Retrieve server's client-related configuration limits ")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_srv_clients_info[] = {
+    {.name = "server",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("Server to retrieve the client limits from."),
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdSrvClientsInfo(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    size_t i;
+    const char *srvname = NULL;
+    virAdmServerPtr srv = NULL;
+    vshAdmControlPtr priv = ctl->privData;
+
+    if (vshCommandOptStringReq(ctl, cmd, "server", &srvname) < 0)
+        return false;
+
+    if (!(srv = virAdmConnectLookupServer(priv->conn, srvname, 0)))
+        goto cleanup;
+
+    if (virAdmServerGetClientLimits(srv, &params, &nparams, 0) < 0) {
+        vshError(ctl, "%s", _("Unable to retrieve client limits "
+                              "from server's configuration"));
+        goto cleanup;
+    }
+
+    for (i = 0; i < nparams; i++)
+        vshPrint(ctl, "%-20s: %d\n", params[i].field, params[i].value.ui);
+
+    ret = true;
+
+ cleanup:
+    virTypedParamsFree(params, nparams);
+    virAdmServerFree(srv);
+    return ret;
+}
+
+/* -----------------------
+ * Command srv-clients-set
+ * -----------------------
+ */
+
+static const vshCmdInfo info_srv_clients_set[] = {
+    {.name = "help",
+     .data = N_("set server's client-related configuration limits")
+    },
+    {.name = "desc",
+     .data = N_("Tune server's client-related configuration limits. "
+                "See OPTIONS for currently supported attributes.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_srv_clients_set[] = {
+    {.name = "server",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("Server to alter the client-related configuration limits on."),
+    },
+    {.name = "max-clients",
+     .type = VSH_OT_INT,
+     .help = N_("Change the upper limit to overall number of clients "
+                "connected to the server."),
+    },
+    {.name = "max-unauth-clients",
+     .type = VSH_OT_INT,
+     .help = N_("Change the upper limit to number of clients waiting for "
+                "authentication to be connected to the server"),
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdSrvClientsSet(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    int rv = 0;
+    unsigned int val, max, unauth_max;
+    int maxparams = 0;
+    int nparams = 0;
+    const char *srvname = NULL;
+    virAdmServerPtr srv = NULL;
+    virTypedParameterPtr params = NULL;
+    vshAdmControlPtr priv = ctl->privData;
+
+    if (vshCommandOptStringReq(ctl, cmd, "server", &srvname) < 0)
+        return false;
+
+#define PARSE_CMD_TYPED_PARAM(NAME, FIELD)                                   \
+    if ((rv = vshCommandOptUInt(ctl, cmd, NAME, &val)) < 0) {                \
+        vshError(ctl, _("Unable to parse integer parameter '%s'"), NAME);    \
+        goto cleanup;                                                        \
+    } else if (rv > 0) {                                                     \
+        if (virTypedParamsAddUInt(&params, &nparams, &maxparams,             \
+                                  FIELD, val) < 0)                           \
+        goto save_error;                                                     \
+    }
+
+    PARSE_CMD_TYPED_PARAM("max-clients", VIR_SERVER_CLIENTS_MAX);
+    PARSE_CMD_TYPED_PARAM("max-unauth-clients", VIR_SERVER_CLIENTS_UNAUTH_MAX);
+
+#undef PARSE_CMD_TYPED_PARAM
+
+    if (!nparams) {
+        vshError(ctl, "%s", _("At least one of options --max-clients, "
+                              "--max-unauth-clients is mandatory"));
+        goto cleanup;
+    }
+
+    if (virTypedParamsGetUInt(params, nparams,
+                              VIR_SERVER_CLIENTS_MAX, &max) &&
+        virTypedParamsGetUInt(params, nparams,
+                              VIR_SERVER_CLIENTS_UNAUTH_MAX, &unauth_max) &&
+        unauth_max > max) {
+        vshError(ctl, "%s", _("--max-unauth-clients must be less than "
+                              "--max-clients"));
+        goto cleanup;
+    }
+
+    if (!(srv = virAdmConnectLookupServer(priv->conn, srvname, 0)))
+        goto cleanup;
+
+    if (virAdmServerSetClientLimits(srv, params, nparams, 0) < 0)
+        goto error;
+
+    ret = true;
+
+ cleanup:
+    virTypedParamsFree(params, nparams);
+    virAdmServerFree(srv);
+    return ret;
+
+ save_error:
+    vshSaveLibvirtError();
+
+ error:
+    vshError(ctl, "%s", _("Unable to change server's client-related "
+                          "configuration limits"));
     goto cleanup;
 }
 
@@ -825,6 +1276,24 @@ static const vshCmdDef monitoringCmds[] = {
      .info = info_srv_threadpool_info,
      .flags = 0
     },
+    {.name = "srv-clients-list",
+     .handler = cmdSrvClientsList,
+     .opts = opts_srv_clients_list,
+     .info = info_srv_clients_list,
+     .flags = 0
+    },
+    {.name = "client-info",
+     .handler = cmdClientInfo,
+     .opts = opts_client_info,
+     .info = info_client_info,
+     .flags = 0
+    },
+    {.name = "srv-clients-info",
+     .handler = cmdSrvClientsInfo,
+     .opts = opts_srv_clients_info,
+     .info = info_srv_clients_info,
+     .flags = 0
+    },
     {.name = NULL}
 };
 
@@ -833,6 +1302,18 @@ static const vshCmdDef managementCmds[] = {
      .handler = cmdSrvThreadpoolSet,
      .opts = opts_srv_threadpool_set,
      .info = info_srv_threadpool_set,
+     .flags = 0
+    },
+    {.name = "client-disconnect",
+     .handler = cmdClientDisconnect,
+     .opts = opts_client_disconnect,
+     .info = info_client_disconnect,
+     .flags = 0
+    },
+    {.name = "srv-clients-set",
+     .handler = cmdSrvClientsSet,
+     .opts = opts_srv_clients_set,
+     .info = info_srv_clients_set,
      .flags = 0
     },
     {.name = NULL}

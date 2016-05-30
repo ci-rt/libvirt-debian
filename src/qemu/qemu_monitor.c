@@ -1826,24 +1826,6 @@ qemuMonitorGetBlockInfo(qemuMonitorPtr mon)
 }
 
 
-struct qemuDomainDiskInfo *
-qemuMonitorBlockInfoLookup(virHashTablePtr blockInfo,
-                           const char *dev)
-{
-    struct qemuDomainDiskInfo *info;
-
-    VIR_DEBUG("blockInfo=%p dev=%s", blockInfo, NULLSTR(dev));
-
-    if (!(info = virHashLookup(blockInfo, dev))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot find info for device '%s'"),
-                       NULLSTR(dev));
-    }
-
-    return info;
-}
-
-
 /**
  * qemuMonitorGetAllBlockStatsInfo:
  * @mon: monitor object
@@ -2405,120 +2387,6 @@ qemuMonitorGraphicsRelocate(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorAddUSBDisk(qemuMonitorPtr mon,
-                      const char *path)
-{
-    VIR_DEBUG("path=%s", path);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONAddUSBDisk(mon, path);
-    else
-        return qemuMonitorTextAddUSBDisk(mon, path);
-}
-
-
-int
-qemuMonitorAddUSBDeviceExact(qemuMonitorPtr mon,
-                             int bus,
-                             int dev)
-{
-    VIR_DEBUG("bus=%d dev=%d", bus, dev);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONAddUSBDeviceExact(mon, bus, dev);
-    else
-        return qemuMonitorTextAddUSBDeviceExact(mon, bus, dev);
-}
-
-
-int
-qemuMonitorAddUSBDeviceMatch(qemuMonitorPtr mon,
-                             int vendor,
-                             int product)
-{
-    VIR_DEBUG("vendor=%d product=%d", vendor, product);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONAddUSBDeviceMatch(mon, vendor, product);
-    else
-        return qemuMonitorTextAddUSBDeviceMatch(mon, vendor, product);
-}
-
-
-int
-qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
-                            virDevicePCIAddress *hostAddr,
-                            virDevicePCIAddress *guestAddr)
-{
-    VIR_DEBUG("domain=%d bus=%d slot=%d function=%d",
-              hostAddr->domain, hostAddr->bus, hostAddr->slot, hostAddr->function);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONAddPCIHostDevice(mon, hostAddr, guestAddr);
-    else
-        return qemuMonitorTextAddPCIHostDevice(mon, hostAddr, guestAddr);
-}
-
-
-int
-qemuMonitorAddPCIDisk(qemuMonitorPtr mon,
-                      const char *path,
-                      const char *bus,
-                      virDevicePCIAddress *guestAddr)
-{
-    VIR_DEBUG("path=%s bus=%s", path, bus);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONAddPCIDisk(mon, path, bus, guestAddr);
-    else
-        return qemuMonitorTextAddPCIDisk(mon, path, bus, guestAddr);
-}
-
-
-int
-qemuMonitorAddPCINetwork(qemuMonitorPtr mon,
-                         const char *nicstr,
-                         virDevicePCIAddress *guestAddr)
-{
-    VIR_DEBUG("nicstr=%s", nicstr);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONAddPCINetwork(mon, nicstr, guestAddr);
-    else
-        return qemuMonitorTextAddPCINetwork(mon, nicstr, guestAddr);
-}
-
-
-int
-qemuMonitorRemovePCIDevice(qemuMonitorPtr mon,
-                           virDevicePCIAddress *guestAddr)
-{
-    VIR_DEBUG("domain=%d bus=%d slot=%d function=%d",
-              guestAddr->domain, guestAddr->bus, guestAddr->slot,
-              guestAddr->function);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONRemovePCIDevice(mon, guestAddr);
-    else
-        return qemuMonitorTextRemovePCIDevice(mon, guestAddr);
-}
-
-
-int
 qemuMonitorSendFileHandle(qemuMonitorPtr mon,
                           const char *fdname,
                           int fd)
@@ -2806,37 +2674,6 @@ qemuMonitorGetChardevInfo(qemuMonitorPtr mon,
     virHashFree(info);
     *retinfo = NULL;
     return -1;
-}
-
-
-int
-qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
-                                   const char *bus,
-                                   virDevicePCIAddress *guestAddr)
-{
-    VIR_DEBUG("type=%s", bus);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONAttachPCIDiskController(mon, bus, guestAddr);
-    else
-        return qemuMonitorTextAttachPCIDiskController(mon, bus, guestAddr);
-}
-
-
-int
-qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
-                              qemuMonitorPCIAddress **addrs)
-{
-    VIR_DEBUG("addrs=%p", addrs);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (mon->json)
-        return qemuMonitorJSONGetAllPCIAddresses(mon, addrs);
-    else
-        return qemuMonitorTextGetAllPCIAddresses(mon, addrs);
 }
 
 
@@ -3289,15 +3126,14 @@ qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
 int
 qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
                               const char *device,
-                              virDomainBlockIoTuneInfoPtr reply,
-                              bool supportMaxOptions)
+                              virDomainBlockIoTuneInfoPtr reply)
 {
     VIR_DEBUG("device=%p, reply=%p", device, reply);
 
     QEMU_CHECK_MONITOR(mon);
 
     if (mon->json)
-        return qemuMonitorJSONGetBlockIoThrottle(mon, device, reply, supportMaxOptions);
+        return qemuMonitorJSONGetBlockIoThrottle(mon, device, reply);
     else
         return qemuMonitorTextGetBlockIoThrottle(mon, device, reply);
 }
@@ -3855,4 +3691,15 @@ qemuMonitorMigrateStartPostCopy(qemuMonitorPtr mon)
     QEMU_CHECK_MONITOR_JSON(mon);
 
     return qemuMonitorJSONMigrateStartPostCopy(mon);
+}
+
+int
+qemuMonitorGetRTCTime(qemuMonitorPtr mon,
+                      struct tm *tm)
+{
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_CHECK_MONITOR_JSON(mon);
+
+    return qemuMonitorJSONGetRTCTime(mon, tm);
 }

@@ -65,6 +65,7 @@ struct _virNetServer {
 
     size_t nclients;                    /* Current clients count */
     virNetServerClientPtr *clients;     /* Clients */
+    unsigned long long next_client_id;  /* next client ID */
     size_t nclients_max;                /* Max allowed clients count */
     size_t nclients_unauth;             /* Unauthenticated clients count */
     size_t nclients_unauth_max;         /* Max allowed unauth clients count */
@@ -103,6 +104,16 @@ static int virNetServerOnceInit(void)
 
 VIR_ONCE_GLOBAL_INIT(virNetServer)
 
+unsigned long long virNetServerNextClientID(virNetServerPtr srv)
+{
+    unsigned long long val;
+
+    virObjectLock(srv);
+    val = srv->next_client_id++;
+    virObjectUnlock(srv);
+
+    return val;
+}
 
 static int virNetServerProcessMsg(virNetServerPtr srv,
                                   virNetServerClientPtr client,
@@ -283,7 +294,8 @@ static int virNetServerDispatchNewClient(virNetServerServicePtr svc,
     virNetServerPtr srv = opaque;
     virNetServerClientPtr client;
 
-    if (!(client = virNetServerClientNew(clientsock,
+    if (!(client = virNetServerClientNew(virNetServerNextClientID(srv),
+                                         clientsock,
                                          virNetServerServiceGetAuth(svc),
                                          virNetServerServiceIsReadonly(svc),
                                          virNetServerServiceGetMaxRequests(svc),
@@ -307,6 +319,7 @@ static int virNetServerDispatchNewClient(virNetServerServicePtr svc,
 
 
 virNetServerPtr virNetServerNew(const char *name,
+                                unsigned long long next_client_id,
                                 size_t min_workers,
                                 size_t max_workers,
                                 size_t priority_workers,
@@ -338,6 +351,7 @@ virNetServerPtr virNetServerNew(const char *name,
     if (VIR_STRDUP(srv->name, name) < 0)
         goto error;
 
+    srv->next_client_id = next_client_id;
     srv->nclients_max = max_clients;
     srv->nclients_unauth_max = max_anonymous_clients;
     srv->keepaliveInterval = keepaliveInterval;
@@ -384,6 +398,7 @@ virNetServerPtr virNetServerNewPostExecRestart(virJSONValuePtr object,
     unsigned int max_anonymous_clients;
     unsigned int keepaliveInterval;
     unsigned int keepaliveCount;
+    unsigned long long next_client_id;
     const char *mdnsGroupName = NULL;
 
     if (virJSONValueObjectGetNumberUint(object, "min_workers", &min_workers) < 0) {
@@ -434,7 +449,13 @@ virNetServerPtr virNetServerNewPostExecRestart(virJSONValuePtr object,
         goto error;
     }
 
-    if (!(srv = virNetServerNew(name,
+    if (virJSONValueObjectGetNumberUlong(object, "next_client_id",
+                                         &next_client_id) < 0) {
+        VIR_WARN("Missing next_client_id data in JSON document");
+        next_client_id = 1;
+    }
+
+    if (!(srv = virNetServerNew(name, next_client_id,
                                 min_workers, max_workers,
                                 priority_workers, max_clients,
                                 max_anonymous_clients,
@@ -503,7 +524,8 @@ virNetServerPtr virNetServerNewPostExecRestart(virJSONValuePtr object,
                                                             clientPrivNewPostExecRestart,
                                                             clientPrivPreExecRestart,
                                                             clientPrivFree,
-                                                            clientPrivOpaque)))
+                                                            clientPrivOpaque,
+                                                            srv)))
             goto error;
 
         if (virNetServerAddClient(srv, client) < 0) {
@@ -570,6 +592,13 @@ virJSONValuePtr virNetServerPreExecRestart(virNetServerPtr srv)
     if (virJSONValueObjectAppendNumberUint(object, "keepaliveCount", srv->keepaliveCount) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Cannot set keepaliveCount data in JSON document"));
+        goto error;
+    }
+
+    if (virJSONValueObjectAppendNumberUlong(object, "next_client_id",
+                                            srv->next_client_id) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Cannot set next_client_id data in JSON document"));
         goto error;
     }
 
@@ -911,6 +940,141 @@ virNetServerSetThreadPoolParameters(virNetServerPtr srv,
     virObjectLock(srv);
     ret = virThreadPoolSetParameters(srv->workers, minWorkers,
                                      maxWorkers, prioWorkers);
+    virObjectUnlock(srv);
+
+    return ret;
+}
+
+size_t
+virNetServerGetMaxClients(virNetServerPtr srv)
+{
+    size_t ret;
+
+    virObjectLock(srv);
+    ret = srv->nclients_max;
+    virObjectUnlock(srv);
+
+    return ret;
+}
+
+size_t
+virNetServerGetCurrentClients(virNetServerPtr srv)
+{
+    size_t ret;
+
+    virObjectLock(srv);
+    ret = srv->nclients;
+    virObjectUnlock(srv);
+
+    return ret;
+}
+
+size_t
+virNetServerGetMaxUnauthClients(virNetServerPtr srv)
+{
+    size_t ret;
+
+    virObjectLock(srv);
+    ret = srv->nclients_unauth_max;
+    virObjectUnlock(srv);
+
+    return ret;
+}
+
+size_t
+virNetServerGetCurrentUnauthClients(virNetServerPtr srv)
+{
+    size_t ret;
+
+    virObjectLock(srv);
+    ret = srv->nclients_unauth;
+    virObjectUnlock(srv);
+
+    return ret;
+}
+
+int
+virNetServerGetClients(virNetServerPtr srv,
+                       virNetServerClientPtr **clts)
+{
+    int ret = -1;
+    size_t i;
+    size_t nclients = 0;
+    virNetServerClientPtr *list = NULL;
+
+    virObjectLock(srv);
+
+    for (i = 0; i < srv->nclients; i++) {
+        virNetServerClientPtr client = virObjectRef(srv->clients[i]);
+        if (VIR_APPEND_ELEMENT(list, nclients, client) < 0) {
+            virObjectUnref(client);
+            goto cleanup;
+        }
+    }
+
+    *clts = list;
+    list = NULL;
+    ret = nclients;
+
+ cleanup:
+    virObjectListFreeCount(list, nclients);
+    virObjectUnlock(srv);
+    return ret;
+}
+
+virNetServerClientPtr
+virNetServerGetClient(virNetServerPtr srv,
+                      unsigned long long id)
+{
+    size_t i;
+    virNetServerClientPtr ret = NULL;
+
+    virObjectLock(srv);
+
+    for (i = 0; i < srv->nclients; i++) {
+        virNetServerClientPtr client = srv->clients[i];
+        if (virNetServerClientGetID(client) == id)
+            ret = virObjectRef(client);
+    }
+
+    virObjectUnlock(srv);
+
+    if (!ret)
+        virReportError(VIR_ERR_NO_CLIENT,
+                       _("No client with matching ID '%llu'"), id);
+    return ret;
+}
+
+int
+virNetServerSetClientProcessingControls(virNetServerPtr srv,
+                                        long long int maxClients,
+                                        long long int maxClientsUnauth)
+{
+    int ret = -1;
+    size_t max, max_unauth;
+
+    virObjectLock(srv);
+
+    max = maxClients >= 0 ? maxClients : srv->nclients_max;
+    max_unauth = maxClientsUnauth >= 0 ?
+        maxClientsUnauth : srv->nclients_unauth_max;
+
+    if (max < max_unauth) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("The overall maximum number of clients must be "
+                         "greater than the maximum number of clients waiting "
+                         "for authentication"));
+        goto cleanup;
+    }
+
+    if (maxClients >= 0)
+        srv->nclients_max = maxClients;
+
+    if (maxClientsUnauth >= 0)
+        srv->nclients_unauth_max = maxClientsUnauth;
+
+    ret = 0;
+ cleanup:
     virObjectUnlock(srv);
     return ret;
 }

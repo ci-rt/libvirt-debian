@@ -27,6 +27,7 @@
 #include "datatypes.h"
 #include "viralloc.h"
 #include "virerror.h"
+#include "viridentity.h"
 #include "virlog.h"
 #include "virnetdaemon.h"
 #include "virnetserver.h"
@@ -174,6 +175,214 @@ adminServerSetThreadPoolParameters(virNetServerPtr srv,
 
     if (virNetServerSetThreadPoolParameters(srv, minWorkers,
                                             maxWorkers, prioWorkers) < 0)
+        return -1;
+
+    return 0;
+}
+
+int
+adminServerListClients(virNetServerPtr srv,
+                       virNetServerClientPtr **clients,
+                       unsigned int flags)
+{
+    int ret = -1;
+    virNetServerClientPtr *clts;
+
+    virCheckFlags(0, -1);
+
+    if ((ret = virNetServerGetClients(srv, &clts)) < 0)
+        return -1;
+
+    if (clients) {
+        *clients = clts;
+        clts = NULL;
+    }
+
+    virObjectListFreeCount(clts, ret);
+    return ret;
+}
+
+virNetServerClientPtr
+adminServerLookupClient(virNetServerPtr srv,
+                        unsigned long long id,
+                        unsigned int flags)
+{
+    virCheckFlags(0, NULL);
+
+    return virNetServerGetClient(srv, id);
+}
+
+int
+adminClientGetInfo(virNetServerClientPtr client,
+                   virTypedParameterPtr *params,
+                   int *nparams,
+                   unsigned int flags)
+{
+    int ret = -1;
+    int maxparams = 0;
+    bool readonly;
+    const char *sock_addr = NULL;
+    const char *attr = NULL;
+    virTypedParameterPtr tmpparams = NULL;
+    virIdentityPtr identity = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (virNetServerClientGetInfo(client, &readonly,
+                                  &sock_addr, &identity) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddBoolean(&tmpparams, nparams, &maxparams,
+                                 VIR_CLIENT_INFO_READONLY,
+                                 readonly) < 0)
+        goto cleanup;
+
+    if (!virNetServerClientIsLocal(client)) {
+        if (virTypedParamsAddString(&tmpparams, nparams, &maxparams,
+                                    VIR_CLIENT_INFO_SOCKET_ADDR,
+                                    sock_addr) < 0)
+            goto cleanup;
+
+        if (virIdentityGetSASLUserName(identity, &attr) < 0 ||
+            (attr &&
+             virTypedParamsAddString(&tmpparams, nparams, &maxparams,
+                                     VIR_CLIENT_INFO_SASL_USER_NAME,
+                                     attr) < 0))
+            goto cleanup;
+
+        if (virIdentityGetX509DName(identity, &attr) < 0 ||
+            (attr &&
+             virTypedParamsAddString(&tmpparams, nparams, &maxparams,
+                                     VIR_CLIENT_INFO_X509_DISTINGUISHED_NAME,
+                                     attr) < 0))
+            goto cleanup;
+    } else {
+        pid_t pid;
+        uid_t uid;
+        gid_t gid;
+        if (virIdentityGetUNIXUserID(identity, &uid) < 0 ||
+            virTypedParamsAddInt(&tmpparams, nparams, &maxparams,
+                                 VIR_CLIENT_INFO_UNIX_USER_ID, uid) < 0)
+            goto cleanup;
+
+        if (virIdentityGetUNIXUserName(identity, &attr) < 0 ||
+            virTypedParamsAddString(&tmpparams, nparams, &maxparams,
+                                    VIR_CLIENT_INFO_UNIX_USER_NAME,
+                                    attr) < 0)
+            goto cleanup;
+
+        if (virIdentityGetUNIXGroupID(identity, &gid) < 0 ||
+            virTypedParamsAddInt(&tmpparams, nparams, &maxparams,
+                                 VIR_CLIENT_INFO_UNIX_GROUP_ID, gid) < 0)
+            goto cleanup;
+
+        if (virIdentityGetUNIXGroupName(identity, &attr) < 0 ||
+            virTypedParamsAddString(&tmpparams, nparams, &maxparams,
+                                    VIR_CLIENT_INFO_UNIX_GROUP_NAME,
+                                    attr) < 0)
+            goto cleanup;
+
+        if (virIdentityGetUNIXProcessID(identity, &pid) < 0 ||
+            virTypedParamsAddInt(&tmpparams, nparams, &maxparams,
+                                 VIR_CLIENT_INFO_UNIX_PROCESS_ID, pid) < 0)
+            goto cleanup;
+    }
+
+    if (virIdentityGetSELinuxContext(identity, &attr) < 0 ||
+        (attr &&
+         virTypedParamsAddString(&tmpparams, nparams, &maxparams,
+                                VIR_CLIENT_INFO_SELINUX_CONTEXT, attr) < 0))
+        goto cleanup;
+
+    *params = tmpparams;
+    tmpparams = NULL;
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(identity);
+    return ret;
+}
+
+int adminClientClose(virNetServerClientPtr client,
+                     unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+    virNetServerClientClose(client);
+    return 0;
+}
+
+int
+adminServerGetClientLimits(virNetServerPtr srv,
+                           virTypedParameterPtr *params,
+                           int *nparams,
+                           unsigned int flags)
+{
+    int ret = -1;
+    int maxparams = 0;
+    virTypedParameterPtr tmpparams = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams, &maxparams,
+                              VIR_SERVER_CLIENTS_MAX,
+                              virNetServerGetMaxClients(srv)) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams, &maxparams,
+                              VIR_SERVER_CLIENTS_CURRENT,
+                              virNetServerGetCurrentClients(srv)) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams, &maxparams,
+                              VIR_SERVER_CLIENTS_UNAUTH_MAX,
+                              virNetServerGetMaxUnauthClients(srv)) < 0)
+        goto cleanup;
+
+    if (virTypedParamsAddUInt(&tmpparams, nparams, &maxparams,
+                              VIR_SERVER_CLIENTS_UNAUTH_CURRENT,
+                              virNetServerGetCurrentUnauthClients(srv)) < 0)
+        goto cleanup;
+
+    *params = tmpparams;
+    tmpparams = NULL;
+    ret = 0;
+
+ cleanup:
+    virTypedParamsFree(tmpparams, *nparams);
+    return ret;
+}
+
+int
+adminServerSetClientLimits(virNetServerPtr srv,
+                           virTypedParameterPtr params,
+                           int nparams,
+                           unsigned int flags)
+{
+    long long int maxClients = -1;
+    long long int maxClientsUnauth = -1;
+    virTypedParameterPtr param = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (virTypedParamsValidate(params, nparams,
+                               VIR_SERVER_CLIENTS_MAX,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_SERVER_CLIENTS_UNAUTH_MAX,
+                               VIR_TYPED_PARAM_UINT,
+                               NULL) < 0)
+        return -1;
+
+    if ((param = virTypedParamsGet(params, nparams,
+                                   VIR_SERVER_CLIENTS_MAX)))
+        maxClients = param->value.ui;
+
+    if ((param = virTypedParamsGet(params, nparams,
+                                   VIR_SERVER_CLIENTS_UNAUTH_MAX)))
+        maxClientsUnauth = param->value.ui;
+
+    if (virNetServerSetClientProcessingControls(srv, maxClients,
+                                                maxClientsUnauth) < 0)
         return -1;
 
     return 0;

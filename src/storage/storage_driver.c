@@ -88,7 +88,8 @@ storagePoolUpdateState(virStoragePoolObjPtr pool)
         goto error;
 
     if ((backend = virStorageBackendForType(pool->def->type)) == NULL) {
-        VIR_ERROR(_("Missing backend %d"), pool->def->type);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Missing backend %d"), pool->def->type);
         goto error;
     }
 
@@ -98,10 +99,9 @@ storagePoolUpdateState(virStoragePoolObjPtr pool)
     active = false;
     if (backend->checkPool &&
         backend->checkPool(pool, &active) < 0) {
-        virErrorPtr err = virGetLastError();
-        VIR_ERROR(_("Failed to initialize storage pool '%s': %s"),
-                  pool->def->name, err ? err->message :
-                  _("no error message found"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to initialize storage pool '%s': %s"),
+                       pool->def->name, virGetLastErrorMessage());
         goto error;
     }
 
@@ -112,12 +112,11 @@ storagePoolUpdateState(virStoragePoolObjPtr pool)
     if (active) {
         virStoragePoolObjClearVols(pool);
         if (backend->refreshPool(NULL, pool) < 0) {
-            virErrorPtr err = virGetLastError();
             if (backend->stopPool)
                 backend->stopPool(NULL, pool);
-            VIR_ERROR(_("Failed to restart storage pool '%s': %s"),
-                      pool->def->name, err ? err->message :
-                      _("no error message found"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to restart storage pool '%s': %s"),
+                           pool->def->name, virGetLastErrorMessage());
             goto error;
         }
     }
@@ -176,10 +175,9 @@ storageDriverAutostart(void)
             !virStoragePoolObjIsActive(pool)) {
             if (backend->startPool &&
                 backend->startPool(conn, pool) < 0) {
-                virErrorPtr err = virGetLastError();
-                VIR_ERROR(_("Failed to autostart storage pool '%s': %s"),
-                          pool->def->name, err ? err->message :
-                          _("no error message found"));
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to autostart storage pool '%s': %s"),
+                               pool->def->name, virGetLastErrorMessage());
                 virStoragePoolObjUnlock(pool);
                 continue;
             }
@@ -195,14 +193,13 @@ storageDriverAutostart(void)
             if (!stateFile ||
                 virStoragePoolSaveState(stateFile, pool->def) < 0 ||
                 backend->refreshPool(conn, pool) < 0) {
-                virErrorPtr err = virGetLastError();
                 if (stateFile)
                     unlink(stateFile);
                 if (backend->stopPool)
                     backend->stopPool(conn, pool);
-                VIR_ERROR(_("Failed to autostart storage pool '%s': %s"),
-                          pool->def->name, err ? err->message :
-                          _("no error message found"));
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to autostart storage pool '%s': %s"),
+                               pool->def->name, virGetLastErrorMessage());
             } else {
                 pool->active = true;
             }
@@ -727,6 +724,7 @@ storagePoolCreateXML(virConnectPtr conn,
     stateFile = virFileBuildPath(driver->stateDir,
                                  pool->def->name, ".xml");
 
+    virStoragePoolObjClearVols(pool);
     if (!stateFile || virStoragePoolSaveState(stateFile, pool->def) < 0 ||
         backend->refreshPool(conn, pool) < 0) {
         if (stateFile)
@@ -918,6 +916,7 @@ storagePoolCreate(virStoragePoolPtr obj,
     stateFile = virFileBuildPath(driver->stateDir,
                                  pool->def->name, ".xml");
 
+    virStoragePoolObjClearVols(pool);
     if (!stateFile || virStoragePoolSaveState(stateFile, pool->def) < 0 ||
         backend->refreshPool(obj->conn, pool) < 0) {
         if (stateFile)
@@ -2038,6 +2037,13 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
      * is less than that, or it was omitted */
     if (newvol->target.capacity < origvol->target.capacity)
         newvol->target.capacity = origvol->target.capacity;
+
+    /* If the allocation was not provided in the XML, then use capacity
+     * as it's specifically documented "If omitted when creating a volume,
+     * the  volume will be fully allocated at time of creation.". This
+     * is especially important for logical volume creation. */
+    if (!newvol->target.has_allocation)
+        newvol->target.allocation = newvol->target.capacity;
 
     if (!backend->buildVolFrom) {
         virReportError(VIR_ERR_NO_SUPPORT,

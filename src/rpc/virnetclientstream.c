@@ -49,9 +49,7 @@ struct _virNetClientStream {
      * time by stopping consuming any incoming data
      * off the socket....
      */
-    struct iovec *incomingVec; /* I/O Vector to hold data */
-    size_t writeVec;           /* Vectors produced */
-    size_t readVec;            /* Vectors consumed */
+    virNetMessagePtr rx;
     bool incomingEOF;
 
     virNetClientStreamEventCallback cb;
@@ -86,9 +84,9 @@ virNetClientStreamEventTimerUpdate(virNetClientStreamPtr st)
     if (!st->cb)
         return;
 
-    VIR_DEBUG("Check timer readVec %zu writeVec %zu %d", st->readVec, st->writeVec, st->cbEvents);
+    VIR_DEBUG("Check timer rx=%p cbEvents=%d", st->rx, st->cbEvents);
 
-    if ((((st->readVec < st->writeVec) || st->incomingEOF) &&
+    if (((st->rx || st->incomingEOF) &&
          (st->cbEvents & VIR_STREAM_EVENT_READABLE)) ||
         (st->cbEvents & VIR_STREAM_EVENT_WRITABLE)) {
         VIR_DEBUG("Enabling event timer");
@@ -110,14 +108,13 @@ virNetClientStreamEventTimer(int timer ATTRIBUTE_UNUSED, void *opaque)
 
     if (st->cb &&
         (st->cbEvents & VIR_STREAM_EVENT_READABLE) &&
-        ((st->readVec < st->writeVec) || st->incomingEOF))
+        (st->rx || st->incomingEOF))
         events |= VIR_STREAM_EVENT_READABLE;
     if (st->cb &&
         (st->cbEvents & VIR_STREAM_EVENT_WRITABLE))
         events |= VIR_STREAM_EVENT_WRITABLE;
 
-    VIR_DEBUG("Got Timer dispatch %d %d readVec %zu writeVec %zu", events, st->cbEvents,
-              st->readVec, st->writeVec);
+    VIR_DEBUG("Got Timer dispatch events=%d cbEvents=%d rx=%p", events, st->cbEvents, st->rx);
     if (events) {
         virNetClientStreamEventCallback cb = st->cb;
         void *cbOpaque = st->cbOpaque;
@@ -162,7 +159,11 @@ void virNetClientStreamDispose(void *obj)
     virNetClientStreamPtr st = obj;
 
     virResetError(&st->err);
-    VIR_FREE(st->incomingVec);
+    while (st->rx) {
+        virNetMessagePtr msg = st->rx;
+        virNetMessageQueueServe(&st->rx);
+        virNetMessageFree(msg);
+    }
     virObjectUnref(st->prog);
 }
 
@@ -265,53 +266,34 @@ int virNetClientStreamSetError(virNetClientStreamPtr st,
 int virNetClientStreamQueuePacket(virNetClientStreamPtr st,
                                   virNetMessagePtr msg)
 {
-    int ret = -1;
-    struct iovec iov;
-    char *base;
-    size_t piece, pieces, length, offset = 0, size = 1024*1024;
+    virNetMessagePtr tmp_msg;
+
+    VIR_DEBUG("Incoming stream message: stream=%p message=%p", st, msg);
+
+    /* Unfortunately, we must allocate new message as the one we
+     * get in @msg is going to be cleared later in the process. */
+
+    if (!(tmp_msg = virNetMessageNew(false)))
+        return -1;
+
+    /* Copy header */
+    memcpy(&tmp_msg->header, &msg->header, sizeof(msg->header));
+
+    /* Steal message buffer */
+    tmp_msg->buffer = msg->buffer;
+    tmp_msg->bufferLength = msg->bufferLength;
+    tmp_msg->bufferOffset = msg->bufferOffset;
+    msg->buffer = NULL;
+    msg->bufferLength = msg->bufferOffset = 0;
 
     virObjectLock(st);
 
-    length = msg->bufferLength - msg->bufferOffset;
+    virNetMessageQueuePush(&st->rx, tmp_msg);
 
-    if (length == 0) {
-        st->incomingEOF = true;
-        goto end;
-    }
-
-    pieces = VIR_DIV_UP(length, size);
-    for (piece = 0; piece < pieces; piece++) {
-        if (size > length - offset)
-            size = length - offset;
-
-        if (VIR_ALLOC_N(base, size)) {
-            VIR_DEBUG("Allocation failed");
-            goto cleanup;
-        }
-
-        memcpy(base, msg->buffer + msg->bufferOffset + offset, size);
-        iov.iov_base = base;
-        iov.iov_len = size;
-        offset += size;
-
-        if (VIR_APPEND_ELEMENT(st->incomingVec, st->writeVec, iov) < 0) {
-            VIR_DEBUG("Append failed");
-            VIR_FREE(base);
-            goto cleanup;
-        }
-        VIR_DEBUG("Wrote piece of vector. readVec %zu, writeVec %zu size %zu",
-                  st->readVec, st->writeVec, size);
-    }
-
- end:
     virNetClientStreamEventTimerUpdate(st);
-    ret = 0;
 
- cleanup:
-    VIR_DEBUG("Stream incoming data readVec %zu writeVec %zu EOF %d",
-              st->readVec, st->writeVec, st->incomingEOF);
     virObjectUnlock(st);
-    return ret;
+    return 0;
 }
 
 
@@ -374,21 +356,19 @@ int virNetClientStreamRecvPacket(virNetClientStreamPtr st,
                                  size_t nbytes,
                                  bool nonblock)
 {
-    int ret = -1;
-    size_t partial, offset;
-
-    virObjectLock(st);
+    int rv = -1;
+    size_t want;
 
     VIR_DEBUG("st=%p client=%p data=%p nbytes=%zu nonblock=%d",
               st, client, data, nbytes, nonblock);
-
-    if ((st->readVec >= st->writeVec) && !st->incomingEOF) {
+    virObjectLock(st);
+    if (!st->rx && !st->incomingEOF) {
         virNetMessagePtr msg;
-        int rv;
+        int ret;
 
         if (nonblock) {
             VIR_DEBUG("Non-blocking mode and no data available");
-            ret = -2;
+            rv = -2;
             goto cleanup;
         }
 
@@ -404,66 +384,42 @@ int virNetClientStreamRecvPacket(virNetClientStreamPtr st,
 
         VIR_DEBUG("Dummy packet to wait for stream data");
         virObjectUnlock(st);
-        rv = virNetClientSendWithReplyStream(client, msg, st);
+        ret = virNetClientSendWithReplyStream(client, msg, st);
         virObjectLock(st);
         virNetMessageFree(msg);
 
-        if (rv < 0)
+        if (ret < 0)
             goto cleanup;
     }
 
-    offset = 0;
-    partial = nbytes;
+    VIR_DEBUG("After IO rx=%p", st->rx);
+    want = nbytes;
+    while (want && st->rx) {
+        virNetMessagePtr msg = st->rx;
+        size_t len = want;
 
-    while (st->incomingVec && (st->readVec < st->writeVec)) {
-        struct iovec *iov = st->incomingVec + st->readVec;
+        if (len > msg->bufferLength - msg->bufferOffset)
+            len = msg->bufferLength - msg->bufferOffset;
 
-        if (!iov || !iov->iov_base) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("NULL pointer encountered"));
-            goto cleanup;
-        }
-
-        if (partial < iov->iov_len) {
-            memcpy(data+offset, iov->iov_base, partial);
-            memmove(iov->iov_base, (char*)iov->iov_base+partial,
-                    iov->iov_len-partial);
-            iov->iov_len -= partial;
-            offset += partial;
-            VIR_DEBUG("Consumed %zu, left %zu", partial, iov->iov_len);
+        if (!len)
             break;
+
+        memcpy(data + (nbytes - want), msg->buffer + msg->bufferOffset, len);
+        want -= len;
+        msg->bufferOffset += len;
+
+        if (msg->bufferOffset == msg->bufferLength) {
+            virNetMessageQueueServe(&st->rx);
+            virNetMessageFree(msg);
         }
-
-        memcpy(data+offset, iov->iov_base, iov->iov_len);
-        VIR_DEBUG("Consumed %zu. Moving to next piece", iov->iov_len);
-        partial -= iov->iov_len;
-        offset += iov->iov_len;
-        VIR_FREE(iov->iov_base);
-        iov->iov_len = 0;
-        st->readVec++;
-
-        VIR_DEBUG("Read piece of vector. read %zu, readVec %zu, writeVec %zu",
-                  offset, st->readVec, st->writeVec);
     }
+    rv = nbytes - want;
 
-    /* Shrink the I/O Vector buffer to free up memory. Do the
-       shrinking only when there is selected amount or more buffers to
-       free so it doesn't constantly memmove() and realloc() buffers.
-     */
-    if (st->readVec >= 16) {
-        memmove(st->incomingVec, st->incomingVec + st->readVec,
-                sizeof(*st->incomingVec)*(st->writeVec - st->readVec));
-        VIR_SHRINK_N(st->incomingVec, st->writeVec, st->readVec);
-        VIR_DEBUG("shrink removed %zu, left %zu", st->readVec, st->writeVec);
-        st->readVec = 0;
-    }
-
-    ret = offset;
     virNetClientStreamEventTimerUpdate(st);
 
  cleanup:
     virObjectUnlock(st);
-    return ret;
+    return rv;
 }
 
 

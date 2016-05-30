@@ -1300,7 +1300,7 @@ static int remoteDispatchConnectListAllDomains(
     if (nresults > REMOTE_DOMAIN_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many domains '%d' for limit '%d'"),
-                   nresults, REMOTE_DOMAIN_LIST_MAX);
+                       nresults, REMOTE_DOMAIN_LIST_MAX);
         goto cleanup;
     }
 
@@ -1384,7 +1384,7 @@ static int remoteDispatchConnectListAllInterfaces(
     if (nresults > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many interfaces '%d' for limit '%d'"),
-                   nresults, REMOTE_INTERFACE_LIST_MAX);
+                       nresults, REMOTE_INTERFACE_LIST_MAX);
         goto cleanup;
     }
 
@@ -1468,7 +1468,7 @@ static int remoteDispatchConnectListAllNetworks(
     if (nresults > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many networks '%d' for limit '%d'"),
-                   nresults, REMOTE_NETWORK_LIST_MAX);
+                       nresults, REMOTE_NETWORK_LIST_MAX);
         goto cleanup;
     }
 
@@ -1552,7 +1552,7 @@ static int remoteDispatchConnectListAllNodeDevices(
     if (nresults > REMOTE_NODE_DEVICE_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many node_devices '%d' for limit '%d'"),
-                   nresults, REMOTE_NODE_DEVICE_LIST_MAX);
+                       nresults, REMOTE_NODE_DEVICE_LIST_MAX);
         goto cleanup;
     }
 
@@ -1636,7 +1636,7 @@ static int remoteDispatchConnectListAllNWFilters(
     if (nresults > REMOTE_NWFILTER_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many nwfilters '%d' for limit '%d'"),
-                   nresults, REMOTE_NWFILTER_LIST_MAX);
+                       nresults, REMOTE_NWFILTER_LIST_MAX);
         goto cleanup;
     }
 
@@ -1720,7 +1720,7 @@ static int remoteDispatchConnectListAllSecrets(
     if (nresults > REMOTE_SECRET_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many secrets '%d' for limit '%d'"),
-                   nresults, REMOTE_SECRET_LIST_MAX);
+                       nresults, REMOTE_SECRET_LIST_MAX);
         goto cleanup;
     }
 
@@ -1804,7 +1804,7 @@ static int remoteDispatchConnectListAllStoragePools(
     if (nresults > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many storage_pools '%d' for limit '%d'"),
-                   nresults, REMOTE_STORAGE_POOL_LIST_MAX);
+                       nresults, REMOTE_STORAGE_POOL_LIST_MAX);
         goto cleanup;
     }
 
@@ -6656,7 +6656,7 @@ static int remoteDispatchDomainListAllSnapshots(
     if (nresults > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many domain_snapshots '%d' for limit '%d'"),
-                   nresults, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
+                       nresults, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto cleanup;
     }
 
@@ -11119,7 +11119,7 @@ static int remoteDispatchDomainSnapshotListAllChildren(
     if (nresults > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many domain_snapshots '%d' for limit '%d'"),
-                   nresults, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
+                       nresults, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto cleanup;
     }
 
@@ -15776,7 +15776,7 @@ static int remoteDispatchStoragePoolListAllVolumes(
     if (nresults > REMOTE_STORAGE_VOL_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Too many storage_vols '%d' for limit '%d'"),
-                   nresults, REMOTE_STORAGE_VOL_LIST_MAX);
+                       nresults, REMOTE_STORAGE_VOL_LIST_MAX);
         goto cleanup;
     }
 

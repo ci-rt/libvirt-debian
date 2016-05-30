@@ -28,6 +28,7 @@
 # include <sasl/sasl.h>
 #endif
 
+#include "virnetserver.h"
 #include "virnetserverclient.h"
 
 #include "virlog.h"
@@ -65,6 +66,7 @@ struct _virNetServerClient
 {
     virObjectLockable parent;
 
+    unsigned long long id;
     bool wantClose;
     bool delayedClose;
     virNetSocketPtr sock;
@@ -82,6 +84,13 @@ struct _virNetServerClient
 
 
     virIdentityPtr identity;
+
+    /* Connection timestamp, i.e. when a client connected to the daemon (UTC).
+     * For old clients restored by post-exec-restart, which did not have this
+     * attribute, value of 0 (epoch time) is used to indicate we have no
+     * information about their connection time.
+     */
+    long long conn_time;
 
     /* Count of messages in the 'tx' queue,
      * and the server worker pool queue
@@ -346,13 +355,15 @@ static void virNetServerClientSockTimerFunc(int timer,
 
 
 static virNetServerClientPtr
-virNetServerClientNewInternal(virNetSocketPtr sock,
+virNetServerClientNewInternal(unsigned long long id,
+                              virNetSocketPtr sock,
                               int auth,
 #ifdef WITH_GNUTLS
                               virNetTLSContextPtr tls,
 #endif
                               bool readonly,
-                              size_t nrequests_max)
+                              size_t nrequests_max,
+                              long long timestamp)
 {
     virNetServerClientPtr client;
 
@@ -362,6 +373,7 @@ virNetServerClientNewInternal(virNetSocketPtr sock,
     if (!(client = virObjectLockableNew(virNetServerClientClass)))
         return NULL;
 
+    client->id = id;
     client->sock = virObjectRef(sock);
     client->auth = auth;
     client->readonly = readonly;
@@ -369,6 +381,7 @@ virNetServerClientNewInternal(virNetSocketPtr sock,
     client->tlsCtxt = virObjectRef(tls);
 #endif
     client->nrequests_max = nrequests_max;
+    client->conn_time = timestamp;
 
     client->sockTimer = virEventAddTimeout(-1, virNetServerClientSockTimerFunc,
                                            client, NULL);
@@ -395,7 +408,8 @@ virNetServerClientNewInternal(virNetSocketPtr sock,
 }
 
 
-virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
+virNetServerClientPtr virNetServerClientNew(unsigned long long id,
+                                            virNetSocketPtr sock,
                                             int auth,
                                             bool readonly,
                                             size_t nrequests_max,
@@ -408,6 +422,7 @@ virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
                                             void *privOpaque)
 {
     virNetServerClientPtr client;
+    time_t now;
 
     VIR_DEBUG("sock=%p auth=%d tls=%p", sock, auth,
 #ifdef WITH_GNUTLS
@@ -417,11 +432,17 @@ virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
 #endif
         );
 
-    if (!(client = virNetServerClientNewInternal(sock, auth,
+    if ((now = time(NULL)) == (time_t) - 1) {
+        virReportSystemError(errno, "%s", _("failed to get current time"));
+        return NULL;
+    }
+
+    if (!(client = virNetServerClientNewInternal(id, sock, auth,
 #ifdef WITH_GNUTLS
                                                  tls,
 #endif
-                                                 readonly, nrequests_max)))
+                                                 readonly, nrequests_max,
+                                                 now)))
         return NULL;
 
     if (privNew) {
@@ -441,7 +462,8 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
                                                            virNetServerClientPrivNewPostExecRestart privNew,
                                                            virNetServerClientPrivPreExecRestart privPreExecRestart,
                                                            virFreeCallback privFree,
-                                                           void *privOpaque)
+                                                           void *privOpaque,
+                                                           void *opaque)
 {
     virJSONValuePtr child;
     virNetServerClientPtr client = NULL;
@@ -449,6 +471,8 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
     int auth;
     bool readonly;
     unsigned int nrequests_max;
+    unsigned long long id;
+    long long timestamp;
 
     if (virJSONValueObjectGetNumberInt(object, "auth", &auth) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -461,7 +485,7 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
         return NULL;
     }
     if (virJSONValueObjectGetNumberUint(object, "nrequests_max",
-                                        (unsigned int *)&nrequests_max) < 0) {
+                                        &nrequests_max) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Missing nrequests_client_max field in JSON state document"));
         return NULL;
@@ -473,18 +497,42 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
         return NULL;
     }
 
+    if (!virJSONValueObjectHasKey(object, "id")) {
+        /* no ID found in, a new one must be generated */
+        id = virNetServerNextClientID((virNetServerPtr) opaque);
+    } else {
+        if (virJSONValueObjectGetNumberUlong(object, "id", &id) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Malformed id field in JSON state document"));
+        return NULL;
+        }
+    }
+
+    if (!virJSONValueObjectHasKey(object, "conn_time")) {
+        timestamp = 0;
+    } else {
+        if (virJSONValueObjectGetNumberLong(object, "conn_time", &timestamp) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Malformed conn_time field in JSON "
+                             "state document"));
+            return NULL;
+        }
+    }
+
     if (!(sock = virNetSocketNewPostExecRestart(child))) {
         virObjectUnref(sock);
         return NULL;
     }
 
-    if (!(client = virNetServerClientNewInternal(sock,
+    if (!(client = virNetServerClientNewInternal(id,
+                                                 sock,
                                                  auth,
 #ifdef WITH_GNUTLS
                                                  NULL,
 #endif
                                                  readonly,
-                                                 nrequests_max))) {
+                                                 nrequests_max,
+                                                 timestamp))) {
         virObjectUnref(sock);
         return NULL;
     }
@@ -521,11 +569,20 @@ virJSONValuePtr virNetServerClientPreExecRestart(virNetServerClientPtr client)
 
     virObjectLock(client);
 
+    if (virJSONValueObjectAppendNumberUlong(object, "id",
+                                            client->id) < 0)
+        goto error;
+
     if (virJSONValueObjectAppendNumberInt(object, "auth", client->auth) < 0)
         goto error;
     if (virJSONValueObjectAppendBoolean(object, "readonly", client->readonly) < 0)
         goto error;
     if (virJSONValueObjectAppendNumberUint(object, "nrequests_max", client->nrequests_max) < 0)
+        goto error;
+
+    if (client->conn_time &&
+        virJSONValueObjectAppendNumberLong(object, "conn_time",
+                                           client->conn_time) < 0)
         goto error;
 
     if (!(child = virNetSocketPreExecRestart(client->sock)))
@@ -581,6 +638,15 @@ bool virNetServerClientGetReadonly(virNetServerClientPtr client)
     return readonly;
 }
 
+unsigned long long virNetServerClientGetID(virNetServerClientPtr client)
+{
+    return client->id;
+}
+
+long long virNetServerClientGetTimestamp(virNetServerClientPtr client)
+{
+    return client->conn_time;
+}
 
 #ifdef WITH_GNUTLS
 bool virNetServerClientHasTLSSession(virNetServerClientPtr client)
@@ -795,6 +861,15 @@ virNetSASLSessionPtr virNetServerClientGetSASLSession(virNetServerClientPtr clie
     virObjectUnlock(client);
     return sasl;
 }
+
+bool virNetServerClientHasSASLSession(virNetServerClientPtr client)
+{
+    bool has = false;
+    virObjectLock(client);
+    has = !!client->sasl;
+    virObjectUnlock(client);
+    return has;
+}
 #endif
 
 
@@ -843,6 +918,19 @@ const char *virNetServerClientRemoteAddrString(virNetServerClientPtr client)
     return virNetSocketRemoteAddrString(client->sock);
 }
 
+char *virNetServerClientLocalAddrFormatSASL(virNetServerClientPtr client)
+{
+    if (!client->sock)
+        return NULL;
+    return virNetSocketLocalAddrFormatSASL(client->sock);
+}
+
+char *virNetServerClientRemoteAddrFormatSASL(virNetServerClientPtr client)
+{
+    if (!client->sock)
+        return NULL;
+    return virNetSocketRemoteAddrFormatSASL(client->sock);
+}
 
 void virNetServerClientDispose(void *obj)
 {
@@ -1496,6 +1584,58 @@ virNetServerClientStartKeepAlive(virNetServerClientPtr client)
 
     ret = virKeepAliveStart(client->keepalive, 0, 0);
 
+ cleanup:
+    virObjectUnlock(client);
+    return ret;
+}
+
+int
+virNetServerClientGetTransport(virNetServerClientPtr client)
+{
+    int ret = -1;
+
+    virObjectLock(client);
+
+    if (client->sock && virNetSocketIsLocal(client->sock))
+        ret = VIR_CLIENT_TRANS_UNIX;
+    else
+        ret = VIR_CLIENT_TRANS_TCP;
+
+#ifdef WITH_GNUTLS
+    if (client->tls)
+        ret = VIR_CLIENT_TRANS_TLS;
+#endif
+
+    virObjectUnlock(client);
+
+    return ret;
+}
+
+int
+virNetServerClientGetInfo(virNetServerClientPtr client,
+                          bool *readonly, const char **sock_addr,
+                          virIdentityPtr *identity)
+{
+    int ret = -1;
+
+    virObjectLock(client);
+    *readonly = client->readonly;
+
+    if (!(*sock_addr = virNetServerClientRemoteAddrString(client))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("No network socket associated with client"));
+        goto cleanup;
+    }
+
+    if (!client->identity) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("No identity information available for client"));
+        goto cleanup;
+    }
+
+    *identity = virObjectRef(client->identity);
+
+    ret = 0;
  cleanup:
     virObjectUnlock(client);
     return ret;

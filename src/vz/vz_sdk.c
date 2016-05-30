@@ -37,6 +37,9 @@
 #define VIR_FROM_THIS VIR_FROM_PARALLELS
 #define JOB_INFINIT_WAIT_TIMEOUT UINT_MAX
 
+static int
+prlsdkUUIDParse(const char *uuidstr, unsigned char *uuid);
+
 VIR_LOG_INIT("parallels.sdk");
 
 /*
@@ -268,24 +271,43 @@ prlsdkDeinit(void)
 int
 prlsdkConnect(vzDriverPtr driver)
 {
-    PRL_RESULT ret;
+    int ret = -1;
+    PRL_RESULT pret;
     PRL_HANDLE job = PRL_INVALID_HANDLE;
+    PRL_HANDLE result = PRL_INVALID_HANDLE;
+    PRL_HANDLE response = PRL_INVALID_HANDLE;
+    char session_uuid[VIR_UUID_STRING_BRACED_BUFLEN];
 
-    ret = PrlSrv_Create(&driver->server);
-    if (PRL_FAILED(ret)) {
-        logPrlError(ret);
-        return -1;
-    }
+    pret = PrlSrv_Create(&driver->server);
+    prlsdkCheckRetExit(pret, -1);
 
     job = PrlSrv_LoginLocalEx(driver->server, NULL, 0,
                               PSL_HIGH_SECURITY, PACF_NON_INTERACTIVE_MODE);
+    if (PRL_FAILED(getJobResult(job, &result)))
+        goto cleanup;
 
-    if (waitJob(job)) {
+    pret = PrlResult_GetParam(result, &response);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    pret = prlsdkGetStringParamBuf(PrlLoginResponse_GetSessionUuid,
+                                   response, session_uuid, sizeof(session_uuid));
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (prlsdkUUIDParse(session_uuid, driver->session_uuid) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (ret < 0) {
         PrlHandle_Free(driver->server);
-        return -1;
+        driver->server = PRL_INVALID_HANDLE;
     }
 
-    return 0;
+    PrlHandle_Free(result);
+    PrlHandle_Free(response);
+
+    return ret;
 }
 
 void
@@ -337,7 +359,7 @@ prlsdkUUIDFormat(const unsigned char *uuid, char *uuidstr)
 static PRL_HANDLE
 prlsdkSdkDomainLookupByUUID(vzDriverPtr driver, const unsigned char *uuid)
 {
-    char uuidstr[VIR_UUID_STRING_BUFLEN + 2];
+    char uuidstr[VIR_UUID_STRING_BRACED_BUFLEN];
     PRL_HANDLE sdkdom = PRL_INVALID_HANDLE;
 
     prlsdkUUIDFormat(uuid, uuidstr);
@@ -382,7 +404,7 @@ prlsdkGetDomainIds(PRL_HANDLE sdkdom,
                    char **name,
                    unsigned char *uuid)
 {
-    char uuidstr[VIR_UUID_STRING_BUFLEN + 2];
+    char uuidstr[VIR_UUID_STRING_BRACED_BUFLEN];
     PRL_RESULT pret;
 
     if (name && !(*name = prlsdkGetStringParamVar(PrlVmCfg_GetName, sdkdom)))
@@ -1871,7 +1893,7 @@ prlsdkEventsHandler(PRL_HANDLE prlEvent, PRL_VOID_PTR opaque)
     vzDriverPtr driver = opaque;
     PRL_RESULT pret = PRL_ERR_FAILURE;
     PRL_HANDLE_TYPE handleType;
-    char uuidstr[VIR_UUID_STRING_BUFLEN + 2];
+    char uuidstr[VIR_UUID_STRING_BRACED_BUFLEN];
     unsigned char uuid[VIR_UUID_BUFLEN];
     PRL_EVENT_TYPE prlEventType;
 
@@ -2028,6 +2050,7 @@ prlsdkDomainChangeStateLocked(vzDriverPtr driver,
         switch (pret) {
         case PRL_ERR_DISP_VM_IS_NOT_STARTED:
         case PRL_ERR_DISP_VM_IS_NOT_STOPPED:
+        case PRL_ERR_INVALID_ACTION_REQUESTED:
             virerr = VIR_ERR_OPERATION_INVALID;
             break;
         default:
@@ -2666,7 +2689,7 @@ static int prlsdkCheckFSUnsupportedParams(virDomainFSDefPtr fs)
     if (fs->readonly) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Setting readonly for filesystems is "
-                         "supported by vz driver."));
+                         "not supported by vz driver."));
         return -1;
     }
 
@@ -2683,7 +2706,7 @@ static int prlsdkCheckFSUnsupportedParams(virDomainFSDefPtr fs)
 static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     virDomainGraphicsDefPtr gr;
-    virDomainGraphicsListenDefPtr gListen;
+    virDomainGraphicsListenDefPtr glisten;
     PRL_RESULT pret;
     int ret  = -1;
 
@@ -2706,10 +2729,10 @@ static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         prlsdkCheckRetGoto(pret, cleanup);
     }
 
-    if ((gListen = virDomainGraphicsGetListen(gr, 0))) {
-        if (!gListen->address)
+    if ((glisten = virDomainGraphicsGetListen(gr, 0))) {
+        if (!glisten->address)
             goto cleanup;
-        pret = PrlVmCfg_SetVNCHostName(sdkdom, gListen->address);
+        pret = PrlVmCfg_SetVNCHostName(sdkdom, glisten->address);
         prlsdkCheckRetGoto(pret, cleanup);
     }
 
@@ -3433,6 +3456,9 @@ prlsdkAddFS(PRL_HANDLE sdkdom, virDomainFSDefPtr fs)
     PRL_HANDLE sdkdisk = PRL_INVALID_HANDLE;
     int ret = -1;
 
+    if (fs->type == VIR_DOMAIN_FS_TYPE_TEMPLATE)
+        return 0;
+
     if (prlsdkCheckFSUnsupportedParams(fs) < 0)
         return -1;
 
@@ -3547,7 +3573,7 @@ prlsdkDoApplyConfig(vzDriverPtr driver,
 {
     PRL_RESULT pret;
     size_t i;
-    char uuidstr[VIR_UUID_STRING_BUFLEN + 2];
+    char uuidstr[VIR_UUID_STRING_BRACED_BUFLEN];
     char *mask = NULL;
 
     if (prlsdkCheckUnsupportedParams(sdkdom, def) < 0)
@@ -3731,6 +3757,7 @@ prlsdkCreateCt(vzDriverPtr driver, virDomainDefPtr def)
     PRL_HANDLE job = PRL_INVALID_HANDLE;
     PRL_HANDLE result = PRL_INVALID_HANDLE;
     PRL_RESULT pret;
+    PRL_UINT32 flags;
     int ret = -1;
     int useTemplate = 0;
     size_t i;
@@ -3771,14 +3798,17 @@ prlsdkCreateCt(vzDriverPtr driver, virDomainDefPtr def)
 
     }
 
-    ret = prlsdkDoApplyConfig(driver, sdkdom, def, NULL);
-    if (ret)
+    if (prlsdkDoApplyConfig(driver, sdkdom, def, NULL) < 0)
         goto cleanup;
 
-    job = PrlVm_RegEx(sdkdom, "",
-                      PACF_NON_INTERACTIVE_MODE | PRNVM_PRESERVE_DISK);
+    flags = PACF_NON_INTERACTIVE_MODE;
+    if (!useTemplate)
+        flags |= PRNVM_PRESERVE_DISK;
+    job = PrlVm_RegEx(sdkdom, "", flags);
     if (PRL_FAILED(waitJob(job)))
-        ret = -1;
+        goto cleanup;
+
+    ret = 0;
 
  cleanup:
     PrlHandle_Free(sdkdom);
@@ -3831,75 +3861,16 @@ prlsdkDetachDomainHardDisks(PRL_HANDLE sdkdom)
     return ret;
 }
 
-/**
- * prlsdkDomainHasSnapshots:
- *
- * This function detects where a domain specified by @sdkdom
- * has snapshots. It doesn't count them correctly.
- *
- * @sdkdom: domain handle
- * @found: a value more than zero if snapshots present
- *
- * Returns 0 if function succeeds, -1 otherwise.
- */
-static int
-prlsdkDomainHasSnapshots(PRL_HANDLE sdkdom, int* found)
-{
-    int ret = -1;
-    PRL_RESULT pret;
-    PRL_HANDLE job;
-    PRL_HANDLE result;
-    char *snapshotxml = NULL;
-    unsigned int paramsCount;
-    xmlDocPtr xml = NULL;
-    xmlXPathContextPtr ctxt = NULL;
-
-    if (!found)
-        goto cleanup;
-
-    job = PrlVm_GetSnapshotsTreeEx(sdkdom, PGST_WITHOUT_SCREENSHOTS);
-    if (PRL_FAILED(getJobResult(job, &result)))
-        goto cleanup;
-
-    pret = PrlResult_GetParamsCount(result, &paramsCount);
-    prlsdkCheckRetGoto(pret, cleanup);
-
-    if (!paramsCount)
-        goto cleanup;
-
-    if (!(snapshotxml = prlsdkGetStringParamVar(PrlResult_GetParamAsString,
-                                                result)))
-        goto cleanup;
-
-    if (*snapshotxml == '\0') {
-        /* The document is empty that means no snapshots */
-        *found = 0;
-        ret = 0;
-        goto cleanup;
-    }
-
-    if (!(xml = virXMLParseStringCtxt(snapshotxml, "SavedStateItem", &ctxt)))
-        goto cleanup;
-
-    *found = virXMLChildElementCount(ctxt->node);
-    ret = 0;
-
- cleanup:
-
-    xmlXPathFreeContext(ctxt);
-    xmlFreeDoc(xml);
-    VIR_FREE(snapshotxml);
-    return ret;
-}
-
 int
 prlsdkUnregisterDomain(vzDriverPtr driver, virDomainObjPtr dom, unsigned int flags)
 {
     vzDomObjPtr privdom = dom->privateData;
     PRL_HANDLE job;
     size_t i;
-    int snapshotfound = 0;
+    virDomainSnapshotObjListPtr snapshots = NULL;
     VIRTUAL_MACHINE_STATE domainState;
+    int ret = -1;
+    int num;
 
     if (prlsdkGetDomainState(privdom->sdkdom, &domainState) < 0)
         return -1;
@@ -3913,31 +3884,39 @@ prlsdkUnregisterDomain(vzDriverPtr driver, virDomainObjPtr dom, unsigned int fla
         return -1;
     }
 
-    if (prlsdkDomainHasSnapshots(privdom->sdkdom, &snapshotfound) < 0)
+    if (!(snapshots = prlsdkLoadSnapshots(dom)))
         return -1;
 
-    if (snapshotfound && !(flags & VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA)) {
+    if ((num = virDomainSnapshotObjListNum(snapshots, NULL, 0)) < 0)
+        goto cleanup;
+
+    if (num > 0 && !(flags & VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("Refusing to undefine while snapshots exist"));
-        return -1;
+        goto cleanup;
     }
 
     if (prlsdkDetachDomainHardDisks(privdom->sdkdom))
-        return -1;
+        goto cleanup;
 
     job = PrlVm_Delete(privdom->sdkdom, PRL_INVALID_HANDLE);
     if (PRL_FAILED(waitJob(job)))
-        return -1;
+        goto cleanup;
 
     for (i = 0; i < dom->def->nnets; i++)
         prlsdkCleanupBridgedNet(driver, dom->def->nets[i]);
 
     if (prlsdkSendEvent(driver, dom, VIR_DOMAIN_EVENT_UNDEFINED,
                         VIR_DOMAIN_EVENT_UNDEFINED_REMOVED) < 0)
-        return -1;
+        goto cleanup;
 
     virDomainObjListRemove(driver->domains, dom);
-    return 0;
+
+    ret = 0;
+ cleanup:
+
+    virDomainSnapshotObjListFree(snapshots);
+    return ret;
 }
 
 int
@@ -4266,4 +4245,262 @@ int prlsdkSetMemsize(virDomainObjPtr dom, unsigned int memsize)
 
  error:
     return -1;
+}
+
+static long long
+prlsdkParseDateTime(const char *str)
+{
+    struct tm tm;
+    const char *tmp;
+
+    tmp = strptime(str, "%Y-%m-%d %H:%M:%S", &tm);
+    if (!tmp || *tmp != '\0') {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected DateTime format: '%s'"), str);
+        return -1;
+    }
+
+    return mktime(&tm);
+}
+
+static virDomainSnapshotObjListPtr
+prlsdkParseSnapshotTree(const char *treexml)
+{
+    virDomainSnapshotObjListPtr ret = NULL;
+    xmlDocPtr xml = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    xmlNodePtr root;
+    xmlNodePtr *nodes = NULL;
+    virDomainSnapshotDefPtr def = NULL;
+    virDomainSnapshotObjPtr snapshot;
+    virDomainSnapshotObjPtr current = NULL;
+    virDomainSnapshotObjListPtr snapshots = NULL;
+    char *xmlstr = NULL;
+    int n;
+    size_t i;
+
+    if (!(snapshots = virDomainSnapshotObjListNew()))
+        return NULL;
+
+    if (*treexml == '\0')
+        return snapshots;
+
+    if (!(xml = virXMLParse(NULL, treexml, _("(snapshot_tree)"))))
+        goto cleanup;
+
+    root = xmlDocGetRootElement(xml);
+    if (!xmlStrEqual(root->name, BAD_CAST "ParallelsSavedStates")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected root element: '%s'"), root->name);
+        goto cleanup;
+    }
+
+    ctxt = xmlXPathNewContext(xml);
+    if (ctxt == NULL) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    ctxt->node = root;
+
+    if ((n = virXPathNodeSet("//SavedStateItem", ctxt, &nodes)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot extract snapshot nodes"));
+        goto cleanup;
+    }
+
+    for (i = 0; i < n; i++) {
+        if (nodes[i]->parent == root)
+            continue;
+
+        if (VIR_ALLOC(def) < 0)
+            goto cleanup;
+
+        ctxt->node = nodes[i];
+
+        def->name = virXPathString("string(./@guid)", ctxt);
+        if (!def->name) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing 'guid' attribute"));
+            goto cleanup;
+        }
+
+        def->parent = virXPathString("string(../@guid)", ctxt);
+
+        xmlstr = virXPathString("string(./DateTime)", ctxt);
+        if (!xmlstr) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing 'DateTime' element"));
+            goto cleanup;
+        }
+        if ((def->creationTime = prlsdkParseDateTime(xmlstr)) < 0)
+            goto cleanup;
+        VIR_FREE(xmlstr);
+
+        def->description = virXPathString("string(./Description)", ctxt);
+
+        def->memory = VIR_DOMAIN_SNAPSHOT_LOCATION_NONE;
+        xmlstr = virXPathString("string(./@state)", ctxt);
+        if (!xmlstr) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing 'state' attribute"));
+            goto cleanup;
+        } else if (STREQ(xmlstr, "poweron")) {
+            def->state = VIR_DOMAIN_RUNNING;
+            def->memory = VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
+        } else if (STREQ(xmlstr, "pause")) {
+            def->state = VIR_DOMAIN_PAUSED;
+            def->memory = VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
+        } else if (STREQ(xmlstr, "suspend")) {
+            def->state = VIR_DOMAIN_SHUTOFF;
+        } else if (STREQ(xmlstr, "poweroff")) {
+            def->state = VIR_DOMAIN_SHUTOFF;
+        } else {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected snapshot state: %s"), xmlstr);
+        }
+        VIR_FREE(xmlstr);
+
+        xmlstr = virXPathString("string(./@current)", ctxt);
+        def->current = xmlstr && STREQ("yes", xmlstr);
+        VIR_FREE(xmlstr);
+
+        if (!(snapshot = virDomainSnapshotAssignDef(snapshots, def)))
+            goto cleanup;
+        def = NULL;
+
+        if (snapshot->def->current) {
+            if (current) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("too many current snapshots"));
+                goto cleanup;
+            }
+            current = snapshot;
+        }
+    }
+
+    if (virDomainSnapshotUpdateRelations(snapshots) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("snapshots have inconsistent relations"));
+        goto cleanup;
+    }
+
+    ret = snapshots;
+    snapshots = NULL;
+
+ cleanup:
+    virDomainSnapshotObjListFree(snapshots);
+    VIR_FREE(nodes);
+    VIR_FREE(xmlstr);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml);
+    VIR_FREE(def);
+
+    return ret;
+}
+
+virDomainSnapshotObjListPtr
+prlsdkLoadSnapshots(virDomainObjPtr dom)
+{
+    virDomainSnapshotObjListPtr ret = NULL;
+    PRL_HANDLE job;
+    PRL_HANDLE result = PRL_INVALID_HANDLE;
+    vzDomObjPtr privdom = dom->privateData;
+    char *treexml = NULL;
+
+    job = PrlVm_GetSnapshotsTreeEx(privdom->sdkdom, PGST_WITHOUT_SCREENSHOTS);
+    if (PRL_FAILED(getJobResult(job, &result)))
+        goto cleanup;
+
+    if (!(treexml = prlsdkGetStringParamVar(PrlResult_GetParamAsString, result)))
+        goto cleanup;
+
+    ret = prlsdkParseSnapshotTree(treexml);
+ cleanup:
+
+    PrlHandle_Free(result);
+    VIR_FREE(treexml);
+    return ret;
+}
+
+int prlsdkCreateSnapshot(virDomainObjPtr dom, const char *description)
+{
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_HANDLE job;
+
+    job = PrlVm_CreateSnapshot(privdom->sdkdom, "",
+                               description ? : "");
+    if (PRL_FAILED(waitJob(job)))
+        return -1;
+
+    return 0;
+}
+
+int prlsdkDeleteSnapshot(virDomainObjPtr dom, const char *uuid, bool children)
+{
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_HANDLE job;
+
+    job = PrlVm_DeleteSnapshot(privdom->sdkdom, uuid, children);
+    if (PRL_FAILED(waitJob(job)))
+        return -1;
+
+    return 0;
+}
+
+int prlsdkSwitchToSnapshot(virDomainObjPtr dom, const char *uuid, bool paused)
+{
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_HANDLE job;
+    PRL_UINT32 flags = 0;
+
+    if (paused)
+        flags |= PSSF_SKIP_RESUME;
+
+    job = PrlVm_SwitchToSnapshotEx(privdom->sdkdom, uuid, flags);
+    if (PRL_FAILED(waitJob(job)))
+        return -1;
+
+    return 0;
+}
+
+/* high security is default choice for 2 reasons:
+ * 1. as this is the highest set security we can't get
+ * reject from server with high security settings
+ * 2. this is on par with security level of driver
+ * connection to dispatcher
+ */
+
+#define PRLSDK_MIGRATION_FLAGS (PSL_HIGH_SECURITY)
+
+int prlsdkMigrate(virDomainObjPtr dom, virURIPtr uri,
+                  const unsigned char *session_uuid,
+                  const char *dname,
+                  unsigned int flags)
+{
+    int ret = -1;
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_HANDLE job = PRL_INVALID_HANDLE;
+    char uuidstr[VIR_UUID_STRING_BRACED_BUFLEN];
+    PRL_UINT32 vzflags = PRLSDK_MIGRATION_FLAGS;
+
+    if (flags & VIR_MIGRATE_PAUSED)
+        vzflags |= PVMT_DONT_RESUME_VM;
+
+    prlsdkUUIDFormat(session_uuid, uuidstr);
+    job = PrlVm_MigrateWithRenameEx(privdom->sdkdom, uri->server,
+                                    uri->port, uuidstr,
+                                    dname == NULL ? "" : dname,
+                                    "",
+                                    vzflags,
+                                    0,
+                                    PRL_TRUE
+                                    );
+
+    if (PRL_FAILED(waitJob(job)))
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    return ret;
 }

@@ -260,6 +260,8 @@ struct _virStorageSource {
     unsigned long long capacity; /* in bytes, 0 if unknown */
     unsigned long long allocation; /* in bytes, 0 if unknown */
     unsigned long long physical; /* in bytes, 0 if unknown */
+    bool has_allocation; /* Set to true when provided in XML */
+
     size_t nseclabels;
     virSecurityDeviceLabelDefPtr *seclabels;
 
@@ -357,9 +359,10 @@ int virStorageSourceInitChainElement(virStorageSourcePtr newelem,
                                      bool force);
 void virStorageSourcePoolDefFree(virStorageSourcePoolDefPtr def);
 void virStorageSourceClear(virStorageSourcePtr def);
-int virStorageSourceGetActualType(virStorageSourcePtr def);
+int virStorageSourceGetActualType(const virStorageSource *def);
 bool virStorageSourceIsLocalStorage(virStorageSourcePtr src);
 bool virStorageSourceIsEmpty(virStorageSourcePtr src);
+bool virStorageSourceIsBlockLocal(const virStorageSource *src);
 void virStorageSourceFree(virStorageSourcePtr def);
 void virStorageSourceBackingStoreClear(virStorageSourcePtr def);
 int virStorageSourceUpdateBlockPhysicalSize(virStorageSourcePtr src,

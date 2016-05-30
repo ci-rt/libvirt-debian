@@ -186,8 +186,7 @@ xenParseXLSpice(virConfPtr conf, virDomainDefPtr def)
             graphics->type = VIR_DOMAIN_GRAPHICS_TYPE_SPICE;
             if (xenConfigCopyStringOpt(conf, "spicehost", &listenAddr) < 0)
                 goto cleanup;
-            if (listenAddr &&
-                virDomainGraphicsListenAppendAddress(graphics, listenAddr) < 0)
+            if (virDomainGraphicsListenAppendAddress(graphics, listenAddr) < 0)
                 goto cleanup;
             VIR_FREE(listenAddr);
 
@@ -499,7 +498,7 @@ xenParseXL(virConfPtr conf,
     def->virtType = VIR_DOMAIN_VIRT_XEN;
     def->id = -1;
 
-    if (xenParseConfigCommon(conf, def, caps) < 0)
+    if (xenParseConfigCommon(conf, def, caps, XEN_CONFIG_FORMAT_XL) < 0)
         goto cleanup;
 
     if (xenParseXLOS(conf, def, caps) < 0)
@@ -838,7 +837,7 @@ xenFormatXLDomainDisks(virConfPtr conf, virDomainDefPtr def)
 static int
 xenFormatXLSpice(virConfPtr conf, virDomainDefPtr def)
 {
-    virDomainGraphicsListenDefPtr gListen;
+    virDomainGraphicsListenDefPtr glisten;
     virDomainGraphicsDefPtr graphics;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
@@ -855,9 +854,9 @@ xenFormatXLSpice(virConfPtr conf, virDomainDefPtr def)
             if (xenConfigSetInt(conf, "spice", 1) < 0)
                 return -1;
 
-            if ((gListen = virDomainGraphicsGetListen(graphics, 0)) &&
-                gListen->address &&
-                xenConfigSetString(conf, "spicehost", gListen->address) < 0)
+            if ((glisten = virDomainGraphicsGetListen(graphics, 0)) &&
+                glisten->address &&
+                xenConfigSetString(conf, "spicehost", glisten->address) < 0)
                 return -1;
 
             if (xenConfigSetInt(conf, "spiceport",
@@ -994,7 +993,7 @@ xenFormatXL(virDomainDefPtr def, virConnectPtr conn)
     if (!(conf = virConfNew()))
         goto cleanup;
 
-    if (xenFormatConfigCommon(conf, def, conn) < 0)
+    if (xenFormatConfigCommon(conf, def, conn, XEN_CONFIG_FORMAT_XL) < 0)
         goto cleanup;
 
     if (xenFormatXLOS(conf, def) < 0)

@@ -1164,7 +1164,7 @@ qemuParseCommandLinePCI(const char *val)
     int bus = 0, slot = 0, func = 0;
     const char *start;
     char *end;
-    virDomainHostdevDefPtr def = virDomainHostdevDefAlloc();
+    virDomainHostdevDefPtr def = virDomainHostdevDefAlloc(NULL);
 
     if (!def)
         goto error;
@@ -1214,7 +1214,7 @@ qemuParseCommandLinePCI(const char *val)
 static virDomainHostdevDefPtr
 qemuParseCommandLineUSB(const char *val)
 {
-    virDomainHostdevDefPtr def = virDomainHostdevDefAlloc();
+    virDomainHostdevDefPtr def = virDomainHostdevDefAlloc(NULL);
     virDomainHostdevSubsysUSBPtr usbsrc;
     int first = 0, second = 0;
     const char *start;
@@ -1633,6 +1633,33 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
 
 
 static int
+qemuParseCommandLineMem(virDomainDefPtr dom,
+                        const char *val)
+{
+    unsigned long long mem;
+    char *end;
+
+    if (virStrToLong_ull(val, &end, 10, &mem) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot parse memory level '%s'"), val);
+        return -1;
+    }
+
+    if (virScaleInteger(&mem, end, 1024*1024, ULLONG_MAX) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot scale memory: %s"),
+                       virGetLastErrorMessage());
+        return -1;
+    }
+
+    virDomainDefSetMemoryTotal(dom, mem / 1024);
+    dom->mem.cur_balloon = mem / 1024;
+
+    return 0;
+}
+
+
+static int
 qemuParseCommandLineSmp(virDomainDefPtr dom,
                         const char *val)
 {
@@ -1869,15 +1896,9 @@ qemuParseCommandLine(virCapsPtr caps,
         } else if (STREQ(arg, "-sdl")) {
             have_sdl = true;
         } else if (STREQ(arg, "-m")) {
-            int mem;
             WANT_VALUE();
-            if (virStrToLong_i(val, NULL, 10, &mem) < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, \
-                               _("cannot parse memory level '%s'"), val);
+            if (qemuParseCommandLineMem(def, val) < 0)
                 goto error;
-            }
-            virDomainDefSetMemoryTotal(def, mem * 1024);
-            def->mem.cur_balloon = mem * 1024;
         } else if (STREQ(arg, "-smp")) {
             WANT_VALUE();
             if (qemuParseCommandLineSmp(def, val) < 0)
@@ -2350,16 +2371,8 @@ qemuParseCommandLine(virCapsPtr caps,
             WANT_VALUE();
             /* ignore, generted on the fly */
         } else if (STREQ(arg, "-usb")) {
-            virDomainControllerDefPtr ctldef;
-            if (VIR_ALLOC(ctldef) < 0)
+            if (virDomainDefAddUSBController(def, -1, -1) < 0)
                 goto error;
-            ctldef->type = VIR_DOMAIN_CONTROLLER_TYPE_USB;
-            ctldef->idx = 0;
-            ctldef->model = -1;
-            if (virDomainControllerInsert(def, ctldef) < 0) {
-                VIR_FREE(ctldef);
-                goto error;
-            }
         } else if (STREQ(arg, "-pidfile")) {
             WANT_VALUE();
             if (pidfile)
@@ -2585,9 +2598,7 @@ qemuParseCommandLine(virCapsPtr caps,
             vid->type = VIR_DOMAIN_VIDEO_TYPE_XEN;
         else
             vid->type = video;
-        vid->vram = virDomainVideoDefaultRAM(def, vid->type);
         if (vid->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
-            vid->ram = virDomainVideoDefaultRAM(def, vid->type);
             vid->vgamem = QEMU_QXL_VGAMEM_DEFAULT;
         } else {
             vid->ram = 0;

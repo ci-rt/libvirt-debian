@@ -35,6 +35,7 @@
 
 
 virNetServerPtr virNetServerNew(const char *name,
+                                unsigned long long next_client_id,
                                 size_t min_workers,
                                 size_t max_workers,
                                 size_t priority_workers,
@@ -101,5 +102,22 @@ int virNetServerSetThreadPoolParameters(virNetServerPtr srv,
                                         long long int minWorkers,
                                         long long int maxWorkers,
                                         long long int prioWorkers);
+
+unsigned long long virNetServerNextClientID(virNetServerPtr srv);
+
+virNetServerClientPtr virNetServerGetClient(virNetServerPtr srv,
+                                            unsigned long long id);
+
+int virNetServerGetClients(virNetServerPtr srv,
+                           virNetServerClientPtr **clients);
+
+size_t virNetServerGetMaxClients(virNetServerPtr srv);
+size_t virNetServerGetCurrentClients(virNetServerPtr srv);
+size_t virNetServerGetMaxUnauthClients(virNetServerPtr srv);
+size_t virNetServerGetCurrentUnauthClients(virNetServerPtr srv);
+
+int virNetServerSetClientProcessingControls(virNetServerPtr srv,
+                                            long long int maxClients,
+                                            long long int maxClientsUnauth);
 
 #endif /* __VIR_NET_SERVER_H__ */

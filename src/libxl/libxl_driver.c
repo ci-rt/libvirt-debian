@@ -70,10 +70,6 @@ VIR_LOG_INIT("libxl.libxl_driver");
 #define LIBXL_DOM_REQ_CRASH    3
 #define LIBXL_DOM_REQ_HALT     4
 
-#define LIBXL_CONFIG_FORMAT_XL "xen-xl"
-#define LIBXL_CONFIG_FORMAT_XM "xen-xm"
-#define LIBXL_CONFIG_FORMAT_SEXPR "xen-sxpr"
-
 #define LIBXL_NB_TOTAL_CPU_STAT_PARAM 1
 
 #define HYPERVISOR_CAPABILITIES "/proc/xen/capabilities"
@@ -311,7 +307,6 @@ libxlAutostartDomain(virDomainObjPtr vm,
                      void *opaque)
 {
     libxlDriverPrivatePtr driver = opaque;
-    virErrorPtr err;
     int ret = -1;
 
     virObjectLock(vm);
@@ -323,11 +318,10 @@ libxlAutostartDomain(virDomainObjPtr vm,
     }
 
     if (vm->autostart && !virDomainObjIsActive(vm) &&
-        libxlDomainStart(driver, vm, false, -1) < 0) {
-        err = virGetLastError();
-        VIR_ERROR(_("Failed to autostart VM '%s': %s"),
-                  vm->def->name,
-                  err ? err->message : _("unknown error"));
+        libxlDomainStartNew(driver, vm, false) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to autostart VM '%s': %s"),
+                       vm->def->name, virGetLastErrorMessage());
         goto endjob;
     }
 
@@ -998,8 +992,8 @@ libxlDomainCreateXML(virConnectPtr conn, const char *xml,
         goto cleanup;
     }
 
-    if (libxlDomainStart(driver, vm, (flags & VIR_DOMAIN_START_PAUSED) != 0,
-                     -1) < 0) {
+    if (libxlDomainStartNew(driver, vm,
+                         (flags & VIR_DOMAIN_START_PAUSED) != 0) < 0) {
         if (!vm->persistent) {
             virDomainObjListRemove(driver->domains, vm);
             vm = NULL;
@@ -1818,7 +1812,9 @@ libxlDomainRestoreFlags(virConnectPtr conn, const char *from,
         goto cleanup;
     }
 
-    ret = libxlDomainStart(driver, vm, (flags & VIR_DOMAIN_SAVE_PAUSED) != 0, fd);
+    ret = libxlDomainStartRestore(driver, vm,
+                                  (flags & VIR_DOMAIN_SAVE_PAUSED) != 0,
+                                  fd, hdr.version);
     if (ret < 0 && !vm->persistent)
         virDomainObjListRemove(driver->domains, vm);
 
@@ -2532,14 +2528,14 @@ libxlConnectDomainXMLFromNative(virConnectPtr conn,
     if (virConnectDomainXMLFromNativeEnsureACL(conn) < 0)
         goto cleanup;
 
-    if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_XL)) {
+    if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XL)) {
         if (!(conf = virConfReadMem(nativeConfig, strlen(nativeConfig), 0)))
             goto cleanup;
         if (!(def = xenParseXL(conf,
                                cfg->caps,
                                driver->xmlopt)))
             goto cleanup;
-    } else if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_XM)) {
+    } else if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XM)) {
         if (!(conf = virConfReadMem(nativeConfig, strlen(nativeConfig), 0)))
             goto cleanup;
 
@@ -2547,7 +2543,7 @@ libxlConnectDomainXMLFromNative(virConnectPtr conn,
                                cfg->caps,
                                driver->xmlopt)))
             goto cleanup;
-    } else if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_SEXPR)) {
+    } else if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_SEXPR)) {
         /* only support latest xend config format */
         if (!(def = xenParseSxprString(nativeConfig,
                                        NULL,
@@ -2597,10 +2593,10 @@ libxlConnectDomainXMLToNative(virConnectPtr conn, const char * nativeFormat,
                                         VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
-    if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_XL)) {
+    if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XL)) {
         if (!(conf = xenFormatXL(def, conn)))
             goto cleanup;
-    } else if (STREQ(nativeFormat, LIBXL_CONFIG_FORMAT_XM)) {
+    } else if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XM)) {
         if (!(conf = xenFormatXM(conn, def)))
             goto cleanup;
     } else {
@@ -2681,7 +2677,8 @@ libxlDomainCreateWithFlags(virDomainPtr dom,
         goto endjob;
     }
 
-    ret = libxlDomainStart(driver, vm, (flags & VIR_DOMAIN_START_PAUSED) != 0, -1);
+    ret = libxlDomainStartNew(driver, vm,
+                              (flags & VIR_DOMAIN_START_PAUSED) != 0);
     if (ret < 0)
         goto endjob;
     dom->id = vm->def->id;
@@ -5148,8 +5145,8 @@ static char *
 libxlDomainMigrateBegin3Params(virDomainPtr domain,
                                virTypedParameterPtr params,
                                int nparams,
-                               char **cookieout ATTRIBUTE_UNUSED,
-                               int *cookieoutlen ATTRIBUTE_UNUSED,
+                               char **cookieout,
+                               int *cookieoutlen,
                                unsigned int flags)
 {
     const char *xmlin = NULL;
@@ -5190,15 +5187,16 @@ libxlDomainMigrateBegin3Params(virDomainPtr domain,
         return NULL;
     }
 
-    return libxlDomainMigrationBegin(domain->conn, vm, xmlin);
+    return libxlDomainMigrationBegin(domain->conn, vm, xmlin,
+                                     cookieout, cookieoutlen);
 }
 
 static int
 libxlDomainMigratePrepare3Params(virConnectPtr dconn,
                                  virTypedParameterPtr params,
                                  int nparams,
-                                 const char *cookiein ATTRIBUTE_UNUSED,
-                                 int cookieinlen ATTRIBUTE_UNUSED,
+                                 const char *cookiein,
+                                 int cookieinlen,
                                  char **cookieout ATTRIBUTE_UNUSED,
                                  int *cookieoutlen ATTRIBUTE_UNUSED,
                                  char **uri_out,
@@ -5237,7 +5235,8 @@ libxlDomainMigratePrepare3Params(virConnectPtr dconn,
     if (virDomainMigratePrepare3ParamsEnsureACL(dconn, def) < 0)
         goto error;
 
-    if (libxlDomainMigrationPrepare(dconn, &def, uri_in, uri_out, flags) < 0)
+    if (libxlDomainMigrationPrepare(dconn, &def, uri_in, uri_out,
+                                    cookiein, cookieinlen, flags) < 0)
         goto error;
 
     return 0;
@@ -5420,6 +5419,145 @@ static int libxlNodeGetSecurityModel(virConnectPtr conn,
     return 0;
 }
 
+static int
+libxlGetDHCPInterfaces(virDomainPtr dom,
+                       virDomainObjPtr vm,
+                       virDomainInterfacePtr **ifaces)
+{
+    int rv = -1;
+    int n_leases = 0;
+    size_t i, j;
+    size_t ifaces_count = 0;
+    virNetworkPtr network = NULL;
+    char macaddr[VIR_MAC_STRING_BUFLEN];
+    virDomainInterfacePtr iface = NULL;
+    virNetworkDHCPLeasePtr *leases = NULL;
+    virDomainInterfacePtr *ifaces_ret = NULL;
+
+    if (!dom->conn->networkDriver ||
+        !dom->conn->networkDriver->networkGetDHCPLeases) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Network driver does not support DHCP lease query"));
+        return -1;
+    }
+
+    for (i = 0; i < vm->def->nnets; i++) {
+        if (vm->def->nets[i]->type != VIR_DOMAIN_NET_TYPE_NETWORK)
+            continue;
+
+        virMacAddrFormat(&(vm->def->nets[i]->mac), macaddr);
+        virObjectUnref(network);
+        network = virNetworkLookupByName(dom->conn,
+                                         vm->def->nets[i]->data.network.name);
+
+        if ((n_leases = virNetworkGetDHCPLeases(network, macaddr,
+                                                &leases, 0)) < 0)
+            goto error;
+
+        if (n_leases) {
+            if (VIR_EXPAND_N(ifaces_ret, ifaces_count, 1) < 0)
+                goto error;
+
+            if (VIR_ALLOC(ifaces_ret[ifaces_count - 1]) < 0)
+                goto error;
+
+            iface = ifaces_ret[ifaces_count - 1];
+            /* Assuming each lease corresponds to a separate IP */
+            iface->naddrs = n_leases;
+
+            if (VIR_ALLOC_N(iface->addrs, iface->naddrs) < 0)
+                goto error;
+
+            if (VIR_STRDUP(iface->name, vm->def->nets[i]->ifname) < 0)
+                goto cleanup;
+
+            if (VIR_STRDUP(iface->hwaddr, macaddr) < 0)
+                goto cleanup;
+        }
+
+        for (j = 0; j < n_leases; j++) {
+            virNetworkDHCPLeasePtr lease = leases[j];
+            virDomainIPAddressPtr ip_addr = &iface->addrs[j];
+
+            if (VIR_STRDUP(ip_addr->addr, lease->ipaddr) < 0)
+                goto cleanup;
+
+            ip_addr->type = lease->type;
+            ip_addr->prefix = lease->prefix;
+        }
+
+        for (j = 0; j < n_leases; j++)
+            virNetworkDHCPLeaseFree(leases[j]);
+
+        VIR_FREE(leases);
+    }
+
+    *ifaces = ifaces_ret;
+    ifaces_ret = NULL;
+    rv = ifaces_count;
+
+ cleanup:
+    virObjectUnref(network);
+    if (leases) {
+        for (i = 0; i < n_leases; i++)
+            virNetworkDHCPLeaseFree(leases[i]);
+    }
+    VIR_FREE(leases);
+
+    return rv;
+
+ error:
+    if (ifaces_ret) {
+        for (i = 0; i < ifaces_count; i++)
+            virDomainInterfaceFree(ifaces_ret[i]);
+    }
+    VIR_FREE(ifaces_ret);
+
+    goto cleanup;
+}
+
+
+static int
+libxlDomainInterfaceAddresses(virDomainPtr dom,
+                              virDomainInterfacePtr **ifaces,
+                              unsigned int source,
+                              unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainInterfaceAddressesEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not running"));
+        goto cleanup;
+    }
+
+    switch (source) {
+    case VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE:
+        ret = libxlGetDHCPInterfaces(dom, vm, ifaces);
+        break;
+
+    default:
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
+                       _("Unsupported IP address data source %d"),
+                       source);
+        break;
+    }
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
 static virHypervisorDriver libxlHypervisorDriver = {
     .name = LIBXL_DRIVER_NAME,
     .connectOpen = libxlConnectOpen, /* 0.9.0 */
@@ -5520,6 +5658,7 @@ static virHypervisorDriver libxlHypervisorDriver = {
     .domainMigrateFinish3Params = libxlDomainMigrateFinish3Params, /* 1.2.6 */
     .domainMigrateConfirm3Params = libxlDomainMigrateConfirm3Params, /* 1.2.6 */
     .nodeGetSecurityModel = libxlNodeGetSecurityModel, /* 1.2.16 */
+    .domainInterfaceAddresses = libxlDomainInterfaceAddresses, /* 1.3.5 */
 };
 
 static virConnectDriver libxlConnectDriver = {

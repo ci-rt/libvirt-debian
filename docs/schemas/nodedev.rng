@@ -143,8 +143,24 @@
           <value>virt_functions</value>
         </attribute>
         <optional>
-          <ref name='address'/>
+          <attribute name='maxCount'>
+            <ref name='unsignedInt'/>
+          </attribute>
         </optional>
+        <zeroOrMore>
+          <ref name='address'/>
+        </zeroOrMore>
+      </element>
+    </optional>
+
+    <optional>
+      <element name='capability'>
+        <attribute name='type'>
+          <choice>
+            <value>pci-bridge</value>
+            <value>cardbus-bridge</value>
+          </choice>
+        </attribute>
       </element>
     </optional>
 
@@ -166,17 +182,6 @@
             <data type='int'/>
           </attribute>
         </optional>
-      </element>
-    </optional>
-
-    <optional>
-      <element name='capability'>
-        <attribute name='type'>
-          <choice>
-            <value>pci-bridge</value>
-            <value>cardbus-bridge</value>
-          </choice>
-        </attribute>
       </element>
     </optional>
 

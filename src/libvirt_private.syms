@@ -76,14 +76,14 @@ virCPUModeTypeToString;
 
 
 # conf/device_conf.h
-virDevicePCIAddressEqual;
-virDevicePCIAddressFormat;
-virDevicePCIAddressIsValid;
-virDevicePCIAddressParseXML;
 virInterfaceLinkFormat;
 virInterfaceLinkParseXML;
 virInterfaceStateTypeFromString;
 virInterfaceStateTypeToString;
+virPCIDeviceAddressEqual;
+virPCIDeviceAddressFormat;
+virPCIDeviceAddressIsValid;
+virPCIDeviceAddressParseXML;
 
 
 # conf/domain_addr.h
@@ -186,8 +186,10 @@ virDomainClockOffsetTypeToString;
 virDomainConfigFile;
 virDomainControllerAliasFind;
 virDomainControllerDefFree;
+virDomainControllerDefNew;
 virDomainControllerFind;
 virDomainControllerFindByType;
+virDomainControllerFindUnusedIndex;
 virDomainControllerInsert;
 virDomainControllerInsertPreAlloced;
 virDomainControllerModelPCITypeToString;
@@ -201,6 +203,7 @@ virDomainControllerRemove;
 virDomainControllerTypeToString;
 virDomainCpuPlacementModeTypeFromString;
 virDomainCpuPlacementModeTypeToString;
+virDomainDefAddController;
 virDomainDefAddImplicitDevices;
 virDomainDefAddUSBController;
 virDomainDefCheckABIStability;
@@ -289,7 +292,6 @@ virDomainDiskSetDriver;
 virDomainDiskSetFormat;
 virDomainDiskSetSource;
 virDomainDiskSetType;
-virDomainDiskSourceIsBlockType;
 virDomainFSDefFree;
 virDomainFSIndexByName;
 virDomainFSInsert;
@@ -423,7 +425,6 @@ virDomainRedirdevBusTypeToString;
 virDomainRNGBackendTypeToString;
 virDomainRNGDefFree;
 virDomainRNGFind;
-virDomainRNGInsert;
 virDomainRNGModelTypeToString;
 virDomainRNGRemove;
 virDomainRunningReasonTypeFromString;
@@ -809,7 +810,9 @@ virDomainSnapshotForEachDescendant;
 virDomainSnapshotIsExternal;
 virDomainSnapshotLocationTypeFromString;
 virDomainSnapshotLocationTypeToString;
+virDomainSnapshotObjListFree;
 virDomainSnapshotObjListGetNames;
+virDomainSnapshotObjListNew;
 virDomainSnapshotObjListNum;
 virDomainSnapshotObjListRemove;
 virDomainSnapshotRedefinePrep;
@@ -1126,6 +1129,7 @@ virAllocTestInit;
 virAllocTestOOM;
 virAllocVar;
 virDeleteElementsN;
+virDispose;
 virExpandN;
 virFree;
 virInsertElementsN;
@@ -1391,7 +1395,10 @@ virConfWriteMem;
 
 
 # util/vircrypto.h
+virCryptoEncryptData;
+virCryptoGenerateRandom;
 virCryptoHashString;
+virCryptoHaveCipher;
 
 
 # util/virdbus.h
@@ -1511,10 +1518,12 @@ virFileOpenTty;
 virFilePrintf;
 virFileReadAll;
 virFileReadAllQuiet;
+virFileReadBufQuiet;
 virFileReadHeaderFD;
 virFileReadLimFD;
 virFileRelLinkPointsTo;
 virFileRemove;
+virFileRemoveLastComponent;
 virFileResolveAllLinks;
 virFileResolveLink;
 virFileRewrite;
@@ -2277,6 +2286,7 @@ virStorageSourceFree;
 virStorageSourceGetActualType;
 virStorageSourceGetSecurityLabelDef;
 virStorageSourceInitChainElement;
+virStorageSourceIsBlockLocal;
 virStorageSourceIsEmpty;
 virStorageSourceIsLocalStorage;
 virStorageSourceNewFromBacking;
@@ -2298,6 +2308,8 @@ virSkipSpacesBackwards;
 virStrcpy;
 virStrdup;
 virStringArrayHasString;
+virStringBufferIsPrintable;
+virStringEncodeBase64;
 virStringFreeList;
 virStringFreeListCount;
 virStringGetFirstWithPrefix;

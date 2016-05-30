@@ -39,6 +39,15 @@ const ADMIN_SERVER_LIST_MAX = 16384;
 /* Upper limit on number of threadpool parameters */
 const ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX = 32;
 
+/* Upper limit on list of clients */
+const ADMIN_CLIENT_LIST_MAX = 16384;
+
+/* Upper limit on number of client info parameters */
+const ADMIN_CLIENT_INFO_PARAMETERS_MAX = 64;
+
+/* Upper limit on number of client processing controls */
+const ADMIN_SERVER_CLIENT_LIMITS_MAX = 32;
+
 /* A long string, which may NOT be NULL. */
 typedef string admin_nonnull_string<ADMIN_STRING_MAX>;
 
@@ -70,6 +79,14 @@ struct admin_typed_param {
 /* A server which may NOT be NULL */
 struct admin_nonnull_server {
     admin_nonnull_string name;
+};
+
+/* A client which may NOT be NULL */
+struct admin_nonnull_client {
+    admin_nonnull_server srv;
+    unsigned hyper id;
+    hyper timestamp;
+    unsigned int transport;
 };
 
 /*----- Protocol. -----*/
@@ -113,6 +130,56 @@ struct admin_server_get_threadpool_parameters_ret {
 struct admin_server_set_threadpool_parameters_args {
     admin_nonnull_server srv;
     admin_typed_param params<ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX>;
+    unsigned int flags;
+};
+
+struct admin_server_list_clients_args {
+    admin_nonnull_server srv;
+    unsigned int need_results;
+    unsigned int flags;
+};
+
+struct admin_server_list_clients_ret { /* insert@1 */
+    admin_nonnull_client clients<ADMIN_CLIENT_LIST_MAX>;
+    unsigned int ret;
+};
+
+struct admin_server_lookup_client_args {
+    admin_nonnull_server srv;
+    unsigned hyper id;
+    unsigned int flags;
+};
+
+struct admin_server_lookup_client_ret {
+    admin_nonnull_client clnt;
+};
+
+struct admin_client_get_info_args {
+    admin_nonnull_client clnt;
+    unsigned int flags;
+};
+
+struct admin_client_get_info_ret { /* insert@1 */
+    admin_typed_param params<ADMIN_CLIENT_INFO_PARAMETERS_MAX>;
+};
+
+struct admin_client_close_args {
+    admin_nonnull_client clnt;
+    unsigned int flags;
+};
+
+struct admin_server_get_client_limits_args {
+    admin_nonnull_server srv;
+    unsigned int flags;
+};
+
+struct admin_server_get_client_limits_ret {
+    admin_typed_param params<ADMIN_SERVER_CLIENT_LIMITS_MAX>;
+};
+
+struct admin_server_set_client_limits_args {
+    admin_nonnull_server srv;
+    admin_typed_param params<ADMIN_SERVER_CLIENT_LIMITS_MAX>;
     unsigned int flags;
 };
 
@@ -171,5 +238,35 @@ enum admin_procedure {
     /**
      * @generate: none
      */
-    ADMIN_PROC_SERVER_SET_THREADPOOL_PARAMETERS = 7
+    ADMIN_PROC_SERVER_SET_THREADPOOL_PARAMETERS = 7,
+
+    /**
+     * @generate: both
+     */
+    ADMIN_PROC_SERVER_LIST_CLIENTS = 8,
+
+    /**
+     * @generate: both
+     */
+    ADMIN_PROC_SERVER_LOOKUP_CLIENT = 9,
+
+    /**
+     * @generate: none
+     */
+    ADMIN_PROC_CLIENT_GET_INFO = 10,
+
+    /**
+     * @generate: both
+     */
+    ADMIN_PROC_CLIENT_CLOSE = 11,
+
+    /**
+     * @generate: none
+     */
+    ADMIN_PROC_SERVER_GET_CLIENT_LIMITS = 12,
+
+    /**
+     * @generate: none
+     */
+    ADMIN_PROC_SERVER_SET_CLIENT_LIMITS = 13
 };

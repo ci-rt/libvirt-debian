@@ -916,6 +916,9 @@ libxlDomainGetEmulatorType(const virDomainDef *def)
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (def->emulator) {
+            if (!virFileExists(def->emulator))
+                goto cleanup;
+
             cmd = virCommandNew(def->emulator);
 
             virCommandAddArgList(cmd, "-help", NULL);
@@ -1018,33 +1021,36 @@ static int
 libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
 {
     virConnectPtr conn = NULL;
-    char *secret = NULL;
+    uint8_t *secret = NULL;
+    char *base64secret = NULL;
+    size_t secretlen = 0;
     char *username = NULL;
     int ret = -1;
 
     *srcstr = NULL;
     if (src->auth && src->protocol == VIR_STORAGE_NET_PROTOCOL_RBD) {
-        const char *protocol = virStorageNetProtocolTypeToString(src->protocol);
-
         username = src->auth->username;
         if (!(conn = virConnectOpen("xen:///system")))
             goto cleanup;
 
-        if (!(secret = virSecretGetSecretString(conn,
-                                                protocol,
-                                                true,
-                                                src->auth,
-                                                VIR_SECRET_USAGE_TYPE_CEPH)))
+        if (virSecretGetSecretString(conn, src->auth,
+                                     VIR_SECRET_USAGE_TYPE_CEPH,
+                                     &secret, &secretlen) < 0)
+            goto cleanup;
+
+        /* RBD expects an encoded secret */
+        if (!(base64secret = virStringEncodeBase64(secret, secretlen)))
             goto cleanup;
     }
 
-    if (!(*srcstr = libxlMakeNetworkDiskSrcStr(src, username, secret)))
+    if (!(*srcstr = libxlMakeNetworkDiskSrcStr(src, username, base64secret)))
         goto cleanup;
 
     ret = 0;
 
  cleanup:
-    VIR_FREE(secret);
+    VIR_DISPOSE_N(secret, secretlen);
+    VIR_DISPOSE_STRING(base64secret);
     virObjectUnref(conn);
     return ret;
 }
@@ -1052,13 +1058,18 @@ libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
 int
 libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
 {
-    const char *driver;
-    int format;
+    const char *driver = virDomainDiskGetDriver(l_disk);
+    int format = virDomainDiskGetFormat(l_disk);
     int actual_type = virStorageSourceGetActualType(l_disk->src);
 
     libxl_device_disk_init(x_disk);
 
     if (actual_type == VIR_STORAGE_TYPE_NETWORK) {
+        if (STRNEQ_NULLABLE(driver, "qemu")) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("only the 'qemu' driver can be used with network disks"));
+            return -1;
+        }
         if (libxlMakeNetworkDiskSrc(l_disk->src, &x_disk->pdev_path) < 0)
             return -1;
     } else {
@@ -1069,8 +1080,6 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
     if (VIR_STRDUP(x_disk->vdev, l_disk->dst) < 0)
         return -1;
 
-    driver = virDomainDiskGetDriver(l_disk);
-    format = virDomainDiskGetFormat(l_disk);
     if (driver) {
         if (STREQ(driver, "tap") || STREQ(driver, "tap2")) {
             switch (format) {
@@ -1424,7 +1433,7 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
              libxl_device_vfb *x_vfb)
 {
     unsigned short port;
-    virDomainGraphicsListenDefPtr gListen = NULL;
+    virDomainGraphicsListenDefPtr glisten = NULL;
 
     libxl_device_vfb_init(x_vfb);
 
@@ -1451,17 +1460,23 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
             }
             x_vfb->vnc.display = l_vfb->data.vnc.port - LIBXL_VNC_PORT_MIN;
 
-            if ((gListen = virDomainGraphicsGetListen(l_vfb, 0)) &&
-                gListen->address) {
+            if ((glisten = virDomainGraphicsGetListen(l_vfb, 0)) &&
+                glisten->address) {
                 /* libxl_device_vfb_init() does VIR_STRDUP("127.0.0.1") */
                 VIR_FREE(x_vfb->vnc.listen);
-                if (VIR_STRDUP(x_vfb->vnc.listen, gListen->address) < 0)
+                if (VIR_STRDUP(x_vfb->vnc.listen, glisten->address) < 0)
                     return -1;
             }
             if (VIR_STRDUP(x_vfb->vnc.passwd, l_vfb->data.vnc.auth.passwd) < 0)
                 return -1;
             if (VIR_STRDUP(x_vfb->keymap, l_vfb->data.vnc.keymap) < 0)
                 return -1;
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+        case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
             break;
     }
 
@@ -1539,7 +1554,7 @@ libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
     for (i = 0; i < def->ngraphics; i++) {
         virDomainGraphicsDefPtr l_vfb = def->graphics[i];
         unsigned short port;
-        virDomainGraphicsListenDefPtr gListen = NULL;
+        virDomainGraphicsListenDefPtr glisten = NULL;
 
         if (l_vfb->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE)
             continue;
@@ -1553,9 +1568,9 @@ libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
         }
         b_info->u.hvm.spice.port = l_vfb->data.spice.port;
 
-        if ((gListen = virDomainGraphicsGetListen(l_vfb, 0)) &&
-            gListen->address &&
-            VIR_STRDUP(b_info->u.hvm.spice.host, gListen->address) < 0)
+        if ((glisten = virDomainGraphicsGetListen(l_vfb, 0)) &&
+            glisten->address &&
+            VIR_STRDUP(b_info->u.hvm.spice.host, glisten->address) < 0)
             return -1;
 
         if (VIR_STRDUP(b_info->u.hvm.keymap, l_vfb->data.spice.keymap) < 0)
@@ -1578,6 +1593,8 @@ libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
             break;
         case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_SERVER:
             libxl_defbool_set(&b_info->u.hvm.spice.agent_mouse, false);
+            break;
+        case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_LAST:
             break;
         }
 

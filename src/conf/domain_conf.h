@@ -243,135 +243,6 @@ typedef enum {
 VIR_ENUM_DECL(virDomainOS)
 
 
-typedef enum {
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_ISA,
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DIMM,
-
-    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST
-} virDomainDeviceAddressType;
-
-typedef struct _virDomainDeviceDriveAddress virDomainDeviceDriveAddress;
-typedef virDomainDeviceDriveAddress *virDomainDeviceDriveAddressPtr;
-struct _virDomainDeviceDriveAddress {
-    unsigned int controller;
-    unsigned int bus;
-    unsigned int target;
-    unsigned int unit;
-};
-
-typedef struct _virDomainDeviceVirtioSerialAddress virDomainDeviceVirtioSerialAddress;
-typedef virDomainDeviceVirtioSerialAddress *virDomainDeviceVirtioSerialAddressPtr;
-struct _virDomainDeviceVirtioSerialAddress {
-    unsigned int controller;
-    unsigned int bus;
-    unsigned int port;
-};
-
-# define VIR_DOMAIN_DEVICE_CCW_MAX_CSSID    254
-# define VIR_DOMAIN_DEVICE_CCW_MAX_SSID       3
-# define VIR_DOMAIN_DEVICE_CCW_MAX_DEVNO  65535
-
-typedef struct _virDomainDeviceCCWAddress virDomainDeviceCCWAddress;
-typedef virDomainDeviceCCWAddress *virDomainDeviceCCWAddressPtr;
-struct _virDomainDeviceCCWAddress {
-    unsigned int cssid;
-    unsigned int ssid;
-    unsigned int devno;
-    bool         assigned;
-};
-
-typedef struct _virDomainDeviceCcidAddress virDomainDeviceCcidAddress;
-typedef virDomainDeviceCcidAddress *virDomainDeviceCcidAddressPtr;
-struct _virDomainDeviceCcidAddress {
-    unsigned int controller;
-    unsigned int slot;
-};
-
-typedef struct _virDomainDeviceUSBAddress virDomainDeviceUSBAddress;
-typedef virDomainDeviceUSBAddress *virDomainDeviceUSBAddressPtr;
-struct _virDomainDeviceUSBAddress {
-    unsigned int bus;
-    char *port;
-};
-
-typedef struct _virDomainDeviceSpaprVioAddress virDomainDeviceSpaprVioAddress;
-typedef virDomainDeviceSpaprVioAddress *virDomainDeviceSpaprVioAddressPtr;
-struct _virDomainDeviceSpaprVioAddress {
-    unsigned long long reg;
-    bool has_reg;
-};
-
-typedef enum {
-    VIR_DOMAIN_CONTROLLER_MASTER_NONE,
-    VIR_DOMAIN_CONTROLLER_MASTER_USB,
-
-    VIR_DOMAIN_CONTROLLER_MASTER_LAST
-} virDomainControllerMaster;
-
-typedef struct _virDomainDeviceUSBMaster virDomainDeviceUSBMaster;
-typedef virDomainDeviceUSBMaster *virDomainDeviceUSBMasterPtr;
-struct _virDomainDeviceUSBMaster {
-    unsigned int startport;
-};
-
-typedef struct _virDomainDeviceISAAddress virDomainDeviceISAAddress;
-typedef virDomainDeviceISAAddress *virDomainDeviceISAAddressPtr;
-struct _virDomainDeviceISAAddress {
-    unsigned int iobase;
-    unsigned int irq;
-};
-
-typedef struct _virDomainDeviceDimmAddress virDomainDeviceDimmAddress;
-typedef virDomainDeviceDimmAddress *virDomainDeviceDimmAddressPtr;
-struct _virDomainDeviceDimmAddress {
-    unsigned int slot;
-    unsigned long long base;
-};
-
-typedef struct _virDomainDeviceInfo virDomainDeviceInfo;
-typedef virDomainDeviceInfo *virDomainDeviceInfoPtr;
-struct _virDomainDeviceInfo {
-    /* If adding to this struct, ensure that
-     * virDomainDeviceInfoIsSet() is updated
-     * to consider the new fields
-     */
-    char *alias;
-    int type; /* virDomainDeviceAddressType */
-    union {
-        virDevicePCIAddress pci;
-        virDomainDeviceDriveAddress drive;
-        virDomainDeviceVirtioSerialAddress vioserial;
-        virDomainDeviceCcidAddress ccid;
-        virDomainDeviceUSBAddress usb;
-        virDomainDeviceSpaprVioAddress spaprvio;
-        virDomainDeviceCCWAddress ccw;
-        virDomainDeviceISAAddress isa;
-        virDomainDeviceDimmAddress dimm;
-    } addr;
-    int mastertype;
-    union {
-        virDomainDeviceUSBMaster usb;
-    } master;
-    /* rombar and romfile are only used for pci hostdev and network
-     * devices. */
-    int rombar;         /* enum virTristateSwitch */
-    char *romfile;
-    /* bootIndex is only used for disk, network interface, hostdev
-     * and redirdev devices */
-    unsigned int bootIndex;
-};
-
-
 typedef struct _virDomainHostdevOrigStates virDomainHostdevOrigStates;
 typedef virDomainHostdevOrigStates *virDomainHostdevOrigStatesPtr;
 struct _virDomainHostdevOrigStates {
@@ -456,7 +327,7 @@ struct _virDomainHostdevSubsysUSB {
 typedef struct _virDomainHostdevSubsysPCI virDomainHostdevSubsysPCI;
 typedef virDomainHostdevSubsysPCI *virDomainHostdevSubsysPCIPtr;
 struct _virDomainHostdevSubsysPCI {
-    virDevicePCIAddress addr; /* host address */
+    virPCIDeviceAddress addr; /* host address */
     int backend; /* enum virDomainHostdevSubsysPCIBackendType */
 };
 
@@ -542,6 +413,8 @@ struct _virDomainHostdevCaps {
 /* basic device for direct passthrough */
 struct _virDomainHostdevDef {
     virDomainDeviceDef parent; /* higher level Def containing this */
+    virObjectPtr privateData;
+
     int mode; /* enum virDomainHostdevMode */
     int startupPolicy; /* enum virDomainStartupPolicy */
     bool managed;
@@ -806,6 +679,13 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST
 } virDomainControllerModelUSB;
 
+# define IS_USB2_CONTROLLER(ctrl) \
+    (((ctrl)->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) && \
+     ((ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_EHCI1 || \
+      (ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI1 || \
+      (ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI2 || \
+      (ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI3))
+
 typedef struct _virDomainVirtioSerialOpts virDomainVirtioSerialOpts;
 typedef virDomainVirtioSerialOpts *virDomainVirtioSerialOptsPtr;
 struct _virDomainVirtioSerialOpts {
@@ -844,18 +724,26 @@ struct _virDomainPCIControllerOpts {
     int numaNode;
 };
 
+typedef struct _virDomainUSBControllerOpts virDomainUSBControllerOpts;
+typedef virDomainUSBControllerOpts *virDomainUSBControllerOptsPtr;
+struct _virDomainUSBControllerOpts {
+    int ports;   /* -1 == undef */
+};
+
 /* Stores the virtual disk controller configuration */
 struct _virDomainControllerDef {
     int type;
-    unsigned int idx;
+    int idx;
     int model; /* -1 == undef */
     unsigned int queues;
     unsigned int cmd_per_lun;
     unsigned int max_sectors;
     int ioeventfd; /* enum virTristateSwitch */
+    unsigned int iothread; /* unused = 0, > 0 specific thread # */
     union {
         virDomainVirtioSerialOpts vioserial;
         virDomainPCIControllerOpts pciopts;
+        virDomainUSBControllerOpts usbopts;
     } opts;
     virDomainDeviceInfo info;
 };
@@ -1542,7 +1430,7 @@ typedef enum {
 typedef struct _virDomainGraphicsListenDef virDomainGraphicsListenDef;
 typedef virDomainGraphicsListenDef *virDomainGraphicsListenDefPtr;
 struct _virDomainGraphicsListenDef {
-    int type;   /* enum virDomainGraphicsListenType */
+    virDomainGraphicsListenType type;
     char *address;
     char *network;
     bool fromConfig;    /* true if the @address is config file originated */
@@ -1554,7 +1442,7 @@ struct _virDomainGraphicsDef {
      * Value 0 means port wasn't specified in XML at all.
      * Positive value is actual port number given in XML.
      */
-    int type;
+    virDomainGraphicsType type;
     union {
         struct {
             int port;
@@ -1587,20 +1475,20 @@ struct _virDomainGraphicsDef {
             int tlsPort;
             bool portReserved;
             bool tlsPortReserved;
-            int mousemode;
+            virDomainGraphicsSpiceMouseMode mousemode;
             char *keymap;
             virDomainGraphicsAuthDef auth;
             bool autoport;
             int channels[VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST];
-            int defaultMode; /* enum virDomainGraphicsSpiceChannelMode */
+            virDomainGraphicsSpiceChannelMode defaultMode;
             int image;
             int jpeg;
             int zlib;
             int playback;
             int streaming;
-            int copypaste; /* enum virTristateBool */
-            int filetransfer; /* enum virTristateBool */
-            int gl; /* enum virTristateBool */
+            virTristateBool copypaste;
+            virTristateBool filetransfer;
+            virTristateBool gl;
         } spice;
     } data;
     /* nListens, listens, and *port are only useful if type is vnc,
@@ -1865,6 +1753,7 @@ struct _virDomainOSDef {
     char *cmdline;
     char *dtb;
     char *root;
+    char *slic_table;
     virDomainLoaderDefPtr loader;
     char *bootloader;
     char *bootloaderArgs;
@@ -2081,6 +1970,7 @@ typedef enum {
     VIR_DOMAIN_PANIC_MODEL_ISA,
     VIR_DOMAIN_PANIC_MODEL_PSERIES,
     VIR_DOMAIN_PANIC_MODEL_HYPERV,
+    VIR_DOMAIN_PANIC_MODEL_S390,
 
     VIR_DOMAIN_PANIC_MODEL_LAST
 } virDomainPanicModel;
@@ -2129,7 +2019,7 @@ typedef struct _virDomainCputune virDomainCputune;
 typedef virDomainCputune *virDomainCputunePtr;
 
 struct _virDomainCputune {
-    unsigned long shares;
+    unsigned long long shares;
     bool sharesSpecified;
     unsigned long long period;
     long long quota;
@@ -2442,6 +2332,7 @@ typedef enum {
     VIR_DOMAIN_DEF_FEATURE_WIDE_SCSI = (1 << 0),
     VIR_DOMAIN_DEF_FEATURE_MEMORY_HOTPLUG = (1 << 1),
     VIR_DOMAIN_DEF_FEATURE_OFFLINE_VCPUPIN = (1 << 2),
+    VIR_DOMAIN_DEF_FEATURE_NAME_SLASH = (1 << 3),
 } virDomainDefFeatures;
 
 
@@ -2463,6 +2354,13 @@ typedef int (*virDomainDeviceDefPostParseCallback)(virDomainDeviceDefPtr dev,
                                                    virCapsPtr caps,
                                                    unsigned int parseFlags,
                                                    void *opaque);
+/* Drive callback for assigning device addresses, called at the end
+ * of parsing, after all defaults and implicit devices have been added.  */
+typedef int (*virDomainDefAssignAddressesCallback)(virDomainDef *def,
+                                                   virCapsPtr caps,
+                                                   unsigned int parseFlags,
+                                                   void *opaque);
+
 
 typedef struct _virDomainDefParserConfig virDomainDefParserConfig;
 typedef virDomainDefParserConfig *virDomainDefParserConfigPtr;
@@ -2470,6 +2368,7 @@ struct _virDomainDefParserConfig {
     /* driver domain definition callbacks */
     virDomainDefPostParseCallback domainPostParseCallback;
     virDomainDeviceDefPostParseCallback devicesPostParseCallback;
+    virDomainDefAssignAddressesCallback assignAddressesCallback;
 
     /* private data for the callbacks */
     void *priv;
@@ -2495,6 +2394,7 @@ struct _virDomainXMLPrivateDataCallbacks {
     virDomainXMLPrivateDataAllocFunc  alloc;
     virDomainXMLPrivateDataFreeFunc   free;
     virDomainXMLPrivateDataNewFunc    diskNew;
+    virDomainXMLPrivateDataNewFunc    hostdevNew;
     virDomainXMLPrivateDataFormatFunc format;
     virDomainXMLPrivateDataParseFunc  parse;
 };
@@ -2558,6 +2458,8 @@ virDomainDiskDefPtr virDomainDiskFindByBusAndDst(virDomainDefPtr def,
                                                  int bus,
                                                  char *dst);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
+virDomainControllerDefPtr
+virDomainControllerDefNew(virDomainControllerType type);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainActualNetDefFree(virDomainActualNetDefPtr def);
 void virDomainNetDefFree(virDomainNetDefPtr def);
@@ -2572,7 +2474,7 @@ void virDomainMemballoonDefFree(virDomainMemballoonDefPtr def);
 void virDomainNVRAMDefFree(virDomainNVRAMDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
 void virDomainVideoDefFree(virDomainVideoDefPtr def);
-virDomainHostdevDefPtr virDomainHostdevDefAlloc(void);
+virDomainHostdevDefPtr virDomainHostdevDefAlloc(virDomainXMLOptionPtr xmlopt);
 void virDomainHostdevDefClear(virDomainHostdevDefPtr def);
 void virDomainHostdevDefFree(virDomainHostdevDefPtr def);
 void virDomainHubDefFree(virDomainHubDefPtr def);
@@ -2777,11 +2679,11 @@ int virDomainDefCompatibleDevice(virDomainDefPtr def,
 void virDomainRNGDefFree(virDomainRNGDefPtr def);
 
 int virDomainDiskIndexByAddress(virDomainDefPtr def,
-                                virDevicePCIAddressPtr pci_controller,
+                                virPCIDeviceAddressPtr pci_controller,
                                 unsigned int bus, unsigned int target,
                                 unsigned int unit);
 virDomainDiskDefPtr virDomainDiskByAddress(virDomainDefPtr def,
-                                           virDevicePCIAddressPtr pci_controller,
+                                           virPCIDeviceAddressPtr pci_controller,
                                            unsigned int bus,
                                            unsigned int target,
                                            unsigned int unit);
@@ -2852,7 +2754,8 @@ void virDomainControllerInsertPreAlloced(virDomainDefPtr def,
 int virDomainControllerFind(const virDomainDef *def, int type, int idx);
 int virDomainControllerFindByType(virDomainDefPtr def, int type);
 int virDomainControllerFindByPCIAddress(virDomainDefPtr def,
-                                        virDevicePCIAddressPtr addr);
+                                        virPCIDeviceAddressPtr addr);
+int virDomainControllerFindUnusedIndex(virDomainDef const *def, int type);
 virDomainControllerDefPtr virDomainControllerRemove(virDomainDefPtr def, size_t i);
 const char *virDomainControllerAliasFind(const virDomainDef *def,
                                          int type, int idx)
@@ -2894,9 +2797,6 @@ virDomainChrDefPtr
 virDomainChrRemove(virDomainDefPtr vmdef,
                    virDomainChrDefPtr chr);
 
-int virDomainRNGInsert(virDomainDefPtr def,
-                       virDomainRNGDefPtr rng,
-                       bool inplace);
 ssize_t virDomainRNGFind(virDomainDefPtr def, virDomainRNGDefPtr rng);
 virDomainRNGDefPtr virDomainRNGRemove(virDomainDefPtr def, size_t idx);
 
@@ -3093,6 +2993,8 @@ VIR_ENUM_DECL(virDomainCpuPlacementMode)
 
 VIR_ENUM_DECL(virDomainStartupPolicy)
 
+virDomainControllerDefPtr
+virDomainDefAddController(virDomainDefPtr def, int type, int idx, int model);
 int
 virDomainDefAddUSBController(virDomainDefPtr def, int idx, int model);
 int
@@ -3111,9 +3013,6 @@ int virDomainDefFindDevice(virDomainDefPtr def,
                            const char *devAlias,
                            virDomainDeviceDefPtr dev,
                            bool reportError);
-
-bool virDomainDiskSourceIsBlockType(virStorageSourcePtr src, bool report)
-    ATTRIBUTE_NONNULL(1);
 
 void virDomainChrSourceDefClear(virDomainChrSourceDefPtr def);
 

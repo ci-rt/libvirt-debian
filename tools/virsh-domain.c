@@ -1164,7 +1164,7 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
     },
     {.name = "total-bytes-sec",
      .type = VSH_OT_INT,
-     .help = N_("total throughput limit in bytes per second")
+     .help = N_("total throughput limit, as scaled integer (default bytes)")
     },
     {.name = "read_bytes_sec",
      .type = VSH_OT_ALIAS,
@@ -1172,7 +1172,7 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
     },
     {.name = "read-bytes-sec",
      .type = VSH_OT_INT,
-     .help = N_("read throughput limit in bytes per second")
+     .help = N_("read throughput limit, as scaled integer (default bytes)")
     },
     {.name = "write_bytes_sec",
      .type = VSH_OT_ALIAS,
@@ -1180,7 +1180,7 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
     },
     {.name = "write-bytes-sec",
      .type = VSH_OT_INT,
-     .help =  N_("write throughput limit in bytes per second")
+     .help =  N_("write throughput limit, as scaled integer (default bytes)")
     },
     {.name = "total_iops_sec",
      .type = VSH_OT_ALIAS,
@@ -1212,7 +1212,7 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
     },
     {.name = "total-bytes-sec-max",
      .type = VSH_OT_INT,
-     .help = N_("total max in bytes")
+     .help = N_("total max, as scaled integer (default bytes)")
     },
     {.name = "read_bytes_sec_max",
      .type = VSH_OT_ALIAS,
@@ -1220,7 +1220,7 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
     },
     {.name = "read-bytes-sec-max",
      .type = VSH_OT_INT,
-     .help = N_("read max in bytes")
+     .help = N_("read max, as scaled integer (default bytes)")
     },
     {.name = "write_bytes_sec_max",
      .type = VSH_OT_ALIAS,
@@ -1228,7 +1228,7 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
     },
     {.name = "write-bytes-sec-max",
      .type = VSH_OT_INT,
-     .help = N_("write max in bytes")
+     .help = N_("write max, as scaled integer (default bytes)")
     },
     {.name = "total_iops_sec_max",
      .type = VSH_OT_ALIAS,
@@ -1299,7 +1299,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "device", &disk) < 0)
         goto cleanup;
 
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-bytes-sec", &value)) < 0) {
+    if ((rv = vshCommandOptScaledInt(ctl, cmd, "total-bytes-sec", &value, 1, ULLONG_MAX)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1308,7 +1308,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-bytes-sec", &value)) < 0) {
+    if ((rv = vshCommandOptScaledInt(ctl, cmd, "read-bytes-sec", &value, 1, ULLONG_MAX)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1317,7 +1317,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-bytes-sec", &value)) < 0) {
+    if ((rv = vshCommandOptScaledInt(ctl, cmd, "write-bytes-sec", &value, 1, ULLONG_MAX)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1326,7 +1326,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-bytes-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptScaledInt(ctl, cmd, "total-bytes-sec-max", &value, 1, ULLONG_MAX)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1335,7 +1335,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-bytes-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptScaledInt(ctl, cmd, "read-bytes-sec-max", &value, 1, ULLONG_MAX)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -1344,7 +1344,7 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
             goto save_error;
     }
 
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-bytes-sec-max", &value)) < 0) {
+    if ((rv = vshCommandOptScaledInt(ctl, cmd, "write-bytes-sec-max", &value, 1, ULLONG_MAX)) < 0) {
         goto interror;
     } else if (rv > 0) {
         if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
@@ -11199,57 +11199,21 @@ static const vshCmdOptDef opts_detach_interface[] = {
 };
 
 static bool
-cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
+virshDomainDetachInterface(char *doc,
+                           unsigned int flags,
+                           virDomainPtr dom,
+                           vshControl *ctl,
+                           bool current,
+                           const char *type,
+                           const char *mac)
 {
-    virDomainPtr dom = NULL;
     xmlDocPtr xml = NULL;
     xmlXPathObjectPtr obj = NULL;
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr cur = NULL, matchNode = NULL;
-    char *detach_xml = NULL;
-    const char *mac = NULL, *type = NULL;
-    char *doc = NULL;
-    char buf[64];
-    int diff_mac;
+    char *detach_xml = NULL, buf[64];
+    int diff_mac, ret = -1;
     size_t i;
-    int ret;
-    bool functionReturn = false;
-    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
-    bool current = vshCommandOptBool(cmd, "current");
-    bool config = vshCommandOptBool(cmd, "config");
-    bool live = vshCommandOptBool(cmd, "live");
-    bool persistent = vshCommandOptBool(cmd, "persistent");
-
-    VSH_EXCLUSIVE_OPTIONS_VAR(persistent, current);
-
-    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
-    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
-
-    if (config || persistent)
-        flags |= VIR_DOMAIN_AFFECT_CONFIG;
-    if (live)
-        flags |= VIR_DOMAIN_AFFECT_LIVE;
-
-    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
-    if (vshCommandOptStringReq(ctl, cmd, "type", &type) < 0)
-        goto cleanup;
-
-    if (vshCommandOptStringReq(ctl, cmd, "mac", &mac) < 0)
-        goto cleanup;
-
-    if (persistent &&
-        virDomainIsActive(dom) == 1)
-        flags |= VIR_DOMAIN_AFFECT_LIVE;
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG)
-        doc = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE);
-    else
-        doc = virDomainGetXMLDesc(dom, 0);
-
-    if (!doc)
-        goto cleanup;
 
     if (!(xml = virXMLParseStringCtxt(doc, _("(domain_definition)"), &ctxt))) {
         vshError(ctl, "%s", _("Failed to get interface information"));
@@ -11315,21 +11279,78 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     else
         ret = virDomainDetachDevice(dom, detach_xml);
 
-    if (ret != 0) {
-        vshError(ctl, "%s", _("Failed to detach interface"));
-    } else {
-        vshPrint(ctl, "%s", _("Interface detached successfully\n"));
-        functionReturn = true;
+ cleanup:
+    VIR_FREE(detach_xml);
+    xmlFreeDoc(xml);
+    xmlXPathFreeObject(obj);
+    xmlXPathFreeContext(ctxt);
+    return ret == 0;
+}
+
+
+static bool
+cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    char *doc_live = NULL, *doc_config = NULL;
+    const char *mac = NULL, *type = NULL;
+    int flags = 0;
+    bool ret = false, affect_config, affect_live;
+    bool current = vshCommandOptBool(cmd, "current");
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool persistent = vshCommandOptBool(cmd, "persistent");
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(persistent, current);
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (vshCommandOptStringReq(ctl, cmd, "type", &type) < 0)
+        goto cleanup;
+
+    if (vshCommandOptStringReq(ctl, cmd, "mac", &mac) < 0)
+        goto cleanup;
+
+    affect_config = (config || persistent);
+
+    if (affect_config) {
+        if (!(doc_config = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
+        if (!(ret = virshDomainDetachInterface(doc_config,
+                                               flags | VIR_DOMAIN_AFFECT_CONFIG,
+                                               dom, ctl, current, type, mac)))
+            goto cleanup;
+    }
+
+    affect_live = (live || (persistent && virDomainIsActive(dom) == 1));
+
+    if (affect_live || !affect_config) {
+        flags = 0;
+
+        if (affect_live)
+            flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+        if (!(doc_live = virDomainGetXMLDesc(dom, 0)))
+            goto cleanup;
+
+        ret = virshDomainDetachInterface(doc_live, flags,
+                                         dom, ctl, current, type, mac);
     }
 
  cleanup:
-    VIR_FREE(doc);
-    VIR_FREE(detach_xml);
+    if (!ret) {
+        vshError(ctl, "%s", _("Failed to detach interface"));
+    } else {
+        vshPrint(ctl, "%s", _("Interface detached successfully\n"));
+    }
+    VIR_FREE(doc_live);
+    VIR_FREE(doc_config);
     virDomainFree(dom);
-    xmlXPathFreeObject(obj);
-    xmlXPathFreeContext(ctxt);
-    xmlFreeDoc(xml);
-    return functionReturn;
+    return ret;
 }
 
 typedef enum {

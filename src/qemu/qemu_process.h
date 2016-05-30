@@ -175,11 +175,6 @@ bool qemuProcessAutoDestroyActive(virQEMUDriverPtr driver,
 int qemuProcessSetSchedParams(int id, pid_t pid, size_t nsp,
                               virDomainThreadSchedParamPtr sp);
 
-int qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
-                                  virQEMUDriverConfigPtr cfg,
-                                  virDomainGraphicsDefPtr graphics,
-                                  bool allocate);
-
 virDomainDiskDefPtr qemuProcessFindDomainDiskByAlias(virDomainObjPtr vm,
                                                      const char *alias);
 
@@ -197,4 +192,9 @@ int qemuRefreshVirtioChannelState(virQEMUDriverPtr driver,
 int qemuProcessRefreshBalloonState(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    int asyncJob);
+
+int qemuProcessRefreshDisks(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            qemuDomainAsyncJob asyncJob);
+
 #endif /* __QEMU_PROCESS_H__ */

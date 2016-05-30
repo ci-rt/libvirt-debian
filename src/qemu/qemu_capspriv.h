@@ -37,4 +37,21 @@ struct _virQEMUCapsCache {
     gid_t runGid;
 };
 
+virQEMUCapsPtr
+virQEMUCapsNewForBinaryInternal(const char *binary,
+                                const char *libDir,
+                                const char *cacheDir,
+                                uid_t runUid,
+                                gid_t runGid,
+                                bool qmpOnly);
+
+int virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps,
+                         const char *filename,
+                         time_t *qemuctime,
+                         time_t *selfctime,
+                         unsigned long *selfvers);
+char *virQEMUCapsFormatCache(virQEMUCapsPtr qemuCaps,
+                             time_t selfCTime,
+                             unsigned long selfVersion);
+
 #endif

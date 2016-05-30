@@ -145,10 +145,47 @@ qemuDomainPrepareDisk(virQEMUDriverPtr driver,
 }
 
 
+static int
+qemuHotplugWaitForTrayEject(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            virDomainDiskDefPtr disk,
+                            const char *driveAlias,
+                            bool force)
+{
+    unsigned long long now;
+    int rc;
+
+    if (virTimeMillisNow(&now) < 0)
+        return -1;
+
+    while (disk->tray_status != VIR_DOMAIN_DISK_TRAY_OPEN) {
+        if ((rc = virDomainObjWaitUntil(vm, now + CHANGE_MEDIA_TIMEOUT)) < 0)
+            return -1;
+
+        if (rc > 0) {
+            /* the caller called qemuMonitorEjectMedia which usually reports an
+             * error. Report the failure in an off-chance that it didn't. */
+            if (!virGetLastError()) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("timed out waiting for disk tray status update"));
+            }
+            return -1;
+        }
+    }
+
+    /* re-issue ejection command to pop out the media */
+    qemuDomainObjEnterMonitor(driver, vm);
+    rc = qemuMonitorEjectMedia(qemuDomainGetMonitor(vm), driveAlias, force);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0 || rc < 0)
+        return -1;
+
+    return 0;
+}
+
+
 /**
  * qemuDomainChangeEjectableMedia:
  * @driver: qemu driver structure
- * @conn: connection structure
  * @vm: domain definition
  * @disk: disk definition to change the source of
  * @newsrc: new disk source to change to
@@ -163,7 +200,6 @@ qemuDomainPrepareDisk(virQEMUDriverPtr driver,
  */
 int
 qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
-                               virConnectPtr conn,
                                virDomainObjPtr vm,
                                virDomainDiskDefPtr disk,
                                virStorageSourcePtr newsrc,
@@ -172,10 +208,9 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     int ret = -1, rc;
     char *driveAlias = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
     const char *format = NULL;
     char *sourcestr = NULL;
-    bool ejectRetry = false;
-    unsigned long long now;
 
     if (!disk->info.alias) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -194,36 +229,27 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     if (qemuDomainPrepareDisk(driver, vm, disk, newsrc, false) < 0)
         goto cleanup;
 
-    if (!(driveAlias = qemuDeviceDriveHostAlias(disk, priv->qemuCaps)))
+    if (!(driveAlias = qemuDeviceDriveHostAlias(disk)))
         goto error;
 
-    do {
-        qemuDomainObjEnterMonitor(driver, vm);
-        rc = qemuMonitorEjectMedia(priv->mon, driveAlias, force);
-        if (qemuDomainObjExitMonitor(driver, vm) < 0)
-            goto cleanup;
+    qemuDomainObjEnterMonitor(driver, vm);
+    rc = qemuMonitorEjectMedia(priv->mon, driveAlias, force);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto cleanup;
 
-        if (rc < 0) {
-            /* we've already tried, error out */
-            if (ejectRetry)
-                goto error;
-
-            ejectRetry = true;
-            VIR_DEBUG("tray may be locked, wait for the guest to unlock "
-                      "the tray and try to eject it again");
-        }
-
-        if (virTimeMillisNow(&now) < 0)
+    /* If the tray is present and tray change event is supported wait for it to open. */
+    if (diskPriv->tray &&
+        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_TRAY_MOVED)) {
+        if (qemuHotplugWaitForTrayEject(driver, vm, disk, driveAlias, force) < 0)
             goto error;
-
-        while (disk->tray_status != VIR_DOMAIN_DISK_TRAY_OPEN) {
-            if (virDomainObjWaitUntil(vm, now + CHANGE_MEDIA_TIMEOUT) != 0)
-                goto error;
-        }
-    } while (rc < 0);
+    } else  {
+        /* otherwise report possible errors from the attempt to eject the media*/
+        if (rc < 0)
+            goto error;
+    }
 
     if (!virStorageSourceIsEmpty(newsrc)) {
-        if (qemuGetDriveSourceString(newsrc, conn, &sourcestr) < 0)
+        if (qemuGetDriveSourceString(newsrc, diskPriv->secinfo, &sourcestr) < 0)
             goto error;
 
         if (virStorageSourceGetActualType(newsrc) != VIR_STORAGE_TYPE_DIR) {
@@ -268,48 +294,6 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     goto cleanup;
 }
 
-int
-qemuDomainCheckEjectableMedia(virQEMUDriverPtr driver,
-                              virDomainObjPtr vm,
-                              qemuDomainAsyncJob asyncJob)
-{
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-    virHashTablePtr table = NULL;
-    int ret = -1;
-    size_t i;
-
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
-        table = qemuMonitorGetBlockInfo(priv->mon);
-        if (qemuDomainObjExitMonitor(driver, vm) < 0)
-            goto cleanup;
-    }
-
-    if (!table)
-        goto cleanup;
-
-    for (i = 0; i < vm->def->ndisks; i++) {
-        virDomainDiskDefPtr disk = vm->def->disks[i];
-        struct qemuDomainDiskInfo *info;
-
-        if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK ||
-            disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
-                 continue;
-        }
-
-        info = qemuMonitorBlockInfoLookup(table, disk->info.alias);
-        if (!info)
-            goto cleanup;
-
-        if (info->tray_open && virDomainDiskGetSource(disk))
-            ignore_value(virDomainDiskSetSource(disk, NULL));
-    }
-
-    ret = 0;
-
- cleanup:
-    virHashFree(table);
-    return ret;
-}
 
 static int
 qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
@@ -318,8 +302,8 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
                                  virDomainDiskDefPtr disk)
 {
     int ret = -1;
-    const char* type = virDomainDiskBusTypeToString(disk->bus);
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virErrorPtr orig_err;
     char *devstr = NULL;
     char *drivestr = NULL;
     char *drivealias = NULL;
@@ -342,80 +326,78 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
     if (qemuDomainPrepareDisk(driver, vm, disk, NULL, false) < 0)
         goto cleanup;
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
-            if (virDomainCCWAddressAssign(&disk->info, priv->ccwaddrs,
-                                          !disk->info.addr.ccw.assigned) < 0)
-                goto error;
-        } else if (!disk->info.type ||
-                    disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-            if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &disk->info) < 0)
-                goto error;
-        }
-        releaseaddr = true;
-        if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
+    if (disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+        if (virDomainCCWAddressAssign(&disk->info, priv->ccwaddrs,
+                                      !disk->info.addr.ccw.assigned) < 0)
             goto error;
-
-        if (!(drivestr = qemuBuildDriveStr(conn, disk, false, priv->qemuCaps)))
-            goto error;
-
-        if (!(drivealias = qemuDeviceDriveHostAlias(disk, priv->qemuCaps)))
-            goto error;
-
-        if (!(devstr = qemuBuildDriveDevStr(vm->def, disk, 0, priv->qemuCaps)))
+    } else if (!disk->info.type ||
+                disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &disk->info) < 0)
             goto error;
     }
+    releaseaddr = true;
+    if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
+        goto error;
+
+    if (qemuDomainSecretDiskPrepare(conn, priv, disk) < 0)
+        goto error;
+
+    if (!(drivestr = qemuBuildDriveStr(disk, false, priv->qemuCaps)))
+        goto error;
+
+    if (!(drivealias = qemuDeviceDriveHostAlias(disk)))
+        goto error;
+
+    if (!(devstr = qemuBuildDriveDevStr(vm->def, disk, 0, priv->qemuCaps)))
+        goto error;
 
     if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0)
         goto error;
 
+    /* Attach the device - 2 step process */
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        ret = qemuMonitorAddDrive(priv->mon, drivestr);
-        if (ret == 0) {
-            ret = qemuMonitorAddDevice(priv->mon, devstr);
-            if (ret < 0) {
-                virErrorPtr orig_err = virSaveLastError();
-                if (!drivealias ||
-                    qemuMonitorDriveDel(priv->mon, drivealias) < 0) {
-                    VIR_WARN("Unable to remove drive %s (%s) after failed "
-                             "qemuMonitorAddDevice",
-                             NULLSTR(drivealias), drivestr);
-                }
-                if (orig_err) {
-                    virSetError(orig_err);
-                    virFreeError(orig_err);
-                }
-            }
-        }
-    } else if (!disk->info.type ||
-                disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-        virDevicePCIAddress guestAddr = disk->info.addr.pci;
-        ret = qemuMonitorAddPCIDisk(priv->mon, src, type, &guestAddr);
-        if (ret == 0) {
-            disk->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
-            memcpy(&disk->info.addr.pci, &guestAddr, sizeof(guestAddr));
-        }
-    }
+
+    if (qemuMonitorAddDrive(priv->mon, drivestr) < 0)
+        goto failadddrive;
+
+    if (qemuMonitorAddDevice(priv->mon, devstr) < 0)
+        goto failadddevice;
+
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         releaseaddr = false;
-        ret = -1;
-        goto error;
+        goto failexitmonitor;
     }
 
-    virDomainAuditDisk(vm, NULL, disk->src, "attach", ret >= 0);
-
-    if (ret < 0)
-        goto error;
+    virDomainAuditDisk(vm, NULL, disk->src, "attach", true);
 
     virDomainDiskInsertPreAlloced(vm->def, disk);
+    ret = 0;
 
  cleanup:
+    qemuDomainSecretDiskDestroy(disk);
     VIR_FREE(devstr);
     VIR_FREE(drivestr);
     VIR_FREE(drivealias);
     virObjectUnref(cfg);
     return ret;
+
+ failadddevice:
+    orig_err = virSaveLastError();
+    if (qemuMonitorDriveDel(priv->mon, drivealias) < 0) {
+        VIR_WARN("Unable to remove drive %s (%s) after failed "
+                 "qemuMonitorAddDevice", drivealias, drivestr);
+    }
+    if (orig_err) {
+        virSetError(orig_err);
+        virFreeError(orig_err);
+    }
+
+ failadddrive:
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        releaseaddr = false;
+
+ failexitmonitor:
+    virDomainAuditDisk(vm, NULL, disk->src, "attach", false);
 
  error:
     if (releaseaddr)
@@ -443,6 +425,14 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
         return -1;
     }
 
+    /* default idx would normally be set by virDomainDefPostParse(),
+     * which isn't called in the case of live attach of a single
+     * device.
+     */
+    if (controller->idx == -1)
+       controller->idx = virDomainControllerFindUnusedIndex(vm->def,
+                                                            controller->type);
+
     if (virDomainControllerFind(vm->def, controller->type, controller->idx) >= 0) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("target %s:%d already exists"),
@@ -450,47 +440,39 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
         return -1;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
-            if (qemuDomainMachineIsS390CCW(vm->def) &&
-                virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW))
-                controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
-            else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
-                controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
-        } else {
-            if (!qemuCheckCCWS390AddressSupport(vm->def, controller->info,
-                                                priv->qemuCaps, "controller"))
-                goto cleanup;
-        }
-
-        if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE ||
-            controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-            if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &controller->info) < 0)
-                goto cleanup;
-        } else if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
-            if (virDomainCCWAddressAssign(&controller->info, priv->ccwaddrs,
-                                          !controller->info.addr.ccw.assigned) < 0)
-                goto cleanup;
-        }
-        releaseaddr = true;
-        if (qemuAssignDeviceControllerAlias(vm->def, priv->qemuCaps, controller) < 0)
-            goto cleanup;
-
-        if (!(devstr = qemuBuildControllerDevStr(vm->def, controller, priv->qemuCaps, NULL)))
+    if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
+        if (qemuDomainMachineIsS390CCW(vm->def) &&
+            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW))
+            controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
+        else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
+            controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
+    } else {
+        if (!qemuCheckCCWS390AddressSupport(vm->def, controller->info,
+                                            priv->qemuCaps, "controller"))
             goto cleanup;
     }
+
+    if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE ||
+        controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &controller->info) < 0)
+            goto cleanup;
+    } else if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+        if (virDomainCCWAddressAssign(&controller->info, priv->ccwaddrs,
+                                      !controller->info.addr.ccw.assigned) < 0)
+            goto cleanup;
+    }
+    releaseaddr = true;
+    if (qemuAssignDeviceControllerAlias(vm->def, priv->qemuCaps, controller) < 0)
+        goto cleanup;
+
+    if (!(devstr = qemuBuildControllerDevStr(vm->def, controller, priv->qemuCaps, NULL)))
+        goto cleanup;
 
     if (VIR_REALLOC_N(vm->def->controllers, vm->def->ncontrollers+1) < 0)
         goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        ret = qemuMonitorAddDevice(priv->mon, devstr);
-    } else {
-        ret = qemuMonitorAttachPCIDiskController(priv->mon,
-                                                 type,
-                                                 &controller->info.addr.pci);
-    }
+    ret = qemuMonitorAddDevice(priv->mon, devstr);
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         releaseaddr = false;
         ret = -1;
@@ -582,44 +564,51 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
     if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
         goto error;
 
+    if (qemuDomainSecretDiskPrepare(conn, priv, disk) < 0)
+        goto error;
+
     if (!(devstr = qemuBuildDriveDevStr(vm->def, disk, 0, priv->qemuCaps)))
         goto error;
 
-    if (!(drivestr = qemuBuildDriveStr(conn, disk, false, priv->qemuCaps)))
+    if (!(drivestr = qemuBuildDriveStr(disk, false, priv->qemuCaps)))
         goto error;
 
     if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0)
         goto error;
 
+    /* Attach the device - 2 step process */
     qemuDomainObjEnterMonitor(driver, vm);
 
-    ret = qemuMonitorAddDrive(priv->mon, drivestr);
-    if (ret == 0) {
-        ret = qemuMonitorAddDevice(priv->mon, devstr);
-        if (ret < 0) {
-            VIR_WARN("qemuMonitorAddDevice failed on %s (%s)",
-                     drivestr, devstr);
-            /* XXX should call 'drive_del' on error but this does not exist yet */
-        }
-    }
+    if (qemuMonitorAddDrive(priv->mon, drivestr) < 0)
+        goto failadddrive;
 
-    if (qemuDomainObjExitMonitor(driver, vm) < 0) {
-        ret = -1;
-        goto error;
-    }
+    if (qemuMonitorAddDevice(priv->mon, devstr) < 0)
+        goto failadddevice;
 
-    virDomainAuditDisk(vm, NULL, disk->src, "attach", ret >= 0);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto failexitmonitor;
 
-    if (ret < 0)
-        goto error;
+    virDomainAuditDisk(vm, NULL, disk->src, "attach", true);
 
     virDomainDiskInsertPreAlloced(vm->def, disk);
+    ret = 0;
 
  cleanup:
+    qemuDomainSecretDiskDestroy(disk);
     VIR_FREE(devstr);
     VIR_FREE(drivestr);
     virObjectUnref(cfg);
     return ret;
+
+ failadddevice:
+    /* XXX should call 'drive_del' on error but this does not exist yet */
+    VIR_WARN("qemuMonitorAddDevice failed on %s (%s)", drivestr, devstr);
+
+ failadddrive:
+    ignore_value(qemuDomainObjExitMonitor(driver, vm));
+
+ failexitmonitor:
+    virDomainAuditDisk(vm, NULL, disk->src, "attach", false);
 
  error:
     ignore_value(qemuDomainPrepareDisk(driver, vm, disk, NULL, true));
@@ -628,8 +617,7 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
 
 
 static int
-qemuDomainAttachUSBMassStorageDevice(virConnectPtr conn,
-                                     virQEMUDriverPtr driver,
+qemuDomainAttachUSBMassStorageDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainDiskDefPtr disk)
 {
@@ -650,32 +638,26 @@ qemuDomainAttachUSBMassStorageDevice(virConnectPtr conn,
         goto error;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
-            goto error;
-        if (!(drivestr = qemuBuildDriveStr(conn, disk, false, priv->qemuCaps)))
-            goto error;
-        if (!(devstr = qemuBuildDriveDevStr(vm->def, disk, 0, priv->qemuCaps)))
-            goto error;
-    }
+    if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
+        goto error;
+    if (!(drivestr = qemuBuildDriveStr(disk, false, priv->qemuCaps)))
+        goto error;
+    if (!(devstr = qemuBuildDriveDevStr(vm->def, disk, 0, priv->qemuCaps)))
+        goto error;
 
     if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0)
         goto error;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        ret = qemuMonitorAddDrive(priv->mon, drivestr);
-        if (ret == 0) {
-            ret = qemuMonitorAddDevice(priv->mon, devstr);
-            if (ret < 0) {
-                VIR_WARN("qemuMonitorAddDevice failed on %s (%s)",
-                         drivestr, devstr);
-                /* XXX should call 'drive_del' on error but this does not
-                   exist yet */
-            }
+    ret = qemuMonitorAddDrive(priv->mon, drivestr);
+    if (ret == 0) {
+        ret = qemuMonitorAddDevice(priv->mon, devstr);
+        if (ret < 0) {
+            VIR_WARN("qemuMonitorAddDevice failed on %s (%s)",
+                     drivestr, devstr);
+            /* XXX should call 'drive_del' on error but this does not
+               exist yet */
         }
-    } else {
-        ret = qemuMonitorAddUSBDisk(priv->mon, src);
     }
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         ret = -1;
@@ -746,7 +728,7 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
             goto cleanup;
         }
 
-        if (qemuDomainChangeEjectableMedia(driver, conn, vm, orig_disk,
+        if (qemuDomainChangeEjectableMedia(driver, vm, orig_disk,
                                            disk->src, false) < 0)
             goto cleanup;
 
@@ -768,7 +750,7 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
                                _("disk device='lun' is not supported for usb bus"));
                 break;
             }
-            ret = qemuDomainAttachUSBMassStorageDevice(conn, driver, vm, disk);
+            ret = qemuDomainAttachUSBMassStorageDevice(driver, vm, disk);
             break;
 
         case VIR_DOMAIN_DISK_BUS_VIRTIO:
@@ -803,11 +785,10 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
 }
 
 
-/* XXX conn required for network -> bridge resolution */
-int qemuDomainAttachNetDevice(virConnectPtr conn,
-                              virQEMUDriverPtr driver,
-                              virDomainObjPtr vm,
-                              virDomainNetDefPtr net)
+int
+qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
+                          virDomainObjPtr vm,
+                          virDomainNetDefPtr net)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char **tapfdName = NULL;
@@ -820,7 +801,6 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
     char *netstr = NULL;
     virNetDevVPortProfilePtr vport = NULL;
     int ret = -1;
-    virDevicePCIAddress guestAddr;
     int vlan;
     bool releaseaddr = false;
     bool iface_connected = false;
@@ -847,8 +827,11 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
          * as a hostdev (the hostdev code will reach over into the
          * netdev-specific code as appropriate), then also added to
          * the nets list (see cleanup:) if successful.
+         *
+         * qemuDomainAttachHostDevice uses a connection to resolve
+         * a SCSI hostdev secret, which is not this case, so pass NULL.
          */
-        ret = qemuDomainAttachHostDevice(conn, driver, vm,
+        ret = qemuDomainAttachHostDevice(NULL, driver, vm,
                                          virDomainNetGetActualHostdev(net));
         goto cleanup;
     }
@@ -955,10 +938,8 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
             goto cleanup;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuAssignDeviceNetAlias(vm->def, net, -1) < 0)
-            goto cleanup;
-    }
+    if (qemuAssignDeviceNetAlias(vm->def, net, -1) < 0)
+        goto cleanup;
 
     if (qemuDomainMachineIsS390CCW(vm->def) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
@@ -970,15 +951,13 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("virtio-s390 net device cannot be hotplugged."));
         goto cleanup;
-    } else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-               virDomainPCIAddressEnsureAddr(priv->pciaddrs, &net->info) < 0) {
+    } else if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, &net->info) < 0) {
         goto cleanup;
     }
 
     releaseaddr = true;
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV) &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV)) {
         vlan = -1;
     } else {
         vlan = qemuDomainNetVLAN(net);
@@ -1004,8 +983,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
             goto cleanup;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV) &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV)) {
         if (!(netstr = qemuBuildHostNetStr(net, driver,
                                            ',', -1,
                                            tapfdName, tapfdSize,
@@ -1020,8 +998,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
     }
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV) &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV)) {
         if (qemuMonitorAddNetdev(priv->mon, netstr,
                                  tapfd, tapfdName, tapfdSize,
                                  vhostfd, vhostfdName, vhostfdSize) < 0) {
@@ -1046,32 +1023,15 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
     for (i = 0; i < vhostfdSize; i++)
         VIR_FORCE_CLOSE(vhostfd[i]);
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (!(nicstr = qemuBuildNicDevStr(vm->def, net, vlan, 0,
-                                          vhostfdSize, priv->qemuCaps)))
-            goto try_remove;
-    } else {
-        if (!(nicstr = qemuBuildNicStr(net, NULL, vlan)))
-            goto try_remove;
-    }
+    if (!(nicstr = qemuBuildNicDevStr(vm->def, net, vlan, 0,
+                                      vhostfdSize, priv->qemuCaps)))
+        goto try_remove;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuMonitorAddDevice(priv->mon, nicstr) < 0) {
-            ignore_value(qemuDomainObjExitMonitor(driver, vm));
-            virDomainAuditNet(vm, NULL, net, "attach", false);
-            goto try_remove;
-        }
-    } else {
-        guestAddr = net->info.addr.pci;
-        if (qemuMonitorAddPCINetwork(priv->mon, nicstr,
-                                     &guestAddr) < 0) {
-            ignore_value(qemuDomainObjExitMonitor(driver, vm));
-            virDomainAuditNet(vm, NULL, net, "attach", false);
-            goto try_remove;
-        }
-        net->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
-        memcpy(&net->info.addr.pci, &guestAddr, sizeof(guestAddr));
+    if (qemuMonitorAddDevice(priv->mon, nicstr) < 0) {
+        ignore_value(qemuDomainObjExitMonitor(driver, vm));
+        virDomainAuditNet(vm, NULL, net, "attach", false);
+        goto try_remove;
     }
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
@@ -1166,8 +1126,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         goto cleanup;
 
     if (vlan < 0) {
-        if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV) &&
-            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
+        if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV)) {
             char *netdev_name;
             if (virAsprintf(&netdev_name, "host%s", net->info.alias) < 0)
                 goto cleanup;
@@ -1213,7 +1172,7 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     unsigned int flags = 0;
 
     if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs + 1) < 0)
-        return -1;
+        goto cleanup;
 
     if (!cfg->relaxedACS)
         flags |= VIR_HOSTDEV_STRICT_ACS_CHECK;
@@ -1234,7 +1193,16 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
         }
         break;
 
-    default:
+    case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT:
+    case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM:
+        break;
+
+    case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN:
+    case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_LAST:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("QEMU does not support device assignment mode '%s'"),
+                       virDomainHostdevSubsysPCIBackendTypeToString(backend));
+        goto error;
         break;
     }
 
@@ -1260,57 +1228,37 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     if (backend != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO)
         teardownlabel = true;
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuAssignDeviceHostdevAlias(vm->def, &hostdev->info->alias, -1) < 0)
-            goto error;
-        if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, hostdev->info) < 0)
-            goto error;
-        releaseaddr = true;
-        if (backend != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO &&
-            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_PCI_CONFIGFD)) {
-            configfd = qemuOpenPCIConfig(hostdev);
-            if (configfd >= 0) {
-                if (virAsprintf(&configfd_name, "fd-%s",
-                                hostdev->info->alias) < 0)
-                    goto error;
-            }
+    if (qemuAssignDeviceHostdevAlias(vm->def, &hostdev->info->alias, -1) < 0)
+        goto error;
+    if (virDomainPCIAddressEnsureAddr(priv->pciaddrs, hostdev->info) < 0)
+        goto error;
+    releaseaddr = true;
+    if (backend != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO &&
+        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_PCI_CONFIGFD)) {
+        configfd = qemuOpenPCIConfig(hostdev);
+        if (configfd >= 0) {
+            if (virAsprintf(&configfd_name, "fd-%s",
+                            hostdev->info->alias) < 0)
+                goto error;
         }
-
-        if (!virDomainObjIsActive(vm)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("guest unexpectedly quit during hotplug"));
-            goto error;
-        }
-
-        if (!(devstr = qemuBuildPCIHostdevDevStr(vm->def, hostdev, 0,
-                                                 configfd_name, priv->qemuCaps)))
-            goto error;
-
-        qemuDomainObjEnterMonitor(driver, vm);
-        ret = qemuMonitorAddDeviceWithFd(priv->mon, devstr,
-                                         configfd, configfd_name);
-        if (qemuDomainObjExitMonitor(driver, vm) < 0)
-            goto error;
-    } else {
-        virDevicePCIAddressPtr guestAddr = &hostdev->info->addr.pci;
-        virDevicePCIAddressPtr hostAddr = &hostdev->source.subsys.u.pci.addr;
-
-        if (hostAddr->domain &&
-            !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_HOST_PCI_MULTIDOMAIN)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("non-zero domain='%.4x' in host device "
-                             "PCI address not supported in this QEMU binary"),
-                           hostAddr->domain);
-            goto error;
-        }
-
-        qemuDomainObjEnterMonitor(driver, vm);
-        ret = qemuMonitorAddPCIHostDevice(priv->mon, hostAddr, guestAddr);
-        if (qemuDomainObjExitMonitor(driver, vm) < 0)
-            goto error;
-
-        hostdev->info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
     }
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest unexpectedly quit during hotplug"));
+        goto error;
+    }
+
+    if (!(devstr = qemuBuildPCIHostdevDevStr(vm->def, hostdev, 0,
+                                             configfd_name, priv->qemuCaps)))
+        goto error;
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    ret = qemuMonitorAddDeviceWithFd(priv->mon, devstr,
+                                     configfd, configfd_name);
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto error;
+
     virDomainAuditHostdev(vm, hostdev, "attach", ret == 0);
     if (ret < 0)
         goto error;
@@ -1356,12 +1304,6 @@ int qemuDomainAttachRedirdevDevice(virQEMUDriverPtr driver,
     virDomainDefPtr def = vm->def;
     char *charAlias = NULL;
     char *devstr = NULL;
-
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("redirected devices are not supported by this QEMU"));
-        return ret;
-    }
 
     if (qemuAssignDeviceRedirdevAlias(vm->def, redirdev, -1) < 0)
         goto cleanup;
@@ -1560,12 +1502,6 @@ int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
     char *charAlias = NULL;
     bool need_release = false;
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("qemu does not support -device"));
-        goto cleanup;
-    }
-
     if (qemuAssignDeviceChrAlias(vmdef, chr, -1) < 0)
         goto cleanup;
 
@@ -1679,6 +1615,7 @@ qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
 
     if (qemuMonitorAddObject(priv->mon, type, objAlias, props) < 0)
         goto failbackend;
+    props = NULL;
 
     if (qemuMonitorAddDevice(priv->mon, devstr) < 0)
         goto failfrontend;
@@ -1688,14 +1625,14 @@ qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (virDomainRNGInsert(vm->def, rng, true) < 0)
-        goto audit;
+    VIR_APPEND_ELEMENT_INPLACE(vm->def->rngs, vm->def->nrngs, rng);
 
     ret = 0;
 
  audit:
     virDomainAuditRNG(vm, NULL, rng, "attach", ret == 0);
  cleanup:
+    virJSONValueFree(props);
     if (ret < 0 && vm)
         qemuDomainReleaseDeviceAddress(vm, &rng->info, NULL);
     VIR_FREE(charAlias);
@@ -1709,6 +1646,7 @@ qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
  failbackend:
     if (rng->backend == VIR_DOMAIN_RNG_BACKEND_EGD)
         ignore_value(qemuMonitorDetachCharDev(priv->mon, charAlias));
+    props = NULL;  /* qemuMonitorAddObject consumes on failure */
  failchardev:
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         vm = NULL;
@@ -1866,23 +1804,16 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
         goto cleanup;
     teardownlabel = true;
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuAssignDeviceHostdevAlias(vm->def, &hostdev->info->alias, -1) < 0)
-            goto cleanup;
-        if (!(devstr = qemuBuildUSBHostdevDevStr(vm->def, hostdev, priv->qemuCaps)))
-            goto cleanup;
-    }
+    if (qemuAssignDeviceHostdevAlias(vm->def, &hostdev->info->alias, -1) < 0)
+        goto cleanup;
+    if (!(devstr = qemuBuildUSBHostdevDevStr(vm->def, hostdev, priv->qemuCaps)))
+        goto cleanup;
 
     if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs+1) < 0)
         goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE))
-        ret = qemuMonitorAddDevice(priv->mon, devstr);
-    else
-        ret = qemuMonitorAddUSBDeviceExact(priv->mon,
-                                           hostdev->source.subsys.u.usb.bus,
-                                           hostdev->source.subsys.u.usb.device);
+    ret = qemuMonitorAddDevice(priv->mon, devstr);
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         ret = -1;
         goto cleanup;
@@ -1909,6 +1840,7 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
     return ret;
 }
 
+
 static int
 qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
                                virQEMUDriverPtr driver,
@@ -1917,14 +1849,14 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
 {
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virErrorPtr orig_err;
     virDomainControllerDefPtr cont = NULL;
     char *devstr = NULL;
     char *drvstr = NULL;
     bool teardowncgroup = false;
     bool teardownlabel = false;
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) ||
-        !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("SCSI passthrough is not supported by this version of qemu"));
         return -1;
@@ -1964,7 +1896,10 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     if (qemuAssignDeviceHostdevAlias(vm->def, &hostdev->info->alias, -1) < 0)
         goto cleanup;
 
-    if (!(drvstr = qemuBuildSCSIHostdevDrvStr(conn, hostdev, priv->qemuCaps)))
+    if (qemuDomainSecretHostdevPrepare(conn, priv, hostdev) < 0)
+        goto cleanup;
+
+    if (!(drvstr = qemuBuildSCSIHostdevDrvStr(hostdev)))
         goto cleanup;
 
     if (!(devstr = qemuBuildSCSIHostdevDevStr(vm->def, hostdev, priv->qemuCaps)))
@@ -1973,33 +1908,26 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs + 1) < 0)
         goto cleanup;
 
+    /* Attach the device - 2 step process */
     qemuDomainObjEnterMonitor(driver, vm);
-    if ((ret = qemuMonitorAddDrive(priv->mon, drvstr)) == 0) {
-        if ((ret = qemuMonitorAddDevice(priv->mon, devstr)) < 0) {
-            virErrorPtr orig_err = virSaveLastError();
-            if (qemuMonitorDriveDel(priv->mon, drvstr) < 0)
-                VIR_WARN("Unable to remove drive %s (%s) after failed "
-                         "qemuMonitorAddDevice",
-                         drvstr, devstr);
-            if (orig_err) {
-                virSetError(orig_err);
-                virFreeError(orig_err);
-            }
-        }
-    }
-    if (qemuDomainObjExitMonitor(driver, vm) < 0) {
-        ret = -1;
-        goto cleanup;
-    }
 
-    virDomainAuditHostdev(vm, hostdev, "attach", ret == 0);
-    if (ret < 0)
-        goto cleanup;
+    if (qemuMonitorAddDrive(priv->mon, drvstr) < 0)
+        goto failadddrive;
+
+    if (qemuMonitorAddDevice(priv->mon, devstr) < 0)
+        goto failadddevice;
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto failexitmonitor;
+
+    virDomainAuditHostdev(vm, hostdev, "attach", true);
 
     vm->def->hostdevs[vm->def->nhostdevs++] = hostdev;
 
     ret = 0;
+
  cleanup:
+    qemuDomainSecretHostdevDestroy(hostdev);
     if (ret < 0) {
         qemuHostdevReAttachSCSIDevices(driver, vm->def->name, &hostdev, 1);
         if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
@@ -2012,12 +1940,33 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     VIR_FREE(drvstr);
     VIR_FREE(devstr);
     return ret;
+
+ failadddevice:
+    orig_err = virSaveLastError();
+    if (qemuMonitorDriveDel(priv->mon, drvstr) < 0)
+        VIR_WARN("Unable to remove drive %s (%s) after failed "
+                 "qemuMonitorAddDevice",
+                 drvstr, devstr);
+    if (orig_err) {
+        virSetError(orig_err);
+        virFreeError(orig_err);
+    }
+
+ failadddrive:
+    ignore_value(qemuDomainObjExitMonitor(driver, vm));
+
+ failexitmonitor:
+    virDomainAuditHostdev(vm, hostdev, "attach", false);
+
+    goto cleanup;
 }
 
-int qemuDomainAttachHostDevice(virConnectPtr conn,
-                               virQEMUDriverPtr driver,
-                               virDomainObjPtr vm,
-                               virDomainHostdevDefPtr hostdev)
+
+int
+qemuDomainAttachHostDevice(virConnectPtr conn,
+                           virQEMUDriverPtr driver,
+                           virDomainObjPtr vm,
+                           virDomainHostdevDefPtr hostdev)
 {
     if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -2323,7 +2272,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
         virDomainDeviceInfoCopy(&newdev->info, &olddev->info) < 0) {
         goto cleanup;
     }
-    if (!virDevicePCIAddressEqual(&olddev->info.addr.pci,
+    if (!virPCIDeviceAddressEqual(&olddev->info.addr.pci,
                                   &newdev->info.addr.pci)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("cannot modify network device guest PCI address"));
@@ -2621,9 +2570,10 @@ qemuDomainChangeGraphics(virQEMUDriverPtr driver,
                          virDomainGraphicsDefPtr dev)
 {
     virDomainGraphicsDefPtr olddev = qemuDomainFindGraphics(vm, dev);
-    int ret = -1;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    const char *type = virDomainGraphicsTypeToString(dev->type);
     size_t i;
+    int ret = -1;
 
     if (!olddev) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -2632,8 +2582,9 @@ qemuDomainChangeGraphics(virQEMUDriverPtr driver,
     }
 
     if (dev->nListens != olddev->nListens) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                       _("cannot change the number of listen addresses"));
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("cannot change the number of listen addresses "
+                         "on '%s' graphics"), type);
         goto cleanup;
     }
 
@@ -2642,30 +2593,31 @@ qemuDomainChangeGraphics(virQEMUDriverPtr driver,
         virDomainGraphicsListenDefPtr oldlisten = &olddev->listens[i];
 
         if (newlisten->type != oldlisten->type) {
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                           _("cannot change the type of listen address"));
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                           _("cannot change the type of listen address "
+                             "on '%s' graphics"), type);
             goto cleanup;
         }
 
-        switch ((virDomainGraphicsListenType) newlisten->type) {
+        switch (newlisten->type) {
         case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
             if (STRNEQ_NULLABLE(newlisten->address, oldlisten->address)) {
-                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                               dev->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC ?
-                               _("cannot change listen address setting on vnc graphics") :
-                               _("cannot change listen address setting on spice graphics"));
+                virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                               _("cannot change listen address setting "
+                                 "on '%s' graphics"), type);
                 goto cleanup;
             }
+
             break;
 
         case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
             if (STRNEQ_NULLABLE(newlisten->network, oldlisten->network)) {
-                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                               dev->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC ?
-                           _("cannot change listen network setting on vnc graphics") :
-                           _("cannot change listen network setting on spice graphics"));
+                virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                               _("cannot change listen address setting "
+                                 "on '%s' graphics"), type);
                 goto cleanup;
             }
+
             break;
 
         case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NONE:
@@ -2775,8 +2727,7 @@ qemuDomainChangeGraphics(virQEMUDriverPtr driver,
 
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unable to change config on '%s' graphics type"),
-                       virDomainGraphicsTypeToString(dev->type));
+                       _("unable to change config on '%s' graphics type"), type);
         break;
     }
 
@@ -3099,8 +3050,7 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
         goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV) &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV)) {
         if (qemuMonitorRemoveNetdev(priv->mon, hostnet_name) < 0) {
             if (qemuDomainObjExitMonitor(driver, vm) < 0)
                 goto cleanup;
@@ -3446,8 +3396,7 @@ qemuDomainDetachVirtioDiskDevice(virQEMUDriverPtr driver,
         }
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        !detach->info.alias) {
+    if (!detach->info.alias) {
         if (qemuAssignDeviceDiskAlias(vm->def, detach, priv->qemuCaps) < 0)
             goto cleanup;
     }
@@ -3455,21 +3404,11 @@ qemuDomainDetachVirtioDiskDevice(virQEMUDriverPtr driver,
     qemuDomainMarkDeviceForRemoval(vm, &detach->info);
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuMonitorDelDevice(priv->mon, detach->info.alias) < 0) {
-            if (qemuDomainObjExitMonitor(driver, vm) < 0)
-                goto cleanup;
-            virDomainAuditDisk(vm, detach->src, NULL, "detach", false);
+    if (qemuMonitorDelDevice(priv->mon, detach->info.alias) < 0) {
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
             goto cleanup;
-        }
-    } else {
-        if (qemuMonitorRemovePCIDevice(priv->mon,
-                                       &detach->info.addr.pci) < 0) {
-            if (qemuDomainObjExitMonitor(driver, vm) < 0)
-                goto cleanup;
-            virDomainAuditDisk(vm, detach->src, NULL, "detach", false);
-            goto cleanup;
-        }
+        virDomainAuditDisk(vm, detach->src, NULL, "detach", false);
+        goto cleanup;
     }
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
@@ -3489,13 +3428,6 @@ qemuDomainDetachDiskDevice(virQEMUDriverPtr driver,
 {
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
-
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("Underlying qemu does not support %s disk removal"),
-                       virDomainDiskBusTypeToString(detach->bus));
-        goto cleanup;
-    }
 
     if (detach->mirror) {
         virReportError(VIR_ERR_BLOCK_COPY_ACTIVE,
@@ -3676,8 +3608,7 @@ int qemuDomainDetachControllerDevice(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        !detach->info.alias) {
+    if (!detach->info.alias) {
         if (qemuAssignDeviceControllerAlias(vm->def, priv->qemuCaps, detach) < 0)
             goto cleanup;
     }
@@ -3685,17 +3616,9 @@ int qemuDomainDetachControllerDevice(virQEMUDriverPtr driver,
     qemuDomainMarkDeviceForRemoval(vm, &detach->info);
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuMonitorDelDevice(priv->mon, detach->info.alias)) {
-            ignore_value(qemuDomainObjExitMonitor(driver, vm));
-            goto cleanup;
-        }
-    } else {
-        if (qemuMonitorRemovePCIDevice(priv->mon,
-                                       &detach->info.addr.pci) < 0) {
-            ignore_value(qemuDomainObjExitMonitor(driver, vm));
-            goto cleanup;
-        }
+    if (qemuMonitorDelDevice(priv->mon, detach->info.alias)) {
+        ignore_value(qemuDomainObjExitMonitor(driver, vm));
+        goto cleanup;
     }
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
@@ -3735,11 +3658,7 @@ qemuDomainDetachHostPCIDevice(virQEMUDriverPtr driver,
     qemuDomainMarkDeviceForRemoval(vm, detach->info);
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        ret = qemuMonitorDelDevice(priv->mon, detach->info->alias);
-    } else {
-        ret = qemuMonitorRemovePCIDevice(priv->mon, &detach->info->addr.pci);
-    }
+    ret = qemuMonitorDelDevice(priv->mon, detach->info->alias);
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         ret = -1;
 
@@ -3757,12 +3676,6 @@ qemuDomainDetachHostUSBDevice(virQEMUDriverPtr driver,
     if (!detach->info->alias) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        "%s", _("device cannot be detached without a device alias"));
-        return -1;
-    }
-
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       "%s", _("device cannot be detached with this QEMU version"));
         return -1;
     }
 
@@ -3790,12 +3703,6 @@ qemuDomainDetachHostSCSIDevice(virQEMUDriverPtr driver,
         return -1;
     }
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       "%s", _("device cannot be detached with this QEMU version"));
-        return -1;
-    }
-
     qemuDomainMarkDeviceForRemoval(vm, detach->info);
 
     qemuDomainObjEnterMonitor(driver, vm);
@@ -3812,11 +3719,9 @@ qemuDomainDetachThisHostDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr detach)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        !detach->info->alias) {
+    if (!detach->info->alias) {
         if (qemuAssignDeviceHostdevAlias(vm->def, &detach->info->alias, -1) < 0)
             return -1;
     }
@@ -3969,8 +3874,7 @@ qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
         }
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        !detach->info.alias) {
+    if (!detach->info.alias) {
         if (qemuAssignDeviceNetAlias(vm->def, detach, -1) < 0)
             goto cleanup;
     }
@@ -3990,21 +3894,11 @@ qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
     qemuDomainMarkDeviceForRemoval(vm, &detach->info);
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuMonitorDelDevice(priv->mon, detach->info.alias) < 0) {
-            if (qemuDomainObjExitMonitor(driver, vm) < 0)
-                goto cleanup;
-            virDomainAuditNet(vm, detach, NULL, "detach", false);
+    if (qemuMonitorDelDevice(priv->mon, detach->info.alias) < 0) {
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
             goto cleanup;
-        }
-    } else {
-        if (qemuMonitorRemovePCIDevice(priv->mon,
-                                       &detach->info.addr.pci) < 0) {
-            if (qemuDomainObjExitMonitor(driver, vm) < 0)
-                goto cleanup;
-            virDomainAuditNet(vm, detach, NULL, "detach", false);
-            goto cleanup;
-        }
+        virDomainAuditNet(vm, detach, NULL, "detach", false);
+        goto cleanup;
     }
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
@@ -4153,12 +4047,6 @@ int qemuDomainDetachChrDevice(virQEMUDriverPtr driver,
         return ret;
     }
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("qemu does not support -device"));
-        return ret;
-    }
-
     if (!tmpChr->info.alias && qemuAssignDeviceChrAlias(vmdef, tmpChr, -1) < 0)
         return ret;
 
@@ -4208,12 +4096,6 @@ qemuDomainDetachRNGDevice(virQEMUDriverPtr driver,
 
     tmpRNG = vm->def->rngs[idx];
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("qemu does not support -device"));
-        return -1;
-    }
-
     if (!tmpRNG->info.alias) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("alias not set for RNG device"));
@@ -4246,12 +4128,6 @@ qemuDomainDetachMemoryDevice(virQEMUDriverPtr driver,
     int idx;
     int rc;
     int ret = -1;
-
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("qemu does not support -device"));
-        return -1;
-    }
 
     qemuDomainMemoryDeviceAlignSize(vm->def, memdef);
 

@@ -536,6 +536,7 @@ typedef virNWFilterDef *virNWFilterDefPtr;
 struct _virNWFilterDef {
     char *name;
     unsigned char uuid[VIR_UUID_BUFLEN];
+    bool uuid_specified;
 
     char *chainsuffix;
     virNWFilterChainPriority chainPriority;
@@ -551,7 +552,6 @@ typedef virNWFilterObj *virNWFilterObjPtr;
 struct _virNWFilterObj {
     virMutex lock;
 
-    char *configFile;
     int active;
     int wantRemoved;
 
@@ -612,10 +612,10 @@ virNWFilterObjPtr virNWFilterObjFindByName(virNWFilterObjListPtr nwfilters,
 
 
 int virNWFilterObjSaveDef(virNWFilterDriverStatePtr driver,
-                          virNWFilterObjPtr nwfilter,
                           virNWFilterDefPtr def);
 
-int virNWFilterObjDeleteDef(virNWFilterObjPtr nwfilter);
+int virNWFilterObjDeleteDef(const char *configDir,
+                            virNWFilterObjPtr nwfilter);
 
 virNWFilterObjPtr virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
                                           virNWFilterDefPtr def);

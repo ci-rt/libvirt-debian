@@ -27,6 +27,7 @@
 
 # include "driver.h"
 # include "conf/domain_conf.h"
+# include "conf/snapshot_conf.h"
 # include "conf/virdomainobjlist.h"
 # include "conf/domain_event.h"
 # include "virthread.h"
@@ -60,12 +61,15 @@ struct _vzCapabilities {
 typedef struct _vzCapabilities vzCapabilities;
 typedef struct _vzCapabilities *vzCapabilitiesPtr;
 
+/* +2 to keep enclosing { and } */
+# define VIR_UUID_STRING_BRACED_BUFLEN (VIR_UUID_STRING_BUFLEN + 2)
+
 struct _vzDriver {
     virObjectLockable parent;
 
     /* Immutable pointer, self-locking APIs */
     virDomainObjListPtr domains;
-
+    unsigned char session_uuid[VIR_UUID_BUFLEN];
     PRL_HANDLE server;
     virCapsPtr caps;
     virDomainXMLOptionPtr xmlopt;
@@ -123,7 +127,7 @@ vzDestroyDriverConnection(void);
 
 virDomainObjPtr
 vzNewDomain(vzDriverPtr driver,
-            char *name,
+            const char *name,
             const unsigned char *uuid);
 int
 vzInitVersion(vzDriverPtr driver);

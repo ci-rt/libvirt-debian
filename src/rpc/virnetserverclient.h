@@ -49,7 +49,8 @@ typedef void *(*virNetServerClientPrivNewPostExecRestart)(virNetServerClientPtr 
 typedef void *(*virNetServerClientPrivNew)(virNetServerClientPtr client,
                                            void *opaque);
 
-virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
+virNetServerClientPtr virNetServerClientNew(unsigned long long id,
+                                            virNetSocketPtr sock,
                                             int auth,
                                             bool readonly,
                                             size_t nrequests_max,
@@ -65,7 +66,8 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
                                                            virNetServerClientPrivNewPostExecRestart privNew,
                                                            virNetServerClientPrivPreExecRestart privPreExecRestart,
                                                            virFreeCallback privFree,
-                                                           void *privOpaque);
+                                                           void *privOpaque,
+                                                           void *opaque);
 
 virJSONValuePtr virNetServerClientPreExecRestart(virNetServerClientPtr client);
 
@@ -79,6 +81,8 @@ void virNetServerClientRemoveFilter(virNetServerClientPtr client,
 int virNetServerClientGetAuth(virNetServerClientPtr client);
 void virNetServerClientSetAuth(virNetServerClientPtr client, int auth);
 bool virNetServerClientGetReadonly(virNetServerClientPtr client);
+unsigned long long virNetServerClientGetID(virNetServerClientPtr client);
+long long virNetServerClientGetTimestamp(virNetServerClientPtr client);
 
 # ifdef WITH_GNUTLS
 bool virNetServerClientHasTLSSession(virNetServerClientPtr client);
@@ -87,6 +91,7 @@ int virNetServerClientGetTLSKeySize(virNetServerClientPtr client);
 # endif
 
 # ifdef WITH_SASL
+bool virNetServerClientHasSASLSession(virNetServerClientPtr client);
 void virNetServerClientSetSASLSession(virNetServerClientPtr client,
                                       virNetSASLSessionPtr sasl);
 virNetSASLSessionPtr virNetServerClientGetSASLSession(virNetServerClientPtr client);
@@ -135,11 +140,17 @@ int virNetServerClientStartKeepAlive(virNetServerClientPtr client);
 
 const char *virNetServerClientLocalAddrString(virNetServerClientPtr client);
 const char *virNetServerClientRemoteAddrString(virNetServerClientPtr client);
+char *virNetServerClientLocalAddrFormatSASL(virNetServerClientPtr client);
+char *virNetServerClientRemoteAddrFormatSASL(virNetServerClientPtr client);
 
 int virNetServerClientSendMessage(virNetServerClientPtr client,
                                   virNetMessagePtr msg);
 
 bool virNetServerClientNeedAuth(virNetServerClientPtr client);
 
+int virNetServerClientGetTransport(virNetServerClientPtr client);
+int virNetServerClientGetInfo(virNetServerClientPtr client,
+                              bool *readonly, const char **sock_addr,
+                              virIdentityPtr *identity);
 
 #endif /* __VIR_NET_SERVER_CLIENT_H__ */

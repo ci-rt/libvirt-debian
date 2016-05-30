@@ -51,6 +51,14 @@ typedef struct _virAdmConnect virAdmConnect;
 typedef struct _virAdmServer virAdmServer;
 
 /**
+ * virAdmClient:
+ *
+ * a virAdmClient is a private structure and client-side representation of
+ * a remote server's client object (as server sees clients connected to it)
+ */
+typedef struct _virAdmClient virAdmClient;
+
+/**
  * virAdmConnectPtr:
  *
  * a virAdmConnectPtr is pointer to a virAdmConnect private structure,
@@ -68,13 +76,22 @@ typedef virAdmConnect *virAdmConnectPtr;
  */
 typedef virAdmServer *virAdmServerPtr;
 
+/**
+ * virAdmClientPtr:
+ *
+ * a virAdmClientPtr is a pointer to a virAdmClient structure,
+ * this is the type used to reference client-side representation of a
+ * client object throughout all the APIs.
+ */
+typedef virAdmClient *virAdmClientPtr;
+
 virAdmConnectPtr virAdmConnectOpen(const char *name, unsigned int flags);
 int virAdmConnectClose(virAdmConnectPtr conn);
 int virAdmConnectRef(virAdmConnectPtr conn);
 int virAdmConnectIsAlive(virAdmConnectPtr conn);
 int virAdmServerFree(virAdmServerPtr srv);
 
-int virAdmConnectListServers(virAdmConnectPtr dmn,
+int virAdmConnectListServers(virAdmConnectPtr conn,
                              virAdmServerPtr **servers,
                              unsigned int flags);
 
@@ -181,6 +198,210 @@ int virAdmServerSetThreadPoolParameters(virAdmServerPtr srv,
                                         virTypedParameterPtr params,
                                         int nparams,
                                         unsigned int flags);
+
+/* virAdmClient object accessors */
+unsigned long long virAdmClientGetID(virAdmClientPtr client);
+long long virAdmClientGetTimestamp(virAdmClientPtr client);
+int virAdmClientGetTransport(virAdmClientPtr client);
+int virAdmClientFree(virAdmClientPtr client);
+
+typedef enum {
+    VIR_CLIENT_TRANS_UNIX = 0, /* connection via UNIX socket */
+    VIR_CLIENT_TRANS_TCP,      /* connection via unencrypted TCP socket */
+    VIR_CLIENT_TRANS_TLS,      /* connection via encrypted TCP socket */
+
+# ifdef VIR_ENUM_SENTINELS
+    VIR_CLIENT_TRANS_LAST
+# endif
+} virClientTransport;
+
+int virAdmServerListClients(virAdmServerPtr srv,
+                            virAdmClientPtr **clients,
+                            unsigned int flags);
+
+virAdmClientPtr
+virAdmServerLookupClient(virAdmServerPtr srv,
+                         unsigned long long id,
+                         unsigned int flags);
+
+/* Client identity info */
+
+/**
+ * VIR_CLIENT_INFO_READONLY:
+ * Macro represents client's connection permission, whether the client is
+ * connected in read-only mode or just the opposite - read-write,
+ * as VIR_TYPED_PARAM_BOOLEAN.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_READONLY "readonly"
+
+/**
+ * VIR_CLIENT_INFO_SOCKET_ADDR:
+ * Macro represents clients network socket address in a standard URI format:
+ * (IPv4|[IPv6]):port, as VIR_TYPED_PARAM_STRING.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_SOCKET_ADDR "sock_addr"
+
+/**
+ * VIR_CLIENT_INFO_SASL_USER_NAME:
+ * Macro represents client's SASL user name, if SASL authentication is enabled
+ * on the remote host, as VIR_TYPED_PARAM_STRING.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_SASL_USER_NAME "sasl_user_name"
+
+/**
+ * VIR_CLIENT_INFO_X509_DISTINGUISHED_NAME:
+ * Macro represents the 'distinguished name' field in X509 certificate the
+ * client used to establish a TLS session with remote host, as
+ * VIR_TYPED_PARAM_STRING.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_X509_DISTINGUISHED_NAME "tls_x509_dname"
+
+/**
+ * VIR_CLIENT_INFO_UNIX_USER_ID:
+ * Macro represents UNIX UID the client process is running with. Only relevant
+ * for clients connected locally, i.e. via a UNIX socket,
+ * as VIR_TYPED_PARAM_INT.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_UNIX_USER_ID "unix_user_id"
+
+/**
+ * VIR_CLIENT_INFO_UNIX_USER_NAME:
+ * Macro represents the user name that is bound to the client process's UID it
+ * is running with. Only relevant for clients connected locally, i.e. via a
+ * UNIX socket, as VIR_TYPED_PARAM_STRING.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_UNIX_USER_NAME "unix_user_name"
+
+/**
+ * VIR_CLIENT_INFO_UNIX_GROUP_ID:
+ * Macro represents UNIX GID the client process is running with. Only relevant
+ * for clients connected locally, i.e. via a UNIX socket,
+ * as VIR_TYPED_PARAM_INT.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_UNIX_GROUP_ID "unix_group_id"
+
+/**
+ * VIR_CLIENT_INFO_UNIX_GROUP_NAME:
+ * Macro represents the group name that is bound to the client process's GID it
+ * is running with. Only relevant for clients connected locally, i.e. via a
+ * UNIX socket, as VIR_TYPED_PARAM_STRING.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_UNIX_GROUP_NAME "unix_group_name"
+
+/**
+ * VIR_CLIENT_INFO_UNIX_PROCESS_ID:
+ * Macro represents the client process's pid it is running with. Only relevant
+ * for clients connected locally, i.e. via a UNIX socket,
+ * as VIR_TYPED_PARAM_INT.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_UNIX_PROCESS_ID "unix_process_id"
+
+/**
+ * VIR_CLIENT_INFO_SELINUX_CONTEXT:
+ * Macro represents the client's (peer's) SELinux context and this can either
+ * be at socket layer or at transport layer, depending on the connection type,
+ * as VIR_TYPED_PARAM_STRING.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_CLIENT_INFO_SELINUX_CONTEXT "selinux_context"
+
+int virAdmClientGetInfo(virAdmClientPtr client,
+                        virTypedParameterPtr *params,
+                        int *nparams,
+                        unsigned int flags);
+
+int virAdmClientClose(virAdmClientPtr client, unsigned int flags);
+
+/* Manage per-server client limits */
+
+/**
+ * VIR_SERVER_CLIENTS_MAX:
+ * Macro for per-server nclients_max limit: represents the upper limit to
+ * number of clients connected to the server, as uint.
+ */
+
+# define VIR_SERVER_CLIENTS_MAX "nclients_max"
+
+/**
+ * VIR_SERVER_CLIENTS_CURRENT:
+ * Macro for per-server nclients attribute: represents the current number of
+ * clients connected to the server, as VIR_TYPED_PARAM_UINT.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_SERVER_CLIENTS_CURRENT "nclients"
+
+/**
+ * VIR_SERVER_CLIENTS_UNAUTH_MAX:
+ * Macro for per-server nclients_unauth_max limit: represents the upper limit
+ * to number of clients connected to the server, but not authenticated yet,
+ * as VIR_TYPED_PARAM_UINT.
+ */
+
+# define VIR_SERVER_CLIENTS_UNAUTH_MAX "nclients_unauth_max"
+
+/**
+ * VIR_SERVER_CLIENTS_UNAUTH_CURRENT:
+ * Macro for per-server nclients_unauth attribute: represents the current
+ * number of clients connected to the server, but not authenticated yet,
+ * as VIR_TYPED_PARAM_UINT.
+ *
+ * NOTE: This attribute is read-only and any attempt to set it will be denied
+ * by daemon
+ */
+
+# define VIR_SERVER_CLIENTS_UNAUTH_CURRENT "nclients_unauth"
+
+int virAdmServerGetClientLimits(virAdmServerPtr srv,
+                                virTypedParameterPtr *params,
+                                int *nparams,
+                                unsigned int flags);
+
+int virAdmServerSetClientLimits(virAdmServerPtr srv,
+                                virTypedParameterPtr params,
+                                int nparams,
+                                unsigned int flags);
 
 # ifdef __cplusplus
 }
