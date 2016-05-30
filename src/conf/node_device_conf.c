@@ -383,6 +383,10 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDef *def)
                     virBufferAddLit(&buf, "</capability>\n");
                 }
             }
+            if (data->pci_dev.hdrType) {
+                virBufferAsprintf(&buf, "<capability type='%s'/>\n",
+                                  virPCIHeaderTypeToString(data->pci_dev.hdrType));
+            }
             if (data->pci_dev.nIommuGroupDevices) {
                 virBufferAsprintf(&buf, "<iommuGroup number='%d'>\n",
                                   data->pci_dev.iommuGroupNumber);
@@ -402,11 +406,6 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDef *def)
             if (data->pci_dev.numa_node >= 0)
                 virBufferAsprintf(&buf, "<numa node='%d'/>\n",
                                   data->pci_dev.numa_node);
-
-            if (data->pci_dev.hdrType) {
-                virBufferAsprintf(&buf, "<capability type='%s'/>\n",
-                                  virPCIHeaderTypeToString(data->pci_dev.hdrType));
-            }
 
             if (data->pci_dev.flags & VIR_NODE_DEV_CAP_FLAG_PCIE)
                 virPCIEDeviceInfoFormat(&buf, data->pci_dev.pci_express);
@@ -1164,8 +1163,8 @@ virNodeDevCapPCIDevIommuGroupParseXML(xmlXPathContextPtr ctxt,
         goto cleanup;
 
     for (i = 0; i < nAddrNodes; i++) {
-        virDevicePCIAddress addr = { 0, 0, 0, 0, 0 };
-        if (virDevicePCIAddressParseXML(addrNodes[i], &addr) < 0)
+        virPCIDeviceAddress addr = { 0, 0, 0, 0, 0 };
+        if (virPCIDeviceAddressParseXML(addrNodes[i], &addr) < 0)
             goto cleanup;
         if (VIR_ALLOC(pciAddr) < 0)
             goto cleanup;
@@ -1270,15 +1269,106 @@ virPCIEDeviceInfoParseXML(xmlXPathContextPtr ctxt,
 
 
 static int
+virNodeDevPCICapabilityParseXML(xmlXPathContextPtr ctxt,
+                                xmlNodePtr node,
+                                virNodeDevCapDataPtr data)
+{
+    char *maxFuncsStr = virXMLPropString(node, "maxCount");
+    char *type = virXMLPropString(node, "type");
+    xmlNodePtr *addresses = NULL;
+    xmlNodePtr orignode = ctxt->node;
+    int ret = -1;
+    size_t i = 0;
+
+    ctxt->node = node;
+
+    if (!type) {
+        virReportError(VIR_ERR_XML_ERROR, "%s", _("Missing capability type"));
+        goto out;
+    }
+
+    if (STREQ(type, "phys_function")) {
+        xmlNodePtr address = virXPathNode("./address[1]", ctxt);
+
+        if (VIR_ALLOC(data->pci_dev.physical_function) < 0)
+            goto out;
+
+        if (!address) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("Missing address in 'phys_function' capability"));
+            goto out;
+        }
+
+        if (virPCIDeviceAddressParseXML(address,
+                                        data->pci_dev.physical_function) < 0)
+            goto out;
+
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
+    } else if (STREQ(type, "virt_functions")) {
+        int naddresses;
+
+        if ((naddresses = virXPathNodeSet("./address", ctxt, &addresses)) < 0)
+            goto out;
+
+        if (maxFuncsStr &&
+            virStrToLong_uip(maxFuncsStr, NULL, 10,
+                             &data->pci_dev.max_virtual_functions) < 0) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("Malformed 'maxCount' parameter"));
+            goto out;
+        }
+
+        if (VIR_ALLOC_N(data->pci_dev.virtual_functions, naddresses) < 0)
+            goto out;
+
+        for (i = 0; i < naddresses; i++) {
+            virPCIDeviceAddressPtr addr = NULL;
+
+            if (VIR_ALLOC(addr) < 0)
+                goto out;
+
+            if (virPCIDeviceAddressParseXML(addresses[i], addr) < 0) {
+                VIR_FREE(addr);
+                goto out;
+            }
+
+            if (VIR_APPEND_ELEMENT(data->pci_dev.virtual_functions,
+                                   data->pci_dev.num_virtual_functions,
+                                   addr) < 0)
+                goto out;
+        }
+
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
+    } else {
+        int hdrType = virPCIHeaderTypeFromString(type);
+
+        if (hdrType > 0 && !data->pci_dev.hdrType)
+            data->pci_dev.hdrType = hdrType;
+    }
+
+    ret = 0;
+ out:
+    VIR_FREE(addresses);
+    VIR_FREE(maxFuncsStr);
+    VIR_FREE(type);
+    ctxt->node = orignode;
+    return ret;
+}
+
+
+static int
 virNodeDevCapPCIDevParseXML(xmlXPathContextPtr ctxt,
                             virNodeDeviceDefPtr def,
                             xmlNodePtr node,
                             virNodeDevCapDataPtr data)
 {
     xmlNodePtr orignode, iommuGroupNode, pciExpress;
+    xmlNodePtr *nodes = NULL;
+    int n = 0;
     int ret = -1;
     virPCIEDeviceInfoPtr pci_express = NULL;
     char *tmp = NULL;
+    size_t i = 0;
 
     orignode = ctxt->node;
     ctxt->node = node;
@@ -1322,6 +1412,15 @@ virNodeDevCapPCIDevParseXML(xmlXPathContextPtr ctxt,
     data->pci_dev.vendor_name  = virXPathString("string(./vendor[1])", ctxt);
     data->pci_dev.product_name = virXPathString("string(./product[1])", ctxt);
 
+    if ((n = virXPathNodeSet("./capability", ctxt, &nodes)) < 0)
+        goto out;
+
+    for (i = 0; i < n; i++) {
+        if (virNodeDevPCICapabilityParseXML(ctxt, nodes[i], data) < 0)
+            goto out;
+    }
+    VIR_FREE(nodes);
+
     if ((iommuGroupNode = virXPathNode("./iommuGroup[1]", ctxt))) {
         if (virNodeDevCapPCIDevIommuGroupParseXML(ctxt, iommuGroupNode,
                                                   data) < 0) {
@@ -1350,6 +1449,7 @@ virNodeDevCapPCIDevParseXML(xmlXPathContextPtr ctxt,
 
     ret = 0;
  out:
+    VIR_FREE(nodes);
     VIR_FREE(tmp);
     virPCIEDeviceInfoFree(pci_express);
     ctxt->node = orignode;

@@ -79,24 +79,28 @@ virISCSIGetSession(const char *devpath,
         .session = NULL,
         .devpath = devpath,
     };
+    char *error = NULL;
+    int exitstatus = 0;
 
-    virCommandPtr cmd = virCommandNewArgList(ISCSIADM, "--mode", "session", NULL);
+    virCommandPtr cmd = virCommandNewArgList(ISCSIADM, "--mode",
+                                             "session", NULL);
+    virCommandSetErrorBuffer(cmd, &error);
 
     if (virCommandRunRegex(cmd,
                            1,
                            regexes,
                            vars,
                            virISCSIExtractSession,
-                           &cbdata, NULL) < 0)
+                           &cbdata, NULL, &exitstatus) < 0)
         goto cleanup;
 
-    if (cbdata.session == NULL && !probe) {
+    if (cbdata.session == NULL && !probe)
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("cannot find session"));
-        goto cleanup;
-    }
+                       _("cannot find iscsiadm session: %s"),
+                       NULLSTR(error));
 
  cleanup:
+    VIR_FREE(error);
     virCommandFree(cmd);
     return cbdata.session;
 }
@@ -303,7 +307,7 @@ virISCSIConnection(const char *portal,
              * portal. Without the sendtargets all that is received is a
              * "iscsiadm: No records found"
              */
-            if (virISCSIScanTargets(portal, initiatoriqn, NULL, NULL) < 0)
+            if (virISCSIScanTargets(portal, NULL, NULL) < 0)
                 goto cleanup;
 
             break;
@@ -386,24 +390,8 @@ virISCSIGetTargets(char **const groups,
 }
 
 
-static int
-virISCSITargetAutologin(const char *portal,
-                        const char *initiatoriqn,
-                        const char *target,
-                        bool enable)
-{
-    const char *extraargv[] = { "--op", "update",
-                                "--name", "node.startup",
-                                "--value", enable ? "automatic" : "manual",
-                                NULL };
-
-    return virISCSIConnection(portal, initiatoriqn, target, extraargv);
-}
-
-
 int
 virISCSIScanTargets(const char *portal,
-                    const char *initiatoriqn,
                     size_t *ntargetsret,
                     char ***targetsret)
 {
@@ -428,6 +416,7 @@ virISCSIScanTargets(const char *portal,
                                              "--mode", "discovery",
                                              "--type", "sendtargets",
                                              "--portal", portal,
+                                             "--op", "nonpersistent",
                                              NULL);
 
     memset(&list, 0, sizeof(list));
@@ -437,20 +426,8 @@ virISCSIScanTargets(const char *portal,
                            regexes,
                            vars,
                            virISCSIGetTargets,
-                           &list, NULL) < 0)
+                           &list, NULL, NULL) < 0)
         goto cleanup;
-
-    for (i = 0; i < list.ntargets; i++) {
-        /* We have to ignore failure, because we can't undo
-         * the results of 'sendtargets', unless we go scrubbing
-         * around in the dirt in /var/lib/iscsi.
-         */
-        if (virISCSITargetAutologin(portal,
-                                    initiatoriqn,
-                                    list.targets[i], false) < 0)
-            VIR_WARN("Unable to disable auto-login on iSCSI target %s: %s",
-                     portal, list.targets[i]);
-    }
 
     if (ntargetsret && targetsret) {
         *ntargetsret = list.ntargets;

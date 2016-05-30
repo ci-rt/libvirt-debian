@@ -153,35 +153,36 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/gl-openssl.m4 \
 	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
-	$(top_srcdir)/m4/hostent.m4 $(top_srcdir)/m4/iconv.m4 \
-	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
-	$(top_srcdir)/m4/inet_pton.m4 $(top_srcdir)/m4/intlmacosx.m4 \
-	$(top_srcdir)/m4/intmax_t.m4 $(top_srcdir)/m4/inttypes-pri.m4 \
-	$(top_srcdir)/m4/inttypes.m4 $(top_srcdir)/m4/inttypes_h.m4 \
-	$(top_srcdir)/m4/ioctl.m4 $(top_srcdir)/m4/isatty.m4 \
-	$(top_srcdir)/m4/isnand.m4 $(top_srcdir)/m4/isnanf.m4 \
-	$(top_srcdir)/m4/isnanl.m4 $(top_srcdir)/m4/langinfo_h.m4 \
-	$(top_srcdir)/m4/largefile.m4 $(top_srcdir)/m4/lcmessage.m4 \
-	$(top_srcdir)/m4/ldexp.m4 $(top_srcdir)/m4/lib-ld.m4 \
-	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
-	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/localcharset.m4 \
-	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
-	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
-	$(top_srcdir)/m4/locale_h.m4 $(top_srcdir)/m4/localeconv.m4 \
-	$(top_srcdir)/m4/localename.m4 $(top_srcdir)/m4/lock.m4 \
-	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
-	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
-	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
-	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
-	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
-	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
-	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
-	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
-	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
-	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
-	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/hard-locale.m4 $(top_srcdir)/m4/hostent.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/include_next.m4 \
+	$(top_srcdir)/m4/inet_ntop.m4 $(top_srcdir)/m4/inet_pton.m4 \
+	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax_t.m4 \
+	$(top_srcdir)/m4/inttypes-pri.m4 $(top_srcdir)/m4/inttypes.m4 \
+	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/ioctl.m4 \
+	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isnand.m4 \
+	$(top_srcdir)/m4/isnanf.m4 $(top_srcdir)/m4/isnanl.m4 \
+	$(top_srcdir)/m4/langinfo_h.m4 $(top_srcdir)/m4/largefile.m4 \
+	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
+	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
+	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/localcharset.m4 $(top_srcdir)/m4/locale-fr.m4 \
+	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
+	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
+	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
+	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
+	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
+	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
+	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
+	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
+	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
+	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
+	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
+	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
+	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
+	$(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -250,10 +251,12 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
+	$(top_srcdir)/m4/virt-driver-uml.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
+	$(top_srcdir)/m4/virt-init-script.m4 \
 	$(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
@@ -292,11 +295,11 @@ am_libgnu_la_OBJECTS = allocator.lo areadlink.lo base64.lo \
 	c-strncasecmp.lo c-strcasestr.lo careadlinkat.lo cloexec.lo \
 	count-leading-zeros.lo count-one-bits.lo md5.lo sha256.lo \
 	dirname-lgpl.lo basename-lgpl.lo stripslash.lo fd-hook.lo \
-	freading.lo getugroups.lo localcharset.lo glthread/lock.lo \
-	malloca.lo mgetgroups.lo nonblocking.lo passfd.lo physmem.lo \
-	pipe2.lo sig-handler.lo sockets.lo stat-time.lo strnlen1.lo \
-	sys_socket.lo tempname.lo glthread/threadlib.lo unistd.lo \
-	wctype-h.lo xsize.lo
+	freading.lo getugroups.lo hard-locale.lo localcharset.lo \
+	glthread/lock.lo malloca.lo mgetgroups.lo nonblocking.lo \
+	passfd.lo physmem.lo pipe2.lo sig-handler.lo sockets.lo \
+	stat-time.lo strnlen1.lo sys_socket.lo tempname.lo \
+	glthread/threadlib.lo unistd.lo wctype-h.lo xsize.lo
 libgnu_la_OBJECTS = $(am_libgnu_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -429,7 +432,6 @@ DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMIDECODE = @DMIDECODE@
-DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
 DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
@@ -1878,27 +1880,27 @@ EXTRA_DIST = accept.c w32sock.h alloca.c alloca.in.h allocator.h \
 	gethostname.c w32sock.h getline.c getpass.c getpass.h \
 	getpeername.c w32sock.h getsockname.c w32sock.h gettimeofday.c \
 	getugroups.h $(top_srcdir)/build-aux/gitlog-to-changelog \
-	$(top_srcdir)/GNUmakefile $(top_srcdir)/build-aux/config.rpath \
-	ignore-value.h inet_ntop.c inet_pton.c intprops.h ioctl.c \
-	w32sock.h isatty.c langinfo.in.h listen.c w32sock.h \
-	config.charset ref-add.sin ref-del.sin locale.in.h \
-	localeconv.c lseek.c lstat.c $(top_srcdir)/maint.mk malloc.c \
-	malloca.h malloca.valgrind mbrtowc.c mbsinit.c \
-	mbsrtowcs-impl.h mbsrtowcs-state.c mbsrtowcs.c mbtowc-impl.h \
-	mbtowc.c memchr.c memchr.valgrind mgetgroups.h mkdtemp.c \
-	mkostemp.c mkostemps.c $(top_srcdir)/build-aux/mktempd \
-	mktime-internal.h mktime.c mktime-internal.h mktime.c \
-	msvc-inval.c msvc-inval.h msvc-nothrow.c msvc-nothrow.h \
-	net_if.in.h netdb.in.h netinet_in.in.h nl_langinfo.c \
-	nonblocking.h stdio-read.c stdio-write.c open.c openpty.c \
-	passfd.h pathmax.h perror.c physmem.h pipe.c poll.c poll.in.h \
-	posix_openpt.c pthread.c pthread.in.h pthread_sigmask.c \
-	pty.in.h raise.c random_r.c rawmemchr.c rawmemchr.valgrind \
-	readlink.c realloc.c recv.c w32sock.h regcomp.c regex.c \
-	regex.h regex_internal.c regex_internal.h regexec.c sched.in.h \
-	secure_getenv.c select.c send.c w32sock.h setenv.c \
-	setsockopt.c w32sock.h sig-handler.h sigaction.c signal.in.h \
-	stdio-write.c sigprocmask.c sleep.c \
+	$(top_srcdir)/GNUmakefile hard-locale.h \
+	$(top_srcdir)/build-aux/config.rpath ignore-value.h \
+	inet_ntop.c inet_pton.c intprops.h ioctl.c w32sock.h isatty.c \
+	langinfo.in.h listen.c w32sock.h config.charset ref-add.sin \
+	ref-del.sin locale.in.h localeconv.c lseek.c lstat.c \
+	$(top_srcdir)/maint.mk malloc.c malloca.h malloca.valgrind \
+	mbrtowc.c mbsinit.c mbsrtowcs-impl.h mbsrtowcs-state.c \
+	mbsrtowcs.c mbtowc-impl.h mbtowc.c memchr.c memchr.valgrind \
+	mgetgroups.h mkdtemp.c mkostemp.c mkostemps.c \
+	$(top_srcdir)/build-aux/mktempd mktime-internal.h mktime.c \
+	mktime-internal.h mktime.c msvc-inval.c msvc-inval.h \
+	msvc-nothrow.c msvc-nothrow.h net_if.in.h netdb.in.h \
+	netinet_in.in.h nl_langinfo.c nonblocking.h stdio-read.c \
+	stdio-write.c open.c openpty.c passfd.h pathmax.h perror.c \
+	physmem.h pipe.c poll.c poll.in.h posix_openpt.c pthread.c \
+	pthread.in.h pthread_sigmask.c pty.in.h raise.c random_r.c \
+	rawmemchr.c rawmemchr.valgrind readlink.c realloc.c recv.c \
+	w32sock.h regcomp.c regex.c regex.h regex_internal.c \
+	regex_internal.h regexec.c sched.in.h secure_getenv.c select.c \
+	send.c w32sock.h setenv.c setsockopt.c w32sock.h sig-handler.h \
+	sigaction.c signal.in.h stdio-write.c sigprocmask.c sleep.c \
 	$(top_srcdir)/build-aux/snippet/_Noreturn.h \
 	$(top_srcdir)/build-aux/snippet/arg-nonnull.h \
 	$(top_srcdir)/build-aux/snippet/c++defs.h \
@@ -1948,7 +1950,7 @@ libgnu_la_SOURCES = allocator.c areadlink.c base64.h base64.c \
 	c-strcasestr.h c-strcasestr.c careadlinkat.c cloexec.c \
 	count-leading-zeros.c count-one-bits.c md5.c sha256.c \
 	dirname-lgpl.c basename-lgpl.c stripslash.c fd-hook.c \
-	freading.c gettext.h getugroups.c localcharset.h \
+	freading.c gettext.h getugroups.c hard-locale.c localcharset.h \
 	localcharset.c glthread/lock.h glthread/lock.c malloca.c \
 	mgetgroups.c nonblocking.c passfd.c physmem.c pipe2.c \
 	sig-handler.c size_max.h sockets.h sockets.c stat-time.c \
@@ -2133,6 +2135,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getsockname.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gettimeofday.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getugroups.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hard-locale.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inet_ntop.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inet_pton.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ioctl.Plo@am__quote@

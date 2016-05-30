@@ -1164,7 +1164,7 @@ exclude_file_name_regexp--sc_copyright_usage = \
   ^COPYING(|\.LESSER)$$
 
 exclude_file_name_regexp--sc_flags_usage = \
-  ^(cfg\.mk|docs/|src/util/virnetdevtap\.c$$|tests/(vir(cgroup|pci|usb)|nss|qemuxml2argv)mock\.c$$)
+  ^(cfg\.mk|docs/|src/util/virnetdevtap\.c$$|tests/(vir(cgroup|pci|test|usb)|nss|qemuxml2argv)mock\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^(src/rpc/gendispatch\.pl$$|tests/)
@@ -1259,7 +1259,7 @@ exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
   ^(tools/|examples/|include/libvirt/(virterror|libvirt(-(admin|qemu|lxc))?)\.h$$)
 
 exclude_file_name_regexp--sc_prohibit_int_ijk = \
-  ^(src/remote_protocol-structs|src/remote/remote_protocol.x|cfg.mk|include/|src/admin_protocol-structs|src/admin/admin_protocol.x)$
+  ^(src/remote_protocol-structs|src/remote/remote_protocol\.x|cfg\.mk|include/libvirt/libvirt.+|src/admin_protocol-structs|src/admin/admin_protocol\.x)$$
 
 exclude_file_name_regexp--sc_prohibit_getenv = \
   ^tests/.*\.[ch]$$
@@ -1296,3 +1296,6 @@ exclude_file_name_regexp--sc_prohibit_not_strneq = \
 
 exclude_file_name_regexp--sc_prohibit_dt_without_code = \
   ^docs/(newapi\.xsl|(apps|contact)\.html\.in)$$
+
+exclude_file_name_regexp--sc_prohibit_always-defined_macros = \
+  ^tests/virtestmock.c$$

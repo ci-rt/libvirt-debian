@@ -88,6 +88,21 @@ xdr_admin_nonnull_server (XDR *xdrs, admin_nonnull_server *objp)
 }
 
 bool_t
+xdr_admin_nonnull_client (XDR *xdrs, admin_nonnull_client *objp)
+{
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->id))
+                 return FALSE;
+         if (!xdr_int64_t (xdrs, &objp->timestamp))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->transport))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_admin_connect_open_args (XDR *xdrs, admin_connect_open_args *objp)
 {
 
@@ -179,6 +194,124 @@ xdr_admin_server_set_threadpool_parameters_args (XDR *xdrs, admin_server_set_thr
          if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
                  return FALSE;
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, ADMIN_SERVER_THREADPOOL_PARAMETERS_MAX,
+                sizeof (admin_typed_param), (xdrproc_t) xdr_admin_typed_param))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_list_clients_args (XDR *xdrs, admin_server_list_clients_args *objp)
+{
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_list_clients_ret (XDR *xdrs, admin_server_list_clients_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->clients.clients_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->clients.clients_len, ADMIN_CLIENT_LIST_MAX,
+                sizeof (admin_nonnull_client), (xdrproc_t) xdr_admin_nonnull_client))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_lookup_client_args (XDR *xdrs, admin_server_lookup_client_args *objp)
+{
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->id))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_lookup_client_ret (XDR *xdrs, admin_server_lookup_client_ret *objp)
+{
+
+         if (!xdr_admin_nonnull_client (xdrs, &objp->clnt))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_client_get_info_args (XDR *xdrs, admin_client_get_info_args *objp)
+{
+
+         if (!xdr_admin_nonnull_client (xdrs, &objp->clnt))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_client_get_info_ret (XDR *xdrs, admin_client_get_info_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, ADMIN_CLIENT_INFO_PARAMETERS_MAX,
+                sizeof (admin_typed_param), (xdrproc_t) xdr_admin_typed_param))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_client_close_args (XDR *xdrs, admin_client_close_args *objp)
+{
+
+         if (!xdr_admin_nonnull_client (xdrs, &objp->clnt))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_get_client_limits_args (XDR *xdrs, admin_server_get_client_limits_args *objp)
+{
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_get_client_limits_ret (XDR *xdrs, admin_server_get_client_limits_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, ADMIN_SERVER_CLIENT_LIMITS_MAX,
+                sizeof (admin_typed_param), (xdrproc_t) xdr_admin_typed_param))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_server_set_client_limits_args (XDR *xdrs, admin_server_set_client_limits_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_admin_nonnull_server (xdrs, &objp->srv))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, ADMIN_SERVER_CLIENT_LIMITS_MAX,
                 sizeof (admin_typed_param), (xdrproc_t) xdr_admin_typed_param))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))

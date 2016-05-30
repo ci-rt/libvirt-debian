@@ -102,16 +102,17 @@ const char *virtTestCounterNext(void);
 
 int virtTestMain(int argc,
                  char **argv,
-                 int (*func)(void));
+                 int (*func)(void),
+                 ...);
 
 /* Setup, then call func() */
-# define VIRT_TEST_MAIN(func)                   \
-    int main(int argc, char **argv) {           \
-        return virtTestMain(argc, argv, func);  \
+# define VIRT_TEST_MAIN(func)                           \
+    int main(int argc, char **argv) {                   \
+        return virtTestMain(argc, argv, func, NULL);    \
     }
 
-# define VIRT_TEST_MAIN_PRELOAD(func, lib)                              \
-    int main(int argc, char **argv) {                                   \
+# define VIRT_TEST_PRELOAD(lib)                                         \
+    do {                                                                \
         const char *preload = getenv("LD_PRELOAD");                     \
         if (preload == NULL || strstr(preload, lib) == NULL) {          \
             char *newenv;                                               \
@@ -128,7 +129,11 @@ int virtTestMain(int argc,
             setenv("LD_PRELOAD", newenv, 1);                            \
             execv(argv[0], argv);                                       \
         }                                                               \
-        return virtTestMain(argc, argv, func);                          \
+    } while (0)
+
+# define VIRT_TEST_MAIN_PRELOAD(func, ...)                              \
+    int main(int argc, char **argv) {                                   \
+        return virtTestMain(argc, argv, func, __VA_ARGS__, NULL);       \
     }
 
 virCapsPtr virTestGenericCapsInit(void);

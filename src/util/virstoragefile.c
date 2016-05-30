@@ -1835,6 +1835,7 @@ virStorageSourceCopy(const virStorageSource *src,
     ret->format = src->format;
     ret->capacity = src->capacity;
     ret->allocation = src->allocation;
+    ret->has_allocation = src->has_allocation;
     ret->physical = src->physical;
     ret->readonly = src->readonly;
     ret->shared = src->shared;
@@ -1955,7 +1956,7 @@ virStorageSourcePoolDefFree(virStorageSourcePoolDefPtr def)
 
 
 int
-virStorageSourceGetActualType(virStorageSourcePtr def)
+virStorageSourceGetActualType(const virStorageSource *def)
 {
     if (def->type == VIR_STORAGE_TYPE_VOLUME && def->srcpool)
         return def->srcpool->actualtype;
@@ -2008,6 +2009,20 @@ virStorageSourceIsEmpty(virStorageSourcePtr src)
         return true;
 
     return false;
+}
+
+
+/**
+ * virStorageSourceIsBlockLocal:
+ * @src: disk source definition
+ *
+ * Returns true if @src describes a locally accessible block storage source.
+ * This includes block devices and host-mapped iSCSI volumes.
+ */
+bool
+virStorageSourceIsBlockLocal(const virStorageSource *src)
+{
+    return virStorageSourceGetActualType(src) == VIR_STORAGE_TYPE_BLOCK;
 }
 
 
@@ -2853,16 +2868,12 @@ virStorageFileCanonicalizePath(const char *path,
 static char *
 virStorageFileRemoveLastPathComponent(const char *path)
 {
-    char *tmp;
     char *ret;
 
     if (VIR_STRDUP(ret, path ? path : "") < 0)
         return NULL;
 
-    if ((tmp = strrchr(ret, '/')))
-        tmp[1] = '\0';
-    else
-        ret[0] = '\0';
+    virFileRemoveLastComponent(ret);
 
     return ret;
 }

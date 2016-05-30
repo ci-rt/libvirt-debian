@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2015 Red Hat, Inc.
+ * Copyright (C) 2010-2016 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_process.c: LXC process lifecycle management
@@ -256,9 +256,22 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
 }
 
 
-char *virLXCProcessSetupInterfaceBridged(virDomainDefPtr vm,
-                                         virDomainNetDefPtr net,
-                                         const char *brname)
+int
+virLXCProcessValidateInterface(virDomainNetDefPtr net)
+{
+    if (net->script) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("scripts are not supported on LXC network interfaces"));
+        return -1;
+    }
+    return 0;
+}
+
+
+char *
+virLXCProcessSetupInterfaceTap(virDomainDefPtr vm,
+                               virDomainNetDefPtr net,
+                               const char *brname)
 {
     char *ret = NULL;
     char *parentVeth;
@@ -277,13 +290,15 @@ char *virLXCProcessSetupInterfaceBridged(virDomainDefPtr vm,
     if (virNetDevSetMAC(containerVeth, &net->mac) < 0)
         goto cleanup;
 
-    if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
-        if (virNetDevOpenvswitchAddPort(brname, parentVeth, &net->mac,
-                                        vm->uuid, vport, virDomainNetGetActualVlan(net)) < 0)
-            goto cleanup;
-    } else {
-        if (virNetDevBridgeAddPort(brname, parentVeth) < 0)
-            goto cleanup;
+    if (brname) {
+        if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
+            if (virNetDevOpenvswitchAddPort(brname, parentVeth, &net->mac, vm->uuid,
+                                            vport, virDomainNetGetActualVlan(net)) < 0)
+                goto cleanup;
+        } else {
+            if (virNetDevBridgeAddPort(brname, parentVeth) < 0)
+                goto cleanup;
+        }
     }
 
     if (virNetDevSetOnline(parentVeth, true) < 0)
@@ -343,6 +358,7 @@ char *virLXCProcessSetupInterfaceDirect(virConnectPtr conn,
             net->ifname, &net->mac,
             linkdev,
             virDomainNetGetActualDirectMode(net),
+            virDomainNetGetActualVlan(net),
             def->uuid,
             prof,
             &res_ifname,
@@ -529,6 +545,10 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
          * to the one defined in the network definition.
          */
         net = def->nets[i];
+
+        if (virLXCProcessValidateInterface(net) < 0)
+            return -1;
+
         if (networkAllocateActualDevice(def, net) < 0)
             goto cleanup;
 
@@ -545,20 +565,18 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
                                _("No bridge name specified"));
                 goto cleanup;
             }
-            if (!(veth = virLXCProcessSetupInterfaceBridged(def,
-                                                            net,
-                                                            brname)))
+            if (!(veth = virLXCProcessSetupInterfaceTap(def, net, brname)))
                 goto cleanup;
         }   break;
-
+        case VIR_DOMAIN_NET_TYPE_ETHERNET:
+            if (!(veth = virLXCProcessSetupInterfaceTap(def, net, NULL)))
+                goto cleanup;
+            break;
         case VIR_DOMAIN_NET_TYPE_DIRECT:
-            if (!(veth = virLXCProcessSetupInterfaceDirect(conn,
-                                                           def,
-                                                           net)))
+            if (!(veth = virLXCProcessSetupInterfaceDirect(conn, def, net)))
                 goto cleanup;
             break;
 
-        case VIR_DOMAIN_NET_TYPE_ETHERNET:
         case VIR_DOMAIN_NET_TYPE_USER:
         case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
         case VIR_DOMAIN_NET_TYPE_SERVER:
@@ -755,10 +773,9 @@ static void virLXCProcessMonitorInitNotify(virLXCMonitorPtr mon ATTRIBUTE_UNUSED
     priv->initpid = initpid;
 
     if (virLXCProcessGetNsInode(initpid, "pid", &inode) < 0) {
-        virErrorPtr err = virGetLastError();
         VIR_WARN("Cannot obtain pid NS inode for %llu: %s",
                  (unsigned long long)initpid,
-                 err && err->message ? err->message : "<unknown>");
+                 virGetLastErrorMessage());
         virResetLastError();
     }
     virDomainAuditInit(vm, initpid, inode);
@@ -1617,10 +1634,9 @@ virLXCProcessAutostartDomain(virDomainObjPtr vm,
                                  VIR_DOMAIN_RUNNING_BOOTED);
         virDomainAuditStart(vm, "booted", ret >= 0);
         if (ret < 0) {
-            virErrorPtr err = virGetLastError();
             VIR_ERROR(_("Failed to autostart VM '%s': %s"),
                       vm->def->name,
-                      err ? err->message : "");
+                      virGetLastErrorMessage());
         } else {
             virObjectEventPtr event =
                 virDomainEventLifecycleNewFromObj(vm,

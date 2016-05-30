@@ -681,6 +681,7 @@
     <reference name='VIR_ERR_MULTIPLE_INTERFACES' href='html/libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES'/>
     <reference name='VIR_ERR_NETWORK_EXIST' href='html/libvirt-virterror.html#VIR_ERR_NETWORK_EXIST'/>
     <reference name='VIR_ERR_NONE' href='html/libvirt-virterror.html#VIR_ERR_NONE'/>
+    <reference name='VIR_ERR_NO_CLIENT' href='html/libvirt-virterror.html#VIR_ERR_NO_CLIENT'/>
     <reference name='VIR_ERR_NO_CONNECT' href='html/libvirt-virterror.html#VIR_ERR_NO_CONNECT'/>
     <reference name='VIR_ERR_NO_DEVICE' href='html/libvirt-virterror.html#VIR_ERR_NO_DEVICE'/>
     <reference name='VIR_ERR_NO_DOMAIN' href='html/libvirt-virterror.html#VIR_ERR_NO_DOMAIN'/>
@@ -914,6 +915,8 @@
     <reference name='VIR_NODE_SUSPEND_TARGET_LAST' href='html/libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_LAST'/>
     <reference name='VIR_NODE_SUSPEND_TARGET_MEM' href='html/libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_MEM'/>
     <reference name='VIR_PERF_PARAM_CMT' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CMT'/>
+    <reference name='VIR_PERF_PARAM_MBML' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBML'/>
+    <reference name='VIR_PERF_PARAM_MBMT' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBMT'/>
     <reference name='VIR_SECRET_USAGE_TYPE_CEPH' href='html/libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_CEPH'/>
     <reference name='VIR_SECRET_USAGE_TYPE_ISCSI' href='html/libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_ISCSI'/>
     <reference name='VIR_SECRET_USAGE_TYPE_LAST' href='html/libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_LAST'/>
@@ -2393,6 +2396,7 @@
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
       <ref name='VIR_ERR_NETWORK_EXIST'/>
       <ref name='VIR_ERR_NONE'/>
+      <ref name='VIR_ERR_NO_CLIENT'/>
       <ref name='VIR_ERR_NO_CONNECT'/>
       <ref name='VIR_ERR_NO_DEVICE'/>
       <ref name='VIR_ERR_NO_DOMAIN'/>
@@ -2626,6 +2630,8 @@
       <ref name='VIR_NODE_SUSPEND_TARGET_LAST'/>
       <ref name='VIR_NODE_SUSPEND_TARGET_MEM'/>
       <ref name='VIR_PERF_PARAM_CMT'/>
+      <ref name='VIR_PERF_PARAM_MBML'/>
+      <ref name='VIR_PERF_PARAM_MBMT'/>
       <ref name='VIR_SECRET_USAGE_TYPE_CEPH'/>
       <ref name='VIR_SECRET_USAGE_TYPE_ISCSI'/>
       <ref name='VIR_SECRET_USAGE_TYPE_LAST'/>
@@ -5335,6 +5341,8 @@
       <ref name='VIR_MIGRATE_UNDEFINE_SOURCE'/>
       <ref name='VIR_MIGRATE_UNSAFE'/>
       <ref name='VIR_PERF_PARAM_CMT'/>
+      <ref name='VIR_PERF_PARAM_MBML'/>
+      <ref name='VIR_PERF_PARAM_MBMT'/>
       <ref name='VIR_UNUSE_CPU'/>
       <ref name='VIR_USE_CPU'/>
       <ref name='VIR_VCPU_BLOCKED'/>
@@ -6232,6 +6240,7 @@
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
       <ref name='VIR_ERR_NETWORK_EXIST'/>
       <ref name='VIR_ERR_NONE'/>
+      <ref name='VIR_ERR_NO_CLIENT'/>
       <ref name='VIR_ERR_NO_CONNECT'/>
       <ref name='VIR_ERR_NO_DEVICE'/>
       <ref name='VIR_ERR_NO_DOMAIN'/>
@@ -6396,6 +6405,9 @@
         <word name='APIs'>
           <ref name='VIR_COPY_CPUMAP'/>
           <ref name='VIR_GET_CPUMAP'/>
+          <ref name='VIR_PERF_PARAM_CMT'/>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virConnectRegisterCloseCallback'/>
           <ref name='virEventRegisterImpl'/>
@@ -7315,6 +7327,12 @@
           <ref name='virInterfaceLookupByMACString'/>
           <ref name='virNetworkGetDHCPLeases'/>
         </word>
+        <word name='MBML'>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+        </word>
+        <word name='MBMT'>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
+        </word>
         <word name='Management'>
           <ref name='virNodeDeviceReset'/>
         </word>
@@ -8064,6 +8082,11 @@
         <word name='Statistics:'>
           <ref name='virDomainMemoryStats'/>
           <ref name='virNodeGetCPUStats'/>
+        </word>
+        <word name='Stats'>
+          <ref name='VIR_PERF_PARAM_CMT'/>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
         </word>
         <word name='Stats:'>
           <ref name='virNodeGetMemoryStats'/>
@@ -9012,6 +9035,9 @@
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='VIR_DOMAIN_STATS_INTERFACE:'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='VIR_DOMAIN_STATS_PERF:'>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='VIR_DOMAIN_STATS_STATE:'>
@@ -9997,6 +10023,8 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='amount'>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetJobInfo'/>
           <ref name='virDomainGetMaxMemory'/>
           <ref name='virDomainMemoryStats'/>
@@ -10021,6 +10049,8 @@
           <ref name='virDomainOpenGraphics'/>
         </word>
         <word name='another'>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
@@ -10056,8 +10086,10 @@
           <ref name='virConnectRegisterCloseCallback'/>
         </word>
         <word name='applications'>
+          <ref name='VIR_PERF_PARAM_CMT'/>
           <ref name='virConnectDomainEventDeregister'/>
           <ref name='virConnectDomainEventRegister'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectRef'/>
           <ref name='virDomainAttachDevice'/>
           <ref name='virDomainAttachDeviceFlags'/>
@@ -10801,27 +10833,6 @@
     </chunk>
     <chunk name='chunk7'>
       <letter name='c'>
-        <word name='cache'>
-          <ref name='VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES'/>
-          <ref name='VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES'/>
-          <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_CACHE'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES'/>
-          <ref name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW'/>
-          <ref name='VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE'/>
-          <ref name='virConnectGetAllDomainStats'/>
-          <ref name='virDomainCoreDump'/>
-          <ref name='virDomainCoreDumpWithFormat'/>
-          <ref name='virDomainCreateWithFiles'/>
-          <ref name='virDomainCreateWithFlags'/>
-          <ref name='virDomainDestroy'/>
-          <ref name='virDomainDestroyFlags'/>
-          <ref name='virDomainManagedSave'/>
-          <ref name='virDomainMigrateGetCompressionCache'/>
-          <ref name='virDomainMigrateSetCompressionCache'/>
-          <ref name='virDomainRestoreFlags'/>
-          <ref name='virDomainSaveFlags'/>
-        </word>
         <word name='cached'>
           <ref name='VIR_NODE_MEMORY_STATS_CACHED'/>
           <ref name='VIR_NODE_MEMORY_STATS_FREE'/>
@@ -11249,6 +11260,10 @@
         <word name='closing'>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virEventRegisterImpl'/>
+        </word>
+        <word name='cmt'>
+          <ref name='VIR_PERF_PARAM_CMT'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='code'>
           <ref name='LIBVIR_CHECK_VERSION'/>
@@ -11734,6 +11749,10 @@
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainMemoryPeek'/>
         </word>
+        <word name='controller'>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='controls'>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainCoreDumpWithFormat'/>
@@ -11835,6 +11854,9 @@
           <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
           <ref name='VIR_DOMAIN_JOB_TIME_ELAPSED'/>
           <ref name='VIR_DOMAIN_JOB_TIME_REMAINING'/>
+          <ref name='VIR_PERF_PARAM_CMT'/>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectGetMaxVcpus'/>
         </word>
@@ -15488,7 +15510,9 @@
         </word>
         <word name='level'>
           <ref name='VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL'/>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virCopyLastError'/>
           <ref name='virDomainPMSuspendForDuration'/>
@@ -16054,6 +16078,14 @@
           <ref name='virConnectListStoragePools'/>
           <ref name='virStoragePoolListVolumes'/>
         </word>
+        <word name='mbml'>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='mbmt'>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='meaningful'>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainListGetStats'/>
@@ -16077,6 +16109,7 @@
           <ref name='virDomainSnapshotListNames'/>
         </word>
         <word name='measure'>
+          <ref name='VIR_PERF_PARAM_CMT'/>
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='measured'>
@@ -16329,6 +16362,8 @@
           <ref name='virDomainMemoryPeek'/>
         </word>
         <word name='monitor'>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainScreenshot'/>
           <ref name='virEventAddHandle'/>
@@ -17371,6 +17406,9 @@
         </word>
         <word name='perf'>
           <ref name='VIR_PERF_PARAM_CMT'/>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='VIR_PERF_PARAM_MBMT'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetPerfEvents'/>
           <ref name='virDomainSetPerfEvents'/>
         </word>
@@ -17536,6 +17574,10 @@
         </word>
         <word name='plain'>
           <ref name='virDomainReboot'/>
+        </word>
+        <word name='platform'>
+          <ref name='VIR_PERF_PARAM_CMT'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='plus'>
           <ref name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT'/>
@@ -17957,6 +17999,9 @@
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainListGetStats'/>
           <ref name='virNodeGetFreePages'/>
+        </word>
+        <word name='produced'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='program'>
           <ref name='virDomainBlockPeek'/>
@@ -19521,6 +19566,8 @@
         <word name='sent'>
           <ref name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW'/>
           <ref name='VIR_DOMAIN_SEND_KEY_MAX_KEYS'/>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
@@ -19933,7 +19980,9 @@
           <ref name='virNodeGetMemoryStats'/>
         </word>
         <word name='socket'>
+          <ref name='VIR_PERF_PARAM_MBML'/>
           <ref name='_virNodeInfo'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectIsAlive'/>
           <ref name='virConnectIsSecure'/>
           <ref name='virConnectRegisterCloseCallback'/>
@@ -20847,6 +20896,8 @@
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
+          <ref name='VIR_PERF_PARAM_MBML'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetMetadata'/>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virDomainSetMetadata'/>
@@ -21611,24 +21662,6 @@
           <ref name='virDomainReboot'/>
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
-        </word>
-        <word name='usage'>
-          <ref name='VIR_DOMAIN_CPU_STATS_CPUTIME'/>
-          <ref name='VIR_DOMAIN_CPU_STATS_VCPUTIME'/>
-          <ref name='VIR_NODE_CPU_STATS_UTILIZATION'/>
-          <ref name='virConnectGetAllDomainStats'/>
-          <ref name='virDomainGetBlkioParameters'/>
-          <ref name='virDomainGetCPUStats'/>
-          <ref name='virDomainGetInterfaceParameters'/>
-          <ref name='virDomainGetNumaParameters'/>
-          <ref name='virDomainSetVcpusFlags'/>
-          <ref name='virNodeGetCPUStats'/>
-          <ref name='virNodeGetMemoryParameters'/>
-          <ref name='virNodeGetMemoryStats'/>
-          <ref name='virSecretGetUsageID'/>
-          <ref name='virSecretGetUsageType'/>
-          <ref name='virSecretLookupByUsage'/>
-          <ref name='virStoragePoolGetInfo'/>
         </word>
         <word name='usage:'>
           <ref name='virConnectListAllDomains'/>

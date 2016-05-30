@@ -32,6 +32,10 @@
 # include "cpu/cpu.h"
 # include "util/virgic.h"
 
+int qemuMonitorJSONIOProcessLine(qemuMonitorPtr mon,
+                                 const char *line,
+                                 qemuMonitorMessagePtr msg);
+
 int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
                              const char *data,
                              size_t len,
@@ -169,32 +173,21 @@ int qemuMonitorJSONGraphicsRelocate(qemuMonitorPtr mon,
                                     int tlsPort,
                                     const char *tlsSubject);
 
-int qemuMonitorJSONAddUSBDisk(qemuMonitorPtr mon,
-                              const char *path);
-
-int qemuMonitorJSONAddUSBDeviceExact(qemuMonitorPtr mon,
-                                     int bus,
-                                     int dev);
-int qemuMonitorJSONAddUSBDeviceMatch(qemuMonitorPtr mon,
-                                     int vendor,
-                                     int product);
-
-
 int qemuMonitorJSONAddPCIHostDevice(qemuMonitorPtr mon,
-                                    virDevicePCIAddress *hostAddr,
-                                    virDevicePCIAddress *guestAddr);
+                                    virPCIDeviceAddress *hostAddr,
+                                    virPCIDeviceAddress *guestAddr);
 
 int qemuMonitorJSONAddPCIDisk(qemuMonitorPtr mon,
                               const char *path,
                               const char *bus,
-                              virDevicePCIAddress *guestAddr);
+                              virPCIDeviceAddress *guestAddr);
 
 int qemuMonitorJSONAddPCINetwork(qemuMonitorPtr mon,
                                  const char *nicstr,
-                                 virDevicePCIAddress *guestAddr);
+                                 virPCIDeviceAddress *guestAddr);
 
 int qemuMonitorJSONRemovePCIDevice(qemuMonitorPtr mon,
-                                   virDevicePCIAddress *guestAddr);
+                                   virPCIDeviceAddress *guestAddr);
 
 int qemuMonitorJSONSendFileHandle(qemuMonitorPtr mon,
                                   const char *fdname,
@@ -220,10 +213,7 @@ int qemuMonitorJSONGetChardevInfo(qemuMonitorPtr mon,
 
 int qemuMonitorJSONAttachPCIDiskController(qemuMonitorPtr mon,
                                            const char *bus,
-                                           virDevicePCIAddress *guestAddr);
-
-int qemuMonitorJSONGetAllPCIAddresses(qemuMonitorPtr mon,
-                                      qemuMonitorPCIAddress **addrs);
+                                           virPCIDeviceAddress *guestAddr);
 
 int qemuMonitorJSONAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
@@ -338,8 +328,7 @@ int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
 
 int qemuMonitorJSONGetBlockIoThrottle(qemuMonitorPtr mon,
                                       const char *device,
-                                      virDomainBlockIoTuneInfoPtr reply,
-                                      bool supportMaxOptions);
+                                      virDomainBlockIoTuneInfoPtr reply);
 
 int qemuMonitorJSONSystemWakeup(qemuMonitorPtr mon);
 
@@ -494,4 +483,7 @@ int qemuMonitorJSONMigrateIncoming(qemuMonitorPtr mon,
 int qemuMonitorJSONMigrateStartPostCopy(qemuMonitorPtr mon)
     ATTRIBUTE_NONNULL(1);
 
+int qemuMonitorJSONGetRTCTime(qemuMonitorPtr mon,
+                              struct tm *tm)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 #endif /* QEMU_MONITOR_JSON_H */

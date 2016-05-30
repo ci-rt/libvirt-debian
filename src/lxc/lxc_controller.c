@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2015 Red Hat, Inc.
+ * Copyright (C) 2010-2016 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_controller.c: linux container process controller
@@ -371,6 +371,7 @@ static int virLXCControllerGetNICIndexes(virLXCControllerPtr ctrl)
         switch (ctrl->def->nets[i]->type) {
         case VIR_DOMAIN_NET_TYPE_BRIDGE:
         case VIR_DOMAIN_NET_TYPE_NETWORK:
+        case VIR_DOMAIN_NET_TYPE_ETHERNET:
             if (ctrl->def->nets[i]->ifname == NULL)
                 continue;
             if (virNetDevGetIndex(ctrl->def->nets[i]->ifname,
@@ -386,7 +387,6 @@ static int virLXCControllerGetNICIndexes(virLXCControllerPtr ctrl)
             break;
 
         case VIR_DOMAIN_NET_TYPE_USER:
-        case VIR_DOMAIN_NET_TYPE_ETHERNET:
         case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
         case VIR_DOMAIN_NET_TYPE_SERVER:
         case VIR_DOMAIN_NET_TYPE_CLIENT:
@@ -934,7 +934,7 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                     LXC_STATE_DIR, ctrl->name) < 0)
         return -1;
 
-    if (!(srv = virNetServerNew("LXC",
+    if (!(srv = virNetServerNew("LXC", 1,
                                 0, 0, 0, 1,
                                 0, -1, 0,
                                 NULL,
@@ -2736,12 +2736,9 @@ int main(int argc, char *argv[])
 
  cleanup:
     if (rc < 0) {
-        virErrorPtr err = virGetLastError();
-        if (err && err->message)
-            fprintf(stderr, "%s\n", err->message);
-        else
-            fprintf(stderr, "%s\n",
-                    _("Unknown failure in libvirt_lxc startup"));
+        fprintf(stderr,
+                _("Failure in libvirt_lxc startup: %s\n"),
+                virGetLastErrorMessage());
     }
 
     virPidFileDelete(LXC_STATE_DIR, name);

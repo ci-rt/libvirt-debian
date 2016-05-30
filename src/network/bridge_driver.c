@@ -695,9 +695,8 @@ networkStateInitialize(bool privileged,
 
 #ifdef HAVE_FIREWALLD
     if (!(sysbus = virDBusGetSystemBus())) {
-        virErrorPtr err = virGetLastError();
         VIR_WARN("DBus not available, disabling firewalld support "
-                 "in bridge_network_driver: %s", err->message);
+                 "in bridge_network_driver: %s", virGetLastErrorMessage());
     } else {
         /* add matches for
          * NameOwnerChanged on org.freedesktop.DBus for firewalld start/stop
@@ -769,7 +768,7 @@ networkStateReload(void)
     networkRefreshDaemons(network_driver);
     virNetworkObjListForEach(network_driver->networks,
                              networkAutostartConfig,
-                             NULL);
+                             network_driver);
     return 0;
 }
 
@@ -3058,11 +3057,12 @@ networkValidate(virNetworkDriverStatePtr driver,
      * a pool, and those using an Open vSwitch bridge.
      */
 
-    vlanAllowed = ((def->forward.type == VIR_NETWORK_FORWARD_BRIDGE &&
+    vlanAllowed = (def->forward.type == VIR_NETWORK_FORWARD_HOSTDEV ||
+                   def->forward.type == VIR_NETWORK_FORWARD_PASSTHROUGH ||
+                   (def->forward.type == VIR_NETWORK_FORWARD_BRIDGE &&
                     def->virtPortProfile &&
                     def->virtPortProfile->virtPortType
-                    == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) ||
-                   def->forward.type == VIR_NETWORK_FORWARD_HOSTDEV);
+                    == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH));
 
     vlanUsed = def->vlan.nTags > 0;
     for (i = 0; i < def->nPortGroups; i++) {
@@ -3125,6 +3125,20 @@ networkValidate(virNetworkDriverStatePtr driver,
                          "whose type doesn't support vlan configuration"),
                        def->name);
         return -1;
+    }
+
+    if (def->forward.type == VIR_NETWORK_FORWARD_HOSTDEV) {
+        for (i = 0; i < def->nPortGroups; i++) {
+            if (def->portGroups[i].bandwidth) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("unsupported <bandwidth> element "
+                                 "in <portgroup name='%s'> of "
+                                 "network '%s' with forward mode='%s'"),
+                               def->portGroups[i].name, def->name,
+                               virNetworkForwardTypeToString(def->forward.type));
+                return -1;
+            }
+        }
     }
     return 0;
 }
@@ -4277,11 +4291,15 @@ networkAllocateActualDevice(virDomainDefPtr dom,
      */
 
     if (virDomainNetGetActualVlan(iface)) {
-        /* vlan configuration via libvirt is only supported for
-         * PCI Passthrough SR-IOV devices and openvswitch bridges.
-         * otherwise log an error and fail
+        /* vlan configuration via libvirt is only supported for PCI
+         * Passthrough SR-IOV devices (hostdev or macvtap passthru
+         * mode) and openvswitch bridges. Otherwise log an error and
+         * fail
          */
         if (!(actualType == VIR_DOMAIN_NET_TYPE_HOSTDEV ||
+              (actualType == VIR_DOMAIN_NET_TYPE_DIRECT &&
+               virDomainNetGetActualDirectMode(iface)
+               == VIR_NETDEV_MACVLAN_MODE_PASSTHRU) ||
               (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE &&
                virtport && virtport->virtPortType
                == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH))) {
@@ -4298,6 +4316,17 @@ networkAllocateActualDevice(virDomainDefPtr dom,
                                  "supported for this type of connection"),
                                virDomainNetTypeToString(iface->type));
             }
+            goto error;
+        }
+    }
+    if (virDomainNetGetActualBandwidth(iface)) {
+        /* bandwidth configuration via libvirt is not supported for
+         * hostdev network devices
+         */
+        if (actualType == VIR_DOMAIN_NET_TYPE_HOSTDEV) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("bandwidth settings are not supported "
+                             "for hostdev interfaces"));
             goto error;
         }
     }
@@ -4457,7 +4486,7 @@ networkNotifyActualDevice(virDomainDefPtr dom,
         for (i = 0; i < netdef->forward.nifs; i++) {
             if (netdef->forward.ifs[i].type
                 == VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI &&
-                virDevicePCIAddressEqual(&hostdev->source.subsys.u.pci.addr,
+                virPCIDeviceAddressEqual(&hostdev->source.subsys.u.pci.addr,
                                          &netdef->forward.ifs[i].device.pci)) {
                 dev = &netdef->forward.ifs[i];
                 break;
@@ -4616,7 +4645,7 @@ networkReleaseActualDevice(virDomainDefPtr dom,
         for (i = 0; i < netdef->forward.nifs; i++) {
             if (netdef->forward.ifs[i].type
                 == VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI &&
-                virDevicePCIAddressEqual(&hostdev->source.subsys.u.pci.addr,
+                virPCIDeviceAddressEqual(&hostdev->source.subsys.u.pci.addr,
                                          &netdef->forward.ifs[i].device.pci)) {
                 dev = &netdef->forward.ifs[i];
                 break;

@@ -547,7 +547,8 @@ static virDomainDefParserConfig virVMXDomainDefParserConfig = {
     .macPrefix = {0x00, 0x0c, 0x29},
     .devicesPostParseCallback = virVMXDomainDevicesDefPostParse,
     .domainPostParseCallback = virVMXDomainDefPostParse,
-    .features = VIR_DOMAIN_DEF_FEATURE_WIDE_SCSI,
+    .features = (VIR_DOMAIN_DEF_FEATURE_WIDE_SCSI |
+                 VIR_DOMAIN_DEF_FEATURE_NAME_SLASH),
 };
 
 static void
@@ -1546,8 +1547,8 @@ virVMXParseConfig(virVMXContext *ctx,
             def->cputune.shares = vcpus * 1000;
         } else if (STRCASEEQ(sched_cpu_shares, "high")) {
             def->cputune.shares = vcpus * 2000;
-        } else if (virStrToLong_ul(sched_cpu_shares, NULL, 10,
-                                   &def->cputune.shares) < 0) {
+        } else if (virStrToLong_ull(sched_cpu_shares, NULL, 10,
+                                    &def->cputune.shares) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting VMX entry 'sched.cpu.shares' to be an "
                              "unsigned integer or 'low', 'normal' or 'high' but "
@@ -1874,11 +1875,9 @@ virVMXParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def)
         goto failure;
     }
 
-    if (listenAddr) {
-        if (virDomainGraphicsListenAppendAddress(*def, listenAddr) < 0)
-            goto failure;
-        VIR_FREE(listenAddr);
-    }
+    if (virDomainGraphicsListenAppendAddress(*def, listenAddr) < 0)
+        goto failure;
+    VIR_FREE(listenAddr);
 
     if (port < 0) {
         VIR_WARN("VNC is enabled but VMX entry 'RemoteDisplay.vnc.port' "
@@ -3083,6 +3082,7 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
     int scsi_virtualDev[4] = { -1, -1, -1, -1 };
     bool floppy_present[2] = { false, false };
     unsigned int maxvcpus;
+    bool hasSCSI = false;
 
     if (ctx->formatFileName == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3252,7 +3252,7 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
         } else if (def->cputune.shares == vcpus * 2000) {
             virBufferAddLit(&buffer, "sched.cpu.shares = \"high\"\n");
         } else {
-            virBufferAsprintf(&buffer, "sched.cpu.shares = \"%lu\"\n",
+            virBufferAsprintf(&buffer, "sched.cpu.shares = \"%llu\"\n",
                               def->cputune.shares);
         }
     }
@@ -3289,6 +3289,8 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
 
     for (i = 0; i < 4; ++i) {
         if (scsi_present[i]) {
+            hasSCSI = true;
+
             virBufferAsprintf(&buffer, "scsi%zu.present = \"true\"\n", i);
 
             if (scsi_virtualDev[i] != -1) {
@@ -3381,6 +3383,30 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
             goto cleanup;
     }
 
+    if (virtualHW_version >= 7) {
+        if (hasSCSI) {
+            virBufferAddLit(&buffer, "pciBridge0.present = \"true\"\n");
+
+            virBufferAddLit(&buffer, "pciBridge4.present = \"true\"\n");
+            virBufferAddLit(&buffer, "pciBridge4.virtualDev = \"pcieRootPort\"\n");
+            virBufferAddLit(&buffer, "pciBridge4.functions = \"8\"\n");
+
+            virBufferAddLit(&buffer, "pciBridge5.present = \"true\"\n");
+            virBufferAddLit(&buffer, "pciBridge5.virtualDev = \"pcieRootPort\"\n");
+            virBufferAddLit(&buffer, "pciBridge5.functions = \"8\"\n");
+
+            virBufferAddLit(&buffer, "pciBridge6.present = \"true\"\n");
+            virBufferAddLit(&buffer, "pciBridge6.virtualDev = \"pcieRootPort\"\n");
+            virBufferAddLit(&buffer, "pciBridge6.functions = \"8\"\n");
+
+            virBufferAddLit(&buffer, "pciBridge7.present = \"true\"\n");
+            virBufferAddLit(&buffer, "pciBridge7.virtualDev = \"pcieRootPort\"\n");
+            virBufferAddLit(&buffer, "pciBridge7.functions = \"8\"\n");
+        }
+
+        virBufferAddLit(&buffer, "vmci0.present = \"true\"\n");
+    }
+
     /* Get final VMX output */
     if (virBufferCheckError(&buffer) < 0)
         goto cleanup;
@@ -3403,7 +3429,7 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
 int
 virVMXFormatVNC(virDomainGraphicsDefPtr def, virBufferPtr buffer)
 {
-    virDomainGraphicsListenDefPtr gListen;
+    virDomainGraphicsListenDefPtr glisten;
 
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
@@ -3425,10 +3451,10 @@ virVMXFormatVNC(virDomainGraphicsDefPtr def, virBufferPtr buffer)
                           def->data.vnc.port);
     }
 
-    if ((gListen = virDomainGraphicsGetListen(def, 0)) &&
-        gListen->address) {
+    if ((glisten = virDomainGraphicsGetListen(def, 0)) &&
+        glisten->address) {
         virBufferAsprintf(buffer, "RemoteDisplay.vnc.ip = \"%s\"\n",
-                          gListen->address);
+                          glisten->address);
     }
 
     if (def->data.vnc.keymap != NULL) {

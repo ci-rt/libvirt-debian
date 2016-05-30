@@ -55,10 +55,26 @@ get_nonnull_server(virAdmConnectPtr conn, admin_nonnull_server server)
     return virAdmGetServer(conn, server.name);
 }
 
+static virAdmClientPtr
+get_nonnull_client(virAdmServerPtr srv, admin_nonnull_client client)
+{
+    return virAdmGetClient(srv, client.id, client.timestamp, client.transport);
+}
+
 static void
 make_nonnull_server(admin_nonnull_server *srv_dst, virAdmServerPtr srv_src)
 {
     srv_dst->name = srv_src->name;
+}
+
+static void
+make_nonnull_client(admin_nonnull_client *client_dst,
+                    virAdmClientPtr client_src)
+{
+    client_dst->id = client_src->id;
+    client_dst->transport = client_src->transport;
+    client_dst->timestamp = client_src->timestamp;
+    make_nonnull_server(&client_dst->srv, client_src->srv);
 }
 
 static int
@@ -146,7 +162,7 @@ remoteAdminConnectOpen(virAdmConnectPtr conn, unsigned int flags)
 
     virObjectLock(priv);
 
-    args.flags = flags;
+    args.flags = flags & ~VIR_CONNECT_NO_ALIASES;
 
     if (virNetClientRegisterAsyncIO(priv->client) < 0) {
         VIR_DEBUG("Failed to add event watch, disabling events and support for"
@@ -293,6 +309,117 @@ remoteAdminServerSetThreadPoolParameters(virAdmServerPtr srv,
     if (call(srv->conn, 0, ADMIN_PROC_SERVER_SET_THREADPOOL_PARAMETERS,
              (xdrproc_t)xdr_admin_server_set_threadpool_parameters_args, (char *) &args,
              (xdrproc_t)xdr_void, (char *) NULL) == -1)
+        goto cleanup;
+
+    rv = 0;
+ cleanup:
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static int
+remoteAdminClientGetInfo(virAdmClientPtr client,
+                         virTypedParameterPtr *params,
+                         int *nparams,
+                         unsigned int flags)
+{
+    int rv = -1;
+    remoteAdminPrivPtr priv = client->srv->conn->privateData;
+    admin_client_get_info_args args;
+    admin_client_get_info_ret ret;
+
+    args.flags = flags;
+    make_nonnull_client(&args.clnt, client);
+
+    memset(&ret, 0, sizeof(ret));
+    virObjectLock(priv);
+
+    if (call(client->srv->conn, 0, ADMIN_PROC_CLIENT_GET_INFO,
+             (xdrproc_t)xdr_admin_client_get_info_args, (char *) &args,
+             (xdrproc_t)xdr_admin_client_get_info_ret, (char *) &ret) == -1)
+        goto cleanup;
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  ADMIN_CLIENT_INFO_PARAMETERS_MAX,
+                                  params,
+                                  nparams) < 0)
+        goto cleanup;
+
+    rv = 0;
+    xdr_free((xdrproc_t)xdr_admin_client_get_info_ret, (char *) &ret);
+
+ cleanup:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static int
+remoteAdminServerGetClientLimits(virAdmServerPtr srv,
+                                 virTypedParameterPtr *params,
+                                 int *nparams,
+                                 unsigned int flags)
+{
+    int rv = -1;
+    admin_server_get_client_limits_args args;
+    admin_server_get_client_limits_ret ret;
+    remoteAdminPrivPtr priv = srv->conn->privateData;
+    args.flags = flags;
+    make_nonnull_server(&args.srv, srv);
+
+    memset(&ret, 0, sizeof(ret));
+    virObjectLock(priv);
+
+    if (call(srv->conn, 0, ADMIN_PROC_SERVER_GET_CLIENT_LIMITS,
+             (xdrproc_t) xdr_admin_server_get_client_limits_args,
+             (char *) &args,
+             (xdrproc_t) xdr_admin_server_get_client_limits_ret,
+             (char *) &ret) == -1)
+        goto cleanup;
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  ADMIN_SERVER_CLIENT_LIMITS_MAX,
+                                  params,
+                                  nparams) < 0)
+        goto cleanup;
+
+    rv = 0;
+    xdr_free((xdrproc_t) xdr_admin_server_get_client_limits_ret,
+             (char *) &ret);
+
+ cleanup:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static int
+remoteAdminServerSetClientLimits(virAdmServerPtr srv,
+                                 virTypedParameterPtr params,
+                                 int nparams,
+                                 unsigned int flags)
+{
+    int rv = -1;
+    admin_server_set_client_limits_args args;
+    remoteAdminPrivPtr priv = srv->conn->privateData;
+
+    args.flags = flags;
+    make_nonnull_server(&args.srv, srv);
+
+    virObjectLock(priv);
+
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                0) < 0)
+        goto cleanup;
+
+    if (call(srv->conn, 0, ADMIN_PROC_SERVER_SET_CLIENT_LIMITS,
+             (xdrproc_t) xdr_admin_server_set_client_limits_args,
+             (char *) &args,
+             (xdrproc_t) xdr_void, (char *) NULL) == -1)
         goto cleanup;
 
     rv = 0;

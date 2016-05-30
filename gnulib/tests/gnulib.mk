@@ -1232,6 +1232,7 @@ EXTRA_DIST += test-math.c macros.h
 
 GNULIB_TESTS += \
   test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
+  test-mbrtowc5.sh \
   test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
   test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh
 TESTS_ENVIRONMENT += \
@@ -1240,8 +1241,7 @@ TESTS_ENVIRONMENT += \
   LOCALE_JA='@LOCALE_JA@' \
   LOCALE_ZH_CN='@LOCALE_ZH_CN@'
 check_PROGRAMS += test-mbrtowc test-mbrtowc-w32
-
-EXTRA_DIST += test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc.c test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h
+EXTRA_DIST += test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc5.sh test-mbrtowc.c test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h
 
 ## end   gnulib module mbrtowc-tests
 
@@ -2377,6 +2377,11 @@ EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh
 TESTS_ENVIRONMENT += MAKE='$(MAKE)'
 GNULIB_TESTS += test-verify test-verify.sh
 check_PROGRAMS += test-verify
+
+# This test expects compilation of test-verify.c to fail, and
+# each time it fails, the makefile rule does not perform the usual
+#  "mv -f $name.Tpo $name.po, so tell make clean to remove that file.
+MOSTLYCLEANFILES += .deps/test-verify.Tpo
 EXTRA_DIST += test-verify.c test-verify.sh
 
 ## end   gnulib module verify-tests

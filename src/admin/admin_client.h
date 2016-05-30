@@ -3,6 +3,31 @@
  */
 
 static int
+remoteAdminClientClose(virAdmClientPtr clnt, unsigned int flags)
+{
+    int rv = -1;
+    remoteAdminPrivPtr priv = clnt->srv->conn->privateData;
+    admin_client_close_args args;
+
+    virObjectLock(priv);
+
+    make_nonnull_client(&args.clnt, clnt);
+    args.flags = flags;
+
+    if (call(clnt->srv->conn, 0, ADMIN_PROC_CLIENT_CLOSE,
+             (xdrproc_t)xdr_admin_client_close_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static int
 remoteAdminConnectGetLibVersion(virAdmConnectPtr conn, unsigned long long *libVer)
 {
     int rv = -1;
@@ -109,6 +134,96 @@ remoteAdminConnectLookupServer(virAdmConnectPtr conn, const char *name, unsigned
 
     rv = get_nonnull_server(conn, ret.srv);
     xdr_free((xdrproc_t)xdr_admin_connect_lookup_server_ret, (char *)&ret);
+
+done:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static int
+remoteAdminServerListClients(virAdmServerPtr srv, virAdmClientPtr **result, unsigned int flags)
+{
+    int rv = -1;
+    remoteAdminPrivPtr priv = srv->conn->privateData;
+    admin_server_list_clients_args args;
+    admin_server_list_clients_ret ret;
+    virAdmClientPtr *tmp_results = NULL;
+    size_t i;
+
+    virObjectLock(priv);
+
+    make_nonnull_server(&args.srv, srv);
+    args.flags = flags;
+    args.need_results = !!result;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(srv->conn, 0, ADMIN_PROC_SERVER_LIST_CLIENTS,
+             (xdrproc_t)xdr_admin_server_list_clients_args, (char *)&args,
+             (xdrproc_t)xdr_admin_server_list_clients_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.clients.clients_len > ADMIN_CLIENT_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote clients: %d > %d"),
+                       ret.clients.clients_len, ADMIN_CLIENT_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result) {
+        if (VIR_ALLOC_N(tmp_results, ret.clients.clients_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.clients.clients_len; i++) {
+            tmp_results[i] = get_nonnull_client(srv, ret.clients.clients_val[i]);
+            if (!tmp_results[i])
+                goto cleanup;
+        }
+        *result = tmp_results;
+        tmp_results = NULL;
+    }
+
+    rv = ret.ret;
+
+cleanup:
+    if (tmp_results) {
+        for (i = 0; i < ret.clients.clients_len; i++)
+            virObjectUnref(tmp_results[i]);
+        VIR_FREE(tmp_results);
+    }
+
+    xdr_free((xdrproc_t)xdr_admin_server_list_clients_ret, (char *)&ret);
+
+done:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static virAdmClientPtr
+remoteAdminServerLookupClient(virAdmServerPtr srv, unsigned long long id, unsigned int flags)
+{
+    virAdmClientPtr rv = NULL;
+    remoteAdminPrivPtr priv = srv->conn->privateData;
+    admin_server_lookup_client_args args;
+    admin_server_lookup_client_ret ret;
+
+    virObjectLock(priv);
+
+    make_nonnull_server(&args.srv, srv);
+    args.id = id;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(srv->conn, 0, ADMIN_PROC_SERVER_LOOKUP_CLIENT,
+             (xdrproc_t)xdr_admin_server_lookup_client_args, (char *)&args,
+             (xdrproc_t)xdr_admin_server_lookup_client_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_client(srv, ret.clnt);
+    xdr_free((xdrproc_t)xdr_admin_server_lookup_client_ret, (char *)&ret);
 
 done:
     virObjectUnlock(priv);

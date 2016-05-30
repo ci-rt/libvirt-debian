@@ -1,7 +1,7 @@
 /*
  * device_conf.c: device XML handling
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -55,7 +55,7 @@ VIR_ENUM_IMPL(virNetDevFeature,
               "rdma",
               "txudptnl")
 
-int virDevicePCIAddressIsValid(virDevicePCIAddressPtr addr,
+int virPCIDeviceAddressIsValid(virPCIDeviceAddressPtr addr,
                                bool report)
 {
     if (addr->domain > 0xFFFF) {
@@ -90,7 +90,7 @@ int virDevicePCIAddressIsValid(virDevicePCIAddressPtr addr,
                            addr->function);
         return 0;
     }
-    if (!(addr->domain || addr->bus || addr->slot)) {
+    if (virPCIDeviceAddressIsEmpty(addr)) {
         if (report)
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("Invalid PCI address 0000:00:00, at least "
@@ -102,8 +102,8 @@ int virDevicePCIAddressIsValid(virDevicePCIAddressPtr addr,
 
 
 int
-virDevicePCIAddressParseXML(xmlNodePtr node,
-                            virDevicePCIAddressPtr addr)
+virPCIDeviceAddressParseXML(xmlNodePtr node,
+                            virPCIDeviceAddressPtr addr)
 {
     char *domain, *slot, *bus, *function, *multi;
     int ret = -1;
@@ -152,7 +152,7 @@ virDevicePCIAddressParseXML(xmlNodePtr node,
         goto cleanup;
 
     }
-    if (!virDevicePCIAddressIsValid(addr, true))
+    if (!virPCIDeviceAddressIsEmpty(addr) && !virPCIDeviceAddressIsValid(addr, true))
         goto cleanup;
 
     ret = 0;
@@ -167,8 +167,8 @@ virDevicePCIAddressParseXML(xmlNodePtr node,
 }
 
 int
-virDevicePCIAddressFormat(virBufferPtr buf,
-                          virDevicePCIAddress addr,
+virPCIDeviceAddressFormat(virBufferPtr buf,
+                          virPCIDeviceAddress addr,
                           bool includeTypeInAddr)
 {
     virBufferAsprintf(buf, "<address %sdomain='0x%.4x' bus='0x%.2x' "
@@ -182,8 +182,8 @@ virDevicePCIAddressFormat(virBufferPtr buf,
 }
 
 bool
-virDevicePCIAddressEqual(virDevicePCIAddress *addr1,
-                         virDevicePCIAddress *addr2)
+virPCIDeviceAddressEqual(virPCIDeviceAddress *addr1,
+                         virPCIDeviceAddress *addr2)
 {
     if (addr1->domain == addr2->domain &&
         addr1->bus == addr2->bus &&

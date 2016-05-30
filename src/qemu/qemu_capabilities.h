@@ -69,7 +69,7 @@ typedef enum {
     /* 15 */
     X_QEMU_CAPS_VGA, /* Is -vga avail */
     X_QEMU_CAPS_0_10, /* features added in qemu-0.10.0 or later */
-    QEMU_CAPS_PCIDEVICE, /* PCI device assignment supported */
+    X_QEMU_CAPS_PCIDEVICE, /* PCI device assignment supported */
     QEMU_CAPS_MEM_PATH, /* mmap'ped guest backing supported */
     QEMU_CAPS_DRIVE_SERIAL, /* -driver serial=  available */
 
@@ -82,7 +82,7 @@ typedef enum {
 
     /* 25 */
     X_QEMU_CAPS_BALLOON, /* -balloon available */
-    QEMU_CAPS_DEVICE, /* Is the new -device arg available */
+    X_QEMU_CAPS_DEVICE, /* Is the -device arg available */
     QEMU_CAPS_SDL, /* Is the new -sdl arg available */
     QEMU_CAPS_SMP_TOPOLOGY, /* -smp has sockets/cores/threads */
     QEMU_CAPS_NETDEV, /* -netdev flag & netdev_add/remove */
@@ -105,7 +105,7 @@ typedef enum {
     QEMU_CAPS_FSDEV, /* -fstype filesystem passthrough */
     QEMU_CAPS_NESTING, /* -enable-nesting (SVM/VMX) */
     QEMU_CAPS_NAME_PROCESS, /* Is -name process= available */
-    QEMU_CAPS_DRIVE_READONLY, /* -drive readonly=on|off */
+    X_QEMU_CAPS_DRIVE_READONLY, /* -drive readonly=on|off */
     QEMU_CAPS_SMBIOS_TYPE, /* Is -smbios type= available */
 
     /* 45 */
@@ -152,16 +152,16 @@ typedef enum {
 
     /* 75 */
     QEMU_CAPS_DRIVE_CACHE_UNSAFE, /* Is cache=unsafe supported? */
-    QEMU_CAPS_PCI_ROMBAR, /* -device rombar=0|1 */
+    X_QEMU_CAPS_PCI_ROMBAR, /* -device rombar=0|1 */
     QEMU_CAPS_ICH9_AHCI, /* -device ich9-ahci */
     QEMU_CAPS_NO_ACPI, /* -no-acpi */
     QEMU_CAPS_FSDEV_READONLY, /* -fsdev readonly supported */
 
     /* 80 */
     QEMU_CAPS_VIRTIO_BLK_SCSI, /* virtio-blk-pci.scsi */
-    QEMU_CAPS_VIRTIO_BLK_SG_IO, /* SG_IO commands, since 0.11 */
+    X_QEMU_CAPS_VIRTIO_BLK_SG_IO, /* SG_IO commands */
     QEMU_CAPS_DRIVE_COPY_ON_READ, /* -drive copy-on-read */
-    QEMU_CAPS_CPU_HOST, /* support for -cpu host */
+    X_QEMU_CAPS_CPU_HOST, /* support for -cpu host */
     QEMU_CAPS_FSDEV_WRITEOUT, /* -fsdev writeout supported */
 
     /* 85 */
@@ -356,6 +356,10 @@ typedef enum {
 
     /* 220 */
     QEMU_CAPS_DEVICE_PXB_PCIE, /* -device pxb-pcie */
+    QEMU_CAPS_DEVICE_TRAY_MOVED, /* DEVICE_TRAY_MOVED event */
+    QEMU_CAPS_NEC_USB_XHCI_PORTS, /* -device nec-usb-xhci.p3 ports setting */
+    QEMU_CAPS_VIRTIO_SCSI_IOTHREAD, /* virtio-scsi-{pci,ccw}.iothread */
+    QEMU_CAPS_NAME_GUEST, /* -name guest= */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -423,6 +427,11 @@ bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps);
 void virQEMUCapsFilterByMachineType(virQEMUCapsPtr qemuCaps,
                                     const char *machineType);
 
+/* Only for use by test suite */
+void virQEMUCapsSetGICCapabilities(virQEMUCapsPtr qemuCaps,
+                                   virGICCapability *capabilities,
+                                   size_t ncapabilities);
+
 virQEMUCapsCachePtr virQEMUCapsCacheNew(const char *libDir,
                                         const char *cacheDir,
                                         uid_t uid, gid_t gid);
@@ -458,6 +467,10 @@ VIR_ENUM_DECL(virQEMUCaps);
 bool virQEMUCapsSupportsChardev(const virDomainDef *def,
                                 virQEMUCapsPtr qemuCaps,
                                 virDomainChrDefPtr chr);
+
+bool virQEMUCapsSupportsGICVersion(virQEMUCapsPtr qemuCaps,
+                                   virDomainVirtType virtType,
+                                   virGICVersion version);
 
 bool virQEMUCapsIsMachineSupported(virQEMUCapsPtr qemuCaps,
                                    const char *canonical_machine);

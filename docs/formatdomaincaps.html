@@ -175,6 +175,10 @@
                 <ul><li>
                     <a href="#elementsDisks">Hard drives, floppy disks, CDROMs</a>
                   </li><li>
+                    <a href="#elementsGraphics">Graphical framebuffers</a>
+                  </li><li>
+                    <a href="#elementsVideo">Video device</a>
+                  </li><li>
                     <a href="#elementsHostDev">Host device assignment</a>
                   </li></ul>
               </li><li>
@@ -322,7 +326,7 @@
           <a name="elementsDisks" shape="rect" id="elementsDisks">Hard drives, floppy disks, CDROMs</a>
           <a class="headerlink" href="#elementsDisks" title="Permalink to this headline">¶</a>
         </h4>
-        <p>Disk capabilities are exposed under <code>disk</code> element. For
+        <p>Disk capabilities are exposed under the <code>disk</code> element. For
     instance:</p>
         <pre xml:space="preserve">
 &lt;domainCapabilities&gt;
@@ -354,6 +358,54 @@
         <dl><dt><code>diskDevice</code></dt><dd>Options for the <code>device</code> attribute of the &lt;disk/&gt;
       element.</dd><dt><code>bus</code></dt><dd>Options for the <code>bus</code> attribute of the &lt;target/&gt;
       element for a &lt;disk/&gt;.</dd></dl>
+        <h4>
+          <a name="elementsGraphics" shape="rect" id="elementsGraphics">Graphical framebuffers</a>
+          <a class="headerlink" href="#elementsGraphics" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>Graphics device capabilities are exposed under the
+    <code>graphics</code> element. For instance:</p>
+        <pre xml:space="preserve">
+&lt;domainCapabilities&gt;
+  ...
+  &lt;devices&gt;
+    &lt;graphics supported='yes'&gt;
+      &lt;enum name='type'&gt;
+        &lt;value&gt;sdl&lt;/value&gt;
+        &lt;value&gt;vnc&lt;/value&gt;
+        &lt;value&gt;spice&lt;/value&gt;
+      &lt;/enum&gt;
+    &lt;/graphics&gt;
+    ...
+  &lt;/devices&gt;
+&lt;/domainCapabilities&gt;
+</pre>
+        <dl><dt><code>type</code></dt><dd>Options for the <code>type</code> attribute of the &lt;graphics/&gt;
+      element.</dd></dl>
+        <h4>
+          <a name="elementsVideo" shape="rect" id="elementsVideo">Video device</a>
+          <a class="headerlink" href="#elementsVideo" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>Video device capabilities are exposed under the
+    <code>video</code> element. For instance:</p>
+        <pre xml:space="preserve">
+&lt;domainCapabilities&gt;
+  ...
+  &lt;devices&gt;
+    &lt;video supported='yes'&gt;
+      &lt;enum name='modelType'&gt;
+        &lt;value&gt;vga&lt;/value&gt;
+        &lt;value&gt;cirrus&lt;/value&gt;
+        &lt;value&gt;vmvga&lt;/value&gt;
+        &lt;value&gt;qxl&lt;/value&gt;
+        &lt;value&gt;virtio&lt;/value&gt;
+      &lt;/enum&gt;
+    &lt;/video&gt;
+    ...
+  &lt;/devices&gt;
+&lt;/domainCapabilities&gt;
+</pre>
+        <dl><dt><code>modelType</code></dt><dd>Options for the <code>type</code> attribute of the
+      &lt;video&gt;&lt;model&gt; element.</dd></dl>
         <h4>
           <a name="elementsHostDev" shape="rect" id="elementsHostDev">Host device assignment</a>
           <a class="headerlink" href="#elementsHostDev" title="Permalink to this headline">¶</a>

@@ -25,11 +25,11 @@
 # include "internal.h"
 # include "virstoragefile.h"
 
-char *virSecretGetSecretString(virConnectPtr conn,
-                               const char *scheme,
-                               bool encoded,
-                               virStorageAuthDefPtr authdef,
-                               virSecretUsageType secretUsageType)
+int virSecretGetSecretString(virConnectPtr conn,
+                             virStorageAuthDefPtr authdef,
+                             virSecretUsageType secretUsageType,
+                             uint8_t **ret_secret,
+                             size_t *ret_secret_size)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(4)
-    ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_NONNULL(5) ATTRIBUTE_RETURN_CHECK;
 #endif /* __VIR_SECRET_H__ */

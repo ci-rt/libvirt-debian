@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-ADMIN 1"
-.TH VIRT-ADMIN 1 "2016-04-26" "libvirt-1.3.4" "Virtualization Support"
+.TH VIRT-ADMIN 1 "2016-05-24" "libvirt-1.3.5" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -323,6 +323,88 @@ The current number of active priority workers in a threadpool.
 .RE
 .RS 4
 .RE
+.IP "\fBsrv-clients-list\fR \fIserver\fR" 4
+.IX Item "srv-clients-list server"
+Print a table showing the list of clients connected to <server>, also providing
+information about transport type used on client's connection (supported
+transports include \fBunix\fR, \fBtcp\fR, and \fBtls\fR), as well as providing
+information about client's connection time (system local time is used).
+.IP "\fBsrv-clients-info\fR \fIserver\fR" 4
+.IX Item "srv-clients-info server"
+Get information about the current setting of limits regarding connections of new
+clients. This information comprises of the limits to the maximum number of
+clients connected to \fIserver\fR, maximum number of clients waiting for
+authentication, in order to be connected to the server, as well as the current
+runtime values, more specifically, the current number of clients connected to
+\&\fIserver\fR and the current number of clients waiting for authentication.
+.Sp
+\&\fBExample\fR
+    # virt-admin srv-clients-info libvirtd
+    nclients_max        : 120
+    nclients            : 3
+    nclients_unauth_max : 20
+    nclients_unauth     : 0
+.IP "\fBsrv-clients-set\fR \fIserver\fR [\fI\-\-max\-clients\fR \fBcount\fR] [\fI\-\-max\-unauth\-clients\fR \fBcount\fR]" 4
+.IX Item "srv-clients-set server [--max-clients count] [--max-unauth-clients count]"
+Set new client-related limits on \fIserver\fR.
+.RS 4
+.IP "\fI\-\-max\-clients\fR" 4
+.IX Item "--max-clients"
+Change the upper limit of the maximum overall number of clients connected to
+\&\fIserver\fR to value \fBcount\fR. The value for this limit has to be always greater
+than the value of \fI\-\-max\-unauth\-clients\fR.
+.IP "\fI\-\-max\-unauth\-clients\fR" 4
+.IX Item "--max-unauth-clients"
+Change the upper limit of the maximum number of clients waiting for
+authentication, in order to be connected to \fIserver\fR, to value \fBcount\fR.
+The value for this limit has to be always lower than the value of
+\&\fI\-\-max\-clients\fR.
+.RE
+.RS 4
+.RE
+.SH "CLIENT COMMANDS"
+.IX Header "CLIENT COMMANDS"
+Following commands provide management and monitoring of clients connected to
+one of daemon's available servers. Clients are specified by their numeric \s-1ID\s0
+which is obtained by listing all clients connected to a specified server
+(see command \fBsrv-clients-list\fR).
+.IP "\fBclient-info\fR \fIserver\fR \fIclient\fR" 4
+.IX Item "client-info server client"
+Retrieve identity information about \fIclient\fR from \fIserver\fR. The attributes
+returned may vary depending on the connection transport used.
+Transport-dependent attributes include local client process's pid, uid,
+user name, and group name, as well as socket address of the remote peer, see
+\&\fBExamples\fR below.
+.Sp
+On the other hand, transport-independent attributes include client's SELinux
+context (if enabled on the host) and \s-1SASL\s0 username (if \s-1SASL\s0 authentication is
+enabled within daemon).
+.Sp
+\&\fBExamples\fR
+.Sp
+.Vb 10
+\& # virt\-admin client\-info libvirtd 1
+\& id             : 1
+\& connection_time: 2016\-05\-03 13:27:04+0200
+\& transport      : unix
+\& readonly       : yes
+\& unix_user_id   : 0
+\& unix_user_name : root
+\& unix_group_id  : 0
+\& unix_group_name: root
+\& unix_process_id: 10201
+\&
+\& # virt\-admin client\-info libvirtd 2
+\& id             : 2
+\& connection_time: 2016\-05\-03 13:30:33+0200
+\& transport      : tcp
+\& readonly       : no
+\& sock_addr      : 127.0.0.1:57060
+.Ve
+.IP "\fBclient-disconnect\fR \fIserver\fR \fIclient\fR" 4
+.IX Item "client-disconnect server client"
+Close a connection originating from \fIclient\fR. The \fIserver\fR argument
+specifies the name of the server \fIclient\fR is currently connected to.
 .SH "ENVIRONMENT"
 .IX Header "ENVIRONMENT"
 The following environment variables can be set to alter the behaviour

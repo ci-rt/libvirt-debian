@@ -3,7 +3,7 @@
  * between XM and XL
  *
  * Copyright (C) 2014 SUSE LINUX Products GmbH, Nuernberg, Germany.
- * Copyright (C) 2006-2007, 2009-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2016 Red Hat, Inc.
  * Copyright (C) 2011 Univention GmbH
  * Copyright (C) 2006 Daniel P. Berrange
  *
@@ -458,7 +458,7 @@ xenParsePCI(virConfPtr conf, virDomainDefPtr def)
                 goto skippci;
             if (virStrToLong_i(func, NULL, 16, &funcID) < 0)
                 goto skippci;
-            if (!(hostdev = virDomainHostdevDefAlloc()))
+            if (!(hostdev = virDomainHostdevDefAlloc(NULL)))
                return -1;
 
             hostdev->managed = false;
@@ -594,8 +594,7 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
 
             if (xenConfigCopyStringOpt(conf, "vnclisten", &listenAddr) < 0)
                 goto cleanup;
-            if (listenAddr &&
-                virDomainGraphicsListenAppendAddress(graphics, listenAddr) < 0)
+            if (virDomainGraphicsListenAppendAddress(graphics, listenAddr) < 0)
                 goto cleanup;
             VIR_FREE(listenAddr);
 
@@ -664,8 +663,7 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
                         if (STREQ(key + 10, "1"))
                             graphics->data.vnc.autoport = true;
                     } else if (STRPREFIX(key, "vnclisten=")) {
-                        if (virDomainGraphicsListenAppendAddress(graphics,
-                                                                 key+10) < 0)
+                        if (VIR_STRDUP(listenAddr, key+10) < 0)
                             goto cleanup;
                     } else if (STRPREFIX(key, "vncpasswd=")) {
                         if (VIR_STRDUP(graphics->data.vnc.auth.passwd, key + 10) < 0)
@@ -698,6 +696,12 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
                                    nextkey[0] == '\t'))
                     nextkey++;
                 key = nextkey;
+            }
+            if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
+                if (virDomainGraphicsListenAppendAddress(graphics,
+                                                         listenAddr) < 0)
+                    goto cleanup;
+                VIR_FREE(listenAddr);
             }
             if (VIR_ALLOC_N(def->graphics, 1) < 0)
                 goto cleanup;
@@ -803,7 +807,7 @@ xenParseCharDev(virConfPtr conf, virDomainDefPtr def)
 
 
 static int
-xenParseVif(virConfPtr conf, virDomainDefPtr def)
+xenParseVif(virConfPtr conf, virDomainDefPtr def, const char *vif_typename)
 {
     char *script = NULL;
     virDomainNetDefPtr net = NULL;
@@ -942,7 +946,7 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def)
                 VIR_STRDUP(net->model, model) < 0)
                 goto cleanup;
 
-            if (!model[0] && type[0] && STREQ(type, "netfront") &&
+            if (!model[0] && type[0] && STREQ(type, vif_typename) &&
                 VIR_STRDUP(net->model, "netfront") < 0)
                 goto cleanup;
 
@@ -1046,7 +1050,8 @@ xenParseGeneralMeta(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
 int
 xenParseConfigCommon(virConfPtr conf,
                      virDomainDefPtr def,
-                     virCapsPtr caps)
+                     virCapsPtr caps,
+                     const char *nativeFormat)
 {
     if (xenParseGeneralMeta(conf, def, caps) < 0)
         return -1;
@@ -1066,8 +1071,17 @@ xenParseConfigCommon(virConfPtr conf,
     if (xenConfigCopyStringOpt(conf, "device_model", &def->emulator) < 0)
         return -1;
 
-    if (xenParseVif(conf, def) < 0)
+    if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XL)) {
+        if (xenParseVif(conf, def, "vif") < 0)
+            return -1;
+    } else if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XM)) {
+        if (xenParseVif(conf, def, "netfront") < 0)
+            return -1;
+    } else {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unsupported config type %s"), nativeFormat);
         return -1;
+    }
 
     if (xenParsePCI(conf, def) < 0)
         return -1;
@@ -1127,7 +1141,8 @@ static int
 xenFormatNet(virConnectPtr conn,
              virConfValuePtr list,
              virDomainNetDefPtr net,
-             int hvm)
+             int hvm,
+             const char *vif_typename)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
@@ -1199,7 +1214,7 @@ xenFormatNet(virConnectPtr conn,
             virBufferAsprintf(&buf, ",model=%s", net->model);
     } else {
         if (net->model != NULL && STREQ(net->model, "netfront")) {
-            virBufferAddLit(&buf, ",type=netfront");
+            virBufferAsprintf(&buf, ",type=%s", vif_typename);
         } else {
             if (net->model != NULL)
                 virBufferAsprintf(&buf, ",model=%s", net->model);
@@ -1628,7 +1643,7 @@ xenFormatVfb(virConfPtr conf, virDomainDefPtr def)
                                        def->graphics[0]->data.sdl.xauth) < 0)
                     return -1;
             } else {
-                virDomainGraphicsListenDefPtr gListen;
+                virDomainGraphicsListenDefPtr glisten;
 
                 if (xenConfigSetInt(conf, "sdl", 0) < 0)
                     return -1;
@@ -1645,9 +1660,9 @@ xenFormatVfb(virConfPtr conf, virDomainDefPtr def)
                                     def->graphics[0]->data.vnc.port - 5900) < 0)
                     return -1;
 
-                if ((gListen = virDomainGraphicsGetListen(def->graphics[0], 0)) &&
-                    gListen->address &&
-                    xenConfigSetString(conf, "vnclisten", gListen->address) < 0)
+                if ((glisten = virDomainGraphicsGetListen(def->graphics[0], 0)) &&
+                    glisten->address &&
+                    xenConfigSetString(conf, "vnclisten", glisten->address) < 0)
                     return -1;
 
                 if (def->graphics[0]->data.vnc.auth.passwd &&
@@ -1674,7 +1689,7 @@ xenFormatVfb(virConfPtr conf, virDomainDefPtr def)
                     virBufferAsprintf(&buf, ",xauthority=%s",
                                       def->graphics[0]->data.sdl.xauth);
             } else {
-                virDomainGraphicsListenDefPtr gListen
+                virDomainGraphicsListenDefPtr glisten
                     = virDomainGraphicsGetListen(def->graphics[0], 0);
 
                 virBufferAddLit(&buf, "type=vnc");
@@ -1683,8 +1698,8 @@ xenFormatVfb(virConfPtr conf, virDomainDefPtr def)
                 if (!def->graphics[0]->data.vnc.autoport)
                     virBufferAsprintf(&buf, ",vncdisplay=%d",
                                       def->graphics[0]->data.vnc.port - 5900);
-                if (gListen && gListen->address)
-                    virBufferAsprintf(&buf, ",vnclisten=%s", gListen->address);
+                if (glisten && glisten->address)
+                    virBufferAsprintf(&buf, ",vnclisten=%s", glisten->address);
                 if (def->graphics[0]->data.vnc.auth.passwd)
                     virBufferAsprintf(&buf, ",vncpasswd=%s",
                                       def->graphics[0]->data.vnc.auth.passwd);
@@ -1749,7 +1764,8 @@ xenFormatSound(virConfPtr conf, virDomainDefPtr def)
 static int
 xenFormatVif(virConfPtr conf,
              virConnectPtr conn,
-             virDomainDefPtr def)
+             virDomainDefPtr def,
+             const char *vif_typename)
 {
    virConfValuePtr netVal = NULL;
    size_t i;
@@ -1762,7 +1778,7 @@ xenFormatVif(virConfPtr conf,
 
     for (i = 0; i < def->nnets; i++) {
         if (xenFormatNet(conn, netVal, def->nets[i],
-                         hvm) < 0)
+                         hvm, vif_typename) < 0)
            goto cleanup;
     }
 
@@ -1788,7 +1804,8 @@ xenFormatVif(virConfPtr conf,
 int
 xenFormatConfigCommon(virConfPtr conf,
                       virDomainDefPtr def,
-                      virConnectPtr conn)
+                      virConnectPtr conn,
+                      const char *nativeFormat)
 {
     if (xenFormatGeneralMeta(conf, def) < 0)
         return -1;
@@ -1814,8 +1831,17 @@ xenFormatConfigCommon(virConfPtr conf,
     if (xenFormatVfb(conf, def) < 0)
         return -1;
 
-    if (xenFormatVif(conf, conn, def) < 0)
+    if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XL)) {
+        if (xenFormatVif(conf, conn, def, "vif") < 0)
+            return -1;
+    } else if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XM)) {
+        if (xenFormatVif(conf, conn, def, "netfront") < 0)
+            return -1;
+    } else {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unsupported config type %s"), nativeFormat);
         return -1;
+    }
 
     if (xenFormatPCI(conf, def) < 0)
         return -1;

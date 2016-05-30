@@ -22,7 +22,8 @@
 #include "testutils.h"
 #include "testutilsqemu.h"
 #include "qemumonitortestutils.h"
-
+#define __QEMU_CAPSRIV_H_ALLOW__
+#include "qemu/qemu_capspriv.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -30,6 +31,7 @@ typedef struct _testQemuData testQemuData;
 typedef testQemuData *testQemuDataPtr;
 struct _testQemuData {
     virDomainXMLOptionPtr xmlopt;
+    const char *archName;
     const char *base;
 };
 
@@ -85,45 +87,21 @@ testQemuFeedMonitor(char *replies,
 }
 
 static int
-testQemuCapsCompare(virQEMUCapsPtr capsProvided,
-                    virQEMUCapsPtr capsComputed)
-{
-    int ret = 0;
-    size_t i;
-
-    for (i = 0; i < QEMU_CAPS_LAST; i++) {
-        if (virQEMUCapsGet(capsProvided, i) &&
-            !virQEMUCapsGet(capsComputed, i)) {
-            fprintf(stderr, "Caps mismatch: capsComputed is missing %s\n",
-                    virQEMUCapsTypeToString(i));
-            ret = -1;
-        }
-
-        if (virQEMUCapsGet(capsComputed, i) &&
-            !virQEMUCapsGet(capsProvided, i)) {
-            fprintf(stderr, "Caps mismatch: capsProvided is missing %s\n",
-                    virQEMUCapsTypeToString(i));
-            ret = -1;
-        }
-    }
-
-    return ret;
-}
-
-static int
 testQemuCaps(const void *opaque)
 {
     int ret = -1;
     const testQemuData *data = opaque;
-    char *repliesFile = NULL, *capsFile = NULL;
+    char *repliesFile = NULL;
+    char *capsFile = NULL;
     char *replies = NULL;
     qemuMonitorTestPtr mon = NULL;
-    virQEMUCapsPtr capsProvided = NULL, capsComputed = NULL;
+    virQEMUCapsPtr capsActual = NULL;
+    char *actual = NULL;
 
-    if (virAsprintf(&repliesFile, "%s/qemucapabilitiesdata/%s.replies",
-                    abs_srcdir, data->base) < 0 ||
-        virAsprintf(&capsFile, "%s/qemucapabilitiesdata/%s.caps",
-                    abs_srcdir, data->base) < 0)
+    if (virAsprintf(&repliesFile, "%s/qemucapabilitiesdata/%s.%s.replies",
+                    abs_srcdir, data->base, data->archName) < 0 ||
+        virAsprintf(&capsFile, "%s/qemucapabilitiesdata/%s.%s.xml",
+                    abs_srcdir, data->base, data->archName) < 0)
         goto cleanup;
 
     if (virtTestLoadFile(repliesFile, &replies) < 0)
@@ -132,17 +110,15 @@ testQemuCaps(const void *opaque)
     if (!(mon = testQemuFeedMonitor(replies, data->xmlopt)))
         goto cleanup;
 
-    if (!(capsProvided = qemuTestParseCapabilities(capsFile)))
-        goto cleanup;
-
-    if (!(capsComputed = virQEMUCapsNew()))
-        goto cleanup;
-
-    if (virQEMUCapsInitQMPMonitor(capsComputed,
+    if (!(capsActual = virQEMUCapsNew()) ||
+        virQEMUCapsInitQMPMonitor(capsActual,
                                   qemuMonitorTestGetMonitor(mon)) < 0)
         goto cleanup;
 
-    if (testQemuCapsCompare(capsProvided, capsComputed) < 0)
+    if (!(actual = virQEMUCapsFormatCache(capsActual, 0, 0)))
+        goto cleanup;
+
+    if (virtTestCompareToFile(actual, capsFile) < 0)
         goto cleanup;
 
     ret = 0;
@@ -150,9 +126,9 @@ testQemuCaps(const void *opaque)
     VIR_FREE(repliesFile);
     VIR_FREE(capsFile);
     VIR_FREE(replies);
+    VIR_FREE(actual);
     qemuMonitorTestFree(mon);
-    virObjectUnref(capsProvided);
-    virObjectUnref(capsComputed);
+    virObjectUnref(capsActual);
     return ret;
 }
 
@@ -176,23 +152,32 @@ mymain(void)
 
     data.xmlopt = driver.xmlopt;
 
-#define DO_TEST(name)                                   \
-    do {                                                \
-        data.base = name;                               \
-        if (virtTestRun(name, testQemuCaps, &data) < 0) \
-            ret = -1;                                   \
+#define DO_TEST(arch, name)                                             \
+    do {                                                                \
+        data.archName = arch;                                           \
+        data.base = name;                                               \
+        if (virtTestRun(name "(" arch ")", testQemuCaps, &data) < 0)    \
+            ret = -1;                                                   \
     } while (0)
 
-    DO_TEST("caps_1.2.2-1");
-    DO_TEST("caps_1.3.1-1");
-    DO_TEST("caps_1.4.2-1");
-    DO_TEST("caps_1.5.3-1");
-    DO_TEST("caps_1.6.0-1");
-    DO_TEST("caps_1.6.50-1");
-    DO_TEST("caps_2.1.1-1");
-    DO_TEST("caps_2.4.0-1");
-    DO_TEST("caps_2.5.0-1");
-    DO_TEST("caps_2.6.0-1");
+    DO_TEST("x86_64", "caps_1.2.2");
+    DO_TEST("x86_64", "caps_1.3.1");
+    DO_TEST("x86_64", "caps_1.4.2");
+    DO_TEST("x86_64", "caps_1.5.3");
+    DO_TEST("x86_64", "caps_1.6.0");
+    DO_TEST("x86_64", "caps_1.7.0");
+    DO_TEST("x86_64", "caps_2.1.1");
+    DO_TEST("x86_64", "caps_2.4.0");
+    DO_TEST("x86_64", "caps_2.5.0");
+    DO_TEST("x86_64", "caps_2.6.0");
+    DO_TEST("aarch64", "caps_2.6.0-gicv2");
+    DO_TEST("aarch64", "caps_2.6.0-gicv3");
+    DO_TEST("ppc64le", "caps_2.6.0");
+
+    /*
+     * Run "tests/qemucapsprobe /path/to/qemu/binary >foo.replies"
+     * to generate updated or new *.replies data files.
+     */
 
     qemuTestDriverFree(&driver);
 

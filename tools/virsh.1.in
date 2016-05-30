@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2016-04-26" "libvirt-1.3.4" "Virtualization Support"
+.TH VIRSH 1 "2016-05-24" "libvirt-1.3.5" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1115,15 +1115,21 @@ file (<source file='name'/>) for one of the disk devices attached to
 .Sp
 If no limit is specified, it will query current I/O limits setting.
 Otherwise, alter the limits with these flags:
-\&\fI\-\-total\-bytes\-sec\fR specifies total throughput limit in bytes per second.
-\&\fI\-\-read\-bytes\-sec\fR specifies read throughput limit in bytes per second.
-\&\fI\-\-write\-bytes\-sec\fR specifies write throughput limit in bytes per second.
+\&\fI\-\-total\-bytes\-sec\fR specifies total throughput limit as a scaled integer, the
+default being bytes per second if no suffix is specified.
+\&\fI\-\-read\-bytes\-sec\fR specifies read throughput limit as a scaled integer, the
+default being bytes per second if no suffix is specified.
+\&\fI\-\-write\-bytes\-sec\fR specifies write throughput limit as a scaled integer, the
+default being bytes per second if no suffix is specified.
 \&\fI\-\-total\-iops\-sec\fR specifies total I/O operations limit per second.
 \&\fI\-\-read\-iops\-sec\fR specifies read I/O operations limit per second.
 \&\fI\-\-write\-iops\-sec\fR specifies write I/O operations limit per second.
-\&\fI\-\-total\-bytes\-sec\-max\fR specifies maximum total throughput limit in bytes per second.
-\&\fI\-\-read\-bytes\-sec\-max\fR specifies maximum read throughput limit in bytes per second.
-\&\fI\-\-write\-bytes\-sec\-max\fR specifies maximum write throughput limit in bytes per second.
+\&\fI\-\-total\-bytes\-sec\-max\fR specifies maximum total throughput limit as a scaled
+integer, the default being bytes per second if no suffix is specified
+\&\fI\-\-read\-bytes\-sec\-max\fR specifies maximum read throughput limit as a scaled
+integer, the default being bytes per second if no suffix is specified.
+\&\fI\-\-write\-bytes\-sec\-max\fR specifies maximum write throughput limit as a scaled
+integer, the default being bytes per second if no suffix is specified.
 \&\fI\-\-total\-iops\-sec\-max\fR specifies maximum total I/O operations limit per second.
 \&\fI\-\-read\-iops\-sec\-max\fR specifies maximum read I/O operations limit per second.
 \&\fI\-\-write\-iops\-sec\-max\fR specifies maximum write I/O operations limit per second.
@@ -3391,12 +3397,13 @@ Output the volume information as an \s-1XML\s0 dump to stdout.
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
 is in. \fIvol-name-or-key-or-path\fR is the name or key or path of the volume
 to output the \s-1XML\s0 of.
-.IP "\fBvol-info\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
-.IX Item "vol-info [--pool pool-or-uuid] vol-name-or-key-or-path"
+.IP "\fBvol-info\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-bytes\fR]" 4
+.IX Item "vol-info [--pool pool-or-uuid] vol-name-or-key-or-path [--bytes]"
 Returns basic information about the given storage volume.
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
 is in. \fIvol-name-or-key-or-path\fR is the name or key or path of the volume
-to return information for.
+to return information for. If \fI\-\-bytes\fR is specified the sizes are not
+converted to human friendly units.
 .IP "\fBvol-list\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-details\fR]" 4
 .IX Item "vol-list [--pool pool-or-uuid] [--details]"
 Return the list of volumes in the given storage pool.

@@ -18,7 +18,9 @@
 
 # old automake does not provide abs_{src,build}dir variables
 abs_builddir = $(shell pwd)
+abs_topbuilddir = $(shell cd .. && pwd)
 abs_srcdir = $(shell cd $(srcdir) && pwd)
+abs_topsrcdir = $(shell cd $(top_srcdir) && pwd)
 
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
@@ -33,7 +35,9 @@ INCLUDES = \
 
 AM_CFLAGS = \
 	-Dabs_builddir="\"$(abs_builddir)\"" \
+	-Dabs_topbuilddir="\"$(abs_topbuilddir)\"" \
 	-Dabs_srcdir="\"$(abs_srcdir)\"" \
+	-Dabs_topsrcdir="\"$(abs_topsrcdir)\"" \
 	$(LIBXML_CFLAGS) \
 	$(LIBNL_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
@@ -48,6 +52,11 @@ AM_LDFLAGS = \
 	-export-dynamic
 
 MOCKLIBS_LDFLAGS = -module -avoid-version \
+	-rpath /evil/libtool/hack/to/force/shared/lib/creation \
+	$(MINGW_EXTRA_LDFLAGS)
+
+QEMULIB_LDFLAGS = \
+	-avoid-version \
 	-rpath /evil/libtool/hack/to/force/shared/lib/creation \
 	$(MINGW_EXTRA_LDFLAGS)
 
@@ -171,6 +180,7 @@ test_programs = virshtest sockettest \
 	virbitmaptest \
 	vircgrouptest \
 	vircryptotest \
+	virrandomtest \
 	virpcitest \
 	virendiantest \
 	virfiletest \
@@ -256,6 +266,7 @@ test_programs += qemuxml2argvtest qemuxml2xmltest \
 	qemumonitortest qemumonitorjsontest qemuhotplugtest \
 	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
 	qemucommandutiltest
+test_helpers += qemucapsprobe
 endif WITH_QEMU
 
 if WITH_LXC
@@ -408,17 +419,21 @@ EXTRA_DIST += $(test_scripts)
 
 test_libraries = libshunload.la \
 		virportallocatormock.la \
+		virnetdaemonmock.la \
 		virnetserverclientmock.la \
 		vircgroupmock.la \
 		virpcimock.la \
 		virnetdevmock.la \
+		virrandommock.la \
 		nodeinfomock.la \
 		nssmock.la \
 		$(NULL)
 if WITH_QEMU
 test_libraries += libqemumonitortestutils.la \
+		libqemutestdriver.la \
 		qemuxml2argvmock.la \
 		qemucaps2xmlmock.la \
+		qemucapsprobemock.la \
 		$(NULL)
 endif WITH_QEMU
 
@@ -434,8 +449,22 @@ endif WITH_DBUS
 if WITH_LINUX
 test_libraries += virusbmock.la \
 		virnetdevbandwidthmock.la \
+		virtestmock.la \
 		$(NULL)
 endif WITH_LINUX
+
+if WITH_LINUX
+check-access: file-access-clean
+	VIR_TEST_FILE_ACCESS=1 $(MAKE) $(AM_MAKEFLAGS) check
+	$(PERL) check-file-access.pl | sort -u
+
+file-access-clean:
+	> test_file_access.txt
+endif WITH_LINUX
+
+EXTRA_DIST += \
+	check-file-access.pl \
+	file_access_whitelist.txt
 
 if WITH_TESTS
 noinst_PROGRAMS = $(test_programs) $(test_helpers)
@@ -545,6 +574,10 @@ if WITH_DTRACE_PROBES
 qemu_LDADDS += ../src/libvirt_qemu_probes.lo
 endif WITH_DTRACE_PROBES
 
+libqemutestdriver_la_SOURCES =
+libqemutestdriver_la_LDFLAGS = $(QEMULIB_LDFLAGS)
+libqemutestdriver_la_LIBADD = $(qemu_LDADDS)
+
 qemuxml2argvtest_SOURCES = \
 	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
@@ -591,6 +624,17 @@ qemucapabilitiestest_SOURCES = \
 	$(NULL)
 qemucapabilitiestest_LDADD = libqemumonitortestutils.la \
 	$(qemu_LDADDS) $(LDADDS)
+
+qemucapsprobe_SOURCES = \
+	qemucapsprobe.c
+qemucapsprobe_LDADD = \
+	libqemutestdriver.la $(LDADDS)
+
+qemucapsprobemock_la_SOURCES = \
+	qemucapsprobemock.c
+qemucapsprobemock_la_CFLAGS = $(AM_CFLAGS)
+qemucapsprobemock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+qemucapsprobemock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 qemucommandutiltest_SOURCES = \
 	qemucommandutiltest.c \
@@ -927,6 +971,12 @@ virnetdaemontest_SOURCES = \
 virnetdaemontest_CFLAGS = $(XDR_CFLAGS) $(AM_CFLAGS)
 virnetdaemontest_LDADD = $(LDADDS)
 
+virnetdaemonmock_la_SOURCES = \
+	virnetdaemonmock.c
+virnetdaemonmock_la_CFLAGS = $(AM_CFLAGS)
+virnetdaemonmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+virnetdaemonmock_la_LIBADD = $(MOCKLIBS_LIBS)
+
 virnetserverclienttest_SOURCES = \
 	virnetserverclienttest.c \
 	testutils.h testutils.c
@@ -1032,6 +1082,10 @@ vircryptotest_SOURCES = \
 	vircryptotest.c testutils.h testutils.c
 vircryptotest_LDADD = $(LDADDS)
 
+virrandomtest_SOURCES = \
+	virrandomtest.c testutils.h testutils.c
+virrandomtest_LDADD = $(LDADDS)
+
 virhostdevtest_SOURCES = \
 	virhostdevtest.c testutils.h testutils.c
 virhostdevtest_LDADD = $(LDADDS)
@@ -1045,6 +1099,12 @@ virpcimock_la_SOURCES = \
 virpcimock_la_CFLAGS = $(AM_CFLAGS)
 virpcimock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virpcimock_la_LIBADD = $(MOCKLIBS_LIBS)
+
+virrandommock_la_SOURCES = \
+	virrandommock.c
+virrandommock_la_CFLAGS = $(AM_CFLAGS)
+virrandommock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+virrandommock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 nodeinfomock_la_SOURCES = \
 	nodeinfomock.c
@@ -1112,9 +1172,18 @@ virnetdevbandwidthmock_la_CFLAGS = $(AM_CFLAGS)
 virnetdevbandwidthmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virnetdevbandwidthmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
+virtestmock_la_SOURCES = \
+	virtestmock.c
+virtestmock_la_CFLAGS = $(AM_CFLAGS)
+virtestmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+virtestmock_la_LIBADD = \
+	$(MOCKLIBS_LIBS) \
+	$(PROBES_O) \
+	../src/libvirt_util.la
 else ! WITH_LINUX
 	EXTRA_DIST += virusbtest.c virusbmock.c \
-		virnetdevbandwidthtest.c virnetdevbandwidthmock.c
+		virnetdevbandwidthtest.c virnetdevbandwidthmock.c \
+		virtestmock.c
 endif ! WITH_LINUX
 
 if WITH_DBUS
@@ -1160,7 +1229,7 @@ virauthconfigtest_SOURCES = \
 virauthconfigtest_LDADD = $(LDADDS)
 
 seclabeltest_SOURCES = \
-	seclabeltest.c
+	seclabeltest.c testutils.h testutils.c
 seclabeltest_LDADD = $(LDADDS)
 
 if WITH_SECDRIVER_SELINUX

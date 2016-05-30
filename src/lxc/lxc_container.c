@@ -520,7 +520,7 @@ static int lxcContainerRenameAndEnableInterfaces(virDomainDefPtr vmDef,
 
             VIR_DEBUG("Adding IP address '%s/%u' to '%s'",
                       ipStr, ip->prefix, newname);
-            if (virNetDevSetIPAddress(newname, &ip->address, &ip->peer, prefix) < 0) {
+            if (virNetDevSetIPAddress(newname, &ip->address, NULL, prefix) < 0) {
                 virReportError(VIR_ERR_SYSTEM_ERROR,
                                _("Failed to set IP address '%s' on %s"),
                                ipStr, newname);
@@ -2290,12 +2290,9 @@ static int lxcContainerChild(void *data)
 
     if (ret != 0) {
         VIR_DEBUG("Tearing down container");
-        virErrorPtr err = virGetLastError();
-        if (err && err->message)
-            fprintf(stderr, "%s\n", err->message);
-        else
-            fprintf(stderr, "%s\n",
-                    _("Unknown failure in libvirt_lxc startup"));
+        fprintf(stderr,
+                _("Failure in libvirt_lxc startup: %s\n"),
+                virGetLastErrorMessage());
     }
 
     virCommandFree(cmd);

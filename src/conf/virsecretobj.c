@@ -30,6 +30,7 @@
 #include "virfile.h"
 #include "virhash.h"
 #include "virlog.h"
+#include "virstring.h"
 #include "base64.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECRET
@@ -730,12 +731,8 @@ virSecretObjSaveData(virSecretObjPtr secret)
     if (!secret->value)
         return 0;
 
-    base64_encode_alloc((const char *)secret->value, secret->value_size,
-                        &base64);
-    if (base64 == NULL) {
-        virReportOOMError();
+    if (!(base64 = virStringEncodeBase64(secret->value, secret->value_size)))
         goto cleanup;
-    }
 
     if (virFileRewrite(secret->base64File, S_IRUSR | S_IWUSR,
                        virSecretRewriteFile, base64) < 0)
@@ -993,11 +990,8 @@ virSecretLoadAllConfigs(virSecretObjListPtr secrets,
             continue;
 
         if (!(secret = virSecretLoad(secrets, de->d_name, path, configDir))) {
-            virErrorPtr err = virGetLastError();
-
             VIR_ERROR(_("Error reading secret: %s"),
-                      err != NULL ? err->message: _("unknown error"));
-            virResetError(err);
+                      virGetLastErrorMessage());
             VIR_FREE(path);
             continue;
         }

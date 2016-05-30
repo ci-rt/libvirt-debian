@@ -954,6 +954,16 @@ const char *virNetClientRemoteAddrString(virNetClientPtr client)
     return virNetSocketRemoteAddrString(client->sock);
 }
 
+char *virNetClientLocalAddrFormatSASL(virNetClientPtr client)
+{
+    return virNetSocketLocalAddrFormatSASL(client->sock);
+}
+
+char *virNetClientRemoteAddrFormatSASL(virNetClientPtr client)
+{
+    return virNetSocketRemoteAddrFormatSASL(client->sock);
+}
+
 #if WITH_GNUTLS
 int virNetClientGetTLSKeySize(virNetClientPtr client)
 {
@@ -1185,10 +1195,7 @@ virNetClientIOWriteMessage(virNetClientPtr client,
                 return 0;
             thecall->msg->donefds++;
         }
-        thecall->msg->donefds = 0;
-        thecall->msg->bufferOffset = thecall->msg->bufferLength = 0;
-        VIR_FREE(thecall->msg->fds);
-        VIR_FREE(thecall->msg->buffer);
+        virNetMessageClearPayload(thecall->msg);
         if (thecall->expectReply)
             thecall->mode = VIR_NET_CLIENT_MODE_WAIT_RX;
         else

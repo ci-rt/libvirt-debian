@@ -51,7 +51,7 @@
 #  define MAX_VIRT_CPUS XEN_LEGACY_MAX_VCPUS
 # endif
 
-extern int xenRegister (void);
+int xenRegister (void);
 
 # define XEN_UNIFIED_HYPERVISOR_OFFSET 0
 # define XEN_UNIFIED_XEND_OFFSET 1
@@ -66,9 +66,6 @@ extern int xenRegister (void);
 # endif
 
 # define MIN_XEN_GUEST_SIZE 64  /* 64 megabytes */
-
-# define XEN_CONFIG_FORMAT_XM    "xen-xm"
-# define XEN_CONFIG_FORMAT_SEXPR "xen-sxpr"
 
 # define XEND_DOMAINS_DIR "/var/lib/xend/domains"
 

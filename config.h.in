@@ -63,6 +63,9 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
+/* Define to 1 if the C locale may have encoding errors. */
+#undef C_LOCALE_MAYBE_EILSEQ
+
 /* Define as the bit index in the word where to find bit 0 of the exponent of
    'double'. */
 #undef DBL_EXPBIT0_BIT
@@ -84,9 +87,6 @@
 
 /* Location or name of the dmidecode program */
 #undef DMIDECODE
-
-/* Location or name of the dmsetup program */
-#undef DMSETUP
 
 /* Location or name of the dnsmasq program */
 #undef DNSMASQ
@@ -1093,6 +1093,9 @@
 /* Define to 1 if you have the 'getuid' function. */
 #undef HAVE_GETUID
 
+/* Define to 1 if you have the `gnutls_cipher_encrypt' function. */
+#undef HAVE_GNUTLS_CIPHER_ENCRYPT
+
 /* Define to 1 if you have the <gnutls/crypto.h> header file. */
 #undef HAVE_GNUTLS_CRYPTO_H
 
@@ -1277,8 +1280,11 @@
 /* Define to 1 if the system has the type 'long long int'. */
 #undef HAVE_LONG_LONG_INT
 
-/* Define to 1 if you have the 'lstat' function. */
+/* Define to 1 if you have the `lstat' function. */
 #undef HAVE_LSTAT
+
+/* Define to 1 if you have the `lstat64' function. */
+#undef HAVE_LSTAT64
 
 /* Define to 1 if you have the <machine/hal_sysinfo.h> header file. */
 #undef HAVE_MACHINE_HAL_SYSINFO_H
@@ -1623,6 +1629,12 @@
 
 /* Define to 1 if you have the <spawn.h> header file. */
 #undef HAVE_SPAWN_H
+
+/* Define to 1 if you have the `stat' function. */
+#undef HAVE_STAT
+
+/* Define to 1 if you have the `stat64' function. */
+#undef HAVE_STAT64
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -2029,11 +2041,23 @@
 /* Define to 1 if you have the '__fsetlocking' function. */
 #undef HAVE___FSETLOCKING
 
+/* Define to 1 if you have the `__lxstat' function. */
+#undef HAVE___LXSTAT
+
+/* Define to 1 if you have the `__lxstat64' function. */
+#undef HAVE___LXSTAT64
+
 /* Define to 1 if you have the `__secure_getenv' function. */
 #undef HAVE___SECURE_GETENV
 
 /* Define to 1 if you have the '__xpg_strerror_r' function. */
 #undef HAVE___XPG_STRERROR_R
+
+/* Define to 1 if you have the `__xstat' function. */
+#undef HAVE___XSTAT
+
+/* Define to 1 if you have the `__xstat64' function. */
+#undef HAVE___XSTAT64
 
 /* Define HOST_NAME_MAX when <limits.h> does not define it. */
 #undef HOST_NAME_MAX
@@ -2314,6 +2338,9 @@
 
 /* Whether backtrace() is available */
 #undef TEST_OOM_TRACE
+
+/* Define to 1 if time_t is signed. */
+#undef TIME_T_IS_SIGNED
 
 /* Define to 1 if the type of the st_atim member of a struct stat is struct
    timespec. */
@@ -2768,6 +2795,12 @@
 /* For thread-safety on AIX, FreeBSD. */
 #undef _THREAD_SAFE
 
+/* Define to 1 if the system <stdint.h> predates C++11. */
+#undef __STDC_CONSTANT_MACROS
+
+/* Define to 1 if the system <stdint.h> predates C++11. */
+#undef __STDC_LIMIT_MACROS
+
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
 
@@ -2823,6 +2856,7 @@
       ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
       : (199901L <= __STDC_VERSION__ \
          && !defined __HP_cc \
+         && !defined __PGI \
          && !(defined __SUNPRO_C && __STDC__))) \
      && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)
 # define _GL_INLINE inline

@@ -185,7 +185,8 @@ virAdmGetDefaultURI(virConfPtr conf)
 /**
  * virAdmConnectOpen:
  * @name: uri of the daemon to connect to, NULL for default
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @flags: bitwise-OR of virConnectFlags; so far the only supported flag is
+ *         VIR_CONNECT_NO_ALIASES
  *
  * Opens connection to admin interface of the daemon.
  *
@@ -204,7 +205,6 @@ virAdmConnectOpen(const char *name, unsigned int flags)
 
     VIR_DEBUG("flags=%x", flags);
     virResetLastError();
-    virCheckFlagsGoto(VIR_CONNECT_NO_ALIASES, error);
 
     if (!(conn = virAdmConnectNew()))
         goto error;
@@ -600,6 +600,96 @@ int virAdmServerFree(virAdmServerPtr srv)
 }
 
 /**
+ * virAdmClientGetID:
+ * @client: a client object
+ *
+ * Get client's unique numeric ID.
+ *
+ * Returns numeric value used for client's ID or -1 in case of an error.
+ */
+unsigned long long
+virAdmClientGetID(virAdmClientPtr client)
+{
+    VIR_DEBUG("client=%p", client);
+
+    virResetLastError();
+    virCheckAdmClientReturn(client, -1);
+    return client->id;
+}
+
+/**
+ * virAdmClientGetTimestamp:
+ * @client: a client object
+ *
+ * Get client's connection time.
+ * A situation may happen, that some clients had connected prior to the update
+ * to admin API, thus, libvirt assigns these clients epoch time to express that
+ * it doesn't know when the client connected.
+ *
+ * Returns client's connection timestamp (seconds from epoch in UTC) or 0
+ * (epoch time) if libvirt doesn't have any information about client's
+ * connection time, or -1 in case of an error.
+ */
+long long
+virAdmClientGetTimestamp(virAdmClientPtr client)
+{
+    VIR_DEBUG("client=%p", client);
+
+    virResetLastError();
+    virCheckAdmClientReturn(client, -1);
+    return client->timestamp;
+}
+
+/**
+ * virAdmClientGetTransport:
+ * @client: a client object
+ *
+ * Get client's connection transport type. This information can be helpful to
+ * differentiate between clients connected locally or remotely. An exception to
+ * this would be SSH which is one of libvirt's supported transports.
+ * Although SSH creates a channel between two (preferably) remote endpoints,
+ * the client process libvirt spawns automatically on the remote side will
+ * still connect to a UNIX socket, thus becoming indistinguishable from any
+ * other locally connected clients.
+ *
+ * Returns integer representation of the connection transport used by @client
+ * (this will be one of virClientTransport) or -1 in case of an error.
+ */
+int
+virAdmClientGetTransport(virAdmClientPtr client)
+{
+    VIR_DEBUG("client=%p", client);
+
+    virResetLastError();
+    virCheckAdmClientReturn(client, -1);
+    return client->transport;
+}
+
+/**
+ * virAdmClientFree:
+ * @client: a client object
+ *
+ * Release the client object. The running instance is kept alive. The data
+ * structure is freed and should not be used thereafter.
+ *
+ * Returns 0 in success, -1 on failure.
+ */
+int virAdmClientFree(virAdmClientPtr client)
+{
+    VIR_DEBUG("client=%p", client);
+
+    virResetLastError();
+
+    if (!client)
+        return 0;
+
+    virCheckAdmClientReturn(client, -1);
+
+    virObjectUnref(client);
+    return 0;
+}
+
+/**
  * virAdmConnectListServers:
  * @conn: daemon connection reference
  * @servers: Pointer to a list to store an array containing objects or NULL
@@ -625,7 +715,6 @@ virAdmConnectListServers(virAdmConnectPtr conn,
     VIR_DEBUG("conn=%p, servers=%p, flags=%x", conn, servers, flags);
 
     virResetLastError();
-    virCheckFlagsGoto(0, error);
 
     if (servers)
         *servers = NULL;
@@ -666,7 +755,6 @@ virAdmConnectLookupServer(virAdmConnectPtr conn,
 
     virCheckAdmConnectGoto(conn, cleanup);
     virCheckNonNullArgGoto(name, cleanup);
-    virCheckFlagsGoto(0, cleanup);
 
     ret = remoteAdminConnectLookupServer(conn, name, flags);
  cleanup:
@@ -748,6 +836,7 @@ virAdmServerSetThreadPoolParameters(virAdmServerPtr srv,
 
     virCheckAdmServerReturn(srv, -1);
     virCheckNonNullArgGoto(params, error);
+    virCheckNonNegativeArgGoto(nparams, error);
 
     if (remoteAdminServerSetThreadPoolParameters(srv, params,
                                                  nparams, flags) < 0)
@@ -757,4 +846,242 @@ virAdmServerSetThreadPoolParameters(virAdmServerPtr srv,
  error:
     virDispatchError(NULL);
     return -1;
+}
+
+/**
+ * virAdmServerListClients:
+ * @srv: a valid server object reference
+ * @clients: pointer to a list to store an array containing objects or NULL
+ *           if the list is not required (number of clients only)
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Collect list of all clients connected to daemon on server @srv.
+ *
+ * Returns the number of clients connected to daemon on server @srv -1 in case
+ * of a failure, setting @clients to NULL. There is a guaranteed extra element
+ * set to NULL in the @clients list returned to make the iteration easier,
+ * excluding this extra element from the final count.
+ * Caller is responsible to call virAdmClientFree() on each list element,
+ * followed by freeing @clients.
+ */
+int
+virAdmServerListClients(virAdmServerPtr srv,
+                        virAdmClientPtr **clients,
+                        unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("srv=%p, clients=%p, flags=%x", srv, clients, flags);
+
+    virResetLastError();
+
+    if (clients)
+        *clients = NULL;
+
+    virCheckAdmServerReturn(srv, -1);
+    if ((ret = remoteAdminServerListClients(srv, clients, flags)) < 0)
+        goto error;
+
+    return ret;
+ error:
+    virDispatchError(NULL);
+    return -1;
+}
+
+/**
+ * virAdmServerLookupClient:
+ * @srv: a valid server object reference
+ * @id: ID of the client to lookup on server @srv
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Try to lookup a client on the given server based on @id.
+ *
+ * virAdmClientFree() should be used to free the resources after the
+ * client object is no longer needed.
+ *
+ * Returns the requested client or NULL in case of failure.  If the
+ * client could not be found, then VIR_ERR_NO_CLIENT error is raised.
+ */
+virAdmClientPtr
+virAdmServerLookupClient(virAdmServerPtr srv,
+                         unsigned long long id,
+                         unsigned int flags)
+{
+    virAdmClientPtr ret = NULL;
+
+    VIR_DEBUG("srv=%p, id=%llu, flags=%x", srv, id, flags);
+    virResetLastError();
+
+    virCheckAdmServerGoto(srv, error);
+
+    if (!(ret = remoteAdminServerLookupClient(srv, id, flags)))
+        goto error;
+
+    return ret;
+ error:
+    virDispatchError(NULL);
+    return NULL;
+}
+
+/**
+ * virAdmClientGetInfo:
+ * @client: a client object reference
+ * @params: pointer to a list of typed parameters which will be allocated
+ *          to store all returned parameters
+ * @nparams: pointer which will hold the number of params returned in @params
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Extract identity information about a client. Attributes returned in @params
+ * are mostly transport-dependent, i.e. some attributes including client
+ * process's pid, gid, uid, or remote side's socket address are only available
+ * for a specific connection type - local vs remote.
+ * Other identity attributes like authentication method used
+ * (if authentication is enabled on the remote host), SELinux context, or
+ * an indicator whether client is connected via a read-only connection are
+ * independent of the connection transport.
+ *
+ * Note that the read-only connection indicator returns false for TCP/TLS
+ * clients because libvirt treats such connections as read-write by default,
+ * even though a TCP client is able to restrict access to certain APIs for
+ * itself.
+ *
+ * Returns 0 if the information has been successfully retrieved or -1 in case
+ * of an error.
+ */
+int
+virAdmClientGetInfo(virAdmClientPtr client,
+                    virTypedParameterPtr *params,
+                    int *nparams,
+                    unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("client=%p, params=%p, nparams=%p, flags=%x",
+              client, params, nparams, flags);
+
+    virResetLastError();
+    virCheckAdmClientReturn(client, -1);
+    virCheckNonNullArgGoto(params, error);
+
+    if ((ret = remoteAdminClientGetInfo(client, params, nparams, flags)) < 0)
+        goto error;
+
+    return ret;
+ error:
+    virDispatchError(NULL);
+    return -1;
+}
+
+/**
+ * virAdmClientClose:
+ * @client: a valid client object reference
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Close @client's connection to daemon forcefully.
+ *
+ * Returns 0 if the daemon's connection with @client was closed successfully
+ * or -1 in case of an error.
+ */
+int virAdmClientClose(virAdmClientPtr client,
+                      unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("client=%p, flags=%x", client, flags);
+    virResetLastError();
+
+    virCheckAdmClientGoto(client, error);
+
+    if ((ret = remoteAdminClientClose(client, flags)) < 0)
+        goto error;
+
+    return ret;
+ error:
+    virDispatchError(NULL);
+    return -1;
+}
+
+/**
+ * virAdmServerGetClientLimits:
+ * @srv: a valid server object reference
+ * @params: pointer to client limits object
+ *          (return value, allocated automatically)
+ * @nparams: pointer to number of parameters returned in @params
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Retrieve client limits from server @srv. These include:
+ *  - current number of clients connected to @srv,
+ *  - maximum number of clients connected to @srv,
+ *  - current number of clients connected to @srv waiting for authentication,
+ *  - maximum number of clients connected to @srv that can be wainting for
+ *  authentication.
+ *
+ * Returns 0 on success, allocating @params to size returned in @nparams, or
+ * -1 in case of an error. Caller is responsible for deallocating @params.
+ */
+int
+virAdmServerGetClientLimits(virAdmServerPtr srv,
+                            virTypedParameterPtr *params,
+                            int *nparams,
+                            unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("srv=%p, flags=%x", srv, flags);
+    virResetLastError();
+
+    virCheckAdmServerGoto(srv, error);
+
+    if ((ret = remoteAdminServerGetClientLimits(srv, params,
+                                                nparams, flags)) < 0)
+        goto error;
+
+    return ret;
+ error:
+    virDispatchError(NULL);
+    return -1;
+}
+
+/**
+ * virAdmServerSetClientLimits:
+ * @srv: a valid server object reference
+ * @params: pointer to client limits object
+ * @nparams: number of parameters in @params
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Change client limits configuration on server @srv.
+ *
+ * Caller is responsible for allocating @params prior to calling this function.
+ * See 'Manage per-server client limits' in libvirt-admin.h for
+ * supported parameters in @params.
+ *
+ * Returns 0 if the limits have been changed successfully or -1 in case of an
+ * error.
+ */
+int
+virAdmServerSetClientLimits(virAdmServerPtr srv,
+                            virTypedParameterPtr params,
+                            int nparams,
+                            unsigned int flags)
+{
+    int ret = -1;
+
+    VIR_DEBUG("srv=%p, params=%p, nparams=%d, flags=%x", srv, params, nparams,
+              flags);
+    VIR_TYPED_PARAMS_DEBUG(params, nparams);
+
+    virResetLastError();
+
+    virCheckAdmServerGoto(srv, error);
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNegativeArgGoto(nparams, error);
+
+    if ((ret = remoteAdminServerSetClientLimits(srv, params, nparams,
+                                                flags)) < 0)
+        goto error;
+
+    return ret;
+ error:
+    virDispatchError(NULL);
+    return ret;
 }

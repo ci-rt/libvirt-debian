@@ -22,7 +22,7 @@
 #include "testutils.h"
 #include "testutilsqemu.h"
 #include "qemumonitortestutils.h"
-#include "qemu/qemu_conf.h"
+#include "qemu/qemu_domain.h"
 #include "qemu/qemu_monitor_json.h"
 #include "virthread.h"
 #include "virerror.h"
@@ -112,6 +112,14 @@ const char *queryBlockReply =
 "                \"file\": \"/home/zippy/tmp/install-amd64-minimal-20121210.iso\","
 "                \"encryption_key_missing\": false"
 "            },"
+"            \"tray_open\": false,"
+"            \"type\": \"unknown\""
+"        },"
+"        {"
+"            \"io-status\": \"ok\","
+"            \"device\": \"drive-ide0-1-1\","
+"            \"locked\": false,"
+"            \"removable\": true,"
 "            \"tray_open\": false,"
 "            \"type\": \"unknown\""
 "        }"
@@ -1404,7 +1412,22 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockInfo(const void *data)
 
     info->locked = true;
     info->removable = true;
+    info->tray = true;
+
     if (virHashAddEntry(expectedBlockDevices, "ide0-1-0", info) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "Unable to create expectedBlockDevices hash table");
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC(info) < 0)
+        goto cleanup;
+
+    info->removable = true;
+    info->tray = true;
+    info->empty = true;
+
+    if (virHashAddEntry(expectedBlockDevices, "ide0-1-1", info) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        "Unable to create expectedBlockDevices hash table");
         goto cleanup;
@@ -1859,7 +1882,7 @@ testQemuMonitorJSONqemuMonitorJSONSetBlockIoThrottle(const void *data)
         goto cleanup;
 
     if (qemuMonitorJSONGetBlockIoThrottle(qemuMonitorTestGetMonitor(test),
-                                          "drive-virtio-disk0", &info, true) < 0)
+                                          "drive-virtio-disk0", &info) < 0)
         goto cleanup;
 
     if (memcmp(&info, &expectedInfo, sizeof(info)) != 0) {

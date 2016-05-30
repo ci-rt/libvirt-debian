@@ -48,27 +48,24 @@ static int load(xmlXPathContextPtr ctxt,
 {
     int ret = -1;
     xmlNodePtr ctxt_node;
-    xmlNodePtr cur;
+    xmlNodePtr *nodes = NULL;
+    int n;
 
     ctxt_node = ctxt->node;
 
-    cur = ctxt_node->children;
-    while (cur != NULL) {
-        if (cur->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(cur->name,
-                        BAD_CAST cpuMapElementTypeToString(element))) {
-            ctxt->node = cur;
-            if (callback(element, ctxt, data) < 0)
-                goto cleanup;
-        }
+    n = virXPathNodeSet(cpuMapElementTypeToString(element), ctxt, &nodes);
+    if (n < 0)
+        goto cleanup;
 
-        cur = cur->next;
-    }
+    if (n > 0 &&
+        callback(element, ctxt, nodes, n, data) < 0)
+        goto cleanup;
 
     ret = 0;
 
  cleanup:
     ctxt->node = ctxt_node;
+    VIR_FREE(nodes);
 
     return ret;
 }
@@ -105,17 +102,8 @@ int cpuMapLoad(const char *arch,
         goto cleanup;
     }
 
-    if ((xml = xmlParseFile(mapfile)) == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot parse CPU map file: %s"),
-                       mapfile);
+    if (!(xml = virXMLParseFileCtxt(mapfile, &ctxt)))
         goto cleanup;
-    }
-
-    if ((ctxt = xmlXPathNewContext(xml)) == NULL) {
-        virReportOOMError();
-        goto cleanup;
-    }
 
     virBufferAsprintf(&buf, "./arch[@name='%s']", arch);
     if (virBufferCheckError(&buf) < 0)
