@@ -3,7 +3,6 @@ Section: libs
 Priority: optional
 Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
 Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
-Testsuite: autopkgtest
 Build-Depends:
  debhelper (>= 8.9.7~),
  dh-autoreconf,
