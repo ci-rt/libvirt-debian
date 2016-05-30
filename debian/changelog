@@ -1,3 +1,15 @@
+libvirt (1.3.5~rc1-1) experimental; urgency=medium
+
+  * [ac3021d] Include libnuma-dev as a build-dep for ppc64el.  Thanks to
+    Fernando Seiti Furusato (Closes: #823516)
+  * [d0b310e] New upstream version 1.3.5~rc1
+  * [4218770] Rediff patches
+  * [048b740] Bump symbol versions
+  * [864b24a] Bump standards version - no source changes
+  * [12c4356] control: Remove superfluous testuite field
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 30 May 2016 22:00:33 +0200
+
 libvirt (1.3.4-1) unstable; urgency=medium
 
   * Upload to unstable
