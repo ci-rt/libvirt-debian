@@ -6,6 +6,10 @@ Tests: smoke-qemu-session
 Depends: libvirt-daemon
 Restrictions: allow-stderr, isolation-container
 
+Tests: smoke-lxc
+Depends: libvirt-daemon
+Restrictions: allow-stderr, needs-root
+
 Tests: build-test
 Depends: libvirt-dev
 Restrictions: allow-stderr

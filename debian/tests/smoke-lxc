@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e
+set -x
+
+export LIBVIRT_DEFAULT_URI='lxc:///'
+
+DOMAIN=sl
+
+cleanup()
+{
+   if [ -z "$CLEANED_UP" ]; then
+     virsh destroy ${DOMAIN}  || true
+     virsh undefine ${DOMAIN} || true
+     CLEANED_UP=1
+   fi
+}
+
+trap cleanup EXIT
+
+virsh define debian/tests/smoke-lxc.xml
+virsh start ${DOMAIN}
+virsh list | grep -qs "${DOMAIN}[[:space:]]\+running"
+virsh -c lxc:/// lxc-enter-namespace --noseclabel ${DOMAIN} /bin/ls /bin/ls
+virsh destroy ${DOMAIN}
+virsh undefine ${DOMAIN}
+CLEANED_UP=1
+
+echo 'Smoke test of lxc:/// succesful'
+exit 0
