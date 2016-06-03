@@ -1,0 +1,37 @@
+#!/bin/sh
+
+set -e
+set -x
+
+export LIBVIRT_DEFAULT_URI='qemu:///session'
+
+cleanup()
+{
+   if [ -z "$CLEANED_UP" ]; then
+     virsh destroy sqs  || true
+     virsh undefine sqs || true
+     CLEANED_UP=1
+   fi
+}
+
+trap cleanup EXIT
+
+if [ ! -f /vmlinuz ] || [ ! -f /initrd.img ]; then
+   echo "Kernel or initrd not found...skipping".
+   exit 0
+fi
+
+if [ $(uname -m) != "x86_64" ]; then
+   echo "Not on x86_64...skipping"
+   exit 0
+fi
+
+virsh define debian/tests/smoke-qemu-session.xml
+virsh start sqs
+virsh list | grep -qs 'sqs[[:space:]]\+running'
+virsh destroy sqs
+virsh undefine sqs
+CLEANED_UP=1
+
+echo 'Smoke test of qemu session:/// succesful'
+exit 0

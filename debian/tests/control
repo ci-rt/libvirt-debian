@@ -2,6 +2,11 @@ Tests: smoke
 Depends: @
 Restrictions: allow-stderr
 
+Tests: smoke-qemu-session
+Depends: libvirt-daemon
+Restrictions: allow-stderr, isolation-container
+
 Tests: build-test
 Depends: libvirt-dev
 Restrictions: allow-stderr
+
